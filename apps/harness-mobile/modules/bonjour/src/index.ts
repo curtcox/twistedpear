@@ -1,10 +1,10 @@
 import { requireNativeModule, type EventSubscription } from "expo-modules-core";
 import { Platform } from "react-native";
-import {
-  BONJOUR_RETICULUM_SERVICE,
-  type BonjourBridge,
-  type BonjourBridgeEvents,
-  type BonjourServiceRecord
+import { BONJOUR_RETICULUM_SERVICE } from "../../../../../packages/reticulum-interfaces/dist/auto-discovery.js";
+import type {
+  BonjourBridge,
+  BonjourBridgeEvents,
+  BonjourServiceRecord
 } from "@twistedpear/reticulum-interfaces";
 
 interface BonjourNative {
@@ -17,9 +17,18 @@ interface BonjourNative {
   addListener(event: "onNetworkChange", listener: (event: { readonly interfaces: ReadonlyArray<{ readonly name: string; readonly linkLocalAddress: string }> }) => void): EventSubscription;
 }
 
-const NativeBonjour = Platform.OS === "ios"
-  ? requireNativeModule<BonjourNative>("TwistedPearBonjour")
-  : null;
+function loadNativeBonjour(): BonjourNative | null {
+  if (Platform.OS !== "ios") {
+    return null;
+  }
+  try {
+    return requireNativeModule<BonjourNative>("TwistedPearBonjour");
+  } catch {
+    return null;
+  }
+}
+
+const NativeBonjour = loadNativeBonjour();
 
 export function getBonjourCapability(): { readonly supported: boolean; readonly reason: string | null } {
   if (NativeBonjour === null) {

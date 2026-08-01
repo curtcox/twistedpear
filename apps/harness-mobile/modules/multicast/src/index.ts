@@ -25,9 +25,18 @@ export interface MulticastNetworkChangeEvent {
   readonly interfaces: ReadonlyArray<MulticastNetworkInfo>;
 }
 
-const NativeMulticast = Platform.OS === "android" || Platform.OS === "ios"
-  ? requireNativeModule<MulticastNative>("TwistedPearMulticast")
-  : null;
+function loadNativeMulticast(): MulticastNative | null {
+  if (Platform.OS !== "android" && Platform.OS !== "ios") {
+    return null;
+  }
+  try {
+    return requireNativeModule<MulticastNative>("TwistedPearMulticast");
+  } catch {
+    return null;
+  }
+}
+
+const NativeMulticast = loadNativeMulticast();
 
 export function getMulticastCapability(): { readonly supported: boolean; readonly reason: string | null; readonly entitlementRequired: boolean } {
   if (NativeMulticast === null) {

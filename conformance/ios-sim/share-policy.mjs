@@ -61,7 +61,14 @@ export async function runIosSharePolicy(options = {}) {
   const result = spawnSync(
     "maestro",
     ["test", ".maestro/share-policy.yaml"],
-    { cwd: repoRoot, stdio: "inherit" }
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
+      }
+    }
   );
   if (result.status !== 0) {
     fail(`maestro share-policy failed with status ${result.status}`);

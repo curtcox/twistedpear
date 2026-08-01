@@ -12,16 +12,24 @@ const handbookRoot = dirname(fileURLToPath(import.meta.url));
 export const HANDBOOK_FIXTURE_META_PATH = join(handbookRoot, "handbook-fixture-meta.json");
 export const HARNESS_BUNDLE_ID = "network.twistedpear.harness";
 
+export function maestroAvailable() {
+  const env = {
+    ...process.env,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
+  };
+  const result = spawnSync("maestro", ["--version"], { encoding: "utf8", env });
+  return result.status === 0;
+}
+
 export function maestro(args) {
-  const result = spawnSync("maestro", args, { stdio: "inherit" });
+  const env = {
+    ...process.env,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
+  };
+  const result = spawnSync("maestro", args, { stdio: "inherit", env });
   if (result.status !== 0) {
     throw new Error(`maestro ${args.join(" ")} failed`);
   }
-}
-
-export function maestroAvailable() {
-  const result = spawnSync("maestro", ["--version"], { encoding: "utf8" });
-  return result.status === 0;
 }
 
 export function maestroHandbookSmoke() {

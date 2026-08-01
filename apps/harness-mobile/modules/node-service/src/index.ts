@@ -14,9 +14,18 @@ interface NodeServiceNative {
   addListener(event: "onLifecycleChange", listener: (event: NodeLifecycleChangeEvent) => void): EventSubscription;
 }
 
-const NativeNodeService = Platform.OS === "android" || Platform.OS === "ios"
-  ? requireNativeModule<NodeServiceNative>("TwistedPearNodeService")
-  : null;
+function loadNativeNodeService(): NodeServiceNative | null {
+  if (Platform.OS !== "android" && Platform.OS !== "ios") {
+    return null;
+  }
+  try {
+    return requireNativeModule<NodeServiceNative>("TwistedPearNodeService");
+  } catch {
+    return null;
+  }
+}
+
+const NativeNodeService = loadNativeNodeService();
 
 export type NodeLifecycleState = "unsupported" | "stopped" | "foreground" | "background-grace" | "suspended" | "background-wake";
 

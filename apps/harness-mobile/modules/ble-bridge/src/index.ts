@@ -33,9 +33,18 @@ export interface BlePeerDiscoveredEvent {
   readonly deviceAddress: string;
 }
 
-const NativeBleBridge = Platform.OS === "android" || Platform.OS === "ios"
-  ? requireNativeModule<BleBridgeNative>("TwistedPearBleBridge")
-  : null;
+function loadNativeBleBridge(): BleBridgeNative | null {
+  if (Platform.OS !== "android" && Platform.OS !== "ios") {
+    return null;
+  }
+  try {
+    return requireNativeModule<BleBridgeNative>("TwistedPearBleBridge");
+  } catch {
+    return null;
+  }
+}
+
+const NativeBleBridge = loadNativeBleBridge();
 
 export function getBleBridgeCapability(): { readonly supported: boolean; readonly reason: string | null; readonly backgroundModesRequired: boolean } {
   if (NativeBleBridge === null) {

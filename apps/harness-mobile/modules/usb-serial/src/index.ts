@@ -47,9 +47,18 @@ interface UsbSerialNative {
   addListener(event: "onPermissionResult", listener: (event: UsbSerialPermissionEvent) => void): EventSubscription;
 }
 
-const NativeUsbSerial = Platform.OS === "android"
-  ? requireNativeModule<UsbSerialNative>("TwistedPearUsbSerial")
-  : null;
+function loadNativeUsbSerial(): UsbSerialNative | null {
+  if (Platform.OS !== "android") {
+    return null;
+  }
+  try {
+    return requireNativeModule<UsbSerialNative>("TwistedPearUsbSerial");
+  } catch {
+    return null;
+  }
+}
+
+const NativeUsbSerial = loadNativeUsbSerial();
 
 export type UsbSerialCapability =
   | { readonly supported: true; readonly reason: null }

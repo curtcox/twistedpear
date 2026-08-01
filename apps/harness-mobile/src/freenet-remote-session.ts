@@ -8,7 +8,7 @@ import {
   freenetGrantLogSafe,
   type FreenetRemoteGrant,
   validateFreenetNodeUrl
-} from "./freenet-remote-grant.js";
+} from "./freenet-remote-grant";
 
 export type FreenetRemoteSessionStatus =
   | "idle"

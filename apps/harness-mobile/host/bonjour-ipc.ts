@@ -1,16 +1,27 @@
 import {
   createNativeBonjourBridge,
+  getBonjourCapability,
   stopNativeBonjourBridge
 } from "@twistedpear/bonjour";
-import { BONJOUR_RETICULUM_SERVICE } from "@twistedpear/reticulum-interfaces";
+import type { BonjourBridge } from "@twistedpear/reticulum-interfaces";
+import { BONJOUR_RETICULUM_SERVICE } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
 import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
 
 /** Host-side glue: native Bonjour bridge ↔ worklet IPC. */
 export class HostBonjourIpc {
-  private bridge = createNativeBonjourBridge();
+  private bridge: BonjourBridge | null = null;
 
-  constructor(private readonly sendToWorklet: (message: HostToWorkletMessage) => void) {
-    this.bridge.setEvents({
+  constructor(private readonly sendToWorklet: (message: HostToWorkletMessage) => void) {}
+
+  private ensureBridge(): BonjourBridge | null {
+    if (this.bridge !== null) {
+      return this.bridge;
+    }
+    if (!getBonjourCapability().supported) {
+      return null;
+    }
+    const bridge = createNativeBonjourBridge();
+    bridge.setEvents({
       onServiceFound: (record) => {
         this.sendToWorklet({
           type: "bonjour-peer",
@@ -26,14 +37,24 @@ export class HostBonjourIpc {
         console.warn(`[bonjour-ipc] ${message}`);
       }
     });
+    this.bridge = bridge;
+    return bridge;
   }
 
   async start(): Promise<void> {
-    await this.bridge.start(BONJOUR_RETICULUM_SERVICE);
+    const bridge = this.ensureBridge();
+    if (bridge === null) {
+      return;
+    }
+    await bridge.start(BONJOUR_RETICULUM_SERVICE);
   }
 
   async stop(): Promise<void> {
+    if (this.bridge === null) {
+      return;
+    }
     await stopNativeBonjourBridge(this.bridge);
+    this.bridge = null;
   }
 
   async handleWorkletMessage(message: WorkletToHostMessage): Promise<void> {
@@ -48,7 +69,11 @@ export class HostBonjourIpc {
     }
 
     if (message.type === "bonjour-advertise") {
-      await this.bridge.advertise({
+      const bridge = this.ensureBridge();
+      if (bridge === null) {
+        return;
+      }
+      await bridge.advertise({
         id: `${message.ifname}:${message.address}:${message.port}`,
         ifname: message.ifname,
         host: message.address,

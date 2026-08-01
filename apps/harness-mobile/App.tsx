@@ -18,8 +18,7 @@ import qrcodeModule from "qrcode-generator";
 import { decodePeerAudioFskStream, encodePeerAudioFsk } from "@twistedpear/protocol";
 import { nativePeerAudioSupported, playNativePeerPcm, recordNativePeerPcm, requestNativePeerAudioPermission } from "@twistedpear/peer-audio";
 import { Worklet } from "react-native-bare-kit";
-import b4a from "b4a";
-import bundle from "../worklet/worklet.bundle.mjs";
+import bundle from "./worklet/worklet.bundle.mjs";
 import { getNodeLifecycleState, isNodeServiceRunning, startNodeService, stopNodeService, addNodeLifecycleListener, type NodeLifecycleState } from "@twistedpear/node-service";
 import { HostMulticastIpc } from "./host/multicast-ipc";
 import { HostBonjourIpc } from "./host/bonjour-ipc";
@@ -234,8 +233,77 @@ export default function App() {
       return;
     }
 
-    worklet.IPC.write(b4a.from(encodeMessage(message)));
+    worklet.IPC.write(new TextEncoder().encode(encodeMessage(message)));
   }, []);
+
+  /** Maestro chrome probe: seed share UI even when Bare worklet cannot start. */
+  const seedShareOfferChrome = useCallback(
+    (options: {
+      readonly appId: string;
+      readonly displayLabel: string;
+      readonly classId: string;
+      readonly ttlMs: number;
+    }) => {
+      const id = `host-seed-${Date.now()}`;
+      const expiresAt = Date.now() + options.ttlMs;
+      const offer = {
+        id,
+        appId: options.appId,
+        displayLabel: options.displayLabel,
+        classId: options.classId,
+        tierId: "pcm",
+        maxRung: "16k-opus",
+        expiresAt
+      };
+      setDeviceState((current) => ({
+        inventory: current?.inventory ?? [],
+        diagnostics: current?.diagnostics ?? [],
+        sessions: current?.sessions ?? [],
+        indicators: current?.indicators ?? [],
+        disabledClasses: current?.disabledClasses ?? [],
+        remoteAcquisitionEnabled: current?.remoteAcquisitionEnabled === true,
+        shareOffers: [...(current?.shareOffers ?? []).filter((entry) => entry.id !== id), offer]
+      }));
+      // Prefer live worklet seed when available; host state covers Maestro when Bare aborts.
+      sendToWorklet({
+        type: "device-test-seed-share",
+        appId: options.appId,
+        displayLabel: options.displayLabel,
+        classId: options.classId,
+        ttlMs: options.ttlMs
+      });
+      if (options.ttlMs <= 10_000) {
+        setTimeout(() => {
+          setDeviceState((current) => {
+            if (current === null) {
+              return current;
+            }
+            return {
+              ...current,
+              shareOffers: current.shareOffers.filter((entry) => entry.id !== id && entry.expiresAt > Date.now())
+            };
+          });
+        }, Math.max(50, options.ttlMs + 50));
+      }
+    },
+    [sendToWorklet]
+  );
+
+  const revokeShareOfferChrome = useCallback(
+    (appId: string, id: string) => {
+      setDeviceState((current) => {
+        if (current === null) {
+          return current;
+        }
+        return {
+          ...current,
+          shareOffers: current.shareOffers.filter((entry) => entry.id !== id)
+        };
+      });
+      sendToWorklet({ type: "device-revoke-share", appId, id });
+    },
+    [sendToWorklet]
+  );
 
   const applyFreenetGrantToWorklet = useCallback(
     (grant: FreenetRemoteGrant | null) => {
@@ -612,7 +680,6 @@ export default function App() {
     }
 
     const worklet = new Worklet();
-    worklet.start("/app.bundle", bundle);
     multicastIpcRef.current = new HostMulticastIpc(sendToWorklet);
     bonjourIpcRef.current = Platform.OS === "ios" ? new HostBonjourIpc(sendToWorklet) : null;
     bleIpcRef.current = new HostBleIpc(sendToWorklet);
@@ -621,7 +688,7 @@ export default function App() {
     ipcBufferRef.current = "";
     worklet.IPC.on("data", (data) => {
       const bytes = data instanceof Uint8Array ? data : new Uint8Array(data as ArrayLike<number>);
-      const decoded = decodeMessages(`${ipcBufferRef.current}${b4a.toString(bytes)}`);
+      const decoded = decodeMessages(`${ipcBufferRef.current}${new TextDecoder().decode(bytes)}`);
       ipcBufferRef.current = decoded.remainder;
       for (const message of decoded.messages) {
         handleWorkletMessage(message);
@@ -630,24 +697,42 @@ export default function App() {
 
     workletRef.current = worklet;
     const targetHost = Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST;
-    sendToWorklet({
-      type: "start",
-      targetHost,
-      targetPort: DEFAULT_DOCKER_PORT,
-      multicastEntitled: Platform.OS !== "ios",
-      bonjourEnabled: true
-      , ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() })
-    });
-    pushInterfaceConfig({
-      tcp: tcpEnabled,
-      auto: autoEnabled,
-      ble: bleEnabled,
-      rnode: rnodeEnabled,
-      rnodeDeviceId: selectedUsbDeviceId
-    });
-    sendToWorklet({ type: "device-list" });
-    appendLog(`Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`);
+
+    void (async () => {
+      try {
+        await worklet.start("/app.bundle", bundle);
+      } catch (error) {
+        workletRef.current = null;
+        appendLog(`Worklet start failed: ${error instanceof Error ? error.message : String(error)}`);
+        setStatus((current) => ({ ...current, running: false, linkOnline: false }));
+        return;
+      }
+
+      if (workletRef.current !== worklet) {
+        return;
+      }
+
+      sendToWorklet({
+        type: "start",
+        targetHost,
+        targetPort: DEFAULT_DOCKER_PORT,
+        multicastEntitled: Platform.OS !== "ios",
+        bonjourEnabled: true,
+        ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() })
+      });
+      pushInterfaceConfig({
+        tcp: tcpEnabled,
+        auto: autoEnabled,
+        ble: bleEnabled,
+        rnode: rnodeEnabled,
+        rnodeDeviceId: selectedUsbDeviceId
+      });
+      sendToWorklet({ type: "device-list" });
+      appendLog(`Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`);
+    })();
   }, [appendLog, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, handleWorkletMessage, ntfyUrl, pushInterfaceConfig, sendToWorklet, tcpEnabled]);
+
+  const interfacesWantedWorkletRef = useRef(false);
 
   useEffect(() => {
     const shouldRun = tcpEnabled || autoEnabled || bleEnabled || rnodeEnabled;
@@ -657,10 +742,16 @@ export default function App() {
       } else {
         startWorklet();
       }
+      interfacesWantedWorkletRef.current = true;
       return;
     }
 
-    stopWorklet();
+    // Only stop when interfaces transition off. Do not kill worklets started for
+    // identity/seed chrome when startWorklet's callback identity churns.
+    if (interfacesWantedWorkletRef.current) {
+      stopWorklet();
+    }
+    interfacesWantedWorkletRef.current = false;
   }, [tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled, startWorklet, stopWorklet]);
 
   useEffect(() => {
@@ -932,7 +1023,7 @@ export default function App() {
               <Pressable
                 testID="device-stop-sharing"
                 style={styles.dangerButton}
-                onPress={() => sendToWorklet({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}
+                onPress={() => revokeShareOfferChrome(offer.appId, offer.id)}
               >
                 <Text style={styles.buttonLabel}>Stop sharing</Text>
               </Pressable>
@@ -1012,8 +1103,7 @@ export default function App() {
             testID="seed-share-offer"
             label="Seed share offer"
             onPress={() => {
-              sendToWorklet({
-                type: "device-test-seed-share",
+              seedShareOfferChrome({
                 appId: "line-check",
                 displayLabel: "Ana",
                 classId: "microphone",
@@ -1026,8 +1116,7 @@ export default function App() {
             testID="seed-share-offer-short"
             label="Seed short share"
             onPress={() => {
-              sendToWorklet({
-                type: "device-test-seed-share",
+              seedShareOfferChrome({
                 appId: "line-check",
                 displayLabel: "Ana",
                 classId: "microphone",

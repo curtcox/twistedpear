@@ -101,14 +101,22 @@ export function launchHarness() {
 }
 
 export function maestro(args) {
-  const result = spawnSync("maestro", args, { stdio: "inherit" });
+  const env = {
+    ...process.env,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
+  };
+  const result = spawnSync("maestro", args, { stdio: "inherit", env });
   if (result.status !== 0) {
     throw new Error(`maestro ${args.join(" ")} failed`);
   }
 }
 
 export function maestroAvailable() {
-  const result = spawnSync("maestro", ["--version"], { encoding: "utf8" });
+  const env = {
+    ...process.env,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
+  };
+  const result = spawnSync("maestro", ["--version"], { encoding: "utf8", env });
   return result.status === 0;
 }
 
