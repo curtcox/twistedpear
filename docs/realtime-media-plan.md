@@ -606,7 +606,8 @@ No hardware in CI, matching existing practice:
   Mac; the readiness exchange, the active probe, and the `TPD2` carrier ride it and land in
   `multipeer-proof.json`.
 - **Trusted chrome.** `npm run test:share-policy` drives the shipping desktop renderer for
-  grant, revoke, expiry, restart, indicator presence, and the invitation accept/decline path.
+  grant, revoke, expiry, restart, indicator presence, invitation accept/decline, and the
+  invite → live call → honest degrade → kill → revoke chrome arc.
 - **Ladder behavior.** `npm run test:sim-media-ladder` runs admission and adaptation against
   the collapse/recovery, asymmetric, bufferbloat, and flapping profiles.
 - **Formal.** `npm run formal:stream` cross-checks the four SPEC-STREAM representations, the

@@ -8,8 +8,9 @@
  * `renderSessionInvites` code paths. What is asserted here is the chrome
  * contract the plan requires: the indicator is present while sharing, stopping
  * is one interaction away, expiry is visible, a restart with no re-consent
- * shows nothing, and accepting an invitation is the only thing that launches
- * an app.
+ * shows nothing, accepting an invitation is the only thing that launches an
+ * app, and after accept the chrome can show a live call, an honest degradation,
+ * and one-click kill plus share revoke.
  */
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -167,8 +168,72 @@ try {
     fail("the renderer launched a mini-app directly instead of letting the host do it");
   }
 
+  // Invite → accept → call → degrade → revoke: after the host launches the app,
+  // chrome must show the live session, reflect an honest rung drop, and let the
+  // user kill the call and revoke the standing share in one interaction each.
+  await deliver(page, { type: "session-invites", invites: [] });
+  await inviteBanner.waitFor({ state: "hidden", timeout: 5_000 });
+  const callExpiresAt = Date.now() + 10 * 60_000;
+  await deliver(
+    page,
+    deviceState({
+      indicators: [
+        {
+          handle: "session-call-1",
+          appId: "line-check",
+          class: "microphone",
+          tier: "pcm",
+          consentClass: "sensitive",
+          purpose: "call with Ana",
+          destination: "peer-a"
+        }
+      ],
+      shareOffers: [{ ...SHARE_OFFER, expiresAt: callExpiresAt }]
+    })
+  );
+  await banner.waitFor({ state: "visible", timeout: 5_000 });
+  let callText = (await banner.innerText()).replace(/\s+/g, " ");
+  for (const needle of ["line-check", "microphone", "pcm", "call with Ana", "Stop", "Stop sharing", "Ana"]) {
+    if (!callText.includes(needle)) fail(`active call chrome omitted ${needle}: ${callText}`);
+  }
+
+  await deliver(
+    page,
+    deviceState({
+      indicators: [
+        {
+          handle: "session-call-1",
+          appId: "line-check",
+          class: "microphone",
+          tier: "derived",
+          consentClass: "sensitive",
+          purpose: "link dropped to audio events only",
+          destination: "peer-a"
+        }
+      ],
+      shareOffers: [{ ...SHARE_OFFER, expiresAt: callExpiresAt }]
+    })
+  );
+  callText = (await banner.innerText()).replace(/\s+/g, " ");
+  for (const needle of ["derived", "link dropped to audio events only"]) {
+    if (!callText.includes(needle)) fail(`degraded call chrome omitted ${needle}: ${callText}`);
+  }
+
+  await banner.getByRole("button", { name: "Stop", exact: true }).click();
+  const killed = (await sent(page)).filter((message) => message.type === "device-kill-session");
+  if (killed.length !== 1 || killed[0].handle !== "session-call-1") {
+    fail(`call stop did not send one device-kill-session: ${JSON.stringify(killed)}`);
+  }
+  await banner.getByRole("button", { name: "Stop sharing" }).click();
+  const callRevoke = (await sent(page)).filter((message) => message.type === "device-revoke-share");
+  if (callRevoke.length < 2 || callRevoke.at(-1)?.id !== "offer-1") {
+    fail(`call revoke did not send device-revoke-share for the offer: ${JSON.stringify(callRevoke)}`);
+  }
+  await deliver(page, deviceState());
+  await banner.waitFor({ state: "hidden", timeout: 5_000 });
+
   if (pageErrors.length > 0) fail(`renderer raised ${pageErrors.join("; ")}`);
-  console.log("share-policy: grant, revoke, expiry, restart, indicator, invite accept/decline passed");
+  console.log("share-policy: grant, revoke, expiry, restart, indicator, invite accept/decline, invite→call→degrade→revoke passed");
 } catch (error) {
   console.error(`share-policy: failed — ${error instanceof Error ? error.message : String(error)}`);
   process.exitCode = 1;
