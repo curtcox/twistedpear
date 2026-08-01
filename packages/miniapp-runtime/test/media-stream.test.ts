@@ -12,6 +12,7 @@ import {
   createHostPlaneOpeners,
   createPearsBulkAppendPlaneOpener,
   createPeerRoutePlaneOpeners,
+  createWebRtcMediaTrackPlaneOpener,
   type InboundMediaBackend,
   type StreamOffer
 } from "../src/media-stream.js";
@@ -413,5 +414,90 @@ describe("host plane openers", () => {
     });
     await egress.send(new Uint8Array([7]));
     expect(append).toHaveBeenCalledOnce();
+  });
+
+  it("attaches host WebRTC media tracks and falls back to the data-channel route", async () => {
+    const attached: MediaStreamTrack[] = [];
+    const remoteSeen: MediaStreamTrack[] = [];
+    const local = { kind: "audio", id: "mic", stop() {} } as MediaStreamTrack;
+    const remote = { kind: "audio", id: "peer-mic" } as MediaStreamTrack;
+    const listeners = new Set<(track: MediaStreamTrack, streams: ReadonlyArray<MediaStream>) => void>();
+    const trackEgress = await createWebRtcMediaTrackPlaneOpener({
+      routeForPeer: () => ({
+        attachTrack(track) {
+          attached.push(track);
+          return { track } as RTCRtpSender;
+        },
+        onRemoteTrack(listener) {
+          listeners.add(listener);
+          return () => {
+            listeners.delete(listener);
+          };
+        },
+        close() {}
+      }),
+      getOutboundTrack: async () => local,
+      onRemoteTrack: ({ track }) => {
+        remoteSeen.push(track);
+      }
+    })({
+      appId: "line-check",
+      peer: "peer-ana",
+      demand: { classId: "microphone", tierId: "pcm" },
+      admission: {
+        kind: "accept",
+        plane: "webrtc",
+        rung: "16k-opus",
+        rungIndex: 1,
+        demandBps: 24_000,
+        admittedDemandBps: 24_000,
+        supplyBps: 2_000_000,
+        reason: "test"
+      }
+    });
+    expect(attached).toEqual([local]);
+    for (const listener of listeners) listener(remote, []);
+    expect(remoteSeen).toEqual([remote]);
+    expect(await trackEgress.send(new Uint8Array([1]))).toEqual({ queuedBytes: 0, droppedOldest: 0 });
+
+    const dataChannel = vi.fn(async () => ({
+      plane: "webrtc" as const,
+      send: async () => ({ queuedBytes: 0, droppedOldest: 0 }),
+      quality: () => ({
+        goodputBps: 1,
+        rttMs: 1,
+        jitterMs: 0,
+        lossRatio: 0,
+        mtu: 1,
+        source: "declared" as const,
+        samples: 0,
+        confidence: "low" as const
+      }),
+      close: async () => {}
+    }));
+    const openers = createHostPlaneOpeners({
+      peerRouteFactory: { create: dataChannel },
+      webrtcMedia: {
+        routeForPeer: () => undefined,
+        getOutboundTrack: async () => null
+      }
+    });
+    const factory = new PlaneStreamEgressFactory(openers);
+    await factory.create({
+      appId: "line-check",
+      peer: "peer-ana",
+      demand: { classId: "microphone", tierId: "pcm" },
+      admission: {
+        kind: "accept",
+        plane: "webrtc",
+        rung: "16k-opus",
+        rungIndex: 1,
+        demandBps: 24_000,
+        admittedDemandBps: 24_000,
+        supplyBps: 2_000_000,
+        reason: "test"
+      }
+    });
+    expect(dataChannel).toHaveBeenCalledOnce();
   });
 });

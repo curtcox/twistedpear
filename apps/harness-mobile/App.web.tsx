@@ -203,7 +203,19 @@ export default function App() {
   const [sessionInvites, setSessionInvites] = useState<ReadonlyArray<SessionInviteView>>([]);
   const [pwaInstallAvailability, setPwaInstallAvailability] = useState<PwaInstallAvailability>("unavailable");
   const pwaInstallRef = useRef<ReturnType<typeof createPwaInstallController> | null>(null);
-  const peerRtcRef = useRef(new Map<string, { pc: any; channel: any; role: "offer" | "answer" }>());
+  const peerRtcRef = useRef(
+    new Map<
+      string,
+      {
+        pc: any;
+        channel: any;
+        role: "offer" | "answer";
+        remoteTracks: MediaStreamTrack[];
+        remoteTrackListeners: Set<(track: MediaStreamTrack) => void>;
+        attachTrack(track: MediaStreamTrack): RTCRtpSender;
+      }
+    >()
+  );
 
   const previewOptions = useMemo(
     () =>
@@ -337,9 +349,35 @@ export default function App() {
           try {
             const PeerConnection = (globalThis as { RTCPeerConnection?: new () => any }).RTCPeerConnection;
             if (PeerConnection === undefined) { sendToWorker({ type: "peer-chrome-response", token: message.token }); return; }
-            const pc = new PeerConnection(); const state = { pc, channel: null as any, role: message.role }; peerRtcRef.current.set(message.sessionId, state);
-            if (message.role === "offer") { state.channel = pc.createDataChannel("twistedpear-peer", { ordered: true }); state.channel.binaryType = "arraybuffer"; await pc.setLocalDescription(await pc.createOffer()); }
-            else { if (message.remoteSignal === undefined) throw new Error("WebRTC offer is missing"); pc.addEventListener("datachannel", (event: any) => { state.channel = event.channel; state.channel.binaryType = "arraybuffer"; }); await pc.setRemoteDescription(JSON.parse(message.remoteSignal)); await pc.setLocalDescription(await pc.createAnswer()); }
+            const pc = new PeerConnection();
+            const state = {
+              pc,
+              channel: null as any,
+              role: message.role,
+              remoteTracks: [] as MediaStreamTrack[],
+              remoteTrackListeners: new Set<(track: MediaStreamTrack) => void>(),
+              attachTrack(track: MediaStreamTrack) {
+                return pc.addTrack(track);
+              }
+            };
+            peerRtcRef.current.set(message.sessionId, state);
+            pc.addEventListener("track", (event: { track: MediaStreamTrack }) => {
+              state.remoteTracks.push(event.track);
+              for (const listener of state.remoteTrackListeners) listener(event.track);
+            });
+            if (message.role === "offer") {
+              pc.addTransceiver("audio", { direction: "sendrecv" });
+              pc.addTransceiver("video", { direction: "sendrecv" });
+              state.channel = pc.createDataChannel("twistedpear-peer", { ordered: true });
+              state.channel.binaryType = "arraybuffer";
+              await pc.setLocalDescription(await pc.createOffer());
+            }
+            else {
+              if (message.remoteSignal === undefined) throw new Error("WebRTC offer is missing");
+              pc.addEventListener("datachannel", (event: any) => { state.channel = event.channel; state.channel.binaryType = "arraybuffer"; });
+              await pc.setRemoteDescription(JSON.parse(message.remoteSignal));
+              await pc.setLocalDescription(await pc.createAnswer());
+            }
             if (pc.iceGatheringState !== "complete") await new Promise<void>((resolve) => { const timer = setTimeout(resolve, 2_000); const changed = () => { if (pc.iceGatheringState === "complete") { clearTimeout(timer); pc.removeEventListener("icegatheringstatechange", changed); resolve(); } }; pc.addEventListener("icegatheringstatechange", changed); });
             const local = pc.localDescription; if (local === null) throw new Error("WebRTC did not produce a local signal");
             sendToWorker({ type: "peer-chrome-response", token: message.token, signal: JSON.stringify({ type: local.type, sdp: local.sdp }) });

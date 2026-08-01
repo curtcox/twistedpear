@@ -149,7 +149,11 @@ export type { BluetoothDiscoveryAdapterOptions, BluetoothDiscoveryChannel, Bluet
 export { LocalPeerToPeerDiscoveryAdapter } from "./local-peer-to-peer.js";
 export { decodePeerQrRgba, MAX_PORTABLE_QR_DIMENSION, PortableQrDecodeError } from "./portable-qr.js";
 export { WebRtcRouteController } from "./webrtc-route.js";
-export type { WebRtcRoute, WebRtcRouteControllerOptions } from "./webrtc-route.js";
+export type {
+  WebRtcMediaRoute,
+  WebRtcRoute,
+  WebRtcRouteControllerOptions
+} from "./webrtc-route.js";
 export { ReticulumPeerDiscoveryAdapter } from "./reticulum.js";
 export type { ReticulumDiscoveryAdapterOptions, ReticulumDiscoveryChannel, ReticulumInboundInvitation } from "./reticulum.js";
 export { meterHostPeerRoute } from "./route-quality.js";

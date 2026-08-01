@@ -454,15 +454,18 @@ export function createCasDerivedPlaneOpener(
 }
 
 /**
- * Builds the host plane table: live peer-route openers plus optional CAS and
- * Pears-bulk Hyperdrive append openers. Missing planes stay absent so admission
- * still fails closed. When both a peer-route pears-bulk opener and an append
- * opener exist, the authenticated gateway route is tried first.
+ * Builds the host plane table: live peer-route openers plus optional CAS,
+ * Pears-bulk Hyperdrive append, and WebRTC media-track openers. Missing planes
+ * stay absent so admission still fails closed. When both a peer-route pears-bulk
+ * opener and an append opener exist, the authenticated gateway route is tried
+ * first. When a WebRTC media-track opener exists, tracks are preferred over the
+ * data-channel peer-route path.
  */
 export function createHostPlaneOpeners(input: {
   readonly peerRouteFactory?: StreamEgressFactory;
   readonly cas?: CasDerivedPlaneOpenerOptions;
   readonly pearsBulk?: PearsBulkAppendPlaneOpenerOptions;
+  readonly webrtcMedia?: WebRtcMediaTrackPlaneOpenerOptions;
 }): Partial<Record<StreamPlane, PlaneMediaTransportOpener>> {
   const openers: Partial<Record<StreamPlane, PlaneMediaTransportOpener>> = {
     ...(input.peerRouteFactory === undefined ? {} : createPeerRoutePlaneOpeners(input.peerRouteFactory)),
@@ -482,7 +485,116 @@ export function createHostPlaneOpeners(input: {
             }
           };
   }
+  if (input.webrtcMedia !== undefined) {
+    const tracks = createWebRtcMediaTrackPlaneOpener(input.webrtcMedia);
+    const routed = openers.webrtc;
+    openers.webrtc =
+      routed === undefined
+        ? tracks
+        : async (request) => {
+            try {
+              return await tracks(request);
+            } catch {
+              return routed(request);
+            }
+          };
+  }
   return openers;
+}
+
+/** Host-owned WebRTC media surface; never crosses the mini-app broker. */
+export interface WebRtcMediaTrackHandle {
+  attachTrack(track: MediaStreamTrack, streams?: MediaStream[]): RTCRtpSender;
+  onRemoteTrack(listener: (track: MediaStreamTrack, streams: ReadonlyArray<MediaStream>) => void): () => void;
+  quality?(): LinkQuality;
+  close(): void;
+}
+
+export interface WebRtcMediaTrackPlaneOpenerOptions {
+  readonly routeForPeer: (input: { readonly appId: string; readonly peer: string }) => WebRtcMediaTrackHandle | undefined;
+  /** Returns a local capture track, or `null` to fall through to the data-channel path. */
+  readonly getOutboundTrack: (input: {
+    readonly appId: string;
+    readonly peer: string;
+    readonly demand: StreamDemand;
+  }) => Promise<MediaStreamTrack | null>;
+  readonly onRemoteTrack?: (input: {
+    readonly appId: string;
+    readonly peer: string;
+    readonly track: MediaStreamTrack;
+  }) => void;
+}
+
+/**
+ * Top WebRTC plane via RTP media tracks on the host `RTCPeerConnection`.
+ * `send()` is a no-op for TPM1/TPD2 — media rides the attached track. Hosts that
+ * cannot supply a track throw so `createHostPlaneOpeners` can fall back to the
+ * authenticated data-channel peer-route opener.
+ */
+export function createWebRtcMediaTrackPlaneOpener(
+  options: WebRtcMediaTrackPlaneOpenerOptions
+): PlaneMediaTransportOpener {
+  return async (input) => {
+    if (input.admission.plane !== "webrtc") {
+      throw new Error("WebRTC media-track opener was asked for a different admitted plane.");
+    }
+    if (!isLiveWebRtcTrackDemand(input.demand)) {
+      throw new Error("WebRTC media tracks admit live pcm/frames demand only.");
+    }
+    const route = options.routeForPeer({ appId: input.appId, peer: input.peer });
+    if (route === undefined) {
+      throw new Error("No host WebRTC media route for peer.");
+    }
+    const track = await options.getOutboundTrack({
+      appId: input.appId,
+      peer: input.peer,
+      demand: input.demand
+    });
+    if (track === null) {
+      throw new Error("Host did not supply an outbound media track.");
+    }
+    const sender = route.attachTrack(track);
+    const unsubscribe =
+      options.onRemoteTrack === undefined
+        ? undefined
+        : route.onRemoteTrack((remote) => {
+            options.onRemoteTrack?.({ appId: input.appId, peer: input.peer, track: remote });
+          });
+    let closed = false;
+    return {
+      async send() {
+        if (closed) throw new Error("WebRTC media-track transport is closed.");
+        return { queuedBytes: 0, droppedOldest: 0 };
+      },
+      quality: () =>
+        route.quality?.() ?? {
+          goodputBps: 2_000_000,
+          rttMs: 40,
+          jitterMs: 10,
+          lossRatio: 0,
+          mtu: 1_200,
+          source: "declared",
+          samples: 0,
+          confidence: "low"
+        },
+      async close() {
+        closed = true;
+        unsubscribe?.();
+        try {
+          sender.track?.stop();
+        } catch {
+          /* ignore stop races */
+        }
+      }
+    };
+  };
+}
+
+function isLiveWebRtcTrackDemand(demand: StreamDemand): boolean {
+  return (
+    (demand.classId === "microphone" && demand.tierId === "pcm") ||
+    ((demand.classId === "camera" || demand.classId === "screen-capture") && demand.tierId === "frames")
+  );
 }
 
 export interface PearsBulkAppendPlaneOpenerOptions {

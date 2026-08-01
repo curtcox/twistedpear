@@ -79,9 +79,15 @@ export {
   createHostPlaneOpeners,
   createPearsBulkAppendPlaneOpener,
   createPeerRouteLinkSupply,
-  createPeerRoutePlaneOpeners
+  createPeerRoutePlaneOpeners,
+  createWebRtcMediaTrackPlaneOpener
 } from "./media-stream.js";
-export type { CasDerivedPlaneOpenerOptions, PearsBulkAppendPlaneOpenerOptions } from "./media-stream.js";
+export type {
+  CasDerivedPlaneOpenerOptions,
+  PearsBulkAppendPlaneOpenerOptions,
+  WebRtcMediaTrackHandle,
+  WebRtcMediaTrackPlaneOpenerOptions
+} from "./media-stream.js";
 export { SessionInviteService } from "./session-invite.js";
 export type { SessionInvite, SessionInviteChrome } from "./session-invite.js";
 export {
