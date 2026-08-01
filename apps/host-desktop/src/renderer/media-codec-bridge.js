@@ -11,6 +11,25 @@ export async function handleMediaCodecRequest(message, send) {
   }
 }
 
+/** Harness reply path: decode an inbound TPD2 Opus/PCM frame and play it on the speaker sink. */
+export async function handleMediaOpusPlayRequest(message, send) {
+  try {
+    const played = await playInboundMediaFrame({
+      sink: { kind: "speaker" },
+      encoding: typeof message.encoding === "string" ? message.encoding : "16k-opus",
+      dataHex: message.dataHex
+    });
+    send({ type: "media-opus-play-response", token: message.token, played: played === true });
+  } catch (error) {
+    send({
+      type: "media-opus-play-response",
+      token: message.token,
+      played: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
 export async function playInboundMediaFrame(message) {
   if (message.sink?.kind !== "speaker") return false;
   const frame = unhex(message.dataHex);
@@ -48,16 +67,27 @@ async function encodeAudio(configuration, captureAtUs, bytes) {
   const channels = configuration.channels ?? 1;
   if (bytes.byteLength % (4 * channels) !== 0) throw new Error("PCM input is not interleaved float32 audio.");
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (fn) => { if (settled) return; settled = true; fn(); };
     const encoder = new Encoder({
-      output(chunk) { const output = new Uint8Array(chunk.byteLength); chunk.copyTo(output); encoder.close(); resolve(output); },
-      error(error) { encoder.close(); reject(error); }
+      output(chunk) {
+        const output = new Uint8Array(chunk.byteLength);
+        chunk.copyTo(output);
+        settle(() => resolve(output));
+      },
+      error(error) { settle(() => reject(error)); }
     });
     try {
       encoder.configure({ codec: "opus", sampleRate: configuration.sampleRate ?? 16_000, numberOfChannels: channels, bitrate: configuration.bitrateBps });
       const copy = bytes.slice();
       const audio = new Audio({ format: "f32", sampleRate: configuration.sampleRate ?? 16_000, numberOfFrames: copy.byteLength / (4 * channels), numberOfChannels: channels, timestamp: captureAtUs, data: copy.buffer });
-      encoder.encode(audio); audio.close(); void encoder.flush().catch(reject);
-    } catch (error) { encoder.close(); reject(error); }
+      encoder.encode(audio);
+      audio.close();
+      void encoder.flush().finally(() => { try { encoder.close(); } catch { /* already closed */ } });
+    } catch (error) {
+      try { encoder.close(); } catch { /* already closed */ }
+      settle(() => reject(error));
+    }
   });
 }
 
@@ -68,11 +98,25 @@ async function decodeAudio(configuration, captureAtUs, bytes) {
   const Chunk = globalThis.EncodedAudioChunk;
   if (Decoder === undefined || Chunk === undefined) throw new Error("Chromium WebCodecs Opus decode is unavailable.");
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (fn) => { if (settled) return; settled = true; fn(); };
     const decoder = new Decoder({
-      output(audio) { const output = new Uint8Array(audio.allocationSize({ planeIndex: 0 })); audio.copyTo(output, { planeIndex: 0, format: "f32" }); audio.close(); decoder.close(); resolve(output); },
-      error(error) { decoder.close(); reject(error); }
+      output(audio) {
+        const output = new Uint8Array(audio.allocationSize({ planeIndex: 0 }));
+        audio.copyTo(output, { planeIndex: 0, format: "f32" });
+        audio.close();
+        settle(() => resolve(output));
+      },
+      error(error) { settle(() => reject(error)); }
     });
-    try { decoder.configure({ codec: "opus", sampleRate: configuration.sampleRate ?? 16_000, numberOfChannels: configuration.channels ?? 1 }); decoder.decode(new Chunk({ type: "key", timestamp: captureAtUs, data: bytes })); void decoder.flush().catch(reject); } catch (error) { decoder.close(); reject(error); }
+    try {
+      decoder.configure({ codec: "opus", sampleRate: configuration.sampleRate ?? 16_000, numberOfChannels: configuration.channels ?? 1 });
+      decoder.decode(new Chunk({ type: "key", timestamp: captureAtUs, data: bytes }));
+      void decoder.flush().finally(() => { try { decoder.close(); } catch { /* already closed */ } });
+    } catch (error) {
+      try { decoder.close(); } catch { /* already closed */ }
+      settle(() => reject(error));
+    }
   });
 }
 

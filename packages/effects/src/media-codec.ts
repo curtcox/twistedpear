@@ -51,15 +51,46 @@ export class WebCodecsMediaCodecDriver implements MediaCodecDriver {
     const sampleRate = configuration.sampleRate ?? 16_000; const channels = configuration.channels ?? 1;
     if (sample.bytes.byteLength % (4 * channels) !== 0) throw new Error("PCM input must contain interleaved float32 samples.");
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const settle = (fn: () => void) => { if (settled) return; settled = true; fn(); };
       const encoder = new globals.AudioEncoder({
-        output(chunk: any) { const bytes = new Uint8Array(chunk.byteLength); chunk.copyTo(bytes); encoder.close(); resolve({ captureAtUs: sample.captureAtUs, bytes, codec: "opus" }); },
-        error(error: unknown) { encoder.close(); reject(error instanceof Error ? error : new Error(String(error))); }
+        output(chunk: any) {
+          const bytes = new Uint8Array(chunk.byteLength);
+          chunk.copyTo(bytes);
+          settle(() => resolve({ captureAtUs: sample.captureAtUs, bytes, codec: "opus" }));
+        },
+        error(error: unknown) {
+          settle(() => reject(error instanceof Error ? error : new Error(String(error))));
+        }
       });
       try {
         encoder.configure({ codec: "opus", sampleRate, numberOfChannels: channels, bitrate: configuration.bitrateBps });
-        const copy = sample.bytes.slice(); const audio = new globals.AudioData({ format: "f32", sampleRate, numberOfFrames: copy.byteLength / (4 * channels), numberOfChannels: channels, timestamp: sample.captureAtUs, data: copy.buffer });
-        encoder.encode(audio); audio.close(); void encoder.flush().catch(reject);
-      } catch (error) { encoder.close(); reject(error); }
+        const copy = sample.bytes.slice();
+        const audio = new globals.AudioData({
+          format: "f32",
+          sampleRate,
+          numberOfFrames: copy.byteLength / (4 * channels),
+          numberOfChannels: channels,
+          timestamp: sample.captureAtUs,
+          data: copy.buffer
+        });
+        encoder.encode(audio);
+        audio.close();
+        void encoder.flush().finally(() => {
+          try {
+            encoder.close();
+          } catch {
+            /* already closed */
+          }
+        });
+      } catch (error) {
+        try {
+          encoder.close();
+        } catch {
+          /* already closed */
+        }
+        settle(() => reject(error));
+      }
     });
   }
 
@@ -67,13 +98,41 @@ export class WebCodecsMediaCodecDriver implements MediaCodecDriver {
     this.assertSupported(configuration);
     if (configuration.codec === "pcm") return { captureAtUs: sample.captureAtUs, bytes: sample.bytes.slice() };
     if (sample.codec !== "opus") throw new Error("Encoded media codec does not match configuration.");
-    const globals = globalThis as Record<string, any>; const sampleRate = configuration.sampleRate ?? 16_000; const channels = configuration.channels ?? 1;
+    const globals = globalThis as Record<string, any>;
+    const sampleRate = configuration.sampleRate ?? 16_000;
+    const channels = configuration.channels ?? 1;
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const settle = (fn: () => void) => { if (settled) return; settled = true; fn(); };
       const decoder = new globals.AudioDecoder({
-        output(audio: any) { const bytes = new Uint8Array(audio.allocationSize({ planeIndex: 0 })); audio.copyTo(bytes, { planeIndex: 0, format: "f32" }); audio.close(); decoder.close(); resolve({ captureAtUs: sample.captureAtUs, bytes }); },
-        error(error: unknown) { decoder.close(); reject(error instanceof Error ? error : new Error(String(error))); }
+        output(audio: any) {
+          const bytes = new Uint8Array(audio.allocationSize({ planeIndex: 0 }));
+          audio.copyTo(bytes, { planeIndex: 0, format: "f32" });
+          audio.close();
+          settle(() => resolve({ captureAtUs: sample.captureAtUs, bytes }));
+        },
+        error(error: unknown) {
+          settle(() => reject(error instanceof Error ? error : new Error(String(error))));
+        }
       });
-      try { decoder.configure({ codec: "opus", sampleRate, numberOfChannels: channels }); decoder.decode(new globals.EncodedAudioChunk({ type: "key", timestamp: sample.captureAtUs, data: sample.bytes })); void decoder.flush().catch(reject); } catch (error) { decoder.close(); reject(error); }
+      try {
+        decoder.configure({ codec: "opus", sampleRate, numberOfChannels: channels });
+        decoder.decode(new globals.EncodedAudioChunk({ type: "key", timestamp: sample.captureAtUs, data: sample.bytes }));
+        void decoder.flush().finally(() => {
+          try {
+            decoder.close();
+          } catch {
+            /* already closed */
+          }
+        });
+      } catch (error) {
+        try {
+          decoder.close();
+        } catch {
+          /* already closed */
+        }
+        settle(() => reject(error));
+      }
     });
   }
 

@@ -9,7 +9,7 @@ import {
   sessionInviteContent,
   SESSION_INVITE_TITLE
 } from "../../../packages/host-core/dist/session-invite-carrier.js";
-import { encodeSessionInviteEnvelope } from "../../../packages/protocol/dist/index.js";
+import { encodeDeviceStreamFrame, encodeSessionInviteEnvelope } from "../../../packages/protocol/dist/index.js";
 import { LXMessageMethod } from "../../../packages/lxmf-ts/dist/index.js";
 import {
   Identity,
@@ -372,8 +372,114 @@ async function handleWebRtcHarnessCommand(request) {
         plane: "webrtc-track",
         handleId,
         sessionId: attached.sessionId,
-        bytesSent
+        bytesSent,
+        voiceProcessing: attached.voiceProcessing ?? null,
+        encoding
       };
+    }
+    case "media-opus-duplex": {
+      const configuration = {
+        codec: "opus",
+        sampleKind: "audio",
+        bitrateBps: 24_000,
+        sampleRate: 16_000,
+        channels: 1,
+        voiceDuplex: true
+      };
+      // Chromium Opus emits ~60ms frames; send a full frame of float32 PCM.
+      const sampleCount = 960;
+      const samples = new Float32Array(sampleCount);
+      for (let index = 0; index < sampleCount; index += 1) {
+        samples[index] = Math.sin((2 * Math.PI * 440 * index) / 16_000) * 0.25;
+      }
+      const pcmBytes = new Uint8Array(
+        samples.buffer.slice(samples.byteOffset, samples.byteOffset + samples.byteLength)
+      );
+      const captureAtUs = Date.now() * 1_000;
+      const encoded = await requestHostReply(
+        {
+          type: "media-codec-request",
+          token: peerToken(),
+          op: "encode",
+          configuration,
+          captureAtUs,
+          dataHex: bytesToHex(pcmBytes)
+        },
+        15_000
+      );
+      if (encoded?.error !== undefined || typeof encoded?.dataHex !== "string") {
+        throw new Error(encoded?.error ?? "Opus encode timed out");
+      }
+      const opusBytes = hexToBytes(encoded.dataHex);
+      if (opusBytes.length === 0) throw new Error("Opus encode produced empty payload");
+      const decoded = await requestHostReply(
+        {
+          type: "media-codec-request",
+          token: peerToken(),
+          op: "decode",
+          configuration,
+          captureAtUs,
+          dataHex: encoded.dataHex
+        },
+        15_000
+      );
+      if (decoded?.error !== undefined || typeof decoded?.dataHex !== "string") {
+        throw new Error(decoded?.error ?? "Opus decode timed out");
+      }
+      const decodedBytes = hexToBytes(decoded.dataHex);
+      if (decodedBytes.length < 4) throw new Error("Opus decode produced empty PCM");
+      const frame = encodeDeviceStreamFrame({
+        version: 2,
+        sampleKind: 2,
+        sessionToken: 7,
+        sequence: 0,
+        captureAtUs,
+        clockId: 7,
+        payload: opusBytes
+      });
+      const played = await requestHostReply(
+        {
+          type: "media-opus-play-request",
+          token: peerToken(),
+          encoding: "16k-opus",
+          dataHex: bytesToHex(frame)
+        },
+        15_000
+      );
+      if (played?.error !== undefined || played?.played !== true) {
+        throw new Error(played?.error ?? "Opus speaker playback failed");
+      }
+      return {
+        ok: true,
+        implementation: "webcodecs",
+        voiceDuplex: true,
+        encoding: "16k-opus",
+        pcmBytes: pcmBytes.length,
+        opusBytes: opusBytes.length,
+        decodedBytes: decodedBytes.length,
+        frameBytes: frame.length,
+        frameHex: bytesToHex(frame),
+        played: true
+      };
+    }
+    case "media-opus-play": {
+      if (typeof request.dataHex !== "string" || request.dataHex.length < 72) {
+        throw new Error("media-opus-play requires TPD2 dataHex");
+      }
+      const encoding = typeof request.encoding === "string" ? request.encoding : "16k-opus";
+      const played = await requestHostReply(
+        {
+          type: "media-opus-play-request",
+          token: peerToken(),
+          encoding,
+          dataHex: request.dataHex
+        },
+        15_000
+      );
+      if (played?.error !== undefined || played?.played !== true) {
+        throw new Error(played?.error ?? "Opus speaker playback failed");
+      }
+      return { played: true, encoding, bytes: Math.floor(request.dataHex.length / 2) };
     }
     default:
       throw new Error(`Unknown WebRTC harness command: ${request.cmd}`);
@@ -787,6 +893,7 @@ function ensureMiniappHost() {
           return {
             sessionId,
             bytesSent: typeof reply.bytesSent === "number" ? reply.bytesSent : 0,
+            voiceProcessing: reply.voiceProcessing ?? null,
             quality: () => ({
               goodputBps: 2_000_000,
               rttMs: 50,
@@ -1247,7 +1354,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-opus-play-response" || message.type === "media-codec-response") {
     hostReplyChannel.resolveReply(message);
     return;
   }
@@ -1289,6 +1396,8 @@ async function handleHostMessage(raw) {
         cmd === "peer-pair-code-in" ||
         cmd === "peer-pair-wait" ||
         cmd === "webrtc-open-media" ||
+        cmd === "media-opus-duplex" ||
+        cmd === "media-opus-play" ||
         cmd === "harness-info" ||
         cmd === "announce" ||
         cmd === "send-invite" ||

@@ -186,7 +186,10 @@ async function attachMedia(message, send) {
     attached: true,
     trackCount: tracks.length,
     bytesSent,
-    connectionState: state.pc.connectionState
+    connectionState: state.pc.connectionState,
+    voiceProcessing: audio
+      ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, voiceDuplex: true }
+      : null
   });
 }
 

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-31
+audited: 2026-08-01
 register: software
 -->
 
@@ -24,7 +24,7 @@ requirement-level proof and missing exits are tracked in the
 
 ## Executive finding
 
-As of 2026-07-31, the reusable core is implemented: link observation/probes, readiness,
+As of 2026-08-01, the reusable core is implemented: link observation/probes, readiness,
 share policy, fail-closed stream admission, a host-only five-plane binding, receive sinks,
 encoding/timing primitives, signaling, Line Check, and the SPEC-STREAM formal artifacts.
 Two peers now complete a real readiness exchange, a measured active probe, a delivered
@@ -38,15 +38,17 @@ also own a persistent LXMF delivery destination (`createHostLxmfDelivery`) so in
 can raise trusted chrome without a mounted test agent. Hosts bind WebRTC / Pears-bulk /
 Reticulum through concrete `PlaneStreamEgressFactory` openers on the authenticated peer-route
 bridge, plus a derived-only CAS snapshot opener and a live Pears Hyperdrive append path for
-latency-tolerant rungs. SPEC-STREAM admits `cas-snapshot` when no live plane has supply. The remaining work is host integration evidence rather than protocol
-shape: a recorded device-run
-mobile chrome Maestro pass (flow authored in `.maestro/share-policy.yaml`),
-iOS/Android peers in the multipeer matrix, and
-hardware evidence. Until those adapters are present, hosts must keep rejecting
-unconfigured streams. Desktop and web GUI call bytes are already required evidence via
-`npm run test:local-multipeer:desktop`, `npm run test:webrtc-gui-call`, and
+latency-tolerant rungs. SPEC-STREAM admits `cas-snapshot` when no live plane has supply.
+Desktop↔desktop WebRTC track bytes and WebCodecs Opus encode/decode/speaker play (with
+voice-duplex AEC constraints) are recorded by `npm run test:webrtc-gui-call`; web↔web track
+bytes by `npm run test:webrtc-gui-call:web`. The remaining work is host integration evidence
+rather than protocol shape: a recorded device-run mobile chrome Maestro pass (flow authored
+in `.maestro/share-policy.yaml`), iOS/Android peers in the multipeer matrix, native mobile
+Opus/WebRTC track parity, and hardware evidence. Until those adapters are present, hosts must
+keep rejecting unconfigured streams. Desktop and web GUI call bytes remain required evidence
+via `npm run test:local-multipeer:desktop`, `npm run test:webrtc-gui-call`, and
 `npm run test:webrtc-gui-call:web`
-(readiness/probe/invite/LXMF call/TPD2, plus post-accept WebRTC track bytes).
+(readiness/probe/invite/LXMF call/TPD2, post-accept WebRTC track bytes, and desktop Opus duplex).
 
 The evaluation below is retained as the design baseline that motivated the implementation.
 

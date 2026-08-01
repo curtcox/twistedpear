@@ -47,7 +47,7 @@ import {
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, createWorkletFlagRelayService, generateConfirmationToken, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
-import { decodePeerInvitation } from "../../../packages/protocol/dist/index.js";
+import { decodePeerInvitation, encodeDeviceStreamFrame } from "../../../packages/protocol/dist/index.js";
 import {
   PropagationServer,
   createPropagationDestination,
@@ -1250,6 +1250,7 @@ function ensureMiniappHost() {
           return {
             sessionId,
             bytesSent: typeof reply.bytesSent === "number" ? reply.bytesSent : 0,
+            voiceProcessing: reply.voiceProcessing ?? null,
             quality: () => ({
               goodputBps: 2_000_000,
               rttMs: 50,
@@ -2404,6 +2405,7 @@ async function handleHostMessage(raw) {
                 }
               });
               let bytesSent = attached.bytesSent ?? 0;
+              let voiceProcessing = attached.voiceProcessing ?? null;
               if (bytesSent === 0 && typeof attached.sessionId === "string") {
                 for (let attempt = 0; attempt < 20 && bytesSent === 0; attempt += 1) {
                   await new Promise((resolve) => setTimeout(resolve, 250));
@@ -2421,8 +2423,103 @@ async function handleHostMessage(raw) {
                 plane: "webrtc-track",
                 handleId,
                 sessionId: attached.sessionId,
-                bytesSent
+                bytesSent,
+                voiceProcessing,
+                encoding
               };
+            }
+            case "media-opus-duplex": {
+              const configuration = {
+                codec: "opus",
+                sampleKind: "audio",
+                bitrateBps: 24_000,
+                sampleRate: 16_000,
+                channels: 1,
+                voiceDuplex: true
+              };
+              const sampleCount = 960;
+              const samples = new Float32Array(sampleCount);
+              for (let index = 0; index < sampleCount; index += 1) {
+                samples[index] = Math.sin((2 * Math.PI * 440 * index) / 16_000) * 0.25;
+              }
+              const pcmBytes = new Uint8Array(samples.buffer.slice(samples.byteOffset, samples.byteOffset + samples.byteLength));
+              const captureAtUs = Date.now() * 1_000;
+              const encodeToken = generateConfirmationToken((length) => provider.randomBytes(length));
+              const encoded = await requestRendererReply({
+                type: "media-codec-request",
+                token: encodeToken,
+                op: "encode",
+                configuration,
+                captureAtUs,
+                dataHex: bytesToHex(pcmBytes)
+              }, 15_000);
+              if (encoded?.error !== undefined || typeof encoded?.dataHex !== "string") {
+                throw new Error(encoded?.error ?? "Opus encode timed out");
+              }
+              const opusBytes = hexToBytes(encoded.dataHex);
+              if (opusBytes.length === 0) throw new Error("Opus encode produced empty payload");
+              const decodeToken = generateConfirmationToken((length) => provider.randomBytes(length));
+              const decoded = await requestRendererReply({
+                type: "media-codec-request",
+                token: decodeToken,
+                op: "decode",
+                configuration,
+                captureAtUs,
+                dataHex: encoded.dataHex
+              }, 15_000);
+              if (decoded?.error !== undefined || typeof decoded?.dataHex !== "string") {
+                throw new Error(decoded?.error ?? "Opus decode timed out");
+              }
+              const decodedBytes = hexToBytes(decoded.dataHex);
+              if (decodedBytes.length < 4) throw new Error("Opus decode produced empty PCM");
+              const frame = encodeDeviceStreamFrame({
+                version: 2,
+                sampleKind: 2,
+                sessionToken: 7,
+                sequence: 0,
+                captureAtUs,
+                clockId: 7,
+                payload: opusBytes
+              });
+              const playToken = generateConfirmationToken((length) => provider.randomBytes(length));
+              const played = await requestRendererReply({
+                type: "media-opus-play-request",
+                token: playToken,
+                encoding: "16k-opus",
+                dataHex: bytesToHex(frame)
+              }, 15_000);
+              if (played?.error !== undefined || played?.played !== true) {
+                throw new Error(played?.error ?? "Opus speaker playback failed");
+              }
+              return {
+                ok: true,
+                implementation: "webcodecs",
+                voiceDuplex: true,
+                encoding: "16k-opus",
+                pcmBytes: pcmBytes.length,
+                opusBytes: opusBytes.length,
+                decodedBytes: decodedBytes.length,
+                frameBytes: frame.length,
+                frameHex: bytesToHex(frame),
+                played: true
+              };
+            }
+            case "media-opus-play": {
+              if (typeof request.dataHex !== "string" || request.dataHex.length < 72) {
+                throw new Error("media-opus-play requires TPD2 dataHex");
+              }
+              const encoding = typeof request.encoding === "string" ? request.encoding : "16k-opus";
+              const playToken = generateConfirmationToken((length) => provider.randomBytes(length));
+              const played = await requestRendererReply({
+                type: "media-opus-play-request",
+                token: playToken,
+                encoding,
+                dataHex: request.dataHex
+              }, 15_000);
+              if (played?.error !== undefined || played?.played !== true) {
+                throw new Error(played?.error ?? "Opus speaker playback failed");
+              }
+              return { played: true, encoding, bytes: Math.floor(request.dataHex.length / 2) };
             }
             default:
               return ensureCrossDeviceTestDriver()(request);
@@ -2916,7 +3013,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-codec-response") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-codec-response" || message.type === "media-opus-play-response") {
     if (!hostReplyChannel.resolveReply(message)) {
       log(`Orphan host reply ${message.type} token=${typeof message.token === "string" ? message.token.slice(0, 12) : "?"}`);
     }
@@ -3202,7 +3299,8 @@ const HOST_REPLY_TYPES = new Set([
   "install-confirm",
   "peer-chrome-response",
   "device-bridge-response",
-  "media-codec-response"
+  "media-codec-response",
+  "media-opus-play-response"
 ]);
 IPC.on("data", (data) => {
   hostMessageBuffer += data.toString();

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * WebRTC media-track bytes after authenticated pairing (desktop or web GUI).
+ * WebRTC media-track bytes after authenticated pairing (desktop or web GUI),
+ * plus desktop Opus duplex encode/decode/speaker evidence (Phase 5).
  *
  * Default: hub + desktop + desktop2 (Electron).
  * Web:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,web,web2
@@ -29,6 +30,10 @@ function parseWanted() {
   const arg = process.argv.find((entry) => entry.startsWith("--peers="));
   const raw = arg?.slice("--peers=".length) ?? fromEnv ?? "hub,desktop,desktop2";
   return raw.split(",").map((id) => id.trim()).filter(Boolean);
+}
+
+function isOpusDuplexPeer(id) {
+  return id === "desktop" || id === "desktop2" || id === "web" || id === "web2";
 }
 
 async function bringUpSequential(ids, control) {
@@ -73,6 +78,7 @@ await runMain(async () => {
   assert(wanted.length >= 3 && wanted[0] === "hub", "peers must start with hub and include two GUI peers");
   const leftId = wanted[1];
   const rightId = wanted[2];
+  const opusDuplex = isOpusDuplexPeer(leftId) && isOpusDuplexPeer(rightId);
   const proofName =
     leftId.startsWith("web") || rightId.startsWith("web")
       ? "webrtc-gui-call-web-proof.json"
@@ -150,6 +156,53 @@ await runMain(async () => {
     assert(typeof media.bytesSent === "number" && media.bytesSent > 0, `expected outbound RTP bytes, got ${media.bytesSent}`);
     const elapsedMs = Date.now() - at;
     step(`${leftId} attached microphone track (${media.bytesSent} bytesSent, ${elapsedMs}ms)`);
+    if (media.voiceProcessing?.echoCancellation === true) {
+      step(`${leftId} voice-duplex AEC constraints on track attach`);
+    }
+
+    let callsOpusDuplex = null;
+    if (opusDuplex) {
+      section("Opus duplex encode/decode/speaker");
+      const leftDuplex = await control.command(leftId, "media-opus-duplex", {}, 30_000);
+      assert(leftDuplex.ok === true, `${leftId} Opus duplex failed`);
+      assert(leftDuplex.voiceDuplex === true, `${leftId} Opus duplex missing voiceDuplex`);
+      assert(typeof leftDuplex.opusBytes === "number" && leftDuplex.opusBytes > 0, `${leftId} Opus encode empty`);
+      assert(leftDuplex.played === true, `${leftId} local Opus play failed`);
+      step(`${leftId} Opus ${leftDuplex.pcmBytes}→${leftDuplex.opusBytes}→${leftDuplex.decodedBytes} bytes, played`);
+
+      const rightDuplex = await control.command(rightId, "media-opus-duplex", {}, 30_000);
+      assert(rightDuplex.ok === true, `${rightId} Opus duplex failed`);
+      assert(rightDuplex.played === true, `${rightId} local Opus play failed`);
+      step(`${rightId} Opus duplex local play ok`);
+
+      section("Cross-peer Opus speaker play");
+      const crossAt = Date.now();
+      assert(typeof leftDuplex.frameHex === "string" && leftDuplex.frameHex.length > 72, `${leftId} missing Opus TPD2 frame`);
+      const played = await control.command(
+        rightId,
+        "media-opus-play",
+        { dataHex: leftDuplex.frameHex, encoding: "16k-opus" },
+        30_000
+      );
+      assert(played.played === true, `${rightId} did not play peer Opus frame`);
+      const crossElapsedMs = Date.now() - crossAt;
+      step(`${leftId} → ${rightId} Opus TPD2 played (${played.bytes} bytes, ${crossElapsedMs}ms)`);
+      callsOpusDuplex = {
+        from: leftId,
+        to: rightId,
+        encoding: "16k-opus",
+        implementation: leftDuplex.implementation,
+        voiceDuplex: true,
+        pcmBytes: leftDuplex.pcmBytes,
+        opusBytes: leftDuplex.opusBytes,
+        decodedBytes: leftDuplex.decodedBytes,
+        frameBytes: leftDuplex.frameBytes,
+        peerPlayed: true,
+        localPlayed: { [leftId]: true, [rightId]: true },
+        voiceProcessing: media.voiceProcessing ?? null,
+        elapsedMs: crossElapsedMs
+      };
+    }
 
     const proof = {
       generatedAt: new Date().toISOString(),
@@ -166,9 +219,11 @@ await runMain(async () => {
           elapsedMs,
           handleId: left.handleId,
           sessionId: media.sessionId,
-          peerDestinationHash: rightLxmf
+          peerDestinationHash: rightLxmf,
+          voiceProcessing: media.voiceProcessing ?? null
         }
-      ]
+      ],
+      ...(callsOpusDuplex === null ? {} : { callsOpusDuplex: [callsOpusDuplex] })
     };
     mkdirSync(stateRoot, { recursive: true });
     const proofPath = join(stateRoot, proofName);
@@ -176,6 +231,9 @@ await runMain(async () => {
 
     section("Result");
     step(`callsWebRtc bytes=${media.bytesSent} plane=webrtc-track`);
+    if (callsOpusDuplex !== null) {
+      step(`callsOpusDuplex opusBytes=${callsOpusDuplex.opusBytes} peerPlayed=true`);
+    }
     step(`proof: ${proofPath}`);
   } finally {
     await control?.close();

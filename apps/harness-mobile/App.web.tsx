@@ -160,9 +160,131 @@ async function playInboundAudioFrame(dataHex: string, encoding: string): Promise
   const context = new AudioContextCtor({ sampleRate });
   const play = (samples: Float32Array) => { const buffer = context.createBuffer(1, samples.length, sampleRate); buffer.copyToChannel(samples, 0); const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination); source.onended = () => { void context.close(); }; source.start(); };
   if (!encoding.includes("opus")) { const copy = payload.slice(); play(new Float32Array(copy.buffer)); return; }
-  const Decoder = (globalThis as any).AudioDecoder; const Chunk = (globalThis as any).EncodedAudioChunk; if (Decoder === undefined || Chunk === undefined) throw new Error("WebCodecs Opus decode is unavailable.");
-  const decoder = new Decoder({ output(audio: any) { const samples = new Float32Array(audio.numberOfFrames); audio.copyTo(samples, { planeIndex: 0, format: "f32-planar" }); audio.close(); decoder.close(); play(samples); }, error(error: unknown) { decoder.close(); void context.close(); throw error; } });
-  decoder.configure({ codec: "opus", sampleRate, numberOfChannels: 1 }); decoder.decode(new Chunk({ type: "key", timestamp: Number(view.getBigUint64(24, false)), data: payload })); await decoder.flush();
+  const decoded = await webDecodeOpus({ codec: "opus", sampleKind: "audio", bitrateBps: 24_000, sampleRate, channels: 1 }, Number(view.getBigUint64(24, false)), payload);
+  const copy = decoded.slice();
+  play(new Float32Array(copy.buffer, copy.byteOffset, copy.byteLength / 4));
+}
+
+async function handleWebMediaCodecRequest(
+  message: {
+    readonly token: string;
+    readonly op: "encode" | "decode";
+    readonly configuration: {
+      readonly codec: string;
+      readonly sampleKind: string;
+      readonly bitrateBps: number;
+      readonly sampleRate?: number;
+      readonly channels?: number;
+    };
+    readonly captureAtUs: number;
+    readonly dataHex: string;
+  },
+  sendToWorker: (reply: { type: "media-codec-response"; token: string; dataHex?: string; error?: string }) => void
+): Promise<void> {
+  try {
+    const bytes = webHexToBytes(message.dataHex);
+    const result =
+      message.op === "encode"
+        ? await webEncodeOpus(message.configuration, message.captureAtUs, bytes)
+        : await webDecodeOpus(message.configuration, message.captureAtUs, bytes);
+    sendToWorker({ type: "media-codec-response", token: message.token, dataHex: webBytesToHex(result) });
+  } catch (error) {
+    sendToWorker({
+      type: "media-codec-response",
+      token: message.token,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+async function webEncodeOpus(
+  configuration: { readonly codec: string; readonly sampleKind: string; readonly bitrateBps: number; readonly sampleRate?: number; readonly channels?: number },
+  captureAtUs: number,
+  bytes: Uint8Array
+): Promise<Uint8Array> {
+  if (configuration.sampleKind !== "audio" || (configuration.codec !== "opus" && configuration.codec !== "pcm")) {
+    throw new Error("Web media codec configuration is unsupported.");
+  }
+  if (configuration.codec === "pcm") return bytes.slice();
+  const Encoder = (globalThis as any).AudioEncoder;
+  const Audio = (globalThis as any).AudioData;
+  if (Encoder === undefined || Audio === undefined) throw new Error("WebCodecs Opus encode is unavailable.");
+  const channels = configuration.channels ?? 1;
+  if (bytes.byteLength % (4 * channels) !== 0) throw new Error("PCM input is not interleaved float32 audio.");
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (fn: () => void) => { if (settled) return; settled = true; fn(); };
+    const encoder = new Encoder({
+      output(chunk: any) {
+        const output = new Uint8Array(chunk.byteLength);
+        chunk.copyTo(output);
+        settle(() => resolve(output));
+      },
+      error(error: unknown) { settle(() => reject(error)); }
+    });
+    try {
+      encoder.configure({
+        codec: "opus",
+        sampleRate: configuration.sampleRate ?? 16_000,
+        numberOfChannels: channels,
+        bitrate: configuration.bitrateBps
+      });
+      const copy = bytes.slice();
+      const audio = new Audio({
+        format: "f32",
+        sampleRate: configuration.sampleRate ?? 16_000,
+        numberOfFrames: copy.byteLength / (4 * channels),
+        numberOfChannels: channels,
+        timestamp: captureAtUs,
+        data: copy.buffer
+      });
+      encoder.encode(audio);
+      audio.close();
+      void encoder.flush().finally(() => { try { encoder.close(); } catch { /* already closed */ } });
+    } catch (error) {
+      try { encoder.close(); } catch { /* already closed */ }
+      settle(() => reject(error));
+    }
+  });
+}
+
+async function webDecodeOpus(
+  configuration: { readonly codec: string; readonly sampleKind: string; readonly bitrateBps: number; readonly sampleRate?: number; readonly channels?: number },
+  captureAtUs: number,
+  bytes: Uint8Array
+): Promise<Uint8Array> {
+  if (configuration.sampleKind !== "audio" || (configuration.codec !== "opus" && configuration.codec !== "pcm")) {
+    throw new Error("Web media codec configuration is unsupported.");
+  }
+  if (configuration.codec === "pcm") return bytes.slice();
+  const Decoder = (globalThis as any).AudioDecoder;
+  const Chunk = (globalThis as any).EncodedAudioChunk;
+  if (Decoder === undefined || Chunk === undefined) throw new Error("WebCodecs Opus decode is unavailable.");
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (fn: () => void) => { if (settled) return; settled = true; fn(); };
+    const decoder = new Decoder({
+      output(audio: any) {
+        const output = new Uint8Array(audio.allocationSize({ planeIndex: 0 }));
+        audio.copyTo(output, { planeIndex: 0, format: "f32" });
+        audio.close();
+        settle(() => resolve(output));
+      },
+      error(error: unknown) { settle(() => reject(error)); }
+    });
+    try {
+      decoder.configure({
+        codec: "opus",
+        sampleRate: configuration.sampleRate ?? 16_000,
+        numberOfChannels: configuration.channels ?? 1
+      });
+      decoder.decode(new Chunk({ type: "key", timestamp: captureAtUs, data: bytes }));
+      void decoder.flush().finally(() => { try { decoder.close(); } catch { /* already closed */ } });
+    } catch (error) {
+      try { decoder.close(); } catch { /* already closed */ }
+      settle(() => reject(error));
+    }
+  });
 }
 
 export default function App() {
@@ -463,7 +585,10 @@ export default function App() {
               attached: true,
               trackCount: tracks.length,
               bytesSent,
-              connectionState: state.pc.connectionState
+              connectionState: state.pc.connectionState,
+              voiceProcessing: audio
+                ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, voiceDuplex: true }
+                : null
             });
           } catch (error) {
             sendToWorker({
@@ -474,6 +599,29 @@ export default function App() {
             });
           }
         })();
+        return;
+      }
+
+      if (message.type === "media-opus-play-request") {
+        void playInboundAudioFrame(message.dataHex, message.encoding)
+          .then(() => {
+            sendToWorker({ type: "media-opus-play-response", token: message.token, played: true });
+            appendLog(`Opus duplex play ok (${message.dataHex.length / 2} bytes)`);
+          })
+          .catch((error) => {
+            sendToWorker({
+              type: "media-opus-play-response",
+              token: message.token,
+              played: false,
+              error: error instanceof Error ? error.message : String(error)
+            });
+            appendLog(`Opus duplex play failed: ${error instanceof Error ? error.message : String(error)}`);
+          });
+        return;
+      }
+
+      if (message.type === "media-codec-request") {
+        void handleWebMediaCodecRequest(message, sendToWorker);
         return;
       }
 

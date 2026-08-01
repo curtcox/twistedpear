@@ -178,21 +178,24 @@ everything below is a known cost of the chosen design or of the platforms involv
   (`npm run test:miniapp-benchmark`; record with `MINIAPP_BENCHMARK_RECORD=1`).
 - One foreground mini-app at a time in v1; no background execution. Dev side-loading is
   localhost/adb-only, off by default, and badged **DEV** in the UI.
-- **Realtime peer media is core-complete but not shipping-host-complete.** The broker/SDK,
-  app-scoped link model, readiness/share policy, fail-closed stream and reservation
-  abstractions, TPD2 timing, receive sinks, simulated codec, Line Check app, and
-  SPEC-STREAM conformance are implemented. Two headless peers complete a readiness
-  exchange, a measured probe, a signature-verified inbound `session-invite`, and a TPD2
-  media round trip on one Mac (`test:local-multipeer`), the ladder collapses and recovers
-  under adversarial profiles (`test:sim-media-ladder`), and share/invite chrome is driven
-  through the desktop renderer (`test:share-policy`). Desktop/mobile/web peer routes now
-  meter delivered bytes, so a link summary is `observed` only when something was measured.
-  Those hosts still have no persistent LXMF delivery destination of their own, so an
-  invitation arrives only while a test agent's router is mounted; they do not open
-  concrete WebRTC/Pears/CAS media planes or provide platform codec/AEC drivers, and no
-  device-run Maestro flow covers the mobile share indicator. Consequently, unmeasured
-  paths remain labelled “probably,” and `device.stream()` rejects when no host egress is
-  configured. No real-device or multi-machine audio/video claim is made.
+- **Realtime peer media is core-complete; shipping-host evidence is partial.** The broker/SDK,
+  app-scoped link model, readiness/share policy, five-plane egress binding, TPD2 timing,
+  receive sinks, WebCodecs Opus on desktop/web, Line Check app, and SPEC-STREAM conformance
+  are implemented. Two headless peers complete a readiness exchange, a measured probe, a
+  signature-verified inbound `session-invite`, post-accept call media, and a TPD2 media
+  round trip on one Mac (`test:local-multipeer`); the ladder collapses and recovers under
+  adversarial profiles (`test:sim-media-ladder`); share/invite chrome is driven through the
+  desktop renderer (`test:share-policy`). Desktop/mobile/web peer routes meter delivered
+  bytes, so a link summary is `observed` only when something was measured. Shipping hosts
+  own a persistent LXMF delivery destination (`createHostLxmfDelivery`) and open concrete
+  WebRTC / Pears / Reticulum / CAS planes plus a desktop WebCodecs codec bridge with
+  voice-duplex AEC constraints on track attach. Desktop↔desktop WebRTC track bytes and
+  Opus encode/decode/speaker play are recorded by `test:webrtc-gui-call`; web↔web track
+  bytes by `test:webrtc-gui-call:web`. Device-run Maestro share-policy, iOS/Android
+  multipeer peers, native mobile Opus/WebRTC parity, and real-device hardware claims remain
+  open — see [realtime-media-implementation.md](docs/realtime-media-implementation.md).
+  Unmeasured paths remain labelled “probably,” and `device.stream()` rejects when no host
+  egress is configured.
 - Mini-app `announce.publish` / `announce.subscribe` currently use the runtime's in-memory
   service in the desktop, mobile, and web hosts. The broker contract and app receive paths
   are tested, but no host adapter carries those SDK announces over Reticulum yet; separate

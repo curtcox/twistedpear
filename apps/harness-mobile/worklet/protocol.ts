@@ -311,7 +311,9 @@ export type HostToWorkletMessage =
   | { readonly type: "confirm-response"; readonly token: string; readonly approved: boolean; readonly detail?: unknown }
   | { readonly type: "launch-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
   | { readonly type: "install-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
-  | { readonly type: "peer-chrome-response"; readonly token: string; readonly accepted?: boolean; readonly approved?: boolean; readonly code?: string; readonly signal?: string; readonly opened?: boolean; readonly attached?: boolean; readonly sent?: boolean; readonly sessionId?: string; readonly framesHex?: ReadonlyArray<string>; readonly error?: string; readonly http?: { readonly status: number; readonly body: string; readonly contentLength: string | null }; readonly availability?: { readonly state: "available" | "permission-required" | "unsupported" | "offline" | "policy-disabled"; readonly reason?: string } }
+  | { readonly type: "peer-chrome-response"; readonly token: string; readonly accepted?: boolean; readonly approved?: boolean; readonly code?: string; readonly signal?: string; readonly opened?: boolean; readonly attached?: boolean; readonly sent?: boolean; readonly played?: boolean; readonly sessionId?: string; readonly framesHex?: ReadonlyArray<string>; readonly error?: string; readonly bytesSent?: number; readonly trackCount?: number; readonly connectionState?: string; readonly voiceProcessing?: { readonly echoCancellation: boolean; readonly noiseSuppression: boolean; readonly autoGainControl: boolean; readonly voiceDuplex: boolean } | null; readonly http?: { readonly status: number; readonly body: string; readonly contentLength: string | null }; readonly availability?: { readonly state: "available" | "permission-required" | "unsupported" | "offline" | "policy-disabled"; readonly reason?: string } }
+  | { readonly type: "media-opus-play-response"; readonly token: string; readonly played?: boolean; readonly error?: string }
+  | { readonly type: "media-codec-response"; readonly token: string; readonly dataHex?: string; readonly error?: string }
   | { readonly type: "install-from-256t"; readonly t256: string }
   | { readonly type: "trust-list" }
   | {
@@ -486,6 +488,22 @@ export type WorkletToHostMessage =
     }
   | { readonly type: "peer-webrtc-media-stats"; readonly token: string; readonly sessionId: string }
   | { readonly type: "peer-webrtc-media-detach"; readonly token: string; readonly sessionId: string; readonly classId: string }
+  | { readonly type: "media-opus-play-request"; readonly token: string; readonly encoding: string; readonly dataHex: string }
+  | {
+      readonly type: "media-codec-request";
+      readonly token: string;
+      readonly op: "encode" | "decode";
+      readonly configuration: {
+        readonly codec: string;
+        readonly sampleKind: string;
+        readonly bitrateBps: number;
+        readonly sampleRate?: number;
+        readonly channels?: number;
+        readonly voiceDuplex?: boolean;
+      };
+      readonly captureAtUs: number;
+      readonly dataHex: string;
+    }
   | { readonly type: "inbound-media-frame"; readonly appId: string; readonly handle: string; readonly sink: { readonly kind: string; readonly widgetId?: string }; readonly encoding: string; readonly dataHex: string }
   | { readonly type: "peer-chrome-cancel"; readonly sessionId: string }
   | { readonly type: "multicast-start" }
