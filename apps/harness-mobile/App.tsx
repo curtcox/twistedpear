@@ -15,7 +15,13 @@ import {
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { StatusBar } from "expo-status-bar";
 import qrcodeModule from "qrcode-generator";
-import { decodePeerAudioFskStream, encodePeerAudioFsk } from "@twistedpear/protocol";
+import { decodePeerAudioFskStream, encodePeerAudioFsk, encodeDeviceStreamFrame } from "@twistedpear/protocol";
+import {
+  BundledOpusMediaCodecDriver,
+  configureBundledOpusLoader,
+  ensureUtf16LeTextDecoder
+} from "@twistedpear/effects";
+import OpusScript from "opusscript";
 import { nativePeerAudioSupported, playNativePeerPcm, recordNativePeerPcm, requestNativePeerAudioPermission } from "@twistedpear/peer-audio";
 import { Worklet } from "react-native-bare-kit";
 import bundle from "./worklet/worklet.bundle.mjs";
@@ -82,6 +88,113 @@ import type { WidgetTree } from "@twistedpear/miniapp-runtime";
 
 const peerAudioHex = (bytes: Uint8Array) => [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 const peerAudioUnhex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
+ensureUtf16LeTextDecoder();
+configureBundledOpusLoader(() => {
+  const mod = OpusScript as unknown as { default?: unknown; Application?: unknown };
+  return (mod.default ?? OpusScript) as never;
+});
+
+async function runNativeOpusDuplex(): Promise<{
+  ok: true;
+  implementation: string;
+  voiceDuplex: true;
+  encoding: "16k-opus";
+  pcmBytes: number;
+  opusBytes: number;
+  decodedBytes: number;
+  frameBytes: number;
+  frameHex: string;
+  played: true;
+}> {
+  const configuration = {
+    codec: "opus" as const,
+    sampleKind: "audio" as const,
+    bitrateBps: 24_000,
+    sampleRate: 16_000,
+    channels: 1,
+    voiceDuplex: true
+  };
+  ensureUtf16LeTextDecoder();
+  const driver = new BundledOpusMediaCodecDriver();
+  if (!driver.supports(configuration)) {
+    throw new Error("Bundled Opus codec does not admit Opus on the RN host");
+  }
+  const sampleCount = 320;
+  const samples = new Float32Array(sampleCount);
+  for (let index = 0; index < sampleCount; index += 1) {
+    samples[index] = Math.sin((2 * Math.PI * 440 * index) / 16_000) * 0.25;
+  }
+  const pcmBytes = new Uint8Array(samples.buffer.slice(samples.byteOffset, samples.byteOffset + samples.byteLength));
+  const captureAtUs = Date.now() * 1_000;
+  const encoded = await driver.encode(configuration, { captureAtUs, bytes: pcmBytes });
+  if (encoded.bytes.length === 0) throw new Error("Opus encode produced empty payload");
+  const decoded = await driver.decode(configuration, encoded);
+  if (decoded.bytes.length < 4) throw new Error("Opus decode produced empty PCM");
+  const opusFrame = encodeDeviceStreamFrame({
+    version: 2,
+    sampleKind: 2,
+    sessionToken: 7,
+    sequence: 0,
+    captureAtUs,
+    clockId: 7,
+    payload: encoded.bytes
+  });
+  const playFrame = encodeDeviceStreamFrame({
+    version: 2,
+    sampleKind: 2,
+    sessionToken: 7,
+    sequence: 0,
+    captureAtUs,
+    clockId: 7,
+    payload: decoded.bytes
+  });
+  await playInboundNativeMedia(peerAudioHex(playFrame), "16k-pcm");
+  await driver.close();
+  return {
+    ok: true,
+    implementation: driver.implementation,
+    voiceDuplex: true,
+    encoding: "16k-opus",
+    pcmBytes: pcmBytes.length,
+    opusBytes: encoded.bytes.length,
+    decodedBytes: decoded.bytes.length,
+    frameBytes: opusFrame.length,
+    frameHex: peerAudioHex(opusFrame),
+    played: true
+  };
+}
+async function playNativeOpusOrPcm(dataHex: string, encoding: string): Promise<void> {
+  if (encoding.includes("opus")) {
+    const frame = peerAudioUnhex(dataHex);
+    if (frame.length < 36) throw new Error("Opus frame too short");
+    const payload = frame.slice(36);
+    ensureUtf16LeTextDecoder();
+    const driver = new BundledOpusMediaCodecDriver();
+    const configuration = {
+      codec: "opus" as const,
+      sampleKind: "audio" as const,
+      bitrateBps: 24_000,
+      sampleRate: 16_000,
+      channels: 1
+    };
+    if (!driver.supports(configuration)) throw new Error("Host Opus decode unavailable");
+    const decoded = await driver.decode(configuration, { captureAtUs: 0, bytes: payload, codec: "opus" });
+    const pcmFrame = encodeDeviceStreamFrame({
+      version: 2,
+      sampleKind: 2,
+      sessionToken: 7,
+      sequence: 0,
+      captureAtUs: Date.now() * 1_000,
+      clockId: 7,
+      payload: decoded.bytes
+    });
+    await driver.close();
+    await playInboundNativeMedia(peerAudioHex(pcmFrame), "16k-pcm");
+    return;
+  }
+  await playInboundNativeMedia(dataHex, encoding);
+}
+
 function floatToPcm16(pcm: Float32Array): Uint8Array { const bytes = new Uint8Array(pcm.length * 2); const view = new DataView(bytes.buffer); for (let index = 0; index < pcm.length; index += 1) view.setInt16(index * 2, Math.round(Math.max(-1, Math.min(1, pcm[index] ?? 0)) * 32767), true); return bytes; }
 function pcm16ToFloat(bytes: Uint8Array): Float32Array { const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); const pcm = new Float32Array(Math.floor(bytes.length / 2)); for (let index = 0; index < pcm.length; index += 1) pcm[index] = view.getInt16(index * 2, true) / 32768; return pcm; }
 async function playNativePeerFrames(framesHex: ReadonlyArray<string>, sampleRate = 44_100): Promise<void> { for (const frame of framesHex) await playNativePeerPcm(floatToPcm16(encodePeerAudioFsk(peerAudioUnhex(frame), { sampleRate })), sampleRate); }
@@ -95,7 +208,7 @@ async function playInboundNativeMedia(dataHex: string, encoding: string): Promis
   if (payloadLength !== frame.length - 36) {
     throw new Error("Inbound audio frame length is inconsistent");
   }
-  // Real Opus is decoded in the worklet before play-request; host sinks float32 PCM.
+  // Real Opus is decoded on the host before play; sinks float32 PCM.
   if (encoding.includes("narrowband")) {
     throw new Error("Native host received an unsupported media encoding");
   }
@@ -609,7 +722,7 @@ export default function App() {
     }
 
     if (message.type === "media-opus-play-request") {
-      void playInboundNativeMedia(message.dataHex, message.encoding)
+      void playNativeOpusOrPcm(message.dataHex, message.encoding)
         .then(() => {
           sendToWorklet({ type: "media-opus-play-response", token: message.token, played: true });
           appendLog(`Opus/PCM harness play → speaker (${message.dataHex.length / 2} bytes)`);
@@ -617,6 +730,22 @@ export default function App() {
         .catch((error) => {
           sendToWorklet({
             type: "media-opus-play-response",
+            token: message.token,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        });
+      return;
+    }
+
+    if (message.type === "media-opus-duplex-request") {
+      void runNativeOpusDuplex()
+        .then((result) => {
+          sendToWorklet({ type: "media-opus-duplex-response", token: message.token, ...result });
+          appendLog(`Opus duplex host encode/decode/play (${result.opusBytes} opus bytes)`);
+        })
+        .catch((error) => {
+          sendToWorklet({
+            type: "media-opus-duplex-response",
             token: message.token,
             error: error instanceof Error ? error.message : String(error)
           });

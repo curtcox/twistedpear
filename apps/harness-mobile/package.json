@@ -19,6 +19,7 @@
     "@expo/metro-runtime": "~4.0.1",
     "@twistedpear/ble-bridge": "file:./modules/ble-bridge",
     "@twistedpear/bonjour": "file:./modules/bonjour",
+    "@twistedpear/effects": "0.0.0",
     "@twistedpear/miniapp-runtime": "0.1.0",
     "@twistedpear/multicast": "file:./modules/multicast",
     "@twistedpear/node-service": "file:./modules/node-service",
@@ -41,7 +42,8 @@
     "react-native": "0.76.3",
     "react-native-bare-kit": "^0.5.2",
     "react-native-web": "~0.19.13",
-    "react-native-webrtc": "^124.0.4"
+    "react-native-webrtc": "^124.0.4",
+    "opusscript": "^0.1.1"
   },
   "devDependencies": {
     "@types/react": "~18.3.12",

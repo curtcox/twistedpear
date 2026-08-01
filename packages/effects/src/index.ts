@@ -40,6 +40,7 @@ export type {
 export {
   BundledOpusMediaCodecDriver,
   configureBundledOpusLoader,
+  ensureUtf16LeTextDecoder,
   SimulatedMediaCodecDriver,
   WebCodecsMediaCodecDriver
 } from "./media-codec.js";

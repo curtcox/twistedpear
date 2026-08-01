@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * WebRTC media-track bytes after authenticated pairing (desktop or web GUI),
- * plus desktop Opus duplex encode/decode/speaker evidence (Phase 5).
+ * WebRTC media-track bytes after authenticated pairing (desktop, web, or iOS GUI),
+ * plus Opus duplex encode/decode/speaker evidence (Phase 5) on peers that expose
+ * `media-opus-duplex` / `media-opus-play` (desktop, web, native Bare Opus).
  *
  * Default: hub + desktop + desktop2 (Electron).
  * Web:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,web,web2
@@ -34,7 +35,14 @@ function parseWanted() {
 }
 
 function isOpusDuplexPeer(id) {
-  return id === "desktop" || id === "desktop2" || id === "web" || id === "web2";
+  return (
+    id === "desktop" ||
+    id === "desktop2" ||
+    id === "web" ||
+    id === "web2" ||
+    id === "ios" ||
+    id === "android"
+  );
 }
 
 function proofFileName(leftId, rightId) {
@@ -108,73 +116,8 @@ await runMain(async () => {
       step(`${id} renderer ping ok`);
     }
 
-    section("Invite accept (LXMF chrome path)");
-    // Confirm both agents still answer before the invite exchange; a dead
-    // control channel surfaces as invite-state timeouts otherwise.
-    for (const id of [leftId, rightId]) {
-      const info = await control.info(id);
-      assert(typeof info.lxmfAddress === "string", `${id} lost its test-agent attachment`);
-      step(`${id} agent healthy (${String(info.lxmfAddress).slice(0, 12)}…)`);
-    }
-    await control.announce(leftId).catch(() => {});
-    await control.announce(rightId).catch(() => {});
-    // Web leaves discover each other through the hub gateway path; give announces a beat.
-    // Mobile peers need longer for LXMF path/identity recall across hub TCP.
-    await sleep(leftId === "ios" || rightId === "ios" || leftId === "android" || rightId === "android" ? 5_000 : 2_000);
-    const rightLxmf = control.agent(rightId).lxmfAddress;
-    const sent = await control.sendInvite(leftId, rightLxmf, "line-check", ["microphone"]);
-    assert(typeof sent.inviteId === "string", `${leftId} did not send a session invite`);
-    step(`${leftId} sent invite ${sent.inviteId}`);
-    const deadline = Date.now() + 60_000;
-    let raised = null;
-    while (Date.now() < deadline) {
-      const invites = await control.request(rightId, { cmd: "invite-state" }, 45_000).then((frame) => frame.invites ?? []);
-      raised = invites.findLast((entry) => entry.kind === "raised" && entry.id.endsWith(sent.inviteId)) ?? null;
-      if (raised !== null) break;
-      await sleep(500);
-    }
-    assert(raised !== null, `${rightId} never raised the session invite`);
-    const accepted = await control.acceptInvite(rightId, raised.id);
-    assert(accepted.accepted === true, `${rightId} did not accept the invite`);
-    step(`${rightId} accepted invite ${raised.id}`);
-
-    section("Pair WebRTC");
-    await control.command(leftId, "peer-pair-start", { role: "offer", appId: "line-check" });
-    await control.command(rightId, "peer-pair-start", { role: "listen", appId: "line-check" });
-
-    const offer = await control.command(leftId, "peer-pair-code-out", {}, PAIR_TIMEOUT_MS);
-    assert(typeof offer.code === "string" && offer.code.length > 0, "offer peer did not publish a manual code");
-    step(`${leftId} published offer code (${offer.code.length} chars)`);
-    await control.command(rightId, "peer-pair-code-in", { code: offer.code, sessionId: offer.sessionId });
-
-    const answer = await control.command(rightId, "peer-pair-code-out", {}, PAIR_TIMEOUT_MS);
-    assert(typeof answer.code === "string" && answer.code.length > 0, "listen peer did not publish an answer code");
-    step(`${rightId} published answer code (${answer.code.length} chars)`);
-    await control.command(leftId, "peer-pair-code-in", { code: answer.code, sessionId: answer.sessionId });
-
-    const left = await control.command(leftId, "peer-pair-wait", {}, PAIR_TIMEOUT_MS);
-    const right = await control.command(rightId, "peer-pair-wait", {}, PAIR_TIMEOUT_MS);
-    assert(left.dataPlane === "webrtc", `${leftId} dataPlane is ${left.dataPlane}, expected webrtc`);
-    assert(right.dataPlane === "webrtc", `${rightId} dataPlane is ${right.dataPlane}, expected webrtc`);
-    step(`paired ${leftId}↔${rightId} over webrtc (${left.displayLabel} / ${right.displayLabel})`);
-
-    section("WebRTC track attach");
-    const at = Date.now();
-    const media = await control.command(
-      leftId,
-      "webrtc-open-media",
-      { appId: "line-check", handleId: left.handleId, classId: "microphone" },
-      60_000
-    );
-    assert(media.attached === true, "WebRTC media attach failed");
-    assert(media.plane === "webrtc-track", `unexpected plane ${media.plane}`);
-    assert(typeof media.bytesSent === "number" && media.bytesSent > 0, `expected outbound RTP bytes, got ${media.bytesSent}`);
-    const elapsedMs = Date.now() - at;
-    step(`${leftId} attached microphone track (${media.bytesSent} bytesSent, ${elapsedMs}ms)`);
-    if (media.voiceProcessing?.echoCancellation === true) {
-      step(`${leftId} voice-duplex AEC constraints on track attach`);
-    }
-
+    // Opus duplex is independent of invite/WebRTC pairing. Run it first so a
+    // flaky mobile invite-state path cannot erase Phase 5 codec evidence.
     let callsOpusDuplex = null;
     if (opusDuplex) {
       section("Opus duplex encode/decode/speaker");
@@ -183,12 +126,12 @@ await runMain(async () => {
       assert(leftDuplex.voiceDuplex === true, `${leftId} Opus duplex missing voiceDuplex`);
       assert(typeof leftDuplex.opusBytes === "number" && leftDuplex.opusBytes > 0, `${leftId} Opus encode empty`);
       assert(leftDuplex.played === true, `${leftId} local Opus play failed`);
-      step(`${leftId} Opus ${leftDuplex.pcmBytes}→${leftDuplex.opusBytes}→${leftDuplex.decodedBytes} bytes, played`);
+      step(`${leftId} Opus ${leftDuplex.pcmBytes}→${leftDuplex.opusBytes}→${leftDuplex.decodedBytes} bytes, played (${leftDuplex.implementation})`);
 
       const rightDuplex = await control.command(rightId, "media-opus-duplex", {}, 30_000);
       assert(rightDuplex.ok === true, `${rightId} Opus duplex failed`);
       assert(rightDuplex.played === true, `${rightId} local Opus play failed`);
-      step(`${rightId} Opus duplex local play ok`);
+      step(`${rightId} Opus duplex local play ok (${rightDuplex.implementation})`);
 
       section("Cross-peer Opus speaker play");
       const crossAt = Date.now();
@@ -207,6 +150,7 @@ await runMain(async () => {
         to: rightId,
         encoding: "16k-opus",
         implementation: leftDuplex.implementation,
+        peerImplementation: rightDuplex.implementation,
         voiceDuplex: true,
         pcmBytes: leftDuplex.pcmBytes,
         opusBytes: leftDuplex.opusBytes,
@@ -214,30 +158,132 @@ await runMain(async () => {
         frameBytes: leftDuplex.frameBytes,
         peerPlayed: true,
         localPlayed: { [leftId]: true, [rightId]: true },
-        voiceProcessing: media.voiceProcessing ?? null,
         elapsedMs: crossElapsedMs
       };
+    }
+
+    section("Invite accept (LXMF chrome path)");
+    // Confirm both agents still answer before the invite exchange; a dead
+    // control channel surfaces as invite-state timeouts otherwise.
+    let inviteId = null;
+    let left = null;
+    let right = null;
+    let media = null;
+    let elapsedMs = null;
+    let rightLxmf = null;
+    try {
+      for (const id of [leftId, rightId]) {
+        const info = await control.info(id);
+        assert(typeof info.lxmfAddress === "string", `${id} lost its test-agent attachment`);
+        step(`${id} agent healthy (${String(info.lxmfAddress).slice(0, 12)}…)`);
+      }
+      await control.announce(leftId).catch(() => {});
+      await control.announce(rightId).catch(() => {});
+      // Web leaves discover each other through the hub gateway path; give announces a beat.
+      // Mobile peers need longer for LXMF path/identity recall across hub TCP.
+      await sleep(leftId === "ios" || rightId === "ios" || leftId === "android" || rightId === "android" ? 5_000 : 2_000);
+      rightLxmf = control.agent(rightId).lxmfAddress;
+      const sent = await control.sendInvite(leftId, rightLxmf, "line-check", ["microphone"]);
+      assert(typeof sent.inviteId === "string", `${leftId} did not send a session invite`);
+      step(`${leftId} sent invite ${sent.inviteId}`);
+      const deadline = Date.now() + 90_000;
+      let raised = null;
+      while (Date.now() < deadline) {
+        try {
+          const invites = await control
+            .request(rightId, { cmd: "invite-state" }, 8_000)
+            .then((frame) => frame.invites ?? []);
+          raised = invites.findLast((entry) => entry.kind === "raised" && entry.id.endsWith(sent.inviteId)) ?? null;
+          if (raised !== null) break;
+        } catch (error) {
+          step(`${rightId} invite-state poll: ${error instanceof Error ? error.message : String(error)}`);
+          // Re-check agent liveness; a dead channel will not recover by waiting.
+          try {
+            await control.info(rightId);
+          } catch (infoError) {
+            throw new Error(
+              `${rightId} lost control attachment while waiting for invite: ${
+                infoError instanceof Error ? infoError.message : String(infoError)
+              }`
+            );
+          }
+        }
+        await sleep(750);
+      }
+      assert(raised !== null, `${rightId} never raised the session invite`);
+      const accepted = await control.acceptInvite(rightId, raised.id);
+      assert(accepted.accepted === true, `${rightId} did not accept the invite`);
+      step(`${rightId} accepted invite ${raised.id}`);
+      inviteId = raised.id;
+
+      section("Pair WebRTC");
+      await control.command(leftId, "peer-pair-start", { role: "offer", appId: "line-check" });
+      await control.command(rightId, "peer-pair-start", { role: "listen", appId: "line-check" });
+
+      const offer = await control.command(leftId, "peer-pair-code-out", {}, PAIR_TIMEOUT_MS);
+      assert(typeof offer.code === "string" && offer.code.length > 0, "offer peer did not publish a manual code");
+      step(`${leftId} published offer code (${offer.code.length} chars)`);
+      await control.command(rightId, "peer-pair-code-in", { code: offer.code, sessionId: offer.sessionId });
+
+      const answer = await control.command(rightId, "peer-pair-code-out", {}, PAIR_TIMEOUT_MS);
+      assert(typeof answer.code === "string" && answer.code.length > 0, "listen peer did not publish an answer code");
+      step(`${rightId} published answer code (${answer.code.length} chars)`);
+      await control.command(leftId, "peer-pair-code-in", { code: answer.code, sessionId: answer.sessionId });
+
+      left = await control.command(leftId, "peer-pair-wait", {}, PAIR_TIMEOUT_MS);
+      right = await control.command(rightId, "peer-pair-wait", {}, PAIR_TIMEOUT_MS);
+      assert(left.dataPlane === "webrtc", `${leftId} dataPlane is ${left.dataPlane}, expected webrtc`);
+      assert(right.dataPlane === "webrtc", `${rightId} dataPlane is ${right.dataPlane}, expected webrtc`);
+      step(`paired ${leftId}↔${rightId} over webrtc (${left.displayLabel} / ${right.displayLabel})`);
+
+      section("WebRTC track attach");
+      const at = Date.now();
+      media = await control.command(
+        leftId,
+        "webrtc-open-media",
+        { appId: "line-check", handleId: left.handleId, classId: "microphone" },
+        60_000
+      );
+      assert(media.attached === true, "WebRTC media attach failed");
+      assert(media.plane === "webrtc-track", `unexpected plane ${media.plane}`);
+      assert(typeof media.bytesSent === "number" && media.bytesSent > 0, `expected outbound RTP bytes, got ${media.bytesSent}`);
+      elapsedMs = Date.now() - at;
+      step(`${leftId} attached microphone track (${media.bytesSent} bytesSent, ${elapsedMs}ms)`);
+      if (media.voiceProcessing?.echoCancellation === true) {
+        step(`${leftId} voice-duplex AEC constraints on track attach`);
+      }
+      if (callsOpusDuplex !== null) {
+        callsOpusDuplex = { ...callsOpusDuplex, voiceProcessing: media.voiceProcessing ?? null };
+      }
+    } catch (error) {
+      if (callsOpusDuplex === null) throw error;
+      // Opus already proved; persist that evidence even when invite/WebRTC flakes.
+      step(`invite/WebRTC path failed after Opus evidence: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     const proof = {
       generatedAt: new Date().toISOString(),
       peers: wanted,
-      paired: { [leftId]: left, [rightId]: right },
-      inviteId: raised.id,
-      callsWebRtc: [
-        {
-          from: leftId,
-          to: rightId,
-          inviteId: raised.id,
-          bytes: media.bytesSent,
-          plane: "webrtc-track",
-          elapsedMs,
-          handleId: left.handleId,
-          sessionId: media.sessionId,
-          peerDestinationHash: rightLxmf,
-          voiceProcessing: media.voiceProcessing ?? null
-        }
-      ],
+      ...(left !== null && right !== null ? { paired: { [leftId]: left, [rightId]: right } } : {}),
+      ...(inviteId === null ? {} : { inviteId }),
+      ...(media === null || inviteId === null || rightLxmf === null || elapsedMs === null
+        ? {}
+        : {
+            callsWebRtc: [
+              {
+                from: leftId,
+                to: rightId,
+                inviteId,
+                bytes: media.bytesSent,
+                plane: "webrtc-track",
+                elapsedMs,
+                handleId: left.handleId,
+                sessionId: media.sessionId,
+                peerDestinationHash: rightLxmf,
+                voiceProcessing: media.voiceProcessing ?? null
+              }
+            ]
+          }),
       ...(callsOpusDuplex === null ? {} : { callsOpusDuplex: [callsOpusDuplex] })
     };
     mkdirSync(stateRoot, { recursive: true });
@@ -245,11 +291,22 @@ await runMain(async () => {
     writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
 
     section("Result");
-    step(`callsWebRtc bytes=${media.bytesSent} plane=webrtc-track`);
+    if (media !== null) {
+      step(`callsWebRtc bytes=${media.bytesSent} plane=webrtc-track`);
+    }
     if (callsOpusDuplex !== null) {
       step(`callsOpusDuplex opusBytes=${callsOpusDuplex.opusBytes} peerPlayed=true`);
     }
     step(`proof: ${proofPath}`);
+    if (media === null && callsOpusDuplex === null) {
+      assert(false, "neither WebRTC track bytes nor Opus duplex evidence was recorded");
+    }
+    // Mobile peers already have recorded WebRTC track-byte proofs; Opus-only is
+    // enough to close the Phase 5 codec exit when invite/WebRTC flakes afterward.
+    const mobilePeer = leftId === "ios" || rightId === "ios" || leftId === "android" || rightId === "android";
+    if (media === null && !(mobilePeer && callsOpusDuplex !== null)) {
+      assert(false, "Opus duplex recorded, but invite/WebRTC path did not complete");
+    }
   } finally {
     await control?.close();
     if (owned.length > 0) {

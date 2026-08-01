@@ -115,5 +115,23 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
+// Bare/JSC rejects TextDecoder("utf-16le"). Emscripten's asm.js Opus glue
+// constructs that decoder at module load; when it is missing it already falls
+// back to a manual UTF-16 loop. Neutralize the constructor in the packed
+// string so Bare never throws INVALID_LABEL while loading opusscript.
+{
+  const packed = readFileSync(output, "utf8");
+  const neutralized = packed
+    .replaceAll('new TextDecoder(\\"utf-16le\\")', "void 0")
+    .replaceAll('new TextDecoder("utf-16le")', "void 0")
+    .replaceAll("new TextDecoder('utf-16le')", "void 0");
+  if (neutralized === packed) {
+    console.warn("worklet: no utf-16le TextDecoder sites found to neutralize");
+  } else {
+    writeFileSync(output, neutralized);
+    console.log("worklet: neutralized Emscripten utf-16le TextDecoder sites for Bare");
+  }
+}
+
 console.log(`worklet bundle written to ${output}`);
 console.log(`store posture: ${storePosture}`);

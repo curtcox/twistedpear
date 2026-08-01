@@ -260,9 +260,51 @@ function int16PcmToFloat32(bytes: Uint8Array): Uint8Array {
   return new Uint8Array(floats.buffer, floats.byteOffset, floats.byteLength);
 }
 
+function opusScriptOptions(): { wasm: boolean } {
+  return { wasm: typeof (globalThis as { WebAssembly?: unknown }).WebAssembly !== "undefined" };
+}
+
+/** Bare/JSC rejects `utf-16le`; Emscripten asm.js Opus constructs that decoder at load. */
+export function ensureUtf16LeTextDecoder(): void {
+  type Decoder = { decode(input?: ArrayBuffer | ArrayBufferView, options?: unknown): string };
+  const current = (globalThis as { TextDecoder?: (new (label?: string, options?: unknown) => Decoder) & { __tpUtf16LePatched?: boolean } }).TextDecoder;
+  if (typeof current !== "function") return;
+  if (current.__tpUtf16LePatched === true) return;
+  const Original = current;
+  function TextDecoder(this: { _utf16le: boolean; _inner: Decoder | null }, label?: string, options?: unknown) {
+    const normalized = String(label ?? "utf-8").toLowerCase().replace(/_/g, "-");
+    this._utf16le = normalized === "utf-16le" || normalized === "utf-16";
+    this._inner = this._utf16le ? null : new Original(label, options);
+  }
+  TextDecoder.prototype.decode = function decode(
+    this: { _utf16le: boolean; _inner: Decoder | null },
+    input?: ArrayBuffer | ArrayBufferView,
+    options?: unknown
+  ): string {
+    if (!this._utf16le) return this._inner!.decode(input, options);
+    if (input == null) return "";
+    const bytes =
+      input instanceof ArrayBuffer
+        ? new Uint8Array(input)
+        : new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+    let out = "";
+    for (let i = 0; i + 1 < bytes.length; i += 2) {
+      out += String.fromCharCode(bytes[i]! | (bytes[i + 1]! << 8));
+    }
+    return out;
+  };
+  (TextDecoder as { __tpUtf16LePatched?: boolean }).__tpUtf16LePatched = true;
+  Object.defineProperty(globalThis, "TextDecoder", { value: TextDecoder, writable: true, configurable: true });
+  const g = globalThis as { global?: { TextDecoder?: unknown } };
+  if (g.global !== undefined) {
+    Object.defineProperty(g.global, "TextDecoder", { value: TextDecoder, writable: true, configurable: true });
+  }
+}
+
 /**
  * Host Opus encode/decode via Emscripten libopus (`opusscript`).
  * Used where WebCodecs is unavailable (Bare mobile worklet / Node tests).
+ * Prefers WASM when `WebAssembly` exists; falls back to asm.js on BareKit.
  */
 export class BundledOpusMediaCodecDriver implements MediaCodecDriver {
   readonly implementation = "bundled-opus" as const;
@@ -327,7 +369,8 @@ export class BundledOpusMediaCodecDriver implements MediaCodecDriver {
   ): OpusScriptInstance {
     if (this.encoder === null || this.sampleRate !== sampleRate || this.channels !== channels) {
       this.encoder?.delete();
-      this.encoder = new OpusScript(sampleRate, channels, OpusScript.Application.VOIP);
+      ensureUtf16LeTextDecoder();
+      this.encoder = new OpusScript(sampleRate, channels, OpusScript.Application.VOIP, opusScriptOptions());
       this.sampleRate = sampleRate;
       this.channels = channels;
     }
@@ -338,7 +381,8 @@ export class BundledOpusMediaCodecDriver implements MediaCodecDriver {
   private ensureDecoder(OpusScript: OpusScriptCtor, sampleRate: number, channels: number): OpusScriptInstance {
     if (this.decoder === null || this.sampleRate !== sampleRate || this.channels !== channels) {
       this.decoder?.delete();
-      this.decoder = new OpusScript(sampleRate, channels, OpusScript.Application.VOIP);
+      ensureUtf16LeTextDecoder();
+      this.decoder = new OpusScript(sampleRate, channels, OpusScript.Application.VOIP, opusScriptOptions());
       this.sampleRate = sampleRate;
       this.channels = channels;
     }

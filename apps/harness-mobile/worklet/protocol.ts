@@ -313,6 +313,21 @@ export type HostToWorkletMessage =
   | { readonly type: "install-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
   | { readonly type: "peer-chrome-response"; readonly token: string; readonly accepted?: boolean; readonly approved?: boolean; readonly code?: string; readonly signal?: string; readonly opened?: boolean; readonly attached?: boolean; readonly sent?: boolean; readonly played?: boolean; readonly sessionId?: string; readonly framesHex?: ReadonlyArray<string>; readonly error?: string; readonly bytesSent?: number; readonly trackCount?: number; readonly connectionState?: string; readonly voiceProcessing?: { readonly echoCancellation: boolean; readonly noiseSuppression: boolean; readonly autoGainControl: boolean; readonly voiceDuplex: boolean } | null; readonly http?: { readonly status: number; readonly body: string; readonly contentLength: string | null }; readonly availability?: { readonly state: "available" | "permission-required" | "unsupported" | "offline" | "policy-disabled"; readonly reason?: string } }
   | { readonly type: "media-opus-play-response"; readonly token: string; readonly played?: boolean; readonly error?: string }
+  | {
+      readonly type: "media-opus-duplex-response";
+      readonly token: string;
+      readonly ok?: boolean;
+      readonly implementation?: string;
+      readonly voiceDuplex?: boolean;
+      readonly encoding?: string;
+      readonly pcmBytes?: number;
+      readonly opusBytes?: number;
+      readonly decodedBytes?: number;
+      readonly frameBytes?: number;
+      readonly frameHex?: string;
+      readonly played?: boolean;
+      readonly error?: string;
+    }
   | { readonly type: "media-codec-response"; readonly token: string; readonly dataHex?: string; readonly error?: string }
   | { readonly type: "install-from-256t"; readonly t256: string }
   | { readonly type: "trust-list" }
@@ -489,6 +504,7 @@ export type WorkletToHostMessage =
   | { readonly type: "peer-webrtc-media-stats"; readonly token: string; readonly sessionId: string }
   | { readonly type: "peer-webrtc-media-detach"; readonly token: string; readonly sessionId: string; readonly classId: string }
   | { readonly type: "media-opus-play-request"; readonly token: string; readonly encoding: string; readonly dataHex: string }
+  | { readonly type: "media-opus-duplex-request"; readonly token: string }
   | {
       readonly type: "media-codec-request";
       readonly token: string;

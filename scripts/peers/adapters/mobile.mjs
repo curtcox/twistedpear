@@ -35,9 +35,24 @@ import {
 const HARNESS_BUNDLE_ID = "network.twistedpear.harness";
 const FLOW = `${repoRoot}/.maestro/local-peer-up.yaml`;
 
+function maestroEnv() {
+  // Prefer the CLI install. Maestro.app's Electron shim becomes Node under
+  // ELECTRON_RUN_AS_NODE (common in agent shells) and rejects `--device`.
+  const home = process.env.HOME ?? "";
+  return {
+    ...process.env,
+    PATH: `${home}/.maestro/bin:${process.env.PATH ?? ""}`,
+    ELECTRON_RUN_AS_NODE: undefined
+  };
+}
+
 function runFlow(id, device, log) {
   log(`${id}: running ${FLOW}`);
-  const result = spawnSync("maestro", ["--device", device, "test", FLOW], { cwd: repoRoot, encoding: "utf8" });
+  const result = spawnSync("maestro", ["--device", device, "test", FLOW], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: maestroEnv()
+  });
   appendFileSync(logPath(id), `${result.stdout ?? ""}${result.stderr ?? ""}`);
   if (result.status !== 0) {
     throw new Error(`maestro test ${FLOW} failed (see ${logPath(id)})`);
