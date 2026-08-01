@@ -2,6 +2,7 @@ import { renderWidgetTree } from "./widgets.js";
 import { decodeQrVideoFrame, normalizeScannedT256, supportsQrDetection } from "./qr-scanner.js";
 import { handleDeviceBridgeRequest } from "./device-bridge.js";
 import { handleMediaCodecRequest, playInboundMediaFrame } from "./media-codec-bridge.js";
+import { handlePeerWebRtcMessage } from "./peer-webrtc-bridge.js";
 
 const statusGrid = document.querySelector("#status-grid");
 const catalogList = document.querySelector("#catalog-list");
@@ -1299,6 +1300,16 @@ if (!host) {
     }
     if (message.type === "media-codec-request") {
       void handleMediaCodecRequest(message, (reply) => host.send(reply));
+    }
+    if (
+      message.type === "peer-webrtc-signal" ||
+      message.type === "peer-webrtc-establish" ||
+      message.type === "peer-webrtc-data-send" ||
+      message.type === "peer-webrtc-media-attach" ||
+      message.type === "peer-webrtc-media-detach" ||
+      message.type === "peer-webrtc-close"
+    ) {
+      void handlePeerWebRtcMessage(message, (reply) => host.send(reply));
     }
     if (message.type === "inbound-media-frame") {
       void playInboundMediaFrame(message).then((played) => appendLog(`Inbound ${message.encoding} media → ${played ? "speaker" : message.sink.kind} (${message.dataHex.length / 2} bytes)`)).catch((error) => appendLog(`Inbound media failed: ${error instanceof Error ? error.message : String(error)}`));

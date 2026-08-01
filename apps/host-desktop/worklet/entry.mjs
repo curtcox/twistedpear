@@ -46,6 +46,7 @@ import {
 } from "../../../packages/cas-256t/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, createWorkletFlagRelayService, generateConfirmationToken, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
 import { decodePeerInvitation } from "../../../packages/protocol/dist/index.js";
 import {
   PropagationServer,
@@ -364,6 +365,12 @@ const freenetBackendProxy = {
 };
 /** @type {PeerSessionManager | null} */
 let peerSessionManager = null;
+/** @type {Map<string, string>} fingerprint → WebRTC sessionId */
+const webRtcSessionByFingerprint = new Map();
+/** @type {Map<string, Set<(payload: Uint8Array) => void>>} */
+const webRtcRouteListeners = new Map();
+/** @type {Map<string, Uint8Array[]>} */
+const webRtcRoutePending = new Map();
 const peerLinkDestinations = new Map();
 const peerLinks = new Map();
 const automaticDiscoveryDestinations = new Map();
@@ -930,15 +937,88 @@ async function ensurePeerSessionManager() {
       }
     },
     displayLabel: `TwistedPear ${bytesToHex(identity.hash).slice(0, 8)}`,
-    capabilities: ["reticulum"],
+    capabilities: ["webrtc", "reticulum"],
     entropy: async (length) => provider.randomBytes(length),
-    candidates: async (request) => {
+    candidates: async (request, context) => {
+      const candidates = [];
+      try {
+        const remote = context.remoteInvitation?.candidates.find((entry) => entry.kind === "webrtc");
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({
+          type: "peer-webrtc-signal",
+          token,
+          sessionId: bytesToHex(context.sessionId),
+          role: context.role,
+          ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) })
+        }, 15_000);
+        if (typeof reply?.signal === "string") {
+          candidates.push({ kind: "webrtc", value: new TextEncoder().encode(reply.signal) });
+        }
+      } catch {
+        /* renderer WebRTC unavailable — fall through to Reticulum */
+      }
       const destination = await ensurePeerLinkDestination(identity, request.service);
       await destination.announce();
-      return [{ kind: "reticulum", value: destination.hash }];
+      candidates.push({ kind: "reticulum", value: destination.hash });
+      return candidates;
     },
     confirm: (peer, request) => peerChrome.confirm(peer, request),
     async establish(context, peer, adapter) {
+      if (peer.dataPlane === "webrtc") {
+        const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc");
+        const sessionId = bytesToHex(context.remoteInvitation.sessionId);
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({
+          type: "peer-webrtc-establish",
+          token,
+          sessionId,
+          ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) })
+        }, 30_000);
+        if (reply?.opened !== true) throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC data channel did not open");
+        const listeners = new Set();
+        webRtcRouteListeners.set(sessionId, listeners);
+        if (!webRtcRoutePending.has(sessionId)) webRtcRoutePending.set(sessionId, []);
+        webRtcSessionByFingerprint.set(peer.fingerprint, sessionId);
+        return {
+          authenticated: true,
+          confirmed: true,
+          fingerprint: peer.fingerprint,
+          displayLabel: peer.displayLabel,
+          rendezvous: adapter.kind,
+          dataPlane: "webrtc",
+          route: meterHostPeerRoute({
+            async send(payload) {
+              const sendToken = generateConfirmationToken((length) => provider.randomBytes(length));
+              const sent = await requestRendererReply({
+                type: "peer-webrtc-data-send",
+                token: sendToken,
+                sessionId,
+                dataHex: bytesToHex(payload)
+              }, 10_000);
+              if (sent?.sent !== true) throw new Error("WebRTC data channel send failed");
+            },
+            subscribe(listener) {
+              listeners.add(listener);
+              for (const pending of webRtcRoutePending.get(sessionId)?.splice(0) ?? []) listener(pending);
+              return () => listeners.delete(listener);
+            },
+            quality() {
+              return {
+                goodputBps: 2_000_000,
+                rttMs: 50,
+                mtu: 1_200,
+                queueDepthBytes: outboundBandwidthLimiter.queueDepthBytes()
+              };
+            }
+          }, { now: () => Date.now(), declaredBps: 2_000_000, declaredMtu: 1_200 }),
+          async close() {
+            webRtcRouteListeners.delete(sessionId);
+            webRtcRoutePending.delete(sessionId);
+            webRtcSessionByFingerprint.delete(peer.fingerprint);
+            send({ type: "peer-webrtc-close", sessionId });
+          }
+        };
+      }
       const node = await ensureReticulum();
       const candidate = context.remoteInvitation.candidates.find((entry) => entry.kind === "reticulum");
       const remoteIdentity = Identity.fromPublicKey(provider, context.remoteInvitation.identityProof);
@@ -1114,6 +1194,48 @@ function ensureMiniappHost() {
           return { path };
         }
       },
+      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(async ({ appId, peer, demand }) => {
+        const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
+        if (confirmed?.dataPlane !== "webrtc") {
+          throw new Error("No authenticated WebRTC route for media tracks.");
+        }
+        const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
+        if (sessionId === undefined) {
+          throw new Error("WebRTC session is missing for media track attach.");
+        }
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({
+          type: "peer-webrtc-media-attach",
+          token,
+          sessionId,
+          classId: demand.classId,
+          tierId: demand.tierId
+        }, 30_000);
+        if (reply?.attached !== true) {
+          throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
+        }
+        return {
+          quality: () => ({
+            goodputBps: 2_000_000,
+            rttMs: 50,
+            jitterMs: 10,
+            lossRatio: 0,
+            mtu: 1_200,
+            source: "declared",
+            samples: 1,
+            confidence: "low"
+          }),
+          close: async () => {
+            const detachToken = generateConfirmationToken((length) => provider.randomBytes(length));
+            await requestRendererReply({
+              type: "peer-webrtc-media-detach",
+              token: detachToken,
+              sessionId,
+              classId: demand.classId
+            }, 10_000);
+          }
+        };
+      }),
       async requestShareOffer({ appId, purpose }) {
         const peer = peerSessionManagerProxy.list(appId)[0];
         if (peer === undefined) return null;
@@ -2635,6 +2757,20 @@ async function handleHostMessage(raw) {
 
   if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-codec-response") {
     hostReplyChannel.resolveReply(message);
+    return;
+  }
+
+  if (message.type === "peer-webrtc-data") {
+    const listeners = webRtcRouteListeners.get(message.sessionId);
+    const payload = hexToBytes(message.dataHex);
+    if (listeners === undefined || listeners.size === 0) {
+      const pending = webRtcRoutePending.get(message.sessionId) ?? [];
+      pending.push(payload);
+      if (pending.length > 16) pending.shift();
+      webRtcRoutePending.set(message.sessionId, pending);
+    } else {
+      for (const listener of listeners) listener(payload);
+    }
     return;
   }
 
