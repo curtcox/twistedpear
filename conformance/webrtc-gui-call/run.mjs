@@ -5,6 +5,7 @@
  *
  * Default: hub + desktop + desktop2 (Electron).
  * Web:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,web,web2
+ * iOS:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,desktop,ios
  *
  *   LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs
  */
@@ -108,20 +109,29 @@ await runMain(async () => {
     }
 
     section("Invite accept (LXMF chrome path)");
+    // Confirm both agents still answer before the invite exchange; a dead
+    // control channel surfaces as invite-state timeouts otherwise.
+    for (const id of [leftId, rightId]) {
+      const info = await control.info(id);
+      assert(typeof info.lxmfAddress === "string", `${id} lost its test-agent attachment`);
+      step(`${id} agent healthy (${String(info.lxmfAddress).slice(0, 12)}…)`);
+    }
     await control.announce(leftId).catch(() => {});
     await control.announce(rightId).catch(() => {});
     // Web leaves discover each other through the hub gateway path; give announces a beat.
-    await sleep(2_000);
+    // Mobile peers need longer for LXMF path/identity recall across hub TCP.
+    await sleep(leftId === "ios" || rightId === "ios" || leftId === "android" || rightId === "android" ? 5_000 : 2_000);
     const rightLxmf = control.agent(rightId).lxmfAddress;
     const sent = await control.sendInvite(leftId, rightLxmf, "line-check", ["microphone"]);
     assert(typeof sent.inviteId === "string", `${leftId} did not send a session invite`);
-    const deadline = Date.now() + 45_000;
+    step(`${leftId} sent invite ${sent.inviteId}`);
+    const deadline = Date.now() + 60_000;
     let raised = null;
     while (Date.now() < deadline) {
-      const invites = await control.inviteState(rightId);
+      const invites = await control.request(rightId, { cmd: "invite-state" }, 45_000).then((frame) => frame.invites ?? []);
       raised = invites.findLast((entry) => entry.kind === "raised" && entry.id.endsWith(sent.inviteId)) ?? null;
       if (raised !== null) break;
-      await sleep(250);
+      await sleep(500);
     }
     assert(raised !== null, `${rightId} never raised the session invite`);
     const accepted = await control.acceptInvite(rightId, raised.id);
