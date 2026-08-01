@@ -36,6 +36,14 @@ function isOpusDuplexPeer(id) {
   return id === "desktop" || id === "desktop2" || id === "web" || id === "web2";
 }
 
+function proofFileName(leftId, rightId) {
+  if (leftId.startsWith("web") || rightId.startsWith("web")) return "webrtc-gui-call-web-proof.json";
+  if (leftId === "ios" || rightId === "ios" || leftId === "android" || rightId === "android") {
+    return `webrtc-gui-call-${[leftId, rightId].sort().join("-")}-proof.json`;
+  }
+  return "webrtc-gui-call-proof.json";
+}
+
 async function bringUpSequential(ids, control) {
   const started = [];
   try {
@@ -79,10 +87,7 @@ await runMain(async () => {
   const leftId = wanted[1];
   const rightId = wanted[2];
   const opusDuplex = isOpusDuplexPeer(leftId) && isOpusDuplexPeer(rightId);
-  const proofName =
-    leftId.startsWith("web") || rightId.startsWith("web")
-      ? "webrtc-gui-call-web-proof.json"
-      : "webrtc-gui-call-proof.json";
+  const proofName = proofFileName(leftId, rightId);
 
   section(`WebRTC GUI call: ${wanted.join(", ")}`);
 

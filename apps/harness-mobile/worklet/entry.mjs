@@ -34,6 +34,7 @@ import {
   connectTestAgent,
   createCrossDeviceTestDriver,
   createDevChannelClient,
+  createHarnessPeerPair,
   createHostReplyChannel,
   createMiniappAnnounceService,
   createStatusTimer,
@@ -353,6 +354,61 @@ function ensureCrossDeviceTestDriver() {
     crossDeviceTestDriver = async (request) => {
       if (request?.cmd === "media-opus-duplex" || request?.cmd === "media-opus-play") {
         return handleNativeMediaOpusCommand(request);
+      }
+      if (request?.cmd === "renderer-ping") {
+        const reply = await requestHostReply({ type: "peer-qr-availability", token: peerToken() }, 10_000);
+        return {
+          ok: reply !== null,
+          availability: reply?.availability ?? null,
+          error: reply === null ? "renderer ping timed out" : reply?.error
+        };
+      }
+      if (request?.cmd === "peer-pair-start") {
+        harnessPeerPair.enable();
+        await ensurePeerSessionManager();
+        ensureMiniappHost();
+        const role = request.role === "listen" ? "listen" : "offer";
+        const appId = typeof request.appId === "string" ? request.appId : "line-check";
+        const runtimeId = "harness-webrtc";
+        return harnessPeerPair.start(async () => {
+          const manager = await ensurePeerSessionManager();
+          const connect = {
+            service: appId,
+            purpose: "WebRTC media conformance",
+            mechanisms: ["manual"],
+            timeoutMs: 120_000
+          };
+          const handle =
+            role === "listen"
+              ? await manager.listen(appId, runtimeId, connect)
+              : await manager.request(appId, runtimeId, connect);
+          const info = manager.info(appId, runtimeId, handle);
+          return {
+            handleId: handle.id,
+            dataPlane: info.dataPlane,
+            fingerprint: info.fingerprint,
+            displayLabel: info.displayLabel
+          };
+        });
+      }
+      if (request?.cmd === "peer-pair-code-out") {
+        const taken = await harnessPeerPair.takeOutboundCode(
+          typeof request.timeoutMs === "number" ? request.timeoutMs : 60_000
+        );
+        return { code: taken.code, sessionId: taken.sessionId };
+      }
+      if (request?.cmd === "peer-pair-code-in") {
+        if (typeof request.code !== "string") throw new Error("peer-pair-code-in requires code");
+        harnessPeerPair.giveInboundCode(
+          request.code,
+          typeof request.sessionId === "string" ? request.sessionId : undefined
+        );
+        return { ok: true };
+      }
+      if (request?.cmd === "peer-pair-wait") {
+        return harnessPeerPair.wait(
+          typeof request.timeoutMs === "number" ? request.timeoutMs : 120_000
+        );
       }
       if (request?.cmd === "webrtc-open-media") {
         ensureMiniappHost();
@@ -1109,7 +1165,8 @@ const hostReplyChannel = createHostReplyChannel({ send });
 const requestHostReply = hostReplyChannel.requestReply;
 
 function peerToken() { return bytesToHex(provider.randomBytes(16)); }
-const peerChrome = {
+const harnessPeerPair = createHarnessPeerPair();
+const peerChromeBase = {
   manual: {
     async *offer(session, code, options) { const reply = await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
     async *accept(options) { const session = { id: peerToken(), kind: "manual" }; const reply = await requestHostReply({ type: "peer-manual-enter", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
@@ -1137,6 +1194,18 @@ const peerChrome = {
     async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
   },
   async confirm(peer, request) { const reply = await requestHostReply({ type: "peer-confirm-request", token: peerToken(), appId: request.service, service: request.service, purpose: request.purpose, peer }); return reply?.approved === true; }
+};
+const peerChrome = {
+  get manual() {
+    return harnessPeerPair.enabled ? harnessPeerPair.channel : peerChromeBase.manual;
+  },
+  qr: peerChromeBase.qr,
+  audio: peerChromeBase.audio,
+  ntfy: peerChromeBase.ntfy,
+  async confirm(peer, request) {
+    if (harnessPeerPair.enabled) return true;
+    return peerChromeBase.confirm(peer, request);
+  }
 };
 
 function ntfyHostFetch(input, init = {}) {
