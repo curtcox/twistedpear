@@ -80,7 +80,8 @@ export {
   createPearsBulkAppendPlaneOpener,
   createPeerRouteLinkSupply,
   createPeerRoutePlaneOpeners,
-  createWebRtcMediaTrackPlaneOpener
+  createWebRtcMediaTrackPlaneOpener,
+  createDelegatedWebRtcMediaPlaneOpener
 } from "./media-stream.js";
 export type {
   CasDerivedPlaneOpenerOptions,

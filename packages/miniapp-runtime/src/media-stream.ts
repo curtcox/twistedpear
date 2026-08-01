@@ -459,13 +459,16 @@ export function createCasDerivedPlaneOpener(
  * stay absent so admission still fails closed. When both a peer-route pears-bulk
  * opener and an append opener exist, the authenticated gateway route is tried
  * first. When a WebRTC media-track opener exists, tracks are preferred over the
- * data-channel peer-route path.
+ * data-channel peer-route path. A host-bridged `webrtcMediaPlane` (IPC capture
+ * attach) is tried before the in-process track opener.
  */
 export function createHostPlaneOpeners(input: {
   readonly peerRouteFactory?: StreamEgressFactory;
   readonly cas?: CasDerivedPlaneOpenerOptions;
   readonly pearsBulk?: PearsBulkAppendPlaneOpenerOptions;
   readonly webrtcMedia?: WebRtcMediaTrackPlaneOpenerOptions;
+  /** Host-bridged RTP attach (worklet → renderer); no MediaStreamTrack in-process. */
+  readonly webrtcMediaPlane?: PlaneMediaTransportOpener;
 }): Partial<Record<StreamPlane, PlaneMediaTransportOpener>> {
   const openers: Partial<Record<StreamPlane, PlaneMediaTransportOpener>> = {
     ...(input.peerRouteFactory === undefined ? {} : createPeerRoutePlaneOpeners(input.peerRouteFactory)),
@@ -485,19 +488,24 @@ export function createHostPlaneOpeners(input: {
             }
           };
   }
-  if (input.webrtcMedia !== undefined) {
-    const tracks = createWebRtcMediaTrackPlaneOpener(input.webrtcMedia);
+  const trackOpeners: PlaneMediaTransportOpener[] = [];
+  if (input.webrtcMediaPlane !== undefined) trackOpeners.push(input.webrtcMediaPlane);
+  if (input.webrtcMedia !== undefined) trackOpeners.push(createWebRtcMediaTrackPlaneOpener(input.webrtcMedia));
+  if (trackOpeners.length > 0) {
     const routed = openers.webrtc;
-    openers.webrtc =
-      routed === undefined
-        ? tracks
-        : async (request) => {
-            try {
-              return await tracks(request);
-            } catch {
-              return routed(request);
-            }
-          };
+    const preferTracks: PlaneMediaTransportOpener = async (request) => {
+      let lastError: unknown;
+      for (const opener of trackOpeners) {
+        try {
+          return await opener(request);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (routed !== undefined) return routed(request);
+      throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    };
+    openers.webrtc = preferTracks;
   }
   return openers;
 }
@@ -585,6 +593,55 @@ export function createWebRtcMediaTrackPlaneOpener(
         } catch {
           /* ignore stop races */
         }
+      }
+    };
+  };
+}
+
+/**
+ * Worklet-safe WebRTC media plane: the host attaches capture tracks over IPC
+ * (or another bridge) so `MediaStreamTrack` never crosses the mini-app broker.
+ */
+export function createDelegatedWebRtcMediaPlaneOpener(
+  attach: (input: {
+    readonly appId: string;
+    readonly peer: string;
+    readonly demand: StreamDemand;
+    readonly admission: AdmissionDecision;
+  }) => Promise<{
+    readonly quality?: () => LinkQuality;
+    readonly close: () => Promise<void>;
+  }>
+): PlaneMediaTransportOpener {
+  return async (input) => {
+    if (input.admission.plane !== "webrtc") {
+      throw new Error("WebRTC media-track opener was asked for a different admitted plane.");
+    }
+    if (!isLiveWebRtcTrackDemand(input.demand)) {
+      throw new Error("WebRTC media tracks admit live pcm/frames demand only.");
+    }
+    const attached = await attach(input);
+    let closed = false;
+    return {
+      async send() {
+        if (closed) throw new Error("WebRTC media-track transport is closed.");
+        return { queuedBytes: 0, droppedOldest: 0 };
+      },
+      quality: () =>
+        attached.quality?.() ?? {
+          goodputBps: 2_000_000,
+          rttMs: 40,
+          jitterMs: 10,
+          lossRatio: 0,
+          mtu: 1_200,
+          source: "declared",
+          samples: 0,
+          confidence: "low"
+        },
+      async close() {
+        if (closed) return;
+        closed = true;
+        await attached.close();
       }
     };
   };

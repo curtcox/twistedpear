@@ -13,6 +13,7 @@ import {
   createPearsBulkAppendPlaneOpener,
   createPeerRoutePlaneOpeners,
   createWebRtcMediaTrackPlaneOpener,
+  createDelegatedWebRtcMediaPlaneOpener,
   type InboundMediaBackend,
   type StreamOffer
 } from "../src/media-stream.js";
@@ -499,5 +500,49 @@ describe("host plane openers", () => {
       }
     });
     expect(dataChannel).toHaveBeenCalledOnce();
+  });
+
+  it("delegates WebRTC media attach to the host bridge before the data channel", async () => {
+    const attach = vi.fn(async () => ({
+      close: async () => {}
+    }));
+    const dataChannel = vi.fn(async () => ({
+      plane: "webrtc" as const,
+      send: async () => ({ queuedBytes: 0, droppedOldest: 0 }),
+      quality: () => ({
+        goodputBps: 1,
+        rttMs: 1,
+        jitterMs: 0,
+        lossRatio: 0,
+        mtu: 1,
+        source: "declared" as const,
+        samples: 0,
+        confidence: "low" as const
+      }),
+      close: async () => {}
+    }));
+    const openers = createHostPlaneOpeners({
+      peerRouteFactory: { create: dataChannel },
+      webrtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(attach)
+    });
+    const factory = new PlaneStreamEgressFactory(openers);
+    const egress = await factory.create({
+      appId: "line-check",
+      peer: "peer-ana",
+      demand: { classId: "microphone", tierId: "pcm" },
+      admission: {
+        kind: "accept",
+        plane: "webrtc",
+        rung: "16k-opus",
+        rungIndex: 1,
+        demandBps: 24_000,
+        admittedDemandBps: 24_000,
+        supplyBps: 2_000_000,
+        reason: "test"
+      }
+    });
+    expect(attach).toHaveBeenCalledOnce();
+    expect(dataChannel).not.toHaveBeenCalled();
+    expect(await egress.send(new Uint8Array([1]))).toEqual({ queuedBytes: 0, droppedOldest: 0 });
   });
 });

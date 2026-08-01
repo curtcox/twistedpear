@@ -210,6 +210,7 @@ export default function App() {
         pc: any;
         channel: any;
         role: "offer" | "answer";
+        localTracks: MediaStreamTrack[];
         remoteTracks: MediaStreamTrack[];
         remoteTrackListeners: Set<(track: MediaStreamTrack) => void>;
         attachTrack(track: MediaStreamTrack): RTCRtpSender;
@@ -354,6 +355,7 @@ export default function App() {
               pc,
               channel: null as any,
               role: message.role,
+              localTracks: [] as MediaStreamTrack[],
               remoteTracks: [] as MediaStreamTrack[],
               remoteTrackListeners: new Set<(track: MediaStreamTrack) => void>(),
               attachTrack(track: MediaStreamTrack) {
@@ -408,8 +410,71 @@ export default function App() {
         return;
       }
 
+      if (message.type === "peer-webrtc-media-attach") {
+        void (async () => {
+          const state = peerRtcRef.current.get(message.sessionId);
+          try {
+            if (state === undefined) throw new Error("WebRTC state is missing");
+            const nav = (globalThis as { navigator?: { mediaDevices?: { getUserMedia(constraints: unknown): Promise<MediaStream> } } }).navigator;
+            if (typeof nav?.mediaDevices?.getUserMedia !== "function") throw new Error("getUserMedia is unavailable");
+            const audio = message.classId === "microphone";
+            const video = message.classId === "camera" || message.classId === "screen-capture";
+            if (!audio && !video) throw new Error(`Unsupported media class ${message.classId}`);
+            const stream = await nav.mediaDevices.getUserMedia({
+              audio: audio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
+              video: video ? { facingMode: "user" } : false
+            });
+            const tracks = stream.getTracks();
+            if (tracks.length === 0) throw new Error("No media tracks from getUserMedia");
+            for (const track of tracks) {
+              state.attachTrack(track);
+              state.localTracks.push(track);
+            }
+            sendToWorker({ type: "peer-chrome-response", token: message.token, attached: true });
+          } catch (error) {
+            sendToWorker({
+              type: "peer-chrome-response",
+              token: message.token,
+              attached: false,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
+        })();
+        return;
+      }
+
+      if (message.type === "peer-webrtc-media-detach") {
+        void (async () => {
+          const state = peerRtcRef.current.get(message.sessionId);
+          const kind = message.classId === "microphone" ? "audio" : "video";
+          for (const track of [...(state?.localTracks ?? [])]) {
+            if (track.kind === kind || message.classId === "screen-capture") {
+              try {
+                track.stop();
+              } catch {
+                /* ignore */
+              }
+              state?.localTracks.splice(state.localTracks.indexOf(track), 1);
+            }
+          }
+          sendToWorker({ type: "peer-chrome-response", token: message.token, attached: false });
+        })();
+        return;
+      }
+
       if (message.type === "peer-webrtc-close") {
-        const state = peerRtcRef.current.get(message.sessionId); state?.channel?.close(); state?.pc.close(); peerRtcRef.current.delete(message.sessionId); return;
+        const state = peerRtcRef.current.get(message.sessionId);
+        for (const track of state?.localTracks ?? []) {
+          try {
+            track.stop();
+          } catch {
+            /* ignore */
+          }
+        }
+        state?.channel?.close();
+        state?.pc.close();
+        peerRtcRef.current.delete(message.sessionId);
+        return;
       }
 
       if (message.type === "peer-confirm-request") {

@@ -214,6 +214,7 @@ export {
   createPeerRouteLinkSupply,
   createPeerRoutePlaneOpeners,
   createWebRtcMediaTrackPlaneOpener,
+  createDelegatedWebRtcMediaPlaneOpener,
   PeerRouteStreamEgressFactory,
   PeerRouteMediaBridge,
   PlaneStreamEgressFactory,

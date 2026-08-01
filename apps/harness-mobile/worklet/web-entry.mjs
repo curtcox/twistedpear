@@ -20,6 +20,7 @@ import {
   webRuntime
 } from "../../../packages/reticulum-ts/dist/web.js";
 import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
+import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
 import {
   createHostReplyChannel,
   createCrossDeviceTestDriver,
@@ -158,6 +159,8 @@ let miniappKvStore = null;
 let peerSessionManager = null;
 const webRtcRouteListeners = new Map();
 const webRtcRoutePending = new Map();
+/** @type {Map<string, string>} fingerprint → WebRTC sessionId */
+const webRtcSessionByFingerprint = new Map();
 let crossDeviceTestDriver = null;
 
 function ensureCrossDeviceTestDriver() {
@@ -269,7 +272,7 @@ async function ensurePeerSessionManager() {
     },
     confirm: (peer, request) => peerChrome.confirm(peer, request),
     async establish(context, peer, adapter) {
-      if (peer.dataPlane === "webrtc") { const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc"); const sessionId = bytesToHex(context.remoteInvitation.sessionId); const reply = await requestHostReply({ type: "peer-webrtc-establish", token: peerToken(), sessionId, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 30_000); if (reply?.opened !== true) throw new Error("WebRTC data channel did not open"); const listeners = new Set(); webRtcRouteListeners.set(sessionId, listeners); if (!webRtcRoutePending.has(sessionId)) webRtcRoutePending.set(sessionId, []); return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: "webrtc", route: meterHostPeerRoute({ async send(payload) { const sent = await requestHostReply({ type: "peer-webrtc-data-send", token: peerToken(), sessionId, dataHex: bytesToHex(payload) }, 10_000); if (sent?.sent !== true) throw new Error("WebRTC data channel send failed"); }, subscribe(listener) { listeners.add(listener); for (const pending of webRtcRoutePending.get(sessionId)?.splice(0) ?? []) listener(pending); return () => listeners.delete(listener); }, quality() { return { goodputBps: 2_000_000, rttMs: 50, mtu: 1_200, queueDepthBytes: webOutboundBandwidthLimiter.queueDepthBytes() }; } }, { now: () => Date.now(), declaredBps: 2_000_000, declaredMtu: 1_200 }), async close() { webRtcRouteListeners.delete(sessionId); webRtcRoutePending.delete(sessionId); send({ type: "peer-webrtc-close", sessionId }); } }; }
+      if (peer.dataPlane === "webrtc") { const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc"); const sessionId = bytesToHex(context.remoteInvitation.sessionId); const reply = await requestHostReply({ type: "peer-webrtc-establish", token: peerToken(), sessionId, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 30_000); if (reply?.opened !== true) throw new Error("WebRTC data channel did not open"); const listeners = new Set(); webRtcRouteListeners.set(sessionId, listeners); if (!webRtcRoutePending.has(sessionId)) webRtcRoutePending.set(sessionId, []); webRtcSessionByFingerprint.set(peer.fingerprint, sessionId); return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: "webrtc", route: meterHostPeerRoute({ async send(payload) { const sent = await requestHostReply({ type: "peer-webrtc-data-send", token: peerToken(), sessionId, dataHex: bytesToHex(payload) }, 10_000); if (sent?.sent !== true) throw new Error("WebRTC data channel send failed"); }, subscribe(listener) { listeners.add(listener); for (const pending of webRtcRoutePending.get(sessionId)?.splice(0) ?? []) listener(pending); return () => listeners.delete(listener); }, quality() { return { goodputBps: 2_000_000, rttMs: 50, mtu: 1_200, queueDepthBytes: webOutboundBandwidthLimiter.queueDepthBytes() }; } }, { now: () => Date.now(), declaredBps: 2_000_000, declaredMtu: 1_200 }), async close() { webRtcRouteListeners.delete(sessionId); webRtcRoutePending.delete(sessionId); webRtcSessionByFingerprint.delete(peer.fingerprint); send({ type: "peer-webrtc-close", sessionId }); } }; }
       return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: peer.dataPlane };
     }
   });
@@ -566,6 +569,47 @@ function ensureMiniappHost() {
       openCasPlane: {
         put: (frame) => new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data)).put(frame)
       },
+      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(async ({ appId, peer, demand }) => {
+        const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
+        if (confirmed?.dataPlane !== "webrtc") {
+          throw new Error("No authenticated WebRTC route for media tracks.");
+        }
+        const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
+        if (sessionId === undefined) {
+          throw new Error("WebRTC session is missing for media track attach.");
+        }
+        const reply = await requestHostReply(
+          {
+            type: "peer-webrtc-media-attach",
+            token: peerToken(),
+            sessionId,
+            classId: demand.classId,
+            tierId: demand.tierId
+          },
+          30_000
+        );
+        if (reply?.attached !== true) {
+          throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
+        }
+        return {
+          quality: () => ({
+            goodputBps: 2_000_000,
+            rttMs: 50,
+            jitterMs: 10,
+            lossRatio: 0,
+            mtu: 1_200,
+            source: "declared",
+            samples: 1,
+            confidence: "low"
+          }),
+          close: async () => {
+            await requestHostReply(
+              { type: "peer-webrtc-media-detach", token: peerToken(), sessionId, classId: demand.classId },
+              10_000
+            );
+          }
+        };
+      }),
       controlReservations: { reserveControl: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("control", bytesPerSecond) },
       onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
       async requestShareOffer({ appId, purpose }) {
