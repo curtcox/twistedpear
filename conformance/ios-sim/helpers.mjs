@@ -94,6 +94,14 @@ export function buildAndInstallHarness(repoRoot, options = {}) {
     throw new Error("build:worklet failed");
   }
 
+  const bareAddons = spawnSync("node", ["scripts/link-bare-addons.mjs", "ios"], {
+    cwd: harnessDir,
+    stdio: "inherit"
+  });
+  if (bareAddons.status !== 0) {
+    throw new Error("link-bare-addons ios failed");
+  }
+
   const prebuild = spawnSync("npx", ["expo", "prebuild", "--platform", "ios", "--no-install"], {
     cwd: harnessDir,
     stdio: "inherit"

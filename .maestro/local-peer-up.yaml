@@ -4,10 +4,34 @@ appId: network.twistedpear.harness
 # environment: create an identity, connect TCP to the local hub, then mount the
 # test control agent that `conformance/local-multipeer` drives.
 # Started by `scripts/peers/adapters/mobile.mjs`.
+# Expo development builds land on the launcher first — connect Metro before the harness UI.
 - launchApp:
     clearState: true
+- runFlow:
+    when:
+      visible: "Development servers"
+    commands:
+      - tapOn: "http://localhost:8081"
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- runFlow:
+    when:
+      visible: "Reload"
+    commands:
+      - tapOn:
+          point: "50%,12%"
+- extendedWaitUntil:
+    visible:
+      id: "create-identity"
+    timeout: 120000
 - tapOn:
     id: "create-identity"
+- extendedWaitUntil:
+    visible: "Persisted: yes"
+    timeout: 60000
 - tapOn:
     id: "tcp-client-switch"
 - extendedWaitUntil:

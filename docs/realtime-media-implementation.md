@@ -51,9 +51,11 @@ claim.
 2. Carry iOS/Android simulator peers through `npm run test:local-multipeer` with
    `LOCAL_MULTIPEER_REQUIRED=1` (desktop is covered by `npm run test:local-multipeer:desktop`;
    web↔web WebRTC track bytes are covered by `npm run test:webrtc-gui-call:web`). Mobile Bare
-   worklet start/create-identity no longer SIGABRT on iOS sim (prelude absorbers + Freenet
-   ESM facades + PureCrypto fallback when `require` is unavailable; 2026-08-01 Maestro
-   `Persisted: yes` smoke). Remaining: wire those peers into local-multipeer.
+   worklet start/create-identity no longer SIGABRT on iOS sim; after linking BareKit native
+   addons (`link-bare-addons`) and fixing the store path, `.maestro/local-peer-up.yaml`
+   reaches `Persisted: yes`, `Link: online`, and taps Connect test agent against a local hub
+   (2026-08-01). Remaining: record full `LOCAL_MULTIPEER_REQUIRED=1 --peers=hub,ios` matrix
+   evidence; Android still needs adb + the same addon link path.
 3. Native mobile Opus codec + `openWebRtcMediaPlane` parity (desktop Opus duplex is recorded
    by `test:webrtc-gui-call` `callsOpusDuplex`; Android peer-audio now has voice-duplex
    AEC/NS/AGC recording beside iOS).

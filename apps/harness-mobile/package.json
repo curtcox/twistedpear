@@ -6,10 +6,11 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "android": "node scripts/link-bare-addons.mjs android && expo run:android",
+    "ios": "node scripts/link-bare-addons.mjs ios && expo run:ios",
     "lint": "tsc --noEmit",
     "build:worklet": "node scripts/build-worklet.mjs",
+    "link:bare-addons": "node scripts/link-bare-addons.mjs",
     "build:web-worker": "node scripts/build-web-worker.mjs",
     "build:web-host": "node scripts/build-web-host.mjs"
   },

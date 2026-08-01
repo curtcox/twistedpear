@@ -120,7 +120,23 @@ function createProvider() {
 }
 
 const provider = createProvider();
-const runtime = bareRuntime({ storePath: "reticulum-store" });
+
+function mobileStorePath() {
+  try {
+    // Linked Bare addons expose bare-os via require when available.
+    // eslint-disable-next-line no-undef
+    const bareOs = typeof require === "function" ? require("bare-os") : null;
+    if (bareOs?.tmpdir) {
+      return `${bareOs.tmpdir()}/twistedpear-reticulum-store`;
+    }
+  } catch {
+    // ignore
+  }
+  // Absolute fallback: relative cwd on iOS Bare often cannot host the store.
+  return "/tmp/twistedpear-reticulum-store";
+}
+
+const runtime = bareRuntime({ storePath: mobileStorePath() });
 const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
 const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
 const IDENTITY_STORE_KEY = "harness-identity";

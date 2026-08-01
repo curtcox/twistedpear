@@ -95,8 +95,15 @@ export class BareKeyValueStore implements KeyValueStore {
       return;
     }
 
-    await resolved.fs.mkdir(this.rootPath, { recursive: true });
-    await resolved.fs.writeFile(this.pathFor(key), value);
+    try {
+      await resolved.fs.mkdir(this.rootPath, { recursive: true });
+      await resolved.fs.writeFile(this.pathFor(key), value);
+    } catch {
+      // Relative cwd / sandbox failures: keep serving from memory for this runtime.
+      bareFsUnavailable = true;
+      this.memoryFallback ??= new MemoryKeyValueStore();
+      await this.memoryFallback.set(key, value);
+    }
   }
 
   async delete(key: string): Promise<void> {
