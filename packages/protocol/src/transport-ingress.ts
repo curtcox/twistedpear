@@ -30,6 +30,20 @@
  * `shouldDispatchResourceProofToLink` / `shouldRegisterTransportMember`
  * reads beside the step).
  */
+import {
+  decideGate,
+  defineBooleanGate,
+  defineGate,
+  defineOptionGate,
+  gateConcluded,
+  gateConclusion,
+  gatePayload,
+  gateStepFn,
+  initialGateState,
+  interpretGate,
+  type GateState,
+  type GateStepResult
+} from "@twistedpear/effects";
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   PACKET_DEST_TYPE_LINK,
@@ -45,6 +59,7 @@ import { TRANSPORT_TRANSPORT } from "./transport-framing.js";
 
 /** Mirrors RNS/Transport.py local rebroadcast limit. */
 export const LOCAL_REBROADCASTS_MAX = 2;
+
 /** Mirrors RNS/Transport.py reverse-table entry lifetime. */
 export const REVERSE_TIMEOUT_SECONDS = 8 * 60;
 
@@ -79,7 +94,19 @@ export function planPacketFilter(input: {
  */
 export type PacketFilterPlan = "accept" | "reject";
 
-export type PacketFilterPlanState = Record<string, never>;
+type PacketFilterPlanGateEvent = Extract<
+  PacketFilterPlanEvent,
+  { readonly kind: "transport/packet-filter-plan-gate" }
+>;
+
+const packetFilterPlanGate = defineBooleanGate<PacketFilterPlanGateEvent, "accept", "reject">({
+  event: "transport/packet-filter-plan-gate",
+  whenTrue: "accept",
+  whenFalse: "reject",
+  decide: (event) => planPacketFilter(event)
+});
+
+export type PacketFilterPlanState = GateState;
 
 export type PacketFilterPlanEvent =
   | Event
@@ -94,59 +121,21 @@ export type PacketFilterPlanEvent =
 
 export type PacketFilterPlanAction = { readonly kind: PacketFilterPlan };
 
-export interface PacketFilterPlanStepResult {
-  readonly state: PacketFilterPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly PacketFilterPlanAction[];
-}
+export type PacketFilterPlanStepResult = GateStepResult<PacketFilterPlanAction>;
 
-export function initialPacketFilterPlanState(): PacketFilterPlanState {
-  return {};
-}
+export const initialPacketFilterPlanState = initialGateState;
 
-export function stepPacketFilterPlanWithActions(
-  state: PacketFilterPlanState,
-  event: PacketFilterPlanEvent
-): PacketFilterPlanStepResult {
-  if (event.kind === "transport/packet-filter-plan-gate") {
-    const accept = planPacketFilter({
-      transportId: event.transportId,
-      localTransportHash: event.localTransportHash,
-      packetType: event.packetType,
-      destinationType: event.destinationType,
-      alreadySeenHash: event.alreadySeenHash
-    });
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: accept ? "accept" : "reject" }]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepPacketFilterPlanWithActions = interpretGate(packetFilterPlanGate);
 
 /** Extract the packet-filter plan from actions; null when empty. */
-export function packetFilterPlanFromActions(
-  actions: ReadonlyArray<PacketFilterPlanAction>
-): PacketFilterPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "accept" || entry.kind === "reject"
-  );
-  return action?.kind ?? null;
-}
+export const packetFilterPlanFromActions = gateConclusion<
+  PacketFilterPlanAction,
+  PacketFilterPlan
+>("accept", "reject");
 
-export function shouldAcceptPacketFilterPlan(
-  actions: ReadonlyArray<PacketFilterPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "accept");
-}
+export const shouldAcceptPacketFilterPlan = gateConcluded<PacketFilterPlanAction>("accept");
 
-export function shouldRejectPacketFilterPlan(
-  actions: ReadonlyArray<PacketFilterPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "reject");
-}
+export const shouldRejectPacketFilterPlan = gateConcluded<PacketFilterPlanAction>("reject");
 
 /**
  * Packet filter gate is event-driven; no durable session fields.
@@ -154,7 +143,26 @@ export function shouldRejectPacketFilterPlan(
  * beside the step).
  * Plan nested via {@link stepPacketFilterPlanWithActions} (`accept`|`reject`).
  */
-export type PacketFilterState = Record<string, never>;
+type PacketFilterGateEvent = Extract<
+  PacketFilterEvent,
+  { readonly kind: "transport/packet-filter-gate" }
+>;
+
+const packetFilterGate = defineGate<PacketFilterGateEvent, PacketFilterAction>({
+  event: "transport/packet-filter-gate",
+  actions: ["accept", "reject"],
+  decide: (event) => {
+    const plan = packetFilterPlanFromActions(
+      decideGate(packetFilterPlanGate, {
+        ...event,
+        kind: "transport/packet-filter-plan-gate"
+      })
+    );
+    return plan === null ? [] : [{ kind: plan }];
+  }
+});
+
+export type PacketFilterState = GateState;
 
 export type PacketFilterEvent =
   | Event
@@ -171,54 +179,15 @@ export type PacketFilterAction =
   | { readonly kind: "accept" }
   | { readonly kind: "reject" };
 
-export interface PacketFilterStepResult {
-  readonly state: PacketFilterState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly PacketFilterAction[];
-}
+export type PacketFilterStepResult = GateStepResult<PacketFilterAction>;
 
-export function initialPacketFilterState(): PacketFilterState {
-  return {};
-}
+export const initialPacketFilterState = initialGateState;
 
-export function stepPacketFilterWithActions(
-  state: PacketFilterState,
-  event: PacketFilterEvent
-): PacketFilterStepResult {
-  if (event.kind === "transport/packet-filter-gate") {
-    const planActions = stepPacketFilterPlanWithActions(initialPacketFilterPlanState(), {
-      kind: "transport/packet-filter-plan-gate",
-      transportId: event.transportId,
-      localTransportHash: event.localTransportHash,
-      packetType: event.packetType,
-      destinationType: event.destinationType,
-      alreadySeenHash: event.alreadySeenHash
-    }).actions;
-    const plan = packetFilterPlanFromActions(planActions);
-    if (plan === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: plan }]
-    };
-  }
+export const stepPacketFilterWithActions = interpretGate(packetFilterGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldAcceptPacketFilter = gateConcluded<PacketFilterAction>("accept");
 
-export function shouldAcceptPacketFilter(
-  actions: ReadonlyArray<PacketFilterAction>
-): boolean {
-  return actions.some((action) => action.kind === "accept");
-}
-
-export function shouldRejectPacketFilter(
-  actions: ReadonlyArray<PacketFilterAction>
-): boolean {
-  return actions.some((action) => action.kind === "reject");
-}
+export const shouldRejectPacketFilter = gateConcluded<PacketFilterAction>("reject");
 
 export function shouldAcceptTransportPacket(input: {
   readonly filterPassed: boolean;
@@ -247,7 +216,23 @@ export function shouldAcceptTransportPacket(input: {
  * Conclusions leave via machine actions (no ad-hoc `shouldAcceptTransportPacket`
  * reads beside the step).
  */
-export type AcceptTransportPacketState = Record<string, never>;
+type AcceptTransportPacketGateEvent = Extract<
+  AcceptTransportPacketEvent,
+  { readonly kind: "transport/accept-packet-gate" }
+>;
+
+const acceptTransportPacketGate = defineBooleanGate<
+  AcceptTransportPacketGateEvent,
+  "accept",
+  "skip"
+>({
+  event: "transport/accept-packet-gate",
+  whenTrue: "accept",
+  whenFalse: "skip",
+  decide: (event) => shouldAcceptTransportPacket(event)
+});
+
+export type AcceptTransportPacketState = GateState;
 
 export type AcceptTransportPacketEvent =
   | Event
@@ -264,54 +249,19 @@ export type AcceptTransportPacketAction =
   | { readonly kind: "accept" }
   | { readonly kind: "skip" };
 
-export interface AcceptTransportPacketStepResult {
-  readonly state: AcceptTransportPacketState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly AcceptTransportPacketAction[];
-}
+export type AcceptTransportPacketStepResult = GateStepResult<AcceptTransportPacketAction>;
 
-export function initialAcceptTransportPacketState(): AcceptTransportPacketState {
-  return {};
-}
+export const initialAcceptTransportPacketState = initialGateState;
 
-export function stepAcceptTransportPacketWithActions(
-  state: AcceptTransportPacketState,
-  event: AcceptTransportPacketEvent
-): AcceptTransportPacketStepResult {
-  if (event.kind === "transport/accept-packet-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldAcceptTransportPacket({
-            filterPassed: event.filterPassed,
-            packetType: event.packetType,
-            transportType: event.transportType,
-            hasForeignTransportId: event.hasForeignTransportId,
-            alreadySeenHash: event.alreadySeenHash
-          })
-            ? "accept"
-            : "skip"
-        }
-      ]
-    };
-  }
+export const stepAcceptTransportPacketWithActions = interpretGate(acceptTransportPacketGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldAcceptTransportPacketNow = gateConcluded<
+  AcceptTransportPacketAction
+>("accept");
 
-export function shouldAcceptTransportPacketNow(
-  actions: ReadonlyArray<AcceptTransportPacketAction>
-): boolean {
-  return actions.some((action) => action.kind === "accept");
-}
-
-export function shouldSkipAcceptTransportPacket(
-  actions: ReadonlyArray<AcceptTransportPacketAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipAcceptTransportPacket = gateConcluded<
+  AcceptTransportPacketAction
+>("skip");
 
 export function shouldDeferPacketHash(input: {
   readonly packetType: number;
@@ -332,7 +282,23 @@ export function shouldDeferPacketHash(input: {
  * Conclusions leave via machine actions (no ad-hoc `shouldDeferPacketHash`
  * reads beside the step).
  */
-export type PacketHashDeferState = Record<string, never>;
+type PacketHashDeferGateEvent = Extract<
+  PacketHashDeferEvent,
+  { readonly kind: "transport/packet-hash-defer-gate" }
+>;
+
+const packetHashDeferGate = defineBooleanGate<
+  PacketHashDeferGateEvent,
+  "defer",
+  "remember-now"
+>({
+  event: "transport/packet-hash-defer-gate",
+  whenTrue: "defer",
+  whenFalse: "remember-now",
+  decide: (event) => shouldDeferPacketHash(event)
+});
+
+export type PacketHashDeferState = GateState;
 
 export type PacketHashDeferEvent =
   | Event
@@ -347,47 +313,17 @@ export type PacketHashDeferAction =
   | { readonly kind: "defer" }
   | { readonly kind: "remember-now" };
 
-export interface PacketHashDeferStepResult {
-  readonly state: PacketHashDeferState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly PacketHashDeferAction[];
-}
+export type PacketHashDeferStepResult = GateStepResult<PacketHashDeferAction>;
 
-export function initialPacketHashDeferState(): PacketHashDeferState {
-  return {};
-}
+export const initialPacketHashDeferState = initialGateState;
 
-export function stepPacketHashDeferWithActions(
-  state: PacketHashDeferState,
-  event: PacketHashDeferEvent
-): PacketHashDeferStepResult {
-  if (event.kind === "transport/packet-hash-defer-gate") {
-    const defer = shouldDeferPacketHash({
-      packetType: event.packetType,
-      context: event.context,
-      destinationInLinkTable: event.destinationInLinkTable
-    });
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: defer ? "defer" : "remember-now" }]
-    };
-  }
+export const stepPacketHashDeferWithActions = interpretGate(packetHashDeferGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldDeferPacketHashActions = gateConcluded<PacketHashDeferAction>("defer");
 
-export function shouldDeferPacketHashActions(
-  actions: ReadonlyArray<PacketHashDeferAction>
-): boolean {
-  return actions.some((action) => action.kind === "defer");
-}
-
-export function shouldRememberPacketHashImmediately(
-  actions: ReadonlyArray<PacketHashDeferAction>
-): boolean {
-  return actions.some((action) => action.kind === "remember-now");
-}
+export const shouldRememberPacketHashImmediately = gateConcluded<
+  PacketHashDeferAction
+>("remember-now");
 
 /** Which link-table interface should carry a relayed link packet, if any. */
 export type LinkRelayTarget = "outbound" | "received";
@@ -425,7 +361,23 @@ export function planLinkRelayTarget(input: {
  * `plan ===` reads beside the step). Nested under
  * {@link stepLinkRelayTargetWithActions}.
  */
-export type LinkRelayTargetPlanState = Record<string, never>;
+type LinkRelayTargetPlanGateEvent = Extract<
+  LinkRelayTargetPlanEvent,
+  { readonly kind: "transport/link-relay-plan-gate" }
+>;
+
+const linkRelayTargetPlanGate = defineOptionGate<
+  LinkRelayTargetPlanGateEvent,
+  "outbound" | "received",
+  "ignore"
+>({
+  event: "transport/link-relay-plan-gate",
+  kinds: ["outbound", "received"],
+  none: "ignore",
+  decide: (event) => planLinkRelayTarget(event)
+});
+
+export type LinkRelayTargetPlanState = GateState;
 
 export type LinkRelayTargetPlanEvent =
   | Event
@@ -443,71 +395,25 @@ export type LinkRelayTargetPlanAction = {
   readonly kind: LinkRelayTarget | "ignore";
 };
 
-export interface LinkRelayTargetPlanStepResult {
-  readonly state: LinkRelayTargetPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LinkRelayTargetPlanAction[];
-}
+export type LinkRelayTargetPlanStepResult = GateStepResult<LinkRelayTargetPlanAction>;
 
-export function initialLinkRelayTargetPlanState(): LinkRelayTargetPlanState {
-  return {};
-}
+export const initialLinkRelayTargetPlanState = initialGateState;
 
-export function stepLinkRelayTargetPlanWithActions(
-  state: LinkRelayTargetPlanState,
-  event: LinkRelayTargetPlanEvent
-): LinkRelayTargetPlanStepResult {
-  if (event.kind === "transport/link-relay-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind:
-            planLinkRelayTarget({
-              sameInterface: event.sameInterface,
-              ifaceIsOutbound: event.ifaceIsOutbound,
-              ifaceIsReceived: event.ifaceIsReceived,
-              packetHops: event.packetHops,
-              remainingHops: event.remainingHops,
-              takenHops: event.takenHops
-            }) ?? "ignore"
-        }
-      ]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepLinkRelayTargetPlanWithActions = interpretGate(linkRelayTargetPlanGate);
 
 /** Extract the link relay target plan from actions; null when empty or ignore. */
-export function linkRelayTargetPlanFromActions(
-  actions: ReadonlyArray<LinkRelayTargetPlanAction>
-): LinkRelayTarget | null {
-  const action = actions[0];
-  if (action === undefined || action.kind === "ignore") {
-    return null;
-  }
-  return action.kind;
-}
+export const linkRelayTargetPlanFromActions = gateConclusion<
+  LinkRelayTargetPlanAction,
+  LinkRelayTarget
+>("outbound", "received");
 
-export function shouldRelayLinkOutboundPlan(
-  actions: ReadonlyArray<LinkRelayTargetPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "outbound");
-}
+export const shouldRelayLinkOutboundPlan = gateConcluded<LinkRelayTargetPlanAction>("outbound");
 
-export function shouldRelayLinkReceivedPlan(
-  actions: ReadonlyArray<LinkRelayTargetPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "received");
-}
+export const shouldRelayLinkReceivedPlan = gateConcluded<LinkRelayTargetPlanAction>("received");
 
-export function shouldIgnoreLinkRelayTargetPlan(
-  actions: ReadonlyArray<LinkRelayTargetPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
+export const shouldIgnoreLinkRelayTargetPlan = gateConcluded<
+  LinkRelayTargetPlanAction
+>("ignore");
 
 /** Whether link-relay may proceed after a link-table lookup hit. */
 export function canLookupLinkRelayEntry(entryPresent: boolean): boolean {
@@ -519,7 +425,23 @@ export function canLookupLinkRelayEntry(entryPresent: boolean): boolean {
  * Conclusions leave via machine actions (no ad-hoc `canLookupLinkRelayEntry`
  * reads beside the step).
  */
-export type LookupLinkRelayEntryState = Record<string, never>;
+type LookupLinkRelayEntryGateEvent = Extract<
+  LookupLinkRelayEntryEvent,
+  { readonly kind: "transport/lookup-link-relay-entry-gate" }
+>;
+
+const lookupLinkRelayEntryGate = defineBooleanGate<
+  LookupLinkRelayEntryGateEvent,
+  "hit",
+  "miss"
+>({
+  event: "transport/lookup-link-relay-entry-gate",
+  whenTrue: "hit",
+  whenFalse: "miss",
+  decide: (event) => canLookupLinkRelayEntry(event.entryPresent)
+});
+
+export type LookupLinkRelayEntryState = GateState;
 
 export type LookupLinkRelayEntryEvent =
   | Event
@@ -532,42 +454,15 @@ export type LookupLinkRelayEntryAction =
   | { readonly kind: "hit" }
   | { readonly kind: "miss" };
 
-export interface LookupLinkRelayEntryStepResult {
-  readonly state: LookupLinkRelayEntryState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LookupLinkRelayEntryAction[];
-}
+export type LookupLinkRelayEntryStepResult = GateStepResult<LookupLinkRelayEntryAction>;
 
-export function initialLookupLinkRelayEntryState(): LookupLinkRelayEntryState {
-  return {};
-}
+export const initialLookupLinkRelayEntryState = initialGateState;
 
-export function stepLookupLinkRelayEntryWithActions(
-  state: LookupLinkRelayEntryState,
-  event: LookupLinkRelayEntryEvent
-): LookupLinkRelayEntryStepResult {
-  if (event.kind === "transport/lookup-link-relay-entry-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: canLookupLinkRelayEntry(event.entryPresent) ? "hit" : "miss" }]
-    };
-  }
+export const stepLookupLinkRelayEntryWithActions = interpretGate(lookupLinkRelayEntryGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldHitLookupLinkRelayEntry = gateConcluded<LookupLinkRelayEntryAction>("hit");
 
-export function shouldHitLookupLinkRelayEntry(
-  actions: ReadonlyArray<LookupLinkRelayEntryAction>
-): boolean {
-  return actions.some((action) => action.kind === "hit");
-}
-
-export function shouldMissLookupLinkRelayEntry(
-  actions: ReadonlyArray<LookupLinkRelayEntryAction>
-): boolean {
-  return actions.some((action) => action.kind === "miss");
-}
+export const shouldMissLookupLinkRelayEntry = gateConcluded<LookupLinkRelayEntryAction>("miss");
 
 /** Whether link-relay may transmit after {@link planLinkRelayTarget} resolves an iface. */
 export function shouldTransmitLinkRelay(outboundPresent: boolean): boolean {
@@ -579,7 +474,23 @@ export function shouldTransmitLinkRelay(outboundPresent: boolean): boolean {
  * Conclusions leave via machine actions (no ad-hoc `shouldTransmitLinkRelay`
  * reads beside the step).
  */
-export type TransmitLinkRelayState = Record<string, never>;
+type TransmitLinkRelayGateEvent = Extract<
+  TransmitLinkRelayEvent,
+  { readonly kind: "transport/transmit-link-relay-gate" }
+>;
+
+const transmitLinkRelayGate = defineBooleanGate<
+  TransmitLinkRelayGateEvent,
+  "transmit",
+  "skip"
+>({
+  event: "transport/transmit-link-relay-gate",
+  whenTrue: "transmit",
+  whenFalse: "skip",
+  decide: (event) => shouldTransmitLinkRelay(event.outboundPresent)
+});
+
+export type TransmitLinkRelayState = GateState;
 
 export type TransmitLinkRelayEvent =
   | Event
@@ -592,44 +503,15 @@ export type TransmitLinkRelayAction =
   | { readonly kind: "transmit" }
   | { readonly kind: "skip" };
 
-export interface TransmitLinkRelayStepResult {
-  readonly state: TransmitLinkRelayState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly TransmitLinkRelayAction[];
-}
+export type TransmitLinkRelayStepResult = GateStepResult<TransmitLinkRelayAction>;
 
-export function initialTransmitLinkRelayState(): TransmitLinkRelayState {
-  return {};
-}
+export const initialTransmitLinkRelayState = initialGateState;
 
-export function stepTransmitLinkRelayWithActions(
-  state: TransmitLinkRelayState,
-  event: TransmitLinkRelayEvent
-): TransmitLinkRelayStepResult {
-  if (event.kind === "transport/transmit-link-relay-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        { kind: shouldTransmitLinkRelay(event.outboundPresent) ? "transmit" : "skip" }
-      ]
-    };
-  }
+export const stepTransmitLinkRelayWithActions = interpretGate(transmitLinkRelayGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldTransmitLinkRelayNow = gateConcluded<TransmitLinkRelayAction>("transmit");
 
-export function shouldTransmitLinkRelayNow(
-  actions: ReadonlyArray<TransmitLinkRelayAction>
-): boolean {
-  return actions.some((action) => action.kind === "transmit");
-}
-
-export function shouldSkipTransmitLinkRelay(
-  actions: ReadonlyArray<TransmitLinkRelayAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipTransmitLinkRelay = gateConcluded<TransmitLinkRelayAction>("skip");
 
 /**
  * Link relay target is event-driven; no durable session fields.
@@ -637,7 +519,26 @@ export function shouldSkipTransmitLinkRelay(
  * Plan nested via {@link stepLinkRelayTargetPlanWithActions}
  * (`outbound`|`received`|`ignore`).
  */
-export type LinkRelayTargetState = Record<string, never>;
+type LinkRelayTargetGateEvent = Extract<
+  LinkRelayTargetEvent,
+  { readonly kind: "transport/link-relay-gate" }
+>;
+
+const linkRelayTargetGate = defineGate<LinkRelayTargetGateEvent, LinkRelayTargetAction>({
+  event: "transport/link-relay-gate",
+  actions: ["outbound", "received", "ignore"],
+  decide: (event) => {
+    const target = linkRelayTargetPlanFromActions(
+      decideGate(linkRelayTargetPlanGate, {
+        ...event,
+        kind: "transport/link-relay-plan-gate"
+      })
+    );
+    return [{ kind: target ?? "ignore" }];
+  }
+});
+
+export type LinkRelayTargetState = GateState;
 
 export type LinkRelayTargetEvent =
   | Event
@@ -655,80 +556,26 @@ export type LinkRelayTargetAction = {
   readonly kind: LinkRelayTarget | "ignore";
 };
 
-export interface LinkRelayTargetStepResult {
-  readonly state: LinkRelayTargetState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LinkRelayTargetAction[];
-}
+export type LinkRelayTargetStepResult = GateStepResult<LinkRelayTargetAction>;
 
-export function initialLinkRelayTargetState(): LinkRelayTargetState {
-  return {};
-}
+export const initialLinkRelayTargetState = initialGateState;
 
-export const stepLinkRelayTarget: StepFn<LinkRelayTargetState> = (state, event) => {
-  const result = stepLinkRelayTargetInner(state, event as LinkRelayTargetEvent);
-  return { state: result.state, intents: result.intents };
-};
+export const stepLinkRelayTarget: StepFn<LinkRelayTargetState> = gateStepFn(
+  linkRelayTargetGate
+);
 
-export function stepLinkRelayTargetWithActions(
-  state: LinkRelayTargetState,
-  event: LinkRelayTargetEvent
-): LinkRelayTargetStepResult {
-  return stepLinkRelayTargetInner(state, event);
-}
+export const stepLinkRelayTargetWithActions = interpretGate(linkRelayTargetGate);
 
-export function linkRelayTargetFromActions(
-  actions: ReadonlyArray<LinkRelayTargetAction>
-): LinkRelayTarget | null {
-  const action = actions[0];
-  if (action === undefined || action.kind === "ignore") {
-    return null;
-  }
-  return action.kind;
-}
+export const linkRelayTargetFromActions = gateConclusion<
+  LinkRelayTargetAction,
+  LinkRelayTarget
+>("outbound", "received");
 
-export function shouldRelayLinkOutbound(
-  actions: ReadonlyArray<LinkRelayTargetAction>
-): boolean {
-  return actions.some((action) => action.kind === "outbound");
-}
+export const shouldRelayLinkOutbound = gateConcluded<LinkRelayTargetAction>("outbound");
 
-export function shouldRelayLinkReceived(
-  actions: ReadonlyArray<LinkRelayTargetAction>
-): boolean {
-  return actions.some((action) => action.kind === "received");
-}
+export const shouldRelayLinkReceived = gateConcluded<LinkRelayTargetAction>("received");
 
-export function shouldIgnoreLinkRelayTarget(
-  actions: ReadonlyArray<LinkRelayTargetAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
-
-function stepLinkRelayTargetInner(
-  state: LinkRelayTargetState,
-  event: LinkRelayTargetEvent
-): LinkRelayTargetStepResult {
-  if (event.kind === "transport/link-relay-gate") {
-    const planActions = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
-      kind: "transport/link-relay-plan-gate",
-      sameInterface: event.sameInterface,
-      ifaceIsOutbound: event.ifaceIsOutbound,
-      ifaceIsReceived: event.ifaceIsReceived,
-      packetHops: event.packetHops,
-      remainingHops: event.remainingHops,
-      takenHops: event.takenHops
-    }).actions;
-    const target = linkRelayTargetPlanFromActions(planActions);
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: target ?? "ignore" }]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const shouldIgnoreLinkRelayTarget = gateConcluded<LinkRelayTargetAction>("ignore");
 
 /** Whether reverse-table should delete an expired entry (delete-expired outcome). */
 export function shouldDeleteExpiredReverseEntry(deleteExpired: boolean): boolean {
@@ -751,7 +598,23 @@ export function shouldTransmitReverseRelay(input: {
  * Conclusions leave via machine actions (no ad-hoc `shouldTransmitReverseRelay`
  * reads beside the step).
  */
-export type TransmitReverseRelayState = Record<string, never>;
+type TransmitReverseRelayGateEvent = Extract<
+  TransmitReverseRelayEvent,
+  { readonly kind: "transport/transmit-reverse-relay-gate" }
+>;
+
+const transmitReverseRelayGate = defineBooleanGate<
+  TransmitReverseRelayGateEvent,
+  "transmit",
+  "skip"
+>({
+  event: "transport/transmit-reverse-relay-gate",
+  whenTrue: "transmit",
+  whenFalse: "skip",
+  decide: (event) => shouldTransmitReverseRelay(event)
+});
+
+export type TransmitReverseRelayState = GateState;
 
 export type TransmitReverseRelayEvent =
   | Event
@@ -765,51 +628,17 @@ export type TransmitReverseRelayAction =
   | { readonly kind: "transmit" }
   | { readonly kind: "skip" };
 
-export interface TransmitReverseRelayStepResult {
-  readonly state: TransmitReverseRelayState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly TransmitReverseRelayAction[];
-}
+export type TransmitReverseRelayStepResult = GateStepResult<TransmitReverseRelayAction>;
 
-export function initialTransmitReverseRelayState(): TransmitReverseRelayState {
-  return {};
-}
+export const initialTransmitReverseRelayState = initialGateState;
 
-export function stepTransmitReverseRelayWithActions(
-  state: TransmitReverseRelayState,
-  event: TransmitReverseRelayEvent
-): TransmitReverseRelayStepResult {
-  if (event.kind === "transport/transmit-reverse-relay-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldTransmitReverseRelay({
-            relayOk: event.relayOk,
-            entryPresent: event.entryPresent
-          })
-            ? "transmit"
-            : "skip"
-        }
-      ]
-    };
-  }
+export const stepTransmitReverseRelayWithActions = interpretGate(transmitReverseRelayGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldTransmitReverseRelayNow = gateConcluded<
+  TransmitReverseRelayAction
+>("transmit");
 
-export function shouldTransmitReverseRelayNow(
-  actions: ReadonlyArray<TransmitReverseRelayAction>
-): boolean {
-  return actions.some((action) => action.kind === "transmit");
-}
-
-export function shouldSkipTransmitReverseRelay(
-  actions: ReadonlyArray<TransmitReverseRelayAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipTransmitReverseRelay = gateConcluded<TransmitReverseRelayAction>("skip");
 
 /** True when a reverse-table entry is past its lifetime. */
 export function isReverseEntryExpired(input: {
@@ -826,7 +655,31 @@ export function isReverseEntryExpired(input: {
  * Conclusions leave via machine actions (no ad-hoc `isReverseEntryExpired`
  * reads beside the step).
  */
-export type ReverseEntryExpiredState = Record<string, never>;
+type ReverseEntryExpiredGateEvent = Extract<
+  ReverseEntryExpiredEvent,
+  { readonly kind: "transport/reverse-entry-expired-gate" }
+>;
+
+const reverseEntryExpiredGate = defineGate<
+  ReverseEntryExpiredGateEvent,
+  ReverseEntryExpiredAction
+>({
+  event: "transport/reverse-entry-expired-gate",
+  actions: ["expired", "live"],
+  decide: (event) => {
+    const expiredInput =
+      event.timeoutSeconds === undefined
+        ? { timestamp: event.timestamp, nowSeconds: event.nowSeconds }
+        : {
+            timestamp: event.timestamp,
+            nowSeconds: event.nowSeconds,
+            timeoutSeconds: event.timeoutSeconds
+          };
+    return [{ kind: isReverseEntryExpired(expiredInput) ? "expired" : "live" }];
+  }
+});
+
+export type ReverseEntryExpiredState = GateState;
 
 export type ReverseEntryExpiredEvent =
   | Event
@@ -841,50 +694,17 @@ export type ReverseEntryExpiredAction =
   | { readonly kind: "expired" }
   | { readonly kind: "live" };
 
-export interface ReverseEntryExpiredStepResult {
-  readonly state: ReverseEntryExpiredState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly ReverseEntryExpiredAction[];
-}
+export type ReverseEntryExpiredStepResult = GateStepResult<ReverseEntryExpiredAction>;
 
-export function initialReverseEntryExpiredState(): ReverseEntryExpiredState {
-  return {};
-}
+export const initialReverseEntryExpiredState = initialGateState;
 
-export function stepReverseEntryExpiredWithActions(
-  state: ReverseEntryExpiredState,
-  event: ReverseEntryExpiredEvent
-): ReverseEntryExpiredStepResult {
-  if (event.kind === "transport/reverse-entry-expired-gate") {
-    const expiredInput =
-      event.timeoutSeconds === undefined
-        ? { timestamp: event.timestamp, nowSeconds: event.nowSeconds }
-        : {
-            timestamp: event.timestamp,
-            nowSeconds: event.nowSeconds,
-            timeoutSeconds: event.timeoutSeconds
-          };
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: isReverseEntryExpired(expiredInput) ? "expired" : "live" }]
-    };
-  }
+export const stepReverseEntryExpiredWithActions = interpretGate(reverseEntryExpiredGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldTreatReverseEntryExpired = gateConcluded<
+  ReverseEntryExpiredAction
+>("expired");
 
-export function shouldTreatReverseEntryExpired(
-  actions: ReadonlyArray<ReverseEntryExpiredAction>
-): boolean {
-  return actions.some((action) => action.kind === "expired");
-}
-
-export function shouldTreatReverseEntryLive(
-  actions: ReadonlyArray<ReverseEntryExpiredAction>
-): boolean {
-  return actions.some((action) => action.kind === "live");
-}
+export const shouldTreatReverseEntryLive = gateConcluded<ReverseEntryExpiredAction>("live");
 
 /**
  * Whether this node should relay a transport-wrapped packet (local transport-id,
@@ -909,7 +729,23 @@ export function canRelayTransportPacket(input: {
  * Conclusions leave via machine actions (no ad-hoc `canRelayTransportPacket`
  * reads beside the step).
  */
-export type RelayTransportPacketAllowState = Record<string, never>;
+type RelayTransportPacketAllowGateEvent = Extract<
+  RelayTransportPacketAllowEvent,
+  { readonly kind: "transport/relay-transport-packet-allow-gate" }
+>;
+
+const relayTransportPacketAllowGate = defineBooleanGate<
+  RelayTransportPacketAllowGateEvent,
+  "allow",
+  "deny"
+>({
+  event: "transport/relay-transport-packet-allow-gate",
+  whenTrue: "allow",
+  whenFalse: "deny",
+  decide: (event) => canRelayTransportPacket(event)
+});
+
+export type RelayTransportPacketAllowState = GateState;
 
 export type RelayTransportPacketAllowEvent =
   | Event
@@ -925,53 +761,23 @@ export type RelayTransportPacketAllowAction =
   | { readonly kind: "allow" }
   | { readonly kind: "deny" };
 
-export interface RelayTransportPacketAllowStepResult {
-  readonly state: RelayTransportPacketAllowState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly RelayTransportPacketAllowAction[];
-}
+export type RelayTransportPacketAllowStepResult = GateStepResult<
+  RelayTransportPacketAllowAction
+>;
 
-export function initialRelayTransportPacketAllowState(): RelayTransportPacketAllowState {
-  return {};
-}
+export const initialRelayTransportPacketAllowState = initialGateState;
 
-export function stepRelayTransportPacketAllowWithActions(
-  state: RelayTransportPacketAllowState,
-  event: RelayTransportPacketAllowEvent
-): RelayTransportPacketAllowStepResult {
-  if (event.kind === "transport/relay-transport-packet-allow-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: canRelayTransportPacket({
-            transportIdPresent: event.transportIdPresent,
-            isAnnounce: event.isAnnounce,
-            transportIdMatchesLocal: event.transportIdMatchesLocal,
-            hasPath: event.hasPath
-          })
-            ? "allow"
-            : "deny"
-        }
-      ]
-    };
-  }
+export const stepRelayTransportPacketAllowWithActions = interpretGate(
+  relayTransportPacketAllowGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldAllowRelayTransportPacket = gateConcluded<
+  RelayTransportPacketAllowAction
+>("allow");
 
-export function shouldAllowRelayTransportPacket(
-  actions: ReadonlyArray<RelayTransportPacketAllowAction>
-): boolean {
-  return actions.some((action) => action.kind === "allow");
-}
-
-export function shouldDenyRelayTransportPacket(
-  actions: ReadonlyArray<RelayTransportPacketAllowAction>
-): boolean {
-  return actions.some((action) => action.kind === "deny");
-}
+export const shouldDenyRelayTransportPacket = gateConcluded<
+  RelayTransportPacketAllowAction
+>("deny");
 
 /** Whether a relayed packet should create/update a link-relay table entry. */
 export function shouldRecordLinkRelayTableEntry(packetType: number): boolean {
@@ -983,7 +789,23 @@ export function shouldRecordLinkRelayTableEntry(packetType: number): boolean {
  * Conclusions leave via machine actions (no ad-hoc `shouldRecordLinkRelayTableEntry`
  * reads beside the step).
  */
-export type RecordLinkRelayTableEntryState = Record<string, never>;
+type RecordLinkRelayTableEntryGateEvent = Extract<
+  RecordLinkRelayTableEntryEvent,
+  { readonly kind: "transport/record-link-relay-table-entry-gate" }
+>;
+
+const recordLinkRelayTableEntryGate = defineBooleanGate<
+  RecordLinkRelayTableEntryGateEvent,
+  "record",
+  "skip"
+>({
+  event: "transport/record-link-relay-table-entry-gate",
+  whenTrue: "record",
+  whenFalse: "skip",
+  decide: (event) => shouldRecordLinkRelayTableEntry(event.packetType)
+});
+
+export type RecordLinkRelayTableEntryState = GateState;
 
 export type RecordLinkRelayTableEntryEvent =
   | Event
@@ -996,46 +818,23 @@ export type RecordLinkRelayTableEntryAction =
   | { readonly kind: "record" }
   | { readonly kind: "skip" };
 
-export interface RecordLinkRelayTableEntryStepResult {
-  readonly state: RecordLinkRelayTableEntryState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly RecordLinkRelayTableEntryAction[];
-}
+export type RecordLinkRelayTableEntryStepResult = GateStepResult<
+  RecordLinkRelayTableEntryAction
+>;
 
-export function initialRecordLinkRelayTableEntryState(): RecordLinkRelayTableEntryState {
-  return {};
-}
+export const initialRecordLinkRelayTableEntryState = initialGateState;
 
-export function stepRecordLinkRelayTableEntryWithActions(
-  state: RecordLinkRelayTableEntryState,
-  event: RecordLinkRelayTableEntryEvent
-): RecordLinkRelayTableEntryStepResult {
-  if (event.kind === "transport/record-link-relay-table-entry-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldRecordLinkRelayTableEntry(event.packetType) ? "record" : "skip"
-        }
-      ]
-    };
-  }
+export const stepRecordLinkRelayTableEntryWithActions = interpretGate(
+  recordLinkRelayTableEntryGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldRecordLinkRelayTableEntryNow = gateConcluded<
+  RecordLinkRelayTableEntryAction
+>("record");
 
-export function shouldRecordLinkRelayTableEntryNow(
-  actions: ReadonlyArray<RecordLinkRelayTableEntryAction>
-): boolean {
-  return actions.some((action) => action.kind === "record");
-}
-
-export function shouldSkipRecordLinkRelayTableEntry(
-  actions: ReadonlyArray<RecordLinkRelayTableEntryAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipRecordLinkRelayTableEntry = gateConcluded<
+  RecordLinkRelayTableEntryAction
+>("skip");
 
 /**
  * Whether a relayed packet should create/update a reverse-table entry
@@ -1056,7 +855,23 @@ export function shouldRecordReverseTableEntry(input: {
  * Conclusions leave via machine actions (no ad-hoc `shouldRecordReverseTableEntry`
  * reads beside the step).
  */
-export type RecordReverseTableEntryState = Record<string, never>;
+type RecordReverseTableEntryGateEvent = Extract<
+  RecordReverseTableEntryEvent,
+  { readonly kind: "transport/record-reverse-table-entry-gate" }
+>;
+
+const recordReverseTableEntryGate = defineBooleanGate<
+  RecordReverseTableEntryGateEvent,
+  "record",
+  "skip"
+>({
+  event: "transport/record-reverse-table-entry-gate",
+  whenTrue: "record",
+  whenFalse: "skip",
+  decide: (event) => shouldRecordReverseTableEntry(event)
+});
+
+export type RecordReverseTableEntryState = GateState;
 
 export type RecordReverseTableEntryEvent =
   | Event
@@ -1070,51 +885,21 @@ export type RecordReverseTableEntryAction =
   | { readonly kind: "record" }
   | { readonly kind: "skip" };
 
-export interface RecordReverseTableEntryStepResult {
-  readonly state: RecordReverseTableEntryState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly RecordReverseTableEntryAction[];
-}
+export type RecordReverseTableEntryStepResult = GateStepResult<RecordReverseTableEntryAction>;
 
-export function initialRecordReverseTableEntryState(): RecordReverseTableEntryState {
-  return {};
-}
+export const initialRecordReverseTableEntryState = initialGateState;
 
-export function stepRecordReverseTableEntryWithActions(
-  state: RecordReverseTableEntryState,
-  event: RecordReverseTableEntryEvent
-): RecordReverseTableEntryStepResult {
-  if (event.kind === "transport/record-reverse-table-entry-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldRecordReverseTableEntry({
-            packetType: event.packetType,
-            context: event.context
-          })
-            ? "record"
-            : "skip"
-        }
-      ]
-    };
-  }
+export const stepRecordReverseTableEntryWithActions = interpretGate(
+  recordReverseTableEntryGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldRecordReverseTableEntryNow = gateConcluded<
+  RecordReverseTableEntryAction
+>("record");
 
-export function shouldRecordReverseTableEntryNow(
-  actions: ReadonlyArray<RecordReverseTableEntryAction>
-): boolean {
-  return actions.some((action) => action.kind === "record");
-}
-
-export function shouldSkipRecordReverseTableEntry(
-  actions: ReadonlyArray<RecordReverseTableEntryAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipRecordReverseTableEntry = gateConcluded<
+  RecordReverseTableEntryAction
+>("skip");
 
 /** Whether inbound DATA is a local path-request (PLAIN + path-request hash). */
 export function isLocalPathRequestPacket(input: {
@@ -1129,7 +914,23 @@ export function isLocalPathRequestPacket(input: {
  * Conclusions leave via machine actions (no ad-hoc `isLocalPathRequestPacket`
  * reads beside the step).
  */
-export type LocalPathRequestPacketState = Record<string, never>;
+type LocalPathRequestPacketGateEvent = Extract<
+  LocalPathRequestPacketEvent,
+  { readonly kind: "transport/local-path-request-packet-gate" }
+>;
+
+const localPathRequestPacketGate = defineBooleanGate<
+  LocalPathRequestPacketGateEvent,
+  "path-request",
+  "other"
+>({
+  event: "transport/local-path-request-packet-gate",
+  whenTrue: "path-request",
+  whenFalse: "other",
+  decide: (event) => isLocalPathRequestPacket(event)
+});
+
+export type LocalPathRequestPacketState = GateState;
 
 export type LocalPathRequestPacketEvent =
   | Intent
@@ -1143,51 +944,19 @@ export type LocalPathRequestPacketAction =
   | { readonly kind: "path-request" }
   | { readonly kind: "other" };
 
-export interface LocalPathRequestPacketStepResult {
-  readonly state: LocalPathRequestPacketState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LocalPathRequestPacketAction[];
-}
+export type LocalPathRequestPacketStepResult = GateStepResult<LocalPathRequestPacketAction>;
 
-export function initialLocalPathRequestPacketState(): LocalPathRequestPacketState {
-  return {};
-}
+export const initialLocalPathRequestPacketState = initialGateState;
 
-export function stepLocalPathRequestPacketWithActions(
-  state: LocalPathRequestPacketState,
-  event: LocalPathRequestPacketEvent
-): LocalPathRequestPacketStepResult {
-  if (event.kind === "transport/local-path-request-packet-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: isLocalPathRequestPacket({
-            destinationTypePlain: event.destinationTypePlain,
-            destinationHashMatches: event.destinationHashMatches
-          })
-            ? "path-request"
-            : "other"
-        }
-      ]
-    };
-  }
+export const stepLocalPathRequestPacketWithActions = interpretGate(localPathRequestPacketGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldTreatLocalPathRequestPacket = gateConcluded<
+  LocalPathRequestPacketAction
+>("path-request");
 
-export function shouldTreatLocalPathRequestPacket(
-  actions: ReadonlyArray<LocalPathRequestPacketAction>
-): boolean {
-  return actions.some((action) => action.kind === "path-request");
-}
-
-export function shouldTreatLocalPathRequestPacketOther(
-  actions: ReadonlyArray<LocalPathRequestPacketAction>
-): boolean {
-  return actions.some((action) => action.kind === "other");
-}
+export const shouldTreatLocalPathRequestPacketOther = gateConcluded<
+  LocalPathRequestPacketAction
+>("other");
 
 /**
  * Whether a link-table packet may be relayed (not ANNOUNCE / LINKREQUEST).
@@ -1204,7 +973,23 @@ export function canRelayLinkPacket(packetType: number): boolean {
  * Conclusions leave via machine actions (no ad-hoc `canRelayLinkPacket` reads
  * beside the step).
  */
-export type RelayLinkPacketAllowState = Record<string, never>;
+type RelayLinkPacketAllowGateEvent = Extract<
+  RelayLinkPacketAllowEvent,
+  { readonly kind: "transport/relay-link-packet-allow-gate" }
+>;
+
+const relayLinkPacketAllowGate = defineBooleanGate<
+  RelayLinkPacketAllowGateEvent,
+  "allow",
+  "deny"
+>({
+  event: "transport/relay-link-packet-allow-gate",
+  whenTrue: "allow",
+  whenFalse: "deny",
+  decide: (event) => canRelayLinkPacket(event.packetType)
+});
+
+export type RelayLinkPacketAllowState = GateState;
 
 export type RelayLinkPacketAllowEvent =
   | Event
@@ -1217,42 +1002,15 @@ export type RelayLinkPacketAllowAction =
   | { readonly kind: "allow" }
   | { readonly kind: "deny" };
 
-export interface RelayLinkPacketAllowStepResult {
-  readonly state: RelayLinkPacketAllowState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly RelayLinkPacketAllowAction[];
-}
+export type RelayLinkPacketAllowStepResult = GateStepResult<RelayLinkPacketAllowAction>;
 
-export function initialRelayLinkPacketAllowState(): RelayLinkPacketAllowState {
-  return {};
-}
+export const initialRelayLinkPacketAllowState = initialGateState;
 
-export function stepRelayLinkPacketAllowWithActions(
-  state: RelayLinkPacketAllowState,
-  event: RelayLinkPacketAllowEvent
-): RelayLinkPacketAllowStepResult {
-  if (event.kind === "transport/relay-link-packet-allow-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: canRelayLinkPacket(event.packetType) ? "allow" : "deny" }]
-    };
-  }
+export const stepRelayLinkPacketAllowWithActions = interpretGate(relayLinkPacketAllowGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldAllowRelayLinkPacket = gateConcluded<RelayLinkPacketAllowAction>("allow");
 
-export function shouldAllowRelayLinkPacket(
-  actions: ReadonlyArray<RelayLinkPacketAllowAction>
-): boolean {
-  return actions.some((action) => action.kind === "allow");
-}
-
-export function shouldDenyRelayLinkPacket(
-  actions: ReadonlyArray<RelayLinkPacketAllowAction>
-): boolean {
-  return actions.some((action) => action.kind === "deny");
-}
+export const shouldDenyRelayLinkPacket = gateConcluded<RelayLinkPacketAllowAction>("deny");
 
 /**
  * Whether a reverse-table proof may be relayed (PROOF + live reverse entry).
@@ -1271,7 +1029,23 @@ export function canRelayReversePacket(input: {
  * Conclusions leave via machine actions (no ad-hoc `canRelayReversePacket`
  * reads beside the step).
  */
-export type RelayReversePacketAllowState = Record<string, never>;
+type RelayReversePacketAllowGateEvent = Extract<
+  RelayReversePacketAllowEvent,
+  { readonly kind: "transport/relay-reverse-packet-allow-gate" }
+>;
+
+const relayReversePacketAllowGate = defineBooleanGate<
+  RelayReversePacketAllowGateEvent,
+  "allow",
+  "deny"
+>({
+  event: "transport/relay-reverse-packet-allow-gate",
+  whenTrue: "allow",
+  whenFalse: "deny",
+  decide: (event) => canRelayReversePacket(event)
+});
+
+export type RelayReversePacketAllowState = GateState;
 
 export type RelayReversePacketAllowEvent =
   | Event
@@ -1286,52 +1060,21 @@ export type RelayReversePacketAllowAction =
   | { readonly kind: "allow" }
   | { readonly kind: "deny" };
 
-export interface RelayReversePacketAllowStepResult {
-  readonly state: RelayReversePacketAllowState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly RelayReversePacketAllowAction[];
-}
+export type RelayReversePacketAllowStepResult = GateStepResult<RelayReversePacketAllowAction>;
 
-export function initialRelayReversePacketAllowState(): RelayReversePacketAllowState {
-  return {};
-}
+export const initialRelayReversePacketAllowState = initialGateState;
 
-export function stepRelayReversePacketAllowWithActions(
-  state: RelayReversePacketAllowState,
-  event: RelayReversePacketAllowEvent
-): RelayReversePacketAllowStepResult {
-  if (event.kind === "transport/relay-reverse-packet-allow-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: canRelayReversePacket({
-            isProof: event.isProof,
-            hasEntry: event.hasEntry,
-            entryExpired: event.entryExpired
-          })
-            ? "allow"
-            : "deny"
-        }
-      ]
-    };
-  }
+export const stepRelayReversePacketAllowWithActions = interpretGate(
+  relayReversePacketAllowGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldAllowRelayReversePacket = gateConcluded<
+  RelayReversePacketAllowAction
+>("allow");
 
-export function shouldAllowRelayReversePacket(
-  actions: ReadonlyArray<RelayReversePacketAllowAction>
-): boolean {
-  return actions.some((action) => action.kind === "allow");
-}
-
-export function shouldDenyRelayReversePacket(
-  actions: ReadonlyArray<RelayReversePacketAllowAction>
-): boolean {
-  return actions.some((action) => action.kind === "deny");
-}
+export const shouldDenyRelayReversePacket = gateConcluded<
+  RelayReversePacketAllowAction
+>("deny");
 
 /** Whether reverse relay should use this iface (must be the reverse entry's outbound). */
 export function shouldRelayReverseOnInterface(ifaceIsOutbound: boolean): boolean {
@@ -1343,7 +1086,23 @@ export function shouldRelayReverseOnInterface(ifaceIsOutbound: boolean): boolean
  * Conclusions leave via machine actions (no ad-hoc `shouldRelayReverseOnInterface`
  * reads beside the step).
  */
-export type RelayReverseOnInterfaceState = Record<string, never>;
+type RelayReverseOnInterfaceGateEvent = Extract<
+  RelayReverseOnInterfaceEvent,
+  { readonly kind: "transport/relay-reverse-on-interface-gate" }
+>;
+
+const relayReverseOnInterfaceGate = defineBooleanGate<
+  RelayReverseOnInterfaceGateEvent,
+  "match",
+  "mismatch"
+>({
+  event: "transport/relay-reverse-on-interface-gate",
+  whenTrue: "match",
+  whenFalse: "mismatch",
+  decide: (event) => shouldRelayReverseOnInterface(event.ifaceIsOutbound)
+});
+
+export type RelayReverseOnInterfaceState = GateState;
 
 export type RelayReverseOnInterfaceEvent =
   | Event
@@ -1356,46 +1115,21 @@ export type RelayReverseOnInterfaceAction =
   | { readonly kind: "match" }
   | { readonly kind: "mismatch" };
 
-export interface RelayReverseOnInterfaceStepResult {
-  readonly state: RelayReverseOnInterfaceState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly RelayReverseOnInterfaceAction[];
-}
+export type RelayReverseOnInterfaceStepResult = GateStepResult<RelayReverseOnInterfaceAction>;
 
-export function initialRelayReverseOnInterfaceState(): RelayReverseOnInterfaceState {
-  return {};
-}
+export const initialRelayReverseOnInterfaceState = initialGateState;
 
-export function stepRelayReverseOnInterfaceWithActions(
-  state: RelayReverseOnInterfaceState,
-  event: RelayReverseOnInterfaceEvent
-): RelayReverseOnInterfaceStepResult {
-  if (event.kind === "transport/relay-reverse-on-interface-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldRelayReverseOnInterface(event.ifaceIsOutbound) ? "match" : "mismatch"
-        }
-      ]
-    };
-  }
+export const stepRelayReverseOnInterfaceWithActions = interpretGate(
+  relayReverseOnInterfaceGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldMatchRelayReverseOnInterface = gateConcluded<
+  RelayReverseOnInterfaceAction
+>("match");
 
-export function shouldMatchRelayReverseOnInterface(
-  actions: ReadonlyArray<RelayReverseOnInterfaceAction>
-): boolean {
-  return actions.some((action) => action.kind === "match");
-}
-
-export function shouldMismatchRelayReverseOnInterface(
-  actions: ReadonlyArray<RelayReverseOnInterfaceAction>
-): boolean {
-  return actions.some((action) => action.kind === "mismatch");
-}
+export const shouldMismatchRelayReverseOnInterface = gateConcluded<
+  RelayReverseOnInterfaceAction
+>("mismatch");
 
 /** Pure type → handler dispatch after transport accept / relay. */
 export type TransportIngressDispatch =
@@ -1431,7 +1165,21 @@ export function planTransportIngressDispatch(input: {
  * `plan ===` reads beside the step). Nested under
  * {@link stepTransportIngressDispatchWithActions}.
  */
-export type TransportIngressDispatchPlanState = Record<string, never>;
+type TransportIngressDispatchPlanGateEvent = Extract<
+  TransportIngressDispatchPlanEvent,
+  { readonly kind: "transport/ingress-dispatch-plan-gate" }
+>;
+
+const transportIngressDispatchPlanGate = defineGate<
+  TransportIngressDispatchPlanGateEvent,
+  TransportIngressDispatchPlanAction
+>({
+  event: "transport/ingress-dispatch-plan-gate",
+  actions: ["announce", "link-request", "link-data", "plain-data", "proof", "ignore"],
+  decide: (event) => [{ kind: planTransportIngressDispatch(event) }]
+});
+
+export type TransportIngressDispatchPlanState = GateState;
 
 export type TransportIngressDispatchPlanEvent =
   | Event
@@ -1445,89 +1193,45 @@ export type TransportIngressDispatchPlanAction = {
   readonly kind: TransportIngressDispatch;
 };
 
-export interface TransportIngressDispatchPlanStepResult {
-  readonly state: TransportIngressDispatchPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly TransportIngressDispatchPlanAction[];
-}
+export type TransportIngressDispatchPlanStepResult = GateStepResult<
+  TransportIngressDispatchPlanAction
+>;
 
-export function initialTransportIngressDispatchPlanState(): TransportIngressDispatchPlanState {
-  return {};
-}
+export const initialTransportIngressDispatchPlanState = initialGateState;
 
-export function stepTransportIngressDispatchPlanWithActions(
-  state: TransportIngressDispatchPlanState,
-  event: TransportIngressDispatchPlanEvent
-): TransportIngressDispatchPlanStepResult {
-  if (event.kind === "transport/ingress-dispatch-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planTransportIngressDispatch({
-            packetType: event.packetType,
-            destinationType: event.destinationType
-          })
-        }
-      ]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepTransportIngressDispatchPlanWithActions = interpretGate(
+  transportIngressDispatchPlanGate
+);
 
 /** Extract the transport ingress dispatch plan from actions; null when empty. */
-export function transportIngressDispatchPlanFromActions(
-  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
-): TransportIngressDispatch | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "announce" ||
-      entry.kind === "link-request" ||
-      entry.kind === "link-data" ||
-      entry.kind === "plain-data" ||
-      entry.kind === "proof" ||
-      entry.kind === "ignore"
-  );
-  return action?.kind ?? null;
-}
+export const transportIngressDispatchPlanFromActions = gateConclusion<
+  TransportIngressDispatchPlanAction,
+  TransportIngressDispatch
+>("announce", "link-request", "link-data", "plain-data", "proof", "ignore");
 
-export function shouldDispatchTransportAnnouncePlan(
-  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "announce");
-}
+export const shouldDispatchTransportAnnouncePlan = gateConcluded<
+  TransportIngressDispatchPlanAction
+>("announce");
 
-export function shouldDispatchTransportLinkRequestPlan(
-  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "link-request");
-}
+export const shouldDispatchTransportLinkRequestPlan = gateConcluded<
+  TransportIngressDispatchPlanAction
+>("link-request");
 
-export function shouldDispatchTransportLinkDataPlan(
-  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "link-data");
-}
+export const shouldDispatchTransportLinkDataPlan = gateConcluded<
+  TransportIngressDispatchPlanAction
+>("link-data");
 
-export function shouldDispatchTransportPlainDataPlan(
-  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "plain-data");
-}
+export const shouldDispatchTransportPlainDataPlan = gateConcluded<
+  TransportIngressDispatchPlanAction
+>("plain-data");
 
-export function shouldDispatchTransportProofPlan(
-  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "proof");
-}
+export const shouldDispatchTransportProofPlan = gateConcluded<
+  TransportIngressDispatchPlanAction
+>("proof");
 
-export function shouldIgnoreTransportIngressDispatchPlan(
-  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
+export const shouldIgnoreTransportIngressDispatchPlan = gateConcluded<
+  TransportIngressDispatchPlanAction
+>("ignore");
 
 /** Pure proof-context → handler kind. */
 export type ProofIngressKind = "lrproof" | "resource-prf" | "receipt";
@@ -1547,7 +1251,18 @@ export function planProofIngressKind(context: number): ProofIngressKind {
  * Conclusions leave via machine actions (no ad-hoc `planProofIngressKind` /
  * `plan ===` reads beside the step). Nested under {@link stepProofIngressWithActions}.
  */
-export type ProofIngressPlanState = Record<string, never>;
+type ProofIngressPlanGateEvent = Extract<
+  ProofIngressPlanEvent,
+  { readonly kind: "transport/proof-ingress-plan-gate" }
+>;
+
+const proofIngressPlanGate = defineGate<ProofIngressPlanGateEvent, ProofIngressPlanAction>({
+  event: "transport/proof-ingress-plan-gate",
+  actions: ["lrproof", "resource-prf", "receipt"],
+  decide: (event) => [{ kind: planProofIngressKind(event.context) }]
+});
+
+export type ProofIngressPlanState = GateState;
 
 export type ProofIngressPlanEvent =
   | Event
@@ -1558,56 +1273,25 @@ export type ProofIngressPlanEvent =
 
 export type ProofIngressPlanAction = { readonly kind: ProofIngressKind };
 
-export interface ProofIngressPlanStepResult {
-  readonly state: ProofIngressPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly ProofIngressPlanAction[];
-}
+export type ProofIngressPlanStepResult = GateStepResult<ProofIngressPlanAction>;
 
-export function initialProofIngressPlanState(): ProofIngressPlanState {
-  return {};
-}
+export const initialProofIngressPlanState = initialGateState;
 
-export function stepProofIngressPlanWithActions(
-  state: ProofIngressPlanState,
-  event: ProofIngressPlanEvent
-): ProofIngressPlanStepResult {
-  if (event.kind === "transport/proof-ingress-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: planProofIngressKind(event.context) }]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepProofIngressPlanWithActions = interpretGate(proofIngressPlanGate);
 
 /** Extract the proof ingress plan from actions; null when empty. */
-export function proofIngressPlanFromActions(
-  actions: ReadonlyArray<ProofIngressPlanAction>
-): ProofIngressKind | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const proofIngressPlanFromActions = gateConclusion<
+  ProofIngressPlanAction,
+  ProofIngressKind
+>("lrproof", "resource-prf", "receipt");
 
-export function shouldHandleProofLrproofPlan(
-  actions: ReadonlyArray<ProofIngressPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "lrproof");
-}
+export const shouldHandleProofLrproofPlan = gateConcluded<ProofIngressPlanAction>("lrproof");
 
-export function shouldHandleProofResourcePrfPlan(
-  actions: ReadonlyArray<ProofIngressPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "resource-prf");
-}
+export const shouldHandleProofResourcePrfPlan = gateConcluded<
+  ProofIngressPlanAction
+>("resource-prf");
 
-export function shouldHandleProofReceiptPlan(
-  actions: ReadonlyArray<ProofIngressPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "receipt");
-}
+export const shouldHandleProofReceiptPlan = gateConcluded<ProofIngressPlanAction>("receipt");
 
 /**
  * Whether a packet should leave on this interface (outgoing + optional exclude /
@@ -1636,7 +1320,36 @@ export function shouldTransmitOnInterface(input: {
  * Conclusions leave via machine actions (no ad-hoc `shouldTransmitOnInterface`
  * reads beside the step).
  */
-export type TransmitOnInterfaceState = Record<string, never>;
+type TransmitOnInterfaceGateEvent = Extract<
+  TransmitOnInterfaceEvent,
+  { readonly kind: "transport/transmit-on-interface-gate" }
+>;
+
+const transmitOnInterfaceGate = defineGate<
+  TransmitOnInterfaceGateEvent,
+  TransmitOnInterfaceAction
+>({
+  event: "transport/transmit-on-interface-gate",
+  actions: ["transmit", "skip"],
+  decide: (event) => [
+    {
+      kind: shouldTransmitOnInterface({
+        outgoing: event.outgoing,
+        ...(event.isExcludedInterface !== undefined
+          ? { isExcludedInterface: event.isExcludedInterface }
+          : {}),
+        ...(event.requireAttached !== undefined
+          ? { requireAttached: event.requireAttached }
+          : {}),
+        ...(event.isAttached !== undefined ? { isAttached: event.isAttached } : {})
+      })
+        ? "transmit"
+        : "skip"
+    }
+  ]
+});
+
+export type TransmitOnInterfaceState = GateState;
 
 export type TransmitOnInterfaceEvent =
   | Event
@@ -1652,57 +1365,17 @@ export type TransmitOnInterfaceAction =
   | { readonly kind: "transmit" }
   | { readonly kind: "skip" };
 
-export interface TransmitOnInterfaceStepResult {
-  readonly state: TransmitOnInterfaceState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly TransmitOnInterfaceAction[];
-}
+export type TransmitOnInterfaceStepResult = GateStepResult<TransmitOnInterfaceAction>;
 
-export function initialTransmitOnInterfaceState(): TransmitOnInterfaceState {
-  return {};
-}
+export const initialTransmitOnInterfaceState = initialGateState;
 
-export function stepTransmitOnInterfaceWithActions(
-  state: TransmitOnInterfaceState,
-  event: TransmitOnInterfaceEvent
-): TransmitOnInterfaceStepResult {
-  if (event.kind === "transport/transmit-on-interface-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldTransmitOnInterface({
-            outgoing: event.outgoing,
-            ...(event.isExcludedInterface !== undefined
-              ? { isExcludedInterface: event.isExcludedInterface }
-              : {}),
-            ...(event.requireAttached !== undefined
-              ? { requireAttached: event.requireAttached }
-              : {}),
-            ...(event.isAttached !== undefined ? { isAttached: event.isAttached } : {})
-          })
-            ? "transmit"
-            : "skip"
-        }
-      ]
-    };
-  }
+export const stepTransmitOnInterfaceWithActions = interpretGate(transmitOnInterfaceGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldTransmitOnInterfaceNow = gateConcluded<
+  TransmitOnInterfaceAction
+>("transmit");
 
-export function shouldTransmitOnInterfaceNow(
-  actions: ReadonlyArray<TransmitOnInterfaceAction>
-): boolean {
-  return actions.some((action) => action.kind === "transmit");
-}
-
-export function shouldSkipTransmitOnInterface(
-  actions: ReadonlyArray<TransmitOnInterfaceAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipTransmitOnInterface = gateConcluded<TransmitOnInterfaceAction>("skip");
 
 /** Local IN destination match (announce / path-request answerer). */
 export function shouldMatchLocalInboundDestination(input: {
@@ -1717,7 +1390,23 @@ export function shouldMatchLocalInboundDestination(input: {
  * Conclusions leave via machine actions (no ad-hoc
  * `shouldMatchLocalInboundDestination` reads beside the step).
  */
-export type MatchLocalInboundDestinationState = Record<string, never>;
+type MatchLocalInboundDestinationGateEvent = Extract<
+  MatchLocalInboundDestinationEvent,
+  { readonly kind: "transport/match-local-inbound-destination-gate" }
+>;
+
+const matchLocalInboundDestinationGate = defineBooleanGate<
+  MatchLocalInboundDestinationGateEvent,
+  "match",
+  "mismatch"
+>({
+  event: "transport/match-local-inbound-destination-gate",
+  whenTrue: "match",
+  whenFalse: "mismatch",
+  decide: (event) => shouldMatchLocalInboundDestination(event)
+});
+
+export type MatchLocalInboundDestinationState = GateState;
 
 export type MatchLocalInboundDestinationEvent =
   | Event
@@ -1731,51 +1420,23 @@ export type MatchLocalInboundDestinationAction =
   | { readonly kind: "match" }
   | { readonly kind: "mismatch" };
 
-export interface MatchLocalInboundDestinationStepResult {
-  readonly state: MatchLocalInboundDestinationState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly MatchLocalInboundDestinationAction[];
-}
+export type MatchLocalInboundDestinationStepResult = GateStepResult<
+  MatchLocalInboundDestinationAction
+>;
 
-export function initialMatchLocalInboundDestinationState(): MatchLocalInboundDestinationState {
-  return {};
-}
+export const initialMatchLocalInboundDestinationState = initialGateState;
 
-export function stepMatchLocalInboundDestinationWithActions(
-  state: MatchLocalInboundDestinationState,
-  event: MatchLocalInboundDestinationEvent
-): MatchLocalInboundDestinationStepResult {
-  if (event.kind === "transport/match-local-inbound-destination-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldMatchLocalInboundDestination({
-            hashMatches: event.hashMatches,
-            directionIn: event.directionIn
-          })
-            ? "match"
-            : "mismatch"
-        }
-      ]
-    };
-  }
+export const stepMatchLocalInboundDestinationWithActions = interpretGate(
+  matchLocalInboundDestinationGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldMatchLocalInboundDestinationNow = gateConcluded<
+  MatchLocalInboundDestinationAction
+>("match");
 
-export function shouldMatchLocalInboundDestinationNow(
-  actions: ReadonlyArray<MatchLocalInboundDestinationAction>
-): boolean {
-  return actions.some((action) => action.kind === "match");
-}
-
-export function shouldMismatchLocalInboundDestination(
-  actions: ReadonlyArray<MatchLocalInboundDestinationAction>
-): boolean {
-  return actions.some((action) => action.kind === "mismatch");
-}
+export const shouldMismatchLocalInboundDestination = gateConcluded<
+  MatchLocalInboundDestinationAction
+>("mismatch");
 
 /** Local typed destination match (plain DATA delivery). */
 export function shouldMatchLocalTypedDestination(input: {
@@ -1790,7 +1451,23 @@ export function shouldMatchLocalTypedDestination(input: {
  * Conclusions leave via machine actions (no ad-hoc
  * `shouldMatchLocalTypedDestination` reads beside the step).
  */
-export type MatchLocalTypedDestinationState = Record<string, never>;
+type MatchLocalTypedDestinationGateEvent = Extract<
+  MatchLocalTypedDestinationEvent,
+  { readonly kind: "transport/match-local-typed-destination-gate" }
+>;
+
+const matchLocalTypedDestinationGate = defineBooleanGate<
+  MatchLocalTypedDestinationGateEvent,
+  "match",
+  "mismatch"
+>({
+  event: "transport/match-local-typed-destination-gate",
+  whenTrue: "match",
+  whenFalse: "mismatch",
+  decide: (event) => shouldMatchLocalTypedDestination(event)
+});
+
+export type MatchLocalTypedDestinationState = GateState;
 
 export type MatchLocalTypedDestinationEvent =
   | Event
@@ -1804,51 +1481,23 @@ export type MatchLocalTypedDestinationAction =
   | { readonly kind: "match" }
   | { readonly kind: "mismatch" };
 
-export interface MatchLocalTypedDestinationStepResult {
-  readonly state: MatchLocalTypedDestinationState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly MatchLocalTypedDestinationAction[];
-}
+export type MatchLocalTypedDestinationStepResult = GateStepResult<
+  MatchLocalTypedDestinationAction
+>;
 
-export function initialMatchLocalTypedDestinationState(): MatchLocalTypedDestinationState {
-  return {};
-}
+export const initialMatchLocalTypedDestinationState = initialGateState;
 
-export function stepMatchLocalTypedDestinationWithActions(
-  state: MatchLocalTypedDestinationState,
-  event: MatchLocalTypedDestinationEvent
-): MatchLocalTypedDestinationStepResult {
-  if (event.kind === "transport/match-local-typed-destination-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldMatchLocalTypedDestination({
-            hashMatches: event.hashMatches,
-            typeMatches: event.typeMatches
-          })
-            ? "match"
-            : "mismatch"
-        }
-      ]
-    };
-  }
+export const stepMatchLocalTypedDestinationWithActions = interpretGate(
+  matchLocalTypedDestinationGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldMatchLocalTypedDestinationNow = gateConcluded<
+  MatchLocalTypedDestinationAction
+>("match");
 
-export function shouldMatchLocalTypedDestinationNow(
-  actions: ReadonlyArray<MatchLocalTypedDestinationAction>
-): boolean {
-  return actions.some((action) => action.kind === "match");
-}
-
-export function shouldMismatchLocalTypedDestination(
-  actions: ReadonlyArray<MatchLocalTypedDestinationAction>
-): boolean {
-  return actions.some((action) => action.kind === "mismatch");
-}
+export const shouldMismatchLocalTypedDestination = gateConcluded<
+  MatchLocalTypedDestinationAction
+>("mismatch");
 
 /** Local LINKREQUEST dispatch (typed destination + handler present). */
 export function shouldDispatchLocalLinkRequest(input: {
@@ -1864,7 +1513,23 @@ export function shouldDispatchLocalLinkRequest(input: {
  * Conclusions leave via machine actions (no ad-hoc
  * `shouldDispatchLocalLinkRequest` reads beside the step).
  */
-export type DispatchLocalLinkRequestState = Record<string, never>;
+type DispatchLocalLinkRequestGateEvent = Extract<
+  DispatchLocalLinkRequestEvent,
+  { readonly kind: "transport/dispatch-local-link-request-gate" }
+>;
+
+const dispatchLocalLinkRequestGate = defineBooleanGate<
+  DispatchLocalLinkRequestGateEvent,
+  "dispatch",
+  "skip"
+>({
+  event: "transport/dispatch-local-link-request-gate",
+  whenTrue: "dispatch",
+  whenFalse: "skip",
+  decide: (event) => shouldDispatchLocalLinkRequest(event)
+});
+
+export type DispatchLocalLinkRequestState = GateState;
 
 export type DispatchLocalLinkRequestEvent =
   | Event
@@ -1879,52 +1544,21 @@ export type DispatchLocalLinkRequestAction =
   | { readonly kind: "dispatch" }
   | { readonly kind: "skip" };
 
-export interface DispatchLocalLinkRequestStepResult {
-  readonly state: DispatchLocalLinkRequestState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly DispatchLocalLinkRequestAction[];
-}
+export type DispatchLocalLinkRequestStepResult = GateStepResult<DispatchLocalLinkRequestAction>;
 
-export function initialDispatchLocalLinkRequestState(): DispatchLocalLinkRequestState {
-  return {};
-}
+export const initialDispatchLocalLinkRequestState = initialGateState;
 
-export function stepDispatchLocalLinkRequestWithActions(
-  state: DispatchLocalLinkRequestState,
-  event: DispatchLocalLinkRequestEvent
-): DispatchLocalLinkRequestStepResult {
-  if (event.kind === "transport/dispatch-local-link-request-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldDispatchLocalLinkRequest({
-            hashMatches: event.hashMatches,
-            typeMatches: event.typeMatches,
-            handlerPresent: event.handlerPresent
-          })
-            ? "dispatch"
-            : "skip"
-        }
-      ]
-    };
-  }
+export const stepDispatchLocalLinkRequestWithActions = interpretGate(
+  dispatchLocalLinkRequestGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldDispatchLocalLinkRequestNow = gateConcluded<
+  DispatchLocalLinkRequestAction
+>("dispatch");
 
-export function shouldDispatchLocalLinkRequestNow(
-  actions: ReadonlyArray<DispatchLocalLinkRequestAction>
-): boolean {
-  return actions.some((action) => action.kind === "dispatch");
-}
-
-export function shouldSkipDispatchLocalLinkRequest(
-  actions: ReadonlyArray<DispatchLocalLinkRequestAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipDispatchLocalLinkRequest = gateConcluded<
+  DispatchLocalLinkRequestAction
+>("skip");
 
 /**
  * After `planProofIngressKind === "lrproof"`: whether this pending link may validate.
@@ -1942,7 +1576,23 @@ export function shouldAcceptLinkLrProofCandidate(input: {
  * Conclusions leave via machine actions (no ad-hoc
  * `shouldAcceptLinkLrProofCandidate` reads beside the step).
  */
-export type AcceptLinkLrProofCandidateState = Record<string, never>;
+type AcceptLinkLrProofCandidateGateEvent = Extract<
+  AcceptLinkLrProofCandidateEvent,
+  { readonly kind: "transport/accept-link-lr-proof-candidate-gate" }
+>;
+
+const acceptLinkLrProofCandidateGate = defineBooleanGate<
+  AcceptLinkLrProofCandidateGateEvent,
+  "accept",
+  "reject"
+>({
+  event: "transport/accept-link-lr-proof-candidate-gate",
+  whenTrue: "accept",
+  whenFalse: "reject",
+  decide: (event) => shouldAcceptLinkLrProofCandidate(event)
+});
+
+export type AcceptLinkLrProofCandidateState = GateState;
 
 export type AcceptLinkLrProofCandidateEvent =
   | Event
@@ -1956,51 +1606,23 @@ export type AcceptLinkLrProofCandidateAction =
   | { readonly kind: "accept" }
   | { readonly kind: "reject" };
 
-export interface AcceptLinkLrProofCandidateStepResult {
-  readonly state: AcceptLinkLrProofCandidateState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly AcceptLinkLrProofCandidateAction[];
-}
+export type AcceptLinkLrProofCandidateStepResult = GateStepResult<
+  AcceptLinkLrProofCandidateAction
+>;
 
-export function initialAcceptLinkLrProofCandidateState(): AcceptLinkLrProofCandidateState {
-  return {};
-}
+export const initialAcceptLinkLrProofCandidateState = initialGateState;
 
-export function stepAcceptLinkLrProofCandidateWithActions(
-  state: AcceptLinkLrProofCandidateState,
-  event: AcceptLinkLrProofCandidateEvent
-): AcceptLinkLrProofCandidateStepResult {
-  if (event.kind === "transport/accept-link-lr-proof-candidate-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldAcceptLinkLrProofCandidate({
-            linkIdMatches: event.linkIdMatches,
-            hopsMatch: event.hopsMatch
-          })
-            ? "accept"
-            : "reject"
-        }
-      ]
-    };
-  }
+export const stepAcceptLinkLrProofCandidateWithActions = interpretGate(
+  acceptLinkLrProofCandidateGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldAcceptLinkLrProofCandidateNow = gateConcluded<
+  AcceptLinkLrProofCandidateAction
+>("accept");
 
-export function shouldAcceptLinkLrProofCandidateNow(
-  actions: ReadonlyArray<AcceptLinkLrProofCandidateAction>
-): boolean {
-  return actions.some((action) => action.kind === "accept");
-}
-
-export function shouldRejectLinkLrProofCandidate(
-  actions: ReadonlyArray<AcceptLinkLrProofCandidateAction>
-): boolean {
-  return actions.some((action) => action.kind === "reject");
-}
+export const shouldRejectLinkLrProofCandidate = gateConcluded<
+  AcceptLinkLrProofCandidateAction
+>("reject");
 
 export type LocalPlainDataDeliveryPlan = "ignore" | "dispatch";
 
@@ -2024,7 +1646,21 @@ export function planLocalPlainDataDelivery(input: {
  * `plan ===` reads beside the step). Nested under
  * {@link stepLocalPlainDataDeliveryWithActions}.
  */
-export type LocalPlainDataDeliveryPlanState = Record<string, never>;
+type LocalPlainDataDeliveryPlanGateEvent = Extract<
+  LocalPlainDataDeliveryPlanEvent,
+  { readonly kind: "transport/local-plain-data-plan-gate" }
+>;
+
+const localPlainDataDeliveryPlanGate = defineGate<
+  LocalPlainDataDeliveryPlanGateEvent,
+  LocalPlainDataDeliveryPlanAction
+>({
+  event: "transport/local-plain-data-plan-gate",
+  actions: ["dispatch", "ignore"],
+  decide: (event) => [{ kind: planLocalPlainDataDelivery(event) }]
+});
+
+export type LocalPlainDataDeliveryPlanState = GateState;
 
 export type LocalPlainDataDeliveryPlanEvent =
   | Event
@@ -2038,57 +1674,29 @@ export type LocalPlainDataDeliveryPlanAction = {
   readonly kind: LocalPlainDataDeliveryPlan;
 };
 
-export interface LocalPlainDataDeliveryPlanStepResult {
-  readonly state: LocalPlainDataDeliveryPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LocalPlainDataDeliveryPlanAction[];
-}
+export type LocalPlainDataDeliveryPlanStepResult = GateStepResult<
+  LocalPlainDataDeliveryPlanAction
+>;
 
-export function initialLocalPlainDataDeliveryPlanState(): LocalPlainDataDeliveryPlanState {
-  return {};
-}
+export const initialLocalPlainDataDeliveryPlanState = initialGateState;
 
-export function stepLocalPlainDataDeliveryPlanWithActions(
-  state: LocalPlainDataDeliveryPlanState,
-  event: LocalPlainDataDeliveryPlanEvent
-): LocalPlainDataDeliveryPlanStepResult {
-  if (event.kind === "transport/local-plain-data-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planLocalPlainDataDelivery({
-            destinationPresent: event.destinationPresent,
-            plaintextPresent: event.plaintextPresent
-          })
-        }
-      ]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepLocalPlainDataDeliveryPlanWithActions = interpretGate(
+  localPlainDataDeliveryPlanGate
+);
 
 /** Extract the local plain-data delivery plan from actions; null when empty. */
-export function localPlainDataDeliveryPlanFromActions(
-  actions: ReadonlyArray<LocalPlainDataDeliveryPlanAction>
-): LocalPlainDataDeliveryPlan | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const localPlainDataDeliveryPlanFromActions = gateConclusion<
+  LocalPlainDataDeliveryPlanAction,
+  LocalPlainDataDeliveryPlan
+>("dispatch", "ignore");
 
-export function shouldDispatchLocalPlainDataDeliveryPlan(
-  actions: ReadonlyArray<LocalPlainDataDeliveryPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "dispatch");
-}
+export const shouldDispatchLocalPlainDataDeliveryPlan = gateConcluded<
+  LocalPlainDataDeliveryPlanAction
+>("dispatch");
 
-export function shouldIgnoreLocalPlainDataDeliveryPlan(
-  actions: ReadonlyArray<LocalPlainDataDeliveryPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
+export const shouldIgnoreLocalPlainDataDeliveryPlan = gateConcluded<
+  LocalPlainDataDeliveryPlanAction
+>("ignore");
 
 /**
  * Whether local plain DATA may dispatch after {@link planLocalPlainDataDelivery}
@@ -2107,7 +1715,23 @@ export function shouldDispatchLocalPlainDataDelivery(input: {
  * fields. Conclusions leave via machine actions (no ad-hoc
  * `shouldDispatchLocalPlainDataDelivery` reads beside the step).
  */
-export type DispatchLocalPlainDataDeliveryState = Record<string, never>;
+type DispatchLocalPlainDataDeliveryGateEvent = Extract<
+  DispatchLocalPlainDataDeliveryEvent,
+  { readonly kind: "transport/dispatch-local-plain-data-gate" }
+>;
+
+const dispatchLocalPlainDataDeliveryGate = defineBooleanGate<
+  DispatchLocalPlainDataDeliveryGateEvent,
+  "dispatch",
+  "skip"
+>({
+  event: "transport/dispatch-local-plain-data-gate",
+  whenTrue: "dispatch",
+  whenFalse: "skip",
+  decide: (event) => shouldDispatchLocalPlainDataDelivery(event)
+});
+
+export type DispatchLocalPlainDataDeliveryState = GateState;
 
 export type DispatchLocalPlainDataDeliveryEvent =
   | Event
@@ -2122,52 +1746,23 @@ export type DispatchLocalPlainDataDeliveryAction =
   | { readonly kind: "dispatch" }
   | { readonly kind: "skip" };
 
-export interface DispatchLocalPlainDataDeliveryStepResult {
-  readonly state: DispatchLocalPlainDataDeliveryState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly DispatchLocalPlainDataDeliveryAction[];
-}
+export type DispatchLocalPlainDataDeliveryStepResult = GateStepResult<
+  DispatchLocalPlainDataDeliveryAction
+>;
 
-export function initialDispatchLocalPlainDataDeliveryState(): DispatchLocalPlainDataDeliveryState {
-  return {};
-}
+export const initialDispatchLocalPlainDataDeliveryState = initialGateState;
 
-export function stepDispatchLocalPlainDataDeliveryWithActions(
-  state: DispatchLocalPlainDataDeliveryState,
-  event: DispatchLocalPlainDataDeliveryEvent
-): DispatchLocalPlainDataDeliveryStepResult {
-  if (event.kind === "transport/dispatch-local-plain-data-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldDispatchLocalPlainDataDelivery({
-            planDispatch: event.planDispatch,
-            destinationPresent: event.destinationPresent,
-            plaintextPresent: event.plaintextPresent
-          })
-            ? "dispatch"
-            : "skip"
-        }
-      ]
-    };
-  }
+export const stepDispatchLocalPlainDataDeliveryWithActions = interpretGate(
+  dispatchLocalPlainDataDeliveryGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldDispatchLocalPlainDataDeliveryNow = gateConcluded<
+  DispatchLocalPlainDataDeliveryAction
+>("dispatch");
 
-export function shouldDispatchLocalPlainDataDeliveryNow(
-  actions: ReadonlyArray<DispatchLocalPlainDataDeliveryAction>
-): boolean {
-  return actions.some((action) => action.kind === "dispatch");
-}
-
-export function shouldSkipDispatchLocalPlainDataDelivery(
-  actions: ReadonlyArray<DispatchLocalPlainDataDeliveryAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipDispatchLocalPlainDataDelivery = gateConcluded<
+  DispatchLocalPlainDataDeliveryAction
+>("skip");
 
 export type PacketHashRememberPlan = "now" | "after-relay";
 
@@ -2185,7 +1780,21 @@ export function planPacketHashRemember(deferred: boolean): PacketHashRememberPla
  * `plan ===` reads beside the step). Nested under
  * {@link stepPacketHashRememberWithActions}.
  */
-export type PacketHashRememberPlanState = Record<string, never>;
+type PacketHashRememberPlanGateEvent = Extract<
+  PacketHashRememberPlanEvent,
+  { readonly kind: "transport/packet-hash-remember-plan-gate" }
+>;
+
+const packetHashRememberPlanGate = defineGate<
+  PacketHashRememberPlanGateEvent,
+  PacketHashRememberPlanAction
+>({
+  event: "transport/packet-hash-remember-plan-gate",
+  actions: ["now", "after-relay"],
+  decide: (event) => [{ kind: planPacketHashRemember(event.deferred) }]
+});
+
+export type PacketHashRememberPlanState = GateState;
 
 export type PacketHashRememberPlanEvent =
   | Event
@@ -2196,50 +1805,25 @@ export type PacketHashRememberPlanEvent =
 
 export type PacketHashRememberPlanAction = { readonly kind: PacketHashRememberPlan };
 
-export interface PacketHashRememberPlanStepResult {
-  readonly state: PacketHashRememberPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly PacketHashRememberPlanAction[];
-}
+export type PacketHashRememberPlanStepResult = GateStepResult<PacketHashRememberPlanAction>;
 
-export function initialPacketHashRememberPlanState(): PacketHashRememberPlanState {
-  return {};
-}
+export const initialPacketHashRememberPlanState = initialGateState;
 
-export function stepPacketHashRememberPlanWithActions(
-  state: PacketHashRememberPlanState,
-  event: PacketHashRememberPlanEvent
-): PacketHashRememberPlanStepResult {
-  if (event.kind === "transport/packet-hash-remember-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: planPacketHashRemember(event.deferred) }]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepPacketHashRememberPlanWithActions = interpretGate(packetHashRememberPlanGate);
 
 /** Extract the packet-hash remember plan from actions; null when empty. */
-export function packetHashRememberPlanFromActions(
-  actions: ReadonlyArray<PacketHashRememberPlanAction>
-): PacketHashRememberPlan | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const packetHashRememberPlanFromActions = gateConclusion<
+  PacketHashRememberPlanAction,
+  PacketHashRememberPlan
+>("now", "after-relay");
 
-export function shouldRememberPacketHashNowPlan(
-  actions: ReadonlyArray<PacketHashRememberPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "now");
-}
+export const shouldRememberPacketHashNowPlan = gateConcluded<
+  PacketHashRememberPlanAction
+>("now");
 
-export function shouldRememberPacketHashAfterRelayPlan(
-  actions: ReadonlyArray<PacketHashRememberPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "after-relay");
-}
+export const shouldRememberPacketHashAfterRelayPlan = gateConcluded<
+  PacketHashRememberPlanAction
+>("after-relay");
 
 /** Whether inbound should record the packet hash immediately (non-deferred). */
 export function shouldRememberPacketHashNow(rememberNow: boolean): boolean {
@@ -2261,7 +1845,23 @@ export function shouldDispatchResourceProofToLink(activeIndexPresent: boolean): 
  * Conclusions leave via machine actions (no ad-hoc
  * `shouldDispatchResourceProofToLink` reads beside the step).
  */
-export type DispatchResourceProofToLinkState = Record<string, never>;
+type DispatchResourceProofToLinkGateEvent = Extract<
+  DispatchResourceProofToLinkEvent,
+  { readonly kind: "transport/dispatch-resource-proof-to-link-gate" }
+>;
+
+const dispatchResourceProofToLinkGate = defineBooleanGate<
+  DispatchResourceProofToLinkGateEvent,
+  "dispatch",
+  "skip"
+>({
+  event: "transport/dispatch-resource-proof-to-link-gate",
+  whenTrue: "dispatch",
+  whenFalse: "skip",
+  decide: (event) => shouldDispatchResourceProofToLink(event.activeIndexPresent)
+});
+
+export type DispatchResourceProofToLinkState = GateState;
 
 export type DispatchResourceProofToLinkEvent =
   | Event
@@ -2274,48 +1874,23 @@ export type DispatchResourceProofToLinkAction =
   | { readonly kind: "dispatch" }
   | { readonly kind: "skip" };
 
-export interface DispatchResourceProofToLinkStepResult {
-  readonly state: DispatchResourceProofToLinkState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly DispatchResourceProofToLinkAction[];
-}
+export type DispatchResourceProofToLinkStepResult = GateStepResult<
+  DispatchResourceProofToLinkAction
+>;
 
-export function initialDispatchResourceProofToLinkState(): DispatchResourceProofToLinkState {
-  return {};
-}
+export const initialDispatchResourceProofToLinkState = initialGateState;
 
-export function stepDispatchResourceProofToLinkWithActions(
-  state: DispatchResourceProofToLinkState,
-  event: DispatchResourceProofToLinkEvent
-): DispatchResourceProofToLinkStepResult {
-  if (event.kind === "transport/dispatch-resource-proof-to-link-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldDispatchResourceProofToLink(event.activeIndexPresent)
-            ? "dispatch"
-            : "skip"
-        }
-      ]
-    };
-  }
+export const stepDispatchResourceProofToLinkWithActions = interpretGate(
+  dispatchResourceProofToLinkGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldDispatchResourceProofToLinkNow = gateConcluded<
+  DispatchResourceProofToLinkAction
+>("dispatch");
 
-export function shouldDispatchResourceProofToLinkNow(
-  actions: ReadonlyArray<DispatchResourceProofToLinkAction>
-): boolean {
-  return actions.some((action) => action.kind === "dispatch");
-}
-
-export function shouldSkipDispatchResourceProofToLink(
-  actions: ReadonlyArray<DispatchResourceProofToLinkAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipDispatchResourceProofToLink = gateConcluded<
+  DispatchResourceProofToLinkAction
+>("skip");
 
 /** Index of a link-id in a list (link-data / resource-prf ingress). */
 export function indexOfMatchingLinkId(input: {
@@ -2336,7 +1911,24 @@ export function indexOfMatchingLinkId(input: {
  * Conclusions leave via machine actions (no ad-hoc `indexOfMatchingLinkId`
  * reads beside the step).
  */
-export type IndexOfMatchingLinkIdState = Record<string, never>;
+type IndexOfMatchingLinkIdGateEvent = Extract<
+  IndexOfMatchingLinkIdEvent,
+  { readonly kind: "transport/matching-link-id-index-gate" }
+>;
+
+const indexOfMatchingLinkIdGate = defineGate<
+  IndexOfMatchingLinkIdGateEvent,
+  IndexOfMatchingLinkIdAction
+>({
+  event: "transport/matching-link-id-index-gate",
+  actions: ["use-index", "miss"],
+  decide: (event) => {
+    const index = indexOfMatchingLinkId(event);
+    return index === null ? [{ kind: "miss" }] : [{ kind: "use-index", index }];
+  }
+});
+
+export type IndexOfMatchingLinkIdState = GateState;
 
 export type IndexOfMatchingLinkIdEvent =
   | Event
@@ -2350,57 +1942,24 @@ export type IndexOfMatchingLinkIdAction =
   | { readonly kind: "use-index"; readonly index: number }
   | { readonly kind: "miss" };
 
-export interface IndexOfMatchingLinkIdStepResult {
-  readonly state: IndexOfMatchingLinkIdState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly IndexOfMatchingLinkIdAction[];
-}
+export type IndexOfMatchingLinkIdStepResult = GateStepResult<IndexOfMatchingLinkIdAction>;
 
-export function initialIndexOfMatchingLinkIdState(): IndexOfMatchingLinkIdState {
-  return {};
-}
+export const initialIndexOfMatchingLinkIdState = initialGateState;
 
-export function stepIndexOfMatchingLinkIdWithActions(
-  state: IndexOfMatchingLinkIdState,
-  event: IndexOfMatchingLinkIdEvent
-): IndexOfMatchingLinkIdStepResult {
-  if (event.kind === "transport/matching-link-id-index-gate") {
-    const index = indexOfMatchingLinkId({
-      linkIds: event.linkIds,
-      target: event.target
-    });
-    return {
-      state,
-      intents: [],
-      actions:
-        index === null
-          ? [{ kind: "miss" }]
-          : [{ kind: "use-index", index }]
-    };
-  }
+export const stepIndexOfMatchingLinkIdWithActions = interpretGate(indexOfMatchingLinkIdGate);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldUseMatchingLinkIdIndex = gateConcluded<
+  IndexOfMatchingLinkIdAction
+>("use-index");
 
-export function shouldUseMatchingLinkIdIndex(
-  actions: ReadonlyArray<IndexOfMatchingLinkIdAction>
-): boolean {
-  return actions.some((action) => action.kind === "use-index");
-}
-
-export function shouldMissMatchingLinkIdIndex(
-  actions: ReadonlyArray<IndexOfMatchingLinkIdAction>
-): boolean {
-  return actions.some((action) => action.kind === "miss");
-}
+export const shouldMissMatchingLinkIdIndex = gateConcluded<IndexOfMatchingLinkIdAction>("miss");
 
 /** Extract matching link-id index from step actions; null when no `use-index`. */
-export function matchingLinkIdIndexFromActions(
-  actions: ReadonlyArray<IndexOfMatchingLinkIdAction>
-): number | null {
-  const action = actions.find((entry) => entry.kind === "use-index");
-  return action?.kind === "use-index" ? action.index : null;
-}
+export const matchingLinkIdIndexFromActions = gatePayload<
+  IndexOfMatchingLinkIdAction,
+  "use-index",
+  "index"
+>("use-index", "index");
 
 export type LinkDataIngressTarget = "active" | "pending" | "none";
 
@@ -2426,7 +1985,21 @@ export function planLinkDataIngressTarget(input: {
  * `plan ===` reads beside the step). Nested under
  * {@link stepLinkDataIngressTargetWithActions}.
  */
-export type LinkDataIngressTargetPlanState = Record<string, never>;
+type LinkDataIngressTargetPlanGateEvent = Extract<
+  LinkDataIngressTargetPlanEvent,
+  { readonly kind: "transport/link-data-ingress-plan-gate" }
+>;
+
+const linkDataIngressTargetPlanGate = defineGate<
+  LinkDataIngressTargetPlanGateEvent,
+  LinkDataIngressTargetPlanAction
+>({
+  event: "transport/link-data-ingress-plan-gate",
+  actions: ["active", "pending", "none"],
+  decide: (event) => [{ kind: planLinkDataIngressTarget(event) }]
+});
+
+export type LinkDataIngressTargetPlanState = GateState;
 
 export type LinkDataIngressTargetPlanEvent =
   | Event
@@ -2438,65 +2011,33 @@ export type LinkDataIngressTargetPlanEvent =
 
 export type LinkDataIngressTargetPlanAction = { readonly kind: LinkDataIngressTarget };
 
-export interface LinkDataIngressTargetPlanStepResult {
-  readonly state: LinkDataIngressTargetPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LinkDataIngressTargetPlanAction[];
-}
+export type LinkDataIngressTargetPlanStepResult = GateStepResult<
+  LinkDataIngressTargetPlanAction
+>;
 
-export function initialLinkDataIngressTargetPlanState(): LinkDataIngressTargetPlanState {
-  return {};
-}
+export const initialLinkDataIngressTargetPlanState = initialGateState;
 
-export function stepLinkDataIngressTargetPlanWithActions(
-  state: LinkDataIngressTargetPlanState,
-  event: LinkDataIngressTargetPlanEvent
-): LinkDataIngressTargetPlanStepResult {
-  if (event.kind === "transport/link-data-ingress-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planLinkDataIngressTarget({
-            activeIndex: event.activeIndex,
-            pendingIndex: event.pendingIndex
-          })
-        }
-      ]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepLinkDataIngressTargetPlanWithActions = interpretGate(
+  linkDataIngressTargetPlanGate
+);
 
 /** Extract the link-data ingress target plan from actions; null when empty. */
-export function linkDataIngressTargetPlanFromActions(
-  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
-): LinkDataIngressTarget | null {
-  const action = actions.find(
-    (entry) => entry.kind === "active" || entry.kind === "pending" || entry.kind === "none"
-  );
-  return action?.kind ?? null;
-}
+export const linkDataIngressTargetPlanFromActions = gateConclusion<
+  LinkDataIngressTargetPlanAction,
+  LinkDataIngressTarget
+>("active", "pending", "none");
 
-export function shouldIngressLinkDataActivePlan(
-  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "active");
-}
+export const shouldIngressLinkDataActivePlan = gateConcluded<
+  LinkDataIngressTargetPlanAction
+>("active");
 
-export function shouldIngressLinkDataPendingPlan(
-  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "pending");
-}
+export const shouldIngressLinkDataPendingPlan = gateConcluded<
+  LinkDataIngressTargetPlanAction
+>("pending");
 
-export function shouldIngressLinkDataNonePlan(
-  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "none");
-}
+export const shouldIngressLinkDataNonePlan = gateConcluded<
+  LinkDataIngressTargetPlanAction
+>("none");
 
 export type ReverseRelayOutcome = "relay" | "delete-expired" | "ignore";
 
@@ -2523,7 +2064,21 @@ export function planReverseRelayOutcome(input: {
  * `plan ===` reads beside the step). Nested under
  * {@link stepReverseRelayOutcomeWithActions}.
  */
-export type ReverseRelayOutcomePlanState = Record<string, never>;
+type ReverseRelayOutcomePlanGateEvent = Extract<
+  ReverseRelayOutcomePlanEvent,
+  { readonly kind: "transport/reverse-relay-plan-gate" }
+>;
+
+const reverseRelayOutcomePlanGate = defineGate<
+  ReverseRelayOutcomePlanGateEvent,
+  ReverseRelayOutcomePlanAction
+>({
+  event: "transport/reverse-relay-plan-gate",
+  actions: ["relay", "delete-expired", "ignore"],
+  decide: (event) => [{ kind: planReverseRelayOutcome(event) }]
+});
+
+export type ReverseRelayOutcomePlanState = GateState;
 
 export type ReverseRelayOutcomePlanEvent =
   | Event
@@ -2536,64 +2091,31 @@ export type ReverseRelayOutcomePlanEvent =
 
 export type ReverseRelayOutcomePlanAction = { readonly kind: ReverseRelayOutcome };
 
-export interface ReverseRelayOutcomePlanStepResult {
-  readonly state: ReverseRelayOutcomePlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly ReverseRelayOutcomePlanAction[];
-}
+export type ReverseRelayOutcomePlanStepResult = GateStepResult<ReverseRelayOutcomePlanAction>;
 
-export function initialReverseRelayOutcomePlanState(): ReverseRelayOutcomePlanState {
-  return {};
-}
+export const initialReverseRelayOutcomePlanState = initialGateState;
 
-export function stepReverseRelayOutcomePlanWithActions(
-  state: ReverseRelayOutcomePlanState,
-  event: ReverseRelayOutcomePlanEvent
-): ReverseRelayOutcomePlanStepResult {
-  if (event.kind === "transport/reverse-relay-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planReverseRelayOutcome({
-            canRelay: event.canRelay,
-            entryExpired: event.entryExpired,
-            ifaceIsOutbound: event.ifaceIsOutbound
-          })
-        }
-      ]
-    };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const stepReverseRelayOutcomePlanWithActions = interpretGate(
+  reverseRelayOutcomePlanGate
+);
 
 /** Extract the reverse-relay outcome plan from actions; null when empty. */
-export function reverseRelayOutcomePlanFromActions(
-  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
-): ReverseRelayOutcome | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const reverseRelayOutcomePlanFromActions = gateConclusion<
+  ReverseRelayOutcomePlanAction,
+  ReverseRelayOutcome
+>("relay", "delete-expired", "ignore");
 
-export function shouldRelayReversePacketPlan(
-  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "relay");
-}
+export const shouldRelayReversePacketPlan = gateConcluded<
+  ReverseRelayOutcomePlanAction
+>("relay");
 
-export function shouldDeleteExpiredReverseEntryPlan(
-  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "delete-expired");
-}
+export const shouldDeleteExpiredReverseEntryPlan = gateConcluded<
+  ReverseRelayOutcomePlanAction
+>("delete-expired");
 
-export function shouldIgnoreReverseRelayOutcomePlan(
-  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
+export const shouldIgnoreReverseRelayOutcomePlan = gateConcluded<
+  ReverseRelayOutcomePlanAction
+>("ignore");
 
 /** Whether a transport list should receive a new member (not already present). */
 export function shouldRegisterTransportMember(alreadyPresent: boolean): boolean {
@@ -2605,7 +2127,23 @@ export function shouldRegisterTransportMember(alreadyPresent: boolean): boolean 
  * Conclusions leave via machine actions (no ad-hoc
  * `shouldRegisterTransportMember` reads beside the step).
  */
-export type RegisterTransportMemberState = Record<string, never>;
+type RegisterTransportMemberGateEvent = Extract<
+  RegisterTransportMemberEvent,
+  { readonly kind: "transport/member-register-gate" }
+>;
+
+const registerTransportMemberGate = defineBooleanGate<
+  RegisterTransportMemberGateEvent,
+  "register",
+  "skip"
+>({
+  event: "transport/member-register-gate",
+  whenTrue: "register",
+  whenFalse: "skip",
+  decide: (event) => shouldRegisterTransportMember(event.alreadyPresent)
+});
+
+export type RegisterTransportMemberState = GateState;
 
 export type RegisterTransportMemberEvent =
   | Event
@@ -2618,46 +2156,21 @@ export type RegisterTransportMemberAction =
   | { readonly kind: "register" }
   | { readonly kind: "skip" };
 
-export interface RegisterTransportMemberStepResult {
-  readonly state: RegisterTransportMemberState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly RegisterTransportMemberAction[];
-}
+export type RegisterTransportMemberStepResult = GateStepResult<RegisterTransportMemberAction>;
 
-export function initialRegisterTransportMemberState(): RegisterTransportMemberState {
-  return {};
-}
+export const initialRegisterTransportMemberState = initialGateState;
 
-export function stepRegisterTransportMemberWithActions(
-  state: RegisterTransportMemberState,
-  event: RegisterTransportMemberEvent
-): RegisterTransportMemberStepResult {
-  if (event.kind === "transport/member-register-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: shouldRegisterTransportMember(event.alreadyPresent) ? "register" : "skip"
-        }
-      ]
-    };
-  }
+export const stepRegisterTransportMemberWithActions = interpretGate(
+  registerTransportMemberGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const shouldRegisterTransportMemberNow = gateConcluded<
+  RegisterTransportMemberAction
+>("register");
 
-export function shouldRegisterTransportMemberNow(
-  actions: ReadonlyArray<RegisterTransportMemberAction>
-): boolean {
-  return actions.some((action) => action.kind === "register");
-}
-
-export function shouldSkipRegisterTransportMember(
-  actions: ReadonlyArray<RegisterTransportMemberAction>
-): boolean {
-  return actions.some((action) => action.kind === "skip");
-}
+export const shouldSkipRegisterTransportMember = gateConcluded<
+  RegisterTransportMemberAction
+>("skip");
 
 /**
  * Unregister from a transport list: splice index or skip when absent.
@@ -2678,7 +2191,24 @@ export function shouldUnregisterTransportMember(indexPresent: boolean): boolean 
  * `planUnregisterTransportMember` reads beside the step). Nested under
  * {@link stepTransportMemberUnregisterWithActions}.
  */
-export type TransportMemberUnregisterPlanState = Record<string, never>;
+type TransportMemberUnregisterPlanGateEvent = Extract<
+  TransportMemberUnregisterPlanEvent,
+  { readonly kind: "transport/member-unregister-plan-gate" }
+>;
+
+const transportMemberUnregisterPlanGate = defineGate<
+  TransportMemberUnregisterPlanGateEvent,
+  TransportMemberUnregisterPlanAction
+>({
+  event: "transport/member-unregister-plan-gate",
+  actions: ["remove"],
+  decide: (event) => {
+    const index = planUnregisterTransportMember(event.index);
+    return index === null ? [] : [{ kind: "remove", index }];
+  }
+});
+
+export type TransportMemberUnregisterPlanState = GateState;
 
 export type TransportMemberUnregisterPlanEvent =
   | Event
@@ -2692,44 +2222,25 @@ export type TransportMemberUnregisterPlanAction = {
   readonly index: number;
 };
 
-export interface TransportMemberUnregisterPlanStepResult {
-  readonly state: TransportMemberUnregisterPlanState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly TransportMemberUnregisterPlanAction[];
-}
+export type TransportMemberUnregisterPlanStepResult = GateStepResult<
+  TransportMemberUnregisterPlanAction
+>;
 
-export function initialTransportMemberUnregisterPlanState(): TransportMemberUnregisterPlanState {
-  return {};
-}
+export const initialTransportMemberUnregisterPlanState = initialGateState;
 
-export function stepTransportMemberUnregisterPlanWithActions(
-  state: TransportMemberUnregisterPlanState,
-  event: TransportMemberUnregisterPlanEvent
-): TransportMemberUnregisterPlanStepResult {
-  if (event.kind === "transport/member-unregister-plan-gate") {
-    const index = planUnregisterTransportMember(event.index);
-    return {
-      state,
-      intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
-    };
-  }
+export const stepTransportMemberUnregisterPlanWithActions = interpretGate(
+  transportMemberUnregisterPlanGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const transportMemberUnregisterPlanIndex = gatePayload<
+  TransportMemberUnregisterPlanAction,
+  "remove",
+  "index"
+>("remove", "index");
 
-export function transportMemberUnregisterPlanIndex(
-  actions: ReadonlyArray<TransportMemberUnregisterPlanAction>
-): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
-}
-
-export function shouldRemoveTransportMemberUnregisterPlan(
-  actions: ReadonlyArray<TransportMemberUnregisterPlanAction>
-): boolean {
-  return actions.some((action) => action.kind === "remove");
-}
+export const shouldRemoveTransportMemberUnregisterPlan = gateConcluded<
+  TransportMemberUnregisterPlanAction
+>("remove");
 
 /**
  * Transport-member unregister is event-driven; no durable session fields.
@@ -2738,7 +2249,29 @@ export function shouldRemoveTransportMemberUnregisterPlan(
  * Plan nested via {@link stepTransportMemberUnregisterPlanWithActions}
  * (`remove`).
  */
-export type TransportMemberUnregisterState = Record<string, never>;
+type TransportMemberUnregisterGateEvent = Extract<
+  TransportMemberUnregisterEvent,
+  { readonly kind: "transport/member-unregister-gate" }
+>;
+
+const transportMemberUnregisterGate = defineGate<
+  TransportMemberUnregisterGateEvent,
+  TransportMemberUnregisterAction
+>({
+  event: "transport/member-unregister-gate",
+  actions: ["remove"],
+  decide: (event) => {
+    const index = transportMemberUnregisterPlanIndex(
+      decideGate(transportMemberUnregisterPlanGate, {
+        kind: "transport/member-unregister-plan-gate",
+        index: event.index
+      })
+    );
+    return index === null ? [] : [{ kind: "remove", index }];
+  }
+});
+
+export type TransportMemberUnregisterState = GateState;
 
 export type TransportMemberUnregisterEvent =
   | Event
@@ -2752,51 +2285,25 @@ export type TransportMemberUnregisterAction = {
   readonly index: number;
 };
 
-export interface TransportMemberUnregisterStepResult {
-  readonly state: TransportMemberUnregisterState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly TransportMemberUnregisterAction[];
-}
+export type TransportMemberUnregisterStepResult = GateStepResult<
+  TransportMemberUnregisterAction
+>;
 
-export function initialTransportMemberUnregisterState(): TransportMemberUnregisterState {
-  return {};
-}
+export const initialTransportMemberUnregisterState = initialGateState;
 
-export function stepTransportMemberUnregisterWithActions(
-  state: TransportMemberUnregisterState,
-  event: TransportMemberUnregisterEvent
-): TransportMemberUnregisterStepResult {
-  if (event.kind === "transport/member-unregister-gate") {
-    const planActions = stepTransportMemberUnregisterPlanWithActions(
-      initialTransportMemberUnregisterPlanState(),
-      {
-        kind: "transport/member-unregister-plan-gate",
-        index: event.index
-      }
-    ).actions;
-    const index = transportMemberUnregisterPlanIndex(planActions);
-    return {
-      state,
-      intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
-    };
-  }
+export const stepTransportMemberUnregisterWithActions = interpretGate(
+  transportMemberUnregisterGate
+);
 
-  return { state, intents: [], actions: [] };
-}
+export const transportMemberUnregisterIndex = gatePayload<
+  TransportMemberUnregisterAction,
+  "remove",
+  "index"
+>("remove", "index");
 
-export function transportMemberUnregisterIndex(
-  actions: ReadonlyArray<TransportMemberUnregisterAction>
-): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
-}
-
-export function shouldRemoveTransportMember(
-  actions: ReadonlyArray<TransportMemberUnregisterAction>
-): boolean {
-  return actions.some((action) => action.kind === "remove");
-}
+export const shouldRemoveTransportMember = gateConcluded<
+  TransportMemberUnregisterAction
+>("remove");
 
 /**
  * Transport ingress dispatch is event-driven; no durable session fields.
@@ -2804,7 +2311,29 @@ export function shouldRemoveTransportMember(
  * Plan nested via {@link stepTransportIngressDispatchPlanWithActions}
  * (`announce`|`link-request`|`link-data`|`plain-data`|`proof`|`ignore`).
  */
-export type TransportIngressDispatchState = Record<string, never>;
+type TransportIngressDispatchGateEvent = Extract<
+  TransportIngressDispatchEvent,
+  { readonly kind: "transport/ingress-dispatch-gate" }
+>;
+
+const transportIngressDispatchGate = defineGate<
+  TransportIngressDispatchGateEvent,
+  TransportIngressDispatchAction
+>({
+  event: "transport/ingress-dispatch-gate",
+  actions: ["announce", "link-request", "link-data", "plain-data", "proof", "ignore"],
+  decide: (event) => {
+    const plan = transportIngressDispatchPlanFromActions(
+      decideGate(transportIngressDispatchPlanGate, {
+        ...event,
+        kind: "transport/ingress-dispatch-plan-gate"
+      })
+    );
+    return plan === null ? [] : [{ kind: plan }];
+  }
+});
+
+export type TransportIngressDispatchState = GateState;
 
 export type TransportIngressDispatchEvent =
   | Event
@@ -2818,99 +2347,46 @@ export type TransportIngressDispatchAction = {
   readonly kind: TransportIngressDispatch;
 };
 
-export interface TransportIngressDispatchStepResult {
-  readonly state: TransportIngressDispatchState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly TransportIngressDispatchAction[];
-}
+export type TransportIngressDispatchStepResult = GateStepResult<TransportIngressDispatchAction>;
 
-export function initialTransportIngressDispatchState(): TransportIngressDispatchState {
-  return {};
-}
+export const initialTransportIngressDispatchState = initialGateState;
 
-export const stepTransportIngressDispatch: StepFn<TransportIngressDispatchState> = (
-  state,
-  event
-) => {
-  const result = stepTransportIngressDispatchInner(
-    state,
-    event as TransportIngressDispatchEvent
-  );
-  return { state: result.state, intents: result.intents };
-};
+export const stepTransportIngressDispatch: StepFn<TransportIngressDispatchState> = gateStepFn(
+  transportIngressDispatchGate
+);
 
-export function stepTransportIngressDispatchWithActions(
-  state: TransportIngressDispatchState,
-  event: TransportIngressDispatchEvent
-): TransportIngressDispatchStepResult {
-  return stepTransportIngressDispatchInner(state, event);
-}
+export const stepTransportIngressDispatchWithActions = interpretGate(
+  transportIngressDispatchGate
+);
 
-export function transportIngressDispatchFromActions(
-  actions: ReadonlyArray<TransportIngressDispatchAction>
-): TransportIngressDispatch | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const transportIngressDispatchFromActions = gateConclusion<
+  TransportIngressDispatchAction,
+  TransportIngressDispatch
+>("announce", "link-request", "link-data", "plain-data", "proof", "ignore");
 
-export function shouldDispatchTransportAnnounce(
-  actions: ReadonlyArray<TransportIngressDispatchAction>
-): boolean {
-  return actions.some((action) => action.kind === "announce");
-}
+export const shouldDispatchTransportAnnounce = gateConcluded<
+  TransportIngressDispatchAction
+>("announce");
 
-export function shouldDispatchTransportLinkRequest(
-  actions: ReadonlyArray<TransportIngressDispatchAction>
-): boolean {
-  return actions.some((action) => action.kind === "link-request");
-}
+export const shouldDispatchTransportLinkRequest = gateConcluded<
+  TransportIngressDispatchAction
+>("link-request");
 
-export function shouldDispatchTransportLinkData(
-  actions: ReadonlyArray<TransportIngressDispatchAction>
-): boolean {
-  return actions.some((action) => action.kind === "link-data");
-}
+export const shouldDispatchTransportLinkData = gateConcluded<
+  TransportIngressDispatchAction
+>("link-data");
 
-export function shouldDispatchTransportPlainData(
-  actions: ReadonlyArray<TransportIngressDispatchAction>
-): boolean {
-  return actions.some((action) => action.kind === "plain-data");
-}
+export const shouldDispatchTransportPlainData = gateConcluded<
+  TransportIngressDispatchAction
+>("plain-data");
 
-export function shouldDispatchTransportProof(
-  actions: ReadonlyArray<TransportIngressDispatchAction>
-): boolean {
-  return actions.some((action) => action.kind === "proof");
-}
+export const shouldDispatchTransportProof = gateConcluded<
+  TransportIngressDispatchAction
+>("proof");
 
-export function shouldIgnoreTransportIngressDispatch(
-  actions: ReadonlyArray<TransportIngressDispatchAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
-
-function stepTransportIngressDispatchInner(
-  state: TransportIngressDispatchState,
-  event: TransportIngressDispatchEvent
-): TransportIngressDispatchStepResult {
-  if (event.kind === "transport/ingress-dispatch-gate") {
-    const planActions = stepTransportIngressDispatchPlanWithActions(
-      initialTransportIngressDispatchPlanState(),
-      {
-        kind: "transport/ingress-dispatch-plan-gate",
-        packetType: event.packetType,
-        destinationType: event.destinationType
-      }
-    ).actions;
-    const plan = transportIngressDispatchPlanFromActions(planActions);
-    if (plan === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return { state, intents: [], actions: [{ kind: plan }] };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const shouldIgnoreTransportIngressDispatch = gateConcluded<
+  TransportIngressDispatchAction
+>("ignore");
 
 /**
  * Link-data ingress target is event-driven; no durable session fields.
@@ -2918,7 +2394,29 @@ function stepTransportIngressDispatchInner(
  * Plan nested via {@link stepLinkDataIngressTargetPlanWithActions}
  * (`active`|`pending`|`none`).
  */
-export type LinkDataIngressTargetState = Record<string, never>;
+type LinkDataIngressTargetGateEvent = Extract<
+  LinkDataIngressTargetEvent,
+  { readonly kind: "transport/link-data-ingress-gate" }
+>;
+
+const linkDataIngressTargetGate = defineGate<
+  LinkDataIngressTargetGateEvent,
+  LinkDataIngressTargetAction
+>({
+  event: "transport/link-data-ingress-gate",
+  actions: ["active", "pending", "none"],
+  decide: (event) => {
+    const plan = linkDataIngressTargetPlanFromActions(
+      decideGate(linkDataIngressTargetPlanGate, {
+        ...event,
+        kind: "transport/link-data-ingress-plan-gate"
+      })
+    );
+    return plan === null ? [] : [{ kind: plan }];
+  }
+});
+
+export type LinkDataIngressTargetState = GateState;
 
 export type LinkDataIngressTargetEvent =
   | Event
@@ -2932,75 +2430,28 @@ export type LinkDataIngressTargetAction = {
   readonly kind: LinkDataIngressTarget;
 };
 
-export interface LinkDataIngressTargetStepResult {
-  readonly state: LinkDataIngressTargetState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LinkDataIngressTargetAction[];
-}
+export type LinkDataIngressTargetStepResult = GateStepResult<LinkDataIngressTargetAction>;
 
-export function initialLinkDataIngressTargetState(): LinkDataIngressTargetState {
-  return {};
-}
+export const initialLinkDataIngressTargetState = initialGateState;
 
-export const stepLinkDataIngressTarget: StepFn<LinkDataIngressTargetState> = (state, event) => {
-  const result = stepLinkDataIngressTargetInner(state, event as LinkDataIngressTargetEvent);
-  return { state: result.state, intents: result.intents };
-};
+export const stepLinkDataIngressTarget: StepFn<LinkDataIngressTargetState> = gateStepFn(
+  linkDataIngressTargetGate
+);
 
-export function stepLinkDataIngressTargetWithActions(
-  state: LinkDataIngressTargetState,
-  event: LinkDataIngressTargetEvent
-): LinkDataIngressTargetStepResult {
-  return stepLinkDataIngressTargetInner(state, event);
-}
+export const stepLinkDataIngressTargetWithActions = interpretGate(linkDataIngressTargetGate);
 
-export function linkDataIngressTargetFromActions(
-  actions: ReadonlyArray<LinkDataIngressTargetAction>
-): LinkDataIngressTarget | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const linkDataIngressTargetFromActions = gateConclusion<
+  LinkDataIngressTargetAction,
+  LinkDataIngressTarget
+>("active", "pending", "none");
 
-export function shouldIngressLinkDataActive(
-  actions: ReadonlyArray<LinkDataIngressTargetAction>
-): boolean {
-  return actions.some((action) => action.kind === "active");
-}
+export const shouldIngressLinkDataActive = gateConcluded<LinkDataIngressTargetAction>("active");
 
-export function shouldIngressLinkDataPending(
-  actions: ReadonlyArray<LinkDataIngressTargetAction>
-): boolean {
-  return actions.some((action) => action.kind === "pending");
-}
+export const shouldIngressLinkDataPending = gateConcluded<
+  LinkDataIngressTargetAction
+>("pending");
 
-export function shouldIngressLinkDataNone(
-  actions: ReadonlyArray<LinkDataIngressTargetAction>
-): boolean {
-  return actions.some((action) => action.kind === "none");
-}
-
-function stepLinkDataIngressTargetInner(
-  state: LinkDataIngressTargetState,
-  event: LinkDataIngressTargetEvent
-): LinkDataIngressTargetStepResult {
-  if (event.kind === "transport/link-data-ingress-gate") {
-    const planActions = stepLinkDataIngressTargetPlanWithActions(
-      initialLinkDataIngressTargetPlanState(),
-      {
-        kind: "transport/link-data-ingress-plan-gate",
-        activeIndex: event.activeIndex,
-        pendingIndex: event.pendingIndex
-      }
-    ).actions;
-    const plan = linkDataIngressTargetPlanFromActions(planActions);
-    if (plan === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return { state, intents: [], actions: [{ kind: plan }] };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const shouldIngressLinkDataNone = gateConcluded<LinkDataIngressTargetAction>("none");
 
 /**
  * Reverse-relay outcome is event-driven; no durable session fields.
@@ -3008,7 +2459,29 @@ function stepLinkDataIngressTargetInner(
  * Plan nested via {@link stepReverseRelayOutcomePlanWithActions}
  * (`relay`|`delete-expired`|`ignore`).
  */
-export type ReverseRelayOutcomeState = Record<string, never>;
+type ReverseRelayOutcomeGateEvent = Extract<
+  ReverseRelayOutcomeEvent,
+  { readonly kind: "transport/reverse-relay-gate" }
+>;
+
+const reverseRelayOutcomeGate = defineGate<
+  ReverseRelayOutcomeGateEvent,
+  ReverseRelayOutcomeAction
+>({
+  event: "transport/reverse-relay-gate",
+  actions: ["relay", "delete-expired", "ignore"],
+  decide: (event) => {
+    const plan = reverseRelayOutcomePlanFromActions(
+      decideGate(reverseRelayOutcomePlanGate, {
+        ...event,
+        kind: "transport/reverse-relay-plan-gate"
+      })
+    );
+    return plan === null ? [] : [{ kind: plan }];
+  }
+});
+
+export type ReverseRelayOutcomeState = GateState;
 
 export type ReverseRelayOutcomeEvent =
   | Event
@@ -3023,83 +2496,61 @@ export type ReverseRelayOutcomeAction = {
   readonly kind: ReverseRelayOutcome;
 };
 
-export interface ReverseRelayOutcomeStepResult {
-  readonly state: ReverseRelayOutcomeState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly ReverseRelayOutcomeAction[];
-}
+export type ReverseRelayOutcomeStepResult = GateStepResult<ReverseRelayOutcomeAction>;
 
-export function initialReverseRelayOutcomeState(): ReverseRelayOutcomeState {
-  return {};
-}
+export const initialReverseRelayOutcomeState = initialGateState;
 
-export const stepReverseRelayOutcome: StepFn<ReverseRelayOutcomeState> = (state, event) => {
-  const result = stepReverseRelayOutcomeInner(state, event as ReverseRelayOutcomeEvent);
-  return { state: result.state, intents: result.intents };
-};
+export const stepReverseRelayOutcome: StepFn<ReverseRelayOutcomeState> = gateStepFn(
+  reverseRelayOutcomeGate
+);
 
-export function stepReverseRelayOutcomeWithActions(
-  state: ReverseRelayOutcomeState,
-  event: ReverseRelayOutcomeEvent
-): ReverseRelayOutcomeStepResult {
-  return stepReverseRelayOutcomeInner(state, event);
-}
+export const stepReverseRelayOutcomeWithActions = interpretGate(reverseRelayOutcomeGate);
 
-export function reverseRelayOutcomeFromActions(
-  actions: ReadonlyArray<ReverseRelayOutcomeAction>
-): ReverseRelayOutcome | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const reverseRelayOutcomeFromActions = gateConclusion<
+  ReverseRelayOutcomeAction,
+  ReverseRelayOutcome
+>("relay", "delete-expired", "ignore");
 
-export function shouldRelayReversePacketActions(
-  actions: ReadonlyArray<ReverseRelayOutcomeAction>
-): boolean {
-  return actions.some((action) => action.kind === "relay");
-}
+export const shouldRelayReversePacketActions = gateConcluded<
+  ReverseRelayOutcomeAction
+>("relay");
 
-export function shouldDeleteExpiredReverseEntryActions(
-  actions: ReadonlyArray<ReverseRelayOutcomeAction>
-): boolean {
-  return actions.some((action) => action.kind === "delete-expired");
-}
+export const shouldDeleteExpiredReverseEntryActions = gateConcluded<
+  ReverseRelayOutcomeAction
+>("delete-expired");
 
-export function shouldIgnoreReverseRelayOutcome(
-  actions: ReadonlyArray<ReverseRelayOutcomeAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
-
-function stepReverseRelayOutcomeInner(
-  state: ReverseRelayOutcomeState,
-  event: ReverseRelayOutcomeEvent
-): ReverseRelayOutcomeStepResult {
-  if (event.kind === "transport/reverse-relay-gate") {
-    const planActions = stepReverseRelayOutcomePlanWithActions(
-      initialReverseRelayOutcomePlanState(),
-      {
-        kind: "transport/reverse-relay-plan-gate",
-        canRelay: event.canRelay,
-        entryExpired: event.entryExpired,
-        ifaceIsOutbound: event.ifaceIsOutbound
-      }
-    ).actions;
-    const plan = reverseRelayOutcomePlanFromActions(planActions);
-    if (plan === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return { state, intents: [], actions: [{ kind: plan }] };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const shouldIgnoreReverseRelayOutcome = gateConcluded<
+  ReverseRelayOutcomeAction
+>("ignore");
 
 /**
  * Packet-hash remember timing is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  * Plan nested via {@link stepPacketHashRememberPlanWithActions} (`now`|`after-relay`).
  */
-export type PacketHashRememberState = Record<string, never>;
+type PacketHashRememberGateEvent = Extract<
+  PacketHashRememberEvent,
+  { readonly kind: "transport/packet-hash-remember-gate" }
+>;
+
+const packetHashRememberGate = defineGate<
+  PacketHashRememberGateEvent,
+  PacketHashRememberAction
+>({
+  event: "transport/packet-hash-remember-gate",
+  actions: ["now", "after-relay"],
+  decide: (event) => {
+    const plan = packetHashRememberPlanFromActions(
+      decideGate(packetHashRememberPlanGate, {
+        ...event,
+        kind: "transport/packet-hash-remember-plan-gate"
+      })
+    );
+    return plan === null ? [] : [{ kind: plan }];
+  }
+});
+
+export type PacketHashRememberState = GateState;
 
 export type PacketHashRememberEvent =
   | Event
@@ -3112,68 +2563,28 @@ export type PacketHashRememberAction = {
   readonly kind: PacketHashRememberPlan;
 };
 
-export interface PacketHashRememberStepResult {
-  readonly state: PacketHashRememberState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly PacketHashRememberAction[];
-}
+export type PacketHashRememberStepResult = GateStepResult<PacketHashRememberAction>;
 
-export function initialPacketHashRememberState(): PacketHashRememberState {
-  return {};
-}
+export const initialPacketHashRememberState = initialGateState;
 
-export const stepPacketHashRemember: StepFn<PacketHashRememberState> = (state, event) => {
-  const result = stepPacketHashRememberInner(state, event as PacketHashRememberEvent);
-  return { state: result.state, intents: result.intents };
-};
+export const stepPacketHashRemember: StepFn<PacketHashRememberState> = gateStepFn(
+  packetHashRememberGate
+);
 
-export function stepPacketHashRememberWithActions(
-  state: PacketHashRememberState,
-  event: PacketHashRememberEvent
-): PacketHashRememberStepResult {
-  return stepPacketHashRememberInner(state, event);
-}
+export const stepPacketHashRememberWithActions = interpretGate(packetHashRememberGate);
 
-export function packetHashRememberFromActions(
-  actions: ReadonlyArray<PacketHashRememberAction>
-): PacketHashRememberPlan | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const packetHashRememberFromActions = gateConclusion<
+  PacketHashRememberAction,
+  PacketHashRememberPlan
+>("now", "after-relay");
 
-export function shouldRememberPacketHashNowActions(
-  actions: ReadonlyArray<PacketHashRememberAction>
-): boolean {
-  return actions.some((action) => action.kind === "now");
-}
+export const shouldRememberPacketHashNowActions = gateConcluded<
+  PacketHashRememberAction
+>("now");
 
-export function shouldRememberPacketHashAfterRelayActions(
-  actions: ReadonlyArray<PacketHashRememberAction>
-): boolean {
-  return actions.some((action) => action.kind === "after-relay");
-}
-
-function stepPacketHashRememberInner(
-  state: PacketHashRememberState,
-  event: PacketHashRememberEvent
-): PacketHashRememberStepResult {
-  if (event.kind === "transport/packet-hash-remember-gate") {
-    const planActions = stepPacketHashRememberPlanWithActions(
-      initialPacketHashRememberPlanState(),
-      {
-        kind: "transport/packet-hash-remember-plan-gate",
-        deferred: event.deferred
-      }
-    ).actions;
-    const plan = packetHashRememberPlanFromActions(planActions);
-    if (plan === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return { state, intents: [], actions: [{ kind: plan }] };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const shouldRememberPacketHashAfterRelayActions = gateConcluded<
+  PacketHashRememberAction
+>("after-relay");
 
 /**
  * Local plain-data delivery is event-driven; no durable session fields.
@@ -3181,7 +2592,29 @@ function stepPacketHashRememberInner(
  * Plan nested via {@link stepLocalPlainDataDeliveryPlanWithActions}
  * (`dispatch`|`ignore`).
  */
-export type LocalPlainDataDeliveryState = Record<string, never>;
+type LocalPlainDataDeliveryGateEvent = Extract<
+  LocalPlainDataDeliveryEvent,
+  { readonly kind: "transport/local-plain-data-gate" }
+>;
+
+const localPlainDataDeliveryGate = defineGate<
+  LocalPlainDataDeliveryGateEvent,
+  LocalPlainDataDeliveryAction
+>({
+  event: "transport/local-plain-data-gate",
+  actions: ["dispatch", "ignore"],
+  decide: (event) => {
+    const plan = localPlainDataDeliveryPlanFromActions(
+      decideGate(localPlainDataDeliveryPlanGate, {
+        ...event,
+        kind: "transport/local-plain-data-plan-gate"
+      })
+    );
+    return plan === null ? [] : [{ kind: plan }];
+  }
+});
+
+export type LocalPlainDataDeliveryState = GateState;
 
 export type LocalPlainDataDeliveryEvent =
   | Event
@@ -3195,69 +2628,28 @@ export type LocalPlainDataDeliveryAction = {
   readonly kind: LocalPlainDataDeliveryPlan;
 };
 
-export interface LocalPlainDataDeliveryStepResult {
-  readonly state: LocalPlainDataDeliveryState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly LocalPlainDataDeliveryAction[];
-}
+export type LocalPlainDataDeliveryStepResult = GateStepResult<LocalPlainDataDeliveryAction>;
 
-export function initialLocalPlainDataDeliveryState(): LocalPlainDataDeliveryState {
-  return {};
-}
+export const initialLocalPlainDataDeliveryState = initialGateState;
 
-export const stepLocalPlainDataDelivery: StepFn<LocalPlainDataDeliveryState> = (state, event) => {
-  const result = stepLocalPlainDataDeliveryInner(state, event as LocalPlainDataDeliveryEvent);
-  return { state: result.state, intents: result.intents };
-};
+export const stepLocalPlainDataDelivery: StepFn<LocalPlainDataDeliveryState> = gateStepFn(
+  localPlainDataDeliveryGate
+);
 
-export function stepLocalPlainDataDeliveryWithActions(
-  state: LocalPlainDataDeliveryState,
-  event: LocalPlainDataDeliveryEvent
-): LocalPlainDataDeliveryStepResult {
-  return stepLocalPlainDataDeliveryInner(state, event);
-}
+export const stepLocalPlainDataDeliveryWithActions = interpretGate(localPlainDataDeliveryGate);
 
-export function localPlainDataDeliveryFromActions(
-  actions: ReadonlyArray<LocalPlainDataDeliveryAction>
-): LocalPlainDataDeliveryPlan | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const localPlainDataDeliveryFromActions = gateConclusion<
+  LocalPlainDataDeliveryAction,
+  LocalPlainDataDeliveryPlan
+>("dispatch", "ignore");
 
-export function shouldDispatchLocalPlainDataDeliveryActions(
-  actions: ReadonlyArray<LocalPlainDataDeliveryAction>
-): boolean {
-  return actions.some((action) => action.kind === "dispatch");
-}
+export const shouldDispatchLocalPlainDataDeliveryActions = gateConcluded<
+  LocalPlainDataDeliveryAction
+>("dispatch");
 
-export function shouldIgnoreLocalPlainDataDelivery(
-  actions: ReadonlyArray<LocalPlainDataDeliveryAction>
-): boolean {
-  return actions.some((action) => action.kind === "ignore");
-}
-
-function stepLocalPlainDataDeliveryInner(
-  state: LocalPlainDataDeliveryState,
-  event: LocalPlainDataDeliveryEvent
-): LocalPlainDataDeliveryStepResult {
-  if (event.kind === "transport/local-plain-data-gate") {
-    const planActions = stepLocalPlainDataDeliveryPlanWithActions(
-      initialLocalPlainDataDeliveryPlanState(),
-      {
-        kind: "transport/local-plain-data-plan-gate",
-        destinationPresent: event.destinationPresent,
-        plaintextPresent: event.plaintextPresent
-      }
-    ).actions;
-    const plan = localPlainDataDeliveryPlanFromActions(planActions);
-    if (plan === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return { state, intents: [], actions: [{ kind: plan }] };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const shouldIgnoreLocalPlainDataDelivery = gateConcluded<
+  LocalPlainDataDeliveryAction
+>("ignore");
 
 /**
  * Proof ingress kind is event-driven; no durable session fields.
@@ -3265,7 +2657,26 @@ function stepLocalPlainDataDeliveryInner(
  * Plan nested via {@link stepProofIngressPlanWithActions}
  * (`lrproof`|`resource-prf`|`receipt`).
  */
-export type ProofIngressState = Record<string, never>;
+type ProofIngressGateEvent = Extract<
+  ProofIngressEvent,
+  { readonly kind: "transport/proof-ingress-gate" }
+>;
+
+const proofIngressGate = defineGate<ProofIngressGateEvent, ProofIngressAction>({
+  event: "transport/proof-ingress-gate",
+  actions: ["lrproof", "resource-prf", "receipt"],
+  decide: (event) => {
+    const plan = proofIngressPlanFromActions(
+      decideGate(proofIngressPlanGate, {
+        ...event,
+        kind: "transport/proof-ingress-plan-gate"
+      })
+    );
+    return plan === null ? [] : [{ kind: plan }];
+  }
+});
+
+export type ProofIngressState = GateState;
 
 export type ProofIngressEvent =
   | Event
@@ -3278,68 +2689,21 @@ export type ProofIngressAction = {
   readonly kind: ProofIngressKind;
 };
 
-export interface ProofIngressStepResult {
-  readonly state: ProofIngressState;
-  readonly intents: readonly Intent[];
-  readonly actions: readonly ProofIngressAction[];
-}
+export type ProofIngressStepResult = GateStepResult<ProofIngressAction>;
 
-export function initialProofIngressState(): ProofIngressState {
-  return {};
-}
+export const initialProofIngressState = initialGateState;
 
-export const stepProofIngress: StepFn<ProofIngressState> = (state, event) => {
-  const result = stepProofIngressInner(state, event as ProofIngressEvent);
-  return { state: result.state, intents: result.intents };
-};
+export const stepProofIngress: StepFn<ProofIngressState> = gateStepFn(proofIngressGate);
 
-export function stepProofIngressWithActions(
-  state: ProofIngressState,
-  event: ProofIngressEvent
-): ProofIngressStepResult {
-  return stepProofIngressInner(state, event);
-}
+export const stepProofIngressWithActions = interpretGate(proofIngressGate);
 
-export function proofIngressKindFromActions(
-  actions: ReadonlyArray<ProofIngressAction>
-): ProofIngressKind | null {
-  const action = actions[0];
-  return action?.kind ?? null;
-}
+export const proofIngressKindFromActions = gateConclusion<
+  ProofIngressAction,
+  ProofIngressKind
+>("lrproof", "resource-prf", "receipt");
 
-export function shouldHandleProofLrproof(
-  actions: ReadonlyArray<ProofIngressAction>
-): boolean {
-  return actions.some((action) => action.kind === "lrproof");
-}
+export const shouldHandleProofLrproof = gateConcluded<ProofIngressAction>("lrproof");
 
-export function shouldHandleProofResourcePrf(
-  actions: ReadonlyArray<ProofIngressAction>
-): boolean {
-  return actions.some((action) => action.kind === "resource-prf");
-}
+export const shouldHandleProofResourcePrf = gateConcluded<ProofIngressAction>("resource-prf");
 
-export function shouldHandleProofReceipt(
-  actions: ReadonlyArray<ProofIngressAction>
-): boolean {
-  return actions.some((action) => action.kind === "receipt");
-}
-
-function stepProofIngressInner(
-  state: ProofIngressState,
-  event: ProofIngressEvent
-): ProofIngressStepResult {
-  if (event.kind === "transport/proof-ingress-gate") {
-    const planActions = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
-      kind: "transport/proof-ingress-plan-gate",
-      context: event.context
-    }).actions;
-    const plan = proofIngressPlanFromActions(planActions);
-    if (plan === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return { state, intents: [], actions: [{ kind: plan }] };
-  }
-
-  return { state, intents: [], actions: [] };
-}
+export const shouldHandleProofReceipt = gateConcluded<ProofIngressAction>("receipt");

@@ -29,6 +29,28 @@ export {
   type MachineCell,
   type MachineRow
 } from "./machine.js";
+export {
+  decideGate,
+  defineBooleanGate,
+  defineGate,
+  defineOptionGate,
+  enumerateGateCells,
+  gateConcluded,
+  gateConclusion,
+  gatePayload,
+  gateStepFn,
+  initialGateState,
+  interpretGate,
+  UndeclaredGateActionError,
+  type Gate,
+  type GateAction,
+  type GateActionOf,
+  type GateCell,
+  type GateEvent,
+  type GateState,
+  type GateStepFn,
+  type GateStepResult
+} from "./gate.js";
 export type {
   EncodedMediaSample,
   MediaCodecConfiguration,
