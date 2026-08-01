@@ -108,6 +108,7 @@ Results are written to `.tmp/local-peers/multipeer-proof.json`.
 ```bash
 npm run test:local-multipeer                    # brings up hub + node2, tests, tears down
 npm run test:local-multipeer:smoke              # same, explicit smoke pair
+npm run test:local-multipeer:desktop            # hub + Electron desktop; GUI skips become failures
 npm run test:local-multipeer -- --attach        # use whatever is already running
 npm run test:local-multipeer -- --peers=hub,desktop,ios
 ```
@@ -116,7 +117,9 @@ Timeouts are generous because announce ingress is rate limited to roughly one
 per five seconds per destination, so a peer that joins late waits for the next
 periodic announce. Override with `LOCAL_MULTIPEER_DISCOVERY_MS`,
 `LOCAL_MULTIPEER_MESSAGE_MS`, or `LOCAL_MULTIPEER_ATTACH_MS`. Set
-`LOCAL_MULTIPEER_REQUIRED=1` to turn GUI-peer skips into failures.
+`LOCAL_MULTIPEER_REQUIRED=1` to turn GUI-peer skips into failures and to require
+every requested GUI peer to appear in readiness, probe, invite, call, and
+realtime proof rows (`test:local-multipeer:desktop` sets this for hub+desktop).
 
 ## How peers become observable
 

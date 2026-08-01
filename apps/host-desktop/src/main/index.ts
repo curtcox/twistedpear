@@ -12,6 +12,12 @@ if (testCdpPort !== undefined && /^\d+$/.test(testCdpPort)) {
   app.commandLine.appendSwitch("remote-debugging-port", testCdpPort);
   app.commandLine.appendSwitch("remote-debugging-address", "127.0.0.1");
 }
+// Multipeer / CDP hosts need permissionless fake A/V so WebRTC track attach
+// can record bytes without a physical camera or microphone.
+if (process.env.TP_TEST_AGENT !== undefined || (testCdpPort !== undefined && /^\d+$/.test(testCdpPort))) {
+  app.commandLine.appendSwitch("use-fake-device-for-media-stream");
+  app.commandLine.appendSwitch("use-fake-ui-for-media-stream");
+}
 
 const hostRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 let mainWindow: BrowserWindow | null = null;
@@ -60,6 +66,7 @@ function broadcast(channel: string, payload: unknown): void {
 }
 
 function createWindow(): void {
+  const testHarness = process.env.TP_TEST_AGENT !== undefined;
   mainWindow = new BrowserWindow({
     width: 960,
     height: 720,
@@ -67,7 +74,10 @@ function createWindow(): void {
       preload: join(hostRoot, "dist/preload/index.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      // Sandbox has been observed to leave the renderer deaf to worklet
+      // request/reply traffic under TP_TEST_AGENT (WebRTC signal + device bridge
+      // both time out). Keep sandbox for normal launches.
+      sandbox: !testHarness
     }
   });
 

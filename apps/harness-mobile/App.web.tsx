@@ -16,6 +16,18 @@ import { webSerialSupported } from "./host/web-serial-relay";
 const audioHex = (bytes: Uint8Array) => [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 const audioUnhex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
 
+async function outboundWebRtcMediaBytes(pc: { getStats(): Promise<Map<string, { type: string; bytesSent?: number }>> }): Promise<number> {
+  if (typeof pc.getStats !== "function") return 0;
+  const report = await pc.getStats();
+  let bytes = 0;
+  for (const entry of report.values()) {
+    if (entry.type === "outbound-rtp" && typeof entry.bytesSent === "number") {
+      bytes += entry.bytesSent;
+    }
+  }
+  return bytes;
+}
+
 async function playPeerAudio(framesHex: ReadonlyArray<string>): Promise<void> {
   const AudioContextClass = (globalThis as unknown as { AudioContext?: new () => any; webkitAudioContext?: new () => any }).AudioContext ?? (globalThis as unknown as { webkitAudioContext?: new () => any }).webkitAudioContext;
   if (AudioContextClass === undefined) throw new Error("Web Audio playback is unavailable");
@@ -358,8 +370,18 @@ export default function App() {
               localTracks: [] as MediaStreamTrack[],
               remoteTracks: [] as MediaStreamTrack[],
               remoteTrackListeners: new Set<(track: MediaStreamTrack) => void>(),
-              attachTrack(track: MediaStreamTrack) {
-                return pc.addTrack(track);
+              async attachTrack(track: MediaStreamTrack) {
+                const kind = track.kind;
+                const transceiver = pc.getTransceivers?.().find((entry: { sender?: { track?: { kind?: string } | null }; receiver?: { track?: { kind?: string } | null }; mid: string | null }) => {
+                  const senderKind = entry.sender?.track?.kind;
+                  const receiverKind = entry.receiver?.track?.kind;
+                  return senderKind === kind || receiverKind === kind || (senderKind === undefined && receiverKind === undefined && entry.mid !== null);
+                });
+                if (transceiver?.sender && typeof transceiver.sender.replaceTrack === "function") {
+                  await transceiver.sender.replaceTrack(track);
+                  return;
+                }
+                pc.addTrack(track);
               }
             };
             peerRtcRef.current.set(message.sessionId, state);
@@ -427,15 +449,51 @@ export default function App() {
             const tracks = stream.getTracks();
             if (tracks.length === 0) throw new Error("No media tracks from getUserMedia");
             for (const track of tracks) {
-              state.attachTrack(track);
+              await state.attachTrack(track);
               state.localTracks.push(track);
             }
-            sendToWorker({ type: "peer-chrome-response", token: message.token, attached: true });
+            let bytesSent = 0;
+            for (let attempt = 0; attempt < 40 && bytesSent === 0; attempt += 1) {
+              await new Promise((resolve) => setTimeout(resolve, 250));
+              bytesSent = await outboundWebRtcMediaBytes(state.pc);
+            }
+            sendToWorker({
+              type: "peer-chrome-response",
+              token: message.token,
+              attached: true,
+              trackCount: tracks.length,
+              bytesSent,
+              connectionState: state.pc.connectionState
+            });
           } catch (error) {
             sendToWorker({
               type: "peer-chrome-response",
               token: message.token,
               attached: false,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
+        })();
+        return;
+      }
+
+      if (message.type === "peer-webrtc-media-stats") {
+        void (async () => {
+          const state = peerRtcRef.current.get(message.sessionId);
+          try {
+            if (state === undefined) throw new Error("WebRTC state is missing");
+            const bytesSent = await outboundWebRtcMediaBytes(state.pc);
+            sendToWorker({
+              type: "peer-chrome-response",
+              token: message.token,
+              bytesSent,
+              trackCount: state.localTracks.length,
+              connectionState: state.pc.connectionState
+            });
+          } catch (error) {
+            sendToWorker({
+              type: "peer-chrome-response",
+              token: message.token,
               error: error instanceof Error ? error.message : String(error)
             });
           }
@@ -680,7 +738,7 @@ export default function App() {
           sendToWorker({
             type: "cross-device-command",
             token,
-            command: { cmd: command, ...payload }
+            command: { ...payload, cmd: command }
           });
         });
       }
@@ -900,7 +958,11 @@ export default function App() {
               <Text style={styles.deviceActiveBannerText}>
                 {offer.appId} · sharing {offer.classId}:{offer.tierId} with {offer.displayLabel}
               </Text>
-              <Pressable style={styles.dangerButton} onPress={() => sendToWorker({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}>
+              <Pressable
+                testID="device-stop-sharing"
+                style={styles.dangerButton}
+                onPress={() => sendToWorker({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}
+              >
                 <Text style={styles.buttonLabel}>Stop sharing</Text>
               </Pressable>
             </View>
@@ -1049,6 +1111,36 @@ export default function App() {
             onPress={() => sendToWorker({ type: "create-identity" })}
           />
           <ActionButton label="Reset identity" onPress={() => sendToWorker({ type: "reset-identity" })} />
+        </View>
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="seed-share-offer"
+            label="Seed share offer"
+            onPress={() => {
+              sendToWorker({
+                type: "device-test-seed-share",
+                appId: "line-check",
+                displayLabel: "Ana",
+                classId: "microphone",
+                ttlMs: 15 * 60_000
+              });
+              appendLog("Seeded share offer for chrome probe");
+            }}
+          />
+          <ActionButton
+            testID="seed-share-offer-short"
+            label="Seed short share"
+            onPress={() => {
+              sendToWorker({
+                type: "device-test-seed-share",
+                appId: "line-check",
+                displayLabel: "Ana",
+                classId: "microphone",
+                ttlMs: 3_000
+              });
+              appendLog("Seeded short-TTL share offer");
+            }}
+          />
         </View>
         <Text style={styles.muted}>
           Identity keys are encrypted in IndexedDB under passphrase `{DEFAULT_PASSPHRASE}` (dev harness only).

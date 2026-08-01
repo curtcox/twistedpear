@@ -12,9 +12,11 @@ const EXTRA_NODE_PATTERN = /^node([2-9])$/;
 /** Adapters for GUI peers are loaded on demand so a headless run needs no Xcode/Electron. */
 const LAZY_ADAPTERS = {
   desktop: async () => (await import("./adapters/desktop.mjs")).desktopAdapter,
+  desktop2: async () => (await import("./adapters/desktop2.mjs")).desktop2Adapter,
   ios: async () => (await import("./adapters/mobile.mjs")).iosAdapter,
   android: async () => (await import("./adapters/mobile.mjs")).androidAdapter,
-  web: async () => (await import("./adapters/web.mjs")).webAdapter
+  web: async () => (await import("./adapters/web.mjs")).webAdapter,
+  web2: async () => (await import("./adapters/web2.mjs")).web2Adapter
 };
 
 export async function adapterFor(id) {
@@ -33,10 +35,12 @@ export const KNOWN_PEER_IDS = [
   "hub",
   ...Array.from({ length: 8 }, (_, index) => `node${index + 2}`),
   "desktop",
+  "desktop2",
   "ios",
   "android",
-  "web"
+  "web",
+  "web2"
 ];
 
 /** Peers that need a GUI runtime, and so may legitimately be unavailable. */
-export const GUI_PEER_IDS = ["desktop", "ios", "android", "web"];
+export const GUI_PEER_IDS = ["desktop", "desktop2", "ios", "android", "web", "web2"];

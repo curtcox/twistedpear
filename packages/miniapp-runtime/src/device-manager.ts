@@ -986,7 +986,8 @@ export class DeviceManager {
     return authored === null ? null : this.grantShareOffer({ appId, ...authored });
   }
 
-  listShareOffers(appId: string): ReadonlyArray<ShareOffer> {
+  /** Expire due offers, then return every live share (host chrome indicator). */
+  listLiveShareOffers(): ReadonlyArray<ShareOffer> {
     const at = this.now();
     for (const offer of this.shareOffers.values()) {
       if (offer.phase === "active" && at >= offer.expiresAt) {
@@ -994,7 +995,11 @@ export class DeviceManager {
         this.closeStreamsForShareOffer(offer.id);
       }
     }
-    return [...this.shareOffers.values()].filter((offer) => offer.appId === appId && isShareOfferLive(offer, at));
+    return [...this.shareOffers.values()].filter((offer) => isShareOfferLive(offer, at));
+  }
+
+  listShareOffers(appId: string): ReadonlyArray<ShareOffer> {
+    return this.listLiveShareOffers().filter((offer) => offer.appId === appId);
   }
 
   async requestShareOfferRevoke(appId: string, id: string): Promise<boolean> {

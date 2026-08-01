@@ -6,6 +6,12 @@ import { createWebLeafHost } from "../../../packages/host-core/dist/web.js";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
 import { createWebPackageStorage } from "../../../packages/host-core/dist/web.js";
 import {
+  sessionInviteContent,
+  SESSION_INVITE_TITLE
+} from "../../../packages/host-core/dist/session-invite-carrier.js";
+import { encodeSessionInviteEnvelope } from "../../../packages/protocol/dist/index.js";
+import { LXMessageMethod } from "../../../packages/lxmf-ts/dist/index.js";
+import {
   Identity,
   BandwidthLimiter,
   DestinationDirection,
@@ -13,17 +19,19 @@ import {
   PureCryptoProvider,
   Reticulum,
   bytesToHex,
+  hexToBytes,
   hasWebIdentity,
   loadOrCreateWebIdentity,
   persistWebIdentity,
   resetWebIdentity,
   webRuntime
 } from "../../../packages/reticulum-ts/dist/web.js";
-import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
+import { createWebWorkletMiniappHost } from "./web-miniapp-host.mjs";
 import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
 import {
   createHostReplyChannel,
   createCrossDeviceTestDriver,
+  createHarnessPeerPair,
   createMiniappAnnounceService,
   createStatusTimer
 } from "../../../packages/worklet-core/src/index.mjs";
@@ -120,7 +128,8 @@ const status = {
   developerMode: false,
   miniappRunning: false,
   wsEnabled: false,
-  gatewayUrl: null
+  gatewayUrl: null,
+  lxmfAddress: null
 };
 
 /** @type {{ gatewayUrl: string; sharedToken?: string; identityPassphrase: string; ntfyUrl?: string; ntfyToken?: string }} */
@@ -133,6 +142,9 @@ let webConfig = {
 let hostSession = null;
 /** @type {Awaited<ReturnType<typeof createHostLxmfDelivery>> | null} */
 let hostLxmfDelivery = null;
+/** @type {Array<Record<string, unknown>>} */
+const harnessInviteEntries = [];
+let nextHarnessInvite = 0;
 /** @type {import("../../../packages/reticulum-ts/dist/web.js").Reticulum | null} */
 let standaloneReticulum = null;
 /** @type {Awaited<ReturnType<typeof createWebPackageStorage>> | null} */
@@ -204,6 +216,170 @@ function ensureCrossDeviceTestDriver() {
   return crossDeviceTestDriver;
 }
 
+/**
+ * WebRTC GUI-call harness commands (mirrors desktop test-agent handleCommand).
+ * Driven via `__TP_CROSS_DEVICE__` / the Node control bridge — not DevStudio.
+ * @param {Record<string, unknown>} request
+ */
+async function handleWebRtcHarnessCommand(request) {
+  switch (request.cmd) {
+    case "harness-info":
+      return {
+        lxmfAddress: hostLxmfDelivery?.lxmfAddress ?? status.lxmfAddress ?? null,
+        identityHash: status.identityHash,
+        linkOnline: status.linkOnline === true
+      };
+    case "announce":
+      if (hostLxmfDelivery === null) throw new Error("Host LXMF delivery is not ready");
+      await hostLxmfDelivery.announce();
+      return {};
+    case "invite-state":
+      return { invites: [...harnessInviteEntries] };
+    case "send-invite": {
+      if (hostLxmfDelivery === null) throw new Error("Host LXMF delivery is not ready");
+      if (typeof request.toLxmfAddress !== "string") throw new Error("send-invite requires toLxmfAddress");
+      const appId = typeof request.appId === "string" ? request.appId : "line-check";
+      const requestedClasses = Array.isArray(request.requestedClasses)
+        ? request.requestedClasses
+        : ["microphone"];
+      const id = `invite-web-${nextHarnessInvite++}`;
+      const expiresAt = Date.now() + 120_000;
+      const envelope = encodeSessionInviteEnvelope({ id, appId, requestedClasses, expiresAt });
+      const hash = hexToBytes(request.toLxmfAddress);
+      const recipient = Identity.recall(cryptoProvider, hash);
+      if (recipient === null) {
+        throw new Error(`No announced identity for ${request.toLxmfAddress}; peer not discovered yet`);
+      }
+      await hostLxmfDelivery.router.packAndSend({
+        destination: hostLxmfDelivery.router.createOutboundDestination(recipient),
+        source: hostLxmfDelivery.delivery,
+        title: SESSION_INVITE_TITLE,
+        content: sessionInviteContent(envelope),
+        desiredMethod: LXMessageMethod.OPPORTUNISTIC,
+        deferStamp: true
+      });
+      harnessInviteEntries.push({
+        kind: "sent",
+        id,
+        appId,
+        peerLabel: request.toLxmfAddress.slice(0, 12),
+        requestedClasses,
+        expiresAt,
+        at: Date.now(),
+        peerDestinationHash: request.toLxmfAddress
+      });
+      return { inviteId: id, appId, expiresAt, bytes: envelope.length };
+    }
+    case "accept-invite": {
+      const inviteId = typeof request.inviteId === "string" ? request.inviteId : undefined;
+      if (inviteId === undefined) throw new Error("accept-invite requires inviteId");
+      const raised = harnessInviteEntries.findLast((entry) => entry.kind === "raised" && entry.id === inviteId);
+      if (raised === undefined) throw new Error(`No raised invite ${inviteId}`);
+      try {
+        await ensureMiniappHost().acceptSessionInvite(inviteId);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        if (!detail.startsWith("No installed version for ")) throw error;
+        log(`Session invite ${inviteId} accepted without launch (${detail})`);
+      }
+      harnessInviteEntries.push({ ...raised, kind: "accepted", at: Date.now() });
+      return { accepted: true, inviteId, peerDestinationHash: raised.peerDestinationHash ?? null };
+    }
+    case "renderer-ping": {
+      const reply = await requestHostReply({ type: "peer-qr-availability", token: peerToken() }, 10_000);
+      return {
+        ok: reply !== null,
+        availability: reply?.availability ?? null,
+        error: reply === null ? "renderer ping timed out" : reply?.error
+      };
+    }
+    case "peer-pair-start": {
+      harnessPeerPair.enable();
+      await ensurePeerSessionManager();
+      ensureMiniappHost();
+      const role = request.role === "listen" ? "listen" : "offer";
+      const appId = typeof request.appId === "string" ? request.appId : "line-check";
+      const runtimeId = "harness-webrtc";
+      return harnessPeerPair.start(async () => {
+        const manager = await ensurePeerSessionManager();
+        const connect = {
+          service: appId,
+          purpose: "WebRTC media conformance",
+          mechanisms: ["manual"],
+          timeoutMs: 120_000
+        };
+        const handle =
+          role === "listen"
+            ? await manager.listen(appId, runtimeId, connect)
+            : await manager.request(appId, runtimeId, connect);
+        const info = manager.info(appId, runtimeId, handle);
+        return {
+          handleId: handle.id,
+          dataPlane: info.dataPlane,
+          fingerprint: info.fingerprint,
+          displayLabel: info.displayLabel
+        };
+      });
+    }
+    case "peer-pair-code-out": {
+      const taken = await harnessPeerPair.takeOutboundCode(
+        typeof request.timeoutMs === "number" ? request.timeoutMs : 60_000
+      );
+      return { code: taken.code, sessionId: taken.sessionId };
+    }
+    case "peer-pair-code-in": {
+      if (typeof request.code !== "string") throw new Error("peer-pair-code-in requires code");
+      harnessPeerPair.giveInboundCode(
+        request.code,
+        typeof request.sessionId === "string" ? request.sessionId : undefined
+      );
+      return { ok: true };
+    }
+    case "peer-pair-wait": {
+      const paired = await harnessPeerPair.wait(
+        typeof request.timeoutMs === "number" ? request.timeoutMs : 120_000
+      );
+      return paired;
+    }
+    case "webrtc-open-media": {
+      ensureMiniappHost();
+      if (attachWebRtcMediaTrack === null) {
+        throw new Error("WebRTC media attach is not configured");
+      }
+      const appId = typeof request.appId === "string" ? request.appId : "line-check";
+      const handleId = typeof request.handleId === "string" ? request.handleId : undefined;
+      if (handleId === undefined) throw new Error("webrtc-open-media requires handleId");
+      const classId = request.classId === "camera" ? "camera" : "microphone";
+      const encoding = classId === "camera" ? "480p15" : "16k-opus";
+      const attached = await attachWebRtcMediaTrack({
+        appId,
+        peer: handleId,
+        demand: { classId, tierId: classId === "camera" ? "frames" : "pcm", encoding }
+      });
+      let bytesSent = attached.bytesSent ?? 0;
+      if (bytesSent === 0 && typeof attached.sessionId === "string") {
+        for (let attempt = 0; attempt < 20 && bytesSent === 0; attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          const stats = await requestHostReply(
+            { type: "peer-webrtc-media-stats", token: peerToken(), sessionId: attached.sessionId },
+            10_000
+          );
+          if (typeof stats?.bytesSent === "number") bytesSent = stats.bytesSent;
+        }
+      }
+      return {
+        attached: true,
+        plane: "webrtc-track",
+        handleId,
+        sessionId: attached.sessionId,
+        bytesSent
+      };
+    }
+    default:
+      throw new Error(`Unknown WebRTC harness command: ${request.cmd}`);
+  }
+}
+
 const hostReplyChannel = createHostReplyChannel({ send });
 const requestHostReply = hostReplyChannel.requestReply;
 const statusTimer = createStatusTimer({ onTick: () => pushStatus() });
@@ -211,7 +387,8 @@ const startStatusTimer = statusTimer.start;
 const stopStatusTimer = statusTimer.stop;
 
 function peerToken() { return bytesToHex(cryptoProvider.randomBytes(16)); }
-const peerChrome = {
+const harnessPeerPair = createHarnessPeerPair();
+const peerChromeBase = {
   manual: {
     async *offer(session, code, options) { const reply = await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
     async *accept(options) { const session = { id: peerToken(), kind: "manual" }; const reply = await requestHostReply({ type: "peer-manual-enter", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
@@ -240,6 +417,21 @@ const peerChrome = {
   },
   async confirm(peer, request) { const reply = await requestHostReply({ type: "peer-confirm-request", token: peerToken(), appId: request.service, service: request.service, purpose: request.purpose, peer }); return reply?.approved === true; }
 };
+const peerChrome = {
+  get manual() {
+    return harnessPeerPair.enabled ? harnessPeerPair.channel : peerChromeBase.manual;
+  },
+  qr: peerChromeBase.qr,
+  audio: peerChromeBase.audio,
+  ntfy: peerChromeBase.ntfy,
+  async confirm(peer, request) {
+    if (harnessPeerPair.enabled) return true;
+    return peerChromeBase.confirm(peer, request);
+  }
+};
+
+/** @type {null | ((input: { appId: string; peer: string; demand: any }) => Promise<{ quality?: () => any; close: () => Promise<void>; bytesSent?: number; sessionId?: string }>)>} */
+let attachWebRtcMediaTrack = null;
 
 async function ensurePeerSessionManager() {
   if (peerSessionManager !== null) return peerSessionManager;
@@ -569,47 +761,51 @@ function ensureMiniappHost() {
       openCasPlane: {
         put: (frame) => new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data)).put(frame)
       },
-      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(async ({ appId, peer, demand }) => {
-        const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
-        if (confirmed?.dataPlane !== "webrtc") {
-          throw new Error("No authenticated WebRTC route for media tracks.");
-        }
-        const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
-        if (sessionId === undefined) {
-          throw new Error("WebRTC session is missing for media track attach.");
-        }
-        const reply = await requestHostReply(
-          {
-            type: "peer-webrtc-media-attach",
-            token: peerToken(),
-            sessionId,
-            classId: demand.classId,
-            tierId: demand.tierId
-          },
-          30_000
-        );
-        if (reply?.attached !== true) {
-          throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
-        }
-        return {
-          quality: () => ({
-            goodputBps: 2_000_000,
-            rttMs: 50,
-            jitterMs: 10,
-            lossRatio: 0,
-            mtu: 1_200,
-            source: "declared",
-            samples: 1,
-            confidence: "low"
-          }),
-          close: async () => {
-            await requestHostReply(
-              { type: "peer-webrtc-media-detach", token: peerToken(), sessionId, classId: demand.classId },
-              10_000
-            );
+      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(
+        (attachWebRtcMediaTrack = async ({ appId, peer, demand }) => {
+          const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
+          if (confirmed?.dataPlane !== "webrtc") {
+            throw new Error("No authenticated WebRTC route for media tracks.");
           }
-        };
-      }),
+          const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
+          if (sessionId === undefined) {
+            throw new Error("WebRTC session is missing for media track attach.");
+          }
+          const reply = await requestHostReply(
+            {
+              type: "peer-webrtc-media-attach",
+              token: peerToken(),
+              sessionId,
+              classId: demand.classId,
+              tierId: demand.tierId
+            },
+            30_000
+          );
+          if (reply?.attached !== true) {
+            throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
+          }
+          return {
+            sessionId,
+            bytesSent: typeof reply.bytesSent === "number" ? reply.bytesSent : 0,
+            quality: () => ({
+              goodputBps: 2_000_000,
+              rttMs: 50,
+              jitterMs: 10,
+              lossRatio: 0,
+              mtu: 1_200,
+              source: "declared",
+              samples: 1,
+              confidence: "low"
+            }),
+            close: async () => {
+              await requestHostReply(
+                { type: "peer-webrtc-media-detach", token: peerToken(), sessionId, classId: demand.classId },
+                10_000
+              );
+            }
+          };
+        })
+      ),
       controlReservations: { reserveControl: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("control", bytesPerSecond) },
       onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
       async requestShareOffer({ appId, purpose }) {
@@ -828,6 +1024,19 @@ async function startHostSession() {
     isInvitableApp: (appId) => appId === "line-check",
     log
   });
+  hostLxmfDelivery.onInvite((invite) => {
+    harnessInviteEntries.push({
+      kind: "raised",
+      id: invite.id,
+      appId: invite.appId,
+      peerLabel: invite.verifiedPeerLabel,
+      requestedClasses: invite.requestedClasses,
+      expiresAt: invite.expiresAt,
+      at: Date.now(),
+      peerDestinationHash: typeof invite.peer?.id === "string" ? invite.peer.id : invite.id.slice(0, 16)
+    });
+  });
+  status.lxmfAddress = hostLxmfDelivery.lxmfAddress;
   log(`Host LXMF delivery ready (${hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`);
 
   hostSession.reticulum.registerAnnounceHandler({
@@ -1072,7 +1281,21 @@ async function handleHostMessage(raw) {
 
   if (message.type === "cross-device-command") {
     try {
-      const result = await ensureCrossDeviceTestDriver()(message.command);
+      const cmd = typeof message.command?.cmd === "string" ? message.command.cmd : "";
+      const result =
+        cmd === "renderer-ping" ||
+        cmd === "peer-pair-start" ||
+        cmd === "peer-pair-code-out" ||
+        cmd === "peer-pair-code-in" ||
+        cmd === "peer-pair-wait" ||
+        cmd === "webrtc-open-media" ||
+        cmd === "harness-info" ||
+        cmd === "announce" ||
+        cmd === "send-invite" ||
+        cmd === "accept-invite" ||
+        cmd === "invite-state"
+          ? await handleWebRtcHarnessCommand(message.command)
+          : await ensureCrossDeviceTestDriver()(message.command);
       send({ type: "cross-device-result", token: message.token, ok: true, result });
     } catch (error) {
       send({
@@ -1239,6 +1462,21 @@ async function handleHostMessage(raw) {
 
   if (message.type === "device-revoke-share") {
     await ensureMiniappHost().revokeShareOffer(message.appId, message.id);
+    return;
+  }
+
+  if (message.type === "device-test-seed-share") {
+    try {
+      const offer = await ensureMiniappHost().seedShareOfferForTest({
+        appId: message.appId,
+        displayLabel: message.displayLabel,
+        classId: message.classId,
+        ttlMs: message.ttlMs
+      });
+      log(`Seeded share offer ${offer.id} for ${offer.displayLabel}`);
+    } catch (error) {
+      log(`Seed share offer failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return;
   }
 

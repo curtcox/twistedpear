@@ -1306,10 +1306,15 @@ if (!host) {
       message.type === "peer-webrtc-establish" ||
       message.type === "peer-webrtc-data-send" ||
       message.type === "peer-webrtc-media-attach" ||
+      message.type === "peer-webrtc-media-stats" ||
       message.type === "peer-webrtc-media-detach" ||
       message.type === "peer-webrtc-close"
     ) {
-      void handlePeerWebRtcMessage(message, (reply) => host.send(reply));
+      appendLog(`WebRTC host message ${message.type}`);
+      void handlePeerWebRtcMessage(message, (reply) => {
+        appendLog(`WebRTC host reply ${message.type}`);
+        host.send(reply);
+      });
     }
     if (message.type === "inbound-media-frame") {
       void playInboundMediaFrame(message).then((played) => appendLog(`Inbound ${message.encoding} media → ${played ? "speaker" : message.sink.kind} (${message.dataHex.length / 2} bytes)`)).catch((error) => appendLog(`Inbound media failed: ${error instanceof Error ? error.message : String(error)}`));
@@ -1317,6 +1322,7 @@ if (!host) {
   });
 
   host.send({ type: "trust-list" });
+  globalThis.__TP_RENDERER_LISTENING__ = true;
 
   trustAdd?.addEventListener("click", () => {
     const identityString = trustIdentityInput?.value.trim() ?? "";

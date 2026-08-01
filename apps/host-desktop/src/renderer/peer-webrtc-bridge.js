@@ -30,6 +30,10 @@ export async function handlePeerWebRtcMessage(message, send) {
       await attachMedia(message, send);
       return;
     }
+    if (message.type === "peer-webrtc-media-stats") {
+      await mediaStats(message, send);
+      return;
+    }
     if (message.type === "peer-webrtc-media-detach") {
       detachMedia(message);
       send({ type: "peer-chrome-response", token: message.token, attached: false });
@@ -52,9 +56,13 @@ export async function handlePeerWebRtcMessage(message, send) {
 }
 
 async function signal(message, send) {
-  const PeerConnection = globalThis.RTCPeerConnection;
+  const PeerConnection = globalThis.RTCPeerConnection ?? globalThis.webkitRTCPeerConnection;
   if (typeof PeerConnection !== "function") {
-    send({ type: "peer-chrome-response", token: message.token });
+    send({
+      type: "peer-chrome-response",
+      token: message.token,
+      error: "RTCPeerConnection is unavailable in this renderer"
+    });
     return;
   }
   const pc = new PeerConnection();
@@ -151,11 +159,60 @@ async function attachMedia(message, send) {
   });
   const tracks = stream.getTracks();
   if (tracks.length === 0) throw new Error("No media tracks from getUserMedia");
+  const kind = audio ? "audio" : "video";
   for (const track of tracks) {
-    state.pc.addTrack(track);
+    const transceiver = state.pc.getTransceivers?.().find((entry) => {
+      const senderKind = entry.sender?.track?.kind;
+      const receiverKind = entry.receiver?.track?.kind;
+      return senderKind === kind || receiverKind === kind || (senderKind === undefined && receiverKind === undefined && entry.mid !== null);
+    });
+    if (transceiver?.sender && typeof transceiver.sender.replaceTrack === "function") {
+      await transceiver.sender.replaceTrack(track);
+    } else {
+      state.pc.addTrack(track);
+    }
     state.localTracks.push(track);
   }
-  send({ type: "peer-chrome-response", token: message.token, attached: true });
+  // Give the encoder a brief window so getStats can report outbound bytes when
+  // the peer connection is already established (fake-media conformance path).
+  let bytesSent = 0;
+  for (let attempt = 0; attempt < 40 && bytesSent === 0; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    bytesSent = await outboundMediaBytes(state.pc);
+  }
+  send({
+    type: "peer-chrome-response",
+    token: message.token,
+    attached: true,
+    trackCount: tracks.length,
+    bytesSent,
+    connectionState: state.pc.connectionState
+  });
+}
+
+async function mediaStats(message, send) {
+  const state = sessions.get(message.sessionId);
+  if (state === undefined) throw new Error("WebRTC state is missing");
+  const bytesSent = await outboundMediaBytes(state.pc);
+  send({
+    type: "peer-chrome-response",
+    token: message.token,
+    bytesSent,
+    trackCount: state.localTracks.length,
+    connectionState: state.pc.connectionState
+  });
+}
+
+async function outboundMediaBytes(pc) {
+  if (typeof pc.getStats !== "function") return 0;
+  const report = await pc.getStats();
+  let bytes = 0;
+  for (const entry of report.values()) {
+    if (entry.type === "outbound-rtp" && typeof entry.bytesSent === "number") {
+      bytes += entry.bytesSent;
+    }
+  }
+  return bytes;
 }
 
 function detachMedia(message) {

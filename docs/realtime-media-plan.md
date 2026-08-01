@@ -39,10 +39,14 @@ can raise trusted chrome without a mounted test agent. Hosts bind WebRTC / Pears
 Reticulum through concrete `PlaneStreamEgressFactory` openers on the authenticated peer-route
 bridge, plus a derived-only CAS snapshot opener and a live Pears Hyperdrive append path for
 latency-tolerant rungs. SPEC-STREAM admits `cas-snapshot` when no live plane has supply. The remaining work is host integration evidence rather than protocol
-shape: live media bytes after accept on desktop↔desktop, WebRTC media tracks and a live
-Pears append path, device-run mobile chrome probes, GUI peers in the multipeer matrix, and
+shape: a recorded device-run
+mobile chrome Maestro pass (flow authored in `.maestro/share-policy.yaml`),
+iOS/Android peers in the multipeer matrix, and
 hardware evidence. Until those adapters are present, hosts must keep rejecting
-unconfigured streams.
+unconfigured streams. Desktop and web GUI call bytes are already required evidence via
+`npm run test:local-multipeer:desktop`, `npm run test:webrtc-gui-call`, and
+`npm run test:webrtc-gui-call:web`
+(readiness/probe/invite/LXMF call/TPD2, plus post-accept WebRTC track bytes).
 
 The evaluation below is retained as the design baseline that motivated the implementation.
 

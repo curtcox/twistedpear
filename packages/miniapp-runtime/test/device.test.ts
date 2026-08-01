@@ -515,8 +515,10 @@ describe("DeviceManager Phase 5 streaming", () => {
     expect(offer?.displayLabel).toBe("Ana");
     expect(manager.listShareOffers("other")).toEqual([]);
     expect(manager.listShareOffers("line-check")).toHaveLength(1);
+    expect(manager.listLiveShareOffers()).toHaveLength(1);
     expect(await manager.requestShareOfferRevoke("line-check", offer!.id)).toBe(true);
     expect(manager.listShareOffers("line-check")).toEqual([]);
+    expect(manager.listLiveShareOffers()).toEqual([]);
 
     manager.grantShareOffer({
       appId: "line-check",

@@ -229,6 +229,8 @@ export interface WorkletStatus {
   readonly miniappRunning?: boolean;
   readonly wsEnabled?: boolean;
   readonly gatewayUrl?: string | null;
+  /** Host LXMF delivery destination hash when the leaf session is up. */
+  readonly lxmfAddress?: string | null;
   readonly freenetEnabled?: boolean;
   readonly freenetConfigured?: boolean;
   readonly freenetUrl?: string | null;
@@ -333,6 +335,13 @@ export type HostToWorkletMessage =
   | { readonly type: "device-set-remote"; readonly enabled: boolean }
   | { readonly type: "device-kill-session"; readonly handle: string }
   | { readonly type: "device-revoke-share"; readonly appId: string; readonly id: string }
+  | {
+      readonly type: "device-test-seed-share";
+      readonly appId?: string;
+      readonly displayLabel?: string;
+      readonly classId?: "camera" | "microphone";
+      readonly ttlMs?: number;
+    }
   | { readonly type: "session-invite-accept"; readonly id: string }
   | { readonly type: "session-invite-decline"; readonly id: string }
   | { readonly type: "peer-webrtc-data"; readonly sessionId: string; readonly dataHex: string }
@@ -475,6 +484,7 @@ export type WorkletToHostMessage =
       readonly classId: string;
       readonly tierId: string;
     }
+  | { readonly type: "peer-webrtc-media-stats"; readonly token: string; readonly sessionId: string }
   | { readonly type: "peer-webrtc-media-detach"; readonly token: string; readonly sessionId: string; readonly classId: string }
   | { readonly type: "inbound-media-frame"; readonly appId: string; readonly handle: string; readonly sink: { readonly kind: string; readonly widgetId?: string }; readonly encoding: string; readonly dataHex: string }
   | { readonly type: "peer-chrome-cancel"; readonly sessionId: string }

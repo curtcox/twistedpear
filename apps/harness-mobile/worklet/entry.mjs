@@ -2218,6 +2218,21 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "device-test-seed-share") {
+    try {
+      const offer = await ensureMiniappHost().seedShareOfferForTest({
+        appId: message.appId,
+        displayLabel: message.displayLabel,
+        classId: message.classId,
+        ttlMs: message.ttlMs
+      });
+      log(`Seeded share offer ${offer.id} for ${offer.displayLabel}`);
+    } catch (error) {
+      log(`Seed share offer failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
   if (message.type === "session-invite-accept") {
     try {
       await ensureMiniappHost().acceptSessionInvite(message.id);
@@ -2404,7 +2419,17 @@ async function handleHostMessage(raw) {
         handleCommand: (request) => ensureCrossDeviceTestDriver()(request),
         delivery: await ensureHostLxmfDelivery(),
         receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
-        acceptSessionInvite: (inviteId) => ensureMiniappHost().acceptSessionInvite(inviteId)
+        acceptSessionInvite: async (inviteId) => {
+          try {
+            await ensureMiniappHost().acceptSessionInvite(inviteId);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (!message.startsWith("No installed version for ")) {
+              throw error;
+            }
+            log(`Session invite ${inviteId} accepted without launch (${message})`);
+          }
+        }
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {

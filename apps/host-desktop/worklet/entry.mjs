@@ -54,6 +54,7 @@ import {
   DEFAULT_PROPAGATION_QUOTAS
 } from "../../../packages/lxmf-ts/dist/index.js";
 import { createDesktopPeerChrome } from "./peer-chrome.mjs";
+import { createHarnessPeerPair } from "../../../packages/worklet-core/src/harness-peer-pair.mjs";
 import {
   AudioPeerDiscoveryAdapter,
   CryptoPeerPairingBackend,
@@ -742,12 +743,29 @@ async function pushTrustList() {
 const hostReplyChannel = createHostReplyChannel({ send });
 const requestRendererReply = hostReplyChannel.requestReply;
 
-const peerChrome = createDesktopPeerChrome({
+const peerChromeBase = createDesktopPeerChrome({
   requestReply: requestRendererReply,
   send,
   createToken: () => generateConfirmationToken((length) => provider.randomBytes(length)),
   ntfyServer: envValue("TWISTEDPEAR_NTFY_URL")
 });
+const harnessPeerPair = createHarnessPeerPair();
+const peerChrome = {
+  ...peerChromeBase,
+  get manual() {
+    return harnessPeerPair.enabled ? harnessPeerPair.channel : peerChromeBase.manual;
+  },
+  qr: peerChromeBase.qr,
+  audio: peerChromeBase.audio,
+  ntfy: peerChromeBase.ntfy,
+  async confirm(peer, pairingRequest) {
+    if (harnessPeerPair.enabled) return true;
+    return peerChromeBase.confirm(peer, pairingRequest);
+  }
+};
+
+/** @type {null | ((input: { appId: string; peer: string; demand: any; admission: any }) => Promise<{ quality?: () => any; close: () => Promise<void>; bytesSent?: number; sessionId?: string }>)>} */
+let attachWebRtcMediaTrack = null;
 
 function ntfyHostFetch(input, init = {}) {
   const token = generateConfirmationToken((length) => provider.randomBytes(length));
@@ -911,7 +929,15 @@ async function ensurePeerSessionManager() {
   if (identity === null) throw new Error("Unlock the host identity before connecting to a peer");
   const registry = new PeerDiscoveryRegistry();
   const createSessionId = () => generateConfirmationToken((length) => provider.randomBytes(length));
-  registry.register(new ManualPeerDiscoveryAdapter({ channel: peerChrome.manual, createSessionId }));
+  registry.register(new ManualPeerDiscoveryAdapter({
+    channel: {
+      offer: (session, code, options) => peerChrome.manual.offer(session, code, options),
+      accept: (options) => peerChrome.manual.accept(options),
+      answer: (session, code) => peerChrome.manual.answer(session, code),
+      cancel: (sessionId) => peerChrome.manual.cancel(sessionId)
+    },
+    createSessionId
+  }));
   registry.register(new QrPeerDiscoveryAdapter({ channel: peerChrome.qr, createSessionId }));
   registry.register(new ReticulumPeerDiscoveryAdapter({ channel: automaticReticulumChannel(identity), createSessionId }));
   registry.register(new AudioPeerDiscoveryAdapter({ channel: peerChrome.audio, createSessionId }));
@@ -953,9 +979,15 @@ async function ensurePeerSessionManager() {
         }, 15_000);
         if (typeof reply?.signal === "string") {
           candidates.push({ kind: "webrtc", value: new TextEncoder().encode(reply.signal) });
+        } else if (reply === null) {
+          log("WebRTC signal timed out waiting for the renderer");
+        } else if (typeof reply?.error === "string") {
+          log(`WebRTC signal failed: ${reply.error}`);
+        } else {
+          log(`WebRTC signal returned no SDP (${JSON.stringify(reply)})`);
         }
-      } catch {
-        /* renderer WebRTC unavailable — fall through to Reticulum */
+      } catch (error) {
+        log(`WebRTC signal unavailable: ${error instanceof Error ? error.message : String(error)}`);
       }
       const destination = await ensurePeerLinkDestination(identity, request.service);
       await destination.announce();
@@ -1194,48 +1226,52 @@ function ensureMiniappHost() {
           return { path };
         }
       },
-      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(async ({ appId, peer, demand }) => {
-        const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
-        if (confirmed?.dataPlane !== "webrtc") {
-          throw new Error("No authenticated WebRTC route for media tracks.");
-        }
-        const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
-        if (sessionId === undefined) {
-          throw new Error("WebRTC session is missing for media track attach.");
-        }
-        const token = generateConfirmationToken((length) => provider.randomBytes(length));
-        const reply = await requestRendererReply({
-          type: "peer-webrtc-media-attach",
-          token,
-          sessionId,
-          classId: demand.classId,
-          tierId: demand.tierId
-        }, 30_000);
-        if (reply?.attached !== true) {
-          throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
-        }
-        return {
-          quality: () => ({
-            goodputBps: 2_000_000,
-            rttMs: 50,
-            jitterMs: 10,
-            lossRatio: 0,
-            mtu: 1_200,
-            source: "declared",
-            samples: 1,
-            confidence: "low"
-          }),
-          close: async () => {
-            const detachToken = generateConfirmationToken((length) => provider.randomBytes(length));
-            await requestRendererReply({
-              type: "peer-webrtc-media-detach",
-              token: detachToken,
-              sessionId,
-              classId: demand.classId
-            }, 10_000);
+      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(
+        (attachWebRtcMediaTrack = async ({ appId, peer, demand }) => {
+          const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
+          if (confirmed?.dataPlane !== "webrtc") {
+            throw new Error("No authenticated WebRTC route for media tracks.");
           }
-        };
-      }),
+          const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
+          if (sessionId === undefined) {
+            throw new Error("WebRTC session is missing for media track attach.");
+          }
+          const token = generateConfirmationToken((length) => provider.randomBytes(length));
+          const reply = await requestRendererReply({
+            type: "peer-webrtc-media-attach",
+            token,
+            sessionId,
+            classId: demand.classId,
+            tierId: demand.tierId
+          }, 30_000);
+          if (reply?.attached !== true) {
+            throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
+          }
+          return {
+            sessionId,
+            bytesSent: typeof reply.bytesSent === "number" ? reply.bytesSent : 0,
+            quality: () => ({
+              goodputBps: 2_000_000,
+              rttMs: 50,
+              jitterMs: 10,
+              lossRatio: 0,
+              mtu: 1_200,
+              source: "declared",
+              samples: 1,
+              confidence: "low"
+            }),
+            close: async () => {
+              const detachToken = generateConfirmationToken((length) => provider.randomBytes(length));
+              await requestRendererReply({
+                type: "peer-webrtc-media-detach",
+                token: detachToken,
+                sessionId,
+                classId: demand.classId
+              }, 10_000);
+            }
+          };
+        })
+      ),
       async requestShareOffer({ appId, purpose }) {
         const peer = peerSessionManagerProxy.list(appId)[0];
         if (peer === undefined) return null;
@@ -2262,12 +2298,136 @@ async function handleHostMessage(raw) {
         host: message.host,
         port: message.port,
         log,
-        handleCommand: (request) => ensureCrossDeviceTestDriver()(request),
         // Reuse the shipping delivery destination: invites already raise chrome
         // without the agent; the agent only drives probes and harness control.
         delivery: await ensureHostLxmfDelivery(),
         receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
-        acceptSessionInvite: (inviteId) => ensureMiniappHost().acceptSessionInvite(inviteId)
+        acceptSessionInvite: async (inviteId) => {
+          // SessionInviteService marks the invite accepted before launch. When
+          // line-check is not installed on this peer data dir (common for a
+          // fresh multipeer desktop), still succeed so post-accept LXMF call
+          // media can be proven — same posture as tp-node, which has no
+          // mini-app host.
+          try {
+            await ensureMiniappHost().acceptSessionInvite(inviteId);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (!message.startsWith("No installed version for ")) {
+              throw error;
+            }
+            log(`Session invite ${inviteId} accepted without launch (${message})`);
+          }
+        },
+        handleCommand: async (request) => {
+          switch (request.cmd) {
+            case "renderer-ping": {
+              const token = generateConfirmationToken((length) => provider.randomBytes(length));
+              const reply = await requestRendererReply({ type: "peer-qr-availability", token }, 10_000);
+              return {
+                ok: reply !== null,
+                availability: reply?.availability ?? null,
+                error: reply === null ? "renderer ping timed out" : reply?.error
+              };
+            }
+            case "peer-pair-start": {
+              harnessPeerPair.enable();
+              await ensurePeerSessionManager();
+              ensureMiniappHost();
+              const role = request.role === "listen" ? "listen" : "offer";
+              const appId = typeof request.appId === "string" ? request.appId : "line-check";
+              const runtimeId = "harness-webrtc";
+              return harnessPeerPair.start(async () => {
+                const manager = await ensurePeerSessionManager();
+                const connect = {
+                  service: appId,
+                  purpose: "WebRTC media conformance",
+                  mechanisms: ["manual"],
+                  timeoutMs: 120_000
+                };
+                const handle =
+                  role === "listen"
+                    ? await manager.listen(appId, runtimeId, connect)
+                    : await manager.request(appId, runtimeId, connect);
+                const info = manager.info(appId, runtimeId, handle);
+                return {
+                  handleId: handle.id,
+                  dataPlane: info.dataPlane,
+                  fingerprint: info.fingerprint,
+                  displayLabel: info.displayLabel
+                };
+              });
+            }
+            case "peer-pair-code-out": {
+              const taken = await harnessPeerPair.takeOutboundCode(
+                typeof request.timeoutMs === "number" ? request.timeoutMs : 60_000
+              );
+              return { code: taken.code, sessionId: taken.sessionId };
+            }
+            case "peer-pair-code-in": {
+              if (typeof request.code !== "string") throw new Error("peer-pair-code-in requires code");
+              harnessPeerPair.giveInboundCode(
+                request.code,
+                typeof request.sessionId === "string" ? request.sessionId : undefined
+              );
+              return { ok: true };
+            }
+            case "peer-pair-wait": {
+              const paired = await harnessPeerPair.wait(
+                typeof request.timeoutMs === "number" ? request.timeoutMs : 120_000
+              );
+              return paired;
+            }
+            case "webrtc-open-media": {
+              ensureMiniappHost();
+              if (attachWebRtcMediaTrack === null) {
+                throw new Error("WebRTC media attach is not configured");
+              }
+              const appId = typeof request.appId === "string" ? request.appId : "line-check";
+              const handleId = typeof request.handleId === "string" ? request.handleId : undefined;
+              if (handleId === undefined) throw new Error("webrtc-open-media requires handleId");
+              const classId = request.classId === "camera" ? "camera" : "microphone";
+              const tierId = classId === "camera" ? "frames" : "pcm";
+              const encoding = classId === "camera" ? "480p15" : "16k-opus";
+              const attached = await attachWebRtcMediaTrack({
+                appId,
+                peer: handleId,
+                demand: { classId, tierId, encoding },
+                admission: {
+                  kind: "accept",
+                  plane: "webrtc",
+                  rung: encoding,
+                  rungIndex: 0,
+                  demandBps: 64_000,
+                  admittedDemandBps: 64_000,
+                  supplyBps: 2_000_000,
+                  reason: "harness"
+                }
+              });
+              let bytesSent = attached.bytesSent ?? 0;
+              if (bytesSent === 0 && typeof attached.sessionId === "string") {
+                for (let attempt = 0; attempt < 20 && bytesSent === 0; attempt += 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 250));
+                  const token = generateConfirmationToken((length) => provider.randomBytes(length));
+                  const stats = await requestRendererReply({
+                    type: "peer-webrtc-media-stats",
+                    token,
+                    sessionId: attached.sessionId
+                  }, 10_000);
+                  if (typeof stats?.bytesSent === "number") bytesSent = stats.bytesSent;
+                }
+              }
+              return {
+                attached: true,
+                plane: "webrtc-track",
+                handleId,
+                sessionId: attached.sessionId,
+                bytesSent
+              };
+            }
+            default:
+              return ensureCrossDeviceTestDriver()(request);
+          }
+        }
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {
@@ -2757,7 +2917,9 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-codec-response") {
-    hostReplyChannel.resolveReply(message);
+    if (!hostReplyChannel.resolveReply(message)) {
+      log(`Orphan host reply ${message.type} token=${typeof message.token === "string" ? message.token.slice(0, 12) : "?"}`);
+    }
     return;
   }
 
@@ -3034,11 +3196,33 @@ log(`Desktop host worklet ready (crypto: ${provider.name})`);
 
 let hostMessageBuffer = "";
 let hostMessageQueue = Promise.resolve();
+const HOST_REPLY_TYPES = new Set([
+  "confirm-response",
+  "launch-confirm",
+  "install-confirm",
+  "peer-chrome-response",
+  "device-bridge-response",
+  "media-codec-response"
+]);
 IPC.on("data", (data) => {
   hostMessageBuffer += data.toString();
   const lines = hostMessageBuffer.split("\n");
   hostMessageBuffer = lines.pop() ?? "";
   for (const line of lines) {
+    // Replies must not wait behind other host-message handlers: those handlers
+    // (and test-agent commands) often await requestRendererReply, which would
+    // deadlock if the matching peer-chrome-response sat on this queue.
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && HOST_REPLY_TYPES.has(parsed.type)) {
+        if (!hostReplyChannel.resolveReply(parsed)) {
+          log(`Orphan host reply ${parsed.type} token=${typeof parsed.token === "string" ? parsed.token.slice(0, 12) : "?"}`);
+        }
+        continue;
+      }
+    } catch {
+      // Fall through to the ordered handler for malformed lines.
+    }
     hostMessageQueue = hostMessageQueue
       .then(() => handleHostMessage(line))
       .catch((error) => {

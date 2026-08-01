@@ -16,9 +16,12 @@
  *   node conformance/local-multipeer/run.mjs --attach
  *   node conformance/local-multipeer/run.mjs --peers=hub,node2
  *   node conformance/local-multipeer/run.mjs --smoke
+ *   LOCAL_MULTIPEER_REQUIRED=1 node conformance/local-multipeer/run.mjs --peers=hub,desktop
  *
  * GUI peers that cannot start (no Xcode, no emulator, no Electron build) are
- * skipped unless LOCAL_MULTIPEER_REQUIRED=1.
+ * skipped unless LOCAL_MULTIPEER_REQUIRED=1. When required, every requested GUI
+ * peer must attach and appear in readiness, probe, invite, call, and realtime
+ * proof rows — that is the shipping-host exit for the realtime-media plan.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -431,12 +434,41 @@ await runMain(async () => {
       }
     }
 
+    if (required) {
+      section("Required GUI peer evidence");
+      for (const id of wanted.filter((peerId) => GUI_PEER_IDS.includes(peerId))) {
+        assert(attached.includes(id), `required GUI peer ${id} was not attached`);
+        assert(
+          results.readiness.some((row) => row.from === id || row.to === id),
+          `required GUI peer ${id} has no readiness exchange row`
+        );
+        assert(
+          results.probes.some((row) => row.from === id || row.to === id),
+          `required GUI peer ${id} has no measured probe row`
+        );
+        assert(
+          results.invites.some((row) => row.from === id || row.to === id),
+          `required GUI peer ${id} has no session-invite row`
+        );
+        assert(
+          results.calls.some((row) => row.from === id || row.to === id),
+          `required GUI peer ${id} has no post-accept call row`
+        );
+        assert(
+          results.realtime.some((row) => row.from === id || row.to === id),
+          `required GUI peer ${id} has no realtime carrier row`
+        );
+        step(`${id} recorded in readiness, probes, invites, calls, and realtime`);
+      }
+    }
+
     const proof = {
       generatedAt: new Date().toISOString(),
       mode: attach ? "attach" : "managed",
       requested: wanted,
       attached,
       skipped,
+      required,
       durationMs: Date.now() - startedAt,
       peers: attached.map((id) => ({
         id,

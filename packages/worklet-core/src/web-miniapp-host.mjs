@@ -535,7 +535,6 @@ export function createWebWorkletMiniappHost(options) {
       deviceManager.inventory(),
       deviceManager.diagnostics()
     ]);
-    const appId = host.snapshot().appId;
     options.send({
       type: "device-state",
       inventory,
@@ -544,7 +543,8 @@ export function createWebWorkletMiniappHost(options) {
       indicators: deviceManager.activeIndicators(),
       disabledClasses: deviceManager.disabledClasses(),
       remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled(),
-      shareOffers: appId === null ? [] : deviceManager.listShareOffers(appId)
+      // Host chrome shows every live share, including when no mini-app is foreground.
+      shareOffers: deviceManager.listLiveShareOffers()
     });
   }
 
@@ -761,6 +761,26 @@ export function createWebWorkletMiniappHost(options) {
       const revoked = deviceManager.revokeShareOfferFromChrome(appId, id);
       await pushDeviceChromeState();
       return revoked;
+    },
+
+    /** Harness/Maestro only: seed a short-TTL share offer so stop-sharing chrome is visible. */
+    async seedShareOfferForTest(options = {}) {
+      const ttlMs = typeof options.ttlMs === "number" ? options.ttlMs : 15 * 60_000;
+      const offer = deviceManager.grantShareOffer({
+        appId: typeof options.appId === "string" ? options.appId : "line-check",
+        targetKind: "peer",
+        targetId: typeof options.targetId === "string" ? options.targetId : "peer-ana",
+        displayLabel: typeof options.displayLabel === "string" ? options.displayLabel : "Ana",
+        classId: options.classId === "camera" ? "camera" : "microphone",
+        tierId: typeof options.tierId === "string" ? options.tierId : "pcm",
+        maxRung: typeof options.maxRung === "string" ? options.maxRung : "16k-opus",
+        ttlMs
+      });
+      await pushDeviceChromeState();
+      setTimeout(() => {
+        void pushDeviceChromeState();
+      }, Math.max(50, ttlMs + 50));
+      return offer;
     },
 
     /** Called by the host delivery path for a verified inbound invitation. */

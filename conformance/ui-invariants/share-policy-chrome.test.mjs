@@ -4,8 +4,9 @@ import { describe, expect, it } from "vitest";
 /**
  * G8: every write to "who may receive my camera or microphone" happens in host
  * chrome. `npm run test:share-policy` drives the desktop renderer for real;
- * these invariants hold the mobile and web surfaces to the same contract until
- * a device-run Maestro flow exists.
+ * these invariants hold the mobile and web surfaces to the same contract.
+ * Device-run Maestro coverage lives in `.maestro/share-policy.yaml` (skippable
+ * via `test:ios-sim:share-policy` / `test:android-emulator:share-policy`).
  */
 const surfaces = [
   { name: "desktop renderer", path: "apps/host-desktop/src/renderer/app.js" },

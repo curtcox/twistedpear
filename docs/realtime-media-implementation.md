@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-31
+audited: 2026-08-01
 register: software
 -->
 
@@ -13,12 +13,12 @@ claim.
 
 | Phase | Current implementation evidence | Exit evidence | State |
 |---|---|---|---|
-| 1 · Measurement | Pure estimator with a passive observation window, app-scoped authenticated-route roster, long-polled watch, bounded confirmed probe service, encoding-aware host-only admission; shared `TPL1` codec in `packages/protocol`; `meterHostPeerRoute` on the desktop, mobile, and web peer routes | `npm test`, `npm run sansio`, SPEC-STREAM admission checks; `npm run test:local-multipeer` measures a real probe RTT per ordered pair | Complete: shipping hosts meter delivered bytes and a summary reports `observed` only once measured, `declared` otherwise |
-| 2 · Two-sided truth | Readiness validation/bucketing and named limiter reservations | Protocol tests prove refusal collapse; `npm run test:local-multipeer` records a decoded, re-validated readiness answer per ordered pair | Complete for two headless peers; GUI peers in the matrix are unrecorded |
-| 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome | `npm run test:share-policy` drives the desktop renderer for grant, revoke, expiry, restart, and indicator; `conformance/ui-invariants` holds mobile and web to the same contract | Incomplete: no device-run Maestro flow (the mobile banner needs a live share offer from a running app) |
-| 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback; concrete `PlaneStreamEgressFactory` openers for WebRTC / Pears-bulk / Reticulum (via the peer-route bridge), a derived-only CAS snapshot opener, a live Pears Hyperdrive append path for latency-tolerant rungs (desktop/mobile), and a host WebRTC *media-track* opener (`createWebRtcMediaTrackPlaneOpener` / `createDelegatedWebRtcMediaPlaneOpener`) preferred over the data-channel path; web and desktop shipping hosts wire `openWebRtcMediaPlane` so attach runs in the Chromium renderer via `getUserMedia` + `addTrack` (desktop also negotiates WebRTC candidates alongside Reticulum and owns SDP/data-channel in `peer-webrtc-bridge.js`) | `npm run formal:stream`; `npm run test:local-multipeer` carries derived and PCM `TPD2` frames between peers and echoes them back; peer-discovery and miniapp-runtime unit coverage for track attach, delegated attach, and data-channel fallback | Incomplete: desktop↔desktop / web↔web live call bytes after invite accept are unrecorded |
+| 1 · Measurement | Pure estimator with a passive observation window, app-scoped authenticated-route roster, long-polled watch, bounded confirmed probe service, encoding-aware host-only admission; shared `TPL1` codec in `packages/protocol`; `meterHostPeerRoute` on the desktop, mobile, and web peer routes | `npm test`, `npm run sansio`, SPEC-STREAM admission checks; `npm run test:local-multipeer` measures a real probe RTT per ordered pair; `npm run test:local-multipeer:desktop` includes Electron | Complete: shipping hosts meter delivered bytes and a summary reports `observed` only once measured, `declared` otherwise; desktop is required evidence via `test:local-multipeer:desktop` |
+| 2 · Two-sided truth | Readiness validation/bucketing and named limiter reservations | Protocol tests prove refusal collapse; `npm run test:local-multipeer` records a decoded, re-validated readiness answer per ordered pair; `npm run test:local-multipeer:desktop` records the same with Electron attached (`LOCAL_MULTIPEER_REQUIRED=1`) | Complete for headless and desktop GUI; iOS/Android simulator peers remain optional until a device-run matrix |
+| 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome; harness `device-test-seed-share` seeds a live offer for Maestro without a peer | `npm run test:share-policy` drives the desktop renderer for grant, revoke, expiry, restart, and indicator; `conformance/ui-invariants` holds mobile and web to the same contract; `.maestro/share-policy.yaml` + `npm run test:android-emulator:share-policy` / `test:ios-sim:share-policy` (skip unless device+Maestro; set `SHARE_POLICY_REQUIRED=1`) | Incomplete: Maestro flow authored and skippable; device-run pass not yet recorded on this host |
+| 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback; concrete `PlaneStreamEgressFactory` openers for WebRTC / Pears-bulk / Reticulum (via the peer-route bridge), CAS snapshots, live Pears Hyperdrive append, and a host WebRTC media-track opener; test hosts enable Chromium fake A/V and meter `getStats` bytes; `npm run test:webrtc-gui-call` pairs two Electron hosts after invite accept, attaches a microphone track via `replaceTrack`, and records outbound RTP into `webrtc-gui-call-proof.json` `callsWebRtc`; `npm run test:webrtc-gui-call:web` does the same for two Chromium web hosts (`webrtc-gui-call-web-proof.json`) via a Node control bridge | `npm run formal:stream`; `npm run test:local-multipeer`; `npm run test:webrtc-gui-call`; `npm run test:webrtc-gui-call:web` | Complete for desktop↔desktop and web↔web WebRTC track bytes after invite accept |
 | 5 · Codecs and duplex | Encoding-aware demand, codec effect boundary, browser/desktop raw RGBA/PCM capture, WebCodecs mono Opus, browser voice-processing constraints | `npm run test:sim-media-ladder` proves collapse, recovery, settling, and hysteresis across four link profiles and four transport classes | Incomplete: real desktop↔desktop and desktop↔simulator audio calls are not recorded |
-| 6 · Signaling and app | Verified/replay-bounded invite service wired into the desktop, mobile, and web worklet hosts with host-chrome banners and accept-only foreground launch; `TPL1` type-4 invite wire form and the host-neutral `createSessionInviteReceiver` carrier; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks; shipping hosts own a persistent `lxmf.delivery` destination via `createHostLxmfDelivery` (desktop 60s re-announce; mobile/web announce-once + resume) so invites raise chrome without a mounted test agent; test-agent `accept-invite` / `send-call` prove post-accept call media bytes on the live LXMF path in `npm run test:local-multipeer` | Cookbook pack/start/render passes; `npm run test:share-policy` drives invite accept/decline and the chrome arc invite → live call → honest degrade → kill → revoke; `conformance/ui-invariants` cover the invite chrome; `npm run test:local-multipeer` carries a signed invite between peers, raises it per ordered pair, accepts it, and round-trips post-accept PCM call frames into `multipeer-proof.json` `calls`; host-core unit coverage for `createHostLxmfDelivery` and accept→call | Incomplete: desktop↔desktop / web↔web GUI call bytes (WebRTC tracks after accept) remain unrecorded; GUI peers in the multipeer matrix remain unrecorded |
+| 6 · Signaling and app | Verified/replay-bounded invite service wired into the desktop, mobile, and web worklet hosts with host-chrome banners and accept-only foreground launch; `TPL1` type-4 invite wire form and the host-neutral `createSessionInviteReceiver` carrier; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks; shipping hosts own a persistent `lxmf.delivery` destination via `createHostLxmfDelivery` (desktop 60s re-announce; mobile/web announce-once + resume) so invites raise chrome without a mounted test agent; test-agent `accept-invite` / `send-call` prove post-accept call media bytes on the live LXMF path in `npm run test:local-multipeer` (and `test:local-multipeer:desktop`); GUI test-agent accept tolerates a missing Line Check install so the LXMF call proof matches tp-node; web peers attach via a Node→page control bridge (`test:webrtc-gui-call:web`) | Cookbook pack/start/render passes; `npm run test:share-policy` drives invite accept/decline and the chrome arc invite → live call → honest degrade → kill → revoke; `conformance/ui-invariants` cover the invite chrome; `npm run test:local-multipeer` / `:desktop` carry a signed invite between peers, raise it per ordered pair, accept it, and round-trip post-accept PCM call frames into `multipeer-proof.json` `calls`; host-core unit coverage for `createHostLxmfDelivery` and accept→call; web↔web invite→pair→track bytes in `webrtc-gui-call-web-proof.json` | Complete for desktop and web GUI invite→WebRTC track path; iOS/Android multipeer peers remain optional |
 | 7 · Hardware | No claim | LAN/BLE/RNode calls plus battery and airtime entries in `STATUS-HARDWARE.md` | Hardware-gated |
 
 ## Security invariants already enforced
@@ -45,22 +45,25 @@ claim.
 
 ## Next authoritative exits
 
-1. Add a device-run Maestro flow for share grant, revoke, expiry, restart clearing, and
-   the persistent indicator once the harness can bring up a sharing app on a simulator.
-2. Record desktop↔desktop or web↔web GUI call bytes after invite accept on the WebRTC
-   track path (headless hub↔node2 already records post-accept LXMF call media in
-   `multipeer-proof.json` `calls` via `accept-invite` / `send-call`). The chrome arc is
-   already driven by `npm run test:share-policy`.
-3. Carry GUI peers through `npm run test:local-multipeer` so the metered route telemetry
-   is recorded on desktop and simulator peers, not only on headless ones.
-4. Run the hardware matrix and update `STATUS-HARDWARE.md` only from captured evidence.
+1. Record a device-run Maestro share-policy pass (`npm run test:ios-sim:share-policy` or
+   `test:android-emulator:share-policy` with Maestro + a booted sim/emulator; flow is
+   `.maestro/share-policy.yaml`).
+2. Carry iOS/Android simulator peers through `npm run test:local-multipeer` with
+   `LOCAL_MULTIPEER_REQUIRED=1` (desktop is covered by `npm run test:local-multipeer:desktop`;
+   web↔web WebRTC track bytes are covered by `npm run test:webrtc-gui-call:web`).
+3. Run the hardware matrix and update `STATUS-HARDWARE.md` only from captured evidence.
 
 ## Commands that produce this evidence
 
 ```sh
 npm run check:fast
 npm run test:local-multipeer
+npm run test:local-multipeer:desktop
+npm run test:webrtc-gui-call
+npm run test:webrtc-gui-call:web
 npm run test:share-policy
+npm run test:android-emulator:share-policy
+npm run test:ios-sim:share-policy
 npm run test:sim-media-ladder
 npm run formal:stream
 ```

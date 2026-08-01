@@ -929,7 +929,11 @@ export default function App() {
               <Text style={styles.deviceActiveBannerText}>
                 {offer.appId} · sharing {offer.classId}:{offer.tierId} with {offer.displayLabel}
               </Text>
-              <Pressable style={styles.dangerButton} onPress={() => sendToWorklet({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}>
+              <Pressable
+                testID="device-stop-sharing"
+                style={styles.dangerButton}
+                onPress={() => sendToWorklet({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}
+              >
                 <Text style={styles.buttonLabel}>Stop sharing</Text>
               </Pressable>
             </View>
@@ -1002,6 +1006,34 @@ export default function App() {
                 platform: Platform.OS
               });
               appendLog(`Test agent requested on port ${TEST_AGENT_PORT}`);
+            }}
+          />
+          <ActionButton
+            testID="seed-share-offer"
+            label="Seed share offer"
+            onPress={() => {
+              sendToWorklet({
+                type: "device-test-seed-share",
+                appId: "line-check",
+                displayLabel: "Ana",
+                classId: "microphone",
+                ttlMs: 15 * 60_000
+              });
+              appendLog("Seeded share offer for chrome probe");
+            }}
+          />
+          <ActionButton
+            testID="seed-share-offer-short"
+            label="Seed short share"
+            onPress={() => {
+              sendToWorklet({
+                type: "device-test-seed-share",
+                appId: "line-check",
+                displayLabel: "Ana",
+                classId: "microphone",
+                ttlMs: 3_000
+              });
+              appendLog("Seeded short-TTL share offer");
             }}
           />
         </View>

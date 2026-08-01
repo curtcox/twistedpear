@@ -22,6 +22,8 @@ export const HUB_PORT = 4242;
 export const WEB_GATEWAY_PORT = 9480;
 /** Playwright CDP endpoint used by the cross-device web driver. */
 export const WEB_CDP_PORT = 34992;
+/** Second web peer CDP (isolated Chromium profile). */
+export const WEB2_CDP_PORT = 34994;
 export const DESKTOP_CDP_PORT = 34991;
 
 export function ensureStateDirs() {

@@ -61,7 +61,7 @@ export function validatePeerInvitation(invitation: PeerInvitation, now?: number)
   if (!Array.isArray(invitation.candidates) || invitation.candidates.length > MAX_PEER_CANDIDATES) throw new PeerInvitationError("MALFORMED", "too many candidates");
   for (const candidate of invitation.candidates) {
     if (!(["reticulum", "webrtc", "gateway"] as const).includes(candidate.kind)) throw new PeerInvitationError("MALFORMED", "invalid candidate kind");
-    assertBytes(candidate.value, "candidate", 1, 4096);
+    assertBytes(candidate.value, "candidate", 1, 16_384);
   }
   assertText(invitation.display, "display", 0, MAX_PEER_DISPLAY_LENGTH);
   if (!Number.isSafeInteger(invitation.issuedAt) || !Number.isSafeInteger(invitation.expiresAt) || invitation.expiresAt <= invitation.issuedAt || invitation.expiresAt - invitation.issuedAt > MAX_PEER_INVITATION_LIFETIME_MS) {
