@@ -93,8 +93,21 @@ async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
   if (typeof pc.getStats !== "function") return 0;
   const report = await pc.getStats();
   let bytes = 0;
-  for (const entry of report.values()) {
-    if (entry.type === "outbound-rtp" && typeof entry.bytesSent === "number") bytes += entry.bytesSent;
+  const values: Iterable<unknown> =
+    report != null && typeof (report as { values?: () => Iterable<unknown> }).values === "function"
+      ? (report as { values: () => Iterable<unknown> }).values()
+      : Array.isArray(report)
+        ? report
+        : report != null && typeof report === "object"
+          ? Object.values(report as Record<string, unknown>)
+          : [];
+  for (const entry of values) {
+    if (entry == null || typeof entry !== "object") continue;
+    const row = entry as { type?: string; bytesSent?: number };
+    const type = String(row.type ?? "").toLowerCase();
+    if ((type === "outbound-rtp" || type === "outboundrtp") && typeof row.bytesSent === "number") {
+      bytes += row.bytesSent;
+    }
   }
   return bytes;
 }

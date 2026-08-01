@@ -7,6 +7,7 @@
  * Default: hub + desktop + desktop2 (Electron).
  * Web:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,web,web2
  * iOS:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,desktop,ios
+ * iOS offer: LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,ios,desktop
  *
  *   LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs
  */
@@ -173,6 +174,7 @@ await runMain(async () => {
     let media = null;
     let elapsedMs = null;
     let rightLxmf = null;
+    let recordedCallsWebRtc = null;
     try {
       for (const id of [leftId, rightId]) {
         const info = await control.info(id);
@@ -239,39 +241,78 @@ await runMain(async () => {
       step(`paired ${leftId}↔${rightId} over webrtc (${left.displayLabel} / ${right.displayLabel})`);
 
       section("WebRTC track attach");
-      const at = Date.now();
-      media = await control.command(
-        leftId,
-        "webrtc-open-media",
-        { appId: "line-check", handleId: left.handleId, classId: "microphone" },
-        60_000
-      );
-      assert(media.attached === true, "WebRTC media attach failed");
-      assert(media.plane === "webrtc-track", `unexpected plane ${media.plane}`);
-      assert(typeof media.bytesSent === "number" && media.bytesSent > 0, `expected outbound RTP bytes, got ${media.bytesSent}`);
-      elapsedMs = Date.now() - at;
-      step(`${leftId} attached microphone track (${media.bytesSent} bytesSent, ${elapsedMs}ms)`);
-      if (media.voiceProcessing?.echoCancellation === true) {
-        step(`${leftId} voice-duplex AEC constraints on track attach`);
-      }
+      const callsWebRtc = [];
+      const attachTrack = async (fromId, handleId, toId, toLxmf) => {
+        const at = Date.now();
+        const attached = await control.command(
+          fromId,
+          "webrtc-open-media",
+          { appId: "line-check", handleId, classId: "microphone" },
+          60_000
+        );
+        assert(attached.attached === true, `${fromId} WebRTC media attach failed: ${attached.error ?? "unknown"}`);
+        assert(attached.plane === "webrtc-track", `${fromId} unexpected plane ${attached.plane}`);
+        assert(
+          typeof attached.bytesSent === "number" && attached.bytesSent > 0,
+          `${fromId} expected outbound RTP bytes, got ${attached.bytesSent}`
+        );
+        const tookMs = Date.now() - at;
+        step(`${fromId} attached microphone track (${attached.bytesSent} bytesSent, ${tookMs}ms)`);
+        if (attached.voiceProcessing?.echoCancellation === true) {
+          step(`${fromId} voice-duplex AEC constraints on track attach`);
+        }
+        callsWebRtc.push({
+          from: fromId,
+          to: toId,
+          inviteId,
+          bytes: attached.bytesSent,
+          plane: "webrtc-track",
+          elapsedMs: tookMs,
+          handleId,
+          sessionId: attached.sessionId,
+          peerDestinationHash: toLxmf,
+          voiceProcessing: attached.voiceProcessing ?? null
+        });
+        return attached;
+      };
+
+      media = await attachTrack(leftId, left.handleId, rightId, rightLxmf);
+      elapsedMs = callsWebRtc[0]?.elapsedMs ?? null;
       if (callsOpusDuplex !== null) {
         callsOpusDuplex = { ...callsOpusDuplex, voiceProcessing: media.voiceProcessing ?? null };
       }
+
+      // Optional mobile-originated attach when the mobile peer is the answerer.
+      // Prefer --peers=hub,ios,desktop so iOS is left/offer and attaches first.
+      const mobileId = [leftId, rightId].find((id) => id === "ios" || id === "android");
+      if (mobileId !== undefined && mobileId !== leftId) {
+        const mobile = mobileId === leftId ? left : right;
+        const otherId = mobileId === leftId ? rightId : leftId;
+        const otherLxmf = mobileId === leftId ? rightLxmf : control.agent(leftId).lxmfAddress;
+        try {
+          await attachTrack(mobileId, mobile.handleId, otherId, otherLxmf);
+        } catch (mobileError) {
+          step(
+            `${mobileId}-originated attach deferred: ${
+              mobileError instanceof Error ? mobileError.message : String(mobileError)
+            }`
+          );
+        }
+      }
+
+      // Keep `media` as the left→right attach for legacy single-entry readers; proof uses the full list.
+      recordedCallsWebRtc = callsWebRtc;
     } catch (error) {
       if (callsOpusDuplex === null) throw error;
       // Opus already proved; persist that evidence even when invite/WebRTC flakes.
       step(`invite/WebRTC path failed after Opus evidence: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    const proof = {
-      generatedAt: new Date().toISOString(),
-      peers: wanted,
-      ...(left !== null && right !== null ? { paired: { [leftId]: left, [rightId]: right } } : {}),
-      ...(inviteId === null ? {} : { inviteId }),
-      ...(media === null || inviteId === null || rightLxmf === null || elapsedMs === null
-        ? {}
-        : {
-            callsWebRtc: [
+    const webRtcEntries =
+      recordedCallsWebRtc !== null && recordedCallsWebRtc.length > 0
+        ? recordedCallsWebRtc
+        : media !== null && inviteId !== null && rightLxmf !== null && elapsedMs !== null && left !== null
+          ? [
               {
                 from: leftId,
                 to: rightId,
@@ -285,7 +326,14 @@ await runMain(async () => {
                 voiceProcessing: media.voiceProcessing ?? null
               }
             ]
-          }),
+          : null;
+
+    const proof = {
+      generatedAt: new Date().toISOString(),
+      peers: wanted,
+      ...(left !== null && right !== null ? { paired: { [leftId]: left, [rightId]: right } } : {}),
+      ...(inviteId === null ? {} : { inviteId }),
+      ...(webRtcEntries === null ? {} : { callsWebRtc: webRtcEntries }),
       ...(callsOpusDuplex === null ? {} : { callsOpusDuplex: [callsOpusDuplex] })
     };
     mkdirSync(stateRoot, { recursive: true });
@@ -293,20 +341,22 @@ await runMain(async () => {
     writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
 
     section("Result");
-    if (media !== null) {
-      step(`callsWebRtc bytes=${media.bytesSent} plane=webrtc-track`);
+    if (webRtcEntries !== null) {
+      for (const entry of webRtcEntries) {
+        step(`callsWebRtc ${entry.from}→${entry.to} bytes=${entry.bytes} plane=${entry.plane}`);
+      }
     }
     if (callsOpusDuplex !== null) {
       step(`callsOpusDuplex opusBytes=${callsOpusDuplex.opusBytes} peerPlayed=true`);
     }
     step(`proof: ${proofPath}`);
-    if (media === null && callsOpusDuplex === null) {
+    if (webRtcEntries === null && callsOpusDuplex === null) {
       assert(false, "neither WebRTC track bytes nor Opus duplex evidence was recorded");
     }
     // Mobile peers already have recorded WebRTC track-byte proofs; Opus-only is
     // enough to close the Phase 5 codec exit when invite/WebRTC flakes afterward.
     const mobilePeer = leftId === "ios" || rightId === "ios" || leftId === "android" || rightId === "android";
-    if (media === null && !(mobilePeer && callsOpusDuplex !== null)) {
+    if (webRtcEntries === null && !(mobilePeer && callsOpusDuplex !== null)) {
       assert(false, "Opus duplex recorded, but invite/WebRTC path did not complete");
     }
   } finally {
