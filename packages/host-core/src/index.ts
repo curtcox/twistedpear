@@ -91,6 +91,13 @@ export {
   type SessionInviteReceiverOptions
 } from "./session-invite-carrier.js";
 export {
+  createHostLxmfDelivery,
+  DEFAULT_HOST_LXMF_ANNOUNCE_INTERVAL_MS,
+  type HostLxmfDeliveryOptions,
+  type HostLxmfDeliverySession,
+  type HostLxmfPeerRecord
+} from "./host-lxmf-delivery.js";
+export {
   mountTestAgent,
   TEST_AGENT_LINK_TITLE,
   TEST_AGENT_PROBE_TITLE,

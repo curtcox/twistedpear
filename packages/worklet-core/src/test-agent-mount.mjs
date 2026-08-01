@@ -20,6 +20,7 @@ import { mountTestAgent } from "../../host-core/dist/test-agent.js";
  *   log?: (line: string) => void
  *   handleCommand?: (request: Record<string, unknown>) => Promise<Record<string, unknown>>
  *   receiveSessionInvite?: (invite: Record<string, unknown>) => Promise<void>
+ *   delivery?: unknown
  * }} options
  */
 export function connectTestAgent(options) {
@@ -35,6 +36,9 @@ export function connectTestAgent(options) {
     // A host with a mini-app runtime routes the verified invite into its own
     // chrome; the agent only records that it did.
     ...(options.receiveSessionInvite === undefined ? {} : { receiveSessionInvite: options.receiveSessionInvite }),
+    // Prefer the shipping host delivery destination when the host already owns
+    // one — invites must not require the agent to be mounted.
+    ...(options.delivery === undefined ? {} : { delivery: options.delivery }),
     ...(options.log === undefined ? {} : { log: options.log })
   });
 }

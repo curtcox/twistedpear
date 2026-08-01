@@ -18,7 +18,7 @@ claim.
 | 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome | `npm run test:share-policy` drives the desktop renderer for grant, revoke, expiry, restart, and indicator; `conformance/ui-invariants` holds mobile and web to the same contract | Incomplete: no device-run Maestro flow (the mobile banner needs a live share offer from a running app) |
 | 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback | `npm run formal:stream`; `npm run test:local-multipeer` carries derived and PCM `TPD2` frames between peers and echoes them back | Complete for the LXMF carrier; concrete WebRTC/Pears/CAS plane openers are still absent |
 | 5 · Codecs and duplex | Encoding-aware demand, codec effect boundary, browser/desktop raw RGBA/PCM capture, WebCodecs mono Opus, browser voice-processing constraints | `npm run test:sim-media-ladder` proves collapse, recovery, settling, and hysteresis across four link profiles and four transport classes | Incomplete: real desktop↔desktop and desktop↔simulator audio calls are not recorded |
-| 6 · Signaling and app | Verified/replay-bounded invite service wired into the desktop, mobile, and web worklet hosts with host-chrome banners and accept-only foreground launch; `TPL1` type-4 invite wire form and the host-neutral `createSessionInviteReceiver` carrier; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks | Cookbook pack/start/render passes; `npm run test:share-policy` and `conformance/ui-invariants` cover the invite chrome; `npm run test:local-multipeer` carries a signed invite between peers and raises it per ordered pair | Incomplete: shipping hosts still have no always-on LXMF delivery destination of their own, so the carrier runs on the mounted agent's router |
+| 6 · Signaling and app | Verified/replay-bounded invite service wired into the desktop, mobile, and web worklet hosts with host-chrome banners and accept-only foreground launch; `TPL1` type-4 invite wire form and the host-neutral `createSessionInviteReceiver` carrier; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks; shipping hosts own a persistent `lxmf.delivery` destination via `createHostLxmfDelivery` (desktop 60s re-announce; mobile/web announce-once + resume) so invites raise chrome without a mounted test agent | Cookbook pack/start/render passes; `npm run test:share-policy` and `conformance/ui-invariants` cover the invite chrome; `npm run test:local-multipeer` carries a signed invite between peers and raises it per ordered pair; host-core unit coverage for `createHostLxmfDelivery` | Incomplete: recorded invite → accept → call → degrade → revoke on shipping hosts is still outstanding; GUI peers in the multipeer matrix remain unrecorded |
 | 7 · Hardware | No claim | LAN/BLE/RNode calls plus battery and airtime entries in `STATUS-HARDWARE.md` | Hardware-gated |
 
 ## Security invariants already enforced
@@ -47,11 +47,9 @@ claim.
 
 1. Add a device-run Maestro flow for share grant, revoke, expiry, restart clearing, and
    the persistent indicator once the harness can bring up a sharing app on a simulator.
-2. Give desktop, mobile, and web hosts a persistent LXMF delivery destination so
-   `createSessionInviteReceiver` runs without a mounted test agent, then record the
-   invite → accept → call → degrade → revoke flow. This is an announce-cadence and
-   battery-policy decision, not a media-protocol gap: the wire form, the verification
-   rules, and the carrier are shipping code and are proved over a real network by
+2. Record the invite → accept → call → degrade → revoke flow on shipping hosts now that
+   `createHostLxmfDelivery` owns the always-on destination (desktop/mobile/web). The
+   wire form, verification rules, and carrier remain proved over a real network by
    `npm run test:local-multipeer`.
 3. Carry GUI peers through `npm run test:local-multipeer` so the metered route telemetry
    is recorded on desktop and simulator peers, not only on headless ones.

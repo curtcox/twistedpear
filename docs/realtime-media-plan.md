@@ -33,12 +33,13 @@ ladder collapses and recovers under adversarial link profiles in
 `npm run test:sim-media-ladder`; and the share-policy and invitation chrome is driven end
 to end in `npm run test:share-policy`. Desktop, mobile, and web peer routes now meter the
 bytes that actually move, so a summary says `observed` only once something was measured
-and `declared` otherwise — Line Check keeps saying “probably” for the rest. The remaining
-work is host integration rather than protocol shape: a persistent host LXMF delivery
-destination so invitations arrive without a mounted agent, concrete plane openers and
-codec drivers, device-run mobile chrome probes, GUI peers in the multipeer matrix, and
-hardware evidence. Until those adapters are present, hosts must keep rejecting
-unconfigured streams.
+and `declared` otherwise — Line Check keeps saying “probably” for the rest. Shipping hosts
+also own a persistent LXMF delivery destination (`createHostLxmfDelivery`) so invitations
+can raise trusted chrome without a mounted test agent. The remaining work is host
+integration evidence rather than protocol shape: a recorded invite → accept → call →
+degrade → revoke flow on shipping hosts, concrete plane openers and codec drivers,
+device-run mobile chrome probes, GUI peers in the multipeer matrix, and hardware evidence.
+Until those adapters are present, hosts must keep rejecting unconfigured streams.
 
 The evaluation below is retained as the design baseline that motivated the implementation.
 

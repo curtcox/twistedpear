@@ -87,6 +87,7 @@ import {
 import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
+import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
 import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, meterHostPeerRoute, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
 
 const { IPC } = BareKit;
@@ -268,6 +269,8 @@ const runtimeStoreKeys = new Set();
 
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
+/** @type {Awaited<ReturnType<typeof createHostLxmfDelivery>> | null} */
+let hostLxmfDelivery = null;
 /** @type {ReturnType<typeof createDevChannelClient> | null} */
 let devChannel = null;
 /** Test-only peer control agent; mounted only by `connect-test-agent`. */
@@ -1452,6 +1455,7 @@ async function stopNode() {
   await stopBleInterface();
   await stopRnodeInterface();
   await stopFreenetInterface();
+  await stopHostLxmfDelivery();
 
   if (reticulum !== null) {
     reticulum.stop();
@@ -1476,6 +1480,11 @@ async function resumeInterfaces() {
 
   log("Resuming interfaces after iOS foreground transition");
   await applyInterfaceConfig();
+  if (hostLxmfDelivery !== null) {
+    await hostLxmfDelivery.announce().catch((error) => {
+      log(`Host LXMF re-announce deferred: ${error instanceof Error ? error.message : String(error)}`);
+    });
+  }
 }
 
 async function resolveIdentity() {
@@ -1565,7 +1574,48 @@ async function ensureReticulum() {
 
   startStatusTimer();
   pushStatus();
+  await ensureHostLxmfDelivery().catch((error) => {
+    log(`Host LXMF delivery deferred: ${error instanceof Error ? error.message : String(error)}`);
+  });
   return reticulum;
+}
+
+/**
+ * Always-on LXMF delivery so session invites raise chrome without a mounted
+ * test agent. Mobile announces once at start and again on foreground resume —
+ * no periodic timer (battery policy).
+ */
+async function ensureHostLxmfDelivery() {
+  if (hostLxmfDelivery !== null) {
+    return hostLxmfDelivery;
+  }
+  const node = await ensureReticulum();
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    throw new Error("identity unavailable");
+  }
+  hostLxmfDelivery = await createHostLxmfDelivery({
+    reticulum: node,
+    provider,
+    identity,
+    announceIntervalMs: 0,
+    receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
+    isInvitableApp: (appId) => {
+      const { installedStore: installed } = ensureCatalog();
+      return installed.activeVersion(appId) !== undefined || appId === "line-check";
+    },
+    log
+  });
+  log(`Host LXMF delivery ready (${hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`);
+  return hostLxmfDelivery;
+}
+
+async function stopHostLxmfDelivery() {
+  if (hostLxmfDelivery === null) {
+    return;
+  }
+  await hostLxmfDelivery.stop();
+  hostLxmfDelivery = null;
 }
 
 async function startTcpInterface(targetHost, targetPort) {
@@ -2335,8 +2385,7 @@ async function handleHostMessage(raw) {
         port: message.port,
         log,
         handleCommand: (request) => ensureCrossDeviceTestDriver()(request),
-        // A verified invite from the network reaches host chrome here; no
-        // mini-app code runs until the user accepts in that chrome.
+        delivery: await ensureHostLxmfDelivery(),
         receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);

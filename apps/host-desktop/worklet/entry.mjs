@@ -78,6 +78,7 @@ import {
 } from "../../../packages/worklet-core/src/index.mjs";
 import { IPC } from "./ipc-stdio.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
+import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
 
 const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
 if (!NODE_FALLBACK) {
@@ -337,6 +338,8 @@ let pendingFreenetLocalDirection = 0;
 let packetLogWasmCache = null;
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
+/** @type {Awaited<ReturnType<typeof createHostLxmfDelivery>> | null} */
+let hostLxmfDelivery = null;
 /** @type {FreenetClientContractBackend | null} */
 let freenetBackendImpl = null;
 const freenetBackendProxy = {
@@ -1686,6 +1689,7 @@ async function stopNode() {
   await stopBleInterface();
   await stopRnodeInterface();
   await stopFreenetInterface();
+  await stopHostLxmfDelivery();
 
   if (reticulum !== null) {
     reticulum.stop();
@@ -1800,7 +1804,48 @@ async function ensureReticulum() {
 
   startStatusTimer();
   pushStatus();
+  await ensureHostLxmfDelivery().catch((error) => {
+    log(`Host LXMF delivery deferred: ${error instanceof Error ? error.message : String(error)}`);
+  });
   return reticulum;
+}
+
+/**
+ * Always-on LXMF delivery so session invites raise chrome without a mounted
+ * test agent. Desktop re-announces on a timer; the invite carrier itself never
+ * runs mini-app code.
+ */
+async function ensureHostLxmfDelivery() {
+  if (hostLxmfDelivery !== null) {
+    return hostLxmfDelivery;
+  }
+  const node = await ensureReticulum();
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    throw new Error("identity unavailable");
+  }
+  hostLxmfDelivery = await createHostLxmfDelivery({
+    reticulum: node,
+    provider,
+    identity,
+    announceIntervalMs: 60_000,
+    receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
+    isInvitableApp: (appId) => {
+      const { installedStore: installed } = ensureCatalog();
+      return installed.activeVersion(appId) !== undefined || appId === "line-check";
+    },
+    log
+  });
+  log(`Host LXMF delivery ready (${hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`);
+  return hostLxmfDelivery;
+}
+
+async function stopHostLxmfDelivery() {
+  if (hostLxmfDelivery === null) {
+    return;
+  }
+  await hostLxmfDelivery.stop();
+  hostLxmfDelivery = null;
 }
 
 async function startTcpInterface(targetHost, targetPort) {
@@ -2079,8 +2124,9 @@ async function handleHostMessage(raw) {
         port: message.port,
         log,
         handleCommand: (request) => ensureCrossDeviceTestDriver()(request),
-        // A verified invite from the network reaches host chrome here; no
-        // mini-app code runs until the user accepts in that chrome.
+        // Reuse the shipping delivery destination: invites already raise chrome
+        // without the agent; the agent only drives probes and harness control.
+        delivery: await ensureHostLxmfDelivery(),
         receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);

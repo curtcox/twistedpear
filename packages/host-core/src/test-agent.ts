@@ -21,7 +21,7 @@ import {
   type DuplexConnection,
   type Reticulum
 } from "@twistedpear/reticulum-ts";
-import { LXMFRouter, LXMessageMethod } from "@twistedpear/lxmf-ts";
+import { LXMessageMethod } from "@twistedpear/lxmf-ts";
 import {
   decodeLinkControl,
   encodeLinkControl,
@@ -33,11 +33,14 @@ import {
   type PeerMediaReadiness
 } from "@twistedpear/protocol";
 import {
-  createSessionInviteReceiver,
   sessionInviteContent,
   SESSION_INVITE_TITLE,
   type DeliveredSessionInvite
 } from "./session-invite-carrier.js";
+import {
+  createHostLxmfDelivery,
+  type HostLxmfDeliverySession
+} from "./host-lxmf-delivery.js";
 
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";
@@ -49,7 +52,6 @@ const ECHO_PREFIX = "tp-probe-echo:";
 const REALTIME_PREFIX = "tp-realtime:";
 const REALTIME_ECHO_PREFIX = "tp-realtime-echo:";
 const LINK_PREFIX = "tp-link:";
-const LXMF_DELIVERY_ASPECT = "lxmf.delivery";
 /** Matches the host default: one probe per peer per minute, 8 KiB ceiling. */
 const LINK_PROBE_MAX_BUDGET_BYTES = 8 * 1024;
 const LINK_READINESS_TTL_MS = 60_000;
@@ -155,8 +157,15 @@ export interface TestAgentOptions {
    * Where a verified inbound `session-invite` goes on this host. A host with a
    * mini-app runtime passes `receiveSessionInvite`; a headless peer omits it
    * and the agent only records that chrome would have been raised.
+   * Ignored when `delivery` is provided — that session already owns chrome
+   * delivery; the agent only observes raised invites for the harness.
    */
   readonly receiveSessionInvite?: (invite: DeliveredSessionInvite) => Promise<void>;
+  /**
+   * Reuse the shipping host's LXMF delivery destination. When omitted the agent
+   * creates one, which is what headless peers still do.
+   */
+  readonly delivery?: HostLxmfDeliverySession;
   /** Apps this host will ring. Defaults to the realtime-media cookbook app. */
   readonly invitableApps?: ReadonlyArray<string>;
   readonly log?: (line: string) => void;
@@ -199,17 +208,59 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   const log = options.log ?? (() => {});
   const reconnectWaitMs = options.reconnectWaitMs ?? 1_000;
   const announceIntervalMs = options.announceIntervalMs ?? 10_000;
+  const invitableApps = new Set(options.invitableApps ?? ["line-check"]);
+  const ownsDelivery = options.delivery === undefined;
 
-  const router = new LXMFRouter({ reticulum, provider });
-  const delivery = router.registerDeliveryIdentity(identity);
-  const lxmfAddress = bytesToHex(delivery.hash);
-  const identityHash = bytesToHex(provider.sha256(identity.getPublicKey()).slice(0, 16));
+  const inviteEntries: TestAgentInviteEntry[] = [];
+  /**
+   * The shipping carrier, verbatim. Headless peers create a delivery destination
+   * here; GUI hosts pass the one they already started so invites never depend on
+   * the agent being mounted.
+   */
+  const deliverySession =
+    options.delivery ??
+    (await createHostLxmfDelivery({
+      reticulum,
+      provider,
+      identity,
+      announceIntervalMs: 0, // agent owns the announce timer below
+      receiveSessionInvite: async (invite) => {
+        inviteEntries.push({
+          kind: "raised",
+          id: invite.id,
+          appId: invite.appId,
+          peerLabel: invite.verifiedPeerLabel,
+          requestedClasses: invite.requestedClasses,
+          expiresAt: invite.expiresAt,
+          at: Date.now()
+        });
+        await options.receiveSessionInvite?.(invite);
+      },
+      isInvitableApp: (appId) => invitableApps.has(appId),
+      log
+    }));
+  if (!ownsDelivery) {
+    deliverySession.onInvite((invite) => {
+      inviteEntries.push({
+        kind: "raised",
+        id: invite.id,
+        appId: invite.appId,
+        peerLabel: invite.verifiedPeerLabel,
+        requestedClasses: invite.requestedClasses,
+        expiresAt: invite.expiresAt,
+        at: Date.now()
+      });
+    });
+  }
 
-  const peers = new Map<string, TestAgentPeerRecord>();
+  const router = deliverySession.router;
+  const delivery = deliverySession.delivery;
+  const lxmfAddress = deliverySession.lxmfAddress;
+  const identityHash = deliverySession.identityHash;
+
   const inboxEntries: TestAgentInboxEntry[] = [];
   const realtimeEntries: TestAgentRealtimeEntry[] = [];
   const readinessEntries: TestAgentReadinessEntry[] = [];
-  const inviteEntries: TestAgentInviteEntry[] = [];
   const probeEntries = new Map<string, TestAgentProbeEntry>();
   /** In-flight chunk series, keyed by sender + prefix + nonce. */
   const partials = new Map<string, { parts: Array<string | null> }>();
@@ -219,23 +270,12 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   let stopped = false;
   let connection: DuplexConnection | null = null;
 
+  // Count announces the harness status panel cares about without duplicating
+  // the delivery peer roster owned by `deliverySession`.
   reticulum.registerAnnounceHandler({
-    aspectFilter: LXMF_DELIVERY_ASPECT,
-    receivedAnnounce(info) {
+    aspectFilter: "lxmf.delivery",
+    receivedAnnounce() {
       announcesSeen += 1;
-      const destinationHash = bytesToHex(info.destinationHash);
-      if (destinationHash === lxmfAddress) {
-        return;
-      }
-      const now = Date.now();
-      const existing = peers.get(destinationHash);
-      peers.set(destinationHash, {
-        destinationHash,
-        identityHash: bytesToHex(provider.sha256(info.announcedIdentity.getPublicKey()).slice(0, 16)),
-        firstSeenAt: existing?.firstSeenAt ?? now,
-        lastSeenAt: now,
-        count: (existing?.count ?? 0) + 1
-      });
     }
   });
 
@@ -359,39 +399,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     await sendChunkedHex(toLxmfAddress, TEST_AGENT_REALTIME_TITLE, prefix, nonce, payloadHex);
   };
 
-  const invitableApps = new Set(options.invitableApps ?? ["line-check"]);
-  /**
-   * The shipping carrier, verbatim. What this proves over a real network is
-   * the host path: a signed invite decodes, the peer is named locally, and the
-   * result reaches `receiveSessionInvite`. A headless peer has no chrome to
-   * raise, so it records the invite it would have raised instead.
-   */
-  const receiveInvite = createSessionInviteReceiver({
-    deliver: async (invite) => {
-      inviteEntries.push({
-        kind: "raised",
-        id: invite.id,
-        appId: invite.appId,
-        peerLabel: invite.verifiedPeerLabel,
-        requestedClasses: invite.requestedClasses,
-        expiresAt: invite.expiresAt,
-        at: Date.now()
-      });
-      await options.receiveSessionInvite?.(invite);
-    },
-    isInvitableApp: (appId) => invitableApps.has(appId),
-    resolvePeer: (sourceHashHex) => {
-      // Only a peer whose announce this host has verified can ring it.
-      const peer = peers.get(sourceHashHex);
-      return peer === undefined
-        ? null
-        : { handleId: `invite-peer-${peer.identityHash.slice(0, 12)}`, displayLabel: `peer ${peer.identityHash.slice(0, 8)}` };
-    },
-    now: () => Date.now(),
-    log
-  });
-
-  router.onDelivery((message) => {
+  deliverySession.onMessage((message) => {
     let content: string;
     try {
       content = message.contentAsString();
@@ -399,10 +407,6 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       return;
     }
     const from = bytesToHex(message.sourceHash);
-    if (message.titleAsString() === SESSION_INVITE_TITLE) {
-      receiveInvite(message);
-      return;
-    }
     if (message.titleAsString() === TEST_AGENT_LINK_TITLE) {
       // Undecodable bytes are dropped in silence: this path answers the
       // readiness and probe protocols, it is never a generic echo service.
@@ -483,7 +487,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       linkOnline: interfaces.some((iface) => iface.online),
       interfaceCount: interfaces.length,
       announcesSeen,
-      peerCount: peers.size,
+      peerCount: deliverySession.peers().length,
       inboxCount: inboxEntries.length,
       realtimeInboxCount: realtimeEntries.length,
       readinessCount: readinessEntries.length,
@@ -498,7 +502,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       case "info":
         return { label, platform, identityHash, lxmfAddress };
       case "peers":
-        return { peers: [...peers.values()] };
+        return { peers: deliverySession.peers() };
       case "inbox":
         return { inbox: [...inboxEntries] };
       case "realtime-inbox":
@@ -664,7 +668,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     platform,
     identityHash,
     lxmfAddress,
-    peers: () => [...peers.values()],
+    peers: () => deliverySession.peers(),
     inbox: () => [...inboxEntries],
     status: buildStatus,
     send: (toLxmfAddress, nonce) => sendProbe(toLxmfAddress, `${PROBE_PREFIX}${nonce}`),
@@ -676,6 +680,9 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       }
       await connection?.close().catch(() => {});
       connection = null;
+      if (ownsDelivery) {
+        await deliverySession.stop();
+      }
     }
   };
 }

@@ -68,6 +68,10 @@ Default harness quota: 64 MiB installed (`InstalledPackageStore`).
 ## Propagation and LXMF sync
 
 - Desktop propagation node: cron-friendly; no mobile always-on requirement.
+- Host session-invite delivery: desktop re-announces its `lxmf.delivery` destination
+  about once a minute; mobile and web announce once when the destination comes up and
+  again on foreground/resume — never on a background timer. Signaling still wakes only
+  trusted host chrome (principle 3 unchanged).
 - iOS background fetch/processing: opportunistic sync only (`docs/ios-host.md`).
 - Rate limits: broker 60 msg/s per app; Reticulum interface policy ranks outgoing paths.
 

@@ -3,6 +3,7 @@
  */
 
 import { createWebLeafHost } from "../../../packages/host-core/dist/web.js";
+import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
 import { createWebPackageStorage } from "../../../packages/host-core/dist/web.js";
 import {
   Identity,
@@ -129,6 +130,8 @@ let webConfig = {
 
 /** @type {Awaited<ReturnType<typeof createWebLeafHost>> | null} */
 let hostSession = null;
+/** @type {Awaited<ReturnType<typeof createHostLxmfDelivery>> | null} */
+let hostLxmfDelivery = null;
 /** @type {import("../../../packages/reticulum-ts/dist/web.js").Reticulum | null} */
 let standaloneReticulum = null;
 /** @type {Awaited<ReturnType<typeof createWebPackageStorage>> | null} */
@@ -732,6 +735,10 @@ async function refreshStorageStatus() {
 }
 
 async function stopHostSession() {
+  if (hostLxmfDelivery !== null) {
+    await hostLxmfDelivery.stop();
+    hostLxmfDelivery = null;
+  }
   if (hostSession !== null) {
     await hostSession.stop();
     hostSession = null;
@@ -764,6 +771,17 @@ async function startHostSession() {
     ...(webConfig.sharedToken === undefined ? {} : { sharedToken: webConfig.sharedToken }),
     identity: identityOptions()
   });
+
+  hostLxmfDelivery = await createHostLxmfDelivery({
+    reticulum: hostSession.reticulum,
+    provider: cryptoProvider,
+    identity: hostSession.identity,
+    announceIntervalMs: 0,
+    receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
+    isInvitableApp: (appId) => appId === "line-check",
+    log
+  });
+  log(`Host LXMF delivery ready (${hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`);
 
   hostSession.reticulum.registerAnnounceHandler({
     receivedAnnounce(info) {

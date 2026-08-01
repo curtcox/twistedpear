@@ -13,6 +13,22 @@ export { createResourceFetchPlane, listResourceVersions } from "./fetch-plane-re
 export type { ResourceFetchPlaneOptions } from "./fetch-plane-resource.js";
 export { createWebLeafHost } from "./web-leaf-host.js";
 export type { WebLeafHostOptions, WebLeafHostSession } from "./web-leaf-host.js";
+export {
+  createHostLxmfDelivery,
+  DEFAULT_HOST_LXMF_ANNOUNCE_INTERVAL_MS,
+  type HostLxmfDeliveryOptions,
+  type HostLxmfDeliverySession,
+  type HostLxmfPeerRecord
+} from "./host-lxmf-delivery.js";
+export {
+  createSessionInviteReceiver,
+  sessionInviteContent,
+  SESSION_INVITE_PREFIX,
+  SESSION_INVITE_TITLE,
+  type DeliveredSessionInvite,
+  type SessionInviteCarrierMessage,
+  type SessionInviteReceiverOptions
+} from "./session-invite-carrier.js";
 export { createWebPackageStorage, resetWebPackageStorage } from "./web-package-storage.js";
 export type {
   WebOpfsDirectoryHandle,
