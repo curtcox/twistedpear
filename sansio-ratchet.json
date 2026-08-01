@@ -35,6 +35,7 @@
     "packages/reticulum-interfaces/src/freenet.ts",
     "packages/reticulum-interfaces/src/ble/interface.ts",
     "packages/reticulum-interfaces/src/ble/sim.ts",
+    "packages/reticulum-interfaces/src/sim-peer-channel.ts",
     "packages/reticulum-interfaces/src/optical/interface.ts",
     "packages/reticulum-interfaces/src/optical/sim.ts",
     "packages/reticulum-interfaces/src/acoustic/interface.ts",

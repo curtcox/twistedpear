@@ -556,8 +556,6 @@ export class InterfaceManager {
       name: "host-optical",
       provider: this.provider,
       channel,
-      ...(config.frameRate === undefined ? {} : { frameRate: config.frameRate }),
-      ...(config.colorCodes === undefined ? {} : { colorCodes: config.colorCodes }),
       ...(config.bitrateHint === undefined ? {} : { bitrate: config.bitrateHint }),
       incoming,
       outgoing

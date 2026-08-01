@@ -106,17 +106,21 @@ export {
 } from "./i2p.js";
 
 export {
-  OPTICAL_CHUNK_PAYLOAD_BYTES,
-  OPTICAL_DEFAULT_BITRATE,
   OPTICAL_INTERFACE_MTU,
-  OpticalInterface,
+  OPTICAL_DEFAULT_BITRATE,
+  OpticalInterface
+} from "./optical/interface.js";
+export {
+  OPTICAL_CHUNK_PAYLOAD_BYTES,
   createOpticalReassemblyState,
   reassembleOpticalChunk,
   sliceForDisplay,
-  type OpticalChannel,
-  type OpticalInterfaceOptions,
   type OpticalReassemblyState
-} from "./optical/interface.js";
+} from "./optical/framing.js";
+export {
+  type OpticalChannel,
+  type OpticalInterfaceOptions
+} from "./optical/channel.js";
 export { SimulatedOpticalChannel, type SimulatedOpticalChannelOptions } from "./optical/sim.js";
 
 export {
