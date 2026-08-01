@@ -83,7 +83,9 @@ import {
   createPropagationDestination,
   DEFAULT_PROPAGATION_QUOTAS
 } from "../../../packages/lxmf-ts/dist/index.js";
-import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
+import { decodePeerAudioFrame, decodePeerInvitation, encodeDeviceStreamFrame, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
+import { SimulatedMediaCodecDriver } from "../../../packages/effects/dist/media-codec.js";
+import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
@@ -234,6 +236,14 @@ const freenetBackendProxy = {
 /** @type {Reticulum | null} */
 let reticulum = null;
 let peerSessionManager = null;
+/** @type {Map<string, Set<(payload: Uint8Array) => void>>} */
+const webRtcRouteListeners = new Map();
+/** @type {Map<string, Uint8Array[]>} */
+const webRtcRoutePending = new Map();
+/** @type {Map<string, string>} */
+const webRtcSessionByFingerprint = new Map();
+/** @type {null | ((input: { appId: string; peer: string; demand: any; admission?: any }) => Promise<{ quality?: () => any; close: () => Promise<void>; bytesSent?: number; sessionId?: string; voiceProcessing?: unknown }>)>} */
+let attachWebRtcMediaTrack = null;
 let ntfyUrl = null;
 const peerLinkDestinations = new Map();
 const peerLinks = new Map();
@@ -326,7 +336,7 @@ async function importTrustedPublisher(identityString, label, source = "paste") {
 
 function ensureCrossDeviceTestDriver() {
   if (crossDeviceTestDriver === null) {
-    crossDeviceTestDriver = createCrossDeviceTestDriver({
+    const base = createCrossDeviceTestDriver({
       miniappHost: () => ensureMiniappHost(),
       installedStore: () => ensureCatalog().installedStore,
       runtime,
@@ -340,8 +350,137 @@ function ensureCrossDeviceTestDriver() {
         return encodePublisherIdentity256t(identity.getPublicKey());
       }
     });
+    crossDeviceTestDriver = async (request) => {
+      if (request?.cmd === "media-opus-duplex" || request?.cmd === "media-opus-play") {
+        return handleNativeMediaOpusCommand(request);
+      }
+      if (request?.cmd === "webrtc-open-media") {
+        ensureMiniappHost();
+        if (attachWebRtcMediaTrack === null) {
+          throw new Error("WebRTC media attach is not configured");
+        }
+        const appId = typeof request.appId === "string" ? request.appId : "line-check";
+        const handleId = typeof request.handleId === "string" ? request.handleId : undefined;
+        if (handleId === undefined) throw new Error("webrtc-open-media requires handleId");
+        const classId = request.classId === "camera" ? "camera" : "microphone";
+        const encoding = classId === "camera" ? "480p15" : "16k-opus";
+        const attached = await attachWebRtcMediaTrack({
+          appId,
+          peer: handleId,
+          demand: { classId, tierId: classId === "camera" ? "frames" : "pcm", encoding }
+        });
+        let bytesSent = attached.bytesSent ?? 0;
+        let voiceProcessing = attached.voiceProcessing ?? null;
+        if (bytesSent === 0 && typeof attached.sessionId === "string") {
+          for (let attempt = 0; attempt < 20 && bytesSent === 0; attempt += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            const stats = await requestHostReply(
+              { type: "peer-webrtc-media-stats", token: peerToken(), sessionId: attached.sessionId },
+              10_000
+            );
+            if (typeof stats?.bytesSent === "number") bytesSent = stats.bytesSent;
+          }
+        }
+        return {
+          attached: true,
+          plane: "webrtc-track",
+          handleId,
+          sessionId: attached.sessionId,
+          bytesSent,
+          voiceProcessing,
+          encoding
+        };
+      }
+      return base(request);
+    };
   }
   return crossDeviceTestDriver;
+}
+
+async function handleNativeMediaOpusCommand(request) {
+  if (request.cmd === "media-opus-play") {
+    if (typeof request.dataHex !== "string" || request.dataHex.length < 72) {
+      throw new Error("media-opus-play requires TPD2 dataHex");
+    }
+    const encoding = typeof request.encoding === "string" ? request.encoding : "16k-opus";
+    const played = await requestHostReply(
+      {
+        type: "media-opus-play-request",
+        token: peerToken(),
+        encoding,
+        dataHex: request.dataHex
+      },
+      15_000
+    );
+    if (played?.error !== undefined || played?.played !== true) {
+      throw new Error(played?.error ?? "Opus speaker playback failed");
+    }
+    return { played: true, encoding, bytes: Math.floor(request.dataHex.length / 2) };
+  }
+
+  const configuration = {
+    codec: "opus",
+    sampleKind: "audio",
+    bitrateBps: 24_000,
+    sampleRate: 16_000,
+    channels: 1,
+    voiceDuplex: true
+  };
+  const driver = new SimulatedMediaCodecDriver();
+  if (!driver.supports(configuration)) {
+    throw new Error("Simulated media codec does not admit Opus");
+  }
+  const sampleCount = 960;
+  const samples = new Float32Array(sampleCount);
+  for (let index = 0; index < sampleCount; index += 1) {
+    samples[index] = Math.sin((2 * Math.PI * 440 * index) / 16_000) * 0.25;
+  }
+  const pcmBytes = new Uint8Array(
+    samples.buffer.slice(samples.byteOffset, samples.byteOffset + samples.byteLength)
+  );
+  const captureAtUs = Date.now() * 1_000;
+  const encoded = await driver.encode(configuration, { captureAtUs, bytes: pcmBytes });
+  if (encoded.bytes.length === 0) {
+    throw new Error("Opus encode produced empty payload");
+  }
+  const decoded = await driver.decode(configuration, encoded);
+  if (decoded.bytes.length < 4) {
+    throw new Error("Opus decode produced empty PCM");
+  }
+  const frame = encodeDeviceStreamFrame({
+    version: 2,
+    sampleKind: 2,
+    sessionToken: 7,
+    sequence: 0,
+    captureAtUs,
+    clockId: 7,
+    payload: encoded.bytes
+  });
+  const played = await requestHostReply(
+    {
+      type: "media-opus-play-request",
+      token: peerToken(),
+      encoding: "16k-opus",
+      dataHex: bytesToHex(frame)
+    },
+    15_000
+  );
+  if (played?.error !== undefined || played?.played !== true) {
+    throw new Error(played?.error ?? "Opus speaker playback failed");
+  }
+  await driver.close();
+  return {
+    ok: true,
+    implementation: driver.implementation,
+    voiceDuplex: true,
+    encoding: "16k-opus",
+    pcmBytes: pcmBytes.length,
+    opusBytes: encoded.bytes.length,
+    decodedBytes: decoded.bytes.length,
+    frameBytes: frame.length,
+    frameHex: bytesToHex(frame),
+    played: true
+  };
 }
 
 function ensureDevChannel() {
@@ -418,12 +557,60 @@ function ensureMiniappHost() {
       realtimeReservations: { reserveRealtime: (bytesPerSecond) => outboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
       controlReservations: { reserveControl: (bytesPerSecond) => outboundBandwidthLimiter.reserve("control", bytesPerSecond) },
       onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
-      async openMediaCodec(configuration) {
-        return { implementation: "mediacodec", supports(candidate) { return candidate.sampleKind === "audio" && candidate.codec === "pcm"; }, async encode(_candidate, sample) { return { ...sample, bytes: sample.bytes.slice(), codec: "pcm" }; }, async decode(_candidate, sample) { return { captureAtUs: sample.captureAtUs, bytes: sample.bytes.slice() }; }, async close() {} };
+      async openMediaCodec(_configuration) {
+        // Simulated driver admits Opus until a real mobile Opus implementation
+        // (bundled-opus / platform codecs) ships; encode/decode are identity transforms.
+        return new SimulatedMediaCodecDriver();
       },
       openCasPlane: {
         put: (frame) => ensureEntryCasStore().put(frame)
       },
+      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(
+        (attachWebRtcMediaTrack = async ({ appId, peer, demand }) => {
+          const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
+          if (confirmed?.dataPlane !== "webrtc") {
+            throw new Error("No authenticated WebRTC route for media tracks.");
+          }
+          const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
+          if (sessionId === undefined) {
+            throw new Error("WebRTC session is missing for media track attach.");
+          }
+          const reply = await requestHostReply(
+            {
+              type: "peer-webrtc-media-attach",
+              token: peerToken(),
+              sessionId,
+              classId: demand.classId,
+              tierId: demand.tierId
+            },
+            30_000
+          );
+          if (reply?.attached !== true) {
+            throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
+          }
+          return {
+            sessionId,
+            bytesSent: typeof reply.bytesSent === "number" ? reply.bytesSent : 0,
+            voiceProcessing: reply.voiceProcessing ?? null,
+            quality: () => ({
+              goodputBps: 2_000_000,
+              rttMs: 50,
+              jitterMs: 10,
+              lossRatio: 0,
+              mtu: 1_200,
+              source: "declared",
+              samples: 1,
+              confidence: "low"
+            }),
+            close: async () => {
+              await requestHostReply(
+                { type: "peer-webrtc-media-detach", token: peerToken(), sessionId, classId: demand.classId },
+                10_000
+              );
+            }
+          };
+        })
+      ),
       openPearsBulkPlane: {
         async append({ appId, peer, frame, sequence }) {
           const driveManager = await ensurePackageDriveManager();
@@ -1056,8 +1243,90 @@ async function ensurePeerSessionManager() {
   registry.register(new UnavailablePeerDiscoveryAdapter("local-peer-to-peer", { state: "unsupported", reason: "LP2PRequest/LP2PReceiver is a browser proposal" }));
   const backend = new CryptoPeerPairingBackend({
     identity: { publicKey: identity.getPublicKey(), async sign(payload) { return identity.sign(payload); }, async verify(publicKey, payload, signature) { const remote = Identity.fromPublicKey(provider, publicKey); return remote !== null && remote.validate(signature, payload); } },
-    displayLabel: `TwistedPear ${bytesToHex(identity.hash).slice(0, 8)}`, capabilities: ["reticulum"], entropy: async (length) => provider.randomBytes(length), candidates: async (request) => { const destination = await ensurePeerLinkDestination(identity, request.service); await destination.announce(); return [{ kind: "reticulum", value: destination.hash }]; }, confirm: (peer, request) => peerChrome.confirm(peer, request),
+    displayLabel: `TwistedPear ${bytesToHex(identity.hash).slice(0, 8)}`,
+    capabilities: ["webrtc", "reticulum"],
+    entropy: async (length) => provider.randomBytes(length),
+    candidates: async (request, context) => {
+      const candidates = [];
+      try {
+        const remote = context.remoteInvitation?.candidates.find((entry) => entry.kind === "webrtc");
+        const reply = await requestHostReply({
+          type: "peer-webrtc-signal",
+          token: peerToken(),
+          sessionId: bytesToHex(context.sessionId),
+          role: context.role,
+          ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) })
+        }, 15_000);
+        if (typeof reply?.signal === "string") {
+          candidates.push({ kind: "webrtc", value: new TextEncoder().encode(reply.signal) });
+        } else if (reply === null) {
+          log("WebRTC signal timed out waiting for the host");
+        } else if (typeof reply?.error === "string") {
+          log(`WebRTC signal failed: ${reply.error}`);
+        }
+      } catch (error) {
+        log(`WebRTC signal unavailable: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      const destination = await ensurePeerLinkDestination(identity, request.service);
+      await destination.announce();
+      candidates.push({ kind: "reticulum", value: destination.hash });
+      return candidates;
+    },
+    confirm: (peer, request) => peerChrome.confirm(peer, request),
     async establish(context, peer, adapter) {
+      if (peer.dataPlane === "webrtc") {
+        const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc");
+        const sessionId = bytesToHex(context.remoteInvitation.sessionId);
+        const reply = await requestHostReply({
+          type: "peer-webrtc-establish",
+          token: peerToken(),
+          sessionId,
+          ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) })
+        }, 30_000);
+        if (reply?.opened !== true) throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC data channel did not open");
+        const listeners = new Set();
+        webRtcRouteListeners.set(sessionId, listeners);
+        if (!webRtcRoutePending.has(sessionId)) webRtcRoutePending.set(sessionId, []);
+        webRtcSessionByFingerprint.set(peer.fingerprint, sessionId);
+        return {
+          authenticated: true,
+          confirmed: true,
+          fingerprint: peer.fingerprint,
+          displayLabel: peer.displayLabel,
+          rendezvous: adapter.kind,
+          dataPlane: "webrtc",
+          route: meterHostPeerRoute({
+            async send(payload) {
+              const sent = await requestHostReply({
+                type: "peer-webrtc-data-send",
+                token: peerToken(),
+                sessionId,
+                dataHex: bytesToHex(payload)
+              }, 10_000);
+              if (sent?.sent !== true) throw new Error("WebRTC data channel send failed");
+            },
+            subscribe(listener) {
+              listeners.add(listener);
+              for (const pending of webRtcRoutePending.get(sessionId)?.splice(0) ?? []) listener(pending);
+              return () => listeners.delete(listener);
+            },
+            quality() {
+              return {
+                goodputBps: 2_000_000,
+                rttMs: 50,
+                mtu: 1_200,
+                queueDepthBytes: outboundBandwidthLimiter.queueDepthBytes()
+              };
+            }
+          }, { now: () => Date.now(), declaredBps: 2_000_000, declaredMtu: 1_200 }),
+          async close() {
+            webRtcRouteListeners.delete(sessionId);
+            webRtcRoutePending.delete(sessionId);
+            webRtcSessionByFingerprint.delete(peer.fingerprint);
+            send({ type: "peer-webrtc-close", sessionId });
+          }
+        };
+      }
       const node = await ensureReticulum(); const candidate = context.remoteInvitation.candidates.find((entry) => entry.kind === "reticulum"); const remoteIdentity = context.remoteInvitation.identityProof === undefined ? null : Identity.fromPublicKey(provider, context.remoteInvitation.identityProof);
       if (candidate === undefined || remoteIdentity === null) throw new Error("Authenticated Reticulum candidate is missing");
       const outbound = node.registerDestination({ provider, identity: remoteIdentity, direction: DestinationDirection.OUT, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer", peerServiceAspect(context.remoteInvitation.service)] });
@@ -1935,6 +2204,20 @@ async function handleHostMessage(raw) {
     message.type === "device-bridge-response"
   ) {
     hostReplyChannel.resolveReply(message);
+    return;
+  }
+
+  if (message.type === "peer-webrtc-data") {
+    const listeners = webRtcRouteListeners.get(message.sessionId);
+    const payload = hexToBytes(message.dataHex);
+    if (listeners === undefined || listeners.size === 0) {
+      const pending = webRtcRoutePending.get(message.sessionId) ?? [];
+      pending.push(payload);
+      if (pending.length > 16) pending.shift();
+      webRtcRoutePending.set(message.sessionId, pending);
+    } else {
+      for (const listener of listeners) listener(payload);
+    }
     return;
   }
 
