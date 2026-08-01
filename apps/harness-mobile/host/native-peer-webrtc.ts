@@ -72,10 +72,21 @@ function resolveNativeRtc(): {
     RTCPeerConnection?: new () => PeerRtcState["pc"];
     navigator?: { mediaDevices?: { getUserMedia(constraints: unknown): Promise<{ getTracks(): MediaTrackLike[] }> } };
   };
-  if (typeof global.RTCPeerConnection !== "function" || typeof global.navigator?.mediaDevices?.getUserMedia !== "function") {
+  if (typeof global.RTCPeerConnection === "function" && typeof global.navigator?.mediaDevices?.getUserMedia === "function") {
+    return { RTCPeerConnection: global.RTCPeerConnection, mediaDevices: global.navigator.mediaDevices };
+  }
+  try {
+    // Fallback if index.js did not register yet (e.g. hot reload).
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const webrtc = require("react-native-webrtc") as { registerGlobals?: () => void };
+    webrtc.registerGlobals?.();
+  } catch {
     return null;
   }
-  return { RTCPeerConnection: global.RTCPeerConnection, mediaDevices: global.navigator.mediaDevices };
+  if (typeof global.RTCPeerConnection === "function" && typeof global.navigator?.mediaDevices?.getUserMedia === "function") {
+    return { RTCPeerConnection: global.RTCPeerConnection, mediaDevices: global.navigator.mediaDevices };
+  }
+  return null;
 }
 
 async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
@@ -89,7 +100,7 @@ async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
 }
 
 function unsupportedError(): Error {
-  return new Error("Native WebRTC is unavailable (install react-native-webrtc and call registerGlobals)");
+  return new Error("Native WebRTC is unavailable (rebuild the native app after installing react-native-webrtc)");
 }
 
 export function createNativePeerRtcStore(): NativePeerRtcStore {

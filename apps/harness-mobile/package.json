@@ -15,6 +15,7 @@
     "build:web-host": "node scripts/build-web-host.mjs"
   },
   "dependencies": {
+    "@config-plugins/react-native-webrtc": "^10.0.0",
     "@expo/metro-runtime": "~4.0.1",
     "@twistedpear/ble-bridge": "file:./modules/ble-bridge",
     "@twistedpear/bonjour": "file:./modules/bonjour",
@@ -39,7 +40,8 @@
     "react-dom": "18.3.1",
     "react-native": "0.76.3",
     "react-native-bare-kit": "^0.5.2",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "react-native-webrtc": "^124.0.4"
   },
   "devDependencies": {
     "@types/react": "~18.3.12",

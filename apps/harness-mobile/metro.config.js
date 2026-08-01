@@ -11,6 +11,7 @@ const nodeEmptyStub = path.resolve(harnessRoot, "stubs/node-empty.web.js");
 const webStubs = {
   "sodium-native": path.resolve(harnessRoot, "stubs/sodium-native.web.js"),
   "react-native-bare-kit": path.resolve(harnessRoot, "stubs/bare-kit.web.js"),
+  "react-native-webrtc": path.resolve(harnessRoot, "stubs/react-native-webrtc.web.js"),
   "require-addon": nodeEmptyStub,
   "rocksdb-native": nodeEmptyStub,
   corestore: nodeEmptyStub,

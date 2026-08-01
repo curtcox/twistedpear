@@ -14,6 +14,13 @@
           "cameraPermission": "Allow TwistedPear to scan peer invitation QR codes."
         }
       ],
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Allow TwistedPear to attach camera tracks for peer media.",
+          "microphonePermission": "Allow TwistedPear to attach microphone tracks for peer media."
+        }
+      ],
       "./modules/multicast/app.plugin.js",
       "./modules/bonjour/app.plugin.js",
       "./modules/ble-bridge/app.plugin.js",

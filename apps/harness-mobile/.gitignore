@@ -1,1 +1,7 @@
+# Expo Continuous Native Generation — regenerate with `npx expo prebuild`.
 android/
+ios/
+
+# Local Expo CLI state (machine-specific). Keep the explanatory README tracked.
+.expo/*
+!.expo/README.md
