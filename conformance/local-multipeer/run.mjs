@@ -175,7 +175,7 @@ await runMain(async () => {
     );
 
     const startedAt = Date.now();
-    const results = { discovery: [], messaging: [], readiness: [], probes: [], realtime: [], invites: [] };
+    const results = { discovery: [], messaging: [], readiness: [], probes: [], realtime: [], invites: [], calls: [] };
 
     section("Attach");
     // Wait concurrently: one unavailable GUI peer should cost one attach
@@ -363,6 +363,51 @@ await runMain(async () => {
       }
     }
 
+    // After chrome would have accepted, prove call media bytes still move on the
+    // live LXMF path used by headless (and GUI) peers — not only the carrier probe.
+    section("Post-accept call media");
+    for (const invite of results.invites) {
+      const at = Date.now();
+      const accepted = await control.acceptInvite(invite.to, invite.id);
+      assert(accepted.accepted === true, `${invite.to} did not accept ${invite.from}'s invite`);
+      assert(typeof accepted.peerDestinationHash === "string" && accepted.peerDestinationHash.length > 0, `${invite.to} accepted without a peer destination`);
+      const suffix = `call-${invite.from}-${invite.to}-${Date.now().toString(36)}`;
+      const frame = encodeMediaFrame(
+        `call-pcm-${suffix}`,
+        encodeDeviceStreamFrame({
+          version: 2,
+          sampleKind: 2,
+          sessionToken: 3,
+          sequence: 0,
+          captureAtUs: Date.now() * 1_000,
+          clockId: 3,
+          payload: new Uint8Array(new Float32Array(160).buffer)
+        })
+      );
+      const nonce = `pcm-${suffix}`;
+      const payloadHex = bytesHex(frame);
+      await control.sendCall(invite.to, invite.id, nonce, payloadHex);
+      await waitUntil(
+        `${invite.from} never received post-accept call media from ${invite.to}`,
+        async () => (await control.callInbox(invite.from)).some((entry) => entry.nonce === nonce && entry.kind === "payload" && entry.payloadHex === payloadHex),
+        MESSAGE_TIMEOUT_MS
+      );
+      await waitUntil(
+        `${invite.to} never received ${invite.from}'s call echo`,
+        async () => (await control.callInbox(invite.to)).some((entry) => entry.nonce === nonce && entry.kind === "echo" && entry.payloadHex === payloadHex),
+        MESSAGE_TIMEOUT_MS
+      );
+      const elapsedMs = Date.now() - at;
+      step(`${invite.to} accepted → ${invite.from} call media (${frame.length} bytes, ${elapsedMs}ms)`);
+      results.calls.push({
+        from: invite.to,
+        to: invite.from,
+        inviteId: invite.id,
+        bytes: frame.length,
+        elapsedMs
+      });
+    }
+
     section("Realtime media carrier");
     for (const from of attached) {
       for (const to of attached) {
@@ -406,7 +451,7 @@ await runMain(async () => {
     writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
 
     section("Result");
-    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.readiness.length} readiness exchanges, ${results.probes.length} measured probes, ${results.invites.length} delivered session invites, ${results.realtime.length} realtime carrier round-trips`);
+    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.readiness.length} readiness exchanges, ${results.probes.length} measured probes, ${results.invites.length} delivered session invites, ${results.calls.length} post-accept call round-trips, ${results.realtime.length} realtime carrier round-trips`);
     step(`proof: ${proofPath}`);
   } finally {
     await control?.close();

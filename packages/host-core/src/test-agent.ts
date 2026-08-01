@@ -45,12 +45,16 @@ import {
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";
 export const TEST_AGENT_REALTIME_TITLE = "tp-realtime";
+/** Post-accept call media (distinct from the realtime carrier probe). */
+export const TEST_AGENT_CALL_TITLE = "tp-call";
 /** Readiness exchange and active link probes ride this title as `TPL1` bytes. */
 export const TEST_AGENT_LINK_TITLE = "tp-link";
 const PROBE_PREFIX = "tp-probe:";
 const ECHO_PREFIX = "tp-probe-echo:";
 const REALTIME_PREFIX = "tp-realtime:";
 const REALTIME_ECHO_PREFIX = "tp-realtime-echo:";
+const CALL_PREFIX = "tp-call:";
+const CALL_ECHO_PREFIX = "tp-call-echo:";
 const LINK_PREFIX = "tp-link:";
 /** Matches the host default: one probe per peer per minute, 8 KiB ceiling. */
 const LINK_PROBE_MAX_BUDGET_BYTES = 8 * 1024;
@@ -101,13 +105,23 @@ export interface TestAgentReadinessEntry {
 }
 
 export interface TestAgentInviteEntry {
-  readonly kind: "sent" | "raised";
+  readonly kind: "sent" | "raised" | "accepted";
   readonly id: string;
   readonly appId: string;
   readonly peerLabel: string;
   readonly requestedClasses: ReadonlyArray<"camera" | "microphone" | "screen-capture">;
   readonly expiresAt: number;
   readonly at: number;
+  /** LXMF delivery hash of the other party, when known. */
+  readonly peerDestinationHash?: string;
+}
+
+export interface TestAgentCallEntry {
+  readonly nonce: string;
+  readonly kind: "payload" | "echo";
+  readonly fromDestinationHash: string;
+  readonly payloadHex: string;
+  readonly receivedAt: number;
 }
 
 export interface TestAgentProbeEntry {
@@ -135,6 +149,7 @@ export interface TestAgentStatus extends TestAgentInfo {
   readonly readinessCount: number;
   readonly probeCount: number;
   readonly inviteCount: number;
+  readonly callInboxCount: number;
   readonly pathTableCount: number;
 }
 
@@ -161,6 +176,11 @@ export interface TestAgentOptions {
    * delivery; the agent only observes raised invites for the harness.
    */
   readonly receiveSessionInvite?: (invite: DeliveredSessionInvite) => Promise<void>;
+  /**
+   * Trusted-chrome accept for a raised invite. GUI hosts call into the mini-app
+   * host; headless peers omit it and the agent only records the accept.
+   */
+  readonly acceptSessionInvite?: (inviteId: string) => Promise<void>;
   /**
    * Reuse the shipping host's LXMF delivery destination. When omitted the agent
    * creates one, which is what headless peers still do.
@@ -225,6 +245,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       identity,
       announceIntervalMs: 0, // agent owns the announce timer below
       receiveSessionInvite: async (invite) => {
+        const peerDestinationHash = peerDestinationHashForInvite(invite.id);
         inviteEntries.push({
           kind: "raised",
           id: invite.id,
@@ -232,7 +253,8 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
           peerLabel: invite.verifiedPeerLabel,
           requestedClasses: invite.requestedClasses,
           expiresAt: invite.expiresAt,
-          at: Date.now()
+          at: Date.now(),
+          ...(peerDestinationHash === undefined ? {} : { peerDestinationHash })
         });
         await options.receiveSessionInvite?.(invite);
       },
@@ -241,6 +263,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     }));
   if (!ownsDelivery) {
     deliverySession.onInvite((invite) => {
+      const peerDestinationHash = peerDestinationHashForInvite(invite.id);
       inviteEntries.push({
         kind: "raised",
         id: invite.id,
@@ -248,7 +271,8 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         peerLabel: invite.verifiedPeerLabel,
         requestedClasses: invite.requestedClasses,
         expiresAt: invite.expiresAt,
-        at: Date.now()
+        at: Date.now(),
+        ...(peerDestinationHash === undefined ? {} : { peerDestinationHash })
       });
     });
   }
@@ -258,8 +282,16 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   const lxmfAddress = deliverySession.lxmfAddress;
   const identityHash = deliverySession.identityHash;
 
+  /** Invite ids are `${sourceHashHex.slice(0, 16)}-${senderId}`. */
+  function peerDestinationHashForInvite(inviteId: string): string | undefined {
+    const prefix = inviteId.slice(0, 16);
+    if (prefix.length < 16) return undefined;
+    return deliverySession.peers().find((peer) => peer.destinationHash.startsWith(prefix))?.destinationHash;
+  }
+
   const inboxEntries: TestAgentInboxEntry[] = [];
   const realtimeEntries: TestAgentRealtimeEntry[] = [];
+  const callEntries: TestAgentCallEntry[] = [];
   const readinessEntries: TestAgentReadinessEntry[] = [];
   const probeEntries = new Map<string, TestAgentProbeEntry>();
   /** In-flight chunk series, keyed by sender + prefix + nonce. */
@@ -398,6 +430,9 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   const sendRealtime = async (toLxmfAddress: string, prefix: string, nonce: string, payloadHex: string): Promise<void> => {
     await sendChunkedHex(toLxmfAddress, TEST_AGENT_REALTIME_TITLE, prefix, nonce, payloadHex);
   };
+  const sendCall = async (toLxmfAddress: string, prefix: string, nonce: string, payloadHex: string): Promise<void> => {
+    await sendChunkedHex(toLxmfAddress, TEST_AGENT_CALL_TITLE, prefix, nonce, payloadHex);
+  };
 
   deliverySession.onMessage((message) => {
     let content: string;
@@ -462,6 +497,22 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       if (!echo) void sendRealtime(from, REALTIME_ECHO_PREFIX, framed.nonce, payloadHex).catch((error: unknown) => log(`test-agent realtime echo failed: ${error instanceof Error ? error.message : String(error)}`));
       return;
     }
+    if (message.titleAsString() === TEST_AGENT_CALL_TITLE) {
+      const echo = content.startsWith(CALL_ECHO_PREFIX);
+      const prefix = echo ? CALL_ECHO_PREFIX : CALL_PREFIX;
+      if (!content.startsWith(prefix)) return;
+      const framed = parseChunkedBody(content.slice(prefix.length));
+      if (framed === null) return;
+      const payloadHex = receiveChunkedHex(from, prefix, framed.nonce, framed.index, framed.count, framed.chunk);
+      if (payloadHex === null) return;
+      callEntries.push({ nonce: framed.nonce, kind: echo ? "echo" : "payload", fromDestinationHash: from, payloadHex, receivedAt: Date.now() });
+      if (!echo) {
+        void sendCall(from, CALL_ECHO_PREFIX, framed.nonce, payloadHex).catch((error: unknown) =>
+          log(`test-agent call echo failed: ${error instanceof Error ? error.message : String(error)}`)
+        );
+      }
+      return;
+    }
     const echoNonce = nonceFrom(content, ECHO_PREFIX);
     if (echoNonce !== null) {
       recordInbox({ nonce: echoNonce, kind: "echo", fromDestinationHash: from, receivedAt: Date.now() });
@@ -493,6 +544,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       readinessCount: readinessEntries.length,
       probeCount: probeEntries.size,
       inviteCount: inviteEntries.length,
+      callInboxCount: callEntries.length,
       pathTableCount: reticulum.pathTableCount
     };
   };
@@ -507,6 +559,8 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         return { inbox: [...inboxEntries] };
       case "realtime-inbox":
         return { inbox: [...realtimeEntries] };
+      case "call-inbox":
+        return { inbox: [...callEntries] };
       case "status":
         return { status: buildStatus() };
       case "announce":
@@ -545,9 +599,49 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
           peerLabel: request.toLxmfAddress.slice(0, 12),
           requestedClasses,
           expiresAt,
-          at: Date.now()
+          at: Date.now(),
+          peerDestinationHash: request.toLxmfAddress
         });
         return { inviteId: id, appId, expiresAt, bytes: envelope.length };
+      }
+      case "accept-invite": {
+        const inviteId = typeof request.inviteId === "string" ? request.inviteId : undefined;
+        if (inviteId === undefined) throw new Error("accept-invite requires inviteId");
+        const raised = inviteEntries.findLast((entry) => entry.kind === "raised" && entry.id === inviteId);
+        if (raised === undefined) throw new Error(`No raised invite ${inviteId}`);
+        if (inviteEntries.some((entry) => entry.kind === "accepted" && entry.id === inviteId)) {
+          return {
+            accepted: true,
+            inviteId,
+            peerDestinationHash: raised.peerDestinationHash ?? peerDestinationHashForInvite(inviteId) ?? null
+          };
+        }
+        await options.acceptSessionInvite?.(inviteId);
+        const peerDestinationHash = raised.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
+        inviteEntries.push({
+          ...raised,
+          kind: "accepted",
+          at: Date.now(),
+          ...(peerDestinationHash === undefined ? {} : { peerDestinationHash })
+        });
+        return { accepted: true, inviteId, peerDestinationHash: peerDestinationHash ?? null };
+      }
+      case "send-call": {
+        const inviteId = typeof request.inviteId === "string" ? request.inviteId : undefined;
+        if (inviteId === undefined || request.nonce === undefined || request.payloadHex === undefined) {
+          throw new Error("send-call requires inviteId, nonce, and payloadHex");
+        }
+        const accepted = inviteEntries.findLast((entry) => entry.kind === "accepted" && entry.id === inviteId);
+        if (accepted === undefined) throw new Error(`Invite ${inviteId} has not been accepted`);
+        const peerDestinationHash = accepted.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
+        if (peerDestinationHash === undefined) throw new Error(`No peer destination for accepted invite ${inviteId}`);
+        await sendCall(peerDestinationHash, CALL_PREFIX, request.nonce, request.payloadHex);
+        return {
+          sent: true,
+          inviteId,
+          peerDestinationHash,
+          bytes: Math.floor(request.payloadHex.length / 2)
+        };
       }
       case "request-readiness": {
         if (request.toLxmfAddress === undefined) throw new Error("request-readiness requires toLxmfAddress");

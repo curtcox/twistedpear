@@ -2403,7 +2403,8 @@ async function handleHostMessage(raw) {
         log,
         handleCommand: (request) => ensureCrossDeviceTestDriver()(request),
         delivery: await ensureHostLxmfDelivery(),
-        receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite)
+        receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
+        acceptSessionInvite: (inviteId) => ensureMiniappHost().acceptSessionInvite(inviteId)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {

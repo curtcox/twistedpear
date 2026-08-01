@@ -102,6 +102,7 @@ export {
   TEST_AGENT_LINK_TITLE,
   TEST_AGENT_PROBE_TITLE,
   TEST_AGENT_REALTIME_TITLE,
+  TEST_AGENT_CALL_TITLE,
   type TestAgentInboxEntry,
   type TestAgentInfo,
   type TestAgentInviteEntry,

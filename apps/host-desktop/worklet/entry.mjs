@@ -2253,7 +2253,7 @@ async function handleHostMessage(raw) {
         status.tcpEnabled = true;
         await startTcpInterface(pendingTarget.targetHost, pendingTarget.targetPort);
       }
-      testAgent = await connectTestAgent({
+        testAgent = await connectTestAgent({
         reticulum: node,
         provider,
         identity,
@@ -2266,7 +2266,8 @@ async function handleHostMessage(raw) {
         // Reuse the shipping delivery destination: invites already raise chrome
         // without the agent; the agent only drives probes and harness control.
         delivery: await ensureHostLxmfDelivery(),
-        receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite)
+        receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
+        acceptSessionInvite: (inviteId) => ensureMiniappHost().acceptSessionInvite(inviteId)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {

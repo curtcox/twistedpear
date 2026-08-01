@@ -328,6 +328,34 @@ describe("peer test agent", () => {
     expect(raised?.id.endsWith(sent.inviteId)).toBe(true);
     expect(raised?.peerLabel).toContain("peer ");
 
+    const accepted = (await control.request("right", {
+      cmd: "accept-invite",
+      inviteId: raised?.id
+    })) as { ok: boolean; accepted: boolean; peerDestinationHash: string };
+    expect(accepted).toMatchObject({ ok: true, accepted: true });
+    expect(accepted.peerDestinationHash).toBe(leftAgent.lxmfAddress);
+
+    const frameHex = "01020304";
+    const nonce = `call-${Date.now().toString(36)}`;
+    const callSent = (await control.request("right", {
+      cmd: "send-call",
+      inviteId: raised?.id,
+      nonce,
+      payloadHex: frameHex
+    })) as { ok: boolean; sent: boolean; bytes: number };
+    expect(callSent).toMatchObject({ ok: true, sent: true, bytes: 4 });
+
+    await waitForAsync(async () =>
+      ((await control.request("left", { cmd: "call-inbox" })) as { inbox: Array<{ nonce: string; kind: string }> }).inbox.some(
+        (entry) => entry.nonce === nonce && entry.kind === "payload"
+      )
+    );
+    await waitForAsync(async () =>
+      ((await control.request("right", { cmd: "call-inbox" })) as { inbox: Array<{ nonce: string; kind: string }> }).inbox.some(
+        (entry) => entry.nonce === nonce && entry.kind === "echo"
+      )
+    );
+
     // An invite for an app this host will not ring never reaches chrome.
     await control.request("left", {
       cmd: "send-invite",
