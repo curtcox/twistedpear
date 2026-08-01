@@ -82,6 +82,7 @@
     "test:local-multipeer": "node conformance/local-multipeer/run.mjs",
     "test:local-multipeer:smoke": "node conformance/local-multipeer/run.mjs --smoke",
     "test:local-multipeer:desktop": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/local-multipeer/run.mjs --peers=hub,desktop",
+    "test:local-multipeer:ios": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/local-multipeer/run.mjs --peers=hub,ios",
     "test:webrtc-gui-call": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs",
     "test:webrtc-gui-call:web": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,web,web2",
     "test:android-emulator": "node conformance/android-emulator/run.mjs",
