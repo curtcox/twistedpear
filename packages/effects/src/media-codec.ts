@@ -172,3 +172,180 @@ export class SimulatedMediaCodecDriver implements MediaCodecDriver {
     if (!this.supports(configuration)) throw new Error("Media codec configuration is unsupported or closed.");
   }
 }
+
+type OpusScriptInstance = {
+  encode(buffer: Uint8Array, frameSize: number): Uint8Array;
+  decode(buffer: Uint8Array): Uint8Array;
+  setBitrate(bitrate: number): void;
+  delete(): void;
+};
+
+type OpusScriptCtor = {
+  new (
+    samplingRate: number,
+    channels?: number,
+    application?: number,
+    options?: { wasm?: boolean }
+  ): OpusScriptInstance;
+  Application: { VOIP: number; AUDIO: number; RESTRICTED_LOWDELAY: number };
+};
+
+let opusScriptCtor: OpusScriptCtor | null | undefined;
+let opusScriptLoader: (() => OpusScriptCtor | null) | null = null;
+
+/** Hosts that can `require("opusscript")` register a loader before first use. */
+export function configureBundledOpusLoader(loader: () => OpusScriptCtor | null): void {
+  opusScriptLoader = loader;
+  opusScriptCtor = undefined;
+}
+
+function loadOpusScript(): OpusScriptCtor | null {
+  if (opusScriptCtor !== undefined) return opusScriptCtor;
+  if (opusScriptLoader !== null) {
+    try {
+      opusScriptCtor = opusScriptLoader();
+    } catch {
+      opusScriptCtor = null;
+    }
+    return opusScriptCtor;
+  }
+  try {
+    const createRequire = (
+      Function('return typeof require === "function" ? require("module").createRequire : null') as () =>
+        | ((filename: string) => (id: string) => OpusScriptCtor)
+        | null
+    )();
+    if (createRequire === null) {
+      opusScriptCtor = null;
+      return null;
+    }
+    const cwd = (
+      Function(
+        'return typeof process !== "undefined" && typeof process.cwd === "function" ? process.cwd() : "/"'
+      ) as () => string
+    )();
+    opusScriptCtor = createRequire(`${cwd}/packages/effects/package.json`)("opusscript");
+    return opusScriptCtor;
+  } catch {
+    opusScriptCtor = null;
+    return null;
+  }
+}
+
+function toCodecBuffer(bytes: Uint8Array): Uint8Array {
+  const BufferCtor = (globalThis as { Buffer?: { from(data: Uint8Array): Uint8Array } }).Buffer;
+  return BufferCtor !== undefined ? BufferCtor.from(bytes) : bytes;
+}
+
+function float32ToInt16Pcm(bytes: Uint8Array, channels: number): Uint8Array {
+  if (bytes.byteLength % (4 * channels) !== 0) {
+    throw new Error("PCM input must contain interleaved float32 samples.");
+  }
+  const floats = new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4);
+  const pcm = new Int16Array(floats.length);
+  for (let index = 0; index < floats.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, floats[index] ?? 0));
+    pcm[index] = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
+  }
+  return new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength);
+}
+
+function int16PcmToFloat32(bytes: Uint8Array): Uint8Array {
+  if (bytes.byteLength % 2 !== 0) throw new Error("PCM output must contain int16 samples.");
+  const pcm = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
+  const floats = new Float32Array(pcm.length);
+  for (let index = 0; index < pcm.length; index += 1) {
+    floats[index] = (pcm[index] ?? 0) / 32768;
+  }
+  return new Uint8Array(floats.buffer, floats.byteOffset, floats.byteLength);
+}
+
+/**
+ * Host Opus encode/decode via Emscripten libopus (`opusscript`).
+ * Used where WebCodecs is unavailable (Bare mobile worklet / Node tests).
+ */
+export class BundledOpusMediaCodecDriver implements MediaCodecDriver {
+  readonly implementation = "bundled-opus" as const;
+  private closed = false;
+  private encoder: OpusScriptInstance | null = null;
+  private decoder: OpusScriptInstance | null = null;
+  private sampleRate = 16_000;
+  private channels = 1;
+
+  supports(configuration: MediaCodecConfiguration): boolean {
+    if (this.closed || configuration.sampleKind !== "audio") return false;
+    if (configuration.codec === "pcm") return true;
+    if (configuration.codec !== "opus") return false;
+    const rate = configuration.sampleRate ?? 16_000;
+    return loadOpusScript() !== null && [8_000, 12_000, 16_000, 24_000, 48_000].includes(rate);
+  }
+
+  async encode(configuration: MediaCodecConfiguration, sample: RawMediaSample): Promise<EncodedMediaSample> {
+    this.assertSupported(configuration);
+    if (configuration.codec === "pcm") return { ...sample, bytes: sample.bytes.slice(), codec: "pcm" };
+    const OpusScript = loadOpusScript();
+    if (OpusScript === null) throw new Error("bundled Opus codec is unavailable");
+    const sampleRate = configuration.sampleRate ?? 16_000;
+    const channels = configuration.channels ?? 1;
+    const codec = this.ensureEncoder(OpusScript, sampleRate, channels, configuration.bitrateBps);
+    const pcm = float32ToInt16Pcm(sample.bytes, channels);
+    const frameSize = pcm.byteLength / (2 * channels);
+    // libopus accepts 2.5–60 ms frames; reject odd sizes early.
+    if (![2.5, 5, 10, 20, 40, 60].includes((frameSize * 1_000) / sampleRate)) {
+      throw new Error(`Unsupported Opus frame size ${frameSize} at ${sampleRate} Hz`);
+    }
+    const encoded = codec.encode(toCodecBuffer(pcm), frameSize);
+    return { captureAtUs: sample.captureAtUs, bytes: Uint8Array.from(encoded), codec: "opus" };
+  }
+
+  async decode(configuration: MediaCodecConfiguration, sample: EncodedMediaSample): Promise<RawMediaSample> {
+    this.assertSupported(configuration);
+    if (configuration.codec === "pcm") return { captureAtUs: sample.captureAtUs, bytes: sample.bytes.slice() };
+    if (sample.codec !== "opus") throw new Error("Encoded media codec does not match configuration.");
+    const OpusScript = loadOpusScript();
+    if (OpusScript === null) throw new Error("bundled Opus codec is unavailable");
+    const sampleRate = configuration.sampleRate ?? 16_000;
+    const channels = configuration.channels ?? 1;
+    const codec = this.ensureDecoder(OpusScript, sampleRate, channels);
+    const decoded = codec.decode(toCodecBuffer(sample.bytes));
+    return { captureAtUs: sample.captureAtUs, bytes: int16PcmToFloat32(Uint8Array.from(decoded)) };
+  }
+
+  async close(): Promise<void> {
+    this.closed = true;
+    this.encoder?.delete();
+    this.decoder?.delete();
+    this.encoder = null;
+    this.decoder = null;
+  }
+
+  private ensureEncoder(
+    OpusScript: OpusScriptCtor,
+    sampleRate: number,
+    channels: number,
+    bitrateBps: number
+  ): OpusScriptInstance {
+    if (this.encoder === null || this.sampleRate !== sampleRate || this.channels !== channels) {
+      this.encoder?.delete();
+      this.encoder = new OpusScript(sampleRate, channels, OpusScript.Application.VOIP);
+      this.sampleRate = sampleRate;
+      this.channels = channels;
+    }
+    this.encoder.setBitrate(bitrateBps);
+    return this.encoder;
+  }
+
+  private ensureDecoder(OpusScript: OpusScriptCtor, sampleRate: number, channels: number): OpusScriptInstance {
+    if (this.decoder === null || this.sampleRate !== sampleRate || this.channels !== channels) {
+      this.decoder?.delete();
+      this.decoder = new OpusScript(sampleRate, channels, OpusScript.Application.VOIP);
+      this.sampleRate = sampleRate;
+      this.channels = channels;
+    }
+    return this.decoder;
+  }
+
+  private assertSupported(configuration: MediaCodecConfiguration): void {
+    if (!this.supports(configuration)) throw new Error("bundled Opus configuration is unsupported or closed.");
+  }
+}

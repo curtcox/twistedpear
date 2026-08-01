@@ -95,8 +95,7 @@ async function playInboundNativeMedia(dataHex: string, encoding: string): Promis
   if (payloadLength !== frame.length - 36) {
     throw new Error("Inbound audio frame length is inconsistent");
   }
-  // Real compressed Opus is not decoded on native yet; SimulatedMediaCodecDriver tags
-  // float32 PCM as opus for harness proofs — play that payload as PCM.
+  // Real Opus is decoded in the worklet before play-request; host sinks float32 PCM.
   if (encoding.includes("narrowband")) {
     throw new Error("Native host received an unsupported media encoding");
   }

@@ -88,6 +88,12 @@ const result = spawnSync(
     "node:fs",
     "--defer",
     "node:path",
+    // opusscript's Emscripten glue optionally `require("fs")` / `require("path")`
+    // (bare ids, not node:); defer so bare-pack can include the WASM Opus path.
+    "--defer",
+    "fs",
+    "--defer",
+    "path",
     "--defer",
     "node:os",
     "--defer",

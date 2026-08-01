@@ -85,12 +85,19 @@ import {
   DEFAULT_PROPAGATION_QUOTAS
 } from "../../../packages/lxmf-ts/dist/index.js";
 import { decodePeerAudioFrame, decodePeerInvitation, encodeDeviceStreamFrame, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
-import { SimulatedMediaCodecDriver } from "../../../packages/effects/dist/media-codec.js";
+import { BundledOpusMediaCodecDriver, configureBundledOpusLoader, SimulatedMediaCodecDriver } from "../../../packages/effects/dist/media-codec.js";
 import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
 import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, meterHostPeerRoute, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
+
+try {
+  // BareKit / Node worklets expose CJS require for linked native/WASM codecs.
+  configureBundledOpusLoader(() => require("opusscript"));
+} catch {
+  /* keep supports() false until the host can load opusscript */
+}
 
 const { IPC } = BareKit;
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
@@ -459,12 +466,39 @@ async function handleNativeMediaOpusCommand(request) {
       throw new Error("media-opus-play requires TPD2 dataHex");
     }
     const encoding = typeof request.encoding === "string" ? request.encoding : "16k-opus";
+    const frameBytes = hexToBytes(request.dataHex);
+    let playHex = request.dataHex;
+    let playEncoding = encoding;
+    // Compressed Opus TPD2 payloads must be decoded in the worklet before the
+    // host speaker path (RN has no WebCodecs; peer-audio sinks PCM16).
+    if (encoding.includes("opus") && frameBytes.length >= 36) {
+      const payload = frameBytes.slice(36);
+      const driver = new BundledOpusMediaCodecDriver();
+      if (driver.supports({ codec: "opus", sampleKind: "audio", bitrateBps: 24_000, sampleRate: 16_000, channels: 1 })) {
+        const decoded = await driver.decode(
+          { codec: "opus", sampleKind: "audio", bitrateBps: 24_000, sampleRate: 16_000, channels: 1 },
+          { captureAtUs: 0, bytes: payload, codec: "opus" }
+        );
+        const pcmFrame = encodeDeviceStreamFrame({
+          version: 2,
+          sampleKind: 2,
+          sessionToken: 7,
+          sequence: 0,
+          captureAtUs: Date.now() * 1_000,
+          clockId: 7,
+          payload: decoded.bytes
+        });
+        playHex = bytesToHex(pcmFrame);
+        playEncoding = "16k-pcm";
+        await driver.close();
+      }
+    }
     const played = await requestHostReply(
       {
         type: "media-opus-play-request",
         token: peerToken(),
-        encoding,
-        dataHex: request.dataHex
+        encoding: playEncoding,
+        dataHex: playHex
       },
       15_000
     );
@@ -482,11 +516,11 @@ async function handleNativeMediaOpusCommand(request) {
     channels: 1,
     voiceDuplex: true
   };
-  const driver = new SimulatedMediaCodecDriver();
+  const driver = new BundledOpusMediaCodecDriver();
   if (!driver.supports(configuration)) {
-    throw new Error("Simulated media codec does not admit Opus");
+    throw new Error("Bundled Opus codec does not admit Opus");
   }
-  const sampleCount = 960;
+  const sampleCount = 320; // 20 ms at 16 kHz — libopus frame
   const samples = new Float32Array(sampleCount);
   for (let index = 0; index < sampleCount; index += 1) {
     samples[index] = Math.sin((2 * Math.PI * 440 * index) / 16_000) * 0.25;
@@ -503,7 +537,7 @@ async function handleNativeMediaOpusCommand(request) {
   if (decoded.bytes.length < 4) {
     throw new Error("Opus decode produced empty PCM");
   }
-  const frame = encodeDeviceStreamFrame({
+  const opusFrame = encodeDeviceStreamFrame({
     version: 2,
     sampleKind: 2,
     sessionToken: 7,
@@ -512,12 +546,21 @@ async function handleNativeMediaOpusCommand(request) {
     clockId: 7,
     payload: encoded.bytes
   });
+  const playFrame = encodeDeviceStreamFrame({
+    version: 2,
+    sampleKind: 2,
+    sessionToken: 7,
+    sequence: 0,
+    captureAtUs,
+    clockId: 7,
+    payload: decoded.bytes
+  });
   const played = await requestHostReply(
     {
       type: "media-opus-play-request",
       token: peerToken(),
-      encoding: "16k-opus",
-      dataHex: bytesToHex(frame)
+      encoding: "16k-pcm",
+      dataHex: bytesToHex(playFrame)
     },
     15_000
   );
@@ -533,8 +576,8 @@ async function handleNativeMediaOpusCommand(request) {
     pcmBytes: pcmBytes.length,
     opusBytes: encoded.bytes.length,
     decodedBytes: decoded.bytes.length,
-    frameBytes: frame.length,
-    frameHex: bytesToHex(frame),
+    frameBytes: opusFrame.length,
+    frameHex: bytesToHex(opusFrame),
     played: true
   };
 }
@@ -613,9 +656,10 @@ function ensureMiniappHost() {
       realtimeReservations: { reserveRealtime: (bytesPerSecond) => outboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
       controlReservations: { reserveControl: (bytesPerSecond) => outboundBandwidthLimiter.reserve("control", bytesPerSecond) },
       onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
-      async openMediaCodec(_configuration) {
-        // Simulated driver admits Opus until a real mobile Opus implementation
-        // (bundled-opus / platform codecs) ships; encode/decode are identity transforms.
+      async openMediaCodec(configuration) {
+        const bundled = new BundledOpusMediaCodecDriver();
+        if (bundled.supports(configuration)) return bundled;
+        // Fallback keeps the effect boundary open when WASM Opus is unavailable.
         return new SimulatedMediaCodecDriver();
       },
       openCasPlane: {

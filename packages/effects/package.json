@@ -27,6 +27,7 @@
     "build": "tsc -b",
     "test": "vitest run"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "opusscript": "^0.1.1"
+  }
 }

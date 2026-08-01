@@ -37,4 +37,9 @@ export type {
   MediaSampleKind,
   RawMediaSample
 } from "./media-codec.js";
-export { SimulatedMediaCodecDriver, WebCodecsMediaCodecDriver } from "./media-codec.js";
+export {
+  BundledOpusMediaCodecDriver,
+  configureBundledOpusLoader,
+  SimulatedMediaCodecDriver,
+  WebCodecsMediaCodecDriver
+} from "./media-codec.js";
