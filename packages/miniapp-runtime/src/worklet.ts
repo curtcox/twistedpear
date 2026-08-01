@@ -77,10 +77,11 @@ export {
   PlaneStreamEgressFactory,
   createCasDerivedPlaneOpener,
   createHostPlaneOpeners,
+  createPearsBulkAppendPlaneOpener,
   createPeerRouteLinkSupply,
   createPeerRoutePlaneOpeners
 } from "./media-stream.js";
-export type { CasDerivedPlaneOpenerOptions } from "./media-stream.js";
+export type { CasDerivedPlaneOpenerOptions, PearsBulkAppendPlaneOpenerOptions } from "./media-stream.js";
 export { SessionInviteService } from "./session-invite.js";
 export type { SessionInvite, SessionInviteChrome } from "./session-invite.js";
 export {

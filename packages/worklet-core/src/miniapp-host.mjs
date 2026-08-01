@@ -203,11 +203,12 @@ export function createWorkletMiniappHost(options) {
   // Concrete plane openers: WebRTC / Pears-bulk / Reticulum ride the authenticated
   // peer-route bridge; CAS admits derived snapshots only when a put hook is given.
   const hostPlaneOpeners =
-    peerRouteMediaBridge === undefined && options.openCasPlane === undefined
+    peerRouteMediaBridge === undefined && options.openCasPlane === undefined && options.openPearsBulkPlane === undefined
       ? undefined
       : createHostPlaneOpeners({
           ...(peerRouteMediaBridge === undefined ? {} : { peerRouteFactory: peerRouteMediaBridge }),
-          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane })
+          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane }),
+          ...(options.openPearsBulkPlane === undefined ? {} : { pearsBulk: options.openPearsBulkPlane })
         });
   const planeMediaEgress =
     hostPlaneOpeners === undefined ? undefined : new PlaneStreamEgressFactory(hostPlaneOpeners);

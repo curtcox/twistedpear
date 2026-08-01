@@ -391,6 +391,20 @@ function ensureMiniappHost() {
       openCasPlane: {
         put: (frame) => ensureEntryCasStore().put(frame)
       },
+      openPearsBulkPlane: {
+        async append({ appId, peer, frame, sequence }) {
+          const driveManager = await ensurePackageDriveManager();
+          if (driveManager.activeDrive === null) {
+            await driveManager.createDrive();
+          }
+          const drive = driveManager.activeDrive;
+          if (drive === null) throw new Error("Hyperdrive is not initialized for pears-bulk media.");
+          const safePeer = peer.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 64);
+          const path = `/media-streams/${appId}/${safePeer}/${String(sequence).padStart(8, "0")}.tpd2`;
+          await drive.put(path, frame);
+          return { path };
+        }
+      },
       async requestShareOffer({ appId, purpose }) {
         const peer = peerSessionManagerProxy.list(appId)[0]; if (peer === undefined) return null;
         const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "device-share-offer", appId, publisherPublicKey: "host-authenticated-peer", summary: { purpose, peer: peer.displayLabel, class: "microphone", tier: "pcm", quality: "16k-opus", duration: "15 minutes" } });

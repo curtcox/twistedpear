@@ -126,11 +126,12 @@ export function createWebWorkletMiniappHost(options) {
         };
   const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, randomBytes: hostRandomBytes, onFrame: options.onInboundMediaFrame }) : undefined);
   const hostPlaneOpeners =
-    peerRouteMediaBridge === undefined && options.openCasPlane === undefined
+    peerRouteMediaBridge === undefined && options.openCasPlane === undefined && options.openPearsBulkPlane === undefined
       ? undefined
       : createHostPlaneOpeners({
           ...(peerRouteMediaBridge === undefined ? {} : { peerRouteFactory: peerRouteMediaBridge }),
-          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane })
+          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane }),
+          ...(options.openPearsBulkPlane === undefined ? {} : { pearsBulk: options.openPearsBulkPlane })
         });
   const planeMediaEgress =
     hostPlaneOpeners === undefined ? undefined : new PlaneStreamEgressFactory(hostPlaneOpeners);

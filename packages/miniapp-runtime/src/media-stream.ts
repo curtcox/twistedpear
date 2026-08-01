@@ -454,17 +454,108 @@ export function createCasDerivedPlaneOpener(
 }
 
 /**
- * Builds the host plane table: live peer-route openers plus an optional CAS
- * derived opener. Missing planes stay absent so admission still fails closed.
+ * Builds the host plane table: live peer-route openers plus optional CAS and
+ * Pears-bulk Hyperdrive append openers. Missing planes stay absent so admission
+ * still fails closed. When both a peer-route pears-bulk opener and an append
+ * opener exist, the authenticated gateway route is tried first.
  */
 export function createHostPlaneOpeners(input: {
   readonly peerRouteFactory?: StreamEgressFactory;
   readonly cas?: CasDerivedPlaneOpenerOptions;
+  readonly pearsBulk?: PearsBulkAppendPlaneOpenerOptions;
 }): Partial<Record<StreamPlane, PlaneMediaTransportOpener>> {
-  return {
+  const openers: Partial<Record<StreamPlane, PlaneMediaTransportOpener>> = {
     ...(input.peerRouteFactory === undefined ? {} : createPeerRoutePlaneOpeners(input.peerRouteFactory)),
     ...(input.cas === undefined ? {} : { cas: createCasDerivedPlaneOpener(input.cas) })
   };
+  if (input.pearsBulk !== undefined) {
+    const append = createPearsBulkAppendPlaneOpener(input.pearsBulk);
+    const routed = openers["pears-bulk"];
+    openers["pears-bulk"] =
+      routed === undefined
+        ? append
+        : async (request) => {
+            try {
+              return await routed(request);
+            } catch {
+              return append(request);
+            }
+          };
+  }
+  return openers;
+}
+
+export interface PearsBulkAppendPlaneOpenerOptions {
+  /** Appends one latency-tolerant frame; returns the drive path written. */
+  readonly append: (input: {
+    readonly appId: string;
+    readonly peer: string;
+    readonly frame: Uint8Array;
+    readonly sequence: number;
+  }) => Promise<{ readonly path: string }>;
+}
+
+/**
+ * Latency-tolerant Pears/Hyperdrive plane. Live call rungs must not ride it —
+ * only derived or snapshot-class media that can wait for swarm replication.
+ */
+export function createPearsBulkAppendPlaneOpener(
+  options: PearsBulkAppendPlaneOpenerOptions
+): PlaneMediaTransportOpener {
+  return async (input) => {
+    if (input.admission.plane !== "pears-bulk") {
+      throw new Error("Pears-bulk plane opener was asked for a different admitted plane.");
+    }
+    if (!isPearsBulkAdmittedRung(input.demand, input.admission.rung)) {
+      throw new Error("Pears-bulk plane admits derived or snapshot media only.");
+    }
+    let closed = false;
+    let sequence = 0;
+    let lastPath: string | null = null;
+    return {
+      async send(frame) {
+        if (closed) throw new Error("Pears-bulk media transport is closed.");
+        if (frame.byteLength < 1 || frame.byteLength > 1024 * 1024) {
+          throw new Error("Pears-bulk media frame exceeds append bounds.");
+        }
+        const written = await options.append({
+          appId: input.appId,
+          peer: input.peer,
+          frame,
+          sequence: sequence++
+        });
+        lastPath = written.path;
+        return { queuedBytes: 0, droppedOldest: 0 };
+      },
+      quality: () => ({
+        goodputBps: 64_000,
+        rttMs: 500,
+        jitterMs: 100,
+        lossRatio: 0,
+        mtu: 16_384,
+        source: "declared",
+        samples: lastPath === null ? 0 : sequence,
+        confidence: "low"
+      }),
+      async close() {
+        closed = true;
+      }
+    };
+  };
+}
+
+function isPearsBulkAdmittedRung(
+  demand: StreamDemand,
+  rung: string
+): boolean {
+  if (demand.tierId === "derived") return true;
+  return (
+    rung === "cas-snapshot" ||
+    rung === "derived-events" ||
+    rung === "thumbnails-1fps" ||
+    rung === "transcript-only" ||
+    rung === "vad-transcript"
+  );
 }
 
 export interface StreamOffer {

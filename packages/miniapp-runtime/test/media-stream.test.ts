@@ -10,6 +10,7 @@ import {
   ReservedStreamEgressFactory,
   createCasDerivedPlaneOpener,
   createHostPlaneOpeners,
+  createPearsBulkAppendPlaneOpener,
   createPeerRoutePlaneOpeners,
   type InboundMediaBackend,
   type StreamOffer
@@ -335,5 +336,82 @@ describe("host plane openers", () => {
       cas: { put: async () => "t256" }
     });
     expect(Object.keys(openers).sort()).toEqual(["cas", "pears-bulk", "reticulum", "webrtc"]);
+  });
+
+  it("appends latency-tolerant frames on the pears-bulk Hyperdrive plane", async () => {
+    const append = vi.fn(async ({ sequence }: { sequence: number }) => ({ path: `/media/${sequence}.tpd2` }));
+    const factory = new PlaneStreamEgressFactory({
+      "pears-bulk": createPearsBulkAppendPlaneOpener({ append })
+    });
+    await expect(
+      factory.create({
+        appId: "line-check",
+        peer: "peer-ana",
+        demand: { classId: "microphone", tierId: "pcm" },
+        admission: {
+          kind: "accept",
+          plane: "pears-bulk",
+          rung: "16k-opus",
+          rungIndex: 1,
+          demandBps: 24_000,
+          admittedDemandBps: 24_000,
+          supplyBps: 64_000,
+          reason: "test"
+        }
+      })
+    ).rejects.toThrow("derived or snapshot");
+
+    const egress = await factory.create({
+      appId: "line-check",
+      peer: "peer-ana",
+      demand: { classId: "camera", tierId: "derived" },
+      admission: {
+        kind: "degrade",
+        plane: "pears-bulk",
+        rung: "derived-events",
+        rungIndex: 4,
+        demandBps: 1_024,
+        admittedDemandBps: 1_024,
+        supplyBps: 64_000,
+        reason: "test"
+      }
+    });
+    await egress.send(new Uint8Array([1, 2]));
+    expect(append).toHaveBeenCalledWith({
+      appId: "line-check",
+      peer: "peer-ana",
+      frame: new Uint8Array([1, 2]),
+      sequence: 0
+    });
+  });
+
+  it("falls back from a peer-route pears-bulk miss to Hyperdrive append", async () => {
+    const append = vi.fn(async () => ({ path: "/media/0.tpd2" }));
+    const openers = createHostPlaneOpeners({
+      peerRouteFactory: {
+        create: async () => {
+          throw new Error("no gateway route");
+        }
+      },
+      pearsBulk: { append }
+    });
+    const factory = new PlaneStreamEgressFactory(openers);
+    const egress = await factory.create({
+      appId: "line-check",
+      peer: "peer-ana",
+      demand: { classId: "camera", tierId: "derived" },
+      admission: {
+        kind: "degrade",
+        plane: "pears-bulk",
+        rung: "derived-events",
+        rungIndex: 4,
+        demandBps: 1_024,
+        admittedDemandBps: 1_024,
+        supplyBps: 64_000,
+        reason: "test"
+      }
+    });
+    await egress.send(new Uint8Array([7]));
+    expect(append).toHaveBeenCalledOnce();
   });
 });
