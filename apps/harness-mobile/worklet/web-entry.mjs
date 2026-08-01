@@ -563,6 +563,9 @@ function ensureMiniappHost() {
       requestHostReply,
       peerSessionManager: peerSessionManagerProxy,
       realtimeReservations: { reserveRealtime: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
+      openCasPlane: {
+        put: (frame) => new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data)).put(frame)
+      },
       controlReservations: { reserveControl: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("control", bytesPerSecond) },
       onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
       async requestShareOffer({ appId, purpose }) {

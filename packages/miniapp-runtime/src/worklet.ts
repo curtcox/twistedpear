@@ -69,7 +69,18 @@ export {
   createHybridDeviceDrivers
 } from "./device-manager.js";
 export type { DeviceChromeSession, DeviceManagerOptions } from "./device-manager.js";
-export { CodecStreamEgressFactory, ReservedStreamEgressFactory, PeerRouteStreamEgressFactory, PeerRouteMediaBridge, createPeerRouteLinkSupply } from "./media-stream.js";
+export {
+  CodecStreamEgressFactory,
+  ReservedStreamEgressFactory,
+  PeerRouteStreamEgressFactory,
+  PeerRouteMediaBridge,
+  PlaneStreamEgressFactory,
+  createCasDerivedPlaneOpener,
+  createHostPlaneOpeners,
+  createPeerRouteLinkSupply,
+  createPeerRoutePlaneOpeners
+} from "./media-stream.js";
+export type { CasDerivedPlaneOpenerOptions } from "./media-stream.js";
 export { SessionInviteService } from "./session-invite.js";
 export type { SessionInvite, SessionInviteChrome } from "./session-invite.js";
 export {

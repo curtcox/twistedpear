@@ -388,6 +388,9 @@ function ensureMiniappHost() {
       async openMediaCodec(configuration) {
         return { implementation: "mediacodec", supports(candidate) { return candidate.sampleKind === "audio" && candidate.codec === "pcm"; }, async encode(_candidate, sample) { return { ...sample, bytes: sample.bytes.slice(), codec: "pcm" }; }, async decode(_candidate, sample) { return { captureAtUs: sample.captureAtUs, bytes: sample.bytes.slice() }; }, async close() {} };
       },
+      openCasPlane: {
+        put: (frame) => ensureEntryCasStore().put(frame)
+      },
       async requestShareOffer({ appId, purpose }) {
         const peer = peerSessionManagerProxy.list(appId)[0]; if (peer === undefined) return null;
         const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "device-share-offer", appId, publisherPublicKey: "host-authenticated-peer", summary: { purpose, peer: peer.displayLabel, class: "microphone", tier: "pcm", quality: "16k-opus", duration: "15 minutes" } });

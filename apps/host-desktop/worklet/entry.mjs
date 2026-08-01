@@ -1097,6 +1097,9 @@ function ensureMiniappHost() {
         };
         return { implementation: "webcodecs", supports(candidate) { return candidate.sampleKind === "audio" && (candidate.codec === "opus" || candidate.codec === "pcm"); }, encode(_candidate, sample) { return transact("encode", sample); }, decode(_candidate, sample) { return transact("decode", sample); }, async close() {} };
       },
+      openCasPlane: {
+        put: (frame) => ensureEntryCasStore().put(frame)
+      },
       async requestShareOffer({ appId, purpose }) {
         const peer = peerSessionManagerProxy.list(appId)[0];
         if (peer === undefined) return null;

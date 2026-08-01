@@ -16,7 +16,7 @@ claim.
 | 1 · Measurement | Pure estimator with a passive observation window, app-scoped authenticated-route roster, long-polled watch, bounded confirmed probe service, encoding-aware host-only admission; shared `TPL1` codec in `packages/protocol`; `meterHostPeerRoute` on the desktop, mobile, and web peer routes | `npm test`, `npm run sansio`, SPEC-STREAM admission checks; `npm run test:local-multipeer` measures a real probe RTT per ordered pair | Complete: shipping hosts meter delivered bytes and a summary reports `observed` only once measured, `declared` otherwise |
 | 2 · Two-sided truth | Readiness validation/bucketing and named limiter reservations | Protocol tests prove refusal collapse; `npm run test:local-multipeer` records a decoded, re-validated readiness answer per ordered pair | Complete for two headless peers; GUI peers in the matrix are unrecorded |
 | 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome | `npm run test:share-policy` drives the desktop renderer for grant, revoke, expiry, restart, and indicator; `conformance/ui-invariants` holds mobile and web to the same contract | Incomplete: no device-run Maestro flow (the mobile banner needs a live share offer from a running app) |
-| 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback | `npm run formal:stream`; `npm run test:local-multipeer` carries derived and PCM `TPD2` frames between peers and echoes them back | Complete for the LXMF carrier; concrete WebRTC/Pears/CAS plane openers are still absent |
+| 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback; concrete `PlaneStreamEgressFactory` openers for WebRTC / Pears-bulk / Reticulum (via the peer-route bridge) and a derived-only CAS snapshot opener wired on desktop and mobile | `npm run formal:stream`; `npm run test:local-multipeer` carries derived and PCM `TPD2` frames between peers and echoes them back | Incomplete: WebRTC media *tracks* (not only the data channel), a live Pears Hyperdrive append path, and SPEC-STREAM admission of a CAS snapshot rung with no live route remain; desktop↔desktop audio calls are unrecorded |
 | 5 · Codecs and duplex | Encoding-aware demand, codec effect boundary, browser/desktop raw RGBA/PCM capture, WebCodecs mono Opus, browser voice-processing constraints | `npm run test:sim-media-ladder` proves collapse, recovery, settling, and hysteresis across four link profiles and four transport classes | Incomplete: real desktop↔desktop and desktop↔simulator audio calls are not recorded |
 | 6 · Signaling and app | Verified/replay-bounded invite service wired into the desktop, mobile, and web worklet hosts with host-chrome banners and accept-only foreground launch; `TPL1` type-4 invite wire form and the host-neutral `createSessionInviteReceiver` carrier; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks; shipping hosts own a persistent `lxmf.delivery` destination via `createHostLxmfDelivery` (desktop 60s re-announce; mobile/web announce-once + resume) so invites raise chrome without a mounted test agent | Cookbook pack/start/render passes; `npm run test:share-policy` and `conformance/ui-invariants` cover the invite chrome; `npm run test:local-multipeer` carries a signed invite between peers and raises it per ordered pair; host-core unit coverage for `createHostLxmfDelivery` | Incomplete: recorded invite → accept → call → degrade → revoke on shipping hosts is still outstanding; GUI peers in the multipeer matrix remain unrecorded |
 | 7 · Hardware | No claim | LAN/BLE/RNode calls plus battery and airtime entries in `STATUS-HARDWARE.md` | Hardware-gated |
@@ -53,10 +53,11 @@ claim.
    `npm run test:local-multipeer`.
 3. Carry GUI peers through `npm run test:local-multipeer` so the metered route telemetry
    is recorded on desktop and simulator peers, not only on headless ones.
-4. Bind concrete WebRTC, Pears-bulk, and CAS plane openers, then run desktop↔desktop and
-   desktop↔simulator audio calls. A `cas` opener also needs admission to offer a
-   snapshot rung where there is no live route at all, which SPEC-STREAM does not yet
-   describe.
+4. Bind WebRTC *media tracks* (beyond the authenticated data-channel opener), a live
+   Pears Hyperdrive append path, and SPEC-STREAM admission of a CAS snapshot rung with
+   no live route; then run desktop↔desktop and desktop↔simulator audio calls. Host
+   `PlaneStreamEgressFactory` already opens WebRTC/Pears/Reticulum via the peer-route
+   bridge and CAS for derived snapshots only.
 5. Run the hardware matrix and update `STATUS-HARDWARE.md` only from captured evidence.
 
 ## Commands that produce this evidence

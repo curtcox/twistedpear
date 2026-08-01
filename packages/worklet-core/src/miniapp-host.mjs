@@ -7,9 +7,11 @@ import {
   MiniappLifecycle,
   PeerRouteStreamEgressFactory,
   PeerRouteMediaBridge,
+  PlaneStreamEgressFactory,
   CodecStreamEgressFactory,
   ReservedStreamEgressFactory,
   SessionInviteService,
+  createHostPlaneOpeners,
   createPeerRouteLinkSupply,
   createHybridDeviceDrivers,
   createSimulatedDeviceManager,
@@ -198,7 +200,24 @@ export function createWorkletMiniappHost(options) {
     now
   );
   const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, randomBytes: hostRandomBytes, onFrame: options.onInboundMediaFrame }) : undefined);
-  const peerRouteMediaEgress = peerRouteMediaBridge === undefined ? undefined : new CodecStreamEgressFactory(peerRouteMediaBridge, options.openMediaCodec ?? (async () => { throw new Error("A platform media codec is not configured on this host."); }));
+  // Concrete plane openers: WebRTC / Pears-bulk / Reticulum ride the authenticated
+  // peer-route bridge; CAS admits derived snapshots only when a put hook is given.
+  const hostPlaneOpeners =
+    peerRouteMediaBridge === undefined && options.openCasPlane === undefined
+      ? undefined
+      : createHostPlaneOpeners({
+          ...(peerRouteMediaBridge === undefined ? {} : { peerRouteFactory: peerRouteMediaBridge }),
+          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane })
+        });
+  const planeMediaEgress =
+    hostPlaneOpeners === undefined ? undefined : new PlaneStreamEgressFactory(hostPlaneOpeners);
+  const peerRouteMediaEgress =
+    planeMediaEgress === undefined && peerRouteMediaBridge === undefined
+      ? undefined
+      : new CodecStreamEgressFactory(
+          planeMediaEgress ?? peerRouteMediaBridge,
+          options.openMediaCodec ?? (async () => { throw new Error("A platform media codec is not configured on this host."); })
+        );
   const reservedMediaEgress = peerRouteMediaEgress === undefined || options.realtimeReservations === undefined ? peerRouteMediaEgress : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
   /** @type {import("../../miniapp-runtime/dist/worklet.js").DeviceManager} */
   const deviceManager =

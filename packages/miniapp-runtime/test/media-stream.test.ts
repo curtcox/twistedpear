@@ -8,6 +8,9 @@ import {
   PeerRouteMediaBridge,
   PlaneStreamEgressFactory,
   ReservedStreamEgressFactory,
+  createCasDerivedPlaneOpener,
+  createHostPlaneOpeners,
+  createPeerRoutePlaneOpeners,
   type InboundMediaBackend,
   type StreamOffer
 } from "../src/media-stream.js";
@@ -226,5 +229,111 @@ describe("PlaneStreamEgressFactory", () => {
     const egress = await factory.create({ appId: "app", peer: "peer", demand: { classId: "microphone", tierId: "pcm", encoding: "48k-pcm" }, admission: { kind: "degrade", plane: "reticulum", rung: "8k-narrowband", rungIndex: 2, demandBps: 768_000, admittedDemandBps: 12_000, supplyBps: 12_000, reason: "collapse" } });
     expect(configurations).toEqual([expect.objectContaining({ codec: "opus", sampleRate: 8_000 })]);
     await egress.close();
+  });
+});
+
+describe("host plane openers", () => {
+  const admission = {
+    kind: "accept" as const,
+    plane: "webrtc" as const,
+    rung: "720p30",
+    rungIndex: 0,
+    demandBps: 2_000_000,
+    admittedDemandBps: 2_000_000,
+    supplyBps: 3_000_000,
+    reason: "test"
+  };
+
+  it("binds webrtc, pears-bulk, and reticulum through an authenticated peer-route factory", async () => {
+    const send = vi.fn(async () => ({ queuedBytes: 0, droppedOldest: 0 }));
+    const peerFactory = {
+      create: vi.fn(async (input: { admission: { plane: string } }) => ({
+        plane: input.admission.plane as "webrtc",
+        send,
+        quality: () => ({
+          goodputBps: 512_000,
+          rttMs: 40,
+          jitterMs: 2,
+          lossRatio: 0,
+          mtu: 1_200,
+          source: "observed" as const,
+          samples: 2,
+          confidence: "medium" as const
+        }),
+        close: async () => {}
+      }))
+    };
+    const openers = createPeerRoutePlaneOpeners(peerFactory);
+    const factory = new PlaneStreamEgressFactory(openers);
+    const egress = await factory.create({
+      appId: "line-check",
+      peer: "peer-ana",
+      demand: { classId: "camera", tierId: "frames" },
+      admission
+    });
+    await egress.send(new Uint8Array([1, 2, 3]));
+    expect(peerFactory.create).toHaveBeenCalledOnce();
+    expect(send).toHaveBeenCalledWith(new Uint8Array([1, 2, 3]));
+    expect(openers["pears-bulk"]).toBeTypeOf("function");
+    expect(openers.reticulum).toBeTypeOf("function");
+    await expect(
+      factory.create({
+        appId: "line-check",
+        peer: "peer-ana",
+        demand: { classId: "microphone", tierId: "derived" },
+        admission: { ...admission, plane: "lxmf", rung: "vad-transcript", rungIndex: 3, demandBps: 1_024, admittedDemandBps: 1_024, supplyBps: 1_024 }
+      })
+    ).rejects.toThrow("No host media transport is configured for lxmf");
+  });
+
+  it("stores derived CAS snapshots and refuses live media", async () => {
+    const put = vi.fn(async () => "t256-snapshot");
+    const announce = vi.fn(async () => {});
+    const factory = new PlaneStreamEgressFactory({
+      cas: createCasDerivedPlaneOpener({ put, announce })
+    });
+    await expect(
+      factory.create({
+        appId: "line-check",
+        peer: "peer-ana",
+        demand: { classId: "camera", tierId: "frames" },
+        admission: { ...admission, plane: "cas", rung: "720p30" }
+      })
+    ).rejects.toThrow("derived-tier or cas-snapshot");
+
+    const egress = await factory.create({
+      appId: "line-check",
+      peer: "peer-ana",
+      demand: { classId: "camera", tierId: "derived" },
+      admission: { ...admission, plane: "cas", rung: "cas-snapshot", rungIndex: 4, demandBps: 1_024, admittedDemandBps: 1_024, supplyBps: 0 }
+    });
+    await egress.send(new Uint8Array([9, 9]));
+    expect(put).toHaveBeenCalledWith(new Uint8Array([9, 9]));
+    expect(announce).toHaveBeenCalledWith({ appId: "line-check", peer: "peer-ana", t256: "t256-snapshot" });
+    expect(egress.quality().source).toBe("declared");
+  });
+
+  it("composes peer-route and CAS openers for the host plane table", () => {
+    const openers = createHostPlaneOpeners({
+      peerRouteFactory: {
+        create: async () => ({
+          plane: "reticulum",
+          send: async () => ({ queuedBytes: 0, droppedOldest: 0 }),
+          quality: () => ({
+            goodputBps: 1,
+            rttMs: 1,
+            jitterMs: 0,
+            lossRatio: 0,
+            mtu: 1,
+            source: "declared",
+            samples: 0,
+            confidence: "low"
+          }),
+          close: async () => {}
+        })
+      },
+      cas: { put: async () => "t256" }
+    });
+    expect(Object.keys(openers).sort()).toEqual(["cas", "pears-bulk", "reticulum", "webrtc"]);
   });
 });

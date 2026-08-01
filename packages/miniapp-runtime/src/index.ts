@@ -208,7 +208,10 @@ export type { ShareOffer } from "@twistedpear/protocol";
 export {
   InboundMediaRouter,
   CodecStreamEgressFactory,
+  createCasDerivedPlaneOpener,
+  createHostPlaneOpeners,
   createPeerRouteLinkSupply,
+  createPeerRoutePlaneOpeners,
   PeerRouteStreamEgressFactory,
   PeerRouteMediaBridge,
   PlaneStreamEgressFactory,
@@ -219,6 +222,7 @@ export type { SessionInvite, SessionInviteChrome } from "./session-invite.js";
 export type {
   InboundMediaBackend,
   InboundStream,
+  CasDerivedPlaneOpenerOptions,
   MediaCodecDriverOpener,
   PlaneMediaTransport,
   PlaneMediaTransportOpener,

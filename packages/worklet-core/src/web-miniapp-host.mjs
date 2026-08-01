@@ -19,7 +19,7 @@ import { createWebSandboxProxyBackend } from "../../miniapp-runtime/dist/sandbox
 import { encodeJsonWireValue } from "../../miniapp-runtime/dist/sandbox/json-wire.js";
 import { KvStorageBeeBackend } from "../../miniapp-runtime/dist/services/storage-bee-kv.js";
 import { createHybridDeviceDrivers, createSimulatedDeviceManager } from "../../miniapp-runtime/dist/device-manager.js";
-import { CodecStreamEgressFactory, ReservedStreamEgressFactory, PeerRouteMediaBridge, PeerRouteStreamEgressFactory, createPeerRouteLinkSupply } from "../../miniapp-runtime/dist/media-stream.js";
+import { CodecStreamEgressFactory, ReservedStreamEgressFactory, PeerRouteMediaBridge, PeerRouteStreamEgressFactory, PlaneStreamEgressFactory, createHostPlaneOpeners, createPeerRouteLinkSupply, createCasDerivedPlaneOpener } from "../../miniapp-runtime/dist/media-stream.js";
 import { SessionInviteService } from "../../miniapp-runtime/dist/session-invite.js";
 import { WebCodecsMediaCodecDriver } from "../../effects/dist/media-codec.js";
 import { bytesToHex } from "../../reticulum-ts/dist/web.js";
@@ -125,7 +125,22 @@ export function createWebWorkletMiniappHost(options) {
           }
         };
   const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, randomBytes: hostRandomBytes, onFrame: options.onInboundMediaFrame }) : undefined);
-  const peerRouteMediaEgress = peerRouteMediaBridge === undefined ? undefined : new CodecStreamEgressFactory(peerRouteMediaBridge, options.openMediaCodec ?? (async () => new WebCodecsMediaCodecDriver()));
+  const hostPlaneOpeners =
+    peerRouteMediaBridge === undefined && options.openCasPlane === undefined
+      ? undefined
+      : createHostPlaneOpeners({
+          ...(peerRouteMediaBridge === undefined ? {} : { peerRouteFactory: peerRouteMediaBridge }),
+          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane })
+        });
+  const planeMediaEgress =
+    hostPlaneOpeners === undefined ? undefined : new PlaneStreamEgressFactory(hostPlaneOpeners);
+  const peerRouteMediaEgress =
+    planeMediaEgress === undefined && peerRouteMediaBridge === undefined
+      ? undefined
+      : new CodecStreamEgressFactory(
+          planeMediaEgress ?? peerRouteMediaBridge,
+          options.openMediaCodec ?? (async () => new WebCodecsMediaCodecDriver())
+        );
   const reservedMediaEgress = peerRouteMediaEgress === undefined || options.realtimeReservations === undefined ? peerRouteMediaEgress : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
   /** @type {import("../../miniapp-runtime/dist/device-manager.js").DeviceManager} */
   const deviceManager =

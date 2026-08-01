@@ -370,6 +370,103 @@ export class PlaneStreamEgressFactory implements StreamEgressFactory {
     };
   }
 }
+
+const LIVE_PEER_ROUTE_PLANES = ["webrtc", "pears-bulk", "reticulum"] as const;
+
+/**
+ * Concrete openers for authenticated peer-route planes. Each opener admits only
+ * its own plane and reuses the host's TPM1 peer-route bridge (or raw route
+ * factory) so WebRTC data channels, gateway/Pears bulk, and Reticulum all bind
+ * the same way shipping hosts already speak.
+ */
+export function createPeerRoutePlaneOpeners(
+  factory: StreamEgressFactory
+): Partial<Record<StreamPlane, PlaneMediaTransportOpener>> {
+  const openers: Partial<Record<StreamPlane, PlaneMediaTransportOpener>> = {};
+  for (const plane of LIVE_PEER_ROUTE_PLANES) {
+    openers[plane] = async (input) => {
+      if (input.admission.plane !== plane) {
+        throw new Error(`The admitted ${input.admission.plane} plane is not bound to the ${plane} opener.`);
+      }
+      const egress = await factory.create(input);
+      return {
+        send: (frame) => egress.send(frame),
+        quality: () => egress.quality(),
+        close: () => egress.close()
+      };
+    };
+  }
+  return openers;
+}
+
+export interface CasDerivedPlaneOpenerOptions {
+  /** Persists one derived frame; returns the content-addressed key (t256). */
+  readonly put: (frame: Uint8Array) => Promise<string>;
+  /** Optional announce so a peer can fetch the snapshot. */
+  readonly announce?: (input: {
+    readonly appId: string;
+    readonly peer: string;
+    readonly t256: string;
+  }) => Promise<void>;
+}
+
+/**
+ * Terminal ladder plane: derived/snapshot media only. Live audio and video
+ * must never ride CAS — there is no live path by definition.
+ */
+export function createCasDerivedPlaneOpener(
+  options: CasDerivedPlaneOpenerOptions
+): PlaneMediaTransportOpener {
+  return async (input) => {
+    if (input.admission.plane !== "cas") {
+      throw new Error("CAS plane opener was asked for a different admitted plane.");
+    }
+    if (input.demand.tierId !== "derived" && input.admission.rung !== "cas-snapshot") {
+      throw new Error("CAS plane admits derived-tier or cas-snapshot media only.");
+    }
+    let closed = false;
+    let lastKey: string | null = null;
+    return {
+      async send(frame) {
+        if (closed) throw new Error("CAS media transport is closed.");
+        if (frame.byteLength < 1 || frame.byteLength > 256 * 1024) {
+          throw new Error("CAS media frame exceeds snapshot bounds.");
+        }
+        lastKey = await options.put(frame);
+        await options.announce?.({ appId: input.appId, peer: input.peer, t256: lastKey });
+        return { queuedBytes: 0, droppedOldest: 0 };
+      },
+      quality: () => ({
+        goodputBps: 0,
+        rttMs: 0,
+        jitterMs: 0,
+        lossRatio: 0,
+        mtu: 0,
+        source: "declared",
+        samples: lastKey === null ? 0 : 1,
+        confidence: "low"
+      }),
+      async close() {
+        closed = true;
+      }
+    };
+  };
+}
+
+/**
+ * Builds the host plane table: live peer-route openers plus an optional CAS
+ * derived opener. Missing planes stay absent so admission still fails closed.
+ */
+export function createHostPlaneOpeners(input: {
+  readonly peerRouteFactory?: StreamEgressFactory;
+  readonly cas?: CasDerivedPlaneOpenerOptions;
+}): Partial<Record<StreamPlane, PlaneMediaTransportOpener>> {
+  return {
+    ...(input.peerRouteFactory === undefined ? {} : createPeerRoutePlaneOpeners(input.peerRouteFactory)),
+    ...(input.cas === undefined ? {} : { cas: createCasDerivedPlaneOpener(input.cas) })
+  };
+}
+
 export interface StreamOffer {
   readonly id: string;
   readonly peer: PeerHandle;
