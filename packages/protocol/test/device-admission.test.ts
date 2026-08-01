@@ -79,6 +79,42 @@ describe("device stream admission", () => {
     expect(decision.reason).toMatch(/BANDWIDTH_INSUFFICIENT/);
   });
 
+  it("admits cas-snapshot when no live plane has supply", () => {
+    const decision = decideStreamAdmission(
+      { classId: "camera", tierId: "frames", rateHz: 30 },
+      [{ plane: "reticulum", effectiveBps: 0, headroomBps: 0 }]
+    );
+    expect(decision).toMatchObject({
+      kind: "degrade",
+      plane: "cas",
+      rung: "cas-snapshot",
+      supplyBps: 0,
+      reason: "no live path; admitted cas-snapshot"
+    });
+    expect(admittedWithinHeadroom(decision, 0)).toBe(true);
+  });
+
+  it("admits cas-snapshot when there are no candidate planes", () => {
+    const decision = decideStreamAdmission({ classId: "screen-capture", tierId: "frames" }, []);
+    expect(decision).toMatchObject({
+      kind: "degrade",
+      plane: "cas",
+      rung: "cas-snapshot"
+    });
+  });
+
+  it("accepts an explicit cas-snapshot request with no live path", () => {
+    const decision = decideStreamAdmission(
+      { classId: "camera", tierId: "frames", encoding: "cas-snapshot" },
+      []
+    );
+    expect(decision).toMatchObject({
+      kind: "accept",
+      plane: "cas",
+      rung: "cas-snapshot"
+    });
+  });
+
   it("prefers webrtc over reticulum when both are present", () => {
     const selected = selectPlane([
       { plane: "reticulum", effectiveBps: 10_000, headroomBps: 524_288 },

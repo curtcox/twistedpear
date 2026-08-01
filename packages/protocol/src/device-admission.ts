@@ -115,6 +115,11 @@ export function supplyBps(supply: LinkSupply): number {
  * Pure admission decision. On metered/low-battery links, start one rung lower
  * than the highest sustainable rung and require re-confirmation to climb
  * (caller enforces confirmation; this only picks the starting rung).
+ *
+ * When every live plane has zero usable supply — or there is no candidate at
+ * all — and the class ladder ends in `cas-snapshot`, admit that terminal rung
+ * on the `cas` plane instead of rejecting. Snapshot media is store-and-forward;
+ * it is not a live bitrate claim.
  */
 export function decideStreamAdmission(
   demand: StreamDemand,
@@ -123,7 +128,7 @@ export function decideStreamAdmission(
   const ladder = degradationLadderFor(demand.classId);
   const selected = selectPlane(candidates);
   if (selected === undefined) {
-    return {
+    return casSnapshotAdmission(demand, ladder) ?? {
       kind: "reject",
       plane: "cas",
       rung: ladder[ladder.length - 1] ?? "on-demand",
@@ -153,16 +158,18 @@ export function decideStreamAdmission(
     };
   }
   if (supply <= 0) {
-    return {
-      kind: "reject",
-      plane: selected.plane,
-      rung: ladder[ladder.length - 1] ?? "on-demand",
-      rungIndex: Math.max(0, ladder.length - 1),
-      demandBps: requiredBps,
-      admittedDemandBps: 0,
-      supplyBps: supply,
-      reason: "DEVICE_BANDWIDTH_INSUFFICIENT: zero supply"
-    };
+    return (
+      casSnapshotAdmission(demand, ladder) ?? {
+        kind: "reject",
+        plane: selected.plane,
+        rung: ladder[ladder.length - 1] ?? "on-demand",
+        rungIndex: Math.max(0, ladder.length - 1),
+        demandBps: requiredBps,
+        admittedDemandBps: 0,
+        supplyBps: supply,
+        reason: "DEVICE_BANDWIDTH_INSUFFICIENT: zero supply"
+      }
+    );
   }
 
   let rungIndex = highestSustainableRung(ladder, requiredBps, supply, requestedRungIndex);
@@ -178,16 +185,20 @@ export function decideStreamAdmission(
     ladder.length - requestedRungIndex
   );
   if (admittedDemand > supply) {
-    return {
-      kind: "reject",
-      plane: selected.plane,
-      rung,
-      rungIndex,
-      demandBps: requiredBps,
-      admittedDemandBps: admittedDemand,
-      supplyBps: supply,
-      reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no sustainable rung"
-    };
+    // Live planes cannot carry even the bottom live rung; fall through to CAS
+    // when the ladder declares a snapshot terminal.
+    return (
+      casSnapshotAdmission(demand, ladder) ?? {
+        kind: "reject",
+        plane: selected.plane,
+        rung,
+        rungIndex,
+        demandBps: requiredBps,
+        admittedDemandBps: admittedDemand,
+        supplyBps: supply,
+        reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no sustainable rung"
+      }
+    );
   }
   if (rungIndex === requestedRungIndex && requiredBps <= supply) {
     return {
@@ -280,11 +291,41 @@ export function adaptStreamAdmission(input: AdaptationInput): AdmissionDecision 
 /** Property helper: accepted/degraded streams must fit in headroom. */
 export function admittedWithinHeadroom(decision: AdmissionDecision, headroomBps: number): boolean {
   if (decision.kind === "reject" || decision.kind === "defer") return true;
+  // CAS snapshots are store-and-forward; they do not claim live headroom.
+  if (decision.plane === "cas" && decision.rung === "cas-snapshot") return true;
   return decision.admittedDemandBps <= headroomBps && decision.admittedDemandBps > 0;
 }
 
 export function allDeviceClassIds(): ReadonlyArray<string> {
   return DEVICE_CLASS_REGISTRY.map((entry: DeviceClassEntry) => entry.id);
+}
+
+/**
+ * Terminal no-live-path admission. Only classes whose ladder names
+ * `cas-snapshot` may take this exit; everyone else still fails closed.
+ */
+function casSnapshotAdmission(
+  demand: StreamDemand,
+  ladder: ReadonlyArray<string>
+): AdmissionDecision | null {
+  const rungIndex = ladder.indexOf("cas-snapshot");
+  if (rungIndex < 0) return null;
+  const requiredBps = demandBps(demand);
+  const requestedRungIndex = demand.encoding === undefined
+    ? 0
+    : Math.max(0, ladder.indexOf(demand.encoding));
+  const kind: AdmissionDecisionKind =
+    requestedRungIndex === rungIndex && demand.encoding === "cas-snapshot" ? "accept" : "degrade";
+  return {
+    kind,
+    plane: "cas",
+    rung: "cas-snapshot",
+    rungIndex,
+    demandBps: requiredBps,
+    admittedDemandBps: Math.max(1, profileMinimumBps(demand)),
+    supplyBps: 0,
+    reason: "no live path; admitted cas-snapshot"
+  };
 }
 
 function highestSustainableRung(

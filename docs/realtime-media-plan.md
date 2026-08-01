@@ -37,11 +37,12 @@ and `declared` otherwise — Line Check keeps saying “probably” for the rest
 also own a persistent LXMF delivery destination (`createHostLxmfDelivery`) so invitations
 can raise trusted chrome without a mounted test agent. Hosts bind WebRTC / Pears-bulk /
 Reticulum through concrete `PlaneStreamEgressFactory` openers on the authenticated peer-route
-bridge, plus a derived-only CAS snapshot opener. The remaining work is host integration
-evidence rather than protocol shape: a recorded invite → accept → call → degrade →
-revoke flow on shipping hosts, WebRTC media tracks and a live Pears append path,
-device-run mobile chrome probes, GUI peers in the multipeer matrix, and hardware evidence.
-Until those adapters are present, hosts must keep rejecting unconfigured streams.
+bridge, plus a derived-only CAS snapshot opener. SPEC-STREAM admits `cas-snapshot` when no
+live plane has supply. The remaining work is host integration evidence rather than protocol
+shape: live media bytes after accept on desktop↔desktop, WebRTC media tracks and a live
+Pears append path, device-run mobile chrome probes, GUI peers in the multipeer matrix, and
+hardware evidence. Until those adapters are present, hosts must keep rejecting
+unconfigured streams.
 
 The evaluation below is retained as the design baseline that motivated the implementation.
 

@@ -18,6 +18,10 @@ their negotiation and safety boundaries are normative here.
 ## Required properties
 
 - Plane preference is `webrtc`, `pears-bulk`, `reticulum`, `lxmf`, then `cas`.
+- When every live plane has zero usable supply — or there is no candidate plane —
+  and the class ladder names `cas-snapshot`, admission selects the `cas` plane at
+  that terminal rung instead of rejecting. Snapshot media is store-and-forward and
+  does not claim live headroom. Classes without `cas-snapshot` still fail closed.
 - An admitted/degraded rung's demand is positive and no greater than host headroom.
 - App-supplied link candidates are ceilings over host measurements, never supply.
 - Degradation moves monotonically downward under deficit; restoration requires
