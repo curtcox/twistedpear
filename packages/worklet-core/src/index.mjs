@@ -25,7 +25,7 @@ export { createAutomaticReticulumDiscovery } from "./worklet-entry-discovery.mjs
 export { createRegisterAnnounceHandler } from "./worklet-entry-announce.mjs";
 export { createInstallFromT256 } from "./worklet-entry-install.mjs";
 export { createPublishArchiveOps } from "./worklet-entry-publish.mjs";
-export { createWorkletPropagationPersistence } from "./worklet-entry-propagation.mjs";
+export { createWorkletPropagationPersistenceOps } from "./worklet-entry-propagation.mjs";
 export { createAutoInterfaceOps } from "./worklet-entry-auto.mjs";
 export { createEnsureDevChannel } from "./worklet-entry-dev.mjs";
 export { createQuiesceInterfaces } from "./worklet-entry-quiesce.mjs";

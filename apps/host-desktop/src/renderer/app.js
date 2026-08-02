@@ -3,6 +3,60 @@ import { decodeQrVideoFrame, normalizeScannedT256, supportsQrDetection } from ".
 import { handleDeviceBridgeRequest } from "./device-bridge.js";
 import { handleMediaCodecRequest, handleMediaOpusPlayRequest, playInboundMediaFrame } from "./media-codec-bridge.js";
 import { handlePeerWebRtcMessage } from "./peer-webrtc-bridge.js";
+import { renderModerationStateImpl, renderSessionInvitesImpl, renderDeviceStateImpl, resetRequestedAppLaunchImpl, scheduleRequestedAppLaunchImpl, readWorkspaceDocumentImpl, closeHostModalImpl, renderPeerQrImpl, sendPeerChromeResponseImpl, audioUnhexImpl, audioHexImpl, playPeerAudioImpl, recordPeerAudioImpl, performPeerAudioImpl, showPeerConfirmationImpl, showPeerCodeExchangeImpl, showQrScannerImpl, showHostModalImpl } from "./app-extracted-1.mjs";
+import { renderTrustListImpl, renderOwnIdentityImpl, renderLimitsImpl, appendLogImpl, formatBytesImpl, renderStatusImpl, renderCatalogImpl, renderInstalledImpl, renderGrantsImpl, applyInterfaceSettingsImpl } from "./app-extracted-2.mjs";
+
+const extractedContext = {
+  get activePeerCameraStream() { return activePeerCameraStream; }, set activePeerCameraStream(value) { activePeerCameraStream = value; },
+  get activePeerChromeToken() { return activePeerChromeToken; }, set activePeerChromeToken(value) { activePeerChromeToken = value; },
+  get activePeerQrTimer() { return activePeerQrTimer; }, set activePeerQrTimer(value) { activePeerQrTimer = value; },
+  get appendLog() { return appendLog; }, set appendLog(value) { appendLog = value; },
+  get audioHex() { return audioHex; }, set audioHex(value) { audioHex = value; },
+  get audioUnhex() { return audioUnhex; }, set audioUnhex(value) { audioUnhex = value; },
+  get catalogEntries() { return catalogEntries; }, set catalogEntries(value) { catalogEntries = value; },
+  get catalogList() { return catalogList; },
+  get closeHostModal() { return closeHostModal; }, set closeHostModal(value) { closeHostModal = value; },
+  get deviceActiveBanner() { return deviceActiveBanner; },
+  get deviceInventory() { return deviceInventory; },
+  get deviceRemoteEnabled() { return deviceRemoteEnabled; },
+  get deviceSessions() { return deviceSessions; },
+  get formatBytes() { return formatBytes; }, set formatBytes(value) { formatBytes = value; },
+  get grantsPanel() { return grantsPanel; },
+  get host() { return host; },
+  get installedList() { return installedList; },
+  get installedPackages() { return installedPackages; }, set installedPackages(value) { installedPackages = value; },
+  get lastDeviceState() { return lastDeviceState; }, set lastDeviceState(value) { lastDeviceState = value; },
+  get limitKv() { return limitKv; },
+  get limitMemory() { return limitMemory; },
+  get limitRate() { return limitRate; },
+  get limitsApp() { return limitsApp; },
+  get limitsNote() { return limitsNote; },
+  get logEl() { return logEl; },
+  get modalEl() { return modalEl; },
+  get modalOverlay() { return modalOverlay; },
+  get moderationBlocked() { return moderationBlocked; },
+  get moderationMuted() { return moderationMuted; },
+  get moderationSummary() { return moderationSummary; },
+  get pendingWorkspaceReads() { return pendingWorkspaceReads; },
+  get performPeerAudio() { return performPeerAudio; }, set performPeerAudio(value) { performPeerAudio = value; },
+  get playPeerAudio() { return playPeerAudio; }, set playPeerAudio(value) { playPeerAudio = value; },
+  get recordPeerAudio() { return recordPeerAudio; }, set recordPeerAudio(value) { recordPeerAudio = value; },
+  get renderPeerQr() { return renderPeerQr; }, set renderPeerQr(value) { renderPeerQr = value; },
+  get requestedAppLaunchStarted() { return requestedAppLaunchStarted; }, set requestedAppLaunchStarted(value) { requestedAppLaunchStarted = value; },
+  get requestedAppLaunchTimer() { return requestedAppLaunchTimer; }, set requestedAppLaunchTimer(value) { requestedAppLaunchTimer = value; },
+  get selectedAppId() { return selectedAppId; }, set selectedAppId(value) { selectedAppId = value; },
+  get sendPeerChromeResponse() { return sendPeerChromeResponse; }, set sendPeerChromeResponse(value) { sendPeerChromeResponse = value; },
+  get sessionInviteBanner() { return sessionInviteBanner; },
+  get settingAuto() { return settingAuto; },
+  get settingRnodePort() { return settingRnodePort; },
+  get settingTcp() { return settingTcp; },
+  get showHostModal() { return showHostModal; }, set showHostModal(value) { showHostModal = value; },
+  get statusGrid() { return statusGrid; },
+  get trustIdentityView() { return trustIdentityView; },
+  get trustList() { return trustList; },
+  get workspaceReadCounter() { return workspaceReadCounter; }, set workspaceReadCounter(value) { workspaceReadCounter = value; }
+};
+
 
 const statusGrid = document.querySelector("#status-grid");
 const catalogList = document.querySelector("#catalog-list");
@@ -70,164 +124,9 @@ const sessionInviteBanner = document.querySelector("#session-invite-banner");
 const deviceInventory = document.querySelector("#device-inventory");
 const deviceSessions = document.querySelector("#device-sessions");
 const deviceRemoteEnabled = document.querySelector("#device-remote-enabled");
-
-function renderModerationState(message) {
-  const renderEntries = (root, entries) => {
-    root?.replaceChildren(...entries.map((entry) => {
-      const item = document.createElement("li");
-      item.textContent = `${entry.label ? `${entry.label} — ` : ""}${entry.sourceHash}`;
-      return item;
-    }));
-  };
-  renderEntries(moderationBlocked, message.blocked);
-  renderEntries(moderationMuted, message.muted);
-  if (moderationSummary) moderationSummary.textContent = `${message.blocked.length} blocked · ${message.muted.length} muted · ${message.reports.length} local reports`;
-}
-
-/**
- * Host-delivered call invitations. The app is not running while one is
- * pending; accepting is what brings it to the foreground.
- */
-function renderSessionInvites(invites) {
-  if (!sessionInviteBanner) return;
-  const pending = (invites ?? []).filter((invite) => invite.phase === "pending");
-  if (pending.length === 0) {
-    sessionInviteBanner.hidden = true;
-    sessionInviteBanner.replaceChildren();
-    return;
-  }
-  sessionInviteBanner.hidden = false;
-  const title = document.createElement("strong");
-  title.textContent = "Incoming call invitation";
-  const list = document.createElement("div");
-  list.className = "settings-grid";
-  for (const invite of pending) {
-    const row = document.createElement("div");
-    row.className = "item-row";
-    const text = document.createElement("span");
-    text.textContent = `${invite.verifiedPeerLabel} wants to start ${invite.requestedClasses.join(" + ")} in ${invite.appId}`;
-    const accept = document.createElement("button");
-    accept.type = "button";
-    accept.id = `session-invite-accept-${invite.id}`;
-    accept.textContent = "Accept";
-    accept.addEventListener("click", () => host.send({ type: "session-invite-accept", id: invite.id }));
-    const decline = document.createElement("button");
-    decline.type = "button";
-    decline.className = "danger";
-    decline.id = `session-invite-decline-${invite.id}`;
-    decline.textContent = "Decline";
-    decline.addEventListener("click", () => host.send({ type: "session-invite-decline", id: invite.id }));
-    row.append(text, accept, decline);
-    list.append(row);
-  }
-  sessionInviteBanner.replaceChildren(title, list);
-}
-
-function renderDeviceState(message) {
-  lastDeviceState = message;
-  const disabled = new Set(message.disabledClasses ?? []);
-  if (deviceRemoteEnabled) {
-    deviceRemoteEnabled.checked = message.remoteAcquisitionEnabled === true;
-  }
-
-  if (deviceActiveBanner) {
-    const indicators = message.indicators ?? [];
-    const shareOffers = message.shareOffers ?? [];
-    if (indicators.length === 0 && shareOffers.length === 0) {
-      deviceActiveBanner.hidden = true;
-      deviceActiveBanner.replaceChildren();
-    } else {
-      deviceActiveBanner.hidden = false;
-      const title = document.createElement("strong");
-      title.textContent = "Active device use";
-      const list = document.createElement("div");
-      list.className = "settings-grid";
-      for (const indicator of indicators) {
-        const row = document.createElement("div");
-        row.className = "item-row";
-        const text = document.createElement("span");
-        text.textContent = `${indicator.appId} · ${indicator.class}:${indicator.tier} · ${indicator.destination} — ${indicator.purpose}`;
-        const kill = document.createElement("button");
-        kill.type = "button";
-        kill.className = "danger";
-        kill.textContent = "Stop";
-        kill.addEventListener("click", () => {
-          host.send({ type: "device-kill-session", handle: indicator.handle });
-        });
-        row.append(text, kill);
-        list.append(row);
-      }
-      for (const offer of shareOffers) {
-        const row = document.createElement("div"); row.className = "item-row";
-        const text = document.createElement("span"); text.textContent = `${offer.appId} · sharing ${offer.classId}:${offer.tierId} with ${offer.displayLabel} until ${new Date(offer.expiresAt).toLocaleTimeString()}`;
-        const kill = document.createElement("button"); kill.type = "button"; kill.className = "danger"; kill.textContent = "Stop sharing";
-        kill.addEventListener("click", () => host.send({ type: "device-revoke-share", appId: offer.appId, id: offer.id }));
-        row.append(text, kill); list.append(row);
-      }
-      deviceActiveBanner.replaceChildren(title, list);
-    }
-  }
-
-  if (deviceSessions) {
-    const sessions = message.sessions ?? [];
-    if (sessions.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "muted";
-      empty.textContent = "No live device sessions.";
-      deviceSessions.replaceChildren(empty);
-    } else {
-      deviceSessions.replaceChildren(
-        ...sessions.map((session) => {
-          const row = document.createElement("div");
-          row.className = "device-row";
-          const name = document.createElement("div");
-          name.textContent = `${session.classId}:${session.tierId}`;
-          const meta = document.createElement("div");
-          meta.className = "device-meta";
-          meta.textContent = `${session.appId} · ${session.destination}`;
-          const kill = document.createElement("button");
-          kill.type = "button";
-          kill.className = "danger";
-          kill.textContent = "Kill";
-          kill.addEventListener("click", () => {
-            host.send({ type: "device-kill-session", handle: session.handle });
-          });
-          row.append(name, meta, kill);
-          return row;
-        })
-      );
-    }
-  }
-
-  if (deviceInventory) {
-    const inventory = message.inventory ?? [];
-    deviceInventory.replaceChildren(
-      ...inventory.map((entry) => {
-        const row = document.createElement("div");
-        row.className = "device-row";
-        const name = document.createElement("div");
-        name.textContent = entry.class;
-        const availability = document.createElement("div");
-        availability.className = `device-meta device-availability-${entry.availability}`;
-        availability.textContent = entry.availability;
-        const toggle = document.createElement("label");
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = !disabled.has(entry.class);
-        checkbox.addEventListener("change", () => {
-          host.send({
-            type: "device-set-class-disabled",
-            classId: entry.class,
-            disabled: !checkbox.checked
-          });
-        });
-        toggle.append(checkbox, document.createTextNode(" Allowed"));
-        row.append(name, availability, toggle);
-        return row;
-      })
-    );
-  }
-}
+function renderModerationState(...args) { return renderModerationStateImpl(extractedContext, ...args); }
+function renderSessionInvites(...args) { return renderSessionInvitesImpl(extractedContext, ...args); }
+function renderDeviceState(...args) { return renderDeviceStateImpl(extractedContext, ...args); }
 
 /** @type {import("@twistedpear/host-core/protocol").CatalogEntryView[]} */
 let catalogEntries = [];
@@ -250,669 +149,31 @@ let requestedAppLaunchTimer = null;
 let activePeerChromeToken = null;
 let activePeerQrTimer = null;
 let activePeerCameraStream = null;
-
-function resetRequestedAppLaunch() {
-  if (requestedAppLaunchTimer !== null) {
-    clearTimeout(requestedAppLaunchTimer);
-    requestedAppLaunchTimer = null;
-  }
-  requestedAppLaunchStarted = false;
-}
-
-function scheduleRequestedAppLaunch(pkg) {
-  requestedAppLaunchStarted = true;
-  requestedAppLaunchTimer = setTimeout(() => {
-    requestedAppLaunchTimer = null;
-    selectedAppId = pkg.appId;
-    host.send({ type: "launch-miniapp", appId: pkg.appId });
-    if (pkg.publisherPublicKey && pkg.capabilities) {
-      host.send({
-        type: "get-grants",
-        appId: pkg.appId,
-        publisherPublicKey: pkg.publisherPublicKey,
-        declaredCapabilities: pkg.capabilities
-      });
-    }
-  }, 250);
-}
-
-function readWorkspaceDocument(documentId) {
-  return new Promise((resolve, reject) => {
-    const token = `ws-${workspaceReadCounter++}`;
-    const timer = setTimeout(() => {
-      pendingWorkspaceReads.delete(token);
-      reject(new Error("Workspace read timed out"));
-    }, 10_000);
-    pendingWorkspaceReads.set(token, {
-      resolve: (content) => {
-        clearTimeout(timer);
-        resolve(content);
-      },
-      reject: (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    });
-    host?.send({ type: "workspace-read", token, documentId });
-  });
-}
-
-function closeHostModal() {
-  if (activePeerQrTimer !== null) {
-    clearInterval(activePeerQrTimer);
-    activePeerQrTimer = null;
-  }
-  activePeerCameraStream?.getTracks().forEach((track) => track.stop());
-  activePeerCameraStream = null;
-  activePeerChromeToken = null;
-  if (modalOverlay) {
-    modalOverlay.hidden = true;
-  }
-  modalEl?.replaceChildren();
-}
-
-function renderPeerQr(root, value) {
-  root.replaceChildren();
-  const qrFactory = globalThis.qrcode;
-  if (typeof qrFactory === "function") {
-    try {
-      const qr = qrFactory(0, "M");
-      qr.addData(value);
-      qr.make();
-      const holder = document.createElement("div");
-      holder.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
-      const svg = holder.firstElementChild;
-      if (svg !== null) {
-        svg.setAttribute("width", "240");
-        svg.setAttribute("height", "240");
-        svg.classList.add("widget-qr-svg");
-        root.appendChild(svg);
-      }
-    } catch {
-      // The copyable text remains available below.
-    }
-  }
-  const text = document.createElement("p");
-  text.className = "widget-qr-value";
-  text.textContent = value;
-  root.appendChild(text);
-}
-
-function sendPeerChromeResponse(token, response) {
-  host?.send({ type: "peer-chrome-response", token, ...response });
-}
-
-function audioUnhex(text) { return Uint8Array.from(text.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16)); }
-function audioHex(bytes) { return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join(""); }
-async function playPeerAudio(framesHex) {
-  const AudioContextClass = globalThis.AudioContext ?? globalThis.webkitAudioContext;
-  const modem = globalThis.TwistedPearPeerAudio;
-  if (AudioContextClass === undefined || modem?.encodePeerAudioFsk === undefined) throw new Error("Web Audio playback is unavailable");
-  const context = new AudioContextClass(); await context.resume(); let at = context.currentTime + 0.1;
-  for (const frameHex of framesHex) { const pcm = modem.encodePeerAudioFsk(audioUnhex(frameHex), { sampleRate: context.sampleRate }); const buffer = context.createBuffer(1, pcm.length, context.sampleRate); buffer.copyToChannel(pcm, 0); const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination); source.start(at); at += pcm.length / context.sampleRate + 0.2; }
-  await new Promise((resolve) => setTimeout(resolve, Math.ceil(Math.max(0, at - context.currentTime) * 1_000))); await context.close();
-}
-async function recordPeerAudio(durationMs = 15_000) {
-  const AudioContextClass = globalThis.AudioContext ?? globalThis.webkitAudioContext;
-  const modem = globalThis.TwistedPearPeerAudio;
-  if (AudioContextClass === undefined || modem?.decodePeerAudioFskStream === undefined || navigator.mediaDevices?.getUserMedia === undefined) throw new Error("Microphone recording is unavailable");
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
-  const context = new AudioContextClass(); await context.resume(); const chunks = []; const source = context.createMediaStreamSource(stream); const processor = context.createScriptProcessor(4_096, 1, 1); const mute = context.createGain(); mute.gain.value = 0;
-  processor.onaudioprocess = (event) => chunks.push(new Float32Array(event.inputBuffer.getChannelData(0))); source.connect(processor); processor.connect(mute); mute.connect(context.destination);
-  await new Promise((resolve) => setTimeout(resolve, durationMs)); stream.getTracks().forEach((track) => track.stop()); source.disconnect(); processor.disconnect(); mute.disconnect();
-  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0); const pcm = new Float32Array(total); let offset = 0; for (const chunk of chunks) { pcm.set(chunk, offset); offset += chunk.length; }
-  const frames = modem.decodePeerAudioFskStream(pcm, { sampleRate: context.sampleRate }); await context.close(); if (frames.length === 0) throw new Error("No valid peer audio frames were detected"); return frames.map(audioHex);
-}
-async function performPeerAudio(message) {
-  try {
-    if (message.type === "peer-audio-transmit") { await playPeerAudio(message.framesHex); const framesHex = message.expectsResponse ? await recordPeerAudio() : []; sendPeerChromeResponse(message.token, { accepted: true, framesHex }); }
-    else sendPeerChromeResponse(message.token, { accepted: true, framesHex: await recordPeerAudio(), sessionId: message.sessionId });
-  } catch (error) { sendPeerChromeResponse(message.token, { accepted: false, error: error instanceof Error ? error.message : String(error) }); }
-}
-
-function showPeerConfirmation(message) {
-  const words = Array.isArray(message.peer?.matchingWords) ? message.peer.matchingWords.join(" · ") : "—";
-  activePeerChromeToken = message.token;
-  showHostModal({
-    title: "Confirm peer connection",
-    fingerprint: null,
-    rows: [
-      ["Requested by", message.appId], ["Purpose", message.purpose], ["Service", message.service],
-      ["Peer label (untrusted claim)", message.peer?.displayLabel ?? "Unknown"],
-      ["Identity fingerprint", message.peer?.fingerprint ?? "Unknown"], ["Matching words", words],
-      ["Data path", message.peer?.dataPlane ?? "Unknown"]
-    ],
-    confirmLabel: "Connect",
-    onDone: (approved) => sendPeerChromeResponse(message.token, { approved })
-  });
-}
-
-function showPeerCodeExchange(message) {
-  if (!modalOverlay || !modalEl) {
-    sendPeerChromeResponse(message.token, { accepted: false });
-    return;
-  }
-  activePeerChromeToken = message.token;
-  modalEl.replaceChildren();
-  const heading = document.createElement("h3");
-  heading.textContent = message.type === "peer-manual-enter"
-    ? "Enter a peer invitation"
-    : message.type === "peer-qr-scan"
-      ? "Scan a peer invitation"
-      : message.type === "peer-qr-present"
-        ? "Show peer QR"
-        : message.type === "peer-audio-transmit"
-          ? "Play an audible peer invitation"
-          : message.type === "peer-audio-receive"
-            ? "Listen for an audible peer invitation"
-        : message.type === "peer-ntfy-enter"
-          ? "Enter a private ntfy lookup code"
-          : message.type === "peer-ntfy-present"
-            ? "Share a private ntfy lookup code"
-            : "Share peer invitation";
-  const disclosure = document.createElement("p");
-  disclosure.className = "muted";
-  const isNtfy = message.type === "peer-ntfy-enter" || message.type === "peer-ntfy-present";
-  const isAudio = message.type === "peer-audio-transmit" || message.type === "peer-audio-receive";
-  disclosure.textContent = isAudio
-    ? "This trusted host action emits audible FSK tones or requests microphone access after you continue. PCM never crosses into the mini-app."
-    : isNtfy
-    ? `This trusted host action uses ${message.server ?? "the configured ntfy server"}. The server can observe a random topic, timing, and IP metadata, but invitation contents are end-to-end encrypted. Verify matching words before connecting.`
-    : "This is trusted host chrome. Verify matching words before connecting. Full manual and QR codes do not use a rendezvous server.";
-  modalEl.append(heading, disclosure);
-
-  const codes = Array.isArray(message.codes) ? message.codes : typeof message.code === "string" ? [message.code] : [];
-  if (codes.length > 0) {
-    const display = document.createElement("div");
-    if (message.type === "peer-qr-present") {
-      let frame = 0;
-      renderPeerQr(display, codes[0]);
-      if (codes.length > 1) activePeerQrTimer = setInterval(() => { frame = (frame + 1) % codes.length; renderPeerQr(display, codes[frame]); }, 750);
-    } else {
-      const code = document.createElement("textarea"); code.className = "setting-input"; code.rows = 6; code.readOnly = true; code.value = codes[0]; display.appendChild(code);
-    }
-    modalEl.appendChild(display);
-  }
-
-  const needsInput = message.expectsResponse === true || message.type === "peer-manual-enter" || message.type === "peer-qr-scan" || message.type === "peer-ntfy-enter";
-  const input = document.createElement("textarea");
-  if (needsInput) {
-    input.className = "setting-input";
-    input.rows = 5;
-    input.placeholder = message.type === "peer-qr-scan"
-      ? "Scan or paste the peer QR payload"
-      : message.type === "peer-ntfy-enter"
-        ? "Paste the TPN1 lookup code"
-        : "Paste the peer's full response code";
-    modalEl.appendChild(input);
-  }
-
-  const cameraStatus = document.createElement("p"); cameraStatus.className = "muted";
-  if (message.type === "peer-qr-scan" || (message.type === "peer-qr-present" && message.expectsResponse === true)) {
-    const startCamera = document.createElement("button"); startCamera.textContent = "Start camera";
-    startCamera.addEventListener("click", async () => {
-      if (!(await supportsQrDetection())) { cameraStatus.textContent = "Camera QR decoding is unsupported in this build; paste the payload instead."; return; }
-      try {
-        activePeerCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
-        const video = document.createElement("video"); video.className = "qr-scanner-video"; video.autoplay = true; video.muted = true; video.playsInline = true; video.srcObject = activePeerCameraStream; modalEl.insertBefore(video, cameraStatus); await video.play();
-        const detect = async () => { if (activePeerChromeToken !== message.token || activePeerCameraStream === null) return; const raw = await decodeQrVideoFrame(video); if (raw !== null) { input.value = raw; activePeerCameraStream.getTracks().forEach((track) => track.stop()); activePeerCameraStream = null; cameraStatus.textContent = "QR payload captured."; return; } requestAnimationFrame(() => { void detect(); }); };
-        cameraStatus.textContent = "Camera active. Hold the peer QR inside the frame."; void detect();
-      } catch (error) { cameraStatus.textContent = `Camera unavailable: ${error instanceof Error ? error.message : String(error)}`; }
-    });
-    modalEl.append(startCamera, cameraStatus);
-  }
-
-  const actions = document.createElement("div"); actions.className = "modal-actions";
-  const cancel = document.createElement("button"); cancel.textContent = "Cancel"; cancel.addEventListener("click", () => { closeHostModal(); sendPeerChromeResponse(message.token, { accepted: false }); });
-  const approve = document.createElement("button"); approve.className = "primary"; approve.textContent = needsInput ? "Continue" : "Done";
-  approve.addEventListener("click", () => { const code = needsInput ? input.value.trim() : undefined; if (needsInput && !code) return; closeHostModal(); if (isAudio) void performPeerAudio(message); else sendPeerChromeResponse(message.token, { accepted: true, ...(code ? { code } : {}) }); });
-  actions.append(cancel, approve); modalEl.appendChild(actions); modalOverlay.hidden = false;
-}
-
-async function showQrScanner(target, purpose) {
-  if (!modalOverlay || !modalEl || !target) return;
-  if (!(await supportsQrDetection())) {
-    appendLog("QR scanning is unavailable in this Electron/Chromium build; paste the 256t string instead.");
-    return;
-  }
-
-  modalEl.replaceChildren();
-  const title = document.createElement("h3");
-  title.textContent = `Scan ${purpose} QR`;
-  const video = document.createElement("video");
-  video.className = "qr-scanner-video";
-  video.autoplay = true;
-  video.muted = true;
-  video.playsInline = true;
-  const status = document.createElement("p");
-  status.className = "muted";
-  status.textContent = "Requesting camera access…";
-  const cancel = document.createElement("button");
-  cancel.textContent = "Cancel";
-  modalEl.append(title, video, status, cancel);
-  modalOverlay.hidden = false;
-
-  let active = true;
-  let stream = null;
-  const stop = () => {
-    active = false;
-    stream?.getTracks().forEach((track) => track.stop());
-    closeHostModal();
-  };
-  cancel.addEventListener("click", stop, { once: true });
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
-      audio: false
-    });
-    if (!active) {
-      stream.getTracks().forEach((track) => track.stop());
-      return;
-    }
-    video.srcObject = stream;
-    await video.play();
-    status.textContent = "Hold a TwistedPear 256t QR code inside the camera view.";
-    const detect = async () => {
-      if (!active) return;
-      try {
-        const rawValue = await decodeQrVideoFrame(video);
-        if (rawValue !== null) {
-          target.value = normalizeScannedT256(rawValue);
-          stop();
-          target.dispatchEvent(new Event("input", { bubbles: true }));
-          return;
-        }
-      } catch (error) {
-        status.textContent = error instanceof Error ? error.message : String(error);
-      }
-      requestAnimationFrame(() => { void detect(); });
-    };
-    void detect();
-  } catch (error) {
-    status.textContent = `Camera unavailable: ${error instanceof Error ? error.message : String(error)}`;
-  }
-}
-
-/**
- * Host-chrome modal. Lives outside #widget-root so a mini-app widget tree can
- * never draw or dismiss it; identity fields come from the worklet message.
- */
-function showHostModal({ title, fingerprint, rows = [], capabilities = null, confirmLabel, onDone }) {
-  if (!modalOverlay || !modalEl) {
-    onDone(false, null);
-    return;
-  }
-
-  modalEl.replaceChildren();
-  const heading = document.createElement("h3");
-  heading.textContent = title;
-  modalEl.appendChild(heading);
-
-  if (fingerprint) {
-    const fp = document.createElement("p");
-    fp.className = "fingerprint";
-    fp.textContent = `Publisher key: ${fingerprint}`;
-    modalEl.appendChild(fp);
-  }
-
-  for (const [label, value] of rows) {
-    const row = document.createElement("p");
-    row.innerHTML = `<span class="muted">${label}:</span> `;
-    row.appendChild(document.createTextNode(String(value)));
-    modalEl.appendChild(row);
-  }
-
-  /** @type {HTMLInputElement[]} */
-  const capabilityInputs = [];
-  if (capabilities !== null) {
-    for (const capability of capabilities) {
-      const label = document.createElement("label");
-      label.className = "grant-row";
-      const input = document.createElement("input");
-      input.type = "checkbox";
-      input.checked = capability.granted;
-      input.dataset.capabilityId = capability.id;
-      capabilityInputs.push(input);
-      const text = document.createElement("span");
-      text.textContent = `${capability.id} — ${capability.description || ""}`;
-      label.append(input, text);
-      modalEl.appendChild(label);
-    }
-  }
-
-  const actions = document.createElement("div");
-  actions.className = "modal-actions";
-  const cancel = document.createElement("button");
-  cancel.textContent = "Cancel";
-  cancel.addEventListener("click", () => {
-    closeHostModal();
-    onDone(false, null);
-  });
-  const approve = document.createElement("button");
-  approve.className = "primary";
-  approve.textContent = confirmLabel;
-  const refreshApproveState = () => {
-    approve.disabled =
-      capabilities !== null &&
-      capabilityInputs.length > 0 &&
-      capabilityInputs.every((input) => !input.checked);
-  };
-  for (const input of capabilityInputs) {
-    input.addEventListener("change", refreshApproveState);
-  }
-  approve.addEventListener("click", () => {
-    const grants = capabilityInputs
-      .filter((input) => input.checked)
-      .map((input) => input.dataset.capabilityId)
-      .filter((id) => typeof id === "string");
-    closeHostModal();
-    onDone(true, capabilities === null ? null : grants);
-  });
-  actions.append(cancel, approve);
-  modalEl.appendChild(actions);
-  refreshApproveState();
-  modalOverlay.hidden = false;
-}
-
-function renderTrustList(entries) {
-  if (!trustList) {
-    return;
-  }
-
-  trustList.replaceChildren(
-    ...entries.map((entry) => {
-      const item = document.createElement("li");
-      item.className = "item-row";
-      const label = document.createElement("strong");
-      label.textContent = entry.label;
-      const key = document.createElement("span");
-      key.className = "muted";
-      key.textContent = `${entry.publisherPublicKey.slice(0, 16)}…`;
-      const remove = document.createElement("button");
-      remove.textContent = "Remove";
-      remove.addEventListener("click", () => {
-        host?.send({ type: "trust-remove", publisherPublicKey: entry.publisherPublicKey });
-      });
-      item.append(label, key, remove);
-      return item;
-    })
-  );
-
-  if (entries.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "muted";
-    empty.textContent = "No trusted publishers yet";
-    trustList.replaceChildren(empty);
-  }
-}
-
-function renderOwnIdentity(identity256t) {
-  if (!trustIdentityView) {
-    return;
-  }
-
-  trustIdentityView.replaceChildren();
-  if (!identity256t) {
-    trustIdentityView.textContent = "No host identity yet — start the node first.";
-    return;
-  }
-
-  const qrFactory = globalThis.qrcode;
-  if (typeof qrFactory === "function") {
-    try {
-      const qr = qrFactory(0, "M");
-      qr.addData(identity256t);
-      qr.make();
-      const svgHost = document.createElement("div");
-      svgHost.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
-      const svg = svgHost.firstElementChild;
-      if (svg !== null) {
-        svg.setAttribute("width", "192");
-        svg.setAttribute("height", "192");
-        svg.classList.add("widget-qr-svg");
-        trustIdentityView.appendChild(svg);
-      }
-    } catch {
-      // string fallback below
-    }
-  }
-
-  const text = document.createElement("p");
-  text.className = "widget-qr-value";
-  text.textContent = identity256t;
-  trustIdentityView.appendChild(text);
-}
-
-function renderLimits(limits) {
-  if (limitsApp) {
-    limitsApp.textContent = `Limits for ${limits.appId}`;
-  }
-  if (limitRate) {
-    limitRate.value = String(limits.maxMessagesPerSecond);
-  }
-  if (limitKv) {
-    limitKv.value = limits.kvQuotaBytes === null ? "" : String(limits.kvQuotaBytes);
-  }
-  if (limitMemory) {
-    limitMemory.value = limits.memoryBytes === null ? "" : String(limits.memoryBytes);
-  }
-  if (limitsNote) {
-    limitsNote.textContent = limits.memoryPendingRestart
-      ? "Memory limit change takes effect at next launch."
-      : "";
-  }
-}
-
-function appendLog(line) {
-  logEl.textContent = `${logEl.textContent}${line}\n`.slice(-8000);
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KiB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
-}
-
-function renderStatus(status) {
-  if (!statusGrid || !status) {
-    return;
-  }
-
-  const rows = [
-    ["Running", String(status.running)],
-    ["Identity", status.identityHash ?? "—"],
-    ["Transport", String(status.transportEnabled ?? false)],
-    ["TCP", String(status.tcpEnabled)],
-    ["Auto", String(status.autoEnabled)],
-    ["RNode", String(status.rnodeEnabled)],
-    ["Freenet", String(status.freenetEnabled ?? false)],
-    ["Freenet configured", String(status.freenetConfigured ?? false)],
-    ["Freenet URL", status.freenetUrl ?? "—"],
-    ["Freenet HDLC", String(status.freenetInterfaceEnabled ?? false)],
-    ["Freenet HDLC online", String(status.freenetInterfaceOnline ?? false)],
-    ["Propagation", String(status.propagationEnabled ?? false)],
-    ["Link online", String(status.linkOnline)],
-    ["Auto peers", String(status.autoPeers)],
-    ["Online interfaces", String(status.onlineInterfaces)],
-    ["Path table", String(status.pathTableCount ?? 0)],
-    ["Active links", String(status.activeLinkCount ?? 0)],
-    ["Bandwidth in", formatBytes(status.bandwidthBytesIn ?? 0)],
-    ["Bandwidth out", formatBytes(status.bandwidthBytesOut ?? 0)],
-    ["Preferred", status.preferredInterface ?? "—"],
-    ["Announces", String(status.announcesSeen)],
-    ["Propagation store", formatBytes(status.propagationStoreBytes ?? 0)],
-    ["Propagation msgs", String(status.propagationMessageCount ?? 0)],
-    ["Catalog", String(status.catalogEntries)],
-    ["Installed", String(status.installedPackages)],
-    ["Storage used", formatBytes(status.storageUsedBytes ?? 0)],
-    ["Developer mode", String(status.developerMode ?? false)],
-    ["Mini-app running", String(status.miniappRunning ?? false)]
-  ];
-
-  statusGrid.replaceChildren(
-    ...rows.flatMap(([label, value]) => {
-      const dt = document.createElement("dt");
-      dt.textContent = label;
-      const dd = document.createElement("dd");
-      dd.textContent = value;
-      return [dt, dd];
-    })
-  );
-}
-
-function renderCatalog() {
-  if (!catalogList) {
-    return;
-  }
-
-  catalogList.replaceChildren(
-    ...catalogEntries.map((entry) => {
-      const item = document.createElement("li");
-      item.className = "item-row";
-      item.innerHTML = `<strong>${entry.name}</strong> v${entry.version} <span class="muted">${formatBytes(entry.packageSize)}</span>`;
-
-      const install = document.createElement("button");
-      install.textContent = "Install";
-      install.addEventListener("click", () => {
-        host?.send({ type: "install-app", appId: entry.appId });
-        appendLog(`Installing ${entry.name}…`);
-      });
-      item.appendChild(install);
-      return item;
-    })
-  );
-
-  if (catalogEntries.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "muted";
-    empty.textContent = "No catalog entries yet";
-    catalogList.replaceChildren(empty);
-  }
-}
-
-function renderInstalled() {
-  if (!installedList) {
-    return;
-  }
-
-  installedList.replaceChildren(
-    ...installedPackages.map((pkg) => {
-      const item = document.createElement("li");
-      item.className = "item-row";
-      item.innerHTML = `<strong>${pkg.appId}</strong> v${pkg.version}`;
-
-      const launch = document.createElement("button");
-      launch.textContent = "Launch";
-      launch.addEventListener("click", () => {
-        selectedAppId = pkg.appId;
-        host?.send({ type: "launch-miniapp", appId: pkg.appId });
-        if (pkg.publisherPublicKey && pkg.capabilities) {
-          host?.send({
-            type: "get-grants",
-            appId: pkg.appId,
-            publisherPublicKey: pkg.publisherPublicKey,
-            declaredCapabilities: pkg.capabilities
-          });
-        }
-      });
-
-      const grants = document.createElement("button");
-      grants.textContent = "Grants";
-      grants.addEventListener("click", () => {
-        selectedAppId = pkg.appId;
-        if (pkg.publisherPublicKey && pkg.capabilities) {
-          host?.send({
-            type: "get-grants",
-            appId: pkg.appId,
-            publisherPublicKey: pkg.publisherPublicKey,
-            declaredCapabilities: pkg.capabilities
-          });
-        }
-      });
-
-      item.append(launch, grants);
-
-      if (pkg.rollbackAvailable) {
-        const rollback = document.createElement("button");
-        rollback.textContent = "Rollback";
-        rollback.addEventListener("click", () => {
-          host?.send({ type: "rollback-package", appId: pkg.appId });
-        });
-        item.appendChild(rollback);
-      }
-
-      return item;
-    })
-  );
-
-  if (installedPackages.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "muted";
-    empty.textContent = "No installed packages";
-    installedList.replaceChildren(empty);
-  }
-}
-
-function renderGrants(appId, capabilities) {
-  if (!grantsPanel) {
-    return;
-  }
-
-  grantsPanel.replaceChildren();
-  const heading = document.createElement("p");
-  heading.textContent = appId ? `Capabilities for ${appId}` : "Select an installed app";
-  grantsPanel.appendChild(heading);
-
-  for (const capability of capabilities) {
-    const label = document.createElement("label");
-    label.className = "grant-row";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = capability.granted;
-    input.disabled = !capability.declared;
-    input.addEventListener("change", () => {
-      const grantedCapabilities = [...grantsPanel.querySelectorAll(".grant-row input")]
-        .filter((checkbox) => checkbox.checked)
-        .map((checkbox) => checkbox.dataset.capabilityId)
-        .filter((id) => typeof id === "string");
-      const pkg = installedPackages.find((entry) => entry.appId === appId);
-      if (pkg?.publisherPublicKey && pkg.capabilities) {
-        host?.send({
-          type: "set-grants",
-          appId,
-          publisherPublicKey: pkg.publisherPublicKey,
-          declaredCapabilities: pkg.capabilities,
-          grantedCapabilities
-        });
-      }
-    });
-    input.dataset.capabilityId = capability.id;
-
-    const text = document.createElement("span");
-    text.textContent = capability.description || capability.id;
-    label.append(input, text);
-    grantsPanel.appendChild(label);
-  }
-}
-
-function applyInterfaceSettings() {
-  const rnodePort = settingRnodePort?.value.trim() ?? "";
-  host?.send({
-    type: "set-interfaces",
-    tcp: settingTcp?.checked ?? false,
-    auto: settingAuto?.checked ?? false,
-    ble: false,
-    rnode: rnodePort.length > 0,
-    rnodePortPath: rnodePort.length > 0 ? rnodePort : null
-  });
-}
+function resetRequestedAppLaunch(...args) { return resetRequestedAppLaunchImpl(extractedContext, ...args); }
+function scheduleRequestedAppLaunch(...args) { return scheduleRequestedAppLaunchImpl(extractedContext, ...args); }
+function readWorkspaceDocument(...args) { return readWorkspaceDocumentImpl(extractedContext, ...args); }
+function closeHostModal(...args) { return closeHostModalImpl(extractedContext, ...args); }
+function renderPeerQr(...args) { return renderPeerQrImpl(extractedContext, ...args); }
+function sendPeerChromeResponse(...args) { return sendPeerChromeResponseImpl(extractedContext, ...args); }
+function audioUnhex(...args) { return audioUnhexImpl(extractedContext, ...args); }
+function audioHex(...args) { return audioHexImpl(extractedContext, ...args); }
+async function playPeerAudio(...args) { return playPeerAudioImpl(extractedContext, ...args); }
+async function recordPeerAudio(...args) { return recordPeerAudioImpl(extractedContext, ...args); }
+async function performPeerAudio(...args) { return performPeerAudioImpl(extractedContext, ...args); }
+function showPeerConfirmation(...args) { return showPeerConfirmationImpl(extractedContext, ...args); }
+function showPeerCodeExchange(...args) { return showPeerCodeExchangeImpl(extractedContext, ...args); }
+async function showQrScanner(...args) { return showQrScannerImpl(extractedContext, ...args); }
+function showHostModal(...args) { return showHostModalImpl(extractedContext, ...args); }
+function renderTrustList(...args) { return renderTrustListImpl(extractedContext, ...args); }
+function renderOwnIdentity(...args) { return renderOwnIdentityImpl(extractedContext, ...args); }
+function renderLimits(...args) { return renderLimitsImpl(extractedContext, ...args); }
+function appendLog(...args) { return appendLogImpl(extractedContext, ...args); }
+function formatBytes(...args) { return formatBytesImpl(extractedContext, ...args); }
+function renderStatus(...args) { return renderStatusImpl(extractedContext, ...args); }
+function renderCatalog(...args) { return renderCatalogImpl(extractedContext, ...args); }
+function renderInstalled(...args) { return renderInstalledImpl(extractedContext, ...args); }
+function renderGrants(...args) { return renderGrantsImpl(extractedContext, ...args); }
+function applyInterfaceSettings(...args) { return applyInterfaceSettingsImpl(extractedContext, ...args); }
 
 const host = window.twistedPearHost;
 if (!host) {

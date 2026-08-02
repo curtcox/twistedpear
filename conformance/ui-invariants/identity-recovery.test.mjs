@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { readWorkletSource } from "./worklet-source.mjs";
 
 describe("desktop identity recovery surface", () => {
   it("keeps private operations in host chrome and exposes every recovery action", () => {
@@ -19,7 +20,7 @@ describe("desktop identity recovery surface", () => {
 
   it("inspects and confirms a candidate hash before either destructive replacement path", () => {
     const renderer = readFileSync("apps/host-desktop/src/renderer/app.js", "utf8");
-    const worklet = readFileSync("apps/host-desktop/worklet/entry.mjs", "utf8");
+    const worklet = readWorkletSource("apps/host-desktop/worklet/entry.mjs");
     for (const operation of ["identity-import", "identity-recovery-import"]) {
       expect(renderer).toContain(`type: "${operation}-inspect"`);
       expect(renderer).toContain(`type: "${operation}",`);
@@ -33,7 +34,7 @@ describe("desktop identity recovery surface", () => {
 
   it("passes explicit confirmation fields across host IPC", () => {
     const renderer = readFileSync("apps/host-desktop/src/renderer/app.js", "utf8");
-    const worklet = readFileSync("apps/host-desktop/worklet/entry.mjs", "utf8");
+    const worklet = readWorkletSource("apps/host-desktop/worklet/entry.mjs");
     for (const field of [
       "backupPassphraseConfirmation",
       "vaultPassphraseConfirmation",

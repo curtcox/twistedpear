@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { handlesHostMessage, readModuleSource, readWorkletSource } from "./worklet-source.mjs";
 
 /**
  * G9: a call invitation is host chrome, not app code. Every shipping host must
@@ -15,7 +16,7 @@ const surfaces = [
 describe("session invite chrome", () => {
   for (const surface of surfaces) {
     it(`${surface.name} renders the verified peer, both actions, and no app-side accept`, () => {
-      const source = readFileSync(surface.path, "utf8");
+      const source = readModuleSource(surface.path);
       expect(source).toContain("session-invite-accept");
       expect(source).toContain("session-invite-decline");
       expect(source).toContain("verifiedPeerLabel");
@@ -31,9 +32,9 @@ describe("session invite chrome", () => {
       "apps/harness-mobile/worklet/entry.mjs",
       "apps/harness-mobile/worklet/web-entry.mjs"
     ]) {
-      const source = readFileSync(entry, "utf8");
-      expect(source, entry).toContain('message.type === "session-invite-accept"');
-      expect(source, entry).toContain('message.type === "session-invite-decline"');
+      const source = readWorkletSource(entry);
+      expect(handlesHostMessage(source, "session-invite-accept"), entry).toBe(true);
+      expect(handlesHostMessage(source, "session-invite-decline"), entry).toBe(true);
       expect(source, entry).toContain("acceptSessionInvite");
       expect(source, entry).toContain("declineSessionInvite");
       // Foreground launch is the host's, and only the host's, to perform.

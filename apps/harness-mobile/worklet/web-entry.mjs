@@ -65,6 +65,108 @@ import {
   QrPeerDiscoveryAdapter,
   UnavailablePeerDiscoveryAdapter
 } from "../../../packages/peer-discovery/dist/index.js";
+import { ensureCrossDeviceTestDriverImpl } from "./web-entry-ensureCrossDeviceTestDriver.mjs";
+import { handleWebRtcHarnessCommandImpl } from "./web-entry-handleWebRtcHarnessCommand.mjs";
+import { ensureMiniappHostImpl } from "./web-entry-ensureMiniappHost.mjs";
+import { ensureInstallServiceImpl } from "./web-entry-ensureInstallService.mjs";
+import { ensurePeerSessionManagerImpl } from "./web-entry-ensurePeerSessionManager.mjs";
+import { startHostSessionImpl } from "./web-entry-startHostSession.mjs";
+import { handleHostMessageImpl } from "./web-entry-handleHostMessage.mjs";
+
+const extractedContext = {
+  get DEFAULT_PASSPHRASE() { return DEFAULT_PASSPHRASE; },
+  get applyInterfaceConfig() { return applyInterfaceConfig; },
+  set applyInterfaceConfig(value) { applyInterfaceConfig = value; },
+  get attachWebRtcMediaTrack() { return attachWebRtcMediaTrack; },
+  set attachWebRtcMediaTrack(value) { attachWebRtcMediaTrack = value; },
+  get createIdentity() { return createIdentity; },
+  set createIdentity(value) { createIdentity = value; },
+  get crossDeviceTestDriver() { return crossDeviceTestDriver; },
+  set crossDeviceTestDriver(value) { crossDeviceTestDriver = value; },
+  get cryptoProvider() { return cryptoProvider; },
+  get ensureCrossDeviceTestDriver() { return ensureCrossDeviceTestDriver; },
+  set ensureCrossDeviceTestDriver(value) { ensureCrossDeviceTestDriver = value; },
+  get ensureInstallService() { return ensureInstallService; },
+  set ensureInstallService(value) { ensureInstallService = value; },
+  get ensureMiniappHost() { return ensureMiniappHost; },
+  set ensureMiniappHost(value) { ensureMiniappHost = value; },
+  get ensureMiniappKvStore() { return ensureMiniappKvStore; },
+  set ensureMiniappKvStore(value) { ensureMiniappKvStore = value; },
+  get ensurePackageStorage() { return ensurePackageStorage; },
+  set ensurePackageStorage(value) { ensurePackageStorage = value; },
+  get ensurePeerSessionManager() { return ensurePeerSessionManager; },
+  set ensurePeerSessionManager(value) { ensurePeerSessionManager = value; },
+  get ensurePublishService() { return ensurePublishService; },
+  set ensurePublishService(value) { ensurePublishService = value; },
+  get handleSandboxHostMessage() { return handleSandboxHostMessage; },
+  set handleSandboxHostMessage(value) { handleSandboxHostMessage = value; },
+  get handleSerialHostMessage() { return handleSerialHostMessage; },
+  set handleSerialHostMessage(value) { handleSerialHostMessage = value; },
+  get handleWebRtcHarnessCommand() { return handleWebRtcHarnessCommand; },
+  set handleWebRtcHarnessCommand(value) { handleWebRtcHarnessCommand = value; },
+  get harnessInviteEntries() { return harnessInviteEntries; },
+  get harnessPeerPair() { return harnessPeerPair; },
+  get helloDevBundle() { return helloDevBundle; },
+  get hostLxmfDelivery() { return hostLxmfDelivery; },
+  set hostLxmfDelivery(value) { hostLxmfDelivery = value; },
+  get hostReplyChannel() { return hostReplyChannel; },
+  get hostSession() { return hostSession; },
+  set hostSession(value) { hostSession = value; },
+  get identityOptions() { return identityOptions; },
+  set identityOptions(value) { identityOptions = value; },
+  get importIdentity() { return importIdentity; },
+  set importIdentity(value) { importIdentity = value; },
+  get installService() { return installService; },
+  set installService(value) { installService = value; },
+  get loadHyperFetch() { return loadHyperFetch; },
+  set loadHyperFetch(value) { loadHyperFetch = value; },
+  get locatorRequestDestinations() { return locatorRequestDestinations; },
+  get log() { return log; },
+  set log(value) { log = value; },
+  get miniappHost() { return miniappHost; },
+  set miniappHost(value) { miniappHost = value; },
+  get mockAiChat() { return mockAiChat; },
+  set mockAiChat(value) { mockAiChat = value; },
+  get mockLocalPublish() { return mockLocalPublish; },
+  set mockLocalPublish(value) { mockLocalPublish = value; },
+  get nextHarnessInvite() { return nextHarnessInvite; },
+  set nextHarnessInvite(value) { nextHarnessInvite = value; },
+  get peerChrome() { return peerChrome; },
+  get peerSessionManager() { return peerSessionManager; },
+  set peerSessionManager(value) { peerSessionManager = value; },
+  get peerSessionManagerProxy() { return peerSessionManagerProxy; },
+  get peerToken() { return peerToken; },
+  set peerToken(value) { peerToken = value; },
+  get pendingRnodeBaudRate() { return pendingRnodeBaudRate; },
+  set pendingRnodeBaudRate(value) { pendingRnodeBaudRate = value; },
+  get pushInstalledList() { return pushInstalledList; },
+  set pushInstalledList(value) { pushInstalledList = value; },
+  get pushStatus() { return pushStatus; },
+  set pushStatus(value) { pushStatus = value; },
+  get refreshIdentityStatus() { return refreshIdentityStatus; },
+  set refreshIdentityStatus(value) { refreshIdentityStatus = value; },
+  get refreshStorageStatus() { return refreshStorageStatus; },
+  set refreshStorageStatus(value) { refreshStorageStatus = value; },
+  get requestHostReply() { return requestHostReply; },
+  get resetIdentity() { return resetIdentity; },
+  set resetIdentity(value) { resetIdentity = value; },
+  get send() { return send; },
+  set send(value) { send = value; },
+  get startHostSession() { return startHostSession; },
+  set startHostSession(value) { startHostSession = value; },
+  get startStatusTimer() { return startStatusTimer; },
+  get status() { return status; },
+  get stopHostSession() { return stopHostSession; },
+  set stopHostSession(value) { stopHostSession = value; },
+  get transportAnnounceService() { return transportAnnounceService; },
+  get webConfig() { return webConfig; },
+  set webConfig(value) { webConfig = value; },
+  get webOutboundBandwidthLimiter() { return webOutboundBandwidthLimiter; },
+  get webRtcRouteListeners() { return webRtcRouteListeners; },
+  get webRtcRoutePending() { return webRtcRoutePending; },
+  get webRtcSessionByFingerprint() { return webRtcSessionByFingerprint; },
+};
+
 
 const IDENTITY_STORE_NAME = "twistedpear-harness-web-identity";
 const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
@@ -174,316 +276,11 @@ const webRtcRoutePending = new Map();
 /** @type {Map<string, string>} fingerprint → WebRTC sessionId */
 const webRtcSessionByFingerprint = new Map();
 let crossDeviceTestDriver = null;
-
 function ensureCrossDeviceTestDriver() {
-  if (crossDeviceTestDriver === null) {
-    crossDeviceTestDriver = createCrossDeviceTestDriver({
-      miniappHost: () => ensureMiniappHost(),
-      installFromT256: (t256) => ensureInstallService().installFromT256(t256),
-      async importTrust(identity256t, label) {
-        const publisherPublicKey = decodePublisherIdentity256t(identity256t);
-        const reply = await requestHostReply({
-          type: "confirm-request",
-          token: bytesToHex(cryptoProvider.randomBytes(16)),
-          kind: "trust-import",
-          appId: "host",
-          publisherPublicKey,
-          summary: { label, source: "paste" }
-        });
-        if (reply?.approved !== true) throw new Error("Publisher trust import denied");
-        await ensureInstallService().trustStore.add({
-          publisherPublicKey,
-          label,
-          addedAt: Date.now(),
-          source: "paste"
-        });
-      },
-      async runApp(appId) {
-        await ensureMiniappHost().launch(await ensurePackageStorage(), appId);
-      },
-      casStore: () => new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data)),
-      sha512: (bytes) => cryptoProvider.sha512(bytes),
-      async casHas(t256) {
-        const cas = new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data));
-        return cas.has(t256);
-      },
-      async publisherIdentity256t() {
-        const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
-        return encodePublisherIdentity256t(identity.getPublicKey());
-      }
-    });
-  }
-  return crossDeviceTestDriver;
+  return ensureCrossDeviceTestDriverImpl(extractedContext);
 }
-
-/**
- * WebRTC GUI-call harness commands (mirrors desktop test-agent handleCommand).
- * Driven via `__TP_CROSS_DEVICE__` / the Node control bridge — not DevStudio.
- * @param {Record<string, unknown>} request
- */
 async function handleWebRtcHarnessCommand(request) {
-  switch (request.cmd) {
-    case "harness-info":
-      return {
-        lxmfAddress: hostLxmfDelivery?.lxmfAddress ?? status.lxmfAddress ?? null,
-        identityHash: status.identityHash,
-        linkOnline: status.linkOnline === true
-      };
-    case "announce":
-      if (hostLxmfDelivery === null) throw new Error("Host LXMF delivery is not ready");
-      await hostLxmfDelivery.announce();
-      return {};
-    case "invite-state":
-      return { invites: [...harnessInviteEntries] };
-    case "send-invite": {
-      if (hostLxmfDelivery === null) throw new Error("Host LXMF delivery is not ready");
-      if (typeof request.toLxmfAddress !== "string") throw new Error("send-invite requires toLxmfAddress");
-      const appId = typeof request.appId === "string" ? request.appId : "line-check";
-      const requestedClasses = Array.isArray(request.requestedClasses)
-        ? request.requestedClasses
-        : ["microphone"];
-      const id = `invite-web-${nextHarnessInvite++}`;
-      const expiresAt = Date.now() + 120_000;
-      const envelope = encodeSessionInviteEnvelope({ id, appId, requestedClasses, expiresAt });
-      const hash = hexToBytes(request.toLxmfAddress);
-      const recipient = Identity.recall(cryptoProvider, hash);
-      if (recipient === null) {
-        throw new Error(`No announced identity for ${request.toLxmfAddress}; peer not discovered yet`);
-      }
-      await hostLxmfDelivery.router.packAndSend({
-        destination: hostLxmfDelivery.router.createOutboundDestination(recipient),
-        source: hostLxmfDelivery.delivery,
-        title: SESSION_INVITE_TITLE,
-        content: sessionInviteContent(envelope),
-        desiredMethod: LXMessageMethod.OPPORTUNISTIC,
-        deferStamp: true
-      });
-      harnessInviteEntries.push({
-        kind: "sent",
-        id,
-        appId,
-        peerLabel: request.toLxmfAddress.slice(0, 12),
-        requestedClasses,
-        expiresAt,
-        at: Date.now(),
-        peerDestinationHash: request.toLxmfAddress
-      });
-      return { inviteId: id, appId, expiresAt, bytes: envelope.length };
-    }
-    case "accept-invite": {
-      const inviteId = typeof request.inviteId === "string" ? request.inviteId : undefined;
-      if (inviteId === undefined) throw new Error("accept-invite requires inviteId");
-      const raised = harnessInviteEntries.findLast((entry) => entry.kind === "raised" && entry.id === inviteId);
-      if (raised === undefined) throw new Error(`No raised invite ${inviteId}`);
-      try {
-        await ensureMiniappHost().acceptSessionInvite(inviteId);
-      } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error);
-        if (!detail.startsWith("No installed version for ")) throw error;
-        log(`Session invite ${inviteId} accepted without launch (${detail})`);
-      }
-      harnessInviteEntries.push({ ...raised, kind: "accepted", at: Date.now() });
-      return { accepted: true, inviteId, peerDestinationHash: raised.peerDestinationHash ?? null };
-    }
-    case "renderer-ping": {
-      const reply = await requestHostReply({ type: "peer-qr-availability", token: peerToken() }, 10_000);
-      return {
-        ok: reply !== null,
-        availability: reply?.availability ?? null,
-        error: reply === null ? "renderer ping timed out" : reply?.error
-      };
-    }
-    case "peer-pair-start": {
-      harnessPeerPair.enable();
-      await ensurePeerSessionManager();
-      ensureMiniappHost();
-      const role = request.role === "listen" ? "listen" : "offer";
-      const appId = typeof request.appId === "string" ? request.appId : "line-check";
-      const runtimeId = "harness-webrtc";
-      return harnessPeerPair.start(async () => {
-        const manager = await ensurePeerSessionManager();
-        const connect = {
-          service: appId,
-          purpose: "WebRTC media conformance",
-          mechanisms: ["manual"],
-          timeoutMs: 120_000
-        };
-        const handle =
-          role === "listen"
-            ? await manager.listen(appId, runtimeId, connect)
-            : await manager.request(appId, runtimeId, connect);
-        const info = manager.info(appId, runtimeId, handle);
-        return {
-          handleId: handle.id,
-          dataPlane: info.dataPlane,
-          fingerprint: info.fingerprint,
-          displayLabel: info.displayLabel
-        };
-      });
-    }
-    case "peer-pair-code-out": {
-      const taken = await harnessPeerPair.takeOutboundCode(
-        typeof request.timeoutMs === "number" ? request.timeoutMs : 60_000
-      );
-      return { code: taken.code, sessionId: taken.sessionId };
-    }
-    case "peer-pair-code-in": {
-      if (typeof request.code !== "string") throw new Error("peer-pair-code-in requires code");
-      harnessPeerPair.giveInboundCode(
-        request.code,
-        typeof request.sessionId === "string" ? request.sessionId : undefined
-      );
-      return { ok: true };
-    }
-    case "peer-pair-wait": {
-      const paired = await harnessPeerPair.wait(
-        typeof request.timeoutMs === "number" ? request.timeoutMs : 120_000
-      );
-      return paired;
-    }
-    case "webrtc-open-media": {
-      ensureMiniappHost();
-      if (attachWebRtcMediaTrack === null) {
-        throw new Error("WebRTC media attach is not configured");
-      }
-      const appId = typeof request.appId === "string" ? request.appId : "line-check";
-      const handleId = typeof request.handleId === "string" ? request.handleId : undefined;
-      if (handleId === undefined) throw new Error("webrtc-open-media requires handleId");
-      const classId = request.classId === "camera" ? "camera" : "microphone";
-      const encoding = classId === "camera" ? "480p15" : "16k-opus";
-      const attached = await attachWebRtcMediaTrack({
-        appId,
-        peer: handleId,
-        demand: { classId, tierId: classId === "camera" ? "frames" : "pcm", encoding }
-      });
-      let bytesSent = attached.bytesSent ?? 0;
-      if (bytesSent === 0 && typeof attached.sessionId === "string") {
-        for (let attempt = 0; attempt < 20 && bytesSent === 0; attempt += 1) {
-          await new Promise((resolve) => setTimeout(resolve, 250));
-          const stats = await requestHostReply(
-            { type: "peer-webrtc-media-stats", token: peerToken(), sessionId: attached.sessionId },
-            10_000
-          );
-          if (typeof stats?.bytesSent === "number") bytesSent = stats.bytesSent;
-        }
-      }
-      return {
-        attached: true,
-        plane: "webrtc-track",
-        handleId,
-        sessionId: attached.sessionId,
-        bytesSent,
-        voiceProcessing: attached.voiceProcessing ?? null,
-        encoding
-      };
-    }
-    case "media-opus-duplex": {
-      const configuration = {
-        codec: "opus",
-        sampleKind: "audio",
-        bitrateBps: 24_000,
-        sampleRate: 16_000,
-        channels: 1,
-        voiceDuplex: true
-      };
-      // Chromium Opus emits ~60ms frames; send a full frame of float32 PCM.
-      const sampleCount = 960;
-      const samples = new Float32Array(sampleCount);
-      for (let index = 0; index < sampleCount; index += 1) {
-        samples[index] = Math.sin((2 * Math.PI * 440 * index) / 16_000) * 0.25;
-      }
-      const pcmBytes = new Uint8Array(
-        samples.buffer.slice(samples.byteOffset, samples.byteOffset + samples.byteLength)
-      );
-      const captureAtUs = Date.now() * 1_000;
-      const encoded = await requestHostReply(
-        {
-          type: "media-codec-request",
-          token: peerToken(),
-          op: "encode",
-          configuration,
-          captureAtUs,
-          dataHex: bytesToHex(pcmBytes)
-        },
-        15_000
-      );
-      if (encoded?.error !== undefined || typeof encoded?.dataHex !== "string") {
-        throw new Error(encoded?.error ?? "Opus encode timed out");
-      }
-      const opusBytes = hexToBytes(encoded.dataHex);
-      if (opusBytes.length === 0) throw new Error("Opus encode produced empty payload");
-      const decoded = await requestHostReply(
-        {
-          type: "media-codec-request",
-          token: peerToken(),
-          op: "decode",
-          configuration,
-          captureAtUs,
-          dataHex: encoded.dataHex
-        },
-        15_000
-      );
-      if (decoded?.error !== undefined || typeof decoded?.dataHex !== "string") {
-        throw new Error(decoded?.error ?? "Opus decode timed out");
-      }
-      const decodedBytes = hexToBytes(decoded.dataHex);
-      if (decodedBytes.length < 4) throw new Error("Opus decode produced empty PCM");
-      const frame = encodeDeviceStreamFrame({
-        version: 2,
-        sampleKind: 2,
-        sessionToken: 7,
-        sequence: 0,
-        captureAtUs,
-        clockId: 7,
-        payload: opusBytes
-      });
-      const played = await requestHostReply(
-        {
-          type: "media-opus-play-request",
-          token: peerToken(),
-          encoding: "16k-opus",
-          dataHex: bytesToHex(frame)
-        },
-        15_000
-      );
-      if (played?.error !== undefined || played?.played !== true) {
-        throw new Error(played?.error ?? "Opus speaker playback failed");
-      }
-      return {
-        ok: true,
-        implementation: "webcodecs",
-        voiceDuplex: true,
-        encoding: "16k-opus",
-        pcmBytes: pcmBytes.length,
-        opusBytes: opusBytes.length,
-        decodedBytes: decodedBytes.length,
-        frameBytes: frame.length,
-        frameHex: bytesToHex(frame),
-        played: true
-      };
-    }
-    case "media-opus-play": {
-      if (typeof request.dataHex !== "string" || request.dataHex.length < 72) {
-        throw new Error("media-opus-play requires TPD2 dataHex");
-      }
-      const encoding = typeof request.encoding === "string" ? request.encoding : "16k-opus";
-      const played = await requestHostReply(
-        {
-          type: "media-opus-play-request",
-          token: peerToken(),
-          encoding,
-          dataHex: request.dataHex
-        },
-        15_000
-      );
-      if (played?.error !== undefined || played?.played !== true) {
-        throw new Error(played?.error ?? "Opus speaker playback failed");
-      }
-      return { played: true, encoding, bytes: Math.floor(request.dataHex.length / 2) };
-    }
-    default:
-      throw new Error(`Unknown WebRTC harness command: ${request.cmd}`);
-  }
+  return handleWebRtcHarnessCommandImpl(extractedContext, request);
 }
 
 const hostReplyChannel = createHostReplyChannel({ send });
@@ -538,43 +335,8 @@ const peerChrome = {
 
 /** @type {null | ((input: { appId: string; peer: string; demand: any }) => Promise<{ quality?: () => any; close: () => Promise<void>; bytesSent?: number; sessionId?: string }>)>} */
 let attachWebRtcMediaTrack = null;
-
 async function ensurePeerSessionManager() {
-  if (peerSessionManager !== null) return peerSessionManager;
-  if (!(await hasWebIdentity(identityOptions()))) throw new Error("Create or import a host identity before connecting to a peer");
-  const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
-  const registry = new PeerDiscoveryRegistry(); registry.register(new ManualPeerDiscoveryAdapter({ channel: peerChrome.manual, createSessionId: peerToken })); registry.register(new QrPeerDiscoveryAdapter({ channel: peerChrome.qr, createSessionId: peerToken }));
-  registry.register(new UnavailablePeerDiscoveryAdapter("reticulum", { state: "offline", reason: "Automatic Reticulum rendezvous requires a connected gateway or RNode; use QR/manual for signaling" }));
-  registry.register(new AudioPeerDiscoveryAdapter({ channel: peerChrome.audio, createSessionId: peerToken }));
-  registry.register(new UnavailablePeerDiscoveryAdapter("bluetooth", { state: "unsupported", reason: "Ordinary web pages cannot advertise as BLE peripherals" }));
-  if (webConfig.ntfyUrl === undefined) registry.register(new UnavailablePeerDiscoveryAdapter("ntfy", { state: "offline", reason: "No ntfy rendezvous server is configured" }));
-  else {
-    try {
-      const client = new NtfyRendezvousClient({ baseUrl: webConfig.ntfyUrl, ...(webConfig.ntfyToken === undefined ? {} : { bearerToken: webConfig.ntfyToken }), entropy: async (length) => cryptoProvider.randomBytes(length) });
-      registry.register(new NtfyPeerDiscoveryAdapter({ client, channel: peerChrome.ntfy, createSessionId: peerToken }));
-    } catch (error) {
-      registry.register(new UnavailablePeerDiscoveryAdapter("ntfy", { state: "policy-disabled", reason: error instanceof Error ? error.message : String(error) }));
-    }
-  }
-  registry.register(new UnavailablePeerDiscoveryAdapter("local-peer-to-peer", { state: "unsupported", reason: "This browser does not implement LP2PRequest/LP2PReceiver" }));
-  const backend = new CryptoPeerPairingBackend({
-    identity: { publicKey: identity.getPublicKey(), async sign(payload) { return identity.sign(payload); }, async verify(publicKey, payload, signature) { const remote = Identity.fromPublicKey(cryptoProvider, publicKey); return remote !== null && remote.validate(signature, payload); } },
-    displayLabel: `TwistedPear Web ${bytesToHex(identity.hash).slice(0, 8)}`,
-    capabilities: ["webrtc", "gateway", "reticulum"], entropy: async (length) => cryptoProvider.randomBytes(length),
-    candidates: async (_request, context) => {
-      const remote = context.remoteInvitation?.candidates.find((entry) => entry.kind === "webrtc");
-      const reply = await requestHostReply({ type: "peer-webrtc-signal", token: peerToken(), sessionId: bytesToHex(context.sessionId), role: context.role, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 15_000);
-      const candidates = typeof reply?.signal === "string" ? [{ kind: "webrtc", value: new TextEncoder().encode(reply.signal) }] : [];
-      if (hostSession !== null) candidates.push({ kind: "gateway", value: new TextEncoder().encode(webConfig.gatewayUrl) }); else if (status.rnodeConnected) candidates.push({ kind: "reticulum", value: identity.hash });
-      return candidates;
-    },
-    confirm: (peer, request) => peerChrome.confirm(peer, request),
-    async establish(context, peer, adapter) {
-      if (peer.dataPlane === "webrtc") { const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc"); const sessionId = bytesToHex(context.remoteInvitation.sessionId); const reply = await requestHostReply({ type: "peer-webrtc-establish", token: peerToken(), sessionId, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 30_000); if (reply?.opened !== true) throw new Error("WebRTC data channel did not open"); const listeners = new Set(); webRtcRouteListeners.set(sessionId, listeners); if (!webRtcRoutePending.has(sessionId)) webRtcRoutePending.set(sessionId, []); webRtcSessionByFingerprint.set(peer.fingerprint, sessionId); return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: "webrtc", route: meterHostPeerRoute({ async send(payload) { const sent = await requestHostReply({ type: "peer-webrtc-data-send", token: peerToken(), sessionId, dataHex: bytesToHex(payload) }, 10_000); if (sent?.sent !== true) throw new Error("WebRTC data channel send failed"); }, subscribe(listener) { listeners.add(listener); for (const pending of webRtcRoutePending.get(sessionId)?.splice(0) ?? []) listener(pending); return () => listeners.delete(listener); }, quality() { return { goodputBps: 2_000_000, rttMs: 50, mtu: 1_200, queueDepthBytes: webOutboundBandwidthLimiter.queueDepthBytes() }; } }, { now: () => Date.now(), declaredBps: 2_000_000, declaredMtu: 1_200 }), async close() { webRtcRouteListeners.delete(sessionId); webRtcRoutePending.delete(sessionId); webRtcSessionByFingerprint.delete(peer.fingerprint); send({ type: "peer-webrtc-close", sessionId }); } }; }
-      return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: peer.dataPlane };
-    }
-  });
-  peerSessionManager = new PeerSessionManager(registry, new InvitationPairingDriver({ backend })); return peerSessionManager;
+  return ensurePeerSessionManagerImpl(extractedContext);
 }
 const peerSessionManagerProxy = {
   async request(appId, runtimeId, request) { return (await ensurePeerSessionManager()).request(appId, runtimeId, request); },
@@ -829,151 +591,8 @@ function ensurePublishService() {
 let mockAiChat = false;
 /** When true, apps.publish succeeds from local CAS without a live gateway (Handbook CI). */
 let mockLocalPublish = false;
-
 function ensureMiniappHost() {
-  if (miniappHost === null) {
-    miniappHost = createWebWorkletMiniappHost({
-      provider: cryptoProvider,
-      kvStore: ensureMiniappKvStore(),
-      async launchInstalledApp(appId) {
-        await ensureMiniappHost().launch(await ensurePackageStorage(), appId);
-      },
-      getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (peerSessionManager?.routes.list().length ?? 0) }),
-      getHostInfoSnapshot: () => {
-        const interfaceTypes = [];
-        if (status.wsEnabled) interfaceTypes.push("websocket");
-        if (status.rnodeEnabled) interfaceTypes.push("rnode");
-        return {
-          platform: "web",
-          hostVersion: HOST_API_VERSION,
-          roles: {
-            transport: false,
-            seeder: false,
-            propagation: false
-          },
-          interfaceTypes,
-          quotas: {
-            kvQuotaBytes: null,
-            seedStorageUsedBytes: status.storageUsedBytes ?? null,
-            seedStorageQuotaBytes: null,
-            memoryBytes: null
-          }
-        };
-      },
-      send,
-      requestHostReply,
-      peerSessionManager: peerSessionManagerProxy,
-      realtimeReservations: { reserveRealtime: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
-      openCasPlane: {
-        put: (frame) => new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data)).put(frame)
-      },
-      openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(
-        (attachWebRtcMediaTrack = async ({ appId, peer, demand }) => {
-          const confirmed = peerSessionManagerProxy.route(appId, { id: peer });
-          if (confirmed?.dataPlane !== "webrtc") {
-            throw new Error("No authenticated WebRTC route for media tracks.");
-          }
-          const sessionId = webRtcSessionByFingerprint.get(confirmed.fingerprint);
-          if (sessionId === undefined) {
-            throw new Error("WebRTC session is missing for media track attach.");
-          }
-          const reply = await requestHostReply(
-            {
-              type: "peer-webrtc-media-attach",
-              token: peerToken(),
-              sessionId,
-              classId: demand.classId,
-              tierId: demand.tierId
-            },
-            30_000
-          );
-          if (reply?.attached !== true) {
-            throw new Error(typeof reply?.error === "string" ? reply.error : "WebRTC media track attach failed.");
-          }
-          return {
-            sessionId,
-            bytesSent: typeof reply.bytesSent === "number" ? reply.bytesSent : 0,
-            voiceProcessing: reply.voiceProcessing ?? null,
-            quality: () => ({
-              goodputBps: 2_000_000,
-              rttMs: 50,
-              jitterMs: 10,
-              lossRatio: 0,
-              mtu: 1_200,
-              source: "declared",
-              samples: 1,
-              confidence: "low"
-            }),
-            close: async () => {
-              await requestHostReply(
-                { type: "peer-webrtc-media-detach", token: peerToken(), sessionId, classId: demand.classId },
-                10_000
-              );
-            }
-          };
-        })
-      ),
-      controlReservations: { reserveControl: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("control", bytesPerSecond) },
-      onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
-      async requestShareOffer({ appId, purpose }) {
-        const peer = peerSessionManagerProxy.list(appId)[0]; if (peer === undefined) return null;
-        const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "device-share-offer", appId, publisherPublicKey: "host-authenticated-peer", summary: { purpose, peer: peer.displayLabel, class: "microphone", tier: "pcm", quality: "16k-opus", duration: "15 minutes" } });
-        return reply?.approved === true ? { targetKind: "peer", targetId: peer.handle.id, displayLabel: peer.displayLabel, classId: "microphone", tierId: "pcm", maxRung: "16k-opus", ttlMs: 15 * 60_000 } : null;
-      },
-      async confirmShareOfferRevoke(offer) { const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "device-share-revoke", appId: offer.appId, publisherPublicKey: "host-authenticated-peer", summary: { peer: offer.displayLabel, class: offer.classId } }); return reply?.approved === true; },
-      async confirmCostlyLinkProbe({ appId, peer, budgetBytes }) { const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "link-probe", appId, publisherPublicKey: "host-authenticated-peer", summary: { peer: peer.displayLabel, budgetBytes } }); return reply?.approved === true; },
-      announceService: transportAnnounceService,
-      getPublisherIdentity: async () => {
-        if (!(await hasWebIdentity(identityOptions()))) {
-          return null;
-        }
-
-        return loadOrCreateWebIdentity(cryptoProvider, identityOptions());
-      },
-      publishArchive: async ({ t256, archive }) => {
-        const session = hostSession;
-        if (session === null) {
-          if (!mockLocalPublish) {
-            throw new Error("Gateway link is offline — enable WS gateway before publishing");
-          }
-          const unpacked = unpackPackage(cryptoProvider, archive);
-          return {
-            t256,
-            driveKey: "0".repeat(64),
-            version: unpacked.manifest.version
-          };
-        }
-
-        return ensurePublishService().publish(session, { t256, archive });
-      },
-      installFromT256: async (t256) => ensureInstallService().installFromT256(t256),
-      aiBackend: mockAiChat
-        ? {
-            chat: async (_appId, request) => {
-              const last = request.messages.at(-1)?.content ?? "";
-              return {
-                message: {
-                  role: "assistant",
-                  content: typeof last === "string" && last.includes("handbook") ? "handbook" : "ok"
-                },
-                model: "web-handbook-mock",
-                usage: { promptTokens: 8, completionTokens: 1 }
-              };
-            }
-          }
-        : undefined,
-      onDeveloperModeChange(enabled) {
-        status.developerMode = enabled;
-        pushStatus();
-      },
-      onMiniappStateChange(running) {
-        status.miniappRunning = running;
-        pushStatus();
-      }
-    });
-  }
-
-  return miniappHost;
+  return ensureMiniappHostImpl(extractedContext);
 }
 
 const transportAnnounceService = createMiniappAnnounceService({
@@ -985,62 +604,8 @@ const transportAnnounceService = createMiniappAnnounceService({
   getIdentity: () => loadOrCreateWebIdentity(cryptoProvider, identityOptions()),
   copyAppData: true
 });
-
 function ensureInstallService() {
-  if (installService === null) {
-    installService = createWebInstallService({
-      provider: cryptoProvider,
-      kvStore: ensureMiniappKvStore(),
-      getHostSession: () => hostSession,
-      requestCasLocator: async (t256) => {
-        const session = hostSession;
-        if (session === null) {
-          throw new Error("Gateway link is offline — cannot request locator");
-        }
-        let destination = locatorRequestDestinations.get(t256);
-        if (destination === undefined) {
-          destination = session.reticulum.registerDestination({
-            provider: cryptoProvider,
-            identity: session.identity,
-            direction: DestinationDirection.IN,
-            type: DestinationType.SINGLE,
-            appName: "tp",
-            aspects: casRequestAspects(t256)
-          });
-          locatorRequestDestinations.set(t256, destination);
-        }
-        await destination.announce({ appData: encodeCasLocatorRequest(t256) });
-        log(`Requested CAS locator for ${t256.slice(0, 16)}…`);
-      },
-      ensurePackageStorage,
-      miniappHost: () => ensureMiniappHost(),
-      send,
-      log,
-      pushInstalled: () => {
-        void pushInstalledList();
-      },
-      requestHostReply: requestHostReply,
-      tryHyperdriveFetch: async (locator) => {
-        if (webConfig.gatewayUrl.length === 0) {
-          return null;
-        }
-
-        if (locator.driveKey.length === 0 || /^0+$/.test(locator.driveKey)) {
-          return null;
-        }
-
-        const hyperFetch = await loadHyperFetch();
-        return hyperFetch.fetchDriveVersionForWeb({
-          gatewayUrl: webConfig.gatewayUrl,
-          driveKeyHex: locator.driveKey,
-          version: locator.version,
-          timeoutMs: 90_000
-        });
-      }
-    });
-  }
-
-  return installService;
+  return ensureInstallServiceImpl(extractedContext);
 }
 
 async function pushInstalledList() {
@@ -1104,76 +669,8 @@ async function stopHostSession() {
   }
   pushStatus();
 }
-
 async function startHostSession() {
-  if (webConfig.gatewayUrl.length === 0) {
-    log("Web gateway URL is not configured");
-    return;
-  }
-
-  if (hostSession !== null) {
-    pushStatus();
-    return;
-  }
-
-  hostSession = await createWebLeafHost({
-    gatewayUrl: webConfig.gatewayUrl,
-    ...(webConfig.sharedToken === undefined ? {} : { sharedToken: webConfig.sharedToken }),
-    identity: identityOptions()
-  });
-
-  hostLxmfDelivery = await createHostLxmfDelivery({
-    reticulum: hostSession.reticulum,
-    provider: cryptoProvider,
-    identity: hostSession.identity,
-    announceIntervalMs: 0,
-    receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
-    isInvitableApp: (appId) => appId === "line-check",
-    log
-  });
-  hostLxmfDelivery.onInvite((invite) => {
-    harnessInviteEntries.push({
-      kind: "raised",
-      id: invite.id,
-      appId: invite.appId,
-      peerLabel: invite.verifiedPeerLabel,
-      requestedClasses: invite.requestedClasses,
-      expiresAt: invite.expiresAt,
-      at: Date.now(),
-      peerDestinationHash: typeof invite.peer?.id === "string" ? invite.peer.id : invite.id.slice(0, 16)
-    });
-  });
-  status.lxmfAddress = hostLxmfDelivery.lxmfAddress;
-  log(`Host LXMF delivery ready (${hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`);
-
-  hostSession.reticulum.registerAnnounceHandler({
-    receivedAnnounce(info) {
-      status.announcesSeen += 1;
-      pushStatus();
-      send({
-        type: "announce",
-        entry: {
-          destinationHash: bytesToHex(info.destinationHash),
-          hops: info.packet.hops,
-          receivedAt: Date.now(),
-          appDataHex: info.appData === null ? null : bytesToHex(info.appData)
-        }
-      });
-      if (info.appData !== null) {
-        ensureInstallService().ingestCasLocatorAppData(bytesToHex(info.appData));
-        void ensurePublishService().respondToLocatorRequest(hostSession, info.appData).catch((error) => {
-          log(`CAS locator response failed: ${error instanceof Error ? error.message : String(error)}`);
-        });
-      }
-    }
-  });
-
-  status.wsEnabled = true;
-  status.tcpEnabled = true;
-  status.running = true;
-  startStatusTimer();
-  pushStatus();
-  log(`Web leaf host connected to ${webConfig.gatewayUrl}`);
+  return startHostSessionImpl(extractedContext);
 }
 
 async function refreshIdentityStatus() {
@@ -1248,482 +745,8 @@ function handleSandboxHostMessage(message) {
     );
   }
 }
-
 async function handleHostMessage(raw) {
-  const line = raw.trim();
-  if (line.length === 0) {
-    return;
-  }
-
-  let message;
-  try {
-    message = JSON.parse(line);
-  } catch {
-    log(`Ignored host message: ${line}`);
-    return;
-  }
-
-  if (
-    message.type === "sandbox-spawned" ||
-    message.type === "sandbox-spawn-failed" ||
-    message.type === "sandbox-ping-result" ||
-    message.type === "sandbox-broker-request"
-  ) {
-    handleSandboxHostMessage(message);
-    return;
-  }
-
-  if (
-    message.type === "serial-data" ||
-    message.type === "serial-connect" ||
-    message.type === "serial-disconnect" ||
-    message.type === "serial-error"
-  ) {
-    handleSerialHostMessage(message);
-    return;
-  }
-
-  if (message.type === "start") {
-    if (message.mockAiChat === true) {
-      mockAiChat = true;
-    }
-    if (message.mockLocalPublish === true) {
-      mockLocalPublish = true;
-    }
-    if (message.gatewayUrl !== undefined) {
-      webConfig = {
-        gatewayUrl: message.gatewayUrl,
-        identityPassphrase: message.identityPassphrase ?? DEFAULT_PASSPHRASE,
-        ...(message.sharedToken === undefined ? {} : { sharedToken: message.sharedToken }),
-        ...(message.ntfyUrl === undefined || message.ntfyUrl.trim() === "" ? {} : { ntfyUrl: message.ntfyUrl.trim() }),
-        ...(message.ntfyToken === undefined || message.ntfyToken.trim() === "" ? {} : { ntfyToken: message.ntfyToken.trim() })
-      };
-      status.gatewayUrl = message.gatewayUrl;
-    }
-
-    await refreshIdentityStatus();
-    if (status.tcpEnabled || status.wsEnabled) {
-      await startHostSession();
-    } else {
-      log(`Gateway configured (${webConfig.gatewayUrl || "unset"}); enable WS gateway to connect`);
-    }
-    return;
-  }
-
-  if (message.type === "stop") {
-    await stopHostSession();
-    log("Web core worker stopped");
-    return;
-  }
-
-  if (message.type === "create-identity") {
-    await createIdentity();
-    return;
-  }
-
-  if (message.type === "import-identity") {
-    try {
-      await importIdentity(message.privateKeyHex);
-    } catch (error) {
-      log(`Import identity failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "reset-identity") {
-    await resetIdentity();
-    return;
-  }
-
-  if (message.type === "set-interfaces") {
-    status.tcpEnabled = message.tcp;
-    status.autoEnabled = message.auto;
-    status.bleEnabled = message.ble;
-    status.rnodeEnabled = message.rnode;
-    pendingRnodeBaudRate = message.rnodeBaudRate ?? 115_200;
-    pushStatus();
-
-    if (message.tcp) {
-      await startHostSession();
-    } else {
-      await stopHostSession();
-      log("WS gateway disabled");
-    }
-
-    await applyInterfaceConfig();
-    return;
-  }
-
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-opus-play-response" || message.type === "media-opus-duplex-response" || message.type === "media-codec-response") {
-    hostReplyChannel.resolveReply(message);
-    return;
-  }
-
-  if (message.type === "peer-webrtc-data") {
-    const payload = hexToBytes(message.dataHex);
-    const listeners = webRtcRouteListeners.get(message.sessionId);
-    if (listeners === undefined || listeners.size === 0) {
-      const pending = webRtcRoutePending.get(message.sessionId) ?? [];
-      pending.push(payload.slice());
-      if (pending.length > 16) pending.shift();
-      webRtcRoutePending.set(message.sessionId, pending);
-    } else {
-      for (const listener of listeners) listener(payload.slice());
-    }
-    return;
-  }
-
-  if (message.type === "install-from-256t") {
-    try {
-      const result = await ensureInstallService().installFromT256(message.t256);
-      await pushInstalledList();
-      send({ type: "install-256t-result", ok: true, ...result });
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      send({ type: "install-256t-result", ok: false, error: detail });
-      log(`Install from 256t failed: ${detail}`);
-    }
-    return;
-  }
-
-  if (message.type === "cross-device-command") {
-    try {
-      const cmd = typeof message.command?.cmd === "string" ? message.command.cmd : "";
-      const result =
-        cmd === "renderer-ping" ||
-        cmd === "peer-pair-start" ||
-        cmd === "peer-pair-code-out" ||
-        cmd === "peer-pair-code-in" ||
-        cmd === "peer-pair-wait" ||
-        cmd === "webrtc-open-media" ||
-        cmd === "media-opus-duplex" ||
-        cmd === "media-opus-play" ||
-        cmd === "harness-info" ||
-        cmd === "announce" ||
-        cmd === "send-invite" ||
-        cmd === "accept-invite" ||
-        cmd === "invite-state"
-          ? await handleWebRtcHarnessCommand(message.command)
-          : await ensureCrossDeviceTestDriver()(message.command);
-      send({ type: "cross-device-result", token: message.token, ok: true, result });
-    } catch (error) {
-      send({
-        type: "cross-device-result",
-        token: message.token,
-        ok: false,
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-    return;
-  }
-
-  if (message.type === "trust-list") {
-    await ensureInstallService().pushTrustList();
-    return;
-  }
-
-  if (message.type === "trust-add") {
-    try {
-      const publisherPublicKey = decodePublisherIdentity256t(message.identityString);
-      await ensureInstallService().trustStore.add({
-        publisherPublicKey,
-        label: message.label ?? "Unnamed publisher",
-        addedAt: Date.now(),
-        source: message.source ?? "paste"
-      });
-      log(`Trusted publisher ${message.label ?? publisherPublicKey.slice(0, 16)}`);
-    } catch (error) {
-      log(`Trust add failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    await ensureInstallService().pushTrustList();
-    return;
-  }
-
-  if (message.type === "trust-remove") {
-    await ensureInstallService().trustStore.remove(message.publisherPublicKey);
-    log("Removed trusted publisher");
-    await ensureInstallService().pushTrustList();
-    return;
-  }
-
-  if (message.type === "trust-show") {
-    if (!(await hasWebIdentity(identityOptions()))) {
-      send({ type: "trust-identity", identity256t: null });
-      return;
-    }
-
-    const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
-    send({
-      type: "trust-identity",
-      identity256t: encodePublisherIdentity256t(identity.getPublicKey())
-    });
-    return;
-  }
-
-  if (message.type === "list-catalog" || message.type === "list-installed") {
-    const storage = await ensurePackageStorage();
-    send({ type: "catalog", entries: [] });
-    send({
-      type: "installed",
-      packages: storage.listInstalled().map((record) => ({
-        appId: record.appId,
-        version: record.version,
-        activeVersion: storage.activeVersion(record.appId) ?? record.version,
-        packageHash: record.packageHash,
-        installedAt: record.installedAt,
-        rollbackAvailable: false,
-        capabilities: record.manifest.capabilities,
-        publisherPublicKey: record.manifest.publisherPublicKey
-      }))
-    });
-    return;
-  }
-
-  if (message.type === "refresh-storage") {
-    const quota = await refreshStorageStatus();
-    send({
-      type: "storage-quota",
-      quota: {
-        usageBytes: quota.usageBytes,
-        quotaBytes: quota.quotaBytes,
-        persisted: quota.persisted,
-        packageUsedBytes: quota.packageUsedBytes,
-        packageQuotaBytes: quota.packageQuotaBytes,
-        archiveBackend: quota.archiveBackend
-      }
-    });
-    return;
-  }
-
-  if (message.type === "install-app") {
-    const storage = await ensurePackageStorage();
-    if (message.archiveHex === undefined || message.archiveHex.length === 0) {
-      log("Web install requires archiveHex or install-from-256t");
-      return;
-    }
-
-    try {
-      const installed = await storage.installArchive(hexToBytes(message.archiveHex));
-      status.installedPackages = storage.listInstalled().length;
-      status.storageUsedBytes = storage.getPackageUsedBytes();
-      pushStatus();
-      send({
-        type: "installed",
-        packages: storage.listInstalled().map((record) => ({
-          appId: record.appId,
-          version: record.version,
-          activeVersion: storage.activeVersion(record.appId) ?? record.version,
-          packageHash: record.packageHash,
-          installedAt: record.installedAt,
-          rollbackAvailable: false,
-          capabilities: record.manifest.capabilities,
-          publisherPublicKey: record.manifest.publisherPublicKey
-        }))
-      });
-      log(`Installed ${installed.appId} v${installed.version} (${installed.archiveBytes} bytes)`);
-    } catch (error) {
-      log(`Install failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "seed-miniapp-kv") {
-    await ensureMiniappKvStore().set(message.key, hexToBytes(message.valueHex));
-    log(`Seeded mini-app KV key ${message.key}`);
-    return;
-  }
-
-  if (message.type === "device-list") {
-    try {
-      await ensureMiniappHost().pushDeviceState();
-    } catch (error) {
-      log(`Device list failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "device-set-class-disabled") {
-    try {
-      await ensureMiniappHost().setDeviceClassDisabled(message.classId, message.disabled === true);
-    } catch (error) {
-      log(`Device policy update failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "device-set-remote") {
-    try {
-      await ensureMiniappHost().setRemoteAcquisitionEnabled(message.enabled === true);
-    } catch (error) {
-      log(`Remote acquisition update failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "device-kill-session") {
-    try {
-      await ensureMiniappHost().forceCloseDeviceSession(message.handle);
-    } catch (error) {
-      log(`Device session kill failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "device-revoke-share") {
-    await ensureMiniappHost().revokeShareOffer(message.appId, message.id);
-    return;
-  }
-
-  if (message.type === "device-test-seed-share") {
-    try {
-      const offer = await ensureMiniappHost().seedShareOfferForTest({
-        appId: message.appId,
-        displayLabel: message.displayLabel,
-        classId: message.classId,
-        ttlMs: message.ttlMs
-      });
-      log(`Seeded share offer ${offer.id} for ${offer.displayLabel}`);
-    } catch (error) {
-      log(`Seed share offer failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "session-invite-accept") {
-    try {
-      await ensureMiniappHost().acceptSessionInvite(message.id);
-      log(`Accepted session invite ${message.id}`);
-    } catch (error) {
-      log(`Session invite accept failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "session-invite-decline") {
-    try {
-      ensureMiniappHost().declineSessionInvite(message.id);
-      log(`Declined session invite ${message.id}`);
-    } catch (error) {
-      log(`Session invite decline failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "set-developer-mode") {
-    ensureMiniappHost().setDeveloperMode(message.enabled);
-    log(`Developer mode ${message.enabled ? "enabled" : "disabled"}`);
-    return;
-  }
-
-  if (message.type === "get-grants") {
-    await ensureMiniappHost().getGrants(message.appId, message.publisherPublicKey, message.declaredCapabilities);
-    return;
-  }
-
-  if (message.type === "set-grants") {
-    await ensureMiniappHost().setGrants(
-      message.appId,
-      message.publisherPublicKey,
-      message.declaredCapabilities,
-      message.grantedCapabilities
-    );
-    log(`Saved grants for ${message.appId}`);
-    return;
-  }
-
-  if (message.type === "revoke-grant") {
-    await ensureMiniappHost().revokeGrant(
-      message.appId,
-      message.publisherPublicKey,
-      message.capability,
-      message.declaredCapabilities
-    );
-    log(`Revoked ${message.capability} for ${message.appId}`);
-    return;
-  }
-
-  if (message.type === "launch-miniapp") {
-    const storage = await ensurePackageStorage();
-    try {
-      await ensureMiniappHost().launch(storage, message.appId);
-      log(`Launched mini-app ${message.appId}`);
-    } catch (error) {
-      log(`Launch failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "stop-miniapp") {
-    await ensureMiniappHost().stop();
-    log("Stopped mini-app");
-    return;
-  }
-
-  if (message.type === "suspend-miniapp") {
-    await ensureMiniappHost().suspend();
-    return;
-  }
-
-  if (message.type === "resume-miniapp") {
-    await ensureMiniappHost().resume();
-    return;
-  }
-
-  if (message.type === "miniapp-ui-event") {
-    try {
-      await ensureMiniappHost().handleUiEvent(message.nodeId, message.event, message.value);
-    } catch (error) {
-      log(`UI event failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "workspace-read") {
-    try {
-      const content = await ensureMiniappHost().readWorkspaceFile(message.documentId);
-      send({ type: "workspace-file", token: message.token, documentId: message.documentId, content });
-    } catch (error) {
-      send({
-        type: "workspace-file",
-        token: message.token,
-        documentId: message.documentId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-    return;
-  }
-
-  if (message.type === "dev-side-load") {
-    try {
-      await ensureMiniappHost().devSideLoad(message.manifest, hexToBytes(message.bundleHex));
-      log(`Dev side-loaded ${message.manifest.name ?? "mini-app"}`);
-    } catch (error) {
-      log(`Dev side-load failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  if (message.type === "dev-side-load-hello") {
-    try {
-      ensureMiniappHost().setDeveloperMode(true);
-      await ensureMiniappHost().devSideLoad(
-        {
-          name: "hello-web",
-          version: "0.0.1",
-          entry: "bundle.js",
-          capabilities: [],
-          publisherPublicKey: "dev"
-        },
-        helloDevBundle
-      );
-      log("Dev side-loaded hello-web");
-    } catch (error) {
-      log(`Hello dev side-load failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    return;
-  }
-
-  log(`Web worker: unsupported message ${message.type}`);
+  return handleHostMessageImpl(extractedContext, raw);
 }
 
 self.onmessage = (event) => {

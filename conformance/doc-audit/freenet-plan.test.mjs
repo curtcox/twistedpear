@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readWorkletSource } from "../ui-invariants/worklet-source.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (path) => readFileSync(join(repositoryRoot, path), "utf8");
@@ -118,6 +119,9 @@ describe("Freenet integration status", () => {
 
   it("keeps distinct-node B3 and grant simulator probes wired", () => {
     const pkg = JSON.parse(read("package.json"));
+    const mobileWorklet = readWorkletSource(
+      join(repositoryRoot, "apps/harness-mobile/worklet/entry.mjs")
+    );
     expect(pkg.scripts["test:freenet-distinct-nodes"]).toMatch(
       /run-distinct-nodes\.mjs/
     );
@@ -160,19 +164,19 @@ describe("Freenet integration status", () => {
     expect(read("apps/harness-mobile/worklet/protocol.ts")).toContain(
       "set-freenet-config"
     );
-    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+    expect(mobileWorklet).toContain(
       "FreenetClientContractBackend"
     );
-    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+    expect(mobileWorklet).toContain(
       "FreenetInterface"
     );
-    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+    expect(mobileWorklet).toContain(
       "FreenetPropagationStore"
     );
-    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+    expect(mobileWorklet).toContain(
       "PropagationServer"
     );
-    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+    expect(mobileWorklet).toContain(
       "pullRemoteMirror"
     );
     expect(read("apps/harness-mobile/src/freenet-remote-grant.ts")).toContain(

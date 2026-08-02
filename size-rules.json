@@ -26,8 +26,9 @@
       "id": "markdown",
       "title": "Markdown documentation",
       "include": ["**/*.md"],
-      "warnLines": 300,
-      "dangerLines": 600,
+      "warnLines": 272,
+      "dangerLines": 593,
+      "distribution": { "measured": "2026-08-02", "count": 237, "medianLines": 66, "p90Lines": 272, "maxLines": 593 },
       "warnMaxLineLength": null,
       "dangerMaxLineLength": null,
       "guidance": "Split by audience or topic. A doc past 600 lines is usually two documents, or a live/planned pair that has drifted back together."
@@ -47,8 +48,9 @@
         "conformance/**/*.mjs",
         "conformance/**/*.js"
       ],
-      "warnLines": 600,
-      "dangerLines": 1200,
+      "warnLines": 371,
+      "dangerLines": 1161,
+      "distribution": { "measured": "2026-08-02", "count": 497, "medianLines": 112, "p90Lines": 371, "maxLines": 1161 },
       "guidance": "Table-driven cases and shared fixtures usually shrink these fast. Split by the behaviour under test, not by arbitrary line count."
     },
     {
@@ -56,31 +58,35 @@
       "title": "TypeScript source",
       "include": ["**/*.ts", "**/*.tsx"],
       "warnLines": 400,
-      "dangerLines": 800,
+      "dangerLines": 797,
+      "distribution": { "measured": "2026-08-02", "count": 563, "medianLines": 144, "p90Lines": 482, "maxLines": 797 },
       "guidance": "Extract cohesive state machines, framing/parsing helpers, or a barrel's re-exported members into their own modules."
     },
     {
       "id": "script",
       "title": "Build, tooling, and worklet scripts",
       "include": ["**/*.mjs"],
-      "warnLines": 400,
-      "dangerLines": 800,
+      "warnLines": 392,
+      "dangerLines": 769,
+      "distribution": { "measured": "2026-08-02", "count": 150, "medianLines": 109, "p90Lines": 401, "maxLines": 769 },
       "guidance": "Move reusable steps into scripts/ modules and keep the entry point an orchestrator."
     },
     {
       "id": "javascript",
       "title": "JavaScript source",
       "include": ["**/*.js", "**/*.cjs"],
-      "warnLines": 400,
-      "dangerLines": 800,
+      "warnLines": 228,
+      "dangerLines": 763,
+      "distribution": { "measured": "2026-08-02", "count": 80, "medianLines": 73, "p90Lines": 228, "maxLines": 763 },
       "guidance": "Same decomposition guidance as TypeScript source."
     },
     {
       "id": "native",
       "title": "Native and Python source",
       "include": ["**/*.kt", "**/*.swift", "**/*.py", "**/*.rs"],
-      "warnLines": 400,
-      "dangerLines": 800,
+      "warnLines": 377,
+      "dangerLines": 685,
+      "distribution": { "measured": "2026-08-02", "count": 43, "medianLines": 100, "p90Lines": 377, "maxLines": 685 },
       "guidance": "Bridges tend to accrete unrelated capabilities; split per capability or per platform API surface."
     }
   ]

@@ -1,7 +1,7 @@
 /* global TextDecoder, TextEncoder */
 import { bytesToHex, hexToBytes } from "../../reticulum-ts/dist/crypto/bytes.js";
 
-export function createWorkletPropagationPersistence(deps) {
+export function createWorkletPropagationPersistenceOps(deps) {
   async function loadPropagationCache() {
     const raw = await deps.runtime.store.get(deps.propagationStoreKey);
     if (raw === undefined) {

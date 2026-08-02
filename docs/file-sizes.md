@@ -4,17 +4,16 @@
 lifecycle: live
 audited: 2026-08-02
 register: none
-counterpart: docs/file-sizes-plan.md
 -->
 
-**This document describes the gate as it works today.** The schedule for decomposing the
-files it currently grandfathers is in
-[File-size reduction — remaining work](file-sizes-plan.md).
+**This document describes the gate as it works today.** The original reduction schedule
+has been completed and is retained as an
+[executed work order](../archive/meta/file-sizes-plan.md).
 
 Large files hide seams. This gate classifies every tracked source file by size, warns
 before a file gets unwieldy, and fails the build when a new file crosses the danger
-threshold for its type. It does not force a rewrite of what already exists: files that
-were oversized when the gate landed are grandfathered and may only shrink.
+threshold for its type. The initial grandfather list has been fully decomposed:
+`size-ratchet.json` now has zero entries and a zero excess-line ceiling.
 
 ## Commands
 
@@ -38,12 +37,18 @@ so `**/*.test.ts` is classified as a test before it is classified as TypeScript.
 
 | Type | Warn | Danger |
 |---|---:|---:|
-| Markdown documentation | 300 lines | 600 lines |
-| Test and conformance source | 600 lines | 1200 lines |
-| TypeScript source | 400 lines | 800 lines |
-| Build, tooling, and worklet scripts | 400 lines | 800 lines |
-| JavaScript source | 400 lines | 800 lines |
-| Native and Python source | 400 lines | 800 lines |
+| Markdown documentation | 272 lines | 593 lines |
+| Test and conformance source | 371 lines | 1161 lines |
+| TypeScript source | 400 lines | 797 lines |
+| Build, tooling, and worklet scripts | 392 lines | 769 lines |
+| JavaScript source | 228 lines | 763 lines |
+| Native and Python source | 377 lines | 685 lines |
+
+These values were re-derived from the post-cleanup distribution on 2026-08-02. Each
+rule records that distribution (`count`, median, p90, and maximum) in `size-rules.json`.
+Warn thresholds use the measured p90 unless the existing warning was already stricter;
+danger thresholds use the measured maximum, so any growth at the top immediately asks
+for another decomposition without grandfathering a file.
 
 Two secondary dimensions catch files that stay inside the line budget while carrying an
 outsized payload:
@@ -56,7 +61,7 @@ outsized payload:
 
 A file's status is the worst status across all three dimensions.
 
-Tests get roughly double the line budget: table-driven cases and vector fixtures grow
+Tests retain a larger line budget: table-driven cases and vector fixtures grow
 legitimately in a way production modules do not.
 
 ## What the thresholds mean
@@ -86,12 +91,10 @@ The gate fails when any of these hold:
 4. Measured excess lines — the sum of `lines − dangerLines` over every file at
    danger — exceed the committed `maxExcessLines` ceiling.
 
-Rule 3 is what stops a new offender from being waved through by appending to the
-baseline. Rule 4 makes the aggregate burndown monotonic: a phase cannot be half-done
-and then quietly reversed. Shrinking a file, or removing an entry, is always allowed;
-`npm run sizes:baseline` lowers `maxExcessLines` to the newly measured total. Entries
-whose file is no longer over threshold are reported as stale warnings; `--strict-stale`
-promotes them to failures.
+Rule 3 stops a new offender from being waved through by appending to the baseline. Rule
+4 keeps the aggregate at its current zero ceiling. The baseline machinery remains for
+emergency compatibility, but ordinary work must keep `entries` empty. Stale entries are
+reported as warnings; `--strict-stale` promotes them to failures.
 
 The intended workflow when the gate fails on your change is to decompose the file, not to
 edit `size-ratchet.json`.
@@ -112,6 +115,6 @@ reusing the previously recorded results for everything else.
 
 ## Related
 
-- [File-size reduction plan](file-sizes-plan.md) — the schedule for emptying the ratchet
+- [Executed file-size reduction plan](../archive/meta/file-sizes-plan.md) — historical work order
 - [Sans-IO protocol discipline](sansio.md) — the gate that uses the same ratchet pattern
 - `AGENTS.md` — the safe default loop and base check

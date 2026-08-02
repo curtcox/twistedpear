@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createDesktopPeerChrome } from "../../apps/host-desktop/worklet/peer-chrome.mjs";
+import { readModuleSource } from "./worklet-source.mjs";
 
 describe("desktop peer chrome", () => {
   it("routes full manual codes and peer confirmation through trusted request/reply messages", async () => {
@@ -74,7 +75,7 @@ describe("desktop peer chrome", () => {
 
   it("keeps confirmation and permission prompts in host chrome outside the mini-app widget root", () => {
     const html = readFileSync("apps/host-desktop/src/renderer/index.html", "utf8");
-    const renderer = readFileSync("apps/host-desktop/src/renderer/app.js", "utf8");
+    const renderer = readModuleSource("apps/host-desktop/src/renderer/app.js");
     expect(html.indexOf('id="host-modal-overlay"')).toBeGreaterThan(html.indexOf('id="widget-root"'));
     expect(renderer).toContain('message.type === "peer-confirm-request"');
     expect(renderer).toContain('startCamera.addEventListener("click"');

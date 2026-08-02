@@ -1,12 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../packages/host-core/dist/community-network.js";
+import { readModuleSource } from "./worklet-source.mjs";
 
 describe("community network bootstrap surfaces", () => {
   it("is opt-in and visible in desktop and mobile host chrome", () => {
     const desktopHtml = readFileSync("apps/host-desktop/src/renderer/index.html", "utf8");
     const desktopMain = readFileSync("apps/host-desktop/src/main/index.ts", "utf8");
-    const mobile = readFileSync("apps/harness-mobile/App.tsx", "utf8");
+    const mobile = readModuleSource("apps/harness-mobile/App.tsx");
 
     expect(desktopHtml).toContain('id="join-community-network"');
     expect(desktopHtml).not.toContain('id="setting-tcp" checked');

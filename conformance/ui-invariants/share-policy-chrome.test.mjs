@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { readModuleSource } from "./worklet-source.mjs";
 
 /**
  * G8: every write to "who may receive my camera or microphone" happens in host
@@ -17,7 +18,7 @@ const surfaces = [
 describe("share policy chrome", () => {
   for (const surface of surfaces) {
     it(`${surface.name} names the peer and class and keeps stop one interaction away`, () => {
-      const source = readFileSync(surface.path, "utf8");
+      const source = readModuleSource(surface.path);
       expect(source).toContain("Stop sharing");
       expect(source).toContain("device-revoke-share");
       expect(source).toContain("shareOffers");
@@ -25,7 +26,7 @@ describe("share policy chrome", () => {
     });
 
     it(`${surface.name} sends revoke to the host rather than the app`, () => {
-      const source = readFileSync(surface.path, "utf8");
+      const source = readModuleSource(surface.path);
       const sender = surface.path.endsWith(".js")
         ? "host.send"
         : surface.path.endsWith(".web.tsx")
