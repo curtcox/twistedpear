@@ -153,6 +153,7 @@ Protocol implementation details live in the
 | Evidence from the documented Mac validation run | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md) |
 | Sans-IO boundary and enforcement | [Sans-IO protocol discipline](sansio.md) |
 | Source-file size thresholds and the decomposition ratchet | [File-size classification](file-sizes.md) |
+| Schedule for decomposing the files the ratchet grandfathers | [File-size reduction plan](file-sizes-plan.md) |
 
 Additional focused runbooks are indexed from the
 [conformance overview](../conformance/README.md).

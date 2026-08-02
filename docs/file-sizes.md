@@ -1,10 +1,15 @@
 # File-size classification and ratchet
 
 <!-- tp-doc
-lifecycle: reference
+lifecycle: live
 audited: 2026-08-02
 register: none
+counterpart: docs/file-sizes-plan.md
 -->
+
+**This document describes the gate as it works today.** The schedule for decomposing the
+files it currently grandfathers is in
+[File-size reduction — remaining work](file-sizes-plan.md).
 
 Large files hide seams. This gate classifies every tracked source file by size, warns
 before a file gets unwieldy, and fails the build when a new file crosses the danger
@@ -103,5 +108,6 @@ reusing the previously recorded results for everything else.
 
 ## Related
 
-- `docs/sansio.md` — the Sans-IO gate, which uses the same ratchet pattern
+- [File-size reduction plan](file-sizes-plan.md) — the schedule for emptying the ratchet
+- [Sans-IO protocol discipline](sansio.md) — the gate that uses the same ratchet pattern
 - `AGENTS.md` — the safe default loop and base check
