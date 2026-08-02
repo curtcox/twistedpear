@@ -13,7 +13,7 @@
   },
   "peerDependencies": {
     "react": "^18.3.1",
-    "react-native": ">=0.76.0"
+    "react-native": "^0.86.2"
   },
   "dependencies": {
     "@twistedpear/miniapp-runtime": "0.1.0"
