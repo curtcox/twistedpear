@@ -61,8 +61,8 @@ command: npm run peers -- up hub node2
 description: Starts the local TCP hub plus a second headless tp node. No simulator or emulator needed — the fastest way to have a working local mesh.
 
 name: Local peers (everything)
-command: npm run peers -- up hub desktop ios android
-description: Starts every peer implementation this Mac can run: TCP hub, Electron desktop host, iOS simulator, and Android emulator. Peers that are unavailable are reported and skipped.
+command: npm run peers -- up hub node2 desktop desktop2 ios android web web2
+description: Starts every local TwistedPear peer implementation for manual discovery and messaging: TCP hub, headless node2, Electron desktop (+ desktop2), iOS simulator, Android emulator, and Chromium web host (+ web2). Unavailable GUI peers are reported and skipped.
 
 name: Local peers status
 command: npm run peers:status
