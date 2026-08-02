@@ -19,7 +19,7 @@ the reproducibility guarantee everything else rests on.
 > pinned-Python and cross-platform replay gates pass in hosted CI. Guarded BLE/LoRa calibration
 > remains an external evidence boundary. The phase descriptions below are retained as the original
 > design and acceptance criteria. The authoritative current record is
-> [simulation-outstanding-work.md](simulation-outstanding-work.md).
+> [docs/simulation.md](../../docs/simulation.md).
 
 The key audit correction remains provenance: a counted path now carries a concrete shipping handler
 and runtime-backed observations. Physical-layer claims still require independent hardware evidence.

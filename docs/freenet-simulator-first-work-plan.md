@@ -1,19 +1,19 @@
 # Freenet simulator-first remaining-work plan
 
 <!-- tp-doc
-lifecycle: live
-audited: 2026-07-29
+lifecycle: planned
+audited: 2026-08-02
 register: software
 -->
 
 This companion plan sequences the remaining work from the
-[Freenet integration plan](freenet-integration-plan.md) so that deterministic
+[Freenet integration plan](freenet-plan.md) so that deterministic
 tests, isolated Freenet nodes, Android emulators, and iOS simulators provide the
 primary software evidence. Dedicated physical devices are reserved for claims
 that a simulator cannot make honestly.
 
 The authoritative implementation and evidence ledger remains
-[§14 of the integration plan](freenet-integration-plan.md#14-implementation-status-2026-07-29)
+[Freenet — current implementation](freenet.md)
 and
 [the completion audit](../conformance/freenet-spike/completion-audit.md).
 This document changes sequencing, not the meaning of a completed evidence gate.

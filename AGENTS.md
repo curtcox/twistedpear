@@ -20,6 +20,31 @@ capability broker on desktop, mobile, web, and headless hosts.
 - Known limitations: `LIMITATIONS.md`
 - Historical material: `archive/` — do not edit except to fix links
 
+## Current vs. planned vs. historical
+
+Every tracked markdown file declares a lifecycle in a `tp-doc` comment under its title.
+**Read it before trusting the file.**
+
+- `live` — describes the implementation as it exists now. Authoritative for behaviour.
+- `planned` — intended work. Never a description of current behaviour.
+- `reference` — durable explanation, procedure, or runbook. Not a status claim.
+- `historical` — superseded plan, closed decision, or dated evidence. Lives only under
+  `archive/`, in `design/`, `decisions/`, `handoffs/`, `meta/`, or `evidence/`.
+
+Current and planned live in **separate files**, never separate sections of one file. The
+pair is `docs/<topic>.md` (live) and `docs/<topic>-plan.md` (planned); each declares the
+other in a `counterpart:` field and links to it up front. When they disagree, the `live`
+file wins.
+
+When you implement part of a plan, move the description of what now exists into the `live`
+file and delete it from the plan — do not leave a "status" section inside a plan. When a
+plan is fully executed, or a decision is closed, move the document under `archive/` and add
+a row to `archive/README.md`.
+
+`npm run test:doc-audit` enforces this: missing/invalid `tp-doc`, a `historical` document
+outside `archive/`, a non-historical document inside it, a one-sided `counterpart:`, or a
+`planned` document with no link to a `live` one all fail.
+
 ## Safe default loop
 
 Requires Node 22 and npm 10+ (see `.node-version` and `engines`).
@@ -116,6 +141,7 @@ release task.
 - Preserve unrelated user changes in a dirty worktree.
 - Prefer focused tests during iteration, then the canonical base check.
 - If behavior and prose disagree, use `docs/README.md` to find the canonical source;
-  historical plans do not override live code, specs, tests, or status registers.
+  `planned` and `historical` documents never override live code, specs, tests, or status
+  registers — or a `live` document.
 - Keep changes scoped. Generated output, formatting-only changes, and behavior changes
   should be reviewable separately.

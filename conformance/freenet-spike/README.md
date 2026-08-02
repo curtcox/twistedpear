@@ -7,7 +7,7 @@ register: none
 -->
 
 This directory owns the non-shipping evidence gates from
-[the Freenet integration plan](../../docs/freenet-integration-plan.md#4-phase-f0--exploratory-work-the-gate).
+[the Freenet integration plan](../../docs/freenet-plan.md#4-phase-f0--exploratory-work-the-gate).
 Nothing here is part of a shipping host.
 
 Run the offline-safe S1 packaging probe with:

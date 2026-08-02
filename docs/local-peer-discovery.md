@@ -1,13 +1,17 @@
-# Local peer discovery implementation status
+# Local peer discovery — current implementation
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-22
+audited: 2026-08-02
 register: software
+counterpart: docs/local-peer-discovery-plan.md
 -->
 
-This records shipped source and test evidence for
-[the delivery plan](local-peer-discovery-plan.md). A mechanism is not advertised merely
+**This document describes what is built and verified today.** Intended work lives in the
+[local peer discovery plan](local-peer-discovery-plan.md); it does not override this
+register.
+
+This records shipped source and test evidence for that plan. A mechanism is not advertised merely
 because its portable codec exists; the host must also supply its trusted UI/effect channel
 and pass the shared adapter suite.
 

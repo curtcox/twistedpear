@@ -1,11 +1,14 @@
-# Prompt: implement the remaining work called out by the User Guide, App Authoring Guide, and Cookbook
-
+# Reader-guide remaining work — plan
 
 <!-- tp-doc
-lifecycle: live
-audited: 2026-07-21
+lifecycle: planned
+audited: 2026-08-02
 register: none
 -->
+
+**This document describes work not yet done.** It is derived from the feature-status
+appendices of the three reader guides; those appendices, not this page, describe what
+ships.
 
 This page is a work order, not a status register. The authoritative registers remain
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), [STATUS-HARDWARE.md](../STATUS-HARDWARE.md),

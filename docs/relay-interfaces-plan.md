@@ -2,9 +2,16 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-07-22
+audited: 2026-08-02
 register: software
+counterpart: docs/relay-interfaces.md
 -->
+
+**This document describes intended work, not current behaviour.** What is wired today —
+the interface adapters that exist, the brokered `relay` namespace, and the per-host
+capability rows — is described in
+[Reticulum relay and configurable interfaces — current implementation](relay-interfaces.md).
+Where the two disagree, that document wins.
 
 This plan lets a TwistedPear host act as a **Reticulum relay over any medium the device
 can drive** — WiFi, Bluetooth, camera/screen (optical), speaker/microphone (acoustic),
@@ -56,7 +63,7 @@ Two directional concepts must not be conflated:
 Out of scope: changing Reticulum's on-wire packet format, the cryptographic identity model,
 or the LXMF layer. Relay operates below LXMF and never decrypts payloads.
 
-## What exists to build on
+## What existed to build on (as of 2026-07-22)
 
 | Capability | Where | Status for this plan |
 |---|---|---|

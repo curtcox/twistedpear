@@ -24,7 +24,9 @@ function registerForPath(relPath) {
 function lifecycleForPath(relPath) {
   if (relPath.startsWith("archive/")) return "historical";
   if (relPath === "RELEASE-PLAN.md") return "planned";
-  if (relPath === "docs/reorg-plan.md") return "reference";
+  // `docs/<topic>-plan.md` is the planned half of a live/planned pair; the live half is
+  // `docs/<topic>.md`. See docs/README.md, "How to tell current from planned".
+  if (/-plan\.md$/.test(relPath)) return "planned";
   if (
     relPath === "README.md" ||
     relPath === "STATUS-COMPLETE.md" ||

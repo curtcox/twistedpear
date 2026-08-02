@@ -54,7 +54,10 @@ Published site: [curtcox.github.io/twistedpear](https://curtcox.github.io/twiste
 [quality results](https://curtcox.github.io/twistedpear/results/)).
 
 Start with the [documentation index](docs/README.md). It identifies the canonical
-reference for each topic and separates current guidance from historical design plans.
+reference for each topic and explains the repository's doc lifecycle: what is built
+(`live`) and what is merely intended (`planned`) are separate files — `docs/<topic>.md`
+and `docs/<topic>-plan.md` — and superseded plans, closed decisions, and dated evidence
+live under [archive/](archive/README.md).
 The path to the first release — gates, iteration loops, and sequencing — is
 [RELEASE-PLAN.md](RELEASE-PLAN.md).
 

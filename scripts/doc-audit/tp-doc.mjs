@@ -40,7 +40,8 @@ export function parseTpDoc(text) {
   return {
     lifecycle: fields.lifecycle,
     audited: fields.audited,
-    register: fields.register
+    register: fields.register,
+    ...(fields.counterpart ? { counterpart: fields.counterpart } : {})
   };
 }
 
@@ -48,10 +49,11 @@ export function parseTpDoc(text) {
  * @param {{ lifecycle: string; audited: string; register: string }} meta
  */
 export function formatTpDoc(meta) {
+  const counterpart = meta.counterpart ? `\ncounterpart: ${meta.counterpart}` : "";
   return `<!-- tp-doc
 lifecycle: ${meta.lifecycle}
 audited: ${meta.audited}
-register: ${meta.register}
+register: ${meta.register}${counterpart}
 -->`;
 }
 

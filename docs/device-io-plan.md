@@ -2,9 +2,15 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-07-23
+audited: 2026-08-02
 register: software
+counterpart: docs/device-io.md
 -->
+
+**This document describes intended work, not current behaviour.** What is built today —
+the shipped registry, session machine, broker path, and the per-host capability matrix —
+is described in [Device I/O — current implementation](device-io.md). Where the two
+disagree, that document wins.
 
 This plan gives mini-apps access to **every I/O capability the device has** — GPS, camera,
 screen, microphone, speaker, TTS, STT, gyroscope, accelerometer, flashlight, ambient light,
@@ -12,12 +18,12 @@ card reader, and whatever comes next — behind the capability broker, and lets 
 streams be **processed locally** or **streamed to a peer** when the link has adequate
 bandwidth.
 
-Today the platform exposes **no device I/O to mini-apps at all**. Camera exists only as a
-host-chrome QR-install flow ([`camera-qr-scan/main.js`](../apps/handbook/content/applets/camera-qr-scan/main.js)),
-microphone and speaker exist only as a peer-discovery effect boundary where PCM never crosses
-into the sandbox ([`peer-discovery/src/audio.ts`](../packages/peer-discovery/src/audio.ts)), and
-no other sensor is reachable. This is the plan to change that without discarding the
-properties that made the platform reviewable.
+When this plan was written the platform exposed **no device I/O to mini-apps at all**:
+camera existed only as a host-chrome QR-install flow, and microphone and speaker only as a
+peer-discovery effect boundary where PCM never crossed into the sandbox. Much of the plan
+below has since landed — see [device-io.md](device-io.md) for what actually ships and
+[platform capabilities status](platform-capabilities-status.md) for per-host state. The
+plan is retained for the design rationale and for the phases that remain.
 
 Companion plan: [Reticulum relay and configurable interfaces](relay-interfaces-plan.md). That
 plan promotes camera/screen and mic/speaker into *packet transports* for relaying. This plan
@@ -60,7 +66,7 @@ A device may not be held by both planes at once. The Device Manager and the rela
 Interface Manager share one **device arbitration lock** per physical device; whichever acquires
 it first wins, and the other reports `busy` with an attribution string naming the holder.
 
-## What exists to build on
+## What existed to build on (as of 2026-07-23)
 
 | Capability | Where | Status for this plan |
 |---|---|---|

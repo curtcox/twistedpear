@@ -148,7 +148,7 @@ Cross-cutting wiring gaps (affect many rows below):
   packet-tunnel, and/or Freenet-backed LXMF `PropagationServer` role; Maestro
   `.maestro/freenet-remote-grant.yaml`) — still off by
   default, no third-party gateway. Web stays `n/a` under Option A. Decision:
-  [ADR](adr-freenet-app-execution.md) Option A.
+  [ADR](../archive/decisions/freenet-app-execution.md) Option A.
 
 ## Device capabilities
 
@@ -229,12 +229,12 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 | Relay taxonomy | `npm test -- packages/miniapp-runtime/test/relay.test.ts` |
 | Worklet flag-plane relay | `npm test -- packages/miniapp-runtime/test/worklet-flag-relay.test.ts` |
 | Node relay/device wiring | `npm test -- packages/cli/test/host-relay-device-wiring.test.ts` |
-| Peer connect | see [local-peer-discovery-implementation.md](local-peer-discovery-implementation.md) |
+| Peer connect | see [local-peer-discovery.md](local-peer-discovery.md) |
 
 ## Related documents
 
 - [Mini-app runtime](miniapp-runtime.md) · [Mini-app SDK](miniapp-sdk.md)
-- [Local peer discovery implementation](local-peer-discovery-implementation.md) · [evidence](local-peer-discovery-evidence.md)
+- [Local peer discovery implementation](local-peer-discovery.md) · [evidence](local-peer-discovery-evidence.md)
 - [Relay interfaces plan](relay-interfaces-plan.md)
 - [Device I/O plan](device-io-plan.md) · [device-class runbook](device-class-runbook.md)
 - Guide feature-status appendix: [guide/appendix-feature-status.md](../guide/appendix-feature-status.md)

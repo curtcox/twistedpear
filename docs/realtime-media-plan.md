@@ -1,10 +1,16 @@
 # Realtime peer media plan — who can I call, and what am I sharing
 
 <!-- tp-doc
-lifecycle: live
+lifecycle: planned
 audited: 2026-08-02
 register: software
+counterpart: docs/realtime-media.md
 -->
+
+**This document describes intended work, not current behaviour.** The
+requirement-to-evidence register for what actually ships is
+[Realtime peer media — current implementation](realtime-media.md). Where the two
+disagree, that document wins.
 
 A mini-app that answers two questions honestly, on a mesh platform where the answer is
 usually "not at that quality":
@@ -20,7 +26,7 @@ Companion plans: [Device I/O plan](device-io-plan.md) exposes the hardware;
 handles; [Relay and configurable interfaces](relay-interfaces-plan.md) owns the same
 hardware in the *packet transport* plane and must never hold it at the same time. Current
 requirement-level proof and missing exits are tracked in the
-[implementation evidence register](realtime-media-implementation.md).
+[implementation evidence register](realtime-media.md).
 
 ## Executive finding
 
@@ -106,7 +112,7 @@ in that plan's scope. It adds **no new device classes**.
 
 ## Platform capability evaluation
 
-### What exists and is usable as-is
+### What existed and was usable as-is (at plan time)
 
 | Capability | Where | Status for this plan |
 |---|---|---|

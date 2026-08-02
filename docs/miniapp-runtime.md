@@ -68,7 +68,7 @@ Host API `0.9.0` adds `relay:configure` / `relay:read`.
 Host API `0.11.0` adds `freenet:contract` for brokered Freenet contract
 `get` / `put` / `update`. Put and update ask each time; grant wording states that
 updates are published to a global network and cannot be recalled. See
-[ADR: Freenet app execution](adr-freenet-app-execution.md).
+[ADR: Freenet app execution](../archive/decisions/freenet-app-execution.md).
 Host API `0.12.0` adds app-scoped link observation and budgeted probes, outbound
 share-policy visibility, inbound media routing to host-rendered sinks, and the separate
 raw-inbound gate. The sandbox receives opaque handles and coarse quality/readiness data;

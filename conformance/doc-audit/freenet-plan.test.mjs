@@ -5,14 +5,23 @@ import { describe, expect, it } from "vitest";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (path) => readFileSync(join(repositoryRoot, path), "utf8");
-const plan = read("docs/freenet-integration-plan.md");
+const plan = read("docs/freenet-plan.md");
+// Status claims live in the current-implementation document, never in the plan.
+const current = read("docs/freenet.md");
 const simulatorPlan = read("docs/freenet-simulator-first-work-plan.md");
 const audit = read("conformance/freenet-spike/completion-audit.md");
 const evidence = JSON.parse(
   read("conformance/freenet-spike/evidence-status.json")
 );
 
-describe("Freenet integration plan status", () => {
+describe("Freenet integration status", () => {
+  it("keeps the plan and the current-implementation document cross-linked", () => {
+    expect(plan).toContain("counterpart: docs/freenet.md");
+    expect(current).toContain("counterpart: docs/freenet-plan.md");
+    expect(plan).toContain("(freenet.md)");
+    expect(current).toContain("(freenet-plan.md)");
+  });
+
   it("keeps the spike ledger aligned with machine-readable evidence", () => {
     const expected = {
       S1: "complete",
@@ -31,11 +40,11 @@ describe("Freenet integration plan status", () => {
     }
     expect(evidence.spikes.S8.status).toBe("complete");
     expect(evidence.gate.status).toBe("partially-open");
-    expect(plan).toContain("**Gate verdict: partially open.**");
+    expect(current).toContain("**Gate verdict: partially open.**");
   });
 
   it("does not claim externally gated evidence as complete", () => {
-    expect(plan).toContain(
+    expect(current).toContain(
       "F4 node provisioning | **software supervision started; redistribution gated**"
     );
     expect(audit).toContain(
@@ -43,7 +52,7 @@ describe("Freenet integration plan status", () => {
     );
     expect(evidence.spikes.S5.remaining).toMatch(/sign and notarize/);
     expect(evidence.spikes.S7.remaining).toMatch(/explicit live-write approval/);
-    expect(plan).toContain("Tier 4 — cannot be done in CI");
+    expect(current).toContain("Tier 4 — cannot be done in CI");
   });
 
   it("keeps simulator-first remaining work linked without weakening evidence gates", () => {

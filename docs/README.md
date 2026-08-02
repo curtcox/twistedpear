@@ -1,9 +1,8 @@
 # Documentation index
 
-
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-02
 register: none
 -->
 
@@ -11,8 +10,35 @@ Use this page to find the canonical document for a topic. The root
 [README](../README.md) covers repository setup and common commands; the interactive
 [Handbook](../apps/handbook/README.md) is the user- and app-developer-facing guide.
 
-Documents marked **historical design** explain why the current implementation was
-built, but they are not the source of truth for current status.
+## How to tell current from planned
+
+**Every tracked markdown file declares its lifecycle** in a `tp-doc` comment under its
+title. Read that field before you read the document.
+
+| `lifecycle:` | The document describes | Trust it for |
+|---|---|---|
+| `live` | The implementation as it exists now | Current behaviour, current status |
+| `planned` | Work that is intended but not built | Design intent and sequencing — **never** current behaviour |
+| `reference` | Durable explanation, procedure, or runbook | How to do something; not a status claim |
+| `historical` | A superseded plan, decision, or dated evidence log. Only ever under [`archive/`](../archive/README.md) | Why a past choice was made. Nothing else |
+
+**Current and planned are separate files, never separate sections of one file.** Where a
+topic has both, the pair is `<topic>.md` (live) and `<topic>-plan.md` (planned), each
+naming the other in a `counterpart:` field and linking to it in its opening paragraph.
+When they disagree, the `live` document wins — including against its own plan.
+
+| Topic | Current implementation | Plan |
+|---|---|---|
+| Freenet integration | [freenet.md](freenet.md) | [freenet-plan.md](freenet-plan.md), sequenced by [freenet-simulator-first-work-plan.md](freenet-simulator-first-work-plan.md) |
+| Device I/O | [device-io.md](device-io.md) | [device-io-plan.md](device-io-plan.md) |
+| Local peer discovery | [local-peer-discovery.md](local-peer-discovery.md), [evidence register](local-peer-discovery-evidence.md) | [local-peer-discovery-plan.md](local-peer-discovery-plan.md) |
+| Realtime peer media | [realtime-media.md](realtime-media.md) | [realtime-media-plan.md](realtime-media-plan.md) |
+| Relay and configurable interfaces | [relay-interfaces.md](relay-interfaces.md) | [relay-interfaces-plan.md](relay-interfaces-plan.md) |
+| Deterministic abuse simulation | [simulation.md](simulation.md) | [simulation-plan.md](simulation-plan.md), loop mechanics in [abuse-resistance-loop.md](abuse-resistance-loop.md) |
+
+The rule is enforced by `npm run test:doc-audit`: a missing or invalid `tp-doc` header, a
+`historical` document outside `archive/`, a non-historical document inside it, or a
+one-sided `counterpart:` all fail the build.
 
 ## Start here
 
@@ -25,7 +51,6 @@ built, but they are not the source of truth for current status.
 | Understand the platform and run it locally | [Repository README](../README.md) |
 | See the specification decomposition and per-spec conformance | [Specifications index](../specs/README.md) |
 | Look up a term used in the code, specs, or docs | [Developer glossary](glossary.md) |
-| Execute the shared-abstraction and naming cleanup | [Consolidation plan](consolidation-plan.md) |
 | Learn the platform interactively | [Handbook mini-app](../apps/handbook/README.md) |
 | Check implemented and verified work | [Completed-work evidence](../STATUS-COMPLETE.md) |
 | Check remaining software work | [Software backlog](../STATUS-SOFTWARE.md) |
@@ -39,11 +64,11 @@ built, but they are not the source of truth for current status.
 The status documents are intentionally disjoint: completed evidence belongs in
 [STATUS-COMPLETE.md](../STATUS-COMPLETE.md), open software work in
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), and device/account/real-network work in
-[STATUS-HARDWARE.md](../STATUS-HARDWARE.md). [archive/design/plan-v0.md](../archive/design/plan-v0.md) and documents explicitly
-marked **historical design** preserve design rationale and acceptance criteria; they do not
-override those status registers.
+[STATUS-HARDWARE.md](../STATUS-HARDWARE.md). Everything under
+[`archive/`](../archive/README.md) preserves design rationale and acceptance criteria; it
+does not override those registers, and it does not describe current behaviour.
 
-[Reader-guide remaining work](reader-guide-remaining-work.md) is a work order derived from the
+[Reader-guide remaining work](reader-guide-plan.md) is a work order derived from the
 feature-status appendices of the [User Guide](../guide/appendix-feature-status.md),
 [App Authoring Guide](../authors/appendix-feature-status.md), and
 [Cookbook](../cookbook/appendix-feature-status.md): it sorts every incomplete feature those
@@ -52,8 +77,11 @@ deliberate v1 scope.
 
 ## Archive
 
-Superseded plans, one-shot handoffs, and point-in-time evidence logs are indexed in
-[archive/README.md](../archive/README.md). Do not edit archived files except to fix links.
+Superseded plans, closed decision records, one-shot handoffs, executed repository work
+orders, and point-in-time evidence logs are indexed in
+[archive/README.md](../archive/README.md), under `design/`, `decisions/`, `handoffs/`,
+`meta/`, and `evidence/`. Do not edit archived files except to fix links, and do not cite
+them as current behaviour.
 
 ## Mini-app development and distribution
 
@@ -90,13 +118,14 @@ The package-level READMEs for
 
 | Topic | Document |
 |---|---|
-| Unified local peer discovery, invitation exchange, and connection | [Local peer discovery and connection plan](local-peer-discovery-plan.md), [implementation status](local-peer-discovery-implementation.md) |
+| Unified local peer discovery, invitation exchange, and connection | [current implementation](local-peer-discovery.md), [plan](local-peer-discovery-plan.md) |
 | Capability × host matrix (includes `peer:connect`, `relay:*`, `device:*`) | [Platform capabilities status](platform-capabilities-status.md) |
+| Relay over any medium, configurable interfaces | [Relay interfaces — current](relay-interfaces.md), [plan](relay-interfaces-plan.md) |
 | BLE roles, framing, and conformance | [BLE interface](ble-interface.md) |
 | WebSocket framing, lifecycle, and gateway endpoints | [WebSocket interface](websocket-interface.md) |
-| Freenet as a transport and app substrate | [Freenet integration plan](freenet-integration-plan.md) |
+| Freenet as a transport and app substrate | [Freenet — current](freenet.md), [plan](freenet-plan.md) |
 | Freenet remaining work, simulator-first sequencing | [Freenet simulator-first work plan](freenet-simulator-first-work-plan.md) |
-| Freenet app-execution decision (Option A) | [ADR: Freenet app execution](adr-freenet-app-execution.md) |
+| Freenet app-execution decision (Option A) | [ADR (archived decision)](../archive/decisions/freenet-app-execution.md) |
 | LXMF propagation-node operation | [Propagation node](propagation-node.md) |
 | Bounded multipart LXMF store-and-forward | [Multipart propagation](multipart-propagation.md) |
 | Battery and link-budget guidance | [Battery and bandwidth policy](battery-bandwidth-policy.md) |
@@ -110,8 +139,8 @@ Protocol implementation details live in the
 
 | Topic | Document |
 |---|---|
-| Expose device sensors and actuators to mini-apps | [Device I/O plan](device-io-plan.md), [add a device class](device-class-runbook.md) |
-| Per-peer link quality and realtime audio/video between peers | [Realtime peer media plan](realtime-media-plan.md) |
+| Expose device sensors and actuators to mini-apps | [Device I/O — current](device-io.md), [plan](device-io-plan.md), [add a device class](device-class-runbook.md) |
+| Per-peer link quality and realtime audio/video between peers | [Realtime peer media — current](realtime-media.md), [plan](realtime-media-plan.md) |
 | Per-capability status including `device:*` | [Platform capabilities status](platform-capabilities-status.md) |
 
 ## Security, quality, and validation
@@ -132,6 +161,7 @@ Additional focused runbooks are indexed from the
 | Purpose | Document |
 |---|---|
 | Architecture and scope | [Simulation architecture](simulation-architecture.html) |
-| Current status, evidence, and remaining external boundary | [Simulation status](simulation-outstanding-work.md) |
-| Original phased design | [Implementation plan](../archive/design/simulation-implementation-plan.md) — **historical design** |
+| Current status and evidence | [Simulation — current](simulation.md) |
+| Remaining work and the external evidence boundary | [Simulation plan](simulation-plan.md) |
+| Original phased design | [Implementation plan](../archive/design/simulation-implementation-plan.md) — **archived** |
 | Ongoing find-fix loop, fidelity ramp, and difficulty ladder | [Abuse-resistance loop](abuse-resistance-loop.md) |

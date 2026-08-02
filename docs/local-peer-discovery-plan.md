@@ -2,9 +2,15 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-07-22
+audited: 2026-08-02
 register: software
+counterpart: docs/local-peer-discovery.md
 -->
+
+**This document describes intended work, not current behaviour.** What is built today is
+recorded in [Local peer discovery — current implementation](local-peer-discovery.md), with
+open trial gates in [the evidence register](local-peer-discovery-evidence.md). Where this
+plan and those disagree, they win.
 
 This plan adds a first-party **Peer Link** experience and, more importantly, moves its
 discovery, invitation exchange, authentication, and connection machinery into the

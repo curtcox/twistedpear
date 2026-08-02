@@ -1,14 +1,14 @@
 # ADR: Freenet app execution — Option A (clients, not hosts)
 
 <!-- tp-doc
-lifecycle: planned
+lifecycle: historical
 audited: 2026-07-28
 register: software
 -->
 
 **Status:** Accepted as the near-term path; Options B and C remain deferred.  
 **Date:** 2026-07-28  
-**Context:** [Freenet integration plan](freenet-integration-plan.md) §10 / phase F6.
+**Context:** [Freenet integration plan](../../docs/freenet-plan.md) §10 / phase F6.
 
 ## Decision
 
@@ -42,7 +42,7 @@ host Freenet WASM contracts or Freenet web UIs inside the mini-app sandbox.
 
 ## References
 
-- [s7-report.md](../conformance/freenet-spike/s7-report.md)
-- [s4-report.md](../conformance/freenet-spike/s4-report.md)
-- [security-review.md](security-review.md) § F9
+- [s7-report.md](../../conformance/freenet-spike/s7-report.md)
+- [s4-report.md](../../conformance/freenet-spike/s4-report.md)
+- [security-review.md](../../docs/security-review.md) § F9
 - `HOST_API_VERSION` 0.11.0 changelog in `packages/miniapp-runtime/src/host-api.ts`

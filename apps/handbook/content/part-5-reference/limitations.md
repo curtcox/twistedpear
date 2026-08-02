@@ -205,7 +205,7 @@ everything below is a known cost of the chosen design or of the platforms involv
   Opus encode/decode/speaker play are recorded by `test:webrtc-gui-call`; web↔web track
   bytes by `test:webrtc-gui-call:web`. Device-run Maestro share-policy, iOS/Android
   multipeer peers, native mobile Opus/WebRTC parity, and real-device hardware claims remain
-  open — see realtime-media-implementation.md.
+  open — see docs/realtime-media.md.
   Unmeasured paths remain labelled “probably,” and `device.stream()` rejects when no host
   egress is configured.
 - Mini-app `announce.publish` / `announce.subscribe` currently use the runtime's in-memory

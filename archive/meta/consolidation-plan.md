@@ -1,12 +1,19 @@
 # Consolidation plan — shared abstractions and naming
 
 <!-- tp-doc
-lifecycle: planned
+lifecycle: historical
 audited: 2026-07-24
 register: none
 -->
 
-Progress (2026-07-24):
+**Archived 2026-07-24.** This was a one-shot work order, not a description of the
+current tree. Phases 1–6 and 7.1 landed; the shapes they produced are described by the
+current documentation ([developer glossary](../../docs/glossary.md),
+[specs index](../../specs/README.md), and the package READMEs). Only Phase 7.3 was
+deferred, and it is carried in [STATUS-SOFTWARE.md](../../STATUS-SOFTWARE.md) rather than
+here. Do not treat any statement below as current.
+
+Progress at archive time (2026-07-24):
 - **Phase 1 done** — `packages/worklet-core` holds `dev-channel`, bonjour/multicast/serial IPC bridges.
 - **Phase 2 done** — `FetchPath`/`FetchProgress` live in `bridge-hyper`; `host-core` re-exports.
 - **Phase 3 done (factories + composers)** — `createWorkletMiniappHost` / `createWebWorkletMiniappHost`, `createHostReplyChannel`, `createStatusTimer`, `createMiniappAnnounceService` in worklet-core. Host `entry.mjs` files still carry platform IPC, `pushStatus`, and interface stacks (further shrink is opportunistic, not blocking).
@@ -20,7 +27,7 @@ Plan exit criteria largely met for Phases 1–6 and 7.1. Loop stopped.
 
 This plan removes the duplication and naming debt identified by the 2026-07-24
 terminology and abstraction audit. The durable terminology output of that audit
-is the [developer glossary](glossary.md); this document is the work order for
+is the [developer glossary](../../docs/glossary.md); this document is the work order for
 everything the audit proposed but did not apply. Phases are ordered so each
 lands independently, cheapest and highest-leverage first; later phases never
 block earlier ones.
@@ -35,13 +42,13 @@ Motivating measurements (tree state at audit time):
   feature currently lands as parallel edits to three or four worklets.
 - `FetchPath` / `FetchProgress` and the fetch request/result shapes are defined
   twice, structurally identically, in
-  [`packages/host-core/src/fetch-plane.ts`](../packages/host-core/src/fetch-plane.ts)
-  and [`packages/bridge-hyper/src/core/fetch.ts`](../packages/bridge-hyper/src/core/fetch.ts).
+  [`packages/host-core/src/fetch-plane.ts`](../../packages/host-core/src/fetch-plane.ts)
+  and [`packages/bridge-hyper/src/core/fetch.ts`](../../packages/bridge-hyper/src/core/fetch.ts).
 - 68 conformance `run.mjs` runners; ≥13 hand-rolled `assert` helpers, ~32
   ad-hoc `spawn`/`execFile` wrappers, repeated log-file plumbing.
 - Both widget renderers hand-write per-type `switch` dispatch over the closed
   widget vocabulary; per-type prop tables live in
-  [`scripts/generate-widget-schema.mjs`](../scripts/generate-widget-schema.mjs)
+  [`scripts/generate-widget-schema.mjs`](../../scripts/generate-widget-schema.mjs)
   rather than beside `WIDGET_TYPES`.
 
 ## Guardrails (every phase)
@@ -207,11 +214,11 @@ output becomes uniform across CI.
 ## Phase 7 — naming decisions (each its own small change)
 
 1. **Name the layers once.** Add one paragraph to
-   [specs/README.md](../specs/README.md) naming all four representations of a
+   [specs/README.md](../../specs/README.md) naming all four representations of a
    twinned machine and their layer numbers — or drop the numbers and use the
    representation names everywhere. Today "Layer-2 twin" and "Layer-3 vector"
    appear with no Layer-1 defined anywhere. Update
-   [glossary.md](glossary.md) to match the decision.
+   [glossary.md](../../docs/glossary.md) to match the decision.
 2. **Dev-doc register discipline.** Developer docs say *propagation node* and
    *256t identifier* except when quoting UI labels; the user guide keeps
    *propagation server* and *share identifier*. Already documented in both

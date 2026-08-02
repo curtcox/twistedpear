@@ -236,4 +236,4 @@ storage.
 | `put` or `update` did nothing | The host confirmation may have been refused; the app cannot bypass it. |
 
 Back to [Troubleshooting](10-troubleshooting.md), or review the engineering
-[Freenet integration plan](../docs/freenet-integration-plan.md).
+[Freenet integration plan](../docs/freenet-plan.md).

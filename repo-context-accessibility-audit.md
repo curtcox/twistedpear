@@ -160,7 +160,7 @@ The largest agent-facing gaps are:
 - **Payoff:** Med
 - **Why:** There is no `CONTRIBUTING.md`, pull-request template, CODEOWNERS file, or general branch
   and commit convention. The only branch/commit instruction found is specific to one work order
-  (`docs/reader-guide-remaining-work.md:125`), while recent commit subjects vary greatly in length
+  (`docs/reader-guide-plan.md:125`), while recent commit subjects vary greatly in length
   and granularity.
 - **Concrete first step:** Add `/CONTRIBUTING.md` with branch naming, imperative commit subjects,
   focused-test expectations, generated-file policy, and when evidence/status registers may change.

@@ -13,7 +13,7 @@ built and green.
 
 - *Why the same-core simulator is trustworthy*: [simulation-architecture.html](simulation-architecture.html).
 - *How the substrate was built (11 phases, complete)*: [simulation-implementation-plan.md](../archive/design/simulation-implementation-plan.md).
-- *Current status and the one open evidence boundary*: [simulation-outstanding-work.md](simulation-outstanding-work.md).
+- *Current status and the one open evidence boundary*: [simulation.md](simulation.md).
 
 This document adds the missing piece: a **turn-the-crank loop** that uses that machinery to
 uncover and fix *increasingly complicated* failure scenarios, plus the fidelity ramp,
@@ -97,7 +97,7 @@ fixed and regression-locked. Rungs compose three difficulty dials:
 
 L0–L2 run on the substrate as-is. L3 needs product semantics for escrow/recovery (today a
 scope boundary). L4 needs guarded hardware evidence (the one open boundary in
-[simulation-outstanding-work.md](simulation-outstanding-work.md)). L5 is the steady-state
+[simulation.md](simulation.md)). L5 is the steady-state
 loop that never formally "finishes" — it just keeps the saturation curve honest.
 
 The ladder is the answer to "increasingly complicated": difficulty is a checked-in artifact,

@@ -1,13 +1,16 @@
-# Realtime peer media implementation evidence
+# Realtime peer media — current implementation
 
 <!-- tp-doc
 lifecycle: live
 audited: 2026-08-02
 register: software
+counterpart: docs/realtime-media-plan.md
 -->
 
-This is the requirement-to-evidence register for the
-[realtime peer media plan](realtime-media-plan.md). A green unit test is evidence only for
+**This document describes what is built and verified today.** Intended work lives in the
+[realtime peer media plan](realtime-media-plan.md); it does not override this register.
+
+This is the requirement-to-evidence register for that plan. A green unit test is evidence only for
 the behavior it directly exercises; it is not evidence for a shipping host or hardware
 claim.
 

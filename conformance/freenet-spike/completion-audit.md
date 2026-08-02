@@ -7,7 +7,7 @@ register: none
 -->
 
 This audit maps every gate and exit criterion in
-[`docs/freenet-integration-plan.md`](../../docs/freenet-integration-plan.md) to
+[`docs/freenet-plan.md`](../../docs/freenet-plan.md) to
 current evidence. “Implemented” does not mean that a live or hardware gate
 passed.
 
@@ -27,7 +27,7 @@ passed.
 | F3 propagation backing | WASM + store proof + host mirror + distinct-node runner | SPEC-FREENET propagation-set WASM; `FreenetPropagationStore`; isolated offline-A/retrieve-B; distinct publish-A/stop-A/retrieve-B; `createNodeHost` attaches remote mirror when freenet URL + propagation role enabled |
 | F4 provisioning | supervision software-complete; redistribute gated | `FreenetSupervisor` + CLI `--freenet-binary` + `test:freenet-supervisor` (CI with hash-verified release archive); signed redistributed daemon still gated on S5 |
 | F5 capability/UI | capability + desktop + mobile grant chrome | `freenet:contract` + HOST_API 0.11.0; desktop Settings; mobile remote-node disclosure/refusal/revoke/session + Bare worklet contract, packet-tunnel (`FreenetInterface`), and Freenet-backed LXMF `PropagationServer` role (Maestro); web off per Option A; S4 BareKit measurements still probe-ready |
-| F6 app-execution ADR | Option A accepted | [adr-freenet-app-execution.md](../../docs/adr-freenet-app-execution.md); B/C deferred on S4/platform-shape |
+| F6 app-execution ADR | Option A accepted | [Option A ADR](../../archive/decisions/freenet-app-execution.md); B/C deferred on S4/platform-shape |
 
 ## External evidence still required
 

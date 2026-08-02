@@ -13,6 +13,13 @@ those disagree with this page, they win.
 
 Last reviewed against the registers: **2026-07-21**.
 
+Every feature this appendix lists is a statement about **what exists today**, not a plan.
+Intended work lives in separate `-plan.md` documents under [`docs/`](../docs/README.md) —
+for example [device-io-plan.md](../docs/device-io-plan.md) beside
+[device-io.md](../docs/device-io.md). A plan never means a feature ships; this page and the
+registers it cites do. See [docs/README.md](../docs/README.md) for the full convention.
+
+
 The user guide keeps its own list of what is incomplete for people *using* TwistedPear:
 [guide/appendix-feature-status.md](../guide/appendix-feature-status.md). This page covers only
 what affects authoring.

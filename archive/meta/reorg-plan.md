@@ -2,10 +2,16 @@
 
 
 <!-- tp-doc
-lifecycle: reference
+lifecycle: historical
 audited: 2026-07-20
 register: none
 -->
+
+**Archived 2026-08-02.** This audit work order has been executed; its recommendations
+became the `tp-doc` lifecycle headers, the `conformance/doc-audit` suite, and the
+`archive/` tree. The rules it proposed are now stated in
+[docs/README.md](../../docs/README.md) and [AGENTS.md](../../AGENTS.md); the counts and
+findings below are a 2026-07-20 snapshot and are not current.
 
 Audit date: 2026-07-20. Produced per `archive/meta/audit-prompt.md`. This document recommends
 how to segregate historical prose, make done-vs-planned unambiguous, and wire
@@ -33,7 +39,7 @@ Documents largely superseded elsewhere:
 | Superseded | Superseded by | Evidence |
 |---|---|---|
 | `PLAN.md` milestone/status sections | `STATUS-COMPLETE.md`, `STATUS-SOFTWARE.md`, `STATUS-HARDWARE.md` | `PLAN.md:3-7` |
-| `docs/simulation-implementation-plan.md` phase status | `docs/simulation-outstanding-work.md` | `docs/simulation-implementation-plan.md:9-15` |
+| `docs/simulation-implementation-plan.md` phase status | `docs/simulation.md` | `docs/simulation-implementation-plan.md:9-15` |
 | `specs/HANDOFF.md` | `specs/README.md` index + per-spec `spec.md` bars | `specs/HANDOFF.md:1-7` (one-shot 2026-07-19) |
 | Phase exit checklists in `STATUS-HARDWARE.md` | Same doc’s H1–H22 runbooks + software soaks in `STATUS-SOFTWARE.md` | overlapping open `[ ]` lists `STATUS-HARDWARE.md:433-466` |
 
@@ -161,7 +167,7 @@ After normalization, expect **0** register row failures except items explicitly 
 | `docs/sansio.md` | Sans-IO protocol discipline | reference | 2026-07-19 | — | leave as is |
 | `docs/security-review.md` | Mini-app Sandbox Security Review (Phase 7) | reference | 2026-07-07 | — | leave as is |
 | `docs/simulation-implementation-plan.md` | Deterministic Abuse-Simulation — Implementation Plan | historical | 2026-07-16 | — | archive |
-| `docs/simulation-outstanding-work.md` | Deterministic Abuse-Simulation — Current Status and Remaining Work | reference | 2026-07-16 | — | leave as is |
+| `docs/simulation.md` | Deterministic Abuse-Simulation — Current Status and Remaining Work | reference | 2026-07-16 | — | leave as is |
 | `docs/upstream-publication.md` | Upstream publication | reference | 2026-07-08 | — | leave as is |
 | `docs/web-host.md` | Web Host: a full TwistedPear host in the browser | reference | 2026-07-16 | — | leave as is |
 | `docs/websocket-interface.md` | Reticulum WebSocket Interface Specification | reference | 2026-07-08 | — | leave as is |
@@ -292,7 +298,7 @@ Non-table prose (runbooks): prefix open steps with `[open]`, done evidence with 
 intended. `RELEASE-PLAN.md` stays the **planned** orchestration doc (gates S0–S8, G1–G7);
 it must never duplicate row-level status — only cite register IDs.
 
-Optional fourth surface: `docs/simulation-outstanding-work.md` for abuse-simulation *live*
+Optional fourth surface: `docs/simulation.md` for abuse-simulation *live*
 status (L2/L3 rungs), linked from RELEASE-PLAN gate G3 — not folded into STATUS-SOFTWARE.
 
 Restructuring not recommended: merging SOFTWARE+HARDWARE would blur CI-closable vs

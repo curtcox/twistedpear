@@ -46,4 +46,4 @@ propagation role are enabled) are in place. F2 ships a wired
 `FreenetInterface` (packet-log WASM + host kind at 90 kbps) with simulated
 announce+LXMF coverage. Node binary bundling, mobile support, and app
 execution remain behind the evidence gates in the
-[Freenet integration plan](../../docs/freenet-integration-plan.md).
+[Freenet integration plan](../../docs/freenet-plan.md).

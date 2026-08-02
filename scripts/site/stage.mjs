@@ -15,7 +15,7 @@ const ROOT_DOCS = [
   "STATUS-HARDWARE.md"
 ];
 
-const EXCLUDE_DOCS = new Set(["reorg-plan.md"]);
+const EXCLUDE_DOCS = new Set([]);
 
 const GITHUB_TOP = new Set([
   "packages",
