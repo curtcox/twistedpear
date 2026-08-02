@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-01
+audited: 2026-08-02
 register: software
 -->
 
@@ -24,7 +24,7 @@ requirement-level proof and missing exits are tracked in the
 
 ## Executive finding
 
-As of 2026-08-01, the reusable core is implemented: link observation/probes, readiness,
+As of 2026-08-02, the reusable core is implemented: link observation/probes, readiness,
 share policy, fail-closed stream admission, a host-only five-plane binding, receive sinks,
 encoding/timing primitives, signaling, Line Check, and the SPEC-STREAM formal artifacts.
 Two peers now complete a real readiness exchange, a measured active probe, a delivered
@@ -42,20 +42,17 @@ latency-tolerant rungs. SPEC-STREAM admits `cas-snapshot` when no live plane has
 Desktop↔desktop WebRTC track bytes and WebCodecs Opus encode/decode/speaker play (with
 voice-duplex AEC constraints) are recorded by `npm run test:webrtc-gui-call`; web↔web track
 bytes by `npm run test:webrtc-gui-call:web`; desktop↔iOS simulator track bytes plus host-side
-bundled Opus duplex (`callsOpusDuplex`, PeerAudio speaker) by `npm run test:webrtc-gui-call:ios`.
-The remaining work is host integration evidence rather than protocol shape: Android-originated
-WebRTC track attach on emulator, and hardware evidence. Android Maestro share-policy
-grant/revoke/expiry/restart is recorded (`SHARE_POLICY_REQUIRED=1 npm run
-test:android-emulator:share-policy`, 2026-08-01); hub↔Android emulator multipeer
-(`Link: online`, readiness, probes, invites, calls, realtime carriers) is recorded via
-`npm run test:local-multipeer:android` (2026-08-02, Pixel_8_API_35); desktop↔Android Opus
-duplex (`bundled-opus` host encode/decode/play + cross-peer TPD2 play) and desktop-originated
-WebRTC track bytes (416 outbound RTP) are recorded via `npm run test:webrtc-gui-call:android`
-(2026-08-02); iOS-originated track attach is recorded. Until plane openers are configured,
-hosts must keep rejecting unconfigured streams. Desktop and web GUI call bytes remain required
-evidence via `npm run test:local-multipeer:desktop`, `npm run test:webrtc-gui-call`, and
-`npm run test:webrtc-gui-call:web`
-(readiness/probe/invite/LXMF call/TPD2, post-accept WebRTC track bytes, and desktop Opus duplex).
+bundled Opus duplex (`callsOpusDuplex`, PeerAudio speaker) by `npm run test:webrtc-gui-call:ios`
+and `:ios-offer`. Android Maestro share-policy grant/revoke/expiry/restart is recorded
+(`SHARE_POLICY_REQUIRED=1 npm run test:android-emulator:share-policy`, 2026-08-01);
+hub↔Android emulator multipeer is recorded via `npm run test:local-multipeer:android`
+(2026-08-02, Pixel_8_API_35); desktop↔Android Opus duplex and WebRTC track bytes both
+directions are recorded via `npm run test:webrtc-gui-call:android` (desktop→android, 416 RTP)
+and `npm run test:webrtc-gui-call:android-offer` (android→desktop, 1041 RTP, 2026-08-02).
+The remaining work is hardware evidence in `STATUS-HARDWARE.md`. Until plane openers are
+configured, hosts must keep rejecting unconfigured streams. Desktop and web GUI call bytes
+remain required evidence via `npm run test:local-multipeer:desktop`,
+`npm run test:webrtc-gui-call`, and `npm run test:webrtc-gui-call:web`.
 
 The evaluation below is retained as the design baseline that motivated the implementation.
 

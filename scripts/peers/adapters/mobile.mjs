@@ -158,6 +158,16 @@ export const androidAdapter = {
     // Host hub TCP is often refused via 10.0.2.2 even when ICMP works; reverse to
     // loopback matches the harness ANDROID_EMULATOR_HOST = 127.0.0.1.
     adbReverseHubPorts(log);
+    // Pre-grant mic so Android-originated WebRTC attach does not block on a
+    // runtime permission dialog under Maestro / headless control.
+    try {
+      adb(["shell", "pm", "grant", PACKAGE_ID, "android.permission.RECORD_AUDIO"]);
+      log("android: granted RECORD_AUDIO");
+    } catch (error) {
+      log(
+        `android: RECORD_AUDIO grant skipped (${error instanceof Error ? error.message : String(error)})`
+      );
+    }
     try {
       runFlow("android", adb(["get-serialno"]).trim(), log);
     } catch (error) {

@@ -103,13 +103,83 @@ async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
           : [];
   for (const entry of values) {
     if (entry == null || typeof entry !== "object") continue;
-    const row = entry as { type?: string; bytesSent?: number };
+    const row = entry as {
+      type?: string;
+      bytesSent?: number;
+      mediaType?: string;
+      kind?: string;
+      isRemote?: boolean;
+    };
+    if (typeof row.bytesSent !== "number" || row.bytesSent <= 0) continue;
+    if (row.isRemote === true) continue;
     const type = String(row.type ?? "").toLowerCase();
-    if ((type === "outbound-rtp" || type === "outboundrtp") && typeof row.bytesSent === "number") {
+    const media = String(row.mediaType ?? row.kind ?? "").toLowerCase();
+    // Chromium uses outbound-rtp; some react-native-webrtc Android builds still
+    // surface legacy ssrc / track rows with bytesSent for local media.
+    if (
+      type === "outbound-rtp" ||
+      type === "outboundrtp" ||
+      type === "ssrc" ||
+      type === "track" ||
+      type === "media-source" ||
+      media === "audio" ||
+      media === "video"
+    ) {
       bytes += row.bytesSent;
     }
   }
   return bytes;
+}
+
+async function ensureMicrophonePermission(): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const rn = require("react-native") as {
+      Platform?: { OS?: string };
+      PermissionsAndroid?: {
+        PERMISSIONS: { RECORD_AUDIO: string };
+        RESULTS: { GRANTED: string };
+        request(permission: string): Promise<string>;
+        check?(permission: string): Promise<boolean>;
+      };
+    };
+    if (rn.Platform?.OS !== "android" || rn.PermissionsAndroid === undefined) return;
+    const permission = rn.PermissionsAndroid.PERMISSIONS.RECORD_AUDIO;
+    if (typeof rn.PermissionsAndroid.check === "function") {
+      const already = await rn.PermissionsAndroid.check(permission);
+      if (already) return;
+    }
+    const result = await rn.PermissionsAndroid.request(permission);
+    if (result !== rn.PermissionsAndroid.RESULTS.GRANTED) {
+      throw new Error("Microphone permission was denied");
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "Microphone permission was denied") throw error;
+    // Non-Android or missing PermissionsAndroid — getUserMedia will fail closed on its own.
+  }
+}
+
+async function captureLocalMedia(
+  mediaDevices: { getUserMedia(constraints: unknown): Promise<{ getTracks(): MediaTrackLike[] }> },
+  classId: string
+): Promise<MediaTrackLike[]> {
+  const audio = classId === "microphone";
+  const video = classId === "camera" || classId === "screen-capture";
+  if (!audio && !video) throw new Error(`Unsupported media class ${classId}`);
+  if (audio) await ensureMicrophonePermission();
+  const voiceConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  try {
+    const stream = await mediaDevices.getUserMedia({
+      audio: audio ? voiceConstraints : false,
+      video: video ? { facingMode: "user" } : false
+    });
+    return stream.getTracks();
+  } catch (error) {
+    // Emulator / older RN WebRTC builds sometimes reject AEC constraint bags.
+    if (!audio) throw error;
+    const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
+    return stream.getTracks();
+  }
 }
 
 function unsupportedError(): Error {
@@ -262,20 +332,26 @@ export function handleNativePeerWebRtcMessage(
         const rtc = resolveNativeRtc();
         if (rtc === null) throw unsupportedError();
         const audio = message.classId === "microphone";
-        const video = message.classId === "camera" || message.classId === "screen-capture";
-        if (!audio && !video) throw new Error(`Unsupported media class ${message.classId}`);
-        const stream = await rtc.mediaDevices.getUserMedia({
-          audio: audio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
-          video: video ? { facingMode: "user" } : false
-        });
-        const tracks = stream.getTracks();
+        const tracks = await captureLocalMedia(rtc.mediaDevices, message.classId);
         if (tracks.length === 0) throw new Error("No media tracks from getUserMedia");
         for (const track of tracks) {
           await state.attachTrack(track);
           state.localTracks.push(track);
         }
+        // Answerer PCs may still be connecting when the first attach lands; wait
+        // briefly for ICE/DTLS before treating zero RTP as a hard failure.
+        const connectDeadline = Date.now() + 8_000;
+        while (
+          Date.now() < connectDeadline &&
+          state.pc.connectionState !== "connected" &&
+          state.pc.iceConnectionState !== "connected" &&
+          state.pc.iceConnectionState !== "completed"
+        ) {
+          if (state.pc.connectionState === "failed" || state.pc.connectionState === "closed") break;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
         let bytesSent = 0;
-        for (let attempt = 0; attempt < 40 && bytesSent === 0; attempt += 1) {
+        for (let attempt = 0; attempt < 60 && bytesSent === 0; attempt += 1) {
           await new Promise((resolve) => setTimeout(resolve, 250));
           bytesSent = await outboundMediaBytes(state.pc);
         }
