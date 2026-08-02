@@ -220,6 +220,7 @@ async function playInboundNativeMedia(dataHex: string, encoding: string): Promis
 }
 
 const DEFAULT_DOCKER_PORT = 4_242;
+/** Android emulator → host loopback (standard AVD alias). */
 const ANDROID_EMULATOR_HOST = "10.0.2.2";
 /** Control port for the single-machine multi-peer environment (scripts/peers). */
 const TEST_AGENT_PORT = 34_990;

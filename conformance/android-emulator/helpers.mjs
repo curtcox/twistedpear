@@ -123,6 +123,14 @@ export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
     env
   });
   if (prebuild.status !== 0) throw new Error("expo prebuild --platform android failed");
+  // Bare TCP/FS addons must land in react-native-bare-kit's jniLibs addons dir
+  // before assembleDebug; otherwise the worklet cannot open host sockets.
+  const linkAddons = spawnSync("node", ["scripts/link-bare-addons.mjs", "android"], {
+    cwd: harnessDir,
+    stdio: "inherit",
+    env
+  });
+  if (linkAddons.status !== 0) throw new Error("link-bare-addons android failed");
   const assembled = spawnSync("./gradlew", ["assembleDebug"], {
     cwd: androidDir,
     stdio: "inherit",

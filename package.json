@@ -88,6 +88,7 @@
     "test:webrtc-gui-call:web": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,web,web2",
     "test:webrtc-gui-call:ios": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,desktop,ios",
     "test:webrtc-gui-call:ios-offer": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,ios,desktop",
+    "test:webrtc-gui-call:android": "LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,desktop,android",
     "test:android-emulator": "node conformance/android-emulator/run.mjs",
     "test:android-emulator:e3": "node conformance/android-emulator/e3-foreground.mjs",
     "test:android-emulator:e5": "node conformance/android-emulator/e5-worker.mjs",

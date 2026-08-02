@@ -4,8 +4,9 @@
  * Both reuse the existing conformance device helpers, and both are brought
  * online by the same Maestro flow (`.maestro/local-peer-up.yaml`): create an
  * identity, connect TCP to the hub, mount the test agent. The simulator reaches
- * the hub on 127.0.0.1; the emulator reaches the host on 10.0.2.2 — the app
- * already picks the right one per platform.
+ * the hub on 127.0.0.1; the emulator reaches the host on 10.0.2.2. The adapter
+ * also sets `adb reverse` for hub/control/Metro as a fallback on AVDs where
+ * host TCP via 10.0.2.2 is flaky.
  *
  * Neither peer is a process this CLI owns, so `running` is a device query
  * rather than a pid check.
@@ -32,9 +33,25 @@ import {
   requireDevice,
   waitForBootComplete
 } from "../../../conformance/android-emulator/helpers.mjs";
+import { CONTROL_PORT, HUB_PORT } from "../state.mjs";
 
 const HARNESS_BUNDLE_ID = "network.twistedpear.harness";
 const FLOW = `${repoRoot}/.maestro/local-peer-up.yaml`;
+/** Metro / Expo packager — reverse so the emulator can use localhost. */
+const METRO_PORT = 8081;
+
+function adbReverseHubPorts(log) {
+  for (const port of [HUB_PORT, CONTROL_PORT, METRO_PORT]) {
+    try {
+      adb(["reverse", `tcp:${port}`, `tcp:${port}`]);
+      log(`android: adb reverse tcp:${port}`);
+    } catch (error) {
+      throw new Error(
+        `adb reverse tcp:${port} failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+}
 
 function maestroEnv() {
   // Prefer the CLI install. Maestro.app's Electron shim becomes Node under
@@ -116,7 +133,7 @@ export const iosAdapter = {
 export const androidAdapter = {
   id: "android",
   kind: "android",
-  describe: () => "Android emulator harness (TCP client to 10.0.2.2 hub)",
+  describe: () => "Android emulator harness (TCP client via adb reverse to 127.0.0.1 hub)",
 
   async up({ log, build }) {
     if (spawnSync("adb", ["version"], { encoding: "utf8" }).status !== 0) {
@@ -138,7 +155,9 @@ export const androidAdapter = {
         `${PACKAGE_ID} is not installed on the emulator after build — check adb install logs`
       );
     }
-    launchHarness();
+    // Host hub TCP is often refused via 10.0.2.2 even when ICMP works; reverse to
+    // loopback matches the harness ANDROID_EMULATOR_HOST = 127.0.0.1.
+    adbReverseHubPorts(log);
     try {
       runFlow("android", adb(["get-serialno"]).trim(), log);
     } catch (error) {

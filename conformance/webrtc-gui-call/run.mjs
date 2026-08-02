@@ -8,6 +8,7 @@
  * Web:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,web,web2
  * iOS:     LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,desktop,ios
  * iOS offer: LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,ios,desktop
+ * Android: LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs --peers=hub,desktop,android
  *
  *   LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs
  */

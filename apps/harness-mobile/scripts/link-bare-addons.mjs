@@ -23,8 +23,13 @@ const targets = {
     target: ["ios-arm64", "ios-arm64-simulator", "ios-x64-simulator"]
   },
   android: {
-    out: join(bareKitRoot, "android/addons"),
-    target: ["android-arm", "android-arm64", "android-ia32", "android-x64"]
+    // Must match react-native-bare-kit/android/build.gradle jniLibs.srcDirs
+    // (`src/main/addons`), not the top-level `android/addons` path.
+    out: join(bareKitRoot, "android/src/main/addons"),
+    target: ["android-arm", "android-arm64", "android-ia32", "android-x64"],
+    // bare-kit's android/link.js passes this so patchelf --add-needed wires
+    // each addon .so to libbare-kit.so; without it dlopen fails at runtime.
+    needs: ["libbare-kit.so"]
   }
 };
 
@@ -70,7 +75,7 @@ function maybePushAddon(dir, found) {
 }
 
 const platform = process.argv[2] === "android" ? "android" : "ios";
-const { out, target } = targets[platform];
+const { out, target, needs } = targets[platform];
 mkdirSync(out, { recursive: true });
 
 const addons = listAddonPackages(nodeModules);
@@ -78,10 +83,44 @@ if (addons.length === 0) {
   throw new Error("No packages with \"addon\": true found under node_modules");
 }
 
+const failures = [];
 for (const addonPath of addons) {
   process.stdout.write(`linking ${addonPath}… `);
-  await link(addonPath, { target, out });
-  console.log("ok");
+  try {
+    // Skip ABIs the package does not ship (e.g. bare-posix has no android-arm).
+    const available = target.filter((abi) =>
+      existsSync(join(addonPath, "prebuilds", abi))
+    );
+    if (available.length === 0) {
+      console.log("skipped (no prebuilds for this platform)");
+      continue;
+    }
+    await link(addonPath, {
+      target: available,
+      out,
+      ...(needs === undefined ? {} : { needs })
+    });
+    console.log("ok");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`failed: ${message}`);
+    failures.push(`${addonPath}: ${message}`);
+  }
+}
+
+const linkedTcp = existsSync(join(out, "arm64-v8a"))
+  ? readdirSync(join(out, "arm64-v8a")).some((name) => name.includes("bare-tcp"))
+  : false;
+if (platform === "android" && !linkedTcp) {
+  throw new Error(
+    `bare-tcp was not linked into ${out} (android TCP peer will stay offline)`
+  );
+}
+if (failures.length > 0) {
+  console.warn(`bare addon link warnings (${failures.length}):`);
+  for (const failure of failures) {
+    console.warn(`  - ${failure}`);
+  }
 }
 
 console.log(`bare addons linked → ${out}`);
