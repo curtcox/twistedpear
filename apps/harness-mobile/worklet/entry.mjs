@@ -23,8 +23,6 @@ import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import { BandwidthLimiter } from "../../../packages/reticulum-ts/dist/transport/bandwidth.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
-import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto-common.js";
-import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
 import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
 import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
 import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
@@ -51,7 +49,7 @@ import {
   createStatusTimer,
   createTrustStoreOps,
   createWorkletMiniappHost,
-  createWorkletPropagationPersistence,
+  createWorkletPropagationPersistenceOps,
   joinCommunityNetwork,
   peerServiceAspect,
   sleep
@@ -59,36 +57,15 @@ import {
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import {
-  CatalogStore,
-  InstalledPackageStore,
-  TrustStore,
-  buildAppAnnounceSummary,
-  decodeAppAnnounceData,
   decodePublisherIdentity256t,
-  encodeAppAnnounceData,
   encodePublisherIdentity256t,
-  unpackPackage,
   verifyPackage
 } from "../../../packages/app-registry/dist/index.js";
 import {
   PackageResourceClient,
   assessFetchBudget,
-  attachPackageResourceServer,
   fetchPackage
 } from "../../../packages/bridge-hyper/dist/worklet.js";
-import {
-  CasStore,
-  casAnnounceAspects,
-  casRequestAspects,
-  decodeCasLocator,
-  decodeCasLocatorRequest,
-  encodeCasLocator,
-  encodeCasLocatorRequest,
-  signCasLocator,
-  toCatalogEntryLike,
-  verify256t,
-  verifyCasLocator
-} from "../../../packages/cas-256t/dist/index.js";
 import {
   HOST_API_VERSION,
   createWorkletFlagRelayService,
@@ -100,7 +77,7 @@ import {
   createPropagationDestination,
   DEFAULT_PROPAGATION_QUOTAS
 } from "../../../packages/lxmf-ts/dist/index.js";
-import { decodePeerAudioFrame, decodePeerInvitation, encodeDeviceStreamFrame, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
+import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
 import { SimulatedMediaCodecDriver } from "../../../packages/effects/dist/media-codec.js";
 import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
@@ -310,18 +287,12 @@ let activeIdentity = null;
 /** @type {{ targetHost: string; targetPort: number } | null} */
 let pendingTarget = null;
 
-/** @type {CatalogStore | null} */
-let catalogStore = null;
-/** @type {InstalledPackageStore | null} */
-let installedStore = null;
 /** @type {import("../../../packages/bridge-hyper/dist/drive.js").DriveManager | null} */
 let packageDriveManager = null;
 /** @type {import("../../../packages/bridge-hyper/dist/swarm.js").SwarmSession | null} */
 let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
 
-/** @type {TrustStore | null} */
-let trustStore = null;
 /** @type {Map<string, import("../../../packages/cas-256t/dist/index.js").CasLocator>} */
 const casLocators = new Map();
 const casRequestDestinations = new Map();
@@ -401,8 +372,6 @@ let quiesceInterfaces;
 let miniappHost = null;
 /** @type {Awaited<ReturnType<typeof createHostLxmfDelivery>> | null} */
 let hostLxmfDelivery = null;
-/** @type {ReturnType<typeof createDevChannelClient> | null} */
-let devChannel = null;
 /** Test-only peer control agent; mounted only by `connect-test-agent`. */
 let testAgent = null;
 let crossDeviceTestDriver = null;
@@ -1053,7 +1022,7 @@ const startStatusTimer = statusTimer.start;
 const stopStatusTimer = statusTimer.stop;
 
 ({ loadPropagationCache, createPersistence: createWorkletPropagationPersistence } =
-  createWorkletPropagationPersistence({
+  createWorkletPropagationPersistenceOps({
     runtime,
     propagationStoreKey: PROPAGATION_STORE_KEY,
     getPropagationStoreCache: () => propagationStoreCache,
@@ -1234,25 +1203,6 @@ async function stopRnodeInterface() {
   status.rnodeDeviceName = null;
 }
 
-async function stopAutoInterface() {
-  if (autoIface !== null) {
-    await autoIface.close();
-    autoIface = null;
-  }
-
-  if (multicastBridge !== null) {
-    await multicastBridge.stop();
-    multicastBridge = null;
-  }
-
-  if (bonjourBridge !== null) {
-    await bonjourBridge.stop();
-    bonjourBridge = null;
-  }
-
-  status.autoPeers = 0;
-}
-
 async function stopTcpInterface() {
   if (tcpIface !== null) {
     await tcpIface.close();
@@ -1349,44 +1299,6 @@ async function startFreenetInterface() {
     );
   }
   pushStatus();
-}
-
-async function loadPropagationCache() {
-  const raw = await runtime.store.get(PROPAGATION_STORE_KEY);
-  if (raw === undefined) {
-    propagationStoreCache = { entries: [] };
-    return;
-  }
-  try {
-    propagationStoreCache = JSON.parse(new TextDecoder().decode(raw));
-  } catch {
-    propagationStoreCache = { entries: [] };
-  }
-}
-
-function createWorkletPropagationPersistence() {
-  return {
-    load() {
-      return (propagationStoreCache?.entries ?? []).map((entry) => ({
-        transientId: hexToBytes(entry.transientIdHex),
-        lxmfData: hexToBytes(entry.lxmfDataHex),
-        storedAt: entry.storedAt
-      }));
-    },
-    save(entries) {
-      propagationStoreCache = {
-        entries: entries.map((entry) => ({
-          transientIdHex: bytesToHex(entry.transientId),
-          lxmfDataHex: bytesToHex(entry.lxmfData),
-          storedAt: entry.storedAt
-        }))
-      };
-      void runtime.store.set(
-        PROPAGATION_STORE_KEY,
-        new TextEncoder().encode(JSON.stringify(propagationStoreCache))
-      );
-    }
-  };
 }
 
 async function stopFreenetPropagationRole() {
@@ -1543,16 +1455,6 @@ async function stopNode() {
   }
 }
 
-async function quiesceInterfaces() {
-  log("Quiescing interfaces for iOS background transition");
-  await stopTcpInterface();
-  await stopAutoInterface();
-  await stopBleInterface();
-  await stopRnodeInterface();
-  await stopFreenetInterface();
-  pushStatus();
-}
-
 async function resumeInterfaces() {
   if (!status.running) {
     return;
@@ -1579,45 +1481,6 @@ async function resolveIdentity() {
 
   await createIdentity();
   return activeIdentity;
-}
-
-function registerAnnounceHandler() {
-  if (reticulum === null) {
-    return;
-  }
-
-  reticulum.registerAnnounceHandler({
-    receivedAnnounce(info) {
-      status.announcesSeen += 1;
-      pushStatus();
-      send({
-        type: "announce",
-        entry: {
-          destinationHash: bytesToHex(info.destinationHash),
-          hops: info.packet.hops,
-          receivedAt: Date.now(),
-          appDataHex: info.appData === null ? null : bytesToHex(info.appData)
-        }
-      });
-
-      if (info.appData !== null) {
-        ingestCasLocator(info.appData);
-        void respondToCasLocatorRequest(info.appData).catch((error) => {
-          log(`CAS locator response failed: ${error instanceof Error ? error.message : String(error)}`);
-        });
-        const { catalogStore: catalog } = ensureCatalog();
-        const ingested = catalog.ingest({
-          destinationHash: bytesToHex(info.destinationHash),
-          appData: info.appData
-        });
-        if (ingested !== null) {
-          log(`Catalog: ${ingested.name} v${ingested.version}`);
-          void persistCatalogState();
-          pushCatalog();
-        }
-      }
-    }
-  });
 }
 
 async function ensureReticulum() {
@@ -1727,79 +1590,6 @@ async function startTcpInterface(targetHost, targetPort) {
 
   log("Timed out waiting for TCP interface (peer may be unreachable)");
   return false;
-}
-
-async function joinCommunityNetwork() {
-  status.tcpEnabled = true;
-  pushStatus();
-  log(RETICULUM_COMMUNITY_NETWORK.privacyNotice);
-  for (const endpoint of RETICULUM_COMMUNITY_NETWORK.endpoints) {
-    await stopTcpInterface();
-    pendingTarget = { targetHost: endpoint.host, targetPort: endpoint.port };
-    log(`Trying ${endpoint.label}`);
-    if (await startTcpInterface(endpoint.host, endpoint.port)) {
-      log(`Joined ${RETICULUM_COMMUNITY_NETWORK.label} through ${endpoint.label}`);
-      return;
-    }
-  }
-  log("Community bootstrap unavailable; try again later or configure your own TCP peer");
-}
-
-async function startAutoInterface() {
-  const node = await ensureReticulum();
-  if (autoIface !== null) {
-    status.autoPeers = autoIface.peerInterfaces.length;
-    pushStatus();
-    return;
-  }
-
-  log("Starting AutoInterface (native multicast bridge via IPC)");
-  multicastBridge = createIpcMulticastBridge();
-  const discovery = selectDiscoveryProviders({
-    multicastAvailable: true,
-    multicastEntitled,
-    bonjourAvailable: bonjourDiscoveryEnabled,
-    allowConcurrent: multicastEntitled
-  });
-
-  if (discovery.active.includes("bonjour")) {
-    bonjourBridge = createIpcBonjourBridge();
-    await bonjourBridge.start();
-    log("Bonjour discovery provider enabled");
-  }
-
-  autoIface = await AutoInterfaceBridge.open(provider, {
-    name: "harness-auto",
-    provider,
-    runtime,
-    bridge: multicastBridge,
-    onAdvertiseInterface: async (iface) => {
-      if (bonjourBridge !== null) {
-        await bonjourBridge.advertise(iface.name, iface.linkLocalAddress, AUTO_DEFAULT_DATA_PORT);
-      }
-    },
-    onPeerSpawn: (peer) => {
-      node.registerInterface(peer);
-      status.autoPeers = autoIface?.peerInterfaces.length ?? 0;
-      pushStatus();
-      log(`AutoInterface peer online: ${peer.peerAddress}`);
-    },
-    onPeerDetach: (peer) => {
-      node.unregisterInterface(peer);
-      status.autoPeers = autoIface?.peerInterfaces.length ?? 0;
-      pushStatus();
-      log(`AutoInterface peer detached: ${peer.peerAddress}`);
-    }
-  });
-
-  status.autoPeers = autoIface.peerInterfaces.length;
-  if (autoIface.online) {
-    log(`AutoInterface online (${status.autoPeers} peer(s))`);
-  } else {
-    log("AutoInterface started; waiting for link-local interfaces from host");
-  }
-
-  pushStatus();
 }
 
 async function startBleInterface() {
@@ -1922,10 +1712,6 @@ async function applyInterfaceConfig() {
   }
 
   await stopTcpInterface();
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function handleHostMessage(raw) {
@@ -2519,7 +2305,17 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "join-community-network") {
-    await joinCommunityNetwork();
+    await joinCommunityNetwork({
+      status,
+      pushStatus,
+      log,
+      communityNetwork: RETICULUM_COMMUNITY_NETWORK,
+      stopTcpInterface,
+      startTcpInterface,
+      setPendingTarget: (target) => {
+        pendingTarget = target;
+      }
+    });
     return;
   }
 
