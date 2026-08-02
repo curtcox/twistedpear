@@ -1,35 +1,45 @@
 import {
-  CAPABILITY_DEFINITIONS,
   KvStorageBeeBackend,
-  GrantStore,
-  HOST_API_VERSION,
   MiniappHost,
   MiniappLifecycle,
-  PeerRouteStreamEgressFactory,
-  PeerRouteMediaBridge,
-  PlaneStreamEgressFactory,
-  CodecStreamEgressFactory,
-  ReservedStreamEgressFactory,
-  SessionInviteService,
-  createHostPlaneOpeners,
-  createPeerRouteLinkSupply,
   createHybridDeviceDrivers,
   createSimulatedDeviceManager,
-  describeCapability,
-  generateConfirmationToken,
-  isMiniappCapability,
-  validateManifestCapabilities
+  generateConfirmationToken
 } from "../../miniapp-runtime/dist/worklet.js";
 import { createOpenRouterBackend } from "../../miniapp-runtime/dist/worklet.js";
 import { createSandboxBackend as createBareWorkletSandboxBackend } from "../../miniapp-runtime/dist/sandbox/worklet-factory.js";
-import {
-  buildUnsignedManifest,
-  packPackage,
-  signManifest,
-  unpackPackage
-} from "../../app-registry/dist/index.js";
+import { unpackPackage } from "../../app-registry/dist/index.js";
 import { CasStore } from "../../cas-256t/dist/index.js";
-import { bytesToHex } from "../../reticulum-ts/dist/crypto/bytes.js";
+import { GrantStore } from "../../miniapp-runtime/dist/capabilities.js";
+import {
+  createAppsBackendPackageAction,
+  createAppsBackendPreviewAction,
+  createAppsBackendPublishAction,
+  createCommonCasBackend,
+  createCommonHostInfoBackend,
+  createCommonPresenceBackend,
+  createCommonResourceBackend,
+  createConfirmationEffects,
+  createDefaultLocalMediaReadiness,
+  createDevSideLoadMethod,
+  createDeviceChromeApiMethods,
+  createGrantApiMethods,
+  createMainRuntimePusher,
+  createMediaPipeline,
+  createPreviewHostFactory,
+  createPreviewHostStopper,
+  createPreviewRuntimePusher,
+  createPublisherIdentityLoader,
+  createPushDeviceChromeState,
+  createPushGrants,
+  createSessionInviteApiMethods,
+  createSessionInviteHooks,
+  createUiLifecycleMethods,
+  createWatchdogHelpers,
+  createWorkspaceFileCollector,
+  launchWithCapabilityReview,
+  launchWithoutReview
+} from "./miniapp-host-shared.mjs";
 
 const BENCHMARK_ITERATIONS = 5;
 const BENCHMARK_WATCHDOG_MS = 250;
@@ -143,33 +153,12 @@ export function createWorkletMiniappHost(options) {
   const now = options.now ?? (() => Date.now());
   const grantStore = new GrantStore(kvStore);
   let developerMode = false;
-  let devBadge = false;
-  let watchdogTimer = null;
+  const devBadgeRef = { current: false };
   /** @type {{baseUrl: string, apiKey: string, model: string, allowedModels?: string[]} | null} */
   let aiConfig = options.aiConfig ?? null;
   const casStore = new CasStore(kvStore, (data) => options.provider.sha512(data));
-  /** @type {{host: import("../../miniapp-runtime/dist/worklet.js").MiniappHost, appId: string} | null} */
-  let preview = null;
+  const previewRef = { current: null };
   const beeBackend = new KvStorageBeeBackend(kvStore);
-  const confirmationChannel =
-    options.requestUserConfirmation === undefined
-      ? undefined
-      : { confirm: (request) => options.requestUserConfirmation(request) };
-  const confirmationEffects =
-    options.requestUserConfirmation === undefined
-      ? undefined
-      : {
-          randomBytes: (length) => {
-            const bytes = new Uint8Array(length);
-            if (typeof globalThis.crypto?.getRandomValues === "function") {
-              globalThis.crypto.getRandomValues(bytes);
-            } else {
-              for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
-            }
-            return bytes;
-          },
-          delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-        };
   const browserDeviceClasses = options.browserDeviceClasses ?? [
     "location",
     "camera",
@@ -179,51 +168,39 @@ export function createWorkletMiniappHost(options) {
     "haptics"
   ];
   const defaultPlatform = options.defaultPlatform ?? "desktop";
-  /**
-   * G9: the invitation is delivered and shown by the host. No mini-app code
-   * runs until trusted chrome accepts and the app is brought to the
-   * foreground, so this is not a background-execution loophole.
-   */
-  const sessionInvites = new SessionInviteService(
-    {
-      async notify(invite) {
-        options.send({ type: "session-invite", invite });
-        pushSessionInvites();
-      },
-      async launchForeground(appId) {
-        if (typeof options.launchInstalledApp !== "function") {
-          throw new Error("This host cannot bring a mini-app to the foreground.");
-        }
-        await options.launchInstalledApp(appId);
-      }
-    },
-    now
+  const { sessionInvites, pushSessionInvites } = createSessionInviteHooks(options, now);
+  const pushGrants = createPushGrants(options.send, grantStore);
+  const { peerRouteMediaBridge, streamEgressFactory, linkSupply } = createMediaPipeline(
+    options,
+    now,
+    async () => {
+      throw new Error("A platform media codec is not configured on this host.");
+    }
   );
-  const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, randomBytes: hostRandomBytes, onFrame: options.onInboundMediaFrame }) : undefined);
-  // Concrete plane openers: WebRTC / Pears-bulk / Reticulum ride the authenticated
-  // peer-route bridge; CAS admits derived snapshots only when a put hook is given.
-  const hostPlaneOpeners =
-    peerRouteMediaBridge === undefined &&
-    options.openCasPlane === undefined &&
-    options.openPearsBulkPlane === undefined &&
-    options.openWebRtcMediaPlane === undefined
+  const confirmationChannel =
+    options.requestUserConfirmation === undefined
       ? undefined
-      : createHostPlaneOpeners({
-          ...(peerRouteMediaBridge === undefined ? {} : { peerRouteFactory: peerRouteMediaBridge }),
-          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane }),
-          ...(options.openPearsBulkPlane === undefined ? {} : { pearsBulk: options.openPearsBulkPlane }),
-          ...(options.openWebRtcMediaPlane === undefined ? {} : { webrtcMediaPlane: options.openWebRtcMediaPlane })
-        });
-  const planeMediaEgress =
-    hostPlaneOpeners === undefined ? undefined : new PlaneStreamEgressFactory(hostPlaneOpeners);
-  const peerRouteMediaEgress =
-    planeMediaEgress === undefined && peerRouteMediaBridge === undefined
-      ? undefined
-      : new CodecStreamEgressFactory(
-          planeMediaEgress ?? peerRouteMediaBridge,
-          options.openMediaCodec ?? (async () => { throw new Error("A platform media codec is not configured on this host."); })
-        );
-  const reservedMediaEgress = peerRouteMediaEgress === undefined || options.realtimeReservations === undefined ? peerRouteMediaEgress : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
+      : { confirm: (request) => options.requestUserConfirmation(request) };
+  const confirmationEffects =
+    options.requestUserConfirmation === undefined ? undefined : createConfirmationEffects();
+
+  /** @type {import("../../miniapp-runtime/dist/worklet.js").MiniappHost} */
+  let host;
+  /** @type {ReturnType<typeof createPushDeviceChromeState>} */
+  let pushDeviceChromeState;
+  /** @type {ReturnType<typeof createMainRuntimePusher>} */
+  let pushRuntime;
+  /** @type {ReturnType<typeof createPreviewRuntimePusher>} */
+  let pushPreviewRuntime;
+  /** @type {ReturnType<typeof createPreviewHostStopper>} */
+  let stopPreviewHost;
+  /** @type {ReturnType<typeof createPreviewHostFactory>} */
+  let createPreviewHost;
+  /** @type {ReturnType<typeof createPublisherIdentityLoader>} */
+  let requirePublisherIdentity;
+  /** @type {ReturnType<typeof createWorkspaceFileCollector>} */
+  let collectWorkspaceFiles;
+
   /** @type {import("../../miniapp-runtime/dist/worklet.js").DeviceManager} */
   const deviceManager =
     options.deviceManager ??
@@ -237,8 +214,8 @@ export function createWorkletMiniappHost(options) {
       requestShareOffer: options.requestShareOffer,
       confirmShareOfferRevoke: options.confirmShareOfferRevoke,
       shareOfferTargetsPeer: options.shareOfferTargetsPeer,
-      linkSupply: options.linkSupply ?? (typeof options.peerSessionManager?.route === "function" ? createPeerRouteLinkSupply(options.peerSessionManager) : undefined),
-      streamEgressFactory: options.streamEgressFactory ?? reservedMediaEgress ?? (typeof options.peerSessionManager?.route === "function" ? new PeerRouteStreamEgressFactory(options.peerSessionManager) : undefined),
+      linkSupply,
+      streamEgressFactory,
       drivers:
         typeof options.requestDeviceBridge === "function"
           ? createHybridDeviceDrivers(browserDeviceClasses, {
@@ -252,19 +229,16 @@ export function createWorkletMiniappHost(options) {
     });
 
   const createSandboxBackend = options.createSandboxBackend ?? createBareWorkletSandboxBackend;
-  const host = new MiniappHost({
+  pushDeviceChromeState = createPushDeviceChromeState(options.send, deviceManager);
+
+  host = new MiniappHost({
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,
     kvBackend: kvStore,
-    confirmationChannel:
-      options.requestUserConfirmation === undefined
-        ? undefined
-        : { confirm: (request) => options.requestUserConfirmation(request) },
+    confirmationChannel,
     aiBackend:
       options.aiBackend ??
       {
-        // Config can arrive after construction; resolve it per call. The key
-        // stays in the worklet — only sanitized request/response cross the broker.
         chat: async (appId, request) => {
           if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {
             throw new Error("AI is not configured on this host (set it in Settings)");
@@ -292,90 +266,18 @@ export function createWorkletMiniappHost(options) {
       del: (appId, key) => beeBackend.del(appId, key),
       list: (appId, listOptions) => beeBackend.list(appId, listOptions)
     },
-    presenceBackend: {
-      snapshot: async () => ({
-        peers: options.getPresenceSnapshot?.().autoPeers ?? 0,
-        onlineInterfaces: options.getPresenceSnapshot?.().onlineInterfaces ?? 0,
-        preferredInterface: options.getPresenceSnapshot?.().preferredInterface ?? null
-      })
-    },
+    presenceBackend: createCommonPresenceBackend(options),
     announceService: options.announceService,
-    hostInfoBackend: {
-      info: async () => {
-        const snap = options.getHostInfoSnapshot?.() ?? {};
-        return {
-          platform: snap.platform ?? defaultPlatform,
-          hostVersion: snap.hostVersion ?? "0.0.0",
-          hostApiVersion: HOST_API_VERSION,
-          roles: {
-            transport: snap.roles?.transport ?? false,
-            seeder: snap.roles?.seeder ?? false,
-            propagation: snap.roles?.propagation ?? false
-          },
-          interfaceTypes: Array.isArray(snap.interfaceTypes) ? snap.interfaceTypes : [],
-          quotas: {
-            kvQuotaBytes: snap.quotas?.kvQuotaBytes ?? null,
-            seedStorageUsedBytes: snap.quotas?.seedStorageUsedBytes ?? null,
-            seedStorageQuotaBytes: snap.quotas?.seedStorageQuotaBytes ?? null,
-            memoryBytes: snap.quotas?.memoryBytes ?? null
-          }
-        };
-      }
-    },
-    resourceBackend: {
-      fetch: async (_appId, request) => {
-        const key = `miniapp-resource:${request.resourceId}`;
-        const bytes = await kvStore.get(key);
-        if (bytes === null) {
-          throw new Error(`Resource not found: ${request.resourceId}`);
-        }
-
-        if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
-          throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
-        }
-
-        return bytes;
-      }
-    },
+    hostInfoBackend: createCommonHostInfoBackend(options, defaultPlatform),
+    resourceBackend: createCommonResourceBackend(kvStore),
     appsBackend: {
-      package: async (appId, { projectPrefix, manifest }) => {
-        const identity = await requirePublisherIdentity();
-        const files = await collectWorkspaceFiles(appId, projectPrefix);
-        if (!files.some((file) => file.path === manifest.entry)) {
-          throw new Error(`Entry file "${manifest.entry}" not found under ${projectPrefix}/`);
-        }
-
-        const unsigned = buildUnsignedManifest(
-          {
-            name: manifest.name,
-            version: manifest.version,
-            entry: manifest.entry,
-            capabilities: manifest.capabilities,
-            icon: null,
-            minHostApi: manifest.minHostApi ?? "0.2.0",
-            driveKey: "0".repeat(64),
-            publisherPublicKey: bytesToHex(identity.getPublicKey()),
-            files
-          },
-          options.provider
-        );
-        const signed = signManifest(options.provider, identity, unsigned);
-        const packed = packPackage(options.provider, { ...signed, signature: signed.signature, files });
-        const t256 = await casStore.put(packed.archiveBytes);
-        return { packageHash: packed.packageHash, size: packed.archiveBytes.length, t256 };
-      },
-      publish: async (_appId, { t256 }) => {
-        if (options.publishArchive === undefined) {
-          throw new Error("Publishing is not configured on this host");
-        }
-
-        const archive = await casStore.get(t256);
-        if (archive === null) {
-          throw new Error("Package not found in the local store; package it first");
-        }
-
-        return options.publishArchive({ t256, archive });
-      },
+      package: (...args) => createAppsBackendPackageAction({
+        requirePublisherIdentity,
+        collectWorkspaceFiles,
+        provider: options.provider,
+        casStore
+      })(...args),
+      publish: createAppsBackendPublishAction(options, casStore),
       install: async (_appId, { t256 }) => {
         if (options.installFromT256 === undefined) {
           throw new Error("Installing from 256t ids is not configured on this host");
@@ -383,44 +285,21 @@ export function createWorkletMiniappHost(options) {
 
         return options.installFromT256(t256);
       },
-      preview: async (appId, { projectPrefix, manifest, grants }) => {
-        const files = await collectWorkspaceFiles(appId, projectPrefix);
-        const entryFile = files.find((file) => file.path === manifest.entry);
-        if (entryFile === undefined) {
-          throw new Error(`Entry file "${manifest.entry}" not found under ${projectPrefix}/`);
-        }
-
-        await stopPreviewHost();
-        const previewHost = createPreviewHost();
-        const publisherKey = `dev-preview:${appId}`;
-        await previewHost.grantStore.set(manifest.name, publisherKey, manifest.capabilities, grants, now());
-        await previewHost.host.launch(
-          {
-            name: manifest.name,
-            version: manifest.version,
-            entry: manifest.entry,
-            capabilities: manifest.capabilities,
-            publisherPublicKey: publisherKey
-          },
-          entryFile.content
-        );
-        preview = { host: previewHost.host, appId: manifest.name };
-        pushPreviewRuntime();
-        return { launched: true };
-      },
+      preview: (...args) => createAppsBackendPreviewAction({
+        collectWorkspaceFiles,
+        stopPreviewHost,
+        createPreviewHost,
+        previewRef,
+        pushPreviewRuntime,
+        now
+      })(...args),
       stopPreview: async () => {
         await stopPreviewHost();
       }
     },
-    casBackend: {
-      put: async (_appId, content) => {
-        const t256 = await casStore.put(content);
-        return { t256, size: content.length };
-      },
-      get: async (_appId, t256) => casStore.get(t256)
-    },
+    casBackend: createCommonCasBackend(casStore),
     peerSessionManager: options.peerSessionManager,
-    localMediaReadiness: options.localMediaReadiness ?? (() => ({ hostApi: HOST_API_VERSION, accepts: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus", "8k-narrowband"] }, { classId: "camera", maxRung: "thumbnails-1fps", encodings: ["thumbnails-1fps"] }], offers: [], downlinkBucket: "audio", constrained: ["foreground-only"], consentPosture: "ask", expiresAt: now() + 60_000 })),
+    localMediaReadiness: options.localMediaReadiness ?? createDefaultLocalMediaReadiness(now),
     confirmCostlyLinkProbe: options.confirmCostlyLinkProbe,
     controlReservations: options.controlReservations,
     inboundMediaBackend: options.inboundMediaBackend ?? peerRouteMediaBridge,
@@ -437,156 +316,20 @@ export function createWorkletMiniappHost(options) {
     }
   });
 
-  async function requirePublisherIdentity() {
-    if (options.getPublisherIdentity === undefined) {
-      throw new Error("No publisher identity is configured on this host");
-    }
-
-    const identity = await options.getPublisherIdentity();
-    if (identity === null) {
-      throw new Error("No publisher identity is available; start the node first");
-    }
-
-    return identity;
-  }
-
-  async function collectWorkspaceFiles(appId, projectPrefix) {
-    const infos = await host.workspace.list(appId, `${projectPrefix}/`);
-    const files = [];
-    for (const info of infos) {
-      const content = await host.workspace.read(appId, info.path);
-      files.push({
-        path: info.path.slice(projectPrefix.length + 1),
-        content: new TextEncoder().encode(content)
-      });
-    }
-
-    return files.sort((left, right) => left.path.localeCompare(right.path));
-  }
-
-  function createPreviewHost() {
-    const memory = new Map();
-    const memoryStore = {
-      async get(key) {
-        return memory.get(key) ?? null;
-      },
-      async set(key, value) {
-        memory.set(key, value);
-      },
-      async delete(key) {
-        memory.delete(key);
-      },
-      async list(prefix) {
-        return [...memory.keys()].filter((key) => key.startsWith(prefix));
-      }
-    };
-    const grantStoreForPreview = new GrantStore(memoryStore);
-    const previewHost = new MiniappHost({
-      backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
-      grantStore: grantStoreForPreview,
-      kvBackend: memoryStore,
-      callbacks: {
-        onWidgetTree: () => pushPreviewRuntime(),
-        onLog: (entry) =>
-          options.send({ type: "miniapp-log", appId: `preview:${entry.appId}`, line: entry.line }),
-        onLifecycle: () => pushPreviewRuntime()
-      }
-    });
-    return { host: previewHost, grantStore: grantStoreForPreview };
-  }
-
-  async function stopPreviewHost() {
-    if (preview !== null) {
-      const stopped = preview;
-      preview = null;
-      await stopped.host.stop("preview-stopped");
-      options.send({ type: "miniapp-runtime", slot: "preview", runtime: null });
-    }
-  }
-
-  function pushPreviewRuntime() {
-    if (preview === null) {
-      return;
-    }
-
-    const snapshot = preview.host.snapshot();
-    options.send({
-      type: "miniapp-runtime",
-      slot: "preview",
-      runtime: {
-        appId: snapshot.appId,
-        version: snapshot.version,
-        state: snapshot.state,
-        widgetTree: snapshot.widgetTree,
-        devBadge: true
-      }
-    });
-  }
-
-  function pushRuntime() {
-    const snapshot = host.snapshot();
-    options.send({
-      type: "miniapp-runtime",
-      slot: "main",
-      runtime: {
-        appId: snapshot.appId,
-        version: snapshot.version,
-        state: snapshot.state,
-        widgetTree: snapshot.widgetTree,
-        devBadge
-      }
-    });
-  }
-
-  async function pushDeviceChromeState() {
-    const [inventory, diagnostics] = await Promise.all([
-      deviceManager.inventory(),
-      deviceManager.diagnostics()
-    ]);
-    options.send({
-      type: "device-state",
-      inventory,
-      diagnostics,
-      sessions: deviceManager.chromeSessions(),
-      indicators: deviceManager.activeIndicators(),
-      disabledClasses: deviceManager.disabledClasses(),
-      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled(),
-      // Host chrome shows every live share, including when no mini-app is foreground.
-      shareOffers: deviceManager.listLiveShareOffers()
-    });
-  }
-
-  function pushSessionInvites() {
-    options.send({ type: "session-invites", invites: sessionInvites.list() });
-  }
-
-  function pushGrants(appId, publisherPublicKey, declaredCapabilities) {
-    const declared = new Set(validateManifestCapabilities(declaredCapabilities));
-    options.send({
-      type: "grants",
-      appId,
-      capabilities: CAPABILITY_DEFINITIONS.map((definition) => ({
-        id: definition.id,
-        description: definition.description,
-        declared: declared.has(definition.id),
-        granted: false
-      }))
-    });
-
-    void grantStore.get(appId, publisherPublicKey).then((record) => {
-      const granted = new Set(record?.granted ?? []);
-      options.send({
-        type: "grants",
-        appId,
-        capabilities: CAPABILITY_DEFINITIONS.map((definition) => ({
-          id: definition.id,
-          description: describeCapability(definition.id),
-          declared: declared.has(definition.id),
-          granted: granted.has(definition.id)
-        }))
-      });
-    });
-  }
+  requirePublisherIdentity = createPublisherIdentityLoader(
+    options,
+    "No publisher identity is available; start the node first"
+  );
+  collectWorkspaceFiles = createWorkspaceFileCollector(host);
+  pushPreviewRuntime = createPreviewRuntimePusher(options.send, previewRef);
+  pushRuntime = createMainRuntimePusher(options.send, host, devBadgeRef, { slot: "main" });
+  stopPreviewHost = createPreviewHostStopper(options.send, previewRef);
+  createPreviewHost = createPreviewHostFactory({
+    createBackend: () => createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
+    send: options.send,
+    pushPreviewRuntime
+  });
+  const { startWatchdog, clearWatchdog } = createWatchdogHelpers(host);
 
   async function loadBundleForApp(installedStore, runtime, appId) {
     const version = installedStore.activeVersion(appId);
@@ -615,13 +358,10 @@ export function createWorkletMiniappHost(options) {
   }
 
   return {
-    snapshot() {
-      return host.snapshot();
-    },
-
-    previewSnapshot() {
-      return preview?.host.snapshot() ?? null;
-    },
+    ...createUiLifecycleMethods({ host, pushRuntime, previewRef }),
+    ...createGrantApiMethods({ grantStore, now, pushGrants }),
+    ...createDeviceChromeApiMethods({ deviceManager, pushDeviceChromeState }),
+    ...createSessionInviteApiMethods({ sessionInvites, pushSessionInvites }),
 
     isDeveloperMode() {
       return developerMode;
@@ -632,106 +372,41 @@ export function createWorkletMiniappHost(options) {
       options.onDeveloperModeChange(enabled);
     },
 
-    async getGrants(appId, publisherPublicKey, declaredCapabilities) {
-      pushGrants(appId, publisherPublicKey, declaredCapabilities);
-    },
-
-    async setGrants(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities) {
-      await grantStore.set(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities, now());
-      pushGrants(appId, publisherPublicKey, declaredCapabilities);
-    },
-
-    async revokeGrant(appId, publisherPublicKey, capability, declaredCapabilities) {
-      if (!isMiniappCapability(capability)) {
-        throw new Error(`Unknown capability: ${capability}`);
-      }
-
-      await grantStore.revoke(appId, publisherPublicKey, capability);
-      pushGrants(appId, publisherPublicKey, declaredCapabilities);
-    },
-
-    async deleteGrants(appId, publisherPublicKey) {
-      await grantStore.delete(appId, publisherPublicKey);
-    },
-
     async launch(installedStore, runtime, appId, launchOptions = {}) {
-      devBadge = false;
       const { record, bundle } = await loadBundleForApp(installedStore, runtime, appId);
+      const launchDeps = {
+        record,
+        grantStore,
+        now,
+        pushGrants,
+        host,
+        bundle,
+        startWatchdog,
+        pushRuntime,
+        devBadgeRef
+      };
 
       if (launchOptions.skipReview !== true && options.requestLaunchReview !== undefined) {
-        const declared = validateManifestCapabilities(record.manifest.capabilities);
-        const preGranted = new Set((await grantStore.get(record.appId, record.manifest.publisherPublicKey))?.granted ?? []);
-        const reply = await options.requestLaunchReview({
-          token: generateConfirmationToken((length) => options.provider.randomBytes(length)),
-          appId: record.appId,
-          publisherPublicKey: record.manifest.publisherPublicKey,
-          version: record.manifest.version,
-          capabilities: declared.map((id) => ({
-            id,
-            description: describeCapability(id),
-            granted: preGranted.has(id)
-          }))
+        await launchWithCapabilityReview({
+          ...launchDeps,
+          requestReview: async (review) =>
+            options.requestLaunchReview({
+              token: generateConfirmationToken((length) => options.provider.randomBytes(length)),
+              ...review
+            })
         });
-        if (reply === null || reply.accept !== true) {
-          throw new Error("Launch cancelled at capability review");
-        }
-
-        if (Array.isArray(reply.grants)) {
-          await grantStore.set(
-            record.appId,
-            record.manifest.publisherPublicKey,
-            record.manifest.capabilities,
-            reply.grants,
-            now()
-          );
-          pushGrants(record.appId, record.manifest.publisherPublicKey, record.manifest.capabilities);
-        }
+        return;
       }
 
-      const grants = await grantStore.get(record.appId, record.manifest.publisherPublicKey);
-      if (grants === null || grants.granted.length === 0) {
-        throw new Error("Grant at least one declared capability before launch");
-      }
-
-      await host.launch(
-        {
-          name: record.appId,
-          version: record.manifest.version,
-          entry: record.manifest.entry,
-          capabilities: record.manifest.capabilities,
-          publisherPublicKey: record.manifest.publisherPublicKey
-        },
-        bundle
-      );
-
-      if (watchdogTimer !== null) {
-        clearInterval(watchdogTimer);
-      }
-
-      watchdogTimer = setInterval(() => {
-        void host.watchdogPing();
-      }, 2_000);
-      pushRuntime();
+      await launchWithoutReview(launchDeps);
     },
 
     async stop(reason = "stopped") {
-      if (watchdogTimer !== null) {
-        clearInterval(watchdogTimer);
-        watchdogTimer = null;
-      }
-
-      devBadge = false;
+      clearWatchdog();
+      devBadgeRef.current = false;
       await stopPreviewHost();
       await host.stop(reason);
       pushRuntime();
-    },
-
-    async handlePreviewUiEvent(nodeId, event, value) {
-      if (preview === null) {
-        throw new Error("No preview app is running");
-      }
-
-      await preview.host.handleUiEvent(nodeId, event, value);
     },
 
     async stopPreview() {
@@ -767,15 +442,6 @@ export function createWorkletMiniappHost(options) {
         }
       : {}),
 
-    async readWorkspaceFile(documentId) {
-      const snapshot = host.snapshot();
-      if (snapshot.appId === null) {
-        throw new Error("No mini-app is running");
-      }
-
-      return host.workspace.read(snapshot.appId, documentId);
-    },
-
     setLimits(appId, update) {
       const limits = host.setResourceLimits(appId, update);
       options.send({ type: "limits", limits });
@@ -788,118 +454,11 @@ export function createWorkletMiniappHost(options) {
       return limits;
     },
 
-    async suspend(reason = "host-suspended") {
-      await host.suspend(reason);
-      pushRuntime();
-    },
-
-    async resume() {
-      await host.resume();
-      pushRuntime();
-    },
-
-    async handleUiEvent(nodeId, event, value) {
-      await host.handleUiEvent(nodeId, event, value);
-    },
-
-    async pushDeviceState() {
-      await pushDeviceChromeState();
-    },
-
-    async setDeviceClassDisabled(classId, disabled) {
-      deviceManager.setClassDisabled(classId, disabled === true);
-      await pushDeviceChromeState();
-    },
-
-    async setRemoteAcquisitionEnabled(enabled) {
-      deviceManager.setRemoteAcquisitionEnabled(enabled === true);
-      await pushDeviceChromeState();
-    },
-
-    async forceCloseDeviceSession(handle) {
-      await deviceManager.forceClose(handle);
-      await pushDeviceChromeState();
-    },
-
-    async revokeShareOffer(appId, id) {
-      const revoked = deviceManager.revokeShareOfferFromChrome(appId, id);
-      await pushDeviceChromeState();
-      return revoked;
-    },
-
-    /** Harness/Maestro only: seed a short-TTL share offer so stop-sharing chrome is visible. */
-    async seedShareOfferForTest(options = {}) {
-      const ttlMs = typeof options.ttlMs === "number" ? options.ttlMs : 15 * 60_000;
-      const offer = deviceManager.grantShareOffer({
-        appId: typeof options.appId === "string" ? options.appId : "line-check",
-        targetKind: "peer",
-        targetId: typeof options.targetId === "string" ? options.targetId : "peer-ana",
-        displayLabel: typeof options.displayLabel === "string" ? options.displayLabel : "Ana",
-        classId: options.classId === "camera" ? "camera" : "microphone",
-        tierId: typeof options.tierId === "string" ? options.tierId : "pcm",
-        maxRung: typeof options.maxRung === "string" ? options.maxRung : "16k-opus",
-        ttlMs
-      });
-      await pushDeviceChromeState();
-      // Push again after TTL so expiry clears the indicator without a manual refresh.
-      setTimeout(() => {
-        void pushDeviceChromeState();
-      }, Math.max(50, ttlMs + 50));
-      return offer;
-    },
-
-    /** Called by the host delivery path for a verified inbound invitation. */
-    async receiveSessionInvite(invite) {
-      await sessionInvites.receive(invite);
-    },
-
-    async acceptSessionInvite(id) {
-      await sessionInvites.accept(id);
-      pushSessionInvites();
-    },
-
-    declineSessionInvite(id) {
-      sessionInvites.decline(id);
-      pushSessionInvites();
-    },
-
-    listSessionInvites() {
-      return sessionInvites.list();
-    },
-
-    pushSessionInviteState() {
-      pushSessionInvites();
-    },
-
-    async devSideLoad(manifest, bundleBytes) {
-      if (!developerMode) {
-        throw new Error("Developer mode is disabled");
-      }
-
-      validateManifestCapabilities(manifest.capabilities ?? []);
-      devBadge = true;
-      await host.launch(
-        {
-          name: manifest.name,
-          version: manifest.version,
-          entry: manifest.entry ?? "bundle.js",
-          capabilities: manifest.capabilities ?? [],
-          publisherPublicKey: manifest.publisherPublicKey ?? "dev"
-        },
-        bundleBytes
-      );
-      pushRuntime();
-    }
+    devSideLoad: createDevSideLoadMethod({
+      getDeveloperMode: () => developerMode,
+      devBadgeRef,
+      host,
+      pushRuntime
+    })
   };
-}
-
-/** Host-side entropy for media session ids; the bridge itself stays Sans-IO. */
-function hostRandomBytes(length) {
-  const bytes = new Uint8Array(length);
-  if (typeof globalThis.crypto?.getRandomValues === "function") {
-    globalThis.crypto.getRandomValues(bytes);
-  } else {
-    for (let index = 0; index < length; index += 1) bytes[index] = (Math.random() * 256) | 0;
-  }
-  return bytes;
 }

@@ -1,21 +1,8 @@
 {
   "version": 1,
-  "description": "File-size ratchet. Files listed here were already over the size-rules.json danger threshold when the gate was introduced; they are allowed to stay, but may only shrink. CI fails if a file not listed here reaches danger, if a listed file grows past its recorded size, or if this list grows. Decompose and remove entries — never add them.",
+  "description": "File-size ratchet. Files listed here were already over the size-rules.json danger threshold when the gate was introduced; they are allowed to stay, but may only shrink. CI fails if a file not listed here reaches danger, if a listed file grows past its recorded size, if this list grows, or if total excess lines exceed maxExcessLines. Decompose and remove entries — never add them. Run `npm run sizes:baseline` after a decomposition to lower the ceiling.",
+  "maxExcessLines": 33737,
   "entries": [
-    {
-      "file": "apps/handbook/build.mjs",
-      "rule": "script",
-      "lines": 1052,
-      "bytes": 37477,
-      "maxLineLength": 194
-    },
-    {
-      "file": "apps/handbook/src/runtime.js",
-      "rule": "javascript",
-      "lines": 1409,
-      "bytes": 38512,
-      "maxLineLength": 185
-    },
     {
       "file": "apps/harness-mobile/App.tsx",
       "rule": "typescript",
@@ -57,41 +44,6 @@
       "lines": 3331,
       "bytes": 122257,
       "maxLineLength": 556
-    },
-    {
-      "file": "docs/device-io-plan.md",
-      "rule": "markdown",
-      "lines": 605,
-      "bytes": 42204,
-      "maxLineLength": 377
-    },
-    {
-      "file": "docs/realtime-media-plan.md",
-      "rule": "markdown",
-      "lines": 648,
-      "bytes": 41000,
-      "maxLineLength": 329
-    },
-    {
-      "file": "packages/cli/src/commands/index.ts",
-      "rule": "typescript",
-      "lines": 1140,
-      "bytes": 39853,
-      "maxLineLength": 481
-    },
-    {
-      "file": "packages/lxmf-ts/src/propagation.ts",
-      "rule": "typescript",
-      "lines": 811,
-      "bytes": 27715,
-      "maxLineLength": 110
-    },
-    {
-      "file": "packages/lxmf-ts/src/router.ts",
-      "rule": "typescript",
-      "lines": 890,
-      "bytes": 31191,
-      "maxLineLength": 127
     },
     {
       "file": "packages/miniapp-runtime/src/device-manager.ts",
@@ -141,13 +93,6 @@
       "lines": 1253,
       "bytes": 38778,
       "maxLineLength": 99
-    },
-    {
-      "file": "packages/protocol/src/index.ts",
-      "rule": "typescript",
-      "lines": 6004,
-      "bytes": 210502,
-      "maxLineLength": 71
     },
     {
       "file": "packages/protocol/src/link-establish.ts",
@@ -288,20 +233,6 @@
       "lines": 1600,
       "bytes": 54933,
       "maxLineLength": 146
-    },
-    {
-      "file": "packages/worklet-core/src/miniapp-host.mjs",
-      "rule": "script",
-      "lines": 905,
-      "bytes": 32012,
-      "maxLineLength": 401
-    },
-    {
-      "file": "packages/worklet-core/src/web-miniapp-host.mjs",
-      "rule": "script",
-      "lines": 854,
-      "bytes": 31251,
-      "maxLineLength": 401
     }
   ]
 }

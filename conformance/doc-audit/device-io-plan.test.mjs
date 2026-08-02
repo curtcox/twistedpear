@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const planPath = join(repositoryRoot, "docs/device-io-plan.md");
-const plan = readFileSync(planPath, "utf8");
+const plan = readFileSync(join(repositoryRoot, "docs/device-io-plan.md"), "utf8");
+const live = readFileSync(join(repositoryRoot, "docs/device-io.md"), "utf8");
 
 describe("device I/O plan", () => {
   it("declares a tiered default with raw access as a separate tier", () => {
@@ -18,9 +18,10 @@ describe("device I/O plan", () => {
   it("defines a device-class registry and uniform session API", () => {
     expect(plan).toContain("DeviceClassEntry");
     expect(plan).toContain("device-class registry");
-    expect(plan).toContain("device.inventory()");
-    expect(plan).toContain("device.open(");
-    expect(plan).toContain("DeviceSession");
+    // Shipped session surface lives in the live counterpart.
+    expect(live).toContain("device.inventory()");
+    expect(live).toContain("device.open(");
+    expect(live).toContain("DeviceSession");
   });
 
   it("keeps streaming and remote acquisition as separate, explicitly-granted capabilities", () => {
@@ -30,15 +31,16 @@ describe("device I/O plan", () => {
   });
 
   it("requires a sidecar data plane instead of sending media through the broker", () => {
-    expect(plan).toContain("broker is not a media bus");
-    expect(plan).toContain("device stream sidecar");
+    expect(live).toMatch(/device stream\s+sidecar/);
+    expect(live).toContain("never the broker");
+    expect(plan).toContain("sidecar");
   });
 
   it("declares consent classes, active-use indicators, and host-rendered preview surfaces", () => {
     expect(plan).toContain("### Three consent classes");
     expect(plan).toContain("### Active-use indicators");
-    expect(plan).toContain("`camera-preview`");
-    expect(plan).toContain("### Preview surfaces");
+    expect(live).toContain("`camera-preview`");
+    expect(live).toContain("Preview surfaces");
   });
 
   it("defines admission control and degradation ladders", () => {
@@ -47,8 +49,8 @@ describe("device I/O plan", () => {
     expect(plan).toContain("admission control");
   });
 
-  it("includes a phased delivery roadmap and spec inventory", () => {
-    expect(plan).toContain("## Phasing");
+  it("includes remaining phasing and a spec inventory", () => {
+    expect(plan).toMatch(/## (Remaining )?[Pp]hasing/);
     expect(plan).toContain("## Specs to add");
     expect(plan).toContain("SPEC-DEVICE");
     expect(plan).toContain("specs/spec-device/");

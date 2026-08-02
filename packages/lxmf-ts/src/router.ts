@@ -1,14 +1,8 @@
 import {
-  DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
-  DELIVERY_RECEIPT_POLL_TIMER_ID,
-  LINK_AWAIT_DEFAULT_TIMEOUT_MS,
-  LINK_AWAIT_TIMER_ID,
   applyLxmfSendEvent,
   initialAcceptLxmfPropagationLocalDeliveryState,
   initialAwaitLxmfDeliveryReceiptState,
-  initialDeliveryReceiptPollState,
   initialInvokeLxmfDeliveryCallbackState,
-  initialLinkAwaitState,
   initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
   initialLxmfInboundDeliveryState,
@@ -70,9 +64,7 @@ import {
   shouldUseSplitLxmfDestinationPrefixed,
   stepAcceptLxmfPropagationLocalDeliveryWithActions,
   stepAwaitLxmfDeliveryReceiptWithActions,
-  stepDeliveryReceiptPollWithActions,
   stepInvokeLxmfDeliveryCallbackWithActions,
-  stepLinkAwaitWithActions,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDirectSendWithActions,
   stepLxmfInboundDeliveryWithActions,
@@ -95,7 +87,7 @@ import {
   type LxmfModerationDisposition,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
-import type { CryptoProvider, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Link, Packet, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
   DestinationDirection,
@@ -108,6 +100,7 @@ import {
 } from "@twistedpear/reticulum-ts";
 import { APP_NAME, LXMessageMethod, type LXMessageMethodValue } from "./constants.js";
 import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
+import { awaitOutboundLink, pollDeliveryReceipt } from "./router-await.js";
 
 export interface LXMFRouterOptions {
   readonly reticulum: Reticulum;
@@ -285,172 +278,6 @@ export class LXMFRouter {
     return this.reticulum.runtime.clock.now() / 1000;
   }
 
-  private awaitOutboundLink(
-    outbound: RegisteredDestination,
-    options: {
-      readonly timeoutMs?: number;
-      readonly timeoutError: string;
-      readonly onTimeout?: () => void;
-    }
-  ): Promise<Link> {
-    const timeoutMs = options.timeoutMs ?? LINK_AWAIT_DEFAULT_TIMEOUT_MS;
-    return new Promise<Link>((resolve, reject) => {
-      const armed = stepLinkAwaitWithActions(initialLinkAwaitState(), {
-        kind: "link-await/arm",
-        timeoutMs
-      });
-      let state = armed.state;
-      let timer: { cancel(): void } | null = null;
-      let concluded = false;
-      let pendingLink: Link | null = null;
-
-      const finish = (result: { ok: true; link: Link } | { ok: false }): void => {
-        if (concluded) {
-          return;
-        }
-        concluded = true;
-        pendingLink = null;
-        if (result.ok) {
-          resolve(result.link);
-          return;
-        }
-        options.onTimeout?.();
-        reject(new Error(options.timeoutError));
-      };
-
-      const applyIntents = (
-        intents: ReturnType<typeof stepLinkAwaitWithActions>["intents"]
-      ): void => {
-        for (const intent of intents) {
-          if (intent.kind === "timer/set" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
-            timer?.cancel();
-            timer = this.reticulum.runtime.clock.setTimeout(() => {
-              timer = null;
-              const tick = stepLinkAwaitWithActions(state, {
-                kind: "timer/fired",
-                id: LINK_AWAIT_TIMER_ID,
-                at: this.reticulum.runtime.clock.now()
-              });
-              state = tick.state;
-              applyIntents(tick.intents);
-              applyActions(tick.actions);
-            }, intent.timer.delayMs);
-          }
-          if (intent.kind === "timer/cancel" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
-            timer?.cancel();
-            timer = null;
-          }
-        }
-      };
-
-      const applyActions = (
-        actions: ReturnType<typeof stepLinkAwaitWithActions>["actions"]
-      ): void => {
-        for (const action of actions) {
-          if (action.kind === "request-link") {
-            outbound.requestLink({
-              linkEstablished(establishLink) {
-                pendingLink = establishLink;
-                const result = stepLinkAwaitWithActions(state, {
-                  kind: "link-await/established"
-                });
-                state = result.state;
-                applyIntents(result.intents);
-                applyActions(result.actions);
-              }
-            });
-          }
-          if (action.kind === "resolve") {
-            const link = pendingLink;
-            if (link !== null) {
-              finish({ ok: true, link });
-            }
-          }
-          if (action.kind === "reject") {
-            finish({ ok: false });
-          }
-        }
-      };
-
-      applyIntents(armed.intents);
-      applyActions(armed.actions);
-    });
-  }
-
-  private pollDeliveryReceipt(
-    receipt: PacketReceipt,
-    timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS
-  ): Promise<ReceiptPollStatusValue> {
-    return new Promise<ReceiptPollStatusValue>((resolve) => {
-      const armed = stepDeliveryReceiptPollWithActions(initialDeliveryReceiptPollState(), {
-        kind: "poll/arm",
-        at: this.reticulum.runtime.clock.now(),
-        timeoutMs
-      });
-      let state = armed.state;
-      let timer: { cancel(): void } | null = null;
-      let concluded = false;
-
-      const finish = (status: ReceiptPollStatusValue): void => {
-        if (concluded) {
-          return;
-        }
-        concluded = true;
-        timer?.cancel();
-        timer = null;
-        resolve(status);
-      };
-
-      const applyIntents = (
-        intents: ReturnType<typeof stepDeliveryReceiptPollWithActions>["intents"]
-      ): void => {
-        for (const intent of intents) {
-          if (intent.kind === "timer/cancel" && intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
-            timer?.cancel();
-            timer = null;
-          }
-          if (intent.kind === "timer/set" && intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
-            timer?.cancel();
-            timer = this.reticulum.runtime.clock.setTimeout(() => {
-              timer = null;
-              const tick = stepDeliveryReceiptPollWithActions(state, {
-                kind: "timer/fired",
-                id: DELIVERY_RECEIPT_POLL_TIMER_ID,
-                at: this.reticulum.runtime.clock.now()
-              });
-              state = tick.state;
-              applyIntents(tick.intents);
-              applyActions(tick.actions);
-            }, intent.timer.delayMs);
-          }
-        }
-      };
-
-      const applyActions = (
-        actions: ReturnType<typeof stepDeliveryReceiptPollWithActions>["actions"]
-      ): void => {
-        for (const action of actions) {
-          if (action.kind === "probe") {
-            const probe = stepDeliveryReceiptPollWithActions(state, {
-              kind: "poll/receipt-status",
-              status: receipt.status as ReceiptPollStatusValue,
-              at: this.reticulum.runtime.clock.now()
-            });
-            state = probe.state;
-            applyIntents(probe.intents);
-            applyActions(probe.actions);
-          }
-          if (action.kind === "resolve") {
-            finish(action.status);
-          }
-        }
-      };
-
-      applyIntents(armed.intents);
-      applyActions(armed.actions);
-    });
-  }
-
   packAndSend(options: Omit<LXMessagePackOptions, "provider">): Promise<void> {
     const message = LXMessage.pack({
       provider: this.provider,
@@ -506,7 +333,7 @@ export class LXMFRouter {
       return;
     }
 
-    const pollStatus = await this.pollDeliveryReceipt(receipt!);
+    const pollStatus = await pollDeliveryReceipt(this.reticulum, receipt!);
     const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
       kind: "receipt-send/map",
       mode: "opportunistic",
@@ -560,7 +387,7 @@ export class LXMFRouter {
         aspects: ["delivery"]
       });
 
-      link = await this.awaitOutboundLink(outbound, {
+      link = await awaitOutboundLink(this.reticulum, outbound, {
         timeoutError: "Direct LXMF link timeout"
       });
 
@@ -622,7 +449,7 @@ export class LXMFRouter {
     );
     let pollStatus: ReceiptPollStatusValue | null = null;
     if (shouldAwaitLxmfDeliveryReceiptNow(awaitReceipt.actions)) {
-      pollStatus = await this.pollDeliveryReceipt(result.receipt!);
+      pollStatus = await pollDeliveryReceipt(this.reticulum, result.receipt!);
     }
     const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
       kind: "receipt-send/map",
@@ -683,7 +510,7 @@ export class LXMFRouter {
       aspects: ["propagation"]
     });
 
-    const link = await this.awaitOutboundLink(outbound, {
+    const link = await awaitOutboundLink(this.reticulum, outbound, {
       timeoutError: "Propagation link timeout"
     });
 

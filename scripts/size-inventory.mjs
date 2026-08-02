@@ -212,6 +212,8 @@ export function buildInventory() {
     }
 
     const { status, reasons } = classify(m, entry.thresholds);
+    const excessLines =
+      status === "danger" ? Math.max(0, m.lines - entry.thresholds.dangerLines) : 0;
     files.push({
       file: rel,
       rule: entry.rule.id,
@@ -219,7 +221,9 @@ export function buildInventory() {
       bytes: m.bytes,
       maxLineLength: m.maxLineLength,
       status,
-      reasons
+      reasons,
+      excessLines,
+      dangerLines: entry.thresholds.dangerLines
     });
   }
 
@@ -239,11 +243,28 @@ export function buildInventory() {
       warn: matched.filter((f) => f.status === "warn").length,
       danger: matched.filter((f) => f.status === "danger").length,
       totalLines: matched.reduce((sum, f) => sum + f.lines, 0),
+      excessLines: matched.reduce((sum, f) => sum + f.excessLines, 0),
       medianLines: pct(0.5),
       p90Lines: pct(0.9),
       maxLines: lines.length ? lines[lines.length - 1] : 0
     };
   });
+
+  const danger = files.filter((f) => f.status === "danger");
+  const excessLines = danger.reduce((sum, f) => sum + f.excessLines, 0);
+  /** @type {Map<string, number>} */
+  const areaMap = new Map();
+  for (const f of danger) {
+    const area = areaFor(f.file);
+    areaMap.set(area, (areaMap.get(area) ?? 0) + f.excessLines);
+  }
+  const byArea = [...areaMap.entries()]
+    .map(([area, excess]) => ({
+      area,
+      excessLines: excess,
+      share: excessLines > 0 ? excess / excessLines : 0
+    }))
+    .sort((a, b) => b.excessLines - a.excessLines || a.area.localeCompare(b.area));
 
   return {
     generatedAt: new Date().toISOString(),
@@ -253,15 +274,31 @@ export function buildInventory() {
       exempt: exempt.length,
       ok: files.filter((f) => f.status === "ok").length,
       warn: files.filter((f) => f.status === "warn").length,
-      danger: files.filter((f) => f.status === "danger").length,
-      totalLines: files.reduce((sum, f) => sum + f.lines, 0)
+      danger: danger.length,
+      totalLines: files.reduce((sum, f) => sum + f.lines, 0),
+      excessLines
     },
     byRule,
-    danger: files.filter((f) => f.status === "danger"),
+    byArea,
+    danger,
     warn: files.filter((f) => f.status === "warn"),
     files,
     exempt: exempt.sort((a, b) => a.file.localeCompare(b.file))
   };
+}
+
+/**
+ * Top-level package/app path for burndown charts (`packages/protocol`,
+ * `apps/harness-mobile`). Docs and other roots collapse to their first segment.
+ *
+ * @param {string} rel
+ */
+export function areaFor(rel) {
+  const parts = rel.split("/");
+  if (parts[0] === "packages" || parts[0] === "apps") {
+    return parts.slice(0, 2).join("/");
+  }
+  return parts[0] ?? rel;
 }
 
 function main() {
@@ -270,7 +307,7 @@ function main() {
 
   const t = inventory.totals;
   console.log(
-    `File sizes: ${t.classified} classified, ${t.ok} ok, ${t.warn} warn, ${t.danger} danger (${t.exempt} exempt)`
+    `File sizes: ${t.classified} classified, ${t.ok} ok, ${t.warn} warn, ${t.danger} danger, ${t.excessLines.toLocaleString("en-US")} excess lines (${t.exempt} exempt)`
   );
   for (const r of inventory.byRule) {
     console.log(

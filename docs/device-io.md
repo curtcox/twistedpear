@@ -22,6 +22,42 @@ behaviour and does not override this one.
 | How to add a class | [Add a device class (runbook)](device-class-runbook.md) |
 | Realtime audio/video between peers, built on these classes | [Realtime peer media](realtime-media.md) |
 
+## Architecture
+
+```
+   mini-app (granted)                        host chrome / settings
+        │ device.*  (control: open/close/configure — brokered RPC)
+        │ device stream handle (data: samples — sidecar channel)
+        ▼                                            ▼
+ ┌──────────────────────────────────────────────────────────────────┐
+ │                         Device Manager                            │
+ │  • device-class registry + per-host inventory & availability      │
+ │  • arbitration lock (shared with relay Interface Manager)         │
+ │  • session lifecycle, tier enforcement, rate & duty-cycle caps    │
+ │  • active-use indicators, attribution, audit log                  │
+ └───┬──────────────────┬───────────────────┬───────────────────┬────┘
+     │                  │                   │                   │
+     ▼                  ▼                   ▼                   ▼
+ ┌────────┐      ┌─────────────┐    ┌──────────────┐   ┌───────────────┐
+ │ Drivers│      │ Processors  │    │ Stream        │   │ Remote        │
+ │(effects│      │(host-side:  │    │ Admission     │   │ Acquisition   │
+ │adapters│      │ STT, QR,    │    │ + Degradation │   │ (peer asks    │
+ │ per    │      │ vision,     │    │ ladder        │   │  for a device │
+ │ host)  │      │ geofence,   │    │               │   │  on this host)│
+ └───┬────┘      │ TTS, VAD)   │    └───────┬───────┘   └───────┬───────┘
+     │           └──────┬──────┘            │                   │
+  hardware              │                   ▼                   ▼
+                        │        ┌──────────────────────────────────┐
+                        └───────►│ transport plane selection         │
+                                 │ WebRTC/direct · Pears bulk ·      │
+                                 │ Reticulum link · LXMF · CAS store │
+                                 └──────────────────────────────────┘
+```
+
+The Device Manager is the single owner of which devices exist, who is using them, at what
+tier, at what rate, and for how long. Plane binding for peer streams is completed in
+[realtime peer media](realtime-media.md).
+
 ## Shipped shape
 
 The registry is the only growth mechanism: a class is added by a registry entry plus a
@@ -38,6 +74,62 @@ needed per class.
 | Actuator safety caps, NFC APDU policy, fingerprinting mitigations | [`device-actuator-safety.ts`](../packages/protocol/src/device-actuator-safety.ts), [`device-nfc-apdu.ts`](../packages/protocol/src/device-nfc-apdu.ts), [`device-fingerprint.ts`](../packages/protocol/src/device-fingerprint.ts) |
 | Broker service and SDK namespace | [`services/device.ts`](../packages/miniapp-runtime/src/services/device.ts), [`sdk/device.ts`](../packages/miniapp-sdk/src/device.ts) |
 | Preview surfaces the app cannot read from | `camera-preview`, `audio-meter`, `waveform`, `remote-video` in [`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts) |
+
+## Session API
+
+One shape for every class, present and future:
+
+```ts
+device.inventory(): Promise<ReadonlyArray<DeviceDescriptor>>;
+device.diagnostics(): Promise<ReadonlyArray<DeviceDiagnostic>>;
+
+device.open(request: DeviceOpenRequest): Promise<DeviceSession>;
+device.close(session: DeviceSession): Promise<void>;
+device.configure(session: DeviceSession, patch: DeviceOptionsPatch): Promise<void>;
+
+device.read(session: DeviceSession): Promise<DeviceSample>;
+device.subscribe(session: DeviceSession): AsyncIterable<DeviceSample>;
+device.stream(session: DeviceSession, to: PeerHandle,
+              constraints?: StreamConstraints): Promise<StreamHandle>;
+
+device.write(session: DeviceSession, command: DeviceCommand): Promise<void>;
+```
+
+`DeviceSession` is an opaque host-issued handle — no OS handle, path, or device id crosses
+into the sandbox. Sessions are app-scoped, TTL-bounded, and revoked on app suspend, grant
+revocation, or host policy change. Preview surfaces (`camera-preview`, `audio-meter`,
+`waveform`, `map-preview`, `remote-video`) let an app lay out live device output the host
+draws but the sandbox cannot read back.
+
+Capability ids are generated as `device:<class>` for the default tier and
+`device:<class>:<tier>` for elevated tiers. Two cross-cutting capabilities ship:
+`device:stream` (stream any held device to a peer — never implied by a device grant alone)
+and `device:remote` (request a device on a peer's host; serving side is host-owned policy).
+
+## Data path
+
+Control (`open`, `close`, `configure`, `read`, low-rate `subscribe`) stays on the existing
+broker — capability-checked, audited, rate-limited. Sample data uses a **device stream
+sidecar** established only after the broker authorizes a session: compact binary framing
+(`TPD1`/`TPD2`), transferable buffers where available, bounded queues with explicit
+drop-oldest backpressure. The sidecar exists only for one authorized session, carries no
+control messages, and is closed unilaterally by the host.
+
+## Remote acquisition
+
+A peer opening a device on this host is off by default until the user enables it. Grants are
+per-peer, per-class, per-tier, TTL-bounded, revocable, and do not survive restart.
+`sensitive` classes require confirmation every session with the peer's verified label; the
+requesting app's `device:remote` capability governs only its side. Rate, duration, and
+concurrency caps are enforced by the serving host; acquired devices cannot be re-streamed to
+a third peer.
+
+## Actuator safety
+
+Driver-level caps the app cannot reach: torch/screen strobe rate below photosensitive-epilepsy
+thresholds; speaker volume ceiling and no ultrasonic emission from the `play` tier;
+haptics duty-cycle cap; TTS bounded text length and rate; NFC write confirmed with payload
+shown; all actuators stop on session end, app suspend, and host focus loss.
 
 ## Honest limits
 

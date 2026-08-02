@@ -72,7 +72,7 @@ function renderIndex(summary) {
 
   const sizes = summary.fileSizes;
   const sizeLine = sizes?.present && sizes.totals
-    ? `File sizes: **${sizes.totals.classified}** source files — **${sizes.totals.warn}** over the warn threshold, **${sizes.totals.danger}** over danger ([details](./file-sizes)).`
+    ? `File sizes: **${sizes.totals.classified}** source files — **${sizes.totals.warn}** over the warn threshold, **${sizes.totals.danger}** over danger, **${(sizes.totals.excessLines ?? 0).toLocaleString("en-US")}** excess lines ([details](./file-sizes)).`
     : "File-size classification not generated.";
 
   return `# Quality results
@@ -151,8 +151,20 @@ function renderFileSizes(job, sizes) {
     )
     .join("\n");
 
+  const excessTotal = sizes.totals.excessLines ?? 0;
+  const areaRows = (sizes.byArea ?? [])
+    .map((a) => {
+      const share = excessTotal > 0 ? a.excessLines / excessTotal : 0;
+      const bar = "█".repeat(Math.max(1, Math.round(share * 20)));
+      return `| \`${escapeMd(a.area)}\` | ${a.excessLines.toLocaleString("en-US")} | ${bar} ${(share * 100).toFixed(0)}% |`;
+    })
+    .join("\n");
+
   const worstRows = (sizes.worst ?? [])
-    .map((f) => `| \`${escapeMd(f.file)}\` | ${escapeMd(f.rule)} | ${f.lines} | ${escapeMd((f.reasons ?? []).join("; "))} |`)
+    .map(
+      (f) =>
+        `| \`${escapeMd(f.file)}\` | ${escapeMd(f.rule)} | ${f.lines} | ${f.excessLines ?? "—"} | ${escapeMd((f.reasons ?? []).join("; "))} |`
+    )
     .join("\n");
 
   const t = sizes.totals;
@@ -160,21 +172,31 @@ function renderFileSizes(job, sizes) {
 ## Classification
 
 **${t.classified}** classified source files (${t.exempt} exempt: generated bundles, vendored code, and archives).
-**${t.ok}** within budget · **${t.warn}** over warn · **${t.danger}** over danger · **${t.totalLines.toLocaleString("en-US")}** total lines.
+**${t.ok}** within budget · **${t.warn}** over warn · **${t.danger}** over danger · **${t.totalLines.toLocaleString("en-US")}** total lines · **${excessTotal.toLocaleString("en-US")}** excess lines (beyond danger).
 
 Thresholds are per file type and live in [size-rules.json](./raw/size-rules.json). Files already
 over danger when the gate was introduced are grandfathered in
-[size-ratchet.json](./raw/size-ratchet.json) and may only shrink.
+[size-ratchet.json](./raw/size-ratchet.json) and may only shrink. The ratchet also carries a
+\`maxExcessLines\` ceiling so the aggregate burndown cannot reverse.
 
 | Type | Files | Median | p90 | Max | Warn > | Danger > | Warn | Danger |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 ${ruleRows || "| — | — | — | — | — | — | — | — | — |"}
 
+## Excess lines by area
+
+Excess lines are \`lines − dangerLines\` for every file currently over danger. This is the
+burndown metric; \`npm run sizes:baseline\` lowers the committed ceiling after each cut.
+
+| Area | Excess lines | Share |
+|---|---:|---|
+${areaRows || "| — | — | None |"}
+
 ## Largest files over the danger threshold
 
-| File | Type | Lines | Reasons |
-|---|---|---:|---|
-${worstRows || "| — | — | — | None |"}
+| File | Type | Lines | Excess | Reasons |
+|---|---|---:|---:|---|
+${worstRows || "| — | — | — | — | None |"}
 
 Full per-file data: [file-sizes.json](./raw/file-sizes.json).
 `;

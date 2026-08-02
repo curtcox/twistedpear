@@ -42,14 +42,17 @@ describe("session invite chrome", () => {
   });
 
   it("only brings an app forward from the invite service's accept path", () => {
+    const shared = readFileSync("packages/worklet-core/src/miniapp-host-shared.mjs", "utf8");
+    expect(shared).toContain("new SessionInviteService(");
+    expect(shared).toContain("launchForeground");
+    expect(shared).toContain("options.launchInstalledApp");
+
     for (const host of [
       "packages/worklet-core/src/miniapp-host.mjs",
       "packages/worklet-core/src/web-miniapp-host.mjs"
     ]) {
       const source = readFileSync(host, "utf8");
-      expect(source, host).toContain("new SessionInviteService(");
-      expect(source, host).toContain("launchForeground");
-      expect(source, host).toContain("options.launchInstalledApp");
+      expect(source, host).toContain("createSessionInviteHooks");
     }
   });
 });

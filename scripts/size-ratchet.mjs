@@ -4,7 +4,11 @@
  * (a) any file at `danger` that is NOT grandfathered in size-ratchet.json → fail
  * (b) a grandfathered file that grew past its recorded size → fail
  * (c) the grandfathered list grows vs. the committed baseline → fail
+ * (d) measured excess lines (sum of lines beyond danger across danger files)
+ *     exceed the committed `maxExcessLines` ceiling → fail
  * Shrinking a grandfathered file, or dropping it from the list, is always allowed.
+ * `--write` also lowers `maxExcessLines` to the measured total (never raises it
+ * without `--allow-regressions`).
  *
  * `--write` rewrites size-ratchet.json from the current inventory. It refuses to
  * add files or raise recorded sizes unless `--allow-regressions` is also passed,
@@ -22,7 +26,7 @@ const RATCHET_PATH = path.join(ROOT, "size-ratchet.json");
 const INVENTORY_PATH = path.join(ROOT, "file-sizes.json");
 
 const DESCRIPTION =
-  "File-size ratchet. Files listed here were already over the size-rules.json danger threshold when the gate was introduced; they are allowed to stay, but may only shrink. CI fails if a file not listed here reaches danger, if a listed file grows past its recorded size, or if this list grows. Decompose and remove entries — never add them.";
+  "File-size ratchet. Files listed here were already over the size-rules.json danger threshold when the gate was introduced; they are allowed to stay, but may only shrink. CI fails if a file not listed here reaches danger, if a listed file grows past its recorded size, if this list grows, or if total excess lines exceed maxExcessLines. Decompose and remove entries — never add them. Run `npm run sizes:baseline` after a decomposition to lower the ceiling.";
 
 /** @param {string} ref @returns {boolean} */
 function refExists(ref) {
@@ -68,11 +72,12 @@ function indexEntries(ratchet) {
   return new Map((ratchet?.entries ?? []).map((e) => [e.file, e]));
 }
 
-/** @param {any[]} entries */
-function writeRatchet(entries) {
+/** @param {any[]} entries @param {number} maxExcessLines */
+function writeRatchet(entries, maxExcessLines) {
   const payload = {
     version: 1,
     description: DESCRIPTION,
+    maxExcessLines,
     entries: [...entries].sort((a, b) => a.file.localeCompare(b.file))
   };
   fs.writeFileSync(RATCHET_PATH, `${JSON.stringify(payload, null, 2)}\n`);
@@ -125,13 +130,18 @@ function main() {
       );
       process.exit(1);
     }
-    writeRatchet(danger.map(entryFor));
-    console.log(`File-size ratchet: wrote baseline with ${danger.length} grandfathered files.`);
+    writeRatchet(danger.map(entryFor), inventory.totals.excessLines);
+    console.log(
+      `File-size ratchet: wrote baseline with ${danger.length} grandfathered files, maxExcessLines=${inventory.totals.excessLines}.`
+    );
     return;
   }
 
   const ratchet = JSON.parse(fs.readFileSync(RATCHET_PATH, "utf8"));
   const entries = indexEntries(ratchet);
+  const measuredExcess = inventory.totals.excessLines;
+  const ceiling =
+    typeof ratchet.maxExcessLines === "number" ? ratchet.maxExcessLines : null;
 
   const unlisted = danger.filter((f) => !entries.has(f.file));
   const grown = [];
@@ -170,18 +180,30 @@ function main() {
       });
     }
 
-    const wouldRegress = added.length > 0 || grown.length > 0;
+    const nextCeiling =
+      ceiling == null
+        ? measuredExcess
+        : allowRegressions
+          ? measuredExcess
+          : Math.min(ceiling, measuredExcess);
+    const excessRaised = ceiling != null && measuredExcess > ceiling;
+    const wouldRegress = added.length > 0 || grown.length > 0 || (excessRaised && !allowRegressions);
     if (wouldRegress && !allowRegressions) {
       console.error("File-size ratchet: refusing to write a baseline that loosens the gate.");
       for (const f of added) console.error(`  + ${f} (newly over the danger threshold)`);
       for (const g of grown) console.error(`  ~ ${g.file} (${g.regressed.join(", ")})`);
+      if (excessRaised) {
+        console.error(
+          `  excess lines ${ceiling} → ${measuredExcess} (above maxExcessLines; decompose or pass --allow-regressions)`
+        );
+      }
       console.error("Decompose the file, or re-run with --allow-regressions if this is intentional.");
       process.exit(1);
     }
 
-    writeRatchet(next);
+    writeRatchet(next, nextCeiling);
     console.log(
-      `File-size ratchet: wrote ${next.length} entries (${added.length} added, ${stale.length} dropped).`
+      `File-size ratchet: wrote ${next.length} entries (${added.length} added, ${stale.length} dropped), maxExcessLines=${nextCeiling}.`
     );
     return;
   }
@@ -205,6 +227,14 @@ function main() {
     }
   }
 
+  if (ceiling != null && measuredExcess > ceiling) {
+    failed = true;
+    console.error(
+      `File-size ratchet: excess lines ${measuredExcess} exceed maxExcessLines ${ceiling} (aggregate may only shrink).`
+    );
+    console.error("Decompose grandfathered files, then run `npm run sizes:baseline` to lower the ceiling.");
+  }
+
   const base = baseRef();
   const previous = base ? fileAtRef(base, "size-ratchet.json") : null;
   if (previous) {
@@ -218,6 +248,16 @@ function main() {
       for (const f of addedToList) console.error(`  + ${f}`);
       console.error("Decompose the file instead of adding it to the baseline.");
     }
+    if (
+      typeof previous.maxExcessLines === "number" &&
+      ceiling != null &&
+      ceiling > previous.maxExcessLines
+    ) {
+      failed = true;
+      console.error(
+        `File-size ratchet: maxExcessLines grew vs. ${base}: ${previous.maxExcessLines} → ${ceiling} (only shrinkage allowed).`
+      );
+    }
   }
 
   if (stale.length > 0) {
@@ -228,7 +268,7 @@ function main() {
 
   const t = inventory.totals;
   console.log(
-    `File-size ratchet: ${t.classified} files classified, ${t.warn} warn, ${t.danger} danger, ${entries.size} grandfathered, ${unlisted.length} unlisted, ${grown.length} grown, ${stale.length} stale`
+    `File-size ratchet: ${t.classified} files classified, ${t.warn} warn, ${t.danger} danger, ${t.excessLines.toLocaleString("en-US")} excess lines (ceiling ${ceiling ?? "unset"}), ${entries.size} grandfathered, ${unlisted.length} unlisted, ${grown.length} grown, ${stale.length} stale`
   );
   console.log(
     previous

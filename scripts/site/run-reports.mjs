@@ -153,10 +153,12 @@ function summarizeFileSizes() {
         warnLines: r.thresholds?.warnLines,
         dangerLines: r.thresholds?.dangerLines
       })),
+      byArea: inventory.byArea ?? [],
       worst: (inventory.danger ?? []).slice(0, 15).map((f) => ({
         file: f.file,
         rule: f.rule,
         lines: f.lines,
+        excessLines: f.excessLines,
         reasons: f.reasons
       })),
       artifact: "artifacts/file-sizes.json"

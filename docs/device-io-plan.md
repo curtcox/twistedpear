@@ -18,12 +18,10 @@ card reader, and whatever comes next — behind the capability broker, and lets 
 streams be **processed locally** or **streamed to a peer** when the link has adequate
 bandwidth.
 
-When this plan was written the platform exposed **no device I/O to mini-apps at all**:
-camera existed only as a host-chrome QR-install flow, and microphone and speaker only as a
-peer-discovery effect boundary where PCM never crossed into the sandbox. Much of the plan
-below has since landed — see [device-io.md](device-io.md) for what actually ships and
-[platform capabilities status](platform-capabilities-status.md) for per-host state. The
-plan is retained for the design rationale and for the phases that remain.
+The registry, session machine, broker path, sidecar, remote acquisition, admission control,
+and SDK namespace are built — see [device-io.md](device-io.md) and
+[platform capabilities status](platform-capabilities-status.md). This document retains the
+design rationale and the per-host driver, chrome, and hardening work that remains.
 
 Companion plan: [Reticulum relay and configurable interfaces](relay-interfaces-plan.md). That
 plan promotes camera/screen and mic/speaker into *packet transports* for relaying. This plan
@@ -72,7 +70,7 @@ it first wins, and the other reports `busy` with an attribution string naming th
 |---|---|---|
 | Closed capability taxonomy, install-blocking unknown strings | [`capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts) | Extend with generated `device:*` ids; keep the closed-set guarantee. |
 | Grant lifecycle machine with TTL, revoke, terminal phases | [`grant-machine.ts`](../packages/protocol/src/grant-machine.ts), [SPEC-CAP](../specs/spec-cap/spec.md) | Reuse unchanged. TTL is what makes short-lived device grants work. |
-| Brokered, capability-checked, rate-limited RPC | [`broker.ts`](../packages/miniapp-runtime/src/broker.ts) | Reuse for control plane. **Not** suitable for sample data — see [Data path](#data-path-the-broker-is-not-a-media-bus). |
+| Brokered, capability-checked, rate-limited RPC | [`broker.ts`](../packages/miniapp-runtime/src/broker.ts) | Reuse for control plane. **Not** suitable for sample data — see [device-io.md](device-io.md). |
 | Host-chrome confirmation the app cannot draw over | [`confirm.ts`](../packages/miniapp-runtime/src/confirm.ts), [SPEC-CHROME](../specs/spec-chrome/spec.md) | Add `ConfirmationKind` values for device sessions and remote acquisition. |
 | Polling stream precedent (`chatStreamStart/Next/Cancel`) | [`services/ai.ts`](../packages/miniapp-runtime/src/services/ai.ts), [`sdk/ai.ts`](../packages/miniapp-sdk/src/ai.ts) | Reuse the *shape* for control and low-rate events; not the transport for media. |
 | App-scoped opaque peer handles with a chosen data plane | [`sdk/peers.ts`](../packages/miniapp-sdk/src/peers.ts), `services/peers.ts` | Reuse as the addressing and consent primitive for remote streaming. |
@@ -84,42 +82,6 @@ it first wins, and the other reports `busy` with an attribution string naming th
 | Host-rendered declarative widget tree | [`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts) | Add preview surfaces so an app can *show* a camera it never receives frames from. |
 | Native module pattern (Expo config plugins, Swift/Kotlin) | [`apps/harness-mobile/modules/`](../apps/harness-mobile/modules/) | The template for camera, location, motion, and torch modules. `peer-audio` already exists (iOS). |
 | Sans-IO discipline, generated event alphabet | [AGENTS.md](../AGENTS.md), [`spec-events/schema`](../specs/spec-events/schema/) | Session and admission machines are pure; drivers live in adapters. |
-
-## Target architecture
-
-```
-   mini-app (granted)                        host chrome / settings
-        │ device.*  (control: open/close/configure — brokered RPC)
-        │ device stream handle (data: samples — sidecar channel)
-        ▼                                            ▼
- ┌──────────────────────────────────────────────────────────────────┐
- │                         Device Manager                            │
- │  • device-class registry + per-host inventory & availability      │
- │  • arbitration lock (shared with relay Interface Manager)         │
- │  • session lifecycle, tier enforcement, rate & duty-cycle caps    │
- │  • active-use indicators, attribution, audit log                  │
- └───┬──────────────────┬───────────────────┬───────────────────┬────┘
-     │                  │                   │                   │
-     ▼                  ▼                   ▼                   ▼
- ┌────────┐      ┌─────────────┐    ┌──────────────┐   ┌───────────────┐
- │ Drivers│      │ Processors  │    │ Stream        │   │ Remote        │
- │(effects│      │(host-side:  │    │ Admission     │   │ Acquisition   │
- │adapters│      │ STT, QR,    │    │ + Degradation │   │ (peer asks    │
- │ per    │      │ vision,     │    │ ladder        │   │  for a device │
- │ host)  │      │ geofence,   │    │               │   │  on this host)│
- └───┬────┘      │ TTS, VAD)   │    └───────┬───────┘   └───────┬───────┘
-     │           └──────┬──────┘            │                   │
-  hardware              │                   ▼                   ▼
-                        │        ┌──────────────────────────────────┐
-                        └───────►│ transport plane selection         │
-                                 │ WebRTC/direct · Pears bulk ·      │
-                                 │ Reticulum link · LXMF · CAS store │
-                                 └──────────────────────────────────┘
-```
-
-The Device Manager is the single owner of "which devices exist, who is using them, at what
-tier, at what rate, and for how long." Everything else — SDK, host settings UI, remote peers —
-mutates or observes that one state.
 
 ## Device-class registry
 
@@ -242,56 +204,6 @@ Every session open, tier escalation, stream start, degradation step, and close i
 the broker audit log ([`BrokerAuditEntry`](../packages/miniapp-runtime/src/broker.ts)) extended
 with device fields, and is queryable by the user.
 
-## Session API
-
-One shape for every class, present and future:
-
-```ts
-// discovery — no capability required, returns only what this host has
-device.inventory(): Promise<ReadonlyArray<DeviceDescriptor>>;
-  // { class, tiers, availability, maxRateHz, streamable, remoteEligible }
-device.diagnostics(): Promise<ReadonlyArray<DeviceDiagnostic>>;
-  // availability: "available" | "permission-required" | "unsupported" | "busy" |
-  //               "policy-disabled" | "offline"   — mirrors peers.diagnostics()
-
-// session lifecycle — capability + consent class gates apply
-device.open(request: DeviceOpenRequest): Promise<DeviceSession>;
-  // { class, tier?, purpose, rateHz?, options?, target?: PeerHandle, maxDurationMs? }
-device.close(session: DeviceSession): Promise<void>;
-device.configure(session: DeviceSession, patch: DeviceOptionsPatch): Promise<void>;
-
-// reading
-device.read(session: DeviceSession): Promise<DeviceSample>;          // one-shot
-device.subscribe(session: DeviceSession): AsyncIterable<DeviceSample>; // events / low rate
-device.stream(session: DeviceSession, to: PeerHandle,
-              constraints?: StreamConstraints): Promise<StreamHandle>; // to a peer
-
-// writing (actuators)
-device.write(session: DeviceSession, command: DeviceCommand): Promise<void>;
-  // torch on/off, speaker play, tts speak, haptics pattern, nfc write
-```
-
-`DeviceSession` is an **opaque host-issued handle**, exactly like `PeerHandle` — no OS handle,
-path, or device id ever crosses into the sandbox. Sessions are app-scoped, TTL-bounded, and
-revoked on app suspend, on grant revocation, and on host policy change.
-
-Errors follow the existing typed-error convention (`DeviceError` with codes
-`DEVICE_UNSUPPORTED`, `DEVICE_BUSY`, `DEVICE_DENIED`, `DEVICE_RATE_EXCEEDED`,
-`DEVICE_TIER_REQUIRED`, `DEVICE_BANDWIDTH_INSUFFICIENT`, `DEVICE_SESSION_EXPIRED`).
-
-### Preview surfaces: showing without seeing
-
-Add host-rendered widget kinds to [`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts):
-`camera-preview`, `audio-meter`, `waveform`, `map-preview`, `remote-video`. The host draws
-live device output into a region the app lays out but cannot read back — the same trick the
-declarative widget tree already plays for `code-editor` and `qr-code`.
-
-This matters more than it sounds: a QR scanner, a document camera, a level meter, a video-call
-UI, and a "point your phone at the thing" flow all become buildable at the *derived* tier, with
-the app never holding a single frame. It is the single biggest reason the tiered default is not
-crippling, and it is why `camera:frames` should stay rare enough that granting it means
-something.
-
 ## Local processing
 
 Host-side processors turn raw device output into the derived tier. They run in the host, never
@@ -373,46 +285,6 @@ privacy control.
 Metered-link and battery policy applies on top: on a metered or low-battery host, sensitive
 streams start at a lower rung and require re-confirmation to climb.
 
-## Remote acquisition
-
-A peer asking to open a device on *this* host is the highest-risk path in this plan, so it is
-the most constrained.
-
-- **Off by default, globally.** A host does not answer remote device requests at all until the
-  user enables the feature.
-- **Per-peer, per-class, per-tier grant.** The user grants "this named peer may open my
-  `camera` at `derived` tier for 30 minutes," through host chrome, never through an app.
-  Grants are stored against the peer's Reticulum identity, are TTL-bounded, revocable, and
-  survive nothing — no implicit renewal.
-- **Confirmation every session** for `sensitive` classes, with the peer's verified label and
-  the purpose string shown as untrusted, peer-authored text.
-- **Indicator and kill switch** identical to local sensitive sessions, plus a persistent
-  "remote peer is using your camera" state that cannot be backgrounded away.
-- **The requesting app's `device:remote` capability governs only its side.** It confers nothing
-  on the serving host. A malicious app cannot escalate by asking harder.
-- **Rate, duration, and concurrency caps** are enforced by the serving host's Device Manager,
-  not negotiated by the requester.
-- **No transitive delegation.** A peer that acquires a device may not re-serve it to a third
-  peer; the stream terminates at the granted peer.
-
-Remote acquisition rides the same session machine as local acquisition, with the consent
-authority relocated to the serving host. That symmetry is what keeps the surface small.
-
-## Actuator and output safety
-
-Outputs are not the safe half of I/O. Specific caps, enforced in the driver where the app
-cannot reach them:
-
-- **Torch and screen flash**: strobe rate hard-capped below photosensitive-epilepsy thresholds
-  (no user-controllable 3–60 Hz flashing); duty cycle capped for thermal reasons.
-- **Speaker**: volume ceiling respecting the OS media volume; no ultrasonic emission from the
-  `play` tier (`speaker:pcm` may, and is `sensitive` partly for that reason — ultrasonic
-  beacons are a real cross-device tracking technique).
-- **Haptics**: duty-cycle capped.
-- **TTS**: bounded text length and rate; no silent background speech.
-- **NFC write**: confirmed per write, with the payload shown.
-- **All actuators** stop on session end, app suspend, and host focus loss.
-
 ## Per-host availability
 
 Availability is reported by `device.inventory()` and `host.info()`, never asserted in prose —
@@ -438,36 +310,6 @@ they are the argument that the platform mediates hardware access rather than han
 arbitrary downloaded code. New native modules are needed on mobile for camera, location,
 motion, torch, and NFC, following the
 [`modules/`](../apps/harness-mobile/modules/) pattern; `peer-audio` already exists on iOS.
-
-## Data path: the broker is not a media bus
-
-Today every sandbox call goes through [`broker.ts`](../packages/miniapp-runtime/src/broker.ts)
-with a per-app rate limit (60 msg/s default), a max message size, and
-[`json-wire.ts`](../packages/miniapp-runtime/src/sandbox/json-wire.ts) encoding — which turns a
-`Uint8Array` into a JSON array of numbers, roughly a 4–6× expansion plus parse cost. A 1080p
-frame or 48 kHz PCM through that path is not a performance problem, it is a non-starter.
-
-The plan therefore splits the two:
-
-- **Control plane** — `open`, `close`, `configure`, `read`, low-rate `subscribe`: the existing
-  broker, unchanged, capability-checked, audited. This is where all the security lives.
-- **Data plane** — a **device stream sidecar** established *only* after the broker authorizes a
-  session, carrying a compact binary frame format (fixed header + payload, reusing the chunking
-  in [`peer-audio-framing.ts`](../packages/protocol/src/peer-audio-framing.ts)):
-  - Node worker and Electron backends: `postMessage` with transferable `ArrayBuffer`.
-  - Browser worker backend: transferables, or `SharedArrayBuffer` ring buffer where
-    cross-origin isolation is available.
-  - Compartment/worklet backends: a bounded shared ring buffer.
-  - Fallback for any backend without zero-copy: chunked binary over the existing wire, with the
-    registry rate cap lowered accordingly and the app told the effective ceiling.
-
-The sidecar is a *capability-derived* channel: it exists only for the lifetime of an authorized
-session, carries exactly one session's data, is closed by the host unilaterally, and never
-carries control messages. Backpressure is explicit — the host drops oldest samples and reports
-the drop rather than growing an unbounded queue.
-
-For `derived`-tier sessions the sidecar is usually unnecessary; the existing broker handles a
-transcript or a QR payload fine. This is another way the derived default pays for itself.
 
 ## Configuration surface
 
@@ -552,35 +394,16 @@ rather than failing, with the clamp reported to the app.
 | Extend `specs/spec-widget/` | Preview surface widget kinds and the no-read-back property. |
 | Extend `specs/spec-events/` | Device events and intents in the generated alphabet ([`types.gen.ts`](../packages/effects/src/types.gen.ts) is regenerated, not hand-edited). |
 
-## Phasing
+## Remaining phasing
 
-1. **Foundation.** `SPEC-DEVICE` registry (schema, generated table, vectors); Device Manager
-   with inventory, availability, arbitration lock, and session lifecycle; generated `device:*`
-   capabilities and trust descriptions; consent classes and the new confirmation kinds; `device`
-   SDK namespace with `inventory`/`diagnostics`/`open`/`close`/`read`; `host.info()` device
-   inventory. Two classes end-to-end at derived tier — `location:coarse` and `ambient-light` —
-   because they are low-risk and prove the whole path. `HOST_API_VERSION` → `0.10.0`.
-2. **Derived-tier sensors and processors.** `camera:derived` (reusing the QR effect boundary),
-   `microphone:derived`, `stt`, `motion:derived`, `location:precise`; host-side processors with
-   recorded tapes; preview surface widgets; desktop and mobile "Devices & Sensors" screens;
-   active-use indicators and audit UI.
-3. **Actuators.** `torch`, `speaker:play`, `tts`, `haptics`, `nfc:ndef`, with driver-level
-   safety caps and confirmation flows.
-4. **Raw tiers and the sidecar.** The device stream sidecar across all sandbox backends;
-   `camera:frames`, `microphone:pcm`, `motion:samples`, `screen-capture`; tier-enforcement
-   negative controls; fingerprinting mitigations.
-5. **Streaming to a peer.** `device:stream`; plane selection; the admission decision function
-   and its model; degradation ladders; simulated-link conformance; metered/battery policy
-   integration.
-6. **Remote acquisition.** `device:remote`; serving-host policy, per-peer grants, confirmation,
-   indicators, caps, non-delegation; two-host conformance.
+Phases 1–6 (foundation through remote acquisition and peer streaming) are built; plane
+binding for realtime media is in [realtime peer media](realtime-media.md). Remaining work:
+
 7. **Hardening and growth.** `nfc:apdu` with the payment blocklist, `biometric`, remaining
-   scalar sensors; hardware-gated conformance; docs (a per-class reference page set mirroring
-   [ble-interface.md](ble-interface.md)); a "add a device class" runbook proving the registry
-   path works end-to-end for a class not in the initial set.
-
-Phases 1–3 deliver a genuinely useful platform on their own: scanners, navigation, voice
-input, audio output, and NFC apps all land before any raw sample or any byte leaves the device.
+   scalar sensors; per-host native drivers and Devices & Sensors chrome; hardware-gated
+   conformance; per-class reference pages mirroring [ble-interface.md](ble-interface.md); the
+   [add a device class runbook](device-class-runbook.md) proving the registry path for a
+   class not in the initial set.
 
 ## Open questions to resolve during design
 

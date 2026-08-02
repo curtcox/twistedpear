@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { globToRegExp, thresholdsFor, buildInventory } from "../../scripts/size-inventory.mjs";
+import { globToRegExp, thresholdsFor, buildInventory, areaFor } from "../../scripts/size-inventory.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const rules = JSON.parse(fs.readFileSync(path.join(ROOT, "size-rules.json"), "utf8"));
@@ -76,5 +76,27 @@ describe("ratchet baseline", () => {
     const classified = new Set(inventory.files.map((f) => f.file));
     const missing = ratchet.entries.map((e) => e.file).filter((f) => !classified.has(f));
     expect(missing, "run `npm run sizes:baseline` to drop stale entries").toEqual([]);
+  });
+
+  it("reports excess lines as the sum of lines beyond danger", () => {
+    const expected = inventory.danger.reduce(
+      (sum, f) => sum + Math.max(0, f.lines - f.dangerLines),
+      0
+    );
+    expect(inventory.totals.excessLines).toBe(expected);
+    expect(inventory.byArea.reduce((sum, a) => sum + a.excessLines, 0)).toBe(expected);
+  });
+
+  it("keeps maxExcessLines at or above the measured excess", () => {
+    expect(typeof ratchet.maxExcessLines).toBe("number");
+    expect(ratchet.maxExcessLines).toBeGreaterThanOrEqual(inventory.totals.excessLines);
+  });
+});
+
+describe("areaFor", () => {
+  it("groups packages and apps by their package directory", () => {
+    expect(areaFor("packages/protocol/src/index.ts")).toBe("packages/protocol");
+    expect(areaFor("apps/harness-mobile/App.tsx")).toBe("apps/harness-mobile");
+    expect(areaFor("docs/file-sizes.md")).toBe("docs");
   });
 });

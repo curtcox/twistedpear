@@ -17,35 +17,23 @@ left.
 
 ## Where we are
 
-43 files are grandfathered, carrying **40,455 excess lines** — lines beyond the danger
+33 files are grandfathered, carrying **33,737 excess lines** — lines beyond the danger
 threshold for their type. That number is the burndown metric this plan drives to zero.
+The inventory reports it as `totals.excessLines`; the ratchet enforces it as
+`maxExcessLines` (lowered by `npm run sizes:baseline` after each cut); the published
+`file-sizes` results page charts it per area.
+
+Phase 1 (mechanical barrel split and the tail) is done: the protocol public barrel is
+domain-split under `packages/protocol/src/index/`, and the handbook, CLI commands,
+worklet-core hosts, LXMF router/propagation, and drifted plan docs are under threshold.
 
 | Area | Excess lines | Share |
 |---|---:|---:|
-| `packages/protocol` | 24,700 | 61% |
-| `apps/harness-mobile` | 5,882 | 15% |
-| `packages/reticulum-ts` | 3,700 | 9% |
-| `apps/host-desktop` | 3,187 | 8% |
+| `packages/protocol` | 19,496 | 58% |
+| `apps/harness-mobile` | 5,882 | 17% |
+| `packages/reticulum-ts` | 3,700 | 11% |
+| `apps/host-desktop` | 3,187 | 9% |
 | `packages/miniapp-runtime` | 1,472 | 4% |
-| `apps/handbook` | 861 | 2% |
-| everything else | 653 | 2% |
-
-## Step 0 — make the burndown enforceable
-
-Before any decomposition, the tooling needs to measure progress rather than only prevent
-regression. Three changes to the existing scripts:
-
-1. `scripts/size-inventory.mjs` reports `totals.excessLines` — the sum of
-   `lines - dangerLines` over all files at danger.
-2. `size-ratchet.json` carries a `maxExcessLines` ceiling. `scripts/size-ratchet.mjs`
-   fails when the measured total exceeds it, and `npm run sizes:baseline` lowers it to
-   the measured value. This makes the aggregate monotonic, not just the per-file sizes:
-   a phase cannot be half-done and then quietly reversed.
-3. The published `file-sizes` results page charts excess lines per area, so the burndown
-   is visible on the deployed site rather than only in a local run.
-
-Without this, "incrementally reduce" has no gate — only the per-file no-growth rule,
-which a file at 6,004 lines satisfies forever.
 
 ## Phasing
 
@@ -54,51 +42,10 @@ lowered. Phases are ordered by value per unit of risk, not by file size.
 
 | Phase | Scope | Files | Excess removed | Offenders left |
 |---|---|---:|---:|---:|
-| 1 | Mechanical barrel split and the tail | 10 | 6,718 | 33 |
 | 2 | Host shells and worklet entries | 6 | 9,069 | 27 |
 | 3 | Protocol tier 1, with paired tests | 7 | 13,090 | 20 |
 | 4 | Reticulum-ts and miniapp-runtime | 6 | 5,172 | 14 |
 | 5 | Protocol tier 2 | 14 | 6,406 | 0 |
-
-### Phase 1 — mechanical barrel split and the tail
-
-`packages/protocol/src/index.ts` is 6,004 lines of **pure re-export**: 94 named export
-blocks and 5 star exports, with no implementation, no comments, and no blank lines. It is
-the single largest offender in the repository and the cheapest to fix — 13% of all excess
-lines, at zero behavioural risk.
-
-The re-exported modules already group by domain prefix: `link` (18 modules), `device`
-(10), `resource` (7), `lxmf` (7), `peer` (5), `path` (4), `packet` (4), `transport` (3),
-`propagation` (3), `identity` (3), `destination` (3), `channel` (3), and a short tail.
-Split into per-domain barrels (`src/index/link.ts`, `src/index/resource.ts`, …), each far
-under threshold, with the root `index.ts` re-exporting the barrels. The public entry point
-is unchanged, so no consumer moves.
-
-Do this first and separately: it is a large, purely mechanical diff, and mixing it with
-logic changes makes both unreviewable.
-
-The rest of the phase is the tail — files a few hundred lines over, where a single
-extraction clears the entry:
-
-| Lines | Over | File |
-|---:|---:|---|
-| 1409 | 609 | `apps/handbook/src/runtime.js` |
-| 1140 | 340 | `packages/cli/src/commands/index.ts` |
-| 1052 | 252 | `apps/handbook/build.mjs` |
-| 905 | 105 | `packages/worklet-core/src/miniapp-host.mjs` |
-| 890 | 90 | `packages/lxmf-ts/src/router.ts` |
-| 854 | 54 | `packages/worklet-core/src/web-miniapp-host.mjs` |
-| 811 | 11 | `packages/lxmf-ts/src/propagation.ts` |
-| 648 | 48 | `docs/realtime-media-plan.md` |
-| 605 | 5 | `docs/device-io-plan.md` |
-
-`packages/cli/src/commands/index.ts` is a command barrel and splits the same way as the
-protocol barrel. The two `worklet-core` hosts are near-duplicates of each other and should
-be split once, into shared and per-target halves. The two markdown files are plans that
-have accumulated delivered work — the fix is to move what now exists into their `live`
-counterparts, which the doc lifecycle already requires.
-
-**Exit:** 33 offenders, 33,737 excess lines.
 
 ### Phase 2 — host shells and worklet entries
 

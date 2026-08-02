@@ -47,12 +47,14 @@ export {
   type MultipartReceiveResult
 } from "./multipart.js";
 export {
-  PropagationClient,
+  PropagationClient
+} from "./propagation.js";
+export type { PropagationClientOptions, PropagationSyncResult } from "./propagation.js";
+export {
   PropagationNodeStore,
   createPropagationDestination,
   propagationDestinationForIdentity
-} from "./propagation.js";
-export type { PropagationClientOptions, PropagationSyncResult } from "./propagation.js";
+} from "./propagation-node.js";
 export {
   PropagationServer,
   DEFAULT_PROPAGATION_QUOTAS,

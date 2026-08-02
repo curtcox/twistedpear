@@ -10,3 +10,22 @@ export { createMiniappAnnounceService } from "./miniapp-announce-service.mjs";
 export { connectTestAgent } from "./test-agent-mount.mjs";
 export { createCrossDeviceTestDriver } from "./cross-device-test-driver.mjs";
 export { createHarnessPeerPair } from "./harness-peer-pair.mjs";
+export {
+  catalogEntryView,
+  createAutoInterfaceOps,
+  createAutomaticReticulumDiscovery,
+  createCasLocatorOps,
+  createCatalogOps,
+  createEnsureDevChannel,
+  createInstallFromT256,
+  createPeerSessionManagerProxyFromState,
+  createPublishArchiveOps,
+  createQuiesceInterfaces,
+  createRegisterAnnounceHandler,
+  createRuntimeKeyValueStore,
+  createTrustStoreOps,
+  createWorkletPropagationPersistence,
+  joinCommunityNetwork,
+  peerServiceAspect,
+  sleep
+} from "./worklet-entry-shared.mjs";

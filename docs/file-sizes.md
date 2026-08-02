@@ -83,11 +83,15 @@ The gate fails when any of these hold:
 1. A file reaches `danger` and is not listed in `size-ratchet.json`.
 2. A listed file grew past its recorded lines, bytes, or longest line.
 3. The list itself grew relative to the committed baseline at `HEAD`.
+4. Measured excess lines — the sum of `lines − dangerLines` over every file at
+   danger — exceed the committed `maxExcessLines` ceiling.
 
 Rule 3 is what stops a new offender from being waved through by appending to the
-baseline. Shrinking a file, or removing an entry, is always allowed. Entries whose file
-is no longer over threshold are reported as stale warnings; `--strict-stale` promotes
-them to failures.
+baseline. Rule 4 makes the aggregate burndown monotonic: a phase cannot be half-done
+and then quietly reversed. Shrinking a file, or removing an entry, is always allowed;
+`npm run sizes:baseline` lowers `maxExcessLines` to the newly measured total. Entries
+whose file is no longer over threshold are reported as stale warnings; `--strict-stale`
+promotes them to failures.
 
 The intended workflow when the gate fails on your change is to decompose the file, not to
 edit `size-ratchet.json`.
@@ -98,8 +102,8 @@ edit `size-ratchet.json`.
 deployed Pages site under **Quality results**:
 
 - a summary line and a pass/fail row on the index
-- a `file-sizes` detail page with per-type distribution (count, median, p90, max) and the
-  largest files over danger
+- a `file-sizes` detail page with per-type distribution (count, median, p90, max), an
+  excess-lines-by-area burndown chart, and the largest files over danger
 - downloadable `file-sizes.json`, `size-rules.json`, and `size-ratchet.json` under
   `results/raw/`
 

@@ -24,6 +24,44 @@ claim.
 | 6 · Signaling and app | Verified/replay-bounded invite service wired into the desktop, mobile, and web worklet hosts with host-chrome banners and accept-only foreground launch; `TPL1` type-4 invite wire form and the host-neutral `createSessionInviteReceiver` carrier; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks; shipping hosts own a persistent `lxmf.delivery` destination via `createHostLxmfDelivery` (desktop 60s re-announce; mobile/web announce-once + resume) so invites raise chrome without a mounted test agent; test-agent `accept-invite` / `send-call` prove post-accept call media bytes on the live LXMF path in `npm run test:local-multipeer` (and `test:local-multipeer:desktop`); GUI test-agent accept tolerates a missing Line Check install so the LXMF call proof matches tp-node; web peers attach via a Node→page control bridge (`test:webrtc-gui-call:web`) | Cookbook pack/start/render passes; `npm run test:share-policy` drives invite accept/decline and the chrome arc invite → live call → honest degrade → kill → revoke; `conformance/ui-invariants` cover the invite chrome; `npm run test:local-multipeer` / `:desktop` / `LOCAL_MULTIPEER_REQUIRED=1 --peers=hub,ios` carry a signed invite between peers, raise it per ordered pair, accept it, and round-trip post-accept PCM call frames into `multipeer-proof.json` `calls`; host-core unit coverage for `createHostLxmfDelivery` and accept→call; web↔web invite→pair→track bytes in `webrtc-gui-call-web-proof.json` | Complete for desktop, web, iOS simulator, and Android emulator invite→call/realtime path (`npm run test:local-multipeer:android`, 2026-08-02) |
 | 7 · Hardware | No claim | LAN/BLE/RNode calls plus battery and airtime entries in `STATUS-HARDWARE.md` | Hardware-gated |
 
+## Capability ids (`HOST_API_VERSION` 0.12.0)
+
+| Id | Description shown at grant time | Consent class |
+|---|---|---|
+| `link:observe` | "See which peers are reachable and how good the connection to each is." | elevated |
+| `link:probe` | "Send a small test transmission to measure a connection (uses airtime and battery)." | elevated, asks on metered or slow links |
+| `device:share-policy:read` | "See which peers this app is currently sharing your camera or microphone with." | low |
+| `device:stream:raw-inbound` | "Receive raw camera frames or audio from a peer into the app itself." | sensitive |
+
+## Implemented architecture
+
+| Component | Where | Behaviour |
+|---|---|---|
+| Link roster | `links.peers()` / `links.watch()` via `link:observe` | App-scoped authenticated-route roster with plane, reachability, quality, readiness, and freshness |
+| Link measurement | `packages/protocol/src/link-quality.ts`, host `LinkQualityService` | Sans-IO estimator; `declared` / `observed` / `probed` sources; `links.probe()` via `link:probe` with byte/rate budget |
+| Readiness exchange | `TPL1` link control in `packages/protocol` | Two-sided `PeerMediaReadiness` with coarse downlink buckets; refusal indistinguishable from unreachable |
+| Stream egress | `PlaneStreamEgressFactory` per plane | WebRTC tracks, Pears bulk, Reticulum, LXMF, CAS snapshot, live Hyperdrive append; sidecar → egress with honest backpressure |
+| Receive side | `device.incoming()` / `accept()` / `decline()` | Host-rendered sinks (`remote-video`, `speaker`); decoded frames never enter the sandbox |
+| Codecs and timing | `MediaCodecDriver`, `TPD2` framing, jitter buffer | Encoding-aware `demandBps()`; WebCodecs/bundled Opus; `captureAtUs` + clock offset for A/V sync |
+| Share policy | `device-share.ts`, host chrome | TTL-bounded outbound `ShareOffer` store; writes only in chrome; `device:share-policy:read` for the app panel |
+| Call signaling | `createSessionInviteReceiver`, `createHostLxmfDelivery` | Host-delivered `session-invite`; foreground launch on accept only; no mini-app code while pending |
+| Duplex audio | Platform voice-processing + bundled Opus fallback | AEC/NS/AGC in the driver; `voice-duplex` session option |
+| Admission | `device-admission.ts`, SPEC-STREAM | Host measurement overrides app-supplied ceilings; non-vacuous headroom property; named limiter reservations |
+
+## Line Check mini-app
+
+Cookbook app `line-check` (`minHostApi: "0.12.0"`) declares `presence`, announce, `peer:connect`, `link:observe`, `link:probe`, derived and sensitive camera/mic tiers, `device:stream`, and `device:share-policy:read`. It never holds raw media in either direction — self-view uses `camera-preview`, peer video uses `remote-video`, levels use `audio-meter`.
+
+Three screens: a **matrix** (one row per peer with plane badge, capability chip, measurement source/freshness, and user-initiated probe); a **sharing** panel (live sessions plus standing `ShareOffer` rows); and a **call** view (`remote-video`, self-preview, rung indicator, honest one-line status). On a LoRa link the chip resolves to derived events only rather than offering a spinner.
+
+## Conformance (no hardware in CI)
+
+- **Tapes** — camera/mic device tapes recorded once, replayed forever ([`spec-device/tapes`](../specs/spec-device/tapes/)).
+- **Simulated links** — [`sim-campaign`](../packages/sim-campaign/) adversarial profiles assert ladder monotonicity (`npm run test:sim-media-ladder`).
+- **Local multipeer** — readiness exchange, active probe, and `TPD2` carrier in `multipeer-proof.json` (`npm run test:local-multipeer`).
+- **Trusted chrome** — grant, revoke, expiry, restart, indicator, invite accept/decline, and invite → call → degrade → kill → revoke (`npm run test:share-policy`; Maestro on mobile).
+- **Formal** — four SPEC-STREAM representations (`npm run formal:stream`).
+
 ## Security invariants already enforced
 
 - Peer rosters and media routes are resolved from handles owned by the calling app.
