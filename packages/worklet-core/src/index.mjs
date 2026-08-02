@@ -12,20 +12,21 @@ export { createCrossDeviceTestDriver } from "./cross-device-test-driver.mjs";
 export { createHarnessPeerPair } from "./harness-peer-pair.mjs";
 export {
   catalogEntryView,
-  createAutoInterfaceOps,
-  createAutomaticReticulumDiscovery,
-  createCasLocatorOps,
-  createCatalogOps,
-  createEnsureDevChannel,
-  createInstallFromT256,
-  createPeerSessionManagerProxyFromState,
-  createPublishArchiveOps,
-  createQuiesceInterfaces,
-  createRegisterAnnounceHandler,
   createRuntimeKeyValueStore,
-  createTrustStoreOps,
-  createWorkletPropagationPersistence,
-  joinCommunityNetwork,
+  createPeerSessionManagerProxy,
+  createPeerSessionManagerProxyFromState,
   peerServiceAspect,
   sleep
-} from "./worklet-entry-shared.mjs";
+} from "./worklet-entry-shared-helpers.mjs";
+export { createCasLocatorOps } from "./worklet-entry-cas.mjs";
+export { createTrustStoreOps } from "./worklet-entry-trust.mjs";
+export { createCatalogOps } from "./worklet-entry-catalog.mjs";
+export { createAutomaticReticulumDiscovery } from "./worklet-entry-discovery.mjs";
+export { createRegisterAnnounceHandler } from "./worklet-entry-announce.mjs";
+export { createInstallFromT256 } from "./worklet-entry-install.mjs";
+export { createPublishArchiveOps } from "./worklet-entry-publish.mjs";
+export { createWorkletPropagationPersistence } from "./worklet-entry-propagation.mjs";
+export { createAutoInterfaceOps } from "./worklet-entry-auto.mjs";
+export { createEnsureDevChannel } from "./worklet-entry-dev.mjs";
+export { createQuiesceInterfaces } from "./worklet-entry-quiesce.mjs";
+export { joinCommunityNetwork } from "./worklet-entry-community.mjs";

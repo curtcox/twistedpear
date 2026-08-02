@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "File-size ratchet. Files listed here were already over the size-rules.json danger threshold when the gate was introduced; they are allowed to stay, but may only shrink. CI fails if a file not listed here reaches danger, if a listed file grows past its recorded size, if this list grows, or if total excess lines exceed maxExcessLines. Decompose and remove entries — never add them. Run `npm run sizes:baseline` after a decomposition to lower the ceiling.",
-  "maxExcessLines": 33737,
+  "maxExcessLines": 33469,
   "entries": [
     {
       "file": "apps/harness-mobile/App.tsx",
@@ -20,8 +20,8 @@
     {
       "file": "apps/harness-mobile/worklet/entry.mjs",
       "rule": "script",
-      "lines": 2955,
-      "bytes": 112947,
+      "lines": 2687,
+      "bytes": 97577,
       "maxLineLength": 1213
     },
     {
