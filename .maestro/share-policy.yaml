@@ -5,24 +5,7 @@ appId: network.twistedpear.harness
 # Expo development builds land on the launcher first — connect Metro before the harness UI.
 - launchApp:
     clearState: true
-- runFlow:
-    when:
-      visible: "Development servers"
-    commands:
-      - tapOn: "http://localhost:8081"
-# Expo dev-client first-run chrome after connecting Metro.
-- runFlow:
-    when:
-      visible: "Continue"
-    commands:
-      - tapOn: "Continue"
-# Connected Expo developer menu covers harness chrome — dismiss via backdrop tap.
-- runFlow:
-    when:
-      visible: "Reload"
-    commands:
-      - tapOn:
-          point: "50%,12%"
+- runFlow: dismiss-launch-chrome.yaml
 - extendedWaitUntil:
     visible: "Create identity"
     timeout: 120000
@@ -77,22 +60,7 @@ appId: network.twistedpear.harness
     timeout: 15000
 - launchApp:
     clearState: true
-- runFlow:
-    when:
-      visible: "Development servers"
-    commands:
-      - tapOn: "http://localhost:8081"
-- runFlow:
-    when:
-      visible: "Continue"
-    commands:
-      - tapOn: "Continue"
-- runFlow:
-    when:
-      visible: "Reload"
-    commands:
-      - tapOn:
-          point: "50%,12%"
+- runFlow: dismiss-launch-chrome.yaml
 - extendedWaitUntil:
     visible: "Create identity"
     timeout: 120000

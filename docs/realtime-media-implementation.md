@@ -15,7 +15,7 @@ claim.
 |---|---|---|---|
 | 1 · Measurement | Pure estimator with a passive observation window, app-scoped authenticated-route roster, long-polled watch, bounded confirmed probe service, encoding-aware host-only admission; shared `TPL1` codec in `packages/protocol`; `meterHostPeerRoute` on the desktop, mobile, and web peer routes | `npm test`, `npm run sansio`, SPEC-STREAM admission checks; `npm run test:local-multipeer` measures a real probe RTT per ordered pair; `npm run test:local-multipeer:desktop` includes Electron | Complete: shipping hosts meter delivered bytes and a summary reports `observed` only once measured, `declared` otherwise; desktop is required evidence via `test:local-multipeer:desktop` |
 | 2 · Two-sided truth | Readiness validation/bucketing and named limiter reservations | Protocol tests prove refusal collapse; `npm run test:local-multipeer` records a decoded, re-validated readiness answer per ordered pair; `npm run test:local-multipeer:desktop` records the same with Electron attached (`LOCAL_MULTIPEER_REQUIRED=1`); `LOCAL_MULTIPEER_REQUIRED=1 npm run test:local-multipeer -- --peers=hub,ios` records hub↔iOS sim readiness (2026-08-01) | Complete for headless, desktop GUI, and iOS simulator; Android emulator peer remains open |
-| 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome; harness seed controls (worklet `device-test-seed-share` plus host chrome fallback) for Maestro without a peer | `npm run test:share-policy` drives the desktop renderer for grant, revoke, expiry, restart, and indicator; `conformance/ui-invariants` holds mobile and web to the same contract; `.maestro/share-policy.yaml` + `SHARE_POLICY_REQUIRED=1 npm run test:ios-sim:share-policy` recorded grant/revoke/expiry/restart on iPhone 17 Pro sim (2026-08-01) | Complete for iOS simulator Maestro pass; Android emulator Maestro pass still open |
+| 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome; harness seed controls (worklet `device-test-seed-share` plus host chrome fallback) for Maestro without a peer | `npm run test:share-policy` drives the desktop renderer for grant, revoke, expiry, restart, and indicator; `conformance/ui-invariants` holds mobile and web to the same contract; `.maestro/share-policy.yaml` + `SHARE_POLICY_REQUIRED=1 npm run test:ios-sim:share-policy` recorded grant/revoke/expiry/restart on iPhone 17 Pro sim (2026-08-01); `SHARE_POLICY_REQUIRED=1 npm run test:android-emulator:share-policy` recorded the same on Medium_Phone 16 KB AVD (2026-08-01) after dismiss of Android App Compatibility + Expo Metro connect | Complete for iOS simulator and Android emulator Maestro passes |
 | 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback; concrete `PlaneStreamEgressFactory` openers for WebRTC / Pears-bulk / Reticulum (via the peer-route bridge), CAS snapshots, live Pears Hyperdrive append, and a host WebRTC media-track opener; test hosts enable Chromium fake A/V and meter `getStats` bytes; `npm run test:webrtc-gui-call` pairs two Electron hosts after invite accept, attaches a microphone track via `replaceTrack`, and records outbound RTP into `webrtc-gui-call-proof.json` `callsWebRtc`; `npm run test:webrtc-gui-call:web` does the same for two Chromium web hosts (`webrtc-gui-call-web-proof.json`) via a Node control bridge; `npm run test:webrtc-gui-call:ios` pairs desktop↔iOS simulator after invite accept and records outbound RTP into `webrtc-gui-call-desktop-ios-proof.json` | `npm run formal:stream`; `npm run test:local-multipeer`; `npm run test:webrtc-gui-call`; `npm run test:webrtc-gui-call:web`; `npm run test:webrtc-gui-call:ios` | Complete for desktop↔desktop, web↔web, and desktop↔iOS simulator WebRTC track bytes after invite accept |
 | 5 · Codecs and duplex | Encoding-aware demand, codec effect boundary, browser/desktop raw RGBA/PCM capture, WebCodecs mono Opus, browser/desktop voice-processing constraints; desktop/web harness `media-opus-duplex` / `media-opus-play`; effects `BundledOpusMediaCodecDriver` (`opusscript`; Hermes forces asm.js + utf-16le TextDecoder patch) with Vitest round-trip; mobile Opus encode/decode/play runs on the RN host (Bare cannot pack opusscript) via `media-opus-duplex-request` IPC; `TwistedPearPeerAudio` Expo module podspec links native PCM speaker play; worklet settles `media-opus-duplex-response` as a host reply; Simulated fallback when Opus is unavailable; native worklet wires `openWebRtcMediaPlane` + WebRTC peer candidates/establish/data beside Reticulum plus harness `peer-pair-*` / `renderer-ping`; host depends on `react-native-webrtc` + `@config-plugins/react-native-webrtc` (Expo 52) with `registerGlobals` in `index.js`; `npm run test:webrtc-gui-call:ios` records desktop↔iOS `callsWebRtc` + `callsOpusDuplex`; iOS-originated track attach via `--peers=hub,ios,desktop` recorded 773 outbound RTP bytes + voice-duplex AEC (2026-08-01) | `npm run test:sim-media-ladder`; `npm test -- packages/effects/test/media-codec.test.ts`; `npm run test:webrtc-gui-call` and `test:webrtc-gui-call:web` record `callsOpusDuplex` (encode→decode→speaker + cross-peer TPD2 Opus play) beside `callsWebRtc` track bytes and voice-duplex AEC constraints; `test:webrtc-gui-call:ios` and `--peers=hub,ios,desktop` record desktop↔iOS both directions | Complete for desktop↔desktop, web↔web, and desktop↔iOS (including iOS-originated offer/track attach) Opus duplex + AEC-constrained track attach; Incomplete: Android Opus duplex / PeerAudio speaker / multipeer |
 
@@ -50,19 +50,18 @@ claim.
 
 ## Next authoritative exits
 
-1. Record an Android emulator Maestro share-policy pass (`SHARE_POLICY_REQUIRED=1 npm run
-   test:android-emulator:share-policy`). iOS simulator grant/revoke/expiry/restart is
-   recorded via `SHARE_POLICY_REQUIRED=1 npm run test:ios-sim:share-policy` (2026-08-01).
-2. Carry an Android emulator peer through `LOCAL_MULTIPEER_REQUIRED=1 npm run
-   test:local-multipeer -- --peers=hub,android` (needs adb). iOS simulator is recorded via
-   `LOCAL_MULTIPEER_REQUIRED=1 npm run test:local-multipeer -- --peers=hub,ios` (2026-08-01):
-   discovery, probes, invites, post-accept call media, and realtime carriers all passed.
-3. Android Opus duplex / PeerAudio speaker / share-policy / multipeer once an emulator +
-   adb are available. Desktop↔iOS both directions are recorded: `test:webrtc-gui-call:ios`
-   (desktop→ios) and `LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs
-   --peers=hub,ios,desktop` (ios→desktop, 773 outbound RTP bytes + voice-duplex AEC +
-   bundled-opus duplex, 2026-08-01).
-4. Run the hardware matrix and update `STATUS-HARDWARE.md` only from captured evidence.
+1. Carry an Android emulator peer through `LOCAL_MULTIPEER_REQUIRED=1 npm run
+   test:local-multipeer -- --peers=hub,android` (needs a stable adb device; Medium_Phone
+   16 KB AVD is flaky). Share-policy Maestro on that AVD is recorded (2026-08-01). iOS
+   simulator multipeer is recorded via `LOCAL_MULTIPEER_REQUIRED=1 npm run
+   test:local-multipeer -- --peers=hub,ios` (2026-08-01).
+2. Android Opus duplex / PeerAudio speaker evidence once hub↔android multipeer links
+   (`Link: online`). Desktop↔iOS both directions are recorded: `test:webrtc-gui-call:ios`
+   and `LOCAL_MULTIPEER_REQUIRED=1 node conformance/webrtc-gui-call/run.mjs
+   --peers=hub,ios,desktop` (773 outbound RTP bytes + voice-duplex AEC + bundled-opus
+   duplex, 2026-08-01). Native Android `PeerAudioModule` (PCM play/record + AEC/NS/AGC)
+   already autolinks; evidence is still missing.
+3. Run the hardware matrix and update `STATUS-HARDWARE.md` only from captured evidence.
 
 ## Commands that produce this evidence
 

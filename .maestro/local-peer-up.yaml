@@ -7,22 +7,7 @@ appId: network.twistedpear.harness
 # Expo development builds land on the launcher first — connect Metro before the harness UI.
 - launchApp:
     clearState: true
-- runFlow:
-    when:
-      visible: "Development servers"
-    commands:
-      - tapOn: "http://localhost:8081"
-- runFlow:
-    when:
-      visible: "Continue"
-    commands:
-      - tapOn: "Continue"
-- runFlow:
-    when:
-      visible: "Reload"
-    commands:
-      - tapOn:
-          point: "50%,12%"
+- runFlow: dismiss-launch-chrome.yaml
 - extendedWaitUntil:
     visible:
       id: "create-identity"
@@ -34,9 +19,10 @@ appId: network.twistedpear.harness
     timeout: 60000
 - tapOn:
     id: "tcp-client-switch"
+# Android emulator → host (10.0.2.2) can need longer than iOS loopback.
 - extendedWaitUntil:
     visible: "Link: online"
-    timeout: 60000
+    timeout: 180000
 # The mount itself is asserted by the harness, which waits for this peer to
 # check in on the control channel — see conformance/local-multipeer/run.mjs.
 - tapOn:

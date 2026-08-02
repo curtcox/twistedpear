@@ -100,6 +100,40 @@ export function launchHarness() {
   ]);
 }
 
+export function harnessInstalled() {
+  try {
+    return adb(["shell", "pm", "list", "packages", PACKAGE_ID]).includes(PACKAGE_ID);
+  } catch {
+    return false;
+  }
+}
+
+/** Prebuild, assembleDebug, and adb-install the harness (several minutes). */
+export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
+  const harnessDir = join(repoRoot, "apps", "harness-mobile");
+  const androidDir = join(harnessDir, "android");
+  const env = {
+    ...process.env,
+    EXPO_NO_INTERACTIVE: "1",
+    ANDROID_HOME: process.env.ANDROID_HOME ?? `${process.env.HOME ?? ""}/Library/Android/sdk`
+  };
+  const prebuild = spawnSync("npx", ["expo", "prebuild", "--platform", "android", "--no-install"], {
+    cwd: harnessDir,
+    stdio: "inherit",
+    env
+  });
+  if (prebuild.status !== 0) throw new Error("expo prebuild --platform android failed");
+  const assembled = spawnSync("./gradlew", ["assembleDebug"], {
+    cwd: androidDir,
+    stdio: "inherit",
+    env
+  });
+  if (assembled.status !== 0) throw new Error("Android debug harness build failed");
+  const apk = join(androidDir, "app", "build", "outputs", "apk", "debug", "app-debug.apk");
+  if (!existsSync(apk)) throw new Error(`Android debug APK is missing: ${apk}`);
+  adb(["install", "-r", apk]);
+}
+
 export function maestro(args) {
   const env = {
     ...process.env,

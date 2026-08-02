@@ -11,8 +11,7 @@
  * rather than a pid check.
  */
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { appendFileSync } from "node:fs";
 import { logPath, repoRoot } from "../state.mjs";
 import {
   bootedSimulatorUdid,
@@ -26,6 +25,8 @@ import {
 import {
   PACKAGE_ID,
   adb,
+  buildAndInstallHarness as buildAndInstallAndroidHarness,
+  harnessInstalled,
   launchHarness,
   maestroAvailable,
   requireDevice,
@@ -57,22 +58,6 @@ function runFlow(id, device, log) {
   if (result.status !== 0) {
     throw new Error(`maestro test ${FLOW} failed (see ${logPath(id)})`);
   }
-}
-
-function buildAndInstallAndroidHarness() {
-  const harnessDir = join(repoRoot, "apps", "harness-mobile");
-  const androidDir = join(harnessDir, "android");
-  const prebuild = spawnSync("npx", ["expo", "prebuild", "--platform", "android", "--no-install"], {
-    cwd: harnessDir,
-    stdio: "inherit",
-    env: { ...process.env, EXPO_NO_INTERACTIVE: "1" }
-  });
-  if (prebuild.status !== 0) throw new Error("expo prebuild --platform android failed");
-  const assembled = spawnSync("./gradlew", ["assembleDebug"], { cwd: androidDir, stdio: "inherit" });
-  if (assembled.status !== 0) throw new Error("Android debug harness build failed");
-  const apk = join(androidDir, "app", "build", "outputs", "apk", "debug", "app-debug.apk");
-  if (!existsSync(apk)) throw new Error(`Android debug APK is missing: ${apk}`);
-  adb(["install", "-r", apk]);
 }
 
 export const iosAdapter = {
@@ -144,15 +129,13 @@ export const androidAdapter = {
       throw new Error("maestro is not installed (https://maestro.mobile.dev)");
     }
 
-    let installed = adb(["shell", "pm", "list", "packages", PACKAGE_ID]);
-    if (build) {
-      log("android: rebuilding and installing the harness");
-      buildAndInstallAndroidHarness();
-      installed = adb(["shell", "pm", "list", "packages", PACKAGE_ID]);
+    if (build || !harnessInstalled()) {
+      log("android: building and installing the harness (this takes several minutes)");
+      buildAndInstallAndroidHarness(repoRoot);
     }
-    if (!installed.includes(PACKAGE_ID)) {
+    if (!harnessInstalled()) {
       throw new Error(
-        `${PACKAGE_ID} is not installed on the emulator — build and install it with \`npx expo run:android\` in apps/harness-mobile`
+        `${PACKAGE_ID} is not installed on the emulator after build — check adb install logs`
       );
     }
     launchHarness();

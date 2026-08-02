@@ -352,12 +352,14 @@ class UsbSerialBridge(private val usbManager: UsbManager) {
       controlInterface: UsbInterface,
       baudRate: Int
     ): Boolean {
+      val lineCoding = encodeLineCoding(baudRate)
       val result = connection.controlTransfer(
         0x21,
         CDC_SET_LINE_CODING,
         0,
         controlInterface.id,
-        encodeLineCoding(baudRate),
+        lineCoding,
+        lineCoding.size,
         WRITE_TIMEOUT_MS
       )
 

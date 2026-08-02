@@ -917,11 +917,33 @@ export default function App() {
   useEffect(() => {
     const shouldRun = tcpEnabled || autoEnabled || bleEnabled || rnodeEnabled;
     if (shouldRun) {
-      if (bleEnabled) {
-        void requestBlePermissions().then(() => startWorklet());
-      } else {
-        startWorklet();
-      }
+      const ensure = async () => {
+        if (bleEnabled) {
+          await requestBlePermissions();
+        }
+        const ready = await startWorklet();
+        if (!ready || workletRef.current === null) {
+          return;
+        }
+        // Identity chrome may have started the worklet with TCP off. Re-assert the
+        // Android emulator host (10.0.2.2) / iOS loopback target before enabling TCP.
+        sendToWorklet({
+          type: "start",
+          targetHost: Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST,
+          targetPort: DEFAULT_DOCKER_PORT,
+          multicastEntitled: Platform.OS !== "ios",
+          bonjourEnabled: true,
+          ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() })
+        });
+        pushInterfaceConfig({
+          tcp: tcpEnabled,
+          auto: autoEnabled,
+          ble: bleEnabled,
+          rnode: rnodeEnabled,
+          rnodeDeviceId: selectedUsbDeviceId
+        });
+      };
+      void ensure();
       interfacesWantedWorkletRef.current = true;
       return;
     }
@@ -932,7 +954,18 @@ export default function App() {
       stopWorklet();
     }
     interfacesWantedWorkletRef.current = false;
-  }, [tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled, startWorklet, stopWorklet]);
+  }, [
+    tcpEnabled,
+    autoEnabled,
+    bleEnabled,
+    rnodeEnabled,
+    selectedUsbDeviceId,
+    ntfyUrl,
+    startWorklet,
+    stopWorklet,
+    sendToWorklet,
+    pushInterfaceConfig
+  ]);
 
   useEffect(() => {
     if (workletRef.current === null) {

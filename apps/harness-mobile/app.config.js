@@ -1,4 +1,4 @@
-const { withDangerousMod } = require("expo/config-plugins");
+const { withDangerousMod, withProjectBuildGradle } = require("expo/config-plugins");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -32,6 +32,23 @@ function withPrivacyManifest(config) {
   ]);
 }
 
+/** Pin the Kotlin Gradle plugin to android.kotlinVersion (Compose needs 1.9.25). */
+function withPinnedKotlinGradlePlugin(config) {
+  return withProjectBuildGradle(config, (config) => {
+    const contents = config.modResults.contents;
+    const pinned =
+      'classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")';
+    if (contents.includes(pinned)) {
+      return config;
+    }
+    config.modResults.contents = contents.replace(
+      /classpath\(['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin['"]\)/,
+      pinned
+    );
+    return config;
+  });
+}
+
 module.exports = ({ config }) => {
   const merged = {
     ...base.expo,
@@ -52,5 +69,5 @@ module.exports = ({ config }) => {
     }
   };
 
-  return withPrivacyManifest(merged);
+  return withPinnedKotlinGradlePlugin(withPrivacyManifest(merged));
 };

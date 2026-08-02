@@ -9,6 +9,15 @@
       "expo-dev-client",
       "expo-bare-kit",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 28,
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Allow TwistedPear to scan peer invitation QR codes."
@@ -25,12 +34,11 @@
       "./modules/bonjour/app.plugin.js",
       "./modules/ble-bridge/app.plugin.js",
       "./modules/usb-serial/app.plugin.js",
-      "./modules/node-service/app.plugin.js"
-      , "./modules/peer-audio/app.plugin.js"
+      "./modules/node-service/app.plugin.js",
+      "./modules/peer-audio/app.plugin.js"
     ],
     "android": {
-      "package": "network.twistedpear.harness",
-      "minSdkVersion": 28
+      "package": "network.twistedpear.harness"
     },
     "ios": {
       "bundleIdentifier": "network.twistedpear.harness",

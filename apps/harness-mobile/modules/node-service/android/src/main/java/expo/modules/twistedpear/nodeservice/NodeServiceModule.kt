@@ -27,7 +27,7 @@ class NodeServiceModule : Module() {
       val context = appContext.reactContext ?: return@AsyncFunction false
       val intent = Intent(context, NodeForegroundService::class.java)
       context.stopService(intent)
-      NodeForegroundService.isRunning = false
+      // isRunning clears in NodeForegroundService.onDestroy
       true
     }
 
