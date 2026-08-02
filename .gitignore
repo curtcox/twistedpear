@@ -22,6 +22,11 @@ conformance/bare-device/imports.generated.json
 conformance/bare-device/tcp-runner.bundle
 apps/harness-mobile/worklet/imports.generated.json
 apps/host-desktop/worklet/imports.generated.json
+# Gradle outputs under local Expo modules (also re-ignored after
+# apps/harness-mobile/.gitignore un-ignores modules/*/android/**).
+apps/harness-mobile/modules/**/android/build/
+apps/harness-mobile/modules/**/android/.cxx/
+apps/harness-mobile/modules/**/android/.gradle/
 apps/harness-mobile/modules/**/.build/
 conformance/scenarios/state/
 packages/reticulum-ts/docs/api/
