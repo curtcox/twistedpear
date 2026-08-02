@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The file-size ratchet compares the grandfathered list against the
+          # base branch; on a PR, HEAD is the merge commit and already carries
+          # the proposed baseline.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

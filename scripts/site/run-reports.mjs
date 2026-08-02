@@ -24,10 +24,46 @@ function gitSha() {
   return (r.stdout || "unknown").trim();
 }
 
+// SITE_REPORT_JOBS=file-sizes,unit-tests regenerates a subset locally without
+// paying for the full suite. Skipped jobs keep their previously recorded result.
+const JOB_FILTER = process.env.SITE_REPORT_JOBS
+  ? new Set(process.env.SITE_REPORT_JOBS.split(",").map((s) => s.trim()).filter(Boolean))
+  : null;
+
+/** @returns {Map<string, any>} previously recorded job results, by id */
+function previousJobs() {
+  const p = path.join(RESULTS_DIR, "summary.json");
+  if (!fs.existsSync(p)) return new Map();
+  try {
+    return new Map((JSON.parse(fs.readFileSync(p, "utf8")).jobs ?? []).map((j) => [j.id, j]));
+  } catch {
+    return new Map();
+  }
+}
+
+const PREVIOUS = previousJobs();
+
 /**
  * @param {{ id: string, title: string, command: string[], cwd?: string, env?: Record<string,string>, copyOutputs?: string[] }} job
  */
 function runJob(job) {
+  if (JOB_FILTER && !JOB_FILTER.has(job.id)) {
+    const prior = PREVIOUS.get(job.id);
+    if (prior) return { ...prior, skipped: true };
+    return {
+      id: job.id,
+      title: job.title,
+      command: job.command.join(" "),
+      startedAt: nowIso(),
+      finishedAt: nowIso(),
+      exitCode: 0,
+      ok: true,
+      logFile: `logs/${job.id}.log`,
+      durationMs: 0,
+      skipped: true
+    };
+  }
+
   const startedAt = nowIso();
   const logPath = path.join(RESULTS_DIR, "logs", `${job.id}.log`);
   ensureDir(path.dirname(logPath));
@@ -92,6 +128,41 @@ function summarizeDependencyGraph() {
     };
   } catch {
     return { present: true, artifact: "artifacts/dependency-graph.json" };
+  }
+}
+
+function summarizeFileSizes() {
+  const p = path.join(RESULTS_DIR, "artifacts", "file-sizes.json");
+  if (!fs.existsSync(p)) {
+    return { present: false };
+  }
+  try {
+    const inventory = JSON.parse(fs.readFileSync(p, "utf8"));
+    return {
+      present: true,
+      totals: inventory.totals,
+      byRule: (inventory.byRule ?? []).map((r) => ({
+        id: r.id,
+        title: r.title,
+        count: r.count,
+        warn: r.warn,
+        danger: r.danger,
+        medianLines: r.medianLines,
+        p90Lines: r.p90Lines,
+        maxLines: r.maxLines,
+        warnLines: r.thresholds?.warnLines,
+        dangerLines: r.thresholds?.dangerLines
+      })),
+      worst: (inventory.danger ?? []).slice(0, 15).map((f) => ({
+        file: f.file,
+        rule: f.rule,
+        lines: f.lines,
+        reasons: f.reasons
+      })),
+      artifact: "artifacts/file-sizes.json"
+    };
+  } catch {
+    return { present: true, artifact: "artifacts/file-sizes.json", parseError: true };
   }
 }
 
@@ -191,6 +262,15 @@ function main() {
 
   jobs.push(
     runJob({
+      id: "file-sizes",
+      title: "File-size ratchet",
+      command: ["npm", "run", "sizes"],
+      copyOutputs: ["file-sizes.json", "size-ratchet.json", "size-rules.json"]
+    })
+  );
+
+  jobs.push(
+    runJob({
       id: "formal-all",
       title: "Formal machine conformance (formal:all)",
       command: ["npm", "run", "formal:all"]
@@ -262,6 +342,7 @@ function main() {
   }
 
   const dependencyGraph = summarizeDependencyGraph();
+  const fileSizes = summarizeFileSizes();
 
   let vitestSummary = null;
   if (fs.existsSync(vitestJson)) {
@@ -285,6 +366,7 @@ function main() {
     jobs,
     vitest: vitestSummary,
     dependencyGraph,
+    fileSizes,
     ok: jobs.every((j) => j.ok),
     failed: jobs.filter((j) => !j.ok).map((j) => j.id)
   };

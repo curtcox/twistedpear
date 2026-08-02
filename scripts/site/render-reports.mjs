@@ -70,6 +70,11 @@ function renderIndex(summary) {
     ? `Dependency graph: **${dep.moduleCount ?? "?"}** modules — [download JSON](./raw/dependency-graph.json).`
     : "Dependency graph not generated.";
 
+  const sizes = summary.fileSizes;
+  const sizeLine = sizes?.present && sizes.totals
+    ? `File sizes: **${sizes.totals.classified}** source files — **${sizes.totals.warn}** over the warn threshold, **${sizes.totals.danger}** over danger ([details](./file-sizes)).`
+    : "File-size classification not generated.";
+
   return `# Quality results
 
 ${summary.placeholder ? "> Reports have not been generated yet. Run `npm run site:reports`.\n" : ""}
@@ -83,6 +88,8 @@ ${vitestLine}
 
 ${depLine}
 
+${sizeLine}
+
 ## Checks
 
 | Status | Check | Command | Duration |
@@ -95,7 +102,8 @@ ${summary.placeholder ? "_No artifacts yet._" : `- [summary.json](./raw/summary.
 ${vitest?.artifact ? "- [vitest.json](./raw/vitest.json)" : ""}
 ${fs.existsSync(path.join(RESULTS_DIR, "artifacts", "violations.json")) ? "- [violations.json](./raw/violations.json)" : ""}
 ${fs.existsSync(path.join(RESULTS_DIR, "artifacts", "sansio-canary.json")) ? "- [sansio-canary.json](./raw/sansio-canary.json)" : ""}
-${dep?.present ? "- [dependency-graph.json](./raw/dependency-graph.json)" : ""}`}
+${dep?.present ? "- [dependency-graph.json](./raw/dependency-graph.json)" : ""}
+${sizes?.present ? "- [file-sizes.json](./raw/file-sizes.json)" : ""}`}
 `;
 }
 
@@ -123,6 +131,55 @@ function renderJob(job) {
 ${truncate(log)}
 \`\`\`
 `;
+}
+
+/**
+ * The file-size job's detail page leads with the classification tables; the raw
+ * log follows via the shared job renderer.
+ *
+ * @param {any} job
+ * @param {any} sizes summary.fileSizes
+ */
+function renderFileSizes(job, sizes) {
+  const base = renderJob(job);
+  if (!sizes?.present || !sizes.totals) return base;
+
+  const ruleRows = (sizes.byRule ?? [])
+    .map(
+      (r) =>
+        `| ${escapeMd(r.title)} | ${r.count} | ${r.medianLines} | ${r.p90Lines} | ${r.maxLines} | ${r.warnLines ?? "—"} | ${r.dangerLines ?? "—"} | ${r.warn} | ${r.danger} |`
+    )
+    .join("\n");
+
+  const worstRows = (sizes.worst ?? [])
+    .map((f) => `| \`${escapeMd(f.file)}\` | ${escapeMd(f.rule)} | ${f.lines} | ${escapeMd((f.reasons ?? []).join("; "))} |`)
+    .join("\n");
+
+  const t = sizes.totals;
+  const section = `
+## Classification
+
+**${t.classified}** classified source files (${t.exempt} exempt: generated bundles, vendored code, and archives).
+**${t.ok}** within budget · **${t.warn}** over warn · **${t.danger}** over danger · **${t.totalLines.toLocaleString("en-US")}** total lines.
+
+Thresholds are per file type and live in [size-rules.json](./raw/size-rules.json). Files already
+over danger when the gate was introduced are grandfathered in
+[size-ratchet.json](./raw/size-ratchet.json) and may only shrink.
+
+| Type | Files | Median | p90 | Max | Warn > | Danger > | Warn | Danger |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+${ruleRows || "| — | — | — | — | — | — | — | — | — |"}
+
+## Largest files over the danger threshold
+
+| File | Type | Lines | Reasons |
+|---|---|---:|---|
+${worstRows || "| — | — | — | None |"}
+
+Full per-file data: [file-sizes.json](./raw/file-sizes.json).
+`;
+
+  return base.replace("\n## Log\n", `${section}\n## Log\n`);
 }
 
 function copyRawArtifacts() {
@@ -160,7 +217,8 @@ function main() {
   fs.writeFileSync(path.join(outDir, "index.md"), renderIndex(summary));
 
   for (const job of summary.jobs ?? []) {
-    fs.writeFileSync(path.join(outDir, `${job.id}.md`), renderJob(job));
+    const body = job.id === "file-sizes" ? renderFileSizes(job, summary.fileSizes) : renderJob(job);
+    fs.writeFileSync(path.join(outDir, `${job.id}.md`), body);
   }
 
   copyRawArtifacts();

@@ -21,6 +21,9 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Give the file-size ratchet a previous commit to compare against.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

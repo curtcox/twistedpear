@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "description": "File-size classification rules. `npm run sizes:inventory` classifies every tracked file against the first matching rule and writes file-sizes.json. `npm run sizes:ratchet` fails the build when a file reaches `danger` without being grandfathered in size-ratchet.json, or when a grandfathered file grows. Thresholds are decomposition prompts, not hard architectural limits: `warn` means 'look for a seam', `danger` means 'split it before adding more'.",
+  "defaults": {
+    "warnMaxLineLength": 200,
+    "dangerMaxLineLength": 2000,
+    "bytesPerLineBudget": 100
+  },
+  "exempt": [
+    "**/*.bundle",
+    "**/*.bundle.mjs",
+    "**/*.bundle.js",
+    "**/vendor/**",
+    "**/*.gen.ts",
+    "**/*.generated.mjs",
+    "apps/handbook/bundle.js",
+    "conformance/web-hyperdrive/web-hyper-fetch.js",
+    "conformance/web-hyperdrive/hyper.js",
+    "conformance/web-runtime/host-core-web.bundle.js",
+    "packages/reticulum-ts/docs/**",
+    "archive/**",
+    "node_modules/**"
+  ],
+  "rules": [
+    {
+      "id": "markdown",
+      "title": "Markdown documentation",
+      "include": ["**/*.md"],
+      "warnLines": 300,
+      "dangerLines": 600,
+      "warnMaxLineLength": null,
+      "dangerMaxLineLength": null,
+      "guidance": "Split by audience or topic. A doc past 600 lines is usually two documents, or a live/planned pair that has drifted back together."
+    },
+    {
+      "id": "test",
+      "title": "Test and conformance source",
+      "include": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.test.mjs",
+        "**/*.test.js",
+        "**/test/**/*.ts",
+        "**/test/**/*.tsx",
+        "conformance/**/*.ts",
+        "conformance/**/*.tsx",
+        "conformance/**/*.mjs",
+        "conformance/**/*.js"
+      ],
+      "warnLines": 600,
+      "dangerLines": 1200,
+      "guidance": "Table-driven cases and shared fixtures usually shrink these fast. Split by the behaviour under test, not by arbitrary line count."
+    },
+    {
+      "id": "typescript",
+      "title": "TypeScript source",
+      "include": ["**/*.ts", "**/*.tsx"],
+      "warnLines": 400,
+      "dangerLines": 800,
+      "guidance": "Extract cohesive state machines, framing/parsing helpers, or a barrel's re-exported members into their own modules."
+    },
+    {
+      "id": "script",
+      "title": "Build, tooling, and worklet scripts",
+      "include": ["**/*.mjs"],
+      "warnLines": 400,
+      "dangerLines": 800,
+      "guidance": "Move reusable steps into scripts/ modules and keep the entry point an orchestrator."
+    },
+    {
+      "id": "javascript",
+      "title": "JavaScript source",
+      "include": ["**/*.js", "**/*.cjs"],
+      "warnLines": 400,
+      "dangerLines": 800,
+      "guidance": "Same decomposition guidance as TypeScript source."
+    },
+    {
+      "id": "native",
+      "title": "Native and Python source",
+      "include": ["**/*.kt", "**/*.swift", "**/*.py", "**/*.rs"],
+      "warnLines": 400,
+      "dangerLines": 800,
+      "guidance": "Bridges tend to accrete unrelated capabilities; split per capability or per platform API surface."
+    }
+  ]
+}

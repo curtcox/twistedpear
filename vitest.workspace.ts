@@ -18,6 +18,7 @@ export default defineWorkspace([
         "conformance/release-harness/**/*.test.mjs",
         "conformance/docs/**/*.test.mjs",
         "conformance/doc-audit/**/*.test.mjs",
+        "conformance/file-sizes/**/*.test.mjs",
         "conformance/device-evidence/**/*.test.mjs",
         "conformance/cookbook/**/*.test.mjs",
         "conformance/local-multipeer/**/*.test.mjs",

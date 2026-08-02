@@ -24,6 +24,12 @@ single-next-action rule, evidence recorder, and soak failure classifier/reproduc
 It also runs `test:doc-audit`, which checks register evidence paths, markdown links,
 lifecycle headers, and cross-register ID consistency.
 
+The base `test` job also runs `npm run sizes`, the file-size ratchet: a source file that
+crosses the danger threshold for its type fails the build unless it is grandfathered in
+`size-ratchet.json`, and grandfathered files may only shrink. Thresholds live in
+`size-rules.json`; see [File-size classification](file-sizes.md). The Pages workflow runs
+the same gate as a reported job and publishes the classification to the deployed site.
+
 ### Path-filtered macOS jobs
 
 | Job | Trigger | Paths |

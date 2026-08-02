@@ -69,8 +69,8 @@ npm run test:watch -- packages/<package>/test/<name>.test.ts
 ```
 
 Before handoff, run `npm run check:ci-base` (the base CI job: `lint`, unit tests,
-release-harness, doc-audit, and authored sim replay). Then run the focused
-conformance suite for the area changed; see `conformance/AGENTS.md`.
+file-size ratchet, release-harness, doc-audit, and authored sim replay). Then run the
+focused conformance suite for the area changed; see `conformance/AGENTS.md`.
 
 ## Code map
 
@@ -98,6 +98,10 @@ focused tests.
   perform I/O, or log directly inside configured protocol roots. Return intents and
   execute them in adapters. Run `npm run sansio` for protocol-boundary changes.
 - Keep wire behavior compatible with the pinned Python Reticulum/LXMF references.
+- Source files stay under the per-type size thresholds in `size-rules.json`. Files that
+  were already oversized are grandfathered in `size-ratchet.json` and may only shrink —
+  when `npm run sizes` fails on your change, decompose the file rather than extend the
+  baseline. See `docs/file-sizes.md`.
 - Do not edit `archive/` except for broken links.
 - Do not change completed/software/hardware status registers merely to make a test pass.
 - Do not weaken capability, signature, sandbox, budget, or store-posture checks.
