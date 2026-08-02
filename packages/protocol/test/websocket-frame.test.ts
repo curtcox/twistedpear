@@ -51,6 +51,10 @@ describe("protocol ws binary frames", () => {
     expect(decodeWsClientFrame(new Uint8Array([0x82]))).toBeNull();
   });
 
+  it("returns null when a declared frame length cannot be represented safely", () => {
+    expect(decodeWsClientFrame(new Uint8Array([0x82, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]))).toBeNull();
+  });
+
   it("encodes via use-raw actions", () => {
     const data = new Uint8Array([1, 2, 3]);
     const stepped = stepEncodeWsBinaryFrameWithActions(initialEncodeWsBinaryFrameState(), {

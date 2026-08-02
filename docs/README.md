@@ -35,6 +35,7 @@ When they disagree, the `live` document wins — including against its own plan.
 | Realtime peer media | [realtime-media.md](realtime-media.md) | [realtime-media-plan.md](realtime-media-plan.md) |
 | Relay and configurable interfaces | [relay-interfaces.md](relay-interfaces.md) | [relay-interfaces-plan.md](relay-interfaces-plan.md) |
 | Deterministic abuse simulation | [simulation.md](simulation.md) | [simulation-plan.md](simulation-plan.md), loop mechanics in [abuse-resistance-loop.md](abuse-resistance-loop.md) |
+| Static analysis | [static-analysis.md](static-analysis.md) | [static-analysis-plan.md](static-analysis-plan.md) |
 
 The rule is enforced by `npm run test:doc-audit`: a missing or invalid `tp-doc` header, a
 `historical` document outside `archive/`, a non-historical document inside it, or a
@@ -153,7 +154,7 @@ Protocol implementation details live in the
 | Evidence from the documented Mac validation run | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md) |
 | Sans-IO boundary and enforcement | [Sans-IO protocol discipline](sansio.md) |
 | Source-file size thresholds and the decomposition ratchet | [File-size classification](file-sizes.md) |
-| Gaps in static analysis and the plan to close them | [Static analysis expansion plan](static-analysis-plan.md) |
+| Static analysis gates, baselines, and local runner | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md) |
 
 Additional focused runbooks are indexed from the
 [conformance overview](../conformance/README.md).

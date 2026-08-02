@@ -2,6 +2,38 @@
 module.exports = {
   forbidden: [
     {
+      name: "no-circular",
+      severity: "error",
+      comment: "Package and app imports must remain acyclic.",
+      from: { path: "^(packages|apps)/" },
+      to: { circular: true }
+    },
+    {
+      name: "no-orphans",
+      severity: "warn",
+      comment: "New source files must be reachable from a package, app, script, or test entry point.",
+      from: {
+        orphan: true,
+        path: "^(packages|apps)/",
+        pathNot: "(^|/)(index|main|entry|setup-tripwire|.*\\.test)\\.(ts|tsx|js|mjs)$|\\.gen\\.ts$"
+      },
+      to: {}
+    },
+    {
+      name: "not-to-dev-dep",
+      severity: "error",
+      comment: "Production sources may not import packages declared only as devDependencies.",
+      from: { path: "^(packages|apps)/.+/src/" },
+      to: { dependencyTypes: ["npm-dev"] }
+    },
+    {
+      name: "no-duplicate-dep-types",
+      severity: "warn",
+      comment: "A dependency should be declared in one dependency section.",
+      from: {},
+      to: { moreThanOneDependencyType: true }
+    },
+    {
       name: "protocol-no-adapters",
       severity: "error",
       comment: "Protocol modules must never import adapters (Sans-IO).",

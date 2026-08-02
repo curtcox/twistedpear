@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ROOT, RESULTS_DIR } from "./paths.mjs";
+import { gates } from "../checks/registry.mjs";
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -47,6 +48,21 @@ const PREVIOUS = previousJobs();
  * @param {{ id: string, title: string, command: string[], cwd?: string, env?: Record<string,string>, copyOutputs?: string[] }} job
  */
 function runJob(job) {
+  if (job.skipReason) {
+    return {
+      id: job.id,
+      title: job.title,
+      command: job.command.join(" "),
+      startedAt: nowIso(),
+      finishedAt: nowIso(),
+      exitCode: 0,
+      ok: true,
+      logFile: `logs/${job.id}.log`,
+      durationMs: 0,
+      skipped: true,
+      skipReason: job.skipReason
+    };
+  }
   if (JOB_FILTER && !JOB_FILTER.has(job.id)) {
     const prior = PREVIOUS.get(job.id);
     if (prior) return { ...prior, skipped: true };
@@ -168,6 +184,21 @@ function summarizeFileSizes() {
   }
 }
 
+function commandExists(command) {
+  return spawnSync(command, [command === "actionlint" ? "-version" : "--version"], { encoding: "utf8" }).status === 0;
+}
+
+function missingRequirements(gate) {
+  return gate.requires.filter((requirement) => {
+    if (requirement === "node") return false;
+    if (requirement === "macos") return process.platform !== "darwin";
+    if (requirement === "jvm") return !commandExists("java");
+    if (requirement === "rust") return !commandExists("cargo");
+    if (requirement === "python") return !commandExists("python3");
+    return !commandExists(requirement);
+  });
+}
+
 function main() {
   ensureDir(RESULTS_DIR);
   ensureDir(path.join(RESULTS_DIR, "logs"));
@@ -187,158 +218,21 @@ function main() {
   /** @type {ReturnType<typeof runJob>[]} */
   const jobs = [];
 
-  // Full build first so package exports resolve to dist/ for unit tests,
-  // formal tools, and sansio (matches CI: lint/tsc before npm test).
-  jobs.push(
-    runJob({
-      id: "typescript",
-      title: "TypeScript (tsc -b)",
-      command: ["npm", "run", "lint"]
-    })
-  );
-
-  // Unit tests with Vitest JSON reporter
-  const vitestJson = path.join(RESULTS_DIR, "artifacts", "vitest.json");
-  ensureDir(path.dirname(vitestJson));
-  jobs.push(
-    runJob({
-      id: "unit-tests",
-      title: "Unit tests (vitest)",
-      command: [
-        "npx",
-        "vitest",
-        "run",
-        "--reporter=default",
-        "--reporter=json",
-        `--outputFile.json=${vitestJson}`
-      ]
-    })
-  );
-
-  // Sans-IO gates individually so each appears in the report
-  jobs.push(
-    runJob({
-      id: "sansio-inventory",
-      title: "Sans-IO inventory",
-      command: ["npm", "run", "sansio:inventory"],
-      copyOutputs: ["violations.json"]
-    })
-  );
-  jobs.push(
-    runJob({
-      id: "sansio-ratchet",
-      title: "Sans-IO ratchet",
-      command: ["npm", "run", "sansio:ratchet"]
-    })
-  );
-  jobs.push(
-    runJob({
-      id: "sansio-eslint",
-      title: "Sans-IO ESLint",
-      command: ["npm", "run", "sansio:eslint"]
-    })
-  );
-  jobs.push(
-    runJob({
-      id: "sansio-depcruise",
-      title: "Sans-IO dependency-cruiser",
-      command: ["npm", "run", "sansio:depcruise"],
-      copyOutputs: ["dependency-graph.json"]
-    })
-  );
-  jobs.push(
-    runJob({
-      id: "sansio-canary",
-      title: "Sans-IO canary",
-      command: ["npm", "run", "sansio:canary"],
-      copyOutputs: ["sansio-canary.json"]
-    })
-  );
-  jobs.push(
-    runJob({
-      id: "sansio-determinism",
-      title: "Sans-IO determinism tests",
-      command: ["npm", "run", "sansio:determinism"]
-    })
-  );
-
-  jobs.push(
-    runJob({
-      id: "file-sizes",
-      title: "File-size ratchet",
-      command: ["npm", "run", "sizes"],
-      copyOutputs: ["file-sizes.json", "size-ratchet.json", "size-rules.json"]
-    })
-  );
-
-  jobs.push(
-    runJob({
-      id: "formal-all",
-      title: "Formal machine conformance (formal:all)",
-      command: ["npm", "run", "formal:all"]
-    })
-  );
-
-  jobs.push(
-    runJob({
-      id: "formal-symbolic-lint",
-      title: "Symbolic model lint",
-      command: ["npm", "run", "formal:symbolic:lint"]
-    })
-  );
-
-  const tlcJobs = [
-    {
-      id: "tlc-grant",
-      title: "TLC: grant.tla",
-      args: [
-        "-XX:+UseParallelGC",
-        "-cp",
-        "tla2tools.jar",
-        "tlc2.TLC",
-        "-deadlock",
-        "-config",
-        "../specs/spec-cap/model/grant.cfg",
-        "../specs/spec-cap/model/grant.tla"
-      ]
-    },
-    {
-      id: "tlc-escrow",
-      title: "TLC: escrow.tla",
-      args: [
-        "-XX:+UseParallelGC",
-        "-cp",
-        "tla2tools.jar",
-        "tlc2.TLC",
-        "-deadlock",
-        "-config",
-        "../specs/spec-authority/model/escrow.cfg",
-        "../specs/spec-authority/model/escrow.tla"
-      ]
-    },
-    {
-      id: "tlc-recovery",
-      title: "TLC: recovery_quorum.tla",
-      args: [
-        "-XX:+UseParallelGC",
-        "-cp",
-        "tla2tools.jar",
-        "tlc2.TLC",
-        "-deadlock",
-        "-config",
-        "../specs/spec-authority/model/recovery-quorum.cfg",
-        "../specs/spec-authority/model/recovery_quorum.tla"
-      ]
-    }
-  ];
-
-  for (const t of tlcJobs) {
+  const requestedTier = process.argv.find((arg) => arg.startsWith("--tier="))?.slice(7) ?? "pr";
+  for (const gate of gates) {
+    const missing = missingRequirements(gate);
+    const selected = requestedTier === "all" || gate.tier === requestedTier;
     jobs.push(
       runJob({
-        id: t.id,
-        title: t.title,
-        command: ["java", ...t.args],
-        cwd: path.join(ROOT, "formal")
+        id: gate.id,
+        title: gate.title,
+        command: [process.execPath, "scripts/checks/run.mjs", `--tier=${gate.tier}`, `--only=${gate.id}`],
+        copyOutputs: gate.artifacts,
+        skipReason: !selected
+          ? `${gate.tier} gate is outside the ${requestedTier} report tier`
+          : missing.length > 0
+            ? `missing local requirements: ${missing.join(", ")}`
+            : null
       })
     );
   }
@@ -346,27 +240,10 @@ function main() {
   const dependencyGraph = summarizeDependencyGraph();
   const fileSizes = summarizeFileSizes();
 
-  let vitestSummary = null;
-  if (fs.existsSync(vitestJson)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(vitestJson, "utf8"));
-      vitestSummary = {
-        numTotalTests: data.numTotalTests,
-        numPassedTests: data.numPassedTests,
-        numFailedTests: data.numFailedTests,
-        numPendingTests: data.numPendingTests,
-        success: data.success,
-        artifact: "artifacts/vitest.json"
-      };
-    } catch {
-      vitestSummary = { artifact: "artifacts/vitest.json", parseError: true };
-    }
-  }
-
   const report = {
     ...meta,
     jobs,
-    vitest: vitestSummary,
+    vitest: null,
     dependencyGraph,
     fileSizes,
     ok: jobs.every((j) => j.ok),

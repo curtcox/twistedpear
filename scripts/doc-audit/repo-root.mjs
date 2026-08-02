@@ -11,7 +11,9 @@ export function repoRoot() {
 
 /** @returns {string[]} */
 export function trackedMarkdownPaths(root = repoRoot()) {
-  const out = execSync("git ls-files '*.md'", { cwd: root, encoding: "utf8" });
+  // Include pending, untracked documents so a newly created live/planned pair can
+  // be validated before it is staged.
+  const out = execSync("git ls-files --cached --others --exclude-standard -- '*.md'", { cwd: root, encoding: "utf8" });
   return out
     .trim()
     .split("\n")

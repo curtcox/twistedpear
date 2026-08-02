@@ -12,19 +12,29 @@ How TwistedPear CI tiers map to phase plan exits. Companion to
 
 ## Pull request gates (ci.yml)
 
-Every PR and push to `main` runs the full Ubuntu matrix: unit tests, docker interop lanes,
-distribution conformance, mini-app hostile/examples, and desktop smoke.
+Every PR and push to `main` runs the full platform matrix: unit tests, static-analysis
+gates, Docker interop lanes, distribution conformance, mini-app hostile/examples, and
+desktop smoke. Static-analysis gates are declared once in
+`scripts/checks/registry.mjs`; CI expands its PR tier into one named matrix check per gate.
+Each gate uploads its declared artifacts, writes `$GITHUB_STEP_SUMMARY`, and contributes
+to the sticky PR dashboard. `ci-green` depends on every CI job and is the single branch
+protection check.
+
+Locally, `npm run check:all` runs PR gates whose prerequisites are installed and prints a
+reason for every skip. `npm run check:ci-base` is the compatible Node-only alias. Use
+`npm run check:all -- --only=<id>` for one gate and `--tier=nightly` for expensive gates.
+The complete gate and baseline inventory is in [Static analysis](static-analysis.md).
 
 The `miniapp-conformance` job also runs `npm run test:cookbook`: all 25 cookbook bundles
 are type/lint-checked against the SDK, validated, packed through the CLI, and launched far
 enough to render in the sandbox runtime.
 
-The base `test` job also runs `test:release-harness`, which locks the release driver's
+The `release-harness` registry gate runs `test:release-harness`, which locks the release driver's
 single-next-action rule, evidence recorder, and soak failure classifier/reproducer behavior.
 It also runs `test:doc-audit`, which checks register evidence paths, markdown links,
 lifecycle headers, and cross-register ID consistency.
 
-The base `test` job also runs `npm run sizes`, the file-size ratchet: a source file that
+The `file-sizes` registry gate runs `npm run sizes`: a source file that
 crosses the danger threshold for its type fails the build unless it is grandfathered in
 `size-ratchet.json`, and grandfathered files may only shrink. Thresholds live in
 `size-rules.json`; see [File-size classification](file-sizes.md). The Pages workflow runs

@@ -9,7 +9,8 @@ register: none
 
 Adversarial review of the Phase 4 broker chokepoint, capability grants, and sandbox
 backends. Companion to [miniapp-runtime.md](miniapp-runtime.md) and
-[LIMITATIONS.md](../LIMITATIONS.md) §7.
+[LIMITATIONS.md](../LIMITATIONS.md) §7. Repository-wide automated advisory, secret,
+license, CodeQL, and SBOM checks are documented in [Static analysis](static-analysis.md).
 
 **Status:** completed 2026-07-07 (software tier). Device Bare Worker measurements remain
 hardware debt ([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11).

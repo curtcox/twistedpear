@@ -1,5 +1,10 @@
 name: CI
 
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
 on:
   pull_request:
   push:
@@ -7,21 +12,165 @@ on:
       - main
 
 jobs:
-  test:
+  gate-plan:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - id: matrix
+        run: echo "matrix=$(npm run --silent checks:matrix)" >> "$GITHUB_OUTPUT"
+
+  static-analysis:
+    needs: gate-plan
+    name: Gate — ${{ matrix.title }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.gate-plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
-          # The file-size ratchet compares the grandfathered list against the
-          # base branch; on a PR, HEAD is the merge commit and already carries
-          # the proposed baseline.
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
+      - uses: actions/setup-python@v5
+        if: matrix.id == 'python'
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        if: matrix.id == 'kotlin'
+        with:
+          distribution: temurin
+          java-version: "17"
       - run: npm ci
-      - run: npm run check:ci-base
+      - name: Install actionlint
+        if: matrix.id == 'actionlint'
+        run: |
+          curl -sSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_x86_64.tar.gz | tar -xz actionlint
+          sudo install actionlint /usr/local/bin/actionlint
+      - name: Install gitleaks
+        if: matrix.id == 'secrets'
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+      - name: Install ShellCheck
+        if: matrix.id == 'shell'
+        run: |
+          curl -sSLo shellcheck.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          tar -xJf shellcheck.tar.xz
+          sudo install shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+      - name: Install Python linters
+        if: matrix.id == 'python'
+        run: python -m pip install ruff==0.15.16 mypy==2.1.0
+      - name: Install Rust analysis tools
+        if: matrix.id == 'rust'
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          cargo install cargo-deny --version 0.20.2 --locked
+      - name: Install ktlint
+        if: matrix.id == 'kotlin'
+        run: |
+          curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint
+          chmod +x ktlint
+          sudo install ktlint /usr/local/bin/ktlint
+      - name: Install SwiftLint
+        if: matrix.id == 'swift'
+        run: |
+          brew install swiftlint
+          test "$(swiftlint version)" = "0.65.0"
+      - name: Run ${{ matrix.title }}
+        run: node scripts/checks/run.mjs --tier=pr --only=${{ matrix.id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-${{ matrix.id }}
+          path: |
+            artifacts/checks/${{ matrix.id }}.json
+            coverage/coverage-summary.json
+            coverage-ratchet.json
+            structure.json
+            complexity.json
+            lint.json
+            typed-lint.json
+            licenses.json
+            gitleaks.json
+          if-no-files-found: warn
+
+  pr-dashboard:
+    needs: static-analysis
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gate-*
+          path: gate-artifacts
+      - run: node scripts/checks/aggregate.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-summary
+          path: static-analysis-summary.json
+      - uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('static-analysis-summary.md', 'utf8');
+            const marker = '<!-- twistedpear-static-analysis -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number
+            });
+            const prior = comments.find(comment => comment.user.type === 'Bot' && comment.body.includes(marker));
+            if (prior) await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: prior.id, body });
+            else await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+
+  codeql:
+    name: CodeQL — ${{ matrix.language }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            filter: javascript
+          - language: python
+            filter: python
+          - language: actions
+            filter: actions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            javascript:
+              - '**/*.js'
+              - '**/*.mjs'
+              - '**/*.cjs'
+              - '**/*.ts'
+              - '**/*.tsx'
+            python:
+              - '**/*.py'
+            actions:
+              - '.github/workflows/**'
+              - '.github/actions/**'
+      - uses: github/codeql-action/init@v3
+        if: steps.changes.outputs[matrix.filter] == 'true'
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/analyze@v3
+        if: steps.changes.outputs[matrix.filter] == 'true'
+        with:
+          category: /language:${{ matrix.language }}
 
   freenet-offline:
     runs-on: ubuntu-latest
@@ -438,15 +587,17 @@ jobs:
 
   devstudio-loop-macos:
     runs-on: macos-14
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
+        if: github.event_name == 'pull_request'
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
+        if: github.event_name == 'pull_request'
       - run: npm run test:devstudio-loop
+        if: github.event_name == 'pull_request'
 
   miniapp-soak:
     runs-on: ubuntu-latest
@@ -611,7 +762,6 @@ jobs:
           SERIAL_LOAD_ITERATIONS: "128"
 
   electron-pack-macos:
-    if: github.event_name == 'pull_request'
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -619,6 +769,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: dorny/paths-filter@v3
+        if: github.event_name == 'pull_request'
         id: changes
         with:
           filters: |
@@ -768,7 +919,6 @@ jobs:
         run: docker compose -f conformance/docker/docker-compose.yml down
 
   desktop-macos:
-    if: github.event_name == 'pull_request'
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -776,6 +926,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: dorny/paths-filter@v3
+        if: github.event_name == 'pull_request'
         id: changes
         with:
           filters: |
@@ -797,3 +948,62 @@ jobs:
         if: steps.changes.outputs.desktop == 'true'
       - run: npm run test:serialport-load
         if: steps.changes.outputs.desktop == 'true'
+
+  ci-green:
+    if: always()
+    needs:
+      - gate-plan
+      - static-analysis
+      - pr-dashboard
+      - codeql
+      - freenet-offline
+      - freenet-real-node
+      - sansio
+      - local-multipeer
+      - simulation-replay
+      - simulation-replay-compare
+      - formal
+      - core-smoke
+      - bare-smoke
+      - bare-runtime
+      - interfaces
+      - bare-interop
+      - auto-interop
+      - i2p-interop
+      - bare-device
+      - bare-hyperswarm
+      - dist-interop
+      - bare-hyperdrive
+      - seeder
+      - updates
+      - budgets
+      - harness-install
+      - cli
+      - miniapp-conformance
+      - devstudio-loop
+      - devstudio-loop-macos
+      - miniapp-soak
+      - demo-phase4
+      - dist-soak
+      - demo-phase3
+      - bare-benchmark
+      - python-interop
+      - web-interop
+      - web
+      - fuzz
+      - serialport-load
+      - electron-pack-macos
+      - docs
+      - electron-pack
+      - ios-sim
+      - demo-phase5
+      - desktop-smoke
+      - desktop-interop
+      - desktop-macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require every CI dependency to succeed
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: node scripts/checks/ci-green.mjs

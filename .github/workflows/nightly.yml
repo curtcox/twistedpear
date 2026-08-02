@@ -23,6 +23,64 @@ on:
         default: "300000"
 
 jobs:
+  static-analysis-plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - id: matrix
+        run: echo "matrix=$(npm run --silent checks:matrix -- --tier=nightly)" >> "$GITHUB_OUTPUT"
+
+  static-analysis-nightly:
+    needs: static-analysis-plan
+    name: Nightly gate — ${{ matrix.title }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.static-analysis-plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: node scripts/checks/run.mjs --tier=nightly --only=${{ matrix.id }}
+        env:
+          PROPERTY_RUNS: "2000"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-${{ matrix.id }}
+          path: |
+            artifacts/checks/${{ matrix.id }}.json
+            audit.json
+            sbom.cdx.json
+            reports/mutation/mutation.json
+          if-no-files-found: warn
+
+  property-campaign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: node scripts/checks/run.mjs --tier=pr --only=properties
+        env:
+          PROPERTY_RUNS: "2000"
+
   cross-device-dev-matrix:
     runs-on: [self-hosted, macOS, twistedpear-emulator-lab]
     timeout-minutes: 180

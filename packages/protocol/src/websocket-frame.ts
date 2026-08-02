@@ -74,7 +74,7 @@ export function decodeWsClientFrame(buffer: Uint8Array): WsBinaryFrame | null {
     const view = new DataView(buffer.buffer, buffer.byteOffset + offset, 8);
     const bigLength = view.getBigUint64(0, false);
     if (bigLength > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new Error("binary frame too large");
+      return null;
     }
     length = Number(bigLength);
     offset += 8;

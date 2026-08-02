@@ -41,3 +41,13 @@ site/public/
 site/.vitepress/dist/
 site/.vitepress/cache/
 site-results/
+/artifacts/
+/reports/mutation/
+/audit.json
+/complexity.json
+/gitleaks.json
+/licenses.json
+/lint.json
+/sbom.cdx.json
+/structure.json
+/typed-lint.json
