@@ -112,9 +112,11 @@ async function runPlaywright(pageUrl) {
     });
 
     await page.goto(pageUrl, { waitUntil: "load", timeout: 30_000 });
-    await page.waitForFunction(() => globalThis.__WEB_MINIAPP__?.status === "done", undefined, {
-      timeout: 30_000
-    });
+    await page.waitForFunction(
+      () => globalThis.__WEB_MINIAPP__?.status === "done" || globalThis.__WEB_MINIAPP__?.status === "error",
+      undefined,
+      { timeout: 30_000 }
+    );
 
     const result = await page.evaluate(() => globalThis.__WEB_MINIAPP__);
     if (result?.status !== "done") {
