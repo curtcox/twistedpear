@@ -1,9 +1,0 @@
-{
-  "measuredAt": "pending",
-  "platform": "android-emulator",
-  "environment": "android-emulator",
-  "hyperdrivePath": "verified-by-e1",
-  "wasmExecuted": null,
-  "busyLoopKilled": null,
-  "note": "Recorded by emulator-ui CI (ANDROID_BENCHMARK_RECORD=1) or locally: npm run test:android-emulator:e5. E5 fails unless wasmExecuted and busyLoopKilled are true."
-}

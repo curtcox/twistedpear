@@ -1,8 +1,0 @@
-{
-  "schema": "twistedpear.release-evidence-v1",
-  "id": "ci:baseline",
-  "status": "passed",
-  "at": "2026-07-20T20:33:04.574Z",
-  "log": "release/evidence-logs/2026-07-20-ci-baseline.log",
-  "note": "CI run 29775996062 success on main @ 815a2109"
-}

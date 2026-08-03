@@ -20,9 +20,7 @@ tightening.
 
 1. In GitHub branch protection, require only `ci-green`; remove the old individually
    enumerated required checks after the first successful run demonstrates aggregation.
-2. Enable GitHub secret scanning and push protection. Gitleaks already provides the
-   runnable local/CI gate; these settings add server-side prevention.
-3. Confirm Dependabot opened grouped weekly npm, Actions, and Cargo updates and that
+2. Confirm Dependabot opened grouped weekly npm, Actions, and Cargo updates and that
    CodeQL accepted JavaScript/TypeScript, Python, and Actions databases.
 
 These operations require repository administration and intentionally have no script that
@@ -33,7 +31,6 @@ attempts to mutate settings from an ordinary local validation run.
 | Survey | Command / evidence | Completion |
 |---|---|---|
 | npm advisories | `npm run audit:baseline -- --allow-regressions`, after explicitly approving disclosure of dependency metadata to the npm registry | Every temporary high/critical exception has a reason and expiry; the next `audit:nightly` passes |
-| mutation score | Successful nightly `mutation` artifact, then `npm run mutation:baseline` | `mutation-ratchet.json` rises above its initial survey floor of zero |
 | language runners | First PR touching each language | Rust, shell, Python, Kotlin, Swift, and Actions artifacts are uploaded from their pinned CI tools |
 | PR dashboard | First pull request after landing | One sticky comment is updated and `static-analysis-summary.json` contains all PR gates |
 

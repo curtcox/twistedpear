@@ -1,3 +1,0 @@
-self-hosted-runner:
-  labels:
-    - twistedpear-emulator-lab

@@ -1,6 +1,0 @@
-{
-  "decision": "bare-crypto-with-pure-fallback",
-  "recordedAt": "2026-07-06",
-  "notes": "iOS worklet entry tries BareCryptoProvider (sodium-native) and falls back to PureCryptoProvider (@noble) when unavailable. Simulator and device builds share this path.",
-  "minimumPureToBareRatio": 0.05
-}

@@ -1,8 +1,10 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { gates } from "../../scripts/checks/registry.mjs";
+import { summarizeStaticAnalysis } from "../../scripts/site/static-analysis-metrics.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const manifest = JSON.parse(
@@ -118,6 +120,56 @@ describe("static-analysis gate registry", () => {
         ),
         `${id} structured artifact`,
       ).toBe(true);
+    }
+  });
+
+  it("publishes every mutation outcome category", () => {
+    const fixture = fs.mkdtempSync(
+      path.join(os.tmpdir(), "twistedpear-mutation-metrics-"),
+    );
+    try {
+      const reportDir = path.join(fixture, "reports", "mutation");
+      fs.mkdirSync(reportDir, { recursive: true });
+      const statuses = [
+        "Killed",
+        "Timeout",
+        "RuntimeError",
+        "CompileError",
+        "Survived",
+        "NoCoverage",
+        "Ignored",
+      ];
+      fs.writeFileSync(
+        path.join(reportDir, "mutation.json"),
+        JSON.stringify({
+          files: {
+            "fixture.ts": { mutants: statuses.map((status) => ({ status })) },
+          },
+        }),
+      );
+      fs.writeFileSync(
+        path.join(fixture, "mutation-ratchet.json"),
+        JSON.stringify({ score: 50 }),
+      );
+
+      const metrics = summarizeStaticAnalysis({ id: "mutation" }, fixture, {
+        ok: true,
+        durationMs: 10,
+      });
+      expect(
+        Object.fromEntries(metrics.map(({ label, value }) => [label, value])),
+      ).toMatchObject({
+        "Mutation score": 66.67,
+        Floor: 50,
+        Killed: 1,
+        "Timed out": 1,
+        "Runtime/compile errors": 2,
+        Survived: 1,
+        "No coverage": 1,
+        "Ignored static": 1,
+      });
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
     }
   });
 });

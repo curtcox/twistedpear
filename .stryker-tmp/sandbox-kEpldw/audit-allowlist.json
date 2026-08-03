@@ -1,5 +1,0 @@
-{
-  "version": 1,
-  "description": "Temporary high/critical npm advisory exceptions. Each exception requires a reason and expires; this list may not grow on a PR.",
-  "entries": []
-}

@@ -57,9 +57,9 @@ Dependabot is configured weekly for npm, Actions, and all three Cargo contract r
 CodeQL analyzes JavaScript/TypeScript, Python, and Actions on relevant PRs and weekly.
 Gitleaks, advisory-policy, dependency-license, CycloneDX SBOM, and nightly npm audit
 commands are registry gates. Advisory exceptions require an ID, reason, and expiry;
-license expressions outside `license-allowlist.json` are ratcheted. Enabling repository
-secret scanning and push protection remains a GitHub repository setting, not a file in
-this tree.
+license expressions outside `license-allowlist.json` are ratcheted. GitHub secret scanning
+and push protection are enabled for the repository; Gitleaks keeps the same protection
+runnable locally and in CI.
 
 ## Other source languages and nightly mutation testing
 
@@ -75,11 +75,11 @@ Ruff 0.15.16, mypy 2.1.0, Rust 1.97.1, cargo-deny 0.20.2, ktlint 1.8.0, and Swif
 Linux download commands. `npm run check:all` prints a skip instead of failing when an
 optional local tool is absent.
 
-Nightly Stryker analysis is limited to `packages/protocol` and `packages/effects` and
-writes `reports/mutation/mutation.json`. `mutation-ratchet.json` is the committed score
-floor; the cheap `mutation-policy` PR gate prevents that committed floor from decreasing.
-The first completed nightly is an explicit survey and must tighten the initial zero floor
-with `npm run mutation:baseline`.
+Nightly Stryker analysis is limited to `packages/protocol` and `packages/effects`, ignores
+static mutants that would exceed the CI time budget, and writes
+`reports/mutation/mutation.json`. The initial complete survey established the committed
+69.16% score floor in `mutation-ratchet.json`; the cheap `mutation-policy` PR gate prevents
+that floor from decreasing.
 
 ## Published metrics
 
@@ -99,5 +99,6 @@ remain inspectable, and the final aggregate job then fails the workflow.
 Structured summaries include coverage percentages and package floors; finding counts for
 structure, complexity, repository lint, typed lint, formatting, and language analyzers;
 file-size totals; dependency-license and advisory counts; SBOM component count; secret
-count; and mutation score, floor, and outcome counts. Gates without a separate numeric
-report still publish their pass/fail result and duration.
+count; and mutation score, floor, killed, timed-out, error, survived, no-coverage, and
+ignored-static counts. Gates without a separate numeric report still publish their
+pass/fail result and duration.

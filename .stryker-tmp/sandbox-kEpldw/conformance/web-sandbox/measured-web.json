@@ -1,8 +1,0 @@
-{
-  "measuredAt": "2026-07-07",
-  "platform": "browser-playwright",
-  "backend": "web-iframe-worker",
-  "runtime": "chromium",
-  "busyLoopKillMs": 311,
-  "note": "Regenerate: WEB_SANDBOX_RECORD=1 npm run test:web-sandbox"
-}

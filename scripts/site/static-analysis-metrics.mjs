@@ -15,15 +15,25 @@ const metric = (label, value, unit = null) => ({ label, value, ...(unit ? { unit
 const count = (value) => Array.isArray(value) ? value.length : 0;
 
 function mutationCounts(report) {
-  let killed = 0;
-  let survived = 0;
+  const counts = {
+    killed: 0,
+    timedOut: 0,
+    errors: 0,
+    survived: 0,
+    noCoverage: 0,
+    ignored: 0
+  };
   for (const file of Object.values(report?.files ?? {})) {
     for (const mutant of file.mutants ?? []) {
-      if (["Killed", "Timeout", "RuntimeError", "CompileError"].includes(mutant.status)) killed += 1;
-      if (["Survived", "NoCoverage"].includes(mutant.status)) survived += 1;
+      if (mutant.status === "Killed") counts.killed += 1;
+      if (mutant.status === "Timeout") counts.timedOut += 1;
+      if (["RuntimeError", "CompileError"].includes(mutant.status)) counts.errors += 1;
+      if (mutant.status === "Survived") counts.survived += 1;
+      if (mutant.status === "NoCoverage") counts.noCoverage += 1;
+      if (mutant.status === "Ignored") counts.ignored += 1;
     }
   }
-  return { killed, survived };
+  return counts;
 }
 
 export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
@@ -73,9 +83,20 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
     const report = json("reports/mutation/mutation.json");
     const baseline = json("mutation-ratchet.json");
     const totals = mutationCounts(report);
-    const score = totals.killed + totals.survived > 0 ? Math.round(totals.killed / (totals.killed + totals.survived) * 10000) / 100 : baseline?.score;
+    const killed = totals.killed + totals.timedOut + totals.errors;
+    const survived = totals.survived + totals.noCoverage;
+    const score = killed + survived > 0 ? Math.round(killed / (killed + survived) * 10000) / 100 : baseline?.score;
     values.push(metric("Mutation score", score ?? "unavailable", "%"), metric("Floor", baseline?.score ?? "unavailable", "%"));
-    if (report) values.push(metric("Killed", totals.killed), metric("Survived/no coverage", totals.survived));
+    if (report) {
+      values.push(
+        metric("Killed", totals.killed),
+        metric("Timed out", totals.timedOut),
+        metric("Runtime/compile errors", totals.errors),
+        metric("Survived", totals.survived),
+        metric("No coverage", totals.noCoverage),
+        metric("Ignored static", totals.ignored)
+      );
+    }
   }
   return values;
 }

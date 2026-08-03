@@ -3,6 +3,7 @@ dist/
 target/
 coverage/
 .tmp/
+.stryker-tmp/
 *.tsbuildinfo
 .DS_Store
 __pycache__/

@@ -1,9 +1,0 @@
-strict: true
-excluded:
-  - node_modules
-  - dist
-  - archive
-  - apps/harness-mobile/modules/ble-bridge/.build
-line_length:
-  warning: 120
-  error: 160

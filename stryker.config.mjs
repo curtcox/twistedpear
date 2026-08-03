@@ -28,6 +28,9 @@ export default {
   // Static mutants reload the full 850-test mutation workspace and accounted
   // for 83% of the measured survey runtime, exceeding the three-hour CI limit.
   ignoreStatic: true,
+  // Keep disposable sandboxes under the repository's standard ignored output
+  // root so they cannot be mistaken for source artifacts.
+  tempDirName: ".tmp/stryker",
   // GitHub-hosted Linux runners provide four cores; use them so the complete
   // survey remains practical both nightly and during Pages publication.
   concurrency: 4,
