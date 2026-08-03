@@ -45,6 +45,7 @@ site-results/
 /reports/mutation/
 /audit.json
 /complexity.json
+/format.json
 /gitleaks.json
 /licenses.json
 /lint.json

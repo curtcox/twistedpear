@@ -11,7 +11,7 @@ export const gates = [
   gate("complexity", "Function complexity ratchet", "complexity:check", "pr", ["node"], ["complexity.json", "complexity-ratchet.json"], "complexity"),
   gate("lint-all", "Repository lint coverage", "lint:all", "pr", ["node"], ["lint.json", "lint-ratchet.json"]),
   gate("typed-lint", "Typed asynchronous lint", "lint:typed", "pr", ["node"], ["typed-lint.json", "typed-lint-ratchet.json"]),
-  gate("format", "Formatting ratchet", "format:check", "pr", ["node"], ["format-ratchet.json"]),
+  gate("format", "Formatting ratchet", "format:check", "pr", ["node"], ["format.json", "format-ratchet.json"]),
   gate("properties", "Property-based protocol tests", "test:properties", "pr", ["node"]),
   gate("audit-policy", "Advisory allowlist policy", "audit:policy", "pr", ["node"], ["audit-allowlist.json"]),
   gate("mutation-policy", "Mutation score policy", "mutation:ratchet", "pr", ["node"], ["mutation-ratchet.json"]),

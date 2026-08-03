@@ -73,6 +73,10 @@ function githubBlob(repoPath) {
   return `${REPO_URL}/blob/main/${repoPath.replace(/^\.\//, "")}`;
 }
 
+function githubTree(repoPath) {
+  return `${REPO_URL}/tree/main/${repoPath.replace(/^\.\//, "").replace(/\/$/, "")}`;
+}
+
 /**
  * Rewrite markdown links so VitePress only sees in-site or absolute http URLs.
  */
@@ -208,6 +212,9 @@ function rewriteMarkdownLinks(text, siteRel) {
 
     // specs/… markdown → /specs/…; model/vectors/schema/streams → GitHub
     if (repoPath.startsWith("specs/")) {
+      if (repoPath.endsWith("/") && !fs.existsSync(path.join(ROOT, repoPath, "README.md"))) {
+        return `${open}${githubTree(repoPath)}${hashSuffix}${close}`;
+      }
       if (/\/(model|vectors|schema|streams|tapes)(\/|$)/.test(repoPath) || /\.(json|tla|cfg)$/i.test(repoPath)) {
         return `${open}${githubBlob(repoPath)}${hashSuffix}${close}`;
       }

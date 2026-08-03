@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-02
+audited: 2026-08-03
 register: none
 counterpart: docs/static-analysis-plan.md
 -->
@@ -80,3 +80,23 @@ writes `reports/mutation/mutation.json`. `mutation-ratchet.json` is the committe
 floor; the cheap `mutation-policy` PR gate prevents that committed floor from decreasing.
 The first completed nightly is an explicit survey and must tighten the initial zero floor
 with `npm run mutation:baseline`.
+
+## Published metrics
+
+The Pages workflow publishes every registry gate at `/results/`, including its result,
+duration, quantitative metrics, log, and all declared structured artifacts. Artifact paths
+are preserved below `/results/raw/artifacts/`, so a gate result cannot overwrite a report
+with the same basename.
+
+The Linux Pages build installs and runs the complete PR toolchain. SwiftLint runs in a
+parallel macOS job; advisory, SBOM, and mutation evidence run in parallel nightly-tier
+jobs because mutation analysis can take substantially longer. Those four results are
+imported into the same registry-driven report. A failed or missing imported result is
+rendered as a failed page rather than omitted. Deployment still occurs so failure details
+remain inspectable, and the final aggregate job then fails the workflow.
+
+Structured summaries include coverage percentages and package floors; finding counts for
+structure, complexity, repository lint, typed lint, formatting, and language analyzers;
+file-size totals; dependency-license and advisory counts; SBOM component count; secret
+count; and mutation score, floor, and outcome counts. Gates without a separate numeric
+report still publish their pass/fail result and duration.

@@ -364,7 +364,9 @@ Degrade rather than die.
 > `links.peers()` and `links.watch()`. Exact remote bandwidth is never exposed: Line Check
 > combines host-observed quality with the peer's coarse, TTL-bounded readiness bucket.
 
-### Line check: two-sided realtime truth
+## Line check
+
+### Two-sided realtime truth
 
 ![Line Check reachability matrix](/cookbook/images/05-line-check.png)
 

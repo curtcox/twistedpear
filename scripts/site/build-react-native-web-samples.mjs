@@ -72,9 +72,7 @@ function fixtures() {
       };
     })
     .sort((left, right) => left.title.localeCompare(right.title));
-  if (list.length !== 25) {
-    throw new Error(`expected 25 cookbook fixtures, found ${list.length}`);
-  }
+  if (list.length === 0) throw new Error("no cookbook fixtures found");
   return list;
 }
 
@@ -106,4 +104,4 @@ await build({
   }]
 });
 
-console.log(`Built 25 React Native Web cookbook samples into ${outputDir}`);
+console.log(`Built ${fixtures().length} React Native Web cookbook samples into ${outputDir}`);

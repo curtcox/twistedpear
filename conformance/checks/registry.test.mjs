@@ -6,7 +6,9 @@ import { gates } from "../../scripts/checks/registry.mjs";
 const root = path.resolve(import.meta.dirname, "../..");
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+const pagesWorkflow = fs.readFileSync(path.join(root, ".github/workflows/pages.yml"), "utf8");
 const reports = fs.readFileSync(path.join(root, "scripts/site/run-reports.mjs"), "utf8");
+const renderer = fs.readFileSync(path.join(root, "scripts/site/render-reports.mjs"), "utf8");
 
 describe("static-analysis gate registry", () => {
   it("has unique, complete declarations whose npm scripts exist", () => {
@@ -27,5 +29,21 @@ describe("static-analysis gate registry", () => {
     expect(workflow).toContain("ci-green:");
     expect(reports).toContain('import { gates } from "../checks/registry.mjs"');
     expect(reports).toContain("for (const gate of gates)");
+  });
+
+  it("publishes structured metrics for every gate on GitHub Pages", () => {
+    expect(reports).toContain("summarizeStaticAnalysis");
+    expect(reports).toContain("job.metrics =");
+    expect(renderer).toContain("## Metrics");
+    expect(renderer).toContain("./raw/${artifact}");
+    expect(pagesWorkflow).toContain("npm run site:reports -- --tier=all");
+    expect(pagesWorkflow).toContain("SITE_REPORT_IMPORT_GATES: swift,audit,sbom,mutation");
+
+    const structured = ["file-sizes", "coverage", "structure", "complexity", "lint-all", "typed-lint", "format", "secrets", "licenses", "rust", "shell", "python", "kotlin", "swift", "audit", "sbom", "mutation"];
+    for (const id of structured) {
+      const gate = gates.find((candidate) => candidate.id === id);
+      expect(gate, `${id} gate`).toBeTruthy();
+      expect(gate.artifacts.some((artifact) => !artifact.startsWith("artifacts/checks/")), `${id} structured artifact`).toBe(true);
+    }
   });
 });

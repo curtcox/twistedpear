@@ -8,6 +8,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ROOT, RESULTS_DIR } from "./paths.mjs";
 import { gates } from "../checks/registry.mjs";
+import { summarizeStaticAnalysis } from "./static-analysis-metrics.mjs";
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -43,11 +44,53 @@ function previousJobs() {
 }
 
 const PREVIOUS = previousJobs();
+const IMPORT_ENV = globalThis.process.env;
+const IMPORTED_GATES = new Set((IMPORT_ENV.SITE_REPORT_IMPORT_GATES ?? "").split(",").filter(Boolean));
+const IMPORT_DIR = IMPORT_ENV.SITE_REPORT_IMPORT_DIR ? path.resolve(IMPORT_ENV.SITE_REPORT_IMPORT_DIR) : null;
+const artifactKey = (relative) => relative.replace(/^artifacts\//, "");
+
+function copyOutput(relative) {
+  const local = path.join(ROOT, relative);
+  const imported = IMPORT_DIR ? path.join(IMPORT_DIR, relative) : null;
+  const src = fs.existsSync(local) ? local : imported && fs.existsSync(imported) ? imported : null;
+  if (!src) return false;
+  const dest = path.join(RESULTS_DIR, "artifacts", artifactKey(relative));
+  ensureDir(path.dirname(dest));
+  fs.copyFileSync(src, dest);
+  return true;
+}
 
 /**
  * @param {{ id: string, title: string, command: string[], cwd?: string, env?: Record<string,string>, copyOutputs?: string[] }} job
  */
 function runJob(job) {
+  const importedCheck = IMPORT_DIR ? path.join(IMPORT_DIR, "artifacts", "checks", `${job.id}.json`) : null;
+  if (job.imported && importedCheck && fs.existsSync(importedCheck)) {
+    for (const rel of job.copyOutputs ?? []) copyOutput(rel);
+    const result = JSON.parse(fs.readFileSync(importedCheck, "utf8"));
+    return {
+      ...result,
+      command: result.command ?? job.command.join(" "),
+      logFile: null,
+      durationMs: Date.parse(result.finishedAt) - Date.parse(result.startedAt),
+      imported: true
+    };
+  }
+  if (job.imported) {
+    return {
+      id: job.id,
+      title: job.title,
+      command: job.command.join(" "),
+      startedAt: nowIso(),
+      finishedAt: nowIso(),
+      exitCode: 1,
+      ok: false,
+      logFile: null,
+      durationMs: 0,
+      imported: true,
+      importError: `missing imported check artifact for ${job.id}`
+    };
+  }
   if (job.skipReason) {
     return {
       id: job.id,
@@ -104,12 +147,7 @@ function runJob(job) {
   fs.writeFileSync(logPath, log);
 
   for (const rel of job.copyOutputs ?? []) {
-    const src = path.join(ROOT, rel);
-    if (fs.existsSync(src)) {
-      const dest = path.join(RESULTS_DIR, "artifacts", path.basename(rel));
-      ensureDir(path.dirname(dest));
-      fs.copyFileSync(src, dest);
-    }
+    copyOutput(rel);
   }
 
   return {
@@ -228,6 +266,7 @@ function main() {
         title: gate.title,
         command: [process.execPath, "scripts/checks/run.mjs", `--tier=${gate.tier}`, `--only=${gate.id}`],
         copyOutputs: gate.artifacts,
+        imported: IMPORTED_GATES.has(gate.id),
         skipReason: !selected
           ? `${gate.tier} gate is outside the ${requestedTier} report tier`
           : missing.length > 0
@@ -235,6 +274,15 @@ function main() {
             : null
       })
     );
+  }
+
+  for (const job of jobs) {
+    const gate = gates.find((candidate) => candidate.id === job.id);
+    job.artifacts = (gate?.artifacts ?? [])
+      .map(artifactKey)
+      .filter((relative) => fs.existsSync(path.join(RESULTS_DIR, "artifacts", relative)))
+      .map((relative) => `artifacts/${relative}`);
+    job.metrics = summarizeStaticAnalysis(gate, path.join(RESULTS_DIR, "artifacts"), job);
   }
 
   const dependencyGraph = summarizeDependencyGraph();

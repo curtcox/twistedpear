@@ -14,6 +14,11 @@ function statusBadge(ok) {
   return ok ? "✅ pass" : "❌ fail";
 }
 
+function renderMetric(metric) {
+  const suffix = metric.unit === "%" ? "%" : metric.unit ? ` ${metric.unit}` : "";
+  return `${escapeMd(metric.value)}${suffix}`;
+}
+
 function escapeMd(s) {
   return String(s ?? "").replace(/\|/g, "\\|");
 }
@@ -56,7 +61,7 @@ function renderIndex(summary) {
   const rows = (summary.jobs ?? [])
     .map(
       (j) =>
-        `| ${statusBadge(j.ok)} | [${escapeMd(j.title)}](./${j.id}) | \`${escapeMd(j.command)}\` | ${formatDuration(j.durationMs)} |`
+        `| ${statusBadge(j.ok)} | [${escapeMd(j.title)}](./${j.id}) | ${(j.metrics ?? []).slice(2).map((item) => `${escapeMd(item.label)}: ${renderMetric(item)}`).join(" · ") || "—"} | \`${escapeMd(j.command)}\` | ${formatDuration(j.durationMs)} |`
     )
     .join("\n");
 
@@ -67,7 +72,7 @@ function renderIndex(summary) {
 
   const dep = summary.dependencyGraph;
   const depLine = dep?.present
-    ? `Dependency graph: **${dep.moduleCount ?? "?"}** modules — [download JSON](./raw/dependency-graph.json).`
+    ? `Dependency graph: **${dep.moduleCount ?? "?"}** modules — [download JSON](./raw/artifacts/dependency-graph.json).`
     : "Dependency graph not generated.";
 
   const sizes = summary.fileSizes;
@@ -92,18 +97,18 @@ ${sizeLine}
 
 ## Checks
 
-| Status | Check | Command | Duration |
-|---|---|---|---|
-${rows || "| — | No jobs recorded | — | — |"}
+| Status | Check | Metrics | Command | Duration |
+|---|---|---|---|---|
+${rows || "| — | No jobs recorded | — | — | — |"}
 
 ## Artifacts
 
 ${summary.placeholder ? "_No artifacts yet._" : `- [summary.json](./raw/summary.json)
-${vitest?.artifact ? "- [vitest.json](./raw/vitest.json)" : ""}
-${fs.existsSync(path.join(RESULTS_DIR, "artifacts", "violations.json")) ? "- [violations.json](./raw/violations.json)" : ""}
-${fs.existsSync(path.join(RESULTS_DIR, "artifacts", "sansio-canary.json")) ? "- [sansio-canary.json](./raw/sansio-canary.json)" : ""}
-${dep?.present ? "- [dependency-graph.json](./raw/dependency-graph.json)" : ""}
-${sizes?.present ? "- [file-sizes.json](./raw/file-sizes.json)" : ""}`}
+${vitest?.artifact ? "- [vitest.json](./raw/artifacts/vitest.json)" : ""}
+${fs.existsSync(path.join(RESULTS_DIR, "artifacts", "violations.json")) ? "- [violations.json](./raw/artifacts/violations.json)" : ""}
+${fs.existsSync(path.join(RESULTS_DIR, "artifacts", "sansio-canary.json")) ? "- [sansio-canary.json](./raw/artifacts/sansio-canary.json)" : ""}
+${dep?.present ? "- [dependency-graph.json](./raw/artifacts/dependency-graph.json)" : ""}
+${sizes?.present ? "- [file-sizes.json](./raw/artifacts/file-sizes.json)" : ""}`}
 `;
 }
 
@@ -114,6 +119,13 @@ function renderJob(job) {
     log = fs.readFileSync(logPath, "utf8");
   }
 
+  const metricRows = (job.metrics ?? [])
+    .map((item) => `| ${escapeMd(item.label)} | ${renderMetric(item)} |`)
+    .join("\n");
+  const artifactRows = (job.artifacts ?? [])
+    .map((artifact) => `- [\`${escapeMd(artifact.replace(/^artifacts\//, ""))}\`](./raw/${artifact})`)
+    .join("\n");
+
   return `# ${job.title}
 
 **Status:** ${statusBadge(job.ok)}  
@@ -122,8 +134,19 @@ function renderJob(job) {
 **Started:** ${escapeMd(job.startedAt)}  
 **Finished:** ${escapeMd(job.finishedAt)}  
 **Duration:** ${formatDuration(job.durationMs)}
+${job.imported ? "**Evidence:** imported from the platform/nightly CI job  \n" : ""}${job.skipped ? `**Skipped:** ${escapeMd(job.skipReason ?? "not selected")}  \n` : ""}${job.importError ? `**Import error:** ${escapeMd(job.importError)}  \n` : ""}
 
 [← All results](./)
+
+## Metrics
+
+| Metric | Value |
+|---|---:|
+${metricRows || "| Result | unavailable |"}
+
+## Artifacts
+
+${artifactRows || "_No structured artifacts were produced._"}
 
 ## Log
 
@@ -174,9 +197,9 @@ function renderFileSizes(job, sizes) {
 **${t.classified}** classified source files (${t.exempt} exempt: generated bundles, vendored code, and archives).
 **${t.ok}** within budget · **${t.warn}** over warn · **${t.danger}** over danger · **${t.totalLines.toLocaleString("en-US")}** total lines · **${excessTotal.toLocaleString("en-US")}** excess lines (beyond danger).
 
-Thresholds are per file type and live in [size-rules.json](./raw/size-rules.json). Files already
+Thresholds are per file type and live in [size-rules.json](./raw/artifacts/size-rules.json). Files already
 over danger when the gate was introduced are grandfathered in
-[size-ratchet.json](./raw/size-ratchet.json) and may only shrink. The ratchet also carries a
+[size-ratchet.json](./raw/artifacts/size-ratchet.json) and may only shrink. The ratchet also carries a
 \`maxExcessLines\` ceiling so the aggregate burndown cannot reverse.
 
 | Type | Files | Median | p90 | Max | Warn > | Danger > | Warn | Danger |
@@ -198,7 +221,7 @@ ${areaRows || "| — | — | None |"}
 |---|---|---:|---:|---|
 ${worstRows || "| — | — | — | — | None |"}
 
-Full per-file data: [file-sizes.json](./raw/file-sizes.json).
+Full per-file data: [file-sizes.json](./raw/artifacts/file-sizes.json).
 `;
 
   return base.replace("\n## Log\n", `${section}\n## Log\n`);
@@ -215,9 +238,7 @@ function copyRawArtifacts() {
 
   const artifactsDir = path.join(RESULTS_DIR, "artifacts");
   if (fs.existsSync(artifactsDir)) {
-    for (const name of fs.readdirSync(artifactsDir)) {
-      fs.copyFileSync(path.join(artifactsDir, name), path.join(rawDir, name));
-    }
+    copyTree(artifactsDir, path.join(rawDir, "artifacts"));
   }
 
   // Also copy logs for download
@@ -228,6 +249,16 @@ function copyRawArtifacts() {
     for (const name of fs.readdirSync(logsDir)) {
       fs.copyFileSync(path.join(logsDir, name), path.join(rawLogs, name));
     }
+  }
+}
+
+function copyTree(source, destination) {
+  ensureDir(destination);
+  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+    const from = path.join(source, entry.name);
+    const to = path.join(destination, entry.name);
+    if (entry.isDirectory()) copyTree(from, to);
+    else fs.copyFileSync(from, to);
   }
 }
 
