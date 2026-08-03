@@ -54,7 +54,7 @@ jobs:
       - name: Install actionlint
         if: matrix.id == 'actionlint'
         run: |
-          curl -sSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_x86_64.tar.gz | tar -xz actionlint
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz | tar -xz actionlint
           sudo install actionlint /usr/local/bin/actionlint
       - name: Install gitleaks
         if: matrix.id == 'secrets'

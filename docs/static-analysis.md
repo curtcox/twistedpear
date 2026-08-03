@@ -88,9 +88,9 @@ duration, quantitative metrics, log, and all declared structured artifacts. Arti
 are preserved below `/results/raw/artifacts/`, so a gate result cannot overwrite a report
 with the same basename.
 
-The Linux Pages build installs and runs the complete PR toolchain. SwiftLint runs in a
-parallel macOS job; advisory, SBOM, and mutation evidence run in parallel nightly-tier
-jobs because mutation analysis can take substantially longer. Those four results are
+The Linux Pages build installs and runs the complete PR toolchain. The registry-derived
+Pages plan sends every non-Linux or nightly gate to a parallel evidence job; today that
+means SwiftLint on macOS plus advisory, SBOM, and mutation analysis. Those results are
 imported into the same registry-driven report. A failed or missing imported result is
 rendered as a failed page rather than omitted. Deployment still occurs so failure details
 remain inspectable, and the final aggregate job then fails the workflow.

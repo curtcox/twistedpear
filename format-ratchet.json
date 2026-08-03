@@ -470,7 +470,6 @@
     "conformance/bonjour-interop/linked-bridge.mjs",
     "conformance/bonjour-interop/run.mjs",
     "conformance/budgets/run.mjs",
-    "conformance/checks/registry.test.mjs",
     "conformance/chrome/run.mjs",
     "conformance/cli/run.mjs",
     "conformance/cookbook/cookbook.test.mjs",

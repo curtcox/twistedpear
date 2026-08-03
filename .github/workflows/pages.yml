@@ -16,24 +16,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  static-analysis-plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      imports: ${{ steps.plan.outputs.imports }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - id: plan
+        run: node scripts/checks/pages-plan.mjs >> "$GITHUB_OUTPUT"
+
   static-analysis-evidence:
+    needs: static-analysis-plan
     name: Published metric — ${{ matrix.id }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - id: audit
-            runner: ubuntu-latest
-            tier: nightly
-          - id: sbom
-            runner: ubuntu-latest
-            tier: nightly
-          - id: mutation
-            runner: ubuntu-latest
-            tier: nightly
-          - id: swift
-            runner: macos-15
-            tier: pr
+        include: ${{ fromJSON(needs.static-analysis-plan.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     steps:
@@ -69,7 +71,7 @@ jobs:
           if-no-files-found: warn
 
   build:
-    needs: static-analysis-evidence
+    needs: [static-analysis-plan, static-analysis-evidence]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -94,7 +96,7 @@ jobs:
           merge-multiple: true
       - name: Install static-analysis tools
         run: |
-          curl -sSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_x86_64.tar.gz | tar -xz actionlint
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz | tar -xz actionlint
           sudo install actionlint /usr/local/bin/actionlint
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz gitleaks
           sudo install gitleaks /usr/local/bin/gitleaks
@@ -113,7 +115,7 @@ jobs:
         run: npm run site:reports -- --tier=all
         env:
           SITE_REPORT_IMPORT_DIR: imported-static-analysis
-          SITE_REPORT_IMPORT_GATES: swift,audit,sbom,mutation
+          SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}
       - name: Report pending screenshots for the guide, authoring guide, and cookbook
         run: npm run site:section-images:report
       - name: Build documentation site

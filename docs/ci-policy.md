@@ -160,8 +160,8 @@ Pushes to `main` (and `workflow_dispatch`) build and deploy
 - Docs and specs rendered to HTML (VitePress)
 - TypeDoc for `@twistedpear/reticulum-ts`
 - Every registered static-analysis gate with result, duration, structured metrics, logs,
-  and raw artifacts; Swift evidence comes from macOS and advisory, SBOM, and mutation
-  evidence comes from parallel nightly-tier jobs
+  and raw artifacts; a registry-derived matrix imports every non-Linux and nightly result
+  from parallel evidence jobs
 - Unit tests, TypeScript, Sans-IO gates, formal/model conformance, symbolic lint, and TLC results
 
 Reports are published even when a reported check fails; the workflow’s aggregate job then
