@@ -78,7 +78,7 @@ for (const contract of toBuild) {
       "--target-dir",
       targetDir
     ],
-    { cwd: root, stdio: "inherit" }
+    { cwd: dirname(contract.manifest), stdio: "inherit" }
   );
   if (result.status !== 0) {
     process.exitCode = result.status ?? 1;
