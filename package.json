@@ -218,7 +218,7 @@
     "lint:python": "node scripts/languages/check.mjs python",
     "lint:kotlin": "node scripts/languages/check.mjs kotlin",
     "lint:swift": "node scripts/languages/check.mjs swift",
-    "mutation": "node node_modules/@stryker-mutator/core/bin/stryker.js run",
+    "mutation": "npm run build && node node_modules/@stryker-mutator/core/bin/stryker.js run",
     "mutation:check": "node scripts/analysis/mutation.mjs --run",
     "mutation:ratchet": "node scripts/analysis/mutation.mjs",
     "mutation:baseline": "node scripts/analysis/mutation.mjs --write",
