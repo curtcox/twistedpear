@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-07-16",
+  "command": "npm run test:interop",
+  "result": {
+    "testFilesPassed": 2,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "durationSeconds": 55.16
+  },
+  "host": {
+    "os": "macOS 26.5.2 (25F84)",
+    "architecture": "arm64",
+    "node": "26.5.0",
+    "npm": "11.17.0"
+  },
+  "pythonPeer": {
+    "os": "linux",
+    "architecture": "arm64",
+    "python": "3.12.13",
+    "rns": "0.9.5",
+    "lxmf": "0.7.0",
+    "baseImage": "python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a1bfc852199fbf",
+    "resourceImage": "sha256:026871526352a7977f3a6f399f882c50b58446721ede62e550217e1bc21518b1",
+    "lxmfImage": "sha256:87e69ae9a24a208232940a0a8db345f8c1c65e0e5b9fcf3c66b33a11ac02d9e6"
+  },
+  "scenarios": [
+    "leaf TCP announce, packet echo, and proof",
+    "encrypted link echo over TCP",
+    "leaf UDP announce and packet echo",
+    "1024-byte Resource round trip with SHA-256 equality",
+    "1048576-byte Resource round trip with SHA-256 equality",
+    "1048576-byte Resource pause/unpause resume with SHA-256 equality",
+    "opportunistic LXMF round trip over TCP"
+  ]
+}

@@ -1,0 +1,1337 @@
+{
+  "spec": "SPEC-PRESENT",
+  "description": "Reference layout geometry produced by the headless-snapshot renderer. Each vector is { tree, viewport, boxes } with one box per laid-out node in viewport coordinates; display:none subtrees produce no boxes. The reference metric is font-independent; renderers using real fonts conform within the declared tolerances.",
+  "metric": {
+    "kind": "monospace",
+    "advanceWidth": "round(fontSize * 0.6) per character, every character",
+    "lineHeight": "round(fontSize * 1.25)",
+    "defaultFontSize": 16
+  },
+  "tolerance": {
+    "reference": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "realFonts": {
+      "note": "per-box tolerance for renderers measuring real fonts: text-derived extents may deviate by the given fraction of the reference extent; positions inherit accumulated deviation",
+      "widthFraction": 0.25,
+      "heightFraction": 0.25
+    }
+  },
+  "vectors": [
+    {
+      "name": "row-justify-space-between@mobile",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "alignItems": "center",
+            "padding": 8,
+            "width": 300
+          },
+          "children": [
+            {
+              "id": "left",
+              "type": "button",
+              "props": {
+                "label": "Back"
+              }
+            },
+            {
+              "id": "mid",
+              "type": "text",
+              "props": {
+                "value": "Title"
+              },
+              "style": {
+                "fontSize": 20
+              }
+            },
+            {
+              "id": "right",
+              "type": "switch",
+              "props": {
+                "value": true
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "left": {
+          "x": 8,
+          "y": 8,
+          "width": 64,
+          "height": 32
+        },
+        "mid": {
+          "x": 130,
+          "y": 12,
+          "width": 60,
+          "height": 25
+        },
+        "right": {
+          "x": 248,
+          "y": 12,
+          "width": 44,
+          "height": 24
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 48
+        }
+      }
+    },
+    {
+      "name": "row-justify-space-between@tablet",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "alignItems": "center",
+            "padding": 8,
+            "width": 300
+          },
+          "children": [
+            {
+              "id": "left",
+              "type": "button",
+              "props": {
+                "label": "Back"
+              }
+            },
+            {
+              "id": "mid",
+              "type": "text",
+              "props": {
+                "value": "Title"
+              },
+              "style": {
+                "fontSize": 20
+              }
+            },
+            {
+              "id": "right",
+              "type": "switch",
+              "props": {
+                "value": true
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "boxes": {
+        "left": {
+          "x": 8,
+          "y": 8,
+          "width": 64,
+          "height": 32
+        },
+        "mid": {
+          "x": 130,
+          "y": 12,
+          "width": 60,
+          "height": 25
+        },
+        "right": {
+          "x": 248,
+          "y": 12,
+          "width": 44,
+          "height": 24
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 48
+        }
+      }
+    },
+    {
+      "name": "nested-percent-and-margins@mobile",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 12,
+            "gap": 6
+          },
+          "children": [
+            {
+              "id": "half",
+              "type": "view",
+              "style": {
+                "width": "50%",
+                "padding": 4,
+                "gap": 4,
+                "margin": 2
+              },
+              "children": [
+                {
+                  "id": "bar",
+                  "type": "progress",
+                  "props": {
+                    "value": 30,
+                    "max": 100
+                  }
+                },
+                {
+                  "id": "rule",
+                  "type": "divider"
+                },
+                {
+                  "id": "gap",
+                  "type": "spacer",
+                  "props": {
+                    "size": 12
+                  }
+                },
+                {
+                  "id": "note",
+                  "type": "text",
+                  "props": {
+                    "value": "half width"
+                  },
+                  "style": {
+                    "fontSize": 12
+                  }
+                }
+              ]
+            },
+            {
+              "id": "wide",
+              "type": "text-input",
+              "props": {
+                "value": "",
+                "placeholder": "full width"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "bar": {
+          "x": 18,
+          "y": 18,
+          "width": 138,
+          "height": 8
+        },
+        "rule": {
+          "x": 18,
+          "y": 30,
+          "width": 138,
+          "height": 1
+        },
+        "gap": {
+          "x": 18,
+          "y": 35,
+          "width": 138,
+          "height": 8
+        },
+        "note": {
+          "x": 18,
+          "y": 47,
+          "width": 70,
+          "height": 15
+        },
+        "half": {
+          "x": 14,
+          "y": 14,
+          "width": 146,
+          "height": 52
+        },
+        "wide": {
+          "x": 12,
+          "y": 74,
+          "width": 296,
+          "height": 32
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 118
+        }
+      }
+    },
+    {
+      "name": "nested-percent-and-margins@tablet",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 12,
+            "gap": 6
+          },
+          "children": [
+            {
+              "id": "half",
+              "type": "view",
+              "style": {
+                "width": "50%",
+                "padding": 4,
+                "gap": 4,
+                "margin": 2
+              },
+              "children": [
+                {
+                  "id": "bar",
+                  "type": "progress",
+                  "props": {
+                    "value": 30,
+                    "max": 100
+                  }
+                },
+                {
+                  "id": "rule",
+                  "type": "divider"
+                },
+                {
+                  "id": "gap",
+                  "type": "spacer",
+                  "props": {
+                    "size": 12
+                  }
+                },
+                {
+                  "id": "note",
+                  "type": "text",
+                  "props": {
+                    "value": "half width"
+                  },
+                  "style": {
+                    "fontSize": 12
+                  }
+                }
+              ]
+            },
+            {
+              "id": "wide",
+              "type": "text-input",
+              "props": {
+                "value": "",
+                "placeholder": "full width"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "boxes": {
+        "bar": {
+          "x": 18,
+          "y": 18,
+          "width": 362,
+          "height": 8
+        },
+        "rule": {
+          "x": 18,
+          "y": 30,
+          "width": 362,
+          "height": 1
+        },
+        "gap": {
+          "x": 18,
+          "y": 35,
+          "width": 362,
+          "height": 8
+        },
+        "note": {
+          "x": 18,
+          "y": 47,
+          "width": 70,
+          "height": 15
+        },
+        "half": {
+          "x": 14,
+          "y": 14,
+          "width": 370,
+          "height": 52
+        },
+        "wide": {
+          "x": 12,
+          "y": 74,
+          "width": 744,
+          "height": 32
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 118
+        }
+      }
+    },
+    {
+      "name": "list-items@mobile",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 10
+          },
+          "children": [
+            {
+              "id": "menu",
+              "type": "list",
+              "props": {
+                "items": [
+                  "alpha",
+                  "beta",
+                  "gamma"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "menu-item-0": {
+          "x": 10,
+          "y": 10,
+          "width": 300,
+          "height": 18
+        },
+        "menu-item-1": {
+          "x": 10,
+          "y": 28,
+          "width": 300,
+          "height": 18
+        },
+        "menu-item-2": {
+          "x": 10,
+          "y": 46,
+          "width": 300,
+          "height": 18
+        },
+        "menu": {
+          "x": 10,
+          "y": 10,
+          "width": 300,
+          "height": 54
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 74
+        }
+      }
+    },
+    {
+      "name": "list-items@tablet",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 10
+          },
+          "children": [
+            {
+              "id": "menu",
+              "type": "list",
+              "props": {
+                "items": [
+                  "alpha",
+                  "beta",
+                  "gamma"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "boxes": {
+        "menu-item-0": {
+          "x": 10,
+          "y": 10,
+          "width": 748,
+          "height": 18
+        },
+        "menu-item-1": {
+          "x": 10,
+          "y": 28,
+          "width": 748,
+          "height": 18
+        },
+        "menu-item-2": {
+          "x": 10,
+          "y": 46,
+          "width": 748,
+          "height": 18
+        },
+        "menu": {
+          "x": 10,
+          "y": 10,
+          "width": 748,
+          "height": 54
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 74
+        }
+      }
+    },
+    {
+      "name": "display-none-subtree@mobile",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 8,
+            "gap": 8
+          },
+          "children": [
+            {
+              "id": "shown",
+              "type": "text",
+              "props": {
+                "value": "visible"
+              }
+            },
+            {
+              "id": "hidden",
+              "type": "view",
+              "style": {
+                "display": "none"
+              },
+              "children": [
+                {
+                  "id": "inner",
+                  "type": "text",
+                  "props": {
+                    "value": "not laid out"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "after",
+              "type": "text",
+              "props": {
+                "value": "directly after"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "shown": {
+          "x": 8,
+          "y": 8,
+          "width": 70,
+          "height": 20
+        },
+        "after": {
+          "x": 8,
+          "y": 36,
+          "width": 140,
+          "height": 20
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 64
+        }
+      }
+    },
+    {
+      "name": "display-none-subtree@tablet",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 8,
+            "gap": 8
+          },
+          "children": [
+            {
+              "id": "shown",
+              "type": "text",
+              "props": {
+                "value": "visible"
+              }
+            },
+            {
+              "id": "hidden",
+              "type": "view",
+              "style": {
+                "display": "none"
+              },
+              "children": [
+                {
+                  "id": "inner",
+                  "type": "text",
+                  "props": {
+                    "value": "not laid out"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "after",
+              "type": "text",
+              "props": {
+                "value": "directly after"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "boxes": {
+        "shown": {
+          "x": 8,
+          "y": 8,
+          "width": 70,
+          "height": 20
+        },
+        "after": {
+          "x": 8,
+          "y": 36,
+          "width": 140,
+          "height": 20
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 64
+        }
+      }
+    },
+    {
+      "name": "media-and-editor@mobile",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "pic",
+              "type": "image",
+              "props": {
+                "asset": "logo.png",
+                "alt": "logo"
+              }
+            },
+            {
+              "id": "qr",
+              "type": "qr-code",
+              "props": {
+                "value": "lxmf:demo",
+                "size": 96,
+                "caption": "scan me"
+              }
+            },
+            {
+              "id": "editor",
+              "type": "code-editor",
+              "props": {
+                "documentId": "doc-1",
+                "language": "javascript"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "pic": {
+          "x": 16,
+          "y": 16,
+          "width": 64,
+          "height": 64
+        },
+        "qr": {
+          "x": 16,
+          "y": 92,
+          "width": 96,
+          "height": 116
+        },
+        "editor": {
+          "x": 16,
+          "y": 220,
+          "width": 288,
+          "height": 160
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 396
+        }
+      }
+    },
+    {
+      "name": "media-and-editor@tablet",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "pic",
+              "type": "image",
+              "props": {
+                "asset": "logo.png",
+                "alt": "logo"
+              }
+            },
+            {
+              "id": "qr",
+              "type": "qr-code",
+              "props": {
+                "value": "lxmf:demo",
+                "size": 96,
+                "caption": "scan me"
+              }
+            },
+            {
+              "id": "editor",
+              "type": "code-editor",
+              "props": {
+                "documentId": "doc-1",
+                "language": "javascript"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "boxes": {
+        "pic": {
+          "x": 16,
+          "y": 16,
+          "width": 64,
+          "height": 64
+        },
+        "qr": {
+          "x": 16,
+          "y": 92,
+          "width": 96,
+          "height": 116
+        },
+        "editor": {
+          "x": 16,
+          "y": 220,
+          "width": 736,
+          "height": 160
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 396
+        }
+      }
+    },
+    {
+      "name": "stream-chat-first@mobile",
+      "note": "first recorded frame of the golden stream",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "Chat"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "me",
+              "type": "text",
+              "props": {
+                "value": "Me: d3adbeefd3adbeefd3adbeefd3adbeef"
+              }
+            },
+            {
+              "id": "peer-input",
+              "type": "text-input",
+              "props": {
+                "value": "",
+                "placeholder": "Peer app id",
+                "event": "chat.peer"
+              }
+            },
+            {
+              "id": "send",
+              "type": "button",
+              "props": {
+                "label": "Send hello",
+                "event": "chat.send"
+              }
+            },
+            {
+              "id": "refresh",
+              "type": "button",
+              "props": {
+                "label": "Check inbox",
+                "event": "chat.refresh"
+              }
+            },
+            {
+              "id": "inbox",
+              "type": "text",
+              "props": {
+                "value": "No messages yet"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "title": {
+          "x": 16,
+          "y": 16,
+          "width": 48,
+          "height": 25
+        },
+        "me": {
+          "x": 16,
+          "y": 53,
+          "width": 288,
+          "height": 20
+        },
+        "peer-input": {
+          "x": 16,
+          "y": 85,
+          "width": 288,
+          "height": 32
+        },
+        "send": {
+          "x": 16,
+          "y": 129,
+          "width": 124,
+          "height": 32
+        },
+        "refresh": {
+          "x": 16,
+          "y": 173,
+          "width": 134,
+          "height": 32
+        },
+        "inbox": {
+          "x": 16,
+          "y": 217,
+          "width": 150,
+          "height": 20
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 253
+        }
+      }
+    },
+    {
+      "name": "stream-chat-last@mobile",
+      "note": "last recorded frame of the golden stream",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "Chat"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "me",
+              "type": "text",
+              "props": {
+                "value": "Me: d3adbeefd3adbeefd3adbeefd3adbeef"
+              }
+            },
+            {
+              "id": "peer-input",
+              "type": "text-input",
+              "props": {
+                "value": "peer-42",
+                "placeholder": "Peer app id",
+                "event": "chat.peer"
+              }
+            },
+            {
+              "id": "send",
+              "type": "button",
+              "props": {
+                "label": "Send hello",
+                "event": "chat.send"
+              }
+            },
+            {
+              "id": "refresh",
+              "type": "button",
+              "props": {
+                "label": "Check inbox",
+                "event": "chat.refresh"
+              }
+            },
+            {
+              "id": "inbox",
+              "type": "text",
+              "props": {
+                "value": "peer-42: hello back\npeer-77: second message"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "title": {
+          "x": 16,
+          "y": 16,
+          "width": 48,
+          "height": 25
+        },
+        "me": {
+          "x": 16,
+          "y": 53,
+          "width": 288,
+          "height": 20
+        },
+        "peer-input": {
+          "x": 16,
+          "y": 85,
+          "width": 288,
+          "height": 32
+        },
+        "send": {
+          "x": 16,
+          "y": 129,
+          "width": 124,
+          "height": 32
+        },
+        "refresh": {
+          "x": 16,
+          "y": 173,
+          "width": 134,
+          "height": 32
+        },
+        "inbox": {
+          "x": 16,
+          "y": 217,
+          "width": 230,
+          "height": 40
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 273
+        }
+      }
+    },
+    {
+      "name": "stream-board-first@mobile",
+      "note": "first recorded frame of the golden stream",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "Board"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "body",
+              "type": "text",
+              "props": {
+                "value": "Publish a post to the board namespace."
+              }
+            },
+            {
+              "id": "publish",
+              "type": "button",
+              "props": {
+                "label": "Publish post",
+                "event": "board.publish"
+              }
+            },
+            {
+              "id": "refresh",
+              "type": "button",
+              "props": {
+                "label": "Refresh board",
+                "event": "board.refresh"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "title": {
+          "x": 16,
+          "y": 16,
+          "width": 60,
+          "height": 25
+        },
+        "body": {
+          "x": 16,
+          "y": 53,
+          "width": 288,
+          "height": 20
+        },
+        "publish": {
+          "x": 16,
+          "y": 85,
+          "width": 144,
+          "height": 32
+        },
+        "refresh": {
+          "x": 16,
+          "y": 129,
+          "width": 154,
+          "height": 32
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 177
+        }
+      }
+    },
+    {
+      "name": "stream-board-last@mobile",
+      "note": "last recorded frame of the golden stream",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "Board"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "body",
+              "type": "text",
+              "props": {
+                "value": "1 local post(s), 1 announce(s) on board"
+              }
+            },
+            {
+              "id": "publish",
+              "type": "button",
+              "props": {
+                "label": "Publish post",
+                "event": "board.publish"
+              }
+            },
+            {
+              "id": "refresh",
+              "type": "button",
+              "props": {
+                "label": "Refresh board",
+                "event": "board.refresh"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "title": {
+          "x": 16,
+          "y": 16,
+          "width": 60,
+          "height": 25
+        },
+        "body": {
+          "x": 16,
+          "y": 53,
+          "width": 288,
+          "height": 20
+        },
+        "publish": {
+          "x": 16,
+          "y": 85,
+          "width": 144,
+          "height": 32
+        },
+        "refresh": {
+          "x": 16,
+          "y": 129,
+          "width": 154,
+          "height": 32
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 177
+        }
+      }
+    },
+    {
+      "name": "stream-file-drop-first@mobile",
+      "note": "first recorded frame of the golden stream",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "File Drop"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "body",
+              "type": "text",
+              "props": {
+                "value": "Tap fetch to load offer:demo through host budget checks."
+              }
+            },
+            {
+              "id": "fetch",
+              "type": "button",
+              "props": {
+                "label": "Fetch offer",
+                "event": "resource.fetch"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "title": {
+          "x": 16,
+          "y": 16,
+          "width": 108,
+          "height": 25
+        },
+        "body": {
+          "x": 16,
+          "y": 53,
+          "width": 288,
+          "height": 20
+        },
+        "fetch": {
+          "x": 16,
+          "y": 85,
+          "width": 134,
+          "height": 32
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 133
+        }
+      }
+    },
+    {
+      "name": "stream-file-drop-last@mobile",
+      "note": "last recorded frame of the golden stream",
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "File Drop"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "body",
+              "type": "text",
+              "props": {
+                "value": "Budget exceeded for offer:demo"
+              }
+            },
+            {
+              "id": "fetch",
+              "type": "button",
+              "props": {
+                "label": "Fetch offer",
+                "event": "resource.fetch"
+              }
+            }
+          ]
+        }
+      },
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": {
+        "title": {
+          "x": 16,
+          "y": 16,
+          "width": 108,
+          "height": 25
+        },
+        "body": {
+          "x": 16,
+          "y": 53,
+          "width": 288,
+          "height": 20
+        },
+        "fetch": {
+          "x": 16,
+          "y": 85,
+          "width": 134,
+          "height": 32
+        },
+        "root": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 133
+        }
+      }
+    }
+  ]
+}

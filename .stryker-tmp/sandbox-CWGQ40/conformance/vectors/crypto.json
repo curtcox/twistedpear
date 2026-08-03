@@ -1,0 +1,37 @@
+{
+  "upstream": {
+    "reticulumVersion": "0.9.4",
+    "lxmfVersion": "0.7.0",
+    "generatedBy": "conformance/vectors/generate.py"
+  },
+  "sha256": [
+    {
+      "name": "empty",
+      "inputHex": "",
+      "digestHex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "reticulum-phase1",
+      "inputHex": "7265746963756c756d2d74732f706861736531",
+      "digestHex": "ce2f74334230d8a40bb7d010d545503b35bb4c221ef389782ef02a1f2b1d4eff"
+    }
+  ],
+  "hmacSha256": [
+    {
+      "name": "rfc4231-case-1",
+      "keyHex": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "inputHex": "4869205468657265",
+      "digestHex": "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+    }
+  ],
+  "hkdfSha256": [
+    {
+      "name": "rfc5869-case-1",
+      "keyMaterialHex": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "saltHex": "000102030405060708090a0b0c",
+      "infoHex": "f0f1f2f3f4f5f6f7f8f9",
+      "length": 42,
+      "outputHex": "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
+    }
+  ]
+}

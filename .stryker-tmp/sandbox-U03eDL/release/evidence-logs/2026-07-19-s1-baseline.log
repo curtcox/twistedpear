@@ -1,0 +1,24 @@
+[release] stage: S1
+[release] commands: npm run build && npm test
+[release] build: passed
+[release] tests: 149 files passed, 2 skipped; 1142 tests passed, 7 skipped
+[release] note: localhost socket tests were rerun outside the workspace sandbox after the sandbox denied bind/listen with EPERM
+[release] conformance: desktop, devstudio-loop, demo:phase5, web-miniapp, web-examples, bare-device, bare-interop, and live I2P echo/link/LXMF passed
+[release] focused gates: release harness (10/10), core smoke (98/98), IPv4/IPv6 transport (9/9), Node and Bare-provider benchmark comparisons passed
+[release] outstanding: CI must confirm the Linux AutoInterface lane and the complete PR-tier matrix before baseline:S1 and ci:baseline can be marked passed
+[release] exit: 0
+[release] follow-up: CI run 29689417513 completed with five failures: auto-interop, desktop-interop, ios-sim, web, and web-interop
+[release] repairs: pinned LXMF storage, resilient transport announce fan-out, deterministic two-leaf hub startup/routes, host-process macOS RNS peer, WebSocket route readiness/cleanup, and awaited WebSerial result capture
+[release] follow-up verification: lint passed; full Vitest passed (149 files, 1143 tests; 2 files/7 tests skipped); release harness 10/10; web runtime bundle guards passed; AutoInterface fixture healthy; transport-role, web-interop, and web-rnode passed
+[release] outstanding: push the repair set and require a fresh fully green PR-tier CI run before recording baseline:S1 and ci:baseline as passed
+[release] macOS iOS follow-up: required toolchain lane passed with a pinned host-process RNS peer; 100/100 Bare lifecycle reconnects passed (p50 1922ms, p95 1938ms, max 1960ms), followed by store-posture and TCP echo passes
+[release] lifecycle repair: shared TCP/lifecycle slices now execute in bundled Bare subprocesses; unregistering an interface invalidates paths learned through it; desktop lifecycle passed through the same runner
+[release] final local unit baseline: lint passed; 149 Vitest files passed, 2 skipped; 1144 tests passed, 7 skipped
+[release] CI run 29692614827 follow-up: 27/30 jobs passed; auto-interop failed on shared UDP bind EADDRINUSE, web-interop-browser exposed an IndexedDB schema collision followed by a cross-runtime LXMF return-path convergence race, and fuzz failed before execution on an Electron download ECONNRESET
+[release] repairs: opt-in shared UDP listeners for AutoInterface, isolated web runtime/identity IndexedDB schemas, WebSocket server detach/unregister lifecycle, deterministic browser gateway-path verification and LXMF return-path convergence, and classified Python LXMF peer diagnostics
+[release] final repair verification: lint passed; 149 Vitest files passed, 2 skipped; 1145 tests passed, 7 skipped; release harness 10/10; focused transport/WebSocket lifecycle 26/26; browser WebSocket/Python packet + LXMF interop passed in Playwright; AutoInterface shared-bind regression passed locally (the full Linux host-network lane remains CI-only)
+[release] outstanding: push the repair set and require a fresh fully green CI run before recording baseline:S1 and ci:baseline as passed
+[release] branch verification: production build passed at commit 382a67eb on codex/release-plan-s1; branch is published and awaiting a pull request to trigger the PR-tier matrix
+[release] follow-up: repair CI failures from run 29694081853 (auto-interop EADDRINUSE, web packet-echo return path, transport-hub greeting, propagation LXMF storage)
+[release] repairs: dual-container AutoInterface topology (distinct fe80 binds), Linux SO_REUSEPORT for cooperative UDP, LXMF storagepath on propagation tools, browser packet-echo gateway path wait, aggressive transport-leaf greeting + SENT wait
+[release] local verification: transport-role passed; UDP shared-listener unit tests passed; auto-interop:compose requires Linux docker fe80 binds (GHA)

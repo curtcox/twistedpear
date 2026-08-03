@@ -1,0 +1,8 @@
+[propagation]
+  enable_node = yes
+  announce_at_start = yes
+  autopeer = no
+  announce_interval = 360
+
+[logging]
+  loglevel = 2

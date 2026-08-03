@@ -1,0 +1,42 @@
+{
+  "name": "@twistedpear/reticulum-ts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "import": "./dist/web.js"
+    },
+    "./worklet": {
+      "types": "./dist/worklet.d.ts",
+      "import": "./dist/worklet.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "docs": "typedoc --options typedoc.json"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^1.3.0",
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
+    "@twistedpear/protocol": "*",
+    "bare-dgram": "^1.0.1",
+    "bare-fs": "^4.7.3",
+    "bare-tcp": "^2.5.1",
+    "seek-bzip": "^2.0.0",
+    "sodium-native": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/sodium-native": "^2.3.9",
+    "typedoc": "^0.27.5"
+  }
+}

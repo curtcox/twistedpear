@@ -1,0 +1,16 @@
+[package]
+name = "twistedpear-freenet-ordered-log-spike"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+freenet-stdlib = { git = "https://github.com/freenet/freenet-stdlib.git", rev = "f4636e502876b0e11f2f6d59032348cfd6518bbc", features = ["contract"] }
+
+[features]
+default = ["freenet-main-contract"]
+freenet-main-contract = []

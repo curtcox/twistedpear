@@ -1,0 +1,14 @@
+{
+  "id": "identity-hash",
+  "group": "crypto",
+  "title": "App destination hash",
+  "capabilities": ["identity"],
+  "surfaces": ["identity.destinationHash"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

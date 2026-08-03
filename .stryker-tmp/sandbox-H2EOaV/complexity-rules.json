@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "description": "Function-level complexity thresholds derived from the initial repository survey. Test and conformance code receives wider orchestration limits than production source.",
+  "source": {
+    "complexity": 10,
+    "maxDepth": 4,
+    "maxParams": 5,
+    "maxLinesPerFunction": 120,
+    "maxNestedCallbacks": 4
+  },
+  "test": {
+    "complexity": 15,
+    "maxDepth": 5,
+    "maxParams": 8,
+    "maxLinesPerFunction": 200,
+    "maxNestedCallbacks": 5
+  }
+}

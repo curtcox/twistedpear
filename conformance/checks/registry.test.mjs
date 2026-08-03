@@ -33,6 +33,7 @@ describe("static-analysis gate registry", () => {
       expect(["pr", "nightly"]).toContain(gate.tier);
       expect(gate.requires.length).toBeGreaterThan(0);
       expect(gate.artifacts.length).toBeGreaterThan(0);
+      expect(gate.artifacts).toContain(`artifacts/logs/${gate.id}.log`);
       expect(gate.command.slice(0, 2)).toEqual(["npm", "run"]);
       expect(
         manifest.scripts[gate.command[2]],
@@ -64,6 +65,7 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain(
       "SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}",
     );
+    expect(reports).toContain("logFile: `artifacts/logs/${job.id}.log`");
 
     const plan = spawnSync(
       globalThis.process.execPath,

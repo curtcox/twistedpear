@@ -1,0 +1,8 @@
+{
+  "schema": "twistedpear.release-evidence-v1",
+  "id": "soaks:plan-duration",
+  "status": "started",
+  "at": "2026-07-20T21:56:57.899Z",
+  "log": ".tmp/mac-validation/release-2026-07-20T21-56-57-896Z/release-start.log",
+  "note": "Stage-8 serial plan-duration runner started"
+}

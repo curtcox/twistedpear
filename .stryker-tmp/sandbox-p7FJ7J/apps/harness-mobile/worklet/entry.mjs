@@ -1,0 +1,720 @@
+/**
+ * Bare worklet entry (bundled with bare-pack for react-native-bare-kit).
+ * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
+ */
+// @ts-nocheck
+
+import "../../../conformance/bare-interop/bare-globals.mjs";
+import "bare-encoding/global";
+import {
+  FreenetClient,
+  FreenetClientContractBackend,
+  FreenetContractPacketLogBackend,
+  FreenetPropagationStore
+} from "../../../packages/bridge-freenet/dist/index.js";
+import { FreenetInterface } from "../../../packages/reticulum-interfaces/dist/freenet.js";
+import { PACKET_LOG_WASM_BASE64 } from "./packet-log-wasm.generated.mjs";
+import { PROPAGATION_SET_WASM_BASE64 } from "./propagation-set-wasm.generated.mjs";
+import { bytesToHex, hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { BareCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/bare.js";
+import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
+import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
+import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
+import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
+import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
+import { BandwidthLimiter } from "../../../packages/reticulum-ts/dist/transport/bandwidth.js";
+import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
+import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
+import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
+import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
+import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
+import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
+import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
+import {
+  connectTestAgent,
+  createAutoInterfaceOps,
+  createAutomaticReticulumDiscovery,
+  createCasLocatorOps,
+  createCatalogOps,
+  createCrossDeviceTestDriver,
+  createDevChannelClient,
+  createEnsureDevChannel,
+  createHarnessPeerPair,
+  createHostReplyChannel,
+  createInstallFromT256,
+  createMiniappAnnounceService,
+  createPeerSessionManagerProxyFromState,
+  createPublishArchiveOps,
+  createQuiesceInterfaces,
+  createRegisterAnnounceHandler,
+  createRuntimeKeyValueStore,
+  createStatusTimer,
+  createTrustStoreOps,
+  createWorkletMiniappHost,
+  createWorkletPropagationPersistenceOps,
+  joinCommunityNetwork,
+  peerServiceAspect,
+  sleep
+} from "../../../packages/worklet-core/src/index.mjs";
+import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
+import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
+import {
+  decodePublisherIdentity256t,
+  encodePublisherIdentity256t,
+  verifyPackage
+} from "../../../packages/app-registry/dist/index.js";
+import {
+  PackageResourceClient,
+  assessFetchBudget,
+  fetchPackage
+} from "../../../packages/bridge-hyper/dist/worklet.js";
+import {
+  HOST_API_VERSION,
+  createWorkletFlagRelayService,
+  generateConfirmationToken,
+  validateManifestCapabilities
+} from "../../../packages/miniapp-runtime/dist/worklet.js";
+import {
+  PropagationServer,
+  createPropagationDestination,
+  DEFAULT_PROPAGATION_QUOTAS
+} from "../../../packages/lxmf-ts/dist/index.js";
+import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
+import { SimulatedMediaCodecDriver } from "../../../packages/effects/dist/media-codec.js";
+import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
+import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
+import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
+import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
+import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, meterHostPeerRoute, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
+import { ensureBareWebSocketImpl, createProviderImpl, mobileStorePathImpl, runtimeKeyValueStoreImpl, importTrustedPublisherImpl, ensureCrossDeviceTestDriverImpl, handleNativeMediaOpusCommandImpl, ensureMiniappHostImpl, ensurePackageDriveManagerImpl, sendImpl, peerTokenImpl, ntfyHostFetchImpl, sendBluetoothInvitationImpl, receiveBluetoothFrameImpl } from "./entry-extracted-1.mjs";
+import { ensurePeerSessionManagerImpl, logImpl, refuseStoreActionImpl, pushStatusImpl, updateIdentityStatusImpl, loadPersistedIdentityImpl, persistIdentityImpl, createIdentityImpl, resetIdentityImpl, stopBleInterfaceImpl, stopRnodeInterfaceImpl, stopTcpInterfaceImpl, loadPacketLogWasmImpl, loadPropagationSetWasmImpl, stopFreenetInterfaceImpl, startFreenetInterfaceImpl, stopFreenetPropagationRoleImpl, startFreenetPropagationRoleImpl, detachFreenetBackendsImpl, attachFreenetBackendsImpl, anyRelayOrFreenetEnabledImpl, stopNodeImpl, resumeInterfacesImpl, resolveIdentityImpl, ensureReticulumImpl, ensureHostLxmfDeliveryImpl, stopHostLxmfDeliveryImpl, startTcpInterfaceImpl } from "./entry-extracted-2.mjs";
+import { startBleInterfaceImpl, startRnodeInterfaceImpl, applyInterfaceConfigImpl } from "./entry-extracted-3.mjs";
+import { handleHostMessageImpl } from "./entry-extracted-4.mjs";
+
+const extractedContext = {
+  get IDENTITY_STORE_KEY() { return IDENTITY_STORE_KEY; },
+  get activeIdentity() { return activeIdentity; }, set activeIdentity(value) { activeIdentity = value; },
+  get anyRelayOrFreenetEnabled() { return anyRelayOrFreenetEnabled; }, set anyRelayOrFreenetEnabled(value) { anyRelayOrFreenetEnabled = value; },
+  get applyInterfaceConfig() { return applyInterfaceConfig; }, set applyInterfaceConfig(value) { applyInterfaceConfig = value; },
+  get attachFreenetBackends() { return attachFreenetBackends; }, set attachFreenetBackends(value) { attachFreenetBackends = value; },
+  get attachWebRtcMediaTrack() { return attachWebRtcMediaTrack; }, set attachWebRtcMediaTrack(value) { attachWebRtcMediaTrack = value; },
+  get autoIface() { return autoIface; }, set autoIface(value) { autoIface = value; },
+  get bareWebSocketReady() { return bareWebSocketReady; }, set bareWebSocketReady(value) { bareWebSocketReady = value; },
+  get bleBridge() { return bleBridge; }, set bleBridge(value) { bleBridge = value; },
+  get bleIface() { return bleIface; }, set bleIface(value) { bleIface = value; },
+  get bluetoothAnswerWaiters() { return bluetoothAnswerWaiters; },
+  get bluetoothAssemblies() { return bluetoothAssemblies; },
+  get bluetoothDiscoveryChannel() { return bluetoothDiscoveryChannel; },
+  get bluetoothOfferKeys() { return bluetoothOfferKeys; },
+  get bluetoothOfferQueue() { return bluetoothOfferQueue; },
+  get bluetoothOfferWaiters() { return bluetoothOfferWaiters; },
+  get bonjourBridge() { return bonjourBridge; }, set bonjourBridge(value) { bonjourBridge = value; },
+  get bonjourDiscoveryEnabled() { return bonjourDiscoveryEnabled; }, set bonjourDiscoveryEnabled(value) { bonjourDiscoveryEnabled = value; },
+  get createIdentity() { return createIdentity; }, set createIdentity(value) { createIdentity = value; },
+  get createWorkletPropagationPersistence() { return createWorkletPropagationPersistence; }, set createWorkletPropagationPersistence(value) { createWorkletPropagationPersistence = value; },
+  get crossDeviceTestDriver() { return crossDeviceTestDriver; }, set crossDeviceTestDriver(value) { crossDeviceTestDriver = value; },
+  get detachFreenetBackends() { return detachFreenetBackends; }, set detachFreenetBackends(value) { detachFreenetBackends = value; },
+  get ensureBareWebSocket() { return ensureBareWebSocket; }, set ensureBareWebSocket(value) { ensureBareWebSocket = value; },
+  get ensureCrossDeviceTestDriver() { return ensureCrossDeviceTestDriver; }, set ensureCrossDeviceTestDriver(value) { ensureCrossDeviceTestDriver = value; },
+  get ensureDevChannel() { return ensureDevChannel; }, set ensureDevChannel(value) { ensureDevChannel = value; },
+  get ensureHostLxmfDelivery() { return ensureHostLxmfDelivery; }, set ensureHostLxmfDelivery(value) { ensureHostLxmfDelivery = value; },
+  get ensureMiniappHost() { return ensureMiniappHost; }, set ensureMiniappHost(value) { ensureMiniappHost = value; },
+  get ensurePackageDriveManager() { return ensurePackageDriveManager; }, set ensurePackageDriveManager(value) { ensurePackageDriveManager = value; },
+  get ensurePeerSessionManager() { return ensurePeerSessionManager; }, set ensurePeerSessionManager(value) { ensurePeerSessionManager = value; },
+  get ensureReticulum() { return ensureReticulum; }, set ensureReticulum(value) { ensureReticulum = value; },
+  get freenetBackendImpl() { return freenetBackendImpl; }, set freenetBackendImpl(value) { freenetBackendImpl = value; },
+  get freenetBackendProxy() { return freenetBackendProxy; },
+  get freenetCapabilities() { return freenetCapabilities; }, set freenetCapabilities(value) { freenetCapabilities = value; },
+  get freenetIface() { return freenetIface; }, set freenetIface(value) { freenetIface = value; },
+  get freenetPropagationStore() { return freenetPropagationStore; }, set freenetPropagationStore(value) { freenetPropagationStore = value; },
+  get freenetSharedClient() { return freenetSharedClient; }, set freenetSharedClient(value) { freenetSharedClient = value; },
+  get handleNativeMediaOpusCommand() { return handleNativeMediaOpusCommand; }, set handleNativeMediaOpusCommand(value) { handleNativeMediaOpusCommand = value; },
+  get harnessPeerPair() { return harnessPeerPair; },
+  get hostLxmfDelivery() { return hostLxmfDelivery; }, set hostLxmfDelivery(value) { hostLxmfDelivery = value; },
+  get hostReplyChannel() { return hostReplyChannel; },
+  get importTrustedPublisher() { return importTrustedPublisher; }, set importTrustedPublisher(value) { importTrustedPublisher = value; },
+  get installFromT256() { return installFromT256; }, set installFromT256(value) { installFromT256 = value; },
+  get loadPacketLogWasm() { return loadPacketLogWasm; }, set loadPacketLogWasm(value) { loadPacketLogWasm = value; },
+  get loadPersistedIdentity() { return loadPersistedIdentity; }, set loadPersistedIdentity(value) { loadPersistedIdentity = value; },
+  get loadPropagationCache() { return loadPropagationCache; }, set loadPropagationCache(value) { loadPropagationCache = value; },
+  get loadPropagationSetWasm() { return loadPropagationSetWasm; }, set loadPropagationSetWasm(value) { loadPropagationSetWasm = value; },
+  get log() { return log; }, set log(value) { log = value; },
+  get miniappHost() { return miniappHost; }, set miniappHost(value) { miniappHost = value; },
+  get multicastBridge() { return multicastBridge; }, set multicastBridge(value) { multicastBridge = value; },
+  get multicastEntitled() { return multicastEntitled; }, set multicastEntitled(value) { multicastEntitled = value; },
+  get nodeSuspended() { return nodeSuspended; }, set nodeSuspended(value) { nodeSuspended = value; },
+  get ntfyHostFetch() { return ntfyHostFetch; }, set ntfyHostFetch(value) { ntfyHostFetch = value; },
+  get ntfyUrl() { return ntfyUrl; }, set ntfyUrl(value) { ntfyUrl = value; },
+  get outboundBandwidthLimiter() { return outboundBandwidthLimiter; },
+  get packageDriveManager() { return packageDriveManager; }, set packageDriveManager(value) { packageDriveManager = value; },
+  get packageSwarm() { return packageSwarm; }, set packageSwarm(value) { packageSwarm = value; },
+  get packetLogWasmCache() { return packetLogWasmCache; }, set packetLogWasmCache(value) { packetLogWasmCache = value; },
+  get peerChrome() { return peerChrome; },
+  get peerLinks() { return peerLinks; },
+  get peerSessionManager() { return peerSessionManager; }, set peerSessionManager(value) { peerSessionManager = value; },
+  get peerSessionManagerProxy() { return peerSessionManagerProxy; },
+  get peerToken() { return peerToken; }, set peerToken(value) { peerToken = value; },
+  get pendingFreenetAuthToken() { return pendingFreenetAuthToken; }, set pendingFreenetAuthToken(value) { pendingFreenetAuthToken = value; },
+  get pendingFreenetLocalDirection() { return pendingFreenetLocalDirection; }, set pendingFreenetLocalDirection(value) { pendingFreenetLocalDirection = value; },
+  get pendingRnodeBaudRate() { return pendingRnodeBaudRate; }, set pendingRnodeBaudRate(value) { pendingRnodeBaudRate = value; },
+  get pendingRnodeDeviceId() { return pendingRnodeDeviceId; }, set pendingRnodeDeviceId(value) { pendingRnodeDeviceId = value; },
+  get pendingTarget() { return pendingTarget; }, set pendingTarget(value) { pendingTarget = value; },
+  get persistIdentity() { return persistIdentity; }, set persistIdentity(value) { persistIdentity = value; },
+  get propagationDestination() { return propagationDestination; }, set propagationDestination(value) { propagationDestination = value; },
+  get propagationServer() { return propagationServer; }, set propagationServer(value) { propagationServer = value; },
+  get propagationSetWasmCache() { return propagationSetWasmCache; }, set propagationSetWasmCache(value) { propagationSetWasmCache = value; },
+  get provider() { return provider; },
+  get publishArchiveFromWorklet() { return publishArchiveFromWorklet; }, set publishArchiveFromWorklet(value) { publishArchiveFromWorklet = value; },
+  get pushStatus() { return pushStatus; }, set pushStatus(value) { pushStatus = value; },
+  get quiesceInterfaces() { return quiesceInterfaces; }, set quiesceInterfaces(value) { quiesceInterfaces = value; },
+  get receiveBluetoothFrame() { return receiveBluetoothFrame; }, set receiveBluetoothFrame(value) { receiveBluetoothFrame = value; },
+  get refuseStoreAction() { return refuseStoreAction; }, set refuseStoreAction(value) { refuseStoreAction = value; },
+  get registerAnnounceHandler() { return registerAnnounceHandler; }, set registerAnnounceHandler(value) { registerAnnounceHandler = value; },
+  get requestHostReply() { return requestHostReply; },
+  get resetIdentity() { return resetIdentity; }, set resetIdentity(value) { resetIdentity = value; },
+  get resolveIdentity() { return resolveIdentity; }, set resolveIdentity(value) { resolveIdentity = value; },
+  get resumeInterfaces() { return resumeInterfaces; }, set resumeInterfaces(value) { resumeInterfaces = value; },
+  get reticulum() { return reticulum; }, set reticulum(value) { reticulum = value; },
+  get rnodeIface() { return rnodeIface; }, set rnodeIface(value) { rnodeIface = value; },
+  get runtime() { return runtime; },
+  get runtimeKeyValueStore() { return runtimeKeyValueStore; }, set runtimeKeyValueStore(value) { runtimeKeyValueStore = value; },
+  get runtimeStoreKeys() { return runtimeStoreKeys; },
+  get send() { return send; }, set send(value) { send = value; },
+  get serialBridge() { return serialBridge; }, set serialBridge(value) { serialBridge = value; },
+  get startAutoInterface() { return startAutoInterface; }, set startAutoInterface(value) { startAutoInterface = value; },
+  get startBleInterface() { return startBleInterface; }, set startBleInterface(value) { startBleInterface = value; },
+  get startFreenetInterface() { return startFreenetInterface; }, set startFreenetInterface(value) { startFreenetInterface = value; },
+  get startFreenetPropagationRole() { return startFreenetPropagationRole; }, set startFreenetPropagationRole(value) { startFreenetPropagationRole = value; },
+  get startRnodeInterface() { return startRnodeInterface; }, set startRnodeInterface(value) { startRnodeInterface = value; },
+  get startStatusTimer() { return startStatusTimer; },
+  get startTcpInterface() { return startTcpInterface; }, set startTcpInterface(value) { startTcpInterface = value; },
+  get status() { return status; },
+  get stopAutoInterface() { return stopAutoInterface; }, set stopAutoInterface(value) { stopAutoInterface = value; },
+  get stopBleInterface() { return stopBleInterface; }, set stopBleInterface(value) { stopBleInterface = value; },
+  get stopFreenetInterface() { return stopFreenetInterface; }, set stopFreenetInterface(value) { stopFreenetInterface = value; },
+  get stopFreenetPropagationRole() { return stopFreenetPropagationRole; }, set stopFreenetPropagationRole(value) { stopFreenetPropagationRole = value; },
+  get stopHostLxmfDelivery() { return stopHostLxmfDelivery; }, set stopHostLxmfDelivery(value) { stopHostLxmfDelivery = value; },
+  get stopNode() { return stopNode; }, set stopNode(value) { stopNode = value; },
+  get stopRnodeInterface() { return stopRnodeInterface; }, set stopRnodeInterface(value) { stopRnodeInterface = value; },
+  get stopStatusTimer() { return stopStatusTimer; },
+  get stopTcpInterface() { return stopTcpInterface; }, set stopTcpInterface(value) { stopTcpInterface = value; },
+  get tcpIface() { return tcpIface; }, set tcpIface(value) { tcpIface = value; },
+  get testAgent() { return testAgent; }, set testAgent(value) { testAgent = value; },
+  get transportAnnounceService() { return transportAnnounceService; },
+  get updateIdentityStatus() { return updateIdentityStatus; }, set updateIdentityStatus(value) { updateIdentityStatus = value; },
+  get webRtcRouteListeners() { return webRtcRouteListeners; },
+  get webRtcRoutePending() { return webRtcRoutePending; },
+  get webRtcSessionByFingerprint() { return webRtcSessionByFingerprint; }
+};
+
+
+// Opus encode/decode runs on the RN host (Hermes/JSC). Packing opusscript into the
+// Bare worklet breaks identity boot on BareKit; duplex is delegated via IPC.
+
+const { IPC } = BareKit;
+const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
+
+let bareWebSocketReady = null;
+async function ensureBareWebSocket() { return ensureBareWebSocketImpl(extractedContext); }
+function createProvider() { return createProviderImpl(extractedContext); }
+
+const provider = createProvider();
+function mobileStorePath() { return mobileStorePathImpl(extractedContext); }
+
+const runtime = bareRuntime({ storePath: mobileStorePath() });
+const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
+const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
+const IDENTITY_STORE_KEY = "harness-identity";
+
+/** @type {import("./protocol.ts").WorkletStatus} */
+const status = {
+  running: false,
+  linkOnline: false,
+  announcesSeen: 0,
+  identityHash: null,
+  identityPersisted: false,
+  tcpEnabled: false,
+  autoEnabled: false,
+  bleEnabled: false,
+  bleConnected: false,
+  rnodeEnabled: false,
+  rnodeConnected: false,
+  rnodeDeviceName: null,
+  cryptoProvider: provider.name,
+  autoPeers: 0,
+  preferredInterface: null,
+  onlineInterfaces: 0,
+  catalogEntries: 0,
+  installedPackages: 0,
+  storageUsedBytes: 0,
+  developerMode: false,
+  miniappRunning: false,
+  freenetEnabled: false,
+  freenetConfigured: false,
+  freenetUrl: null,
+  freenetContractReads: false,
+  freenetContractWrites: false,
+  freenetPacketTunnel: false,
+  freenetPropagation: false,
+  freenetInterfaceOnline: false,
+  freenetPropagationAttached: false,
+  freenetPropagationRole: false,
+  freenetRendezvousHex: null,
+  propagationEnabled: false,
+  propagationStoreBytes: 0,
+  propagationMessageCount: 0
+};
+
+/** @type {FreenetClient | null} */
+let freenetSharedClient = null;
+/** @type {FreenetClientContractBackend | null} */
+let freenetBackendImpl = null;
+/** @type {import("../../../packages/reticulum-interfaces/dist/freenet.js").FreenetInterface | null} */
+let freenetIface = null;
+/** @type {FreenetPropagationStore | null} */
+let freenetPropagationStore = null;
+/** @type {PropagationServer | null} */
+let propagationServer = null;
+/** @type {ReturnType<typeof createPropagationDestination> | null} */
+let propagationDestination = null;
+const PROPAGATION_STORE_KEY = "harness-propagation-store";
+/** @type {{ entries: ReadonlyArray<{ transientIdHex: string; lxmfDataHex: string; storedAt: number }> } | null} */
+let propagationStoreCache = null;
+/** @type {string | null} */
+let pendingFreenetAuthToken = null;
+/** @type {0 | 1} */
+let pendingFreenetLocalDirection = 0;
+/** @type {Uint8Array | null} */
+let packetLogWasmCache = null;
+/** @type {Uint8Array | null} */
+let propagationSetWasmCache = null;
+/** @type {{ contractReads: boolean, contractWrites: boolean, packetTunnel: boolean, propagation: boolean }} */
+let freenetCapabilities = {
+  contractReads: false,
+  contractWrites: false,
+  packetTunnel: false,
+  propagation: false
+};
+const freenetBackendProxy = {
+  async get(keyHex) {
+    if (freenetBackendImpl === null || !freenetCapabilities.contractReads) {
+      throw new Error("Freenet contract reads are not granted on this host");
+    }
+    return freenetBackendImpl.get(keyHex);
+  },
+  async put(options) {
+    if (freenetBackendImpl === null || !freenetCapabilities.contractWrites) {
+      throw new Error("Freenet contract writes are not granted on this host");
+    }
+    return freenetBackendImpl.put(options);
+  },
+  async update(options) {
+    if (freenetBackendImpl === null || !freenetCapabilities.contractWrites) {
+      throw new Error("Freenet contract writes are not granted on this host");
+    }
+    return freenetBackendImpl.update(options);
+  }
+};
+
+/** @type {Reticulum | null} */
+let reticulum = null;
+let peerSessionManager = null;
+/** @type {Map<string, Set<(payload: Uint8Array) => void>>} */
+const webRtcRouteListeners = new Map();
+/** @type {Map<string, Uint8Array[]>} */
+const webRtcRoutePending = new Map();
+/** @type {Map<string, string>} */
+const webRtcSessionByFingerprint = new Map();
+/** @type {null | ((input: { appId: string; peer: string; demand: any; admission?: any }) => Promise<{ quality?: () => any; close: () => Promise<void>; bytesSent?: number; sessionId?: string; voiceProcessing?: unknown }>)>} */
+let attachWebRtcMediaTrack = null;
+let ntfyUrl = null;
+const peerLinkDestinations = new Map();
+const peerLinks = new Map();
+const automaticDiscoveryDestinations = new Map();
+const automaticDiscoveryHandlers = new Set();
+const automaticInboundBuckets = new Map();
+const automaticInboundWaiters = new Map();
+const automaticInboundRoutes = new Map();
+const automaticAnswerWaiters = new Map();
+const automaticOfferKeys = new Map();
+const bluetoothAssemblies = new Map();
+const bluetoothOfferQueue = [];
+const bluetoothOfferWaiters = [];
+const bluetoothAnswerWaiters = new Map();
+const bluetoothOfferKeys = new Map();
+/** @type {import("@twistedpear/reticulum-ts").TcpClientInterface | null} */
+let tcpIface = null;
+/** @type {AutoInterfaceBridge | null} */
+let autoIface = null;
+/** @type {ReturnType<typeof createIpcMulticastBridge> | null} */
+let multicastBridge = null;
+/** @type {ReturnType<typeof createIpcBonjourBridge> | null} */
+let bonjourBridge = null;
+/** @type {boolean} */
+let bonjourDiscoveryEnabled = true;
+/** @type {boolean} */
+let multicastEntitled = true;
+/** @type {boolean} */
+let nodeSuspended = false;
+/** @type {ReturnType<typeof createIpcBleBridge> | null} */
+let bleBridge = null;
+/** @type {BleInterface | null} */
+let bleIface = null;
+/** @type {ReturnType<typeof createIpcSerialBridge> | null} */
+let serialBridge = null;
+/** @type {RNodeInterface | null} */
+let rnodeIface = null;
+/** @type {number | null} */
+let pendingRnodeDeviceId = null;
+/** @type {number} */
+let pendingRnodeBaudRate = 115_200;
+/** @type {Identity | null} */
+let activeIdentity = null;
+/** @type {{ targetHost: string; targetPort: number } | null} */
+let pendingTarget = null;
+
+/** @type {import("../../../packages/bridge-hyper/dist/drive.js").DriveManager | null} */
+let packageDriveManager = null;
+/** @type {import("../../../packages/bridge-hyper/dist/swarm.js").SwarmSession | null} */
+let packageSwarm = null;
+const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
+
+/** @type {Map<string, import("../../../packages/cas-256t/dist/index.js").CasLocator>} */
+const casLocators = new Map();
+const casRequestDestinations = new Map();
+const casResponseDestinations = new Map();
+const runtimeStoreKeys = new Set();
+function runtimeKeyValueStore() { return runtimeKeyValueStoreImpl(extractedContext); }
+
+const casOps = createCasLocatorOps({
+  provider,
+  DestinationDirection,
+  DestinationType,
+  runtimeKeyValueStore,
+  casLocators,
+  casRequestDestinations,
+  casResponseDestinations,
+  getReticulum: () => reticulum,
+  ensureReticulum,
+  resolveIdentity,
+  log
+});
+const {
+  ensureEntryCasStore,
+  ingestCasLocator,
+  announceCasLocatorRequest,
+  respondToCasLocatorRequest,
+  waitForCasLocator
+} = casOps;
+
+const trustOps = createTrustStoreOps({ runtimeKeyValueStore, send });
+const { ensureTrustStore, pushTrustList } = trustOps;
+
+const catalogOps = createCatalogOps({
+  provider,
+  packageQuotaBytes: PACKAGE_QUOTA_BYTES,
+  runtimeKeyValueStore,
+  status,
+  pushStatus,
+  send
+});
+const { ensureCatalog, persistCatalogState, loadCatalogState, pushCatalog } = catalogOps;
+
+const reticulumDiscovery = createAutomaticReticulumDiscovery({
+  provider,
+  DestinationDirection,
+  DestinationType,
+  status,
+  getReticulum: () => reticulum,
+  ensureReticulum,
+  peerLinkDestinations,
+  automaticDiscoveryDestinations,
+  automaticDiscoveryHandlers,
+  automaticInboundBuckets,
+  automaticInboundWaiters,
+  automaticInboundRoutes,
+  automaticAnswerWaiters,
+  automaticOfferKeys
+});
+const {
+  ensurePeerLinkDestination,
+  automaticReticulumChannel
+} = reticulumDiscovery;
+
+let registerAnnounceHandler;
+let installFromT256;
+let publishArchiveFromWorklet;
+let ensureDevChannel;
+let loadPropagationCache;
+let createWorkletPropagationPersistence;
+let startAutoInterface;
+let stopAutoInterface;
+let quiesceInterfaces;
+
+/** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
+let miniappHost = null;
+/** @type {Awaited<ReturnType<typeof createHostLxmfDelivery>> | null} */
+let hostLxmfDelivery = null;
+/** Test-only peer control agent; mounted only by `connect-test-agent`. */
+let testAgent = null;
+let crossDeviceTestDriver = null;
+async function importTrustedPublisher(identityString, label, source = "paste") { return importTrustedPublisherImpl(extractedContext, identityString, label, source); }
+function ensureCrossDeviceTestDriver() { return ensureCrossDeviceTestDriverImpl(extractedContext); }
+async function handleNativeMediaOpusCommand(request) { return handleNativeMediaOpusCommandImpl(extractedContext, request); }
+function ensureMiniappHost() { return ensureMiniappHostImpl(extractedContext); }
+
+const transportAnnounceService = createMiniappAnnounceService({
+  provider,
+  bytesToHex,
+  DestinationDirection,
+  DestinationType,
+  getNode: () => ensureReticulum(),
+  getIdentity: () => resolveIdentity(),
+  copyAppData: true
+});
+async function ensurePackageDriveManager() { return ensurePackageDriveManagerImpl(extractedContext); }
+function send(message) { return sendImpl(extractedContext, message); }
+
+const hostReplyChannel = createHostReplyChannel({ send });
+const requestHostReply = hostReplyChannel.requestReply;
+function peerToken() { return peerTokenImpl(extractedContext); }
+const harnessPeerPair = createHarnessPeerPair();
+const peerChromeBase = {
+  manual: {
+    async *offer(session, code, options) { const reply = await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
+    async *accept(options) { const session = { id: peerToken(), kind: "manual" }; const reply = await requestHostReply({ type: "peer-manual-enter", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
+    async answer(session, code) { await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: false }); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  qr: {
+    async availability() { const reply = await requestHostReply({ type: "peer-qr-availability", token: peerToken() }, 5_000); return reply?.availability ?? { state: "unsupported", reason: "Native QR support could not be detected" }; },
+    async *present(session, codes, options) { const reply = await requestHostReply({ type: "peer-qr-present", token: peerToken(), sessionId: session.id, codes, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
+    async *scan(options) { const session = { id: peerToken(), kind: "qr" }; const reply = await requestHostReply({ type: "peer-qr-scan", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
+    async answer(session, codes) { await requestHostReply({ type: "peer-qr-present", token: peerToken(), sessionId: session.id, codes, expectsResponse: false }); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  audio: {
+    async availability() { const reply = await requestHostReply({ type: "peer-audio-availability", token: peerToken() }, 5_000); return reply?.availability ?? { state: "unsupported", reason: "Native PCM support could not be detected" }; },
+    async *transmit(session, frames, options) { const reply = await requestHostReply({ type: "peer-audio-transmit", token: peerToken(), sessionId: session.id, framesHex: frames.map(bytesToHex), expectsResponse: true }, options.timeoutMs); if (reply?.error !== undefined) throw new Error(reply.error); for (const frame of reply?.framesHex ?? []) yield hexToBytes(frame); },
+    async *receive(options) { const session = { id: peerToken(), kind: "audio" }; const reply = await requestHostReply({ type: "peer-audio-receive", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.error !== undefined) throw new Error(reply.error); for (const frame of reply?.framesHex ?? []) yield { session, frame: hexToBytes(frame) }; },
+    async answer(session, frames) { const reply = await requestHostReply({ type: "peer-audio-transmit", token: peerToken(), sessionId: session.id, framesHex: frames.map(bytesToHex), expectsResponse: false }, 120_000); if (reply?.accepted !== true) throw new Error(reply?.error ?? "Audio answer playback was cancelled"); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  ntfy: {
+    async availability() { return ntfyUrl === null ? { state: "offline", reason: "No ntfy rendezvous server is configured" } : { state: "available", reason: `Encrypted rendezvous through ${ntfyUrl}` }; },
+    async presentCode(session, code, options) { const reply = await requestHostReply({ type: "peer-ntfy-present", token: peerToken(), sessionId: session.id, code, server: ntfyUrl }, options.timeoutMs); if (reply?.accepted !== true) throw new Error("ntfy rendezvous was cancelled"); },
+    async requestCode(options) { const session = { id: peerToken(), kind: "ntfy" }; const reply = await requestHostReply({ type: "peer-ntfy-enter", token: peerToken(), sessionId: session.id, service: options.service, server: ntfyUrl }, options.timeoutMs); if (reply?.accepted !== true || typeof reply.code !== "string") throw new Error("ntfy rendezvous was cancelled"); return { session, code: reply.code }; },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  async confirm(peer, request) { const reply = await requestHostReply({ type: "peer-confirm-request", token: peerToken(), appId: request.service, service: request.service, purpose: request.purpose, peer }); return reply?.approved === true; }
+};
+const peerChrome = {
+  get manual() {
+    return harnessPeerPair.enabled ? harnessPeerPair.channel : peerChromeBase.manual;
+  },
+  qr: peerChromeBase.qr,
+  audio: peerChromeBase.audio,
+  ntfy: peerChromeBase.ntfy,
+  async confirm(peer, request) {
+    if (harnessPeerPair.enabled) return true;
+    return peerChromeBase.confirm(peer, request);
+  }
+};
+function ntfyHostFetch(input, init = {}) { return ntfyHostFetchImpl(extractedContext, input, init); }
+function sendBluetoothInvitation(envelope) { return sendBluetoothInvitationImpl(extractedContext, envelope); }
+function receiveBluetoothFrame(frameBytes) { return receiveBluetoothFrameImpl(extractedContext, frameBytes); }
+
+const bluetoothDiscoveryChannel = {
+  async availability() { return status.bleConnected ? { state: "available", reason: "Native BLE invitation GATT multiplex is connected" } : status.bleEnabled ? { state: "offline", reason: "BLE is enabled but no peer GATT pipe is connected" } : { state: "permission-required", reason: "Enable BLE in trusted host settings to grant scan/advertise permission" }; },
+  async *advertise(session, envelope) { const invitation = decodePeerInvitation(envelope, Date.now()); const key = bytesToHex(invitation.sessionId); bluetoothOfferKeys.set(session.id, key); const answer = new Promise((resolve, reject) => bluetoothAnswerWaiters.set(key, { resolve, reject, adapterSessionId: session.id })); sendBluetoothInvitation(envelope); yield await answer; },
+  async *scan() { const immediate = bluetoothOfferQueue.shift(); if (immediate !== undefined) { yield immediate; return; } yield await new Promise((resolve) => bluetoothOfferWaiters.push(resolve)); },
+  async answer(_session, envelope) { sendBluetoothInvitation(envelope); },
+  async cancel(sessionId) { const key = bluetoothOfferKeys.get(sessionId); if (key !== undefined) { bluetoothOfferKeys.delete(sessionId); const waiter = bluetoothAnswerWaiters.get(key); bluetoothAnswerWaiters.delete(key); waiter?.reject(new Error("Bluetooth invitation exchange cancelled")); } }
+};
+async function ensurePeerSessionManager() { return ensurePeerSessionManagerImpl(extractedContext); }
+
+const peerSessionManagerProxy = createPeerSessionManagerProxyFromState({
+  getManager: () => peerSessionManager,
+  ensurePeerSessionManager
+});
+function log(line) { return logImpl(extractedContext, line); }
+function refuseStoreAction(action) { return refuseStoreActionImpl(extractedContext, action); }
+function pushStatus() { return pushStatusImpl(extractedContext); }
+
+const statusTimer = createStatusTimer({ onTick: () => pushStatus() });
+const startStatusTimer = statusTimer.start;
+const stopStatusTimer = statusTimer.stop;
+
+({ loadPropagationCache, createPersistence: createWorkletPropagationPersistence } =
+  createWorkletPropagationPersistenceOps({
+    runtime,
+    propagationStoreKey: PROPAGATION_STORE_KEY,
+    getPropagationStoreCache: () => propagationStoreCache,
+    setPropagationStoreCache: (cache) => {
+      propagationStoreCache = cache;
+    }
+  }));
+
+({ publishArchiveFromWorklet } = createPublishArchiveOps({
+  provider,
+  DestinationDirection,
+  DestinationType,
+  nodeFallback: false,
+  casLocators,
+  casResponseDestinations,
+  ensureReticulum,
+  resolveIdentity,
+  ensurePackageDriveManager,
+  log
+}));
+
+installFromT256 = createInstallFromT256({
+  provider,
+  runtime,
+  nodeFallback: false,
+  ensureEntryCasStore,
+  waitForCasLocator,
+  ensureReticulum,
+  getReticulum: () => reticulum,
+  resolveIdentity,
+  ensurePackageDriveManager,
+  ensureCatalog,
+  ensureTrustStore,
+  persistCatalogState,
+  pushCatalog,
+  ensureMiniappHost,
+  requestHostReply
+});
+
+registerAnnounceHandler = createRegisterAnnounceHandler({
+  getReticulum: () => reticulum,
+  status,
+  pushStatus,
+  send,
+  ingestCasLocator,
+  respondToCasLocatorRequest,
+  ensureCatalog,
+  persistCatalogState,
+  pushCatalog,
+  log
+});
+
+ensureDevChannel = createEnsureDevChannel({
+  createDevChannelClient,
+  ensureMiniappHost,
+  send,
+  log
+});
+
+({ startAutoInterface, stopAutoInterface } = createAutoInterfaceOps({
+  provider,
+  runtime,
+  status,
+  pushStatus,
+  log,
+  ensureReticulum,
+  getAutoIface: () => autoIface,
+  setAutoIface: (value) => {
+    autoIface = value;
+  },
+  getMulticastBridge: () => multicastBridge,
+  setMulticastBridge: (value) => {
+    multicastBridge = value;
+  },
+  getBonjourBridge: () => bonjourBridge,
+  setBonjourBridge: (value) => {
+    bonjourBridge = value;
+  },
+  getMulticastEntitled: () => multicastEntitled,
+  getBonjourDiscoveryEnabled: () => bonjourDiscoveryEnabled,
+  createIpcMulticastBridge,
+  createIpcBonjourBridge
+}));
+
+quiesceInterfaces = createQuiesceInterfaces({
+  log,
+  pushStatus,
+  stopTcpInterface,
+  stopAutoInterface,
+  stopBleInterface,
+  stopRnodeInterface,
+  stopFreenetInterface
+});
+function updateIdentityStatus(identity) { return updateIdentityStatusImpl(extractedContext, identity); }
+async function loadPersistedIdentity() { return loadPersistedIdentityImpl(extractedContext); }
+async function persistIdentity(identity) { return persistIdentityImpl(extractedContext, identity); }
+async function createIdentity() { return createIdentityImpl(extractedContext); }
+async function resetIdentity() { return resetIdentityImpl(extractedContext); }
+async function stopBleInterface() { return stopBleInterfaceImpl(extractedContext); }
+async function stopRnodeInterface() { return stopRnodeInterfaceImpl(extractedContext); }
+async function stopTcpInterface() { return stopTcpInterfaceImpl(extractedContext); }
+function loadPacketLogWasm() { return loadPacketLogWasmImpl(extractedContext); }
+function loadPropagationSetWasm() { return loadPropagationSetWasmImpl(extractedContext); }
+async function stopFreenetInterface() { return stopFreenetInterfaceImpl(extractedContext); }
+async function startFreenetInterface() { return startFreenetInterfaceImpl(extractedContext); }
+async function stopFreenetPropagationRole() { return stopFreenetPropagationRoleImpl(extractedContext); }
+async function startFreenetPropagationRole(mirror) { return startFreenetPropagationRoleImpl(extractedContext, mirror); }
+async function detachFreenetBackends() { return detachFreenetBackendsImpl(extractedContext); }
+async function attachFreenetBackends() { return attachFreenetBackendsImpl(extractedContext); }
+function anyRelayOrFreenetEnabled() { return anyRelayOrFreenetEnabledImpl(extractedContext); }
+async function stopNode() { return stopNodeImpl(extractedContext); }
+async function resumeInterfaces() { return resumeInterfacesImpl(extractedContext); }
+async function resolveIdentity() { return resolveIdentityImpl(extractedContext); }
+async function ensureReticulum() { return ensureReticulumImpl(extractedContext); }
+async function ensureHostLxmfDelivery() { return ensureHostLxmfDeliveryImpl(extractedContext); }
+async function stopHostLxmfDelivery() { return stopHostLxmfDeliveryImpl(extractedContext); }
+async function startTcpInterface(targetHost, targetPort) { return startTcpInterfaceImpl(extractedContext, targetHost, targetPort); }
+async function startBleInterface() { return startBleInterfaceImpl(extractedContext); }
+async function startRnodeInterface() { return startRnodeInterfaceImpl(extractedContext); }
+async function applyInterfaceConfig() { return applyInterfaceConfigImpl(extractedContext); }
+async function handleHostMessage(raw) { return handleHostMessageImpl(extractedContext, raw); }
+
+let hostMessageBuffer = "";
+let hostMessageQueue = Promise.resolve();
+const HOST_REPLY_TYPES = new Set([
+  "confirm-response",
+  "launch-confirm",
+  "install-confirm",
+  "peer-chrome-response",
+  "device-bridge-response",
+  "media-codec-response",
+  "media-opus-play-response",
+  "media-opus-duplex-response"
+]);
+
+IPC.on("data", (data) => {
+  hostMessageBuffer += data.toString();
+  const lines = hostMessageBuffer.split("\n");
+  hostMessageBuffer = lines.pop() ?? "";
+  for (const line of lines) {
+    if (line.trim().length === 0) {
+      continue;
+    }
+    // Replies must not wait behind other host-message handlers: those handlers
+    // often await requestHostReply, which would deadlock if the matching
+    // device-bridge-response / peer-chrome-response sat on this queue.
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && HOST_REPLY_TYPES.has(parsed.type)) {
+        if (!hostReplyChannel.resolveReply(parsed)) {
+          log(
+            `Orphan host reply ${parsed.type} token=${typeof parsed.token === "string" ? parsed.token.slice(0, 12) : "?"}`
+          );
+        }
+        continue;
+      }
+    } catch {
+      // Fall through to the ordered handler for malformed lines.
+    }
+    hostMessageQueue = hostMessageQueue
+      .then(() => handleHostMessage(line))
+      .catch((error) => {
+        log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
+        pushStatus();
+      });
+  }
+});
+
+void loadPersistedIdentity().then(() => loadCatalogState().then(pushCatalog));
+pushStatus();
+log(`Harness worklet ready (crypto: ${provider.name})`);

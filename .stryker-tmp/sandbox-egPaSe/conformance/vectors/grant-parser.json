@@ -1,0 +1,1698 @@
+{
+  "schema": "twistedpear.parser-transition-v1",
+  "machine": "grant-parser",
+  "generatedBy": "scripts/vectors-generate-grant.mjs",
+  "states": [
+    "expect-open",
+    "expect-appId-key",
+    "expect-appId-colon",
+    "expect-appId",
+    "expect-publisher-comma",
+    "expect-publisher-key",
+    "expect-publisher-colon",
+    "expect-publisher",
+    "expect-granted-comma",
+    "expect-granted-key",
+    "expect-granted-colon",
+    "expect-array-open",
+    "expect-capability-or-end",
+    "expect-capability-comma-or-end",
+    "expect-capability",
+    "expect-updated-comma",
+    "expect-updated-key",
+    "expect-updated-colon",
+    "expect-updated",
+    "expect-close",
+    "expect-eof",
+    "accept"
+  ],
+  "eventClasses": [
+    "open",
+    "close",
+    "colon",
+    "comma",
+    "array-open",
+    "array-close",
+    "string",
+    "integer",
+    "eof"
+  ],
+  "cells": [
+    {
+      "state": "expect-open",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-open",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "appId"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-key",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId-colon",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-appId",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-comma",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "publisherPublicKey"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-key",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher-colon",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-publisher",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-comma",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "granted"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-key",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-granted-colon",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-array-open",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-or-end",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability-comma-or-end",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-capability",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-comma",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "updatedAt"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-key",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated-colon",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-updated",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": true
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-close",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "expect-eof",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": true
+    },
+    {
+      "state": "accept",
+      "eventClass": "open",
+      "event": {
+        "kind": "open"
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "close",
+      "event": {
+        "kind": "close"
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "colon",
+      "event": {
+        "kind": "colon"
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "comma",
+      "event": {
+        "kind": "comma"
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "array-open",
+      "event": {
+        "kind": "array-open"
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "array-close",
+      "event": {
+        "kind": "array-close"
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "string",
+      "event": {
+        "kind": "string",
+        "value": "value"
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "integer",
+      "event": {
+        "kind": "integer",
+        "value": 1
+      },
+      "legal": false
+    },
+    {
+      "state": "accept",
+      "eventClass": "eof",
+      "event": {
+        "kind": "eof"
+      },
+      "legal": false
+    }
+  ],
+  "canonical": "{\"appId\":\"a\",\"publisherPublicKey\":\"p\",\"granted\":[\"read\"],\"updatedAt\":1}",
+  "nearMisses": [
+    {
+      "name": "duplicate-key",
+      "text": "{\"appId\":\"a\",\"appId\":\"b\",\"publisherPublicKey\":\"p\",\"granted\":[],\"updatedAt\":1}",
+      "expected": "reject"
+    },
+    {
+      "name": "reordered-fields",
+      "text": "{\"publisherPublicKey\":\"p\",\"appId\":\"a\",\"granted\":[],\"updatedAt\":1}",
+      "expected": "reject"
+    },
+    {
+      "name": "whitespace",
+      "text": "{ \"appId\":\"a\",\"publisherPublicKey\":\"p\",\"granted\":[],\"updatedAt\":1}",
+      "expected": "reject"
+    },
+    {
+      "name": "trailing-byte",
+      "text": "{\"appId\":\"a\",\"publisherPublicKey\":\"p\",\"granted\":[],\"updatedAt\":1}x",
+      "expected": "reject"
+    },
+    {
+      "name": "non-canonical-number",
+      "text": "{\"appId\":\"a\",\"publisherPublicKey\":\"p\",\"granted\":[],\"updatedAt\":1.0}",
+      "expected": "reject"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "schema": "twistedpear.release-evidence-v1",
+  "id": "baseline:S1",
+  "status": "passed",
+  "at": "2026-07-20T20:33:04.351Z",
+  "log": "release/evidence-logs/2026-07-20-s1-baseline-green.log",
+  "note": "Full PR-tier CI green on 815a2109 (run 29775996062)"
+}

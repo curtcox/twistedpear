@@ -1,0 +1,16 @@
+{
+  "edges": [
+    ["requested", "admit", "active"],
+    ["requested", "degrade", "degraded"],
+    ["requested", "defer", "deferred"],
+    ["requested", "reject", "rejected"],
+    ["deferred", "admit", "active"],
+    ["deferred", "degrade", "degraded"],
+    ["deferred", "reject", "rejected"],
+    ["active", "degrade", "degraded"],
+    ["active", "close", "closed"],
+    ["degraded", "degrade", "degraded"],
+    ["degraded", "restore", "active"],
+    ["degraded", "close", "closed"]
+  ]
+}

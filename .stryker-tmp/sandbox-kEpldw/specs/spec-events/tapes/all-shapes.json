@@ -1,0 +1,32 @@
+{
+  "spec": "SPEC-EVENTS",
+  "description": "Example tape exercising every shape in the alphabet: all 7 events, all 8 machine intents (every log level), and the harness transport/adversary intent with all 5 Dolev-Yao powers. Each item is {dir: event|intent|harness, payload}. Byte arrays use the serialized {\"$bytes\": hex} form.",
+  "tape": [
+    { "dir": "event", "payload": { "kind": "start", "at": 0 } },
+    { "dir": "intent", "payload": { "kind": "need_entropy", "nbytes": 32 } },
+    { "dir": "event", "payload": { "kind": "entropy", "bytes": { "$bytes": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff" } } },
+    { "dir": "intent", "payload": { "kind": "timer/set", "timer": { "id": "heartbeat", "delayMs": 50 } } },
+    { "dir": "intent", "payload": { "kind": "timer/cancel", "timer": { "id": "heartbeat" } } },
+    { "dir": "intent", "payload": { "kind": "transport/send", "send": { "channel": "lxmf", "destination": "peer-b", "payload": { "$bytes": "0102" } } } },
+    { "dir": "event", "payload": { "kind": "transport/recv", "channel": "lxmf", "source": "peer-b", "payload": { "$bytes": "0304" }, "at": 12.5 } },
+    { "dir": "intent", "payload": { "kind": "store/write", "write": { "key": "identity", "value": { "$bytes": "beef" } } } },
+    { "dir": "event", "payload": { "kind": "store/done", "key": "identity", "op": "write" } },
+    { "dir": "intent", "payload": { "kind": "store/read", "read": { "key": "identity" } } },
+    { "dir": "event", "payload": { "kind": "store/value", "key": "identity", "value": { "$bytes": "beef" } } },
+    { "dir": "intent", "payload": { "kind": "store/read", "read": { "key": "missing" } } },
+    { "dir": "event", "payload": { "kind": "store/value", "key": "missing" } },
+    { "dir": "intent", "payload": { "kind": "store/delete", "del": { "key": "identity" } } },
+    { "dir": "event", "payload": { "kind": "store/done", "key": "identity", "op": "delete" } },
+    { "dir": "intent", "payload": { "kind": "log", "level": "debug", "message": "debug message" } },
+    { "dir": "intent", "payload": { "kind": "log", "level": "info", "message": "info message" } },
+    { "dir": "intent", "payload": { "kind": "log", "level": "warn", "message": "warn message" } },
+    { "dir": "intent", "payload": { "kind": "log", "level": "error", "message": "error message" } },
+    { "dir": "event", "payload": { "kind": "timer/fired", "id": "retry", "at": 62.5 } },
+    { "dir": "event", "payload": { "kind": "tick", "at": 100 } },
+    { "dir": "harness", "payload": { "kind": "transport/adversary", "action": { "power": "drop", "source": "a", "destination": "b" } } },
+    { "dir": "harness", "payload": { "kind": "transport/adversary", "action": { "power": "delay", "source": "a", "destination": "b", "delayMs": 250 } } },
+    { "dir": "harness", "payload": { "kind": "transport/adversary", "action": { "power": "reorder", "source": "a", "destination": "b" } } },
+    { "dir": "harness", "payload": { "kind": "transport/adversary", "action": { "power": "duplicate", "source": "a", "destination": "b" } } },
+    { "dir": "harness", "payload": { "kind": "transport/adversary", "action": { "power": "inject", "source": "a", "destination": "b", "channel": "lxmf", "payload": { "$bytes": "ff" }, "delayMs": 5 } } }
+  ]
+}

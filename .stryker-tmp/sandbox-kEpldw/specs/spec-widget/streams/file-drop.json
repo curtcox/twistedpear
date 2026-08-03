@@ -1,0 +1,166 @@
+{
+  "spec": "SPEC-WIDGET",
+  "app": "file-drop",
+  "description": "File-drop example: one successful scripted 2048-byte fetch, then a scripted budget failure.",
+  "events": [
+    {
+      "event": "resource.fetch"
+    },
+    {
+      "event": "resource.fetch"
+    }
+  ],
+  "frames": [
+    {
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "File Drop"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "body",
+              "type": "text",
+              "props": {
+                "value": "Tap fetch to load offer:demo through host budget checks."
+              }
+            },
+            {
+              "id": "fetch",
+              "type": "button",
+              "props": {
+                "label": "Fetch offer",
+                "event": "resource.fetch"
+              }
+            }
+          ]
+        }
+      },
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Tap fetch to load offer:demo through host budget checks.\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}"
+    },
+    {
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "File Drop"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "body",
+              "type": "text",
+              "props": {
+                "value": "Fetched 2048 bytes for offer:demo"
+              }
+            },
+            {
+              "id": "fetch",
+              "type": "button",
+              "props": {
+                "label": "Fetch offer",
+                "event": "resource.fetch"
+              }
+            }
+          ]
+        }
+      },
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Fetched 2048 bytes for offer:demo\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}"
+    },
+    {
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "style": {
+            "padding": 16,
+            "gap": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "props": {
+                "value": "File Drop"
+              },
+              "style": {
+                "fontSize": 20,
+                "fontWeight": "bold"
+              }
+            },
+            {
+              "id": "body",
+              "type": "text",
+              "props": {
+                "value": "Budget exceeded for offer:demo"
+              }
+            },
+            {
+              "id": "fetch",
+              "type": "button",
+              "props": {
+                "label": "Fetch offer",
+                "event": "resource.fetch"
+              }
+            }
+          ]
+        }
+      },
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Budget exceeded for offer:demo\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}"
+    }
+  ],
+  "patches": [
+    [
+      {
+        "op": "replace",
+        "id": "body",
+        "node": {
+          "id": "body",
+          "type": "text",
+          "props": {
+            "value": "Fetched 2048 bytes for offer:demo"
+          }
+        }
+      }
+    ],
+    [
+      {
+        "op": "replace",
+        "id": "body",
+        "node": {
+          "id": "body",
+          "type": "text",
+          "props": {
+            "value": "Budget exceeded for offer:demo"
+          }
+        }
+      }
+    ]
+  ]
+}

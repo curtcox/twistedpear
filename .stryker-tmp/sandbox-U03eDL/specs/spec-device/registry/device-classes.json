@@ -1,0 +1,577 @@
+{
+  "$schema": "../schema/device-registry.schema.json",
+  "hostApiVersion": "0.12.0",
+  "classes": [
+    {
+      "id": "location",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "coarse",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        },
+        {
+          "id": "precise",
+          "default": false,
+          "consentClass": "elevated",
+          "capabilitySuffix": "precise"
+        }
+      ],
+      "sampleSchema": "#/$defs/LocationSample",
+      "defaults": {
+        "maxRateHz": 1,
+        "maxSessionMs": 3600000
+      },
+      "streamable": true,
+      "remoteEligible": true,
+      "bandwidth": {
+        "coarse": { "minBps": 8, "targetBps": 32, "burstBytes": 64 },
+        "precise": { "minBps": 32, "targetBps": 128, "burstBytes": 256 }
+      },
+      "consentClass": "low",
+      "degradationLadder": ["precise@1Hz", "precise@0.1Hz", "coarse-on-movement", "coarse-on-demand"],
+      "description": "Host-mediated geolocation. Default tier is quantized coarse (~1 km); precise is a separate elevated grant."
+    },
+    {
+      "id": "ambient-light",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "quantized",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/AmbientLightSample",
+      "defaults": {
+        "maxRateHz": 1,
+        "maxSessionMs": 3600000
+      },
+      "streamable": true,
+      "remoteEligible": false,
+      "bandwidth": {
+        "quantized": { "minBps": 4, "targetBps": 8, "burstBytes": 16 }
+      },
+      "consentClass": "low",
+      "degradationLadder": ["quantized@1Hz", "on-demand"],
+      "description": "Quantized ambient illuminance in lux, rate-capped at 1 Hz."
+    },
+    {
+      "id": "camera",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "derived",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        },
+        {
+          "id": "frames",
+          "default": false,
+          "consentClass": "sensitive",
+          "capabilitySuffix": "frames"
+        }
+      ],
+      "sampleSchema": "#/$defs/CameraSample",
+      "defaults": {
+        "maxRateHz": 30,
+        "maxSessionMs": 900000
+      },
+      "streamable": true,
+      "remoteEligible": true,
+      "bandwidth": {
+        "derived": { "minBps": 64, "targetBps": 1024, "burstBytes": 4096 },
+        "frames": {
+          "minBps": 50000,
+          "targetBps": 2000000,
+          "burstBytes": 1048576,
+          "encodings": {
+            "720p30": { "minBps": 1000000, "targetBps": 2000000, "burstBytes": 1048576 },
+            "480p15": { "minBps": 350000, "targetBps": 750000, "burstBytes": 524288 },
+            "240p10": { "minBps": 100000, "targetBps": 250000, "burstBytes": 262144 },
+            "thumbnails-1fps": { "minBps": 20000, "targetBps": 50000, "burstBytes": 65536 }
+          }
+        }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["720p30", "480p15", "240p10", "thumbnails-1fps", "derived-events", "cas-snapshot"],
+      "description": "Camera. Default derived tier yields barcodes, motion events, and counts — not full frames."
+    },
+    {
+      "id": "microphone",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "derived",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        },
+        {
+          "id": "pcm",
+          "default": false,
+          "consentClass": "sensitive",
+          "capabilitySuffix": "pcm"
+        }
+      ],
+      "sampleSchema": "#/$defs/MicrophoneSample",
+      "defaults": {
+        "maxRateHz": 50,
+        "maxSessionMs": 900000
+      },
+      "streamable": true,
+      "remoteEligible": true,
+      "bandwidth": {
+        "derived": { "minBps": 32, "targetBps": 256, "burstBytes": 1024 },
+        "pcm": {
+          "minBps": 12000,
+          "targetBps": 768000,
+          "burstBytes": 65536,
+          "encodings": {
+            "48k-pcm": { "minBps": 384000, "targetBps": 768000, "burstBytes": 65536 },
+            "16k-opus": { "minBps": 16000, "targetBps": 24000, "burstBytes": 8192 },
+            "8k-narrowband": { "minBps": 8000, "targetBps": 12000, "burstBytes": 4096 }
+          }
+        }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["48k-pcm", "16k-opus", "8k-narrowband", "vad-transcript", "transcript-only"],
+      "description": "Microphone. Default derived tier yields level, VAD, tone/DTMF, and transcript — not raw PCM."
+    },
+    {
+      "id": "motion",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "derived",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        },
+        {
+          "id": "samples",
+          "default": false,
+          "consentClass": "sensitive",
+          "capabilitySuffix": "samples"
+        }
+      ],
+      "sampleSchema": "#/$defs/MotionSample",
+      "defaults": {
+        "maxRateHz": 50,
+        "maxSessionMs": 900000
+      },
+      "streamable": true,
+      "remoteEligible": false,
+      "bandwidth": {
+        "derived": { "minBps": 32, "targetBps": 256, "burstBytes": 512 },
+        "samples": { "minBps": 1000, "targetBps": 8000, "burstBytes": 4096 }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["full-rate", "10Hz", "event-summaries"],
+      "description": "Fused motion (accel/gyro/magnetometer). Default derived tier is orientation and events at ≤ 10 Hz."
+    },
+    {
+      "id": "torch",
+      "role": "actuator",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "control",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/TorchCommand",
+      "defaults": {
+        "maxRateHz": 2,
+        "maxSessionMs": 300000,
+        "dutyCycle": 0.5
+      },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": {
+        "control": { "minBps": 1, "targetBps": 8, "burstBytes": 16 }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["control"],
+      "description": "Camera torch / flashlight. Strobe rate hard-capped below photosensitive-epilepsy thresholds."
+    },
+    {
+      "id": "speaker",
+      "role": "actuator",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "play",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        },
+        {
+          "id": "pcm",
+          "default": false,
+          "consentClass": "sensitive",
+          "capabilitySuffix": "pcm"
+        }
+      ],
+      "sampleSchema": "#/$defs/SpeakerCommand",
+      "defaults": {
+        "maxRateHz": 20,
+        "maxSessionMs": 900000,
+        "dutyCycle": 1
+      },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": {
+        "play": { "minBps": 64, "targetBps": 1024, "burstBytes": 4096 },
+        "pcm": { "minBps": 16000, "targetBps": 768000, "burstBytes": 65536 }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["play", "pcm"],
+      "description": "Audio output. Default play tier accepts asset ids or TTS text — not arbitrary PCM carriers."
+    },
+    {
+      "id": "tts",
+      "role": "service",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "speak",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/TtsCommand",
+      "defaults": {
+        "maxRateHz": 2,
+        "maxSessionMs": 900000
+      },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": {
+        "speak": { "minBps": 32, "targetBps": 256, "burstBytes": 2048 }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["speak"],
+      "description": "Text-to-speech service composing speaker. Text length and rate are bounded."
+    },
+    {
+      "id": "stt",
+      "role": "service",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "transcript",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/SttSample",
+      "defaults": {
+        "maxRateHz": 5,
+        "maxSessionMs": 900000
+      },
+      "streamable": true,
+      "remoteEligible": false,
+      "bandwidth": {
+        "transcript": { "minBps": 32, "targetBps": 256, "burstBytes": 2048 }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["transcript"],
+      "description": "Speech-to-text service composing microphone. Transcript is the derived microphone tier."
+    },
+    {
+      "id": "haptics",
+      "role": "actuator",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "pattern",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/HapticsCommand",
+      "defaults": {
+        "maxRateHz": 10,
+        "maxSessionMs": 300000,
+        "dutyCycle": 0.25
+      },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": {
+        "pattern": { "minBps": 1, "targetBps": 8, "burstBytes": 32 }
+      },
+      "consentClass": "low",
+      "degradationLadder": ["pattern"],
+      "description": "Haptic feedback. Duty-cycle capped."
+    },
+    {
+      "id": "battery",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "coarse",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/BatterySample",
+      "defaults": {
+        "maxRateHz": 0.1,
+        "maxSessionMs": 86400000
+      },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": {
+        "coarse": { "minBps": 1, "targetBps": 4, "burstBytes": 16 }
+      },
+      "consentClass": "low",
+      "degradationLadder": ["coarse"],
+      "description": "Coarse battery buckets only — precise curves are a fingerprinting vector."
+    },
+    {
+      "id": "screen-capture",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "derived",
+          "default": true,
+          "consentClass": "sensitive",
+          "capabilitySuffix": null
+        },
+        {
+          "id": "frames",
+          "default": false,
+          "consentClass": "sensitive",
+          "capabilitySuffix": "frames"
+        }
+      ],
+      "sampleSchema": "#/$defs/ScreenCaptureSample",
+      "defaults": {
+        "maxRateHz": 1,
+        "maxSessionMs": 900000
+      },
+      "streamable": true,
+      "remoteEligible": false,
+      "bandwidth": {
+        "derived": { "minBps": 64, "targetBps": 1024, "burstBytes": 4096 },
+        "frames": {
+          "minBps": 50000,
+          "targetBps": 2000000,
+          "burstBytes": 1048576,
+          "encodings": {
+            "720p30": { "minBps": 1000000, "targetBps": 2000000, "burstBytes": 1048576 },
+            "480p15": { "minBps": 350000, "targetBps": 750000, "burstBytes": 524288 },
+            "thumbnails-1fps": { "minBps": 20000, "targetBps": 50000, "burstBytes": 65536 }
+          }
+        }
+      },
+      "consentClass": "sensitive",
+      "degradationLadder": ["720p30", "480p15", "thumbnails-1fps", "derived-events", "cas-snapshot"],
+      "description": "Screen capture. Always requires an explicit per-session region picker in host chrome."
+    },
+    {
+      "id": "nfc",
+      "role": "transducer",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "ndef",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        },
+        {
+          "id": "apdu",
+          "default": false,
+          "consentClass": "sensitive",
+          "capabilitySuffix": "apdu"
+        }
+      ],
+      "sampleSchema": "#/$defs/NfcSample",
+      "defaults": {
+        "maxRateHz": 2,
+        "maxSessionMs": 300000
+      },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": {
+        "ndef": { "minBps": 32, "targetBps": 256, "burstBytes": 1024 },
+        "apdu": { "minBps": 64, "targetBps": 1024, "burstBytes": 4096 }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["ndef", "apdu"],
+      "description": "NFC / card reader. APDU tier is sensitive and rejects payment AIDs at the driver."
+    },
+    {
+      "id": "biometric",
+      "role": "service",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "assertion",
+          "default": true,
+          "consentClass": "elevated",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/BiometricAssertion",
+      "defaults": {
+        "maxRateHz": 1,
+        "maxSessionMs": 60000
+      },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": {
+        "assertion": { "minBps": 16, "targetBps": 64, "burstBytes": 256 }
+      },
+      "consentClass": "elevated",
+      "degradationLadder": ["assertion"],
+      "description": "Biometric assertion only. Templates never leave the OS enclave; there is no raw tier."
+    },
+    {
+      "id": "proximity",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "near-far",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/ProximitySample",
+      "defaults": { "maxRateHz": 5, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "near-far": { "minBps": 1, "targetBps": 8, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["near-far"],
+      "description": "Near/far proximity scalar, rate-capped."
+    },
+    {
+      "id": "barometer",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "pressure",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/BarometerSample",
+      "defaults": { "maxRateHz": 1, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "pressure": { "minBps": 4, "targetBps": 16, "burstBytes": 32 } },
+      "consentClass": "low",
+      "degradationLadder": ["pressure"],
+      "description": "Atmospheric pressure scalar in hPa, rate-capped."
+    },
+    {
+      "id": "thermometer",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "celsius",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/ThermometerSample",
+      "defaults": { "maxRateHz": 0.2, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "celsius": { "minBps": 2, "targetBps": 8, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["celsius"],
+      "description": "Ambient temperature scalar in °C, rate-capped."
+    },
+    {
+      "id": "hygrometer",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "humidity",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/HygrometerSample",
+      "defaults": { "maxRateHz": 0.2, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "humidity": { "minBps": 2, "targetBps": 8, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["humidity"],
+      "description": "Relative humidity percent scalar, rate-capped."
+    },
+    {
+      "id": "thermal",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "coarse",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/ThermalSample",
+      "defaults": { "maxRateHz": 0.1, "maxSessionMs": 86400000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "coarse": { "minBps": 1, "targetBps": 4, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["coarse"],
+      "description": "Coarse device thermal buckets only — precise curves are a fingerprinting vector."
+    }
+  ],
+  "crossCutting": [
+    {
+      "id": "device:stream",
+      "description": "Stream any already-held device data to a peer. Never implied by a device grant alone.",
+      "consentClass": "sensitive"
+    },
+    {
+      "id": "device:remote",
+      "description": "Request a device on a peer's host. Confers nothing on the serving host.",
+      "consentClass": "sensitive"
+    },
+    {
+      "id": "device:share-policy:read",
+      "description": "See which peers this app is currently sharing your camera or microphone with.",
+      "consentClass": "low"
+    },
+    {
+      "id": "device:stream:raw-inbound",
+      "description": "Receive raw camera frames or audio from a peer into the app itself.",
+      "consentClass": "sensitive"
+    }
+  ]
+}

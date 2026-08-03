@@ -1,0 +1,21 @@
+# Expo Continuous Native Generation — regenerate with `npx expo prebuild`.
+android/
+ios/
+# Keep local Expo module native sources and podspecs tracked.
+!modules/
+!modules/*/
+!modules/*/android/
+!modules/*/android/**
+!modules/*/ios/
+!modules/*/ios/**
+# Do not track Gradle/Xcode build products under those module trees.
+modules/*/android/build/
+modules/*/android/.cxx/
+modules/*/android/.gradle/
+modules/*/.build/
+modules/*/ios/build/
+modules/*/ios/DerivedData/
+
+# Local Expo CLI state (machine-specific). Keep the explanatory README tracked.
+.expo/*
+!.expo/README.md

@@ -1,0 +1,29 @@
+{
+  "id": "apps-package-preview",
+  "group": "runtime",
+  "title": "Package + preview (confirmed)",
+  "executionModes": ["inline", "preview"],
+  "capabilities": ["apps:package", "apps:preview", "workspace"],
+  "surfaces": ["apps.packageProject", "apps.preview", "apps.stopPreview", "workspace.write"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  },
+  "preview": {
+    "project": "handbook-probe-app",
+    "manifest": {
+      "name": "hb-probe",
+      "version": "0.0.1",
+      "entry": "bundle.js",
+      "capabilities": ["identity"]
+    },
+    "grants": ["identity"],
+    "files": {
+      "app.json": "{\"name\":\"hb-probe\",\"version\":\"0.0.1\",\"entry\":\"bundle.js\",\"capabilities\":[\"identity\"]}",
+      "bundle.js": "import { ui } from \"@twistedpear/miniapp-sdk\";\nawait ui.render({ root: { id: \"root\", type: \"text\", props: { value: \"Handbook preview probe\" } } });\n"
+    }
+  }
+}

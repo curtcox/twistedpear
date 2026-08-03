@@ -1,0 +1,6 @@
+{
+  "measuredAt": "pending",
+  "platform": "ios-simulator",
+  "environment": "ios-simulator",
+  "note": "Recorded by IOS_BENCHMARK_RECORD=1 npm run test:ios-sim:wasm after Maestro BareKit probe on an installed harness"
+}

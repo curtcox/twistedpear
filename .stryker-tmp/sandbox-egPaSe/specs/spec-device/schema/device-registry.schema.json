@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.dev/specs/spec-device/schema/device-registry.schema.json",
+  "title": "DeviceClassRegistry",
+  "description": "Normative device-class registry for SPEC-DEVICE (host API 0.10.0+).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["hostApiVersion", "classes", "crossCutting"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "hostApiVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "classes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/DeviceClassEntry" }
+    },
+    "crossCutting": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CrossCuttingCapability" }
+    }
+  },
+  "$defs": {
+    "ConsentClass": {
+      "type": "string",
+      "enum": ["low", "elevated", "sensitive"]
+    },
+    "DeviceRole": {
+      "type": "string",
+      "enum": ["sensor", "actuator", "transducer", "service"]
+    },
+    "BandwidthProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minBps", "targetBps", "burstBytes"],
+      "properties": {
+        "minBps": { "type": "number", "minimum": 0 },
+        "targetBps": { "type": "number", "minimum": 0 },
+        "burstBytes": { "type": "number", "minimum": 0 },
+        "encodings": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/EncodingBandwidthProfile" }
+        }
+      }
+    },
+    "EncodingBandwidthProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minBps", "targetBps", "burstBytes"],
+      "properties": {
+        "minBps": { "type": "number", "minimum": 0 },
+        "targetBps": { "type": "number", "minimum": 0 },
+        "burstBytes": { "type": "number", "minimum": 0 }
+      }
+    },
+    "DeviceTierEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "default", "consentClass", "capabilitySuffix"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "default": { "type": "boolean" },
+        "consentClass": { "$ref": "#/$defs/ConsentClass" },
+        "capabilitySuffix": {
+          "description": "null for the default-tier capability device:<class>; otherwise device:<class>:<suffix>.",
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "DeviceClassDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxRateHz", "maxSessionMs"],
+      "properties": {
+        "maxRateHz": { "type": "number", "exclusiveMinimum": 0 },
+        "maxSessionMs": { "type": "integer", "exclusiveMinimum": 0 },
+        "dutyCycle": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "DeviceClassEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "addedInHostApi",
+        "tiers",
+        "sampleSchema",
+        "defaults",
+        "streamable",
+        "remoteEligible",
+        "bandwidth",
+        "consentClass",
+        "degradationLadder",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "role": { "$ref": "#/$defs/DeviceRole" },
+        "addedInHostApi": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "tiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/DeviceTierEntry" }
+        },
+        "sampleSchema": { "type": "string", "minLength": 1 },
+        "defaults": { "$ref": "#/$defs/DeviceClassDefaults" },
+        "streamable": { "type": "boolean" },
+        "remoteEligible": { "type": "boolean" },
+        "bandwidth": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/BandwidthProfile" }
+        },
+        "consentClass": { "$ref": "#/$defs/ConsentClass" },
+        "degradationLadder": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    },
+    "CrossCuttingCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "consentClass"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^device:[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)*$"
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "consentClass": { "$ref": "#/$defs/ConsentClass" }
+      }
+    },
+    "LocationSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "tier", "at", "latitude", "longitude"],
+      "properties": {
+        "kind": { "const": "location" },
+        "tier": { "type": "string", "enum": ["coarse", "precise"] },
+        "at": { "type": "number" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "accuracyM": { "type": "number" },
+        "altitudeM": { "type": "number" },
+        "speedMps": { "type": "number" },
+        "headingDeg": { "type": "number" }
+      }
+    },
+    "AmbientLightSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "tier", "at", "luxBucket"],
+      "properties": {
+        "kind": { "const": "ambient-light" },
+        "tier": { "const": "quantized" },
+        "at": { "type": "number" },
+        "luxBucket": {
+          "type": "string",
+          "enum": ["dark", "dim", "indoor", "bright", "sunlit"]
+        }
+      }
+    }
+  }
+}

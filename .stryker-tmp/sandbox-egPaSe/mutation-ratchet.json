@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Mutation score floor for packages/protocol and packages/effects. Zero is the initial survey floor; the first completed nightly tightens it.",
+  "score": 0
+}

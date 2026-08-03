@@ -1,0 +1,17 @@
+{
+  "name": "devstudio",
+  "version": "0.1.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "workspace",
+    "ai:chat",
+    "apps:package",
+    "apps:publish",
+    "apps:install",
+    "apps:preview",
+    "share:cas",
+    "storage:kv"
+  ],
+  "icon": null,
+  "minHostApi": "0.7.0"
+}

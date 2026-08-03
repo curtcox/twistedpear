@@ -1,0 +1,10 @@
+appId: network.twistedpear.harness
+---
+- extendedWaitUntil:
+    visible:
+      id: "host-confirmation-modal"
+    timeout: 30000
+- assertVisible: "${EXPECTED_TEXT}"
+- assertVisible: "Publisher:.*"
+- tapOn:
+    id: "host-confirm-approve"

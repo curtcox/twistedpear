@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "audited": "2026-07-29",
+  "environments": {
+    "local-3-node": {
+      "status": "complete",
+      "recordedAt": "2026-07-28T19:40:34.264Z",
+      "node": "freenet@0.2.112",
+      "topology": "one localhost gateway plus two localhost peers",
+      "notifyPath": "local-executor",
+      "sameNode": true,
+      "notes": [
+        "Publisher and subscriber WebSocket clients both attach to the publisher peer.",
+        "The three-node mesh is still formed and the contract is retained there; notify uses the local executor channel.",
+        "Freenet 0.2.112 UPDATE requires ContractKey.code to carry WASM bytes (stdlib double-hash bug); FreenetClient prefers fallbackCodeField WASM first.",
+        "Cross-node notify is recorded separately under local-cross-node."
+      ],
+      "sampleCount": 100,
+      "complete": true,
+      "contract": "locator",
+      "measurements": [
+        {
+          "payloadBytes": 1024,
+          "sampleCount": 100,
+          "p50Ms": 63.532457999999906,
+          "p95Ms": 88.79295899999943,
+          "maxMs": 98.98466700000017,
+          "meanMs": 70.67851750000005
+        },
+        {
+          "payloadBytes": 65536,
+          "sampleCount": 100,
+          "p50Ms": 62.39149999999972,
+          "p95Ms": 89.7721249999995,
+          "maxMs": 97.05779199999961,
+          "meanMs": 69.11126918999992
+        },
+        {
+          "payloadBytes": 1048576,
+          "sampleCount": 100,
+          "p50Ms": 241.8185420000009,
+          "p95Ms": 255.7118330000012,
+          "maxMs": 378.6467499999999,
+          "meanMs": 243.97264127999992
+        }
+      ]
+    },
+    "local-cross-node": {
+      "status": "complete",
+      "recordedAt": "2026-07-30T01:40:58.378Z",
+      "node": "freenet@0.2.112",
+      "topology": "one localhost gateway plus two localhost peers; publisher and subscriber clients on distinct Freenet WebSocket endpoints",
+      "notifyPath": "cross-node",
+      "sameNode": false,
+      "notes": [
+        "FREENET_FORCE_CROSS_NODE=1 with a 50 ms inter-sample gap; without pacing, Freenet 0.2.112 drops subscription snapshots under a sustained update blast.",
+        "All 300 deliveries arrived as WebSocket notifies (0 GET reconciles) on this reviewed run.",
+        "measure-roundtrip allows GET reconciliation on cross-node runs when notifies are missing (B2 hint model); this series did not need it.",
+        "1 MiB cross-node p95 is ~2.5 s — viable for occasional large state, not a high-rate packet path."
+      ],
+      "sampleCount": 100,
+      "complete": true,
+      "contract": "locator",
+      "delivery": {
+        "notify": 300,
+        "reconciled": 0,
+        "allowReconcile": true
+      },
+      "measurements": [
+        {
+          "payloadBytes": 1024,
+          "sampleCount": 100,
+          "p50Ms": 97.69979200000034,
+          "p95Ms": 110.71162500000037,
+          "maxMs": 181.4471250000006,
+          "meanMs": 98.16283718000003
+        },
+        {
+          "payloadBytes": 65536,
+          "sampleCount": 100,
+          "p50Ms": 106.17158399999971,
+          "p95Ms": 119.13945800000147,
+          "maxMs": 191.91129200000069,
+          "meanMs": 108.54717868999973
+        },
+        {
+          "payloadBytes": 1048576,
+          "sampleCount": 100,
+          "p50Ms": 2464.727457999994,
+          "p95Ms": 2534.9923749999725,
+          "maxMs": 2735.1013750000056,
+          "meanMs": 2435.278943739999
+        }
+      ]
+    },
+    "live": {
+      "status": "pending",
+      "remaining": "requires explicit authorization before any live-network contract update"
+    }
+  },
+  "viability": {
+    "role1PackageDistribution": "viable",
+    "role2PacketTunnel": "viable-on-local-executor-path; cross-node notify viable for <=64 KiB with pacing",
+    "role3PropagationBacking": "viable",
+    "summary": "Local-executor p95 update-to-notify is under 90 ms for 1 KiB and 64 KiB and under 260 ms for 1 MiB. Cross-node notify (distinct Freenet WebSockets, paced) p95 is under 120 ms for <=64 KiB and ~2.5 s for 1 MiB. Live-network confirmation remains open."
+  }
+}

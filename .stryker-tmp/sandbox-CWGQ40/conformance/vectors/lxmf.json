@@ -1,0 +1,46 @@
+{
+  "upstream": {
+    "lxmfVersion": "0.7.0",
+    "generatedBy": "python lxmf 0.7.0"
+  },
+  "messages": [
+    {
+      "name": "empty-fields",
+      "timestamp": 1700000000.0,
+      "title": "",
+      "content": "",
+      "fieldsHex": {},
+      "destinationHashHex": "6ed2764c0963705d5d01f155d4650bca",
+      "sourceHashHex": "4ca1677223757e1036d8f87cf18d9ad9",
+      "messageHashHex": "9f7b59c3f9d851b9d7409ccf68b081fa2046984afe307a9c65d94fe0427981b9",
+      "signatureHex": "09950dac2bb2fe016880bb719e01bc6506668ae214be9d9ee3e02afac178822c4d73f99ebe367128ec648181d18c56a3628a00760a024213b01e1effc857f00e",
+      "packedHex": "6ed2764c0963705d5d01f155d4650bca4ca1677223757e1036d8f87cf18d9ad909950dac2bb2fe016880bb719e01bc6506668ae214be9d9ee3e02afac178822c4d73f99ebe367128ec648181d18c56a3628a00760a024213b01e1effc857f00e94cb41d954fc40000000c400c40080"
+    },
+    {
+      "name": "hello-world",
+      "timestamp": 1700000000.0,
+      "title": "Hello",
+      "content": "World",
+      "fieldsHex": {},
+      "destinationHashHex": "6ed2764c0963705d5d01f155d4650bca",
+      "sourceHashHex": "4ca1677223757e1036d8f87cf18d9ad9",
+      "messageHashHex": "013bc4be93ebfbd7c90fee8ae50383230c5bb0160c354fb9d31bf62e7973f9ab",
+      "signatureHex": "078f04a3d704d5f0f7d8ab3d157aef2d2834bc3c4926237966fdbedb077a30894ba81800ed5ea9ebea686fc02bee72b0b60dd16597c023817fd3150349b7020f",
+      "packedHex": "6ed2764c0963705d5d01f155d4650bca4ca1677223757e1036d8f87cf18d9ad9078f04a3d704d5f0f7d8ab3d157aef2d2834bc3c4926237966fdbedb077a30894ba81800ed5ea9ebea686fc02bee72b0b60dd16597c023817fd3150349b7020f94cb41d954fc40000000c40548656c6c6fc405576f726c6480"
+    },
+    {
+      "name": "with-fields",
+      "timestamp": 1700000000.0,
+      "title": "Test",
+      "content": "Body",
+      "fieldsHex": {
+        "0x8": "7468726561642d69642d313233"
+      },
+      "destinationHashHex": "6ed2764c0963705d5d01f155d4650bca",
+      "sourceHashHex": "4ca1677223757e1036d8f87cf18d9ad9",
+      "messageHashHex": "56a9f0d2fabf5458463bbfc1d684a982f9f0a9614eb01f8664be50396e35c04f",
+      "signatureHex": "545fb63509114e6ed9933859c7f5bc575d62b5403f21c9fa4b48f24f40cd22e1f1c89b8e40d0796004b22701c0350b52e478b5a4941118a8838c4af0f19c6807",
+      "packedHex": "6ed2764c0963705d5d01f155d4650bca4ca1677223757e1036d8f87cf18d9ad9545fb63509114e6ed9933859c7f5bc575d62b5403f21c9fa4b48f24f40cd22e1f1c89b8e40d0796004b22701c0350b52e478b5a4941118a8838c4af0f19c680794cb41d954fc40000000c40454657374c404426f64798108c40d7468726561642d69642d313233"
+    }
+  ]
+}

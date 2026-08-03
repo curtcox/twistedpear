@@ -1,0 +1,10 @@
+appId: network.twistedpear.harness
+---
+- extendedWaitUntil:
+    visible:
+      id: "host-confirmation-modal"
+    timeout: 30000
+- assertVisible: "storage:kv"
+- assertVisible: "lxmf:send"
+- tapOn:
+    id: "host-launch-run"

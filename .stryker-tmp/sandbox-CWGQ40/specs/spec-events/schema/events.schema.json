@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.dev/specs/spec-events/schema/events.schema.json",
+  "title": "SPEC-EVENTS event and intent alphabet",
+  "description": "The closed vocabulary between protocol machines and hosts, in serialized form (byte arrays as {\"$bytes\": \"<lowercase hex>\"}). This schema is normative: the TypeScript types in packages/effects/src/types.gen.ts are generated from it by scripts/generate-event-types.mjs. Machine intents and events are the production alphabet; transport/adversary is a harness extension carried in the separate harnessIntent group so production bindings can omit it.",
+  "$defs": {
+    "instantMs": {
+      "title": "InstantMs",
+      "description": "Virtual time instant in milliseconds since an arbitrary epoch.",
+      "type": "number"
+    },
+    "timerId": {
+      "title": "TimerId",
+      "description": "Opaque timer identity used by protocol code when requesting/cancelling timers.",
+      "type": "string"
+    },
+    "nodeId": {
+      "title": "NodeId",
+      "description": "Opaque node identity inside a multi-node simulation.",
+      "type": "string"
+    },
+    "bytes": {
+      "x-ts": "Uint8Array",
+      "description": "Byte array; serialized as {\"$bytes\": \"<lowercase hex, two digits per byte>\"}.",
+      "type": "object",
+      "required": ["$bytes"],
+      "properties": {
+        "$bytes": { "type": "string", "pattern": "^(?:[0-9a-f]{2})*$" }
+      },
+      "additionalProperties": false
+    },
+    "timerRequest": {
+      "title": "TimerRequest",
+      "description": "Timer request emitted as an intent; expiry arrives later as an event.",
+      "type": "object",
+      "required": ["id", "delayMs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/timerId" },
+        "delayMs": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "timerCancel": {
+      "title": "TimerCancel",
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "$ref": "#/$defs/timerId" }
+      },
+      "additionalProperties": false
+    },
+    "transportSend": {
+      "title": "TransportSend",
+      "description": "Narrow send surface. Adapters perform the IO; protocol only declares intent. Receive paths arrive as events, never as callbacks into protocol modules.",
+      "type": "object",
+      "required": ["channel", "destination", "payload"],
+      "properties": {
+        "channel": { "type": "string" },
+        "destination": { "type": "string" },
+        "payload": { "$ref": "#/$defs/bytes" }
+      },
+      "additionalProperties": false
+    },
+    "storeRead": {
+      "title": "StoreRead",
+      "type": "object",
+      "required": ["key"],
+      "properties": {
+        "key": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "storeWrite": {
+      "title": "StoreWrite",
+      "type": "object",
+      "required": ["key", "value"],
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "$ref": "#/$defs/bytes" }
+      },
+      "additionalProperties": false
+    },
+    "storeDelete": {
+      "title": "StoreDelete",
+      "type": "object",
+      "required": ["key"],
+      "properties": {
+        "key": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "dolevYaoPower": {
+      "title": "DolevYaoPower",
+      "enum": ["drop", "delay", "reorder", "duplicate", "inject"]
+    },
+    "transportAdversaryAction": {
+      "title": "TransportAdversaryAction",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["power", "source", "destination"],
+          "properties": {
+            "power": { "const": "drop" },
+            "source": { "$ref": "#/$defs/nodeId" },
+            "destination": { "$ref": "#/$defs/nodeId" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["power", "source", "destination", "delayMs"],
+          "properties": {
+            "power": { "const": "delay" },
+            "source": { "$ref": "#/$defs/nodeId" },
+            "destination": { "$ref": "#/$defs/nodeId" },
+            "delayMs": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["power", "source", "destination"],
+          "properties": {
+            "power": { "const": "reorder" },
+            "source": { "$ref": "#/$defs/nodeId" },
+            "destination": { "$ref": "#/$defs/nodeId" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["power", "source", "destination"],
+          "properties": {
+            "power": { "const": "duplicate" },
+            "source": { "$ref": "#/$defs/nodeId" },
+            "destination": { "$ref": "#/$defs/nodeId" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["power", "source", "destination", "channel", "payload"],
+          "properties": {
+            "power": { "const": "inject" },
+            "source": { "$ref": "#/$defs/nodeId" },
+            "destination": { "$ref": "#/$defs/nodeId" },
+            "channel": { "type": "string" },
+            "payload": { "$ref": "#/$defs/bytes" },
+            "delayMs": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "machineIntent": {
+      "description": "Intents a production protocol machine may emit (machine → host).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "nbytes"],
+          "properties": {
+            "kind": { "const": "need_entropy" },
+            "nbytes": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "timer"],
+          "properties": {
+            "kind": { "const": "timer/set" },
+            "timer": { "$ref": "#/$defs/timerRequest" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "timer"],
+          "properties": {
+            "kind": { "const": "timer/cancel" },
+            "timer": { "$ref": "#/$defs/timerCancel" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "send"],
+          "properties": {
+            "kind": { "const": "transport/send" },
+            "send": { "$ref": "#/$defs/transportSend" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "read"],
+          "properties": {
+            "kind": { "const": "store/read" },
+            "read": { "$ref": "#/$defs/storeRead" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "write"],
+          "properties": {
+            "kind": { "const": "store/write" },
+            "write": { "$ref": "#/$defs/storeWrite" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "del"],
+          "properties": {
+            "kind": { "const": "store/delete" },
+            "del": { "$ref": "#/$defs/storeDelete" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "level", "message"],
+          "properties": {
+            "kind": { "const": "log" },
+            "level": { "enum": ["debug", "info", "warn", "error"] },
+            "message": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "harnessIntent": {
+      "description": "Harness extension (not part of the normative machine alphabet): emitted only by test-harness machines to script Dolev-Yao adversaries. Production adapters are not required to implement it.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "action"],
+          "properties": {
+            "kind": { "const": "transport/adversary" },
+            "action": { "$ref": "#/$defs/transportAdversaryAction" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "intent": {
+      "description": "Full intent alphabet accepted by a simulation-capable host: machine intents plus harness extensions.",
+      "oneOf": [
+        { "$ref": "#/$defs/machineIntent" },
+        { "$ref": "#/$defs/harnessIntent" }
+      ]
+    },
+    "event": {
+      "description": "Events a host dispatches to machines (host → machine).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "bytes"],
+          "properties": {
+            "kind": { "const": "entropy" },
+            "bytes": { "$ref": "#/$defs/bytes" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "id", "at"],
+          "properties": {
+            "kind": { "const": "timer/fired" },
+            "id": { "$ref": "#/$defs/timerId" },
+            "at": { "$ref": "#/$defs/instantMs" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "channel", "source", "payload", "at"],
+          "properties": {
+            "kind": { "const": "transport/recv" },
+            "channel": { "type": "string" },
+            "source": { "type": "string" },
+            "payload": { "$ref": "#/$defs/bytes" },
+            "at": { "$ref": "#/$defs/instantMs" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "key"],
+          "properties": {
+            "kind": { "const": "store/value" },
+            "key": { "type": "string" },
+            "value": { "$ref": "#/$defs/bytes", "x-presence": "explicit-undefined" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "key", "op"],
+          "properties": {
+            "kind": { "const": "store/done" },
+            "key": { "type": "string" },
+            "op": { "enum": ["write", "delete"] }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "at"],
+          "properties": {
+            "kind": { "const": "tick" },
+            "at": { "$ref": "#/$defs/instantMs" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "at"],
+          "properties": {
+            "kind": { "const": "start" },
+            "at": { "$ref": "#/$defs/instantMs" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

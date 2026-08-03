@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "transports": {
+    "ble": {
+      "minimumObservations": 200,
+      "minimumDistinctPayloadSizes": 4,
+      "bandwidthRelative": 0.25,
+      "latencyMinRelative": 0.5,
+      "latencyMaxRelative": 0.5,
+      "lossRateAbsolute": 0.02
+    },
+    "lora": {
+      "minimumObservations": 100,
+      "minimumDistinctPayloadSizes": 4,
+      "bandwidthRelative": 0.25,
+      "latencyMinRelative": 0.5,
+      "latencyMaxRelative": 0.5,
+      "lossRateAbsolute": 0.03
+    }
+  }
+}

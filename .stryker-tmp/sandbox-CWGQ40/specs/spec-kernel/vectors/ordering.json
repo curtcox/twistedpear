@@ -1,0 +1,46 @@
+{
+  "spec": "SPEC-KERNEL",
+  "description": "Ordering fixtures for the four dequeue rules in specs/spec-kernel/spec.md. 'expected' pins the delivery order (timer firings and transport receipts) the named runner scenario must produce; 'traceHash' pins the full canonical trace hash (SPEC-TRACE). Consumed by conformance/kernel/runner.mjs.",
+  "fixtures": [
+    {
+      "name": "rule1-timers-before-transport",
+      "rule": 1,
+      "expected": [
+        "timer:a:t@5",
+        "recv:b->a:1@5"
+      ],
+      "traceHash": "70585e6546859b00"
+    },
+    {
+      "name": "rule2-timers-by-node-then-timer-id",
+      "rule": 2,
+      "expected": [
+        "timer:a:t1@10",
+        "timer:a:t2@10",
+        "timer:b:t1@10",
+        "timer:b:t2@10"
+      ],
+      "traceHash": "54e4d6873802bb4e"
+    },
+    {
+      "name": "rule3-transport-by-source-then-destination",
+      "rule": 3,
+      "expected": [
+        "recv:a->c:2@7",
+        "recv:a->d:1@7",
+        "recv:b->c:4@7",
+        "recv:b->d:3@7"
+      ],
+      "traceHash": "17c8007f129d9d5f"
+    },
+    {
+      "name": "rule4-ties-in-send-order",
+      "rule": 4,
+      "expected": [
+        "recv:a->b:1@4",
+        "recv:a->b:2@4"
+      ],
+      "traceHash": "c96fbf3e7bbb5682"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+appId: network.twistedpear.harness
+---
+# Brings the mobile harness up as a peer in the single-machine multi-peer
+# environment: create an identity, connect TCP to the local hub, then mount the
+# test control agent that `conformance/local-multipeer` drives.
+# Same Expo cold-start path as share-policy (proven on Android emulator).
+- launchApp:
+    clearState: true
+# Compat / ANR / Expo chrome can appear after the first dismiss pass — loop until
+# the harness identity chrome is actually on screen (and not under the Dev Menu).
+- repeat:
+    times: 60
+    while:
+      notVisible:
+        id: "create-identity"
+    commands:
+      - runFlow:
+          when:
+            visible: "Close app"
+          commands:
+            - tapOn: "Wait"
+      - runFlow:
+          when:
+            visible: "Don't Show Again"
+          commands:
+            - tapOn: "Don't Show Again"
+      - runFlow:
+          when:
+            visible: "Android App Compatibility"
+          commands:
+            - tapOn: "Don't Show Again"
+      # Expo Dev Menu covers the harness; Back dismisses it. Do not tap Reload —
+      # that reopens the menu on Android.
+      - runFlow:
+          when:
+            visible: "Connected to:"
+          commands:
+            - pressKey: back
+      - runFlow:
+          when:
+            visible: "Go home"
+          commands:
+            - pressKey: back
+      - runFlow:
+          when:
+            visible: "Development servers"
+          commands:
+            - runFlow:
+                when:
+                  visible: "http://10.0.2.2:8081"
+                commands:
+                  - tapOn: "http://10.0.2.2:8081"
+            - runFlow:
+                when:
+                  visible: "http://127.0.0.1:8081"
+                commands:
+                  - tapOn: "http://127.0.0.1:8081"
+            - runFlow:
+                when:
+                  visible: "http://localhost:8081"
+                commands:
+                  - tapOn: "http://localhost:8081"
+            - runFlow:
+                when:
+                  visible: "Continue"
+                commands:
+                  - tapOn: "Continue"
+      - runFlow:
+          when:
+            visible: "Continue"
+          commands:
+            - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- assertVisible:
+    id: "create-identity"
+- tapOn:
+    id: "create-identity"
+- extendedWaitUntil:
+    visible: "Persisted: yes"
+    timeout: 60000
+- tapOn:
+    id: "tcp-client-switch"
+# Android emulator → host can need longer than iOS loopback.
+- extendedWaitUntil:
+    visible: "Link: online"
+    timeout: 180000
+# The mount itself is asserted by the harness, which waits for this peer to
+# check in on the control channel — see conformance/local-multipeer/run.mjs.
+- tapOn:
+    id: "connect-test-agent"

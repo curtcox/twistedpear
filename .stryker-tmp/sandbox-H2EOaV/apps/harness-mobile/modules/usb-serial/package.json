@@ -1,0 +1,11 @@
+{
+  "name": "@twistedpear/usb-serial",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "expo-modules-core": "*",
+    "@twistedpear/reticulum-interfaces": "0.2.0"
+  }
+}

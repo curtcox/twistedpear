@@ -1,0 +1,11 @@
+{
+  "schema": "twistedpear.tla-traces-v1",
+  "model": "specs/spec-authority/model/recovery_quorum.tla",
+  "edges": [
+    ["idle", "start", "collecting"],
+    ["collecting", "share", "collecting"],
+    ["collecting", "threshold-authorize", "recovered"],
+    ["collecting", "reject", "rejected"],
+    ["collecting", "ttl", "expired"]
+  ]
+}

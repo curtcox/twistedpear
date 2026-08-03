@@ -1,0 +1,89 @@
+{
+  "upstream": {
+    "reticulumVersion": "0.9.4",
+    "generatedBy": "conformance/vectors/generate.py (RNS)"
+  },
+  "destinations": [
+    {
+      "name": "single-example-chat",
+      "identityHashHex": "14ae36c9c3feac7be58c027babc87580",
+      "appName": "example",
+      "aspects": [
+        "chat"
+      ],
+      "expandedName": "example.chat.14ae36c9c3feac7be58c027babc87580",
+      "nameHashHex": "3f25bdabca5283cf3349",
+      "destinationHashHex": "922a5ea5cf83a56dd93aca5e435d58dd"
+    },
+    {
+      "name": "single-example-announce",
+      "identityHashHex": "14ae36c9c3feac7be58c027babc87580",
+      "appName": "example",
+      "aspects": [
+        "announce"
+      ],
+      "expandedName": "example.announce.14ae36c9c3feac7be58c027babc87580",
+      "nameHashHex": "5ffb8cc6571b34ebef3c",
+      "destinationHashHex": "86f004d27cea4234b10624259d44386f"
+    }
+  ],
+  "packets": [
+    {
+      "name": "header1-group-data-request",
+      "headerType": 0,
+      "contextFlag": 0,
+      "transportType": 0,
+      "destinationType": 1,
+      "packetType": 0,
+      "hops": 2,
+      "destinationHashHex": "086b1879b803be27667b9f1e6b7d0c43",
+      "context": 9,
+      "dataHex": "68656c6c6f207061636b6574",
+      "rawHex": "0402086b1879b803be27667b9f1e6b7d0c430968656c6c6f207061636b6574",
+      "hashablePartHex": "04086b1879b803be27667b9f1e6b7d0c430968656c6c6f207061636b6574",
+      "packetHashHex": "2353f4a10b216e53b74d011010d86e70dcd056a81a0ce3eae62e9424cdad134f"
+    },
+    {
+      "name": "header2-announce-path-response",
+      "headerType": 1,
+      "contextFlag": 0,
+      "transportType": 1,
+      "destinationType": 0,
+      "packetType": 1,
+      "hops": 3,
+      "destinationHashHex": "086b1879b803be27667b9f1e6b7d0c43",
+      "context": 11,
+      "dataHex": "616e6e6f756e6365",
+      "rawHex": "510300112233445566778899aabbccddeeff086b1879b803be27667b9f1e6b7d0c430b616e6e6f756e6365",
+      "hashablePartHex": "01086b1879b803be27667b9f1e6b7d0c430b616e6e6f756e6365",
+      "packetHashHex": "1500ea9d54fccb677e4f4ad58b818e31e54840ec8779622a3ac4839a5ba4f3ad",
+      "transportIdHex": "00112233445566778899aabbccddeeff"
+    }
+  ],
+  "announces": [
+    {
+      "name": "alice-example-announce-app-data",
+      "destinationHashHex": "3991d98e90e45823bf84b19a7b36fe60",
+      "nameHashHex": "5ffb8cc6571b34ebef3c",
+      "publicKeyHex": "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7ce7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "randomHashHex": "0102030405060708090a",
+      "ratchetPublicKeyHex": null,
+      "appDataHex": "616e6e6f756e6365206170702064617461",
+      "signatureHex": "266f3dc9cd8db73e075bef9614645bb7afbfd90f2f369ec89b583961532c7776f2de2744d8b4243296b04f3e64e7a8a442056122f7b216739505cf19cda3790a",
+      "dataHex": "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7ce7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f05ffb8cc6571b34ebef3c0102030405060708090a266f3dc9cd8db73e075bef9614645bb7afbfd90f2f369ec89b583961532c7776f2de2744d8b4243296b04f3e64e7a8a442056122f7b216739505cf19cda3790a616e6e6f756e6365206170702064617461",
+      "rawHex": "01003991d98e90e45823bf84b19a7b36fe600007a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7ce7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f05ffb8cc6571b34ebef3c0102030405060708090a266f3dc9cd8db73e075bef9614645bb7afbfd90f2f369ec89b583961532c7776f2de2744d8b4243296b04f3e64e7a8a442056122f7b216739505cf19cda3790a616e6e6f756e6365206170702064617461"
+    },
+    {
+      "name": "alice-example-announce-ratchet",
+      "destinationHashHex": "3991d98e90e45823bf84b19a7b36fe60",
+      "nameHashHex": "5ffb8cc6571b34ebef3c",
+      "publicKeyHex": "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7ce7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "randomHashHex": "0102030405060708090a",
+      "ratchetPublicKeyHex": "0faa684ed28867b97f4a6a2dee5df8ce974e76b7018e3f22a1c4cf2678570f20",
+      "appDataHex": "616e6e6f756e6365206170702064617461",
+      "signatureHex": "6efa5248f606962f4cdbfe4a1b0cdeaa250f43de560c69c8036f6a5d2a91b9c9247f2819d14b0424d88a7718ed2d2731ed2ebf864c5ab9b3c5f0fa3dad50a904",
+      "dataHex": "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7ce7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f05ffb8cc6571b34ebef3c0102030405060708090a0faa684ed28867b97f4a6a2dee5df8ce974e76b7018e3f22a1c4cf2678570f206efa5248f606962f4cdbfe4a1b0cdeaa250f43de560c69c8036f6a5d2a91b9c9247f2819d14b0424d88a7718ed2d2731ed2ebf864c5ab9b3c5f0fa3dad50a904616e6e6f756e6365206170702064617461",
+      "rawHex": "21003991d98e90e45823bf84b19a7b36fe600007a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7ce7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f05ffb8cc6571b34ebef3c0102030405060708090a0faa684ed28867b97f4a6a2dee5df8ce974e76b7018e3f22a1c4cf2678570f206efa5248f606962f4cdbfe4a1b0cdeaa250f43de560c69c8036f6a5d2a91b9c9247f2819d14b0424d88a7718ed2d2731ed2ebf864c5ab9b3c5f0fa3dad50a904616e6e6f756e6365206170702064617461"
+    }
+  ]
+}

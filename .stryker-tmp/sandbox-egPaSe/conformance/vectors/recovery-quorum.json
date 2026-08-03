@@ -1,0 +1,464 @@
+{
+  "schema": "twistedpear.transition-v1",
+  "machine": "recovery-quorum",
+  "generatedBy": "scripts/vectors-generate-grant.mjs",
+  "states": [
+    "idle",
+    "collecting",
+    "recovered",
+    "rejected",
+    "expired"
+  ],
+  "eventClasses": [
+    "start",
+    "share",
+    "threshold-authorize",
+    "reject",
+    "ttl"
+  ],
+  "cells": [
+    {
+      "state": "idle",
+      "eventClass": "start",
+      "event": {
+        "kind": "recovery/start"
+      },
+      "expectedState": {
+        "phase": "collecting",
+        "threshold": 2,
+        "shares": [],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "idle",
+      "eventClass": "share",
+      "event": {
+        "kind": "recovery/share",
+        "guardian": "a"
+      },
+      "expectedState": {
+        "phase": "idle",
+        "threshold": 2,
+        "shares": [],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "idle",
+      "eventClass": "threshold-authorize",
+      "event": {
+        "kind": "recovery/authorize"
+      },
+      "expectedState": {
+        "phase": "idle",
+        "threshold": 2,
+        "shares": [],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "idle",
+      "eventClass": "reject",
+      "event": {
+        "kind": "recovery/reject"
+      },
+      "expectedState": {
+        "phase": "idle",
+        "threshold": 2,
+        "shares": [],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "idle",
+      "eventClass": "ttl",
+      "event": {
+        "kind": "recovery/ttl"
+      },
+      "expectedState": {
+        "phase": "idle",
+        "threshold": 2,
+        "shares": [],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "collecting",
+      "eventClass": "start",
+      "event": {
+        "kind": "recovery/start"
+      },
+      "expectedState": {
+        "phase": "collecting",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "collecting",
+      "eventClass": "share",
+      "event": {
+        "kind": "recovery/share",
+        "guardian": "a"
+      },
+      "expectedState": {
+        "phase": "collecting",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "collecting",
+      "eventClass": "threshold-authorize",
+      "event": {
+        "kind": "recovery/authorize"
+      },
+      "expectedState": {
+        "phase": "recovered",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": [
+          "a",
+          "b"
+        ]
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "collecting",
+      "eventClass": "reject",
+      "event": {
+        "kind": "recovery/reject"
+      },
+      "expectedState": {
+        "phase": "rejected",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "collecting",
+      "eventClass": "ttl",
+      "event": {
+        "kind": "recovery/ttl"
+      },
+      "expectedState": {
+        "phase": "expired",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "recovered",
+      "eventClass": "start",
+      "event": {
+        "kind": "recovery/start"
+      },
+      "expectedState": {
+        "phase": "recovered",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "recovered",
+      "eventClass": "share",
+      "event": {
+        "kind": "recovery/share",
+        "guardian": "a"
+      },
+      "expectedState": {
+        "phase": "recovered",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "recovered",
+      "eventClass": "threshold-authorize",
+      "event": {
+        "kind": "recovery/authorize"
+      },
+      "expectedState": {
+        "phase": "recovered",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "recovered",
+      "eventClass": "reject",
+      "event": {
+        "kind": "recovery/reject"
+      },
+      "expectedState": {
+        "phase": "recovered",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "recovered",
+      "eventClass": "ttl",
+      "event": {
+        "kind": "recovery/ttl"
+      },
+      "expectedState": {
+        "phase": "recovered",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "rejected",
+      "eventClass": "start",
+      "event": {
+        "kind": "recovery/start"
+      },
+      "expectedState": {
+        "phase": "rejected",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "rejected",
+      "eventClass": "share",
+      "event": {
+        "kind": "recovery/share",
+        "guardian": "a"
+      },
+      "expectedState": {
+        "phase": "rejected",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "rejected",
+      "eventClass": "threshold-authorize",
+      "event": {
+        "kind": "recovery/authorize"
+      },
+      "expectedState": {
+        "phase": "rejected",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "rejected",
+      "eventClass": "reject",
+      "event": {
+        "kind": "recovery/reject"
+      },
+      "expectedState": {
+        "phase": "rejected",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "rejected",
+      "eventClass": "ttl",
+      "event": {
+        "kind": "recovery/ttl"
+      },
+      "expectedState": {
+        "phase": "rejected",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "start",
+      "event": {
+        "kind": "recovery/start"
+      },
+      "expectedState": {
+        "phase": "expired",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "share",
+      "event": {
+        "kind": "recovery/share",
+        "guardian": "a"
+      },
+      "expectedState": {
+        "phase": "expired",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "threshold-authorize",
+      "event": {
+        "kind": "recovery/authorize"
+      },
+      "expectedState": {
+        "phase": "expired",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "reject",
+      "event": {
+        "kind": "recovery/reject"
+      },
+      "expectedState": {
+        "phase": "expired",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "ttl",
+      "event": {
+        "kind": "recovery/ttl"
+      },
+      "expectedState": {
+        "phase": "expired",
+        "threshold": 2,
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": []
+      },
+      "expectedIntents": [],
+      "legal": false
+    }
+  ]
+}

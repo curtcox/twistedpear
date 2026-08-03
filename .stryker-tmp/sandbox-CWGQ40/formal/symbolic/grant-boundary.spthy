@@ -1,0 +1,28 @@
+theory TwistedPearGrantBoundary
+begin
+
+builtins: signing
+
+rule RegisterHost:
+  [ Fr(~ltk) ]
+  --> [ !HostKey(~ltk), Out(pk(~ltk)) ]
+
+rule IssueCanonicalGrant:
+  [ !HostKey(ltk), Fr(~app), Fr(~capabilities), Fr(~version) ]
+  --[ Issued(<~app, ~capabilities, ~version>) ]->
+  [ Out(<<~app, ~capabilities, ~version>, sign(<~app, ~capabilities, ~version>, ltk)>) ]
+
+rule AcceptCanonicalGrant:
+  [ !HostKey(ltk), In(<record, sign(record, ltk)>) ]
+  --[ Accepted(record) ]->
+  [ ]
+
+lemma executable_trace_exists:
+  exists-trace
+  "Ex record #i #j. Issued(record)@i & Accepted(record)@j"
+
+lemma grant_authenticity:
+  "All record #accept. Accepted(record)@accept
+    ==> (Ex #issue. Issued(record)@issue & #issue < #accept)"
+
+end

@@ -1,0 +1,8 @@
+{
+  "name": "com.twistedpear.example",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": ["lxmf:send"],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

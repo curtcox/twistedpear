@@ -1,0 +1,19 @@
+apply plugin: 'com.android.library'
+
+group = 'network.twistedpear.harness'
+version = '0.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+useExpoPublishing()
+
+android {
+  namespace "expo.modules.twistedpear.nodeservice"
+  defaultConfig {
+    versionCode 1
+    versionName "0.0.0"
+  }
+}

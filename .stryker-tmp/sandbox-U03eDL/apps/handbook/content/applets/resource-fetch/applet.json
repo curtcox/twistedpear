@@ -1,0 +1,14 @@
+{
+  "id": "resource-fetch",
+  "group": "distribution",
+  "title": "Resource fetch with budget",
+  "capabilities": ["resource:fetch"],
+  "surfaces": ["resource.fetch"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

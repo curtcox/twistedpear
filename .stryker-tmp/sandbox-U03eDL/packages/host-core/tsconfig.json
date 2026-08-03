@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "exactOptionalPropertyTypes": true,
+    "lib": [
+      "ES2023"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2023",
+    "verbatimModuleSyntax": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../cas-256t"
+    },
+    {
+      "path": "../reticulum-ts"
+    },
+    {
+      "path": "../reticulum-interfaces"
+    },
+    {
+      "path": "../lxmf-ts"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../bridge-hyper"
+    },
+    {
+      "path": "../app-registry"
+    }
+  ]
+}

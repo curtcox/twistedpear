@@ -1,0 +1,49 @@
+{
+  "name": "@twistedpear/bridge-hyper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./resource-server": {
+      "types": "./dist/resource-server.d.ts",
+      "import": "./dist/resource-server.js"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "import": "./dist/web.js"
+    },
+    "./worklet": {
+      "types": "./dist/worklet.d.ts",
+      "import": "./dist/worklet.js"
+    },
+    "./worklet-hyper": {
+      "types": "./dist/worklet-hyper.d.ts",
+      "import": "./dist/worklet-hyper.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hyperswarm/dht-relay": "^0.4.3",
+    "@twistedpear/app-registry": "0.1.0",
+    "@twistedpear/cas-256t": "0.1.0",
+    "@twistedpear/reticulum-interfaces": "0.2.0",
+    "@twistedpear/reticulum-ts": "0.0.0",
+    "b4a": "^1.6.7",
+    "corestore": "^7.9.2",
+    "hyperdht": "^6.21.0",
+    "hyperdrive": "^13.3.2",
+    "hyperswarm": "^4.13.0",
+    "random-access-memory": "^6.2.0",
+    "streamx": "^2.25.0",
+    "ws": "^8.18.0"
+  }
+}

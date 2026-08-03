@@ -1,0 +1,538 @@
+{
+  "schema": "twistedpear.transition-v1",
+  "machine": "grant-lifecycle",
+  "generatedBy": "scripts/vectors-generate-grant.mjs",
+  "states": [
+    "requested",
+    "granted",
+    "active",
+    "denied",
+    "expired",
+    "revoked"
+  ],
+  "eventClasses": [
+    "approve",
+    "deny",
+    "first-use/live",
+    "ttl/expired",
+    "revoke"
+  ],
+  "cells": [
+    {
+      "state": "requested",
+      "eventClass": "approve",
+      "event": {
+        "kind": "grant/approve",
+        "at": 1,
+        "ttlMs": 9
+      },
+      "expectedState": {
+        "phase": "granted",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "requested",
+      "eventClass": "deny",
+      "event": {
+        "kind": "grant/deny",
+        "at": 1
+      },
+      "expectedState": {
+        "phase": "denied",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "requested",
+      "eventClass": "first-use/live",
+      "event": {
+        "kind": "grant/first-use",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "requested",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "requested",
+      "eventClass": "ttl/expired",
+      "event": {
+        "kind": "grant/ttl",
+        "at": 10
+      },
+      "expectedState": {
+        "phase": "requested",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "requested",
+      "eventClass": "revoke",
+      "event": {
+        "kind": "grant/revoke",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "requested",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "granted",
+      "eventClass": "approve",
+      "event": {
+        "kind": "grant/approve",
+        "at": 1,
+        "ttlMs": 9
+      },
+      "expectedState": {
+        "phase": "granted",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "granted",
+      "eventClass": "deny",
+      "event": {
+        "kind": "grant/deny",
+        "at": 1
+      },
+      "expectedState": {
+        "phase": "granted",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "granted",
+      "eventClass": "first-use/live",
+      "event": {
+        "kind": "grant/first-use",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "active",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": 5,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "granted",
+      "eventClass": "ttl/expired",
+      "event": {
+        "kind": "grant/ttl",
+        "at": 10
+      },
+      "expectedState": {
+        "phase": "expired",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "granted",
+      "eventClass": "revoke",
+      "event": {
+        "kind": "grant/revoke",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "revoked",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": 5
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "active",
+      "eventClass": "approve",
+      "event": {
+        "kind": "grant/approve",
+        "at": 1,
+        "ttlMs": 9
+      },
+      "expectedState": {
+        "phase": "active",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "active",
+      "eventClass": "deny",
+      "event": {
+        "kind": "grant/deny",
+        "at": 1
+      },
+      "expectedState": {
+        "phase": "active",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "active",
+      "eventClass": "first-use/live",
+      "event": {
+        "kind": "grant/first-use",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "active",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "active",
+      "eventClass": "ttl/expired",
+      "event": {
+        "kind": "grant/ttl",
+        "at": 10
+      },
+      "expectedState": {
+        "phase": "expired",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "active",
+      "eventClass": "revoke",
+      "event": {
+        "kind": "grant/revoke",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "revoked",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": 5
+      },
+      "expectedIntents": [],
+      "legal": true
+    },
+    {
+      "state": "denied",
+      "eventClass": "approve",
+      "event": {
+        "kind": "grant/approve",
+        "at": 1,
+        "ttlMs": 9
+      },
+      "expectedState": {
+        "phase": "denied",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "denied",
+      "eventClass": "deny",
+      "event": {
+        "kind": "grant/deny",
+        "at": 1
+      },
+      "expectedState": {
+        "phase": "denied",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "denied",
+      "eventClass": "first-use/live",
+      "event": {
+        "kind": "grant/first-use",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "denied",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "denied",
+      "eventClass": "ttl/expired",
+      "event": {
+        "kind": "grant/ttl",
+        "at": 10
+      },
+      "expectedState": {
+        "phase": "denied",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "denied",
+      "eventClass": "revoke",
+      "event": {
+        "kind": "grant/revoke",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "denied",
+        "requestedAt": 0,
+        "expiresAt": null,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "approve",
+      "event": {
+        "kind": "grant/approve",
+        "at": 1,
+        "ttlMs": 9
+      },
+      "expectedState": {
+        "phase": "expired",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "deny",
+      "event": {
+        "kind": "grant/deny",
+        "at": 1
+      },
+      "expectedState": {
+        "phase": "expired",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "first-use/live",
+      "event": {
+        "kind": "grant/first-use",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "expired",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "ttl/expired",
+      "event": {
+        "kind": "grant/ttl",
+        "at": 10
+      },
+      "expectedState": {
+        "phase": "expired",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "expired",
+      "eventClass": "revoke",
+      "event": {
+        "kind": "grant/revoke",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "expired",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "revoked",
+      "eventClass": "approve",
+      "event": {
+        "kind": "grant/approve",
+        "at": 1,
+        "ttlMs": 9
+      },
+      "expectedState": {
+        "phase": "revoked",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "revoked",
+      "eventClass": "deny",
+      "event": {
+        "kind": "grant/deny",
+        "at": 1
+      },
+      "expectedState": {
+        "phase": "revoked",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "revoked",
+      "eventClass": "first-use/live",
+      "event": {
+        "kind": "grant/first-use",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "revoked",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "revoked",
+      "eventClass": "ttl/expired",
+      "event": {
+        "kind": "grant/ttl",
+        "at": 10
+      },
+      "expectedState": {
+        "phase": "revoked",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    },
+    {
+      "state": "revoked",
+      "eventClass": "revoke",
+      "event": {
+        "kind": "grant/revoke",
+        "at": 5
+      },
+      "expectedState": {
+        "phase": "revoked",
+        "requestedAt": 0,
+        "expiresAt": 10,
+        "firstUsedAt": null,
+        "revokedAt": null
+      },
+      "expectedIntents": [],
+      "legal": false
+    }
+  ]
+}

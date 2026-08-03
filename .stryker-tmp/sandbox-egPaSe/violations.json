@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-08-02T20:29:18.898Z",
+  "roots": [
+    "packages/protocol/src",
+    "packages/reticulum-ts/src",
+    "packages/lxmf-ts/src",
+    "packages/miniapp-runtime/src",
+    "packages/reticulum-interfaces/src"
+  ],
+  "scannedFileCount": 282,
+  "violationCount": 0,
+  "filesWithViolations": [],
+  "summaryByApi": {},
+  "violations": []
+}

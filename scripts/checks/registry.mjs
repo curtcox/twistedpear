@@ -34,7 +34,7 @@ function gate(id, title, script, tier, requires, artifacts = [], summary = "gene
     command: ["npm", "run", script],
     tier,
     requires,
-    artifacts: [`artifacts/checks/${id}.json`, ...artifacts],
+    artifacts: [`artifacts/checks/${id}.json`, `artifacts/logs/${id}.log`, ...artifacts],
     summary,
     os
   };

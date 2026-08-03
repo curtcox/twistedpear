@@ -67,8 +67,10 @@ for (const gate of selected) {
     stdio: ["inherit", "pipe", "pipe"],
     maxBuffer: 64 * 1024 * 1024
   });
-  process.stdout.write(result.stdout ?? "");
-  process.stderr.write(result.stderr ?? "");
+  const stdout = result.stdout ?? "";
+  const stderr = result.stderr ?? "";
+  process.stdout.write(stdout);
+  process.stderr.write(stderr);
   const exitCode = result.status ?? 1;
   const artifact = {
     id: gate.id,
@@ -82,8 +84,14 @@ for (const gate of selected) {
     host: `${os.platform()}-${os.arch()}`
   };
   const artifactPath = path.join(ROOT, "artifacts", "checks", `${gate.id}.json`);
+  const logPath = path.join(ROOT, "artifacts", "logs", `${gate.id}.log`);
   fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
   fs.writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
+  fs.writeFileSync(
+    logPath,
+    [`$ ${gate.command.join(" ")}`, `exit: ${exitCode}`, "", stdout, stderr ? `\n--- stderr ---\n${stderr}` : ""].join("\n")
+  );
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,

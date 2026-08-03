@@ -1,0 +1,20 @@
+{
+  "name": "@twistedpear/worklet-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./dev-channel": "./src/dev-channel.mjs",
+    "./ipc-bonjour-bridge": "./src/ipc-bonjour-bridge.mjs",
+    "./ipc-multicast-bridge": "./src/ipc-multicast-bridge.mjs",
+    "./ipc-serial-bridge": "./src/ipc-serial-bridge.mjs",
+    "./miniapp-host": "./src/miniapp-host.mjs",
+    "./web-miniapp-host": "./src/web-miniapp-host.mjs"
+  },
+  "scripts": {
+    "build": "node -e \"process.exit(0)\"",
+    "test": "vitest run"
+  }
+}

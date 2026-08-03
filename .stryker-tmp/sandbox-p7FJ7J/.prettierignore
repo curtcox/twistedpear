@@ -1,0 +1,11 @@
+node_modules/
+dist/
+site/
+archive/
+**/bundle.js
+**/*.bundle.js
+**/*.bundle.mjs
+**/*.bundle
+**/*.gen.ts
+**/*.generated.mjs
+conformance/web-hyperdrive/web-hyper-fetch.js

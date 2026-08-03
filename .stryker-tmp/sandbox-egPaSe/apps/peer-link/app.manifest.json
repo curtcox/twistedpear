@@ -1,0 +1,8 @@
+{
+  "name": "peer-link",
+  "version": "0.1.0",
+  "entry": "bundle.js",
+  "capabilities": ["peer:connect"],
+  "icon": null,
+  "minHostApi": "0.8.0"
+}

@@ -1,0 +1,4 @@
+[release] stage: S0
+[release] commands: npm run test:release-harness; npm run release:status; git diff --check
+[release] result: 10 tests passed; driver selected S1; diff check passed
+[release] exit: 0

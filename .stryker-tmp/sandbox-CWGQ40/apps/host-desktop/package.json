@@ -1,0 +1,57 @@
+{
+  "name": "host-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "tsc -b && node scripts/build-renderer-vendor.mjs && node scripts/build-worklet.mjs",
+    "postinstall": "node scripts/ensure-electron.mjs",
+    "start": "npm run build && node scripts/ensure-electron.mjs && env -u ELECTRON_RUN_AS_NODE electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "@twistedpear/host-core": "0.1.0",
+    "@twistedpear/reticulum-interfaces": "0.2.0",
+    "qrcode-generator": "^1.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "bare": "^1.18.6",
+    "bare-pack": "^1.5.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2"
+  },
+  "build": {
+    "appId": "network.twistedpear.host",
+    "productName": "TwistedPear Host",
+    "files": [
+      "dist/**/*",
+      "worklet/worklet.bundle",
+      "src/renderer/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  }
+}

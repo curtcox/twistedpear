@@ -1,0 +1,143 @@
+appId: network.twistedpear.harness
+---
+# Simulator-first workstream D: remote-node grant disclosure / refusal / revoke.
+# Does not exercise a live Freenet connection; validates trusted-chrome UX only.
+- launchApp
+- scrollUntilVisible:
+    element:
+      id: "freenet-remote-section"
+    direction: DOWN
+    timeout: 60000
+- assertVisible:
+    id: "freenet-remote-section"
+- assertVisible: "Off by default"
+- assertVisible: "cannot be recalled"
+- assertVisible: "Timing, payload size"
+# Refusal: enable without disclosure or URL must surface an error.
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible:
+      id: "freenet-grant-error"
+    timeout: 10000
+- assertVisible:
+    id: "freenet-grant-status"
+- assertVisible: "Disabled"
+# Accept disclosure, fill safe fields, enable read-only grant.
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- inputText: "ws://127.0.0.1:50509/v1/contract/command"
+- tapOn:
+    id: "freenet-operator-label"
+- inputText: "home companion"
+- tapOn:
+    id: "freenet-cap-reads"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible: "Enabled for home companion"
+    timeout: 10000
+# Packet-tunnel chrome requires rendezvous when that capability is selected.
+- tapOn:
+    id: "freenet-cap-packet"
+- assertVisible:
+    id: "freenet-rendezvous-hex"
+- assertVisible:
+    id: "freenet-rendezvous-generate"
+- assertVisible:
+    id: "freenet-cap-propagation"
+- assertVisible:
+    id: "freenet-propagation-role-status"
+# Revoke returns to disabled; disclosure must be re-accepted.
+- tapOn:
+    id: "freenet-grant-revoke"
+- extendedWaitUntil:
+    visible: "Disabled"
+    timeout: 10000
+- assertVisible:
+    id: "freenet-session-status"
+- assertVisible: "Session: Idle"
+# Malformed URL refusal after disclosure.
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- eraseText
+- inputText: "http://example.com"
+- tapOn:
+    id: "freenet-operator-label"
+- eraseText
+- inputText: "bad url"
+- tapOn:
+    id: "freenet-cap-reads"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible:
+      id: "freenet-grant-error"
+    timeout: 10000
+# Per-write confirmation is required before attaching write backends.
+# Contract reads remains on from the previous failed enable attempt.
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- eraseText
+- inputText: "ws://127.0.0.1:1/v1/contract/command"
+- tapOn:
+    id: "freenet-operator-label"
+- eraseText
+- inputText: "write confirm"
+- tapOn:
+    id: "freenet-cap-writes"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible:
+      id: "freenet-write-confirm"
+    timeout: 10000
+- assertVisible:
+    id: "freenet-write-confirm-yes"
+- tapOn:
+    id: "freenet-write-confirm-no"
+- extendedWaitUntil:
+    visible: "Disabled"
+    timeout: 10000
+# Unavailable-node degradation + reconnect chrome (closed local port).
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- eraseText
+- inputText: "ws://127.0.0.1:1/v1/contract/command"
+- tapOn:
+    id: "freenet-operator-label"
+- eraseText
+- inputText: "unreachable"
+- tapOn:
+    id: "freenet-auth-token"
+- inputText: "secret-token-must-not-leak"
+- tapOn:
+    id: "freenet-cap-reads"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible: "Enabled for unreachable"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "Node unavailable"
+    timeout: 15000
+- assertNotVisible: "secret-token-must-not-leak"
+- tapOn:
+    id: "freenet-grant-reconnect"
+- extendedWaitUntil:
+    visible: "Degraded"
+    timeout: 15000
+- assertNotVisible: "secret-token-must-not-leak"
+- tapOn:
+    id: "freenet-grant-revoke"
+- extendedWaitUntil:
+    visible: "Disabled"
+    timeout: 10000

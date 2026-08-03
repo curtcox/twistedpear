@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "trialsPerCase": 200,
+  "entryOverheadBytes": 11,
+  "stateHeaderBytes": 9,
+  "concurrentWriterEvidence": {
+    "commutative": true,
+    "orderedIndexes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "gapDetectionRequired": true,
+    "sameIndexConflictRule": "lexicographically-smaller-payload"
+  },
+  "growthAndMergeCost": [
+    {
+      "retentionPerDirection": 16,
+      "payloadBytes": 64,
+      "oneWriterStateBytes": 1209,
+      "retainedDirectionStateBytes": 1209,
+      "bidirectionalStateBytes": 2409,
+      "mergeP50Ms": 0.003209,
+      "mergeP95Ms": 0.003459,
+      "mergeMaxMs": 0.005708
+    },
+    {
+      "retentionPerDirection": 16,
+      "payloadBytes": 500,
+      "oneWriterStateBytes": 8185,
+      "retainedDirectionStateBytes": 8185,
+      "bidirectionalStateBytes": 16361,
+      "mergeP50Ms": 0.00425,
+      "mergeP95Ms": 0.004417,
+      "mergeMaxMs": 0.005459
+    },
+    {
+      "retentionPerDirection": 64,
+      "payloadBytes": 64,
+      "oneWriterStateBytes": 4809,
+      "retainedDirectionStateBytes": 4809,
+      "bidirectionalStateBytes": 9609,
+      "mergeP50Ms": 0.012125,
+      "mergeP95Ms": 0.019875,
+      "mergeMaxMs": 0.02025
+    },
+    {
+      "retentionPerDirection": 64,
+      "payloadBytes": 500,
+      "oneWriterStateBytes": 32713,
+      "retainedDirectionStateBytes": 32713,
+      "bidirectionalStateBytes": 65417,
+      "mergeP50Ms": 0.029291,
+      "mergeP95Ms": 0.030459,
+      "mergeMaxMs": 0.085375
+    },
+    {
+      "retentionPerDirection": 256,
+      "payloadBytes": 64,
+      "oneWriterStateBytes": 19209,
+      "retainedDirectionStateBytes": 19209,
+      "bidirectionalStateBytes": 38409,
+      "mergeP50Ms": 0.079333,
+      "mergeP95Ms": 0.081208,
+      "mergeMaxMs": 0.115041
+    },
+    {
+      "retentionPerDirection": 256,
+      "payloadBytes": 500,
+      "oneWriterStateBytes": 130825,
+      "retainedDirectionStateBytes": 130825,
+      "bidirectionalStateBytes": 261641,
+      "mergeP50Ms": 0.091041,
+      "mergeP95Ms": 0.107,
+      "mergeMaxMs": 0.123542
+    }
+  ],
+  "recordedAt": "2026-07-28T14:44:28.816Z",
+  "host": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "rustVersion": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "wasmArtifact": {
+    "bytes": 144316,
+    "sha256Hex": "8e43152ff0a67c0e046326d0cad81201f7105b9fa5b96f3c9a0c3546dfe222f0"
+  }
+}

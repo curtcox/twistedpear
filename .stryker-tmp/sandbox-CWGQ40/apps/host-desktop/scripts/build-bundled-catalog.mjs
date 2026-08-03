@@ -1,0 +1,169 @@
+#!/usr/bin/env node
+// @ts-nocheck
+/**
+ * Build signed platform bundles (Handbook, DevStudio, Peer Link, chat example) for desktop
+ * first-boot seeding. Uses the deterministic TwistedPear platform publisher
+ * identity from conformance/vectors/identity.json (identity_a).
+ */
+
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import { encode256t } from "../../../packages/cas-256t/dist/index.js";
+import {
+  buildUnsignedManifest,
+  packPackage,
+  signManifest,
+  verifyPackage
+} from "../../../packages/app-registry/dist/index.js";
+import { Identity, NodeCryptoProvider, hexToBytes } from "../../../packages/reticulum-ts/dist/index.js";
+
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const hostRoot = join(scriptDir, "..");
+const repoRoot = join(hostRoot, "../..");
+const outPath = join(hostRoot, "worklet/bundled-catalog.generated.mjs");
+
+const PLATFORM_PRIVATE_KEY_HEX = JSON.parse(
+  readFileSync(join(repoRoot, "conformance/vectors/identity.json"), "utf8")
+).identities.find((entry) => entry.name === "alice").privateKeyHex;
+
+function bytesToHex(bytes) {
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+async function packApp({ provider, identity, appDir, appName, hostApiVersion }) {
+  const manifestPath = join(appDir, "app.manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const files = [{ path: "bundle.js", content: new Uint8Array(readFileSync(join(appDir, "bundle.js"))) }];
+  const unsigned = buildUnsignedManifest(
+    {
+      name: manifest.name,
+      version: manifest.version,
+      entry: manifest.entry,
+      capabilities: manifest.capabilities,
+      icon: manifest.icon ?? null,
+      minHostApi: manifest.minHostApi,
+      driveKey: "0".repeat(64),
+      publisherPublicKey: bytesToHex(identity.getPublicKey()),
+      files
+    },
+    provider
+  );
+  const signedManifest = signManifest(provider, identity, unsigned);
+  const packed = packPackage(provider, {
+    ...signedManifest,
+    signature: signedManifest.signature,
+    files
+  });
+  const verified = verifyPackage(provider, packed.archiveBytes, { hostApiVersion });
+  const t256 = encode256t(packed.archiveBytes, (data) => provider.sha512(data));
+  return {
+    appId: verified.manifest.name,
+    version: verified.manifest.version,
+    t256,
+    archiveHex: bytesToHex(packed.archiveBytes),
+    archiveBytes: packed.archiveBytes.length
+  };
+}
+
+async function packFromSource({ provider, identity, sourceDir, folderName, hostApiVersion }) {
+  const cwd = mkdtempSync(join(tmpdir(), "tp-bundled-pack-"));
+  const appDir = join(cwd, folderName);
+  cpSync(sourceDir, appDir, { recursive: true });
+  try {
+    return packApp({ provider, identity, appDir, appName: folderName, hostApiVersion });
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+const build = spawnSync(
+  "npm",
+  [
+    "run",
+    "build",
+    "--workspace=@twistedpear/miniapp-runtime",
+    "--workspace=@twistedpear/app-registry",
+    "--workspace=@twistedpear/reticulum-ts",
+    "--workspace=@twistedpear/cas-256t"
+  ],
+  { cwd: repoRoot, stdio: "inherit" }
+);
+if (build.status !== 0) {
+  process.exit(build.status ?? 1);
+}
+
+const handbookBuild = spawnSync(process.execPath, [join(repoRoot, "apps/handbook/build.mjs")], {
+  cwd: join(repoRoot, "apps/handbook"),
+  stdio: "inherit"
+});
+if (handbookBuild.status !== 0) {
+  process.exit(handbookBuild.status ?? 1);
+}
+
+const { HOST_API_VERSION } = await import("../../../packages/miniapp-runtime/dist/host-api.js");
+
+const provider = new NodeCryptoProvider();
+const identity = Identity.fromBytes(provider, hexToBytes(PLATFORM_PRIVATE_KEY_HEX));
+if (identity === null) {
+  throw new Error("Invalid platform publisher identity");
+}
+
+const publisherPublicKey = bytesToHex(identity.getPublicKey());
+const bundled = [];
+
+bundled.push(
+  await packFromSource({
+    provider,
+    identity,
+    sourceDir: join(repoRoot, "apps/handbook"),
+    folderName: "handbook",
+    hostApiVersion: HOST_API_VERSION
+  })
+);
+bundled.push(
+  await packFromSource({
+    provider,
+    identity,
+    sourceDir: join(repoRoot, "apps/peer-link"),
+    folderName: "peer-link",
+    hostApiVersion: HOST_API_VERSION
+  })
+);
+bundled.push(
+  await packFromSource({
+    provider,
+    identity,
+    sourceDir: join(repoRoot, "apps/devstudio"),
+    folderName: "devstudio",
+    hostApiVersion: HOST_API_VERSION
+  })
+);
+bundled.push(
+  await packFromSource({
+    provider,
+    identity,
+    sourceDir: join(repoRoot, "apps/examples/chat"),
+    folderName: "chat",
+    hostApiVersion: HOST_API_VERSION
+  })
+);
+
+writeFileSync(
+  outPath,
+  `/** Generated by apps/host-desktop/scripts/build-bundled-catalog.mjs — do not edit. */\nexport const TWISTEDPEAR_PLATFORM_PUBLISHER = ${JSON.stringify(
+    {
+      label: "TwistedPear",
+      privateKeyHex: PLATFORM_PRIVATE_KEY_HEX,
+      publisherPublicKey
+    },
+    null,
+    2
+  )};\nexport const BUNDLED_APPS = ${JSON.stringify(bundled, null, 2)};\n`
+);
+
+console.log(
+  `bundled-catalog: ${bundled.map((entry) => `${entry.appId}@${entry.version} (${entry.archiveBytes} B)`).join(", ")}`
+);

@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "audited": "2026-07-29",
+  "pinned": {
+    "typescriptSdk": "@freenetorg/freenet-stdlib@0.3.0",
+    "rustStdlibCommit": "f4636e502876b0e11f2f6d59032348cfd6518bbc",
+    "freenetCoreRelease": "v0.2.112"
+  },
+  "spikes": {
+    "S1": {
+      "status": "complete",
+      "artifact": "s1-report.md",
+      "supportingArtifacts": [
+        "bare-entry.mjs",
+        "bare-websocket-shim.mjs",
+        "s1-live-read.json"
+      ],
+      "conclusion": "the pinned SDK bundles and performs a live read under Bare with exact bare-ws and bare-encoding shims"
+    },
+    "S2": {
+      "status": "partial",
+      "artifact": "measured-roundtrip.json",
+      "supportingArtifacts": [
+        "measure-roundtrip.mjs",
+        "run-local-s2.mjs",
+        "s2-smoke-report.md",
+        "s2-smoke-observation.json"
+      ],
+      "conclusion": "local 100-sample update-to-notify on a 3-node mesh is complete for both local-executor (p95 under 90 ms / 260 ms) and paced cross-node notify (p95 under 120 ms for <=64 KiB, ~2.5 s for 1 MiB)",
+      "remaining": "record an explicitly authorized live-network 100-sample series"
+    },
+    "S3": {
+      "status": "complete",
+      "artifact": "s3-report.md",
+      "supportingArtifacts": [
+        "ordered-log-contract/src/lib.rs",
+        "s3-measurements.json"
+      ],
+      "conclusion": "bounded pairwise append-log encoding converges and orders deterministically; F2 viability remains gated on S2 network measurements"
+    },
+    "S4": {
+      "status": "partial",
+      "artifact": "s4-report.md",
+      "supportingArtifacts": ["s4-support-matrix.json"],
+      "remaining": "record Android emulator and iOS simulator BareKit measurements via ANDROID_BENCHMARK_RECORD=1 / IOS_BENCHMARK_RECORD=1 (recorders now update s4-support-matrix.json); physical device confirmation for release claims. Browser WASM remains deliberately unsupported under Option A."
+    },
+    "S5": {
+      "status": "partial",
+      "artifact": "s5-report.md",
+      "supportingArtifacts": ["s5-bundling-matrix.json"],
+      "remaining": "verify a fresh macOS artifact, then sign and notarize an actual TwistedPear bundle; Linux/Windows compressed release sizes are recorded"
+    },
+    "S6": {
+      "status": "complete",
+      "artifact": "churn-report.md",
+      "conclusion": "pass with exact pins and vector recheck on every bump"
+    },
+    "S7": {
+      "status": "partial",
+      "artifact": "s7-report.md",
+      "supportingArtifacts": [
+        "probe-atlas.mjs",
+        "s7-atlas-read.json"
+      ],
+      "remaining": "with explicit live-write approval, attempt and record a well-formed Atlas update"
+    },
+    "S8": {
+      "status": "complete",
+      "artifact": "../../docs/security-review.md#f9--freenet-boundary-threat-model-f0-s8",
+      "conclusion": "desktop/headless F1 has no show-stopper; mobile remote-node grant chrome wires Bare worklet contract, packet-tunnel, and Freenet-backed LXMF PropagationServer role and is Maestro-covered (disclosure/refusal/revoke/write-confirm/unavailable/reconnect/token-safe); physical mobile confirmation and recorded BareKit timings remain release/software evidence gates"
+    }
+  },
+  "gate": {
+    "status": "partially-open",
+    "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
+    "softwarePause": {
+      "since": "2026-07-28",
+      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke with announce+LXMF + named offline unit suites), mobile remote-node worklet contract/packet-tunnel/Freenet-backed LXMF propagation role with Maestro write-confirm/unavailable/reconnect probes, and a reviewed local-cross-node 100-sample series are landed; remaining protocol/evidence work needs recorded BareKit simulator measurements, signing credentials, live-write authorization, or BareKit hardware"
+    },
+    "completionAudit": "completion-audit.md",
+    "f2": {
+      "status": "partial",
+      "artifact": "f2-interface-proof.json",
+      "supportingArtifacts": [
+        "f2-report.md",
+        "prove-f2-interface.mjs",
+        "prove-f2-announce-lxmf.mjs",
+        "run-local-f2.mjs",
+        "run-distinct-nodes.mjs",
+        "../../packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
+        "../../packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts"
+      ],
+      "conclusion": "FreenetInterface exchanges HDLC frames and announce+LXMF live (same-node and distinct-node isolated topologies); relay policy covers freenet as source and destination",
+      "remaining": "optional public multi-host Freenet announce+LXMF confirmation"
+    },
+    "f3": {
+      "status": "partial",
+      "artifact": "f3-propagation-proof.json",
+      "supportingArtifacts": [
+        "f3-report.md",
+        "prove-f3-propagation.mjs",
+        "run-local-f3.mjs",
+        "../../packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm",
+        "../../packages/host-core/src/node-host.ts"
+      ],
+      "conclusion": "propagation-set WASM is pinned, isolated offline-A/retrieve-B store proof passes, and createNodeHost attaches FreenetPropagationStore when freenet+propagation are enabled",
+      "remaining": "optional multi-Freenet-node retrieval evidence"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "storage-hyperbee",
+  "group": "storage",
+  "title": "Hyperbee round-trip",
+  "capabilities": ["storage:hyperbee"],
+  "surfaces": ["storage.bee.open", "storage.bee.put", "storage.bee.get", "storage.bee.list", "storage.bee.del"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

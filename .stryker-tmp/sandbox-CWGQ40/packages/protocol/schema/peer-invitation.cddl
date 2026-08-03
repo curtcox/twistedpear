@@ -1,0 +1,15 @@
+; Canonical CBOR. Map keys use deterministic CBOR ordering.
+peer-invitation = {
+  "v": 1,
+  "sid": bytes .size (16..32),
+  "svc": tstr .size (1..128),
+  "role": "offer" / "answer",
+  "key": bytes .size (32..65),
+  ? "id": bytes .size (16..512),
+  "cand": [* 0..8 ["reticulum" / "webrtc" / "gateway", bytes .size (1..4096)]],
+  "display": tstr .size (0..96),
+  "iat": uint,
+  "exp": uint,
+  "caps": [* 0..16 tstr .size (1..64)],
+  "sig": bytes .size (32..512)
+}

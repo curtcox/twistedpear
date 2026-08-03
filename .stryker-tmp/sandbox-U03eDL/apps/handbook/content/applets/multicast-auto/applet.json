@@ -1,0 +1,14 @@
+{
+  "id": "multicast-auto",
+  "group": "interfaces",
+  "title": "Multicast / AutoInterface",
+  "capabilities": ["presence"],
+  "surfaces": ["host.info", "presence.snapshot"],
+  "expectations": {
+    "android": "device-gated",
+    "ios": "device-gated",
+    "desktop": "device-gated",
+    "web": "unavailable",
+    "node": "unavailable"
+  }
+}

@@ -1,0 +1,33 @@
+type skey.
+type pkey.
+fun pk(skey): pkey.
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; checksign(sign(m,k),pk(k)) = m.
+
+fun canonical(bitstring, bitstring, bitstring): bitstring [data].
+free network: channel.
+free host_issue: channel [private].
+free host_key: skey [private].
+event Issued(bitstring).
+event Accepted(bitstring).
+
+query attacker(host_key) ==> false.
+query r:bitstring; event(Accepted(r)) ==> event(Issued(r)).
+
+let issuer =
+  in(host_issue, (app:bitstring, capabilities:bitstring));
+  new version: bitstring;
+  let record = canonical(app, capabilities, version) in
+  event Issued(record);
+  out(network, (record, sign(record, host_key))).
+
+let verifier =
+  in(network, (record:bitstring, signature:bitstring));
+  let verified = checksign(signature, pk(host_key)) in
+  if verified = record then event Accepted(record).
+
+process
+  new app: bitstring;
+  new capabilities: bitstring;
+  out(network, pk(host_key));
+  (out(host_issue, (app, capabilities)) | !issuer | !verifier)

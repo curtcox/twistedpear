@@ -1,0 +1,168 @@
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  static-analysis-plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      imports: ${{ steps.plan.outputs.imports }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - id: plan
+        run: node scripts/checks/pages-plan.mjs >> "$GITHUB_OUTPUT"
+
+  static-analysis-evidence:
+    needs: static-analysis-plan
+    name: Published metric — ${{ matrix.id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.static-analysis-plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Install SwiftLint
+        if: matrix.id == 'swift'
+        run: |
+          brew install swiftlint
+          test "$(swiftlint version)" = "0.65.0"
+      - name: Run metric-producing gate
+        run: node scripts/checks/run.mjs --tier=${{ matrix.tier }} --only=${{ matrix.id }}
+      - name: Stage metric evidence with repository-relative paths
+        if: always()
+        run: |
+          mkdir -p page-metric-evidence
+          if test -d artifacts; then cp -R artifacts page-metric-evidence/; fi
+          if test -d reports; then cp -R reports page-metric-evidence/; fi
+          if test -f audit.json; then cp audit.json page-metric-evidence/; fi
+          if test -f sbom.cdx.json; then cp sbom.cdx.json page-metric-evidence/; fi
+          if test -f mutation-ratchet.json; then cp mutation-ratchet.json page-metric-evidence/; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: page-metric-${{ matrix.id }}
+          path: page-metric-evidence
+          if-no-files-found: warn
+
+  build:
+    needs: [static-analysis-plan, static-analysis-evidence]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Give the file-size ratchet a previous commit to compare against.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: page-metric-*
+          path: imported-static-analysis
+          merge-multiple: true
+      - name: Install static-analysis tools
+        run: |
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz | tar -xz actionlint
+          sudo install actionlint /usr/local/bin/actionlint
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+          curl -sSLo shellcheck.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          tar -xJf shellcheck.tar.xz
+          sudo install shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+          python3 -m pip install ruff==0.15.16 mypy==2.1.0
+          rustup toolchain install 1.97.1 --profile minimal
+          cargo install cargo-deny --version 0.20.2 --locked
+          curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint
+          chmod +x ktlint
+          sudo install ktlint /usr/local/bin/ktlint
+      - name: Verify TLA+ tools
+        run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
+      - name: Run checks and capture reports
+        run: npm run site:reports -- --tier=all
+        env:
+          SITE_REPORT_IMPORT_DIR: imported-static-analysis
+          SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}
+      - name: Report pending screenshots for the guide, authoring guide, and cookbook
+        run: npm run site:section-images:report
+      - name: Build documentation site
+        run: npm run site:build
+      - name: Verify the reader-facing guide sections were published
+        run: node scripts/site/verify-sections.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/.vitepress/dist
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-results
+          path: site-results
+          if-no-files-found: warn
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  aggregate:
+    needs: [build, deploy]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-results
+          path: site-results
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fail if reported checks failed
+        run: |
+          node -e "
+          const fs = require('fs');
+          const summary = JSON.parse(fs.readFileSync('site-results/summary.json', 'utf8'));
+          if (summary.ok) {
+            console.log('All reported checks passed');
+            process.exit(0);
+          }
+          console.error('Reported checks failed:', (summary.failed || []).join(', '));
+          process.exit(1);
+          "

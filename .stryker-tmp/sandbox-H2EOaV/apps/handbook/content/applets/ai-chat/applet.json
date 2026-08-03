@@ -1,0 +1,14 @@
+{
+  "id": "ai-chat",
+  "group": "runtime",
+  "title": "AI chat (host-mediated)",
+  "capabilities": ["ai:chat", "ai:embed"],
+  "surfaces": ["ai.chat"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "twistedpear.tla-traces-v1",
+  "model": "specs/spec-cap/model/grant.tla",
+  "edges": [
+    ["requested", "approve", "granted"],
+    ["requested", "deny", "denied"],
+    ["granted", "first-use/live", "active"],
+    ["granted", "ttl/expired", "expired"],
+    ["active", "ttl/expired", "expired"],
+    ["granted", "revoke", "revoked"],
+    ["active", "revoke", "revoked"]
+  ]
+}

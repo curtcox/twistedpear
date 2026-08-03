@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.local/schemas/simulation-transport-calibration-trace-v1.json",
+  "title": "TwistedPear physical transport calibration trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "transport", "provenance", "radio", "observations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "transport": { "enum": ["ble", "lora"] },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "recordedAt", "source", "hardware", "software", "environment"],
+      "properties": {
+        "kind": { "enum": ["guarded-hardware", "independent-deployment"] },
+        "recordedAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "minLength": 1 },
+        "hardware": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "software": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "environment": { "type": "string", "minLength": 1 }
+      }
+    },
+    "radio": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sequence", "payloadBytes", "sentAtMs", "receivedAtMs"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 0 },
+          "payloadBytes": { "type": "integer", "minimum": 1 },
+          "sentAtMs": { "type": "number", "minimum": 0 },
+          "receivedAtMs": { "type": ["number", "null"], "minimum": 0 }
+        }
+      }
+    }
+  }
+}

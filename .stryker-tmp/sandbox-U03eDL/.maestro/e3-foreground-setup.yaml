@@ -1,0 +1,10 @@
+appId: network.twistedpear.harness
+---
+- launchApp
+- tapOn:
+    id: "create-identity"
+- tapOn:
+    id: "tcp-client-switch"
+- extendedWaitUntil:
+    visible: "Link: online"
+    timeout: 60000

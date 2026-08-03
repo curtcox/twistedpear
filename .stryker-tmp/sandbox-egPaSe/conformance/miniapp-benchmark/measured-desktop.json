@@ -1,0 +1,12 @@
+{
+  "measuredAt": "2026-07-07",
+  "platform": "desktop-node",
+  "backend": "node-worker",
+  "runtime": "node",
+  "iterations": 20,
+  "spawnMs": 0.4,
+  "killMs": 3.9,
+  "watchdogPingsPerSecond": 51201,
+  "busyLoopKillMs": 302,
+  "note": "Regenerate: npm run test:miniapp-benchmark (MINIAPP_BENCHMARK_RECORD=1 to overwrite)"
+}

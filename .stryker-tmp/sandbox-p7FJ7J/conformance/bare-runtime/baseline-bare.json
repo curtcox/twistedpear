@@ -1,0 +1,15 @@
+{
+  "runtime": "node",
+  "provider": "sodium-native",
+  "iterations": 200,
+  "recordedAt": "2026-07-07",
+  "host": "ci-reference",
+  "results": [
+    { "name": "x25519-keygen", "opsPerSec": 50000 },
+    { "name": "x25519-shared-secret", "opsPerSec": 25000 },
+    { "name": "hkdf-link-key", "opsPerSec": 28571 },
+    { "name": "aes-256-cbc-encrypt-512", "opsPerSec": 50000 },
+    { "name": "ed25519-sign-64", "opsPerSec": 33333 },
+    { "name": "sha256-resource-chunk", "opsPerSec": 200000 }
+  ]
+}

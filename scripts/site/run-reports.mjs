@@ -71,7 +71,7 @@ function runJob(job) {
     return {
       ...result,
       command: result.command ?? job.command.join(" "),
-      logFile: null,
+      logFile: `artifacts/logs/${job.id}.log`,
       durationMs: Date.parse(result.finishedAt) - Date.parse(result.startedAt),
       imported: true
     };

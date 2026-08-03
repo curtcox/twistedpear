@@ -1,0 +1,37 @@
+{
+  "name": "@twistedpear/miniapp-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./worklet": {
+      "types": "./dist/worklet.d.ts",
+      "import": "./dist/worklet.js"
+    },
+    "./sandbox/web": {
+      "types": "./dist/sandbox/web.d.ts",
+      "import": "./dist/sandbox/web.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js"
+    }
+  },
+  "dependencies": {
+    "@twistedpear/effects": "*",
+    "@twistedpear/peer-discovery": "*",
+    "@twistedpear/protocol": "*",
+    "corestore": "^7.9.2",
+    "hyperbee": "^2.27.3"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run"
+  }
+}

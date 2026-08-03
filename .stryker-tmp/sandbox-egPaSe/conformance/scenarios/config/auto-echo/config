@@ -1,0 +1,11 @@
+[reticulum]
+  share_instance = No
+  enable_transport = No
+
+[logging]
+  loglevel = 2
+
+[interfaces]
+  [[Auto Echo]]
+    type = AutoInterface
+    enabled = Yes

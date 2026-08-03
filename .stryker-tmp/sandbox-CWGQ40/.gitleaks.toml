@@ -1,0 +1,21 @@
+title = "TwistedPear gitleaks policy"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public test vectors and generated reports are not credentials"
+paths = [
+  '''conformance/vectors/''',
+  '''conformance/fixtures/''',
+  '''conformance/web-hyperdrive/web-hyper-fetch\.js$''',
+  '''packages/app-registry/test/package\.test\.ts$''',
+  '''packages/bridge-freenet/test/locator-contract\.test\.ts$''',
+  '''packages/lxmf-ts/test/router\.test\.ts$''',
+  '''specs/spec-freenet/vectors/locator-state\.json$''',
+  '''specs/spec-pkg/vectors/packages\.json$''',
+  '''apps/harness-mobile/worklet/worklet\.bundle\.mjs$''',
+  '''apps/host-desktop/worklet/worklet\.bundle$''',
+  '''site-results/''',
+  '''archive/'''
+]

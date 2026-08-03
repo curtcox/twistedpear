@@ -1,0 +1,82 @@
+// @ts-nocheck
+export type ConfirmationKind =
+  | "package"
+  | "publish"
+  | "install"
+  | "preview"
+  | "trust-import"
+  | "device-session"
+  | "device-stream"
+  | "device-remote-grant"
+  | "freenet-update";
+
+export interface ConfirmationRequest {
+  readonly token: string;
+  readonly kind: ConfirmationKind;
+  readonly appId: string;
+  readonly publisherPublicKey: string;
+  readonly summary: Readonly<Record<string, string>>;
+}
+
+export interface ConfirmationResult {
+  readonly approved: boolean;
+  readonly detail?: unknown;
+}
+
+export interface HostConfirmationChannel {
+  confirm(request: ConfirmationRequest): Promise<ConfirmationResult>;
+}
+
+/** Effects injected by adapters — protocol code never touches entropy or timers. */
+export interface ConfirmationEffects {
+  readonly randomBytes: (length: number) => Uint8Array;
+  readonly delay: (ms: number) => Promise<void>;
+}
+
+export class ConfirmationError extends Error {
+  constructor(
+    readonly code: "CONFIRMATION_UNAVAILABLE" | "CONFIRMATION_DENIED" | "CONFIRMATION_TIMEOUT",
+    message: string
+  ) {
+    super(message);
+    this.name = "ConfirmationError";
+  }
+}
+
+export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 60_000;
+
+export function generateConfirmationToken(randomBytes: (length: number) => Uint8Array): string {
+  const bytes = randomBytes(16);
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+export async function requestHostConfirmation(
+  channel: HostConfirmationChannel | undefined,
+  request: Omit<ConfirmationRequest, "token">,
+  effects: ConfirmationEffects,
+  timeoutMs = DEFAULT_CONFIRMATION_TIMEOUT_MS
+): Promise<ConfirmationResult> {
+  if (channel === undefined) {
+    throw new ConfirmationError(
+      "CONFIRMATION_UNAVAILABLE",
+      `No confirmation channel is configured; "${request.kind}" was denied.`
+    );
+  }
+
+  const tokenized: ConfirmationRequest = {
+    ...request,
+    token: generateConfirmationToken(effects.randomBytes)
+  };
+  const timeout = effects.delay(timeoutMs).then(
+    (): ConfirmationResult => ({ approved: false, detail: "timeout" })
+  );
+  const result = await Promise.race([channel.confirm(tokenized), timeout]);
+  if (!result.approved) {
+    throw new ConfirmationError(
+      result.detail === "timeout" ? "CONFIRMATION_TIMEOUT" : "CONFIRMATION_DENIED",
+      `The user did not approve "${request.kind}" for app "${request.appId}".`
+    );
+  }
+
+  return result;
+}
