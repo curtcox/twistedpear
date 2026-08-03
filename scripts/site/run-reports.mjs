@@ -26,6 +26,14 @@ function gitSha() {
   return (r.stdout || "unknown").trim();
 }
 
+function gitBranch() {
+  const r = spawnSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+    cwd: ROOT,
+    encoding: "utf8"
+  });
+  return (r.stdout || "").trim() || null;
+}
+
 // SITE_REPORT_JOBS=file-sizes,unit-tests regenerates a subset locally without
 // paying for the full suite. Skipped jobs keep their previously recorded result.
 const JOB_FILTER = process.env.SITE_REPORT_JOBS
@@ -245,6 +253,8 @@ function main() {
   const meta = {
     generatedAt: nowIso(),
     commit: gitSha(),
+    branch: process.env.GITHUB_REF_NAME ?? process.env.GITHUB_HEAD_REF ?? gitBranch(),
+    branchSha: process.env.GITHUB_SHA ?? gitSha(),
     node: process.version,
     ref: process.env.GITHUB_REF ?? null,
     runId: process.env.GITHUB_RUN_ID ?? null,

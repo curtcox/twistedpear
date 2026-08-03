@@ -54,9 +54,12 @@ function loadSummary() {
 
 function renderIndex(summary) {
   const commitLink =
-    summary.commit && summary.commit !== "unknown"
-      ? `[${summary.commit.slice(0, 7)}](${REPO_URL}/commit/${summary.commit})`
+    summary.branchSha && summary.branchSha !== "unknown"
+      ? `[${summary.branchSha.slice(0, 7)}](${REPO_URL}/commit/${summary.branchSha})`
+      : summary.commit && summary.commit !== "unknown"
+        ? `[${summary.commit.slice(0, 7)}](${REPO_URL}/commit/${summary.commit})`
       : "unknown";
+  const branchLabel = summary.branch ?? summary.ref ?? "unknown";
 
   const rows = (summary.jobs ?? [])
     .map(
@@ -85,7 +88,8 @@ function renderIndex(summary) {
 ${summary.placeholder ? "> Reports have not been generated yet. Run `npm run site:reports`.\n" : ""}
 **Overall:** ${statusBadge(summary.ok)}  
 **Generated:** ${escapeMd(summary.generatedAt)}  
-**Commit:** ${commitLink}  
+**Branch:** ${escapeMd(branchLabel)}  
+**Branch SHA:** ${commitLink}  
 ${summary.runUrl ? `**CI run:** [actions](${summary.runUrl})  \n` : ""}
 ${summary.failed?.length ? `**Failed jobs:** ${summary.failed.map((id) => `\`${id}\``).join(", ")}  \n` : ""}
 
@@ -244,10 +248,14 @@ function copyRawArtifacts() {
   // Also copy logs for download
   const logsDir = path.join(RESULTS_DIR, "logs");
   const rawLogs = path.join(rawDir, "logs");
+  const rawArtifactLogs = path.join(rawDir, "artifacts", "logs");
   if (fs.existsSync(logsDir)) {
     ensureDir(rawLogs);
+    ensureDir(rawArtifactLogs);
     for (const name of fs.readdirSync(logsDir)) {
-      fs.copyFileSync(path.join(logsDir, name), path.join(rawLogs, name));
+      const from = path.join(logsDir, name);
+      fs.copyFileSync(from, path.join(rawLogs, name));
+      fs.copyFileSync(from, path.join(rawArtifactLogs, name));
     }
   }
 }
