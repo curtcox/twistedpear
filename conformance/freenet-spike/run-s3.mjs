@@ -5,11 +5,12 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
 const root = dirname(fileURLToPath(import.meta.url));
-const manifest = join(root, "ordered-log-contract", "Cargo.toml");
+const contractRoot = join(root, "ordered-log-contract");
+const manifest = join(contractRoot, "Cargo.toml");
 
 function runCargo(args) {
   const result = spawnSync("cargo", args, {
-    cwd: root,
+    cwd: contractRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "inherit"]
   });
@@ -48,8 +49,7 @@ const rustVersion = spawnSync("rustc", ["--version"], {
 }).stdout.trim();
 const wasm = readFileSync(
   join(
-    root,
-    "ordered-log-contract",
+    contractRoot,
     "target",
     "wasm32-unknown-unknown",
     "release",
