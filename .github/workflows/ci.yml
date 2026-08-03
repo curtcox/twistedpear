@@ -17,8 +17,8 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -34,18 +34,18 @@ jobs:
         include: ${{ fromJSON(needs.gate-plan.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         if: matrix.id == 'python'
         with:
           python-version: "3.12"
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         if: matrix.id == 'kotlin'
         with:
           distribution: temurin
@@ -91,7 +91,7 @@ jobs:
           test "$(swiftlint version)" = "0.65.0"
       - name: Run ${{ matrix.title }}
         run: node scripts/checks/run.mjs --tier=pr --only=${{ matrix.id }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: gate-${{ matrix.id }}
@@ -113,17 +113,17 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: gate-*
           path: gate-artifacts
       - run: node scripts/checks/aggregate.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: static-analysis-summary
           path: static-analysis-summary.json
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         if: github.event_name == 'pull_request'
         with:
           script: |
@@ -151,8 +151,8 @@ jobs:
             filter: actions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
@@ -167,11 +167,11 @@ jobs:
             actions:
               - '.github/workflows/**'
               - '.github/actions/**'
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4.37.4
         if: steps.changes.outputs[matrix.filter] == 'true'
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4.37.4
         if: steps.changes.outputs[matrix.filter] == 'true'
         with:
           category: /language:${{ matrix.language }}
@@ -179,8 +179,8 @@ jobs:
   freenet-offline:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -213,8 +213,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -245,7 +245,7 @@ jobs:
         run: npm run test:freenet-distinct-nodes -- --smoke
         env:
           FREENET_BINARY: ${{ github.workspace }}/.tmp/freenet-ci/freenet
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: freenet-real-node-proofs
@@ -258,15 +258,15 @@ jobs:
   sansio:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
       - run: npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/protocol
       - run: npm run sansio
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sansio-artifacts
@@ -281,15 +281,15 @@ jobs:
     # peers (desktop, iOS, Android) run in emulator.yml on manual dispatch.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
       - run: npm run build
       - run: npm run test:local-multipeer:smoke
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: local-multipeer-proof
@@ -302,14 +302,14 @@ jobs:
         os: [ubuntu-latest, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
       - run: npm run test:sim-fixed-replay -- conformance/sim-campaign/artifacts/fixed-replay.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sim-fixed-replay-${{ matrix.os }}
           path: conformance/sim-campaign/artifacts/fixed-replay.json
@@ -319,11 +319,11 @@ jobs:
     needs: simulation-replay
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sim-fixed-replay-ubuntu-latest
           path: replay/ubuntu
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sim-fixed-replay-macos-15
           path: replay/macos
@@ -333,12 +333,12 @@ jobs:
   formal:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -357,8 +357,8 @@ jobs:
   core-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -369,8 +369,8 @@ jobs:
   bare-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -380,8 +380,8 @@ jobs:
   bare-runtime:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -392,8 +392,8 @@ jobs:
   interfaces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -406,8 +406,8 @@ jobs:
   bare-interop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -421,8 +421,8 @@ jobs:
   auto-interop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -435,8 +435,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -453,8 +453,8 @@ jobs:
   bare-device:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -468,8 +468,8 @@ jobs:
   bare-hyperswarm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -480,8 +480,8 @@ jobs:
   dist-interop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -493,8 +493,8 @@ jobs:
   bare-hyperdrive:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -505,8 +505,8 @@ jobs:
   seeder:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -517,8 +517,8 @@ jobs:
   updates:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -529,8 +529,8 @@ jobs:
   budgets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -541,8 +541,8 @@ jobs:
   harness-install:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -553,8 +553,8 @@ jobs:
   cli:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -565,8 +565,8 @@ jobs:
   miniapp-conformance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -583,8 +583,8 @@ jobs:
   devstudio-loop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -594,8 +594,8 @@ jobs:
   devstudio-loop-macos:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         if: github.event_name == 'pull_request'
         with:
           node-version: "22"
@@ -608,8 +608,8 @@ jobs:
   miniapp-soak:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -619,8 +619,8 @@ jobs:
   demo-phase4:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -630,8 +630,8 @@ jobs:
   dist-soak:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -645,8 +645,8 @@ jobs:
   demo-phase3:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -656,8 +656,8 @@ jobs:
   bare-benchmark:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -669,8 +669,8 @@ jobs:
   python-interop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -681,13 +681,13 @@ jobs:
       - name: Record Python interop dependency versions
         run: docker compose -f conformance/docker/docker-compose.yml run --rm --no-deps leaf-echo python -c "import importlib.metadata as m; print('rns=' + m.version('rns')); print('lxmf=' + m.version('lxmf'))" > python-interop-versions.txt
       - run: INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: success()
         with:
           name: link-benchmark-measured
           path: conformance/link-benchmark/measured.json
       - run: npm run test:interop
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: python-interop-versions
@@ -698,8 +698,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -715,8 +715,8 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -742,8 +742,8 @@ jobs:
   fuzz:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -756,8 +756,8 @@ jobs:
   serialport-load:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -771,10 +771,10 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         if: github.event_name == 'pull_request'
         id: changes
         with:
@@ -783,7 +783,7 @@ jobs:
               - 'apps/host-desktop/**'
               - 'packages/host-core/**'
               - '.github/workflows/ci.yml'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.changes.outputs.desktop == 'true'
         with:
           node-version: "22"
@@ -796,7 +796,7 @@ jobs:
         if: steps.changes.outputs.desktop == 'true'
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: steps.changes.outputs.desktop == 'true'
         with:
           name: host-desktop-macos
@@ -806,8 +806,8 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -818,15 +818,15 @@ jobs:
   electron-pack:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
       - run: npm run build
       - run: npm run pack --workspace=host-desktop
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: host-desktop-linux
           path: apps/host-desktop/release
@@ -837,10 +837,10 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
@@ -859,12 +859,12 @@ jobs:
               - 'conformance/handbook/**'
               - '.maestro/**'
               - '.github/workflows/ci.yml'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.changes.outputs.ios == 'true'
         with:
           node-version: "22"
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         if: steps.changes.outputs.ios == 'true'
         with:
           python-version: "3.12"
@@ -881,8 +881,8 @@ jobs:
   demo-phase5:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -892,8 +892,8 @@ jobs:
   desktop-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -907,8 +907,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -928,10 +928,10 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         if: github.event_name == 'pull_request'
         id: changes
         with:
@@ -941,7 +941,7 @@ jobs:
               - 'packages/host-core/**'
               - 'conformance/desktop/**'
               - '.github/workflows/ci.yml'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.changes.outputs.desktop == 'true'
         with:
           node-version: "22"
@@ -1008,7 +1008,7 @@ jobs:
       - desktop-macos
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Require every CI dependency to succeed
         env:
           CI_NEEDS: ${{ toJSON(needs) }}

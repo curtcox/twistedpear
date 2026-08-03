@@ -22,8 +22,8 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
       imports: ${{ steps.plan.outputs.imports }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - id: plan
@@ -39,10 +39,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -63,7 +63,7 @@ jobs:
           if test -f audit.json; then cp audit.json page-metric-evidence/; fi
           if test -f sbom.cdx.json; then cp sbom.cdx.json page-metric-evidence/; fi
           if test -f mutation-ratchet.json; then cp mutation-ratchet.json page-metric-evidence/; fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: page-metric-${{ matrix.id }}
@@ -76,20 +76,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Give the file-size ratchet a previous commit to compare against.
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: page-metric-*
           path: imported-static-analysis
@@ -122,10 +122,10 @@ jobs:
         run: npm run site:build
       - name: Verify the reader-facing guide sections were published
         run: node scripts/site/verify-sections.mjs
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/.vitepress/dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: site-results
@@ -140,18 +140,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   aggregate:
     needs: [build, deploy]
     if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: site-results
           path: site-results
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: Fail if reported checks failed
