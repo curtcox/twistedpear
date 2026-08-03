@@ -120,12 +120,8 @@ mod tests {
     fn validates_shape_and_converges_conflicts() {
         let params = Parameters::from(vec![b'x'; T256_LENGTH]);
         assert_eq!(
-            LocatorContract::validate_state(
-                params.clone(),
-                state(2),
-                RelatedContracts::default()
-            )
-            .unwrap(),
+            LocatorContract::validate_state(params.clone(), state(2), RelatedContracts::default())
+                .unwrap(),
             ValidateResult::Valid
         );
 
@@ -136,13 +132,10 @@ mod tests {
         )
         .unwrap()
         .unwrap_valid();
-        let right = LocatorContract::update_state(
-            params,
-            state(1),
-            vec![UpdateData::State(state(2))],
-        )
-        .unwrap()
-        .unwrap_valid();
+        let right =
+            LocatorContract::update_state(params, state(1), vec![UpdateData::State(state(2))])
+                .unwrap()
+                .unwrap_valid();
         assert_eq!(left.as_ref(), right.as_ref());
     }
 }

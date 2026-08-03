@@ -90,6 +90,7 @@ async function main() {
           dataDir,
           overrides: {
             roles: { transport: true, seeder: false, propagation: false, attachRnsd: null },
+            relay: { mode: "transport-node" },
             interfaces: {
               tcp: { enabled: true, mode: "server", listenPort: TRANSPORT_HUB_PORT },
               auto: { enabled: false, multicast: false, bonjour: false },

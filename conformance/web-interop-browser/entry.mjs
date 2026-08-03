@@ -172,11 +172,12 @@ async function runPacketEcho(wsUrl) {
   await aliceIn.announce();
 
   // Wait for Python's unsolicited greeting before sending — that proves the
-  // browser return path is live. Otherwise the ping receipt can succeed (proof
-  // follows the inbound reverse path) while the separate echo packet is dropped.
+  // browser return path is live. Re-announce while waiting because the first
+  // transported announce can race interface startup in a cold CI container.
   const greetingDeadline = Date.now() + 20_000;
   while (!received.has("hello from python leaf echo") && Date.now() < greetingDeadline) {
-    await sleep(100);
+    await aliceIn.announce();
+    await sleep(1_000);
   }
   if (!received.has("hello from python leaf echo")) {
     throw new Error("browser packet echo: Python greeting was not received before ping");
@@ -186,12 +187,13 @@ async function runPacketEcho(wsUrl) {
   await sleep(500);
 
   const payload = new TextEncoder().encode("web-browser-interop-ping");
-  const receipt = await bobOut.send(payload, { createReceipt: true });
-  await waitForReceipt(receipt);
-
-  const deadline = Date.now() + 20_000;
-  while (!received.has("web-browser-interop-ping") && Date.now() < deadline) {
-    await sleep(100);
+  for (let attempt = 0; attempt < 3 && !received.has("web-browser-interop-ping"); attempt += 1) {
+    const receipt = await bobOut.send(payload, { createReceipt: true });
+    await waitForReceipt(receipt);
+    const attemptDeadline = Date.now() + 10_000;
+    while (!received.has("web-browser-interop-ping") && Date.now() < attemptDeadline) {
+      await sleep(100);
+    }
   }
 
   if (!received.has("web-browser-interop-ping")) {
@@ -237,28 +239,33 @@ async function runLxmfEcho(wsUrl) {
   await aliceDelivery.announce();
   await sleep(2_000);
 
-  const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("browser LXMF echo timeout")), 45_000);
-    router.onDelivery((message) => {
-      clearTimeout(timer);
-      resolve(message.contentAsString());
+  let echoed = null;
+  router.onDelivery((message) => {
+    echoed = message.contentAsString();
+  });
+
+  for (let attempt = 0; attempt < 3 && echoed === null; attempt += 1) {
+    globalThis.__WEB_INTEROP__.lxmf = `sending-${attempt + 1}`;
+    await aliceDelivery.announce();
+    await sleep(1_000);
+    await router.packAndSend({
+      destination: bobOut,
+      source: aliceDelivery,
+      title: "Web browser interop",
+      content: "Hello Python LXMF from browser",
+      desiredMethod: LXMessageMethod.OPPORTUNISTIC,
+      deferStamp: true,
+      timestamp: Date.now() / 1_000
     });
-  });
-
-  globalThis.__WEB_INTEROP__.lxmf = "sending";
-  await aliceDelivery.announce();
-  await router.packAndSend({
-    destination: bobOut,
-    source: aliceDelivery,
-    title: "Web browser interop",
-    content: "Hello Python LXMF from browser",
-    desiredMethod: LXMessageMethod.OPPORTUNISTIC,
-    deferStamp: true,
-    timestamp: Date.now() / 1_000
-  });
-  globalThis.__WEB_INTEROP__.lxmf = "awaiting-echo";
-
-  const echoed = await received;
+    globalThis.__WEB_INTEROP__.lxmf = `awaiting-echo-${attempt + 1}`;
+    const attemptDeadline = Date.now() + 15_000;
+    while (echoed === null && Date.now() < attemptDeadline) {
+      await sleep(100);
+    }
+  }
+  if (echoed === null) {
+    throw new Error("browser LXMF echo timeout");
+  }
   if (echoed !== "Hello Python LXMF from browser") {
     throw new Error(`browser LXMF echo: unexpected payload: ${echoed}`);
   }

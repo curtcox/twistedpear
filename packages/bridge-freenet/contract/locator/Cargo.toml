@@ -9,7 +9,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-freenet-stdlib = { git = "https://github.com/freenet/freenet-stdlib.git", rev = "f4636e502876b0e11f2f6d59032348cfd6518bbc", features = ["contract"] }
+freenet-stdlib = { version = "=0.8.5", git = "https://github.com/freenet/freenet-stdlib.git", rev = "f4636e502876b0e11f2f6d59032348cfd6518bbc", features = ["contract"] }
 
 [features]
 default = ["freenet-main-contract"]

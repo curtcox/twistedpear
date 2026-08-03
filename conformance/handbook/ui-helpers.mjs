@@ -34,13 +34,21 @@ export function treeContainsText(tree, needle) {
 }
 
 export async function waitForTreeText(host, needle, timeoutMs = 20_000) {
-  return waitFor(async () => {
-    const tree = host.snapshot().widgetTree;
-    if (tree !== null && treeContainsText(tree, needle)) {
-      return tree;
-    }
-    return null;
-  }, timeoutMs);
+  try {
+    return await waitFor(async () => {
+      const tree = host.snapshot().widgetTree;
+      if (tree !== null && treeContainsText(tree, needle)) {
+        return tree;
+      }
+      return null;
+    }, timeoutMs);
+  } catch (error) {
+    const snapshot = host.snapshot();
+    const detail = snapshot.logs.map((entry) => entry.line).join(" | ");
+    throw new Error(
+      `${error instanceof Error ? error.message : String(error)} waiting for ${JSON.stringify(needle)}; state=${snapshot.state}; logs=${detail}`
+    );
+  }
 }
 
 export async function tap(host, nodeId, event, value) {

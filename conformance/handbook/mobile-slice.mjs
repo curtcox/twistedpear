@@ -19,11 +19,13 @@ import {
   HOST_API_VERSION,
   KvStorageBeeBackend,
   MiniappHost,
+  createSimulatedDeviceManager,
   createSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
 import {
   assertAppletStatusMatchesExpectation
 } from "./expectations.mjs";
+import { makePeerSessionManager, makeRelayService } from "./host-fixtures.mjs";
 import {
   assertReaderUx,
   collectTextValues,
@@ -243,6 +245,9 @@ function createHandbookHost(store, options) {
       grantStore: new GrantStore(store),
       kvBackend: store,
       beeBackend: new KvStorageBeeBackend(store),
+      deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
+      peerSessionManager: makePeerSessionManager(),
+      relayService: makeRelayService(),
       presenceBackend: {
         snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
       },

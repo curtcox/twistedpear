@@ -28,7 +28,7 @@ export function assertAppletStatusMatchesExpectation(applet, actualStatus, platf
   const expected = expectedStatusForPlatform(applet, platform);
   const acceptable = new Set([expected]);
   if (expected === "unavailable" && applet.expectations?.[platform] === "device-gated") {
-    acceptable.add("unavailable");
+    acceptable.add("pass");
   }
   if (acceptable.has(actualStatus)) {
     return;

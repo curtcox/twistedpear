@@ -1,19 +1,5 @@
 {
   "version": 1,
   "description": "rust analyzer findings present when the gate was established; entries may only disappear.",
-  "entries": [
-    "cargo-deny:--manifest-path packages/bridge-freenet/contract/locator/Cargo.toml --offline check:nonzero-exit",
-    "cargo-deny:--manifest-path packages/bridge-freenet/contract/packet-log/Cargo.toml --offline check:nonzero-exit",
-    "cargo-deny:--manifest-path packages/bridge-freenet/contract/propagation-set/Cargo.toml --offline check:nonzero-exit",
-    "rustup:Diff in packages/bridge-freenet/contract/locator/src/lib.rs:#::occurrence-1",
-    "rustup:Diff in packages/bridge-freenet/contract/locator/src/lib.rs:#::occurrence-2",
-    "rustup:Diff in packages/bridge-freenet/contract/packet-log/src/lib.rs:#::occurrence-1",
-    "rustup:Diff in packages/bridge-freenet/contract/packet-log/src/lib.rs:#::occurrence-2",
-    "rustup:Diff in packages/bridge-freenet/contract/packet-log/src/lib.rs:#::occurrence-3",
-    "rustup:Diff in packages/bridge-freenet/contract/packet-log/src/lib.rs:#::occurrence-4",
-    "rustup:Diff in packages/bridge-freenet/contract/packet-log/src/lib.rs:#::occurrence-5",
-    "rustup:Diff in packages/bridge-freenet/contract/propagation-set/src/lib.rs:#::occurrence-1",
-    "rustup:Diff in packages/bridge-freenet/contract/propagation-set/src/lib.rs:#::occurrence-2",
-    "rustup:Diff in packages/bridge-freenet/contract/propagation-set/src/lib.rs:#::occurrence-3"
-  ]
+  "entries": []
 }

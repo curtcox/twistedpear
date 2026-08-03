@@ -51,6 +51,9 @@ jobs:
           distribution: temurin
           java-version: "17"
       - run: npm ci
+      - name: Build workspace packages required by the gate
+        if: matrix.id == 'unit-tests' || matrix.id == 'coverage' || matrix.id == 'structure' || matrix.id == 'properties'
+        run: npm run build
       - name: Install actionlint
         if: matrix.id == 'actionlint'
         run: |
@@ -73,7 +76,7 @@ jobs:
       - name: Install Rust analysis tools
         if: matrix.id == 'rust'
         run: |
-          rustup toolchain install 1.97.1 --profile minimal
+          rustup toolchain install 1.97.1 --profile minimal --component clippy --component rustfmt
           cargo install cargo-deny --version 0.20.2 --locked
       - name: Install ktlint
         if: matrix.id == 'kotlin'
@@ -182,6 +185,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run build
       - name: Freenet unit suites (bridge, simulated adapter, announce+LXMF)
         run: |
           npm test -- \
@@ -215,6 +219,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run build
       - name: Download pinned Freenet node
         run: |
           mkdir -p .tmp/freenet-ci

@@ -150,8 +150,7 @@ impl ContractInterface for PropagationSetContract {
         state: State<'static>,
         _related: RelatedContracts<'static>,
     ) -> Result<ValidateResult, ContractError> {
-        let valid =
-            valid_parameters(parameters.as_ref()) && decode_entries(state.as_ref()).is_ok();
+        let valid = valid_parameters(parameters.as_ref()) && decode_entries(state.as_ref()).is_ok();
         Ok(if valid {
             ValidateResult::Valid
         } else {
@@ -229,14 +228,8 @@ mod tests {
 
     #[test]
     fn concurrent_writers_union_by_transient_id() {
-        let left = encoded(&[
-            entry(1, 100, b"msg-a"),
-            entry(3, 300, b"msg-c"),
-        ]);
-        let right = encoded(&[
-            entry(2, 200, b"msg-b"),
-            entry(3, 250, b"msg-c-earlier"),
-        ]);
+        let left = encoded(&[entry(1, 100, b"msg-a"), entry(3, 300, b"msg-c")]);
+        let right = encoded(&[entry(2, 200, b"msg-b"), entry(3, 250, b"msg-c-earlier")]);
         let left_right = merge_encoded(&left, &right).unwrap();
         let right_left = merge_encoded(&right, &left).unwrap();
         assert_eq!(left_right, right_left);
@@ -244,7 +237,11 @@ mod tests {
         assert_eq!(
             entries
                 .iter()
-                .map(|entry| (entry.transient_id[31], entry.stored_at, entry.lxmf_data.as_slice()))
+                .map(|entry| (
+                    entry.transient_id[31],
+                    entry.stored_at,
+                    entry.lxmf_data.as_slice()
+                ))
                 .collect::<Vec<_>>(),
             vec![
                 (1, 100, b"msg-a".as_slice()),

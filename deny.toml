@@ -1,8 +1,15 @@
 [advisories]
 yanked = "deny"
+# freenet-stdlib 0.8.5 pins bincode 1.3.3 and the advisory has no safe
+# upgrade. Keep this exact transitive exception until the pinned SDK moves.
+ignore = ["RUSTSEC-2025-0141"]
 
 [licenses]
-allow = ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Unicode-3.0"]
+allow = ["MIT", "Apache-2.0", "BSD-2-Clause", "Unicode-3.0"]
+exceptions = [
+  { allow = ["LGPL-3.0-only"], name = "freenet-macros", version = "=0.2.0" },
+  { allow = ["LGPL-3.0-only"], name = "freenet-stdlib", version = "=0.8.5" },
+]
 
 [bans]
 multiple-versions = "warn"
@@ -11,3 +18,4 @@ wildcards = "deny"
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
+allow-git = ["https://github.com/freenet/freenet-stdlib.git"]

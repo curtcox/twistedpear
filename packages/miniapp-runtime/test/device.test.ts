@@ -544,7 +544,8 @@ describe("DeviceManager Phase 5 streaming", () => {
         effectiveBps: 1_000,
         measuredGoodputBps: 1_000,
         headroomBps: 524_288
-      }]
+      }],
+      streamEgressFactory: testEgressFactory()
     });
     const session = await manager.open("app", "pub", ["device:camera:frames"], ["device:camera:frames"], {
       class: "camera",
@@ -561,14 +562,21 @@ describe("DeviceManager Phase 5 streaming", () => {
       maxRung: "720p30",
       ttlMs: 60_000
     });
-    await expect(manager.stream(
+    const stream = await manager.stream(
       "app",
       ["device:camera:frames", "device:stream"],
       ["device:camera:frames", "device:stream"],
       session.handle,
       "peer-1",
       { candidates: [{ plane: "reticulum", effectiveBps: 100_000_000, headroomBps: 100_000_000 }] }
-    )).rejects.toMatchObject({ code: "DEVICE_BANDWIDTH_INSUFFICIENT" });
+    );
+    expect(stream.admission).toMatchObject({
+      kind: "degrade",
+      plane: "cas",
+      rung: "cas-snapshot",
+      supplyBps: 0
+    });
+    await manager.closeStream("app", stream.handle);
   });
 
   it("enforces the host-authored maximum quality rung", async () => {
@@ -710,11 +718,12 @@ describe("DeviceManager Phase 5 streaming", () => {
     await manager.closeStream("app", stream.handle);
   });
 
-  it("rejects when no bandwidth remains", async () => {
+  it("falls back to a CAS snapshot when no live bandwidth remains", async () => {
     const manager = new DeviceManager({
       drivers: [createSimulatedCameraDriver()],
       now: () => 31_000,
-      linkSupply: async () => [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }]
+      linkSupply: async () => [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }],
+      streamEgressFactory: testEgressFactory()
     });
     const session = await manager.open("app", "pub", ["device:camera"], ["device:camera"], {
       class: "camera",
@@ -730,16 +739,21 @@ describe("DeviceManager Phase 5 streaming", () => {
       maxRung: "derived-events",
       ttlMs: 60_000
     });
-    await expect(
-      manager.stream(
-        "app",
-        ["device:camera", "device:stream"],
-        ["device:camera", "device:stream"],
-        session.handle,
-        "peer-2",
-        { candidates: [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }] }
-      )
-    ).rejects.toMatchObject({ code: "DEVICE_BANDWIDTH_INSUFFICIENT" });
+    const stream = await manager.stream(
+      "app",
+      ["device:camera", "device:stream"],
+      ["device:camera", "device:stream"],
+      session.handle,
+      "peer-2",
+      { candidates: [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }] }
+    );
+    expect(stream.admission).toMatchObject({
+      kind: "degrade",
+      plane: "cas",
+      rung: "cas-snapshot",
+      supplyBps: 0
+    });
+    await manager.closeStream("app", stream.handle);
   });
 });
 

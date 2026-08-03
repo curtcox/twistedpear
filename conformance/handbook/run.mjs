@@ -26,10 +26,10 @@ import {
   assertAppletStatusMatchesExpectation,
   parseResultStatus
 } from "./expectations.mjs";
+import { makePeerSessionManager, makeRelayService } from "./host-fixtures.mjs";
 import { runHandbookPartPackagesSmoke } from "./part-packages.mjs";
 import {
   assertReaderUx,
-  collectTextValues,
   dismissGrantIntroIfNeeded,
   findNodeById,
   returnToToc,
@@ -54,6 +54,7 @@ const DEVICE_GATED_APPLET_IDS = new Set([
 
 const APPLET_CHAPTER = {
   "host-info": "difference-matrix",
+  "relay-status": "difference-matrix",
   "identity-hash": "sdk-identity",
   "presence-snapshot": "sdk-presence",
   "storage-kv": "sdk-storage-kv",
@@ -70,6 +71,7 @@ const APPLET_CHAPTER = {
   "apps-update": "sdk-apps-update",
   "ai-chat": "sdk-ai-chat",
   "widget-gallery": "sdk-widget-gallery",
+  "device-inventory": "device-gated-probes",
   "ble-peer": "device-gated-probes",
   "rnode-serial": "device-gated-probes",
   "multicast-auto": "device-gated-probes",
@@ -311,6 +313,8 @@ async function main() {
     kvBackend: store,
     beeBackend: new KvStorageBeeBackend(store),
     deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
+    peerSessionManager: makePeerSessionManager(),
+    relayService: makeRelayService(),
     presenceBackend: {
       snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
     },
@@ -402,12 +406,12 @@ async function main() {
         if (next === null) {
           return null;
         }
-        const texts = collectTextValues(next.root);
-        return (
-          texts.find((value) =>
-            /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value)
-          ) ?? null
-        );
+        const resultNode = findNodeById(next.root, `result-${applet.id}`);
+        const value = resultNode?.props?.value;
+        return typeof value === "string" &&
+          /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value)
+          ? value
+          : null;
       }, 20_000);
       const actualStatus = parseResultStatus(resultLine);
       if (actualStatus === null) {
@@ -577,6 +581,8 @@ async function main() {
       kvBackend: store,
       beeBackend: new KvStorageBeeBackend(store),
       deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
+      peerSessionManager: makePeerSessionManager(),
+      relayService: makeRelayService(),
       casBackend,
       confirmationChannel: { confirm: async () => ({ approved: true }) },
       aiBackend: {

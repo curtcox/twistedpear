@@ -418,70 +418,6 @@ async function exportReport() {
   await render();
 }
 
-function buildDevstudioBundle(appletSource) {
-  const body = appletSource.replace(/^export\s+async\s+function\s+run\s*\(/m, "async function appletRun(");
-  return `import {
-  ai,
-  apps,
-  announce,
-  host,
-  identity,
-  lxmf,
-  peers,
-  presence,
-  resource,
-  share,
-  storage,
-  ui,
-  workspace
-} from "@twistedpear/miniapp-sdk";
-
-${body}
-
-function makeSdk() {
-  return {
-    identity,
-    presence,
-    host,
-    announce,
-    lxmf,
-    peers,
-    storage,
-    resource,
-    workspace,
-    ui,
-    share,
-    apps,
-    ai
-  };
-}
-
-let reported = null;
-await appletRun(makeSdk(), (result) => {
-  reported = result;
-});
-
-await ui.render({
-  root: {
-    id: "root",
-    type: "scroll",
-    style: { padding: 12, gap: 8 },
-    children: [
-      {
-        id: "result",
-        type: "text",
-        props: {
-          value: reported
-            ? \`\${reported.status.toUpperCase()}\\n\${reported.details}\`
-            : "Applet finished without calling report()."
-        }
-      }
-    ]
-  }
-});
-`;
-}
-
 async function exportAppletToDevStudio(appletId) {
   const applet = findApplet(appletId);
   if (applet === null) {
@@ -522,7 +458,10 @@ async function exportAppletToDevStudio(appletId) {
     files: [
       { path: `${project}/app.json`, content: JSON.stringify(manifest, null, 2) },
       { path: `${project}/applet.js`, content: source },
-      { path: `${project}/bundle.js`, content: buildDevstudioBundle(source) }
+      {
+        path: `${project}/bundle.js`,
+        content: globalThis.buildHandbookDevstudioBundle(source)
+      }
     ]
   };
 

@@ -156,7 +156,8 @@ async function runLeafEchoSlice() {
               seeder: false,
               propagation: false,
               attachRnsd: null
-            }
+            },
+            relay: { mode: "transport-node" }
           }
         })
       });
@@ -195,7 +196,8 @@ async function runTransportHubSlice() {
             seeder: false,
             propagation: false,
             attachRnsd: null
-          }
+          },
+          relay: { mode: "transport-node" }
         }
       })
     });

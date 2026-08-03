@@ -56,10 +56,7 @@ pub fn encode_entries(entries: &[LogEntry]) -> Result<Vec<u8>, &'static str> {
     Ok(out)
 }
 
-pub fn decode_entries(
-    bytes: &[u8],
-    retention: usize,
-) -> Result<Vec<LogEntry>, &'static str> {
+pub fn decode_entries(bytes: &[u8], retention: usize) -> Result<Vec<LogEntry>, &'static str> {
     if retention == 0 || bytes.len() < HEADER_LENGTH || !bytes.starts_with(STATE_MAGIC) {
         return Err("invalid state header");
     }
@@ -84,8 +81,7 @@ pub fn decode_entries(
                 .try_into()
                 .map_err(|_| "invalid index")?,
         );
-        let payload_length =
-            u16::from_be_bytes([bytes[cursor + 9], bytes[cursor + 10]]) as usize;
+        let payload_length = u16::from_be_bytes([bytes[cursor + 9], bytes[cursor + 10]]) as usize;
         let payload_end = header_end
             .checked_add(payload_length)
             .ok_or("payload length overflow")?;
@@ -114,11 +110,7 @@ pub fn decode_entries(
     Ok(entries)
 }
 
-pub fn merge_encoded(
-    retention: usize,
-    left: &[u8],
-    right: &[u8],
-) -> Result<Vec<u8>, &'static str> {
+pub fn merge_encoded(retention: usize, left: &[u8], right: &[u8]) -> Result<Vec<u8>, &'static str> {
     let mut merged = BTreeMap::<(u8, u64), Vec<u8>>::new();
     for entry in decode_entries(left, retention)?
         .into_iter()
@@ -266,11 +258,7 @@ mod tests {
 
     #[test]
     fn conflicts_and_retention_are_deterministic() {
-        let left = encoded(&[
-            (0, 0, b"old"),
-            (0, 1, b"z"),
-            (0, 2, b"two"),
-        ]);
+        let left = encoded(&[(0, 0, b"old"), (0, 1, b"z"), (0, 2, b"two")]);
         let right = encoded(&[(0, 1, b"a"), (0, 3, b"three"), (0, 4, b"four")]);
         let merged = merge_encoded(3, &left, &right).unwrap();
         let entries = decode_entries(&merged, 3).unwrap();
@@ -279,7 +267,11 @@ mod tests {
                 .iter()
                 .map(|entry| (entry.index, entry.payload.as_slice()))
                 .collect::<Vec<_>>(),
-            vec![(2, b"two".as_slice()), (3, b"three".as_slice()), (4, b"four".as_slice())]
+            vec![
+                (2, b"two".as_slice()),
+                (3, b"three".as_slice()),
+                (4, b"four".as_slice())
+            ]
         );
     }
 

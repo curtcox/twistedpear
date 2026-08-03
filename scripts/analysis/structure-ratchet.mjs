@@ -8,6 +8,19 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const write = process.argv.includes("--write");
 const allowRegressions = process.argv.includes("--allow-regressions");
 
+// These imports are materialized by their web conformance builders and remain
+// gitignored. Keep the clean-checkout structure gate aware of those exact edges.
+const GENERATED_FIXTURE_IMPORTS = new Set([
+  "conformance/web-devstudio/entry.mjs:./fixtures.mjs",
+  "conformance/web-distribution/entry.mjs:./fixtures.mjs",
+  "conformance/web-distribution/run.mjs:./publisher-data.mjs",
+  "conformance/web-examples/entry.mjs:./fixtures.mjs",
+  "conformance/web-handbook/entry.mjs:./fixtures.mjs",
+  "conformance/web-hyperdrive-browser/entry.mjs:./fixtures.mjs",
+  "conformance/web-hyperdrive-browser/run.mjs:./publisher-data.mjs",
+  "conformance/web-storage/entry.mjs:./fixture.mjs"
+]);
+
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: ROOT, encoding: "utf8", maxBuffer: 128 * 1024 * 1024 });
   if (!result.stdout?.trim()) {
@@ -29,6 +42,7 @@ for (const issue of Object.values(knip.issues ?? {})) {
     for (const value of Array.isArray(values) ? values : [values]) {
       if (value == null || (typeof value === "object" && Object.keys(value).length === 0)) continue;
       const identity = typeof value === "string" ? value : value.name ?? JSON.stringify(value);
+      if (kind === "unresolved" && GENERATED_FIXTURE_IMPORTS.has(`${file}:${identity}`)) continue;
       findings.push(`knip:${kind}:${file}:${identity}`);
     }
   }
