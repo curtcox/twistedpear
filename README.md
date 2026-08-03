@@ -1,5 +1,7 @@
 # TwistedPear
 
+[![CI](https://github.com/curtcox/twistedpear/actions/workflows/ci.yml/badge.svg)](https://github.com/curtcox/twistedpear/actions/workflows/ci.yml)
+
 
 <!-- tp-doc
 lifecycle: live
