@@ -40,7 +40,8 @@ export default defineConfig({
     // Standalone HTML copied into public/
     /simulation-architecture/,
     // Raw report artifacts
-    /\/results\/raw/
+    /\/results\/raw/,
+    /\.\/raw\//
   ],
   themeConfig: {
     nav: [

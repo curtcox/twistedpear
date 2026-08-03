@@ -84,9 +84,10 @@ that floor from decreasing.
 ## Published metrics
 
 The Pages workflow publishes every registry gate at `/results/`, including its result,
-duration, quantitative metrics, complete execution log, and all declared structured
-artifacts. Artifact paths are preserved below `/results/raw/artifacts/`, so a gate result
-cannot overwrite a report with the same basename.
+generation date, branch, branch SHA, duration, quantitative metrics, complete execution
+log, and all declared structured artifacts. Artifact paths are preserved below
+`/results/raw/artifacts/`, so a gate result cannot overwrite a report with the same
+basename.
 
 The Linux Pages build installs and runs the complete PR toolchain. The registry-derived
 Pages plan sends every non-Linux or nightly gate to a parallel evidence job; today that
