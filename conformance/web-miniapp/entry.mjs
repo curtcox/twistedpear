@@ -187,10 +187,19 @@ async function main() {
         continue;
       }
 
+      if (message.type === "log") {
+        console.log(`worker: ${message.line}`);
+        continue;
+      }
+
       if (message.type === "miniapp-runtime") {
         latestRuntime = message.runtime;
       }
     }
+  };
+
+  worker.onerror = (event) => {
+    console.error(`worker-error: ${event.message ?? String(event)}`);
   };
 
   const send = (message) => {
