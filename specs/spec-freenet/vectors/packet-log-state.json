@@ -3,14 +3,14 @@
   "description": "F2 Freenet packet-log state encoding (adopted from S3 ordered-log spike)",
   "contractArtifact": {
     "rustToolchain": "1.97.1",
-    "bytes": 144425,
-    "sha256Hex": "f10ac09de41baed61b7c16351759adda1bc184cc7d041030daf27d47d2984ed2",
-    "codeHashHex": "f42e0397da0b87ebd88d80b6c556a72437eb99859f910f689d3ae267ee2b1f35"
+    "bytes": 144421,
+    "sha256Hex": "fd09fd3d3236f4cfb59adcb61e9032ca5a21ecf303656044aff519125de5a102",
+    "codeHashHex": "d44b95f8e0c7f4a74680330bcb764317deb5a712100b0d4f6a8696787c3b1bcd"
   },
   "keyDerivation": {
     "parametersHex": "0008abababababababababababababababababababababababababababababababab",
-    "codeHashHex": "f42e0397da0b87ebd88d80b6c556a72437eb99859f910f689d3ae267ee2b1f35",
-    "instanceIdHex": "1c06a1b4e0f153eed9dc9a26de1cdc1abd021381b76fecd19668af54448da41b"
+    "codeHashHex": "d44b95f8e0c7f4a74680330bcb764317deb5a712100b0d4f6a8696787c3b1bcd",
+    "instanceIdHex": "0a557b84d27077c6b7af830df3090293f7a388c3ae698c156f69e229f53dc1b9"
   },
   "parametersHex": "0008",
   "rendezvousParametersHex": "0008abababababababababababababababababababababababababababababababab",
@@ -22,12 +22,30 @@
       "rightHex": "54504c470100000003000000000000000001000162000000000000000003000164010000000000000000000178",
       "mergedHex": "54504c470100000006000000000000000000000161000000000000000001000162000000000000000002000163000000000000000003000164010000000000000000000178010000000000000001000179",
       "mergedIndexes": [
-        [0, 0],
-        [0, 1],
-        [0, 2],
-        [0, 3],
-        [1, 0],
-        [1, 1]
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ]
       ]
     },
     {
@@ -37,9 +55,18 @@
       "rightHex": "54504c470100000003000000000000000001000161000000000000000003000574687265650000000000000000040004666f7572",
       "mergedHex": "54504c470100000003000000000000000002000374776f000000000000000003000574687265650000000000000000040004666f7572",
       "mergedIndexes": [
-        [0, 2],
-        [0, 3],
-        [0, 4]
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ]
       ]
     }
   ]

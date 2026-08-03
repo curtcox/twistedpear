@@ -3,9 +3,9 @@
   "description": "F1 Freenet locator/package state encoding",
   "contractArtifact": {
     "rustToolchain": "1.97.1",
-    "bytes": 129088,
-    "sha256Hex": "1814632e6670a4d60dbe9ad9ccb4c78cfaa7472d7d391ab4b750838787a6eb63",
-    "codeHashHex": "a4da37a0807c585b16f97ca7fa312d19f473a024e4b883b1fee4ec24a4354aad"
+    "bytes": 129080,
+    "sha256Hex": "e893b78c227aa30351acecf9b840573bd8ad45c5c03de36aec30b6b63e6fdea3",
+    "codeHashHex": "df9a2ae749f0f1b648ae1021617ae04e8329974a72b2845541c4bd1697be3b1d"
   },
   "keyDerivation": {
     "wasmHex": "0061736d",
