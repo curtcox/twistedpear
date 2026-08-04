@@ -42,6 +42,10 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 
 ## Documentation
 
+For short answers to the questions asked most often — by users, app authors, and
+contributors alike — with a pointer to the canonical document for each, read the
+[FAQ](docs/FAQ.md).
+
 If you want to *use* TwistedPear rather than work on it, start with the
 [User Guide](guide/README.md). If you want to *write a mini-app* for it, start with the
 [App Authoring Guide](authors/README.md). For twenty-five complete sample apps showing what

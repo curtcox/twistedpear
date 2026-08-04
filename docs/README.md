@@ -45,6 +45,7 @@ one-sided `counterpart:` all fail the build.
 
 | Goal | Document |
 |---|---|
+| Get a short answer to a common question and a pointer to the canonical document | [FAQ](FAQ.md) |
 | Use TwistedPear as an end user (install, connect, run apps) | [User Guide](../guide/README.md) |
 | Understand why the project exists and what success means | [Motivation](motivation.md) |
 | See how the whole repository fits together | [Architecture](architecture.md) |
