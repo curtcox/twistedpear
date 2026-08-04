@@ -6,9 +6,10 @@ export default {
     "!packages/**/*.gen.ts",
     "!packages/**/index.ts"
   ],
-  // SwiftPM leaves platform-specific symlinks below ignored `.build` trees.
-  // Exclude both each directory entry and its contents so mutation sandboxes
-  // stay independent of local mobile build outputs.
+  // SwiftPM leaves platform-specific symlinks below ignored `.build` trees, and
+  // CocoaPods leaves dangling header symlinks below `ios/Pods`. Exclude both
+  // each directory entry and its contents so mutation sandboxes stay
+  // independent of local mobile build outputs.
   ignorePatterns: [
     "/apps/host-desktop/packages",
     "/archive/**",
@@ -18,7 +19,9 @@ export default {
     "/guide/**",
     "/site/**",
     "**/.build",
-    "**/.build/**"
+    "**/.build/**",
+    "**/ios/Pods",
+    "**/ios/Pods/**"
   ],
   testRunner: "vitest",
   vitest: { configFile: "vitest.config.ts" },

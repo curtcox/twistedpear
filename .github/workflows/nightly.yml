@@ -54,6 +54,9 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - name: Build workspace packages required by the gate
+        if: matrix.id == 'mutation'
+        run: npm run build
       - run: node scripts/checks/run.mjs --tier=nightly --only=${{ matrix.id }}
         env:
           PROPERTY_RUNS: "2000"
