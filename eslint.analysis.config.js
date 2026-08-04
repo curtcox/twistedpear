@@ -1,6 +1,31 @@
 import js from "@eslint/js";
+import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+
+// Files that execute in a browser page: the Electron renderer, the web worklet
+// entry, and the conformance web entries together with the Playwright drivers
+// that inline page callbacks alongside their Node code.
+const browserGlobs = [
+  "apps/host-desktop/src/renderer/**/*.{js,mjs,cjs}",
+  "apps/harness-mobile/worklet/web-entry.mjs",
+  "conformance/**/*.{js,mjs,cjs}"
+];
+
+// Bare runtime globals; the Bare worklet host injects both.
+const bareGlobs = [
+  "apps/harness-mobile/worklet/**/*.mjs",
+  "packages/worklet-core/src/**/*.mjs",
+  "conformance/**/*.mjs"
+];
+
+// Worklet sources run under Bare rather than Node, and declare the ambient
+// names they rely on with file-local `/* global */` directives. Handing them
+// Node's globals as well would make those directives redeclarations.
+const workletGlobs = [
+  "apps/harness-mobile/worklet/**/*.mjs",
+  "packages/worklet-core/src/**/*.mjs"
+];
 
 const ignores = [
   "**/node_modules/**",
@@ -24,6 +49,19 @@ export default [
     rules: Object.fromEntries(
       Object.entries(js.configs.recommended.rules).map(([name, level]) => [name, level === "error" ? "warn" : level])
     )
+  },
+  {
+    files: ["**/*.{js,mjs,cjs}"],
+    ignores: workletGlobs,
+    languageOptions: { globals: { ...globals.es2021, ...globals.node } }
+  },
+  {
+    files: browserGlobs,
+    languageOptions: { globals: globals.browser }
+  },
+  {
+    files: bareGlobs,
+    languageOptions: { globals: { Bare: "readonly", BareKit: "readonly" } }
   },
   {
     files: ["**/*.{ts,tsx}"],
