@@ -104,7 +104,7 @@ jobs:
           tar -xJf shellcheck.tar.xz
           sudo install shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
           python3 -m pip install ruff==0.15.16 mypy==2.1.0
-          rustup toolchain install 1.97.1 --profile minimal
+          rustup toolchain install 1.97.1 --profile minimal --component clippy --component rustfmt
           cargo install cargo-deny --version 0.20.2 --locked
           curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint
           chmod +x ktlint
