@@ -122,7 +122,6 @@
     "apps/harness-mobile/modules/peer-audio/src/index.ts",
     "apps/harness-mobile/modules/usb-serial/app.plugin.js",
     "apps/harness-mobile/modules/usb-serial/src/index.ts",
-    "apps/harness-mobile/public/web-hyper-fetch.js",
     "apps/harness-mobile/scripts/build-web-host.mjs",
     "apps/harness-mobile/scripts/build-web-hyper-fetch.mjs",
     "apps/harness-mobile/scripts/build-web-worker.mjs",
@@ -1410,8 +1409,6 @@
     "scripts/checks/ci-green.mjs",
     "scripts/checks/registry.mjs",
     "scripts/checks/run.mjs",
-    "scripts/coverage-ratchet.mjs",
-    "scripts/coverage-run.mjs",
     "scripts/doc-audit/lifecycle-rules.mjs",
     "scripts/doc-audit/links.mjs",
     "scripts/doc-audit/normalize-status-complete-paths.mjs",
@@ -1504,8 +1501,6 @@
     "specs/spec-widget/schema/widget.schema.json",
     "specs/spec-widget/spec.md",
     "specs/spec-wire/spec.md",
-    "stryker.config.mjs",
-    "vitest.config.ts",
-    "vitest.workspace.ts"
+    "stryker.config.mjs"
   ]
 }

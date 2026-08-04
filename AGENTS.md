@@ -149,3 +149,15 @@ release task.
   registers — or a `live` document.
 - Keep changes scoped. Generated output, formatting-only changes, and behavior changes
   should be reviewable separately.
+
+## Dependency installation
+
+- `.npmrc` sets `legacy-peer-deps=true` so the workspace tree (especially the
+  Expo/React Native package graph) resolves without peer-dependency errors.
+- `npm ci` in CI or locally should work with this `.npmrc`; do not run
+  `npm install` directly against the root unless you are intentionally
+  regenerating `package-lock.json`.
+- When bumping Expo or its native SDK packages, use
+  `cd apps/harness-mobile && npx expo install --fix` rather than hand-editing
+  the SDK versions; the CLI will align `expo`, `react`, `react-native`, and the
+  Expo module versions.

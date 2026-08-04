@@ -58,6 +58,9 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
+    exclude: {
+      path: "^(apps/harness-mobile/(android|ios)|apps/handbook/(generated|seeds)|packages/reticulum-ts/docs/api|conformance/docs/\\.tmp-handbook-capture)/"
+    },
     tsPreCompilationDeps: true,
     combinedDependencies: true
   }

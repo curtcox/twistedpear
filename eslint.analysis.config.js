@@ -38,7 +38,20 @@ const ignores = [
   "**/*.bundle.js",
   "**/*.bundle.mjs",
   "**/*.bundle",
-  "conformance/web-hyperdrive/web-hyper-fetch.js"
+  "conformance/web-hyperdrive/web-hyper-fetch.js",
+  // Generated native build artifacts and bundles
+  "apps/harness-mobile/android/**",
+  "apps/harness-mobile/ios/**",
+  "apps/harness-mobile/public/**",
+  "packages/reticulum-ts/docs/api/**",
+  "conformance/docs/.tmp-handbook-capture/**",
+  "conformance/**/fixtures.mjs",
+  "conformance/**/publisher-data.mjs",
+  "conformance/**/web-core.worker.js",
+  "conformance/**/web-hyper-fetch.js",
+  "conformance/web-storage/fixture.mjs",
+  "apps/handbook/generated/**",
+  "apps/handbook/seeds/**"
 ];
 
 export default [
