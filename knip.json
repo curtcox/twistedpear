@@ -7,8 +7,7 @@
         "formal/**/*.mjs",
         "conformance/**/*.mjs",
         "conformance/**/*.test.mjs",
-        "vitest.config.ts",
-        "vitest.workspace.ts"
+        "vitest.config.ts"
       ],
       "project": ["scripts/**/*.{js,mjs,ts}", "formal/**/*.{js,mjs,ts}", "conformance/**/*.{js,mjs,ts}"]
     },

@@ -4,84 +4,84 @@
   "tolerance": 0.5,
   "packages": {
     "packages/app-registry": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
+      "statements": 73.49,
+      "branches": 54.32,
+      "functions": 76.14
     },
     "packages/bridge-freenet": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
+      "statements": 70.21,
+      "branches": 55.27,
+      "functions": 63.16
     },
     "packages/bridge-hyper": {
-      "statements": 0,
-      "branches": 4.35,
-      "functions": 4.35
+      "statements": 18.64,
+      "branches": 28.33,
+      "functions": 11.71
     },
     "packages/cas-256t": {
-      "statements": 0,
-      "branches": 25,
-      "functions": 25
+      "statements": 89.62,
+      "branches": 80.53,
+      "functions": 91.89
     },
     "packages/cli": {
-      "statements": 0,
-      "branches": 7.69,
-      "functions": 7.69
-    },
-    "packages/effects": {
-      "statements": 83.98,
-      "branches": 78.73,
-      "functions": 88.83
-    },
-    "packages/host-core": {
-      "statements": 0,
-      "branches": 14.29,
-      "functions": 14.29
-    },
-    "packages/lxmf-ts": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
-    },
-    "packages/miniapp-runtime": {
-      "statements": 0,
-      "branches": 44.44,
-      "functions": 44.44
-    },
-    "packages/miniapp-sdk": {
-      "statements": 0,
-      "branches": 5.26,
-      "functions": 5.26
-    },
-    "packages/peer-discovery": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
-    },
-    "packages/protocol": {
-      "statements": 92.83,
-      "branches": 86.37,
-      "functions": 97.07
-    },
-    "packages/reticulum-interfaces": {
-      "statements": 0,
-      "branches": 36,
+      "statements": 31.34,
+      "branches": 31.26,
       "functions": 36
     },
+    "packages/effects": {
+      "statements": 82.85,
+      "branches": 72.36,
+      "functions": 85.93
+    },
+    "packages/host-core": {
+      "statements": 72.09,
+      "branches": 56.26,
+      "functions": 67.45
+    },
+    "packages/lxmf-ts": {
+      "statements": 76.6,
+      "branches": 66.61,
+      "functions": 73.33
+    },
+    "packages/miniapp-runtime": {
+      "statements": 61.78,
+      "branches": 56.12,
+      "functions": 58.97
+    },
+    "packages/miniapp-sdk": {
+      "statements": 29.8,
+      "branches": 28.57,
+      "functions": 19.51
+    },
+    "packages/peer-discovery": {
+      "statements": 71.68,
+      "branches": 58.09,
+      "functions": 70.95
+    },
+    "packages/protocol": {
+      "statements": 89.1,
+      "branches": 79,
+      "functions": 97.54
+    },
+    "packages/reticulum-interfaces": {
+      "statements": 66.14,
+      "branches": 54.4,
+      "functions": 60.48
+    },
     "packages/reticulum-ts": {
-      "statements": 0,
-      "branches": 12.28,
-      "functions": 12.28
+      "statements": 72.5,
+      "branches": 59.47,
+      "functions": 75.1
     },
     "packages/sim-adversaries": {
-      "statements": 3.58,
-      "branches": 61.54,
-      "functions": 50
+      "statements": 74.9,
+      "branches": 73.96,
+      "functions": 76.56
     },
     "packages/sim-campaign": {
-      "statements": 0,
-      "branches": 12.5,
-      "functions": 12.5
+      "statements": 93.27,
+      "branches": 89.16,
+      "functions": 99.3
     },
     "packages/widget-renderer-headless": {
       "statements": 0,
@@ -94,9 +94,9 @@
       "functions": 0
     },
     "packages/worklet-core": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
+      "statements": 1.41,
+      "branches": 1.66,
+      "functions": 1.5
     }
   }
 }
