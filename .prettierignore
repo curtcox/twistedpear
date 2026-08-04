@@ -1,6 +1,8 @@
 node_modules/
 dist/
 site/
+site-results/
+imported-static-analysis/
 archive/
 **/bundle.js
 **/*.bundle.js

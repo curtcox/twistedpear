@@ -42,6 +42,7 @@ site/public/
 site/.vitepress/dist/
 site/.vitepress/cache/
 site-results/
+imported-static-analysis/
 /artifacts/
 /reports/mutation/
 /audit.json
