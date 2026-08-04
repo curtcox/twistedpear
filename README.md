@@ -55,6 +55,10 @@ Published site: [curtcox.github.io/twistedpear](https://curtcox.github.io/twiste
 [specs](https://curtcox.github.io/twistedpear/specs/),
 [quality results](https://curtcox.github.io/twistedpear/results/)).
 
+For a map of how the pieces fit together — layers, package graph, host shapes, distribution
+and messaging paths, and the conformance and quality machinery around them — read
+[docs/architecture.md](docs/architecture.md).
+
 Start with the [documentation index](docs/README.md). It identifies the canonical
 reference for each topic and explains the repository's doc lifecycle: what is built
 (`live`) and what is merely intended (`planned`) are separate files — `docs/<topic>.md`

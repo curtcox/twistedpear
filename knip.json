@@ -22,5 +22,6 @@
       "ignore": ["**/*.bundle.mjs", "**/*.bundle"]
     }
   },
+  "ignoreDependencies": ["mermaid", "vitepress-plugin-mermaid"],
   "ignore": ["archive/**", "site/**", "**/dist/**", "**/*.gen.ts", "**/*.bundle.mjs", "**/*.bundle", "apps/harness-mobile/android/**", "apps/harness-mobile/ios/**", "apps/harness-mobile/public/**", "packages/reticulum-ts/docs/api/**", "conformance/docs/.tmp-handbook-capture/**", "conformance/**/fixtures.mjs", "conformance/**/publisher-data.mjs", "conformance/**/web-core.worker.js", "conformance/**/web-hyper-fetch.js", "conformance/web-storage/fixture.mjs", "apps/handbook/generated/**", "apps/handbook/seeds/**"]
 }
