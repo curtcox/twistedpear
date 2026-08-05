@@ -129,6 +129,7 @@ The package-level READMEs for
 | Freenet as a transport and app substrate | [Freenet — current](freenet.md), [plan](freenet-plan.md) |
 | Freenet remaining work, simulator-first sequencing | [Freenet simulator-first work plan](freenet-simulator-first-work-plan.md) |
 | Freenet app-execution decision (Option A) | [ADR (archived decision)](../archive/decisions/freenet-app-execution.md) |
+| Discovery/delivery drop diagnosis and trace capture | [Observability plan](observability-plan.md) |
 | LXMF propagation-node operation | [Propagation node](propagation-node.md) |
 | Bounded multipart LXMF store-and-forward | [Multipart propagation](multipart-propagation.md) |
 | Battery and link-budget guidance | [Battery and bandwidth policy](battery-bandwidth-policy.md) |
