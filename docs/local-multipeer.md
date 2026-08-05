@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-30
+audited: 2026-08-05
 register: none
 -->
 
@@ -58,7 +58,7 @@ none of them needs a listening socket or an entitlement.
 |---|---|---|
 | `hub` | `tp node` with the TCP server interface | Node, `npm run build` |
 | `node2`…`node9` | additional headless `tp node` peers | Node, `npm run build` |
-| `desktop` | Electron desktop host | Electron; test-agent launches use the supported Node-worklet fallback when linked Bare addon frameworks are unavailable |
+| `desktop` | Electron desktop host | Electron; peer-agent launches use the supported Node-worklet fallback when linked Bare addon frameworks are unavailable |
 | `ios` | iOS simulator harness | Xcode, Maestro |
 | `android` | Android emulator harness | a running emulator with the harness installed, adb, Maestro |
 
@@ -71,13 +71,14 @@ reported and skipped rather than failing the run.
 npm run peers -- up [peers...]     # start (default: hub)
 npm run peers -- down [peers...]   # stop (default: everything running)
 npm run peers -- status            # process state + live agent state
+npm run peers -- status --capture  # also write observe-snapshot tapes under tapes/
 npm run peers -- logs ios -f       # tail one peer's log
 npm run peers -- list              # known peer ids
 ```
 
 State lives in `.tmp/local-peers/`: `state.json` for the running set, `logs/`
-per peer, `data/` for per-peer identities and host config. Removing that
-directory resets everything.
+per peer, `data/` for per-peer identities and host config, `tapes/` for
+optional observe-snapshot captures. Removing that directory resets everything.
 
 `status` briefly binds the control port so attached peers re-check in and can
 report what they have discovered. If a test run already holds the port, it
@@ -89,6 +90,9 @@ prints the process view and says so.
 peers are attached:
 
 1. **Discovery** — for every ordered pair, that A has recorded B's LXMF announce.
+   After that, floods a spoke's announces at the hub and requires a nonzero rung-4
+   (`announce-rate-limit:rate_limited`) drop on the hub (transport-node rate-limit
+   gate; distinguishes rate-limited from absent).
 2. **Communication** — for every ordered pair, that A's probe message arrives at
    B *and* that B's echo arrives back at A. Both legs are real LXMF messages over
    real Reticulum links, routed through the hub.
@@ -123,7 +127,7 @@ realtime proof rows (`test:local-multipeer:desktop` sets this for hub+desktop).
 
 ## How peers become observable
 
-Hosts have no message UI and no query API, so each one mounts a test-only
+Hosts have no message UI and no query API, so each one mounts a peer
 control agent — `packages/host-core/src/test-agent.ts`, mounted through
 `packages/worklet-core/src/test-agent-mount.mjs` in the worklet hosts. The agent
 registers its own LXMF delivery destination, records the announces it sees,
@@ -138,12 +142,12 @@ explicit control endpoint:
 |---|---|
 | `tp node` | `--test-agent host:port[:label]` |
 | desktop | `TP_TEST_AGENT=host:port:label` read by the Electron main process |
-| iOS / Android | the **Connect test agent** button, tapped by `.maestro/local-peer-up.yaml` |
+| iOS / Android | the **Connect peer agent** button, tapped by `.maestro/local-peer-up.yaml` |
 
 ## Adding another peer implementation
 
 Add an adapter under `scripts/peers/adapters/` exposing
 `{ id, kind, describe(), up(ctx), down(entry, ctx), running(entry) }` and
 register it in `scripts/peers/registry.mjs`. If the implementation runs a
-Reticulum stack, mount the test agent in it and it joins the matrix with no
+Reticulum stack, mount the peer control agent in it and it joins the matrix with no
 changes to the CLI or the suite.

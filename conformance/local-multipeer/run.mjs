@@ -9,7 +9,7 @@
  *   1. discovery    A has seen B's LXMF announce
  *   2. communication A's probe reaches B and B's echo comes back to A
  *
- * Peers are driven through the test agent control channel
+ * Peers are driven through the peer control agent
  * (`packages/host-core/src/test-agent.ts`); the CLI that starts and stops them
  * is `scripts/peers.mjs`.
  *
@@ -222,36 +222,6 @@ await runMain(async () => {
       await control.announce(id).catch(() => {});
     }
 
-    // Flood announces so at least one peer records a rung-4 rate-limit drop.
-    // Absent peers leave no census row; a rate-limited destination does.
-    const flooder = attached[0];
-    const observer = attached[1];
-    for (let i = 0; i < 8; i += 1) {
-      await control.announce(flooder).catch(() => {});
-    }
-    await sleep(500);
-    const observerStatus = await control.status(observer);
-    assert(
-      observerStatus?.dropCensus !== undefined,
-      `${observer} status missing dropCensus`
-    );
-    const rateKey = "announce-rate-limit:rate_limited";
-    const rateLimitedCount = observerStatus.dropCensus.byReason?.[rateKey] ?? 0;
-    const absentPeer = observerStatus.dropCensus.byPeer?.["never-seen-destination"];
-    assert(
-      absentPeer === undefined,
-      "absent peer must not appear in dropCensus.byPeer"
-    );
-    if (rateLimitedCount > 0) {
-      step(
-        `${observer} recorded ${rateLimitedCount} rate-limited announce drop(s) (distinguishes late/rate-limited from absent)`
-      );
-    } else {
-      step(
-        `${observer} dropCensus present (rate-limit may not trip under this topology; byReason keys=${Object.keys(observerStatus.dropCensus.byReason ?? {}).join(",") || "none"})`
-      );
-    }
-
     for (const from of attached) {
       for (const to of attached) {
         if (from === to) {
@@ -272,6 +242,45 @@ await runMain(async () => {
         results.discovery.push({ from, to, elapsedMs });
       }
     }
+
+    // Hub is the transport-enabled peer (rate-limit lives on TransportNode).
+    // Spokes use LeafTransport without the ingress rate-limit gate, so flood a
+    // spoke and require a nonzero rung-4 count on the hub. One peer-local
+    // announce-burst RPC: the agent processes control commands serially, so N
+    // separate announce RPCs cannot beat rateTarget (0.2s).
+    const flooder = attached.find((id) => id !== "hub") ?? attached[1];
+    const observer = attached.includes("hub") ? "hub" : attached[0];
+    const rateKey = "announce-rate-limit:rate_limited";
+    const burst = await control.announceBurst(flooder, 16);
+    step(`${flooder}→${observer} announce-burst sent=${burst.sent} failed=${burst.failed}`);
+    assert(burst.sent > 0, `${flooder} announce-burst sent nothing`);
+    let rateLimitedCount = 0;
+    let observerStatus = null;
+    await waitUntil(
+      `${observer} never recorded a rate-limited announce drop`,
+      async () => {
+        observerStatus = await control.status(observer);
+        rateLimitedCount = observerStatus?.dropCensus?.byReason?.[rateKey] ?? 0;
+        return rateLimitedCount > 0;
+      },
+      10_000
+    );
+    assert(
+      observerStatus?.dropCensus !== undefined,
+      `${observer} status missing dropCensus`
+    );
+    const absentPeer = observerStatus.dropCensus.byPeer?.["never-seen-destination"];
+    assert(
+      absentPeer === undefined,
+      "absent peer must not appear in dropCensus.byPeer"
+    );
+    assert(
+      rateLimitedCount > 0,
+      `${observer} expected nonzero ${rateKey}, got ${rateLimitedCount}`
+    );
+    step(
+      `${observer} recorded ${rateLimitedCount} rate-limited announce drop(s) (distinguishes late/rate-limited from absent)`
+    );
 
     section("Communication");
     for (const from of attached) {

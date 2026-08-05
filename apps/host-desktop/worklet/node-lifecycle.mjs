@@ -263,7 +263,7 @@ export function createNodeLifecycleOps(deps) {
 
   /**
    * Always-on LXMF delivery so session invites raise chrome without a mounted
-   * test agent. Desktop re-announces on a timer; the invite carrier itself never
+   * peer control agent. Desktop re-announces on a timer; the invite carrier itself never
    * runs mini-app code.
    */
   async function ensureHostLxmfDelivery() {

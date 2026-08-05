@@ -2,7 +2,7 @@
  * Persistent host LXMF delivery destination.
  *
  * Shipping hosts own one always-on `lxmf.delivery` destination so a
- * `session-invite` can raise trusted chrome without a mounted test agent.
+ * `session-invite` can raise trusted chrome without a mounted peer control agent.
  * Announce cadence is a host policy choice: desktop may re-announce on a
  * timer; mobile and web may announce once at start and again on resume.
  * Principle 3 is unchanged — this path never runs mini-app code.

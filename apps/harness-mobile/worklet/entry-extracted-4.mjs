@@ -576,7 +576,7 @@ export async function handleHostMessageImpl(context, raw) {
     }
     if (message.type === "connect-test-agent") {
         if (context.testAgent !== null) {
-            context.log("Test agent already mounted");
+            context.log("Peer agent already mounted");
             return;
         }
         try {
@@ -610,10 +610,10 @@ export async function handleHostMessageImpl(context, raw) {
                     }
                 }
             });
-            context.log(`Test agent mounted as ${message.label} (lxmf ${context.testAgent.lxmfAddress})`);
+            context.log(`Peer agent mounted as ${message.label} (lxmf ${context.testAgent.lxmfAddress})`);
         }
         catch (error) {
-            context.log(`Test agent mount failed: ${error instanceof Error ? error.message : String(error)}`);
+            context.log(`Peer agent mount failed: ${error instanceof Error ? error.message : String(error)}`);
         }
         return;
     }

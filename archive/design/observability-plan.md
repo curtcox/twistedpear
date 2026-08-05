@@ -1,17 +1,16 @@
 # Observability and drop-reason diagnosis plan
 
 <!-- tp-doc
-lifecycle: planned
-audited: 2026-08-04
-register: software
-counterpart: docs/observability.md
+lifecycle: historical
+audited: 2026-08-05
+register: none
 -->
 
-**This document describes intended work, not current behaviour.** What ships today is
-recorded in [Observability — current implementation](observability.md),
-[Local peer discovery — current implementation](local-peer-discovery.md),
-[Deterministic abuse simulation](simulation.md), and
-[SPEC-TRACE](../specs/spec-trace/spec.md). Where this plan and those disagree, they win.
+> **Status of this plan (archived 2026-08-05):** Fully executed. O1–O4 and the
+> listed follow-ups (hard rung-4 multipeer assert, collector `--capture` tapes,
+> user-facing peer/control agent rename, web `host.info` dropCensus) are recorded
+> in [docs/observability.md](../../docs/observability.md). The sections below are
+> retained as the original design rationale.
 
 ## The problem
 
@@ -22,15 +21,15 @@ which is the symptom restated, not a cause.
 
 The cause is unrecoverable because the announce ingress path discards its own conclusions.
 A rate-limited announce is dropped with a bare `return` in
-[`Transport.handleAnnounce`](../packages/reticulum-ts/src/transport/transport.ts); nothing
+[`Transport.handleAnnounce`](../../packages/reticulum-ts/src/transport/transport.ts); nothing
 counts it, names it, or remembers it. There are twenty-three bare `return` statements in
 that file, and thirty-nine distinct `shouldIgnore*`/`shouldDrop*` predicates across
-[`packages/reticulum-ts`](../packages/reticulum-ts/) and
-[`packages/protocol`](../packages/protocol/) — fifteen of them referenced from
+[`packages/reticulum-ts`](../../packages/reticulum-ts/) and
+[`packages/protocol`](../../packages/protocol/) — fifteen of them referenced from
 `reticulum-ts` itself. Essentially none of their outcomes is observable from outside the
 process.
 
-Meanwhile `announcesSeen` in [`node-host.ts`](../packages/host-core/src/node-host.ts)
+Meanwhile `announcesSeen` in [`node-host.ts`](../../packages/host-core/src/node-host.ts)
 increments only inside `receivedAnnounce()` — that is, only for announces that survived
 the *entire* ladder below. So these four situations produce byte-identical diagnostics:
 
@@ -46,18 +45,18 @@ observable; it does not need to be invented.
 
 | # | Stage | Gate | Location |
 |---|---|---|---|
-| 1 | Interface never came online, or the wrong one was selected | `InterfaceManager.status()`, `selectPreferredInterface` | [`interface-manager.ts`](../packages/host-core/src/interface-manager.ts) |
-| 2 | Egress announce threw and was swallowed | `announceQuietly` | [`test-agent.ts`](../packages/host-core/src/test-agent.ts) |
-| 3 | Packet never dispatched to the announce handler | `shouldIgnoreTransportIngressDispatch` | [`transport.ts`](../packages/reticulum-ts/src/transport/transport.ts) |
-| 4 | Announce rate limited for this destination | `shouldApplyAnnounceRateLimit` + `AnnounceRateLimiter.isBlocked` | [`transport.ts`](../packages/reticulum-ts/src/transport/transport.ts) |
-| 5 | Signature or framing invalid | `Announce.validate` | [`layer-1.ts`](../packages/reticulum-ts/src/transport/node/layer-1.ts) |
-| 6 | Announce unparseable | `shouldAcceptParsedAnnounceNow` | [`layer-1.ts`](../packages/reticulum-ts/src/transport/node/layer-1.ts) |
-| 7 | Ignored as a local echo | `shouldIgnoreLocalAnnounceNow` | [`layer-1.ts`](../packages/reticulum-ts/src/transport/node/layer-1.ts) |
-| 8 | Accepted, but no path entry installed | `shouldAddPathEntryNow` | [`layer-1.ts`](../packages/reticulum-ts/src/transport/node/layer-1.ts) |
-| 9 | Accepted and counted | `receivedAnnounce()` → `announcesSeen` | [`node-host.ts`](../packages/host-core/src/node-host.ts) |
+| 1 | Interface never came online, or the wrong one was selected | `InterfaceManager.status()`, `selectPreferredInterface` | [`interface-manager.ts`](../../packages/host-core/src/interface-manager.ts) |
+| 2 | Egress announce threw and was swallowed | `announceQuietly` | [`test-agent.ts`](../../packages/host-core/src/test-agent.ts) |
+| 3 | Packet never dispatched to the announce handler | `shouldIgnoreTransportIngressDispatch` | [`transport.ts`](../../packages/reticulum-ts/src/transport/transport.ts) |
+| 4 | Announce rate limited for this destination | `shouldApplyAnnounceRateLimit` + `AnnounceRateLimiter.isBlocked` | [`transport.ts`](../../packages/reticulum-ts/src/transport/transport.ts) |
+| 5 | Signature or framing invalid | `Announce.validate` | [`layer-1.ts`](../../packages/reticulum-ts/src/transport/node/layer-1.ts) |
+| 6 | Announce unparseable | `shouldAcceptParsedAnnounceNow` | [`layer-1.ts`](../../packages/reticulum-ts/src/transport/node/layer-1.ts) |
+| 7 | Ignored as a local echo | `shouldIgnoreLocalAnnounceNow` | [`layer-1.ts`](../../packages/reticulum-ts/src/transport/node/layer-1.ts) |
+| 8 | Accepted, but no path entry installed | `shouldAddPathEntryNow` | [`layer-1.ts`](../../packages/reticulum-ts/src/transport/node/layer-1.ts) |
+| 9 | Accepted and counted | `receivedAnnounce()` → `announcesSeen` | [`node-host.ts`](../../packages/host-core/src/node-host.ts) |
 
-**Only rung 9 is observable today.** Rungs 3–8 are the interesting ones, and rung 4 is the
-one the [single-machine multi-peer environment](local-multipeer.md) already warns about:
+**Only rung 9 was observable before this plan.** Rungs 3–8 are the interesting ones, and rung 4 is the
+one the [single-machine multi-peer environment](../../docs/local-multipeer.md) already warns about:
 announce ingress is rate limited to roughly one per five seconds per destination, so a peer
 that joins late waits for the next periodic announce and looks indistinguishable from a
 peer that is not there at all.
@@ -67,13 +66,13 @@ peer that is not there at all.
 **This plan does not add a debug server.** That was the original framing and it is the
 wrong shape for three reasons:
 
-1. **Listening is the wrong direction.** [`test-agent.ts`](../packages/host-core/src/test-agent.ts)
+1. **Listening is the wrong direction.** [`test-agent.ts`](../../packages/host-core/src/test-agent.ts)
    dials *out* precisely so that a Node process, a Bare worklet, the iOS simulator, and the
    Android emulator can all participate with no listening socket and no entitlement. A
    listening debug server would work on `tp node` and Electron and fail on exactly the hosts
    where discovery bugs are hardest to reproduce.
 2. **A fourth query surface means four drifting definitions of "online".** The status
-   endpoint, the test agent, `npm run peers -- status`, and the Handbook diagnostics already
+   endpoint, the peer control agent, `npm run peers -- status`, and the Handbook diagnostics already
    overlap.
 3. **Queryable state is the wrong data.** By the time anyone queries, the drop has already
    happened and left no trace. The fix is a record of decisions, not a view of state.
@@ -90,11 +89,11 @@ Out of scope:
 
 ## The sans-IO constraint
 
-[`sansio-ratchet.json`](../sansio-ratchet.json) lists `packages/reticulum-ts/src` as a
+[`sansio-ratchet.json`](../../sansio-ratchet.json) lists `packages/reticulum-ts/src` as a
 protocol root, and `src/transport/**` is **not** in the adapter allowlist. Rungs 3–8 are
 therefore inside the pure boundary, where direct logging and clock reads are forbidden by
-[SPEC-MACHINE](../specs/spec-machine/spec.md) and the
-[Sans-IO protocol discipline](sansio.md).
+[SPEC-MACHINE](../../specs/spec-machine/spec.md) and the
+[Sans-IO protocol discipline](../../docs/sansio.md).
 
 So the census cannot be a counter incremented next to the `return`. The drop reason must
 **leave the machine as a declared action**, exactly like every other conclusion these gates
@@ -105,17 +104,8 @@ the simulator by construction, and it is the reason O4 is cheap once O1 exists.
 
 ## Plan
 
-O1–O4 have landed in [observability.md](observability.md). Remaining follow-ups:
-
-- Tighten `test:local-multipeer` so a deliberate rate-limit flood **requires** a nonzero
-  rung-4 count (today it asserts census presence and absent-peer distinction; topology
-  may not always trip the limiter).
-- Wire the collector (`control-server.mjs`) to persist `observe-snapshot` tapes under
-  the peers state root when `--capture` is set.
-- Finish renaming call sites that still say “test agent” in user-facing docs to “peer
-  agent” / “control agent”.
-- Mobile/web worklets: web leaf still needs `dropCensus` on `host.info` if a web
-  host mounts announce ingress; desktop and mobile Bare worklets are wired.
+O1–O4 and the follow-ups below are complete; see
+[docs/observability.md](../../docs/observability.md).
 
 ### O1 — Name the drops (done)
 
@@ -125,22 +115,22 @@ Shipped: SPEC-EVENTS `observe/drop`, protocol mappers for rungs 3–8, reticulum
 ### O2 — Surface the census (done)
 
 Shipped on `buildStatus` / `/status`, peer-agent `status` + `link-state`, and the
-local-multipeer census presence check. Handbook is O3.
+local-multipeer hard rung-4 assert. Handbook is O3.
 
 ### O3 — Field capture (done)
 
 Shipped: report `dropCensus` field, compare matrix `drop:*` rows, handbook prose.
 
-### O4 — Replayable production capture (done, collector persistence pending)
+### O4 — Replayable production capture (done)
 
 Shipped: bounded observe ring, `subscribe` / `unsubscribe` / `observe-snapshot`,
-`ringToRecordedHistory`, SPEC-TRACE implementation note corrected. Collector file
-write and full rename remain above.
+`ringToRecordedHistory`, collector `--capture` tape write under `.tmp/local-peers/tapes/`,
+web leaf + shared `host.info` `dropCensus` forwarding, user-facing peer/control agent rename.
 
 ## Consent and privacy
 
 Field capture is in scope, so the [local peer discovery threat
-model](local-peer-discovery-threat-model.md) governs. It lists "Tracking and stable
+model](../../docs/local-peer-discovery-threat-model.md) governs. It lists "Tracking and stable
 identifiers" as a controlled threat, countered by fresh session and ephemeral key material.
 
 **This rules out W3C Trace Context as an on-the-wire cross-peer correlator in the field.** A
@@ -159,7 +149,7 @@ Additional constraints for field capture:
   are already user-initiated and user-shared, but the exported payload must be reviewable
   before it leaves the device.
 - Capture stays off by default and on a non-default code path, matching the existing
-  discipline: the status endpoint is opt-in and loopback-guarded, and the test agent
+  discipline: the status endpoint is opt-in and loopback-guarded, and the peer control agent
   "never activates on a default code path."
 - Ring buffers are bounded; a diagnostic must not become a storage-exhaustion vector.
 
@@ -174,9 +164,5 @@ Additional constraints for field capture:
 | **SPEC-TRACE** | Already the right answer for post-hoc capture. It is ours, it is normative, and it is unwired outside the simulator. |
 
 ## Sequencing
-
-O1–O4 core behaviour is recorded in [observability.md](observability.md). The
-follow-ups listed under [Plan](#plan) do not block using the census for discovery
-diagnosis.
 
 Do not invent a second drop taxonomy outside SPEC-EVENTS `observe/drop`.

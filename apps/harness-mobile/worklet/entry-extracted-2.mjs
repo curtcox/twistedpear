@@ -641,7 +641,7 @@ export async function ensureReticulumImpl(context) {
 
 /**
  * Always-on LXMF delivery so session invites raise chrome without a mounted
- * test agent. Mobile announces once at start and again on foreground resume —
+ * peer control agent. Mobile announces once at start and again on foreground resume —
  * no periodic timer (battery policy).
  */
 export async function ensureHostLxmfDeliveryImpl(context) {

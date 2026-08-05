@@ -299,9 +299,9 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       platform: "tp-node",
       controlHost: config.testAgent.host,
       controlPort: config.testAgent.port,
-      log: (line) => console.log(`[test-agent] ${line}`)
+      log: (line) => console.log(`[peer-agent] ${line}`)
     });
-    console.log(`[test-agent] ${config.testAgent.label} lxmf=${testAgent.lxmfAddress}`);
+    console.log(`[peer-agent] ${config.testAgent.label} lxmf=${testAgent.lxmfAddress}`);
   }
 
   return {

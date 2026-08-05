@@ -45,6 +45,7 @@ import {
 import { createDropCensus, type DropCensusCounts } from "./drop-census.js";
 import { createObserveRing } from "./observe-ring.js";
 import { handleObserveCommand } from "./observe-agent.js";
+import { announceBurst } from "./announce-burst.js";
 
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";
@@ -588,6 +589,10 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       case "announce":
         await delivery.announce();
         return {};
+      case "announce-burst": {
+        const count = typeof request.count === "number" ? request.count : 16;
+        return announceBurst(() => delivery.announce(), count);
+      }
       case "send": {
         if (request.toLxmfAddress === undefined || request.nonce === undefined) {
           throw new Error("send requires toLxmfAddress and nonce");

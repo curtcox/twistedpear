@@ -14,7 +14,7 @@ export const stateRoot = join(repoRoot, ".tmp", "local-peers");
 export const logDir = join(stateRoot, "logs");
 const statePath = join(stateRoot, "state.json");
 
-/** Port the peer test agents dial. Hardcoded in the mobile harness UI too. */
+/** Port peer control agents dial. Hardcoded in the mobile harness UI too. */
 export const CONTROL_PORT = 34990;
 /** TCP hub port every peer connects to; matches the mobile harness default. */
 export const HUB_PORT = 4242;
@@ -25,9 +25,35 @@ export const WEB_CDP_PORT = 34992;
 /** Second web peer CDP (isolated Chromium profile). */
 export const WEB2_CDP_PORT = 34994;
 export const DESKTOP_CDP_PORT = 34991;
+/** SPEC-TRACE observe-snapshot tapes written when `--capture` is set. */
+export const tapesDir = join(stateRoot, "tapes");
 
 export function ensureStateDirs() {
   mkdirSync(logDir, { recursive: true });
+  mkdirSync(tapesDir, { recursive: true });
+}
+
+/**
+ * Persist an observe-snapshot envelope under the peers state root.
+ * @param {string} label peer agent label
+ * @param {{ history?: unknown; dropCensus?: { byReason: Record<string, number>; byPeer: Record<string, unknown> } }} snapshot
+ * @param {{ now?: Date }} [options]
+ * @returns {string} absolute path written
+ */
+export function writeObserveTape(label, snapshot, options = {}) {
+  ensureStateDirs();
+  const now = options.now ?? new Date();
+  const stamp = now.toISOString().replaceAll(":", "-");
+  const safeLabel = String(label).replaceAll(/[^a-zA-Z0-9._-]+/g, "_");
+  const path = join(tapesDir, `${safeLabel}-${stamp}.json`);
+  const envelope = {
+    label: String(label),
+    capturedAt: now.toISOString(),
+    dropCensus: snapshot.dropCensus ?? { byReason: {}, byPeer: {} },
+    history: snapshot.history ?? { schema: "recorded-history", version: 1, entries: [] }
+  };
+  writeFileSync(path, `${JSON.stringify(envelope, null, 2)}\n`);
+  return path;
 }
 
 export function readState() {

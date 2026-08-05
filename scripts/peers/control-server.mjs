@@ -1,5 +1,5 @@
 /**
- * Control server for the peer test agents.
+ * Control server for peer control agents.
  *
  * Agents (see `packages/host-core/src/test-agent.ts`) dial in and identify
  * themselves with a `hello` frame; this side issues commands and correlates
@@ -191,6 +191,11 @@ export async function startControlServer(options = {}) {
     inbox: (label) => request(label, { cmd: "inbox" }).then((frame) => frame.inbox ?? []),
     status: (label) => request(label, { cmd: "status" }).then((frame) => frame.status),
     announce: (label) => request(label, { cmd: "announce" }),
+    announceBurst: (label, count = 16) =>
+      request(label, { cmd: "announce-burst", count }).then((frame) => ({
+        sent: frame.sent ?? 0,
+        failed: frame.failed ?? 0
+      })),
     send: (label, toLxmfAddress, nonce) => request(label, { cmd: "send", toLxmfAddress, nonce }),
     realtimeInbox: (label) => request(label, { cmd: "realtime-inbox" }).then((frame) => frame.inbox ?? []),
     sendRealtime: (label, toLxmfAddress, nonce, payloadHex) => request(label, { cmd: "send-realtime", toLxmfAddress, nonce, payloadHex }),

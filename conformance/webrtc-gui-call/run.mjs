@@ -180,7 +180,7 @@ await runMain(async () => {
     try {
       for (const id of [leftId, rightId]) {
         const info = await control.info(id);
-        assert(typeof info.lxmfAddress === "string", `${id} lost its test-agent attachment`);
+        assert(typeof info.lxmfAddress === "string", `${id} lost its peer-agent attachment`);
         step(`${id} agent healthy (${String(info.lxmfAddress).slice(0, 12)}…)`);
       }
       await control.announce(leftId).catch(() => {});

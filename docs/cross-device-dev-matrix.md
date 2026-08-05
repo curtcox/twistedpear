@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-31
+audited: 2026-08-05
 register: none
 -->
 
@@ -199,7 +199,7 @@ probe before committing to the build; each has a defined fallback.
 |---|---|---|---|
 | P1 | Can `ios`, `android`, and `web` complete `apps:package` + `apps:publish` end to end? [Platform capabilities status](platform-capabilities-status.md) marks all three **partial** on mobile and web. | S2, S3, S4 each need a non-desktop developer | Close the specific gap (it is host wiring, not protocol), or run the developer leg on that variant with packaging performed through its own worklet path and record the gap in [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | P2 | Can a host re-serve a package it installed but did not sign? | S5 (mirror chain) only | Drop S5 to a two-hop variant where the middle peer is the hub, and note that source/target independence is proven at the infrastructure level only |
-| P3 | Can the browser host mount the test agent and join the control channel? | the whole `web` column | Drive `web` entirely through Playwright with an in-page evaluation shim instead of the control agent |
+| P3 | Can the browser host mount the peer control agent and join the control channel? | the whole `web` column | Drive `web` entirely through Playwright with an in-page evaluation shim instead of the control agent |
 
 Spike outcomes: P1 landed as native/web publish and direct-install host wiring;
 P2 uses the S5 hub fallback described above; P3 uses the explicit opt-in
@@ -210,10 +210,10 @@ browser control socket on the default path.
 
 | # | Item | Where | Notes |
 |---|---|---|---|
-| B1 | `web` peer adapter | `scripts/peers/adapters/web.mjs`, registered in [scripts/peers/registry.mjs](../scripts/peers/registry.mjs) and `GUI_PEER_IDS` | launches Chromium against the hub's `--serve-web` origin, waits for the WS link, mounts the test agent |
+| B1 | `web` peer adapter | `scripts/peers/adapters/web.mjs`, registered in [scripts/peers/registry.mjs](../scripts/peers/registry.mjs) and `GUI_PEER_IDS` | launches Chromium against the hub's `--serve-web` origin, waits for the WS link, mounts the peer control agent |
 | B2 | Hub gains `--ws-listen` + `--serve-web` | `scripts/peers/adapters/node.mjs` | flags already exist in the CLI; the adapter just has to pass them |
 | B3 | Web test-control shim | [apps/harness-mobile/worklet/web-entry.mjs](../apps/harness-mobile/worklet/web-entry.mjs), [apps/harness-mobile/App.web.tsx](../apps/harness-mobile/App.web.tsx) | opt-in only through `?cross-device-control=1`; Playwright evaluates the in-page request bridge, never a default-path control socket |
-| B4 | Distribution verbs on the test agent | [packages/host-core/src/test-agent.ts](../packages/host-core/src/test-agent.ts), [packages/worklet-core/src/cross-device-test-driver.mjs](../packages/worklet-core/src/cross-device-test-driver.mjs) | `project.create`, `project.write`, `preview`, `package`, `publish`, `trust.import`, `install`, `run`, `ui.event`, `state`, `cas.has`, `cas.read`, `negative.verify`. Requests only — confirmations stay in chrome |
+| B4 | Distribution verbs on the peer control agent | [packages/host-core/src/test-agent.ts](../packages/host-core/src/test-agent.ts), [packages/worklet-core/src/cross-device-test-driver.mjs](../packages/worklet-core/src/cross-device-test-driver.mjs) | `project.create`, `project.write`, `preview`, `package`, `publish`, `trust.import`, `install`, `run`, `ui.event`, `state`, `cas.has`, `cas.read`, `negative.verify`. Requests only — confirmations stay in chrome |
 | B5 | Maestro flows | `.maestro/devstudio-author.yaml`, `.maestro/devstudio-install.yaml`, `.maestro/devstudio-run.yaml` | tap the `package` / `publish` / trust / install-review / run-review modals, assert publisher fingerprint and capability list, grant the subset |
 | B6 | Playwright driver | `conformance/cross-device-dev/drivers/browser.mjs` | same modal assertions in the web host chrome |
 | B7 | Electron driver | `conformance/cross-device-dev/drivers/browser.mjs` | attaches to the Electron CDP endpoint and asserts its host-chrome modal |

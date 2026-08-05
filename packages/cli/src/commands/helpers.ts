@@ -161,7 +161,7 @@ export function parseStatusEndpointPort(args: ReadonlyArray<string>): number | n
 }
 
 /**
- * `--test-agent host:port[:label]` mounts the test-only peer control agent used
+ * `--test-agent host:port[:label]` mounts the peer control agent used
  * by `conformance/local-multipeer`. Never set on a default code path.
  */
 export function parseTestAgentArg(

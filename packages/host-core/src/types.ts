@@ -163,7 +163,7 @@ export interface HostAiConfig {
 
 /**
  * Test-only control endpoint for the single-machine multi-peer environment.
- * When set, the host mounts the peer test agent and dials this address.
+ * When set, the host mounts the peer control agent and dials this address.
  * See `test-agent.ts` and `conformance/local-multipeer`.
  */
 export interface TestAgentConfig {

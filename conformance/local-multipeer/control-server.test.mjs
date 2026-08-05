@@ -1,6 +1,8 @@
 import { connect } from "node:net";
+import { readFileSync, rmSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { startControlServer } from "../../scripts/peers/control-server.mjs";
+import { writeObserveTape } from "../../scripts/peers/state.mjs";
 
 const cleanups = [];
 
@@ -78,5 +80,28 @@ describe("local multi-peer control server", () => {
     await control.close();
 
     await expect(pending).rejects.toThrow("closed before peer attached");
+  });
+});
+
+describe("observe tape persistence", () => {
+  it("writes a recorded-history envelope under the peers tapes dir", () => {
+    const path = writeObserveTape(
+      "hub",
+      {
+        history: { schema: "recorded-history", version: 1, entries: [{ t: 1, kind: "observe/drop" }] },
+        dropCensus: { byReason: { "announce-rate-limit:rate_limited": 2 }, byPeer: {} }
+      },
+      { now: new Date("2026-08-05T12:00:00.000Z") }
+    );
+    cleanups.push(() => rmSync(path, { force: true }));
+
+    const parsed = JSON.parse(readFileSync(path, "utf8"));
+    expect(path).toContain("hub-2026-08-05T12-00-00.000Z.json");
+    expect(parsed).toMatchObject({
+      label: "hub",
+      capturedAt: "2026-08-05T12:00:00.000Z",
+      dropCensus: { byReason: { "announce-rate-limit:rate_limited": 2 } },
+      history: { schema: "recorded-history", version: 1, entries: [{ t: 1, kind: "observe/drop" }] }
+    });
   });
 });

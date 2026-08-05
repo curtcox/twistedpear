@@ -53,7 +53,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
         <View style={styles.buttonRow}>
           <ActionButton
             testID="connect-test-agent"
-            label="Connect test agent"
+            label="Connect peer agent"
             onPress={() => {
               sendToWorklet({
                 type: "connect-test-agent",
@@ -62,7 +62,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                 label: Platform.OS === "android" ? "android" : "ios",
                 platform: Platform.OS
               });
-              appendLog(`Test agent requested on port ${TEST_AGENT_PORT}`);
+              appendLog(`Peer agent requested on port ${TEST_AGENT_PORT}`);
             }}
           />
           <ActionButton

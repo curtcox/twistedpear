@@ -22,7 +22,8 @@ import {
   logPath,
   peerEntry,
   readState,
-  recordPeer
+  recordPeer,
+  writeObserveTape
 } from "./peers/state.mjs";
 
 const log = (line) => console.log(line);
@@ -42,7 +43,8 @@ Peers: ${KNOWN_PEER_IDS.join(", ")}
 Flags:
   --build           Force GUI peer rebuilds instead of reusing installed builds.
   --no-hub          Do not imply the hub on \`up\`.
-  --json            Machine-readable \`status\` output.`);
+  --json            Machine-readable \`status\` output.
+  --capture         On \`status\`, write observe-snapshot tapes under .tmp/local-peers/tapes/.`);
 }
 
 function parseArgs(argv) {
@@ -139,8 +141,10 @@ async function commandDown(ids) {
  * Binds the control port briefly so attached agents re-check in and can report
  * live state. When a test run already holds the port we fall back to the
  * recorded process view.
+ * @param {number} [waitMs]
+ * @param {{ capture?: boolean }} [options]
  */
-async function liveAgents(waitMs = 3_000) {
+async function liveAgents(waitMs = 3_000, options = {}) {
   let control;
   try {
     control = await startControlServer();
@@ -149,15 +153,20 @@ async function liveAgents(waitMs = 3_000) {
   }
   await new Promise((resolve) => setTimeout(resolve, waitMs));
   const snapshot = [];
+  const tapes = [];
   for (const label of control.labels()) {
     try {
       snapshot.push({ label, status: await control.status(label), peers: await control.peers(label) });
+      if (options.capture === true) {
+        const observe = await control.observeSnapshot(label);
+        tapes.push(writeObserveTape(label, observe));
+      }
     } catch {
       snapshot.push({ label, status: null, peers: [] });
     }
   }
   await control.close();
-  return snapshot;
+  return { agents: snapshot, tapes };
 }
 
 async function commandStatus(flags) {
@@ -174,10 +183,13 @@ async function commandStatus(flags) {
     });
   }
 
-  const agents = rows.length === 0 ? [] : await liveAgents();
+  const live =
+    rows.length === 0 ? null : await liveAgents(3_000, { capture: flags.has("--capture") });
+  const agents = live?.agents ?? (rows.length === 0 ? [] : null);
+  const tapes = live?.tapes ?? [];
 
   if (flags.has("--json")) {
-    console.log(JSON.stringify({ peers: rows, agents }, null, 2));
+    console.log(JSON.stringify({ peers: rows, agents, tapes }, null, 2));
     return 0;
   }
 
@@ -197,6 +209,9 @@ async function commandStatus(flags) {
   }
   if (agents === null) {
     log(`\nControl port ${CONTROL_PORT} is busy (a test run holds it); agent columns unavailable.`);
+  }
+  for (const path of tapes) {
+    log(`Captured observe tape: ${path}`);
   }
   return 0;
 }

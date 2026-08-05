@@ -26,7 +26,7 @@ export function createTestAgentHandler(deps) {
 
   return async function handleConnectTestAgent(message) {
     if (state.testAgent !== null) {
-      log("Test agent already mounted");
+      log("Peer agent already mounted");
       return;
     }
     try {
@@ -287,9 +287,9 @@ export function createTestAgentHandler(deps) {
           }
         }
       });
-      log(`Test agent mounted as ${message.label} (lxmf ${state.testAgent.lxmfAddress})`);
+      log(`Peer agent mounted as ${message.label} (lxmf ${state.testAgent.lxmfAddress})`);
     } catch (error) {
-      log(`Test agent mount failed: ${error instanceof Error ? error.message : String(error)}`);
+      log(`Peer agent mount failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   };

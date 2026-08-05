@@ -33,7 +33,8 @@ import {
   createCrossDeviceTestDriver,
   createHarnessPeerPair,
   createMiniappAnnounceService,
-  createStatusTimer
+  createStatusTimer,
+  createDropCensus
 } from "../../../packages/worklet-core/src/index.mjs";
 import { createWebInstallService } from "./web-install.mjs";
 import { createWebPublishService } from "./web-publish.mjs";
@@ -103,6 +104,8 @@ export async function startHostSessionImpl(context) {
     });
     context.status.lxmfAddress = context.hostLxmfDelivery.lxmfAddress;
     context.log(`Host LXMF delivery ready (${context.hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`);
+    const dropCensus = createDropCensus();
+    context.status.dropCensus = dropCensus.snapshot();
     context.hostSession.reticulum.registerAnnounceHandler({
         receivedAnnounce(info) {
             context.status.announcesSeen += 1;
@@ -124,6 +127,13 @@ export async function startHostSessionImpl(context) {
             }
         }
     });
+    if (typeof context.hostSession.reticulum.registerDropObserver === "function") {
+        context.hostSession.reticulum.registerDropObserver((drop) => {
+            dropCensus.record(drop);
+            context.status.dropCensus = dropCensus.snapshot();
+            context.pushStatus();
+        });
+    }
     context.status.wsEnabled = true;
     context.status.tcpEnabled = true;
     context.status.running = true;

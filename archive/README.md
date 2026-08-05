@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: historical
-audited: 2026-08-02
+audited: 2026-08-05
 register: none
 -->
 
@@ -38,6 +38,7 @@ For the live/planned split that governs everything outside this tree, see
 | [meta/audit-prompt.md](meta/audit-prompt.md) | 2026-07-20 | [meta/reorg-plan.md](meta/reorg-plan.md) |
 | [meta/reorg-plan.md](meta/reorg-plan.md) | 2026-08-02 | Executed. Rules now stated in [docs/README.md](../docs/README.md) and [AGENTS.md](../AGENTS.md) |
 | [meta/consolidation-plan.md](meta/consolidation-plan.md) | 2026-08-02 | Executed except Phase 7.3, carried in [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
+| [design/observability-plan.md](design/observability-plan.md) | 2026-08-05 | Executed. Current behaviour in [docs/observability.md](../docs/observability.md) |
 | [meta/file-sizes-plan.md](meta/file-sizes-plan.md) | 2026-08-02 | Executed. Current thresholds and empty ratchet are recorded in [docs/file-sizes.md](../docs/file-sizes.md) |
 
 Live release evidence remains under [release/evidence/](../release/evidence/) until

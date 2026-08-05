@@ -454,7 +454,8 @@ export function createCommonHostInfoBackend(options, defaultPlatform) {
           seedStorageUsedBytes: snap.quotas?.seedStorageUsedBytes ?? null,
           seedStorageQuotaBytes: snap.quotas?.seedStorageQuotaBytes ?? null,
           memoryBytes: snap.quotas?.memoryBytes ?? null
-        }
+        },
+        ...(snap.dropCensus !== undefined ? { dropCensus: snap.dropCensus } : {})
       };
     }
   };

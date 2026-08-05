@@ -3,7 +3,7 @@
  *
  * Both reuse the existing conformance device helpers, and both are brought
  * online by the same Maestro flow (`.maestro/local-peer-up.yaml`): create an
- * identity, connect TCP to the hub, mount the test agent. The simulator reaches
+ * identity, connect TCP to the hub, mount the peer control agent. The simulator reaches
  * the hub on 127.0.0.1; the emulator reaches the host on 10.0.2.2. The adapter
  * also sets `adb reverse` for hub/control/Metro as a fallback on AVDs where
  * host TCP via 10.0.2.2 is flaky.
