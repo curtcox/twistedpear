@@ -106,9 +106,10 @@ remain inspectable, and the final aggregate job then fails the workflow.
 
 Every gate artifact records both its checkout commit and branch SHA. The report build
 rejects imported evidence unless both match the Pages build SHA. Superseded Pages runs
-are cancelled, a pre-deployment freshness job refuses to deploy when `main` has advanced,
-and a post-deployment check waits for the public raw summary to report the deployed SHA.
-This prevents a successful older run from leaving `/results/` behind current `main`.
+are cancelled without running their downstream site build, a pre-deployment freshness job
+refuses to deploy when `main` has advanced, and a post-deployment check waits for the
+public raw summary to report the deployed SHA. This prevents a successful older run from
+leaving `/results/` behind current `main`.
 
 Structured summaries include coverage percentages and package floors; finding counts for
 structure, complexity, repository lint, typed lint, formatting, and language analyzers;

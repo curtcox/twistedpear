@@ -112,6 +112,7 @@ describe("static-analysis gate registry", () => {
     );
     expect(reports).toContain("logFile: `artifacts/logs/${job.id}.log`");
     expect(pagesWorkflow).toContain("cancel-in-progress: true");
+    expect(pagesWorkflow).toContain("if: always() && !cancelled()");
     expect(pagesWorkflow).toContain("Refuse to deploy a superseded main build");
     expect(pagesWorkflow).toContain("verify-publication.mjs");
 

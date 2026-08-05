@@ -75,7 +75,7 @@ jobs:
 
   build:
     needs: [static-analysis-plan, static-analysis-evidence]
-    if: always()
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
