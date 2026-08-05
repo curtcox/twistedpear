@@ -45,6 +45,7 @@ import {
   createPublishArchiveOps,
   createQuiesceInterfaces,
   createRegisterAnnounceHandler,
+  createDropCensus,
   createRuntimeKeyValueStore,
   createStatusTimer,
   createTrustStoreOps,
@@ -229,6 +230,7 @@ const status = {
   running: false,
   linkOnline: false,
   announcesSeen: 0,
+  dropCensus: { byReason: {}, byPeer: {} },
   identityHash: null,
   identityPersisted: false,
   tcpEnabled: false,
@@ -594,7 +596,8 @@ registerAnnounceHandler = createRegisterAnnounceHandler({
   ensureCatalog,
   persistCatalogState,
   pushCatalog,
-  log
+  log,
+  dropCensus: createDropCensus()
 });
 
 ensureDevChannel = createEnsureDevChannel({

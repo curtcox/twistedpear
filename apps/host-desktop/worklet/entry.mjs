@@ -42,6 +42,7 @@ import {
   createPublishArchiveOps,
   createQuiesceInterfaces,
   createRegisterAnnounceHandler,
+  createDropCensus,
   createRuntimeKeyValueStore,
   createStatusTimer,
   createTrustStoreOps,
@@ -130,6 +131,7 @@ const status = {
   running: false,
   linkOnline: false,
   announcesSeen: 0,
+  dropCensus: { byReason: {}, byPeer: {} },
   identityHash: null,
   identityPersisted: false,
   tcpEnabled: IS_DESKTOP_HOST,
@@ -329,6 +331,7 @@ const installFromT256 = createInstallFromT256({
     `Installed ${appId} v${version} from 256t via ${source} (trusted: ${trusted})`
 });
 
+const dropCensus = createDropCensus();
 const registerAnnounceHandler = createRegisterAnnounceHandler({
   getReticulum: () => state.reticulum,
   status,
@@ -339,7 +342,8 @@ const registerAnnounceHandler = createRegisterAnnounceHandler({
   ensureCatalog,
   persistCatalogState,
   pushCatalog,
-  log
+  log,
+  dropCensus
 });
 
 const ensureDevChannel = createEnsureDevChannel({

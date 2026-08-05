@@ -287,6 +287,9 @@ export class SimKernel<S> {
     if (intent.kind === "log") {
       return;
     }
+    if (intent.kind === "observe/drop") {
+      return;
+    }
     throw new EffectWithoutIntentError(`unhandled intent kind: ${(intent as Intent).kind}`);
   }
 

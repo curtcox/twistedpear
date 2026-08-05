@@ -28,6 +28,14 @@ export interface HostInfo {
     readonly availability: string;
     readonly tiers: ReadonlyArray<string>;
   }>;
+  /**
+   * Announce-ingress drop census (SPEC-EVENTS observe/drop), when the host
+   * surfaces it. Optional so older hosts stay compatible.
+   */
+  readonly dropCensus?: {
+    readonly byReason: Readonly<Record<string, number>>;
+    readonly byPeer: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  };
 }
 
 export interface HostInfoBackend {

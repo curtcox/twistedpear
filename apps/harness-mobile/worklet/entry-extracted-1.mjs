@@ -490,7 +490,8 @@ export function ensureMiniappHostImpl(context) {
                         seedStorageUsedBytes: context.status.storageUsedBytes ?? null,
                         seedStorageQuotaBytes: null,
                         memoryBytes: null
-                    }
+                    },
+                    dropCensus: context.status.dropCensus ?? { byReason: {}, byPeer: {} }
                 };
             },
             send,

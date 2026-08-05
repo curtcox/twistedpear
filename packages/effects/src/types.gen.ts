@@ -76,6 +76,7 @@ export type Intent =
   | { readonly kind: "store/write"; readonly write: StoreWrite }
   | { readonly kind: "store/delete"; readonly del: StoreDelete }
   | { readonly kind: "log"; readonly level: "debug" | "info" | "warn" | "error"; readonly message: string }
+  | { readonly kind: "observe/drop"; readonly stage: "ingress-dispatch" | "announce-rate-limit" | "announce-validate" | "announce-parse" | "announce-local-echo" | "path-entry"; readonly reason: "ignored" | "rate_limited" | "reject_parse" | "reject_public_key" | "reject_signature" | "reject_destination_hash" | "unparseable" | "local_echo" | "path_not_added"; readonly destinationKey?: string; readonly ifaceId?: string }
   | { readonly kind: "transport/adversary"; readonly action: TransportAdversaryAction };
 
 /**

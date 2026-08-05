@@ -30,6 +30,7 @@ import { identityHashHex, loadOrCreateIdentity } from "./identity.js";
 import { startSeederRole } from "./roles/seeder.js";
 import { FileModerationStore } from "./moderation-store.js";
 import { mountTestAgent, type TestAgentSession } from "./test-agent.js";
+import { createDropCensus } from "./drop-census.js";
 import type { HostConfig, HostStatus, InterfaceStatus } from "./types.js";
 
 function freenetClientOptions(config: HostConfig): {
@@ -154,11 +155,15 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   );
   const startedAt = Date.now();
   let announcesSeen = 0;
+  const dropCensus = createDropCensus();
 
   reticulum.registerAnnounceHandler({
     receivedAnnounce() {
       announcesSeen += 1;
     }
+  });
+  reticulum.registerDropObserver((drop) => {
+    dropCensus.record(drop);
   });
 
   let seederSession: Awaited<ReturnType<typeof startSeederRole>> | null = null;
@@ -243,6 +248,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       relayMode: config.relay.mode,
       linkOnline,
       announcesSeen,
+      dropCensus: dropCensus.snapshot(),
       autoPeers: autoIface && "peerInterfaces" in autoIface ? (autoIface as { peerInterfaces: { length: number } }).peerInterfaces.length : 0,
       onlineInterfaces: managerStatus.onlineCount ?? interfaces.filter((iface) => iface.online).length,
       preferredInterface: preferred?.name ?? null,

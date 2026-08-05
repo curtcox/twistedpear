@@ -31,13 +31,16 @@ export class AnnounceRateLimiter {
   }
 
   isBlocked(destinationKey: string, now: number): boolean {
-    return shouldTreatAnnounceBlocked(
-      stepAnnounceBlockedWithActions(this.state, {
-        kind: "announce/blocked-gate",
-        destinationKey,
-        at: now
-      }).actions
-    );
+    return shouldTreatAnnounceBlocked(this.stepBlocked(destinationKey, now).actions);
+  }
+
+  /** Expose the blocked-gate step so adapters can census observe/drop. */
+  stepBlocked(destinationKey: string, now: number) {
+    return stepAnnounceBlockedWithActions(this.state, {
+      kind: "announce/blocked-gate",
+      destinationKey,
+      at: now
+    });
   }
 
   record(destinationKey: string, now: number): boolean {

@@ -170,7 +170,7 @@ export {
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS
 } from "./transport/node.js";
-export type { AnnounceHandler, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./transport/node.js";
+export type { AnnounceHandler, DropObserver, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./transport/node.js";
 export { AnnounceRateLimiter } from "./transport/rate.js";
 export type { AnnounceRateEntry, AnnounceRateOptions } from "./transport/rate.js";
 export {

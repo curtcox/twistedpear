@@ -4,15 +4,14 @@
 lifecycle: planned
 audited: 2026-08-04
 register: software
+counterpart: docs/observability.md
 -->
 
 **This document describes intended work, not current behaviour.** What ships today is
-recorded in [Local peer discovery — current implementation](local-peer-discovery.md),
+recorded in [Observability — current implementation](observability.md),
+[Local peer discovery — current implementation](local-peer-discovery.md),
 [Deterministic abuse simulation](simulation.md), and
 [SPEC-TRACE](../specs/spec-trace/spec.md). Where this plan and those disagree, they win.
-
-This plan has no `counterpart:` field yet. Create `docs/observability.md` and pair the two
-files when O1 lands; until then there is no live behaviour to describe.
 
 ## The problem
 
@@ -106,90 +105,37 @@ the simulator by construction, and it is the reason O4 is cheap once O1 exists.
 
 ## Plan
 
-### O1 — Name the drops
+O1–O4 have landed in [observability.md](observability.md). Remaining follow-ups:
 
-Extend the [SPEC-EVENTS](../specs/spec-events/spec.md) closed vocabulary with an
-observation intent carrying a **closed reason enum**, not free text:
+- Tighten `test:local-multipeer` so a deliberate rate-limit flood **requires** a nonzero
+  rung-4 count (today it asserts census presence and absent-peer distinction; topology
+  may not always trip the limiter).
+- Wire the collector (`control-server.mjs`) to persist `observe-snapshot` tapes under
+  the peers state root when `--capture` is set.
+- Finish renaming call sites that still say “test agent” in user-facing docs to “peer
+  agent” / “control agent”.
+- Mobile/web worklets: web leaf still needs `dropCensus` on `host.info` if a web
+  host mounts announce ingress; desktop and mobile Bare worklets are wired.
 
-```text
-{ kind: "observe/drop", stage, reason, destinationKey?, ifaceId? }
-```
+### O1 — Name the drops (done)
 
-`log` already exists in the vocabulary, but a free-text message is unusable as a census —
-it cannot be counted, compared across hosts, or asserted on in a test.
+Shipped: SPEC-EVENTS `observe/drop`, protocol mappers for rungs 3–8, reticulum
+`registerDropObserver`, and `packages/protocol/test/observe-drop.test.ts`.
 
-The schema is the authority: edit
-[`specs/spec-events/schema/events.schema.json`](../specs/spec-events/schema/events.schema.json),
-run `npm run generate:event-types`, and commit the regenerated
-`packages/effects/src/types.gen.ts`. `packages/effects/test/spec-events.test.ts` fails on
-drift, so the spec and the types cannot separate.
+### O2 — Surface the census (done)
 
-Then thread the reason out of each gate in the ladder. The gate machines already return
-`actions`; the work is to make the "ignore" conclusion carry *which* ignore it was, and to
-have the adapter call sites record it instead of discarding it.
+Shipped on `buildStatus` / `/status`, peer-agent `status` + `link-state`, and the
+local-multipeer census presence check. Handbook is O3.
 
-**Acceptance:** for every rung 3–8, a test drives the gate into that outcome and asserts the
-corresponding `observe/drop` action, with a negative control proving the assertion fails if
-the reason is dropped. The ratchet does not grow.
+### O3 — Field capture (done)
 
-### O2 — Surface the census on the three existing surfaces
+Shipped: report `dropCensus` field, compare matrix `drop:*` rows, handbook prose.
 
-One new data source, three existing consumers, no new endpoint:
+### O4 — Replayable production capture (done, collector persistence pending)
 
-- **`buildStatus()`** in [`node-host.ts`](../packages/host-core/src/node-host.ts) — add a
-  per-reason, per-peer drop census beside `announcesSeen`, served by the existing
-  loopback-guarded `/status`.
-- **The test agent** — add the census to the existing `status` and `link-state` command
-  results. No protocol change; the agent's command surface already carries structured
-  results.
-- **The Handbook diagnostics report** — see O3.
-
-**Acceptance:** `npm run test:local-multipeer` asserts that a deliberately rate-limited peer
-reports a nonzero rung-4 count, and that the count distinguishes it from an absent peer.
-This is the test that would have shortened the current debugging effort.
-
-### O3 — Field capture through the existing consent path
-
-[Running diagnostics](../apps/handbook/content/part-4-diagnostics/running-diagnostics.md)
-already implements the consented, cross-device, post-hoc mechanism this needs: **Run all
-diagnostics** → **Export report** (packs host info and results to JSON, stores via
-`share.put`, shows a 256t id and QR) → **Compare report** on another device (paste the id,
-render a status matrix marking expected platform differences `≈` and unexpected ones `≠`).
-
-Add the drop census to the exported report and teach the compare matrix to render it. That
-is the whole of the field-usable half, and it inherits consent, transport, and the
-expectation-table machinery for free.
-
-**Preserve the property that makes this safe:** correlation between two devices' reports
-happens at *analysis* time, by a human pasting an id — never by a shared identifier on the
-wire. See below.
-
-### O4 — Replayable production capture
-
-[SPEC-TRACE](../specs/spec-trace/spec.md) defines a canonical, hashed, replayable trace
-format with cross-producer replay (`replayRecordedTrace`) and shrinking. It is implemented
-in the simulator only: `hashTrace`, `serializeTrace`, and `TraceEntry` have **no call sites
-outside `packages/effects`**, and `host-core` emits no traces at all.
-
-SPEC-TRACE currently lists "Production trace capture (host-core structured log intents)"
-under *Implementations*. That claim is not supported by the code. Either O4 makes it true or
-the line is removed; a normative spec should not claim an implementation that does not
-exist.
-
-Work:
-
-- Add a bounded in-memory ring of SPEC-EVENTS-shaped entries to the host adapters.
-- Add a `subscribe` direction to the agent protocol so the ring can be streamed live. The
-  agent currently only answers requests — it has no unsolicited-event channel beyond
-  `hello`. This is the one genuinely new mechanism in the plan.
-- Have the collector ([`control-server.mjs`](../scripts/peers/control-server.mjs)) write a
-  conforming `recorded-history` JSON.
-- Rename the test agent. It stopped being test-only the moment it became the tool used to
-  debug the platform.
-
-**Acceptance:** a real multi-client discovery failure, captured in the field or on the hub,
-replays through `replayRecordedTrace` to an identical trace hash and shrinks to a committed
-regression fixture. That closes the loop the sans-IO architecture was built for.
+Shipped: bounded observe ring, `subscribe` / `unsubscribe` / `observe-snapshot`,
+`ringToRecordedHistory`, SPEC-TRACE implementation note corrected. Collector file
+write and full rename remain above.
 
 ## Consent and privacy
 
@@ -229,9 +175,8 @@ Additional constraints for field capture:
 
 ## Sequencing
 
-O1 and O2 are small, additive, and independently useful; they are expected to diagnose the
-current discovery failures on their own. O3 is a report-schema change with no new transport.
-O4 is the largest piece and should not block the first three.
+O1–O4 core behaviour is recorded in [observability.md](observability.md). The
+follow-ups listed under [Plan](#plan) do not block using the census for discovery
+diagnosis.
 
-Do not start O4 before O1 lands — the ring buffer's contents are the O1 vocabulary, and
-building it first would mean inventing a second, parallel taxonomy.
+Do not invent a second drop taxonomy outside SPEC-EVENTS `observe/drop`.

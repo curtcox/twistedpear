@@ -1,3 +1,4 @@
+import { dropFromIngressIgnore } from "./drop-notify.js";
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
@@ -23,7 +24,7 @@ import {
   shouldAllowRelayLinkPacket,
   shouldAllowRelayReversePacket,
   shouldAllowRelayTransportPacket,
-  shouldApplyAnnounceRateLimit,
+  observeDropFromAnnounceRateLimitActions,
   shouldHitLookupLinkRelayEntry,
   shouldIgnoreLinkRelayTarget,
   shouldRebroadcastAnnounce,
@@ -248,6 +249,7 @@ export class TransportNode extends LeafTransport {
       return;
     }
     if (shouldIgnoreTransportIngressDispatch(dispatchStepped.actions)) {
+      this.emitDrop(dropFromIngressIgnore(dispatchStepped.actions, iface.name));
       return;
     }
   }
@@ -259,10 +261,13 @@ export class TransportNode extends LeafTransport {
       kind: "announce/ingress-gates",
       context: packet.context
     });
-    if (
-      shouldApplyAnnounceRateLimit(gates.actions) &&
-      this.announceRateLimiter.isBlocked(destinationKey, now)
-    ) {
+    const blocked = this.announceRateLimiter.stepBlocked(destinationKey, now);
+    const rateDrop = observeDropFromAnnounceRateLimitActions(gates.actions, blocked.actions, {
+      destinationKey,
+      ifaceId: iface.name
+    });
+    if (rateDrop !== null) {
+      this.emitDrop(rateDrop);
       return;
     }
 

@@ -130,7 +130,8 @@ export function createMiniappHostOps(deps) {
               seedStorageUsedBytes: status.storageUsedBytes ?? null,
               seedStorageQuotaBytes: null,
               memoryBytes: null
-            }
+            },
+            dropCensus: status.dropCensus ?? { byReason: {}, byPeer: {} }
           };
         },
         send,

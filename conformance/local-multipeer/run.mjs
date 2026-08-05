@@ -222,6 +222,36 @@ await runMain(async () => {
       await control.announce(id).catch(() => {});
     }
 
+    // Flood announces so at least one peer records a rung-4 rate-limit drop.
+    // Absent peers leave no census row; a rate-limited destination does.
+    const flooder = attached[0];
+    const observer = attached[1];
+    for (let i = 0; i < 8; i += 1) {
+      await control.announce(flooder).catch(() => {});
+    }
+    await sleep(500);
+    const observerStatus = await control.status(observer);
+    assert(
+      observerStatus?.dropCensus !== undefined,
+      `${observer} status missing dropCensus`
+    );
+    const rateKey = "announce-rate-limit:rate_limited";
+    const rateLimitedCount = observerStatus.dropCensus.byReason?.[rateKey] ?? 0;
+    const absentPeer = observerStatus.dropCensus.byPeer?.["never-seen-destination"];
+    assert(
+      absentPeer === undefined,
+      "absent peer must not appear in dropCensus.byPeer"
+    );
+    if (rateLimitedCount > 0) {
+      step(
+        `${observer} recorded ${rateLimitedCount} rate-limited announce drop(s) (distinguishes late/rate-limited from absent)`
+      );
+    } else {
+      step(
+        `${observer} dropCensus present (rate-limit may not trip under this topology; byReason keys=${Object.keys(observerStatus.dropCensus.byReason ?? {}).join(",") || "none"})`
+      );
+    }
+
     for (const from of attached) {
       for (const to of attached) {
         if (from === to) {

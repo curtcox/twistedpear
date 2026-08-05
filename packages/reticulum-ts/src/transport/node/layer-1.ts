@@ -16,14 +16,16 @@ import type { Clock,Entropy,Timer } from "../../runtime/runtime.js";
 import { BandwidthLimiter,type ByteRateLimiter } from "../bandwidth.js";
 import { buildPathRequestData,parsePathRequestData,pathRequestDestinationHash,pathRequestTagKey } from "../path.js";
 import { DestinationProofStrategy, TRUNCATED_HASH_BYTES, announceEmittedFromRandomBlob, buildPathResponseAnnounce, buildTransportAnnounce, cloneWithHops, hashKey, packetHeaderFields, relayTransportPacket, rewritePacketHops, stripTransportHeaders, timebaseFromRandomBlobs, wrapTransportPacket } from "./shared.js";
-import type { AnnounceHandler, DestinationProofStrategyValue, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./shared.js";
+import type { AnnounceHandler, DestinationProofStrategyValue, DropObserver, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./shared.js";
 import { LeafTransport } from "../node.js";
+import { notifyDropObservers, dropFromIngressIgnore, dropFromValidatePlan, dropFromParsedSkip, dropFromLocalEcho, dropFromPathSkip } from "../drop-notify.js";
 export class LeafTransportLayer1 {
 protected readonly pathTable = new Map<string, PathEntry>();
   protected readonly packetHashes = new Set<string>();
   protected readonly receipts: PacketReceipt[] = [];
   protected readonly destinations: LocalDestination[] = [];
   protected readonly announceHandlers: AnnounceHandler[] = [];
+  protected readonly dropObservers: DropObserver[] = [];
   protected readonly interfaces: PacketInterface[] = [];
   protected readonly interfaceTasks = new Map<PacketInterface, Promise<void>>();
   protected readonly pendingLinks: Link[] = [];
@@ -54,9 +56,11 @@ protected readonly pathTable = new Map<string, PathEntry>();
     );
   }
 
-  get clock(): Clock {
-    return this.options.clock;
+  protected emitDrop(drop: Parameters<typeof notifyDropObservers>[1]): void {
+    notifyDropObservers(this.dropObservers, drop);
   }
+
+  get clock(): Clock { return this.options.clock; }
 
   get entropy(): Entropy {
     return this.options.entropy;
@@ -148,6 +152,7 @@ protected readonly pathTable = new Map<string, PathEntry>();
       return;
     }
     if (shouldIgnoreTransportIngressDispatch(dispatchStepped.actions)) {
+      this.emitDrop(dropFromIngressIgnore(dispatchStepped.actions, iface.name));
       return;
     }
   }
@@ -191,7 +196,11 @@ protected readonly pathTable = new Map<string, PathEntry>();
   }
 
   protected async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (!Announce.validate(this.options.provider, packet)) {
+    const destinationKey = hashKey(packet.destinationHash);
+    const validatePlan = Announce.validatePlan(this.options.provider, packet);
+    const validateDrop = dropFromValidatePlan(validatePlan, destinationKey, iface.name);
+    if (validateDrop !== null) {
+      this.emitDrop(validateDrop);
       return;
     }
 
@@ -206,6 +215,7 @@ protected readonly pathTable = new Map<string, PathEntry>();
       }
     );
     if (!shouldAcceptParsedAnnounceNow(acceptStepped.actions)) {
+      this.emitDrop(dropFromParsedSkip(acceptStepped.actions, destinationKey, iface.name));
       return;
     }
     const announce = parsed!;
@@ -222,14 +232,15 @@ protected readonly pathTable = new Map<string, PathEntry>();
         ).actions
       )
     );
-    if (
-      shouldIgnoreLocalAnnounceNow(
-        stepIgnoreLocalAnnounceWithActions(initialIgnoreLocalAnnounceState(), {
-          kind: "announce/ignore-local-gate",
-          hasLocalInboundDestination: localDestination !== undefined
-        }).actions
-      )
-    ) {
+    const ignoreLocalStepped = stepIgnoreLocalAnnounceWithActions(
+      initialIgnoreLocalAnnounceState(),
+      {
+        kind: "announce/ignore-local-gate",
+        hasLocalInboundDestination: localDestination !== undefined
+      }
+    );
+    if (shouldIgnoreLocalAnnounceNow(ignoreLocalStepped.actions)) {
+      this.emitDrop(dropFromLocalEcho(ignoreLocalStepped.actions, destinationKey, iface.name));
       return;
     }
 
@@ -237,24 +248,24 @@ protected readonly pathTable = new Map<string, PathEntry>();
     const randomBlob = announce.randomHash;
     const existing = this.pathTable.get(hashKey(packet.destinationHash));
     const now = this.clock.now() / 1000;
-    const shouldAdd = shouldAddPathEntryNow(
-      stepAddPathEntryWithActions(initialAddPathEntryState(), {
-        kind: "path/add-entry-gate",
-        hops: packet.hops,
-        randomBlob,
-        nowSeconds: now,
-        existing:
-          existing === undefined
-            ? null
-            : {
-                hops: existing.hops,
-                expires: existing.expires,
-                randomBlobs: existing.randomBlobs
-              }
-      }).actions
-    );
+    const addStepped = stepAddPathEntryWithActions(initialAddPathEntryState(), {
+      kind: "path/add-entry-gate",
+      hops: packet.hops,
+      randomBlob,
+      nowSeconds: now,
+      existing:
+        existing === undefined
+          ? null
+          : {
+              hops: existing.hops,
+              expires: existing.expires,
+              randomBlobs: existing.randomBlobs
+            }
+    });
+    const shouldAdd = shouldAddPathEntryNow(addStepped.actions);
 
     if (!shouldAdd) {
+      this.emitDrop(dropFromPathSkip(addStepped.actions, destinationKey, iface.name));
       return;
     }
 

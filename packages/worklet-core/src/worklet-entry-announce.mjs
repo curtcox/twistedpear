@@ -37,5 +37,13 @@ export function createRegisterAnnounceHandler(deps) {
         }
       }
     });
+
+    if (typeof reticulum.registerDropObserver === "function" && deps.dropCensus !== undefined) {
+      reticulum.registerDropObserver((drop) => {
+        deps.dropCensus.record(drop);
+        deps.status.dropCensus = deps.dropCensus.snapshot();
+        deps.pushStatus();
+      });
+    }
   };
 }

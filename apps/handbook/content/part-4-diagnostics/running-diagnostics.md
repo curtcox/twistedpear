@@ -46,4 +46,6 @@ Device-gated probes (BLE peer, RNode, multicast, camera QR) live in
 and simulators with guided procedures for real hardware.
 
 Compare matrices use each applet’s expectation table to label platform differences
-as expected (`≈`) or unexpected (`≠`).
+as expected (`≈`) or unexpected (`≠`). Exported reports also include the announce
+ingress **drop census** (`observe/drop` reasons); compare renders those counts in
+their own matrix section so rate-limited vs absent peers are distinguishable.

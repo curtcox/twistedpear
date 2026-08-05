@@ -36,6 +36,7 @@ When they disagree, the `live` document wins — including against its own plan.
 | Relay and configurable interfaces | [relay-interfaces.md](relay-interfaces.md) | [relay-interfaces-plan.md](relay-interfaces-plan.md) |
 | Deterministic abuse simulation | [simulation.md](simulation.md) | [simulation-plan.md](simulation-plan.md), loop mechanics in [abuse-resistance-loop.md](abuse-resistance-loop.md) |
 | Static analysis | [static-analysis.md](static-analysis.md) | [static-analysis-plan.md](static-analysis-plan.md) |
+| Observability / drop census | [observability.md](observability.md) | [observability-plan.md](observability-plan.md) |
 
 The rule is enforced by `npm run test:doc-audit`: a missing or invalid `tp-doc` header, a
 `historical` document outside `archive/`, a non-historical document inside it, or a
@@ -129,7 +130,7 @@ The package-level READMEs for
 | Freenet as a transport and app substrate | [Freenet — current](freenet.md), [plan](freenet-plan.md) |
 | Freenet remaining work, simulator-first sequencing | [Freenet simulator-first work plan](freenet-simulator-first-work-plan.md) |
 | Freenet app-execution decision (Option A) | [ADR (archived decision)](../archive/decisions/freenet-app-execution.md) |
-| Discovery/delivery drop diagnosis and trace capture | [Observability plan](observability-plan.md) |
+| Discovery/delivery drop diagnosis and trace capture | [current implementation](observability.md), [plan](observability-plan.md) |
 | LXMF propagation-node operation | [Propagation node](propagation-node.md) |
 | Bounded multipart LXMF store-and-forward | [Multipart propagation](multipart-propagation.md) |
 | Battery and link-budget guidance | [Battery and bandwidth policy](battery-bandwidth-policy.md) |

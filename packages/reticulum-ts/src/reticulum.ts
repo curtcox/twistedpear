@@ -9,6 +9,7 @@ import { RegisteredDestination } from "./registered-destination.js";
 import {
   LeafTransport,
   type AnnounceHandler,
+  type DropObserver,
   type LeafTransportOptions
 } from "./transport/node.js";
 import { TransportNode } from "./transport/transport.js";
@@ -88,6 +89,10 @@ export class Reticulum {
 
   registerAnnounceHandler(handler: AnnounceHandler): void {
     this.transport.registerAnnounceHandler(handler);
+  }
+
+  registerDropObserver(observer: DropObserver): void {
+    this.transport.registerDropObserver(observer);
   }
 
   registerInterface(iface: PacketInterface): void {
@@ -191,4 +196,4 @@ export class Reticulum {
   }
 }
 
-export type { AnnounceHandler, LeafTransportOptions };
+export type { AnnounceHandler, DropObserver, LeafTransportOptions };

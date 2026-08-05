@@ -21,6 +21,7 @@
     { "dir": "intent", "payload": { "kind": "log", "level": "info", "message": "info message" } },
     { "dir": "intent", "payload": { "kind": "log", "level": "warn", "message": "warn message" } },
     { "dir": "intent", "payload": { "kind": "log", "level": "error", "message": "error message" } },
+    { "dir": "intent", "payload": { "kind": "observe/drop", "stage": "announce-rate-limit", "reason": "rate_limited", "destinationKey": "aabb" } },
     { "dir": "event", "payload": { "kind": "timer/fired", "id": "retry", "at": 62.5 } },
     { "dir": "event", "payload": { "kind": "tick", "at": 100 } },
     { "dir": "harness", "payload": { "kind": "transport/adversary", "action": { "power": "drop", "source": "a", "destination": "b" } } },

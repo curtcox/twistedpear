@@ -1,8 +1,11 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_WEB_LEAF_ROLES, assertWebLeafRoles, type WebLeafHostStatus } from "./leaf-roles.js";
+import type { DropCensusCounts } from "./drop-census.js";
 
 export { DEFAULT_WEB_LEAF_ROLES, assertWebLeafRoles, type WebLeafHostStatus } from "./leaf-roles.js";
+export type { DropCensusCounts, DropCensusKey } from "./drop-census.js";
+export { createDropCensus, dropCensusKey } from "./drop-census.js";
 
 export interface HostQuotas {
   readonly seedStorageBytes: number;
@@ -328,6 +331,7 @@ export interface HostStatus {
   readonly relayMode: RelayMode;
   readonly linkOnline: boolean;
   readonly announcesSeen: number;
+  readonly dropCensus: DropCensusCounts;
   readonly autoPeers: number;
   readonly onlineInterfaces: number;
   readonly preferredInterface: string | null;

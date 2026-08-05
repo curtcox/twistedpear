@@ -1,10 +1,11 @@
 /**
- * Test-only peer control agent for the single-machine multi-peer environment.
+ * Peer control agent for the single-machine multi-peer environment and field
+ * diagnosis. Formerly named "test agent"; it is the tool used to drive and
+ * observe hosts (`tp node`, Electron, iOS/Android harness).
  *
- * Every host implementation (tp node, Electron desktop, iOS/Android harness)
- * can mount this agent to become observable and drivable by
- * `conformance/local-multipeer`. It never activates on a default code path: a
- * host must be handed an explicit control endpoint.
+ * Every host implementation can mount this agent to become observable and
+ * drivable by `conformance/local-multipeer`. It never activates on a default
+ * code path: a host must be handed an explicit control endpoint.
  *
  * The agent dials *out* to the harness control server rather than listening.
  * Outbound works identically from a Node process, a Bare worklet, the iOS
@@ -41,6 +42,9 @@ import {
   createHostLxmfDelivery,
   type HostLxmfDeliverySession
 } from "./host-lxmf-delivery.js";
+import { createDropCensus, type DropCensusCounts } from "./drop-census.js";
+import { createObserveRing } from "./observe-ring.js";
+import { handleObserveCommand } from "./observe-agent.js";
 
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";
@@ -143,6 +147,7 @@ export interface TestAgentStatus extends TestAgentInfo {
   readonly linkOnline: boolean;
   readonly interfaceCount: number;
   readonly announcesSeen: number;
+  readonly dropCensus: DropCensusCounts;
   readonly peerCount: number;
   readonly inboxCount: number;
   readonly realtimeInboxCount: number;
@@ -299,6 +304,17 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   let nextProbe = 0;
   let nextInvite = 0;
   let announcesSeen = 0;
+  const dropCensus = createDropCensus();
+  const observeRing = createObserveRing(256);
+  const observeState = {
+    observeSubscribed: false,
+    observeRing,
+    dropCensusSnapshot: () => dropCensus.snapshot(),
+    label
+  };
+  /** Set once the control write path exists; live observe events use it. */
+  let notifyObserve: ((drop: import("@twistedpear/protocol").ObserveDropIntent) => void) | null =
+    null;
   let stopped = false;
   let connection: DuplexConnection | null = null;
 
@@ -309,6 +325,11 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     receivedAnnounce() {
       announcesSeen += 1;
     }
+  });
+  reticulum.registerDropObserver((drop) => {
+    dropCensus.record(drop);
+    observeRing.push(drop);
+    notifyObserve?.(drop);
   });
 
   const recordInbox = (entry: TestAgentInboxEntry): void => {
@@ -538,6 +559,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       linkOnline: interfaces.some((iface) => iface.online),
       interfaceCount: interfaces.length,
       announcesSeen,
+      dropCensus: dropCensus.snapshot(),
       peerCount: deliverySession.peers().length,
       inboxCount: inboxEntries.length,
       realtimeInboxCount: realtimeEntries.length,
@@ -579,7 +601,20 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         return {};
       }
       case "link-state":
-        return { readiness: [...readinessEntries], probes: [...probeEntries.values()] };
+        return {
+          readiness: [...readinessEntries],
+          probes: [...probeEntries.values()],
+          dropCensus: dropCensus.snapshot()
+        };
+      case "subscribe":
+      case "unsubscribe":
+      case "observe-snapshot": {
+        const result = handleObserveCommand(observeState, request);
+        if (result === null) {
+          throw new Error(`Unknown test-agent command: ${request.cmd}`);
+        }
+        return result;
+      }
       case "invite-state":
         return { invites: [...inviteEntries] };
       case "send-invite": {
@@ -684,6 +719,11 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
 
   const write = async (payload: Record<string, unknown>): Promise<void> => {
     await connection?.write(encoder.encode(`${JSON.stringify(payload)}\n`));
+  };
+  notifyObserve = (drop) => {
+    if (observeState.observeSubscribed) {
+      void write({ event: "observe.drop", drop });
+    }
   };
 
   const serve = async (socket: DuplexConnection): Promise<void> => {

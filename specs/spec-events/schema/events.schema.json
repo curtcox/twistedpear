@@ -227,6 +227,39 @@
             "message": { "type": "string" }
           },
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "stage", "reason"],
+          "properties": {
+            "kind": { "const": "observe/drop" },
+            "stage": {
+              "enum": [
+                "ingress-dispatch",
+                "announce-rate-limit",
+                "announce-validate",
+                "announce-parse",
+                "announce-local-echo",
+                "path-entry"
+              ]
+            },
+            "reason": {
+              "enum": [
+                "ignored",
+                "rate_limited",
+                "reject_parse",
+                "reject_public_key",
+                "reject_signature",
+                "reject_destination_hash",
+                "unparseable",
+                "local_echo",
+                "path_not_added"
+              ]
+            },
+            "destinationKey": { "type": "string" },
+            "ifaceId": { "type": "string" }
+          },
+          "additionalProperties": false
         }
       ]
     },

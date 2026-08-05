@@ -38,10 +38,19 @@ export {
   type InterfaceStatus,
   type NtfyInterfaceConfig,
   type OpticalInterfaceConfig,
+  type DropCensusCounts,
+  type DropCensusKey,
   type RelayInterfaceKind,
   type RelayMode,
   type RelayPolicyMatrix
 } from "./types.js";
+export { createDropCensus, dropCensusKey } from "./drop-census.js";
+export {
+  createObserveRing,
+  ringToRecordedHistory,
+  type ObserveRing,
+  type ObserveRingEntry
+} from "./observe-ring.js";
 export {
   InterfaceManager,
   type InterfaceDiagnostic,

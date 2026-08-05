@@ -197,12 +197,24 @@ export async function startControlServer(options = {}) {
     callInbox: (label) => request(label, { cmd: "call-inbox" }).then((frame) => frame.inbox ?? []),
     acceptInvite: (label, inviteId) => request(label, { cmd: "accept-invite", inviteId }),
     sendCall: (label, inviteId, nonce, payloadHex) => request(label, { cmd: "send-call", inviteId, nonce, payloadHex }),
-    linkState: (label) => request(label, { cmd: "link-state" }).then((frame) => ({ readiness: frame.readiness ?? [], probes: frame.probes ?? [] })),
+    linkState: (label) =>
+      request(label, { cmd: "link-state" }).then((frame) => ({
+        readiness: frame.readiness ?? [],
+        probes: frame.probes ?? [],
+        dropCensus: frame.dropCensus ?? { byReason: {}, byPeer: {} }
+      })),
     requestReadiness: (label, toLxmfAddress) => request(label, { cmd: "request-readiness", toLxmfAddress }),
     linkProbe: (label, toLxmfAddress, budgetBytes) => request(label, { cmd: "link-probe", toLxmfAddress, budgetBytes }),
     inviteState: (label) => request(label, { cmd: "invite-state" }).then((frame) => frame.invites ?? []),
     sendInvite: (label, toLxmfAddress, appId, requestedClasses) =>
       request(label, { cmd: "send-invite", toLxmfAddress, appId, requestedClasses }),
+    observeSnapshot: (label) =>
+      request(label, { cmd: "observe-snapshot" }).then((frame) => ({
+        history: frame.history,
+        dropCensus: frame.dropCensus ?? { byReason: {}, byPeer: {} }
+      })),
+    subscribeObserve: (label) => request(label, { cmd: "subscribe", domain: "observe" }),
+    unsubscribeObserve: (label) => request(label, { cmd: "unsubscribe", domain: "observe" }),
     command: (label, cmd, payload = {}, timeoutMs) =>
       request(label, { cmd, ...payload }, timeoutMs),
     async close() {

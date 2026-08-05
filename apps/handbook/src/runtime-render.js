@@ -468,8 +468,31 @@ function buildReportDocument(hostInfo) {
     handbookVersion: CATALOG.version,
     generatedAt: new Date().toISOString(),
     host: hostInfo,
+    dropCensus: hostInfo?.dropCensus ?? { byReason: {}, byPeer: {} },
     results
   };
+}
+
+function diffDropCensus(localReport, remoteReport) {
+  const local = localReport.dropCensus?.byReason ?? {};
+  const remote = remoteReport.dropCensus?.byReason ?? {};
+  const keys = [...new Set([...Object.keys(local), ...Object.keys(remote)])].sort();
+  return keys.map((key) => {
+    const localCount = local[key] ?? 0;
+    const remoteCount = remote[key] ?? 0;
+    const same = localCount === remoteCount;
+    return {
+      appletId: `drop:${key}`,
+      local: String(localCount),
+      remote: String(remoteCount),
+      same,
+      expectedDiff: false,
+      unexpected: !same,
+      note: same ? "same drop count" : "drop census differs",
+      localExpected: null,
+      remoteExpected: null
+    };
+  });
 }
 
 function diffReports(localReport, remoteReport) {
@@ -478,7 +501,7 @@ function diffReports(localReport, remoteReport) {
   );
   const localPlatform = localReport.host?.platform ?? "unknown";
   const remotePlatform = remoteReport.host?.platform ?? "unknown";
-  const rows = [];
+  const rows = [...diffDropCensus(localReport, remoteReport)];
   for (const local of localReport.results ?? []) {
     const remote = remoteById.get(local.appletId);
     const applet = findApplet(local.appletId);
@@ -614,6 +637,26 @@ function renderDiagnostics(children) {
         `Local host: ${localPlat}  ·  Remote host: ${remotePlat}`
       )
     );
+    const dropRows = compareState.rows.filter((row) =>
+      typeof row.appletId === "string" && row.appletId.startsWith("drop:")
+    );
+    if (dropRows.length > 0) {
+      children.push(
+        textNode("diag-compare-group-drops", "Announce drop census", {
+          fontSize: 14,
+          fontWeight: "bold"
+        })
+      );
+      for (const row of dropRows) {
+        const mark = row.same ? "=" : "≠";
+        children.push(
+          textNode(
+            `diag-compare-${row.appletId}`,
+            `  ${mark} ${row.appletId.slice("drop:".length)}  local=${row.local} remote=${row.remote}`
+          )
+        );
+      }
+    }
     const grouped = appletsByDiagnosticGroup();
     for (const group of DIAGNOSTIC_GROUP_ORDER) {
       const applets = grouped[group];

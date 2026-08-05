@@ -209,6 +209,10 @@ export interface WorkletStatus {
   readonly running: boolean;
   readonly linkOnline: boolean;
   readonly announcesSeen: number;
+  readonly dropCensus?: {
+    readonly byReason: Readonly<Record<string, number>>;
+    readonly byPeer: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  };
   readonly identityHash: string | null;
   readonly identityPersisted: boolean;
   readonly tcpEnabled: boolean;

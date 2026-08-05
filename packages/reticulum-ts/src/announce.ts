@@ -18,7 +18,7 @@ import {
   initialParseAnnouncePayloadState,
   packAnnouncePayloadRawFromActions,
   shouldAcceptAnnouncePayloadNow,
-  shouldAcceptAnnounceValidate,
+  announceValidateOutcomePlanFromActions,
   shouldAttemptAnnounceSignatureValidateNow,
   shouldCheckAnnounceDestinationHashNow,
   shouldMatchAnnounceDestinationHash,
@@ -50,7 +50,8 @@ import {
   shouldRejectTruncateHashBytes,
   shouldUseTruncateHashBytes,
   initialTruncateHashBytesState,
-  TRUNCATED_HASH_BYTES
+  TRUNCATED_HASH_BYTES,
+  type AnnounceValidatePlan
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Destination, DestinationDirection, DestinationType } from "./destination.js";
@@ -232,7 +233,11 @@ export class Announce {
     };
   }
 
-  static validate(provider: CryptoProvider, packet: Packet, onlyValidateSignature = false): boolean {
+  static validatePlan(
+    provider: CryptoProvider,
+    packet: Packet,
+    onlyValidateSignature = false
+  ): AnnounceValidatePlan | null {
     const parsed = Announce.parse(packet);
     const identity = parsed === null ? null : new Identity(provider, false);
     const publicKeyLoaded =
@@ -327,6 +332,11 @@ export class Announce {
       onlyValidateSignature,
       destinationHashMatches
     });
-    return shouldAcceptAnnounceValidate(gate.actions);
+    return announceValidateOutcomePlanFromActions(gate.actions);
+  }
+
+  static validate(provider: CryptoProvider, packet: Packet, onlyValidateSignature = false): boolean {
+    const plan = Announce.validatePlan(provider, packet, onlyValidateSignature);
+    return plan === "accept" || plan === "accept-signature-only";
   }
 }

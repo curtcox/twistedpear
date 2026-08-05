@@ -34,6 +34,7 @@ informative prose):
 | `store/write` | `{ key, value }` |
 | `store/delete` | `{ key }` |
 | `log` | `level` (`debug`/`info`/`warn`/`error`), `message` |
+| `observe/drop` | `stage`, `reason` (closed enums), optional `destinationKey` / `ifaceId` |
 | `transport/adversary` | Dolev-Yao action — **harness extension, see below** |
 
 **Events** (host → machine):

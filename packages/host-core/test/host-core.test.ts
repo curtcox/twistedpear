@@ -85,9 +85,14 @@ describe("host-core status endpoint", () => {
 
       const response = await fetch("http://127.0.0.1:9473/status");
       expect(response.ok).toBe(true);
-      const status = (await response.json()) as { running: boolean; transportEnabled: boolean };
+      const status = (await response.json()) as {
+        running: boolean;
+        transportEnabled: boolean;
+        dropCensus: { byReason: Record<string, number>; byPeer: Record<string, unknown> };
+      };
       expect(status.running).toBe(true);
       expect(status.transportEnabled).toBe(false);
+      expect(status.dropCensus).toEqual({ byReason: {}, byPeer: {} });
       await session.stop();
     } finally {
       rmSync(dataDir, { recursive: true, force: true });

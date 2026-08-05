@@ -86,7 +86,9 @@ kernel configuration snapshot needed to replay it
 ## Implementations
 
 - Simulator recorder/replayer
-- Production trace capture (host-core structured log intents)
+- Production observe-ring capture in host-core peer agent (`observe/drop` intents;
+  `subscribe` / `observe-snapshot` on the control channel; collector can write
+  `recorded-history` via `ringToRecordedHistory`)
 - Shrinker in the campaign runner
 
 ## To finish this spec

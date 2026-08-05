@@ -166,6 +166,22 @@ export {
   type RecordAnnounceStepResult
 } from "../announce-rate.js";
 export {
+  enrichObserveDrop,
+  observeDropFromAnnounceRateLimit,
+  observeDropFromAnnounceRateLimitActions,
+  observeDropFromAnnounceValidate,
+  observeDropFromIngressDispatch,
+  observeDropFromLocalAnnounce,
+  observeDropFromParsedAnnounce,
+  observeDropFromPathEntry,
+  observeDropIntent,
+  observeDropsFromIntents,
+  type ObserveDropExtras,
+  type ObserveDropIntent,
+  type ObserveDropReason,
+  type ObserveDropStage
+} from "../observe-drop.js";
+export {
   INTERFACE_CONNECT_TIMEOUT_MS,
   INTERFACE_CONNECT_TIMER_ID,
   initialInterfaceConnectState,

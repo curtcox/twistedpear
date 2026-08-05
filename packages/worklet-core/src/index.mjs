@@ -23,6 +23,7 @@ export { createTrustStoreOps } from "./worklet-entry-trust.mjs";
 export { createCatalogOps } from "./worklet-entry-catalog.mjs";
 export { createAutomaticReticulumDiscovery } from "./worklet-entry-discovery.mjs";
 export { createRegisterAnnounceHandler } from "./worklet-entry-announce.mjs";
+export { createDropCensus } from "./drop-census.mjs";
 export { createInstallFromT256 } from "./worklet-entry-install.mjs";
 export { createPublishArchiveOps } from "./worklet-entry-publish.mjs";
 export { createWorkletPropagationPersistenceOps } from "./worklet-entry-propagation.mjs";

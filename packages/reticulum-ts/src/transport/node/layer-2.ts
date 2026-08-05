@@ -16,7 +16,7 @@ import type { Clock,Entropy,Timer } from "../../runtime/runtime.js";
 import { BandwidthLimiter,type ByteRateLimiter } from "../bandwidth.js";
 import { buildPathRequestData,parsePathRequestData,pathRequestDestinationHash,pathRequestTagKey } from "../path.js";
 import { DestinationProofStrategy, TRUNCATED_HASH_BYTES, announceEmittedFromRandomBlob, buildPathResponseAnnounce, buildTransportAnnounce, cloneWithHops, hashKey, packetHeaderFields, relayTransportPacket, rewritePacketHops, stripTransportHeaders, timebaseFromRandomBlobs, wrapTransportPacket } from "./shared.js";
-import type { AnnounceHandler, DestinationProofStrategyValue, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./shared.js";
+import type { AnnounceHandler, DestinationProofStrategyValue, DropObserver, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./shared.js";
 import { LeafTransport } from "../node.js";
 import { LeafTransportLayer1 } from "./layer-1.js";
 export class LeafTransportLayer2 extends LeafTransportLayer1 {
@@ -97,6 +97,12 @@ registerInterface(iface: PacketInterface): void {
     );
     if (shouldRegisterTransportMemberNow(stepped.actions)) {
       this.announceHandlers.push(handler);
+    }
+  }
+
+  registerDropObserver(observer: DropObserver): void {
+    if (!this.dropObservers.includes(observer)) {
+      this.dropObservers.push(observer);
     }
   }
 
