@@ -1,9 +1,13 @@
 /** Minimal browser globals for Expo web host files (Phase W1). */
 declare class Worker {
-  constructor(scriptURL: string | URL, options?: { type?: "classic" | "module" });
+  constructor(
+    scriptURL: string | URL,
+    options?: { type?: "classic" | "module" },
+  );
   postMessage(message: unknown): void;
   terminate(): void;
-  onmessage: ((event: { data?: { channel?: string; data?: string } }) => void) | null;
+  onmessage:
+    ((event: { data?: { channel?: string; data?: string } }) => void) | null;
 }
 
 interface TextEncoder {

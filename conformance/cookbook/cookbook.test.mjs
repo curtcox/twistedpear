@@ -1,4 +1,11 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,13 +27,19 @@ import {
   DeviceManager,
   CodecStreamEgressFactory,
   createSimulatedRawMicrophoneDriver,
-  validateManifestCapabilities
+  validateManifestCapabilities,
 } from "../../packages/miniapp-runtime/dist/index.js";
 import { SimulatedMediaCodecDriver } from "../../packages/effects/dist/index.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
-import { PeerDiscoveryRegistry, PeerSessionManager } from "../../packages/peer-discovery/dist/index.js";
+import {
+  PeerDiscoveryRegistry,
+  PeerSessionManager,
+} from "../../packages/peer-discovery/dist/index.js";
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repositoryRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 const appsRoot = join(repositoryRoot, "cookbook/apps");
 const appNames = readdirSync(appsRoot, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
@@ -60,7 +73,7 @@ const API_CAPABILITIES = new Map([
   ["peers.", "peer:connect"],
   ["links.peers", "link:observe"],
   ["links.watch", "link:observe"],
-  ["links.probe", "link:probe"]
+  ["links.probe", "link:probe"],
 ]);
 
 class MemoryStore {
@@ -85,8 +98,11 @@ class MemoryStore {
 
 function diagnosticText(diagnostic) {
   const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, " ");
-  if (diagnostic.file === undefined || diagnostic.start === undefined) return message;
-  const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+  if (diagnostic.file === undefined || diagnostic.start === undefined)
+    return message;
+  const position = diagnostic.file.getLineAndCharacterOfPosition(
+    diagnostic.start,
+  );
   return `${diagnostic.file.fileName}:${position.line + 1}:${position.character + 1} ${message}`;
 }
 
@@ -100,11 +116,14 @@ async function validateSources() {
     module: ts.ModuleKind.NodeNext,
     moduleResolution: ts.ModuleResolutionKind.NodeNext,
     strict: false,
-    skipLibCheck: true
+    skipLibCheck: true,
   };
   const program = ts.createProgram(roots, compilerOptions);
   const diagnostics = ts.getPreEmitDiagnostics(program);
-  expect(diagnostics.map(diagnosticText), "cookbook TypeScript diagnostics").toEqual([]);
+  expect(
+    diagnostics.map(diagnosticText),
+    "cookbook TypeScript diagnostics",
+  ).toEqual([]);
 
   const eslint = new ESLint({
     overrideConfigFile: true,
@@ -132,75 +151,116 @@ async function validateSources() {
             clearInterval: "readonly",
             clearTimeout: "readonly",
             setInterval: "readonly",
-            setTimeout: "readonly"
-          }
+            setTimeout: "readonly",
+          },
         },
         rules: {
-          "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrors: "none" }]
-        }
-      }
-    ]
+          "no-unused-vars": [
+            "error",
+            { argsIgnorePattern: "^_", caughtErrors: "none" },
+          ],
+        },
+      },
+    ],
   });
   const results = await eslint.lintFiles(roots);
   const errors = results.flatMap((result) =>
     result.messages
       .filter((message) => message.severity === 2)
-      .map((message) => `${result.filePath}:${message.line}:${message.column} ${message.message}`)
+      .map(
+        (message) =>
+          `${result.filePath}:${message.line}:${message.column} ${message.message}`,
+      ),
   );
   expect(errors, "cookbook ESLint errors").toEqual([]);
 }
 
 function validateDocumentation() {
   const imageRoot = join(repositoryRoot, "cookbook/images");
-  const imageNames = readdirSync(imageRoot).filter((name) => name.endsWith(".png"));
+  const imageNames = readdirSync(imageRoot).filter((name) =>
+    name.endsWith(".png"),
+  );
   const cookbookChapters = readdirSync(join(repositoryRoot, "cookbook"))
     .filter((name) => /^\d{2}-.+\.md$/.test(name))
     .map((name) => readFileSync(join(repositoryRoot, "cookbook", name), "utf8"))
     .join("\n");
   const staleWarning = "Cookbook samples are not exercised by CI";
-  expect(readFileSync(join(repositoryRoot, "cookbook/README.md"), "utf8")).not.toContain(staleWarning);
+  expect(
+    readFileSync(join(repositoryRoot, "cookbook/README.md"), "utf8"),
+  ).not.toContain(staleWarning);
 
   const discoveryChapter = readFileSync(
     join(repositoryRoot, "cookbook/05-apps-that-find-each-other.md"),
-    "utf8"
+    "utf8",
   );
-  expect(discoveryChapter, "chapter 5 discloses host-specific transport status").toContain(
-    "Transport support is host-specific"
+  expect(
+    discoveryChapter,
+    "chapter 5 discloses host-specific transport status",
+  ).toContain("Transport support is host-specific");
+  expect(
+    discoveryChapter,
+    "chapter 5 records the distinct-service two-host tier",
+  ).toContain("two distinct runtimes");
+  expect(
+    discoveryChapter,
+    "chapter 5 links the underlying Reticulum announce model",
+  ).toContain(
+    "https://reticulum.network/manual/understanding.html#public-key-announcements",
   );
-  expect(discoveryChapter, "chapter 5 records the distinct-service two-host tier").toContain("two distinct runtimes");
-  expect(discoveryChapter, "chapter 5 links the underlying Reticulum announce model").toContain(
-    "https://reticulum.network/manual/understanding.html#public-key-announcements"
-  );
-  expect(discoveryChapter, "chapter 5 distinguishes interface peers from mini-app discovery").toContain(
-    "A visible peer is necessary but not sufficient"
-  );
+  expect(
+    discoveryChapter,
+    "chapter 5 distinguishes interface peers from mini-app discovery",
+  ).toContain("A visible peer is necessary but not sufficient");
 
   for (const name of appNames) {
     const readmePath = join(appsRoot, name, "README.md");
     expect(existsSync(readmePath), `${name} README`).toBe(true);
     const readme = readFileSync(readmePath, "utf8");
-    expect(readme, `${name} purpose`).toMatch(/^# .+\n[\s\S]+?\n\n.+\n\nRecipe and screenshots:/);
+    expect(readme, `${name} purpose`).toMatch(
+      /^# .+\n[\s\S]+?\n\n.+\n\nRecipe and screenshots:/,
+    );
     expect(readme, `${name} explanation`).toContain("## What it shows");
     expect(readme, `${name} capabilities`).toContain("## Capabilities");
     expect(readme, `${name} run instructions`).toContain("## Run it");
-    expect(readme, `${name} CI status`).toContain("documented primary workflow in CI");
+    expect(readme, `${name} CI status`).toContain(
+      "documented primary workflow in CI",
+    );
     expect(readme, `${name} stale CI warning`).not.toContain(staleWarning);
 
-    const screenshot = imageNames.find((imageName) => imageName.endsWith(`-${name}.png`));
+    const screenshot = imageNames.find((imageName) =>
+      imageName.endsWith(`-${name}.png`),
+    );
     expect(screenshot, `${name} cookbook screenshot`).toBeDefined();
-    expect(cookbookChapters, `${name} screenshot is referenced by the cookbook`).toContain(`/cookbook/images/${screenshot}`);
+    expect(
+      cookbookChapters,
+      `${name} screenshot is referenced by the cookbook`,
+    ).toContain(`/cookbook/images/${screenshot}`);
     const png = readFileSync(join(imageRoot, screenshot));
-    expect([...png.subarray(0, 8)], `${name} screenshot PNG signature`).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-    expect(png.length, `${name} screenshot is not a placeholder stub`).toBeGreaterThan(10_000);
+    expect([...png.subarray(0, 8)], `${name} screenshot PNG signature`).toEqual(
+      [137, 80, 78, 71, 13, 10, 26, 10],
+    );
+    expect(
+      png.length,
+      `${name} screenshot is not a placeholder stub`,
+    ).toBeGreaterThan(10_000);
   }
 }
 
 function validateDeclaredCapabilities(manifest, source) {
-  const declared = new Set(validateManifestCapabilities(manifest.capabilities ?? []));
-  const sourceFile = ts.createSourceFile("bundle.js", source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.JS);
+  const declared = new Set(
+    validateManifestCapabilities(manifest.capabilities ?? []),
+  );
+  const sourceFile = ts.createSourceFile(
+    "bundle.js",
+    source,
+    ts.ScriptTarget.ES2022,
+    true,
+    ts.ScriptKind.JS,
+  );
   const calls = [];
   const visit = (node) => {
-    if (ts.isCallExpression(node)) calls.push(node.expression.getText(sourceFile));
+    if (ts.isCallExpression(node))
+      calls.push(node.expression.getText(sourceFile));
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
@@ -209,7 +269,8 @@ function validateDeclaredCapabilities(manifest, source) {
     const used = surface.endsWith(".")
       ? calls.some((call) => call.startsWith(surface))
       : calls.includes(surface);
-    if (used && !declared.has(capability)) missing.push(`${surface} requires ${capability}`);
+    if (used && !declared.has(capability))
+      missing.push(`${surface} requires ${capability}`);
   }
   expect(missing, `${manifest.name} capability declarations`).toEqual([]);
 }
@@ -221,15 +282,32 @@ async function packApp(name) {
 
   const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
-    expect(await runInit({ cwd: temporaryRoot, identityPassphrase: "conformance identity passphrase", args: [] })).toBe(0);
-    expect(await runPack({ cwd: temporaryRoot, args: [name, "--out", `${name}.tpkg`] })).toBe(0);
+    expect(
+      await runInit({
+        cwd: temporaryRoot,
+        identityPassphrase: "conformance identity passphrase",
+        args: [],
+      }),
+    ).toBe(0);
+    expect(
+      await runPack({
+        cwd: temporaryRoot,
+        args: [name, "--out", `${name}.tpkg`],
+      }),
+    ).toBe(0);
   } finally {
     consoleLog.mockRestore();
   }
 
-  const archive = new Uint8Array(readFileSync(join(temporaryRoot, `${name}.tpkg`)));
-  expect(archive.length, `${name} BLE install budget`).toBeLessThanOrEqual(180 * 1024);
-  return verifyPackage(new NodeCryptoProvider(), archive, { hostApiVersion: HOST_API_VERSION });
+  const archive = new Uint8Array(
+    readFileSync(join(temporaryRoot, `${name}.tpkg`)),
+  );
+  expect(archive.length, `${name} BLE install budget`).toBeLessThanOrEqual(
+    180 * 1024,
+  );
+  return verifyPackage(new NodeCryptoProvider(), archive, {
+    hostApiVersion: HOST_API_VERSION,
+  });
 }
 
 const fakeT256 = "D".repeat(94);
@@ -252,7 +330,9 @@ async function waitForText(host, expected) {
     if (text.includes(expected)) return text;
     await new Promise((resolveWait) => setTimeout(resolveWait, 25));
   }
-  throw new Error(`mini-app did not render expected text ${JSON.stringify(expected)}; tree=${treeText(host.snapshot().widgetTree)}`);
+  throw new Error(
+    `mini-app did not render expected text ${JSON.stringify(expected)}; tree=${treeText(host.snapshot().widgetTree)}`,
+  );
 }
 
 async function settle() {
@@ -266,27 +346,42 @@ async function createHost(name = "", hostOptions = {}) {
   if (name === "ask-the-handbook") {
     await store.set(
       "miniapp-workspace:ask-the-handbook:docs/identity.md",
-      encoder.encode("Back up an identity by exporting an encrypted identity file. Keep its passphrase separately.")
+      encoder.encode(
+        "Back up an identity by exporting an encrypted identity file. Keep its passphrase separately.",
+      ),
     );
   }
   const answers = {
-    "ask-the-handbook": "Export an encrypted identity backup and keep its passphrase separately.",
-    "form-forge": '[{"label":"Name","type":"text"},{"label":"Party size","type":"number"},{"label":"Checked in","type":"switch"}]',
+    "ask-the-handbook":
+      "Export an encrypted identity backup and keep its passphrase separately.",
+    "form-forge":
+      '[{"label":"Name","type":"text"},{"label":"Party size","type":"number"},{"label":"Checked in","type":"switch"}]',
     "pocket-translator": "Buenos días",
-    "triage-notes": '{"subject":"Water pump inspection","location":"North shelter","severity":"high","action":"Send maintenance crew"}'
+    "triage-notes":
+      '{"subject":"Water pump inspection","location":"North shelter","severity":"high","action":"Send maintenance crew"}',
   };
   const announceService = hostOptions.announceService ?? new AnnounceService();
   let peerSessionManager = hostOptions.peerSessionManager;
   if (name === "link-weather" && peerSessionManager === undefined) {
     const registry = new PeerDiscoveryRegistry();
-    for (const kind of ["reticulum", "qr", "manual", "audio", "bluetooth", "ntfy", "local-peer-to-peer"]) {
+    for (const kind of [
+      "reticulum",
+      "qr",
+      "manual",
+      "audio",
+      "bluetooth",
+      "ntfy",
+      "local-peer-to-peer",
+    ]) {
       registry.register({
         kind,
-        async availability() { return { state: "available" }; },
+        async availability() {
+          return { state: "available" };
+        },
         async *offer() {},
         async *accept() {},
         async answer() {},
-        async cancel() {}
+        async cancel() {},
       });
     }
     const connected = (adapter, direction) => ({
@@ -295,18 +390,27 @@ async function createHost(name = "", hostOptions = {}) {
       fingerprint: `fixture-${direction}-${adapter.kind}`,
       displayLabel: `Fixture peer (${direction})`,
       rendezvous: adapter.kind,
-      dataPlane: adapter.kind === "bluetooth" ? "bluetooth" : adapter.kind === "reticulum" ? "reticulum" : "webrtc"
+      dataPlane:
+        adapter.kind === "bluetooth"
+          ? "bluetooth"
+          : adapter.kind === "reticulum"
+            ? "reticulum"
+            : "webrtc",
     });
     peerSessionManager = new PeerSessionManager(registry, {
-      async request(adapter) { return connected(adapter, "invite"); },
-      async listen(adapter) { return connected(adapter, "join"); }
+      async request(adapter) {
+        return connected(adapter, "invite");
+      },
+      async listen(adapter) {
+        return connected(adapter, "join");
+      },
     });
   }
   if (name === "app-relay") {
     await announceService.publish(
       "publisher-alpha",
       encoder.encode(JSON.stringify({ name: "Trail map", t256: fakeT256 })),
-      "app-relay"
+      "app-relay",
     );
   }
   const host = new MiniappHost({
@@ -315,92 +419,207 @@ async function createHost(name = "", hostOptions = {}) {
     kvBackend: store,
     beeBackend: bee,
     presenceBackend: {
-      snapshot: async () => ({ onlineInterfaces: 1, preferredInterface: "tcp", peers: 1 })
+      snapshot: async () => ({
+        onlineInterfaces: 1,
+        preferredInterface: "tcp",
+        peers: 1,
+      }),
     },
     announceService,
     aiBackend: {
       chat: async () => ({
-        message: { role: "assistant", content: answers[name] ?? "Cookbook response" },
+        message: {
+          role: "assistant",
+          content: answers[name] ?? "Cookbook response",
+        },
         model: "cookbook-test",
-        usage: null
+        usage: null,
       }),
       stream: async function* () {
-        yield { delta: answers[name] ?? "Cookbook response", model: "cookbook-test", usage: null };
+        yield {
+          delta: answers[name] ?? "Cookbook response",
+          model: "cookbook-test",
+          usage: null,
+        };
       },
       embed: async (_appId, request) => ({
-        vectors: request.inputs.map((input) => [input.toLowerCase().includes("identity") ? 1 : 0, 1]),
+        vectors: request.inputs.map((input) => [
+          input.toLowerCase().includes("identity") ? 1 : 0,
+          1,
+        ]),
         model: "cookbook-test",
-        usage: null
-      })
+        usage: null,
+      }),
     },
     resourceBackend: {
-      fetch: async () => new TextEncoder().encode("cookbook resource")
+      fetch: async () => new TextEncoder().encode("cookbook resource"),
     },
     casBackend: {
-      put: async (_appId, content) => ({ t256: fakeT256, size: content.length }),
-      get: async (_appId, t256) => t256 === fakeT256
-        ? encoder.encode("Field notes cover\n---\nWater and shelter\n---\nRadio plan and contacts")
-        : null
+      put: async (_appId, content) => ({
+        t256: fakeT256,
+        size: content.length,
+      }),
+      get: async (_appId, t256) =>
+        t256 === fakeT256
+          ? encoder.encode(
+              "Field notes cover\n---\nWater and shelter\n---\nRadio plan and contacts",
+            )
+          : null,
     },
     confirmationChannel: { confirm: async () => ({ approved: true }) },
     peerSessionManager,
-    ...(name === "line-check" ? {
-      linkObservatoryBackend: {
-        async peers() {
-          return [{
-            peer: { id: "peer-ana" },
-            displayLabel: "Ana · verified",
-            plane: "webrtc",
-            reachability: "direct",
-            quality: { goodputBps: 1_000_000, rttMs: 42, jitterMs: 4, lossRatio: 0.01, mtu: 1200, source: "observed", samples: 8, confidence: "high" },
-            readiness: { hostApi: "0.12.0", accepts: [{ classId: "camera", maxRung: "480p15", encodings: ["vp9"] }, { classId: "microphone", maxRung: "16k-opus", encodings: ["opus"] }], offers: [], downlinkBucket: "sd-video", constrained: [], consentPosture: "ask", expiresAt: Number.MAX_SAFE_INTEGER },
-            observedAt: Date.now(),
-            freshness: "live"
-          }];
-        },
-        async probe(_appId, _peer, request) {
-          if (request.reservationClass !== "control" || request.abortOnQueueGrowth !== true) throw new Error("unsafe probe request");
-          return { goodputBps: 1_200_000, rttMs: 38, jitterMs: 3, lossRatio: 0, mtu: 1200, source: "probed", samples: 1, confidence: "medium" };
+    ...(name === "line-check"
+      ? {
+          linkObservatoryBackend: {
+            async peers() {
+              return [
+                {
+                  peer: { id: "peer-ana" },
+                  displayLabel: "Ana · verified",
+                  plane: "webrtc",
+                  reachability: "direct",
+                  quality: {
+                    goodputBps: 1_000_000,
+                    rttMs: 42,
+                    jitterMs: 4,
+                    lossRatio: 0.01,
+                    mtu: 1200,
+                    source: "observed",
+                    samples: 8,
+                    confidence: "high",
+                  },
+                  readiness: {
+                    hostApi: "0.12.0",
+                    accepts: [
+                      {
+                        classId: "camera",
+                        maxRung: "480p15",
+                        encodings: ["vp9"],
+                      },
+                      {
+                        classId: "microphone",
+                        maxRung: "16k-opus",
+                        encodings: ["opus"],
+                      },
+                    ],
+                    offers: [],
+                    downlinkBucket: "sd-video",
+                    constrained: [],
+                    consentPosture: "ask",
+                    expiresAt: Number.MAX_SAFE_INTEGER,
+                  },
+                  observedAt: Date.now(),
+                  freshness: "live",
+                },
+              ];
+            },
+            async probe(_appId, _peer, request) {
+              if (
+                request.reservationClass !== "control" ||
+                request.abortOnQueueGrowth !== true
+              )
+                throw new Error("unsafe probe request");
+              return {
+                goodputBps: 1_200_000,
+                rttMs: 38,
+                jitterMs: 3,
+                lossRatio: 0,
+                mtu: 1200,
+                source: "probed",
+                samples: 1,
+                confidence: "medium",
+              };
+            },
+          },
+          deviceManager: new DeviceManager({
+            drivers: [createSimulatedRawMicrophoneDriver()],
+            linkSupply: async () => [
+              {
+                plane: "webrtc",
+                effectiveBps: 1_000_000,
+                headroomBps: 1_000_000,
+              },
+            ],
+            streamEgressFactory: new CodecStreamEgressFactory(
+              {
+                async create({ admission }) {
+                  return {
+                    plane: admission.plane,
+                    async send() {
+                      return { queuedBytes: 0, droppedOldest: 0 };
+                    },
+                    quality() {
+                      return {
+                        goodputBps: 1_000_000,
+                        rttMs: 38,
+                        jitterMs: 3,
+                        lossRatio: 0,
+                        mtu: 1200,
+                        source: "observed",
+                        samples: 8,
+                        confidence: "high",
+                      };
+                    },
+                    async close() {},
+                  };
+                },
+              },
+              async () => new SimulatedMediaCodecDriver(),
+            ),
+            requestShareOffer: async () => ({
+              targetKind: "peer",
+              targetId: "peer-ana",
+              displayLabel: "Ana · verified",
+              classId: "microphone",
+              tierId: "pcm",
+              maxRung: "16k-opus",
+              ttlMs: 60_000,
+            }),
+            confirmShareOfferRevoke: async () => true,
+            now: () => Date.now(),
+          }),
         }
-      },
-      deviceManager: new DeviceManager({
-        drivers: [createSimulatedRawMicrophoneDriver()],
-        linkSupply: async () => [{ plane: "webrtc", effectiveBps: 1_000_000, headroomBps: 1_000_000 }],
-        streamEgressFactory: new CodecStreamEgressFactory({
-          async create({ admission }) {
-            return {
-              plane: admission.plane,
-              async send() { return { queuedBytes: 0, droppedOldest: 0 }; },
-              quality() { return { goodputBps: 1_000_000, rttMs: 38, jitterMs: 3, lossRatio: 0, mtu: 1200, source: "observed", samples: 8, confidence: "high" }; },
-              async close() {}
-            };
-          }
-        }, async () => new SimulatedMediaCodecDriver()),
-        requestShareOffer: async () => ({ targetKind: "peer", targetId: "peer-ana", displayLabel: "Ana · verified", classId: "microphone", tierId: "pcm", maxRung: "16k-opus", ttlMs: 60_000 }),
-        confirmShareOfferRevoke: async () => true,
-        now: () => Date.now()
-      })
-    } : {}),
+      : {}),
     appsBackend: {
-      package: async () => ({ packageHash: "cookbook-package", size: 3_712, t256: fakeT256 }),
-      publish: async (_appId, request) => ({ t256: request.t256, driveKey: "cookbook-drive", version: "1.0.0" }),
-      install: async () => ({ appId: "installed-app", version: "1.0.0", trusted: true }),
+      package: async () => ({
+        packageHash: "cookbook-package",
+        size: 3_712,
+        t256: fakeT256,
+      }),
+      publish: async (_appId, request) => ({
+        t256: request.t256,
+        driveKey: "cookbook-drive",
+        version: "1.0.0",
+      }),
+      install: async () => ({
+        appId: "installed-app",
+        version: "1.0.0",
+        trusted: true,
+      }),
       preview: async () => ({ launched: true }),
-      stopPreview: async () => undefined
-    }
+      stopPreview: async () => undefined,
+    },
   });
   return { host, store, announceService };
 }
 
 async function launchApp(host, name) {
-  const manifest = JSON.parse(readFileSync(join(appsRoot, name, "app.manifest.json"), "utf8"));
-  const bundle = new Uint8Array(readFileSync(join(appsRoot, name, manifest.entry)));
-  const launchManifest = { ...manifest, publisherPublicKey: manifest.publisherPublicKey ?? "cookbook-test-publisher" };
+  const manifest = JSON.parse(
+    readFileSync(join(appsRoot, name, "app.manifest.json"), "utf8"),
+  );
+  const bundle = new Uint8Array(
+    readFileSync(join(appsRoot, name, manifest.entry)),
+  );
+  const launchManifest = {
+    ...manifest,
+    publisherPublicKey:
+      manifest.publisherPublicKey ?? "cookbook-test-publisher",
+  };
   await host.setGrants(
     launchManifest.name,
     launchManifest.publisherPublicKey,
     launchManifest.capabilities,
-    launchManifest.capabilities
+    launchManifest.capabilities,
   );
   await host.launch(launchManifest, bundle);
   await waitForRender(host);
@@ -411,14 +630,15 @@ async function waitForRender(host) {
   while (Date.now() < deadline) {
     const snapshot = host.snapshot();
     if (snapshot.widgetTree !== null) return snapshot.widgetTree;
-    if (snapshot.state === "crashed") throw new Error(snapshot.logs.map((entry) => entry.line).join("\n"));
+    if (snapshot.state === "crashed")
+      throw new Error(snapshot.logs.map((entry) => entry.line).join("\n"));
     await new Promise((resolveWait) => setTimeout(resolveWait, 25));
   }
   const snapshot = host.snapshot();
   throw new Error(
     `mini-app did not render within 10 seconds (state=${snapshot.state}):\n${snapshot.logs
       .map((entry) => entry.line)
-      .join("\n")}`
+      .join("\n")}`,
   );
 }
 
@@ -443,7 +663,11 @@ const behaviorScenarios = {
     return "Installed";
   },
   "ask-the-handbook": async (host) => {
-    await host.handleUiEvent("question", "ah.q", "How do I back up my identity?");
+    await host.handleUiEvent(
+      "question",
+      "ah.q",
+      "How do I back up my identity?",
+    );
     await host.handleUiEvent("ask", "ah.ask");
     return "Answered from 1 file(s)";
   },
@@ -485,7 +709,10 @@ const behaviorScenarios = {
     await host.handleUiEvent("refresh", "lw.refresh");
     await settle();
     await waitForText(host, "Local peer-to-peer");
-    expect(findNode(host.snapshot().widgetTree, "invite-manual"), treeText(host.snapshot().widgetTree)).toBeDefined();
+    expect(
+      findNode(host.snapshot().widgetTree, "invite-manual"),
+      treeText(host.snapshot().widgetTree),
+    ).toBeDefined();
     await host.handleUiEvent("invite-manual", "lw.invite.manual");
     await waitForText(host, "Connected to Fixture peer (invite) via manual");
     await host.handleUiEvent("disconnect-0", "lw.disconnect.0");
@@ -501,7 +728,11 @@ const behaviorScenarios = {
     return "Streaming microphone to Ana · verified";
   },
   "neighborhood-board": async (host) => {
-    await host.handleUiEvent("draft", "nb.draft", "Water at the school entrance");
+    await host.handleUiEvent(
+      "draft",
+      "nb.draft",
+      "Water at the school entrance",
+    );
     await host.handleUiEvent("post", "nb.post");
     return "Published. Only hosts within radio reach";
   },
@@ -540,7 +771,11 @@ const behaviorScenarios = {
     await settle();
     await host.handleUiEvent("create", "rb.create");
     await waitForText(host, "Open: recipes/Trail-bread.md");
-    await host.handleUiEvent("editor", "rb.text", "# Trail bread\nFlour, salt, water");
+    await host.handleUiEvent(
+      "editor",
+      "rb.text",
+      "# Trail bread\nFlour, salt, water",
+    );
     await settle();
     await host.handleUiEvent("save", "rb.save");
     return "Saved · 1/512 files";
@@ -581,7 +816,11 @@ const behaviorScenarios = {
     return "Offered";
   },
   "triage-notes": async (host) => {
-    await host.handleUiEvent("dictation", "tn.text", "The water pump failed at the north shelter");
+    await host.handleUiEvent(
+      "dictation",
+      "tn.text",
+      "The water pump failed at the north shelter",
+    );
     await settle();
     await host.handleUiEvent("structure", "tn.structure");
     await waitForText(host, "Review before filing");
@@ -602,7 +841,7 @@ const behaviorScenarios = {
     await waitForText(host, "2 / 3");
     await host.handleUiEvent("next", "zr.next");
     return "Radio plan and contacts";
-  }
+  },
 };
 
 beforeAll(async () => {
@@ -620,7 +859,9 @@ afterEach(() => {
 
 describe.each(appNames)("cookbook app %s", (name) => {
   it("validates, packs through tp, starts, and renders", async () => {
-    const manifest = JSON.parse(readFileSync(join(appsRoot, name, "app.manifest.json"), "utf8"));
+    const manifest = JSON.parse(
+      readFileSync(join(appsRoot, name, "app.manifest.json"), "utf8"),
+    );
     const source = readFileSync(join(appsRoot, name, "bundle.js"), "utf8");
     validateDeclaredCapabilities(manifest, source);
 
@@ -636,13 +877,13 @@ describe.each(appNames)("cookbook app %s", (name) => {
         version: packed.manifest.version,
         entry: packed.manifest.entry,
         capabilities: packed.manifest.capabilities,
-        publisherPublicKey: packed.manifest.publisherPublicKey
+        publisherPublicKey: packed.manifest.publisherPublicKey,
       };
       await host.setGrants(
         launchManifest.name,
         launchManifest.publisherPublicKey,
         launchManifest.capabilities,
-        launchManifest.capabilities
+        launchManifest.capabilities,
       );
       await host.launch(launchManifest, bundle);
       const tree = await waitForRender(host);
@@ -653,16 +894,24 @@ describe.each(appNames)("cookbook app %s", (name) => {
   }, 20_000);
 
   it("performs its documented primary workflow", async () => {
-    const manifest = JSON.parse(readFileSync(join(appsRoot, name, "app.manifest.json"), "utf8"));
-    const bundle = new Uint8Array(readFileSync(join(appsRoot, name, manifest.entry)));
+    const manifest = JSON.parse(
+      readFileSync(join(appsRoot, name, "app.manifest.json"), "utf8"),
+    );
+    const bundle = new Uint8Array(
+      readFileSync(join(appsRoot, name, manifest.entry)),
+    );
     const { host } = await createHost(name);
-    const launchManifest = { ...manifest, publisherPublicKey: manifest.publisherPublicKey ?? "cookbook-test-publisher" };
+    const launchManifest = {
+      ...manifest,
+      publisherPublicKey:
+        manifest.publisherPublicKey ?? "cookbook-test-publisher",
+    };
     try {
       await host.setGrants(
         launchManifest.name,
         launchManifest.publisherPublicKey,
         launchManifest.capabilities,
-        launchManifest.capabilities
+        launchManifest.capabilities,
       );
       await host.launch(launchManifest, bundle);
       await waitForRender(host);
@@ -686,12 +935,20 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
     try {
       await announceService.publish(
         "peer-9c31f7a2e4b0",
-        encoder.encode(JSON.stringify({ text: "Water at the school entrance", at: "2026-07-21T09:14:00.000Z" })),
-        "neighborhood-board"
+        encoder.encode(
+          JSON.stringify({
+            text: "Water at the school entrance",
+            at: "2026-07-21T09:14:00.000Z",
+          }),
+        ),
+        "neighborhood-board",
       );
       await launchApp(host, "neighborhood-board");
       const text = await waitForText(host, "Water at the school entrance");
-      expect(text, "byline is the announcing destination, not the payload or \"me\"").toContain("peer-9c31f7a");
+      expect(
+        text,
+        'byline is the announcing destination, not the payload or "me"',
+      ).toContain("peer-9c31f7a");
     } finally {
       await host.stop();
     }
@@ -699,19 +956,34 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
 
   it("runs the unchanged neighborhood-board bundle across two distinct host services", async () => {
     const transport = new MemoryAnnounceTransport();
-    const senderService = new TransportBackedAnnounceService("host-a-destination", transport);
-    const receiverService = new TransportBackedAnnounceService("host-b-destination", transport);
-    const { host: sender } = await createHost("neighborhood-board", { announceService: senderService });
-    const { host: receiver } = await createHost("neighborhood-board", { announceService: receiverService });
+    const senderService = new TransportBackedAnnounceService(
+      "host-a-destination",
+      transport,
+    );
+    const receiverService = new TransportBackedAnnounceService(
+      "host-b-destination",
+      transport,
+    );
+    const { host: sender } = await createHost("neighborhood-board", {
+      announceService: senderService,
+    });
+    const { host: receiver } = await createHost("neighborhood-board", {
+      announceService: receiverService,
+    });
     try {
       await launchApp(sender, "neighborhood-board");
-      await sender.handleUiEvent("draft", "nb.draft", "Message from a separate host");
+      await sender.handleUiEvent(
+        "draft",
+        "nb.draft",
+        "Message from a separate host",
+      );
       await sender.handleUiEvent("post", "nb.post");
       await launchApp(receiver, "neighborhood-board");
       const text = await waitForText(receiver, "Message from a separate host");
       expect(text).toContain("host-a-desti");
     } finally {
-      await sender.stop(); await receiver.stop();
+      await sender.stop();
+      await receiver.stop();
     }
   }, 20_000);
 
@@ -720,17 +992,33 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
     try {
       // A peer runs arbitrary code and can send anything. None of these may take down the
       // subscription loop or reach the board, but a valid post published alongside them must.
-      await announceService.publish("peer-garbage", new Uint8Array([0xff, 0x00, 0x10]), "neighborhood-board");
-      await announceService.publish("peer-wrongtype", encoder.encode(JSON.stringify({ text: 42 })), "neighborhood-board");
-      await announceService.publish("peer-nullpayload", encoder.encode("null"), "neighborhood-board");
+      await announceService.publish(
+        "peer-garbage",
+        new Uint8Array([0xff, 0x00, 0x10]),
+        "neighborhood-board",
+      );
+      await announceService.publish(
+        "peer-wrongtype",
+        encoder.encode(JSON.stringify({ text: 42 })),
+        "neighborhood-board",
+      );
+      await announceService.publish(
+        "peer-nullpayload",
+        encoder.encode("null"),
+        "neighborhood-board",
+      );
       await announceService.publish(
         "peer-9c31f7a2e4b0",
-        encoder.encode(JSON.stringify({ text: "Real post", at: "2026-07-21T09:14:00.000Z" })),
-        "neighborhood-board"
+        encoder.encode(
+          JSON.stringify({ text: "Real post", at: "2026-07-21T09:14:00.000Z" }),
+        ),
+        "neighborhood-board",
       );
       await launchApp(host, "neighborhood-board");
       const text = await waitForText(host, "Real post");
-      expect(text, "malformed announces are silently dropped").not.toContain("42");
+      expect(text, "malformed announces are silently dropped").not.toContain(
+        "42",
+      );
     } finally {
       await host.stop();
     }
@@ -742,11 +1030,14 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
       await announceService.publish(
         "peer-3f0a5b1c9d22",
         encoder.encode(JSON.stringify({ i: "Camping stove, works, free" })),
-        "swap-shelf"
+        "swap-shelf",
       );
       await launchApp(host, "swap-shelf");
       const text = await waitForText(host, "Camping stove, works, free");
-      expect(text, "listing shows the announcing peer's address prefix").toContain("peer-3f0a5b1");
+      expect(
+        text,
+        "listing shows the announcing peer's address prefix",
+      ).toContain("peer-3f0a5b1");
     } finally {
       await host.stop();
     }
@@ -755,11 +1046,15 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
   it("swap-shelf drops an unparseable announce without crashing", async () => {
     const { host, announceService } = await createHost("swap-shelf");
     try {
-      await announceService.publish("peer-garbage", new Uint8Array([0xff, 0x00, 0x10]), "swap-shelf");
+      await announceService.publish(
+        "peer-garbage",
+        new Uint8Array([0xff, 0x00, 0x10]),
+        "swap-shelf",
+      );
       await announceService.publish(
         "peer-3f0a5b1c9d22",
         encoder.encode(JSON.stringify({ i: "Hand-crank radio" })),
-        "swap-shelf"
+        "swap-shelf",
       );
       await launchApp(host, "swap-shelf");
       await waitForText(host, "Hand-crank radio");
@@ -774,13 +1069,21 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
       // A neighborhood-board post must never surface in swap-shelf: namespaces do not cross.
       await announceService.publish(
         "peer-9c31f7a2e4b0",
-        encoder.encode(JSON.stringify({ text: "Water at the school entrance", at: "2026-07-21T09:14:00.000Z" })),
-        "neighborhood-board"
+        encoder.encode(
+          JSON.stringify({
+            text: "Water at the school entrance",
+            at: "2026-07-21T09:14:00.000Z",
+          }),
+        ),
+        "neighborhood-board",
       );
       await launchApp(host, "swap-shelf");
       await settle();
       const text = treeText(host.snapshot().widgetTree);
-      expect(text, "cross-namespace announce must not leak into swap-shelf").not.toContain("Water at the school entrance");
+      expect(
+        text,
+        "cross-namespace announce must not leak into swap-shelf",
+      ).not.toContain("Water at the school entrance");
     } finally {
       await host.stop();
     }

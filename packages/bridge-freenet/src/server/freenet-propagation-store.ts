@@ -1,13 +1,10 @@
-import {
-  FreenetClient,
-  type FreenetUpdateOptions
-} from "../core/client.js";
+import { FreenetClient, type FreenetUpdateOptions } from "../core/client.js";
 import {
   decodePropagationSetState,
   encodePropagationSetParameters,
   encodePropagationSetState,
   mergePropagationSetStates,
-  type PropagationSetEntry
+  type PropagationSetEntry,
 } from "../core/propagation-set.js";
 
 /** Matches `@twistedpear/lxmf-ts` `PropagationStoredEntry` without a package edge. */
@@ -47,22 +44,22 @@ function destinationKey(hash: Uint8Array): string {
 }
 
 function toSetEntries(
-  entries: ReadonlyArray<FreenetPropagationEntry>
+  entries: ReadonlyArray<FreenetPropagationEntry>,
 ): PropagationSetEntry[] {
   return entries.map((entry) => ({
     transientId: entry.transientId,
     storedAt: BigInt(entry.storedAt),
-    lxmfData: entry.lxmfData
+    lxmfData: entry.lxmfData,
   }));
 }
 
 function fromSetEntries(
-  entries: ReadonlyArray<PropagationSetEntry>
+  entries: ReadonlyArray<PropagationSetEntry>,
 ): FreenetPropagationEntry[] {
   return entries.map((entry) => ({
     transientId: entry.transientId,
     storedAt: Number(entry.storedAt),
-    lxmfData: entry.lxmfData
+    lxmfData: entry.lxmfData,
   }));
 }
 
@@ -96,7 +93,7 @@ export class FreenetPropagationStore {
   }
 
   async publish(
-    entries: ReadonlyArray<FreenetPropagationEntry>
+    entries: ReadonlyArray<FreenetPropagationEntry>,
   ): Promise<void> {
     const byDestination = new Map<string, FreenetPropagationEntry[]>();
     for (const entry of entries) {
@@ -113,7 +110,7 @@ export class FreenetPropagationStore {
       const destinationHash = this.#watched.get(key)!;
       const source = {
         wasm: this.#wasm,
-        parameters: encodePropagationSetParameters({ destinationHash })
+        parameters: encodePropagationSetParameters({ destinationHash }),
       };
       const { key: contractKey, codeHash } = FreenetClient.deriveKey(source);
       const encoded = encodePropagationSetState(toSetEntries(group));
@@ -130,7 +127,7 @@ export class FreenetPropagationStore {
         contractKey,
         codeHash,
         merged,
-        this.#updateOptions
+        this.#updateOptions,
       );
     }
   }
@@ -140,7 +137,7 @@ export class FreenetPropagationStore {
     for (const destinationHash of this.#watched.values()) {
       const source = {
         wasm: this.#wasm,
-        parameters: encodePropagationSetParameters({ destinationHash })
+        parameters: encodePropagationSetParameters({ destinationHash }),
       };
       const { key } = FreenetClient.deriveKey(source);
       const record = await this.#client.get(key).catch(() => null);

@@ -18,7 +18,7 @@ export const DEVICE_STREAM_KIND = {
   pcm: 2,
   motionSamples: 3,
   screenFrame: 4,
-  derivedEvent: 5
+  derivedEvent: 5,
 } as const;
 
 interface DeviceStreamFrameBase {
@@ -39,7 +39,7 @@ export type DeviceStreamFrame =
 export class DeviceStreamFrameError extends Error {
   constructor(
     readonly code: "MALFORMED" | "OVERSIZED" | "CONTROL_FORBIDDEN",
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "DeviceStreamFrameError";
@@ -48,12 +48,15 @@ export class DeviceStreamFrameError extends Error {
 
 export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
   if (frame.version !== 1 && frame.version !== 2) {
-    throw new DeviceStreamFrameError("MALFORMED", "Unsupported device stream version.");
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Unsupported device stream version.",
+    );
   }
   if (![1, 2, 3, 4, 5].includes(frame.sampleKind)) {
     throw new DeviceStreamFrameError(
       "CONTROL_FORBIDDEN",
-      "Device stream sidecar refuses control messages."
+      "Device stream sidecar refuses control messages.",
     );
   }
   if (!Number.isSafeInteger(frame.sessionToken) || frame.sessionToken < 0) {
@@ -63,7 +66,10 @@ export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
     throw new DeviceStreamFrameError("MALFORMED", "Invalid sequence.");
   }
   if (frame.payload.length > MAX_DEVICE_STREAM_PAYLOAD_BYTES) {
-    throw new DeviceStreamFrameError("OVERSIZED", "Device stream payload exceeds max size.");
+    throw new DeviceStreamFrameError(
+      "OVERSIZED",
+      "Device stream payload exceeds max size.",
+    );
   }
 
   const headerBytes = frame.version === 1 ? HEADER_BYTES_V1 : HEADER_BYTES_V2;
@@ -78,9 +84,16 @@ export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
   view.setUint32(20, crc32(frame.payload), false);
   if (frame.version === 2) {
     if (!Number.isSafeInteger(frame.captureAtUs) || frame.captureAtUs < 0) {
-      throw new DeviceStreamFrameError("MALFORMED", "Invalid capture timestamp.");
+      throw new DeviceStreamFrameError(
+        "MALFORMED",
+        "Invalid capture timestamp.",
+      );
     }
-    if (!Number.isSafeInteger(frame.clockId) || frame.clockId < 0 || frame.clockId > 0xffff_ffff) {
+    if (
+      !Number.isSafeInteger(frame.clockId) ||
+      frame.clockId < 0 ||
+      frame.clockId > 0xffff_ffff
+    ) {
       throw new DeviceStreamFrameError("MALFORMED", "Invalid clock id.");
     }
     view.setBigUint64(24, BigInt(frame.captureAtUs), false);
@@ -92,7 +105,10 @@ export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
 
 export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
   if (bytes.length < HEADER_BYTES_V1) {
-    throw new DeviceStreamFrameError("MALFORMED", "Device stream frame too short.");
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Device stream frame too short.",
+    );
   }
   const isV1 = equal(bytes.subarray(0, 4), MAGIC_V1);
   const isV2 = equal(bytes.subarray(0, 4), MAGIC_V2);
@@ -102,13 +118,16 @@ export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
   const version = bytes[4];
   const sampleKind = bytes[5] as DeviceStreamSampleKind;
   if ((isV1 && version !== 1) || (isV2 && version !== 2)) {
-    throw new DeviceStreamFrameError("MALFORMED", "Unsupported device stream version.");
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Unsupported device stream version.",
+    );
   }
   // Kind 0 and any non-sample kind are treated as control and refused.
   if (sampleKind < 1 || sampleKind > 5) {
     throw new DeviceStreamFrameError(
       "CONTROL_FORBIDDEN",
-      "Device stream sidecar refuses control messages."
+      "Device stream sidecar refuses control messages.",
     );
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -117,20 +136,36 @@ export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
   const payloadLength = view.getUint32(16, false);
   const payloadCrc = view.getUint32(20, false);
   const headerBytes = version === 1 ? HEADER_BYTES_V1 : HEADER_BYTES_V2;
-  if (bytes.length < headerBytes || payloadLength !== bytes.length - headerBytes) {
-    throw new DeviceStreamFrameError("MALFORMED", "Device stream payload length mismatch.");
+  if (
+    bytes.length < headerBytes ||
+    payloadLength !== bytes.length - headerBytes
+  ) {
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Device stream payload length mismatch.",
+    );
   }
   if (payloadLength > MAX_DEVICE_STREAM_PAYLOAD_BYTES) {
-    throw new DeviceStreamFrameError("OVERSIZED", "Device stream payload exceeds max size.");
+    throw new DeviceStreamFrameError(
+      "OVERSIZED",
+      "Device stream payload exceeds max size.",
+    );
   }
   const payload = bytes.slice(headerBytes);
   if (crc32(payload) !== payloadCrc) {
-    throw new DeviceStreamFrameError("MALFORMED", "Device stream payload CRC mismatch.");
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Device stream payload CRC mismatch.",
+    );
   }
-  if (version === 1) return { version: 1, sampleKind, sessionToken, sequence, payload };
+  if (version === 1)
+    return { version: 1, sampleKind, sessionToken, sequence, payload };
   const captureAtUs = Number(view.getBigUint64(24, false));
   if (!Number.isSafeInteger(captureAtUs)) {
-    throw new DeviceStreamFrameError("MALFORMED", "Capture timestamp exceeds safe integer range.");
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Capture timestamp exceeds safe integer range.",
+    );
   }
   return {
     version: 2,
@@ -139,7 +174,7 @@ export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
     sequence,
     captureAtUs,
     clockId: view.getUint32(32, false),
-    payload
+    payload,
   };
 }
 
@@ -149,13 +184,22 @@ export function frameDeviceStreamPayload(
   sampleKind: DeviceStreamSampleKind,
   payload: Uint8Array,
   chunkBytes = MAX_DEVICE_STREAM_CHUNK_BYTES,
-  timing: { readonly captureAtUs: number; readonly clockId: number } = { captureAtUs: 0, clockId: 0 }
+  timing: { readonly captureAtUs: number; readonly clockId: number } = {
+    captureAtUs: 0,
+    clockId: 0,
+  },
 ): ReadonlyArray<Uint8Array> {
   if (payload.length < 1) {
-    throw new DeviceStreamFrameError("MALFORMED", "Empty device stream payload.");
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Empty device stream payload.",
+    );
   }
   if (chunkBytes < 64 || chunkBytes > MAX_DEVICE_STREAM_CHUNK_BYTES) {
-    throw new DeviceStreamFrameError("OVERSIZED", "Invalid device stream chunk size.");
+    throw new DeviceStreamFrameError(
+      "OVERSIZED",
+      "Invalid device stream chunk size.",
+    );
   }
   const frames: Uint8Array[] = [];
   let sequence = 0;
@@ -167,8 +211,11 @@ export function frameDeviceStreamPayload(
         sessionToken,
         sequence,
         ...timing,
-        payload: payload.subarray(offset, Math.min(payload.length, offset + chunkBytes))
-      })
+        payload: payload.subarray(
+          offset,
+          Math.min(payload.length, offset + chunkBytes),
+        ),
+      }),
     );
     sequence += 1;
   }

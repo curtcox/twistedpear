@@ -1,6 +1,5 @@
 # SPEC-PRESENT — Presentation and layout semantics
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -21,7 +20,7 @@ Flutter renderers to be independently valid implementations.
 - Layout vectors: `(widget tree, viewport) → box geometry`, in the style of CSS test
   suites. The headless-snapshot renderer produces the reference geometry. Each vector
   is `{ tree, viewport: { width, height }, boxes: { [nodeId]: { x, y, width,
-  height } } }` — one box per tree node, in viewport coordinates. Text measurement is
+height } } }` — one box per tree node, in viewport coordinates. Text measurement is
   the known nondeterminism: vectors fix a reference metric (monospace advance-width
   table) so geometry is font-independent; renderers using real fonts conform within a
   declared tolerance per box.
@@ -51,7 +50,7 @@ Flutter renderers to be independently valid implementations.
 Presentation semantics were previously fused into
 [packages/widget-renderer-rn](../../packages/widget-renderer-rn/); the headless
 renderer now states them independently. This remains the only spec in the tree
-where semantics are being *invented* rather than codified.
+where semantics are being _invented_ rather than codified.
 
 ## To finish this spec
 

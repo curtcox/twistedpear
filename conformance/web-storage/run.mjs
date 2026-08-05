@@ -16,7 +16,7 @@ const repoRoot = join(storageRoot, "../..");
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-storage/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -56,7 +56,7 @@ function startStaticServer(root) {
               }
             });
           });
-        }
+        },
       });
     });
   });
@@ -64,11 +64,15 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath =
+    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+  if (
+    !resolvedPath.startsWith(resolvedRoot + sep) &&
+    resolvedPath !== resolvedRoot
+  ) {
     response.writeHead(403);
     response.end();
     return;
@@ -80,7 +84,9 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
+  response.writeHead(200, {
+    "content-type": staticContentType(extname(resolvedPath)),
+  });
   if (headOnly) {
     response.end();
     return;
@@ -111,26 +117,49 @@ async function runPlaywright(pageUrl) {
       console.error(`browser:pageerror: ${error.message}`);
     });
 
-    await page.goto(`${pageUrl}?phase=install`, { waitUntil: "load", timeout: 30_000 });
-    await page.waitForFunction(() => globalThis.__WEB_STORAGE__?.status === "installed", undefined, {
-      timeout: 30_000
+    await page.goto(`${pageUrl}?phase=install`, {
+      waitUntil: "load",
+      timeout: 30_000,
     });
+    await page.waitForFunction(
+      () => globalThis.__WEB_STORAGE__?.status === "installed",
+      undefined,
+      {
+        timeout: 30_000,
+      },
+    );
 
-    await page.goto(`${pageUrl}?phase=reload`, { waitUntil: "load", timeout: 30_000 });
-    await page.waitForFunction(() => globalThis.__WEB_STORAGE__?.status === "done", undefined, {
-      timeout: 30_000
+    await page.goto(`${pageUrl}?phase=reload`, {
+      waitUntil: "load",
+      timeout: 30_000,
     });
+    await page.waitForFunction(
+      () => globalThis.__WEB_STORAGE__?.status === "done",
+      undefined,
+      {
+        timeout: 30_000,
+      },
+    );
 
     const result = await page.evaluate(() => globalThis.__WEB_STORAGE__);
     if (result?.status !== "done") {
-      throw new Error(`web storage spike incomplete: ${JSON.stringify(result)}`);
+      throw new Error(
+        `web storage spike incomplete: ${JSON.stringify(result)}`,
+      );
     }
 
-    if (result.reload?.archiveBytes !== result.reload?.quota?.packageUsedBytes) {
-      throw new Error("packageUsedBytes does not match archive size after reload");
+    if (
+      result.reload?.archiveBytes !== result.reload?.quota?.packageUsedBytes
+    ) {
+      throw new Error(
+        "packageUsedBytes does not match archive size after reload",
+      );
     }
 
-    if (typeof result.quota?.quotaBytes !== "number" || typeof result.quota?.usageBytes !== "number") {
+    if (
+      typeof result.quota?.quotaBytes !== "number" ||
+      typeof result.quota?.usageBytes !== "number"
+    ) {
       throw new Error(`quota not surfaced: ${JSON.stringify(result.quota)}`);
     }
 
@@ -153,8 +182,8 @@ try {
       version: result.reload?.record?.version,
       archiveBackend: result.archiveBackend,
       packageUsedBytes: result.quota?.packageUsedBytes,
-      quotaBytes: result.quota?.quotaBytes
-    })}`
+      quotaBytes: result.quota?.quotaBytes,
+    })}`,
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

@@ -1,54 +1,88 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
-const artifacts = resolve(process.env.SIM_CAMPAIGN_OUTPUT ?? "conformance/sim-campaign/artifacts");
-const report = JSON.parse(readFileSync(resolve(artifacts, "report.json"), "utf8"));
+const artifacts = resolve(
+  process.env.SIM_CAMPAIGN_OUTPUT ?? "conformance/sim-campaign/artifacts",
+);
+const report = JSON.parse(
+  readFileSync(resolve(artifacts, "report.json"), "utf8"),
+);
 validateReport(report);
 
 let reproducers = [];
 try {
-  reproducers = readdirSync(resolve(artifacts, "reproducers")).filter((name) => name.endsWith(".json")).sort();
+  reproducers = readdirSync(resolve(artifacts, "reproducers"))
+    .filter((name) => name.endsWith(".json"))
+    .sort();
 } catch (error) {
   if (error?.code !== "ENOENT") throw error;
 }
 
-const positions = [...new Set(report.cells.map((cell) => cell.split("|")[1]))].sort();
-const capabilities = [...new Set(report.cells.map((cell) => cell.split("|")[0]))].sort();
+const positions = [
+  ...new Set(report.cells.map((cell) => cell.split("|")[1])),
+].sort();
+const capabilities = [
+  ...new Set(report.cells.map((cell) => cell.split("|")[0])),
+].sort();
 const coverage = new Set(report.coverage.map((item) => item.cell));
 const findingsByCell = new Map();
 for (const finding of [...report.findings, ...report.canaryFindings]) {
   findingsByCell.set(finding.cell, (findingsByCell.get(finding.cell) ?? 0) + 1);
 }
 
-const saturationMax = Math.max(1, ...report.saturation.map((point) => point.newFindings));
-const saturationBars = report.saturation.map((point) => `
+const saturationMax = Math.max(
+  1,
+  ...report.saturation.map((point) => point.newFindings),
+);
+const saturationBars = report.saturation
+  .map(
+    (point) => `
   <div class="bar-column" aria-label="${point.scenarios} scenarios: ${point.newFindings} new distinct findings">
     <span class="bar-value">${point.newFindings}</span>
-    <span class="bar" style="height:${Math.max(4, Math.round(point.newFindings / saturationMax * 120))}px"></span>
+    <span class="bar" style="height:${Math.max(4, Math.round((point.newFindings / saturationMax) * 120))}px"></span>
     <span>${formatNumber(point.scenarios)}</span>
-  </div>`).join("");
+  </div>`,
+  )
+  .join("");
 
-const heatmapRows = capabilities.map((capability) => `
+const heatmapRows = capabilities
+  .map(
+    (capability) => `
   <tr>
     <th scope="row">${escapeHtml(capability)}</th>
-    ${positions.map((position) => {
-      const matching = report.cells.filter((cell) => cell.startsWith(`${capability}|${position}|`));
-      const covered = matching.filter((cell) => coverage.has(cell)).length;
-      const findings = matching.reduce((total, cell) => total + (findingsByCell.get(cell) ?? 0), 0);
-      const label = `${capability}, ${position}: ${covered} of ${matching.length} verbs covered; ${findings} findings including canaries`;
-      return `<td class="heat ${covered === matching.length ? "covered" : "gap"}" title="${escapeHtml(label)}"><span>${covered}/${matching.length}</span></td>`;
-    }).join("")}
-  </tr>`).join("");
+    ${positions
+      .map((position) => {
+        const matching = report.cells.filter((cell) =>
+          cell.startsWith(`${capability}|${position}|`),
+        );
+        const covered = matching.filter((cell) => coverage.has(cell)).length;
+        const findings = matching.reduce(
+          (total, cell) => total + (findingsByCell.get(cell) ?? 0),
+          0,
+        );
+        const label = `${capability}, ${position}: ${covered} of ${matching.length} verbs covered; ${findings} findings including canaries`;
+        return `<td class="heat ${covered === matching.length ? "covered" : "gap"}" title="${escapeHtml(label)}"><span>${covered}/${matching.length}</span></td>`;
+      })
+      .join("")}
+  </tr>`,
+  )
+  .join("");
 
-const containmentRows = report.containment.map((item) => `
-  <tr><th scope="row">${escapeHtml(item.transport)}</th><td>${formatNumber(item.scenarios)}</td><td>${formatMs(item.revocationPropagationMs)}</td><td>${formatPercent(item.egressAttributability)}</td><td>${formatMs(item.networkKillLatencyMs)}</td><td>${item.damageWindow}</td></tr>`).join("");
+const containmentRows = report.containment
+  .map(
+    (item) => `
+  <tr><th scope="row">${escapeHtml(item.transport)}</th><td>${formatNumber(item.scenarios)}</td><td>${formatMs(item.revocationPropagationMs)}</td><td>${formatPercent(item.egressAttributability)}</td><td>${formatMs(item.networkKillLatencyMs)}</td><td>${item.damageWindow}</td></tr>`,
+  )
+  .join("");
 
-const findingRows = report.findings.length === 0
-  ? `<p class="clean">No genuine oracle violations survived this turn.</p>`
-  : `<ol>${report.findings.map((finding) => `<li><strong>${escapeHtml(finding.violation.oracle)}</strong> — ${escapeHtml(finding.cell)}, seed ${finding.seed}${finding.historyPath ? ` · <a href="${relativeReproducer(finding.historyPath)}">reproducer</a>` : ""}</li>`).join("")}</ol>`;
-const gallery = reproducers.length === 0
-  ? `<p>No minimized histories were emitted.</p>`
-  : `<ul class="gallery">${reproducers.map((name) => `<li><a href="reproducers/${encodeURIComponent(name)}">${escapeHtml(name)}</a></li>`).join("")}</ul>`;
+const findingRows =
+  report.findings.length === 0
+    ? `<p class="clean">No genuine oracle violations survived this turn.</p>`
+    : `<ol>${report.findings.map((finding) => `<li><strong>${escapeHtml(finding.violation.oracle)}</strong> — ${escapeHtml(finding.cell)}, seed ${finding.seed}${finding.historyPath ? ` · <a href="${relativeReproducer(finding.historyPath)}">reproducer</a>` : ""}</li>`).join("")}</ol>`;
+const gallery =
+  reproducers.length === 0
+    ? `<p>No minimized histories were emitted.</p>`
+    : `<ul class="gallery">${reproducers.map((name) => `<li><a href="reproducers/${encodeURIComponent(name)}">${escapeHtml(name)}</a></li>`).join("")}</ul>`;
 const confidence = report.completeness.confidence95;
 
 const html = `<!doctype html>
@@ -73,15 +107,49 @@ const html = `<!doctype html>
 
 const outputPath = resolve(artifacts, "dashboard.html");
 writeFileSync(outputPath, `${html}\n`);
-console.log(`simulation report: ${basename(outputPath)} (${report.scenariosRun} scenarios, ${report.findings.length} genuine findings)`);
+console.log(
+  `simulation report: ${basename(outputPath)} (${report.scenariosRun} scenarios, ${report.findings.length} genuine findings)`,
+);
 
 function validateReport(value) {
-  const requiredArrays = ["cells", "coverage", "findings", "canaryFindings", "saturation", "containment"];
-  if (value?.schema !== "twistedpear.campaign-v1" || requiredArrays.some((key) => !Array.isArray(value[key]))) throw new Error("unsupported campaign report");
-  if (!value.difficulty?.heldRung || !value.completeness?.confidence95 || value.deterministicRerun !== true) throw new Error("campaign report is missing loop evidence");
+  const requiredArrays = [
+    "cells",
+    "coverage",
+    "findings",
+    "canaryFindings",
+    "saturation",
+    "containment",
+  ];
+  if (
+    value?.schema !== "twistedpear.campaign-v1" ||
+    requiredArrays.some((key) => !Array.isArray(value[key]))
+  )
+    throw new Error("unsupported campaign report");
+  if (
+    !value.difficulty?.heldRung ||
+    !value.completeness?.confidence95 ||
+    value.deterministicRerun !== true
+  )
+    throw new Error("campaign report is missing loop evidence");
 }
-function formatNumber(value) { return new Intl.NumberFormat("en-US").format(value); }
-function formatPercent(value) { return `${(value * 100).toFixed(1)}%`; }
-function formatMs(value) { return `${value < 100 ? value.toFixed(1) : value.toFixed(0)} ms`; }
-function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]); }
-function relativeReproducer(path) { return `reproducers/${encodeURIComponent(basename(path))}`; }
+function formatNumber(value) {
+  return new Intl.NumberFormat("en-US").format(value);
+}
+function formatPercent(value) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+function formatMs(value) {
+  return `${value < 100 ? value.toFixed(1) : value.toFixed(0)} ms`;
+}
+function escapeHtml(value) {
+  return String(value).replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        character
+      ],
+  );
+}
+function relativeReproducer(path) {
+  return `reproducers/${encodeURIComponent(basename(path))}`;
+}

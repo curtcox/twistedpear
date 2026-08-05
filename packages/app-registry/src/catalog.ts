@@ -46,7 +46,7 @@ export class CatalogStore {
 
   constructor(
     private readonly provider: CryptoProvider,
-    private readonly options: CatalogStoreOptions = {}
+    private readonly options: CatalogStoreOptions = {},
   ) {}
 
   get maxEntries(): number {
@@ -63,7 +63,9 @@ export class CatalogStore {
 
   list(): ReadonlyArray<CatalogEntry> {
     this.pruneExpired();
-    return [...this.entries.values()].sort((left, right) => right.receivedAt - left.receivedAt);
+    return [...this.entries.values()].sort(
+      (left, right) => right.receivedAt - left.receivedAt,
+    );
   }
 
   get(appId: string): CatalogEntry | null {
@@ -86,17 +88,31 @@ export class CatalogStore {
     }
 
     if (options.manifest !== undefined) {
-      const publisherIdentity = Identity.fromPublicKey(this.provider, hexToBytes(options.manifest.publisherPublicKey));
+      const publisherIdentity = Identity.fromPublicKey(
+        this.provider,
+        hexToBytes(options.manifest.publisherPublicKey),
+      );
       if (publisherIdentity === null) {
         return null;
       }
 
-      if (!verifyAppAnnounceSummary(this.provider, summary, options.manifest, publisherIdentity, options.packageHash ?? summary.packageHash)) {
+      if (
+        !verifyAppAnnounceSummary(
+          this.provider,
+          summary,
+          options.manifest,
+          publisherIdentity,
+          options.packageHash ?? summary.packageHash,
+        )
+      ) {
         return null;
       }
     }
 
-    if (options.manifest !== undefined && !verifyManifestSignature(this.provider, options.manifest)) {
+    if (
+      options.manifest !== undefined &&
+      !verifyManifestSignature(this.provider, options.manifest)
+    ) {
       return null;
     }
 
@@ -109,7 +125,10 @@ export class CatalogStore {
 
     const existing = this.entries.get(appId);
     if (existing !== undefined) {
-      if (entryPublisherKeyHash(this.provider, existing.publisherPublicKey) !== summary.publisherKeyHash) {
+      if (
+        entryPublisherKeyHash(this.provider, existing.publisherPublicKey) !==
+        summary.publisherKeyHash
+      ) {
         return null;
       }
 
@@ -120,7 +139,8 @@ export class CatalogStore {
       return null;
     }
 
-    const publisherCount = this.publisherCounts.get(summary.publisherKeyHash) ?? 0;
+    const publisherCount =
+      this.publisherCounts.get(summary.publisherKeyHash) ?? 0;
     if (existing === undefined && publisherCount >= this.maxPerPublisher) {
       return null;
     }
@@ -128,7 +148,9 @@ export class CatalogStore {
     const entry: CatalogEntry = {
       appId,
       publisherPublicKey:
-        options.manifest?.publisherPublicKey ?? existing?.publisherPublicKey ?? summary.publisherKeyHash,
+        options.manifest?.publisherPublicKey ??
+        existing?.publisherPublicKey ??
+        summary.publisherKeyHash,
       name: summary.name,
       version: summary.version,
       packageSize: summary.packageSize,
@@ -138,7 +160,7 @@ export class CatalogStore {
       destinationHash: options.destinationHash,
       receivedAt: now,
       expiresAt: now + this.entryTtlMs,
-      manifest: options.manifest ?? existing?.manifest ?? null
+      manifest: options.manifest ?? existing?.manifest ?? null,
     };
 
     if (existing === undefined) {
@@ -184,10 +206,13 @@ export class CatalogStore {
     const payload = {
       entries: [...this.entries.entries()],
       pinnedKeys: [...this.pinnedKeys.entries()],
-      publisherCounts: [...this.publisherCounts.entries()]
+      publisherCounts: [...this.publisherCounts.entries()],
     };
 
-    await store.set("catalog", new TextEncoder().encode(JSON.stringify(payload)));
+    await store.set(
+      "catalog",
+      new TextEncoder().encode(JSON.stringify(payload)),
+    );
   }
 
   async load(store: KeyValueStore): Promise<void> {
@@ -224,12 +249,17 @@ export function catalogEntryKey(entry: CatalogEntry): string {
   return entry.appId;
 }
 
-function entryPublisherKeyHash(provider: CryptoProvider, publisherPublicKey: string): string {
+function entryPublisherKeyHash(
+  provider: CryptoProvider,
+  publisherPublicKey: string,
+): string {
   if (publisherPublicKey.length === 16) {
     return publisherPublicKey;
   }
 
-  return bytesToHex(provider.sha256(hexToBytes(publisherPublicKey)).slice(0, 8));
+  return bytesToHex(
+    provider.sha256(hexToBytes(publisherPublicKey)).slice(0, 8),
+  );
 }
 
 export function installedPackageKey(appId: string, version: string): string {
@@ -252,11 +282,13 @@ export class InstalledPackageStore {
 
   constructor(
     readonly quotaBytes: number,
-    private usedBytes = 0
+    private usedBytes = 0,
   ) {}
 
   list(): ReadonlyArray<InstalledPackageRecord> {
-    return [...this.packages.values()].sort((left, right) => right.installedAt - left.installedAt);
+    return [...this.packages.values()].sort(
+      (left, right) => right.installedAt - left.installedAt,
+    );
   }
 
   get(appId: string, version: string): InstalledPackageRecord | null {
@@ -336,7 +368,9 @@ export class InstalledPackageStore {
 
     this.packages.delete(key);
     this.usedBytes = Math.max(0, this.usedBytes - sizeBytes);
-    const versions = (this.versionsByApp.get(appId) ?? []).filter((entry) => entry !== version);
+    const versions = (this.versionsByApp.get(appId) ?? []).filter(
+      (entry) => entry !== version,
+    );
     if (versions.length === 0) {
       this.versionsByApp.delete(appId);
       this.activeVersions.delete(appId);
@@ -344,7 +378,10 @@ export class InstalledPackageStore {
       this.versionsByApp.set(appId, versions);
       const active = this.activeVersions.get(appId);
       if (active === version) {
-        this.activeVersions.set(appId, versions[versions.length - 1] ?? version);
+        this.activeVersions.set(
+          appId,
+          versions[versions.length - 1] ?? version,
+        );
       }
     }
 
@@ -373,9 +410,9 @@ export class InstalledPackageStore {
           packages: [...this.packages.entries()],
           versionsByApp: [...this.versionsByApp.entries()],
           activeVersions: [...this.activeVersions.entries()],
-          usedBytes: this.usedBytes
-        })
-      )
+          usedBytes: this.usedBytes,
+        }),
+      ),
     );
   }
 

@@ -22,12 +22,37 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
-import { channelPacketTimeoutFromActions, initialChannelPacketTimeoutSecondsState, initialChannelWindowState, stepChannelPacketTimeoutSecondsWithActions } from "./part-1.js";
-import { initialArmChannelPacketReceiptState, initialExtendPacketReceiptTimeoutState, planChannelTxEnvelopeOp, shouldArmChannelPacketReceiptNow, shouldExtendPacketReceiptTimeoutNow, stepArmChannelPacketReceiptWithActions, stepExtendPacketReceiptTimeoutWithActions } from "./part-2.js";
-import { CHANNEL_MAX_TRIES, applyChannelDelivery, applyChannelTimeout, initialChannelTxEnvelopeOpState, shouldMissChannelTxEnvelopeOp, stepChannelTxEnvelopeOpPlanWithActions, stepChannelTxEnvelopeOpWithActions, stepResendChannelTimeoutPacketWithActions } from "./part-3.js";
+import {
+  channelPacketTimeoutFromActions,
+  initialChannelPacketTimeoutSecondsState,
+  initialChannelWindowState,
+  stepChannelPacketTimeoutSecondsWithActions,
+} from "./part-1.js";
+import {
+  initialArmChannelPacketReceiptState,
+  initialExtendPacketReceiptTimeoutState,
+  planChannelTxEnvelopeOp,
+  shouldArmChannelPacketReceiptNow,
+  shouldExtendPacketReceiptTimeoutNow,
+  stepArmChannelPacketReceiptWithActions,
+  stepExtendPacketReceiptTimeoutWithActions,
+} from "./part-2.js";
+import {
+  CHANNEL_MAX_TRIES,
+  applyChannelDelivery,
+  applyChannelTimeout,
+  initialChannelTxEnvelopeOpState,
+  shouldMissChannelTxEnvelopeOp,
+  stepChannelTxEnvelopeOpPlanWithActions,
+  stepChannelTxEnvelopeOpWithActions,
+  stepResendChannelTimeoutPacketWithActions,
+} from "./part-3.js";
 import type { ChannelWindowState } from "./part-1.js";
 /** Should the channel give up retrying this envelope? */
-export function channelRetryExhausted(tries: number, maxTries: number = CHANNEL_MAX_TRIES): boolean {
+export function channelRetryExhausted(
+  tries: number,
+  maxTries: number = CHANNEL_MAX_TRIES,
+): boolean {
   return tries >= maxTries;
 }
 
@@ -89,7 +114,7 @@ export function initialChannelPacketTimeoutPlanState(): ChannelPacketTimeoutPlan
 
 export function stepChannelPacketTimeoutPlanWithActions(
   state: ChannelPacketTimeoutPlanState,
-  event: ChannelPacketTimeoutPlanEvent
+  event: ChannelPacketTimeoutPlanEvent,
 ): ChannelPacketTimeoutPlanStepResult {
   if (event.kind === "channel/packet-timeout-plan-gate") {
     return {
@@ -99,9 +124,9 @@ export function stepChannelPacketTimeoutPlanWithActions(
         planChannelPacketTimeout({
           delivered: event.delivered,
           tries: event.tries,
-          ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {})
-        })
-      ]
+          ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {}),
+        }),
+      ],
     };
   }
 
@@ -109,26 +134,26 @@ export function stepChannelPacketTimeoutPlanWithActions(
 }
 
 export function shouldIgnoreChannelPacketTimeoutPlan(
-  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldGiveUpChannelPacketTimeoutPlan(
-  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "give-up");
 }
 
 export function shouldRetryChannelPacketTimeoutPlan(
-  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "retry");
 }
 
 /** Extract the retry plan action, if any. */
 export function channelPacketTimeoutRetryFromActions(
-  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): Extract<ChannelPacketTimeoutPlanAction, { kind: "retry" }> | null {
   for (const action of actions) {
     if (action.kind === "retry") {
@@ -140,11 +165,13 @@ export function channelPacketTimeoutRetryFromActions(
 
 /** Extract the full plan from actions; null when empty. */
 export function channelPacketTimeoutPlanFromActions(
-  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): ChannelPacketTimeoutPlan | null {
   const action = actions.find(
     (entry) =>
-      entry.kind === "ignore" || entry.kind === "give-up" || entry.kind === "retry"
+      entry.kind === "ignore" ||
+      entry.kind === "give-up" ||
+      entry.kind === "retry",
   );
   return action ?? null;
 }
@@ -184,7 +211,7 @@ export function initialChannelPacketTimeoutState(): ChannelPacketTimeoutState {
 
 export function stepChannelPacketTimeoutWithActions(
   state: ChannelPacketTimeoutState,
-  event: ChannelPacketTimeoutEvent
+  event: ChannelPacketTimeoutEvent,
 ): ChannelPacketTimeoutStepResult {
   if (event.kind === "channel/packet-timeout-gate") {
     const planActions = stepChannelPacketTimeoutPlanWithActions(
@@ -193,8 +220,8 @@ export function stepChannelPacketTimeoutWithActions(
         kind: "channel/packet-timeout-plan-gate",
         delivered: event.delivered,
         tries: event.tries,
-        ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {})
-      }
+        ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {}),
+      },
     ).actions;
     const plan = channelPacketTimeoutPlanFromActions(planActions);
     if (plan === null) {
@@ -207,19 +234,19 @@ export function stepChannelPacketTimeoutWithActions(
 }
 
 export function shouldIgnoreChannelPacketTimeout(
-  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldGiveUpChannelPacketTimeout(
-  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>,
 ): boolean {
   return actions.some((action) => action.kind === "give-up");
 }
 
 export function shouldRetryChannelPacketTimeout(
-  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>,
 ): boolean {
   return actions.some((action) => action.kind === "retry");
 }
@@ -232,14 +259,14 @@ export type ChannelWindowEvent =
 
 export function stepChannelWindow(
   state: ChannelWindowState,
-  event: ChannelWindowEvent
+  event: ChannelWindowEvent,
 ): { state: ChannelWindowState; intents: [] } {
   return stepChannelWindowInner(state, event);
 }
 
 function stepChannelWindowInner(
   state: ChannelWindowState,
-  event: ChannelWindowEvent
+  event: ChannelWindowEvent,
 ): { state: ChannelWindowState; intents: [] } {
   if (event.kind === "channel/init") {
     return { state: initialChannelWindowState(event.rtt), intents: [] };
@@ -287,21 +314,27 @@ export interface ChannelTxTimeoutStepResult {
   readonly actions: readonly ChannelTxTimeoutAction[];
 }
 
-export const stepChannelTxTimeout: StepFn<ChannelWindowState> = (state, event) => {
-  const result = stepChannelTxTimeoutInner(state, event as ChannelTxTimeoutEvent);
+export const stepChannelTxTimeout: StepFn<ChannelWindowState> = (
+  state,
+  event,
+) => {
+  const result = stepChannelTxTimeoutInner(
+    state,
+    event as ChannelTxTimeoutEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepChannelTxTimeoutWithActions(
   state: ChannelWindowState,
-  event: ChannelTxTimeoutEvent
+  event: ChannelTxTimeoutEvent,
 ): ChannelTxTimeoutStepResult {
   return stepChannelTxTimeoutInner(state, event);
 }
 
 function stepChannelTxTimeoutInner(
   state: ChannelWindowState,
-  event: ChannelTxTimeoutEvent
+  event: ChannelTxTimeoutEvent,
 ): ChannelTxTimeoutStepResult {
   if (event.kind !== "channel/tx-timeout") {
     return { state, intents: [], actions: [] };
@@ -312,19 +345,22 @@ function stepChannelTxTimeoutInner(
       stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
         kind: "channel/tx-envelope-op-gate",
         indexOk: event.indexOk,
-        envelopePresent: event.envelopePresent
-      }).actions
+        envelopePresent: event.envelopePresent,
+      }).actions,
     )
   ) {
     return { state, intents: [], actions: [] };
   }
 
-  const planActions = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
-    kind: "channel/packet-timeout-gate",
-    delivered: event.delivered,
-    tries: event.tries,
-    maxTries: event.maxTries
-  }).actions;
+  const planActions = stepChannelPacketTimeoutWithActions(
+    initialChannelPacketTimeoutState(),
+    {
+      kind: "channel/packet-timeout-gate",
+      delivered: event.delivered,
+      tries: event.tries,
+      maxTries: event.maxTries,
+    },
+  ).actions;
 
   if (shouldIgnoreChannelPacketTimeout(planActions)) {
     return { state, intents: [], actions: [] };
@@ -345,29 +381,29 @@ function stepChannelTxTimeoutInner(
     actions: [
       {
         kind: "retry",
-        nextTries: retry.nextTries
-      }
-    ]
+        nextTries: retry.nextTries,
+      },
+    ],
   };
 }
 
 /** Whether step actions include a give-up for channel TX timeout. */
 export function shouldGiveUpChannelTxTimeout(
-  actions: ReadonlyArray<ChannelTxTimeoutAction>
+  actions: ReadonlyArray<ChannelTxTimeoutAction>,
 ): boolean {
   return actions.some((action) => action.kind === "give-up");
 }
 
 /** Whether step actions include a retry for channel TX timeout. */
 export function shouldRetryChannelTxTimeout(
-  actions: ReadonlyArray<ChannelTxTimeoutAction>
+  actions: ReadonlyArray<ChannelTxTimeoutAction>,
 ): boolean {
   return actions.some((action) => action.kind === "retry");
 }
 
 /** Extract the retry action from a TX-timeout step, if any. */
 export function channelTxTimeoutRetryAction(
-  actions: ReadonlyArray<ChannelTxTimeoutAction>
+  actions: ReadonlyArray<ChannelTxTimeoutAction>,
 ): Extract<ChannelTxTimeoutAction, { kind: "retry" }> | null {
   for (const action of actions) {
     if (action.kind === "retry") {
@@ -398,39 +434,48 @@ export type ChannelTxReceiptTimeoutRefreshExtension = {
  * `stepExtendPacketReceiptTimeoutWithActions` actions).
  */
 export function planChannelTxReceiptTimeoutRefresh(
-  entries: ReadonlyArray<ChannelTxReceiptTimeoutRefreshEntry>
+  entries: ReadonlyArray<ChannelTxReceiptTimeoutRefreshEntry>,
 ): ReadonlyArray<ChannelTxReceiptTimeoutRefreshExtension> {
   const extensions: Array<ChannelTxReceiptTimeoutRefreshExtension> = [];
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index]!;
     if (
       !shouldArmChannelPacketReceiptNow(
-        stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
-          kind: "channel/arm-packet-receipt-gate",
-          receiptPresent: entry.receiptPresent
-        }).actions
+        stepArmChannelPacketReceiptWithActions(
+          initialArmChannelPacketReceiptState(),
+          {
+            kind: "channel/arm-packet-receipt-gate",
+            receiptPresent: entry.receiptPresent,
+          },
+        ).actions,
       )
     ) {
       continue;
     }
     const updatedTimeout = channelPacketTimeoutFromActions(
-      stepChannelPacketTimeoutSecondsWithActions(initialChannelPacketTimeoutSecondsState(), {
-        kind: "channel/packet-timeout-gate",
-        tries: entry.tries,
-        rtt: entry.rtt,
-        txRingLength: entry.txRingLength
-      }).actions
+      stepChannelPacketTimeoutSecondsWithActions(
+        initialChannelPacketTimeoutSecondsState(),
+        {
+          kind: "channel/packet-timeout-gate",
+          tries: entry.tries,
+          rtt: entry.rtt,
+          txRingLength: entry.txRingLength,
+        },
+      ).actions,
     );
     if (updatedTimeout === null) {
       continue;
     }
     if (
       shouldExtendPacketReceiptTimeoutNow(
-        stepExtendPacketReceiptTimeoutWithActions(initialExtendPacketReceiptTimeoutState(), {
-          kind: "channel/extend-packet-receipt-timeout-gate",
-          currentTimeout: entry.currentTimeout,
-          updatedTimeout
-        }).actions
+        stepExtendPacketReceiptTimeoutWithActions(
+          initialExtendPacketReceiptTimeoutState(),
+          {
+            kind: "channel/extend-packet-receipt-timeout-gate",
+            currentTimeout: entry.currentTimeout,
+            updatedTimeout,
+          },
+        ).actions,
       )
     ) {
       extensions.push({ index, timeoutSeconds: updatedTimeout });
@@ -454,13 +499,17 @@ export type ChannelTxReceiptTimeoutRefreshPlanAction = {
 
 /** Extract extend actions for the planned receipt timeout refresh. */
 export function channelTxReceiptTimeoutRefreshPlanExtensions(
-  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshPlanAction>
+  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshPlanAction>,
 ): ReadonlyArray<ChannelTxReceiptTimeoutRefreshExtension> {
   return actions
     .filter(
-      (action): action is ChannelTxReceiptTimeoutRefreshPlanAction => action.kind === "extend"
+      (action): action is ChannelTxReceiptTimeoutRefreshPlanAction =>
+        action.kind === "extend",
     )
-    .map((action) => ({ index: action.index, timeoutSeconds: action.timeoutSeconds }));
+    .map((action) => ({
+      index: action.index,
+      timeoutSeconds: action.timeoutSeconds,
+    }));
 }
 
 export type ChannelTxReceiptTimeoutRefreshEvent =

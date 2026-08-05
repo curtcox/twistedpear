@@ -14,7 +14,7 @@ import {
   utf8EncodeRawFromActions,
   WEB_IDENTITY_IV_BYTES,
   WEB_IDENTITY_SALT_BYTES,
-  webIdentityRecordFieldsFromActions
+  webIdentityRecordFieldsFromActions,
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Identity } from "./identity.js";
@@ -39,7 +39,7 @@ export interface WebIdentityUnlockOptions extends WebIdentityOptions {
 
 export async function loadOrCreateWebIdentity(
   provider: CryptoProvider,
-  options: WebIdentityUnlockOptions
+  options: WebIdentityUnlockOptions,
 ): Promise<Identity> {
   const store = await openIdentityStore(options);
   const encrypted = await store.get(IDENTITY_RECORD_KEY);
@@ -58,37 +58,54 @@ export async function loadOrCreateWebIdentity(
   return identity;
 }
 
-export async function persistWebIdentity(identity: Identity, options: WebIdentityUnlockOptions): Promise<void> {
+export async function persistWebIdentity(
+  identity: Identity,
+  options: WebIdentityUnlockOptions,
+): Promise<void> {
   const store = await openIdentityStore(options);
   const encrypted = await encryptPrivateKey(identity.getPrivateKey(), options);
   await store.set(IDENTITY_RECORD_KEY, encrypted);
 }
 
-export async function hasWebIdentity(options: WebIdentityOptions): Promise<boolean> {
+export async function hasWebIdentity(
+  options: WebIdentityOptions,
+): Promise<boolean> {
   const store = await openIdentityStore(options);
   return (await store.get(IDENTITY_RECORD_KEY)) !== undefined;
 }
 
-export async function resetWebIdentity(options: WebIdentityOptions): Promise<void> {
+export async function resetWebIdentity(
+  options: WebIdentityOptions,
+): Promise<void> {
   const store = await openIdentityStore(options);
   await store.delete(IDENTITY_RECORD_KEY);
 }
 
-async function encryptPrivateKey(privateKey: Uint8Array, options: WebIdentityUnlockOptions): Promise<Uint8Array> {
+async function encryptPrivateKey(
+  privateKey: Uint8Array,
+  options: WebIdentityUnlockOptions,
+): Promise<Uint8Array> {
   const subtle = requireSubtle(options);
   const salt = cryptoRandomBytes(SALT_BYTES);
   const iv = cryptoRandomBytes(IV_BYTES);
   const key = await deriveKey(subtle, options.passphrase, salt);
   const ciphertext = new Uint8Array(
-    await subtle.encrypt({ name: "AES-GCM", iv }, key, Uint8Array.from(privateKey))
+    await subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      Uint8Array.from(privateKey),
+    ),
   );
 
-  const packStepped = stepPackWebIdentityRecordWithActions(initialPackWebIdentityRecordState(), {
-    kind: "web-identity/pack-gate",
-    salt,
-    iv,
-    ciphertext
-  });
+  const packStepped = stepPackWebIdentityRecordWithActions(
+    initialPackWebIdentityRecordState(),
+    {
+      kind: "web-identity/pack-gate",
+      salt,
+      iv,
+      ciphertext,
+    },
+  );
   if (
     shouldRejectPackWebIdentityRecord(packStepped.actions) ||
     !shouldUsePackWebIdentityRecord(packStepped.actions)
@@ -102,11 +119,17 @@ async function encryptPrivateKey(privateKey: Uint8Array, options: WebIdentityUnl
   return packed;
 }
 
-async function decryptPrivateKey(packed: Uint8Array, options: WebIdentityUnlockOptions): Promise<Uint8Array> {
-  const splitStepped = stepSplitWebIdentityRecordWithActions(initialSplitWebIdentityRecordState(), {
-    kind: "web-identity/split-gate",
-    packed
-  });
+async function decryptPrivateKey(
+  packed: Uint8Array,
+  options: WebIdentityUnlockOptions,
+): Promise<Uint8Array> {
+  const splitStepped = stepSplitWebIdentityRecordWithActions(
+    initialSplitWebIdentityRecordState(),
+    {
+      kind: "web-identity/split-gate",
+      packed,
+    },
+  );
   if (
     shouldRejectSplitWebIdentityRecord(splitStepped.actions) ||
     !shouldUseSplitWebIdentityRecord(splitStepped.actions)
@@ -120,14 +143,20 @@ async function decryptPrivateKey(packed: Uint8Array, options: WebIdentityUnlockO
   const { salt, iv, ciphertext } = fields;
   const subtle = requireSubtle(options);
   const key = await deriveKey(subtle, options.passphrase, salt);
-  const plaintext = new Uint8Array(await subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext));
+  const plaintext = new Uint8Array(
+    await subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext),
+  );
   return plaintext;
 }
 
-async function deriveKey(subtle: WebCryptoSubtle, passphrase: string, salt: Uint8Array): Promise<WebCryptoKey> {
+async function deriveKey(
+  subtle: WebCryptoSubtle,
+  passphrase: string,
+  salt: Uint8Array,
+): Promise<WebCryptoKey> {
   const encodeStepped = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
     kind: "utf8/encode-gate",
-    value: passphrase
+    value: passphrase,
   });
   const passphraseBytes = utf8EncodeRawFromActions(encodeStepped.actions);
   if (!shouldUseUtf8Encode(encodeStepped.actions) || passphraseBytes === null) {
@@ -138,7 +167,7 @@ async function deriveKey(subtle: WebCryptoSubtle, passphrase: string, salt: Uint
     passphraseBytes,
     "PBKDF2",
     false,
-    ["deriveKey"]
+    ["deriveKey"],
   );
 
   return subtle.deriveKey(
@@ -146,12 +175,12 @@ async function deriveKey(subtle: WebCryptoSubtle, passphrase: string, salt: Uint
       name: "PBKDF2",
       salt,
       iterations: PBKDF2_ITERATIONS,
-      hash: "SHA-256"
+      hash: "SHA-256",
     },
     baseKey,
     { name: "AES-GCM", length: 256 },
     false,
-    ["encrypt", "decrypt"]
+    ["encrypt", "decrypt"],
   );
 }
 
@@ -161,30 +190,45 @@ interface IdentityKeyValueStore {
   delete(key: string): Promise<void>;
 }
 
-async function openIdentityStore(options: WebIdentityOptions): Promise<IdentityKeyValueStore> {
-  const indexedDB = options.indexedDB ?? (globalThis as { readonly indexedDB?: WebIndexedDB }).indexedDB;
+async function openIdentityStore(
+  options: WebIdentityOptions,
+): Promise<IdentityKeyValueStore> {
+  const indexedDB =
+    options.indexedDB ??
+    (globalThis as { readonly indexedDB?: WebIndexedDB }).indexedDB;
   if (indexedDB === undefined) {
     throw new Error("IndexedDB is required for web identity storage");
   }
 
   const database = await new Promise<WebIdentityDatabase>((resolve, reject) => {
-    const request = indexedDB.open(options.storeName ?? "twistedpear-web-identity", IDENTITY_DB_VERSION);
+    const request = indexedDB.open(
+      options.storeName ?? "twistedpear-web-identity",
+      IDENTITY_DB_VERSION,
+    );
     request.onupgradeneeded = (event) => {
       event.target?.result.createObjectStore(IDENTITY_OBJECT_STORE);
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Failed to open web identity database"));
+    request.onerror = () =>
+      reject(
+        request.error ?? new Error("Failed to open web identity database"),
+      );
   });
 
   return {
     async get(key) {
-      const request = database.transaction(IDENTITY_OBJECT_STORE, "readonly").objectStore(IDENTITY_OBJECT_STORE).get(key);
+      const request = database
+        .transaction(IDENTITY_OBJECT_STORE, "readonly")
+        .objectStore(IDENTITY_OBJECT_STORE)
+        .get(key);
       const value = await requestToPromise(request);
       if (value === undefined) {
         return undefined;
       }
 
-      return value instanceof Uint8Array ? Uint8Array.from(value) : new Uint8Array(value as ArrayBuffer);
+      return value instanceof Uint8Array
+        ? Uint8Array.from(value)
+        : new Uint8Array(value as ArrayBuffer);
     },
     async set(key, value) {
       const request = database
@@ -199,19 +243,23 @@ async function openIdentityStore(options: WebIdentityOptions): Promise<IdentityK
         .objectStore(IDENTITY_OBJECT_STORE)
         .delete(key);
       await requestToPromise(request);
-    }
+    },
   };
 }
 
 function requestToPromise<T>(request: WebIdentityRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
+    request.onerror = () =>
+      reject(request.error ?? new Error("IndexedDB request failed"));
   });
 }
 
 function requireSubtle(options: WebIdentityOptions): WebCryptoSubtle {
-  const subtle = options.subtle ?? (globalThis as { readonly crypto?: { readonly subtle?: WebCryptoSubtle } }).crypto?.subtle;
+  const subtle =
+    options.subtle ??
+    (globalThis as { readonly crypto?: { readonly subtle?: WebCryptoSubtle } })
+      .crypto?.subtle;
   if (subtle === undefined) {
     throw new Error("WebCrypto subtle is required for web identity encryption");
   }
@@ -223,7 +271,9 @@ function cryptoRandomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length);
   const cryptoApi = (globalThis as { readonly crypto?: WebCryptoApi }).crypto;
   if (cryptoApi?.getRandomValues === undefined) {
-    throw new Error("crypto.getRandomValues is required for web identity encryption");
+    throw new Error(
+      "crypto.getRandomValues is required for web identity encryption",
+    );
   }
 
   cryptoApi.getRandomValues(bytes);
@@ -232,7 +282,10 @@ function cryptoRandomBytes(length: number): Uint8Array {
 
 interface WebIdentityDatabase {
   createObjectStore(name: string): void;
-  transaction(name: string, mode: "readonly" | "readwrite"): WebIdentityTransaction;
+  transaction(
+    name: string,
+    mode: "readonly" | "readwrite",
+  ): WebIdentityTransaction;
 }
 
 interface WebIdentityTransaction {
@@ -268,7 +321,7 @@ interface WebCryptoSubtle {
     keyData: WebBufferSource,
     algorithm: string,
     extractable: boolean,
-    keyUsages: ReadonlyArray<string>
+    keyUsages: ReadonlyArray<string>,
   ): Promise<WebCryptoKey>;
   deriveKey(
     algorithm: {
@@ -280,16 +333,16 @@ interface WebCryptoSubtle {
     baseKey: WebCryptoKey,
     derivedKeyAlgorithm: { readonly name: "AES-GCM"; readonly length: number },
     extractable: boolean,
-    keyUsages: ReadonlyArray<string>
+    keyUsages: ReadonlyArray<string>,
   ): Promise<WebCryptoKey>;
   encrypt(
     algorithm: { readonly name: "AES-GCM"; readonly iv: WebBufferSource },
     key: WebCryptoKey,
-    data: WebBufferSource
+    data: WebBufferSource,
   ): Promise<ArrayBuffer>;
   decrypt(
     algorithm: { readonly name: "AES-GCM"; readonly iv: WebBufferSource },
     key: WebCryptoKey,
-    data: WebBufferSource
+    data: WebBufferSource,
   ): Promise<ArrayBuffer>;
 }

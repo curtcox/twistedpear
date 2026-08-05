@@ -46,7 +46,7 @@ export async function waitForTreeText(host, needle, timeoutMs = 20_000) {
     const snapshot = host.snapshot();
     const detail = snapshot.logs.map((entry) => entry.line).join(" | ");
     throw new Error(
-      `${error instanceof Error ? error.message : String(error)} waiting for ${JSON.stringify(needle)}; state=${snapshot.state}; logs=${detail}`
+      `${error instanceof Error ? error.message : String(error)} waiting for ${JSON.stringify(needle)}; state=${snapshot.state}; logs=${detail}`,
     );
   }
 }
@@ -75,9 +75,15 @@ export function assertGrantIntroShowsGranted(tree) {
   }
   const texts = collectTextValues(tree.root);
   if (!texts.some((value) => value.includes("✓ granted"))) {
-    throw new Error("grant intro missing granted markers from host.info().grantedCapabilities");
+    throw new Error(
+      "grant intro missing granted markers from host.info().grantedCapabilities",
+    );
   }
-  if (!texts.some((value) => value.includes("identity") && value.includes("✓ granted"))) {
+  if (
+    !texts.some(
+      (value) => value.includes("identity") && value.includes("✓ granted"),
+    )
+  ) {
     throw new Error("grant intro missing identity granted marker");
   }
 }
@@ -142,7 +148,12 @@ export async function assertReaderUx(host, store, options = {}) {
 
   await tap(host, "ch-what-is-twistedpear", "hb.openchapter");
   await waitForTreeText(host, "What TwistedPear is");
-  if (findNodeById(host.snapshot().widgetTree.root, "ch-reticulum-fundamentals") === null) {
+  if (
+    findNodeById(
+      host.snapshot().widgetTree.root,
+      "ch-reticulum-fundamentals",
+    ) === null
+  ) {
     throw new Error("missing next-chapter navigation button");
   }
   console.log(`${logPrefix}: chapter prev/next navigation passed`);

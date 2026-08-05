@@ -25,7 +25,7 @@ function run(command, args) {
   return spawnSync(command, args, {
     cwd: ROOT,
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"]
+    stdio: ["ignore", "pipe", "pipe"],
   });
 }
 
@@ -47,8 +47,12 @@ function isRestored(file, previous) {
     : fs.existsSync(file) && fs.readFileSync(file).equals(previous);
 }
 
-const previousSource = fs.existsSync(SOURCE_PATH) ? fs.readFileSync(SOURCE_PATH) : undefined;
-const previousTest = fs.existsSync(TEST_PATH) ? fs.readFileSync(TEST_PATH) : undefined;
+const previousSource = fs.existsSync(SOURCE_PATH)
+  ? fs.readFileSync(SOURCE_PATH)
+  : undefined;
+const previousTest = fs.existsSync(TEST_PATH)
+  ? fs.readFileSync(TEST_PATH)
+  : undefined;
 const previousInventory = fs.existsSync(INVENTORY_PATH)
   ? fs.readFileSync(INVENTORY_PATH)
   : undefined;
@@ -64,46 +68,56 @@ try {
     "--no-inline-config",
     "--max-warnings",
     "0",
-    SOURCE_REL
+    SOURCE_REL,
   ]);
   layers.push({
     name: "eslint",
     command: `eslint --no-inline-config --max-warnings 0 ${SOURCE_REL}`,
-    caught: eslint.status !== 0 && /Date\.now|no-restricted-syntax/.test(commandOutput(eslint)),
-    evidence: commandOutput(eslint).split("\n").find((line) => /Date\.now|no-restricted-syntax/.test(line)) ??
-      `exit ${eslint.status ?? "unknown"}`
+    caught:
+      eslint.status !== 0 &&
+      /Date\.now|no-restricted-syntax/.test(commandOutput(eslint)),
+    evidence:
+      commandOutput(eslint)
+        .split("\n")
+        .find((line) => /Date\.now|no-restricted-syntax/.test(line)) ??
+      `exit ${eslint.status ?? "unknown"}`,
   });
 
-  const inventory = run(process.execPath, [path.join(ROOT, "scripts/sansio-inventory.mjs")]);
+  const inventory = run(process.execPath, [
+    path.join(ROOT, "scripts/sansio-inventory.mjs"),
+  ]);
   let inventoryReport;
   if (inventory.status === 0 && fs.existsSync(INVENTORY_PATH)) {
     inventoryReport = JSON.parse(fs.readFileSync(INVENTORY_PATH, "utf8"));
   }
   const inventoryViolation = inventoryReport?.violations?.find(
-    (violation) => violation.file === SOURCE_REL && violation.api === "Date.now"
+    (violation) =>
+      violation.file === SOURCE_REL && violation.api === "Date.now",
   );
   layers.push({
     name: "ratchet-inventory",
     command: "node scripts/sansio-inventory.mjs",
     caught: inventoryViolation !== undefined,
-    evidence: inventoryViolation === undefined
-      ? commandOutput(inventory) || `exit ${inventory.status ?? "unknown"}`
-      : `${inventoryViolation.file}:${inventoryViolation.line} ${inventoryViolation.api}`
+    evidence:
+      inventoryViolation === undefined
+        ? commandOutput(inventory) || `exit ${inventory.status ?? "unknown"}`
+        : `${inventoryViolation.file}:${inventoryViolation.line} ${inventoryViolation.api}`,
   });
 
   const tripwire = run(path.join(ROOT, "node_modules/.bin/vitest"), [
     "run",
     "--project",
     "protocol-tripwire",
-    TEST_REL
+    TEST_REL,
   ]);
   layers.push({
     name: "tripwire",
     command: `vitest run --project protocol-tripwire ${TEST_REL}`,
     caught: tripwire.status === 0,
-    evidence: tripwire.status === 0
-      ? "protocol test observed SansIOViolation from Date.now"
-      : commandOutput(tripwire).slice(-1000)
+    evidence:
+      tripwire.status === 0
+        ? "protocol test observed SansIOViolation from Date.now"
+        : commandOutput(tripwire).slice(-1000),
   });
 } catch (error) {
   fatalError = error;
@@ -125,8 +139,8 @@ const report = {
   cleanup: {
     fixtureRestored: isRestored(SOURCE_PATH, previousSource),
     testRestored: isRestored(TEST_PATH, previousTest),
-    inventoryRestored: isRestored(INVENTORY_PATH, previousInventory)
-  }
+    inventoryRestored: isRestored(INVENTORY_PATH, previousInventory),
+  },
 };
 
 fs.writeFileSync(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`);
@@ -137,7 +151,9 @@ if (fatalError !== undefined) {
 for (const layer of layers) {
   console.log(`Canary ${layer.name}: ${layer.caught ? "caught" : "MISSED"}`);
 }
-console.log(`Canary result: ${caughtCount}/${MINIMUM_CATCHES} required layers caught Date.now()`);
+console.log(
+  `Canary result: ${caughtCount}/${MINIMUM_CATCHES} required layers caught Date.now()`,
+);
 
 if (!report.passed || !Object.values(report.cleanup).every(Boolean)) {
   process.exit(1);

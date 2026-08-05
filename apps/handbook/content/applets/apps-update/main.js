@@ -8,7 +8,7 @@ export async function run(sdk, report) {
     name: "hb-update",
     version: "0.1.0",
     entry: "bundle.js",
-    capabilities: ["identity"]
+    capabilities: ["identity"],
   };
   const manifestV2 = { ...manifestV1, version: "0.2.0" };
 
@@ -16,11 +16,11 @@ export async function run(sdk, report) {
     const writeProject = async (version) => {
       await sdk.workspace.write(
         `${project}/app.json`,
-        JSON.stringify({ ...manifestV1, version }, null, 2)
+        JSON.stringify({ ...manifestV1, version }, null, 2),
       );
       await sdk.workspace.write(
         `${project}/bundle.js`,
-        `import { ui } from "@twistedpear/miniapp-sdk";\nawait ui.render({ root: { id: "root", type: "text", props: { value: "v${version}" } } });\n`
+        `import { ui } from "@twistedpear/miniapp-sdk";\nawait ui.render({ root: { id: "root", type: "text", props: { value: "v${version}" } } });\n`,
       );
     };
 
@@ -32,7 +32,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `v1 install version mismatch: ${JSON.stringify(installedV1)}`,
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       });
       return;
     }
@@ -45,7 +45,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `v2 update version mismatch: ${JSON.stringify(installedV2)}`,
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       });
       return;
     }
@@ -53,16 +53,20 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: `Updated ${installedV2.appId} ${manifestV1.version} → ${manifestV2.version}`,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
-    const unavailable = /not configured|UNCONFIGURED|CONFIRMATION_UNAVAILABLE|unavailable/i.test(message);
+    const notGranted =
+      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const unavailable =
+      /not configured|UNCONFIGURED|CONFIRMATION_UNAVAILABLE|unavailable/i.test(
+        message,
+      );
     report({
       status: notGranted ? "not-granted" : unavailable ? "unavailable" : "fail",
       details: message,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   }
 }

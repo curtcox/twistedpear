@@ -6,7 +6,7 @@ import type {
   TcpFactory,
   TcpListenOptions,
   TcpListener,
-  UdpFactory
+  UdpFactory,
 } from "../runtime.js";
 
 type BareTcpModule = typeof import("bare-tcp");
@@ -25,12 +25,17 @@ async function loadBareDgram(): Promise<BareDgramModule> {
   return bareDgramModule;
 }
 
-function bareSocketConnection(socket: InstanceType<BareTcpModule["Socket"]>): DuplexConnection {
+function bareSocketConnection(
+  socket: InstanceType<BareTcpModule["Socket"]>,
+): DuplexConnection {
   const queue = new AsyncChunkQueue();
   let closed = false;
 
   socket.on("data", (chunk: unknown) => {
-    const bytes = chunk instanceof Uint8Array ? chunk : Uint8Array.from(chunk as ArrayLike<number>);
+    const bytes =
+      chunk instanceof Uint8Array
+        ? chunk
+        : Uint8Array.from(chunk as ArrayLike<number>);
     queue.push(bytes);
   });
 
@@ -61,7 +66,7 @@ function bareSocketConnection(socket: InstanceType<BareTcpModule["Socket"]>): Du
       await new Promise<void>((resolve) => {
         socket.end(() => resolve());
       });
-    }
+    },
   };
 }
 
@@ -69,7 +74,8 @@ class BareTcpFactory implements TcpFactory {
   async connect(options: TcpConnectOptions): Promise<DuplexConnection> {
     const tcp = await loadBareTcp();
     // `0` means no factory timer (caller owns connect timeout).
-    const timeoutMs = options.connectTimeoutMs === 0 ? 0 : (options.connectTimeoutMs ?? 5_000);
+    const timeoutMs =
+      options.connectTimeoutMs === 0 ? 0 : (options.connectTimeoutMs ?? 5_000);
     const socket = new tcp.Socket({ eagerOpen: true });
 
     await new Promise<void>((resolve, reject) => {
@@ -177,7 +183,7 @@ class BareTcpFactory implements TcpFactory {
             }
           });
         });
-      }
+      },
     };
   }
 }
@@ -187,20 +193,29 @@ class BareBoundDatagramSocket implements BoundDatagramSocket {
   private closed = false;
   readonly address: { readonly host: string; readonly port: number };
 
-  constructor(private readonly socket: InstanceType<BareDgramModule["Socket"]>) {
+  constructor(
+    private readonly socket: InstanceType<BareDgramModule["Socket"]>,
+  ) {
     const bound = socket.address();
     if (bound === null) {
       throw new Error("UDP socket is not bound");
     }
 
     this.address = { host: bound.address, port: bound.port };
-    socket.on("message", (message: Buffer | Uint8Array, remote: { address: string; port: number }) => {
-      this.queue.push({
-        data: message instanceof Uint8Array ? message : Uint8Array.from(message),
-        host: remote.address,
-        port: remote.port
-      });
-    });
+    socket.on(
+      "message",
+      (
+        message: Buffer | Uint8Array,
+        remote: { address: string; port: number },
+      ) => {
+        this.queue.push({
+          data:
+            message instanceof Uint8Array ? message : Uint8Array.from(message),
+          host: remote.address,
+          port: remote.port,
+        });
+      },
+    );
 
     socket.on("close", () => {
       this.closed = true;
@@ -260,7 +275,9 @@ class BareUdpFactory implements UdpFactory {
 
 class AsyncChunkQueue implements AsyncIterable<Uint8Array> {
   private readonly values: Uint8Array[] = [];
-  private readonly waiters: Array<(result: IteratorResult<Uint8Array>) => void> = [];
+  private readonly waiters: Array<
+    (result: IteratorResult<Uint8Array>) => void
+  > = [];
   private closed = false;
 
   push(chunk: Uint8Array): void {
@@ -299,14 +316,16 @@ class AsyncChunkQueue implements AsyncIterable<Uint8Array> {
         return new Promise<IteratorResult<Uint8Array>>((resolve) => {
           this.waiters.push(resolve);
         });
-      }
+      },
     };
   }
 }
 
 class AsyncDatagramQueue implements AsyncIterable<DatagramPacket> {
   private readonly values: DatagramPacket[] = [];
-  private readonly waiters: Array<(result: IteratorResult<DatagramPacket>) => void> = [];
+  private readonly waiters: Array<
+    (result: IteratorResult<DatagramPacket>) => void
+  > = [];
   private closed = false;
 
   push(packet: DatagramPacket): void {
@@ -345,7 +364,7 @@ class AsyncDatagramQueue implements AsyncIterable<DatagramPacket> {
         return new Promise<IteratorResult<DatagramPacket>>((resolve) => {
           this.waiters.push(resolve);
         });
-      }
+      },
     };
   }
 }

@@ -2,11 +2,7 @@
   "name": "signal-check",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": [
-    "identity",
-    "lxmf:send",
-    "lxmf:receive"
-  ],
+  "capabilities": ["identity", "lxmf:send", "lxmf:receive"],
   "icon": null,
   "minHostApi": "0.1.0"
 }

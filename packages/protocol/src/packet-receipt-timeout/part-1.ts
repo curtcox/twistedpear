@@ -22,7 +22,7 @@ export const PacketReceiptStatus = {
   FAILED: 0x00,
   SENT: 0x01,
   DELIVERED: 0x02,
-  CULLED: 0xff
+  CULLED: 0xff,
 } as const;
 
 export type PacketReceiptStatusValue =
@@ -37,7 +37,11 @@ export interface PacketReceiptTimeoutState {
 
 export type PacketReceiptTimeoutEvent =
   | Event
-  | { readonly kind: "receipt/arm"; readonly at: number; readonly timeoutSeconds: number }
+  | {
+      readonly kind: "receipt/arm";
+      readonly at: number;
+      readonly timeoutSeconds: number;
+    }
   | { readonly kind: "receipt/delivered"; readonly at: number }
   | { readonly kind: "receipt/failed"; readonly at: number }
   | { readonly kind: "receipt/check"; readonly at: number };
@@ -58,7 +62,7 @@ export function initialPacketReceiptTimeoutState(): PacketReceiptTimeoutState {
     status: PacketReceiptStatus.SENT,
     timeoutAt: null,
     concludedAt: null,
-    timedOut: false
+    timedOut: false,
   };
 }
 
@@ -66,7 +70,11 @@ export function checkPacketReceiptTimeout(input: {
   readonly status: PacketReceiptStatusValue;
   readonly timeoutAt: number | null;
   readonly nowSeconds: number;
-}): { readonly timedOut: boolean; readonly status: PacketReceiptStatusValue; readonly concludedAt: number | null } {
+}): {
+  readonly timedOut: boolean;
+  readonly status: PacketReceiptStatusValue;
+  readonly concludedAt: number | null;
+} {
   if (
     input.status === PacketReceiptStatus.DELIVERED ||
     input.status === PacketReceiptStatus.FAILED
@@ -78,7 +86,7 @@ export function checkPacketReceiptTimeout(input: {
     return {
       timedOut: true,
       status: PacketReceiptStatus.FAILED,
-      concludedAt: input.nowSeconds
+      concludedAt: input.nowSeconds,
     };
   }
 
@@ -86,37 +94,45 @@ export function checkPacketReceiptTimeout(input: {
 }
 
 /** Whether a packet-receipt timeout timer should be armed from intents. */
-export function shouldArmPacketReceiptTimeoutTimer(timeoutSeconds: number): boolean {
+export function shouldArmPacketReceiptTimeoutTimer(
+  timeoutSeconds: number,
+): boolean {
   return timeoutSeconds > 0;
 }
 
-export const stepPacketReceiptTimeout: StepFn<PacketReceiptTimeoutState> = (state, event) => {
-  const result = stepPacketReceiptTimeoutInner(state, event as PacketReceiptTimeoutEvent);
+export const stepPacketReceiptTimeout: StepFn<PacketReceiptTimeoutState> = (
+  state,
+  event,
+) => {
+  const result = stepPacketReceiptTimeoutInner(
+    state,
+    event as PacketReceiptTimeoutEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPacketReceiptTimeoutWithActions(
   state: PacketReceiptTimeoutState,
-  event: PacketReceiptTimeoutEvent
+  event: PacketReceiptTimeoutEvent,
 ): PacketReceiptTimeoutStepResult {
   return stepPacketReceiptTimeoutInner(state, event);
 }
 
 function stepPacketReceiptTimeoutInner(
   state: PacketReceiptTimeoutState,
-  event: PacketReceiptTimeoutEvent
+  event: PacketReceiptTimeoutEvent,
 ): PacketReceiptTimeoutStepResult {
   if (event.kind === "receipt/arm") {
     const intents: Intent[] = [
-      { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }
+      { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } },
     ];
     if (shouldArmPacketReceiptTimeoutTimer(event.timeoutSeconds)) {
       intents.push({
         kind: "timer/set",
         timer: {
           id: RECEIPT_TIMEOUT_TIMER_ID,
-          delayMs: event.timeoutSeconds * 1000
-        }
+          delayMs: event.timeoutSeconds * 1000,
+        },
       });
     }
     return {
@@ -124,10 +140,10 @@ function stepPacketReceiptTimeoutInner(
         status: PacketReceiptStatus.SENT,
         timeoutAt: event.at + event.timeoutSeconds,
         concludedAt: null,
-        timedOut: false
+        timedOut: false,
       },
       intents,
-      actions: []
+      actions: [],
     };
   }
 
@@ -137,10 +153,12 @@ function stepPacketReceiptTimeoutInner(
         ...state,
         status: PacketReceiptStatus.DELIVERED,
         concludedAt: event.at,
-        timedOut: false
+        timedOut: false,
       },
-      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }],
-      actions: [{ kind: "delivered" }]
+      intents: [
+        { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } },
+      ],
+      actions: [{ kind: "delivered" }],
     };
   }
 
@@ -156,10 +174,12 @@ function stepPacketReceiptTimeoutInner(
         ...state,
         status: PacketReceiptStatus.FAILED,
         concludedAt: event.at,
-        timedOut: false
+        timedOut: false,
       },
-      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }],
-      actions: [{ kind: "failed" }]
+      intents: [
+        { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } },
+      ],
+      actions: [{ kind: "failed" }],
     };
   }
 
@@ -171,7 +191,7 @@ function stepPacketReceiptTimeoutInner(
     const result = checkPacketReceiptTimeout({
       status: state.status,
       timeoutAt: state.timeoutAt,
-      nowSeconds: at
+      nowSeconds: at,
     });
     if (!result.timedOut) {
       return { state: { ...state, timedOut: false }, intents: [], actions: [] };
@@ -181,20 +201,21 @@ function stepPacketReceiptTimeoutInner(
         status: result.status,
         timeoutAt: state.timeoutAt,
         concludedAt: result.concludedAt,
-        timedOut: true
+        timedOut: true,
       },
       intents:
         event.kind === "receipt/check"
           ? [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }]
           : [],
-      actions: [{ kind: "timeout" }]
+      actions: [{ kind: "timeout" }],
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export type OutboundReceiptOutcome = "none" | "keep-receipt" | "fail-and-drop-receipt";
+export type OutboundReceiptOutcome =
+  "none" | "keep-receipt" | "fail-and-drop-receipt";
 
 /**
  * After outbound transmit: whether a created receipt is kept, failed+dropped, or unused.
@@ -245,7 +266,7 @@ export function initialOutboundReceiptPlanState(): OutboundReceiptPlanState {
 
 export function stepOutboundReceiptPlanWithActions(
   state: OutboundReceiptPlanState,
-  event: OutboundReceiptPlanEvent
+  event: OutboundReceiptPlanEvent,
 ): OutboundReceiptPlanStepResult {
   if (event.kind === "receipt/outbound-plan-gate") {
     return {
@@ -255,10 +276,10 @@ export function stepOutboundReceiptPlanWithActions(
         {
           kind: planOutboundReceiptOutcome({
             createReceipt: event.createReceipt,
-            sent: event.sent
-          })
-        }
-      ]
+            sent: event.sent,
+          }),
+        },
+      ],
     };
   }
 
@@ -267,26 +288,26 @@ export function stepOutboundReceiptPlanWithActions(
 
 /** Extract the outbound receipt plan from actions; null when empty. */
 export function outboundReceiptPlanFromActions(
-  actions: ReadonlyArray<OutboundReceiptPlanAction>
+  actions: ReadonlyArray<OutboundReceiptPlanAction>,
 ): OutboundReceiptOutcome | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldOutboundReceiptNonePlan(
-  actions: ReadonlyArray<OutboundReceiptPlanAction>
+  actions: ReadonlyArray<OutboundReceiptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "none");
 }
 
 export function shouldOutboundKeepReceiptPlan(
-  actions: ReadonlyArray<OutboundReceiptPlanAction>
+  actions: ReadonlyArray<OutboundReceiptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "keep-receipt");
 }
 
 export function shouldOutboundFailAndDropReceiptPlan(
-  actions: ReadonlyArray<OutboundReceiptPlanAction>
+  actions: ReadonlyArray<OutboundReceiptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "fail-and-drop-receipt");
 }
@@ -315,8 +336,7 @@ export type FailAndDropOutboundReceiptEvent =
     };
 
 export type FailAndDropOutboundReceiptAction =
-  | { readonly kind: "fail-and-drop" }
-  | { readonly kind: "skip" };
+  { readonly kind: "fail-and-drop" } | { readonly kind: "skip" };
 
 export interface FailAndDropOutboundReceiptStepResult {
   readonly state: FailAndDropOutboundReceiptState;
@@ -330,7 +350,7 @@ export function initialFailAndDropOutboundReceiptState(): FailAndDropOutboundRec
 
 export function stepFailAndDropOutboundReceiptWithActions(
   state: FailAndDropOutboundReceiptState,
-  event: FailAndDropOutboundReceiptEvent
+  event: FailAndDropOutboundReceiptEvent,
 ): FailAndDropOutboundReceiptStepResult {
   if (event.kind === "receipt/fail-and-drop-gate") {
     return {
@@ -340,12 +360,12 @@ export function stepFailAndDropOutboundReceiptWithActions(
         {
           kind: shouldFailAndDropOutboundReceipt({
             failAndDrop: event.failAndDrop,
-            receiptPresent: event.receiptPresent
+            receiptPresent: event.receiptPresent,
           })
             ? "fail-and-drop"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -353,13 +373,13 @@ export function stepFailAndDropOutboundReceiptWithActions(
 }
 
 export function shouldFailAndDropOutboundReceiptNow(
-  actions: ReadonlyArray<FailAndDropOutboundReceiptAction>
+  actions: ReadonlyArray<FailAndDropOutboundReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "fail-and-drop");
 }
 
 export function shouldSkipFailAndDropOutboundReceipt(
-  actions: ReadonlyArray<FailAndDropOutboundReceiptAction>
+  actions: ReadonlyArray<FailAndDropOutboundReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -391,8 +411,7 @@ export type KeepOutboundReceiptEvent =
     };
 
 export type KeepOutboundReceiptAction =
-  | { readonly kind: "keep" }
-  | { readonly kind: "skip" };
+  { readonly kind: "keep" } | { readonly kind: "skip" };
 
 export interface KeepOutboundReceiptStepResult {
   readonly state: KeepOutboundReceiptState;
@@ -432,21 +451,24 @@ export interface OutboundReceiptStepResult {
 
 export function stepOutboundReceiptWithActions(
   state: OutboundReceiptState,
-  event: OutboundReceiptEvent
+  event: OutboundReceiptEvent,
 ): OutboundReceiptStepResult {
   return stepOutboundReceiptInner(state, event);
 }
 
 export function stepOutboundReceiptInner(
   state: OutboundReceiptState,
-  event: OutboundReceiptEvent
+  event: OutboundReceiptEvent,
 ): OutboundReceiptStepResult {
   if (event.kind === "receipt/outbound-gate") {
-    const planActions = stepOutboundReceiptPlanWithActions(initialOutboundReceiptPlanState(), {
-      kind: "receipt/outbound-plan-gate",
-      createReceipt: event.createReceipt,
-      sent: event.sent
-    }).actions;
+    const planActions = stepOutboundReceiptPlanWithActions(
+      initialOutboundReceiptPlanState(),
+      {
+        kind: "receipt/outbound-plan-gate",
+        createReceipt: event.createReceipt,
+        sent: event.sent,
+      },
+    ).actions;
     const plan = outboundReceiptPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };

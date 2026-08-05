@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { Identity, NodeCryptoProvider, bytesToHex } from "@twistedpear/reticulum-ts";
+import {
+  Identity,
+  NodeCryptoProvider,
+  bytesToHex,
+} from "@twistedpear/reticulum-ts";
 import {
   TrustStore,
   TrustStoreError,
   decodePublisherIdentity256t,
-  encodePublisherIdentity256t
+  encodePublisherIdentity256t,
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -33,8 +37,18 @@ describe("trust store", () => {
     expect(await store.list()).toEqual([]);
     expect(await store.isTrusted(key)).toBe(false);
 
-    await store.add({ publisherPublicKey: key, label: "Alice", addedAt: 1, source: "paste" });
-    await store.add({ publisherPublicKey: key, label: "Alice (updated)", addedAt: 2, source: "qr" });
+    await store.add({
+      publisherPublicKey: key,
+      label: "Alice",
+      addedAt: 1,
+      source: "paste",
+    });
+    await store.add({
+      publisherPublicKey: key,
+      label: "Alice (updated)",
+      addedAt: 2,
+      source: "qr",
+    });
     const entries = await store.list();
     expect(entries).toHaveLength(1);
     expect(entries[0]?.label).toBe("Alice (updated)");
@@ -47,7 +61,12 @@ describe("trust store", () => {
   it("rejects malformed keys", async () => {
     const store = new TrustStore(new MemoryStore());
     await expect(
-      store.add({ publisherPublicKey: "zz", label: "bad", addedAt: 0, source: "manual" })
+      store.add({
+        publisherPublicKey: "zz",
+        label: "bad",
+        addedAt: 0,
+        source: "manual",
+      }),
     ).rejects.toBeInstanceOf(TrustStoreError);
   });
 });
@@ -63,7 +82,11 @@ describe("publisher identity 256t strings", () => {
   });
 
   it("rejects strings that are not inline 64-byte keys", () => {
-    expect(() => decodePublisherIdentity256t("nonsense")).toThrow(TrustStoreError);
-    expect(() => encodePublisherIdentity256t("ab".repeat(16))).toThrow(TrustStoreError);
+    expect(() => decodePublisherIdentity256t("nonsense")).toThrow(
+      TrustStoreError,
+    );
+    expect(() => encodePublisherIdentity256t("ab".repeat(16))).toThrow(
+      TrustStoreError,
+    );
   });
 });

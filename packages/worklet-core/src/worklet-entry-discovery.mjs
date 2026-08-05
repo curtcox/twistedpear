@@ -32,7 +32,7 @@ export function createAutomaticReticulumDiscovery(deps) {
         direction: deps.DestinationDirection.IN,
         type: deps.DestinationType.SINGLE,
         appName: "tp",
-        aspects: ["peer", aspect]
+        aspects: ["peer", aspect],
       });
       destination.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
       destination.setLinkEstablishedCallback((link) => {
@@ -54,11 +54,18 @@ export function createAutomaticReticulumDiscovery(deps) {
     node.registerAnnounceHandler({
       aspectFilter: `tp.peer-discovery.${aspect}`,
       receivedAnnounce(info) {
-        if (info.appData === null || bytesToHex(info.announcedIdentity.hash) === bytesToHex(identity.hash)) return;
+        if (
+          info.appData === null ||
+          bytesToHex(info.announcedIdentity.hash) === bytesToHex(identity.hash)
+        )
+          return;
         try {
           const offer = decodePeerInvitation(info.appData, Date.now());
           if (offer.role !== "offer" || offer.service !== service) return;
-          const session = { id: `auto:${bytesToHex(offer.sessionId)}`, kind: "reticulum" };
+          const session = {
+            id: `auto:${bytesToHex(offer.sessionId)}`,
+            kind: "reticulum",
+          };
           const inbound = { session, envelope: info.appData };
           deps.automaticInboundRoutes.set(session.id, offer);
           const waiters = deps.automaticInboundWaiters.get(aspect) ?? [];
@@ -73,7 +80,7 @@ export function createAutomaticReticulumDiscovery(deps) {
         } catch {
           // Hostile announce data is discarded before pairing.
         }
-      }
+      },
     });
     deps.automaticDiscoveryHandlers.add(aspect);
     return aspect;
@@ -83,8 +90,15 @@ export function createAutomaticReticulumDiscovery(deps) {
     return {
       async availability() {
         return deps.getReticulum() !== null && deps.status.onlineInterfaces > 0
-          ? { state: "available", reason: "Reticulum announce and Link signaling are online" }
-          : { state: "offline", reason: "No online Reticulum interface is available for automatic discovery" };
+          ? {
+              state: "available",
+              reason: "Reticulum announce and Link signaling are online",
+            }
+          : {
+              state: "offline",
+              reason:
+                "No online Reticulum interface is available for automatic discovery",
+            };
       },
       async *offer(session, envelope) {
         const node = await deps.ensureReticulum();
@@ -92,7 +106,11 @@ export function createAutomaticReticulumDiscovery(deps) {
         const key = bytesToHex(invitation.sessionId);
         deps.automaticOfferKeys.set(session.id, key);
         const answer = new Promise((resolve, reject) =>
-          deps.automaticAnswerWaiters.set(key, { resolve, reject, adapterSessionId: session.id })
+          deps.automaticAnswerWaiters.set(key, {
+            resolve,
+            reject,
+            adapterSessionId: session.id,
+          }),
         );
         const aspect = peerServiceAspect(deps.provider, invitation.service);
         let destination = deps.automaticDiscoveryDestinations.get(aspect);
@@ -103,7 +121,7 @@ export function createAutomaticReticulumDiscovery(deps) {
             direction: deps.DestinationDirection.IN,
             type: deps.DestinationType.SINGLE,
             appName: "tp",
-            aspects: ["peer-discovery", aspect]
+            aspects: ["peer-discovery", aspect],
           });
           deps.automaticDiscoveryDestinations.set(aspect, destination);
         }
@@ -111,7 +129,10 @@ export function createAutomaticReticulumDiscovery(deps) {
         yield await answer;
       },
       async *listen(options) {
-        const aspect = await ensureAutomaticDiscoveryListener(options.service, identity);
+        const aspect = await ensureAutomaticDiscoveryListener(
+          options.service,
+          identity,
+        );
         const bucket = deps.automaticInboundBuckets.get(aspect) ?? [];
         const immediate = bucket.shift();
         deps.automaticInboundBuckets.set(aspect, bucket);
@@ -128,11 +149,21 @@ export function createAutomaticReticulumDiscovery(deps) {
       async answer(session, envelope) {
         const offer = deps.automaticInboundRoutes.get(session.id);
         deps.automaticInboundRoutes.delete(session.id);
-        const candidate = offer?.candidates.find((entry) => entry.kind === "reticulum");
+        const candidate = offer?.candidates.find(
+          (entry) => entry.kind === "reticulum",
+        );
         const remoteIdentity =
-          offer?.identityProof === undefined ? null : Identity.fromPublicKey(deps.provider, offer.identityProof);
-        if (offer === undefined || candidate === undefined || remoteIdentity === null) {
-          throw new Error("Automatic Reticulum offer has no authenticated return destination");
+          offer?.identityProof === undefined
+            ? null
+            : Identity.fromPublicKey(deps.provider, offer.identityProof);
+        if (
+          offer === undefined ||
+          candidate === undefined ||
+          remoteIdentity === null
+        ) {
+          throw new Error(
+            "Automatic Reticulum offer has no authenticated return destination",
+          );
         }
         const node = await deps.ensureReticulum();
         const outbound = node.registerDestination({
@@ -141,10 +172,12 @@ export function createAutomaticReticulumDiscovery(deps) {
           direction: deps.DestinationDirection.OUT,
           type: deps.DestinationType.SINGLE,
           appName: "tp",
-          aspects: ["peer", peerServiceAspect(deps.provider, offer.service)]
+          aspects: ["peer", peerServiceAspect(deps.provider, offer.service)],
         });
         if (bytesToHex(outbound.hash) !== bytesToHex(candidate.value)) {
-          throw new Error("Automatic Reticulum return destination does not match the signed offer");
+          throw new Error(
+            "Automatic Reticulum return destination does not match the signed offer",
+          );
         }
         if (!node.hasPath(outbound.hash)) {
           node.requestPath(outbound.hash);
@@ -153,7 +186,11 @@ export function createAutomaticReticulumDiscovery(deps) {
           }
         }
         const link = await new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("Automatic Reticulum answer link timed out")), 30_000);
+          const timer = setTimeout(
+            () =>
+              reject(new Error("Automatic Reticulum answer link timed out")),
+            30_000,
+          );
           outbound.requestLink({
             linkEstablished(established) {
               clearTimeout(timer);
@@ -162,7 +199,7 @@ export function createAutomaticReticulumDiscovery(deps) {
             linkClosed() {
               clearTimeout(timer);
               reject(new Error("Automatic Reticulum answer link closed"));
-            }
+            },
           });
         });
         await link.send(envelope);
@@ -179,7 +216,7 @@ export function createAutomaticReticulumDiscovery(deps) {
           deps.automaticAnswerWaiters.delete(key);
           waiter?.reject(new Error("Automatic Reticulum discovery cancelled"));
         }
-      }
+      },
     };
   }
 
@@ -187,6 +224,6 @@ export function createAutomaticReticulumDiscovery(deps) {
     receiveAutomaticAnswer,
     ensurePeerLinkDestination,
     ensureAutomaticDiscoveryListener,
-    automaticReticulumChannel
+    automaticReticulumChannel,
   };
 }

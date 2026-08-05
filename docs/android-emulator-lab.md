@@ -1,6 +1,5 @@
 # Android Emulator Lab
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -120,12 +119,12 @@ client to `10.0.2.2:4242` when running on emulator.
 **CI automation:** `npm run test:android-emulator:e5` (after E1 in full lab). Record with
 `ANDROID_BENCHMARK_RECORD=1`.
 
-| Metric | Record in |
-|---|---|
-| Hyperdrive install success/fallback | E1 maestro (`hyperdrive` in install progress) |
-| Bare Worker spawn latency | `conformance/android-emulator/measured-worker.json` |
-| Bare Worker kill latency | same |
-| Busy-loop watchdog kill | same |
+| Metric                              | Record in                                           |
+| ----------------------------------- | --------------------------------------------------- |
+| Hyperdrive install success/fallback | E1 maestro (`hyperdrive` in install progress)       |
+| Bare Worker spawn latency           | `conformance/android-emulator/measured-worker.json` |
+| Bare Worker kill latency            | same                                                |
+| Busy-loop watchdog kill             | same                                                |
 
 ---
 
@@ -134,11 +133,11 @@ client to `10.0.2.2:4242` when running on emulator.
 The optional [`.github/workflows/emulator.yml`](../.github/workflows/emulator.yml) workflow
 runs on `workflow_dispatch`:
 
-| Job | Command / scope |
-|---|---|
-| `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
-| `android-native` | `npm run test:android-native` |
-| `emulator-ui` | KVM API 34 emulator — Maestro E1–E5 + handbook smoke + E3 adb (`conformance/android-emulator/ci.sh`) |
+| Job              | Command / scope                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates`                        |
+| `android-native` | `npm run test:android-native`                                                                        |
+| `emulator-ui`    | KVM API 34 emulator — Maestro E1–E5 + handbook smoke + E3 adb (`conformance/android-emulator/ci.sh`) |
 
 Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host peer).
 
@@ -148,15 +147,15 @@ iOS Handbook UI: `npm run test:ios-sim-handbook-ui` or `conformance/ios-sim/ci-h
 
 ## Quick reference
 
-| Procedure | Headless proxy |
-|---|---|
-| E1 TCP install | `npm run test:harness-install` |
-| E2 Resource install | `npm run test:harness-install` |
-| E3 Background service | `npm run test:android-emulator:e3` + manual emulator |
-| E4 OTA/rollback | `npm run test:updates` + Maestro `.maestro/e4-ota-rollback.yaml` |
-| E5 Hyperdrive + Worker | `npm run test:android-emulator:e5` + `npm run test:bare-hyperdrive` |
-| Handbook UI smoke | `.maestro/handbook-smoke.yaml` (via shared `conformance/handbook/handbook-peer.mjs` + `npm run test:android-emulator`) |
-| Full emulator UI lab | `npm run test:android-emulator` |
-| Native bridge JVM tests | `npm run test:android-native` |
+| Procedure               | Headless proxy                                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| E1 TCP install          | `npm run test:harness-install`                                                                                         |
+| E2 Resource install     | `npm run test:harness-install`                                                                                         |
+| E3 Background service   | `npm run test:android-emulator:e3` + manual emulator                                                                   |
+| E4 OTA/rollback         | `npm run test:updates` + Maestro `.maestro/e4-ota-rollback.yaml`                                                       |
+| E5 Hyperdrive + Worker  | `npm run test:android-emulator:e5` + `npm run test:bare-hyperdrive`                                                    |
+| Handbook UI smoke       | `.maestro/handbook-smoke.yaml` (via shared `conformance/handbook/handbook-peer.mjs` + `npm run test:android-emulator`) |
+| Full emulator UI lab    | `npm run test:android-emulator`                                                                                        |
+| Native bridge JVM tests | `npm run test:android-native`                                                                                          |
 
 Record outcomes in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) phase exit checklists.

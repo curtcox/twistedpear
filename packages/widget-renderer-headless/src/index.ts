@@ -11,7 +11,7 @@ import type {
   RenderedWidgetNode,
   WidgetNode,
   WidgetPatch,
-  WidgetTree
+  WidgetTree,
 } from "@twistedpear/miniapp-runtime";
 import { visitWidget } from "@twistedpear/miniapp-runtime";
 
@@ -27,7 +27,7 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
   const style = renderStyle(node.style);
   const base = {
     id: node.id,
-    ...(style === undefined ? {} : { style })
+    ...(style === undefined ? {} : { style }),
   };
   const children = (node.children ?? []).map(renderNode);
   const withChildren = children.length === 0 ? {} : { children };
@@ -35,14 +35,18 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
   return visitWidget(node, {
     view: () => ({ ...base, component: "View", ...withChildren }),
     scroll: () => ({ ...base, component: "ScrollView", ...withChildren }),
-    text: (n) => ({ ...base, component: "Text", props: { value: asString(n.props?.value, "") } }),
+    text: (n) => ({
+      ...base,
+      component: "Text",
+      props: { value: asString(n.props?.value, "") },
+    }),
     button: (n) => ({
       ...base,
       component: "Button",
       props: {
         label: asString(n.props?.label, "Button"),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
-      }
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+      },
     }),
     "text-input": (n) => ({
       ...base,
@@ -50,39 +54,52 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
       props: {
         value: asString(n.props?.value, ""),
         placeholder: asString(n.props?.placeholder, ""),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
-      }
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+      },
     }),
     switch: (n) => ({
       ...base,
       component: "Switch",
       props: {
         value: Boolean(n.props?.value),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
-      }
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+      },
     }),
     divider: () => ({ ...base, component: "Divider" }),
     spacer: () => ({ ...base, component: "Spacer", props: { height: 8 } }),
-    progress: (n) => ({ ...base, component: "Progress", props: { value: n.props?.value ?? 0 } }),
+    progress: (n) => ({
+      ...base,
+      component: "Progress",
+      props: { value: n.props?.value ?? 0 },
+    }),
     list: (n) => ({
       ...base,
       component: "List",
-      children: (Array.isArray(n.props?.items) ? n.props.items : []).map((item, index) => ({
-        component: "ListItem",
-        id: `${n.id}-item-${index}`,
-        props: { value: typeof item === "string" ? item : JSON.stringify(item) }
-      }))
+      children: (Array.isArray(n.props?.items) ? n.props.items : []).map(
+        (item, index) => ({
+          component: "ListItem",
+          id: `${n.id}-item-${index}`,
+          props: {
+            value: typeof item === "string" ? item : JSON.stringify(item),
+          },
+        }),
+      ),
     }),
-    image: (n) => ({ ...base, component: "Image", props: { asset: asString(n.props?.asset, "") } }),
+    image: (n) => ({
+      ...base,
+      component: "Image",
+      props: { asset: asString(n.props?.asset, "") },
+    }),
     "code-editor": (n) => ({
       ...base,
       component: "CodeEditor",
       props: {
         documentId: asString(n.props?.documentId, ""),
-        language: typeof n.props?.language === "string" ? n.props.language : "text",
+        language:
+          typeof n.props?.language === "string" ? n.props.language : "text",
         readOnly: Boolean(n.props?.readOnly),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
-      }
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+      },
     }),
     "qr-code": (n) => ({
       ...base,
@@ -90,28 +107,33 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
       props: {
         value: asString(n.props?.value, ""),
         ...(typeof n.props?.size === "number" ? { size: n.props.size } : {}),
-        ...(typeof n.props?.caption === "string" ? { caption: n.props.caption } : {})
-      }
+        ...(typeof n.props?.caption === "string"
+          ? { caption: n.props.caption }
+          : {}),
+      },
     }),
     "camera-preview": (n) => previewSurface(base, n),
     "audio-meter": (n) => previewSurface(base, n),
     waveform: (n) => previewSurface(base, n),
     "map-preview": (n) => previewSurface(base, n),
-    "remote-video": (n) => previewSurface(base, n)
+    "remote-video": (n) => previewSurface(base, n),
   });
 }
 
 function previewSurface(
-  base: { readonly id: string; readonly style?: Readonly<Record<string, unknown>> },
-  node: WidgetNode
+  base: {
+    readonly id: string;
+    readonly style?: Readonly<Record<string, unknown>>;
+  },
+  node: WidgetNode,
 ): RenderedWidgetNode {
   return {
     ...base,
     component: "DevicePreview",
     props: {
       surface: node.type,
-      session: asString(node.props?.session, "")
-    }
+      session: asString(node.props?.session, ""),
+    },
   };
 }
 
@@ -119,23 +141,34 @@ function asString(value: unknown, fallback: string): string {
   return value === undefined || value === null ? fallback : String(value);
 }
 
-function renderStyle(style: WidgetNode["style"]): Readonly<Record<string, unknown>> | undefined {
+function renderStyle(
+  style: WidgetNode["style"],
+): Readonly<Record<string, unknown>> | undefined {
   if (style === undefined) return undefined;
   const out: Record<string, unknown> = {};
-  if (style.display !== undefined) out.display = style.display === "none" ? "none" : "flex";
-  if (style.flexDirection !== undefined) out.flexDirection = style.flexDirection;
+  if (style.display !== undefined)
+    out.display = style.display === "none" ? "none" : "flex";
+  if (style.flexDirection !== undefined)
+    out.flexDirection = style.flexDirection;
   if (style.alignItems !== undefined) out.alignItems = style.alignItems;
-  if (style.justifyContent !== undefined) out.justifyContent = style.justifyContent;
+  if (style.justifyContent !== undefined)
+    out.justifyContent = style.justifyContent;
   if (style.gap !== undefined) out.gap = style.gap;
   if (style.padding !== undefined) out.padding = style.padding;
   if (style.margin !== undefined) out.margin = style.margin;
   if (style.width !== undefined) out.width = style.width;
   if (style.height !== undefined) out.height = style.height;
-  if (style.backgroundColor !== undefined) out.backgroundColor = style.backgroundColor;
+  if (style.backgroundColor !== undefined)
+    out.backgroundColor = style.backgroundColor;
   if (style.color !== undefined) out.color = style.color;
   if (style.fontSize !== undefined) out.fontSize = style.fontSize;
   if (style.fontWeight !== undefined) {
-    out.fontWeight = style.fontWeight === "bold" ? "700" : style.fontWeight === "medium" ? "500" : "400";
+    out.fontWeight =
+      style.fontWeight === "bold"
+        ? "700"
+        : style.fontWeight === "medium"
+          ? "500"
+          : "400";
   }
   return Object.keys(out).length === 0 ? undefined : out;
 }
@@ -159,10 +192,16 @@ export class UnappliablePatchError extends Error {
   }
 }
 
-export function applyWidgetPatches(tree: WidgetTree, patches: readonly WidgetPatch[]): WidgetTree {
+export function applyWidgetPatches(
+  tree: WidgetTree,
+  patches: readonly WidgetPatch[],
+): WidgetTree {
   let root: WidgetNode | null = tree.root;
   for (const patch of patches) {
-    if (patch.op === "replace" && (root === null || !containsId(root, patch.id))) {
+    if (
+      patch.op === "replace" &&
+      (root === null || !containsId(root, patch.id))
+    ) {
       throw new UnappliablePatchError(patch);
     }
     root = root === null ? null : applyPatch(root, patch);
@@ -203,7 +242,8 @@ export function renderHeadlessSnapshot(tree: WidgetTree): string {
       node.props === undefined || Object.keys(node.props).length === 0
         ? ""
         : ` ${stableJson(node.props)}`;
-    const style = node.style === undefined ? "" : ` style=${stableJson(node.style)}`;
+    const style =
+      node.style === undefined ? "" : ` style=${stableJson(node.style)}`;
     lines.push(`${pad}${node.component}#${node.id}${props}${style}`);
     for (const child of node.children ?? []) emit(child, depth + 1);
   };
@@ -243,7 +283,7 @@ export interface Box {
 export const REFERENCE_METRIC = {
   defaultFontSize: 16,
   advanceWidth: (fontSize: number): number => Math.round(fontSize * 0.6),
-  lineHeight: (fontSize: number): number => Math.round(fontSize * 1.25)
+  lineHeight: (fontSize: number): number => Math.round(fontSize * 1.25),
 } as const;
 
 const INTRINSIC = {
@@ -258,10 +298,13 @@ const INTRINSIC = {
   imageSize: 64,
   qrSize: 128,
   codeEditorHeight: 160,
-  listItemFontSize: 14
+  listItemFontSize: 14,
 } as const;
 
-export function layoutWidgetTree(tree: WidgetTree, viewport: Viewport): Record<string, Box> {
+export function layoutWidgetTree(
+  tree: WidgetTree,
+  viewport: Viewport,
+): Record<string, Box> {
   const boxes: Record<string, Box> = {};
   place(tree.root, 0, 0, viewport.width, boxes);
   return boxes;
@@ -277,7 +320,7 @@ function textSize(value: string, fontSize: number): Placed {
   const widest = lines.reduce((max, line) => Math.max(max, line.length), 0);
   return {
     width: widest * REFERENCE_METRIC.advanceWidth(fontSize),
-    height: lines.length * REFERENCE_METRIC.lineHeight(fontSize)
+    height: lines.length * REFERENCE_METRIC.lineHeight(fontSize),
   };
 }
 
@@ -286,7 +329,7 @@ function place(
   x: number,
   y: number,
   availWidth: number,
-  boxes: Record<string, Box>
+  boxes: Record<string, Box>,
 ): Placed {
   const style = node.style ?? {};
   if (style.display === "none") {
@@ -296,7 +339,8 @@ function place(
   const innerX = x + margin;
   const innerY = y + margin;
   const availInner = Math.max(0, availWidth - 2 * margin);
-  const width = resolveWidth(style.width, availInner) ?? intrinsicWidth(node, availInner);
+  const width =
+    resolveWidth(style.width, availInner) ?? intrinsicWidth(node, availInner);
   const fontSize = style.fontSize ?? REFERENCE_METRIC.defaultFontSize;
 
   let contentHeight = 0;
@@ -310,7 +354,7 @@ function place(
         x: innerX,
         y: innerY + index * lineHeight,
         width,
-        height: lineHeight
+        height: lineHeight,
       };
     });
     contentHeight = items.length * lineHeight;
@@ -328,7 +372,7 @@ function layoutContainer(
   x: number,
   y: number,
   width: number,
-  boxes: Record<string, Box>
+  boxes: Record<string, Box>,
 ): number {
   const style = node.style ?? {};
   const padding = style.padding ?? 0;
@@ -336,10 +380,13 @@ function layoutContainer(
   const row = style.flexDirection === "row";
   const align = style.alignItems ?? "stretch";
   const inner = Math.max(0, width - 2 * padding);
-  const children = (node.children ?? []).filter((child) => child.style?.display !== "none");
+  const children = (node.children ?? []).filter(
+    (child) => child.style?.display !== "none",
+  );
 
   // Measure pass (scratch box map), then place pass with final coordinates.
-  const placements: Array<{ child: WidgetNode; main: number; size: Placed }> = [];
+  const placements: Array<{ child: WidgetNode; main: number; size: Placed }> =
+    [];
   let cursor = 0;
   let cross = 0;
   for (const child of children) {
@@ -357,7 +404,10 @@ function layoutContainer(
     const leftover = Math.max(0, inner - contentMain);
     if (style.justifyContent === "center") offset = Math.round(leftover / 2);
     else if (style.justifyContent === "flex-end") offset = leftover;
-    else if (style.justifyContent === "space-between" && placements.length > 1) {
+    else if (
+      style.justifyContent === "space-between" &&
+      placements.length > 1
+    ) {
       between = Math.round(leftover / (placements.length - 1));
     }
   }
@@ -373,7 +423,13 @@ function layoutContainer(
     else if (align === "flex-end") crossPos = crossAvail - crossSize;
     const childX = x + padding + (row ? mainPos : crossPos);
     const childY = y + padding + (row ? crossPos : mainPos);
-    place(placement.child, childX, childY, row ? placement.size.width : inner, boxes);
+    place(
+      placement.child,
+      childX,
+      childY,
+      row ? placement.size.width : inner,
+      boxes,
+    );
   }
 
   // The container's content height: rows extend along x, so their height is
@@ -381,13 +437,18 @@ function layoutContainer(
   return (row ? cross : contentMain) + 2 * padding;
 }
 
-function resolveWidth(value: number | `${number}%` | undefined, avail: number): number | undefined {
+function resolveWidth(
+  value: number | `${number}%` | undefined,
+  avail: number,
+): number | undefined {
   if (value === undefined) return undefined;
   if (typeof value === "number") return value;
   return Math.round((Number.parseFloat(value) / 100) * avail);
 }
 
-function resolveHeight(value: number | `${number}%` | undefined): number | undefined {
+function resolveHeight(
+  value: number | `${number}%` | undefined,
+): number | undefined {
   return typeof value === "number" ? value : undefined;
 }
 
@@ -395,18 +456,24 @@ function intrinsicWidth(node: WidgetNode, avail: number): number {
   const fontSize = node.style?.fontSize ?? REFERENCE_METRIC.defaultFontSize;
   switch (node.type) {
     case "text":
-      return Math.min(avail, textSize(asString(node.props?.value, ""), fontSize).width);
+      return Math.min(
+        avail,
+        textSize(asString(node.props?.value, ""), fontSize).width,
+      );
     case "button":
       return Math.min(
         avail,
-        textSize(asString(node.props?.label, "Button"), fontSize).width + 2 * INTRINSIC.buttonPaddingX
+        textSize(asString(node.props?.label, "Button"), fontSize).width +
+          2 * INTRINSIC.buttonPaddingX,
       );
     case "switch":
       return INTRINSIC.switchWidth;
     case "image":
       return INTRINSIC.imageSize;
     case "qr-code":
-      return typeof node.props?.size === "number" ? node.props.size : INTRINSIC.qrSize;
+      return typeof node.props?.size === "number"
+        ? node.props.size
+        : INTRINSIC.qrSize;
     case "camera-preview":
     case "map-preview":
     case "remote-video":
@@ -424,7 +491,9 @@ function intrinsicHeight(node: WidgetNode, fontSize: number): number {
     case "text":
       return textSize(asString(node.props?.value, ""), fontSize).height;
     case "button":
-      return REFERENCE_METRIC.lineHeight(fontSize) + 2 * INTRINSIC.buttonPaddingY;
+      return (
+        REFERENCE_METRIC.lineHeight(fontSize) + 2 * INTRINSIC.buttonPaddingY
+      );
     case "text-input":
       return INTRINSIC.textInputHeight;
     case "switch":
@@ -438,8 +507,14 @@ function intrinsicHeight(node: WidgetNode, fontSize: number): number {
     case "image":
       return INTRINSIC.imageSize;
     case "qr-code": {
-      const size = typeof node.props?.size === "number" ? node.props.size : INTRINSIC.qrSize;
-      const caption = typeof node.props?.caption === "string" ? REFERENCE_METRIC.lineHeight(fontSize) : 0;
+      const size =
+        typeof node.props?.size === "number"
+          ? node.props.size
+          : INTRINSIC.qrSize;
+      const caption =
+        typeof node.props?.caption === "string"
+          ? REFERENCE_METRIC.lineHeight(fontSize)
+          : 0;
       return size + caption;
     }
     case "code-editor":

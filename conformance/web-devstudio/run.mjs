@@ -13,7 +13,7 @@ import {
   NodeCryptoProvider,
   Reticulum,
   nodeRuntime,
-  registerWebSocketServerInterface
+  registerWebSocketServerInterface,
 } from "../../packages/reticulum-ts/dist/index.js";
 
 const devstudioRoot = dirname(fileURLToPath(import.meta.url));
@@ -22,7 +22,7 @@ const repoRoot = join(devstudioRoot, "../..");
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-devstudio/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -32,13 +32,17 @@ function runBuild() {
 async function startGateway() {
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
-  const gatewayNode = Reticulum.create({ provider, runtime, transportEnabled: true });
+  const gatewayNode = Reticulum.create({
+    provider,
+    runtime,
+    transportEnabled: true,
+  });
   gatewayNode.start();
 
   const wsServer = await registerWebSocketServerInterface(gatewayNode, {
     name: "ws-gateway",
     listenHost: "127.0.0.1",
-    listenPort: 0
+    listenPort: 0,
   });
 
   const wsPort = wsServer.address?.port;
@@ -51,7 +55,7 @@ async function startGateway() {
     async stop() {
       await wsServer.close();
       await gatewayNode.stop();
-    }
+    },
   };
 }
 
@@ -88,7 +92,7 @@ function startStaticServer(root) {
               }
             });
           });
-        }
+        },
       });
     });
   });
@@ -96,11 +100,15 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath =
+    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+  if (
+    !resolvedPath.startsWith(resolvedRoot + sep) &&
+    resolvedPath !== resolvedRoot
+  ) {
     response.writeHead(403);
     response.end();
     return;
@@ -112,7 +120,9 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
+  response.writeHead(200, {
+    "content-type": staticContentType(extname(resolvedPath)),
+  });
   if (headOnly) {
     response.end();
     return;
@@ -145,19 +155,27 @@ async function runPlaywright(pageUrl) {
 
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
     try {
-      await page.waitForFunction(() => globalThis.__WEB_DEVSTUDIO__?.status === "done", undefined, {
-        timeout: 120_000
-      });
+      await page.waitForFunction(
+        () => globalThis.__WEB_DEVSTUDIO__?.status === "done",
+        undefined,
+        {
+          timeout: 120_000,
+        },
+      );
     } catch (error) {
-      const snapshot = await page.evaluate(() => globalThis.__WEB_DEVSTUDIO__ ?? null);
+      const snapshot = await page.evaluate(
+        () => globalThis.__WEB_DEVSTUDIO__ ?? null,
+      );
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`
+        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`,
       );
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_DEVSTUDIO__);
     if (result?.status !== "done") {
-      throw new Error(`web devstudio spike incomplete: ${JSON.stringify(result)}`);
+      throw new Error(
+        `web devstudio spike incomplete: ${JSON.stringify(result)}`,
+      );
     }
 
     return result;
@@ -175,7 +193,9 @@ try {
   staticServer = await startStaticServer(devstudioRoot);
   const pageUrl = `http://127.0.0.1:${staticServer.port}/?ws=${encodeURIComponent(gateway.wsUrl)}`;
   const result = await runPlaywright(pageUrl);
-  console.log(`web-devstudio: ${JSON.stringify({ steps: result.steps, packagedT256: result.packagedT256?.slice(0, 16) })}`);
+  console.log(
+    `web-devstudio: ${JSON.stringify({ steps: result.steps, packagedT256: result.packagedT256?.slice(0, 16) })}`,
+  );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`web-devstudio: failed — ${message}`);

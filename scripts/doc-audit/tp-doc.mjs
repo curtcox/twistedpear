@@ -1,12 +1,11 @@
-const TP_DOC_RE =
-  /<!--\s*tp-doc\s*\n([\s\S]*?)\n\s*-->/;
+const TP_DOC_RE = /<!--\s*tp-doc\s*\n([\s\S]*?)\n\s*-->/;
 
 const LIFECYCLES = new Set([
   "live",
   "planned",
   "historical",
   "reference",
-  "generated"
+  "generated",
 ]);
 
 const REGISTERS = new Set([
@@ -14,7 +13,7 @@ const REGISTERS = new Set([
   "software",
   "hardware",
   "release",
-  "none"
+  "none",
 ]);
 
 /**
@@ -41,7 +40,7 @@ export function parseTpDoc(text) {
     lifecycle: fields.lifecycle,
     audited: fields.audited,
     register: fields.register,
-    ...(fields.counterpart ? { counterpart: fields.counterpart } : {})
+    ...(fields.counterpart ? { counterpart: fields.counterpart } : {}),
   };
 }
 
@@ -49,7 +48,9 @@ export function parseTpDoc(text) {
  * @param {{ lifecycle: string; audited: string; register: string }} meta
  */
 export function formatTpDoc(meta) {
-  const counterpart = meta.counterpart ? `\ncounterpart: ${meta.counterpart}` : "";
+  const counterpart = meta.counterpart
+    ? `\ncounterpart: ${meta.counterpart}`
+    : "";
   return `<!-- tp-doc
 lifecycle: ${meta.lifecycle}
 audited: ${meta.audited}

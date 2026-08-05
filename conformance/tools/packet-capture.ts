@@ -5,7 +5,10 @@ import type { CryptoProvider } from "../../packages/reticulum-ts/src/crypto/prov
 import { Packet } from "../../packages/reticulum-ts/src/packet.js";
 import type { CapturedPacket } from "./capture-diff.js";
 
-export function capturePacketFields(label: string, packet: Packet): CapturedPacket {
+export function capturePacketFields(
+  label: string,
+  packet: Packet,
+): CapturedPacket {
   return {
     label,
     fields: {
@@ -19,15 +22,15 @@ export function capturePacketFields(label: string, packet: Packet): CapturedPack
       context: packet.context,
       dataHex: bytesToHex(packet.data),
       rawHex: bytesToHex(packet.raw),
-      packetHashHex: bytesToHex(packet.hash())
-    }
+      packetHashHex: bytesToHex(packet.hash()),
+    },
   };
 }
 
 export function captureAnnounceFields(
   label: string,
   packet: Packet,
-  parsed: ParsedAnnounce
+  parsed: ParsedAnnounce,
 ): CapturedPacket {
   return {
     label,
@@ -37,17 +40,19 @@ export function captureAnnounceFields(
       nameHashHex: bytesToHex(parsed.nameHash),
       randomHashHex: bytesToHex(parsed.randomHash),
       ratchetPublicKeyHex:
-        parsed.ratchetPublicKey === null ? "" : bytesToHex(parsed.ratchetPublicKey),
+        parsed.ratchetPublicKey === null
+          ? ""
+          : bytesToHex(parsed.ratchetPublicKey),
       signatureHex: bytesToHex(parsed.signature),
-      appDataHex: parsed.appData === null ? "" : bytesToHex(parsed.appData)
-    }
+      appDataHex: parsed.appData === null ? "" : bytesToHex(parsed.appData),
+    },
   };
 }
 
 export function captureAnnounceFromRaw(
   provider: CryptoProvider,
   label: string,
-  rawHex: string
+  rawHex: string,
 ): CapturedPacket | null {
   const raw = hexToBytes(rawHex);
   const packet = Packet.decode(provider, raw);

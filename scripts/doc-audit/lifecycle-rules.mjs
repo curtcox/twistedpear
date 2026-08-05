@@ -49,7 +49,8 @@ function auditedForPath(relPath, lifecycle) {
     return "2026-07-16";
   }
   if (relPath === "RELEASE-PLAN.md") return "2026-07-18";
-  if (relPath === "README.md" || relPath === "docs/README.md") return "2026-07-19";
+  if (relPath === "README.md" || relPath === "docs/README.md")
+    return "2026-07-19";
   if (relPath.startsWith("specs/")) return "2026-07-20";
   if (lifecycle === "historical") return "2026-07-20";
   if (relPath.startsWith("apps/handbook/content/")) return "2026-07-10";

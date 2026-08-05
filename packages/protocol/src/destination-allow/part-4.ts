@@ -21,10 +21,13 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   DestinationTypeCode,
   isDestinationDirectionCode,
-  isDestinationTypeCode
+  isDestinationTypeCode,
 } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
-import { initialDestinationRequestAllowPlanState, planDestinationRequestAllow } from "./part-3.js";
+import {
+  initialDestinationRequestAllowPlanState,
+  planDestinationRequestAllow,
+} from "./part-3.js";
 import type { DestinationRequestAllowPlanState } from "./part-3.js";
 /**
  * Destination request-allow plan leaf is event-driven; no durable session fields.
@@ -55,7 +58,7 @@ export interface DestinationRequestAllowPlanStepResult {
 
 export function stepDestinationRequestAllowPlanWithActions(
   state: DestinationRequestAllowPlanState,
-  event: DestinationRequestAllowPlanEvent
+  event: DestinationRequestAllowPlanEvent,
 ): DestinationRequestAllowPlanStepResult {
   if (event.kind === "destination/request-allow-plan-gate") {
     return {
@@ -66,12 +69,12 @@ export function stepDestinationRequestAllowPlanWithActions(
           kind: planDestinationRequestAllow({
             allow: event.allow,
             allowedList: event.allowedList,
-            remoteIdentityHash: event.remoteIdentityHash
+            remoteIdentityHash: event.remoteIdentityHash,
           })
             ? "allow"
-            : "deny"
-        }
-      ]
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -80,22 +83,22 @@ export function stepDestinationRequestAllowPlanWithActions(
 
 /** Extract the request-allow plan from actions; null when empty. */
 export function destinationRequestAllowPlanFromActions(
-  actions: ReadonlyArray<DestinationRequestAllowPlanAction>
+  actions: ReadonlyArray<DestinationRequestAllowPlanAction>,
 ): DestinationRequestAllowPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "allow" || entry.kind === "deny"
+    (entry) => entry.kind === "allow" || entry.kind === "deny",
   );
   return action?.kind ?? null;
 }
 
 export function shouldAllowDestinationRequestPlan(
-  actions: ReadonlyArray<DestinationRequestAllowPlanAction>
+  actions: ReadonlyArray<DestinationRequestAllowPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyDestinationRequestPlan(
-  actions: ReadonlyArray<DestinationRequestAllowPlanAction>
+  actions: ReadonlyArray<DestinationRequestAllowPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -119,8 +122,7 @@ export type DestinationRequestAllowEvent =
     };
 
 export type DestinationRequestAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface DestinationRequestAllowStepResult {
   readonly state: DestinationRequestAllowState;
@@ -134,7 +136,7 @@ export function initialDestinationRequestAllowState(): DestinationRequestAllowSt
 
 export function stepDestinationRequestAllowWithActions(
   state: DestinationRequestAllowState,
-  event: DestinationRequestAllowEvent
+  event: DestinationRequestAllowEvent,
 ): DestinationRequestAllowStepResult {
   if (event.kind === "destination/request-allow-gate") {
     const planActions = stepDestinationRequestAllowPlanWithActions(
@@ -143,8 +145,8 @@ export function stepDestinationRequestAllowWithActions(
         kind: "destination/request-allow-plan-gate",
         allow: event.allow,
         allowedList: event.allowedList,
-        remoteIdentityHash: event.remoteIdentityHash
-      }
+        remoteIdentityHash: event.remoteIdentityHash,
+      },
     ).actions;
     const plan = destinationRequestAllowPlanFromActions(planActions);
     if (plan === null) {
@@ -157,19 +159,21 @@ export function stepDestinationRequestAllowWithActions(
 }
 
 export function shouldAllowDestinationRequest(
-  actions: ReadonlyArray<DestinationRequestAllowAction>
+  actions: ReadonlyArray<DestinationRequestAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyDestinationRequest(
-  actions: ReadonlyArray<DestinationRequestAllowAction>
+  actions: ReadonlyArray<DestinationRequestAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
 
 /** Whether a validated link should be registered on the destination link list. */
-export function shouldRegisterDestinationLink(validatedLinkPresent: boolean): boolean {
+export function shouldRegisterDestinationLink(
+  validatedLinkPresent: boolean,
+): boolean {
   return validatedLinkPresent;
 }
 
@@ -188,8 +192,7 @@ export type RegisterDestinationLinkEvent =
     };
 
 export type RegisterDestinationLinkAction =
-  | { readonly kind: "register" }
-  | { readonly kind: "skip" };
+  { readonly kind: "register" } | { readonly kind: "skip" };
 
 export interface RegisterDestinationLinkStepResult {
   readonly state: RegisterDestinationLinkState;
@@ -203,7 +206,7 @@ export function initialRegisterDestinationLinkState(): RegisterDestinationLinkSt
 
 export function stepRegisterDestinationLinkWithActions(
   state: RegisterDestinationLinkState,
-  event: RegisterDestinationLinkEvent
+  event: RegisterDestinationLinkEvent,
 ): RegisterDestinationLinkStepResult {
   if (event.kind === "destination/register-link-gate") {
     return {
@@ -213,9 +216,9 @@ export function stepRegisterDestinationLinkWithActions(
         {
           kind: shouldRegisterDestinationLink(event.validatedLinkPresent)
             ? "register"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -223,13 +226,13 @@ export function stepRegisterDestinationLinkWithActions(
 }
 
 export function shouldRegisterDestinationLinkNow(
-  actions: ReadonlyArray<RegisterDestinationLinkAction>
+  actions: ReadonlyArray<RegisterDestinationLinkAction>,
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipDestinationLinkRegister(
-  actions: ReadonlyArray<RegisterDestinationLinkAction>
+  actions: ReadonlyArray<RegisterDestinationLinkAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }

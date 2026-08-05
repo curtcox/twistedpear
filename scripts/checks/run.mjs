@@ -6,9 +6,17 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { gates } from "./registry.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 const args = process.argv.slice(2);
-const value = (name) => args.find((arg) => arg.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
+const value = (name) =>
+  args
+    .find((arg) => arg.startsWith(`--${name}=`))
+    ?.split("=")
+    .slice(1)
+    .join("=");
 const tier = value("tier") ?? "pr";
 const only = value("only");
 const requiredFilter = value("requires");
@@ -24,7 +32,8 @@ function requirementAvailable(requirement) {
   if (requirement === "jvm") return hasCommand("java");
   if (requirement === "rust") return hasCommand("cargo");
   if (requirement === "python") return hasCommand("python3");
-  if (requirement === "actionlint") return hasCommand("actionlint", ["-version"]);
+  if (requirement === "actionlint")
+    return hasCommand("actionlint", ["-version"]);
   return hasCommand(requirement);
 }
 
@@ -32,7 +41,9 @@ let selected = gates.filter((gate) => gate.tier === tier);
 if (only) selected = selected.filter((gate) => gate.id === only);
 if (requiredFilter) {
   const allowed = new Set(requiredFilter.split(","));
-  selected = selected.filter((gate) => gate.requires.every((requirement) => allowed.has(requirement)));
+  selected = selected.filter((gate) =>
+    gate.requires.every((requirement) => allowed.has(requirement)),
+  );
 }
 if (only && selected.length === 0) {
   console.error(`Unknown ${tier} gate: ${only}`);
@@ -40,13 +51,19 @@ if (only && selected.length === 0) {
 }
 
 if (matrix) {
-  process.stdout.write(JSON.stringify(selected.map(({ id, title, os: runner }) => ({ id, title, runner }))));
+  process.stdout.write(
+    JSON.stringify(
+      selected.map(({ id, title, os: runner }) => ({ id, title, runner })),
+    ),
+  );
   process.exit(0);
 }
 
 let failed = 0;
 for (const gate of selected) {
-  const missing = gate.requires.filter((requirement) => !requirementAvailable(requirement));
+  const missing = gate.requires.filter(
+    (requirement) => !requirementAvailable(requirement),
+  );
   if (missing.length > 0) {
     const message = `${gate.title}: missing ${missing.join(", ")}`;
     if (process.env.CI) {
@@ -65,7 +82,7 @@ for (const gate of selected) {
     env: { ...process.env, CHECK_ID: gate.id },
     encoding: "utf8",
     stdio: ["inherit", "pipe", "pipe"],
-    maxBuffer: 64 * 1024 * 1024
+    maxBuffer: 64 * 1024 * 1024,
   });
   const stdout = result.stdout ?? "";
   const stderr = result.stderr ?? "";
@@ -81,25 +98,38 @@ for (const gate of selected) {
     finishedAt: new Date().toISOString(),
     exitCode,
     ok: exitCode === 0,
-    host: `${os.platform()}-${os.arch()}`
+    host: `${os.platform()}-${os.arch()}`,
   };
-  const artifactPath = path.join(ROOT, "artifacts", "checks", `${gate.id}.json`);
+  const artifactPath = path.join(
+    ROOT,
+    "artifacts",
+    "checks",
+    `${gate.id}.json`,
+  );
   const logPath = path.join(ROOT, "artifacts", "logs", `${gate.id}.log`);
   fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   fs.writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
   fs.writeFileSync(
     logPath,
-    [`$ ${gate.command.join(" ")}`, `exit: ${exitCode}`, "", stdout, stderr ? `\n--- stderr ---\n${stderr}` : ""].join("\n")
+    [
+      `$ ${gate.command.join(" ")}`,
+      `exit: ${exitCode}`,
+      "",
+      stdout,
+      stderr ? `\n--- stderr ---\n${stderr}` : "",
+    ].join("\n"),
   );
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
-      `## ${gate.title}\n\n| Gate | Result | Duration |\n|---|---:|---:|\n| \`${gate.id}\` | ${exitCode === 0 ? "PASS" : "FAIL"} | ${Date.parse(artifact.finishedAt) - Date.parse(startedAt)} ms |\n\n`
+      `## ${gate.title}\n\n| Gate | Result | Duration |\n|---|---:|---:|\n| \`${gate.id}\` | ${exitCode === 0 ? "PASS" : "FAIL"} | ${Date.parse(artifact.finishedAt) - Date.parse(startedAt)} ms |\n\n`,
     );
   }
   if (exitCode !== 0) failed += 1;
 }
 
-console.log(`\nStatic-analysis gates: ${selected.length - failed}/${selected.length} passed.`);
+console.log(
+  `\nStatic-analysis gates: ${selected.length - failed}/${selected.length} passed.`,
+);
 if (failed > 0) process.exit(1);

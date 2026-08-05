@@ -9,12 +9,18 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   MiniappLifecycle,
-  NodeWorkerSandboxBackend
+  NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const measuredPath = join(repoRoot, "conformance/miniapp-benchmark/measured-desktop.json");
-const ITERATIONS = Number.parseInt(process.env.BENCHMARK_ITERATIONS ?? "20", 10);
+const measuredPath = join(
+  repoRoot,
+  "conformance/miniapp-benchmark/measured-desktop.json",
+);
+const ITERATIONS = Number.parseInt(
+  process.env.BENCHMARK_ITERATIONS ?? "20",
+  10,
+);
 const record = process.env.MINIAPP_BENCHMARK_RECORD === "1";
 
 function nowMs() {
@@ -25,7 +31,8 @@ function sleep(ms) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
 }
 
-const helloBundle = new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
+const helloBundle = new TextEncoder()
+  .encode(`import { ui } from "@twistedpear/miniapp-sdk";
 
 await ui.render({
   root: {
@@ -51,17 +58,26 @@ async function measureSpawnKill(backend, bundle) {
   const killLatencies = [];
 
   for (let index = 0; index < ITERATIONS; index += 1) {
-    const lifecycle = new MiniappLifecycle(backend,
-    {
-      appId: "bench",
-      version: "1.0.0",
-      entryPath: "bundle.js",
-      bundle,
-      brokerEndpoint: {
-        request: async (request) => ({ id: request.id, ok: true, result: "ok" })
-      }
-    },
-    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
+    const lifecycle = new MiniappLifecycle(
+      backend,
+      {
+        appId: "bench",
+        version: "1.0.0",
+        entryPath: "bundle.js",
+        bundle,
+        brokerEndpoint: {
+          request: async (request) => ({
+            id: request.id,
+            ok: true,
+            result: "ok",
+          }),
+        },
+      },
+      {
+        now: () => Date.now(),
+        delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      },
+    );
 
     const spawnStarted = nowMs();
     await lifecycle.launch();
@@ -72,25 +88,35 @@ async function measureSpawnKill(backend, bundle) {
     killLatencies.push(nowMs() - killStarted);
   }
 
-  const average = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
+  const average = (values) =>
+    values.reduce((sum, value) => sum + value, 0) / values.length;
   return {
     spawnMs: Number(average(spawnLatencies).toFixed(1)),
-    killMs: Number(average(killLatencies).toFixed(1))
+    killMs: Number(average(killLatencies).toFixed(1)),
   };
 }
 
 async function measureWatchdogPingRate(backend) {
-  const lifecycle = new MiniappLifecycle(backend,
+  const lifecycle = new MiniappLifecycle(
+    backend,
     {
-    appId: "throughput",
-    version: "1.0.0",
-    entryPath: "bundle.js",
-    bundle: helloBundle,
-    brokerEndpoint: {
-      request: async (request) => ({ id: request.id, ok: true, result: "ok" })
-    }
-  },
-    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
+      appId: "throughput",
+      version: "1.0.0",
+      entryPath: "bundle.js",
+      bundle: helloBundle,
+      brokerEndpoint: {
+        request: async (request) => ({
+          id: request.id,
+          ok: true,
+          result: "ok",
+        }),
+      },
+    },
+    {
+      now: () => Date.now(),
+      delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    },
+  );
 
   await lifecycle.launch();
   const started = nowMs();
@@ -106,17 +132,23 @@ async function measureWatchdogPingRate(backend) {
 }
 
 async function measureBusyLoopKill(backend) {
-  const lifecycle = new MiniappLifecycle(backend,
+  const lifecycle = new MiniappLifecycle(
+    backend,
     {
       appId: "busy-loop",
       version: "1.0.0",
       entryPath: "bundle.js",
       bundle: busyLoopBundle,
       brokerEndpoint: {
-        request: async (request) => ({ id: request.id, ok: true })
-      }
+        request: async (request) => ({ id: request.id, ok: true }),
+      },
     },
-    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),  watchdogMs: 250 });
+    {
+      now: () => Date.now(),
+      delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      watchdogMs: 250,
+    },
+  );
 
   const started = nowMs();
   await lifecycle.launch();
@@ -134,7 +166,7 @@ async function measureBusyLoopKill(backend) {
   await lifecycle.stop("cleanup");
   return {
     killed,
-    killMs: killed ? Math.round(nowMs() - started) : null
+    killMs: killed ? Math.round(nowMs() - started) : null,
   };
 }
 
@@ -158,7 +190,7 @@ async function main() {
     spawnMs: spawnKill.spawnMs,
     killMs: spawnKill.killMs,
     watchdogPingsPerSecond: throughput.watchdogPingsPerSecond,
-    busyLoopKillMs: busyLoop.killMs
+    busyLoopKillMs: busyLoop.killMs,
   };
 
   if (record) {
@@ -170,7 +202,7 @@ async function main() {
       const spawnRatio = summary.spawnMs / baseline.spawnMs;
       if (spawnRatio > 3) {
         throw new Error(
-          `miniapp spawn regression: ${summary.spawnMs}ms vs baseline ${baseline.spawnMs}ms`
+          `miniapp spawn regression: ${summary.spawnMs}ms vs baseline ${baseline.spawnMs}ms`,
         );
       }
     }

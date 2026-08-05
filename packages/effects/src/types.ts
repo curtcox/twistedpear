@@ -14,7 +14,7 @@ export type {
   TimerId,
   TimerRequest,
   TransportAdversaryAction,
-  TransportSend
+  TransportSend,
 } from "./types.gen.js";
 import type { Event, InstantMs, Intent } from "./types.gen.js";
 

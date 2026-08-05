@@ -7,7 +7,7 @@ export {
   type DeliveryModel,
   type InFlightMessage,
   type SimTransportConfig,
-  type TransportStats
+  type TransportStats,
 } from "./transport.js";
 export {
   sampleLatency,
@@ -17,7 +17,7 @@ export {
   type LinkConfig,
   type PartitionWindow,
   type TransportClass,
-  type TransportClassName
+  type TransportClassName,
 } from "./transport-classes.js";
 export {
   calibrateTransportTrace,
@@ -32,7 +32,7 @@ export {
   type CalibrationTolerance,
   type CalibrationTrace,
   type CalibrationTraceProvenance,
-  type TraceEvidenceKind
+  type TraceEvidenceKind,
 } from "./calibration.js";
 export { SimStore } from "./store.js";
 export {
@@ -46,14 +46,14 @@ export {
   type SimFreenetContractHubOptions,
   type SimFreenetContractRecord,
   type SimFreenetContractSource,
-  type SimFreenetNotifyModel
+  type SimFreenetNotifyModel,
 } from "./freenet.js";
 export {
   SimKernel,
   doubleRunHashes,
   EffectWithoutIntentError,
   type SimKernelConfig,
-  type SimNodeConfig
+  type SimNodeConfig,
 } from "./kernel.js";
 export { OracleViolation } from "./kernel.js";
 export {
@@ -65,7 +65,7 @@ export {
   type GrantIdentity,
   type Oracle,
   type Violation,
-  type WorldView
+  type WorldView,
 } from "./oracles.js";
 export {
   FileHistoryRecorder,
@@ -79,7 +79,7 @@ export {
   type RecordedHistory,
   type RecordedKernelConfig,
   type RecordedNode,
-  type WriteTextFile
+  type WriteTextFile,
 } from "./recorder.js";
 export {
   configFromRecording,
@@ -89,7 +89,7 @@ export {
   shrinkHistoryWithConfig,
   type MachineResolver,
   type RerunOptions,
-  type RerunViolation
+  type RerunViolation,
 } from "./shrink.js";
 export { replayRecordedTrace, type TraceReplayResult } from "./consumer.js";
 export {
@@ -98,5 +98,5 @@ export {
   hashNodeStates,
   replayEvents,
   type RecordedEvent,
-  type ReplayResult
+  type ReplayResult,
 } from "./replay.js";

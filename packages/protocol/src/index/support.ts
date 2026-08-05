@@ -71,7 +71,7 @@ export {
   type SplitTokenKeyStepResult,
   type TokenFrameParts,
   type TokenKeyParts,
-  type TokenMode
+  type TokenMode,
 } from "../token-framing.js";
 export {
   WS_FIN_BINARY,
@@ -96,7 +96,7 @@ export {
   type EncodeWsBinaryFrameEvent,
   type EncodeWsBinaryFrameState,
   type EncodeWsBinaryFrameStepResult,
-  type WsBinaryFrame
+  type WsBinaryFrame,
 } from "../websocket-frame.js";
 export {
   WEB_IDENTITY_IV_BYTES,
@@ -122,5 +122,5 @@ export {
   type SplitWebIdentityRecordEvent,
   type SplitWebIdentityRecordState,
   type SplitWebIdentityRecordStepResult,
-  type WebIdentityPackedFields
+  type WebIdentityPackedFields,
 } from "../web-identity-record.js";

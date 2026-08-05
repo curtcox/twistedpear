@@ -13,7 +13,7 @@ import {
   splitWebIdentityRecord,
   stepPackWebIdentityRecordWithActions,
   stepSplitWebIdentityRecordWithActions,
-  webIdentityRecordFieldsFromActions
+  webIdentityRecordFieldsFromActions,
 } from "../src/web-identity-record.js";
 
 describe("protocol web identity record", () => {
@@ -29,7 +29,9 @@ describe("protocol web identity record", () => {
   });
 
   it("rejects truncated records", () => {
-    expect(() => splitWebIdentityRecord(new Uint8Array(20))).toThrow(/truncated/);
+    expect(() => splitWebIdentityRecord(new Uint8Array(20))).toThrow(
+      /truncated/,
+    );
   });
 
   it("emits use-raw / reject from pack-gate", () => {
@@ -37,24 +39,30 @@ describe("protocol web identity record", () => {
     const iv = new Uint8Array(WEB_IDENTITY_IV_BYTES).fill(2);
     const ciphertext = new Uint8Array(24).fill(3);
 
-    const ok = stepPackWebIdentityRecordWithActions(initialPackWebIdentityRecordState(), {
-      kind: "web-identity/pack-gate",
-      salt,
-      iv,
-      ciphertext
-    });
+    const ok = stepPackWebIdentityRecordWithActions(
+      initialPackWebIdentityRecordState(),
+      {
+        kind: "web-identity/pack-gate",
+        salt,
+        iv,
+        ciphertext,
+      },
+    );
     expect(shouldUsePackWebIdentityRecord(ok.actions)).toBe(true);
     expect(shouldRejectPackWebIdentityRecord(ok.actions)).toBe(false);
     const raw = packWebIdentityRecordRawFromActions(ok.actions);
     expect(raw).not.toBeNull();
     expect([...raw!]).toEqual([...packWebIdentityRecord(salt, iv, ciphertext)]);
 
-    const badSalt = stepPackWebIdentityRecordWithActions(initialPackWebIdentityRecordState(), {
-      kind: "web-identity/pack-gate",
-      salt: new Uint8Array(8),
-      iv,
-      ciphertext
-    });
+    const badSalt = stepPackWebIdentityRecordWithActions(
+      initialPackWebIdentityRecordState(),
+      {
+        kind: "web-identity/pack-gate",
+        salt: new Uint8Array(8),
+        iv,
+        ciphertext,
+      },
+    );
     expect(shouldRejectPackWebIdentityRecord(badSalt.actions)).toBe(true);
     expect(shouldUsePackWebIdentityRecord(badSalt.actions)).toBe(false);
     expect(packWebIdentityRecordRawFromActions(badSalt.actions)).toBeNull();
@@ -66,10 +74,13 @@ describe("protocol web identity record", () => {
     const ciphertext = new Uint8Array(24).fill(3);
     const packed = packWebIdentityRecord(salt, iv, ciphertext);
 
-    const ok = stepSplitWebIdentityRecordWithActions(initialSplitWebIdentityRecordState(), {
-      kind: "web-identity/split-gate",
-      packed
-    });
+    const ok = stepSplitWebIdentityRecordWithActions(
+      initialSplitWebIdentityRecordState(),
+      {
+        kind: "web-identity/split-gate",
+        packed,
+      },
+    );
     expect(shouldUseSplitWebIdentityRecord(ok.actions)).toBe(true);
     expect(shouldRejectSplitWebIdentityRecord(ok.actions)).toBe(false);
     const fields = webIdentityRecordFieldsFromActions(ok.actions);
@@ -78,10 +89,13 @@ describe("protocol web identity record", () => {
     expect([...fields!.iv]).toEqual([...iv]);
     expect([...fields!.ciphertext]).toEqual([...ciphertext]);
 
-    const truncated = stepSplitWebIdentityRecordWithActions(initialSplitWebIdentityRecordState(), {
-      kind: "web-identity/split-gate",
-      packed: new Uint8Array(20)
-    });
+    const truncated = stepSplitWebIdentityRecordWithActions(
+      initialSplitWebIdentityRecordState(),
+      {
+        kind: "web-identity/split-gate",
+        packed: new Uint8Array(20),
+      },
+    );
     expect(shouldRejectSplitWebIdentityRecord(truncated.actions)).toBe(true);
     expect(shouldUseSplitWebIdentityRecord(truncated.actions)).toBe(false);
     expect(webIdentityRecordFieldsFromActions(truncated.actions)).toBeNull();

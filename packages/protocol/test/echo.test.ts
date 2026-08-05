@@ -9,9 +9,9 @@ describe("protocol echo leaf", () => {
         seed: 7,
         nodes: [
           { id: "a", initial: initialEchoState(), step: stepEcho },
-          { id: "b", initial: initialEchoState(), step: stepEcho }
+          { id: "b", initial: initialEchoState(), step: stepEcho },
         ],
-        delivery: { latencyMs: 2 }
+        delivery: { latencyMs: 2 },
       });
       kernel.start();
       kernel.inject("a", {
@@ -19,13 +19,13 @@ describe("protocol echo leaf", () => {
         channel: "echo",
         source: "b",
         payload: new Uint8Array([72, 105]),
-        at: kernel.clock.now()
+        at: kernel.clock.now(),
       });
       kernel.runUntilIdle(1000);
       return {
         hash: kernel.getTraceHash(),
         a: kernel.getNodeState("a"),
-        b: kernel.getNodeState("b")
+        b: kernel.getNodeState("b"),
       };
     };
     const x = run();

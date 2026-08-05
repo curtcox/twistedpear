@@ -13,10 +13,11 @@ export const LXMF_PEER_ERROR_TIMEOUT = 0xfe;
 export const LxmfPeerError = {
   NO_IDENTITY: LXMF_PEER_ERROR_NO_IDENTITY,
   NO_ACCESS: LXMF_PEER_ERROR_NO_ACCESS,
-  TIMEOUT: LXMF_PEER_ERROR_TIMEOUT
+  TIMEOUT: LXMF_PEER_ERROR_TIMEOUT,
 } as const;
 
-export type LxmfPeerErrorValue = (typeof LxmfPeerError)[keyof typeof LxmfPeerError];
+export type LxmfPeerErrorValue =
+  (typeof LxmfPeerError)[keyof typeof LxmfPeerError];
 
 export interface LxmfPeerErrorFields {
   readonly code: number;
@@ -24,7 +25,7 @@ export interface LxmfPeerErrorFields {
 
 const KNOWN_PEER_ERRORS = new Set([
   LXMF_PEER_ERROR_NO_IDENTITY,
-  LXMF_PEER_ERROR_NO_ACCESS
+  LXMF_PEER_ERROR_NO_ACCESS,
 ]);
 
 export function decodeLxmfPeerError(response: Uint8Array): number | null {
@@ -69,7 +70,7 @@ export function initialDecodeLxmfPeerErrorState(): DecodeLxmfPeerErrorState {
 
 export function stepDecodeLxmfPeerErrorWithActions(
   state: DecodeLxmfPeerErrorState,
-  event: DecodeLxmfPeerErrorEvent
+  event: DecodeLxmfPeerErrorEvent,
 ): DecodeLxmfPeerErrorStepResult {
   if (event.kind === "lxmf/peer-error-decode-gate") {
     const code = decodeLxmfPeerError(event.response);
@@ -79,7 +80,7 @@ export function stepDecodeLxmfPeerErrorWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields: { code } }]
+      actions: [{ kind: "use-fields", fields: { code } }],
     };
   }
 
@@ -87,20 +88,20 @@ export function stepDecodeLxmfPeerErrorWithActions(
 }
 
 export function shouldUseDecodeLxmfPeerError(
-  actions: ReadonlyArray<DecodeLxmfPeerErrorAction>
+  actions: ReadonlyArray<DecodeLxmfPeerErrorAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectDecodeLxmfPeerError(
-  actions: ReadonlyArray<DecodeLxmfPeerErrorAction>
+  actions: ReadonlyArray<DecodeLxmfPeerErrorAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract peer-error code from step actions; null when no `use-fields`. */
 export function lxmfPeerErrorFromActions(
-  actions: ReadonlyArray<DecodeLxmfPeerErrorAction>
+  actions: ReadonlyArray<DecodeLxmfPeerErrorAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields.code : null;

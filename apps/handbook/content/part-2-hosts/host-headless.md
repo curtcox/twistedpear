@@ -1,6 +1,5 @@
 # Headless node & seeder
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -42,12 +41,12 @@ Use when you want seeding without the Electron shell. Quotas match desktop defau
 
 ## When to use headless vs desktop
 
-| Need | Headless | Desktop host |
-|---|---|---|
-| WebSocket gateway for web tabs | `tp node --ws-listen` | enable in config / CLI |
-| Tray UI + crash supervision | — | Electron shell |
-| CI / docker interop | `tp node` in containers | optional |
-| Developer mini-app side-load | `tp dev` targets either | `tp dev` |
+| Need                           | Headless                | Desktop host           |
+| ------------------------------ | ----------------------- | ---------------------- |
+| WebSocket gateway for web tabs | `tp node --ws-listen`   | enable in config / CLI |
+| Tray UI + crash supervision    | —                       | Electron shell         |
+| CI / docker interop            | `tp node` in containers | optional               |
+| Developer mini-app side-load   | `tp dev` targets either | `tp dev`               |
 
 ## Handbook on node
 

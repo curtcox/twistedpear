@@ -15,20 +15,25 @@ import {
   NodeCryptoProvider,
   Reticulum,
   hexToBytes,
-  nodeRuntime
+  nodeRuntime,
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   interopReady,
   sleep,
   withComposeService,
   LINK_ECHO_PORT,
-  waitForReadyLine
+  waitForReadyLine,
 } from "../scenarios/ts/harness.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const measuredPath = join(repoRoot, "conformance/link-benchmark/measured.json");
-const ITERATIONS = Number.parseInt(process.env.LINK_BENCHMARK_ITERATIONS ?? "20", 10);
-const record = process.env.LINK_BENCHMARK_RECORD === "1" || process.argv.includes("--record");
+const ITERATIONS = Number.parseInt(
+  process.env.LINK_BENCHMARK_ITERATIONS ?? "20",
+  10,
+);
+const record =
+  process.env.LINK_BENCHMARK_RECORD === "1" ||
+  process.argv.includes("--record");
 
 if (!interopReady()) {
   console.log("link-benchmark: skipped (set INTEROP=1 with docker)");
@@ -36,16 +41,21 @@ if (!interopReady()) {
 }
 
 const identityVectors = JSON.parse(
-  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8"),
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  const entry = identityVectors.identities.find(
+    (candidate) => candidate.name === name,
+  );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === undefined || identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -94,7 +104,10 @@ function percentile(values, p) {
   }
 
   const sorted = [...values].sort((left, right) => left - right);
-  const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
+  const index = Math.min(
+    sorted.length - 1,
+    Math.ceil((p / 100) * sorted.length) - 1,
+  );
   return sorted[index];
 }
 
@@ -113,7 +126,7 @@ async function main() {
       name: "python-link-benchmark",
       targetHost: "127.0.0.1",
       targetPort: LINK_ECHO_PORT,
-      reconnectWaitMs: 500
+      reconnectWaitMs: 500,
     });
 
     const bobOut = reticulum.registerDestination({
@@ -122,7 +135,7 @@ async function main() {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["link"]
+      aspects: ["link"],
     });
 
     await waitForPath(reticulum, bobOut.hash);
@@ -144,7 +157,7 @@ async function main() {
       setupMs,
       setupP50Ms: percentile(setupMs, 50),
       setupP95Ms: percentile(setupMs, 95),
-      setupMaxMs: Math.max(...setupMs)
+      setupMaxMs: Math.max(...setupMs),
     };
 
     if (record) {
@@ -156,7 +169,7 @@ async function main() {
         const ratio = summary.setupP95Ms / baseline.setupP95Ms;
         if (ratio > 2) {
           throw new Error(
-            `link setup p95 regression: ${summary.setupP95Ms}ms vs baseline ${baseline.setupP95Ms}ms`
+            `link setup p95 regression: ${summary.setupP95Ms}ms vs baseline ${baseline.setupP95Ms}ms`,
           );
         }
       }
@@ -164,7 +177,7 @@ async function main() {
 
     console.log(
       `link-benchmark: ${ITERATIONS} handshakes — p50 ${summary.setupP50Ms}ms, ` +
-        `p95 ${summary.setupP95Ms}ms, max ${summary.setupMaxMs}ms`
+        `p95 ${summary.setupP95Ms}ms, max ${summary.setupMaxMs}ms`,
     );
   });
 }

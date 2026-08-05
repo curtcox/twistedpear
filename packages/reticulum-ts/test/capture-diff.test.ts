@@ -1,12 +1,17 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { Announce, NodeCryptoProvider, Packet, hexToBytes } from "../src/index.js";
+import {
+  Announce,
+  NodeCryptoProvider,
+  Packet,
+  hexToBytes,
+} from "../src/index.js";
 import { diffCaptures } from "../../../conformance/tools/capture-diff.js";
 import {
   captureAnnounceFields,
   captureAnnounceFromRaw,
-  capturePacketFields
+  capturePacketFields,
 } from "../../../conformance/tools/packet-capture.js";
 
 const provider = new NodeCryptoProvider();
@@ -25,7 +30,7 @@ interface AnnounceVector {
 }
 
 const packetVectors = JSON.parse(
-  readFileSync(resolve("conformance/vectors/packet.json"), "utf8")
+  readFileSync(resolve("conformance/vectors/packet.json"), "utf8"),
 ) as {
   readonly announces: ReadonlyArray<AnnounceVector>;
 };
@@ -52,30 +57,37 @@ function expectedAnnounceCapture(vector: AnnounceVector) {
       randomHashHex: vector.randomHashHex,
       ratchetPublicKeyHex: vector.ratchetPublicKeyHex ?? "",
       signatureHex: vector.signatureHex,
-      appDataHex: vector.appDataHex
-    }
+      appDataHex: vector.appDataHex,
+    },
   };
 }
 
 describe("capture diff — announce corpus", () => {
-  it.each(packetVectors.announces)("reports zero field mismatches for $name", (vector) => {
-    const packet = Packet.decode(provider, hexToBytes(vector.rawHex));
-    expect(packet).not.toBeNull();
+  it.each(packetVectors.announces)(
+    "reports zero field mismatches for $name",
+    (vector) => {
+      const packet = Packet.decode(provider, hexToBytes(vector.rawHex));
+      expect(packet).not.toBeNull();
 
-    const parsed = Announce.parse(packet!);
-    expect(parsed).not.toBeNull();
+      const parsed = Announce.parse(packet!);
+      expect(parsed).not.toBeNull();
 
-    const actual = captureAnnounceFields(vector.name, packet!, parsed!);
-    const expected = expectedAnnounceCapture(vector);
-    expected.fields.packetHashHex = actual.fields.packetHashHex as string;
+      const actual = captureAnnounceFields(vector.name, packet!, parsed!);
+      const expected = expectedAnnounceCapture(vector);
+      expected.fields.packetHashHex = actual.fields.packetHashHex as string;
 
-    const mismatches = diffCaptures([expected], [actual]);
-    expect(mismatches).toEqual([]);
-  });
+      const mismatches = diffCaptures([expected], [actual]);
+      expect(mismatches).toEqual([]);
+    },
+  );
 
   it("extracts announce fields from raw hex via capture helper", () => {
     const vector = packetVectors.announces[0]!;
-    const capture = captureAnnounceFromRaw(provider, vector.name, vector.rawHex);
+    const capture = captureAnnounceFromRaw(
+      provider,
+      vector.name,
+      vector.rawHex,
+    );
     expect(capture).not.toBeNull();
     expect(capture!.fields.destinationHashHex).toBe(vector.destinationHashHex);
     expect(capture!.fields.signatureHex).toBe(vector.signatureHex);

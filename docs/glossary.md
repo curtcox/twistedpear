@@ -18,7 +18,7 @@ big-endian content length plus a 64-byte content field (SHA-512 hash for
 length > 64, zero-padded inline content otherwise). Owned by
 [SPEC-NAME](../specs/spec-name/spec.md); implemented in
 [packages/cas-256t](../packages/cas-256t/). User-facing prose may call it a
-*share identifier*.
+_share identifier_.
 
 **Adapter** — code that executes one effect family's intents and produces that
 family's events, outside the pure boundary. The real and simulated adapter for a
@@ -27,7 +27,7 @@ family must be observationally equivalent under the trace hash.
 [packages/effects/src/adapters](../packages/effects/src/adapters/).
 
 **Adopted spec / profile** — a Group A spec authored upstream (Reticulum, LXMF,
-media). TwistedPear maintains a five-section *profile*: upstream pin, subset,
+media). TwistedPear maintains a five-section _profile_: upstream pin, subset,
 extensions, deviations, and the evidence that pins each row.
 [SPEC-WIRE](../specs/spec-wire/spec.md) defines the template.
 
@@ -49,11 +49,11 @@ production, KV-backed and in-memory implementations elsewhere.
 
 **Binding** — the contract attaching the app platform to a message substrate
 ([SPEC-BIND-LOOPBACK](../specs/spec-bind-loopback/spec.md)). LXMF over Reticulum
-is the production binding; the *loopback binding* is an in-memory substrate that
+is the production binding; the _loopback binding_ is an in-memory substrate that
 runs the whole platform with zero network.
 
 **Broker** — the host-side gate every SDK call crosses; enforces capabilities,
-rate limits, and quotas. The broker is deliberately *not a media bus*: bulk
+rate limits, and quotas. The broker is deliberately _not a media bus_: bulk
 sample data travels on the device sidecar, not through brokered calls.
 [packages/miniapp-runtime/src/broker.ts](../packages/miniapp-runtime/src/broker.ts).
 
@@ -85,7 +85,7 @@ banner. Apps can neither draw over it nor acknowledge it. Rules CHROME-R1–R6 i
 [SPEC-CHROME](../specs/spec-chrome/spec.md). Unrelated to the Chromium browser
 embedded by the desktop host.
 
-**Confirmation** — a host-chrome dialog required *in addition to* a grant for
+**Confirmation** — a host-chrome dialog required _in addition to_ a grant for
 double-gated operations (`apps:*`, device consent). Only direct user input can
 answer one; headless hosts refuse (`CONFIRMATION_UNAVAILABLE`).
 
@@ -196,7 +196,7 @@ effect-free. [SPEC-MACHINE](../specs/spec-machine/spec.md).
 declarations, `minHostApi`. [SPEC-PKG](../specs/spec-pkg/spec.md).
 
 **Mini-app** — a sandboxed application running behind the broker with only the
-capabilities the user granted. Prose spelling is *mini-app*; `miniapp` appears
+capabilities the user granted. Prose spelling is _mini-app_; `miniapp` appears
 only in identifiers and paths.
 
 **Normative / informative** — vectors and formal models are normative; prose is
@@ -208,8 +208,8 @@ is covered by multipart propagation
 ([docs/multipart-propagation.md](multipart-propagation.md)).
 
 **Propagation node** — an LXMF host that stores messages for offline peers and
-hands them over on return. The user-facing register calls this a *propagation
-server* ([guide/glossary.md](../guide/glossary.md)); both name the same thing.
+hands them over on return. The user-facing register calls this a _propagation
+server_ ([guide/glossary.md](../guide/glossary.md)); both name the same thing.
 
 **Publisher** — the identity that signed a mini-app package. A **trusted
 publisher** is one the user added to their own trust list; trust never skips
@@ -228,13 +228,13 @@ larger-than-packet payloads over a link; also the slowest fetch path and the
 routing over any mix of interfaces. Profiled in
 [SPEC-WIRE](../specs/spec-wire/spec.md).
 
-**Roles** — what a host does for others: *transport node* (forwards traffic),
-*seeder* (serves package downloads), *propagation node* (holds messages).
+**Roles** — what a host does for others: _transport node_ (forwards traffic),
+_seeder_ (serves package downloads), _propagation node_ (holds messages).
 
 **Sans-IO** — the discipline that protocol code performs no direct IO: effects
 in as events, effects out as intents. Enforced by the ratchet
 (`sansio-ratchet.json`), the tripwire, the canary, and `npm run sansio`.
-Prose spelling is *Sans-IO*; `sansio` appears in identifiers. Maintenance guide:
+Prose spelling is _Sans-IO_; `sansio` appears in identifiers. Maintenance guide:
 [docs/sansio.md](sansio.md); contract: [SPEC-MACHINE](../specs/spec-machine/spec.md).
 
 **Seeder** — a host that keeps package copies so nearby peers install quickly.
@@ -268,7 +268,7 @@ code touches a forbidden API
 
 **Twinned (formally twinned)** — a lifecycle machine maintained as four
 edge-for-edge cross-checked representations: executable table, TLA+ model,
-checked traces, generated vector. See *Authority machine*, *Exemplar*.
+checked traces, generated vector. See _Authority machine_, _Exemplar_.
 
 **Vector** — a machine-checkable fixture of inputs and expected outcomes.
 Kinds in use: golden (upstream-pinned), Layer-3 (model-generated), layout,
@@ -291,7 +291,7 @@ content-by-reference: it carries a workspace `documentId`, never file text.
 These words are overloaded in the tree. When writing, qualify them.
 
 - **Bridge** — (1) [packages/bridge-hyper](../packages/bridge-hyper/): control
-  plane ↔ bulk plane; (2) the *device bridge* (worklet ↔ native hardware
+  plane ↔ bulk plane; (2) the _device bridge_ (worklet ↔ native hardware
   effects); (3) the worklet IPC bridges (`ipc-*-bridge.mjs`: mDNS, multicast,
   serial, BLE); (4) `bridge-forwarder.ts` in host-core. Prefer "hyper bridge",
   "device bridge", "IPC bridge".
@@ -318,10 +318,10 @@ These words are overloaded in the tree. When writing, qualify them.
 
 ## Canonical spellings
 
-| Concept | In prose | In identifiers/paths |
-|---|---|---|
-| Mini-app | mini-app | `miniapp` |
-| Sans-IO | Sans-IO | `sansio` |
-| 256t identifier | 256t identifier (user prose: share identifier) | `cas-256t`, `256t` |
-| Propagation node | propagation node (user prose: propagation server) | `propagation` |
-| Host chrome | host chrome | `chrome` |
+| Concept          | In prose                                          | In identifiers/paths |
+| ---------------- | ------------------------------------------------- | -------------------- |
+| Mini-app         | mini-app                                          | `miniapp`            |
+| Sans-IO          | Sans-IO                                           | `sansio`             |
+| 256t identifier  | 256t identifier (user prose: share identifier)    | `cas-256t`, `256t`   |
+| Propagation node | propagation node (user prose: propagation server) | `propagation`        |
+| Host chrome      | host chrome                                       | `chrome`             |

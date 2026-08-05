@@ -7,11 +7,16 @@ describe("SAM client parsing", () => {
     const runtime = createMockRuntime([
       [
         "HELLO REPLY RESULT=OK VERSION=3.3\n",
-        "SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n"
-      ]
+        "SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n",
+      ],
     ]);
 
-    const client = new SamClient({ runtime, host: "127.0.0.1", port: 7656, sessionName: "test" });
+    const client = new SamClient({
+      runtime,
+      host: "127.0.0.1",
+      port: 7656,
+      sessionName: "test",
+    });
     const session = await client.ensureSession();
 
     expect(session.destination).toBe("abc123");
@@ -22,12 +27,20 @@ describe("SAM client parsing", () => {
     const runtime = createMockRuntime([
       [
         "HELLO REPLY RESULT=OK VERSION=3.3\n",
-        "SESSION STATUS RESULT=OK DESTINATION=local PRIVATE_KEY=key\n"
+        "SESSION STATUS RESULT=OK DESTINATION=local PRIVATE_KEY=key\n",
       ],
-      ["HELLO REPLY RESULT=OK VERSION=3.3\n", "STREAM STATUS RESULT=OK\npayload"]
+      [
+        "HELLO REPLY RESULT=OK VERSION=3.3\n",
+        "STREAM STATUS RESULT=OK\npayload",
+      ],
     ]);
 
-    const client = new SamClient({ runtime, host: "127.0.0.1", port: 7656, sessionName: "test" });
+    const client = new SamClient({
+      runtime,
+      host: "127.0.0.1",
+      port: 7656,
+      sessionName: "test",
+    });
     await client.ensureSession();
     const connection = await client.connectStream("peer-destination");
 
@@ -39,16 +52,23 @@ describe("SAM client parsing", () => {
   it("reuses an existing session without reconnecting", async () => {
     let connectCount = 0;
     const runtime = createMockRuntime(
-      [[
-        "HELLO REPLY RESULT=OK VERSION=3.3\n",
-        "SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n"
-      ]],
+      [
+        [
+          "HELLO REPLY RESULT=OK VERSION=3.3\n",
+          "SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n",
+        ],
+      ],
       () => {
         connectCount += 1;
-      }
+      },
     );
 
-    const client = new SamClient({ runtime, host: "127.0.0.1", port: 7656, sessionName: "test" });
+    const client = new SamClient({
+      runtime,
+      host: "127.0.0.1",
+      port: 7656,
+      sessionName: "test",
+    });
     await client.ensureSession();
     await client.ensureSession();
 
@@ -58,7 +78,7 @@ describe("SAM client parsing", () => {
 
 function createMockRuntime(
   responses: ReadonlyArray<ReadonlyArray<string>>,
-  onConnect?: () => void
+  onConnect?: () => void,
 ): ReturnType<typeof nodeRuntime> {
   const base = nodeRuntime();
   let responseIndex = 0;
@@ -79,9 +99,9 @@ function createMockRuntime(
             for (const line of response) {
               yield new TextEncoder().encode(line);
             }
-          })()
+          })(),
         };
-      }
-    }
+      },
+    },
   };
 }

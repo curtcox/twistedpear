@@ -47,7 +47,7 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions
+  stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
@@ -105,7 +105,7 @@ export function initialLinkEstablishState(options: {
     status: options.status ?? LinkStatus.PENDING,
     initiator: options.initiator,
     rtt: null,
-    activatedAt: null
+    activatedAt: null,
   };
 }
 
@@ -126,7 +126,6 @@ export function canPerformLinkHandshake(input: {
   );
 }
 
-
 /**
  * canPerformLinkHandshake gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `canPerformLinkHandshake` reads beside
@@ -144,8 +143,7 @@ export type PerformLinkHandshakeAllowEvent =
     };
 
 export type PerformLinkHandshakeAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface PerformLinkHandshakeAllowStepResult {
   readonly state: PerformLinkHandshakeAllowState;
@@ -159,7 +157,7 @@ export function initialPerformLinkHandshakeAllowState(): PerformLinkHandshakeAll
 
 export function stepPerformLinkHandshakeAllowWithActions(
   state: PerformLinkHandshakeAllowState,
-  event: PerformLinkHandshakeAllowEvent
+  event: PerformLinkHandshakeAllowEvent,
 ): PerformLinkHandshakeAllowStepResult {
   if (event.kind === "link/perform-handshake-allow-gate") {
     return {
@@ -167,9 +165,15 @@ export function stepPerformLinkHandshakeAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canPerformLinkHandshake({ status: event.status, privateKeyPresent: event.privateKeyPresent, peerPublicKeyPresent: event.peerPublicKeyPresent }) ? "allow" : "deny"
-        }
-      ]
+          kind: canPerformLinkHandshake({
+            status: event.status,
+            privateKeyPresent: event.privateKeyPresent,
+            peerPublicKeyPresent: event.peerPublicKeyPresent,
+          })
+            ? "allow"
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -177,13 +181,13 @@ export function stepPerformLinkHandshakeAllowWithActions(
 }
 
 export function shouldAllowPerformLinkHandshake(
-  actions: ReadonlyArray<PerformLinkHandshakeAllowAction>
+  actions: ReadonlyArray<PerformLinkHandshakeAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyPerformLinkHandshake(
-  actions: ReadonlyArray<PerformLinkHandshakeAllowAction>
+  actions: ReadonlyArray<PerformLinkHandshakeAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -194,9 +198,10 @@ export function canProveLink(input: {
   readonly publicKeyPresent: boolean;
   readonly ownerIdentityPresent: boolean;
 }): boolean {
-  return input.ownerPresent && input.publicKeyPresent && input.ownerIdentityPresent;
+  return (
+    input.ownerPresent && input.publicKeyPresent && input.ownerIdentityPresent
+  );
 }
-
 
 /**
  * canProveLink gate is event-driven; no durable session fields.
@@ -215,8 +220,7 @@ export type ProveLinkAllowEvent =
     };
 
 export type ProveLinkAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface ProveLinkAllowStepResult {
   readonly state: ProveLinkAllowState;
@@ -230,7 +234,7 @@ export function initialProveLinkAllowState(): ProveLinkAllowState {
 
 export function stepProveLinkAllowWithActions(
   state: ProveLinkAllowState,
-  event: ProveLinkAllowEvent
+  event: ProveLinkAllowEvent,
 ): ProveLinkAllowStepResult {
   if (event.kind === "link/prove-allow-gate") {
     return {
@@ -238,9 +242,15 @@ export function stepProveLinkAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canProveLink({ ownerPresent: event.ownerPresent, publicKeyPresent: event.publicKeyPresent, ownerIdentityPresent: event.ownerIdentityPresent }) ? "allow" : "deny"
-        }
-      ]
+          kind: canProveLink({
+            ownerPresent: event.ownerPresent,
+            publicKeyPresent: event.publicKeyPresent,
+            ownerIdentityPresent: event.ownerIdentityPresent,
+          })
+            ? "allow"
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -248,13 +258,13 @@ export function stepProveLinkAllowWithActions(
 }
 
 export function shouldAllowProveLink(
-  actions: ReadonlyArray<ProveLinkAllowAction>
+  actions: ReadonlyArray<ProveLinkAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyProveLink(
-  actions: ReadonlyArray<ProveLinkAllowAction>
+  actions: ReadonlyArray<ProveLinkAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -263,7 +273,6 @@ export function shouldDenyProveLink(
 export function canAcceptLinkOwnerPublicKey(splitOk: boolean): boolean {
   return splitOk;
 }
-
 
 /**
  * canAcceptLinkOwnerPublicKey gate is event-driven; no durable session fields.
@@ -280,8 +289,7 @@ export type AcceptLinkOwnerPublicKeyEvent =
     };
 
 export type AcceptLinkOwnerPublicKeyAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "reject" };
+  { readonly kind: "accept" } | { readonly kind: "reject" };
 
 export interface AcceptLinkOwnerPublicKeyStepResult {
   readonly state: AcceptLinkOwnerPublicKeyState;
@@ -295,7 +303,7 @@ export function initialAcceptLinkOwnerPublicKeyState(): AcceptLinkOwnerPublicKey
 
 export function stepAcceptLinkOwnerPublicKeyWithActions(
   state: AcceptLinkOwnerPublicKeyState,
-  event: AcceptLinkOwnerPublicKeyEvent
+  event: AcceptLinkOwnerPublicKeyEvent,
 ): AcceptLinkOwnerPublicKeyStepResult {
   if (event.kind === "link/accept-owner-public-key-gate") {
     return {
@@ -303,9 +311,11 @@ export function stepAcceptLinkOwnerPublicKeyWithActions(
       intents: [],
       actions: [
         {
-          kind: canAcceptLinkOwnerPublicKey(event.splitOk) ? "accept" : "reject"
-        }
-      ]
+          kind: canAcceptLinkOwnerPublicKey(event.splitOk)
+            ? "accept"
+            : "reject",
+        },
+      ],
     };
   }
 
@@ -313,13 +323,13 @@ export function stepAcceptLinkOwnerPublicKeyWithActions(
 }
 
 export function shouldAcceptLinkOwnerPublicKeyNow(
-  actions: ReadonlyArray<AcceptLinkOwnerPublicKeyAction>
+  actions: ReadonlyArray<AcceptLinkOwnerPublicKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectLinkOwnerPublicKey(
-  actions: ReadonlyArray<AcceptLinkOwnerPublicKeyAction>
+  actions: ReadonlyArray<AcceptLinkOwnerPublicKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -344,8 +354,7 @@ export type AcceptLinkRequestOwnerEvent =
     };
 
 export type AcceptLinkRequestOwnerAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "reject" };
+  { readonly kind: "accept" } | { readonly kind: "reject" };
 
 export interface AcceptLinkRequestOwnerStepResult {
   readonly state: AcceptLinkRequestOwnerState;
@@ -359,7 +368,7 @@ export function initialAcceptLinkRequestOwnerState(): AcceptLinkRequestOwnerStat
 
 export function stepAcceptLinkRequestOwnerWithActions(
   state: AcceptLinkRequestOwnerState,
-  event: AcceptLinkRequestOwnerEvent
+  event: AcceptLinkRequestOwnerEvent,
 ): AcceptLinkRequestOwnerStepResult {
   if (event.kind === "link/accept-request-owner-gate") {
     return {
@@ -369,9 +378,9 @@ export function stepAcceptLinkRequestOwnerWithActions(
         {
           kind: canAcceptLinkRequestOwner(event.identityPresent)
             ? "accept"
-            : "reject"
-        }
-      ]
+            : "reject",
+        },
+      ],
     };
   }
 
@@ -379,22 +388,19 @@ export function stepAcceptLinkRequestOwnerWithActions(
 }
 
 export function shouldAcceptLinkRequestOwnerNow(
-  actions: ReadonlyArray<AcceptLinkRequestOwnerAction>
+  actions: ReadonlyArray<AcceptLinkRequestOwnerAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectLinkRequestOwner(
-  actions: ReadonlyArray<AcceptLinkRequestOwnerAction>
+  actions: ReadonlyArray<AcceptLinkRequestOwnerAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 export type LinkValidateRequestPlan =
-  | "ok"
-  | "bad-request"
-  | "owner-missing-identity"
-  | "mode-disabled";
+  "ok" | "bad-request" | "owner-missing-identity" | "mode-disabled";
 
 /**
  * Whether validateRequest may proceed (parsed request + owner + enabled mode).
@@ -435,25 +441,25 @@ export type LinkValidateRequestPlanAction =
   | { readonly kind: "mode-disabled" };
 
 export function shouldOkLinkValidateRequestPlan(
-  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldBadRequestLinkValidateRequestPlan(
-  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-request");
 }
 
 export function shouldOwnerMissingIdentityLinkValidateRequestPlan(
-  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "owner-missing-identity");
 }
 
 export function shouldModeDisabledLinkValidateRequestPlan(
-  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "mode-disabled");
 }

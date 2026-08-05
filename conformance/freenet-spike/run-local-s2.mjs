@@ -6,7 +6,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  writeFileSync
+  writeFileSync,
 } from "node:fs";
 import { createPrivateKey, createPublicKey, randomBytes } from "node:crypto";
 import { connect } from "node:net";
@@ -25,33 +25,33 @@ const binary =
 const wsPorts = [
   Number(process.env.FREENET_GATEWAY_WS_PORT ?? 17609),
   Number(process.env.FREENET_PUBLISHER_WS_PORT ?? 17610),
-  Number(process.env.FREENET_SUBSCRIBER_WS_PORT ?? 17611)
+  Number(process.env.FREENET_SUBSCRIBER_WS_PORT ?? 17611),
 ];
 const networkPorts = [
   Number(process.env.FREENET_GATEWAY_NETWORK_PORT ?? 31438),
   Number(process.env.FREENET_PUBLISHER_NETWORK_PORT ?? 31439),
-  Number(process.env.FREENET_SUBSCRIBER_NETWORK_PORT ?? 31440)
+  Number(process.env.FREENET_SUBSCRIBER_NETWORK_PORT ?? 31440),
 ];
 const settleMs = Number(process.env.FREENET_TOPOLOGY_SETTLE_MS ?? 15_000);
 const readyTimeoutMs = Number(
-  process.env.FREENET_TOPOLOGY_READY_TIMEOUT_MS ?? 60_000
+  process.env.FREENET_TOPOLOGY_READY_TIMEOUT_MS ?? 60_000,
 );
 
 for (const port of [...wsPorts, ...networkPorts]) {
   assert(
     Number.isSafeInteger(port) && port >= 1 && port <= 65535,
-    `Invalid Freenet local topology port: ${port}`
+    `Invalid Freenet local topology port: ${port}`,
   );
 }
 assert(
   Number.isSafeInteger(settleMs) && settleMs >= 0 && settleMs <= 120_000,
-  "FREENET_TOPOLOGY_SETTLE_MS must be from 0 through 120000"
+  "FREENET_TOPOLOGY_SETTLE_MS must be from 0 through 120000",
 );
 assert(
   Number.isSafeInteger(readyTimeoutMs) &&
     readyTimeoutMs >= 1_000 &&
     readyTimeoutMs <= 300_000,
-  "FREENET_TOPOLOGY_READY_TIMEOUT_MS must be from 1000 through 300000"
+  "FREENET_TOPOLOGY_READY_TIMEOUT_MS must be from 1000 through 300000",
 );
 
 const root = mkdtempSync(join(tmpdir(), "twistedpear-freenet-s2-"));
@@ -66,7 +66,7 @@ function isolateHome() {
     homeRoot,
     "Library",
     "Application Support",
-    "The-Freenet-Project-Inc.Freenet"
+    "The-Freenet-Project-Inc.Freenet",
   );
   mkdirSync(support, { recursive: true });
   writeFileSync(join(support, "gateways.toml"), "gateways = []\n");
@@ -77,11 +77,11 @@ function x25519PublicKey(secret) {
   const privateKey = createPrivateKey({
     key: Buffer.concat([pkcs8Prefix, secret]),
     format: "der",
-    type: "pkcs8"
+    type: "pkcs8",
   });
   const publicDer = createPublicKey(privateKey).export({
     format: "der",
-    type: "spki"
+    type: "spki",
   });
   return Buffer.from(publicDer).subarray(-32);
 }
@@ -130,14 +130,14 @@ function nodeArgs(index, gatewayPublicKey) {
     logsDir,
     "--log-level",
     "info",
-    "--disable-auto-update"
+    "--disable-auto-update",
   ];
   if (index === 0) {
     args.push("--is-gateway");
   } else {
     args.push(
       "--gateway",
-      `127.0.0.1:${networkPorts[0]},${gatewayPublicKey.toString("hex")}`
+      `127.0.0.1:${networkPorts[0]},${gatewayPublicKey.toString("hex")}`,
     );
   }
   return args;
@@ -148,9 +148,9 @@ function startNode(name, args) {
     env: {
       ...process.env,
       HOME: homeRoot,
-      FREENET_TELEMETRY_ENABLED: "false"
+      FREENET_TELEMETRY_ENABLED: "false",
     },
-    stdio: ["ignore", "pipe", "pipe"]
+    stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
@@ -183,7 +183,7 @@ async function waitForGatewayPeers(minimumPeers, timeoutMs = readyTimeoutMs) {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(
-    `Gateway dashboard showed ${lastCount} peer row(s); wanted >= ${minimumPeers}`
+    `Gateway dashboard showed ${lastCount} peer row(s); wanted >= ${minimumPeers}`,
   );
 }
 
@@ -210,7 +210,8 @@ function waitForPort(port, timeoutMs = 30_000) {
 }
 
 function waitForExit(child, timeoutMs) {
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  if (child.exitCode !== null || child.signalCode !== null)
+    return Promise.resolve();
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, timeoutMs);
     child.once("exit", () => {
@@ -222,11 +223,13 @@ function waitForExit(child, timeoutMs) {
 
 async function stopNodes() {
   for (const { child } of children) {
-    if (child.exitCode === null && child.signalCode === null) child.kill("SIGINT");
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGINT");
   }
   await Promise.all(children.map(({ child }) => waitForExit(child, 5000)));
   for (const { child } of children) {
-    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGKILL");
   }
   await Promise.all(children.map(({ child }) => waitForExit(child, 1000)));
 }
@@ -241,21 +244,19 @@ function measurementEnvironment() {
     // FREENET_FORCE_CROSS_NODE=1 (writes a separate local-cross-node artifact).
     ...(crossNode
       ? {
-          FREENET_SUBSCRIBER_NODE_URL:
-            `ws://127.0.0.1:${wsPorts[2]}/v1/contract/command`,
+          FREENET_SUBSCRIBER_NODE_URL: `ws://127.0.0.1:${wsPorts[2]}/v1/contract/command`,
           FREENET_MEASUREMENT_LABEL: "local-cross-node",
           // Pace cross-node samples; Freenet 0.2.112 drops subscription
           // snapshots under a sustained update blast.
-          FREENET_SAMPLE_GAP_MS: process.env.FREENET_SAMPLE_GAP_MS ?? "50"
+          FREENET_SAMPLE_GAP_MS: process.env.FREENET_SAMPLE_GAP_MS ?? "50",
         }
       : {
-          FREENET_SUBSCRIBER_NODE_URL:
-            `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`,
-          FREENET_MEASUREMENT_LABEL: "local-3-node"
+          FREENET_SUBSCRIBER_NODE_URL: `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`,
+          FREENET_MEASUREMENT_LABEL: "local-3-node",
         }),
     ...(smoke
       ? { FREENET_SAMPLE_COUNT: "1", FREENET_ALLOW_INCOMPLETE: "1" }
-      : {})
+      : {}),
   };
 }
 
@@ -287,12 +288,13 @@ async function main() {
   const measurement = spawn(
     process.execPath,
     [join(import.meta.dirname, "measure-roundtrip.mjs")],
-    { env: measurementEnvironment(), stdio: "inherit" }
+    { env: measurementEnvironment(), stdio: "inherit" },
   );
   const exitCode = await new Promise((resolve, reject) => {
     measurement.once("error", reject);
     measurement.once("exit", (code, signal) => {
-      if (signal !== null) reject(new Error(`Measurement exited via ${signal}`));
+      if (signal !== null)
+        reject(new Error(`Measurement exited via ${signal}`));
       else resolve(code ?? 1);
     });
   });
@@ -326,7 +328,9 @@ await runMain(async () => {
     await main();
   } catch (error) {
     for (const { name } of children) {
-      console.error(`\n--- ${name} stdout/stderr ---\n${tails.get(name) ?? "(no output)"}`);
+      console.error(
+        `\n--- ${name} stdout/stderr ---\n${tails.get(name) ?? "(no output)"}`,
+      );
       console.error(`\n--- ${name} log files ---\n${nodeLogTail(name)}`);
     }
     throw error;

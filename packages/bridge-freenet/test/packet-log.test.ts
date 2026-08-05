@@ -7,17 +7,17 @@ import {
   decodePacketLogState,
   encodePacketLogParameters,
   encodePacketLogState,
-  mergePacketLogStates
+  mergePacketLogStates,
 } from "../src/index.js";
 
 const vector = JSON.parse(
   readFileSync(
     new URL(
       "../../../specs/spec-freenet/vectors/packet-log-state.json",
-      import.meta.url
+      import.meta.url,
     ),
-    "utf8"
-  )
+    "utf8",
+  ),
 ) as {
   contractArtifact: {
     bytes: number;
@@ -48,7 +48,7 @@ describe("Freenet packet-log state", () => {
     const encoded = encodePacketLogParameters({ retentionPerDirection: 8 });
     expect(Buffer.from(encoded).toString("hex")).toBe(vector.parametersHex);
     expect(decodePacketLogParameters(encoded)).toEqual({
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
   });
 
@@ -56,14 +56,14 @@ describe("Freenet packet-log state", () => {
     const rendezvous = hexToBytes(vector.rendezvousParametersHex.slice(4));
     const encoded = encodePacketLogParameters({
       retentionPerDirection: 8,
-      rendezvous
+      rendezvous,
     });
     expect(Buffer.from(encoded).toString("hex")).toBe(
-      vector.rendezvousParametersHex
+      vector.rendezvousParametersHex,
     );
     expect(decodePacketLogParameters(encoded)).toEqual({
       retentionPerDirection: 8,
-      rendezvous
+      rendezvous,
     });
   });
 
@@ -72,23 +72,23 @@ describe("Freenet packet-log state", () => {
       readFileSync(
         new URL(
           "../contract/packet-log/packet-log-contract.wasm",
-          import.meta.url
-        )
-      )
+          import.meta.url,
+        ),
+      ),
     );
     expect(wasm).toHaveLength(vector.contractArtifact.bytes);
     expect(Buffer.from(provider.sha256(wasm)).toString("hex")).toBe(
-      vector.contractArtifact.sha256Hex
+      vector.contractArtifact.sha256Hex,
     );
     const derived = FreenetClient.deriveKey({
       wasm,
-      parameters: hexToBytes(vector.keyDerivation.parametersHex)
+      parameters: hexToBytes(vector.keyDerivation.parametersHex),
     });
     expect(Buffer.from(derived.codeHash).toString("hex")).toBe(
-      vector.keyDerivation.codeHashHex
+      vector.keyDerivation.codeHashHex,
     );
     expect(Buffer.from(derived.key).toString("hex")).toBe(
-      vector.keyDerivation.instanceIdHex
+      vector.keyDerivation.instanceIdHex,
     );
   });
 
@@ -99,19 +99,19 @@ describe("Freenet packet-log state", () => {
       const leftRight = mergePacketLogStates(
         testCase.retentionPerDirection,
         left,
-        right
+        right,
       );
       const rightLeft = mergePacketLogStates(
         testCase.retentionPerDirection,
         right,
-        left
+        left,
       );
       expect(Buffer.from(leftRight).toString("hex")).toBe(testCase.mergedHex);
       expect(Buffer.from(rightLeft).toString("hex")).toBe(testCase.mergedHex);
       expect(
         decodePacketLogState(leftRight, testCase.retentionPerDirection).map(
-          (entry) => [entry.direction, Number(entry.index)]
-        )
+          (entry) => [entry.direction, Number(entry.index)],
+        ),
       ).toEqual(testCase.mergedIndexes);
     });
   }
@@ -120,18 +120,18 @@ describe("Freenet packet-log state", () => {
     expect(() =>
       encodePacketLogState([
         { direction: 0, index: 1n, payload: new Uint8Array([1]) },
-        { direction: 0, index: 0n, payload: new Uint8Array([2]) }
-      ])
+        { direction: 0, index: 0n, payload: new Uint8Array([2]) },
+      ]),
     ).toThrow("not canonical");
   });
 
   it("is idempotent under merge", () => {
     const encoded = encodePacketLogState([
       { direction: 0, index: 0n, payload: new Uint8Array([0x61]) },
-      { direction: 0, index: 3n, payload: new Uint8Array([0x64]) }
+      { direction: 0, index: 3n, payload: new Uint8Array([0x64]) },
     ]);
     expect(
-      Buffer.from(mergePacketLogStates(8, encoded, encoded)).toString("hex")
+      Buffer.from(mergePacketLogStates(8, encoded, encoded)).toString("hex"),
     ).toBe(Buffer.from(encoded).toString("hex"));
   });
 });

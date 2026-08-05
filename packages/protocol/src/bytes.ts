@@ -6,7 +6,9 @@
 
 import type { Event, Intent } from "@twistedpear/effects";
 
-export function concatByteArrays(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
+export function concatByteArrays(
+  ...parts: ReadonlyArray<Uint8Array>
+): Uint8Array {
   const length = parts.reduce((total, part) => total + part.length, 0);
   const output = new Uint8Array(length);
   let offset = 0;
@@ -17,7 +19,9 @@ export function concatByteArrays(...parts: ReadonlyArray<Uint8Array>): Uint8Arra
   return output;
 }
 
-export function assembleByteArrays(parts: ReadonlyArray<Uint8Array>): Uint8Array {
+export function assembleByteArrays(
+  parts: ReadonlyArray<Uint8Array>,
+): Uint8Array {
   return concatByteArrays(...parts);
 }
 
@@ -52,7 +56,7 @@ export function initialAssembleByteArraysState(): AssembleByteArraysState {
 
 export function stepAssembleByteArraysWithActions(
   state: AssembleByteArraysState,
-  event: AssembleByteArraysEvent
+  event: AssembleByteArraysEvent,
 ): AssembleByteArraysStepResult {
   if (event.kind === "bytes/assemble-gate") {
     return {
@@ -61,9 +65,9 @@ export function stepAssembleByteArraysWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: assembleByteArrays(event.parts)
-        }
-      ]
+          raw: assembleByteArrays(event.parts),
+        },
+      ],
     };
   }
 
@@ -71,14 +75,14 @@ export function stepAssembleByteArraysWithActions(
 }
 
 export function shouldUseAssembleByteArrays(
-  actions: ReadonlyArray<AssembleByteArraysAction>
+  actions: ReadonlyArray<AssembleByteArraysAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract assembled bytes from step actions; null when no `use-raw`. */
 export function assembleByteArraysRawFromActions(
-  actions: ReadonlyArray<AssembleByteArraysAction>
+  actions: ReadonlyArray<AssembleByteArraysAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

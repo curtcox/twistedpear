@@ -3,7 +3,7 @@ import {
   Destination,
   DestinationDirection,
   DestinationType,
-  type DestinationOptions
+  type DestinationOptions,
 } from "./destination.js";
 import type { PacketInterface } from "./interfaces/interface.js";
 import { ANNOUNCE_RANDOM_HASH_SIZE, Announce } from "./announce.js";
@@ -15,13 +15,13 @@ import {
   PacketContext,
   PacketHeaderType,
   PacketType,
-  TransportType
+  TransportType,
 } from "./packet.js";
 import type { PacketReceipt } from "./packet-receipt.js";
 import {
   DestinationProofStrategy,
   type DestinationProofStrategyValue,
-  type LeafTransport
+  type LeafTransport,
 } from "./transport/node.js";
 import {
   DestinationAllowPolicyCode,
@@ -66,7 +66,7 @@ import {
   initialUtf8EncodeState,
   shouldUseUtf8Encode,
   utf8EncodeRawFromActions,
-  type DestinationAllowPolicyCodeValue
+  type DestinationAllowPolicyCodeValue,
 } from "@twistedpear/protocol";
 
 export interface RegisteredDestinationOptions extends DestinationOptions {
@@ -87,7 +87,7 @@ export interface RequestHandler {
     requestId: Uint8Array,
     linkId: Uint8Array,
     remoteIdentity: Identity | null,
-    requestedAt: number
+    requestedAt: number,
   ) => Uint8Array | null | Promise<Uint8Array | null>;
   readonly allow: DestinationAllowPolicyValue;
   readonly allowedList: ReadonlyArray<Uint8Array>;
@@ -95,10 +95,12 @@ export interface RequestHandler {
 
 export class RegisteredDestination extends Destination {
   readonly cryptoProvider: CryptoProvider;
-  private packetCallback: ((data: Uint8Array, packet: Packet) => void) | null = null;
+  private packetCallback: ((data: Uint8Array, packet: Packet) => void) | null =
+    null;
   private linkEstablishedCallback: ((link: Link) => void) | null = null;
   private proofRequestedCallback: ((packet: Packet) => boolean) | null = null;
-  proofStrategy: DestinationProofStrategyValue = DestinationProofStrategy.PROVE_NONE;
+  proofStrategy: DestinationProofStrategyValue =
+    DestinationProofStrategy.PROVE_NONE;
   acceptLinkRequests = true;
   private readonly links: Link[] = [];
   private readonly requestHandlers = new Map<string, RequestHandler>();
@@ -118,7 +120,9 @@ export class RegisteredDestination extends Destination {
     transport.registerDestination(this);
   }
 
-  setPacketCallback(callback: (data: Uint8Array, packet: Packet) => void): void {
+  setPacketCallback(
+    callback: (data: Uint8Array, packet: Packet) => void,
+  ): void {
     this.packetCallback = callback;
   }
 
@@ -142,31 +146,37 @@ export class RegisteredDestination extends Destination {
     path: string,
     responseGenerator: RequestHandler["responseGenerator"],
     allow: DestinationAllowPolicyValue = DestinationAllowPolicy.ALLOW_NONE,
-    allowedList: ReadonlyArray<Uint8Array> = []
+    allowedList: ReadonlyArray<Uint8Array> = [],
   ): void {
     const pathGate = stepDestinationRequestPathValidWithActions(
       initialDestinationRequestPathValidState(),
       {
         kind: "destination/request-path-valid-gate",
-        path
-      }
+        path,
+      },
     );
     if (!shouldAcceptDestinationRequestPath(pathGate.actions)) {
       throw new Error("Invalid path specified");
     }
 
-    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8EncodePath(path));
+    const pathHash = Identity.truncatedHash(
+      this.cryptoProvider,
+      utf8EncodePath(path),
+    );
     this.requestHandlers.set(bytesToHex(pathHash), {
       path,
       pathHash,
       responseGenerator,
       allow,
-      allowedList
+      allowedList,
     });
   }
 
   deregisterRequestHandler(path: string): boolean {
-    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8EncodePath(path));
+    const pathHash = Identity.truncatedHash(
+      this.cryptoProvider,
+      utf8EncodePath(path),
+    );
     return this.requestHandlers.delete(bytesToHex(pathHash));
   }
 
@@ -176,14 +186,14 @@ export class RegisteredDestination extends Destination {
 
   requestLink(
     callbacks?: LinkCallbacks,
-    options?: { readonly entropy?: Uint8Array }
+    options?: { readonly entropy?: Uint8Array },
   ): Link {
     const attached = stepOperateAttachedDestinationWithActions(
       initialOperateAttachedDestinationState(),
       {
         kind: "destination/operate-attached-gate",
-        transportPresent: this.transport !== null
-      }
+        transportPresent: this.transport !== null,
+      },
     );
     if (!shouldAllowOperateAttachedDestination(attached.actions)) {
       throw new Error("Destination is not attached to a Reticulum instance");
@@ -193,7 +203,7 @@ export class RegisteredDestination extends Destination {
       destination: this,
       transport: this.transport!,
       ...(callbacks === undefined ? {} : { callbacks }),
-      ...(options?.entropy === undefined ? {} : { entropy: options.entropy })
+      ...(options?.entropy === undefined ? {} : { entropy: options.entropy }),
     });
   }
 
@@ -203,8 +213,8 @@ export class RegisteredDestination extends Destination {
       {
         kind: "destination/accept-link-request-gate",
         acceptLinkRequests: this.acceptLinkRequests,
-        directionIn: this.direction === DestinationDirection.IN
-      }
+        directionIn: this.direction === DestinationDirection.IN,
+      },
     );
     if (!shouldAllowDestinationLinkRequest(accept.actions)) {
       return;
@@ -215,8 +225,8 @@ export class RegisteredDestination extends Destination {
       initialRegisterDestinationLinkState(),
       {
         kind: "destination/register-link-gate",
-        validatedLinkPresent: link !== null
-      }
+        validatedLinkPresent: link !== null,
+      },
     );
     if (!shouldRegisterDestinationLinkNow(register.actions)) {
       return;
@@ -229,10 +239,12 @@ export class RegisteredDestination extends Destination {
       initialDestinationLinkEstablishedCallbackState(),
       {
         kind: "destination/link-established-callback-gate",
-        callbackPresent: this.linkEstablishedCallback !== null
-      }
+        callbackPresent: this.linkEstablishedCallback !== null,
+      },
     );
-    if (shouldInvokeDestinationLinkEstablishedCallbackNow(established.actions)) {
+    if (
+      shouldInvokeDestinationLinkEstablishedCallbackNow(established.actions)
+    ) {
       const callback = this.linkEstablishedCallback!;
       const existing = link.callbacks.linkEstablished;
       link.callbacks.linkEstablished = (establishedLink) => {
@@ -253,8 +265,8 @@ export class RegisteredDestination extends Destination {
       initialDestinationProofCallbackState(),
       {
         kind: "destination/proof-callback-gate",
-        callbackPresent: this.proofRequestedCallback !== null
-      }
+        callbackPresent: this.proofRequestedCallback !== null,
+      },
     );
     if (!shouldInvokeDestinationProofCallbackNow(proofCallback.actions)) {
       return false;
@@ -264,11 +276,14 @@ export class RegisteredDestination extends Destination {
   }
 
   decrypt(ciphertext: Uint8Array): Uint8Array | null {
-    const gate = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
-      kind: "destination/decrypt-gate",
-      typePlain: this.type === DestinationType.PLAIN,
-      identityPresent: this.identity !== null
-    });
+    const gate = stepDestinationDecryptWithActions(
+      initialDestinationDecryptState(),
+      {
+        kind: "destination/decrypt-gate",
+        typePlain: this.type === DestinationType.PLAIN,
+        identityPresent: this.identity !== null,
+      },
+    );
     if (shouldReturnDestinationDecryptCiphertext(gate.actions)) {
       return ciphertext;
     }
@@ -291,39 +306,47 @@ export class RegisteredDestination extends Destination {
       attachedInterface?: PacketInterface | null;
       pathResponse?: boolean;
       randomHash?: Uint8Array;
-    } = {}
+    } = {},
   ): Promise<void> {
     const attached = stepOperateAttachedDestinationWithActions(
       initialOperateAttachedDestinationState(),
       {
         kind: "destination/operate-attached-gate",
-        transportPresent: this.transport !== null
-      }
+        transportPresent: this.transport !== null,
+      },
     );
     if (!shouldAllowOperateAttachedDestination(attached.actions)) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
-    const announce = stepAnnounceDestinationWithActions(initialAnnounceDestinationState(), {
-      kind: "destination/announce-gate",
-      typeSingle: this.type === DestinationType.SINGLE,
-      directionIn: this.direction === DestinationDirection.IN
-    });
+    const announce = stepAnnounceDestinationWithActions(
+      initialAnnounceDestinationState(),
+      {
+        kind: "destination/announce-gate",
+        typeSingle: this.type === DestinationType.SINGLE,
+        directionIn: this.direction === DestinationDirection.IN,
+      },
+    );
     if (!shouldAllowDestinationAnnounce(announce.actions)) {
       throw new Error("Only IN SINGLE destinations can be announced");
     }
 
-    const withIdentity = stepAnnounceWithIdentityWithActions(initialAnnounceWithIdentityState(), {
-      kind: "destination/announce-with-identity-gate",
-      identityPresent: this.identity !== null
-    });
+    const withIdentity = stepAnnounceWithIdentityWithActions(
+      initialAnnounceWithIdentityState(),
+      {
+        kind: "destination/announce-with-identity-gate",
+        identityPresent: this.identity !== null,
+      },
+    );
     if (!shouldAllowAnnounceWithIdentity(withIdentity.actions)) {
       throw new Error("Announce destination must hold an identity");
     }
 
     let randomHash = options.randomHash;
     if (randomHash === undefined) {
-      randomHash = this.transport!.entropy.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE);
+      randomHash = this.transport!.entropy.randomBytes(
+        ANNOUNCE_RANDOM_HASH_SIZE,
+      );
       let emittedAt = Math.floor(this.transport!.clock.now() / 1_000);
       for (let index = ANNOUNCE_RANDOM_HASH_SIZE - 1; index >= 5; index -= 1) {
         randomHash[index] = emittedAt % 256;
@@ -337,7 +360,7 @@ export class RegisteredDestination extends Destination {
       ...(options.pathResponse === true ? { pathResponse: true } : {}),
     });
     await this.transport!.sendPacket(packet, {
-      attachedInterface: options.attachedInterface ?? null
+      attachedInterface: options.attachedInterface ?? null,
     });
   }
 
@@ -347,14 +370,17 @@ export class RegisteredDestination extends Destination {
 
   async send(
     data: Uint8Array,
-    options: { createReceipt?: boolean; attachedInterface?: PacketInterface | null } = {}
+    options: {
+      createReceipt?: boolean;
+      attachedInterface?: PacketInterface | null;
+    } = {},
   ): Promise<PacketReceipt | null> {
     const attached = stepOperateAttachedDestinationWithActions(
       initialOperateAttachedDestinationState(),
       {
         kind: "destination/operate-attached-gate",
-        transportPresent: this.transport !== null
-      }
+        transportPresent: this.transport !== null,
+      },
     );
     if (!shouldAllowOperateAttachedDestination(attached.actions)) {
       throw new Error("Destination is not attached to a Reticulum instance");
@@ -362,17 +388,20 @@ export class RegisteredDestination extends Destination {
 
     const send = stepDestinationSendWithActions(initialDestinationSendState(), {
       kind: "destination/send-gate",
-      directionOut: this.direction === DestinationDirection.OUT
+      directionOut: this.direction === DestinationDirection.OUT,
     });
     if (!shouldAllowDestinationSend(send.actions)) {
       throw new Error("Only OUT destinations can send packets");
     }
 
-    const gate = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
-      kind: "destination/encrypt-gate",
-      typePlain: this.type === DestinationType.PLAIN,
-      identityPresent: this.identity !== null
-    });
+    const gate = stepDestinationEncryptWithActions(
+      initialDestinationEncryptState(),
+      {
+        kind: "destination/encrypt-gate",
+        typePlain: this.type === DestinationType.PLAIN,
+        identityPresent: this.identity !== null,
+      },
+    );
     let ciphertext: Uint8Array;
     if (shouldUseDestinationEncryptPlaintext(gate.actions)) {
       ciphertext = data;
@@ -384,7 +413,9 @@ export class RegisteredDestination extends Destination {
     ) {
       throw new Error("Destination cannot encrypt outbound data");
     } else {
-      ciphertext = this.identity.encrypt(data, { entropy: this.transport!.entropy });
+      ciphertext = this.identity.encrypt(data, {
+        entropy: this.transport!.entropy,
+      });
     }
 
     const packet = Packet.fromFields(this.cryptoProvider, {
@@ -394,12 +425,12 @@ export class RegisteredDestination extends Destination {
       packetType: PacketType.DATA,
       destinationHash: this.hash,
       context: PacketContext.NONE,
-      data: ciphertext
+      data: ciphertext,
     });
 
     return this.transport!.sendPacket(packet, {
       createReceipt: options.createReceipt ?? false,
-      attachedInterface: options.attachedInterface ?? null
+      attachedInterface: options.attachedInterface ?? null,
     });
   }
 }
@@ -407,7 +438,7 @@ export class RegisteredDestination extends Destination {
 function utf8EncodePath(path: string): Uint8Array {
   const stepped = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
     kind: "utf8/encode-gate",
-    value: path
+    value: path,
   });
   const raw = utf8EncodeRawFromActions(stepped.actions);
   if (!shouldUseUtf8Encode(stepped.actions) || raw === null) {

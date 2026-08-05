@@ -4,7 +4,7 @@ export default {
     "packages/protocol/src/**/*.ts",
     "packages/effects/src/**/*.ts",
     "!packages/**/*.gen.ts",
-    "!packages/**/index.ts"
+    "!packages/**/index.ts",
   ],
   // SwiftPM leaves platform-specific symlinks below ignored `.build` trees, and
   // CocoaPods leaves dangling header symlinks below `ios/Pods`. Exclude both
@@ -21,7 +21,7 @@ export default {
     "**/.build",
     "**/.build/**",
     "**/ios/Pods",
-    "**/ios/Pods/**"
+    "**/ios/Pods/**",
   ],
   testRunner: "vitest",
   vitest: { configFile: "vitest.config.ts" },
@@ -38,5 +38,5 @@ export default {
   // survey remains practical both nightly and during Pages publication.
   concurrency: 4,
   timeoutMS: 10000,
-  thresholds: { high: 80, low: 60, break: null }
+  thresholds: { high: 80, low: 60, break: null },
 };

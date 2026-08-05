@@ -12,11 +12,22 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue
+  type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
 import { LxmfDeliveryMethod } from "./part-1.js";
-import { planLxMessageInstancePack, shouldPlanLxMessageInstancePackOk, shouldRejectLxMessageInstancePackPlanAlreadyPacked, shouldRejectLxMessageInstancePackPlanMissingEndpoints, shouldRejectLxMessageInstancePackPlanMissingTimestamp } from "./part-8.js";
-import type { LxMessageInstancePackEvent, LxMessageInstancePackGate, LxMessageInstancePackPlanAction, LxMessageInstancePackPlanEvent } from "./part-8.js";
+import {
+  planLxMessageInstancePack,
+  shouldPlanLxMessageInstancePackOk,
+  shouldRejectLxMessageInstancePackPlanAlreadyPacked,
+  shouldRejectLxMessageInstancePackPlanMissingEndpoints,
+  shouldRejectLxMessageInstancePackPlanMissingTimestamp,
+} from "./part-8.js";
+import type {
+  LxMessageInstancePackEvent,
+  LxMessageInstancePackGate,
+  LxMessageInstancePackPlanAction,
+  LxMessageInstancePackPlanEvent,
+} from "./part-8.js";
 /**
  * Instance-pack-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxMessageInstancePack` /
@@ -37,7 +48,7 @@ export function initialLxMessageInstancePackPlanState(): LxMessageInstancePackPl
 
 export function stepLxMessageInstancePackPlanWithActions(
   state: LxMessageInstancePackPlanState,
-  event: LxMessageInstancePackPlanEvent
+  event: LxMessageInstancePackPlanEvent,
 ): LxMessageInstancePackPlanStepResult {
   if (event.kind === "instance-pack/plan-gate") {
     return {
@@ -50,10 +61,10 @@ export function stepLxMessageInstancePackPlanWithActions(
             destinationPresent: event.destinationPresent,
             sourcePresent: event.sourcePresent,
             sourceIdentityPresent: event.sourceIdentityPresent,
-            timestampPresent: event.timestampPresent
-          })
-        }
-      ]
+            timestampPresent: event.timestampPresent,
+          }),
+        },
+      ],
     };
   }
 
@@ -62,14 +73,14 @@ export function stepLxMessageInstancePackPlanWithActions(
 
 /** Extract the instance-pack plan from actions; null when empty. */
 export function lxMessageInstancePackPlanFromActions(
-  actions: ReadonlyArray<LxMessageInstancePackPlanAction>
+  actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): LxMessageInstancePackGate | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "already-packed" ||
       entry.kind === "missing-endpoints" ||
-      entry.kind === "missing-timestamp"
+      entry.kind === "missing-timestamp",
   );
   return action?.kind ?? null;
 }
@@ -105,49 +116,49 @@ export function initialLxMessageInstancePackState(): LxMessageInstancePackState 
 
 export const stepLxMessageInstancePack: StepFn<LxMessageInstancePackState> = (
   state,
-  event
+  event,
 ) => {
   const result = stepLxMessageInstancePackInner(
     state,
-    event as LxMessageInstancePackEvent
+    event as LxMessageInstancePackEvent,
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxMessageInstancePackWithActions(
   state: LxMessageInstancePackState,
-  event: LxMessageInstancePackEvent
+  event: LxMessageInstancePackEvent,
 ): LxMessageInstancePackStepResult {
   return stepLxMessageInstancePackInner(state, event);
 }
 
 export function shouldProceedLxMessageInstancePack(
-  actions: ReadonlyArray<LxMessageInstancePackAction>
+  actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectLxMessageInstanceAlreadyPacked(
-  actions: ReadonlyArray<LxMessageInstancePackAction>
+  actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-already-packed");
 }
 
 export function shouldRejectLxMessageInstanceMissingEndpoints(
-  actions: ReadonlyArray<LxMessageInstancePackAction>
+  actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-endpoints");
 }
 
 export function shouldRejectLxMessageInstanceMissingTimestamp(
-  actions: ReadonlyArray<LxMessageInstancePackAction>
+  actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-timestamp");
 }
 
 function stepLxMessageInstancePackInner(
   state: LxMessageInstancePackState,
-  event: LxMessageInstancePackEvent
+  event: LxMessageInstancePackEvent,
 ): LxMessageInstancePackStepResult {
   if (event.kind === "instance-pack/gate") {
     const planActions = stepLxMessageInstancePackPlanWithActions(
@@ -158,17 +169,29 @@ function stepLxMessageInstancePackInner(
         destinationPresent: event.destinationPresent,
         sourcePresent: event.sourcePresent,
         sourceIdentityPresent: event.sourceIdentityPresent,
-        timestampPresent: event.timestampPresent
-      }
+        timestampPresent: event.timestampPresent,
+      },
     ).actions;
     if (shouldRejectLxMessageInstancePackPlanAlreadyPacked(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-already-packed" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-already-packed" }],
+      };
     }
     if (shouldRejectLxMessageInstancePackPlanMissingEndpoints(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-missing-endpoints" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-missing-endpoints" }],
+      };
     }
     if (shouldRejectLxMessageInstancePackPlanMissingTimestamp(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-missing-timestamp" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-missing-timestamp" }],
+      };
     }
     if (!shouldPlanLxMessageInstancePackOk(planActions)) {
       return { state, intents: [], actions: [] };
@@ -223,12 +246,12 @@ export function planLxmfSignatureOutcome(input: {
       signatureValidated: input.signatureValid,
       unverifiedReason: input.signatureValid
         ? null
-        : LxmfUnverifiedReason.SIGNATURE_INVALID
+        : LxmfUnverifiedReason.SIGNATURE_INVALID,
     };
   }
   return {
     signatureValidated: false,
-    unverifiedReason: LxmfUnverifiedReason.SOURCE_UNKNOWN
+    unverifiedReason: LxmfUnverifiedReason.SOURCE_UNKNOWN,
   };
 }
 
@@ -265,12 +288,12 @@ export function initialLxmfSignatureOutcomePlanState(): LxmfSignatureOutcomePlan
 
 export function stepLxmfSignatureOutcomePlanWithActions(
   state: LxmfSignatureOutcomePlanState,
-  event: LxmfSignatureOutcomePlanEvent
+  event: LxmfSignatureOutcomePlanEvent,
 ): LxmfSignatureOutcomePlanStepResult {
   if (event.kind === "signature/outcome-plan-gate") {
     const outcome = planLxmfSignatureOutcome({
       sourceIdentityPresent: event.sourceIdentityPresent,
-      signatureValid: event.signatureValid
+      signatureValid: event.signatureValid,
     });
     return {
       state,
@@ -279,9 +302,9 @@ export function stepLxmfSignatureOutcomePlanWithActions(
         {
           kind: "outcome",
           signatureValidated: outcome.signatureValidated,
-          unverifiedReason: outcome.unverifiedReason
-        }
-      ]
+          unverifiedReason: outcome.unverifiedReason,
+        },
+      ],
     };
   }
 
@@ -290,13 +313,13 @@ export function stepLxmfSignatureOutcomePlanWithActions(
 
 /** Outcome fields from a plan outcome action, if present. */
 export function lxmfSignatureOutcomePlanFromActions(
-  actions: ReadonlyArray<LxmfSignatureOutcomePlanAction>
+  actions: ReadonlyArray<LxmfSignatureOutcomePlanAction>,
 ): LxmfSignatureOutcome | null {
   for (const action of actions) {
     if (action.kind === "outcome") {
       return {
         signatureValidated: action.signatureValidated,
-        unverifiedReason: action.unverifiedReason
+        unverifiedReason: action.unverifiedReason,
       };
     }
   }
@@ -345,26 +368,26 @@ export const stepLxmfSignature: StepFn<LxmfSignatureState> = (state, event) => {
 
 export function stepLxmfSignatureWithActions(
   state: LxmfSignatureState,
-  event: LxmfSignatureEvent
+  event: LxmfSignatureEvent,
 ): LxmfSignatureStepResult {
   return stepLxmfSignatureInner(state, event);
 }
 
 export function shouldApplyLxmfSignature(
-  actions: ReadonlyArray<LxmfSignatureAction>
+  actions: ReadonlyArray<LxmfSignatureAction>,
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 /** Outcome fields from an apply action, if present. */
 export function lxmfSignatureOutcomeFromActions(
-  actions: ReadonlyArray<LxmfSignatureAction>
+  actions: ReadonlyArray<LxmfSignatureAction>,
 ): LxmfSignatureOutcome | null {
   for (const action of actions) {
     if (action.kind === "apply") {
       return {
         signatureValidated: action.signatureValidated,
-        unverifiedReason: action.unverifiedReason
+        unverifiedReason: action.unverifiedReason,
       };
     }
   }
@@ -373,7 +396,7 @@ export function lxmfSignatureOutcomeFromActions(
 
 function stepLxmfSignatureInner(
   state: LxmfSignatureState,
-  event: LxmfSignatureEvent
+  event: LxmfSignatureEvent,
 ): LxmfSignatureStepResult {
   if (event.kind === "signature/outcome-gate") {
     const planActions = stepLxmfSignatureOutcomePlanWithActions(
@@ -381,8 +404,8 @@ function stepLxmfSignatureInner(
       {
         kind: "signature/outcome-plan-gate",
         sourceIdentityPresent: event.sourceIdentityPresent,
-        signatureValid: event.signatureValid
-      }
+        signatureValid: event.signatureValid,
+      },
     ).actions;
     const outcome = lxmfSignatureOutcomePlanFromActions(planActions);
     if (outcome === null) {
@@ -395,9 +418,9 @@ function stepLxmfSignatureInner(
         {
           kind: "apply",
           signatureValidated: outcome.signatureValidated,
-          unverifiedReason: outcome.unverifiedReason
-        }
-      ]
+          unverifiedReason: outcome.unverifiedReason,
+        },
+      ],
     };
   }
 
@@ -405,10 +428,7 @@ function stepLxmfSignatureInner(
 }
 
 export type LxmfPropagatedPackPrepPlan =
-  | "skip"
-  | "ok"
-  | "missing-identity"
-  | "missing-timestamp";
+  "skip" | "ok" | "missing-identity" | "missing-timestamp";
 
 /**
  * Whether PROPAGATED pack prep (encrypt + envelope) may run during selectDeliveryParameters.
@@ -420,7 +440,10 @@ export function planLxmfPropagatedPackPrep(input: {
   readonly destinationIdentityPresent: boolean;
   readonly timestampPresent: boolean;
 }): LxmfPropagatedPackPrepPlan {
-  if (!input.packedPresent || input.desiredMethod !== LxmfDeliveryMethod.PROPAGATED) {
+  if (
+    !input.packedPresent ||
+    input.desiredMethod !== LxmfDeliveryMethod.PROPAGATED
+  ) {
     return "skip";
   }
   if (!input.destinationIdentityPresent) {
@@ -450,14 +473,14 @@ export type LxmfPropagatedPackPrepPlanAction =
 
 /** Whether pack-prep-plan actions skip PROPAGATED prep. */
 export function shouldPlanLxmfPropagatedPackPrepSkip(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>
+  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether pack-prep-plan actions allow PROPAGATED prep to proceed. */
 export function shouldPlanLxmfPropagatedPackPrepOk(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>
+  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }

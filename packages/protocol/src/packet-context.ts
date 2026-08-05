@@ -28,7 +28,7 @@ export const PacketContextCode = {
   LINKCLOSE: 0xfc,
   LINKPROOF: 0xfd,
   LRRTT: 0xfe,
-  LRPROOF: 0xff
+  LRPROOF: 0xff,
 } as const;
 
 export type PacketContextCodeValue =
@@ -111,8 +111,7 @@ export type LinkKeepaliveContextEvent =
     };
 
 export type LinkKeepaliveContextAction =
-  | { readonly kind: "keepalive" }
-  | { readonly kind: "other" };
+  { readonly kind: "keepalive" } | { readonly kind: "other" };
 
 export interface LinkKeepaliveContextStepResult {
   readonly state: LinkKeepaliveContextState;
@@ -126,7 +125,7 @@ export function initialLinkKeepaliveContextState(): LinkKeepaliveContextState {
 
 export function stepLinkKeepaliveContextWithActions(
   state: LinkKeepaliveContextState,
-  event: LinkKeepaliveContextEvent
+  event: LinkKeepaliveContextEvent,
 ): LinkKeepaliveContextStepResult {
   if (event.kind === "link/keepalive-context-gate") {
     return {
@@ -134,9 +133,9 @@ export function stepLinkKeepaliveContextWithActions(
       intents: [],
       actions: [
         {
-          kind: isLinkKeepaliveContext(event.context) ? "keepalive" : "other"
-        }
-      ]
+          kind: isLinkKeepaliveContext(event.context) ? "keepalive" : "other",
+        },
+      ],
     };
   }
 
@@ -144,13 +143,13 @@ export function stepLinkKeepaliveContextWithActions(
 }
 
 export function shouldTreatLinkKeepaliveContext(
-  actions: ReadonlyArray<LinkKeepaliveContextAction>
+  actions: ReadonlyArray<LinkKeepaliveContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "keepalive");
 }
 
 export function shouldTreatLinkKeepaliveOther(
-  actions: ReadonlyArray<LinkKeepaliveContextAction>
+  actions: ReadonlyArray<LinkKeepaliveContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "other");
 }
@@ -186,13 +185,13 @@ export function initialLinkDataContextPlanState(): LinkDataContextPlanState {
 
 export function stepLinkDataContextPlanWithActions(
   state: LinkDataContextPlanState,
-  event: LinkDataContextPlanEvent
+  event: LinkDataContextPlanEvent,
 ): LinkDataContextPlanStepResult {
   if (event.kind === "link/data-context-plan-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: planLinkDataContext(event.context) }]
+      actions: [{ kind: planLinkDataContext(event.context) }],
     };
   }
 
@@ -200,7 +199,7 @@ export function stepLinkDataContextPlanWithActions(
 }
 
 export function linkDataContextPlanFromActions(
-  actions: ReadonlyArray<LinkDataContextPlanAction>
+  actions: ReadonlyArray<LinkDataContextPlanAction>,
 ): LinkDataContextKind | null {
   const action = actions[0];
   return action?.kind ?? null;
@@ -241,126 +240,129 @@ export function initialLinkDataContextState(): LinkDataContextState {
   return {};
 }
 
-export const stepLinkDataContext: StepFn<LinkDataContextState> = (state, event) => {
+export const stepLinkDataContext: StepFn<LinkDataContextState> = (
+  state,
+  event,
+) => {
   const result = stepLinkDataContextInner(state, event as LinkDataContextEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkDataContextWithActions(
   state: LinkDataContextState,
-  event: LinkDataContextEvent
+  event: LinkDataContextEvent,
 ): LinkDataContextStepResult {
   return stepLinkDataContextInner(state, event);
 }
 
 export function linkDataContextFromActions(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): LinkDataContextKind | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldHandleLinkDataRtt(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "rtt");
 }
 
 export function shouldHandleLinkDataKeepalive(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "keepalive");
 }
 
 export function shouldHandleLinkDataClose(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "close");
 }
 
 export function shouldHandleLinkDataIdentify(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "identify");
 }
 
 export function shouldHandleLinkDataRequest(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "request");
 }
 
 export function shouldHandleLinkDataResponse(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "response");
 }
 
 export function shouldHandleLinkDataChannel(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "channel");
 }
 
 export function shouldHandleLinkDataResourceAdv(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "resource-adv");
 }
 
 export function shouldHandleLinkDataResourceReq(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "resource-req");
 }
 
 export function shouldHandleLinkDataResourceHmu(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "resource-hmu");
 }
 
 export function shouldHandleLinkDataResourceIcl(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "resource-icl");
 }
 
 export function shouldHandleLinkDataResourceRcl(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "resource-rcl");
 }
 
 export function shouldHandleLinkDataResource(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "resource");
 }
 
 export function shouldHandleLinkDataPlaintext(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "plaintext");
 }
 
 export function shouldIgnoreLinkDataContext(
-  actions: ReadonlyArray<LinkDataContextAction>
+  actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 function stepLinkDataContextInner(
   state: LinkDataContextState,
-  event: LinkDataContextEvent
+  event: LinkDataContextEvent,
 ): LinkDataContextStepResult {
   if (event.kind === "link/data-context-gate") {
     const planActions = stepLinkDataContextPlanWithActions(
       initialLinkDataContextPlanState(),
       {
         kind: "link/data-context-plan-gate",
-        context: event.context
-      }
+        context: event.context,
+      },
     ).actions;
     const plan = linkDataContextPlanFromActions(planActions);
     if (plan === null) {

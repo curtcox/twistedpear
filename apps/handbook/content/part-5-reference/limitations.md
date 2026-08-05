@@ -1,6 +1,5 @@
 # Known limitations
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-21
@@ -11,7 +10,6 @@ Platform compromises and measured constraints. Cross-linked from host chapters
 and the [live difference matrix](chapter:difference-matrix).
 
 # Limitations, Compromises, and Restrictions
-
 
 <!-- tp-doc
 lifecycle: reference
@@ -39,27 +37,27 @@ everything below is a known cost of the chosen design or of the platforms involv
 
   **Measured Node pure-provider throughput (200 iterations, CI baseline):**
 
-  | Operation | ops/s (Node pure) |
-  |---|---:|
-  | x25519-keygen | 1,134 |
-  | x25519-shared-secret | 1,158 |
-  | hkdf-link-key | 31,470 |
-  | aes-256-cbc-encrypt-512 | 57,823 |
-  | ed25519-sign-64 | 2,807 |
-  | sha256-resource-chunk | 206,950 |
+  | Operation               | ops/s (Node pure) |
+  | ----------------------- | ----------------: |
+  | x25519-keygen           |             1,134 |
+  | x25519-shared-secret    |             1,158 |
+  | hkdf-link-key           |            31,470 |
+  | aes-256-cbc-encrypt-512 |            57,823 |
+  | ed25519-sign-64         |             2,807 |
+  | sha256-resource-chunk   |           206,950 |
 
   Source: `conformance/bare-runtime/baseline-node.json` (`npm run test:bare-benchmark-compare`).
 
   **Measured sodium-native provider on host Node (200 iterations, CI baseline):**
 
-  | Operation | ops/s (sodium-native) |
-  |---|---:|
-  | x25519-keygen | 50,000 |
-  | x25519-shared-secret | 25,000 |
-  | hkdf-link-key | 28,571 |
-  | aes-256-cbc-encrypt-512 | 50,000 |
-  | ed25519-sign-64 | 33,333 |
-  | sha256-resource-chunk | 200,000 |
+  | Operation               | ops/s (sodium-native) |
+  | ----------------------- | --------------------: |
+  | x25519-keygen           |                50,000 |
+  | x25519-shared-secret    |                25,000 |
+  | hkdf-link-key           |                28,571 |
+  | aes-256-cbc-encrypt-512 |                50,000 |
+  | ed25519-sign-64         |                33,333 |
+  | sha256-resource-chunk   |               200,000 |
 
   Source: `conformance/bare-runtime/baseline-bare.json` (`npm run test:bare-benchmark-bare-compare`).
   Bare worklet on-device numbers remain open until H11. Link-setup latency
@@ -73,7 +71,7 @@ everything below is a known cost of the chosen design or of the platforms involv
   so the host app will not run in Expo Go.**
 - Compromise: keep the Expo toolchain but use **development builds** (`expo-dev-client`)
   and config plugins. Developers get most of the Expo DX; they just install a custom dev
-  client instead of Expo Go. *Mini-app* developers are unaffected (pure JS against our SDK).
+  client instead of Expo Go. _Mini-app_ developers are unaffected (pure JS against our SDK).
 
 ## 3. Bluetooth
 
@@ -110,7 +108,7 @@ everything below is a known cost of the chosen design or of the platforms involv
   peer relaying as a transport node.
 - **Downloaded code (App Review 3.3.2):** mini-apps are downloaded JS. Apple permits
   downloaded JS executed by Apple frameworks when it doesn't change the app's core
-  purpose — an app *store inside an app* is exactly the gray zone Apple scrutinizes.
+  purpose — an app _store inside an app_ is exactly the gray zone Apple scrutinizes.
   Compromises: declarative UI whitelist (host renders, mini-apps don't ship arbitrary UI
   code paths), curated capability model, and acceptance that **the iOS build may need a
   reduced distribution feature set** or TestFlight/enterprise/EU-alternative-distribution
@@ -143,18 +141,19 @@ everything below is a known cost of the chosen design or of the platforms involv
 
   **Measured install budgets (Phase 3 M9, conservative bitrates):**
 
-  | Package | Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode (~1.2 kbps) |
-  |---|---:|---|---|---|
-  | `tiny` (budget hello-world) | ~900 B | <1 s | <1 s | ~6 s |
-  | `example-app` (minimal mini-app) | ~780 B | <1 s | <1 s | ~6 s |
-  | `chat` (Phase 4 example) | ~2.6 KiB | <1 s | <1 s | ~18 s |
-  | `file-drop` (Phase 4 example) | ~1.8 KiB | <1 s | <1 s | ~12 s |
-  | `board` (Phase 4 example) | ~2.1 KiB | <1 s | <1 s | ~15 s |
+  | Package                          |     Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode (~1.2 kbps) |
+  | -------------------------------- | -------: | ------------- | -------------- | ----------------- |
+  | `tiny` (budget hello-world)      |   ~900 B | <1 s          | <1 s           | ~6 s              |
+  | `example-app` (minimal mini-app) |   ~780 B | <1 s          | <1 s           | ~6 s              |
+  | `chat` (Phase 4 example)         | ~2.6 KiB | <1 s          | <1 s           | ~18 s             |
+  | `file-drop` (Phase 4 example)    | ~1.8 KiB | <1 s          | <1 s           | ~12 s             |
+  | `board` (Phase 4 example)        | ~2.1 KiB | <1 s          | <1 s           | ~15 s             |
 
   Under-one-minute ceilings at these rates: LAN ~60 MiB, BLE ~180 KiB, RNode ~9 KiB.
   `bridge-hyper` blocks automatic bulk fetch over RNode-only links above 64 KiB and warns
-  above 32 KiB; BLE warnings start at 256 KiB. See   `conformance/budgets/measured.json`
+  above 32 KiB; BLE warnings start at 256 KiB. See `conformance/budgets/measured.json`
   for regenerated numbers (`npm run test:budgets`).
+
 - Android emulator Bare Worker spawn/kill/busy-loop metrics: `conformance/android-emulator/measured-worker.json`
   (`ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5` on KVM emulator).
 - Holepunch's DHT bootstrap nodes are an external dependency; fully-sovereign deployments

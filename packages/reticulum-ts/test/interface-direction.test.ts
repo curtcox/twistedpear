@@ -8,7 +8,7 @@ import {
   PacketType,
   PipeInterface,
   TransportType,
-  hexToBytes
+  hexToBytes,
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -21,24 +21,36 @@ function packet(data = new Uint8Array([1, 2, 3])): Packet {
     packetType: PacketType.DATA,
     destinationHash: hexToBytes("00112233445566778899aabbccddeeff"),
     context: PacketContext.NONE,
-    data
+    data,
   });
 }
 
 describe("PacketInterface direction gating", () => {
   it("rejects send on an outgoing=false interface", async () => {
-    const [rxOnly, _peer] = PipeInterface.pair(provider, { name: "rx-only", incoming: true, outgoing: false }, { name: "peer" });
-    await expect(rxOnly.send(packet())).rejects.toThrow("not configured for outbound traffic");
+    const [rxOnly, _peer] = PipeInterface.pair(
+      provider,
+      { name: "rx-only", incoming: true, outgoing: false },
+      { name: "peer" },
+    );
+    await expect(rxOnly.send(packet())).rejects.toThrow(
+      "not configured for outbound traffic",
+    );
   });
 
   it("does not enqueue received packets on an incoming=false interface", async () => {
-    const [txOnly, peer] = PipeInterface.pair(provider, { name: "tx-only", incoming: false, outgoing: true }, { name: "peer" });
+    const [txOnly, peer] = PipeInterface.pair(
+      provider,
+      { name: "tx-only", incoming: false, outgoing: true },
+      { name: "peer" },
+    );
     await peer.send(packet());
 
     const iterator = txOnly.packets[Symbol.asyncIterator]();
-    const timeout = new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 50)
+    const timeout = new Promise<IteratorResult<Packet, undefined>>(
+      (_, reject) => setTimeout(() => reject(new Error("timeout")), 50),
     );
-    await expect(Promise.race([iterator.next(), timeout])).rejects.toThrow("timeout");
+    await expect(Promise.race([iterator.next(), timeout])).rejects.toThrow(
+      "timeout",
+    );
   });
 });

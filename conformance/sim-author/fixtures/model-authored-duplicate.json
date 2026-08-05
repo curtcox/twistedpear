@@ -17,12 +17,20 @@
         {
           "id": "a",
           "machine": "authored/endpoint",
-          "initial": { "role": "endpoint", "seen": [], "duplicateAccepted": false }
+          "initial": {
+            "role": "endpoint",
+            "seen": [],
+            "duplicateAccepted": false
+          }
         },
         {
           "id": "b",
           "machine": "authored/endpoint",
-          "initial": { "role": "endpoint", "seen": [], "duplicateAccepted": false }
+          "initial": {
+            "role": "endpoint",
+            "seen": [],
+            "duplicateAccepted": false
+          }
         },
         {
           "id": "model-adversary",
@@ -35,18 +43,25 @@
           }
         }
       ],
-      "links": [{
-        "source": "a",
-        "destination": "b",
-        "powers": ["duplicate"],
-        "class": "lan",
-        "params": {
-          "lossRate": 0,
-          "latency": { "kind": "fixed", "ms": 1 },
-          "burstLoss": { "goodToBad": 0, "badToGood": 1, "goodLossRate": 0, "badLossRate": 0 }
-        },
-        "adversary": "model-adversary"
-      }]
+      "links": [
+        {
+          "source": "a",
+          "destination": "b",
+          "powers": ["duplicate"],
+          "class": "lan",
+          "params": {
+            "lossRate": 0,
+            "latency": { "kind": "fixed", "ms": 1 },
+            "burstLoss": {
+              "goodToBad": 0,
+              "badToGood": 1,
+              "goodLossRate": 0,
+              "badLossRate": 0
+            }
+          },
+          "adversary": "model-adversary"
+        }
+      ]
     },
     "trace": [
       {

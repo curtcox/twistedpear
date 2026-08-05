@@ -1,6 +1,5 @@
 # SPEC-WIDGET — Widget tree vocabulary and update stream
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -17,8 +16,8 @@ React Native, DOM, headless-snapshot, TUI, and Flutter — so the vocabulary mus
 a schema, not as TypeScript types.
 
 Layout and styling semantics are deliberately excluded — they belong to
-[SPEC-PRESENT](../spec-present/spec.md). This spec defines *what exists in the tree*;
-that one defines *how it looks*. The brokered calls that carry the tree
+[SPEC-PRESENT](../spec-present/spec.md). This spec defines _what exists in the tree_;
+that one defines _how it looks_. The brokered calls that carry the tree
 (`ui.render`, `ui.onEvent`) are owned by [SPEC-SDK](../spec-sdk/spec.md); this spec
 owns their payloads.
 

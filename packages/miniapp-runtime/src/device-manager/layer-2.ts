@@ -1,31 +1,151 @@
-import { DEVICE_CLASS_REGISTRY,DEVICE_STREAM_KIND,ActuatorSafetyError,assertAidAllowed,adaptStreamAdmission,decideStreamAdmission,degradationLadderFor,defaultTierForClass,deriveCameraSample,deriveMicrophoneSample,deriveMotionSample,deviceCapabilityId,deviceClassById,initialDeviceSessionState,initialRemoteGrantStore,initialShareOfferStore,isDeviceSessionLive,isRemoteGrantLive,isShareOfferLive,quantizeAmbientLux,quantizeLocationCoarse,remoteGrantKey,sanitizeCameraFrame,sanitizeMotionSamples,sanitizePcmSample,stepDeviceSession,stepRemoteGrantStore,stepShareOfferStore,validateActuatorCommand,type AdmissionDecision,type CameraDerivedInput,type DeviceClassEntry,type DeviceCommand,type DeviceConsentClass,type DeviceSessionState,type LinkSupply,type MicrophoneDerivedInput,type PreciseLocationFix,type RawCameraFrameInput,type RawMotionInput,type RawMotionSample,type RawPcmInput,type RemoteDeviceGrant,type ShareOffer,type StreamDemand,type StreamPlane } from "@twistedpear/protocol";
-import { assertCapabilityAllowed,CapabilityError } from "../capabilities.js";
-import { requestHostConfirmation,type ConfirmationEffects,type HostConfirmationChannel } from "../confirm.js";
-import { DeviceStreamSidecar,type DeviceSidecarDelivery } from "../device-sidecar.js";
-import type { StreamEgress,StreamEgressFactory } from "../media-stream.js";
-import { createHostBridgedDrivers,type DeviceHostBridge } from "../drivers/host-bridge.js";
-import { DeviceError, MAX_PURPOSE_LENGTH, SENSITIVE_DEFAULT_TTL_MS, applyAdvisoryCandidateCeilings, assertDeviceCapabilityAllowed, bytesToHex, codecMatchesTier, createActuatorDriver, createHybridDeviceDrivers, createSimulatedAmbientLightDriver, createSimulatedBiometricDriver, createSimulatedCameraDriver, createSimulatedDeviceDrivers, createSimulatedDeviceManager, createSimulatedHapticsDriver, createSimulatedLocationDriver, createSimulatedMicrophoneDriver, createSimulatedMotionDriver, createSimulatedNfcDriver, createSimulatedRawCameraDriver, createSimulatedRawMicrophoneDriver, createSimulatedRawMotionDriver, createSimulatedScalarDriver, createSimulatedScreenCaptureDriver, createSimulatedSpeakerDriver, createSimulatedSttDriver, createSimulatedTorchDriver, createSimulatedTtsDriver, encodeDerivedEvent, expandDeviceCapabilities, floatSamplesToBytes } from "./shared.js";
-import type { DeviceActiveIndicator, DeviceAvailability, DeviceChromeSession, DeviceDescriptor, DeviceDiagnostic, DeviceDriver, DeviceManagerOptions, DeviceOpenRequest, DevicePeerHandle, DeviceSample, DeviceSession, DeviceSessionHandle, DeviceStreamConstraints, DeviceStreamHandle, DeviceStreamSession, LiveSession, RemoteOpenRequest, SimulatedActuatorLog } from "./shared.js";
+import {
+  DEVICE_CLASS_REGISTRY,
+  DEVICE_STREAM_KIND,
+  ActuatorSafetyError,
+  assertAidAllowed,
+  adaptStreamAdmission,
+  decideStreamAdmission,
+  degradationLadderFor,
+  defaultTierForClass,
+  deriveCameraSample,
+  deriveMicrophoneSample,
+  deriveMotionSample,
+  deviceCapabilityId,
+  deviceClassById,
+  initialDeviceSessionState,
+  initialRemoteGrantStore,
+  initialShareOfferStore,
+  isDeviceSessionLive,
+  isRemoteGrantLive,
+  isShareOfferLive,
+  quantizeAmbientLux,
+  quantizeLocationCoarse,
+  remoteGrantKey,
+  sanitizeCameraFrame,
+  sanitizeMotionSamples,
+  sanitizePcmSample,
+  stepDeviceSession,
+  stepRemoteGrantStore,
+  stepShareOfferStore,
+  validateActuatorCommand,
+  type AdmissionDecision,
+  type CameraDerivedInput,
+  type DeviceClassEntry,
+  type DeviceCommand,
+  type DeviceConsentClass,
+  type DeviceSessionState,
+  type LinkSupply,
+  type MicrophoneDerivedInput,
+  type PreciseLocationFix,
+  type RawCameraFrameInput,
+  type RawMotionInput,
+  type RawMotionSample,
+  type RawPcmInput,
+  type RemoteDeviceGrant,
+  type ShareOffer,
+  type StreamDemand,
+  type StreamPlane,
+} from "@twistedpear/protocol";
+import { assertCapabilityAllowed, CapabilityError } from "../capabilities.js";
+import {
+  requestHostConfirmation,
+  type ConfirmationEffects,
+  type HostConfirmationChannel,
+} from "../confirm.js";
+import {
+  DeviceStreamSidecar,
+  type DeviceSidecarDelivery,
+} from "../device-sidecar.js";
+import type { StreamEgress, StreamEgressFactory } from "../media-stream.js";
+import {
+  createHostBridgedDrivers,
+  type DeviceHostBridge,
+} from "../drivers/host-bridge.js";
+import {
+  DeviceError,
+  MAX_PURPOSE_LENGTH,
+  SENSITIVE_DEFAULT_TTL_MS,
+  applyAdvisoryCandidateCeilings,
+  assertDeviceCapabilityAllowed,
+  bytesToHex,
+  codecMatchesTier,
+  createActuatorDriver,
+  createHybridDeviceDrivers,
+  createSimulatedAmbientLightDriver,
+  createSimulatedBiometricDriver,
+  createSimulatedCameraDriver,
+  createSimulatedDeviceDrivers,
+  createSimulatedDeviceManager,
+  createSimulatedHapticsDriver,
+  createSimulatedLocationDriver,
+  createSimulatedMicrophoneDriver,
+  createSimulatedMotionDriver,
+  createSimulatedNfcDriver,
+  createSimulatedRawCameraDriver,
+  createSimulatedRawMicrophoneDriver,
+  createSimulatedRawMotionDriver,
+  createSimulatedScalarDriver,
+  createSimulatedScreenCaptureDriver,
+  createSimulatedSpeakerDriver,
+  createSimulatedSttDriver,
+  createSimulatedTorchDriver,
+  createSimulatedTtsDriver,
+  encodeDerivedEvent,
+  expandDeviceCapabilities,
+  floatSamplesToBytes,
+} from "./shared.js";
+import type {
+  DeviceActiveIndicator,
+  DeviceAvailability,
+  DeviceChromeSession,
+  DeviceDescriptor,
+  DeviceDiagnostic,
+  DeviceDriver,
+  DeviceManagerOptions,
+  DeviceOpenRequest,
+  DevicePeerHandle,
+  DeviceSample,
+  DeviceSession,
+  DeviceSessionHandle,
+  DeviceStreamConstraints,
+  DeviceStreamHandle,
+  DeviceStreamSession,
+  LiveSession,
+  RemoteOpenRequest,
+  SimulatedActuatorLog,
+} from "./shared.js";
 import { DeviceManager } from "../device-manager.js";
 import { DeviceManagerLayer1 } from "./layer-1.js";
 export class DeviceManagerLayer2 extends DeviceManagerLayer1 {
-async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
+  async read(
+    appId: string,
+    handle: DeviceSessionHandle,
+  ): Promise<DeviceSample> {
     const session = this.requireLiveSession(appId, handle);
     this.enforceTtl(session);
     const live = this.sessions.get(handle);
     if (live === undefined || !isDeviceSessionLive(live.state.phase)) {
-      throw new DeviceError("DEVICE_SESSION_EXPIRED", "Device session is no longer active.");
+      throw new DeviceError(
+        "DEVICE_SESSION_EXPIRED",
+        "Device session is no longer active.",
+      );
     }
 
     const minIntervalMs = 1000 / live.rateHz;
     const at = this.now();
     if (live.lastReadAt !== null && at - live.lastReadAt < minIntervalMs - 1) {
-      throw new DeviceError("DEVICE_RATE_EXCEEDED", `Device read rate exceeded (${live.rateHz} Hz).`);
+      throw new DeviceError(
+        "DEVICE_RATE_EXCEEDED",
+        `Device read rate exceeded (${live.rateHz} Hz).`,
+      );
     }
 
     const driver = this.drivers.get(live.state.classId);
     if (driver?.sense === undefined) {
-      throw new DeviceError("DEVICE_UNSUPPORTED", `No sense driver for ${live.state.classId}.`);
+      throw new DeviceError(
+        "DEVICE_UNSUPPORTED",
+        `No sense driver for ${live.state.classId}.`,
+      );
     }
 
     const raw = await driver.sense(live.options);
@@ -38,13 +158,16 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     appId: string,
     publisherPublicKey: string,
     handle: DeviceSessionHandle,
-    command: DeviceCommand
+    command: DeviceCommand,
   ): Promise<void> {
     const session = this.requireLiveSession(appId, handle);
     this.enforceTtl(session);
     const live = this.sessions.get(handle);
     if (live === undefined || !isDeviceSessionLive(live.state.phase)) {
-      throw new DeviceError("DEVICE_SESSION_EXPIRED", "Device session is no longer active.");
+      throw new DeviceError(
+        "DEVICE_SESSION_EXPIRED",
+        "Device session is no longer active.",
+      );
     }
 
     this.assertCommandMatchesSession(live.state.classId, command);
@@ -64,30 +187,39 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
         appId,
         publisherPublicKey,
         purpose: live.purpose,
-        ndef: normalized.ndef
+        ndef: normalized.ndef,
       });
     }
     if (normalized.kind === "nfc" && normalized.action === "apdu") {
       if (live.state.tierId !== "apdu") {
-        throw new DeviceError("DEVICE_TIER_REQUIRED", "APDU exchange requires an nfc:apdu session.");
+        throw new DeviceError(
+          "DEVICE_TIER_REQUIRED",
+          "APDU exchange requires an nfc:apdu session.",
+        );
       }
       await this.confirmNfcWrite({
         appId,
         publisherPublicKey,
         purpose: live.purpose,
-        ndef: `APDU aid=${normalized.aid}`
+        ndef: `APDU aid=${normalized.aid}`,
       });
     }
 
     const minIntervalMs = 1000 / live.rateHz;
     const at = this.now();
     if (live.lastReadAt !== null && at - live.lastReadAt < minIntervalMs - 1) {
-      throw new DeviceError("DEVICE_RATE_EXCEEDED", `Device write rate exceeded (${live.rateHz} Hz).`);
+      throw new DeviceError(
+        "DEVICE_RATE_EXCEEDED",
+        `Device write rate exceeded (${live.rateHz} Hz).`,
+      );
     }
 
     const driver = this.drivers.get(live.state.classId);
     if (driver?.actuate === undefined) {
-      throw new DeviceError("DEVICE_UNSUPPORTED", `No actuate driver for ${live.state.classId}.`);
+      throw new DeviceError(
+        "DEVICE_UNSUPPORTED",
+        `No actuate driver for ${live.state.classId}.`,
+      );
     }
     await driver.actuate(normalized);
     live.lastReadAt = at;
@@ -98,7 +230,9 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
   }
 
   activeStreamsForApp(appId: string): ReadonlyArray<DeviceStreamSession> {
-    return [...this.streams.values()].filter((stream) => this.sessions.get(stream.session)?.state.appId === appId);
+    return [...this.streams.values()].filter(
+      (stream) => this.sessions.get(stream.session)?.state.appId === appId,
+    );
   }
 
   /** Host chrome: remote acquisition is off until the user enables it. */
@@ -107,14 +241,21 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     if (!enabled) {
       this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
         kind: "remote/clear-all",
-        at: this.now()
+        at: this.now(),
       });
       for (const [handle, session] of this.sessions) {
-        if (session.remotePeerId === null || !isDeviceSessionLive(session.state.phase)) continue;
+        if (
+          session.remotePeerId === null ||
+          !isDeviceSessionLive(session.state.phase)
+        )
+          continue;
         void this.stopDriver(session.state.classId);
         this.sidecar.close(handle);
         const at = this.now();
-        const next = stepDeviceSession(session.state, { kind: "device/revoke", at }).state;
+        const next = stepDeviceSession(session.state, {
+          kind: "device/revoke",
+          at,
+        }).state;
         this.sessions.set(handle, { ...session, state: next });
         if (this.locks.get(session.state.classId) === session.state.holder) {
           this.locks.delete(session.state.classId);
@@ -138,17 +279,23 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     readonly maxSessionMs?: number;
   }): RemoteDeviceGrant {
     if (!this.remoteEnabled) {
-      throw new DeviceError("DEVICE_DENIED", "Remote device acquisition is disabled on this host.");
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Remote device acquisition is disabled on this host.",
+      );
     }
     const entry = deviceClassById(options.classId);
     if (entry === undefined || !entry.remoteEligible) {
       throw new DeviceError(
         "DEVICE_UNSUPPORTED",
-        `Device class "${options.classId}" is not remote-eligible.`
+        `Device class "${options.classId}" is not remote-eligible.`,
       );
     }
     if (entry.tiers.every((tier) => tier.id !== options.tierId)) {
-      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unknown tier "${options.tierId}".`);
+      throw new DeviceError(
+        "DEVICE_TIER_REQUIRED",
+        `Unknown tier "${options.tierId}".`,
+      );
     }
     this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
       kind: "remote/grant",
@@ -157,14 +304,21 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       classId: options.classId,
       tierId: options.tierId,
       ttlMs: options.ttlMs,
-      ...(options.maxConcurrent !== undefined ? { maxConcurrent: options.maxConcurrent } : {}),
-      ...(options.maxSessionMs !== undefined ? { maxSessionMs: options.maxSessionMs } : {})
+      ...(options.maxConcurrent !== undefined
+        ? { maxConcurrent: options.maxConcurrent }
+        : {}),
+      ...(options.maxSessionMs !== undefined
+        ? { maxSessionMs: options.maxSessionMs }
+        : {}),
     });
     const grant = this.remoteGrants.get(
-      remoteGrantKey(options.peerId, options.classId, options.tierId)
+      remoteGrantKey(options.peerId, options.classId, options.tierId),
     );
     if (grant === undefined) {
-      throw new DeviceError("DEVICE_BAD_REQUEST", "Failed to record remote grant.");
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Failed to record remote grant.",
+      );
     }
     return grant;
   }
@@ -175,7 +329,7 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       at: this.now(),
       peerId,
       classId,
-      tierId
+      tierId,
     });
     for (const [handle, session] of this.sessions) {
       if (
@@ -189,7 +343,10 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       void this.stopDriver(session.state.classId);
       this.sidecar.close(handle);
       const at = this.now();
-      const next = stepDeviceSession(session.state, { kind: "device/revoke", at }).state;
+      const next = stepDeviceSession(session.state, {
+        kind: "device/revoke",
+        at,
+      }).state;
       this.sessions.set(handle, { ...session, state: next });
       if (this.locks.get(session.state.classId) === session.state.holder) {
         this.locks.delete(session.state.classId);
@@ -201,13 +358,15 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
   clearRemoteGrantsForRestart(): void {
     this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
       kind: "remote/clear-all",
-      at: this.now()
+      at: this.now(),
     });
   }
 
   listRemoteGrants(): ReadonlyArray<RemoteDeviceGrant> {
     const at = this.now();
-    return [...this.remoteGrants.values()].filter((grant) => isRemoteGrantLive(grant, at));
+    return [...this.remoteGrants.values()].filter((grant) =>
+      isRemoteGrantLive(grant, at),
+    );
   }
 
   /** Host chrome only: author an outbound share offer. */
@@ -222,14 +381,26 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     readonly ttlMs: number;
   }): ShareOffer {
     if (options.ttlMs <= 0 || options.ttlMs > 24 * 60 * 60_000) {
-      throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer TTL must be between 1 ms and 24 hours.");
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Share offer TTL must be between 1 ms and 24 hours.",
+      );
     }
     const entry = deviceClassById(options.classId);
-    if (entry === undefined || !entry.tiers.some((tier) => tier.id === options.tierId)) {
-      throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer class/tier is invalid.");
+    if (
+      entry === undefined ||
+      !entry.tiers.some((tier) => tier.id === options.tierId)
+    ) {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Share offer class/tier is invalid.",
+      );
     }
     if (!entry.degradationLadder.includes(options.maxRung)) {
-      throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer quality ceiling is invalid.");
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Share offer quality ceiling is invalid.",
+      );
     }
     const grantedAt = this.now();
     const id = `share-${this.nextStreamHandle++}-${bytesToHex(this.randomBytes(3))}`;
@@ -237,18 +408,28 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     this.shareOffers = stepShareOfferStore(this.shareOffers, {
       kind: "share/grant",
       offer: { id, grantedAt, ...authored },
-      ttlMs
+      ttlMs,
     });
     const offer = this.shareOffers.get(id);
-    if (offer === undefined) throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer was not created.");
+    if (offer === undefined)
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Share offer was not created.",
+      );
     this.notifyChrome();
     return offer;
   }
 
-  async requestShareOfferFromChrome(appId: string, purpose: string): Promise<ShareOffer | null> {
+  async requestShareOfferFromChrome(
+    appId: string,
+    purpose: string,
+  ): Promise<ShareOffer | null> {
     this.validatePurpose(purpose);
-    const authored = await this.options.requestShareOffer?.({ appId, purpose }) ?? null;
-    return authored === null ? null : this.grantShareOffer({ appId, ...authored });
+    const authored =
+      (await this.options.requestShareOffer?.({ appId, purpose })) ?? null;
+    return authored === null
+      ? null
+      : this.grantShareOffer({ appId, ...authored });
   }
 
   /** Expire due offers, then return every live share (host chrome indicator). */
@@ -256,11 +437,17 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     const at = this.now();
     for (const offer of this.shareOffers.values()) {
       if (offer.phase === "active" && at >= offer.expiresAt) {
-        this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/ttl", id: offer.id, at });
+        this.shareOffers = stepShareOfferStore(this.shareOffers, {
+          kind: "share/ttl",
+          id: offer.id,
+          at,
+        });
         this.closeStreamsForShareOffer(offer.id);
       }
     }
-    return [...this.shareOffers.values()].filter((offer) => isShareOfferLive(offer, at));
+    return [...this.shareOffers.values()].filter((offer) =>
+      isShareOfferLive(offer, at),
+    );
   }
 
   listShareOffers(appId: string): ReadonlyArray<ShareOffer> {
@@ -269,10 +456,20 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
 
   async requestShareOfferRevoke(appId: string, id: string): Promise<boolean> {
     const offer = this.shareOffers.get(id);
-    if (offer === undefined || offer.appId !== appId || !isShareOfferLive(offer, this.now())) return false;
-    const approved = await this.options.confirmShareOfferRevoke?.(offer) ?? false;
+    if (
+      offer === undefined ||
+      offer.appId !== appId ||
+      !isShareOfferLive(offer, this.now())
+    )
+      return false;
+    const approved =
+      (await this.options.confirmShareOfferRevoke?.(offer)) ?? false;
     if (!approved) return false;
-    this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/revoke", id, at: this.now() });
+    this.shareOffers = stepShareOfferStore(this.shareOffers, {
+      kind: "share/revoke",
+      id,
+      at: this.now(),
+    });
     this.closeStreamsForShareOffer(id);
     this.notifyChrome();
     return true;
@@ -281,16 +478,29 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
   /** Trusted host chrome kill switch; the click itself is the authorization. */
   revokeShareOfferFromChrome(appId: string, id: string): boolean {
     const offer = this.shareOffers.get(id);
-    if (offer === undefined || offer.appId !== appId || !isShareOfferLive(offer, this.now())) return false;
-    this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/revoke", id, at: this.now() });
+    if (
+      offer === undefined ||
+      offer.appId !== appId ||
+      !isShareOfferLive(offer, this.now())
+    )
+      return false;
+    this.shareOffers = stepShareOfferStore(this.shareOffers, {
+      kind: "share/revoke",
+      id,
+      at: this.now(),
+    });
     this.closeStreamsForShareOffer(id);
     this.notifyChrome();
     return true;
   }
 
   clearShareOffersForRestart(): void {
-    for (const id of this.streamShareOfferIds.values()) this.closeStreamsForShareOffer(id);
-    this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/clear-sensitive", at: this.now() });
+    for (const id of this.streamShareOfferIds.values())
+      this.closeStreamsForShareOffer(id);
+    this.shareOffers = stepShareOfferStore(this.shareOffers, {
+      kind: "share/clear-sensitive",
+      at: this.now(),
+    });
     this.notifyChrome();
   }
 
@@ -300,19 +510,28 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
    */
   async openForRemotePeer(
     request: RemoteOpenRequest,
-    publisherPublicKey = "remote-host"
+    publisherPublicKey = "remote-host",
   ): Promise<DeviceSession> {
     if (!this.remoteEnabled) {
-      throw new DeviceError("DEVICE_DENIED", "Remote device acquisition is disabled on this host.");
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Remote device acquisition is disabled on this host.",
+      );
     }
     this.validatePurpose(request.purpose);
     if (typeof request.peerId !== "string" || request.peerId.length < 1) {
-      throw new DeviceError("DEVICE_BAD_REQUEST", "Remote peer id is required.");
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Remote peer id is required.",
+      );
     }
 
     const entry = deviceClassById(request.class);
     if (entry === undefined || !entry.remoteEligible) {
-      throw new DeviceError("DEVICE_UNSUPPORTED", `Device class "${request.class}" is not remote-eligible.`);
+      throw new DeviceError(
+        "DEVICE_UNSUPPORTED",
+        `Device class "${request.class}" is not remote-eligible.`,
+      );
     }
     const tier = this.resolveTier(entry, request.tier);
     const at = this.now();
@@ -321,28 +540,40 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       at,
       peerId: request.peerId,
       classId: entry.id,
-      tierId: tier.id
+      tierId: tier.id,
     });
-    const grant = this.remoteGrants.get(remoteGrantKey(request.peerId, entry.id, tier.id));
+    const grant = this.remoteGrants.get(
+      remoteGrantKey(request.peerId, entry.id, tier.id),
+    );
     if (!isRemoteGrantLive(grant, at)) {
-      throw new DeviceError("DEVICE_DENIED", "No live remote grant for this peer/class/tier.");
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "No live remote grant for this peer/class/tier.",
+      );
     }
 
     const remoteLive = [...this.sessions.values()].filter(
       (session) =>
-        session.remotePeerId !== null && isDeviceSessionLive(session.state.phase)
+        session.remotePeerId !== null &&
+        isDeviceSessionLive(session.state.phase),
     );
     if (remoteLive.length >= this.maxRemoteSessions) {
-      throw new DeviceError("DEVICE_DENIED", "Host remote session concurrency cap reached.");
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Host remote session concurrency cap reached.",
+      );
     }
     const peerConcurrent = remoteLive.filter(
       (session) =>
         session.remotePeerId === request.peerId &&
         session.state.classId === entry.id &&
-        session.state.tierId === tier.id
+        session.state.tierId === tier.id,
     ).length;
     if (peerConcurrent >= (grant?.maxConcurrent ?? 1)) {
-      throw new DeviceError("DEVICE_DENIED", "Per-peer remote concurrency cap reached.");
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Per-peer remote concurrency cap reached.",
+      );
     }
 
     await this.maybeConfirmSession({
@@ -350,18 +581,23 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       publisherPublicKey,
       entry,
       tierId: tier.id,
-      consentClass: tier.consentClass === "low" ? "elevated" : tier.consentClass,
+      consentClass:
+        tier.consentClass === "low" ? "elevated" : tier.consentClass,
       purpose: request.purpose,
       kind: "device-remote-grant",
-      peerId: request.peerId
+      peerId: request.peerId,
     });
 
     const appId = `remote:${request.peerId}`;
     const rateHz = request.rateHz ?? Math.min(1, entry.defaults.maxRateHz);
-    if (!Number.isFinite(rateHz) || rateHz <= 0 || rateHz > entry.defaults.maxRateHz) {
+    if (
+      !Number.isFinite(rateHz) ||
+      rateHz <= 0 ||
+      rateHz > entry.defaults.maxRateHz
+    ) {
       throw new DeviceError(
         "DEVICE_RATE_EXCEEDED",
-        `Requested rate ${rateHz} Hz exceeds max ${entry.defaults.maxRateHz} Hz for ${entry.id}.`
+        `Requested rate ${rateHz} Hz exceeds max ${entry.defaults.maxRateHz} Hz for ${entry.id}.`,
       );
     }
 
@@ -369,7 +605,7 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     if (availability !== "available") {
       throw new DeviceError(
         availability === "busy" ? "DEVICE_BUSY" : "DEVICE_UNSUPPORTED",
-        `Device class "${entry.id}" is ${availability}.`
+        `Device class "${entry.id}" is ${availability}.`,
       );
     }
 
@@ -377,7 +613,7 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       request.maxDurationMs ?? grant!.maxSessionMs,
       grant!.maxSessionMs,
       entry.defaults.maxSessionMs,
-      SENSITIVE_DEFAULT_TTL_MS
+      SENSITIVE_DEFAULT_TTL_MS,
     );
     const holder = `remote:${request.peerId}`;
     this.locks.set(entry.id, holder);
@@ -386,11 +622,16 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       tierId: tier.id,
       appId,
       holder,
-      openedAt: at
+      openedAt: at,
     });
     state = stepDeviceSession(state, { kind: "device/open", at, ttlMs }).state;
     const handle = `dev-${this.nextHandle++}-${bytesToHex(this.randomBytes(4))}`;
-    const needsSidecar = ["camera", "microphone", "motion", "screen-capture"].includes(entry.id);
+    const needsSidecar = [
+      "camera",
+      "microphone",
+      "motion",
+      "screen-capture",
+    ].includes(entry.id);
     const sidecarToken = needsSidecar ? this.sidecar.open(handle) : null;
     this.sessions.set(handle, {
       handle,
@@ -401,28 +642,34 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
       sidecarToken,
       remotePeerId: request.peerId,
       options: {},
-      lastReadAt: null
+      lastReadAt: null,
     });
     this.notifyChrome();
     return {
       handle,
       class: entry.id,
       tier: tier.id,
-      expiresAt: state.expiresAt
+      expiresAt: state.expiresAt,
     };
   }
 
   protected materializeSample(
     sessionMeta: LiveSession,
     at: number,
-    raw: unknown
+    raw: unknown,
   ): DeviceSample {
     const classId = sessionMeta.state.classId;
     const tierId = sessionMeta.state.tierId;
     if (classId === "location") {
       const fix = raw as PreciseLocationFix;
-      if (typeof fix?.latitude !== "number" || typeof fix?.longitude !== "number") {
-        throw new DeviceError("DEVICE_BAD_REQUEST", "Location driver returned an invalid fix.");
+      if (
+        typeof fix?.latitude !== "number" ||
+        typeof fix?.longitude !== "number"
+      ) {
+        throw new DeviceError(
+          "DEVICE_BAD_REQUEST",
+          "Location driver returned an invalid fix.",
+        );
       }
       if (tierId === "coarse") {
         const coarse = quantizeLocationCoarse(fix);
@@ -432,7 +679,7 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
           at,
           latitude: coarse.latitude,
           longitude: coarse.longitude,
-          accuracyM: coarse.accuracyM
+          accuracyM: coarse.accuracyM,
         };
       }
       return {
@@ -444,33 +691,50 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
         accuracyM: fix.accuracyM ?? 10,
         ...(fix.altitudeM !== undefined ? { altitudeM: fix.altitudeM } : {}),
         ...(fix.speedMps !== undefined ? { speedMps: fix.speedMps } : {}),
-        ...(fix.headingDeg !== undefined ? { headingDeg: fix.headingDeg } : {})
+        ...(fix.headingDeg !== undefined ? { headingDeg: fix.headingDeg } : {}),
       };
     }
 
     if (classId === "ambient-light") {
-      const lux = typeof raw === "number" ? raw : (raw as { lux?: number })?.lux;
+      const lux =
+        typeof raw === "number" ? raw : (raw as { lux?: number })?.lux;
       if (typeof lux !== "number") {
-        throw new DeviceError("DEVICE_BAD_REQUEST", "Ambient-light driver returned an invalid reading.");
+        throw new DeviceError(
+          "DEVICE_BAD_REQUEST",
+          "Ambient-light driver returned an invalid reading.",
+        );
       }
       return {
         kind: "ambient-light",
         tier: "quantized",
         at,
-        luxBucket: quantizeAmbientLux(lux)
+        luxBucket: quantizeAmbientLux(lux),
       };
     }
 
     if (classId === "camera") {
       if (tierId === "derived") {
         const derived = deriveCameraSample((raw ?? {}) as CameraDerivedInput);
-        const sample = { kind: "camera" as const, tier: "derived" as const, at, ...derived };
-        this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.derivedEvent, encodeDerivedEvent(sample));
+        const sample = {
+          kind: "camera" as const,
+          tier: "derived" as const,
+          at,
+          ...derived,
+        };
+        this.pushSidecar(
+          sessionMeta,
+          DEVICE_STREAM_KIND.derivedEvent,
+          encodeDerivedEvent(sample),
+        );
         return sample;
       }
       if (tierId === "frames") {
         const frame = sanitizeCameraFrame(raw as RawCameraFrameInput);
-        const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.cameraFrame, frame.bytes);
+        const sidecar = this.pushSidecar(
+          sessionMeta,
+          DEVICE_STREAM_KIND.cameraFrame,
+          frame.bytes,
+        );
         return {
           kind: "camera",
           tier: "frames",
@@ -479,23 +743,41 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
           height: frame.height,
           format: frame.format,
           byteLength: frame.bytes.length,
-          ...(sidecar !== undefined ? { sidecar } : {})
+          ...(sidecar !== undefined ? { sidecar } : {}),
         };
       }
-      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unsupported camera tier "${tierId}".`);
+      throw new DeviceError(
+        "DEVICE_TIER_REQUIRED",
+        `Unsupported camera tier "${tierId}".`,
+      );
     }
 
     if (classId === "microphone") {
       if (tierId === "derived") {
-        const derived = deriveMicrophoneSample((raw ?? {}) as MicrophoneDerivedInput);
-        const sample = { kind: "microphone" as const, tier: "derived" as const, at, ...derived };
-        this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.derivedEvent, encodeDerivedEvent(sample));
+        const derived = deriveMicrophoneSample(
+          (raw ?? {}) as MicrophoneDerivedInput,
+        );
+        const sample = {
+          kind: "microphone" as const,
+          tier: "derived" as const,
+          at,
+          ...derived,
+        };
+        this.pushSidecar(
+          sessionMeta,
+          DEVICE_STREAM_KIND.derivedEvent,
+          encodeDerivedEvent(sample),
+        );
         return sample;
       }
       if (tierId === "pcm") {
         const pcm = sanitizePcmSample(raw as RawPcmInput);
         const payload = floatSamplesToBytes(pcm.samples);
-        const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.pcm, payload);
+        const sidecar = this.pushSidecar(
+          sessionMeta,
+          DEVICE_STREAM_KIND.pcm,
+          payload,
+        );
         return {
           kind: "microphone",
           tier: "pcm",
@@ -503,10 +785,13 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
           sampleRate: pcm.sampleRate,
           channels: pcm.channels,
           sampleCount: pcm.samples.length,
-          ...(sidecar !== undefined ? { sidecar } : {})
+          ...(sidecar !== undefined ? { sidecar } : {}),
         };
       }
-      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unsupported microphone tier "${tierId}".`);
+      throw new DeviceError(
+        "DEVICE_TIER_REQUIRED",
+        `Unsupported microphone tier "${tierId}".`,
+      );
     }
 
     if (classId === "motion") {
@@ -518,34 +803,60 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
           !Array.isArray(sample?.gyro) ||
           sample.gyro.length !== 3
         ) {
-          throw new DeviceError("DEVICE_BAD_REQUEST", "Motion driver returned an invalid IMU sample.");
+          throw new DeviceError(
+            "DEVICE_BAD_REQUEST",
+            "Motion driver returned an invalid IMU sample.",
+          );
         }
         const derived = deriveMotionSample(sample);
-        const derivedSample = { kind: "motion" as const, tier: "derived" as const, at, ...derived };
-        this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.derivedEvent, encodeDerivedEvent(derivedSample));
+        const derivedSample = {
+          kind: "motion" as const,
+          tier: "derived" as const,
+          at,
+          ...derived,
+        };
+        this.pushSidecar(
+          sessionMeta,
+          DEVICE_STREAM_KIND.derivedEvent,
+          encodeDerivedEvent(derivedSample),
+        );
         return derivedSample;
       }
       if (tierId === "samples") {
         const sanitized = sanitizeMotionSamples(raw as RawMotionInput);
         const payload = new TextEncoder().encode(JSON.stringify(sanitized));
-        const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.motionSamples, payload);
+        const sidecar = this.pushSidecar(
+          sessionMeta,
+          DEVICE_STREAM_KIND.motionSamples,
+          payload,
+        );
         return {
           kind: "motion",
           tier: "samples",
           at,
           ...sanitized,
-          ...(sidecar !== undefined ? { sidecar } : {})
+          ...(sidecar !== undefined ? { sidecar } : {}),
         };
       }
-      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unsupported motion tier "${tierId}".`);
+      throw new DeviceError(
+        "DEVICE_TIER_REQUIRED",
+        `Unsupported motion tier "${tierId}".`,
+      );
     }
 
     if (classId === "screen-capture") {
       if (tierId !== "frames") {
-        throw new DeviceError("DEVICE_TIER_REQUIRED", "screen-capture derived tier is not implemented yet.");
+        throw new DeviceError(
+          "DEVICE_TIER_REQUIRED",
+          "screen-capture derived tier is not implemented yet.",
+        );
       }
       const frame = sanitizeCameraFrame(raw as RawCameraFrameInput);
-      const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.screenFrame, frame.bytes);
+      const sidecar = this.pushSidecar(
+        sessionMeta,
+        DEVICE_STREAM_KIND.screenFrame,
+        frame.bytes,
+      );
       return {
         kind: "screen-capture",
         tier: "frames",
@@ -554,7 +865,7 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
         height: frame.height,
         format: frame.format,
         byteLength: frame.bytes.length,
-        ...(sidecar !== undefined ? { sidecar } : {})
+        ...(sidecar !== undefined ? { sidecar } : {}),
       };
     }
 
@@ -576,27 +887,51 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     if (classId === "barometer") {
       const hPa = Number((raw as { hPa?: number })?.hPa);
       if (!Number.isFinite(hPa)) {
-        throw new DeviceError("DEVICE_BAD_REQUEST", "Barometer driver returned an invalid reading.");
+        throw new DeviceError(
+          "DEVICE_BAD_REQUEST",
+          "Barometer driver returned an invalid reading.",
+        );
       }
-      return { kind: "barometer", tier: "pressure", at, hPa: Math.round(hPa * 10) / 10 };
+      return {
+        kind: "barometer",
+        tier: "pressure",
+        at,
+        hPa: Math.round(hPa * 10) / 10,
+      };
     }
     if (classId === "thermometer") {
       const celsius = Number((raw as { celsius?: number })?.celsius);
       if (!Number.isFinite(celsius)) {
-        throw new DeviceError("DEVICE_BAD_REQUEST", "Thermometer driver returned an invalid reading.");
+        throw new DeviceError(
+          "DEVICE_BAD_REQUEST",
+          "Thermometer driver returned an invalid reading.",
+        );
       }
-      return { kind: "thermometer", tier: "celsius", at, celsius: Math.round(celsius * 10) / 10 };
+      return {
+        kind: "thermometer",
+        tier: "celsius",
+        at,
+        celsius: Math.round(celsius * 10) / 10,
+      };
     }
     if (classId === "hygrometer") {
-      const relativeHumidity = Number((raw as { relativeHumidity?: number })?.relativeHumidity);
+      const relativeHumidity = Number(
+        (raw as { relativeHumidity?: number })?.relativeHumidity,
+      );
       if (!Number.isFinite(relativeHumidity)) {
-        throw new DeviceError("DEVICE_BAD_REQUEST", "Hygrometer driver returned an invalid reading.");
+        throw new DeviceError(
+          "DEVICE_BAD_REQUEST",
+          "Hygrometer driver returned an invalid reading.",
+        );
       }
       return {
         kind: "hygrometer",
         tier: "humidity",
         at,
-        relativeHumidity: Math.max(0, Math.min(100, Math.round(relativeHumidity)))
+        relativeHumidity: Math.max(
+          0,
+          Math.min(100, Math.round(relativeHumidity)),
+        ),
       };
     }
     if (classId === "thermal" || classId === "battery") {
@@ -605,7 +940,8 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
         kind: classId,
         tier: "coarse",
         at,
-        bucket: bucket as "cold" | "nominal" | "warm" | "hot" | "critical" | "unknown"
+        bucket: bucket as
+          "cold" | "nominal" | "warm" | "hot" | "critical" | "unknown",
       };
     }
 
@@ -619,21 +955,26 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
         at,
         text,
         isFinal,
-        ...(typeof confidence === "number" && Number.isFinite(confidence) ? { confidence } : {})
+        ...(typeof confidence === "number" && Number.isFinite(confidence)
+          ? { confidence }
+          : {}),
       };
     }
 
     throw new DeviceError(
       "DEVICE_UNSUPPORTED",
-      `Reading samples for "${classId}" is not implemented in this host API phase.`
+      `Reading samples for "${classId}" is not implemented in this host API phase.`,
     );
   }
 
-  protected assertCommandMatchesSession(classId: string, command: DeviceCommand): void {
+  protected assertCommandMatchesSession(
+    classId: string,
+    command: DeviceCommand,
+  ): void {
     if (command.kind !== classId) {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
-        `Command kind "${command.kind}" does not match session class "${classId}".`
+        `Command kind "${command.kind}" does not match session class "${classId}".`,
       );
     }
   }
@@ -647,7 +988,10 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
     const effects = this.options.confirmationEffects;
     if (effects === undefined) {
       if (this.options.confirmationChannel === undefined) return;
-      throw new DeviceError("DEVICE_DENIED", "Confirmation effects are required for NFC writes.");
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Confirmation effects are required for NFC writes.",
+      );
     }
     await requestHostConfirmation(
       this.options.confirmationChannel,
@@ -660,10 +1004,10 @@ async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
           tier: "ndef",
           purpose: options.purpose,
           destination: "local",
-          payload: options.ndef.slice(0, 256)
-        }
+          payload: options.ndef.slice(0, 256),
+        },
       },
-      effects
+      effects,
     );
   }
 }

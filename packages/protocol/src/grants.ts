@@ -4,14 +4,25 @@
  * Encode / decode conclusions leave via machine actions (no ad-hoc
  * `encodeGrantRecord` / `decodeGrantRecord` reads beside the step).
  */
-import { interpret, type Event, type EventClass, type Intent, type Machine, type StepFn } from "@twistedpear/effects";
-import { initialGrantParserState, stepGrantParser, type GrantParserToken } from "./grant-parser-machine.js";
+import {
+  interpret,
+  type Event,
+  type EventClass,
+  type Intent,
+  type Machine,
+  type StepFn,
+} from "@twistedpear/effects";
+import {
+  initialGrantParserState,
+  stepGrantParser,
+  type GrantParserToken,
+} from "./grant-parser-machine.js";
 import { migrateLegacyGrantRecord } from "./grant-storage-migration.js";
 import {
   initialGrantLifecycleState,
   stepGrantLifecycle,
   type GrantLifecycleEvent,
-  type GrantLifecycleState
+  type GrantLifecycleState,
 } from "./grant-machine.js";
 import { utf8Decode, utf8Encode } from "./utf8.js";
 
@@ -47,34 +58,62 @@ export type GrantEvent =
       readonly requested: readonly string[];
       readonly ttlMs?: number;
     }
-  | { readonly kind: "grant/revoke"; readonly at: number; readonly capability: string }
-  | { readonly kind: "grant/deny"; readonly at: number; readonly capability: string }
-  | { readonly kind: "grant/first-use"; readonly at: number; readonly capability: string }
-  | { readonly kind: "grant/ttl"; readonly at: number; readonly capability: string };
+  | {
+      readonly kind: "grant/revoke";
+      readonly at: number;
+      readonly capability: string;
+    }
+  | {
+      readonly kind: "grant/deny";
+      readonly at: number;
+      readonly capability: string;
+    }
+  | {
+      readonly kind: "grant/first-use";
+      readonly at: number;
+      readonly capability: string;
+    }
+  | {
+      readonly kind: "grant/ttl";
+      readonly at: number;
+      readonly capability: string;
+    };
 
-export function grantStoreKey(appId: string, publisherPublicKey: string): string {
+export function grantStoreKey(
+  appId: string,
+  publisherPublicKey: string,
+): string {
   return `miniapp-grants:${publisherPublicKey}:${appId}`;
 }
 
-export function initialGrantHostState(appId: string, publisherPublicKey: string): GrantHostState {
-  return { appId, publisherPublicKey, record: null, lastError: null, lifecycles: {} };
+export function initialGrantHostState(
+  appId: string,
+  publisherPublicKey: string,
+): GrantHostState {
+  return {
+    appId,
+    publisherPublicKey,
+    record: null,
+    lastError: null,
+    lifecycles: {},
+  };
 }
 
 const hostStart: EventClass<GrantEvent> = {
   name: "start",
-  matches: (event) => event.kind === "start"
+  matches: (event) => event.kind === "start",
 };
 const hostStoreValue: EventClass<GrantEvent> = {
   name: "store/value",
-  matches: (event) => event.kind === "store/value"
+  matches: (event) => event.kind === "store/value",
 };
 const hostSet: EventClass<GrantEvent> = {
   name: "grant/set",
-  matches: (event) => event.kind === "grant/set"
+  matches: (event) => event.kind === "grant/set",
 };
 const hostRevoke: EventClass<GrantEvent> = {
   name: "grant/revoke",
-  matches: (event) => event.kind === "grant/revoke"
+  matches: (event) => event.kind === "grant/revoke",
 };
 
 export const grantHostMachine: Machine<GrantHostState, GrantEvent> = {
@@ -88,33 +127,35 @@ export const grantHostMachine: Machine<GrantHostState, GrantEvent> = {
       from: "ready",
       on: hostStart,
       to: "ready",
-      emit: (state) => [{
-        kind: "store/read",
-        read: { key: grantStoreKey(state.appId, state.publisherPublicKey) }
-      }]
+      emit: (state) => [
+        {
+          kind: "store/read",
+          read: { key: grantStoreKey(state.appId, state.publisherPublicKey) },
+        },
+      ],
     },
     {
       from: "ready",
       on: hostStoreValue,
       to: "ready",
       reduce: loadGrantRecord,
-      emit: persistMigratedGrant
+      emit: persistMigratedGrant,
     },
     {
       from: "ready",
       on: hostSet,
       to: "ready",
       reduce: setGrantRecord,
-      emit: persistChangedGrant
+      emit: persistChangedGrant,
     },
     {
       from: "ready",
       on: hostRevoke,
       to: "ready",
       reduce: revokeGrantCapability,
-      emit: persistChangedGrant
-    }
-  ]
+      emit: persistChangedGrant,
+    },
+  ],
 };
 
 const interpretedGrantHost = interpret(grantHostMachine);
@@ -123,22 +164,30 @@ export const stepGrantHost: StepFn<GrantHostState> = (state, rawEvent) => {
   if (event.kind === "grant/set") {
     const approved = new Map<string, GrantLifecycleState>();
     for (const capability of event.requested) {
-      const current = state.lifecycles?.[capability] ?? initialGrantLifecycleState(event.at);
+      const current =
+        state.lifecycles?.[capability] ?? initialGrantLifecycleState(event.at);
       const next = stepGrantLifecycle(current, {
-        kind: "grant/approve", at: event.at,
-        ttlMs: event.ttlMs ?? Number.MAX_SAFE_INTEGER - event.at
+        kind: "grant/approve",
+        at: event.at,
+        ttlMs: event.ttlMs ?? Number.MAX_SAFE_INTEGER - event.at,
       }).state;
-      if (state.lifecycles?.[capability] !== undefined && next === current) return { state, intents: [] };
+      if (state.lifecycles?.[capability] !== undefined && next === current)
+        return { state, intents: [] };
       approved.set(capability, next);
     }
     const stepped = interpretedGrantHost(state, event);
     if (stepped.state.lastError !== null) return stepped;
     const lifecycles = { ...stepped.state.lifecycles };
-    for (const [capability, lifecycle] of approved) lifecycles[capability] = lifecycle;
+    for (const [capability, lifecycle] of approved)
+      lifecycles[capability] = lifecycle;
     return { ...stepped, state: { ...stepped.state, lifecycles } };
   }
-  if (event.kind === "grant/revoke" || event.kind === "grant/deny" ||
-      event.kind === "grant/first-use" || event.kind === "grant/ttl") {
+  if (
+    event.kind === "grant/revoke" ||
+    event.kind === "grant/deny" ||
+    event.kind === "grant/first-use" ||
+    event.kind === "grant/ttl"
+  ) {
     return stepLifecycleHostEvent(state, event);
   }
   return interpretedGrantHost(state, event);
@@ -146,39 +195,64 @@ export const stepGrantHost: StepFn<GrantHostState> = (state, rawEvent) => {
 
 function stepLifecycleHostEvent(
   state: GrantHostState,
-  event: Extract<GrantEvent, { capability: string }>
+  event: Extract<GrantEvent, { capability: string }>,
 ): ReturnType<StepFn<GrantHostState>> {
   const explicit = state.lifecycles?.[event.capability];
-  const current = explicit ?? (state.record?.granted.includes(event.capability) === true
-    ? { ...initialGrantLifecycleState(state.record.updatedAt), phase: "granted" as const,
-        expiresAt: Number.MAX_SAFE_INTEGER }
-    : undefined);
+  const current =
+    explicit ??
+    (state.record?.granted.includes(event.capability) === true
+      ? {
+          ...initialGrantLifecycleState(state.record.updatedAt),
+          phase: "granted" as const,
+          expiresAt: Number.MAX_SAFE_INTEGER,
+        }
+      : undefined);
   if (current === undefined) {
     if (event.kind !== "grant/deny") return { state, intents: [] };
     const requested = initialGrantLifecycleState(event.at);
-    const lifecycle = stepGrantLifecycle(requested, lifecycleEvent(event)).state;
-    return { state: { ...state, lifecycles: { ...state.lifecycles, [event.capability]: lifecycle } }, intents: [] };
+    const lifecycle = stepGrantLifecycle(
+      requested,
+      lifecycleEvent(event),
+    ).state;
+    return {
+      state: {
+        ...state,
+        lifecycles: { ...state.lifecycles, [event.capability]: lifecycle },
+      },
+      intents: [],
+    };
   }
   const lifecycle = stepGrantLifecycle(current, lifecycleEvent(event)).state;
   if (lifecycle === current) return { state, intents: [] };
-  const next = { ...state, lifecycles: { ...state.lifecycles, [event.capability]: lifecycle } };
-  if (event.kind !== "grant/revoke" && event.kind !== "grant/ttl") return { state: next, intents: [] };
+  const next = {
+    ...state,
+    lifecycles: { ...state.lifecycles, [event.capability]: lifecycle },
+  };
+  if (event.kind !== "grant/revoke" && event.kind !== "grant/ttl")
+    return { state: next, intents: [] };
   const persisted = interpretedGrantHost(next, {
-    kind: "grant/revoke", at: event.at, capability: event.capability
+    kind: "grant/revoke",
+    at: event.at,
+    capability: event.capability,
   });
   return persisted;
 }
 
 function lifecycleEvent(
-  event: Extract<GrantEvent, { capability: string }>
+  event: Extract<GrantEvent, { capability: string }>,
 ): GrantLifecycleEvent {
-  if (event.kind === "grant/revoke") return { kind: "grant/revoke", at: event.at };
+  if (event.kind === "grant/revoke")
+    return { kind: "grant/revoke", at: event.at };
   if (event.kind === "grant/deny") return { kind: "grant/deny", at: event.at };
-  if (event.kind === "grant/first-use") return { kind: "grant/first-use", at: event.at };
+  if (event.kind === "grant/first-use")
+    return { kind: "grant/first-use", at: event.at };
   return { kind: "grant/ttl", at: event.at };
 }
 
-function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostState {
+function loadGrantRecord(
+  state: GrantHostState,
+  event: GrantEvent,
+): GrantHostState {
   if (event.kind === "store/value") {
     const key = grantStoreKey(state.appId, state.publisherPublicKey);
     if (event.key !== key) {
@@ -188,17 +262,24 @@ function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostSta
       return state;
     }
     let candidate = event.value;
-    let decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
-      kind: "grant/decode-gate",
-      bytes: candidate
-    });
+    let decodeStepped = stepDecodeGrantRecordWithActions(
+      initialDecodeGrantRecordState(),
+      {
+        kind: "grant/decode-gate",
+        bytes: candidate,
+      },
+    );
     if (shouldRejectDecodeGrantRecord(decodeStepped.actions)) {
       const migrated = migrateLegacyGrantRecord(event.value);
       if (migrated !== null) {
         candidate = migrated;
-        decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
-          kind: "grant/decode-gate", bytes: candidate
-        });
+        decodeStepped = stepDecodeGrantRecordWithActions(
+          initialDecodeGrantRecordState(),
+          {
+            kind: "grant/decode-gate",
+            bytes: candidate,
+          },
+        );
       }
     }
     if (
@@ -211,30 +292,53 @@ function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostSta
     if (record === null) {
       return { ...state, lastError: "grant record decode failed" };
     }
-    if (record.appId !== state.appId || record.publisherPublicKey !== state.publisherPublicKey) {
+    if (
+      record.appId !== state.appId ||
+      record.publisherPublicKey !== state.publisherPublicKey
+    ) {
       return { ...state, lastError: "grant record identity mismatch" };
     }
-    const lifecycles = Object.fromEntries(record.granted.map((capability) => [
-      capability,
-      { ...initialGrantLifecycleState(record.updatedAt), phase: "granted" as const, expiresAt: Number.MAX_SAFE_INTEGER }
-    ]));
+    const lifecycles = Object.fromEntries(
+      record.granted.map((capability) => [
+        capability,
+        {
+          ...initialGrantLifecycleState(record.updatedAt),
+          phase: "granted" as const,
+          expiresAt: Number.MAX_SAFE_INTEGER,
+        },
+      ]),
+    );
     return { ...state, record, lastError: null, lifecycles };
   }
   return state;
 }
 
-function persistMigratedGrant(state: GrantHostState, event: GrantEvent): readonly Intent[] {
-  if (event.kind !== "store/value" || event.value === undefined || state.record === null || state.lastError !== null) return [];
+function persistMigratedGrant(
+  state: GrantHostState,
+  event: GrantEvent,
+): readonly Intent[] {
+  if (
+    event.kind !== "store/value" ||
+    event.value === undefined ||
+    state.record === null ||
+    state.lastError !== null
+  )
+    return [];
   try {
     decodeGrantRecord(event.value);
     return [];
   } catch {
     const migrated = migrateLegacyGrantRecord(event.value);
-    return migrated === null ? [] : [{ kind: "store/write", write: { key: event.key, value: migrated } }];
+    return migrated === null
+      ? []
+      : [{ kind: "store/write", write: { key: event.key, value: migrated } }];
   }
 }
 
-function setGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostState {
+function setGrantRecord(
+  state: GrantHostState,
+  event: GrantEvent,
+): GrantHostState {
   if (event.kind === "grant/set") {
     const declaredSet = new Set(event.declared);
     for (const capability of event.requested) {
@@ -248,50 +352,67 @@ function setGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostStat
       appId: state.appId,
       publisherPublicKey: state.publisherPublicKey,
       granted,
-      updatedAt: event.at
+      updatedAt: event.at,
     };
     return { ...state, record, lastError: null };
   }
   return state;
 }
 
-function revokeGrantCapability(state: GrantHostState, event: GrantEvent): GrantHostState {
+function revokeGrantCapability(
+  state: GrantHostState,
+  event: GrantEvent,
+): GrantHostState {
   if (event.kind === "grant/revoke") {
     if (state.record === null) {
       return state;
     }
-    const granted = state.record.granted.filter((entry) => entry !== event.capability);
+    const granted = state.record.granted.filter(
+      (entry) => entry !== event.capability,
+    );
     const record: GrantRecord = {
       ...state.record,
       granted,
-      updatedAt: event.at
+      updatedAt: event.at,
     };
     return { ...state, record, lastError: null };
   }
   return state;
 }
 
-function persistChangedGrant(state: GrantHostState, event: GrantEvent): readonly Intent[] {
-  if ((event.kind !== "grant/set" && event.kind !== "grant/revoke") ||
-      state.record === null || state.lastError !== null || state.record.updatedAt !== event.at) {
+function persistChangedGrant(
+  state: GrantHostState,
+  event: GrantEvent,
+): readonly Intent[] {
+  if (
+    (event.kind !== "grant/set" && event.kind !== "grant/revoke") ||
+    state.record === null ||
+    state.lastError !== null ||
+    state.record.updatedAt !== event.at
+  ) {
     return [];
   }
   const encoded = encodeGrantRecordRawFromGate(state.record);
   if (encoded === null) return [];
-  return [{
-    kind: "store/write",
-    write: {
-      key: grantStoreKey(state.appId, state.publisherPublicKey),
-      value: encoded
-    }
-  }];
+  return [
+    {
+      kind: "store/write",
+      write: {
+        key: grantStoreKey(state.appId, state.publisherPublicKey),
+        value: encoded,
+      },
+    },
+  ];
 }
 
 function encodeGrantRecordRawFromGate(record: GrantRecord): Uint8Array | null {
-  const encodeStepped = stepEncodeGrantRecordWithActions(initialEncodeGrantRecordState(), {
-    kind: "grant/encode-gate",
-    record
-  });
+  const encodeStepped = stepEncodeGrantRecordWithActions(
+    initialEncodeGrantRecordState(),
+    {
+      kind: "grant/encode-gate",
+      record,
+    },
+  );
   if (
     shouldRejectEncodeGrantRecord(encodeStepped.actions) ||
     !shouldUseEncodeGrantRecord(encodeStepped.actions)
@@ -307,7 +428,7 @@ export function encodeGrantRecord(record: GrantRecord): Uint8Array {
     appId: record.appId,
     publisherPublicKey: record.publisherPublicKey,
     granted: [...record.granted],
-    updatedAt: record.updatedAt
+    updatedAt: record.updatedAt,
   });
   return utf8Encode(text);
 }
@@ -317,24 +438,43 @@ export function decodeGrantRecord(bytes: Uint8Array): GrantRecord {
   let state = initialGrantParserState();
   for (const token of lexGrantRecord(text)) {
     const result = stepGrantParser(state, token);
-    if (result.state === state) throw new InvalidGrantRecordError(`unexpected ${token.kind} in ${state.phase}`);
+    if (result.state === state)
+      throw new InvalidGrantRecordError(
+        `unexpected ${token.kind} in ${state.phase}`,
+      );
     state = result.state;
   }
-  if (state.phase !== "accept" || state.appId === undefined || state.publisherPublicKey === undefined || state.updatedAt === undefined) {
+  if (
+    state.phase !== "accept" ||
+    state.appId === undefined ||
+    state.publisherPublicKey === undefined ||
+    state.updatedAt === undefined
+  ) {
     throw new InvalidGrantRecordError("incomplete grant record");
   }
-  const record: GrantRecord = { appId: state.appId, publisherPublicKey: state.publisherPublicKey, granted: state.granted, updatedAt: state.updatedAt };
+  const record: GrantRecord = {
+    appId: state.appId,
+    publisherPublicKey: state.publisherPublicKey,
+    granted: state.granted,
+    updatedAt: state.updatedAt,
+  };
   validateGrantRecord(record);
   const canonical = encodeGrantRecord(record);
-  if (!bytesEqual(bytes, canonical)) throw new InvalidGrantRecordError("grant record is not canonical");
+  if (!bytesEqual(bytes, canonical))
+    throw new InvalidGrantRecordError("grant record is not canonical");
   return record;
 }
 
 function validateGrantRecord(record: GrantRecord): void {
-  if (typeof record.appId !== "string" || typeof record.publisherPublicKey !== "string" ||
-      !Array.isArray(record.granted) || record.granted.some((entry) => typeof entry !== "string") ||
-      new Set(record.granted).size !== record.granted.length ||
-      !Number.isSafeInteger(record.updatedAt) || record.updatedAt < 0) {
+  if (
+    typeof record.appId !== "string" ||
+    typeof record.publisherPublicKey !== "string" ||
+    !Array.isArray(record.granted) ||
+    record.granted.some((entry) => typeof entry !== "string") ||
+    new Set(record.granted).size !== record.granted.length ||
+    !Number.isSafeInteger(record.updatedAt) ||
+    record.updatedAt < 0
+  ) {
     throw new InvalidGrantRecordError("invalid grant record fields");
   }
 }
@@ -344,11 +484,20 @@ function* lexGrantRecord(text: string): Generator<GrantParserToken> {
   while (offset < text.length) {
     const char = text[offset]!;
     const punctuation: Record<string, GrantParserToken["kind"]> = {
-      "{": "open", "}": "close", ":": "colon", ",": "comma", "[": "array-open", "]": "array-close"
+      "{": "open",
+      "}": "close",
+      ":": "colon",
+      ",": "comma",
+      "[": "array-open",
+      "]": "array-close",
     };
     const kind = punctuation[char];
-    if (kind !== undefined) { yield { kind } as GrantParserToken; offset += 1; continue; }
-    if (char === "\"") {
+    if (kind !== undefined) {
+      yield { kind } as GrantParserToken;
+      offset += 1;
+      continue;
+    }
+    if (char === '"') {
       const parsed = readJsonString(text, offset);
       yield { kind: "string", value: parsed.value };
       offset = parsed.next;
@@ -357,7 +506,8 @@ function* lexGrantRecord(text: string): Generator<GrantParserToken> {
     const number = /^(0|[1-9][0-9]*)/.exec(text.slice(offset));
     if (number !== null) {
       const value = Number(number[0]);
-      if (!Number.isSafeInteger(value)) throw new InvalidGrantRecordError("integer is outside the safe range");
+      if (!Number.isSafeInteger(value))
+        throw new InvalidGrantRecordError("integer is outside the safe range");
       yield { kind: "integer", value };
       offset += number[0].length;
       continue;
@@ -367,19 +517,45 @@ function* lexGrantRecord(text: string): Generator<GrantParserToken> {
   yield { kind: "eof" };
 }
 
-function readJsonString(text: string, start: number): { readonly value: string; readonly next: number } {
+function readJsonString(
+  text: string,
+  start: number,
+): { readonly value: string; readonly next: number } {
   let out = "";
   for (let offset = start + 1; offset < text.length; offset += 1) {
     const char = text[offset]!;
-    if (char === "\"") return { value: out, next: offset + 1 };
-    if (char.charCodeAt(0) < 0x20) throw new InvalidGrantRecordError("unescaped control character");
-    if (char !== "\\") { out += char; continue; }
+    if (char === '"') return { value: out, next: offset + 1 };
+    if (char.charCodeAt(0) < 0x20)
+      throw new InvalidGrantRecordError("unescaped control character");
+    if (char !== "\\") {
+      out += char;
+      continue;
+    }
     const escape = text[++offset];
-    if (escape === undefined) throw new InvalidGrantRecordError("unterminated escape");
-    const simple: Record<string, string> = { "\"": "\"", "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
-    if (simple[escape] !== undefined) { out += simple[escape]; continue; }
-    if (escape !== "u" || !/^[0-9a-fA-F]{4}$/.test(text.slice(offset + 1, offset + 5))) throw new InvalidGrantRecordError("invalid string escape");
-    out += String.fromCharCode(Number.parseInt(text.slice(offset + 1, offset + 5), 16));
+    if (escape === undefined)
+      throw new InvalidGrantRecordError("unterminated escape");
+    const simple: Record<string, string> = {
+      '"': '"',
+      "\\": "\\",
+      "/": "/",
+      b: "\b",
+      f: "\f",
+      n: "\n",
+      r: "\r",
+      t: "\t",
+    };
+    if (simple[escape] !== undefined) {
+      out += simple[escape];
+      continue;
+    }
+    if (
+      escape !== "u" ||
+      !/^[0-9a-fA-F]{4}$/.test(text.slice(offset + 1, offset + 5))
+    )
+      throw new InvalidGrantRecordError("invalid string escape");
+    out += String.fromCharCode(
+      Number.parseInt(text.slice(offset + 1, offset + 5), 16),
+    );
     offset += 4;
   }
   throw new InvalidGrantRecordError("unterminated string");
@@ -387,12 +563,16 @@ function readJsonString(text: string, start: number): { readonly value: string; 
 
 function strictUtf8Decode(bytes: Uint8Array): string {
   const text = utf8Decode(bytes);
-  if (!bytesEqual(utf8Encode(text), bytes)) throw new InvalidGrantRecordError("invalid or non-canonical UTF-8");
+  if (!bytesEqual(utf8Encode(text), bytes))
+    throw new InvalidGrantRecordError("invalid or non-canonical UTF-8");
   return text;
 }
 
 function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
-  return left.length === right.length && left.every((byte, index) => byte === right[index]);
+  return (
+    left.length === right.length &&
+    left.every((byte, index) => byte === right[index])
+  );
 }
 
 /**
@@ -425,14 +605,14 @@ export function initialEncodeGrantRecordState(): EncodeGrantRecordState {
 
 export function stepEncodeGrantRecordWithActions(
   state: EncodeGrantRecordState,
-  event: EncodeGrantRecordEvent
+  event: EncodeGrantRecordEvent,
 ): EncodeGrantRecordStepResult {
   if (event.kind === "grant/encode-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-raw", raw: encodeGrantRecord(event.record) }]
+        actions: [{ kind: "use-raw", raw: encodeGrantRecord(event.record) }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -443,20 +623,20 @@ export function stepEncodeGrantRecordWithActions(
 }
 
 export function shouldUseEncodeGrantRecord(
-  actions: ReadonlyArray<EncodeGrantRecordAction>
+  actions: ReadonlyArray<EncodeGrantRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectEncodeGrantRecord(
-  actions: ReadonlyArray<EncodeGrantRecordAction>
+  actions: ReadonlyArray<EncodeGrantRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract encoded grant record from step actions; null when no `use-raw`. */
 export function encodeGrantRecordRawFromActions(
-  actions: ReadonlyArray<EncodeGrantRecordAction>
+  actions: ReadonlyArray<EncodeGrantRecordAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -492,14 +672,16 @@ export function initialDecodeGrantRecordState(): DecodeGrantRecordState {
 
 export function stepDecodeGrantRecordWithActions(
   state: DecodeGrantRecordState,
-  event: DecodeGrantRecordEvent
+  event: DecodeGrantRecordEvent,
 ): DecodeGrantRecordStepResult {
   if (event.kind === "grant/decode-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields: decodeGrantRecord(event.bytes) }]
+        actions: [
+          { kind: "use-fields", fields: decodeGrantRecord(event.bytes) },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -510,20 +692,20 @@ export function stepDecodeGrantRecordWithActions(
 }
 
 export function shouldUseDecodeGrantRecord(
-  actions: ReadonlyArray<DecodeGrantRecordAction>
+  actions: ReadonlyArray<DecodeGrantRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectDecodeGrantRecord(
-  actions: ReadonlyArray<DecodeGrantRecordAction>
+  actions: ReadonlyArray<DecodeGrantRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract decoded grant record from step actions; null when no `use-fields`. */
 export function grantRecordFromActions(
-  actions: ReadonlyArray<DecodeGrantRecordAction>
+  actions: ReadonlyArray<DecodeGrantRecordAction>,
 ): GrantRecord | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

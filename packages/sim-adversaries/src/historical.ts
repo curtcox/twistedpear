@@ -8,7 +8,8 @@ export interface HistoricalReplayFixture {
   readonly expressible: boolean;
   readonly reason?: string;
   readonly proposal?: AttackProposal;
-  readonly target?: "broker" | "handshake" | "grant" | "key-share" | "federation";
+  readonly target?:
+    "broker" | "handshake" | "grant" | "key-share" | "federation";
   readonly expectedOutcome?: string;
 }
 
@@ -27,61 +28,113 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
         source: "app",
         destination: "host",
         channel: "broker",
-        payload: new Uint8Array([index])
-      }))
-    }
+        payload: new Uint8Array([index]),
+      })),
+    },
   },
-  { source: "conformance/hostile-apps", name: "busy-loop", expressible: false, reason: "CPU scheduling is outside the protocol event model" },
-  { source: "conformance/hostile-apps", name: "memory-bomb", expressible: false, reason: "heap allocation is enforced by the sandbox, not transport" },
-  { source: "conformance/hostile-apps", name: "constructor-chain-escape", expressible: false, reason: "language sandbox escape is outside the protocol event model" },
-  { source: "conformance/hostile-apps", name: "oversized-broker-message", expressible: true, proposal: {
+  {
+    source: "conformance/hostile-apps",
+    name: "busy-loop",
+    expressible: false,
+    reason: "CPU scheduling is outside the protocol event model",
+  },
+  {
+    source: "conformance/hostile-apps",
+    name: "memory-bomb",
+    expressible: false,
+    reason: "heap allocation is enforced by the sandbox, not transport",
+  },
+  {
+    source: "conformance/hostile-apps",
+    name: "constructor-chain-escape",
+    expressible: false,
+    reason: "language sandbox escape is outside the protocol event model",
+  },
+  {
+    source: "conformance/hostile-apps",
     name: "oversized-broker-message",
-    actions: [{ power: "inject", source: "app", destination: "host", channel: "broker", payload: new Uint8Array(512) }]
-  }, target: "broker", expectedOutcome: "oversized-message-rejected" },
+    expressible: true,
+    proposal: {
+      name: "oversized-broker-message",
+      actions: [
+        {
+          power: "inject",
+          source: "app",
+          destination: "host",
+          channel: "broker",
+          payload: new Uint8Array(512),
+        },
+      ],
+    },
+    target: "broker",
+    expectedOutcome: "oversized-message-rejected",
+  },
   {
     source: "Signal X3DH security considerations",
-    reference: "https://signal.org/docs/specifications/x3dh/#security-considerations",
+    reference:
+      "https://signal.org/docs/specifications/x3dh/#security-considerations",
     attackClass: "protocol replay",
     name: "replayed-initial-key-agreement-message",
     expressible: true,
-    target: "handshake", expectedOutcome: "replay-rejected",
-    proposal: { name: "replayed-initial-key-agreement-message", actions: [
-      { power: "duplicate", source: "initiator", destination: "recipient" }
-    ] }
+    target: "handshake",
+    expectedOutcome: "replay-rejected",
+    proposal: {
+      name: "replayed-initial-key-agreement-message",
+      actions: [
+        { power: "duplicate", source: "initiator", destination: "recipient" },
+      ],
+    },
   },
   {
     source: "IETF RFC 9700 OAuth 2.0 Security BCP",
-    reference: "https://www.rfc-editor.org/rfc/rfc9700.html#name-token-replay-prevention",
+    reference:
+      "https://www.rfc-editor.org/rfc/rfc9700.html#name-token-replay-prevention",
     attackClass: "stolen bearer replay",
     name: "replayed-authority-token",
     expressible: true,
-    target: "grant", expectedOutcome: "bearer-replay-rejected",
-    proposal: { name: "replayed-authority-token", actions: [
-      { power: "inject", source: "malicious-peer", destination: "resource-host", channel: "grant", payload: new Uint8Array([0x74, 0x6f, 0x6b, 0x65, 0x6e]) }
-    ] }
+    target: "grant",
+    expectedOutcome: "bearer-replay-rejected",
+    proposal: {
+      name: "replayed-authority-token",
+      actions: [
+        {
+          power: "inject",
+          source: "malicious-peer",
+          destination: "resource-host",
+          channel: "grant",
+          payload: new Uint8Array([0x74, 0x6f, 0x6b, 0x65, 0x6e]),
+        },
+      ],
+    },
   },
   {
     source: "Matrix CVE-2021-40823/40824 disclosure",
-    reference: "https://matrix.org/blog/2021/09/13/vulnerability-disclosure-key-sharing/",
+    reference:
+      "https://matrix.org/blog/2021/09/13/vulnerability-disclosure-key-sharing/",
     attackClass: "device impersonation and key disclosure",
     name: "impersonated-device-key-request",
     expressible: false,
-    reason: "TwistedPear has no shipping device-key-share ingress policy to adapt yet"
+    reason:
+      "TwistedPear has no shipping device-key-share ingress policy to adapt yet",
   },
   {
     source: "Mastodon GHSA-c2r5-cfqr-c553",
-    reference: "https://github.com/mastodon/mastodon/security/advisories/GHSA-c2r5-cfqr-c553",
+    reference:
+      "https://github.com/mastodon/mastodon/security/advisories/GHSA-c2r5-cfqr-c553",
     attackClass: "trusted-proxy identity spoofing",
     name: "forwarded-for-rate-limit-bypass",
     expressible: false,
-    reason: "trusted reverse-proxy header interpretation is outside the protocol event model"
+    reason:
+      "trusted reverse-proxy header interpretation is outside the protocol event model",
   },
   {
     source: "Synapse CVE-2023-45129",
-    reference: "https://github.com/matrix-org/synapse/security/advisories/GHSA-5chr-wjw5-3gq4",
+    reference:
+      "https://github.com/matrix-org/synapse/security/advisories/GHSA-5chr-wjw5-3gq4",
     attackClass: "malicious federation event denial of service",
     name: "malicious-server-acl-event",
     expressible: false,
-    reason: "TwistedPear has no shipping federation ACL event path to adapt yet"
-  }
+    reason:
+      "TwistedPear has no shipping federation ACL event path to adapt yet",
+  },
 ];

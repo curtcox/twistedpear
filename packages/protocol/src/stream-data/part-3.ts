@@ -21,19 +21,21 @@
 import type { Event, Intent } from "@twistedpear/effects";
 import type { StreamDataMessageHandleAction } from "./part-2.js";
 export function shouldHandleStreamDataMessageNow(
-  actions: ReadonlyArray<StreamDataMessageHandleAction>
+  actions: ReadonlyArray<StreamDataMessageHandleAction>,
 ): boolean {
   return actions.some((action) => action.kind === "handle");
 }
 
 export function shouldIgnoreStreamDataMessage(
-  actions: ReadonlyArray<StreamDataMessageHandleAction>
+  actions: ReadonlyArray<StreamDataMessageHandleAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 /** Whether createReader should register an optional ready-callback. */
-export function shouldRegisterStreamReadyCallback(callbackPresent: boolean): boolean {
+export function shouldRegisterStreamReadyCallback(
+  callbackPresent: boolean,
+): boolean {
   return callbackPresent;
 }
 
@@ -52,8 +54,7 @@ export type StreamReadyCallbackRegisterEvent =
     };
 
 export type StreamReadyCallbackRegisterAction =
-  | { readonly kind: "register" }
-  | { readonly kind: "skip" };
+  { readonly kind: "register" } | { readonly kind: "skip" };
 
 export interface StreamReadyCallbackRegisterStepResult {
   readonly state: StreamReadyCallbackRegisterState;
@@ -67,7 +68,7 @@ export function initialStreamReadyCallbackRegisterState(): StreamReadyCallbackRe
 
 export function stepStreamReadyCallbackRegisterWithActions(
   state: StreamReadyCallbackRegisterState,
-  event: StreamReadyCallbackRegisterEvent
+  event: StreamReadyCallbackRegisterEvent,
 ): StreamReadyCallbackRegisterStepResult {
   if (event.kind === "stream/ready-callback-register-gate") {
     return {
@@ -77,9 +78,9 @@ export function stepStreamReadyCallbackRegisterWithActions(
         {
           kind: shouldRegisterStreamReadyCallback(event.callbackPresent)
             ? "register"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -87,13 +88,13 @@ export function stepStreamReadyCallbackRegisterWithActions(
 }
 
 export function shouldRegisterStreamReadyNow(
-  actions: ReadonlyArray<StreamReadyCallbackRegisterAction>
+  actions: ReadonlyArray<StreamReadyCallbackRegisterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipStreamReadyRegister(
-  actions: ReadonlyArray<StreamReadyCallbackRegisterAction>
+  actions: ReadonlyArray<StreamReadyCallbackRegisterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -102,12 +103,16 @@ export function shouldSkipStreamReadyRegister(
  * Unregister a stream ready-callback: splice index or skip when absent.
  * Splice stays at the adapter.
  */
-export function planUnregisterStreamReadyCallback(index: number): number | null {
+export function planUnregisterStreamReadyCallback(
+  index: number,
+): number | null {
   return index >= 0 ? index : null;
 }
 
 /** Whether unregister may splice after {@link planUnregisterStreamReadyCallback}. */
-export function shouldUnregisterStreamReadyCallback(indexPresent: boolean): boolean {
+export function shouldUnregisterStreamReadyCallback(
+  indexPresent: boolean,
+): boolean {
   return indexPresent;
 }
 
@@ -143,14 +148,14 @@ export function initialStreamReadyCallbackUnregisterPlanState(): StreamReadyCall
 
 export function stepStreamReadyCallbackUnregisterPlanWithActions(
   state: StreamReadyCallbackUnregisterPlanState,
-  event: StreamReadyCallbackUnregisterPlanEvent
+  event: StreamReadyCallbackUnregisterPlanEvent,
 ): StreamReadyCallbackUnregisterPlanStepResult {
   if (event.kind === "stream/ready-callback-unregister-plan-gate") {
     const index = planUnregisterStreamReadyCallback(event.index);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
+      actions: index === null ? [] : [{ kind: "remove", index }],
     };
   }
 
@@ -158,14 +163,14 @@ export function stepStreamReadyCallbackUnregisterPlanWithActions(
 }
 
 export function streamReadyCallbackUnregisterPlanIndex(
-  actions: ReadonlyArray<StreamReadyCallbackUnregisterPlanAction>
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterPlanAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemoveStreamReadyCallbackUnregisterPlan(
-  actions: ReadonlyArray<StreamReadyCallbackUnregisterPlanAction>
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }
@@ -203,21 +208,21 @@ export function initialStreamReadyCallbackUnregisterState(): StreamReadyCallback
 
 export function stepStreamReadyCallbackUnregisterWithActions(
   state: StreamReadyCallbackUnregisterState,
-  event: StreamReadyCallbackUnregisterEvent
+  event: StreamReadyCallbackUnregisterEvent,
 ): StreamReadyCallbackUnregisterStepResult {
   if (event.kind === "stream/ready-callback-unregister-gate") {
     const planActions = stepStreamReadyCallbackUnregisterPlanWithActions(
       initialStreamReadyCallbackUnregisterPlanState(),
       {
         kind: "stream/ready-callback-unregister-plan-gate",
-        index: event.index
-      }
+        index: event.index,
+      },
     ).actions;
     const index = streamReadyCallbackUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
+      actions: index === null ? [] : [{ kind: "remove", index }],
     };
   }
 
@@ -225,14 +230,14 @@ export function stepStreamReadyCallbackUnregisterWithActions(
 }
 
 export function streamReadyCallbackUnregisterIndex(
-  actions: ReadonlyArray<StreamReadyCallbackUnregisterAction>
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemoveStreamReadyCallback(
-  actions: ReadonlyArray<StreamReadyCallbackUnregisterAction>
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }

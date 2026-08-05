@@ -11,31 +11,31 @@ user, rendered in their language on a screen you do not control.
 
 Two rules govern everything in this chapter:
 
-1. A call succeeds only if the capability is **declared in the signed manifest** *and*
+1. A call succeeds only if the capability is **declared in the signed manifest** _and_
    **granted by the user**. Either alone is not enough.
 2. The user may grant a **subset**, and may change it later. Your app has to work anyway, or
    fail in a way that explains itself.
 
 ## The full taxonomy
 
-| Capability | What the user is shown |
-|---|---|
-| `identity` | Use an app-scoped identity for signing and addressing. |
-| `presence` | Read coarse peer/interface presence and host info. |
-| `announce:subscribe` | Receive announces in the app namespace. |
-| `announce:publish` | Publish the app destination. |
-| `lxmf:send` | Send LXMF messages from the app destination. |
-| `lxmf:receive` | Receive LXMF messages for the app destination. |
-| `storage:kv` | Store local key/value data for this app. |
-| `storage:hyperbee` | Store ordered local Hyperbee data for this app. |
-| `resource:fetch` | Fetch package resources through host budget rules. |
-| `workspace` | Read and write project source files in this app's private workspace. |
-| `ai:chat` | Send prompts to the host-configured AI service; prompts may include workspace content. |
-| `apps:package` | Package and sign apps under this device's publisher identity (asks each time). |
-| `apps:publish` | Publish signed apps so other users can find and install them (asks each time). |
-| `apps:install` | Ask the host to install apps from a 256t id (asks each time, with capability review). |
-| `apps:preview` | Run a built app in the host's sandboxed dev-preview slot. |
-| `share:cas` | Store and retrieve bounded content-addressed data shared by 256t id. |
+| Capability           | What the user is shown                                                                 |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| `identity`           | Use an app-scoped identity for signing and addressing.                                 |
+| `presence`           | Read coarse peer/interface presence and host info.                                     |
+| `announce:subscribe` | Receive announces in the app namespace.                                                |
+| `announce:publish`   | Publish the app destination.                                                           |
+| `lxmf:send`          | Send LXMF messages from the app destination.                                           |
+| `lxmf:receive`       | Receive LXMF messages for the app destination.                                         |
+| `storage:kv`         | Store local key/value data for this app.                                               |
+| `storage:hyperbee`   | Store ordered local Hyperbee data for this app.                                        |
+| `resource:fetch`     | Fetch package resources through host budget rules.                                     |
+| `workspace`          | Read and write project source files in this app's private workspace.                   |
+| `ai:chat`            | Send prompts to the host-configured AI service; prompts may include workspace content. |
+| `apps:package`       | Package and sign apps under this device's publisher identity (asks each time).         |
+| `apps:publish`       | Publish signed apps so other users can find and install them (asks each time).         |
+| `apps:install`       | Ask the host to install apps from a 256t id (asks each time, with capability review).  |
+| `apps:preview`       | Run a built app in the host's sandboxed dev-preview slot.                              |
+| `share:cas`          | Store and retrieve bounded content-addressed data shared by 256t id.                   |
 
 An unknown capability string **blocks install** — the host tells the user to update, rather
 than ignoring the string. So a typo does not degrade your app; it makes it uninstallable.
@@ -47,7 +47,12 @@ than ignoring the string. So a typo does not degrade your app; it makes it unins
   "name": "com.example.board",
   "version": "0.1.0",
   "entry": "bundle.js",
-  "capabilities": ["identity", "announce:publish", "announce:subscribe", "storage:hyperbee"],
+  "capabilities": [
+    "identity",
+    "announce:publish",
+    "announce:subscribe",
+    "storage:hyperbee"
+  ],
   "icon": null,
   "minHostApi": "0.1.0"
 }
@@ -106,7 +111,7 @@ Better: ask the host what you have, once, at startup, and branch on it rather th
 exceptions.
 
 ```javascript
-const info = await host.info();          // requires `presence`
+const info = await host.info(); // requires `presence`
 const can = new Set(info.grantedCapabilities);
 
 if (can.has("announce:publish")) {

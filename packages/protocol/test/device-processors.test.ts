@@ -6,10 +6,13 @@ import {
   deriveCameraSample,
   deriveMicrophoneSample,
   deriveMotionSample,
-  quantizeLocationCoarse
+  quantizeLocationCoarse,
 } from "../src/index.js";
 
-const tapePath = join(dirname(fileURLToPath(import.meta.url)), "../../../specs/spec-device/tapes/derived-phase2.json");
+const tapePath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../specs/spec-device/tapes/derived-phase2.json",
+);
 const tape = JSON.parse(readFileSync(tapePath, "utf8")) as {
   readonly samples: ReadonlyArray<{
     readonly class: string;
@@ -22,15 +25,19 @@ describe("device derived processors (tape replay)", () => {
   it("replays the Phase 2 derived tape without hardware", () => {
     const camera = tape.samples.find((sample) => sample.class === "camera");
     const mic = tape.samples.find((sample) => sample.class === "microphone");
-    const calm = tape.samples.find((sample) => sample.class === "motion" && sample.at === 1200);
-    const shake = tape.samples.find((sample) => sample.class === "motion" && sample.at === 1300);
+    const calm = tape.samples.find(
+      (sample) => sample.class === "motion" && sample.at === 1200,
+    );
+    const shake = tape.samples.find(
+      (sample) => sample.class === "motion" && sample.at === 1300,
+    );
     const location = tape.samples.find((sample) => sample.class === "location");
 
     expect(deriveCameraSample(camera!.raw as never)).toEqual({
       barcodes: [{ format: "qr", value: "TPI1:peer-invite" }],
       motionDetected: true,
       faceCount: 0,
-      objectCount: 2
+      objectCount: 2,
     });
 
     const micDerived = deriveMicrophoneSample(mic!.raw as never);

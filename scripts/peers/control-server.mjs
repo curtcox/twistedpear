@@ -67,7 +67,7 @@ export async function startControlServer(options = {}) {
             identityHash: frame.identityHash,
             lxmfAddress: frame.lxmfAddress,
             socket,
-            attachedAt: Date.now()
+            attachedAt: Date.now(),
           });
           resolveWaiters(label);
           onAttach(agents.get(label));
@@ -94,7 +94,11 @@ export async function startControlServer(options = {}) {
           continue;
         }
         pending.delete(id);
-        request.reject(new Error(`peer ${request.label} disconnected while answering ${request.cmd}`));
+        request.reject(
+          new Error(
+            `peer ${request.label} disconnected while answering ${request.cmd}`,
+          ),
+        );
       }
     };
     socket.on("close", drop);
@@ -124,7 +128,11 @@ export async function startControlServer(options = {}) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(id);
-        reject(new Error(`peer ${label} did not answer ${payload.cmd} within ${timeoutMs}ms`));
+        reject(
+          new Error(
+            `peer ${label} did not answer ${payload.cmd} within ${timeoutMs}ms`,
+          ),
+        );
       }, timeoutMs);
       pending.set(id, {
         label,
@@ -137,11 +145,15 @@ export async function startControlServer(options = {}) {
         settle(frame) {
           clearTimeout(timer);
           if (frame.ok === false) {
-            reject(new Error(`peer ${label} rejected ${payload.cmd}: ${frame.error}`));
+            reject(
+              new Error(
+                `peer ${label} rejected ${payload.cmd}: ${frame.error}`,
+              ),
+            );
             return;
           }
           resolve(frame);
-        }
+        },
       });
       agent.socket.write(`${JSON.stringify({ id, ...payload })}\n`, (error) => {
         if (error === null || error === undefined) {
@@ -179,7 +191,9 @@ export async function startControlServer(options = {}) {
           } else {
             waiters.set(label, remaining);
           }
-          reject(new Error(`peer ${label} never attached to the control server`));
+          reject(
+            new Error(`peer ${label} never attached to the control server`),
+          );
         }, timeoutMs);
         const waiter = { resolve, reject, timer };
         waiters.set(label, [...(waiters.get(label) ?? []), waiter]);
@@ -187,39 +201,67 @@ export async function startControlServer(options = {}) {
     },
     request,
     info: (label) => request(label, { cmd: "info" }),
-    peers: (label) => request(label, { cmd: "peers" }).then((frame) => frame.peers ?? []),
-    inbox: (label) => request(label, { cmd: "inbox" }).then((frame) => frame.inbox ?? []),
-    status: (label) => request(label, { cmd: "status" }).then((frame) => frame.status),
+    peers: (label) =>
+      request(label, { cmd: "peers" }).then((frame) => frame.peers ?? []),
+    inbox: (label) =>
+      request(label, { cmd: "inbox" }).then((frame) => frame.inbox ?? []),
+    status: (label) =>
+      request(label, { cmd: "status" }).then((frame) => frame.status),
     announce: (label) => request(label, { cmd: "announce" }),
     announceBurst: (label, count = 16) =>
       request(label, { cmd: "announce-burst", count }).then((frame) => ({
         sent: frame.sent ?? 0,
-        failed: frame.failed ?? 0
+        failed: frame.failed ?? 0,
       })),
-    send: (label, toLxmfAddress, nonce) => request(label, { cmd: "send", toLxmfAddress, nonce }),
-    realtimeInbox: (label) => request(label, { cmd: "realtime-inbox" }).then((frame) => frame.inbox ?? []),
-    sendRealtime: (label, toLxmfAddress, nonce, payloadHex) => request(label, { cmd: "send-realtime", toLxmfAddress, nonce, payloadHex }),
-    callInbox: (label) => request(label, { cmd: "call-inbox" }).then((frame) => frame.inbox ?? []),
-    acceptInvite: (label, inviteId) => request(label, { cmd: "accept-invite", inviteId }),
-    sendCall: (label, inviteId, nonce, payloadHex) => request(label, { cmd: "send-call", inviteId, nonce, payloadHex }),
+    send: (label, toLxmfAddress, nonce) =>
+      request(label, { cmd: "send", toLxmfAddress, nonce }),
+    realtimeInbox: (label) =>
+      request(label, { cmd: "realtime-inbox" }).then(
+        (frame) => frame.inbox ?? [],
+      ),
+    sendRealtime: (label, toLxmfAddress, nonce, payloadHex) =>
+      request(label, {
+        cmd: "send-realtime",
+        toLxmfAddress,
+        nonce,
+        payloadHex,
+      }),
+    callInbox: (label) =>
+      request(label, { cmd: "call-inbox" }).then((frame) => frame.inbox ?? []),
+    acceptInvite: (label, inviteId) =>
+      request(label, { cmd: "accept-invite", inviteId }),
+    sendCall: (label, inviteId, nonce, payloadHex) =>
+      request(label, { cmd: "send-call", inviteId, nonce, payloadHex }),
     linkState: (label) =>
       request(label, { cmd: "link-state" }).then((frame) => ({
         readiness: frame.readiness ?? [],
         probes: frame.probes ?? [],
-        dropCensus: frame.dropCensus ?? { byReason: {}, byPeer: {} }
+        dropCensus: frame.dropCensus ?? { byReason: {}, byPeer: {} },
       })),
-    requestReadiness: (label, toLxmfAddress) => request(label, { cmd: "request-readiness", toLxmfAddress }),
-    linkProbe: (label, toLxmfAddress, budgetBytes) => request(label, { cmd: "link-probe", toLxmfAddress, budgetBytes }),
-    inviteState: (label) => request(label, { cmd: "invite-state" }).then((frame) => frame.invites ?? []),
+    requestReadiness: (label, toLxmfAddress) =>
+      request(label, { cmd: "request-readiness", toLxmfAddress }),
+    linkProbe: (label, toLxmfAddress, budgetBytes) =>
+      request(label, { cmd: "link-probe", toLxmfAddress, budgetBytes }),
+    inviteState: (label) =>
+      request(label, { cmd: "invite-state" }).then(
+        (frame) => frame.invites ?? [],
+      ),
     sendInvite: (label, toLxmfAddress, appId, requestedClasses) =>
-      request(label, { cmd: "send-invite", toLxmfAddress, appId, requestedClasses }),
+      request(label, {
+        cmd: "send-invite",
+        toLxmfAddress,
+        appId,
+        requestedClasses,
+      }),
     observeSnapshot: (label) =>
       request(label, { cmd: "observe-snapshot" }).then((frame) => ({
         history: frame.history,
-        dropCensus: frame.dropCensus ?? { byReason: {}, byPeer: {} }
+        dropCensus: frame.dropCensus ?? { byReason: {}, byPeer: {} },
       })),
-    subscribeObserve: (label) => request(label, { cmd: "subscribe", domain: "observe" }),
-    unsubscribeObserve: (label) => request(label, { cmd: "unsubscribe", domain: "observe" }),
+    subscribeObserve: (label) =>
+      request(label, { cmd: "subscribe", domain: "observe" }),
+    unsubscribeObserve: (label) =>
+      request(label, { cmd: "unsubscribe", domain: "observe" }),
     command: (label, cmd, payload = {}, timeoutMs) =>
       request(label, { cmd, ...payload }, timeoutMs),
     async close() {
@@ -230,7 +272,9 @@ export async function startControlServer(options = {}) {
       for (const list of waiters.values()) {
         for (const waiter of list) {
           clearTimeout(waiter.timer);
-          waiter.reject(new Error("control server closed before peer attached"));
+          waiter.reject(
+            new Error("control server closed before peer attached"),
+          );
         }
       }
       waiters.clear();
@@ -243,6 +287,6 @@ export async function startControlServer(options = {}) {
       }
       agents.clear();
       await new Promise((resolve) => server.close(() => resolve()));
-    }
+    },
   };
 }

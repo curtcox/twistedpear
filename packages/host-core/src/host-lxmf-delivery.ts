@@ -13,13 +13,13 @@ import {
   type CryptoProvider,
   type Identity,
   type RegisteredDestination,
-  type Reticulum
+  type Reticulum,
 } from "@twistedpear/reticulum-ts";
 import { LXMFRouter, type DeliveryCallback } from "@twistedpear/lxmf-ts";
 import {
   createSessionInviteReceiver,
   SESSION_INVITE_TITLE,
-  type DeliveredSessionInvite
+  type DeliveredSessionInvite,
 } from "./session-invite-carrier.js";
 
 const LXMF_DELIVERY_ASPECT = "lxmf.delivery";
@@ -41,7 +41,9 @@ export interface HostLxmfDeliveryOptions {
   readonly provider: CryptoProvider;
   readonly identity: Identity;
   /** Raises a verified invite in host chrome. */
-  readonly receiveSessionInvite: (invite: DeliveredSessionInvite) => Promise<void>;
+  readonly receiveSessionInvite: (
+    invite: DeliveredSessionInvite,
+  ) => Promise<void>;
   /**
    * Host policy gate for which apps may be rung. Returning false is
    * indistinguishable to the sender from an unreachable host.
@@ -53,7 +55,7 @@ export interface HostLxmfDeliveryOptions {
    */
   readonly resolvePeer?: (
     sourceHashHex: string,
-    peers: ReadonlyMap<string, HostLxmfPeerRecord>
+    peers: ReadonlyMap<string, HostLxmfPeerRecord>,
   ) => { readonly handleId: string; readonly displayLabel: string } | null;
   /**
    * Re-announce interval. `0` announces once at start and never on a timer
@@ -84,7 +86,7 @@ export interface HostLxmfDeliverySession {
  * `session-invite` carrier onto it.
  */
 export async function createHostLxmfDelivery(
-  options: HostLxmfDeliveryOptions
+  options: HostLxmfDeliveryOptions,
 ): Promise<HostLxmfDeliverySession> {
   const { reticulum, provider, identity } = options;
   const log = options.log ?? (() => {});
@@ -95,7 +97,9 @@ export async function createHostLxmfDelivery(
   const router = new LXMFRouter({ reticulum, provider });
   const delivery = router.registerDeliveryIdentity(identity);
   const lxmfAddress = bytesToHex(delivery.hash);
-  const identityHash = bytesToHex(provider.sha256(identity.getPublicKey()).slice(0, 16));
+  const identityHash = bytesToHex(
+    provider.sha256(identity.getPublicKey()).slice(0, 16),
+  );
 
   const peers = new Map<string, HostLxmfPeerRecord>();
   const inviteObservers: Array<(invite: DeliveredSessionInvite) => void> = [];
@@ -112,12 +116,14 @@ export async function createHostLxmfDelivery(
       const existing = peers.get(destinationHash);
       peers.set(destinationHash, {
         destinationHash,
-        identityHash: bytesToHex(provider.sha256(info.announcedIdentity.getPublicKey()).slice(0, 16)),
+        identityHash: bytesToHex(
+          provider.sha256(info.announcedIdentity.getPublicKey()).slice(0, 16),
+        ),
         firstSeenAt: existing?.firstSeenAt ?? at,
         lastSeenAt: at,
-        count: (existing?.count ?? 0) + 1
+        count: (existing?.count ?? 0) + 1,
       });
-    }
+    },
   });
 
   const resolvePeer =
@@ -128,7 +134,7 @@ export async function createHostLxmfDelivery(
         ? null
         : {
             handleId: `invite-peer-${peer.identityHash.slice(0, 12)}`,
-            displayLabel: `peer ${peer.identityHash.slice(0, 8)}`
+            displayLabel: `peer ${peer.identityHash.slice(0, 8)}`,
           };
     });
 
@@ -140,7 +146,7 @@ export async function createHostLxmfDelivery(
     isInvitableApp: options.isInvitableApp,
     resolvePeer: (sourceHashHex) => resolvePeer(sourceHashHex, peers),
     now,
-    log
+    log,
   });
 
   router.onDelivery((message, context) => {
@@ -164,14 +170,17 @@ export async function createHostLxmfDelivery(
       await delivery.announce();
     } catch (error: unknown) {
       log(
-        `Host LXMF announce deferred: ${error instanceof Error ? error.message : String(error)}`
+        `Host LXMF announce deferred: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   };
 
   await announceQuietly();
   if (announceIntervalMs > 0) {
-    announceTimer = setInterval(() => void announceQuietly(), announceIntervalMs);
+    announceTimer = setInterval(
+      () => void announceQuietly(),
+      announceIntervalMs,
+    );
     announceTimer.unref?.();
   }
 
@@ -196,6 +205,6 @@ export async function createHostLxmfDelivery(
         clearInterval(announceTimer);
         announceTimer = null;
       }
-    }
+    },
   };
 }

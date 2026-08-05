@@ -27,12 +27,13 @@ function defineGlobal(name: string, value: unknown): void {
     configurable: true,
     writable: true,
     enumerable: true,
-    value
+    value,
   });
 }
 
 function getState(): TripwireState | undefined {
-  return (globalThis as Record<string, unknown>)[TRIPWIRE_KEY] as TripwireState | undefined;
+  return (globalThis as Record<string, unknown>)[TRIPWIRE_KEY] as
+    TripwireState | undefined;
 }
 
 /**
@@ -64,9 +65,14 @@ export function installTripwire(): void {
   const OriginalDate = Date;
   const PatchedDate = function PatchedDate(...args: unknown[]) {
     if (args.length === 0) {
-      throw new SansIOViolation("new Date()", "new Date() without arguments reads wall clock");
+      throw new SansIOViolation(
+        "new Date()",
+        "new Date() without arguments reads wall clock",
+      );
     }
-    return new (OriginalDate as unknown as new (...a: unknown[]) => Date)(...args);
+    return new (OriginalDate as unknown as new (...a: unknown[]) => Date)(
+      ...args,
+    );
   } as unknown as DateConstructor;
 
   PatchedDate.now = () => {
@@ -78,7 +84,7 @@ export function installTripwire(): void {
   Object.defineProperty(PatchedDate, "prototype", {
     value: OriginalDate.prototype,
     writable: false,
-    configurable: false
+    configurable: false,
   });
   Object.defineProperty(PatchedDate, "name", { value: "Date" });
 
@@ -119,7 +125,9 @@ export function installTripwire(): void {
     }
   }
 
-  (globalThis as Record<string, unknown>)[TRIPWIRE_KEY] = { originals } satisfies TripwireState;
+  (globalThis as Record<string, unknown>)[TRIPWIRE_KEY] = {
+    originals,
+  } satisfies TripwireState;
 }
 
 export function uninstallTripwire(): void {
@@ -144,7 +152,8 @@ export function uninstallTripwire(): void {
     if (key === "crypto.getRandomValues" || key === "crypto.randomUUID") {
       const c = g["crypto"] as Record<string, unknown> | undefined;
       if (c !== undefined) {
-        c[key === "crypto.getRandomValues" ? "getRandomValues" : "randomUUID"] = value;
+        c[key === "crypto.getRandomValues" ? "getRandomValues" : "randomUUID"] =
+          value;
       }
       continue;
     }

@@ -9,7 +9,7 @@ import {
   readFileSync,
   rmSync,
   statSync,
-  writeFileSync
+  writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,11 +24,22 @@ export const catalogOutPath = join(generatedDir, "catalog.json");
 export const runtimePaths = [
   join(root, "src", "runtime-render.js"),
   join(root, "src", "runtime-devstudio.js"),
-  join(root, "src", "runtime.js")
+  join(root, "src", "runtime.js"),
 ];
 
-const EXPECTATION_VALUES = new Set(["pass", "unavailable", "device-gated", "fail"]);
-const DIAGNOSTIC_GROUPS = new Set(["crypto", "interfaces", "storage", "distribution", "runtime"]);
+const EXPECTATION_VALUES = new Set([
+  "pass",
+  "unavailable",
+  "device-gated",
+  "fail",
+]);
+const DIAGNOSTIC_GROUPS = new Set([
+  "crypto",
+  "interfaces",
+  "storage",
+  "distribution",
+  "runtime",
+]);
 const EXECUTION_MODES = new Set(["inline", "preview"]);
 export const HANDBOOK_PLATFORMS = ["android", "ios", "desktop", "web", "node"];
 export const SDK_NAMESPACES = [
@@ -47,13 +58,13 @@ export const SDK_NAMESPACES = [
   "peers",
   "freenet",
   "relay",
-  "device"
+  "device",
 ];
 export const MIN_CHAPTER_WORDS = {
   "part-1-concepts": 80,
   "part-2-hosts": 80,
   "part-3-sdk": 80,
-  "part-4-diagnostics": 40
+  "part-4-diagnostics": 40,
 };
 
 function isTableSeparator(line) {
@@ -88,10 +99,13 @@ export function writeText(path, text) {
 
 function parseInlineLinks(line) {
   const links = [];
-  const text = line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label, target) => {
-    links.push({ label, target });
-    return label;
-  });
+  const text = line.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_match, label, target) => {
+      links.push({ label, target });
+      return label;
+    },
+  );
   return { text, links };
 }
 
@@ -118,7 +132,7 @@ export function parseMarkdown(markdown, chapterId) {
         blocks.push({
           type: "chapter-link",
           label: link.label,
-          chapterId: link.target.slice("chapter:".length)
+          chapterId: link.target.slice("chapter:".length),
         });
       }
     }
@@ -150,11 +164,18 @@ export function parseMarkdown(markdown, chapterId) {
       }
       i += 1;
       const documentId = `chapters/${chapterId}/sample-${codeFenceIndex++}.${language === "javascript" ? "js" : language === "json" ? "json" : "txt"}`;
-      blocks.push({ type: "code", documentId, language, content: codeLines.join("\n") + "\n" });
+      blocks.push({
+        type: "code",
+        documentId,
+        language,
+        content: codeLines.join("\n") + "\n",
+      });
       continue;
     }
 
-    const appletMatch = line.match(/^\{\{applet:([A-Za-z0-9][A-Za-z0-9._-]*)\}\}\s*$/);
+    const appletMatch = line.match(
+      /^\{\{applet:([A-Za-z0-9][A-Za-z0-9._-]*)\}\}\s*$/,
+    );
     if (appletMatch !== null) {
       flushParagraph(paragraphBuffer);
       blocks.push({ type: "applet", appletId: appletMatch[1] });
@@ -175,7 +196,11 @@ export function parseMarkdown(markdown, chapterId) {
     if (line.trim().startsWith("|")) {
       flushParagraph(paragraphBuffer);
       const headerCells = parseTableRow(line);
-      if (headerCells === null || i + 1 >= lines.length || !isTableSeparator(lines[i + 1])) {
+      if (
+        headerCells === null ||
+        i + 1 >= lines.length ||
+        !isTableSeparator(lines[i + 1])
+      ) {
         paragraphBuffer.push(line.trim());
         i += 1;
         continue;
@@ -198,7 +223,9 @@ export function parseMarkdown(markdown, chapterId) {
       flushParagraph(paragraphBuffer);
       const items = [];
       while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
-        const { text, links } = parseInlineLinks(lines[i].replace(/^\s*[-*]\s+/, "").trim());
+        const { text, links } = parseInlineLinks(
+          lines[i].replace(/^\s*[-*]\s+/, "").trim(),
+        );
         items.push(text);
         paragraphLinks.push(...links);
         i += 1;
@@ -278,7 +305,10 @@ export function loadApplets() {
       if (typeof preview.project !== "string" || preview.project.length === 0) {
         fail(`Applet ${entry} preview.project is required`);
       }
-      if (preview.manifest === undefined || typeof preview.manifest !== "object") {
+      if (
+        preview.manifest === undefined ||
+        typeof preview.manifest !== "object"
+      ) {
         fail(`Applet ${entry} preview.manifest is required`);
       }
       if (!Array.isArray(preview.grants)) {
@@ -290,13 +320,17 @@ export function loadApplets() {
     }
     for (const [platform, expectation] of Object.entries(meta.expectations)) {
       if (!EXPECTATION_VALUES.has(expectation)) {
-        fail(`Applet ${entry} has invalid expectation "${expectation}" for ${platform}`);
+        fail(
+          `Applet ${entry} has invalid expectation "${expectation}" for ${platform}`,
+        );
       }
     }
 
     const source = readFileSync(mainPath, "utf8");
     if (!/export\s+async\s+function\s+run\s*\(/.test(source)) {
-      fail(`Applet ${entry} main.js must export async function run(sdk, report)`);
+      fail(
+        `Applet ${entry} main.js must export async function run(sdk, report)`,
+      );
     }
 
     applets.push({
@@ -308,7 +342,7 @@ export function loadApplets() {
       capabilities: meta.capabilities,
       surfaces: meta.surfaces ?? [],
       expectations: meta.expectations,
-      source
+      source,
     });
   }
 
@@ -355,7 +389,7 @@ export function collectSeedManifest(dir, prefix = "") {
     } else {
       files.push({
         path: rel.split("\\").join("/"),
-        content: readFileSync(full, "utf8")
+        content: readFileSync(full, "utf8"),
       });
     }
   }

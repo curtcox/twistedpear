@@ -9,7 +9,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const FIXTURES_PATH = join(here, "..", "..", "specs", "spec-kernel", "vectors", "ordering.json");
+const FIXTURES_PATH = join(
+  here,
+  "..",
+  "..",
+  "specs",
+  "spec-kernel",
+  "vectors",
+  "ordering.json",
+);
 
 // --- independent SPEC-TRACE canonical form + hash (deliberately not imported
 // --- from packages/effects: the duplication is the cross-check).
@@ -26,7 +34,8 @@ export function canonicalJson(value) {
     for (const b of value) hex += b.toString(16).padStart(2, "0");
     return `{"$bytes":"${hex}"}`;
   }
-  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item ?? null)).join(",")}]`;
+  if (Array.isArray(value))
+    return `[${value.map((item) => canonicalJson(item ?? null)).join(",")}]`;
   if (typeof value === "object") {
     const parts = [];
     for (const key of Object.keys(value).sort()) {
@@ -57,14 +66,18 @@ export function traceHashOf(trace) {
 const idle = (state) => ({ state, intents: [] });
 
 function onStart(intents) {
-  return (state, event) => (event.kind === "start" ? { state, intents } : idle(state));
+  return (state, event) =>
+    event.kind === "start" ? { state, intents } : idle(state);
 }
 
 const send = (destination, byte) => ({
   kind: "transport/send",
-  send: { channel: "conf", destination, payload: new Uint8Array([byte]) }
+  send: { channel: "conf", destination, payload: new Uint8Array([byte]) },
 });
-const setTimer = (id, delayMs) => ({ kind: "timer/set", timer: { id, delayMs } });
+const setTimer = (id, delayMs) => ({
+  kind: "timer/set",
+  timer: { id, delayMs },
+});
 
 function pingStep(state, event) {
   if (event.kind === "start") {
@@ -72,12 +85,18 @@ function pingStep(state, event) {
   }
   if (event.kind === "transport/recv") {
     if (event.payload[0] === 1) {
-      return { state: { ...state, pings: state.pings + 1 }, intents: [send(event.source, 2)] };
+      return {
+        state: { ...state, pings: state.pings + 1 },
+        intents: [send(event.source, 2)],
+      };
     }
     return { state: { ...state, pongs: state.pongs + 1 }, intents: [] };
   }
   if (event.kind === "timer/fired") {
-    return { state, intents: [{ kind: "log", level: "debug", message: `beat@${event.at}` }] };
+    return {
+      state,
+      intents: [{ kind: "log", level: "debug", message: `beat@${event.at}` }],
+    };
   }
   return idle(state);
 }
@@ -88,42 +107,50 @@ export const scenarios = {
       seed: 0xc0ffee,
       nodes: [
         { id: "a", initial: { peer: "b", pings: 0, pongs: 0 }, step: pingStep },
-        { id: "b", initial: { peer: "a", pings: 0, pongs: 0 }, step: pingStep }
+        { id: "b", initial: { peer: "a", pings: 0, pongs: 0 }, step: pingStep },
       ],
-      delivery: { latencyMs: 5 }
+      delivery: { latencyMs: 5 },
     },
     run: (kernel) => {
       kernel.start();
       kernel.runUntilIdle(1_000);
-    }
+    },
   },
   "rule1-timers-before-transport": {
     config: {
       seed: 1,
       nodes: [
         { id: "a", initial: null, step: onStart([setTimer("t", 5)]) },
-        { id: "b", initial: null, step: onStart([send("a", 1)]) }
+        { id: "b", initial: null, step: onStart([send("a", 1)]) },
       ],
-      delivery: { latencyMs: 5 }
+      delivery: { latencyMs: 5 },
     },
     run: (kernel) => {
       kernel.start();
       kernel.runUntilIdle(100);
-    }
+    },
   },
   "rule2-timers-by-node-then-timer-id": {
     config: {
       seed: 2,
       // Config order deliberately scrambled: dequeue order must not follow it.
       nodes: [
-        { id: "b", initial: null, step: onStart([setTimer("t2", 10), setTimer("t1", 10)]) },
-        { id: "a", initial: null, step: onStart([setTimer("t2", 10), setTimer("t1", 10)]) }
-      ]
+        {
+          id: "b",
+          initial: null,
+          step: onStart([setTimer("t2", 10), setTimer("t1", 10)]),
+        },
+        {
+          id: "a",
+          initial: null,
+          step: onStart([setTimer("t2", 10), setTimer("t1", 10)]),
+        },
+      ],
     },
     run: (kernel) => {
       kernel.start();
       kernel.runUntilIdle(100);
-    }
+    },
   },
   "rule3-transport-by-source-then-destination": {
     config: {
@@ -132,29 +159,29 @@ export const scenarios = {
         { id: "b", initial: null, step: onStart([send("d", 3), send("c", 4)]) },
         { id: "a", initial: null, step: onStart([send("d", 1), send("c", 2)]) },
         { id: "c", initial: null, step: (state) => idle(state) },
-        { id: "d", initial: null, step: (state) => idle(state) }
+        { id: "d", initial: null, step: (state) => idle(state) },
       ],
-      delivery: { latencyMs: 7 }
+      delivery: { latencyMs: 7 },
     },
     run: (kernel) => {
       kernel.start();
       kernel.runUntilIdle(100);
-    }
+    },
   },
   "rule4-ties-in-send-order": {
     config: {
       seed: 4,
       nodes: [
         { id: "a", initial: null, step: onStart([send("b", 1), send("b", 2)]) },
-        { id: "b", initial: null, step: (state) => idle(state) }
+        { id: "b", initial: null, step: (state) => idle(state) },
       ],
-      delivery: { latencyMs: 4 }
+      delivery: { latencyMs: 4 },
     },
     run: (kernel) => {
       kernel.start();
       kernel.runUntilIdle(100);
-    }
-  }
+    },
+  },
 };
 
 /** Deliveries (timer firings and transport receipts) in dispatch order. */
@@ -166,7 +193,9 @@ export function deliveryDescriptors(trace) {
     if (event.kind === "timer/fired") {
       out.push(`timer:${entry.node}:${event.id}@${event.at}`);
     } else if (event.kind === "transport/recv") {
-      out.push(`recv:${event.source}->${entry.node}:${event.payload[0]}@${event.at}`);
+      out.push(
+        `recv:${event.source}->${entry.node}:${event.payload[0]}@${event.at}`,
+      );
     }
   }
   return out;
@@ -199,7 +228,10 @@ export function runKernelConformance(createKernel, options = {}) {
     const first = traceHashOf(runScenario("determinism").getTrace());
     const second = traceHashOf(runScenario("determinism").getTrace());
     if (first !== second) {
-      failures.push({ check: "determinism", message: `double-run hash mismatch: ${first} != ${second}` });
+      failures.push({
+        check: "determinism",
+        message: `double-run hash mismatch: ${first} != ${second}`,
+      });
     }
   } catch (error) {
     failures.push({ check: "determinism", message: String(error) });
@@ -214,7 +246,7 @@ export function runKernelConformance(createKernel, options = {}) {
       if (JSON.stringify(got) !== JSON.stringify(fixture.expected)) {
         failures.push({
           check: fixture.name,
-          message: `delivery order mismatch\n  expected: ${fixture.expected.join(", ")}\n  got:      ${got.join(", ")}`
+          message: `delivery order mismatch\n  expected: ${fixture.expected.join(", ")}\n  got:      ${got.join(", ")}`,
         });
         continue;
       }
@@ -222,7 +254,7 @@ export function runKernelConformance(createKernel, options = {}) {
       if (fixture.traceHash !== undefined && hash !== fixture.traceHash) {
         failures.push({
           check: fixture.name,
-          message: `trace hash mismatch: expected ${fixture.traceHash}, got ${hash}`
+          message: `trace hash mismatch: expected ${fixture.traceHash}, got ${hash}`,
         });
         continue;
       }
@@ -231,7 +263,7 @@ export function runKernelConformance(createKernel, options = {}) {
         if (own !== hash) {
           failures.push({
             check: fixture.name,
-            message: `kernel's own trace hash ${own} disagrees with runner's ${hash}`
+            message: `kernel's own trace hash ${own} disagrees with runner's ${hash}`,
           });
         }
       }

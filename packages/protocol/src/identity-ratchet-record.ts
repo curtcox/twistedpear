@@ -30,22 +30,26 @@ export function identityRatchetStoreKey(destinationHashHex: string): string {
   return `ratchets/${destinationHashHex}`;
 }
 
-export function encodeIdentityRatchetRecord(record: IdentityRatchetRecord): Uint8Array {
+export function encodeIdentityRatchetRecord(
+  record: IdentityRatchetRecord,
+): Uint8Array {
   const json = JSON.stringify({
     ratchet: bytesToHexLower(record.ratchet),
-    received: record.received
+    received: record.received,
   });
   return utf8Encode(json);
 }
 
-export function decodeIdentityRatchetRecord(bytes: Uint8Array): IdentityRatchetRecord {
+export function decodeIdentityRatchetRecord(
+  bytes: Uint8Array,
+): IdentityRatchetRecord {
   const parsed = JSON.parse(utf8Decode(bytes)) as {
     ratchet: string;
     received: number;
   };
   return {
     ratchet: hexToBytesLower(parsed.ratchet),
-    received: parsed.received
+    received: parsed.received,
   };
 }
 
@@ -79,7 +83,7 @@ export function initialEncodeIdentityRatchetRecordState(): EncodeIdentityRatchet
 
 export function stepEncodeIdentityRatchetRecordWithActions(
   state: EncodeIdentityRatchetRecordState,
-  event: EncodeIdentityRatchetRecordEvent
+  event: EncodeIdentityRatchetRecordEvent,
 ): EncodeIdentityRatchetRecordStepResult {
   if (event.kind === "identity-ratchet/encode-gate") {
     try {
@@ -89,9 +93,9 @@ export function stepEncodeIdentityRatchetRecordWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: encodeIdentityRatchetRecord(event.record)
-          }
-        ]
+            raw: encodeIdentityRatchetRecord(event.record),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -102,20 +106,20 @@ export function stepEncodeIdentityRatchetRecordWithActions(
 }
 
 export function shouldUseEncodeIdentityRatchetRecord(
-  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>
+  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectEncodeIdentityRatchetRecord(
-  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>
+  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract encoded identity ratchet record from step actions; null when no `use-raw`. */
 export function encodeIdentityRatchetRecordRawFromActions(
-  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>
+  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -151,7 +155,7 @@ export function initialDecodeIdentityRatchetRecordState(): DecodeIdentityRatchet
 
 export function stepDecodeIdentityRatchetRecordWithActions(
   state: DecodeIdentityRatchetRecordState,
-  event: DecodeIdentityRatchetRecordEvent
+  event: DecodeIdentityRatchetRecordEvent,
 ): DecodeIdentityRatchetRecordStepResult {
   if (event.kind === "identity-ratchet/decode-gate") {
     try {
@@ -161,9 +165,9 @@ export function stepDecodeIdentityRatchetRecordWithActions(
         actions: [
           {
             kind: "use-fields",
-            fields: decodeIdentityRatchetRecord(event.bytes)
-          }
-        ]
+            fields: decodeIdentityRatchetRecord(event.bytes),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -174,20 +178,20 @@ export function stepDecodeIdentityRatchetRecordWithActions(
 }
 
 export function shouldUseDecodeIdentityRatchetRecord(
-  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>
+  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectDecodeIdentityRatchetRecord(
-  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>
+  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract decoded identity ratchet record from step actions; null when no `use-fields`. */
 export function identityRatchetRecordFromActions(
-  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>
+  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>,
 ): IdentityRatchetRecord | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -199,9 +203,10 @@ export function isIdentityRatchetRecordUsable(
   options: {
     readonly expirySeconds?: number;
     readonly ratchetBytes?: number;
-  } = {}
+  } = {},
 ): boolean {
-  const expirySeconds = options.expirySeconds ?? IDENTITY_RATCHET_EXPIRY_SECONDS;
+  const expirySeconds =
+    options.expirySeconds ?? IDENTITY_RATCHET_EXPIRY_SECONDS;
   const ratchetBytes = options.ratchetBytes ?? IDENTITY_RATCHET_BYTES;
   if (record.ratchet.length !== ratchetBytes) {
     return false;
@@ -227,8 +232,7 @@ export type IdentityRatchetRecordUsableEvent =
     };
 
 export type IdentityRatchetRecordUsableAction =
-  | { readonly kind: "usable" }
-  | { readonly kind: "unusable" };
+  { readonly kind: "usable" } | { readonly kind: "unusable" };
 
 export interface IdentityRatchetRecordUsableStepResult {
   readonly state: IdentityRatchetRecordUsableState;
@@ -242,7 +246,7 @@ export function initialIdentityRatchetRecordUsableState(): IdentityRatchetRecord
 
 export function stepIdentityRatchetRecordUsableWithActions(
   state: IdentityRatchetRecordUsableState,
-  event: IdentityRatchetRecordUsableEvent
+  event: IdentityRatchetRecordUsableEvent,
 ): IdentityRatchetRecordUsableStepResult {
   if (event.kind === "identity-ratchet/usable-gate") {
     const options =
@@ -254,7 +258,7 @@ export function stepIdentityRatchetRecordUsableWithActions(
               : {}),
             ...(event.ratchetBytes !== undefined
               ? { ratchetBytes: event.ratchetBytes }
-              : {})
+              : {}),
           };
     return {
       state,
@@ -264,12 +268,12 @@ export function stepIdentityRatchetRecordUsableWithActions(
           kind: isIdentityRatchetRecordUsable(
             event.record,
             event.nowSeconds,
-            options ?? {}
+            options ?? {},
           )
             ? "usable"
-            : "unusable"
-        }
-      ]
+            : "unusable",
+        },
+      ],
     };
   }
 
@@ -277,23 +281,19 @@ export function stepIdentityRatchetRecordUsableWithActions(
 }
 
 export function shouldTreatIdentityRatchetRecordUsable(
-  actions: ReadonlyArray<IdentityRatchetRecordUsableAction>
+  actions: ReadonlyArray<IdentityRatchetRecordUsableAction>,
 ): boolean {
   return actions.some((action) => action.kind === "usable");
 }
 
 export function shouldTreatIdentityRatchetRecordUnusable(
-  actions: ReadonlyArray<IdentityRatchetRecordUsableAction>
+  actions: ReadonlyArray<IdentityRatchetRecordUsableAction>,
 ): boolean {
   return actions.some((action) => action.kind === "unusable");
 }
 
 export type IdentityRatchetLookupPlan =
-  | "use-cache"
-  | "miss-no-store"
-  | "miss-store"
-  | "reject-unusable"
-  | "restore";
+  "use-cache" | "miss-no-store" | "miss-store" | "reject-unusable" | "restore";
 
 /**
  * Ratchet lookup: cache hit, store absence/miss, unusable record, or restore.
@@ -338,7 +338,9 @@ export type IdentityRatchetLookupPlanEvent =
       readonly usable: boolean;
     };
 
-export type IdentityRatchetLookupPlanAction = { readonly kind: IdentityRatchetLookupPlan };
+export type IdentityRatchetLookupPlanAction = {
+  readonly kind: IdentityRatchetLookupPlan;
+};
 
 export interface IdentityRatchetLookupPlanStepResult {
   readonly state: IdentityRatchetLookupPlanState;
@@ -352,7 +354,7 @@ export function initialIdentityRatchetLookupPlanState(): IdentityRatchetLookupPl
 
 export function stepIdentityRatchetLookupPlanWithActions(
   state: IdentityRatchetLookupPlanState,
-  event: IdentityRatchetLookupPlanEvent
+  event: IdentityRatchetLookupPlanEvent,
 ): IdentityRatchetLookupPlanStepResult {
   if (event.kind === "identity/ratchet-lookup-plan-gate") {
     return {
@@ -364,10 +366,10 @@ export function stepIdentityRatchetLookupPlanWithActions(
             cachedPresent: event.cachedPresent,
             storePresent: event.storePresent,
             storedPresent: event.storedPresent,
-            usable: event.usable
-          })
-        }
-      ]
+            usable: event.usable,
+          }),
+        },
+      ],
     };
   }
 
@@ -376,7 +378,7 @@ export function stepIdentityRatchetLookupPlanWithActions(
 
 /** Extract the ratchet-lookup plan from actions; null when empty. */
 export function identityRatchetLookupPlanFromActions(
-  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>,
 ): IdentityRatchetLookupPlan | null {
   const action = actions.find(
     (entry) =>
@@ -384,37 +386,37 @@ export function identityRatchetLookupPlanFromActions(
       entry.kind === "miss-no-store" ||
       entry.kind === "miss-store" ||
       entry.kind === "reject-unusable" ||
-      entry.kind === "restore"
+      entry.kind === "restore",
   );
   return action?.kind ?? null;
 }
 
 export function shouldUseCachedIdentityRatchetLookupPlan(
-  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-cache");
 }
 
 export function shouldMissIdentityRatchetLookupPlanNoStore(
-  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss-no-store");
 }
 
 export function shouldMissIdentityRatchetLookupPlanStore(
-  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss-store");
 }
 
 export function shouldRejectIdentityRatchetLookupPlanUnusable(
-  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-unusable");
 }
 
 export function shouldRestoreIdentityRatchetLookupPlan(
-  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "restore");
 }
@@ -442,7 +444,9 @@ export type IdentityRatchetLookupEvent =
  * Plan nested via {@link stepIdentityRatchetLookupPlanWithActions}
  * (`use-cache`|`miss-no-store`|`miss-store`|`reject-unusable`|`restore`).
  */
-export type IdentityRatchetLookupAction = { readonly kind: IdentityRatchetLookupPlan };
+export type IdentityRatchetLookupAction = {
+  readonly kind: IdentityRatchetLookupPlan;
+};
 
 export interface IdentityRatchetLookupStepResult {
   readonly state: IdentityRatchetLookupState;
@@ -454,51 +458,57 @@ export function initialIdentityRatchetLookupState(): IdentityRatchetLookupState 
   return {};
 }
 
-export const stepIdentityRatchetLookup: StepFn<IdentityRatchetLookupState> = (state, event) => {
-  const result = stepIdentityRatchetLookupInner(state, event as IdentityRatchetLookupEvent);
+export const stepIdentityRatchetLookup: StepFn<IdentityRatchetLookupState> = (
+  state,
+  event,
+) => {
+  const result = stepIdentityRatchetLookupInner(
+    state,
+    event as IdentityRatchetLookupEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepIdentityRatchetLookupWithActions(
   state: IdentityRatchetLookupState,
-  event: IdentityRatchetLookupEvent
+  event: IdentityRatchetLookupEvent,
 ): IdentityRatchetLookupStepResult {
   return stepIdentityRatchetLookupInner(state, event);
 }
 
 export function shouldUseCachedIdentityRatchet(
-  actions: ReadonlyArray<IdentityRatchetLookupAction>
+  actions: ReadonlyArray<IdentityRatchetLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-cache");
 }
 
 export function shouldMissIdentityRatchetNoStore(
-  actions: ReadonlyArray<IdentityRatchetLookupAction>
+  actions: ReadonlyArray<IdentityRatchetLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss-no-store");
 }
 
 export function shouldMissIdentityRatchetStore(
-  actions: ReadonlyArray<IdentityRatchetLookupAction>
+  actions: ReadonlyArray<IdentityRatchetLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss-store");
 }
 
 export function shouldRejectIdentityRatchetUnusable(
-  actions: ReadonlyArray<IdentityRatchetLookupAction>
+  actions: ReadonlyArray<IdentityRatchetLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-unusable");
 }
 
 export function shouldRestoreIdentityRatchetLookup(
-  actions: ReadonlyArray<IdentityRatchetLookupAction>
+  actions: ReadonlyArray<IdentityRatchetLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "restore");
 }
 
 function stepIdentityRatchetLookupInner(
   state: IdentityRatchetLookupState,
-  event: IdentityRatchetLookupEvent
+  event: IdentityRatchetLookupEvent,
 ): IdentityRatchetLookupStepResult {
   if (event.kind === "identity/ratchet-lookup-gate") {
     const planActions = stepIdentityRatchetLookupPlanWithActions(
@@ -508,8 +518,8 @@ function stepIdentityRatchetLookupInner(
         cachedPresent: event.cachedPresent,
         storePresent: event.storePresent,
         storedPresent: event.storedPresent,
-        usable: event.usable
-      }
+        usable: event.usable,
+      },
     ).actions;
     const plan = identityRatchetLookupPlanFromActions(planActions);
     if (plan === null) {
@@ -541,8 +551,7 @@ export type PersistIdentityRatchetEvent =
     };
 
 export type PersistIdentityRatchetAction =
-  | { readonly kind: "persist" }
-  | { readonly kind: "skip" };
+  { readonly kind: "persist" } | { readonly kind: "skip" };
 
 export interface PersistIdentityRatchetStepResult {
   readonly state: PersistIdentityRatchetState;
@@ -556,7 +565,7 @@ export function initialPersistIdentityRatchetState(): PersistIdentityRatchetStat
 
 export function stepPersistIdentityRatchetWithActions(
   state: PersistIdentityRatchetState,
-  event: PersistIdentityRatchetEvent
+  event: PersistIdentityRatchetEvent,
 ): PersistIdentityRatchetStepResult {
   if (event.kind === "identity/persist-ratchet-gate") {
     return {
@@ -564,9 +573,11 @@ export function stepPersistIdentityRatchetWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldPersistIdentityRatchet(event.storePresent) ? "persist" : "skip"
-        }
-      ]
+          kind: shouldPersistIdentityRatchet(event.storePresent)
+            ? "persist"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -574,13 +585,13 @@ export function stepPersistIdentityRatchetWithActions(
 }
 
 export function shouldPersistIdentityRatchetNow(
-  actions: ReadonlyArray<PersistIdentityRatchetAction>
+  actions: ReadonlyArray<PersistIdentityRatchetAction>,
 ): boolean {
   return actions.some((action) => action.kind === "persist");
 }
 
 export function shouldSkipPersistIdentityRatchet(
-  actions: ReadonlyArray<PersistIdentityRatchetAction>
+  actions: ReadonlyArray<PersistIdentityRatchetAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -612,8 +623,7 @@ export type CommitRestoredIdentityRatchetEvent =
     };
 
 export type CommitRestoredIdentityRatchetAction =
-  | { readonly kind: "commit" }
-  | { readonly kind: "skip" };
+  { readonly kind: "commit" } | { readonly kind: "skip" };
 
 export interface CommitRestoredIdentityRatchetStepResult {
   readonly state: CommitRestoredIdentityRatchetState;
@@ -627,7 +637,7 @@ export function initialCommitRestoredIdentityRatchetState(): CommitRestoredIdent
 
 export function stepCommitRestoredIdentityRatchetWithActions(
   state: CommitRestoredIdentityRatchetState,
-  event: CommitRestoredIdentityRatchetEvent
+  event: CommitRestoredIdentityRatchetEvent,
 ): CommitRestoredIdentityRatchetStepResult {
   if (event.kind === "identity/commit-restored-ratchet-gate") {
     return {
@@ -637,12 +647,12 @@ export function stepCommitRestoredIdentityRatchetWithActions(
         {
           kind: shouldRestoreIdentityRatchetRecord({
             planRestore: event.planRestore,
-            recordPresent: event.recordPresent
+            recordPresent: event.recordPresent,
           })
             ? "commit"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -650,13 +660,13 @@ export function stepCommitRestoredIdentityRatchetWithActions(
 }
 
 export function shouldCommitRestoredIdentityRatchetNow(
-  actions: ReadonlyArray<CommitRestoredIdentityRatchetAction>
+  actions: ReadonlyArray<CommitRestoredIdentityRatchetAction>,
 ): boolean {
   return actions.some((action) => action.kind === "commit");
 }
 
 export function shouldSkipCommitRestoredIdentityRatchet(
-  actions: ReadonlyArray<CommitRestoredIdentityRatchetAction>
+  actions: ReadonlyArray<CommitRestoredIdentityRatchetAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }

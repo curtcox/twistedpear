@@ -1,6 +1,6 @@
 async function render() {
   const children = [
-    textNode("brand", CATALOG.title, { fontSize: 24, fontWeight: "bold" })
+    textNode("brand", CATALOG.title, { fontSize: 24, fontWeight: "bold" }),
   ];
 
   if (statusLine !== null) {
@@ -14,39 +14,58 @@ async function render() {
   if (view === "grant-intro") {
     await renderGrantIntro(children);
   } else if (view === "toc") {
-    children.push(textNode("toc-heading", "Contents", { fontSize: 20, fontWeight: "bold" }));
+    children.push(
+      textNode("toc-heading", "Contents", { fontSize: 20, fontWeight: "bold" }),
+    );
     children.push(
       textNode(
         "toc-blurb",
-        "Interactive diagnostic documentation. Open a chapter, then run embedded applets on this host."
-      )
+        "Interactive diagnostic documentation. Open a chapter, then run embedded applets on this host.",
+      ),
     );
-    children.push(widgetButton("open-diag", "Diagnostics · run all / export / compare", "hb.diagnostics"));
+    children.push(
+      widgetButton(
+        "open-diag",
+        "Diagnostics · run all / export / compare",
+        "hb.diagnostics",
+      ),
+    );
     children.push({
       id: "toc-search",
       type: "text-input",
       props: {
         value: searchQuery,
         placeholder: "Search chapters…",
-        event: "hb.search"
-      }
+        event: "hb.search",
+      },
     });
 
     const query = searchQuery.trim().toLowerCase();
     let visibleCount = 0;
 
     for (const part of CATALOG.parts) {
-      const visibleChapters = part.chapters.filter((chapter) => chapterMatchesSearch(chapter, query));
+      const visibleChapters = part.chapters.filter((chapter) =>
+        chapterMatchesSearch(chapter, query),
+      );
       if (visibleChapters.length === 0) {
         continue;
       }
       visibleCount += visibleChapters.length;
       children.push({ id: `part-sep-${part.id}`, type: "divider" });
-      children.push(textNode(`part-${part.id}`, part.title, { fontSize: 16, fontWeight: "bold" }));
+      children.push(
+        textNode(`part-${part.id}`, part.title, {
+          fontSize: 16,
+          fontWeight: "bold",
+        }),
+      );
       for (const chapter of visibleChapters) {
         const marker = chapterId === chapter.id ? "▶ " : "";
         children.push(
-          widgetButton(`ch-${chapter.id}`, `${marker}${chapter.title}`, "hb.openchapter")
+          widgetButton(
+            `ch-${chapter.id}`,
+            `${marker}${chapter.title}`,
+            "hb.openchapter",
+          ),
         );
       }
     }
@@ -54,8 +73,10 @@ async function render() {
       children.push(
         textNode(
           "toc-search-meta",
-          visibleCount === 0 ? "No chapters match your search." : `${visibleCount} chapter(s) match.`
-        )
+          visibleCount === 0
+            ? "No chapters match your search."
+            : `${visibleCount} chapter(s) match.`,
+        ),
       );
     }
   } else if (view === "diagnostics") {
@@ -66,13 +87,21 @@ async function render() {
     children.push({ id: "chapter-sep", type: "divider" });
 
     if (chapter === null) {
-      children.push(textNode("missing-chapter", `Chapter not found: ${chapterId}`));
+      children.push(
+        textNode("missing-chapter", `Chapter not found: ${chapterId}`),
+      );
     } else {
       children.push(
-        textNode("chapter-part", chapter.partTitle, { fontSize: 12, fontWeight: "medium" })
+        textNode("chapter-part", chapter.partTitle, {
+          fontSize: 12,
+          fontWeight: "medium",
+        }),
       );
       children.push(
-        textNode("chapter-title", chapter.title, { fontSize: 20, fontWeight: "bold" })
+        textNode("chapter-title", chapter.title, {
+          fontSize: 20,
+          fontWeight: "bold",
+        }),
       );
       renderChapterBlocks(chapter, children);
       const { prev, next } = chapterNeighbors(chapter.id);
@@ -83,8 +112,8 @@ async function render() {
           widgetButton(
             `ch-${prev}`,
             `← ${prevChapter?.title ?? prev}`,
-            "hb.openchapter"
-          )
+            "hb.openchapter",
+          ),
         );
       }
       if (next !== null) {
@@ -93,8 +122,8 @@ async function render() {
           widgetButton(
             `ch-${next}`,
             `${nextChapter?.title ?? next} →`,
-            "hb.openchapter"
-          )
+            "hb.openchapter",
+          ),
         );
       }
     }
@@ -106,7 +135,7 @@ async function render() {
       type: "scroll",
       props: {
         scrollOffset: view === "chapter" ? chapterScrollOffset : 0,
-        event: "hb.scroll"
+        event: "hb.scroll",
       },
       style: { padding: 16, gap: 8 },
       children: [
@@ -114,10 +143,10 @@ async function render() {
           id: "inner",
           type: "view",
           style: { gap: 8 },
-          children
-        }
-      ]
-    }
+          children,
+        },
+      ],
+    },
   });
 }
 
@@ -133,7 +162,10 @@ function scheduleScrollSave(id, y) {
   }
   scrollSaveTimer = setTimeout(() => {
     scrollSaveTimer = null;
-    void kvSetText(`${SCROLL_KEY_PREFIX}${id}`, String(Math.max(0, Math.round(y))));
+    void kvSetText(
+      `${SCROLL_KEY_PREFIX}${id}`,
+      String(Math.max(0, Math.round(y))),
+    );
   }, 250);
 }
 
@@ -185,14 +217,22 @@ function stripAppletExports(source) {
 async function loadAppletRunner(source) {
   const body = stripAppletExports(source);
   try {
-    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    const AsyncFunction = Object.getPrototypeOf(
+      async function () {},
+    ).constructor;
     // Probe — some CSPs allow constructing Function but reject calling it.
     const probe = new AsyncFunction("return 1");
     await probe();
-    return new AsyncFunction("sdk", "report", `${body}\nawait run(sdk, report);`);
+    return new AsyncFunction(
+      "sdk",
+      "report",
+      `${body}\nawait run(sdk, report);`,
+    );
   } catch {
     const moduleSource = `${body}\nexport async function __handbookRun(sdk, report) {\n  await run(sdk, report);\n}\n`;
-    const moduleUrl = URL.createObjectURL(new Blob([moduleSource], { type: "text/javascript" }));
+    const moduleUrl = URL.createObjectURL(
+      new Blob([moduleSource], { type: "text/javascript" }),
+    );
     try {
       const mod = await import(moduleUrl);
       if (typeof mod.__handbookRun !== "function") {
@@ -225,13 +265,15 @@ async function runAppletInline(appletId, options = {}) {
   try {
     source = await workspace.read(`applets/${appletId}/main.js`);
   } catch {
-    source = CATALOG.seeds.find((seed) => seed.path === `applets/${appletId}/main.js`)?.content;
+    source = CATALOG.seeds.find(
+      (seed) => seed.path === `applets/${appletId}/main.js`,
+    )?.content;
   }
 
   if (typeof source !== "string" || source.length === 0) {
     const failed = {
       status: "fail",
-      details: "Applet source not found in workspace seeds."
+      details: "Applet source not found in workspace seeds.",
     };
     appletResults[appletId] = failed;
     if (!quiet) {
@@ -248,7 +290,7 @@ async function runAppletInline(appletId, options = {}) {
     reported = {
       status: result.status,
       details: result.details,
-      timings: result.timings ?? { ms: Date.now() - started }
+      timings: result.timings ?? { ms: Date.now() - started },
     };
   };
 
@@ -259,7 +301,7 @@ async function runAppletInline(appletId, options = {}) {
       reported = {
         status: "fail",
         details: "Applet finished without calling report().",
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       };
     }
   } catch (error) {
@@ -269,7 +311,7 @@ async function runAppletInline(appletId, options = {}) {
     reported = {
       status: notGranted ? "not-granted" : "fail",
       details: message,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     };
   }
 
@@ -290,7 +332,11 @@ async function seedPreviewProject(preview) {
 
 async function runAppletPreviewSlot(appletId) {
   const applet = findApplet(appletId);
-  if (applet === null || applet.preview === null || !appletSupportsMode(applet, "preview")) {
+  if (
+    applet === null ||
+    applet.preview === null ||
+    !appletSupportsMode(applet, "preview")
+  ) {
     statusLine = `Preview not available for: ${appletId}`;
     await render();
     return;
@@ -314,7 +360,11 @@ async function runAppletPreviewSlot(appletId) {
       throw new Error(`Package failed: ${JSON.stringify(packed)}`);
     }
 
-    const launched = await apps.preview(preview.project, preview.manifest, preview.grants);
+    const launched = await apps.preview(
+      preview.project,
+      preview.manifest,
+      preview.grants,
+    );
     if (launched === null || launched.launched !== true) {
       throw new Error(`Preview did not launch: ${JSON.stringify(launched)}`);
     }
@@ -324,19 +374,21 @@ async function runAppletPreviewSlot(appletId) {
     appletResults[appletId] = {
       status: "pass",
       details: `Preview running (${packed.t256.slice(0, 12)}…). Use Stop preview when finished.`,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     };
     statusLine = `${applet.title}: preview slot active`;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
-    const unavailable = /not configured|UNCONFIGURED|CONFIRMATION_UNAVAILABLE|unavailable/i.test(
-      message
-    );
+    const notGranted =
+      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const unavailable =
+      /not configured|UNCONFIGURED|CONFIRMATION_UNAVAILABLE|unavailable/i.test(
+        message,
+      );
     appletResults[appletId] = {
       status: notGranted ? "not-granted" : unavailable ? "unavailable" : "fail",
       details: message,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     };
     statusLine = `${applet.title}: preview failed`;
   }
@@ -401,7 +453,7 @@ async function exportReport() {
     exportState = {
       reportId: put.t256,
       generatedAt: document.generatedAt,
-      json
+      json,
     };
     await kvSetText(LAST_REPORT_KEY, json);
     compareState = { ...compareState, local: document };
@@ -429,7 +481,9 @@ async function exportAppletToDevStudio(appletId) {
   statusLine = `Preparing DevStudio handoff for ${applet.title}…`;
   await render();
 
-  let source = CATALOG.seeds.find((seed) => seed.path === `applets/${appletId}/main.js`)?.content;
+  let source = CATALOG.seeds.find(
+    (seed) => seed.path === `applets/${appletId}/main.js`,
+  )?.content;
   if (source === undefined) {
     try {
       source = await workspace.read(`applets/${appletId}/main.js`);
@@ -449,20 +503,23 @@ async function exportAppletToDevStudio(appletId) {
     name: project,
     version: "0.1.0",
     entry: "bundle.js",
-    capabilities: applet.capabilities
+    capabilities: applet.capabilities,
   };
   const payload = {
     kind: DEVSTUDIO_HANDOFF_KIND,
     version: 1,
     project,
     files: [
-      { path: `${project}/app.json`, content: JSON.stringify(manifest, null, 2) },
+      {
+        path: `${project}/app.json`,
+        content: JSON.stringify(manifest, null, 2),
+      },
       { path: `${project}/applet.js`, content: source },
       {
         path: `${project}/bundle.js`,
-        content: globalThis.buildHandbookDevstudioBundle(source)
-      }
-    ]
+        content: globalThis.buildHandbookDevstudioBundle(source),
+      },
+    ],
   };
 
   try {
@@ -471,7 +528,8 @@ async function exportAppletToDevStudio(appletId) {
     statusLine = `DevStudio handoff ready (${put.t256.slice(0, 12)}…)`;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const notGranted =
+      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
     statusLine = notGranted
       ? "Grant share:cas to export DevStudio handoffs."
       : `DevStudio handoff failed: ${message}`;
@@ -483,7 +541,12 @@ async function exportAppletToDevStudio(appletId) {
 async function compareReport() {
   const t256 = compareInput.trim();
   if (t256.length === 0) {
-    compareState = { local: compareState.local, remote: null, rows: [], error: "Paste a report 256t id first." };
+    compareState = {
+      local: compareState.local,
+      remote: null,
+      rows: [],
+      error: "Paste a report 256t id first.",
+    };
     await render();
     return;
   }
@@ -514,7 +577,7 @@ async function compareReport() {
         local,
         remote: null,
         rows: [],
-        error: "Remote report not found (null content)."
+        error: "Remote report not found (null content).",
       };
       statusLine = null;
       await render();
@@ -529,7 +592,7 @@ async function compareReport() {
       local,
       remote: null,
       rows: [],
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
     statusLine = null;
   }
@@ -547,7 +610,10 @@ function chapterIdFromNode(nodeId) {
     let best = null;
     for (const chapter of CATALOG.chapters) {
       const prefix = `${chapter.id}-`;
-      if (rest.startsWith(prefix) && (best === null || chapter.id.length > best.length)) {
+      if (
+        rest.startsWith(prefix) &&
+        (best === null || chapter.id.length > best.length)
+      ) {
         best = chapter.id;
       }
     }
@@ -656,7 +722,10 @@ async function handleEvent({ nodeId, event, value }) {
   }
 
   if (event === "hb.scroll" && view === "chapter" && chapterId !== null) {
-    const y = typeof value === "object" && value !== null && typeof value.y === "number" ? value.y : 0;
+    const y =
+      typeof value === "object" && value !== null && typeof value.y === "number"
+        ? value.y
+        : 0;
     chapterScrollOffset = y;
     scheduleScrollSave(chapterId, y);
     return;

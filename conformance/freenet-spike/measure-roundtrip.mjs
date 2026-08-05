@@ -17,7 +17,7 @@ const label = process.env.FREENET_MEASUREMENT_LABEL;
 const gateLabels = new Set(["local-3-node", "live", "local-cross-node"]);
 const sampleCount = Number.parseInt(
   process.env.FREENET_SAMPLE_COUNT ?? "100",
-  10
+  10,
 );
 const payloadSizes = [1024, 64 * 1024, 1024 * 1024];
 const allowIncomplete = process.env.FREENET_ALLOW_INCOMPLETE === "1";
@@ -27,20 +27,22 @@ if (publisherUrl === undefined) {
 }
 if (label === undefined || !/^[a-z0-9-]+$/.test(label)) {
   throw new Error(
-    "FREENET_MEASUREMENT_LABEL must be a lowercase kebab-case id"
+    "FREENET_MEASUREMENT_LABEL must be a lowercase kebab-case id",
   );
 }
-if (!Number.isSafeInteger(sampleCount) || sampleCount < 1 || sampleCount > 100) {
+if (
+  !Number.isSafeInteger(sampleCount) ||
+  sampleCount < 1 ||
+  sampleCount > 100
+) {
   throw new Error("FREENET_SAMPLE_COUNT must be an integer from 1 through 100");
 }
 if (sampleCount !== 100 && !allowIncomplete) {
-  throw new Error(
-    "Non-gate smoke runs require FREENET_ALLOW_INCOMPLETE=1"
-  );
+  throw new Error("Non-gate smoke runs require FREENET_ALLOW_INCOMPLETE=1");
 }
 if (sampleCount === 100 && !gateLabels.has(label)) {
   throw new Error(
-    "Complete 100-sample series require label local-3-node, live, or local-cross-node"
+    "Complete 100-sample series require label local-3-node, live, or local-cross-node",
   );
 }
 
@@ -48,21 +50,20 @@ const wasm = Uint8Array.from(
   readFileSync(
     join(
       repoRoot,
-      "packages/bridge-freenet/contract/locator/locator-contract.wasm"
-    )
-  )
+      "packages/bridge-freenet/contract/locator/locator-contract.wasm",
+    ),
+  ),
 );
 const publisher = new FreenetClient({
   url: publisherUrl,
   authToken: process.env.FREENET_NODE_TOKEN,
-  requestTimeoutMs: 60_000
+  requestTimeoutMs: 60_000,
 });
 const subscriber = new FreenetClient({
   url: subscriberUrl,
   authToken:
-    process.env.FREENET_SUBSCRIBER_NODE_TOKEN ??
-    process.env.FREENET_NODE_TOKEN,
-  requestTimeoutMs: 60_000
+    process.env.FREENET_SUBSCRIBER_NODE_TOKEN ?? process.env.FREENET_NODE_TOKEN,
+  requestTimeoutMs: 60_000,
 });
 
 function state(payloadBytes, counter) {
@@ -81,7 +82,7 @@ function counterFromState(bytes) {
   return new DataView(
     bytes.buffer,
     bytes.byteOffset,
-    bytes.byteLength
+    bytes.byteLength,
   ).getUint32(11, false);
 }
 
@@ -96,7 +97,7 @@ function summarize(samples) {
     p50Ms: percentile(sorted, 0.5),
     p95Ms: percentile(sorted, 0.95),
     maxMs: sorted.at(-1),
-    meanMs: sorted.reduce((sum, value) => sum + value, 0) / sorted.length
+    meanMs: sorted.reduce((sum, value) => sum + value, 0) / sorted.length,
   };
 }
 
@@ -106,22 +107,29 @@ async function stage(name, promise) {
   } catch (error) {
     throw new Error(
       `${name}: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error }
+      { cause: error },
     );
   }
 }
 
-const sampleGapMs = Number.parseInt(process.env.FREENET_SAMPLE_GAP_MS ?? "0", 10);
+const sampleGapMs = Number.parseInt(
+  process.env.FREENET_SAMPLE_GAP_MS ?? "0",
+  10,
+);
 const notifyTimeoutMs = Number.parseInt(
   process.env.FREENET_NOTIFY_TIMEOUT_MS ?? "15000",
-  10
+  10,
 );
 const reconcilePollMs = Number.parseInt(
   process.env.FREENET_RECONCILE_POLL_MS ?? "250",
-  10
+  10,
 );
 
-if (!Number.isSafeInteger(sampleGapMs) || sampleGapMs < 0 || sampleGapMs > 60_000) {
+if (
+  !Number.isSafeInteger(sampleGapMs) ||
+  sampleGapMs < 0 ||
+  sampleGapMs > 60_000
+) {
   throw new Error("FREENET_SAMPLE_GAP_MS must be from 0 through 60000");
 }
 if (
@@ -163,10 +171,10 @@ try {
       "tp-s2",
       label,
       String(payloadBytes),
-      String(Date.now())
+      String(Date.now()),
     ].join(":");
     const parameters = new TextEncoder().encode(
-      parameterText.padEnd(94, "x").slice(0, 94)
+      parameterText.padEnd(94, "x").slice(0, 94),
     );
     const source = { wasm, parameters };
     // Count down from a high initial counter so each applied update is
@@ -176,8 +184,8 @@ try {
       `put ${payloadBytes} bytes`,
       publisher.put(source, initialState, {
         subscribe: true,
-        blockingSubscribe: false
-      })
+        blockingSubscribe: false,
+      }),
     );
     const { codeHash } = FreenetClient.deriveKey(source);
     const pending = new Map();
@@ -186,7 +194,7 @@ try {
       subscriber.subscribe(key, (nextState) => {
         const counter = counterFromState(nextState);
         pending.get(counter)?.("notify");
-      })
+      }),
     );
     const samples = [];
     try {
@@ -197,8 +205,9 @@ try {
         const notified = new Promise((resolve, reject) => {
           pending.set(counter, resolve);
           timer = setTimeout(
-            () => reject(new Error(`notify timed out for ${payloadBytes} bytes`)),
-            notifyTimeoutMs
+            () =>
+              reject(new Error(`notify timed out for ${payloadBytes} bytes`)),
+            notifyTimeoutMs,
           );
         });
         const startedAt = performance.now();
@@ -207,12 +216,12 @@ try {
             key,
             codeHash,
             state(payloadBytes, counter),
-            { fallbackCodeField: wasm }
+            { fallbackCodeField: wasm },
           );
           try {
             await stage(
               `update/notify ${payloadBytes} bytes sample ${index + 1}`,
-              Promise.all([updatePromise, notified])
+              Promise.all([updatePromise, notified]),
             );
             notifyDeliveries += 1;
           } catch (error) {
@@ -228,7 +237,7 @@ try {
             }
             await stage(
               `update/reconcile ${payloadBytes} bytes sample ${index + 1}`,
-              waitForCounter(key, counter, Date.now() + 60_000)
+              waitForCounter(key, counter, Date.now() + 60_000),
             );
             reconciledDeliveries += 1;
           }
@@ -243,7 +252,7 @@ try {
     }
     measurements.push({
       payloadBytes,
-      ...summarize(samples)
+      ...summarize(samples),
     });
   }
 } finally {
@@ -269,22 +278,22 @@ const result = {
   delivery: {
     notify: notifyDeliveries,
     reconciled: reconciledDeliveries,
-    allowReconcile
+    allowReconcile,
   },
-  measurements
+  measurements,
 };
 const output = join(
   repoRoot,
   ".tmp",
   `freenet-roundtrip-${label}${
     sampleCount === 100 ? "" : `-smoke-${sampleCount}`
-  }.json`
+  }.json`,
 );
 mkdirSync(dirname(output), { recursive: true });
 writeFileSync(output, `${JSON.stringify(result, null, 2)}\n`);
 console.log(`Freenet S2 measurements written to ${output}`);
 if (reconciledDeliveries > 0) {
   console.log(
-    `Freenet S2 delivery: ${notifyDeliveries} notify, ${reconciledDeliveries} GET-reconciled`
+    `Freenet S2 delivery: ${notifyDeliveries} notify, ${reconciledDeliveries} GET-reconciled`,
   );
 }

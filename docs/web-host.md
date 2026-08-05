@@ -1,6 +1,5 @@
 # Web Host: a full TwistedPear host in the browser
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-08-05
@@ -28,15 +27,15 @@ a new **first-class WebSocket Reticulum interface** to any gateway node.
 
 The codebase already has the seams a browser port needs:
 
-| Concern | Existing seam | Web implementation |
-|---|---|---|
-| Crypto | `CryptoProvider` (`reticulum-ts/src/crypto/provider.ts`) | `PureCryptoProvider` (`@noble/*`) is already portable; optional WebCrypto acceleration later |
-| Runtime (clock, KV store, sockets) | `Runtime` (`reticulum-ts/src/runtime/runtime.ts`) with `bare/` and `node/` impls | New `runtime/web`: IndexedDB `KeyValueStore`, standard timers, **no** `TcpFactory` |
-| Interfaces | `interfaces/interface.ts` + framing | New `WebSocketClientInterface` (browser + node), `WebSocketServerInterface` (gateway side) |
-| Mini-app isolation | `SandboxBackend` (`miniapp-runtime/src/sandbox/backend.ts`); Bare Worker and Node Worker backends | New `WebSandboxBackend` (sandboxed-iframe + Worker); `terminate()` satisfies the M0 killability bar |
-| Mini-app UI | Host-rendered `WidgetTree` — validated data, never code | Same schema rendered by RNW; extract the RN renderer from `apps/harness-mobile/host/miniapp-renderer.tsx` into a shared package |
-| Worklet boundary | bare-kit RPC channel (mobile), Electron IPC (desktop) | Dedicated "core" Web Worker + `MessageChannel` RPC carrying the same protocol |
-| Bulk plane | `bridge-hyper` fetch-strategy selection (Hyperdrive vs Reticulum Resource) | v1: Resource transfer only; Hyperdrive via WebSocket DHT relay is Phase W4 |
+| Concern                            | Existing seam                                                                                     | Web implementation                                                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Crypto                             | `CryptoProvider` (`reticulum-ts/src/crypto/provider.ts`)                                          | `PureCryptoProvider` (`@noble/*`) is already portable; optional WebCrypto acceleration later                                    |
+| Runtime (clock, KV store, sockets) | `Runtime` (`reticulum-ts/src/runtime/runtime.ts`) with `bare/` and `node/` impls                  | New `runtime/web`: IndexedDB `KeyValueStore`, standard timers, **no** `TcpFactory`                                              |
+| Interfaces                         | `interfaces/interface.ts` + framing                                                               | New `WebSocketClientInterface` (browser + node), `WebSocketServerInterface` (gateway side)                                      |
+| Mini-app isolation                 | `SandboxBackend` (`miniapp-runtime/src/sandbox/backend.ts`); Bare Worker and Node Worker backends | New `WebSandboxBackend` (sandboxed-iframe + Worker); `terminate()` satisfies the M0 killability bar                             |
+| Mini-app UI                        | Host-rendered `WidgetTree` — validated data, never code                                           | Same schema rendered by RNW; extract the RN renderer from `apps/harness-mobile/host/miniapp-renderer.tsx` into a shared package |
+| Worklet boundary                   | bare-kit RPC channel (mobile), Electron IPC (desktop)                                             | Dedicated "core" Web Worker + `MessageChannel` RPC carrying the same protocol                                                   |
+| Bulk plane                         | `bridge-hyper` fetch-strategy selection (Hyperdrive vs Reticulum Resource)                        | v1: Resource transfer only; Hyperdrive via WebSocket DHT relay is Phase W4                                                      |
 
 ## Architecture
 
@@ -161,19 +160,21 @@ A first-class interface, not a private control channel: any in-browser
 
 ### Phase W0 — spikes (de-risk before committing)
 
-| Spike | Proves | Exit criteria |
-|---|---|---|
-| W-S1 | `reticulum-ts` in a browser bundle + WS interface | Browser links to dockerized Python RNS through a `tp node` gateway; announce/link/packet golden parity |
-| W-S2 | Web sandbox isolation | Hostile bundle in sandboxed-iframe worker: no ambient storage, no network, busy loop killed < 1 s without reloading the tab | **Done (CI tier)** — `WebSandboxBackend` + `test:web-sandbox` (Playwright) |
-| W-S3 | RNW UI path | Harness UI + extracted widget renderer running under `expo start --web`, examples' widget trees render correctly | **Done (CI tier)** — `packages/widget-renderer-rn` + `test:web-widget-renderer` (Playwright) + `App.web.tsx` preview |
-| W-S4 | Browser storage | Install an example `.tpkg` into OPFS/IndexedDB CAS; survives reload; quota surfaced | **Done (CI tier)** — `createWebPackageStorage` + `test:web-storage` (Playwright) |
+| Spike | Proves                                            | Exit criteria                                                                                                               |
+| ----- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| W-S1  | `reticulum-ts` in a browser bundle + WS interface | Browser links to dockerized Python RNS through a `tp node` gateway; announce/link/packet golden parity                      |
+| W-S2  | Web sandbox isolation                             | Hostile bundle in sandboxed-iframe worker: no ambient storage, no network, busy loop killed < 1 s without reloading the tab | **Done (CI tier)** — `WebSandboxBackend` + `test:web-sandbox` (Playwright)                                           |
+| W-S3  | RNW UI path                                       | Harness UI + extracted widget renderer running under `expo start --web`, examples' widget trees render correctly            | **Done (CI tier)** — `packages/widget-renderer-rn` + `test:web-widget-renderer` (Playwright) + `App.web.tsx` preview |
+| W-S4  | Browser storage                                   | Install an example `.tpkg` into OPFS/IndexedDB CAS; survives reload; quota surfaced                                         | **Done (CI tier)** — `createWebPackageStorage` + `test:web-storage` (Playwright)                                     |
 
 ### Phase W1 — Reticulum leaf peer in the tab
+
 `runtime/web`; `WebSocketClientInterface` + `WebSocketServerInterface`;
 `tp node --ws-listen/--serve-web`; identity create/persist/unlock; LXMF
 send/receive from the browser; playwright conformance job in CI.
 
 ### Phase W2 — mini-app runtime
+
 `WebSandboxBackend` + adversarial isolation tests; broker + confirmation
 channel on web; `packages/widget-renderer-rn` extraction; chat/file-drop/board
 examples run end-to-end in the tab. **W2 (software tier) landed:** `WebSandboxProxyBackend` +
@@ -186,6 +187,7 @@ panel + host confirmation modal + `test:web-miniapp` (hello dev side-load + UI e
 2026-07-08 validation capture: `test:web-examples` passed chat, file-drop, and board in the browser harness.
 
 ### Phase W3 — distribution
+
 Install from pasted/scanned 256t string via Resource fetch; capability review
 and grant UI; publisher trust import; DevStudio on web (workspace in OPFS);
 package + sign + publish from the browser through the gateway. **W3 (software tier) landed:**
@@ -195,6 +197,7 @@ install review modal + publisher trust import UI + `test:web-distribution` (chat
 `test:web-devstudio` (DevStudio hello project → package → publish through gateway).
 
 ### Phase W4 — bulk plane and polish
+
 Hyperdrive fetch via a WebSocket DHT relay on the gateway (optional
 acceleration; Resource path remains the fallback); PWA offline shell; quotas
 and soak tests; **stretch:** RNode over WebSerial (Chrome) for direct LoRa

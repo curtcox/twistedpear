@@ -14,10 +14,14 @@ const repoRoot = join(sandboxRoot, "../..");
 const entry = join(sandboxRoot, "entry.mjs");
 const output = join(sandboxRoot, "sandbox.bundle.js");
 
-const build = spawnSync("npm", ["run", "build", "--workspace=@twistedpear/miniapp-runtime"], {
-  cwd: repoRoot,
-  stdio: "inherit"
-});
+const build = spawnSync(
+  "npm",
+  ["run", "build", "--workspace=@twistedpear/miniapp-runtime"],
+  {
+    cwd: repoRoot,
+    stdio: "inherit",
+  },
+);
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
@@ -29,14 +33,24 @@ buildSync({
   format: "iife",
   globalName: "TwistedPearWebSandbox",
   outfile: output,
-  logLevel: "warning"
+  logLevel: "warning",
 });
 
-const forbidden = ["node:worker_threads", "node:crypto", "node:net", "node:fs", "corestore", "hyperdrive", "hyperswarm"];
+const forbidden = [
+  "node:worker_threads",
+  "node:crypto",
+  "node:net",
+  "node:fs",
+  "corestore",
+  "hyperdrive",
+  "hyperswarm",
+];
 const source = readFileSync(output, "utf8");
 const hits = forbidden.filter((needle) => source.includes(needle));
 if (hits.length > 0) {
-  throw new Error(`web-sandbox bundle guard failed: forbidden imports leaked (${hits.join(", ")})`);
+  throw new Error(
+    `web-sandbox bundle guard failed: forbidden imports leaked (${hits.join(", ")})`,
+  );
 }
 
 console.log(`web-sandbox bundle written to ${output}`);

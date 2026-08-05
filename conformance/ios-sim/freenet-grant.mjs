@@ -12,7 +12,7 @@ import {
   ensureBootedSimulator,
   harnessInstalledOnBootedSim,
   isDarwin,
-  simctlAvailable
+  simctlAvailable,
 } from "./helpers.mjs";
 
 const labDir = dirname(fileURLToPath(import.meta.url));
@@ -53,7 +53,9 @@ export async function runIosFreenetGrant(options = {}) {
   ensureBootedSimulator();
   if (!harnessInstalledOnBootedSim()) {
     if (!buildIfNeeded) {
-      return skip("harness not installed (set IOS_SIM_FREENET_GRANT_BUILD=1 to build)");
+      return skip(
+        "harness not installed (set IOS_SIM_FREENET_GRANT_BUILD=1 to build)",
+      );
     }
     buildAndInstallHarness();
   }
@@ -61,7 +63,7 @@ export async function runIosFreenetGrant(options = {}) {
   const result = spawnSync(
     "maestro",
     ["test", ".maestro/freenet-remote-grant.yaml"],
-    { cwd: repoRoot, stdio: "inherit" }
+    { cwd: repoRoot, stdio: "inherit" },
   );
   if (result.status !== 0) {
     fail(`maestro freenet-remote-grant failed with status ${result.status}`);

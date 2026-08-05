@@ -32,14 +32,23 @@ export class PureCryptoProvider implements CryptoProvider {
       throw new Error(`Unsupported HKDF hash: ${input.hash}`);
     }
 
-    return nobleHkdf(sha256, input.keyMaterial, input.salt, input.info, input.length);
+    return nobleHkdf(
+      sha256,
+      input.keyMaterial,
+      input.salt,
+      input.info,
+      input.length,
+    );
   }
 
   x25519PublicFromPrivate(privateKey: Uint8Array): Uint8Array {
     return x25519.getPublicKey(privateKey);
   }
 
-  x25519SharedSecret(privateKey: Uint8Array, publicKey: Uint8Array): Uint8Array {
+  x25519SharedSecret(
+    privateKey: Uint8Array,
+    publicKey: Uint8Array,
+  ): Uint8Array {
     return x25519.getSharedSecret(privateKey, publicKey);
   }
 
@@ -51,23 +60,43 @@ export class PureCryptoProvider implements CryptoProvider {
     return ed25519.sign(message, privateKey);
   }
 
-  ed25519Verify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): boolean {
+  ed25519Verify(
+    publicKey: Uint8Array,
+    message: Uint8Array,
+    signature: Uint8Array,
+  ): boolean {
     return ed25519.verify(signature, message, publicKey);
   }
 
-  aes128CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+  aes128CbcEncrypt(
+    plaintext: Uint8Array,
+    key: Uint8Array,
+    iv: Uint8Array,
+  ): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).encrypt(plaintext);
   }
 
-  aes128CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+  aes128CbcDecrypt(
+    ciphertext: Uint8Array,
+    key: Uint8Array,
+    iv: Uint8Array,
+  ): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).decrypt(ciphertext);
   }
 
-  aes256CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+  aes256CbcEncrypt(
+    plaintext: Uint8Array,
+    key: Uint8Array,
+    iv: Uint8Array,
+  ): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).encrypt(plaintext);
   }
 
-  aes256CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+  aes256CbcDecrypt(
+    ciphertext: Uint8Array,
+    key: Uint8Array,
+    iv: Uint8Array,
+  ): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).decrypt(ciphertext);
   }
 }

@@ -4,7 +4,11 @@
  * `indexOfChannelRingSequence` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
-import { CHANNEL_SEQ_MAX, CHANNEL_SEQ_MODULUS, nextChannelSequence } from "./channel-envelope.js";
+import {
+  CHANNEL_SEQ_MAX,
+  CHANNEL_SEQ_MODULUS,
+  nextChannelSequence,
+} from "./channel-envelope.js";
 
 /** Whether an inbound sequence is inside the acceptable RX window. */
 export function shouldAcceptChannelSequence(input: {
@@ -16,7 +20,8 @@ export function shouldAcceptChannelSequence(input: {
     return true;
   }
 
-  const windowOverflow = (input.nextRxSequence + input.windowMax) % CHANNEL_SEQ_MODULUS;
+  const windowOverflow =
+    (input.nextRxSequence + input.windowMax) % CHANNEL_SEQ_MODULUS;
   if (windowOverflow < input.nextRxSequence) {
     return input.sequence <= windowOverflow;
   }
@@ -41,8 +46,7 @@ export type AcceptChannelSequenceEvent =
     };
 
 export type AcceptChannelSequenceAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptChannelSequenceStepResult {
   readonly state: AcceptChannelSequenceState;
@@ -56,7 +60,7 @@ export function initialAcceptChannelSequenceState(): AcceptChannelSequenceState 
 
 export function stepAcceptChannelSequenceWithActions(
   state: AcceptChannelSequenceState,
-  event: AcceptChannelSequenceEvent
+  event: AcceptChannelSequenceEvent,
 ): AcceptChannelSequenceStepResult {
   if (event.kind === "channel/accept-sequence-gate") {
     return {
@@ -67,12 +71,12 @@ export function stepAcceptChannelSequenceWithActions(
           kind: shouldAcceptChannelSequence({
             sequence: event.sequence,
             nextRxSequence: event.nextRxSequence,
-            windowMax: event.windowMax
+            windowMax: event.windowMax,
           })
             ? "accept"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -80,13 +84,13 @@ export function stepAcceptChannelSequenceWithActions(
 }
 
 export function shouldAcceptChannelSequenceNow(
-  actions: ReadonlyArray<AcceptChannelSequenceAction>
+  actions: ReadonlyArray<AcceptChannelSequenceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptChannelSequence(
-  actions: ReadonlyArray<AcceptChannelSequenceAction>
+  actions: ReadonlyArray<AcceptChannelSequenceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -139,8 +143,7 @@ export type EmplaceChannelEnvelopeEvent =
     };
 
 export type EmplaceChannelEnvelopeAction =
-  | { readonly kind: "emplace" }
-  | { readonly kind: "skip" };
+  { readonly kind: "emplace" } | { readonly kind: "skip" };
 
 export interface EmplaceChannelEnvelopeStepResult {
   readonly state: EmplaceChannelEnvelopeState;
@@ -154,7 +157,7 @@ export function initialEmplaceChannelEnvelopeState(): EmplaceChannelEnvelopeStat
 
 export function stepEmplaceChannelEnvelopeWithActions(
   state: EmplaceChannelEnvelopeState,
-  event: EmplaceChannelEnvelopeEvent
+  event: EmplaceChannelEnvelopeEvent,
 ): EmplaceChannelEnvelopeStepResult {
   if (event.kind === "channel/emplace-envelope-gate") {
     return {
@@ -162,9 +165,11 @@ export function stepEmplaceChannelEnvelopeWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldEmplaceChannelEnvelope(event.indexPresent) ? "emplace" : "skip"
-        }
-      ]
+          kind: shouldEmplaceChannelEnvelope(event.indexPresent)
+            ? "emplace"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -172,13 +177,13 @@ export function stepEmplaceChannelEnvelopeWithActions(
 }
 
 export function shouldEmplaceChannelEnvelopeNow(
-  actions: ReadonlyArray<EmplaceChannelEnvelopeAction>
+  actions: ReadonlyArray<EmplaceChannelEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "emplace");
 }
 
 export function shouldSkipEmplaceChannelEnvelope(
-  actions: ReadonlyArray<EmplaceChannelEnvelopeAction>
+  actions: ReadonlyArray<EmplaceChannelEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -203,8 +208,7 @@ export type DrainChannelRingIndexEvent =
     };
 
 export type DrainChannelRingIndexAction =
-  | { readonly kind: "drain" }
-  | { readonly kind: "skip" };
+  { readonly kind: "drain" } | { readonly kind: "skip" };
 
 export interface DrainChannelRingIndexStepResult {
   readonly state: DrainChannelRingIndexState;
@@ -218,7 +222,7 @@ export function initialDrainChannelRingIndexState(): DrainChannelRingIndexState 
 
 export function stepDrainChannelRingIndexWithActions(
   state: DrainChannelRingIndexState,
-  event: DrainChannelRingIndexEvent
+  event: DrainChannelRingIndexEvent,
 ): DrainChannelRingIndexStepResult {
   if (event.kind === "channel/drain-ring-index-gate") {
     return {
@@ -226,9 +230,11 @@ export function stepDrainChannelRingIndexWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldDrainChannelRingIndex(event.indexPresent) ? "drain" : "skip"
-        }
-      ]
+          kind: shouldDrainChannelRingIndex(event.indexPresent)
+            ? "drain"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -236,13 +242,13 @@ export function stepDrainChannelRingIndexWithActions(
 }
 
 export function shouldDrainChannelRingIndexNow(
-  actions: ReadonlyArray<DrainChannelRingIndexAction>
+  actions: ReadonlyArray<DrainChannelRingIndexAction>,
 ): boolean {
   return actions.some((action) => action.kind === "drain");
 }
 
 export function shouldSkipDrainChannelRingIndex(
-  actions: ReadonlyArray<DrainChannelRingIndexAction>
+  actions: ReadonlyArray<DrainChannelRingIndexAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -291,20 +297,18 @@ export function initialIndexOfChannelRingSequenceState(): IndexOfChannelRingSequ
 
 export function stepIndexOfChannelRingSequenceWithActions(
   state: IndexOfChannelRingSequenceState,
-  event: IndexOfChannelRingSequenceEvent
+  event: IndexOfChannelRingSequenceEvent,
 ): IndexOfChannelRingSequenceStepResult {
   if (event.kind === "channel/ring-sequence-index-gate") {
     const index = indexOfChannelRingSequence({
       ringSequences: event.ringSequences,
-      target: event.target
+      target: event.target,
     });
     return {
       state,
       intents: [],
       actions:
-        index === null
-          ? [{ kind: "miss" }]
-          : [{ kind: "use-index", index }]
+        index === null ? [{ kind: "miss" }] : [{ kind: "use-index", index }],
     };
   }
 
@@ -312,20 +316,20 @@ export function stepIndexOfChannelRingSequenceWithActions(
 }
 
 export function shouldUseChannelRingSequenceIndex(
-  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>
+  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-index");
 }
 
 export function shouldMissChannelRingSequenceIndex(
-  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>
+  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 /** Extract ring-sequence index from step actions; null when no `use-index`. */
 export function channelRingSequenceIndexFromActions(
-  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>
+  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-index");
   return action?.kind === "use-index" ? action.index : null;
@@ -334,9 +338,13 @@ export function channelRingSequenceIndexFromActions(
 export function insertChannelSequence(
   ringSequences: readonly number[],
   sequence: number,
-  wrapBaseSequence: number
+  wrapBaseSequence: number,
 ): { readonly inserted: boolean; readonly ring: readonly number[] } {
-  const index = channelEmplaceIndex({ sequence, ringSequences, wrapBaseSequence });
+  const index = channelEmplaceIndex({
+    sequence,
+    ringSequences,
+    wrapBaseSequence,
+  });
   if (index === null) {
     return { inserted: false, ring: ringSequences };
   }
@@ -363,7 +371,10 @@ export function drainContiguousChannelSequences(input: {
     if (sequence === nextRxSequence) {
       contiguous.push(sequence);
       nextRxSequence = nextChannelSequence(nextRxSequence);
-      const index = indexOfChannelRingSequence({ ringSequences: remaining, target: sequence });
+      const index = indexOfChannelRingSequence({
+        ringSequences: remaining,
+        target: sequence,
+      });
       if (shouldDrainChannelRingIndex(index !== null)) {
         remaining.splice(index!, 1);
       }

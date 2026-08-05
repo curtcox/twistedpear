@@ -11,7 +11,7 @@ const cryptoShim = {
 
     return array;
   },
-  subtle: {}
+  subtle: {},
 };
 
 if (globalThis.crypto === undefined) {

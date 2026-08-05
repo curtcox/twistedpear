@@ -1,6 +1,5 @@
 # TwistedPear Package Format (v1)
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -24,13 +23,13 @@ Signed mini-app packages for P2P distribution over Hyperdrive and Reticulum Reso
 
 ### Threats addressed
 
-| Threat | Mitigation |
-|---|---|
-| Tampered file | Per-file SHA-256 in signed manifest; verifier checks after unpack |
-| Tampered manifest | Ed25519 signature over canonical manifest JSON |
-| Substitute publisher | First-seen key pinning per app; key swap rejected |
-| Downgrade | Semver monotonicity at catalog ingest and install |
-| Replay of old version | Catalog keeps latest version; downgrade rejected |
+| Threat                | Mitigation                                                        |
+| --------------------- | ----------------------------------------------------------------- |
+| Tampered file         | Per-file SHA-256 in signed manifest; verifier checks after unpack |
+| Tampered manifest     | Ed25519 signature over canonical manifest JSON                    |
+| Substitute publisher  | First-seen key pinning per app; key swap rejected                 |
+| Downgrade             | Semver monotonicity at catalog ingest and install                 |
+| Replay of old version | Catalog keeps latest version; downgrade rejected                  |
 
 ## 2. Manifest
 
@@ -43,9 +42,7 @@ Signed mini-app packages for P2P distribution over Hyperdrive and Reticulum Reso
   "capabilities": ["lxmf:send", "storage:kv"],
   "icon": "icon.png",
   "minHostApi": "0.1.0",
-  "files": [
-    { "path": "bundle.js", "sha256": "<hex>", "size": 1234 }
-  ],
+  "files": [{ "path": "bundle.js", "sha256": "<hex>", "size": 1234 }],
   "driveKey": "<64-hex Hyperdrive public key>",
   "publisherPublicKey": "<128-hex Reticulum identity public key>",
   "signature": "<128-hex Ed25519 signature>"
@@ -85,17 +82,17 @@ tp.app.<8-byte-publisher-hash-hex>.<8-byte-name-hash-hex>
 
 `app_data` uses a compact binary encoding (`TPAD\x01`, ≤383 bytes):
 
-| Field | Encoding |
-|---|---|
-| formatVersion | u8 |
-| name | u8 length + UTF-8 |
-| version | u8 length + UTF-8 |
-| packageSize | u32be |
-| packageHash | 8-byte prefix |
-| driveKey | 32 bytes |
-| resourceAvailable | u8 (0/1) |
-| publisherKeyHash | 8 bytes |
-| signatureHash | 8 bytes |
+| Field             | Encoding                                         |
+| ----------------- | ------------------------------------------------ |
+| formatVersion     | u8                                               |
+| name              | u8 length + UTF-8                                |
+| version           | u8 length + UTF-8                                |
+| packageSize       | u32be                                            |
+| packageHash       | 8-byte prefix                                    |
+| driveKey          | 32 bytes                                         |
+| resourceAvailable | u8 (0/1)                                         |
+| publisherKeyHash  | 8 bytes                                          |
+| signatureHash     | 8 bytes                                          |
 | announceSignature | 64 bytes (Ed25519 over manifest signing payload) |
 
 Hosts ingest announces into a local catalog with trust rules, expiry, and per-publisher caps. Install is always an explicit user action.

@@ -9,7 +9,8 @@ export interface WebFetchProgress {
   readonly path: WebFetchPath;
   readonly bytesReceived: number;
   readonly totalBytes: number;
-  readonly phase: "starting" | "downloading" | "verifying" | "complete" | "failed";
+  readonly phase:
+    "starting" | "downloading" | "verifying" | "complete" | "failed";
 }
 
 export interface WebFetchPlaneRequest {
@@ -25,7 +26,10 @@ export interface WebFetchPlaneResult {
 }
 
 export interface WebFetchPlane {
-  fetchPackage(provider: CryptoProvider, request: WebFetchPlaneRequest): Promise<WebFetchPlaneResult>;
+  fetchPackage(
+    provider: CryptoProvider,
+    request: WebFetchPlaneRequest,
+  ): Promise<WebFetchPlaneResult>;
 }
 
 export interface WebCompositeFetchPlaneOptions {
@@ -33,29 +37,34 @@ export interface WebCompositeFetchPlaneOptions {
   readonly gatewayUrl: string;
 }
 
-export function createWebCompositeFetchPlane(options: WebCompositeFetchPlaneOptions): WebFetchPlane {
+export function createWebCompositeFetchPlane(
+  options: WebCompositeFetchPlaneOptions,
+): WebFetchPlane {
   return {
-    async fetchPackage(provider: CryptoProvider, request: WebFetchPlaneRequest): Promise<WebFetchPlaneResult> {
+    async fetchPackage(
+      provider: CryptoProvider,
+      request: WebFetchPlaneRequest,
+    ): Promise<WebFetchPlaneResult> {
       if (request.entry.driveKey.length > 0) {
         try {
           request.onProgress?.({
             path: "hyperdrive",
             bytesReceived: 0,
             totalBytes: request.entry.packageSize,
-            phase: "starting"
+            phase: "starting",
           });
 
           const archiveBytes = await fetchDriveVersionViaGateway({
             gatewayUrl: options.gatewayUrl,
             driveKeyHex: request.entry.driveKey,
-            version: request.version
+            version: request.version,
           });
 
           request.onProgress?.({
             path: "hyperdrive",
             bytesReceived: archiveBytes.length,
             totalBytes: archiveBytes.length,
-            phase: "verifying"
+            phase: "verifying",
           });
 
           const verified = unpackPackage(provider, archiveBytes);
@@ -67,25 +76,25 @@ export function createWebCompositeFetchPlane(options: WebCompositeFetchPlaneOpti
             path: "hyperdrive",
             bytesReceived: archiveBytes.length,
             totalBytes: archiveBytes.length,
-            phase: "complete"
+            phase: "complete",
           });
 
           return {
             path: "hyperdrive",
             archiveBytes,
-            packageHash: verified.packageHash
+            packageHash: verified.packageHash,
           };
         } catch {
           request.onProgress?.({
             path: "hyperdrive",
             bytesReceived: 0,
             totalBytes: request.entry.packageSize,
-            phase: "failed"
+            phase: "failed",
           });
         }
       }
 
       return options.resourcePlane.fetchPackage(provider, request);
-    }
+    },
   };
 }

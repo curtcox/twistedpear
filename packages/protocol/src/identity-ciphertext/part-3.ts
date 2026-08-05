@@ -17,8 +17,16 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { identityRecallAppDataPlanFromActions, planIdentityRecallAppData } from "./part-2.js";
-import type { IdentityRecallAppDataEvent, IdentityRecallAppDataPlan, IdentityRecallAppDataPlanAction, IdentityRecallAppDataPlanEvent } from "./part-2.js";
+import {
+  identityRecallAppDataPlanFromActions,
+  planIdentityRecallAppData,
+} from "./part-2.js";
+import type {
+  IdentityRecallAppDataEvent,
+  IdentityRecallAppDataPlan,
+  IdentityRecallAppDataPlanAction,
+  IdentityRecallAppDataPlanEvent,
+} from "./part-2.js";
 /**
  * Identity-recall-app-data-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planIdentityRecallAppData`
@@ -39,7 +47,7 @@ export function initialIdentityRecallAppDataPlanState(): IdentityRecallAppDataPl
 
 export function stepIdentityRecallAppDataPlanWithActions(
   state: IdentityRecallAppDataPlanState,
-  event: IdentityRecallAppDataPlanEvent
+  event: IdentityRecallAppDataPlanEvent,
 ): IdentityRecallAppDataPlanStepResult {
   if (event.kind === "identity/recall-app-data-plan-gate") {
     return {
@@ -49,10 +57,10 @@ export function stepIdentityRecallAppDataPlanWithActions(
         {
           kind: planIdentityRecallAppData({
             recordPresent: event.recordPresent,
-            appDataPresent: event.appDataPresent
-          })
-        }
-      ]
+            appDataPresent: event.appDataPresent,
+          }),
+        },
+      ],
     };
   }
 
@@ -60,13 +68,13 @@ export function stepIdentityRecallAppDataPlanWithActions(
 }
 
 export function shouldHitIdentityRecallAppDataPlan(
-  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>
+  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "hit");
 }
 
 export function shouldMissIdentityRecallAppDataPlan(
-  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>
+  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
@@ -84,7 +92,9 @@ export type IdentityRecallAppDataState = Record<string, never>;
  * Plan nested via {@link stepIdentityRecallAppDataPlanWithActions}
  * (`hit`|`miss`).
  */
-export type IdentityRecallAppDataAction = { readonly kind: IdentityRecallAppDataPlan };
+export type IdentityRecallAppDataAction = {
+  readonly kind: IdentityRecallAppDataPlan;
+};
 
 export interface IdentityRecallAppDataStepResult {
   readonly state: IdentityRecallAppDataState;
@@ -96,33 +106,39 @@ export function initialIdentityRecallAppDataState(): IdentityRecallAppDataState 
   return {};
 }
 
-export const stepIdentityRecallAppData: StepFn<IdentityRecallAppDataState> = (state, event) => {
-  const result = stepIdentityRecallAppDataInner(state, event as IdentityRecallAppDataEvent);
+export const stepIdentityRecallAppData: StepFn<IdentityRecallAppDataState> = (
+  state,
+  event,
+) => {
+  const result = stepIdentityRecallAppDataInner(
+    state,
+    event as IdentityRecallAppDataEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepIdentityRecallAppDataWithActions(
   state: IdentityRecallAppDataState,
-  event: IdentityRecallAppDataEvent
+  event: IdentityRecallAppDataEvent,
 ): IdentityRecallAppDataStepResult {
   return stepIdentityRecallAppDataInner(state, event);
 }
 
 export function shouldHitIdentityRecallAppData(
-  actions: ReadonlyArray<IdentityRecallAppDataAction>
+  actions: ReadonlyArray<IdentityRecallAppDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "hit");
 }
 
 export function shouldMissIdentityRecallAppData(
-  actions: ReadonlyArray<IdentityRecallAppDataAction>
+  actions: ReadonlyArray<IdentityRecallAppDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 function stepIdentityRecallAppDataInner(
   state: IdentityRecallAppDataState,
-  event: IdentityRecallAppDataEvent
+  event: IdentityRecallAppDataEvent,
 ): IdentityRecallAppDataStepResult {
   if (event.kind === "identity/recall-app-data-gate") {
     const planActions = stepIdentityRecallAppDataPlanWithActions(
@@ -130,8 +146,8 @@ function stepIdentityRecallAppDataInner(
       {
         kind: "identity/recall-app-data-plan-gate",
         recordPresent: event.recordPresent,
-        appDataPresent: event.appDataPresent
-      }
+        appDataPresent: event.appDataPresent,
+      },
     ).actions;
     const plan = identityRecallAppDataPlanFromActions(planActions);
     if (plan === null) {
@@ -144,7 +160,9 @@ function stepIdentityRecallAppDataInner(
 }
 
 /** Whether decrypt should attempt ratchet keys before identity-key fallback. */
-export function shouldAttemptIdentityRatchetDecrypt(ratchetsPresent: boolean): boolean {
+export function shouldAttemptIdentityRatchetDecrypt(
+  ratchetsPresent: boolean,
+): boolean {
   return ratchetsPresent;
 }
 
@@ -163,8 +181,7 @@ export type AttemptIdentityRatchetDecryptEvent =
     };
 
 export type AttemptIdentityRatchetDecryptAction =
-  | { readonly kind: "attempt" }
-  | { readonly kind: "skip" };
+  { readonly kind: "attempt" } | { readonly kind: "skip" };
 
 export interface AttemptIdentityRatchetDecryptStepResult {
   readonly state: AttemptIdentityRatchetDecryptState;
@@ -178,7 +195,7 @@ export function initialAttemptIdentityRatchetDecryptState(): AttemptIdentityRatc
 
 export function stepAttemptIdentityRatchetDecryptWithActions(
   state: AttemptIdentityRatchetDecryptState,
-  event: AttemptIdentityRatchetDecryptEvent
+  event: AttemptIdentityRatchetDecryptEvent,
 ): AttemptIdentityRatchetDecryptStepResult {
   if (event.kind === "identity/attempt-ratchet-decrypt-gate") {
     return {
@@ -188,9 +205,9 @@ export function stepAttemptIdentityRatchetDecryptWithActions(
         {
           kind: shouldAttemptIdentityRatchetDecrypt(event.ratchetsPresent)
             ? "attempt"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -198,13 +215,13 @@ export function stepAttemptIdentityRatchetDecryptWithActions(
 }
 
 export function shouldAttemptIdentityRatchetDecryptNow(
-  actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>
+  actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "attempt");
 }
 
 export function shouldSkipIdentityRatchetDecrypt(
-  actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>
+  actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -229,8 +246,7 @@ export type IdentityHashAllowEvent =
     };
 
 export type IdentityHashAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface IdentityHashAllowStepResult {
   readonly state: IdentityHashAllowState;
@@ -244,7 +260,7 @@ export function initialIdentityHashAllowState(): IdentityHashAllowState {
 
 export function stepIdentityHashAllowWithActions(
   state: IdentityHashAllowState,
-  event: IdentityHashAllowEvent
+  event: IdentityHashAllowEvent,
 ): IdentityHashAllowStepResult {
   if (event.kind === "identity/hash-allow-gate") {
     return {
@@ -252,9 +268,9 @@ export function stepIdentityHashAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canIdentityHash(event.identityHashPresent) ? "allow" : "deny"
-        }
-      ]
+          kind: canIdentityHash(event.identityHashPresent) ? "allow" : "deny",
+        },
+      ],
     };
   }
 
@@ -262,13 +278,13 @@ export function stepIdentityHashAllowWithActions(
 }
 
 export function shouldAllowIdentityHash(
-  actions: ReadonlyArray<IdentityHashAllowAction>
+  actions: ReadonlyArray<IdentityHashAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyIdentityHash(
-  actions: ReadonlyArray<IdentityHashAllowAction>
+  actions: ReadonlyArray<IdentityHashAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -297,8 +313,7 @@ export type IdentityUsePrivateKeyEvent =
     };
 
 export type IdentityUsePrivateKeyAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface IdentityUsePrivateKeyStepResult {
   readonly state: IdentityUsePrivateKeyState;
@@ -312,7 +327,7 @@ export function initialIdentityUsePrivateKeyState(): IdentityUsePrivateKeyState 
 
 export function stepIdentityUsePrivateKeyWithActions(
   state: IdentityUsePrivateKeyState,
-  event: IdentityUsePrivateKeyEvent
+  event: IdentityUsePrivateKeyEvent,
 ): IdentityUsePrivateKeyStepResult {
   if (event.kind === "identity/use-private-key-gate") {
     return {
@@ -322,12 +337,12 @@ export function stepIdentityUsePrivateKeyWithActions(
         {
           kind: canIdentityUsePrivateKey({
             privateKeyPresent: event.privateKeyPresent,
-            signaturePrivatePresent: event.signaturePrivatePresent
+            signaturePrivatePresent: event.signaturePrivatePresent,
           })
             ? "allow"
-            : "deny"
-        }
-      ]
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -335,13 +350,13 @@ export function stepIdentityUsePrivateKeyWithActions(
 }
 
 export function shouldAllowIdentityUsePrivateKey(
-  actions: ReadonlyArray<IdentityUsePrivateKeyAction>
+  actions: ReadonlyArray<IdentityUsePrivateKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyIdentityUsePrivateKey(
-  actions: ReadonlyArray<IdentityUsePrivateKeyAction>
+  actions: ReadonlyArray<IdentityUsePrivateKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -370,8 +385,7 @@ export type IdentityUsePublicKeyEvent =
     };
 
 export type IdentityUsePublicKeyAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface IdentityUsePublicKeyStepResult {
   readonly state: IdentityUsePublicKeyState;
@@ -385,7 +399,7 @@ export function initialIdentityUsePublicKeyState(): IdentityUsePublicKeyState {
 
 export function stepIdentityUsePublicKeyWithActions(
   state: IdentityUsePublicKeyState,
-  event: IdentityUsePublicKeyEvent
+  event: IdentityUsePublicKeyEvent,
 ): IdentityUsePublicKeyStepResult {
   if (event.kind === "identity/use-public-key-gate") {
     return {
@@ -395,12 +409,12 @@ export function stepIdentityUsePublicKeyWithActions(
         {
           kind: canIdentityUsePublicKey({
             publicKeyPresent: event.publicKeyPresent,
-            signaturePublicPresent: event.signaturePublicPresent
+            signaturePublicPresent: event.signaturePublicPresent,
           })
             ? "allow"
-            : "deny"
-        }
-      ]
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -408,13 +422,13 @@ export function stepIdentityUsePublicKeyWithActions(
 }
 
 export function shouldAllowIdentityUsePublicKey(
-  actions: ReadonlyArray<IdentityUsePublicKeyAction>
+  actions: ReadonlyArray<IdentityUsePublicKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyIdentityUsePublicKey(
-  actions: ReadonlyArray<IdentityUsePublicKeyAction>
+  actions: ReadonlyArray<IdentityUsePublicKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -439,8 +453,7 @@ export type LoadIdentityKeyMaterialEvent =
     };
 
 export type LoadIdentityKeyMaterialAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface LoadIdentityKeyMaterialStepResult {
   readonly state: LoadIdentityKeyMaterialState;

@@ -28,11 +28,11 @@ attempts to mutate settings from an ordinary local validation run.
 
 ## First external surveys
 
-| Survey | Command / evidence | Completion |
-|---|---|---|
-| npm advisories | `npm run audit:baseline -- --allow-regressions`, after explicitly approving disclosure of dependency metadata to the npm registry | Every temporary high/critical exception has a reason and expiry; the next `audit:nightly` passes |
-| language runners | First PR touching each language | Rust, shell, Python, Kotlin, Swift, and Actions artifacts are uploaded from their pinned CI tools |
-| PR dashboard | First pull request after landing | One sticky comment is updated and `static-analysis-summary.json` contains all PR gates |
+| Survey           | Command / evidence                                                                                                                | Completion                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| npm advisories   | `npm run audit:baseline -- --allow-regressions`, after explicitly approving disclosure of dependency metadata to the npm registry | Every temporary high/critical exception has a reason and expiry; the next `audit:nightly` passes  |
+| language runners | First PR touching each language                                                                                                   | Rust, shell, Python, Kotlin, Swift, and Actions artifacts are uploaded from their pinned CI tools |
+| PR dashboard     | First pull request after landing                                                                                                  | One sticky comment is updated and `static-analysis-summary.json` contains all PR gates            |
 
 ## Follow-up tightening
 

@@ -24,17 +24,24 @@ export function expectedStatusForPlatform(applet, platform) {
  * @param {string} actualStatus pass | fail | unavailable | not-granted | skipped
  * @param {string} platform android | ios | desktop | web | node
  */
-export function assertAppletStatusMatchesExpectation(applet, actualStatus, platform) {
+export function assertAppletStatusMatchesExpectation(
+  applet,
+  actualStatus,
+  platform,
+) {
   const expected = expectedStatusForPlatform(applet, platform);
   const acceptable = new Set([expected]);
-  if (expected === "unavailable" && applet.expectations?.[platform] === "device-gated") {
+  if (
+    expected === "unavailable" &&
+    applet.expectations?.[platform] === "device-gated"
+  ) {
     acceptable.add("pass");
   }
   if (acceptable.has(actualStatus)) {
     return;
   }
   throw new Error(
-    `applet ${applet.id} on ${platform}: expected ${[...acceptable].join(" or ")}, got ${actualStatus}`
+    `applet ${applet.id} on ${platform}: expected ${[...acceptable].join(" or ")}, got ${actualStatus}`,
   );
 }
 

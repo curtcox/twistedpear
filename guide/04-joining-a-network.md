@@ -16,9 +16,9 @@ off is done in **Settings → Interfaces**.
 ![The interfaces settings panel](/guide/images/04-interfaces-settings.png)
 
 **Screenshot 4.1 — Settings → Interfaces.** A settings panel listing each interface as a
-row with a toggle and a status pill: "Local network (AutoInterface) — *on, 2 peers*",
-"TCP client — *off*", "WebSocket gateway — *off*", "Bluetooth — *off*", "LoRa radio
-(RNode) — *no device*". The TCP row is expanded, showing host and port fields.
+row with a toggle and a status pill: "Local network (AutoInterface) — _on, 2 peers_",
+"TCP client — _off_", "WebSocket gateway — _off_", "Bluetooth — _off_", "LoRa radio
+(RNode) — _no device_". The TCP row is expanded, showing host and port fields.
 
 ## The fastest path: someone else's node
 
@@ -30,7 +30,7 @@ network — including everyone else connected to it.
 
 **Screenshot 4.2 — A connected TCP interface.** The TCP row expanded with host and port
 filled in, a green "connected" pill, and a line reading "Link up · 41 announces seen".
-Below, the *Announce browser* has populated with several peer entries.
+Below, the _Announce browser_ has populated with several peer entries.
 
 To start without operating a node, choose **Join community network**. The host tries the
 bundled, redundant profile of community-operated Reticulum TCP transports. Joining is
@@ -45,7 +45,7 @@ network find each other without any configuration, usually within a few seconds.
 
 ![Two peers discovered on the local network](/guide/images/04-local-discovery.png)
 
-**Screenshot 4.3 — Automatic local discovery.** The *Announce browser* showing two
+**Screenshot 4.3 — Automatic local discovery.** The _Announce browser_ showing two
 entries that appeared without configuration, each with a short address, a "local
 network" badge, and a timestamp like "seen 3s ago".
 
@@ -78,7 +78,7 @@ Turn on **Bluetooth** on both, and they find each other when in range.
 
 **Screenshot 4.5 — A Bluetooth link between two phones.** Two phone screenshots side by
 side, each showing the Bluetooth interface row as connected and the other device present
-in the *Announce browser*. Include the signal-strength or throughput readout if the UI
+in the _Announce browser_. Include the signal-strength or throughput readout if the UI
 shows one.
 
 Bluetooth is slow — good for messages, workable for tiny apps, painful for anything
@@ -105,7 +105,7 @@ showing the detected device name, frequency, and spreading factor, plus a link i
 If possible, a photo inset of the physical radio next to the laptop, to make clear this is
 hardware.
 
-LoRa is *very* slow — around a kilobit per second. Messages work well. App installs do
+LoRa is _very_ slow — around a kilobit per second. Messages work well. App installs do
 not: the host blocks automatic large downloads over a LoRa-only link above 64 KiB and
 warns above 32 KiB.
 
@@ -116,7 +116,7 @@ warns above 32 KiB.
 ## Reading the announce browser
 
 Whatever interface you use, discovered peers show up in one place: the **announce
-browser**. An "announce" is a peer saying *I exist, here is my address*.
+browser**. An "announce" is a peer saying _I exist, here is my address_.
 
 ![The announce browser with several peers](/guide/images/04-announce-browser.png)
 

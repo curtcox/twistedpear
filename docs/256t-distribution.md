@@ -1,6 +1,5 @@
 # 256t distribution
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -17,10 +16,10 @@ existing package fetch chain.
 
 A 256t id is 94 base64url characters (RFC 4648 §5 alphabet, no padding):
 
-| Chars | Bytes | Meaning |
-|---|---|---|
-| 0–7 | 6 | Content length, 48-bit big-endian (up to 256 TB) |
-| 8–93 | 64 | Content field |
+| Chars | Bytes | Meaning                                          |
+| ----- | ----- | ------------------------------------------------ |
+| 0–7   | 6     | Content length, 48-bit big-endian (up to 256 TB) |
+| 8–93  | 64    | Content field                                    |
 
 - **Length > 64:** the field is the **SHA-512** hash of the content.
 - **Length ≤ 64:** the field is the content itself, zero-padded to 64 bytes
@@ -55,7 +54,7 @@ the receiving host:
    (`TPCL\x01`, ≤ 383 bytes, [`locator.ts`](../packages/cas-256t/src/locator.ts))
    on the Reticulum destination `tp.cas.<first-8-bytes-of-sha512-hex>`. The
    locator carries `{t256, appId, version, driveKey, packageHash, packageSize,
-   publisherPublicKey (raw bytes), ed25519 signature}` and maps directly onto a
+publisherPublicKey (raw bytes), ed25519 signature}` and maps directly onto a
    `CatalogEntry`, so the **existing fetch chain is reused unchanged**:
    Hyperdrive → LAN mirror → Reticulum Resource.
 3. **On-demand lookup** — if the locator is not remembered, the installer announces a

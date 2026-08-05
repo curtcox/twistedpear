@@ -1,7 +1,10 @@
 import b4a from "b4a";
 import { createNativeSerialPipe } from "@twistedpear/usb-serial";
 import type { SerialPipe } from "@twistedpear/reticulum-interfaces";
-import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
+import type {
+  HostToWorkletMessage,
+  WorkletToHostMessage,
+} from "../worklet/protocol";
 
 function bytesToHex(bytes: Uint8Array): string {
   return b4a.toString(bytes, "hex");
@@ -15,7 +18,9 @@ function hexToBytes(hex: string): Uint8Array {
 export class HostUsbIpc {
   private pipe: SerialPipe | null = null;
 
-  constructor(private readonly sendToWorklet: (message: HostToWorkletMessage) => void) {}
+  constructor(
+    private readonly sendToWorklet: (message: HostToWorkletMessage) => void,
+  ) {}
 
   async start(deviceId: number, baudRate: number): Promise<void> {
     if (this.pipe !== null) {
@@ -28,21 +33,27 @@ export class HostUsbIpc {
         this.sendToWorklet({ type: "serial-data", dataHex: bytesToHex(data) });
       },
       onConnect: () => {
-        this.sendToWorklet({ type: "serial-connect", deviceName: `usb-${deviceId}` });
+        this.sendToWorklet({
+          type: "serial-connect",
+          deviceName: `usb-${deviceId}`,
+        });
       },
       onDisconnect: () => {
         this.sendToWorklet({ type: "serial-disconnect" });
       },
       onError: (error: Error) => {
         this.sendToWorklet({ type: "serial-error", message: error.message });
-      }
+      },
     });
 
     await pipe.open();
     this.pipe = pipe;
 
     if (pipe.connected) {
-      this.sendToWorklet({ type: "serial-connect", deviceName: `usb-${deviceId}` });
+      this.sendToWorklet({
+        type: "serial-connect",
+        deviceName: `usb-${deviceId}`,
+      });
     }
   }
 

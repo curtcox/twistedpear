@@ -7,7 +7,10 @@
 import Hyperswarm from "hyperswarm";
 import b4a from "b4a";
 
-const topic = b4a.from("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2", "hex");
+const topic = b4a.from(
+  "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2",
+  "hex",
+);
 
 async function main() {
   const server = new Hyperswarm();
@@ -15,7 +18,10 @@ async function main() {
 
   const payload = b4a.from("hyperswarm-bare-smoke-ok");
   const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("hyperswarm client timed out")), 30_000);
+    const timer = setTimeout(
+      () => reject(new Error("hyperswarm client timed out")),
+      30_000,
+    );
     client.on("connection", (socket) => {
       socket.on("error", () => {
         // Ignore teardown races after the payload is received.

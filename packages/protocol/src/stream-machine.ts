@@ -1,7 +1,11 @@
 import { interpret, type EventClass, type Machine } from "@twistedpear/effects";
 
-export type StreamPhase = "requested" | "active" | "degraded" | "deferred" | "rejected" | "closed";
-export interface StreamState { readonly phase: StreamPhase; readonly rung: number; }
+export type StreamPhase =
+  "requested" | "active" | "degraded" | "deferred" | "rejected" | "closed";
+export interface StreamState {
+  readonly phase: StreamPhase;
+  readonly rung: number;
+}
 export type StreamEvent =
   | { readonly kind: "stream/admit" }
   | { readonly kind: "stream/degrade"; readonly rung: number }
@@ -10,9 +14,12 @@ export type StreamEvent =
   | { readonly kind: "stream/reject" }
   | { readonly kind: "stream/close" };
 
-const event = (name: string, kind: StreamEvent["kind"]): EventClass<StreamEvent> => ({
+const event = (
+  name: string,
+  kind: StreamEvent["kind"],
+): EventClass<StreamEvent> => ({
   name,
-  matches: (candidate) => candidate.kind === kind
+  matches: (candidate) => candidate.kind === kind,
 });
 const admit = event("admit", "stream/admit");
 const degrade = event("degrade", "stream/degrade");
@@ -44,9 +51,11 @@ export const streamMachine: Machine<StreamState, StreamEvent> = {
     { from: "active", on: close, to: "closed" },
     { from: "degraded", on: degrade, to: "degraded", reduce: withRung },
     { from: "degraded", on: restore, to: "active", reduce: withRung },
-    { from: "degraded", on: close, to: "closed" }
-  ]
+    { from: "degraded", on: close, to: "closed" },
+  ],
 };
 
-export function initialStreamState(): StreamState { return { phase: "requested", rung: 0 }; }
+export function initialStreamState(): StreamState {
+  return { phase: "requested", rung: 0 };
+}
 export const stepStream = interpret(streamMachine);

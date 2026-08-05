@@ -1,7 +1,12 @@
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Identity } from "./identity.js";
 import type { PacketInterface } from "./interfaces/interface.js";
-import { TcpClientInterface, TcpServerInterface, type TcpClientInterfaceOptions, type TcpServerInterfaceOptions } from "./interfaces/tcp.js";
+import {
+  TcpClientInterface,
+  TcpServerInterface,
+  type TcpClientInterfaceOptions,
+  type TcpServerInterfaceOptions,
+} from "./interfaces/tcp.js";
 import { UdpInterface, type UdpInterfaceOptions } from "./interfaces/udp.js";
 import { PipeInterface, type PipeInterfaceOptions } from "./interfaces/pipe.js";
 import type { Runtime } from "./runtime/runtime.js";
@@ -9,7 +14,7 @@ import { RegisteredDestination } from "./registered-destination.js";
 import {
   type AnnounceHandler,
   type DropObserver,
-  type LeafTransportOptions
+  type LeafTransportOptions,
 } from "./transport/node.js";
 import { TransportNode } from "./transport/transport.js";
 import { PATH_REQUEST_TIMEOUT_SECONDS } from "./transport/path.js";
@@ -57,11 +62,13 @@ export class Reticulum {
       ...(options.outboundBandwidthLimiter === undefined
         ? {}
         : { outboundBandwidthLimiter: options.outboundBandwidthLimiter }),
-      ...(options.useImplicitProof === undefined ? {} : { useImplicitProof: options.useImplicitProof })
+      ...(options.useImplicitProof === undefined
+        ? {}
+        : { useImplicitProof: options.useImplicitProof }),
     };
     this.transport = new TransportNode({
       ...transportOptions,
-      transportEnabled: options.transportEnabled === true
+      transportEnabled: options.transportEnabled === true,
     });
   }
 
@@ -81,7 +88,9 @@ export class Reticulum {
     return this.started;
   }
 
-  registerDestination(options: ConstructorParameters<typeof RegisteredDestination>[0]): RegisteredDestination {
+  registerDestination(
+    options: ConstructorParameters<typeof RegisteredDestination>[0],
+  ): RegisteredDestination {
     const destination = new RegisteredDestination(options);
     destination.attachTransport(this.transport);
     return destination;
@@ -111,27 +120,40 @@ export class Reticulum {
     return () => this.interfaceObservers.delete(observer);
   }
 
-  async addPipeInterface(options: Omit<PipeInterfaceOptions, "provider">): Promise<PipeInterface> {
-    const iface = new PipeInterface(this.provider, { ...options, provider: this.provider });
-    this.registerInterface(iface);
-    return iface;
-  }
-
-  async addTcpClientInterface(options: Omit<TcpClientInterfaceOptions, "provider" | "runtime">): Promise<TcpClientInterface> {
-    const iface = await TcpClientInterface.connect(this.provider, this.runtime, {
+  async addPipeInterface(
+    options: Omit<PipeInterfaceOptions, "provider">,
+  ): Promise<PipeInterface> {
+    const iface = new PipeInterface(this.provider, {
       ...options,
       provider: this.provider,
-      runtime: this.runtime
     });
     this.registerInterface(iface);
     return iface;
   }
 
-  async addTcpServerInterface(options: Omit<TcpServerInterfaceOptions, "provider" | "runtime">): Promise<TcpServerInterface> {
+  async addTcpClientInterface(
+    options: Omit<TcpClientInterfaceOptions, "provider" | "runtime">,
+  ): Promise<TcpClientInterface> {
+    const iface = await TcpClientInterface.connect(
+      this.provider,
+      this.runtime,
+      {
+        ...options,
+        provider: this.provider,
+        runtime: this.runtime,
+      },
+    );
+    this.registerInterface(iface);
+    return iface;
+  }
+
+  async addTcpServerInterface(
+    options: Omit<TcpServerInterfaceOptions, "provider" | "runtime">,
+  ): Promise<TcpServerInterface> {
     const server = new TcpServerInterface(this.provider, this.runtime, {
       ...options,
       provider: this.provider,
-      runtime: this.runtime
+      runtime: this.runtime,
     });
     server.setSpawnHandler((client) => {
       this.registerInterface(client);
@@ -143,11 +165,13 @@ export class Reticulum {
     return server;
   }
 
-  async addUdpInterface(options: Omit<UdpInterfaceOptions, "provider" | "runtime">): Promise<UdpInterface> {
+  async addUdpInterface(
+    options: Omit<UdpInterfaceOptions, "provider" | "runtime">,
+  ): Promise<UdpInterface> {
     const iface = await UdpInterface.open(this.provider, this.runtime, {
       ...options,
       provider: this.provider,
-      runtime: this.runtime
+      runtime: this.runtime,
     });
     this.registerInterface(iface);
     return iface;
@@ -177,14 +201,20 @@ export class Reticulum {
     return this.transport.hopsTo(destinationHash);
   }
 
-  requestPath(destinationHash: Uint8Array, onInterface?: PacketInterface | null): void {
+  requestPath(
+    destinationHash: Uint8Array,
+    onInterface?: PacketInterface | null,
+  ): void {
     this.transport.requestPath(destinationHash, onInterface ?? null);
   }
 
-  async awaitPath(destinationHash: Uint8Array, timeoutSeconds?: number): Promise<boolean> {
+  async awaitPath(
+    destinationHash: Uint8Array,
+    timeoutSeconds?: number,
+  ): Promise<boolean> {
     return this.transport.awaitPath(
       destinationHash,
-      timeoutSeconds ?? PATH_REQUEST_TIMEOUT_SECONDS
+      timeoutSeconds ?? PATH_REQUEST_TIMEOUT_SECONDS,
     );
   }
 

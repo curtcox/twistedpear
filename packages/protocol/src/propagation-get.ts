@@ -27,7 +27,7 @@ export type PropagationGetPlan =
 
 function findEntryByTransientId(
   entries: ReadonlyArray<PropagationGetCatalogEntry>,
-  transientId: Uint8Array
+  transientId: Uint8Array,
 ): PropagationGetCatalogEntry | null {
   for (const entry of entries) {
     if (equalByteArrays(entry.transientId, transientId)) {
@@ -51,7 +51,10 @@ export function planPropagationGet(input: {
   if (input.wants === null && input.haves === null) {
     const transientIds = input.entries
       .filter((entry) =>
-        propagationEntryVisibleToRecipient(entry.destinationHash, input.remoteDeliveryHash)
+        propagationEntryVisibleToRecipient(
+          entry.destinationHash,
+          input.remoteDeliveryHash,
+        ),
       )
       .map((entry) => entry.transientId);
     return { kind: "list-ids", transientIds };
@@ -67,7 +70,10 @@ export function planPropagationGet(input: {
     const entry = findEntryByTransientId(input.entries, want);
     if (
       entry !== null &&
-      propagationEntryVisibleToRecipient(entry.destinationHash, input.remoteDeliveryHash)
+      propagationEntryVisibleToRecipient(
+        entry.destinationHash,
+        input.remoteDeliveryHash,
+      )
     ) {
       fetchIds.push(entry.transientId);
     }
@@ -108,7 +114,7 @@ export function initialPropagationGetPlanState(): PropagationGetPlanState {
 
 export function stepPropagationGetPlanWithActions(
   state: PropagationGetPlanState,
-  event: PropagationGetPlanEvent
+  event: PropagationGetPlanEvent,
 ): PropagationGetPlanStepResult {
   if (event.kind === "propagation/get-plan-gate") {
     return {
@@ -119,9 +125,9 @@ export function stepPropagationGetPlanWithActions(
           wants: event.wants,
           haves: event.haves,
           remoteDeliveryHash: event.remoteDeliveryHash,
-          entries: event.entries
-        })
-      ]
+          entries: event.entries,
+        }),
+      ],
     };
   }
 
@@ -130,21 +136,21 @@ export function stepPropagationGetPlanWithActions(
 
 /** Whether plan actions include list-ids. */
 export function shouldListPropagationGetPlanIds(
-  actions: ReadonlyArray<PropagationGetPlanAction>
+  actions: ReadonlyArray<PropagationGetPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "list-ids");
 }
 
 /** Whether plan actions include apply (delete + fetch). */
 export function shouldApplyPropagationGetPlan(
-  actions: ReadonlyArray<PropagationGetPlanAction>
+  actions: ReadonlyArray<PropagationGetPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 /** Transient IDs from a list-ids plan action, if present. */
 export function propagationGetPlanListIds(
-  actions: ReadonlyArray<PropagationGetPlanAction>
+  actions: ReadonlyArray<PropagationGetPlanAction>,
 ): readonly Uint8Array[] | null {
   for (const action of actions) {
     if (action.kind === "list-ids") {
@@ -156,7 +162,7 @@ export function propagationGetPlanListIds(
 
 /** Delete / fetch id lists from an apply plan action, if present. */
 export function propagationGetPlanApplyIds(
-  actions: ReadonlyArray<PropagationGetPlanAction>
+  actions: ReadonlyArray<PropagationGetPlanAction>,
 ): {
   readonly deleteIds: readonly Uint8Array[];
   readonly fetchIds: readonly Uint8Array[];
@@ -171,16 +177,18 @@ export function propagationGetPlanApplyIds(
 
 /** Extract the /get plan from actions; null when empty. */
 export function propagationGetPlanFromActions(
-  actions: ReadonlyArray<PropagationGetPlanAction>
+  actions: ReadonlyArray<PropagationGetPlanAction>,
 ): PropagationGetPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "list-ids" || entry.kind === "apply"
+    (entry) => entry.kind === "list-ids" || entry.kind === "apply",
   );
   return action ?? null;
 }
 
 /** Whether a /get request body is present and may be unpacked. */
-export function shouldAcceptPropagationGetRequestData(dataPresent: boolean): boolean {
+export function shouldAcceptPropagationGetRequestData(
+  dataPresent: boolean,
+): boolean {
   return dataPresent;
 }
 
@@ -199,8 +207,7 @@ export type AcceptPropagationGetRequestDataEvent =
     };
 
 export type AcceptPropagationGetRequestDataAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptPropagationGetRequestDataStepResult {
   readonly state: AcceptPropagationGetRequestDataState;
@@ -214,7 +221,7 @@ export function initialAcceptPropagationGetRequestDataState(): AcceptPropagation
 
 export function stepAcceptPropagationGetRequestDataWithActions(
   state: AcceptPropagationGetRequestDataState,
-  event: AcceptPropagationGetRequestDataEvent
+  event: AcceptPropagationGetRequestDataEvent,
 ): AcceptPropagationGetRequestDataStepResult {
   if (event.kind === "propagation/accept-get-request-data-gate") {
     return {
@@ -222,9 +229,11 @@ export function stepAcceptPropagationGetRequestDataWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptPropagationGetRequestData(event.dataPresent) ? "accept" : "skip"
-        }
-      ]
+          kind: shouldAcceptPropagationGetRequestData(event.dataPresent)
+            ? "accept"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -232,13 +241,13 @@ export function stepAcceptPropagationGetRequestDataWithActions(
 }
 
 export function shouldAcceptPropagationGetRequestDataNow(
-  actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>
+  actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptPropagationGetRequestData(
-  actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>
+  actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -284,35 +293,38 @@ export function initialPropagationGetState(): PropagationGetState {
   return {};
 }
 
-export const stepPropagationGet: StepFn<PropagationGetState> = (state, event) => {
+export const stepPropagationGet: StepFn<PropagationGetState> = (
+  state,
+  event,
+) => {
   const result = stepPropagationGetInner(state, event as PropagationGetEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPropagationGetWithActions(
   state: PropagationGetState,
-  event: PropagationGetEvent
+  event: PropagationGetEvent,
 ): PropagationGetStepResult {
   return stepPropagationGetInner(state, event);
 }
 
 /** Whether step actions include list-ids. */
 export function shouldListPropagationGetIds(
-  actions: ReadonlyArray<PropagationGetAction>
+  actions: ReadonlyArray<PropagationGetAction>,
 ): boolean {
   return actions.some((action) => action.kind === "list-ids");
 }
 
 /** Whether step actions include apply (delete + fetch). */
 export function shouldApplyPropagationGet(
-  actions: ReadonlyArray<PropagationGetAction>
+  actions: ReadonlyArray<PropagationGetAction>,
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 /** Transient IDs from a list-ids action, if present. */
 export function propagationGetListIds(
-  actions: ReadonlyArray<PropagationGetAction>
+  actions: ReadonlyArray<PropagationGetAction>,
 ): readonly Uint8Array[] | null {
   for (const action of actions) {
     if (action.kind === "list-ids") {
@@ -324,7 +336,7 @@ export function propagationGetListIds(
 
 /** Delete / fetch id lists from an apply action, if present. */
 export function propagationGetApplyIds(
-  actions: ReadonlyArray<PropagationGetAction>
+  actions: ReadonlyArray<PropagationGetAction>,
 ): {
   readonly deleteIds: readonly Uint8Array[];
   readonly fetchIds: readonly Uint8Array[];
@@ -339,7 +351,7 @@ export function propagationGetApplyIds(
 
 function stepPropagationGetInner(
   state: PropagationGetState,
-  event: PropagationGetEvent
+  event: PropagationGetEvent,
 ): PropagationGetStepResult {
   if (event.kind === "get/received") {
     const planActions = stepPropagationGetPlanWithActions(
@@ -349,15 +361,15 @@ function stepPropagationGetInner(
         wants: event.wants,
         haves: event.haves,
         remoteDeliveryHash: event.remoteDeliveryHash,
-        entries: event.entries
-      }
+        entries: event.entries,
+      },
     ).actions;
     if (shouldListPropagationGetPlanIds(planActions)) {
       const transientIds = propagationGetPlanListIds(planActions) ?? [];
       return {
         state,
         intents: [],
-        actions: [{ kind: "list-ids", transientIds }]
+        actions: [{ kind: "list-ids", transientIds }],
       };
     }
     if (!shouldApplyPropagationGetPlan(planActions)) {
@@ -371,9 +383,9 @@ function stepPropagationGetInner(
         {
           kind: "apply",
           deleteIds: applyIds?.deleteIds ?? [],
-          fetchIds: applyIds?.fetchIds ?? []
-        }
-      ]
+          fetchIds: applyIds?.fetchIds ?? [],
+        },
+      ],
     };
   }
 

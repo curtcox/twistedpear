@@ -14,17 +14,14 @@ import {
   packPackage,
   signManifest,
   unpackPackage,
-  verifyPackage
+  verifyPackage,
 } from "../../packages/app-registry/dist/index.js";
-import {
-  decode256t,
-  verify256t
-} from "../../packages/cas-256t/dist/index.js";
+import { decode256t, verify256t } from "../../packages/cas-256t/dist/index.js";
 import {
   Identity,
   NodeCryptoProvider,
   bytesToHex,
-  nodeRuntime
+  nodeRuntime,
 } from "../../packages/reticulum-ts/dist/index.js";
 import { HOST_API_VERSION } from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
@@ -35,7 +32,10 @@ import { createWebWorkletMiniappHost } from "../../apps/harness-mobile/worklet/w
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 const sha512 = (data) => provider.sha512(data);
-const devstudioDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/devstudio");
+const devstudioDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../apps/devstudio",
+);
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
 
 class MemoryKvStore {
@@ -63,18 +63,22 @@ class MemoryPackageStorage {
   archives = new Map();
 
   async installArchive(archiveBytes) {
-    const verified = verifyPackage(provider, archiveBytes, { hostApiVersion: HOST_API_VERSION });
+    const verified = verifyPackage(provider, archiveBytes, {
+      hostApiVersion: HOST_API_VERSION,
+    });
     const appId = verified.manifest.name;
     const version = verified.manifest.version;
     const archivePath = `${appId}/${version}.tpkg`;
-    const existingIndex = this.records.findIndex((record) => record.appId === appId && record.version === version);
+    const existingIndex = this.records.findIndex(
+      (record) => record.appId === appId && record.version === version,
+    );
     const record = {
       appId,
       version,
       packageHash: verified.packageHash,
       installedAt: Date.now(),
       manifest: verified.manifest,
-      archivePath
+      archivePath,
     };
 
     if (existingIndex >= 0) {
@@ -88,7 +92,9 @@ class MemoryPackageStorage {
   }
 
   activeVersion(appId) {
-    const record = [...this.records].reverse().find((entry) => entry.appId === appId);
+    const record = [...this.records]
+      .reverse()
+      .find((entry) => entry.appId === appId);
     return record?.version ?? null;
   }
 
@@ -112,7 +118,7 @@ function archiveStore() {
     },
     async delete(key) {
       values.delete(key);
-    }
+    },
   };
 }
 
@@ -159,7 +165,11 @@ function findNode(tree, predicate) {
 function latestRuntime(peer) {
   return [...peer.outbound]
     .reverse()
-    .find((message) => message.type === "miniapp-runtime" && (message.slot === undefined || message.slot === "main"));
+    .find(
+      (message) =>
+        message.type === "miniapp-runtime" &&
+        (message.slot === undefined || message.slot === "main"),
+    );
 }
 
 function latestText(peer, nodeId) {
@@ -168,9 +178,14 @@ function latestText(peer, nodeId) {
 }
 
 function packDevstudio(identity) {
-  const devstudioManifest = JSON.parse(readFileSync(join(devstudioDir, "app.manifest.json"), "utf8"));
+  const devstudioManifest = JSON.parse(
+    readFileSync(join(devstudioDir, "app.manifest.json"), "utf8"),
+  );
   const devstudioFiles = [
-    { path: "bundle.js", content: new Uint8Array(readFileSync(join(devstudioDir, "bundle.js"))) }
+    {
+      path: "bundle.js",
+      content: new Uint8Array(readFileSync(join(devstudioDir, "bundle.js"))),
+    },
   ];
   const unsigned = buildUnsignedManifest(
     {
@@ -182,14 +197,24 @@ function packDevstudio(identity) {
       minHostApi: devstudioManifest.minHostApi,
       driveKey: "0".repeat(64),
       publisherPublicKey: bytesToHex(identity.getPublicKey()),
-      files: devstudioFiles
+      files: devstudioFiles,
     },
-    provider
+    provider,
   );
   const signed = signManifest(provider, identity, unsigned);
-  const packed = packPackage(provider, { ...signed, signature: signed.signature, files: devstudioFiles });
-  const verified = verifyPackage(provider, packed.archiveBytes, { hostApiVersion: HOST_API_VERSION });
-  return { archive: packed.archiveBytes, manifest: verified.manifest, packageHash: verified.packageHash };
+  const packed = packPackage(provider, {
+    ...signed,
+    signature: signed.signature,
+    files: devstudioFiles,
+  });
+  const verified = verifyPackage(provider, packed.archiveBytes, {
+    hostApiVersion: HOST_API_VERSION,
+  });
+  return {
+    archive: packed.archiveBytes,
+    manifest: verified.manifest,
+    packageHash: verified.packageHash,
+  };
 }
 
 class PublishedExchange {
@@ -202,7 +227,7 @@ class PublishedExchange {
       archive,
       appId: unpacked.manifest.name,
       version: unpacked.manifest.version,
-      publisherPublicKey: unpacked.manifest.publisherPublicKey
+      publisherPublicKey: unpacked.manifest.publisherPublicKey,
     });
     return { t256, version: unpacked.manifest.version };
   }
@@ -235,27 +260,36 @@ class WebSandboxRelay {
           entryPath: message.entryPath,
           bundle: hexToBytes(message.bundleHex),
           brokerEndpoint: {
-            request: (request) => this.requestBroker(message.instanceId, request)
-          }
+            request: (request) =>
+              this.requestBroker(message.instanceId, request),
+          },
         });
         this.instances.set(message.instanceId, instance);
-        this.host.sandboxController.handleSpawned(message.requestId, message.instanceId);
+        this.host.sandboxController.handleSpawned(
+          message.requestId,
+          message.instanceId,
+        );
       } catch (error) {
         this.host.sandboxController.handleSpawnFailed(
           message.requestId,
-          error instanceof Error ? error.message : String(error)
+          error instanceof Error ? error.message : String(error),
         );
       }
       return;
     }
 
     if (message.type === "sandbox-post") {
-      await this.instances.get(message.instanceId)?.postMessage(message.payload);
+      await this.instances
+        .get(message.instanceId)
+        ?.postMessage(message.payload);
       return;
     }
 
     if (message.type === "sandbox-ping") {
-      const alive = (await this.instances.get(message.instanceId)?.ping(message.timeoutMs)) ?? false;
+      const alive =
+        (await this.instances
+          .get(message.instanceId)
+          ?.ping(message.timeoutMs)) ?? false;
       this.host.sandboxController.handlePingResult(message.requestId, alive);
       return;
     }
@@ -277,7 +311,9 @@ class WebSandboxRelay {
 
   requestBroker(instanceId, request) {
     if (this.host === null) {
-      return Promise.reject(new Error("web sandbox relay host is not attached"));
+      return Promise.reject(
+        new Error("web sandbox relay host is not attached"),
+      );
     }
 
     const requestId = `broker-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -295,9 +331,13 @@ class WebSandboxRelay {
         reject: (error) => {
           clearTimeout(timer);
           reject(error);
-        }
+        },
       });
-      this.host.sandboxController.handleBrokerRequest(requestId, instanceId, request);
+      this.host.sandboxController.handleBrokerRequest(
+        requestId,
+        instanceId,
+        request,
+      );
     });
   }
 
@@ -306,7 +346,11 @@ class WebSandboxRelay {
       this.pendingBrokers.delete(requestId);
       waiter.reject(new Error("web sandbox relay closed"));
     }
-    await Promise.all([...this.instances.values()].map((instance) => instance.kill("test-cleanup").catch(() => {})));
+    await Promise.all(
+      [...this.instances.values()].map((instance) =>
+        instance.kill("test-cleanup").catch(() => {}),
+      ),
+    );
     this.instances.clear();
   }
 }
@@ -325,7 +369,16 @@ function createElectronPeer(exchange, tmp, name) {
   const installed = new InstalledPackageStore(64 * 1024 * 1024);
   const peerRuntime = { ...runtime, store: archiveStore() };
   const outbound = [];
-  const peer = { kind: "electron", name, identity, kvStore, installed, runtime: peerRuntime, outbound, host: null };
+  const peer = {
+    kind: "electron",
+    name,
+    identity,
+    kvStore,
+    installed,
+    runtime: peerRuntime,
+    outbound,
+    host: null,
+  };
 
   peer.host = createElectronMiniappHost({
     provider,
@@ -336,7 +389,11 @@ function createElectronPeer(exchange, tmp, name) {
     send: (message) => outbound.push(message),
     onDeveloperModeChange() {},
     onMiniappStateChange() {},
-    getPresenceSnapshot: () => ({ autoPeers: 1, onlineInterfaces: 1, preferredInterface: "test" }),
+    getPresenceSnapshot: () => ({
+      autoPeers: 1,
+      onlineInterfaces: 1,
+      preferredInterface: "test",
+    }),
     getPublisherIdentity: async () => identity,
     publishArchive: (request) => exchange.publish(name, request),
     installFromT256: (t256) => installIntoElectronPeer(peer, exchange, t256),
@@ -344,8 +401,11 @@ function createElectronPeer(exchange, tmp, name) {
       return { approved: true };
     },
     async requestLaunchReview(review) {
-      return { accept: true, grants: review.capabilities.map((capability) => capability.id) };
-    }
+      return {
+        accept: true,
+        grants: review.capabilities.map((capability) => capability.id),
+      };
+    },
   });
 
   return peer;
@@ -357,7 +417,16 @@ function createWebPeer(exchange, tmp, name) {
   const packageStorage = new MemoryPackageStorage();
   const outbound = [];
   const relay = new WebSandboxRelay();
-  const peer = { kind: "web", name, identity, kvStore, packageStorage, outbound, relay, host: null };
+  const peer = {
+    kind: "web",
+    name,
+    identity,
+    kvStore,
+    packageStorage,
+    outbound,
+    relay,
+    host: null,
+  };
 
   peer.host = createWebWorkletMiniappHost({
     provider,
@@ -365,22 +434,35 @@ function createWebPeer(exchange, tmp, name) {
     beeStoragePath: join(tmp, `${name}-bee`),
     send: (message) => {
       outbound.push(message);
-      if (typeof message.type === "string" && message.type.startsWith("sandbox-")) {
+      if (
+        typeof message.type === "string" &&
+        message.type.startsWith("sandbox-")
+      ) {
         void relay.handle(message);
       }
     },
     onDeveloperModeChange() {},
     onMiniappStateChange() {},
-    getPresenceSnapshot: () => ({ autoPeers: 1, onlineInterfaces: 1, preferredInterface: "test" }),
+    getPresenceSnapshot: () => ({
+      autoPeers: 1,
+      onlineInterfaces: 1,
+      preferredInterface: "test",
+    }),
     getPublisherIdentity: async () => identity,
     publishArchive: (request) => exchange.publish(name, request),
     installFromT256: (t256) => installIntoWebPeer(peer, exchange, t256),
     async requestHostReply(message) {
-      if (message.type === "launch-review" || message.type === "install-review") {
-        return { accept: true, grants: message.capabilities.map((capability) => capability.id) };
+      if (
+        message.type === "launch-review" ||
+        message.type === "install-review"
+      ) {
+        return {
+          accept: true,
+          grants: message.capabilities.map((capability) => capability.id),
+        };
       }
       return { approved: true };
-    }
+    },
   });
   relay.setHost(peer.host);
 
@@ -400,25 +482,37 @@ async function installDevstudio(peer) {
         packageHash: packed.packageHash,
         installedAt: Date.now(),
         manifest: packed.manifest,
-        archivePath
+        archivePath,
       },
-      packed.archive.length
+      packed.archive.length,
     );
-    await peer.host.setGrants("devstudio", packed.manifest.publisherPublicKey, packed.manifest.capabilities, packed.manifest.capabilities);
+    await peer.host.setGrants(
+      "devstudio",
+      packed.manifest.publisherPublicKey,
+      packed.manifest.capabilities,
+      packed.manifest.capabilities,
+    );
     await peer.host.launch(peer.installed, peer.runtime, "devstudio");
   } else {
     await peer.packageStorage.installArchive(packed.archive);
-    await peer.host.setGrants("devstudio", packed.manifest.publisherPublicKey, packed.manifest.capabilities, packed.manifest.capabilities);
+    await peer.host.setGrants(
+      "devstudio",
+      packed.manifest.publisherPublicKey,
+      packed.manifest.capabilities,
+      packed.manifest.capabilities,
+    );
     await peer.host.launch(peer.packageStorage, "devstudio");
   }
 
   await waitFor(
     () => {
       const tree = latestRuntime(peer)?.runtime?.widgetTree;
-      return tree && findNode(tree, (node) => node.id === "new-project") ? true : null;
+      return tree && findNode(tree, (node) => node.id === "new-project")
+        ? true
+        : null;
     },
     20_000,
-    `${peer.name} DevStudio launch`
+    `${peer.name} DevStudio launch`,
   );
 }
 
@@ -427,10 +521,12 @@ async function createAndPublishHello(peer) {
   await waitFor(
     () => {
       const tree = latestRuntime(peer)?.runtime?.widgetTree;
-      return tree && findNode(tree, (node) => node.type === "code-editor") ? true : null;
+      return tree && findNode(tree, (node) => node.type === "code-editor")
+        ? true
+        : null;
     },
     20_000,
-    `${peer.name} project creation`
+    `${peer.name} project creation`,
   );
 
   const bundle = await peer.host.readWorkspaceFile("hello-app/bundle.js");
@@ -438,19 +534,27 @@ async function createAndPublishHello(peer) {
     throw new Error(`${peer.name} hello template was not created`);
   }
 
-  const manifestBefore = await peer.host.readWorkspaceFile("hello-app/app.json");
+  const manifestBefore =
+    await peer.host.readWorkspaceFile("hello-app/app.json");
   await peer.host.handleUiEvent("editor", "ds.edit", {
     documentId: "hello-app/app.json",
     baseLength: manifestBefore.length,
-    edits: [{
-      start: 0,
-      end: manifestBefore.length,
-      text: JSON.stringify(
-        { name: "hello-app", version: "0.1.0", entry: "bundle.js", capabilities: ["storage:kv"] },
-        null,
-        2
-      )
-    }]
+    edits: [
+      {
+        start: 0,
+        end: manifestBefore.length,
+        text: JSON.stringify(
+          {
+            name: "hello-app",
+            version: "0.1.0",
+            entry: "bundle.js",
+            capabilities: ["storage:kv"],
+          },
+          null,
+          2,
+        ),
+      },
+    ],
   });
 
   await peer.host.handleUiEvent("package", "ds.package");
@@ -458,12 +562,16 @@ async function createAndPublishHello(peer) {
     () => {
       const tree = latestRuntime(peer)?.runtime?.widgetTree;
       const qr = findNode(tree, (node) => node.type === "qr-code");
-      return qr !== null && T256_PATTERN.test(String(qr.props?.value ?? "")) ? tree : null;
+      return qr !== null && T256_PATTERN.test(String(qr.props?.value ?? ""))
+        ? tree
+        : null;
     },
     30_000,
-    `${peer.name} package QR`
+    `${peer.name} package QR`,
   );
-  const t256 = String(findNode(qrTree, (node) => node.type === "qr-code").props.value);
+  const t256 = String(
+    findNode(qrTree, (node) => node.type === "qr-code").props.value,
+  );
   if (decode256t(t256).sha512 === null) {
     throw new Error(`${peer.name} package should use a hashed 256t id`);
   }
@@ -478,7 +586,7 @@ async function createAndPublishHello(peer) {
       return status.startsWith("Published") ? true : null;
     },
     30_000,
-    `${peer.name} publish`
+    `${peer.name} publish`,
   );
 
   return t256;
@@ -496,7 +604,7 @@ async function installViaDevstudio(peer, t256, expectedPublisherPublicKey) {
       return status.startsWith("Installed hello-app") ? true : null;
     },
     30_000,
-    `${peer.name} install from 256t`
+    `${peer.name} install from 256t`,
   );
 
   const record = installedRecord(peer, "hello-app");
@@ -504,7 +612,9 @@ async function installViaDevstudio(peer, t256, expectedPublisherPublicKey) {
     throw new Error(`${peer.name} did not install hello-app`);
   }
   if (record.manifest.publisherPublicKey !== expectedPublisherPublicKey) {
-    throw new Error(`${peer.name} installed hello-app from the wrong publisher`);
+    throw new Error(
+      `${peer.name} installed hello-app from the wrong publisher`,
+    );
   }
 }
 
@@ -517,7 +627,11 @@ function installedRecord(peer, appId) {
   const version = peer.packageStorage.activeVersion(appId);
   return version === null
     ? null
-    : peer.packageStorage.listInstalled().find((record) => record.appId === appId && record.version === version) ?? null;
+    : (peer.packageStorage
+        .listInstalled()
+        .find(
+          (record) => record.appId === appId && record.version === version,
+        ) ?? null);
 }
 
 async function installIntoElectronPeer(peer, exchange, t256) {
@@ -529,7 +643,9 @@ async function installIntoElectronPeer(peer, exchange, t256) {
     throw new Error("published archive does not match 256t id");
   }
 
-  const verified = verifyPackage(provider, published.archive, { hostApiVersion: HOST_API_VERSION });
+  const verified = verifyPackage(provider, published.archive, {
+    hostApiVersion: HOST_API_VERSION,
+  });
   const archivePath = `packages/${verified.manifest.name}/${verified.manifest.version}.tpkg`;
   await peer.runtime.store.set(archivePath, published.archive);
   peer.installed.install(
@@ -539,17 +655,21 @@ async function installIntoElectronPeer(peer, exchange, t256) {
       packageHash: verified.packageHash,
       installedAt: Date.now(),
       manifest: verified.manifest,
-      archivePath
+      archivePath,
     },
-    published.archive.length
+    published.archive.length,
   );
   await peer.host.setGrants(
     verified.manifest.name,
     verified.manifest.publisherPublicKey,
     verified.manifest.capabilities,
-    verified.manifest.capabilities
+    verified.manifest.capabilities,
   );
-  return { appId: verified.manifest.name, version: verified.manifest.version, trusted: true };
+  return {
+    appId: verified.manifest.name,
+    version: verified.manifest.version,
+    trusted: true,
+  };
 }
 
 async function installIntoWebPeer(peer, exchange, t256) {
@@ -567,7 +687,7 @@ async function installIntoWebPeer(peer, exchange, t256) {
     installed.appId,
     record.manifest.publisherPublicKey,
     record.manifest.capabilities,
-    record.manifest.capabilities
+    record.manifest.capabilities,
   );
   return { appId: installed.appId, version: installed.version, trusted: true };
 }
@@ -584,10 +704,13 @@ async function launchReceivedHello(peer) {
   await waitFor(
     () => {
       const tree = latestRuntime(peer)?.runtime?.widgetTree;
-      return tree && findNode(tree, (node) => node.props?.value === "Hello from DevStudio") ? true : null;
+      return tree &&
+        findNode(tree, (node) => node.props?.value === "Hello from DevStudio")
+        ? true
+        : null;
     },
     20_000,
-    `${peer.name} launch received hello-app`
+    `${peer.name} launch received hello-app`,
   );
 }
 
@@ -601,7 +724,7 @@ export async function runDevstudioCrossVersion() {
     await Promise.all([
       electron.host.stop("cleanup").catch(() => {}),
       web.host.stop("cleanup").catch(() => {}),
-      web.relay.close().catch(() => {})
+      web.relay.close().catch(() => {}),
     ]);
     rmSync(tmp, { recursive: true, force: true });
   };
@@ -611,16 +734,24 @@ export async function runDevstudioCrossVersion() {
     await installDevstudio(web);
 
     const electronT256 = await createAndPublishHello(electron);
-    await installViaDevstudio(web, electronT256, bytesToHex(electron.identity.getPublicKey()));
+    await installViaDevstudio(
+      web,
+      electronT256,
+      bytesToHex(electron.identity.getPublicKey()),
+    );
 
     const webT256 = await createAndPublishHello(web);
-    await installViaDevstudio(electron, webT256, bytesToHex(web.identity.getPublicKey()));
+    await installViaDevstudio(
+      electron,
+      webT256,
+      bytesToHex(web.identity.getPublicKey()),
+    );
 
     await launchReceivedHello(web);
     await launchReceivedHello(electron);
 
     console.log(
-      "devstudio-cross-version: electron create -> web install/run and web create -> electron install/run passed"
+      "devstudio-cross-version: electron create -> web install/run and web create -> electron install/run passed",
     );
   } catch (error) {
     console.error(error);

@@ -21,7 +21,7 @@ import {
   harnessInstalledOnBootedSim,
   isDarwin,
   simctl,
-  simctlAvailable
+  simctlAvailable,
 } from "../../../conformance/ios-sim/helpers.mjs";
 import {
   PACKAGE_ID,
@@ -31,7 +31,7 @@ import {
   launchHarness,
   maestroAvailable,
   requireDevice,
-  waitForBootComplete
+  waitForBootComplete,
 } from "../../../conformance/android-emulator/helpers.mjs";
 import { CONTROL_PORT, HUB_PORT } from "../state.mjs";
 
@@ -47,7 +47,7 @@ function adbReverseHubPorts(log) {
       log(`android: adb reverse tcp:${port}`);
     } catch (error) {
       throw new Error(
-        `adb reverse tcp:${port} failed: ${error instanceof Error ? error.message : String(error)}`
+        `adb reverse tcp:${port} failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -60,7 +60,7 @@ function maestroEnv() {
   return {
     ...process.env,
     PATH: `${home}/.maestro/bin:${process.env.PATH ?? ""}`,
-    ELECTRON_RUN_AS_NODE: undefined
+    ELECTRON_RUN_AS_NODE: undefined,
   };
 }
 
@@ -69,7 +69,7 @@ function runFlow(id, device, log) {
   const result = spawnSync("maestro", ["--device", device, "test", FLOW], {
     cwd: repoRoot,
     encoding: "utf8",
-    env: maestroEnv()
+    env: maestroEnv(),
   });
   appendFileSync(logPath(id), `${result.stdout ?? ""}${result.stderr ?? ""}`);
   if (result.status !== 0) {
@@ -93,14 +93,16 @@ export const iosAdapter = {
     const udid = ensureBootedSimulator();
     log(`ios: simulator ${udid} booted`);
     if (build || !harnessInstalledOnBootedSim()) {
-      log("ios: building and installing the harness (this takes several minutes)");
+      log(
+        "ios: building and installing the harness (this takes several minutes)",
+      );
       buildAndInstallHarness(repoRoot);
     }
     try {
       runFlow("ios", udid, log);
     } catch (error) {
       spawnSync("xcrun", ["simctl", "terminate", udid, HARNESS_BUNDLE_ID], {
-        encoding: "utf8"
+        encoding: "utf8",
       });
       throw error;
     }
@@ -117,7 +119,9 @@ export const iosAdapter = {
     }
     // Terminate the app but leave the simulator booted: rebooting it costs
     // minutes on the next `up` and it holds no peer state of its own.
-    spawnSync("xcrun", ["simctl", "terminate", udid, HARNESS_BUNDLE_ID], { encoding: "utf8" });
+    spawnSync("xcrun", ["simctl", "terminate", udid, HARNESS_BUNDLE_ID], {
+      encoding: "utf8",
+    });
     log("ios: harness terminated");
   },
 
@@ -127,13 +131,14 @@ export const iosAdapter = {
     }
     const result = simctl(["spawn", entry.udid, "launchctl", "list"]);
     return result.includes(HARNESS_BUNDLE_ID);
-  }
+  },
 };
 
 export const androidAdapter = {
   id: "android",
   kind: "android",
-  describe: () => "Android emulator harness (TCP client via adb reverse to 127.0.0.1 hub)",
+  describe: () =>
+    "Android emulator harness (TCP client via adb reverse to 127.0.0.1 hub)",
 
   async up({ log, build }) {
     if (spawnSync("adb", ["version"], { encoding: "utf8" }).status !== 0) {
@@ -147,12 +152,14 @@ export const androidAdapter = {
     }
 
     if (build || !harnessInstalled()) {
-      log("android: building and installing the harness (this takes several minutes)");
+      log(
+        "android: building and installing the harness (this takes several minutes)",
+      );
       buildAndInstallAndroidHarness(repoRoot);
     }
     if (!harnessInstalled()) {
       throw new Error(
-        `${PACKAGE_ID} is not installed on the emulator after build — check adb install logs`
+        `${PACKAGE_ID} is not installed on the emulator after build — check adb install logs`,
       );
     }
     // Host hub TCP is often refused via 10.0.2.2 even when ICMP works; reverse to
@@ -161,11 +168,17 @@ export const androidAdapter = {
     // Pre-grant mic so Android-originated WebRTC attach does not block on a
     // runtime permission dialog under Maestro / headless control.
     try {
-      adb(["shell", "pm", "grant", PACKAGE_ID, "android.permission.RECORD_AUDIO"]);
+      adb([
+        "shell",
+        "pm",
+        "grant",
+        PACKAGE_ID,
+        "android.permission.RECORD_AUDIO",
+      ]);
       log("android: granted RECORD_AUDIO");
     } catch (error) {
       log(
-        `android: RECORD_AUDIO grant skipped (${error instanceof Error ? error.message : String(error)})`
+        `android: RECORD_AUDIO grant skipped (${error instanceof Error ? error.message : String(error)})`,
       );
     }
     try {
@@ -196,5 +209,5 @@ export const androidAdapter = {
     } catch {
       return false;
     }
-  }
+  },
 };

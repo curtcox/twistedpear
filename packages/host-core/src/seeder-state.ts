@@ -31,7 +31,9 @@ export function isSeederStateDir(address: string | null): address is string {
     return false;
   }
 
-  return address.startsWith(".") || address.startsWith("/") || address.includes("/");
+  return (
+    address.startsWith(".") || address.startsWith("/") || address.includes("/")
+  );
 }
 
 export function seederArchiveFile(driveKey: string, version: string): string {
@@ -61,13 +63,16 @@ export function loadSeederState(stateDir: string): SeederState {
           {
             packageHash: info.packageHash,
             size: info.size,
-            archiveFile: info.archiveFile ?? info.archivePath ?? seederArchiveFile(drive.driveKey, version),
-            ...(info.storedAt === undefined ? {} : { storedAt: info.storedAt })
-          }
-        ])
-      )
+            archiveFile:
+              info.archiveFile ??
+              info.archivePath ??
+              seederArchiveFile(drive.driveKey, version),
+            ...(info.storedAt === undefined ? {} : { storedAt: info.storedAt }),
+          },
+        ]),
+      ),
     })),
-    pinnedVersions: raw.pinnedVersions ?? []
+    pinnedVersions: raw.pinnedVersions ?? [],
   };
 }
 
@@ -89,7 +94,10 @@ export function pinSeederVersion(stateDir: string, version: string): void {
   writeSeederState(stateDir, { ...state, pinnedVersions: [...pinned] });
 }
 
-export function evictSeederToQuota(stateDir: string, quotaBytes: number): number {
+export function evictSeederToQuota(
+  stateDir: string,
+  quotaBytes: number,
+): number {
   let state = loadSeederState(stateDir);
   const pinned = new Set(state.pinnedVersions ?? []);
   let evicted = 0;
@@ -117,7 +125,7 @@ export function evictSeederToQuota(stateDir: string, quotaBytes: number): number
           delete versions[candidate.version];
           return { driveKey: drive.driveKey, versions };
         })
-        .filter((drive) => Object.keys(drive.versions).length > 0)
+        .filter((drive) => Object.keys(drive.versions).length > 0),
     };
     writeSeederState(stateDir, state);
     evicted += 1;
@@ -128,11 +136,18 @@ export function evictSeederToQuota(stateDir: string, quotaBytes: number): number
 
 function findOldestEvictableVersion(
   state: SeederState,
-  pinned: ReadonlySet<string>
-): { readonly driveKey: string; readonly version: string; readonly archiveFile: string } | null {
-  let oldest:
-    | { readonly driveKey: string; readonly version: string; readonly archiveFile: string; readonly storedAt: number }
-    | null = null;
+  pinned: ReadonlySet<string>,
+): {
+  readonly driveKey: string;
+  readonly version: string;
+  readonly archiveFile: string;
+} | null {
+  let oldest: {
+    readonly driveKey: string;
+    readonly version: string;
+    readonly archiveFile: string;
+    readonly storedAt: number;
+  } | null = null;
 
   for (const drive of state.drives) {
     for (const [version, info] of Object.entries(drive.versions)) {
@@ -146,7 +161,7 @@ function findOldestEvictableVersion(
           driveKey: drive.driveKey,
           version,
           archiveFile: info.archiveFile,
-          storedAt
+          storedAt,
         };
       }
     }
@@ -165,7 +180,7 @@ export function registerDriveWithSeeder(
   driveKey: string,
   version: string,
   packageHash: string,
-  archiveBytes: Uint8Array
+  archiveBytes: Uint8Array,
 ): void {
   ensureDir(stateDir);
   const archiveFile = seederArchiveFile(driveKey, version);
@@ -184,9 +199,14 @@ export function registerDriveWithSeeder(
           {
             driveKey,
             versions: {
-              [version]: { packageHash, archiveFile, size: archiveBytes.length, storedAt }
-            }
-          }
+              [version]: {
+                packageHash,
+                archiveFile,
+                size: archiveBytes.length,
+                storedAt,
+              },
+            },
+          },
         ]
       : state.drives.map((drive) =>
           drive.driveKey === driveKey
@@ -194,10 +214,15 @@ export function registerDriveWithSeeder(
                 driveKey,
                 versions: {
                   ...drive.versions,
-                  [version]: { packageHash, archiveFile, size: archiveBytes.length, storedAt }
-                }
+                  [version]: {
+                    packageHash,
+                    archiveFile,
+                    size: archiveBytes.length,
+                    storedAt,
+                  },
+                },
               }
-            : drive
+            : drive,
         );
 
   writeSeederState(stateDir, { ...state, drives });
@@ -209,13 +234,21 @@ export function registerDriveWithSeederQuota(
   version: string,
   packageHash: string,
   archiveBytes: Uint8Array,
-  quotaBytes: number
+  quotaBytes: number,
 ): number {
-  registerDriveWithSeeder(stateDir, driveKey, version, packageHash, archiveBytes);
+  registerDriveWithSeeder(
+    stateDir,
+    driveKey,
+    version,
+    packageHash,
+    archiveBytes,
+  );
   return evictSeederToQuota(stateDir, quotaBytes);
 }
 
-export function listSeederArchives(state: SeederState): ReadonlyArray<SeederArchiveVersion> {
+export function listSeederArchives(
+  state: SeederState,
+): ReadonlyArray<SeederArchiveVersion> {
   const versions: SeederArchiveVersion[] = [];
 
   for (const drive of state.drives) {
@@ -224,15 +257,21 @@ export function listSeederArchives(state: SeederState): ReadonlyArray<SeederArch
         driveKey: drive.driveKey,
         version,
         packageHash: info.packageHash,
-        size: info.size
+        size: info.size,
       });
     }
   }
 
-  return versions.sort((left, right) => left.version.localeCompare(right.version));
+  return versions.sort((left, right) =>
+    left.version.localeCompare(right.version),
+  );
 }
 
-export function readSeederArchive(stateDir: string, state: SeederState, version: string): Uint8Array {
+export function readSeederArchive(
+  stateDir: string,
+  state: SeederState,
+  version: string,
+): Uint8Array {
   for (const drive of state.drives) {
     const info = drive.versions[version];
     if (info === undefined) {

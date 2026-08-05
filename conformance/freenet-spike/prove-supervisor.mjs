@@ -7,7 +7,14 @@
  */
 
 import { createHash } from "node:crypto";
-import { createReadStream, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -52,7 +59,7 @@ await runMain(async () => {
     maxRestartAttempts: 1,
     onStatus: (status, detail) => {
       statuses.push({ status, detail: detail ?? null });
-    }
+    },
   });
 
   try {
@@ -65,26 +72,38 @@ await runMain(async () => {
 
     step("starting supervised Freenet process");
     const snapshot = await supervisor.start();
-    assert(snapshot.status === "online", `expected online, got ${snapshot.status}`);
-    assert(snapshot.wsUrl !== null && snapshot.wsUrl.startsWith("ws://127.0.0.1:"), "wsUrl");
+    assert(
+      snapshot.status === "online",
+      `expected online, got ${snapshot.status}`,
+    );
+    assert(
+      snapshot.wsUrl !== null && snapshot.wsUrl.startsWith("ws://127.0.0.1:"),
+      "wsUrl",
+    );
     assert(
       snapshot.authToken !== null && snapshot.authToken.length >= 32,
-      "auth token generated"
+      "auth token generated",
     );
-    assert(!snapshot.wsUrl.includes(snapshot.authToken), "token must not appear in wsUrl");
+    assert(
+      !snapshot.wsUrl.includes(snapshot.authToken),
+      "token must not appear in wsUrl",
+    );
     assert(
       !JSON.stringify(statuses).includes(snapshot.authToken),
-      "token must not appear in status callbacks"
+      "token must not appear in status callbacks",
     );
     const redacted = redactFreenetAuthToken(
       `token=${snapshot.authToken}`,
-      snapshot.authToken
+      snapshot.authToken,
     );
     assert(redacted === "token=[redacted-token]", "redaction helper");
 
     step("stopping supervised Freenet process");
     await supervisor.stop();
-    assert(supervisor.status === "stopped", `expected stopped, got ${supervisor.status}`);
+    assert(
+      supervisor.status === "stopped",
+      `expected stopped, got ${supervisor.status}`,
+    );
 
     const proof = {
       schemaVersion: 1,
@@ -97,7 +116,7 @@ await runMain(async () => {
       statuses,
       wsUrlShape: "ws://127.0.0.1:<ephemeral>/v1/contract/command",
       authTokenInUrl: false,
-      conclusion: "FreenetSupervisor reached online and stopped cleanly"
+      conclusion: "FreenetSupervisor reached online and stopped cleanly",
     };
     const outDir = join(repoRoot, ".tmp");
     mkdirSync(outDir, { recursive: true });

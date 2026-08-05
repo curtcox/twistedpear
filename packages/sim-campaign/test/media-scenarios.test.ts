@@ -8,14 +8,31 @@ import {
   mediaLadderHistory,
   runCampaign,
   type MediaLadderState,
-  type MediaLinkProfile
+  type MediaLinkProfile,
 } from "../src/index.js";
 
-const profiles: readonly MediaLinkProfile[] = ["collapse-recover", "asymmetric", "bufferbloat", "flapping"];
-const transports: readonly TransportClassName[] = ["lan", "internet", "ble", "lora"];
-const [cell] = coverageFrame({ capabilities: ["device:stream"], positions: ["malicious-peer"], verbs: ["deny"] });
+const profiles: readonly MediaLinkProfile[] = [
+  "collapse-recover",
+  "asymmetric",
+  "bufferbloat",
+  "flapping",
+];
+const transports: readonly TransportClassName[] = [
+  "lan",
+  "internet",
+  "ble",
+  "lora",
+];
+const [cell] = coverageFrame({
+  capabilities: ["device:stream"],
+  positions: ["malicious-peer"],
+  verbs: ["deny"],
+});
 
-function runHistory(profile: MediaLinkProfile, transport: TransportClassName = "internet") {
+function runHistory(
+  profile: MediaLinkProfile,
+  transport: TransportClassName = "internet",
+) {
   const scenario = createMediaLadderScenario({ transport, profile });
   const kernel = new SimKernel(scenario.config);
   kernel.start();
@@ -30,7 +47,7 @@ describe("media ladder campaign", () => {
         const report = await runCampaign({
           cells: [cell!],
           seeds: { from: 1, to: 1 },
-          scenario: () => createMediaLadderScenario({ transport, profile })
+          scenario: () => createMediaLadderScenario({ transport, profile }),
         });
         expect(report.findings, `${transport}:${profile}`).toEqual([]);
       }
@@ -41,7 +58,9 @@ describe("media ladder campaign", () => {
     const history = runHistory("collapse-recover");
     expect(history.length).toBeGreaterThan(30);
     const start = history[0]!;
-    const worst = history.reduce((left, right) => (right.rungIndex > left.rungIndex ? right : left));
+    const worst = history.reduce((left, right) =>
+      right.rungIndex > left.rungIndex ? right : left,
+    );
     const end = history[history.length - 1]!;
     expect(worst.rungIndex).toBeGreaterThan(start.rungIndex);
     // Recovery is liveness: after the link comes back the call must climb, not
@@ -59,7 +78,8 @@ describe("media ladder campaign", () => {
     const history = runHistory("flapping");
     let upshifts = 0;
     for (let index = 1; index < history.length; index += 1) {
-      if (history[index]!.rungIndex < history[index - 1]!.rungIndex) upshifts += 1;
+      if (history[index]!.rungIndex < history[index - 1]!.rungIndex)
+        upshifts += 1;
     }
     // Four alternating good samples never accumulate, so no upshift is earned.
     expect(upshifts).toBe(0);
@@ -67,7 +87,9 @@ describe("media ladder campaign", () => {
 
   it("degrades under a growing queue even while nominal goodput holds", () => {
     const history = runHistory("bufferbloat");
-    expect(history[history.length - 1]!.rungIndex).toBeGreaterThan(history[0]!.rungIndex);
+    expect(history[history.length - 1]!.rungIndex).toBeGreaterThan(
+      history[0]!.rungIndex,
+    );
   });
 
   it("records and shrinks a deliberate two-rung jump", async () => {
@@ -76,7 +98,12 @@ describe("media ladder campaign", () => {
       cells: [cell!],
       seeds: { from: 3, to: 3 },
       scenario: () =>
-        createMediaLadderScenario({ transport: "lan", profile: "collapse-recover", brokenLadderStep: true, recorder })
+        createMediaLadderScenario({
+          transport: "lan",
+          profile: "collapse-recover",
+          brokenLadderStep: true,
+          recorder,
+        }),
     });
     expect(report.findings).toHaveLength(1);
     expect(report.findings[0]!.violation.message).toMatch(/in one step/);

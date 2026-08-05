@@ -6,7 +6,10 @@
 
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
-import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
+import {
+  DestinationDirection,
+  DestinationType,
+} from "../../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
@@ -19,7 +22,7 @@ import {
   sleep,
   waitForInterfaceOnline,
   waitForReceipt,
-  waitForPath
+  waitForPath,
 } from "./helpers.mjs";
 
 async function waitForPathLoss(reticulum, destinationHash, timeoutMs = 10_000) {
@@ -40,7 +43,7 @@ export async function runBareLifecycleSlice(options = {}) {
     label = "lifecycle",
     storePath = `${repoRoot}/.lifecycle-slice-store`,
     cycles = 10,
-    reconnectTimeoutMs = 10_000
+    reconnectTimeoutMs = 10_000,
   } = options;
 
   const cycleMetrics = [];
@@ -57,8 +60,14 @@ export async function runBareLifecycleSlice(options = {}) {
   const reticulum = Reticulum.create({ provider, runtime });
   reticulum.start();
 
-  const aliceIdentity = Identity.fromBytes(provider, hexToBytes(aliceEntry.privateKeyHex));
-  const bobIdentity = Identity.fromBytes(provider, hexToBytes(bobEntry.privateKeyHex));
+  const aliceIdentity = Identity.fromBytes(
+    provider,
+    hexToBytes(aliceEntry.privateKeyHex),
+  );
+  const bobIdentity = Identity.fromBytes(
+    provider,
+    hexToBytes(bobEntry.privateKeyHex),
+  );
   if (aliceIdentity === null || bobIdentity === null) {
     throw new Error("Failed to load interop identities");
   }
@@ -69,7 +78,7 @@ export async function runBareLifecycleSlice(options = {}) {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"]
+    aspects: ["echo"],
   });
   aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -79,13 +88,13 @@ export async function runBareLifecycleSlice(options = {}) {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"]
+    aspects: ["echo"],
   });
 
   let iface = await reticulum.addTcpClientInterface({
     name: `${label}-peer`,
     targetHost: INTEROP_HOST,
-    targetPort: LEAF_ECHO_PORT
+    targetPort: LEAF_ECHO_PORT,
   });
   await waitForInterfaceOnline(iface, reconnectTimeoutMs);
 
@@ -105,7 +114,7 @@ export async function runBareLifecycleSlice(options = {}) {
     iface = await reticulum.addTcpClientInterface({
       name: `${label}-peer-${cycle}`,
       targetHost: INTEROP_HOST,
-      targetPort: LEAF_ECHO_PORT
+      targetPort: LEAF_ECHO_PORT,
     });
     await waitForInterfaceOnline(iface, reconnectTimeoutMs);
     await aliceIn.announce();
@@ -115,12 +124,17 @@ export async function runBareLifecycleSlice(options = {}) {
     cycleMetrics.push({ cycle, reconnectMs });
 
     if (reconnectMs > reconnectTimeoutMs) {
-      throw new Error(`${label}: reconnect exceeded ${reconnectTimeoutMs}ms on cycle ${cycle}`);
+      throw new Error(
+        `${label}: reconnect exceeded ${reconnectTimeoutMs}ms on cycle ${cycle}`,
+      );
     }
 
-    const afterResume = await bobOut.send(new TextEncoder().encode(`${label}-resume-${cycle}`), {
-      createReceipt: true
-    });
+    const afterResume = await bobOut.send(
+      new TextEncoder().encode(`${label}-resume-${cycle}`),
+      {
+        createReceipt: true,
+      },
+    );
     await waitForReceipt(afterResume);
   }
 
@@ -135,7 +149,7 @@ export async function runBareLifecycleSlice(options = {}) {
     reconnectMs,
     reconnectP50Ms: percentile(reconnectMs, 50),
     reconnectP95Ms: percentile(reconnectMs, 95),
-    reconnectMaxMs: reconnectMs.length > 0 ? Math.max(...reconnectMs) : 0
+    reconnectMaxMs: reconnectMs.length > 0 ? Math.max(...reconnectMs) : 0,
   };
 
   return summary;
@@ -147,6 +161,9 @@ function percentile(values, p) {
   }
 
   const sorted = [...values].sort((left, right) => left - right);
-  const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
+  const index = Math.min(
+    sorted.length - 1,
+    Math.ceil((p / 100) * sorted.length) - 1,
+  );
   return sorted[index];
 }

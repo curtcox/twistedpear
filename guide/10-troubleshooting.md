@@ -14,7 +14,7 @@ Almost every question is answered by one screen.
 
 ![The node status panel annotated](/guide/images/10-status-annotated.png)
 
-**Screenshot 10.1 — Node status, annotated.** The *Node status* panel with callout labels
+**Screenshot 10.1 — Node status, annotated.** The _Node status_ panel with callout labels
 pointing at each field: worklet state, link state, crypto provider, announces seen,
 interfaces online, identity, persisted flag, and enabled roles. Each callout has a
 one-line explanation of what "healthy" looks like for that field.
@@ -67,11 +67,11 @@ outright and will say so. If the rate is genuinely zero, cancel and check the li
 
 ## "A message failed to send"
 
-| Indicator | Meaning | Do |
-|---|---|---|
-| "no route" | Your host does not know how to reach that address at all. | Confirm the address; confirm you have peers. |
-| "held for delivery" | The peer is offline; a propagation server has it. | Nothing — it arrives when they return. |
-| "failed" after being held | No propagation server was reachable. | See [Chapter 7](07-messaging.md). Somebody has to run one. |
+| Indicator                 | Meaning                                                   | Do                                                         |
+| ------------------------- | --------------------------------------------------------- | ---------------------------------------------------------- |
+| "no route"                | Your host does not know how to reach that address at all. | Confirm the address; confirm you have peers.               |
+| "held for delivery"       | The peer is offline; a propagation server has it.         | Nothing — it arrives when they return.                     |
+| "failed" after being held | No propagation server was reachable.                      | See [Chapter 7](07-messaging.md). Somebody has to run one. |
 
 If messages to one specific person always fail while others work, the address is wrong or
 that person's host is not running.

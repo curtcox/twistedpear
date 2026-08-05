@@ -1,7 +1,7 @@
 import {
   decodeCasLocator,
   encodeCasLocator,
-  type CasLocator
+  type CasLocator,
 } from "@twistedpear/cas-256t";
 
 const LOCATOR_STATE_MAGIC = new Uint8Array([0x54, 0x50, 0x46, 0x4c, 0x01]); // TPFL\x01
@@ -17,7 +17,7 @@ function equalPrefix(bytes: Uint8Array, prefix: Uint8Array): boolean {
 }
 
 export function encodeFreenetLocatorState(
-  value: FreenetLocatorState
+  value: FreenetLocatorState,
 ): Uint8Array {
   const locatorBytes = encodeCasLocator(value.locator);
   if (locatorBytes.length > 0xffff) {
@@ -28,19 +28,23 @@ export function encodeFreenetLocatorState(
   }
 
   const out = new Uint8Array(
-    HEADER_BYTES + locatorBytes.length + value.archiveBytes.length
+    HEADER_BYTES + locatorBytes.length + value.archiveBytes.length,
   );
   out.set(LOCATOR_STATE_MAGIC);
   const view = new DataView(out.buffer, out.byteOffset, out.byteLength);
   view.setUint16(LOCATOR_STATE_MAGIC.length, locatorBytes.length, false);
-  view.setUint32(LOCATOR_STATE_MAGIC.length + 2, value.archiveBytes.length, false);
+  view.setUint32(
+    LOCATOR_STATE_MAGIC.length + 2,
+    value.archiveBytes.length,
+    false,
+  );
   out.set(locatorBytes, HEADER_BYTES);
   out.set(value.archiveBytes, HEADER_BYTES + locatorBytes.length);
   return out;
 }
 
 export function decodeFreenetLocatorState(
-  bytes: Uint8Array
+  bytes: Uint8Array,
 ): FreenetLocatorState {
   if (bytes.length < HEADER_BYTES || !equalPrefix(bytes, LOCATOR_STATE_MAGIC)) {
     throw new Error("Invalid Freenet locator state magic");
@@ -53,10 +57,10 @@ export function decodeFreenetLocatorState(
   }
 
   const locator = decodeCasLocator(
-    bytes.subarray(HEADER_BYTES, HEADER_BYTES + locatorLength)
+    bytes.subarray(HEADER_BYTES, HEADER_BYTES + locatorLength),
   );
   const archiveBytes = Uint8Array.from(
-    bytes.subarray(HEADER_BYTES + locatorLength)
+    bytes.subarray(HEADER_BYTES + locatorLength),
   );
   return { locator, archiveBytes };
 }

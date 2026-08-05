@@ -74,7 +74,11 @@ function auditDeadLinks(toc) {
     for (const chapter of part.chapters) {
       const path = join(contentDir, chapter.file);
       if (!existsSync(path)) {
-        issues.push({ kind: "missing-file", chapter: chapter.id, detail: chapter.file });
+        issues.push({
+          kind: "missing-file",
+          chapter: chapter.id,
+          detail: chapter.file,
+        });
         continue;
       }
       const markdown = readFileSync(path, "utf8");
@@ -85,19 +89,22 @@ function auditDeadLinks(toc) {
             issues.push({
               kind: "broken-chapter-link",
               chapter: chapter.id,
-              detail: link.target
+              detail: link.target,
             });
           }
           continue;
         }
-        if (link.target.startsWith("http://") || link.target.startsWith("https://")) {
+        if (
+          link.target.startsWith("http://") ||
+          link.target.startsWith("https://")
+        ) {
           continue;
         }
         if (link.target.startsWith("../") || link.target.endsWith(".md")) {
           issues.push({
             kind: "dead-in-app-link",
             chapter: chapter.id,
-            detail: `${link.label} → ${link.target}`
+            detail: `${link.label} → ${link.target}`,
           });
         }
       }
@@ -115,14 +122,20 @@ function auditWordCounts(toc) {
       }
       const path = join(contentDir, chapter.file);
       const markdown = readFileSync(path, "utf8");
-      const words = wordCount(markdown.replace(/```[\s\S]*?```/g, " ").replace(/\{\{applet:[^}]+\}\}/g, " "));
+      const words = wordCount(
+        markdown
+          .replace(/```[\s\S]*?```/g, " ")
+          .replace(/\{\{applet:[^}]+\}\}/g, " "),
+      );
       const min =
-        part.id === "part-4-diagnostics" ? MIN_WORDS_PART_IV : MIN_WORDS_PART_I_III;
+        part.id === "part-4-diagnostics"
+          ? MIN_WORDS_PART_IV
+          : MIN_WORDS_PART_I_III;
       if (words < min) {
         issues.push({
           kind: "thin-chapter",
           chapter: chapter.id,
-          detail: `${words} words (minimum ${min})`
+          detail: `${words} words (minimum ${min})`,
         });
       }
     }
@@ -151,7 +164,7 @@ function auditAppletExpectations() {
         issues.push({
           kind: "missing-expectation",
           chapter: meta.id,
-          detail: `no expectation for platform ${platform}`
+          detail: `no expectation for platform ${platform}`,
         });
       }
     }
@@ -164,7 +177,7 @@ function main() {
   const issues = [
     ...auditDeadLinks(toc),
     ...auditWordCounts(toc),
-    ...auditAppletExpectations()
+    ...auditAppletExpectations(),
   ];
 
   if (issues.length === 0) {

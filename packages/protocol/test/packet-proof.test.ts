@@ -38,7 +38,7 @@ import {
   stepPacketReceiptProofAcceptPlanWithActions,
   stepPacketReceiptProofAcceptWithActions,
   stepPacketTypeProofWithActions,
-  stepSplitPacketProofWithActions
+  stepSplitPacketProofWithActions,
 } from "../src/packet-proof.js";
 import { PACKET_TYPE_DATA, PACKET_TYPE_PROOF } from "../src/packet-header.js";
 
@@ -55,7 +55,12 @@ describe("protocol packet proof framing", () => {
       expect([...split.packetHash]).toEqual([...packetHash]);
       expect([...split.signature]).toEqual([...signature]);
       expect(packetProofHashMatches(split, packetHash)).toBe(true);
-      expect(packetProofHashMatches(split, new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9))).toBe(false);
+      expect(
+        packetProofHashMatches(
+          split,
+          new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9),
+        ),
+      ).toBe(false);
     }
   });
 
@@ -77,46 +82,60 @@ describe("protocol packet proof framing", () => {
   });
 
   it("emits packet-type only from proof/other actions", () => {
-    const proof = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
-      kind: "packet-proof/packet-type-gate",
-      packetType: PACKET_TYPE_PROOF
-    });
+    const proof = stepPacketTypeProofWithActions(
+      initialPacketTypeProofState(),
+      {
+        kind: "packet-proof/packet-type-gate",
+        packetType: PACKET_TYPE_PROOF,
+      },
+    );
     expect(shouldTreatPacketTypeProof(proof.actions)).toBe(true);
     expect(shouldTreatPacketTypeOther(proof.actions)).toBe(false);
 
-    const other = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
-      kind: "packet-proof/packet-type-gate",
-      packetType: PACKET_TYPE_DATA
-    });
+    const other = stepPacketTypeProofWithActions(
+      initialPacketTypeProofState(),
+      {
+        kind: "packet-proof/packet-type-gate",
+        packetType: PACKET_TYPE_DATA,
+      },
+    );
     expect(shouldTreatPacketTypeProof(other.actions)).toBe(false);
     expect(shouldTreatPacketTypeOther(other.actions)).toBe(true);
 
-    const empty = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
-      kind: "timer/fired",
-      timer: { id: "x" }
-    });
+    const empty = stepPacketTypeProofWithActions(
+      initialPacketTypeProofState(),
+      {
+        kind: "timer/fired",
+        timer: { id: "x" },
+      },
+    );
     expect(shouldTreatPacketTypeProof(empty.actions)).toBe(false);
     expect(shouldTreatPacketTypeOther(empty.actions)).toBe(false);
   });
 
   it("emits pack framing bytes from WithActions step", () => {
-    const stepped = stepPackPacketProofWithActions(initialPackPacketProofState(), {
-      kind: "packet-proof/pack-gate",
-      packetHash,
-      signature,
-      explicit: true
-    });
+    const stepped = stepPackPacketProofWithActions(
+      initialPackPacketProofState(),
+      {
+        kind: "packet-proof/pack-gate",
+        packetHash,
+        signature,
+        explicit: true,
+      },
+    );
     expect(shouldUsePackPacketProof(stepped.actions)).toBe(true);
     const packed = packPacketProofRawFromActions(stepped.actions);
     expect(packed).not.toBeNull();
-    expect([...packed!]).toEqual([...packPacketProof(packetHash, signature, true)]);
+    expect([...packed!]).toEqual([
+      ...packPacketProof(packetHash, signature, true),
+    ]);
   });
 
   it("emits split fields or reject from WithActions step", () => {
     const packed = packPacketProof(packetHash, signature, true);
     const ok = stepSplitPacketProofWithActions(initialSplitPacketProofState(), {
       kind: "packet-proof/split-gate",
-      proof: packed
+      proof: packed,
     });
     expect(shouldUseSplitPacketProof(ok.actions)).toBe(true);
     expect(shouldRejectSplitPacketProof(ok.actions)).toBe(false);
@@ -127,10 +146,13 @@ describe("protocol packet proof framing", () => {
       expect([...fields.signature]).toEqual([...signature]);
     }
 
-    const rejected = stepSplitPacketProofWithActions(initialSplitPacketProofState(), {
-      kind: "packet-proof/split-gate",
-      proof: new Uint8Array(10)
-    });
+    const rejected = stepSplitPacketProofWithActions(
+      initialSplitPacketProofState(),
+      {
+        kind: "packet-proof/split-gate",
+        proof: new Uint8Array(10),
+      },
+    );
     expect(shouldRejectSplitPacketProof(rejected.actions)).toBe(true);
     expect(shouldUseSplitPacketProof(rejected.actions)).toBe(false);
     expect(packetProofFieldsFromActions(rejected.actions)).toBeNull();
@@ -139,28 +161,39 @@ describe("protocol packet proof framing", () => {
   it("emits match or mismatch from hash-match WithActions step", () => {
     const packed = packPacketProof(packetHash, signature, true);
     const fields = splitPacketProof(packed)!;
-    const match = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
-      kind: "packet-proof/hash-match-gate",
-      proof: fields,
-      packetHash
-    });
+    const match = stepPacketProofHashMatchWithActions(
+      initialPacketProofHashMatchState(),
+      {
+        kind: "packet-proof/hash-match-gate",
+        proof: fields,
+        packetHash,
+      },
+    );
     expect(shouldMatchPacketProofHash(match.actions)).toBe(true);
     expect(shouldMismatchPacketProofHash(match.actions)).toBe(false);
 
-    const mismatch = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
-      kind: "packet-proof/hash-match-gate",
-      proof: fields,
-      packetHash: new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9)
-    });
+    const mismatch = stepPacketProofHashMatchWithActions(
+      initialPacketProofHashMatchState(),
+      {
+        kind: "packet-proof/hash-match-gate",
+        proof: fields,
+        packetHash: new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9),
+      },
+    );
     expect(shouldMatchPacketProofHash(mismatch.actions)).toBe(false);
     expect(shouldMismatchPacketProofHash(mismatch.actions)).toBe(true);
 
-    const implicit = splitPacketProof(packPacketProof(packetHash, signature, false))!;
-    const implicitMatch = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
-      kind: "packet-proof/hash-match-gate",
-      proof: implicit,
-      packetHash: new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9)
-    });
+    const implicit = splitPacketProof(
+      packPacketProof(packetHash, signature, false),
+    )!;
+    const implicitMatch = stepPacketProofHashMatchWithActions(
+      initialPacketProofHashMatchState(),
+      {
+        kind: "packet-proof/hash-match-gate",
+        proof: implicit,
+        packetHash: new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9),
+      },
+    );
     expect(shouldMatchPacketProofHash(implicitMatch.actions)).toBe(true);
   });
 
@@ -169,38 +202,38 @@ describe("protocol packet proof framing", () => {
       planPacketReceiptProofAccept({
         splitOk: false,
         hashMatches: false,
-        signatureValid: false
-      })
+        signatureValid: false,
+      }),
     ).toBe("reject");
     expect(
       planPacketReceiptProofAccept({
         splitOk: true,
         hashMatches: false,
-        signatureValid: true
-      })
+        signatureValid: true,
+      }),
     ).toBe("reject");
     expect(
       planPacketReceiptProofAccept({
         splitOk: true,
         hashMatches: true,
-        signatureValid: false
-      })
+        signatureValid: false,
+      }),
     ).toBe("reject");
     expect(
       planPacketReceiptProofAccept({
         splitOk: true,
         hashMatches: true,
-        signatureValid: true
-      })
+        signatureValid: true,
+      }),
     ).toBe("accept");
     expect(
-      shouldAcceptPacketReceiptProof({ planAccept: true, splitPresent: true })
+      shouldAcceptPacketReceiptProof({ planAccept: true, splitPresent: true }),
     ).toBe(true);
     expect(
-      shouldAcceptPacketReceiptProof({ planAccept: true, splitPresent: false })
+      shouldAcceptPacketReceiptProof({ planAccept: true, splitPresent: false }),
     ).toBe(false);
     expect(
-      shouldAcceptPacketReceiptProof({ planAccept: false, splitPresent: true })
+      shouldAcceptPacketReceiptProof({ planAccept: false, splitPresent: true }),
     ).toBe(false);
   });
 
@@ -211,19 +244,28 @@ describe("protocol packet proof framing", () => {
         kind: "receipt/proof-accept-plan-gate",
         splitOk: true,
         hashMatches: true,
-        signatureValid: false
-      }
+        signatureValid: false,
+      },
     );
-    expect(shouldRejectPacketReceiptProofAcceptPlan(rejectPlan.actions)).toBe(true);
-    expect(shouldAcceptPacketReceiptProofAcceptPlan(rejectPlan.actions)).toBe(false);
-    expect(packetReceiptProofAcceptPlanFromActions(rejectPlan.actions)).toBe("reject");
+    expect(shouldRejectPacketReceiptProofAcceptPlan(rejectPlan.actions)).toBe(
+      true,
+    );
+    expect(shouldAcceptPacketReceiptProofAcceptPlan(rejectPlan.actions)).toBe(
+      false,
+    );
+    expect(packetReceiptProofAcceptPlanFromActions(rejectPlan.actions)).toBe(
+      "reject",
+    );
 
-    const reject = stepPacketReceiptProofAcceptWithActions(initialPacketReceiptProofAcceptState(), {
-      kind: "receipt/proof-accept-gate",
-      splitOk: true,
-      hashMatches: true,
-      signatureValid: false
-    });
+    const reject = stepPacketReceiptProofAcceptWithActions(
+      initialPacketReceiptProofAcceptState(),
+      {
+        kind: "receipt/proof-accept-gate",
+        splitOk: true,
+        hashMatches: true,
+        signatureValid: false,
+      },
+    );
     expect(shouldRejectPacketReceiptProofActions(reject.actions)).toBe(true);
     expect(shouldAcceptPacketReceiptProofActions(reject.actions)).toBe(false);
 
@@ -233,18 +275,25 @@ describe("protocol packet proof framing", () => {
         kind: "receipt/proof-accept-plan-gate",
         splitOk: true,
         hashMatches: true,
-        signatureValid: true
-      }
+        signatureValid: true,
+      },
     );
-    expect(shouldAcceptPacketReceiptProofAcceptPlan(acceptPlan.actions)).toBe(true);
-    expect(packetReceiptProofAcceptPlanFromActions(acceptPlan.actions)).toBe("accept");
+    expect(shouldAcceptPacketReceiptProofAcceptPlan(acceptPlan.actions)).toBe(
+      true,
+    );
+    expect(packetReceiptProofAcceptPlanFromActions(acceptPlan.actions)).toBe(
+      "accept",
+    );
 
-    const accept = stepPacketReceiptProofAcceptWithActions(initialPacketReceiptProofAcceptState(), {
-      kind: "receipt/proof-accept-gate",
-      splitOk: true,
-      hashMatches: true,
-      signatureValid: true
-    });
+    const accept = stepPacketReceiptProofAcceptWithActions(
+      initialPacketReceiptProofAcceptState(),
+      {
+        kind: "receipt/proof-accept-gate",
+        splitOk: true,
+        hashMatches: true,
+        signatureValid: true,
+      },
+    );
     expect(shouldAcceptPacketReceiptProofActions(accept.actions)).toBe(true);
     expect(shouldRejectPacketReceiptProofActions(accept.actions)).toBe(false);
   });
@@ -255,8 +304,8 @@ describe("protocol packet proof framing", () => {
       {
         kind: "receipt/accept-proof-gate",
         planAccept: true,
-        splitPresent: true
-      }
+        splitPresent: true,
+      },
     );
     expect(shouldAcceptPacketReceiptProofNow(accept.actions)).toBe(true);
     expect(shouldSkipAcceptPacketReceiptProof(accept.actions)).toBe(false);
@@ -266,8 +315,8 @@ describe("protocol packet proof framing", () => {
       {
         kind: "receipt/accept-proof-gate",
         planAccept: false,
-        splitPresent: true
-      }
+        splitPresent: true,
+      },
     );
     expect(shouldAcceptPacketReceiptProofNow(skipPlan.actions)).toBe(false);
     expect(shouldSkipAcceptPacketReceiptProof(skipPlan.actions)).toBe(true);
@@ -277,8 +326,8 @@ describe("protocol packet proof framing", () => {
       {
         kind: "receipt/accept-proof-gate",
         planAccept: true,
-        splitPresent: false
-      }
+        splitPresent: false,
+      },
     );
     expect(shouldAcceptPacketReceiptProofNow(skipSplit.actions)).toBe(false);
     expect(shouldSkipAcceptPacketReceiptProof(skipSplit.actions)).toBe(true);

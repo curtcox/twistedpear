@@ -34,8 +34,7 @@ export type InterfaceNameValidEvent =
     };
 
 export type InterfaceNameValidAction =
-  | { readonly kind: "valid" }
-  | { readonly kind: "invalid" };
+  { readonly kind: "valid" } | { readonly kind: "invalid" };
 
 export interface InterfaceNameValidStepResult {
   readonly state: InterfaceNameValidState;
@@ -49,13 +48,15 @@ export function initialInterfaceNameValidState(): InterfaceNameValidState {
 
 export function stepInterfaceNameValidWithActions(
   state: InterfaceNameValidState,
-  event: InterfaceNameValidEvent
+  event: InterfaceNameValidEvent,
 ): InterfaceNameValidStepResult {
   if (event.kind === "iface/name-valid-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: isValidInterfaceName(event.name) ? "valid" : "invalid" }]
+      actions: [
+        { kind: isValidInterfaceName(event.name) ? "valid" : "invalid" },
+      ],
     };
   }
 
@@ -63,19 +64,22 @@ export function stepInterfaceNameValidWithActions(
 }
 
 export function shouldAcceptInterfaceName(
-  actions: ReadonlyArray<InterfaceNameValidAction>
+  actions: ReadonlyArray<InterfaceNameValidAction>,
 ): boolean {
   return actions.some((action) => action.kind === "valid");
 }
 
 export function shouldRejectInterfaceName(
-  actions: ReadonlyArray<InterfaceNameValidAction>
+  actions: ReadonlyArray<InterfaceNameValidAction>,
 ): boolean {
   return actions.some((action) => action.kind === "invalid");
 }
 
 /** Whether a packet's raw length fits the interface MTU. */
-export function packetFitsInterfaceMtu(rawLength: number, mtu: number): boolean {
+export function packetFitsInterfaceMtu(
+  rawLength: number,
+  mtu: number,
+): boolean {
   return rawLength <= mtu;
 }
 
@@ -95,8 +99,7 @@ export type InterfaceMtuFitEvent =
     };
 
 export type InterfaceMtuFitAction =
-  | { readonly kind: "fit" }
-  | { readonly kind: "overflow" };
+  { readonly kind: "fit" } | { readonly kind: "overflow" };
 
 export interface InterfaceMtuFitStepResult {
   readonly state: InterfaceMtuFitState;
@@ -110,7 +113,7 @@ export function initialInterfaceMtuFitState(): InterfaceMtuFitState {
 
 export function stepInterfaceMtuFitWithActions(
   state: InterfaceMtuFitState,
-  event: InterfaceMtuFitEvent
+  event: InterfaceMtuFitEvent,
 ): InterfaceMtuFitStepResult {
   if (event.kind === "iface/mtu-fit-gate") {
     return {
@@ -118,9 +121,11 @@ export function stepInterfaceMtuFitWithActions(
       intents: [],
       actions: [
         {
-          kind: packetFitsInterfaceMtu(event.rawLength, event.mtu) ? "fit" : "overflow"
-        }
-      ]
+          kind: packetFitsInterfaceMtu(event.rawLength, event.mtu)
+            ? "fit"
+            : "overflow",
+        },
+      ],
     };
   }
 
@@ -128,13 +133,13 @@ export function stepInterfaceMtuFitWithActions(
 }
 
 export function shouldInterfaceMtuFit(
-  actions: ReadonlyArray<InterfaceMtuFitAction>
+  actions: ReadonlyArray<InterfaceMtuFitAction>,
 ): boolean {
   return actions.some((action) => action.kind === "fit");
 }
 
 export function shouldInterfaceMtuOverflow(
-  actions: ReadonlyArray<InterfaceMtuFitAction>
+  actions: ReadonlyArray<InterfaceMtuFitAction>,
 ): boolean {
   return actions.some((action) => action.kind === "overflow");
 }
@@ -159,8 +164,7 @@ export type InterfaceClosedEvent =
     };
 
 export type InterfaceClosedAction =
-  | { readonly kind: "closed" }
-  | { readonly kind: "open" };
+  { readonly kind: "closed" } | { readonly kind: "open" };
 
 export interface InterfaceClosedStepResult {
   readonly state: InterfaceClosedState;
@@ -174,13 +178,13 @@ export function initialInterfaceClosedState(): InterfaceClosedState {
 
 export function stepInterfaceClosedWithActions(
   state: InterfaceClosedState,
-  event: InterfaceClosedEvent
+  event: InterfaceClosedEvent,
 ): InterfaceClosedStepResult {
   if (event.kind === "iface/closed-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: isInterfaceClosed(event.closed) ? "closed" : "open" }]
+      actions: [{ kind: isInterfaceClosed(event.closed) ? "closed" : "open" }],
     };
   }
 
@@ -188,13 +192,13 @@ export function stepInterfaceClosedWithActions(
 }
 
 export function shouldInterfaceClosedNow(
-  actions: ReadonlyArray<InterfaceClosedAction>
+  actions: ReadonlyArray<InterfaceClosedAction>,
 ): boolean {
   return actions.some((action) => action.kind === "closed");
 }
 
 export function shouldInterfaceOpenNow(
-  actions: ReadonlyArray<InterfaceClosedAction>
+  actions: ReadonlyArray<InterfaceClosedAction>,
 ): boolean {
   return actions.some((action) => action.kind === "open");
 }
@@ -223,8 +227,7 @@ export type InterfaceSendAllowEvent =
     };
 
 export type InterfaceSendAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface InterfaceSendAllowStepResult {
   readonly state: InterfaceSendAllowState;
@@ -238,7 +241,7 @@ export function initialInterfaceSendAllowState(): InterfaceSendAllowState {
 
 export function stepInterfaceSendAllowWithActions(
   state: InterfaceSendAllowState,
-  event: InterfaceSendAllowEvent
+  event: InterfaceSendAllowEvent,
 ): InterfaceSendAllowStepResult {
   if (event.kind === "iface/send-allow-gate") {
     return {
@@ -246,11 +249,14 @@ export function stepInterfaceSendAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canInterfaceSend({ closed: event.closed, outgoing: event.outgoing })
+          kind: canInterfaceSend({
+            closed: event.closed,
+            outgoing: event.outgoing,
+          })
             ? "allow"
-            : "deny"
-        }
-      ]
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -258,13 +264,13 @@ export function stepInterfaceSendAllowWithActions(
 }
 
 export function shouldAllowInterfaceSend(
-  actions: ReadonlyArray<InterfaceSendAllowAction>
+  actions: ReadonlyArray<InterfaceSendAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyInterfaceSend(
-  actions: ReadonlyArray<InterfaceSendAllowAction>
+  actions: ReadonlyArray<InterfaceSendAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -289,8 +295,7 @@ export type EnqueueRawInterfaceFrameEvent =
     };
 
 export type EnqueueRawInterfaceFrameAction =
-  | { readonly kind: "enqueue" }
-  | { readonly kind: "skip" };
+  { readonly kind: "enqueue" } | { readonly kind: "skip" };
 
 export interface EnqueueRawInterfaceFrameStepResult {
   readonly state: EnqueueRawInterfaceFrameState;
@@ -304,7 +309,7 @@ export function initialEnqueueRawInterfaceFrameState(): EnqueueRawInterfaceFrame
 
 export function stepEnqueueRawInterfaceFrameWithActions(
   state: EnqueueRawInterfaceFrameState,
-  event: EnqueueRawInterfaceFrameEvent
+  event: EnqueueRawInterfaceFrameEvent,
 ): EnqueueRawInterfaceFrameStepResult {
   if (event.kind === "iface/enqueue-raw-frame-gate") {
     return {
@@ -312,9 +317,11 @@ export function stepEnqueueRawInterfaceFrameWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldEnqueueRawInterfaceFrame(event.length) ? "enqueue" : "skip"
-        }
-      ]
+          kind: shouldEnqueueRawInterfaceFrame(event.length)
+            ? "enqueue"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -322,13 +329,13 @@ export function stepEnqueueRawInterfaceFrameWithActions(
 }
 
 export function shouldEnqueueRawInterfaceFrameNow(
-  actions: ReadonlyArray<EnqueueRawInterfaceFrameAction>
+  actions: ReadonlyArray<EnqueueRawInterfaceFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "enqueue");
 }
 
 export function shouldSkipRawInterfaceFrameEnqueue(
-  actions: ReadonlyArray<EnqueueRawInterfaceFrameAction>
+  actions: ReadonlyArray<EnqueueRawInterfaceFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -353,8 +360,7 @@ export type EnqueueDecodedPacketEvent =
     };
 
 export type EnqueueDecodedPacketAction =
-  | { readonly kind: "enqueue" }
-  | { readonly kind: "skip" };
+  { readonly kind: "enqueue" } | { readonly kind: "skip" };
 
 export interface EnqueueDecodedPacketStepResult {
   readonly state: EnqueueDecodedPacketState;
@@ -368,7 +374,7 @@ export function initialEnqueueDecodedPacketState(): EnqueueDecodedPacketState {
 
 export function stepEnqueueDecodedPacketWithActions(
   state: EnqueueDecodedPacketState,
-  event: EnqueueDecodedPacketEvent
+  event: EnqueueDecodedPacketEvent,
 ): EnqueueDecodedPacketStepResult {
   if (event.kind === "iface/enqueue-decoded-packet-gate") {
     return {
@@ -376,9 +382,11 @@ export function stepEnqueueDecodedPacketWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldEnqueueDecodedPacket(event.packetPresent) ? "enqueue" : "skip"
-        }
-      ]
+          kind: shouldEnqueueDecodedPacket(event.packetPresent)
+            ? "enqueue"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -386,13 +394,13 @@ export function stepEnqueueDecodedPacketWithActions(
 }
 
 export function shouldEnqueueDecodedPacketNow(
-  actions: ReadonlyArray<EnqueueDecodedPacketAction>
+  actions: ReadonlyArray<EnqueueDecodedPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "enqueue");
 }
 
 export function shouldSkipDecodedPacketEnqueue(
-  actions: ReadonlyArray<EnqueueDecodedPacketAction>
+  actions: ReadonlyArray<EnqueueDecodedPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -417,8 +425,7 @@ export type DeliverQueuedPacketEvent =
     };
 
 export type DeliverQueuedPacketAction =
-  | { readonly kind: "deliver" }
-  | { readonly kind: "buffer" };
+  { readonly kind: "deliver" } | { readonly kind: "buffer" };
 
 export interface DeliverQueuedPacketStepResult {
   readonly state: DeliverQueuedPacketState;
@@ -432,7 +439,7 @@ export function initialDeliverQueuedPacketState(): DeliverQueuedPacketState {
 
 export function stepDeliverQueuedPacketWithActions(
   state: DeliverQueuedPacketState,
-  event: DeliverQueuedPacketEvent
+  event: DeliverQueuedPacketEvent,
 ): DeliverQueuedPacketStepResult {
   if (event.kind === "iface/deliver-queued-packet-gate") {
     return {
@@ -440,9 +447,11 @@ export function stepDeliverQueuedPacketWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldDeliverQueuedPacket(event.waiterPresent) ? "deliver" : "buffer"
-        }
-      ]
+          kind: shouldDeliverQueuedPacket(event.waiterPresent)
+            ? "deliver"
+            : "buffer",
+        },
+      ],
     };
   }
 
@@ -450,13 +459,13 @@ export function stepDeliverQueuedPacketWithActions(
 }
 
 export function shouldDeliverQueuedPacketNow(
-  actions: ReadonlyArray<DeliverQueuedPacketAction>
+  actions: ReadonlyArray<DeliverQueuedPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deliver");
 }
 
 export function shouldBufferQueuedPacket(
-  actions: ReadonlyArray<DeliverQueuedPacketAction>
+  actions: ReadonlyArray<DeliverQueuedPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "buffer");
 }
@@ -481,8 +490,7 @@ export type YieldBufferedPacketEvent =
     };
 
 export type YieldBufferedPacketAction =
-  | { readonly kind: "yield" }
-  | { readonly kind: "skip" };
+  { readonly kind: "yield" } | { readonly kind: "skip" };
 
 export interface YieldBufferedPacketStepResult {
   readonly state: YieldBufferedPacketState;
@@ -496,7 +504,7 @@ export function initialYieldBufferedPacketState(): YieldBufferedPacketState {
 
 export function stepYieldBufferedPacketWithActions(
   state: YieldBufferedPacketState,
-  event: YieldBufferedPacketEvent
+  event: YieldBufferedPacketEvent,
 ): YieldBufferedPacketStepResult {
   if (event.kind === "iface/yield-buffered-packet-gate") {
     return {
@@ -504,9 +512,11 @@ export function stepYieldBufferedPacketWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldYieldBufferedPacket(event.valuePresent) ? "yield" : "skip"
-        }
-      ]
+          kind: shouldYieldBufferedPacket(event.valuePresent)
+            ? "yield"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -514,19 +524,23 @@ export function stepYieldBufferedPacketWithActions(
 }
 
 export function shouldYieldBufferedPacketNow(
-  actions: ReadonlyArray<YieldBufferedPacketAction>
+  actions: ReadonlyArray<YieldBufferedPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "yield");
 }
 
 export function shouldSkipBufferedPacketYield(
-  actions: ReadonlyArray<YieldBufferedPacketAction>
+  actions: ReadonlyArray<YieldBufferedPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export type InterfaceReconnectPlan =
-  | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
+  | {
+      readonly kind: "reconnect";
+      readonly delayMs: number;
+      readonly attempt: number;
+    }
   | { readonly kind: "give-up"; readonly attempt: number };
 
 export function planInterfaceReconnect(input: {
@@ -542,7 +556,7 @@ export function planInterfaceReconnect(input: {
   return {
     kind: "reconnect",
     delayMs: input.waitMs ?? INTERFACE_RECONNECT_WAIT_MS,
-    attempt
+    attempt,
   };
 }
 
@@ -564,7 +578,11 @@ export type InterfaceReconnectPlanEvent =
     };
 
 export type InterfaceReconnectPlanAction =
-  | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
+  | {
+      readonly kind: "reconnect";
+      readonly delayMs: number;
+      readonly attempt: number;
+    }
   | { readonly kind: "give-up"; readonly attempt: number };
 
 export interface InterfaceReconnectPlanStepResult {
@@ -579,7 +597,7 @@ export function initialInterfaceReconnectPlanState(): InterfaceReconnectPlanStat
 
 export function stepInterfaceReconnectPlanWithActions(
   state: InterfaceReconnectPlanState,
-  event: InterfaceReconnectPlanEvent
+  event: InterfaceReconnectPlanEvent,
 ): InterfaceReconnectPlanStepResult {
   if (event.kind === "iface/reconnect-plan-gate") {
     return {
@@ -589,9 +607,9 @@ export function stepInterfaceReconnectPlanWithActions(
         planInterfaceReconnect({
           attempts: event.attempts,
           ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {}),
-          ...(event.waitMs !== undefined ? { waitMs: event.waitMs } : {})
-        })
-      ]
+          ...(event.waitMs !== undefined ? { waitMs: event.waitMs } : {}),
+        }),
+      ],
     };
   }
 
@@ -599,20 +617,20 @@ export function stepInterfaceReconnectPlanWithActions(
 }
 
 export function shouldReconnectInterfacePlan(
-  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reconnect");
 }
 
 export function shouldGiveUpInterfaceReconnectPlan(
-  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "give-up");
 }
 
 /** Extract give-up plan action, if any. */
 export function interfaceReconnectGiveUpFromActions(
-  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): Extract<InterfaceReconnectPlanAction, { kind: "give-up" }> | null {
   for (const action of actions) {
     if (action.kind === "give-up") {
@@ -624,7 +642,7 @@ export function interfaceReconnectGiveUpFromActions(
 
 /** Extract reconnect plan action, if any. */
 export function interfaceReconnectRetryFromActions(
-  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): Extract<InterfaceReconnectPlanAction, { kind: "reconnect" }> | null {
   for (const action of actions) {
     if (action.kind === "reconnect") {
@@ -636,10 +654,10 @@ export function interfaceReconnectRetryFromActions(
 
 /** Extract the reconnect plan from actions; null when empty. */
 export function interfaceReconnectPlanFromActions(
-  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): InterfaceReconnectPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "reconnect" || entry.kind === "give-up"
+    (entry) => entry.kind === "reconnect" || entry.kind === "give-up",
   );
   return action ?? null;
 }
@@ -671,29 +689,37 @@ export interface InterfaceReconnectStepResult {
   readonly actions: readonly InterfaceReconnectAction[];
 }
 
-export function initialInterfaceReconnectState(options: {
-  readonly maxTries?: number | null;
-  readonly waitMs?: number;
-  readonly suppressReconnect?: boolean;
-} = {}): InterfaceReconnectState {
+export function initialInterfaceReconnectState(
+  options: {
+    readonly maxTries?: number | null;
+    readonly waitMs?: number;
+    readonly suppressReconnect?: boolean;
+  } = {},
+): InterfaceReconnectState {
   return {
     attempts: 0,
     maxTries: options.maxTries ?? null,
     waitMs: options.waitMs ?? INTERFACE_RECONNECT_WAIT_MS,
     detached: false,
     suppressReconnect: options.suppressReconnect === true,
-    waiting: false
+    waiting: false,
   };
 }
 
-export const stepInterfaceReconnect: StepFn<InterfaceReconnectState> = (state, event) => {
-  const result = stepInterfaceReconnectInner(state, event as InterfaceReconnectEvent);
+export const stepInterfaceReconnect: StepFn<InterfaceReconnectState> = (
+  state,
+  event,
+) => {
+  const result = stepInterfaceReconnectInner(
+    state,
+    event as InterfaceReconnectEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepInterfaceReconnectWithActions(
   state: InterfaceReconnectState,
-  event: InterfaceReconnectEvent
+  event: InterfaceReconnectEvent,
 ): InterfaceReconnectStepResult {
   return stepInterfaceReconnectInner(state, event);
 }
@@ -703,18 +729,21 @@ function cancelTimerIntent(): Intent {
 }
 
 function setTimerIntent(delayMs: number): Intent {
-  return { kind: "timer/set", timer: { id: INTERFACE_RECONNECT_TIMER_ID, delayMs } };
+  return {
+    kind: "timer/set",
+    timer: { id: INTERFACE_RECONNECT_TIMER_ID, delayMs },
+  };
 }
 
 function stepInterfaceReconnectInner(
   state: InterfaceReconnectState,
-  event: InterfaceReconnectEvent
+  event: InterfaceReconnectEvent,
 ): InterfaceReconnectStepResult {
   if (event.kind === "iface/detach") {
     return {
       state: { ...state, detached: true, waiting: false },
       intents: [cancelTimerIntent()],
-      actions: []
+      actions: [],
     };
   }
 
@@ -722,7 +751,7 @@ function stepInterfaceReconnectInner(
     return {
       state: { ...state, attempts: 0, waiting: false, detached: false },
       intents: [cancelTimerIntent()],
-      actions: []
+      actions: [],
     };
   }
 
@@ -730,15 +759,21 @@ function stepInterfaceReconnectInner(
     return { state, intents: [], actions: [] };
   }
 
-  if (event.kind === "iface/disconnected" || event.kind === "iface/connect-failed") {
+  if (
+    event.kind === "iface/disconnected" ||
+    event.kind === "iface/connect-failed"
+  ) {
     return {
       state: { ...state, waiting: true },
       intents: [cancelTimerIntent(), setTimerIntent(state.waitMs)],
-      actions: []
+      actions: [],
     };
   }
 
-  if (event.kind === "timer/fired" && event.id === INTERFACE_RECONNECT_TIMER_ID) {
+  if (
+    event.kind === "timer/fired" &&
+    event.id === INTERFACE_RECONNECT_TIMER_ID
+  ) {
     if (!state.waiting) {
       return { state, intents: [], actions: [] };
     }
@@ -748,15 +783,15 @@ function stepInterfaceReconnectInner(
         kind: "iface/reconnect-plan-gate",
         attempts: state.attempts,
         maxTries: state.maxTries,
-        waitMs: state.waitMs
-      }
+        waitMs: state.waitMs,
+      },
     ).actions;
     const giveUp = interfaceReconnectGiveUpFromActions(planActions);
     if (giveUp !== null) {
       return {
         state: { ...state, attempts: giveUp.attempt, waiting: false },
         intents: [],
-        actions: [{ kind: "give-up", attempt: giveUp.attempt }]
+        actions: [{ kind: "give-up", attempt: giveUp.attempt }],
       };
     }
     const reconnect = interfaceReconnectRetryFromActions(planActions);
@@ -766,7 +801,7 @@ function stepInterfaceReconnectInner(
     return {
       state: { ...state, attempts: reconnect.attempt, waiting: false },
       intents: [],
-      actions: [{ kind: "connect", attempt: reconnect.attempt }]
+      actions: [{ kind: "connect", attempt: reconnect.attempt }],
     };
   }
 

@@ -3,10 +3,15 @@
  * The core worker cannot access navigator.serial; the port lives here.
  */
 
-import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
+import type {
+  HostToWorkletMessage,
+  WorkletToHostMessage,
+} from "../worklet/protocol";
 
 function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -22,7 +27,9 @@ export function webSerialSupported(): boolean {
   return typeof navigator !== "undefined" && "serial" in navigator;
 }
 
-export function createWebSerialRelay(sendToWorker: (message: HostToWorkletMessage) => void) {
+export function createWebSerialRelay(
+  sendToWorker: (message: HostToWorkletMessage) => void,
+) {
   let port: SerialPort | null = null;
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   let readLoopActive = false;
@@ -50,7 +57,7 @@ export function createWebSerialRelay(sendToWorker: (message: HostToWorkletMessag
     } catch (error) {
       sendToWorker({
         type: "serial-error",
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       });
     } finally {
       reader.releaseLock();
@@ -58,7 +65,10 @@ export function createWebSerialRelay(sendToWorker: (message: HostToWorkletMessag
     }
   }
 
-  async function openPort(baudRate: number, requestPort: () => Promise<SerialPort>): Promise<void> {
+  async function openPort(
+    baudRate: number,
+    requestPort: () => Promise<SerialPort>,
+  ): Promise<void> {
     if (port !== null) {
       return;
     }
@@ -130,6 +140,6 @@ export function createWebSerialRelay(sendToWorker: (message: HostToWorkletMessag
 
     async dispose(): Promise<void> {
       await closePort();
-    }
+    },
   };
 }

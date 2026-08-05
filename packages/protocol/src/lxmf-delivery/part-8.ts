@@ -12,10 +12,20 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue
+  type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
-import { planLxmfDirectSend, shouldPlanLxmfDirectSendOk, shouldRejectLxmfDirectSendPlanMissingDestination, shouldRejectLxmfDirectSendPlanMissingPacked } from "./part-7.js";
-import type { LxmfDirectSendEvent, LxmfDirectSendPlan, LxmfDirectSendPlanAction, LxmfDirectSendPlanEvent } from "./part-7.js";
+import {
+  planLxmfDirectSend,
+  shouldPlanLxmfDirectSendOk,
+  shouldRejectLxmfDirectSendPlanMissingDestination,
+  shouldRejectLxmfDirectSendPlanMissingPacked,
+} from "./part-7.js";
+import type {
+  LxmfDirectSendEvent,
+  LxmfDirectSendPlan,
+  LxmfDirectSendPlanAction,
+  LxmfDirectSendPlanEvent,
+} from "./part-7.js";
 /**
  * DIRECT send-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfDirectSend` /
@@ -36,7 +46,7 @@ export function initialLxmfDirectSendPlanState(): LxmfDirectSendPlanState {
 
 export function stepLxmfDirectSendPlanWithActions(
   state: LxmfDirectSendPlanState,
-  event: LxmfDirectSendPlanEvent
+  event: LxmfDirectSendPlanEvent,
 ): LxmfDirectSendPlanStepResult {
   if (event.kind === "direct-send/plan-gate") {
     return {
@@ -47,10 +57,10 @@ export function stepLxmfDirectSendPlanWithActions(
           kind: planLxmfDirectSend({
             destinationPresent: event.destinationPresent,
             destinationIdentityPresent: event.destinationIdentityPresent,
-            packed: event.packed
-          })
-        }
-      ]
+            packed: event.packed,
+          }),
+        },
+      ],
     };
   }
 
@@ -59,13 +69,13 @@ export function stepLxmfDirectSendPlanWithActions(
 
 /** Extract the DIRECT send plan from actions; null when empty. */
 export function lxmfDirectSendPlanFromActions(
-  actions: ReadonlyArray<LxmfDirectSendPlanAction>
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>,
 ): LxmfDirectSendPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "missing-destination" ||
-      entry.kind === "missing-packed"
+      entry.kind === "missing-packed",
   );
   return action?.kind ?? null;
 }
@@ -98,52 +108,66 @@ export function initialLxmfDirectSendState(): LxmfDirectSendState {
   return {};
 }
 
-export const stepLxmfDirectSend: StepFn<LxmfDirectSendState> = (state, event) => {
+export const stepLxmfDirectSend: StepFn<LxmfDirectSendState> = (
+  state,
+  event,
+) => {
   const result = stepLxmfDirectSendInner(state, event as LxmfDirectSendEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfDirectSendWithActions(
   state: LxmfDirectSendState,
-  event: LxmfDirectSendEvent
+  event: LxmfDirectSendEvent,
 ): LxmfDirectSendStepResult {
   return stepLxmfDirectSendInner(state, event);
 }
 
 export function shouldProceedLxmfDirectSend(
-  actions: ReadonlyArray<LxmfDirectSendAction>
+  actions: ReadonlyArray<LxmfDirectSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectLxmfDirectMissingDestination(
-  actions: ReadonlyArray<LxmfDirectSendAction>
+  actions: ReadonlyArray<LxmfDirectSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-destination");
 }
 
 export function shouldRejectLxmfDirectMissingPacked(
-  actions: ReadonlyArray<LxmfDirectSendAction>
+  actions: ReadonlyArray<LxmfDirectSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-packed");
 }
 
 function stepLxmfDirectSendInner(
   state: LxmfDirectSendState,
-  event: LxmfDirectSendEvent
+  event: LxmfDirectSendEvent,
 ): LxmfDirectSendStepResult {
   if (event.kind === "direct-send/gate") {
-    const planActions = stepLxmfDirectSendPlanWithActions(initialLxmfDirectSendPlanState(), {
-      kind: "direct-send/plan-gate",
-      destinationPresent: event.destinationPresent,
-      destinationIdentityPresent: event.destinationIdentityPresent,
-      packed: event.packed
-    }).actions;
+    const planActions = stepLxmfDirectSendPlanWithActions(
+      initialLxmfDirectSendPlanState(),
+      {
+        kind: "direct-send/plan-gate",
+        destinationPresent: event.destinationPresent,
+        destinationIdentityPresent: event.destinationIdentityPresent,
+        packed: event.packed,
+      },
+    ).actions;
     if (shouldRejectLxmfDirectSendPlanMissingDestination(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-missing-destination" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-missing-destination" }],
+      };
     }
     if (shouldRejectLxmfDirectSendPlanMissingPacked(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-missing-packed" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-missing-packed" }],
+      };
     }
     if (!shouldPlanLxmfDirectSendOk(planActions)) {
       return { state, intents: [], actions: [] };
@@ -182,8 +206,7 @@ export type LxmfOpportunisticSendPlanEvent =
     };
 
 export type LxmfOpportunisticSendPlanAction =
-  | { readonly kind: "ok" }
-  | { readonly kind: "missing-destination" };
+  { readonly kind: "ok" } | { readonly kind: "missing-destination" };
 
 export interface LxmfOpportunisticSendPlanStepResult {
   readonly state: LxmfOpportunisticSendPlanState;
@@ -197,7 +220,7 @@ export function initialLxmfOpportunisticSendPlanState(): LxmfOpportunisticSendPl
 
 export function stepLxmfOpportunisticSendPlanWithActions(
   state: LxmfOpportunisticSendPlanState,
-  event: LxmfOpportunisticSendPlanEvent
+  event: LxmfOpportunisticSendPlanEvent,
 ): LxmfOpportunisticSendPlanStepResult {
   if (event.kind === "opportunistic-send/plan-gate") {
     return {
@@ -206,10 +229,10 @@ export function stepLxmfOpportunisticSendPlanWithActions(
       actions: [
         {
           kind: planLxmfOpportunisticSend({
-            destinationPresent: event.destinationPresent
-          })
-        }
-      ]
+            destinationPresent: event.destinationPresent,
+          }),
+        },
+      ],
     };
   }
 
@@ -218,24 +241,24 @@ export function stepLxmfOpportunisticSendPlanWithActions(
 
 /** Whether plan actions allow OPPORTUNISTIC send to proceed. */
 export function shouldPlanLxmfOpportunisticSendOk(
-  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>
+  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 /** Whether plan actions reject a missing destination. */
 export function shouldRejectLxmfOpportunisticSendPlanMissingDestination(
-  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>
+  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-destination");
 }
 
 /** Extract the OPPORTUNISTIC send plan from actions; null when empty. */
 export function lxmfOpportunisticSendPlanFromActions(
-  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>
+  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>,
 ): LxmfOpportunisticSendPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "ok" || entry.kind === "missing-destination"
+    (entry) => entry.kind === "ok" || entry.kind === "missing-destination",
   );
   return action?.kind ?? null;
 }
@@ -274,44 +297,54 @@ export function initialLxmfOpportunisticSendState(): LxmfOpportunisticSendState 
   return {};
 }
 
-export const stepLxmfOpportunisticSend: StepFn<LxmfOpportunisticSendState> = (state, event) => {
-  const result = stepLxmfOpportunisticSendInner(state, event as LxmfOpportunisticSendEvent);
+export const stepLxmfOpportunisticSend: StepFn<LxmfOpportunisticSendState> = (
+  state,
+  event,
+) => {
+  const result = stepLxmfOpportunisticSendInner(
+    state,
+    event as LxmfOpportunisticSendEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfOpportunisticSendWithActions(
   state: LxmfOpportunisticSendState,
-  event: LxmfOpportunisticSendEvent
+  event: LxmfOpportunisticSendEvent,
 ): LxmfOpportunisticSendStepResult {
   return stepLxmfOpportunisticSendInner(state, event);
 }
 
 export function shouldProceedLxmfOpportunisticSend(
-  actions: ReadonlyArray<LxmfOpportunisticSendAction>
+  actions: ReadonlyArray<LxmfOpportunisticSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectLxmfOpportunisticMissingDestination(
-  actions: ReadonlyArray<LxmfOpportunisticSendAction>
+  actions: ReadonlyArray<LxmfOpportunisticSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-destination");
 }
 
 function stepLxmfOpportunisticSendInner(
   state: LxmfOpportunisticSendState,
-  event: LxmfOpportunisticSendEvent
+  event: LxmfOpportunisticSendEvent,
 ): LxmfOpportunisticSendStepResult {
   if (event.kind === "opportunistic-send/gate") {
     const planActions = stepLxmfOpportunisticSendPlanWithActions(
       initialLxmfOpportunisticSendPlanState(),
       {
         kind: "opportunistic-send/plan-gate",
-        destinationPresent: event.destinationPresent
-      }
+        destinationPresent: event.destinationPresent,
+      },
     ).actions;
     if (shouldRejectLxmfOpportunisticSendPlanMissingDestination(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-missing-destination" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-missing-destination" }],
+      };
     }
     if (!shouldPlanLxmfOpportunisticSendOk(planActions)) {
       return { state, intents: [], actions: [] };
@@ -323,10 +356,7 @@ function stepLxmfOpportunisticSendInner(
 }
 
 export type LxMessageInstancePackGate =
-  | "ok"
-  | "already-packed"
-  | "missing-endpoints"
-  | "missing-timestamp";
+  "ok" | "already-packed" | "missing-endpoints" | "missing-timestamp";
 
 /** Whether an LXMessage instance may pack (already-packed / endpoints / timestamp). */
 export function planLxMessageInstancePack(input: {
@@ -371,28 +401,28 @@ export type LxMessageInstancePackPlanAction =
 
 /** Whether instance-pack-plan actions allow packing to proceed. */
 export function shouldPlanLxMessageInstancePackOk(
-  actions: ReadonlyArray<LxMessageInstancePackPlanAction>
+  actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 /** Whether instance-pack-plan actions reject an already-packed message. */
 export function shouldRejectLxMessageInstancePackPlanAlreadyPacked(
-  actions: ReadonlyArray<LxMessageInstancePackPlanAction>
+  actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "already-packed");
 }
 
 /** Whether instance-pack-plan actions reject missing endpoints. */
 export function shouldRejectLxMessageInstancePackPlanMissingEndpoints(
-  actions: ReadonlyArray<LxMessageInstancePackPlanAction>
+  actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-endpoints");
 }
 
 /** Whether instance-pack-plan actions reject a missing timestamp. */
 export function shouldRejectLxMessageInstancePackPlanMissingTimestamp(
-  actions: ReadonlyArray<LxMessageInstancePackPlanAction>
+  actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-timestamp");
 }

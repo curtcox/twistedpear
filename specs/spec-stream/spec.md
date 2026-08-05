@@ -48,12 +48,12 @@ their negotiation and safety boundaries are normative here.
 
 ## Representations
 
-| Representation | Artifact |
-|---|---|
-| Formal relation | [`model/stream.tla`](model/stream.tla) |
-| Checked traces | [`model/stream-conformance-traces.json`](model/stream-conformance-traces.json) |
+| Representation   | Artifact                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| Formal relation  | [`model/stream.tla`](model/stream.tla)                                                  |
+| Checked traces   | [`model/stream-conformance-traces.json`](model/stream-conformance-traces.json)          |
 | Executable table | `streamMachine` in [`packages/protocol`](../../packages/protocol/src/stream-machine.ts) |
-| Layer-3 vector | [`conformance/vectors/stream.json`](../../conformance/vectors/stream.json) |
+| Layer-3 vector   | [`conformance/vectors/stream.json`](../../conformance/vectors/stream.json)              |
 
 Admission arithmetic is executable in `device-admission.ts`; readiness, the active probe,
 and the session invite share the `TPL1` envelope in `link-control.ts`; link-quality

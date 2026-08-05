@@ -11,16 +11,16 @@ describe("resolveUpdateCodeFields", () => {
 
   it("honors an explicit codeField without a secondary", () => {
     expect(resolveUpdateCodeFields(codeHash, { codeField: codeHash })).toEqual({
-      primary: codeHash
+      primary: codeHash,
     });
     expect(resolveUpdateCodeFields(codeHash, { codeField: wasm })).toEqual({
-      primary: wasm
+      primary: wasm,
     });
   });
 
   it("prefers fallback WASM first with the hash as secondary for 0.2.112", () => {
     expect(
-      resolveUpdateCodeFields(codeHash, { fallbackCodeField: wasm })
+      resolveUpdateCodeFields(codeHash, { fallbackCodeField: wasm }),
     ).toEqual({ primary: wasm, secondary: codeHash });
   });
 
@@ -28,8 +28,8 @@ describe("resolveUpdateCodeFields", () => {
     expect(
       resolveUpdateCodeFields(codeHash, {
         codeField: codeHash,
-        fallbackCodeField: wasm
-      })
+        fallbackCodeField: wasm,
+      }),
     ).toEqual({ primary: codeHash });
   });
 });

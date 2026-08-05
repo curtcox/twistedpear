@@ -35,27 +35,46 @@ export function createHarnessPeerPair() {
     async *offer(session, code, options) {
       if (!enabled) throw new Error("Harness peer pair is not enabled");
       outbound?.resolve({ sessionId: session.id, code });
-      const timeoutMs = typeof options?.timeoutMs === "number" ? options.timeoutMs : 120_000;
+      const timeoutMs =
+        typeof options?.timeoutMs === "number" ? options.timeoutMs : 120_000;
       const answer = await Promise.race([
         inbound.promise,
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Harness offer timed out waiting for answer code")), timeoutMs);
-        })
+          setTimeout(
+            () =>
+              reject(
+                new Error("Harness offer timed out waiting for answer code"),
+              ),
+            timeoutMs,
+          );
+        }),
       ]);
-      if (typeof answer?.code !== "string") throw new Error("Harness answer code missing");
+      if (typeof answer?.code !== "string")
+        throw new Error("Harness answer code missing");
       yield answer.code;
     },
     async *accept(options) {
       if (!enabled) throw new Error("Harness peer pair is not enabled");
-      const timeoutMs = typeof options?.timeoutMs === "number" ? options.timeoutMs : 120_000;
+      const timeoutMs =
+        typeof options?.timeoutMs === "number" ? options.timeoutMs : 120_000;
       const offer = await Promise.race([
         inbound.promise,
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Harness listen timed out waiting for offer code")), timeoutMs);
-        })
+          setTimeout(
+            () =>
+              reject(
+                new Error("Harness listen timed out waiting for offer code"),
+              ),
+            timeoutMs,
+          );
+        }),
       ]);
-      if (typeof offer?.code !== "string") throw new Error("Harness offer code missing");
-      const sessionId = typeof offer.sessionId === "string" ? offer.sessionId : `harness-${Date.now().toString(36)}`;
+      if (typeof offer?.code !== "string")
+        throw new Error("Harness offer code missing");
+      const sessionId =
+        typeof offer.sessionId === "string"
+          ? offer.sessionId
+          : `harness-${Date.now().toString(36)}`;
       yield { session: { id: sessionId, kind: "manual" }, code: offer.code };
     },
     async answer(session, code) {
@@ -66,7 +85,7 @@ export function createHarnessPeerPair() {
       outbound?.reject(new Error("Harness peer pair cancelled"));
       inbound?.reject(new Error("Harness peer pair cancelled"));
       resetExchange();
-    }
+    },
   };
 
   return {
@@ -89,8 +108,11 @@ export function createHarnessPeerPair() {
       return Promise.race([
         outbound.promise,
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("No outbound peer-pair code")), timeoutMs);
-        })
+          setTimeout(
+            () => reject(new Error("No outbound peer-pair code")),
+            timeoutMs,
+          );
+        }),
       ]);
     },
     giveInboundCode(code, sessionId) {
@@ -98,7 +120,8 @@ export function createHarnessPeerPair() {
       inbound.resolve({ code, sessionId });
     },
     start(run) {
-      if (inflight !== null) throw new Error("Harness peer pair already in progress");
+      if (inflight !== null)
+        throw new Error("Harness peer pair already in progress");
       result = null;
       error = null;
       resetExchange();
@@ -117,16 +140,21 @@ export function createHarnessPeerPair() {
     async wait(timeoutMs = 120_000) {
       if (result !== null) return result;
       if (error !== null) throw error;
-      if (inflight === null) throw new Error("Harness peer pair was not started");
+      if (inflight === null)
+        throw new Error("Harness peer pair was not started");
       await Promise.race([
         inflight,
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Harness peer pair wait timed out")), timeoutMs);
-        })
+          setTimeout(
+            () => reject(new Error("Harness peer pair wait timed out")),
+            timeoutMs,
+          );
+        }),
       ]);
       if (error !== null) throw error;
-      if (result === null) throw new Error("Harness peer pair finished without a handle");
+      if (result === null)
+        throw new Error("Harness peer pair finished without a handle");
       return result;
-    }
+    },
   };
 }

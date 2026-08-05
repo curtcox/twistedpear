@@ -7,7 +7,11 @@ function createFakeClock(startMs = 0): Clock & {
   advance(ms: number): void;
 } {
   let now = startMs;
-  const pending: Array<{ delayMs: number; callback: () => void; cancelled: boolean }> = [];
+  const pending: Array<{
+    delayMs: number;
+    callback: () => void;
+    cancelled: boolean;
+  }> = [];
   return {
     pending,
     now: () => now,
@@ -17,7 +21,7 @@ function createFakeClock(startMs = 0): Clock & {
       return {
         cancel() {
           entry.cancelled = true;
-        }
+        },
       };
     },
     advance(ms: number) {
@@ -32,7 +36,7 @@ function createFakeClock(startMs = 0): Clock & {
           entry.callback();
         }
       }
-    }
+    },
   };
 }
 
@@ -40,11 +44,16 @@ describe("packet receipt timeout adapter", () => {
   it("schedules and fires timeout from protocol timer intents", () => {
     const clock = createFakeClock(1_000_000);
     let timedOut = false;
-    const receipt = new PacketReceipt(new Uint8Array(32), new Uint8Array(16), new Uint8Array(16), {
-      sentAt: clock.now() / 1000,
-      now: () => clock.now() / 1000,
-      clock
-    });
+    const receipt = new PacketReceipt(
+      new Uint8Array(32),
+      new Uint8Array(16),
+      new Uint8Array(16),
+      {
+        sentAt: clock.now() / 1000,
+        now: () => clock.now() / 1000,
+        clock,
+      },
+    );
     receipt.setTimeoutCallback(() => {
       timedOut = true;
     });
@@ -63,11 +72,16 @@ describe("packet receipt timeout adapter", () => {
 
   it("cancels the armed timer on markFailed", () => {
     const clock = createFakeClock();
-    const receipt = new PacketReceipt(new Uint8Array(32), new Uint8Array(16), new Uint8Array(16), {
-      sentAt: 0,
-      now: () => clock.now() / 1000,
-      clock
-    });
+    const receipt = new PacketReceipt(
+      new Uint8Array(32),
+      new Uint8Array(16),
+      new Uint8Array(16),
+      {
+        sentAt: 0,
+        now: () => clock.now() / 1000,
+        clock,
+      },
+    );
     receipt.setTimeout(5);
     expect(clock.pending.filter((entry) => !entry.cancelled)).toHaveLength(1);
     receipt.markFailed();
@@ -78,11 +92,16 @@ describe("packet receipt timeout adapter", () => {
   it("invokes timeout callback only via machine timeout action", () => {
     const clock = createFakeClock(0);
     let timeoutCount = 0;
-    const receipt = new PacketReceipt(new Uint8Array(32), new Uint8Array(16), new Uint8Array(16), {
-      sentAt: 0,
-      now: () => clock.now() / 1000,
-      clock
-    });
+    const receipt = new PacketReceipt(
+      new Uint8Array(32),
+      new Uint8Array(16),
+      new Uint8Array(16),
+      {
+        sentAt: 0,
+        now: () => clock.now() / 1000,
+        clock,
+      },
+    );
     receipt.setTimeoutCallback(() => {
       timeoutCount += 1;
     });

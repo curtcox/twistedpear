@@ -12,7 +12,9 @@ export class BearerReplayPolicy {
 export class KeySharePolicy {
   constructor(private readonly trustedDeviceIds: ReadonlySet<string>) {}
   authorize(deviceId: string): "accepted" | "untrusted-device-rejected" {
-    return this.trustedDeviceIds.has(deviceId) ? "accepted" : "untrusted-device-rejected";
+    return this.trustedDeviceIds.has(deviceId)
+      ? "accepted"
+      : "untrusted-device-rejected";
   }
 }
 
@@ -20,6 +22,8 @@ export class KeySharePolicy {
 export class FederationPolicy {
   constructor(private readonly trustedPeers: ReadonlySet<string>) {}
   authorize(peerId: string): "accepted" | "malicious-acl-contained" {
-    return this.trustedPeers.has(peerId) ? "accepted" : "malicious-acl-contained";
+    return this.trustedPeers.has(peerId)
+      ? "accepted"
+      : "malicious-acl-contained";
   }
 }

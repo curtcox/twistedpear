@@ -3,9 +3,14 @@ import {
   bytesToHex,
   equalBytes,
   hexToBytes,
-  type CryptoProvider
+  type CryptoProvider,
 } from "@twistedpear/reticulum-ts";
-import { T256Error, T256_ID_LENGTH, decode256t, encode256tParts } from "./codec.js";
+import {
+  T256Error,
+  T256_ID_LENGTH,
+  decode256t,
+  encode256tParts,
+} from "./codec.js";
 
 /**
  * A signed, compact record that maps a 256t id of a .tpkg archive onto the
@@ -27,7 +32,9 @@ export interface CasLocator {
 }
 
 export const CAS_LOCATOR_MAGIC = new Uint8Array([0x54, 0x50, 0x43, 0x4c, 0x01]); // TPCL\x01
-export const CAS_LOCATOR_REQUEST_MAGIC = new Uint8Array([0x54, 0x50, 0x43, 0x52, 0x01]); // TPCR\x01
+export const CAS_LOCATOR_REQUEST_MAGIC = new Uint8Array([
+  0x54, 0x50, 0x43, 0x52, 0x01,
+]); // TPCR\x01
 export const MAX_CAS_LOCATOR_BYTES = 383;
 export const CAS_ANNOUNCE_ASPECT = "cas";
 export const CAS_REQUEST_ASPECT = "cas-request";
@@ -35,7 +42,10 @@ export const CAS_REQUEST_ASPECT = "cas-request";
 export function casAnnounceAspects(t256: string): [string, string] {
   const decoded = decode256t(t256);
   if (decoded.sha512 === null) {
-    throw new T256Error("INVALID_ID", "Inline 256t content is not announced; share the string directly");
+    throw new T256Error(
+      "INVALID_ID",
+      "Inline 256t content is not announced; share the string directly",
+    );
   }
 
   return [CAS_ANNOUNCE_ASPECT, bytesToHex(decoded.sha512.slice(0, 8))];
@@ -63,9 +73,14 @@ function writeString(value: string): Uint8Array {
   return out;
 }
 
-function readString(bytes: Uint8Array, offset: number): { value: string; offset: number } {
+function readString(
+  bytes: Uint8Array,
+  offset: number,
+): { value: string; offset: number } {
   const length = bytes[offset]!;
-  const value = new TextDecoder().decode(bytes.subarray(offset + 1, offset + 1 + length));
+  const value = new TextDecoder().decode(
+    bytes.subarray(offset + 1, offset + 1 + length),
+  );
   return { value, offset: offset + 1 + length };
 }
 
@@ -84,7 +99,10 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
 export function encodeCasLocatorRequest(t256: string): Uint8Array {
   const decoded = decode256t(t256);
   if (decoded.sha512 === null) {
-    throw new T256Error("INVALID_ID", "Inline 256t content needs no locator request");
+    throw new T256Error(
+      "INVALID_ID",
+      "Inline 256t content needs no locator request",
+    );
   }
   return concatBytes(CAS_LOCATOR_REQUEST_MAGIC, new TextEncoder().encode(t256));
 }
@@ -92,23 +110,36 @@ export function encodeCasLocatorRequest(t256: string): Uint8Array {
 export function decodeCasLocatorRequest(bytes: Uint8Array): string {
   if (
     bytes.length !== CAS_LOCATOR_REQUEST_MAGIC.length + T256_ID_LENGTH ||
-    !equalBytes(bytes.subarray(0, CAS_LOCATOR_REQUEST_MAGIC.length), CAS_LOCATOR_REQUEST_MAGIC)
+    !equalBytes(
+      bytes.subarray(0, CAS_LOCATOR_REQUEST_MAGIC.length),
+      CAS_LOCATOR_REQUEST_MAGIC,
+    )
   ) {
     throw new T256Error("INVALID_ID", "CAS locator request is invalid");
   }
 
-  const t256 = new TextDecoder().decode(bytes.subarray(CAS_LOCATOR_REQUEST_MAGIC.length));
+  const t256 = new TextDecoder().decode(
+    bytes.subarray(CAS_LOCATOR_REQUEST_MAGIC.length),
+  );
   const decoded = decode256t(t256);
   if (decoded.sha512 === null) {
-    throw new T256Error("INVALID_ID", "Inline 256t content needs no locator request");
+    throw new T256Error(
+      "INVALID_ID",
+      "Inline 256t content needs no locator request",
+    );
   }
   return t256;
 }
 
-function locatorSigningPayload(locator: Omit<CasLocator, "signature">): Uint8Array {
+function locatorSigningPayload(
+  locator: Omit<CasLocator, "signature">,
+): Uint8Array {
   const decoded = decode256t(locator.t256);
   if (decoded.sha512 === null) {
-    throw new T256Error("INVALID_ID", "Inline 256t content needs no locator; share the string directly");
+    throw new T256Error(
+      "INVALID_ID",
+      "Inline 256t content needs no locator; share the string directly",
+    );
   }
 
   const lengthBytes = new Uint8Array(6);
@@ -135,7 +166,9 @@ function locatorSigningPayload(locator: Omit<CasLocator, "signature">): Uint8Arr
     hexToBytes(locator.packageHash),
     hexToBytes(locator.driveKey),
     writeBytes(hexToBytes(locator.publisherPublicKey)),
-    ...(locator.formatVersion >= 2 ? [writeBytes(hexToBytes(locator.servingPublicKey))] : [])
+    ...(locator.formatVersion >= 2
+      ? [writeBytes(hexToBytes(locator.servingPublicKey))]
+      : []),
   );
 }
 
@@ -152,16 +185,25 @@ function writeBytes(bytes: Uint8Array): Uint8Array {
   return out;
 }
 
-function readBytes(bytes: Uint8Array, offset: number): { value: Uint8Array; offset: number } {
+function readBytes(
+  bytes: Uint8Array,
+  offset: number,
+): { value: Uint8Array; offset: number } {
   const length = bytes[offset]!;
-  return { value: Uint8Array.from(bytes.subarray(offset + 1, offset + 1 + length)), offset: offset + 1 + length };
+  return {
+    value: Uint8Array.from(bytes.subarray(offset + 1, offset + 1 + length)),
+    offset: offset + 1 + length,
+  };
 }
 
 export function signCasLocator(
   identity: Identity,
-  locator: Omit<CasLocator, "signature" | "publisherPublicKey" | "servingPublicKey" | "formatVersion"> & {
+  locator: Omit<
+    CasLocator,
+    "signature" | "publisherPublicKey" | "servingPublicKey" | "formatVersion"
+  > & {
     readonly servingPublicKey?: string;
-  }
+  },
 ): CasLocator {
   const publisherPublicKey = bytesToHex(identity.getPublicKey());
   const servingPublicKey = locator.servingPublicKey ?? publisherPublicKey;
@@ -172,25 +214,37 @@ export function signCasLocator(
     ...locator,
     formatVersion,
     publisherPublicKey,
-    servingPublicKey
+    servingPublicKey,
   };
   const signature = bytesToHex(identity.sign(locatorSigningPayload(unsigned)));
   return { ...unsigned, signature };
 }
 
-export function verifyCasLocator(provider: CryptoProvider, locator: CasLocator): boolean {
-  if ((locator.formatVersion !== 1 && locator.formatVersion !== 2) || locator.t256.length !== T256_ID_LENGTH) {
+export function verifyCasLocator(
+  provider: CryptoProvider,
+  locator: CasLocator,
+): boolean {
+  if (
+    (locator.formatVersion !== 1 && locator.formatVersion !== 2) ||
+    locator.t256.length !== T256_ID_LENGTH
+  ) {
     return false;
   }
 
   try {
-    const identity = Identity.fromPublicKey(provider, hexToBytes(locator.publisherPublicKey));
+    const identity = Identity.fromPublicKey(
+      provider,
+      hexToBytes(locator.publisherPublicKey),
+    );
     if (identity === null) {
       return false;
     }
 
     const { signature, ...unsigned } = locator;
-    return identity.validate(hexToBytes(signature), locatorSigningPayload(unsigned));
+    return identity.validate(
+      hexToBytes(signature),
+      locatorSigningPayload(unsigned),
+    );
   } catch {
     return false;
   }
@@ -200,7 +254,10 @@ export function encodeCasLocator(locator: CasLocator): Uint8Array {
   const payload = locatorSigningPayload(locator);
   const bytes = concatBytes(payload, hexToBytes(locator.signature));
   if (bytes.length > MAX_CAS_LOCATOR_BYTES) {
-    throw new T256Error("INVALID_ID", `CAS locator exceeds ${MAX_CAS_LOCATOR_BYTES} bytes (${bytes.length})`);
+    throw new T256Error(
+      "INVALID_ID",
+      `CAS locator exceeds ${MAX_CAS_LOCATOR_BYTES} bytes (${bytes.length})`,
+    );
   }
 
   return bytes;
@@ -211,7 +268,9 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
     throw new T256Error("INVALID_ID", "CAS locator too short");
   }
 
-  if (!equalBytes(bytes.subarray(0, CAS_LOCATOR_MAGIC.length), CAS_LOCATOR_MAGIC)) {
+  if (
+    !equalBytes(bytes.subarray(0, CAS_LOCATOR_MAGIC.length), CAS_LOCATOR_MAGIC)
+  ) {
     throw new T256Error("INVALID_ID", "CAS locator magic mismatch");
   }
 
@@ -235,7 +294,11 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
   offset = version.offset;
 
   const packageSize =
-    ((bytes[offset]! << 24) | (bytes[offset + 1]! << 16) | (bytes[offset + 2]! << 8) | bytes[offset + 3]!) >>> 0;
+    ((bytes[offset]! << 24) |
+      (bytes[offset + 1]! << 16) |
+      (bytes[offset + 2]! << 8) |
+      bytes[offset + 3]!) >>>
+    0;
   offset += 4;
 
   const packageHash = bytesToHex(bytes.subarray(offset, offset + 32));
@@ -246,7 +309,8 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
   const publisherPublicKey = readBytes(bytes, offset);
   offset = publisherPublicKey.offset;
 
-  const servingPublicKey = formatVersion >= 2 ? readBytes(bytes, offset) : publisherPublicKey;
+  const servingPublicKey =
+    formatVersion >= 2 ? readBytes(bytes, offset) : publisherPublicKey;
   if (formatVersion >= 2) offset = servingPublicKey.offset;
 
   const signature = bytesToHex(bytes.subarray(offset, offset + 64));
@@ -261,7 +325,7 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
     packageSize,
     publisherPublicKey: bytesToHex(publisherPublicKey.value),
     servingPublicKey: bytesToHex(servingPublicKey.value),
-    signature
+    signature,
   };
 }
 
@@ -284,6 +348,6 @@ export function toCatalogEntryLike(locator: CasLocator): {
     packageHash: locator.packageHash,
     driveKey: locator.driveKey,
     publisherPublicKey: locator.publisherPublicKey,
-    servingPublicKey: locator.servingPublicKey
+    servingPublicKey: locator.servingPublicKey,
   };
 }

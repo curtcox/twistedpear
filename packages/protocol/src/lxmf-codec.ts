@@ -13,14 +13,14 @@ import {
   msgpackPackIntMap,
   msgpackPackNil,
   msgpackUnpack,
-  type MsgpackValue
+  type MsgpackValue,
 } from "./msgpack-core.js";
 
 export type LxmFields = Readonly<Record<number, Uint8Array>>;
 
 export function packLxmFields(fields: LxmFields): Uint8Array {
   const entries = Object.entries(fields).map(
-    ([key, value]) => [Number.parseInt(key, 10), value] as [number, Uint8Array]
+    ([key, value]) => [Number.parseInt(key, 10), value] as [number, Uint8Array],
   );
   return msgpackPackIntMap(entries);
 }
@@ -30,13 +30,13 @@ export function packLxmPayload(
   title: Uint8Array,
   content: Uint8Array,
   fields: LxmFields,
-  stamp?: Uint8Array | null
+  stamp?: Uint8Array | null,
 ): Uint8Array {
   const items = [
     msgpackPackFloat64(timestamp),
     msgpackPackBin(title),
     msgpackPackBin(content),
-    packLxmFields(fields)
+    packLxmFields(fields),
   ];
   if (stamp !== undefined && stamp !== null) {
     items.push(msgpackPackBin(stamp));
@@ -58,7 +58,8 @@ export function unpackLxmPayload(bytes: Uint8Array): UnpackedLxmPayload {
     throw new Error("Invalid LXMF payload");
   }
 
-  const [timestampValue, titleValue, contentValue, fieldsValue, stampValue] = value.array;
+  const [timestampValue, titleValue, contentValue, fieldsValue, stampValue] =
+    value.array;
   if (
     timestampValue === undefined ||
     titleValue === undefined ||
@@ -91,18 +92,22 @@ export function unpackLxmPayload(bytes: Uint8Array): UnpackedLxmPayload {
     title: Uint8Array.from(titleValue.bin),
     content: Uint8Array.from(contentValue.bin),
     fields,
-    stamp
+    stamp,
   };
 }
 
 export function packPropagationRequest(
   wants: ReadonlyArray<Uint8Array> | null,
   haves: ReadonlyArray<Uint8Array> | null,
-  transferLimitKb?: number | null
+  transferLimitKb?: number | null,
 ): Uint8Array {
   const items = [
-    wants === null ? msgpackPackNil() : msgpackPackArray(wants.map((entry) => msgpackPackBin(entry))),
-    haves === null ? msgpackPackNil() : msgpackPackArray(haves.map((entry) => msgpackPackBin(entry)))
+    wants === null
+      ? msgpackPackNil()
+      : msgpackPackArray(wants.map((entry) => msgpackPackBin(entry))),
+    haves === null
+      ? msgpackPackNil()
+      : msgpackPackArray(haves.map((entry) => msgpackPackBin(entry))),
   ];
   if (transferLimitKb !== undefined && transferLimitKb !== null) {
     items.push(msgpackPackFloat64(transferLimitKb));
@@ -116,23 +121,29 @@ export interface UnpackedPropagationRequest {
   readonly transferLimitKb: number | null;
 }
 
-export function unpackPropagationRequest(bytes: Uint8Array): [
+export function unpackPropagationRequest(
+  bytes: Uint8Array,
+): [
   ReadonlyArray<Uint8Array> | null,
   ReadonlyArray<Uint8Array> | null,
-  number | null
+  number | null,
 ] {
   const fields = unpackPropagationRequestFields(bytes);
   return [fields.wants, fields.haves, fields.transferLimitKb];
 }
 
-export function unpackPropagationRequestFields(bytes: Uint8Array): UnpackedPropagationRequest {
+export function unpackPropagationRequestFields(
+  bytes: Uint8Array,
+): UnpackedPropagationRequest {
   const value = msgpackUnpack(bytes);
   if (value.type !== "array" || value.array.length < 2) {
     throw new Error("Invalid propagation request payload");
   }
 
   const [wantsValue, havesValue, limitValue] = value.array;
-  const decodeList = (entry: MsgpackValue | undefined): ReadonlyArray<Uint8Array> | null => {
+  const decodeList = (
+    entry: MsgpackValue | undefined,
+  ): ReadonlyArray<Uint8Array> | null => {
     if (entry === undefined || entry.type === "nil") {
       return null;
     }
@@ -157,14 +168,17 @@ export function unpackPropagationRequestFields(bytes: Uint8Array): UnpackedPropa
   return {
     wants: decodeList(wantsValue),
     haves: decodeList(havesValue),
-    transferLimitKb
+    transferLimitKb,
   };
 }
 
-export function packPropagationEnvelope(timestamp: number, messages: ReadonlyArray<Uint8Array>): Uint8Array {
+export function packPropagationEnvelope(
+  timestamp: number,
+  messages: ReadonlyArray<Uint8Array>,
+): Uint8Array {
   return msgpackPackArray([
     msgpackPackFloat64(timestamp),
-    msgpackPackArray(messages.map((message) => msgpackPackBin(message)))
+    msgpackPackArray(messages.map((message) => msgpackPackBin(message))),
   ]);
 }
 
@@ -172,11 +186,15 @@ export interface UnpackedPropagationEnvelope {
   readonly messages: ReadonlyArray<Uint8Array>;
 }
 
-export function unpackPropagationEnvelope(bytes: Uint8Array): ReadonlyArray<Uint8Array> {
+export function unpackPropagationEnvelope(
+  bytes: Uint8Array,
+): ReadonlyArray<Uint8Array> {
   return unpackPropagationEnvelopeFields(bytes).messages;
 }
 
-export function unpackPropagationEnvelopeFields(bytes: Uint8Array): UnpackedPropagationEnvelope {
+export function unpackPropagationEnvelopeFields(
+  bytes: Uint8Array,
+): UnpackedPropagationEnvelope {
   const value = msgpackUnpack(bytes);
   if (value.type !== "array" || value.array.length !== 2) {
     throw new Error("Invalid propagation envelope");
@@ -191,7 +209,7 @@ export function unpackPropagationEnvelopeFields(bytes: Uint8Array): UnpackedProp
         throw new Error("Invalid propagation envelope message");
       }
       return Uint8Array.from(item.bin);
-    })
+    }),
   };
 }
 
@@ -199,11 +217,17 @@ export interface UnpackedBinList {
   readonly entries: ReadonlyArray<Uint8Array>;
 }
 
-export function unpackBinList(bytes: Uint8Array, label: string): ReadonlyArray<Uint8Array> {
+export function unpackBinList(
+  bytes: Uint8Array,
+  label: string,
+): ReadonlyArray<Uint8Array> {
   return unpackBinListFields(bytes, label).entries;
 }
 
-export function unpackBinListFields(bytes: Uint8Array, label: string): UnpackedBinList {
+export function unpackBinListFields(
+  bytes: Uint8Array,
+  label: string,
+): UnpackedBinList {
   const value = msgpackUnpack(bytes);
   if (value.type === "int") {
     throw new Error(`${label} returned an error code`);
@@ -217,7 +241,7 @@ export function unpackBinListFields(bytes: Uint8Array, label: string): UnpackedB
         throw new Error(`Invalid ${label} entry`);
       }
       return Uint8Array.from(item.bin);
-    })
+    }),
   };
 }
 
@@ -256,7 +280,7 @@ export function initialPackLxmPayloadState(): PackLxmPayloadState {
 
 export function stepPackLxmPayloadWithActions(
   state: PackLxmPayloadState,
-  event: PackLxmPayloadEvent
+  event: PackLxmPayloadEvent,
 ): PackLxmPayloadStepResult {
   if (event.kind === "lxmf-codec/pack-payload-gate") {
     return {
@@ -270,10 +294,10 @@ export function stepPackLxmPayloadWithActions(
             event.title,
             event.content,
             event.fields,
-            event.stamp
-          )
-        }
-      ]
+            event.stamp,
+          ),
+        },
+      ],
     };
   }
 
@@ -281,14 +305,14 @@ export function stepPackLxmPayloadWithActions(
 }
 
 export function shouldUsePackLxmPayload(
-  actions: ReadonlyArray<PackLxmPayloadAction>
+  actions: ReadonlyArray<PackLxmPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract LXM payload pack bytes from step actions; null when no `use-raw`. */
 export function packLxmPayloadRawFromActions(
-  actions: ReadonlyArray<PackLxmPayloadAction>
+  actions: ReadonlyArray<PackLxmPayloadAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -324,7 +348,7 @@ export function initialUnpackLxmPayloadState(): UnpackLxmPayloadState {
 
 export function stepUnpackLxmPayloadWithActions(
   state: UnpackLxmPayloadState,
-  event: UnpackLxmPayloadEvent
+  event: UnpackLxmPayloadEvent,
 ): UnpackLxmPayloadStepResult {
   if (event.kind === "lxmf-codec/unpack-payload-gate") {
     try {
@@ -332,7 +356,7 @@ export function stepUnpackLxmPayloadWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }]
+        actions: [{ kind: "use-fields", fields }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -343,20 +367,20 @@ export function stepUnpackLxmPayloadWithActions(
 }
 
 export function shouldUseUnpackLxmPayload(
-  actions: ReadonlyArray<UnpackLxmPayloadAction>
+  actions: ReadonlyArray<UnpackLxmPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackLxmPayload(
-  actions: ReadonlyArray<UnpackLxmPayloadAction>
+  actions: ReadonlyArray<UnpackLxmPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked LXM payload from step actions; null when no `use-fields`. */
 export function lxmPayloadFieldsFromActions(
-  actions: ReadonlyArray<UnpackLxmPayloadAction>
+  actions: ReadonlyArray<UnpackLxmPayloadAction>,
 ): UnpackedLxmPayload | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -395,7 +419,7 @@ export function initialPackPropagationRequestState(): PackPropagationRequestStat
 
 export function stepPackPropagationRequestWithActions(
   state: PackPropagationRequestState,
-  event: PackPropagationRequestEvent
+  event: PackPropagationRequestEvent,
 ): PackPropagationRequestStepResult {
   if (event.kind === "lxmf-codec/pack-propagation-request-gate") {
     return {
@@ -404,9 +428,13 @@ export function stepPackPropagationRequestWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packPropagationRequest(event.wants, event.haves, event.transferLimitKb)
-        }
-      ]
+          raw: packPropagationRequest(
+            event.wants,
+            event.haves,
+            event.transferLimitKb,
+          ),
+        },
+      ],
     };
   }
 
@@ -414,14 +442,14 @@ export function stepPackPropagationRequestWithActions(
 }
 
 export function shouldUsePackPropagationRequest(
-  actions: ReadonlyArray<PackPropagationRequestAction>
+  actions: ReadonlyArray<PackPropagationRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract propagation-request pack bytes from step actions; null when no `use-raw`. */
 export function packPropagationRequestRawFromActions(
-  actions: ReadonlyArray<PackPropagationRequestAction>
+  actions: ReadonlyArray<PackPropagationRequestAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -457,7 +485,7 @@ export function initialUnpackPropagationRequestState(): UnpackPropagationRequest
 
 export function stepUnpackPropagationRequestWithActions(
   state: UnpackPropagationRequestState,
-  event: UnpackPropagationRequestEvent
+  event: UnpackPropagationRequestEvent,
 ): UnpackPropagationRequestStepResult {
   if (event.kind === "lxmf-codec/unpack-propagation-request-gate") {
     try {
@@ -465,7 +493,7 @@ export function stepUnpackPropagationRequestWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }]
+        actions: [{ kind: "use-fields", fields }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -476,20 +504,20 @@ export function stepUnpackPropagationRequestWithActions(
 }
 
 export function shouldUseUnpackPropagationRequest(
-  actions: ReadonlyArray<UnpackPropagationRequestAction>
+  actions: ReadonlyArray<UnpackPropagationRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackPropagationRequest(
-  actions: ReadonlyArray<UnpackPropagationRequestAction>
+  actions: ReadonlyArray<UnpackPropagationRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked propagation-request fields from step actions; null when no `use-fields`. */
 export function propagationRequestFieldsFromActions(
-  actions: ReadonlyArray<UnpackPropagationRequestAction>
+  actions: ReadonlyArray<UnpackPropagationRequestAction>,
 ): UnpackedPropagationRequest | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -527,7 +555,7 @@ export function initialPackPropagationEnvelopeState(): PackPropagationEnvelopeSt
 
 export function stepPackPropagationEnvelopeWithActions(
   state: PackPropagationEnvelopeState,
-  event: PackPropagationEnvelopeEvent
+  event: PackPropagationEnvelopeEvent,
 ): PackPropagationEnvelopeStepResult {
   if (event.kind === "lxmf-codec/pack-propagation-envelope-gate") {
     return {
@@ -536,9 +564,9 @@ export function stepPackPropagationEnvelopeWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packPropagationEnvelope(event.timestamp, event.messages)
-        }
-      ]
+          raw: packPropagationEnvelope(event.timestamp, event.messages),
+        },
+      ],
     };
   }
 
@@ -546,14 +574,14 @@ export function stepPackPropagationEnvelopeWithActions(
 }
 
 export function shouldUsePackPropagationEnvelope(
-  actions: ReadonlyArray<PackPropagationEnvelopeAction>
+  actions: ReadonlyArray<PackPropagationEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract propagation-envelope pack bytes from step actions; null when no `use-raw`. */
 export function packPropagationEnvelopeRawFromActions(
-  actions: ReadonlyArray<PackPropagationEnvelopeAction>
+  actions: ReadonlyArray<PackPropagationEnvelopeAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -574,7 +602,10 @@ export type UnpackPropagationEnvelopeEvent =
     };
 
 export type UnpackPropagationEnvelopeAction =
-  | { readonly kind: "use-fields"; readonly fields: UnpackedPropagationEnvelope }
+  | {
+      readonly kind: "use-fields";
+      readonly fields: UnpackedPropagationEnvelope;
+    }
   | { readonly kind: "reject" };
 
 export interface UnpackPropagationEnvelopeStepResult {
@@ -589,7 +620,7 @@ export function initialUnpackPropagationEnvelopeState(): UnpackPropagationEnvelo
 
 export function stepUnpackPropagationEnvelopeWithActions(
   state: UnpackPropagationEnvelopeState,
-  event: UnpackPropagationEnvelopeEvent
+  event: UnpackPropagationEnvelopeEvent,
 ): UnpackPropagationEnvelopeStepResult {
   if (event.kind === "lxmf-codec/unpack-propagation-envelope-gate") {
     try {
@@ -597,7 +628,7 @@ export function stepUnpackPropagationEnvelopeWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }]
+        actions: [{ kind: "use-fields", fields }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -608,20 +639,20 @@ export function stepUnpackPropagationEnvelopeWithActions(
 }
 
 export function shouldUseUnpackPropagationEnvelope(
-  actions: ReadonlyArray<UnpackPropagationEnvelopeAction>
+  actions: ReadonlyArray<UnpackPropagationEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackPropagationEnvelope(
-  actions: ReadonlyArray<UnpackPropagationEnvelopeAction>
+  actions: ReadonlyArray<UnpackPropagationEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked propagation-envelope fields from step actions; null when no `use-fields`. */
 export function propagationEnvelopeFieldsFromActions(
-  actions: ReadonlyArray<UnpackPropagationEnvelopeAction>
+  actions: ReadonlyArray<UnpackPropagationEnvelopeAction>,
 ): UnpackedPropagationEnvelope | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -658,7 +689,7 @@ export function initialUnpackBinListState(): UnpackBinListState {
 
 export function stepUnpackBinListWithActions(
   state: UnpackBinListState,
-  event: UnpackBinListEvent
+  event: UnpackBinListEvent,
 ): UnpackBinListStepResult {
   if (event.kind === "lxmf-codec/unpack-bin-list-gate") {
     try {
@@ -666,7 +697,7 @@ export function stepUnpackBinListWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }]
+        actions: [{ kind: "use-fields", fields }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -677,20 +708,20 @@ export function stepUnpackBinListWithActions(
 }
 
 export function shouldUseUnpackBinList(
-  actions: ReadonlyArray<UnpackBinListAction>
+  actions: ReadonlyArray<UnpackBinListAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackBinList(
-  actions: ReadonlyArray<UnpackBinListAction>
+  actions: ReadonlyArray<UnpackBinListAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked bin-list fields from step actions; null when no `use-fields`. */
 export function binListFieldsFromActions(
-  actions: ReadonlyArray<UnpackBinListAction>
+  actions: ReadonlyArray<UnpackBinListAction>,
 ): UnpackedBinList | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

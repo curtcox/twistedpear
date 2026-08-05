@@ -50,7 +50,10 @@ export function hexToBytesLower(hex: string): Uint8Array {
   return output;
 }
 
-export function validateDestinationNamePart(value: string, label: string): void {
+export function validateDestinationNamePart(
+  value: string,
+  label: string,
+): void {
   if (value.length === 0) {
     throw new Error(`Destination ${label} cannot be empty`);
   }
@@ -65,7 +68,7 @@ export function validateDestinationNamePart(value: string, label: string): void 
 export function expandDestinationName(
   identityHash: Uint8Array | null,
   appName: string,
-  aspects: ReadonlyArray<string> = []
+  aspects: ReadonlyArray<string> = [],
 ): string {
   validateDestinationNamePart(appName, "app name");
   for (const aspect of aspects) {
@@ -79,7 +82,9 @@ export function expandDestinationName(
 
   if (identityHash !== null) {
     if (identityHash.length !== DESTINATION_IDENTITY_HASH_BYTES) {
-      throw new Error(`Identity hash must be ${DESTINATION_IDENTITY_HASH_BYTES} bytes`);
+      throw new Error(
+        `Identity hash must be ${DESTINATION_IDENTITY_HASH_BYTES} bytes`,
+      );
     }
     name += `.${bytesToHexLower(identityHash)}`;
   }
@@ -90,7 +95,7 @@ export function expandDestinationName(
 /** UTF-8 bytes hashed (then truncated) for the destination name hash. */
 export function destinationNameHashMaterial(
   appName: string,
-  aspects: ReadonlyArray<string> = []
+  aspects: ReadonlyArray<string> = [],
 ): Uint8Array {
   return utf8Encode(expandDestinationName(null, appName, aspects));
 }
@@ -98,7 +103,7 @@ export function destinationNameHashMaterial(
 /** Bytes hashed (then truncated) for the full destination hash. */
 export function destinationHashMaterial(
   nameHash: Uint8Array,
-  identityHash: Uint8Array | null
+  identityHash: Uint8Array | null,
 ): Uint8Array {
   if (identityHash === null) {
     return nameHash;
@@ -125,10 +130,7 @@ export function parseAspectFilter(filter: string): ParsedAspectFilter | null {
 }
 
 export type DestinationIdentityHashPlan =
-  | "missing"
-  | "use-object"
-  | "reject-length"
-  | "use-bytes";
+  "missing" | "use-object" | "reject-length" | "use-bytes";
 
 /**
  * Destination construction identity-hash resolution.
@@ -187,7 +189,7 @@ export function initialDestinationIdentityHashPlanState(): DestinationIdentityHa
 
 export function stepDestinationIdentityHashPlanWithActions(
   state: DestinationIdentityHashPlanState,
-  event: DestinationIdentityHashPlanEvent
+  event: DestinationIdentityHashPlanEvent,
 ): DestinationIdentityHashPlanStepResult {
   if (event.kind === "destination/identity-hash-plan-gate") {
     return {
@@ -197,13 +199,15 @@ export function stepDestinationIdentityHashPlanWithActions(
         {
           kind: planDestinationIdentityHash({
             kind: event.identityKind,
-            ...(event.bytesLength !== undefined ? { bytesLength: event.bytesLength } : {}),
+            ...(event.bytesLength !== undefined
+              ? { bytesLength: event.bytesLength }
+              : {}),
             ...(event.expectedLength !== undefined
               ? { expectedLength: event.expectedLength }
-              : {})
-          })
-        }
-      ]
+              : {}),
+          }),
+        },
+      ],
     };
   }
 
@@ -212,38 +216,38 @@ export function stepDestinationIdentityHashPlanWithActions(
 
 /** Extract the identity-hash plan from actions; null when empty. */
 export function destinationIdentityHashPlanFromActions(
-  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): DestinationIdentityHashPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "missing" ||
       entry.kind === "use-object" ||
       entry.kind === "reject-length" ||
-      entry.kind === "use-bytes"
+      entry.kind === "use-bytes",
   );
   return action?.kind ?? null;
 }
 
 export function shouldMissDestinationIdentityHashPlan(
-  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing");
 }
 
 export function shouldUseObjectDestinationIdentityHashPlan(
-  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-object");
 }
 
 export function shouldUseBytesDestinationIdentityHashPlan(
-  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-bytes");
 }
 
 export function shouldRejectLengthDestinationIdentityHashPlan(
-  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-length");
 }
@@ -284,7 +288,7 @@ export function initialDestinationIdentityHashState(): DestinationIdentityHashSt
 
 export function stepDestinationIdentityHashWithActions(
   state: DestinationIdentityHashState,
-  event: DestinationIdentityHashEvent
+  event: DestinationIdentityHashEvent,
 ): DestinationIdentityHashStepResult {
   if (event.kind === "destination/identity-hash-gate") {
     const planActions = stepDestinationIdentityHashPlanWithActions(
@@ -292,9 +296,13 @@ export function stepDestinationIdentityHashWithActions(
       {
         kind: "destination/identity-hash-plan-gate",
         identityKind: event.identityKind,
-        ...(event.bytesLength !== undefined ? { bytesLength: event.bytesLength } : {}),
-        ...(event.expectedLength !== undefined ? { expectedLength: event.expectedLength } : {})
-      }
+        ...(event.bytesLength !== undefined
+          ? { bytesLength: event.bytesLength }
+          : {}),
+        ...(event.expectedLength !== undefined
+          ? { expectedLength: event.expectedLength }
+          : {}),
+      },
     ).actions;
     const plan = destinationIdentityHashPlanFromActions(planActions);
     if (plan === null) {
@@ -307,31 +315,31 @@ export function stepDestinationIdentityHashWithActions(
 }
 
 export function destinationIdentityHashFromActions(
-  actions: ReadonlyArray<DestinationIdentityHashAction>
+  actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): DestinationIdentityHashPlan | null {
   return actions[0]?.kind ?? null;
 }
 
 export function shouldUseObjectDestinationIdentityHash(
-  actions: ReadonlyArray<DestinationIdentityHashAction>
+  actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-object");
 }
 
 export function shouldUseBytesDestinationIdentityHash(
-  actions: ReadonlyArray<DestinationIdentityHashAction>
+  actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-bytes");
 }
 
 export function shouldRejectLengthDestinationIdentityHash(
-  actions: ReadonlyArray<DestinationIdentityHashAction>
+  actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-length");
 }
 
 export function shouldMissDestinationIdentityHash(
-  actions: ReadonlyArray<DestinationIdentityHashAction>
+  actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing");
 }
@@ -353,8 +361,7 @@ export type ValidateDestinationNamePartEvent =
     };
 
 export type ValidateDestinationNamePartAction =
-  | { readonly kind: "proceed" }
-  | { readonly kind: "reject" };
+  { readonly kind: "proceed" } | { readonly kind: "reject" };
 
 export interface ValidateDestinationNamePartStepResult {
   readonly state: ValidateDestinationNamePartState;
@@ -368,7 +375,7 @@ export function initialValidateDestinationNamePartState(): ValidateDestinationNa
 
 export function stepValidateDestinationNamePartWithActions(
   state: ValidateDestinationNamePartState,
-  event: ValidateDestinationNamePartEvent
+  event: ValidateDestinationNamePartEvent,
 ): ValidateDestinationNamePartStepResult {
   if (event.kind === "destination/name-part-gate") {
     try {
@@ -383,13 +390,13 @@ export function stepValidateDestinationNamePartWithActions(
 }
 
 export function shouldProceedValidateDestinationNamePart(
-  actions: ReadonlyArray<ValidateDestinationNamePartAction>
+  actions: ReadonlyArray<ValidateDestinationNamePartAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectValidateDestinationNamePart(
-  actions: ReadonlyArray<ValidateDestinationNamePartAction>
+  actions: ReadonlyArray<ValidateDestinationNamePartAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -415,7 +422,10 @@ export type ExpandDestinationNameEvent =
     };
 
 export type ExpandDestinationNameAction =
-  | { readonly kind: "use-fields"; readonly fields: ExpandDestinationNameFields }
+  | {
+      readonly kind: "use-fields";
+      readonly fields: ExpandDestinationNameFields;
+    }
   | { readonly kind: "reject" };
 
 export interface ExpandDestinationNameStepResult {
@@ -430,7 +440,7 @@ export function initialExpandDestinationNameState(): ExpandDestinationNameState 
 
 export function stepExpandDestinationNameWithActions(
   state: ExpandDestinationNameState,
-  event: ExpandDestinationNameEvent
+  event: ExpandDestinationNameEvent,
 ): ExpandDestinationNameStepResult {
   if (event.kind === "destination/expand-name-gate") {
     try {
@@ -444,11 +454,11 @@ export function stepExpandDestinationNameWithActions(
               name: expandDestinationName(
                 event.identityHash,
                 event.appName,
-                event.aspects ?? []
-              )
-            }
-          }
-        ]
+                event.aspects ?? [],
+              ),
+            },
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -459,20 +469,20 @@ export function stepExpandDestinationNameWithActions(
 }
 
 export function shouldUseExpandDestinationName(
-  actions: ReadonlyArray<ExpandDestinationNameAction>
+  actions: ReadonlyArray<ExpandDestinationNameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectExpandDestinationName(
-  actions: ReadonlyArray<ExpandDestinationNameAction>
+  actions: ReadonlyArray<ExpandDestinationNameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract expanded destination name from step actions; null when no `use-fields`. */
 export function expandedDestinationNameFromActions(
-  actions: ReadonlyArray<ExpandDestinationNameAction>
+  actions: ReadonlyArray<ExpandDestinationNameAction>,
 ): string | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields.name : null;
@@ -510,7 +520,7 @@ export function initialDestinationNameHashMaterialState(): DestinationNameHashMa
 
 export function stepDestinationNameHashMaterialWithActions(
   state: DestinationNameHashMaterialState,
-  event: DestinationNameHashMaterialEvent
+  event: DestinationNameHashMaterialEvent,
 ): DestinationNameHashMaterialStepResult {
   if (event.kind === "destination/name-hash-material-gate") {
     try {
@@ -520,9 +530,12 @@ export function stepDestinationNameHashMaterialWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: destinationNameHashMaterial(event.appName, event.aspects ?? [])
-          }
-        ]
+            raw: destinationNameHashMaterial(
+              event.appName,
+              event.aspects ?? [],
+            ),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -533,20 +546,20 @@ export function stepDestinationNameHashMaterialWithActions(
 }
 
 export function shouldUseDestinationNameHashMaterial(
-  actions: ReadonlyArray<DestinationNameHashMaterialAction>
+  actions: ReadonlyArray<DestinationNameHashMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectDestinationNameHashMaterial(
-  actions: ReadonlyArray<DestinationNameHashMaterialAction>
+  actions: ReadonlyArray<DestinationNameHashMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract name-hash material bytes from step actions; null when no `use-raw`. */
 export function destinationNameHashMaterialRawFromActions(
-  actions: ReadonlyArray<DestinationNameHashMaterialAction>
+  actions: ReadonlyArray<DestinationNameHashMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -584,7 +597,7 @@ export function initialDestinationHashMaterialState(): DestinationHashMaterialSt
 
 export function stepDestinationHashMaterialWithActions(
   state: DestinationHashMaterialState,
-  event: DestinationHashMaterialEvent
+  event: DestinationHashMaterialEvent,
 ): DestinationHashMaterialStepResult {
   if (event.kind === "destination/hash-material-gate") {
     return {
@@ -593,9 +606,9 @@ export function stepDestinationHashMaterialWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: destinationHashMaterial(event.nameHash, event.identityHash)
-        }
-      ]
+          raw: destinationHashMaterial(event.nameHash, event.identityHash),
+        },
+      ],
     };
   }
 
@@ -603,14 +616,14 @@ export function stepDestinationHashMaterialWithActions(
 }
 
 export function shouldUseDestinationHashMaterial(
-  actions: ReadonlyArray<DestinationHashMaterialAction>
+  actions: ReadonlyArray<DestinationHashMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract destination hash material bytes from step actions; null when no `use-raw`. */
 export function destinationHashMaterialRawFromActions(
-  actions: ReadonlyArray<DestinationHashMaterialAction>
+  actions: ReadonlyArray<DestinationHashMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -646,7 +659,7 @@ export function initialParseAspectFilterState(): ParseAspectFilterState {
 
 export function stepParseAspectFilterWithActions(
   state: ParseAspectFilterState,
-  event: ParseAspectFilterEvent
+  event: ParseAspectFilterEvent,
 ): ParseAspectFilterStepResult {
   if (event.kind === "destination/aspect-filter-gate") {
     const fields = parseAspectFilter(event.filter);
@@ -660,20 +673,20 @@ export function stepParseAspectFilterWithActions(
 }
 
 export function shouldUseParseAspectFilter(
-  actions: ReadonlyArray<ParseAspectFilterAction>
+  actions: ReadonlyArray<ParseAspectFilterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectParseAspectFilter(
-  actions: ReadonlyArray<ParseAspectFilterAction>
+  actions: ReadonlyArray<ParseAspectFilterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract parsed aspect filter from step actions; null when no `use-fields`. */
 export function aspectFilterFromActions(
-  actions: ReadonlyArray<ParseAspectFilterAction>
+  actions: ReadonlyArray<ParseAspectFilterAction>,
 ): ParsedAspectFilter | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

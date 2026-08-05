@@ -15,7 +15,10 @@ export function readModuleSource(entryPath) {
       const requested = resolve(dirname(path), match[1]);
       const candidates = existsSync(requested)
         ? [requested]
-        : [requested.replace(/\.js$/, ".ts"), requested.replace(/\.js$/, ".tsx")];
+        : [
+            requested.replace(/\.js$/, ".ts"),
+            requested.replace(/\.js$/, ".tsx"),
+          ];
       const resolved = candidates.find((candidate) => existsSync(candidate));
       if (resolved !== undefined) visit(resolved);
     }

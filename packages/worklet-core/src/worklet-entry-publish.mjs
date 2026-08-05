@@ -1,8 +1,19 @@
-import { buildAppAnnounceSummary, encodeAppAnnounceData, unpackPackage } from "../../app-registry/dist/index.js";
+import {
+  buildAppAnnounceSummary,
+  encodeAppAnnounceData,
+  unpackPackage,
+} from "../../app-registry/dist/index.js";
 import { attachPackageResourceServer } from "../../bridge-hyper/dist/worklet.js";
 /* global TextEncoder */
-import { casAnnounceAspects, encodeCasLocator, signCasLocator } from "../../cas-256t/dist/index.js";
-import { DestinationDirection, DestinationType } from "../../reticulum-ts/dist/destination.js";
+import {
+  casAnnounceAspects,
+  encodeCasLocator,
+  signCasLocator,
+} from "../../cas-256t/dist/index.js";
+import {
+  DestinationDirection,
+  DestinationType,
+} from "../../reticulum-ts/dist/destination.js";
 import { bytesToHex } from "../../reticulum-ts/dist/crypto/bytes.js";
 
 export function createPublishArchiveOps(deps) {
@@ -27,11 +38,19 @@ export function createPublishArchiveOps(deps) {
     const published =
       driveManager === null
         ? { version: unpacked.manifest.version }
-        : await driveManager.publishVersion(unpacked.manifest.version, archive, unpacked.packageHash);
+        : await driveManager.publishVersion(
+            unpacked.manifest.version,
+            archive,
+            unpacked.packageHash,
+          );
     const node = await deps.ensureReticulum();
-    const publisherHash = bytesToHex(deps.provider.sha256(identity.getPublicKey()).slice(0, 8));
+    const publisherHash = bytesToHex(
+      deps.provider.sha256(identity.getPublicKey()).slice(0, 8),
+    );
     const nameHash = bytesToHex(
-      deps.provider.sha256(new TextEncoder().encode(unpacked.manifest.name)).slice(0, 8)
+      deps.provider
+        .sha256(new TextEncoder().encode(unpacked.manifest.name))
+        .slice(0, 8),
     );
     const appDestination = node.registerDestination({
       provider: deps.provider,
@@ -39,25 +58,28 @@ export function createPublishArchiveOps(deps) {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: ["app", publisherHash, nameHash]
+      aspects: ["app", publisherHash, nameHash],
     });
     attachPackageResourceServer(appDestination, {
       async listVersions() {
-        return driveManager === null ? [published.version] : driveManager.listVersions();
+        return driveManager === null
+          ? [published.version]
+          : driveManager.listVersions();
       },
       async fetchArchive(version) {
         if (driveManager === null) {
-          if (version !== published.version) throw new Error(`Version not found: ${version}`);
+          if (version !== published.version)
+            throw new Error(`Version not found: ${version}`);
           return archive;
         }
         return driveManager.fetchVersion(version);
-      }
+      },
     });
     const summary = buildAppAnnounceSummary(deps.provider, identity, {
       manifest: unpacked.manifest,
       packageSize: archive.length,
       packageHash: unpacked.packageHash,
-      resourceAvailable: true
+      resourceAvailable: true,
     });
     await appDestination.announce({ appData: encodeAppAnnounceData(summary) });
 
@@ -67,7 +89,7 @@ export function createPublishArchiveOps(deps) {
       version: unpacked.manifest.version,
       driveKey: keyHex,
       packageHash: unpacked.packageHash,
-      packageSize: archive.length
+      packageSize: archive.length,
     });
     const casDestination = node.registerDestination({
       provider: deps.provider,
@@ -75,12 +97,14 @@ export function createPublishArchiveOps(deps) {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: casAnnounceAspects(t256)
+      aspects: casAnnounceAspects(t256),
     });
     deps.casResponseDestinations.set(t256, casDestination);
     deps.casLocators.set(t256, locator);
     await casDestination.announce({ appData: encodeCasLocator(locator) });
-    deps.log(`Published ${unpacked.manifest.name} v${published.version}; 256t ${t256.slice(0, 16)}…`);
+    deps.log(
+      `Published ${unpacked.manifest.name} v${published.version}; 256t ${t256.slice(0, 16)}…`,
+    );
     return { t256, driveKey: keyHex, version: published.version };
   }
 

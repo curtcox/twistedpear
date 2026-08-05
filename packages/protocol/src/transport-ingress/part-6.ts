@@ -43,7 +43,7 @@ import {
   initialGateState,
   interpretGate,
   type GateState,
-  type GateStepResult
+  type GateStepResult,
 } from "@twistedpear/effects";
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -52,7 +52,7 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
-  PACKET_TYPE_PROOF
+  PACKET_TYPE_PROOF,
 } from "../packet-header.js";
 import { PacketContextCode } from "../packet-context.js";
 import { equalByteArrays } from "../path-table.js";
@@ -61,7 +61,10 @@ import { planReverseRelayOutcome } from "./part-2.js";
 import { transportIngressDispatchGate } from "./part-3.js";
 import { planLinkDataIngressTarget } from "./part-5.js";
 import type { ReverseRelayOutcome } from "./part-2.js";
-import type { TransportIngressDispatch, TransportIngressDispatchAction } from "./part-3.js";
+import type {
+  TransportIngressDispatch,
+  TransportIngressDispatchAction,
+} from "./part-3.js";
 import type { LinkDataIngressTarget } from "./part-5.js";
 /**
  * Link-data ingress target plan leaf is event-driven; no durable session fields.
@@ -80,7 +83,7 @@ const linkDataIngressTargetPlanGate = defineGate<
 >({
   event: "transport/link-data-ingress-plan-gate",
   actions: ["active", "pending", "none"],
-  decide: (event) => [{ kind: planLinkDataIngressTarget(event) }]
+  decide: (event) => [{ kind: planLinkDataIngressTarget(event) }],
 });
 
 export type LinkDataIngressTargetPlanState = GateState;
@@ -93,16 +96,17 @@ export type LinkDataIngressTargetPlanEvent =
       readonly pendingIndex: number | null;
     };
 
-export type LinkDataIngressTargetPlanAction = { readonly kind: LinkDataIngressTarget };
+export type LinkDataIngressTargetPlanAction = {
+  readonly kind: LinkDataIngressTarget;
+};
 
-export type LinkDataIngressTargetPlanStepResult = GateStepResult<
-  LinkDataIngressTargetPlanAction
->;
+export type LinkDataIngressTargetPlanStepResult =
+  GateStepResult<LinkDataIngressTargetPlanAction>;
 
 export const initialLinkDataIngressTargetPlanState = initialGateState;
 
 export const stepLinkDataIngressTargetPlanWithActions = interpretGate(
-  linkDataIngressTargetPlanGate
+  linkDataIngressTargetPlanGate,
 );
 
 /** Extract the link-data ingress target plan from actions; null when empty. */
@@ -111,17 +115,14 @@ export const linkDataIngressTargetPlanFromActions = gateConclusion<
   LinkDataIngressTarget
 >("active", "pending", "none");
 
-export const shouldIngressLinkDataActivePlan = gateConcluded<
-  LinkDataIngressTargetPlanAction
->("active");
+export const shouldIngressLinkDataActivePlan =
+  gateConcluded<LinkDataIngressTargetPlanAction>("active");
 
-export const shouldIngressLinkDataPendingPlan = gateConcluded<
-  LinkDataIngressTargetPlanAction
->("pending");
+export const shouldIngressLinkDataPendingPlan =
+  gateConcluded<LinkDataIngressTargetPlanAction>("pending");
 
-export const shouldIngressLinkDataNonePlan = gateConcluded<
-  LinkDataIngressTargetPlanAction
->("none");
+export const shouldIngressLinkDataNonePlan =
+  gateConcluded<LinkDataIngressTargetPlanAction>("none");
 
 /**
  * Reverse-relay outcome plan leaf is event-driven; no durable session fields.
@@ -140,7 +141,7 @@ const reverseRelayOutcomePlanGate = defineGate<
 >({
   event: "transport/reverse-relay-plan-gate",
   actions: ["relay", "delete-expired", "ignore"],
-  decide: (event) => [{ kind: planReverseRelayOutcome(event) }]
+  decide: (event) => [{ kind: planReverseRelayOutcome(event) }],
 });
 
 export type ReverseRelayOutcomePlanState = GateState;
@@ -154,14 +155,17 @@ export type ReverseRelayOutcomePlanEvent =
       readonly ifaceIsOutbound: boolean;
     };
 
-export type ReverseRelayOutcomePlanAction = { readonly kind: ReverseRelayOutcome };
+export type ReverseRelayOutcomePlanAction = {
+  readonly kind: ReverseRelayOutcome;
+};
 
-export type ReverseRelayOutcomePlanStepResult = GateStepResult<ReverseRelayOutcomePlanAction>;
+export type ReverseRelayOutcomePlanStepResult =
+  GateStepResult<ReverseRelayOutcomePlanAction>;
 
 export const initialReverseRelayOutcomePlanState = initialGateState;
 
 export const stepReverseRelayOutcomePlanWithActions = interpretGate(
-  reverseRelayOutcomePlanGate
+  reverseRelayOutcomePlanGate,
 );
 
 /** Extract the reverse-relay outcome plan from actions; null when empty. */
@@ -170,20 +174,19 @@ export const reverseRelayOutcomePlanFromActions = gateConclusion<
   ReverseRelayOutcome
 >("relay", "delete-expired", "ignore");
 
-export const shouldRelayReversePacketPlan = gateConcluded<
-  ReverseRelayOutcomePlanAction
->("relay");
+export const shouldRelayReversePacketPlan =
+  gateConcluded<ReverseRelayOutcomePlanAction>("relay");
 
-export const shouldDeleteExpiredReverseEntryPlan = gateConcluded<
-  ReverseRelayOutcomePlanAction
->("delete-expired");
+export const shouldDeleteExpiredReverseEntryPlan =
+  gateConcluded<ReverseRelayOutcomePlanAction>("delete-expired");
 
-export const shouldIgnoreReverseRelayOutcomePlan = gateConcluded<
-  ReverseRelayOutcomePlanAction
->("ignore");
+export const shouldIgnoreReverseRelayOutcomePlan =
+  gateConcluded<ReverseRelayOutcomePlanAction>("ignore");
 
 /** Whether a transport list should receive a new member (not already present). */
-export function shouldRegisterTransportMember(alreadyPresent: boolean): boolean {
+export function shouldRegisterTransportMember(
+  alreadyPresent: boolean,
+): boolean {
   return !alreadyPresent;
 }
 
@@ -205,7 +208,7 @@ const registerTransportMemberGate = defineBooleanGate<
   event: "transport/member-register-gate",
   whenTrue: "register",
   whenFalse: "skip",
-  decide: (event) => shouldRegisterTransportMember(event.alreadyPresent)
+  decide: (event) => shouldRegisterTransportMember(event.alreadyPresent),
 });
 
 export type RegisterTransportMemberState = GateState;
@@ -218,24 +221,22 @@ export type RegisterTransportMemberEvent =
     };
 
 export type RegisterTransportMemberAction =
-  | { readonly kind: "register" }
-  | { readonly kind: "skip" };
+  { readonly kind: "register" } | { readonly kind: "skip" };
 
-export type RegisterTransportMemberStepResult = GateStepResult<RegisterTransportMemberAction>;
+export type RegisterTransportMemberStepResult =
+  GateStepResult<RegisterTransportMemberAction>;
 
 export const initialRegisterTransportMemberState = initialGateState;
 
 export const stepRegisterTransportMemberWithActions = interpretGate(
-  registerTransportMemberGate
+  registerTransportMemberGate,
 );
 
-export const shouldRegisterTransportMemberNow = gateConcluded<
-  RegisterTransportMemberAction
->("register");
+export const shouldRegisterTransportMemberNow =
+  gateConcluded<RegisterTransportMemberAction>("register");
 
-export const shouldSkipRegisterTransportMember = gateConcluded<
-  RegisterTransportMemberAction
->("skip");
+export const shouldSkipRegisterTransportMember =
+  gateConcluded<RegisterTransportMemberAction>("skip");
 
 /**
  * Unregister from a transport list: splice index or skip when absent.
@@ -246,7 +247,9 @@ export function planUnregisterTransportMember(index: number): number | null {
 }
 
 /** Whether unregister may splice after {@link planUnregisterTransportMember}. */
-export function shouldUnregisterTransportMember(indexPresent: boolean): boolean {
+export function shouldUnregisterTransportMember(
+  indexPresent: boolean,
+): boolean {
   return indexPresent;
 }
 
@@ -270,7 +273,7 @@ const transportMemberUnregisterPlanGate = defineGate<
   decide: (event) => {
     const index = planUnregisterTransportMember(event.index);
     return index === null ? [] : [{ kind: "remove", index }];
-  }
+  },
 });
 
 export type TransportMemberUnregisterPlanState = GateState;
@@ -287,14 +290,13 @@ export type TransportMemberUnregisterPlanAction = {
   readonly index: number;
 };
 
-export type TransportMemberUnregisterPlanStepResult = GateStepResult<
-  TransportMemberUnregisterPlanAction
->;
+export type TransportMemberUnregisterPlanStepResult =
+  GateStepResult<TransportMemberUnregisterPlanAction>;
 
 export const initialTransportMemberUnregisterPlanState = initialGateState;
 
 export const stepTransportMemberUnregisterPlanWithActions = interpretGate(
-  transportMemberUnregisterPlanGate
+  transportMemberUnregisterPlanGate,
 );
 
 export const transportMemberUnregisterPlanIndex = gatePayload<
@@ -303,9 +305,8 @@ export const transportMemberUnregisterPlanIndex = gatePayload<
   "index"
 >("remove", "index");
 
-export const shouldRemoveTransportMemberUnregisterPlan = gateConcluded<
-  TransportMemberUnregisterPlanAction
->("remove");
+export const shouldRemoveTransportMemberUnregisterPlan =
+  gateConcluded<TransportMemberUnregisterPlanAction>("remove");
 
 /**
  * Transport-member unregister is event-driven; no durable session fields.
@@ -329,11 +330,11 @@ const transportMemberUnregisterGate = defineGate<
     const index = transportMemberUnregisterPlanIndex(
       decideGate(transportMemberUnregisterPlanGate, {
         kind: "transport/member-unregister-plan-gate",
-        index: event.index
-      })
+        index: event.index,
+      }),
     );
     return index === null ? [] : [{ kind: "remove", index }];
-  }
+  },
 });
 
 export type TransportMemberUnregisterState = GateState;
@@ -350,14 +351,13 @@ export type TransportMemberUnregisterAction = {
   readonly index: number;
 };
 
-export type TransportMemberUnregisterStepResult = GateStepResult<
-  TransportMemberUnregisterAction
->;
+export type TransportMemberUnregisterStepResult =
+  GateStepResult<TransportMemberUnregisterAction>;
 
 export const initialTransportMemberUnregisterState = initialGateState;
 
 export const stepTransportMemberUnregisterWithActions = interpretGate(
-  transportMemberUnregisterGate
+  transportMemberUnregisterGate,
 );
 
 export const transportMemberUnregisterIndex = gatePayload<
@@ -366,40 +366,35 @@ export const transportMemberUnregisterIndex = gatePayload<
   "index"
 >("remove", "index");
 
-export const shouldRemoveTransportMember = gateConcluded<
-  TransportMemberUnregisterAction
->("remove");
+export const shouldRemoveTransportMember =
+  gateConcluded<TransportMemberUnregisterAction>("remove");
 
 export type TransportIngressDispatchState = GateState;
 
-export type TransportIngressDispatchStepResult = GateStepResult<TransportIngressDispatchAction>;
+export type TransportIngressDispatchStepResult =
+  GateStepResult<TransportIngressDispatchAction>;
 
 export const initialTransportIngressDispatchState = initialGateState;
 
-export const stepTransportIngressDispatch: StepFn<TransportIngressDispatchState> = gateStepFn(
-  transportIngressDispatchGate
-);
+export const stepTransportIngressDispatch: StepFn<TransportIngressDispatchState> =
+  gateStepFn(transportIngressDispatchGate);
 
 export const transportIngressDispatchFromActions = gateConclusion<
   TransportIngressDispatchAction,
   TransportIngressDispatch
 >("announce", "link-request", "link-data", "plain-data", "proof", "ignore");
 
-export const shouldDispatchTransportAnnounce = gateConcluded<
-  TransportIngressDispatchAction
->("announce");
+export const shouldDispatchTransportAnnounce =
+  gateConcluded<TransportIngressDispatchAction>("announce");
 
-export const shouldDispatchTransportLinkRequest = gateConcluded<
-  TransportIngressDispatchAction
->("link-request");
+export const shouldDispatchTransportLinkRequest =
+  gateConcluded<TransportIngressDispatchAction>("link-request");
 
-export const shouldDispatchTransportLinkData = gateConcluded<
-  TransportIngressDispatchAction
->("link-data");
+export const shouldDispatchTransportLinkData =
+  gateConcluded<TransportIngressDispatchAction>("link-data");
 
-export const shouldDispatchTransportPlainData = gateConcluded<
-  TransportIngressDispatchAction
->("plain-data");
+export const shouldDispatchTransportPlainData =
+  gateConcluded<TransportIngressDispatchAction>("plain-data");
 
 /**
  * Link-data ingress target is event-driven; no durable session fields.
@@ -422,11 +417,11 @@ export const linkDataIngressTargetGate = defineGate<
     const plan = linkDataIngressTargetPlanFromActions(
       decideGate(linkDataIngressTargetPlanGate, {
         ...event,
-        kind: "transport/link-data-ingress-plan-gate"
-      })
+        kind: "transport/link-data-ingress-plan-gate",
+      }),
     );
     return plan === null ? [] : [{ kind: plan }];
-  }
+  },
 });
 
 export type LinkDataIngressTargetEvent =
@@ -441,7 +436,9 @@ export type LinkDataIngressTargetAction = {
   readonly kind: LinkDataIngressTarget;
 };
 
-export const stepLinkDataIngressTargetWithActions = interpretGate(linkDataIngressTargetGate);
+export const stepLinkDataIngressTargetWithActions = interpretGate(
+  linkDataIngressTargetGate,
+);
 
 /**
  * Reverse-relay outcome is event-driven; no durable session fields.
@@ -464,11 +461,11 @@ export const reverseRelayOutcomeGate = defineGate<
     const plan = reverseRelayOutcomePlanFromActions(
       decideGate(reverseRelayOutcomePlanGate, {
         ...event,
-        kind: "transport/reverse-relay-plan-gate"
-      })
+        kind: "transport/reverse-relay-plan-gate",
+      }),
     );
     return plan === null ? [] : [{ kind: plan }];
-  }
+  },
 });
 
 export type ReverseRelayOutcomeEvent =
@@ -484,4 +481,6 @@ export type ReverseRelayOutcomeAction = {
   readonly kind: ReverseRelayOutcome;
 };
 
-export const stepReverseRelayOutcomeWithActions = interpretGate(reverseRelayOutcomeGate);
+export const stepReverseRelayOutcomeWithActions = interpretGate(
+  reverseRelayOutcomeGate,
+);

@@ -12,7 +12,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue
+  type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
 import type { LxmfDeliverableAcceptPlan } from "./part-2.js";
 /** Whether an unpacked LXMF deliverable should be accepted (sig + seen-hash). */
@@ -64,7 +64,7 @@ export function initialLxmfDeliverableAcceptPlanState(): LxmfDeliverableAcceptPl
 
 export function stepLxmfDeliverableAcceptPlanWithActions(
   state: LxmfDeliverableAcceptPlanState,
-  event: LxmfDeliverableAcceptPlanEvent
+  event: LxmfDeliverableAcceptPlanEvent,
 ): LxmfDeliverableAcceptPlanStepResult {
   if (event.kind === "deliverable/plan-gate") {
     return {
@@ -75,10 +75,10 @@ export function stepLxmfDeliverableAcceptPlanWithActions(
           kind: planLxmfDeliverableAccept({
             signatureValidated: event.signatureValidated,
             hasHash: event.hasHash,
-            alreadySeen: event.alreadySeen
-          })
-        }
-      ]
+            alreadySeen: event.alreadySeen,
+          }),
+        },
+      ],
     };
   }
 
@@ -87,34 +87,34 @@ export function stepLxmfDeliverableAcceptPlanWithActions(
 
 /** Whether plan actions accept the deliverable. */
 export function shouldPlanLxmfDeliverableAccept(
-  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 /** Whether plan actions reject an unsigned deliverable. */
 export function shouldRejectLxmfDeliverableAcceptPlanUnsigned(
-  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-unsigned");
 }
 
 /** Whether plan actions reject an already-seen deliverable. */
 export function shouldRejectLxmfDeliverableAcceptPlanSeen(
-  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-seen");
 }
 
 /** Extract the deliverable-accept plan from actions; null when empty. */
 export function lxmfDeliverableAcceptPlanFromActions(
-  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): LxmfDeliverableAcceptPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "accept" ||
       entry.kind === "reject-unsigned" ||
-      entry.kind === "reject-seen"
+      entry.kind === "reject-seen",
   );
   return action?.kind ?? null;
 }
@@ -158,43 +158,43 @@ export function initialLxmfDeliverableAcceptState(): LxmfDeliverableAcceptState 
 
 export const stepLxmfDeliverableAccept: StepFn<LxmfDeliverableAcceptState> = (
   state,
-  event
+  event,
 ) => {
   const result = stepLxmfDeliverableAcceptInner(
     state,
-    event as LxmfDeliverableAcceptEvent
+    event as LxmfDeliverableAcceptEvent,
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfDeliverableAcceptWithActions(
   state: LxmfDeliverableAcceptState,
-  event: LxmfDeliverableAcceptEvent
+  event: LxmfDeliverableAcceptEvent,
 ): LxmfDeliverableAcceptStepResult {
   return stepLxmfDeliverableAcceptInner(state, event);
 }
 
 export function shouldAcceptLxmfDeliverable(
-  actions: ReadonlyArray<LxmfDeliverableAcceptAction>
+  actions: ReadonlyArray<LxmfDeliverableAcceptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectLxmfDeliverableUnsigned(
-  actions: ReadonlyArray<LxmfDeliverableAcceptAction>
+  actions: ReadonlyArray<LxmfDeliverableAcceptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-unsigned");
 }
 
 export function shouldRejectLxmfDeliverableSeen(
-  actions: ReadonlyArray<LxmfDeliverableAcceptAction>
+  actions: ReadonlyArray<LxmfDeliverableAcceptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-seen");
 }
 
 function stepLxmfDeliverableAcceptInner(
   state: LxmfDeliverableAcceptState,
-  event: LxmfDeliverableAcceptEvent
+  event: LxmfDeliverableAcceptEvent,
 ): LxmfDeliverableAcceptStepResult {
   if (event.kind === "deliverable/accept-gate") {
     const planActions = stepLxmfDeliverableAcceptPlanWithActions(
@@ -203,8 +203,8 @@ function stepLxmfDeliverableAcceptInner(
         kind: "deliverable/plan-gate",
         signatureValidated: event.signatureValidated,
         hasHash: event.hasHash,
-        alreadySeen: event.alreadySeen
-      }
+        alreadySeen: event.alreadySeen,
+      },
     ).actions;
     if (shouldRejectLxmfDeliverableAcceptPlanUnsigned(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-unsigned" }] };
@@ -241,8 +241,7 @@ export type RememberLxmfMessageEvent =
     };
 
 export type RememberLxmfMessageAction =
-  | { readonly kind: "remember" }
-  | { readonly kind: "skip" };
+  { readonly kind: "remember" } | { readonly kind: "skip" };
 
 export interface RememberLxmfMessageStepResult {
   readonly state: RememberLxmfMessageState;
@@ -256,7 +255,7 @@ export function initialRememberLxmfMessageState(): RememberLxmfMessageState {
 
 export function stepRememberLxmfMessageWithActions(
   state: RememberLxmfMessageState,
-  event: RememberLxmfMessageEvent
+  event: RememberLxmfMessageEvent,
 ): RememberLxmfMessageStepResult {
   if (event.kind === "lxmf/remember-message-gate") {
     return {
@@ -264,9 +263,9 @@ export function stepRememberLxmfMessageWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldRememberLxmfMessage(event.hasHash) ? "remember" : "skip"
-        }
-      ]
+          kind: shouldRememberLxmfMessage(event.hasHash) ? "remember" : "skip",
+        },
+      ],
     };
   }
 
@@ -274,13 +273,13 @@ export function stepRememberLxmfMessageWithActions(
 }
 
 export function shouldRememberLxmfMessageNow(
-  actions: ReadonlyArray<RememberLxmfMessageAction>
+  actions: ReadonlyArray<RememberLxmfMessageAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remember");
 }
 
 export function shouldSkipRememberLxmfMessage(
-  actions: ReadonlyArray<RememberLxmfMessageAction>
+  actions: ReadonlyArray<RememberLxmfMessageAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -308,8 +307,7 @@ export type CommitRememberedLxmfHashEvent =
     };
 
 export type CommitRememberedLxmfHashAction =
-  | { readonly kind: "commit" }
-  | { readonly kind: "skip" };
+  { readonly kind: "commit" } | { readonly kind: "skip" };
 
 export interface CommitRememberedLxmfHashStepResult {
   readonly state: CommitRememberedLxmfHashState;
@@ -323,7 +321,7 @@ export function initialCommitRememberedLxmfHashState(): CommitRememberedLxmfHash
 
 export function stepCommitRememberedLxmfHashWithActions(
   state: CommitRememberedLxmfHashState,
-  event: CommitRememberedLxmfHashEvent
+  event: CommitRememberedLxmfHashEvent,
 ): CommitRememberedLxmfHashStepResult {
   if (event.kind === "lxmf/commit-remembered-hash-gate") {
     return {
@@ -333,9 +331,9 @@ export function stepCommitRememberedLxmfHashWithActions(
         {
           kind: shouldCommitRememberedLxmfHash(event.hashPresent)
             ? "commit"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -343,13 +341,13 @@ export function stepCommitRememberedLxmfHashWithActions(
 }
 
 export function shouldCommitRememberedLxmfHashNow(
-  actions: ReadonlyArray<CommitRememberedLxmfHashAction>
+  actions: ReadonlyArray<CommitRememberedLxmfHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "commit");
 }
 
 export function shouldSkipCommitRememberedLxmfHash(
-  actions: ReadonlyArray<CommitRememberedLxmfHashAction>
+  actions: ReadonlyArray<CommitRememberedLxmfHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -374,8 +372,7 @@ export type AcceptLxmfWireFrameEvent =
     };
 
 export type AcceptLxmfWireFrameAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptLxmfWireFrameStepResult {
   readonly state: AcceptLxmfWireFrameState;
@@ -389,7 +386,7 @@ export function initialAcceptLxmfWireFrameState(): AcceptLxmfWireFrameState {
 
 export function stepAcceptLxmfWireFrameWithActions(
   state: AcceptLxmfWireFrameState,
-  event: AcceptLxmfWireFrameEvent
+  event: AcceptLxmfWireFrameEvent,
 ): AcceptLxmfWireFrameStepResult {
   if (event.kind === "lxmf/accept-wire-frame-gate") {
     return {
@@ -397,9 +394,11 @@ export function stepAcceptLxmfWireFrameWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptLxmfWireFrame(event.wirePresent) ? "accept" : "skip"
-        }
-      ]
+          kind: shouldAcceptLxmfWireFrame(event.wirePresent)
+            ? "accept"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -407,20 +406,20 @@ export function stepAcceptLxmfWireFrameWithActions(
 }
 
 export function shouldAcceptLxmfWireFrameNow(
-  actions: ReadonlyArray<AcceptLxmfWireFrameAction>
+  actions: ReadonlyArray<AcceptLxmfWireFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptLxmfWireFrame(
-  actions: ReadonlyArray<AcceptLxmfWireFrameAction>
+  actions: ReadonlyArray<AcceptLxmfWireFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a router may register its (only) delivery identity. */
 export function canRegisterLxmfDeliveryIdentity(
-  deliveryDestinationPresent: boolean
+  deliveryDestinationPresent: boolean,
 ): boolean {
   return !deliveryDestinationPresent;
 }
@@ -440,8 +439,7 @@ export type RegisterLxmfDeliveryIdentityEvent =
     };
 
 export type RegisterLxmfDeliveryIdentityAction =
-  | { readonly kind: "register" }
-  | { readonly kind: "skip" };
+  { readonly kind: "register" } | { readonly kind: "skip" };
 
 export interface RegisterLxmfDeliveryIdentityStepResult {
   readonly state: RegisterLxmfDeliveryIdentityState;

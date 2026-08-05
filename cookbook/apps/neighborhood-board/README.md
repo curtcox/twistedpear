@@ -17,18 +17,18 @@ Announce-based fan-out with no server, and reconciling a local store with what t
 
 ## Capabilities
 
-| Capability | Note |
-|---|---|
-| `announce:publish` | Standing grant; revocable at any time from the host. |
-| `announce:subscribe` | Standing grant; revocable at any time from the host. |
-| `storage:hyperbee` | Local-only in v1; there is no replication between devices. |
+| Capability           | Note                                                       |
+| -------------------- | ---------------------------------------------------------- |
+| `announce:publish`   | Standing grant; revocable at any time from the host.       |
+| `announce:subscribe` | Standing grant; revocable at any time from the host.       |
+| `storage:hyperbee`   | Local-only in v1; there is no replication between devices. |
 
 ## Files
 
-| File | Purpose |
-|---|---|
+| File                                   | Purpose                                                      |
+| -------------------------------------- | ------------------------------------------------------------ |
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
+| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
 
 ## Run it
 

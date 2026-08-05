@@ -7,7 +7,7 @@ register: none
 -->
 
 Most mini-apps will not need this chapter. It covers the capabilities that let an app act on
-the *platform* — send prompts to an AI service, package and sign other apps, publish them,
+the _platform_ — send prompts to an AI service, package and sign other apps, publish them,
 install them, and run them in a preview slot.
 
 DevStudio is built entirely out of these, which is the point: there is no privileged authoring
@@ -23,11 +23,11 @@ import { ai } from "@twistedpear/miniapp-sdk";
 const reply = await ai.chat({
   messages: [
     { role: "system", content: "You rewrite mini-app source files." },
-    { role: "user", content: `${instruction}\n\n---\n${currentSource}` }
+    { role: "user", content: `${instruction}\n\n---\n${currentSource}` },
   ],
-  model: "…",           // optional; must be on the host's allowlist
-  maxTokens: 4096,      // optional; clamped by the host
-  temperature: 0.2      // optional
+  model: "…", // optional; must be on the host's allowlist
+  maxTokens: 4096, // optional; clamped by the host
+  temperature: 0.2, // optional
 });
 
 let proposal = "";
@@ -43,13 +43,13 @@ sandbox** — not yours, not DevStudio's.
 
 Constraints the host enforces, not you:
 
-| Constraint | Value |
-|---|---|
-| In-flight requests | 1 per app |
-| Messages per request | ≤ 64 |
-| `maxTokens` | Clamped to 8,192 |
-| Model | Must be on the host's allowlist |
-| Endpoint | OpenRouter-compatible, host-chosen |
+| Constraint           | Value                              |
+| -------------------- | ---------------------------------- |
+| In-flight requests   | 1 per app                          |
+| Messages per request | ≤ 64                               |
+| `maxTokens`          | Clamped to 8,192                   |
+| Model                | Must be on the host's allowlist    |
+| Endpoint             | OpenRouter-compatible, host-chosen |
 
 Requires `ai:chat`.
 
@@ -77,18 +77,21 @@ That wording is there because it is usually true, and users decide based on it.
 
 ## The `apps:*` capabilities
 
-| Call | Capability | Does |
-|---|---|---|
-| `apps.packageProject(projectPrefix, manifest)` | `apps:package` | Packs + signs a workspace project; returns `{ packageHash, size, t256 }` |
-| `apps.publish(t256)` | `apps:publish` | Seeds and announces a signed package |
-| `apps.install(t256)` | `apps:install` | Asks the host to install by identifier |
-| `apps.preview(projectPrefix, manifest, grants)` | `apps:preview` | Runs a project in the dev-preview slot |
-| `apps.stopPreview()` | `apps:preview` | Stops it |
+| Call                                            | Capability     | Does                                                                     |
+| ----------------------------------------------- | -------------- | ------------------------------------------------------------------------ |
+| `apps.packageProject(projectPrefix, manifest)`  | `apps:package` | Packs + signs a workspace project; returns `{ packageHash, size, t256 }` |
+| `apps.publish(t256)`                            | `apps:publish` | Seeds and announces a signed package                                     |
+| `apps.install(t256)`                            | `apps:install` | Asks the host to install by identifier                                   |
+| `apps.preview(projectPrefix, manifest, grants)` | `apps:preview` | Runs a project in the dev-preview slot                                   |
+| `apps.stopPreview()`                            | `apps:preview` | Stops it                                                                 |
 
 ```javascript
 import { apps } from "@twistedpear/miniapp-sdk";
 
-const { t256, packageHash, size } = await apps.packageProject("hello-app/", manifest);
+const { t256, packageHash, size } = await apps.packageProject(
+  "hello-app/",
+  manifest,
+);
 await apps.publish(t256);
 ```
 

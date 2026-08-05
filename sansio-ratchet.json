@@ -42,9 +42,6 @@
     "packages/reticulum-interfaces/src/acoustic/sim.ts",
     "packages/reticulum-interfaces/src/rnode/interface.ts"
   ],
-  "protocolDependencyAllowlist": [
-    "@twistedpear/effects",
-    "@noble/hashes"
-  ],
+  "protocolDependencyAllowlist": ["@twistedpear/effects", "@noble/hashes"],
   "exceptions": []
 }

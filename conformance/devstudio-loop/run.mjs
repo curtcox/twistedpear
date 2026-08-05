@@ -27,7 +27,7 @@ import {
   packPackage,
   signManifest,
   unpackPackage,
-  verifyPackage
+  verifyPackage,
 } from "../../packages/app-registry/dist/index.js";
 import {
   casAnnounceAspects,
@@ -40,9 +40,13 @@ import {
   signCasLocator,
   toCatalogEntryLike,
   verify256t,
-  verifyCasLocator
+  verifyCasLocator,
 } from "../../packages/cas-256t/dist/index.js";
-import { PackageResourceClient, attachPackageResourceServer, fetchPackage } from "../../packages/bridge-hyper/dist/index.js";
+import {
+  PackageResourceClient,
+  attachPackageResourceServer,
+  fetchPackage,
+} from "../../packages/bridge-hyper/dist/index.js";
 import {
   DestinationDirection,
   DestinationProofStrategy,
@@ -52,16 +56,22 @@ import {
   PipeInterface,
   Reticulum,
   bytesToHex,
-  nodeRuntime
+  nodeRuntime,
 } from "../../packages/reticulum-ts/dist/index.js";
-import { HOST_API_VERSION, validateManifestCapabilities } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  HOST_API_VERSION,
+  validateManifestCapabilities,
+} from "../../packages/miniapp-runtime/dist/index.js";
 import { createWorkletMiniappHost } from "../../apps/host-desktop/worklet/miniapp-host.mjs";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 const sha512 = (data) => provider.sha512(data);
-const devstudioDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/devstudio");
+const devstudioDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../apps/devstudio",
+);
 
 const MOCK_AI_BUNDLE = `import { lxmf, ui } from "@twistedpear/miniapp-sdk";
 
@@ -127,7 +137,7 @@ function archiveStore() {
     },
     async delete(key) {
       values.delete(key);
-    }
+    },
   };
 }
 
@@ -173,7 +183,11 @@ function findNode(tree, predicate) {
 }
 
 function latestRuntime(outbound, slot) {
-  return [...outbound].reverse().find((message) => message.type === "miniapp-runtime" && message.slot === slot);
+  return [...outbound]
+    .reverse()
+    .find(
+      (message) => message.type === "miniapp-runtime" && message.slot === slot,
+    );
 }
 
 function startMockOpenRouter() {
@@ -183,23 +197,36 @@ function startMockOpenRouter() {
     request.on("data", (chunk) => (body += chunk));
     request.on("end", () => {
       const parsed = JSON.parse(body || "{}");
-      requests.push({ url: request.url, auth: request.headers.authorization, body: parsed });
+      requests.push({
+        url: request.url,
+        auth: request.headers.authorization,
+        body: parsed,
+      });
       if (parsed.stream === true) {
         response.writeHead(200, { "content-type": "text/event-stream" });
         const midpoint = Math.floor(MOCK_AI_BUNDLE.length / 2);
-        for (const content of [MOCK_AI_BUNDLE.slice(0, midpoint), MOCK_AI_BUNDLE.slice(midpoint)]) {
-          response.write(`data: ${JSON.stringify({ model: "mock/model", choices: [{ delta: { content } }] })}\n\n`);
+        for (const content of [
+          MOCK_AI_BUNDLE.slice(0, midpoint),
+          MOCK_AI_BUNDLE.slice(midpoint),
+        ]) {
+          response.write(
+            `data: ${JSON.stringify({ model: "mock/model", choices: [{ delta: { content } }] })}\n\n`,
+          );
         }
-        response.end(`data: ${JSON.stringify({ model: "mock/model", choices: [{ delta: {} }], usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\ndata: [DONE]\n\n`);
+        response.end(
+          `data: ${JSON.stringify({ model: "mock/model", choices: [{ delta: {} }], usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\ndata: [DONE]\n\n`,
+        );
         return;
       }
       response.writeHead(200, { "content-type": "application/json" });
       response.end(
         JSON.stringify({
           model: "mock/model",
-          choices: [{ message: { role: "assistant", content: MOCK_AI_BUNDLE } }],
-          usage: { prompt_tokens: 10, completion_tokens: 20 }
-        })
+          choices: [
+            { message: { role: "assistant", content: MOCK_AI_BUNDLE } },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 20 },
+        }),
       );
     });
   });
@@ -214,7 +241,7 @@ function startMockOpenRouter() {
             // Drop keep-alive sockets or close() waits on them indefinitely.
             server.closeAllConnections?.();
             server.close(resolveClose);
-          })
+          }),
       });
     });
   });
@@ -223,7 +250,10 @@ function startMockOpenRouter() {
 async function withTimeout(promise, ms, what) {
   let timer = null;
   const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`timeout after ${ms}ms: ${what}`)), ms);
+    timer = setTimeout(
+      () => reject(new Error(`timeout after ${ms}ms: ${what}`)),
+      ms,
+    );
   });
   try {
     return await Promise.race([promise, timeout]);
@@ -266,7 +296,7 @@ export async function runDevstudioLoop() {
       if (locator !== undefined && destination !== undefined) {
         void destination.announce({ appData: encodeCasLocator(locator) });
       }
-    }
+    },
   });
 
   // --- Instance B: locator collection + trust store ---
@@ -285,7 +315,7 @@ export async function runDevstudioLoop() {
       } catch {
         // not a TPCL payload
       }
-    }
+    },
   });
 
   const kvA = new MemoryKvStore();
@@ -308,41 +338,55 @@ export async function runDevstudioLoop() {
 
   async function publishArchiveA({ t256, archive }) {
     const unpacked = unpackPackage(provider, archive);
-    publishedArchive = { version: unpacked.manifest.version, packageHash: unpacked.packageHash, archive };
+    publishedArchive = {
+      version: unpacked.manifest.version,
+      packageHash: unpacked.packageHash,
+      archive,
+    };
 
-    const publisherHash = bytesToHex(provider.sha256(identityA.getPublicKey()).slice(0, 8));
-    const nameHash = bytesToHex(provider.sha256(new TextEncoder().encode(unpacked.manifest.name)).slice(0, 8));
+    const publisherHash = bytesToHex(
+      provider.sha256(identityA.getPublicKey()).slice(0, 8),
+    );
+    const nameHash = bytesToHex(
+      provider
+        .sha256(new TextEncoder().encode(unpacked.manifest.name))
+        .slice(0, 8),
+    );
     publisherAppDestination = nodeA.registerDestination({
       provider,
       identity: identityA,
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: ["app", publisherHash, nameHash]
+      aspects: ["app", publisherHash, nameHash],
     });
-    publisherAppDestination.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+    publisherAppDestination.setProofStrategy(
+      DestinationProofStrategy.PROVE_ALL,
+    );
     attachPackageResourceServer(publisherAppDestination, {
       async listVersions() {
         return [
           {
             version: publishedArchive.version,
             packageHash: publishedArchive.packageHash,
-            size: publishedArchive.archive.length
-          }
+            size: publishedArchive.archive.length,
+          },
         ];
       },
       async fetchArchive() {
         return publishedArchive.archive;
-      }
+      },
     });
 
     const summary = buildAppAnnounceSummary(provider, identityA, {
       manifest: unpacked.manifest,
       packageSize: archive.length,
       packageHash: unpacked.packageHash,
-      resourceAvailable: true
+      resourceAvailable: true,
     });
-    await publisherAppDestination.announce({ appData: encodeAppAnnounceData(summary) });
+    await publisherAppDestination.announce({
+      appData: encodeAppAnnounceData(summary),
+    });
 
     const locator = signCasLocator(identityA, {
       t256,
@@ -350,7 +394,7 @@ export async function runDevstudioLoop() {
       version: unpacked.manifest.version,
       driveKey: "0".repeat(64),
       packageHash: unpacked.packageHash,
-      packageSize: archive.length
+      packageSize: archive.length,
     });
     const casDestination = nodeA.registerDestination({
       provider,
@@ -358,13 +402,17 @@ export async function runDevstudioLoop() {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: casAnnounceAspects(t256)
+      aspects: casAnnounceAspects(t256),
     });
     aLocators.set(t256, locator);
     aCasDestinations.set(t256, casDestination);
     await casDestination.announce({ appData: encodeCasLocator(locator) });
 
-    return { t256, driveKey: "0".repeat(64), version: unpacked.manifest.version };
+    return {
+      t256,
+      driveKey: "0".repeat(64),
+      version: unpacked.manifest.version,
+    };
   }
 
   async function installFromT256B(t256) {
@@ -377,11 +425,21 @@ export async function runDevstudioLoop() {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: casRequestAspects(t256)
+      aspects: casRequestAspects(t256),
     });
-    await requestDestination.announce({ appData: encodeCasLocatorRequest(t256) });
-    await waitFor(() => (locatorRequestsSeen > 0 ? true : null), 20_000, "locator request on A");
-    const locator = await waitFor(() => bLocators.get(t256) ?? null, 20_000, "cas locator re-announce on B");
+    await requestDestination.announce({
+      appData: encodeCasLocatorRequest(t256),
+    });
+    await waitFor(
+      () => (locatorRequestsSeen > 0 ? true : null),
+      20_000,
+      "locator request on A",
+    );
+    const locator = await waitFor(
+      () => bLocators.get(t256) ?? null,
+      20_000,
+      "cas locator re-announce on B",
+    );
 
     const resourceClient = new PackageResourceClient({
       provider,
@@ -389,7 +447,7 @@ export async function runDevstudioLoop() {
       publisherPublicKeyHex: locator.publisherPublicKey,
       servingPublicKeyHex: locator.servingPublicKey,
       appName: locator.appId,
-      identity: identityB
+      identity: identityB,
     });
     await resourceClient.start();
     const [clientPipe, aSidePipe] = PipeInterface.pair(provider);
@@ -397,9 +455,10 @@ export async function runDevstudioLoop() {
     nodeA.registerInterface(aSidePipe);
     await publisherAppDestination.announce();
     await waitFor(
-      () => (resourceClient.node.hasPath(publisherAppDestination.hash) ? true : null),
+      () =>
+        resourceClient.node.hasPath(publisherAppDestination.hash) ? true : null,
       20_000,
-      "path to publisher on B's resource client"
+      "path to publisher on B's resource client",
     );
 
     let archive;
@@ -410,14 +469,18 @@ export async function runDevstudioLoop() {
           version: locator.version,
           interfaces: [],
           forcePath: "resource",
-          resourceClient
+          resourceClient,
         }),
         60_000,
-        "resource fetch on B"
+        "resource fetch on B",
       );
       archive = result.archiveBytes;
     } finally {
-      await withTimeout(resourceClient.stop(), 5_000, "resource client stop").catch(() => {});
+      await withTimeout(
+        resourceClient.stop(),
+        5_000,
+        "resource client stop",
+      ).catch(() => {});
     }
 
     if (!verify256t(t256, archive, sha512)) {
@@ -427,10 +490,14 @@ export async function runDevstudioLoop() {
     const appId = unpackPackage(provider, archive).manifest.name;
     const verified = verifyPackage(provider, archive, {
       hostApiVersion: HOST_API_VERSION,
-      minVersion: installedB.latestVersion(appId) ?? undefined
+      minVersion: installedB.latestVersion(appId) ?? undefined,
     });
-    const declared = validateManifestCapabilities(verified.manifest.capabilities);
-    const trusted = await trustStoreB.isTrusted(verified.manifest.publisherPublicKey);
+    const declared = validateManifestCapabilities(
+      verified.manifest.capabilities,
+    );
+    const trusted = await trustStoreB.isTrusted(
+      verified.manifest.publisherPublicKey,
+    );
 
     // Scripted capability review: user accepts a SUBSET of the declared caps.
     const grants = declared.filter((capability) => capability === "storage:kv");
@@ -445,12 +512,17 @@ export async function runDevstudioLoop() {
         packageHash: verified.packageHash,
         installedAt: Date.now(),
         manifest: verified.manifest,
-        archivePath
+        archivePath,
       },
-      archive.length
+      archive.length,
     );
     if (grants.length > 0) {
-      await hostB.setGrants(appId, verified.manifest.publisherPublicKey, verified.manifest.capabilities, grants);
+      await hostB.setGrants(
+        appId,
+        verified.manifest.publisherPublicKey,
+        verified.manifest.capabilities,
+        grants,
+      );
     }
 
     return { appId, version: verified.manifest.version, trusted };
@@ -465,18 +537,28 @@ export async function runDevstudioLoop() {
     send: (message) => outboundA.push(message),
     onDeveloperModeChange() {},
     onMiniappStateChange() {},
-    getPresenceSnapshot: () => ({ autoPeers: 1, onlineInterfaces: 1, preferredInterface: "pipe" }),
+    getPresenceSnapshot: () => ({
+      autoPeers: 1,
+      onlineInterfaces: 1,
+      preferredInterface: "pipe",
+    }),
     getPublisherIdentity: async () => identityA,
     aiConfig: { baseUrl: mockAi.url, apiKey: "test-key", model: "mock/model" },
     publishArchive: publishArchiveA,
     async requestUserConfirmation(request) {
-      confirmationsA.push({ kind: request.kind, summary: request.summary, appId: request.appId });
+      confirmationsA.push({
+        kind: request.kind,
+        summary: request.summary,
+        appId: request.appId,
+      });
       return { approved: true };
     },
     async requestLaunchReview(review) {
-      const grants = launchGrantPlan.get(review.appId) ?? review.capabilities.map((entry) => entry.id);
+      const grants =
+        launchGrantPlan.get(review.appId) ??
+        review.capabilities.map((entry) => entry.id);
       return { accept: true, grants };
-    }
+    },
   });
 
   const hostB = createWorkletMiniappHost({
@@ -488,7 +570,11 @@ export async function runDevstudioLoop() {
     send: (message) => outboundB.push(message),
     onDeveloperModeChange() {},
     onMiniappStateChange() {},
-    getPresenceSnapshot: () => ({ autoPeers: 1, onlineInterfaces: 1, preferredInterface: "pipe" }),
+    getPresenceSnapshot: () => ({
+      autoPeers: 1,
+      onlineInterfaces: 1,
+      preferredInterface: "pipe",
+    }),
     getPublisherIdentity: async () => identityB,
     installFromT256: installFromT256B,
     async requestUserConfirmation() {
@@ -497,7 +583,7 @@ export async function runDevstudioLoop() {
     async requestLaunchReview(review) {
       const grants = launchGrantPlan.get(review.appId) ?? [];
       return { accept: true, grants };
-    }
+    },
   });
 
   const cleanup = async () => {
@@ -518,9 +604,14 @@ export async function runDevstudioLoop() {
 
   try {
     // ---- 1. Install + launch DevStudio on A (signed by A's identity) ----
-    const devstudioManifest = JSON.parse(readFileSync(join(devstudioDir, "app.manifest.json"), "utf8"));
+    const devstudioManifest = JSON.parse(
+      readFileSync(join(devstudioDir, "app.manifest.json"), "utf8"),
+    );
     const devstudioFiles = [
-      { path: "bundle.js", content: new Uint8Array(readFileSync(join(devstudioDir, "bundle.js"))) }
+      {
+        path: "bundle.js",
+        content: new Uint8Array(readFileSync(join(devstudioDir, "bundle.js"))),
+      },
     ];
     const unsigned = buildUnsignedManifest(
       {
@@ -532,13 +623,19 @@ export async function runDevstudioLoop() {
         minHostApi: devstudioManifest.minHostApi,
         driveKey: "0".repeat(64),
         publisherPublicKey: bytesToHex(identityA.getPublicKey()),
-        files: devstudioFiles
+        files: devstudioFiles,
       },
-      provider
+      provider,
     );
     const signedManifest = signManifest(provider, identityA, unsigned);
-    const packed = packPackage(provider, { ...signedManifest, signature: signedManifest.signature, files: devstudioFiles });
-    const devstudioVerified = verifyPackage(provider, packed.archiveBytes, { hostApiVersion: HOST_API_VERSION });
+    const packed = packPackage(provider, {
+      ...signedManifest,
+      signature: signedManifest.signature,
+      files: devstudioFiles,
+    });
+    const devstudioVerified = verifyPackage(provider, packed.archiveBytes, {
+      hostApiVersion: HOST_API_VERSION,
+    });
 
     const devstudioArchivePath = "packages/devstudio/0.1.0.tpkg";
     await runtimeA.store.set(devstudioArchivePath, packed.archiveBytes);
@@ -549,9 +646,9 @@ export async function runDevstudioLoop() {
         packageHash: devstudioVerified.packageHash,
         installedAt: Date.now(),
         manifest: devstudioVerified.manifest,
-        archivePath: devstudioArchivePath
+        archivePath: devstudioArchivePath,
       },
-      packed.archiveBytes.length
+      packed.archiveBytes.length,
     );
 
     launchGrantPlan.set("devstudio", devstudioManifest.capabilities);
@@ -559,17 +656,19 @@ export async function runDevstudioLoop() {
       "devstudio",
       devstudioVerified.manifest.publisherPublicKey,
       devstudioVerified.manifest.capabilities,
-      devstudioManifest.capabilities
+      devstudioManifest.capabilities,
     );
     await hostA.launch(installedA, runtimeA, "devstudio");
 
     const initialTree = await waitFor(
       () => {
         const tree = latestRuntime(outboundA, "main")?.runtime?.widgetTree;
-        return tree && findNode(tree, (node) => node.id === "new-project") ? tree : null;
+        return tree && findNode(tree, (node) => node.id === "new-project")
+          ? tree
+          : null;
       },
       20_000,
-      "DevStudio initial render on A"
+      "DevStudio initial render on A",
     );
     if (findNode(initialTree, (node) => node.type === "code-editor") !== null) {
       throw new Error("editor should not render before a project exists");
@@ -580,17 +679,26 @@ export async function runDevstudioLoop() {
     const editorTree = await waitFor(
       () => {
         const tree = latestRuntime(outboundA, "main")?.runtime?.widgetTree;
-        return tree && findNode(tree, (node) => node.type === "code-editor") ? tree : null;
+        return tree && findNode(tree, (node) => node.type === "code-editor")
+          ? tree
+          : null;
       },
       20_000,
-      "code editor on A"
+      "code editor on A",
     );
-    const editorNode = findNode(editorTree, (node) => node.type === "code-editor");
+    const editorNode = findNode(
+      editorTree,
+      (node) => node.type === "code-editor",
+    );
     if (editorNode.props.documentId !== "hello-app/bundle.js") {
-      throw new Error(`unexpected editor documentId: ${editorNode.props.documentId}`);
+      throw new Error(
+        `unexpected editor documentId: ${editorNode.props.documentId}`,
+      );
     }
 
-    const templateContent = await hostA.readWorkspaceFile("hello-app/bundle.js");
+    const templateContent = await hostA.readWorkspaceFile(
+      "hello-app/bundle.js",
+    );
     if (!templateContent.includes("Hello from DevStudio")) {
       throw new Error("hello template missing from workspace");
     }
@@ -599,30 +707,48 @@ export async function runDevstudioLoop() {
     await hostA.handleUiEvent("editor", "ds.edit", {
       documentId: "hello-app/bundle.js",
       baseLength: templateContent.length,
-      edits: [{
-        start: templateContent.indexOf("Hello from DevStudio"),
-        end: templateContent.indexOf("Hello from DevStudio") + "Hello from DevStudio".length,
-        text: "Hello (edited)"
-      }]
+      edits: [
+        {
+          start: templateContent.indexOf("Hello from DevStudio"),
+          end:
+            templateContent.indexOf("Hello from DevStudio") +
+            "Hello from DevStudio".length,
+          text: "Hello (edited)",
+        },
+      ],
     });
     await waitFor(
-      async () => ((await hostA.readWorkspaceFile("hello-app/bundle.js")).includes("Hello (edited)") ? true : null),
+      async () =>
+        (await hostA.readWorkspaceFile("hello-app/bundle.js")).includes(
+          "Hello (edited)",
+        )
+          ? true
+          : null,
       10_000,
-      "direct edit persisted on A"
+      "direct edit persisted on A",
     );
 
     // ---- 4. AI edit via the mock OpenRouter endpoint ----
-    await hostA.handleUiEvent("ai-prompt", "ds.aiprompt", "Rename the title to Hello AI and add a send button");
+    await hostA.handleUiEvent(
+      "ai-prompt",
+      "ds.aiprompt",
+      "Rename the title to Hello AI and add a send button",
+    );
     await hostA.handleUiEvent("ai-run", "ds.airun");
     await waitFor(
       () => {
         const tree = latestRuntime(outboundA, "main")?.runtime?.widgetTree;
-        return tree && findNode(tree, (node) => node.id === "ai-apply") ? true : null;
+        return tree && findNode(tree, (node) => node.id === "ai-apply")
+          ? true
+          : null;
       },
       20_000,
-      "AI proposal on A"
+      "AI proposal on A",
     );
-    if (mockAi.requests.length !== 1 || mockAi.requests[0].auth !== "Bearer test-key") {
+    if (
+      mockAi.requests.length !== 1 ||
+      mockAi.requests[0].auth !== "Bearer test-key"
+    ) {
       throw new Error("mock AI endpoint saw an unexpected request");
     }
     if (mockAi.requests[0].body.stream !== true) {
@@ -634,24 +760,35 @@ export async function runDevstudioLoop() {
 
     await hostA.handleUiEvent("ai-apply", "ds.aiapply");
     await waitFor(
-      async () => ((await hostA.readWorkspaceFile("hello-app/bundle.js")) === MOCK_AI_BUNDLE ? true : null),
+      async () =>
+        (await hostA.readWorkspaceFile("hello-app/bundle.js")) ===
+        MOCK_AI_BUNDLE
+          ? true
+          : null,
       10_000,
-      "AI edit applied on A"
+      "AI edit applied on A",
     );
 
     // ---- 5. Declare capabilities in the project manifest via the editor ----
     await hostA.handleUiEvent("editor", "ds.edit", {
       documentId: "hello-app/app.json",
       baseLength: (await hostA.readWorkspaceFile("hello-app/app.json")).length,
-      edits: [{
-        start: 0,
-        end: (await hostA.readWorkspaceFile("hello-app/app.json")).length,
-        text: JSON.stringify(
-          { name: "hello-app", version: "0.1.0", entry: "bundle.js", capabilities: ["storage:kv", "lxmf:send"] },
-          null,
-          2
-        )
-      }]
+      edits: [
+        {
+          start: 0,
+          end: (await hostA.readWorkspaceFile("hello-app/app.json")).length,
+          text: JSON.stringify(
+            {
+              name: "hello-app",
+              version: "0.1.0",
+              entry: "bundle.js",
+              capabilities: ["storage:kv", "lxmf:send"],
+            },
+            null,
+            2,
+          ),
+        },
+      ],
     });
     await sleep(200);
 
@@ -661,16 +798,20 @@ export async function runDevstudioLoop() {
       () => {
         const preview = latestRuntime(outboundA, "preview")?.runtime;
         const tree = preview?.widgetTree;
-        return tree && findNode(tree, (node) => node.props?.value === "Hello AI") ? true : null;
+        return tree &&
+          findNode(tree, (node) => node.props?.value === "Hello AI")
+          ? true
+          : null;
       },
       20_000,
-      "preview render on A"
+      "preview render on A",
     );
     await hostA.handleUiEvent("stop-preview", "ds.stoppreview");
     await waitFor(
-      () => (latestRuntime(outboundA, "preview")?.runtime === null ? true : null),
+      () =>
+        latestRuntime(outboundA, "preview")?.runtime === null ? true : null,
       10_000,
-      "preview stopped on A"
+      "preview stopped on A",
     );
 
     // ---- 7. Package & sign; extract the 94-char 256t id from the QR widget ----
@@ -678,12 +819,15 @@ export async function runDevstudioLoop() {
     const qrTree = await waitFor(
       () => {
         const tree = latestRuntime(outboundA, "main")?.runtime?.widgetTree;
-        return tree && findNode(tree, (node) => node.type === "qr-code") ? tree : null;
+        return tree && findNode(tree, (node) => node.type === "qr-code")
+          ? tree
+          : null;
       },
       20_000,
-      "package QR on A"
+      "package QR on A",
     );
-    const t256 = findNode(qrTree, (node) => node.type === "qr-code").props.value;
+    const t256 = findNode(qrTree, (node) => node.type === "qr-code").props
+      .value;
     if (t256.length !== 94) {
       throw new Error(`256t id has wrong length: ${t256.length}`);
     }
@@ -695,7 +839,11 @@ export async function runDevstudioLoop() {
 
     // ---- 8. Publish to the network ----
     await hostA.handleUiEvent("publish", "ds.publish");
-    await waitFor(() => (publishedArchive !== null ? true : null), 20_000, "publish on A");
+    await waitFor(
+      () => (publishedArchive !== null ? true : null),
+      20_000,
+      "publish on A",
+    );
     await waitFor(
       () => {
         const tree = latestRuntime(outboundA, "main")?.runtime?.widgetTree;
@@ -708,7 +856,7 @@ export async function runDevstudioLoop() {
         return value.startsWith("Published") ? true : null;
       },
       20_000,
-      "publish status on A"
+      "publish status on A",
     );
     if (!verify256t(t256, publishedArchive.archive, sha512)) {
       throw new Error("published archive does not match the shared 256t id");
@@ -717,17 +865,28 @@ export async function runDevstudioLoop() {
     const confirmedKinds = confirmationsA.map((entry) => entry.kind);
     for (const kind of ["preview", "package", "publish"]) {
       if (confirmedKinds.filter((entry) => entry === kind).length !== 1) {
-        throw new Error(`expected exactly one "${kind}" confirmation on A, saw [${confirmedKinds.join(", ")}]`);
+        throw new Error(
+          `expected exactly one "${kind}" confirmation on A, saw [${confirmedKinds.join(", ")}]`,
+        );
       }
     }
-    const packageConfirmation = confirmationsA.find((entry) => entry.kind === "package");
+    const packageConfirmation = confirmationsA.find(
+      (entry) => entry.kind === "package",
+    );
     if (!packageConfirmation.summary.capabilities.includes("lxmf:send")) {
-      throw new Error("package confirmation did not surface the requested capabilities");
+      throw new Error(
+        "package confirmation did not surface the requested capabilities",
+      );
     }
 
     // ---- 9. Trust exchange: A's identity as an inline 256t string ----
-    const identityString = encodePublisherIdentity256t(identityA.getPublicKey());
-    if (identityString.length !== 94 || decode256t(identityString).inline === null) {
+    const identityString = encodePublisherIdentity256t(
+      identityA.getPublicKey(),
+    );
+    if (
+      identityString.length !== 94 ||
+      decode256t(identityString).inline === null
+    ) {
       throw new Error("identity string must be a 94-char inline 256t id");
     }
 
@@ -735,17 +894,24 @@ export async function runDevstudioLoop() {
       publisherPublicKey: decodePublisherIdentity256t(identityString),
       label: "Instance A",
       addedAt: Date.now(),
-      source: "qr"
+      source: "qr",
     });
 
     // ---- 10. B resolves the 256t id, fetches, verifies, reviews (subset), installs ----
     const installResult = await installFromT256B(t256);
     if (installResult.appId !== "hello-app" || installResult.trusted !== true) {
-      throw new Error(`unexpected install result: ${JSON.stringify(installResult)}`);
+      throw new Error(
+        `unexpected install result: ${JSON.stringify(installResult)}`,
+      );
     }
     const review = installReviewsB[0];
-    if (review.declared.join(",") !== "storage:kv,lxmf:send" || review.grants.join(",") !== "storage:kv") {
-      throw new Error("install review did not record the declared caps and subset grant");
+    if (
+      review.declared.join(",") !== "storage:kv,lxmf:send" ||
+      review.grants.join(",") !== "storage:kv"
+    ) {
+      throw new Error(
+        "install review did not record the declared caps and subset grant",
+      );
     }
 
     // ---- 11. B runs the app with fewer capabilities than requested ----
@@ -754,10 +920,13 @@ export async function runDevstudioLoop() {
     await waitFor(
       () => {
         const tree = latestRuntime(outboundB, "main")?.runtime?.widgetTree;
-        return tree && findNode(tree, (node) => node.props?.value === "Hello AI") ? true : null;
+        return tree &&
+          findNode(tree, (node) => node.props?.value === "Hello AI")
+          ? true
+          : null;
       },
       20_000,
-      "hello-app render on B"
+      "hello-app render on B",
     );
 
     await hostB.handleUiEvent("send", "hello.send");
@@ -765,18 +934,29 @@ export async function runDevstudioLoop() {
       () => {
         const tree = latestRuntime(outboundB, "main")?.runtime?.widgetTree;
         const title = findNode(tree, (node) => node.id === "title");
-        return typeof title?.props?.value === "string" && title.props.value.startsWith("DENIED:") ? true : null;
+        return typeof title?.props?.value === "string" &&
+          title.props.value.startsWith("DENIED:")
+          ? true
+          : null;
       },
       20_000,
-      "capability denial visible on B"
+      "capability denial visible on B",
     );
 
     // ---- 12. B adjusts resource limits while the app runs ----
-    const limits = hostB.setLimits("hello-app", { maxMessagesPerSecond: 4, memoryBytes: 64 * 1024 * 1024 });
-    if (limits.maxMessagesPerSecond !== 4 || limits.memoryPendingRestart !== true) {
+    const limits = hostB.setLimits("hello-app", {
+      maxMessagesPerSecond: 4,
+      memoryBytes: 64 * 1024 * 1024,
+    });
+    if (
+      limits.maxMessagesPerSecond !== 4 ||
+      limits.memoryPendingRestart !== true
+    ) {
       throw new Error(`unexpected limits snapshot: ${JSON.stringify(limits)}`);
     }
-    if (![...outboundB].reverse().some((message) => message.type === "limits")) {
+    if (
+      ![...outboundB].reverse().some((message) => message.type === "limits")
+    ) {
       throw new Error("limits update was not pushed to the renderer");
     }
 
@@ -784,12 +964,14 @@ export async function runDevstudioLoop() {
     await hostB.stop("user-forced");
     const finalRuntime = latestRuntime(outboundB, "main")?.runtime;
     if (finalRuntime?.state !== "stopped") {
-      throw new Error(`expected stopped state after force quit, got ${finalRuntime?.state}`);
+      throw new Error(
+        `expected stopped state after force quit, got ${finalRuntime?.state}`,
+      );
     }
 
     await hostA.stop();
     console.log(
-      "devstudio-loop: develop (edit + AI) → preview → package → publish → 256t transfer → trust → subset install → run → capability denial → limits → force-quit passed across two instances"
+      "devstudio-loop: develop (edit + AI) → preview → package → publish → 256t transfer → trust → subset install → run → capability denial → limits → force-quit passed across two instances",
     );
   } catch (error) {
     // Print before cleanup: a hung teardown must never swallow the failure.

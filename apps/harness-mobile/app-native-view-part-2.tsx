@@ -1,69 +1,322 @@
-import { useCallback,useEffect,useRef,useState } from "react";
-import { AppState,Image,PermissionsAndroid,Platform,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,View } from "react-native";
-import { CameraView,useCameraPermissions } from "expo-camera";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AppState,
+  Image,
+  PermissionsAndroid,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { StatusBar } from "expo-status-bar";
 import qrcodeModule from "qrcode-generator";
-import { decodePeerAudioFskStream,encodePeerAudioFsk,encodeDeviceStreamFrame } from "@twistedpear/protocol";
-import { BundledOpusMediaCodecDriver,configureBundledOpusLoader,ensureUtf16LeTextDecoder } from "@twistedpear/effects";
+import {
+  decodePeerAudioFskStream,
+  encodePeerAudioFsk,
+  encodeDeviceStreamFrame,
+} from "@twistedpear/protocol";
+import {
+  BundledOpusMediaCodecDriver,
+  configureBundledOpusLoader,
+  ensureUtf16LeTextDecoder,
+} from "@twistedpear/effects";
 import OpusScript from "opusscript";
-import { nativePeerAudioSupported,playNativePeerPcm,recordNativePeerPcm,requestNativePeerAudioPermission } from "@twistedpear/peer-audio";
+import {
+  nativePeerAudioSupported,
+  playNativePeerPcm,
+  recordNativePeerPcm,
+  requestNativePeerAudioPermission,
+} from "@twistedpear/peer-audio";
 import { Worklet } from "react-native-bare-kit";
 import bundle from "./worklet/worklet.bundle.mjs";
-import { getNodeLifecycleState,isNodeServiceRunning,startNodeService,stopNodeService,addNodeLifecycleListener,type NodeLifecycleState } from "@twistedpear/node-service";
+import {
+  getNodeLifecycleState,
+  isNodeServiceRunning,
+  startNodeService,
+  stopNodeService,
+  addNodeLifecycleListener,
+  type NodeLifecycleState,
+} from "@twistedpear/node-service";
 import { HostMulticastIpc } from "./host/multicast-ipc";
 import { HostBonjourIpc } from "./host/bonjour-ipc";
 import { HostBleIpc } from "./host/ble-ipc";
 import { HostUsbIpc } from "./host/usb-ipc";
-import { nativeDeviceActuate,nativeDeviceAvailability,nativeDeviceSense } from "./host/native-device-bridge";
-import { createNativePeerRtcStore,handleNativePeerWebRtcMessage } from "./host/native-peer-webrtc";
-import { hasUsbSerialPermission,getUsbSerialCapability,listUsbSerialDevices,requestUsbSerialPermission,type UsbSerialDeviceInfo } from "@twistedpear/usb-serial";
-import { acceptFreenetRemoteGrant,defaultFreenetRemoteGrant,FREENET_REMOTE_DISCLOSURE,freenetGrantLogSafe,generateFreenetRendezvousHex,revokeFreenetRemoteGrant,type FreenetRemoteGrant } from "./src/freenet-remote-grant";
-import { freenetRemoteSessionStatusLabel,idleFreenetRemoteSession,probeFreenetRemoteNode,reduceFreenetRemoteSession,freenetRemoteSessionLogSafe,type FreenetRemoteSession } from "./src/freenet-remote-session";
+import {
+  nativeDeviceActuate,
+  nativeDeviceAvailability,
+  nativeDeviceSense,
+} from "./host/native-device-bridge";
+import {
+  createNativePeerRtcStore,
+  handleNativePeerWebRtcMessage,
+} from "./host/native-peer-webrtc";
+import {
+  hasUsbSerialPermission,
+  getUsbSerialCapability,
+  listUsbSerialDevices,
+  requestUsbSerialPermission,
+  type UsbSerialDeviceInfo,
+} from "@twistedpear/usb-serial";
+import {
+  acceptFreenetRemoteGrant,
+  defaultFreenetRemoteGrant,
+  FREENET_REMOTE_DISCLOSURE,
+  freenetGrantLogSafe,
+  generateFreenetRendezvousHex,
+  revokeFreenetRemoteGrant,
+  type FreenetRemoteGrant,
+} from "./src/freenet-remote-grant";
+import {
+  freenetRemoteSessionStatusLabel,
+  idleFreenetRemoteSession,
+  probeFreenetRemoteNode,
+  reduceFreenetRemoteSession,
+  freenetRemoteSessionLogSafe,
+  type FreenetRemoteSession,
+} from "./src/freenet-remote-session";
 import { freenetPropagationRoleLabel } from "./src/freenet-propagation-role";
-import { decodeMessages,encodeMessage,type AnnounceEntry,type CapabilityGrantView,type CatalogEntryView,type HostToWorkletMessage,type InstallProgress,type InstalledPackageView,type MiniappRuntimeView,type MiniappBenchmarkResult,type WorkletStatus,type HostConfirmationRequestView,type InstallReviewRequestView,type LaunchReviewRequestView,type TrustedPublisherView,type WorkletToHostMessage,type DeviceStateView,type SessionInviteView,type ConfirmationKind } from "./worklet/protocol";
+import {
+  decodeMessages,
+  encodeMessage,
+  type AnnounceEntry,
+  type CapabilityGrantView,
+  type CatalogEntryView,
+  type HostToWorkletMessage,
+  type InstallProgress,
+  type InstalledPackageView,
+  type MiniappRuntimeView,
+  type MiniappBenchmarkResult,
+  type WorkletStatus,
+  type HostConfirmationRequestView,
+  type InstallReviewRequestView,
+  type LaunchReviewRequestView,
+  type TrustedPublisherView,
+  type WorkletToHostMessage,
+  type DeviceStateView,
+  type SessionInviteView,
+  type ConfirmationKind,
+} from "./worklet/protocol";
 import { MiniappWidgetTree } from "./host/miniapp-renderer";
 import type { WidgetTree } from "@twistedpear/miniapp-runtime";
-import { ANDROID_EMULATOR_HOST, ActionButton, CONFIRM_KIND_TITLES, DEFAULT_DEV_PORT, DEFAULT_DOCKER_PORT, LOCAL_HOST, MAX_ANNOUNCES, Row, TEST_AGENT_PORT, floatToPcm16, initialStatus, pcm16ToFloat, peerAudioHex, peerAudioUnhex, playInboundNativeMedia, playNativeOpusOrPcm, playNativePeerFrames, recordNativePeerFrames, requestBlePermissions, runNativeOpusDuplex, styles } from "./app-native-shared.js";
+import {
+  ANDROID_EMULATOR_HOST,
+  ActionButton,
+  CONFIRM_KIND_TITLES,
+  DEFAULT_DEV_PORT,
+  DEFAULT_DOCKER_PORT,
+  LOCAL_HOST,
+  MAX_ANNOUNCES,
+  Row,
+  TEST_AGENT_PORT,
+  floatToPcm16,
+  initialStatus,
+  pcm16ToFloat,
+  peerAudioHex,
+  peerAudioUnhex,
+  playInboundNativeMedia,
+  playNativeOpusOrPcm,
+  playNativePeerFrames,
+  recordNativePeerFrames,
+  requestBlePermissions,
+  runNativeOpusDuplex,
+  styles,
+} from "./app-native-shared.js";
 import type { useNativeHarnessController } from "./app-native-controller.js";
 export type NativeHarnessScope = ReturnType<typeof useNativeHarnessController>;
-export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope }) {
-  const { status, setStatus, announces, setAnnounces, catalog, setCatalog, installed, setInstalled, installProgress, setInstallProgress, serviceRunning, setServiceRunning, lifecycleState, setLifecycleState, logLines, setLogLines, tcpEnabled, setTcpEnabled, autoEnabled, setAutoEnabled, bleEnabled, setBleEnabled, rnodeEnabled, setRnodeEnabled, usbDevices, setUsbDevices, selectedUsbDeviceId, setSelectedUsbDeviceId, selectedCatalogAppId, setSelectedCatalogAppId, selectedInstalledAppId, setSelectedInstalledAppId, grantCapabilities, setGrantCapabilities, miniappRuntime, setMiniappRuntime, miniappBenchmark, setMiniappBenchmark, miniappLogs, setMiniappLogs, developerMode, setDeveloperMode, devChannelDetail, setDevChannelDetail, devHost, setDevHost, devPort, setDevPort, ntfyUrl, setNtfyUrl, ntfyToken, setNtfyToken, freenetGrant, setFreenetGrant, freenetDisclosureAccepted, setFreenetDisclosureAccepted, freenetGrantError, setFreenetGrantError, freenetSession, setFreenetSession, peerModal, setPeerModal, hostConfirm, setHostConfirm, hostReview, setHostReview, install256tInput, setInstall256tInput, trustIdentityInput, setTrustIdentityInput, trustLabelInput, setTrustLabelInput, trustedPublishers, setTrustedPublishers, hostIdentity256t, setHostIdentity256t, deviceState, setDeviceState, sessionInvites, setSessionInvites, cameraPermission, requestCameraPermission, peerCameraActive, setPeerCameraActive, peerQrFrame, setPeerQrFrame, workletRef, ipcBufferRef, multicastIpcRef, bonjourIpcRef, bleIpcRef, usbIpcRef, workspaceReadCounterRef, peerRtcRef, pendingWorkspaceReadsRef, appendLog, sendToWorklet, seedShareOfferChrome, revokeShareOfferChrome, applyFreenetGrantToWorklet, activateFreenetGrant, readWorkspaceDocument, handleWorkletMessage, performPeerAudio, pushInterfaceConfig, workletReadyRef, stopWorklet, startWorklet, interfacesWantedWorkletRef, peerQrUri } = scope;
+export function NativeHarnessViewPart2({
+  scope,
+}: {
+  scope: NativeHarnessScope;
+}) {
+  const {
+    status,
+    setStatus,
+    announces,
+    setAnnounces,
+    catalog,
+    setCatalog,
+    installed,
+    setInstalled,
+    installProgress,
+    setInstallProgress,
+    serviceRunning,
+    setServiceRunning,
+    lifecycleState,
+    setLifecycleState,
+    logLines,
+    setLogLines,
+    tcpEnabled,
+    setTcpEnabled,
+    autoEnabled,
+    setAutoEnabled,
+    bleEnabled,
+    setBleEnabled,
+    rnodeEnabled,
+    setRnodeEnabled,
+    usbDevices,
+    setUsbDevices,
+    selectedUsbDeviceId,
+    setSelectedUsbDeviceId,
+    selectedCatalogAppId,
+    setSelectedCatalogAppId,
+    selectedInstalledAppId,
+    setSelectedInstalledAppId,
+    grantCapabilities,
+    setGrantCapabilities,
+    miniappRuntime,
+    setMiniappRuntime,
+    miniappBenchmark,
+    setMiniappBenchmark,
+    miniappLogs,
+    setMiniappLogs,
+    developerMode,
+    setDeveloperMode,
+    devChannelDetail,
+    setDevChannelDetail,
+    devHost,
+    setDevHost,
+    devPort,
+    setDevPort,
+    ntfyUrl,
+    setNtfyUrl,
+    ntfyToken,
+    setNtfyToken,
+    freenetGrant,
+    setFreenetGrant,
+    freenetDisclosureAccepted,
+    setFreenetDisclosureAccepted,
+    freenetGrantError,
+    setFreenetGrantError,
+    freenetSession,
+    setFreenetSession,
+    peerModal,
+    setPeerModal,
+    hostConfirm,
+    setHostConfirm,
+    hostReview,
+    setHostReview,
+    install256tInput,
+    setInstall256tInput,
+    trustIdentityInput,
+    setTrustIdentityInput,
+    trustLabelInput,
+    setTrustLabelInput,
+    trustedPublishers,
+    setTrustedPublishers,
+    hostIdentity256t,
+    setHostIdentity256t,
+    deviceState,
+    setDeviceState,
+    sessionInvites,
+    setSessionInvites,
+    cameraPermission,
+    requestCameraPermission,
+    peerCameraActive,
+    setPeerCameraActive,
+    peerQrFrame,
+    setPeerQrFrame,
+    workletRef,
+    ipcBufferRef,
+    multicastIpcRef,
+    bonjourIpcRef,
+    bleIpcRef,
+    usbIpcRef,
+    workspaceReadCounterRef,
+    peerRtcRef,
+    pendingWorkspaceReadsRef,
+    appendLog,
+    sendToWorklet,
+    seedShareOfferChrome,
+    revokeShareOfferChrome,
+    applyFreenetGrantToWorklet,
+    activateFreenetGrant,
+    readWorkspaceDocument,
+    handleWorkletMessage,
+    performPeerAudio,
+    pushInterfaceConfig,
+    workletReadyRef,
+    stopWorklet,
+    startWorklet,
+    interfacesWantedWorkletRef,
+    peerQrUri,
+  } = scope;
   const { relayNotice, setRelayNotice } = scope;
-  const [relayMode, setRelayMode] = useState<"off" | "bridge" | "transport-node">("off");
-  const [relayDirections, setRelayDirections] = useState<Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">>({
+  const [relayMode, setRelayMode] = useState<
+    "off" | "bridge" | "transport-node"
+  >("off");
+  const [relayDirections, setRelayDirections] = useState<
+    Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">
+  >({
     tcp: "both",
     auto: "both",
     bluetooth: "both",
-    rnode: "both"
+    rnode: "both",
   });
   useEffect(() => {
     if (status.relayMode !== undefined) setRelayMode(status.relayMode);
-    if (status.relayDirections !== undefined) setRelayDirections((previous) => ({ ...previous, ...status.relayDirections }));
+    if (status.relayDirections !== undefined)
+      setRelayDirections((previous) => ({
+        ...previous,
+        ...status.relayDirections,
+      }));
   }, [status.relayMode, status.relayDirections]);
   const selectRelayMode = (mode: "off" | "bridge" | "transport-node") => {
     setRelayMode(mode);
-    void startWorklet().then((ready) => { if (ready) sendToWorklet({ type: "set-relay-config", mode }); });
+    void startWorklet().then((ready) => {
+      if (ready) sendToWorklet({ type: "set-relay-config", mode });
+    });
   };
   const cycleDirection = (kind: keyof typeof relayDirections) => {
     const current = relayDirections[kind];
-    const direction = current === "both" ? "rx" : current === "rx" ? "tx" : "both";
+    const direction =
+      current === "both" ? "rx" : current === "rx" ? "tx" : "both";
     setRelayDirections((previous) => ({ ...previous, [kind]: direction }));
-    void startWorklet().then((ready) => { if (ready) sendToWorklet({ type: "set-relay-config", directions: { [kind]: direction } }); });
+    void startWorklet().then((ready) => {
+      if (ready)
+        sendToWorklet({
+          type: "set-relay-config",
+          directions: { [kind]: direction },
+        });
+    });
   };
-  return <>
-<View style={styles.card}>
+  return (
+    <>
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Relay &amp; Interfaces</Text>
         {relayNotice === null ? null : (
           <View style={styles.card}>
-            <Text>Mini-app {relayNotice.appId} changed relay settings ({relayNotice.method}{relayNotice.kind === undefined ? "" : `: ${relayNotice.kind}`}).</Text>
-            <ActionButton label="Dismiss" onPress={() => setRelayNotice(null)} />
+            <Text>
+              Mini-app {relayNotice.appId} changed relay settings (
+              {relayNotice.method}
+              {relayNotice.kind === undefined ? "" : `: ${relayNotice.kind}`}).
+            </Text>
+            <ActionButton
+              label="Dismiss"
+              onPress={() => setRelayNotice(null)}
+            />
           </View>
         )}
-        <Text style={styles.muted}>Off keeps this device online without forwarding peer traffic.</Text>
+        <Text style={styles.muted}>
+          Off keeps this device online without forwarding peer traffic.
+        </Text>
         <View style={styles.buttonRow}>
-          <ActionButton label={relayMode === "off" ? "✓ Off" : "Off"} onPress={() => selectRelayMode("off")} />
-          <ActionButton label={relayMode === "bridge" ? "✓ Bridge" : "Bridge"} onPress={() => selectRelayMode("bridge")} />
-          <ActionButton label={relayMode === "transport-node" ? "✓ Transport" : "Transport"} onPress={() => selectRelayMode("transport-node")} />
+          <ActionButton
+            label={relayMode === "off" ? "✓ Off" : "Off"}
+            onPress={() => selectRelayMode("off")}
+          />
+          <ActionButton
+            label={relayMode === "bridge" ? "✓ Bridge" : "Bridge"}
+            onPress={() => selectRelayMode("bridge")}
+          />
+          <ActionButton
+            label={relayMode === "transport-node" ? "✓ Transport" : "Transport"}
+            onPress={() => selectRelayMode("transport-node")}
+          />
         </View>
         <View style={styles.buttonRow}>
           <ActionButton
@@ -84,7 +337,12 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
             onPress={() => sendToWorklet({ type: "reset-identity" })}
           />
         </View>
-        <Row testID="tcp-client-switch" label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
+        <Row
+          testID="tcp-client-switch"
+          label="TCP client"
+          value={tcpEnabled}
+          onChange={setTcpEnabled}
+        />
         {(["tcp", "auto", "bluetooth", "rnode"] as const).map((kind) => (
           <ActionButton
             key={`relay-direction-${kind}`}
@@ -94,7 +352,16 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
         ))}
         {(status.relayInterfaces ?? []).map((entry) => (
           <Text key={`relay-status-${entry.kind}`} style={styles.muted}>
-            {entry.kind}: {entry.supported ? (entry.enabled ? (entry.online ? "online" : "offline") : "disabled") : "unsupported"} · {entry.direction.toUpperCase()} · {entry.bitrate ?? "—"} bps · ↓{entry.bytesIn} ↑{entry.bytesOut}
+            {entry.kind}:{" "}
+            {entry.supported
+              ? entry.enabled
+                ? entry.online
+                  ? "online"
+                  : "offline"
+                : "disabled"
+              : "unsupported"}{" "}
+            · {entry.direction.toUpperCase()} · {entry.bitrate ?? "—"} bps · ↓
+            {entry.bytesIn} ↑{entry.bytesOut}
           </Text>
         ))}
         <View style={styles.buttonRow}>
@@ -104,10 +371,13 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
             onPress={() => {
               sendToWorklet({
                 type: "connect-test-agent",
-                host: Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST,
+                host:
+                  Platform.OS === "android"
+                    ? ANDROID_EMULATOR_HOST
+                    : LOCAL_HOST,
                 port: TEST_AGENT_PORT,
                 label: Platform.OS === "android" ? "android" : "ios",
-                platform: Platform.OS
+                platform: Platform.OS,
               });
               appendLog(`Peer agent requested on port ${TEST_AGENT_PORT}`);
             }}
@@ -120,7 +390,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                 appId: "line-check",
                 displayLabel: "Ana",
                 classId: "microphone",
-                ttlMs: 15 * 60_000
+                ttlMs: 15 * 60_000,
               });
               appendLog("Seeded share offer for chrome probe");
             }}
@@ -133,7 +403,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                 appId: "line-check",
                 displayLabel: "Ana",
                 classId: "microphone",
-                ttlMs: 3_000
+                ttlMs: 3_000,
               });
               appendLog("Seeded short-TTL share offer");
             }}
@@ -156,20 +426,61 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           />
         </View>
         <Text style={styles.muted}>
-          Public transport operators can observe your IP address and traffic timing. Message contents remain encrypted.
+          Public transport operators can observe your IP address and traffic
+          timing. Message contents remain encrypted.
         </Text>
         <Text style={styles.sectionTitle}>Optional ntfy rendezvous</Text>
-        <Text style={styles.muted}>Invitation contents are end-to-end encrypted. The server still observes random topics, timing, and IP metadata.</Text>
-        <TextInput style={styles.input} value={ntfyUrl} onChangeText={setNtfyUrl} autoCapitalize="none" placeholder="https://ntfy.example/" placeholderTextColor="#718096" />
-        <TextInput style={styles.input} value={ntfyToken} onChangeText={setNtfyToken} autoCapitalize="none" secureTextEntry placeholder="Bearer token (optional)" placeholderTextColor="#718096" />
-        <ActionButton label="Apply ntfy" onPress={() => { if (workletRef.current === null) startWorklet(); else sendToWorklet({ type: "start", targetHost: Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST, targetPort: DEFAULT_DOCKER_PORT, multicastEntitled: Platform.OS !== "ios", bonjourEnabled: true, ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() }) }); }} />
-
-        <Text style={styles.sectionTitle} testID="freenet-remote-section">Freenet remote node</Text>
         <Text style={styles.muted}>
-          Off by default. Point only at a companion node you control. No third-party gateway is preconfigured.
+          Invitation contents are end-to-end encrypted. The server still
+          observes random topics, timing, and IP metadata.
+        </Text>
+        <TextInput
+          style={styles.input}
+          value={ntfyUrl}
+          onChangeText={setNtfyUrl}
+          autoCapitalize="none"
+          placeholder="https://ntfy.example/"
+          placeholderTextColor="#718096"
+        />
+        <TextInput
+          style={styles.input}
+          value={ntfyToken}
+          onChangeText={setNtfyToken}
+          autoCapitalize="none"
+          secureTextEntry
+          placeholder="Bearer token (optional)"
+          placeholderTextColor="#718096"
+        />
+        <ActionButton
+          label="Apply ntfy"
+          onPress={() => {
+            if (workletRef.current === null) startWorklet();
+            else
+              sendToWorklet({
+                type: "start",
+                targetHost:
+                  Platform.OS === "android"
+                    ? ANDROID_EMULATOR_HOST
+                    : LOCAL_HOST,
+                targetPort: DEFAULT_DOCKER_PORT,
+                multicastEntitled: Platform.OS !== "ios",
+                bonjourEnabled: true,
+                ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() }),
+              });
+          }}
+        />
+
+        <Text style={styles.sectionTitle} testID="freenet-remote-section">
+          Freenet remote node
+        </Text>
+        <Text style={styles.muted}>
+          Off by default. Point only at a companion node you control. No
+          third-party gateway is preconfigured.
         </Text>
         {FREENET_REMOTE_DISCLOSURE.map((line) => (
-          <Text key={line} style={styles.muted}>• {line}</Text>
+          <Text key={line} style={styles.muted}>
+            • {line}
+          </Text>
         ))}
         <Row
           testID="freenet-disclosure-accepted"
@@ -181,7 +492,9 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           testID="freenet-node-url"
           style={styles.input}
           value={freenetGrant.nodeUrl}
-          onChangeText={(nodeUrl) => setFreenetGrant((current) => ({ ...current, nodeUrl }))}
+          onChangeText={(nodeUrl) =>
+            setFreenetGrant((current) => ({ ...current, nodeUrl }))
+          }
           autoCapitalize="none"
           autoCorrect={false}
           placeholder="ws://127.0.0.1:50509/v1/contract/command"
@@ -191,7 +504,9 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           testID="freenet-operator-label"
           style={styles.input}
           value={freenetGrant.operatorLabel}
-          onChangeText={(operatorLabel) => setFreenetGrant((current) => ({ ...current, operatorLabel }))}
+          onChangeText={(operatorLabel) =>
+            setFreenetGrant((current) => ({ ...current, operatorLabel }))
+          }
           placeholder="Operator label (e.g. home companion)"
           placeholderTextColor="#718096"
         />
@@ -202,7 +517,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           onChangeText={(authToken) =>
             setFreenetGrant((current) => ({
               ...current,
-              authToken: authToken.length === 0 ? undefined : authToken
+              authToken: authToken.length === 0 ? undefined : authToken,
             }))
           }
           autoCapitalize="none"
@@ -217,7 +532,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           onChange={(contractReads) =>
             setFreenetGrant((current) => ({
               ...current,
-              capabilities: { ...current.capabilities, contractReads }
+              capabilities: { ...current.capabilities, contractReads },
             }))
           }
         />
@@ -228,7 +543,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           onChange={(contractWrites) =>
             setFreenetGrant((current) => ({
               ...current,
-              capabilities: { ...current.capabilities, contractWrites }
+              capabilities: { ...current.capabilities, contractWrites },
             }))
           }
         />
@@ -239,7 +554,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           onChange={(packetTunnel) =>
             setFreenetGrant((current) => ({
               ...current,
-              capabilities: { ...current.capabilities, packetTunnel }
+              capabilities: { ...current.capabilities, packetTunnel },
             }))
           }
         />
@@ -252,7 +567,8 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
               onChangeText={(rendezvousHex) =>
                 setFreenetGrant((current) => ({
                   ...current,
-                  rendezvousHex: rendezvousHex.length === 0 ? undefined : rendezvousHex
+                  rendezvousHex:
+                    rendezvousHex.length === 0 ? undefined : rendezvousHex,
                 }))
               }
               autoCapitalize="none"
@@ -267,7 +583,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                 onPress={() =>
                   setFreenetGrant((current) => ({
                     ...current,
-                    rendezvousHex: generateFreenetRendezvousHex()
+                    rendezvousHex: generateFreenetRendezvousHex(),
                   }))
                 }
               />
@@ -279,7 +595,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
               onChange={(sideOne) =>
                 setFreenetGrant((current) => ({
                   ...current,
-                  localDirection: sideOne ? 1 : 0
+                  localDirection: sideOne ? 1 : 0,
                 }))
               }
             />
@@ -292,11 +608,15 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           onChange={(propagation) =>
             setFreenetGrant((current) => ({
               ...current,
-              capabilities: { ...current.capabilities, propagation }
+              capabilities: { ...current.capabilities, propagation },
             }))
           }
         />
-        {freenetGrantError !== null ? <Text testID="freenet-grant-error" style={styles.muted}>{freenetGrantError}</Text> : null}
+        {freenetGrantError !== null ? (
+          <Text testID="freenet-grant-error" style={styles.muted}>
+            {freenetGrantError}
+          </Text>
+        ) : null}
         <Text testID="freenet-grant-status" style={styles.muted}>
           {freenetGrant.enabled
             ? `Enabled for ${freenetGrant.operatorLabel} · reads=${freenetGrant.capabilities.contractReads ? "on" : "off"} · packet=${freenetGrant.capabilities.packetTunnel ? "on" : "off"} · propagation=${freenetGrant.capabilities.propagation ? "on" : "off"}`
@@ -304,7 +624,9 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
         </Text>
         <Text testID="freenet-session-status" style={styles.muted}>
           Session: {freenetRemoteSessionStatusLabel(freenetSession)}
-          {freenetSession.lastError !== null ? ` · ${freenetSession.lastError}` : ""}
+          {freenetSession.lastError !== null
+            ? ` · ${freenetSession.lastError}`
+            : ""}
         </Text>
         <Text testID="freenet-propagation-role-status" style={styles.muted}>
           {freenetPropagationRoleLabel(status)}
@@ -321,12 +643,16 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                 void (async () => {
                   if (freenetGrant.enabled !== true) return;
                   setFreenetSession((current) =>
-                    reduceFreenetRemoteSession(current, { type: "confirm-write" })
+                    reduceFreenetRemoteSession(current, {
+                      type: "confirm-write",
+                    }),
                   );
                   try {
                     await activateFreenetGrant(freenetGrant);
                   } catch (error) {
-                    setFreenetGrantError(error instanceof Error ? error.message : String(error));
+                    setFreenetGrantError(
+                      error instanceof Error ? error.message : String(error),
+                    );
                   }
                 })();
               }}
@@ -342,7 +668,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                 applyFreenetGrantToWorklet(null);
                 setFreenetSession(idleFreenetRemoteSession());
                 appendLog(
-                  `Freenet write confirmation cancelled: ${JSON.stringify(freenetGrantLogSafe(revoked))}`
+                  `Freenet write confirmation cancelled: ${JSON.stringify(freenetGrantLogSafe(revoked))}`,
                 );
               }}
             />
@@ -361,29 +687,34 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                     authToken: freenetGrant.authToken,
                     rendezvousHex: freenetGrant.rendezvousHex,
                     localDirection: freenetGrant.localDirection === 1 ? 1 : 0,
-                    capabilities: freenetGrant.capabilities
+                    capabilities: freenetGrant.capabilities,
                   },
-                  { acceptedDisclosure: freenetDisclosureAccepted }
+                  { acceptedDisclosure: freenetDisclosureAccepted },
                 );
                 setFreenetGrant(enabled);
                 setFreenetGrantError(null);
                 appendLog(
-                  `Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`
+                  `Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`,
                 );
                 if (enabled.capabilities.contractWrites) {
-                  let next = reduceFreenetRemoteSession(idleFreenetRemoteSession(), {
-                    type: "enable",
-                    grant: enabled
-                  });
+                  let next = reduceFreenetRemoteSession(
+                    idleFreenetRemoteSession(),
+                    {
+                      type: "enable",
+                      grant: enabled,
+                    },
+                  );
                   next = reduceFreenetRemoteSession(next, {
-                    type: "request-write-confirmation"
+                    type: "request-write-confirmation",
                   });
                   setFreenetSession(next);
                   return;
                 }
                 await activateFreenetGrant(enabled);
               } catch (error) {
-                setFreenetGrantError(error instanceof Error ? error.message : String(error));
+                setFreenetGrantError(
+                  error instanceof Error ? error.message : String(error),
+                );
               }
             })();
           }}
@@ -394,11 +725,16 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           onPress={() => {
             void (async () => {
               if (freenetSession.grant === null) return;
-              let next = reduceFreenetRemoteSession(freenetSession, { type: "reconnect" });
+              let next = reduceFreenetRemoteSession(freenetSession, {
+                type: "reconnect",
+              });
               setFreenetSession(next);
               applyFreenetGrantToWorklet(freenetSession.grant);
               const probe = await probeFreenetRemoteNode(freenetSession.grant);
-              next = reduceFreenetRemoteSession(next, { type: "probe-result", result: probe });
+              next = reduceFreenetRemoteSession(next, {
+                type: "probe-result",
+                result: probe,
+              });
               setFreenetSession(next);
             })();
           }}
@@ -412,20 +748,36 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
             setFreenetDisclosureAccepted(false);
             setFreenetGrantError(null);
             applyFreenetGrantToWorklet(null);
-            setFreenetSession(reduceFreenetRemoteSession(freenetSession, { type: "revoke" }));
-            appendLog(`Freenet remote grant revoked: ${JSON.stringify(freenetGrantLogSafe(revoked))}`);
+            setFreenetSession(
+              reduceFreenetRemoteSession(freenetSession, { type: "revoke" }),
+            );
+            appendLog(
+              `Freenet remote grant revoked: ${JSON.stringify(freenetGrantLogSafe(revoked))}`,
+            );
           }}
         />
 
-        <Row testID="auto-interface-switch" label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
-        <Row testID="ble-interface-switch" label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
+        <Row
+          testID="auto-interface-switch"
+          label="AutoInterface"
+          value={autoEnabled}
+          onChange={setAutoEnabled}
+        />
+        <Row
+          testID="ble-interface-switch"
+          label="BLE interface"
+          value={bleEnabled}
+          onChange={setBleEnabled}
+        />
         <Row
           label={Platform.OS === "ios" ? "RNode (BLE)" : "RNode (USB)"}
           value={Platform.OS === "ios" ? false : rnodeEnabled}
           onChange={(enabled) => {
             if (Platform.OS === "ios") {
               setRnodeEnabled(false);
-              appendLog("RNode on iOS uses BLE and is device-gated for Phase 5 hardware validation.");
+              appendLog(
+                "RNode on iOS uses BLE and is device-gated for Phase 5 hardware validation.",
+              );
               return;
             }
 
@@ -446,7 +798,9 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
         />
         {developerMode ? (
           <View style={styles.devChannel}>
-            <Text style={styles.muted}>Dev side-load channel (localhost / adb reverse only)</Text>
+            <Text style={styles.muted}>
+              Dev side-load channel (localhost / adb reverse only)
+            </Text>
             <TextInput
               style={styles.input}
               value={devHost}
@@ -468,7 +822,7 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                   sendToWorklet({
                     type: "connect-dev-channel",
                     host: devHost,
-                    port: Number(devPort) || DEFAULT_DEV_PORT
+                    port: Number(devPort) || DEFAULT_DEV_PORT,
                   })
                 }
               />
@@ -480,7 +834,9 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
                 }}
               />
             </View>
-            {devChannelDetail ? <Text style={styles.muted}>Dev channel: {devChannelDetail}</Text> : null}
+            {devChannelDetail ? (
+              <Text style={styles.muted}>Dev channel: {devChannelDetail}</Text>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -491,7 +847,8 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           {miniappRuntime?.devBadge ? (
             <Text style={styles.devBadge}>DEV </Text>
           ) : null}
-          {miniappRuntime?.appId ?? "none"} · {miniappRuntime?.state ?? "stopped"}
+          {miniappRuntime?.appId ?? "none"} ·{" "}
+          {miniappRuntime?.state ?? "stopped"}
           {status.miniappRunning ? " · foreground" : ""}
         </Text>
         <MiniappWidgetTree
@@ -519,15 +876,19 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
         />
         {miniappBenchmark !== null ? (
           <Text testID="benchmark-results" style={styles.muted}>
-            spawn {miniappBenchmark.spawnMs}ms · kill {miniappBenchmark.killMs}ms · busy-loop{" "}
-            {miniappBenchmark.busyLoopKillMs}ms · wasm{" "}
+            spawn {miniappBenchmark.spawnMs}ms · kill {miniappBenchmark.killMs}
+            ms · busy-loop {miniappBenchmark.busyLoopKillMs}ms · wasm{" "}
             {miniappBenchmark.wasmExecuted ? "yes" : "no"}
-            {miniappBenchmark.busyLoopKilled ? "" : " · kill failed"} ({miniappBenchmark.backend})
+            {miniappBenchmark.busyLoopKilled ? "" : " · kill failed"} (
+            {miniappBenchmark.backend})
           </Text>
         ) : null}
         {miniappLogs.length > 0 ? (
-          <Text style={styles.muted}>{miniappLogs[miniappLogs.length - 1]}</Text>
+          <Text style={styles.muted}>
+            {miniappLogs[miniappLogs.length - 1]}
+          </Text>
         ) : null}
       </View>
-  </>;
+    </>
+  );
 }

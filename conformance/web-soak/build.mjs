@@ -22,9 +22,9 @@ const build = spawnSync(
     "--workspace=@twistedpear/host-core",
     "--workspace=@twistedpear/reticulum-ts",
     "--workspace=@twistedpear/app-registry",
-    "--workspace=@twistedpear/cas-256t"
+    "--workspace=@twistedpear/cas-256t",
   ],
-  { cwd: repoRoot, stdio: "inherit" }
+  { cwd: repoRoot, stdio: "inherit" },
 );
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
@@ -32,7 +32,7 @@ if (build.status !== 0) {
 
 const workerBuild = spawnSync("node", ["scripts/build-web-worker.mjs"], {
   cwd: harnessRoot,
-  stdio: "inherit"
+  stdio: "inherit",
 });
 if (workerBuild.status !== 0) {
   process.exit(workerBuild.status ?? 1);
@@ -44,12 +44,12 @@ buildSync({
   platform: "browser",
   format: "esm",
   outfile: join(soakRoot, "soak.bundle.js"),
-  logLevel: "warning"
+  logLevel: "warning",
 });
 
 writeFileSync(
   join(soakRoot, "web-core.worker.js"),
-  readFileSync(join(harnessRoot, "public/web-core.worker.js"), "utf8")
+  readFileSync(join(harnessRoot, "public/web-core.worker.js"), "utf8"),
 );
 
 console.log("web-soak bundle written");

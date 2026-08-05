@@ -24,13 +24,27 @@ import {
   msgpackPackBin,
   msgpackPackUInt,
   msgpackUnpack,
-  type MsgpackValue
+  type MsgpackValue,
 } from "../msgpack-core.js";
 import { equalByteArrays } from "../path-table.js";
-import { planResourceReceivePart, planResourceRequestFulfill } from "./part-2.js";
+import {
+  planResourceReceivePart,
+  planResourceRequestFulfill,
+} from "./part-2.js";
 import type { ResourcePartRequest } from "./part-1.js";
-import type { ResourceHashmapUpdateAcceptPlan, ResourceReceivePartPlan, ResourceRequestFulfillHashmapUpdate, ResourceRequestFulfillPartAction, ResourceRequestFulfillPlan } from "./part-2.js";
-import type { ResourceReceivePartAction, ResourceReceivePartEvent, ResourceReceivePartPlanAction, ResourceReceivePartPlanEvent } from "./part-3.js";
+import type {
+  ResourceHashmapUpdateAcceptPlan,
+  ResourceReceivePartPlan,
+  ResourceRequestFulfillHashmapUpdate,
+  ResourceRequestFulfillPartAction,
+  ResourceRequestFulfillPlan,
+} from "./part-2.js";
+import type {
+  ResourceReceivePartAction,
+  ResourceReceivePartEvent,
+  ResourceReceivePartPlanAction,
+  ResourceReceivePartPlanEvent,
+} from "./part-3.js";
 /**
  * Resource receive-part plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
@@ -50,7 +64,7 @@ export function initialResourceReceivePartPlanState(): ResourceReceivePartPlanSt
 
 export function stepResourceReceivePartPlanWithActions(
   state: ResourceReceivePartPlanState,
-  event: ResourceReceivePartPlanEvent
+  event: ResourceReceivePartPlanEvent,
 ): ResourceReceivePartPlanStepResult {
   if (event.kind === "resource/receive-part-plan-gate") {
     const plan = planResourceReceivePart({
@@ -62,7 +76,7 @@ export function stepResourceReceivePartPlanWithActions(
       receivedCount: event.receivedCount,
       outstandingParts: event.outstandingParts,
       totalParts: event.totalParts,
-      assemblyStarted: event.assemblyStarted
+      assemblyStarted: event.assemblyStarted,
     });
     return {
       state,
@@ -77,9 +91,9 @@ export function stepResourceReceivePartPlanWithActions(
           outstandingParts: plan.outstandingParts,
           progress: plan.progress,
           shouldAssemble: plan.shouldAssemble,
-          shouldRequestNext: plan.shouldRequestNext
-        }
-      ]
+          shouldRequestNext: plan.shouldRequestNext,
+        },
+      ],
     };
   }
 
@@ -87,13 +101,13 @@ export function stepResourceReceivePartPlanWithActions(
 }
 
 export function shouldApplyResourceReceivePartPlan(
-  actions: ReadonlyArray<ResourceReceivePartPlanAction>
+  actions: ReadonlyArray<ResourceReceivePartPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "receive");
 }
 
 export function resourceReceivePartPlanFromActions(
-  actions: ReadonlyArray<ResourceReceivePartPlanAction>
+  actions: ReadonlyArray<ResourceReceivePartPlanAction>,
 ): ResourceReceivePartPlan | null {
   for (const action of actions) {
     if (action.kind === "receive") {
@@ -105,7 +119,7 @@ export function resourceReceivePartPlanFromActions(
         outstandingParts: action.outstandingParts,
         progress: action.progress,
         shouldAssemble: action.shouldAssemble,
-        shouldRequestNext: action.shouldRequestNext
+        shouldRequestNext: action.shouldRequestNext,
       };
     }
   }
@@ -129,26 +143,32 @@ export function initialResourceReceivePartState(): ResourceReceivePartState {
   return {};
 }
 
-export const stepResourceReceivePart: StepFn<ResourceReceivePartState> = (state, event) => {
-  const result = stepResourceReceivePartInner(state, event as ResourceReceivePartEvent);
+export const stepResourceReceivePart: StepFn<ResourceReceivePartState> = (
+  state,
+  event,
+) => {
+  const result = stepResourceReceivePartInner(
+    state,
+    event as ResourceReceivePartEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepResourceReceivePartWithActions(
   state: ResourceReceivePartState,
-  event: ResourceReceivePartEvent
+  event: ResourceReceivePartEvent,
 ): ResourceReceivePartStepResult {
   return stepResourceReceivePartInner(state, event);
 }
 
 export function shouldApplyResourceReceivePart(
-  actions: ReadonlyArray<ResourceReceivePartAction>
+  actions: ReadonlyArray<ResourceReceivePartAction>,
 ): boolean {
   return actions.some((action) => action.kind === "receive");
 }
 
 export function resourceReceivePartFromActions(
-  actions: ReadonlyArray<ResourceReceivePartAction>
+  actions: ReadonlyArray<ResourceReceivePartAction>,
 ): ResourceReceivePartPlan | null {
   for (const action of actions) {
     if (action.kind === "receive") {
@@ -160,7 +180,7 @@ export function resourceReceivePartFromActions(
         outstandingParts: action.outstandingParts,
         progress: action.progress,
         shouldAssemble: action.shouldAssemble,
-        shouldRequestNext: action.shouldRequestNext
+        shouldRequestNext: action.shouldRequestNext,
       };
     }
   }
@@ -169,7 +189,7 @@ export function resourceReceivePartFromActions(
 
 function stepResourceReceivePartInner(
   state: ResourceReceivePartState,
-  event: ResourceReceivePartEvent
+  event: ResourceReceivePartEvent,
 ): ResourceReceivePartStepResult {
   if (event.kind === "resource/receive-part-gate") {
     const planActions = stepResourceReceivePartPlanWithActions(
@@ -184,8 +204,8 @@ function stepResourceReceivePartInner(
         receivedCount: event.receivedCount,
         outstandingParts: event.outstandingParts,
         totalParts: event.totalParts,
-        assemblyStarted: event.assemblyStarted
-      }
+        assemblyStarted: event.assemblyStarted,
+      },
     ).actions;
     const plan = resourceReceivePartPlanFromActions(planActions);
     if (plan === null) {
@@ -204,9 +224,9 @@ function stepResourceReceivePartInner(
           outstandingParts: plan.outstandingParts,
           progress: plan.progress,
           shouldAssemble: plan.shouldAssemble,
-          shouldRequestNext: plan.shouldRequestNext
-        }
-      ]
+          shouldRequestNext: plan.shouldRequestNext,
+        },
+      ],
     };
   }
 
@@ -255,7 +275,7 @@ export function initialResourceRequestFulfillPlanState(): ResourceRequestFulfill
 
 export function stepResourceRequestFulfillPlanWithActions(
   state: ResourceRequestFulfillPlanState,
-  event: ResourceRequestFulfillPlanEvent
+  event: ResourceRequestFulfillPlanEvent,
 ): ResourceRequestFulfillPlanStepResult {
   if (event.kind === "resource/request-fulfill-plan-gate") {
     const plan = planResourceRequestFulfill({
@@ -266,7 +286,7 @@ export function stepResourceRequestFulfillPlanWithActions(
       hashmapMaxLen: event.hashmapMaxLen,
       windowMax: event.windowMax,
       totalParts: event.totalParts,
-      sentParts: event.sentParts
+      sentParts: event.sentParts,
     });
     return {
       state,
@@ -277,10 +297,11 @@ export function stepResourceRequestFulfillPlanWithActions(
           partActions: plan.partActions,
           hashmapUpdate: plan.hashmapUpdate,
           nextSentParts: plan.nextSentParts,
-          nextReceiverMinConsecutiveHeight: plan.nextReceiverMinConsecutiveHeight,
-          status: plan.status
-        }
-      ]
+          nextReceiverMinConsecutiveHeight:
+            plan.nextReceiverMinConsecutiveHeight,
+          status: plan.status,
+        },
+      ],
     };
   }
 
@@ -288,13 +309,13 @@ export function stepResourceRequestFulfillPlanWithActions(
 }
 
 export function shouldFulfillResourceRequestPlan(
-  actions: ReadonlyArray<ResourceRequestFulfillPlanAction>
+  actions: ReadonlyArray<ResourceRequestFulfillPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "fulfill");
 }
 
 export function resourceRequestFulfillPlanFromActions(
-  actions: ReadonlyArray<ResourceRequestFulfillPlanAction>
+  actions: ReadonlyArray<ResourceRequestFulfillPlanAction>,
 ): ResourceRequestFulfillPlan | null {
   for (const action of actions) {
     if (action.kind === "fulfill") {
@@ -302,8 +323,9 @@ export function resourceRequestFulfillPlanFromActions(
         partActions: action.partActions,
         hashmapUpdate: action.hashmapUpdate,
         nextSentParts: action.nextSentParts,
-        nextReceiverMinConsecutiveHeight: action.nextReceiverMinConsecutiveHeight,
-        status: action.status
+        nextReceiverMinConsecutiveHeight:
+          action.nextReceiverMinConsecutiveHeight,
+        status: action.status,
       };
     }
   }
@@ -350,26 +372,32 @@ export function initialResourceRequestFulfillState(): ResourceRequestFulfillStat
   return {};
 }
 
-export const stepResourceRequestFulfill: StepFn<ResourceRequestFulfillState> = (state, event) => {
-  const result = stepResourceRequestFulfillInner(state, event as ResourceRequestFulfillEvent);
+export const stepResourceRequestFulfill: StepFn<ResourceRequestFulfillState> = (
+  state,
+  event,
+) => {
+  const result = stepResourceRequestFulfillInner(
+    state,
+    event as ResourceRequestFulfillEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepResourceRequestFulfillWithActions(
   state: ResourceRequestFulfillState,
-  event: ResourceRequestFulfillEvent
+  event: ResourceRequestFulfillEvent,
 ): ResourceRequestFulfillStepResult {
   return stepResourceRequestFulfillInner(state, event);
 }
 
 export function shouldFulfillResourceRequest(
-  actions: ReadonlyArray<ResourceRequestFulfillAction>
+  actions: ReadonlyArray<ResourceRequestFulfillAction>,
 ): boolean {
   return actions.some((action) => action.kind === "fulfill");
 }
 
 export function resourceRequestFulfillFromActions(
-  actions: ReadonlyArray<ResourceRequestFulfillAction>
+  actions: ReadonlyArray<ResourceRequestFulfillAction>,
 ): ResourceRequestFulfillPlan | null {
   for (const action of actions) {
     if (action.kind === "fulfill") {
@@ -377,8 +405,9 @@ export function resourceRequestFulfillFromActions(
         partActions: action.partActions,
         hashmapUpdate: action.hashmapUpdate,
         nextSentParts: action.nextSentParts,
-        nextReceiverMinConsecutiveHeight: action.nextReceiverMinConsecutiveHeight,
-        status: action.status
+        nextReceiverMinConsecutiveHeight:
+          action.nextReceiverMinConsecutiveHeight,
+        status: action.status,
       };
     }
   }
@@ -387,7 +416,7 @@ export function resourceRequestFulfillFromActions(
 
 function stepResourceRequestFulfillInner(
   state: ResourceRequestFulfillState,
-  event: ResourceRequestFulfillEvent
+  event: ResourceRequestFulfillEvent,
 ): ResourceRequestFulfillStepResult {
   if (event.kind === "resource/request-fulfill-gate") {
     const planActions = stepResourceRequestFulfillPlanWithActions(
@@ -401,8 +430,8 @@ function stepResourceRequestFulfillInner(
         hashmapMaxLen: event.hashmapMaxLen,
         windowMax: event.windowMax,
         totalParts: event.totalParts,
-        sentParts: event.sentParts
-      }
+        sentParts: event.sentParts,
+      },
     ).actions;
     const plan = resourceRequestFulfillPlanFromActions(planActions);
     if (plan === null) {
@@ -417,10 +446,11 @@ function stepResourceRequestFulfillInner(
           partActions: plan.partActions,
           hashmapUpdate: plan.hashmapUpdate,
           nextSentParts: plan.nextSentParts,
-          nextReceiverMinConsecutiveHeight: plan.nextReceiverMinConsecutiveHeight,
-          status: plan.status
-        }
-      ]
+          nextReceiverMinConsecutiveHeight:
+            plan.nextReceiverMinConsecutiveHeight,
+          status: plan.status,
+        },
+      ],
     };
   }
 
@@ -441,10 +471,10 @@ export type ResourceHashmapUpdateAcceptPlanAction = {
 };
 
 export function resourceHashmapUpdateAcceptPlanFromActions(
-  actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>
+  actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>,
 ): ResourceHashmapUpdateAcceptPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "apply" || entry.kind === "ignore"
+    (entry) => entry.kind === "apply" || entry.kind === "ignore",
   );
   return action?.kind ?? null;
 }

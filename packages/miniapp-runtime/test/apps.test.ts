@@ -4,7 +4,7 @@ import {
   AppsServiceError,
   ConfirmationError,
   type AppsBackend,
-  type ConfirmationRequest
+  type ConfirmationRequest,
 } from "../src/index.js";
 
 const context = { appId: "devstudio", publisherPublicKey: "publisher" };
@@ -12,7 +12,7 @@ const manifest = {
   name: "hello",
   version: "1.0.0",
   entry: "bundle.js",
-  capabilities: ["storage:kv"]
+  capabilities: ["storage:kv"],
 };
 
 function stubBackend(calls: string[]): AppsBackend {
@@ -23,7 +23,11 @@ function stubBackend(calls: string[]): AppsBackend {
     },
     publish: async () => {
       calls.push("publish");
-      return { t256: "A".repeat(94), driveKey: "cd".repeat(32), version: "1.0.0" };
+      return {
+        t256: "A".repeat(94),
+        driveKey: "cd".repeat(32),
+        version: "1.0.0",
+      };
     },
     install: async () => {
       calls.push("install");
@@ -35,7 +39,7 @@ function stubBackend(calls: string[]): AppsBackend {
     },
     stopPreview: async () => {
       calls.push("stopPreview");
-    }
+    },
   };
 }
 
@@ -44,13 +48,21 @@ describe("apps service", () => {
     const calls: string[] = [];
     const service = new AppsService(stubBackend(calls), undefined);
 
-    await expect(service.package(context, { projectPrefix: "hello", manifest })).rejects.toBeInstanceOf(
-      ConfirmationError
-    );
-    await expect(service.publish(context, { t256: "A".repeat(94) })).rejects.toBeInstanceOf(ConfirmationError);
-    await expect(service.install(context, { t256: "A".repeat(94) })).rejects.toBeInstanceOf(ConfirmationError);
     await expect(
-      service.preview(context, { projectPrefix: "hello", manifest, grants: ["storage:kv"] })
+      service.package(context, { projectPrefix: "hello", manifest }),
+    ).rejects.toBeInstanceOf(ConfirmationError);
+    await expect(
+      service.publish(context, { t256: "A".repeat(94) }),
+    ).rejects.toBeInstanceOf(ConfirmationError);
+    await expect(
+      service.install(context, { t256: "A".repeat(94) }),
+    ).rejects.toBeInstanceOf(ConfirmationError);
+    await expect(
+      service.preview(context, {
+        projectPrefix: "hello",
+        manifest,
+        grants: ["storage:kv"],
+      }),
     ).rejects.toBeInstanceOf(ConfirmationError);
     expect(calls).toEqual([]);
 
@@ -66,16 +78,25 @@ describe("apps service", () => {
       confirm: async (request) => {
         confirmations.push(request);
         return { approved: true };
-      }
+      },
     });
 
     await service.package(context, { projectPrefix: "hello", manifest });
     await service.publish(context, { t256: "A".repeat(94) });
     await service.install(context, { t256: "A".repeat(94) });
-    await service.preview(context, { projectPrefix: "hello", manifest, grants: [] });
+    await service.preview(context, {
+      projectPrefix: "hello",
+      manifest,
+      grants: [],
+    });
 
     expect(calls).toEqual(["package", "publish", "install", "preview"]);
-    expect(confirmations.map((entry) => entry.kind)).toEqual(["package", "publish", "install", "preview"]);
+    expect(confirmations.map((entry) => entry.kind)).toEqual([
+      "package",
+      "publish",
+      "install",
+      "preview",
+    ]);
     for (const confirmation of confirmations) {
       expect(confirmation.appId).toBe("devstudio");
       expect(confirmation.publisherPublicKey).toBe("publisher");
@@ -85,9 +106,13 @@ describe("apps service", () => {
 
   it("stops at a denial without reaching the backend", async () => {
     const calls: string[] = [];
-    const service = new AppsService(stubBackend(calls), { confirm: async () => ({ approved: false }) });
-    await expect(service.publish(context, { t256: "A".repeat(94) })).rejects.toMatchObject({
-      code: "CONFIRMATION_DENIED"
+    const service = new AppsService(stubBackend(calls), {
+      confirm: async () => ({ approved: false }),
+    });
+    await expect(
+      service.publish(context, { t256: "A".repeat(94) }),
+    ).rejects.toMatchObject({
+      code: "CONFIRMATION_DENIED",
     });
     expect(calls).toEqual([]);
   });
@@ -99,23 +124,33 @@ describe("apps service", () => {
       confirm: async () => {
         asked += 1;
         return { approved: true };
-      }
+      },
     });
 
     await expect(
-      service.package(context, { projectPrefix: "hello", manifest: { ...manifest, name: "Bad Name!" } })
+      service.package(context, {
+        projectPrefix: "hello",
+        manifest: { ...manifest, name: "Bad Name!" },
+      }),
     ).rejects.toBeInstanceOf(AppsServiceError);
     await expect(
-      service.package(context, { projectPrefix: "../escape", manifest })
+      service.package(context, { projectPrefix: "../escape", manifest }),
     ).rejects.toThrow();
     await expect(
-      service.package(context, { projectPrefix: "hello", manifest: { ...manifest, capabilities: ["root"] } })
+      service.package(context, {
+        projectPrefix: "hello",
+        manifest: { ...manifest, capabilities: ["root"] },
+      }),
     ).rejects.toThrow(/capability/i);
-    await expect(service.publish(context, { t256: "not-a-256t" })).rejects.toMatchObject({
-      code: "APPS_BAD_REQUEST"
+    await expect(
+      service.publish(context, { t256: "not-a-256t" }),
+    ).rejects.toMatchObject({
+      code: "APPS_BAD_REQUEST",
     });
-    await expect(service.install(context, { t256: `${"A".repeat(93)}!` })).rejects.toMatchObject({
-      code: "APPS_BAD_REQUEST"
+    await expect(
+      service.install(context, { t256: `${"A".repeat(93)}!` }),
+    ).rejects.toMatchObject({
+      code: "APPS_BAD_REQUEST",
     });
     expect(asked).toBe(0);
     expect(calls).toEqual([]);
@@ -123,9 +158,15 @@ describe("apps service", () => {
 
   it("rejects preview grants that escalate beyond the declared capabilities", async () => {
     const calls: string[] = [];
-    const service = new AppsService(stubBackend(calls), { confirm: async () => ({ approved: true }) });
+    const service = new AppsService(stubBackend(calls), {
+      confirm: async () => ({ approved: true }),
+    });
     await expect(
-      service.preview(context, { projectPrefix: "hello", manifest, grants: ["lxmf:send"] })
+      service.preview(context, {
+        projectPrefix: "hello",
+        manifest,
+        grants: ["lxmf:send"],
+      }),
     ).rejects.toMatchObject({ code: "APPS_BAD_REQUEST" });
     expect(calls).toEqual([]);
   });

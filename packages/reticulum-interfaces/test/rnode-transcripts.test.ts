@@ -13,14 +13,17 @@ import {
   decodeKissFrames,
   encodeDetectRequest,
   encodeKissFrame,
-  encodeRadioStateAsk
+  encodeRadioStateAsk,
 } from "../src/rnode/kiss.js";
 
 const transcripts = JSON.parse(
   readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/vectors/rnode-kiss-transcripts.json"),
-    "utf8"
-  )
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../conformance/vectors/rnode-kiss-transcripts.json",
+    ),
+    "utf8",
+  ),
 ) as {
   sessions: ReadonlyArray<{
     name: string;
@@ -40,20 +43,31 @@ function hexToBytes(hex: string): Uint8Array {
 
 describe("RNode KISS golden transcripts", () => {
   it("matches reference detect request encoding", () => {
-    const session = transcripts.sessions.find((entry) => entry.name === "detect-handshake");
+    const session = transcripts.sessions.find(
+      (entry) => entry.name === "detect-handshake",
+    );
     expect(session).toBeDefined();
-    expect(Buffer.from(encodeDetectRequest()).toString("hex")).toBe(session!.hostToDevice);
+    expect(Buffer.from(encodeDetectRequest()).toString("hex")).toBe(
+      session!.hostToDevice,
+    );
   });
 
   it("matches reference radio-state ask encoding", () => {
-    const session = transcripts.sessions.find((entry) => entry.name === "radio-state-query");
+    const session = transcripts.sessions.find(
+      (entry) => entry.name === "radio-state-query",
+    );
     expect(session).toBeDefined();
-    expect(Buffer.from(encodeRadioStateAsk()).toString("hex")).toBe(session!.hostToDevice);
+    expect(Buffer.from(encodeRadioStateAsk()).toString("hex")).toBe(
+      session!.hostToDevice,
+    );
   });
 
   for (const session of transcripts.sessions) {
     it(`decodes ${session.name} device response`, () => {
-      const decoded = decodeKissFrames(hexToBytes(session.deviceToHost), createKissDecodeState());
+      const decoded = decodeKissFrames(
+        hexToBytes(session.deviceToHost),
+        createKissDecodeState(),
+      );
       expect(decoded.frames.length).toBeGreaterThan(0);
 
       if (session.name === "detect-handshake") {
@@ -68,7 +82,11 @@ describe("RNode KISS golden transcripts", () => {
 
       if (session.name === "firmware-version") {
         expect(decoded.frames[0]?.command).toBe(KISS_CMD_FW_VERSION);
-        expect(new TextDecoder().decode(decoded.frames[0]?.payload ?? new Uint8Array())).toBe("1.4.0");
+        expect(
+          new TextDecoder().decode(
+            decoded.frames[0]?.payload ?? new Uint8Array(),
+          ),
+        ).toBe("1.4.0");
       }
 
       if (session.name === "platform-query") {
@@ -78,7 +96,11 @@ describe("RNode KISS golden transcripts", () => {
 
       if (session.name === "data-frame-roundtrip") {
         expect(decoded.frames[0]?.command).toBe(0x00);
-        expect(new TextDecoder().decode(decoded.frames[0]?.payload ?? new Uint8Array())).toBe("reticulum");
+        expect(
+          new TextDecoder().decode(
+            decoded.frames[0]?.payload ?? new Uint8Array(),
+          ),
+        ).toBe("reticulum");
       }
     });
   }

@@ -24,12 +24,12 @@ const build = spawnSync(
     "--workspace=@twistedpear/host-core",
     "--workspace=@twistedpear/app-registry",
     "--workspace=@twistedpear/cas-256t",
-    "--workspace=@twistedpear/reticulum-ts"
+    "--workspace=@twistedpear/reticulum-ts",
   ],
   {
     cwd: repoRoot,
-    stdio: "inherit"
-  }
+    stdio: "inherit",
+  },
 );
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
@@ -38,7 +38,7 @@ if (build.status !== 0) {
 const fixtureBase64 = readFileSync(fixturePath).toString("base64");
 writeFileSync(
   fixtureModule,
-  `export const TINY_TPKG_BASE64 = ${JSON.stringify(fixtureBase64)};\n`
+  `export const TINY_TPKG_BASE64 = ${JSON.stringify(fixtureBase64)};\n`,
 );
 
 buildSync({
@@ -49,17 +49,35 @@ buildSync({
   globalName: "TwistedPearWebStorage",
   outfile: output,
   alias: {
-    "@twistedpear/reticulum-ts/web": join(repoRoot, "packages/reticulum-ts/dist/web.js"),
-    "@twistedpear/reticulum-ts": join(repoRoot, "packages/reticulum-ts/dist/web.js")
+    "@twistedpear/reticulum-ts/web": join(
+      repoRoot,
+      "packages/reticulum-ts/dist/web.js",
+    ),
+    "@twistedpear/reticulum-ts": join(
+      repoRoot,
+      "packages/reticulum-ts/dist/web.js",
+    ),
   },
-  logLevel: "warning"
+  logLevel: "warning",
 });
 
-const forbidden = ["node:crypto", "node:net", "node:http", "node:fs", "sodium-native", "bare-fs", "corestore", "hyperdrive", "hyperswarm"];
+const forbidden = [
+  "node:crypto",
+  "node:net",
+  "node:http",
+  "node:fs",
+  "sodium-native",
+  "bare-fs",
+  "corestore",
+  "hyperdrive",
+  "hyperswarm",
+];
 const source = readFileSync(output, "utf8");
 const hits = forbidden.filter((needle) => source.includes(needle));
 if (hits.length > 0) {
-  throw new Error(`web-storage bundle guard failed: forbidden imports leaked (${hits.join(", ")})`);
+  throw new Error(
+    `web-storage bundle guard failed: forbidden imports leaked (${hits.join(", ")})`,
+  );
 }
 
 console.log(`web-storage bundle written to ${output}`);

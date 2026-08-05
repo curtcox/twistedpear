@@ -3,17 +3,77 @@
   "machine": "stream",
   "generatedBy": "scripts/vectors-generate-stream.mjs",
   "cells": [
-    { "state": "requested", "eventClass": "admit", "expectedState": { "phase": "active" }, "legal": true },
-    { "state": "requested", "eventClass": "degrade", "expectedState": { "phase": "degraded" }, "legal": true },
-    { "state": "requested", "eventClass": "defer", "expectedState": { "phase": "deferred" }, "legal": true },
-    { "state": "requested", "eventClass": "reject", "expectedState": { "phase": "rejected" }, "legal": true },
-    { "state": "deferred", "eventClass": "admit", "expectedState": { "phase": "active" }, "legal": true },
-    { "state": "deferred", "eventClass": "degrade", "expectedState": { "phase": "degraded" }, "legal": true },
-    { "state": "deferred", "eventClass": "reject", "expectedState": { "phase": "rejected" }, "legal": true },
-    { "state": "active", "eventClass": "degrade", "expectedState": { "phase": "degraded" }, "legal": true },
-    { "state": "active", "eventClass": "close", "expectedState": { "phase": "closed" }, "legal": true },
-    { "state": "degraded", "eventClass": "degrade", "expectedState": { "phase": "degraded" }, "legal": true },
-    { "state": "degraded", "eventClass": "restore", "expectedState": { "phase": "active" }, "legal": true },
-    { "state": "degraded", "eventClass": "close", "expectedState": { "phase": "closed" }, "legal": true }
+    {
+      "state": "requested",
+      "eventClass": "admit",
+      "expectedState": { "phase": "active" },
+      "legal": true
+    },
+    {
+      "state": "requested",
+      "eventClass": "degrade",
+      "expectedState": { "phase": "degraded" },
+      "legal": true
+    },
+    {
+      "state": "requested",
+      "eventClass": "defer",
+      "expectedState": { "phase": "deferred" },
+      "legal": true
+    },
+    {
+      "state": "requested",
+      "eventClass": "reject",
+      "expectedState": { "phase": "rejected" },
+      "legal": true
+    },
+    {
+      "state": "deferred",
+      "eventClass": "admit",
+      "expectedState": { "phase": "active" },
+      "legal": true
+    },
+    {
+      "state": "deferred",
+      "eventClass": "degrade",
+      "expectedState": { "phase": "degraded" },
+      "legal": true
+    },
+    {
+      "state": "deferred",
+      "eventClass": "reject",
+      "expectedState": { "phase": "rejected" },
+      "legal": true
+    },
+    {
+      "state": "active",
+      "eventClass": "degrade",
+      "expectedState": { "phase": "degraded" },
+      "legal": true
+    },
+    {
+      "state": "active",
+      "eventClass": "close",
+      "expectedState": { "phase": "closed" },
+      "legal": true
+    },
+    {
+      "state": "degraded",
+      "eventClass": "degrade",
+      "expectedState": { "phase": "degraded" },
+      "legal": true
+    },
+    {
+      "state": "degraded",
+      "eventClass": "restore",
+      "expectedState": { "phase": "active" },
+      "legal": true
+    },
+    {
+      "state": "degraded",
+      "eventClass": "close",
+      "expectedState": { "phase": "closed" },
+      "legal": true
+    }
   ]
 }

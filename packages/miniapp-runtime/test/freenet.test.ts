@@ -4,7 +4,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   MemoryKvStoreBackend,
-  MiniappHost
+  MiniappHost,
 } from "../src/index.js";
 import type { FreenetContractBackend } from "../src/services/freenet.js";
 
@@ -13,18 +13,20 @@ describe("freenet:contract capability", () => {
     name: "unused",
     async spawn() {
       throw new Error("not used");
-    }
+    },
   };
   const manifest = {
     name: "freenet-app",
     version: "1",
     entry: "bundle.js",
     publisherPublicKey: "publisher",
-    capabilities: ["freenet:contract"]
+    capabilities: ["freenet:contract"],
   };
 
   it("is declared in CAPABILITY_DEFINITIONS with irreversible wording", () => {
-    const entry = CAPABILITY_DEFINITIONS.find((item) => item.id === "freenet:contract");
+    const entry = CAPABILITY_DEFINITIONS.find(
+      (item) => item.id === "freenet:contract",
+    );
     expect(entry).toBeDefined();
     expect(entry?.description).toContain("cannot be recalled");
     expect(HOST_API_VERSION).toBe("0.12.0");
@@ -35,13 +37,23 @@ describe("freenet:contract capability", () => {
     const host = new MiniappHost({
       backend: unusedBackend,
       grantStore: new GrantStore(store),
-      kvBackend: store
+      kvBackend: store,
     });
-    await host.setGrants("freenet-app", "publisher", ["freenet:contract"], ["freenet:contract"]);
+    await host.setGrants(
+      "freenet-app",
+      "publisher",
+      ["freenet:contract"],
+      ["freenet:contract"],
+    );
     const response = await host.dispatchRaw(
-      { id: "1", namespace: "freenet", method: "get", payload: { keyHex: "ab" } },
+      {
+        id: "1",
+        namespace: "freenet",
+        method: "get",
+        payload: { keyHex: "ab" },
+      },
       manifest,
-      ["freenet:contract"]
+      ["freenet:contract"],
     );
     expect(response.error?.code).toBe("FREENET_UNCONFIGURED");
   });
@@ -56,7 +68,7 @@ describe("freenet:contract capability", () => {
         puts.push(options.stateHex);
         return { keyHex: "bb" };
       },
-      async update() {}
+      async update() {},
     };
     const confirm = vi.fn(async () => ({ approved: true }));
     const store = new MemoryKvStoreBackend();
@@ -65,14 +77,24 @@ describe("freenet:contract capability", () => {
       grantStore: new GrantStore(store),
       kvBackend: store,
       freenetBackend: backend,
-      confirmationChannel: { confirm }
+      confirmationChannel: { confirm },
     });
-    await host.setGrants("freenet-app", "publisher", ["freenet:contract"], ["freenet:contract"]);
+    await host.setGrants(
+      "freenet-app",
+      "publisher",
+      ["freenet:contract"],
+      ["freenet:contract"],
+    );
 
     const got = await host.dispatchRaw(
-      { id: "1", namespace: "freenet", method: "get", payload: { keyHex: "abcd" } },
+      {
+        id: "1",
+        namespace: "freenet",
+        method: "get",
+        payload: { keyHex: "abcd" },
+      },
       manifest,
-      ["freenet:contract"]
+      ["freenet:contract"],
     );
     expect(got.result).toEqual({ keyHex: "abcd", stateHex: "aa" });
     expect(confirm).not.toHaveBeenCalled();
@@ -82,15 +104,17 @@ describe("freenet:contract capability", () => {
         id: "2",
         namespace: "freenet",
         method: "put",
-        payload: { wasmHex: "00", parametersHex: "01", stateHex: "02" }
+        payload: { wasmHex: "00", parametersHex: "01", stateHex: "02" },
       },
       manifest,
-      ["freenet:contract"]
+      ["freenet:contract"],
     );
     expect(put.result).toEqual({ keyHex: "bb" });
     expect(puts).toEqual(["02"]);
     expect(confirm).toHaveBeenCalledOnce();
     expect(confirm.mock.calls[0]![0].kind).toBe("freenet-update");
-    expect(confirm.mock.calls[0]![0].summary.note).toContain("cannot be recalled");
+    expect(confirm.mock.calls[0]![0].summary.note).toContain(
+      "cannot be recalled",
+    );
   });
 });

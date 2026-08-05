@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   auditLifecycleHeaders,
-  auditStaleness
+  auditStaleness,
 } from "../../scripts/doc-audit/staleness.mjs";
 
 describe("doc-audit lifecycle headers", () => {
   it("requires tp-doc on tracked markdown and keeps historical docs under archive/", () => {
-    const { missing, invalid, historicalOutsideArchive } = auditLifecycleHeaders();
+    const { missing, invalid, historicalOutsideArchive } =
+      auditLifecycleHeaders();
     expect(missing, `missing tp-doc: ${missing.join(", ")}`).toEqual([]);
     expect(invalid, JSON.stringify(invalid, null, 2)).toEqual([]);
     expect(historicalOutsideArchive).toEqual([]);

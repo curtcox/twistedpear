@@ -1,10 +1,15 @@
 import type { DolevYaoPower, InstantMs, NodeId } from "../../types.js";
 
-export type TransportClassName = "lan" | "internet" | "ble" | "lora" | "freenet";
+export type TransportClassName =
+  "lan" | "internet" | "ble" | "lora" | "freenet";
 
 export type LatencyDistribution =
   | { readonly kind: "fixed"; readonly ms: number }
-  | { readonly kind: "uniform"; readonly minMs: number; readonly maxMs: number };
+  | {
+      readonly kind: "uniform";
+      readonly minMs: number;
+      readonly maxMs: number;
+    };
 
 export interface BurstLossModel {
   /** Probability of entering the bad state after a send in the good state. */
@@ -46,30 +51,45 @@ const PRESETS: Readonly<Record<TransportClassName, TransportClass>> = {
     name: "lan",
     bandwidthBps: 100_000_000,
     latency: { kind: "uniform", minMs: 0.2, maxMs: 2 },
-    lossRate: 0.0001
+    lossRate: 0.0001,
   },
   internet: {
     name: "internet",
     bandwidthBps: 10_000_000,
     latency: { kind: "uniform", minMs: 20, maxMs: 120 },
     lossRate: 0.005,
-    burstLoss: { goodToBad: 0.002, badToGood: 0.35, goodLossRate: 0.001, badLossRate: 0.5 }
+    burstLoss: {
+      goodToBad: 0.002,
+      badToGood: 0.35,
+      goodLossRate: 0.001,
+      badLossRate: 0.5,
+    },
   },
   ble: {
     name: "ble",
     bandwidthBps: 125_000,
     latency: { kind: "uniform", minMs: 7.5, maxMs: 40 },
     lossRate: 0.01,
-    burstLoss: { goodToBad: 0.01, badToGood: 0.25, goodLossRate: 0.005, badLossRate: 0.35 }
+    burstLoss: {
+      goodToBad: 0.01,
+      badToGood: 0.25,
+      goodLossRate: 0.005,
+      badLossRate: 0.35,
+    },
   },
   lora: {
     name: "lora",
     bandwidthBps: 5_000,
     latency: { kind: "uniform", minMs: 250, maxMs: 1_500 },
     lossRate: 0.03,
-    burstLoss: { goodToBad: 0.02, badToGood: 0.15, goodLossRate: 0.01, badLossRate: 0.55 },
+    burstLoss: {
+      goodToBad: 0.02,
+      badToGood: 0.15,
+      goodLossRate: 0.01,
+      badLossRate: 0.55,
+    },
     dutyCycle: 0.01,
-    dutyCyclePolicy: "delay"
+    dutyCyclePolicy: "delay",
   },
   // S2 local 1 KiB p50/p95 update→notify and F2 policy bitrate (~90 kbps).
   freenet: {
@@ -77,18 +97,26 @@ const PRESETS: Readonly<Record<TransportClassName, TransportClass>> = {
     bandwidthBps: 90_000,
     latency: { kind: "uniform", minMs: 63, maxMs: 89 },
     lossRate: 0.002,
-    burstLoss: { goodToBad: 0.004, badToGood: 0.4, goodLossRate: 0.001, badLossRate: 0.25 }
-  }
+    burstLoss: {
+      goodToBad: 0.004,
+      badToGood: 0.4,
+      goodLossRate: 0.001,
+      badLossRate: 0.25,
+    },
+  },
 };
 
 export function transportClass(
   name: TransportClassName,
-  overrides: Partial<Omit<TransportClass, "name">> = {}
+  overrides: Partial<Omit<TransportClass, "name">> = {},
 ): TransportClass {
   return { ...PRESETS[name], ...overrides, name };
 }
 
-export function sampleLatency(distribution: LatencyDistribution, rng: () => number): number {
+export function sampleLatency(
+  distribution: LatencyDistribution,
+  rng: () => number,
+): number {
   if (distribution.kind === "fixed") {
     return Math.max(0, distribution.ms);
   }

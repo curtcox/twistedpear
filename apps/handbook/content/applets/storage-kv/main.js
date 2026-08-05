@@ -12,7 +12,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: "KV get returned null after set",
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       });
       return;
     }
@@ -22,7 +22,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `KV value mismatch: ${text}`,
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       });
       return;
     }
@@ -33,7 +33,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: "KV value still present after delete",
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       });
       return;
     }
@@ -41,15 +41,16 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: "KV set → get → delete succeeded",
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const notGranted =
+      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
     report({
       status: notGranted ? "not-granted" : "fail",
       details: message,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   }
 }

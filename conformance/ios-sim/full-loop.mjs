@@ -14,16 +14,30 @@ import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
   unpackPackage,
-  verifyPackage
+  verifyPackage,
 } from "../../packages/app-registry/dist/index.js";
-import { NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import {
+  NodeCryptoProvider,
+  nodeRuntime,
+} from "../../packages/reticulum-ts/dist/index.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
-import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
-import { HOST_API_VERSION, validateManifestCapabilities } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  runInit,
+  runPack,
+  runPublish,
+  runUpdate,
+} from "../../packages/cli/dist/commands/index.js";
+import {
+  HOST_API_VERSION,
+  validateManifestCapabilities,
+} from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 
-const chatExample = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples/chat");
+const chatExample = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../apps/examples/chat",
+);
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 class MemoryStore {
@@ -76,10 +90,17 @@ function treeHasTitle(tree) {
   return walk(tree.root);
 }
 
-async function installVerifiedPackage(provider, runtime, installed, entry, archive, pathLabel) {
+async function installVerifiedPackage(
+  provider,
+  runtime,
+  installed,
+  entry,
+  archive,
+  pathLabel,
+) {
   const verified = verifyPackage(provider, archive, {
     hostApiVersion: HOST_API_VERSION,
-    minVersion: installed.latestVersion(entry.appId) ?? undefined
+    minVersion: installed.latestVersion(entry.appId) ?? undefined,
   });
   validateManifestCapabilities(verified.manifest.capabilities);
 
@@ -92,15 +113,22 @@ async function installVerifiedPackage(provider, runtime, installed, entry, archi
       packageHash: verified.packageHash,
       installedAt: Date.now(),
       manifest: verified.manifest,
-      archivePath
+      archivePath,
     },
-    archive.length
+    archive.length,
   );
 
   return { verified, archivePath };
 }
 
-async function launchAndRender(miniappHost, installed, runtime, appId, grants, outbound) {
+async function launchAndRender(
+  miniappHost,
+  installed,
+  runtime,
+  appId,
+  grants,
+  outbound,
+) {
   const version = installed.activeVersion(appId);
   if (version === null) {
     throw new Error(`No active version for ${appId}`);
@@ -115,12 +143,14 @@ async function launchAndRender(miniappHost, installed, runtime, appId, grants, o
     record.appId,
     record.manifest.publisherPublicKey,
     record.manifest.capabilities,
-    grants
+    grants,
   );
   await miniappHost.launch(installed, runtime, appId);
 
   const runtimeView = await waitFor(() => {
-    const latest = [...outbound].reverse().find((message) => message.type === "miniapp-runtime");
+    const latest = [...outbound]
+      .reverse()
+      .find((message) => message.type === "miniapp-runtime");
     if (
       latest?.runtime?.widgetTree !== null &&
       latest?.runtime?.widgetTree !== undefined &&
@@ -133,7 +163,9 @@ async function launchAndRender(miniappHost, installed, runtime, appId, grants, o
   });
 
   if (runtimeView.version !== version) {
-    throw new Error(`Expected launched version ${version}, got ${runtimeView.version}`);
+    throw new Error(
+      `Expected launched version ${version}, got ${runtimeView.version}`,
+    );
   }
 }
 
@@ -163,17 +195,28 @@ export async function runIosFullLoop() {
     send,
     onDeveloperModeChange() {},
     onMiniappStateChange() {},
-    getPresenceSnapshot: () => ({ autoPeers: 0, onlineInterfaces: 0, preferredInterface: null })
+    getPresenceSnapshot: () => ({
+      autoPeers: 0,
+      onlineInterfaces: 0,
+      preferredInterface: null,
+    }),
   });
 
   try {
     process.chdir(cwd);
-    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
+    const initCode = await runInit({
+      cwd,
+      identityPassphrase: IDENTITY_PASSPHRASE,
+      args: [],
+    });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
 
-    const packCode = await runPack({ cwd, args: [appName, "--out", "chat.tpkg"] });
+    const packCode = await runPack({
+      cwd,
+      args: [appName, "--out", "chat.tpkg"],
+    });
     if (packCode !== 0) {
       throw new Error("tp pack failed");
     }
@@ -186,7 +229,7 @@ export async function runIosFullLoop() {
     const identity = decryptIdentityBackup(
       provider,
       new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
-      IDENTITY_PASSPHRASE
+      IDENTITY_PASSPHRASE,
     );
 
     const v1Archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
@@ -195,14 +238,14 @@ export async function runIosFullLoop() {
       manifest: v1Unpacked.manifest,
       packageSize: v1Archive.length,
       packageHash: v1Unpacked.packageHash,
-      resourceAvailable: true
+      resourceAvailable: true,
     });
 
     const v1Entry = catalog.ingest({
       destinationHash: "ios-full-loop-v1",
       appData: encodeAppAnnounceData(v1Summary),
       manifest: v1Unpacked.manifest,
-      packageHash: v1Unpacked.packageHash
+      packageHash: v1Unpacked.packageHash,
     });
     if (v1Entry === null) {
       throw new Error("catalog ingest failed for v1");
@@ -214,7 +257,7 @@ export async function runIosFullLoop() {
       installed,
       v1Entry,
       v1Archive,
-      "local"
+      "local",
     );
 
     await launchAndRender(
@@ -223,11 +266,14 @@ export async function runIosFullLoop() {
       runtime,
       v1Entry.appId,
       v1Verified.manifest.capabilities,
-      outbound
+      outbound,
     );
     await miniappHost.stop();
 
-    const updateCode = await runUpdate({ cwd, args: [appName, "--version", "0.2.0"] });
+    const updateCode = await runUpdate({
+      cwd,
+      args: [appName, "--version", "0.2.0"],
+    });
     if (updateCode !== 0) {
       throw new Error("tp update failed");
     }
@@ -238,19 +284,26 @@ export async function runIosFullLoop() {
       manifest: v2Unpacked.manifest,
       packageSize: v2Archive.length,
       packageHash: v2Unpacked.packageHash,
-      resourceAvailable: true
+      resourceAvailable: true,
     });
     const v2Entry = catalog.ingest({
       destinationHash: "ios-full-loop-v2",
       appData: encodeAppAnnounceData(v2Summary),
       manifest: v2Unpacked.manifest,
-      packageHash: v2Unpacked.packageHash
+      packageHash: v2Unpacked.packageHash,
     });
     if (v2Entry === null || v2Entry.version !== "0.2.0") {
       throw new Error("catalog ingest failed for v2");
     }
 
-    await installVerifiedPackage(provider, runtime, installed, v2Entry, v2Archive, "local");
+    await installVerifiedPackage(
+      provider,
+      runtime,
+      installed,
+      v2Entry,
+      v2Archive,
+      "local",
+    );
     if (installed.activeVersion(v2Entry.appId) !== "0.2.0") {
       throw new Error("v2 not active after install");
     }
@@ -261,13 +314,15 @@ export async function runIosFullLoop() {
       runtime,
       v2Entry.appId,
       v2Unpacked.manifest.capabilities,
-      outbound
+      outbound,
     );
     await miniappHost.stop();
 
     const rolledBack = installed.rollback(v2Entry.appId);
     if (rolledBack !== v1Verified.manifest.version) {
-      throw new Error(`rollback expected ${v1Verified.manifest.version}, got ${rolledBack}`);
+      throw new Error(
+        `rollback expected ${v1Verified.manifest.version}, got ${rolledBack}`,
+      );
     }
 
     await launchAndRender(
@@ -276,12 +331,12 @@ export async function runIosFullLoop() {
       runtime,
       v2Entry.appId,
       v1Verified.manifest.capabilities,
-      outbound
+      outbound,
     );
     await miniappHost.stop();
 
     console.log(
-      `[ios-sim/full-loop] catalog ingest, install, grant, launch, update, and rollback passed for ${v1Entry.appId}`
+      `[ios-sim/full-loop] catalog ingest, install, grant, launch, update, and rollback passed for ${v1Entry.appId}`,
     );
   } finally {
     rmSync(cwd, { recursive: true, force: true });

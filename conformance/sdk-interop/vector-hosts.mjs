@@ -14,11 +14,17 @@ import {
   MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
-  createLoopbackBinding
+  createLoopbackBinding,
 } from "../../packages/miniapp-runtime/dist/index.js";
 
-export const PRESENCE = { peers: 2, onlineInterfaces: 1, preferredInterface: "auto" };
-export const RESOURCES = new Map([["offer:demo", new TextEncoder().encode("hello-resource")]]);
+export const PRESENCE = {
+  peers: 2,
+  onlineInterfaces: 1,
+  preferredInterface: "auto",
+};
+export const RESOURCES = new Map([
+  ["offer:demo", new TextEncoder().encode("hello-resource")],
+]);
 export const KV_QUOTA_BYTES = 96;
 export const BEE_QUOTA_BYTES = 128;
 
@@ -30,7 +36,7 @@ function casBackend() {
       blobs.set(id, bytes.slice());
       return { t256: id };
     },
-    get: async (_appId, id) => blobs.get(id)?.slice() ?? null
+    get: async (_appId, id) => blobs.get(id)?.slice() ?? null,
   };
 }
 
@@ -40,14 +46,14 @@ function appsBackend() {
     publish: async () => ({ published: true }),
     install: async () => ({ installed: true }),
     preview: async () => ({ launched: true }),
-    stopPreview: async () => {}
+    stopPreview: async () => {},
   };
 }
 
 const CONFIRMATION_CHANNELS = {
   approve: { confirm: async () => ({ approved: true }) },
   deny: { confirm: async () => ({ approved: false }) },
-  timeout: { confirm: async () => ({ approved: false, detail: "timeout" }) }
+  timeout: { confirm: async () => ({ approved: false, detail: "timeout" }) },
 };
 
 /**
@@ -64,7 +70,7 @@ export function createVectorHost(hostKey, bindingKind) {
     substrate = createLoopbackBinding({
       beeQuotaBytes: BEE_QUOTA_BYTES,
       presence: PRESENCE,
-      resources: RESOURCES
+      resources: RESOURCES,
     });
   } else if (bindingKind === "reference") {
     const beePath = mkdtempSync(join(tmpdir(), "sdk-vectors-bee-"));
@@ -75,19 +81,25 @@ export function createVectorHost(hostKey, bindingKind) {
       resourceBackend: {
         fetch: async (_appId, request) => {
           const bytes = RESOURCES.get(request.resourceId);
-          if (bytes === undefined) throw new Error(`Resource not found: ${request.resourceId}`);
-          if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
-            throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
+          if (bytes === undefined)
+            throw new Error(`Resource not found: ${request.resourceId}`);
+          if (
+            request.budgetBytes !== undefined &&
+            bytes.length > request.budgetBytes
+          ) {
+            throw new Error(
+              `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
+            );
           }
           return bytes;
-        }
+        },
       },
       presenceBackend: { snapshot: async () => PRESENCE },
       ready: beeBackend.ready(),
       close: async () => {
         await beeBackend.close?.();
         rmSync(beePath, { recursive: true, force: true });
-      }
+      },
     };
     cleanup = substrate.close;
   } else {
@@ -101,10 +113,14 @@ export function createVectorHost(hostKey, bindingKind) {
     beeBackend: substrate.beeBackend,
     resourceBackend: substrate.resourceBackend,
     presenceBackend: substrate.presenceBackend,
-    ...(substrate.lxmfBackend === undefined ? {} : { lxmfBackend: substrate.lxmfBackend }),
-    ...(substrate.announceService === undefined ? {} : { announceService: substrate.announceService }),
+    ...(substrate.lxmfBackend === undefined
+      ? {}
+      : { lxmfBackend: substrate.lxmfBackend }),
+    ...(substrate.announceService === undefined
+      ? {}
+      : { announceService: substrate.announceService }),
     kvQuotaBytes: KV_QUOTA_BYTES,
-    casBackend: casBackend()
+    casBackend: casBackend(),
   };
 
   if (hostKey.startsWith("apps-")) {
@@ -114,7 +130,10 @@ export function createVectorHost(hostKey, bindingKind) {
   }
   if (hostKey === "ai-configured") {
     options.aiBackend = {
-      chat: async () => ({ reply: "stubbed reply", usage: { inputTokens: 1, outputTokens: 2 } })
+      chat: async () => ({
+        reply: "stubbed reply",
+        usage: { inputTokens: 1, outputTokens: 2 },
+      }),
     };
   }
 
@@ -128,17 +147,20 @@ export function manifestFor(app) {
     version: "1.0.0",
     entry: "bundle.js",
     capabilities: app.declared,
-    publisherPublicKey: `publisher-${app.name}`
+    publisherPublicKey: `publisher-${app.name}`,
   };
 }
 
 export function expandDirectives(value) {
   if (value !== null && typeof value === "object") {
-    if (typeof value.$textBytes === "string") return new TextEncoder().encode(value.$textBytes);
-    if (typeof value.$asciiString === "number") return "x".repeat(value.$asciiString);
+    if (typeof value.$textBytes === "string")
+      return new TextEncoder().encode(value.$textBytes);
+    if (typeof value.$asciiString === "number")
+      return "x".repeat(value.$asciiString);
     if (Array.isArray(value)) return value.map(expandDirectives);
     const out = {};
-    for (const [key, item] of Object.entries(value)) out[key] = expandDirectives(item);
+    for (const [key, item] of Object.entries(value))
+      out[key] = expandDirectives(item);
     return out;
   }
   return value;
@@ -147,14 +169,18 @@ export function expandDirectives(value) {
 /** Strip timing and instance-local identifiers; encode bytes as {$bytes}. */
 export function normalizeValue(value, key = "") {
   if (value instanceof Uint8Array) {
-    return { $bytes: [...value].map((b) => b.toString(16).padStart(2, "0")).join("") };
+    return {
+      $bytes: [...value].map((b) => b.toString(16).padStart(2, "0")).join(""),
+    };
   }
   if (key === "receivedAt" || key === "seq") return 0;
-  if (typeof value === "string" && /^lxmf-\d+-[0-9a-f]+$/.test(value)) return "lxmf-<id>";
+  if (typeof value === "string" && /^lxmf-\d+-[0-9a-f]+$/.test(value))
+    return "lxmf-<id>";
   if (Array.isArray(value)) return value.map((item) => normalizeValue(item));
   if (value !== null && typeof value === "object") {
     const out = {};
-    for (const child of Object.keys(value).sort()) out[child] = normalizeValue(value[child], child);
+    for (const child of Object.keys(value).sort())
+      out[child] = normalizeValue(value[child], child);
     return out;
   }
   return value;
@@ -173,16 +199,25 @@ export async function executeStep(host, app, step) {
         id: `vector-${requestCounter}`,
         namespace: step.call.namespace,
         method: step.call.method,
-        ...(step.call.capability === undefined ? {} : { capability: step.call.capability }),
-        ...(step.call.payload === undefined ? {} : { payload: expandDirectives(step.call.payload) })
+        ...(step.call.capability === undefined
+          ? {}
+          : { capability: step.call.capability }),
+        ...(step.call.payload === undefined
+          ? {}
+          : { payload: expandDirectives(step.call.payload) }),
       },
       manifest,
-      app.granted
+      app.granted,
     );
   }
   return response;
 }
 
 export async function registerApp(host, app) {
-  await host.setGrants(app.name, `publisher-${app.name}`, app.declared, app.granted);
+  await host.setGrants(
+    app.name,
+    `publisher-${app.name}`,
+    app.declared,
+    app.granted,
+  );
 }

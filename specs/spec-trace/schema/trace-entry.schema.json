@@ -15,7 +15,9 @@
       "properties": {
         "t": { "const": "event" },
         "node": { "type": "string" },
-        "event": { "$ref": "../../spec-events/schema/events.schema.json#/$defs/event" }
+        "event": {
+          "$ref": "../../spec-events/schema/events.schema.json#/$defs/event"
+        }
       },
       "additionalProperties": false
     },
@@ -25,7 +27,9 @@
       "properties": {
         "t": { "const": "intent" },
         "node": { "type": "string" },
-        "intent": { "$ref": "../../spec-events/schema/events.schema.json#/$defs/intent" }
+        "intent": {
+          "$ref": "../../spec-events/schema/events.schema.json#/$defs/intent"
+        }
       },
       "additionalProperties": false
     },

@@ -1,6 +1,5 @@
 # Mini-app Runtime
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-21
@@ -18,24 +17,24 @@ device execution. The hardened in-worklet compartment remains as a documented fa
 stub because it cannot satisfy the M0 killability requirement for a hostile busy loop
 without restarting the full worklet.
 
-| Backend | Role | Kill busy loop without worklet restart? |
-|---|---|---|
-| `BareWorkerSandboxBackend` | Device winner | Yes (terminate worker) |
-| `NodeWorkerSandboxBackend` | Desktop CI / dev | Yes (worker thread kill) |
-| `CompartmentSandboxBackend` | Losing M0 spike stub | No — retained for documentation only |
+| Backend                     | Role                 | Kill busy loop without worklet restart? |
+| --------------------------- | -------------------- | --------------------------------------- |
+| `BareWorkerSandboxBackend`  | Device winner        | Yes (terminate worker)                  |
+| `NodeWorkerSandboxBackend`  | Desktop CI / dev     | Yes (worker thread kill)                |
+| `CompartmentSandboxBackend` | Losing M0 spike stub | No — retained for documentation only    |
 
 Desktop measurements (Node worker backend, `npm run test:miniapp-benchmark`):
 
-| Metric | Desktop CI (Node worker) |
-|---|---|
-| Spawn latency | sub-ms typical |
-| Stop/kill latency | ~3 ms typical |
-| Busy-loop kill | ~300 ms (watchdog) |
+| Metric            | Desktop CI (Node worker) |
+| ----------------- | ------------------------ |
+| Spawn latency     | sub-ms typical           |
+| Stop/kill latency | ~3 ms typical            |
+| Busy-loop kill    | ~300 ms (watchdog)       |
 
 Android emulator measurements (Bare worker backend, `npm run test:android-emulator:e5`):
 
-| Metric | Source |
-|---|---|
+| Metric                   | Source                                              |
+| ------------------------ | --------------------------------------------------- |
 | Spawn / kill / busy-loop | `conformance/android-emulator/measured-worker.json` |
 
 Physical device numbers remain hardware debt; record per [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11 when available.
@@ -44,17 +43,17 @@ Physical device numbers remain hardware debt; record per [STATUS-HARDWARE.md](..
 
 Known v1 capabilities are:
 
-| Capability | Grant-screen wording |
-|---|---|
-| `identity` | Use an app-scoped identity for signing and addressing. |
-| `presence` | Read coarse peer and interface presence. |
-| `announce:subscribe` | Receive announces in the app namespace. |
-| `announce:publish` | Publish the app destination. |
-| `lxmf:send` | Send LXMF messages from the app destination. |
-| `lxmf:receive` | Receive LXMF messages for the app destination. |
-| `storage:kv` | Store local key/value data for this app. |
-| `storage:hyperbee` | Store ordered local Hyperbee data for this app. |
-| `resource:fetch` | Fetch package resources through host budget rules. |
+| Capability           | Grant-screen wording                                   |
+| -------------------- | ------------------------------------------------------ |
+| `identity`           | Use an app-scoped identity for signing and addressing. |
+| `presence`           | Read coarse peer and interface presence.               |
+| `announce:subscribe` | Receive announces in the app namespace.                |
+| `announce:publish`   | Publish the app destination.                           |
+| `lxmf:send`          | Send LXMF messages from the app destination.           |
+| `lxmf:receive`       | Receive LXMF messages for the app destination.         |
+| `storage:kv`         | Store local key/value data for this app.               |
+| `storage:hyperbee`   | Store ordered local Hyperbee data for this app.        |
+| `resource:fetch`     | Fetch package resources through host budget rules.     |
 
 Host API `0.2.0` adds the dev-environment capabilities `workspace`, `ai:chat`,
 `apps:package`, `apps:publish`, `apps:install`, `apps:preview`, and `share:cas`
@@ -107,17 +106,17 @@ Failures are typed and catchable by SDK callers.
 
 Default enforcement limits (configurable per host):
 
-| Limit | Default |
-|---|---|
-| Broker message size | 256 KiB |
-| Broker messages per second | 60 per app |
-| Widget tree nodes | 5,000 |
-| Widget tree depth | 32 |
-| Widget tree message size | 256 KiB |
-| KV quota per app | host-configured (counts in Phase 3 storage view) |
-| Hyperbee quota per app | shared pool with KV; history counts |
-| Workspace files per app | 256 KiB/file, 4 MiB total, 512 files |
-| AI chat | 1 in-flight request/app; ≤ 64 messages; `maxTokens` clamped to 8,192 |
+| Limit                      | Default                                                              |
+| -------------------------- | -------------------------------------------------------------------- |
+| Broker message size        | 256 KiB                                                              |
+| Broker messages per second | 60 per app                                                           |
+| Widget tree nodes          | 5,000                                                                |
+| Widget tree depth          | 32                                                                   |
+| Widget tree message size   | 256 KiB                                                              |
+| KV quota per app           | host-configured (counts in Phase 3 storage view)                     |
+| Hyperbee quota per app     | shared pool with KV; history counts                                  |
+| Workspace files per app    | 256 KiB/file, 4 MiB total, 512 files                                 |
+| AI chat                    | 1 in-flight request/app; ≤ 64 messages; `maxTokens` clamped to 8,192 |
 
 **Dynamic resource limits.** Hosts can adjust limits per app before or while it runs
 via `MiniappHost.setResourceLimits(appId, { maxMessagesPerSecond?, kvQuotaBytes?,
@@ -155,7 +154,7 @@ the same rate/size enforcement as every broker call.
 
 **Trust assumptions:**
 
-- Package signatures authenticate the *publisher*, not behavior.
+- Package signatures authenticate the _publisher_, not behavior.
 - Users grant capabilities at install; revocation takes effect on the next broker call.
 - Mini-app code is treated as hostile input.
 

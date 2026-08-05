@@ -5,7 +5,11 @@
 import { SimKernel } from "../../packages/effects/dist/adapters/sim/index.js";
 import { runKernelConformance } from "./runner.mjs";
 import { MiniKernel } from "./mini-kernel.mjs";
-import { MISORDERINGS, TARGET_FIXTURE, misorderedKernelFactory } from "./misordered.mjs";
+import {
+  MISORDERINGS,
+  TARGET_FIXTURE,
+  misorderedKernelFactory,
+} from "./misordered.mjs";
 
 let failed = false;
 
@@ -21,8 +25,14 @@ function report(label, result) {
   }
 }
 
-report("SimKernel (reference)", runKernelConformance((config) => new SimKernel(config)));
-report("MiniKernel (independent)", runKernelConformance((config) => new MiniKernel(config)));
+report(
+  "SimKernel (reference)",
+  runKernelConformance((config) => new SimKernel(config)),
+);
+report(
+  "MiniKernel (independent)",
+  runKernelConformance((config) => new MiniKernel(config)),
+);
 
 for (const name of Object.keys(MISORDERINGS)) {
   const result = runKernelConformance(misorderedKernelFactory(name));

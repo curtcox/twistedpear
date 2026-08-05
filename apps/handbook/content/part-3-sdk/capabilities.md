@@ -1,6 +1,5 @@
 # Capability model
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -16,11 +15,7 @@ the Handbook, they become `not-granted` teaching cards.
 
 ```json
 {
-  "capabilities": [
-    "identity",
-    "storage:kv",
-    "workspace"
-  ]
+  "capabilities": ["identity", "storage:kv", "workspace"]
 }
 ```
 
@@ -31,11 +26,11 @@ generated at build time: [Capabilities](chapter:ref-capabilities).
 
 The runtime throws `CapabilityError` with a stable `code`:
 
-| Code | Meaning |
-|---|---|
-| `UNKNOWN_CAPABILITY` | Manifest names a capability the host does not recognize |
-| `UNDECLARED_CAPABILITY` | Code calls a capability not listed in the manifest |
-| `CAPABILITY_DENIED` | Manifest lists it but the user withheld the grant |
+| Code                    | Meaning                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `UNKNOWN_CAPABILITY`    | Manifest names a capability the host does not recognize |
+| `UNDECLARED_CAPABILITY` | Code calls a capability not listed in the manifest      |
+| `CAPABILITY_DENIED`     | Manifest lists it but the user withheld the grant       |
 
 ```javascript
 import { identity } from "@twistedpear/miniapp-sdk";

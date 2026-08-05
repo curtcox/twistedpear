@@ -25,11 +25,11 @@ flag. The packet-interface base enforces both direction gates and counts encoded
 accepted and written. Defaults leave relay mode `off` and physical/push interfaces
 disabled.
 
-| New kind | Live implementation | Reference |
-|---|---|---|
-| `optical` | HDLC plus sequenced systematic frames and one-frame XOR erasure recovery; host-owned display/camera channel | [Optical interface](optical-interface.md) |
-| `acoustic` | HDLC plus TPA1 session/chunk parity and three-way bit-majority FEC; host-owned audio-modem channel | [Acoustic interface](acoustic-interface.md) |
-| `ntfy` | XChaCha20-Poly1305 packet envelope over HTTP publish and NDJSON polling | [ntfy interface](ntfy-interface.md) |
+| New kind   | Live implementation                                                                                         | Reference                                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `optical`  | HDLC plus sequenced systematic frames and one-frame XOR erasure recovery; host-owned display/camera channel | [Optical interface](optical-interface.md)   |
+| `acoustic` | HDLC plus TPA1 session/chunk parity and three-way bit-majority FEC; host-owned audio-modem channel          | [Acoustic interface](acoustic-interface.md) |
+| `ntfy`     | XChaCha20-Poly1305 packet envelope over HTTP publish and NDJSON polling                                     | [ntfy interface](ntfy-interface.md)         |
 
 Outbound priorities and conservative bitrate defaults are in
 [`policy.ts`](../packages/reticulum-interfaces/src/policy.ts).

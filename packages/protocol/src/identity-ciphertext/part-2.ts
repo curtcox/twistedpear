@@ -17,8 +17,16 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { identityDecryptOutcomePlanFromActions, planIdentityDecryptOutcome } from "./part-1.js";
-import type { IdentityDecryptEvent, IdentityDecryptOutcomePlanAction, IdentityDecryptOutcomePlanEvent, IdentityDecryptPlan } from "./part-1.js";
+import {
+  identityDecryptOutcomePlanFromActions,
+  planIdentityDecryptOutcome,
+} from "./part-1.js";
+import type {
+  IdentityDecryptEvent,
+  IdentityDecryptOutcomePlanAction,
+  IdentityDecryptOutcomePlanEvent,
+  IdentityDecryptPlan,
+} from "./part-1.js";
 /**
  * Identity-decrypt-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planIdentityDecryptOutcome`
@@ -39,7 +47,7 @@ export function initialIdentityDecryptOutcomePlanState(): IdentityDecryptOutcome
 
 export function stepIdentityDecryptOutcomePlanWithActions(
   state: IdentityDecryptOutcomePlanState,
-  event: IdentityDecryptOutcomePlanEvent
+  event: IdentityDecryptOutcomePlanEvent,
 ): IdentityDecryptOutcomePlanStepResult {
   if (event.kind === "identity/decrypt-outcome-plan-gate") {
     return {
@@ -52,10 +60,10 @@ export function stepIdentityDecryptOutcomePlanWithActions(
             ratchetPlaintextPresent: event.ratchetPlaintextPresent,
             enforceRatchets: event.enforceRatchets,
             identityFallbackDone: event.identityFallbackDone,
-            identityPlaintextPresent: event.identityPlaintextPresent
-          })
-        }
-      ]
+            identityPlaintextPresent: event.identityPlaintextPresent,
+          }),
+        },
+      ],
     };
   }
 
@@ -63,31 +71,31 @@ export function stepIdentityDecryptOutcomePlanWithActions(
 }
 
 export function shouldRejectIdentityDecryptOutcomePlanFrame(
-  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-frame");
 }
 
 export function shouldAcceptIdentityDecryptOutcomePlan(
-  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectIdentityDecryptOutcomePlanEnforced(
-  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-enforced");
 }
 
 export function shouldTryIdentityDecryptOutcomePlan(
-  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "try-identity");
 }
 
 export function shouldRejectIdentityDecryptOutcomePlan(
-  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -117,51 +125,54 @@ export function initialIdentityDecryptState(): IdentityDecryptState {
   return {};
 }
 
-export const stepIdentityDecrypt: StepFn<IdentityDecryptState> = (state, event) => {
+export const stepIdentityDecrypt: StepFn<IdentityDecryptState> = (
+  state,
+  event,
+) => {
   const result = stepIdentityDecryptInner(state, event as IdentityDecryptEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepIdentityDecryptWithActions(
   state: IdentityDecryptState,
-  event: IdentityDecryptEvent
+  event: IdentityDecryptEvent,
 ): IdentityDecryptStepResult {
   return stepIdentityDecryptInner(state, event);
 }
 
 export function shouldRejectIdentityDecryptFrame(
-  actions: ReadonlyArray<IdentityDecryptAction>
+  actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-frame");
 }
 
 export function shouldRejectIdentityDecryptEnforced(
-  actions: ReadonlyArray<IdentityDecryptAction>
+  actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-enforced");
 }
 
 export function shouldAcceptIdentityDecrypt(
-  actions: ReadonlyArray<IdentityDecryptAction>
+  actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldTryIdentityDecrypt(
-  actions: ReadonlyArray<IdentityDecryptAction>
+  actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "try-identity");
 }
 
 export function shouldRejectIdentityDecrypt(
-  actions: ReadonlyArray<IdentityDecryptAction>
+  actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 function stepIdentityDecryptInner(
   state: IdentityDecryptState,
-  event: IdentityDecryptEvent
+  event: IdentityDecryptEvent,
 ): IdentityDecryptStepResult {
   if (event.kind === "identity/decrypt-gate") {
     const planActions = stepIdentityDecryptOutcomePlanWithActions(
@@ -172,8 +183,8 @@ function stepIdentityDecryptInner(
         ratchetPlaintextPresent: event.ratchetPlaintextPresent,
         enforceRatchets: event.enforceRatchets,
         identityFallbackDone: event.identityFallbackDone,
-        identityPlaintextPresent: event.identityPlaintextPresent
-      }
+        identityPlaintextPresent: event.identityPlaintextPresent,
+      },
     ).actions;
     const plan = identityDecryptOutcomePlanFromActions(planActions);
     if (plan === null) {
@@ -234,7 +245,7 @@ export function initialIdentityRecallPlanState(): IdentityRecallPlanState {
 
 export function stepIdentityRecallPlanWithActions(
   state: IdentityRecallPlanState,
-  event: IdentityRecallPlanEvent
+  event: IdentityRecallPlanEvent,
 ): IdentityRecallPlanStepResult {
   if (event.kind === "identity/recall-plan-gate") {
     return {
@@ -244,10 +255,10 @@ export function stepIdentityRecallPlanWithActions(
         {
           kind: planIdentityRecall({
             recordPresent: event.recordPresent,
-            publicKeyLoaded: event.publicKeyLoaded
-          })
-        }
-      ]
+            publicKeyLoaded: event.publicKeyLoaded,
+          }),
+        },
+      ],
     };
   }
 
@@ -256,29 +267,31 @@ export function stepIdentityRecallPlanWithActions(
 
 /** Extract the recall plan from actions; null when empty. */
 export function identityRecallPlanFromActions(
-  actions: ReadonlyArray<IdentityRecallPlanAction>
+  actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): IdentityRecallPlan | null {
   const action = actions.find(
     (entry) =>
-      entry.kind === "miss" || entry.kind === "reject-key" || entry.kind === "hit"
+      entry.kind === "miss" ||
+      entry.kind === "reject-key" ||
+      entry.kind === "hit",
   );
   return action?.kind ?? null;
 }
 
 export function shouldMissIdentityRecallPlan(
-  actions: ReadonlyArray<IdentityRecallPlanAction>
+  actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 export function shouldRejectIdentityRecallPlanKey(
-  actions: ReadonlyArray<IdentityRecallPlanAction>
+  actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-key");
 }
 
 export function shouldHitIdentityRecallPlan(
-  actions: ReadonlyArray<IdentityRecallPlanAction>
+  actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "hit");
 }
@@ -316,46 +329,52 @@ export function initialIdentityRecallState(): IdentityRecallState {
   return {};
 }
 
-export const stepIdentityRecall: StepFn<IdentityRecallState> = (state, event) => {
+export const stepIdentityRecall: StepFn<IdentityRecallState> = (
+  state,
+  event,
+) => {
   const result = stepIdentityRecallInner(state, event as IdentityRecallEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepIdentityRecallWithActions(
   state: IdentityRecallState,
-  event: IdentityRecallEvent
+  event: IdentityRecallEvent,
 ): IdentityRecallStepResult {
   return stepIdentityRecallInner(state, event);
 }
 
 export function shouldHitIdentityRecall(
-  actions: ReadonlyArray<IdentityRecallAction>
+  actions: ReadonlyArray<IdentityRecallAction>,
 ): boolean {
   return actions.some((action) => action.kind === "hit");
 }
 
 export function shouldMissIdentityRecall(
-  actions: ReadonlyArray<IdentityRecallAction>
+  actions: ReadonlyArray<IdentityRecallAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 export function shouldRejectIdentityRecallKey(
-  actions: ReadonlyArray<IdentityRecallAction>
+  actions: ReadonlyArray<IdentityRecallAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-key");
 }
 
 function stepIdentityRecallInner(
   state: IdentityRecallState,
-  event: IdentityRecallEvent
+  event: IdentityRecallEvent,
 ): IdentityRecallStepResult {
   if (event.kind === "identity/recall-gate") {
-    const planActions = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
-      kind: "identity/recall-plan-gate",
-      recordPresent: event.recordPresent,
-      publicKeyLoaded: event.publicKeyLoaded
-    }).actions;
+    const planActions = stepIdentityRecallPlanWithActions(
+      initialIdentityRecallPlanState(),
+      {
+        kind: "identity/recall-plan-gate",
+        recordPresent: event.recordPresent,
+        publicKeyLoaded: event.publicKeyLoaded,
+      },
+    ).actions;
     const plan = identityRecallPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };
@@ -387,13 +406,17 @@ export type IdentityRecallAppDataPlanEvent =
       readonly appDataPresent: boolean;
     };
 
-export type IdentityRecallAppDataPlanAction = { readonly kind: IdentityRecallAppDataPlan };
+export type IdentityRecallAppDataPlanAction = {
+  readonly kind: IdentityRecallAppDataPlan;
+};
 
 /** Extract the recall-app-data plan from actions; null when empty. */
 export function identityRecallAppDataPlanFromActions(
-  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>
+  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>,
 ): IdentityRecallAppDataPlan | null {
-  const action = actions.find((entry) => entry.kind === "hit" || entry.kind === "miss");
+  const action = actions.find(
+    (entry) => entry.kind === "hit" || entry.kind === "miss",
+  );
   return action?.kind ?? null;
 }
 

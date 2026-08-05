@@ -18,12 +18,16 @@ import {
   coverageFrame,
   createMediaLadderScenario,
   mediaLadderHistory,
-  runCampaign
+  runCampaign,
 } from "../../packages/sim-campaign/dist/index.js";
 
 const PROFILES = ["collapse-recover", "asymmetric", "bufferbloat", "flapping"];
 const TRANSPORTS = ["lan", "internet", "ble", "lora"];
-const cells = coverageFrame({ capabilities: ["device:stream"], positions: ["malicious-peer"], verbs: ["deny"] });
+const cells = coverageFrame({
+  capabilities: ["device:stream"],
+  positions: ["malicious-peer"],
+  verbs: ["deny"],
+});
 const [cell] = cells;
 
 function fail(message) {
@@ -44,34 +48,47 @@ for (const transport of TRANSPORTS) {
     const report = await runCampaign({
       cells: [cell],
       seeds: { from: 1, to: 4 },
-      scenario: () => createMediaLadderScenario({ transport, profile })
+      scenario: () => createMediaLadderScenario({ transport, profile }),
     });
     if (report.findings.length > 0) {
-      fail(`${transport}/${profile}: ${report.findings.map((finding) => finding.violation.message).join("; ")}`);
+      fail(
+        `${transport}/${profile}: ${report.findings.map((finding) => finding.violation.message).join("; ")}`,
+      );
     }
 
     const history = historyFor(transport, profile);
-    if (history.length === 0) fail(`${transport}/${profile}: the call produced no ladder samples`);
+    if (history.length === 0)
+      fail(`${transport}/${profile}: the call produced no ladder samples`);
     const first = history[0];
-    const worst = history.reduce((left, right) => (right.rungIndex > left.rungIndex ? right : left));
+    const worst = history.reduce((left, right) =>
+      right.rungIndex > left.rungIndex ? right : left,
+    );
     const last = history[history.length - 1];
     let upshifts = 0;
     let downshifts = 0;
     for (let index = 1; index < history.length; index += 1) {
-      if (history[index].rungIndex < history[index - 1].rungIndex) upshifts += 1;
-      if (history[index].rungIndex > history[index - 1].rungIndex) downshifts += 1;
+      if (history[index].rungIndex < history[index - 1].rungIndex)
+        upshifts += 1;
+      if (history[index].rungIndex > history[index - 1].rungIndex)
+        downshifts += 1;
     }
 
-    if (downshifts === 0) fail(`${transport}/${profile}: the ladder never degraded`);
+    if (downshifts === 0)
+      fail(`${transport}/${profile}: the ladder never degraded`);
     if (profile === "collapse-recover" && last.rungIndex >= worst.rungIndex) {
-      fail(`${transport}/${profile}: the call stayed at ${last.rung} after the link recovered`);
+      fail(
+        `${transport}/${profile}: the call stayed at ${last.rung} after the link recovered`,
+      );
     }
     if (profile === "asymmetric") {
       const tail = history.slice(-8).map((sample) => sample.rungIndex);
-      if (new Set(tail).size !== 1) fail(`${transport}/${profile}: the ladder hunted instead of settling`);
+      if (new Set(tail).size !== 1)
+        fail(`${transport}/${profile}: the ladder hunted instead of settling`);
     }
     if (profile === "flapping" && upshifts > 0) {
-      fail(`${transport}/${profile}: upshifted ${upshifts} time(s) inside the hysteresis window`);
+      fail(
+        `${transport}/${profile}: upshifted ${upshifts} time(s) inside the hysteresis window`,
+      );
     }
 
     runs.push({
@@ -84,18 +101,20 @@ for (const transport of TRANSPORTS) {
       endRung: last.rung,
       downshifts,
       upshifts,
-      recovered: last.rungIndex < worst.rungIndex
+      recovered: last.rungIndex < worst.rungIndex,
     });
     console.log(
-      `${transport}/${profile}: ${first.rung} → ${worst.rung} → ${last.rung} (${downshifts} down, ${upshifts} up)`
+      `${transport}/${profile}: ${first.rung} → ${worst.rung} → ${last.rung} (${downshifts} down, ${upshifts} up)`,
     );
   }
 }
 
-const destination = resolve(process.argv[2] ?? "conformance/sim-campaign/artifacts/media-ladder.json");
+const destination = resolve(
+  process.argv[2] ?? "conformance/sim-campaign/artifacts/media-ladder.json",
+);
 mkdirSync(dirname(destination), { recursive: true });
 writeFileSync(
   destination,
-  `${JSON.stringify({ schema: "twistedpear.media-ladder-v1", generatedAt: new Date().toISOString(), runs }, null, 2)}\n`
+  `${JSON.stringify({ schema: "twistedpear.media-ladder-v1", generatedAt: new Date().toISOString(), runs }, null, 2)}\n`,
 );
 console.log(`sim media ladder: ${runs.length} profile runs -> ${destination}`);

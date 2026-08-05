@@ -3,7 +3,7 @@ import {
   initialRemoteGrantStore,
   isRemoteGrantLive,
   remoteGrantKey,
-  stepRemoteGrantStore
+  stepRemoteGrantStore,
 } from "../src/index.js";
 
 describe("remote device grant store", () => {
@@ -15,7 +15,7 @@ describe("remote device grant store", () => {
       peerId: "peer-a",
       classId: "camera",
       tierId: "derived",
-      ttlMs: 100
+      ttlMs: 100,
     });
     const key = remoteGrantKey("peer-a", "camera", "derived");
     expect(isRemoteGrantLive(store.get(key), 50)).toBe(true);
@@ -25,7 +25,7 @@ describe("remote device grant store", () => {
       at: 100,
       peerId: "peer-a",
       classId: "camera",
-      tierId: "derived"
+      tierId: "derived",
     });
     expect(isRemoteGrantLive(store.get(key), 100)).toBe(false);
     expect(store.get(key)?.phase).toBe("expired");
@@ -36,7 +36,7 @@ describe("remote device grant store", () => {
       peerId: "peer-a",
       classId: "camera",
       tierId: "derived",
-      ttlMs: 100
+      ttlMs: 100,
     });
     store = stepRemoteGrantStore(store, { kind: "remote/clear-all", at: 201 });
     expect(store.size).toBe(0);
@@ -50,17 +50,20 @@ describe("remote device grant store", () => {
       peerId: "peer-b",
       classId: "location",
       tierId: "coarse",
-      ttlMs: 10_000
+      ttlMs: 10_000,
     });
     store = stepRemoteGrantStore(store, {
       kind: "remote/revoke",
       at: 5,
       peerId: "peer-b",
       classId: "location",
-      tierId: "coarse"
+      tierId: "coarse",
     });
-    expect(isRemoteGrantLive(store.get(remoteGrantKey("peer-b", "location", "coarse")), 6)).toBe(
-      false
-    );
+    expect(
+      isRemoteGrantLive(
+        store.get(remoteGrantKey("peer-b", "location", "coarse")),
+        6,
+      ),
+    ).toBe(false);
   });
 });

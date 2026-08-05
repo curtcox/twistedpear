@@ -15,7 +15,7 @@ import {
   dataDirFor,
   logPath,
   processAlive,
-  repoRoot
+  repoRoot,
 } from "../state.mjs";
 
 const TP_BIN = join(repoRoot, "packages/cli/dist/bin/tp.js");
@@ -31,18 +31,30 @@ function hostConfigFor(id, isHub) {
     ...(isHub ? { relay: { mode: "transport-node" } } : {}),
     interfaces: {
       tcp: isHub
-        ? { enabled: true, mode: "server", listenPort: HUB_PORT, direction: "both", relay: true }
+        ? {
+            enabled: true,
+            mode: "server",
+            listenPort: HUB_PORT,
+            direction: "both",
+            relay: true,
+          }
         : {
             enabled: true,
             mode: "client",
             targetHost: "127.0.0.1",
             targetPort: HUB_PORT,
             direction: "both",
-            relay: true
+            relay: true,
           },
       // Loopback multicast cannot reach a sibling process; keep the noise off.
-      auto: { enabled: false, multicast: false, bonjour: false, direction: "both", relay: true }
-    }
+      auto: {
+        enabled: false,
+        multicast: false,
+        bonjour: false,
+        direction: "both",
+        relay: true,
+      },
+    },
   };
 }
 
@@ -63,7 +75,7 @@ export function makeNodeAdapter({ id, isHub, statusPort }) {
       mkdirSync(dataDir, { recursive: true });
       writeFileSync(
         join(dataDir, "config.json"),
-        `${JSON.stringify(hostConfigFor(id, isHub), null, 2)}\n`
+        `${JSON.stringify(hostConfigFor(id, isHub), null, 2)}\n`,
       );
 
       const out = openSync(logPath(id), "a");
@@ -81,14 +93,14 @@ export function makeNodeAdapter({ id, isHub, statusPort }) {
           `127.0.0.1:${CONTROL_PORT}:${id}`,
           ...(isHub
             ? ["--ws-listen", `127.0.0.1:${WEB_GATEWAY_PORT}`, "--serve-web"]
-            : [])
+            : []),
         ],
         {
           cwd: repoRoot,
           detached: true,
           stdio: ["ignore", out, out],
-          env: { ...process.env, TP_IDENTITY_PASSPHRASE: PASSPHRASE }
-        }
+          env: { ...process.env, TP_IDENTITY_PASSPHRASE: PASSPHRASE },
+        },
       );
       child.unref();
       log(`${id}: tp node pid ${child.pid}`);
@@ -98,7 +110,9 @@ export function makeNodeAdapter({ id, isHub, statusPort }) {
         pid: child.pid,
         dataDir,
         statusPort,
-        ...(isHub ? { hubPort: HUB_PORT, webGatewayPort: WEB_GATEWAY_PORT } : {})
+        ...(isHub
+          ? { hubPort: HUB_PORT, webGatewayPort: WEB_GATEWAY_PORT }
+          : {}),
       };
     },
 
@@ -126,6 +140,6 @@ export function makeNodeAdapter({ id, isHub, statusPort }) {
       log(`${id}: killed`);
     },
 
-    running: (entry) => processAlive(entry?.pid)
+    running: (entry) => processAlive(entry?.pid),
   };
 }

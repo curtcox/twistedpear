@@ -1,6 +1,5 @@
 # SPEC-AUTHORITY — Escrow and recovery-quorum authority machines
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -41,14 +40,14 @@ screens render ([SPEC-CHROME](../spec-chrome/spec.md)).
 
 ### Events and edges
 
-| From | Event class | To | Guard / effect |
-|---|---|---|---|
-| pending | `deposit` | funded | only if `amount > 0`; records `amount` |
-| funded | `request-release` | release-requested | — |
-| release-requested | `quorum-authorize` | released | only if distinct `authorizers` ≥ `quorum`; records sorted distinct authorizers, sets `releasedAmount = amount` |
-| funded | `refund` | refunded | — |
-| funded | `ttl` | expired | — |
-| release-requested | `ttl` | expired | — |
+| From              | Event class        | To                | Guard / effect                                                                                                 |
+| ----------------- | ------------------ | ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| pending           | `deposit`          | funded            | only if `amount > 0`; records `amount`                                                                         |
+| funded            | `request-release`  | release-requested | —                                                                                                              |
+| release-requested | `quorum-authorize` | released          | only if distinct `authorizers` ≥ `quorum`; records sorted distinct authorizers, sets `releasedAmount = amount` |
+| funded            | `refund`           | refunded          | —                                                                                                              |
+| funded            | `ttl`              | expired           | —                                                                                                              |
+| release-requested | `ttl`              | expired           | —                                                                                                              |
 
 ### Properties (model-checked)
 
@@ -70,13 +69,13 @@ form of the safety properties (including `releasedAmount <= amount`).
 
 ### Events and edges
 
-| From | Event class | To | Guard / effect |
-|---|---|---|---|
-| idle | `start` | collecting | — |
-| collecting | `share` | collecting | only if `guardian` is non-empty; adds guardian to the sorted distinct share set |
-| collecting | `threshold-authorize` | recovered | only if distinct shares ≥ `threshold`; records `recoveredWith = shares` |
-| collecting | `reject` | rejected | — |
-| collecting | `ttl` | expired | — |
+| From       | Event class           | To         | Guard / effect                                                                  |
+| ---------- | --------------------- | ---------- | ------------------------------------------------------------------------------- |
+| idle       | `start`               | collecting | —                                                                               |
+| collecting | `share`               | collecting | only if `guardian` is non-empty; adds guardian to the sorted distinct share set |
+| collecting | `threshold-authorize` | recovered  | only if distinct shares ≥ `threshold`; records `recoveredWith = shares`         |
+| collecting | `reject`              | rejected   | —                                                                               |
+| collecting | `ttl`                 | expired    | —                                                                               |
 
 ### Properties (model-checked)
 
@@ -90,12 +89,12 @@ The executable table exposes `recoveryQuorumSafetyViolation` as the runtime orac
 
 ## Normative artifacts
 
-| Representation | Escrow | Recovery quorum |
-|---|---|---|
-| TLA+ model (Layer-2 twin) | [model/escrow.tla](model/escrow.tla) + [escrow.cfg](model/escrow.cfg) | [model/recovery_quorum.tla](model/recovery_quorum.tla) + [recovery-quorum.cfg](model/recovery-quorum.cfg) |
-| Checked traces | [model/escrow-conformance-traces.json](model/escrow-conformance-traces.json) | [model/recovery-quorum-conformance-traces.json](model/recovery-quorum-conformance-traces.json) |
-| Executable table | `escrowMachine` in [packages/protocol/src/escrow.ts](../../packages/protocol/src/escrow.ts) | `recoveryQuorumMachine` in [packages/protocol/src/recovery-quorum.ts](../../packages/protocol/src/recovery-quorum.ts) |
-| Layer-3 vector | [conformance/vectors/escrow.json](../../conformance/vectors/escrow.json) | [conformance/vectors/recovery-quorum.json](../../conformance/vectors/recovery-quorum.json) |
+| Representation            | Escrow                                                                                      | Recovery quorum                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| TLA+ model (Layer-2 twin) | [model/escrow.tla](model/escrow.tla) + [escrow.cfg](model/escrow.cfg)                       | [model/recovery_quorum.tla](model/recovery_quorum.tla) + [recovery-quorum.cfg](model/recovery-quorum.cfg)             |
+| Checked traces            | [model/escrow-conformance-traces.json](model/escrow-conformance-traces.json)                | [model/recovery-quorum-conformance-traces.json](model/recovery-quorum-conformance-traces.json)                        |
+| Executable table          | `escrowMachine` in [packages/protocol/src/escrow.ts](../../packages/protocol/src/escrow.ts) | `recoveryQuorumMachine` in [packages/protocol/src/recovery-quorum.ts](../../packages/protocol/src/recovery-quorum.ts) |
+| Layer-3 vector            | [conformance/vectors/escrow.json](../../conformance/vectors/escrow.json)                    | [conformance/vectors/recovery-quorum.json](../../conformance/vectors/recovery-quorum.json)                            |
 
 As in SPEC-CAP, the TLA+ models abstract guards and reducers (they model the edge
 relation, with the quorum/threshold guards modeled explicitly); the executable tables

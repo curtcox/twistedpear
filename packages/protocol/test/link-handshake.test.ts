@@ -5,7 +5,7 @@ import {
   LinkHandshakePhase,
   deriveSimSessionKey,
   initialLinkHandshakeState,
-  stepLinkHandshakeWithActions
+  stepLinkHandshakeWithActions,
 } from "../src/link-handshake.js";
 
 describe("protocol link handshake", () => {
@@ -13,20 +13,28 @@ describe("protocol link handshake", () => {
     const a = new Uint8Array(LINK_HANDSHAKE_KEY_SIZE).map((_, i) => i + 1);
     const b = new Uint8Array(LINK_HANDSHAKE_KEY_SIZE).map((_, i) => 100 - i);
     const linkId = new Uint8Array([9, 8, 7, 6]);
-    expect([...deriveSimSessionKey(a, b, linkId)]).toEqual([...deriveSimSessionKey(b, a, linkId)]);
+    expect([...deriveSimSessionKey(a, b, linkId)]).toEqual([
+      ...deriveSimSessionKey(b, a, linkId),
+    ]);
   });
 
   it("establishes from injected entropy via RNS HKDF", () => {
     const entropy = new Xoshiro128StarStar(0xabc);
     const linkId = new Uint8Array([1, 2, 3, 4]);
-    let initiator = initialLinkHandshakeState({ role: "initiator", peerId: "b" });
-    let responder = initialLinkHandshakeState({ role: "responder", peerId: "a" });
+    let initiator = initialLinkHandshakeState({
+      role: "initiator",
+      peerId: "b",
+    });
+    let responder = initialLinkHandshakeState({
+      role: "responder",
+      peerId: "a",
+    });
 
     const beginA = stepLinkHandshakeWithActions(initiator, {
       kind: "handshake/begin",
       at: 0,
       entropy: entropy.randomBytes(LINK_HANDSHAKE_KEY_SIZE),
-      linkId
+      linkId,
     });
     initiator = beginA.state;
     expect(beginA.actions[0]?.kind).toBe("send-material");
@@ -35,19 +43,19 @@ describe("protocol link handshake", () => {
       kind: "handshake/begin",
       at: 0,
       entropy: entropy.randomBytes(LINK_HANDSHAKE_KEY_SIZE),
-      linkId
+      linkId,
     });
     responder = beginB.state;
 
     initiator = stepLinkHandshakeWithActions(initiator, {
       kind: "handshake/peer-material",
       material: beginB.actions[0]!.material,
-      linkId
+      linkId,
     }).state;
     responder = stepLinkHandshakeWithActions(responder, {
       kind: "handshake/peer-material",
       material: beginA.actions[0]!.material,
-      linkId
+      linkId,
     }).state;
 
     expect(initiator.phase).toBe(LinkHandshakePhase.ESTABLISHED);
@@ -61,7 +69,7 @@ describe("protocol link handshake", () => {
     const linkId = new Uint8Array([9, 9, 9, 9]);
     const state = stepLinkHandshakeWithActions(
       initialLinkHandshakeState({ role: "initiator", peerId: "b" }),
-      { kind: "handshake/shared-secret", sharedSecret: shared, linkId }
+      { kind: "handshake/shared-secret", sharedSecret: shared, linkId },
     ).state;
     expect(state.phase).toBe(LinkHandshakePhase.ESTABLISHED);
     expect(state.sessionKey).toHaveLength(64);
@@ -79,23 +87,23 @@ describe("protocol link handshake", () => {
         kind: "handshake/begin",
         at: 1,
         entropy: ea,
-        linkId
+        linkId,
       });
       const beginB = stepLinkHandshakeWithActions(b, {
         kind: "handshake/begin",
         at: 1,
         entropy: eb,
-        linkId
+        linkId,
       });
       a = stepLinkHandshakeWithActions(beginA.state, {
         kind: "handshake/peer-material",
         material: beginB.actions[0]!.material,
-        linkId
+        linkId,
       }).state;
       b = stepLinkHandshakeWithActions(beginB.state, {
         kind: "handshake/peer-material",
         material: beginA.actions[0]!.material,
-        linkId
+        linkId,
       }).state;
       return [...a.sessionKey!, ...b.sessionKey!];
     };

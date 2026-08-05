@@ -1,6 +1,10 @@
 import Corestore from "corestore";
 import Hyperbee from "hyperbee";
-import type { StorageBeeBackend, StorageBeeEntry, StorageBeeListOptions } from "./storage-bee.js";
+import type {
+  StorageBeeBackend,
+  StorageBeeEntry,
+  StorageBeeListOptions,
+} from "./storage-bee.js";
 import { StorageBeeQuotaError, storageBeeDescriptor } from "./storage-bee.js";
 
 interface OpenBee {
@@ -13,7 +17,7 @@ export class CorestoreBeeBackend implements StorageBeeBackend {
 
   constructor(
     private readonly storagePath: string,
-    private readonly quotaBytes = 1024 * 1024
+    private readonly quotaBytes = 1024 * 1024,
   ) {
     this.store = new Corestore(storagePath);
   }
@@ -43,7 +47,8 @@ export class CorestoreBeeBackend implements StorageBeeBackend {
   async put(appId: string, key: string, value: Uint8Array): Promise<void> {
     const current = await this.get(appId, key);
     const currentLen = current?.length ?? 0;
-    const projected = (await this.estimateUsage(appId)) - currentLen + value.length;
+    const projected =
+      (await this.estimateUsage(appId)) - currentLen + value.length;
     if (projected > this.quotaBytes) {
       throw new StorageBeeQuotaError(`Hyperbee quota exceeded for ${appId}`);
     }
@@ -57,7 +62,10 @@ export class CorestoreBeeBackend implements StorageBeeBackend {
     await bee.del(key);
   }
 
-  async list(appId: string, options: StorageBeeListOptions = {}): Promise<ReadonlyArray<StorageBeeEntry>> {
+  async list(
+    appId: string,
+    options: StorageBeeListOptions = {},
+  ): Promise<ReadonlyArray<StorageBeeEntry>> {
     const bee = await this.openBee(appId);
     const entries: StorageBeeEntry[] = [];
     const streamOptions: { gte?: string; lt?: string } = {};
@@ -73,7 +81,7 @@ export class CorestoreBeeBackend implements StorageBeeBackend {
       entries.push({
         key: String(node.key),
         value: Uint8Array.from(node.value),
-        seq: node.seq
+        seq: node.seq,
       });
       if (options.limit !== undefined && entries.length >= options.limit) {
         break;
@@ -89,7 +97,9 @@ export class CorestoreBeeBackend implements StorageBeeBackend {
       return existing.bee;
     }
 
-    const core = this.store.get({ name: storageBeeDescriptor(appId).namespace });
+    const core = this.store.get({
+      name: storageBeeDescriptor(appId).namespace,
+    });
     const bee = new Hyperbee(core);
     await bee.ready();
     this.bees.set(appId, { bee });

@@ -5,7 +5,11 @@
  * Real USB hardware remains device-gated (STATUS-HARDWARE).
  */
 
-import { PureCryptoProvider, Reticulum, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import {
+  PureCryptoProvider,
+  Reticulum,
+  nodeRuntime,
+} from "../../packages/reticulum-ts/dist/index.js";
 import {
   createKissDecodeState,
   decodeKissFrames,
@@ -14,11 +18,14 @@ import {
   KISS_CMD_RADIO_STATE,
   KISS_DETECT_RESP,
   KISS_RADIO_STATE_ON,
-  RNodeInterface
+  RNodeInterface,
 } from "../../packages/reticulum-interfaces/dist/index.js";
 import { serialportAvailable } from "../../packages/reticulum-interfaces/dist/serial-node.js";
 
-const LOAD_ITERATIONS = Number.parseInt(process.env.SERIAL_LOAD_ITERATIONS ?? "64", 10);
+const LOAD_ITERATIONS = Number.parseInt(
+  process.env.SERIAL_LOAD_ITERATIONS ?? "64",
+  10,
+);
 
 class SimulatedRNodePipe {
   connected = false;
@@ -28,7 +35,11 @@ class SimulatedRNodePipe {
   decodeState = createKissDecodeState();
 
   get stats() {
-    return { bytesIn: this.bytesIn, bytesOut: this.bytesOut, connected: this.connected };
+    return {
+      bytesIn: this.bytesIn,
+      bytesOut: this.bytesOut,
+      connected: this.connected,
+    };
   }
 
   setEvents(events) {
@@ -52,9 +63,16 @@ class SimulatedRNodePipe {
 
     for (const frame of decoded.frames) {
       if (frame.command === KISS_CMD_DETECT) {
-        this.reply(encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])));
+        this.reply(
+          encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])),
+        );
       } else if (frame.command === KISS_CMD_RADIO_STATE) {
-        this.reply(encodeKissFrame(KISS_CMD_RADIO_STATE, Uint8Array.from([KISS_RADIO_STATE_ON])));
+        this.reply(
+          encodeKissFrame(
+            KISS_CMD_RADIO_STATE,
+            Uint8Array.from([KISS_RADIO_STATE_ON]),
+          ),
+        );
       }
     }
   }
@@ -74,7 +92,7 @@ async function runSimulatedRNodeLoad(provider, runtime) {
     name: "rnode-load",
     provider,
     runtime,
-    pipe
+    pipe,
   });
   reticulum.registerInterface(iface);
 
@@ -88,7 +106,9 @@ async function runSimulatedRNodeLoad(provider, runtime) {
 
   await iface.close();
   await reticulum.stop();
-  console.log(`serialport-load: ${LOAD_ITERATIONS} simulated RNode keepalive iterations passed`);
+  console.log(
+    `serialport-load: ${LOAD_ITERATIONS} simulated RNode keepalive iterations passed`,
+  );
 }
 
 function sleep(ms) {

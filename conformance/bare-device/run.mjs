@@ -16,7 +16,7 @@ import { repoRoot } from "../scenarios/bare/helpers.mjs";
 async function buildWorkletBundle() {
   const result = spawnSync("npm", ["run", "build:worklet"], {
     cwd: `${repoRoot}/apps/harness-mobile`,
-    stdio: "inherit"
+    stdio: "inherit",
   });
 
   if (result.status !== 0) {
@@ -34,10 +34,14 @@ async function buildWorkletBundle() {
 }
 
 function runTcpSlice() {
-  const build = spawnSync("node", [`${repoRoot}/conformance/bare-device/build-tcp-runner.mjs`], {
-    cwd: repoRoot,
-    stdio: "inherit"
-  });
+  const build = spawnSync(
+    "node",
+    [`${repoRoot}/conformance/bare-device/build-tcp-runner.mjs`],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+    },
+  );
   if (build.status !== 0) {
     throw new Error("Failed to build Bare device TCP runner");
   }
@@ -45,7 +49,7 @@ function runTcpSlice() {
   const result = spawnSync(
     `${repoRoot}/node_modules/bare/bin/bare`,
     [`${repoRoot}/conformance/bare-device/tcp-runner.bundle`],
-    { cwd: repoRoot, stdio: "inherit" }
+    { cwd: repoRoot, stdio: "inherit" },
   );
 
   if (result.status !== 0) {

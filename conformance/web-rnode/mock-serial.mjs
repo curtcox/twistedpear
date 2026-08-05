@@ -9,7 +9,7 @@ import {
   KISS_RADIO_STATE_ON,
   createKissDecodeState,
   decodeKissFrames,
-  encodeKissFrame
+  encodeKissFrame,
 } from "../../packages/reticulum-interfaces/dist/rnode/kiss.js";
 
 class MockSerialPort {
@@ -21,13 +21,13 @@ class MockSerialPort {
   readable = new ReadableStream({
     start: (controller) => {
       this.readableController = controller;
-    }
+    },
   });
 
   writable = new WritableStream({
     write: (chunk) => {
       this.handleWrite(chunk);
-    }
+    },
   });
 
   async open() {
@@ -45,9 +45,16 @@ class MockSerialPort {
 
     for (const frame of decoded.frames) {
       if (frame.command === KISS_CMD_DETECT) {
-        this.reply(encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])));
+        this.reply(
+          encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])),
+        );
       } else if (frame.command === KISS_CMD_RADIO_STATE) {
-        this.reply(encodeKissFrame(KISS_CMD_RADIO_STATE, Uint8Array.from([KISS_RADIO_STATE_ON])));
+        this.reply(
+          encodeKissFrame(
+            KISS_CMD_RADIO_STATE,
+            Uint8Array.from([KISS_RADIO_STATE_ON]),
+          ),
+        );
       }
     }
   }
@@ -65,8 +72,8 @@ export function installMockWebSerial() {
     value: {
       async requestPort() {
         return port;
-      }
-    }
+      },
+    },
   });
 
   return port;

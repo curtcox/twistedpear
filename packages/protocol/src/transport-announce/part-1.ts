@@ -23,12 +23,12 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   PACKET_CONTEXT_PATH_RESPONSE,
-  PACKET_CONTEXT_NONE
+  PACKET_CONTEXT_NONE,
 } from "../packet-context.js";
 import {
   PACKET_HEADER_2,
   PACKET_TYPE_ANNOUNCE,
-  type PacketHeaderFields
+  type PacketHeaderFields,
 } from "../packet-header.js";
 import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
 
@@ -45,7 +45,7 @@ export interface TransportAnnounceSource {
 /** Clone packet header fields with a new hop count. */
 export function planClonePacketWithHops(
   source: PacketHeaderFields,
-  hops: number
+  hops: number,
 ): PacketHeaderFields {
   return {
     headerType: source.headerType,
@@ -57,7 +57,7 @@ export function planClonePacketWithHops(
     transportId: source.transportId,
     destinationHash: source.destinationHash,
     context: source.context,
-    data: source.data
+    data: source.data,
   };
 }
 
@@ -93,7 +93,7 @@ export function initialClonePacketWithHopsPlanState(): ClonePacketWithHopsPlanSt
 
 export function stepClonePacketWithHopsPlanWithActions(
   state: ClonePacketWithHopsPlanState,
-  event: ClonePacketWithHopsPlanEvent
+  event: ClonePacketWithHopsPlanEvent,
 ): ClonePacketWithHopsPlanStepResult {
   if (event.kind === "transport/clone-packet-with-hops-plan-gate") {
     return {
@@ -102,9 +102,9 @@ export function stepClonePacketWithHopsPlanWithActions(
       actions: [
         {
           kind: "use-fields",
-          fields: planClonePacketWithHops(event.source, event.hops)
-        }
-      ]
+          fields: planClonePacketWithHops(event.source, event.hops),
+        },
+      ],
     };
   }
 
@@ -112,14 +112,14 @@ export function stepClonePacketWithHopsPlanWithActions(
 }
 
 export function shouldUseClonePacketWithHopsPlan(
-  actions: ReadonlyArray<ClonePacketWithHopsPlanAction>
+  actions: ReadonlyArray<ClonePacketWithHopsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract hop-clone fields from plan actions; null when no `use-fields` action. */
 export function clonePacketWithHopsPlanFieldsFromActions(
-  actions: ReadonlyArray<ClonePacketWithHopsPlanAction>
+  actions: ReadonlyArray<ClonePacketWithHopsPlanAction>,
 ): PacketHeaderFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -158,7 +158,7 @@ export function initialClonePacketWithHopsState(): ClonePacketWithHopsState {
 
 export function stepClonePacketWithHopsWithActions(
   state: ClonePacketWithHopsState,
-  event: ClonePacketWithHopsEvent
+  event: ClonePacketWithHopsEvent,
 ): ClonePacketWithHopsStepResult {
   if (event.kind === "transport/clone-packet-with-hops-gate") {
     const planActions = stepClonePacketWithHopsPlanWithActions(
@@ -166,8 +166,8 @@ export function stepClonePacketWithHopsWithActions(
       {
         kind: "transport/clone-packet-with-hops-plan-gate",
         source: event.source,
-        hops: event.hops
-      }
+        hops: event.hops,
+      },
     ).actions;
     const fields = clonePacketWithHopsPlanFieldsFromActions(planActions);
     if (fields === null) {
@@ -179,9 +179,9 @@ export function stepClonePacketWithHopsWithActions(
       actions: [
         {
           kind: "use-fields",
-          fields
-        }
-      ]
+          fields,
+        },
+      ],
     };
   }
 
@@ -189,14 +189,14 @@ export function stepClonePacketWithHopsWithActions(
 }
 
 export function shouldUseClonePacketWithHops(
-  actions: ReadonlyArray<ClonePacketWithHopsAction>
+  actions: ReadonlyArray<ClonePacketWithHopsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract hop-clone fields from step actions; null when no `use-fields` action. */
 export function clonePacketWithHopsFieldsFromActions(
-  actions: ReadonlyArray<ClonePacketWithHopsAction>
+  actions: ReadonlyArray<ClonePacketWithHopsAction>,
 ): PacketHeaderFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -218,7 +218,7 @@ export function planTransportAnnounceFields(input: {
     transportId: input.transportId,
     destinationHash: input.source.destinationHash,
     context: input.source.context,
-    data: input.source.data
+    data: input.source.data,
   };
 }
 
@@ -256,7 +256,7 @@ export function initialTransportAnnounceFieldsPlanState(): TransportAnnounceFiel
 
 export function stepTransportAnnounceFieldsPlanWithActions(
   state: TransportAnnounceFieldsPlanState,
-  event: TransportAnnounceFieldsPlanEvent
+  event: TransportAnnounceFieldsPlanEvent,
 ): TransportAnnounceFieldsPlanStepResult {
   if (event.kind === "transport/announce-fields-plan-gate") {
     return {
@@ -268,10 +268,10 @@ export function stepTransportAnnounceFieldsPlanWithActions(
           fields: planTransportAnnounceFields({
             source: event.source,
             transportId: event.transportId,
-            hops: event.hops
-          })
-        }
-      ]
+            hops: event.hops,
+          }),
+        },
+      ],
     };
   }
 
@@ -279,14 +279,14 @@ export function stepTransportAnnounceFieldsPlanWithActions(
 }
 
 export function shouldUseTransportAnnounceFieldsPlan(
-  actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>
+  actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract transport announce fields from plan actions; null when no `use-fields`. */
 export function transportAnnounceFieldsPlanFromActions(
-  actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>
+  actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>,
 ): PacketHeaderFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -326,7 +326,7 @@ export function initialTransportAnnounceFieldsState(): TransportAnnounceFieldsSt
 
 export function stepTransportAnnounceFieldsWithActions(
   state: TransportAnnounceFieldsState,
-  event: TransportAnnounceFieldsEvent
+  event: TransportAnnounceFieldsEvent,
 ): TransportAnnounceFieldsStepResult {
   if (event.kind === "transport/announce-fields-gate") {
     const planActions = stepTransportAnnounceFieldsPlanWithActions(
@@ -335,8 +335,8 @@ export function stepTransportAnnounceFieldsWithActions(
         kind: "transport/announce-fields-plan-gate",
         source: event.source,
         transportId: event.transportId,
-        hops: event.hops
-      }
+        hops: event.hops,
+      },
     ).actions;
     const fields = transportAnnounceFieldsPlanFromActions(planActions);
     if (fields === null) {
@@ -348,9 +348,9 @@ export function stepTransportAnnounceFieldsWithActions(
       actions: [
         {
           kind: "use-fields",
-          fields
-        }
-      ]
+          fields,
+        },
+      ],
     };
   }
 
@@ -358,14 +358,14 @@ export function stepTransportAnnounceFieldsWithActions(
 }
 
 export function shouldUseTransportAnnounceFields(
-  actions: ReadonlyArray<TransportAnnounceFieldsAction>
+  actions: ReadonlyArray<TransportAnnounceFieldsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract transport announce fields from step actions; null when no `use-fields`. */
 export function transportAnnounceFieldsFromActions(
-  actions: ReadonlyArray<TransportAnnounceFieldsAction>
+  actions: ReadonlyArray<TransportAnnounceFieldsAction>,
 ): PacketHeaderFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -379,7 +379,7 @@ export function planPathResponseAnnounceFields(input: {
 }): PacketHeaderFields {
   return {
     ...planTransportAnnounceFields(input),
-    context: PACKET_CONTEXT_PATH_RESPONSE
+    context: PACKET_CONTEXT_PATH_RESPONSE,
   };
 }
 
@@ -399,7 +399,7 @@ export type PathResponseAnnounceFieldsPlanAction = {
 
 /** Extract path-response announce fields from plan actions; null when no `use-fields`. */
 export function pathResponseAnnounceFieldsPlanFromActions(
-  actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>
+  actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>,
 ): PacketHeaderFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

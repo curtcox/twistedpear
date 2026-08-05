@@ -5,7 +5,7 @@ describe("createCommonHostInfoBackend", () => {
   it("forwards dropCensus from the host info snapshot", async () => {
     const dropCensus = {
       byReason: { "announce-rate-limit:rate_limited": 3 },
-      byPeer: { abcd: { "announce-rate-limit:rate_limited": 3 } }
+      byPeer: { abcd: { "announce-rate-limit:rate_limited": 3 } },
     };
     const backend = createCommonHostInfoBackend(
       {
@@ -18,12 +18,12 @@ describe("createCommonHostInfoBackend", () => {
             kvQuotaBytes: null,
             seedStorageUsedBytes: null,
             seedStorageQuotaBytes: null,
-            memoryBytes: null
+            memoryBytes: null,
           },
-          dropCensus
-        })
+          dropCensus,
+        }),
       },
-      "web"
+      "web",
     );
 
     await expect(backend.info()).resolves.toMatchObject({ dropCensus });
@@ -34,10 +34,10 @@ describe("createCommonHostInfoBackend", () => {
       {
         getHostInfoSnapshot: () => ({
           platform: "desktop",
-          hostVersion: "1.0.0"
-        })
+          hostVersion: "1.0.0",
+        }),
       },
-      "desktop"
+      "desktop",
     );
 
     const info = await backend.info();

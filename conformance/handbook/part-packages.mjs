@@ -3,7 +3,16 @@
  * Smoke-test Handbook per-part packages: pack, launch, verify scoped TOC.
  */
 
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -16,12 +25,12 @@ import {
   HOST_API_VERSION,
   KvStorageBeeBackend,
   MiniappHost,
-  NodeWorkerSandboxBackend
+  NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
 import {
   dismissGrantIntroIfNeeded,
   tap,
-  waitForTreeText
+  waitForTreeText,
 } from "./ui-helpers.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -52,7 +61,10 @@ function ensurePartPackages() {
   if (existsSync(partsRoot)) {
     return;
   }
-  const result = spawnSync("npm", ["run", "build:handbook"], { cwd: root, stdio: "inherit" });
+  const result = spawnSync("npm", ["run", "build:handbook"], {
+    cwd: root,
+    stdio: "inherit",
+  });
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
@@ -60,29 +72,45 @@ function ensurePartPackages() {
 
 async function packPartDir(partId) {
   const sourceDir = join(partsRoot, partId);
-  const manifest = JSON.parse(readFileSync(join(sourceDir, "app.manifest.json"), "utf8"));
+  const manifest = JSON.parse(
+    readFileSync(join(sourceDir, "app.manifest.json"), "utf8"),
+  );
   const appFolder = manifest.name;
 
   const cwd = mkdtempSync(join(tmpdir(), "tp-handbook-part-smoke-"));
   const appDir = join(cwd, appFolder);
   mkdirSync(appDir, { recursive: true });
-  cpSync(join(sourceDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
+  cpSync(
+    join(sourceDir, "app.manifest.json"),
+    join(appDir, "app.manifest.json"),
+  );
   cpSync(join(sourceDir, "bundle.js"), join(appDir, "bundle.js"));
 
   try {
-    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({
+      cwd,
+      identityPassphrase: "conformance identity passphrase",
+      args: [],
+    });
     if (initCode !== 0) {
       throw new Error(`tp init failed for ${partId}`);
     }
 
-    const packCode = await runPack({ cwd, args: [appFolder, "--out", `${appFolder}.tpkg`] });
+    const packCode = await runPack({
+      cwd,
+      args: [appFolder, "--out", `${appFolder}.tpkg`],
+    });
     if (packCode !== 0) {
       throw new Error(`tp pack failed for ${partId}`);
     }
 
     const provider = new NodeCryptoProvider();
-    const archive = new Uint8Array(readFileSync(join(cwd, `${appFolder}.tpkg`)));
-    const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
+    const archive = new Uint8Array(
+      readFileSync(join(cwd, `${appFolder}.tpkg`)),
+    );
+    const verified = verifyPackage(provider, archive, {
+      hostApiVersion: HOST_API_VERSION,
+    });
     const bundle = verified.files.get(verified.manifest.entry);
     if (bundle === undefined) {
       throw new Error(`${appFolder} entry bundle missing`);
@@ -93,7 +121,7 @@ async function packPartDir(partId) {
       app: verified.manifest,
       bundle,
       publisherPublicKey: verified.manifest.publisherPublicKey,
-      packageBytes: archive.length
+      packageBytes: archive.length,
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -116,13 +144,17 @@ function chapterButtonIds(tree) {
 
 export async function runHandbookPartPackagesSmoke() {
   ensurePartPackages();
-  const toc = JSON.parse(readFileSync(join(handbookDir, "content/toc.json"), "utf8"));
+  const toc = JSON.parse(
+    readFileSync(join(handbookDir, "content/toc.json"), "utf8"),
+  );
   const partIds = readdirSync(partsRoot)
     .filter((entry) => statSync(join(partsRoot, entry)).isDirectory())
     .sort();
 
   if (partIds.length !== toc.parts.length) {
-    throw new Error(`expected ${toc.parts.length} part packages, found ${partIds.length}`);
+    throw new Error(
+      `expected ${toc.parts.length} part packages, found ${partIds.length}`,
+    );
   }
 
   for (const part of toc.parts) {
@@ -148,22 +180,26 @@ export async function runHandbookPartPackagesSmoke() {
             kvQuotaBytes: null,
             seedStorageUsedBytes: null,
             seedStorageQuotaBytes: null,
-            memoryBytes: null
+            memoryBytes: null,
           },
-          grantedCapabilities: packed.app.capabilities ?? []
-        })
+          grantedCapabilities: packed.app.capabilities ?? [],
+        }),
       },
       presenceBackend: {
-        snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
+        snapshot: async () => ({
+          onlineInterfaces: 0,
+          preferredInterface: null,
+          peers: 0,
+        }),
       },
       confirmationChannel: { confirm: async () => ({ approved: true }) },
       aiBackend: {
         chat: async () => ({
           message: { role: "assistant", content: "ok" },
           model: "part-smoke",
-          usage: { promptTokens: 1, completionTokens: 1 }
-        })
-      }
+          usage: { promptTokens: 1, completionTokens: 1 },
+        }),
+      },
     });
 
     try {
@@ -171,7 +207,7 @@ export async function runHandbookPartPackagesSmoke() {
         packed.app.name,
         packed.publisherPublicKey,
         packed.app.capabilities ?? [],
-        packed.app.capabilities ?? []
+        packed.app.capabilities ?? [],
       );
       await host.launch(
         {
@@ -179,9 +215,9 @@ export async function runHandbookPartPackagesSmoke() {
           version: packed.app.version,
           entry: packed.app.entry,
           capabilities: packed.app.capabilities ?? [],
-          publisherPublicKey: packed.publisherPublicKey
+          publisherPublicKey: packed.publisherPublicKey,
         },
-        packed.bundle
+        packed.bundle,
       );
 
       await waitForTreeText(host, "TwistedPear Handbook");
@@ -203,11 +239,13 @@ export async function runHandbookPartPackagesSmoke() {
 
       const firstChapter = expectedChapterIds[0];
       await tap(host, `ch-${firstChapter}`, "hb.openchapter");
-      const title = part.chapters.find((chapter) => chapter.id === firstChapter)?.title ?? firstChapter;
+      const title =
+        part.chapters.find((chapter) => chapter.id === firstChapter)?.title ??
+        firstChapter;
       await waitForTreeText(host, title);
 
       console.log(
-        `handbook-part/${part.id}: ${expectedChapterIds.length} chapter(s), ${packed.packageBytes} bytes packed`
+        `handbook-part/${part.id}: ${expectedChapterIds.length} chapter(s), ${packed.packageBytes} bytes packed`,
       );
     } finally {
       await host.stop();

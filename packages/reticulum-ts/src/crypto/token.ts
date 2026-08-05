@@ -37,7 +37,7 @@ import {
   stepTokenSignedMaterialWithActions,
   tokenFrameFieldsFromActions,
   tokenKeyFieldsFromActions,
-  tokenSignedMaterialRawFromActions
+  tokenSignedMaterialRawFromActions,
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./provider.js";
 import type { Entropy } from "../runtime/runtime.js";
@@ -58,11 +58,11 @@ export class Token {
 
   constructor(
     private readonly provider: CryptoProvider,
-    key: Uint8Array
+    key: Uint8Array,
   ) {
     const stepped = stepSplitTokenKeyWithActions(initialSplitTokenKeyState(), {
       kind: "token-framing/split-key-gate",
-      key
+      key,
     });
     const parts = tokenKeyFieldsFromActions(stepped.actions);
     if (
@@ -78,29 +78,48 @@ export class Token {
   }
 
   static generateKey(provider: CryptoProvider, entropy?: Entropy): Uint8Array {
-    return entropy !== undefined ? entropy.randomBytes(32) : provider.randomBytes(32);
+    return entropy !== undefined
+      ? entropy.randomBytes(32)
+      : provider.randomBytes(32);
   }
 
   verifyHmac(token: Uint8Array): boolean {
-    const stepped = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
-      kind: "token-framing/split-gate",
-      token
-    });
+    const stepped = stepSplitTokenFrameWithActions(
+      initialSplitTokenFrameState(),
+      {
+        kind: "token-framing/split-gate",
+        token,
+      },
+    );
     const frame = tokenFrameFieldsFromActions(stepped.actions);
-    const acceptStepped = stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
-      kind: "token-framing/accept-frame-gate",
-      framePresent: frame !== null
-    });
-    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrameNow(acceptStepped.actions)) {
-      throw new Error(`Cannot verify HMAC on token of only ${token.length} bytes`);
+    const acceptStepped = stepAcceptTokenFrameWithActions(
+      initialAcceptTokenFrameState(),
+      {
+        kind: "token-framing/accept-frame-gate",
+        framePresent: frame !== null,
+      },
+    );
+    if (
+      !shouldUseSplitTokenFrame(stepped.actions) ||
+      !shouldAcceptTokenFrameNow(acceptStepped.actions)
+    ) {
+      throw new Error(
+        `Cannot verify HMAC on token of only ${token.length} bytes`,
+      );
     }
 
-    const expectedHmac = this.provider.hmacSha256(this.signingKey, frame!.signedMaterial);
-    const matchStepped = stepTokenHmacMatchWithActions(initialTokenHmacMatchState(), {
-      kind: "token-framing/hmac-match-gate",
-      received: frame!.hmac,
-      expected: expectedHmac
-    });
+    const expectedHmac = this.provider.hmacSha256(
+      this.signingKey,
+      frame!.signedMaterial,
+    );
+    const matchStepped = stepTokenHmacMatchWithActions(
+      initialTokenHmacMatchState(),
+      {
+        kind: "token-framing/hmac-match-gate",
+        received: frame!.hmac,
+        expected: expectedHmac,
+      },
+    );
     return shouldMatchTokenHmac(matchStepped.actions);
   }
 
@@ -114,17 +133,20 @@ export class Token {
       (options.entropy !== undefined
         ? options.entropy.randomBytes(TOKEN_IV_SIZE)
         : this.provider.randomBytes(TOKEN_IV_SIZE));
-    const ivLengthStepped = stepTokenIvLengthValidWithActions(initialTokenIvLengthValidState(), {
-      kind: "token-framing/iv-length-valid-gate",
-      length: iv.length
-    });
+    const ivLengthStepped = stepTokenIvLengthValidWithActions(
+      initialTokenIvLengthValidState(),
+      {
+        kind: "token-framing/iv-length-valid-gate",
+        length: iv.length,
+      },
+    );
     if (!shouldAcceptTokenIvLength(ivLengthStepped.actions)) {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
 
     const padStepped = stepPkcs7PadWithActions(initialPackPkcs7State(), {
       kind: "pkcs7/pad-gate",
-      data
+      data,
     });
     if (!shouldUsePkcs7Pad(padStepped.actions)) {
       throw new Error("Could not pad token plaintext");
@@ -138,29 +160,40 @@ export class Token {
       this.mode === "aes256"
         ? this.provider.aes256CbcEncrypt(padded, this.encryptionKey, iv)
         : this.provider.aes128CbcEncrypt(padded, this.encryptionKey, iv);
-    const signedStepped = stepTokenSignedMaterialWithActions(initialTokenSignedMaterialState(), {
-      kind: "token-framing/signed-material-gate",
-      iv,
-      ciphertext
-    });
+    const signedStepped = stepTokenSignedMaterialWithActions(
+      initialTokenSignedMaterialState(),
+      {
+        kind: "token-framing/signed-material-gate",
+        iv,
+        ciphertext,
+      },
+    );
     if (
       shouldRejectTokenSignedMaterial(signedStepped.actions) ||
       !shouldUseTokenSignedMaterial(signedStepped.actions)
     ) {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
-    const signedParts = tokenSignedMaterialRawFromActions(signedStepped.actions);
+    const signedParts = tokenSignedMaterialRawFromActions(
+      signedStepped.actions,
+    );
     if (signedParts === null) {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
     const hmac = this.provider.hmacSha256(this.signingKey, signedParts);
-    const stepped = stepPackTokenFrameWithActions(initialPackTokenFrameState(), {
-      kind: "token-framing/pack-gate",
-      iv,
-      ciphertext,
-      hmac
-    });
-    if (shouldRejectPackTokenFrame(stepped.actions) || !shouldUsePackTokenFrame(stepped.actions)) {
+    const stepped = stepPackTokenFrameWithActions(
+      initialPackTokenFrameState(),
+      {
+        kind: "token-framing/pack-gate",
+        iv,
+        ciphertext,
+        hmac,
+      },
+    );
+    if (
+      shouldRejectPackTokenFrame(stepped.actions) ||
+      !shouldUsePackTokenFrame(stepped.actions)
+    ) {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
     const packed = packTokenFrameRawFromActions(stepped.actions);
@@ -179,29 +212,52 @@ export class Token {
       throw new Error("Token HMAC was invalid");
     }
 
-    const stepped = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
-      kind: "token-framing/split-gate",
-      token
-    });
+    const stepped = stepSplitTokenFrameWithActions(
+      initialSplitTokenFrameState(),
+      {
+        kind: "token-framing/split-gate",
+        token,
+      },
+    );
     const frame = tokenFrameFieldsFromActions(stepped.actions);
-    const acceptStepped = stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
-      kind: "token-framing/accept-frame-gate",
-      framePresent: frame !== null
-    });
-    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrameNow(acceptStepped.actions)) {
+    const acceptStepped = stepAcceptTokenFrameWithActions(
+      initialAcceptTokenFrameState(),
+      {
+        kind: "token-framing/accept-frame-gate",
+        framePresent: frame !== null,
+      },
+    );
+    if (
+      !shouldUseSplitTokenFrame(stepped.actions) ||
+      !shouldAcceptTokenFrameNow(acceptStepped.actions)
+    ) {
       throw new Error("Token HMAC was invalid");
     }
 
     try {
       const decrypted =
         this.mode === "aes256"
-          ? this.provider.aes256CbcDecrypt(frame!.ciphertext, this.encryptionKey, frame!.iv)
-          : this.provider.aes128CbcDecrypt(frame!.ciphertext, this.encryptionKey, frame!.iv);
-      const unpadStepped = stepPkcs7UnpadWithActions(initialUnpackPkcs7State(), {
-        kind: "pkcs7/unpad-gate",
-        data: decrypted
-      });
-      if (shouldRejectPkcs7Unpad(unpadStepped.actions) || !shouldUsePkcs7Unpad(unpadStepped.actions)) {
+          ? this.provider.aes256CbcDecrypt(
+              frame!.ciphertext,
+              this.encryptionKey,
+              frame!.iv,
+            )
+          : this.provider.aes128CbcDecrypt(
+              frame!.ciphertext,
+              this.encryptionKey,
+              frame!.iv,
+            );
+      const unpadStepped = stepPkcs7UnpadWithActions(
+        initialUnpackPkcs7State(),
+        {
+          kind: "pkcs7/unpad-gate",
+          data: decrypted,
+        },
+      );
+      if (
+        shouldRejectPkcs7Unpad(unpadStepped.actions) ||
+        !shouldUsePkcs7Unpad(unpadStepped.actions)
+      ) {
         throw new Error("Could not decrypt token");
       }
       const plaintext = pkcs7UnpadRawFromActions(unpadStepped.actions);

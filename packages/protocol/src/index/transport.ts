@@ -40,7 +40,7 @@ export {
   type WrapTransportPacketAction,
   type WrapTransportPacketEvent,
   type WrapTransportPacketState,
-  type WrapTransportPacketStepResult
+  type WrapTransportPacketStepResult,
 } from "../transport-framing.js";
 export {
   planAnnounceIngressGates,
@@ -159,7 +159,7 @@ export {
   type TransportAnnounceFieldsPlanStepResult,
   type TransportAnnounceFieldsState,
   type TransportAnnounceFieldsStepResult,
-  type TransportAnnounceSource
+  type TransportAnnounceSource,
 } from "../transport-announce.js";
 export {
   LOCAL_REBROADCASTS_MAX,
@@ -565,5 +565,5 @@ export {
   type TransportMemberUnregisterPlanState,
   type TransportMemberUnregisterPlanStepResult,
   type TransportMemberUnregisterState,
-  type TransportMemberUnregisterStepResult
+  type TransportMemberUnregisterStepResult,
 } from "../transport-ingress.js";

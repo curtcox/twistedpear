@@ -16,7 +16,7 @@ import {
   signCasLocator,
   toCatalogEntryLike,
   verify256t,
-  verifyCasLocator
+  verifyCasLocator,
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -71,7 +71,9 @@ describe("256t codec", () => {
     const smallId = encode256t(small, sha512);
     expect(decode256t(smallId).inline).toEqual(small);
     expect(verify256t(smallId, small, sha512)).toBe(true);
-    expect(verify256t(smallId, new TextEncoder().encode("hello 256T"), sha512)).toBe(false);
+    expect(
+      verify256t(smallId, new TextEncoder().encode("hello 256T"), sha512),
+    ).toBe(false);
 
     const large = new Uint8Array(10_000).map((_, index) => index % 251);
     const largeId = encode256t(large, sha512);
@@ -115,10 +117,17 @@ describe("cas store", () => {
   });
 
   it("enforces blob and total quotas", async () => {
-    const store = new CasStore(new MemoryStore(), sha512, { maxBlobBytes: 256, maxTotalBytes: 384 });
-    await expect(store.put(new Uint8Array(257))).rejects.toBeInstanceOf(CasQuotaError);
+    const store = new CasStore(new MemoryStore(), sha512, {
+      maxBlobBytes: 256,
+      maxTotalBytes: 384,
+    });
+    await expect(store.put(new Uint8Array(257))).rejects.toBeInstanceOf(
+      CasQuotaError,
+    );
     await store.put(new Uint8Array(200).fill(1));
-    await expect(store.put(new Uint8Array(200).fill(2))).rejects.toBeInstanceOf(CasQuotaError);
+    await expect(store.put(new Uint8Array(200).fill(2))).rejects.toBeInstanceOf(
+      CasQuotaError,
+    );
   });
 
   it("detects corrupted stored content", async () => {
@@ -127,7 +136,9 @@ describe("cas store", () => {
     const id = await store.put(new Uint8Array(100).fill(4));
     const key = [...backend.values.keys()][0]!;
     backend.values.set(key, new Uint8Array(100).fill(5));
-    await expect(store.get(id)).rejects.toMatchObject({ code: "HASH_MISMATCH" });
+    await expect(store.get(id)).rejects.toMatchObject({
+      code: "HASH_MISMATCH",
+    });
   });
 });
 
@@ -142,7 +153,7 @@ describe("cas locator", () => {
     version: "1.2.3",
     driveKey: "ab".repeat(32),
     packageHash: "cd".repeat(32),
-    packageSize: archive.length
+    packageSize: archive.length,
   });
 
   it("signs, encodes within the announce budget, and round-trips", () => {
@@ -157,14 +168,20 @@ describe("cas locator", () => {
   it("rejects tampered locators", () => {
     expect(locator.formatVersion).toBe(1);
     expect(locator.servingPublicKey).toBe(locator.publisherPublicKey);
-    expect(verifyCasLocator(provider, { ...locator, version: "9.9.9" })).toBe(false);
-    expect(verifyCasLocator(provider, { ...locator, packageHash: "ee".repeat(32) })).toBe(false);
+    expect(verifyCasLocator(provider, { ...locator, version: "9.9.9" })).toBe(
+      false,
+    );
+    expect(
+      verifyCasLocator(provider, { ...locator, packageHash: "ee".repeat(32) }),
+    ).toBe(false);
     const otherIdentity = new Identity(provider);
     expect(
       verifyCasLocator(provider, {
         ...locator,
-        publisherPublicKey: Buffer.from(otherIdentity.getPublicKey()).toString("hex")
-      })
+        publisherPublicKey: Buffer.from(otherIdentity.getPublicKey()).toString(
+          "hex",
+        ),
+      }),
     ).toBe(false);
   });
 
@@ -177,12 +194,19 @@ describe("cas locator", () => {
       driveKey: "ab".repeat(32),
       packageHash: "cd".repeat(32),
       packageSize: archive.length,
-      servingPublicKey: Buffer.from(serving.getPublicKey()).toString("hex")
+      servingPublicKey: Buffer.from(serving.getPublicKey()).toString("hex"),
     });
     expect(linked.formatVersion).toBe(2);
     expect(linked.publisherPublicKey).not.toBe(linked.servingPublicKey);
-    expect(verifyCasLocator(provider, decodeCasLocator(encodeCasLocator(linked)))).toBe(true);
-    expect(verifyCasLocator(provider, { ...linked, servingPublicKey: "ee".repeat(64) })).toBe(false);
+    expect(
+      verifyCasLocator(provider, decodeCasLocator(encodeCasLocator(linked))),
+    ).toBe(true);
+    expect(
+      verifyCasLocator(provider, {
+        ...linked,
+        servingPublicKey: "ee".repeat(64),
+      }),
+    ).toBe(false);
   });
 
   it("maps onto the CatalogEntry fetch shape and derives announce aspects", () => {
@@ -202,7 +226,10 @@ describe("cas locator", () => {
   it("round-trips an on-demand locator request on a distinct aspect", () => {
     const encoded = encodeCasLocatorRequest(t256);
     expect(decodeCasLocatorRequest(encoded)).toBe(t256);
-    expect(casRequestAspects(t256)).toEqual(["cas-request", casAnnounceAspects(t256)[1]]);
+    expect(casRequestAspects(t256)).toEqual([
+      "cas-request",
+      casAnnounceAspects(t256)[1],
+    ]);
 
     const tampered = Uint8Array.from(encoded);
     tampered[0] ^= 0xff;

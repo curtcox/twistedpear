@@ -1,6 +1,5 @@
 # Reticulum WebSocket Interface Specification
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -21,10 +20,10 @@ WebSocket is message-oriented and runs over TCP/TLS.
 
 ## 1. Roles
 
-| Role | Who | Direction |
-|---|---|---|
-| **Gateway** | Any transport-capable node that enables the server interface (`tp node --ws-listen`, desktop host, etc.) | Accepts inbound WebSocket upgrades; spawns one Reticulum interface per client |
-| **Leaf client** | Browser tab, CI harness, or another node that dials the gateway | Opens one outbound WebSocket; reconnects on drop |
+| Role            | Who                                                                                                      | Direction                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Gateway**     | Any transport-capable node that enables the server interface (`tp node --ws-listen`, desktop host, etc.) | Accepts inbound WebSocket upgrades; spawns one Reticulum interface per client |
+| **Leaf client** | Browser tab, CI harness, or another node that dials the gateway                                          | Opens one outbound WebSocket; reconnects on drop                              |
 
 The web host is always a leaf. Browsers cannot accept inbound connections, so
 transport / seeder / propagation roles are permanently out of scope on the
@@ -74,11 +73,11 @@ browser target (see [LIMITATIONS.md](../LIMITATIONS.md) §8 and
 
 Private gateways MAY require a shared token. Public transport gateways need none.
 
-| Side | Mechanism |
-|---|---|
-| Client | When `sharedToken` is set, includes WebSocket subprotocol `tp-token.<token>` (`Sec-WebSocket-Protocol`) |
-| Server | When `sharedToken` is set, accepts the upgrade only if that exact subprotocol is offered; echoes it in the 101 response |
-| Failure | Server responds `403 Forbidden` and closes the TCP socket |
+| Side    | Mechanism                                                                                                               |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Client  | When `sharedToken` is set, includes WebSocket subprotocol `tp-token.<token>` (`Sec-WebSocket-Protocol`)                 |
+| Server  | When `sharedToken` is set, accepts the upgrade only if that exact subprotocol is offered; echoes it in the 101 response |
+| Failure | Server responds `403 Forbidden` and closes the TCP socket                                                               |
 
 CLI: `tp node --ws-listen [host:]port --ws-token <token>`.
 
@@ -106,10 +105,10 @@ These are **not** Reticulum packet interfaces. They share the gateway HTTP/WS
 listener so the browser leaf can accelerate package installs when IP is available.
 Resource transfer remains the offline/fallback path.
 
-| Path | Protocol | Purpose |
-|---|---|---|
-| `/dht-relay` | WebSocket (`@hyperswarm/dht-relay`) | Experimental DHT relay for browser Hyperdrive clients; lookup relay remains brittle against current `hyperdht` in CI |
-| `/bulk-fetch?driveKey=<hex>&version=<semver>` | HTTP GET/HEAD | Gateway joins Hyperswarm, fetches the Hyperdrive archive, streams `application/octet-stream` to the tab |
+| Path                                          | Protocol                            | Purpose                                                                                                              |
+| --------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `/dht-relay`                                  | WebSocket (`@hyperswarm/dht-relay`) | Experimental DHT relay for browser Hyperdrive clients; lookup relay remains brittle against current `hyperdht` in CI |
+| `/bulk-fetch?driveKey=<hex>&version=<semver>` | HTTP GET/HEAD                       | Gateway joins Hyperswarm, fetches the Hyperdrive archive, streams `application/octet-stream` to the tab              |
 
 A WebSocket Reticulum gateway implementation MUST leave `/dht-relay` free for the
 relay (or document an alternate path). Bulk-fetch is optional; when present it
@@ -117,14 +116,14 @@ SHOULD set `access-control-allow-origin` appropriately for the served web origin
 
 ## 7. Reference mapping
 
-| Concept | Implementation |
-|---|---|
-| Client interface | `packages/reticulum-ts/src/interfaces/websocket-client.ts` |
-| Server interface + static serve | `packages/reticulum-ts/src/interfaces/websocket-server.ts` |
-| CLI enablement | `tp node --ws-listen` / `--ws-token` / `--serve-web` (`packages/cli`) |
-| DHT relay | `packages/bridge-hyper/src/dht-relay-server.ts` |
-| Bulk fetch | `packages/bridge-hyper/src/gateway-bulk-fetch-server.ts` |
-| Browser leaf host | `apps/harness-mobile` web target (`App.web.tsx`, `build:web-host`) |
+| Concept                         | Implementation                                                        |
+| ------------------------------- | --------------------------------------------------------------------- |
+| Client interface                | `packages/reticulum-ts/src/interfaces/websocket-client.ts`            |
+| Server interface + static serve | `packages/reticulum-ts/src/interfaces/websocket-server.ts`            |
+| CLI enablement                  | `tp node --ws-listen` / `--ws-token` / `--serve-web` (`packages/cli`) |
+| DHT relay                       | `packages/bridge-hyper/src/dht-relay-server.ts`                       |
+| Bulk fetch                      | `packages/bridge-hyper/src/gateway-bulk-fetch-server.ts`              |
+| Browser leaf host               | `apps/harness-mobile` web target (`App.web.tsx`, `build:web-host`)    |
 
 ## 8. Conformance
 
@@ -140,12 +139,12 @@ An implementation MUST:
 
 Evidence in this repo:
 
-| Check | Command |
-|---|---|
-| Node WS leaf → gateway → Python RNS | `INTEROP=1 npm run test:web-interop` |
-| Browser tab packet + LXMF echo | `INTEROP=1 npm run test:web-interop-browser` |
-| DHT relay + `/bulk-fetch` smoke | `npm run test:web-hyperdrive` |
-| Browser Hyperdrive install path | `npm run test:web-hyperdrive-browser` |
+| Check                               | Command                                      |
+| ----------------------------------- | -------------------------------------------- |
+| Node WS leaf → gateway → Python RNS | `INTEROP=1 npm run test:web-interop`         |
+| Browser tab packet + LXMF echo      | `INTEROP=1 npm run test:web-interop-browser` |
+| DHT relay + `/bulk-fetch` smoke     | `npm run test:web-hyperdrive`                |
+| Browser Hyperdrive install path     | `npm run test:web-hyperdrive-browser`        |
 
 ## 9. Non-goals
 

@@ -24,14 +24,25 @@ import {
   msgpackPackBin,
   msgpackPackUInt,
   msgpackUnpack,
-  type MsgpackValue
+  type MsgpackValue,
 } from "../msgpack-core.js";
 import { equalByteArrays } from "../path-table.js";
-import { packResourceHashmapUpdate, packResourceHashmapUpdatePacket, parseResourcePartRequest, splitResourceHashmapUpdatePacket, unpackResourceHashmapUpdate } from "./part-1.js";
+import {
+  packResourceHashmapUpdate,
+  packResourceHashmapUpdatePacket,
+  parseResourcePartRequest,
+  splitResourceHashmapUpdatePacket,
+  unpackResourceHashmapUpdate,
+} from "./part-1.js";
 import { planResourceHashmapUpdateAccept } from "./part-2.js";
 import { resourceHashmapUpdateAcceptPlanFromActions } from "./part-4.js";
 import type { ResourcePartRequest } from "./part-1.js";
-import type { ResourceHashmapUpdateAcceptAction, ResourceHashmapUpdateAcceptEvent, ResourceHashmapUpdateAcceptPlanAction, ResourceHashmapUpdateAcceptPlanEvent } from "./part-4.js";
+import type {
+  ResourceHashmapUpdateAcceptAction,
+  ResourceHashmapUpdateAcceptEvent,
+  ResourceHashmapUpdateAcceptPlanAction,
+  ResourceHashmapUpdateAcceptPlanEvent,
+} from "./part-4.js";
 /**
  * Resource hashmap-update accept plan leaf is event-driven; no durable session
  * fields. Conclusions leave via machine actions (no ad-hoc plan reads beside
@@ -51,13 +62,13 @@ export function initialResourceHashmapUpdateAcceptPlanState(): ResourceHashmapUp
 
 export function stepResourceHashmapUpdateAcceptPlanWithActions(
   state: ResourceHashmapUpdateAcceptPlanState,
-  event: ResourceHashmapUpdateAcceptPlanEvent
+  event: ResourceHashmapUpdateAcceptPlanEvent,
 ): ResourceHashmapUpdateAcceptPlanStepResult {
   if (event.kind === "resource/hashmap-update-accept-plan-gate") {
     const plan = planResourceHashmapUpdateAccept({
       canContinue: event.canContinue,
       splitOk: event.splitOk,
-      unpackOk: event.unpackOk
+      unpackOk: event.unpackOk,
     });
     return { state, intents: [], actions: [{ kind: plan }] };
   }
@@ -66,13 +77,13 @@ export function stepResourceHashmapUpdateAcceptPlanWithActions(
 }
 
 export function shouldApplyResourceHashmapUpdateAcceptPlan(
-  actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>
+  actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldIgnoreResourceHashmapUpdateAcceptPlan(
-  actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>
+  actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
@@ -95,39 +106,38 @@ export function initialResourceHashmapUpdateAcceptState(): ResourceHashmapUpdate
   return {};
 }
 
-export const stepResourceHashmapUpdateAccept: StepFn<ResourceHashmapUpdateAcceptState> = (
-  state,
-  event
-) => {
+export const stepResourceHashmapUpdateAccept: StepFn<
+  ResourceHashmapUpdateAcceptState
+> = (state, event) => {
   const result = stepResourceHashmapUpdateAcceptInner(
     state,
-    event as ResourceHashmapUpdateAcceptEvent
+    event as ResourceHashmapUpdateAcceptEvent,
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepResourceHashmapUpdateAcceptWithActions(
   state: ResourceHashmapUpdateAcceptState,
-  event: ResourceHashmapUpdateAcceptEvent
+  event: ResourceHashmapUpdateAcceptEvent,
 ): ResourceHashmapUpdateAcceptStepResult {
   return stepResourceHashmapUpdateAcceptInner(state, event);
 }
 
 export function shouldApplyResourceHashmapUpdateAccept(
-  actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>
+  actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldIgnoreResourceHashmapUpdateAccept(
-  actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>
+  actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 function stepResourceHashmapUpdateAcceptInner(
   state: ResourceHashmapUpdateAcceptState,
-  event: ResourceHashmapUpdateAcceptEvent
+  event: ResourceHashmapUpdateAcceptEvent,
 ): ResourceHashmapUpdateAcceptStepResult {
   if (event.kind === "resource/hashmap-update-accept-gate") {
     const planActions = stepResourceHashmapUpdateAcceptPlanWithActions(
@@ -136,8 +146,8 @@ function stepResourceHashmapUpdateAcceptInner(
         kind: "resource/hashmap-update-accept-plan-gate",
         canContinue: event.canContinue,
         splitOk: event.splitOk,
-        unpackOk: event.unpackOk
-      }
+        unpackOk: event.unpackOk,
+      },
     ).actions;
     const plan = resourceHashmapUpdateAcceptPlanFromActions(planActions);
     if (plan === null) {
@@ -191,7 +201,7 @@ export function initialPackResourceHashmapUpdateState(): PackResourceHashmapUpda
 
 export function stepPackResourceHashmapUpdateWithActions(
   state: PackResourceHashmapUpdateState,
-  event: PackResourceHashmapUpdateEvent
+  event: PackResourceHashmapUpdateEvent,
 ): PackResourceHashmapUpdateStepResult {
   if (event.kind === "resource-hashmap/pack-update-gate") {
     return {
@@ -200,9 +210,9 @@ export function stepPackResourceHashmapUpdateWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packResourceHashmapUpdate(event.segment, event.hashmap)
-        }
-      ]
+          raw: packResourceHashmapUpdate(event.segment, event.hashmap),
+        },
+      ],
     };
   }
 
@@ -210,14 +220,14 @@ export function stepPackResourceHashmapUpdateWithActions(
 }
 
 export function shouldUsePackResourceHashmapUpdate(
-  actions: ReadonlyArray<PackResourceHashmapUpdateAction>
+  actions: ReadonlyArray<PackResourceHashmapUpdateAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract hashmap-update pack bytes from step actions; null when no `use-raw`. */
 export function packResourceHashmapUpdateRawFromActions(
-  actions: ReadonlyArray<PackResourceHashmapUpdateAction>
+  actions: ReadonlyArray<PackResourceHashmapUpdateAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -238,7 +248,10 @@ export type UnpackResourceHashmapUpdateEvent =
     };
 
 export type UnpackResourceHashmapUpdateAction =
-  | { readonly kind: "use-fields"; readonly fields: ResourceHashmapUpdateFields }
+  | {
+      readonly kind: "use-fields";
+      readonly fields: ResourceHashmapUpdateFields;
+    }
   | { readonly kind: "reject" };
 
 export interface UnpackResourceHashmapUpdateStepResult {
@@ -253,7 +266,7 @@ export function initialUnpackResourceHashmapUpdateState(): UnpackResourceHashmap
 
 export function stepUnpackResourceHashmapUpdateWithActions(
   state: UnpackResourceHashmapUpdateState,
-  event: UnpackResourceHashmapUpdateEvent
+  event: UnpackResourceHashmapUpdateEvent,
 ): UnpackResourceHashmapUpdateStepResult {
   if (event.kind === "resource-hashmap/unpack-update-gate") {
     const fields = unpackResourceHashmapUpdate(event.bytes);
@@ -263,7 +276,7 @@ export function stepUnpackResourceHashmapUpdateWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -271,20 +284,20 @@ export function stepUnpackResourceHashmapUpdateWithActions(
 }
 
 export function shouldUseUnpackResourceHashmapUpdate(
-  actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>
+  actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackResourceHashmapUpdate(
-  actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>
+  actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked hashmap-update fields from step actions; null when no `use-fields`. */
 export function resourceHashmapUpdateFieldsFromActions(
-  actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>
+  actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>,
 ): ResourceHashmapUpdateFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -322,7 +335,7 @@ export function initialPackResourceHashmapUpdatePacketState(): PackResourceHashm
 
 export function stepPackResourceHashmapUpdatePacketWithActions(
   state: PackResourceHashmapUpdatePacketState,
-  event: PackResourceHashmapUpdatePacketEvent
+  event: PackResourceHashmapUpdatePacketEvent,
 ): PackResourceHashmapUpdatePacketStepResult {
   if (event.kind === "resource-hashmap/pack-packet-gate") {
     return {
@@ -331,9 +344,12 @@ export function stepPackResourceHashmapUpdatePacketWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packResourceHashmapUpdatePacket(event.resourceHash, event.updateBytes)
-        }
-      ]
+          raw: packResourceHashmapUpdatePacket(
+            event.resourceHash,
+            event.updateBytes,
+          ),
+        },
+      ],
     };
   }
 
@@ -341,14 +357,14 @@ export function stepPackResourceHashmapUpdatePacketWithActions(
 }
 
 export function shouldUsePackResourceHashmapUpdatePacket(
-  actions: ReadonlyArray<PackResourceHashmapUpdatePacketAction>
+  actions: ReadonlyArray<PackResourceHashmapUpdatePacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract hashmap-update packet bytes from step actions; null when no `use-raw`. */
 export function packResourceHashmapUpdatePacketRawFromActions(
-  actions: ReadonlyArray<PackResourceHashmapUpdatePacketAction>
+  actions: ReadonlyArray<PackResourceHashmapUpdatePacketAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -387,7 +403,7 @@ export function initialSplitResourceHashmapUpdatePacketState(): SplitResourceHas
 
 export function stepSplitResourceHashmapUpdatePacketWithActions(
   state: SplitResourceHashmapUpdatePacketState,
-  event: SplitResourceHashmapUpdatePacketEvent
+  event: SplitResourceHashmapUpdatePacketEvent,
 ): SplitResourceHashmapUpdatePacketStepResult {
   if (event.kind === "resource-hashmap/split-packet-gate") {
     const fields = splitResourceHashmapUpdatePacket(event.plaintext);
@@ -397,7 +413,7 @@ export function stepSplitResourceHashmapUpdatePacketWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -405,20 +421,20 @@ export function stepSplitResourceHashmapUpdatePacketWithActions(
 }
 
 export function shouldUseSplitResourceHashmapUpdatePacket(
-  actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>
+  actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitResourceHashmapUpdatePacket(
-  actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>
+  actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split hashmap-update packet fields from step actions; null when no `use-fields`. */
 export function resourceHashmapUpdatePacketFieldsFromActions(
-  actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>
+  actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>,
 ): ResourceHashmapUpdatePacketFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -454,7 +470,7 @@ export function initialParseResourcePartRequestState(): ParseResourcePartRequest
 
 export function stepParseResourcePartRequestWithActions(
   state: ParseResourcePartRequestState,
-  event: ParseResourcePartRequestEvent
+  event: ParseResourcePartRequestEvent,
 ): ParseResourcePartRequestStepResult {
   if (event.kind === "resource-hashmap/parse-part-request-gate") {
     const fields = parseResourcePartRequest(event.requestData);
@@ -464,7 +480,7 @@ export function stepParseResourcePartRequestWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 

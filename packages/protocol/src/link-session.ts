@@ -10,7 +10,7 @@ import {
   stepLinkWatchdogWithActions,
   type LinkWatchdogAction,
   type LinkWatchdogState,
-  type LinkStatusValue
+  type LinkStatusValue,
 } from "./link-watchdog.js";
 
 export interface LinkSessionState {
@@ -25,7 +25,11 @@ export type LinkSessionEvent =
   | Event
   | { readonly kind: "session/request-link"; readonly at: number }
   | { readonly kind: "session/handshake"; readonly at: number }
-  | { readonly kind: "session/link-proof"; readonly at: number; readonly rtt: number }
+  | {
+      readonly kind: "session/link-proof";
+      readonly at: number;
+      readonly rtt: number;
+    }
   | { readonly kind: "session/inbound"; readonly at: number }
   | { readonly kind: "session/close" };
 
@@ -52,9 +56,9 @@ export function initialLinkSessionState(options: {
     status: LinkStatus.PENDING,
     watchdog: initialLinkWatchdogState({
       initiator: options.role === "initiator",
-      requestTime: options.requestTime ?? 0
+      requestTime: options.requestTime ?? 0,
     }),
-    established: false
+    established: false,
   };
 }
 
@@ -65,7 +69,7 @@ export const stepLinkSession: StepFn<LinkSessionState> = (state, event) => {
 
 export function stepLinkSessionWithActions(
   state: LinkSessionState,
-  event: LinkSessionEvent
+  event: LinkSessionEvent,
 ): LinkSessionStepResult {
   if (event.kind === "session/close") {
     return {
@@ -73,10 +77,10 @@ export function stepLinkSessionWithActions(
         ...state,
         status: LinkStatus.CLOSED,
         established: false,
-        watchdog: { ...state.watchdog, status: LinkStatus.CLOSED }
+        watchdog: { ...state.watchdog, status: LinkStatus.CLOSED },
       },
       intents: [],
-      actions: [{ kind: "close", reason: LinkTeardownReason.INITIATOR_CLOSED }]
+      actions: [{ kind: "close", reason: LinkTeardownReason.INITIATOR_CLOSED }],
     };
   }
 
@@ -88,35 +92,35 @@ export function stepLinkSessionWithActions(
       {
         ...state.watchdog,
         requestTime: event.at,
-        status: LinkStatus.PENDING
+        status: LinkStatus.PENDING,
       },
-      { kind: "link/watchdog-start" }
+      { kind: "link/watchdog-start" },
     );
     return {
       state: {
         ...state,
         status: LinkStatus.PENDING,
-        watchdog: watchdog.state
+        watchdog: watchdog.state,
       },
       intents: watchdog.intents,
-      actions: [{ kind: "send-link-request", peerId: state.peerId }]
+      actions: [{ kind: "send-link-request", peerId: state.peerId }],
     };
   }
 
   if (event.kind === "session/handshake") {
     const watchdog = stepLinkWatchdogWithActions(state.watchdog, {
       kind: "link/status",
-      status: LinkStatus.HANDSHAKE
+      status: LinkStatus.HANDSHAKE,
     });
     return {
       state: {
         ...state,
         status: LinkStatus.HANDSHAKE,
         established: false,
-        watchdog: watchdog.state
+        watchdog: watchdog.state,
       },
       intents: [],
-      actions: [{ kind: "send-handshake", peerId: state.peerId }]
+      actions: [{ kind: "send-handshake", peerId: state.peerId }],
     };
   }
 
@@ -124,17 +128,19 @@ export function stepLinkSessionWithActions(
     let watchdog = stepLinkWatchdogWithActions(state.watchdog, {
       kind: "link/status",
       status: LinkStatus.ACTIVE,
-      activatedAt: event.at
+      activatedAt: event.at,
     }).state;
     watchdog = stepLinkWatchdogWithActions(watchdog, {
       kind: "link/rtt-measured",
-      rtt: event.rtt
+      rtt: event.rtt,
     }).state;
     watchdog = stepLinkWatchdogWithActions(watchdog, {
       kind: "link/inbound",
-      at: event.at
+      at: event.at,
     }).state;
-    const start = stepLinkWatchdogWithActions(watchdog, { kind: "link/watchdog-start" });
+    const start = stepLinkWatchdogWithActions(watchdog, {
+      kind: "link/watchdog-start",
+    });
 
     const actions: LinkSessionAction[] = [];
     if (state.role === "responder") {
@@ -146,22 +152,22 @@ export function stepLinkSessionWithActions(
         ...state,
         status: LinkStatus.ACTIVE,
         established: true,
-        watchdog: start.state
+        watchdog: start.state,
       },
       intents: start.intents,
-      actions
+      actions,
     };
   }
 
   if (event.kind === "session/inbound") {
     const watchdog = stepLinkWatchdogWithActions(state.watchdog, {
       kind: "link/inbound",
-      at: event.at
+      at: event.at,
     });
     return {
       state: { ...state, watchdog: watchdog.state },
       intents: [],
-      actions: []
+      actions: [],
     };
   }
 
@@ -172,10 +178,10 @@ export function stepLinkSessionWithActions(
         ...state,
         status: tick.state.status,
         established: tick.state.status === LinkStatus.ACTIVE,
-        watchdog: tick.state
+        watchdog: tick.state,
       },
       intents: tick.intents,
-      actions: tick.actions
+      actions: tick.actions,
     };
   }
 

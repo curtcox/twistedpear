@@ -43,7 +43,7 @@ import {
   initialGateState,
   interpretGate,
   type GateState,
-  type GateStepResult
+  type GateStepResult,
 } from "@twistedpear/effects";
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -52,7 +52,7 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
-  PACKET_TYPE_PROOF
+  PACKET_TYPE_PROOF,
 } from "../packet-header.js";
 import { PacketContextCode } from "../packet-context.js";
 import { equalByteArrays } from "../path-table.js";
@@ -85,7 +85,10 @@ export function planPacketFilter(input: {
     return true;
   }
 
-  return input.packetType === PACKET_TYPE_ANNOUNCE && input.destinationType === PACKET_DEST_TYPE_SINGLE;
+  return (
+    input.packetType === PACKET_TYPE_ANNOUNCE &&
+    input.destinationType === PACKET_DEST_TYPE_SINGLE
+  );
 }
 
 /**
@@ -100,11 +103,15 @@ type PacketFilterPlanGateEvent = Extract<
   { readonly kind: "transport/packet-filter-plan-gate" }
 >;
 
-const packetFilterPlanGate = defineBooleanGate<PacketFilterPlanGateEvent, "accept", "reject">({
+const packetFilterPlanGate = defineBooleanGate<
+  PacketFilterPlanGateEvent,
+  "accept",
+  "reject"
+>({
   event: "transport/packet-filter-plan-gate",
   whenTrue: "accept",
   whenFalse: "reject",
-  decide: (event) => planPacketFilter(event)
+  decide: (event) => planPacketFilter(event),
 });
 
 export type PacketFilterPlanState = GateState;
@@ -126,7 +133,8 @@ export type PacketFilterPlanStepResult = GateStepResult<PacketFilterPlanAction>;
 
 export const initialPacketFilterPlanState = initialGateState;
 
-export const stepPacketFilterPlanWithActions = interpretGate(packetFilterPlanGate);
+export const stepPacketFilterPlanWithActions =
+  interpretGate(packetFilterPlanGate);
 
 /** Extract the packet-filter plan from actions; null when empty. */
 export const packetFilterPlanFromActions = gateConclusion<
@@ -134,9 +142,11 @@ export const packetFilterPlanFromActions = gateConclusion<
   PacketFilterPlan
 >("accept", "reject");
 
-export const shouldAcceptPacketFilterPlan = gateConcluded<PacketFilterPlanAction>("accept");
+export const shouldAcceptPacketFilterPlan =
+  gateConcluded<PacketFilterPlanAction>("accept");
 
-export const shouldRejectPacketFilterPlan = gateConcluded<PacketFilterPlanAction>("reject");
+export const shouldRejectPacketFilterPlan =
+  gateConcluded<PacketFilterPlanAction>("reject");
 
 /**
  * Packet filter gate is event-driven; no durable session fields.
@@ -156,11 +166,11 @@ const packetFilterGate = defineGate<PacketFilterGateEvent, PacketFilterAction>({
     const plan = packetFilterPlanFromActions(
       decideGate(packetFilterPlanGate, {
         ...event,
-        kind: "transport/packet-filter-plan-gate"
-      })
+        kind: "transport/packet-filter-plan-gate",
+      }),
     );
     return plan === null ? [] : [{ kind: plan }];
-  }
+  },
 });
 
 export type PacketFilterState = GateState;
@@ -177,8 +187,7 @@ export type PacketFilterEvent =
     };
 
 export type PacketFilterAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "reject" };
+  { readonly kind: "accept" } | { readonly kind: "reject" };
 
 export type PacketFilterStepResult = GateStepResult<PacketFilterAction>;
 
@@ -186,9 +195,11 @@ export const initialPacketFilterState = initialGateState;
 
 export const stepPacketFilterWithActions = interpretGate(packetFilterGate);
 
-export const shouldAcceptPacketFilter = gateConcluded<PacketFilterAction>("accept");
+export const shouldAcceptPacketFilter =
+  gateConcluded<PacketFilterAction>("accept");
 
-export const shouldRejectPacketFilter = gateConcluded<PacketFilterAction>("reject");
+export const shouldRejectPacketFilter =
+  gateConcluded<PacketFilterAction>("reject");
 
 export function shouldAcceptTransportPacket(input: {
   readonly filterPassed: boolean;
@@ -230,7 +241,7 @@ const acceptTransportPacketGate = defineBooleanGate<
   event: "transport/accept-packet-gate",
   whenTrue: "accept",
   whenFalse: "skip",
-  decide: (event) => shouldAcceptTransportPacket(event)
+  decide: (event) => shouldAcceptTransportPacket(event),
 });
 
 export type AcceptTransportPacketState = GateState;
@@ -247,22 +258,22 @@ export type AcceptTransportPacketEvent =
     };
 
 export type AcceptTransportPacketAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
-export type AcceptTransportPacketStepResult = GateStepResult<AcceptTransportPacketAction>;
+export type AcceptTransportPacketStepResult =
+  GateStepResult<AcceptTransportPacketAction>;
 
 export const initialAcceptTransportPacketState = initialGateState;
 
-export const stepAcceptTransportPacketWithActions = interpretGate(acceptTransportPacketGate);
+export const stepAcceptTransportPacketWithActions = interpretGate(
+  acceptTransportPacketGate,
+);
 
-export const shouldAcceptTransportPacketNow = gateConcluded<
-  AcceptTransportPacketAction
->("accept");
+export const shouldAcceptTransportPacketNow =
+  gateConcluded<AcceptTransportPacketAction>("accept");
 
-export const shouldSkipAcceptTransportPacket = gateConcluded<
-  AcceptTransportPacketAction
->("skip");
+export const shouldSkipAcceptTransportPacket =
+  gateConcluded<AcceptTransportPacketAction>("skip");
 
 export function shouldDeferPacketHash(input: {
   readonly packetType: number;
@@ -296,7 +307,7 @@ const packetHashDeferGate = defineBooleanGate<
   event: "transport/packet-hash-defer-gate",
   whenTrue: "defer",
   whenFalse: "remember-now",
-  decide: (event) => shouldDeferPacketHash(event)
+  decide: (event) => shouldDeferPacketHash(event),
 });
 
 export type PacketHashDeferState = GateState;
@@ -311,20 +322,20 @@ export type PacketHashDeferEvent =
     };
 
 export type PacketHashDeferAction =
-  | { readonly kind: "defer" }
-  | { readonly kind: "remember-now" };
+  { readonly kind: "defer" } | { readonly kind: "remember-now" };
 
 export type PacketHashDeferStepResult = GateStepResult<PacketHashDeferAction>;
 
 export const initialPacketHashDeferState = initialGateState;
 
-export const stepPacketHashDeferWithActions = interpretGate(packetHashDeferGate);
+export const stepPacketHashDeferWithActions =
+  interpretGate(packetHashDeferGate);
 
-export const shouldDeferPacketHashActions = gateConcluded<PacketHashDeferAction>("defer");
+export const shouldDeferPacketHashActions =
+  gateConcluded<PacketHashDeferAction>("defer");
 
-export const shouldRememberPacketHashImmediately = gateConcluded<
-  PacketHashDeferAction
->("remember-now");
+export const shouldRememberPacketHashImmediately =
+  gateConcluded<PacketHashDeferAction>("remember-now");
 
 /** Which link-table interface should carry a relayed link packet, if any. */
 export type LinkRelayTarget = "outbound" | "received";
@@ -342,7 +353,10 @@ export function planLinkRelayTarget(input: {
   readonly takenHops: number;
 }): LinkRelayTarget | null {
   if (input.sameInterface) {
-    if (input.packetHops === input.remainingHops || input.packetHops === input.takenHops) {
+    if (
+      input.packetHops === input.remainingHops ||
+      input.packetHops === input.takenHops
+    ) {
       return "outbound";
     }
     return null;
@@ -375,7 +389,7 @@ const linkRelayTargetPlanGate = defineOptionGate<
   event: "transport/link-relay-plan-gate",
   kinds: ["outbound", "received"],
   none: "ignore",
-  decide: (event) => planLinkRelayTarget(event)
+  decide: (event) => planLinkRelayTarget(event),
 });
 
 export type LinkRelayTargetPlanState = GateState;
@@ -396,11 +410,14 @@ export type LinkRelayTargetPlanAction = {
   readonly kind: LinkRelayTarget | "ignore";
 };
 
-export type LinkRelayTargetPlanStepResult = GateStepResult<LinkRelayTargetPlanAction>;
+export type LinkRelayTargetPlanStepResult =
+  GateStepResult<LinkRelayTargetPlanAction>;
 
 export const initialLinkRelayTargetPlanState = initialGateState;
 
-export const stepLinkRelayTargetPlanWithActions = interpretGate(linkRelayTargetPlanGate);
+export const stepLinkRelayTargetPlanWithActions = interpretGate(
+  linkRelayTargetPlanGate,
+);
 
 /** Extract the link relay target plan from actions; null when empty or ignore. */
 export const linkRelayTargetPlanFromActions = gateConclusion<
@@ -408,13 +425,14 @@ export const linkRelayTargetPlanFromActions = gateConclusion<
   LinkRelayTarget
 >("outbound", "received");
 
-export const shouldRelayLinkOutboundPlan = gateConcluded<LinkRelayTargetPlanAction>("outbound");
+export const shouldRelayLinkOutboundPlan =
+  gateConcluded<LinkRelayTargetPlanAction>("outbound");
 
-export const shouldRelayLinkReceivedPlan = gateConcluded<LinkRelayTargetPlanAction>("received");
+export const shouldRelayLinkReceivedPlan =
+  gateConcluded<LinkRelayTargetPlanAction>("received");
 
-export const shouldIgnoreLinkRelayTargetPlan = gateConcluded<
-  LinkRelayTargetPlanAction
->("ignore");
+export const shouldIgnoreLinkRelayTargetPlan =
+  gateConcluded<LinkRelayTargetPlanAction>("ignore");
 
 /** Whether link-relay may proceed after a link-table lookup hit. */
 export function canLookupLinkRelayEntry(entryPresent: boolean): boolean {
@@ -449,18 +467,21 @@ type LinkRelayTargetGateEvent = Extract<
   { readonly kind: "transport/link-relay-gate" }
 >;
 
-export const linkRelayTargetGate = defineGate<LinkRelayTargetGateEvent, LinkRelayTargetAction>({
+export const linkRelayTargetGate = defineGate<
+  LinkRelayTargetGateEvent,
+  LinkRelayTargetAction
+>({
   event: "transport/link-relay-gate",
   actions: ["outbound", "received", "ignore"],
   decide: (event) => {
     const target = linkRelayTargetPlanFromActions(
       decideGate(linkRelayTargetPlanGate, {
         ...event,
-        kind: "transport/link-relay-plan-gate"
-      })
+        kind: "transport/link-relay-plan-gate",
+      }),
     );
     return [{ kind: target ?? "ignore" }];
-  }
+  },
 });
 
 export type LinkRelayTargetEvent =
@@ -479,4 +500,5 @@ export type LinkRelayTargetAction = {
   readonly kind: LinkRelayTarget | "ignore";
 };
 
-export const stepLinkRelayTargetWithActions = interpretGate(linkRelayTargetGate);
+export const stepLinkRelayTargetWithActions =
+  interpretGate(linkRelayTargetGate);

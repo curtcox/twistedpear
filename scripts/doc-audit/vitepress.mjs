@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot, trackedMarkdownPaths } from "./repo-root.mjs";
 
-const PUBLISHED_PREFIXES = ["authors/", "cookbook/", "docs/", "guide/", "specs/"];
+const PUBLISHED_PREFIXES = [
+  "authors/",
+  "cookbook/",
+  "docs/",
+  "guide/",
+  "specs/",
+];
 const MULTILINE_CODE_WITH_TAG_RE =
   /`[^`\n]*\n[^`]*<[a-z][a-z0-9_-]*(?:\s[^>]*)?>[^`]*`/g;
 
@@ -33,7 +39,7 @@ export function findMultilineCodeTagSpans(text) {
   const source = withoutFencedCode(text);
   return [...source.matchAll(MULTILINE_CODE_WITH_TAG_RE)].map((match) => ({
     line: source.slice(0, match.index).split("\n").length,
-    excerpt: match[0]
+    excerpt: match[0],
   }));
 }
 
@@ -44,13 +50,15 @@ export function findMultilineCodeTagSpans(text) {
  */
 export function findPublishedVitePressMarkdownHazards(
   root = repoRoot(),
-  files = trackedMarkdownPaths(root)
+  files = trackedMarkdownPaths(root),
 ) {
   return files
-    .filter((file) => PUBLISHED_PREFIXES.some((prefix) => file.startsWith(prefix)))
+    .filter((file) =>
+      PUBLISHED_PREFIXES.some((prefix) => file.startsWith(prefix)),
+    )
     .flatMap((file) =>
       findMultilineCodeTagSpans(readFileSync(join(root, file), "utf8")).map(
-        (hazard) => ({ doc: file, ...hazard })
-      )
+        (hazard) => ({ doc: file, ...hazard }),
+      ),
     );
 }

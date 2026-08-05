@@ -4,24 +4,32 @@ import {
   NodeCryptoProvider,
   PipeInterface,
   Reticulum,
-  nodeRuntime
+  nodeRuntime,
 } from "@twistedpear/reticulum-ts";
 import { encodeSessionInviteEnvelope } from "@twistedpear/protocol";
 import { LXMessageMethod } from "@twistedpear/lxmf-ts";
 import {
   createHostLxmfDelivery,
-  type HostLxmfDeliverySession
+  type HostLxmfDeliverySession,
 } from "../src/host-lxmf-delivery.js";
-import { sessionInviteContent, SESSION_INVITE_TITLE, type DeliveredSessionInvite } from "../src/session-invite-carrier.js";
+import {
+  sessionInviteContent,
+  SESSION_INVITE_TITLE,
+  type DeliveredSessionInvite,
+} from "../src/session-invite-carrier.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 
-async function waitFor(predicate: () => boolean, timeoutMs = 20_000): Promise<void> {
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs = 20_000,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     if (predicate()) return;
-    if (Date.now() > deadline) throw new Error("timed out waiting for condition");
+    if (Date.now() > deadline)
+      throw new Error("timed out waiting for condition");
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
 }
@@ -50,7 +58,7 @@ describe("createHostLxmfDelivery", () => {
       identity: new Identity(provider),
       announceIntervalMs: 0,
       receiveSessionInvite: async () => {},
-      isInvitableApp: (appId) => appId === "line-check"
+      isInvitableApp: (appId) => appId === "line-check",
     });
     sessions.push(delivery);
     expect(delivery.lxmfAddress).toMatch(/^[0-9a-f]{32}$/);
@@ -62,7 +70,11 @@ describe("createHostLxmfDelivery", () => {
     const right = Reticulum.create({ provider, runtime });
     left.start();
     right.start();
-    const [leftPipe, rightPipe] = PipeInterface.pair(provider, { name: "left" }, { name: "right" });
+    const [leftPipe, rightPipe] = PipeInterface.pair(
+      provider,
+      { name: "left" },
+      { name: "right" },
+    );
     left.registerInterface(leftPipe);
     right.registerInterface(rightPipe);
     cleanups.push(() => {
@@ -82,7 +94,7 @@ describe("createHostLxmfDelivery", () => {
       receiveSessionInvite: async (invite) => {
         raised.push(invite);
       },
-      isInvitableApp: (appId) => appId === "line-check"
+      isInvitableApp: (appId) => appId === "line-check",
     });
     sessions.push(leftDelivery);
     leftDelivery.onInvite((invite) => observed.push(invite));
@@ -93,19 +105,21 @@ describe("createHostLxmfDelivery", () => {
       identity: rightIdentity,
       announceIntervalMs: 6_000,
       receiveSessionInvite: async () => {},
-      isInvitableApp: () => false
+      isInvitableApp: () => false,
     });
     sessions.push(rightDelivery);
 
     await waitFor(() =>
-      leftDelivery.peers().some((peer) => peer.destinationHash === rightDelivery.lxmfAddress)
+      leftDelivery
+        .peers()
+        .some((peer) => peer.destinationHash === rightDelivery.lxmfAddress),
     );
 
     const envelope = encodeSessionInviteEnvelope({
       id: "invite-host-1",
       appId: "line-check",
       requestedClasses: ["microphone"],
-      expiresAt: Date.now() + 120_000
+      expiresAt: Date.now() + 120_000,
     });
     await rightDelivery.router.packAndSend({
       destination: rightDelivery.router.createOutboundDestination(leftIdentity),
@@ -113,7 +127,7 @@ describe("createHostLxmfDelivery", () => {
       title: SESSION_INVITE_TITLE,
       content: sessionInviteContent(envelope),
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
-      deferStamp: true
+      deferStamp: true,
     });
 
     await waitFor(() => raised.length === 1);

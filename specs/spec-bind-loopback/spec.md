@@ -1,6 +1,5 @@
 # SPEC-BIND-LOOPBACK — In-memory substrate binding
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -11,7 +10,7 @@ register: none
 
 ## Scope
 
-The binding contract between the app platform and *some* message substrate, plus its
+The binding contract between the app platform and _some_ message substrate, plus its
 simplest implementation: an in-memory loopback. LXMF over Reticulum is the production
 binding; loopback is the binding that lets the entire platform — broker, SDK, apps,
 renderers — run and be tested with zero network. Web analog: `localhost`, or a service

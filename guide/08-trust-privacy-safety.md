@@ -76,7 +76,7 @@ publisher" with the full publisher address, above the normal capability list. Th
 
 ## Things a well-behaved host will never do
 
-Knowing what is *not* normal is a useful defence:
+Knowing what is _not_ normal is a useful defence:
 
 - The host asks for an identity passphrase or recovery words only inside an identity action
   you initiated. A mini-app never receives those values, and TwistedPear never asks for a

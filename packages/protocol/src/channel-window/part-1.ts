@@ -35,7 +35,7 @@ export const ChannelWindowLimits = {
   RTT_FAST: 0.18,
   RTT_MEDIUM: 0.75,
   RTT_SLOW: 1.45,
-  WINDOW_FLEXIBILITY: 4
+  WINDOW_FLEXIBILITY: 4,
 } as const;
 
 export interface ChannelWindowState {
@@ -55,7 +55,7 @@ export function initialChannelWindowState(rtt: number): ChannelWindowState {
       windowMin: 1,
       windowFlexibility: 1,
       fastRateRounds: 0,
-      mediumRateRounds: 0
+      mediumRateRounds: 0,
     };
   }
 
@@ -65,7 +65,7 @@ export function initialChannelWindowState(rtt: number): ChannelWindowState {
     windowMin: ChannelWindowLimits.WINDOW_MIN,
     windowFlexibility: ChannelWindowLimits.WINDOW_FLEXIBILITY,
     fastRateRounds: 0,
-    mediumRateRounds: 0
+    mediumRateRounds: 0,
   };
 }
 
@@ -114,7 +114,7 @@ export function initialChannelPacketTimeoutSecondsState(): ChannelPacketTimeoutS
 
 export function stepChannelPacketTimeoutSecondsWithActions(
   state: ChannelPacketTimeoutSecondsState,
-  event: ChannelPacketTimeoutSecondsEvent
+  event: ChannelPacketTimeoutSecondsEvent,
 ): ChannelPacketTimeoutSecondsStepResult {
   if (event.kind === "channel/packet-timeout-gate") {
     return {
@@ -126,10 +126,10 @@ export function stepChannelPacketTimeoutSecondsWithActions(
           timeout: channelPacketTimeoutSeconds({
             tries: event.tries,
             rtt: event.rtt,
-            txRingLength: event.txRingLength
-          })
-        }
-      ]
+            txRingLength: event.txRingLength,
+          }),
+        },
+      ],
     };
   }
 
@@ -137,14 +137,14 @@ export function stepChannelPacketTimeoutSecondsWithActions(
 }
 
 export function shouldUseChannelPacketTimeout(
-  actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-timeout");
 }
 
 /** Extract packet timeout from step actions; null when no `use-timeout`. */
 export function channelPacketTimeoutFromActions(
-  actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>
+  actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-timeout");
   return action?.kind === "use-timeout" ? action.timeout : null;
@@ -175,8 +175,7 @@ export type ChannelAllowsSendEvent =
     };
 
 export type ChannelAllowsSendAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface ChannelAllowsSendStepResult {
   readonly state: ChannelAllowsSendState;
@@ -190,7 +189,7 @@ export function initialChannelAllowsSendState(): ChannelAllowsSendState {
 
 export function stepChannelAllowsSendWithActions(
   state: ChannelAllowsSendState,
-  event: ChannelAllowsSendEvent
+  event: ChannelAllowsSendEvent,
 ): ChannelAllowsSendStepResult {
   if (event.kind === "channel/allows-send-gate") {
     return {
@@ -201,12 +200,12 @@ export function stepChannelAllowsSendWithActions(
           kind: channelAllowsSend({
             isUsable: event.isUsable,
             outstanding: event.outstanding,
-            window: event.window
+            window: event.window,
           })
             ? "allow"
-            : "deny"
-        }
-      ]
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -214,13 +213,13 @@ export function stepChannelAllowsSendWithActions(
 }
 
 export function shouldAllowChannelSend(
-  actions: ReadonlyArray<ChannelAllowsSendAction>
+  actions: ReadonlyArray<ChannelAllowsSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyChannelSend(
-  actions: ReadonlyArray<ChannelAllowsSendAction>
+  actions: ReadonlyArray<ChannelAllowsSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -240,7 +239,10 @@ export function planChannelSend(input: {
   if (!input.ready) {
     return "link-not-ready";
   }
-  if (input.packedLength !== null && !linkPayloadFitsMdu(input.packedLength, input.mdu)) {
+  if (
+    input.packedLength !== null &&
+    !linkPayloadFitsMdu(input.packedLength, input.mdu)
+  ) {
     return "too-big";
   }
   return "proceed";
@@ -277,7 +279,7 @@ export function initialChannelSendPlanState(): ChannelSendPlanState {
 
 export function stepChannelSendPlanWithActions(
   state: ChannelSendPlanState,
-  event: ChannelSendPlanEvent
+  event: ChannelSendPlanEvent,
 ): ChannelSendPlanStepResult {
   if (event.kind === "channel/send-plan-gate") {
     return {
@@ -288,10 +290,10 @@ export function stepChannelSendPlanWithActions(
           kind: planChannelSend({
             ready: event.ready,
             packedLength: event.packedLength,
-            mdu: event.mdu
-          })
-        }
-      ]
+            mdu: event.mdu,
+          }),
+        },
+      ],
     };
   }
 
@@ -300,31 +302,31 @@ export function stepChannelSendPlanWithActions(
 
 /** Extract the send plan from actions; null when empty. */
 export function channelSendPlanFromActions(
-  actions: ReadonlyArray<ChannelSendPlanAction>
+  actions: ReadonlyArray<ChannelSendPlanAction>,
 ): ChannelSendPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "proceed" ||
       entry.kind === "link-not-ready" ||
-      entry.kind === "too-big"
+      entry.kind === "too-big",
   );
   return action?.kind ?? null;
 }
 
 export function shouldProceedChannelSendPlan(
-  actions: ReadonlyArray<ChannelSendPlanAction>
+  actions: ReadonlyArray<ChannelSendPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectChannelSendPlanLinkNotReady(
-  actions: ReadonlyArray<ChannelSendPlanAction>
+  actions: ReadonlyArray<ChannelSendPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "link-not-ready");
 }
 
 export function shouldRejectChannelSendPlanTooBig(
-  actions: ReadonlyArray<ChannelSendPlanAction>
+  actions: ReadonlyArray<ChannelSendPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "too-big");
 }
@@ -370,36 +372,43 @@ export const stepChannelSend: StepFn<ChannelSendState> = (state, event) => {
 
 export function stepChannelSendWithActions(
   state: ChannelSendState,
-  event: ChannelSendEvent
+  event: ChannelSendEvent,
 ): ChannelSendStepResult {
   return stepChannelSendInner(state, event);
 }
 
-export function shouldProceedChannelSend(actions: ReadonlyArray<ChannelSendAction>): boolean {
+export function shouldProceedChannelSend(
+  actions: ReadonlyArray<ChannelSendAction>,
+): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectChannelSendLinkNotReady(
-  actions: ReadonlyArray<ChannelSendAction>
+  actions: ReadonlyArray<ChannelSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "link-not-ready");
 }
 
-export function shouldRejectChannelSendTooBig(actions: ReadonlyArray<ChannelSendAction>): boolean {
+export function shouldRejectChannelSendTooBig(
+  actions: ReadonlyArray<ChannelSendAction>,
+): boolean {
   return actions.some((action) => action.kind === "too-big");
 }
 
 function stepChannelSendInner(
   state: ChannelSendState,
-  event: ChannelSendEvent
+  event: ChannelSendEvent,
 ): ChannelSendStepResult {
   if (event.kind === "channel/send-gate") {
-    const planActions = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
-      kind: "channel/send-plan-gate",
-      ready: event.ready,
-      packedLength: event.packedLength,
-      mdu: event.mdu
-    }).actions;
+    const planActions = stepChannelSendPlanWithActions(
+      initialChannelSendPlanState(),
+      {
+        kind: "channel/send-plan-gate",
+        ready: event.ready,
+        packedLength: event.packedLength,
+        mdu: event.mdu,
+      },
+    ).actions;
     const plan = channelSendPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };
@@ -438,8 +447,7 @@ export type ChannelOutletTransmitEvent =
     };
 
 export type ChannelOutletTransmitAction =
-  | { readonly kind: "ok" }
-  | { readonly kind: "reject" };
+  { readonly kind: "ok" } | { readonly kind: "reject" };
 
 export interface ChannelOutletTransmitStepResult {
   readonly state: ChannelOutletTransmitState;

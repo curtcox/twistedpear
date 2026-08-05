@@ -7,7 +7,7 @@ export class NfcPaymentAidError extends Error {
   constructor(
     readonly code: "PAYMENT_AID_BLOCKED",
     message: string,
-    readonly aid: string
+    readonly aid: string,
   ) {
     super(message);
     this.name = "NfcPaymentAidError";
@@ -25,7 +25,7 @@ export const PAYMENT_AID_BLOCKLIST: ReadonlyArray<string> = [
   "A0000000651010", // JCB
   "A000000333010101", // UnionPay
   "A0000002771010", // Interac
-  "325041592E5359532E4444463031" // PPSE directory
+  "325041592E5359532E4444463031", // PPSE directory
 ];
 
 export function normalizeAid(aid: string): string {
@@ -36,20 +36,28 @@ export function isPaymentAidBlocked(aid: string): boolean {
   const normalized = normalizeAid(aid);
   if (normalized.length < 10) return false;
   return PAYMENT_AID_BLOCKLIST.some(
-    (blocked) => normalized === blocked || normalized.startsWith(blocked)
+    (blocked) => normalized === blocked || normalized.startsWith(blocked),
   );
 }
 
 export function assertAidAllowed(aid: string): string {
   const normalized = normalizeAid(aid);
-  if (normalized.length < 10 || normalized.length > 32 || normalized.length % 2 !== 0) {
-    throw new NfcPaymentAidError("PAYMENT_AID_BLOCKED", "Invalid AID encoding.", aid);
+  if (
+    normalized.length < 10 ||
+    normalized.length > 32 ||
+    normalized.length % 2 !== 0
+  ) {
+    throw new NfcPaymentAidError(
+      "PAYMENT_AID_BLOCKED",
+      "Invalid AID encoding.",
+      aid,
+    );
   }
   if (isPaymentAidBlocked(normalized)) {
     throw new NfcPaymentAidError(
       "PAYMENT_AID_BLOCKED",
       "Payment applet AIDs are blocklisted; use the OS payment sheet.",
-      normalized
+      normalized,
     );
   }
   return normalized;
@@ -62,10 +70,20 @@ export interface NfcApduCommand {
   readonly apdu: string;
 }
 
-export function validateNfcApduCommand(command: NfcApduCommand): NfcApduCommand {
+export function validateNfcApduCommand(
+  command: NfcApduCommand,
+): NfcApduCommand {
   const aid = assertAidAllowed(command.aid);
-  if (typeof command.apdu !== "string" || command.apdu.length < 2 || command.apdu.length > 1024) {
-    throw new NfcPaymentAidError("PAYMENT_AID_BLOCKED", "Invalid APDU payload length.", aid);
+  if (
+    typeof command.apdu !== "string" ||
+    command.apdu.length < 2 ||
+    command.apdu.length > 1024
+  ) {
+    throw new NfcPaymentAidError(
+      "PAYMENT_AID_BLOCKED",
+      "Invalid APDU payload length.",
+      aid,
+    );
   }
   return { kind: "nfc", action: "apdu", aid, apdu: command.apdu };
 }

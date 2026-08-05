@@ -403,11 +403,7 @@
               "id": "menu",
               "type": "list",
               "props": {
-                "items": [
-                  "alpha",
-                  "beta",
-                  "gamma"
-                ]
+                "items": ["alpha", "beta", "gamma"]
               }
             }
           ]
@@ -464,11 +460,7 @@
               "id": "menu",
               "type": "list",
               "props": {
-                "items": [
-                  "alpha",
-                  "beta",
-                  "gamma"
-                ]
+                "items": ["alpha", "beta", "gamma"]
               }
             }
           ]

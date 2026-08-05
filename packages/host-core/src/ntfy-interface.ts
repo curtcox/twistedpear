@@ -1,7 +1,11 @@
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { sha256 } from "@noble/hashes/sha256.js";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
-import { Packet, RawPacketInterface, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import {
+  Packet,
+  RawPacketInterface,
+  type ReticulumInterfaceOptions,
+} from "@twistedpear/reticulum-ts";
 
 const NTFY_MESSAGE_HEADER_BYTES = 1 + 24;
 const NTFY_AUTH_TAG_BYTES = 16;
@@ -12,20 +16,36 @@ function ntfyKey(secret: string): Uint8Array {
   return sha256(new TextEncoder().encode(secret));
 }
 
-export function sealNtfyPacket(secret: string, nonce: Uint8Array, bytes: Uint8Array): Uint8Array {
+export function sealNtfyPacket(
+  secret: string,
+  nonce: Uint8Array,
+  bytes: Uint8Array,
+): Uint8Array {
   if (nonce.length !== 24) throw new Error("ntfy nonce must be 24 bytes");
   const header = new Uint8Array(NTFY_MESSAGE_HEADER_BYTES);
   header[0] = 0x01;
   header.set(nonce, 1);
-  return concat([header, xchacha20poly1305(ntfyKey(secret), nonce, header).encrypt(bytes)]);
+  return concat([
+    header,
+    xchacha20poly1305(ntfyKey(secret), nonce, header).encrypt(bytes),
+  ]);
 }
 
-export function openNtfyPacket(secret: string, packet: Uint8Array): Uint8Array | null {
-  if (packet.length < NTFY_MESSAGE_HEADER_BYTES + NTFY_AUTH_TAG_BYTES || packet[0] !== 0x01) return null;
+export function openNtfyPacket(
+  secret: string,
+  packet: Uint8Array,
+): Uint8Array | null {
+  if (
+    packet.length < NTFY_MESSAGE_HEADER_BYTES + NTFY_AUTH_TAG_BYTES ||
+    packet[0] !== 0x01
+  )
+    return null;
   const nonce = packet.subarray(1, NTFY_MESSAGE_HEADER_BYTES);
   const header = packet.subarray(0, NTFY_MESSAGE_HEADER_BYTES);
   try {
-    return xchacha20poly1305(ntfyKey(secret), nonce, header).decrypt(packet.subarray(NTFY_MESSAGE_HEADER_BYTES));
+    return xchacha20poly1305(ntfyKey(secret), nonce, header).decrypt(
+      packet.subarray(NTFY_MESSAGE_HEADER_BYTES),
+    );
   } catch {
     return null;
   }
@@ -45,11 +65,17 @@ function concat(parts: ReadonlyArray<Uint8Array>): Uint8Array {
 function base64url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 function unbase64url(text: string): Uint8Array {
-  const padded = text.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(text.length / 4) * 4, "=");
+  const padded = text
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(text.length / 4) * 4, "=");
   const binary = atob(padded);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
@@ -78,7 +104,12 @@ export class NtfyPacketInterface extends RawPacketInterface {
     super({
       ...options,
       name: options.name ?? "host-ntfy",
-      mtu: options.mtu ?? MAX_NTFY_MESSAGE_BYTES - NTFY_MESSAGE_HEADER_BYTES - NTFY_AUTH_TAG_BYTES - 64
+      mtu:
+        options.mtu ??
+        MAX_NTFY_MESSAGE_BYTES -
+          NTFY_MESSAGE_HEADER_BYTES -
+          NTFY_AUTH_TAG_BYTES -
+          64,
     });
     this.provider = provider;
     this.ntfyOptions = options;
@@ -102,12 +133,14 @@ export class NtfyPacketInterface extends RawPacketInterface {
 
   protected override async writeBytes(bytes: Uint8Array): Promise<void> {
     const nonce = this.provider.randomBytes(24);
-    const body = base64url(sealNtfyPacket(this.ntfyOptions.secret, nonce, bytes));
+    const body = base64url(
+      sealNtfyPacket(this.ntfyOptions.secret, nonce, bytes),
+    );
     const response = await this.fetchEffect(this.topicUrl, {
       method: "POST",
       headers: this.headers({ "Content-Type": "text/plain; charset=utf-8" }),
       body,
-      signal: this.abortController?.signal ?? null
+      signal: this.abortController?.signal ?? null,
     });
     if (!response.ok) {
       this.online = false;
@@ -150,7 +183,7 @@ export class NtfyPacketInterface extends RawPacketInterface {
     const response = await this.fetchEffect(url, {
       method: "GET",
       headers: this.headers({ Accept: "application/x-ndjson" }),
-      signal: this.abortController?.signal ?? null
+      signal: this.abortController?.signal ?? null,
     });
     if (!response.ok) {
       throw new Error(`ntfy poll failed (${response.status})`);
@@ -193,10 +226,14 @@ export class NtfyPacketInterface extends RawPacketInterface {
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => {
       const timer = setTimeout(resolve, ms);
-      this.abortController?.signal.addEventListener("abort", () => {
-        clearTimeout(timer);
-        resolve();
-      }, { once: true });
+      this.abortController?.signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        { once: true },
+      );
     });
   }
 }

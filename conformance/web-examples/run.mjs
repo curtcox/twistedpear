@@ -16,7 +16,7 @@ const repoRoot = join(examplesRoot, "../..");
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-examples/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -56,7 +56,7 @@ function startStaticServer(root) {
               }
             });
           });
-        }
+        },
       });
     });
   });
@@ -64,11 +64,15 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath =
+    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+  if (
+    !resolvedPath.startsWith(resolvedRoot + sep) &&
+    resolvedPath !== resolvedRoot
+  ) {
     response.writeHead(403);
     response.end();
     return;
@@ -80,7 +84,9 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
+  response.writeHead(200, {
+    "content-type": staticContentType(extname(resolvedPath)),
+  });
   if (headOnly) {
     response.end();
     return;
@@ -112,17 +118,25 @@ async function runPlaywright(pageUrl) {
     });
 
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
-    await page.waitForFunction(() => globalThis.__WEB_EXAMPLES__?.status === "done", undefined, {
-      timeout: 60_000
-    });
+    await page.waitForFunction(
+      () => globalThis.__WEB_EXAMPLES__?.status === "done",
+      undefined,
+      {
+        timeout: 60_000,
+      },
+    );
 
     const result = await page.evaluate(() => globalThis.__WEB_EXAMPLES__);
     if (result?.status !== "done") {
-      throw new Error(`web examples spike incomplete: ${JSON.stringify(result)}`);
+      throw new Error(
+        `web examples spike incomplete: ${JSON.stringify(result)}`,
+      );
     }
 
     if (!Array.isArray(result.passed) || result.passed.length !== 3) {
-      throw new Error(`expected chat, file-drop, and board to pass: ${JSON.stringify(result.passed)}`);
+      throw new Error(
+        `expected chat, file-drop, and board to pass: ${JSON.stringify(result.passed)}`,
+      );
     }
 
     return result;

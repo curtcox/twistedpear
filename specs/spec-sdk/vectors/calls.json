@@ -659,14 +659,8 @@
       "name": "capability: unknown capability in declared set",
       "app": {
         "name": "rogue-app",
-        "declared": [
-          "identity",
-          "network:raw"
-        ],
-        "granted": [
-          "identity",
-          "network:raw"
-        ],
+        "declared": ["identity", "network:raw"],
+        "granted": ["identity", "network:raw"],
         "register": false
       },
       "steps": [
@@ -687,13 +681,8 @@
       "name": "capability: granted but not declared",
       "app": {
         "name": "undeclared-app",
-        "declared": [
-          "identity"
-        ],
-        "granted": [
-          "identity",
-          "storage:kv"
-        ],
+        "declared": ["identity"],
+        "granted": ["identity", "storage:kv"],
         "register": false
       },
       "steps": [
@@ -717,13 +706,8 @@
       "name": "capability: declared but not granted",
       "app": {
         "name": "ungranted-app",
-        "declared": [
-          "identity",
-          "storage:kv"
-        ],
-        "granted": [
-          "identity"
-        ],
+        "declared": ["identity", "storage:kv"],
+        "granted": ["identity"],
         "register": true
       },
       "steps": [
@@ -781,9 +765,7 @@
           "ai:chat",
           "apps:package"
         ],
-        "granted": [
-          "identity"
-        ],
+        "granted": ["identity"],
         "register": true
       },
       "steps": [

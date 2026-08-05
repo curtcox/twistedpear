@@ -37,7 +37,7 @@ export function initialLinkAwaitState(): LinkAwaitState {
     armed: false,
     concluded: false,
     established: false,
-    timedOut: false
+    timedOut: false,
   };
 }
 
@@ -63,14 +63,14 @@ export const stepLinkAwait: StepFn<LinkAwaitState> = (state, event) => {
 
 export function stepLinkAwaitWithActions(
   state: LinkAwaitState,
-  event: LinkAwaitEvent
+  event: LinkAwaitEvent,
 ): LinkAwaitStepResult {
   return stepLinkAwaitInner(state, event);
 }
 
 function stepLinkAwaitInner(
   state: LinkAwaitState,
-  event: LinkAwaitEvent
+  event: LinkAwaitEvent,
 ): LinkAwaitStepResult {
   if (event.kind === "link-await/arm") {
     return {
@@ -78,15 +78,15 @@ function stepLinkAwaitInner(
         armed: true,
         concluded: false,
         established: false,
-        timedOut: false
+        timedOut: false,
       },
       intents: [
         {
           kind: "timer/set",
-          timer: { id: LINK_AWAIT_TIMER_ID, delayMs: event.timeoutMs }
-        }
+          timer: { id: LINK_AWAIT_TIMER_ID, delayMs: event.timeoutMs },
+        },
       ],
-      actions: [{ kind: "request-link", timeoutMs: event.timeoutMs }]
+      actions: [{ kind: "request-link", timeoutMs: event.timeoutMs }],
     };
   }
 
@@ -99,10 +99,10 @@ function stepLinkAwaitInner(
         ...state,
         concluded: true,
         established: true,
-        timedOut: false
+        timedOut: false,
       },
       intents: [{ kind: "timer/cancel", timer: { id: LINK_AWAIT_TIMER_ID } }],
-      actions: [{ kind: "resolve" }]
+      actions: [{ kind: "resolve" }],
     };
   }
 
@@ -115,10 +115,10 @@ function stepLinkAwaitInner(
         ...state,
         concluded: true,
         established: false,
-        timedOut: true
+        timedOut: true,
       },
       intents: [],
-      actions: [{ kind: "reject", reason: "timeout" }]
+      actions: [{ kind: "reject", reason: "timeout" }],
     };
   }
 

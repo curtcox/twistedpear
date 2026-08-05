@@ -4,7 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
-  writeFileSync
+  writeFileSync,
 } from "node:fs";
 import { createPrivateKey, createPublicKey, randomBytes } from "node:crypto";
 import { connect } from "node:net";
@@ -24,11 +24,11 @@ const networkPort = Number(process.env.FREENET_F2_NETWORK_PORT ?? 31458);
 
 assert(
   Number.isSafeInteger(wsPort) && wsPort >= 1 && wsPort <= 65535,
-  `Invalid Freenet F2 ws port: ${wsPort}`
+  `Invalid Freenet F2 ws port: ${wsPort}`,
 );
 assert(
   Number.isSafeInteger(networkPort) && networkPort >= 1 && networkPort <= 65535,
-  `Invalid Freenet F2 network port: ${networkPort}`
+  `Invalid Freenet F2 network port: ${networkPort}`,
 );
 
 const root = mkdtempSync(join(tmpdir(), "twistedpear-freenet-f2-"));
@@ -41,7 +41,7 @@ function isolateHome() {
     homeRoot,
     "Library",
     "Application Support",
-    "The-Freenet-Project-Inc.Freenet"
+    "The-Freenet-Project-Inc.Freenet",
   );
   mkdirSync(support, { recursive: true });
   writeFileSync(join(support, "gateways.toml"), "gateways = []\n");
@@ -52,11 +52,11 @@ function x25519PublicKey(secret) {
   const privateKey = createPrivateKey({
     key: Buffer.concat([pkcs8Prefix, secret]),
     format: "der",
-    type: "pkcs8"
+    type: "pkcs8",
   });
   const publicDer = createPublicKey(privateKey).export({
     format: "der",
-    type: "spki"
+    type: "spki",
   });
   return Buffer.from(publicDer).subarray(-32);
 }
@@ -69,7 +69,7 @@ function appendTail(name, chunk) {
 function startGateway(secretPath) {
   const nodeRoot = join(root, "gateway");
   for (const directory of ["config", "data", "logs"].map((name) =>
-    join(nodeRoot, name)
+    join(nodeRoot, name),
   )) {
     mkdirSync(directory, { recursive: true });
   }
@@ -103,15 +103,15 @@ function startGateway(secretPath) {
     join(nodeRoot, "logs"),
     "--log-level",
     "info",
-    "--disable-auto-update"
+    "--disable-auto-update",
   ];
   const child = spawn(binary, args, {
     env: {
       ...process.env,
       HOME: homeRoot,
-      FREENET_TELEMETRY_ENABLED: "false"
+      FREENET_TELEMETRY_ENABLED: "false",
     },
-    stdio: ["ignore", "pipe", "pipe"]
+    stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
@@ -144,7 +144,8 @@ function waitForPort(port, timeoutMs = 30_000) {
 }
 
 function waitForExit(child, timeoutMs) {
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  if (child.exitCode !== null || child.signalCode !== null)
+    return Promise.resolve();
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, timeoutMs);
     child.once("exit", () => {
@@ -156,11 +157,13 @@ function waitForExit(child, timeoutMs) {
 
 async function stopNodes() {
   for (const { child } of children) {
-    if (child.exitCode === null && child.signalCode === null) child.kill("SIGINT");
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGINT");
   }
   await Promise.all(children.map(({ child }) => waitForExit(child, 5000)));
   for (const { child } of children) {
-    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGKILL");
   }
   await Promise.all(children.map(({ child }) => waitForExit(child, 1000)));
 }
@@ -186,9 +189,9 @@ async function main() {
       env: {
         ...process.env,
         FREENET_NODE_URL: nodeUrl,
-        FREENET_F2_LABEL: "local-isolated"
+        FREENET_F2_LABEL: "local-isolated",
       },
-      stdio: "inherit"
+      stdio: "inherit",
     });
     const exitCode = await new Promise((resolve, reject) => {
       proof.once("error", reject);
@@ -214,7 +217,9 @@ await runMain(async () => {
     await main();
   } catch (error) {
     for (const { name } of children) {
-      console.error(`\n--- ${name} tail ---\n${tails.get(name) ?? "(no output)"}`);
+      console.error(
+        `\n--- ${name} tail ---\n${tails.get(name) ?? "(no output)"}`,
+      );
     }
     throw error;
   } finally {

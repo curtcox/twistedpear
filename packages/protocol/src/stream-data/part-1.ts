@@ -29,7 +29,7 @@ export const STREAM_DATA_FLAG_COMPRESSED = 0x4000;
 export const STREAM_DATA_MSGTYPE = 0xff00;
 
 export const StreamSystemMessageTypes = {
-  SMT_STREAM_DATA: STREAM_DATA_MSGTYPE
+  SMT_STREAM_DATA: STREAM_DATA_MSGTYPE,
 } as const;
 
 export type StreamSystemMessageTypeValue =
@@ -87,7 +87,7 @@ export function unpackStreamDataMessage(raw: Uint8Array): StreamDataFields {
     eof: (headerValue & STREAM_DATA_FLAG_EOF) > 0,
     compressed: (headerValue & STREAM_DATA_FLAG_COMPRESSED) > 0,
     streamId: headerValue & STREAM_ID_MAX,
-    data: raw.subarray(STREAM_DATA_HEADER_SIZE)
+    data: raw.subarray(STREAM_DATA_HEADER_SIZE),
   };
 }
 
@@ -124,7 +124,7 @@ export function initialPackStreamDataMessageState(): PackStreamDataMessageState 
 
 export function stepPackStreamDataMessageWithActions(
   state: PackStreamDataMessageState,
-  event: PackStreamDataMessageEvent
+  event: PackStreamDataMessageEvent,
 ): PackStreamDataMessageStepResult {
   if (event.kind === "stream-data/pack-gate") {
     try {
@@ -138,10 +138,12 @@ export function stepPackStreamDataMessageWithActions(
               streamId: event.streamId,
               data: event.data,
               ...(event.eof !== undefined ? { eof: event.eof } : {}),
-              ...(event.compressed !== undefined ? { compressed: event.compressed } : {})
-            })
-          }
-        ]
+              ...(event.compressed !== undefined
+                ? { compressed: event.compressed }
+                : {}),
+            }),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -152,20 +154,20 @@ export function stepPackStreamDataMessageWithActions(
 }
 
 export function shouldUsePackStreamDataMessage(
-  actions: ReadonlyArray<PackStreamDataMessageAction>
+  actions: ReadonlyArray<PackStreamDataMessageAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackStreamDataMessage(
-  actions: ReadonlyArray<PackStreamDataMessageAction>
+  actions: ReadonlyArray<PackStreamDataMessageAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed stream-data bytes from step actions; null when no `use-raw`. */
 export function packStreamDataMessageRawFromActions(
-  actions: ReadonlyArray<PackStreamDataMessageAction>
+  actions: ReadonlyArray<PackStreamDataMessageAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -201,7 +203,7 @@ export function initialUnpackStreamDataMessageState(): UnpackStreamDataMessageSt
 
 export function stepUnpackStreamDataMessageWithActions(
   state: UnpackStreamDataMessageState,
-  event: UnpackStreamDataMessageEvent
+  event: UnpackStreamDataMessageEvent,
 ): UnpackStreamDataMessageStepResult {
   if (event.kind === "stream-data/unpack-gate") {
     try {
@@ -209,7 +211,7 @@ export function stepUnpackStreamDataMessageWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }]
+        actions: [{ kind: "use-fields", fields }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -220,20 +222,20 @@ export function stepUnpackStreamDataMessageWithActions(
 }
 
 export function shouldUseUnpackStreamDataMessage(
-  actions: ReadonlyArray<UnpackStreamDataMessageAction>
+  actions: ReadonlyArray<UnpackStreamDataMessageAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackStreamDataMessage(
-  actions: ReadonlyArray<UnpackStreamDataMessageAction>
+  actions: ReadonlyArray<UnpackStreamDataMessageAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked stream-data fields from step actions; null when no `use-fields`. */
 export function streamDataMessageFieldsFromActions(
-  actions: ReadonlyArray<UnpackStreamDataMessageAction>
+  actions: ReadonlyArray<UnpackStreamDataMessageAction>,
 ): StreamDataFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -243,7 +245,7 @@ export function streamDataMessageFieldsFromActions(
 export function clampStreamDataChunkLength(
   length: number,
   maxDataLen: number,
-  maxChunkLen: number
+  maxChunkLen: number,
 ): number {
   return Math.min(length, maxDataLen, maxChunkLen);
 }
@@ -281,7 +283,7 @@ export function initialClampStreamDataChunkLengthState(): ClampStreamDataChunkLe
 
 export function stepClampStreamDataChunkLengthWithActions(
   state: ClampStreamDataChunkLengthState,
-  event: ClampStreamDataChunkLengthEvent
+  event: ClampStreamDataChunkLengthEvent,
 ): ClampStreamDataChunkLengthStepResult {
   if (event.kind === "stream/data-chunk-length-gate") {
     return {
@@ -293,10 +295,10 @@ export function stepClampStreamDataChunkLengthWithActions(
           length: clampStreamDataChunkLength(
             event.length,
             event.maxDataLen,
-            event.maxChunkLen
-          )
-        }
-      ]
+            event.maxChunkLen,
+          ),
+        },
+      ],
     };
   }
 
@@ -304,14 +306,14 @@ export function stepClampStreamDataChunkLengthWithActions(
 }
 
 export function shouldUseStreamDataChunkLength(
-  actions: ReadonlyArray<ClampStreamDataChunkLengthAction>
+  actions: ReadonlyArray<ClampStreamDataChunkLengthAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-length");
 }
 
 /** Extract clamped write chunk length from step actions; null when no `use-length`. */
 export function streamDataChunkLengthFromActions(
-  actions: ReadonlyArray<ClampStreamDataChunkLengthAction>
+  actions: ReadonlyArray<ClampStreamDataChunkLengthAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-length");
   return action?.kind === "use-length" ? action.length : null;
@@ -337,8 +339,7 @@ export type AppendStreamDataEvent =
     };
 
 export type AppendStreamDataAction =
-  | { readonly kind: "append" }
-  | { readonly kind: "skip" };
+  { readonly kind: "append" } | { readonly kind: "skip" };
 
 export interface AppendStreamDataStepResult {
   readonly state: AppendStreamDataState;
@@ -352,13 +353,15 @@ export function initialAppendStreamDataState(): AppendStreamDataState {
 
 export function stepAppendStreamDataWithActions(
   state: AppendStreamDataState,
-  event: AppendStreamDataEvent
+  event: AppendStreamDataEvent,
 ): AppendStreamDataStepResult {
   if (event.kind === "stream/append-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: shouldAppendStreamData(event.length) ? "append" : "skip" }]
+      actions: [
+        { kind: shouldAppendStreamData(event.length) ? "append" : "skip" },
+      ],
     };
   }
 
@@ -366,19 +369,22 @@ export function stepAppendStreamDataWithActions(
 }
 
 export function shouldPerformStreamAppend(
-  actions: ReadonlyArray<AppendStreamDataAction>
+  actions: ReadonlyArray<AppendStreamDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "append");
 }
 
 export function shouldSkipStreamAppend(
-  actions: ReadonlyArray<AppendStreamDataAction>
+  actions: ReadonlyArray<AppendStreamDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Clamp a reader request size to available buffered bytes. */
-export function clampStreamReadSize(size: number, bufferLength: number): number {
+export function clampStreamReadSize(
+  size: number,
+  bufferLength: number,
+): number {
   return Math.min(size, bufferLength);
 }
 
@@ -414,7 +420,7 @@ export function initialClampStreamReadSizeState(): ClampStreamReadSizeState {
 
 export function stepClampStreamReadSizeWithActions(
   state: ClampStreamReadSizeState,
-  event: ClampStreamReadSizeEvent
+  event: ClampStreamReadSizeEvent,
 ): ClampStreamReadSizeStepResult {
   if (event.kind === "stream/read-size-gate") {
     return {
@@ -423,9 +429,9 @@ export function stepClampStreamReadSizeWithActions(
       actions: [
         {
           kind: "use-size",
-          size: clampStreamReadSize(event.size, event.bufferLength)
-        }
-      ]
+          size: clampStreamReadSize(event.size, event.bufferLength),
+        },
+      ],
     };
   }
 
@@ -433,21 +439,24 @@ export function stepClampStreamReadSizeWithActions(
 }
 
 export function shouldUseStreamReadSize(
-  actions: ReadonlyArray<ClampStreamReadSizeAction>
+  actions: ReadonlyArray<ClampStreamReadSizeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-size");
 }
 
 /** Extract clamped read size from step actions; null when no `use-size`. */
 export function streamReadSizeFromActions(
-  actions: ReadonlyArray<ClampStreamReadSizeAction>
+  actions: ReadonlyArray<ClampStreamReadSizeAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-size");
   return action?.kind === "use-size" ? action.size : null;
 }
 
 /** Whether a read should wait for more data (empty buffer before EOF). */
-export function shouldDeferStreamRead(bufferLength: number, eof: boolean): boolean {
+export function shouldDeferStreamRead(
+  bufferLength: number,
+  eof: boolean,
+): boolean {
   return bufferLength === 0 && !eof;
 }
 

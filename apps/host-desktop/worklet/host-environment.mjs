@@ -47,7 +47,8 @@ export async function createCryptoProvider(isDesktopHost) {
   }
 
   try {
-    const { BareCryptoProvider } = await import("../../../packages/reticulum-ts/dist/crypto/bare.js");
+    const { BareCryptoProvider } =
+      await import("../../../packages/reticulum-ts/dist/crypto/bare.js");
     const bare = new BareCryptoProvider();
     bare.ed25519PublicFromPrivate(bare.randomBytes(32));
     return bare;
@@ -56,4 +57,9 @@ export async function createCryptoProvider(isDesktopHost) {
   }
 }
 
-export { envValue, hostDataPath, refuseStorePosture, shouldRefuseDeveloperMode };
+export {
+  envValue,
+  hostDataPath,
+  refuseStorePosture,
+  shouldRefuseDeveloperMode,
+};

@@ -1,5 +1,12 @@
-import type { CryptoProvider, PacketInterface, Runtime } from "@twistedpear/reticulum-ts";
-import { Identity, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import type {
+  CryptoProvider,
+  PacketInterface,
+  Runtime,
+} from "@twistedpear/reticulum-ts";
+import {
+  Identity,
+  type ReticulumInterfaceOptions,
+} from "@twistedpear/reticulum-ts";
 
 export const SCOPE_LINK = "2";
 export const MULTICAST_TEMPORARY = "1";
@@ -12,7 +19,8 @@ export const AUTO_DEFAULT_GROUP_ID = "reticulum";
 export const AUTO_PEERING_TIMEOUT_MS = 22_000;
 export const AUTO_ANNOUNCE_INTERVAL_MS = 1_600;
 export const AUTO_PEER_JOB_INTERVAL_MS = 4_000;
-export const AUTO_REVERSE_PEERING_INTERVAL_MS = AUTO_ANNOUNCE_INTERVAL_MS * 3.25;
+export const AUTO_REVERSE_PEERING_INTERVAL_MS =
+  AUTO_ANNOUNCE_INTERVAL_MS * 3.25;
 export const AUTO_BITRATE_GUESS = 10_000_000;
 
 export interface AutoInterfaceOptions extends ReticulumInterfaceOptions {
@@ -36,7 +44,7 @@ export function deriveMulticastAddress(
   provider: CryptoProvider,
   groupId: Uint8Array,
   scope: string,
-  addressType: string
+  addressType: string,
 ): string {
   const groupHash = Identity.fullHash(provider, groupId);
   const parts = [
@@ -46,7 +54,7 @@ export function deriveMulticastAddress(
     hexPair(groupHash[7] ?? 0, groupHash[6] ?? 0),
     hexPair(groupHash[9] ?? 0, groupHash[8] ?? 0),
     hexPair(groupHash[11] ?? 0, groupHash[10] ?? 0),
-    hexPair(groupHash[13] ?? 0, groupHash[12] ?? 0)
+    hexPair(groupHash[13] ?? 0, groupHash[12] ?? 0),
   ];
 
   return `ff${addressType}${scope}:${parts.join(":")}`;
@@ -57,7 +65,9 @@ export function hexPair(low: number, high: number): string {
 }
 
 export function descopeLinkLocal(address: string): string {
-  return address.split("%")[0]?.replace(/fe80:[0-9a-f]*::/i, "fe80::") ?? address;
+  return (
+    address.split("%")[0]?.replace(/fe80:[0-9a-f]*::/i, "fe80::") ?? address
+  );
 }
 
 /** Canonicalize link-local forms so `fe80::a:b` and `fe80:0:0:0:a:b` share a peer key. */
@@ -69,9 +79,7 @@ export function normalizeLinkLocal(address: string): string {
 
   try {
     // Expand then re-compress via URL hostname parsing (Node accepts scoped IPv6).
-    const expanded = descoped.includes("::")
-      ? expandIpv6(descoped)
-      : descoped;
+    const expanded = descoped.includes("::") ? expandIpv6(descoped) : descoped;
     return compressIpv6(expanded);
   } catch {
     return descoped;
@@ -80,15 +88,21 @@ export function normalizeLinkLocal(address: string): string {
 
 function expandIpv6(address: string): string {
   const [head, tail] = address.split("::");
-  const headParts = head === undefined || head === "" ? [] : head.split(":").filter(Boolean);
-  const tailParts = tail === undefined || tail === "" ? [] : tail.split(":").filter(Boolean);
+  const headParts =
+    head === undefined || head === "" ? [] : head.split(":").filter(Boolean);
+  const tailParts =
+    tail === undefined || tail === "" ? [] : tail.split(":").filter(Boolean);
   const missing = 8 - headParts.length - tailParts.length;
   const middle = missing > 0 ? Array.from({ length: missing }, () => "0") : [];
-  return [...headParts, ...middle, ...tailParts].map((part) => part.padStart(4, "0")).join(":");
+  return [...headParts, ...middle, ...tailParts]
+    .map((part) => part.padStart(4, "0"))
+    .join(":");
 }
 
 function compressIpv6(expanded: string): string {
-  const parts = expanded.split(":").map((part) => part.replace(/^0+(?=\w)/, "") || "0");
+  const parts = expanded
+    .split(":")
+    .map((part) => part.replace(/^0+(?=\w)/, "") || "0");
   let bestStart = -1;
   let bestLen = 0;
   let start = -1;

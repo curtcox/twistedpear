@@ -27,7 +27,7 @@ import {
   stepSplitPacketProofWithActions,
   type PacketReceiptStatusValue,
   type PacketReceiptTimeoutAction,
-  type PacketReceiptTimeoutState
+  type PacketReceiptTimeoutState,
 } from "@twistedpear/protocol";
 import type { Intent } from "@twistedpear/effects";
 import type { Identity } from "./identity.js";
@@ -70,7 +70,7 @@ export class PacketReceipt {
     status: PacketReceiptStatus.SENT,
     timeoutAt: null,
     concludedAt: null,
-    timedOut: false
+    timedOut: false,
   };
   private readonly now: NowSeconds;
   private readonly clock: Clock | null;
@@ -95,7 +95,7 @@ export class PacketReceipt {
     readonly packetHash: Uint8Array,
     truncatedHash: Uint8Array,
     targetDestinationHash: Uint8Array,
-    options: PacketReceiptOptions
+    options: PacketReceiptOptions,
   ) {
     this.hash = packetHash;
     this.truncatedHash = truncatedHash;
@@ -106,10 +106,13 @@ export class PacketReceipt {
   }
 
   validateProof(proof: Uint8Array, identity: Identity): boolean {
-    const stepped = stepSplitPacketProofWithActions(initialSplitPacketProofState(), {
-      kind: "packet-proof/split-gate",
-      proof
-    });
+    const stepped = stepSplitPacketProofWithActions(
+      initialSplitPacketProofState(),
+      {
+        kind: "packet-proof/split-gate",
+        proof,
+      },
+    );
     const split =
       shouldRejectSplitPacketProof(stepped.actions) ||
       !shouldUseSplitPacketProof(stepped.actions)
@@ -118,30 +121,37 @@ export class PacketReceipt {
     const hashMatches =
       split !== null &&
       shouldMatchPacketProofHash(
-        stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
-          kind: "packet-proof/hash-match-gate",
-          proof: split,
-          packetHash: this.hash
-        }).actions
+        stepPacketProofHashMatchWithActions(
+          initialPacketProofHashMatchState(),
+          {
+            kind: "packet-proof/hash-match-gate",
+            proof: split,
+            packetHash: this.hash,
+          },
+        ).actions,
       );
     const signatureValid =
-      split !== null && hashMatches && identity.validate(split.signature, this.hash);
+      split !== null &&
+      hashMatches &&
+      identity.validate(split.signature, this.hash);
     const acceptStepped = stepPacketReceiptProofAcceptWithActions(
       initialPacketReceiptProofAcceptState(),
       {
         kind: "receipt/proof-accept-gate",
         splitOk: split !== null,
         hashMatches,
-        signatureValid
-      }
+        signatureValid,
+      },
     );
     const commitStepped = stepAcceptPacketReceiptProofWithActions(
       initialAcceptPacketReceiptProofState(),
       {
         kind: "receipt/accept-proof-gate",
-        planAccept: shouldAcceptPacketReceiptProofActions(acceptStepped.actions),
-        splitPresent: split !== null
-      }
+        planAccept: shouldAcceptPacketReceiptProofActions(
+          acceptStepped.actions,
+        ),
+        splitPresent: split !== null,
+      },
     );
     if (!shouldAcceptPacketReceiptProofNow(commitStepped.actions)) {
       return false;
@@ -150,8 +160,8 @@ export class PacketReceipt {
     this.applyReceiptStep(
       stepPacketReceiptTimeoutWithActions(this.receiptState, {
         kind: "receipt/delivered",
-        at: this.now()
-      })
+        at: this.now(),
+      }),
     );
     this.proved = true;
     return true;
@@ -160,10 +170,13 @@ export class PacketReceipt {
   validateProofPacket(proofPacket: Packet, identity: Identity): boolean {
     /** Adapt packet-type proof via protocol actions (no ad-hoc
      * `isPacketTypeProof` reads). */
-    const typeStepped = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
-      kind: "packet-proof/packet-type-gate",
-      packetType: proofPacket.packetType
-    });
+    const typeStepped = stepPacketTypeProofWithActions(
+      initialPacketTypeProofState(),
+      {
+        kind: "packet-proof/packet-type-gate",
+        packetType: proofPacket.packetType,
+      },
+    );
     if (!shouldTreatPacketTypeProof(typeStepped.actions)) {
       return false;
     }
@@ -181,16 +194,21 @@ export class PacketReceipt {
       stepPacketReceiptTimeoutWithActions(this.receiptState, {
         kind: "receipt/arm",
         at: this.now(),
-        timeoutSeconds: seconds
-      })
+        timeoutSeconds: seconds,
+      }),
     );
   }
 
-  setTimeoutCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
-    const stepped = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
-      kind: "receipt/callback-gate",
-      callbackPresent: callback !== null
-    });
+  setTimeoutCallback(
+    callback: ((receipt: PacketReceipt) => void) | null,
+  ): void {
+    const stepped = stepPacketReceiptCallbackWithActions(
+      initialPacketReceiptCallbackState(),
+      {
+        kind: "receipt/callback-gate",
+        callbackPresent: callback !== null,
+      },
+    );
     if (shouldClearPacketReceiptCallback(stepped.actions)) {
       delete this.callbacks.timeout;
       return;
@@ -199,11 +217,16 @@ export class PacketReceipt {
     this.callbacks.timeout = callback!;
   }
 
-  setDeliveryCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
-    const stepped = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
-      kind: "receipt/callback-gate",
-      callbackPresent: callback !== null
-    });
+  setDeliveryCallback(
+    callback: ((receipt: PacketReceipt) => void) | null,
+  ): void {
+    const stepped = stepPacketReceiptCallbackWithActions(
+      initialPacketReceiptCallbackState(),
+      {
+        kind: "receipt/callback-gate",
+        callbackPresent: callback !== null,
+      },
+    );
     if (shouldClearPacketReceiptCallback(stepped.actions)) {
       delete this.callbacks.delivery;
       return;
@@ -215,7 +238,7 @@ export class PacketReceipt {
   checkTimeout(nowSeconds = this.now()): boolean {
     const stepped = stepPacketReceiptTimeoutWithActions(this.receiptState, {
       kind: "receipt/check",
-      at: nowSeconds
+      at: nowSeconds,
     });
     this.applyReceiptStep(stepped);
     return shouldInvokePacketReceiptAction(stepped.actions, "timeout");
@@ -226,8 +249,8 @@ export class PacketReceipt {
     this.applyReceiptStep(
       stepPacketReceiptTimeoutWithActions(this.receiptState, {
         kind: "receipt/failed",
-        at: atSeconds
-      })
+        at: atSeconds,
+      }),
     );
   }
 
@@ -243,17 +266,25 @@ export class PacketReceipt {
   }): void {
     this.receiptState = result.state;
     for (const intent of result.intents) {
-      if (intent.kind === "timer/cancel" && intent.timer.id === RECEIPT_TIMEOUT_TIMER_ID) {
+      if (
+        intent.kind === "timer/cancel" &&
+        intent.timer.id === RECEIPT_TIMEOUT_TIMER_ID
+      ) {
         this.cancelTimeoutTimer();
       }
-      if (intent.kind === "timer/set" && intent.timer.id === RECEIPT_TIMEOUT_TIMER_ID) {
+      if (
+        intent.kind === "timer/set" &&
+        intent.timer.id === RECEIPT_TIMEOUT_TIMER_ID
+      ) {
         this.scheduleTimeout(intent.timer.delayMs);
       }
     }
     this.applyReceiptActions(result.actions);
   }
 
-  private applyReceiptActions(actions: readonly PacketReceiptTimeoutAction[]): void {
+  private applyReceiptActions(
+    actions: readonly PacketReceiptTimeoutAction[],
+  ): void {
     for (const action of actions) {
       if (action.kind === "timeout") {
         this.callbacks.timeout?.(this);
@@ -274,7 +305,7 @@ export class PacketReceipt {
       const stepped = stepPacketReceiptTimeoutWithActions(this.receiptState, {
         kind: "timer/fired",
         id: RECEIPT_TIMEOUT_TIMER_ID,
-        at: this.clock!.now()
+        at: this.clock!.now(),
       });
       this.applyReceiptStep(stepped);
     }, delayMs);

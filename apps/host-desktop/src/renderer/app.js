@@ -1,67 +1,273 @@
 import { renderWidgetTree } from "./widgets.js";
-import { decodeQrVideoFrame, normalizeScannedT256, supportsQrDetection } from "./qr-scanner.js";
+import {
+  decodeQrVideoFrame,
+  normalizeScannedT256,
+  supportsQrDetection,
+} from "./qr-scanner.js";
 import { handleDeviceBridgeRequest } from "./device-bridge.js";
-import { handleMediaCodecRequest, handleMediaOpusPlayRequest, playInboundMediaFrame } from "./media-codec-bridge.js";
+import {
+  handleMediaCodecRequest,
+  handleMediaOpusPlayRequest,
+  playInboundMediaFrame,
+} from "./media-codec-bridge.js";
 import { handlePeerWebRtcMessage } from "./peer-webrtc-bridge.js";
-import { renderModerationStateImpl, renderSessionInvitesImpl, renderDeviceStateImpl, resetRequestedAppLaunchImpl, scheduleRequestedAppLaunchImpl, readWorkspaceDocumentImpl, closeHostModalImpl, renderPeerQrImpl, sendPeerChromeResponseImpl, audioUnhexImpl, audioHexImpl, playPeerAudioImpl, recordPeerAudioImpl, performPeerAudioImpl, showPeerConfirmationImpl, showPeerCodeExchangeImpl, showQrScannerImpl, showHostModalImpl } from "./app-extracted-1.mjs";
-import { renderTrustListImpl, renderOwnIdentityImpl, renderLimitsImpl, appendLogImpl, formatBytesImpl, renderStatusImpl, renderCatalogImpl, renderInstalledImpl, renderGrantsImpl, applyInterfaceSettingsImpl } from "./app-extracted-2.mjs";
+import {
+  renderModerationStateImpl,
+  renderSessionInvitesImpl,
+  renderDeviceStateImpl,
+  resetRequestedAppLaunchImpl,
+  scheduleRequestedAppLaunchImpl,
+  readWorkspaceDocumentImpl,
+  closeHostModalImpl,
+  renderPeerQrImpl,
+  sendPeerChromeResponseImpl,
+  audioUnhexImpl,
+  audioHexImpl,
+  playPeerAudioImpl,
+  recordPeerAudioImpl,
+  performPeerAudioImpl,
+  showPeerConfirmationImpl,
+  showPeerCodeExchangeImpl,
+  showQrScannerImpl,
+  showHostModalImpl,
+} from "./app-extracted-1.mjs";
+import {
+  renderTrustListImpl,
+  renderOwnIdentityImpl,
+  renderLimitsImpl,
+  appendLogImpl,
+  formatBytesImpl,
+  renderStatusImpl,
+  renderCatalogImpl,
+  renderInstalledImpl,
+  renderGrantsImpl,
+  applyInterfaceSettingsImpl,
+} from "./app-extracted-2.mjs";
 
 const extractedContext = {
-  get activePeerCameraStream() { return activePeerCameraStream; }, set activePeerCameraStream(value) { activePeerCameraStream = value; },
-  get activePeerChromeToken() { return activePeerChromeToken; }, set activePeerChromeToken(value) { activePeerChromeToken = value; },
-  get activePeerQrTimer() { return activePeerQrTimer; }, set activePeerQrTimer(value) { activePeerQrTimer = value; },
-  get appendLog() { return appendLog; }, set appendLog(value) { appendLog = value; },
-  get audioHex() { return audioHex; }, set audioHex(value) { audioHex = value; },
-  get audioUnhex() { return audioUnhex; }, set audioUnhex(value) { audioUnhex = value; },
-  get catalogEntries() { return catalogEntries; }, set catalogEntries(value) { catalogEntries = value; },
-  get catalogList() { return catalogList; },
-  get closeHostModal() { return closeHostModal; }, set closeHostModal(value) { closeHostModal = value; },
-  get deviceActiveBanner() { return deviceActiveBanner; },
-  get deviceInventory() { return deviceInventory; },
-  get deviceRemoteEnabled() { return deviceRemoteEnabled; },
-  get deviceSessions() { return deviceSessions; },
-  get formatBytes() { return formatBytes; }, set formatBytes(value) { formatBytes = value; },
-  get grantsPanel() { return grantsPanel; },
-  get host() { return host; },
-  get installedList() { return installedList; },
-  get installedPackages() { return installedPackages; }, set installedPackages(value) { installedPackages = value; },
-  get lastDeviceState() { return lastDeviceState; }, set lastDeviceState(value) { lastDeviceState = value; },
-  get limitKv() { return limitKv; },
-  get limitMemory() { return limitMemory; },
-  get limitRate() { return limitRate; },
-  get limitsApp() { return limitsApp; },
-  get limitsNote() { return limitsNote; },
-  get logEl() { return logEl; },
-  get modalEl() { return modalEl; },
-  get modalOverlay() { return modalOverlay; },
-  get moderationBlocked() { return moderationBlocked; },
-  get moderationMuted() { return moderationMuted; },
-  get moderationSummary() { return moderationSummary; },
-  get pendingWorkspaceReads() { return pendingWorkspaceReads; },
-  get performPeerAudio() { return performPeerAudio; }, set performPeerAudio(value) { performPeerAudio = value; },
-  get playPeerAudio() { return playPeerAudio; }, set playPeerAudio(value) { playPeerAudio = value; },
-  get recordPeerAudio() { return recordPeerAudio; }, set recordPeerAudio(value) { recordPeerAudio = value; },
-  get renderPeerQr() { return renderPeerQr; }, set renderPeerQr(value) { renderPeerQr = value; },
-  get requestedAppLaunchStarted() { return requestedAppLaunchStarted; }, set requestedAppLaunchStarted(value) { requestedAppLaunchStarted = value; },
-  get requestedAppLaunchTimer() { return requestedAppLaunchTimer; }, set requestedAppLaunchTimer(value) { requestedAppLaunchTimer = value; },
-  get selectedAppId() { return selectedAppId; }, set selectedAppId(value) { selectedAppId = value; },
-  get sendPeerChromeResponse() { return sendPeerChromeResponse; }, set sendPeerChromeResponse(value) { sendPeerChromeResponse = value; },
-  get sessionInviteBanner() { return sessionInviteBanner; },
-  get settingAuto() { return settingAuto; },
-  get settingRelayMode() { return settingRelayMode; },
-  get settingTcpDirection() { return settingTcpDirection; },
-  get settingAutoDirection() { return settingAutoDirection; },
-  get settingRnodeDirection() { return settingRnodeDirection; },
-  get relayInterfaceTable() { return relayInterfaceTable; },
-  get settingRnodePort() { return settingRnodePort; },
-  get settingTcp() { return settingTcp; },
-  get showHostModal() { return showHostModal; }, set showHostModal(value) { showHostModal = value; },
-  get statusGrid() { return statusGrid; },
-  get trustIdentityView() { return trustIdentityView; },
-  get trustList() { return trustList; },
-  get workspaceReadCounter() { return workspaceReadCounter; }, set workspaceReadCounter(value) { workspaceReadCounter = value; }
+  get activePeerCameraStream() {
+    return activePeerCameraStream;
+  },
+  set activePeerCameraStream(value) {
+    activePeerCameraStream = value;
+  },
+  get activePeerChromeToken() {
+    return activePeerChromeToken;
+  },
+  set activePeerChromeToken(value) {
+    activePeerChromeToken = value;
+  },
+  get activePeerQrTimer() {
+    return activePeerQrTimer;
+  },
+  set activePeerQrTimer(value) {
+    activePeerQrTimer = value;
+  },
+  get appendLog() {
+    return appendLog;
+  },
+  set appendLog(value) {
+    appendLog = value;
+  },
+  get audioHex() {
+    return audioHex;
+  },
+  set audioHex(value) {
+    audioHex = value;
+  },
+  get audioUnhex() {
+    return audioUnhex;
+  },
+  set audioUnhex(value) {
+    audioUnhex = value;
+  },
+  get catalogEntries() {
+    return catalogEntries;
+  },
+  set catalogEntries(value) {
+    catalogEntries = value;
+  },
+  get catalogList() {
+    return catalogList;
+  },
+  get closeHostModal() {
+    return closeHostModal;
+  },
+  set closeHostModal(value) {
+    closeHostModal = value;
+  },
+  get deviceActiveBanner() {
+    return deviceActiveBanner;
+  },
+  get deviceInventory() {
+    return deviceInventory;
+  },
+  get deviceRemoteEnabled() {
+    return deviceRemoteEnabled;
+  },
+  get deviceSessions() {
+    return deviceSessions;
+  },
+  get formatBytes() {
+    return formatBytes;
+  },
+  set formatBytes(value) {
+    formatBytes = value;
+  },
+  get grantsPanel() {
+    return grantsPanel;
+  },
+  get host() {
+    return host;
+  },
+  get installedList() {
+    return installedList;
+  },
+  get installedPackages() {
+    return installedPackages;
+  },
+  set installedPackages(value) {
+    installedPackages = value;
+  },
+  get lastDeviceState() {
+    return lastDeviceState;
+  },
+  set lastDeviceState(value) {
+    lastDeviceState = value;
+  },
+  get limitKv() {
+    return limitKv;
+  },
+  get limitMemory() {
+    return limitMemory;
+  },
+  get limitRate() {
+    return limitRate;
+  },
+  get limitsApp() {
+    return limitsApp;
+  },
+  get limitsNote() {
+    return limitsNote;
+  },
+  get logEl() {
+    return logEl;
+  },
+  get modalEl() {
+    return modalEl;
+  },
+  get modalOverlay() {
+    return modalOverlay;
+  },
+  get moderationBlocked() {
+    return moderationBlocked;
+  },
+  get moderationMuted() {
+    return moderationMuted;
+  },
+  get moderationSummary() {
+    return moderationSummary;
+  },
+  get pendingWorkspaceReads() {
+    return pendingWorkspaceReads;
+  },
+  get performPeerAudio() {
+    return performPeerAudio;
+  },
+  set performPeerAudio(value) {
+    performPeerAudio = value;
+  },
+  get playPeerAudio() {
+    return playPeerAudio;
+  },
+  set playPeerAudio(value) {
+    playPeerAudio = value;
+  },
+  get recordPeerAudio() {
+    return recordPeerAudio;
+  },
+  set recordPeerAudio(value) {
+    recordPeerAudio = value;
+  },
+  get renderPeerQr() {
+    return renderPeerQr;
+  },
+  set renderPeerQr(value) {
+    renderPeerQr = value;
+  },
+  get requestedAppLaunchStarted() {
+    return requestedAppLaunchStarted;
+  },
+  set requestedAppLaunchStarted(value) {
+    requestedAppLaunchStarted = value;
+  },
+  get requestedAppLaunchTimer() {
+    return requestedAppLaunchTimer;
+  },
+  set requestedAppLaunchTimer(value) {
+    requestedAppLaunchTimer = value;
+  },
+  get selectedAppId() {
+    return selectedAppId;
+  },
+  set selectedAppId(value) {
+    selectedAppId = value;
+  },
+  get sendPeerChromeResponse() {
+    return sendPeerChromeResponse;
+  },
+  set sendPeerChromeResponse(value) {
+    sendPeerChromeResponse = value;
+  },
+  get sessionInviteBanner() {
+    return sessionInviteBanner;
+  },
+  get settingAuto() {
+    return settingAuto;
+  },
+  get settingRelayMode() {
+    return settingRelayMode;
+  },
+  get settingTcpDirection() {
+    return settingTcpDirection;
+  },
+  get settingAutoDirection() {
+    return settingAutoDirection;
+  },
+  get settingRnodeDirection() {
+    return settingRnodeDirection;
+  },
+  get relayInterfaceTable() {
+    return relayInterfaceTable;
+  },
+  get settingRnodePort() {
+    return settingRnodePort;
+  },
+  get settingTcp() {
+    return settingTcp;
+  },
+  get showHostModal() {
+    return showHostModal;
+  },
+  set showHostModal(value) {
+    showHostModal = value;
+  },
+  get statusGrid() {
+    return statusGrid;
+  },
+  get trustIdentityView() {
+    return trustIdentityView;
+  },
+  get trustList() {
+    return trustList;
+  },
+  get workspaceReadCounter() {
+    return workspaceReadCounter;
+  },
+  set workspaceReadCounter(value) {
+    workspaceReadCounter = value;
+  },
 };
-
 
 const statusGrid = document.querySelector("#status-grid");
 const catalogList = document.querySelector("#catalog-list");
@@ -99,7 +305,9 @@ const settingDeveloper = document.querySelector("#setting-developer");
 const settingAiUrl = document.querySelector("#setting-ai-url");
 const settingAiKey = document.querySelector("#setting-ai-key");
 const settingAiModel = document.querySelector("#setting-ai-model");
-const settingAiEmbeddingModel = document.querySelector("#setting-ai-embedding-model");
+const settingAiEmbeddingModel = document.querySelector(
+  "#setting-ai-embedding-model",
+);
 const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
@@ -107,13 +315,21 @@ const settingRnodePort = document.querySelector("#setting-rnode-port");
 const settingRelayMode = document.querySelector("#setting-relay-mode");
 const settingTcpDirection = document.querySelector("#setting-tcp-direction");
 const settingAutoDirection = document.querySelector("#setting-auto-direction");
-const settingRnodeDirection = document.querySelector("#setting-rnode-direction");
+const settingRnodeDirection = document.querySelector(
+  "#setting-rnode-direction",
+);
 const settingFreenet = document.querySelector("#setting-freenet");
 const settingFreenetUrl = document.querySelector("#setting-freenet-url");
 const settingFreenetToken = document.querySelector("#setting-freenet-token");
-const settingFreenetInterface = document.querySelector("#setting-freenet-interface");
-const settingFreenetRendezvous = document.querySelector("#setting-freenet-rendezvous");
-const settingFreenetDirection = document.querySelector("#setting-freenet-direction");
+const settingFreenetInterface = document.querySelector(
+  "#setting-freenet-interface",
+);
+const settingFreenetRendezvous = document.querySelector(
+  "#setting-freenet-rendezvous",
+);
+const settingFreenetDirection = document.querySelector(
+  "#setting-freenet-direction",
+);
 const joinCommunityNetwork = document.querySelector("#join-community-network");
 const identityCurrent = document.querySelector("#identity-current");
 const identityNext = document.querySelector("#identity-next");
@@ -129,15 +345,23 @@ const moderationBlocked = document.querySelector("#moderation-blocked");
 const moderationMuted = document.querySelector("#moderation-muted");
 const moderationSummary = document.querySelector("#moderation-summary");
 const deviceActiveBanner = document.querySelector("#device-active-banner");
-const relayAttributionBanner = document.querySelector("#relay-attribution-banner");
+const relayAttributionBanner = document.querySelector(
+  "#relay-attribution-banner",
+);
 const relayInterfaceTable = document.querySelector("#relay-interface-table");
 const sessionInviteBanner = document.querySelector("#session-invite-banner");
 const deviceInventory = document.querySelector("#device-inventory");
 const deviceSessions = document.querySelector("#device-sessions");
 const deviceRemoteEnabled = document.querySelector("#device-remote-enabled");
-function renderModerationState(...args) { return renderModerationStateImpl(extractedContext, ...args); }
-function renderSessionInvites(...args) { return renderSessionInvitesImpl(extractedContext, ...args); }
-function renderDeviceState(...args) { return renderDeviceStateImpl(extractedContext, ...args); }
+function renderModerationState(...args) {
+  return renderModerationStateImpl(extractedContext, ...args);
+}
+function renderSessionInvites(...args) {
+  return renderSessionInvitesImpl(extractedContext, ...args);
+}
+function renderDeviceState(...args) {
+  return renderDeviceStateImpl(extractedContext, ...args);
+}
 
 /** @type {import("@twistedpear/host-core/protocol").CatalogEntryView[]} */
 let catalogEntries = [];
@@ -160,38 +384,91 @@ let requestedAppLaunchTimer = null;
 let activePeerChromeToken = null;
 let activePeerQrTimer = null;
 let activePeerCameraStream = null;
-function resetRequestedAppLaunch(...args) { return resetRequestedAppLaunchImpl(extractedContext, ...args); }
-function scheduleRequestedAppLaunch(...args) { return scheduleRequestedAppLaunchImpl(extractedContext, ...args); }
-function readWorkspaceDocument(...args) { return readWorkspaceDocumentImpl(extractedContext, ...args); }
-function closeHostModal(...args) { return closeHostModalImpl(extractedContext, ...args); }
-function renderPeerQr(...args) { return renderPeerQrImpl(extractedContext, ...args); }
-function sendPeerChromeResponse(...args) { return sendPeerChromeResponseImpl(extractedContext, ...args); }
-function audioUnhex(...args) { return audioUnhexImpl(extractedContext, ...args); }
-function audioHex(...args) { return audioHexImpl(extractedContext, ...args); }
-async function playPeerAudio(...args) { return playPeerAudioImpl(extractedContext, ...args); }
-async function recordPeerAudio(...args) { return recordPeerAudioImpl(extractedContext, ...args); }
-async function performPeerAudio(...args) { return performPeerAudioImpl(extractedContext, ...args); }
-function showPeerConfirmation(...args) { return showPeerConfirmationImpl(extractedContext, ...args); }
-function showPeerCodeExchange(...args) { return showPeerCodeExchangeImpl(extractedContext, ...args); }
-async function showQrScanner(...args) { return showQrScannerImpl(extractedContext, ...args); }
-function showHostModal(...args) { return showHostModalImpl(extractedContext, ...args); }
-function renderTrustList(...args) { return renderTrustListImpl(extractedContext, ...args); }
-function renderOwnIdentity(...args) { return renderOwnIdentityImpl(extractedContext, ...args); }
-function renderLimits(...args) { return renderLimitsImpl(extractedContext, ...args); }
-function appendLog(...args) { return appendLogImpl(extractedContext, ...args); }
-function formatBytes(...args) { return formatBytesImpl(extractedContext, ...args); }
-function renderStatus(...args) { return renderStatusImpl(extractedContext, ...args); }
-function renderCatalog(...args) { return renderCatalogImpl(extractedContext, ...args); }
-function renderInstalled(...args) { return renderInstalledImpl(extractedContext, ...args); }
-function renderGrants(...args) { return renderGrantsImpl(extractedContext, ...args); }
-function applyInterfaceSettings(...args) { return applyInterfaceSettingsImpl(extractedContext, ...args); }
+function resetRequestedAppLaunch(...args) {
+  return resetRequestedAppLaunchImpl(extractedContext, ...args);
+}
+function scheduleRequestedAppLaunch(...args) {
+  return scheduleRequestedAppLaunchImpl(extractedContext, ...args);
+}
+function readWorkspaceDocument(...args) {
+  return readWorkspaceDocumentImpl(extractedContext, ...args);
+}
+function closeHostModal(...args) {
+  return closeHostModalImpl(extractedContext, ...args);
+}
+function renderPeerQr(...args) {
+  return renderPeerQrImpl(extractedContext, ...args);
+}
+function sendPeerChromeResponse(...args) {
+  return sendPeerChromeResponseImpl(extractedContext, ...args);
+}
+function audioUnhex(...args) {
+  return audioUnhexImpl(extractedContext, ...args);
+}
+function audioHex(...args) {
+  return audioHexImpl(extractedContext, ...args);
+}
+async function playPeerAudio(...args) {
+  return playPeerAudioImpl(extractedContext, ...args);
+}
+async function recordPeerAudio(...args) {
+  return recordPeerAudioImpl(extractedContext, ...args);
+}
+async function performPeerAudio(...args) {
+  return performPeerAudioImpl(extractedContext, ...args);
+}
+function showPeerConfirmation(...args) {
+  return showPeerConfirmationImpl(extractedContext, ...args);
+}
+function showPeerCodeExchange(...args) {
+  return showPeerCodeExchangeImpl(extractedContext, ...args);
+}
+async function showQrScanner(...args) {
+  return showQrScannerImpl(extractedContext, ...args);
+}
+function showHostModal(...args) {
+  return showHostModalImpl(extractedContext, ...args);
+}
+function renderTrustList(...args) {
+  return renderTrustListImpl(extractedContext, ...args);
+}
+function renderOwnIdentity(...args) {
+  return renderOwnIdentityImpl(extractedContext, ...args);
+}
+function renderLimits(...args) {
+  return renderLimitsImpl(extractedContext, ...args);
+}
+function appendLog(...args) {
+  return appendLogImpl(extractedContext, ...args);
+}
+function formatBytes(...args) {
+  return formatBytesImpl(extractedContext, ...args);
+}
+function renderStatus(...args) {
+  return renderStatusImpl(extractedContext, ...args);
+}
+function renderCatalog(...args) {
+  return renderCatalogImpl(extractedContext, ...args);
+}
+function renderInstalled(...args) {
+  return renderInstalledImpl(extractedContext, ...args);
+}
+function renderGrants(...args) {
+  return renderGrantsImpl(extractedContext, ...args);
+}
+function applyInterfaceSettings(...args) {
+  return applyInterfaceSettingsImpl(extractedContext, ...args);
+}
 
 const host = window.twistedPearHost;
 if (!host) {
   appendLog("Preload bridge unavailable");
 } else {
   settingDeveloper?.addEventListener("change", () => {
-    host.send({ type: "set-developer-mode", enabled: settingDeveloper.checked });
+    host.send({
+      type: "set-developer-mode",
+      enabled: settingDeveloper.checked,
+    });
   });
 
   settingPropagation?.addEventListener("change", () => {
@@ -213,23 +490,39 @@ if (!host) {
       directions: {
         tcp: settingTcpDirection?.value ?? "both",
         auto: settingAutoDirection?.value ?? "both",
-        rnode: settingRnodeDirection?.value ?? "both"
-      }
+        rnode: settingRnodeDirection?.value ?? "both",
+      },
     };
     localStorage.setItem("tp-relay-config", JSON.stringify(relay));
     host.send({ type: "set-relay-config", ...relay });
   };
   try {
-    const savedRelay = JSON.parse(localStorage.getItem("tp-relay-config") ?? "{}");
-    if (settingRelayMode && ["off", "bridge", "transport-node"].includes(savedRelay.mode)) settingRelayMode.value = savedRelay.mode;
-    for (const [element, kind] of [[settingTcpDirection, "tcp"], [settingAutoDirection, "auto"], [settingRnodeDirection, "rnode"]]) {
+    const savedRelay = JSON.parse(
+      localStorage.getItem("tp-relay-config") ?? "{}",
+    );
+    if (
+      settingRelayMode &&
+      ["off", "bridge", "transport-node"].includes(savedRelay.mode)
+    )
+      settingRelayMode.value = savedRelay.mode;
+    for (const [element, kind] of [
+      [settingTcpDirection, "tcp"],
+      [settingAutoDirection, "auto"],
+      [settingRnodeDirection, "rnode"],
+    ]) {
       const value = savedRelay.directions?.[kind];
-      if (element && ["tx", "rx", "both"].includes(value)) element.value = value;
+      if (element && ["tx", "rx", "both"].includes(value))
+        element.value = value;
     }
   } catch {
     // Ignore malformed local relay settings.
   }
-  for (const element of [settingRelayMode, settingTcpDirection, settingAutoDirection, settingRnodeDirection]) {
+  for (const element of [
+    settingRelayMode,
+    settingTcpDirection,
+    settingAutoDirection,
+    settingRnodeDirection,
+  ]) {
     element?.addEventListener("change", applyRelaySettings);
   }
   applyRelaySettings();
@@ -239,10 +532,20 @@ if (!host) {
       baseUrl: settingAiUrl?.value.trim() ?? "",
       apiKey: settingAiKey?.value.trim() ?? "",
       model: settingAiModel?.value.trim() ?? "",
-      embeddingModel: settingAiEmbeddingModel?.value.trim() ?? ""
+      embeddingModel: settingAiEmbeddingModel?.value.trim() ?? "",
     };
-    localStorage.setItem("tp-ai-config", JSON.stringify({ baseUrl: config.baseUrl, model: config.model, embeddingModel: config.embeddingModel }));
-    host.send({ type: "set-ai-config", config: config.baseUrl && config.apiKey ? config : null });
+    localStorage.setItem(
+      "tp-ai-config",
+      JSON.stringify({
+        baseUrl: config.baseUrl,
+        model: config.model,
+        embeddingModel: config.embeddingModel,
+      }),
+    );
+    host.send({
+      type: "set-ai-config",
+      config: config.baseUrl && config.apiKey ? config : null,
+    });
   };
 
   try {
@@ -260,7 +563,12 @@ if (!host) {
     // ignore malformed saved settings
   }
 
-  for (const element of [settingAiUrl, settingAiKey, settingAiModel, settingAiEmbeddingModel]) {
+  for (const element of [
+    settingAiUrl,
+    settingAiKey,
+    settingAiModel,
+    settingAiEmbeddingModel,
+  ]) {
     element?.addEventListener("change", applyAiSettings);
   }
 
@@ -278,8 +586,8 @@ if (!host) {
         interfaceEnabled,
         url: url.length > 0 ? url : undefined,
         rendezvousHex: rendezvousHex.length > 0 ? rendezvousHex : undefined,
-        localDirection
-      })
+        localDirection,
+      }),
     );
     host.send({
       type: "set-freenet-config",
@@ -288,26 +596,35 @@ if (!host) {
       url: url.length > 0 ? url : null,
       ...(authToken.length > 0 ? { authToken } : {}),
       ...(rendezvousHex.length > 0 ? { rendezvousHex } : {}),
-      localDirection
+      localDirection,
     });
   };
 
   try {
-    const savedFreenet = JSON.parse(localStorage.getItem("tp-freenet-config") ?? "{}");
+    const savedFreenet = JSON.parse(
+      localStorage.getItem("tp-freenet-config") ?? "{}",
+    );
     if (settingFreenet && typeof savedFreenet.enabled === "boolean") {
       settingFreenet.checked = savedFreenet.enabled;
     }
-    if (settingFreenetInterface && typeof savedFreenet.interfaceEnabled === "boolean") {
+    if (
+      settingFreenetInterface &&
+      typeof savedFreenet.interfaceEnabled === "boolean"
+    ) {
       settingFreenetInterface.checked = savedFreenet.interfaceEnabled;
     }
     if (settingFreenetUrl && typeof savedFreenet.url === "string") {
       settingFreenetUrl.value = savedFreenet.url;
     }
-    if (settingFreenetRendezvous && typeof savedFreenet.rendezvousHex === "string") {
+    if (
+      settingFreenetRendezvous &&
+      typeof savedFreenet.rendezvousHex === "string"
+    ) {
       settingFreenetRendezvous.value = savedFreenet.rendezvousHex;
     }
     if (settingFreenetDirection) {
-      settingFreenetDirection.value = savedFreenet.localDirection === 1 ? "1" : "0";
+      settingFreenetDirection.value =
+        savedFreenet.localDirection === 1 ? "1" : "0";
     }
   } catch {
     // ignore malformed saved settings
@@ -319,55 +636,111 @@ if (!host) {
     settingFreenetToken,
     settingFreenetInterface,
     settingFreenetRendezvous,
-    settingFreenetDirection
+    settingFreenetDirection,
   ]) {
     element?.addEventListener("change", applyFreenetSettings);
   }
 
   // Restore Freenet backend after worklet restart if Settings were previously on.
-  if (settingFreenet?.checked === true || settingFreenetInterface?.checked === true) {
+  if (
+    settingFreenet?.checked === true ||
+    settingFreenetInterface?.checked === true
+  ) {
     applyFreenetSettings();
   }
 
   host.onWorkletMessage((message) => {
     if (message.type === "peer-audio-availability") {
-      const supported = (globalThis.AudioContext !== undefined || globalThis.webkitAudioContext !== undefined) && typeof navigator.mediaDevices?.getUserMedia === "function" && globalThis.TwistedPearPeerAudio !== undefined;
-      sendPeerChromeResponse(message.token, { availability: supported ? { state: "permission-required", reason: "Microphone permission is requested only after starting the audible exchange" } : { state: "unsupported", reason: "Desktop audio recording/playback is unavailable" } });
+      const supported =
+        (globalThis.AudioContext !== undefined ||
+          globalThis.webkitAudioContext !== undefined) &&
+        typeof navigator.mediaDevices?.getUserMedia === "function" &&
+        globalThis.TwistedPearPeerAudio !== undefined;
+      sendPeerChromeResponse(message.token, {
+        availability: supported
+          ? {
+              state: "permission-required",
+              reason:
+                "Microphone permission is requested only after starting the audible exchange",
+            }
+          : {
+              state: "unsupported",
+              reason: "Desktop audio recording/playback is unavailable",
+            },
+      });
       return;
     }
 
     if (message.type === "peer-ntfy-availability") {
-      void host.getNtfyStatus().then((status) => {
-        const availability = status?.configured === true
-          ? { state: "available", reason: `Encrypted rendezvous is configured through ${status.server}` }
-          : { state: "offline", reason: "No ntfy rendezvous server is configured" };
-        sendPeerChromeResponse(message.token, { availability });
-      }).catch((error) => {
-        sendPeerChromeResponse(message.token, { availability: { state: "offline", reason: error instanceof Error ? error.message : String(error) } });
-      });
+      void host
+        .getNtfyStatus()
+        .then((status) => {
+          const availability =
+            status?.configured === true
+              ? {
+                  state: "available",
+                  reason: `Encrypted rendezvous is configured through ${status.server}`,
+                }
+              : {
+                  state: "offline",
+                  reason: "No ntfy rendezvous server is configured",
+                };
+          sendPeerChromeResponse(message.token, { availability });
+        })
+        .catch((error) => {
+          sendPeerChromeResponse(message.token, {
+            availability: {
+              state: "offline",
+              reason: error instanceof Error ? error.message : String(error),
+            },
+          });
+        });
       return;
     }
 
     if (message.type === "peer-ntfy-http") {
-      void host.ntfyRequest(message.request).then((http) => {
-        sendPeerChromeResponse(message.token, { http });
-      }).catch((error) => {
-        sendPeerChromeResponse(message.token, { error: error instanceof Error ? error.message : String(error) });
-      });
+      void host
+        .ntfyRequest(message.request)
+        .then((http) => {
+          sendPeerChromeResponse(message.token, { http });
+        })
+        .catch((error) => {
+          sendPeerChromeResponse(message.token, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
       return;
     }
 
     if (message.type === "peer-qr-availability") {
       const hasDisplay = typeof globalThis.qrcode === "function";
-      const hasCamera = typeof navigator.mediaDevices?.getUserMedia === "function";
-      const hasDecoder = typeof globalThis.BarcodeDetector === "function" || typeof globalThis.jsQR === "function";
+      const hasCamera =
+        typeof navigator.mediaDevices?.getUserMedia === "function";
+      const hasDecoder =
+        typeof globalThis.BarcodeDetector === "function" ||
+        typeof globalThis.jsQR === "function";
       const availability = !hasDisplay
-        ? { state: "unsupported", reason: "QR generation is unavailable in this build" }
+        ? {
+            state: "unsupported",
+            reason: "QR generation is unavailable in this build",
+          }
         : !hasCamera
-          ? { state: "unsupported", reason: "Camera capture is unavailable; use full manual copy/paste" }
+          ? {
+              state: "unsupported",
+              reason:
+                "Camera capture is unavailable; use full manual copy/paste",
+            }
           : !hasDecoder
-            ? { state: "unsupported", reason: "QR decoding is unavailable; use full manual copy/paste" }
-            : { state: "permission-required", reason: "Camera permission is requested only after Start camera" };
+            ? {
+                state: "unsupported",
+                reason:
+                  "QR decoding is unavailable; use full manual copy/paste",
+              }
+            : {
+                state: "permission-required",
+                reason:
+                  "Camera permission is requested only after Start camera",
+              };
       sendPeerChromeResponse(message.token, { availability });
       return;
     }
@@ -377,7 +750,18 @@ if (!host) {
       return;
     }
 
-    if (["peer-manual-present", "peer-manual-enter", "peer-qr-present", "peer-qr-scan", "peer-ntfy-present", "peer-ntfy-enter", "peer-audio-transmit", "peer-audio-receive"].includes(message.type)) {
+    if (
+      [
+        "peer-manual-present",
+        "peer-manual-enter",
+        "peer-qr-present",
+        "peer-qr-scan",
+        "peer-ntfy-present",
+        "peer-ntfy-enter",
+        "peer-audio-transmit",
+        "peer-audio-receive",
+      ].includes(message.type)
+    ) {
       showPeerCodeExchange(message);
       return;
     }
@@ -401,7 +785,9 @@ if (!host) {
       const target = message.kind ? ` for ${message.kind}` : "";
       relayAttributionBanner.textContent = `Mini-app ${message.appId} changed relay settings${target}. Click to dismiss.`;
       relayAttributionBanner.hidden = false;
-      relayAttributionBanner.onclick = () => { relayAttributionBanner.hidden = true; };
+      relayAttributionBanner.onclick = () => {
+        relayAttributionBanner.hidden = true;
+      };
     }
 
     if (message.type === "log") {
@@ -417,7 +803,9 @@ if (!host) {
       installedPackages = message.packages;
       renderInstalled();
       if (!requestedAppLaunchStarted && requestedAppId !== null) {
-        const requestedPackage = installedPackages.find((pkg) => pkg.appId === requestedAppId);
+        const requestedPackage = installedPackages.find(
+          (pkg) => pkg.appId === requestedAppId,
+        );
         if (requestedPackage !== undefined) {
           scheduleRequestedAppLaunch(requestedPackage);
         }
@@ -439,16 +827,30 @@ if (!host) {
     if (message.type === "miniapp-runtime") {
       if (message.slot === "preview") {
         if (previewRoot) {
-          renderWidgetTree(message.runtime?.widgetTree ?? null, previewRoot, (nodeId, event, value) => {
-            host.send({ type: "miniapp-ui-event", slot: "preview", nodeId, event, value });
-          }, { deviceSessions: lastDeviceState?.sessions ?? [] });
+          renderWidgetTree(
+            message.runtime?.widgetTree ?? null,
+            previewRoot,
+            (nodeId, event, value) => {
+              host.send({
+                type: "miniapp-ui-event",
+                slot: "preview",
+                nodeId,
+                event,
+                value,
+              });
+            },
+            { deviceSessions: lastDeviceState?.sessions ?? [] },
+          );
         }
       } else {
         runningAppId = message.runtime.appId;
         if (runningAppId === requestedAppId) {
           requestedAppLaunchTimer = null;
         }
-        document.body.classList.toggle("miniapp-running", runningAppId !== null);
+        document.body.classList.toggle(
+          "miniapp-running",
+          runningAppId !== null,
+        );
         if (miniappTitle) {
           miniappTitle.textContent = runningAppId ?? "Mini-app";
         }
@@ -461,7 +863,10 @@ if (!host) {
           (nodeId, event, value) => {
             host.send({ type: "miniapp-ui-event", nodeId, event, value });
           },
-          { readDocument: readWorkspaceDocument, deviceSessions: lastDeviceState?.sessions ?? [] }
+          {
+            readDocument: readWorkspaceDocument,
+            deviceSessions: lastDeviceState?.sessions ?? [],
+          },
         );
       }
     }
@@ -476,8 +881,13 @@ if (!host) {
         capabilities: message.capabilities,
         confirmLabel: "Install",
         onDone: (accept, grants) => {
-          host.send({ type: "install-confirm", token: message.token, accept, grants });
-        }
+          host.send({
+            type: "install-confirm",
+            token: message.token,
+            accept,
+            grants,
+          });
+        },
       });
     }
 
@@ -485,7 +895,7 @@ if (!host) {
       appendLog(
         message.ok
           ? `Installed ${message.appId} v${message.version} (trusted: ${message.trusted})`
-          : `256t install failed: ${message.error}`
+          : `256t install failed: ${message.error}`,
       );
       if (message.ok) {
         host.send({ type: "list-installed" });
@@ -515,16 +925,23 @@ if (!host) {
         "device-remote-grant": "Let a remote peer use a device on this host?",
         "device-share-offer": "Share a device with this peer?",
         "device-share-revoke": "Stop sharing this device?",
-        "link-probe": "Measure this peer link?"
+        "link-probe": "Measure this peer link?",
       };
       showHostModal({
         title: kindTitles[message.kind] ?? `Confirm ${message.kind}?`,
         fingerprint: message.publisherPublicKey,
-        rows: [["Requested by", message.appId], ...Object.entries(message.summary ?? {})],
+        rows: [
+          ["Requested by", message.appId],
+          ...Object.entries(message.summary ?? {}),
+        ],
         confirmLabel: "Approve",
         onDone: (approved) => {
-          host.send({ type: "confirm-response", token: message.token, approved });
-        }
+          host.send({
+            type: "confirm-response",
+            token: message.token,
+            approved,
+          });
+        },
       });
     }
 
@@ -534,7 +951,7 @@ if (!host) {
           type: "launch-confirm",
           token: message.token,
           accept: true,
-          grants: message.capabilities.map((capability) => capability.id)
+          grants: message.capabilities.map((capability) => capability.id),
         });
         return;
       }
@@ -546,8 +963,13 @@ if (!host) {
         capabilities: message.capabilities,
         confirmLabel: "Run",
         onDone: (accept, grants) => {
-          host.send({ type: "launch-confirm", token: message.token, accept, grants });
-        }
+          host.send({
+            type: "launch-confirm",
+            token: message.token,
+            accept,
+            grants,
+          });
+        },
       });
     }
 
@@ -564,16 +986,21 @@ if (!host) {
     }
 
     if (message.type === "identity-locked") {
-      if (identityResult) identityResult.textContent = message.creating
-        ? "Create a passphrase of at least 12 characters to start."
-        : message.legacy ? "Set a passphrase to encrypt and migrate this legacy identity." : "Identity locked.";
+      if (identityResult)
+        identityResult.textContent = message.creating
+          ? "Create a passphrase of at least 12 characters to start."
+          : message.legacy
+            ? "Set a passphrase to encrypt and migrate this legacy identity."
+            : "Identity locked.";
     }
 
     if (message.type === "identity-operation") {
-      if (identityResult) identityResult.textContent = message.ok
-        ? `${message.operation} complete${message.identityHash ? ` (${message.identityHash.slice(0, 12)})` : ""}`
-        : message.error ?? `${message.operation} failed`;
-      if (message.ok && message.backupHex) void host.saveIdentityBackup(message.backupHex);
+      if (identityResult)
+        identityResult.textContent = message.ok
+          ? `${message.operation} complete${message.identityHash ? ` (${message.identityHash.slice(0, 12)})` : ""}`
+          : (message.error ?? `${message.operation} failed`);
+      if (message.ok && message.backupHex)
+        void host.saveIdentityBackup(message.backupHex);
       if (message.ok && message.first && message.second) {
         void host.setIdentityContentProtection(true);
         identityWordsFirst.value = message.first;
@@ -582,25 +1009,51 @@ if (!host) {
       if (message.ok && message.operation === "recovery-import") {
         void host.setIdentityContentProtection(false);
       }
-      if (message.ok && message.operation === "import-inspect" && pendingIdentityImport !== null) {
+      if (
+        message.ok &&
+        message.operation === "import-inspect" &&
+        pendingIdentityImport !== null
+      ) {
         const candidate = message.candidateIdentityHash;
-        if (window.confirm(`Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`)) {
-          host.send({ type: "identity-import", ...pendingIdentityImport, confirmedCandidateHash: candidate });
+        if (
+          window.confirm(
+            `Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`,
+          )
+        ) {
+          host.send({
+            type: "identity-import",
+            ...pendingIdentityImport,
+            confirmedCandidateHash: candidate,
+          });
         }
         pendingIdentityImport = null;
       }
-      if (message.ok && message.operation === "recovery-import-inspect" && pendingIdentityRecovery !== null) {
+      if (
+        message.ok &&
+        message.operation === "recovery-import-inspect" &&
+        pendingIdentityRecovery !== null
+      ) {
         const candidate = message.candidateIdentityHash;
-        if (window.confirm(`Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`)) {
-          host.send({ type: "identity-recovery-import", ...pendingIdentityRecovery, confirmedCandidateHash: candidate });
+        if (
+          window.confirm(
+            `Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`,
+          )
+        ) {
+          host.send({
+            type: "identity-recovery-import",
+            ...pendingIdentityRecovery,
+            confirmedCandidateHash: candidate,
+          });
         }
         pendingIdentityRecovery = null;
       }
     }
     if (message.type === "moderation-state") renderModerationState(message);
-    if (message.type === "moderation-report-export") void host.saveModerationReport(message.json);
+    if (message.type === "moderation-report-export")
+      void host.saveModerationReport(message.json);
     if (message.type === "device-state") renderDeviceState(message);
-    if (message.type === "session-invites") renderSessionInvites(message.invites);
+    if (message.type === "session-invites")
+      renderSessionInvites(message.invites);
     if (message.type === "device-bridge-request") {
       void handleDeviceBridgeRequest(message, (reply) => host.send(reply));
     }
@@ -626,7 +1079,17 @@ if (!host) {
       });
     }
     if (message.type === "inbound-media-frame") {
-      void playInboundMediaFrame(message).then((played) => appendLog(`Inbound ${message.encoding} media → ${played ? "speaker" : message.sink.kind} (${message.dataHex.length / 2} bytes)`)).catch((error) => appendLog(`Inbound media failed: ${error instanceof Error ? error.message : String(error)}`));
+      void playInboundMediaFrame(message)
+        .then((played) =>
+          appendLog(
+            `Inbound ${message.encoding} media → ${played ? "speaker" : message.sink.kind} (${message.dataHex.length / 2} bytes)`,
+          ),
+        )
+        .catch((error) =>
+          appendLog(
+            `Inbound media failed: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
     }
   });
 
@@ -643,7 +1106,7 @@ if (!host) {
     host.send({
       type: "trust-add",
       identityString,
-      label: trustLabelInput?.value.trim() || "Unnamed publisher"
+      label: trustLabelInput?.value.trim() || "Unnamed publisher",
     });
     if (trustIdentityInput) {
       trustIdentityInput.value = "";
@@ -658,47 +1121,118 @@ if (!host) {
   });
 
   document.querySelector("#identity-unlock")?.addEventListener("click", () => {
-    host.send({ type: "identity-unlock", passphrase: identityCurrent.value, confirmation: identityConfirm.value });
+    host.send({
+      type: "identity-unlock",
+      passphrase: identityCurrent.value,
+      confirmation: identityConfirm.value,
+    });
   });
   document.querySelector("#identity-export")?.addEventListener("click", () => {
-    if (identityNext.value !== identityConfirm.value) return appendLog("Backup passphrases do not match");
-    host.send({ type: "identity-export", currentPassphrase: identityCurrent.value, backupPassphrase: identityNext.value, backupPassphraseConfirmation: identityConfirm.value });
+    if (identityNext.value !== identityConfirm.value)
+      return appendLog("Backup passphrases do not match");
+    host.send({
+      type: "identity-export",
+      currentPassphrase: identityCurrent.value,
+      backupPassphrase: identityNext.value,
+      backupPassphraseConfirmation: identityConfirm.value,
+    });
   });
-  document.querySelector("#identity-import")?.addEventListener("click", async () => {
-    if (identityNext.value !== identityConfirm.value) return appendLog("Vault passphrases do not match");
-    const backupHex = await host.openIdentityBackup();
-    if (backupHex) {
-      pendingIdentityImport = { backupHex, backupPassphrase: identityCurrent.value, vaultPassphrase: identityNext.value, vaultPassphraseConfirmation: identityConfirm.value };
-      host.send({ type: "identity-import-inspect", backupHex, backupPassphrase: identityCurrent.value });
-    }
-  });
-  document.querySelector("#identity-recovery-show")?.addEventListener("click", () => {
-    host.send({ type: "identity-recovery-show", currentPassphrase: identityCurrent.value });
-  });
-  document.querySelector("#identity-recovery-import")?.addEventListener("click", () => {
-    if (identityNext.value !== identityConfirm.value) return appendLog("Vault passphrases do not match");
-    pendingIdentityRecovery = { first: identityWordsFirst.value.trim(), second: identityWordsSecond.value.trim(), vaultPassphrase: identityNext.value, vaultPassphraseConfirmation: identityConfirm.value };
-    host.send({ type: "identity-recovery-import-inspect", first: pendingIdentityRecovery.first, second: pendingIdentityRecovery.second });
-  });
+  document
+    .querySelector("#identity-import")
+    ?.addEventListener("click", async () => {
+      if (identityNext.value !== identityConfirm.value)
+        return appendLog("Vault passphrases do not match");
+      const backupHex = await host.openIdentityBackup();
+      if (backupHex) {
+        pendingIdentityImport = {
+          backupHex,
+          backupPassphrase: identityCurrent.value,
+          vaultPassphrase: identityNext.value,
+          vaultPassphraseConfirmation: identityConfirm.value,
+        };
+        host.send({
+          type: "identity-import-inspect",
+          backupHex,
+          backupPassphrase: identityCurrent.value,
+        });
+      }
+    });
+  document
+    .querySelector("#identity-recovery-show")
+    ?.addEventListener("click", () => {
+      host.send({
+        type: "identity-recovery-show",
+        currentPassphrase: identityCurrent.value,
+      });
+    });
+  document
+    .querySelector("#identity-recovery-import")
+    ?.addEventListener("click", () => {
+      if (identityNext.value !== identityConfirm.value)
+        return appendLog("Vault passphrases do not match");
+      pendingIdentityRecovery = {
+        first: identityWordsFirst.value.trim(),
+        second: identityWordsSecond.value.trim(),
+        vaultPassphrase: identityNext.value,
+        vaultPassphraseConfirmation: identityConfirm.value,
+      };
+      host.send({
+        type: "identity-recovery-import-inspect",
+        first: pendingIdentityRecovery.first,
+        second: pendingIdentityRecovery.second,
+      });
+    });
   document.querySelector("#identity-change")?.addEventListener("click", () => {
-    if (identityNext.value !== identityConfirm.value) return appendLog("New passphrases do not match");
-    host.send({ type: "identity-change-passphrase", currentPassphrase: identityCurrent.value, nextPassphrase: identityNext.value, nextPassphraseConfirmation: identityConfirm.value });
+    if (identityNext.value !== identityConfirm.value)
+      return appendLog("New passphrases do not match");
+    host.send({
+      type: "identity-change-passphrase",
+      currentPassphrase: identityCurrent.value,
+      nextPassphrase: identityNext.value,
+      nextPassphraseConfirmation: identityConfirm.value,
+    });
   });
 
   const sendModeration = (type) => {
-    host.send({ type, sourceHash: moderationSource.value.trim(), label: moderationLabel.value.trim() });
+    host.send({
+      type,
+      sourceHash: moderationSource.value.trim(),
+      label: moderationLabel.value.trim(),
+    });
   };
-  document.querySelector("#moderation-block")?.addEventListener("click", () => sendModeration("moderation-block"));
-  document.querySelector("#moderation-unblock")?.addEventListener("click", () => sendModeration("moderation-unblock"));
-  document.querySelector("#moderation-mute")?.addEventListener("click", () => sendModeration("moderation-mute"));
-  document.querySelector("#moderation-unmute")?.addEventListener("click", () => sendModeration("moderation-unmute"));
-  document.querySelector("#moderation-report")?.addEventListener("click", () => {
-    host.send({ type: "moderation-report", sourceHash: moderationSource.value.trim(), reason: moderationReason.value, note: moderationNote.value });
-  });
-  document.querySelector("#moderation-export")?.addEventListener("click", () => host.send({ type: "moderation-export-reports" }));
+  document
+    .querySelector("#moderation-block")
+    ?.addEventListener("click", () => sendModeration("moderation-block"));
+  document
+    .querySelector("#moderation-unblock")
+    ?.addEventListener("click", () => sendModeration("moderation-unblock"));
+  document
+    .querySelector("#moderation-mute")
+    ?.addEventListener("click", () => sendModeration("moderation-mute"));
+  document
+    .querySelector("#moderation-unmute")
+    ?.addEventListener("click", () => sendModeration("moderation-unmute"));
+  document
+    .querySelector("#moderation-report")
+    ?.addEventListener("click", () => {
+      host.send({
+        type: "moderation-report",
+        sourceHash: moderationSource.value.trim(),
+        reason: moderationReason.value,
+        note: moderationNote.value,
+      });
+    });
+  document
+    .querySelector("#moderation-export")
+    ?.addEventListener("click", () =>
+      host.send({ type: "moderation-export-reports" }),
+    );
   host.send({ type: "moderation-list" });
   deviceRemoteEnabled?.addEventListener("change", () => {
-    host.send({ type: "device-set-remote", enabled: deviceRemoteEnabled.checked });
+    host.send({
+      type: "device-set-remote",
+      enabled: deviceRemoteEnabled.checked,
+    });
   });
   host.send({ type: "device-list" });
 
@@ -749,7 +1283,9 @@ if (!host) {
     if (requestedAppId !== null && runningAppId !== requestedAppId) {
       resetRequestedAppLaunch();
     }
-    appendLog(`Worklet exited (code=${detail.code}, signal=${detail.signal ?? "none"})`);
+    appendLog(
+      `Worklet exited (code=${detail.code}, signal=${detail.signal ?? "none"})`,
+    );
   });
 
   void host.getStatus().then(renderStatus);

@@ -6,7 +6,7 @@ module.exports = function withBleBridge(config) {
     const manifest = config.modResults.manifest;
     const usesPermission = manifest["uses-permission"] ?? [];
     const permissions = new Set(
-      usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean)
+      usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean),
     );
 
     for (const permission of [
@@ -15,7 +15,7 @@ module.exports = function withBleBridge(config) {
       "android.permission.BLUETOOTH_SCAN",
       "android.permission.BLUETOOTH_CONNECT",
       "android.permission.BLUETOOTH_ADVERTISE",
-      "android.permission.ACCESS_FINE_LOCATION"
+      "android.permission.ACCESS_FINE_LOCATION",
     ]) {
       if (!permissions.has(permission)) {
         usesPermission.push({ $: { "android:name": permission } });
@@ -26,15 +26,15 @@ module.exports = function withBleBridge(config) {
 
     const usesFeature = manifest["uses-feature"] ?? [];
     const features = new Set(
-      usesFeature.map((entry) => entry.$?.["android:name"]).filter(Boolean)
+      usesFeature.map((entry) => entry.$?.["android:name"]).filter(Boolean),
     );
 
     if (!features.has("android.hardware.bluetooth_le")) {
       usesFeature.push({
         $: {
           "android:name": "android.hardware.bluetooth_le",
-          "android:required": "true"
-        }
+          "android:required": "true",
+        },
       });
     }
 
@@ -46,11 +46,13 @@ module.exports = function withBleBridge(config) {
     config.modResults.NSBluetoothAlwaysUsageDescription =
       config.modResults.NSBluetoothAlwaysUsageDescription ??
       "TwistedPear uses Bluetooth to exchange Reticulum packets with nearby peers and RNodes.";
-    config.modResults.UIBackgroundModes = Array.from(new Set([
-      ...(config.modResults.UIBackgroundModes ?? []),
-      "bluetooth-central",
-      "bluetooth-peripheral"
-    ]));
+    config.modResults.UIBackgroundModes = Array.from(
+      new Set([
+        ...(config.modResults.UIBackgroundModes ?? []),
+        "bluetooth-central",
+        "bluetooth-peripheral",
+      ]),
+    );
     return config;
   });
 

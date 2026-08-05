@@ -11,13 +11,16 @@ const nodeEmptyStub = path.resolve(harnessRoot, "stubs/node-empty.web.js");
 const webStubs = {
   "sodium-native": path.resolve(harnessRoot, "stubs/sodium-native.web.js"),
   "react-native-bare-kit": path.resolve(harnessRoot, "stubs/bare-kit.web.js"),
-  "react-native-webrtc": path.resolve(harnessRoot, "stubs/react-native-webrtc.web.js"),
+  "react-native-webrtc": path.resolve(
+    harnessRoot,
+    "stubs/react-native-webrtc.web.js",
+  ),
   "require-addon": nodeEmptyStub,
   "rocksdb-native": nodeEmptyStub,
   corestore: nodeEmptyStub,
   hyperdrive: nodeEmptyStub,
   hyperswarm: nodeEmptyStub,
-  hyperbee: nodeEmptyStub
+  hyperbee: nodeEmptyStub,
 };
 
 /** Node built-ins that must not enter the RN host bundle (worklet Bare owns real ones). */
@@ -34,15 +37,18 @@ const nativeNodeStubs = {
   net: nodeEmptyStub,
   fs: nodeEmptyStub,
   path: nodeEmptyStub,
-  crypto: nodeEmptyStub
+  crypto: nodeEmptyStub,
 };
 
 const packageAliases = {
-  "@twistedpear/miniapp-runtime/ui": path.resolve(repoRoot, "packages/miniapp-runtime/dist/ui/index.js"),
+  "@twistedpear/miniapp-runtime/ui": path.resolve(
+    repoRoot,
+    "packages/miniapp-runtime/dist/ui/index.js",
+  ),
   "@twistedpear/miniapp-runtime/sandbox/web": path.resolve(
     repoRoot,
-    "packages/miniapp-runtime/dist/sandbox/web.js"
-  )
+    "packages/miniapp-runtime/dist/sandbox/web.js",
+  ),
 };
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {

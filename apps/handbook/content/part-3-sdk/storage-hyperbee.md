@@ -1,6 +1,5 @@
 # Hyperbee storage
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -13,9 +12,9 @@ and indexes.
 
 ## KV vs Hyperbee
 
-| Store | Best for |
-|---|---|
-| KV | Small opaque blobs, settings |
+| Store    | Best for                         |
+| -------- | -------------------------------- |
+| KV       | Small opaque blobs, settings     |
 | Hyperbee | Sorted keys, pagination, indexes |
 
 Both are local to the app install and quota-enforced by the host. Hyperbee data

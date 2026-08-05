@@ -15,7 +15,7 @@ import {
   ensureBootedSimulator,
   harnessInstalledOnBootedSim,
   isDarwin,
-  simctlAvailable
+  simctlAvailable,
 } from "./helpers.mjs";
 import { updateS4SupportMatrix } from "../freenet-spike/update-s4-matrix.mjs";
 
@@ -41,7 +41,7 @@ function skip(message) {
 
 function parseBenchmarkResults(text) {
   const match = text.match(
-    /spawn ([\d.]+)ms · kill ([\d.]+)ms · busy-loop ([\d.]+)ms · wasm (yes|no)(?: · kill failed)? \(([^)]+)\)/
+    /spawn ([\d.]+)ms · kill ([\d.]+)ms · busy-loop ([\d.]+)ms · wasm (yes|no)(?: · kill failed)? \(([^)]+)\)/,
   );
   if (match === null) {
     return null;
@@ -54,7 +54,7 @@ function parseBenchmarkResults(text) {
     killMs: Number.parseFloat(match[2]),
     busyLoopKillMs: Number.parseFloat(match[3]),
     wasmExecuted: match[4] === "yes",
-    busyLoopKilled: !text.includes("kill failed")
+    busyLoopKilled: !text.includes("kill failed"),
   };
 }
 
@@ -77,7 +77,7 @@ function assertEvidence(result) {
 function maestroE5() {
   const result = spawnSync("maestro", ["test", ".maestro/e5-benchmark.yaml"], {
     cwd: repoRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (result.status !== 0) {
     fail("maestro e5-benchmark flow failed");
@@ -92,7 +92,7 @@ function readBenchmarkDump() {
   const hierarchy = spawnSync("maestro", ["hierarchy"], {
     cwd: repoRoot,
     encoding: "utf8",
-    maxBuffer: 8 * 1024 * 1024
+    maxBuffer: 8 * 1024 * 1024,
   });
   if (hierarchy.status === 0 && typeof hierarchy.stdout === "string") {
     const parsed = parseBenchmarkResults(hierarchy.stdout);
@@ -100,17 +100,16 @@ function readBenchmarkDump() {
   }
 
   const booted = spawnSync("xcrun", ["simctl", "list", "devices", "booted"], {
-    encoding: "utf8"
+    encoding: "utf8",
   });
-  const match = typeof booted.stdout === "string"
-    ? booted.stdout.match(/\(([0-9A-F-]{36})\)\s+\(Booted\)/i)
-    : null;
+  const match =
+    typeof booted.stdout === "string"
+      ? booted.stdout.match(/\(([0-9A-F-]{36})\)\s+\(Booted\)/i)
+      : null;
   if (match !== null) {
-    const dump = spawnSync(
-      "xcrun",
-      ["simctl", "ui", match[1], "appearance"],
-      { encoding: "utf8" }
-    );
+    const dump = spawnSync("xcrun", ["simctl", "ui", match[1], "appearance"], {
+      encoding: "utf8",
+    });
     void dump;
   }
 
@@ -120,11 +119,11 @@ function readBenchmarkDump() {
 function harnessBuildIdentity() {
   try {
     const pkg = JSON.parse(
-      readFileSync(join(repoRoot, "apps/harness-mobile/package.json"), "utf8")
+      readFileSync(join(repoRoot, "apps/harness-mobile/package.json"), "utf8"),
     );
     return {
       name: pkg.name ?? "harness-mobile",
-      version: pkg.version ?? "unknown"
+      version: pkg.version ?? "unknown",
     };
   } catch {
     return { name: "harness-mobile", version: "unknown" };
@@ -134,7 +133,7 @@ function harnessBuildIdentity() {
 function iosRuntimeIdentity() {
   try {
     const runtimes = spawnSync("xcrun", ["simctl", "list", "runtimes"], {
-      encoding: "utf8"
+      encoding: "utf8",
     });
     if (runtimes.status !== 0 || typeof runtimes.stdout !== "string") {
       return null;
@@ -142,7 +141,9 @@ function iosRuntimeIdentity() {
     const line = runtimes.stdout
       .split("\n")
       .map((entry) => entry.trim())
-      .find((entry) => entry.startsWith("iOS ") && entry.includes("(available)"));
+      .find(
+        (entry) => entry.startsWith("iOS ") && entry.includes("(available)"),
+      );
     return line ?? null;
   } catch {
     return null;
@@ -152,7 +153,7 @@ function iosRuntimeIdentity() {
 export async function runIosWasmBenchmark(options = {}) {
   const {
     requireHarness = required,
-    buildIfMissing = process.env.IOS_SIM_WASM_BUILD === "1"
+    buildIfMissing = process.env.IOS_SIM_WASM_BUILD === "1",
   } = options;
 
   if (!isDarwin()) {
@@ -170,20 +171,22 @@ export async function runIosWasmBenchmark(options = {}) {
   if (buildIfMissing || !harnessInstalledOnBootedSim()) {
     if (!buildIfMissing && !requireHarness) {
       return skip(
-        "harness not installed on booted simulator (set IOS_SIM_WASM_BUILD=1 to build)"
+        "harness not installed on booted simulator (set IOS_SIM_WASM_BUILD=1 to build)",
       );
     }
     console.log("[ios-sim/wasm-benchmark] building and installing harness");
     buildAndInstallHarness(repoRoot);
   }
 
-  console.log("[ios-sim/wasm-benchmark] running Maestro BareKit worker benchmark");
+  console.log(
+    "[ios-sim/wasm-benchmark] running Maestro BareKit worker benchmark",
+  );
   maestroE5();
 
   const parsed = readBenchmarkDump();
   if (parsed === null) {
     fail(
-      "could not parse spawn/kill/busy-loop/wasm timings from Maestro hierarchy after e5 flow"
+      "could not parse spawn/kill/busy-loop/wasm timings from Maestro hierarchy after e5 flow",
     );
   }
   assertEvidence(parsed);
@@ -194,19 +197,22 @@ export async function runIosWasmBenchmark(options = {}) {
     environment: "ios-simulator",
     harness: harnessBuildIdentity(),
     iosRuntime: iosRuntimeIdentity(),
-    ...parsed
+    ...parsed,
   };
 
   if (record) {
     writeFileSync(measuredPath, `${JSON.stringify(result, null, 2)}\n`);
-    const matrixPath = updateS4SupportMatrix("bare-worker-ios-simulator", result);
+    const matrixPath = updateS4SupportMatrix(
+      "bare-worker-ios-simulator",
+      result,
+    );
     console.log(`[ios-sim/wasm-benchmark] recorded ${measuredPath}`);
     console.log(`[ios-sim/wasm-benchmark] updated ${matrixPath}`);
   }
 
   console.log(
     `[ios-sim/wasm-benchmark] wasm=${result.wasmExecuted} busyLoopKilled=${result.busyLoopKilled} ` +
-      `spawn=${result.spawnMs}ms kill=${result.killMs}ms busy-loop=${result.busyLoopKillMs}ms (${result.backend})`
+      `spawn=${result.spawnMs}ms kill=${result.killMs}ms busy-loop=${result.busyLoopKillMs}ms (${result.backend})`,
   );
   return result;
 }

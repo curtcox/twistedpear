@@ -1,6 +1,5 @@
 # Desktop host
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -20,12 +19,12 @@ the WebSocket Reticulum interface.
 
 ## Default roles
 
-| Role | Default | Notes |
-|---|---|---|
-| Transport node | on | Off when `--attach-rnsd` leaf mode |
-| Seeder / LAN mirror | on | Quota'd Hyperdrive serving |
-| Propagation server | off | Enable in UI or `--propagation` |
-| WebSocket gateway | off | `--ws-listen` for web-host tabs |
+| Role                | Default | Notes                              |
+| ------------------- | ------- | ---------------------------------- |
+| Transport node      | on      | Off when `--attach-rnsd` leaf mode |
+| Seeder / LAN mirror | on      | Quota'd Hyperdrive serving         |
+| Propagation server  | off     | Enable in UI or `--propagation`    |
+| WebSocket gateway   | off     | `--ws-listen` for web-host tabs    |
 
 ## Lifecycle
 

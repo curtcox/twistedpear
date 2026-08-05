@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type { MultipartCheckpoint, MultipartCheckpointStore } from "@twistedpear/lxmf-ts";
+import type {
+  MultipartCheckpoint,
+  MultipartCheckpointStore,
+} from "@twistedpear/lxmf-ts";
 import { ensureDir } from "./config.js";
 import { atomicWritePrivateFile } from "./identity.js";
 
@@ -14,7 +17,7 @@ export class FileMultipartCheckpointStore implements MultipartCheckpointStore {
 
   constructor(private readonly path: string) {
     this.state = existsSync(path)
-      ? JSON.parse(readFileSync(path, "utf8")) as CheckpointFile
+      ? (JSON.parse(readFileSync(path, "utf8")) as CheckpointFile)
       : { version: 1, transfers: {} };
     if (this.state.version !== 1 || typeof this.state.transfers !== "object") {
       throw new Error("Invalid multipart checkpoint store");
@@ -26,7 +29,13 @@ export class FileMultipartCheckpointStore implements MultipartCheckpointStore {
   }
 
   save(checkpoint: MultipartCheckpoint): void {
-    this.state = { ...this.state, transfers: { ...this.state.transfers, [checkpoint.transferId]: checkpoint } };
+    this.state = {
+      ...this.state,
+      transfers: {
+        ...this.state.transfers,
+        [checkpoint.transferId]: checkpoint,
+      },
+    };
     this.persist();
   }
 
@@ -39,6 +48,9 @@ export class FileMultipartCheckpointStore implements MultipartCheckpointStore {
 
   private persist(): void {
     ensureDir(dirname(this.path));
-    atomicWritePrivateFile(this.path, new TextEncoder().encode(`${JSON.stringify(this.state, null, 2)}\n`));
+    atomicWritePrivateFile(
+      this.path,
+      new TextEncoder().encode(`${JSON.stringify(this.state, null, 2)}\n`),
+    );
   }
 }

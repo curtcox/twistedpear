@@ -1,6 +1,5 @@
 # Battery and Bandwidth Policy (Draft)
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-21
@@ -22,12 +21,12 @@ Status: enforced software policy — device energy measurements remain hardware 
 
 ## Interface bandwidth tiers
 
-| Interface | Typical throughput | Install suitability | Default when |
-|---|---|---|---|
-| TCP / AutoInterface (LAN) | Mbps+ | full packages | WiFi/Ethernet available |
-| Hyperswarm / Hyperdrive | variable (DHT) | full packages | seeder reachable |
-| BLE phone pipe | tens of kbps | tiny packages only | user-enabled, foreground |
-| RNode LoRa | hundreds of bps | LXMF + tiny Resource | user-enabled, budget gate |
+| Interface                 | Typical throughput | Install suitability  | Default when              |
+| ------------------------- | ------------------ | -------------------- | ------------------------- |
+| TCP / AutoInterface (LAN) | Mbps+              | full packages        | WiFi/Ethernet available   |
+| Hyperswarm / Hyperdrive   | variable (DHT)     | full packages        | seeder reachable          |
+| BLE phone pipe            | tens of kbps       | tiny packages only   | user-enabled, foreground  |
+| RNode LoRa                | hundreds of bps    | LXMF + tiny Resource | user-enabled, budget gate |
 
 Enforcement: each host uses one zero-burst limiter per direction. Reticulum ingress,
 egress, and forwarded traffic share it across all registered interfaces; Hyperdrive
@@ -45,23 +44,23 @@ not start a mini-app in the background.
 
 ## Battery budgets (targets — verify on device)
 
-| Mode | Android target | iOS target |
-|---|---|---|
-| Foreground mesh (TCP + BLE) | &lt; 15% / hr on mid-tier phone | N/A (foreground only) |
-| Foreground service + TCP idle | &lt; 5% / hr | — |
-| Background grace (iOS) | — | quiesce within 30 s; no always-on promise |
-| 8 h background TCP (exempt OEM) | link held or reconnect &lt; 2 min | not promised |
+| Mode                            | Android target                    | iOS target                                |
+| ------------------------------- | --------------------------------- | ----------------------------------------- |
+| Foreground mesh (TCP + BLE)     | &lt; 15% / hr on mid-tier phone   | N/A (foreground only)                     |
+| Foreground service + TCP idle   | &lt; 5% / hr                      | —                                         |
+| Background grace (iOS)          | —                                 | quiesce within 30 s; no always-on promise |
+| 8 h background TCP (exempt OEM) | link held or reconnect &lt; 2 min | not promised                              |
 
 Simulator lifecycle tests (`test:ios-soak:required`) validate quiesce/reconnect logic only,
 not absolute drain rates.
 
 ## Package size guidance
 
-| Class | Size | Path |
-|---|---|---|
-| `tiny` | &lt; 64 KiB | any interface |
-| `standard` | &lt; 4 MiB | LAN / Hyperdrive preferred |
-| `large` | &gt; 4 MiB | LAN / Hyperdrive only; warn on metered |
+| Class      | Size        | Path                                   |
+| ---------- | ----------- | -------------------------------------- |
+| `tiny`     | &lt; 64 KiB | any interface                          |
+| `standard` | &lt; 4 MiB  | LAN / Hyperdrive preferred             |
+| `large`    | &gt; 4 MiB  | LAN / Hyperdrive only; warn on metered |
 
 Default harness quota: 64 MiB installed (`InstalledPackageStore`).
 
@@ -77,12 +76,12 @@ Default harness quota: 64 MiB installed (`InstalledPackageStore`).
 
 ## Open items (device data required)
 
-| Measurement | Source |
-|---|---|
-| BLE sustained kbps screen on/off | H2-B |
-| OEM kill time without battery exempt | H3 |
-| iOS background LXMF delivery window | H13 |
-| Weak-phone watchdog false-positive rate | H11 |
-| LoRa LXMF latency | H4-C |
+| Measurement                             | Source |
+| --------------------------------------- | ------ |
+| BLE sustained kbps screen on/off        | H2-B   |
+| OEM kill time without battery exempt    | H3     |
+| iOS background LXMF delivery window     | H13    |
+| Weak-phone watchdog false-positive rate | H11    |
+| LoRa LXMF latency                       | H4-C   |
 
 Update LIMITATIONS §§3, §5, and §6 when measurements land.

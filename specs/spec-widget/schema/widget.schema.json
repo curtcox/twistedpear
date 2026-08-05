@@ -6,10 +6,7 @@
   "$defs": {
     "node": {
       "type": "object",
-      "required": [
-        "id",
-        "type"
-      ],
+      "required": ["id", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -117,23 +114,15 @@
                     },
                     "event": true,
                     "language": {
-                      "enum": [
-                        "javascript",
-                        "json",
-                        "text"
-                      ]
+                      "enum": ["javascript", "json", "text"]
                     },
                     "readOnly": true
                   },
-                  "required": [
-                    "documentId"
-                  ],
+                  "required": ["documentId"],
                   "additionalProperties": false
                 }
               },
-              "required": [
-                "props"
-              ]
+              "required": ["props"]
             },
             {
               "type": "object",
@@ -228,15 +217,11 @@
                       "maxLength": 512
                     }
                   },
-                  "required": [
-                    "value"
-                  ],
+                  "required": ["value"],
                   "additionalProperties": false
                 }
               },
-              "required": [
-                "props"
-              ]
+              "required": ["props"]
             },
             {
               "type": "object",
@@ -371,12 +356,7 @@
       "type": "object",
       "properties": {
         "alignItems": {
-          "enum": [
-            "stretch",
-            "flex-start",
-            "center",
-            "flex-end"
-          ]
+          "enum": ["stretch", "flex-start", "center", "flex-end"]
         },
         "backgroundColor": {
           "type": "string"
@@ -385,33 +365,16 @@
           "type": "string"
         },
         "display": {
-          "enum": [
-            "flex",
-            "none"
-          ]
+          "enum": ["flex", "none"]
         },
         "flexDirection": {
-          "enum": [
-            "row",
-            "column"
-          ]
+          "enum": ["row", "column"]
         },
         "fontSize": {
-          "enum": [
-            12,
-            14,
-            16,
-            20,
-            24,
-            32
-          ]
+          "enum": [12, 14, 16, 20, 24, 32]
         },
         "fontWeight": {
-          "enum": [
-            "regular",
-            "medium",
-            "bold"
-          ]
+          "enum": ["regular", "medium", "bold"]
         },
         "gap": {
           "type": "number"
@@ -428,12 +391,7 @@
           ]
         },
         "justifyContent": {
-          "enum": [
-            "flex-start",
-            "center",
-            "flex-end",
-            "space-between"
-          ]
+          "enum": ["flex-start", "center", "flex-end", "space-between"]
         },
         "margin": {
           "type": "number"
@@ -457,9 +415,7 @@
     },
     "tree": {
       "type": "object",
-      "required": [
-        "root"
-      ],
+      "required": ["root"],
       "properties": {
         "root": {
           "$ref": "#/$defs/node"
@@ -472,11 +428,7 @@
       "oneOf": [
         {
           "type": "object",
-          "required": [
-            "op",
-            "id",
-            "node"
-          ],
+          "required": ["op", "id", "node"],
           "properties": {
             "op": {
               "const": "replace"
@@ -493,10 +445,7 @@
         },
         {
           "type": "object",
-          "required": [
-            "op",
-            "id"
-          ],
+          "required": ["op", "id"],
           "properties": {
             "op": {
               "const": "remove"

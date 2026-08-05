@@ -7,12 +7,7 @@ import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/co
 import { joinCommunityNetwork } from "../../../packages/worklet-core/src/index.mjs";
 
 export function createNodeMessageHandlers(deps) {
-  const {
-    state,
-    status,
-    log,
-    pushStatus,
-  } = deps;
+  const { state, status, log, pushStatus } = deps;
   const applyInterfaceConfig = (...args) => deps.applyInterfaceConfig(...args);
   const startTcpInterface = (...args) => deps.startTcpInterface(...args);
   const stopTcpInterface = (...args) => deps.stopTcpInterface(...args);
@@ -20,7 +15,8 @@ export function createNodeMessageHandlers(deps) {
   const stopAutoInterface = (...args) => deps.stopAutoInterface(...args);
   const quiesceInterfaces = (...args) => deps.quiesceInterfaces(...args);
   const resumeInterfaces = (...args) => deps.resumeInterfaces(...args);
-  const reconnectTcpAfterNetworkChange = (...args) => deps.reconnectTcpAfterNetworkChange(...args);
+  const reconnectTcpAfterNetworkChange = (...args) =>
+    deps.reconnectTcpAfterNetworkChange(...args);
   const stopNode = (...args) => deps.stopNode(...args);
   const startPropagation = (...args) => deps.startPropagation(...args);
   const stopPropagation = (...args) => deps.stopPropagation(...args);
@@ -29,14 +25,19 @@ export function createNodeMessageHandlers(deps) {
   const persistRelayConfig = (...args) => deps.persistRelayConfig(...args);
 
   const handleStart = async (message) => {
-    state.pendingTarget = { targetHost: message.targetHost, targetPort: message.targetPort };
+    state.pendingTarget = {
+      targetHost: message.targetHost,
+      targetPort: message.targetPort,
+    };
     await loadRelayConfig();
     state.multicastEntitled = message.multicastEntitled !== false;
     state.bonjourDiscoveryEnabled = message.bonjourEnabled !== false;
     if (status.tcpEnabled) {
       await applyInterfaceConfig();
     } else {
-      log(`Target set to ${message.targetHost}:${message.targetPort} (enable TCP to connect)`);
+      log(
+        `Target set to ${message.targetHost}:${message.targetPort} (enable TCP to connect)`,
+      );
     }
     return;
   };
@@ -82,7 +83,9 @@ export function createNodeMessageHandlers(deps) {
       try {
         await startPropagation();
       } catch (error) {
-        log(`Propagation enable failed: ${error instanceof Error ? error.message : String(error)}`);
+        log(
+          `Propagation enable failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     } else {
       await stopPropagation();
@@ -107,13 +110,17 @@ export function createNodeMessageHandlers(deps) {
   const handleSetFreenetConfig = async (message) => {
     const enabled = message.enabled === true;
     const interfaceEnabled = message.interfaceEnabled === true;
-    const url = typeof message.url === "string" && message.url.length > 0 ? message.url : null;
+    const url =
+      typeof message.url === "string" && message.url.length > 0
+        ? message.url
+        : null;
     const authToken =
       typeof message.authToken === "string" && message.authToken.length > 0
         ? message.authToken
         : undefined;
     const rendezvousHex =
-      typeof message.rendezvousHex === "string" && message.rendezvousHex.length > 0
+      typeof message.rendezvousHex === "string" &&
+      message.rendezvousHex.length > 0
         ? message.rendezvousHex
         : null;
     const localDirection = message.localDirection === 1 ? 1 : 0;
@@ -131,8 +138,8 @@ export function createNodeMessageHandlers(deps) {
       state.freenetBackendImpl = new FreenetClientContractBackend({
         clientOptions: {
           url,
-          ...(authToken === undefined ? {} : { authToken })
-        }
+          ...(authToken === undefined ? {} : { authToken }),
+        },
       });
       status.freenetConfigured = true;
     } else {
@@ -154,7 +161,7 @@ export function createNodeMessageHandlers(deps) {
       startTcpInterface,
       setPendingTarget: (target) => {
         state.pendingTarget = target;
-      }
+      },
     });
     return;
   };
@@ -173,7 +180,10 @@ export function createNodeMessageHandlers(deps) {
   };
 
   const handleMulticastInterfaces = async (message) => {
-    if (state.multicastBridge !== null && message.type === "multicast-interfaces") {
+    if (
+      state.multicastBridge !== null &&
+      message.type === "multicast-interfaces"
+    ) {
       state.multicastBridge.handleHostMessage(message);
     }
 
@@ -194,7 +204,8 @@ export function createNodeMessageHandlers(deps) {
   const handleBonjourPeer = async (message) => {
     if (!(state.bonjourBridge !== null)) return;
     state.autoIface?.notifyPeerDiscovered(message.address, message.ifname);
-    status.autoPeers = state.autoIface?.peerInterfaces.length ?? status.autoPeers;
+    status.autoPeers =
+      state.autoIface?.peerInterfaces.length ?? status.autoPeers;
     pushStatus();
     log(`Bonjour peer discovered: ${message.address}`);
     return;
@@ -207,11 +218,11 @@ export function createNodeMessageHandlers(deps) {
 
   return {
     handlers: {
-      "start": handleStart,
+      start: handleStart,
       "suspend-node": handleSuspendNode,
       "resume-node": handleResumeNode,
       "network-change": handleNetworkChange,
-      "stop": handleStop,
+      stop: handleStop,
       "set-propagation": handleSetPropagation,
       "set-relay-config": handleSetRelayConfig,
       "set-freenet-config": handleSetFreenetConfig,
@@ -224,7 +235,7 @@ export function createNodeMessageHandlers(deps) {
       "serial-data": handleSerialData,
       "serial-connect": handleSerialData,
       "serial-disconnect": handleSerialData,
-      "serial-error": handleSerialData
-    }
+      "serial-error": handleSerialData,
+    },
   };
 }

@@ -43,7 +43,7 @@ import {
   initialGateState,
   interpretGate,
   type GateState,
-  type GateStepResult
+  type GateStepResult,
 } from "@twistedpear/effects";
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -52,13 +52,22 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
-  PACKET_TYPE_PROOF
+  PACKET_TYPE_PROOF,
 } from "../packet-header.js";
 import { PacketContextCode } from "../packet-context.js";
 import { equalByteArrays } from "../path-table.js";
 import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
-import { REVERSE_TIMEOUT_SECONDS, canLookupLinkRelayEntry, linkRelayTargetGate, planLinkRelayTarget } from "./part-1.js";
-import type { LinkRelayTarget, LinkRelayTargetAction, LookupLinkRelayEntryGateEvent } from "./part-1.js";
+import {
+  REVERSE_TIMEOUT_SECONDS,
+  canLookupLinkRelayEntry,
+  linkRelayTargetGate,
+  planLinkRelayTarget,
+} from "./part-1.js";
+import type {
+  LinkRelayTarget,
+  LinkRelayTargetAction,
+  LookupLinkRelayEntryGateEvent,
+} from "./part-1.js";
 const lookupLinkRelayEntryGate = defineBooleanGate<
   LookupLinkRelayEntryGateEvent,
   "hit",
@@ -67,24 +76,28 @@ const lookupLinkRelayEntryGate = defineBooleanGate<
   event: "transport/lookup-link-relay-entry-gate",
   whenTrue: "hit",
   whenFalse: "miss",
-  decide: (event) => canLookupLinkRelayEntry(event.entryPresent)
+  decide: (event) => canLookupLinkRelayEntry(event.entryPresent),
 });
 
 export type LookupLinkRelayEntryState = GateState;
 
 export type LookupLinkRelayEntryAction =
-  | { readonly kind: "hit" }
-  | { readonly kind: "miss" };
+  { readonly kind: "hit" } | { readonly kind: "miss" };
 
-export type LookupLinkRelayEntryStepResult = GateStepResult<LookupLinkRelayEntryAction>;
+export type LookupLinkRelayEntryStepResult =
+  GateStepResult<LookupLinkRelayEntryAction>;
 
 export const initialLookupLinkRelayEntryState = initialGateState;
 
-export const stepLookupLinkRelayEntryWithActions = interpretGate(lookupLinkRelayEntryGate);
+export const stepLookupLinkRelayEntryWithActions = interpretGate(
+  lookupLinkRelayEntryGate,
+);
 
-export const shouldHitLookupLinkRelayEntry = gateConcluded<LookupLinkRelayEntryAction>("hit");
+export const shouldHitLookupLinkRelayEntry =
+  gateConcluded<LookupLinkRelayEntryAction>("hit");
 
-export const shouldMissLookupLinkRelayEntry = gateConcluded<LookupLinkRelayEntryAction>("miss");
+export const shouldMissLookupLinkRelayEntry =
+  gateConcluded<LookupLinkRelayEntryAction>("miss");
 
 /** Whether link-relay may transmit after {@link planLinkRelayTarget} resolves an iface. */
 export function shouldTransmitLinkRelay(outboundPresent: boolean): boolean {
@@ -109,7 +122,7 @@ const transmitLinkRelayGate = defineBooleanGate<
   event: "transport/transmit-link-relay-gate",
   whenTrue: "transmit",
   whenFalse: "skip",
-  decide: (event) => shouldTransmitLinkRelay(event.outboundPresent)
+  decide: (event) => shouldTransmitLinkRelay(event.outboundPresent),
 });
 
 export type TransmitLinkRelayState = GateState;
@@ -122,18 +135,22 @@ export type TransmitLinkRelayEvent =
     };
 
 export type TransmitLinkRelayAction =
-  | { readonly kind: "transmit" }
-  | { readonly kind: "skip" };
+  { readonly kind: "transmit" } | { readonly kind: "skip" };
 
-export type TransmitLinkRelayStepResult = GateStepResult<TransmitLinkRelayAction>;
+export type TransmitLinkRelayStepResult =
+  GateStepResult<TransmitLinkRelayAction>;
 
 export const initialTransmitLinkRelayState = initialGateState;
 
-export const stepTransmitLinkRelayWithActions = interpretGate(transmitLinkRelayGate);
+export const stepTransmitLinkRelayWithActions = interpretGate(
+  transmitLinkRelayGate,
+);
 
-export const shouldTransmitLinkRelayNow = gateConcluded<TransmitLinkRelayAction>("transmit");
+export const shouldTransmitLinkRelayNow =
+  gateConcluded<TransmitLinkRelayAction>("transmit");
 
-export const shouldSkipTransmitLinkRelay = gateConcluded<TransmitLinkRelayAction>("skip");
+export const shouldSkipTransmitLinkRelay =
+  gateConcluded<TransmitLinkRelayAction>("skip");
 
 export type LinkRelayTargetState = GateState;
 
@@ -141,23 +158,27 @@ export type LinkRelayTargetStepResult = GateStepResult<LinkRelayTargetAction>;
 
 export const initialLinkRelayTargetState = initialGateState;
 
-export const stepLinkRelayTarget: StepFn<LinkRelayTargetState> = gateStepFn(
-  linkRelayTargetGate
-);
+export const stepLinkRelayTarget: StepFn<LinkRelayTargetState> =
+  gateStepFn(linkRelayTargetGate);
 
 export const linkRelayTargetFromActions = gateConclusion<
   LinkRelayTargetAction,
   LinkRelayTarget
 >("outbound", "received");
 
-export const shouldRelayLinkOutbound = gateConcluded<LinkRelayTargetAction>("outbound");
+export const shouldRelayLinkOutbound =
+  gateConcluded<LinkRelayTargetAction>("outbound");
 
-export const shouldRelayLinkReceived = gateConcluded<LinkRelayTargetAction>("received");
+export const shouldRelayLinkReceived =
+  gateConcluded<LinkRelayTargetAction>("received");
 
-export const shouldIgnoreLinkRelayTarget = gateConcluded<LinkRelayTargetAction>("ignore");
+export const shouldIgnoreLinkRelayTarget =
+  gateConcluded<LinkRelayTargetAction>("ignore");
 
 /** Whether reverse-table should delete an expired entry (delete-expired outcome). */
-export function shouldDeleteExpiredReverseEntry(deleteExpired: boolean): boolean {
+export function shouldDeleteExpiredReverseEntry(
+  deleteExpired: boolean,
+): boolean {
   return deleteExpired;
 }
 
@@ -190,7 +211,7 @@ const transmitReverseRelayGate = defineBooleanGate<
   event: "transport/transmit-reverse-relay-gate",
   whenTrue: "transmit",
   whenFalse: "skip",
-  decide: (event) => shouldTransmitReverseRelay(event)
+  decide: (event) => shouldTransmitReverseRelay(event),
 });
 
 export type TransmitReverseRelayState = GateState;
@@ -204,20 +225,22 @@ export type TransmitReverseRelayEvent =
     };
 
 export type TransmitReverseRelayAction =
-  | { readonly kind: "transmit" }
-  | { readonly kind: "skip" };
+  { readonly kind: "transmit" } | { readonly kind: "skip" };
 
-export type TransmitReverseRelayStepResult = GateStepResult<TransmitReverseRelayAction>;
+export type TransmitReverseRelayStepResult =
+  GateStepResult<TransmitReverseRelayAction>;
 
 export const initialTransmitReverseRelayState = initialGateState;
 
-export const stepTransmitReverseRelayWithActions = interpretGate(transmitReverseRelayGate);
+export const stepTransmitReverseRelayWithActions = interpretGate(
+  transmitReverseRelayGate,
+);
 
-export const shouldTransmitReverseRelayNow = gateConcluded<
-  TransmitReverseRelayAction
->("transmit");
+export const shouldTransmitReverseRelayNow =
+  gateConcluded<TransmitReverseRelayAction>("transmit");
 
-export const shouldSkipTransmitReverseRelay = gateConcluded<TransmitReverseRelayAction>("skip");
+export const shouldSkipTransmitReverseRelay =
+  gateConcluded<TransmitReverseRelayAction>("skip");
 
 /** True when a reverse-table entry is past its lifetime. */
 export function isReverseEntryExpired(input: {
@@ -252,10 +275,10 @@ const reverseEntryExpiredGate = defineGate<
         : {
             timestamp: event.timestamp,
             nowSeconds: event.nowSeconds,
-            timeoutSeconds: event.timeoutSeconds
+            timeoutSeconds: event.timeoutSeconds,
           };
     return [{ kind: isReverseEntryExpired(expiredInput) ? "expired" : "live" }];
-  }
+  },
 });
 
 export type ReverseEntryExpiredState = GateState;
@@ -270,20 +293,22 @@ export type ReverseEntryExpiredEvent =
     };
 
 export type ReverseEntryExpiredAction =
-  | { readonly kind: "expired" }
-  | { readonly kind: "live" };
+  { readonly kind: "expired" } | { readonly kind: "live" };
 
-export type ReverseEntryExpiredStepResult = GateStepResult<ReverseEntryExpiredAction>;
+export type ReverseEntryExpiredStepResult =
+  GateStepResult<ReverseEntryExpiredAction>;
 
 export const initialReverseEntryExpiredState = initialGateState;
 
-export const stepReverseEntryExpiredWithActions = interpretGate(reverseEntryExpiredGate);
+export const stepReverseEntryExpiredWithActions = interpretGate(
+  reverseEntryExpiredGate,
+);
 
-export const shouldTreatReverseEntryExpired = gateConcluded<
-  ReverseEntryExpiredAction
->("expired");
+export const shouldTreatReverseEntryExpired =
+  gateConcluded<ReverseEntryExpiredAction>("expired");
 
-export const shouldTreatReverseEntryLive = gateConcluded<ReverseEntryExpiredAction>("live");
+export const shouldTreatReverseEntryLive =
+  gateConcluded<ReverseEntryExpiredAction>("live");
 
 /**
  * Whether this node should relay a transport-wrapped packet (local transport-id,
@@ -321,7 +346,7 @@ const relayTransportPacketAllowGate = defineBooleanGate<
   event: "transport/relay-transport-packet-allow-gate",
   whenTrue: "allow",
   whenFalse: "deny",
-  decide: (event) => canRelayTransportPacket(event)
+  decide: (event) => canRelayTransportPacket(event),
 });
 
 export type RelayTransportPacketAllowState = GateState;
@@ -337,26 +362,22 @@ export type RelayTransportPacketAllowEvent =
     };
 
 export type RelayTransportPacketAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
-export type RelayTransportPacketAllowStepResult = GateStepResult<
-  RelayTransportPacketAllowAction
->;
+export type RelayTransportPacketAllowStepResult =
+  GateStepResult<RelayTransportPacketAllowAction>;
 
 export const initialRelayTransportPacketAllowState = initialGateState;
 
 export const stepRelayTransportPacketAllowWithActions = interpretGate(
-  relayTransportPacketAllowGate
+  relayTransportPacketAllowGate,
 );
 
-export const shouldAllowRelayTransportPacket = gateConcluded<
-  RelayTransportPacketAllowAction
->("allow");
+export const shouldAllowRelayTransportPacket =
+  gateConcluded<RelayTransportPacketAllowAction>("allow");
 
-export const shouldDenyRelayTransportPacket = gateConcluded<
-  RelayTransportPacketAllowAction
->("deny");
+export const shouldDenyRelayTransportPacket =
+  gateConcluded<RelayTransportPacketAllowAction>("deny");
 
 /** Whether a relayed packet should create/update a link-relay table entry. */
 export function shouldRecordLinkRelayTableEntry(packetType: number): boolean {
@@ -381,7 +402,7 @@ const recordLinkRelayTableEntryGate = defineBooleanGate<
   event: "transport/record-link-relay-table-entry-gate",
   whenTrue: "record",
   whenFalse: "skip",
-  decide: (event) => shouldRecordLinkRelayTableEntry(event.packetType)
+  decide: (event) => shouldRecordLinkRelayTableEntry(event.packetType),
 });
 
 export type RecordLinkRelayTableEntryState = GateState;
@@ -394,26 +415,22 @@ export type RecordLinkRelayTableEntryEvent =
     };
 
 export type RecordLinkRelayTableEntryAction =
-  | { readonly kind: "record" }
-  | { readonly kind: "skip" };
+  { readonly kind: "record" } | { readonly kind: "skip" };
 
-export type RecordLinkRelayTableEntryStepResult = GateStepResult<
-  RecordLinkRelayTableEntryAction
->;
+export type RecordLinkRelayTableEntryStepResult =
+  GateStepResult<RecordLinkRelayTableEntryAction>;
 
 export const initialRecordLinkRelayTableEntryState = initialGateState;
 
 export const stepRecordLinkRelayTableEntryWithActions = interpretGate(
-  recordLinkRelayTableEntryGate
+  recordLinkRelayTableEntryGate,
 );
 
-export const shouldRecordLinkRelayTableEntryNow = gateConcluded<
-  RecordLinkRelayTableEntryAction
->("record");
+export const shouldRecordLinkRelayTableEntryNow =
+  gateConcluded<RecordLinkRelayTableEntryAction>("record");
 
-export const shouldSkipRecordLinkRelayTableEntry = gateConcluded<
-  RecordLinkRelayTableEntryAction
->("skip");
+export const shouldSkipRecordLinkRelayTableEntry =
+  gateConcluded<RecordLinkRelayTableEntryAction>("skip");
 
 /**
  * Whether a relayed packet should create/update a reverse-table entry
@@ -447,7 +464,7 @@ export const recordReverseTableEntryGate = defineBooleanGate<
   event: "transport/record-reverse-table-entry-gate",
   whenTrue: "record",
   whenFalse: "skip",
-  decide: (event) => shouldRecordReverseTableEntry(event)
+  decide: (event) => shouldRecordReverseTableEntry(event),
 });
 
 export type RecordReverseTableEntryState = GateState;

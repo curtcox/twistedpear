@@ -45,8 +45,20 @@ practical one.
 Every sample imports from exactly one module:
 
 ```javascript
-import { identity, lxmf, announce, storage, resource, presence,
-         host, ui, workspace, ai, apps, share } from "@twistedpear/miniapp-sdk";
+import {
+  identity,
+  lxmf,
+  announce,
+  storage,
+  resource,
+  presence,
+  host,
+  ui,
+  workspace,
+  ai,
+  apps,
+  share,
+} from "@twistedpear/miniapp-sdk";
 ```
 
 No recipe imports anything else, because no recipe can. There is no bundler in the host, so
@@ -154,14 +166,14 @@ gate.
 
 In rough order of likelihood:
 
-| Symptom | Usual cause | Where to look |
-|---|---|---|
-| `CapabilityError` on a call | The grant was never given, or was revoked while the app ran | [authoring guide ch. 5](../authors/05-capabilities.md) |
-| `ui.render` rejects the whole tree | An unknown component, prop, or style — trees never partially apply | [authoring guide ch. 4](../authors/04-building-the-ui.md) |
-| Calls start failing under load | 60 broker messages per second, per app | [authoring guide ch. 12](../authors/12-limits-and-budgets.md) |
-| A 256t identifier will not resolve | No locator announce for those bytes was ever heard | [Chapter 6](06-apps-that-move-files.md) |
-| A send succeeds and nothing arrives | The recipient's app was closed; nothing is delivered to a closed app | [Chapter 4](04-apps-that-talk-to-one-peer.md) |
-| The host killed your app | The runaway-app watchdog | [authoring guide ch. 11](../authors/11-testing-and-debugging.md) |
+| Symptom                             | Usual cause                                                          | Where to look                                                    |
+| ----------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `CapabilityError` on a call         | The grant was never given, or was revoked while the app ran          | [authoring guide ch. 5](../authors/05-capabilities.md)           |
+| `ui.render` rejects the whole tree  | An unknown component, prop, or style — trees never partially apply   | [authoring guide ch. 4](../authors/04-building-the-ui.md)        |
+| Calls start failing under load      | 60 broker messages per second, per app                               | [authoring guide ch. 12](../authors/12-limits-and-budgets.md)    |
+| A 256t identifier will not resolve  | No locator announce for those bytes was ever heard                   | [Chapter 6](06-apps-that-move-files.md)                          |
+| A send succeeds and nothing arrives | The recipient's app was closed; nothing is delivered to a closed app | [Chapter 4](04-apps-that-talk-to-one-peer.md)                    |
+| The host killed your app            | The runaway-app watchdog                                             | [authoring guide ch. 11](../authors/11-testing-and-debugging.md) |
 
 The [troubleshooting chapter](../guide/10-troubleshooting.md) of the user guide covers the
 host-side half of all of these.

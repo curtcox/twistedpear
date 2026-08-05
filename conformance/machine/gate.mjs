@@ -24,11 +24,19 @@ import { createValidator } from "../tools/mini-json-schema.mjs";
 import { canonicalJson, fnv1a64 } from "../kernel/runner.mjs";
 import {
   installTripwire,
-  uninstallTripwire
+  uninstallTripwire,
 } from "../../packages/effects/dist/tripwire.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const EVENTS_SCHEMA = join(here, "..", "..", "specs", "spec-events", "schema", "events.schema.json");
+const EVENTS_SCHEMA = join(
+  here,
+  "..",
+  "..",
+  "specs",
+  "spec-events",
+  "schema",
+  "events.schema.json",
+);
 
 const validateEvent = createValidator(`${EVENTS_SCHEMA}#/$defs/event`);
 const validateIntent = createValidator(`${EVENTS_SCHEMA}#/$defs/intent`);
@@ -42,7 +50,7 @@ function toSerializedForm(value) {
         return { $bytes: hex };
       }
       return item;
-    }) ?? "null"
+    }) ?? "null",
   );
 }
 
@@ -52,12 +60,14 @@ function reviveBytes(value) {
     if (typeof value.$bytes === "string") {
       const hex = value.$bytes;
       const out = new Uint8Array(hex.length / 2);
-      for (let i = 0; i < out.length; i += 1) out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+      for (let i = 0; i < out.length; i += 1)
+        out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
       return out;
     }
     if (Array.isArray(value)) return value.map(reviveBytes);
     const out = {};
-    for (const [key, item] of Object.entries(value)) out[key] = reviveBytes(item);
+    for (const [key, item] of Object.entries(value))
+      out[key] = reviveBytes(item);
     return out;
   }
   return value;
@@ -96,11 +106,16 @@ function runTape(machine, tape, { freeze = false } = {}) {
 export function runMachineGate(machines) {
   const failures = [];
   let checks = 0;
-  const fail = (machine, check, message) => failures.push({ machine, check, message });
+  const fail = (machine, check, message) =>
+    failures.push({ machine, check, message });
 
   for (const [name, machine] of Object.entries(machines)) {
     if (typeof machine.step !== "function" || !Array.isArray(machine.tape)) {
-      fail(name, "shape", "machine must provide step(state, event) and a tape array");
+      fail(
+        name,
+        "shape",
+        "machine must provide step(state, event) and a tape array",
+      );
       continue;
     }
     const tape = machine.tape.map(reviveBytes);
@@ -112,7 +127,11 @@ export function runMachineGate(machines) {
       const errors = validateEvent(toSerializedForm(event));
       if (errors.length > 0) {
         alphabetOk = false;
-        fail(name, "alphabet", `tape event outside SPEC-EVENTS alphabet: ${errors[0]}`);
+        fail(
+          name,
+          "alphabet",
+          `tape event outside SPEC-EVENTS alphabet: ${errors[0]}`,
+        );
       }
     }
 
@@ -134,7 +153,11 @@ export function runMachineGate(machines) {
         for (const intent of item.intents) {
           const errors = validateIntent(toSerializedForm(intent));
           if (errors.length > 0) {
-            fail(name, "alphabet", `intent outside SPEC-EVENTS alphabet: ${errors[0]}`);
+            fail(
+              name,
+              "alphabet",
+              `intent outside SPEC-EVENTS alphabet: ${errors[0]}`,
+            );
           }
         }
       }
@@ -144,9 +167,15 @@ export function runMachineGate(machines) {
     checks += 1;
     try {
       const first = fnv1a64(canonicalJson(toSerializedForm(stream)));
-      const second = fnv1a64(canonicalJson(toSerializedForm(runTape(machine, tape))));
+      const second = fnv1a64(
+        canonicalJson(toSerializedForm(runTape(machine, tape))),
+      );
       if (first !== second) {
-        fail(name, "determinism", `double-run stream hash mismatch: ${first} != ${second}`);
+        fail(
+          name,
+          "determinism",
+          `double-run stream hash mismatch: ${first} != ${second}`,
+        );
       }
     } catch (error) {
       fail(name, "determinism", String(error));

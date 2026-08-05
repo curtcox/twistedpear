@@ -45,12 +45,12 @@ import {
   stepPackLxmfDestinationPrefixedWithActions,
   stepPackLxmfWireWithActions,
   stepSplitLxmfDestinationPrefixedWithActions,
-  stepSplitLxmfWireWithActions
+  stepSplitLxmfWireWithActions,
 } from "../src/lxmf-wire.js";
 import {
   LXMF_DESTINATION_LENGTH,
   LXMF_SIGNATURE_LENGTH,
-  LxmfDeliveryMethod
+  LxmfDeliveryMethod,
 } from "../src/lxmf-delivery.js";
 
 describe("protocol lxmf wire", () => {
@@ -64,7 +64,7 @@ describe("protocol lxmf wire", () => {
       destinationHash: destination,
       sourceHash: source,
       signature,
-      payload
+      payload,
     });
     expect(packed.length).toBe(LXMF_WIRE_HEADER_SIZE + payload.length);
     const split = splitLxmfWire(packed);
@@ -78,54 +78,75 @@ describe("protocol lxmf wire", () => {
     const messageHash = new Uint8Array(32).fill(4);
     const signed = lxmfSignedMaterial(hashable, messageHash);
     expect(signed.length).toBe(hashable.length + messageHash.length);
-    expect([...lxmfOpportunisticPayload(packedFrom(destination, source, signature, payload))]).toEqual([
-      ...source,
-      ...signature,
-      ...payload
-    ]);
+    expect([
+      ...lxmfOpportunisticPayload(
+        packedFrom(destination, source, signature, payload),
+      ),
+    ]).toEqual([...source, ...signature, ...payload]);
   });
 
   it("emits hashable / signed / opportunistic material from WithActions steps", () => {
     const messageHash = new Uint8Array(32).fill(4);
-    const hashableStepped = stepLxmfHashableMaterialWithActions(initialLxmfHashableMaterialState(), {
-      kind: "lxmf-wire/hashable-material-gate",
-      destinationHash: destination,
-      sourceHash: source,
-      payloadWithoutStamp: payload
-    });
+    const hashableStepped = stepLxmfHashableMaterialWithActions(
+      initialLxmfHashableMaterialState(),
+      {
+        kind: "lxmf-wire/hashable-material-gate",
+        destinationHash: destination,
+        sourceHash: source,
+        payloadWithoutStamp: payload,
+      },
+    );
     expect(shouldUseLxmfHashableMaterial(hashableStepped.actions)).toBe(true);
-    const hashable = lxmfHashableMaterialRawFromActions(hashableStepped.actions);
+    const hashable = lxmfHashableMaterialRawFromActions(
+      hashableStepped.actions,
+    );
     expect(hashable).not.toBeNull();
-    expect([...hashable!]).toEqual([...lxmfHashableMaterial(destination, source, payload)]);
+    expect([...hashable!]).toEqual([
+      ...lxmfHashableMaterial(destination, source, payload),
+    ]);
 
-    const signedStepped = stepLxmfSignedMaterialWithActions(initialLxmfSignedMaterialState(), {
-      kind: "lxmf-wire/signed-material-gate",
-      hashableMaterial: hashable!,
-      messageHash
-    });
+    const signedStepped = stepLxmfSignedMaterialWithActions(
+      initialLxmfSignedMaterialState(),
+      {
+        kind: "lxmf-wire/signed-material-gate",
+        hashableMaterial: hashable!,
+        messageHash,
+      },
+    );
     expect(shouldUseLxmfSignedMaterial(signedStepped.actions)).toBe(true);
     const signed = lxmfSignedMaterialRawFromActions(signedStepped.actions);
     expect(signed).not.toBeNull();
-    expect([...signed!]).toEqual([...lxmfSignedMaterial(hashable!, messageHash)]);
+    expect([...signed!]).toEqual([
+      ...lxmfSignedMaterial(hashable!, messageHash),
+    ]);
 
     const packed = packedFrom(destination, source, signature, payload);
     const opportunisticStepped = stepLxmfOpportunisticPayloadWithActions(
       initialLxmfOpportunisticPayloadState(),
       {
         kind: "lxmf-wire/opportunistic-payload-gate",
-        packed
-      }
+        packed,
+      },
     );
-    expect(shouldUseLxmfOpportunisticPayload(opportunisticStepped.actions)).toBe(true);
-    expect(shouldRejectLxmfOpportunisticPayload(opportunisticStepped.actions)).toBe(false);
-    const opportunistic = lxmfOpportunisticPayloadRawFromActions(opportunisticStepped.actions);
+    expect(
+      shouldUseLxmfOpportunisticPayload(opportunisticStepped.actions),
+    ).toBe(true);
+    expect(
+      shouldRejectLxmfOpportunisticPayload(opportunisticStepped.actions),
+    ).toBe(false);
+    const opportunistic = lxmfOpportunisticPayloadRawFromActions(
+      opportunisticStepped.actions,
+    );
     expect(opportunistic).not.toBeNull();
     expect([...opportunistic!]).toEqual([...lxmfOpportunisticPayload(packed)]);
 
-    const rejected = stepLxmfOpportunisticPayloadWithActions(initialLxmfOpportunisticPayloadState(), {
-      kind: "lxmf-wire/opportunistic-payload-gate",
-      packed: new Uint8Array(4)
-    });
+    const rejected = stepLxmfOpportunisticPayloadWithActions(
+      initialLxmfOpportunisticPayloadState(),
+      {
+        kind: "lxmf-wire/opportunistic-payload-gate",
+        packed: new Uint8Array(4),
+      },
+    );
     expect(shouldRejectLxmfOpportunisticPayload(rejected.actions)).toBe(true);
     expect(shouldUseLxmfOpportunisticPayload(rejected.actions)).toBe(false);
     expect(lxmfOpportunisticPayloadRawFromActions(rejected.actions)).toBeNull();
@@ -136,11 +157,15 @@ describe("protocol lxmf wire", () => {
     const opportunistic = lxmfInboundDeliveryBytes(
       LxmfDeliveryMethod.OPPORTUNISTIC,
       destination,
-      trailing
+      trailing,
     );
     expect([...opportunistic]).toEqual([...destination, ...trailing]);
     expect([
-      ...lxmfInboundDeliveryBytes(LxmfDeliveryMethod.DIRECT, destination, trailing)
+      ...lxmfInboundDeliveryBytes(
+        LxmfDeliveryMethod.DIRECT,
+        destination,
+        trailing,
+      ),
     ]).toEqual([...trailing]);
 
     const packed = packLxmfDestinationPrefixed(destination, trailing);
@@ -157,7 +182,7 @@ describe("protocol lxmf wire", () => {
       destinationHash: destination,
       sourceHash: source,
       signature,
-      payload
+      payload,
     });
     expect(shouldUsePackLxmfWire(ok.actions)).toBe(true);
     expect(shouldRejectPackLxmfWire(ok.actions)).toBe(false);
@@ -168,8 +193,8 @@ describe("protocol lxmf wire", () => {
         destinationHash: destination,
         sourceHash: source,
         signature,
-        payload
-      })
+        payload,
+      }),
     ]);
 
     const rejected = stepPackLxmfWireWithActions(initialPackLxmfWireState(), {
@@ -177,7 +202,7 @@ describe("protocol lxmf wire", () => {
       destinationHash: new Uint8Array(8),
       sourceHash: source,
       signature,
-      payload
+      payload,
     });
     expect(shouldRejectPackLxmfWire(rejected.actions)).toBe(true);
     expect(shouldUsePackLxmfWire(rejected.actions)).toBe(false);
@@ -189,11 +214,11 @@ describe("protocol lxmf wire", () => {
       destinationHash: destination,
       sourceHash: source,
       signature,
-      payload
+      payload,
     });
     const ok = stepSplitLxmfWireWithActions(initialSplitLxmfWireState(), {
       kind: "lxmf-wire/split-gate",
-      bytes: packed
+      bytes: packed,
     });
     expect(shouldUseSplitLxmfWire(ok.actions)).toBe(true);
     expect(shouldRejectSplitLxmfWire(ok.actions)).toBe(false);
@@ -204,7 +229,7 @@ describe("protocol lxmf wire", () => {
 
     const rejected = stepSplitLxmfWireWithActions(initialSplitLxmfWireState(), {
       kind: "lxmf-wire/split-gate",
-      bytes: new Uint8Array(LXMF_WIRE_HEADER_SIZE)
+      bytes: new Uint8Array(LXMF_WIRE_HEADER_SIZE),
     });
     expect(shouldRejectSplitLxmfWire(rejected.actions)).toBe(true);
     expect(shouldUseSplitLxmfWire(rejected.actions)).toBe(false);
@@ -218,32 +243,38 @@ describe("protocol lxmf wire", () => {
       {
         kind: "lxmf-destination-prefixed/pack-gate",
         destinationHash: destination,
-        remainder: trailing
-      }
+        remainder: trailing,
+      },
     );
     expect(shouldUsePackLxmfDestinationPrefixed(packOk.actions)).toBe(true);
     expect(shouldRejectPackLxmfDestinationPrefixed(packOk.actions)).toBe(false);
     const packed = packLxmfDestinationPrefixedRawFromActions(packOk.actions);
     expect(packed).not.toBeNull();
-    expect([...packed!]).toEqual([...packLxmfDestinationPrefixed(destination, trailing)]);
+    expect([...packed!]).toEqual([
+      ...packLxmfDestinationPrefixed(destination, trailing),
+    ]);
 
     const packRejected = stepPackLxmfDestinationPrefixedWithActions(
       initialPackLxmfDestinationPrefixedState(),
       {
         kind: "lxmf-destination-prefixed/pack-gate",
         destinationHash: new Uint8Array(4),
-        remainder: trailing
-      }
+        remainder: trailing,
+      },
     );
-    expect(shouldRejectPackLxmfDestinationPrefixed(packRejected.actions)).toBe(true);
-    expect(packLxmfDestinationPrefixedRawFromActions(packRejected.actions)).toBeNull();
+    expect(shouldRejectPackLxmfDestinationPrefixed(packRejected.actions)).toBe(
+      true,
+    );
+    expect(
+      packLxmfDestinationPrefixedRawFromActions(packRejected.actions),
+    ).toBeNull();
 
     const splitOk = stepSplitLxmfDestinationPrefixedWithActions(
       initialSplitLxmfDestinationPrefixedState(),
       {
         kind: "lxmf-destination-prefixed/split-gate",
-        bytes: packed!
-      }
+        bytes: packed!,
+      },
     );
     expect(shouldUseSplitLxmfDestinationPrefixed(splitOk.actions)).toBe(true);
     const fields = lxmfDestinationPrefixedFieldsFromActions(splitOk.actions);
@@ -254,18 +285,25 @@ describe("protocol lxmf wire", () => {
       initialSplitLxmfDestinationPrefixedState(),
       {
         kind: "lxmf-destination-prefixed/split-gate",
-        bytes: new Uint8Array(8)
-      }
+        bytes: new Uint8Array(8),
+      },
     );
-    expect(shouldRejectSplitLxmfDestinationPrefixed(splitRejected.actions)).toBe(true);
-    expect(lxmfDestinationPrefixedFieldsFromActions(splitRejected.actions)).toBeNull();
+    expect(
+      shouldRejectSplitLxmfDestinationPrefixed(splitRejected.actions),
+    ).toBe(true);
+    expect(
+      lxmfDestinationPrefixedFieldsFromActions(splitRejected.actions),
+    ).toBeNull();
 
-    const rebuild = stepLxmfInboundDeliveryWithActions(initialLxmfInboundDeliveryState(), {
-      kind: "lxmf-inbound-delivery/rebuild-gate",
-      method: LxmfDeliveryMethod.OPPORTUNISTIC,
-      destinationHash: destination,
-      packetData: trailing
-    });
+    const rebuild = stepLxmfInboundDeliveryWithActions(
+      initialLxmfInboundDeliveryState(),
+      {
+        kind: "lxmf-inbound-delivery/rebuild-gate",
+        method: LxmfDeliveryMethod.OPPORTUNISTIC,
+        destinationHash: destination,
+        packetData: trailing,
+      },
+    );
     expect(shouldUseLxmfInboundDelivery(rebuild.actions)).toBe(true);
     const rebuilt = lxmfInboundDeliveryRawFromActions(rebuild.actions);
     expect(rebuilt).not.toBeNull();
@@ -277,7 +315,7 @@ function packedFrom(
   destinationHash: Uint8Array,
   sourceHash: Uint8Array,
   signature: Uint8Array,
-  payload: Uint8Array
+  payload: Uint8Array,
 ): Uint8Array {
   return packLxmfWire({ destinationHash, sourceHash, signature, payload });
 }

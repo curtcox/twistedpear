@@ -35,20 +35,33 @@ export type RemoteGrantEvent =
       readonly classId: string;
       readonly tierId: string;
     }
-  | { readonly kind: "remote/ttl"; readonly at: number; readonly peerId: string; readonly classId: string; readonly tierId: string }
+  | {
+      readonly kind: "remote/ttl";
+      readonly at: number;
+      readonly peerId: string;
+      readonly classId: string;
+      readonly tierId: string;
+    }
   | { readonly kind: "remote/clear-all"; readonly at: number };
 
-export function remoteGrantKey(peerId: string, classId: string, tierId: string): string {
+export function remoteGrantKey(
+  peerId: string,
+  classId: string,
+  tierId: string,
+): string {
   return `${peerId}\0${classId}\0${tierId}`;
 }
 
-export function initialRemoteGrantStore(): ReadonlyMap<string, RemoteDeviceGrant> {
+export function initialRemoteGrantStore(): ReadonlyMap<
+  string,
+  RemoteDeviceGrant
+> {
   return new Map();
 }
 
 export function stepRemoteGrantStore(
   store: ReadonlyMap<string, RemoteDeviceGrant>,
-  event: RemoteGrantEvent
+  event: RemoteGrantEvent,
 ): ReadonlyMap<string, RemoteDeviceGrant> {
   const next = new Map(store);
   if (event.kind === "remote/clear-all") {
@@ -65,7 +78,7 @@ export function stepRemoteGrantStore(
       phase: "active",
       revokedAt: null,
       maxConcurrent: event.maxConcurrent ?? 1,
-      maxSessionMs: event.maxSessionMs ?? Math.min(event.ttlMs, 15 * 60_000)
+      maxSessionMs: event.maxSessionMs ?? Math.min(event.ttlMs, 15 * 60_000),
     });
     return next;
   }
@@ -76,13 +89,20 @@ export function stepRemoteGrantStore(
     next.set(key, { ...current, phase: "revoked", revokedAt: event.at });
     return next;
   }
-  if (event.kind === "remote/ttl" && current.phase === "active" && event.at >= current.expiresAt) {
+  if (
+    event.kind === "remote/ttl" &&
+    current.phase === "active" &&
+    event.at >= current.expiresAt
+  ) {
     next.set(key, { ...current, phase: "expired" });
   }
   return next;
 }
 
-export function isRemoteGrantLive(grant: RemoteDeviceGrant | undefined, at: number): boolean {
+export function isRemoteGrantLive(
+  grant: RemoteDeviceGrant | undefined,
+  at: number,
+): boolean {
   if (grant === undefined || grant.phase !== "active") return false;
   return at < grant.expiresAt;
 }

@@ -393,18 +393,18 @@ detailed phase-by-phase reference; `docs/ci-policy.md` records CI and nightly co
 
 ## Pick a suite by changed area
 
-| Changed area | Start with | Then, when relevant |
-|---|---|---|
-| `packages/reticulum-ts`, `packages/lxmf-ts` | focused Vitest file | `test:interop`, `test:bare-smoke` |
-| `packages/protocol`, `packages/effects` | focused Vitest file, `sansio` | `test:kernel-conformance`, formal command for changed spec |
-| `packages/reticulum-interfaces` | package tests | matching `*-interop`; device tests only if required |
-| package/CAS/registry/CLI | package tests | `test:cli`, `test:dist-interop`, `test:updates` |
-| mini-app runtime/SDK | package tests | `test:hostile-apps`, `test:sdk-interop`, `test:examples` |
-| host-core/desktop | package tests | `test:desktop`, `test:desktop-lifecycle` |
-| mobile worklet/native bridge | `build:worklet` | `test:bare-device`, then iOS/Android scoped suite |
-| web runtime/host | focused package tests | matching `test:web-*` Playwright suite |
-| docs/status/registers | `test:doc-audit` | `site:validate`, relevant handbook/cookbook check |
-| schemas/vectors/generated contracts | generator plus focused test | `check:generated` when available |
+| Changed area                                | Start with                    | Then, when relevant                                        |
+| ------------------------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| `packages/reticulum-ts`, `packages/lxmf-ts` | focused Vitest file           | `test:interop`, `test:bare-smoke`                          |
+| `packages/protocol`, `packages/effects`     | focused Vitest file, `sansio` | `test:kernel-conformance`, formal command for changed spec |
+| `packages/reticulum-interfaces`             | package tests                 | matching `*-interop`; device tests only if required        |
+| package/CAS/registry/CLI                    | package tests                 | `test:cli`, `test:dist-interop`, `test:updates`            |
+| mini-app runtime/SDK                        | package tests                 | `test:hostile-apps`, `test:sdk-interop`, `test:examples`   |
+| host-core/desktop                           | package tests                 | `test:desktop`, `test:desktop-lifecycle`                   |
+| mobile worklet/native bridge                | `build:worklet`               | `test:bare-device`, then iOS/Android scoped suite          |
+| web runtime/host                            | focused package tests         | matching `test:web-*` Playwright suite                     |
+| docs/status/registers                       | `test:doc-audit`              | `site:validate`, relevant handbook/cookbook check          |
+| schemas/vectors/generated contracts         | generator plus focused test   | `check:generated` when available                           |
 
 ## Prerequisite classes
 

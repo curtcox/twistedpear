@@ -11,9 +11,13 @@ export {
   manifestToJson,
   manifestPublisherKeyBytes,
   manifestSignatureBytes,
-  manifestDriveKeyBytes
+  manifestDriveKeyBytes,
 } from "./manifest.js";
-export type { AppManifest, ManifestFileEntry, UnsignedManifest } from "./manifest.js";
+export type {
+  AppManifest,
+  ManifestFileEntry,
+  UnsignedManifest,
+} from "./manifest.js";
 
 export {
   PACKAGE_MAGIC,
@@ -23,7 +27,7 @@ export {
   packPackage,
   unpackPackage,
   verifyPackage,
-  packageHash
+  packageHash,
 } from "./package.js";
 export type { PackageFile, PackOptions, UnpackResult } from "./package.js";
 
@@ -38,7 +42,7 @@ export {
   decodeAppAnnounceData,
   verifyAppAnnounceSummary,
   createAppDestination,
-  encodeAppAnnounce
+  encodeAppAnnounce,
 } from "./announce.js";
 export type { AppAnnounceSummary, EncodedAppAnnounce } from "./announce.js";
 
@@ -49,18 +53,18 @@ export {
   CatalogStore,
   InstalledPackageStore,
   catalogEntryKey,
-  installedPackageKey
+  installedPackageKey,
 } from "./catalog.js";
 export type {
   CatalogEntry,
   CatalogIngestOptions,
   CatalogStoreOptions,
-  InstalledPackageRecord
+  InstalledPackageRecord,
 } from "./catalog.js";
 export {
   TrustStore,
   TrustStoreError,
   decodePublisherIdentity256t,
-  encodePublisherIdentity256t
+  encodePublisherIdentity256t,
 } from "./trust.js";
 export type { TrustKeyValueStore, TrustedPublisher } from "./trust.js";

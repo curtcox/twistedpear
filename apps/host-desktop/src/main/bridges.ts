@@ -3,7 +3,10 @@ import { createNodeMulticastBridge } from "@twistedpear/reticulum-interfaces/mul
 import { createSerialNodePipe } from "@twistedpear/reticulum-interfaces/serial-node";
 import { BONJOUR_RETICULUM_SERVICE } from "@twistedpear/reticulum-interfaces";
 import type { SerialPipe } from "@twistedpear/reticulum-interfaces";
-import type { HostToWorkletMessage, WorkletToHostMessage } from "@twistedpear/host-core/protocol";
+import type {
+  HostToWorkletMessage,
+  WorkletToHostMessage,
+} from "@twistedpear/host-core/protocol";
 
 function bytesToHex(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("hex");
@@ -19,7 +22,9 @@ export class HostDesktopBridges {
   private readonly bonjour = createMdnsBonjourBridge();
   private serialPipe: SerialPipe | null = null;
 
-  constructor(private readonly sendToWorklet: (message: HostToWorkletMessage) => void) {
+  constructor(
+    private readonly sendToWorklet: (message: HostToWorkletMessage) => void,
+  ) {
     this.multicast.setEvents({
       onPacket: (ifname, data, sourceAddress, port) => {
         this.sendToWorklet({
@@ -27,12 +32,12 @@ export class HostDesktopBridges {
           ifname,
           dataHex: bytesToHex(data),
           sourceAddress,
-          port
+          port,
         });
       },
       onNetworkChange: (interfaces) => {
         this.sendToWorklet({ type: "multicast-interfaces", interfaces });
-      }
+      },
     });
 
     this.bonjour.setEvents({
@@ -41,12 +46,12 @@ export class HostDesktopBridges {
           type: "bonjour-peer",
           ifname: record.ifname,
           address: record.host,
-          port: record.port
+          port: record.port,
         });
       },
       onNetworkChange: (interfaces) => {
         this.sendToWorklet({ type: "bonjour-interfaces", interfaces });
-      }
+      },
     });
   }
 
@@ -62,7 +67,11 @@ export class HostDesktopBridges {
     }
 
     if (message.type === "multicast-join") {
-      await this.multicast.joinGroup(message.ifname, message.groupAddress, message.port);
+      await this.multicast.joinGroup(
+        message.ifname,
+        message.groupAddress,
+        message.port,
+      );
       return;
     }
 
@@ -72,12 +81,22 @@ export class HostDesktopBridges {
     }
 
     if (message.type === "multicast-send") {
-      await this.multicast.send(message.ifname, message.groupAddress, message.port, hexToBytes(message.dataHex));
+      await this.multicast.send(
+        message.ifname,
+        message.groupAddress,
+        message.port,
+        hexToBytes(message.dataHex),
+      );
       return;
     }
 
     if (message.type === "multicast-unicast") {
-      await this.multicast.sendUnicast(message.ifname, message.targetAddress, message.port, hexToBytes(message.dataHex));
+      await this.multicast.sendUnicast(
+        message.ifname,
+        message.targetAddress,
+        message.port,
+        hexToBytes(message.dataHex),
+      );
       return;
     }
 
@@ -96,7 +115,7 @@ export class HostDesktopBridges {
         id: `${message.ifname}:${message.address}:${message.port}`,
         ifname: message.ifname,
         host: message.address,
-        port: message.port
+        port: message.port,
       });
       return;
     }
@@ -134,7 +153,7 @@ export class HostDesktopBridges {
       },
       onError: (error) => {
         this.sendToWorklet({ type: "serial-error", message: error.message });
-      }
+      },
     });
 
     try {
@@ -146,7 +165,7 @@ export class HostDesktopBridges {
     } catch (error) {
       this.sendToWorklet({
         type: "serial-error",
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -161,7 +180,11 @@ export class HostDesktopBridges {
   }
 
   isBridgeMessage(message: WorkletToHostMessage): boolean {
-    return message.type.startsWith("multicast-") || message.type.startsWith("bonjour-") || message.type.startsWith("serial-");
+    return (
+      message.type.startsWith("multicast-") ||
+      message.type.startsWith("bonjour-") ||
+      message.type.startsWith("serial-")
+    );
   }
 
   async stop(): Promise<void> {

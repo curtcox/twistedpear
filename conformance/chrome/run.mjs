@@ -8,16 +8,22 @@ import {
   MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
-  createLoopbackBinding
+  createLoopbackBinding,
 } from "../../packages/miniapp-runtime/dist/index.js";
 
-const CAPS = ["identity", "apps:package", "apps:publish", "apps:install", "apps:preview"];
+const CAPS = [
+  "identity",
+  "apps:package",
+  "apps:publish",
+  "apps:install",
+  "apps:preview",
+];
 const APP = { name: "chrome-app", publisherPublicKey: "publisher-chrome-app" };
 const MANIFEST_DRAFT = {
   name: "demo-app",
   version: "1.0.0",
   entry: "bundle.js",
-  capabilities: ["identity", "lxmf:send"]
+  capabilities: ["identity", "lxmf:send"],
 };
 const T256 = "A".repeat(94);
 
@@ -41,7 +47,7 @@ function spyAppsBackend() {
     preview: async () => (calls.push("preview"), { launched: true }),
     stopPreview: async () => {
       calls.push("stopPreview");
-    }
+    },
   };
 }
 
@@ -52,7 +58,7 @@ function makeHost({ channel, appsBackend }) {
     grantStore: new GrantStore(new MemoryKvStoreBackend()),
     ...binding,
     ...(appsBackend === undefined ? {} : { appsBackend }),
-    ...(channel === undefined ? {} : { confirmationChannel: channel })
+    ...(channel === undefined ? {} : { confirmationChannel: channel }),
   });
   return host;
 }
@@ -66,18 +72,32 @@ async function dispatch(host, namespace, method, capability, payload) {
       namespace,
       method,
       ...(capability === undefined ? {} : { capability }),
-      ...(payload === undefined ? {} : { payload })
+      ...(payload === undefined ? {} : { payload }),
     },
-    { name: APP.name, version: "1.0.0", entry: "bundle.js", capabilities: CAPS, publisherPublicKey: APP.publisherPublicKey },
-    CAPS
+    {
+      name: APP.name,
+      version: "1.0.0",
+      entry: "bundle.js",
+      capabilities: CAPS,
+      publisherPublicKey: APP.publisherPublicKey,
+    },
+    CAPS,
   );
 }
 
 const APPS_CALLS = [
-  ["package", "apps:package", { projectPrefix: "proj", manifest: MANIFEST_DRAFT }],
+  [
+    "package",
+    "apps:package",
+    { projectPrefix: "proj", manifest: MANIFEST_DRAFT },
+  ],
   ["publish", "apps:publish", { t256: T256 }],
   ["install", "apps:install", { t256: T256 }],
-  ["preview", "apps:preview", { projectPrefix: "proj", manifest: MANIFEST_DRAFT, grants: ["identity"] }]
+  [
+    "preview",
+    "apps:preview",
+    { projectPrefix: "proj", manifest: MANIFEST_DRAFT, grants: ["identity"] },
+  ],
 ];
 
 // --- CHROME-R2: every apps:* call raises a host-chrome confirmation in
@@ -89,7 +109,7 @@ const APPS_CALLS = [
     confirm: async (request) => {
       confirmations.push(request);
       return { approved: true };
-    }
+    },
   };
   const host = makeHost({ channel, appsBackend: backend });
   await host.setGrants(APP.name, APP.publisherPublicKey, CAPS, CAPS);
@@ -100,13 +120,13 @@ const APPS_CALLS = [
       "CHROME-R2",
       `apps.${method} confirmed then executed`,
       response.ok === true && confirmations.length === before + 1,
-      JSON.stringify(response.error ?? confirmations.length)
+      JSON.stringify(response.error ?? confirmations.length),
     );
     check(
       "CHROME-R2",
       `apps.${method} confirmation precedes backend execution`,
       confirmations.length === backend.calls.length,
-      `confirmations=${confirmations.length} backendCalls=${backend.calls.length}`
+      `confirmations=${confirmations.length} backendCalls=${backend.calls.length}`,
     );
   }
 }
@@ -119,13 +139,16 @@ const APPS_CALLS = [
     resolveConfirm = resolve;
   });
   const backend = spyAppsBackend();
-  const host = makeHost({ channel: { confirm: () => pending }, appsBackend: backend });
+  const host = makeHost({
+    channel: { confirm: () => pending },
+    appsBackend: backend,
+  });
   await host.setGrants(APP.name, APP.publisherPublicKey, CAPS, CAPS);
 
   let settled = false;
   const inFlight = dispatch(host, "apps", "package", "apps:package", {
     projectPrefix: "proj",
-    manifest: MANIFEST_DRAFT
+    manifest: MANIFEST_DRAFT,
   }).then((response) => {
     settled = true;
     return response;
@@ -138,19 +161,23 @@ const APPS_CALLS = [
     ["apps", "confirm"],
     ["apps", "approve"],
     ["ui", "confirm"],
-    ["confirm", "approve"]
+    ["confirm", "approve"],
   ]) {
     const response = await dispatch(host, namespace, method);
     check(
       "CHROME-R4",
       `${namespace}.${method} is not reachable`,
       response.ok === false && response.error?.code === "UNKNOWN_METHOD",
-      JSON.stringify(response.error ?? response.result)
+      JSON.stringify(response.error ?? response.result),
     );
   }
 
   await new Promise((resolve) => setTimeout(resolve, 20));
-  check("CHROME-R4", "confirmation still pending after app-side attempts", settled === false && backend.calls.length === 0);
+  check(
+    "CHROME-R4",
+    "confirmation still pending after app-side attempts",
+    settled === false && backend.calls.length === 0,
+  );
 
   resolveConfirm({ approved: false });
   const denied = await inFlight;
@@ -158,7 +185,7 @@ const APPS_CALLS = [
     "CHROME-R4",
     "only the chrome channel resolves the confirmation (denied)",
     denied.ok === false && denied.error?.code === "CONFIRMATION_DENIED",
-    JSON.stringify(denied.error)
+    JSON.stringify(denied.error),
   );
 }
 
@@ -172,11 +199,17 @@ const APPS_CALLS = [
     check(
       "CHROME-R5",
       `headless apps.${method} refused with CONFIRMATION_UNAVAILABLE`,
-      response.ok === false && response.error?.code === "CONFIRMATION_UNAVAILABLE",
-      JSON.stringify(response.error ?? response.result)
+      response.ok === false &&
+        response.error?.code === "CONFIRMATION_UNAVAILABLE",
+      JSON.stringify(response.error ?? response.result),
     );
   }
-  check("CHROME-R5", "backend never invoked without confirmation", backend.calls.length === 0, `calls=${backend.calls}`);
+  check(
+    "CHROME-R5",
+    "backend never invoked without confirmation",
+    backend.calls.length === 0,
+    `calls=${backend.calls}`,
+  );
 }
 
 // --- CHROME-R6: confirmations carry the material the user must review.
@@ -186,37 +219,43 @@ const APPS_CALLS = [
     confirm: async (request) => {
       confirmations.push(request);
       return { approved: true };
-    }
+    },
   };
   const host = makeHost({ channel, appsBackend: spyAppsBackend() });
   await host.setGrants(APP.name, APP.publisherPublicKey, CAPS, CAPS);
   for (const [method, capability, payload] of APPS_CALLS) {
     await dispatch(host, "apps", method, capability, payload);
   }
-  const byKind = new Map(confirmations.map((request) => [request.kind, request]));
+  const byKind = new Map(
+    confirmations.map((request) => [request.kind, request]),
+  );
   check(
     "CHROME-R6",
     "package confirmation lists the declared capabilities",
-    byKind.get("package")?.summary?.capabilities === MANIFEST_DRAFT.capabilities.join(", "),
-    JSON.stringify(byKind.get("package")?.summary)
+    byKind.get("package")?.summary?.capabilities ===
+      MANIFEST_DRAFT.capabilities.join(", "),
+    JSON.stringify(byKind.get("package")?.summary),
   );
   check(
     "CHROME-R6",
     "preview confirmation lists the requested grants",
     byKind.get("preview")?.summary?.grants === "identity",
-    JSON.stringify(byKind.get("preview")?.summary)
+    JSON.stringify(byKind.get("preview")?.summary),
   );
   check(
     "CHROME-R6",
     "install confirmation identifies the package and the review step",
     byKind.get("install")?.summary?.t256 === T256 &&
       String(byKind.get("install")?.summary?.note ?? "").includes("reviewed"),
-    JSON.stringify(byKind.get("install")?.summary)
+    JSON.stringify(byKind.get("install")?.summary),
   );
   check(
     "CHROME-R6",
     "every confirmation carries an unguessable token",
-    confirmations.every((request) => typeof request.token === "string" && request.token.length === 32)
+    confirmations.every(
+      (request) =>
+        typeof request.token === "string" && request.token.length === 32,
+    ),
   );
 }
 

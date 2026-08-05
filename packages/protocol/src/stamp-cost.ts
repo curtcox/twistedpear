@@ -10,7 +10,9 @@ export interface StampCostFields {
   readonly cost: number;
 }
 
-export function stampCostFromAppData(appData: Uint8Array | null): number | null {
+export function stampCostFromAppData(
+  appData: Uint8Array | null,
+): number | null {
   if (appData === null || appData.length === 0) {
     return null;
   }
@@ -62,7 +64,7 @@ export function initialStampCostFromAppDataState(): StampCostFromAppDataState {
 
 export function stepStampCostFromAppDataWithActions(
   state: StampCostFromAppDataState,
-  event: StampCostFromAppDataEvent
+  event: StampCostFromAppDataEvent,
 ): StampCostFromAppDataStepResult {
   if (event.kind === "lxmf/stamp-cost-gate") {
     const cost = stampCostFromAppData(event.appData);
@@ -72,7 +74,7 @@ export function stepStampCostFromAppDataWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields: { cost } }]
+      actions: [{ kind: "use-fields", fields: { cost } }],
     };
   }
 
@@ -80,20 +82,20 @@ export function stepStampCostFromAppDataWithActions(
 }
 
 export function shouldUseStampCostFromAppData(
-  actions: ReadonlyArray<StampCostFromAppDataAction>
+  actions: ReadonlyArray<StampCostFromAppDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectStampCostFromAppData(
-  actions: ReadonlyArray<StampCostFromAppDataAction>
+  actions: ReadonlyArray<StampCostFromAppDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract stamp cost from step actions; null when no `use-fields`. */
 export function stampCostFromActions(
-  actions: ReadonlyArray<StampCostFromAppDataAction>
+  actions: ReadonlyArray<StampCostFromAppDataAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields.cost : null;

@@ -1,6 +1,5 @@
 # Reticulum BLE Interface Specification
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -33,10 +32,10 @@ the peripheral notifies.
 
 ## 2. GATT Service
 
-| Item | UUID |
-|---|---|
-| Service | `6e6f0001-7e3a-4f2d-9b1c-8a5d3e2f1a0b` |
-| Data characteristic (write + notify) | `6e6f0002-7e3a-4f2d-9b1c-8a5d3e2f1a0b` |
+| Item                                  | UUID                                   |
+| ------------------------------------- | -------------------------------------- |
+| Service                               | `6e6f0001-7e3a-4f2d-9b1c-8a5d3e2f1a0b` |
+| Data characteristic (write + notify)  | `6e6f0002-7e3a-4f2d-9b1c-8a5d3e2f1a0b` |
 | Control characteristic (read + write) | `6e6f0003-7e3a-4f2d-9b1c-8a5d3e2f1a0b` |
 
 The data characteristic carries framed Reticulum packets. The control
@@ -107,11 +106,11 @@ nodes SHOULD still advertise identity via scan response when the OS permits it.
 
 ## 8. Reference mapping
 
-| Concept | Implementation |
-|---|---|
-| `BlePipe` | Native bridge byte stream |
-| `spec-framing.ts` | Fragmentation/reassembly |
-| `BleInterface` | `RawPacketInterface` over `BlePipe` |
+| Concept           | Implementation                      |
+| ----------------- | ----------------------------------- |
+| `BlePipe`         | Native bridge byte stream           |
+| `spec-framing.ts` | Fragmentation/reassembly            |
+| `BleInterface`    | `RawPacketInterface` over `BlePipe` |
 
 ## 9. Conformance
 
@@ -138,10 +137,10 @@ devices can scan. Policy consequence for Phase 5:
 
 The H14 device runbook records the measured visibility matrix:
 
-| Scanner | Advertiser | iPhone foreground | iPhone background |
-|---|---|---|---|
-| Android | iPhone | H14 pending | H14 pending |
-| iPhone | iPhone | H14 pending | H14 pending |
-| iPhone | Android | H14 pending | Android policy dependent |
+| Scanner | Advertiser | iPhone foreground | iPhone background        |
+| ------- | ---------- | ----------------- | ------------------------ |
+| Android | iPhone     | H14 pending       | H14 pending              |
+| iPhone  | iPhone     | H14 pending       | H14 pending              |
+| iPhone  | Android    | H14 pending       | Android policy dependent |
 
 RNode on iOS uses BLE only; USB serial is not available to third-party iOS apps.

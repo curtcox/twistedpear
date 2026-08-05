@@ -1,6 +1,10 @@
 import { Worker } from "node:worker_threads";
 import { prepareBundleSource } from "./prepare-bundle.js";
-import type { SandboxBackend, SandboxInstance, SandboxSpawnOptions } from "./backend.js";
+import type {
+  SandboxBackend,
+  SandboxInstance,
+  SandboxSpawnOptions,
+} from "./backend.js";
 
 const WORKER_BOOTSTRAP = String.raw`
 const { parentPort, workerData } = require("node:worker_threads");
@@ -87,21 +91,31 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
   readonly name = "node-worker";
 
   async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
-    const source = prepareBundleSource(new TextDecoder().decode(options.bundle));
+    const source = prepareBundleSource(
+      new TextDecoder().decode(options.bundle),
+    );
     const resourceLimits =
       options.limits?.memoryBytes !== undefined
-        ? { maxOldGenerationSizeMb: Math.max(1, Math.floor(options.limits.memoryBytes / (1024 * 1024))) }
+        ? {
+            maxOldGenerationSizeMb: Math.max(
+              1,
+              Math.floor(options.limits.memoryBytes / (1024 * 1024)),
+            ),
+          }
         : undefined;
     const worker = new Worker(WORKER_BOOTSTRAP, {
       eval: true,
       workerData: {
         appId: options.appId,
-        bundleSource: source
+        bundleSource: source,
       },
-      resourceLimits
+      resourceLimits,
     });
 
-    const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
+    const pending = new Map<
+      string,
+      { resolve: (value: unknown) => void; reject: (error: Error) => void }
+    >();
     let killed = false;
     let alive = true;
 
@@ -109,52 +123,63 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
       alive = false;
     });
 
-    worker.on("message", (message: { type: string; id?: string; ok?: boolean; result?: unknown; error?: { message: string } }) => {
-      if (message.type === "broker-request" && message.id !== undefined) {
-        const endpoint = options.brokerEndpoint as {
-          request?: (request: unknown) => Promise<unknown>;
-        };
-        if (typeof endpoint?.request !== "function") {
-          worker.postMessage({
-            type: "broker-response",
-            id: message.id,
-            ok: false,
-            error: { message: "Broker endpoint is not configured" }
-          });
-          return;
-        }
-
-        void endpoint.request(message).then(
-          (response) =>
-            worker.postMessage({
-              type: "broker-response",
-              ...normalizeBrokerResponse(response as BrokerWireResponse)
-            }),
-          (error: Error) =>
+    worker.on(
+      "message",
+      (message: {
+        type: string;
+        id?: string;
+        ok?: boolean;
+        result?: unknown;
+        error?: { message: string };
+      }) => {
+        if (message.type === "broker-request" && message.id !== undefined) {
+          const endpoint = options.brokerEndpoint as {
+            request?: (request: unknown) => Promise<unknown>;
+          };
+          if (typeof endpoint?.request !== "function") {
             worker.postMessage({
               type: "broker-response",
               id: message.id,
               ok: false,
-              error: { message: error.message }
-            })
-        );
-        return;
-      }
+              error: { message: "Broker endpoint is not configured" },
+            });
+            return;
+          }
 
-      if (message.type === "broker-response" && message.id !== undefined) {
-        const waiter = pending.get(message.id);
-        if (waiter === undefined) {
+          void endpoint.request(message).then(
+            (response) =>
+              worker.postMessage({
+                type: "broker-response",
+                ...normalizeBrokerResponse(response as BrokerWireResponse),
+              }),
+            (error: Error) =>
+              worker.postMessage({
+                type: "broker-response",
+                id: message.id,
+                ok: false,
+                error: { message: error.message },
+              }),
+          );
           return;
         }
 
-        pending.delete(message.id);
-        if (message.ok) {
-          waiter.resolve(message.result);
-        } else {
-          waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
+        if (message.type === "broker-response" && message.id !== undefined) {
+          const waiter = pending.get(message.id);
+          if (waiter === undefined) {
+            return;
+          }
+
+          pending.delete(message.id);
+          if (message.ok) {
+            waiter.resolve(message.result);
+          } else {
+            waiter.reject(
+              new Error(message.error?.message ?? "Broker request failed"),
+            );
+          }
         }
-      }
-    });
+      },
+    );
 
     worker.on("error", (error) => {
       alive = false;
@@ -196,7 +221,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
             reject: () => {
               clearTimeout(timer);
               resolve(false);
-            }
+            },
           });
           worker.postMessage({ type: "ping", id });
         });
@@ -210,7 +235,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
         alive = false;
         worker.postMessage({ type: "kill", reason });
         await worker.terminate();
-      }
+      },
     };
   }
 }
@@ -222,7 +247,9 @@ interface BrokerWireResponse {
   readonly error?: { readonly message: string };
 }
 
-function normalizeBrokerResponse(response: BrokerWireResponse): BrokerWireResponse {
+function normalizeBrokerResponse(
+  response: BrokerWireResponse,
+): BrokerWireResponse {
   if (!response.ok || response.result === undefined) {
     return response;
   }

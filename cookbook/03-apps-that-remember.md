@@ -9,13 +9,13 @@ register: none
 TwistedPear gives a mini-app two stores, and choosing between them takes about ten seconds
 once you know the rule:
 
-| | `storage:kv` | `storage:hyperbee` |
-|---|---|---|
-| Shape | Bytes at a key | Structured values at a key |
-| Listing | No — you must know the key | Yes — ordered range scans |
-| Ordering | None | Lexicographic, always |
-| History | None; a write overwrites | Kept, and it counts against your quota |
-| Good for | A handful of known keys | A collection that grows |
+|          | `storage:kv`               | `storage:hyperbee`                     |
+| -------- | -------------------------- | -------------------------------------- |
+| Shape    | Bytes at a key             | Structured values at a key             |
+| Listing  | No — you must know the key | Yes — ordered range scans              |
+| Ordering | None                       | Lexicographic, always                  |
+| History  | None; a write overwrites   | Kept, and it counts against your quota |
+| Good for | A handful of known keys    | A collection that grows                |
 
 **The rule:** if you can name every key you will ever read, use KV. If you will ever want
 "the last twenty of something", use Hyperbee.
@@ -36,11 +36,11 @@ toggle switched on; Field log with five timestamped entries; Split the bill show
 people and a settle-up line. Below the grid, the host's storage panel for one app, showing a
 quota bar labelled "Pocket notes — 4 KiB of 1 MiB used".
 
-| Recipe | Capabilities | Directory |
-|---|---|---|
-| [Pocket notes](#pocket-notes) | `storage:kv` | [apps/pocket-notes](apps/pocket-notes/README.md) |
-| [Streak tracker](#streak-tracker) | `storage:kv` | [apps/streak-tracker](apps/streak-tracker/README.md) |
-| [Field log](#field-log) | `storage:hyperbee` | [apps/field-log](apps/field-log/README.md) |
+| Recipe                            | Capabilities       | Directory                                            |
+| --------------------------------- | ------------------ | ---------------------------------------------------- |
+| [Pocket notes](#pocket-notes)     | `storage:kv`       | [apps/pocket-notes](apps/pocket-notes/README.md)     |
+| [Streak tracker](#streak-tracker) | `storage:kv`       | [apps/streak-tracker](apps/streak-tracker/README.md) |
+| [Field log](#field-log)           | `storage:hyperbee` | [apps/field-log](apps/field-log/README.md)           |
 | [Split the bill](#split-the-bill) | `storage:hyperbee` | [apps/split-the-bill](apps/split-the-bill/README.md) |
 
 ---
@@ -113,7 +113,7 @@ Full source: [apps/pocket-notes/bundle.js](apps/pocket-notes/bundle.js).
 
 > **Capabilities:** `storage:kv`
 
-Marks a habit done for the day, counts consecutive days. The example of putting *structure*
+Marks a habit done for the day, counts consecutive days. The example of putting _structure_
 into a store that only holds bytes.
 
 ![Streak tracker showing a nine-day streak](/cookbook/images/03-streak-tracker.png)
@@ -199,7 +199,11 @@ function keyFor(date) {
   return `obs/${String(reverse).padStart(14, "0")}`;
 }
 
-const listed = await storage.bee.list(bee, { gte: "obs/", lt: "obs0", limit: 50 });
+const listed = await storage.bee.list(bee, {
+  gte: "obs/",
+  lt: "obs0",
+  limit: 50,
+});
 ```
 
 Three separate tricks in four lines:
@@ -267,7 +271,7 @@ function totals() {
 ```
 
 This is the only shape that survives an app being killed mid-write, and on this platform apps
-*are* killed mid-write: the host has a runaway-app watchdog, the user can stop an app at any
+_are_ killed mid-write: the host has a runaway-app watchdog, the user can stop an app at any
 moment, and on mobile the OS can take the whole host away. An app that maintains a running
 balance alongside a list of entries has two sources of truth that can disagree, and no
 transaction to keep them honest.
@@ -307,7 +311,7 @@ Three rules, in order of how much pain they save:
    care.
 2. **Bound everything.** Every document, every list, every scan. The limits are real and
    they are not generous.
-3. **Choose the key first.** In Hyperbee the key *is* the query planner, and you cannot add
+3. **Choose the key first.** In Hyperbee the key _is_ the query planner, and you cannot add
    an index later.
 
 ---

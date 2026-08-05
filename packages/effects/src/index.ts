@@ -15,10 +15,15 @@ export type {
   TimerId,
   TimerRequest,
   TransportAdversaryAction,
-  TransportSend
+  TransportSend,
 } from "./types.js";
 
-export { SansIOViolation, installTripwire, uninstallTripwire, isTripwireInstalled } from "./tripwire.js";
+export {
+  SansIOViolation,
+  installTripwire,
+  uninstallTripwire,
+  isTripwireInstalled,
+} from "./tripwire.js";
 export { canonicalJson, hashTrace, serializeTrace } from "./trace.js";
 export {
   AmbiguousTransitionError,
@@ -27,7 +32,7 @@ export {
   type EventClass,
   type Machine,
   type MachineCell,
-  type MachineRow
+  type MachineRow,
 } from "./machine.js";
 export {
   decideGate,
@@ -49,7 +54,7 @@ export {
   type GateEvent,
   type GateState,
   type GateStepFn,
-  type GateStepResult
+  type GateStepResult,
 } from "./gate.js";
 export type {
   EncodedMediaSample,
@@ -57,12 +62,12 @@ export type {
   MediaCodecDriver,
   MediaCodecKind,
   MediaSampleKind,
-  RawMediaSample
+  RawMediaSample,
 } from "./media-codec.js";
 export {
   BundledOpusMediaCodecDriver,
   configureBundledOpusLoader,
   ensureUtf16LeTextDecoder,
   SimulatedMediaCodecDriver,
-  WebCodecsMediaCodecDriver
+  WebCodecsMediaCodecDriver,
 } from "./media-codec.js";

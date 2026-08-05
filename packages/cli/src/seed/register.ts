@@ -12,5 +12,5 @@ export {
   type SeederArchiveVersion,
   type SeederDriveState,
   type SeederDriveVersion,
-  type SeederState
+  type SeederState,
 } from "@twistedpear/host-core";

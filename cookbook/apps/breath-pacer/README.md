@@ -17,16 +17,16 @@ Time-driven re-render, the `progress` widget, and the cost of a render loop agai
 
 ## Capabilities
 
-| Capability | Note |
-|---|---|
-| _(none)_ | The app declares no capabilities, so there is nothing to grant and nothing to revoke. |
+| Capability | Note                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------- |
+| _(none)_   | The app declares no capabilities, so there is nothing to grant and nothing to revoke. |
 
 ## Files
 
-| File | Purpose |
-|---|---|
+| File                                   | Purpose                                                      |
+| -------------------------------------- | ------------------------------------------------------------ |
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
+| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
 
 ## Run it
 

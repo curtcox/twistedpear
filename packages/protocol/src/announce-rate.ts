@@ -34,23 +34,33 @@ export interface AnnounceRateState {
 
 export type AnnounceRateEvent =
   | Event
-  | { readonly kind: "announce/is-blocked"; readonly destinationKey: string; readonly at: number }
-  | { readonly kind: "announce/record"; readonly destinationKey: string; readonly at: number };
+  | {
+      readonly kind: "announce/is-blocked";
+      readonly destinationKey: string;
+      readonly at: number;
+    }
+  | {
+      readonly kind: "announce/record";
+      readonly destinationKey: string;
+      readonly at: number;
+    };
 
-export function initialAnnounceRateState(options: AnnounceRateOptions = {}): AnnounceRateState {
+export function initialAnnounceRateState(
+  options: AnnounceRateOptions = {},
+): AnnounceRateState {
   return {
     rateTarget: options.rateTarget ?? DEFAULT_ANNOUNCE_RATE_TARGET,
     rateGrace: options.rateGrace ?? DEFAULT_ANNOUNCE_RATE_GRACE,
     ratePenalty: options.ratePenalty ?? DEFAULT_ANNOUNCE_RATE_PENALTY,
     table: new Map(),
-    lastBlocked: false
+    lastBlocked: false,
   };
 }
 
 export function isAnnounceBlocked(
   state: AnnounceRateState,
   destinationKey: string,
-  now: number
+  now: number,
 ): boolean {
   const entry = state.table.get(destinationKey);
   if (entry === undefined) {
@@ -73,8 +83,7 @@ export type AnnounceBlockedEvent =
     };
 
 export type AnnounceBlockedAction =
-  | { readonly kind: "blocked" }
-  | { readonly kind: "live" };
+  { readonly kind: "blocked" } | { readonly kind: "live" };
 
 export interface AnnounceBlockedStepResult {
   readonly state: AnnounceRateState;
@@ -84,7 +93,7 @@ export interface AnnounceBlockedStepResult {
 
 export function stepAnnounceBlockedWithActions(
   state: AnnounceRateState,
-  event: AnnounceBlockedEvent
+  event: AnnounceBlockedEvent,
 ): AnnounceBlockedStepResult {
   if (event.kind === "announce/blocked-gate") {
     return {
@@ -94,9 +103,9 @@ export function stepAnnounceBlockedWithActions(
         {
           kind: isAnnounceBlocked(state, event.destinationKey, event.at)
             ? "blocked"
-            : "live"
-        }
-      ]
+            : "live",
+        },
+      ],
     };
   }
 
@@ -104,13 +113,13 @@ export function stepAnnounceBlockedWithActions(
 }
 
 export function shouldTreatAnnounceBlocked(
-  actions: ReadonlyArray<AnnounceBlockedAction>
+  actions: ReadonlyArray<AnnounceBlockedAction>,
 ): boolean {
   return actions.some((action) => action.kind === "blocked");
 }
 
 export function shouldTreatAnnounceLive(
-  actions: ReadonlyArray<AnnounceBlockedAction>
+  actions: ReadonlyArray<AnnounceBlockedAction>,
 ): boolean {
   return actions.some((action) => action.kind === "live");
 }
@@ -118,7 +127,7 @@ export function shouldTreatAnnounceLive(
 export function recordAnnounce(
   state: AnnounceRateState,
   destinationKey: string,
-  now: number
+  now: number,
 ): { readonly state: AnnounceRateState; readonly blocked: boolean } {
   const existing = state.table.get(destinationKey);
   if (existing === undefined) {
@@ -126,7 +135,7 @@ export function recordAnnounce(
       last: now,
       rateViolations: 0,
       blockedUntil: 0,
-      timestamps: [now]
+      timestamps: [now],
     };
     const table = new Map(state.table);
     table.set(destinationKey, entry);
@@ -156,7 +165,7 @@ export function recordAnnounce(
       ...existing,
       rateViolations,
       blockedUntil: existing.last + state.rateTarget + state.ratePenalty,
-      timestamps
+      timestamps,
     };
     const table = new Map(state.table);
     table.set(destinationKey, entry);
@@ -167,7 +176,7 @@ export function recordAnnounce(
     ...existing,
     last: now,
     rateViolations,
-    timestamps
+    timestamps,
   };
   const table = new Map(state.table);
   table.set(destinationKey, entry);
@@ -188,8 +197,7 @@ export type RecordAnnounceEvent =
     };
 
 export type RecordAnnounceAction =
-  | { readonly kind: "blocked" }
-  | { readonly kind: "clear" };
+  { readonly kind: "blocked" } | { readonly kind: "clear" };
 
 export interface RecordAnnounceStepResult {
   readonly state: AnnounceRateState;
@@ -199,14 +207,14 @@ export interface RecordAnnounceStepResult {
 
 export function stepRecordAnnounceWithActions(
   state: AnnounceRateState,
-  event: RecordAnnounceEvent
+  event: RecordAnnounceEvent,
 ): RecordAnnounceStepResult {
   if (event.kind === "announce/record-gate") {
     const result = recordAnnounce(state, event.destinationKey, event.at);
     return {
       state: result.state,
       intents: [],
-      actions: [{ kind: result.blocked ? "blocked" : "clear" }]
+      actions: [{ kind: result.blocked ? "blocked" : "clear" }],
     };
   }
 
@@ -214,13 +222,13 @@ export function stepRecordAnnounceWithActions(
 }
 
 export function shouldTreatRecordAnnounceBlocked(
-  actions: ReadonlyArray<RecordAnnounceAction>
+  actions: ReadonlyArray<RecordAnnounceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "blocked");
 }
 
 export function shouldTreatRecordAnnounceClear(
-  actions: ReadonlyArray<RecordAnnounceAction>
+  actions: ReadonlyArray<RecordAnnounceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "clear");
 }
@@ -230,15 +238,15 @@ export const stepAnnounceRate: StepFn<AnnounceRateState> = (state, event) =>
 
 function stepAnnounceRateInner(
   state: AnnounceRateState,
-  event: AnnounceRateEvent
+  event: AnnounceRateEvent,
 ): { state: AnnounceRateState; intents: [] } {
   if (event.kind === "announce/is-blocked") {
     return {
       state: {
         ...state,
-        lastBlocked: isAnnounceBlocked(state, event.destinationKey, event.at)
+        lastBlocked: isAnnounceBlocked(state, event.destinationKey, event.at),
       },
-      intents: []
+      intents: [],
     };
   }
 

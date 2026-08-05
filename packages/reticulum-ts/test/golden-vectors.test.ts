@@ -21,7 +21,7 @@ import {
   hashBytes,
   rnsHkdf,
   type CryptoProvider,
-  type DestinationTypeValue
+  type DestinationTypeValue,
 } from "../src/index.js";
 
 interface GoldenCryptoVectors {
@@ -142,21 +142,32 @@ interface GoldenPacketVectors {
   }>;
 }
 
-const vectorsRoot = resolve(import.meta.dirname, "../../../conformance/vectors");
-const cryptoVectors = JSON.parse(readFileSync(resolve(vectorsRoot, "crypto.json"), "utf8")) as GoldenCryptoVectors;
+const vectorsRoot = resolve(
+  import.meta.dirname,
+  "../../../conformance/vectors",
+);
+const cryptoVectors = JSON.parse(
+  readFileSync(resolve(vectorsRoot, "crypto.json"), "utf8"),
+) as GoldenCryptoVectors;
 const identityVectors = JSON.parse(
-  readFileSync(resolve(vectorsRoot, "identity.json"), "utf8")
+  readFileSync(resolve(vectorsRoot, "identity.json"), "utf8"),
 ) as GoldenIdentityVectors;
-const packetVectors = JSON.parse(readFileSync(resolve(vectorsRoot, "packet.json"), "utf8")) as GoldenPacketVectors;
+const packetVectors = JSON.parse(
+  readFileSync(resolve(vectorsRoot, "packet.json"), "utf8"),
+) as GoldenPacketVectors;
 
 const providers: ReadonlyArray<CryptoProvider> = [
   new NodeCryptoProvider(),
   new PureCryptoProvider(),
-  new BareCryptoProvider()
+  new BareCryptoProvider(),
 ];
 
-function identityByName(name: string): GoldenIdentityVectors["identities"][number] {
-  const identity = identityVectors.identities.find((entry) => entry.name === name);
+function identityByName(
+  name: string,
+): GoldenIdentityVectors["identities"][number] {
+  const identity = identityVectors.identities.find(
+    (entry) => entry.name === name,
+  );
   if (identity === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
@@ -172,26 +183,37 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
     });
 
     it.each(cryptoVectors.sha256)("matches sha256 vector $name", (vector) => {
-      expect(hashBytes(provider, hexToBytes(vector.inputHex))).toBe(vector.digestHex);
+      expect(hashBytes(provider, hexToBytes(vector.inputHex))).toBe(
+        vector.digestHex,
+      );
     });
 
-    it.each(cryptoVectors.hmacSha256)("matches hmac-sha256 vector $name", (vector) => {
-      const digest = provider.hmacSha256(hexToBytes(vector.keyHex), hexToBytes(vector.inputHex));
-      expect(bytesToHex(digest)).toBe(vector.digestHex);
-    });
+    it.each(cryptoVectors.hmacSha256)(
+      "matches hmac-sha256 vector $name",
+      (vector) => {
+        const digest = provider.hmacSha256(
+          hexToBytes(vector.keyHex),
+          hexToBytes(vector.inputHex),
+        );
+        expect(bytesToHex(digest)).toBe(vector.digestHex);
+      },
+    );
 
-    it.each(cryptoVectors.hkdfSha256)("matches hkdf-sha256 vector $name", (vector) => {
-      const output = provider.hkdf({
-        hash: "sha256",
-        keyMaterial: hexToBytes(vector.keyMaterialHex),
-        salt: hexToBytes(vector.saltHex),
-        info: hexToBytes(vector.infoHex),
-        length: vector.length
-      });
+    it.each(cryptoVectors.hkdfSha256)(
+      "matches hkdf-sha256 vector $name",
+      (vector) => {
+        const output = provider.hkdf({
+          hash: "sha256",
+          keyMaterial: hexToBytes(vector.keyMaterialHex),
+          salt: hexToBytes(vector.saltHex),
+          info: hexToBytes(vector.infoHex),
+          length: vector.length,
+        });
 
-      expect(bytesToHex(output)).toBe(vector.outputHex);
-    });
-  }
+        expect(bytesToHex(output)).toBe(vector.outputHex);
+      },
+    );
+  },
 );
 
 describe.each(providers.map((provider) => [provider.name, provider] as const))(
@@ -201,31 +223,45 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(identityVectors.upstream.reticulumVersion).toBe("0.9.4");
     });
 
-    it.each(identityVectors.identities)("derives identity hash for $name", (vector) => {
-      const identity = Identity.fromBytes(provider, hexToBytes(vector.privateKeyHex));
-      expect(identity).not.toBeNull();
-      expect(bytesToHex(identity!.getPublicKey())).toBe(vector.publicKeyHex);
-      expect(bytesToHex(identity!.hash)).toBe(vector.identityHashHex);
-    });
+    it.each(identityVectors.identities)(
+      "derives identity hash for $name",
+      (vector) => {
+        const identity = Identity.fromBytes(
+          provider,
+          hexToBytes(vector.privateKeyHex),
+        );
+        expect(identity).not.toBeNull();
+        expect(bytesToHex(identity!.getPublicKey())).toBe(vector.publicKeyHex);
+        expect(bytesToHex(identity!.hash)).toBe(vector.identityHashHex);
+      },
+    );
 
     it.each(identityVectors.token)("matches token vector $name", (vector) => {
       const token = new Token(provider, hexToBytes(vector.keyHex));
       const ciphertext = token.encrypt(hexToBytes(vector.plaintextHex), {
-        iv: hexToBytes(vector.ivHex)
+        iv: hexToBytes(vector.ivHex),
       });
       expect(bytesToHex(ciphertext)).toBe(vector.ciphertextHex);
       expect(bytesToHex(token.decrypt(ciphertext))).toBe(vector.plaintextHex);
     });
 
-    it.each(identityVectors.signatures)("matches signature vector $name", (vector) => {
-      const source = identityByName(vector.identity);
-      const identity = Identity.fromBytes(provider, hexToBytes(source.privateKeyHex));
-      expect(identity).not.toBeNull();
+    it.each(identityVectors.signatures)(
+      "matches signature vector $name",
+      (vector) => {
+        const source = identityByName(vector.identity);
+        const identity = Identity.fromBytes(
+          provider,
+          hexToBytes(source.privateKeyHex),
+        );
+        expect(identity).not.toBeNull();
 
-      const message = hexToBytes(vector.messageHex);
-      expect(bytesToHex(identity!.sign(message))).toBe(vector.signatureHex);
-      expect(identity!.validate(hexToBytes(vector.signatureHex), message)).toBe(true);
-    });
+        const message = hexToBytes(vector.messageHex);
+        expect(bytesToHex(identity!.sign(message))).toBe(vector.signatureHex);
+        expect(
+          identity!.validate(hexToBytes(vector.signatureHex), message),
+        ).toBe(true);
+      },
+    );
 
     it.each(identityVectors.hkdf)("matches hkdf vector $name", (vector) => {
       const saltIdentity = identityByName(vector.saltIdentity);
@@ -234,53 +270,74 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
         vector.length,
         hexToBytes(vector.deriveFromHex),
         hexToBytes(saltIdentity.identityHashHex),
-        hexToBytes(vector.contextHex)
+        hexToBytes(vector.contextHex),
       );
       expect(bytesToHex(output)).toBe(vector.outputHex);
     });
 
-    it.each(identityVectors.encryption)("matches encryption vector $name", (vector) => {
-      const recipient = identityByName(vector.recipient);
-      const decryptor = Identity.fromBytes(provider, hexToBytes(recipient.privateKeyHex));
-      const encryptor = new Identity(provider, false);
-      encryptor.loadPublicKey(hexToBytes(recipient.publicKeyHex));
+    it.each(identityVectors.encryption)(
+      "matches encryption vector $name",
+      (vector) => {
+        const recipient = identityByName(vector.recipient);
+        const decryptor = Identity.fromBytes(
+          provider,
+          hexToBytes(recipient.privateKeyHex),
+        );
+        const encryptor = new Identity(provider, false);
+        encryptor.loadPublicKey(hexToBytes(recipient.publicKeyHex));
 
-      const encryptOptions = {
-        ephemeralPrivateKey: hexToBytes(vector.ephemeralPrivateKeyHex),
-        tokenIv: hexToBytes(vector.tokenIvHex),
-        ...(vector.ratchetPublicKeyHex === undefined
-          ? {}
-          : { ratchetPublicKey: hexToBytes(vector.ratchetPublicKeyHex) })
-      };
+        const encryptOptions = {
+          ephemeralPrivateKey: hexToBytes(vector.ephemeralPrivateKeyHex),
+          tokenIv: hexToBytes(vector.tokenIvHex),
+          ...(vector.ratchetPublicKeyHex === undefined
+            ? {}
+            : { ratchetPublicKey: hexToBytes(vector.ratchetPublicKeyHex) }),
+        };
 
-      const ciphertext = encryptor.encrypt(hexToBytes(vector.plaintextHex), encryptOptions);
-      expect(bytesToHex(ciphertext)).toBe(vector.ciphertextHex);
+        const ciphertext = encryptor.encrypt(
+          hexToBytes(vector.plaintextHex),
+          encryptOptions,
+        );
+        expect(bytesToHex(ciphertext)).toBe(vector.ciphertextHex);
 
-      const decryptOptions =
-        vector.ratchetPrivateKeyHex === undefined
-          ? {}
-          : { ratchets: [hexToBytes(vector.ratchetPrivateKeyHex)] };
+        const decryptOptions =
+          vector.ratchetPrivateKeyHex === undefined
+            ? {}
+            : { ratchets: [hexToBytes(vector.ratchetPrivateKeyHex)] };
 
-      const result = decryptor!.decrypt(ciphertext, decryptOptions);
-      expect(result.plaintext).not.toBeNull();
-      expect(bytesToHex(result.plaintext!)).toBe(vector.plaintextHex);
-    });
+        const result = decryptor!.decrypt(ciphertext, decryptOptions);
+        expect(result.plaintext).not.toBeNull();
+        expect(bytesToHex(result.plaintext!)).toBe(vector.plaintextHex);
+      },
+    );
 
-    it.each(identityVectors.ratchets)("derives ratchet id for $name", (vector) => {
-      const publicKey = hexToBytes(vector.publicKeyHex);
-      expect(bytesToHex(Identity.ratchetPublicBytes(provider, hexToBytes(vector.privateKeyHex)))).toBe(
-        vector.publicKeyHex
-      );
-      expect(bytesToHex(Identity.ratchetId(provider, publicKey))).toBe(vector.ratchetIdHex);
-    });
-  }
+    it.each(identityVectors.ratchets)(
+      "derives ratchet id for $name",
+      (vector) => {
+        const publicKey = hexToBytes(vector.publicKeyHex);
+        expect(
+          bytesToHex(
+            Identity.ratchetPublicBytes(
+              provider,
+              hexToBytes(vector.privateKeyHex),
+            ),
+          ),
+        ).toBe(vector.publicKeyHex);
+        expect(bytesToHex(Identity.ratchetId(provider, publicKey))).toBe(
+          vector.ratchetIdHex,
+        );
+      },
+    );
+  },
 );
 
 describe("provider cross-check", () => {
   const [nodeProvider, pureProvider] = providers;
 
   it("produces identical token ciphertext for fixed inputs", () => {
-    const key = hexToBytes("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff");
+    const key = hexToBytes(
+      "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+    );
     const iv = hexToBytes("aabbccddeeff00112233445566778899");
     const plaintext = hexToBytes("68656c6c6f207265746963756c756d");
 
@@ -288,26 +345,34 @@ describe("provider cross-check", () => {
     const pureToken = new Token(pureProvider!, key);
 
     expect(bytesToHex(nodeToken.encrypt(plaintext, { iv }))).toBe(
-      bytesToHex(pureToken.encrypt(plaintext, { iv }))
+      bytesToHex(pureToken.encrypt(plaintext, { iv })),
     );
   });
 
   it("produces identical identity encryption for fixed keys", () => {
     const alice = identityByName("alice");
     const bob = identityByName("bob");
-    const ephemeral = hexToBytes("1111111111111111111111111111111111111111111111111111111111111111");
+    const ephemeral = hexToBytes(
+      "1111111111111111111111111111111111111111111111111111111111111111",
+    );
 
     for (const providerPair of [
       [nodeProvider, pureProvider] as const,
-      [pureProvider, nodeProvider] as const
+      [pureProvider, nodeProvider] as const,
     ]) {
       const encryptor = new Identity(providerPair[0]!, false);
       encryptor.loadPublicKey(hexToBytes(bob.publicKeyHex));
-      const ciphertext = encryptor.encrypt(hexToBytes("616c69636520746f20626f"), {
-        ephemeralPrivateKey: ephemeral
-      });
+      const ciphertext = encryptor.encrypt(
+        hexToBytes("616c69636520746f20626f"),
+        {
+          ephemeralPrivateKey: ephemeral,
+        },
+      );
 
-      const decryptor = Identity.fromBytes(providerPair[1]!, hexToBytes(bob.privateKeyHex));
+      const decryptor = Identity.fromBytes(
+        providerPair[1]!,
+        hexToBytes(bob.privateKeyHex),
+      );
       const result = decryptor!.decrypt(ciphertext);
       expect(bytesToHex(result.plaintext!)).toBe("616c69636520746f20626f");
     }
@@ -323,72 +388,107 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(packetVectors.upstream.reticulumVersion).toBe("0.9.4");
     });
 
-    it.each(packetVectors.destinations)("derives destination hash for $name", (vector) => {
-      const identityHash = hexToBytes(vector.identityHashHex);
-      expect(Destination.expandName(identityHash, vector.appName, ...vector.aspects)).toBe(vector.expandedName);
-      expect(bytesToHex(Destination.nameHash(provider, vector.appName, ...vector.aspects))).toBe(
-        vector.nameHashHex
-      );
-      expect(bytesToHex(Destination.hash(provider, identityHash, vector.appName, ...vector.aspects))).toBe(
-        vector.destinationHashHex
-      );
+    it.each(packetVectors.destinations)(
+      "derives destination hash for $name",
+      (vector) => {
+        const identityHash = hexToBytes(vector.identityHashHex);
+        expect(
+          Destination.expandName(
+            identityHash,
+            vector.appName,
+            ...vector.aspects,
+          ),
+        ).toBe(vector.expandedName);
+        expect(
+          bytesToHex(
+            Destination.nameHash(provider, vector.appName, ...vector.aspects),
+          ),
+        ).toBe(vector.nameHashHex);
+        expect(
+          bytesToHex(
+            Destination.hash(
+              provider,
+              identityHash,
+              vector.appName,
+              ...vector.aspects,
+            ),
+          ),
+        ).toBe(vector.destinationHashHex);
 
-      const destination = new Destination(provider, {
-        identity: identityHash,
-        direction: DestinationDirection.OUT,
-        type: DestinationType.SINGLE,
-        appName: vector.appName,
-        aspects: vector.aspects
-      });
-      expect(destination.name).toBe(vector.expandedName);
-      expect(bytesToHex(destination.nameHash)).toBe(vector.nameHashHex);
-      expect(destination.hexhash).toBe(vector.destinationHashHex);
-    });
+        const destination = new Destination(provider, {
+          identity: identityHash,
+          direction: DestinationDirection.OUT,
+          type: DestinationType.SINGLE,
+          appName: vector.appName,
+          aspects: vector.aspects,
+        });
+        expect(destination.name).toBe(vector.expandedName);
+        expect(bytesToHex(destination.nameHash)).toBe(vector.nameHashHex);
+        expect(destination.hexhash).toBe(vector.destinationHashHex);
+      },
+    );
 
-    it.each(packetVectors.packets)("encodes, decodes and hashes packet vector $name", (vector) => {
-      const packet = Packet.fromFields(provider, {
-        headerType: vector.headerType,
-        contextFlag: vector.contextFlag,
-        transportType: vector.transportType,
-        destinationType: vector.destinationType,
-        packetType: vector.packetType,
-        hops: vector.hops,
-        transportId: vector.transportIdHex === undefined ? undefined : hexToBytes(vector.transportIdHex),
-        destinationHash: hexToBytes(vector.destinationHashHex),
-        context: vector.context,
-        data: hexToBytes(vector.dataHex)
-      });
+    it.each(packetVectors.packets)(
+      "encodes, decodes and hashes packet vector $name",
+      (vector) => {
+        const packet = Packet.fromFields(provider, {
+          headerType: vector.headerType,
+          contextFlag: vector.contextFlag,
+          transportType: vector.transportType,
+          destinationType: vector.destinationType,
+          packetType: vector.packetType,
+          hops: vector.hops,
+          transportId:
+            vector.transportIdHex === undefined
+              ? undefined
+              : hexToBytes(vector.transportIdHex),
+          destinationHash: hexToBytes(vector.destinationHashHex),
+          context: vector.context,
+          data: hexToBytes(vector.dataHex),
+        });
 
-      expect(bytesToHex(packet.raw)).toBe(vector.rawHex);
-      expect(bytesToHex(packet.hashablePart())).toBe(vector.hashablePartHex);
-      expect(bytesToHex(packet.hash())).toBe(vector.packetHashHex);
+        expect(bytesToHex(packet.raw)).toBe(vector.rawHex);
+        expect(bytesToHex(packet.hashablePart())).toBe(vector.hashablePartHex);
+        expect(bytesToHex(packet.hash())).toBe(vector.packetHashHex);
 
-      const decoded = Packet.decode(provider, hexToBytes(vector.rawHex));
-      expect(decoded).not.toBeNull();
-      expect(decoded!.headerType).toBe(vector.headerType);
-      expect(decoded!.contextFlag).toBe(vector.contextFlag);
-      expect(decoded!.transportType).toBe(vector.transportType);
-      expect(decoded!.destinationType).toBe(vector.destinationType);
-      expect(decoded!.packetType).toBe(vector.packetType);
-      expect(decoded!.hops).toBe(vector.hops);
-      expect(bytesToHex(decoded!.destinationHash)).toBe(vector.destinationHashHex);
-      expect(decoded!.transportId === null ? undefined : bytesToHex(decoded!.transportId)).toBe(vector.transportIdHex);
-      expect(decoded!.context).toBe(vector.context);
-      expect(bytesToHex(decoded!.data)).toBe(vector.dataHex);
-      expect(bytesToHex(decoded!.hash())).toBe(vector.packetHashHex);
-    });
+        const decoded = Packet.decode(provider, hexToBytes(vector.rawHex));
+        expect(decoded).not.toBeNull();
+        expect(decoded!.headerType).toBe(vector.headerType);
+        expect(decoded!.contextFlag).toBe(vector.contextFlag);
+        expect(decoded!.transportType).toBe(vector.transportType);
+        expect(decoded!.destinationType).toBe(vector.destinationType);
+        expect(decoded!.packetType).toBe(vector.packetType);
+        expect(decoded!.hops).toBe(vector.hops);
+        expect(bytesToHex(decoded!.destinationHash)).toBe(
+          vector.destinationHashHex,
+        );
+        expect(
+          decoded!.transportId === null
+            ? undefined
+            : bytesToHex(decoded!.transportId),
+        ).toBe(vector.transportIdHex);
+        expect(decoded!.context).toBe(vector.context);
+        expect(bytesToHex(decoded!.data)).toBe(vector.dataHex);
+        expect(bytesToHex(decoded!.hash())).toBe(vector.packetHashHex);
+      },
+    );
 
     it("creates and validates explicit and implicit packet proofs", () => {
       const vector = packetVectors.packets[0]!;
       const identityVector = identityByName("alice");
-      const identity = Identity.fromBytes(provider, hexToBytes(identityVector.privateKeyHex));
+      const identity = Identity.fromBytes(
+        provider,
+        hexToBytes(identityVector.privateKeyHex),
+      );
       expect(identity).not.toBeNull();
 
       const packet = Packet.decode(provider, hexToBytes(vector.rawHex));
       expect(packet).not.toBeNull();
 
       const explicitProof = packet!.createProof(identity!);
-      expect(bytesToHex(explicitProof.subarray(0, 32))).toBe(vector.packetHashHex);
+      expect(bytesToHex(explicitProof.subarray(0, 32))).toBe(
+        vector.packetHashHex,
+      );
       expect(packet!.validateProof(identity!, explicitProof)).toBe(true);
 
       const implicitProof = packet!.createProof(identity!, { explicit: false });
@@ -398,8 +498,12 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       const tamperedProof = Uint8Array.from(explicitProof);
       tamperedProof[0] = tamperedProof[0]! ^ 0x01;
       expect(packet!.validateProof(identity!, tamperedProof)).toBe(false);
-      expect(packet!.validateProof(identity!, explicitProof.subarray(0, 12))).toBe(false);
-      expect(bytesToHex(packet!.proofDestinationHash())).toBe(vector.packetHashHex.slice(0, 32));
+      expect(
+        packet!.validateProof(identity!, explicitProof.subarray(0, 12)),
+      ).toBe(false);
+      expect(bytesToHex(packet!.proofDestinationHash())).toBe(
+        vector.packetHashHex.slice(0, 32),
+      );
     });
 
     it("rejects invalid enum values during construction", () => {
@@ -411,52 +515,64 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
           transportType: vector.transportType,
           destinationType: vector.destinationType,
           packetType: vector.packetType,
-          destinationHash: hexToBytes(vector.destinationHashHex)
-        })
+          destinationHash: hexToBytes(vector.destinationHashHex),
+        }),
       ).toThrow("Unknown packet context flag");
     });
 
-    it.each(packetVectors.announces ?? [])("builds and validates announce vector $name", (vector) => {
-      const alice = identityByName("alice");
-      const identity = Identity.fromBytes(provider, hexToBytes(alice.privateKeyHex));
-      expect(identity).not.toBeNull();
+    it.each(packetVectors.announces ?? [])(
+      "builds and validates announce vector $name",
+      (vector) => {
+        const alice = identityByName("alice");
+        const identity = Identity.fromBytes(
+          provider,
+          hexToBytes(alice.privateKeyHex),
+        );
+        expect(identity).not.toBeNull();
 
-      const destination = new Destination(provider, {
-        identity: identity!,
-        direction: DestinationDirection.IN,
-        type: DestinationType.SINGLE,
-        appName: "example",
-        aspects: ["announce"]
-      });
+        const destination = new Destination(provider, {
+          identity: identity!,
+          direction: DestinationDirection.IN,
+          type: DestinationType.SINGLE,
+          appName: "example",
+          aspects: ["announce"],
+        });
 
-      const packet = Announce.buildPacket(provider, destination, {
-        randomHash: hexToBytes(vector.randomHashHex),
-        appData: hexToBytes(vector.appDataHex),
-        ...(vector.ratchetPublicKeyHex === null
-          ? {}
-          : { ratchetPublicKey: hexToBytes(vector.ratchetPublicKeyHex) })
-      });
+        const packet = Announce.buildPacket(provider, destination, {
+          randomHash: hexToBytes(vector.randomHashHex),
+          appData: hexToBytes(vector.appDataHex),
+          ...(vector.ratchetPublicKeyHex === null
+            ? {}
+            : { ratchetPublicKey: hexToBytes(vector.ratchetPublicKeyHex) }),
+        });
 
-      expect(bytesToHex(packet.raw)).toBe(vector.rawHex);
-      expect(bytesToHex(packet.data)).toBe(vector.dataHex);
-      expect(Announce.validate(provider, packet)).toBe(true);
+        expect(bytesToHex(packet.raw)).toBe(vector.rawHex);
+        expect(bytesToHex(packet.data)).toBe(vector.dataHex);
+        expect(Announce.validate(provider, packet)).toBe(true);
 
-      const parsed = Announce.parse(packet);
-      expect(parsed).not.toBeNull();
-      expect(bytesToHex(parsed!.destinationHash)).toBe(vector.destinationHashHex);
-      expect(bytesToHex(parsed!.publicKey)).toBe(vector.publicKeyHex);
-      expect(bytesToHex(parsed!.nameHash)).toBe(vector.nameHashHex);
-      expect(bytesToHex(parsed!.randomHash)).toBe(vector.randomHashHex);
-      expect(parsed!.ratchetPublicKey === null ? null : bytesToHex(parsed!.ratchetPublicKey)).toBe(
-        vector.ratchetPublicKeyHex
-      );
-      expect(bytesToHex(parsed!.signature)).toBe(vector.signatureHex);
-      expect(parsed!.appData === null ? "" : bytesToHex(parsed!.appData)).toBe(vector.appDataHex);
+        const parsed = Announce.parse(packet);
+        expect(parsed).not.toBeNull();
+        expect(bytesToHex(parsed!.destinationHash)).toBe(
+          vector.destinationHashHex,
+        );
+        expect(bytesToHex(parsed!.publicKey)).toBe(vector.publicKeyHex);
+        expect(bytesToHex(parsed!.nameHash)).toBe(vector.nameHashHex);
+        expect(bytesToHex(parsed!.randomHash)).toBe(vector.randomHashHex);
+        expect(
+          parsed!.ratchetPublicKey === null
+            ? null
+            : bytesToHex(parsed!.ratchetPublicKey),
+        ).toBe(vector.ratchetPublicKeyHex);
+        expect(bytesToHex(parsed!.signature)).toBe(vector.signatureHex);
+        expect(
+          parsed!.appData === null ? "" : bytesToHex(parsed!.appData),
+        ).toBe(vector.appDataHex);
 
-      const decoded = Packet.decode(provider, hexToBytes(vector.rawHex));
-      expect(decoded).not.toBeNull();
-      expect(Announce.validate(provider, decoded!)).toBe(true);
-    });
+        const decoded = Packet.decode(provider, hexToBytes(vector.rawHex));
+        expect(decoded).not.toBeNull();
+        expect(Announce.validate(provider, decoded!)).toBe(true);
+      },
+    );
 
     it("rejects announces with tampered signed data", () => {
       const vector = packetVectors.announces?.[0];
@@ -467,5 +583,5 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(decoded).not.toBeNull();
       expect(Announce.validate(provider, decoded!)).toBe(false);
     });
-  }
+  },
 );

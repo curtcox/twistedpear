@@ -11,13 +11,16 @@ export const T256_FIELD_CHARS = 86;
 export const T256_INLINE_MAX_BYTES = 64;
 export const T256_MAX_CONTENT_BYTES = 2 ** 48 - 1;
 
-const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-const CHAR_TO_VALUE = new Map<string, number>([...ALPHABET].map((char, index) => [char, index]));
+const ALPHABET =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const CHAR_TO_VALUE = new Map<string, number>(
+  [...ALPHABET].map((char, index) => [char, index]),
+);
 
 export class T256Error extends Error {
   constructor(
     readonly code: "INVALID_ID" | "CONTENT_TOO_LARGE" | "HASH_MISMATCH",
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "T256Error";
@@ -74,7 +77,10 @@ function base64UrlDecode(text: string, expectedBytes: number): Uint8Array {
   }
 
   if (outIndex !== expectedBytes) {
-    throw new T256Error("INVALID_ID", `Expected ${expectedBytes} bytes, decoded ${outIndex}`);
+    throw new T256Error(
+      "INVALID_ID",
+      `Expected ${expectedBytes} bytes, decoded ${outIndex}`,
+    );
   }
 
   // Trailing bits beyond whole bytes must be zero (canonical encoding).
@@ -97,12 +103,22 @@ function encodeLengthPrefix(length: number): string {
 }
 
 export function encode256tParts(length: number, field: Uint8Array): string {
-  if (!Number.isInteger(length) || length < 0 || length > T256_MAX_CONTENT_BYTES) {
-    throw new T256Error("CONTENT_TOO_LARGE", `Content length out of range: ${length}`);
+  if (
+    !Number.isInteger(length) ||
+    length < 0 ||
+    length > T256_MAX_CONTENT_BYTES
+  ) {
+    throw new T256Error(
+      "CONTENT_TOO_LARGE",
+      `Content length out of range: ${length}`,
+    );
   }
 
   if (field.length !== 64) {
-    throw new T256Error("INVALID_ID", `256t field must be 64 bytes, got ${field.length}`);
+    throw new T256Error(
+      "INVALID_ID",
+      `256t field must be 64 bytes, got ${field.length}`,
+    );
   }
 
   return `${encodeLengthPrefix(length)}${base64UrlEncode(field)}`;
@@ -125,7 +141,10 @@ export function encode256t(content: Uint8Array, sha512: Sha512Fn): string {
 
 export function decode256t(id: string): Decoded256t {
   if (typeof id !== "string" || id.length !== T256_ID_LENGTH) {
-    throw new T256Error("INVALID_ID", `256t id must be ${T256_ID_LENGTH} characters`);
+    throw new T256Error(
+      "INVALID_ID",
+      `256t id must be ${T256_ID_LENGTH} characters`,
+    );
   }
 
   const lengthBytes = base64UrlDecode(id.slice(0, T256_LENGTH_PREFIX_CHARS), 6);
@@ -138,7 +157,10 @@ export function decode256t(id: string): Decoded256t {
   if (length <= T256_INLINE_MAX_BYTES) {
     for (let index = length; index < 64; index += 1) {
       if (field[index] !== 0) {
-        throw new T256Error("INVALID_ID", "Inline 256t content has non-zero padding");
+        throw new T256Error(
+          "INVALID_ID",
+          "Inline 256t content has non-zero padding",
+        );
       }
     }
 
@@ -148,7 +170,11 @@ export function decode256t(id: string): Decoded256t {
   return { length, inline: null, sha512: field };
 }
 
-export function verify256t(id: string, content: Uint8Array, sha512: Sha512Fn): boolean {
+export function verify256t(
+  id: string,
+  content: Uint8Array,
+  sha512: Sha512Fn,
+): boolean {
   let decoded: Decoded256t;
   try {
     decoded = decode256t(id);
@@ -173,7 +199,9 @@ export function sha512Hex(id: string): string | null {
     return null;
   }
 
-  return [...decoded.sha512].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...decoded.sha512]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function equalBytes(a: Uint8Array, b: Uint8Array): boolean {

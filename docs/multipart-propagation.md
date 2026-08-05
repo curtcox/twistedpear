@@ -26,7 +26,7 @@ const transfer = await sendMultipartPropagation({
   source,
   title: "field/report",
   content,
-  budgetBytes: 64 * 1024
+  budgetBytes: 64 * 1024,
 });
 ```
 
@@ -40,7 +40,7 @@ await sendMultipartPropagation({
   source,
   content,
   transferId,
-  completedChunks: new Set([0, 1, 3])
+  completedChunks: new Set([0, 1, 3]),
 });
 ```
 
@@ -59,7 +59,7 @@ import { MultipartPropagationReceiver } from "@twistedpear/lxmf-ts";
 const receiver = new MultipartPropagationReceiver(
   router.provider,
   new FileMultipartCheckpointStore(checkpointPath),
-  64 * 1024
+  64 * 1024,
 );
 
 router.onDelivery((message) => {

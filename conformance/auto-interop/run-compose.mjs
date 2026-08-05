@@ -21,12 +21,15 @@ function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: repoRoot,
     encoding: "utf8",
-    ...options
+    ...options,
   });
   if (result.status !== 0) {
-    const detail = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
+    const detail = [result.stdout, result.stderr]
+      .filter(Boolean)
+      .join("\n")
+      .trim();
     throw new Error(
-      `${command} ${args.join(" ")} failed with status ${result.status ?? 1}${detail ? `\n${detail}` : ""}`
+      `${command} ${args.join(" ")} failed with status ${result.status ?? 1}${detail ? `\n${detail}` : ""}`,
     );
   }
   return result.stdout ?? "";
@@ -49,7 +52,15 @@ function cleanup() {
 try {
   cleanup();
 
-  runInherit("docker", ["compose", "-f", composeFile, "--profile", "auto-ts", "build", "auto-interop"]);
+  runInherit("docker", [
+    "compose",
+    "-f",
+    composeFile,
+    "--profile",
+    "auto-ts",
+    "build",
+    "auto-interop",
+  ]);
 
   // Hold both containers open with empty netns; attach veth before starting peers.
   runInherit("docker", [
@@ -63,7 +74,7 @@ try {
     "NET_ADMIN",
     "docker-auto-interop",
     "sleep",
-    "infinity"
+    "infinity",
   ]);
   runInherit("docker", [
     "run",
@@ -80,28 +91,109 @@ try {
     "/work",
     "node:22-bookworm",
     "sleep",
-    "infinity"
+    "infinity",
   ]);
 
   const pyPid = dockerInspectPid(pyName);
   const tsPid = dockerInspectPid(tsName);
-  if (!/^\d+$/.test(pyPid) || !/^\d+$/.test(tsPid) || pyPid === "0" || tsPid === "0") {
-    throw new Error(`could not resolve container PIDs (py=${pyPid}, ts=${tsPid})`);
+  if (
+    !/^\d+$/.test(pyPid) ||
+    !/^\d+$/.test(tsPid) ||
+    pyPid === "0" ||
+    tsPid === "0"
+  ) {
+    throw new Error(
+      `could not resolve container PIDs (py=${pyPid}, ts=${tsPid})`,
+    );
   }
 
-  runInherit("sudo", ["ip", "link", "add", vethPy, "type", "veth", "peer", "name", vethTs]);
+  runInherit("sudo", [
+    "ip",
+    "link",
+    "add",
+    vethPy,
+    "type",
+    "veth",
+    "peer",
+    "name",
+    vethTs,
+  ]);
   runInherit("sudo", ["ip", "link", "set", vethPy, "netns", pyPid]);
   runInherit("sudo", ["ip", "link", "set", vethTs, "netns", tsPid]);
-  runInherit("sudo", ["nsenter", "-t", pyPid, "-n", "ip", "link", "set", "lo", "up"]);
-  runInherit("sudo", ["nsenter", "-t", tsPid, "-n", "ip", "link", "set", "lo", "up"]);
-  runInherit("sudo", ["nsenter", "-t", pyPid, "-n", "ip", "link", "set", vethPy, "up"]);
-  runInherit("sudo", ["nsenter", "-t", tsPid, "-n", "ip", "link", "set", vethTs, "up"]);
+  runInherit("sudo", [
+    "nsenter",
+    "-t",
+    pyPid,
+    "-n",
+    "ip",
+    "link",
+    "set",
+    "lo",
+    "up",
+  ]);
+  runInherit("sudo", [
+    "nsenter",
+    "-t",
+    tsPid,
+    "-n",
+    "ip",
+    "link",
+    "set",
+    "lo",
+    "up",
+  ]);
+  runInherit("sudo", [
+    "nsenter",
+    "-t",
+    pyPid,
+    "-n",
+    "ip",
+    "link",
+    "set",
+    vethPy,
+    "up",
+  ]);
+  runInherit("sudo", [
+    "nsenter",
+    "-t",
+    tsPid,
+    "-n",
+    "ip",
+    "link",
+    "set",
+    vethTs,
+    "up",
+  ]);
   spawnSync("sleep", ["2"], { stdio: "inherit" });
 
-  const pyAddrs = run("sudo", ["nsenter", "-t", pyPid, "-n", "ip", "-6", "addr", "show", "dev", vethPy]);
-  const tsAddrs = run("sudo", ["nsenter", "-t", tsPid, "-n", "ip", "-6", "addr", "show", "dev", vethTs]);
+  const pyAddrs = run("sudo", [
+    "nsenter",
+    "-t",
+    pyPid,
+    "-n",
+    "ip",
+    "-6",
+    "addr",
+    "show",
+    "dev",
+    vethPy,
+  ]);
+  const tsAddrs = run("sudo", [
+    "nsenter",
+    "-t",
+    tsPid,
+    "-n",
+    "ip",
+    "-6",
+    "addr",
+    "show",
+    "dev",
+    vethTs,
+  ]);
   if (!pyAddrs.includes("fe80:") || !tsAddrs.includes("fe80:")) {
-    throw new Error(`missing fe80 on veth pair\npython:\n${pyAddrs}\nts:\n${tsAddrs}`);
+    throw new Error(
+      `missing fe80 on veth pair\npython:\n${pyAddrs}\nts:\n${tsAddrs}`,
+    );
   }
 
   // Start Python peer now that its link-local iface exists.
@@ -113,7 +205,7 @@ try {
     pyName,
     "sh",
     "-c",
-    "python auto_interop.py > /tmp/auto-interop.log 2>&1"
+    "python auto_interop.py > /tmp/auto-interop.log 2>&1",
   ]);
 
   const readyDeadline = Date.now() + 30_000;
@@ -121,10 +213,19 @@ try {
   while (Date.now() < readyDeadline) {
     const probe = spawnSync(
       "docker",
-      ["exec", pyName, "sh", "-c", "grep -c '^READY ' /tmp/auto-interop.log 2>/dev/null || true"],
-      { encoding: "utf8" }
+      [
+        "exec",
+        pyName,
+        "sh",
+        "-c",
+        "grep -c '^READY ' /tmp/auto-interop.log 2>/dev/null || true",
+      ],
+      { encoding: "utf8" },
     );
-    if ((probe.stdout ?? "").trim() !== "" && Number.parseInt((probe.stdout ?? "0").trim(), 10) > 0) {
+    if (
+      (probe.stdout ?? "").trim() !== "" &&
+      Number.parseInt((probe.stdout ?? "0").trim(), 10) > 0
+    ) {
       ready = true;
       break;
     }
@@ -137,8 +238,15 @@ try {
   // Capture TS output so failures produce actionable Actions annotations.
   const tsRun = spawnSync(
     "docker",
-    ["exec", "-e", "AUTO_INTEROP_IN_COMPOSE=1", tsName, "node", "conformance/auto-interop/run.mjs"],
-    { cwd: repoRoot, encoding: "utf8" }
+    [
+      "exec",
+      "-e",
+      "AUTO_INTEROP_IN_COMPOSE=1",
+      tsName,
+      "node",
+      "conformance/auto-interop/run.mjs",
+    ],
+    { cwd: repoRoot, encoding: "utf8" },
   );
   if ((tsRun.stdout ?? "").trim()) {
     process.stdout.write(tsRun.stdout);
@@ -147,22 +255,34 @@ try {
     process.stderr.write(tsRun.stderr);
   }
   if (tsRun.status !== 0) {
-    const detail = [tsRun.stdout, tsRun.stderr].filter(Boolean).join("\n").trim();
+    const detail = [tsRun.stdout, tsRun.stderr]
+      .filter(Boolean)
+      .join("\n")
+      .trim();
     throw new Error(
-      `docker exec ts auto-interop failed with status ${tsRun.status ?? 1}${detail ? `\n${detail}` : ""}`
+      `docker exec ts auto-interop failed with status ${tsRun.status ?? 1}${detail ? `\n${detail}` : ""}`,
     );
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   // Surface the first line in GitHub Actions annotations (public via check-runs API).
-  console.error(`::error::auto-interop:compose failed: ${message.split("\n")[0]}`);
+  console.error(
+    `::error::auto-interop:compose failed: ${message.split("\n")[0]}`,
+  );
   console.error(message);
-  const pyLog = spawnSync("docker", ["exec", pyName, "cat", "/tmp/auto-interop.log"], { encoding: "utf8" });
+  const pyLog = spawnSync(
+    "docker",
+    ["exec", pyName, "cat", "/tmp/auto-interop.log"],
+    { encoding: "utf8" },
+  );
   if (pyLog.stdout || pyLog.stderr) {
     const text = `${pyLog.stdout ?? ""}${pyLog.stderr ?? ""}`.trim();
     console.error(`Python peer log:\n${text}`);
     const preview = text.split("\n").slice(0, 8).join(" | ");
-    if (preview) console.error(`::error::auto-interop python peer: ${preview.slice(0, 200)}`);
+    if (preview)
+      console.error(
+        `::error::auto-interop python peer: ${preview.slice(0, 200)}`,
+      );
   }
   const detailLines = message
     .split("\n")
@@ -172,7 +292,9 @@ try {
     .slice(0, 8)
     .join(" | ");
   if (detailLines) {
-    console.error(`::error::auto-interop ts detail: ${detailLines.slice(0, 300)}`);
+    console.error(
+      `::error::auto-interop ts detail: ${detailLines.slice(0, 300)}`,
+    );
   }
   process.exitCode = 1;
 } finally {

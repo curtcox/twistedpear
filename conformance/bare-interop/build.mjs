@@ -20,11 +20,14 @@ writeFileSync(
       "@noble/hashes/crypto": nobleCrypto,
       "@noble/ciphers/crypto": nobleCrypto,
       "@noble/curves/crypto": nobleCrypto,
-      "@twistedpear/reticulum-ts": join(interopRoot, "../../packages/reticulum-ts/dist/worklet.js")
+      "@twistedpear/reticulum-ts": join(
+        interopRoot,
+        "../../packages/reticulum-ts/dist/worklet.js",
+      ),
     },
     null,
-    2
-  )}\n`
+    2,
+  )}\n`,
 );
 
 const result = spawnSync(
@@ -59,9 +62,9 @@ const result = spawnSync(
     importsPath,
     "--out",
     output,
-    entry
+    entry,
   ],
-  { stdio: "inherit", cwd: interopRoot }
+  { stdio: "inherit", cwd: interopRoot },
 );
 
 if (result.status !== 0) {

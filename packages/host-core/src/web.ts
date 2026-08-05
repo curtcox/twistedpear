@@ -6,19 +6,31 @@ export {
   DEFAULT_WEB_LEAF_ROLES,
   assertWebLeafRoles,
   type LeafRoleConfig,
-  type WebLeafHostStatus
+  type WebLeafHostStatus,
 } from "./leaf-roles.js";
-export type { FetchPath, FetchPlane, FetchPlaneRequest, FetchPlaneResult, FetchProgress } from "./fetch-plane.js";
-export { createResourceFetchPlane, listResourceVersions } from "./fetch-plane-resource.js";
+export type {
+  FetchPath,
+  FetchPlane,
+  FetchPlaneRequest,
+  FetchPlaneResult,
+  FetchProgress,
+} from "./fetch-plane.js";
+export {
+  createResourceFetchPlane,
+  listResourceVersions,
+} from "./fetch-plane-resource.js";
 export type { ResourceFetchPlaneOptions } from "./fetch-plane-resource.js";
 export { createWebLeafHost } from "./web-leaf-host.js";
-export type { WebLeafHostOptions, WebLeafHostSession } from "./web-leaf-host.js";
+export type {
+  WebLeafHostOptions,
+  WebLeafHostSession,
+} from "./web-leaf-host.js";
 export {
   createHostLxmfDelivery,
   DEFAULT_HOST_LXMF_ANNOUNCE_INTERVAL_MS,
   type HostLxmfDeliveryOptions,
   type HostLxmfDeliverySession,
-  type HostLxmfPeerRecord
+  type HostLxmfPeerRecord,
 } from "./host-lxmf-delivery.js";
 export {
   createSessionInviteReceiver,
@@ -27,9 +39,12 @@ export {
   SESSION_INVITE_TITLE,
   type DeliveredSessionInvite,
   type SessionInviteCarrierMessage,
-  type SessionInviteReceiverOptions
+  type SessionInviteReceiverOptions,
 } from "./session-invite-carrier.js";
-export { createWebPackageStorage, resetWebPackageStorage } from "./web-package-storage.js";
+export {
+  createWebPackageStorage,
+  resetWebPackageStorage,
+} from "./web-package-storage.js";
 export type {
   WebOpfsDirectoryHandle,
   WebOpfsFileHandle,
@@ -38,12 +53,12 @@ export type {
   WebPackageStorageOptions,
   WebPackageStorageSession,
   WebStorageManager,
-  WebStorageQuotaInfo
+  WebStorageQuotaInfo,
 } from "./web-package-storage.js";
 export {
   RETICULUM_COMMUNITY_NETWORK,
   type CommunityNetworkProfile,
-  type CommunityTcpEndpoint
+  type CommunityTcpEndpoint,
 } from "./community-network.js";
 export {
   createLinkedDeviceId,
@@ -53,5 +68,5 @@ export {
   linkedDeviceAnnounceAspects,
   signLinkedDeviceCertificate,
   verifyLinkedDeviceCertificate,
-  type LinkedDeviceCertificate
+  type LinkedDeviceCertificate,
 } from "./linked-device.js";

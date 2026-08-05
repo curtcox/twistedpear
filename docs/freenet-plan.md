@@ -19,12 +19,12 @@ The near-term sequencing of the remaining work is in the
 [simulator-first work plan](freenet-simulator-first-work-plan.md).
 
 This plan integrates **Freenet** (the 2023 Rust rewrite at [freenet.org](https://freenet.org/),
-formerly Locutus — *not* [Hyphanet](https://www.hyphanet.org/), the original Java network)
+formerly Locutus — _not_ [Hyphanet](https://www.hyphanet.org/), the original Java network)
 into TwistedPear along two axes:
 
 1. **Freenet as a transport** — three distinct roles: a package/CAS distribution path, a
    Reticulum `PacketInterface` tunnel, and store-and-forward backing for LXMF propagation.
-2. **Freenet apps on TwistedPear nodes** — deliberately *undecided*. Phase F0 exists to
+2. **Freenet apps on TwistedPear nodes** — deliberately _undecided_. Phase F0 exists to
    produce the evidence needed to choose, rather than committing to an execution model now.
 
 Freenet is treated the same way this repo already treats I2P and Hyperswarm: an external
@@ -34,12 +34,12 @@ goals — that misalignment is a design input, not a footnote.
 
 ## 2. Decisions taken
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Which network | Freenet 2023 | The only one of the two with a real application model. |
-| Transport roles | All three: CAS distribution, `PacketInterface` tunnel, LXMF propagation backing | Requested. Sequenced by decreasing semantic fit. |
-| Node provisioning | **Bundle the Rust binary with the desktop host and CLI; external or remote node everywhere else** | Requested. Consequences and the mobile problem are in §8. |
-| App execution model | **Open.** Resolved by the F0 gate | Requested: exploratory work first, commitment second. |
+| Decision            | Choice                                                                                            | Rationale                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Which network       | Freenet 2023                                                                                      | The only one of the two with a real application model.    |
+| Transport roles     | All three: CAS distribution, `PacketInterface` tunnel, LXMF propagation backing                   | Requested. Sequenced by decreasing semantic fit.          |
+| Node provisioning   | **Bundle the Rust binary with the desktop host and CLI; external or remote node everywhere else** | Requested. Consequences and the mobile problem are in §8. |
+| App execution model | **Open.** Resolved by the F0 gate                                                                 | Requested: exploratory work first, commitment second.     |
 
 ## 4. Phase F0 — exploratory work (the gate)
 
@@ -47,16 +47,16 @@ F0 answers questions whose answers change the design. Nothing after F0 is commit
 gate passes. Each spike is throwaway code under `conformance/freenet-spike/` plus a recorded
 measurement file; none of it ships.
 
-| ID | Question | Method | Artifact | Unblocks |
-|---|---|---|---|---|
-| **S1** | Does `@freenetorg/freenet-stdlib` run under Bare, or only Node/browser? | Bundle it with `bare-pack`, run against a local node from a Bare worklet, following the `test:bare-hyperswarm` pattern | Pass/fail + required shims | Whether mobile can be a Freenet client at all |
-| **S2** | What is the real round-trip latency and throughput of `update` → subscriber `notify`, for 1 KB, 64 KB, 1 MB, against a live network and a local 3-node testnet? | `fdev` testnet + one live-gateway run; 100 samples per size; record p50/p95/max | `conformance/freenet-spike/measured-roundtrip.json` | **Whether role 2 (packet tunnel) is viable at all** |
-| **S3** | Does a contract's commutative merge admit a usable ordered-channel encoding, and at what cost? | Write a minimal ring-buffer / append-log contract in Rust; measure state growth, merge cost, and reordering behaviour under concurrent writers | Contract source + growth curve | Role 2 design; role 3 design |
-| **S4** | Can a WASM engine be run inside the mini-app sandbox on each host (Bare worker on device, Node worker on desktop, browser worker on web) **while preserving the kill-a-hostile-app guarantee**? | Load a trivial WASM module in each backend; re-run the busy-loop kill measurement from [miniapp-runtime](miniapp-runtime.md) with WASM executing | Per-backend support matrix + kill latency | App execution option B (§7) |
-| **S5** | What does bundling `freenet` into the Electron host actually cost? | Build for macOS arm64/x64, Linux, Windows; measure size delta, then attempt codesign + notarize with the hardened runtime | Size table + signing outcome | §8 packaging; likely a new STATUS-HARDWARE entry |
-| **S6** | How stable is the client API across releases? | Diff the client-API surface across the last ~10 `freenet-core` releases; check whether contract keys survive node upgrades | Churn report | Pinning policy, vector-suite design |
-| **S7** | Can a TwistedPear mini-app usefully interoperate with a *real* live app (River or Atlas)? | Read River's contract state via `get`/`subscribe` from a TS client; attempt a well-formed `update` | Interop notes | App execution option A (§7); proves the value of the whole exercise |
-| **S8** | What is the honest privacy posture of a TP node that speaks Freenet? | Threat-model write-up: what a Freenet gateway observes, what correlation a joint RNS+Freenet node enables, what is irreversibly public | Threat model section for [security review](security-review.md) | §9, and the grant-screen wording |
+| ID     | Question                                                                                                                                                                                        | Method                                                                                                                                           | Artifact                                                       | Unblocks                                                            |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **S1** | Does `@freenetorg/freenet-stdlib` run under Bare, or only Node/browser?                                                                                                                         | Bundle it with `bare-pack`, run against a local node from a Bare worklet, following the `test:bare-hyperswarm` pattern                           | Pass/fail + required shims                                     | Whether mobile can be a Freenet client at all                       |
+| **S2** | What is the real round-trip latency and throughput of `update` → subscriber `notify`, for 1 KB, 64 KB, 1 MB, against a live network and a local 3-node testnet?                                 | `fdev` testnet + one live-gateway run; 100 samples per size; record p50/p95/max                                                                  | `conformance/freenet-spike/measured-roundtrip.json`            | **Whether role 2 (packet tunnel) is viable at all**                 |
+| **S3** | Does a contract's commutative merge admit a usable ordered-channel encoding, and at what cost?                                                                                                  | Write a minimal ring-buffer / append-log contract in Rust; measure state growth, merge cost, and reordering behaviour under concurrent writers   | Contract source + growth curve                                 | Role 2 design; role 3 design                                        |
+| **S4** | Can a WASM engine be run inside the mini-app sandbox on each host (Bare worker on device, Node worker on desktop, browser worker on web) **while preserving the kill-a-hostile-app guarantee**? | Load a trivial WASM module in each backend; re-run the busy-loop kill measurement from [miniapp-runtime](miniapp-runtime.md) with WASM executing | Per-backend support matrix + kill latency                      | App execution option B (§7)                                         |
+| **S5** | What does bundling `freenet` into the Electron host actually cost?                                                                                                                              | Build for macOS arm64/x64, Linux, Windows; measure size delta, then attempt codesign + notarize with the hardened runtime                        | Size table + signing outcome                                   | §8 packaging; likely a new STATUS-HARDWARE entry                    |
+| **S6** | How stable is the client API across releases?                                                                                                                                                   | Diff the client-API surface across the last ~10 `freenet-core` releases; check whether contract keys survive node upgrades                       | Churn report                                                   | Pinning policy, vector-suite design                                 |
+| **S7** | Can a TwistedPear mini-app usefully interoperate with a _real_ live app (River or Atlas)?                                                                                                       | Read River's contract state via `get`/`subscribe` from a TS client; attempt a well-formed `update`                                               | Interop notes                                                  | App execution option A (§7); proves the value of the whole exercise |
+| **S8** | What is the honest privacy posture of a TP node that speaks Freenet?                                                                                                                            | Threat-model write-up: what a Freenet gateway observes, what correlation a joint RNS+Freenet node enables, what is irreversibly public           | Threat model section for [security review](security-review.md) | §9, and the grant-screen wording                                    |
 
 **F0 gate.** Proceed only if: S2 shows p95 update→notify under a threshold that makes at least
 one transport role viable; S6 shows churn slow enough to pin against; S8 produces no
@@ -79,7 +79,7 @@ distribution onto a content-addressed network.
 - `src/core/locator-contract.ts` — the contract that maps a **256t id** to package bytes or
   to a fetch hint. Reuses the existing signed compact locator
   ([`cas-256t/src/locator.ts`](../packages/cas-256t/src/locator.ts),
-  [256t distribution](256t-distribution.md)); the Freenet contract carries the *same* signed
+  [256t distribution](256t-distribution.md)); the Freenet contract carries the _same_ signed
   locator payload, so signature verification is unchanged and Freenet adds no new trust.
 - `src/client/freenet-package-fetch.ts` — a fetcher satisfying the existing `DriveFetcher`
   shape from [`bridge-hyper/src/core/fetch.ts`](../packages/bridge-hyper/src/core/fetch.ts).
@@ -146,13 +146,13 @@ Gated on S3. `PropagationServer` in [`lxmf-ts`](../packages/lxmf-ts/README.md) c
 a local store with byte/count quotas ([propagation node](propagation-node.md)), and
 node-to-node peering is an explicit stretch goal.
 
-A Freenet-backed store is a genuinely good fit: LXMF propagation is a *set* of encrypted
+A Freenet-backed store is a genuinely good fit: LXMF propagation is a _set_ of encrypted
 messages addressed to destination hashes, with no ordering requirement and natural expiry —
 which is exactly what a commutative merge does well. This also delivers the meshed multi-node
 store that the built-in node lacks today, without requiring `lxmd`.
 
 Scope: a `FreenetPropagationStore` behind the existing store interface; per-destination
-contracts; quotas enforced locally *before* publishing; expiry driven by the contract's own
+contracts; quotas enforced locally _before_ publishing; expiry driven by the contract's own
 retention rules. Messages are already encrypted end-to-end, so Freenet sees ciphertext — but
 destination-hash observability by Freenet peers is a real metadata leak and must be covered by
 S8 and surfaced in the node operator's UI.
@@ -218,7 +218,7 @@ option analysis that produced the decision is preserved in
   propagation round trips.
 - **Golden vectors** for every contract-state encoding this plan introduces (locator, packet
   log, propagation store), owned by a new `specs/spec-freenet` — starting as
-  *stub (informative)* per [specs/README.md](../specs/README.md) until its first vectors land.
+  _stub (informative)_ per [specs/README.md](../specs/README.md) until its first vectors land.
 - **Offline-by-default.** Every Freenet suite skips cleanly without a node, like the existing
   Docker-gated suites. No new hard dependency in `check:fast` or `check:ci-base`.
 - **Simulation.** A simulated Freenet adapter in `packages/effects` so campaign and adversary
@@ -227,18 +227,18 @@ option analysis that produced the decision is preserved in
 The [CI verification section](freenet.md#ci-verification) of the current-implementation
 document records which of these are actually wired into GitHub Actions today, which are
 merely runnable by hand, and what remains. The "offline-by-default" rule above binds
-the *suites*; per that section a CI job may run a pinned, hash-verified node.
+the _suites_; per that section a CI job may run a pinned, hash-verified node.
 
 ## 12. Risks and kill criteria
 
-| Risk | Kill criterion |
-|---|---|
-| Freenet's client API churns faster than we can track (S6) | If contract keys or client API break across minor releases, drop to Option A only, behind an explicitly experimental flag |
-| Packet tunnel is too slow to be a real interface (S2) | Record as rejected-with-evidence in LIMITATIONS.md; do not ship a stub interface |
-| Bundled binary cannot be notarized (S5) | Fall back to opt-in download with hash pinning; never ship an unsigned executable |
-| Mobile remote-node trust cannot be explained honestly (S8) | Ship desktop-only; say why in the guide |
-| Scope creep into "TwistedPear is a Freenet client" | Freenet stays optional and off by default; no existing function may acquire a Freenet dependency |
-| Network unpopulated enough for real testing | Local `fdev` testnet is the primary gate; live-network runs are evidence, not gates |
+| Risk                                                       | Kill criterion                                                                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Freenet's client API churns faster than we can track (S6)  | If contract keys or client API break across minor releases, drop to Option A only, behind an explicitly experimental flag |
+| Packet tunnel is too slow to be a real interface (S2)      | Record as rejected-with-evidence in LIMITATIONS.md; do not ship a stub interface                                          |
+| Bundled binary cannot be notarized (S5)                    | Fall back to opt-in download with hash pinning; never ship an unsigned executable                                         |
+| Mobile remote-node trust cannot be explained honestly (S8) | Ship desktop-only; say why in the guide                                                                                   |
+| Scope creep into "TwistedPear is a Freenet client"         | Freenet stays optional and off by default; no existing function may acquire a Freenet dependency                          |
+| Network unpopulated enough for real testing                | Local `fdev` testnet is the primary gate; live-network runs are evidence, not gates                                       |
 
 ## 13. Sequencing
 
@@ -259,9 +259,9 @@ be killed by evidence, and that is a successful outcome for F0, not a failure.
 
 The pause recorded on 2026-07-28 said "no further agent loop work" until signing
 credentials, live-write authorization, or BareKit hardware became available. Its
-*rationale* is sound and unchanged: F1–F3/F5 protocol work genuinely cannot advance
+_rationale_ is sound and unchanged: F1–F3/F5 protocol work genuinely cannot advance
 without those external inputs, and inventing evidence for them would be worse than
-waiting. Its *scope* was too broad. The two largest remaining deficits in this
+waiting. Its _scope_ was too broad. The two largest remaining deficits in this
 integration — documentation and CI verification — need none of those three
 inputs.
 
@@ -281,7 +281,7 @@ Two corrections found while re-validating, now fixed:
 
 - `completion-audit.md` had stated that the current machine "cannot rebuild WASM
   because its Rust installation lacks the pinned WASM target." That was imprecise:
-  `wasm32-unknown-unknown` *is* installed. The mismatch is the toolchain version —
+  `wasm32-unknown-unknown` _is_ installed. The mismatch is the toolchain version —
   Homebrew `rustc` 1.96.1 against the 1.97.1 pinned in each contract's
   `rust-toolchain.toml`. This matters because it means the reproducible-contract
   check in [freenet.md](freenet.md#ci-verification) is a `rustup` install away, not blocked.

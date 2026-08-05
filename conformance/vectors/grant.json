@@ -2,14 +2,7 @@
   "schema": "twistedpear.transition-v1",
   "machine": "grant-lifecycle",
   "generatedBy": "scripts/vectors-generate-grant.mjs",
-  "states": [
-    "requested",
-    "granted",
-    "active",
-    "denied",
-    "expired",
-    "revoked"
-  ],
+  "states": ["requested", "granted", "active", "denied", "expired", "revoked"],
   "eventClasses": [
     "approve",
     "deny",

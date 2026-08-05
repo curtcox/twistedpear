@@ -5,10 +5,12 @@
 
 export async function announceBurst(
   announce: () => Promise<void>,
-  count: number
+  count: number,
 ): Promise<{ readonly sent: number; readonly failed: number }> {
   const n = Math.max(1, Math.min(Math.floor(count), 64));
-  const results = await Promise.allSettled(Array.from({ length: n }, () => announce()));
+  const results = await Promise.allSettled(
+    Array.from({ length: n }, () => announce()),
+  );
   let sent = 0;
   let failed = 0;
   for (const result of results) {

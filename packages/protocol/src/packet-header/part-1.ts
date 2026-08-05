@@ -16,7 +16,7 @@ import {
   PACKET_HEADER_2,
   TRANSPORT_BROADCAST,
   TRANSPORT_ID_BYTES,
-  TRANSPORT_TRANSPORT
+  TRANSPORT_TRANSPORT,
 } from "../transport-framing.js";
 
 export {
@@ -24,7 +24,7 @@ export {
   PACKET_HEADER_2,
   TRANSPORT_BROADCAST,
   TRANSPORT_ID_BYTES,
-  TRANSPORT_TRANSPORT
+  TRANSPORT_TRANSPORT,
 };
 
 export const PACKET_TYPE_DATA = 0x00;
@@ -45,15 +45,16 @@ export const PacketTypeCode = {
   DATA: PACKET_TYPE_DATA,
   ANNOUNCE: PACKET_TYPE_ANNOUNCE,
   LINKREQUEST: PACKET_TYPE_LINKREQUEST,
-  PROOF: PACKET_TYPE_PROOF
+  PROOF: PACKET_TYPE_PROOF,
 } as const;
 
-export type PacketTypeCodeValue = (typeof PacketTypeCode)[keyof typeof PacketTypeCode];
+export type PacketTypeCodeValue =
+  (typeof PacketTypeCode)[keyof typeof PacketTypeCode];
 
 /** Named header-type codes (HEADER_1 / HEADER_2). */
 export const PacketHeaderTypeCode = {
   HEADER_1: PACKET_HEADER_1,
-  HEADER_2: PACKET_HEADER_2
+  HEADER_2: PACKET_HEADER_2,
 } as const;
 
 export type PacketHeaderTypeCodeValue =
@@ -62,7 +63,7 @@ export type PacketHeaderTypeCodeValue =
 /** Named context-flag codes. */
 export const PacketContextFlagCode = {
   UNSET: PACKET_CONTEXT_FLAG_UNSET,
-  SET: PACKET_CONTEXT_FLAG_SET
+  SET: PACKET_CONTEXT_FLAG_SET,
 } as const;
 
 export type PacketContextFlagCodeValue =
@@ -71,17 +72,18 @@ export type PacketContextFlagCodeValue =
 /** Named transport-type codes. */
 export const TransportTypeCode = {
   BROADCAST: TRANSPORT_BROADCAST,
-  TRANSPORT: TRANSPORT_TRANSPORT
+  TRANSPORT: TRANSPORT_TRANSPORT,
 } as const;
 
-export type TransportTypeCodeValue = (typeof TransportTypeCode)[keyof typeof TransportTypeCode];
+export type TransportTypeCodeValue =
+  (typeof TransportTypeCode)[keyof typeof TransportTypeCode];
 
 /** Named destination-type codes (RNS Destination.types). */
 export const DestinationTypeCode = {
   SINGLE: PACKET_DEST_TYPE_SINGLE,
   GROUP: PACKET_DEST_TYPE_GROUP,
   PLAIN: PACKET_DEST_TYPE_PLAIN,
-  LINK: PACKET_DEST_TYPE_LINK
+  LINK: PACKET_DEST_TYPE_LINK,
 } as const;
 
 export type DestinationTypeCodeValue =
@@ -90,7 +92,7 @@ export type DestinationTypeCodeValue =
 /** Named destination-direction codes (RNS Destination.IN / OUT). */
 export const DestinationDirectionCode = {
   IN: 0x11,
-  OUT: 0x12
+  OUT: 0x12,
 } as const;
 
 export type DestinationDirectionCodeValue =
@@ -148,7 +150,7 @@ export function unpackPacketFlags(flags: number): {
     contextFlag: (flags & 0b00100000) >> 5,
     transportType: (flags & 0b00010000) >> 4,
     destinationType: (flags & 0b00001100) >> 2,
-    packetType: flags & 0b00000011
+    packetType: flags & 0b00000011,
   };
 }
 
@@ -157,7 +159,9 @@ export function isHeaderType(value: number): boolean {
 }
 
 export function isContextFlag(value: number): boolean {
-  return value === PACKET_CONTEXT_FLAG_UNSET || value === PACKET_CONTEXT_FLAG_SET;
+  return (
+    value === PACKET_CONTEXT_FLAG_UNSET || value === PACKET_CONTEXT_FLAG_SET
+  );
 }
 
 export function isTransportType(value: number): boolean {
@@ -175,7 +179,8 @@ export function isDestinationTypeCode(value: number): boolean {
 
 export function isDestinationDirectionCode(value: number): boolean {
   return (
-    value === DestinationDirectionCode.IN || value === DestinationDirectionCode.OUT
+    value === DestinationDirectionCode.IN ||
+    value === DestinationDirectionCode.OUT
   );
 }
 
@@ -277,7 +282,9 @@ export type PacketFromFieldsPlanEvent =
       readonly transportIdLength: number;
     };
 
-export type PacketFromFieldsPlanAction = { readonly kind: PacketFromFieldsPlan };
+export type PacketFromFieldsPlanAction = {
+  readonly kind: PacketFromFieldsPlan;
+};
 
 export interface PacketFromFieldsPlanStepResult {
   readonly state: PacketFromFieldsPlanState;
@@ -291,7 +298,7 @@ export function initialPacketFromFieldsPlanState(): PacketFromFieldsPlanState {
 
 export function stepPacketFromFieldsPlanWithActions(
   state: PacketFromFieldsPlanState,
-  event: PacketFromFieldsPlanEvent
+  event: PacketFromFieldsPlanEvent,
 ): PacketFromFieldsPlanStepResult {
   if (event.kind === "packet/from-fields-plan-gate") {
     return {
@@ -307,10 +314,10 @@ export function stepPacketFromFieldsPlanWithActions(
             packetType: event.packetType,
             destinationHashLength: event.destinationHashLength,
             transportIdPresent: event.transportIdPresent,
-            transportIdLength: event.transportIdLength
-          })
-        }
-      ]
+            transportIdLength: event.transportIdLength,
+          }),
+        },
+      ],
     };
   }
 
@@ -319,7 +326,7 @@ export function stepPacketFromFieldsPlanWithActions(
 
 /** Extract the fromFields plan from actions; null when empty. */
 export function packetFromFieldsPlanFromActions(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): PacketFromFieldsPlan | null {
   const action = actions.find(
     (entry) =>
@@ -331,61 +338,63 @@ export function packetFromFieldsPlanFromActions(
       entry.kind === "bad-packet-type" ||
       entry.kind === "bad-destination-hash" ||
       entry.kind === "header2-missing-transport-id" ||
-      entry.kind === "bad-transport-id"
+      entry.kind === "bad-transport-id",
   );
   return action?.kind ?? null;
 }
 
 export function shouldProceedPacketFromFieldsPlan(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadHeaderType(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-header-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadContextFlag(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-context-flag");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadTransportType(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-transport-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadDestinationType(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-destination-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadPacketType(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-packet-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadDestinationHash(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-destination-hash");
 }
 
 export function shouldRejectPacketFromFieldsPlanHeader2MissingTransportId(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "header2-missing-transport-id");
+  return actions.some(
+    (action) => action.kind === "header2-missing-transport-id",
+  );
 }
 
 export function shouldRejectPacketFromFieldsPlanBadTransportId(
-  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-transport-id");
 }
@@ -427,27 +436,30 @@ export interface PacketFromFieldsStepResult {
 
 export function stepPacketFromFieldsWithActions(
   state: PacketFromFieldsState,
-  event: PacketFromFieldsEvent
+  event: PacketFromFieldsEvent,
 ): PacketFromFieldsStepResult {
   return stepPacketFromFieldsInner(state, event);
 }
 
 export function stepPacketFromFieldsInner(
   state: PacketFromFieldsState,
-  event: PacketFromFieldsEvent
+  event: PacketFromFieldsEvent,
 ): PacketFromFieldsStepResult {
   if (event.kind === "packet/from-fields-gate") {
-    const planActions = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
-      kind: "packet/from-fields-plan-gate",
-      headerType: event.headerType,
-      contextFlag: event.contextFlag,
-      transportType: event.transportType,
-      destinationType: event.destinationType,
-      packetType: event.packetType,
-      destinationHashLength: event.destinationHashLength,
-      transportIdPresent: event.transportIdPresent,
-      transportIdLength: event.transportIdLength
-    }).actions;
+    const planActions = stepPacketFromFieldsPlanWithActions(
+      initialPacketFromFieldsPlanState(),
+      {
+        kind: "packet/from-fields-plan-gate",
+        headerType: event.headerType,
+        contextFlag: event.contextFlag,
+        transportType: event.transportType,
+        destinationType: event.destinationType,
+        packetType: event.packetType,
+        destinationHashLength: event.destinationHashLength,
+        transportIdPresent: event.transportIdPresent,
+        transportIdLength: event.transportIdLength,
+      },
+    ).actions;
     const plan = packetFromFieldsPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };

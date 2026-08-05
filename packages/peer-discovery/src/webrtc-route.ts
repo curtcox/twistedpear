@@ -1,5 +1,9 @@
 import type { PeerCandidate, PeerInvitation } from "@twistedpear/protocol";
-import type { EstablishedPeer, PeerConnectRequest, PeerDiscoveryAdapter } from "./index.js";
+import type {
+  EstablishedPeer,
+  PeerConnectRequest,
+  PeerDiscoveryAdapter,
+} from "./index.js";
 import type { UnconfirmedPeer } from "./coordinator.js";
 import type { CryptoPeerRouteContext } from "./crypto-backend.js";
 import { PeerDiscoveryError } from "./index.js";
@@ -7,26 +11,39 @@ import { PeerDiscoveryError } from "./index.js";
 const MAX_WEBRTC_SIGNAL_BYTES = 4_096;
 
 function key(sessionId: Uint8Array): string {
-  return [...sessionId].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...sessionId]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function encode(description: RTCSessionDescriptionInit): Uint8Array {
-  const bytes = new TextEncoder().encode(JSON.stringify({ type: description.type, sdp: description.sdp }));
+  const bytes = new TextEncoder().encode(
+    JSON.stringify({ type: description.type, sdp: description.sdp }),
+  );
   if (bytes.length > MAX_WEBRTC_SIGNAL_BYTES) {
-    throw new PeerDiscoveryError("QUOTA_EXCEEDED", "WebRTC signal exceeds invitation candidate budget");
+    throw new PeerDiscoveryError(
+      "QUOTA_EXCEEDED",
+      "WebRTC signal exceeds invitation candidate budget",
+    );
   }
   return bytes;
 }
 
 function decode(bytes: Uint8Array): RTCSessionDescriptionInit {
   if (bytes.length > MAX_WEBRTC_SIGNAL_BYTES) {
-    throw new PeerDiscoveryError("INVALID_INVITATION", "WebRTC signal exceeds candidate budget");
+    throw new PeerDiscoveryError(
+      "INVALID_INVITATION",
+      "WebRTC signal exceeds candidate budget",
+    );
   }
   let value: unknown;
   try {
     value = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
-    throw new PeerDiscoveryError("INVALID_INVITATION", "Malformed WebRTC signal");
+    throw new PeerDiscoveryError(
+      "INVALID_INVITATION",
+      "Malformed WebRTC signal",
+    );
   }
   if (
     typeof value !== "object" ||
@@ -36,12 +53,18 @@ function decode(bytes: Uint8Array): RTCSessionDescriptionInit {
     !["offer", "answer"].includes(String((value as { type: unknown }).type)) ||
     typeof (value as { sdp: unknown }).sdp !== "string"
   ) {
-    throw new PeerDiscoveryError("INVALID_INVITATION", "Malformed WebRTC session description");
+    throw new PeerDiscoveryError(
+      "INVALID_INVITATION",
+      "Malformed WebRTC session description",
+    );
   }
   return value as RTCSessionDescriptionInit;
 }
 
-async function gather(connection: RTCPeerConnection, timeoutMs: number): Promise<void> {
+async function gather(
+  connection: RTCPeerConnection,
+  timeoutMs: number,
+): Promise<void> {
   if (connection.iceGatheringState === "complete") return;
   await new Promise<void>((resolve) => {
     const timer = setTimeout(resolve, timeoutMs);
@@ -72,7 +95,12 @@ export interface WebRtcMediaRoute extends WebRtcRoute {
   /** Attaches a local capture track for the call. */
   attachTrack(track: MediaStreamTrack, streams?: MediaStream[]): RTCRtpSender;
   /** Observes remote tracks for host sinks (`remote-video` / speaker). */
-  onRemoteTrack(listener: (track: MediaStreamTrack, streams: ReadonlyArray<MediaStream>) => void): () => void;
+  onRemoteTrack(
+    listener: (
+      track: MediaStreamTrack,
+      streams: ReadonlyArray<MediaStream>,
+    ) => void,
+  ): () => void;
 }
 
 export interface WebRtcRouteControllerOptions {
@@ -91,7 +119,9 @@ interface Pending {
   channel: RTCDataChannel | null;
   readonly role: "offer" | "answer";
   readonly remoteTracks: MediaStreamTrack[];
-  readonly remoteTrackListeners: Set<(track: MediaStreamTrack, streams: ReadonlyArray<MediaStream>) => void>;
+  readonly remoteTrackListeners: Set<
+    (track: MediaStreamTrack, streams: ReadonlyArray<MediaStream>) => void
+  >;
 }
 
 /** Host-owned WebRTC signaling, data channel, and optional media tracks. */
@@ -107,18 +137,22 @@ export class WebRtcRouteController {
       readonly role: "offer" | "answer";
       readonly sessionId: Uint8Array;
       readonly remoteInvitation?: PeerInvitation;
-    }
+    },
   ): Promise<ReadonlyArray<PeerCandidate>> {
-    if (typeof RTCPeerConnection !== "function" && this.options.createPeerConnection === undefined) {
+    if (
+      typeof RTCPeerConnection !== "function" &&
+      this.options.createPeerConnection === undefined
+    ) {
       return [];
     }
-    const connection = this.options.createPeerConnection?.() ?? new RTCPeerConnection();
+    const connection =
+      this.options.createPeerConnection?.() ?? new RTCPeerConnection();
     const pending: Pending = {
       connection,
       channel: null,
       role: context.role,
       remoteTracks: [],
-      remoteTrackListeners: new Set()
+      remoteTrackListeners: new Set(),
     };
     this.pending.set(key(context.sessionId), pending);
     connection.addEventListener("track", (event) => {
@@ -131,10 +165,14 @@ export class WebRtcRouteController {
       connection.addTransceiver(kind, { direction: "sendrecv" });
     }
     if (context.role === "offer") {
-      pending.channel = connection.createDataChannel("twistedpear-peer", { ordered: true });
+      pending.channel = connection.createDataChannel("twistedpear-peer", {
+        ordered: true,
+      });
       await connection.setLocalDescription(await connection.createOffer());
     } else {
-      const candidate = context.remoteInvitation?.candidates.find((entry) => entry.kind === "webrtc");
+      const candidate = context.remoteInvitation?.candidates.find(
+        (entry) => entry.kind === "webrtc",
+      );
       if (candidate === undefined) {
         connection.close();
         this.pending.delete(key(context.sessionId));
@@ -148,7 +186,10 @@ export class WebRtcRouteController {
     }
     await gather(connection, this.options.iceGatherTimeoutMs ?? 2_000);
     if (connection.localDescription === null) {
-      throw new PeerDiscoveryError("NO_RETURN_CHANNEL", "WebRTC did not produce a local description");
+      throw new PeerDiscoveryError(
+        "NO_RETURN_CHANNEL",
+        "WebRTC did not produce a local description",
+      );
     }
     return [{ kind: "webrtc", value: encode(connection.localDescription) }];
   }
@@ -156,17 +197,25 @@ export class WebRtcRouteController {
   async establish(
     context: CryptoPeerRouteContext,
     peer: UnconfirmedPeer,
-    adapter: PeerDiscoveryAdapter
+    adapter: PeerDiscoveryAdapter,
   ): Promise<EstablishedPeer> {
     const session = key(context.remoteInvitation.sessionId);
     const pending = this.pending.get(session);
     if (pending === undefined) {
-      throw new PeerDiscoveryError("NO_RETURN_CHANNEL", "WebRTC pairing state is missing");
+      throw new PeerDiscoveryError(
+        "NO_RETURN_CHANNEL",
+        "WebRTC pairing state is missing",
+      );
     }
     if (pending.role === "offer") {
-      const answer = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc");
+      const answer = context.remoteInvitation.candidates.find(
+        (entry) => entry.kind === "webrtc",
+      );
       if (answer === undefined) {
-        throw new PeerDiscoveryError("NO_RETURN_CHANNEL", "Peer did not return a WebRTC answer");
+        throw new PeerDiscoveryError(
+          "NO_RETURN_CHANNEL",
+          "Peer did not return a WebRTC answer",
+        );
       }
       await pending.connection.setRemoteDescription(decode(answer.value));
     }
@@ -185,7 +234,7 @@ export class WebRtcRouteController {
       close: async () => {
         route.close();
         this.routes.delete(peer.fingerprint);
-      }
+      },
     };
   }
 
@@ -193,13 +242,19 @@ export class WebRtcRouteController {
     return this.routes.get(fingerprint);
   }
 
-  private createMediaRoute(pending: Pending, channel: RTCDataChannel): WebRtcMediaRoute {
+  private createMediaRoute(
+    pending: Pending,
+    channel: RTCDataChannel,
+  ): WebRtcMediaRoute {
     return {
       channel,
       connection: pending.connection,
       send(payload) {
         if (payload.length > 64 * 1024) {
-          throw new PeerDiscoveryError("QUOTA_EXCEEDED", "Peer message exceeds WebRTC route budget");
+          throw new PeerDiscoveryError(
+            "QUOTA_EXCEEDED",
+            "Peer message exceeds WebRTC route budget",
+          );
         }
         channel.send(payload);
       },
@@ -218,7 +273,7 @@ export class WebRtcRouteController {
       close() {
         channel.close();
         pending.connection.close();
-      }
+      },
     };
   }
 
@@ -226,12 +281,18 @@ export class WebRtcRouteController {
     const deadline = Date.now() + (this.options.openTimeoutMs ?? 30_000);
     while (Date.now() < deadline) {
       if (pending.channel?.readyState === "open") return pending.channel;
-      if (pending.connection.connectionState === "failed" || pending.connection.connectionState === "closed") {
+      if (
+        pending.connection.connectionState === "failed" ||
+        pending.connection.connectionState === "closed"
+      ) {
         break;
       }
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
     pending.connection.close();
-    throw new PeerDiscoveryError("NO_RETURN_CHANNEL", "WebRTC data channel did not open");
+    throw new PeerDiscoveryError(
+      "NO_RETURN_CHANNEL",
+      "WebRTC data channel did not open",
+    );
   }
 }

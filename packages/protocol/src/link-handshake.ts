@@ -15,7 +15,7 @@ import {
   shouldUseDeriveRnsLinkKey,
   shouldUseOrderIndependentSharedSecret,
   stepDeriveRnsLinkKeyWithActions,
-  stepOrderIndependentSharedSecretWithActions
+  stepOrderIndependentSharedSecretWithActions,
 } from "./link-key-derive.js";
 
 export const LINK_HANDSHAKE_KEY_SIZE = 32;
@@ -24,7 +24,7 @@ export const LinkHandshakePhase = {
   IDLE: 0,
   AWAITING_PEER: 1,
   ESTABLISHED: 2,
-  FAILED: 3
+  FAILED: 3,
 } as const;
 
 export type LinkHandshakePhaseValue =
@@ -87,7 +87,7 @@ export function initialLinkHandshakeState(options: {
     localMaterial: null,
     peerMaterial: null,
     linkId: null,
-    sessionKey: null
+    sessionKey: null,
   };
 }
 
@@ -101,17 +101,19 @@ export function deriveSimSessionKey(
   localMaterial: Uint8Array,
   peerMaterial: Uint8Array,
   linkId: Uint8Array,
-  mode: number = LinkKeyMode.MODE_AES256_CBC
+  mode: number = LinkKeyMode.MODE_AES256_CBC,
 ): Uint8Array {
   const sharedStepped = stepOrderIndependentSharedSecretWithActions(
     initialOrderIndependentSharedSecretState(),
     {
       kind: "link-key/order-independent-shared-secret-gate",
       a: localMaterial,
-      b: peerMaterial
-    }
+      b: peerMaterial,
+    },
   );
-  const shared = orderIndependentSharedSecretRawFromActions(sharedStepped.actions);
+  const shared = orderIndependentSharedSecretRawFromActions(
+    sharedStepped.actions,
+  );
   if (
     shouldRejectOrderIndependentSharedSecret(sharedStepped.actions) ||
     !shouldUseOrderIndependentSharedSecret(sharedStepped.actions) ||
@@ -119,12 +121,15 @@ export function deriveSimSessionKey(
   ) {
     throw new Error("Cannot derive key from empty input material");
   }
-  const derived = stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), {
-    kind: "link-key/derive-gate",
-    sharedSecret: shared,
-    linkId,
-    mode
-  });
+  const derived = stepDeriveRnsLinkKeyWithActions(
+    initialDeriveRnsLinkKeyState(),
+    {
+      kind: "link-key/derive-gate",
+      sharedSecret: shared,
+      linkId,
+      mode,
+    },
+  );
   const key = deriveRnsLinkKeyRawFromActions(derived.actions);
   if (
     shouldRejectDeriveRnsLinkKey(derived.actions) ||
@@ -137,19 +142,22 @@ export function deriveSimSessionKey(
 }
 
 export const stepLinkHandshake: StepFn<LinkHandshakeState> = (state, event) => {
-  const result = stepLinkHandshakeWithActions(state, event as LinkHandshakeEvent);
+  const result = stepLinkHandshakeWithActions(
+    state,
+    event as LinkHandshakeEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkHandshakeWithActions(
   state: LinkHandshakeState,
-  event: LinkHandshakeEvent
+  event: LinkHandshakeEvent,
 ): LinkHandshakeStepResult {
   if (event.kind === "handshake/fail") {
     return {
       state: { ...state, phase: LinkHandshakePhase.FAILED, sessionKey: null },
       intents: [],
-      actions: []
+      actions: [],
     };
   }
 
@@ -158,7 +166,7 @@ export function stepLinkHandshakeWithActions(
       return {
         state: { ...state, phase: LinkHandshakePhase.FAILED },
         intents: [],
-        actions: []
+        actions: [],
       };
     }
     const localMaterial = event.entropy.subarray(0, LINK_HANDSHAKE_KEY_SIZE);
@@ -168,7 +176,7 @@ export function stepLinkHandshakeWithActions(
       localMaterial: Uint8Array.from(localMaterial),
       linkId: Uint8Array.from(event.linkId),
       peerMaterial: null,
-      sessionKey: null
+      sessionKey: null,
     };
     return {
       state: next,
@@ -178,20 +186,23 @@ export function stepLinkHandshakeWithActions(
           kind: "send-material",
           peerId: state.peerId,
           material: next.localMaterial!,
-          linkId: next.linkId!
-        }
-      ]
+          linkId: next.linkId!,
+        },
+      ],
     };
   }
 
   if (event.kind === "handshake/shared-secret") {
     const linkId = Uint8Array.from(event.linkId);
-    const derived = stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), {
-      kind: "link-key/derive-gate",
-      sharedSecret: event.sharedSecret,
-      linkId,
-      mode: event.mode ?? LinkKeyMode.MODE_AES256_CBC
-    });
+    const derived = stepDeriveRnsLinkKeyWithActions(
+      initialDeriveRnsLinkKeyState(),
+      {
+        kind: "link-key/derive-gate",
+        sharedSecret: event.sharedSecret,
+        linkId,
+        mode: event.mode ?? LinkKeyMode.MODE_AES256_CBC,
+      },
+    );
     const sessionKey = deriveRnsLinkKeyRawFromActions(derived.actions);
     if (
       shouldRejectDeriveRnsLinkKey(derived.actions) ||
@@ -201,7 +212,7 @@ export function stepLinkHandshakeWithActions(
       return {
         state: { ...state, phase: LinkHandshakePhase.FAILED, sessionKey: null },
         intents: [],
-        actions: []
+        actions: [],
       };
     }
     return {
@@ -209,10 +220,10 @@ export function stepLinkHandshakeWithActions(
         ...state,
         phase: LinkHandshakePhase.ESTABLISHED,
         linkId,
-        sessionKey
+        sessionKey,
       },
       intents: [],
-      actions: []
+      actions: [],
     };
   }
 
@@ -220,27 +231,34 @@ export function stepLinkHandshakeWithActions(
     if (state.localMaterial === null) {
       return { state, intents: [], actions: [] };
     }
-    const peerMaterial = Uint8Array.from(event.material.subarray(0, LINK_HANDSHAKE_KEY_SIZE));
+    const peerMaterial = Uint8Array.from(
+      event.material.subarray(0, LINK_HANDSHAKE_KEY_SIZE),
+    );
     const linkId = state.linkId ?? Uint8Array.from(event.linkId);
     if (
       state.phase === LinkHandshakePhase.ESTABLISHED &&
       state.peerMaterial !== null &&
       bytesEqual(state.peerMaterial, peerMaterial) &&
-      state.linkId !== null && bytesEqual(state.linkId, linkId)
+      state.linkId !== null &&
+      bytesEqual(state.linkId, linkId)
     ) {
       return { state, intents: [], actions: [] };
     }
-    const sessionKey = deriveSimSessionKey(state.localMaterial, peerMaterial, linkId);
+    const sessionKey = deriveSimSessionKey(
+      state.localMaterial,
+      peerMaterial,
+      linkId,
+    );
     return {
       state: {
         ...state,
         phase: LinkHandshakePhase.ESTABLISHED,
         peerMaterial,
         linkId,
-        sessionKey
+        sessionKey,
       },
       intents: [],
-      actions: []
+      actions: [],
     };
   }
 

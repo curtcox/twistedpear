@@ -8,9 +8,7 @@
       "name": "single-example-chat",
       "identityHashHex": "14ae36c9c3feac7be58c027babc87580",
       "appName": "example",
-      "aspects": [
-        "chat"
-      ],
+      "aspects": ["chat"],
       "expandedName": "example.chat.14ae36c9c3feac7be58c027babc87580",
       "nameHashHex": "3f25bdabca5283cf3349",
       "destinationHashHex": "922a5ea5cf83a56dd93aca5e435d58dd"
@@ -19,9 +17,7 @@
       "name": "single-example-announce",
       "identityHashHex": "14ae36c9c3feac7be58c027babc87580",
       "appName": "example",
-      "aspects": [
-        "announce"
-      ],
+      "aspects": ["announce"],
       "expandedName": "example.announce.14ae36c9c3feac7be58c027babc87580",
       "nameHashHex": "5ffb8cc6571b34ebef3c",
       "destinationHashHex": "86f004d27cea4234b10624259d44386f"

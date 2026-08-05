@@ -1,44 +1,271 @@
-import { RESOURCE_ADVERTISEMENT_OVERHEAD,RESOURCE_HASHMAP_IS_EXHAUSTED,RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,RESOURCE_MAPHASH_LEN,RESOURCE_MAX_ADV_RETRIES,RESOURCE_MAX_RETRIES,RESOURCE_PART_TIMEOUT_FACTOR,RESOURCE_PROCESSING_GRACE,RESOURCE_RANDOM_HASH_SIZE,RESOURCE_SENDER_GRACE_TIME,RESOURCE_ADVERTISE_WAIT_TIMER_ID,RESOURCE_WINDOW,RESOURCE_WINDOW_FLEXIBILITY,RESOURCE_WINDOW_MAX,RESOURCE_WINDOW_MAX_FAST,RESOURCE_WINDOW_MAX_SLOW,RESOURCE_WINDOW_MIN,ResourceStatus,applyResourceStatusEvent,assembleByteArraysRawFromActions,assembleResourceHashmapBytesRawFromActions,encodeResourceAdvertisementFlagsFromActions,initialAcceptIncomingResourceAdvertisementState,initialAdvertiseResourceState,initialAppendResourceMapHashCollisionGuardState,initialAssembleByteArraysState,initialAssembleResourceHashmapBytesState,initialClassifyResourceAdvertisementState,initialComputeResourceTimeoutState,initialComputeResourceTotalPartsState,initialContainsResourceHashState,initialDecodeResourceAdvertisementFlagsState,initialEncodeResourceAdvertisementFlagsState,initialProveResourceAllowState,initialResourceAdvertisementRoleFlagsState,initialResourceAdvertiseWaitState,initialResourceContinueTransferState,initialResourceEncryptMaterialState,initialResourceExpectedProofMaterialState,initialResourceHashMaterialState,initialResourceHashmapSlotWritesState,initialResourcePartMapHashMaterialState,initialResourceReceivePartAllowState,initialResourceRequestNextAllowState,initialResourceStatusState,initialResourceWatchdogAllowState,initialResourceCompleteState,initialPackResourceAdvertisementState,
-  initialReadResourceRequestHashState,initialUnpackResourceAdvertisementState,packResourceAdvertisementRawFromActions,packResourceHashmapUpdatePacketRawFromActions,packResourceHashmapUpdateRawFromActions,packResourceProofRawFromActions,applyResourceHashmapSlotWritesFieldsFromActions,initialApplyResourceHashmapSlotWritesState,initialPackResourceHashmapUpdatePacketState,initialPackResourceHashmapUpdateState,initialPackResourceProofState,initialParseResourcePartRequestState,initialResourceAssembleState,initialResourceHashmapUpdateAcceptState,initialResourcePartRequestState,initialResourceProofAcceptState,initialResourceReceivePartState,initialResourceRequestFulfillState,initialSplitResourceDecryptedPayloadState,initialSplitResourceHashmapUpdatePacketState,initialSplitResourceProofState,initialUnpackResourceHashmapUpdateState,resourceAdvertisementFieldsFromActions,resourceAdvertisementFlagFieldsFromActions,resourceAdvertisementRoleFlagsFromActions,resourceDecryptedPayloadFromActions,resourceHashmapSlotWritesFromActions,resourceHashmapUpdateFieldsFromActions,resourceHashmapUpdatePacketFieldsFromActions,resourceMapHashCollisionGuardFromActions,resourcePartRequestFieldsFromActions,resourcePartRequestFromActions,resourceProofFieldsFromActions,resourceReceivePartFromActions,resourceRequestFulfillFromActions,readResourceRequestHashRawFromActions,shouldAppendResourceMapHashCollisionGuard,shouldApplyResourceHashmapUpdateAccept,shouldCollideResourceMapHashCollisionGuard,shouldCompleteResourceAssemble,shouldCompleteResourceProofAccept,shouldClassifyResourceAdvertisementRequest,
-  shouldClassifyResourceAdvertisementResponse,shouldPresentResourceHash,shouldRejectUnpackResourceAdvertisement,shouldRejectParseResourcePartRequest,shouldRejectSplitResourceDecryptedPayload,shouldRejectSplitResourceHashmapUpdatePacket,shouldRejectSplitResourceProof,shouldRejectUnpackResourceHashmapUpdate,shouldUseApplyResourceHashmapSlotWrites,shouldUseAssembleByteArrays,shouldUseAssembleResourceHashmapBytes,shouldUseDecodeResourceAdvertisementFlags,shouldUseEncodeResourceAdvertisementFlags,shouldUsePackResourceAdvertisement,shouldUsePackResourceHashmapUpdate,shouldUsePackResourceHashmapUpdatePacket,shouldUsePackResourceProof,shouldUseParseResourcePartRequest,shouldUseReadResourceRequestHash,shouldUseResourceAdvertisementRoleFlags,shouldUseUnpackResourceAdvertisement,shouldUseSplitResourceDecryptedPayload,shouldUseSplitResourceHashmapUpdatePacket,shouldUseSplitResourceProof,shouldUseUnpackResourceHashmapUpdate,shouldWriteResourceHashmapSlots,stepAppendResourceMapHashCollisionGuardWithActions,stepApplyResourceHashmapSlotWritesWithActions,stepAssembleByteArraysWithActions,stepAssembleResourceHashmapBytesWithActions,stepClassifyResourceAdvertisementWithActions,stepComputeResourceTimeoutWithActions,stepComputeResourceTotalPartsWithActions,stepContainsResourceHashWithActions,stepDecodeResourceAdvertisementFlagsWithActions,stepEncodeResourceAdvertisementFlagsWithActions,stepPackResourceAdvertisementWithActions,stepReadResourceRequestHashWithActions,stepResourceEncryptMaterialWithActions,stepResourceExpectedProofMaterialWithActions,stepResourceHashMaterialWithActions,
-  stepResourcePartMapHashMaterialWithActions,stepPackResourceHashmapUpdatePacketWithActions,stepPackResourceHashmapUpdateWithActions,stepPackResourceProofWithActions,stepParseResourcePartRequestWithActions,stepResourceAdvertisementRoleFlagsWithActions,stepUnpackResourceAdvertisementWithActions,stepCommitResourceAssemblePayloadWithActions,stepResourceAssembleWithActions,stepResourceHashmapSlotWritesWithActions,stepResourceHashmapUpdateAcceptWithActions,stepResourcePartRequestWithActions,stepResourceProofAcceptWithActions,stepResourceReceivePartWithActions,stepResourceRequestFulfillWithActions,stepSplitResourceDecryptedPayloadWithActions,stepSplitResourceHashmapUpdatePacketWithActions,stepSplitResourceProofWithActions,stepUnpackResourceHashmapUpdateWithActions,resourceEncryptMaterialRawFromActions,resourceExpectedProofMaterialRawFromActions,resourceHashMaterialRawFromActions,resourceHashmapMaxLen,resourcePartMapHashMaterialRawFromActions,resourceTimeoutFromActions,resourceTotalPartsFromActions,shouldAcceptResourceRandomHashLength,initialResourceRandomHashLengthValidState,stepResourceRandomHashLengthValidWithActions,shouldRejectResourceEncryptMaterial,shouldRejectResourceHashMaterial,shouldRejectResourcePartMapHashMaterial,shouldUseComputeResourceTotalParts,shouldUseResourceTimeout,shouldUseResourceEncryptMaterial,shouldUseResourceExpectedProofMaterial,shouldUseResourceHashMaterial,shouldUseResourcePartMapHashMaterial,shouldAcceptIncomingResourceAdvertisementNow,shouldAdvertiseResourceNow,shouldAdvanceResourceAwaitingProofNow,shouldAllowProveResource,
-  shouldAllowResourceReceivePart,shouldAllowResourceRequestNext,shouldAllowResourceWatchdog,shouldApplyResourceFulfillPartNow,shouldApplyResourceReceivePartSlotNow,shouldCommitResourceAssemblePayloadNow,shouldContinueResourceTransfer,shouldFulfillResourcePartRequestNow,shouldSendResourceHashmapUpdateNow,shouldTreatResourceComplete,stepAcceptIncomingResourceAdvertisementWithActions,stepAdvertiseResourceWithActions,stepAdvanceResourceAwaitingProofWithActions,stepApplyResourceFulfillPartWithActions,stepApplyResourceReceivePartSlotWithActions,stepFulfillResourcePartRequestWithActions,stepProveResourceAllowWithActions,stepResourceAdvertiseWaitWithActions,stepResourceCompleteWithActions,stepResourceContinueTransferWithActions,stepResourceReceivePartAllowWithActions,stepResourceRequestNextAllowWithActions,stepResourceWatchdogAllowWithActions,stepResourceWatchdogWithActions,stepSendResourceHashmapUpdateWithActions,initialAdvanceResourceAwaitingProofState,initialApplyResourceFulfillPartState,initialApplyResourceReceivePartSlotState,initialCommitResourceAssemblePayloadState,initialFulfillResourcePartRequestState,initialSendResourceHashmapUpdateState,type ResourceStatusEvent,type ResourceStatusValue,type ResourceWatchdogState,type ResourceWatchdogStepResult } from "@twistedpear/protocol";
+import {
+  RESOURCE_ADVERTISEMENT_OVERHEAD,
+  RESOURCE_HASHMAP_IS_EXHAUSTED,
+  RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
+  RESOURCE_MAPHASH_LEN,
+  RESOURCE_MAX_ADV_RETRIES,
+  RESOURCE_MAX_RETRIES,
+  RESOURCE_PART_TIMEOUT_FACTOR,
+  RESOURCE_PROCESSING_GRACE,
+  RESOURCE_RANDOM_HASH_SIZE,
+  RESOURCE_SENDER_GRACE_TIME,
+  RESOURCE_ADVERTISE_WAIT_TIMER_ID,
+  RESOURCE_WINDOW,
+  RESOURCE_WINDOW_FLEXIBILITY,
+  RESOURCE_WINDOW_MAX,
+  RESOURCE_WINDOW_MAX_FAST,
+  RESOURCE_WINDOW_MAX_SLOW,
+  RESOURCE_WINDOW_MIN,
+  ResourceStatus,
+  applyResourceStatusEvent,
+  assembleByteArraysRawFromActions,
+  assembleResourceHashmapBytesRawFromActions,
+  encodeResourceAdvertisementFlagsFromActions,
+  initialAcceptIncomingResourceAdvertisementState,
+  initialAdvertiseResourceState,
+  initialAppendResourceMapHashCollisionGuardState,
+  initialAssembleByteArraysState,
+  initialAssembleResourceHashmapBytesState,
+  initialClassifyResourceAdvertisementState,
+  initialComputeResourceTimeoutState,
+  initialComputeResourceTotalPartsState,
+  initialContainsResourceHashState,
+  initialDecodeResourceAdvertisementFlagsState,
+  initialEncodeResourceAdvertisementFlagsState,
+  initialProveResourceAllowState,
+  initialResourceAdvertisementRoleFlagsState,
+  initialResourceAdvertiseWaitState,
+  initialResourceContinueTransferState,
+  initialResourceEncryptMaterialState,
+  initialResourceExpectedProofMaterialState,
+  initialResourceHashMaterialState,
+  initialResourceHashmapSlotWritesState,
+  initialResourcePartMapHashMaterialState,
+  initialResourceReceivePartAllowState,
+  initialResourceRequestNextAllowState,
+  initialResourceStatusState,
+  initialResourceWatchdogAllowState,
+  initialResourceCompleteState,
+  initialPackResourceAdvertisementState,
+  initialReadResourceRequestHashState,
+  initialUnpackResourceAdvertisementState,
+  packResourceAdvertisementRawFromActions,
+  packResourceHashmapUpdatePacketRawFromActions,
+  packResourceHashmapUpdateRawFromActions,
+  packResourceProofRawFromActions,
+  applyResourceHashmapSlotWritesFieldsFromActions,
+  initialApplyResourceHashmapSlotWritesState,
+  initialPackResourceHashmapUpdatePacketState,
+  initialPackResourceHashmapUpdateState,
+  initialPackResourceProofState,
+  initialParseResourcePartRequestState,
+  initialResourceAssembleState,
+  initialResourceHashmapUpdateAcceptState,
+  initialResourcePartRequestState,
+  initialResourceProofAcceptState,
+  initialResourceReceivePartState,
+  initialResourceRequestFulfillState,
+  initialSplitResourceDecryptedPayloadState,
+  initialSplitResourceHashmapUpdatePacketState,
+  initialSplitResourceProofState,
+  initialUnpackResourceHashmapUpdateState,
+  resourceAdvertisementFieldsFromActions,
+  resourceAdvertisementFlagFieldsFromActions,
+  resourceAdvertisementRoleFlagsFromActions,
+  resourceDecryptedPayloadFromActions,
+  resourceHashmapSlotWritesFromActions,
+  resourceHashmapUpdateFieldsFromActions,
+  resourceHashmapUpdatePacketFieldsFromActions,
+  resourceMapHashCollisionGuardFromActions,
+  resourcePartRequestFieldsFromActions,
+  resourcePartRequestFromActions,
+  resourceProofFieldsFromActions,
+  resourceReceivePartFromActions,
+  resourceRequestFulfillFromActions,
+  readResourceRequestHashRawFromActions,
+  shouldAppendResourceMapHashCollisionGuard,
+  shouldApplyResourceHashmapUpdateAccept,
+  shouldCollideResourceMapHashCollisionGuard,
+  shouldCompleteResourceAssemble,
+  shouldCompleteResourceProofAccept,
+  shouldClassifyResourceAdvertisementRequest,
+  shouldClassifyResourceAdvertisementResponse,
+  shouldPresentResourceHash,
+  shouldRejectUnpackResourceAdvertisement,
+  shouldRejectParseResourcePartRequest,
+  shouldRejectSplitResourceDecryptedPayload,
+  shouldRejectSplitResourceHashmapUpdatePacket,
+  shouldRejectSplitResourceProof,
+  shouldRejectUnpackResourceHashmapUpdate,
+  shouldUseApplyResourceHashmapSlotWrites,
+  shouldUseAssembleByteArrays,
+  shouldUseAssembleResourceHashmapBytes,
+  shouldUseDecodeResourceAdvertisementFlags,
+  shouldUseEncodeResourceAdvertisementFlags,
+  shouldUsePackResourceAdvertisement,
+  shouldUsePackResourceHashmapUpdate,
+  shouldUsePackResourceHashmapUpdatePacket,
+  shouldUsePackResourceProof,
+  shouldUseParseResourcePartRequest,
+  shouldUseReadResourceRequestHash,
+  shouldUseResourceAdvertisementRoleFlags,
+  shouldUseUnpackResourceAdvertisement,
+  shouldUseSplitResourceDecryptedPayload,
+  shouldUseSplitResourceHashmapUpdatePacket,
+  shouldUseSplitResourceProof,
+  shouldUseUnpackResourceHashmapUpdate,
+  shouldWriteResourceHashmapSlots,
+  stepAppendResourceMapHashCollisionGuardWithActions,
+  stepApplyResourceHashmapSlotWritesWithActions,
+  stepAssembleByteArraysWithActions,
+  stepAssembleResourceHashmapBytesWithActions,
+  stepClassifyResourceAdvertisementWithActions,
+  stepComputeResourceTimeoutWithActions,
+  stepComputeResourceTotalPartsWithActions,
+  stepContainsResourceHashWithActions,
+  stepDecodeResourceAdvertisementFlagsWithActions,
+  stepEncodeResourceAdvertisementFlagsWithActions,
+  stepPackResourceAdvertisementWithActions,
+  stepReadResourceRequestHashWithActions,
+  stepResourceEncryptMaterialWithActions,
+  stepResourceExpectedProofMaterialWithActions,
+  stepResourceHashMaterialWithActions,
+  stepResourcePartMapHashMaterialWithActions,
+  stepPackResourceHashmapUpdatePacketWithActions,
+  stepPackResourceHashmapUpdateWithActions,
+  stepPackResourceProofWithActions,
+  stepParseResourcePartRequestWithActions,
+  stepResourceAdvertisementRoleFlagsWithActions,
+  stepUnpackResourceAdvertisementWithActions,
+  stepCommitResourceAssemblePayloadWithActions,
+  stepResourceAssembleWithActions,
+  stepResourceHashmapSlotWritesWithActions,
+  stepResourceHashmapUpdateAcceptWithActions,
+  stepResourcePartRequestWithActions,
+  stepResourceProofAcceptWithActions,
+  stepResourceReceivePartWithActions,
+  stepResourceRequestFulfillWithActions,
+  stepSplitResourceDecryptedPayloadWithActions,
+  stepSplitResourceHashmapUpdatePacketWithActions,
+  stepSplitResourceProofWithActions,
+  stepUnpackResourceHashmapUpdateWithActions,
+  resourceEncryptMaterialRawFromActions,
+  resourceExpectedProofMaterialRawFromActions,
+  resourceHashMaterialRawFromActions,
+  resourceHashmapMaxLen,
+  resourcePartMapHashMaterialRawFromActions,
+  resourceTimeoutFromActions,
+  resourceTotalPartsFromActions,
+  shouldAcceptResourceRandomHashLength,
+  initialResourceRandomHashLengthValidState,
+  stepResourceRandomHashLengthValidWithActions,
+  shouldRejectResourceEncryptMaterial,
+  shouldRejectResourceHashMaterial,
+  shouldRejectResourcePartMapHashMaterial,
+  shouldUseComputeResourceTotalParts,
+  shouldUseResourceTimeout,
+  shouldUseResourceEncryptMaterial,
+  shouldUseResourceExpectedProofMaterial,
+  shouldUseResourceHashMaterial,
+  shouldUseResourcePartMapHashMaterial,
+  shouldAcceptIncomingResourceAdvertisementNow,
+  shouldAdvertiseResourceNow,
+  shouldAdvanceResourceAwaitingProofNow,
+  shouldAllowProveResource,
+  shouldAllowResourceReceivePart,
+  shouldAllowResourceRequestNext,
+  shouldAllowResourceWatchdog,
+  shouldApplyResourceFulfillPartNow,
+  shouldApplyResourceReceivePartSlotNow,
+  shouldCommitResourceAssemblePayloadNow,
+  shouldContinueResourceTransfer,
+  shouldFulfillResourcePartRequestNow,
+  shouldSendResourceHashmapUpdateNow,
+  shouldTreatResourceComplete,
+  stepAcceptIncomingResourceAdvertisementWithActions,
+  stepAdvertiseResourceWithActions,
+  stepAdvanceResourceAwaitingProofWithActions,
+  stepApplyResourceFulfillPartWithActions,
+  stepApplyResourceReceivePartSlotWithActions,
+  stepFulfillResourcePartRequestWithActions,
+  stepProveResourceAllowWithActions,
+  stepResourceAdvertiseWaitWithActions,
+  stepResourceCompleteWithActions,
+  stepResourceContinueTransferWithActions,
+  stepResourceReceivePartAllowWithActions,
+  stepResourceRequestNextAllowWithActions,
+  stepResourceWatchdogAllowWithActions,
+  stepResourceWatchdogWithActions,
+  stepSendResourceHashmapUpdateWithActions,
+  initialAdvanceResourceAwaitingProofState,
+  initialApplyResourceFulfillPartState,
+  initialApplyResourceReceivePartSlotState,
+  initialCommitResourceAssemblePayloadState,
+  initialFulfillResourcePartRequestState,
+  initialSendResourceHashmapUpdateState,
+  type ResourceStatusEvent,
+  type ResourceStatusValue,
+  type ResourceWatchdogState,
+  type ResourceWatchdogStepResult,
+} from "@twistedpear/protocol";
 import Bunzip from "seek-bzip";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { equalBytes } from "../crypto/bytes.js";
 import { Identity } from "../identity.js";
 import type { Link } from "../link.js";
 import type { LeafTransport } from "../transport/node.js";
-import { Packet,PacketContext,PacketHeaderType,PacketType,TransportType } from "../packet.js";
+import {
+  Packet,
+  PacketContext,
+  PacketHeaderType,
+  PacketType,
+  TransportType,
+} from "../packet.js";
 import { DestinationType } from "../destination.js";
-import { RESOURCE_IFAC_MIN_SIZE, RESOURCE_PACKET_HEADER_MAX, ResourceAdvertisement, bytesToHex, decodeResourcePayload, resourceTimeoutForLink } from "./shared.js";
-import type { ResourceCallbacks, ResourceOptions, ResourcePart } from "./shared.js";
+import {
+  RESOURCE_IFAC_MIN_SIZE,
+  RESOURCE_PACKET_HEADER_MAX,
+  ResourceAdvertisement,
+  bytesToHex,
+  decodeResourcePayload,
+  resourceTimeoutForLink,
+} from "./shared.js";
+import type {
+  ResourceCallbacks,
+  ResourceOptions,
+  ResourcePart,
+} from "./shared.js";
 import { Resource } from "../resource.js";
 import { ResourceLayer1 } from "./layer-1.js";
 export class ResourceLayer2 extends ResourceLayer1 {
-static accept(
+  static accept(
     link: Link,
     plaintext: Uint8Array,
     packet: Packet,
-    options: ResourceCallbacks = {}
+    options: ResourceCallbacks = {},
   ): Resource | null {
     try {
       const adv = ResourceAdvertisement.unpack(plaintext);
       const provider = link.cryptoProvider;
-      const containsStepped = stepContainsResourceHashWithActions(initialContainsResourceHashState(), {
-        kind: "resource-hashmap/contains-hash-gate",
-        hashes: link.incomingResources.map((resource) => resource.hash),
-        target: adv.h
-      });
+      const containsStepped = stepContainsResourceHashWithActions(
+        initialContainsResourceHashState(),
+        {
+          kind: "resource-hashmap/contains-hash-gate",
+          hashes: link.incomingResources.map((resource) => resource.hash),
+          target: adv.h,
+        },
+      );
       if (
         !shouldAcceptIncomingResourceAdvertisementNow(
           stepAcceptIncomingResourceAdvertisementWithActions(
             initialAcceptIncomingResourceAdvertisementState(),
             {
               kind: "resource/accept-incoming-adv-gate",
-              alreadyIncoming: shouldPresentResourceHash(containsStepped.actions)
-            }
-          ).actions
+              alreadyIncoming: shouldPresentResourceHash(
+                containsStepped.actions,
+              ),
+            },
+          ).actions,
         )
       ) {
         return null;
@@ -60,9 +287,13 @@ static accept(
         requestId: adv.q,
         isResponse: adv.p,
         callbacks: {
-          ...(options.callback === undefined ? {} : { callback: options.callback }),
-          ...(options.progressCallback === undefined ? {} : { progressCallback: options.progressCallback })
-        }
+          ...(options.callback === undefined
+            ? {}
+            : { callback: options.callback }),
+          ...(options.progressCallback === undefined
+            ? {}
+            : { progressCallback: options.progressCallback }),
+        },
       });
 
       resource.applyStatus({ kind: "resource/transferring" });
@@ -89,10 +320,13 @@ static accept(
   }
 
   static readRequestHash(requestData: Uint8Array): Uint8Array {
-    const stepped = stepReadResourceRequestHashWithActions(initialReadResourceRequestHashState(), {
-      kind: "resource-hashmap/read-request-hash-gate",
-      requestData
-    });
+    const stepped = stepReadResourceRequestHashWithActions(
+      initialReadResourceRequestHashState(),
+      {
+        kind: "resource-hashmap/read-request-hash-gate",
+        requestData,
+      },
+    );
     const hash = shouldUseReadResourceRequestHash(stepped.actions)
       ? readResourceRequestHashRawFromActions(stepped.actions)
       : null;
@@ -118,8 +352,8 @@ static accept(
     return shouldTreatResourceComplete(
       stepResourceCompleteWithActions(initialResourceCompleteState(), {
         kind: "resource/complete-gate",
-        status: this.status
-      }).actions
+        status: this.status,
+      }).actions,
     );
   }
 
@@ -135,10 +369,13 @@ static accept(
   async handleRequest(requestData: Uint8Array): Promise<void> {
     if (
       !shouldContinueResourceTransfer(
-        stepResourceContinueTransferWithActions(initialResourceContinueTransferState(), {
-          kind: "resource/continue-transfer-gate",
-          status: this.status
-        }).actions
+        stepResourceContinueTransferWithActions(
+          initialResourceContinueTransferState(),
+          {
+            kind: "resource/continue-transfer-gate",
+            status: this.status,
+          },
+        ).actions,
       )
     ) {
       return;
@@ -152,8 +389,8 @@ static accept(
       initialParseResourcePartRequestState(),
       {
         kind: "resource-hashmap/parse-part-request-gate",
-        requestData
-      }
+        requestData,
+      },
     );
     const request = shouldRejectParseResourcePartRequest(parseStepped.actions)
       ? null
@@ -162,31 +399,39 @@ static accept(
         : null;
     if (
       !shouldFulfillResourcePartRequestNow(
-        stepFulfillResourcePartRequestWithActions(initialFulfillResourcePartRequestState(), {
-          kind: "resource-hashmap/fulfill-part-request-gate",
-          requestPresent: request !== null
-        }).actions
+        stepFulfillResourcePartRequestWithActions(
+          initialFulfillResourcePartRequestState(),
+          {
+            kind: "resource-hashmap/fulfill-part-request-gate",
+            requestPresent: request !== null,
+          },
+        ).actions,
       )
     ) {
       return;
     }
 
-    const { actions } = stepResourceRequestFulfillWithActions(initialResourceRequestFulfillState(), {
-      kind: "resource/request-fulfill-gate",
-      request: request!,
-      partMapHashes: this.parts.map((part) => part.mapHash),
-      partSent: this.parts.map((part) => part.sent),
-      receiverMinConsecutiveHeight: this.receiverMinConsecutiveHeight,
-      hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN,
-      windowMax: RESOURCE_WINDOW_MAX,
-      totalParts: this.totalParts,
-      sentParts: this.sentParts
-    });
+    const { actions } = stepResourceRequestFulfillWithActions(
+      initialResourceRequestFulfillState(),
+      {
+        kind: "resource/request-fulfill-gate",
+        request: request!,
+        partMapHashes: this.parts.map((part) => part.mapHash),
+        partSent: this.parts.map((part) => part.sent),
+        receiverMinConsecutiveHeight: this.receiverMinConsecutiveHeight,
+        hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN,
+        windowMax: RESOURCE_WINDOW_MAX,
+        totalParts: this.totalParts,
+        sentParts: this.sentParts,
+      },
+    );
     await this.applyResourceRequestFulfillActions(actions);
   }
 
   protected async applyResourceRequestFulfillActions(
-    actions: ReturnType<typeof stepResourceRequestFulfillWithActions>["actions"]
+    actions: ReturnType<
+      typeof stepResourceRequestFulfillWithActions
+    >["actions"],
   ): Promise<void> {
     const plan = resourceRequestFulfillFromActions(actions);
     if (plan === null) {
@@ -199,8 +444,8 @@ static accept(
         initialApplyResourceFulfillPartState(),
         {
           kind: "resource-hashmap/apply-fulfill-part-gate",
-          partPresent: part !== undefined
-        }
+          partPresent: part !== undefined,
+        },
       );
       if (!shouldApplyResourceFulfillPartNow(applyStepped.actions)) {
         continue;
@@ -217,20 +462,25 @@ static accept(
 
     if (
       shouldSendResourceHashmapUpdateNow(
-        stepSendResourceHashmapUpdateWithActions(initialSendResourceHashmapUpdateState(), {
-          kind: "resource-hashmap/send-hashmap-update-gate",
-          hashmapUpdatePresent: plan.hashmapUpdate !== null
-        }).actions
+        stepSendResourceHashmapUpdateWithActions(
+          initialSendResourceHashmapUpdateState(),
+          {
+            kind: "resource-hashmap/send-hashmap-update-gate",
+            hashmapUpdatePresent: plan.hashmapUpdate !== null,
+          },
+        ).actions,
       )
     ) {
       const assembleStepped = stepAssembleResourceHashmapBytesWithActions(
         initialAssembleResourceHashmapBytesState(),
         {
           kind: "resource-hashmap/assemble-bytes-gate",
-          mapHashes: plan.hashmapUpdate!.mapHashes
-        }
+          mapHashes: plan.hashmapUpdate!.mapHashes,
+        },
       );
-      const hashmap = shouldUseAssembleResourceHashmapBytes(assembleStepped.actions)
+      const hashmap = shouldUseAssembleResourceHashmapBytes(
+        assembleStepped.actions,
+      )
         ? assembleResourceHashmapBytesRawFromActions(assembleStepped.actions)
         : null;
       if (hashmap === null) {
@@ -241,10 +491,12 @@ static accept(
         {
           kind: "resource-hashmap/pack-update-gate",
           segment: plan.hashmapUpdate!.segment,
-          hashmap
-        }
+          hashmap,
+        },
       );
-      const update = shouldUsePackResourceHashmapUpdate(packUpdateStepped.actions)
+      const update = shouldUsePackResourceHashmapUpdate(
+        packUpdateStepped.actions,
+      )
         ? packResourceHashmapUpdateRawFromActions(packUpdateStepped.actions)
         : null;
       if (update === null) {
@@ -255,11 +507,15 @@ static accept(
         {
           kind: "resource-hashmap/pack-packet-gate",
           resourceHash: this.hash,
-          updateBytes: update
-        }
+          updateBytes: update,
+        },
       );
-      const packet = shouldUsePackResourceHashmapUpdatePacket(packPacketStepped.actions)
-        ? packResourceHashmapUpdatePacketRawFromActions(packPacketStepped.actions)
+      const packet = shouldUsePackResourceHashmapUpdatePacket(
+        packPacketStepped.actions,
+      )
+        ? packResourceHashmapUpdatePacketRawFromActions(
+            packPacketStepped.actions,
+          )
         : null;
       if (packet === null) {
         return;
@@ -269,10 +525,13 @@ static accept(
 
     if (
       shouldAdvanceResourceAwaitingProofNow(
-        stepAdvanceResourceAwaitingProofWithActions(initialAdvanceResourceAwaitingProofState(), {
-          kind: "resource-hashmap/advance-awaiting-proof-gate",
-          status: plan.status
-        }).actions
+        stepAdvanceResourceAwaitingProofWithActions(
+          initialAdvanceResourceAwaitingProofState(),
+          {
+            kind: "resource-hashmap/advance-awaiting-proof-gate",
+            status: plan.status,
+          },
+        ).actions,
       )
     ) {
       this.applyStatus({ kind: "resource/awaiting-proof" });
@@ -284,10 +543,12 @@ static accept(
       initialSplitResourceHashmapUpdatePacketState(),
       {
         kind: "resource-hashmap/split-packet-gate",
-        plaintext
-      }
+        plaintext,
+      },
     );
-    const split = shouldRejectSplitResourceHashmapUpdatePacket(splitStepped.actions)
+    const split = shouldRejectSplitResourceHashmapUpdatePacket(
+      splitStepped.actions,
+    )
       ? null
       : shouldUseSplitResourceHashmapUpdatePacket(splitStepped.actions)
         ? resourceHashmapUpdatePacketFieldsFromActions(splitStepped.actions)
@@ -295,12 +556,16 @@ static accept(
     const unpackStepped =
       split === null
         ? null
-        : stepUnpackResourceHashmapUpdateWithActions(initialUnpackResourceHashmapUpdateState(), {
-            kind: "resource-hashmap/unpack-update-gate",
-            bytes: split.updateBytes
-          });
+        : stepUnpackResourceHashmapUpdateWithActions(
+            initialUnpackResourceHashmapUpdateState(),
+            {
+              kind: "resource-hashmap/unpack-update-gate",
+              bytes: split.updateBytes,
+            },
+          );
     const update =
-      unpackStepped === null || shouldRejectUnpackResourceHashmapUpdate(unpackStepped.actions)
+      unpackStepped === null ||
+      shouldRejectUnpackResourceHashmapUpdate(unpackStepped.actions)
         ? null
         : shouldUseUnpackResourceHashmapUpdate(unpackStepped.actions)
           ? resourceHashmapUpdateFieldsFromActions(unpackStepped.actions)
@@ -310,14 +575,17 @@ static accept(
       {
         kind: "resource/hashmap-update-accept-gate",
         canContinue: shouldContinueResourceTransfer(
-          stepResourceContinueTransferWithActions(initialResourceContinueTransferState(), {
-            kind: "resource/continue-transfer-gate",
-            status: this.status
-          }).actions
+          stepResourceContinueTransferWithActions(
+            initialResourceContinueTransferState(),
+            {
+              kind: "resource/continue-transfer-gate",
+              status: this.status,
+            },
+          ).actions,
         ),
         splitOk: split !== null,
-        unpackOk: update !== null
-      }
+        unpackOk: update !== null,
+      },
     );
     if (!shouldApplyResourceHashmapUpdateAccept(actions) || update === null) {
       return;
@@ -328,10 +596,13 @@ static accept(
   receivePart(packet: Packet): void {
     if (
       !shouldAllowResourceReceivePart(
-        stepResourceReceivePartAllowWithActions(initialResourceReceivePartAllowState(), {
-          kind: "resource/receive-part-allow-gate",
-          status: this.status
-        }).actions
+        stepResourceReceivePartAllowWithActions(
+          initialResourceReceivePartAllowState(),
+          {
+            kind: "resource/receive-part-allow-gate",
+            status: this.status,
+          },
+        ).actions,
       )
     ) {
       return;
@@ -343,10 +614,12 @@ static accept(
       {
         kind: "resource-material/part-map-hash-gate",
         partData,
-        randomHash: this.randomHash
-      }
+        randomHash: this.randomHash,
+      },
     );
-    const partMapMaterial = resourcePartMapHashMaterialRawFromActions(partMapStepped.actions);
+    const partMapMaterial = resourcePartMapHashMaterialRawFromActions(
+      partMapStepped.actions,
+    );
     if (
       shouldRejectResourcePartMapHashMaterial(partMapStepped.actions) ||
       !shouldUseResourcePartMapHashMaterial(partMapStepped.actions) ||
@@ -356,27 +629,30 @@ static accept(
     }
     const partHash = Identity.fullHash(this.provider, partMapMaterial).subarray(
       0,
-      RESOURCE_MAPHASH_LEN
+      RESOURCE_MAPHASH_LEN,
     );
 
-    const { actions } = stepResourceReceivePartWithActions(initialResourceReceivePartState(), {
-      kind: "resource/receive-part-gate",
-      partHash,
-      hashmap: this.hashmap,
-      receivedParts: this.receivedParts,
-      consecutiveCompletedHeight: this.consecutiveCompletedHeight,
-      window: this.window,
-      receivedCount: this.receivedCount,
-      outstandingParts: this.outstandingParts,
-      totalParts: this.totalParts,
-      assemblyStarted: this.assemblyStarted
-    });
+    const { actions } = stepResourceReceivePartWithActions(
+      initialResourceReceivePartState(),
+      {
+        kind: "resource/receive-part-gate",
+        partHash,
+        hashmap: this.hashmap,
+        receivedParts: this.receivedParts,
+        consecutiveCompletedHeight: this.consecutiveCompletedHeight,
+        window: this.window,
+        receivedCount: this.receivedCount,
+        outstandingParts: this.outstandingParts,
+        totalParts: this.totalParts,
+        assemblyStarted: this.assemblyStarted,
+      },
+    );
     this.applyResourceReceivePartActions(partData, actions);
   }
 
   protected applyResourceReceivePartActions(
     partData: Uint8Array,
-    actions: ReturnType<typeof stepResourceReceivePartWithActions>["actions"]
+    actions: ReturnType<typeof stepResourceReceivePartWithActions>["actions"],
   ): void {
     const plan = resourceReceivePartFromActions(actions);
     if (plan === null) {
@@ -385,11 +661,14 @@ static accept(
 
     if (
       shouldApplyResourceReceivePartSlotNow(
-        stepApplyResourceReceivePartSlotWithActions(initialApplyResourceReceivePartSlotState(), {
-          kind: "resource-hashmap/apply-receive-part-slot-gate",
-          matched: plan.matched,
-          slotPresent: plan.slot !== null
-        }).actions
+        stepApplyResourceReceivePartSlotWithActions(
+          initialApplyResourceReceivePartSlotState(),
+          {
+            kind: "resource-hashmap/apply-receive-part-slot-gate",
+            matched: plan.matched,
+            slotPresent: plan.slot !== null,
+          },
+        ).actions,
       )
     ) {
       this.receivedParts[plan.slot!] = Uint8Array.from(partData);
@@ -397,7 +676,7 @@ static accept(
       this.outstandingParts = plan.outstandingParts;
       this.consecutiveCompletedHeight = plan.consecutiveCompletedHeight;
       this.progress = plan.progress;
-      this.callbacks.progressCallback?.((this as unknown as Resource));
+      this.callbacks.progressCallback?.(this as unknown as Resource);
     }
 
     if (plan.shouldAssemble) {
@@ -411,10 +690,13 @@ static accept(
   async assemble(): Promise<void> {
     if (
       !shouldContinueResourceTransfer(
-        stepResourceContinueTransferWithActions(initialResourceContinueTransferState(), {
-          kind: "resource/continue-transfer-gate",
-          status: this.status
-        }).actions
+        stepResourceContinueTransferWithActions(
+          initialResourceContinueTransferState(),
+          {
+            kind: "resource/continue-transfer-gate",
+            status: this.status,
+          },
+        ).actions,
       )
     ) {
       return;
@@ -426,8 +708,8 @@ static accept(
         initialAssembleByteArraysState(),
         {
           kind: "bytes/assemble-gate",
-          parts: this.receivedParts.map((part) => part!)
-        }
+          parts: this.receivedParts.map((part) => part!),
+        },
       );
       const stream = shouldUseAssembleByteArrays(assembleStepped.actions)
         ? assembleByteArraysRawFromActions(assembleStepped.actions)
@@ -443,8 +725,8 @@ static accept(
               initialSplitResourceDecryptedPayloadState(),
               {
                 kind: "resource-proof/split-decrypted-gate",
-                decrypted
-              }
+                decrypted,
+              },
             );
       const payload =
         decryptedStepped === null ||
@@ -452,15 +734,21 @@ static accept(
         !shouldUseSplitResourceDecryptedPayload(decryptedStepped.actions)
           ? null
           : resourceDecryptedPayloadFromActions(decryptedStepped.actions);
-      const decodedPayload = payload === null ? null : decodeResourcePayload(payload, this.compressed);
+      const decodedPayload =
+        payload === null
+          ? null
+          : decodeResourcePayload(payload, this.compressed);
       const hashMaterialStepped =
         decodedPayload === null
           ? null
-          : stepResourceHashMaterialWithActions(initialResourceHashMaterialState(), {
-              kind: "resource-material/hash-gate",
-              data: decodedPayload,
-              randomHash: this.randomHash
-            });
+          : stepResourceHashMaterialWithActions(
+              initialResourceHashMaterialState(),
+              {
+                kind: "resource-material/hash-gate",
+                data: decodedPayload,
+                randomHash: this.randomHash,
+              },
+            );
       const hashInput =
         hashMaterialStepped === null ||
         shouldRejectResourceHashMaterial(hashMaterialStepped.actions) ||
@@ -469,21 +757,24 @@ static accept(
           : resourceHashMaterialRawFromActions(hashMaterialStepped.actions);
       const calculatedHash =
         hashInput === null ? null : Identity.fullHash(this.provider, hashInput);
-      const { actions } = stepResourceAssembleWithActions(initialResourceAssembleState(), {
-        kind: "resource/assemble-gate",
-        decryptedPresent: decrypted !== null,
-        payloadPresent: decodedPayload !== null,
-        hashMatches:
-          calculatedHash !== null && equalBytes(calculatedHash, this.hash)
-      });
+      const { actions } = stepResourceAssembleWithActions(
+        initialResourceAssembleState(),
+        {
+          kind: "resource/assemble-gate",
+          decryptedPresent: decrypted !== null,
+          payloadPresent: decodedPayload !== null,
+          hashMatches:
+            calculatedHash !== null && equalBytes(calculatedHash, this.hash),
+        },
+      );
 
       const commitStepped = stepCommitResourceAssemblePayloadWithActions(
         initialCommitResourceAssemblePayloadState(),
         {
           kind: "resource/commit-assemble-payload-gate",
           outcomeComplete: shouldCompleteResourceAssemble(actions),
-          payloadPresent: decodedPayload !== null
-        }
+          payloadPresent: decodedPayload !== null,
+        },
       );
       if (!shouldCommitResourceAssemblePayloadNow(commitStepped.actions)) {
         this.applyStatus({ kind: "resource/corrupt" });
@@ -495,8 +786,8 @@ static accept(
       this.applyStatus({ kind: "resource/complete" });
       this.progress = 1;
       await this.prove();
-      this.link.resourceConcluded((this as unknown as Resource));
-      this.callbacks.callback?.((this as unknown as Resource));
+      this.link.resourceConcluded(this as unknown as Resource);
+      this.callbacks.callback?.(this as unknown as Resource);
     } catch {
       this.applyStatus({ kind: "resource/corrupt" });
       this.cancel();
@@ -508,8 +799,8 @@ static accept(
       !shouldAllowProveResource(
         stepProveResourceAllowWithActions(initialProveResourceAllowState(), {
           kind: "resource/prove-allow-gate",
-          dataPresent: this.data !== null
-        }).actions
+          dataPresent: this.data !== null,
+        }).actions,
       )
     ) {
       return;
@@ -520,11 +811,11 @@ static accept(
       {
         kind: "resource-material/expected-proof-gate",
         data: this.data!,
-        resourceHash: this.hash
-      }
+        resourceHash: this.hash,
+      },
     );
     const expectedProofMaterial = resourceExpectedProofMaterialRawFromActions(
-      expectedProofStepped.actions
+      expectedProofStepped.actions,
     );
     if (
       !shouldUseResourceExpectedProofMaterial(expectedProofStepped.actions) ||
@@ -533,15 +824,17 @@ static accept(
       return;
     }
     const proof = Identity.fullHash(this.provider, expectedProofMaterial);
-    const stepped = stepPackResourceProofWithActions(initialPackResourceProofState(), {
-      kind: "resource-proof/pack-gate",
-      resourceHash: this.hash,
-      proofHash: proof
-    });
-    const proofData =
-      shouldUsePackResourceProof(stepped.actions)
-        ? packResourceProofRawFromActions(stepped.actions)
-        : null;
+    const stepped = stepPackResourceProofWithActions(
+      initialPackResourceProofState(),
+      {
+        kind: "resource-proof/pack-gate",
+        resourceHash: this.hash,
+        proofHash: proof,
+      },
+    );
+    const proofData = shouldUsePackResourceProof(stepped.actions)
+      ? packResourceProofRawFromActions(stepped.actions)
+      : null;
     if (proofData === null) {
       return;
     }
@@ -549,28 +842,34 @@ static accept(
   }
 
   validateProof(proofData: Uint8Array): void {
-    const splitStepped = stepSplitResourceProofWithActions(initialSplitResourceProofState(), {
-      kind: "resource-proof/split-gate",
-      proofData
-    });
+    const splitStepped = stepSplitResourceProofWithActions(
+      initialSplitResourceProofState(),
+      {
+        kind: "resource-proof/split-gate",
+        proofData,
+      },
+    );
     const split =
       shouldRejectSplitResourceProof(splitStepped.actions) ||
       !shouldUseSplitResourceProof(splitStepped.actions)
         ? null
         : resourceProofFieldsFromActions(splitStepped.actions);
-    const { actions } = stepResourceProofAcceptWithActions(initialResourceProofAcceptState(), {
-      kind: "resource/proof-accept-gate",
-      status: this.status,
-      proofValid:
-        split !== null && equalBytes(split.proofHash, this.expectedProof)
-    });
+    const { actions } = stepResourceProofAcceptWithActions(
+      initialResourceProofAcceptState(),
+      {
+        kind: "resource/proof-accept-gate",
+        status: this.status,
+        proofValid:
+          split !== null && equalBytes(split.proofHash, this.expectedProof),
+      },
+    );
     if (!shouldCompleteResourceProofAccept(actions)) {
       return;
     }
 
     this.applyStatus({ kind: "resource/complete" });
     this.progress = 1;
-    this.link.resourceConcluded((this as unknown as Resource));
-    this.callbacks.callback?.((this as unknown as Resource));
+    this.link.resourceConcluded(this as unknown as Resource);
+    this.callbacks.callback?.(this as unknown as Resource);
   }
 }

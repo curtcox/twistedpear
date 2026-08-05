@@ -15,7 +15,7 @@ const outputDir = join(repoRoot, "dist/web-host");
 
 const workerBuild = spawnSync("node", ["scripts/build-web-worker.mjs"], {
   cwd: harnessRoot,
-  stdio: "inherit"
+  stdio: "inherit",
 });
 if (workerBuild.status !== 0) {
   process.exit(workerBuild.status ?? 1);
@@ -27,13 +27,19 @@ mkdirSync(outputDir, { recursive: true });
 const exportResult = spawnSync(
   "npx",
   ["expo", "export", "--platform", "web", "--output-dir", outputDir],
-  { cwd: harnessRoot, stdio: "inherit", env: { ...process.env, CI: "1" } }
+  { cwd: harnessRoot, stdio: "inherit", env: { ...process.env, CI: "1" } },
 );
 if (exportResult.status !== 0) {
   process.exit(exportResult.status ?? 1);
 }
 
-cpSync(join(harnessRoot, "public/web-core.worker.js"), join(outputDir, "web-core.worker.js"));
-cpSync(join(harnessRoot, "public/web-hyper-fetch.js"), join(outputDir, "web-hyper-fetch.js"));
+cpSync(
+  join(harnessRoot, "public/web-core.worker.js"),
+  join(outputDir, "web-core.worker.js"),
+);
+cpSync(
+  join(harnessRoot, "public/web-hyper-fetch.js"),
+  join(outputDir, "web-hyper-fetch.js"),
+);
 applyPwaShell(outputDir);
 console.log(`web-host static bundle written to ${outputDir}`);

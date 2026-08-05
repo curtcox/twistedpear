@@ -11,7 +11,10 @@ interface NodeServiceNative {
   isRunning(): boolean;
   getLifecycleState?(): string;
   requestBackgroundRefresh?(): Promise<boolean>;
-  addListener(event: "onLifecycleChange", listener: (event: NodeLifecycleChangeEvent) => void): EventSubscription;
+  addListener(
+    event: "onLifecycleChange",
+    listener: (event: NodeLifecycleChangeEvent) => void,
+  ): EventSubscription;
 }
 
 function loadNativeNodeService(): NodeServiceNative | null {
@@ -27,7 +30,13 @@ function loadNativeNodeService(): NodeServiceNative | null {
 
 const NativeNodeService = loadNativeNodeService();
 
-export type NodeLifecycleState = "unsupported" | "stopped" | "foreground" | "background-grace" | "suspended" | "background-wake";
+export type NodeLifecycleState =
+  | "unsupported"
+  | "stopped"
+  | "foreground"
+  | "background-grace"
+  | "suspended"
+  | "background-wake";
 
 /** Start the native node lifecycle helper. Android uses a foreground service; iOS enters foreground lifecycle mode. */
 export async function startNodeService(): Promise<boolean> {
@@ -61,7 +70,9 @@ export function getNodeLifecycleState(): NodeLifecycleState {
     return "unsupported";
   }
 
-  const state = NativeNodeService.getLifecycleState?.() ?? (NativeNodeService.isRunning() ? "foreground" : "stopped");
+  const state =
+    NativeNodeService.getLifecycleState?.() ??
+    (NativeNodeService.isRunning() ? "foreground" : "stopped");
   if (
     state === "stopped" ||
     state === "foreground" ||
@@ -85,9 +96,13 @@ export async function requestNodeBackgroundRefresh(): Promise<boolean> {
 
 /** Subscribe to iOS lifecycle transitions (foreground, grace window, suspended). */
 export function addNodeLifecycleListener(
-  listener: (event: NodeLifecycleChangeEvent) => void
+  listener: (event: NodeLifecycleChangeEvent) => void,
 ): EventSubscription | null {
-  if (NativeNodeService === null || Platform.OS !== "ios" || NativeNodeService.addListener === undefined) {
+  if (
+    NativeNodeService === null ||
+    Platform.OS !== "ios" ||
+    NativeNodeService.addListener === undefined
+  ) {
     return null;
   }
 

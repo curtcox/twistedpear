@@ -8,7 +8,7 @@ export {
   type AbuseVerb,
   type AttackerPosition,
   type CoverageCell,
-  type ThreatTaxonomy
+  type ThreatTaxonomy,
 } from "./frame.js";
 export {
   runCampaign,
@@ -20,7 +20,7 @@ export {
   type ScenarioDescription,
   type SaturationPoint,
   type ScenarioFactory,
-  type SeedRange
+  type SeedRange,
 } from "./runner.js";
 export {
   ContainmentTracker,
@@ -29,17 +29,17 @@ export {
   type ContainmentMetrics,
   type ContainmentBaselineEntry,
   type ContainmentSummary,
-  type EgressAttribution
+  type EgressAttribution,
 } from "./metrics.js";
 export {
   estimateCompleteness,
   injectCanaries,
-  type CompletenessEstimate
+  type CompletenessEstimate,
 } from "./estimation.js";
 export {
   createProductionScenarioRegistry,
   type ProductionScenarioRegistry,
-  type ProductionScenarioRegistryOptions
+  type ProductionScenarioRegistryOptions,
 } from "./scenarios.js";
 export {
   createEscrowCampaignScenario,
@@ -48,7 +48,7 @@ export {
   executedSpamEconomics,
   type QuorumAttack,
   type SocialCampaignState,
-  type SocialKind
+  type SocialKind,
 } from "./assurance-scenarios.js";
 export {
   createMediaLadderScenario,
@@ -58,5 +58,5 @@ export {
   type MediaLadderSample,
   type MediaLadderScenarioOptions,
   type MediaLadderState,
-  type MediaLinkProfile
+  type MediaLinkProfile,
 } from "./media-scenarios.js";

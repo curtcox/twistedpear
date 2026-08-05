@@ -38,15 +38,15 @@ All finding baselines compare against the PR base branch, not the merge commit. 
 baseline writes only tighten; `--allow-regressions` is required to establish or
 intentionally loosen a baseline.
 
-| Gate | Command | Current artifact / baseline |
-|---|---|---|
-| Coverage | `npm run coverage:check` | per-package statements, branches, and functions in `coverage-ratchet.json`; absolute pure-package floors in `coverage-rules.json`; 0.5 point tolerance |
-| Structure | `npm run structure:check` | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json` |
-| Complexity | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json` |
-| Repository lint | `npm run lint:all` | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json` |
-| Typed lint | `npm run lint:typed` | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json` |
-| Formatting | `npm run format:check` | Prettier deviations grandfathered in `format-ratchet.json`; new deviations fail |
-| Properties | `npm run test:properties` | seeded FastCheck codec round-trips and executable link/resource model traces |
+| Gate            | Command                    | Current artifact / baseline                                                                                                                              |
+| --------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coverage        | `npm run coverage:check`   | per-package statements, branches, and functions in `coverage-ratchet.json`; absolute pure-package floors in `coverage-rules.json`; 0.5 point tolerance   |
+| Structure       | `npm run structure:check`  | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json` |
+| Complexity      | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                 |
+| Repository lint | `npm run lint:all`         | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                         |
+| Typed lint      | `npm run lint:typed`       | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                  |
+| Formatting      | `npm run format:check`     | Prettier deviations grandfathered in `format-ratchet.json`; new deviations fail                                                                          |
+| Properties      | `npm run test:properties`  | seeded FastCheck codec round-trips and executable link/resource model traces                                                                             |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.

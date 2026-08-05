@@ -8,7 +8,7 @@ import {
   registerDriveWithSeeder,
   registerDriveWithSeederQuota,
   totalSeederBytes,
-  loadSeederState
+  loadSeederState,
 } from "../src/seeder-state.js";
 
 describe("seeder quota eviction", () => {
@@ -37,8 +37,22 @@ describe("seeder quota eviction", () => {
     const stateDir = mkdtempSync(join(tmpdir(), "tp-seeder-quota-"));
     try {
       const archive = new Uint8Array(80);
-      registerDriveWithSeederQuota(stateDir, "drive-a", "1.0.0", "hash-a", archive, 100);
-      registerDriveWithSeederQuota(stateDir, "drive-a", "1.1.0", "hash-b", archive, 100);
+      registerDriveWithSeederQuota(
+        stateDir,
+        "drive-a",
+        "1.0.0",
+        "hash-a",
+        archive,
+        100,
+      );
+      registerDriveWithSeederQuota(
+        stateDir,
+        "drive-a",
+        "1.1.0",
+        "hash-b",
+        archive,
+        100,
+      );
 
       const state = loadSeederState(stateDir);
       expect(totalSeederBytes(state)).toBeLessThanOrEqual(100);

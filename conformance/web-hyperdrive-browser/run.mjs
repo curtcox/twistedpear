@@ -16,14 +16,14 @@ import {
   casAnnounceAspects,
   encodeCasLocator,
   signCasLocator,
-  verify256t
+  verify256t,
 } from "../../packages/cas-256t/dist/index.js";
 import {
   attachDhtRelayServer,
   createGatewayBulkFetchHttpHandler,
   createSwarm,
   DriveManager,
-  fetchDriveVersionViaHyperswarm
+  fetchDriveVersionViaHyperswarm,
 } from "../../packages/bridge-hyper/dist/index.js";
 import {
   DestinationDirection,
@@ -32,17 +32,21 @@ import {
   NodeCryptoProvider,
   Reticulum,
   nodeRuntime,
-  registerWebSocketServerInterface
+  registerWebSocketServerInterface,
 } from "../../packages/reticulum-ts/dist/index.js";
 
 const hyperdriveRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(hyperdriveRoot, "../..");
 
 function runBuild() {
-  const build = spawnSync("node", ["conformance/web-hyperdrive-browser/build.mjs"], {
-    cwd: repoRoot,
-    stdio: "inherit"
-  });
+  const build = spawnSync(
+    "node",
+    ["conformance/web-hyperdrive-browser/build.mjs"],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+    },
+  );
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
   }
@@ -61,14 +65,21 @@ async function startHyperdrivePublisher(staticRoot) {
   const { PUBLISHER_DATA } = await import("./publisher-data.mjs");
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
-  const identity = Identity.fromBytes(provider, hexToBytes(PUBLISHER_DATA.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(PUBLISHER_DATA.privateKeyHex),
+  );
   if (identity === null) {
     throw new Error("Could not load publisher identity");
   }
 
   const archive = hexToBytes(PUBLISHER_DATA.archiveHex);
-  const verified = unpackPackage(provider, archive, { hostApiVersion: "0.1.0" });
-  if (!verify256t(PUBLISHER_DATA.t256, archive, (data) => provider.sha512(data))) {
+  const verified = unpackPackage(provider, archive, {
+    hostApiVersion: "0.1.0",
+  });
+  if (
+    !verify256t(PUBLISHER_DATA.t256, archive, (data) => provider.sha512(data))
+  ) {
     throw new Error("publisher archive does not match fixture t256");
   }
 
@@ -76,13 +87,21 @@ async function startHyperdrivePublisher(staticRoot) {
   const pubSwarm = createSwarm();
   const publisherDrive = new DriveManager({
     storagePath: join(publisherDir, "drives"),
-    swarm: pubSwarm
+    swarm: pubSwarm,
   });
   await publisherDrive.ready();
   const { keyHex } = await publisherDrive.createDrive();
-  await publisherDrive.publishVersion(verified.manifest.version, archive, verified.packageHash);
+  await publisherDrive.publishVersion(
+    verified.manifest.version,
+    archive,
+    verified.packageHash,
+  );
 
-  const publisherNode = Reticulum.create({ provider, runtime, transportEnabled: true });
+  const publisherNode = Reticulum.create({
+    provider,
+    runtime,
+    transportEnabled: true,
+  });
   publisherNode.start();
 
   const locator = signCasLocator(identity, {
@@ -91,7 +110,7 @@ async function startHyperdrivePublisher(staticRoot) {
     version: verified.manifest.version,
     driveKey: keyHex,
     packageHash: verified.packageHash,
-    packageSize: archive.length
+    packageSize: archive.length,
   });
   const casDestination = publisherNode.registerDestination({
     provider,
@@ -99,28 +118,36 @@ async function startHyperdrivePublisher(staticRoot) {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "tp",
-    aspects: casAnnounceAspects(PUBLISHER_DATA.t256)
+    aspects: casAnnounceAspects(PUBLISHER_DATA.t256),
   });
   await casDestination.announce({ appData: encodeCasLocator(locator) });
 
   const reannounceTimer = setInterval(() => {
-    void casDestination.announce({ appData: encodeCasLocator(locator) }).catch(() => {});
+    void casDestination
+      .announce({ appData: encodeCasLocator(locator) })
+      .catch(() => {});
   }, 2_000);
 
-  const bulkFetchHandler = createGatewayBulkFetchHttpHandler(async (driveKeyHex, version) => {
-    if (driveKeyHex === keyHex) {
-      return publisherDrive.fetchVersion(version);
-    }
+  const bulkFetchHandler = createGatewayBulkFetchHttpHandler(
+    async (driveKeyHex, version) => {
+      if (driveKeyHex === keyHex) {
+        return publisherDrive.fetchVersion(version);
+      }
 
-    return fetchDriveVersionViaHyperswarm({ driveKeyHex, version, timeoutMs: 60_000 });
-  });
+      return fetchDriveVersionViaHyperswarm({
+        driveKeyHex,
+        version,
+        timeoutMs: 60_000,
+      });
+    },
+  );
 
   const wsServer = await registerWebSocketServerInterface(publisherNode, {
     name: "ws-gateway",
     listenHost: "127.0.0.1",
     listenPort: 0,
     serveHttp: bulkFetchHandler,
-    staticRoot
+    staticRoot,
   });
 
   const httpServer = wsServer.httpServer;
@@ -128,7 +155,9 @@ async function startHyperdrivePublisher(staticRoot) {
     throw new Error("expected websocket gateway HTTP server");
   }
 
-  const relaySession = attachDhtRelayServer(httpServer, { dht: pubSwarm.swarm.dht });
+  const relaySession = attachDhtRelayServer(httpServer, {
+    dht: pubSwarm.swarm.dht,
+  });
 
   const wsPort = wsServer.address?.port;
   if (wsPort === undefined) {
@@ -148,7 +177,7 @@ async function startHyperdrivePublisher(staticRoot) {
       await pubSwarm.destroy();
       await publisherNode.stop();
       rmSync(publisherDir, { recursive: true, force: true });
-    }
+    },
   };
 }
 
@@ -185,7 +214,7 @@ function startStaticServer(root) {
               }
             });
           });
-        }
+        },
       });
     });
   });
@@ -193,11 +222,15 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath =
+    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+  if (
+    !resolvedPath.startsWith(resolvedRoot + sep) &&
+    resolvedPath !== resolvedRoot
+  ) {
     response.writeHead(403);
     response.end();
     return;
@@ -209,7 +242,9 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
+  response.writeHead(200, {
+    "content-type": staticContentType(extname(resolvedPath)),
+  });
   if (headOnly) {
     response.end();
     return;
@@ -242,19 +277,27 @@ async function runPlaywright(pageUrl) {
 
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
     try {
-      await page.waitForFunction(() => globalThis.__WEB_HYPERDRIVE__?.status === "done", undefined, {
-        timeout: 120_000
-      });
+      await page.waitForFunction(
+        () => globalThis.__WEB_HYPERDRIVE__?.status === "done",
+        undefined,
+        {
+          timeout: 120_000,
+        },
+      );
     } catch (error) {
-      const snapshot = await page.evaluate(() => globalThis.__WEB_HYPERDRIVE__ ?? null);
+      const snapshot = await page.evaluate(
+        () => globalThis.__WEB_HYPERDRIVE__ ?? null,
+      );
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`
+        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`,
       );
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_HYPERDRIVE__);
     if (result?.status !== "done") {
-      throw new Error(`web hyperdrive spike incomplete: ${JSON.stringify(result)}`);
+      throw new Error(
+        `web hyperdrive spike incomplete: ${JSON.stringify(result)}`,
+      );
     }
 
     return result;
@@ -274,8 +317,8 @@ try {
     `web-hyperdrive-browser: ${JSON.stringify({
       appId: result.appId,
       version: result.version,
-      fetchPath: result.fetchPath
-    })}`
+      fetchPath: result.fetchPath,
+    })}`,
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

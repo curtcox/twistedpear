@@ -1,7 +1,16 @@
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
-import { Packet, RawPacketInterface, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import {
+  Packet,
+  RawPacketInterface,
+  type ReticulumInterfaceOptions,
+} from "@twistedpear/reticulum-ts";
 import type { BlePipe } from "../pipes.js";
-import { fragmentForMtu, reassembleBleFrames, createBleReassemblyState, BLE_DEFAULT_PIPE_MTU } from "./spec-framing.js";
+import {
+  fragmentForMtu,
+  reassembleBleFrames,
+  createBleReassemblyState,
+  BLE_DEFAULT_PIPE_MTU,
+} from "./spec-framing.js";
 
 export const BLE_INTERFACE_MTU = 500;
 
@@ -18,13 +27,20 @@ export class BleInterface extends RawPacketInterface {
 
   constructor(
     private readonly provider: CryptoProvider,
-    private readonly options: BleInterfaceOptions
+    private readonly options: BleInterfaceOptions,
   ) {
-    super({ ...options, mtu: options.mtu ?? BLE_INTERFACE_MTU }, options.incoming ?? true, options.outgoing ?? true);
+    super(
+      { ...options, mtu: options.mtu ?? BLE_INTERFACE_MTU },
+      options.incoming ?? true,
+      options.outgoing ?? true,
+    );
     this.bindPipeEvents();
   }
 
-  static async open(provider: CryptoProvider, options: BleInterfaceOptions): Promise<BleInterface> {
+  static async open(
+    provider: CryptoProvider,
+    options: BleInterfaceOptions,
+  ): Promise<BleInterface> {
     const iface = new BleInterface(provider, options);
     await iface.start();
     return iface;
@@ -41,7 +57,8 @@ export class BleInterface extends RawPacketInterface {
   }
 
   protected async writeBytes(bytes: Uint8Array): Promise<void> {
-    const mtu = this.options.pipeMtu ?? this.options.pipe.mtu ?? BLE_DEFAULT_PIPE_MTU;
+    const mtu =
+      this.options.pipeMtu ?? this.options.pipe.mtu ?? BLE_DEFAULT_PIPE_MTU;
     for (const frame of fragmentForMtu(bytes, mtu)) {
       await this.options.pipe.write(frame);
     }
@@ -75,7 +92,7 @@ export class BleInterface extends RawPacketInterface {
       },
       onDisconnect: () => {
         this.online = false;
-      }
+      },
     });
   }
 }

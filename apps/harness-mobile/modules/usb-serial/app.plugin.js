@@ -6,7 +6,7 @@ module.exports = function withUsbSerial(config) {
     const manifest = config.modResults.manifest;
     const usesPermission = manifest["uses-permission"] ?? [];
     const permissions = new Set(
-      usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean)
+      usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean),
     );
 
     for (const permission of ["android.permission.USB_PERMISSION"]) {
@@ -19,15 +19,15 @@ module.exports = function withUsbSerial(config) {
 
     const usesFeature = manifest["uses-feature"] ?? [];
     const features = new Set(
-      usesFeature.map((entry) => entry.$?.["android:name"]).filter(Boolean)
+      usesFeature.map((entry) => entry.$?.["android:name"]).filter(Boolean),
     );
 
     if (!features.has("android.hardware.usb.host")) {
       usesFeature.push({
         $: {
           "android:name": "android.hardware.usb.host",
-          "android:required": "false"
-        }
+          "android:required": "false",
+        },
       });
     }
 
@@ -39,22 +39,30 @@ module.exports = function withUsbSerial(config) {
         application["receiver"] = [];
       }
 
-      const receiverClass = "expo.modules.twistedpear.usbserial.UsbPermissionReceiver";
+      const receiverClass =
+        "expo.modules.twistedpear.usbserial.UsbPermissionReceiver";
       const alreadyDeclared = application["receiver"].some(
-        (entry) => entry.$?.["android:name"] === receiverClass
+        (entry) => entry.$?.["android:name"] === receiverClass,
       );
 
       if (!alreadyDeclared) {
         application["receiver"].push({
           $: {
             "android:name": receiverClass,
-            "android:exported": "false"
+            "android:exported": "false",
           },
           "intent-filter": [
             {
-              action: [{ $: { "android:name": "network.twistedpear.harness.USB_PERMISSION" } }]
-            }
-          ]
+              action: [
+                {
+                  $: {
+                    "android:name":
+                      "network.twistedpear.harness.USB_PERMISSION",
+                  },
+                },
+              ],
+            },
+          ],
         });
       }
     }

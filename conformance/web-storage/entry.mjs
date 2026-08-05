@@ -8,7 +8,7 @@ import { verifyPackage } from "../../packages/app-registry/dist/index.js";
 import { PureCryptoProvider } from "../../packages/reticulum-ts/dist/web.js";
 import {
   createWebPackageStorage,
-  resetWebPackageStorage
+  resetWebPackageStorage,
 } from "../../packages/host-core/dist/web.js";
 import { TINY_TPKG_BASE64 } from "./fixture.mjs";
 
@@ -50,7 +50,7 @@ async function installPhase(archiveBytes) {
   return {
     installed,
     quota,
-    archiveBackend: storage.archiveBackend
+    archiveBackend: storage.archiveBackend,
   };
 }
 
@@ -58,7 +58,9 @@ async function reloadPhase() {
   const storage = await createWebPackageStorage({ dbName: DB_NAME });
   const records = storage.listInstalled();
   if (records.length !== 1) {
-    throw new Error(`expected one installed package after reload, got ${records.length}`);
+    throw new Error(
+      `expected one installed package after reload, got ${records.length}`,
+    );
   }
 
   const record = records[0];
@@ -77,7 +79,7 @@ async function reloadPhase() {
   const quota = await storage.getQuotaInfo();
   if (quota.packageUsedBytes !== archive.length) {
     throw new Error(
-      `packageUsedBytes mismatch after reload (${quota.packageUsedBytes} vs ${archive.length})`
+      `packageUsedBytes mismatch after reload (${quota.packageUsedBytes} vs ${archive.length})`,
     );
   }
 
@@ -90,7 +92,7 @@ async function reloadPhase() {
     quota,
     archiveBytes: archive.length,
     archiveBackend: storage.archiveBackend,
-    t256
+    t256,
   };
 }
 
@@ -107,7 +109,7 @@ async function main() {
       status: "installed",
       installed: firstVisit.installed,
       quota: firstVisit.quota,
-      archiveBackend: firstVisit.archiveBackend
+      archiveBackend: firstVisit.archiveBackend,
     };
     return;
   }
@@ -117,13 +119,13 @@ async function main() {
     status: "done",
     reload: reloaded,
     quota: reloaded.quota,
-    archiveBackend: reloaded.archiveBackend
+    archiveBackend: reloaded.archiveBackend,
   };
 }
 
 main().catch((error) => {
   globalThis.__WEB_STORAGE__ = {
     status: "error",
-    message: error instanceof Error ? error.message : String(error)
+    message: error instanceof Error ? error.message : String(error),
   };
 });

@@ -7,7 +7,7 @@ import {
   NodeCryptoProvider,
   Reticulum,
   nodeRuntime,
-  registerWebSocketServerInterface
+  registerWebSocketServerInterface,
 } from "../packages/reticulum-ts/dist/index.js";
 import { openBrowser } from "./open-browser.mjs";
 import { startStaticServer } from "./static-server.mjs";
@@ -19,7 +19,7 @@ const port = Number(process.env.TP_DEVSTUDIO_PORT ?? "9483");
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-devstudio/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -29,13 +29,17 @@ function runBuild() {
 async function startGateway() {
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
-  const gatewayNode = Reticulum.create({ provider, runtime, transportEnabled: true });
+  const gatewayNode = Reticulum.create({
+    provider,
+    runtime,
+    transportEnabled: true,
+  });
   gatewayNode.start();
 
   const wsServer = await registerWebSocketServerInterface(gatewayNode, {
     name: "ws-gateway",
     listenHost: "127.0.0.1",
-    listenPort: 0
+    listenPort: 0,
   });
 
   const wsPort = wsServer.address?.port;
@@ -48,7 +52,7 @@ async function startGateway() {
     async stop() {
       await wsServer.close();
       await gatewayNode.stop();
-    }
+    },
   };
 }
 
@@ -78,7 +82,10 @@ process.on("SIGTERM", () => {
 
 runBuild();
 gateway = await startGateway();
-staticServer = await startStaticServer(devstudioRoot, { host: "127.0.0.1", port });
+staticServer = await startStaticServer(devstudioRoot, {
+  host: "127.0.0.1",
+  port,
+});
 const pageUrl = `${staticServer.url}?ws=${encodeURIComponent(gateway.wsUrl)}`;
 
 console.log(`DevStudio (web) ready at ${pageUrl}`);

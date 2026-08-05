@@ -27,7 +27,7 @@ export function computeLinkRequestTimeout(
   rtt: number,
   trafficTimeoutFactor: number = LINK_TRAFFIC_TIMEOUT_FACTOR,
   responseMaxGraceTime: number = LINK_RESPONSE_MAX_GRACE_TIME,
-  graceFactor: number = LINK_REQUEST_TIMEOUT_GRACE_FACTOR
+  graceFactor: number = LINK_REQUEST_TIMEOUT_GRACE_FACTOR,
 ): number {
   return rtt * trafficTimeoutFactor + responseMaxGraceTime * graceFactor;
 }
@@ -37,7 +37,7 @@ export const LinkStatus = {
   HANDSHAKE: 0x01,
   ACTIVE: 0x02,
   STALE: 0x03,
-  CLOSED: 0x04
+  CLOSED: 0x04,
 } as const;
 
 export type LinkStatusValue = (typeof LinkStatus)[keyof typeof LinkStatus];
@@ -45,16 +45,17 @@ export type LinkStatusValue = (typeof LinkStatus)[keyof typeof LinkStatus];
 export const LinkTeardownReason = {
   TIMEOUT: 0x01,
   INITIATOR_CLOSED: 0x02,
-  DESTINATION_CLOSED: 0x03
+  DESTINATION_CLOSED: 0x03,
 } as const;
 
-export type LinkTeardownReasonValue = (typeof LinkTeardownReason)[keyof typeof LinkTeardownReason];
+export type LinkTeardownReasonValue =
+  (typeof LinkTeardownReason)[keyof typeof LinkTeardownReason];
 
 /** Mirrors RNS/Link.py resource acceptance strategies. */
 export const LinkResourceStrategy = {
   ACCEPT_NONE: 0x00,
   ACCEPT_ALL: 0x01,
-  ACCEPT_APP: 0x02
+  ACCEPT_APP: 0x02,
 } as const;
 
 export type LinkResourceStrategyValue =
@@ -86,7 +87,11 @@ export type LinkWatchdogEvent =
   | { readonly kind: "link/inbound"; readonly at: number }
   | { readonly kind: "link/keepalive-sent"; readonly at: number }
   | { readonly kind: "link/rtt-measured"; readonly rtt: number }
-  | { readonly kind: "link/status"; readonly status: LinkStatusValue; readonly activatedAt?: number };
+  | {
+      readonly kind: "link/status";
+      readonly status: LinkStatusValue;
+      readonly activatedAt?: number;
+    };
 
 export interface LinkWatchdogStepResult {
   readonly state: LinkWatchdogState;
@@ -105,21 +110,22 @@ export function initialLinkWatchdogState(options: {
     initiator: options.initiator,
     requestTime: options.requestTime,
     establishmentTimeout:
-      options.establishmentTimeout ?? computeLinkEstablishmentTimeout(1, keepalive),
+      options.establishmentTimeout ??
+      computeLinkEstablishmentTimeout(1, keepalive),
     activatedAt: null,
     lastInbound: 0,
     lastKeepalive: 0,
     keepalive,
     staleTime: keepalive * LINK_STALE_FACTOR,
     rtt: null,
-    teardownReason: null
+    teardownReason: null,
   };
 }
 
 export function computeKeepalive(rtt: number): number {
   return Math.max(
     Math.min(rtt * (LINK_KEEPALIVE / LINK_KEEPALIVE_MAX_RTT), LINK_KEEPALIVE),
-    LINK_KEEPALIVE_MIN
+    LINK_KEEPALIVE_MIN,
   );
 }
 
@@ -154,7 +160,7 @@ export function initialComputeKeepaliveState(): ComputeKeepaliveState {
 
 export function stepComputeKeepaliveWithActions(
   state: ComputeKeepaliveState,
-  event: ComputeKeepaliveEvent
+  event: ComputeKeepaliveEvent,
 ): ComputeKeepaliveStepResult {
   if (event.kind === "link/keepalive-gate") {
     return {
@@ -163,9 +169,9 @@ export function stepComputeKeepaliveWithActions(
       actions: [
         {
           kind: "use-keepalive",
-          keepalive: computeKeepalive(event.rtt)
-        }
-      ]
+          keepalive: computeKeepalive(event.rtt),
+        },
+      ],
     };
   }
 
@@ -173,14 +179,14 @@ export function stepComputeKeepaliveWithActions(
 }
 
 export function shouldUseLinkKeepalive(
-  actions: ReadonlyArray<ComputeKeepaliveAction>
+  actions: ReadonlyArray<ComputeKeepaliveAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-keepalive");
 }
 
 /** Extract keepalive from step actions; null when no `use-keepalive`. */
 export function linkKeepaliveFromActions(
-  actions: ReadonlyArray<ComputeKeepaliveAction>
+  actions: ReadonlyArray<ComputeKeepaliveAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-keepalive");
   return action?.kind === "use-keepalive" ? action.keepalive : null;
@@ -189,7 +195,7 @@ export function linkKeepaliveFromActions(
 /** Seconds allowed to establish a link across `hops` (minimum 1 hop). */
 export function computeLinkEstablishmentTimeout(
   hops: number,
-  keepalive: number = LINK_KEEPALIVE_DEFAULT
+  keepalive: number = LINK_KEEPALIVE_DEFAULT,
 ): number {
   return LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, hops) + keepalive;
 }
@@ -226,7 +232,7 @@ export function initialComputeLinkEstablishmentTimeoutState(): ComputeLinkEstabl
 
 export function stepComputeLinkEstablishmentTimeoutWithActions(
   state: ComputeLinkEstablishmentTimeoutState,
-  event: ComputeLinkEstablishmentTimeoutEvent
+  event: ComputeLinkEstablishmentTimeoutEvent,
 ): ComputeLinkEstablishmentTimeoutStepResult {
   if (event.kind === "link/establishment-timeout-gate") {
     return {
@@ -235,9 +241,9 @@ export function stepComputeLinkEstablishmentTimeoutWithActions(
       actions: [
         {
           kind: "use-timeout",
-          timeout: computeLinkEstablishmentTimeout(event.hops, event.keepalive)
-        }
-      ]
+          timeout: computeLinkEstablishmentTimeout(event.hops, event.keepalive),
+        },
+      ],
     };
   }
 
@@ -245,14 +251,14 @@ export function stepComputeLinkEstablishmentTimeoutWithActions(
 }
 
 export function shouldUseLinkEstablishmentTimeout(
-  actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>
+  actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-timeout");
 }
 
 /** Extract establishment timeout from step actions; null when no `use-timeout`. */
 export function linkEstablishmentTimeoutFromActions(
-  actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>
+  actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-timeout");
   return action?.kind === "use-timeout" ? action.timeout : null;
@@ -292,7 +298,7 @@ export function initialComputeLinkRequestTimeoutState(): ComputeLinkRequestTimeo
 
 export function stepComputeLinkRequestTimeoutWithActions(
   state: ComputeLinkRequestTimeoutState,
-  event: ComputeLinkRequestTimeoutEvent
+  event: ComputeLinkRequestTimeoutEvent,
 ): ComputeLinkRequestTimeoutStepResult {
   if (event.kind === "link/request-timeout-gate") {
     return {
@@ -305,10 +311,10 @@ export function stepComputeLinkRequestTimeoutWithActions(
             event.rtt,
             event.trafficTimeoutFactor,
             event.responseMaxGraceTime,
-            event.graceFactor
-          )
-        }
-      ]
+            event.graceFactor,
+          ),
+        },
+      ],
     };
   }
 
@@ -316,14 +322,14 @@ export function stepComputeLinkRequestTimeoutWithActions(
 }
 
 export function shouldUseLinkRequestTimeout(
-  actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>
+  actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-timeout");
 }
 
 /** Extract request timeout from step actions; null when no `use-timeout`. */
 export function linkRequestTimeoutFromActions(
-  actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>
+  actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-timeout");
   return action?.kind === "use-timeout" ? action.timeout : null;
@@ -336,26 +342,34 @@ export const stepLinkWatchdog: StepFn<LinkWatchdogState> = (state, event) => {
 
 export function stepLinkWatchdogWithActions(
   state: LinkWatchdogState,
-  event: LinkWatchdogEvent
+  event: LinkWatchdogEvent,
 ): LinkWatchdogStepResult {
   return stepLinkWatchdogInner(state, event);
 }
 
-function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEvent): LinkWatchdogStepResult {
+function stepLinkWatchdogInner(
+  state: LinkWatchdogState,
+  event: LinkWatchdogEvent,
+): LinkWatchdogStepResult {
   if (event.kind === "link/inbound") {
     return {
       state: {
         ...state,
         lastInbound: event.at,
-        status: state.status === LinkStatus.STALE ? LinkStatus.ACTIVE : state.status
+        status:
+          state.status === LinkStatus.STALE ? LinkStatus.ACTIVE : state.status,
       },
       intents: [],
-      actions: []
+      actions: [],
     };
   }
 
   if (event.kind === "link/keepalive-sent") {
-    return { state: { ...state, lastKeepalive: event.at }, intents: [], actions: [] };
+    return {
+      state: { ...state, lastKeepalive: event.at },
+      intents: [],
+      actions: [],
+    };
   }
 
   if (event.kind === "link/rtt-measured") {
@@ -365,10 +379,10 @@ function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEven
         ...state,
         rtt: event.rtt,
         keepalive,
-        staleTime: keepalive * LINK_STALE_FACTOR
+        staleTime: keepalive * LINK_STALE_FACTOR,
       },
       intents: [],
-      actions: []
+      actions: [],
     };
   }
 
@@ -377,10 +391,10 @@ function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEven
       state: {
         ...state,
         status: event.status,
-        activatedAt: event.activatedAt ?? state.activatedAt
+        activatedAt: event.activatedAt ?? state.activatedAt,
       },
       intents: [],
-      actions: []
+      actions: [],
     };
   }
 
@@ -398,20 +412,26 @@ function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEven
     return { state, intents: [], actions: [] };
   }
 
-  if (state.status === LinkStatus.PENDING || state.status === LinkStatus.HANDSHAKE) {
+  if (
+    state.status === LinkStatus.PENDING ||
+    state.status === LinkStatus.HANDSHAKE
+  ) {
     if (now >= state.requestTime + state.establishmentTimeout) {
       return {
         state: {
           ...state,
           status: LinkStatus.CLOSED,
-          teardownReason: LinkTeardownReason.TIMEOUT
+          teardownReason: LinkTeardownReason.TIMEOUT,
         },
         intents: [],
-        actions: [{ kind: "close", reason: LinkTeardownReason.TIMEOUT }]
+        actions: [{ kind: "close", reason: LinkTeardownReason.TIMEOUT }],
       };
     }
 
-    const delayMs = Math.max((state.requestTime + state.establishmentTimeout - now) * 1000, 25);
+    const delayMs = Math.max(
+      (state.requestTime + state.establishmentTimeout - now) * 1000,
+      25,
+    );
     return scheduleWatchdog(state, delayMs, []);
   }
 
@@ -424,10 +444,13 @@ function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEven
         state: {
           ...state,
           status: LinkStatus.CLOSED,
-          teardownReason: LinkTeardownReason.TIMEOUT
+          teardownReason: LinkTeardownReason.TIMEOUT,
         },
         intents: [],
-        actions: [{ kind: "send-teardown" }, { kind: "close", reason: LinkTeardownReason.TIMEOUT }]
+        actions: [
+          { kind: "send-teardown" },
+          { kind: "close", reason: LinkTeardownReason.TIMEOUT },
+        ],
       };
     }
 
@@ -440,22 +463,27 @@ function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEven
 
       if (now >= lastInbound + state.staleTime) {
         const delayMs = Math.max(
-          (state.rtt ?? 0.025) * LINK_KEEPALIVE_TIMEOUT_FACTOR * 1000 + LINK_STALE_GRACE * 1000,
-          25
+          (state.rtt ?? 0.025) * LINK_KEEPALIVE_TIMEOUT_FACTOR * 1000 +
+            LINK_STALE_GRACE * 1000,
+          25,
         );
         return scheduleWatchdog(
           { ...state, status: LinkStatus.STALE },
           delayMs,
-          [{ kind: "mark-stale" }, ...actions]
+          [{ kind: "mark-stale" }, ...actions],
         );
       }
 
-      return scheduleWatchdog(state, Math.min(state.keepalive * 1000, LINK_WATCHDOG_MAX_SLEEP_MS), actions);
+      return scheduleWatchdog(
+        state,
+        Math.min(state.keepalive * 1000, LINK_WATCHDOG_MAX_SLEEP_MS),
+        actions,
+      );
     }
 
     const delayMs = Math.min(
       Math.max((lastInbound + state.keepalive - now) * 1000, 25),
-      LINK_WATCHDOG_MAX_SLEEP_MS
+      LINK_WATCHDOG_MAX_SLEEP_MS,
     );
     return scheduleWatchdog(state, delayMs, actions);
   }
@@ -466,11 +494,11 @@ function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEven
 function scheduleWatchdog(
   state: LinkWatchdogState,
   delayMs: number,
-  actions: readonly LinkWatchdogAction[]
+  actions: readonly LinkWatchdogAction[],
 ): LinkWatchdogStepResult {
   return {
     state,
     intents: [{ kind: "timer/set", timer: { id: "link-watchdog", delayMs } }],
-    actions
+    actions,
   };
 }

@@ -20,7 +20,7 @@ import {
   decodeLinkControl,
   parseSessionInvite,
   SESSION_INVITE_MAX_BODY_BYTES,
-  type SessionInviteRequest
+  type SessionInviteRequest,
 } from "@twistedpear/protocol";
 
 /** LXMF title that carries a `TPL1` type-4 invite. */
@@ -65,7 +65,9 @@ export interface SessionInviteReceiverOptions {
    * Names the verified sender for chrome, and mints the opaque peer handle.
    * Returning null drops the invite: an unnamed peer must not be rung.
    */
-  readonly resolvePeer: (sourceHashHex: string) => { readonly handleId: string; readonly displayLabel: string } | null;
+  readonly resolvePeer: (
+    sourceHashHex: string,
+  ) => { readonly handleId: string; readonly displayLabel: string } | null;
   readonly now: () => number;
   readonly maxInvitesPerWindow?: number;
   readonly windowMs?: number;
@@ -79,15 +81,18 @@ export interface SessionInviteReceiverOptions {
  * returns a handler to call from it rather than registering one itself.
  */
 export function createSessionInviteReceiver(
-  options: SessionInviteReceiverOptions
+  options: SessionInviteReceiverOptions,
 ): (message: SessionInviteCarrierMessage) => void {
-  const maxPerWindow = options.maxInvitesPerWindow ?? DEFAULT_MAX_INVITES_PER_WINDOW;
+  const maxPerWindow =
+    options.maxInvitesPerWindow ?? DEFAULT_MAX_INVITES_PER_WINDOW;
   const windowMs = options.windowMs ?? DEFAULT_WINDOW_MS;
   const seen = new Map<string, number[]>();
   const log = options.log ?? (() => {});
 
   const withinRate = (sourceHashHex: string, at: number): boolean => {
-    const recent = (seen.get(sourceHashHex) ?? []).filter((stamp) => at - stamp < windowMs);
+    const recent = (seen.get(sourceHashHex) ?? []).filter(
+      (stamp) => at - stamp < windowMs,
+    );
     if (recent.length >= maxPerWindow) {
       seen.set(sourceHashHex, recent);
       return false;
@@ -111,7 +116,8 @@ export function createSessionInviteReceiver(
     if (message.signatureValidated !== true) return;
     if (!content.startsWith(SESSION_INVITE_PREFIX)) return;
     const payloadHex = content.slice(SESSION_INVITE_PREFIX.length);
-    if (payloadHex.length > MAX_INVITE_HEX || payloadHex.length % 2 !== 0) return;
+    if (payloadHex.length > MAX_INVITE_HEX || payloadHex.length % 2 !== 0)
+      return;
     if (!/^[0-9a-f]*$/i.test(payloadHex)) return;
 
     const envelope = decodeLinkControl(hexToBytes(payloadHex));
@@ -127,7 +133,9 @@ export function createSessionInviteReceiver(
     const peer = options.resolvePeer(sourceHashHex);
     if (peer === null) return;
     if (!withinRate(sourceHashHex, at)) {
-      log(`Session invite from ${sourceHashHex.slice(0, 12)}… dropped: per-peer rate ceiling`);
+      log(
+        `Session invite from ${sourceHashHex.slice(0, 12)}… dropped: per-peer rate ceiling`,
+      );
       return;
     }
 
@@ -141,10 +149,12 @@ export function createSessionInviteReceiver(
         verifiedPeerLabel: peer.displayLabel,
         requestedClasses: request.requestedClasses,
         expiresAt: request.expiresAt,
-        verified: true
+        verified: true,
       })
       .catch((error: unknown) =>
-        log(`Session invite delivery failed: ${error instanceof Error ? error.message : String(error)}`)
+        log(
+          `Session invite delivery failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
   };
 }

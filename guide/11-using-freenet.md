@@ -227,13 +227,13 @@ storage.
 
 ## Troubleshooting
 
-| Symptom | Check |
-|---|---|
-| `FREENET_UNCONFIGURED` | Enable Freenet contracts and enter the WebSocket endpoint. |
-| Node status says configured but HDLC is offline | Enable the interface and use the same rendezvous on both peers. |
-| Authentication failure | Re-enter the token; the desktop host intentionally does not show the saved value. |
-| Package fetch falls back to Resource | Confirm the Freenet node is reachable and the locator contains a Freenet contract key. |
-| `put` or `update` did nothing | The host confirmation may have been refused; the app cannot bypass it. |
+| Symptom                                         | Check                                                                                  |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `FREENET_UNCONFIGURED`                          | Enable Freenet contracts and enter the WebSocket endpoint.                             |
+| Node status says configured but HDLC is offline | Enable the interface and use the same rendezvous on both peers.                        |
+| Authentication failure                          | Re-enter the token; the desktop host intentionally does not show the saved value.      |
+| Package fetch falls back to Resource            | Confirm the Freenet node is reachable and the locator contains a Freenet contract key. |
+| `put` or `update` did nothing                   | The host confirmation may have been refused; the app cannot bypass it.                 |
 
 Back to [Troubleshooting](10-troubleshooting.md), or review the engineering
 [Freenet integration plan](../docs/freenet-plan.md).

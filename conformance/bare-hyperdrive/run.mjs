@@ -7,21 +7,33 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Identity, PureCryptoProvider, bytesToHex } from "../../packages/reticulum-ts/dist/index.js";
+import {
+  Identity,
+  PureCryptoProvider,
+  bytesToHex,
+} from "../../packages/reticulum-ts/dist/index.js";
 import {
   buildUnsignedManifest,
   packPackage,
   signManifest,
-  unpackPackage
+  unpackPackage,
 } from "../../packages/app-registry/dist/index.js";
-import { DriveManager, createSwarm } from "../../packages/bridge-hyper/dist/index.js";
+import {
+  DriveManager,
+  createSwarm,
+} from "../../packages/bridge-hyper/dist/index.js";
 
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildPackage(provider, identity, version, driveKey) {
-  const files = [{ path: "bundle.js", content: new TextEncoder().encode(`bare-hyperdrive-${version}`) }];
+  const files = [
+    {
+      path: "bundle.js",
+      content: new TextEncoder().encode(`bare-hyperdrive-${version}`),
+    },
+  ];
   const unsigned = buildUnsignedManifest(
     {
       name: "bare.test",
@@ -29,12 +41,16 @@ function buildPackage(provider, identity, version, driveKey) {
       entry: "bundle.js",
       driveKey,
       publisherPublicKey: bytesToHex(identity.getPublicKey()),
-      files
+      files,
     },
-    provider
+    provider,
   );
   const manifest = signManifest(provider, identity, unsigned);
-  return packPackage(provider, { ...manifest, signature: manifest.signature, files });
+  return packPackage(provider, {
+    ...manifest,
+    signature: manifest.signature,
+    files,
+  });
 }
 
 async function fetchWithRetry(driveManager, version) {
@@ -58,7 +74,10 @@ async function main() {
 
   try {
     const pubSwarm = createSwarm();
-    const pubDrive = new DriveManager({ storagePath: publisherDir, swarm: pubSwarm });
+    const pubDrive = new DriveManager({
+      storagePath: publisherDir,
+      swarm: pubSwarm,
+    });
     await pubDrive.ready();
     const { keyHex } = await pubDrive.createDrive();
 
@@ -72,7 +91,10 @@ async function main() {
     }
 
     const conSwarm = createSwarm();
-    const conDrive = new DriveManager({ storagePath: consumerDir, swarm: conSwarm });
+    const conDrive = new DriveManager({
+      storagePath: consumerDir,
+      swarm: conSwarm,
+    });
     await conDrive.ready();
     await conDrive.openDrive(keyHex);
 

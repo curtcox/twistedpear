@@ -2,13 +2,13 @@ import {
   encodeCasLocator,
   verify256t,
   verifyCasLocator,
-  type CasLocator
+  type CasLocator,
 } from "@twistedpear/cas-256t";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import { FreenetClient } from "../core/client.js";
 import {
   decodeFreenetLocatorState,
-  locatorContractParameters
+  locatorContractParameters,
 } from "../core/locator-contract.js";
 
 export interface FreenetPackageFetcherOptions {
@@ -34,7 +34,7 @@ export class FreenetPackageFetcher {
     }
     const source = {
       wasm: this.#locatorContractWasm,
-      parameters: locatorContractParameters(locator.t256)
+      parameters: locatorContractParameters(locator.t256),
     };
     const { key } = FreenetClient.deriveKey(source);
     const record = await this.#client.get(key);
@@ -51,10 +51,8 @@ export class FreenetPackageFetcher {
       throw new Error("Freenet contract locator signature is invalid");
     }
     if (
-      !verify256t(
-        locator.t256,
-        state.archiveBytes,
-        (bytes) => this.#provider.sha512(bytes)
+      !verify256t(locator.t256, state.archiveBytes, (bytes) =>
+        this.#provider.sha512(bytes),
       )
     ) {
       throw new Error("Freenet package does not match its 256t id");

@@ -70,7 +70,11 @@ export interface UdpBindOptions {
 }
 
 export interface UdpFactory {
-  bind(host: string, port: number, options?: UdpBindOptions): Promise<BoundDatagramSocket>;
+  bind(
+    host: string,
+    port: number,
+    options?: UdpBindOptions,
+  ): Promise<BoundDatagramSocket>;
 }
 
 export interface Runtime {

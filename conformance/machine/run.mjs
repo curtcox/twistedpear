@@ -17,7 +17,9 @@ function report(label, result, expectPass = true) {
     failed = true;
     console.error(`FAIL ${label}`);
     for (const failure of result.failures) {
-      console.error(`  ${failure.machine} [${failure.check}]: ${failure.message}`);
+      console.error(
+        `  ${failure.machine} [${failure.check}]: ${failure.message}`,
+      );
     }
   }
   return result;
@@ -35,7 +37,10 @@ if (externalPath !== undefined) {
 }
 
 const reference = await import("./reference-machines.mjs");
-report("reference machines (protocol echo)", runMachineGate(reference.machines));
+report(
+  "reference machines (protocol echo)",
+  runMachineGate(reference.machines),
+);
 
 const canaries = await import("./canary-machines.mjs");
 for (const [name, machine] of Object.entries(canaries.machines)) {
@@ -46,7 +51,9 @@ for (const [name, machine] of Object.entries(canaries.machines)) {
     console.log(`PASS canary ${name} (caught by ${expected})`);
   } else {
     failed = true;
-    console.error(`FAIL canary ${name}: expected a ${expected} failure, saw ${JSON.stringify(result.failures)}`);
+    console.error(
+      `FAIL canary ${name}: expected a ${expected} failure, saw ${JSON.stringify(result.failures)}`,
+    );
   }
 }
 

@@ -1,6 +1,5 @@
 # reticulum-ts
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -41,10 +40,10 @@ API reference: `npm run docs --workspace=@twistedpear/reticulum-ts` (output in
 
 ## Crypto providers
 
-| Provider | Implementation |
-|---|---|
-| `node` | `node:crypto` (AES/HKDF/HMAC/SHA-256) + `sodium-native` (X25519/Ed25519) |
-| `pure` | `@noble/curves`, `@noble/ciphers`, `@noble/hashes` |
+| Provider | Implementation                                                           |
+| -------- | ------------------------------------------------------------------------ |
+| `node`   | `node:crypto` (AES/HKDF/HMAC/SHA-256) + `sodium-native` (X25519/Ed25519) |
+| `pure`   | `@noble/curves`, `@noble/ciphers`, `@noble/hashes`                       |
 
 Every crypto test runs against both providers and asserts identical output.
 

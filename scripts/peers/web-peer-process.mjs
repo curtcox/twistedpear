@@ -14,7 +14,7 @@ const args = new Map(
   process.argv.slice(2).map((arg) => {
     const at = arg.indexOf("=");
     return [arg.slice(2, at), arg.slice(at + 1)];
-  })
+  }),
 );
 const url = args.get("url");
 const readyPath = args.get("ready");
@@ -34,13 +34,11 @@ const launchOptions = {
   args: [
     `--remote-debugging-port=${cdpPort}`,
     "--use-fake-device-for-media-stream",
-    "--use-fake-ui-for-media-stream"
-  ]
+    "--use-fake-ui-for-media-stream",
+  ],
 };
 
-const browser = userDataDir
-  ? null
-  : await chromium.launch(launchOptions);
+const browser = userDataDir ? null : await chromium.launch(launchOptions);
 if (userDataDir) {
   mkdirSync(userDataDir, { recursive: true });
 }
@@ -48,31 +46,46 @@ const context = userDataDir
   ? await chromium.launchPersistentContext(userDataDir, launchOptions)
   : await browser.newContext();
 const page = context.pages()[0] ?? (await context.newPage());
-page.on("console", (message) => console.log(`browser:${message.type()}: ${message.text()}`));
-page.on("pageerror", (error) => console.error(`browser:pageerror: ${error.message}`));
+page.on("console", (message) =>
+  console.log(`browser:${message.type()}: ${message.text()}`),
+);
+page.on("pageerror", (error) =>
+  console.error(`browser:pageerror: ${error.message}`),
+);
 await page.goto(url, { waitUntil: "load", timeout: 60_000 });
-await page.waitForFunction(() => globalThis.__TP_CROSS_DEVICE__ !== undefined, undefined, {
-  timeout: 60_000
-});
+await page.waitForFunction(
+  () => globalThis.__TP_CROSS_DEVICE__ !== undefined,
+  undefined,
+  {
+    timeout: 60_000,
+  },
+);
 const body = page.locator("body");
 if ((await body.getByText("Identity: none", { exact: true }).count()) > 0) {
   await page.getByTestId("create-identity").click();
 }
 const gatewaySwitch = page.getByTestId("ws-gateway-switch");
-if ((await gatewaySwitch.getAttribute("aria-checked")) !== "true") await gatewaySwitch.click();
-await page.getByText("Gateway link: online", { exact: true }).waitFor({ timeout: 60_000 });
+if ((await gatewaySwitch.getAttribute("aria-checked")) !== "true")
+  await gatewaySwitch.click();
+await page
+  .getByText("Gateway link: online", { exact: true })
+  .waitFor({ timeout: 60_000 });
 
 async function harnessCommand(cmd, payload = {}, timeoutMs = 120_000) {
   return page.evaluate(
     async ({ cmd, payload, timeoutMs }) => {
       const bridge = globalThis.__TP_CROSS_DEVICE__;
-      if (bridge === undefined) throw new Error("__TP_CROSS_DEVICE__ is not mounted");
+      if (bridge === undefined)
+        throw new Error("__TP_CROSS_DEVICE__ is not mounted");
       const timer = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`harness ${cmd} timed out`)), timeoutMs);
+        setTimeout(
+          () => reject(new Error(`harness ${cmd} timed out`)),
+          timeoutMs,
+        );
       });
       return Promise.race([bridge.command(cmd, payload), timer]);
     },
-    { cmd, payload, timeoutMs }
+    { cmd, payload, timeoutMs },
   );
 }
 
@@ -98,10 +111,12 @@ writeFileSync(
     cdpPort,
     label,
     lxmfAddress: info.lxmfAddress,
-    identityHash: info.identityHash
-  })}\n`
+    identityHash: info.identityHash,
+  })}\n`,
 );
-console.log(`web-peer ${label}: ready lxmf ${String(info.lxmfAddress).slice(0, 12)}…`);
+console.log(
+  `web-peer ${label}: ready lxmf ${String(info.lxmfAddress).slice(0, 12)}…`,
+);
 
 /** @type {import("node:net").Socket | null} */
 let controlSocket = null;
@@ -127,21 +142,34 @@ async function handleControlRequest(frame) {
           platform: "web",
           identityHash: live.identityHash,
           lxmfAddress: live.lxmfAddress,
-          linkOnline: live.linkOnline
+          linkOnline: live.linkOnline,
         },
         ...(cmd === "info"
           ? {
               label,
               platform: "web",
               identityHash: live.identityHash,
-              lxmfAddress: live.lxmfAddress
+              lxmfAddress: live.lxmfAddress,
             }
-          : {})
+          : {}),
       });
       return;
     }
-    if (cmd === "peers" || cmd === "inbox" || cmd === "realtime-inbox" || cmd === "call-inbox" || cmd === "link-state") {
-      writeControl({ id, ok: true, peers: [], inbox: [], readiness: [], probes: [] });
+    if (
+      cmd === "peers" ||
+      cmd === "inbox" ||
+      cmd === "realtime-inbox" ||
+      cmd === "call-inbox" ||
+      cmd === "link-state"
+    ) {
+      writeControl({
+        id,
+        ok: true,
+        peers: [],
+        inbox: [],
+        readiness: [],
+        probes: [],
+      });
       return;
     }
     const { id: _id, cmd: requestCmd, ...rest } = frame;
@@ -151,7 +179,7 @@ async function handleControlRequest(frame) {
     writeControl({
       id,
       ok: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 }
@@ -170,7 +198,7 @@ function attachControlBridge() {
         label,
         platform: "web",
         identityHash: info.identityHash,
-        lxmfAddress: info.lxmfAddress
+        lxmfAddress: info.lxmfAddress,
       });
       console.log(`web-peer ${label}: control attached as ${label}`);
     });

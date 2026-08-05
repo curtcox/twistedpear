@@ -13,14 +13,14 @@ import {
   NodeCryptoProvider,
   Reticulum,
   hexToBytes,
-  nodeRuntime
+  nodeRuntime,
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   interopReady,
   sleep,
   withComposeService,
   LINK_ECHO_PORT,
-  waitForReadyLine
+  waitForReadyLine,
 } from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
@@ -28,20 +28,31 @@ if (!interopReady()) {
   process.exit(0);
 }
 
-const DURATION_MS = Number.parseInt(process.env.LINK_SOAK_DURATION_MS ?? "60000", 10);
-const PING_INTERVAL_MS = Number.parseInt(process.env.LINK_SOAK_PING_MS ?? "5000", 10);
+const DURATION_MS = Number.parseInt(
+  process.env.LINK_SOAK_DURATION_MS ?? "60000",
+  10,
+);
+const PING_INTERVAL_MS = Number.parseInt(
+  process.env.LINK_SOAK_PING_MS ?? "5000",
+  10,
+);
 
 const identityVectors = JSON.parse(
-  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8"),
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  const entry = identityVectors.identities.find(
+    (candidate) => candidate.name === name,
+  );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === undefined || identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -77,7 +88,7 @@ async function main() {
       name: "python-link-soak",
       targetHost: "127.0.0.1",
       targetPort: LINK_ECHO_PORT,
-      reconnectWaitMs: 500
+      reconnectWaitMs: 500,
     });
 
     const bobOut = reticulum.registerDestination({
@@ -86,7 +97,7 @@ async function main() {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["link"]
+      aspects: ["link"],
     });
 
     await waitForPath(reticulum, bobOut.hash);
@@ -111,13 +122,19 @@ async function main() {
         throw new Error(`link closed unexpectedly after ${pings} pings`);
       }
 
-      const echo = new Promise<string>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("link echo timeout")), 10_000);
-        link.callbacks.packet = (data) => {
-          clearTimeout(timer);
-          resolve(new TextDecoder().decode(data));
-        };
-      });
+      const echo =
+        new Promise() <
+        string >
+        ((resolve, reject) => {
+          const timer = setTimeout(
+            () => reject(new Error("link echo timeout")),
+            10_000,
+          );
+          link.callbacks.packet = (data) => {
+            clearTimeout(timer);
+            resolve(new TextDecoder().decode(data));
+          };
+        });
 
       const label = `soak-${pings}`;
       await link.send(new TextEncoder().encode(label));
@@ -135,7 +152,7 @@ async function main() {
     }
 
     console.log(
-      `link-soak: ${pings} keepalive pings over ${DURATION_MS}ms, zero spurious teardowns`
+      `link-soak: ${pings} keepalive pings over ${DURATION_MS}ms, zero spurious teardowns`,
     );
   });
 }

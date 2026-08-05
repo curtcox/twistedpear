@@ -9,7 +9,10 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { diffWidgetTrees, validateWidgetTree } from "../packages/miniapp-runtime/dist/index.js";
+import {
+  diffWidgetTrees,
+  validateWidgetTree,
+} from "../packages/miniapp-runtime/dist/index.js";
 import { renderHeadlessSnapshot } from "../packages/widget-renderer-headless/dist/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -26,19 +29,20 @@ const SCRIPTS = {
     setup: (state) => {
       state.inbox = [
         { from: "peer-42", body: "hello back" },
-        { from: "peer-77", body: "second message" }
+        { from: "peer-77", body: "second message" },
       ];
     },
     events: [
       { event: "chat.peer", value: "peer-42" },
       { event: "chat.send" },
-      { event: "chat.refresh" }
-    ]
+      { event: "chat.refresh" },
+    ],
   },
   board: {
-    description: "Board example: publish a post, then refresh counts from storage and announces.",
+    description:
+      "Board example: publish a post, then refresh counts from storage and announces.",
     setup: () => {},
-    events: [{ event: "board.publish" }, { event: "board.refresh" }]
+    events: [{ event: "board.publish" }, { event: "board.refresh" }],
   },
   "file-drop": {
     description:
@@ -46,11 +50,11 @@ const SCRIPTS = {
     setup: (state) => {
       state.resourceResults = [
         new Uint8Array(2048).fill(7),
-        new Error("Budget exceeded for offer:demo")
+        new Error("Budget exceeded for offer:demo"),
       ];
     },
-    events: [{ event: "resource.fetch" }, { event: "resource.fetch" }]
-  }
+    events: [{ event: "resource.fetch" }, { event: "resource.fetch" }],
+  },
 };
 
 function freshState() {
@@ -62,7 +66,7 @@ function freshState() {
     sent: [],
     inbox: [],
     announces: [],
-    resourceResults: []
+    resourceResults: [],
   };
 }
 
@@ -71,9 +75,14 @@ async function recordApp(name) {
   const bundlePath = join(repo, "apps", "examples", name, "bundle.js");
   const source = readFileSync(bundlePath, "utf8");
   if (!source.includes('from "@twistedpear/miniapp-sdk"')) {
-    throw new Error(`${bundlePath} does not import @twistedpear/miniapp-sdk as expected`);
+    throw new Error(
+      `${bundlePath} does not import @twistedpear/miniapp-sdk as expected`,
+    );
   }
-  const rewritten = source.replace('from "@twistedpear/miniapp-sdk"', `from ${JSON.stringify(shimUrl)}`);
+  const rewritten = source.replace(
+    'from "@twistedpear/miniapp-sdk"',
+    `from ${JSON.stringify(shimUrl)}`,
+  );
   const scratch = mkdtempSync(join(tmpdir(), "widget-stream-"));
   const modulePath = join(scratch, `${name}.mjs`);
   writeFileSync(modulePath, rewritten);
@@ -82,7 +91,8 @@ async function recordApp(name) {
   script.setup(state);
   globalThis.__widgetStreamRecorder = state;
   await import(pathToFileURL(modulePath).href);
-  if (state.handler === undefined) throw new Error(`${name} never registered ui.onEvent`);
+  if (state.handler === undefined)
+    throw new Error(`${name} never registered ui.onEvent`);
   for (const event of script.events) {
     await state.handler(event);
   }
@@ -103,7 +113,7 @@ async function recordApp(name) {
     description: script.description,
     events: script.events,
     frames,
-    patches
+    patches,
   };
 }
 
@@ -112,7 +122,9 @@ for (const name of Object.keys(SCRIPTS)) {
   const stream = await recordApp(name);
   const path = join(streamsDir, `${name}.json`);
   writeFileSync(path, JSON.stringify(stream, null, 2) + "\n");
-  console.log(`${name}: ${stream.frames.length} frames, ${stream.patches.length} transitions -> ${path}`);
+  console.log(
+    `${name}: ${stream.frames.length} frames, ${stream.patches.length} transitions -> ${path}`,
+  );
 }
 
 // Serialization note: streams must be plain JSON. Uint8Array values never

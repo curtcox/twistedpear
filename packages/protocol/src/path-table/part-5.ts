@@ -28,10 +28,23 @@ import {
   PACKET_DEST_TYPE_GROUP,
   PACKET_DEST_TYPE_PLAIN,
   PACKET_HEADER_1,
-  PACKET_TYPE_ANNOUNCE
+  PACKET_TYPE_ANNOUNCE,
 } from "../packet-header.js";
-import { computePathExpiry, equalByteArrays, pathEntryLookupPlanFromActions, planPathEntryLookup, shouldAddPathEntry } from "./part-4.js";
-import type { PathEntryLookupAction, PathEntryLookupEvent, PathEntryLookupPlan, PathEntryLookupPlanAction, PathEntryLookupPlanEvent, PathTableEntryView } from "./part-4.js";
+import {
+  computePathExpiry,
+  equalByteArrays,
+  pathEntryLookupPlanFromActions,
+  planPathEntryLookup,
+  shouldAddPathEntry,
+} from "./part-4.js";
+import type {
+  PathEntryLookupAction,
+  PathEntryLookupEvent,
+  PathEntryLookupPlan,
+  PathEntryLookupPlanAction,
+  PathEntryLookupPlanEvent,
+  PathTableEntryView,
+} from "./part-4.js";
 /**
  * Path-entry lookup plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPathEntryLookup` /
@@ -52,7 +65,7 @@ export function initialPathEntryLookupPlanState(): PathEntryLookupPlanState {
 
 export function stepPathEntryLookupPlanWithActions(
   state: PathEntryLookupPlanState,
-  event: PathEntryLookupPlanEvent
+  event: PathEntryLookupPlanEvent,
 ): PathEntryLookupPlanStepResult {
   if (event.kind === "path/entry-lookup-plan-gate") {
     return {
@@ -62,10 +75,10 @@ export function stepPathEntryLookupPlanWithActions(
         {
           kind: planPathEntryLookup({
             entryPresent: event.entryPresent,
-            expired: event.expired
-          })
-        }
-      ]
+            expired: event.expired,
+          }),
+        },
+      ],
     };
   }
 
@@ -73,19 +86,19 @@ export function stepPathEntryLookupPlanWithActions(
 }
 
 export function shouldMissPathEntryLookupPlan(
-  actions: ReadonlyArray<PathEntryLookupPlanAction>
+  actions: ReadonlyArray<PathEntryLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 export function shouldExpirePathEntryLookupPlan(
-  actions: ReadonlyArray<PathEntryLookupPlanAction>
+  actions: ReadonlyArray<PathEntryLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "expired");
 }
 
 export function shouldHitPathEntryLookupPlan(
-  actions: ReadonlyArray<PathEntryLookupPlanAction>
+  actions: ReadonlyArray<PathEntryLookupPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "hit");
 }
@@ -108,53 +121,59 @@ export function initialPathEntryLookupState(): PathEntryLookupState {
   return {};
 }
 
-export const stepPathEntryLookup: StepFn<PathEntryLookupState> = (state, event) => {
+export const stepPathEntryLookup: StepFn<PathEntryLookupState> = (
+  state,
+  event,
+) => {
   const result = stepPathEntryLookupInner(state, event as PathEntryLookupEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPathEntryLookupWithActions(
   state: PathEntryLookupState,
-  event: PathEntryLookupEvent
+  event: PathEntryLookupEvent,
 ): PathEntryLookupStepResult {
   return stepPathEntryLookupInner(state, event);
 }
 
 export function pathEntryLookupFromActions(
-  actions: ReadonlyArray<PathEntryLookupAction>
+  actions: ReadonlyArray<PathEntryLookupAction>,
 ): PathEntryLookupPlan | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldMissPathEntryLookup(
-  actions: ReadonlyArray<PathEntryLookupAction>
+  actions: ReadonlyArray<PathEntryLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 export function shouldExpirePathEntryLookup(
-  actions: ReadonlyArray<PathEntryLookupAction>
+  actions: ReadonlyArray<PathEntryLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "expired");
 }
 
 export function shouldHitPathEntryLookup(
-  actions: ReadonlyArray<PathEntryLookupAction>
+  actions: ReadonlyArray<PathEntryLookupAction>,
 ): boolean {
   return actions.some((action) => action.kind === "hit");
 }
 
 function stepPathEntryLookupInner(
   state: PathEntryLookupState,
-  event: PathEntryLookupEvent
+  event: PathEntryLookupEvent,
 ): PathEntryLookupStepResult {
   if (event.kind === "path/entry-lookup-gate") {
-    const planActions = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
-      kind: "path/entry-lookup-plan-gate",
-      entryPresent: event.entryPresent,
-      expired: event.expired
-    }).actions;
+    const planActions = stepPathEntryLookupPlanWithActions(
+      initialPathEntryLookupPlanState(),
+      {
+        kind: "path/entry-lookup-plan-gate",
+        entryPresent: event.entryPresent,
+        expired: event.expired,
+      },
+    ).actions;
     const plan = pathEntryLookupPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };
@@ -172,7 +191,9 @@ export function appendPathRandomBlob(input: {
   readonly randomBlobs: ReadonlyArray<Uint8Array>;
   readonly randomBlob: Uint8Array;
 }): readonly Uint8Array[] {
-  if (input.randomBlobs.some((blob) => equalByteArrays(blob, input.randomBlob))) {
+  if (
+    input.randomBlobs.some((blob) => equalByteArrays(blob, input.randomBlob))
+  ) {
     return input.randomBlobs;
   }
   return [...input.randomBlobs, input.randomBlob];
@@ -210,7 +231,7 @@ export function initialAppendPathRandomBlobState(): AppendPathRandomBlobState {
 
 export function stepAppendPathRandomBlobWithActions(
   state: AppendPathRandomBlobState,
-  event: AppendPathRandomBlobEvent
+  event: AppendPathRandomBlobEvent,
 ): AppendPathRandomBlobStepResult {
   if (event.kind === "path/append-random-blob-gate") {
     return {
@@ -221,10 +242,10 @@ export function stepAppendPathRandomBlobWithActions(
           kind: "use-fields",
           randomBlobs: appendPathRandomBlob({
             randomBlobs: event.randomBlobs,
-            randomBlob: event.randomBlob
-          })
-        }
-      ]
+            randomBlob: event.randomBlob,
+          }),
+        },
+      ],
     };
   }
 
@@ -232,14 +253,14 @@ export function stepAppendPathRandomBlobWithActions(
 }
 
 export function shouldUseAppendPathRandomBlob(
-  actions: ReadonlyArray<AppendPathRandomBlobAction>
+  actions: ReadonlyArray<AppendPathRandomBlobAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract appended random-blob list from step actions; null when no `use-fields`. */
 export function appendPathRandomBlobFieldsFromActions(
-  actions: ReadonlyArray<AppendPathRandomBlobAction>
+  actions: ReadonlyArray<AppendPathRandomBlobAction>,
 ): readonly Uint8Array[] | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.randomBlobs : null;
@@ -249,7 +270,11 @@ export function appendPathRandomBlobFieldsFromActions(
 export interface PathTableState {
   readonly entries: ReadonlyMap<
     string,
-    { readonly hops: number; readonly expires: number; readonly blobHex: string }
+    {
+      readonly hops: number;
+      readonly expires: number;
+      readonly blobHex: string;
+    }
   >;
   readonly lastAdded: boolean;
 }
@@ -273,7 +298,7 @@ export const stepPathTable: StepFn<PathTableState> = (state, event) =>
 
 function stepPathTableInner(
   state: PathTableState,
-  event: PathTableEvent
+  event: PathTableEvent,
 ): { state: PathTableState; intents: [] } {
   if (event.kind !== "path/announce") {
     return { state, intents: [] };
@@ -286,14 +311,14 @@ function stepPathTableInner(
       : {
           hops: existingEntry.hops,
           expires: existingEntry.expires,
-          randomBlobs: [hexToBytes(existingEntry.blobHex)]
+          randomBlobs: [hexToBytes(existingEntry.blobHex)],
         };
 
   const shouldAdd = shouldAddPathEntry({
     hops: event.hops,
     randomBlob: event.randomBlob,
     nowSeconds: event.at,
-    existing
+    existing,
   });
 
   if (!shouldAdd) {
@@ -304,7 +329,7 @@ function stepPathTableInner(
   entries.set(event.destinationKey, {
     hops: event.hops,
     expires: computePathExpiry(event.at),
-    blobHex: bytesToHex(event.randomBlob)
+    blobHex: bytesToHex(event.randomBlob),
   });
   return { state: { entries, lastAdded: true }, intents: [] };
 }
