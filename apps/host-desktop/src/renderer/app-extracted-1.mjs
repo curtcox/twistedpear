@@ -411,7 +411,7 @@ export function showPeerCodeExchangeImpl(__scope, message) {
         input.placeholder = message.type === "peer-qr-scan"
             ? "Scan or paste the peer QR payload"
             : message.type === "peer-ntfy-enter"
-                ? "Paste the TPN1 lookup code"
+                ? "Enter the TPN2 lookup code (TPN1 also works)"
                 : "Paste the peer's full response code";
         __scope.modalEl.appendChild(input);
     }

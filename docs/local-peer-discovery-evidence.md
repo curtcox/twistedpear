@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-22
+audited: 2026-08-05
 register: none
 -->
 
@@ -12,7 +12,7 @@ that the mechanism works in that environment and must not be used to advertise i
 
 | Evidence gate | Current result | Reproduction / next action |
 |---|---|---|
-| Protocol, pairing, adapter, broker, and route-registry suites | pass | `npm test` or the focused Vitest files listed in `local-peer-discovery.md` |
+| Protocol, pairing, adapter, broker, and route-registry suites | pass | `npm test` or the focused Vitest files listed in `local-peer-discovery.md`; the adapter suite covers timeout/abort cancellation across all six currently implemented stateful adapters |
 | Android native audio bridge compilation | pass | from `apps/harness-mobile/android`: `ANDROID_HOME=<sdk> ./gradlew :twistedpear-peer-audio:compileDebugKotlin` |
 | Desktop worklet and trusted chrome | pass (build and static UI invariants) | `npm run build --workspace=host-desktop`; `conformance/ui-invariants/peer-chrome.test.mjs` |
 | Static web host/worker | pass (production export) | mobile workspace `build:web-worker` and `build:web-host` scripts |

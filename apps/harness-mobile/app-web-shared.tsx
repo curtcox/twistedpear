@@ -397,7 +397,7 @@ export function PeerChromeModal({ modal, onInput, onCancel, onContinue }: {
         {qrUri !== null ? <Image accessibilityLabel="Peer invitation QR" source={{ uri: qrUri }} style={{ width: 260, height: 260 }} /> : null}
         {modal.request.type === "peer-manual-present" ? <TextInput multiline editable={false} value={modal.request.code} style={styles.input} /> : null}
         {modal.request.type === "peer-ntfy-present" ? <TextInput multiline editable={false} value={modal.request.code} style={styles.input} /> : null}
-        {needsInput ? <TextInput testID="peer-code-input" multiline value={modal.input} onChangeText={onInput} placeholder={ntfy ? "Paste the TPN1 lookup code" : "Paste the peer's full code"} style={styles.input} /> : null}
+        {needsInput ? <TextInput testID="peer-code-input" multiline value={modal.input} onChangeText={onInput} placeholder={ntfy ? "Enter the TPN2 lookup code (TPN1 also works)" : "Paste the peer's full code"} style={styles.input} /> : null}
         {qr && needsInput ? <><ActionButton label="Start camera" onPress={() => { void startCamera(); }} /><Text style={styles.muted}>{cameraStatus}</Text></> : null}
         <View style={styles.buttonRow}><ActionButton label="Cancel" onPress={onCancel} /><ActionButton label={audio ? modal.request.type === "peer-audio-transmit" ? modal.request.expectsResponse ? "Play and listen" : "Play answer" : "Start listening" : needsInput ? "Continue" : "Done"} onPress={onContinue} /></View>
       </View>

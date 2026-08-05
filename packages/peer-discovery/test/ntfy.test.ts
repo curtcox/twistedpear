@@ -42,6 +42,22 @@ describe("encrypted ntfy rendezvous", () => {
     expect(() => decryptNtfyRendezvousMessage({ ...secret, key: bytes(32, 99) }, packet, now)).toThrow(/authentication failed/);
   });
 
+  it("creates compact checksummed TPN2 codes while decoding legacy TPN1 codes", async () => {
+    const client = new NtfyRendezvousClient({
+      baseUrl: "https://ntfy.example.test",
+      entropy: async (length) => bytes(length, 17)
+    });
+    const generated = await client.createSecret();
+    const shortCode = encodeNtfyRendezvousSecret(generated);
+    const legacyCode = encodeNtfyRendezvousSecret(secret);
+    expect(shortCode).toMatch(/^TPN2-[A-Z2-7-]+$/);
+    expect(shortCode.length).toBeLessThan(legacyCode.length);
+    expect(decodeNtfyRendezvousSecret(shortCode)).toEqual(generated);
+    expect(legacyCode).toMatch(/^TPN1-/);
+    expect(decodeNtfyRendezvousSecret(legacyCode)).toEqual(secret);
+    expect(() => decodeNtfyRendezvousSecret(`${shortCode.slice(0, -1)}A`)).toThrow(/checksum/);
+  });
+
   it("uses bearer headers, keeps secrets out of URLs, and rejects replayed cached messages", async () => {
     const stored: string[] = [];
     const requests: Array<{ url: string; authorization: string | null }> = [];
@@ -81,11 +97,11 @@ describe("encrypted ntfy rendezvous", () => {
   it("adapts encrypted service polling to the common offer/accept contract", async () => {
     const offerEnvelope = invitation("offer"); const answerEnvelope = invitation("answer"); const published: Uint8Array[] = []; let requestedCode = "";
     const client = { async createSecret() { return secret; }, async publish(_secret: NtfyRendezvousSecret, envelope: Uint8Array) { published.push(envelope); }, async poll() { return [{ id: bytes(16, 1), role: "answer" as const, expiresAt: now + 60_000, envelope: answerEnvelope }]; } };
-    const adapter = new NtfyPeerDiscoveryAdapter({ client, createSessionId: () => "ntfy-session", now: () => now, channel: { async availability() { return { state: "available" }; }, async presentCode(_session, code) { requestedCode = code; }, async requestCode() { return { session: { id: "join-session", kind: "ntfy" }, code: requestedCode }; }, async cancel() {} } });
+    const adapter = new NtfyPeerDiscoveryAdapter({ client, createSessionId: () => "ntfy-session", now: () => now, channel: { async availability() { return { state: "available" }; }, async presentCode(_session, code) { requestedCode = code; }, async requestCode() { return requestedCode; }, async cancel() {} } });
     const events = []; for await (const event of adapter.offer(offerEnvelope, { timeoutMs: 1_000 })) events.push(event);
     expect(events.map((event) => event.kind)).toEqual(["ready", "invitation"]); expect(published).toEqual([offerEnvelope]); expect(requestedCode).toMatch(/^TPN1-/);
 
-    const listening = new NtfyPeerDiscoveryAdapter({ client: { ...client, async poll() { return [{ id: bytes(16, 2), role: "offer" as const, expiresAt: now + 60_000, envelope: offerEnvelope }]; } }, createSessionId: () => "unused", now: () => now, channel: { async availability() { return { state: "available" }; }, async presentCode() {}, async requestCode() { return { session: { id: "join-session", kind: "ntfy" }, code: requestedCode }; }, async cancel() {} } });
+    const listening = new NtfyPeerDiscoveryAdapter({ client: { ...client, async poll() { return [{ id: bytes(16, 2), role: "offer" as const, expiresAt: now + 60_000, envelope: offerEnvelope }]; } }, createSessionId: () => "join-session", now: () => now, channel: { async availability() { return { state: "available" }; }, async presentCode() {}, async requestCode() { return requestedCode; }, async cancel() {} } });
     const inbound = []; for await (const event of listening.accept({ service: "peer-link", timeoutMs: 1_000 })) inbound.push(event);
     expect(inbound[0]).toMatchObject({ kind: "invitation", envelope: offerEnvelope }); await listening.answer({ id: "join-session", kind: "ntfy" }, answerEnvelope); expect(published.at(-1)).toEqual(answerEnvelope);
   });

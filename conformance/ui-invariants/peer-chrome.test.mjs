@@ -68,7 +68,7 @@ describe("desktop peer chrome", () => {
     });
     await expect(chrome.ntfy.availability()).resolves.toMatchObject({ state: "available" });
     await expect(chrome.ntfy.presentCode({ id: "offer", kind: "ntfy" }, "TPN1-offer", { timeoutMs: 1_000 })).resolves.toBeUndefined();
-    await expect(chrome.ntfy.requestCode({ service: "chat", timeoutMs: 1_000 })).resolves.toEqual({ session: { id: "token-2", kind: "ntfy" }, code: "TPN1-secret" });
+    await expect(chrome.ntfy.requestCode({ id: "join", kind: "ntfy" }, { service: "chat", timeoutMs: 1_000 })).resolves.toBe("TPN1-secret");
     expect(seen.map(({ type }) => type)).toEqual(["peer-ntfy-availability", "peer-ntfy-present", "peer-ntfy-enter"]);
     expect(seen[1]).toMatchObject({ server: "https://rendezvous.example/", code: "TPN1-offer" });
   });

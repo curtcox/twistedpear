@@ -76,11 +76,10 @@ export function createDesktopPeerChrome({ requestReply, send, createToken, ntfyS
         const reply = await request("peer-ntfy-present", { sessionId: session.id, code, server: ntfyServer }, options.timeoutMs);
         if (reply?.accepted !== true) throw new Error("ntfy rendezvous was cancelled");
       },
-      async requestCode(options) {
-        const sessionId = createToken();
-        const reply = await request("peer-ntfy-enter", { sessionId, service: options.service, server: ntfyServer }, options.timeoutMs);
+      async requestCode(session, options) {
+        const reply = await request("peer-ntfy-enter", { sessionId: session.id, service: options.service, server: ntfyServer }, options.timeoutMs);
         if (reply?.accepted !== true || typeof reply.code !== "string") throw new Error("ntfy rendezvous was cancelled");
-        return { session: { id: sessionId, kind: "ntfy" }, code: reply.code };
+        return reply.code;
       },
       cancel
     },

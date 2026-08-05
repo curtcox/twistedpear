@@ -7,30 +7,23 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const planPath = join(repositoryRoot, "docs/local-peer-discovery-plan.md");
 const plan = readFileSync(planPath, "utf8");
 
-describe("local peer discovery plan", () => {
-  it("keeps discovery mechanisms behind one platform contract", () => {
-    expect(plan).toContain("interface PeerDiscoveryAdapter");
-    expect(plan).toContain("peer:connect");
-    expect(plan).toContain("opaque, authenticated peer handle");
-    expect(plan).toContain("Peer Link");
+describe("local peer discovery remaining plan", () => {
+  it("routes implemented behavior to the live counterpart and external results to evidence", () => {
+    expect(plan).toContain("lifecycle: planned");
+    expect(plan).toContain("counterpart: docs/local-peer-discovery.md");
+    expect(plan).toContain("current implementation](local-peer-discovery.md)");
+    expect(plan).toContain("evidence register](local-peer-discovery-evidence.md)");
+    expect(plan).toContain("only work that is not yet verified");
   });
 
-  it.each([
-    ["Reticulum automatic", "AutoInterface"],
-    ["QR / camera", "getUserMedia()"],
-    ["Manual", "checksummed Base32"],
-    ["Audio", "FSK/chirps"],
-    ["Bluetooth", "BLE central/peripheral"],
-    ["ntfy", "https://docs.ntfy.sh/subscribe/api/"],
-    ["Local Peer-to-Peer API", "LP2PRequest"]
-  ])("plans the %s adapter", (_mechanism, evidence) => {
-    expect(plan).toContain(evidence);
+  it.each(["Bluetooth", "audible FSK", "animated QR", "WebRTC", "TPN2", "Reticulum", "mixed-version"])("retains the %s external gate", (gate) => {
+    expect(plan).toContain(gate);
   });
 
-  it("defines cross-adapter and real two-host acceptance evidence", () => {
-    expect(plan).toContain("One shared suite");
-    expect(plan).toContain("Static deployment");
-    expect(plan).toContain("true two-host test tier");
-    expect(plan).toMatch(/CI neither\s+depends on nor sends traffic to the public service/);
+  it("keeps future LP2P behind the common production contract", () => {
+    expect(plan).toContain("LP2PRequest");
+    expect(plan).toContain("PeerDiscoveryAdapter");
+    expect(plan).toContain("timeout, abort, cancellation, and replay budgets");
+    expect(plan).toMatch(/Routine CI must never use the\s+public service/);
   });
 });

@@ -132,3 +132,20 @@ export function decodePeerInvitation(bytes: Uint8Array, now?: number): PeerInvit
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 export function encodePeerInvitationText(bytes: Uint8Array): string { if (bytes.length > MAX_PEER_INVITATION_BYTES) throw new PeerInvitationError("OVERSIZED", "invitation exceeds size budget"); const checked = concat([bytes, sha256(bytes).subarray(0, 4)]); let bits = 0, value = 0, out = ""; for (const byte of checked) { value = (value << 8) | byte; bits += 8; while (bits >= 5) { out += ALPHABET[(value >>> (bits -= 5)) & 31]; } } if (bits > 0) out += ALPHABET[(value << (5 - bits)) & 31]; return out.match(/.{1,5}/g)?.join("-") ?? ""; }
 export function decodePeerInvitationText(text: string): Uint8Array { const clean = text.toUpperCase().replace(/[\s-]/g, ""); if (!/^[A-Z2-7]+$/.test(clean) || clean.length > 40_000) throw new PeerInvitationError("MALFORMED", "invalid Base32 invitation"); let bits = 0, value = 0; const out: number[] = []; for (const char of clean) { value = (value << 5) | ALPHABET.indexOf(char); bits += 5; if (bits >= 8) out.push((value >>> (bits -= 8)) & 255); } if (out.length < 5) throw new PeerInvitationError("MALFORMED", "invitation text is too short"); const all = new Uint8Array(out); const body = all.subarray(0, -4); if (compare(all.subarray(-4), sha256(body).subarray(0, 4)) !== 0) throw new PeerInvitationError("MALFORMED", "invitation checksum mismatch"); return body; }
+
+const ACCESSIBILITY_SYMBOLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-:";
+const ACCESSIBILITY_MORSE = [
+  ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..",
+  "-----", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-....-", "---..."
+] as const;
+const ACCESSIBILITY_SPOKEN = [
+  "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliett", "kilo", "lima", "mike", "november", "oscar", "papa", "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "x-ray", "yankee", "zulu",
+  "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "dash", "colon"
+] as const;
+function accessibilityCode(code: string): string { const value = code.trim().toUpperCase(); if (value.length < 1 || value.length > 40_000 || [...value].some((symbol) => !ACCESSIBILITY_SYMBOLS.includes(symbol))) throw new PeerInvitationError("MALFORMED", "peer accessibility code contains an unsupported symbol or exceeds its size budget"); return value; }
+
+/** Deterministic spelling suitable for trusted-host speech synthesis. */
+export function spellPeerAccessibilityCode(code: string): string { return [...accessibilityCode(code)].map((symbol) => ACCESSIBILITY_SPOKEN[ACCESSIBILITY_SYMBOLS.indexOf(symbol)]).join(" "); }
+/** Textual ITU-style Morse fallback. Symbols are space-delimited. */
+export function encodePeerAccessibilityMorse(code: string): string { return [...accessibilityCode(code)].map((symbol) => ACCESSIBILITY_MORSE[ACCESSIBILITY_SYMBOLS.indexOf(symbol)]).join(" "); }
+export function decodePeerAccessibilityMorse(encoded: string): string { if (encoded.length < 1 || encoded.length > 240_000) throw new PeerInvitationError("OVERSIZED", "peer Morse code exceeds its size budget"); return accessibilityCode(encoded.trim().split(/\s+/).map((token) => { const index = ACCESSIBILITY_MORSE.indexOf(token as typeof ACCESSIBILITY_MORSE[number]); if (index < 0) throw new PeerInvitationError("MALFORMED", "peer Morse code contains an unknown symbol"); return ACCESSIBILITY_SYMBOLS[index]; }).join("")); }
