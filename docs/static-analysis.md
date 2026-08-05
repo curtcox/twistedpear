@@ -47,7 +47,7 @@ intentionally loosen a baseline.
 | Complexity      | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                 |
 | Repository lint | `npm run lint:all`         | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                         |
 | Typed lint      | `npm run lint:typed`       | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                  |
-| Formatting      | `npm run format:check`     | empty `format-ratchet.json`; the repository is normalized and every new deviation fails                                                                  |
+| Formatting      | `npm run format:check`     | existing Prettier deviations in `format-ratchet.json`; the ratchet was tightened by 18 entries and every new deviation fails                             |
 | Properties      | `npm run test:properties`  | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces  |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
@@ -66,8 +66,7 @@ runnable locally and in CI.
 The first advisory survey found one transitive high-severity `vite` result in the local
 VitePress documentation toolchain, with no fix available through that dependency path.
 It has a narrow, expiring exception in `audit-allowlist.json`; all other high/critical
-findings remain unallowlisted. The repository-wide Prettier normalization commit is
-recorded in `.git-blame-ignore-revs`.
+findings remain unallowlisted.
 
 ## Other source languages and nightly mutation testing
 

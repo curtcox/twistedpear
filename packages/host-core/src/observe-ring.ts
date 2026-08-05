@@ -2,18 +2,20 @@
  * Bounded in-memory ring of SPEC-EVENTS-shaped entries for live capture (O4).
  * Capture stays off until a subscriber attaches; the ring is fixed-capacity.
  */
-import type { Intent } from "@twistedpear/effects";
+import type { ObserveDropIntent } from "@twistedpear/protocol";
 
 export interface ObserveRingEntry {
   readonly t: "intent";
   readonly at: number;
-  readonly intent: Intent;
+  readonly intent: ObserveDropIntent;
 }
 
 export interface ObserveRing {
-  readonly push: (intent: Intent, at?: number) => void;
+  readonly push: (intent: ObserveDropIntent, at?: number) => void;
   readonly snapshot: () => readonly ObserveRingEntry[];
-  readonly subscribe: (listener: (entry: ObserveRingEntry) => void) => () => void;
+  readonly subscribe: (
+    listener: (entry: ObserveRingEntry) => void,
+  ) => () => void;
   readonly size: () => number;
 }
 
@@ -46,21 +48,21 @@ export function createObserveRing(capacity = 256): ObserveRing {
     },
     size() {
       return buffer.length;
-    }
+    },
   };
 }
 
 /** Convert a ring snapshot into a SPEC-TRACE-shaped recorded-history tape. */
 export function ringToRecordedHistory(
   entries: readonly ObserveRingEntry[],
-  node = "local"
+  node = "local",
 ): {
   readonly schema: "recorded-history";
   readonly version: 1;
   readonly entries: ReadonlyArray<{
     readonly t: "intent";
     readonly node: string;
-    readonly intent: Intent;
+    readonly intent: ObserveDropIntent;
   }>;
 } {
   return {
@@ -69,7 +71,7 @@ export function ringToRecordedHistory(
     entries: entries.map((entry) => ({
       t: "intent" as const,
       node,
-      intent: entry.intent
-    }))
+      intent: entry.intent,
+    })),
   };
 }

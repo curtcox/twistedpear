@@ -258,7 +258,6 @@
     "packages/reticulum-interfaces/src/policy.ts:complexity:Function 'inferInterfaceKind' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/reticulum-interfaces/test/rnode-transcripts.test.ts:complexity:Arrow function has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/reticulum-ts/src/announce.ts:complexity:Static method 'buildPacket' has a complexity of #. Maximum allowed is #.:occurrence-1",
-    "packages/reticulum-ts/src/announce.ts:complexity:Static method 'validate' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/reticulum-ts/src/buffer.ts:complexity:Method 'read' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/reticulum-ts/src/channel/part-1.ts:complexity:Async method 'send' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/reticulum-ts/src/crypto/token.ts:complexity:Method 'encrypt' has a complexity of #. Maximum allowed is #.:occurrence-1",

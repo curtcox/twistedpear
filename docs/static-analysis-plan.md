@@ -11,11 +11,9 @@ counterpart: docs/static-analysis.md
 registry, commands, baselines, CI matrices, and reports are described in
 [Static analysis](static-analysis.md). That live document wins if the two disagree.
 
-The enforceable infrastructure and local follow-up work from the original nine phases
-has landed. The property inventory is complete, the formatting ratchet is empty, and the
-mechanical formatting commit is listed in `.git-blame-ignore-revs`. The remaining work is
-limited to evidence from workflows that have not run against this checkout and the
-repository setting that depends on that evidence.
+The enforceable infrastructure and property follow-up from the original nine phases has
+landed. The remaining work is limited to external workflow evidence, the repository
+setting that depends on that evidence, and formatting decomposition.
 
 ## Repository-setting activation
 
@@ -32,6 +30,15 @@ repository setting that depends on that evidence.
 
 These operations require repository administration and intentionally have no script that
 attempts to mutate settings from an ordinary local validation run.
+
+## Formatting decomposition
+
+The formatting ratchet was tightened by 18 entries, and all new or changed source is
+Prettier-clean. A whole-repository default-Prettier trial pushed 37 previously decomposed
+files over the zero file-size ceiling, adding 8,055 excess lines. The trial was reverted:
+`size-ratchet.json` remains empty and `size-rules.json` was not weakened. Emptying
+`format-ratchet.json` now requires those files to be split before each mechanical batch;
+after the final batch, record its formatting-only commit in `.git-blame-ignore-revs`.
 
 The first language-runner survey is complete: Rust, shell, Python, Kotlin, Swift, and
 Actions each uploaded a successful result from its pinned tool. The first dashboard also

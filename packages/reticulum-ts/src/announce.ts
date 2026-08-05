@@ -51,10 +51,14 @@ import {
   shouldUseTruncateHashBytes,
   initialTruncateHashBytesState,
   TRUNCATED_HASH_BYTES,
-  type AnnounceValidatePlan
+  type AnnounceValidatePlan,
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
-import { Destination, DestinationDirection, DestinationType } from "./destination.js";
+import {
+  Destination,
+  DestinationDirection,
+  DestinationType,
+} from "./destination.js";
 import { Identity } from "./identity.js";
 import type { Entropy } from "./runtime/runtime.js";
 import {
@@ -62,7 +66,7 @@ import {
   PacketContext,
   PacketContextFlag,
   PacketType,
-  TransportType
+  TransportType,
 } from "./packet.js";
 
 export { ANNOUNCE_RANDOM_HASH_SIZE };
@@ -87,11 +91,126 @@ export interface ParsedAnnounce {
   readonly appData: Uint8Array | null;
 }
 
+function validateAnnounceSignature(
+  parsed: ParsedAnnounce | null,
+  identity: Identity | null,
+  publicKeyLoaded: boolean,
+): boolean {
+  const attempt = stepAttemptAnnounceSignatureValidateWithActions(
+    initialAttemptAnnounceSignatureValidateState(),
+    {
+      kind: "announce/attempt-signature-validate-gate",
+      parsedOk: parsed !== null,
+      identityPresent: identity !== null,
+      publicKeyLoaded,
+    },
+  );
+  if (
+    !shouldAttemptAnnounceSignatureValidateNow(attempt.actions) ||
+    parsed === null ||
+    identity === null
+  ) {
+    return false;
+  }
+  const signed = stepAnnounceSignedMaterialWithActions(
+    initialAnnounceSignedMaterialState(),
+    {
+      kind: "announce/signed-material-gate",
+      destinationHash: parsed.destinationHash,
+      publicKey: parsed.publicKey,
+      nameHash: parsed.nameHash,
+      randomHash: parsed.randomHash,
+      ratchetPublicKey: parsed.ratchetPublicKey,
+      appData: parsed.appData,
+    },
+  );
+  const material = shouldUseAnnounceSignedMaterial(signed.actions)
+    ? announceSignedMaterialRawFromActions(signed.actions)
+    : null;
+  return material !== null && identity.validate(parsed.signature, material);
+}
+
+function validateAnnounceDestinationHash(input: {
+  readonly provider: CryptoProvider;
+  readonly parsed: ParsedAnnounce | null;
+  readonly identity: Identity | null;
+  readonly publicKeyLoaded: boolean;
+  readonly signatureValid: boolean;
+  readonly onlyValidateSignature: boolean;
+}): boolean {
+  const {
+    provider,
+    parsed,
+    identity,
+    publicKeyLoaded,
+    signatureValid,
+    onlyValidateSignature,
+  } = input;
+  const check = stepCheckAnnounceDestinationHashWithActions(
+    initialCheckAnnounceDestinationHashState(),
+    {
+      kind: "announce/check-destination-hash-gate",
+      parsedOk: parsed !== null,
+      identityPresent: identity !== null,
+      publicKeyLoaded,
+      signatureValid,
+      onlyValidateSignature,
+    },
+  );
+  if (
+    !shouldCheckAnnounceDestinationHashNow(check.actions) ||
+    parsed === null ||
+    identity === null
+  ) {
+    return false;
+  }
+  const materialStep = stepAnnounceDestinationHashMaterialWithActions(
+    initialAnnounceDestinationHashMaterialState(),
+    {
+      kind: "announce/destination-hash-material-gate",
+      nameHash: parsed.nameHash,
+      identityHash: identity.hash,
+    },
+  );
+  const material = shouldUseAnnounceDestinationHashMaterial(
+    materialStep.actions,
+  )
+    ? announceDestinationHashMaterialRawFromActions(materialStep.actions)
+    : null;
+  if (material === null) return false;
+
+  const truncate = stepTruncateHashBytesWithActions(
+    initialTruncateHashBytesState(),
+    {
+      kind: "hash-truncate/truncate-gate",
+      digest: Identity.fullHash(provider, material),
+      length: TRUNCATED_HASH_BYTES,
+    },
+  );
+  const expected = truncateHashBytesRawFromActions(truncate.actions);
+  if (
+    expected === null ||
+    !shouldUseTruncateHashBytes(truncate.actions) ||
+    shouldRejectTruncateHashBytes(truncate.actions)
+  ) {
+    return false;
+  }
+  const match = stepAnnounceDestinationHashMatchWithActions(
+    initialAnnounceDestinationHashMatchState(),
+    {
+      kind: "announce/destination-hash-match-gate",
+      destinationHash: parsed.destinationHash,
+      expectedTruncatedHash: expected,
+    },
+  );
+  return shouldMatchAnnounceDestinationHash(match.actions);
+}
+
 export class Announce {
   static buildPacket(
     provider: CryptoProvider,
     destination: Destination,
-    options: AnnounceBuildOptions = {}
+    options: AnnounceBuildOptions = {},
   ): Packet {
     const early = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
       kind: "announce/build-gate",
@@ -99,7 +218,7 @@ export class Announce {
       directionIn: destination.direction === DestinationDirection.IN,
       identityPresent: destination.identity !== null,
       randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
-      ratchetPublicKeyLength: null
+      ratchetPublicKeyLength: null,
     });
     if (shouldRejectAnnounceBuildNotAnnounceableType(early.actions)) {
       throw new Error("Only SINGLE destinations can be announced");
@@ -127,13 +246,19 @@ export class Announce {
       identityPresent: true,
       randomHashLength: randomHash.length,
       ratchetPublicKeyLength:
-        options.ratchetPublicKey === undefined ? null : options.ratchetPublicKey.length
+        options.ratchetPublicKey === undefined
+          ? null
+          : options.ratchetPublicKey.length,
     });
     if (shouldRejectAnnounceBuildBadRandomHash(gate.actions)) {
-      throw new Error(`Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`);
+      throw new Error(
+        `Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`,
+      );
     }
     if (shouldRejectAnnounceBuildBadRatchet(gate.actions)) {
-      throw new Error(`Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`);
+      throw new Error(
+        `Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`,
+      );
     }
     if (!shouldProceedAnnounceBuild(gate.actions)) {
       throw new Error("Announce build rejected");
@@ -151,62 +276,75 @@ export class Announce {
         nameHash: destination.nameHash,
         randomHash,
         ratchetPublicKey,
-        appData
-      }
+        appData,
+      },
     );
-    const signedData =
-      shouldUseAnnounceSignedMaterial(signedStepped.actions)
-        ? announceSignedMaterialRawFromActions(signedStepped.actions)
-        : null;
+    const signedData = shouldUseAnnounceSignedMaterial(signedStepped.actions)
+      ? announceSignedMaterialRawFromActions(signedStepped.actions)
+      : null;
     if (signedData === null) {
       throw new Error("Announce signed material: missing use-raw action");
     }
     const signature = destination.identity.sign(signedData);
-    const packStepped = stepPackAnnouncePayloadWithActions(initialPackAnnouncePayloadState(), {
-      kind: "announce/pack-payload-gate",
-      publicKey,
-      nameHash: destination.nameHash,
-      randomHash,
-      ratchetPublicKey,
-      signature,
-      appData
-    });
-    const data =
-      shouldUsePackAnnouncePayload(packStepped.actions)
-        ? packAnnouncePayloadRawFromActions(packStepped.actions)
-        : null;
+    const packStepped = stepPackAnnouncePayloadWithActions(
+      initialPackAnnouncePayloadState(),
+      {
+        kind: "announce/pack-payload-gate",
+        publicKey,
+        nameHash: destination.nameHash,
+        randomHash,
+        ratchetPublicKey,
+        signature,
+        appData,
+      },
+    );
+    const data = shouldUsePackAnnouncePayload(packStepped.actions)
+      ? packAnnouncePayloadRawFromActions(packStepped.actions)
+      : null;
     if (data === null) {
       throw new Error("Announce pack: missing use-raw action");
     }
 
     return Packet.fromFields(provider, {
       headerType: 0,
-      contextFlag: options.ratchetPublicKey === undefined ? PacketContextFlag.UNSET : PacketContextFlag.SET,
+      contextFlag:
+        options.ratchetPublicKey === undefined
+          ? PacketContextFlag.UNSET
+          : PacketContextFlag.SET,
       transportType: TransportType.BROADCAST,
       destinationType: DestinationType.SINGLE,
       packetType: PacketType.ANNOUNCE,
       destinationHash: destination.hash,
-      context: options.pathResponse === true ? PacketContext.PATH_RESPONSE : PacketContext.NONE,
-      data
+      context:
+        options.pathResponse === true
+          ? PacketContext.PATH_RESPONSE
+          : PacketContext.NONE,
+      data,
     });
   }
 
   static parse(packet: Packet): ParsedAnnounce | null {
     /** Adapt announce packet-type via protocol actions (no ad-hoc
      * `isAnnouncePacketType` reads). */
-    const typeStepped = stepAnnouncePacketTypeWithActions(initialAnnouncePacketTypeState(), {
-      kind: "announce/packet-type-gate",
-      packetType: packet.packetType
-    });
+    const typeStepped = stepAnnouncePacketTypeWithActions(
+      initialAnnouncePacketTypeState(),
+      {
+        kind: "announce/packet-type-gate",
+        packetType: packet.packetType,
+      },
+    );
     if (!shouldTreatAnnouncePacketType(typeStepped.actions)) {
       return null;
     }
 
-    const parseStepped = stepParseAnnouncePayloadWithActions(initialParseAnnouncePayloadState(), {
-      kind: "announce/parse-payload-gate",
-      data: packet.data,
-      hasRatchet: packet.contextFlag === PacketContextFlag.SET
-    });
+    const parseStepped = stepParseAnnouncePayloadWithActions(
+      initialParseAnnouncePayloadState(),
+      {
+        kind: "announce/parse-payload-gate",
+        data: packet.data,
+        hasRatchet: packet.contextFlag === PacketContextFlag.SET,
+      },
+    );
     if (shouldRejectParseAnnouncePayload(parseStepped.actions)) {
       return null;
     }
@@ -220,8 +358,8 @@ export class Announce {
       initialAcceptAnnouncePayloadState(),
       {
         kind: "announce/accept-payload-gate",
-        fieldsPresent: fields !== null
-      }
+        fieldsPresent: fields !== null,
+      },
     );
     if (!shouldAcceptAnnouncePayloadNow(acceptStepped.actions)) {
       return null;
@@ -229,113 +367,55 @@ export class Announce {
 
     return {
       destinationHash: packet.destinationHash,
-      ...fields!
+      ...fields!,
     };
   }
 
   static validatePlan(
     provider: CryptoProvider,
     packet: Packet,
-    onlyValidateSignature = false
+    onlyValidateSignature = false,
   ): AnnounceValidatePlan | null {
     const parsed = Announce.parse(packet);
     const identity = parsed === null ? null : new Identity(provider, false);
     const publicKeyLoaded =
-      identity !== null && parsed !== null && identity.loadPublicKey(parsed.publicKey);
+      identity !== null &&
+      parsed !== null &&
+      identity.loadPublicKey(parsed.publicKey);
 
-    let signatureValid = false;
-    const attemptSignature = stepAttemptAnnounceSignatureValidateWithActions(
-      initialAttemptAnnounceSignatureValidateState(),
-      {
-        kind: "announce/attempt-signature-validate-gate",
-        parsedOk: parsed !== null,
-        identityPresent: identity !== null,
-        publicKeyLoaded
-      }
+    const signatureValid = validateAnnounceSignature(
+      parsed,
+      identity,
+      publicKeyLoaded,
     );
-    if (shouldAttemptAnnounceSignatureValidateNow(attemptSignature.actions)) {
-      const signedStepped = stepAnnounceSignedMaterialWithActions(
-        initialAnnounceSignedMaterialState(),
-        {
-          kind: "announce/signed-material-gate",
-          destinationHash: parsed!.destinationHash,
-          publicKey: parsed!.publicKey,
-          nameHash: parsed!.nameHash,
-          randomHash: parsed!.randomHash,
-          ratchetPublicKey: parsed!.ratchetPublicKey,
-          appData: parsed!.appData
-        }
-      );
-      const signedData =
-        shouldUseAnnounceSignedMaterial(signedStepped.actions)
-          ? announceSignedMaterialRawFromActions(signedStepped.actions)
-          : null;
-      signatureValid =
-        signedData !== null && identity!.validate(parsed!.signature, signedData);
-    }
-
-    let destinationHashMatches = false;
-    const checkDestHash = stepCheckAnnounceDestinationHashWithActions(
-      initialCheckAnnounceDestinationHashState(),
-      {
-        kind: "announce/check-destination-hash-gate",
-        parsedOk: parsed !== null,
-        identityPresent: identity !== null,
-        publicKeyLoaded,
-        signatureValid,
-        onlyValidateSignature
-      }
-    );
-    if (shouldCheckAnnounceDestinationHashNow(checkDestHash.actions)) {
-      const materialStepped = stepAnnounceDestinationHashMaterialWithActions(
-        initialAnnounceDestinationHashMaterialState(),
-        {
-          kind: "announce/destination-hash-material-gate",
-          nameHash: parsed!.nameHash,
-          identityHash: identity!.hash
-        }
-      );
-      const material =
-        shouldUseAnnounceDestinationHashMaterial(materialStepped.actions)
-          ? announceDestinationHashMaterialRawFromActions(materialStepped.actions)
-          : null;
-      if (material !== null) {
-        const truncateStepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
-          kind: "hash-truncate/truncate-gate",
-          digest: Identity.fullHash(provider, material),
-          length: TRUNCATED_HASH_BYTES
-        });
-        const expectedHash = truncateHashBytesRawFromActions(truncateStepped.actions);
-        if (
-          expectedHash !== null &&
-          shouldUseTruncateHashBytes(truncateStepped.actions) &&
-          !shouldRejectTruncateHashBytes(truncateStepped.actions)
-        ) {
-          const matchStepped = stepAnnounceDestinationHashMatchWithActions(
-            initialAnnounceDestinationHashMatchState(),
-            {
-              kind: "announce/destination-hash-match-gate",
-              destinationHash: parsed!.destinationHash,
-              expectedTruncatedHash: expectedHash
-            }
-          );
-          destinationHashMatches = shouldMatchAnnounceDestinationHash(matchStepped.actions);
-        }
-      }
-    }
-
-    const gate = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {
-      kind: "announce/validate-gate",
-      parsedOk: parsed !== null,
+    const destinationHashMatches = validateAnnounceDestinationHash({
+      provider,
+      parsed,
+      identity,
       publicKeyLoaded,
       signatureValid,
       onlyValidateSignature,
-      destinationHashMatches
     });
+
+    const gate = stepAnnounceValidateWithActions(
+      initialAnnounceValidateState(),
+      {
+        kind: "announce/validate-gate",
+        parsedOk: parsed !== null,
+        publicKeyLoaded,
+        signatureValid,
+        onlyValidateSignature,
+        destinationHashMatches,
+      },
+    );
     return announceValidateOutcomePlanFromActions(gate.actions);
   }
 
-  static validate(provider: CryptoProvider, packet: Packet, onlyValidateSignature = false): boolean {
+  static validate(
+    provider: CryptoProvider,
+    packet: Packet,
+    onlyValidateSignature = false,
+  ): boolean {
     const plan = Announce.validatePlan(provider, packet, onlyValidateSignature);
     return plan === "accept" || plan === "accept-signature-only";
   }

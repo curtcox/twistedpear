@@ -14,13 +14,13 @@ import {
   type AcceptParsedAnnounceAction,
   type IgnoreLocalAnnounceAction,
   type AddPathEntryAction,
-  type TransportIngressDispatchAction
+  type TransportIngressDispatchAction,
 } from "@twistedpear/protocol";
-import type { DropObserver } from "./node/shared.js";
+export type DropObserver = (drop: ObserveDropIntent) => void;
 
 export function notifyDropObservers(
   observers: ReadonlyArray<DropObserver>,
-  drop: ObserveDropIntent | null
+  drop: ObserveDropIntent | null,
 ): void {
   if (drop === null) {
     return;
@@ -32,7 +32,7 @@ export function notifyDropObservers(
 
 export function dropFromIngressIgnore(
   actions: ReadonlyArray<TransportIngressDispatchAction>,
-  ifaceId: string
+  ifaceId: string,
 ): ObserveDropIntent | null {
   return observeDropFromIngressDispatch(actions, { ifaceId });
 }
@@ -40,7 +40,7 @@ export function dropFromIngressIgnore(
 export function dropFromValidatePlan(
   plan: AnnounceValidatePlan | null,
   destinationKey: string,
-  ifaceId: string
+  ifaceId: string,
 ): ObserveDropIntent | null {
   return observeDropFromAnnounceValidate(plan, { destinationKey, ifaceId });
 }
@@ -48,7 +48,7 @@ export function dropFromValidatePlan(
 export function dropFromParsedSkip(
   actions: ReadonlyArray<AcceptParsedAnnounceAction>,
   destinationKey: string,
-  ifaceId: string
+  ifaceId: string,
 ): ObserveDropIntent | null {
   return observeDropFromParsedAnnounce(actions, { destinationKey, ifaceId });
 }
@@ -56,7 +56,7 @@ export function dropFromParsedSkip(
 export function dropFromLocalEcho(
   actions: ReadonlyArray<IgnoreLocalAnnounceAction>,
   destinationKey: string,
-  ifaceId: string
+  ifaceId: string,
 ): ObserveDropIntent | null {
   return observeDropFromLocalAnnounce(actions, { destinationKey, ifaceId });
 }
@@ -64,7 +64,7 @@ export function dropFromLocalEcho(
 export function dropFromPathSkip(
   actions: ReadonlyArray<AddPathEntryAction>,
   destinationKey: string,
-  ifaceId: string
+  ifaceId: string,
 ): ObserveDropIntent | null {
   return observeDropFromPathEntry(actions, { destinationKey, ifaceId });
 }

@@ -15,17 +15,17 @@ not by querying “who is online?” after the fact.
 
 ## What ships
 
-| Area | Current evidence | Status |
-|---|---|---|
-| SPEC-EVENTS `observe/drop` intent | `specs/spec-events/schema/events.schema.json`, generated `types.gen.ts`, `tapes/all-shapes.json` | implemented |
-| Ladder mappers (rungs 3–8) | `packages/protocol/src/observe-drop.ts`, `packages/protocol/test/observe-drop.test.ts` | implemented |
-| Reticulum adapter emission | `registerDropObserver`, `drop-notify.ts`, bare-return sites in `transport.ts` / `layer-1.ts` | implemented |
-| Host drop census | `packages/host-core/src/drop-census.ts` on `/status`, peer-agent `status` / `link-state` | implemented |
-| Peer-agent live capture | Bounded observe ring, `subscribe` / `unsubscribe` / `observe-snapshot` | implemented |
-| Collector tape persistence | `npm run peers -- status --capture` writes SPEC-TRACE envelopes under `.tmp/local-peers/tapes/` | implemented |
-| Handbook field report | Export includes `dropCensus`; compare matrix renders `drop:*` rows | implemented |
-| Desktop / mobile / web worklets | `createDropCensus` + `registerDropObserver`; `host.info` forwards `dropCensus` via `createCommonHostInfoBackend` | implemented |
-| Local multipeer | `conformance/local-multipeer/run.mjs` requires a nonzero rung-4 (`announce-rate-limit:rate_limited`) count after a parallel announce burst, plus absent-peer distinction | implemented |
+| Area                              | Current evidence                                                                                                                                                         | Status      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| SPEC-EVENTS `observe/drop` intent | `specs/spec-events/schema/events.schema.json`, generated `types.gen.ts`, `tapes/all-shapes.json`                                                                         | implemented |
+| Ladder mappers (rungs 3–8)        | `packages/protocol/src/observe-drop.ts`, `packages/protocol/test/observe-drop.test.ts`                                                                                   | implemented |
+| Reticulum adapter emission        | `registerDropObserver`, `drop-notify.ts`, bare-return sites in `transport.ts` / `layer-1.ts`                                                                             | implemented |
+| Host drop census                  | `packages/host-core/src/drop-census.ts` on `/status`, peer-agent `status` / `link-state`                                                                                 | implemented |
+| Peer-agent live capture           | Bounded observe ring, `subscribe` / `unsubscribe` / `observe-snapshot`                                                                                                   | implemented |
+| Collector tape persistence        | `npm run peers -- status --capture` writes SPEC-TRACE envelopes under `.tmp/local-peers/tapes/`                                                                          | implemented |
+| Handbook field report             | Export includes `dropCensus`; compare matrix renders `drop:*` rows                                                                                                       | implemented |
+| Desktop / mobile / web worklets   | `createDropCensus` + `registerDropObserver`; `host.info` forwards `dropCensus` via `createCommonHostInfoBackend`                                                         | implemented |
+| Local multipeer                   | `conformance/local-multipeer/run.mjs` requires a nonzero rung-4 (`announce-rate-limit:rate_limited`) count after a parallel announce burst, plus absent-peer distinction | implemented |
 
 ## Surfaces
 

@@ -2,7 +2,11 @@
  * Per-reason, per-peer announce-ingress drop census for host status surfaces.
  * Counts SPEC-EVENTS `observe/drop` intents; adapters own the storage.
  */
-import type { ObserveDropIntent, ObserveDropReason, ObserveDropStage } from "@twistedpear/protocol";
+import type {
+  ObserveDropIntent,
+  ObserveDropReason,
+  ObserveDropStage,
+} from "@twistedpear/protocol";
 
 export type DropCensusKey = `${ObserveDropStage}:${ObserveDropReason}`;
 
@@ -13,12 +17,15 @@ export interface DropCensusCounts {
   readonly byPeer: Readonly<Record<string, Readonly<Record<string, number>>>>;
 }
 
-export interface DropCensus {
+interface DropCensus {
   readonly record: (drop: ObserveDropIntent) => void;
   readonly snapshot: () => DropCensusCounts;
 }
 
-export function dropCensusKey(stage: ObserveDropStage, reason: ObserveDropReason): DropCensusKey {
+export function dropCensusKey(
+  stage: ObserveDropStage,
+  reason: ObserveDropReason,
+): DropCensusKey {
   return `${stage}:${reason}`;
 }
 
@@ -57,6 +64,6 @@ export function createDropCensus(): DropCensus {
         byPeerOut[peer] = peerOut;
       }
       return { byReason: byReasonOut, byPeer: byPeerOut };
-    }
+    },
   };
 }
