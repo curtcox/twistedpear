@@ -204,7 +204,7 @@
     "coverage:baseline": "node scripts/coverage-run.mjs --write",
     "structure:check": "node scripts/analysis/structure-ratchet.mjs",
     "structure:baseline": "node scripts/analysis/structure-ratchet.mjs --write",
-    "test:properties": "vitest run packages/protocol/test/properties.test.ts",
+    "test:properties": "vitest run packages/protocol/test/properties*.test.ts",
     "actionlint": "actionlint",
     "audit:policy": "node scripts/security/audit.mjs",
     "audit:nightly": "node scripts/security/audit.mjs --full",
