@@ -16,14 +16,14 @@ import {
   DestinationType,
   Identity,
   PacketReceiptStatus,
-  hexToBytes,
+  hexToBytes
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   interopReady,
   sleep,
   withTransportHubLeaves,
   waitForReadyLine,
-  TRANSPORT_HUB_PORT,
+  TRANSPORT_HUB_PORT
 } from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
@@ -31,31 +31,20 @@ if (!interopReady()) {
   process.exit(0);
 }
 
-const DURATION_MS = Number.parseInt(
-  process.env.TRANSPORT_SOAK_DURATION_MS ?? "60000",
-  10,
-);
-const CYCLE_MS = Number.parseInt(
-  process.env.TRANSPORT_SOAK_CYCLE_MS ?? "5000",
-  10,
-);
+const DURATION_MS = Number.parseInt(process.env.TRANSPORT_SOAK_DURATION_MS ?? "60000", 10);
+const CYCLE_MS = Number.parseInt(process.env.TRANSPORT_SOAK_CYCLE_MS ?? "5000", 10);
 
 const identityVectors = JSON.parse(
-  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find(
-    (candidate) => candidate.name === name,
-  );
+  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(entry.privateKeyHex),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -79,9 +68,7 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
 async function waitForPeerInterfaces(reticulum, minimum, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const online = reticulum
-      .listInterfaces()
-      .filter((iface) => iface.online).length;
+    const online = reticulum.listInterfaces().filter((iface) => iface.online).length;
     if (online >= minimum) {
       return online;
     }
@@ -89,9 +76,7 @@ async function waitForPeerInterfaces(reticulum, minimum, timeoutMs = 30_000) {
     await sleep(250);
   }
 
-  throw new Error(
-    `Timed out waiting for ${minimum} online transport interface(s)`,
-  );
+  throw new Error(`Timed out waiting for ${minimum} online transport interface(s)`);
 }
 
 async function main() {
@@ -104,25 +89,16 @@ async function main() {
         config: resolveHostConfig({
           dataDir,
           overrides: {
-            roles: {
-              transport: true,
-              seeder: false,
-              propagation: false,
-              attachRnsd: null,
-            },
+            roles: { transport: true, seeder: false, propagation: false, attachRnsd: null },
             relay: { mode: "transport-node" },
             interfaces: {
-              tcp: {
-                enabled: true,
-                mode: "server",
-                listenPort: TRANSPORT_HUB_PORT,
-              },
+              tcp: { enabled: true, mode: "server", listenPort: TRANSPORT_HUB_PORT },
               auto: { enabled: false, multicast: false, bonjour: false },
               i2p: { enabled: false },
-              rnode: { enabled: false },
-            },
-          },
-        }),
+              rnode: { enabled: false }
+            }
+          }
+        })
       });
 
       if (!session.getStatus().transportEnabled) {
@@ -142,7 +118,7 @@ async function main() {
         direction: DestinationDirection.IN,
         type: DestinationType.SINGLE,
         appName: "example",
-        aspects: ["echo"],
+        aspects: ["echo"]
       });
       aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -152,7 +128,7 @@ async function main() {
         direction: DestinationDirection.OUT,
         type: DestinationType.SINGLE,
         appName: "example",
-        aspects: ["echo"],
+        aspects: ["echo"]
       });
 
       await aliceIn.announce();
@@ -168,9 +144,7 @@ async function main() {
 
       while (Date.now() - started < DURATION_MS) {
         const label = `transport-soak-${cycles}`;
-        const receipt = await bobOut.send(new TextEncoder().encode(label), {
-          createReceipt: true,
-        });
+        const receipt = await bobOut.send(new TextEncoder().encode(label), { createReceipt: true });
 
         const deadline = Date.now() + 10_000;
         while (Date.now() < deadline) {
@@ -185,13 +159,8 @@ async function main() {
           throw new Error(`transport soak cycle ${cycles}: no echo from bob`);
         }
 
-        if (
-          receipt !== null &&
-          receipt.status !== PacketReceiptStatus.DELIVERED
-        ) {
-          throw new Error(
-            `transport soak cycle ${cycles}: proof not delivered (${receipt.status})`,
-          );
+        if (receipt !== null && receipt.status !== PacketReceiptStatus.DELIVERED) {
+          throw new Error(`transport soak cycle ${cycles}: proof not delivered (${receipt.status})`);
         }
 
         cycles += 1;
@@ -199,9 +168,7 @@ async function main() {
       }
 
       await session.stop();
-      console.log(
-        `transport-node-soak: ${cycles} routed exchanges over ${DURATION_MS}ms`,
-      );
+      console.log(`transport-node-soak: ${cycles} routed exchanges over ${DURATION_MS}ms`);
     });
   } finally {
     rmSync(dataDir, { recursive: true, force: true });

@@ -2,7 +2,11 @@
   "name": "ask-the-handbook",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": ["ai:chat", "ai:embed", "workspace"],
+  "capabilities": [
+    "ai:chat",
+    "ai:embed",
+    "workspace"
+  ],
   "icon": null,
   "minHostApi": "0.6.0"
 }

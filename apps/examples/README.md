@@ -1,5 +1,6 @@
 # Example mini-apps
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -9,11 +10,11 @@ register: none
 Phase 4 reference apps. Each exercises a different SDK surface through the real Phase 3
 pack/verify/install pipeline and the Phase 4 sandbox runtime.
 
-| App                     | Capabilities                                                 | SDK surface                                              |
-| ----------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-| [chat](chat/)           | `identity`, `lxmf:send`, `lxmf:receive`, `storage:kv`        | App-scoped identity, LXMF send/receive, KV for last peer |
-| [file-drop](file-drop/) | `resource:fetch`, `storage:kv`                               | Host-budgeted Resource fetch, KV persistence             |
-| [board](board/)         | `announce:publish`, `announce:subscribe`, `storage:hyperbee` | Announce + local Hyperbee store                          |
+| App | Capabilities | SDK surface |
+|---|---|---|
+| [chat](chat/) | `identity`, `lxmf:send`, `lxmf:receive`, `storage:kv` | App-scoped identity, LXMF send/receive, KV for last peer |
+| [file-drop](file-drop/) | `resource:fetch`, `storage:kv` | Host-budgeted Resource fetch, KV persistence |
+| [board](board/) | `announce:publish`, `announce:subscribe`, `storage:hyperbee` | Announce + local Hyperbee store |
 
 ## Build and exercise
 

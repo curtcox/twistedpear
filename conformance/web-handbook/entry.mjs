@@ -6,19 +6,19 @@
 import { WebSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/web.js";
 import {
   encodeJsonWireValue,
-  reviveJsonWireValue,
+  reviveJsonWireValue
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { HANDBOOK_FIXTURE } from "./fixtures.mjs";
 import {
   assertAppletStatusMatchesExpectation,
-  parseResultStatus,
+  parseResultStatus
 } from "../handbook/expectations.mjs";
 
 const DEVICE_GATED_APPLET_IDS = new Set([
   "ble-peer",
   "rnode-serial",
   "multicast-auto",
-  "camera-qr-scan",
+  "camera-qr-scan"
 ]);
 
 const APPLET_CHAPTER = {
@@ -40,7 +40,7 @@ const APPLET_CHAPTER = {
   "ble-peer": "device-gated-probes",
   "rnode-serial": "device-gated-probes",
   "multicast-auto": "device-gated-probes",
-  "camera-qr-scan": "device-gated-probes",
+  "camera-qr-scan": "device-gated-probes"
 };
 
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
@@ -119,19 +119,14 @@ function hexToBytes(hex) {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
   const bytes = new Uint8Array(normalized.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(
-      normalized.slice(index * 2, index * 2 + 2),
-      16,
-    );
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
   }
 
   return bytes;
 }
 
 function bytesToHex(bytes) {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function createSandboxRelay(sendToWorker) {
@@ -157,23 +152,23 @@ function createSandboxRelay(sendToWorker) {
                     type: "sandbox-broker-request",
                     requestId,
                     instanceId: message.instanceId,
-                    request: encodeJsonWireValue(request),
+                    request: encodeJsonWireValue(request)
                   });
-                }),
-            },
+                })
+            }
           });
 
           instances.set(message.instanceId, instance);
           sendToWorker({
             type: "sandbox-spawned",
             requestId: message.requestId,
-            instanceId: message.instanceId,
+            instanceId: message.instanceId
           });
         } catch (error) {
           sendToWorker({
             type: "sandbox-spawn-failed",
             requestId: message.requestId,
-            message: error instanceof Error ? error.message : String(error),
+            message: error instanceof Error ? error.message : String(error)
           });
         }
 
@@ -188,14 +183,11 @@ function createSandboxRelay(sendToWorker) {
 
       if (message.type === "sandbox-ping") {
         const instance = instances.get(message.instanceId);
-        const alive =
-          instance === undefined
-            ? false
-            : await instance.ping(message.timeoutMs);
+        const alive = instance === undefined ? false : await instance.ping(message.timeoutMs);
         sendToWorker({
           type: "sandbox-ping-result",
           requestId: message.requestId,
-          alive,
+          alive
         });
         return;
       }
@@ -219,7 +211,7 @@ function createSandboxRelay(sendToWorker) {
         pendingBrokers.delete(message.requestId);
         waiter.resolve(reviveJsonWireValue(message.response));
       }
-    },
+    }
   };
 }
 
@@ -227,11 +219,7 @@ async function waitForRuntime(getRuntime, predicate, timeoutMs = 45_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const runtime = getRuntime();
-    if (
-      runtime?.widgetTree !== null &&
-      runtime?.widgetTree !== undefined &&
-      predicate(runtime)
-    ) {
+    if (runtime?.widgetTree !== null && runtime?.widgetTree !== undefined && predicate(runtime)) {
       return runtime;
     }
 
@@ -254,19 +242,10 @@ async function ensureToc(send, getRuntime) {
   ) {
     const texts = collectTextValues(runtime.widgetTree.root);
     if (!texts.some((value) => value.includes("✓ granted"))) {
-      throw new Error(
-        "grant intro missing granted markers from host.info().grantedCapabilities",
-      );
+      throw new Error("grant intro missing granted markers from host.info().grantedCapabilities");
     }
-    await tap(
-      send,
-      getRuntime,
-      "grant-intro-continue",
-      "hb.grantintro.dismiss",
-    );
-    await waitForRuntime(getRuntime, (next) =>
-      treeContainsText(next.widgetTree, "Contents"),
-    );
+    await tap(send, getRuntime, "grant-intro-continue", "hb.grantintro.dismiss");
+    await waitForRuntime(getRuntime, (next) => treeContainsText(next.widgetTree, "Contents"));
     return;
   }
 
@@ -274,7 +253,7 @@ async function ensureToc(send, getRuntime) {
     await waitForRuntime(
       getRuntime,
       (runtime) => findNodeById(runtime.widgetTree.root, "open-diag") !== null,
-      5_000,
+      5_000
     );
     return;
   } catch {
@@ -283,16 +262,10 @@ async function ensureToc(send, getRuntime) {
 
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const runtime = getRuntime();
-    if (
-      runtime?.widgetTree !== null &&
-      findNodeById(runtime.widgetTree.root, "open-diag") !== null
-    ) {
+    if (runtime?.widgetTree !== null && findNodeById(runtime.widgetTree.root, "open-diag") !== null) {
       return;
     }
-    if (
-      runtime?.widgetTree !== null &&
-      findNodeById(runtime.widgetTree.root, "back-toc") !== null
-    ) {
+    if (runtime?.widgetTree !== null && findNodeById(runtime.widgetTree.root, "back-toc") !== null) {
       await tap(send, getRuntime, "back-toc", "hb.toc");
     } else if (
       runtime?.widgetTree !== null &&
@@ -306,16 +279,12 @@ async function ensureToc(send, getRuntime) {
   await waitForRuntime(
     getRuntime,
     (runtime) => findNodeById(runtime.widgetTree.root, "open-diag") !== null,
-    20_000,
+    20_000
   );
 }
 
 async function main() {
-  globalThis.__WEB_HANDBOOK__ = {
-    status: "starting",
-    steps: [],
-    passedApplets: [],
-  };
+  globalThis.__WEB_HANDBOOK__ = { status: "starting", steps: [], passedApplets: [] };
 
   const worker = new Worker("./web-core.worker.js", { type: "module" });
   let buffer = "";
@@ -352,8 +321,8 @@ async function main() {
             type: "launch-confirm",
             token: message.token,
             accept: true,
-            grants: message.capabilities.map((capability) => capability.id),
-          }),
+            grants: message.capabilities.map((capability) => capability.id)
+          })
         });
         continue;
       }
@@ -365,8 +334,8 @@ async function main() {
             type: "install-confirm",
             token: message.token,
             accept: true,
-            grants: message.capabilities.map((capability) => capability.id),
-          }),
+            grants: message.capabilities.map((capability) => capability.id)
+          })
         });
         continue;
       }
@@ -377,16 +346,13 @@ async function main() {
           data: encodeMessage({
             type: "confirm-response",
             token: message.token,
-            approved: true,
-          }),
+            approved: true
+          })
         });
         continue;
       }
 
-      if (
-        message.type === "miniapp-runtime" &&
-        (message.slot === undefined || message.slot === "main")
-      ) {
+      if (message.type === "miniapp-runtime" && (message.slot === undefined || message.slot === "main")) {
         if (message.runtime !== null) {
           latestRuntime = message.runtime;
         }
@@ -413,7 +379,7 @@ async function main() {
     globalThis.__WEB_HANDBOOK__ = {
       status: "running",
       steps: [...steps],
-      passedApplets: globalThis.__WEB_HANDBOOK__?.passedApplets ?? [],
+      passedApplets: globalThis.__WEB_HANDBOOK__?.passedApplets ?? []
     };
   };
 
@@ -424,7 +390,7 @@ async function main() {
     gatewayUrl: "ws://127.0.0.1:9480",
     identityPassphrase: "web-handbook-test",
     mockAiChat: true,
-    mockLocalPublish: true,
+    mockLocalPublish: true
   });
   send({ type: "create-identity" });
   await sleep(1_500);
@@ -433,7 +399,7 @@ async function main() {
   send({
     type: "install-app",
     appId: HANDBOOK_FIXTURE.appId,
-    archiveHex: HANDBOOK_FIXTURE.archiveHex,
+    archiveHex: HANDBOOK_FIXTURE.archiveHex
   });
   await sleep(500);
   record("handbook-installed");
@@ -443,27 +409,21 @@ async function main() {
     appId: HANDBOOK_FIXTURE.appId,
     publisherPublicKey: HANDBOOK_FIXTURE.publisherPublicKey,
     declaredCapabilities: HANDBOOK_FIXTURE.capabilities,
-    grantedCapabilities: HANDBOOK_FIXTURE.capabilities,
+    grantedCapabilities: HANDBOOK_FIXTURE.capabilities
   });
   await sleep(150);
 
   send({
     type: "seed-miniapp-kv",
     key: "miniapp-resource:handbook:probe",
-    valueHex: bytesToHex(
-      new TextEncoder().encode("handbook-resource-probe-payload"),
-    ),
+    valueHex: bytesToHex(new TextEncoder().encode("handbook-resource-probe-payload"))
   });
   await sleep(100);
 
   send({ type: "launch-miniapp", appId: HANDBOOK_FIXTURE.appId });
-  await waitForRuntime(getRuntime, (runtime) =>
-    treeContainsText(runtime.widgetTree, "TwistedPear Handbook"),
-  );
+  await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "TwistedPear Handbook"));
   await ensureToc(send, getRuntime);
-  await waitForRuntime(getRuntime, (runtime) =>
-    treeContainsText(runtime.widgetTree, "Contents"),
-  );
+  await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Contents"));
   record("toc-rendered");
 
   await tap(send, getRuntime, "toc-search", "hb.search", "widget gallery");
@@ -472,7 +432,7 @@ async function main() {
     (runtime) =>
       treeContainsText(runtime.widgetTree, "chapter(s) match") &&
       findNodeById(runtime.widgetTree.root, "ch-sdk-widget-gallery") !== null &&
-      findNodeById(runtime.widgetTree.root, "ch-host-android") === null,
+      findNodeById(runtime.widgetTree.root, "ch-host-android") === null
   );
   record("toc-search");
   await tap(send, getRuntime, "toc-search", "hb.search", "");
@@ -482,14 +442,10 @@ async function main() {
     await ensureToc(send, getRuntime);
     await tap(send, getRuntime, `ch-${chapterId}`, "hb.openchapter");
     const title = HANDBOOK_FIXTURE.chapterTitles[chapterId] ?? chapterId;
-    await waitForRuntime(getRuntime, (runtime) =>
-      treeContainsText(runtime.widgetTree, title),
-    );
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, title));
     record(`chapter:${chapterId}`);
     await tap(send, getRuntime, "back-toc", "hb.toc");
-    await waitForRuntime(getRuntime, (runtime) =>
-      treeContainsText(runtime.widgetTree, "Contents"),
-    );
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Contents"));
   }
 
   const passedApplets = [];
@@ -503,7 +459,7 @@ async function main() {
     await tap(send, getRuntime, `ch-${chapter}`, "hb.openchapter");
     const appletTitle = HANDBOOK_FIXTURE.appletTitles[appletId] ?? appletId;
     await waitForRuntime(getRuntime, (runtime) =>
-      treeContainsText(runtime.widgetTree, `Applet: ${appletTitle}`),
+      treeContainsText(runtime.widgetTree, `Applet: ${appletTitle}`)
     );
     await tap(send, getRuntime, `applet-run-${appletId}`, "hb.runapplet");
     let appletRuntime;
@@ -515,10 +471,10 @@ async function main() {
           return texts.some(
             (value) =>
               /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
-              value.startsWith("Error:"),
+              value.startsWith("Error:")
           );
         },
-        90_000,
+        90_000
       );
     } catch (error) {
       const runtime = getRuntime();
@@ -527,26 +483,22 @@ async function main() {
           ? collectTextValues(runtime.widgetTree.root).slice(0, 40)
           : [];
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; applet=${appletId}; texts=${JSON.stringify(texts)}`,
+        `${error instanceof Error ? error.message : String(error)}; applet=${appletId}; texts=${JSON.stringify(texts)}`
       );
     }
     const resultLine =
       collectTextValues(appletRuntime.widgetTree.root).find(
         (value) =>
           /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
-          value.startsWith("Error:"),
+          value.startsWith("Error:")
       ) ?? "";
-    const appletMeta = HANDBOOK_FIXTURE.applets?.find(
-      (entry) => entry.id === appletId,
-    );
+    const appletMeta = HANDBOOK_FIXTURE.applets?.find((entry) => entry.id === appletId);
     if (appletMeta === undefined) {
       throw new Error(`Missing applet metadata for ${appletId}`);
     }
     const actualStatus = parseResultStatus(resultLine);
     if (actualStatus === null) {
-      throw new Error(
-        `applet ${appletId} did not report a result: ${resultLine}`,
-      );
+      throw new Error(`applet ${appletId} did not report a result: ${resultLine}`);
     }
     assertAppletStatusMatchesExpectation(appletMeta, actualStatus, "web");
     passedApplets.push(appletId);
@@ -554,7 +506,7 @@ async function main() {
     globalThis.__WEB_HANDBOOK__ = {
       status: "running",
       steps: [...steps],
-      passedApplets: [...passedApplets],
+      passedApplets: [...passedApplets]
     };
 
     if (appletId === "widget-gallery") {
@@ -566,7 +518,7 @@ async function main() {
   await tap(send, getRuntime, "open-diag", "hb.diagnostics");
   await waitForRuntime(
     getRuntime,
-    (runtime) => findNodeById(runtime.widgetTree.root, "diag-export") !== null,
+    (runtime) => findNodeById(runtime.widgetTree.root, "diag-export") !== null
   );
   record("diagnostics-open");
 
@@ -577,7 +529,7 @@ async function main() {
       const qr = findNodeById(runtime.widgetTree.root, "diag-export-qr");
       return qr !== null && T256_PATTERN.test(String(qr.props?.value ?? ""));
     },
-    45_000,
+    45_000
   );
   const qrNode = findNodeById(exportRuntime.widgetTree.root, "diag-export-qr");
   const reportId = String(qrNode.props.value);
@@ -585,7 +537,7 @@ async function main() {
 
   if (passedApplets.length !== HANDBOOK_FIXTURE.appletIds.length) {
     throw new Error(
-      `expected ${HANDBOOK_FIXTURE.appletIds.length} applets, got ${passedApplets.length}`,
+      `expected ${HANDBOOK_FIXTURE.appletIds.length} applets, got ${passedApplets.length}`
     );
   }
 
@@ -594,7 +546,7 @@ async function main() {
     steps,
     passedApplets,
     chapters: HANDBOOK_FIXTURE.chapterIds.length,
-    reportId,
+    reportId
   };
 }
 
@@ -603,6 +555,6 @@ main().catch((error) => {
     status: "error",
     message: error instanceof Error ? error.message : String(error),
     steps: globalThis.__WEB_HANDBOOK__?.steps ?? [],
-    passedApplets: globalThis.__WEB_HANDBOOK__?.passedApplets ?? [],
+    passedApplets: globalThis.__WEB_HANDBOOK__?.passedApplets ?? []
   };
 });

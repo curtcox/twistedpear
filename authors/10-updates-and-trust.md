@@ -97,7 +97,7 @@ tp trust add <256t identity string> --label "Alice"
 tp trust list
 ```
 
-Being trusted changes the _acceptance experience_: a one-confirmation install with a "Trusted"
+Being trusted changes the *acceptance experience*: a one-confirmation install with a "Trusted"
 badge, instead of the full warning flow for an unknown key.
 
 Being trusted does **not**:

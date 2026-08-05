@@ -4,35 +4,16 @@
  * Writes conformance/budgets/measured.json for LIMITATIONS §6 reference.
  */
 
-import {
-  readFileSync,
-  writeFileSync,
-  mkdirSync,
-  cpSync,
-  mkdtempSync,
-  rmSync,
-  readdirSync,
-  statSync,
-  existsSync,
-} from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, mkdtempSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 
-const fixtureDir = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../fixtures/packages",
-);
-const examplesDir = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../apps/examples",
-);
-const handbookDir = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../apps/handbook",
-);
+const fixtureDir = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages");
+const examplesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples");
+const handbookDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/handbook");
 const outputDir = resolve(dirname(fileURLToPath(import.meta.url)));
 const outputPath = join(outputDir, "measured.json");
 
@@ -40,7 +21,7 @@ const outputPath = join(outputDir, "measured.json");
 const BITRATES = {
   lan: 8 * 1024 * 1024,
   ble: 24 * 1024,
-  rnode: 1_200,
+  rnode: 1_200
 };
 
 function estimateSeconds(bytes, bitsPerSecond) {
@@ -64,14 +45,10 @@ async function main() {
   let exampleBytes;
   const examplePackages = [];
   try {
-    await runInit({
-      cwd,
-      identityPassphrase: "conformance identity passphrase",
-      args: [],
-    });
+    await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     const packCode = await runPack({
       cwd,
-      args: [resolve(fixtureDir, "example-app"), "--out", "example.tpkg"],
+      args: [resolve(fixtureDir, "example-app"), "--out", "example.tpkg"]
     });
     if (packCode !== 0) {
       throw new Error("tp pack failed");
@@ -85,18 +62,14 @@ async function main() {
       cpSync(join(examplesDir, name), appDir, { recursive: true });
 
       try {
-        const initCode = await runInit({
-          cwd: exampleCwd,
-          identityPassphrase: "conformance identity passphrase",
-          args: [],
-        });
+        const initCode = await runInit({ cwd: exampleCwd, identityPassphrase: "conformance identity passphrase", args: [] });
         if (initCode !== 0) {
           throw new Error(`tp init failed for ${name}`);
         }
 
         const packed = await runPack({
           cwd: exampleCwd,
-          args: [name, "--out", `${name}.tpkg`],
+          args: [name, "--out", `${name}.tpkg`]
         });
         if (packed !== 0) {
           throw new Error(`tp pack failed for ${name}`);
@@ -105,7 +78,7 @@ async function main() {
         examplePackages.push({
           name,
           bytes: readFileSync(join(exampleCwd, `${name}.tpkg`)).length,
-          description: `Phase 4 example app: ${name}`,
+          description: `Phase 4 example app: ${name}`
         });
       } finally {
         rmSync(exampleCwd, { recursive: true, force: true });
@@ -113,38 +86,25 @@ async function main() {
     }
 
     const handbookCwd = mkdtempSync(join(tmpdir(), "tp-budgets-handbook-"));
-    const handbookBuild = spawnSync(
-      process.execPath,
-      [join(handbookDir, "build.mjs")],
-      {
-        cwd: handbookDir,
-        encoding: "utf8",
-      },
-    );
+    const handbookBuild = spawnSync(process.execPath, [join(handbookDir, "build.mjs")], {
+      cwd: handbookDir,
+      encoding: "utf8"
+    });
     if (handbookBuild.status !== 0) {
-      throw new Error(
-        `handbook build failed:\n${handbookBuild.stdout}\n${handbookBuild.stderr}`,
-      );
+      throw new Error(`handbook build failed:\n${handbookBuild.stdout}\n${handbookBuild.stderr}`);
     }
     const handbookAppDir = join(handbookCwd, "handbook");
     mkdirSync(handbookAppDir, { recursive: true });
-    cpSync(
-      join(handbookDir, "app.manifest.json"),
-      join(handbookAppDir, "app.manifest.json"),
-    );
+    cpSync(join(handbookDir, "app.manifest.json"), join(handbookAppDir, "app.manifest.json"));
     cpSync(join(handbookDir, "bundle.js"), join(handbookAppDir, "bundle.js"));
     try {
-      const initCode = await runInit({
-        cwd: handbookCwd,
-        identityPassphrase: "conformance identity passphrase",
-        args: [],
-      });
+      const initCode = await runInit({ cwd: handbookCwd, identityPassphrase: "conformance identity passphrase", args: [] });
       if (initCode !== 0) {
         throw new Error("tp init failed for handbook");
       }
       const packed = await runPack({
         cwd: handbookCwd,
-        args: ["handbook", "--out", "handbook.tpkg"],
+        args: ["handbook", "--out", "handbook.tpkg"]
       });
       if (packed !== 0) {
         throw new Error("tp pack failed for handbook");
@@ -152,8 +112,7 @@ async function main() {
       examplePackages.push({
         name: "handbook",
         bytes: readFileSync(join(handbookCwd, "handbook.tpkg")).length,
-        description:
-          "Phase D Handbook (full docs + applets; exceeds BLE example budget by design)",
+        description: "Phase D Handbook (full docs + applets; exceeds BLE example budget by design)"
       });
 
       const partsRoot = join(handbookDir, "generated/part-packages");
@@ -163,40 +122,28 @@ async function main() {
           if (!statSync(partDir).isDirectory()) {
             continue;
           }
-          const manifest = JSON.parse(
-            readFileSync(join(partDir, "app.manifest.json"), "utf8"),
-          );
-          const partCwd = mkdtempSync(
-            join(tmpdir(), `tp-budgets-${manifest.name}-`),
-          );
+          const manifest = JSON.parse(readFileSync(join(partDir, "app.manifest.json"), "utf8"));
+          const partCwd = mkdtempSync(join(tmpdir(), `tp-budgets-${manifest.name}-`));
           const partAppDir = join(partCwd, manifest.name);
           mkdirSync(partAppDir, { recursive: true });
-          cpSync(
-            join(partDir, "app.manifest.json"),
-            join(partAppDir, "app.manifest.json"),
-          );
+          cpSync(join(partDir, "app.manifest.json"), join(partAppDir, "app.manifest.json"));
           cpSync(join(partDir, "bundle.js"), join(partAppDir, "bundle.js"));
           try {
-            const partInit = await runInit({
-              cwd: partCwd,
-              identityPassphrase: "conformance identity passphrase",
-              args: [],
-            });
+            const partInit = await runInit({ cwd: partCwd, identityPassphrase: "conformance identity passphrase", args: [] });
             if (partInit !== 0) {
               throw new Error(`tp init failed for ${manifest.name}`);
             }
             const partPack = await runPack({
               cwd: partCwd,
-              args: [manifest.name, "--out", `${manifest.name}.tpkg`],
+              args: [manifest.name, "--out", `${manifest.name}.tpkg`]
             });
             if (partPack !== 0) {
               throw new Error(`tp pack failed for ${manifest.name}`);
             }
             examplePackages.push({
               name: manifest.name,
-              bytes: readFileSync(join(partCwd, `${manifest.name}.tpkg`))
-                .length,
-              description: `Handbook part package (${partId})`,
+              bytes: readFileSync(join(partCwd, `${manifest.name}.tpkg`)).length,
+              description: `Handbook part package (${partId})`
             });
           } finally {
             rmSync(partCwd, { recursive: true, force: true });
@@ -211,17 +158,9 @@ async function main() {
   }
 
   const packages = [
-    {
-      name: "tiny",
-      bytes: tinyBytes.length,
-      description: "Budget hello-world bundle",
-    },
-    {
-      name: "example-app",
-      bytes: exampleBytes.length,
-      description: "Typical minimal mini-app",
-    },
-    ...examplePackages,
+    { name: "tiny", bytes: tinyBytes.length, description: "Budget hello-world bundle" },
+    { name: "example-app", bytes: exampleBytes.length, description: "Typical minimal mini-app" },
+    ...examplePackages
   ];
 
   const measured = {
@@ -230,19 +169,10 @@ async function main() {
     packages: packages.map((pkg) => ({
       ...pkg,
       estimates: {
-        lan: {
-          seconds: estimateSeconds(pkg.bytes, BITRATES.lan),
-          human: formatDuration(estimateSeconds(pkg.bytes, BITRATES.lan)),
-        },
-        ble: {
-          seconds: estimateSeconds(pkg.bytes, BITRATES.ble),
-          human: formatDuration(estimateSeconds(pkg.bytes, BITRATES.ble)),
-        },
-        rnode: {
-          seconds: estimateSeconds(pkg.bytes, BITRATES.rnode),
-          human: formatDuration(estimateSeconds(pkg.bytes, BITRATES.rnode)),
-        },
-      },
+        lan: { seconds: estimateSeconds(pkg.bytes, BITRATES.lan), human: formatDuration(estimateSeconds(pkg.bytes, BITRATES.lan)) },
+        ble: { seconds: estimateSeconds(pkg.bytes, BITRATES.ble), human: formatDuration(estimateSeconds(pkg.bytes, BITRATES.ble)) },
+        rnode: { seconds: estimateSeconds(pkg.bytes, BITRATES.rnode), human: formatDuration(estimateSeconds(pkg.bytes, BITRATES.rnode)) }
+      }
     })),
     guidance: {
       bleBudgetBytes: 256 * 1024,
@@ -250,8 +180,8 @@ async function main() {
       rnodeWarningBytes: 32 * 1024,
       underOneMinuteLanMaxBytes: Math.floor((BITRATES.lan * 60) / 8),
       underOneMinuteBleMaxBytes: Math.floor((BITRATES.ble * 60) / 8),
-      underOneMinuteRnodeMaxBytes: Math.floor((BITRATES.rnode * 60) / 8),
-    },
+      underOneMinuteRnodeMaxBytes: Math.floor((BITRATES.rnode * 60) / 8)
+    }
   };
 
   mkdirSync(outputDir, { recursive: true });
@@ -259,7 +189,7 @@ async function main() {
 
   for (const pkg of measured.packages) {
     console.log(
-      `budgets: ${pkg.name} ${pkg.bytes} bytes — LAN ${pkg.estimates.lan.human}, BLE ${pkg.estimates.ble.human}, RNode ${pkg.estimates.rnode.human}`,
+      `budgets: ${pkg.name} ${pkg.bytes} bytes — LAN ${pkg.estimates.lan.human}, BLE ${pkg.estimates.ble.human}, RNode ${pkg.estimates.rnode.human}`
     );
   }
 

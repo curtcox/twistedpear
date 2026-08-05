@@ -1,5 +1,6 @@
 # AI chat
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-21
@@ -23,12 +24,12 @@ Embeddings remain unavailable until an embedding model is also set.
 import { ai } from "@twistedpear/miniapp-sdk";
 
 const response = await ai.chat({
-  messages: [{ role: "user", content: "hello" }],
+  messages: [{ role: "user", content: "hello" }]
 });
 
 let text = "";
 for await (const event of ai.chatStream({
-  messages: [{ role: "user", content: "hello" }],
+  messages: [{ role: "user", content: "hello" }]
 })) {
   if (event.type === "delta") text += event.delta;
 }
@@ -37,9 +38,9 @@ const ranked = await ai.search({
   query: "radio package budget",
   documents: [
     { id: "budgets", text: "Keep radio packages small." },
-    { id: "identity", text: "Backups use recovery words." },
+    { id: "identity", text: "Backups use recovery words." }
   ],
-  limit: 1,
+  limit: 1
 });
 ```
 

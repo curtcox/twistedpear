@@ -8,7 +8,7 @@ export async function run(sdk, report) {
     name: "hb-distrib",
     version: "0.0.1",
     entry: "bundle.js",
-    capabilities: ["identity"],
+    capabilities: ["identity"]
   };
   try {
     await sdk.workspace.write(
@@ -17,12 +17,12 @@ export async function run(sdk, report) {
         name: manifest.name,
         version: manifest.version,
         entry: manifest.entry,
-        capabilities: manifest.capabilities,
-      }),
+        capabilities: manifest.capabilities
+      })
     );
     await sdk.workspace.write(
       `${project}/bundle.js`,
-      `import { ui } from "@twistedpear/miniapp-sdk";\nawait ui.render({ root: { id: "root", type: "text", props: { value: "distrib" } } });\n`,
+      `import { ui } from "@twistedpear/miniapp-sdk";\nawait ui.render({ root: { id: "root", type: "text", props: { value: "distrib" } } });\n`
     );
 
     const packed = await sdk.apps.packageProject(project, manifest);
@@ -30,7 +30,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `Package failed: ${JSON.stringify(packed)}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -40,7 +40,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `Publish failed: ${JSON.stringify(published)}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -50,7 +50,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `Install failed: ${JSON.stringify(installed)}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -58,20 +58,16 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: `Published and installed ${installed.appId}@${installed.version}`,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted =
-      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
-    const unavailable =
-      /not configured|UNCONFIGURED|CONFIRMATION_UNAVAILABLE|unavailable/i.test(
-        message,
-      );
+    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const unavailable = /not configured|UNCONFIGURED|CONFIRMATION_UNAVAILABLE|unavailable/i.test(message);
     report({
       status: notGranted ? "not-granted" : unavailable ? "unavailable" : "fail",
       details: message,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   }
 }

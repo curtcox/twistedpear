@@ -8,8 +8,7 @@ import { PATH_REQUEST_TIMEOUT_SECONDS } from "./path-table.js";
 
 export const PATH_AWAIT_POLL_INTERVAL_MS = 50;
 export const PATH_AWAIT_TIMER_ID = "path-await";
-export const PATH_AWAIT_DEFAULT_TIMEOUT_MS =
-  PATH_REQUEST_TIMEOUT_SECONDS * 1000;
+export const PATH_AWAIT_DEFAULT_TIMEOUT_MS = PATH_REQUEST_TIMEOUT_SECONDS * 1000;
 
 export interface PathAwaitState {
   readonly armed: boolean;
@@ -21,11 +20,7 @@ export interface PathAwaitState {
 
 export type PathAwaitEvent =
   | Event
-  | {
-      readonly kind: "path-await/arm";
-      readonly at: number;
-      readonly timeoutMs: number;
-    }
+  | { readonly kind: "path-await/arm"; readonly at: number; readonly timeoutMs: number }
   | {
       readonly kind: "path-await/path-status";
       readonly present: boolean;
@@ -48,7 +43,7 @@ export function initialPathAwaitState(): PathAwaitState {
     deadlineMs: 0,
     pathPresent: false,
     concluded: false,
-    found: false,
+    found: false
   };
 }
 
@@ -69,14 +64,14 @@ export const stepPathAwait: StepFn<PathAwaitState> = (state, event) => {
 
 export function stepPathAwaitWithActions(
   state: PathAwaitState,
-  event: PathAwaitEvent,
+  event: PathAwaitEvent
 ): PathAwaitStepResult {
   return stepPathAwaitInner(state, event);
 }
 
 function stepPathAwaitInner(
   state: PathAwaitState,
-  event: PathAwaitEvent,
+  event: PathAwaitEvent
 ): PathAwaitStepResult {
   if (event.kind === "path-await/arm") {
     return {
@@ -85,10 +80,10 @@ function stepPathAwaitInner(
         deadlineMs: event.at + event.timeoutMs,
         pathPresent: false,
         concluded: false,
-        found: false,
+        found: false
       },
       intents: [],
-      actions: [{ kind: "probe" }],
+      actions: [{ kind: "probe" }]
     };
   }
 
@@ -102,10 +97,10 @@ function stepPathAwaitInner(
           ...state,
           pathPresent: true,
           concluded: true,
-          found: true,
+          found: true
         },
         intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
-        actions: [{ kind: "resolve", found: true }],
+        actions: [{ kind: "resolve", found: true }]
       };
     }
     if (event.at >= state.deadlineMs) {
@@ -114,10 +109,10 @@ function stepPathAwaitInner(
           ...state,
           pathPresent: false,
           concluded: true,
-          found: false,
+          found: false
         },
         intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
-        actions: [{ kind: "resolve", found: false }],
+        actions: [{ kind: "resolve", found: false }]
       };
     }
     return {
@@ -125,13 +120,10 @@ function stepPathAwaitInner(
       intents: [
         {
           kind: "timer/set",
-          timer: {
-            id: PATH_AWAIT_TIMER_ID,
-            delayMs: PATH_AWAIT_POLL_INTERVAL_MS,
-          },
-        },
+          timer: { id: PATH_AWAIT_TIMER_ID, delayMs: PATH_AWAIT_POLL_INTERVAL_MS }
+        }
       ],
-      actions: [],
+      actions: []
     };
   }
 
@@ -142,7 +134,7 @@ function stepPathAwaitInner(
     return {
       state,
       intents: [],
-      actions: [{ kind: "probe" }],
+      actions: [{ kind: "probe" }]
     };
   }
 

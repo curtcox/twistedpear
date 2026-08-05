@@ -4,16 +4,12 @@ import {
   InterfaceKind,
   inferInterfaceKind,
   rankOutgoingInterfaces,
-  selectPreferredInterface,
+  selectPreferredInterface
 } from "../src/policy.js";
 
 function mockInterface(
   name: string,
-  options: {
-    readonly online?: boolean;
-    readonly bitrate?: number | null;
-    readonly outgoing?: boolean;
-  } = {},
+  options: { readonly online?: boolean; readonly bitrate?: number | null; readonly outgoing?: boolean } = {}
 ): PacketInterface {
   return {
     name,
@@ -24,7 +20,7 @@ function mockInterface(
     online: options.online ?? true,
     packets: (async function* () {})(),
     send: async () => {},
-    close: async () => {},
+    close: async () => {}
   };
 }
 
@@ -42,20 +38,20 @@ describe("interface prioritization policy", () => {
     const ranked = rankOutgoingInterfaces([
       mockInterface("harness-ble", { bitrate: 20_000 }),
       mockInterface("harness-tcp"),
-      mockInterface("harness-auto"),
+      mockInterface("harness-auto")
     ]);
 
     expect(ranked.map((entry) => entry.kind)).toEqual([
       InterfaceKind.AUTO,
       InterfaceKind.TCP,
-      InterfaceKind.BLE,
+      InterfaceKind.BLE
     ]);
   });
 
   it("prefers online interfaces over offline higher-priority ones", () => {
     const preferred = selectPreferredInterface([
       mockInterface("harness-auto", { online: false }),
-      mockInterface("harness-ble", { online: true }),
+      mockInterface("harness-ble", { online: true })
     ]);
 
     expect(preferred?.name).toBe("harness-ble");

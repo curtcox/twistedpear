@@ -26,11 +26,7 @@ type BrowserNavigator = {
         };
       }) => void,
       error?: (error: { code: number; message: string }) => void,
-      options?: {
-        enableHighAccuracy?: boolean;
-        timeout?: number;
-        maximumAge?: number;
-      },
+      options?: { enableHighAccuracy?: boolean; timeout?: number; maximumAge?: number }
     ): void;
   };
   readonly permissions?: {
@@ -45,9 +41,7 @@ function browserNavigator(): BrowserNavigator | undefined {
   return (globalThis as { navigator?: BrowserNavigator }).navigator;
 }
 
-export async function browserDeviceAvailability(
-  classId: string,
-): Promise<BrowserDeviceAvailability> {
+export async function browserDeviceAvailability(classId: string): Promise<BrowserDeviceAvailability> {
   const nav = browserNavigator();
   if (classId === "location") {
     if (nav?.geolocation === undefined) return "unsupported";
@@ -61,27 +55,20 @@ export async function browserDeviceAvailability(
     return "available";
   }
   if (classId === "camera" || classId === "microphone") {
-    if (typeof nav?.mediaDevices?.getUserMedia !== "function")
-      return "unsupported";
+    if (typeof nav?.mediaDevices?.getUserMedia !== "function") return "unsupported";
     return "permission-required";
   }
   if (classId === "battery") {
-    const getBattery = (
-      nav as {
-        getBattery?: () => Promise<{ level: number; charging: boolean }>;
-      }
-    )?.getBattery;
+    const getBattery = (nav as { getBattery?: () => Promise<{ level: number; charging: boolean }> })?.getBattery;
     if (typeof getBattery !== "function") return "unsupported";
     return "available";
   }
   if (classId === "tts") {
-    const speech = (globalThis as { speechSynthesis?: SpeechSynthesis })
-      .speechSynthesis;
+    const speech = (globalThis as { speechSynthesis?: SpeechSynthesis }).speechSynthesis;
     return speech === undefined ? "unsupported" : "available";
   }
   if (classId === "haptics") {
-    return typeof (nav as { vibrate?: (pattern: number | number[]) => boolean })
-      ?.vibrate === "function"
+    return typeof (nav as { vibrate?: (pattern: number | number[]) => boolean })?.vibrate === "function"
       ? "available"
       : "unsupported";
   }
@@ -90,7 +77,7 @@ export async function browserDeviceAvailability(
 
 export async function browserDeviceSense(
   classId: string,
-  options: Readonly<Record<string, unknown>> = {},
+  options: Readonly<Record<string, unknown>> = {}
 ): Promise<unknown> {
   if (classId === "location") {
     return senseBrowserLocation(options.enableHighAccuracy === true);
@@ -109,30 +96,21 @@ export async function browserDeviceSense(
 
 export async function browserDeviceActuate(
   classId: string,
-  command: Readonly<Record<string, unknown>>,
+  command: Readonly<Record<string, unknown>>
 ): Promise<void> {
   if (classId === "tts" && command.kind === "tts") {
-    await actuateBrowserTts(
-      String(command.text ?? ""),
-      typeof command.rate === "number" ? command.rate : 1,
-    );
+    await actuateBrowserTts(String(command.text ?? ""), typeof command.rate === "number" ? command.rate : 1);
     return;
   }
   if (classId === "haptics" && command.kind === "haptics") {
-    actuateBrowserHaptics(
-      Array.isArray(command.patternMs) ? (command.patternMs as number[]) : [40],
-    );
+    actuateBrowserHaptics(Array.isArray(command.patternMs) ? (command.patternMs as number[]) : [40]);
     return;
   }
   throw new Error(`No browser actuate effect for device class "${classId}".`);
 }
 
-async function senseBrowserBattery(): Promise<{
-  bucket: "nominal" | "low" | "critical" | "unknown";
-}> {
-  const nav = browserNavigator() as {
-    getBattery?: () => Promise<{ level: number; charging: boolean }>;
-  };
+async function senseBrowserBattery(): Promise<{ bucket: "nominal" | "low" | "critical" | "unknown" }> {
+  const nav = browserNavigator() as { getBattery?: () => Promise<{ level: number; charging: boolean }> };
   if (typeof nav?.getBattery !== "function") {
     throw new Error("Battery Status API is unavailable in this browser.");
   }
@@ -145,19 +123,12 @@ async function senseBrowserBattery(): Promise<{
 }
 
 function actuateBrowserTts(text: string, rate: number): Promise<void> {
-  const speech = (
-    globalThis as {
-      speechSynthesis?: SpeechSynthesis;
-      SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance;
-    }
-  ).speechSynthesis;
-  const Utterance = (
-    globalThis as { SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance }
-  ).SpeechSynthesisUtterance;
+  const speech = (globalThis as { speechSynthesis?: SpeechSynthesis; SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance })
+    .speechSynthesis;
+  const Utterance = (globalThis as { SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance })
+    .SpeechSynthesisUtterance;
   if (speech === undefined || Utterance === undefined) {
-    return Promise.reject(
-      new Error("Speech synthesis is unavailable in this browser."),
-    );
+    return Promise.reject(new Error("Speech synthesis is unavailable in this browser."));
   }
   return new Promise((resolve, reject) => {
     const utterance = new Utterance(text);
@@ -169,9 +140,7 @@ function actuateBrowserTts(text: string, rate: number): Promise<void> {
 }
 
 function actuateBrowserHaptics(patternMs: ReadonlyArray<number>): void {
-  const vibrate = (
-    browserNavigator() as { vibrate?: (pattern: number | number[]) => boolean }
-  )?.vibrate;
+  const vibrate = (browserNavigator() as { vibrate?: (pattern: number | number[]) => boolean })?.vibrate;
   if (typeof vibrate !== "function") {
     throw new Error("Vibration is unavailable in this browser.");
   }
@@ -188,9 +157,7 @@ function senseBrowserLocation(enableHighAccuracy: boolean): Promise<{
 }> {
   const geo = browserNavigator()?.geolocation;
   if (geo === undefined) {
-    return Promise.reject(
-      new Error("Geolocation is unavailable in this browser."),
-    );
+    return Promise.reject(new Error("Geolocation is unavailable in this browser."));
   }
   return new Promise((resolve, reject) => {
     geo.getCurrentPosition(
@@ -202,47 +169,30 @@ function senseBrowserLocation(enableHighAccuracy: boolean): Promise<{
           accuracyM: coords.accuracy,
           ...(coords.altitude !== null ? { altitudeM: coords.altitude } : {}),
           ...(coords.speed !== null ? { speedMps: coords.speed } : {}),
-          ...(coords.heading !== null ? { headingDeg: coords.heading } : {}),
+          ...(coords.heading !== null ? { headingDeg: coords.heading } : {})
         });
       },
-      (error) =>
-        reject(
-          new Error(error.message || `Geolocation failed (${error.code})`),
-        ),
-      { enableHighAccuracy, timeout: 15_000, maximumAge: 5_000 },
+      (error) => reject(new Error(error.message || `Geolocation failed (${error.code})`)),
+      { enableHighAccuracy, timeout: 15_000, maximumAge: 5_000 }
     );
   });
 }
 
-async function senseBrowserCamera(
-  options: Readonly<Record<string, unknown>>,
-): Promise<
-  | {
-      barcodes: ReadonlyArray<{ format: string; value: string }>;
-      motionDetected: boolean;
-      faceCount: number;
-      objectCount: number;
-      thumbnail?: {
-        width: number;
-        height: number;
-        format: "rgba8";
-        bytes: Uint8Array;
-      };
-    }
-  | { width: number; height: number; format: "rgba8"; bytes: Uint8Array }
-> {
+async function senseBrowserCamera(options: Readonly<Record<string, unknown>>): Promise<{
+  barcodes: ReadonlyArray<{ format: string; value: string }>;
+  motionDetected: boolean;
+  faceCount: number;
+  objectCount: number;
+  thumbnail?: { width: number; height: number; format: "rgba8"; bytes: Uint8Array };
+} | { width: number; height: number; format: "rgba8"; bytes: Uint8Array }> {
   const nav = browserNavigator();
   if (typeof nav?.mediaDevices?.getUserMedia !== "function") {
     throw new Error("Camera capture is unavailable in this browser.");
   }
   const rawFrames = options.tier === "frames";
   const stream = await nav.mediaDevices.getUserMedia({
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-    },
-    audio: false,
+    video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } },
+    audio: false
   });
   try {
     if (rawFrames) return captureBrowserCameraFrame(stream);
@@ -251,59 +201,32 @@ async function senseBrowserCamera(
       barcodes,
       motionDetected: false,
       faceCount: 0,
-      objectCount: barcodes.length > 0 ? 1 : 0,
+      objectCount: barcodes.length > 0 ? 1 : 0
     };
   } finally {
     for (const track of stream.getTracks()) track.stop();
   }
 }
 
-async function captureBrowserCameraFrame(stream: MediaStream): Promise<{
-  width: number;
-  height: number;
-  format: "rgba8";
-  bytes: Uint8Array;
-}> {
+async function captureBrowserCameraFrame(stream: MediaStream): Promise<{ width: number; height: number; format: "rgba8"; bytes: Uint8Array }> {
   const doc = (globalThis as { document?: Document }).document;
-  if (doc === undefined)
-    throw new Error("Camera frame capture requires a host document.");
-  const video = doc.createElement("video");
-  video.muted = true;
-  video.playsInline = true;
-  video.srcObject = stream;
-  await video.play();
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  if (doc === undefined) throw new Error("Camera frame capture requires a host document.");
+  const video = doc.createElement("video"); video.muted = true; video.playsInline = true; video.srcObject = stream; await video.play(); await new Promise((resolve) => setTimeout(resolve, 120));
   try {
-    const width = Math.max(1, Math.min(512, video.videoWidth || 512));
-    const height = Math.max(1, Math.min(384, video.videoHeight || 384));
-    const canvas = doc.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (context === null) throw new Error("Camera canvas is unavailable.");
-    context.drawImage(video, 0, 0, width, height);
-    return {
-      width,
-      height,
-      format: "rgba8",
-      bytes: new Uint8Array(context.getImageData(0, 0, width, height).data),
-    };
-  } finally {
-    video.pause();
-    video.srcObject = null;
-  }
+    const width = Math.max(1, Math.min(512, video.videoWidth || 512)); const height = Math.max(1, Math.min(384, video.videoHeight || 384));
+    const canvas = doc.createElement("canvas"); canvas.width = width; canvas.height = height; const context = canvas.getContext("2d", { willReadFrequently: true }); if (context === null) throw new Error("Camera canvas is unavailable.");
+    context.drawImage(video, 0, 0, width, height); return { width, height, format: "rgba8", bytes: new Uint8Array(context.getImageData(0, 0, width, height).data) };
+  } finally { video.pause(); video.srcObject = null; }
 }
 
 async function detectBarcodesFromStream(
-  stream: MediaStream,
+  stream: MediaStream
 ): Promise<ReadonlyArray<{ format: string; value: string }>> {
   const doc = (globalThis as { document?: Document }).document;
   const BarcodeDetectorCtor = (
     globalThis as {
       BarcodeDetector?: new (options?: { formats?: string[] }) => {
-        detect(
-          source: CanvasImageSource,
-        ): Promise<ReadonlyArray<{ rawValue: string; format: string }>>;
+        detect(source: CanvasImageSource): Promise<ReadonlyArray<{ rawValue: string; format: string }>>;
       };
     }
   ).BarcodeDetector;
@@ -317,13 +240,11 @@ async function detectBarcodesFromStream(
   await video.play();
   await new Promise((resolve) => setTimeout(resolve, 250));
   try {
-    const detector = new BarcodeDetectorCtor({
-      formats: ["qr_code", "aztec", "pdf417", "data_matrix"],
-    });
+    const detector = new BarcodeDetectorCtor({ formats: ["qr_code", "aztec", "pdf417", "data_matrix"] });
     const results = await detector.detect(video);
     return results.map((entry) => ({
       format: entry.format === "qr_code" ? "qr" : entry.format,
-      value: entry.rawValue,
+      value: entry.rawValue
     }));
   } catch {
     return [];
@@ -333,41 +254,23 @@ async function detectBarcodesFromStream(
   }
 }
 
-async function senseBrowserMicrophone(
-  options: Readonly<Record<string, unknown>>,
-): Promise<
-  | {
-      level: number;
-      voiceActive: boolean;
-      tones: ReadonlyArray<string>;
-    }
-  | { sampleRate: number; channels: number; samples: Float32Array }
-> {
+async function senseBrowserMicrophone(options: Readonly<Record<string, unknown>>): Promise<{
+  level: number;
+  voiceActive: boolean;
+  tones: ReadonlyArray<string>;
+} | { sampleRate: number; channels: number; samples: Float32Array }> {
   const nav = browserNavigator();
   const AudioContextCtor =
-    (
-      globalThis as {
-        AudioContext?: typeof AudioContext;
-        webkitAudioContext?: typeof AudioContext;
-      }
-    ).AudioContext ??
-    (globalThis as { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext;
-  if (
-    typeof nav?.mediaDevices?.getUserMedia !== "function" ||
-    AudioContextCtor === undefined
-  ) {
+    (globalThis as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+      .AudioContext ??
+    (globalThis as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (typeof nav?.mediaDevices?.getUserMedia !== "function" || AudioContextCtor === undefined) {
     throw new Error("Microphone capture is unavailable in this browser.");
   }
   const voiceDuplex = options.voiceDuplex === true;
   const stream = await nav.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: voiceDuplex,
-      noiseSuppression: voiceDuplex,
-      autoGainControl: voiceDuplex,
-      channelCount: 1,
-    },
-    video: false,
+    audio: { echoCancellation: voiceDuplex, noiseSuppression: voiceDuplex, autoGainControl: voiceDuplex, channelCount: 1 },
+    video: false
   });
   const context = new AudioContextCtor();
   try {
@@ -378,12 +281,7 @@ async function senseBrowserMicrophone(
     await new Promise((resolve) => setTimeout(resolve, 120));
     const floatData = new Float32Array(analyser.fftSize);
     analyser.getFloatTimeDomainData(floatData);
-    if (options.tier === "pcm")
-      return {
-        sampleRate: context.sampleRate,
-        channels: 1,
-        samples: floatData,
-      };
+    if (options.tier === "pcm") return { sampleRate: context.sampleRate, channels: 1, samples: floatData };
     let sumSquares = 0;
     for (const sample of floatData) sumSquares += sample * sample;
     const rms = Math.sqrt(sumSquares / floatData.length);
@@ -391,7 +289,7 @@ async function senseBrowserMicrophone(
     return {
       level,
       voiceActive: level > 0.08,
-      tones: [],
+      tones: []
     };
   } finally {
     for (const track of stream.getTracks()) track.stop();

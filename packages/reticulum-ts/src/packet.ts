@@ -50,7 +50,7 @@ import {
   shouldRejectTruncateHashBytes,
   shouldUseTruncateHashBytes,
   initialTruncateHashBytesState,
-  TRUNCATED_HASH_BYTES,
+  TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import type { DestinationTypeValue } from "./destination.js";
@@ -63,20 +63,17 @@ export type PacketTypeValue = (typeof PacketType)[keyof typeof PacketType];
 
 export const PacketHeaderType = PacketHeaderTypeCode;
 
-export type PacketHeaderTypeValue =
-  (typeof PacketHeaderType)[keyof typeof PacketHeaderType];
+export type PacketHeaderTypeValue = (typeof PacketHeaderType)[keyof typeof PacketHeaderType];
 
 export const PacketContext = PacketContextCode;
 
 export const PacketContextFlag = PacketContextFlagCode;
 
-export type PacketContextFlagValue =
-  (typeof PacketContextFlag)[keyof typeof PacketContextFlag];
+export type PacketContextFlagValue = (typeof PacketContextFlag)[keyof typeof PacketContextFlag];
 
 export const TransportType = TransportTypeCode;
 
-export type TransportTypeValue =
-  (typeof TransportType)[keyof typeof TransportType];
+export type TransportTypeValue = (typeof TransportType)[keyof typeof TransportType];
 
 export interface PacketFields {
   readonly headerType: PacketHeaderTypeValue;
@@ -110,19 +107,14 @@ export class Packet {
 
   private constructor(
     private readonly provider: CryptoProvider,
-    fields: Required<
-      Omit<
-        PacketFields,
-        "transportId" | "contextFlag" | "hops" | "context" | "data"
-      >
-    > & {
+    fields: Required<Omit<PacketFields, "transportId" | "contextFlag" | "hops" | "context" | "data">> & {
       readonly contextFlag: PacketContextFlagValue;
       readonly hops: number;
       readonly context: number;
       readonly data: Uint8Array;
       readonly transportId: Uint8Array | null;
       readonly raw?: Uint8Array;
-    },
+    }
   ) {
     this.headerType = fields.headerType;
     this.contextFlag = fields.contextFlag;
@@ -139,20 +131,17 @@ export class Packet {
 
   static fromFields(provider: CryptoProvider, fields: PacketFields): Packet {
     const contextFlag = fields.contextFlag ?? PacketContextFlag.UNSET;
-    const gate = stepPacketFromFieldsWithActions(
-      initialPacketFromFieldsState(),
-      {
-        kind: "packet/from-fields-gate",
-        headerType: fields.headerType,
-        contextFlag,
-        transportType: fields.transportType,
-        destinationType: fields.destinationType,
-        packetType: fields.packetType,
-        destinationHashLength: fields.destinationHash.length,
-        transportIdPresent: fields.transportId !== undefined,
-        transportIdLength: fields.transportId?.length ?? 0,
-      },
-    );
+    const gate = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
+      kind: "packet/from-fields-gate",
+      headerType: fields.headerType,
+      contextFlag,
+      transportType: fields.transportType,
+      destinationType: fields.destinationType,
+      packetType: fields.packetType,
+      destinationHashLength: fields.destinationHash.length,
+      transportIdPresent: fields.transportId !== undefined,
+      transportIdLength: fields.transportId?.length ?? 0
+    });
     if (shouldRejectPacketFromFieldsBadHeaderType(gate.actions)) {
       throw new Error(`Unknown packet header type: ${fields.headerType}`);
     }
@@ -163,9 +152,7 @@ export class Packet {
       throw new Error(`Unknown packet transport type: ${fields.transportType}`);
     }
     if (shouldRejectPacketFromFieldsBadDestinationType(gate.actions)) {
-      throw new Error(
-        `Unknown packet destination type: ${fields.destinationType}`,
-      );
+      throw new Error(`Unknown packet destination type: ${fields.destinationType}`);
     }
     if (shouldRejectPacketFromFieldsBadPacketType(gate.actions)) {
       throw new Error(`Unknown packet type: ${fields.packetType}`);
@@ -193,18 +180,15 @@ export class Packet {
       destinationHash: fields.destinationHash,
       context: fields.context ?? PacketContext.NONE,
       data: fields.data ?? new Uint8Array(),
-      transportId: fields.transportId ?? null,
+      transportId: fields.transportId ?? null
     });
   }
 
   static decode(provider: CryptoProvider, raw: Uint8Array): Packet | null {
-    const stepped = stepDecodePacketRawWithActions(
-      initialDecodePacketRawState(),
-      {
-        kind: "packet-header/decode-gate",
-        raw,
-      },
-    );
+    const stepped = stepDecodePacketRawWithActions(initialDecodePacketRawState(), {
+      kind: "packet-header/decode-gate",
+      raw
+    });
     if (
       shouldRejectDecodePacketRaw(stepped.actions) ||
       !shouldUseDecodePacketRaw(stepped.actions)
@@ -227,25 +211,23 @@ export class Packet {
       destinationHash: decoded.destinationHash,
       context: decoded.context,
       data: decoded.data,
-      raw,
+      raw
     });
   }
 
   packedFlags(): number {
-    const stepped = stepPackPacketFlagsWithActions(
-      initialPackPacketFlagsState(),
-      {
-        kind: "packet-header/pack-flags-gate",
-        headerType: this.headerType,
-        contextFlag: this.contextFlag,
-        transportType: this.transportType,
-        destinationType: this.destinationType,
-        packetType: this.packetType,
-      },
-    );
-    const flags = shouldUsePackPacketFlags(stepped.actions)
-      ? packPacketFlagsFromActions(stepped.actions)
-      : null;
+    const stepped = stepPackPacketFlagsWithActions(initialPackPacketFlagsState(), {
+      kind: "packet-header/pack-flags-gate",
+      headerType: this.headerType,
+      contextFlag: this.contextFlag,
+      transportType: this.transportType,
+      destinationType: this.destinationType,
+      packetType: this.packetType
+    });
+    const flags =
+      shouldUsePackPacketFlags(stepped.actions)
+        ? packPacketFlagsFromActions(stepped.actions)
+        : null;
     if (flags === null) {
       throw new Error("packedFlags: missing use-flags action");
     }
@@ -261,13 +243,10 @@ export class Packet {
   }
 
   proofDestinationHash(): Uint8Array {
-    const stepped = stepTruncateHashBytesWithActions(
-      initialTruncateHashBytesState(),
-      {
-        kind: "hash-truncate/truncate-gate",
-        digest: this.hash(),
-      },
-    );
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: this.hash()
+    });
     const raw = truncateHashBytesRawFromActions(stepped.actions);
     if (
       shouldRejectTruncateHashBytes(stepped.actions) ||
@@ -279,24 +258,19 @@ export class Packet {
     return raw;
   }
 
-  createProof(
-    identity: Identity,
-    options: PacketProofOptions = {},
-  ): Uint8Array {
+  createProof(identity: Identity, options: PacketProofOptions = {}): Uint8Array {
     const packetHash = this.hash();
     const signature = identity.sign(packetHash);
-    const stepped = stepPackPacketProofWithActions(
-      initialPackPacketProofState(),
-      {
-        kind: "packet-proof/pack-gate",
-        packetHash,
-        signature,
-        explicit: options.explicit !== false,
-      },
-    );
-    const raw = shouldUsePackPacketProof(stepped.actions)
-      ? packPacketProofRawFromActions(stepped.actions)
-      : null;
+    const stepped = stepPackPacketProofWithActions(initialPackPacketProofState(), {
+      kind: "packet-proof/pack-gate",
+      packetHash,
+      signature,
+      explicit: options.explicit !== false
+    });
+    const raw =
+      shouldUsePackPacketProof(stepped.actions)
+        ? packPacketProofRawFromActions(stepped.actions)
+        : null;
     if (raw === null) {
       throw new Error("createProof: missing use-raw action");
     }
@@ -305,30 +279,25 @@ export class Packet {
 
   validateProof(identity: Identity, proof: Uint8Array): boolean {
     const packetHash = this.hash();
-    const stepped = stepSplitPacketProofWithActions(
-      initialSplitPacketProofState(),
-      {
-        kind: "packet-proof/split-gate",
-        proof,
-      },
-    );
+    const stepped = stepSplitPacketProofWithActions(initialSplitPacketProofState(), {
+      kind: "packet-proof/split-gate",
+      proof
+    });
     if (shouldRejectSplitPacketProof(stepped.actions)) {
       return false;
     }
-    const split = shouldUseSplitPacketProof(stepped.actions)
-      ? packetProofFieldsFromActions(stepped.actions)
-      : null;
+    const split =
+      shouldUseSplitPacketProof(stepped.actions)
+        ? packetProofFieldsFromActions(stepped.actions)
+        : null;
     if (split === null) {
       return false;
     }
-    const hashStepped = stepPacketProofHashMatchWithActions(
-      initialPacketProofHashMatchState(),
-      {
-        kind: "packet-proof/hash-match-gate",
-        proof: split,
-        packetHash,
-      },
-    );
+    const hashStepped = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
+      kind: "packet-proof/hash-match-gate",
+      proof: split,
+      packetHash
+    });
     if (!shouldMatchPacketProofHash(hashStepped.actions)) {
       return false;
     }
@@ -336,17 +305,15 @@ export class Packet {
   }
 
   hashablePart(): Uint8Array {
-    const stepped = stepPacketHashablePartWithActions(
-      initialPacketHashablePartState(),
-      {
-        kind: "packet-header/hashable-part-gate",
-        raw: this.raw,
-        headerType: this.headerType,
-      },
-    );
-    const raw = shouldUsePacketHashablePart(stepped.actions)
-      ? packetHashablePartRawFromActions(stepped.actions)
-      : null;
+    const stepped = stepPacketHashablePartWithActions(initialPacketHashablePartState(), {
+      kind: "packet-header/hashable-part-gate",
+      raw: this.raw,
+      headerType: this.headerType
+    });
+    const raw =
+      shouldUsePacketHashablePart(stepped.actions)
+        ? packetHashablePartRawFromActions(stepped.actions)
+        : null;
     if (raw === null) {
       throw new Error("hashablePart: missing use-raw action");
     }
@@ -365,13 +332,10 @@ export class Packet {
     readonly data: Uint8Array;
     readonly transportId: Uint8Array | null;
   }): Uint8Array {
-    const stepped = stepEncodePacketRawWithActions(
-      initialEncodePacketRawState(),
-      {
-        kind: "packet-header/encode-gate",
-        ...fields,
-      },
-    );
+    const stepped = stepEncodePacketRawWithActions(initialEncodePacketRawState(), {
+      kind: "packet-header/encode-gate",
+      ...fields
+    });
     if (
       shouldRejectEncodePacketRaw(stepped.actions) ||
       !shouldUseEncodePacketRaw(stepped.actions)

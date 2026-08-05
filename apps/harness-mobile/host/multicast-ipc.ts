@@ -1,13 +1,10 @@
 import b4a from "b4a";
 import {
   createNativeMulticastBridge,
-  stopNativeMulticastBridge,
+  stopNativeMulticastBridge
 } from "@twistedpear/multicast";
 import type { MulticastBridge } from "@twistedpear/reticulum-interfaces";
-import type {
-  HostToWorkletMessage,
-  WorkletToHostMessage,
-} from "../worklet/protocol";
+import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
 
 function bytesToHex(bytes: Uint8Array): string {
   return b4a.toString(bytes, "hex");
@@ -21,9 +18,7 @@ function hexToBytes(hex: string): Uint8Array {
 export class HostMulticastIpc {
   private bridge: MulticastBridge | null = null;
 
-  constructor(
-    private readonly sendToWorklet: (message: HostToWorkletMessage) => void,
-  ) {}
+  constructor(private readonly sendToWorklet: (message: HostToWorkletMessage) => void) {}
 
   private ensureBridge(): MulticastBridge {
     if (this.bridge === null) {
@@ -35,12 +30,12 @@ export class HostMulticastIpc {
             ifname,
             dataHex: bytesToHex(data),
             sourceAddress,
-            port,
+            port
           });
         },
         onNetworkChange: (interfaces) => {
           this.sendToWorklet({ type: "multicast-interfaces", interfaces });
-        },
+        }
       });
     }
 
@@ -78,11 +73,7 @@ export class HostMulticastIpc {
     }
 
     if (message.type === "multicast-join") {
-      await bridge.joinGroup(
-        message.ifname,
-        message.groupAddress,
-        message.port,
-      );
+      await bridge.joinGroup(message.ifname, message.groupAddress, message.port);
       return;
     }
 
@@ -92,22 +83,12 @@ export class HostMulticastIpc {
     }
 
     if (message.type === "multicast-send") {
-      await bridge.send(
-        message.ifname,
-        message.groupAddress,
-        message.port,
-        hexToBytes(message.dataHex),
-      );
+      await bridge.send(message.ifname, message.groupAddress, message.port, hexToBytes(message.dataHex));
       return;
     }
 
     if (message.type === "multicast-unicast") {
-      await bridge.sendUnicast(
-        message.ifname,
-        message.targetAddress,
-        message.port,
-        hexToBytes(message.dataHex),
-      );
+      await bridge.sendUnicast(message.ifname, message.targetAddress, message.port, hexToBytes(message.dataHex));
     }
   }
 

@@ -25,16 +25,16 @@ rationale and the remaining hardware-gated work.
 Companion plans: [Device I/O plan](device-io-plan.md) exposes the hardware;
 [Local peer discovery and connection plan](local-peer-discovery-plan.md) supplies the peer
 handles; [Relay and configurable interfaces](relay-interfaces-plan.md) owns the same
-hardware in the _packet transport_ plane and must never hold it at the same time.
+hardware in the *packet transport* plane and must never hold it at the same time.
 
 ## The four decisions this plan is built on
 
-| Decision           | Choice                                                                                                                                                                                                                                              |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Measurement        | **Hybrid.** Passive estimate from interface class and observed goodput by default; an explicit, budgeted, user-initiated active probe when the user wants a current number. Probing a LoRa link must never be the default.                          |
-| Planes             | **The full ladder.** WebRTC → Pears bulk → Reticulum link → LXMF → CAS, matching the degradation ladders already declared in the device registry. The matrix reports "video", "audio only", or "derived events only" per peer rather than a binary. |
-| Reachability truth | **Both ends, or it is a guess.** A peer's ability to _receive_ depends on its own uplink, budget, battery, metered state, and grants. The matrix is built from a two-sided readiness exchange, never from local measurement alone.                  |
-| Sharing authority  | **Host-owned policy, app-visible.** The app displays and requests; every write to "who may receive my camera" happens in host chrome, TTL-bounded, revocable, mirroring the existing remote-grant store.                                            |
+| Decision | Choice |
+|---|---|
+| Measurement | **Hybrid.** Passive estimate from interface class and observed goodput by default; an explicit, budgeted, user-initiated active probe when the user wants a current number. Probing a LoRa link must never be the default. |
+| Planes | **The full ladder.** WebRTC → Pears bulk → Reticulum link → LXMF → CAS, matching the degradation ladders already declared in the device registry. The matrix reports "video", "audio only", or "derived events only" per peer rather than a binary. |
+| Reachability truth | **Both ends, or it is a guess.** A peer's ability to *receive* depends on its own uplink, budget, battery, metered state, and grants. The matrix is built from a two-sided readiness exchange, never from local measurement alone. |
+| Sharing authority | **Host-owned policy, app-visible.** The app displays and requests; every write to "who may receive my camera" happens in host chrome, TTL-bounded, revocable, mirroring the existing remote-grant store. |
 
 ## Scope and boundary
 
@@ -48,7 +48,7 @@ the `line-check` mini-app; and the spec/conformance artifacts that pin all of it
 calls with server-side mixing (the ladder is point-to-point; N-way is a follow-on that
 reuses everything here). Recording or persistence of received media. Background mini-app
 execution — [battery and bandwidth policy](battery-bandwidth-policy.md) principle 3 stands,
-and call signaling works _within_ it rather than asking for an exception.
+and call signaling works *within* it rather than asking for an exception.
 
 ### Boundary with the device I/O plan
 
@@ -61,28 +61,28 @@ in that plan's scope. It adds **no new device classes**.
 
 The implementation reused existing platform pieces rather than inventing parallel ones:
 
-| Capability                                                                                                                                    | Where                                                                                                   | Role in this plan                                                                      |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Closed capability taxonomy, install-blocking unknown strings                                                                                  | [`capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts)                                    | New ids are additive and generated the same way.                                       |
-| `device:camera`, `device:camera:frames`, `device:microphone`, `device:microphone:pcm`, `device:speaker:pcm`, `device:stream`, `device:remote` | [`device-classes.json`](../specs/spec-device/registry/device-classes.json)                              | Exactly the set `line-check` needs. No new classes.                                    |
-| Grant lifecycle: TTL required, terminal phases unrevivable, model-checked                                                                     | [`grant-machine.ts`](../packages/protocol/src/grant-machine.ts), [SPEC-CAP](../specs/spec-cap/spec.md)  | Reuse unchanged. Short-TTL sensitive grants are what makes a call session safe.        |
-| Consent classes; `sensitive` = per-session confirmation, no remember-me, persistent indicator                                                 | [SPEC-DEVICE](../specs/spec-device/spec.md), [`confirm.ts`](../packages/miniapp-runtime/src/confirm.ts) | Reuse. Both camera frames and mic PCM are already `sensitive`.                         |
-| Device session lifecycle machine with TLA+ model and Layer-3 vectors                                                                          | [`device-session.ts`](../packages/protocol/src/device-session.ts)                                       | Media sessions are ordinary device sessions.                                           |
-| Degradation ladders per class, declared in the registry                                                                                       | [`device-classes.json`](../specs/spec-device/registry/device-classes.json)                              | Reuse the rung names; encodings and plane bindings are in the live register.           |
-| Pure admission and adaptation decision, Sans-IO                                                                                               | [`device-admission.ts`](../packages/protocol/src/device-admission.ts)                                   | Reuse the shape; G12 defects fixed; host measurement overrides app ceilings.           |
-| Sidecar frame codec (`TPD1`/`TPD2`), control-forbidden, CRC, chunked                                                                          | [`device-stream-framing.ts`](../packages/protocol/src/device-stream-framing.ts)                         | Reuse; v2 adds timing fields.                                                          |
-| Remote acquisition grants: per peer/class/tier, TTL, concurrency and duration caps, no transitive delegation                                  | [`device-remote.ts`](../packages/protocol/src/device-remote.ts)                                         | Reuse directly; outbound share policy mirrors it.                                      |
-| App-scoped opaque peer handles with a chosen data plane                                                                                       | [`peers.ts`](../packages/miniapp-sdk/src/peers.ts)                                                      | Reuse as the addressing and consent primitive.                                         |
-| Host-owned WebRTC signaling and data channel; SDP/ICE never cross the broker                                                                  | [`webrtc-route.ts`](../packages/peer-discovery/src/webrtc-route.ts)                                     | Top plane; media tracks via `mediaTransceivers` + `createWebRtcMediaTrackPlaneOpener`. |
-| Interface ranking and effective bitrate                                                                                                       | [`policy.ts`](../packages/reticulum-interfaces/src/policy.ts)                                           | The passive half of the hybrid measurement.                                            |
-| Host-rendered preview surfaces (`camera-preview`, `audio-meter`, `waveform`, `remote-video`)                                                  | [`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts)                                          | Widget kinds exist; `remote-video` now binds inbound streams.                          |
-| Recorded tapes replayed in CI; adversarial link profiles in the simulator                                                                     | [`spec-device/tapes`](../specs/spec-device/tapes/), [`sim-campaign`](../packages/sim-campaign/)         | Conformance strategy for admission and adaptation.                                     |
-| Announce subscribe/publish in the app namespace                                                                                               | [`announce.ts`](../packages/miniapp-sdk/src/announce.ts)                                                | How `line-check` finds candidate peers before any link exists.                         |
+| Capability | Where | Role in this plan |
+|---|---|---|
+| Closed capability taxonomy, install-blocking unknown strings | [`capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts) | New ids are additive and generated the same way. |
+| `device:camera`, `device:camera:frames`, `device:microphone`, `device:microphone:pcm`, `device:speaker:pcm`, `device:stream`, `device:remote` | [`device-classes.json`](../specs/spec-device/registry/device-classes.json) | Exactly the set `line-check` needs. No new classes. |
+| Grant lifecycle: TTL required, terminal phases unrevivable, model-checked | [`grant-machine.ts`](../packages/protocol/src/grant-machine.ts), [SPEC-CAP](../specs/spec-cap/spec.md) | Reuse unchanged. Short-TTL sensitive grants are what makes a call session safe. |
+| Consent classes; `sensitive` = per-session confirmation, no remember-me, persistent indicator | [SPEC-DEVICE](../specs/spec-device/spec.md), [`confirm.ts`](../packages/miniapp-runtime/src/confirm.ts) | Reuse. Both camera frames and mic PCM are already `sensitive`. |
+| Device session lifecycle machine with TLA+ model and Layer-3 vectors | [`device-session.ts`](../packages/protocol/src/device-session.ts) | Media sessions are ordinary device sessions. |
+| Degradation ladders per class, declared in the registry | [`device-classes.json`](../specs/spec-device/registry/device-classes.json) | Reuse the rung names; encodings and plane bindings are in the live register. |
+| Pure admission and adaptation decision, Sans-IO | [`device-admission.ts`](../packages/protocol/src/device-admission.ts) | Reuse the shape; G12 defects fixed; host measurement overrides app ceilings. |
+| Sidecar frame codec (`TPD1`/`TPD2`), control-forbidden, CRC, chunked | [`device-stream-framing.ts`](../packages/protocol/src/device-stream-framing.ts) | Reuse; v2 adds timing fields. |
+| Remote acquisition grants: per peer/class/tier, TTL, concurrency and duration caps, no transitive delegation | [`device-remote.ts`](../packages/protocol/src/device-remote.ts) | Reuse directly; outbound share policy mirrors it. |
+| App-scoped opaque peer handles with a chosen data plane | [`peers.ts`](../packages/miniapp-sdk/src/peers.ts) | Reuse as the addressing and consent primitive. |
+| Host-owned WebRTC signaling and data channel; SDP/ICE never cross the broker | [`webrtc-route.ts`](../packages/peer-discovery/src/webrtc-route.ts) | Top plane; media tracks via `mediaTransceivers` + `createWebRtcMediaTrackPlaneOpener`. |
+| Interface ranking and effective bitrate | [`policy.ts`](../packages/reticulum-interfaces/src/policy.ts) | The passive half of the hybrid measurement. |
+| Host-rendered preview surfaces (`camera-preview`, `audio-meter`, `waveform`, `remote-video`) | [`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts) | Widget kinds exist; `remote-video` now binds inbound streams. |
+| Recorded tapes replayed in CI; adversarial link profiles in the simulator | [`spec-device/tapes`](../specs/spec-device/tapes/), [`sim-campaign`](../packages/sim-campaign/) | Conformance strategy for admission and adaptation. |
+| Announce subscribe/publish in the app namespace | [`announce.ts`](../packages/miniapp-sdk/src/announce.ts) | How `line-check` finds candidate peers before any link exists. |
 
 ## Remaining phase
 
-| Phase                     | Deliverable                                                                       | Exit                                                                                                                 |
-| ------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Phase | Deliverable | Exit |
+|---|---|---|
 | **7 · Hardware evidence** | Real-device calls over LAN, BLE, and RNode/LoRa; battery and airtime measurements | Recorded in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md); LoRa row expected to read "events only", and that is a pass |
 
 Until plane openers are configured on a host, it must keep rejecting unconfigured streams.
@@ -94,22 +94,22 @@ Desktop and web GUI call bytes remain required software evidence via
 
 The risks this plan introduces, and what holds them.
 
-| Risk                                                                 | Control                                                                                                                                                                       |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `link:observe` becomes a contact-enumeration channel                 | App-scoped roster only; peers in this app's namespace with an existing relationship; opaque handles as today                                                                  |
-| Reported bandwidth becomes a fingerprint or location signal          | Six coarse buckets, never a number; TTL'd; `closed` posture is indistinguishable from unreachable                                                                             |
-| `link:probe` becomes a traffic-generation or battery-drain primitive | Per-peer byte and rate budget; refused below a bitrate threshold without confirmation; counted against the host limiter; user-initiated                                       |
-| App declares fake bandwidth to win admission                         | Host measurement overrides; app constraints are ceilings only                                                                                                                 |
-| Standing share offers become silent always-on surveillance           | TTL-bounded; `sensitive` classes re-consent after restart; persistent non-dismissible indicator; kill switch one interaction away; every start, rung change, and stop audited |
-| A peer re-serves your camera to a third party                        | Existing rule preserved: remote-acquired devices cannot be re-streamed ([`device-manager.ts:664`](../packages/miniapp-runtime/src/device-manager.ts))                         |
-| Inbound media as a decoder attack surface                            | Decoders run host-side, never in the sandbox; frames are size- and CRC-checked before decode; control frames refused by the codec (`TPD2` keeps the control-forbidden rule)   |
-| Call signaling becomes a background-execution loophole               | The host handles the invitation; no mini-app code runs until the user accepts and the app comes to the foreground                                                             |
+| Risk | Control |
+|---|---|
+| `link:observe` becomes a contact-enumeration channel | App-scoped roster only; peers in this app's namespace with an existing relationship; opaque handles as today |
+| Reported bandwidth becomes a fingerprint or location signal | Six coarse buckets, never a number; TTL'd; `closed` posture is indistinguishable from unreachable |
+| `link:probe` becomes a traffic-generation or battery-drain primitive | Per-peer byte and rate budget; refused below a bitrate threshold without confirmation; counted against the host limiter; user-initiated |
+| App declares fake bandwidth to win admission | Host measurement overrides; app constraints are ceilings only |
+| Standing share offers become silent always-on surveillance | TTL-bounded; `sensitive` classes re-consent after restart; persistent non-dismissible indicator; kill switch one interaction away; every start, rung change, and stop audited |
+| A peer re-serves your camera to a third party | Existing rule preserved: remote-acquired devices cannot be re-streamed ([`device-manager.ts:664`](../packages/miniapp-runtime/src/device-manager.ts)) |
+| Inbound media as a decoder attack surface | Decoders run host-side, never in the sandbox; frames are size- and CRC-checked before decode; control frames refused by the codec (`TPD2` keeps the control-forbidden rule) |
+| Call signaling becomes a background-execution loophole | The host handles the invitation; no mini-app code runs until the user accepts and the app comes to the foreground |
 
 ## Open questions
 
 1. **Group calls.** Everything here is point-to-point. N-way needs either a mixing peer (a
    trust and bandwidth concentration this platform has avoided everywhere else) or full mesh
-   (quadratic, and the matrix chip would have to answer for a _set_ of peers). Deferred, but
+   (quadratic, and the matrix chip would have to answer for a *set* of peers). Deferred, but
    the readiness exchange should not be designed in a way that forecloses it.
 2. **Should `link:observe` be folded into `presence`?** Presence is already the "coarse peer
    and interface state" capability. A separate id is proposed because per-peer quality is

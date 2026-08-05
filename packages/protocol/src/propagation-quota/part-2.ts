@@ -14,25 +14,8 @@
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
-import {
-  initialCommitPropagationStoreEntryState,
-  planPropagationStore,
-  propagationStorePlanEvictKeys,
-  selectOldestPropagationKey,
-  shouldAcceptPropagationStorePlan,
-  shouldCommitPropagationStoreEntryNow,
-  shouldDuplicatePropagationStorePlan,
-  shouldRejectPropagationStorePlan,
-  stepCommitPropagationStoreEntryWithActions,
-} from "./part-1.js";
-import type {
-  CommitPropagationStoreEntryAction,
-  PropagationStoreEvent,
-  PropagationStorePlan,
-  PropagationStorePlanAction,
-  PropagationStorePlanEvent,
-  PropagationStoreState,
-} from "./part-1.js";
+import { initialCommitPropagationStoreEntryState, planPropagationStore, propagationStorePlanEvictKeys, selectOldestPropagationKey, shouldAcceptPropagationStorePlan, shouldCommitPropagationStoreEntryNow, shouldDuplicatePropagationStorePlan, shouldRejectPropagationStorePlan, stepCommitPropagationStoreEntryWithActions } from "./part-1.js";
+import type { CommitPropagationStoreEntryAction, PropagationStoreEvent, PropagationStorePlan, PropagationStorePlanAction, PropagationStorePlanEvent, PropagationStoreState } from "./part-1.js";
 /**
  * Store-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPropagationStore` /
@@ -53,7 +36,7 @@ export function initialPropagationStorePlanState(): PropagationStorePlanState {
 
 export function stepPropagationStorePlanWithActions(
   state: PropagationStorePlanState,
-  event: PropagationStorePlanEvent,
+  event: PropagationStorePlanEvent
 ): PropagationStorePlanStepResult {
   if (event.kind === "propagation/store-plan-gate") {
     return {
@@ -65,9 +48,9 @@ export function stepPropagationStorePlanWithActions(
           messageBytes: event.messageBytes,
           alreadyStored: event.alreadyStored,
           usedBytes: event.usedBytes,
-          entries: event.entries,
-        }),
-      ],
+          entries: event.entries
+        })
+      ]
     };
   }
 
@@ -76,22 +59,20 @@ export function stepPropagationStorePlanWithActions(
 
 /** Extract the store plan from actions; null when empty. */
 export function propagationStorePlanFromActions(
-  actions: ReadonlyArray<PropagationStorePlanAction>,
+  actions: ReadonlyArray<PropagationStorePlanAction>
 ): PropagationStorePlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "reject-too-large" ||
       entry.kind === "duplicate" ||
       entry.kind === "reject-capacity" ||
-      entry.kind === "accept",
+      entry.kind === "accept"
   );
   return action ?? null;
 }
 
 /** Whether store eviction may delete a catalog entry for an eviction key. */
-export function shouldEvictPropagationCatalogEntry(
-  entryPresent: boolean,
-): boolean {
+export function shouldEvictPropagationCatalogEntry(entryPresent: boolean): boolean {
   return entryPresent;
 }
 
@@ -110,7 +91,8 @@ export type EvictPropagationCatalogEntryEvent =
     };
 
 export type EvictPropagationCatalogEntryAction =
-  { readonly kind: "evict" } | { readonly kind: "skip" };
+  | { readonly kind: "evict" }
+  | { readonly kind: "skip" };
 
 export interface EvictPropagationCatalogEntryStepResult {
   readonly state: EvictPropagationCatalogEntryState;
@@ -124,7 +106,7 @@ export function initialEvictPropagationCatalogEntryState(): EvictPropagationCata
 
 export function stepEvictPropagationCatalogEntryWithActions(
   state: EvictPropagationCatalogEntryState,
-  event: EvictPropagationCatalogEntryEvent,
+  event: EvictPropagationCatalogEntryEvent
 ): EvictPropagationCatalogEntryStepResult {
   if (event.kind === "propagation/evict-catalog-entry-gate") {
     return {
@@ -132,11 +114,9 @@ export function stepEvictPropagationCatalogEntryWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldEvictPropagationCatalogEntry(event.entryPresent)
-            ? "evict"
-            : "skip",
-        },
-      ],
+          kind: shouldEvictPropagationCatalogEntry(event.entryPresent) ? "evict" : "skip"
+        }
+      ]
     };
   }
 
@@ -144,13 +124,13 @@ export function stepEvictPropagationCatalogEntryWithActions(
 }
 
 export function shouldEvictPropagationCatalogEntryNow(
-  actions: ReadonlyArray<EvictPropagationCatalogEntryAction>,
+  actions: ReadonlyArray<EvictPropagationCatalogEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "evict");
 }
 
 export function shouldSkipEvictPropagationCatalogEntry(
-  actions: ReadonlyArray<EvictPropagationCatalogEntryAction>,
+  actions: ReadonlyArray<EvictPropagationCatalogEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -182,7 +162,8 @@ export type EvictOldestPropagationEntryEvent =
     };
 
 export type EvictOldestPropagationEntryAction =
-  { readonly kind: "evict" } | { readonly kind: "skip" };
+  | { readonly kind: "evict" }
+  | { readonly kind: "skip" };
 
 export interface EvictOldestPropagationEntryStepResult {
   readonly state: EvictOldestPropagationEntryState;
@@ -196,7 +177,7 @@ export function initialEvictOldestPropagationEntryState(): EvictOldestPropagatio
 
 export function stepEvictOldestPropagationEntryWithActions(
   state: EvictOldestPropagationEntryState,
-  event: EvictOldestPropagationEntryEvent,
+  event: EvictOldestPropagationEntryEvent
 ): EvictOldestPropagationEntryStepResult {
   if (event.kind === "propagation/evict-oldest-entry-gate") {
     return {
@@ -206,12 +187,12 @@ export function stepEvictOldestPropagationEntryWithActions(
         {
           kind: shouldEvictOldestPropagationEntry({
             oldestKeyPresent: event.oldestKeyPresent,
-            entryPresent: event.entryPresent,
+            entryPresent: event.entryPresent
           })
             ? "evict"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -219,19 +200,19 @@ export function stepEvictOldestPropagationEntryWithActions(
 }
 
 export function shouldEvictOldestPropagationEntryNow(
-  actions: ReadonlyArray<EvictOldestPropagationEntryAction>,
+  actions: ReadonlyArray<EvictOldestPropagationEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "evict");
 }
 
 export function shouldSkipEvictOldestPropagationEntry(
-  actions: ReadonlyArray<EvictOldestPropagationEntryAction>,
+  actions: ReadonlyArray<EvictOldestPropagationEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export function shouldSkipCommitPropagationStoreEntry(
-  actions: ReadonlyArray<CommitPropagationStoreEntryAction>,
+  actions: ReadonlyArray<CommitPropagationStoreEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -262,7 +243,8 @@ export type ApplyPropagationStoreCommitEvent =
     };
 
 export type ApplyPropagationStoreCommitAction =
-  { readonly kind: "apply" } | { readonly kind: "skip" };
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
 
 export interface ApplyPropagationStoreCommitStepResult {
   readonly state: ApplyPropagationStoreCommitState;
@@ -276,7 +258,7 @@ export function initialApplyPropagationStoreCommitState(): ApplyPropagationStore
 
 export function stepApplyPropagationStoreCommitWithActions(
   state: ApplyPropagationStoreCommitState,
-  event: ApplyPropagationStoreCommitEvent,
+  event: ApplyPropagationStoreCommitEvent
 ): ApplyPropagationStoreCommitStepResult {
   if (event.kind === "propagation/apply-store-commit-gate") {
     return {
@@ -286,12 +268,12 @@ export function stepApplyPropagationStoreCommitWithActions(
         {
           kind: shouldApplyPropagationStoreCommit({
             planAccept: event.planAccept,
-            destinationHashPresent: event.destinationHashPresent,
+            destinationHashPresent: event.destinationHashPresent
           })
             ? "apply"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -299,13 +281,13 @@ export function stepApplyPropagationStoreCommitWithActions(
 }
 
 export function shouldApplyPropagationStoreCommitNow(
-  actions: ReadonlyArray<ApplyPropagationStoreCommitAction>,
+  actions: ReadonlyArray<ApplyPropagationStoreCommitAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldSkipApplyPropagationStoreCommit(
-  actions: ReadonlyArray<ApplyPropagationStoreCommitAction>,
+  actions: ReadonlyArray<ApplyPropagationStoreCommitAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -331,48 +313,42 @@ export function initialPropagationStoreState(): PropagationStoreState {
   return {};
 }
 
-export const stepPropagationStore: StepFn<PropagationStoreState> = (
-  state,
-  event,
-) => {
-  const result = stepPropagationStoreInner(
-    state,
-    event as PropagationStoreEvent,
-  );
+export const stepPropagationStore: StepFn<PropagationStoreState> = (state, event) => {
+  const result = stepPropagationStoreInner(state, event as PropagationStoreEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPropagationStoreWithActions(
   state: PropagationStoreState,
-  event: PropagationStoreEvent,
+  event: PropagationStoreEvent
 ): PropagationStoreStepResult {
   return stepPropagationStoreInner(state, event);
 }
 
 /** Whether step actions include reject (too-large / capacity / missing hash). */
 export function shouldRejectPropagationStore(
-  actions: ReadonlyArray<PropagationStoreAction>,
+  actions: ReadonlyArray<PropagationStoreAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Whether step actions include duplicate (already stored). */
 export function shouldDuplicatePropagationStore(
-  actions: ReadonlyArray<PropagationStoreAction>,
+  actions: ReadonlyArray<PropagationStoreAction>
 ): boolean {
   return actions.some((action) => action.kind === "duplicate");
 }
 
 /** Whether step actions include accept (evict then commit). */
 export function shouldAcceptPropagationStore(
-  actions: ReadonlyArray<PropagationStoreAction>,
+  actions: ReadonlyArray<PropagationStoreAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 /** Eviction keys from an accept action, if present. */
 export function propagationStoreAcceptEvictKeys(
-  actions: ReadonlyArray<PropagationStoreAction>,
+  actions: ReadonlyArray<PropagationStoreAction>
 ): readonly string[] | null {
   for (const action of actions) {
     if (action.kind === "accept") {
@@ -384,7 +360,7 @@ export function propagationStoreAcceptEvictKeys(
 
 function stepPropagationStoreInner(
   state: PropagationStoreState,
-  event: PropagationStoreEvent,
+  event: PropagationStoreEvent
 ): PropagationStoreStepResult {
   if (event.kind === "store/received") {
     const planActions = stepPropagationStorePlanWithActions(
@@ -395,8 +371,8 @@ function stepPropagationStoreInner(
         messageBytes: event.messageBytes,
         alreadyStored: event.alreadyStored,
         usedBytes: event.usedBytes,
-        entries: event.entries,
-      },
+        entries: event.entries
+      }
     ).actions;
     if (shouldRejectPropagationStorePlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -412,8 +388,8 @@ function stepPropagationStoreInner(
       initialCommitPropagationStoreEntryState(),
       {
         kind: "propagation/commit-store-entry-gate",
-        destinationHashPresent: event.destinationHashPresent,
-      },
+        destinationHashPresent: event.destinationHashPresent
+      }
     );
     if (!shouldCommitPropagationStoreEntryNow(commitStepped.actions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -421,7 +397,7 @@ function stepPropagationStoreInner(
     return {
       state,
       intents: [],
-      actions: [{ kind: "accept", evictKeys }],
+      actions: [{ kind: "accept", evictKeys }]
     };
   }
 
@@ -429,9 +405,7 @@ function stepPropagationStoreInner(
 }
 
 /** Whether delete may remove a catalog entry after lookup. */
-export function shouldDeletePropagationCatalogEntry(
-  entryPresent: boolean,
-): boolean {
+export function shouldDeletePropagationCatalogEntry(entryPresent: boolean): boolean {
   return entryPresent;
 }
 
@@ -450,7 +424,8 @@ export type DeletePropagationCatalogEntryEvent =
     };
 
 export type DeletePropagationCatalogEntryAction =
-  { readonly kind: "delete" } | { readonly kind: "skip" };
+  | { readonly kind: "delete" }
+  | { readonly kind: "skip" };
 
 export interface DeletePropagationCatalogEntryStepResult {
   readonly state: DeletePropagationCatalogEntryState;
@@ -464,7 +439,7 @@ export function initialDeletePropagationCatalogEntryState(): DeletePropagationCa
 
 export function stepDeletePropagationCatalogEntryWithActions(
   state: DeletePropagationCatalogEntryState,
-  event: DeletePropagationCatalogEntryEvent,
+  event: DeletePropagationCatalogEntryEvent
 ): DeletePropagationCatalogEntryStepResult {
   if (event.kind === "propagation/delete-catalog-entry-gate") {
     return {
@@ -472,11 +447,9 @@ export function stepDeletePropagationCatalogEntryWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldDeletePropagationCatalogEntry(event.entryPresent)
-            ? "delete"
-            : "skip",
-        },
-      ],
+          kind: shouldDeletePropagationCatalogEntry(event.entryPresent) ? "delete" : "skip"
+        }
+      ]
     };
   }
 
@@ -484,7 +457,7 @@ export function stepDeletePropagationCatalogEntryWithActions(
 }
 
 export function shouldDeletePropagationCatalogEntryNow(
-  actions: ReadonlyArray<DeletePropagationCatalogEntryAction>,
+  actions: ReadonlyArray<DeletePropagationCatalogEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "delete");
 }

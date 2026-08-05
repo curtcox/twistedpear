@@ -13,22 +13,11 @@ export class NativeUiDriver {
     const flow = join(this.repoRoot, ".maestro", name);
     const result = spawnSync(
       "maestro",
-      [
-        "--device",
-        this.device,
-        "test",
-        flow,
-        "--format",
-        "junit",
-        "--output",
-        join(this.artifactDir, `${this.id}-${name}.xml`),
-      ],
-      { cwd: this.repoRoot, encoding: "utf8", env: { ...process.env, ...env } },
+      ["--device", this.device, "test", flow, "--format", "junit", "--output", join(this.artifactDir, `${this.id}-${name}.xml`)],
+      { cwd: this.repoRoot, encoding: "utf8", env: { ...process.env, ...env } }
     );
     if (result.status !== 0) {
-      throw new Error(
-        `Maestro ${name} failed on ${this.id}: ${result.stderr || result.stdout}`,
-      );
+      throw new Error(`Maestro ${name} failed on ${this.id}: ${result.stderr || result.stdout}`);
     }
   }
 

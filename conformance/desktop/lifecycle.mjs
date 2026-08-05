@@ -5,17 +5,10 @@
 
 import { pathToFileURL } from "node:url";
 import { runBareLifecycleSliceProcess } from "../scenarios/bare/runner-host.mjs";
-import {
-  interopReady,
-  LEAF_ECHO_PORT,
-  waitForTcp,
-} from "../scenarios/ts/harness.mjs";
+import { interopReady, LEAF_ECHO_PORT, waitForTcp } from "../scenarios/ts/harness.mjs";
 
 export async function runDesktopLifecycleSlice(options = {}) {
-  const cycles = Number.parseInt(
-    process.env.DESKTOP_LIFECYCLE_CYCLES ?? "10",
-    10,
-  );
+  const cycles = Number.parseInt(process.env.DESKTOP_LIFECYCLE_CYCLES ?? "10", 10);
   const requirePeer = options.requirePeer ?? false;
 
   if (!interopReady()) {
@@ -34,9 +27,7 @@ export async function runDesktopLifecycleSlice(options = {}) {
       throw error;
     }
 
-    console.log(
-      `desktop-lifecycle: skipped (${error instanceof Error ? error.message : String(error)})`,
-    );
+    console.log(`desktop-lifecycle: skipped (${error instanceof Error ? error.message : String(error)})`);
     return;
   }
 
@@ -45,9 +36,7 @@ export async function runDesktopLifecycleSlice(options = {}) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  runDesktopLifecycleSlice({
-    requirePeer: process.argv.includes("--require-peer"),
-  }).catch((error) => {
+  runDesktopLifecycleSlice({ requirePeer: process.argv.includes("--require-peer") }).catch((error) => {
     console.error(error);
     process.exit(1);
   });

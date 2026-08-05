@@ -22,24 +22,10 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
-import {
-  channelPacketTimeoutSeconds,
-  stepChannelPacketTimeoutSecondsWithActions,
-} from "./part-1.js";
-import {
-  canArmChannelPacketReceipt,
-  stepArmChannelPacketReceiptWithActions,
-} from "./part-2.js";
-import {
-  channelTxReceiptTimeoutRefreshPlanExtensions,
-  planChannelTxReceiptTimeoutRefresh,
-} from "./part-4.js";
-import type {
-  ChannelTxReceiptTimeoutRefreshAction,
-  ChannelTxReceiptTimeoutRefreshEvent,
-  ChannelTxReceiptTimeoutRefreshPlanAction,
-  ChannelTxReceiptTimeoutRefreshPlanEvent,
-} from "./part-4.js";
+import { channelPacketTimeoutSeconds, stepChannelPacketTimeoutSecondsWithActions } from "./part-1.js";
+import { canArmChannelPacketReceipt, stepArmChannelPacketReceiptWithActions } from "./part-2.js";
+import { channelTxReceiptTimeoutRefreshPlanExtensions, planChannelTxReceiptTimeoutRefresh } from "./part-4.js";
+import type { ChannelTxReceiptTimeoutRefreshAction, ChannelTxReceiptTimeoutRefreshEvent, ChannelTxReceiptTimeoutRefreshPlanAction, ChannelTxReceiptTimeoutRefreshPlanEvent } from "./part-4.js";
 /**
  * Channel TX receipt-timeout refresh plan leaf is event-driven; no durable
  * session fields. Conclusions leave via machine actions (no ad-hoc
@@ -60,19 +46,17 @@ export function initialChannelTxReceiptTimeoutRefreshPlanState(): ChannelTxRecei
 
 export function stepChannelTxReceiptTimeoutRefreshPlanWithActions(
   state: ChannelTxReceiptTimeoutRefreshPlanState,
-  event: ChannelTxReceiptTimeoutRefreshPlanEvent,
+  event: ChannelTxReceiptTimeoutRefreshPlanEvent
 ): ChannelTxReceiptTimeoutRefreshPlanStepResult {
   if (event.kind === "channel/tx-receipt-timeout-refresh-plan-gate") {
     return {
       state,
       intents: [],
-      actions: planChannelTxReceiptTimeoutRefresh(event.entries).map(
-        (extension) => ({
-          kind: "extend" as const,
-          index: extension.index,
-          timeoutSeconds: extension.timeoutSeconds,
-        }),
-      ),
+      actions: planChannelTxReceiptTimeoutRefresh(event.entries).map((extension) => ({
+        kind: "extend" as const,
+        index: extension.index,
+        timeoutSeconds: extension.timeoutSeconds
+      }))
     };
   }
 
@@ -80,14 +64,14 @@ export function stepChannelTxReceiptTimeoutRefreshPlanWithActions(
 }
 
 export function shouldExtendChannelTxReceiptTimeoutRefreshPlan(
-  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshPlanAction>,
+  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "extend");
 }
 
 /** Whether the adapter should apply a planned receipt timeout extension. */
 export function shouldApplyChannelTxReceiptTimeoutExtension(
-  extensionPresent: boolean,
+  extensionPresent: boolean
 ): boolean {
   return extensionPresent;
 }
@@ -107,7 +91,8 @@ export type ApplyChannelTxReceiptTimeoutExtensionEvent =
     };
 
 export type ApplyChannelTxReceiptTimeoutExtensionAction =
-  { readonly kind: "apply" } | { readonly kind: "skip" };
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
 
 export interface ApplyChannelTxReceiptTimeoutExtensionStepResult {
   readonly state: ApplyChannelTxReceiptTimeoutExtensionState;
@@ -121,7 +106,7 @@ export function initialApplyChannelTxReceiptTimeoutExtensionState(): ApplyChanne
 
 export function stepApplyChannelTxReceiptTimeoutExtensionWithActions(
   state: ApplyChannelTxReceiptTimeoutExtensionState,
-  event: ApplyChannelTxReceiptTimeoutExtensionEvent,
+  event: ApplyChannelTxReceiptTimeoutExtensionEvent
 ): ApplyChannelTxReceiptTimeoutExtensionStepResult {
   if (event.kind === "channel/apply-tx-receipt-timeout-extension-gate") {
     return {
@@ -129,13 +114,11 @@ export function stepApplyChannelTxReceiptTimeoutExtensionWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldApplyChannelTxReceiptTimeoutExtension(
-            event.extensionPresent,
-          )
+          kind: shouldApplyChannelTxReceiptTimeoutExtension(event.extensionPresent)
             ? "apply"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -143,13 +126,13 @@ export function stepApplyChannelTxReceiptTimeoutExtensionWithActions(
 }
 
 export function shouldApplyChannelTxReceiptTimeoutExtensionNow(
-  actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>,
+  actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldSkipApplyChannelTxReceiptTimeoutExtension(
-  actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>,
+  actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -178,26 +161,24 @@ export function initialChannelTxReceiptTimeoutRefreshState(): ChannelTxReceiptTi
 
 export function stepChannelTxReceiptTimeoutRefreshWithActions(
   state: ChannelTxReceiptTimeoutRefreshState,
-  event: ChannelTxReceiptTimeoutRefreshEvent,
+  event: ChannelTxReceiptTimeoutRefreshEvent
 ): ChannelTxReceiptTimeoutRefreshStepResult {
   if (event.kind === "channel/tx-receipt-timeout-refresh-gate") {
     const planActions = stepChannelTxReceiptTimeoutRefreshPlanWithActions(
       initialChannelTxReceiptTimeoutRefreshPlanState(),
       {
         kind: "channel/tx-receipt-timeout-refresh-plan-gate",
-        entries: event.entries,
-      },
+        entries: event.entries
+      }
     ).actions;
     return {
       state,
       intents: [],
-      actions: channelTxReceiptTimeoutRefreshPlanExtensions(planActions).map(
-        (extension) => ({
-          kind: "extend" as const,
-          index: extension.index,
-          timeoutSeconds: extension.timeoutSeconds,
-        }),
-      ),
+      actions: channelTxReceiptTimeoutRefreshPlanExtensions(planActions).map((extension) => ({
+        kind: "extend" as const,
+        index: extension.index,
+        timeoutSeconds: extension.timeoutSeconds
+      }))
     };
   }
 
@@ -206,22 +187,16 @@ export function stepChannelTxReceiptTimeoutRefreshWithActions(
 
 /** Whether step actions include a receipt timeout extension at `index`. */
 export function shouldExtendChannelTxReceiptTimeout(
-  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshAction>,
+  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshAction>
 ): boolean {
   return actions.some((action) => action.kind === "extend");
 }
 
 /** Extract extend actions for the adapter to apply `setTimeout`. */
 export function channelTxReceiptTimeoutExtensions(
-  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshAction>,
+  actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshAction>
 ): ReadonlyArray<{ readonly index: number; readonly timeoutSeconds: number }> {
   return actions
-    .filter(
-      (action): action is ChannelTxReceiptTimeoutRefreshAction =>
-        action.kind === "extend",
-    )
-    .map((action) => ({
-      index: action.index,
-      timeoutSeconds: action.timeoutSeconds,
-    }));
+    .filter((action): action is ChannelTxReceiptTimeoutRefreshAction => action.kind === "extend")
+    .map((action) => ({ index: action.index, timeoutSeconds: action.timeoutSeconds }));
 }

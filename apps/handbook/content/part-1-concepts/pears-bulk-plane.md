@@ -1,5 +1,6 @@
 # Pears bulk plane
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -29,12 +30,12 @@ available and falls back to Reticulum Resources when it is not.
 
 ## In practice
 
-| Operation                                | Typical plane                  |
-| ---------------------------------------- | ------------------------------ |
-| Discover an app announce                 | Reticulum control plane        |
-| Install over LAN / internet              | Hyperdrive bulk fetch          |
-| Install with no IP path                  | Reticulum Resource transfer    |
-| LXMF chat message                        | Reticulum only                 |
+| Operation | Typical plane |
+|---|---|
+| Discover an app announce | Reticulum control plane |
+| Install over LAN / internet | Hyperdrive bulk fetch |
+| Install with no IP path | Reticulum Resource transfer |
+| LXMF chat message | Reticulum only |
 | Handbook diagnostic report (`share.put`) | CAS + optional Hyperdrive seed |
 
 Headless seeding: [Headless node & seeder](chapter:host-headless). Distribution

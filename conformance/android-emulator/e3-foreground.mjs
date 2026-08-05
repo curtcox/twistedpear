@@ -12,7 +12,7 @@ import {
   maestroAvailable,
   pressHome,
   requireDevice,
-  waitForBootComplete,
+  waitForBootComplete
 } from "./helpers.mjs";
 
 async function sleep(ms) {
@@ -21,9 +21,7 @@ async function sleep(ms) {
 
 async function runMaestroSetup() {
   if (!maestroAvailable()) {
-    throw new Error(
-      "maestro CLI not found (install from https://maestro.mobile.dev)",
-    );
+    throw new Error("maestro CLI not found (install from https://maestro.mobile.dev)");
   }
 
   maestro(["test", ".maestro/e3-foreground-setup.yaml"]);
@@ -49,9 +47,7 @@ async function main() {
     throw new Error("foreground-service notification not visible after Home");
   }
 
-  console.log(
-    "android-emulator/e3-foreground: service + notification survived background",
-  );
+  console.log("android-emulator/e3-foreground: service + notification survived background");
 }
 
 main().catch((error) => {

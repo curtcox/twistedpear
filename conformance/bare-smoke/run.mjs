@@ -10,15 +10,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Announce } from "../../packages/reticulum-ts/dist/announce.js";
-import {
-  Destination,
-  DestinationDirection,
-  DestinationType,
-} from "../../packages/reticulum-ts/dist/destination.js";
-import {
-  bytesToHex,
-  hexToBytes,
-} from "../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { Destination, DestinationDirection, DestinationType } from "../../packages/reticulum-ts/dist/destination.js";
+import { bytesToHex, hexToBytes } from "../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/pure.js";
 import { Token } from "../../packages/reticulum-ts/dist/crypto/token.js";
 import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
@@ -38,31 +31,21 @@ function assert(condition, message) {
 }
 
 function assertEqualHex(actual, expectedHex, label) {
-  assert(
-    bytesToHex(actual) === expectedHex,
-    `${label}: expected ${expectedHex}, got ${bytesToHex(actual)}`,
-  );
+  assert(bytesToHex(actual) === expectedHex, `${label}: expected ${expectedHex}, got ${bytesToHex(actual)}`);
 }
 
 function runCryptoSmoke() {
   const crypto = loadJson("conformance/vectors/crypto.json");
 
   for (const vector of crypto.sha256.slice(0, 3)) {
-    assertEqualHex(
-      provider.sha256(hexToBytes(vector.inputHex)),
-      vector.digestHex,
-      "sha256",
-    );
+    assertEqualHex(provider.sha256(hexToBytes(vector.inputHex)), vector.digestHex, "sha256");
   }
 
   for (const vector of crypto.hmacSha256.slice(0, 2)) {
     assertEqualHex(
-      provider.hmacSha256(
-        hexToBytes(vector.keyHex),
-        hexToBytes(vector.inputHex),
-      ),
+      provider.hmacSha256(hexToBytes(vector.keyHex), hexToBytes(vector.inputHex)),
       vector.digestHex,
-      "hmacSha256",
+      "hmacSha256"
     );
   }
 
@@ -73,10 +56,10 @@ function runCryptoSmoke() {
         keyMaterial: hexToBytes(vector.keyMaterialHex),
         salt: hexToBytes(vector.saltHex),
         info: hexToBytes(vector.infoHex),
-        length: vector.length,
+        length: vector.length
       }),
       vector.outputHex,
-      "hkdf",
+      "hkdf"
     );
   }
 }
@@ -94,22 +77,10 @@ function runIdentitySmoke() {
 
   const tokenVector = identity.token[0];
   const token = new Token(provider, hexToBytes(tokenVector.keyHex));
-  assertEqualHex(
-    token.encrypt(hexToBytes(tokenVector.plaintextHex), {
-      iv: hexToBytes(tokenVector.ivHex),
-    }),
-    tokenVector.ciphertextHex,
-    "token encrypt",
-  );
+  assertEqualHex(token.encrypt(hexToBytes(tokenVector.plaintextHex), { iv: hexToBytes(tokenVector.ivHex) }), tokenVector.ciphertextHex, "token encrypt");
 
   const signatureVector = identity.signatures[0];
-  assert(
-    loaded.validate(
-      hexToBytes(signatureVector.signatureHex),
-      hexToBytes(signatureVector.messageHex),
-    ),
-    "signature validate",
-  );
+  assert(loaded.validate(hexToBytes(signatureVector.signatureHex), hexToBytes(signatureVector.messageHex)), "signature validate");
 }
 
 function runPacketSmoke() {
@@ -119,25 +90,16 @@ function runPacketSmoke() {
     const packet = Packet.decode(provider, hexToBytes(vector.rawHex));
     assert(packet !== null, `failed to decode packet ${vector.name}`);
     assertEqualHex(packet.hash(), vector.packetHashHex, `${vector.name} hash`);
-    assert(
-      bytesToHex(packet.destinationHash) === vector.destinationHashHex,
-      `${vector.name} destination hash`,
-    );
+    assert(bytesToHex(packet.destinationHash) === vector.destinationHashHex, `${vector.name} destination hash`);
   }
 
   for (const vector of packetVectors.announces) {
     const packet = Packet.decode(provider, hexToBytes(vector.rawHex));
     assert(packet !== null, `failed to decode announce ${vector.name}`);
-    assert(
-      Announce.validate(provider, packet),
-      `announce validation failed for ${vector.name}`,
-    );
+    assert(Announce.validate(provider, packet), `announce validation failed for ${vector.name}`);
     const parsed = Announce.parse(packet);
     assert(parsed !== null, `failed to parse announce ${vector.name}`);
-    assert(
-      bytesToHex(parsed.signature) === vector.signatureHex,
-      `${vector.name} signature`,
-    );
+    assert(bytesToHex(parsed.signature) === vector.signatureHex, `${vector.name} signature`);
   }
 }
 
@@ -150,16 +112,10 @@ function runDestinationSmoke() {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: vector.appName,
-      aspects: vector.aspects,
+      aspects: vector.aspects
     });
-    assert(
-      bytesToHex(destination.nameHash) === vector.nameHashHex,
-      `${vector.name} name hash`,
-    );
-    assert(
-      destination.hexhash === vector.destinationHashHex,
-      `${vector.name} destination hash`,
-    );
+    assert(bytesToHex(destination.nameHash) === vector.nameHashHex, `${vector.name} name hash`);
+    assert(destination.hexhash === vector.destinationHashHex, `${vector.name} destination hash`);
   }
 }
 

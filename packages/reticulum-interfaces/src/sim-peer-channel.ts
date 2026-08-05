@@ -53,10 +53,7 @@ export abstract class SimulatedPeerChannel {
    * Deliver frames to the linked peer, applying loss-rate and optional latency.
    * Called by subclass `display`/`transmit` implementations.
    */
-  protected deliverToPeer(
-    frames: ReadonlyArray<Uint8Array>,
-    latencyMs = 0,
-  ): void {
+  protected deliverToPeer(frames: ReadonlyArray<Uint8Array>, latencyMs = 0): void {
     if (!this.active) throw new Error(`${this.constructor.name} is not active`);
     if (this.peer === null) return;
     for (const frame of frames) {

@@ -3,18 +3,15 @@ import {
   initialLinkAppRequestAwaitState,
   shouldContinueLinkAppRequestAwait,
   stepLinkAppRequestAwait,
-  stepLinkAppRequestAwaitWithActions,
+  stepLinkAppRequestAwaitWithActions
 } from "../src/link-app-request-await.js";
 
 describe("protocol link app-request await", () => {
   it("arms with a send-request action", () => {
-    const result = stepLinkAppRequestAwaitWithActions(
-      initialLinkAppRequestAwaitState(),
-      {
-        kind: "app-request-await/arm",
-        timeoutSec: 10,
-      },
-    );
+    const result = stepLinkAppRequestAwaitWithActions(initialLinkAppRequestAwaitState(), {
+      kind: "app-request-await/arm",
+      timeoutSec: 10
+    });
     expect(result.state.armed).toBe(true);
     expect(result.state.concluded).toBe(false);
     expect(result.intents).toEqual([]);
@@ -22,44 +19,33 @@ describe("protocol link app-request await", () => {
     expect(
       stepLinkAppRequestAwait(initialLinkAppRequestAwaitState(), {
         kind: "app-request-await/arm",
-        timeoutSec: 10,
-      }).intents,
+        timeoutSec: 10
+      }).intents
     ).toEqual(result.intents);
   });
 
   it("resolves with response bytes", () => {
-    let state = stepLinkAppRequestAwaitWithActions(
-      initialLinkAppRequestAwaitState(),
-      {
-        kind: "app-request-await/arm",
-        timeoutSec: 5,
-      },
-    ).state;
+    let state = stepLinkAppRequestAwaitWithActions(initialLinkAppRequestAwaitState(), {
+      kind: "app-request-await/arm",
+      timeoutSec: 5
+    }).state;
     const payload = new Uint8Array([1, 2, 3]);
     const result = stepLinkAppRequestAwaitWithActions(state, {
       kind: "app-request-await/response",
-      response: payload,
+      response: payload
     });
     expect(result.state.concluded).toBe(true);
     expect(result.state.response).toEqual(payload);
-    expect(shouldContinueLinkAppRequestAwait(result.state.concluded)).toBe(
-      false,
-    );
+    expect(shouldContinueLinkAppRequestAwait(result.state.concluded)).toBe(false);
     expect(result.actions).toEqual([{ kind: "resolve", response: payload }]);
   });
 
   it("resolves null on failed or send-rejected", () => {
-    for (const kind of [
-      "app-request-await/failed",
-      "app-request-await/send-rejected",
-    ] as const) {
-      let state = stepLinkAppRequestAwaitWithActions(
-        initialLinkAppRequestAwaitState(),
-        {
-          kind: "app-request-await/arm",
-          timeoutSec: 5,
-        },
-      ).state;
+    for (const kind of ["app-request-await/failed", "app-request-await/send-rejected"] as const) {
+      let state = stepLinkAppRequestAwaitWithActions(initialLinkAppRequestAwaitState(), {
+        kind: "app-request-await/arm",
+        timeoutSec: 5
+      }).state;
       const result = stepLinkAppRequestAwaitWithActions(state, { kind });
       expect(result.state.concluded).toBe(true);
       expect(result.state.response).toBeNull();
@@ -68,28 +54,22 @@ describe("protocol link app-request await", () => {
   });
 
   it("ignores terminal events when not armed or already concluded", () => {
-    const unarmed = stepLinkAppRequestAwaitWithActions(
-      initialLinkAppRequestAwaitState(),
-      {
-        kind: "app-request-await/failed",
-      },
-    );
+    const unarmed = stepLinkAppRequestAwaitWithActions(initialLinkAppRequestAwaitState(), {
+      kind: "app-request-await/failed"
+    });
     expect(unarmed.state.concluded).toBe(false);
     expect(unarmed.actions).toEqual([]);
 
-    let state = stepLinkAppRequestAwaitWithActions(
-      initialLinkAppRequestAwaitState(),
-      {
-        kind: "app-request-await/arm",
-        timeoutSec: 5,
-      },
-    ).state;
+    let state = stepLinkAppRequestAwaitWithActions(initialLinkAppRequestAwaitState(), {
+      kind: "app-request-await/arm",
+      timeoutSec: 5
+    }).state;
     state = stepLinkAppRequestAwaitWithActions(state, {
       kind: "app-request-await/response",
-      response: new Uint8Array([9]),
+      response: new Uint8Array([9])
     }).state;
     const after = stepLinkAppRequestAwaitWithActions(state, {
-      kind: "app-request-await/failed",
+      kind: "app-request-await/failed"
     });
     expect(after.state.response).toEqual(new Uint8Array([9]));
     expect(after.actions).toEqual([]);
@@ -102,30 +82,28 @@ describe("protocol link app-request await", () => {
       steps.push(
         stepLinkAppRequestAwaitWithActions(state, {
           kind: "app-request-await/arm",
-          timeoutSec: 8,
-        }),
+          timeoutSec: 8
+        })
       );
       state = steps[0]!.state;
       steps.push(
         stepLinkAppRequestAwaitWithActions(state, {
           kind: "app-request-await/response",
-          response: new Uint8Array([4, 5]),
-        }),
+          response: new Uint8Array([4, 5])
+        })
       );
       return steps.map((step) => ({
         concluded: step.state.concluded,
-        response:
-          step.state.response === null ? null : Array.from(step.state.response),
+        response: step.state.response === null ? null : Array.from(step.state.response),
         intents: step.intents,
         actions: step.actions.map((action) =>
           action.kind === "resolve"
             ? {
                 kind: action.kind,
-                response:
-                  action.response === null ? null : Array.from(action.response),
+                response: action.response === null ? null : Array.from(action.response)
               }
-            : action,
-        ),
+            : action
+        )
       }));
     };
     expect(run()).toEqual(run());

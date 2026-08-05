@@ -43,7 +43,7 @@ import {
   initialGateState,
   interpretGate,
   type GateState,
-  type GateStepResult,
+  type GateStepResult
 } from "@twistedpear/effects";
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -52,7 +52,7 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
-  PACKET_TYPE_PROOF,
+  PACKET_TYPE_PROOF
 } from "../packet-header.js";
 import { PacketContextCode } from "../packet-context.js";
 import { equalByteArrays } from "../path-table.js";
@@ -77,7 +77,7 @@ const localPlainDataDeliveryPlanGate = defineGate<
 >({
   event: "transport/local-plain-data-plan-gate",
   actions: ["dispatch", "ignore"],
-  decide: (event) => [{ kind: planLocalPlainDataDelivery(event) }],
+  decide: (event) => [{ kind: planLocalPlainDataDelivery(event) }]
 });
 
 export type LocalPlainDataDeliveryPlanState = GateState;
@@ -94,13 +94,14 @@ export type LocalPlainDataDeliveryPlanAction = {
   readonly kind: LocalPlainDataDeliveryPlan;
 };
 
-export type LocalPlainDataDeliveryPlanStepResult =
-  GateStepResult<LocalPlainDataDeliveryPlanAction>;
+export type LocalPlainDataDeliveryPlanStepResult = GateStepResult<
+  LocalPlainDataDeliveryPlanAction
+>;
 
 export const initialLocalPlainDataDeliveryPlanState = initialGateState;
 
 export const stepLocalPlainDataDeliveryPlanWithActions = interpretGate(
-  localPlainDataDeliveryPlanGate,
+  localPlainDataDeliveryPlanGate
 );
 
 /** Extract the local plain-data delivery plan from actions; null when empty. */
@@ -109,11 +110,13 @@ export const localPlainDataDeliveryPlanFromActions = gateConclusion<
   LocalPlainDataDeliveryPlan
 >("dispatch", "ignore");
 
-export const shouldDispatchLocalPlainDataDeliveryPlan =
-  gateConcluded<LocalPlainDataDeliveryPlanAction>("dispatch");
+export const shouldDispatchLocalPlainDataDeliveryPlan = gateConcluded<
+  LocalPlainDataDeliveryPlanAction
+>("dispatch");
 
-export const shouldIgnoreLocalPlainDataDeliveryPlan =
-  gateConcluded<LocalPlainDataDeliveryPlanAction>("ignore");
+export const shouldIgnoreLocalPlainDataDeliveryPlan = gateConcluded<
+  LocalPlainDataDeliveryPlanAction
+>("ignore");
 
 /**
  * Whether local plain DATA may dispatch after {@link planLocalPlainDataDelivery}
@@ -124,9 +127,7 @@ export function shouldDispatchLocalPlainDataDelivery(input: {
   readonly destinationPresent: boolean;
   readonly plaintextPresent: boolean;
 }): boolean {
-  return (
-    input.planDispatch && input.destinationPresent && input.plaintextPresent
-  );
+  return input.planDispatch && input.destinationPresent && input.plaintextPresent;
 }
 
 /**
@@ -147,7 +148,7 @@ const dispatchLocalPlainDataDeliveryGate = defineBooleanGate<
   event: "transport/dispatch-local-plain-data-gate",
   whenTrue: "dispatch",
   whenFalse: "skip",
-  decide: (event) => shouldDispatchLocalPlainDataDelivery(event),
+  decide: (event) => shouldDispatchLocalPlainDataDelivery(event)
 });
 
 export type DispatchLocalPlainDataDeliveryState = GateState;
@@ -162,22 +163,26 @@ export type DispatchLocalPlainDataDeliveryEvent =
     };
 
 export type DispatchLocalPlainDataDeliveryAction =
-  { readonly kind: "dispatch" } | { readonly kind: "skip" };
+  | { readonly kind: "dispatch" }
+  | { readonly kind: "skip" };
 
-export type DispatchLocalPlainDataDeliveryStepResult =
-  GateStepResult<DispatchLocalPlainDataDeliveryAction>;
+export type DispatchLocalPlainDataDeliveryStepResult = GateStepResult<
+  DispatchLocalPlainDataDeliveryAction
+>;
 
 export const initialDispatchLocalPlainDataDeliveryState = initialGateState;
 
 export const stepDispatchLocalPlainDataDeliveryWithActions = interpretGate(
-  dispatchLocalPlainDataDeliveryGate,
+  dispatchLocalPlainDataDeliveryGate
 );
 
-export const shouldDispatchLocalPlainDataDeliveryNow =
-  gateConcluded<DispatchLocalPlainDataDeliveryAction>("dispatch");
+export const shouldDispatchLocalPlainDataDeliveryNow = gateConcluded<
+  DispatchLocalPlainDataDeliveryAction
+>("dispatch");
 
-export const shouldSkipDispatchLocalPlainDataDelivery =
-  gateConcluded<DispatchLocalPlainDataDeliveryAction>("skip");
+export const shouldSkipDispatchLocalPlainDataDelivery = gateConcluded<
+  DispatchLocalPlainDataDeliveryAction
+>("skip");
 
 export type PacketHashRememberPlan = "now" | "after-relay";
 
@@ -185,9 +190,7 @@ export type PacketHashRememberPlan = "now" | "after-relay";
  * When to record a packet hash: immediately, or after deferred relay attempts.
  * Complements {@link shouldDeferPacketHash}.
  */
-export function planPacketHashRemember(
-  deferred: boolean,
-): PacketHashRememberPlan {
+export function planPacketHashRemember(deferred: boolean): PacketHashRememberPlan {
   return deferred ? "after-relay" : "now";
 }
 
@@ -208,7 +211,7 @@ const packetHashRememberPlanGate = defineGate<
 >({
   event: "transport/packet-hash-remember-plan-gate",
   actions: ["now", "after-relay"],
-  decide: (event) => [{ kind: planPacketHashRemember(event.deferred) }],
+  decide: (event) => [{ kind: planPacketHashRemember(event.deferred) }]
 });
 
 export type PacketHashRememberPlanState = GateState;
@@ -220,18 +223,13 @@ export type PacketHashRememberPlanEvent =
       readonly deferred: boolean;
     };
 
-export type PacketHashRememberPlanAction = {
-  readonly kind: PacketHashRememberPlan;
-};
+export type PacketHashRememberPlanAction = { readonly kind: PacketHashRememberPlan };
 
-export type PacketHashRememberPlanStepResult =
-  GateStepResult<PacketHashRememberPlanAction>;
+export type PacketHashRememberPlanStepResult = GateStepResult<PacketHashRememberPlanAction>;
 
 export const initialPacketHashRememberPlanState = initialGateState;
 
-export const stepPacketHashRememberPlanWithActions = interpretGate(
-  packetHashRememberPlanGate,
-);
+export const stepPacketHashRememberPlanWithActions = interpretGate(packetHashRememberPlanGate);
 
 /** Extract the packet-hash remember plan from actions; null when empty. */
 export const packetHashRememberPlanFromActions = gateConclusion<
@@ -239,11 +237,13 @@ export const packetHashRememberPlanFromActions = gateConclusion<
   PacketHashRememberPlan
 >("now", "after-relay");
 
-export const shouldRememberPacketHashNowPlan =
-  gateConcluded<PacketHashRememberPlanAction>("now");
+export const shouldRememberPacketHashNowPlan = gateConcluded<
+  PacketHashRememberPlanAction
+>("now");
 
-export const shouldRememberPacketHashAfterRelayPlan =
-  gateConcluded<PacketHashRememberPlanAction>("after-relay");
+export const shouldRememberPacketHashAfterRelayPlan = gateConcluded<
+  PacketHashRememberPlanAction
+>("after-relay");
 
 /** Whether inbound should record the packet hash immediately (non-deferred). */
 export function shouldRememberPacketHashNow(rememberNow: boolean): boolean {
@@ -251,16 +251,12 @@ export function shouldRememberPacketHashNow(rememberNow: boolean): boolean {
 }
 
 /** Whether inbound should record the packet hash after deferred relay attempts. */
-export function shouldRememberPacketHashAfterRelay(
-  rememberAfterRelay: boolean,
-): boolean {
+export function shouldRememberPacketHashAfterRelay(rememberAfterRelay: boolean): boolean {
   return rememberAfterRelay;
 }
 
 /** Whether RESOURCE_PRF ingress should dispatch to a matched active link. */
-export function shouldDispatchResourceProofToLink(
-  activeIndexPresent: boolean,
-): boolean {
+export function shouldDispatchResourceProofToLink(activeIndexPresent: boolean): boolean {
   return activeIndexPresent;
 }
 
@@ -282,8 +278,7 @@ const dispatchResourceProofToLinkGate = defineBooleanGate<
   event: "transport/dispatch-resource-proof-to-link-gate",
   whenTrue: "dispatch",
   whenFalse: "skip",
-  decide: (event) =>
-    shouldDispatchResourceProofToLink(event.activeIndexPresent),
+  decide: (event) => shouldDispatchResourceProofToLink(event.activeIndexPresent)
 });
 
 export type DispatchResourceProofToLinkState = GateState;
@@ -296,22 +291,26 @@ export type DispatchResourceProofToLinkEvent =
     };
 
 export type DispatchResourceProofToLinkAction =
-  { readonly kind: "dispatch" } | { readonly kind: "skip" };
+  | { readonly kind: "dispatch" }
+  | { readonly kind: "skip" };
 
-export type DispatchResourceProofToLinkStepResult =
-  GateStepResult<DispatchResourceProofToLinkAction>;
+export type DispatchResourceProofToLinkStepResult = GateStepResult<
+  DispatchResourceProofToLinkAction
+>;
 
 export const initialDispatchResourceProofToLinkState = initialGateState;
 
 export const stepDispatchResourceProofToLinkWithActions = interpretGate(
-  dispatchResourceProofToLinkGate,
+  dispatchResourceProofToLinkGate
 );
 
-export const shouldDispatchResourceProofToLinkNow =
-  gateConcluded<DispatchResourceProofToLinkAction>("dispatch");
+export const shouldDispatchResourceProofToLinkNow = gateConcluded<
+  DispatchResourceProofToLinkAction
+>("dispatch");
 
-export const shouldSkipDispatchResourceProofToLink =
-  gateConcluded<DispatchResourceProofToLinkAction>("skip");
+export const shouldSkipDispatchResourceProofToLink = gateConcluded<
+  DispatchResourceProofToLinkAction
+>("skip");
 
 /** Index of a link-id in a list (link-data / resource-prf ingress). */
 export function indexOfMatchingLinkId(input: {
@@ -346,7 +345,7 @@ const indexOfMatchingLinkIdGate = defineGate<
   decide: (event) => {
     const index = indexOfMatchingLinkId(event);
     return index === null ? [{ kind: "miss" }] : [{ kind: "use-index", index }];
-  },
+  }
 });
 
 export type IndexOfMatchingLinkIdState = GateState;
@@ -363,20 +362,17 @@ export type IndexOfMatchingLinkIdAction =
   | { readonly kind: "use-index"; readonly index: number }
   | { readonly kind: "miss" };
 
-export type IndexOfMatchingLinkIdStepResult =
-  GateStepResult<IndexOfMatchingLinkIdAction>;
+export type IndexOfMatchingLinkIdStepResult = GateStepResult<IndexOfMatchingLinkIdAction>;
 
 export const initialIndexOfMatchingLinkIdState = initialGateState;
 
-export const stepIndexOfMatchingLinkIdWithActions = interpretGate(
-  indexOfMatchingLinkIdGate,
-);
+export const stepIndexOfMatchingLinkIdWithActions = interpretGate(indexOfMatchingLinkIdGate);
 
-export const shouldUseMatchingLinkIdIndex =
-  gateConcluded<IndexOfMatchingLinkIdAction>("use-index");
+export const shouldUseMatchingLinkIdIndex = gateConcluded<
+  IndexOfMatchingLinkIdAction
+>("use-index");
 
-export const shouldMissMatchingLinkIdIndex =
-  gateConcluded<IndexOfMatchingLinkIdAction>("miss");
+export const shouldMissMatchingLinkIdIndex = gateConcluded<IndexOfMatchingLinkIdAction>("miss");
 
 /** Extract matching link-id index from step actions; null when no `use-index`. */
 export const matchingLinkIdIndexFromActions = gatePayload<
@@ -423,11 +419,11 @@ export const packetHashRememberGate = defineGate<
     const plan = packetHashRememberPlanFromActions(
       decideGate(packetHashRememberPlanGate, {
         ...event,
-        kind: "transport/packet-hash-remember-plan-gate",
-      }),
+        kind: "transport/packet-hash-remember-plan-gate"
+      })
     );
     return plan === null ? [] : [{ kind: plan }];
-  },
+  }
 });
 
 export type PacketHashRememberEvent =
@@ -441,9 +437,7 @@ export type PacketHashRememberAction = {
   readonly kind: PacketHashRememberPlan;
 };
 
-export const stepPacketHashRememberWithActions = interpretGate(
-  packetHashRememberGate,
-);
+export const stepPacketHashRememberWithActions = interpretGate(packetHashRememberGate);
 
 /**
  * Local plain-data delivery is event-driven; no durable session fields.
@@ -466,11 +460,11 @@ export const localPlainDataDeliveryGate = defineGate<
     const plan = localPlainDataDeliveryPlanFromActions(
       decideGate(localPlainDataDeliveryPlanGate, {
         ...event,
-        kind: "transport/local-plain-data-plan-gate",
-      }),
+        kind: "transport/local-plain-data-plan-gate"
+      })
     );
     return plan === null ? [] : [{ kind: plan }];
-  },
+  }
 });
 
 export type LocalPlainDataDeliveryEvent =
@@ -485,6 +479,4 @@ export type LocalPlainDataDeliveryAction = {
   readonly kind: LocalPlainDataDeliveryPlan;
 };
 
-export const stepLocalPlainDataDeliveryWithActions = interpretGate(
-  localPlainDataDeliveryGate,
-);
+export const stepLocalPlainDataDeliveryWithActions = interpretGate(localPlainDataDeliveryGate);

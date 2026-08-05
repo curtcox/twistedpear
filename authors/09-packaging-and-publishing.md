@@ -23,7 +23,9 @@ this chapter differ, it wins.
   "capabilities": ["lxmf:send", "storage:kv"],
   "icon": "icon.png",
   "minHostApi": "0.1.0",
-  "files": [{ "path": "bundle.js", "sha256": "<hex>", "size": 1234 }],
+  "files": [
+    { "path": "bundle.js", "sha256": "<hex>", "size": 1234 }
+  ],
   "driveKey": "<64-hex Hyperdrive public key>",
   "publisherPublicKey": "<128-hex Reticulum identity public key>",
   "signature": "<128-hex Ed25519 signature>"
@@ -65,16 +67,16 @@ The signature is Ed25519 over the canonical JSON of every manifest field **excep
 Per-file SHA-256 hashes live inside that signed manifest, so a tampered file is caught after
 unpack even though the signature only covers the manifest.
 
-| Threat                   | What stops it                                                  |
-| ------------------------ | -------------------------------------------------------------- |
-| Tampered file            | Per-file SHA-256 in the signed manifest, verified after unpack |
-| Tampered manifest        | Ed25519 signature over canonical manifest JSON                 |
-| Substitute publisher     | First-seen key pinning per app; a key swap is rejected         |
-| Downgrade                | Semver monotonicity at catalog ingest and at install           |
-| Replay of an old version | The catalog keeps the latest version; a downgrade is rejected  |
+| Threat | What stops it |
+|---|---|
+| Tampered file | Per-file SHA-256 in the signed manifest, verified after unpack |
+| Tampered manifest | Ed25519 signature over canonical manifest JSON |
+| Substitute publisher | First-seen key pinning per app; a key swap is rejected |
+| Downgrade | Semver monotonicity at catalog ingest and at install |
+| Replay of an old version | The catalog keeps the latest version; a downgrade is rejected |
 
-Note what is **not** on that list: the signature authenticates the _publisher_, not the
-_behaviour_. A signed package is a package you know came from a particular key. It is not a
+Note what is **not** on that list: the signature authenticates the *publisher*, not the
+*behaviour*. A signed package is a package you know came from a particular key. It is not a
 package anyone has reviewed. The user's defence against a malicious app is the capability
 grant, not your signature.
 
@@ -140,10 +142,10 @@ were evicted when it registers a drive.
 Hyperswarm and Hyperdrive need IP connectivity. They do not run over Reticulum, and they do
 not run in a browser tab.
 
-| Situation                   | How the bytes move                                       |
-| --------------------------- | -------------------------------------------------------- |
-| LAN or internet peer        | Hyperdrive over Hyperswarm — fast                        |
-| Browser host                | The gateway node's `/bulk-fetch` HTTP proxy              |
+| Situation | How the bytes move |
+|---|---|
+| LAN or internet peer | Hyperdrive over Hyperswarm — fast |
+| Browser host | The gateway node's `/bulk-fetch` HTTP proxy |
 | Radio-only peer (BLE, LoRa) | Reticulum Resource transfer — orders of magnitude slower |
 
 That last row is why bundle size is a design constraint and not a micro-optimisation. See

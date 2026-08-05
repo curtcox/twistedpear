@@ -15,27 +15,15 @@ import {
   shouldUsePackMsgpackFloat64,
   shouldUseUnpackMsgpackFloat,
   stepPackMsgpackFloat64WithActions,
-  stepUnpackMsgpackFloatWithActions,
+  stepUnpackMsgpackFloatWithActions
 } from "../src/msgpack-core.js";
 
 describe("protocol msgpack core", () => {
   it("packs and unpacks integers", () => {
-    expect(msgpackUnpackScalar(msgpackPackUInt(0))).toEqual({
-      type: "int",
-      int: 0,
-    });
-    expect(msgpackUnpackScalar(msgpackPackUInt(127))).toEqual({
-      type: "int",
-      int: 127,
-    });
-    expect(msgpackUnpackScalar(msgpackPackUInt(200))).toEqual({
-      type: "int",
-      int: 200,
-    });
-    expect(msgpackUnpackScalar(msgpackPackUInt(1000))).toEqual({
-      type: "int",
-      int: 1000,
-    });
+    expect(msgpackUnpackScalar(msgpackPackUInt(0))).toEqual({ type: "int", int: 0 });
+    expect(msgpackUnpackScalar(msgpackPackUInt(127))).toEqual({ type: "int", int: 127 });
+    expect(msgpackUnpackScalar(msgpackPackUInt(200))).toEqual({ type: "int", int: 200 });
+    expect(msgpackUnpackScalar(msgpackPackUInt(1000))).toEqual({ type: "int", int: 1000 });
   });
 
   it("packs bins and nil", () => {
@@ -59,40 +47,29 @@ describe("protocol msgpack core", () => {
     expect(msgpackUnpackFloat(float32)).toBe(2.5);
     const array = msgpackPackArray([msgpackPackUInt(1), msgpackPackUInt(2)]);
     expect(array[0]).toBe(0x92);
-    expect([...array]).toEqual([
-      ...msgpackPackArray([msgpackPackUInt(1), msgpackPackUInt(2)]),
-    ]);
+    expect([...array]).toEqual([...msgpackPackArray([msgpackPackUInt(1), msgpackPackUInt(2)])]);
   });
 
   it("packs and unpacks float via WithActions", () => {
-    const packed = stepPackMsgpackFloat64WithActions(
-      initialPackMsgpackFloat64State(),
-      {
-        kind: "msgpack-float/pack-gate",
-        value: 1.5,
-      },
-    );
+    const packed = stepPackMsgpackFloat64WithActions(initialPackMsgpackFloat64State(), {
+      kind: "msgpack-float/pack-gate",
+      value: 1.5
+    });
     expect(shouldUsePackMsgpackFloat64(packed.actions)).toBe(true);
     const raw = packMsgpackFloat64RawFromActions(packed.actions)!;
     expect([...raw]).toEqual([...msgpackPackFloat64(1.5)]);
 
-    const unpacked = stepUnpackMsgpackFloatWithActions(
-      initialUnpackMsgpackFloatState(),
-      {
-        kind: "msgpack-float/unpack-gate",
-        bytes: raw,
-      },
-    );
+    const unpacked = stepUnpackMsgpackFloatWithActions(initialUnpackMsgpackFloatState(), {
+      kind: "msgpack-float/unpack-gate",
+      bytes: raw
+    });
     expect(shouldUseUnpackMsgpackFloat(unpacked.actions)).toBe(true);
     expect(msgpackFloatFromActions(unpacked.actions)).toBe(1.5);
 
-    const reject = stepUnpackMsgpackFloatWithActions(
-      initialUnpackMsgpackFloatState(),
-      {
-        kind: "msgpack-float/unpack-gate",
-        bytes: new Uint8Array([0xc0]),
-      },
-    );
+    const reject = stepUnpackMsgpackFloatWithActions(initialUnpackMsgpackFloatState(), {
+      kind: "msgpack-float/unpack-gate",
+      bytes: new Uint8Array([0xc0])
+    });
     expect(shouldRejectUnpackMsgpackFloat(reject.actions)).toBe(true);
   });
 });

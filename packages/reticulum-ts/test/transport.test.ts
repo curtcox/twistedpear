@@ -13,7 +13,7 @@ import {
   Reticulum,
   bytesToHex,
   hexToBytes,
-  nodeRuntime,
+  nodeRuntime
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -36,7 +36,7 @@ describe("LeafTransport over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["interface-removal"],
+      aspects: ["interface-removal"]
     });
 
     await rightIn.announce();
@@ -55,11 +55,7 @@ describe("LeafTransport over PipeInterface", () => {
     left.start();
     right.start();
 
-    const [leftPipe, rightPipe] = PipeInterface.pair(
-      provider,
-      { name: "left" },
-      { name: "right" },
-    );
+    const [leftPipe, rightPipe] = PipeInterface.pair(provider, { name: "left" }, { name: "right" });
     left.registerInterface(leftPipe);
     right.registerInterface(rightPipe);
 
@@ -69,7 +65,7 @@ describe("LeafTransport over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["node"],
+      aspects: ["node"]
     });
 
     const rightIn = right.registerDestination({
@@ -78,7 +74,7 @@ describe("LeafTransport over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["peer"],
+      aspects: ["peer"]
     });
 
     await leftIn.announce();
@@ -94,7 +90,7 @@ describe("LeafTransport over PipeInterface", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["peer"],
+      aspects: ["peer"]
     });
 
     const rightOut = right.registerDestination({
@@ -103,26 +99,21 @@ describe("LeafTransport over PipeInterface", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["node"],
+      aspects: ["node"]
     });
 
     rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
     leftIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
     const receivedOnRight = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error("receive timeout")),
-        1000,
-      );
+      const timer = setTimeout(() => reject(new Error("receive timeout")), 1000);
       rightIn.setPacketCallback((data) => {
         clearTimeout(timer);
         resolve(data);
       });
     });
 
-    const receipt = await leftOut.send(new TextEncoder().encode("hello peer"), {
-      createReceipt: true,
-    });
+    const receipt = await leftOut.send(new TextEncoder().encode("hello peer"), { createReceipt: true });
     expect(receipt).not.toBeNull();
 
     const payload = await receivedOnRight;
@@ -160,7 +151,7 @@ describe("LeafTransport over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["alpha"],
+      aspects: ["alpha"]
     });
 
     const announces: string[] = [];
@@ -168,7 +159,7 @@ describe("LeafTransport over PipeInterface", () => {
       aspectFilter: "example.alpha",
       receivedAnnounce(info) {
         announces.push(bytesToHex(info.destinationHash));
-      },
+      }
     });
 
     await rightIn.announce();
@@ -194,7 +185,7 @@ describe("TCP loopback interface", () => {
     const server = await right.addTcpServerInterface({
       name: "server",
       listenHost: "127.0.0.1",
-      listenPort: 0,
+      listenPort: 0
     });
 
     const port = server.address?.port;
@@ -203,7 +194,7 @@ describe("TCP loopback interface", () => {
     await left.addTcpClientInterface({
       name: "client",
       targetHost: "127.0.0.1",
-      targetPort: port!,
+      targetPort: port!
     });
 
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -216,7 +207,7 @@ describe("TCP loopback interface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tcp",
-      aspects: ["server"],
+      aspects: ["server"]
     });
 
     await rightIn.announce();
@@ -229,7 +220,7 @@ describe("TCP loopback interface", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "tcp",
-      aspects: ["server"],
+      aspects: ["server"]
     });
 
     const received = new Promise<Uint8Array>((resolve) => {
@@ -239,9 +230,7 @@ describe("TCP loopback interface", () => {
     await leftOut.send(hexToBytes("010203"));
     const payload = await Promise.race([
       received,
-      new Promise<Uint8Array>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 500),
-      ),
+      new Promise<Uint8Array>((_, reject) => setTimeout(() => reject(new Error("timeout")), 500))
     ]);
     expect(bytesToHex(payload)).toBe("010203");
 
@@ -257,12 +246,12 @@ describe("TCP loopback interface", () => {
       listenHost: "127.0.0.1",
       listenPort: 0,
       incoming: false,
-      outgoing: true,
+      outgoing: true
     });
     await left.addTcpClientInterface({
       name: "client",
       targetHost: "127.0.0.1",
-      targetPort: server.address!.port,
+      targetPort: server.address!.port
     });
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(server.clients[0]?.incoming).toBe(false);
@@ -278,7 +267,7 @@ describe("TCP loopback interface", () => {
     const server = await right.addTcpServerInterface({
       name: "server",
       listenHost: "127.0.0.1",
-      listenPort: 0,
+      listenPort: 0
     });
 
     const port = server.address?.port;
@@ -288,7 +277,7 @@ describe("TCP loopback interface", () => {
       name: "client",
       targetHost: "127.0.0.1",
       targetPort: port!,
-      reconnectWaitMs: 50,
+      reconnectWaitMs: 50
     });
 
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -302,7 +291,7 @@ describe("TCP loopback interface", () => {
     const server2 = await right.addTcpServerInterface({
       name: "server-2",
       listenHost: "127.0.0.1",
-      listenPort: port!,
+      listenPort: port!
     });
 
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -319,9 +308,7 @@ describe("UDP loopback interface", () => {
     let second;
 
     try {
-      second = await runtime.udp.bind("::1", first.address.port, {
-        reuseAddress: true,
-      });
+      second = await runtime.udp.bind("::1", first.address.port, { reuseAddress: true });
       expect(second.address).toEqual(first.address);
     } finally {
       await second?.close();
@@ -335,16 +322,10 @@ describe("UDP loopback interface", () => {
 
     try {
       const received = receiver.packets[Symbol.asyncIterator]().next();
-      await sender.send(
-        new TextEncoder().encode("udp6 hello"),
-        "::1",
-        receiver.address.port,
-      );
+      await sender.send(new TextEncoder().encode("udp6 hello"), "::1", receiver.address.port);
       const packet = await Promise.race([
         received,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("udp6 timeout")), 500),
-        ),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("udp6 timeout")), 500))
       ]);
 
       expect(packet.done).toBe(false);
@@ -373,7 +354,7 @@ describe("UDP loopback interface", () => {
       listenHost: "127.0.0.1",
       listenPort: rightPort,
       forwardHost: "127.0.0.1",
-      forwardPort: leftPort,
+      forwardPort: leftPort
     });
 
     const leftUdp = await left.addUdpInterface({
@@ -381,7 +362,7 @@ describe("UDP loopback interface", () => {
       listenHost: "127.0.0.1",
       listenPort: leftPort,
       forwardHost: "127.0.0.1",
-      forwardPort: rightPort,
+      forwardPort: rightPort
     });
 
     const rightIn = right.registerDestination({
@@ -390,7 +371,7 @@ describe("UDP loopback interface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "udp",
-      aspects: ["server"],
+      aspects: ["server"]
     });
 
     await rightIn.announce();
@@ -403,7 +384,7 @@ describe("UDP loopback interface", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "udp",
-      aspects: ["server"],
+      aspects: ["server"]
     });
 
     const received = new Promise<Uint8Array>((resolve) => {
@@ -413,9 +394,7 @@ describe("UDP loopback interface", () => {
     await leftOut.send(new TextEncoder().encode("udp hello"));
     const payload = await Promise.race([
       received,
-      new Promise<Uint8Array>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 500),
-      ),
+      new Promise<Uint8Array>((_, reject) => setTimeout(() => reject(new Error("timeout")), 500))
     ]);
     expect(new TextDecoder().decode(payload)).toBe("udp hello");
 

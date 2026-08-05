@@ -8,23 +8,14 @@ import {
   AUTO_DEFAULT_DISCOVERY_PORT,
   AUTO_DEFAULT_GROUP_ID,
   MULTICAST_TEMPORARY,
-  SCOPE_LINK,
+  SCOPE_LINK
 } from "./auto-common.js";
-import type {
-  MulticastBridge,
-  MulticastBridgeEvents,
-  MulticastNetworkInfo,
-} from "./pipes.js";
+import type { MulticastBridge, MulticastBridgeEvents, MulticastNetworkInfo } from "./pipes.js";
 
 const ALL_IGNORE_IFS = new Set(["lo", "lo0"]);
 const provider = new PureCryptoProvider();
 const groupIdBytes = new TextEncoder().encode(AUTO_DEFAULT_GROUP_ID);
-const multicastAddress = deriveMulticastAddress(
-  provider,
-  groupIdBytes,
-  SCOPE_LINK,
-  MULTICAST_TEMPORARY,
-);
+const multicastAddress = deriveMulticastAddress(provider, groupIdBytes, SCOPE_LINK, MULTICAST_TEMPORARY);
 
 function enumerateLinkLocalInterfaces(): MulticastNetworkInfo[] {
   const interfaces: MulticastNetworkInfo[] = [];
@@ -39,10 +30,7 @@ function enumerateLinkLocalInterfaces(): MulticastNetworkInfo[] {
         continue;
       }
 
-      interfaces.push({
-        name,
-        linkLocalAddress: descopeLinkLocal(address.address),
-      });
+      interfaces.push({ name, linkLocalAddress: descopeLinkLocal(address.address) });
       break;
     }
   }
@@ -64,12 +52,7 @@ export function createNodeMulticastBridge(): MulticastBridge {
 
     const socket = createSocket({ type: "udp6", reuseAddr: true });
     socket.on("message", (buffer, remote) => {
-      events.onPacket?.(
-        ifname,
-        new Uint8Array(buffer),
-        remote.address,
-        remote.port,
-      );
+      events.onPacket?.(ifname, new Uint8Array(buffer), remote.address, remote.port);
     });
     sockets.set(ifname, socket);
     return socket;
@@ -123,9 +106,7 @@ export function createNodeMulticastBridge(): MulticastBridge {
     async send(ifname, groupAddress, port, data) {
       const socket = ensureSocket(ifname);
       await new Promise<void>((resolve, reject) => {
-        socket.send(Buffer.from(data), port, groupAddress, (error) =>
-          error ? reject(error) : resolve(),
-        );
+        socket.send(Buffer.from(data), port, groupAddress, (error) => (error ? reject(error) : resolve()));
       });
     },
 
@@ -136,11 +117,9 @@ export function createNodeMulticastBridge(): MulticastBridge {
 
       const socket = ensureSocket(ifname);
       await new Promise<void>((resolve, reject) => {
-        socket.send(Buffer.from(data), port, targetAddress, (error) =>
-          error ? reject(error) : resolve(),
-        );
+        socket.send(Buffer.from(data), port, targetAddress, (error) => (error ? reject(error) : resolve()));
       });
-    },
+    }
   };
 }
 

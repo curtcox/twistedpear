@@ -33,27 +33,21 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
 export function buildPathRequestData(
   destinationHash: Uint8Array,
   requestorTransportId: Uint8Array | null,
-  tag: Uint8Array,
+  tag: Uint8Array
 ): Uint8Array {
   if (destinationHash.length !== PATH_REQUEST_HASH_BYTES) {
-    throw new Error(
-      `destination hash must be ${PATH_REQUEST_HASH_BYTES} bytes`,
-    );
+    throw new Error(`destination hash must be ${PATH_REQUEST_HASH_BYTES} bytes`);
   }
   if (requestorTransportId === null) {
     return concatBytes(destinationHash, tag);
   }
   if (requestorTransportId.length !== PATH_REQUEST_HASH_BYTES) {
-    throw new Error(
-      `requestor transport id must be ${PATH_REQUEST_HASH_BYTES} bytes`,
-    );
+    throw new Error(`requestor transport id must be ${PATH_REQUEST_HASH_BYTES} bytes`);
   }
   return concatBytes(destinationHash, requestorTransportId, tag);
 }
 
-export function parsePathRequestData(
-  data: Uint8Array,
-): PathRequestFields | null {
+export function parsePathRequestData(data: Uint8Array): PathRequestFields | null {
   if (data.length < PATH_REQUEST_HASH_BYTES) {
     return null;
   }
@@ -63,10 +57,7 @@ export function parsePathRequestData(
   let tag: Uint8Array | null = null;
 
   if (data.length > PATH_REQUEST_HASH_BYTES * 2) {
-    requestorTransportId = data.subarray(
-      PATH_REQUEST_HASH_BYTES,
-      PATH_REQUEST_HASH_BYTES * 2,
-    );
+    requestorTransportId = data.subarray(PATH_REQUEST_HASH_BYTES, PATH_REQUEST_HASH_BYTES * 2);
     tag = data.subarray(PATH_REQUEST_HASH_BYTES * 2);
   } else if (data.length > PATH_REQUEST_HASH_BYTES) {
     tag = data.subarray(PATH_REQUEST_HASH_BYTES);
@@ -79,10 +70,7 @@ export function parsePathRequestData(
   return { destinationHash, requestorTransportId, tag };
 }
 
-export function pathRequestTagKey(
-  destinationHash: Uint8Array,
-  tag: Uint8Array,
-): string {
+export function pathRequestTagKey(destinationHash: Uint8Array, tag: Uint8Array): string {
   return bytesToHexLower(destinationHash) + bytesToHexLower(tag);
 }
 
@@ -119,7 +107,7 @@ export function initialBuildPathRequestDataState(): BuildPathRequestDataState {
 
 export function stepBuildPathRequestDataWithActions(
   state: BuildPathRequestDataState,
-  event: BuildPathRequestDataEvent,
+  event: BuildPathRequestDataEvent
 ): BuildPathRequestDataStepResult {
   if (event.kind === "path-request/build-data-gate") {
     return {
@@ -131,10 +119,10 @@ export function stepBuildPathRequestDataWithActions(
           raw: buildPathRequestData(
             event.destinationHash,
             event.requestorTransportId,
-            event.tag,
-          ),
-        },
-      ],
+            event.tag
+          )
+        }
+      ]
     };
   }
 
@@ -142,14 +130,14 @@ export function stepBuildPathRequestDataWithActions(
 }
 
 export function shouldUseBuildPathRequestData(
-  actions: ReadonlyArray<BuildPathRequestDataAction>,
+  actions: ReadonlyArray<BuildPathRequestDataAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract path-request build bytes from step actions; null when no `use-raw`. */
 export function buildPathRequestDataRawFromActions(
-  actions: ReadonlyArray<BuildPathRequestDataAction>,
+  actions: ReadonlyArray<BuildPathRequestDataAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -185,7 +173,7 @@ export function initialParsePathRequestDataState(): ParsePathRequestDataState {
 
 export function stepParsePathRequestDataWithActions(
   state: ParsePathRequestDataState,
-  event: ParsePathRequestDataEvent,
+  event: ParsePathRequestDataEvent
 ): ParsePathRequestDataStepResult {
   if (event.kind === "path-request/parse-data-gate") {
     const fields = parsePathRequestData(event.data);
@@ -195,7 +183,7 @@ export function stepParsePathRequestDataWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
@@ -203,20 +191,20 @@ export function stepParsePathRequestDataWithActions(
 }
 
 export function shouldUseParsePathRequestData(
-  actions: ReadonlyArray<ParsePathRequestDataAction>,
+  actions: ReadonlyArray<ParsePathRequestDataAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectParsePathRequestData(
-  actions: ReadonlyArray<ParsePathRequestDataAction>,
+  actions: ReadonlyArray<ParsePathRequestDataAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract parsed path-request fields from step actions; null when no `use-fields`. */
 export function pathRequestFieldsFromActions(
-  actions: ReadonlyArray<ParsePathRequestDataAction>,
+  actions: ReadonlyArray<ParsePathRequestDataAction>
 ): PathRequestFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -254,7 +242,7 @@ export function initialPathRequestTagKeyState(): PathRequestTagKeyState {
 
 export function stepPathRequestTagKeyWithActions(
   state: PathRequestTagKeyState,
-  event: PathRequestTagKeyEvent,
+  event: PathRequestTagKeyEvent
 ): PathRequestTagKeyStepResult {
   if (event.kind === "path-request/tag-key-gate") {
     return {
@@ -263,9 +251,9 @@ export function stepPathRequestTagKeyWithActions(
       actions: [
         {
           kind: "use-key",
-          key: pathRequestTagKey(event.destinationHash, event.tag),
-        },
-      ],
+          key: pathRequestTagKey(event.destinationHash, event.tag)
+        }
+      ]
     };
   }
 
@@ -273,14 +261,14 @@ export function stepPathRequestTagKeyWithActions(
 }
 
 export function shouldUsePathRequestTagKey(
-  actions: ReadonlyArray<PathRequestTagKeyAction>,
+  actions: ReadonlyArray<PathRequestTagKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-key");
 }
 
 /** Extract path-request tag key from step actions; null when no `use-key`. */
 export function pathRequestTagKeyFromActions(
-  actions: ReadonlyArray<PathRequestTagKeyAction>,
+  actions: ReadonlyArray<PathRequestTagKeyAction>
 ): string | null {
   const action = actions.find((entry) => entry.kind === "use-key");
   return action?.kind === "use-key" ? action.key : null;

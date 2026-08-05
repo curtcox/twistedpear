@@ -74,8 +74,8 @@ async function main() {
             type: "install-confirm",
             token: message.token,
             accept: true,
-            grants: message.capabilities.map((capability) => capability.id),
-          }),
+            grants: message.capabilities.map((capability) => capability.id)
+          })
         });
         continue;
       }
@@ -93,16 +93,10 @@ async function main() {
   send({
     type: "start",
     gatewayUrl,
-    identityPassphrase: "web-hyperdrive-browser-test",
+    identityPassphrase: "web-hyperdrive-browser-test"
   });
   send({ type: "create-identity" });
-  send({
-    type: "set-interfaces",
-    tcp: true,
-    auto: false,
-    ble: false,
-    rnode: false,
-  });
+  send({ type: "set-interfaces", tcp: true, auto: false, ble: false, rnode: false });
   await sleep(2_000);
 
   send({ type: "install-from-256t", t256: DISTRIBUTION_FIXTURE.t256 });
@@ -125,28 +119,24 @@ async function main() {
   }
 
   if (installResult.fetchPath !== "hyperdrive") {
-    throw new Error(
-      `expected hyperdrive fetch path, got ${installResult.fetchPath ?? "unknown"}`,
-    );
+    throw new Error(`expected hyperdrive fetch path, got ${installResult.fetchPath ?? "unknown"}`);
   }
 
   if (installResult.appId !== DISTRIBUTION_FIXTURE.appId) {
-    throw new Error(
-      `expected appId ${DISTRIBUTION_FIXTURE.appId}, got ${installResult.appId}`,
-    );
+    throw new Error(`expected appId ${DISTRIBUTION_FIXTURE.appId}, got ${installResult.appId}`);
   }
 
   globalThis.__WEB_HYPERDRIVE__ = {
     status: "done",
     appId: installResult.appId,
     version: installResult.version,
-    fetchPath: installResult.fetchPath,
+    fetchPath: installResult.fetchPath
   };
 }
 
 main().catch((error) => {
   globalThis.__WEB_HYPERDRIVE__ = {
     status: "error",
-    message: error instanceof Error ? error.message : String(error),
+    message: error instanceof Error ? error.message : String(error)
   };
 });

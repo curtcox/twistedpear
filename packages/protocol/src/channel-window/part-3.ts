@@ -23,17 +23,9 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { ChannelWindowLimits } from "./part-1.js";
-import {
-  channelTxEnvelopeOpPlanFromActions,
-  planChannelTxEnvelopeOp,
-} from "./part-2.js";
+import { channelTxEnvelopeOpPlanFromActions, planChannelTxEnvelopeOp } from "./part-2.js";
 import type { ChannelWindowState } from "./part-1.js";
-import type {
-  ChannelTxEnvelopeOpAction,
-  ChannelTxEnvelopeOpEvent,
-  ChannelTxEnvelopeOpPlanAction,
-  ChannelTxEnvelopeOpPlanEvent,
-} from "./part-2.js";
+import type { ChannelTxEnvelopeOpAction, ChannelTxEnvelopeOpEvent, ChannelTxEnvelopeOpPlanAction, ChannelTxEnvelopeOpPlanEvent } from "./part-2.js";
 /**
  * Channel TX-envelope-op plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelTxEnvelopeOp`
@@ -54,7 +46,7 @@ export function initialChannelTxEnvelopeOpPlanState(): ChannelTxEnvelopeOpPlanSt
 
 export function stepChannelTxEnvelopeOpPlanWithActions(
   state: ChannelTxEnvelopeOpPlanState,
-  event: ChannelTxEnvelopeOpPlanEvent,
+  event: ChannelTxEnvelopeOpPlanEvent
 ): ChannelTxEnvelopeOpPlanStepResult {
   if (event.kind === "channel/tx-envelope-op-plan-gate") {
     return {
@@ -65,10 +57,10 @@ export function stepChannelTxEnvelopeOpPlanWithActions(
           kind: planChannelTxEnvelopeOp({
             indexOk: event.indexOk,
             envelopePresent: event.envelopePresent,
-            ...(event.opOk !== undefined ? { opOk: event.opOk } : {}),
-          }),
-        },
-      ],
+            ...(event.opOk !== undefined ? { opOk: event.opOk } : {})
+          })
+        }
+      ]
     };
   }
 
@@ -76,13 +68,13 @@ export function stepChannelTxEnvelopeOpPlanWithActions(
 }
 
 export function shouldMissChannelTxEnvelopeOpPlan(
-  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>,
+  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 export function shouldProcessChannelTxEnvelopeOpPlan(
-  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>,
+  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "process");
 }
@@ -108,7 +100,7 @@ export function initialChannelTxEnvelopeOpState(): ChannelTxEnvelopeOpState {
 
 export function stepChannelTxEnvelopeOpWithActions(
   state: ChannelTxEnvelopeOpState,
-  event: ChannelTxEnvelopeOpEvent,
+  event: ChannelTxEnvelopeOpEvent
 ): ChannelTxEnvelopeOpStepResult {
   if (event.kind === "channel/tx-envelope-op-gate") {
     const planActions = stepChannelTxEnvelopeOpPlanWithActions(
@@ -117,8 +109,8 @@ export function stepChannelTxEnvelopeOpWithActions(
         kind: "channel/tx-envelope-op-plan-gate",
         indexOk: event.indexOk,
         envelopePresent: event.envelopePresent,
-        ...(event.opOk !== undefined ? { opOk: event.opOk } : {}),
-      },
+        ...(event.opOk !== undefined ? { opOk: event.opOk } : {})
+      }
     ).actions;
     const plan = channelTxEnvelopeOpPlanFromActions(planActions);
     if (plan === null) {
@@ -131,21 +123,19 @@ export function stepChannelTxEnvelopeOpWithActions(
 }
 
 export function shouldMissChannelTxEnvelopeOp(
-  actions: ReadonlyArray<ChannelTxEnvelopeOpAction>,
+  actions: ReadonlyArray<ChannelTxEnvelopeOpAction>
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 export function shouldProcessChannelTxEnvelopeOp(
-  actions: ReadonlyArray<ChannelTxEnvelopeOpAction>,
+  actions: ReadonlyArray<ChannelTxEnvelopeOpAction>
 ): boolean {
   return actions.some((action) => action.kind === "process");
 }
 
 /** Whether channel outlet arming should apply a non-null receipt timeout. */
-export function shouldApplyChannelPacketReceiptTimeout(
-  timeoutPresent: boolean,
-): boolean {
+export function shouldApplyChannelPacketReceiptTimeout(timeoutPresent: boolean): boolean {
   return timeoutPresent;
 }
 
@@ -164,7 +154,8 @@ export type ApplyChannelPacketReceiptTimeoutEvent =
     };
 
 export type ApplyChannelPacketReceiptTimeoutAction =
-  { readonly kind: "apply" } | { readonly kind: "skip" };
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
 
 export interface ApplyChannelPacketReceiptTimeoutStepResult {
   readonly state: ApplyChannelPacketReceiptTimeoutState;
@@ -178,7 +169,7 @@ export function initialApplyChannelPacketReceiptTimeoutState(): ApplyChannelPack
 
 export function stepApplyChannelPacketReceiptTimeoutWithActions(
   state: ApplyChannelPacketReceiptTimeoutState,
-  event: ApplyChannelPacketReceiptTimeoutEvent,
+  event: ApplyChannelPacketReceiptTimeoutEvent
 ): ApplyChannelPacketReceiptTimeoutStepResult {
   if (event.kind === "channel/apply-packet-receipt-timeout-gate") {
     return {
@@ -188,9 +179,9 @@ export function stepApplyChannelPacketReceiptTimeoutWithActions(
         {
           kind: shouldApplyChannelPacketReceiptTimeout(event.timeoutPresent)
             ? "apply"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -198,21 +189,19 @@ export function stepApplyChannelPacketReceiptTimeoutWithActions(
 }
 
 export function shouldApplyChannelPacketReceiptTimeoutNow(
-  actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>,
+  actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldSkipApplyChannelPacketReceiptTimeout(
-  actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>,
+  actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a successful resend should replace the envelope's tracked packet. */
-export function shouldReplaceChannelResentPacket(
-  resentPresent: boolean,
-): boolean {
+export function shouldReplaceChannelResentPacket(resentPresent: boolean): boolean {
   return resentPresent;
 }
 
@@ -231,7 +220,8 @@ export type ReplaceChannelResentPacketEvent =
     };
 
 export type ReplaceChannelResentPacketAction =
-  { readonly kind: "replace" } | { readonly kind: "skip" };
+  | { readonly kind: "replace" }
+  | { readonly kind: "skip" };
 
 export interface ReplaceChannelResentPacketStepResult {
   readonly state: ReplaceChannelResentPacketState;
@@ -245,7 +235,7 @@ export function initialReplaceChannelResentPacketState(): ReplaceChannelResentPa
 
 export function stepReplaceChannelResentPacketWithActions(
   state: ReplaceChannelResentPacketState,
-  event: ReplaceChannelResentPacketEvent,
+  event: ReplaceChannelResentPacketEvent
 ): ReplaceChannelResentPacketStepResult {
   if (event.kind === "channel/replace-resent-packet-gate") {
     return {
@@ -253,11 +243,9 @@ export function stepReplaceChannelResentPacketWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldReplaceChannelResentPacket(event.resentPresent)
-            ? "replace"
-            : "skip",
-        },
-      ],
+          kind: shouldReplaceChannelResentPacket(event.resentPresent) ? "replace" : "skip"
+        }
+      ]
     };
   }
 
@@ -265,21 +253,19 @@ export function stepReplaceChannelResentPacketWithActions(
 }
 
 export function shouldReplaceChannelResentPacketNow(
-  actions: ReadonlyArray<ReplaceChannelResentPacketAction>,
+  actions: ReadonlyArray<ReplaceChannelResentPacketAction>
 ): boolean {
   return actions.some((action) => action.kind === "replace");
 }
 
 export function shouldSkipReplaceChannelResentPacket(
-  actions: ReadonlyArray<ReplaceChannelResentPacketAction>,
+  actions: ReadonlyArray<ReplaceChannelResentPacketAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a timed-out channel envelope still has a packet to resend. */
-export function shouldResendChannelTimeoutPacket(
-  packetPresent: boolean,
-): boolean {
+export function shouldResendChannelTimeoutPacket(packetPresent: boolean): boolean {
   return packetPresent;
 }
 
@@ -298,7 +284,8 @@ export type ResendChannelTimeoutPacketEvent =
     };
 
 export type ResendChannelTimeoutPacketAction =
-  { readonly kind: "resend" } | { readonly kind: "skip" };
+  | { readonly kind: "resend" }
+  | { readonly kind: "skip" };
 
 export interface ResendChannelTimeoutPacketStepResult {
   readonly state: ResendChannelTimeoutPacketState;
@@ -312,7 +299,7 @@ export function initialResendChannelTimeoutPacketState(): ResendChannelTimeoutPa
 
 export function stepResendChannelTimeoutPacketWithActions(
   state: ResendChannelTimeoutPacketState,
-  event: ResendChannelTimeoutPacketEvent,
+  event: ResendChannelTimeoutPacketEvent
 ): ResendChannelTimeoutPacketStepResult {
   if (event.kind === "channel/resend-timeout-packet-gate") {
     return {
@@ -320,11 +307,9 @@ export function stepResendChannelTimeoutPacketWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldResendChannelTimeoutPacket(event.packetPresent)
-            ? "resend"
-            : "skip",
-        },
-      ],
+          kind: shouldResendChannelTimeoutPacket(event.packetPresent) ? "resend" : "skip"
+        }
+      ]
     };
   }
 
@@ -332,21 +317,19 @@ export function stepResendChannelTimeoutPacketWithActions(
 }
 
 export function shouldResendChannelTimeoutPacketNow(
-  actions: ReadonlyArray<ResendChannelTimeoutPacketAction>,
+  actions: ReadonlyArray<ResendChannelTimeoutPacketAction>
 ): boolean {
   return actions.some((action) => action.kind === "resend");
 }
 
 export function shouldSkipResendChannelTimeoutPacket(
-  actions: ReadonlyArray<ResendChannelTimeoutPacketAction>,
+  actions: ReadonlyArray<ResendChannelTimeoutPacketAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether shutdown may clear outlet callbacks for a TX-ring envelope packet. */
-export function shouldClearChannelEnvelopePacket(
-  packetPresent: boolean,
-): boolean {
+export function shouldClearChannelEnvelopePacket(packetPresent: boolean): boolean {
   return packetPresent;
 }
 
@@ -365,7 +348,8 @@ export type ClearChannelEnvelopePacketEvent =
     };
 
 export type ClearChannelEnvelopePacketAction =
-  { readonly kind: "clear" } | { readonly kind: "skip" };
+  | { readonly kind: "clear" }
+  | { readonly kind: "skip" };
 
 export interface ClearChannelEnvelopePacketStepResult {
   readonly state: ClearChannelEnvelopePacketState;
@@ -379,7 +363,7 @@ export function initialClearChannelEnvelopePacketState(): ClearChannelEnvelopePa
 
 export function stepClearChannelEnvelopePacketWithActions(
   state: ClearChannelEnvelopePacketState,
-  event: ClearChannelEnvelopePacketEvent,
+  event: ClearChannelEnvelopePacketEvent
 ): ClearChannelEnvelopePacketStepResult {
   if (event.kind === "channel/clear-envelope-packet-gate") {
     return {
@@ -387,11 +371,9 @@ export function stepClearChannelEnvelopePacketWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldClearChannelEnvelopePacket(event.packetPresent)
-            ? "clear"
-            : "skip",
-        },
-      ],
+          kind: shouldClearChannelEnvelopePacket(event.packetPresent) ? "clear" : "skip"
+        }
+      ]
     };
   }
 
@@ -399,21 +381,19 @@ export function stepClearChannelEnvelopePacketWithActions(
 }
 
 export function shouldClearChannelEnvelopePacketNow(
-  actions: ReadonlyArray<ClearChannelEnvelopePacketAction>,
+  actions: ReadonlyArray<ClearChannelEnvelopePacketAction>
 ): boolean {
   return actions.some((action) => action.kind === "clear");
 }
 
 export function shouldSkipClearChannelEnvelopePacket(
-  actions: ReadonlyArray<ClearChannelEnvelopePacketAction>,
+  actions: ReadonlyArray<ClearChannelEnvelopePacketAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Shrink window after a packet timeout / retry. */
-export function applyChannelTimeout(
-  state: ChannelWindowState,
-): ChannelWindowState {
+export function applyChannelTimeout(state: ChannelWindowState): ChannelWindowState {
   let window = state.window;
   let windowMax = state.windowMax;
   if (window > state.windowMin) {
@@ -428,7 +408,7 @@ export function applyChannelTimeout(
 /** Grow window / upgrade rate tiers after a successful delivery. */
 export function applyChannelDelivery(
   state: ChannelWindowState,
-  rtt: number,
+  rtt: number
 ): ChannelWindowState {
   let {
     window,
@@ -436,7 +416,7 @@ export function applyChannelDelivery(
     windowMin,
     windowFlexibility,
     fastRateRounds,
-    mediumRateRounds,
+    mediumRateRounds
   } = state;
 
   if (window < windowMax) {
@@ -450,7 +430,7 @@ export function applyChannelDelivery(
       windowMin,
       windowFlexibility,
       fastRateRounds,
-      mediumRateRounds,
+      mediumRateRounds
     };
   }
 
@@ -488,7 +468,7 @@ export function applyChannelDelivery(
     windowMin,
     windowFlexibility,
     fastRateRounds,
-    mediumRateRounds,
+    mediumRateRounds
   };
 }
 

@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decodePropagationPeerError } from "../src/propagation-server.js";
 import { msgpackUnpack } from "../src/msgpack.js";
 
-const FUZZ_ITERATIONS = Number.parseInt(
-  process.env.FUZZ_ITERATIONS ?? "256",
-  10,
-);
+const FUZZ_ITERATIONS = Number.parseInt(process.env.FUZZ_ITERATIONS ?? "256", 10);
 
 describe("structure-aware LXMF msgpack fuzz", () => {
   it(`survives ${FUZZ_ITERATIONS} malformed frames without crashing`, () => {

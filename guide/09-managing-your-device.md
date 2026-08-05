@@ -21,18 +21,18 @@ with an explanatory note that it only removes copies held for other people.
 Three of those segments are yours and one is not:
 
 - **Installed apps** and **app data** are what you use. Removing an app frees both.
-- **Seeded packages** are copies your host keeps so _other people_ can install apps
+- **Seeded packages** are copies your host keeps so *other people* can install apps
   quickly from you. Clearing them is always safe; they come back if you leave seeding on.
 - **Held messages** are messages you are holding for people who are offline, if you turned
   the propagation server role on.
 
 Default caps, changeable in settings:
 
-| What            | Default cap                 |
-| --------------- | --------------------------- |
-| Seeded packages | 2 GiB                       |
-| Held messages   | 256 MiB, or 10,000 messages |
-| Bandwidth       | 512 KiB/s                   |
+| What | Default cap |
+|---|---|
+| Seeded packages | 2 GiB |
+| Held messages | 256 MiB, or 10,000 messages |
+| Bandwidth | 512 KiB/s |
 
 The bandwidth cap is a hard, zero-burst ceiling in each direction. Reticulum interfaces,
 forwarded packets, Hyperdrive replication, and gateway bulk fetches share the host's
@@ -45,8 +45,8 @@ needed. Long-duration battery and quota soaks remain separate evidence work.
 
 **Screenshot 9.2 — Settings → Roles.** Three toggle rows, each with a one-line
 explanation and a live counter: "Transport node — forward other people's traffic
-(_on, 14 routes_)", "Seeder — serve app packages to nearby peers (_on, 6 packages_)",
-"Propagation server — hold messages for offline peers (_off_)". A note explains that
+(*on, 14 routes*)", "Seeder — serve app packages to nearby peers (*on, 6 packages*)",
+"Propagation server — hold messages for offline peers (*off*)". A note explains that
 phones default all three to off.
 
 Desktops default to transport and seeding on, because that is what makes the network work
@@ -88,12 +88,12 @@ tp node --data-dir ~/.local/share/twistedpear/host
 
 Useful additions:
 
-| Flag                       | Effect                                                        |
-| -------------------------- | ------------------------------------------------------------- |
-| `--propagation`            | Hold messages for offline peers.                              |
-| `--ws-listen 0.0.0.0:9474` | Let browsers connect through this node.                       |
-| `--serve-web`              | Also serve the web host itself from this machine.             |
-| `--status-endpoint`        | Expose a local status page at `http://127.0.0.1:9473/status`. |
+| Flag | Effect |
+|---|---|
+| `--propagation` | Hold messages for offline peers. |
+| `--ws-listen 0.0.0.0:9474` | Let browsers connect through this node. |
+| `--serve-web` | Also serve the web host itself from this machine. |
+| `--status-endpoint` | Expose a local status page at `http://127.0.0.1:9473/status`. |
 
 ![The headless node status output](/guide/images/09-tp-node.png)
 

@@ -3,14 +3,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import {
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,7 +17,7 @@ import {
   HOST_API_VERSION,
   KvStorageBeeBackend,
   MiniappHost,
-  NodeWorkerSandboxBackend,
+  NodeWorkerSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
 import {
   dismissGrantIntroIfNeeded,
@@ -32,7 +25,7 @@ import {
   tap,
   treeContainsText,
   waitFor,
-  waitForTreeText,
+  waitForTreeText
 } from "../handbook/ui-helpers.mjs";
 
 const docsRoot = dirname(fileURLToPath(import.meta.url));
@@ -69,9 +62,9 @@ export function buildCaptureDeps() {
       "--workspace=@twistedpear/widget-renderer-rn",
       "--workspace=@twistedpear/app-registry",
       "--workspace=@twistedpear/reticulum-ts",
-      "--workspace=@twistedpear/cli",
+      "--workspace=@twistedpear/cli"
     ],
-    { cwd: repoRoot, stdio: "inherit" },
+    { cwd: repoRoot, stdio: "inherit" }
   );
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -79,10 +72,7 @@ export function buildCaptureDeps() {
 }
 
 export function buildHandbookContent() {
-  const result = spawnSync("npm", ["run", "build:handbook"], {
-    cwd: repoRoot,
-    stdio: "inherit",
-  });
+  const result = spawnSync("npm", ["run", "build:handbook"], { cwd: repoRoot, stdio: "inherit" });
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
@@ -92,35 +82,23 @@ async function packHandbook() {
   const cwd = mkdtempSync(join(tmpdir(), "tp-handbook-capture-"));
   const appDir = join(cwd, "handbook");
   mkdirSync(appDir, { recursive: true });
-  cpSync(
-    join(handbookDir, "app.manifest.json"),
-    join(appDir, "app.manifest.json"),
-  );
+  cpSync(join(handbookDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
   cpSync(join(handbookDir, "bundle.js"), join(appDir, "bundle.js"));
 
   try {
-    const initCode = await runInit({
-      cwd,
-      identityPassphrase: "conformance identity passphrase",
-      args: [],
-    });
+    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed for handbook");
     }
 
-    const packCode = await runPack({
-      cwd,
-      args: ["handbook", "--out", "handbook.tpkg"],
-    });
+    const packCode = await runPack({ cwd, args: ["handbook", "--out", "handbook.tpkg"] });
     if (packCode !== 0) {
       throw new Error("tp pack failed for handbook");
     }
 
     const provider = new NodeCryptoProvider();
     const archive = new Uint8Array(readFileSync(join(cwd, "handbook.tpkg")));
-    const verified = verifyPackage(provider, archive, {
-      hostApiVersion: HOST_API_VERSION,
-    });
+    const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
     const bundle = verified.files.get(verified.manifest.entry);
     if (bundle === undefined) {
       throw new Error("Handbook entry bundle missing");
@@ -129,7 +107,7 @@ async function packHandbook() {
     return {
       app: verified.manifest,
       bundle,
-      publisherPublicKey: verified.manifest.publisherPublicKey,
+      publisherPublicKey: verified.manifest.publisherPublicKey
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -143,11 +121,7 @@ function createCaptureHost(store, packed, platform) {
     kvBackend: store,
     beeBackend: new KvStorageBeeBackend(store),
     presenceBackend: {
-      snapshot: async () => ({
-        onlineInterfaces: 0,
-        preferredInterface: null,
-        peers: 0,
-      }),
+      snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
     },
     hostInfoBackend: {
       info: async () => ({
@@ -155,25 +129,24 @@ function createCaptureHost(store, packed, platform) {
         hostVersion: "capture",
         hostApiVersion: HOST_API_VERSION,
         roles: { transport: false, seeder: false, propagation: false },
-        interfaceTypes:
-          platform === "ios" || platform === "android" ? ["tcp"] : [],
+        interfaceTypes: platform === "ios" || platform === "android" ? ["tcp"] : [],
         quotas: {
           kvQuotaBytes: null,
           seedStorageUsedBytes: null,
           seedStorageQuotaBytes: null,
-          memoryBytes: null,
+          memoryBytes: null
         },
-        grantedCapabilities: packed.app.capabilities ?? [],
-      }),
+        grantedCapabilities: packed.app.capabilities ?? []
+      })
     },
     confirmationChannel: { confirm: async () => ({ approved: true }) },
     aiBackend: {
       chat: async () => ({
         message: { role: "assistant", content: "ok" },
         model: "capture",
-        usage: { promptTokens: 1, completionTokens: 1 },
-      }),
-    },
+        usage: { promptTokens: 1, completionTokens: 1 }
+      })
+    }
   });
 }
 
@@ -194,7 +167,7 @@ export async function captureHandbookWidgetTree(options = {}) {
       packed.app.name,
       packed.publisherPublicKey,
       packed.app.capabilities ?? [],
-      packed.app.capabilities ?? [],
+      packed.app.capabilities ?? []
     );
     await host.launch(
       {
@@ -202,9 +175,9 @@ export async function captureHandbookWidgetTree(options = {}) {
         version: packed.app.version,
         entry: packed.app.entry,
         capabilities: packed.app.capabilities ?? [],
-        publisherPublicKey: packed.publisherPublicKey,
+        publisherPublicKey: packed.publisherPublicKey
       },
-      packed.bundle,
+      packed.bundle
     );
 
     await waitForTreeText(host, "TwistedPear Handbook");
@@ -267,13 +240,13 @@ export function writeCapturePage(tree, captureDir, layout = {}) {
     format: "iife",
     outfile: join(captureDir, "handbook-capture.bundle.js"),
     alias: {
-      "react-native": "react-native-web",
+      "react-native": "react-native-web"
     },
     define: {
       __DEV__: "false",
-      "process.env.NODE_ENV": '"production"',
+      "process.env.NODE_ENV": '"production"'
     },
-    logLevel: "warning",
+    logLevel: "warning"
   });
 
   writeFileSync(
@@ -293,7 +266,7 @@ export function writeCapturePage(tree, captureDir, layout = {}) {
     <script>window.__HANDBOOK_CAPTURE_TREE__ = ${JSON.stringify(tree)};</script>
     <script src="./handbook-capture.bundle.js"></script>
   </body>
-</html>`,
+</html>`
   );
 }
 
@@ -301,16 +274,10 @@ export async function screenshotCapturePage({ captureDir, output, viewport }) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport });
-    await page.goto(`file://${join(captureDir, "page.html")}`, {
-      waitUntil: "load",
+    await page.goto(`file://${join(captureDir, "page.html")}`, { waitUntil: "load" });
+    await page.waitForFunction(() => globalThis.__HANDBOOK_CAPTURE_READY__ === true, undefined, {
+      timeout: 30_000
     });
-    await page.waitForFunction(
-      () => globalThis.__HANDBOOK_CAPTURE_READY__ === true,
-      undefined,
-      {
-        timeout: 30_000,
-      },
-    );
     mkdirSync(dirname(output), { recursive: true });
     await page.screenshot({ path: output, fullPage: true });
   } finally {
@@ -325,7 +292,7 @@ export async function captureHandbookScreenshot({
   platform = "web",
   scene = "search",
   logPrefix = "handbook-capture",
-  captureDir = join(docsRoot, ".tmp-handbook-capture"),
+  captureDir = join(docsRoot, ".tmp-handbook-capture")
 }) {
   buildCaptureDeps();
   buildHandbookContent();

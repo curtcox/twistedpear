@@ -3,5 +3,5 @@
  * RTCPeerConnection / mediaDevices. Avoid pulling native bindings into Metro web.
  */
 module.exports = {
-  registerGlobals() {},
+  registerGlobals() {}
 };

@@ -1,14 +1,14 @@
 import {
   buildUnsignedManifest,
   packPackage,
-  signManifest,
+  signManifest
 } from "../../app-registry/dist/index.js";
 import {
   CAPABILITY_DEFINITIONS,
   GrantStore,
   describeCapability,
   isMiniappCapability,
-  validateManifestCapabilities,
+  validateManifestCapabilities
 } from "../../miniapp-runtime/dist/capabilities.js";
 import { generateConfirmationToken } from "../../miniapp-runtime/dist/confirm.js";
 import { HOST_API_VERSION } from "../../miniapp-runtime/dist/host-api.js";
@@ -20,7 +20,7 @@ import {
   PlaneStreamEgressFactory,
   ReservedStreamEgressFactory,
   createHostPlaneOpeners,
-  createPeerRouteLinkSupply,
+  createPeerRouteLinkSupply
 } from "../../miniapp-runtime/dist/media-stream.js";
 import { SessionInviteService } from "../../miniapp-runtime/dist/session-invite.js";
 import { bytesToHex } from "../../reticulum-ts/dist/crypto/bytes.js";
@@ -31,8 +31,7 @@ export function hostRandomBytes(length) {
   if (typeof globalThis.crypto?.getRandomValues === "function") {
     globalThis.crypto.getRandomValues(bytes);
   } else {
-    for (let index = 0; index < length; index += 1)
-      bytes[index] = (Math.random() * 256) | 0;
+    for (let index = 0; index < length; index += 1) bytes[index] = (Math.random() * 256) | 0;
   }
   return bytes;
 }
@@ -51,15 +50,13 @@ export function createInMemoryKvStore() {
     },
     async list(prefix) {
       return [...memory.keys()].filter((key) => key.startsWith(prefix));
-    },
+    }
   };
 }
 
 export function createPushGrants(send, grantStore) {
   return function pushGrants(appId, publisherPublicKey, declaredCapabilities) {
-    const declared = new Set(
-      validateManifestCapabilities(declaredCapabilities),
-    );
+    const declared = new Set(validateManifestCapabilities(declaredCapabilities));
     optionsSendGrantsSkeleton(send, appId, declared);
 
     void grantStore.get(appId, publisherPublicKey).then((record) => {
@@ -71,8 +68,8 @@ export function createPushGrants(send, grantStore) {
           id: definition.id,
           description: describeCapability(definition.id),
           declared: declared.has(definition.id),
-          granted: granted.has(definition.id),
-        })),
+          granted: granted.has(definition.id)
+        }))
       });
     });
   };
@@ -86,8 +83,8 @@ function optionsSendGrantsSkeleton(send, appId, declared) {
       id: definition.id,
       description: definition.description,
       declared: declared.has(definition.id),
-      granted: false,
-    })),
+      granted: false
+    }))
   });
 }
 
@@ -95,7 +92,7 @@ export function createPushDeviceChromeState(send, deviceManager) {
   return async function pushDeviceChromeState() {
     const [inventory, diagnostics] = await Promise.all([
       deviceManager.inventory(),
-      deviceManager.diagnostics(),
+      deviceManager.diagnostics()
     ]);
     send({
       type: "device-state",
@@ -106,7 +103,7 @@ export function createPushDeviceChromeState(send, deviceManager) {
       disabledClasses: deviceManager.disabledClasses(),
       remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled(),
       // Host chrome shows every live share, including when no mini-app is foreground.
-      shareOffers: deviceManager.listLiveShareOffers(),
+      shareOffers: deviceManager.listLiveShareOffers()
     });
   };
 }
@@ -125,14 +122,12 @@ export function createSessionInviteHooks(options, now) {
       },
       async launchForeground(appId) {
         if (typeof options.launchInstalledApp !== "function") {
-          throw new Error(
-            "This host cannot bring a mini-app to the foreground.",
-          );
+          throw new Error("This host cannot bring a mini-app to the foreground.");
         }
         await options.launchInstalledApp(appId);
-      },
+      }
     },
-    now,
+    now
   );
 
   function pushSessionInvites() {
@@ -165,7 +160,7 @@ export function createWorkspaceFileCollector(host) {
       const content = await host.workspace.read(appId, info.path);
       files.push({
         path: info.path.slice(projectPrefix.length + 1),
-        content: new TextEncoder().encode(content),
+        content: new TextEncoder().encode(content)
       });
     }
 
@@ -188,18 +183,13 @@ export function createPreviewRuntimePusher(send, previewRef) {
         version: snapshot.version,
         state: snapshot.state,
         widgetTree: snapshot.widgetTree,
-        devBadge: true,
-      },
+        devBadge: true
+      }
     });
   };
 }
 
-export function createMainRuntimePusher(
-  send,
-  host,
-  devBadgeRef,
-  { slot } = {},
-) {
+export function createMainRuntimePusher(send, host, devBadgeRef, { slot } = {}) {
   return function pushRuntime() {
     const snapshot = host.snapshot();
     send({
@@ -210,8 +200,8 @@ export function createMainRuntimePusher(
         version: snapshot.version,
         state: snapshot.state,
         widgetTree: snapshot.widgetTree,
-        devBadge: devBadgeRef.current,
-      },
+        devBadge: devBadgeRef.current
+      }
     });
   };
 }
@@ -227,11 +217,7 @@ export function createPreviewHostStopper(send, previewRef) {
   };
 }
 
-export function createPreviewHostFactory({
-  createBackend,
-  send,
-  pushPreviewRuntime,
-}) {
+export function createPreviewHostFactory({ createBackend, send, pushPreviewRuntime }) {
   return function createPreviewHost() {
     const memoryStore = createInMemoryKvStore();
     const grantStoreForPreview = new GrantStore(memoryStore);
@@ -242,13 +228,9 @@ export function createPreviewHostFactory({
       callbacks: {
         onWidgetTree: () => pushPreviewRuntime(),
         onLog: (entry) =>
-          send({
-            type: "miniapp-log",
-            appId: `preview:${entry.appId}`,
-            line: entry.line,
-          }),
-        onLifecycle: () => pushPreviewRuntime(),
-      },
+          send({ type: "miniapp-log", appId: `preview:${entry.appId}`, line: entry.line }),
+        onLifecycle: () => pushPreviewRuntime()
+      }
     });
     return { host: previewHost, grantStore: grantStoreForPreview };
   };
@@ -260,28 +242,12 @@ export function createGrantApiMethods({ grantStore, now, pushGrants }) {
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
     },
 
-    async setGrants(
-      appId,
-      publisherPublicKey,
-      declaredCapabilities,
-      grantedCapabilities,
-    ) {
-      await grantStore.set(
-        appId,
-        publisherPublicKey,
-        declaredCapabilities,
-        grantedCapabilities,
-        now(),
-      );
+    async setGrants(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities) {
+      await grantStore.set(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities, now());
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
     },
 
-    async revokeGrant(
-      appId,
-      publisherPublicKey,
-      capability,
-      declaredCapabilities,
-    ) {
+    async revokeGrant(appId, publisherPublicKey, capability, declaredCapabilities) {
       if (!isMiniappCapability(capability)) {
         throw new Error(`Unknown capability: ${capability}`);
       }
@@ -292,14 +258,11 @@ export function createGrantApiMethods({ grantStore, now, pushGrants }) {
 
     async deleteGrants(appId, publisherPublicKey) {
       await grantStore.delete(appId, publisherPublicKey);
-    },
+    }
   };
 }
 
-export function createDeviceChromeApiMethods({
-  deviceManager,
-  pushDeviceChromeState,
-}) {
+export function createDeviceChromeApiMethods({ deviceManager, pushDeviceChromeState }) {
   return {
     async pushDeviceState() {
       await pushDeviceChromeState();
@@ -328,39 +291,27 @@ export function createDeviceChromeApiMethods({
 
     /** Harness/Maestro only: seed a short-TTL share offer so stop-sharing chrome is visible. */
     async seedShareOfferForTest(options = {}) {
-      const ttlMs =
-        typeof options.ttlMs === "number" ? options.ttlMs : 15 * 60_000;
+      const ttlMs = typeof options.ttlMs === "number" ? options.ttlMs : 15 * 60_000;
       const offer = deviceManager.grantShareOffer({
         appId: typeof options.appId === "string" ? options.appId : "line-check",
         targetKind: "peer",
-        targetId:
-          typeof options.targetId === "string" ? options.targetId : "peer-ana",
-        displayLabel:
-          typeof options.displayLabel === "string"
-            ? options.displayLabel
-            : "Ana",
+        targetId: typeof options.targetId === "string" ? options.targetId : "peer-ana",
+        displayLabel: typeof options.displayLabel === "string" ? options.displayLabel : "Ana",
         classId: options.classId === "camera" ? "camera" : "microphone",
         tierId: typeof options.tierId === "string" ? options.tierId : "pcm",
-        maxRung:
-          typeof options.maxRung === "string" ? options.maxRung : "16k-opus",
-        ttlMs,
+        maxRung: typeof options.maxRung === "string" ? options.maxRung : "16k-opus",
+        ttlMs
       });
       await pushDeviceChromeState();
-      setTimeout(
-        () => {
-          void pushDeviceChromeState();
-        },
-        Math.max(50, ttlMs + 50),
-      );
+      setTimeout(() => {
+        void pushDeviceChromeState();
+      }, Math.max(50, ttlMs + 50));
       return offer;
-    },
+    }
   };
 }
 
-export function createSessionInviteApiMethods({
-  sessionInvites,
-  pushSessionInvites,
-}) {
+export function createSessionInviteApiMethods({ sessionInvites, pushSessionInvites }) {
   return {
     async receiveSessionInvite(invite) {
       await sessionInvites.receive(invite);
@@ -382,7 +333,7 @@ export function createSessionInviteApiMethods({
 
     pushSessionInviteState() {
       pushSessionInvites();
-    },
+    }
   };
 }
 
@@ -425,7 +376,7 @@ export function createUiLifecycleMethods({ host, pushRuntime, previewRef }) {
       }
 
       await previewRef.current.host.handleUiEvent(nodeId, event, value);
-    },
+    }
   };
 }
 
@@ -452,12 +403,7 @@ export function createWatchdogHelpers(host) {
   return { startWatchdog, clearWatchdog };
 }
 
-export function createDevSideLoadMethod({
-  getDeveloperMode,
-  devBadgeRef,
-  host,
-  pushRuntime,
-}) {
+export function createDevSideLoadMethod({ getDeveloperMode, devBadgeRef, host, pushRuntime }) {
   return async function devSideLoad(manifest, bundleBytes) {
     if (!getDeveloperMode()) {
       throw new Error("Developer mode is disabled");
@@ -471,9 +417,9 @@ export function createDevSideLoadMethod({
         version: manifest.version,
         entry: manifest.entry ?? "bundle.js",
         capabilities: manifest.capabilities ?? [],
-        publisherPublicKey: manifest.publisherPublicKey ?? "dev",
+        publisherPublicKey: manifest.publisherPublicKey ?? "dev"
       },
-      bundleBytes,
+      bundleBytes
     );
     pushRuntime();
   };
@@ -484,9 +430,8 @@ export function createCommonPresenceBackend(options) {
     snapshot: async () => ({
       peers: options.getPresenceSnapshot?.().autoPeers ?? 0,
       onlineInterfaces: options.getPresenceSnapshot?.().onlineInterfaces ?? 0,
-      preferredInterface:
-        options.getPresenceSnapshot?.().preferredInterface ?? null,
-    }),
+      preferredInterface: options.getPresenceSnapshot?.().preferredInterface ?? null
+    })
   };
 }
 
@@ -501,22 +446,18 @@ export function createCommonHostInfoBackend(options, defaultPlatform) {
         roles: {
           transport: snap.roles?.transport ?? false,
           seeder: snap.roles?.seeder ?? false,
-          propagation: snap.roles?.propagation ?? false,
+          propagation: snap.roles?.propagation ?? false
         },
-        interfaceTypes: Array.isArray(snap.interfaceTypes)
-          ? snap.interfaceTypes
-          : [],
+        interfaceTypes: Array.isArray(snap.interfaceTypes) ? snap.interfaceTypes : [],
         quotas: {
           kvQuotaBytes: snap.quotas?.kvQuotaBytes ?? null,
           seedStorageUsedBytes: snap.quotas?.seedStorageUsedBytes ?? null,
           seedStorageQuotaBytes: snap.quotas?.seedStorageQuotaBytes ?? null,
-          memoryBytes: snap.quotas?.memoryBytes ?? null,
+          memoryBytes: snap.quotas?.memoryBytes ?? null
         },
-        ...(snap.dropCensus !== undefined
-          ? { dropCensus: snap.dropCensus }
-          : {}),
+        ...(snap.dropCensus !== undefined ? { dropCensus: snap.dropCensus } : {})
       };
-    },
+    }
   };
 }
 
@@ -529,17 +470,12 @@ export function createCommonResourceBackend(kvStore) {
         throw new Error(`Resource not found: ${request.resourceId}`);
       }
 
-      if (
-        request.budgetBytes !== undefined &&
-        bytes.length > request.budgetBytes
-      ) {
-        throw new Error(
-          `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
-        );
+      if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+        throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
       }
 
       return bytes;
-    },
+    }
   };
 }
 
@@ -549,7 +485,7 @@ export function createCommonCasBackend(casStore) {
       const t256 = await casStore.put(content);
       return { t256, size: content.length };
     },
-    get: async (_appId, t256) => casStore.get(t256),
+    get: async (_appId, t256) => casStore.get(t256)
   };
 }
 
@@ -557,22 +493,14 @@ export function createDefaultLocalMediaReadiness(now) {
   return () => ({
     hostApi: HOST_API_VERSION,
     accepts: [
-      {
-        classId: "microphone",
-        maxRung: "16k-opus",
-        encodings: ["16k-opus", "8k-narrowband"],
-      },
-      {
-        classId: "camera",
-        maxRung: "thumbnails-1fps",
-        encodings: ["thumbnails-1fps"],
-      },
+      { classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus", "8k-narrowband"] },
+      { classId: "camera", maxRung: "thumbnails-1fps", encodings: ["thumbnails-1fps"] }
     ],
     offers: [],
     downlinkBucket: "audio",
     constrained: ["foreground-only"],
     consentPosture: "ask",
-    expiresAt: now() + 60_000,
+    expiresAt: now() + 60_000
   });
 }
 
@@ -583,12 +511,11 @@ export function createConfirmationEffects() {
       if (typeof globalThis.crypto?.getRandomValues === "function") {
         globalThis.crypto.getRandomValues(bytes);
       } else {
-        for (let i = 0; i < length; i += 1)
-          bytes[i] = (Math.random() * 256) | 0;
+        for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
       }
       return bytes;
     },
-    delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   };
 }
 
@@ -600,7 +527,7 @@ export function createMediaPipeline(options, now, openMediaCodecDefault) {
       ? new PeerRouteMediaBridge(options.peerSessionManager, {
           now,
           randomBytes: hostRandomBytes,
-          onFrame: options.onInboundMediaFrame,
+          onFrame: options.onInboundMediaFrame
         })
       : undefined);
   const hostPlaneOpeners =
@@ -610,38 +537,28 @@ export function createMediaPipeline(options, now, openMediaCodecDefault) {
     options.openWebRtcMediaPlane === undefined
       ? undefined
       : createHostPlaneOpeners({
-          ...(peerRouteMediaBridge === undefined
-            ? {}
-            : { peerRouteFactory: peerRouteMediaBridge }),
-          ...(options.openCasPlane === undefined
-            ? {}
-            : { cas: options.openCasPlane }),
+          ...(peerRouteMediaBridge === undefined ? {} : { peerRouteFactory: peerRouteMediaBridge }),
+          ...(options.openCasPlane === undefined ? {} : { cas: options.openCasPlane }),
           ...(options.openPearsBulkPlane === undefined
             ? {}
             : { pearsBulk: options.openPearsBulkPlane }),
           ...(options.openWebRtcMediaPlane === undefined
             ? {}
-            : { webrtcMediaPlane: options.openWebRtcMediaPlane }),
+            : { webrtcMediaPlane: options.openWebRtcMediaPlane })
         });
   const planeMediaEgress =
-    hostPlaneOpeners === undefined
-      ? undefined
-      : new PlaneStreamEgressFactory(hostPlaneOpeners);
+    hostPlaneOpeners === undefined ? undefined : new PlaneStreamEgressFactory(hostPlaneOpeners);
   const peerRouteMediaEgress =
     planeMediaEgress === undefined && peerRouteMediaBridge === undefined
       ? undefined
       : new CodecStreamEgressFactory(
           planeMediaEgress ?? peerRouteMediaBridge,
-          options.openMediaCodec ?? openMediaCodecDefault,
+          options.openMediaCodec ?? openMediaCodecDefault
         );
   const reservedMediaEgress =
-    peerRouteMediaEgress === undefined ||
-    options.realtimeReservations === undefined
+    peerRouteMediaEgress === undefined || options.realtimeReservations === undefined
       ? peerRouteMediaEgress
-      : new ReservedStreamEgressFactory(
-          peerRouteMediaEgress,
-          options.realtimeReservations,
-        );
+      : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
   const streamEgressFactory =
     options.streamEgressFactory ??
     reservedMediaEgress ??
@@ -659,7 +576,7 @@ export function createMediaPipeline(options, now, openMediaCodecDefault) {
     peerRouteMediaEgress,
     reservedMediaEgress,
     streamEgressFactory,
-    linkSupply,
+    linkSupply
   };
 }
 
@@ -667,15 +584,13 @@ export function createAppsBackendPackageAction({
   requirePublisherIdentity,
   collectWorkspaceFiles,
   provider,
-  casStore,
+  casStore
 }) {
   return async function packageApp(appId, { projectPrefix, manifest }) {
     const identity = await requirePublisherIdentity();
     const files = await collectWorkspaceFiles(appId, projectPrefix);
     if (!files.some((file) => file.path === manifest.entry)) {
-      throw new Error(
-        `Entry file "${manifest.entry}" not found under ${projectPrefix}/`,
-      );
+      throw new Error(`Entry file "${manifest.entry}" not found under ${projectPrefix}/`);
     }
 
     const unsigned = buildUnsignedManifest(
@@ -688,22 +603,14 @@ export function createAppsBackendPackageAction({
         minHostApi: manifest.minHostApi ?? "0.2.0",
         driveKey: "0".repeat(64),
         publisherPublicKey: bytesToHex(identity.getPublicKey()),
-        files,
+        files
       },
-      provider,
+      provider
     );
     const signed = signManifest(provider, identity, unsigned);
-    const packed = packPackage(provider, {
-      ...signed,
-      signature: signed.signature,
-      files,
-    });
+    const packed = packPackage(provider, { ...signed, signature: signed.signature, files });
     const t256 = await casStore.put(packed.archiveBytes);
-    return {
-      packageHash: packed.packageHash,
-      size: packed.archiveBytes.length,
-      t256,
-    };
+    return { packageHash: packed.packageHash, size: packed.archiveBytes.length, t256 };
   };
 }
 
@@ -728,36 +635,28 @@ export function createAppsBackendPreviewAction({
   createPreviewHost,
   previewRef,
   pushPreviewRuntime,
-  now,
+  now
 }) {
   return async function previewApp(appId, { projectPrefix, manifest, grants }) {
     const files = await collectWorkspaceFiles(appId, projectPrefix);
     const entryFile = files.find((file) => file.path === manifest.entry);
     if (entryFile === undefined) {
-      throw new Error(
-        `Entry file "${manifest.entry}" not found under ${projectPrefix}/`,
-      );
+      throw new Error(`Entry file "${manifest.entry}" not found under ${projectPrefix}/`);
     }
 
     await stopPreviewHost();
     const previewHost = createPreviewHost();
     const publisherKey = `dev-preview:${appId}`;
-    await previewHost.grantStore.set(
-      manifest.name,
-      publisherKey,
-      manifest.capabilities,
-      grants,
-      now(),
-    );
+    await previewHost.grantStore.set(manifest.name, publisherKey, manifest.capabilities, grants, now());
     await previewHost.host.launch(
       {
         name: manifest.name,
         version: manifest.version,
         entry: manifest.entry,
         capabilities: manifest.capabilities,
-        publisherPublicKey: publisherKey,
+        publisherPublicKey: publisherKey
       },
-      entryFile.content,
+      entryFile.content
     );
     previewRef.current = previewHost;
     pushPreviewRuntime();
@@ -775,13 +674,12 @@ export async function launchWithCapabilityReview({
   startWatchdog,
   pushRuntime,
   devBadgeRef,
-  requestReview,
+  requestReview
 }) {
   devBadgeRef.current = false;
   const declared = validateManifestCapabilities(record.manifest.capabilities);
   const preGranted = new Set(
-    (await grantStore.get(record.appId, record.manifest.publisherPublicKey))
-      ?.granted ?? [],
+    (await grantStore.get(record.appId, record.manifest.publisherPublicKey))?.granted ?? []
   );
   const reply = await requestReview({
     appId: record.appId,
@@ -790,8 +688,8 @@ export async function launchWithCapabilityReview({
     capabilities: declared.map((id) => ({
       id,
       description: describeCapability(id),
-      granted: preGranted.has(id),
-    })),
+      granted: preGranted.has(id)
+    }))
   });
   if (reply === null || reply.accept !== true) {
     throw new Error("Launch cancelled at capability review");
@@ -803,19 +701,12 @@ export async function launchWithCapabilityReview({
       record.manifest.publisherPublicKey,
       record.manifest.capabilities,
       reply.grants,
-      now(),
+      now()
     );
-    pushGrants(
-      record.appId,
-      record.manifest.publisherPublicKey,
-      record.manifest.capabilities,
-    );
+    pushGrants(record.appId, record.manifest.publisherPublicKey, record.manifest.capabilities);
   }
 
-  const grants = await grantStore.get(
-    record.appId,
-    record.manifest.publisherPublicKey,
-  );
+  const grants = await grantStore.get(record.appId, record.manifest.publisherPublicKey);
   if (grants === null || grants.granted.length === 0) {
     throw new Error("Grant at least one declared capability before launch");
   }
@@ -826,9 +717,9 @@ export async function launchWithCapabilityReview({
       version: record.manifest.version,
       entry: record.manifest.entry,
       capabilities: record.manifest.capabilities,
-      publisherPublicKey: record.manifest.publisherPublicKey,
+      publisherPublicKey: record.manifest.publisherPublicKey
     },
-    bundle,
+    bundle
   );
 
   startWatchdog();
@@ -842,13 +733,10 @@ export async function launchWithoutReview({
   bundle,
   startWatchdog,
   pushRuntime,
-  devBadgeRef,
+  devBadgeRef
 }) {
   devBadgeRef.current = false;
-  const grants = await grantStore.get(
-    record.appId,
-    record.manifest.publisherPublicKey,
-  );
+  const grants = await grantStore.get(record.appId, record.manifest.publisherPublicKey);
   if (grants === null || grants.granted.length === 0) {
     throw new Error("Grant at least one declared capability before launch");
   }
@@ -859,9 +747,9 @@ export async function launchWithoutReview({
       version: record.manifest.version,
       entry: record.manifest.entry,
       capabilities: record.manifest.capabilities,
-      publisherPublicKey: record.manifest.publisherPublicKey,
+      publisherPublicKey: record.manifest.publisherPublicKey
     },
-    bundle,
+    bundle
   );
 
   startWatchdog();

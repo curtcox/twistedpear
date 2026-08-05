@@ -1,5 +1,6 @@
 # Workspace
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-21
@@ -23,9 +24,7 @@ import { workspace } from "@twistedpear/miniapp-sdk";
 
 await workspace.write("src/main.js", source);
 const text = await workspace.read("src/main.js");
-await workspace.patch("src/main.js", text.length, [
-  { start: 0, end: 0, text: "// edited\n" },
-]);
+await workspace.patch("src/main.js", text.length, [{ start: 0, end: 0, text: "// edited\n" }]);
 const files = await workspace.list("src/");
 await workspace.remove("src/main.js");
 ```

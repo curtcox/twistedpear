@@ -2,10 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  findBrokenDocImages,
-  findMarkdownImageLinks,
-} from "./verify-images.mjs";
+import { findBrokenDocImages, findMarkdownImageLinks } from "./verify-images.mjs";
 
 const tmpRoots = [];
 
@@ -26,7 +23,7 @@ describe("docs image link verification", () => {
     const dir = tempDir();
     const links = findMarkdownImageLinks(
       "![remote](https://example.com/x.png) ![anchor](#shot)",
-      dir,
+      dir
     );
 
     expect(links).toEqual([]);
@@ -40,8 +37,8 @@ describe("docs image link verification", () => {
       {
         doc: join(dir, "sample.md"),
         target: "images/missing.png",
-        resolved: join(dir, "images/missing.png"),
-      },
+        resolved: join(dir, "images/missing.png")
+      }
     ]);
   });
 

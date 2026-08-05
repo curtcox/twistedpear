@@ -27,9 +27,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function fetchDriveVersionViaRelayedDht(
-  options: RelayHyperFetchOptions,
-): Promise<Uint8Array> {
+export async function fetchDriveVersionViaRelayedDht(options: RelayHyperFetchOptions): Promise<Uint8Array> {
   const timeoutMs = options.timeoutMs ?? 60_000;
   const dht = await options.createDht();
 
@@ -44,10 +42,7 @@ export async function fetchDriveVersionViaRelayedDht(
     peerSocket.pipe(stream).pipe(peerSocket);
   });
 
-  const discovery = swarm.join(driveTopic(drive.key), {
-    server: false,
-    client: true,
-  });
+  const discovery = swarm.join(driveTopic(drive.key), { server: false, client: true });
   await discovery.flushed();
   await swarm.flush();
 
@@ -70,11 +65,6 @@ export async function fetchDriveVersionViaRelayedDht(
 
     throw new Error(`hyperdrive fetch timed out for ${options.version}`);
   } finally {
-    await Promise.allSettled([
-      swarm.destroy(),
-      drive.close(),
-      store.close(),
-      dht.destroy(),
-    ]);
+    await Promise.allSettled([swarm.destroy(), drive.close(), store.close(), dht.destroy()]);
   }
 }

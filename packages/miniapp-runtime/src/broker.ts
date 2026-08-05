@@ -1,7 +1,4 @@
-import {
-  assertCapabilityAllowed,
-  type MiniappCapability,
-} from "./capabilities.js";
+import { assertCapabilityAllowed, type MiniappCapability } from "./capabilities.js";
 
 export interface BrokerRequest {
   readonly id: string;
@@ -29,10 +26,7 @@ export interface BrokerContext {
   readonly grantedCapabilities: ReadonlyArray<string>;
 }
 
-export type BrokerHandler = (
-  request: BrokerRequest,
-  context: BrokerContext,
-) => Promise<unknown> | unknown;
+export type BrokerHandler = (request: BrokerRequest, context: BrokerContext) => Promise<unknown> | unknown;
 
 export interface BrokerOptions {
   readonly maxMessageBytes?: number;
@@ -59,12 +53,8 @@ interface RateBucket {
 
 export class BrokerError extends Error {
   constructor(
-    readonly code:
-      | "UNKNOWN_METHOD"
-      | "MESSAGE_TOO_LARGE"
-      | "RATE_LIMITED"
-      | "CAPABILITY_MISMATCH",
-    message: string,
+    readonly code: "UNKNOWN_METHOD" | "MESSAGE_TOO_LARGE" | "RATE_LIMITED" | "CAPABILITY_MISMATCH",
+    message: string
   ) {
     super(message);
     this.name = "BrokerError";
@@ -72,10 +62,7 @@ export class BrokerError extends Error {
 }
 
 export class MiniappBroker {
-  private readonly handlers = new Map<
-    string,
-    { capability: MiniappCapability | null; handler: BrokerHandler }
-  >();
+  private readonly handlers = new Map<string, { capability: MiniappCapability | null; handler: BrokerHandler }>();
   private readonly buckets = new Map<string, RateBucket>();
   private readonly rateOverrides = new Map<string, number>();
 
@@ -95,41 +82,23 @@ export class MiniappBroker {
   }
 
   getRateLimit(appId: string): number {
-    return (
-      this.rateOverrides.get(appId) ?? this.options.maxMessagesPerSecond ?? 128
-    );
+    return this.rateOverrides.get(appId) ?? this.options.maxMessagesPerSecond ?? 128;
   }
 
-  register(
-    namespace: string,
-    method: string,
-    capability: MiniappCapability | null,
-    handler: BrokerHandler,
-  ): void {
+  register(namespace: string, method: string, capability: MiniappCapability | null, handler: BrokerHandler): void {
     this.handlers.set(`${namespace}.${method}`, { capability, handler });
   }
 
-  capabilityFor(
-    namespace: string,
-    method: string,
-  ): MiniappCapability | null | undefined {
+  capabilityFor(namespace: string, method: string): MiniappCapability | null | undefined {
     return this.handlers.get(`${namespace}.${method}`)?.capability;
   }
 
-  async dispatch(
-    request: BrokerRequest,
-    context: BrokerContext,
-  ): Promise<BrokerResponse> {
+  async dispatch(request: BrokerRequest, context: BrokerContext): Promise<BrokerResponse> {
     try {
       this.enforceMessageLimits(request, context);
-      const registered = this.handlers.get(
-        `${request.namespace}.${request.method}`,
-      );
+      const registered = this.handlers.get(`${request.namespace}.${request.method}`);
       if (registered === undefined) {
-        throw new BrokerError(
-          "UNKNOWN_METHOD",
-          `Unknown broker method ${request.namespace}.${request.method}`,
-        );
+        throw new BrokerError("UNKNOWN_METHOD", `Unknown broker method ${request.namespace}.${request.method}`);
       }
 
       const capability = registered.capability;
@@ -140,7 +109,7 @@ export class MiniappBroker {
       ) {
         throw new BrokerError(
           "CAPABILITY_MISMATCH",
-          `Broker capability mismatch for ${request.namespace}.${request.method}`,
+          `Broker capability mismatch for ${request.namespace}.${request.method}`
         );
       }
 
@@ -148,7 +117,7 @@ export class MiniappBroker {
         assertCapabilityAllowed({
           capability,
           declared: context.declaredCapabilities,
-          granted: context.grantedCapabilities,
+          granted: context.grantedCapabilities
         });
       }
 
@@ -158,7 +127,7 @@ export class MiniappBroker {
         method: request.method,
         capability,
         allowed: true,
-        at: this.now(),
+        at: this.now()
       });
 
       const result = await registered.handler(request, context);
@@ -170,37 +139,25 @@ export class MiniappBroker {
         method: request.method,
         capability: request.capability ?? null,
         allowed: false,
-        at: this.now(),
+        at: this.now()
       });
 
       return {
         id: request.id,
         ok: false,
         error: {
-          code:
-            error instanceof Error && "code" in error
-              ? String(error.code)
-              : "BROKER_ERROR",
-          message:
-            error instanceof Error ? error.message : "Broker dispatch failed",
-        },
+          code: error instanceof Error && "code" in error ? String(error.code) : "BROKER_ERROR",
+          message: error instanceof Error ? error.message : "Broker dispatch failed"
+        }
       };
     }
   }
 
-  private enforceMessageLimits(
-    request: BrokerRequest,
-    context: BrokerContext,
-  ): void {
+  private enforceMessageLimits(request: BrokerRequest, context: BrokerContext): void {
     const maxBytes = this.options.maxMessageBytes ?? 256 * 1024;
-    const encodedBytes = new TextEncoder().encode(
-      JSON.stringify(request),
-    ).length;
+    const encodedBytes = new TextEncoder().encode(JSON.stringify(request)).length;
     if (encodedBytes > maxBytes) {
-      throw new BrokerError(
-        "MESSAGE_TOO_LARGE",
-        `Broker message exceeds ${maxBytes} bytes`,
-      );
+      throw new BrokerError("MESSAGE_TOO_LARGE", `Broker message exceeds ${maxBytes} bytes`);
     }
 
     const maxRate = this.getRateLimit(context.appId);
@@ -213,10 +170,7 @@ export class MiniappBroker {
 
     bucket.count += 1;
     if (bucket.count > maxRate) {
-      throw new BrokerError(
-        "RATE_LIMITED",
-        `Broker message rate exceeds ${maxRate}/s`,
-      );
+      throw new BrokerError("RATE_LIMITED", `Broker message rate exceeds ${maxRate}/s`);
     }
   }
 

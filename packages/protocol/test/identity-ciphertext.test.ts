@@ -85,14 +85,12 @@ import {
   stepIdentityUsePublicKeyWithActions,
   stepLoadIdentityKeyMaterialWithActions,
   stepPackIdentityCiphertextWithActions,
-  stepSplitIdentityCiphertextWithActions,
+  stepSplitIdentityCiphertextWithActions
 } from "../src/identity-ciphertext.js";
 
 describe("protocol identity ciphertext", () => {
   it("packs and splits ephemeral public || token", () => {
-    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(
-      1,
-    );
+    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(1);
     const token = new Uint8Array([9, 8, 7, 6]);
     const packed = packIdentityCiphertext(ephemeral, token);
     const split = splitIdentityCiphertext(packed);
@@ -102,11 +100,7 @@ describe("protocol identity ciphertext", () => {
   });
 
   it("rejects short ciphertexts", () => {
-    expect(
-      splitIdentityCiphertext(
-        new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE),
-      ),
-    ).toBeNull();
+    expect(splitIdentityCiphertext(new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE))).toBeNull();
     expect(shouldAcceptIdentityCiphertextFrame(true)).toBe(true);
     expect(shouldAcceptIdentityCiphertextFrame(false)).toBe(false);
     expect(shouldAcceptIdentityDecryptPlaintext(true)).toBe(true);
@@ -116,104 +110,75 @@ describe("protocol identity ciphertext", () => {
       initialAcceptIdentityCiphertextFrameState(),
       {
         kind: "identity-ciphertext/accept-frame-gate",
-        splitOk: true,
-      },
+        splitOk: true
+      }
     );
-    expect(shouldAcceptIdentityCiphertextFrameNow(acceptFrame.actions)).toBe(
-      true,
-    );
-    expect(shouldSkipIdentityCiphertextFrameAccept(acceptFrame.actions)).toBe(
-      false,
-    );
+    expect(shouldAcceptIdentityCiphertextFrameNow(acceptFrame.actions)).toBe(true);
+    expect(shouldSkipIdentityCiphertextFrameAccept(acceptFrame.actions)).toBe(false);
 
     const skipFrame = stepAcceptIdentityCiphertextFrameWithActions(
       initialAcceptIdentityCiphertextFrameState(),
       {
         kind: "identity-ciphertext/accept-frame-gate",
-        splitOk: false,
-      },
+        splitOk: false
+      }
     );
-    expect(shouldAcceptIdentityCiphertextFrameNow(skipFrame.actions)).toBe(
-      false,
-    );
-    expect(shouldSkipIdentityCiphertextFrameAccept(skipFrame.actions)).toBe(
-      true,
-    );
+    expect(shouldAcceptIdentityCiphertextFrameNow(skipFrame.actions)).toBe(false);
+    expect(shouldSkipIdentityCiphertextFrameAccept(skipFrame.actions)).toBe(true);
 
     const acceptPlaintext = stepAcceptIdentityDecryptPlaintextWithActions(
       initialAcceptIdentityDecryptPlaintextState(),
       {
         kind: "identity-ciphertext/accept-plaintext-gate",
-        planAccept: true,
-      },
+        planAccept: true
+      }
     );
-    expect(
-      shouldAcceptIdentityDecryptPlaintextNow(acceptPlaintext.actions),
-    ).toBe(true);
-    expect(
-      shouldSkipIdentityDecryptPlaintextAccept(acceptPlaintext.actions),
-    ).toBe(false);
+    expect(shouldAcceptIdentityDecryptPlaintextNow(acceptPlaintext.actions)).toBe(true);
+    expect(shouldSkipIdentityDecryptPlaintextAccept(acceptPlaintext.actions)).toBe(false);
 
     const skipPlaintext = stepAcceptIdentityDecryptPlaintextWithActions(
       initialAcceptIdentityDecryptPlaintextState(),
       {
         kind: "identity-ciphertext/accept-plaintext-gate",
-        planAccept: false,
-      },
+        planAccept: false
+      }
     );
-    expect(shouldAcceptIdentityDecryptPlaintextNow(skipPlaintext.actions)).toBe(
-      false,
-    );
-    expect(
-      shouldSkipIdentityDecryptPlaintextAccept(skipPlaintext.actions),
-    ).toBe(true);
+    expect(shouldAcceptIdentityDecryptPlaintextNow(skipPlaintext.actions)).toBe(false);
+    expect(shouldSkipIdentityDecryptPlaintextAccept(skipPlaintext.actions)).toBe(true);
   });
 
   it("emits pack raw or reject from WithActions steps", () => {
-    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(
-      1,
-    );
+    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(1);
     const token = new Uint8Array([9, 8, 7, 6]);
-    const ok = stepPackIdentityCiphertextWithActions(
-      initialPackIdentityCiphertextState(),
-      {
-        kind: "identity-ciphertext/pack-gate",
-        ephemeralPublicKey: ephemeral,
-        tokenCiphertext: token,
-      },
-    );
+    const ok = stepPackIdentityCiphertextWithActions(initialPackIdentityCiphertextState(), {
+      kind: "identity-ciphertext/pack-gate",
+      ephemeralPublicKey: ephemeral,
+      tokenCiphertext: token
+    });
     expect(shouldUsePackIdentityCiphertext(ok.actions)).toBe(true);
     expect(shouldRejectPackIdentityCiphertext(ok.actions)).toBe(false);
     const packed = packIdentityCiphertextRawFromActions(ok.actions);
     expect(packed).not.toBeNull();
     expect([...packed!]).toEqual([...packIdentityCiphertext(ephemeral, token)]);
 
-    const rejected = stepPackIdentityCiphertextWithActions(
-      initialPackIdentityCiphertextState(),
-      {
-        kind: "identity-ciphertext/pack-gate",
-        ephemeralPublicKey: new Uint8Array(8),
-        tokenCiphertext: token,
-      },
-    );
+    const rejected = stepPackIdentityCiphertextWithActions(initialPackIdentityCiphertextState(), {
+      kind: "identity-ciphertext/pack-gate",
+      ephemeralPublicKey: new Uint8Array(8),
+      tokenCiphertext: token
+    });
     expect(shouldRejectPackIdentityCiphertext(rejected.actions)).toBe(true);
     expect(shouldUsePackIdentityCiphertext(rejected.actions)).toBe(false);
     expect(packIdentityCiphertextRawFromActions(rejected.actions)).toBeNull();
   });
 
   it("emits split fields or reject from WithActions steps", () => {
-    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(
-      1,
-    );
+    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(1);
     const token = new Uint8Array([9, 8, 7, 6]);
     const packed = packIdentityCiphertext(ephemeral, token);
-    const ok = stepSplitIdentityCiphertextWithActions(
-      initialSplitIdentityCiphertextState(),
-      {
-        kind: "identity-ciphertext/split-gate",
-        ciphertextToken: packed,
-      },
-    );
+    const ok = stepSplitIdentityCiphertextWithActions(initialSplitIdentityCiphertextState(), {
+      kind: "identity-ciphertext/split-gate",
+      ciphertextToken: packed
+    });
     expect(shouldUseSplitIdentityCiphertext(ok.actions)).toBe(true);
     expect(shouldRejectSplitIdentityCiphertext(ok.actions)).toBe(false);
     const fields = identityCiphertextFieldsFromActions(ok.actions);
@@ -221,13 +186,10 @@ describe("protocol identity ciphertext", () => {
     expect([...fields!.ephemeralPublicKey]).toEqual([...ephemeral]);
     expect([...fields!.tokenCiphertext]).toEqual([...token]);
 
-    const rejected = stepSplitIdentityCiphertextWithActions(
-      initialSplitIdentityCiphertextState(),
-      {
-        kind: "identity-ciphertext/split-gate",
-        ciphertextToken: new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE),
-      },
-    );
+    const rejected = stepSplitIdentityCiphertextWithActions(initialSplitIdentityCiphertextState(), {
+      kind: "identity-ciphertext/split-gate",
+      ciphertextToken: new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE)
+    });
     expect(shouldRejectSplitIdentityCiphertext(rejected.actions)).toBe(true);
     expect(shouldUseSplitIdentityCiphertext(rejected.actions)).toBe(false);
     expect(identityCiphertextFieldsFromActions(rejected.actions)).toBeNull();
@@ -240,8 +202,8 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: false,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      }),
+        identityPlaintextPresent: false
+      })
     ).toBe("reject-frame");
     expect(
       planIdentityDecryptOutcome({
@@ -249,8 +211,8 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: true,
         enforceRatchets: true,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      }),
+        identityPlaintextPresent: false
+      })
     ).toBe("accept");
     expect(
       planIdentityDecryptOutcome({
@@ -258,8 +220,8 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: true,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      }),
+        identityPlaintextPresent: false
+      })
     ).toBe("reject-enforced");
     expect(
       planIdentityDecryptOutcome({
@@ -267,8 +229,8 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: false,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      }),
+        identityPlaintextPresent: false
+      })
     ).toBe("try-identity");
     expect(
       planIdentityDecryptOutcome({
@@ -276,8 +238,8 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: false,
         identityFallbackDone: true,
-        identityPlaintextPresent: true,
-      }),
+        identityPlaintextPresent: true
+      })
     ).toBe("accept");
     expect(
       planIdentityDecryptOutcome({
@@ -285,8 +247,8 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: false,
         identityFallbackDone: true,
-        identityPlaintextPresent: false,
-      }),
+        identityPlaintextPresent: false
+      })
     ).toBe("reject");
   });
 
@@ -299,15 +261,11 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: false,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
+        identityPlaintextPresent: false
+      }
     );
-    expect(
-      shouldRejectIdentityDecryptOutcomePlanFrame(rejectFrame.actions),
-    ).toBe(true);
-    expect(identityDecryptOutcomePlanFromActions(rejectFrame.actions)).toBe(
-      "reject-frame",
-    );
+    expect(shouldRejectIdentityDecryptOutcomePlanFrame(rejectFrame.actions)).toBe(true);
+    expect(identityDecryptOutcomePlanFromActions(rejectFrame.actions)).toBe("reject-frame");
 
     const accept = stepIdentityDecryptOutcomePlanWithActions(
       initialIdentityDecryptOutcomePlanState(),
@@ -317,13 +275,11 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: true,
         enforceRatchets: true,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
+        identityPlaintextPresent: false
+      }
     );
     expect(shouldAcceptIdentityDecryptOutcomePlan(accept.actions)).toBe(true);
-    expect(identityDecryptOutcomePlanFromActions(accept.actions)).toBe(
-      "accept",
-    );
+    expect(identityDecryptOutcomePlanFromActions(accept.actions)).toBe("accept");
 
     const rejectEnforced = stepIdentityDecryptOutcomePlanWithActions(
       initialIdentityDecryptOutcomePlanState(),
@@ -333,12 +289,10 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: true,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
+        identityPlaintextPresent: false
+      }
     );
-    expect(
-      shouldRejectIdentityDecryptOutcomePlanEnforced(rejectEnforced.actions),
-    ).toBe(true);
+    expect(shouldRejectIdentityDecryptOutcomePlanEnforced(rejectEnforced.actions)).toBe(true);
 
     const tryIdentity = stepIdentityDecryptOutcomePlanWithActions(
       initialIdentityDecryptOutcomePlanState(),
@@ -348,8 +302,8 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: false,
         identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
+        identityPlaintextPresent: false
+      }
     );
     expect(shouldTryIdentityDecryptOutcomePlan(tryIdentity.actions)).toBe(true);
 
@@ -361,85 +315,66 @@ describe("protocol identity ciphertext", () => {
         ratchetPlaintextPresent: false,
         enforceRatchets: false,
         identityFallbackDone: true,
-        identityPlaintextPresent: false,
-      },
+        identityPlaintextPresent: false
+      }
     );
     expect(shouldRejectIdentityDecryptOutcomePlan(reject.actions)).toBe(true);
-    expect(identityDecryptOutcomePlanFromActions(reject.actions)).toBe(
-      "reject",
-    );
+    expect(identityDecryptOutcomePlanFromActions(reject.actions)).toBe("reject");
   });
 
   it("emits identity decrypt actions from stepIdentityDecryptWithActions", () => {
-    const rejectFrame = stepIdentityDecryptWithActions(
-      initialIdentityDecryptState(),
-      {
-        kind: "identity/decrypt-gate",
-        frameOk: false,
-        ratchetPlaintextPresent: false,
-        enforceRatchets: false,
-        identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
-    );
+    const rejectFrame = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: false,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
     expect(rejectFrame.actions).toEqual([{ kind: "reject-frame" }]);
     expect(shouldRejectIdentityDecryptFrame(rejectFrame.actions)).toBe(true);
 
-    const accept = stepIdentityDecryptWithActions(
-      initialIdentityDecryptState(),
-      {
-        kind: "identity/decrypt-gate",
-        frameOk: true,
-        ratchetPlaintextPresent: true,
-        enforceRatchets: true,
-        identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
-    );
+    const accept = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: true,
+      enforceRatchets: true,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
     expect(accept.actions).toEqual([{ kind: "accept" }]);
     expect(shouldAcceptIdentityDecrypt(accept.actions)).toBe(true);
 
-    const rejectEnforced = stepIdentityDecryptWithActions(
-      initialIdentityDecryptState(),
-      {
-        kind: "identity/decrypt-gate",
-        frameOk: true,
-        ratchetPlaintextPresent: false,
-        enforceRatchets: true,
-        identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
-    );
+    const rejectEnforced = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: true,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
     expect(rejectEnforced.actions).toEqual([{ kind: "reject-enforced" }]);
-    expect(shouldRejectIdentityDecryptEnforced(rejectEnforced.actions)).toBe(
-      true,
-    );
+    expect(shouldRejectIdentityDecryptEnforced(rejectEnforced.actions)).toBe(true);
 
-    const tryIdentity = stepIdentityDecryptWithActions(
-      initialIdentityDecryptState(),
-      {
-        kind: "identity/decrypt-gate",
-        frameOk: true,
-        ratchetPlaintextPresent: false,
-        enforceRatchets: false,
-        identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
-    );
+    const tryIdentity = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
     expect(tryIdentity.actions).toEqual([{ kind: "try-identity" }]);
     expect(shouldTryIdentityDecrypt(tryIdentity.actions)).toBe(true);
 
-    const reject = stepIdentityDecryptWithActions(
-      initialIdentityDecryptState(),
-      {
-        kind: "identity/decrypt-gate",
-        frameOk: true,
-        ratchetPlaintextPresent: false,
-        enforceRatchets: false,
-        identityFallbackDone: true,
-        identityPlaintextPresent: false,
-      },
-    );
+    const reject = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: true,
+      identityPlaintextPresent: false
+    });
     expect(reject.actions).toEqual([{ kind: "reject" }]);
     expect(shouldRejectIdentityDecrypt(reject.actions)).toBe(true);
   });
@@ -452,7 +387,7 @@ describe("protocol identity ciphertext", () => {
       ratchetPlaintextPresent: false,
       enforceRatchets: false,
       identityFallbackDone: false,
-      identityPlaintextPresent: false,
+      identityPlaintextPresent: false
     };
     const a = stepIdentityDecryptWithActions(state, event);
     const b = stepIdentityDecryptWithActions(state, event);
@@ -461,27 +396,20 @@ describe("protocol identity ciphertext", () => {
   });
 
   it("plans recall and hash readiness", () => {
+    expect(planIdentityRecall({ recordPresent: false, publicKeyLoaded: false })).toBe("miss");
+    expect(planIdentityRecall({ recordPresent: true, publicKeyLoaded: false })).toBe(
+      "reject-key"
+    );
+    expect(planIdentityRecall({ recordPresent: true, publicKeyLoaded: true })).toBe("hit");
     expect(
-      planIdentityRecall({ recordPresent: false, publicKeyLoaded: false }),
+      planIdentityRecallAppData({ recordPresent: false, appDataPresent: false })
     ).toBe("miss");
-    expect(
-      planIdentityRecall({ recordPresent: true, publicKeyLoaded: false }),
-    ).toBe("reject-key");
-    expect(
-      planIdentityRecall({ recordPresent: true, publicKeyLoaded: true }),
-    ).toBe("hit");
-    expect(
-      planIdentityRecallAppData({
-        recordPresent: false,
-        appDataPresent: false,
-      }),
-    ).toBe("miss");
-    expect(
-      planIdentityRecallAppData({ recordPresent: true, appDataPresent: false }),
-    ).toBe("miss");
-    expect(
-      planIdentityRecallAppData({ recordPresent: true, appDataPresent: true }),
-    ).toBe("hit");
+    expect(planIdentityRecallAppData({ recordPresent: true, appDataPresent: false })).toBe(
+      "miss"
+    );
+    expect(planIdentityRecallAppData({ recordPresent: true, appDataPresent: true })).toBe(
+      "hit"
+    );
     expect(shouldAttemptIdentityRatchetDecrypt(true)).toBe(true);
     expect(shouldAttemptIdentityRatchetDecrypt(false)).toBe(false);
     expect(canIdentityHash(true)).toBe(true);
@@ -489,36 +417,27 @@ describe("protocol identity ciphertext", () => {
   });
 
   it("emits identity recall-plan actions from PlanWithActions", () => {
-    const miss = stepIdentityRecallPlanWithActions(
-      initialIdentityRecallPlanState(),
-      {
-        kind: "identity/recall-plan-gate",
-        recordPresent: false,
-        publicKeyLoaded: false,
-      },
-    );
+    const miss = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
+      kind: "identity/recall-plan-gate",
+      recordPresent: false,
+      publicKeyLoaded: false
+    });
     expect(shouldMissIdentityRecallPlan(miss.actions)).toBe(true);
     expect(identityRecallPlanFromActions(miss.actions)).toBe("miss");
 
-    const rejectKey = stepIdentityRecallPlanWithActions(
-      initialIdentityRecallPlanState(),
-      {
-        kind: "identity/recall-plan-gate",
-        recordPresent: true,
-        publicKeyLoaded: false,
-      },
-    );
+    const rejectKey = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
+      kind: "identity/recall-plan-gate",
+      recordPresent: true,
+      publicKeyLoaded: false
+    });
     expect(shouldRejectIdentityRecallPlanKey(rejectKey.actions)).toBe(true);
     expect(identityRecallPlanFromActions(rejectKey.actions)).toBe("reject-key");
 
-    const hit = stepIdentityRecallPlanWithActions(
-      initialIdentityRecallPlanState(),
-      {
-        kind: "identity/recall-plan-gate",
-        recordPresent: true,
-        publicKeyLoaded: true,
-      },
-    );
+    const hit = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
+      kind: "identity/recall-plan-gate",
+      recordPresent: true,
+      publicKeyLoaded: true
+    });
     expect(shouldHitIdentityRecallPlan(hit.actions)).toBe(true);
     expect(identityRecallPlanFromActions(hit.actions)).toBe("hit");
 
@@ -527,8 +446,8 @@ describe("protocol identity ciphertext", () => {
       {
         kind: "identity/recall-app-data-plan-gate",
         recordPresent: true,
-        appDataPresent: false,
-      },
+        appDataPresent: false
+      }
     );
     expect(shouldMissIdentityRecallAppDataPlan(appMiss.actions)).toBe(true);
     expect(identityRecallAppDataPlanFromActions(appMiss.actions)).toBe("miss");
@@ -538,8 +457,8 @@ describe("protocol identity ciphertext", () => {
       {
         kind: "identity/recall-app-data-plan-gate",
         recordPresent: true,
-        appDataPresent: true,
-      },
+        appDataPresent: true
+      }
     );
     expect(shouldHitIdentityRecallAppDataPlan(appHit.actions)).toBe(true);
     expect(identityRecallAppDataPlanFromActions(appHit.actions)).toBe("hit");
@@ -549,49 +468,40 @@ describe("protocol identity ciphertext", () => {
     const miss = stepIdentityRecallWithActions(initialIdentityRecallState(), {
       kind: "identity/recall-gate",
       recordPresent: false,
-      publicKeyLoaded: false,
+      publicKeyLoaded: false
     });
     expect(miss.actions).toEqual([{ kind: "miss" }]);
     expect(shouldMissIdentityRecall(miss.actions)).toBe(true);
 
-    const rejectKey = stepIdentityRecallWithActions(
-      initialIdentityRecallState(),
-      {
-        kind: "identity/recall-gate",
-        recordPresent: true,
-        publicKeyLoaded: false,
-      },
-    );
+    const rejectKey = stepIdentityRecallWithActions(initialIdentityRecallState(), {
+      kind: "identity/recall-gate",
+      recordPresent: true,
+      publicKeyLoaded: false
+    });
     expect(rejectKey.actions).toEqual([{ kind: "reject-key" }]);
     expect(shouldRejectIdentityRecallKey(rejectKey.actions)).toBe(true);
 
     const hit = stepIdentityRecallWithActions(initialIdentityRecallState(), {
       kind: "identity/recall-gate",
       recordPresent: true,
-      publicKeyLoaded: true,
+      publicKeyLoaded: true
     });
     expect(hit.actions).toEqual([{ kind: "hit" }]);
     expect(shouldHitIdentityRecall(hit.actions)).toBe(true);
 
-    const appMiss = stepIdentityRecallAppDataWithActions(
-      initialIdentityRecallAppDataState(),
-      {
-        kind: "identity/recall-app-data-gate",
-        recordPresent: true,
-        appDataPresent: false,
-      },
-    );
+    const appMiss = stepIdentityRecallAppDataWithActions(initialIdentityRecallAppDataState(), {
+      kind: "identity/recall-app-data-gate",
+      recordPresent: true,
+      appDataPresent: false
+    });
     expect(appMiss.actions).toEqual([{ kind: "miss" }]);
     expect(shouldMissIdentityRecallAppData(appMiss.actions)).toBe(true);
 
-    const appHit = stepIdentityRecallAppDataWithActions(
-      initialIdentityRecallAppDataState(),
-      {
-        kind: "identity/recall-app-data-gate",
-        recordPresent: true,
-        appDataPresent: true,
-      },
-    );
+    const appHit = stepIdentityRecallAppDataWithActions(initialIdentityRecallAppDataState(), {
+      kind: "identity/recall-app-data-gate",
+      recordPresent: true,
+      appDataPresent: true
+    });
     expect(appHit.actions).toEqual([{ kind: "hit" }]);
     expect(shouldHitIdentityRecallAppData(appHit.actions)).toBe(true);
   });
@@ -600,67 +510,43 @@ describe("protocol identity ciphertext", () => {
     const event = {
       kind: "identity/recall-gate" as const,
       recordPresent: true,
-      publicKeyLoaded: true,
+      publicKeyLoaded: true
     };
-    const a = stepIdentityRecallWithActions(
-      initialIdentityRecallState(),
-      event,
-    );
-    const b = stepIdentityRecallWithActions(
-      initialIdentityRecallState(),
-      event,
-    );
+    const a = stepIdentityRecallWithActions(initialIdentityRecallState(), event);
+    const b = stepIdentityRecallWithActions(initialIdentityRecallState(), event);
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("gates private/public key use and key-material load", () => {
     expect(
-      canIdentityUsePrivateKey({
-        privateKeyPresent: true,
-        signaturePrivatePresent: true,
-      }),
+      canIdentityUsePrivateKey({ privateKeyPresent: true, signaturePrivatePresent: true })
     ).toBe(true);
     expect(
-      canIdentityUsePrivateKey({
-        privateKeyPresent: true,
-        signaturePrivatePresent: false,
-      }),
+      canIdentityUsePrivateKey({ privateKeyPresent: true, signaturePrivatePresent: false })
     ).toBe(false);
     expect(
-      canIdentityUsePublicKey({
-        publicKeyPresent: true,
-        signaturePublicPresent: true,
-      }),
+      canIdentityUsePublicKey({ publicKeyPresent: true, signaturePublicPresent: true })
     ).toBe(true);
     expect(
-      canIdentityUsePublicKey({
-        publicKeyPresent: false,
-        signaturePublicPresent: true,
-      }),
+      canIdentityUsePublicKey({ publicKeyPresent: false, signaturePublicPresent: true })
     ).toBe(false);
     expect(canLoadIdentityKeyMaterial(true)).toBe(true);
     expect(canLoadIdentityKeyMaterial(false)).toBe(false);
   });
 
   it("emits hash / key-use / load / ratchet-decrypt actions from WithActions steps", () => {
-    const hashAllow = stepIdentityHashAllowWithActions(
-      initialIdentityHashAllowState(),
-      {
-        kind: "identity/hash-allow-gate",
-        identityHashPresent: true,
-      },
-    );
+    const hashAllow = stepIdentityHashAllowWithActions(initialIdentityHashAllowState(), {
+      kind: "identity/hash-allow-gate",
+      identityHashPresent: true
+    });
     expect(hashAllow.actions).toEqual([{ kind: "allow" }]);
     expect(shouldAllowIdentityHash(hashAllow.actions)).toBe(true);
 
-    const hashDeny = stepIdentityHashAllowWithActions(
-      initialIdentityHashAllowState(),
-      {
-        kind: "identity/hash-allow-gate",
-        identityHashPresent: false,
-      },
-    );
+    const hashDeny = stepIdentityHashAllowWithActions(initialIdentityHashAllowState(), {
+      kind: "identity/hash-allow-gate",
+      identityHashPresent: false
+    });
     expect(hashDeny.actions).toEqual([{ kind: "deny" }]);
     expect(shouldDenyIdentityHash(hashDeny.actions)).toBe(true);
 
@@ -669,8 +555,8 @@ describe("protocol identity ciphertext", () => {
       {
         kind: "identity/use-private-key-gate",
         privateKeyPresent: true,
-        signaturePrivatePresent: true,
-      },
+        signaturePrivatePresent: true
+      }
     );
     expect(privateAllow.actions).toEqual([{ kind: "allow" }]);
     expect(shouldAllowIdentityUsePrivateKey(privateAllow.actions)).toBe(true);
@@ -680,31 +566,25 @@ describe("protocol identity ciphertext", () => {
       {
         kind: "identity/use-private-key-gate",
         privateKeyPresent: true,
-        signaturePrivatePresent: false,
-      },
+        signaturePrivatePresent: false
+      }
     );
     expect(privateDeny.actions).toEqual([{ kind: "deny" }]);
     expect(shouldDenyIdentityUsePrivateKey(privateDeny.actions)).toBe(true);
 
-    const publicAllow = stepIdentityUsePublicKeyWithActions(
-      initialIdentityUsePublicKeyState(),
-      {
-        kind: "identity/use-public-key-gate",
-        publicKeyPresent: true,
-        signaturePublicPresent: true,
-      },
-    );
+    const publicAllow = stepIdentityUsePublicKeyWithActions(initialIdentityUsePublicKeyState(), {
+      kind: "identity/use-public-key-gate",
+      publicKeyPresent: true,
+      signaturePublicPresent: true
+    });
     expect(publicAllow.actions).toEqual([{ kind: "allow" }]);
     expect(shouldAllowIdentityUsePublicKey(publicAllow.actions)).toBe(true);
 
-    const publicDeny = stepIdentityUsePublicKeyWithActions(
-      initialIdentityUsePublicKeyState(),
-      {
-        kind: "identity/use-public-key-gate",
-        publicKeyPresent: false,
-        signaturePublicPresent: true,
-      },
-    );
+    const publicDeny = stepIdentityUsePublicKeyWithActions(initialIdentityUsePublicKeyState(), {
+      kind: "identity/use-public-key-gate",
+      publicKeyPresent: false,
+      signaturePublicPresent: true
+    });
     expect(publicDeny.actions).toEqual([{ kind: "deny" }]);
     expect(shouldDenyIdentityUsePublicKey(publicDeny.actions)).toBe(true);
 
@@ -712,8 +592,8 @@ describe("protocol identity ciphertext", () => {
       initialLoadIdentityKeyMaterialState(),
       {
         kind: "identity/load-key-material-gate",
-        splitOk: true,
-      },
+        splitOk: true
+      }
     );
     expect(loadAllow.actions).toEqual([{ kind: "allow" }]);
     expect(shouldAllowLoadIdentityKeyMaterial(loadAllow.actions)).toBe(true);
@@ -722,8 +602,8 @@ describe("protocol identity ciphertext", () => {
       initialLoadIdentityKeyMaterialState(),
       {
         kind: "identity/load-key-material-gate",
-        splitOk: false,
-      },
+        splitOk: false
+      }
     );
     expect(loadDeny.actions).toEqual([{ kind: "deny" }]);
     expect(shouldDenyLoadIdentityKeyMaterial(loadDeny.actions)).toBe(true);
@@ -732,8 +612,8 @@ describe("protocol identity ciphertext", () => {
       initialAttemptIdentityRatchetDecryptState(),
       {
         kind: "identity/attempt-ratchet-decrypt-gate",
-        ratchetsPresent: true,
-      },
+        ratchetsPresent: true
+      }
     );
     expect(attempt.actions).toEqual([{ kind: "attempt" }]);
     expect(shouldAttemptIdentityRatchetDecryptNow(attempt.actions)).toBe(true);
@@ -742,8 +622,8 @@ describe("protocol identity ciphertext", () => {
       initialAttemptIdentityRatchetDecryptState(),
       {
         kind: "identity/attempt-ratchet-decrypt-gate",
-        ratchetsPresent: false,
-      },
+        ratchetsPresent: false
+      }
     );
     expect(skip.actions).toEqual([{ kind: "skip" }]);
     expect(shouldSkipIdentityRatchetDecrypt(skip.actions)).toBe(true);
@@ -753,16 +633,10 @@ describe("protocol identity ciphertext", () => {
     const event = {
       kind: "identity/use-private-key-gate" as const,
       privateKeyPresent: true,
-      signaturePrivatePresent: true,
+      signaturePrivatePresent: true
     };
-    const a = stepIdentityUsePrivateKeyWithActions(
-      initialIdentityUsePrivateKeyState(),
-      event,
-    );
-    const b = stepIdentityUsePrivateKeyWithActions(
-      initialIdentityUsePrivateKeyState(),
-      event,
-    );
+    const a = stepIdentityUsePrivateKeyWithActions(initialIdentityUsePrivateKeyState(), event);
+    const b = stepIdentityUsePrivateKeyWithActions(initialIdentityUsePrivateKeyState(), event);
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });

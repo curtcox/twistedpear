@@ -20,9 +20,11 @@ import {
   KvStorageBeeBackend,
   MiniappHost,
   createSimulatedDeviceManager,
-  createSandboxBackend,
+  createSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
-import { assertAppletStatusMatchesExpectation } from "./expectations.mjs";
+import {
+  assertAppletStatusMatchesExpectation
+} from "./expectations.mjs";
 import { makePeerSessionManager, makeRelayService } from "./host-fixtures.mjs";
 import {
   assertReaderUx,
@@ -33,7 +35,7 @@ import {
   tap,
   treeContainsText,
   waitFor,
-  waitForTreeText,
+  waitForTreeText
 } from "./ui-helpers.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -43,7 +45,7 @@ const handbookDir = join(root, "apps/handbook");
 export const MOBILE_SAMPLE_CHAPTERS = [
   "what-is-twistedpear",
   "sdk-identity",
-  "difference-matrix",
+  "difference-matrix"
 ];
 
 /** Applets that require hardware; unavailable on sim/emulator CI is expected. */
@@ -51,7 +53,7 @@ export const DEVICE_GATED_APPLET_IDS = new Set([
   "ble-peer",
   "rnode-serial",
   "multicast-auto",
-  "camera-qr-scan",
+  "camera-qr-scan"
 ]);
 
 const SOFTWARE_APPLET_CHAPTER = {
@@ -69,7 +71,7 @@ const SOFTWARE_APPLET_CHAPTER = {
   "apps-publish-install": "sdk-apps-publish",
   "apps-update": "sdk-apps-update",
   "ai-chat": "sdk-ai-chat",
-  "widget-gallery": "sdk-widget-gallery",
+  "widget-gallery": "sdk-widget-gallery"
 };
 
 class MemoryStore {
@@ -98,7 +100,7 @@ function launchManifest(app, publisherPublicKey) {
     version: app.version,
     entry: app.entry,
     capabilities: app.capabilities ?? [],
-    publisherPublicKey,
+    publisherPublicKey
   };
 }
 
@@ -109,12 +111,10 @@ function sha512(data) {
 function buildHandbook() {
   const result = spawnSync(process.execPath, [join(handbookDir, "build.mjs")], {
     cwd: handbookDir,
-    encoding: "utf8",
+    encoding: "utf8"
   });
   if (result.status !== 0) {
-    throw new Error(
-      `handbook build failed:\n${result.stdout}\n${result.stderr}`,
-    );
+    throw new Error(`handbook build failed:\n${result.stdout}\n${result.stderr}`);
   }
 }
 
@@ -122,35 +122,23 @@ async function packHandbook() {
   const cwd = mkdtempSync(join(tmpdir(), "tp-handbook-mobile-"));
   const appDir = join(cwd, "handbook");
   mkdirSync(appDir, { recursive: true });
-  cpSync(
-    join(handbookDir, "app.manifest.json"),
-    join(appDir, "app.manifest.json"),
-  );
+  cpSync(join(handbookDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
   cpSync(join(handbookDir, "bundle.js"), join(appDir, "bundle.js"));
 
   try {
-    const initCode = await runInit({
-      cwd,
-      identityPassphrase: "conformance identity passphrase",
-      args: [],
-    });
+    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed for handbook");
     }
 
-    const packCode = await runPack({
-      cwd,
-      args: ["handbook", "--out", "handbook.tpkg"],
-    });
+    const packCode = await runPack({ cwd, args: ["handbook", "--out", "handbook.tpkg"] });
     if (packCode !== 0) {
       throw new Error("tp pack failed for handbook");
     }
 
     const provider = new NodeCryptoProvider();
     const archive = new Uint8Array(readFileSync(join(cwd, "handbook.tpkg")));
-    const verified = verifyPackage(provider, archive, {
-      hostApiVersion: HOST_API_VERSION,
-    });
+    const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
     const bundle = verified.files.get(verified.manifest.entry);
     if (bundle === undefined) {
       throw new Error("Handbook entry bundle missing");
@@ -160,7 +148,7 @@ async function packHandbook() {
       app: verified.manifest,
       bundle,
       packageBytes: archive.length,
-      publisherPublicKey: verified.manifest.publisherPublicKey,
+      publisherPublicKey: verified.manifest.publisherPublicKey
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -168,9 +156,7 @@ async function packHandbook() {
 }
 
 function loadCatalog() {
-  return JSON.parse(
-    readFileSync(join(handbookDir, "generated/catalog.json"), "utf8"),
-  );
+  return JSON.parse(readFileSync(join(handbookDir, "generated/catalog.json"), "utf8"));
 }
 
 function makeCasBackend() {
@@ -184,7 +170,7 @@ function makeCasBackend() {
     async get(_appId, t256) {
       return blobs.get(t256) ?? null;
     },
-    blobs,
+    blobs
   };
 }
 
@@ -194,20 +180,17 @@ function makeAppsBackend() {
   return {
     async package(_appId, request) {
       const payload = new TextEncoder().encode(
-        JSON.stringify({
-          projectPrefix: request.projectPrefix,
-          manifest: request.manifest,
-        }),
+        JSON.stringify({ projectPrefix: request.projectPrefix, manifest: request.manifest })
       );
       const t256 = encode256t(payload, sha512);
       packages.set(t256, {
         name: request.manifest.name,
-        version: request.manifest.version,
+        version: request.manifest.version
       });
       return {
         packageHash: Buffer.from(sha512(payload).slice(0, 16)).toString("hex"),
         size: payload.length,
-        t256,
+        t256
       };
     },
     async publish(_appId, request) {
@@ -215,11 +198,7 @@ function makeAppsBackend() {
       if (known === undefined) {
         throw new Error(`Unknown package ${request.t256}`);
       }
-      return {
-        t256: request.t256,
-        driveKey: "handbook-mock-drive",
-        version: known.version,
-      };
+      return { t256: request.t256, driveKey: "handbook-mock-drive", version: known.version };
     },
     async install(_appId, request) {
       const known = packages.get(request.t256);
@@ -237,7 +216,7 @@ function makeAppsBackend() {
     },
     get previewActive() {
       return previewActive;
-    },
+    }
   };
 }
 
@@ -270,11 +249,7 @@ function createHandbookHost(store, options) {
       peerSessionManager: makePeerSessionManager(),
       relayService: makeRelayService(),
       presenceBackend: {
-        snapshot: async () => ({
-          onlineInterfaces: 0,
-          preferredInterface: null,
-          peers: 0,
-        }),
+        snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
       },
       hostInfoBackend: {
         info: async () => ({
@@ -287,49 +262,40 @@ function createHandbookHost(store, options) {
             kvQuotaBytes: null,
             seedStorageUsedBytes: null,
             seedStorageQuotaBytes: null,
-            memoryBytes: null,
-          },
-        }),
+            memoryBytes: null
+          }
+        })
       },
       resourceBackend: {
         fetch: async (_appId, request) => {
-          const bytes = await store.get(
-            `miniapp-resource:${request.resourceId}`,
-          );
+          const bytes = await store.get(`miniapp-resource:${request.resourceId}`);
           if (bytes === null) {
             throw new Error(`Resource not found: ${request.resourceId}`);
           }
-          if (
-            request.budgetBytes !== undefined &&
-            bytes.length > request.budgetBytes
-          ) {
-            throw new Error(
-              `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
-            );
+          if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+            throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
           }
           return bytes;
-        },
+        }
       },
       casBackend,
       appsBackend,
       confirmationChannel: {
-        confirm: async () => ({ approved: true }),
+        confirm: async () => ({ approved: true })
       },
       aiBackend: {
         chat: async (_appId, request) => ({
           message: {
             role: "assistant",
-            content: request.messages.at(-1)?.content.includes("handbook")
-              ? "handbook"
-              : "ok",
+            content: request.messages.at(-1)?.content.includes("handbook") ? "handbook" : "ok"
           },
           model: "handbook-mock",
-          usage: { promptTokens: 8, completionTokens: 1 },
-        }),
-      },
+          usage: { promptTokens: 8, completionTokens: 1 }
+        })
+      }
     }),
     casBackend,
-    sandboxBackend: backend.name,
+    sandboxBackend: backend.name
   };
 }
 
@@ -347,10 +313,7 @@ async function assertPreviewSlot(host, appsBackend, logPrefix) {
   if (!appsBackend.previewActive) {
     throw new Error("preview slot did not activate apps backend");
   }
-  await waitForTreeText(
-    host,
-    "Preview is running in the host dev-preview slot",
-  );
+  await waitForTreeText(host, "Preview is running in the host dev-preview slot");
   await tap(host, "applet-stoppreview-apps-package-preview", "hb.stoppreview");
   await waitForTreeText(host, "Preview stopped");
   if (appsBackend.previewActive) {
@@ -374,34 +337,19 @@ export async function runHandbookMobileSlice(options) {
   const store = new MemoryStore();
   await store.set(
     "miniapp-resource:handbook:probe",
-    new TextEncoder().encode("handbook-resource-probe-payload"),
+    new TextEncoder().encode("handbook-resource-probe-payload")
   );
 
-  const {
-    host,
-    casBackend,
-    appsBackend,
-    sandboxBackend: resolvedBackend,
-  } = createHandbookHost(store, {
+  const { host, casBackend, appsBackend, sandboxBackend: resolvedBackend } = createHandbookHost(store, {
     platform,
     sandboxBackend,
-    interfaceTypes:
-      platform === "android"
-        ? ["tcp", "ble", "auto", "rnode"]
-        : ["tcp", "ble", "auto"],
+    interfaceTypes: platform === "android" ? ["tcp", "ble", "auto", "rnode"] : ["tcp", "ble", "auto"]
   });
   const effectiveLabel = `${label}/${resolvedBackend}`;
-  console.log(
-    `handbook-mobile/${effectiveLabel}: packed ${packed.packageBytes} bytes`,
-  );
+  console.log(`handbook-mobile/${effectiveLabel}: packed ${packed.packageBytes} bytes`);
 
   const manifest = launchManifest(packed.app, packed.publisherPublicKey);
-  await host.setGrants(
-    manifest.name,
-    packed.publisherPublicKey,
-    manifest.capabilities,
-    manifest.capabilities,
-  );
+  await host.setGrants(manifest.name, packed.publisherPublicKey, manifest.capabilities, manifest.capabilities);
   // Run-all + export issue many broker calls in one second (chatStream, grants, CAS).
   // Android adds an extra rnode host.info/presence round-trip; default 128/s drops the
   // post-export ui.render with RATE_LIMITED and diag-export-qr never appears.
@@ -413,11 +361,7 @@ export async function runHandbookMobileSlice(options) {
   await waitForTreeText(host, "Contents", 25_000);
   console.log(`handbook-mobile/${effectiveLabel}: TOC rendered`);
 
-  await assertPreviewSlot(
-    host,
-    appsBackend,
-    `handbook-mobile/${effectiveLabel}`,
-  );
+  await assertPreviewSlot(host, appsBackend, `handbook-mobile/${effectiveLabel}`);
   await returnToToc(host);
   await waitForTreeText(host, "Contents", 25_000);
 
@@ -428,16 +372,12 @@ export async function runHandbookMobileSlice(options) {
     }
     await tap(host, `ch-${chapterId}`, "hb.openchapter");
     await waitForTreeText(host, chapter.title, 25_000);
-    console.log(
-      `handbook-mobile/${effectiveLabel}: chapter rendered — ${chapterId}`,
-    );
+    console.log(`handbook-mobile/${effectiveLabel}: chapter rendered — ${chapterId}`);
     await tap(host, "back-toc", "hb.toc");
     await waitForTreeText(host, "Contents", 25_000);
   }
 
-  await assertReaderUx(host, store, {
-    logPrefix: `handbook-mobile/${effectiveLabel}`,
-  });
+  await assertReaderUx(host, store, { logPrefix: `handbook-mobile/${effectiveLabel}` });
   console.log(`handbook-mobile/${effectiveLabel}: reader UX passed`);
 
   await returnToToc(host);
@@ -467,18 +407,13 @@ export async function runHandbookMobileSlice(options) {
 
   for (const applet of catalog.applets) {
     const tree = host.snapshot().widgetTree;
-    const rowText =
-      tree === null
-        ? ""
-        : (collectTextValues(tree.root).find((value) =>
-            new RegExp(`\\b${applet.id}:`).test(value),
-          ) ?? "");
+    const rowText = tree === null
+      ? ""
+      : collectTextValues(tree.root).find((value) => new RegExp(`\\b${applet.id}:`).test(value)) ?? "";
     const status = rowText.split(":").pop()?.trim().toLowerCase() ?? "missing";
     assertAppletStatusMatchesExpectation(applet, status, platform);
   }
-  console.log(
-    `handbook-mobile/${effectiveLabel}: software-tier applets passed`,
-  );
+  console.log(`handbook-mobile/${effectiveLabel}: software-tier applets passed`);
 
   await tap(host, "diag-export", "hb.export");
   const exportTree = await waitFor(async () => {
@@ -487,11 +422,7 @@ export async function runHandbookMobileSlice(options) {
       return null;
     }
     const qr = findNodeById(tree.root, "diag-export-qr");
-    if (
-      qr !== null &&
-      typeof qr.props?.value === "string" &&
-      qr.props.value.length === 94
-    ) {
+    if (qr !== null && typeof qr.props?.value === "string" && qr.props.value.length === 94) {
       return { t256: qr.props.value };
     }
     return null;
@@ -503,13 +434,9 @@ export async function runHandbookMobileSlice(options) {
   }
   const localReport = JSON.parse(new TextDecoder().decode(localBytes));
   if (localReport.host?.platform !== platform) {
-    throw new Error(
-      `expected platform ${platform}, got ${localReport.host?.platform}`,
-    );
+    throw new Error(`expected platform ${platform}, got ${localReport.host?.platform}`);
   }
-  console.log(
-    `handbook-mobile/${effectiveLabel}: report exported ${exportTree.t256.slice(0, 12)}…`,
-  );
+  console.log(`handbook-mobile/${effectiveLabel}: report exported ${exportTree.t256.slice(0, 12)}…`);
 
   await host.stop();
   return {
@@ -517,7 +444,7 @@ export async function runHandbookMobileSlice(options) {
     sandboxBackend: resolvedBackend,
     chapters: MOBILE_SAMPLE_CHAPTERS.length,
     applets: catalog.applets.length,
-    reportId: exportTree.t256,
+    reportId: exportTree.t256
   };
 }
 

@@ -20,7 +20,7 @@ export const PropagationTransferState = {
   TRANSFER_FAILED: 0xf2,
   NO_IDENTITY_RCVD: 0xf3,
   NO_ACCESS: 0xf4,
-  FAILED: 0xfe,
+  FAILED: 0xfe
 } as const;
 
 export type PropagationTransferStateValue =
@@ -30,7 +30,7 @@ export type PropagationTransferStateValue =
 export const PropagationPeerError = {
   NO_IDENTITY: 0xf0,
   NO_ACCESS: 0xf1,
-  TIMEOUT: 0xfe,
+  TIMEOUT: 0xfe
 } as const;
 
 export const PROPAGATION_LINK_TIMEOUT_MS = LINK_AWAIT_DEFAULT_TIMEOUT_MS;
@@ -82,38 +82,31 @@ export function initialPropagationTransferState(): PropagationTransferMachineSta
   return {
     phase: PropagationTransferState.IDLE,
     wantCount: 0,
-    downloadedCount: 0,
+    downloadedCount: 0
   };
 }
 
-export const stepPropagationTransfer: StepFn<
-  PropagationTransferMachineState
-> = (state, event) => {
-  const result = stepPropagationTransferInner(
-    state,
-    event as PropagationTransferEvent,
-  );
+export const stepPropagationTransfer: StepFn<PropagationTransferMachineState> = (state, event) => {
+  const result = stepPropagationTransferInner(state, event as PropagationTransferEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPropagationTransferWithActions(
   state: PropagationTransferMachineState,
-  event: PropagationTransferEvent,
+  event: PropagationTransferEvent
 ): PropagationTransferStepResult {
   return stepPropagationTransferInner(state, event);
 }
 
 function stepPropagationTransferInner(
   state: PropagationTransferMachineState,
-  event: PropagationTransferEvent,
+  event: PropagationTransferEvent
 ): PropagationTransferStepResult {
   if (event.kind === "xfer/cancel") {
     return {
       state: initialPropagationTransferState(),
-      intents: [
-        { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } },
-      ],
-      actions: [{ kind: "teardown-link" }],
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
+      actions: [{ kind: "teardown-link" }]
     };
   }
 
@@ -122,20 +115,15 @@ function stepPropagationTransferInner(
       state: {
         phase: PropagationTransferState.LINK_ESTABLISHING,
         wantCount: 0,
-        downloadedCount: 0,
+        downloadedCount: 0
       },
       intents: [
         {
           kind: "timer/set",
-          timer: {
-            id: PROPAGATION_LINK_TIMER_ID,
-            delayMs: PROPAGATION_LINK_TIMEOUT_MS,
-          },
-        },
+          timer: { id: PROPAGATION_LINK_TIMER_ID, delayMs: PROPAGATION_LINK_TIMEOUT_MS }
+        }
       ],
-      actions: [
-        { kind: "establish-link", timeoutMs: PROPAGATION_LINK_TIMEOUT_MS },
-      ],
+      actions: [{ kind: "establish-link", timeoutMs: PROPAGATION_LINK_TIMEOUT_MS }]
     };
   }
 
@@ -148,18 +136,16 @@ function stepPropagationTransferInner(
       intents: [],
       actions: [
         { kind: "teardown-link" },
-        { kind: "reject-link-wait", reason: "timeout" },
-      ],
+        { kind: "reject-link-wait", reason: "timeout" }
+      ]
     };
   }
 
   if (event.kind === "xfer/link-timeout") {
     return {
       state: { ...state, phase: PropagationTransferState.LINK_FAILED },
-      intents: [
-        { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } },
-      ],
-      actions: [{ kind: "teardown-link" }],
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
+      actions: [{ kind: "teardown-link" }]
     };
   }
 
@@ -169,23 +155,19 @@ function stepPropagationTransferInner(
     }
     return {
       state,
-      intents: [
-        { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } },
-      ],
-      actions: [{ kind: "resolve-link-wait" }],
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
+      actions: [{ kind: "resolve-link-wait" }]
     };
   }
 
   if (event.kind === "xfer/link-ready") {
     return {
       state: { ...state, phase: PropagationTransferState.LINK_ESTABLISHED },
-      intents: [
-        { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } },
-      ],
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
       actions: [
         { kind: "identify" },
-        { kind: "request-list", timeoutSec: PROPAGATION_LIST_TIMEOUT_SEC },
-      ],
+        { kind: "request-list", timeoutSec: PROPAGATION_LIST_TIMEOUT_SEC }
+      ]
     };
   }
 
@@ -193,7 +175,7 @@ function stepPropagationTransferInner(
     return {
       state: { ...state, phase: PropagationTransferState.TRANSFER_FAILED },
       intents: [],
-      actions: [],
+      actions: []
     };
   }
 
@@ -207,13 +189,9 @@ function stepPropagationTransferInner(
 
   if (event.kind === "xfer/list-empty") {
     return {
-      state: {
-        ...state,
-        phase: PropagationTransferState.COMPLETE,
-        wantCount: 0,
-      },
+      state: { ...state, phase: PropagationTransferState.COMPLETE, wantCount: 0 },
       intents: [],
-      actions: [],
+      actions: []
     };
   }
 
@@ -222,26 +200,18 @@ function stepPropagationTransferInner(
       state: {
         ...state,
         phase: PropagationTransferState.REQUEST_SENT,
-        wantCount: event.wantCount,
+        wantCount: event.wantCount
       },
       intents: [],
-      actions: [
-        {
-          kind: "request-download",
-          timeoutSec: PROPAGATION_DOWNLOAD_TIMEOUT_SEC,
-        },
-      ],
+      actions: [{ kind: "request-download", timeoutSec: PROPAGATION_DOWNLOAD_TIMEOUT_SEC }]
     };
   }
 
-  if (
-    event.kind === "xfer/download-null" ||
-    event.kind === "xfer/download-malformed"
-  ) {
+  if (event.kind === "xfer/download-null" || event.kind === "xfer/download-malformed") {
     return {
       state: { ...state, phase: PropagationTransferState.TRANSFER_FAILED },
       intents: [],
-      actions: [],
+      actions: []
     };
   }
 
@@ -249,24 +219,19 @@ function stepPropagationTransferInner(
     const next: PropagationTransferMachineState = {
       ...state,
       phase: PropagationTransferState.RESPONSE_RECEIVED,
-      downloadedCount: event.downloadedCount,
+      downloadedCount: event.downloadedCount
     };
     if (event.downloadedCount <= 0) {
       return {
         state: { ...next, phase: PropagationTransferState.COMPLETE },
         intents: [],
-        actions: [],
+        actions: []
       };
     }
     return {
       state: next,
       intents: [],
-      actions: [
-        {
-          kind: "request-haves-ack",
-          timeoutSec: PROPAGATION_HAVES_TIMEOUT_SEC,
-        },
-      ],
+      actions: [{ kind: "request-haves-ack", timeoutSec: PROPAGATION_HAVES_TIMEOUT_SEC }]
     };
   }
 
@@ -274,7 +239,7 @@ function stepPropagationTransferInner(
     return {
       state: { ...state, phase: PropagationTransferState.COMPLETE },
       intents: [],
-      actions: [],
+      actions: []
     };
   }
 
@@ -282,9 +247,7 @@ function stepPropagationTransferInner(
 }
 
 /** Whether a peer list/download response bytes are present for transfer progression. */
-export function shouldAcceptPropagationPeerResponse(
-  responsePresent: boolean,
-): boolean {
+export function shouldAcceptPropagationPeerResponse(responsePresent: boolean): boolean {
   return responsePresent;
 }
 
@@ -303,7 +266,8 @@ export type AcceptPropagationPeerResponseEvent =
     };
 
 export type AcceptPropagationPeerResponseAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptPropagationPeerResponseStepResult {
   readonly state: AcceptPropagationPeerResponseState;
@@ -317,7 +281,7 @@ export function initialAcceptPropagationPeerResponseState(): AcceptPropagationPe
 
 export function stepAcceptPropagationPeerResponseWithActions(
   state: AcceptPropagationPeerResponseState,
-  event: AcceptPropagationPeerResponseEvent,
+  event: AcceptPropagationPeerResponseEvent
 ): AcceptPropagationPeerResponseStepResult {
   if (event.kind === "propagation-transfer/accept-peer-response-gate") {
     return {
@@ -327,9 +291,9 @@ export function stepAcceptPropagationPeerResponseWithActions(
         {
           kind: shouldAcceptPropagationPeerResponse(event.responsePresent)
             ? "accept"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -337,21 +301,19 @@ export function stepAcceptPropagationPeerResponseWithActions(
 }
 
 export function shouldAcceptPropagationPeerResponseNow(
-  actions: ReadonlyArray<AcceptPropagationPeerResponseAction>,
+  actions: ReadonlyArray<AcceptPropagationPeerResponseAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptPropagationPeerResponse(
-  actions: ReadonlyArray<AcceptPropagationPeerResponseAction>,
+  actions: ReadonlyArray<AcceptPropagationPeerResponseAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a decoded peer-error code should drive xfer/list-peer-error. */
-export function shouldHandlePropagationPeerError(
-  errorPresent: boolean,
-): boolean {
+export function shouldHandlePropagationPeerError(errorPresent: boolean): boolean {
   return errorPresent;
 }
 
@@ -370,7 +332,8 @@ export type HandlePropagationPeerErrorEvent =
     };
 
 export type HandlePropagationPeerErrorAction =
-  { readonly kind: "handle" } | { readonly kind: "skip" };
+  | { readonly kind: "handle" }
+  | { readonly kind: "skip" };
 
 export interface HandlePropagationPeerErrorStepResult {
   readonly state: HandlePropagationPeerErrorState;
@@ -384,7 +347,7 @@ export function initialHandlePropagationPeerErrorState(): HandlePropagationPeerE
 
 export function stepHandlePropagationPeerErrorWithActions(
   state: HandlePropagationPeerErrorState,
-  event: HandlePropagationPeerErrorEvent,
+  event: HandlePropagationPeerErrorEvent
 ): HandlePropagationPeerErrorStepResult {
   if (event.kind === "propagation-transfer/handle-peer-error-gate") {
     return {
@@ -392,11 +355,9 @@ export function stepHandlePropagationPeerErrorWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldHandlePropagationPeerError(event.errorPresent)
-            ? "handle"
-            : "skip",
-        },
-      ],
+          kind: shouldHandlePropagationPeerError(event.errorPresent) ? "handle" : "skip"
+        }
+      ]
     };
   }
 
@@ -404,21 +365,19 @@ export function stepHandlePropagationPeerErrorWithActions(
 }
 
 export function shouldHandlePropagationPeerErrorNow(
-  actions: ReadonlyArray<HandlePropagationPeerErrorAction>,
+  actions: ReadonlyArray<HandlePropagationPeerErrorAction>
 ): boolean {
   return actions.some((action) => action.kind === "handle");
 }
 
 export function shouldSkipHandlePropagationPeerError(
-  actions: ReadonlyArray<HandlePropagationPeerErrorAction>,
+  actions: ReadonlyArray<HandlePropagationPeerErrorAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a locally delivered propagation message should be collected. */
-export function shouldAcceptPropagationDeliveredMessage(
-  messagePresent: boolean,
-): boolean {
+export function shouldAcceptPropagationDeliveredMessage(messagePresent: boolean): boolean {
   return messagePresent;
 }
 
@@ -437,7 +396,8 @@ export type AcceptPropagationDeliveredMessageEvent =
     };
 
 export type AcceptPropagationDeliveredMessageAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptPropagationDeliveredMessageStepResult {
   readonly state: AcceptPropagationDeliveredMessageState;
@@ -451,7 +411,7 @@ export function initialAcceptPropagationDeliveredMessageState(): AcceptPropagati
 
 export function stepAcceptPropagationDeliveredMessageWithActions(
   state: AcceptPropagationDeliveredMessageState,
-  event: AcceptPropagationDeliveredMessageEvent,
+  event: AcceptPropagationDeliveredMessageEvent
 ): AcceptPropagationDeliveredMessageStepResult {
   if (event.kind === "propagation-transfer/accept-delivered-message-gate") {
     return {
@@ -461,9 +421,9 @@ export function stepAcceptPropagationDeliveredMessageWithActions(
         {
           kind: shouldAcceptPropagationDeliveredMessage(event.messagePresent)
             ? "accept"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -471,13 +431,13 @@ export function stepAcceptPropagationDeliveredMessageWithActions(
 }
 
 export function shouldAcceptPropagationDeliveredMessageNow(
-  actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>,
+  actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptPropagationDeliveredMessage(
-  actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>,
+  actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -502,7 +462,8 @@ export type TreatPropagationListAsEmptyEvent =
     };
 
 export type TreatPropagationListAsEmptyAction =
-  { readonly kind: "empty" } | { readonly kind: "nonempty" };
+  | { readonly kind: "empty" }
+  | { readonly kind: "nonempty" };
 
 export interface TreatPropagationListAsEmptyStepResult {
   readonly state: TreatPropagationListAsEmptyState;
@@ -516,7 +477,7 @@ export function initialTreatPropagationListAsEmptyState(): TreatPropagationListA
 
 export function stepTreatPropagationListAsEmptyWithActions(
   state: TreatPropagationListAsEmptyState,
-  event: TreatPropagationListAsEmptyEvent,
+  event: TreatPropagationListAsEmptyEvent
 ): TreatPropagationListAsEmptyStepResult {
   if (event.kind === "propagation-transfer/list-as-empty-gate") {
     return {
@@ -524,11 +485,9 @@ export function stepTreatPropagationListAsEmptyWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldTreatPropagationListAsEmpty(event.wantCount)
-            ? "empty"
-            : "nonempty",
-        },
-      ],
+          kind: shouldTreatPropagationListAsEmpty(event.wantCount) ? "empty" : "nonempty"
+        }
+      ]
     };
   }
 
@@ -536,13 +495,13 @@ export function stepTreatPropagationListAsEmptyWithActions(
 }
 
 export function shouldTreatPropagationListAsEmptyNow(
-  actions: ReadonlyArray<TreatPropagationListAsEmptyAction>,
+  actions: ReadonlyArray<TreatPropagationListAsEmptyAction>
 ): boolean {
   return actions.some((action) => action.kind === "empty");
 }
 
 export function shouldTreatPropagationListAsNonempty(
-  actions: ReadonlyArray<TreatPropagationListAsEmptyAction>,
+  actions: ReadonlyArray<TreatPropagationListAsEmptyAction>
 ): boolean {
   return actions.some((action) => action.kind === "nonempty");
 }
@@ -571,7 +530,8 @@ export type RequestPropagationHavesAckEvent =
     };
 
 export type RequestPropagationHavesAckAction =
-  { readonly kind: "request" } | { readonly kind: "skip" };
+  | { readonly kind: "request" }
+  | { readonly kind: "skip" };
 
 export interface RequestPropagationHavesAckStepResult {
   readonly state: RequestPropagationHavesAckState;
@@ -585,7 +545,7 @@ export function initialRequestPropagationHavesAckState(): RequestPropagationHave
 
 export function stepRequestPropagationHavesAckWithActions(
   state: RequestPropagationHavesAckState,
-  event: RequestPropagationHavesAckEvent,
+  event: RequestPropagationHavesAckEvent
 ): RequestPropagationHavesAckStepResult {
   if (event.kind === "propagation-transfer/request-haves-ack-gate") {
     return {
@@ -595,12 +555,12 @@ export function stepRequestPropagationHavesAckWithActions(
         {
           kind: shouldRequestPropagationHavesAck({
             actionIsHavesAck: event.actionIsHavesAck,
-            haveCount: event.haveCount,
+            haveCount: event.haveCount
           })
             ? "request"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -608,13 +568,13 @@ export function stepRequestPropagationHavesAckWithActions(
 }
 
 export function shouldRequestPropagationHavesAckNow(
-  actions: ReadonlyArray<RequestPropagationHavesAckAction>,
+  actions: ReadonlyArray<RequestPropagationHavesAckAction>
 ): boolean {
   return actions.some((action) => action.kind === "request");
 }
 
 export function shouldSkipRequestPropagationHavesAck(
-  actions: ReadonlyArray<RequestPropagationHavesAckAction>,
+  actions: ReadonlyArray<RequestPropagationHavesAckAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }

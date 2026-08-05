@@ -3,7 +3,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   MiniappHost,
-  NodeWorkerSandboxBackend,
+  NodeWorkerSandboxBackend
 } from "../src/index.js";
 
 class MemoryStore {
@@ -44,10 +44,10 @@ describe("host.info", () => {
             kvQuotaBytes: 1024,
             seedStorageUsedBytes: 10,
             seedStorageQuotaBytes: 1000,
-            memoryBytes: null,
-          },
-        }),
-      },
+            memoryBytes: null
+          }
+        })
+      }
     });
 
     const manifest = {
@@ -55,14 +55,14 @@ describe("host.info", () => {
       version: "1.0.0",
       entry: "bundle.js",
       capabilities: ["presence"],
-      publisherPublicKey: "pub",
+      publisherPublicKey: "pub"
     };
     await host.setGrants("info-app", "pub", ["presence"], ["presence"]);
 
     const response = await host.dispatchRaw(
       { id: "1", namespace: "host", method: "info", capability: "presence" },
       manifest,
-      ["presence"],
+      ["presence"]
     );
 
     expect(response.ok).toBe(true);
@@ -72,7 +72,7 @@ describe("host.info", () => {
       hostApiVersion: HOST_API_VERSION,
       roles: { transport: true, seeder: true, propagation: false },
       interfaceTypes: ["tcp", "auto"],
-      grantedCapabilities: ["presence"],
+      grantedCapabilities: ["presence"]
     });
   });
 
@@ -81,7 +81,7 @@ describe("host.info", () => {
     const host = new MiniappHost({
       backend: new NodeWorkerSandboxBackend(),
       grantStore: new GrantStore(store),
-      kvBackend: store,
+      kvBackend: store
     });
 
     const manifest = {
@@ -89,14 +89,14 @@ describe("host.info", () => {
       version: "1.0.0",
       entry: "bundle.js",
       capabilities: ["presence"],
-      publisherPublicKey: "pub",
+      publisherPublicKey: "pub"
     };
     await host.setGrants("info-app", "pub", ["presence"], []);
 
     const response = await host.dispatchRaw(
       { id: "1", namespace: "host", method: "info", capability: "presence" },
       manifest,
-      [],
+      []
     );
 
     expect(response.ok).toBe(false);

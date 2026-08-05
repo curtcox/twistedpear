@@ -16,7 +16,7 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import type { DeletePropagationCatalogEntryAction } from "./part-2.js";
 export function shouldSkipDeletePropagationCatalogEntry(
-  actions: ReadonlyArray<DeletePropagationCatalogEntryAction>,
+  actions: ReadonlyArray<DeletePropagationCatalogEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -48,7 +48,8 @@ export type ApplyPropagationRestoreEvent =
     };
 
 export type ApplyPropagationRestoreAction =
-  { readonly kind: "apply" } | { readonly kind: "skip" };
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
 
 export interface ApplyPropagationRestoreStepResult {
   readonly state: ApplyPropagationRestoreState;
@@ -62,7 +63,7 @@ export function initialApplyPropagationRestoreState(): ApplyPropagationRestoreSt
 
 export function stepApplyPropagationRestoreWithActions(
   state: ApplyPropagationRestoreState,
-  event: ApplyPropagationRestoreEvent,
+  event: ApplyPropagationRestoreEvent
 ): ApplyPropagationRestoreStepResult {
   if (event.kind === "propagation/apply-restore-gate") {
     return {
@@ -72,12 +73,12 @@ export function stepApplyPropagationRestoreWithActions(
         {
           kind: shouldApplyPropagationRestore({
             planAccept: event.planAccept,
-            destinationHashPresent: event.destinationHashPresent,
+            destinationHashPresent: event.destinationHashPresent
           })
             ? "apply"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -85,19 +86,22 @@ export function stepApplyPropagationRestoreWithActions(
 }
 
 export function shouldApplyPropagationRestoreNow(
-  actions: ReadonlyArray<ApplyPropagationRestoreAction>,
+  actions: ReadonlyArray<ApplyPropagationRestoreAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldSkipApplyPropagationRestore(
-  actions: ReadonlyArray<ApplyPropagationRestoreAction>,
+  actions: ReadonlyArray<ApplyPropagationRestoreAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export type PropagationRestorePlan =
-  "reject-too-large" | "duplicate" | "reject-hash" | "accept";
+  | "reject-too-large"
+  | "duplicate"
+  | "reject-hash"
+  | "accept";
 
 /**
  * Whether a persisted propagation entry may be restored into the in-memory catalog.
@@ -154,13 +158,13 @@ export function initialPropagationRestorePlanState(): PropagationRestorePlanStat
 
 export function stepPropagationRestorePlanWithActions(
   state: PropagationRestorePlanState,
-  event: PropagationRestorePlanEvent,
+  event: PropagationRestorePlanEvent
 ): PropagationRestorePlanStepResult {
   if (event.kind === "propagation/restore-plan-gate") {
     const plan = planPropagationRestore({
       tooLarge: event.tooLarge,
       alreadyStored: event.alreadyStored,
-      destinationHashPresent: event.destinationHashPresent,
+      destinationHashPresent: event.destinationHashPresent
     });
     return { state, intents: [], actions: [{ kind: plan }] };
   }
@@ -169,20 +173,20 @@ export function stepPropagationRestorePlanWithActions(
 }
 
 export function shouldAcceptPropagationRestorePlan(
-  actions: ReadonlyArray<PropagationRestorePlanAction>,
+  actions: ReadonlyArray<PropagationRestorePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function propagationRestorePlanFromActions(
-  actions: ReadonlyArray<PropagationRestorePlanAction>,
+  actions: ReadonlyArray<PropagationRestorePlanAction>
 ): PropagationRestorePlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "accept" ||
       entry.kind === "duplicate" ||
       entry.kind === "reject-too-large" ||
-      entry.kind === "reject-hash",
+      entry.kind === "reject-hash"
   );
   return action?.kind ?? null;
 }
@@ -221,34 +225,28 @@ export function initialPropagationRestoreState(): PropagationRestoreState {
   return {};
 }
 
-export const stepPropagationRestore: StepFn<PropagationRestoreState> = (
-  state,
-  event,
-) => {
-  const result = stepPropagationRestoreInner(
-    state,
-    event as PropagationRestoreEvent,
-  );
+export const stepPropagationRestore: StepFn<PropagationRestoreState> = (state, event) => {
+  const result = stepPropagationRestoreInner(state, event as PropagationRestoreEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPropagationRestoreWithActions(
   state: PropagationRestoreState,
-  event: PropagationRestoreEvent,
+  event: PropagationRestoreEvent
 ): PropagationRestoreStepResult {
   return stepPropagationRestoreInner(state, event);
 }
 
 /** Whether step actions include accept (catalog insert). */
 export function shouldAcceptPropagationRestore(
-  actions: ReadonlyArray<PropagationRestoreAction>,
+  actions: ReadonlyArray<PropagationRestoreAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 function stepPropagationRestoreInner(
   state: PropagationRestoreState,
-  event: PropagationRestoreEvent,
+  event: PropagationRestoreEvent
 ): PropagationRestoreStepResult {
   if (event.kind === "propagation/restore-gate") {
     const planActions = stepPropagationRestorePlanWithActions(
@@ -257,8 +255,8 @@ function stepPropagationRestoreInner(
         kind: "propagation/restore-plan-gate",
         tooLarge: event.tooLarge,
         alreadyStored: event.alreadyStored,
-        destinationHashPresent: event.destinationHashPresent,
-      },
+        destinationHashPresent: event.destinationHashPresent
+      }
     ).actions;
     const plan = propagationRestorePlanFromActions(planActions);
     if (plan === null) {

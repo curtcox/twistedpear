@@ -22,38 +22,29 @@ export interface ClientRateLimitState {
 export type ClientRateLimitEvent =
   | Event
   | { readonly kind: "rate/configure"; readonly limitPerWindow: number }
-  | {
-      readonly kind: "rate/check";
-      readonly clientKey: string;
-      readonly at: number;
-    };
+  | { readonly kind: "rate/check"; readonly clientKey: string; readonly at: number };
 
-export function initialClientRateLimitState(
-  limitPerWindow: number,
-): ClientRateLimitState {
+export function initialClientRateLimitState(limitPerWindow: number): ClientRateLimitState {
   return {
     limitPerWindow,
     buckets: new Map(),
-    lastAllowed: true,
+    lastAllowed: true
   };
 }
 
 export function stepClientRateLimit(
   state: ClientRateLimitState,
-  event: ClientRateLimitEvent,
+  event: ClientRateLimitEvent
 ): { state: ClientRateLimitState; intents: [] } {
   if (event.kind === "rate/configure") {
     return {
       state: { ...state, limitPerWindow: event.limitPerWindow },
-      intents: [],
+      intents: []
     };
   }
 
   if (event.kind === "rate/check") {
-    const existing = state.buckets.get(event.clientKey) ?? {
-      count: 0,
-      windowStart: event.at,
-    };
+    const existing = state.buckets.get(event.clientKey) ?? { count: 0, windowStart: event.at };
     const nextBucket: ClientRateBucket =
       event.at - existing.windowStart >= CLIENT_RATE_WINDOW_MS
         ? { count: 1, windowStart: event.at }
@@ -64,17 +55,15 @@ export function stepClientRateLimit(
     const lastAllowed = nextBucket.count <= state.limitPerWindow;
     return {
       state: { ...state, buckets, lastAllowed },
-      intents: [],
+      intents: []
     };
   }
 
   return { state, intents: [] };
 }
 
-export const stepClientRateLimitFn: StepFn<ClientRateLimitState> = (
-  state,
-  event,
-) => stepClientRateLimit(state, event as ClientRateLimitEvent);
+export const stepClientRateLimitFn: StepFn<ClientRateLimitState> = (state, event) =>
+  stepClientRateLimit(state, event as ClientRateLimitEvent);
 
 /**
  * Client-request allow gate is event-driven over the rate-limit state.
@@ -90,7 +79,8 @@ export type AllowClientRequestEvent =
     };
 
 export type AllowClientRequestAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface AllowClientRequestStepResult {
   readonly state: ClientRateLimitState;
@@ -100,18 +90,18 @@ export interface AllowClientRequestStepResult {
 
 export function stepAllowClientRequestWithActions(
   state: ClientRateLimitState,
-  event: AllowClientRequestEvent,
+  event: AllowClientRequestEvent
 ): AllowClientRequestStepResult {
   if (event.kind === "rate/allow-gate") {
     const stepped = stepClientRateLimit(state, {
       kind: "rate/check",
       clientKey: event.clientKey,
-      at: event.at,
+      at: event.at
     });
     return {
       state: stepped.state,
       intents: [],
-      actions: [{ kind: stepped.state.lastAllowed ? "allow" : "deny" }],
+      actions: [{ kind: stepped.state.lastAllowed ? "allow" : "deny" }]
     };
   }
 
@@ -119,13 +109,13 @@ export function stepAllowClientRequestWithActions(
 }
 
 export function shouldAllowClientRequest(
-  actions: ReadonlyArray<AllowClientRequestAction>,
+  actions: ReadonlyArray<AllowClientRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyClientRequest(
-  actions: ReadonlyArray<AllowClientRequestAction>,
+  actions: ReadonlyArray<AllowClientRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -135,15 +125,15 @@ export function allowClientRequest(
   buckets: Map<string, ClientRateBucket>,
   clientKey: string,
   now: number,
-  limitPerWindow: number,
+  limitPerWindow: number
 ): boolean {
   const stepped = stepAllowClientRequestWithActions(
     {
       limitPerWindow,
       buckets,
-      lastAllowed: true,
+      lastAllowed: true
     },
-    { kind: "rate/allow-gate", clientKey, at: now },
+    { kind: "rate/allow-gate", clientKey, at: now }
   );
   buckets.clear();
   for (const [key, bucket] of stepped.state.buckets) {

@@ -6,20 +6,11 @@ import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js"
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import {
   encryptIdentityBackup,
-  isEncryptedIdentityBackup,
+  isEncryptedIdentityBackup
 } from "../../../packages/host-core/dist/identity-backup.js";
 
 export function createIdentityOps(deps) {
-  const {
-    state,
-    provider,
-    runtime,
-    status,
-    send,
-    log,
-    pushStatus,
-    identityStoreKey: IDENTITY_STORE_KEY,
-  } = deps;
+  const { state, provider, runtime, status, send, log, pushStatus, identityStoreKey: IDENTITY_STORE_KEY } = deps;
 
   function updateIdentityStatus(identity) {
     state.activeIdentity = identity;
@@ -98,6 +89,6 @@ export function createIdentityOps(deps) {
     persistIdentity,
     createIdentity,
     resetIdentity,
-    resolveIdentity,
+    resolveIdentity
   };
 }

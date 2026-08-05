@@ -1,5 +1,6 @@
 # SPEC-MACHINE — Pure protocol machine contract
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -13,7 +14,7 @@ register: none
 The contract every protocol behavior must satisfy. This document is the canonical
 statement of the contract and the forbidden-effects table;
 [docs/sansio.md](../../docs/sansio.md) is the maintenance guide for the enforcement
-machinery and defers to this spec on what the boundary _is_. Web analog: the
+machinery and defers to this spec on what the boundary *is*. Web analog: the
 ECMAScript execution model.
 
 ## The contract
@@ -30,7 +31,7 @@ step(state, event) → (state', intents)
    `(state', intents)` outputs on every platform. Anything nondeterministic — time,
    entropy, IO results — enters only as event payloads.
 3. **Effect-free.** The only outputs are the returned state and intents. Effects are
-   _declared_ as intents and executed by an adapter outside the boundary
+   *declared* as intents and executed by an adapter outside the boundary
    ([SPEC-ADAPTER](../spec-adapter/spec.md)); their outcomes return as later events.
 4. **Entropy is input.** A machine needing randomness emits a `need_entropy` intent
    and receives an `entropy` event. Cryptographic hashing, signing, verification, and
@@ -50,15 +51,15 @@ Inside a protocol root (declared in
 [sansio-ratchet.json](../../sansio-ratchet.json)), the following direct effects are
 forbidden:
 
-| Effect         | Examples                                                                       |
-| -------------- | ------------------------------------------------------------------------------ |
-| Current time   | `Date.now`, `new Date()`, `performance.now`, `process.hrtime`                  |
-| Randomness     | `Math.random`, platform crypto RNGs, UUID or nanoid generators                 |
-| Scheduling     | timers, immediates, microtasks, animation frames, timer-like floating promises |
-| Network        | `fetch`, WebSocket, TCP/UDP/TLS/HTTP, BLE, LoRa, or serial modules             |
-| Storage        | filesystem APIs, AsyncStorage, databases, keychains, or browser storage        |
-| Environment    | `process.env`, OS, locale, or timezone queries                                 |
-| Direct logging | `console`; machines emit structured `log` intents instead                      |
+| Effect | Examples |
+|---|---|
+| Current time | `Date.now`, `new Date()`, `performance.now`, `process.hrtime` |
+| Randomness | `Math.random`, platform crypto RNGs, UUID or nanoid generators |
+| Scheduling | timers, immediates, microtasks, animation frames, timer-like floating promises |
+| Network | `fetch`, WebSocket, TCP/UDP/TLS/HTTP, BLE, LoRa, or serial modules |
+| Storage | filesystem APIs, AsyncStorage, databases, keychains, or browser storage |
+| Environment | `process.env`, OS, locale, or timezone queries |
+| Direct logging | `console`; machines emit structured `log` intents instead |
 
 Adapters sit outside the boundary and may import protocol code; protocol code must
 never import adapters or IO-capable packages.

@@ -6,21 +6,15 @@
 import { WebSandboxBackend } from "@twistedpear/miniapp-runtime/sandbox/web";
 import {
   encodeJsonWireValue,
-  reviveJsonWireValue,
+  reviveJsonWireValue
 } from "@twistedpear/miniapp-runtime";
-import type {
-  HostToWorkletMessage,
-  WorkletToHostMessage,
-} from "../worklet/protocol";
+import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
 
 function hexToBytes(hex: string): Uint8Array {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
   const bytes = new Uint8Array(normalized.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(
-      normalized.slice(index * 2, index * 2 + 2),
-      16,
-    );
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
   }
 
   return bytes;
@@ -31,18 +25,11 @@ interface ActiveSandbox {
   readonly instance: Awaited<ReturnType<WebSandboxBackend["spawn"]>>;
 }
 
-export function createWebSandboxRelay(
-  sendToWorker: (message: HostToWorkletMessage) => void,
-) {
+export function createWebSandboxRelay(sendToWorker: (message: HostToWorkletMessage) => void) {
   const instances = new Map<string, ActiveSandbox>();
-  const pendingBrokers = new Map<
-    string,
-    { resolve: (value: unknown) => void; reject: (error: Error) => void }
-  >();
+  const pendingBrokers = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
 
-  async function handleWorkerMessage(
-    message: WorkletToHostMessage,
-  ): Promise<void> {
+  async function handleWorkerMessage(message: WorkletToHostMessage): Promise<void> {
     if (message.type === "sandbox-spawn") {
       const backend = new WebSandboxBackend();
       try {
@@ -60,23 +47,23 @@ export function createWebSandboxRelay(
                   type: "sandbox-broker-request",
                   requestId,
                   instanceId: message.instanceId,
-                  request: encodeJsonWireValue(request),
+                  request: encodeJsonWireValue(request)
                 });
-              }),
-          },
+              })
+          }
         });
 
         instances.set(message.instanceId, { backend, instance });
         sendToWorker({
           type: "sandbox-spawned",
           requestId: message.requestId,
-          instanceId: message.instanceId,
+          instanceId: message.instanceId
         });
       } catch (error) {
         sendToWorker({
           type: "sandbox-spawn-failed",
           requestId: message.requestId,
-          message: error instanceof Error ? error.message : String(error),
+          message: error instanceof Error ? error.message : String(error)
         });
       }
 
@@ -91,14 +78,11 @@ export function createWebSandboxRelay(
 
     if (message.type === "sandbox-ping") {
       const active = instances.get(message.instanceId);
-      const alive =
-        active === undefined
-          ? false
-          : await active.instance.ping(message.timeoutMs);
+      const alive = active === undefined ? false : await active.instance.ping(message.timeoutMs);
       sendToWorker({
         type: "sandbox-ping-result",
         requestId: message.requestId,
-        alive,
+        alive
       });
       return;
     }
@@ -133,6 +117,6 @@ export function createWebSandboxRelay(
       }
 
       pendingBrokers.clear();
-    },
+    }
   };
 }

@@ -1,14 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  PureCryptoProvider,
-  Reticulum,
-  bytesToHex,
-  hasWebIdentity,
-  loadOrCreateWebIdentity,
-  persistWebIdentity,
-  resetWebIdentity,
-  webRuntime,
-} from "../src/web.js";
+import { PureCryptoProvider, Reticulum, bytesToHex, hasWebIdentity, loadOrCreateWebIdentity, persistWebIdentity, resetWebIdentity, webRuntime } from "../src/web.js";
 
 type IndexedDbRequest<T> = {
   readonly result: T;
@@ -34,10 +25,7 @@ class MemoryIndexedDb {
     const store = this.stores.get(name)!;
     const request: IndexedDbRequest<{
       createObjectStore(name: string): void;
-      transaction(
-        _name: string,
-        mode: "readonly" | "readwrite",
-      ): { objectStore(): IndexedDbStore };
+      transaction(_name: string, mode: "readonly" | "readwrite"): { objectStore(): IndexedDbStore };
     }> = {
       result: {
         createObjectStore() {},
@@ -63,20 +51,18 @@ class MemoryIndexedDb {
 
                   store.delete(key);
                   return createRequest(undefined);
-                },
+                }
               };
-            },
+            }
           };
-        },
+        }
       },
       error: null,
       onsuccess: null,
-      onerror: null,
+      onerror: null
     };
 
-    let upgradeHandler:
-      ((event: { readonly target: typeof request | null }) => void) | null =
-      null;
+    let upgradeHandler: ((event: { readonly target: typeof request | null }) => void) | null = null;
     let successHandler: (() => void) | null = null;
     const openRequest = {
       ...request,
@@ -93,7 +79,7 @@ class MemoryIndexedDb {
       set onsuccess(handler) {
         successHandler = handler;
         handler?.();
-      },
+      }
     };
 
     return openRequest;
@@ -112,7 +98,7 @@ function createRequest<T>(result: T): IndexedDbRequest<T> {
       successHandler = handler;
       handler?.();
     },
-    onerror: null,
+    onerror: null
   };
 
   return request;
@@ -120,10 +106,7 @@ function createRequest<T>(result: T): IndexedDbRequest<T> {
 
 describe("webRuntime", () => {
   it("persists key-value data through IndexedDB", async () => {
-    const runtime = webRuntime({
-      indexedDB: new MemoryIndexedDb(),
-      storeName: "test-web-runtime",
-    });
+    const runtime = webRuntime({ indexedDB: new MemoryIndexedDb(), storeName: "test-web-runtime" });
     const key = "leaf-config";
     const value = Uint8Array.from([1, 2, 3, 4]);
 
@@ -137,15 +120,9 @@ describe("webRuntime", () => {
 
   it("rejects TCP and UDP factories", async () => {
     const runtime = webRuntime({ indexedDB: new MemoryIndexedDb() });
-    await expect(
-      runtime.tcp.connect({ host: "127.0.0.1", port: 1 }),
-    ).rejects.toThrow(/WebSocketClientInterface/);
-    await expect(
-      runtime.tcp.listen({ host: "127.0.0.1", port: 1 }),
-    ).rejects.toThrow(/unavailable/);
-    await expect(runtime.udp.bind("127.0.0.1", 1)).rejects.toThrow(
-      /unavailable/,
-    );
+    await expect(runtime.tcp.connect({ host: "127.0.0.1", port: 1 })).rejects.toThrow(/WebSocketClientInterface/);
+    await expect(runtime.tcp.listen({ host: "127.0.0.1", port: 1 })).rejects.toThrow(/unavailable/);
+    await expect(runtime.udp.bind("127.0.0.1", 1)).rejects.toThrow(/unavailable/);
   });
 
   it("creates a leaf Reticulum instance from the browser entrypoint", () => {
@@ -162,11 +139,7 @@ describe("web identity", () => {
   it("creates, persists, and reloads an encrypted identity", async () => {
     const provider = new PureCryptoProvider();
     const indexedDB = new MemoryIndexedDb();
-    const options = {
-      indexedDB,
-      storeName: "test-web-identity",
-      passphrase: "phase-w-test",
-    };
+    const options = { indexedDB, storeName: "test-web-identity", passphrase: "phase-w-test" };
 
     const created = await loadOrCreateWebIdentity(provider, options);
     const createdHash = bytesToHex(created.hash);
@@ -183,31 +156,27 @@ describe("web identity", () => {
     const created = await loadOrCreateWebIdentity(provider, {
       indexedDB,
       storeName: "test-web-identity-wrong-pass",
-      passphrase: "correct-passphrase",
+      passphrase: "correct-passphrase"
     });
     await persistWebIdentity(created, {
       indexedDB,
       storeName: "test-web-identity-wrong-pass",
-      passphrase: "correct-passphrase",
+      passphrase: "correct-passphrase"
     });
 
     await expect(
       loadOrCreateWebIdentity(provider, {
         indexedDB,
         storeName: "test-web-identity-wrong-pass",
-        passphrase: "wrong-passphrase",
-      }),
+        passphrase: "wrong-passphrase"
+      })
     ).rejects.toThrow();
   });
 
   it("reports presence and clears stored identity", async () => {
     const provider = new PureCryptoProvider();
     const indexedDB = new MemoryIndexedDb();
-    const options = {
-      indexedDB,
-      storeName: "test-web-identity-reset",
-      passphrase: "phase-w-reset",
-    };
+    const options = { indexedDB, storeName: "test-web-identity-reset", passphrase: "phase-w-reset" };
 
     expect(await hasWebIdentity(options)).toBe(false);
     const created = await loadOrCreateWebIdentity(provider, options);

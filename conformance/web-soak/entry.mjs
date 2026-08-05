@@ -6,7 +6,7 @@
 import { WebSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/web.js";
 import {
   encodeJsonWireValue,
-  reviveJsonWireValue,
+  reviveJsonWireValue
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 
 const DEFAULT_SOAK_DURATION_MS = 15_000;
@@ -66,10 +66,7 @@ function hexToBytes(hex) {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
   const bytes = new Uint8Array(normalized.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(
-      normalized.slice(index * 2, index * 2 + 2),
-      16,
-    );
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
   }
 
   return bytes;
@@ -98,23 +95,23 @@ function createSandboxRelay(sendToWorker) {
                     type: "sandbox-broker-request",
                     requestId,
                     instanceId: message.instanceId,
-                    request: encodeJsonWireValue(request),
+                    request: encodeJsonWireValue(request)
                   });
-                }),
-            },
+                })
+            }
           });
 
           instances.set(message.instanceId, instance);
           sendToWorker({
             type: "sandbox-spawned",
             requestId: message.requestId,
-            instanceId: message.instanceId,
+            instanceId: message.instanceId
           });
         } catch (error) {
           sendToWorker({
             type: "sandbox-spawn-failed",
             requestId: message.requestId,
-            message: error instanceof Error ? error.message : String(error),
+            message: error instanceof Error ? error.message : String(error)
           });
         }
 
@@ -129,14 +126,11 @@ function createSandboxRelay(sendToWorker) {
 
       if (message.type === "sandbox-ping") {
         const instance = instances.get(message.instanceId);
-        const alive =
-          instance === undefined
-            ? false
-            : await instance.ping(message.timeoutMs);
+        const alive = instance === undefined ? false : await instance.ping(message.timeoutMs);
         sendToWorker({
           type: "sandbox-ping-result",
           requestId: message.requestId,
-          alive,
+          alive
         });
         return;
       }
@@ -160,7 +154,7 @@ function createSandboxRelay(sendToWorker) {
         pendingBrokers.delete(message.requestId);
         waiter.resolve(reviveJsonWireValue(message.response));
       }
-    },
+    }
   };
 }
 
@@ -168,11 +162,7 @@ async function waitForRuntime(getRuntime, predicate, timeoutMs = 15_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const runtime = getRuntime();
-    if (
-      runtime?.widgetTree !== null &&
-      runtime?.widgetTree !== undefined &&
-      predicate(runtime)
-    ) {
+    if (runtime?.widgetTree !== null && runtime?.widgetTree !== undefined && predicate(runtime)) {
       return runtime;
     }
 
@@ -198,9 +188,7 @@ async function waitForCondition(getRuntime, predicate, timeoutMs = 15_000) {
 
 async function main() {
   const params = new URLSearchParams(globalThis.location?.search ?? "");
-  const soakDurationMs = Number(
-    params.get("duration") ?? DEFAULT_SOAK_DURATION_MS,
-  );
+  const soakDurationMs = Number(params.get("duration") ?? DEFAULT_SOAK_DURATION_MS);
   globalThis.__WEB_SOAK__ = { status: "starting", cycles: 0, soakDurationMs };
 
   const worker = new Worker("./web-core.worker.js", { type: "module" });
@@ -245,7 +233,7 @@ async function main() {
     type: "start",
     targetHost: "127.0.0.1",
     targetPort: 9480,
-    gatewayUrl: "ws://127.0.0.1:9480",
+    gatewayUrl: "ws://127.0.0.1:9480"
   });
 
   const started = Date.now();
@@ -257,31 +245,21 @@ async function main() {
     send({ type: "dev-side-load-hello" });
     await waitForRuntime(
       () => latestRuntime,
-      (runtime) =>
-        treeContainsText(runtime.widgetTree, "Hello from web sandbox"),
+      (runtime) => treeContainsText(runtime.widgetTree, "Hello from web sandbox")
     );
 
     send({ type: "miniapp-ui-event", nodeId: "go", event: "hello.tap" });
-    await waitForRuntime(
-      () => latestRuntime,
-      (runtime) => treeContainsText(runtime.widgetTree, "Tapped!"),
-    );
+    await waitForRuntime(() => latestRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Tapped!"));
 
     if (flap) {
       send({ type: "suspend-miniapp" });
       await sleep(25);
       send({ type: "resume-miniapp" });
-      await waitForCondition(
-        () => latestRuntime,
-        (runtime) => runtime?.state === "running",
-      );
+      await waitForCondition(() => latestRuntime, (runtime) => runtime?.state === "running");
     }
 
     send({ type: "stop-miniapp" });
-    await waitForCondition(
-      () => latestRuntime,
-      (runtime) => runtime?.state === "stopped",
-    );
+    await waitForCondition(() => latestRuntime, (runtime) => runtime?.state === "stopped");
     cycles += 1;
     interfaceFlaps += 1;
     globalThis.__WEB_SOAK__ = { status: "running", cycles, soakDurationMs };
@@ -292,7 +270,7 @@ async function main() {
     cycles,
     elapsedMs: Date.now() - started,
     soakDurationMs,
-    interfaceFlaps,
+    interfaceFlaps
   };
 }
 
@@ -300,6 +278,6 @@ main().catch((error) => {
   globalThis.__WEB_SOAK__ = {
     status: "error",
     message: error instanceof Error ? error.message : String(error),
-    cycles: globalThis.__WEB_SOAK__?.cycles ?? 0,
+    cycles: globalThis.__WEB_SOAK__?.cycles ?? 0
   };
 });

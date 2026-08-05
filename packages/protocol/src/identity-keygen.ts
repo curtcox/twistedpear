@@ -36,14 +36,14 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
 export function splitIdentityEntropy(entropy: Uint8Array): IdentityKeyMaterial {
   if (entropy.length < IDENTITY_KEY_ENTROPY_SIZE) {
     throw new Error(
-      `Identity key entropy must be at least ${IDENTITY_KEY_ENTROPY_SIZE} bytes`,
+      `Identity key entropy must be at least ${IDENTITY_KEY_ENTROPY_SIZE} bytes`
     );
   }
   return {
     privateKey: Uint8Array.from(entropy.subarray(0, IDENTITY_HALF_KEY_SIZE)),
     signaturePrivateKey: Uint8Array.from(
-      entropy.subarray(IDENTITY_HALF_KEY_SIZE, IDENTITY_KEY_ENTROPY_SIZE),
-    ),
+      entropy.subarray(IDENTITY_HALF_KEY_SIZE, IDENTITY_KEY_ENTROPY_SIZE)
+    )
   };
 }
 
@@ -77,16 +77,14 @@ export function initialSplitIdentityEntropyState(): SplitIdentityEntropyState {
 
 export function stepSplitIdentityEntropyWithActions(
   state: SplitIdentityEntropyState,
-  event: SplitIdentityEntropyEvent,
+  event: SplitIdentityEntropyEvent
 ): SplitIdentityEntropyStepResult {
   if (event.kind === "identity-key/split-entropy-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [
-          { kind: "use-fields", fields: splitIdentityEntropy(event.entropy) },
-        ],
+        actions: [{ kind: "use-fields", fields: splitIdentityEntropy(event.entropy) }]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -97,20 +95,20 @@ export function stepSplitIdentityEntropyWithActions(
 }
 
 export function shouldUseSplitIdentityEntropy(
-  actions: ReadonlyArray<SplitIdentityEntropyAction>,
+  actions: ReadonlyArray<SplitIdentityEntropyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitIdentityEntropy(
-  actions: ReadonlyArray<SplitIdentityEntropyAction>,
+  actions: ReadonlyArray<SplitIdentityEntropyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract identity key material from step actions; null when no `use-fields`. */
 export function identityEntropyFieldsFromActions(
-  actions: ReadonlyArray<SplitIdentityEntropyAction>,
+  actions: ReadonlyArray<SplitIdentityEntropyAction>
 ): IdentityKeyMaterial | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -118,59 +116,47 @@ export function identityEntropyFieldsFromActions(
 
 export function packIdentityPrivateKey(
   privateKey: Uint8Array,
-  signaturePrivateKey: Uint8Array,
+  signaturePrivateKey: Uint8Array
 ): Uint8Array {
   if (privateKey.length !== IDENTITY_HALF_KEY_SIZE) {
-    throw new Error(
-      `identity private key must be ${IDENTITY_HALF_KEY_SIZE} bytes`,
-    );
+    throw new Error(`identity private key must be ${IDENTITY_HALF_KEY_SIZE} bytes`);
   }
   if (signaturePrivateKey.length !== IDENTITY_HALF_KEY_SIZE) {
-    throw new Error(
-      `identity signature private key must be ${IDENTITY_HALF_KEY_SIZE} bytes`,
-    );
+    throw new Error(`identity signature private key must be ${IDENTITY_HALF_KEY_SIZE} bytes`);
   }
   return concatBytes(privateKey, signaturePrivateKey);
 }
 
-export function splitIdentityPrivateKey(
-  privateKeyBytes: Uint8Array,
-): IdentityKeyMaterial | null {
+export function splitIdentityPrivateKey(privateKeyBytes: Uint8Array): IdentityKeyMaterial | null {
   if (privateKeyBytes.length !== IDENTITY_KEY_SIZE) {
     return null;
   }
   return {
     privateKey: privateKeyBytes.subarray(0, IDENTITY_HALF_KEY_SIZE),
-    signaturePrivateKey: privateKeyBytes.subarray(IDENTITY_HALF_KEY_SIZE),
+    signaturePrivateKey: privateKeyBytes.subarray(IDENTITY_HALF_KEY_SIZE)
   };
 }
 
 export function packIdentityPublicKey(
   publicKey: Uint8Array,
-  signaturePublicKey: Uint8Array,
+  signaturePublicKey: Uint8Array
 ): Uint8Array {
   if (publicKey.length !== IDENTITY_HALF_KEY_SIZE) {
-    throw new Error(
-      `identity public key must be ${IDENTITY_HALF_KEY_SIZE} bytes`,
-    );
+    throw new Error(`identity public key must be ${IDENTITY_HALF_KEY_SIZE} bytes`);
   }
   if (signaturePublicKey.length !== IDENTITY_HALF_KEY_SIZE) {
-    throw new Error(
-      `identity signature public key must be ${IDENTITY_HALF_KEY_SIZE} bytes`,
-    );
+    throw new Error(`identity signature public key must be ${IDENTITY_HALF_KEY_SIZE} bytes`);
   }
   return concatBytes(publicKey, signaturePublicKey);
 }
 
-export function splitIdentityPublicKey(
-  publicKeyBytes: Uint8Array,
-): IdentityPublicKeyMaterial | null {
+export function splitIdentityPublicKey(publicKeyBytes: Uint8Array): IdentityPublicKeyMaterial | null {
   if (publicKeyBytes.length !== IDENTITY_KEY_SIZE) {
     return null;
   }
   return {
     publicKey: publicKeyBytes.subarray(0, IDENTITY_HALF_KEY_SIZE),
-    signaturePublicKey: publicKeyBytes.subarray(IDENTITY_HALF_KEY_SIZE),
+    signaturePublicKey: publicKeyBytes.subarray(IDENTITY_HALF_KEY_SIZE)
   };
 }
 
@@ -205,7 +191,7 @@ export function initialPackIdentityPrivateKeyState(): PackIdentityPrivateKeyStat
 
 export function stepPackIdentityPrivateKeyWithActions(
   state: PackIdentityPrivateKeyState,
-  event: PackIdentityPrivateKeyEvent,
+  event: PackIdentityPrivateKeyEvent
 ): PackIdentityPrivateKeyStepResult {
   if (event.kind === "identity-key/pack-private-gate") {
     try {
@@ -215,12 +201,9 @@ export function stepPackIdentityPrivateKeyWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: packIdentityPrivateKey(
-              event.privateKey,
-              event.signaturePrivateKey,
-            ),
-          },
-        ],
+            raw: packIdentityPrivateKey(event.privateKey, event.signaturePrivateKey)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -231,20 +214,20 @@ export function stepPackIdentityPrivateKeyWithActions(
 }
 
 export function shouldUsePackIdentityPrivateKey(
-  actions: ReadonlyArray<PackIdentityPrivateKeyAction>,
+  actions: ReadonlyArray<PackIdentityPrivateKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackIdentityPrivateKey(
-  actions: ReadonlyArray<PackIdentityPrivateKeyAction>,
+  actions: ReadonlyArray<PackIdentityPrivateKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed identity private key from step actions; null when no `use-raw`. */
 export function packIdentityPrivateKeyRawFromActions(
-  actions: ReadonlyArray<PackIdentityPrivateKeyAction>,
+  actions: ReadonlyArray<PackIdentityPrivateKeyAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -280,7 +263,7 @@ export function initialSplitIdentityPrivateKeyState(): SplitIdentityPrivateKeySt
 
 export function stepSplitIdentityPrivateKeyWithActions(
   state: SplitIdentityPrivateKeyState,
-  event: SplitIdentityPrivateKeyEvent,
+  event: SplitIdentityPrivateKeyEvent
 ): SplitIdentityPrivateKeyStepResult {
   if (event.kind === "identity-key/split-private-gate") {
     const fields = splitIdentityPrivateKey(event.privateKeyBytes);
@@ -290,7 +273,7 @@ export function stepSplitIdentityPrivateKeyWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
@@ -298,20 +281,20 @@ export function stepSplitIdentityPrivateKeyWithActions(
 }
 
 export function shouldUseSplitIdentityPrivateKey(
-  actions: ReadonlyArray<SplitIdentityPrivateKeyAction>,
+  actions: ReadonlyArray<SplitIdentityPrivateKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitIdentityPrivateKey(
-  actions: ReadonlyArray<SplitIdentityPrivateKeyAction>,
+  actions: ReadonlyArray<SplitIdentityPrivateKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split identity private-key fields from step actions; null when no `use-fields`. */
 export function identityPrivateKeyFieldsFromActions(
-  actions: ReadonlyArray<SplitIdentityPrivateKeyAction>,
+  actions: ReadonlyArray<SplitIdentityPrivateKeyAction>
 ): IdentityKeyMaterial | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -348,7 +331,7 @@ export function initialPackIdentityPublicKeyState(): PackIdentityPublicKeyState 
 
 export function stepPackIdentityPublicKeyWithActions(
   state: PackIdentityPublicKeyState,
-  event: PackIdentityPublicKeyEvent,
+  event: PackIdentityPublicKeyEvent
 ): PackIdentityPublicKeyStepResult {
   if (event.kind === "identity-key/pack-public-gate") {
     try {
@@ -358,12 +341,9 @@ export function stepPackIdentityPublicKeyWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: packIdentityPublicKey(
-              event.publicKey,
-              event.signaturePublicKey,
-            ),
-          },
-        ],
+            raw: packIdentityPublicKey(event.publicKey, event.signaturePublicKey)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -374,20 +354,20 @@ export function stepPackIdentityPublicKeyWithActions(
 }
 
 export function shouldUsePackIdentityPublicKey(
-  actions: ReadonlyArray<PackIdentityPublicKeyAction>,
+  actions: ReadonlyArray<PackIdentityPublicKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackIdentityPublicKey(
-  actions: ReadonlyArray<PackIdentityPublicKeyAction>,
+  actions: ReadonlyArray<PackIdentityPublicKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed identity public key from step actions; null when no `use-raw`. */
 export function packIdentityPublicKeyRawFromActions(
-  actions: ReadonlyArray<PackIdentityPublicKeyAction>,
+  actions: ReadonlyArray<PackIdentityPublicKeyAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -423,7 +403,7 @@ export function initialSplitIdentityPublicKeyState(): SplitIdentityPublicKeyStat
 
 export function stepSplitIdentityPublicKeyWithActions(
   state: SplitIdentityPublicKeyState,
-  event: SplitIdentityPublicKeyEvent,
+  event: SplitIdentityPublicKeyEvent
 ): SplitIdentityPublicKeyStepResult {
   if (event.kind === "identity-key/split-public-gate") {
     const fields = splitIdentityPublicKey(event.publicKeyBytes);
@@ -433,7 +413,7 @@ export function stepSplitIdentityPublicKeyWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
@@ -441,20 +421,20 @@ export function stepSplitIdentityPublicKeyWithActions(
 }
 
 export function shouldUseSplitIdentityPublicKey(
-  actions: ReadonlyArray<SplitIdentityPublicKeyAction>,
+  actions: ReadonlyArray<SplitIdentityPublicKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitIdentityPublicKey(
-  actions: ReadonlyArray<SplitIdentityPublicKeyAction>,
+  actions: ReadonlyArray<SplitIdentityPublicKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split identity public-key fields from step actions; null when no `use-fields`. */
 export function identityPublicKeyFieldsFromActions(
-  actions: ReadonlyArray<SplitIdentityPublicKeyAction>,
+  actions: ReadonlyArray<SplitIdentityPublicKeyAction>
 ): IdentityPublicKeyMaterial | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

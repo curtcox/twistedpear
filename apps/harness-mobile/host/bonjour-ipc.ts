@@ -1,22 +1,17 @@
 import {
   createNativeBonjourBridge,
   getBonjourCapability,
-  stopNativeBonjourBridge,
+  stopNativeBonjourBridge
 } from "@twistedpear/bonjour";
 import type { BonjourBridge } from "@twistedpear/reticulum-interfaces";
 import { BONJOUR_RETICULUM_SERVICE } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
-import type {
-  HostToWorkletMessage,
-  WorkletToHostMessage,
-} from "../worklet/protocol";
+import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
 
 /** Host-side glue: native Bonjour bridge ↔ worklet IPC. */
 export class HostBonjourIpc {
   private bridge: BonjourBridge | null = null;
 
-  constructor(
-    private readonly sendToWorklet: (message: HostToWorkletMessage) => void,
-  ) {}
+  constructor(private readonly sendToWorklet: (message: HostToWorkletMessage) => void) {}
 
   private ensureBridge(): BonjourBridge | null {
     if (this.bridge !== null) {
@@ -32,7 +27,7 @@ export class HostBonjourIpc {
           type: "bonjour-peer",
           ifname: record.ifname,
           address: record.host,
-          port: record.port,
+          port: record.port
         });
       },
       onNetworkChange: (interfaces) => {
@@ -40,7 +35,7 @@ export class HostBonjourIpc {
       },
       onError: (message) => {
         console.warn(`[bonjour-ipc] ${message}`);
-      },
+      }
     });
     this.bridge = bridge;
     return bridge;
@@ -82,7 +77,7 @@ export class HostBonjourIpc {
         id: `${message.ifname}:${message.address}:${message.port}`,
         ifname: message.ifname,
         host: message.address,
-        port: message.port,
+        port: message.port
       });
     }
   }

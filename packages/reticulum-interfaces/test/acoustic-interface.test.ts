@@ -7,13 +7,13 @@ import {
   PacketHeaderType,
   PacketType,
   TransportType,
-  hexToBytes,
+  hexToBytes
 } from "@twistedpear/reticulum-ts";
 import {
   AcousticInterface,
   SimulatedAcousticChannel,
   decodeAcousticFec,
-  encodeAcousticFec,
+  encodeAcousticFec
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -26,19 +26,16 @@ function makePacket(data = new Uint8Array([1, 2, 3])): Packet {
     packetType: PacketType.DATA,
     destinationHash: hexToBytes("00112233445566778899aabbccddeeff"),
     context: PacketContext.NONE,
-    data,
+    data
   });
 }
 
-async function nextPacket(
-  iterable: AsyncIterable<Packet>,
-  timeoutMs = 500,
-): Promise<Packet> {
+async function nextPacket(iterable: AsyncIterable<Packet>, timeoutMs = 500): Promise<Packet> {
   const result = await Promise.race([
     iterable[Symbol.asyncIterator]().next(),
     new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), timeoutMs),
-    ),
+      setTimeout(() => reject(new Error("timeout")), timeoutMs)
+    )
   ]);
   expect(result.done).toBe(false);
   return result.value;
@@ -48,8 +45,7 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
   it("corrects one corrupted repetition in every encoded byte", () => {
     const data = Uint8Array.from({ length: 128 }, (_, index) => index);
     const encoded = encodeAcousticFec(data);
-    for (let index = 1; index < encoded.length; index += 3)
-      encoded[index] ^= 0b0101_1010;
+    for (let index = 1; index < encoded.length; index += 3) encoded[index] ^= 0b0101_1010;
     expect(decodeAcousticFec(encoded)).toEqual(data);
   });
 
@@ -61,12 +57,12 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
     const ifaceA = await AcousticInterface.open(provider, {
       name: "acoustic-a",
       provider,
-      channel: channelA,
+      channel: channelA
     });
     const ifaceB = await AcousticInterface.open(provider, {
       name: "acoustic-b",
       provider,
-      channel: channelB,
+      channel: channelB
     });
 
     const pkt = makePacket();
@@ -94,12 +90,12 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
     const ifaceA = await AcousticInterface.open(provider, {
       name: "acoustic-loss-a",
       provider,
-      channel: channelA,
+      channel: channelA
     });
     const ifaceB = await AcousticInterface.open(provider, {
       name: "acoustic-loss-b",
       provider,
-      channel: channelB,
+      channel: channelB
     });
 
     await ifaceA.send(makePacket());
@@ -111,9 +107,9 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
       Promise.race([
         iterator.next(),
         new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 100),
-        ),
-      ]),
+          setTimeout(() => reject(new Error("timeout")), 100)
+        )
+      ])
     ).rejects.toThrow("timeout");
 
     await ifaceA.close();
@@ -127,7 +123,7 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
       provider,
       channel,
       incoming: false,
-      outgoing: true,
+      outgoing: true
     });
 
     expect(iface.incoming).toBe(false);
@@ -142,14 +138,12 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
       provider,
       channel,
       incoming: true,
-      outgoing: false,
+      outgoing: false
     });
 
     expect(iface.incoming).toBe(true);
     expect(iface.outgoing).toBe(false);
-    await expect(iface.send(makePacket())).rejects.toThrow(
-      "not configured for outbound",
-    );
+    await expect(iface.send(makePacket())).rejects.toThrow("not configured for outbound");
     await iface.close();
   });
 
@@ -158,7 +152,7 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
     const iface = await AcousticInterface.open(provider, {
       name: "acoustic-status",
       provider,
-      channel,
+      channel
     });
     expect(iface.online).toBe(true);
     await iface.close();

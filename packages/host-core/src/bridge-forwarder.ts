@@ -1,9 +1,5 @@
 import { bytesToHex } from "@twistedpear/reticulum-ts";
-import type {
-  CryptoProvider,
-  Packet,
-  PacketInterface,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Packet, PacketInterface } from "@twistedpear/reticulum-ts";
 import { Packet as PacketClass } from "@twistedpear/reticulum-ts";
 import type { RelayInterfaceKind, RelayPolicyMatrix } from "./types.js";
 import { inferInterfaceKind } from "@twistedpear/reticulum-interfaces";
@@ -22,7 +18,7 @@ class SimpleTokenBucket {
   private lastUpdate: number;
   constructor(
     private readonly rate: number,
-    private readonly now: () => number,
+    private readonly now: () => number
   ) {
     this.tokens = rate;
     this.lastUpdate = now();
@@ -122,31 +118,22 @@ export class BridgeForwarder {
 
     const fromKind = inferInterfaceKind(from.name) as RelayInterfaceKind;
     const targets = this.getInterfaces().filter(
-      (candidate) =>
-        candidate !== from &&
-        candidate.outgoing &&
-        this.isRelayAllowed(fromKind, candidate),
+      (candidate) => candidate !== from && candidate.outgoing && this.isRelayAllowed(fromKind, candidate)
     );
 
     await Promise.all(
       targets.map(async (target) => {
         try {
-          await this.limiterFor(
-            fromKind,
-            inferInterfaceKind(target.name) as RelayInterfaceKind,
-          ).consume(packet.raw.length);
+          await this.limiterFor(fromKind, inferInterfaceKind(target.name) as RelayInterfaceKind).consume(packet.raw.length);
           await target.send(relayed);
         } catch {
           // Transient failure on one interface must not stop fan-out.
         }
-      }),
+      })
     );
   }
 
-  private limiterFor(
-    from: RelayInterfaceKind,
-    to: RelayInterfaceKind,
-  ): SimpleTokenBucket {
+  private limiterFor(from: RelayInterfaceKind, to: RelayInterfaceKind): SimpleTokenBucket {
     const key = `${from}->${to}`;
     let limiter = this.limiters.get(key);
     if (limiter === undefined) {
@@ -170,13 +157,10 @@ export class BridgeForwarder {
         destinationHash: packet.destinationHash,
         context: packet.context,
         data: packet.data,
-        hops: nextHops,
+        hops: nextHops
       };
       if (packet.transportId !== null) {
-        return PacketClass.fromFields(this.provider, {
-          ...fields,
-          transportId: packet.transportId,
-        });
+        return PacketClass.fromFields(this.provider, { ...fields, transportId: packet.transportId });
       }
       return PacketClass.fromFields(this.provider, fields);
     } catch {
@@ -196,25 +180,18 @@ export class BridgeForwarder {
         destinationHash: packet.destinationHash,
         context: packet.context,
         data: packet.data,
-        hops: 0,
+        hops: 0
       };
-      const normalized =
-        packet.transportId === null
-          ? PacketClass.fromFields(this.provider, fields)
-          : PacketClass.fromFields(this.provider, {
-              ...fields,
-              transportId: packet.transportId,
-            });
+      const normalized = packet.transportId === null
+        ? PacketClass.fromFields(this.provider, fields)
+        : PacketClass.fromFields(this.provider, { ...fields, transportId: packet.transportId });
       return bytesToHex(normalized.hash());
     } catch {
       return bytesToHex(packet.hash());
     }
   }
 
-  private isRelayAllowed(
-    fromKind: RelayInterfaceKind,
-    to: PacketInterface,
-  ): boolean {
+  private isRelayAllowed(fromKind: RelayInterfaceKind, to: PacketInterface): boolean {
     const toKind = inferInterfaceKind(to.name) as RelayInterfaceKind;
     const allow = this.getPolicy().allow?.[fromKind]?.[toKind];
     return allow !== false;

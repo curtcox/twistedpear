@@ -25,9 +25,7 @@ function assertRetention(retention: number): number {
   return retention;
 }
 
-function assertRendezvous(
-  rendezvous: Uint8Array | undefined,
-): Uint8Array | undefined {
+function assertRendezvous(rendezvous: Uint8Array | undefined): Uint8Array | undefined {
   if (rendezvous === undefined) return undefined;
   if (rendezvous.length !== 32) {
     throw new Error("packet-log rendezvous must be 32 bytes");
@@ -49,7 +47,7 @@ function comparePayload(left: Uint8Array, right: Uint8Array): number {
 }
 
 export function encodePacketLogParameters(
-  value: PacketLogParameters,
+  value: PacketLogParameters
 ): Uint8Array {
   const retention = assertRetention(value.retentionPerDirection);
   const rendezvous = assertRendezvous(value.rendezvous);
@@ -62,7 +60,7 @@ export function encodePacketLogParameters(
 }
 
 export function decodePacketLogParameters(
-  bytes: Uint8Array,
+  bytes: Uint8Array
 ): PacketLogParameters {
   if (bytes.length !== 2 && bytes.length !== 34) {
     throw new Error("invalid packet-log parameters");
@@ -70,20 +68,20 @@ export function decodePacketLogParameters(
   const retentionPerDirection = assertRetention(
     new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint16(
       0,
-      false,
-    ),
+      false
+    )
   );
   if (bytes.length === 2) {
     return { retentionPerDirection };
   }
   return {
     retentionPerDirection,
-    rendezvous: Uint8Array.from(bytes.subarray(2)),
+    rendezvous: Uint8Array.from(bytes.subarray(2))
   };
 }
 
 export function encodePacketLogState(
-  entries: ReadonlyArray<PacketLogEntry>,
+  entries: ReadonlyArray<PacketLogEntry>
 ): Uint8Array {
   if (entries.length > 0xffff_ffff) {
     throw new Error("too many packet-log entries");
@@ -128,7 +126,7 @@ export function encodePacketLogState(
 
 export function decodePacketLogState(
   bytes: Uint8Array,
-  retentionPerDirection: number,
+  retentionPerDirection: number
 ): PacketLogEntry[] {
   const retention = assertRetention(retentionPerDirection);
   if (
@@ -176,7 +174,7 @@ export function decodePacketLogState(
     entries.push({
       direction: direction as 0 | 1,
       index: entryIndex,
-      payload: Uint8Array.from(bytes.subarray(headerEnd, payloadEnd)),
+      payload: Uint8Array.from(bytes.subarray(headerEnd, payloadEnd))
     });
     cursor = payloadEnd;
   }
@@ -190,14 +188,14 @@ export function decodePacketLogState(
 export function mergePacketLogStates(
   retentionPerDirection: number,
   left: Uint8Array,
-  right: Uint8Array,
+  right: Uint8Array
 ): Uint8Array {
   const retention = assertRetention(retentionPerDirection);
   const merged = new Map<string, PacketLogEntry>();
 
   for (const entry of [
     ...decodePacketLogState(left, retention),
-    ...decodePacketLogState(right, retention),
+    ...decodePacketLogState(right, retention)
   ]) {
     const key = entryKey(entry);
     const existing = merged.get(key);

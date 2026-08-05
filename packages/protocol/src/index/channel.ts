@@ -206,7 +206,7 @@ export {
   type ResendChannelTimeoutPacketAction,
   type ResendChannelTimeoutPacketEvent,
   type ResendChannelTimeoutPacketState,
-  type ResendChannelTimeoutPacketStepResult,
+  type ResendChannelTimeoutPacketStepResult
 } from "../channel-window.js";
 export {
   CHANNEL_ENVELOPE_HEADER_SIZE,
@@ -361,7 +361,7 @@ export {
   type StopChannelHandlerFanoutEvent,
   type StopChannelHandlerFanoutState,
   type StopChannelHandlerFanoutStepResult,
-  type UnpackedChannelEnvelope,
+  type UnpackedChannelEnvelope
 } from "../channel-envelope.js";
 export {
   channelEmplaceIndex,
@@ -403,5 +403,5 @@ export {
   type IndexOfChannelRingSequenceAction,
   type IndexOfChannelRingSequenceEvent,
   type IndexOfChannelRingSequenceState,
-  type IndexOfChannelRingSequenceStepResult,
+  type IndexOfChannelRingSequenceStepResult
 } from "../channel-reorder.js";

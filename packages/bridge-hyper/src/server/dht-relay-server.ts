@@ -20,18 +20,14 @@ export interface DhtRelayServerSession {
 
 export function attachDhtRelayServer(
   httpServer: HttpServer,
-  options: DhtRelayServerOptions = {},
+  options: DhtRelayServerOptions = {}
 ): DhtRelayServerSession {
   const path = options.path ?? DEFAULT_DHT_RELAY_PATH;
   let dht: InstanceType<typeof DHT> | null = options.dht ?? null;
   const ownsDht = options.dht === undefined;
   const wss = new WebSocketServer({ noServer: true });
 
-  const onUpgrade = (
-    request: IncomingMessage,
-    socket: Duplex,
-    head: Buffer,
-  ) => {
+  const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
     const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
     if (pathname !== path) {
       return;
@@ -64,6 +60,6 @@ export function attachDhtRelayServer(
       if (ownsDht && dht !== null) {
         await dht.destroy();
       }
-    },
+    }
   };
 }

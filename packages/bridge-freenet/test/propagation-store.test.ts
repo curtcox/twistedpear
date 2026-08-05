@@ -3,7 +3,7 @@ import {
   FreenetClient,
   FreenetPropagationStore,
   encodePropagationSetState,
-  mergePropagationSetStates,
+  mergePropagationSetStates
 } from "../src/index.js";
 
 function transientId(suffix: number): Uint8Array {
@@ -27,12 +27,10 @@ describe("FreenetPropagationStore", () => {
     const client = {
       async put(_source: unknown, state: Uint8Array) {
         puts.push(Uint8Array.from(state));
-        const key = FreenetClient.deriveKey(
-          _source as {
-            wasm: Uint8Array;
-            parameters: Uint8Array;
-          },
-        ).key;
+        const key = FreenetClient.deriveKey(_source as {
+          wasm: Uint8Array;
+          parameters: Uint8Array;
+        }).key;
         states.set(Buffer.from(key).toString("hex"), Uint8Array.from(state));
         return key;
       },
@@ -41,23 +39,27 @@ describe("FreenetPropagationStore", () => {
         if (state === undefined) throw new Error("missing");
         return { key, codeHash: new Uint8Array(32), state };
       },
-      async update(_key: Uint8Array, _codeHash: Uint8Array, state: Uint8Array) {
+      async update(
+        _key: Uint8Array,
+        _codeHash: Uint8Array,
+        state: Uint8Array
+      ) {
         updates.push(Uint8Array.from(state));
         states.set(Buffer.from(_key).toString("hex"), Uint8Array.from(state));
-      },
+      }
     } as unknown as FreenetClient;
 
     const store = new FreenetPropagationStore({
       client,
-      wasm: new Uint8Array([0, 97, 115, 109]),
+      wasm: new Uint8Array([0, 97, 115, 109])
     });
 
     await store.publish([
       {
         transientId: transientId(1),
         storedAt: 100,
-        lxmfData: lxmfForDestination(0x11, "a"),
-      },
+        lxmfData: lxmfForDestination(0x11, "a")
+      }
     ]);
     expect(puts).toHaveLength(1);
 
@@ -65,8 +67,8 @@ describe("FreenetPropagationStore", () => {
       {
         transientId: transientId(2),
         storedAt: 200,
-        lxmfData: lxmfForDestination(0x11, "b"),
-      },
+        lxmfData: lxmfForDestination(0x11, "b")
+      }
     ]);
     expect(updates).toHaveLength(1);
 
@@ -80,8 +82,8 @@ describe("FreenetPropagationStore", () => {
       {
         transientId: transientId(1),
         storedAt: 100n,
-        lxmfData: lxmfForDestination(0x22, "same"),
-      },
+        lxmfData: lxmfForDestination(0x22, "same")
+      }
     ]);
     const client = {
       async put() {
@@ -91,28 +93,30 @@ describe("FreenetPropagationStore", () => {
         return {
           key: new Uint8Array(32),
           codeHash: new Uint8Array(32),
-          state: first,
+          state: first
         };
       },
-      update,
+      update
     } as unknown as FreenetClient;
 
     const store = new FreenetPropagationStore({
       client,
       wasm: new Uint8Array([0, 97, 115, 109]),
-      watchDestinationHashes: [new Uint8Array(16).fill(0x22)],
+      watchDestinationHashes: [new Uint8Array(16).fill(0x22)]
     });
 
     await store.publish([
       {
         transientId: transientId(1),
         storedAt: 100,
-        lxmfData: lxmfForDestination(0x22, "same"),
-      },
+        lxmfData: lxmfForDestination(0x22, "same")
+      }
     ]);
     expect(update).not.toHaveBeenCalled();
     expect(
-      Buffer.from(mergePropagationSetStates(first, first)).toString("hex"),
+      Buffer.from(
+        mergePropagationSetStates(first, first)
+      ).toString("hex")
     ).toBe(Buffer.from(first).toString("hex"));
   });
 });

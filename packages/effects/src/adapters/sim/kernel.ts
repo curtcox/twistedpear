@@ -34,7 +34,7 @@ export class OracleViolation extends Error {
   constructor(
     readonly violation: Violation,
     readonly history: RecordedHistory,
-    readonly historyPath?: string,
+    readonly historyPath?: string
   ) {
     super(violation.message);
     this.name = "OracleViolation";
@@ -75,28 +75,23 @@ export class SimKernel<S> {
     this.seed = config.seed;
     this.clock = new SimClock(config.startMs ?? 0);
     const transportEntropy = new Xoshiro128StarStar(
-      (config.seed ^ (config.interleaveSalt ?? 0)) >>> 0,
+      (config.seed ^ (config.interleaveSalt ?? 0)) >>> 0
     );
     const rng = (): number => transportEntropy.randomBytes(4)[0]! / 256;
-    this.transport = new SimTransport(
-      {
-        ...(config.delivery === undefined ? {} : { delivery: config.delivery }),
-        ...(config.links === undefined ? {} : { links: config.links }),
-      },
-      rng,
-    );
+    this.transport = new SimTransport({
+      ...(config.delivery === undefined ? {} : { delivery: config.delivery }),
+      ...(config.links === undefined ? {} : { links: config.links })
+    }, rng);
 
     for (const node of config.nodes) {
-      const entropy = new Xoshiro128StarStar(
-        (config.seed ^ hashNodeId(node.id)) >>> 0,
-      );
+      const entropy = new Xoshiro128StarStar((config.seed ^ hashNodeId(node.id)) >>> 0);
       this.nodes.set(node.id, {
         id: node.id,
         state: node.initial,
         step: node.step,
         timers: new SimTimers(this.clock),
         store: new SimStore(),
-        entropy,
+        entropy
       });
     }
   }
@@ -123,7 +118,7 @@ export class SimKernel<S> {
       at: this.clock.now(),
       nodes: new Map([...this.nodes].map(([id, node]) => [id, node.state])),
       trace: this.trace,
-      intents: this.intentLog,
+      intents: this.intentLog
     };
   }
 
@@ -132,7 +127,7 @@ export class SimKernel<S> {
       version: 1,
       config: snapshotConfig(this.config),
       trace: [...this.trace],
-      ...(violation === undefined ? {} : { violation }),
+      ...(violation === undefined ? {} : { violation })
     };
   }
 
@@ -218,7 +213,7 @@ export class SimKernel<S> {
     for (const msg of this.transport.deliverDue(at)) {
       if (!this.nodes.has(msg.destination)) {
         throw new EffectWithoutIntentError(
-          `transport delivery to unknown node ${msg.destination} without matching topology`,
+          `transport delivery to unknown node ${msg.destination} without matching topology`
         );
       }
       this.dispatch(msg.destination, {
@@ -226,7 +221,7 @@ export class SimKernel<S> {
         channel: msg.channel,
         source: msg.source,
         payload: msg.payload,
-        at,
+        at
       });
     }
   }
@@ -265,14 +260,9 @@ export class SimKernel<S> {
   private applyIntent(node: NodeRuntime<S>, intent: Intent): void {
     if (intent.kind === "need_entropy") {
       if (!Number.isSafeInteger(intent.nbytes) || intent.nbytes < 0) {
-        throw new EffectWithoutIntentError(
-          `invalid entropy byte count: ${intent.nbytes}`,
-        );
+        throw new EffectWithoutIntentError(`invalid entropy byte count: ${intent.nbytes}`);
       }
-      this.dispatch(node.id, {
-        kind: "entropy",
-        bytes: node.entropy.randomBytes(intent.nbytes),
-      });
+      this.dispatch(node.id, { kind: "entropy", bytes: node.entropy.randomBytes(intent.nbytes) });
       return;
     }
     if (intent.kind === "transport/adversary") {
@@ -287,11 +277,7 @@ export class SimKernel<S> {
       this.transport.applySend(intent, node.id, this.clock.now());
       return;
     }
-    if (
-      intent.kind === "store/read" ||
-      intent.kind === "store/write" ||
-      intent.kind === "store/delete"
-    ) {
+    if (intent.kind === "store/read" || intent.kind === "store/write" || intent.kind === "store/delete") {
       const events = node.store.applyIntent(intent);
       for (const ev of events) {
         this.dispatch(node.id, ev);
@@ -304,9 +290,7 @@ export class SimKernel<S> {
     if (intent.kind === "observe/drop") {
       return;
     }
-    throw new EffectWithoutIntentError(
-      `unhandled intent kind: ${(intent as Intent).kind}`,
-    );
+    throw new EffectWithoutIntentError(`unhandled intent kind: ${(intent as Intent).kind}`);
   }
 
   private requireNode(id: NodeId): NodeRuntime<S> {
@@ -328,10 +312,9 @@ function hashNodeId(id: string): number {
 }
 
 /** Convenience: run the same scenario twice and return both trace hashes. */
-export function doubleRunHashes<S>(config: SimKernelConfig<S>): {
-  readonly a: string;
-  readonly b: string;
-} {
+export function doubleRunHashes<S>(
+  config: SimKernelConfig<S>
+): { readonly a: string; readonly b: string } {
   const run = (): string => {
     const kernel = new SimKernel(config);
     kernel.start();

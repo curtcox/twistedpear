@@ -10,20 +10,20 @@ This register separates reproducible software evidence from trials that require 
 devices, multiple browsers, or a disposable external service. A pending row is not evidence
 that the mechanism works in that environment and must not be used to advertise it there.
 
-| Evidence gate                                                       | Current result                            | Reproduction / next action                                                                                                                                                             |
-| ------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Protocol, pairing, adapter, broker, and route-registry suites       | pass                                      | `npm test` or the focused Vitest files listed in `local-peer-discovery.md`; the adapter suite covers timeout/abort cancellation across all six currently implemented stateful adapters |
-| Android native audio bridge compilation                             | pass                                      | from `apps/harness-mobile/android`: `ANDROID_HOME=<sdk> ./gradlew :twistedpear-peer-audio:compileDebugKotlin`                                                                          |
-| Desktop worklet and trusted chrome                                  | pass (build and static UI invariants)     | `npm run build --workspace=host-desktop`; `conformance/ui-invariants/peer-chrome.test.mjs`                                                                                             |
-| Static web host/worker                                              | pass (production export)                  | mobile workspace `build:web-worker` and `build:web-host` scripts                                                                                                                       |
-| Two distinct in-memory hosts, unchanged cookbook app API            | pass                                      | `npm run test:cookbook`                                                                                                                                                                |
-| Android/iOS Bluetooth pairing, foreground/background, MTU, recovery | pending — physical devices required       | record OS/device versions, negotiated MTU, permission path, disconnect/recovery, and signed-message exchange                                                                           |
-| Acoustic room transfer at 44.1/48 kHz                               | pending — physical devices required       | record device pair, distance, ambient conditions, retries, FEC recovery, and signed-message exchange                                                                                   |
-| Camera QR transfer and accessibility alternatives                   | pending — camera/device matrix required   | record static/animated QR, denied permission, paste fallback, keyboard and screen-reader path                                                                                          |
-| Cross-browser WebRTC, ICE failure, TURN-required classification     | pending — browser/network matrix required | run current stable Firefox/Chromium/WebKit on LAN and TURN-only networks; retain sanitized results, never SDP/credentials                                                              |
-| Disposable self-hosted ntfy with and without auth                   | pending — disposable service required     | verify ciphertext-only storage/logs, CORS failure, reconnect, replay rejection, and deletion after the run                                                                             |
-| Reticulum automatic discovery and service route on two devices      | pending — two reachable hosts required    | record interface types, announce/link establishment, identity confirmation, presence, LXMF, Resource, and announce use                                                                 |
-| Long-running soak, battery/bandwidth, and mixed-version negotiation | pending                                   | run the M7 campaign before changing any hardware-gated mechanism to verified                                                                                                           |
+| Evidence gate | Current result | Reproduction / next action |
+|---|---|---|
+| Protocol, pairing, adapter, broker, and route-registry suites | pass | `npm test` or the focused Vitest files listed in `local-peer-discovery.md`; the adapter suite covers timeout/abort cancellation across all six currently implemented stateful adapters |
+| Android native audio bridge compilation | pass | from `apps/harness-mobile/android`: `ANDROID_HOME=<sdk> ./gradlew :twistedpear-peer-audio:compileDebugKotlin` |
+| Desktop worklet and trusted chrome | pass (build and static UI invariants) | `npm run build --workspace=host-desktop`; `conformance/ui-invariants/peer-chrome.test.mjs` |
+| Static web host/worker | pass (production export) | mobile workspace `build:web-worker` and `build:web-host` scripts |
+| Two distinct in-memory hosts, unchanged cookbook app API | pass | `npm run test:cookbook` |
+| Android/iOS Bluetooth pairing, foreground/background, MTU, recovery | pending — physical devices required | record OS/device versions, negotiated MTU, permission path, disconnect/recovery, and signed-message exchange |
+| Acoustic room transfer at 44.1/48 kHz | pending — physical devices required | record device pair, distance, ambient conditions, retries, FEC recovery, and signed-message exchange |
+| Camera QR transfer and accessibility alternatives | pending — camera/device matrix required | record static/animated QR, denied permission, paste fallback, keyboard and screen-reader path |
+| Cross-browser WebRTC, ICE failure, TURN-required classification | pending — browser/network matrix required | run current stable Firefox/Chromium/WebKit on LAN and TURN-only networks; retain sanitized results, never SDP/credentials |
+| Disposable self-hosted ntfy with and without auth | pending — disposable service required | verify ciphertext-only storage/logs, CORS failure, reconnect, replay rejection, and deletion after the run |
+| Reticulum automatic discovery and service route on two devices | pending — two reachable hosts required | record interface types, announce/link establishment, identity confirmation, presence, LXMF, Resource, and announce use |
+| Long-running soak, battery/bandwidth, and mixed-version negotiation | pending | run the M7 campaign before changing any hardware-gated mechanism to verified |
 
 Public ntfy is not used for CI. Tokens, rendezvous secrets, raw SDP/ICE credentials, and
 microphone PCM are excluded from retained artifacts.

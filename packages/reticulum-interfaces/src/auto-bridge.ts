@@ -1,13 +1,5 @@
-import type {
-  CryptoProvider,
-  PacketInterface,
-} from "@twistedpear/reticulum-ts";
-import {
-  Identity,
-  Packet,
-  RawPacketInterface,
-  type ReticulumInterfaceOptions,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
+import { Identity, Packet, RawPacketInterface, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
 import {
   AUTO_ANNOUNCE_INTERVAL_MS,
   AUTO_BITRATE_GUESS,
@@ -24,16 +16,13 @@ import {
   descopeLinkLocal,
   equalBytes,
   MULTICAST_TEMPORARY,
-  SCOPE_LINK,
+  SCOPE_LINK
 } from "./auto-common.js";
 import type { MulticastBridge, MulticastNetworkInfo } from "./pipes.js";
 
 export interface AutoInterfaceBridgeOptions extends AutoInterfaceOptions {
   readonly bridge: MulticastBridge;
-  readonly onAdvertiseInterface?: (iface: {
-    readonly name: string;
-    readonly linkLocalAddress: string;
-  }) => Promise<void> | void;
+  readonly onAdvertiseInterface?: (iface: { readonly name: string; readonly linkLocalAddress: string }) => Promise<void> | void;
 }
 
 interface AdoptedInterface {
@@ -47,10 +36,7 @@ interface PeerRecord {
   lastOutbound: number;
 }
 
-class AutoInterfacePeer
-  extends RawPacketInterface
-  implements AutoInterfacePeerHandle
-{
+class AutoInterfacePeer extends RawPacketInterface implements AutoInterfacePeerHandle {
   readonly peerAddress: string;
   private readonly provider: CryptoProvider;
   private readonly sendPacket: (data: Uint8Array) => Promise<void>;
@@ -62,13 +48,9 @@ class AutoInterfacePeer
     peerAddress: string,
     sendPacket: (data: Uint8Array) => Promise<void>,
     onHeard: () => void,
-    options: ReticulumInterfaceOptions,
+    options: ReticulumInterfaceOptions
   ) {
-    super(
-      { ...options, mtu: options.mtu ?? AUTO_HW_MTU },
-      options.incoming ?? true,
-      options.outgoing ?? true,
-    );
+    super({ ...options, mtu: options.mtu ?? AUTO_HW_MTU }, options.incoming ?? true, options.outgoing ?? true);
     this.provider = provider;
     this.peerAddress = peerAddress;
     this.sendPacket = sendPacket;
@@ -123,35 +105,19 @@ export class AutoInterfaceBridge extends RawPacketInterface {
   constructor(
     private readonly provider: CryptoProvider,
     private readonly bridge: MulticastBridge,
-    private readonly options: AutoInterfaceBridgeOptions,
+    private readonly options: AutoInterfaceBridgeOptions
   ) {
-    super(
-      {
-        ...options,
-        mtu: options.mtu ?? AUTO_HW_MTU,
-        bitrate: options.bitrate ?? AUTO_BITRATE_GUESS,
-      },
-      options.incoming ?? true,
-      options.outgoing ?? false,
-    );
+    super({ ...options, mtu: options.mtu ?? AUTO_HW_MTU, bitrate: options.bitrate ?? AUTO_BITRATE_GUESS }, options.incoming ?? true, options.outgoing ?? false);
     const groupId = options.groupId ?? AUTO_DEFAULT_GROUP_ID;
     this.groupIdBytes = new TextEncoder().encode(groupId);
     this.discoveryPort = options.discoveryPort ?? AUTO_DEFAULT_DISCOVERY_PORT;
     this.dataPort = options.dataPort ?? AUTO_DEFAULT_DATA_PORT;
     this.unicastDiscoveryPort = this.discoveryPort + 1;
-    this.multicastAddress = deriveMulticastAddress(
-      this.provider,
-      this.groupIdBytes,
-      SCOPE_LINK,
-      MULTICAST_TEMPORARY,
-    );
+    this.multicastAddress = deriveMulticastAddress(this.provider, this.groupIdBytes, SCOPE_LINK, MULTICAST_TEMPORARY);
     this.peeringTimeoutMs = options.peeringTimeoutMs ?? AUTO_PEERING_TIMEOUT_MS;
   }
 
-  static async open(
-    provider: CryptoProvider,
-    options: AutoInterfaceBridgeOptions,
-  ): Promise<AutoInterfaceBridge> {
+  static async open(provider: CryptoProvider, options: AutoInterfaceBridgeOptions): Promise<AutoInterfaceBridge> {
     const iface = new AutoInterfaceBridge(provider, options.bridge, options);
     await iface.start();
     return iface;
@@ -188,7 +154,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
       },
       onNetworkChange: (interfaces) => {
         void this.syncInterfaces(interfaces);
-      },
+      }
     });
 
     if (!this.bridgeStarted) {
@@ -211,9 +177,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
       this.runPeerJobs();
     }, 4_000);
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, AUTO_ANNOUNCE_INTERVAL_MS * 1.2),
-    );
+    await new Promise((resolve) => setTimeout(resolve, AUTO_ANNOUNCE_INTERVAL_MS * 1.2));
     this.finalInitDone = true;
     this.online = true;
   }
@@ -253,13 +217,8 @@ export class AutoInterfaceBridge extends RawPacketInterface {
     this.online = false;
   }
 
-  private async syncInterfaces(
-    interfaces: ReadonlyArray<MulticastNetworkInfo>,
-  ): Promise<void> {
-    const next = interfaces.map((iface) => ({
-      name: iface.name,
-      linkLocalAddress: descopeLinkLocal(iface.linkLocalAddress),
-    }));
+  private async syncInterfaces(interfaces: ReadonlyArray<MulticastNetworkInfo>): Promise<void> {
+    const next = interfaces.map((iface) => ({ name: iface.name, linkLocalAddress: descopeLinkLocal(iface.linkLocalAddress) }));
     const previous = new Set(this.adopted.map((iface) => iface.name));
     this.adopted.length = 0;
     this.adopted.push(...next);
@@ -269,11 +228,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
         continue;
       }
 
-      await this.bridge.joinGroup(
-        iface.name,
-        this.multicastAddress,
-        this.discoveryPort,
-      );
+      await this.bridge.joinGroup(iface.name, this.multicastAddress, this.discoveryPort);
       await this.bridge.bindPort(iface.name, this.unicastDiscoveryPort);
       await this.bridge.bindPort(iface.name, this.dataPort);
     }
@@ -281,19 +236,9 @@ export class AutoInterfaceBridge extends RawPacketInterface {
     await this.advertiseDiscovery();
   }
 
-  private handleBridgePacket(
-    ifname: string,
-    data: Uint8Array,
-    sourceAddress: string,
-    port: number,
-  ): void {
+  private handleBridgePacket(ifname: string, data: Uint8Array, sourceAddress: string, port: number): void {
     if (port === this.discoveryPort || port === this.unicastDiscoveryPort) {
-      this.handleDiscoveryPacket(
-        data,
-        sourceAddress,
-        ifname,
-        port === this.discoveryPort,
-      );
+      this.handleDiscoveryPacket(data, sourceAddress, ifname, port === this.discoveryPort);
       return;
     }
 
@@ -309,12 +254,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
     }
   }
 
-  private handleDiscoveryPacket(
-    data: Uint8Array,
-    sourceAddress: string,
-    ifname: string,
-    announce = true,
-  ): void {
+  private handleDiscoveryPacket(data: Uint8Array, sourceAddress: string, ifname: string, announce = true): void {
     if (!this.finalInitDone) {
       return;
     }
@@ -322,7 +262,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
     // RNS AutoInterface uses Identity.full_hash (32 bytes), not the truncated hash.
     const expectedHash = Identity.fullHash(
       this.provider,
-      concatBytes(this.groupIdBytes, new TextEncoder().encode(sourceAddress)),
+      concatBytes(this.groupIdBytes, new TextEncoder().encode(sourceAddress))
     );
     if (data.length < expectedHash.length) {
       return;
@@ -346,11 +286,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
   private addPeer(address: string, ifname: string): void {
     const existing = this.peers.get(address);
     if (existing === undefined) {
-      this.peers.set(address, {
-        ifname,
-        lastHeard: Date.now(),
-        lastOutbound: Date.now(),
-      });
+      this.peers.set(address, { ifname, lastHeard: Date.now(), lastOutbound: Date.now() });
       this.spawnPeer(address, ifname);
       return;
     }
@@ -371,11 +307,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
           this.peers.set(address, { ...record, lastHeard: Date.now() });
         }
       },
-      {
-        name: `${this.name}/${ifname}/${address}`,
-        mtu: this.mtu,
-        outgoing: true,
-      },
+      { name: `${this.name}/${ifname}/${address}`, mtu: this.mtu, outgoing: true }
     );
 
     const previous = this.spawned.get(address);
@@ -391,24 +323,13 @@ export class AutoInterfaceBridge extends RawPacketInterface {
     // Must match RNS AutoInterface.peer_announce: full_hash, not truncated.
     const token = Identity.fullHash(
       this.provider,
-      concatBytes(
-        this.groupIdBytes,
-        new TextEncoder().encode(iface.linkLocalAddress),
-      ),
+      concatBytes(this.groupIdBytes, new TextEncoder().encode(iface.linkLocalAddress))
     );
 
-    await this.bridge.send(
-      iface.name,
-      this.multicastAddress,
-      this.discoveryPort,
-      token,
-    );
+    await this.bridge.send(iface.name, this.multicastAddress, this.discoveryPort, token);
   }
 
-  private async reverseAnnounce(
-    ifname: string,
-    peerAddress: string,
-  ): Promise<void> {
+  private async reverseAnnounce(ifname: string, peerAddress: string): Promise<void> {
     const adopted = this.adopted.find((candidate) => candidate.name === ifname);
     if (adopted === undefined) {
       return;
@@ -416,18 +337,10 @@ export class AutoInterfaceBridge extends RawPacketInterface {
 
     const token = Identity.fullHash(
       this.provider,
-      concatBytes(
-        this.groupIdBytes,
-        new TextEncoder().encode(adopted.linkLocalAddress),
-      ),
+      concatBytes(this.groupIdBytes, new TextEncoder().encode(adopted.linkLocalAddress))
     );
 
-    await this.bridge.sendUnicast(
-      ifname,
-      peerAddress,
-      this.unicastDiscoveryPort,
-      token,
-    );
+    await this.bridge.sendUnicast(ifname, peerAddress, this.unicastDiscoveryPort, token);
   }
 
   private runPeerJobs(): void {
@@ -454,8 +367,6 @@ export class AutoInterfaceBridge extends RawPacketInterface {
   }
 
   private isLocalAddress(address: string): boolean {
-    return this.adopted.some(
-      (iface) => iface.linkLocalAddress === descopeLinkLocal(address),
-    );
+    return this.adopted.some((iface) => iface.linkLocalAddress === descopeLinkLocal(address));
   }
 }

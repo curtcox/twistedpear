@@ -2,7 +2,7 @@ import type {
   DolevYaoPower,
   Intent,
   StepFn,
-  TransportAdversaryAction,
+  TransportAdversaryAction
 } from "@twistedpear/effects";
 import {
   grantCoverageOracle,
@@ -10,7 +10,7 @@ import {
   revocationMonotonicityOracle,
   type HistoryRecorder,
   type SimKernel,
-  type TransportClassName,
+  type TransportClassName
 } from "@twistedpear/effects/adapters/sim";
 import {
   initialGrantHostState,
@@ -20,22 +20,17 @@ import {
   stepLinkHandshakeWithActions,
   type GrantEvent,
   type GrantHostState,
-  type LinkHandshakeState,
+  type LinkHandshakeState
 } from "@twistedpear/protocol";
 import {
   compileAttackProposal,
-  type AdversaryState,
+  type AdversaryState
 } from "@twistedpear/sim-adversaries";
 import {
   ProductionCapabilityAdapter,
-  type ProductionCapabilityObservation,
+  type ProductionCapabilityObservation
 } from "@twistedpear/miniapp-runtime";
-import {
-  cellId,
-  type AbuseVerb,
-  type AttackerPosition,
-  type CoverageCell,
-} from "./frame.js";
+import { cellId, type AbuseVerb, type AttackerPosition, type CoverageCell } from "./frame.js";
 import { ContainmentTracker, type ContainmentMetrics } from "./metrics.js";
 import type { CampaignScenario } from "./runner.js";
 
@@ -45,17 +40,14 @@ const REVOCATION_AT = 5_000;
 const KILL_AT = 8_000;
 const BYTE = new Uint8Array([1]);
 const LINK_ID = new Uint8Array([0x54, 0x57, 0x50]);
-const stepGrant = stepGrantHost as unknown as StepFn<
-  GrantHostState,
-  GrantEvent
->;
+const stepGrant = stepGrantHost as unknown as StepFn<GrantHostState, GrantEvent>;
 
 const TRANSPORT_LATENCY: Readonly<Record<TransportClassName, number>> = {
   lan: 5,
   internet: 120,
   ble: 40,
   lora: 1_500,
-  freenet: 89,
+  freenet: 89
 };
 
 interface EgressEvent {
@@ -79,8 +71,7 @@ type CampaignNodeState =
       readonly egress: readonly EgressEvent[];
       readonly damageEvents: readonly number[];
       readonly operationSemantics: readonly string[];
-      readonly oracleBreak:
-        "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
+      readonly oracleBreak: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
       readonly productionPath: string;
       readonly productionObservation: ProductionCapabilityObservation | null;
     }
@@ -97,8 +88,7 @@ export interface ProductionScenarioRegistryOptions {
   /** Test-only behavior knob: scales actual transport latency. */
   readonly latencyMultiplier?: number;
   /** Test-only production projection defect used to prove each global oracle end to end. */
-  readonly oracleBreak?:
-    "grant-coverage" | "id-uniqueness" | "revocation-monotonicity";
+  readonly oracleBreak?: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity";
 }
 
 export interface ProductionScenarioRegistry {
@@ -112,37 +102,26 @@ export interface ProductionScenarioRegistry {
  * identity-bound handshake, mediated adversary, transport topology, and global oracles.
  */
 export function createProductionScenarioRegistry(
-  options: ProductionScenarioRegistryOptions,
+  options: ProductionScenarioRegistryOptions
 ): ProductionScenarioRegistry {
   const cells = new Map(options.cells.map((cell) => [cellId(cell), cell]));
-  const unsupportedCells = Object.fromEntries(
-    Object.entries(options.reviewedUnsupported ?? {}).filter(
-      ([id, reason]) => cells.has(id) && reason.trim().length > 0,
-    ),
-  );
-  const supportedCells = [...cells.keys()]
-    .filter((id) => unsupportedCells[id] === undefined)
-    .sort();
+  const unsupportedCells = Object.fromEntries(Object.entries(options.reviewedUnsupported ?? {})
+    .filter(([id, reason]) => cells.has(id) && reason.trim().length > 0));
+  const supportedCells = [...cells.keys()].filter((id) => unsupportedCells[id] === undefined).sort();
   return {
     supportedCells,
     unsupportedCells,
     create(cell, seed) {
       const id = cellId(cell);
-      if (unsupportedCells[id] !== undefined)
-        throw new Error(
-          `unsupported campaign scenario: ${id}: ${unsupportedCells[id]}`,
-        );
-      if (!cells.has(id))
-        throw new Error(`unsupported campaign scenario: ${id}`);
+      if (unsupportedCells[id] !== undefined) throw new Error(`unsupported campaign scenario: ${id}: ${unsupportedCells[id]}`);
+      if (!cells.has(id)) throw new Error(`unsupported campaign scenario: ${id}`);
       return productionScenario(cell, seed, {
         defectivePolicy: options.defectIds?.has(id) === true,
-        ...(options.recorder === undefined
-          ? {}
-          : { recorder: options.recorder }),
+        ...(options.recorder === undefined ? {} : { recorder: options.recorder }),
         latencyMultiplier: options.latencyMultiplier ?? 1,
-        oracleBreak: options.oracleBreak ?? null,
+        oracleBreak: options.oracleBreak ?? null
       });
-    },
+    }
   };
 }
 
@@ -153,28 +132,21 @@ function productionScenario(
     readonly defectivePolicy: boolean;
     readonly recorder?: HistoryRecorder<CampaignNodeState>;
     readonly latencyMultiplier: number;
-    readonly oracleBreak:
-      "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
-  },
+    readonly oracleBreak: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
+  }
 ): CampaignScenario<CampaignNodeState> {
   const id = cellId(cell);
   const transport = transportFor(id, seed);
   const latency = TRANSPORT_LATENCY[transport] * options.latencyMultiplier;
   const canaryOracle = `campaign-canary:${stableHash(id)}`;
   const powers = powersForPosition(cell.position);
-  const compiled = compileAttackProposal(
-    {
-      name: `${cell.position}-${cell.abuse.verb}`,
-      actions: attackActions(cell, latency).filter((action) =>
-        powers.includes(action.power),
-      ),
-    },
-    powers,
-  );
+  const compiled = compileAttackProposal({
+    name: `${cell.position}-${cell.abuse.verb}`,
+    actions: attackActions(cell, latency)
+      .filter((action) => powers.includes(action.power))
+  }, powers);
   const adapter = new ProductionCapabilityAdapter(
-    "campaign-app",
-    `publisher-${cell.capability}`,
-    options.defectivePolicy,
+    "campaign-app", `publisher-${cell.capability}`, options.defectivePolicy
   );
   let grantedObservation: ProductionCapabilityObservation | null = null;
   let revokedObservation: ProductionCapabilityObservation | null = null;
@@ -185,8 +157,8 @@ function productionScenario(
       kind: "grant/set",
       at: GRANT_AT,
       declared: [cell.capability],
-      requested: [cell.capability],
-    },
+      requested: [cell.capability]
+    }
   ).state;
 
   const nodes = [
@@ -197,39 +169,33 @@ function productionScenario(
         role: "authority" as const,
         grant: authorityInitial,
         revocationRequestedAt: null,
-        killRequestedAt: null,
+        killRequestedAt: null
       },
-      step: authorityStep(cell.capability),
+      step: authorityStep(cell.capability)
     },
     {
       id: "handshake-initiator",
       machine: "protocol/link-handshake",
       initial: {
         role: "handshake" as const,
-        handshake: initialLinkHandshakeState({
-          role: "initiator",
-          peerId: "handshake-responder",
-        }),
+        handshake: initialLinkHandshakeState({ role: "initiator", peerId: "handshake-responder" })
       },
-      step: handshakeStep(0x11),
+      step: handshakeStep(0x11)
     },
     {
       id: "handshake-responder",
       machine: "protocol/link-handshake",
       initial: {
         role: "handshake" as const,
-        handshake: initialLinkHandshakeState({
-          role: "responder",
-          peerId: "handshake-initiator",
-        }),
+        handshake: initialLinkHandshakeState({ role: "responder", peerId: "handshake-initiator" })
       },
-      step: handshakeStep(0x22),
+      step: handshakeStep(0x22)
     },
     {
       id: "probe",
       machine: "campaign/availability-probe",
       initial: { role: "probe" as const, sent: false },
-      step: probeStep,
+      step: probeStep
     },
     {
       id: "service",
@@ -243,61 +209,29 @@ function productionScenario(
         operationSemantics: [],
         oracleBreak: options.oracleBreak,
         productionPath: productionPathFor(cell.capability),
-        productionObservation: null,
+        productionObservation: null
       },
-      step: serviceStep(cell, options.defectivePolicy, () => ({
-        grantedObservation,
-        revokedObservation,
-      })),
+      step: serviceStep(cell, options.defectivePolicy, () => ({ grantedObservation, revokedObservation }))
     },
     {
       id: "z-adversary",
       machine: "sim-adversaries/compiled-proposal",
       initial: { role: "adversary" as const, adversary: compiled.initial },
-      step: adversaryStep(compiled.step, latency),
-    },
+      step: adversaryStep(compiled.step, latency)
+    }
   ];
 
   const clean = {
     lossRate: 0,
     latency: { kind: "fixed" as const, ms: latency },
-    burstLoss: { goodToBad: 0, badToGood: 1, goodLossRate: 0, badLossRate: 0 },
+    burstLoss: { goodToBad: 0, badToGood: 1, goodLossRate: 0, badLossRate: 0 }
   };
   const links = [
-    {
-      source: "authority",
-      destination: "service",
-      class: transport,
-      params: clean,
-    },
-    {
-      source: "probe",
-      destination: "service",
-      class: transport,
-      params: clean,
-      adversary: "z-adversary",
-      powers,
-    },
-    {
-      source: "z-adversary",
-      destination: "service",
-      class: transport,
-      params: clean,
-      adversary: "z-adversary",
-      powers,
-    },
-    {
-      source: "handshake-initiator",
-      destination: "handshake-responder",
-      class: transport,
-      params: clean,
-    },
-    {
-      source: "handshake-responder",
-      destination: "handshake-initiator",
-      class: transport,
-      params: clean,
-    },
+    { source: "authority", destination: "service", class: transport, params: clean },
+    { source: "probe", destination: "service", class: transport, params: clean, adversary: "z-adversary", powers },
+    { source: "z-adversary", destination: "service", class: transport, params: clean, adversary: "z-adversary", powers },
+    { source: "handshake-initiator", destination: "handshake-responder", class: transport, params: clean },
+    { source: "handshake-responder", destination: "handshake-initiator", class: transport, params: clean }
   ];
 
   return {
@@ -305,14 +239,9 @@ function productionScenario(
       await adapter.grant(cell.capability, GRANT_AT);
       grantedObservation = await adapter.execute(cell.capability, ATTACK_AT);
       await adapter.revoke(cell.capability, REVOCATION_AT);
-      revokedObservation = await adapter.snapshot(
-        grantedObservation.handler,
-        grantedObservation.response,
-      );
+      revokedObservation = await adapter.snapshot(grantedObservation.handler, grantedObservation.response);
       if (!grantedObservation.response.ok) {
-        throw new Error(
-          `production handler failed for ${id}: ${grantedObservation.response.error?.message}`,
-        );
+        throw new Error(`production handler failed for ${id}: ${grantedObservation.response.error?.message}`);
       }
     },
     config: {
@@ -322,36 +251,24 @@ function productionScenario(
       oracles: [
         {
           name: canaryOracle,
-          check: (world) =>
-            [...world.nodes.values()].some(
-              (state) =>
-                state.role === "service" &&
-                state.operationSemantics.includes(`defect:${id}`),
-            )
-              ? {
-                  oracle: canaryOracle,
-                  message: `broken production enforcement admitted ${id}`,
-                }
-              : null,
+          check: (world) => [...world.nodes.values()].some((state) =>
+            state.role === "service" && state.operationSemantics.includes(`defect:${id}`)
+          ) ? { oracle: canaryOracle, message: `broken production enforcement admitted ${id}` } : null
         },
         grantCoverageOracle(projectGrantCoverage),
         idUniquenessOracle(projectGrantIdentities),
         revocationMonotonicityOracle(projectGrantAuthorizations),
         {
           name: "link-handshake-agreement",
-          check: (world) => handshakeAgreementViolation(world.nodes),
-        },
+          check: (world) => handshakeAgreementViolation(world.nodes)
+        }
       ],
-      ...(options.recorder === undefined ? {} : { recorder: options.recorder }),
+      ...(options.recorder === undefined ? {} : { recorder: options.recorder })
     },
     expectedCanaryOracles: [canaryOracle],
     description: {
       name: `${cell.capability}-${cell.position}-${cell.abuse.verb}`,
-      protocolMachines: [
-        "grant-host",
-        "link-handshake",
-        productionPathFor(cell.capability),
-      ],
+      protocolMachines: ["grant-host", "link-handshake", productionPathFor(cell.capability)],
       adversaryPowers: [...new Set(compiled.powers)],
       transport,
       productionPath: productionPathFor(cell.capability),
@@ -360,9 +277,9 @@ function productionScenario(
       operation: `${capabilityEffect(cell.capability)} via ${productionPathFor(cell.capability)}`,
       positionAccess: positionAccessFor(cell.position),
       damageCondition: abuseEffect(cell.abuse.verb),
-      successOracle: canaryOracle,
+      successOracle: canaryOracle
     },
-    measureContainment: (kernel) => measureContainment(kernel, transport),
+    measureContainment: (kernel) => measureContainment(kernel, transport)
   };
 }
 
@@ -377,36 +294,27 @@ function authorityStep(capability: string): StepFn<CampaignNodeState> {
           ...stepped.intents,
           send("control/grant", "service"),
           timer("revoke", REVOCATION_AT),
-          timer("kill", KILL_AT),
-        ],
+          timer("kill", KILL_AT)
+        ]
       };
     }
     if (event.kind === "timer/fired" && event.id === "revoke") {
       const stepped = stepGrant(state.grant, {
-        kind: "grant/revoke",
-        at: event.at,
-        capability,
+        kind: "grant/revoke", at: event.at, capability
       });
       return {
-        state: {
-          ...state,
-          grant: stepped.state,
-          revocationRequestedAt: event.at,
-        },
-        intents: [...stepped.intents, send("control/revoke", "service")],
+        state: { ...state, grant: stepped.state, revocationRequestedAt: event.at },
+        intents: [...stepped.intents, send("control/revoke", "service")]
       };
     }
     if (event.kind === "timer/fired" && event.id === "kill") {
       return {
         state: { ...state, killRequestedAt: event.at },
-        intents: [send("control/kill", "service")],
+        intents: [send("control/kill", "service")]
       };
     }
     const stepped = stepGrant(state.grant, event);
-    return {
-      state: { ...state, grant: stepped.state },
-      intents: stepped.intents,
-    };
+    return { state: { ...state, grant: stepped.state }, intents: stepped.intents };
   };
 }
 
@@ -416,7 +324,7 @@ function serviceStep(
   observations: () => {
     readonly grantedObservation: ProductionCapabilityObservation | null;
     readonly revokedObservation: ProductionCapabilityObservation | null;
-  },
+  }
 ): StepFn<CampaignNodeState> {
   return (state, event) => {
     if (state.role !== "service") return { state, intents: [] };
@@ -424,91 +332,52 @@ function serviceStep(
     if (event.kind !== "transport/recv") return { state, intents: [] };
     if (event.channel === "control/grant") {
       const production = observations().grantedObservation;
-      if (production === null || !production.response.ok)
-        return { state, intents: [] };
-      return {
-        state: { ...state, productionObservation: production },
-        intents: [],
-      };
+      if (production === null || !production.response.ok) return { state, intents: [] };
+      return { state: { ...state, productionObservation: production }, intents: [] };
     }
     if (event.channel === "control/revoke") {
-      return {
-        state: {
-          ...state,
-          revokedAt: event.at,
-          productionObservation:
-            observations().revokedObservation ?? state.productionObservation,
-        },
-        intents: [],
-      };
+      return { state: { ...state, revokedAt: event.at,
+        productionObservation: observations().revokedObservation ?? state.productionObservation }, intents: [] };
     }
-    if (event.channel === "control/kill")
-      return { state: { ...state, severedAt: event.at }, intents: [] };
+    if (event.channel === "control/kill") return { state: { ...state, severedAt: event.at }, intents: [] };
     if (event.channel === "protocol/availability" && state.severedAt === null) {
       const lifecycle = state.productionObservation?.authority[cell.capability];
-      if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active")
-        return { state, intents: [] };
-      if (!state.productionObservation?.response.ok)
-        return { state, intents: [] };
+      if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active") return { state, intents: [] };
+      if (!state.productionObservation?.response.ok) return { state, intents: [] };
       const grantId = `${cell.capability}-grant`;
-      return {
-        state: {
-          ...state,
-          egress: [
-            ...state.egress,
-            { at: event.at, appId: "campaign-app", grantId, peerId: "probe" },
-          ],
-          operationSemantics: [
-            ...state.operationSemantics,
-            `${cell.capability}:legitimate-use`,
-          ],
-        },
-        intents: [],
-      };
+      return { state: { ...state,
+        egress: [...state.egress, { at: event.at, appId: "campaign-app",
+          grantId, peerId: "probe" }],
+        operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`] }, intents: [] };
     }
-    if (!event.channel.startsWith("abuse/") || state.severedAt !== null)
-      return { state, intents: [] };
+    if (!event.channel.startsWith("abuse/") || state.severedAt !== null) return { state, intents: [] };
     const lifecycle = state.productionObservation?.authority[cell.capability];
-    const authorized =
-      lifecycle?.phase === "granted" || lifecycle?.phase === "active";
+    const authorized = lifecycle?.phase === "granted" || lifecycle?.phase === "active";
     // Each defect variant removes one phase-specific guard. Whether it is reached depends on
     // the race between the real availability use and the adversarial payload over this transport.
-    const attackSuppressesUse =
-      cell.abuse.verb === "deny" || cell.position === "compromised-host";
-    const requiresActive =
-      !attackSuppressesUse && (stableHash(cellId(cell)) & 1) === 0;
-    const scheduledUseObserved = state.operationSemantics.includes(
-      `${cell.capability}:legitimate-use`,
-    );
-    const defectReached =
-      defectivePolicy &&
-      state.productionObservation?.negativeControlRejected === false &&
+    const attackSuppressesUse = cell.abuse.verb === "deny" || cell.position === "compromised-host";
+    const requiresActive = !attackSuppressesUse && (stableHash(cellId(cell)) & 1) === 0;
+    const scheduledUseObserved = state.operationSemantics.includes(`${cell.capability}:legitimate-use`);
+    const defectReached = defectivePolicy && state.productionObservation?.negativeControlRejected === false &&
       event.payload[0] === (stableHash(cellId(cell)) & 0xff) &&
       (requiresActive ? scheduledUseObserved : !scheduledUseObserved);
-    if (
-      !authorized ||
-      !state.productionObservation?.response.ok ||
-      !defectReached
-    )
-      return { state, intents: [] };
+    if (!authorized || !state.productionObservation?.response.ok || !defectReached) return { state, intents: [] };
     const egress: EgressEvent = {
       at: event.at,
       appId: "campaign-app",
       grantId: `${cell.capability}-grant`,
-      peerId: cell.position,
+      peerId: cell.position
     };
     return {
       state: {
         ...state,
         egress: [...state.egress, egress],
         damageEvents: [...state.damageEvents, event.at],
-        operationSemantics: [
-          ...state.operationSemantics,
+        operationSemantics: [...state.operationSemantics,
           `${cell.capability}:${cell.position}:${cell.abuse.verb}`,
-          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : []),
-        ],
+          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : [])]
       },
-      intents: [],
+      intents: []
     };
   };
 }
@@ -521,28 +390,19 @@ function handshakeStep(material: number): StepFn<CampaignNodeState> {
         kind: "handshake/begin",
         at: event.at,
         entropy: new Uint8Array(32).fill(material),
-        linkId: LINK_ID,
+        linkId: LINK_ID
       });
       return {
         state: { ...state, handshake: stepped.state },
         intents: stepped.actions.map((action): Intent => ({
           kind: "transport/send",
-          send: {
-            channel: "handshake/material",
-            destination: action.peerId,
-            payload: action.material,
-          },
-        })),
+          send: { channel: "handshake/material", destination: action.peerId, payload: action.material }
+        }))
       };
     }
-    if (
-      event.kind === "transport/recv" &&
-      event.channel === "handshake/material"
-    ) {
+    if (event.kind === "transport/recv" && event.channel === "handshake/material") {
       const stepped = stepLinkHandshakeWithActions(state.handshake, {
-        kind: "handshake/peer-material",
-        material: event.payload,
-        linkId: LINK_ID,
+        kind: "handshake/peer-material", material: event.payload, linkId: LINK_ID
       });
       return { state: { ...state, handshake: stepped.state }, intents: [] };
     }
@@ -552,20 +412,16 @@ function handshakeStep(material: number): StepFn<CampaignNodeState> {
 
 const probeStep: StepFn<CampaignNodeState> = (state, event) => {
   if (state.role !== "probe") return { state, intents: [] };
-  if (event.kind === "start")
-    return { state, intents: [timer("probe", ATTACK_AT)] };
+  if (event.kind === "start") return { state, intents: [timer("probe", ATTACK_AT)] };
   if (event.kind === "timer/fired" && event.id === "probe") {
-    return {
-      state: { ...state, sent: true },
-      intents: [send("protocol/availability", "service")],
-    };
+    return { state: { ...state, sent: true }, intents: [send("protocol/availability", "service")] };
   }
   return { state, intents: [] };
 };
 
 function adversaryStep(
   compiled: StepFn<AdversaryState>,
-  latency: number,
+  latency: number
 ): StepFn<CampaignNodeState> {
   return (state, event) => {
     if (state.role !== "adversary") return { state, intents: [] };
@@ -574,19 +430,13 @@ function adversaryStep(
         state,
         intents: [
           timer("attack", ATTACK_AT),
-          timer("damage", Math.max(ATTACK_AT + 1, KILL_AT - latency / 2)),
-        ],
+          timer("damage", Math.max(ATTACK_AT + 1, KILL_AT - latency / 2))
+        ]
       };
     }
     if (event.kind === "timer/fired" && event.id === "attack") {
-      const stepped = compiled(state.adversary, {
-        kind: "start",
-        at: event.at,
-      });
-      return {
-        state: { ...state, adversary: stepped.state },
-        intents: stepped.intents,
-      };
+      const stepped = compiled(state.adversary, { kind: "start", at: event.at });
+      return { state: { ...state, adversary: stepped.state }, intents: stepped.intents };
     }
     if (event.kind === "timer/fired" && event.id === "damage") {
       return { state, intents: [send("abuse/damage", "service")] };
@@ -597,61 +447,27 @@ function adversaryStep(
 
 function attackActions(
   cell: CoverageCell,
-  latency: number,
+  latency: number
 ): readonly TransportAdversaryAction[] {
   const position = cell.position;
   const abuse = cell.abuse.verb;
   const actions: TransportAdversaryAction[] = [];
-  actions.push({
-    power: "inject",
-    source: "z-adversary",
-    destination: "service",
-    channel: `abuse/${abuse}`,
-    payload: new Uint8Array([stableHash(cellId(cell)) & 0xff]),
-    delayMs: 100,
-  });
-  if (abuse === "deny")
-    actions.push({ power: "drop", source: "probe", destination: "service" });
-  if (abuse === "drain")
-    actions.push({
-      power: "duplicate",
-      source: "z-adversary",
-      destination: "service",
-    });
-  if (abuse === "correlate")
-    actions.push({
-      power: "reorder",
-      source: "z-adversary",
-      destination: "service",
-    });
-  if (position === "malicious-peer")
-    actions.push({
-      power: "duplicate",
-      source: "z-adversary",
-      destination: "service",
-    });
-  if (position === "malicious-relay")
-    actions.push({
-      power: "delay",
-      source: "z-adversary",
-      destination: "service",
-      delayMs: Math.max(1, latency / 10),
-    });
-  if (position === "colluding-pair")
-    actions.push({
-      power: "reorder",
-      source: "z-adversary",
-      destination: "service",
-    });
-  if (position === "compromised-host")
-    actions.push({ power: "drop", source: "probe", destination: "service" });
+  actions.push({ power: "inject", source: "z-adversary",
+    destination: "service", channel: `abuse/${abuse}`,
+    payload: new Uint8Array([stableHash(cellId(cell)) & 0xff]), delayMs: 100 });
+  if (abuse === "deny") actions.push({ power: "drop", source: "probe", destination: "service" });
+  if (abuse === "drain") actions.push({ power: "duplicate", source: "z-adversary", destination: "service" });
+  if (abuse === "correlate") actions.push({ power: "reorder", source: "z-adversary", destination: "service" });
+  if (position === "malicious-peer") actions.push({ power: "duplicate", source: "z-adversary", destination: "service" });
+  if (position === "malicious-relay") actions.push({ power: "delay", source: "z-adversary", destination: "service", delayMs: Math.max(1, latency / 10) });
+  if (position === "colluding-pair") actions.push({ power: "reorder", source: "z-adversary", destination: "service" });
+  if (position === "compromised-host") actions.push({ power: "drop", source: "probe", destination: "service" });
   return actions;
 }
 
 function productionPathFor(capability: string): string {
   if (capability === "identity") return "miniapp-host/identity.sign";
-  if (capability === "presence" || capability.startsWith("announce:"))
-    return "miniapp-host/discovery";
+  if (capability === "presence" || capability.startsWith("announce:")) return "miniapp-host/discovery";
   if (capability.startsWith("lxmf:")) return "miniapp-host/lxmf";
   if (capability.startsWith("storage:")) return "miniapp-host/storage";
   if (capability === "resource:fetch") return "miniapp-host/resource.fetch";
@@ -665,8 +481,7 @@ function productionHandlerFor(capability: string): string {
   if (capability === "identity") return "MiniappHost.identity.sign";
   if (capability === "presence") return "MiniappHost.presence.snapshot";
   if (capability === "announce:publish") return "MiniappHost.announce.publish";
-  if (capability === "announce:subscribe")
-    return "MiniappHost.announce.subscribe";
+  if (capability === "announce:subscribe") return "MiniappHost.announce.subscribe";
   if (capability === "lxmf:send") return "MiniappHost.lxmf.send";
   if (capability === "lxmf:receive") return "MiniappHost.lxmf.receive";
   if (capability === "storage:kv") return "MiniappHost.storage.kv.set";
@@ -678,15 +493,9 @@ function productionHandlerFor(capability: string): string {
 
 function capabilityEffect(capability: string): string {
   if (capability === "identity") return "signatures";
-  if (capability === "presence" || capability.startsWith("announce:"))
-    return "discoveries";
+  if (capability === "presence" || capability.startsWith("announce:")) return "discoveries";
   if (capability.startsWith("lxmf:")) return "messages";
-  if (
-    capability.startsWith("storage:") ||
-    capability === "workspace" ||
-    capability === "share:cas"
-  )
-    return "storedBytes";
+  if (capability.startsWith("storage:") || capability === "workspace" || capability === "share:cas") return "storedBytes";
   if (capability === "resource:fetch") return "fetchedBytes";
   if (capability === "ai:chat") return "modelTokens";
   return "packageOperations";
@@ -700,159 +509,96 @@ function abuseEffect(verb: AbuseVerb): string {
   return "correlationLinks";
 }
 
-function powersForPosition(
-  position: AttackerPosition,
-): readonly DolevYaoPower[] {
+
+function powersForPosition(position: AttackerPosition): readonly DolevYaoPower[] {
   if (position === "malicious-app") return ["inject"];
   if (position === "malicious-peer") return ["inject", "duplicate"];
-  if (position === "malicious-relay")
-    return ["inject", "drop", "delay", "reorder", "duplicate"];
-  if (position === "colluding-pair")
-    return ["inject", "delay", "reorder", "duplicate"];
+  if (position === "malicious-relay") return ["inject", "drop", "delay", "reorder", "duplicate"];
+  if (position === "colluding-pair") return ["inject", "delay", "reorder", "duplicate"];
   return ["inject", "drop"];
 }
 
 function positionAccessFor(position: AttackerPosition): string {
   if (position === "malicious-app") return "broker request surface only";
-  if (position === "malicious-peer")
-    return "authenticated peer ingress and replay";
-  if (position === "malicious-relay")
-    return "mediated link drop, delay, reorder, duplicate, and inject";
-  if (position === "colluding-pair")
-    return "two coordinated authenticated ingress paths";
+  if (position === "malicious-peer") return "authenticated peer ingress and replay";
+  if (position === "malicious-relay") return "mediated link drop, delay, reorder, duplicate, and inject";
+  if (position === "colluding-pair") return "two coordinated authenticated ingress paths";
   return "local host broker plus link suppression";
 }
 
 function projectGrantCoverage(state: CampaignNodeState) {
-  if (state.role !== "service")
-    return { storedBlobIds: [], liveGrantBlobIds: [] };
+  if (state.role !== "service") return { storedBlobIds: [], liveGrantBlobIds: [] };
   const authority = state.productionObservation?.authority ?? {};
   const live = Object.entries(authority)
-    .filter(
-      ([, lifecycle]) =>
-        lifecycle.phase === "granted" || lifecycle.phase === "active",
-    )
+    .filter(([, lifecycle]) => lifecycle.phase === "granted" || lifecycle.phase === "active")
     .map(([capability]) => `${capability}-grant`);
-  const publicStored =
-    state.productionObservation?.publicGrant?.granted.map(
-      (capability) => `${capability}-grant`,
-    ) ?? [];
+  const publicStored = state.productionObservation?.publicGrant?.granted.map((capability) => `${capability}-grant`) ?? [];
   return {
-    storedBlobIds:
-      state.oracleBreak === "grant-coverage"
-        ? [...publicStored, `${Object.keys(authority)[0] ?? "identity"}-grant`]
-        : publicStored,
-    liveGrantBlobIds: live,
+    storedBlobIds: state.oracleBreak === "grant-coverage" ? [...publicStored, `${Object.keys(authority)[0] ?? "identity"}-grant`] : publicStored,
+    liveGrantBlobIds: live
   };
 }
 
 function projectGrantIdentities(state: CampaignNodeState) {
-  if (state.role !== "service" || state.productionObservation === null)
-    return [];
-  const capability =
-    Object.keys(state.productionObservation.authority)[0] ?? "identity";
-  const identities = state.productionObservation.identityIds.map(
-    (fingerprint, index) => ({
-      id:
-        index === 0 ? `${capability}-grant` : `${capability}-identity-${index}`,
-      fingerprint,
-    }),
-  );
+  if (state.role !== "service" || state.productionObservation === null) return [];
+  const capability = Object.keys(state.productionObservation.authority)[0] ?? "identity";
+  const identities = state.productionObservation.identityIds.map((fingerprint, index) => ({
+    id: index === 0 ? `${capability}-grant` : `${capability}-identity-${index}`,
+    fingerprint
+  }));
   return state.oracleBreak === "id-uniqueness" && identities.length > 0
-    ? [
-        ...identities,
-        {
-          id: identities[0]!.id,
-          fingerprint: "conflicting-production-identity",
-        },
-      ]
+    ? [...identities, { id: identities[0]!.id, fingerprint: "conflicting-production-identity" }]
     : identities;
 }
 
 function projectGrantAuthorizations(state: CampaignNodeState) {
-  if (state.role !== "service" || state.productionObservation === null)
-    return [];
-  const allowed = state.productionObservation.audit
-    .filter((entry) => entry.allowed)
-    .map((entry) => entry.at);
-  return Object.entries(state.productionObservation.authority).map(
-    ([capability, lifecycle]) => ({
-      id: `${capability}-grant`,
-      ...(lifecycle.revokedAt === null
-        ? {}
-        : { revokedAt: lifecycle.revokedAt }),
-      accessTimes:
-        state.oracleBreak === "revocation-monotonicity" &&
-        lifecycle.revokedAt !== null
-          ? [...allowed, lifecycle.revokedAt + 1]
-          : allowed,
-    }),
-  );
+  if (state.role !== "service" || state.productionObservation === null) return [];
+  const allowed = state.productionObservation.audit.filter((entry) => entry.allowed).map((entry) => entry.at);
+  return Object.entries(state.productionObservation.authority).map(([capability, lifecycle]) => ({
+    id: `${capability}-grant`,
+    ...(lifecycle.revokedAt === null ? {} : { revokedAt: lifecycle.revokedAt }),
+    accessTimes: state.oracleBreak === "revocation-monotonicity" && lifecycle.revokedAt !== null
+      ? [...allowed, lifecycle.revokedAt + 1]
+      : allowed
+  }));
 }
 
 function measureContainment(
   kernel: SimKernel<CampaignNodeState>,
-  transport: TransportClassName,
+  transport: TransportClassName
 ): ContainmentMetrics {
   const authority = kernel.getNodeState("authority");
   const service = kernel.getNodeState("service");
-  if (authority.role !== "authority" || service.role !== "service")
-    throw new Error("invalid production scenario topology");
+  if (authority.role !== "authority" || service.role !== "service") throw new Error("invalid production scenario topology");
   const tracker = new ContainmentTracker(transport);
   if (authority.revocationRequestedAt !== null) {
-    const revocation = tracker.revoked(authority.revocationRequestedAt, [
-      "service",
-    ]);
-    if (service.revokedAt !== null)
-      tracker.nodeStoppedUsingGrant(revocation, "service", service.revokedAt);
+    const revocation = tracker.revoked(authority.revocationRequestedAt, ["service"]);
+    if (service.revokedAt !== null) tracker.nodeStoppedUsingGrant(revocation, "service", service.revokedAt);
   }
   for (const event of service.egress) tracker.exfiltration(event);
   if (authority.killRequestedAt !== null) {
     const kill = tracker.killRequested(authority.killRequestedAt);
     const end = service.severedAt ?? Number.POSITIVE_INFINITY;
-    tracker.damage(
-      kill,
-      service.damageEvents.filter(
-        (at) => at >= authority.killRequestedAt! && at < end,
-      ).length,
-    );
+    tracker.damage(kill, service.damageEvents.filter(
+      (at) => at >= authority.killRequestedAt! && at < end
+    ).length);
     if (service.severedAt !== null) tracker.severed(kill, service.severedAt);
   }
   return tracker.snapshot();
 }
 
-function handshakeAgreementViolation(
-  nodes: ReadonlyMap<string, CampaignNodeState>,
-) {
+function handshakeAgreementViolation(nodes: ReadonlyMap<string, CampaignNodeState>) {
   const handshakes = [...nodes.values()].filter(
-    (state): state is Extract<CampaignNodeState, { role: "handshake" }> =>
-      state.role === "handshake",
+    (state): state is Extract<CampaignNodeState, { role: "handshake" }> => state.role === "handshake"
   );
-  if (
-    handshakes.length !== 2 ||
-    handshakes.some(
-      (state) => state.handshake.phase !== LinkHandshakePhase.ESTABLISHED,
-    )
-  )
-    return null;
+  if (handshakes.length !== 2 || handshakes.some((state) => state.handshake.phase !== LinkHandshakePhase.ESTABLISHED)) return null;
   const [first, second] = handshakes;
-  if (
-    first === undefined ||
-    second === undefined ||
-    bytesEqual(first.handshake.sessionKey, second.handshake.sessionKey)
-  )
-    return null;
-  return {
-    oracle: "link-handshake-agreement",
-    message: "production handshake peers derived different session keys",
-  };
+  if (first === undefined || second === undefined || bytesEqual(first.handshake.sessionKey, second.handshake.sessionKey)) return null;
+  return { oracle: "link-handshake-agreement", message: "production handshake peers derived different session keys" };
 }
 
 function send(channel: string, destination: string): Intent {
-  return {
-    kind: "transport/send",
-    send: { channel, destination, payload: BYTE },
-  };
+  return { kind: "transport/send", send: { channel, destination, payload: BYTE } };
 }
 
 function timer(id: string, delayMs: number): Intent {
@@ -865,23 +611,17 @@ function transportFor(id: string, seed: number): TransportClassName {
     "internet",
     "ble",
     "lora",
-    "freenet",
+    "freenet"
   ];
   return transports[stableHash(`${id}|${seed}`) % transports.length]!;
 }
 
 function stableHash(value: string): number {
   let out = 2_166_136_261;
-  for (const character of value)
-    out = Math.imul(out ^ character.charCodeAt(0), 16_777_619);
+  for (const character of value) out = Math.imul(out ^ character.charCodeAt(0), 16_777_619);
   return out >>> 0;
 }
 
 function bytesEqual(a: Uint8Array | null, b: Uint8Array | null): boolean {
-  return (
-    a !== null &&
-    b !== null &&
-    a.length === b.length &&
-    a.every((byte, index) => byte === b[index])
-  );
+  return a !== null && b !== null && a.length === b.length && a.every((byte, index) => byte === b[index]);
 }

@@ -13,7 +13,7 @@ export const LxmfMessageState = {
   DELIVERED: 0x08,
   REJECTED: 0xfd,
   CANCELLED: 0xfe,
-  FAILED: 0xff,
+  FAILED: 0xff
 } as const;
 
 export type LxmfMessageStateValue =
@@ -41,14 +41,14 @@ export type LxmfSendEvent =
 
 export function initialLxmfSendState(
   state: LxmfMessageStateValue = LxmfMessageState.GENERATING,
-  progress = 0,
+  progress = 0
 ): LxmfSendState {
   return { state, progress };
 }
 
 export function applyLxmfSendEvent(
   current: LxmfSendState,
-  event: LxmfSendEvent,
+  event: LxmfSendEvent
 ): LxmfSendState {
   return stepLxmfSendInner(current, event).state;
 }
@@ -58,50 +58,44 @@ export const stepLxmfSend: StepFn<LxmfSendState> = (state, event) =>
 
 function stepLxmfSendInner(
   state: LxmfSendState,
-  event: LxmfSendEvent,
+  event: LxmfSendEvent
 ): { state: LxmfSendState; intents: Intent[] } {
   if (event.kind === "lxmf/enqueue") {
-    return {
-      state: { state: LxmfMessageState.OUTBOUND, progress: state.progress },
-      intents: [],
-    };
+    return { state: { state: LxmfMessageState.OUTBOUND, progress: state.progress }, intents: [] };
   }
 
   if (event.kind === "lxmf/begin-sending") {
-    return {
-      state: { state: LxmfMessageState.SENDING, progress: state.progress },
-      intents: [],
-    };
+    return { state: { state: LxmfMessageState.SENDING, progress: state.progress }, intents: [] };
   }
 
   if (event.kind === "lxmf/mark-sent") {
     return {
       state: {
         state: LxmfMessageState.SENT,
-        progress: event.progress ?? 0.5,
+        progress: event.progress ?? 0.5
       },
-      intents: [],
+      intents: []
     };
   }
 
   if (event.kind === "lxmf/mark-delivered") {
     return {
       state: { state: LxmfMessageState.DELIVERED, progress: 1 },
-      intents: [],
+      intents: []
     };
   }
 
   if (event.kind === "lxmf/mark-failed") {
     return {
       state: { state: LxmfMessageState.FAILED, progress: state.progress },
-      intents: [],
+      intents: []
     };
   }
 
   if (event.kind === "lxmf/progress") {
     return {
       state: { ...state, progress: event.progress },
-      intents: [],
+      intents: []
     };
   }
 
@@ -110,17 +104,17 @@ function stepLxmfSendInner(
       if (event.onDelivered === "sent") {
         return {
           state: { state: LxmfMessageState.SENT, progress: 1 },
-          intents: [],
+          intents: []
         };
       }
       return {
         state: { state: LxmfMessageState.DELIVERED, progress: 1 },
-        intents: [],
+        intents: []
       };
     }
     return {
       state: { state: LxmfMessageState.FAILED, progress: state.progress },
-      intents: [],
+      intents: []
     };
   }
 
@@ -136,9 +130,7 @@ export type LxmfReceiptSendPhase = "after-send" | "after-poll";
  * Propagated: after-send → progress; after-poll → receipt-result (SENT on deliver, else FAILED).
  */
 /** Whether an LXMF receipt send-outcome event should be applied to send-state. */
-export function shouldApplyLxmfReceiptSendState(
-  outcomePresent: boolean,
-): boolean {
+export function shouldApplyLxmfReceiptSendState(outcomePresent: boolean): boolean {
   return outcomePresent;
 }
 
@@ -159,7 +151,7 @@ export function planLxmfReceiptSendOutcome(input: {
       return {
         kind: "lxmf/receipt-result",
         delivered: true,
-        onDelivered: "delivered",
+        onDelivered: "delivered"
       };
     }
     return null;
@@ -171,7 +163,7 @@ export function planLxmfReceiptSendOutcome(input: {
   return {
     kind: "lxmf/receipt-result",
     delivered: input.receiptPresent && input.delivered,
-    onDelivered: "sent",
+    onDelivered: "sent"
   };
 }
 
@@ -208,14 +200,14 @@ export function initialLxmfReceiptSendPlanState(): LxmfReceiptSendPlanState {
 
 export function stepLxmfReceiptSendPlanWithActions(
   state: LxmfReceiptSendPlanState,
-  event: LxmfReceiptSendPlanEvent,
+  event: LxmfReceiptSendPlanEvent
 ): LxmfReceiptSendPlanStepResult {
   if (event.kind === "receipt-send/plan-gate") {
     const outcome = planLxmfReceiptSendOutcome({
       mode: event.mode,
       phase: event.phase,
       receiptPresent: event.receiptPresent,
-      delivered: event.delivered,
+      delivered: event.delivered
     });
     if (outcome === null) {
       return { state, intents: [], actions: [{ kind: "skip" }] };
@@ -228,21 +220,21 @@ export function stepLxmfReceiptSendPlanWithActions(
 
 /** Whether plan actions apply a send-state event. */
 export function shouldApplyLxmfReceiptSendPlan(
-  actions: ReadonlyArray<LxmfReceiptSendPlanAction>,
+  actions: ReadonlyArray<LxmfReceiptSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 /** Whether plan actions skip send-state update. */
 export function shouldSkipLxmfReceiptSendPlan(
-  actions: ReadonlyArray<LxmfReceiptSendPlanAction>,
+  actions: ReadonlyArray<LxmfReceiptSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Send-state event from a plan apply action, if present. */
 export function lxmfReceiptSendPlanApplyEvent(
-  actions: ReadonlyArray<LxmfReceiptSendPlanAction>,
+  actions: ReadonlyArray<LxmfReceiptSendPlanAction>
 ): LxmfSendEvent | null {
   for (const action of actions) {
     if (action.kind === "apply") {
@@ -287,36 +279,33 @@ export function initialLxmfReceiptSendState(): LxmfReceiptSendState {
   return {};
 }
 
-export const stepLxmfReceiptSend: StepFn<LxmfReceiptSendState> = (
-  state,
-  event,
-) => {
+export const stepLxmfReceiptSend: StepFn<LxmfReceiptSendState> = (state, event) => {
   const result = stepLxmfReceiptSendInner(state, event as LxmfReceiptSendEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfReceiptSendWithActions(
   state: LxmfReceiptSendState,
-  event: LxmfReceiptSendEvent,
+  event: LxmfReceiptSendEvent
 ): LxmfReceiptSendStepResult {
   return stepLxmfReceiptSendInner(state, event);
 }
 
 export function shouldApplyLxmfReceiptSend(
-  actions: ReadonlyArray<LxmfReceiptSendAction>,
+  actions: ReadonlyArray<LxmfReceiptSendAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldSkipLxmfReceiptSend(
-  actions: ReadonlyArray<LxmfReceiptSendAction>,
+  actions: ReadonlyArray<LxmfReceiptSendAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Send-state event from an apply action, if present. */
 export function lxmfReceiptSendApplyEvent(
-  actions: ReadonlyArray<LxmfReceiptSendAction>,
+  actions: ReadonlyArray<LxmfReceiptSendAction>
 ): LxmfSendEvent | null {
   for (const action of actions) {
     if (action.kind === "apply") {
@@ -328,7 +317,7 @@ export function lxmfReceiptSendApplyEvent(
 
 function stepLxmfReceiptSendInner(
   state: LxmfReceiptSendState,
-  event: LxmfReceiptSendEvent,
+  event: LxmfReceiptSendEvent
 ): LxmfReceiptSendStepResult {
   if (event.kind === "receipt-send/map") {
     const planActions = stepLxmfReceiptSendPlanWithActions(
@@ -338,8 +327,8 @@ function stepLxmfReceiptSendInner(
         mode: event.mode,
         phase: event.phase,
         receiptPresent: event.receiptPresent,
-        delivered: event.delivered,
-      },
+        delivered: event.delivered
+      }
     ).actions;
     if (shouldSkipLxmfReceiptSendPlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "skip" }] };

@@ -58,7 +58,10 @@
     "S7": {
       "status": "partial",
       "artifact": "s7-report.md",
-      "supportingArtifacts": ["probe-atlas.mjs", "s7-atlas-read.json"],
+      "supportingArtifacts": [
+        "probe-atlas.mjs",
+        "s7-atlas-read.json"
+      ],
       "remaining": "with explicit live-write approval, attempt and record a well-formed Atlas update"
     },
     "S8": {

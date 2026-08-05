@@ -4,7 +4,7 @@ import {
   LXMF_MESSAGE_GET_PATH,
   LXMF_OFFER_REQUEST_PATH,
   LxmfField,
-  LxmfUnverifiedReason,
+  LxmfUnverifiedReason
 } from "../src/lxmf-fields.js";
 
 describe("lxmf fields / paths", () => {

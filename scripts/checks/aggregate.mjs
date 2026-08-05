@@ -60,7 +60,7 @@ const lines = [
       `| ${item.title} | ${item.ok ? "✅ pass" : item.error ? "❌ missing result" : "❌ fail"} |`,
   ),
   "",
-  `[Workflow run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`,
+  `[Workflow run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`
 ];
 fs.writeFileSync("static-analysis-summary.md", `${lines.join("\n")}\n`);
 console.log(`Aggregated ${artifacts.length} gate artifacts.`);

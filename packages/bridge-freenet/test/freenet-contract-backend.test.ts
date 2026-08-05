@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { bytesToHex } from "@twistedpear/reticulum-ts";
-import { FreenetClient, FreenetClientContractBackend } from "../src/index.js";
+import {
+  FreenetClient,
+  FreenetClientContractBackend
+} from "../src/index.js";
 
 describe("FreenetClientContractBackend", () => {
   it("round-trips hex get/put/update against a FreenetClient stand-in", async () => {
@@ -10,10 +13,7 @@ describe("FreenetClientContractBackend", () => {
       fallbackCodeField?: Uint8Array;
     }> = [];
     const client = {
-      async put(
-        source: { wasm: Uint8Array; parameters: Uint8Array },
-        state: Uint8Array,
-      ) {
+      async put(source: { wasm: Uint8Array; parameters: Uint8Array }, state: Uint8Array) {
         const { key } = FreenetClient.deriveKey(source);
         states.set(bytesToHex(key), Uint8Array.from(state));
         return key;
@@ -31,19 +31,19 @@ describe("FreenetClientContractBackend", () => {
         options: {
           codeField?: Uint8Array;
           fallbackCodeField?: Uint8Array;
-        } = {},
+        } = {}
       ) {
         updates.push(options);
         states.set(bytesToHex(key), Uint8Array.from(state));
       },
-      close: vi.fn(),
+      close: vi.fn()
     } as unknown as FreenetClient;
 
     const backend = new FreenetClientContractBackend({ client });
     const put = await backend.put({
       wasmHex: "0061736d",
       parametersHex: "01",
-      stateHex: "aa",
+      stateHex: "aa"
     });
     expect(put.keyHex).toHaveLength(64);
 
@@ -53,15 +53,15 @@ describe("FreenetClientContractBackend", () => {
     await backend.update({
       keyHex: put.keyHex,
       codeHashHex: "00".repeat(32),
-      stateHex: "bb",
+      stateHex: "bb"
     });
     expect(await backend.get(put.keyHex)).toEqual({
       keyHex: put.keyHex,
-      stateHex: "bb",
+      stateHex: "bb"
     });
     expect(updates[0]?.codeField).toBeUndefined();
     expect(updates[0]?.fallbackCodeField).toEqual(
-      Uint8Array.from([0, 97, 115, 109]),
+      Uint8Array.from([0, 97, 115, 109])
     );
 
     expect(await backend.get("ff".repeat(32))).toBeNull();

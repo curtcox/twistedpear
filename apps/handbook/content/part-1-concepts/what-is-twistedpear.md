@@ -1,5 +1,6 @@
 # What TwistedPear is
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -25,7 +26,7 @@ same root.
 
 ## This Handbook
 
-This document is itself a mini-app. If it installed and rendered on _this_ host,
+This document is itself a mini-app. If it installed and rendered on *this* host,
 you have already exercised packaging, install, sandbox, broker, and the widget
 renderer. Chapters later add interactive applets that probe live capabilities.
 

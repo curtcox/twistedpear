@@ -17,7 +17,7 @@ export function createAutoInterfaceOps(deps) {
       multicastAvailable: true,
       multicastEntitled: deps.getMulticastEntitled(),
       bonjourAvailable: deps.getBonjourDiscoveryEnabled(),
-      allowConcurrent: deps.getMulticastEntitled(),
+      allowConcurrent: deps.getMulticastEntitled()
     });
 
     if (discovery.active.includes("bonjour")) {
@@ -33,13 +33,7 @@ export function createAutoInterfaceOps(deps) {
       bridge: deps.getMulticastBridge(),
       onAdvertiseInterface: async (iface) => {
         if (deps.getBonjourBridge() !== null) {
-          await deps
-            .getBonjourBridge()
-            .advertise(
-              iface.name,
-              iface.linkLocalAddress,
-              AUTO_DEFAULT_DATA_PORT,
-            );
+          await deps.getBonjourBridge().advertise(iface.name, iface.linkLocalAddress, AUTO_DEFAULT_DATA_PORT);
         }
       },
       onPeerSpawn: (peer) => {
@@ -53,7 +47,7 @@ export function createAutoInterfaceOps(deps) {
         deps.status.autoPeers = deps.getAutoIface()?.peerInterfaces.length ?? 0;
         deps.pushStatus();
         deps.log(`AutoInterface peer detached: ${peer.peerAddress}`);
-      },
+      }
     });
     deps.setAutoIface(autoIface);
 
@@ -61,9 +55,7 @@ export function createAutoInterfaceOps(deps) {
     if (autoIface.online) {
       deps.log(`AutoInterface online (${deps.status.autoPeers} peer(s))`);
     } else {
-      deps.log(
-        "AutoInterface started; waiting for link-local interfaces from host",
-      );
+      deps.log("AutoInterface started; waiting for link-local interfaces from host");
     }
     deps.pushStatus();
   }

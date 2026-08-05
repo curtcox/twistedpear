@@ -1,129 +1,7 @@
 /** Extracted from channel.ts; the original module remains the public composition point. */
-import {
-  ChannelExceptionTypeCode,
-  ChannelMessageState,
-  CHANNEL_MAX_TRIES,
-  CHANNEL_SEQ_MAX,
-  CHANNEL_SEQ_MODULUS,
-  ChannelWindowLimits,
-  shouldAllowLinkSend,
-  initialLinkSendAllowState,
-  stepLinkSendAllowWithActions,
-  channelEmplaceIndex,
-  channelEnvelopeFieldsFromActions,
-  channelMessageStateFromActions,
-  channelPacketTimeoutFromActions,
-  channelPayloadMdu,
-  channelRingSequenceIndexFromActions,
-  channelTxEnvelopeIndexFromActions,
-  channelTxOutstandingCountFromActions,
-  channelTxTimeoutRetryAction,
-  drainContiguousChannelSequences,
-  initialAcceptChannelSequenceState,
-  initialApplyChannelPacketReceiptTimeoutState,
-  initialApplyChannelTxReceiptTimeoutExtensionState,
-  initialArmChannelPacketReceiptState,
-  initialChannelAllowsSendState,
-  initialChannelOutletTransmitState,
-  initialChannelPacketTimeoutSecondsState,
-  initialChannelWindowState,
-  initialClearChannelEnvelopePacketState,
-  initialCountChannelTxOutstandingState,
-  initialDrainChannelRingIndexState,
-  initialEmplaceChannelEnvelopeState,
-  initialEmitChannelImmediateDeliveryState,
-  initialChannelMessageStateFromPacketReceiptState,
-  initialIndexOfChannelRingSequenceState,
-  initialIndexOfChannelTxEnvelopeState,
-  initialRegisterChannelMessageHandlerState,
-  initialReplaceChannelResentPacketState,
-  initialResendChannelTimeoutPacketState,
-  initialStopChannelHandlerFanoutState,
-  nextChannelSequence,
-  initialChannelEnvelopePackState,
-  initialChannelEnvelopeUnpackState,
-  initialChannelMessageHandlerUnregisterState,
-  initialChannelMessageTypeRegistrationState,
-  initialChannelSendState,
-  initialChannelTxEnvelopeOpState,
-  initialChannelTxReceiptTimeoutRefreshState,
-  initialPackChannelEnvelopeState,
-  initialUnpackChannelEnvelopeState,
-  packChannelEnvelopeRawFromActions,
-  shouldAcceptChannelOutletTransmit,
-  shouldAcceptChannelSequenceNow,
-  shouldAllowChannelSend,
-  shouldApplyChannelPacketReceiptTimeoutNow,
-  shouldApplyChannelTxReceiptTimeoutExtensionNow,
-  shouldArmChannelPacketReceiptNow,
-  shouldClearChannelEnvelopePacketNow,
-  shouldDrainChannelRingIndexNow,
-  shouldEmplaceChannelEnvelopeNow,
-  shouldEmitChannelImmediateDeliveryNow,
-  shouldGiveUpChannelTxTimeout,
-  shouldMissChannelTxEnvelopeOp,
-  shouldProceedChannelEnvelopePack,
-  shouldProceedChannelEnvelopeUnpack,
-  shouldProceedChannelMessageTypeRegistration,
-  shouldProceedChannelSend,
-  shouldRegisterChannelMessageHandlerNow,
-  shouldRejectChannelEnvelopePackMissingMessage,
-  shouldRejectChannelEnvelopeUnpackMissingRaw,
-  shouldRejectChannelEnvelopeUnpackNotRegistered,
-  shouldRejectChannelEnvelopeUnpackTruncate,
-  shouldRejectChannelMessageTypeMissingMsgtype,
-  shouldRejectChannelMessageTypeSystemReserved,
-  shouldRejectChannelSendLinkNotReady,
-  shouldRejectChannelSendTooBig,
-  shouldRejectPackChannelEnvelope,
-  shouldRejectUnpackChannelEnvelope,
-  shouldRemoveChannelMessageHandler,
-  shouldReplaceChannelResentPacketNow,
-  shouldResendChannelTimeoutPacketNow,
-  shouldRetryChannelTxTimeout,
-  shouldStopChannelHandlerFanoutNow,
-  shouldUseChannelPacketTimeout,
-  shouldUseChannelRingSequenceIndex,
-  shouldUseChannelTxEnvelopeIndex,
-  shouldUseChannelTxOutstandingCount,
-  shouldUsePackChannelEnvelope,
-  shouldUseUnpackChannelEnvelope,
-  channelMessageHandlerUnregisterIndex,
-  channelTxReceiptTimeoutExtensions,
-  stepAcceptChannelSequenceWithActions,
-  stepApplyChannelPacketReceiptTimeoutWithActions,
-  stepApplyChannelTxReceiptTimeoutExtensionWithActions,
-  stepArmChannelPacketReceiptWithActions,
-  stepChannelAllowsSendWithActions,
-  stepChannelEnvelopePackWithActions,
-  stepChannelEnvelopeUnpackWithActions,
-  stepChannelMessageHandlerUnregisterWithActions,
-  stepChannelMessageTypeRegistrationWithActions,
-  stepChannelOutletTransmitWithActions,
-  stepChannelPacketTimeoutSecondsWithActions,
-  stepChannelSendWithActions,
-  stepChannelTxEnvelopeOpWithActions,
-  stepChannelTxReceiptTimeoutRefreshWithActions,
-  stepChannelTxTimeoutWithActions,
-  stepChannelWindow,
-  stepClearChannelEnvelopePacketWithActions,
-  stepCountChannelTxOutstandingWithActions,
-  stepDrainChannelRingIndexWithActions,
-  stepEmplaceChannelEnvelopeWithActions,
-  stepEmitChannelImmediateDeliveryWithActions,
-  stepChannelMessageStateFromPacketReceiptWithActions,
-  stepIndexOfChannelRingSequenceWithActions,
-  stepIndexOfChannelTxEnvelopeWithActions,
-  stepPackChannelEnvelopeWithActions,
-  stepRegisterChannelMessageHandlerWithActions,
-  stepReplaceChannelResentPacketWithActions,
-  stepResendChannelTimeoutPacketWithActions,
-  stepStopChannelHandlerFanoutWithActions,
-  stepUnpackChannelEnvelopeWithActions,
-  type ChannelTxTimeoutAction,
-  type ChannelWindowState,
-  type UnpackedChannelEnvelope,
-} from "@twistedpear/protocol";
+import { ChannelExceptionTypeCode,ChannelMessageState,CHANNEL_MAX_TRIES,CHANNEL_SEQ_MAX,CHANNEL_SEQ_MODULUS,ChannelWindowLimits,shouldAllowLinkSend,initialLinkSendAllowState,stepLinkSendAllowWithActions,channelEmplaceIndex,channelEnvelopeFieldsFromActions,channelMessageStateFromActions,channelPacketTimeoutFromActions,channelPayloadMdu,channelRingSequenceIndexFromActions,channelTxEnvelopeIndexFromActions,channelTxOutstandingCountFromActions,channelTxTimeoutRetryAction,drainContiguousChannelSequences,initialAcceptChannelSequenceState,initialApplyChannelPacketReceiptTimeoutState,initialApplyChannelTxReceiptTimeoutExtensionState,initialArmChannelPacketReceiptState,initialChannelAllowsSendState,initialChannelOutletTransmitState,initialChannelPacketTimeoutSecondsState,initialChannelWindowState,initialClearChannelEnvelopePacketState,initialCountChannelTxOutstandingState,initialDrainChannelRingIndexState,initialEmplaceChannelEnvelopeState,initialEmitChannelImmediateDeliveryState,initialChannelMessageStateFromPacketReceiptState,initialIndexOfChannelRingSequenceState,initialIndexOfChannelTxEnvelopeState,initialRegisterChannelMessageHandlerState,initialReplaceChannelResentPacketState,initialResendChannelTimeoutPacketState,initialStopChannelHandlerFanoutState,nextChannelSequence,initialChannelEnvelopePackState,initialChannelEnvelopeUnpackState,initialChannelMessageHandlerUnregisterState,initialChannelMessageTypeRegistrationState,initialChannelSendState,initialChannelTxEnvelopeOpState,initialChannelTxReceiptTimeoutRefreshState,initialPackChannelEnvelopeState,
+  initialUnpackChannelEnvelopeState,packChannelEnvelopeRawFromActions,shouldAcceptChannelOutletTransmit,shouldAcceptChannelSequenceNow,shouldAllowChannelSend,shouldApplyChannelPacketReceiptTimeoutNow,shouldApplyChannelTxReceiptTimeoutExtensionNow,shouldArmChannelPacketReceiptNow,shouldClearChannelEnvelopePacketNow,shouldDrainChannelRingIndexNow,shouldEmplaceChannelEnvelopeNow,shouldEmitChannelImmediateDeliveryNow,shouldGiveUpChannelTxTimeout,shouldMissChannelTxEnvelopeOp,shouldProceedChannelEnvelopePack,shouldProceedChannelEnvelopeUnpack,shouldProceedChannelMessageTypeRegistration,shouldProceedChannelSend,shouldRegisterChannelMessageHandlerNow,shouldRejectChannelEnvelopePackMissingMessage,shouldRejectChannelEnvelopeUnpackMissingRaw,shouldRejectChannelEnvelopeUnpackNotRegistered,shouldRejectChannelEnvelopeUnpackTruncate,shouldRejectChannelMessageTypeMissingMsgtype,shouldRejectChannelMessageTypeSystemReserved,shouldRejectChannelSendLinkNotReady,shouldRejectChannelSendTooBig,shouldRejectPackChannelEnvelope,shouldRejectUnpackChannelEnvelope,shouldRemoveChannelMessageHandler,shouldReplaceChannelResentPacketNow,shouldResendChannelTimeoutPacketNow,shouldRetryChannelTxTimeout,shouldStopChannelHandlerFanoutNow,shouldUseChannelPacketTimeout,shouldUseChannelRingSequenceIndex,shouldUseChannelTxEnvelopeIndex,shouldUseChannelTxOutstandingCount,shouldUsePackChannelEnvelope,shouldUseUnpackChannelEnvelope,channelMessageHandlerUnregisterIndex,channelTxReceiptTimeoutExtensions,stepAcceptChannelSequenceWithActions,stepApplyChannelPacketReceiptTimeoutWithActions,
+  stepApplyChannelTxReceiptTimeoutExtensionWithActions,stepArmChannelPacketReceiptWithActions,stepChannelAllowsSendWithActions,stepChannelEnvelopePackWithActions,stepChannelEnvelopeUnpackWithActions,stepChannelMessageHandlerUnregisterWithActions,stepChannelMessageTypeRegistrationWithActions,stepChannelOutletTransmitWithActions,stepChannelPacketTimeoutSecondsWithActions,stepChannelSendWithActions,stepChannelTxEnvelopeOpWithActions,stepChannelTxReceiptTimeoutRefreshWithActions,stepChannelTxTimeoutWithActions,stepChannelWindow,stepClearChannelEnvelopePacketWithActions,stepCountChannelTxOutstandingWithActions,stepDrainChannelRingIndexWithActions,stepEmplaceChannelEnvelopeWithActions,stepEmitChannelImmediateDeliveryWithActions,stepChannelMessageStateFromPacketReceiptWithActions,stepIndexOfChannelRingSequenceWithActions,stepIndexOfChannelTxEnvelopeWithActions,stepPackChannelEnvelopeWithActions,stepRegisterChannelMessageHandlerWithActions,stepReplaceChannelResentPacketWithActions,stepResendChannelTimeoutPacketWithActions,stepStopChannelHandlerFanoutWithActions,stepUnpackChannelEnvelopeWithActions,type ChannelTxTimeoutAction,type ChannelWindowState,type UnpackedChannelEnvelope } from "@twistedpear/protocol";
 import type { Link } from "../link.js";
 import { PacketContext } from "../packet.js";
 import type { PacketReceipt } from "../packet-receipt.js";
@@ -131,8 +9,7 @@ import type { PacketReceipt } from "../packet-receipt.js";
 /** Mirrors RNS/Channel.py MessageState. */
 export const MessageState = ChannelMessageState;
 
-export type MessageStateValue =
-  (typeof MessageState)[keyof typeof MessageState];
+export type MessageStateValue = (typeof MessageState)[keyof typeof MessageState];
 
 export const ChannelExceptionType = ChannelExceptionTypeCode;
 
@@ -172,11 +49,11 @@ export interface ChannelOutlet {
   setPacketTimeoutCallback(
     packet: ChannelPacket,
     callback: ((packet: ChannelPacket) => void) | null,
-    timeout?: number | null,
+    timeout?: number | null
   ): void;
   setPacketDeliveredCallback(
     packet: ChannelPacket,
-    callback: ((packet: ChannelPacket) => void) | null,
+    callback: ((packet: ChannelPacket) => void) | null
   ): void;
   getPacketId(packet: ChannelPacket): Uint8Array | null;
 }
@@ -196,11 +73,7 @@ class Envelope {
 
   constructor(
     readonly outlet: ChannelOutlet,
-    options: {
-      readonly message?: ChannelMessage;
-      readonly raw?: Uint8Array;
-      readonly sequence?: number;
-    },
+    options: { readonly message?: ChannelMessage; readonly raw?: Uint8Array; readonly sequence?: number }
   ) {
     this.message = options.message ?? null;
     this.raw = options.raw ?? null;
@@ -208,70 +81,44 @@ class Envelope {
   }
 
   pack(): Uint8Array {
-    const { actions } = stepChannelEnvelopePackWithActions(
-      initialChannelEnvelopePackState(),
-      {
-        kind: "channel/envelope-pack-gate",
-        messagePresent: this.message !== null,
-      },
-    );
-    if (
-      shouldRejectChannelEnvelopePackMissingMessage(actions) ||
-      this.message === null
-    ) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Envelope has no message",
-      );
+    const { actions } = stepChannelEnvelopePackWithActions(initialChannelEnvelopePackState(), {
+      kind: "channel/envelope-pack-gate",
+      messagePresent: this.message !== null
+    });
+    if (shouldRejectChannelEnvelopePackMissingMessage(actions) || this.message === null) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no message");
     }
     if (!shouldProceedChannelEnvelopePack(actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Envelope has no message",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no message");
     }
 
-    const packStepped = stepPackChannelEnvelopeWithActions(
-      initialPackChannelEnvelopeState(),
-      {
-        kind: "channel-envelope/pack-gate",
-        msgType: this.message.MSGTYPE,
-        sequence: this.sequence,
-        payload: this.message.pack(),
-      },
-    );
+    const packStepped = stepPackChannelEnvelopeWithActions(initialPackChannelEnvelopeState(), {
+      kind: "channel-envelope/pack-gate",
+      msgType: this.message.MSGTYPE,
+      sequence: this.sequence,
+      payload: this.message.pack()
+    });
     if (
       shouldRejectPackChannelEnvelope(packStepped.actions) ||
       !shouldUsePackChannelEnvelope(packStepped.actions)
     ) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Envelope pack failed",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope pack failed");
     }
     const packed = packChannelEnvelopeRawFromActions(packStepped.actions);
     if (packed === null) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Envelope pack failed",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope pack failed");
     }
     this.raw = packed;
     return this.raw;
   }
 
-  unpack(
-    factories: ReadonlyMap<number, ChannelMessageConstructor>,
-  ): ChannelMessage {
+  unpack(factories: ReadonlyMap<number, ChannelMessageConstructor>): ChannelMessage {
     let unpacked: UnpackedChannelEnvelope | null = null;
     if (this.raw !== null) {
-      const unpackStepped = stepUnpackChannelEnvelopeWithActions(
-        initialUnpackChannelEnvelopeState(),
-        {
-          kind: "channel-envelope/unpack-gate",
-          raw: this.raw,
-        },
-      );
+      const unpackStepped = stepUnpackChannelEnvelopeWithActions(initialUnpackChannelEnvelopeState(), {
+        kind: "channel-envelope/unpack-gate",
+        raw: this.raw
+      });
       if (
         !shouldRejectUnpackChannelEnvelope(unpackStepped.actions) &&
         shouldUseUnpackChannelEnvelope(unpackStepped.actions)
@@ -279,41 +126,26 @@ class Envelope {
         unpacked = channelEnvelopeFieldsFromActions(unpackStepped.actions);
       }
     }
-    const { actions } = stepChannelEnvelopeUnpackWithActions(
-      initialChannelEnvelopeUnpackState(),
-      {
-        kind: "channel/envelope-unpack-gate",
-        rawPresent: this.raw !== null,
-        framingOk: unpacked !== null,
-        factoryRegistered: unpacked !== null && factories.has(unpacked.msgType),
-      },
-    );
+    const { actions } = stepChannelEnvelopeUnpackWithActions(initialChannelEnvelopeUnpackState(), {
+      kind: "channel/envelope-unpack-gate",
+      rawPresent: this.raw !== null,
+      framingOk: unpacked !== null,
+      factoryRegistered: unpacked !== null && factories.has(unpacked.msgType)
+    });
     if (shouldRejectChannelEnvelopeUnpackMissingRaw(actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Envelope has no raw data",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no raw data");
     }
-    if (
-      shouldRejectChannelEnvelopeUnpackTruncate(actions) ||
-      unpacked === null
-    ) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Envelope framing is truncated",
-      );
+    if (shouldRejectChannelEnvelopeUnpackTruncate(actions) || unpacked === null) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope framing is truncated");
     }
     if (shouldRejectChannelEnvelopeUnpackNotRegistered(actions)) {
       throw new ChannelException(
         ChannelExceptionType.ME_NOT_REGISTERED,
-        `Unknown channel MSGTYPE ${unpacked.msgType.toString(16)}`,
+        `Unknown channel MSGTYPE ${unpacked.msgType.toString(16)}`
       );
     }
     if (!shouldProceedChannelEnvelopeUnpack(actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Envelope unpack rejected",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope unpack rejected");
     }
 
     this.sequence = unpacked.sequence;
@@ -328,10 +160,8 @@ class Envelope {
 export class Channel {
   static readonly WINDOW = ChannelWindowLimits.WINDOW;
   static readonly WINDOW_MIN = ChannelWindowLimits.WINDOW_MIN;
-  static readonly WINDOW_MIN_LIMIT_MEDIUM =
-    ChannelWindowLimits.WINDOW_MIN_LIMIT_MEDIUM;
-  static readonly WINDOW_MIN_LIMIT_FAST =
-    ChannelWindowLimits.WINDOW_MIN_LIMIT_FAST;
+  static readonly WINDOW_MIN_LIMIT_MEDIUM = ChannelWindowLimits.WINDOW_MIN_LIMIT_MEDIUM;
+  static readonly WINDOW_MIN_LIMIT_FAST = ChannelWindowLimits.WINDOW_MIN_LIMIT_FAST;
   static readonly WINDOW_MAX_SLOW = ChannelWindowLimits.WINDOW_MAX_SLOW;
   static readonly WINDOW_MAX_MEDIUM = ChannelWindowLimits.WINDOW_MAX_MEDIUM;
   static readonly WINDOW_MAX_FAST = ChannelWindowLimits.WINDOW_MAX_FAST;
@@ -347,10 +177,7 @@ export class Channel {
   private readonly txRing: Envelope[] = [];
   private readonly rxRing: Envelope[] = [];
   private readonly messageCallbacks: ChannelMessageHandler[] = [];
-  private readonly messageFactories = new Map<
-    number,
-    ChannelMessageConstructor
-  >();
+  private readonly messageFactories = new Map<number, ChannelMessageConstructor>();
   private nextSequence = 0;
   private nextRxSequence = 0;
   private readonly maxTries = CHANNEL_MAX_TRIES;
@@ -392,35 +219,23 @@ export class Channel {
     this.windowState = initialChannelWindowState(outlet.rtt);
   }
 
-  registerMessageType(
-    messageClass: ChannelMessageConstructor,
-    options: { readonly isSystemType?: boolean } = {},
-  ): void {
+  registerMessageType(messageClass: ChannelMessageConstructor, options: { readonly isSystemType?: boolean } = {}): void {
     const { actions } = stepChannelMessageTypeRegistrationWithActions(
       initialChannelMessageTypeRegistrationState(),
       {
         kind: "channel/message-type-registration-gate",
         msgType: messageClass.MSGTYPE,
-        isSystemType: options.isSystemType === true,
-      },
+        isSystemType: options.isSystemType === true
+      }
     );
     if (shouldRejectChannelMessageTypeMissingMsgtype(actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Message class lacks MSGTYPE",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message class lacks MSGTYPE");
     }
     if (shouldRejectChannelMessageTypeSystemReserved(actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Message type is system-reserved",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message type is system-reserved");
     }
     if (!shouldProceedChannelMessageTypeRegistration(actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_INVALID_MSG_TYPE,
-        "Message type registration rejected",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message type registration rejected");
     }
 
     this.messageFactories.set(messageClass.MSGTYPE, messageClass);
@@ -433,9 +248,9 @@ export class Channel {
           initialRegisterChannelMessageHandlerState(),
           {
             kind: "channel/register-message-handler-gate",
-            alreadyPresent: this.messageCallbacks.includes(callback),
-          },
-        ).actions,
+            alreadyPresent: this.messageCallbacks.includes(callback)
+          }
+        ).actions
       )
     ) {
       this.messageCallbacks.push(callback);
@@ -447,8 +262,8 @@ export class Channel {
       initialChannelMessageHandlerUnregisterState(),
       {
         kind: "channel/message-handler-unregister-gate",
-        index: this.messageCallbacks.indexOf(callback),
-      },
+        index: this.messageCallbacks.indexOf(callback)
+      }
     );
     const index = channelMessageHandlerUnregisterIndex(stepped.actions);
     if (shouldRemoveChannelMessageHandler(stepped.actions) && index !== null) {
@@ -471,29 +286,23 @@ export class Channel {
           packetPresent: envelope.packet !== null,
           delivered:
             envelope.packet !== null &&
-            this.outlet.getPacketState(envelope.packet) ===
-              MessageState.MSGSTATE_DELIVERED,
-        })),
-      },
+            this.outlet.getPacketState(envelope.packet) === MessageState.MSGSTATE_DELIVERED
+        }))
+      }
     );
-    const outstanding = shouldUseChannelTxOutstandingCount(
-      outstandingStepped.actions,
-    )
+    const outstanding = shouldUseChannelTxOutstandingCount(outstandingStepped.actions)
       ? channelTxOutstandingCountFromActions(outstandingStepped.actions)
       : null;
     if (outstanding === null) {
       throw new Error("Channel.isReadyToSend: missing use-count action");
     }
 
-    const allowStepped = stepChannelAllowsSendWithActions(
-      initialChannelAllowsSendState(),
-      {
-        kind: "channel/allows-send-gate",
-        isUsable: this.outlet.isUsable,
-        outstanding,
-        window: this.windowState.window,
-      },
-    );
+    const allowStepped = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "channel/allows-send-gate",
+      isUsable: this.outlet.isUsable,
+      outstanding,
+      window: this.windowState.window
+    });
     return shouldAllowChannelSend(allowStepped.actions);
   }
 
@@ -502,44 +311,32 @@ export class Channel {
       kind: "channel/send-gate",
       ready: this.isReadyToSend(),
       packedLength: null,
-      mdu: this.outlet.mdu,
+      mdu: this.outlet.mdu
     });
     if (shouldRejectChannelSendLinkNotReady(readyGate.actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_LINK_NOT_READY,
-        "Link is not ready",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Link is not ready");
     }
     if (!shouldProceedChannelSend(readyGate.actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_LINK_NOT_READY,
-        "Link is not ready",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Link is not ready");
     }
 
     const reservedSequence = this.nextSequence;
-    const envelope = new Envelope(this.outlet, {
-      message,
-      sequence: reservedSequence,
-    });
+    const envelope = new Envelope(this.outlet, { message, sequence: reservedSequence });
     envelope.pack();
     const sizeGate = stepChannelSendWithActions(initialChannelSendState(), {
       kind: "channel/send-gate",
       ready: true,
       packedLength: envelope.raw?.length ?? null,
-      mdu: this.outlet.mdu,
+      mdu: this.outlet.mdu
     });
     if (shouldRejectChannelSendTooBig(sizeGate.actions)) {
       throw new ChannelException(
         ChannelExceptionType.ME_TOO_BIG,
-        `Packed message too big for packet: ${envelope.raw!.length} > ${this.outlet.mdu}`,
+        `Packed message too big for packet: ${envelope.raw!.length} > ${this.outlet.mdu}`
       );
     }
     if (!shouldProceedChannelSend(sizeGate.actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_LINK_NOT_READY,
-        "Link is not ready",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Link is not ready");
     }
 
     this.nextSequence = nextChannelSequence(reservedSequence);
@@ -552,18 +349,12 @@ export class Channel {
         kind: "channel/outlet-transmit-gate",
         packetPresent: packet !== null,
         rawLength: packet?.raw.length ?? 0,
-        receiptPresent: packet?.receipt !== null,
-      },
+        receiptPresent: packet?.receipt !== null
+      }
     );
-    if (
-      packet === null ||
-      !shouldAcceptChannelOutletTransmit(transmitStepped.actions)
-    ) {
+    if (packet === null || !shouldAcceptChannelOutletTransmit(transmitStepped.actions)) {
       this.nextSequence = reservedSequence;
-      throw new ChannelException(
-        ChannelExceptionType.ME_LINK_NOT_READY,
-        "Outlet did not transmit packet",
-      );
+      throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Outlet did not transmit packet");
     }
 
     envelope.packet = packet;
@@ -577,7 +368,7 @@ export class Channel {
       (timedOutPacket) => {
         void this.packetTimeout(timedOutPacket);
       },
-      this.getPacketTimeoutTime(envelope.tries),
+      this.getPacketTimeoutTime(envelope.tries)
     );
     this.updatePacketTimeouts();
 
@@ -587,9 +378,9 @@ export class Channel {
           initialEmitChannelImmediateDeliveryState(),
           {
             kind: "channel/emit-immediate-delivery-gate",
-            packetState: this.outlet.getPacketState(packet),
-          },
-        ).actions,
+            packetState: this.outlet.getPacketState(packet)
+          }
+        ).actions
       )
     ) {
       this.packetDelivered(packet);
@@ -604,15 +395,12 @@ export class Channel {
 
     if (
       !shouldAcceptChannelSequenceNow(
-        stepAcceptChannelSequenceWithActions(
-          initialAcceptChannelSequenceState(),
-          {
-            kind: "channel/accept-sequence-gate",
-            sequence: envelope.sequence,
-            nextRxSequence: this.nextRxSequence,
-            windowMax: Channel.WINDOW_MAX,
-          },
-        ).actions,
+        stepAcceptChannelSequenceWithActions(initialAcceptChannelSequenceState(), {
+          kind: "channel/accept-sequence-gate",
+          sequence: envelope.sequence,
+          nextRxSequence: this.nextRxSequence,
+          windowMax: Channel.WINDOW_MAX
+        }).actions
       )
     ) {
       return;
@@ -624,7 +412,7 @@ export class Channel {
 
     const drained = drainContiguousChannelSequences({
       ringSequences: this.rxRing.map((candidate) => candidate.sequence),
-      nextRxSequence: this.nextRxSequence,
+      nextRxSequence: this.nextRxSequence
     });
     this.nextRxSequence = drained.nextRxSequence;
 
@@ -636,21 +424,18 @@ export class Channel {
         {
           kind: "channel/ring-sequence-index-gate",
           ringSequences: this.rxRing.map((candidate) => candidate.sequence),
-          target: sequence,
-        },
+          target: sequence
+        }
       );
       const index = shouldUseChannelRingSequenceIndex(indexStepped.actions)
         ? channelRingSequenceIndexFromActions(indexStepped.actions)
         : null;
       if (
         !shouldDrainChannelRingIndexNow(
-          stepDrainChannelRingIndexWithActions(
-            initialDrainChannelRingIndexState(),
-            {
-              kind: "channel/drain-ring-index-gate",
-              indexPresent: index !== null,
-            },
-          ).actions,
+          stepDrainChannelRingIndexWithActions(initialDrainChannelRingIndexState(), {
+            kind: "channel/drain-ring-index-gate",
+            indexPresent: index !== null
+          }).actions
         )
       ) {
         continue;
@@ -661,13 +446,10 @@ export class Channel {
       for (const callback of [...this.messageCallbacks]) {
         if (
           shouldStopChannelHandlerFanoutNow(
-            stepStopChannelHandlerFanoutWithActions(
-              initialStopChannelHandlerFanoutState(),
-              {
-                kind: "channel/stop-handler-fanout-gate",
-                handled: callback(delivered),
-              },
-            ).actions,
+            stepStopChannelHandlerFanoutWithActions(initialStopChannelHandlerFanoutState(), {
+              kind: "channel/stop-handler-fanout-gate",
+              handled: callback(delivered)
+            }).actions
           )
         ) {
           break;
@@ -681,13 +463,10 @@ export class Channel {
     for (const envelope of this.txRing) {
       if (
         shouldClearChannelEnvelopePacketNow(
-          stepClearChannelEnvelopePacketWithActions(
-            initialClearChannelEnvelopePacketState(),
-            {
-              kind: "channel/clear-envelope-packet-gate",
-              packetPresent: envelope.packet !== null,
-            },
-          ).actions,
+          stepClearChannelEnvelopePacketWithActions(initialClearChannelEnvelopePacketState(), {
+            kind: "channel/clear-envelope-packet-gate",
+            packetPresent: envelope.packet !== null
+          }).actions
         )
       ) {
         this.outlet.setPacketTimeoutCallback(envelope.packet!, null);
@@ -703,14 +482,14 @@ export class Channel {
     const index = channelEmplaceIndex({
       sequence: envelope.sequence,
       ringSequences: ring.map((existing) => existing.sequence),
-      wrapBaseSequence: this.nextRxSequence,
+      wrapBaseSequence: this.nextRxSequence
     });
     const emplaceStepped = stepEmplaceChannelEnvelopeWithActions(
       initialEmplaceChannelEnvelopeState(),
       {
         kind: "channel/emplace-envelope-gate",
-        indexPresent: index !== null,
-      },
+        indexPresent: index !== null
+      }
     );
     if (!shouldEmplaceChannelEnvelopeNow(emplaceStepped.actions)) {
       return false;
@@ -732,10 +511,9 @@ export class Channel {
       kind: "channel/tx-timeout",
       indexOk: index !== null,
       envelopePresent: envelope !== undefined,
-      delivered:
-        this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED,
+      delivered: this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED,
       tries: envelope?.tries ?? 0,
-      maxTries: this.maxTries,
+      maxTries: this.maxTries
     });
     this.windowState = stepped.state;
     await this.applyChannelTxTimeoutActions(envelope, stepped.actions);
@@ -743,7 +521,7 @@ export class Channel {
 
   private async applyChannelTxTimeoutActions(
     envelope: Envelope | undefined,
-    actions: readonly ChannelTxTimeoutAction[],
+    actions: readonly ChannelTxTimeoutAction[]
   ): Promise<void> {
     if (shouldGiveUpChannelTxTimeout(actions)) {
       this.shutdown();
@@ -763,13 +541,10 @@ export class Channel {
     envelope.tries = retry.nextTries;
     if (
       !shouldResendChannelTimeoutPacketNow(
-        stepResendChannelTimeoutPacketWithActions(
-          initialResendChannelTimeoutPacketState(),
-          {
-            kind: "channel/resend-timeout-packet-gate",
-            packetPresent: envelope.packet !== null,
-          },
-        ).actions,
+        stepResendChannelTimeoutPacketWithActions(initialResendChannelTimeoutPacketState(), {
+          kind: "channel/resend-timeout-packet-gate",
+          packetPresent: envelope.packet !== null
+        }).actions
       ) ||
       envelope.packet === null
     ) {
@@ -780,13 +555,10 @@ export class Channel {
     const resent = await this.outlet.resend(packet);
     if (
       shouldReplaceChannelResentPacketNow(
-        stepReplaceChannelResentPacketWithActions(
-          initialReplaceChannelResentPacketState(),
-          {
-            kind: "channel/replace-resent-packet-gate",
-            resentPresent: resent !== null,
-          },
-        ).actions,
+        stepReplaceChannelResentPacketWithActions(initialReplaceChannelResentPacketState(), {
+          kind: "channel/replace-resent-packet-gate",
+          resentPresent: resent !== null
+        }).actions
       )
     ) {
       packet = resent!;
@@ -801,7 +573,7 @@ export class Channel {
       (timedOutPacket) => {
         void this.packetTimeout(timedOutPacket);
       },
-      this.getPacketTimeoutTime(envelope.tries),
+      this.getPacketTimeoutTime(envelope.tries)
     );
     this.updatePacketTimeouts();
 
@@ -811,30 +583,24 @@ export class Channel {
           initialEmitChannelImmediateDeliveryState(),
           {
             kind: "channel/emit-immediate-delivery-gate",
-            packetState: this.outlet.getPacketState(packet),
-          },
-        ).actions,
+            packetState: this.outlet.getPacketState(packet)
+          }
+        ).actions
       )
     ) {
       this.packetDelivered(packet);
     }
   }
 
-  private packetTxOp(
-    packet: ChannelPacket,
-    op: (envelope: Envelope) => boolean,
-  ): void {
+  private packetTxOp(packet: ChannelPacket, op: (envelope: Envelope) => boolean): void {
     const index = this.indexOfTxEnvelope(packet);
     const envelope = index === null ? undefined : this.txRing[index];
-    const stepped = stepChannelTxEnvelopeOpWithActions(
-      initialChannelTxEnvelopeOpState(),
-      {
-        kind: "channel/tx-envelope-op-gate",
-        indexOk: index !== null,
-        envelopePresent: envelope !== undefined,
-        opOk: envelope === undefined ? false : op(envelope),
-      },
-    );
+    const stepped = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: index !== null,
+      envelopePresent: envelope !== undefined,
+      opOk: envelope === undefined ? false : op(envelope)
+    });
     if (shouldMissChannelTxEnvelopeOp(stepped.actions)) {
       return;
     }
@@ -844,7 +610,7 @@ export class Channel {
 
     this.windowState = stepChannelWindow(this.windowState, {
       kind: "channel/delivered",
-      rtt: this.outlet.rtt,
+      rtt: this.outlet.rtt
     }).state;
   }
 
@@ -856,12 +622,10 @@ export class Channel {
       {
         kind: "channel/tx-envelope-index-gate",
         packetIds: this.txRing.map((candidate) =>
-          candidate.packet === null
-            ? null
-            : this.outlet.getPacketId(candidate.packet),
+          candidate.packet === null ? null : this.outlet.getPacketId(candidate.packet)
         ),
-        targetId: this.outlet.getPacketId(packet),
-      },
+        targetId: this.outlet.getPacketId(packet)
+      }
     );
     return shouldUseChannelTxEnvelopeIndex(stepped.actions)
       ? channelTxEnvelopeIndexFromActions(stepped.actions)
@@ -876,16 +640,14 @@ export class Channel {
         kind: "channel/packet-timeout-gate",
         tries,
         rtt: this.outlet.rtt,
-        txRingLength: this.txRing.length,
-      },
+        txRingLength: this.txRing.length
+      }
     );
     const timeout = shouldUseChannelPacketTimeout(stepped.actions)
       ? channelPacketTimeoutFromActions(stepped.actions)
       : null;
     if (timeout === null) {
-      throw new Error(
-        "Channel.getPacketTimeoutTime: missing use-timeout action",
-      );
+      throw new Error("Channel.getPacketTimeoutTime: missing use-timeout action");
     }
     return timeout;
   }
@@ -900,13 +662,11 @@ export class Channel {
           currentTimeout: envelope.packet?.receipt?.timeout ?? null,
           tries: envelope.tries,
           rtt: this.outlet.rtt,
-          txRingLength: this.txRing.length,
-        })),
-      },
+          txRingLength: this.txRing.length
+        }))
+      }
     );
-    for (const extension of channelTxReceiptTimeoutExtensions(
-      stepped.actions,
-    )) {
+    for (const extension of channelTxReceiptTimeoutExtensions(stepped.actions)) {
       const receipt = this.txRing[extension.index]?.packet?.receipt;
       if (
         shouldApplyChannelTxReceiptTimeoutExtensionNow(
@@ -914,9 +674,9 @@ export class Channel {
             initialApplyChannelTxReceiptTimeoutExtensionState(),
             {
               kind: "channel/apply-tx-receipt-timeout-extension-gate",
-              extensionPresent: receipt != null,
-            },
-          ).actions,
+              extensionPresent: receipt != null
+            }
+          ).actions
         )
       ) {
         receipt!.setTimeout(extension.timeoutSeconds);
@@ -928,6 +688,6 @@ export class Channel {
 export class LinkChannelPacket implements ChannelPacket {
   constructor(
     readonly raw: Uint8Array,
-    readonly receipt: PacketReceipt | null,
+    readonly receipt: PacketReceipt | null
   ) {}
 }

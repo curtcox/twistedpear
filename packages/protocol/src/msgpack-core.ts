@@ -121,13 +121,13 @@ export function initialPackMsgpackFloat64State(): PackMsgpackFloat64State {
 
 export function stepPackMsgpackFloat64WithActions(
   state: PackMsgpackFloat64State,
-  event: PackMsgpackFloat64Event,
+  event: PackMsgpackFloat64Event
 ): PackMsgpackFloat64StepResult {
   if (event.kind === "msgpack-float/pack-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: msgpackPackFloat64(event.value) }],
+      actions: [{ kind: "use-raw", raw: msgpackPackFloat64(event.value) }]
     };
   }
 
@@ -135,14 +135,14 @@ export function stepPackMsgpackFloat64WithActions(
 }
 
 export function shouldUsePackMsgpackFloat64(
-  actions: ReadonlyArray<PackMsgpackFloat64Action>,
+  actions: ReadonlyArray<PackMsgpackFloat64Action>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract packed msgpack float64 from step actions; null when no `use-raw`. */
 export function packMsgpackFloat64RawFromActions(
-  actions: ReadonlyArray<PackMsgpackFloat64Action>,
+  actions: ReadonlyArray<PackMsgpackFloat64Action>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -178,16 +178,14 @@ export function initialUnpackMsgpackFloatState(): UnpackMsgpackFloatState {
 
 export function stepUnpackMsgpackFloatWithActions(
   state: UnpackMsgpackFloatState,
-  event: UnpackMsgpackFloatEvent,
+  event: UnpackMsgpackFloatEvent
 ): UnpackMsgpackFloatStepResult {
   if (event.kind === "msgpack-float/unpack-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [
-          { kind: "use-fields", value: msgpackUnpackFloat(event.bytes) },
-        ],
+        actions: [{ kind: "use-fields", value: msgpackUnpackFloat(event.bytes) }]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -198,20 +196,20 @@ export function stepUnpackMsgpackFloatWithActions(
 }
 
 export function shouldUseUnpackMsgpackFloat(
-  actions: ReadonlyArray<UnpackMsgpackFloatAction>,
+  actions: ReadonlyArray<UnpackMsgpackFloatAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackMsgpackFloat(
-  actions: ReadonlyArray<UnpackMsgpackFloatAction>,
+  actions: ReadonlyArray<UnpackMsgpackFloatAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked msgpack float from step actions; null when no `use-fields`. */
 export function msgpackFloatFromActions(
-  actions: ReadonlyArray<UnpackMsgpackFloatAction>,
+  actions: ReadonlyArray<UnpackMsgpackFloatAction>
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.value : null;
@@ -230,17 +228,12 @@ export function msgpackPackArray(items: ReadonlyArray<Uint8Array>): Uint8Array {
 }
 
 /** Pack a small map with integer keys (LXMF fields). */
-export function msgpackPackIntMap(
-  entries: ReadonlyArray<[number, Uint8Array]>,
-): Uint8Array {
+export function msgpackPackIntMap(entries: ReadonlyArray<[number, Uint8Array]>): Uint8Array {
   if (entries.length > 15) {
     throw new Error("msgpackPackIntMap supports at most 15 entries");
   }
 
-  const parts = entries.flatMap(([key, value]) => [
-    msgpackPackUInt(key),
-    msgpackPackBin(value),
-  ]);
+  const parts = entries.flatMap(([key, value]) => [msgpackPackUInt(key), msgpackPackBin(value)]);
   const body = concatBytes(...parts);
   const output = new Uint8Array(1 + body.length);
   output[0] = 0x80 | entries.length;
@@ -269,17 +262,12 @@ export function msgpackPackString(value: string): Uint8Array {
 }
 
 /** Pack a small map with string keys (RNS resource advertisements). */
-export function msgpackPackStringMap(
-  entries: ReadonlyArray<[string, Uint8Array]>,
-): Uint8Array {
+export function msgpackPackStringMap(entries: ReadonlyArray<[string, Uint8Array]>): Uint8Array {
   if (entries.length > 15) {
     throw new Error("msgpackPackStringMap supports at most 15 entries");
   }
 
-  const parts = entries.flatMap(([key, value]) => [
-    msgpackPackString(key),
-    value,
-  ]);
+  const parts = entries.flatMap(([key, value]) => [msgpackPackString(key), value]);
   const body = concatBytes(...parts);
   const output = new Uint8Array(1 + body.length);
   output[0] = 0x80 | entries.length;
@@ -335,10 +323,7 @@ function unpackStringAt(bytes: Uint8Array, offset: number): [string, number] {
   throw new Error(`Expected msgpack string tag, got 0x${tag.toString(16)}`);
 }
 
-function unpackScalarAt(
-  bytes: Uint8Array,
-  offset: number,
-): [MsgpackScalar, number] {
+function unpackScalarAt(bytes: Uint8Array, offset: number): [MsgpackScalar, number] {
   const [value, next] = msgpackUnpackAt(bytes, offset);
   if (value.type === "array" || value.type === "map") {
     throw new Error("expected msgpack scalar");
@@ -347,9 +332,7 @@ function unpackScalarAt(
 }
 
 /** Unpack a fixmap with string keys and scalar values. */
-export function msgpackUnpackStringKeyedMap(
-  bytes: Uint8Array,
-): ReadonlyMap<string, MsgpackScalar> {
+export function msgpackUnpackStringKeyedMap(bytes: Uint8Array): ReadonlyMap<string, MsgpackScalar> {
   const tag = bytes[0];
   if (tag === undefined || (tag & 0xf0) !== 0x80) {
     throw new Error("Expected msgpack fixmap");
@@ -367,10 +350,7 @@ export function msgpackUnpackStringKeyedMap(
   return map;
 }
 
-export function msgpackUnpackAt(
-  bytes: Uint8Array,
-  offset: number,
-): [MsgpackValue, number] {
+export function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, number] {
   const tag = bytes[offset];
   if (tag === undefined) {
     throw new Error("Unexpected end of msgpack input");
@@ -381,11 +361,7 @@ export function msgpackUnpackAt(
   }
 
   if (tag === 0xcb) {
-    const view = new DataView(
-      bytes.buffer,
-      bytes.byteOffset + offset,
-      bytes.byteLength - offset,
-    );
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, bytes.byteLength - offset);
     return [{ type: "float", float: view.getFloat64(1, false) }, offset + 9];
   }
 
@@ -438,11 +414,7 @@ export function msgpackUnpackAt(
   }
 
   if (tag === 0xce) {
-    const view = new DataView(
-      bytes.buffer,
-      bytes.byteOffset + offset,
-      bytes.byteLength - offset,
-    );
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, bytes.byteLength - offset);
     return [{ type: "int", int: view.getUint32(1, false) }, offset + 5];
   }
 

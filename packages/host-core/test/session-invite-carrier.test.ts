@@ -5,18 +5,13 @@ import {
   sessionInviteContent,
   SESSION_INVITE_TITLE,
   type DeliveredSessionInvite,
-  type SessionInviteCarrierMessage,
+  type SessionInviteCarrierMessage
 } from "../src/session-invite-carrier.js";
 
 const SOURCE = new Uint8Array(16).fill(0xab);
 
 function message(
-  overrides: Partial<{
-    title: string;
-    content: string;
-    sourceHash: Uint8Array;
-    signatureValidated: boolean;
-  }> = {},
+  overrides: Partial<{ title: string; content: string; sourceHash: Uint8Array; signatureValidated: boolean }> = {}
 ): SessionInviteCarrierMessage {
   const content =
     overrides.content ??
@@ -25,20 +20,18 @@ function message(
         id: "invite-1",
         appId: "line-check",
         requestedClasses: ["microphone"],
-        expiresAt: 90_000,
-      }),
+        expiresAt: 90_000
+      })
     );
   return {
     titleAsString: () => overrides.title ?? SESSION_INVITE_TITLE,
     contentAsString: () => content,
     sourceHash: overrides.sourceHash ?? SOURCE,
-    signatureValidated: overrides.signatureValidated ?? true,
+    signatureValidated: overrides.signatureValidated ?? true
   };
 }
 
-function receiver(
-  overrides: Partial<Parameters<typeof createSessionInviteReceiver>[0]> = {},
-) {
+function receiver(overrides: Partial<Parameters<typeof createSessionInviteReceiver>[0]> = {}) {
   const delivered: DeliveredSessionInvite[] = [];
   const receive = createSessionInviteReceiver({
     deliver: async (invite) => {
@@ -47,7 +40,7 @@ function receiver(
     isInvitableApp: (appId) => appId === "line-check",
     resolvePeer: () => ({ handleId: "opaque-peer-1", displayLabel: "Ana" }),
     now: () => 1_000,
-    ...overrides,
+    ...overrides
   });
   return { delivered, receive };
 }
@@ -64,17 +57,14 @@ describe("inbound session-invite carrier", () => {
         verifiedPeerLabel: "Ana",
         requestedClasses: ["microphone"],
         expiresAt: 90_000,
-        verified: true,
-      },
+        verified: true
+      }
     ]);
   });
 
   it("names the peer from the verified source, never from the sender", () => {
     const { delivered, receive } = receiver({
-      resolvePeer: (sourceHashHex) => ({
-        handleId: `handle-${sourceHashHex.slice(0, 4)}`,
-        displayLabel: "Ana (verified)",
-      }),
+      resolvePeer: (sourceHashHex) => ({ handleId: `handle-${sourceHashHex.slice(0, 4)}`, displayLabel: "Ana (verified)" })
     });
     receive(message());
     expect(delivered[0]?.verifiedPeerLabel).toBe("Ana (verified)");
@@ -125,10 +115,7 @@ describe("inbound session-invite carrier", () => {
   it("keeps a hostile peer from starving another peer's invites", () => {
     const { delivered, receive } = receiver({
       maxInvitesPerWindow: 1,
-      resolvePeer: (sourceHashHex) => ({
-        handleId: sourceHashHex.slice(0, 4),
-        displayLabel: sourceHashHex.slice(0, 4),
-      }),
+      resolvePeer: (sourceHashHex) => ({ handleId: sourceHashHex.slice(0, 4), displayLabel: sourceHashHex.slice(0, 4) })
     });
     for (let index = 0; index < 4; index += 1) receive(message());
     receive(message({ sourceHash: new Uint8Array(16).fill(0xcd) }));
@@ -137,10 +124,7 @@ describe("inbound session-invite carrier", () => {
 
   it("namespaces the id so one peer cannot spoof another peer's invite", () => {
     const { delivered, receive } = receiver({
-      resolvePeer: (sourceHashHex) => ({
-        handleId: sourceHashHex.slice(0, 4),
-        displayLabel: "Peer",
-      }),
+      resolvePeer: (sourceHashHex) => ({ handleId: sourceHashHex.slice(0, 4), displayLabel: "Peer" })
     });
     receive(message());
     receive(message({ sourceHash: new Uint8Array(16).fill(0xcd) }));
@@ -156,7 +140,7 @@ describe("inbound session-invite carrier", () => {
       isInvitableApp: () => true,
       resolvePeer: () => ({ handleId: "peer", displayLabel: "Peer" }),
       now: () => 1_000,
-      log,
+      log
     });
     expect(() => receive(message())).not.toThrow();
   });

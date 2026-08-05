@@ -1,5 +1,6 @@
 # Authority-machine formal twins
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20

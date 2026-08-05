@@ -13,37 +13,29 @@ function sleep(ms) {
 function createProbeLifecycle(bundle, appId = "probe") {
   let capturedProbes = null;
   const backend = new WebSandboxBackend();
-  const lifecycle = new MiniappLifecycle(
-    backend,
+  const lifecycle = new MiniappLifecycle(backend,
     {
-      appId,
-      version: "1.0.0",
-      entryPath: "bundle.js",
-      bundle,
-      brokerEndpoint: {
-        request: async (request) => {
-          if (
-            request.namespace === "__probe__" &&
-            request.method === "report"
-          ) {
-            capturedProbes = request.payload?.probes ?? null;
-            return { id: request.id, ok: true, result: "recorded" };
-          }
+    appId,
+    version: "1.0.0",
+    entryPath: "bundle.js",
+    bundle,
+    brokerEndpoint: {
+      request: async (request) => {
+        if (request.namespace === "__probe__" && request.method === "report") {
+          capturedProbes = request.payload?.probes ?? null;
+          return { id: request.id, ok: true, result: "recorded" };
+        }
 
-          return { id: request.id, ok: true, result: "ok" };
-        },
-      },
-    },
-    {
-      now: () => Date.now(),
-      delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-    },
-  );
+        return { id: request.id, ok: true, result: "ok" };
+      }
+    }
+  },
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
 
   return {
     backend,
     lifecycle,
-    getProbes: () => capturedProbes,
+    getProbes: () => capturedProbes
   };
 }
 
@@ -169,10 +161,7 @@ async function runSmokeProbe() {
 async function runIsolationProbe() {
   localStorage.setItem("twistedpear-host-marker", "host-secret");
 
-  const { lifecycle, getProbes } = createProbeLifecycle(
-    isolationBundle,
-    "isolation",
-  );
+  const { lifecycle, getProbes } = createProbeLifecycle(isolationBundle, "isolation");
   await lifecycle.launch();
   const capturedProbes = await waitForProbes(getProbes);
   await lifecycle.stop("cleanup");
@@ -186,14 +175,12 @@ async function runIsolationProbe() {
     "parent-idb-blocked",
     "host-marker-blocked",
     "fetch-blocked",
-    "sandbox-localStorage-blocked",
+    "sandbox-localStorage-blocked"
   ];
 
   for (const probe of required) {
     if (!capturedProbes.includes(probe)) {
-      throw new Error(
-        `isolation probe missing ${probe}: ${JSON.stringify(capturedProbes)}`,
-      );
+      throw new Error(`isolation probe missing ${probe}: ${JSON.stringify(capturedProbes)}`);
     }
   }
 }
@@ -208,7 +195,7 @@ async function runEscapeProbe() {
 async function runWasmProbe() {
   const { backend, lifecycle, getProbes } = createProbeLifecycle(
     wasmProbeBundle,
-    "wasm",
+    "wasm"
   );
   await lifecycle.launch();
   const probes = await waitForProbes(getProbes);
@@ -219,35 +206,23 @@ async function runWasmProbe() {
     error:
       probes?.includes("wasm-ok") === true
         ? null
-        : (diagnostics?.detail ??
-          diagnostics?.reason ??
-          "probe did not complete"),
+        : diagnostics?.detail ?? diagnostics?.reason ?? "probe did not complete"
   };
 }
 
 async function runBusyLoopKill() {
   const backend = new WebSandboxBackend();
-  const lifecycle = new MiniappLifecycle(
-    backend,
+  const lifecycle = new MiniappLifecycle(backend,
     {
       appId: "busy-loop",
       version: "1.0.0",
       entryPath: "bundle.js",
       bundle: busyLoopBundle,
       brokerEndpoint: {
-        request: async (request) => ({
-          id: request.id,
-          ok: true,
-          result: "ok",
-        }),
-      },
+        request: async (request) => ({ id: request.id, ok: true, result: "ok" })
+      }
     },
-    {
-      now: () => Date.now(),
-      delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-      watchdogMs: 250,
-    },
-  );
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),  watchdogMs: 250 });
 
   const started = performance.now();
   await lifecycle.launch();
@@ -283,7 +258,7 @@ async function main() {
     isolation: null,
     escape: null,
     wasm: null,
-    busyLoopKillMs: null,
+    busyLoopKillMs: null
   };
 
   await runSmokeProbe();
@@ -310,6 +285,6 @@ main().catch((error) => {
     escape: globalThis.__WEB_SANDBOX__?.escape ?? null,
     wasm: globalThis.__WEB_SANDBOX__?.wasm ?? null,
     busyLoopKillMs: globalThis.__WEB_SANDBOX__?.busyLoopKillMs ?? null,
-    message: error instanceof Error ? error.message : String(error),
+    message: error instanceof Error ? error.message : String(error)
   };
 });

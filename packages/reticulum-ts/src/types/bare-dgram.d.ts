@@ -13,13 +13,10 @@ declare module "bare-dgram" {
       buffer: Uint8Array,
       port: number,
       address: string,
-      cb?: (error?: Error | null) => void,
+      cb?: (error?: Error | null) => void
     ): void;
     close(cb?: () => void): void;
-    on(
-      event: "message",
-      listener: (message: Uint8Array, remote: DgramAddress) => void,
-    ): this;
+    on(event: "message", listener: (message: Uint8Array, remote: DgramAddress) => void): this;
     on(event: "error", listener: (error: Error) => void): this;
     on(event: "close", listener: () => void): this;
     on(event: "listening", listener: () => void): this;

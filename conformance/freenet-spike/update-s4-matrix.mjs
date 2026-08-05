@@ -30,20 +30,16 @@ export function updateS4SupportMatrix(backendKey, measured) {
     wasmExecuted,
     busyLoopKilled,
     busyLoopKillMs:
-      typeof measured.busyLoopKillMs === "number"
-        ? measured.busyLoopKillMs
-        : null,
+      typeof measured.busyLoopKillMs === "number" ? measured.busyLoopKillMs : null,
     spawnMs: typeof measured.spawnMs === "number" ? measured.spawnMs : null,
     killMs: typeof measured.killMs === "number" ? measured.killMs : null,
     measuredAt: measured.measuredAt ?? null,
     environment: measured.environment ?? existing.environment,
-    reason: undefined,
+    reason: undefined
   };
   delete matrix.backends[backendKey].reason;
   matrix.audited =
-    typeof measured.measuredAt === "string"
-      ? measured.measuredAt
-      : matrix.audited;
+    typeof measured.measuredAt === "string" ? measured.measuredAt : matrix.audited;
 
   writeFileSync(matrixPath, `${JSON.stringify(matrix, null, 2)}\n`);
   return matrixPath;

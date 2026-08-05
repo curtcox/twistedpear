@@ -15,24 +15,9 @@
       <h1>TwistedPear Host</h1>
       <p id="subtitle">Desktop always-on peer</p>
     </header>
-    <aside
-      id="session-invite-banner"
-      class="device-active-banner"
-      hidden
-      aria-live="polite"
-    ></aside>
-    <aside
-      id="device-active-banner"
-      class="device-active-banner"
-      hidden
-      aria-live="polite"
-    ></aside>
-    <aside
-      id="relay-attribution-banner"
-      class="device-active-banner"
-      hidden
-      aria-live="polite"
-    ></aside>
+    <aside id="session-invite-banner" class="device-active-banner" hidden aria-live="polite"></aside>
+    <aside id="device-active-banner" class="device-active-banner" hidden aria-live="polite"></aside>
+    <aside id="relay-attribution-banner" class="device-active-banner" hidden aria-live="polite"></aside>
     <main>
       <section class="panel">
         <h2>Node status</h2>
@@ -44,12 +29,7 @@
         <div class="settings-grid">
           <label>
             Install from 256t string
-            <input
-              type="text"
-              id="install-256t-input"
-              placeholder="94-character 256t id"
-              class="setting-input"
-            />
+            <input type="text" id="install-256t-input" placeholder="94-character 256t id" class="setting-input" />
           </label>
           <div class="item-row">
             <button id="install-256t">Install</button>
@@ -71,20 +51,11 @@
         <div class="settings-grid">
           <label>
             Publisher identity (94-char 256t string)
-            <input
-              type="text"
-              id="trust-identity-input"
-              class="setting-input"
-            />
+            <input type="text" id="trust-identity-input" class="setting-input" />
           </label>
           <label>
             Label
-            <input
-              type="text"
-              id="trust-label-input"
-              placeholder="Alice"
-              class="setting-input"
-            />
+            <input type="text" id="trust-label-input" placeholder="Alice" class="setting-input" />
           </label>
           <div class="item-row">
             <button id="trust-add">Trust publisher</button>
@@ -96,138 +67,65 @@
       </section>
       <section class="panel">
         <h2>Devices &amp; Sensors</h2>
-        <p class="muted">
-          Host policy over device classes. Simulated drivers are injected until
-          real OS drivers land; killing a session stops it immediately.
-        </p>
+        <p class="muted">Host policy over device classes. Simulated drivers are injected until real OS drivers land; killing a session stops it immediately.</p>
         <div class="settings-grid">
-          <label
-            ><input type="checkbox" id="device-remote-enabled" /> Allow remote
-            peers to request devices on this host</label
-          >
+          <label><input type="checkbox" id="device-remote-enabled" /> Allow remote peers to request devices on this host</label>
           <div id="device-sessions" class="device-sessions"></div>
           <div id="device-inventory" class="device-inventory"></div>
         </div>
       </section>
       <section class="panel">
         <h2>Relay &amp; Interfaces</h2>
-        <p class="muted">
-          Interfaces remain available for this device in Off mode; Bridge and
-          Transport Node additionally forward peer traffic.
-        </p>
+        <p class="muted">Interfaces remain available for this device in Off mode; Bridge and Transport Node additionally forward peer traffic.</p>
         <div class="settings-grid">
-          <label
-            >Relay mode
+          <label>Relay mode
             <select id="setting-relay-mode" class="setting-input">
               <option value="off">Off</option>
               <option value="bridge">Bridge</option>
               <option value="transport-node">Transport node</option>
             </select>
           </label>
-          <label
-            >TCP direction
-            <select id="setting-tcp-direction" class="setting-input">
-              <option value="both">TX + RX</option>
-              <option value="tx">TX only</option>
-              <option value="rx">RX only</option>
-            </select>
+          <label>TCP direction
+            <select id="setting-tcp-direction" class="setting-input"><option value="both">TX + RX</option><option value="tx">TX only</option><option value="rx">RX only</option></select>
           </label>
-          <label
-            >Auto (LAN) direction
-            <select id="setting-auto-direction" class="setting-input">
-              <option value="both">TX + RX</option>
-              <option value="tx">TX only</option>
-              <option value="rx">RX only</option>
-            </select>
+          <label>Auto (LAN) direction
+            <select id="setting-auto-direction" class="setting-input"><option value="both">TX + RX</option><option value="tx">TX only</option><option value="rx">RX only</option></select>
           </label>
-          <label
-            >RNode direction
-            <select id="setting-rnode-direction" class="setting-input">
-              <option value="both">TX + RX</option>
-              <option value="tx">TX only</option>
-              <option value="rx">RX only</option>
-            </select>
+          <label>RNode direction
+            <select id="setting-rnode-direction" class="setting-input"><option value="both">TX + RX</option><option value="tx">TX only</option><option value="rx">RX only</option></select>
           </label>
-          <small class="setting-note"
-            >Bluetooth is unavailable on desktop. Optical, acoustic, ntfy, I2P,
-            and WebSocket relay diagnostics are exposed through the SDK when a
-            corresponding host driver is installed.</small
-          >
-          <div
-            id="relay-interface-table"
-            class="device-inventory"
-            aria-live="polite"
-          ></div>
+          <small class="setting-note">Bluetooth is unavailable on desktop. Optical, acoustic, ntfy, I2P, and WebSocket relay diagnostics are exposed through the SDK when a corresponding host driver is installed.</small>
+          <div id="relay-interface-table" class="device-inventory" aria-live="polite"></div>
         </div>
       </section>
       <section class="panel">
         <h2>Settings</h2>
         <div class="settings-grid">
-          <label
-            ><input type="checkbox" id="setting-propagation" /> Propagation
-            node</label
-          >
-          <label
-            ><input type="checkbox" id="setting-developer" /> Developer
-            mode</label
-          >
+          <label><input type="checkbox" id="setting-propagation" /> Propagation node</label>
+          <label><input type="checkbox" id="setting-developer" /> Developer mode</label>
           <label><input type="checkbox" id="setting-tcp" /> TCP client</label>
-          <label
-            ><input type="checkbox" id="setting-auto" checked /> Auto
-            (LAN)</label
-          >
+          <label><input type="checkbox" id="setting-auto" checked /> Auto (LAN)</label>
           <div class="setting-group">
             <button id="join-community-network">Join community network</button>
-            <small
-              >Opt-in public Reticulum transport. The operator can observe your
-              IP address and timing.</small
-            >
+            <small>Opt-in public Reticulum transport. The operator can observe your IP address and timing.</small>
           </div>
           <label>
             RNode port
-            <input
-              type="text"
-              id="setting-rnode-port"
-              placeholder="/dev/ttyUSB0"
-              class="setting-input"
-            />
+            <input type="text" id="setting-rnode-port" placeholder="/dev/ttyUSB0" class="setting-input" />
           </label>
-          <label
-            ><input type="checkbox" id="setting-freenet" /> Freenet
-            contracts</label
-          >
+          <label><input type="checkbox" id="setting-freenet" /> Freenet contracts</label>
           <label>
             Freenet node WebSocket
-            <input
-              type="text"
-              id="setting-freenet-url"
-              placeholder="ws://127.0.0.1:50509/v1/contract/command"
-              class="setting-input"
-            />
+            <input type="text" id="setting-freenet-url" placeholder="ws://127.0.0.1:50509/v1/contract/command" class="setting-input" />
           </label>
           <label>
             Freenet auth token (optional)
-            <input
-              type="password"
-              id="setting-freenet-token"
-              class="setting-input"
-              autocomplete="off"
-            />
+            <input type="password" id="setting-freenet-token" class="setting-input" autocomplete="off" />
           </label>
-          <label
-            ><input type="checkbox" id="setting-freenet-interface" /> Freenet as
-            Reticulum interface (HDLC)</label
-          >
+          <label><input type="checkbox" id="setting-freenet-interface" /> Freenet as Reticulum interface (HDLC)</label>
           <label>
             Freenet peer rendezvous (64 hex chars)
-            <input
-              type="text"
-              id="setting-freenet-rendezvous"
-              placeholder="32-byte shared hex"
-              class="setting-input"
-              autocomplete="off"
-              spellcheck="false"
-            />
+            <input type="text" id="setting-freenet-rendezvous" placeholder="32-byte shared hex" class="setting-input" autocomplete="off" spellcheck="false" />
           </label>
           <label>
             Freenet packet-log side
@@ -236,21 +134,10 @@
               <option value="1">Side 1</option>
             </select>
           </label>
-          <small class="setting-note"
-            >Contracts enable <code>freenet:contract</code> for granted
-            mini-apps. The HDLC interface carries Reticulum frames over a
-            Freenet packet-log contract and needs a shared rendezvous with the
-            peer. Off by default; mobile/web do not expose this. Updates
-            published to Freenet cannot be recalled.</small
-          >
+          <small class="setting-note">Contracts enable <code>freenet:contract</code> for granted mini-apps. The HDLC interface carries Reticulum frames over a Freenet packet-log contract and needs a shared rendezvous with the peer. Off by default; mobile/web do not expose this. Updates published to Freenet cannot be recalled.</small>
           <label>
             AI endpoint (OpenRouter-compatible)
-            <input
-              type="text"
-              id="setting-ai-url"
-              placeholder="https://openrouter.ai/api/v1"
-              class="setting-input"
-            />
+            <input type="text" id="setting-ai-url" placeholder="https://openrouter.ai/api/v1" class="setting-input" />
           </label>
           <label>
             AI API key
@@ -258,55 +145,21 @@
           </label>
           <label>
             AI model
-            <input
-              type="text"
-              id="setting-ai-model"
-              placeholder="anthropic/claude-sonnet-5"
-              class="setting-input"
-            />
+            <input type="text" id="setting-ai-model" placeholder="anthropic/claude-sonnet-5" class="setting-input" />
           </label>
           <label>
             AI embedding model
-            <input
-              type="text"
-              id="setting-ai-embedding-model"
-              placeholder="openai/text-embedding-3-small"
-              class="setting-input"
-            />
+            <input type="text" id="setting-ai-embedding-model" placeholder="openai/text-embedding-3-small" class="setting-input" />
           </label>
         </div>
       </section>
       <section class="panel">
         <h2>Identity backup</h2>
-        <p class="muted">
-          Anyone with your recovery words is you. Store them offline;
-          TwistedPear cannot reset or revoke them.
-        </p>
+        <p class="muted">Anyone with your recovery words is you. Store them offline; TwistedPear cannot reset or revoke them.</p>
         <div class="settings-grid">
-          <label
-            >Current passphrase
-            <input
-              type="password"
-              id="identity-current"
-              class="setting-input"
-              autocomplete="current-password"
-          /></label>
-          <label
-            >New or backup passphrase
-            <input
-              type="password"
-              id="identity-next"
-              class="setting-input"
-              autocomplete="new-password"
-          /></label>
-          <label
-            >Confirm new passphrase
-            <input
-              type="password"
-              id="identity-confirm"
-              class="setting-input"
-              autocomplete="new-password"
-          /></label>
+          <label>Current passphrase <input type="password" id="identity-current" class="setting-input" autocomplete="current-password" /></label>
+          <label>New or backup passphrase <input type="password" id="identity-next" class="setting-input" autocomplete="new-password" /></label>
+          <label>Confirm new passphrase <input type="password" id="identity-confirm" class="setting-input" autocomplete="new-password" /></label>
           <div class="item-row">
             <button id="identity-unlock">Unlock / create</button>
             <button id="identity-export">Export encrypted backup</button>
@@ -315,87 +168,28 @@
             <button id="identity-recovery-import">Recover from words</button>
             <button id="identity-change">Change passphrase</button>
           </div>
-          <label
-            >TwistedPear identity 1/2
-            <textarea
-              id="identity-words-first"
-              class="setting-input"
-              rows="3"
-              autocomplete="off"
-            ></textarea>
-          </label>
-          <label
-            >TwistedPear identity 2/2
-            <textarea
-              id="identity-words-second"
-              class="setting-input"
-              rows="3"
-              autocomplete="off"
-            ></textarea>
-          </label>
+          <label>TwistedPear identity 1/2 <textarea id="identity-words-first" class="setting-input" rows="3" autocomplete="off"></textarea></label>
+          <label>TwistedPear identity 2/2 <textarea id="identity-words-second" class="setting-input" rows="3" autocomplete="off"></textarea></label>
           <p id="identity-result" class="muted"></p>
         </div>
       </section>
       <section class="panel">
         <h2>Safety</h2>
-        <p class="muted">
-          Blocking drops future LXMF deliveries. Muting keeps messages but
-          suppresses notifications. Reports stay on this device unless you
-          export them.
-        </p>
+        <p class="muted">Blocking drops future LXMF deliveries. Muting keeps messages but suppresses notifications. Reports stay on this device unless you export them.</p>
         <div class="settings-grid">
-          <label
-            >Sender destination hash
-            <input
-              type="text"
-              id="moderation-source"
-              class="setting-input"
-              maxlength="32"
-              placeholder="32 hexadecimal characters"
-          /></label>
-          <label
-            >Label
-            <input
-              type="text"
-              id="moderation-label"
-              class="setting-input"
-              maxlength="160"
-          /></label>
-          <label
-            >Report reason
-            <select id="moderation-reason" class="setting-input">
-              <option value="spam">Spam</option>
-              <option value="harassment">Harassment</option>
-              <option value="impersonation">Impersonation</option>
-              <option value="unsafe-content">Unsafe content</option>
-              <option value="other">Other</option>
-            </select>
+          <label>Sender destination hash <input type="text" id="moderation-source" class="setting-input" maxlength="32" placeholder="32 hexadecimal characters" /></label>
+          <label>Label <input type="text" id="moderation-label" class="setting-input" maxlength="160" /></label>
+          <label>Report reason
+            <select id="moderation-reason" class="setting-input"><option value="spam">Spam</option><option value="harassment">Harassment</option><option value="impersonation">Impersonation</option><option value="unsafe-content">Unsafe content</option><option value="other">Other</option></select>
           </label>
-          <label
-            >Local report note
-            <textarea
-              id="moderation-note"
-              class="setting-input"
-              rows="3"
-              maxlength="4096"
-            ></textarea>
-          </label>
+          <label>Local report note <textarea id="moderation-note" class="setting-input" rows="3" maxlength="4096"></textarea></label>
           <div class="item-row">
-            <button id="moderation-block">Block</button
-            ><button id="moderation-unblock">Unblock</button>
-            <button id="moderation-mute">Mute</button
-            ><button id="moderation-unmute">Unmute</button>
-            <button id="moderation-report">Record report</button
-            ><button id="moderation-export">Export reports</button>
+            <button id="moderation-block">Block</button><button id="moderation-unblock">Unblock</button>
+            <button id="moderation-mute">Mute</button><button id="moderation-unmute">Unmute</button>
+            <button id="moderation-report">Record report</button><button id="moderation-export">Export reports</button>
           </div>
-          <div>
-            <strong>Blocked</strong>
-            <ul id="moderation-blocked" class="item-list"></ul>
-          </div>
-          <div>
-            <strong>Muted</strong>
-            <ul id="moderation-muted" class="item-list"></ul>
-          </div>
+          <div><strong>Blocked</strong><ul id="moderation-blocked" class="item-list"></ul></div>
+          <div><strong>Muted</strong><ul id="moderation-muted" class="item-list"></ul></div>
           <p id="moderation-summary" class="muted"></p>
         </div>
       </section>
@@ -422,12 +216,7 @@
           <p id="limits-app" class="muted">No mini-app selected</p>
           <label>
             Broker messages/second
-            <input
-              type="number"
-              id="limit-rate"
-              min="1"
-              class="setting-input"
-            />
+            <input type="number" id="limit-rate" min="1" class="setting-input" />
           </label>
           <label>
             KV quota (bytes)
@@ -435,12 +224,7 @@
           </label>
           <label>
             Memory (bytes, applies on next launch)
-            <input
-              type="number"
-              id="limit-memory"
-              min="1"
-              class="setting-input"
-            />
+            <input type="number" id="limit-memory" min="1" class="setting-input" />
           </label>
           <p id="limits-note" class="muted"></p>
           <div class="item-row">

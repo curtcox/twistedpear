@@ -6,10 +6,7 @@
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import {
-  decodeMessages,
-  encodeMessage,
-} from "../../packages/host-core/dist/protocol.js";
+import { decodeMessages, encodeMessage } from "../../packages/host-core/dist/protocol.js";
 
 function assert(condition, message) {
   if (!condition) {
@@ -29,17 +26,12 @@ class TestSupervisor {
 
   constructor(options) {
     this.options = options;
-    this.script = join(
-      dirname(fileURLToPath(import.meta.url)),
-      "fixtures/supervisor-worklet.mjs",
-    );
+    this.script = join(dirname(fileURLToPath(import.meta.url)), "fixtures/supervisor-worklet.mjs");
   }
 
   start() {
     this.stopping = false;
-    this.child = spawn(process.execPath, [this.script], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    this.child = spawn(process.execPath, [this.script], { stdio: ["pipe", "pipe", "pipe"] });
 
     this.child.stdout.on("data", (chunk) => {
       this.buffer += chunk.toString("utf8");
@@ -55,10 +47,7 @@ class TestSupervisor {
       this.options.onExit(code, signal);
       if (!this.stopping) {
         this.restartAttempts += 1;
-        const delay = Math.min(
-          30_000,
-          500 * 2 ** Math.min(this.restartAttempts, 6),
-        );
+        const delay = Math.min(30_000, 500 * 2 ** Math.min(this.restartAttempts, 6));
         setTimeout(() => this.start(), delay);
       }
     });
@@ -94,7 +83,7 @@ export async function runDesktopCrashRestart() {
       },
       onExit() {
         exitCount += 1;
-      },
+      }
     });
 
     supervisor.start();
@@ -103,13 +92,8 @@ export async function runDesktopCrashRestart() {
   supervisor.send({ type: "create-identity" });
   await sleep(100);
 
-  const firstIdentity = messages.findLast(
-    (message) => message.type === "status",
-  )?.status.identityHash;
-  assert(
-    firstIdentity === "supervisor-test-identity",
-    "fixture worklet created identity before crash",
-  );
+  const firstIdentity = messages.findLast((message) => message.type === "status")?.status.identityHash;
+  assert(firstIdentity === "supervisor-test-identity", "fixture worklet created identity before crash");
 
   const messageCountBefore = messages.length;
   supervisor.simulateCrash();
@@ -118,9 +102,7 @@ export async function runDesktopCrashRestart() {
   while (Date.now() - restartedAt < 5_000) {
     if (exitCount >= 1 && messages.length > messageCountBefore) {
       supervisor.stop();
-      console.log(
-        "desktop-crash-restart: supervisor restarted worklet within 5s",
-      );
+      console.log("desktop-crash-restart: supervisor restarted worklet within 5s");
       return;
     }
 

@@ -1,7 +1,4 @@
-import {
-  transportClass,
-  type TransportClassName,
-} from "@twistedpear/effects/adapters/sim";
+import { transportClass, type TransportClassName } from "@twistedpear/effects/adapters/sim";
 
 export interface SpamEconomics {
   readonly transport: TransportClassName;
@@ -18,7 +15,7 @@ const AIRTIME_COST: Readonly<Record<TransportClassName, number>> = {
   ble: 0.001,
   lora: 0.02,
   // Freenet uses IP bulk and the S2/F2 measured 90 kbit/s policy class.
-  freenet: 0.0001,
+  freenet: 0.0001
 };
 
 export function spamEconomics(options: {
@@ -34,31 +31,16 @@ export function spamEconomics(options: {
 }): SpamEconomics {
   const model = transportClass(options.transport);
   const messages = Math.max(0, Math.floor(options.messages));
-  const serializedBytes =
-    options.serializedBytes ?? Math.max(0, options.payloadBytes) * messages;
-  const airtimeMs =
-    options.executedAirtimeMs ??
-    (serializedBytes * 8 * 1_000) / model.bandwidthBps;
-  const dutyPenalty =
-    options.dutyCycleOutcomes === undefined
-      ? model.dutyCycle === undefined
-        ? 1
-        : 1 / model.dutyCycle
-      : 1 + options.dutyCycleOutcomes;
+  const serializedBytes = options.serializedBytes ?? Math.max(0, options.payloadBytes) * messages;
+  const airtimeMs = options.executedAirtimeMs ?? serializedBytes * 8 * 1_000 / model.bandwidthBps;
+  const dutyPenalty = options.dutyCycleOutcomes === undefined
+    ? (model.dutyCycle === undefined ? 1 : 1 / model.dutyCycle)
+    : 1 + options.dutyCycleOutcomes;
   const lostPenalty = 1 + (options.lostMessages ?? 0) / Math.max(1, messages);
-  const attackerCost =
-    airtimeMs * AIRTIME_COST[options.transport] * dutyPenalty * lostPenalty;
-  const delivered =
-    options.deliveredMessages ?? messages * Math.max(0, 1 - model.lossRate);
+  const attackerCost = airtimeMs * AIRTIME_COST[options.transport] * dutyPenalty * lostPenalty;
+  const delivered = options.deliveredMessages ?? messages * Math.max(0, 1 - model.lossRate);
   const expectedPayoff = delivered * options.payoffPerDelivery;
-  return {
-    transport: options.transport,
-    messages,
-    airtimeMs,
-    attackerCost,
-    expectedPayoff,
-    profitable: expectedPayoff > attackerCost,
-  };
+  return { transport: options.transport, messages, airtimeMs, attackerCost, expectedPayoff, profitable: expectedPayoff > attackerCost };
 }
 
 export interface HarassmentResult {
@@ -91,21 +73,15 @@ export function propagateHarassment(options: {
   return { reached: [...seen].sort(), arrestedAtHop: null };
 }
 
-export interface ReputationVote {
-  readonly from: string;
-  readonly to: string;
-  readonly value: -1 | 1;
-}
+export interface ReputationVote { readonly from: string; readonly to: string; readonly value: -1 | 1 }
 export function reputationUnderCollusion(
   votes: readonly ReputationVote[],
   colluders: ReadonlySet<string>,
-  colluderWeight = 0.1,
+  colluderWeight = 0.1
 ): Readonly<Record<string, number>> {
   const scores: Record<string, number> = {};
   for (const vote of votes) {
-    scores[vote.to] =
-      (scores[vote.to] ?? 0) +
-      vote.value * (colluders.has(vote.from) ? colluderWeight : 1);
+    scores[vote.to] = (scores[vote.to] ?? 0) + vote.value * (colluders.has(vote.from) ? colluderWeight : 1);
   }
   return scores;
 }

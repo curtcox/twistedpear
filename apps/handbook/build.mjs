@@ -29,7 +29,7 @@ import {
   root,
   runtimePaths,
   seedsDir,
-  writeText,
+  writeText
 } from "./build-content.mjs";
 import { generateReferenceChapters } from "./build-reference.mjs";
 
@@ -69,16 +69,10 @@ async function build() {
       for (const block of blocks) {
         if (block.type === "code") {
           writeText(join(seedsDir, block.documentId), block.content);
-          seedBlocks.push({
-            type: "code",
-            documentId: block.documentId,
-            language: block.language,
-          });
+          seedBlocks.push({ type: "code", documentId: block.documentId, language: block.language });
         } else if (block.type === "applet") {
           if (!appletIds.has(block.appletId)) {
-            fail(
-              `Chapter ${chapter.id} references unknown applet ${block.appletId}`,
-            );
+            fail(`Chapter ${chapter.id} references unknown applet ${block.appletId}`);
           }
           seedBlocks.push({ type: "applet", appletId: block.appletId });
         } else {
@@ -95,7 +89,7 @@ async function build() {
         partId: part.id,
         partTitle: part.title,
         blocks: seedBlocks,
-        searchText: "",
+        searchText: ""
       });
     }
   }
@@ -106,9 +100,7 @@ async function build() {
     if (minWords !== undefined) {
       const words = chapterWordCount(chapter);
       if (words < minWords) {
-        fail(
-          `Chapter ${chapter.id} is too thin (${words} < ${minWords} words)`,
-        );
+        fail(`Chapter ${chapter.id} is too thin (${words} < ${minWords} words)`);
       }
     }
   }
@@ -119,15 +111,10 @@ async function build() {
       if (!chapterIds.has(targetId)) {
         fail(`Broken chapter link from ${link.from}: ${link.target}`);
       }
-    } else if (
-      link.target.startsWith("http://") ||
-      link.target.startsWith("https://")
-    ) {
+    } else if (link.target.startsWith("http://") || link.target.startsWith("https://")) {
       // External URLs are allowed.
     } else if (link.target.startsWith("../") || link.target.endsWith(".md")) {
-      fail(
-        `Dead in-app link from ${link.from}: ${link.target} — use chapter:id targets`,
-      );
+      fail(`Dead in-app link from ${link.from}: ${link.target} — use chapter:id targets`);
     } else {
       fail(`Unsupported link target from ${link.from}: ${link.target}`);
     }
@@ -136,9 +123,7 @@ async function build() {
   for (const applet of applets) {
     for (const platform of HANDBOOK_PLATFORMS) {
       if (applet.expectations[platform] === undefined) {
-        fail(
-          `Applet ${applet.id} missing expectation for platform ${platform}`,
-        );
+        fail(`Applet ${applet.id} missing expectation for platform ${platform}`);
       }
     }
   }
@@ -156,11 +141,11 @@ async function build() {
           preview: applet.preview,
           capabilities: applet.capabilities,
           surfaces: applet.surfaces,
-          expectations: applet.expectations,
+          expectations: applet.expectations
         },
         null,
-        2,
-      )}\n`,
+        2
+      )}\n`
     );
   }
 
@@ -188,16 +173,12 @@ async function build() {
   let capabilityDefinitions = [];
   let capabilityDescriptions = new Map();
   try {
-    const runtimeCaps =
-      await import("../../packages/miniapp-runtime/dist/capabilities.js");
-    capabilityDefinitions = runtimeCaps.CAPABILITY_DEFINITIONS.map(
-      (entry) => entry.id,
+    const runtimeCaps = await import(
+      "../../packages/miniapp-runtime/dist/capabilities.js"
     );
+    capabilityDefinitions = runtimeCaps.CAPABILITY_DEFINITIONS.map((entry) => entry.id);
     capabilityDescriptions = new Map(
-      runtimeCaps.CAPABILITY_DEFINITIONS.map((entry) => [
-        entry.id,
-        entry.description,
-      ]),
+      runtimeCaps.CAPABILITY_DEFINITIONS.map((entry) => [entry.id, entry.description])
     );
   } catch {
     // Fall back when dist is not built yet; D1 CI always runs after `npm run build`.
@@ -218,11 +199,9 @@ async function build() {
       "apps:publish",
       "apps:install",
       "apps:preview",
-      "share:cas",
+      "share:cas"
     ];
-    capabilityDescriptions = new Map(
-      capabilityDefinitions.map((id) => [id, id]),
-    );
+    capabilityDescriptions = new Map(capabilityDefinitions.map((id) => [id, id]));
   }
 
   for (const capability of capabilityDefinitions) {
@@ -231,23 +210,14 @@ async function build() {
     }
   }
 
-  const allChapterText = chapters
-    .map((chapter) => chapter.searchText)
-    .join("\n");
+  const allChapterText = chapters.map((chapter) => chapter.searchText).join("\n");
   const allSurfacePrefixes = applets
-    .flatMap((applet) =>
-      (applet.surfaces ?? []).map((surface) => surface.split(".")[0]),
-    )
+    .flatMap((applet) => (applet.surfaces ?? []).map((surface) => surface.split(".")[0]))
     .join(" ")
     .toLowerCase();
   for (const namespace of SDK_NAMESPACES) {
-    if (
-      !allChapterText.includes(namespace) &&
-      !allSurfacePrefixes.includes(namespace)
-    ) {
-      fail(
-        `SDK namespace "${namespace}" is not referenced in any chapter or applet surface`,
-      );
+    if (!allChapterText.includes(namespace) && !allSurfacePrefixes.includes(namespace)) {
+      fail(`SDK namespace "${namespace}" is not referenced in any chapter or applet surface`);
     }
   }
 
@@ -255,7 +225,7 @@ async function build() {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const manifestCapabilities = (manifest.capabilities ?? []).map((id) => ({
     id,
-    description: capabilityDescriptions.get(id) ?? id,
+    description: capabilityDescriptions.get(id) ?? id
   }));
 
   const catalog = {
@@ -265,17 +235,14 @@ async function build() {
     parts: toc.parts.map((part) => ({
       id: part.id,
       title: part.title,
-      chapters: part.chapters.map((chapter) => ({
-        id: chapter.id,
-        title: chapter.title,
-      })),
+      chapters: part.chapters.map((chapter) => ({ id: chapter.id, title: chapter.title }))
     })),
     chapters,
     applets: applets.map(({ source, ...rest }) => ({
       ...rest,
-      sourcePath: `applets/${rest.id}/main.js`,
+      sourcePath: `applets/${rest.id}/main.js`
     })),
-    seeds: collectSeedManifest(seedsDir),
+    seeds: collectSeedManifest(seedsDir)
   };
 
   writeText(catalogOutPath, `${JSON.stringify(catalog, null, 2)}\n`);
@@ -291,30 +258,20 @@ async function build() {
     manifest,
     capabilityDescriptions,
     runtime,
-    seeds: catalog.seeds,
+    seeds: catalog.seeds
   });
 
   console.log(
-    `handbook build: ${chapters.length} chapter(s), ${applets.length} applet(s), ${catalog.seeds.length} seed file(s) → bundle.js; ${toc.parts.length} part package(s) → generated/part-packages/`,
+    `handbook build: ${chapters.length} chapter(s), ${applets.length} applet(s), ${catalog.seeds.length} seed file(s) → bundle.js; ${toc.parts.length} part package(s) → generated/part-packages/`
   );
 }
 
-function buildPartPackages({
-  toc,
-  chapters,
-  applets,
-  manifest,
-  capabilityDescriptions,
-  runtime,
-  seeds,
-}) {
+function buildPartPackages({ toc, chapters, applets, manifest, capabilityDescriptions, runtime, seeds }) {
   const partsRoot = join(generatedDir, "part-packages");
   rmSync(partsRoot, { recursive: true, force: true });
 
   for (const part of toc.parts) {
-    const partChapters = chapters.filter(
-      (chapter) => chapter.partId === part.id,
-    );
+    const partChapters = chapters.filter((chapter) => chapter.partId === part.id);
     const referencedApplets = new Set();
     for (const chapter of partChapters) {
       for (const block of chapter.blocks) {
@@ -328,7 +285,7 @@ function buildPartPackages({
       .filter((applet) => referencedApplets.has(applet.id))
       .map(({ source, ...rest }) => ({
         ...rest,
-        sourcePath: `applets/${rest.id}/main.js`,
+        sourcePath: `applets/${rest.id}/main.js`
       }));
 
     const chapterIds = new Set(partChapters.map((chapter) => chapter.id));
@@ -338,19 +295,12 @@ function buildPartPackages({
         return chapterIds.has(chapterId);
       }
       if (seed.path.startsWith("applets/")) {
-        return [...referencedApplets].some((id) =>
-          seed.path.startsWith(`applets/${id}/`),
-        );
+        return [...referencedApplets].some((id) => seed.path.startsWith(`applets/${id}/`));
       }
       return false;
     });
 
-    const partCapabilityIds = new Set([
-      "identity",
-      "presence",
-      "storage:kv",
-      "workspace",
-    ]);
+    const partCapabilityIds = new Set(["identity", "presence", "storage:kv", "workspace"]);
     for (const applet of partApplets) {
       for (const capability of applet.capabilities ?? []) {
         partCapabilityIds.add(capability);
@@ -360,9 +310,7 @@ function buildPartPackages({
     const partManifest = {
       ...manifest,
       name: `handbook-${part.id}`,
-      capabilities: (manifest.capabilities ?? []).filter((id) =>
-        partCapabilityIds.has(id),
-      ),
+      capabilities: (manifest.capabilities ?? []).filter((id) => partCapabilityIds.has(id))
     };
     if (partManifest.capabilities.length === 0) {
       partManifest.capabilities = ["identity", "storage:kv"];
@@ -370,7 +318,7 @@ function buildPartPackages({
 
     const partManifestCapabilities = partManifest.capabilities.map((id) => ({
       id,
-      description: capabilityDescriptions.get(id) ?? id,
+      description: capabilityDescriptions.get(id) ?? id
     }));
 
     const partCatalog = {
@@ -381,25 +329,19 @@ function buildPartPackages({
         {
           id: part.id,
           title: part.title,
-          chapters: part.chapters.map((chapter) => ({
-            id: chapter.id,
-            title: chapter.title,
-          })),
-        },
+          chapters: part.chapters.map((chapter) => ({ id: chapter.id, title: chapter.title }))
+        }
       ],
       chapters: partChapters,
       applets: partApplets,
-      seeds: partSeeds,
+      seeds: partSeeds
     };
 
     const partDir = join(partsRoot, part.id);
-    writeText(
-      join(partDir, "app.manifest.json"),
-      `${JSON.stringify(partManifest, null, 2)}\n`,
-    );
+    writeText(join(partDir, "app.manifest.json"), `${JSON.stringify(partManifest, null, 2)}\n`);
     writeText(
       join(partDir, "bundle.js"),
-      `/* Generated part package ${part.id} */\nconst CATALOG = ${JSON.stringify(partCatalog)};\n${runtime}`,
+      `/* Generated part package ${part.id} */\nconst CATALOG = ${JSON.stringify(partCatalog)};\n${runtime}`
     );
   }
 }

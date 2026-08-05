@@ -1,3 +1,4 @@
+
 export * from "./host/shared.js";
 export type * from "./host/shared.js";
 import { MiniappHostLayer2 } from "./host/layer-2.js";

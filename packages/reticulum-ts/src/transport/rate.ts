@@ -8,7 +8,7 @@ import {
   stepRecordAnnounceWithActions,
   type AnnounceRateEntry as ProtocolAnnounceRateEntry,
   type AnnounceRateOptions as ProtocolAnnounceRateOptions,
-  type AnnounceRateState,
+  type AnnounceRateState
 } from "@twistedpear/protocol";
 
 export const MAX_RATE_TIMESTAMPS = MAX_ANNOUNCE_RATE_TIMESTAMPS;
@@ -31,9 +31,7 @@ export class AnnounceRateLimiter {
   }
 
   isBlocked(destinationKey: string, now: number): boolean {
-    return shouldTreatAnnounceBlocked(
-      this.stepBlocked(destinationKey, now).actions,
-    );
+    return shouldTreatAnnounceBlocked(this.stepBlocked(destinationKey, now).actions);
   }
 
   /** Expose the blocked-gate step so adapters can census observe/drop. */
@@ -41,7 +39,7 @@ export class AnnounceRateLimiter {
     return stepAnnounceBlockedWithActions(this.state, {
       kind: "announce/blocked-gate",
       destinationKey,
-      at: now,
+      at: now
     });
   }
 
@@ -49,7 +47,7 @@ export class AnnounceRateLimiter {
     const stepped = stepRecordAnnounceWithActions(this.state, {
       kind: "announce/record-gate",
       destinationKey,
-      at: now,
+      at: now
     });
     this.state = stepped.state;
     return shouldTreatRecordAnnounceBlocked(stepped.actions);

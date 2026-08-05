@@ -9,10 +9,7 @@ interface PingState {
   readonly pongs: number;
 }
 
-function stepPing(
-  state: PingState,
-  event: Event,
-): { state: PingState; intents: Intent[] } {
+function stepPing(state: PingState, event: Event): { state: PingState; intents: Intent[] } {
   if (event.kind === "start") {
     return {
       state,
@@ -22,11 +19,11 @@ function stepPing(
           send: {
             channel: "ping",
             destination: "b",
-            payload: new Uint8Array([1]),
-          },
+            payload: new Uint8Array([1])
+          }
         },
-        { kind: "timer/set", timer: { id: "heartbeat", delayMs: 50 } },
-      ],
+        { kind: "timer/set", timer: { id: "heartbeat", delayMs: 50 } }
+      ]
     };
   }
   if (event.kind === "transport/recv") {
@@ -39,10 +36,10 @@ function stepPing(
             send: {
               channel: "ping",
               destination: event.source,
-              payload: new Uint8Array([2]),
-            },
-          },
-        ],
+              payload: new Uint8Array([2])
+            }
+          }
+        ]
       };
     }
     return { state: { ...state, pongs: state.pongs + 1 }, intents: [] };
@@ -56,11 +53,11 @@ function stepPing(
           send: {
             channel: "ping",
             destination: "b",
-            payload: new Uint8Array([1]),
-          },
-        },
+            payload: new Uint8Array([1])
+          }
+        }
         // Do not reschedule — keeps the scenario finite for idle detection.
-      ],
+      ]
     };
   }
   return { state, intents: [] };
@@ -72,9 +69,9 @@ describe("sim determinism", () => {
       seed: 0xc0ffee,
       nodes: [
         { id: "a", initial: { pings: 0, pongs: 0 }, step: stepPing },
-        { id: "b", initial: { pings: 0, pongs: 0 }, step: stepPing },
+        { id: "b", initial: { pings: 0, pongs: 0 }, step: stepPing }
       ],
-      delivery: { latencyMs: 5 },
+      delivery: { latencyMs: 5 }
     };
     const { a, b } = doubleRunHashes(config);
     expect(a).toBe(b);
@@ -86,9 +83,9 @@ describe("sim determinism", () => {
         seed: 42,
         nodes: [
           { id: "a", initial: { pings: 0, pongs: 0 }, step: stepPing },
-          { id: "b", initial: { pings: 0, pongs: 0 }, step: stepPing },
+          { id: "b", initial: { pings: 0, pongs: 0 }, step: stepPing }
         ],
-        delivery: { latencyMs: 3 },
+        delivery: { latencyMs: 3 }
       });
       kernel.start();
       kernel.advanceTo(120);
@@ -96,7 +93,7 @@ describe("sim determinism", () => {
         hash: kernel.getTraceHash(),
         trace: kernel.getTrace(),
         a: kernel.getNodeState("a"),
-        b: kernel.getNodeState("b"),
+        b: kernel.getNodeState("b")
       };
     };
     const x = make();
@@ -112,9 +109,9 @@ describe("sim determinism", () => {
       seed: 99,
       nodes: [
         { id: "a", initial: { pings: 0, pongs: 0 }, step: stepPing },
-        { id: "b", initial: { pings: 0, pongs: 0 }, step: stepPing },
+        { id: "b", initial: { pings: 0, pongs: 0 }, step: stepPing }
       ],
-      delivery: { latencyMs: 0, lossRate: 0.3 },
+      delivery: { latencyMs: 0, lossRate: 0.3 }
     };
     const run = (salt: number) => {
       const kernel = new SimKernel({ ...base, interleaveSalt: salt });

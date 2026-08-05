@@ -17,35 +17,32 @@ await runMain(async () => {
         : [
             process.env.FREENET_NODE_URL,
             process.env.FREENET_CONTRACT_KEY ??
-              "CJUR37WSMxV7C1yhrr3xSgjnrJT5yuvQGFNcgvSnsvg",
-          ]),
+              "CJUR37WSMxV7C1yhrr3xSgjnrJT5yuvQGFNcgvSnsvg"
+          ])
     ],
-    { cwd: repoRoot },
+    { cwd: repoRoot }
   );
   step(bare.stdout.trim());
   const match = /FREENET_S1 (.+)/.exec(bare.stdout);
   assert(match !== null, "Bare probe did not return structured S1 output");
   const result = JSON.parse(match[1]);
   assert(result.sdkImports === true, "Freenet SDK failed to import under Bare");
-  assert(
-    result.webSocketGlobal === true,
-    "Bare WebSocket shim was not installed",
-  );
+  assert(result.webSocketGlobal === true, "Bare WebSocket shim was not installed");
   assert(
     result.shims?.join(",") === "bare-ws@2.0.4,bare-encoding@1.0.3",
-    "Unexpected Bare shim inventory",
+    "Unexpected Bare shim inventory"
   );
 
   if (process.env.FREENET_NODE_URL === undefined) {
     step(
-      "No FREENET_NODE_URL: live connection portion skipped (offline-by-default)",
+      "No FREENET_NODE_URL: live connection portion skipped (offline-by-default)"
     );
   } else {
     assert(
       result.liveGet?.key ===
         (process.env.FREENET_CONTRACT_KEY ??
           "CJUR37WSMxV7C1yhrr3xSgjnrJT5yuvQGFNcgvSnsvg"),
-      "Bare live get returned a different contract key",
+      "Bare live get returned a different contract key"
     );
     assert(result.liveGet.stateBytes > 0, "Bare live get returned empty state");
     step(`Read ${result.liveGet.stateBytes} Atlas bytes through Bare`);

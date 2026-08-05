@@ -13,7 +13,7 @@ export function createMiniappMessageHandlers(deps) {
     webRtcRouteListeners,
     webRtcRoutePending,
     refuseStoreAction,
-    shouldRefuseDeveloperMode,
+    shouldRefuseDeveloperMode
   } = deps;
   const ensureMiniappHost = (...args) => deps.ensureMiniappHost(...args);
   const ensureCatalog = (...args) => deps.ensureCatalog(...args);
@@ -32,11 +32,7 @@ export function createMiniappMessageHandlers(deps) {
   };
 
   const handleGetGrants = async (message) => {
-    await ensureMiniappHost().getGrants(
-      message.appId,
-      message.publisherPublicKey,
-      message.declaredCapabilities,
-    );
+    await ensureMiniappHost().getGrants(message.appId, message.publisherPublicKey, message.declaredCapabilities);
     return;
   };
 
@@ -45,7 +41,7 @@ export function createMiniappMessageHandlers(deps) {
       message.appId,
       message.publisherPublicKey,
       message.declaredCapabilities,
-      message.grantedCapabilities,
+      message.grantedCapabilities
     );
     log(`Saved grants for ${message.appId}`);
     return;
@@ -56,7 +52,7 @@ export function createMiniappMessageHandlers(deps) {
       message.appId,
       message.publisherPublicKey,
       message.capability,
-      message.declaredCapabilities,
+      message.declaredCapabilities
     );
     log(`Revoked ${message.capability} for ${message.appId}`);
     return;
@@ -68,9 +64,7 @@ export function createMiniappMessageHandlers(deps) {
       await ensureMiniappHost().launch(installed, runtime, message.appId);
       log(`Launched mini-app ${message.appId}`);
     } catch (error) {
-      log(
-        `Launch failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Launch failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   };
@@ -83,9 +77,7 @@ export function createMiniappMessageHandlers(deps) {
 
   const handleConfirmResponse = async (message) => {
     if (!hostReplyChannel.resolveReply(message)) {
-      log(
-        `Orphan host reply ${message.type} token=${typeof message.token === "string" ? message.token.slice(0, 12) : "?"}`,
-      );
+      log(`Orphan host reply ${message.type} token=${typeof message.token === "string" ? message.token.slice(0, 12) : "?"}`);
     }
     return;
   };
@@ -114,9 +106,7 @@ export function createMiniappMessageHandlers(deps) {
       ensureMiniappHost().setLimits(message.appId, message.limits);
       log(`Updated resource limits for ${message.appId}`);
     } catch (error) {
-      log(
-        `Set limits failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Set limits failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   };
@@ -128,21 +118,14 @@ export function createMiniappMessageHandlers(deps) {
 
   const handleWorkspaceRead = async (message) => {
     try {
-      const content = await ensureMiniappHost().readWorkspaceFile(
-        message.documentId,
-      );
-      send({
-        type: "workspace-file",
-        token: message.token,
-        documentId: message.documentId,
-        content,
-      });
+      const content = await ensureMiniappHost().readWorkspaceFile(message.documentId);
+      send({ type: "workspace-file", token: message.token, documentId: message.documentId, content });
     } catch (error) {
       send({
         type: "workspace-file",
         token: message.token,
         documentId: message.documentId,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       });
     }
     return;
@@ -167,22 +150,12 @@ export function createMiniappMessageHandlers(deps) {
   const handleMiniappUiEvent = async (message) => {
     try {
       if (message.slot === "preview") {
-        await ensureMiniappHost().handlePreviewUiEvent(
-          message.nodeId,
-          message.event,
-          message.value,
-        );
+        await ensureMiniappHost().handlePreviewUiEvent(message.nodeId, message.event, message.value);
       } else {
-        await ensureMiniappHost().handleUiEvent(
-          message.nodeId,
-          message.event,
-          message.value,
-        );
+        await ensureMiniappHost().handleUiEvent(message.nodeId, message.event, message.value);
       }
     } catch (error) {
-      log(
-        `UI event failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`UI event failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   };
@@ -193,15 +166,10 @@ export function createMiniappMessageHandlers(deps) {
     }
 
     try {
-      await ensureMiniappHost().devSideLoad(
-        message.manifest,
-        hexToBytes(message.bundleHex),
-      );
+      await ensureMiniappHost().devSideLoad(message.manifest, hexToBytes(message.bundleHex));
       log(`Dev side-loaded ${message.manifest.name ?? "mini-app"}`);
     } catch (error) {
-      log(
-        `Dev side-load failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Dev side-load failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   };
@@ -217,11 +185,9 @@ export function createMiniappMessageHandlers(deps) {
       send({
         type: "dev-channel",
         state: "error",
-        detail: error instanceof Error ? error.message : String(error),
+        detail: error instanceof Error ? error.message : String(error)
       });
-      log(
-        `Dev channel connect failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Dev channel connect failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   };
@@ -257,7 +223,7 @@ export function createMiniappMessageHandlers(deps) {
       "miniapp-ui-event": handleMiniappUiEvent,
       "dev-side-load": handleDevSideLoad,
       "connect-dev-channel": handleConnectDevChannel,
-      "disconnect-dev-channel": handleDisconnectDevChannel,
-    },
+      "disconnect-dev-channel": handleDisconnectDevChannel
+    }
   };
 }

@@ -1,8 +1,5 @@
 import type { AcousticChannel } from "./interface.js";
-import {
-  SimulatedPeerChannel,
-  type SimulatedPeerChannelOptions,
-} from "../sim-peer-channel.js";
+import { SimulatedPeerChannel, type SimulatedPeerChannelOptions } from "../sim-peer-channel.js";
 
 export interface SimulatedAcousticChannelOptions extends SimulatedPeerChannelOptions {
   /** Additional latency per frame in ms. Default 0. */
@@ -15,10 +12,7 @@ export interface SimulatedAcousticChannelOptions extends SimulatedPeerChannelOpt
  * In-memory simulated acoustic channel with optional frame loss and latency.
  * Two channels linked via `peer` simulate a speaker↔microphone loopback.
  */
-export class SimulatedAcousticChannel
-  extends SimulatedPeerChannel
-  implements AcousticChannel
-{
+export class SimulatedAcousticChannel extends SimulatedPeerChannel implements AcousticChannel {
   private readonly latencyMs: number;
 
   constructor(options: SimulatedAcousticChannelOptions = {}) {

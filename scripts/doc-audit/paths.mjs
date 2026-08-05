@@ -9,12 +9,12 @@ export const REGISTER_FILES = [
   "STATUS-COMPLETE.md",
   "STATUS-SOFTWARE.md",
   "STATUS-HARDWARE.md",
-  "RELEASE-PLAN.md",
+  "RELEASE-PLAN.md"
 ];
 
 /** Paths cited as evidence but produced locally (gitignored). */
 const EPHEMERAL_EVIDENCE_PATHS = new Set([
-  "conformance/sim-campaign/artifacts/report.json",
+  "conformance/sim-campaign/artifacts/report.json"
 ]);
 
 /** @param {string} token */
@@ -42,11 +42,7 @@ export function looksLikePathToken(token) {
 
   if (token.includes("/")) return true;
   if (token.endsWith("/")) return true;
-  if (
-    /\.(ts|tsx|js|mjs|cjs|json|yml|yaml|md|html|py|kt|swift|toml|txt|png|jpg)$/.test(
-      token,
-    )
-  ) {
+  if (/\.(ts|tsx|js|mjs|cjs|json|yml|yaml|md|html|py|kt|swift|toml|txt|png|jpg)$/.test(token)) {
     return true;
   }
   if (token.includes("{") && token.includes("}")) return true;
@@ -81,7 +77,7 @@ function basenameSearch(root, basename) {
   try {
     const raw = execSync(`git ls-files '**/${basename}'`, {
       cwd: root,
-      encoding: "utf8",
+      encoding: "utf8"
     });
     return raw.trim().split("\n").filter(Boolean);
   } catch {
@@ -102,8 +98,7 @@ function knownFullPath(token) {
     "policy.ts": "packages/bridge-hyper/src/policy.ts",
     "ble-bridge/ios/": "apps/harness-mobile/modules/ble-bridge/ios/",
     "propagation_lxmd.py": "conformance/scenarios/python/propagation_lxmd.py",
-    "propagation_publish.py":
-      "conformance/scenarios/python/propagation_publish.py",
+    "propagation_publish.py": "conformance/scenarios/python/propagation_publish.py",
     "propagation_sync.py": "conformance/scenarios/python/propagation_sync.py",
     "bonjour.ts": "packages/reticulum-interfaces/src/bonjour.ts",
     "bonjour-mdns.ts": "packages/reticulum-interfaces/src/bonjour-mdns.ts",
@@ -115,7 +110,7 @@ function knownFullPath(token) {
     "packages/miniapp-runtime": "packages/miniapp-runtime/package.json",
     "miniapp-sdk": "packages/miniapp-sdk/package.json",
     cli: "packages/cli/package.json",
-    "sdk-interop": "conformance/sdk-interop/run.mjs",
+    "sdk-interop": "conformance/sdk-interop/run.mjs"
   };
   return map[token] ?? null;
 }
@@ -154,7 +149,7 @@ export function resolveEvidencePath(root, token, opts) {
 
     if (c.endsWith(".test.ts") && !c.includes("/")) {
       const pkgHits = [
-        ...basenameSearch(root, c).filter((p) => p.startsWith("packages/")),
+        ...basenameSearch(root, c).filter((p) => p.startsWith("packages/"))
       ];
       if (pkgHits.length === 1) {
         resolved.push(pkgHits[0]);
@@ -222,13 +217,14 @@ export function auditRegisterPaths(root = repoRoot(), options = {}) {
       const isTableRow = cells.some((cell) => cell.includes("`"));
       if (!isTableRow) continue;
 
-      const evidenceIdx = cells.length >= 4 ? 2 : cells.length >= 3 ? 1 : -1;
+      const evidenceIdx =
+        cells.length >= 4 ? 2 : cells.length >= 3 ? 1 : -1;
       const verifyIdx = cells.length >= 4 ? 3 : -1;
       const columns =
         evidenceIdx >= 0
           ? [
               { name: "Evidence", index: evidenceIdx },
-              ...(verifyIdx >= 0 ? [{ name: "Verify", index: verifyIdx }] : []),
+              ...(verifyIdx >= 0 ? [{ name: "Verify", index: verifyIdx }] : [])
             ]
           : [];
 
@@ -243,7 +239,7 @@ export function auditRegisterPaths(root = repoRoot(), options = {}) {
               line: i + 1,
               column: col.name,
               token,
-              reason: result.reason,
+              reason: result.reason
             });
           }
         }

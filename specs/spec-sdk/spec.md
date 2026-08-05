@@ -1,5 +1,6 @@
 # SPEC-SDK — Broker API semantics
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -17,7 +18,7 @@ Web analog: DOM/Web APIs. Every call crosses the host broker; keys, sockets, and
 filesystems never reach app code.
 
 The `ui` namespace (`ui.render`, `ui.onEvent`) is owned here as a brokered call —
-its call/error/budget semantics are this spec's. The _payload_ it carries (the widget
+its call/error/budget semantics are this spec's. The *payload* it carries (the widget
 tree vocabulary and update stream) is owned by [SPEC-WIDGET](../spec-widget/spec.md).
 
 ## Error taxonomy
@@ -25,12 +26,12 @@ tree vocabulary and update stream) is owned by [SPEC-WIDGET](../spec-widget/spec
 The closed set of error codes a brokered call may fail with (currently defined across
 [packages/miniapp-runtime](../../packages/miniapp-runtime/)):
 
-| Group              | Codes                                                                                     |
-| ------------------ | ----------------------------------------------------------------------------------------- |
-| Capability         | `UNKNOWN_CAPABILITY`, `UNDECLARED_CAPABILITY`, `CAPABILITY_DENIED`, `CAPABILITY_MISMATCH` |
-| Broker             | `UNKNOWN_METHOD`, `RATE_LIMITED`, `MESSAGE_TOO_LARGE`, `BROKER_ERROR`                     |
-| Confirmation       | `CONFIRMATION_UNAVAILABLE`, `CONFIRMATION_TIMEOUT`, `CONFIRMATION_DENIED`                 |
-| Host configuration | `APPS_UNCONFIGURED`, `AI_UNCONFIGURED`                                                    |
+| Group | Codes |
+|---|---|
+| Capability | `UNKNOWN_CAPABILITY`, `UNDECLARED_CAPABILITY`, `CAPABILITY_DENIED`, `CAPABILITY_MISMATCH` |
+| Broker | `UNKNOWN_METHOD`, `RATE_LIMITED`, `MESSAGE_TOO_LARGE`, `BROKER_ERROR` |
+| Confirmation | `CONFIRMATION_UNAVAILABLE`, `CONFIRMATION_TIMEOUT`, `CONFIRMATION_DENIED` |
+| Host configuration | `APPS_UNCONFIGURED`, `AI_UNCONFIGURED` |
 
 Calls without a matching grant fail with a typed capability error; they never
 partially execute.

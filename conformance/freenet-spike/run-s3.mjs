@@ -12,7 +12,7 @@ function runCargo(args) {
   const result = spawnSync("cargo", args, {
     cwd: contractRoot,
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"],
+    stdio: ["ignore", "pipe", "inherit"]
   });
   if (result.status !== 0) process.exit(result.status ?? 1);
   return result.stdout.trim();
@@ -25,7 +25,7 @@ runCargo([
   "--target",
   "wasm32-unknown-unknown",
   "--manifest-path",
-  manifest,
+  manifest
 ]);
 const measured = JSON.parse(
   runCargo([
@@ -34,8 +34,8 @@ const measured = JSON.parse(
     "--manifest-path",
     manifest,
     "--example",
-    "measure",
-  ]),
+    "measure"
+  ])
 );
 if (
   measured.concurrentWriterEvidence?.commutative !== true ||
@@ -45,7 +45,7 @@ if (
 }
 
 const rustVersion = spawnSync("rustc", ["--version"], {
-  encoding: "utf8",
+  encoding: "utf8"
 }).stdout.trim();
 const wasm = readFileSync(
   join(
@@ -53,8 +53,8 @@ const wasm = readFileSync(
     "target",
     "wasm32-unknown-unknown",
     "release",
-    "twistedpear_freenet_ordered_log_spike.wasm",
-  ),
+    "twistedpear_freenet_ordered_log_spike.wasm"
+  )
 );
 const evidence = {
   ...measured,
@@ -62,12 +62,12 @@ const evidence = {
   host: {
     platform: process.platform,
     architecture: process.arch,
-    rustVersion,
+    rustVersion
   },
   wasmArtifact: {
     bytes: wasm.length,
-    sha256Hex: createHash("sha256").update(wasm).digest("hex"),
-  },
+    sha256Hex: createHash("sha256").update(wasm).digest("hex")
+  }
 };
 const output = join(root, "s3-measurements.json");
 mkdirSync(dirname(output), { recursive: true });

@@ -11,20 +11,20 @@ export const canaryAdapters = {
     factory: () => {
       let value = 100;
       return { now: () => (value -= 10) };
-    },
+    }
   },
   "entropy-constant": {
     family: "entropy",
     factory: () => ({
-      randomBytes: (n) => new Uint8Array(n), // all zeros, every call identical
-    }),
+      randomBytes: (n) => new Uint8Array(n) // all zeros, every call identical
+    })
   },
   "timers-ignore-cancel": {
     family: "timers",
     factory: () => {
       const base = realAdapters.timers();
       return { set: base.set, cancel: () => {}, settle: base.settle };
-    },
+    }
   },
   "transport-reorders": {
     family: "transport",
@@ -41,17 +41,11 @@ export const canaryAdapters = {
         settle: async () => {
           await sleep(1);
           for (const { source, send } of queue.reverse()) {
-            deliver({
-              kind: "transport/recv",
-              channel: send.channel,
-              source,
-              payload: send.payload,
-              at: 0,
-            });
+            deliver({ kind: "transport/recv", channel: send.channel, source, payload: send.payload, at: 0 });
           }
-        },
+        }
       };
-    },
+    }
   },
   "storage-corrupts-bytes": {
     family: "storage",
@@ -63,11 +57,11 @@ export const canaryAdapters = {
           return events.map((event) =>
             event.kind === "store/value" && event.value !== undefined
               ? { ...event, value: event.value.map((b) => b ^ 0xff) }
-              : event,
+              : event
           );
-        },
+        }
       };
-    },
+    }
   },
   "logging-drops-warnings": {
     family: "logging",
@@ -75,11 +69,10 @@ export const canaryAdapters = {
       const records = [];
       return {
         emit: (intent) => {
-          if (intent.level !== "warn")
-            records.push({ level: intent.level, message: intent.message });
+          if (intent.level !== "warn") records.push({ level: intent.level, message: intent.message });
         },
-        records: () => records,
+        records: () => records
       };
-    },
-  },
+    }
+  }
 };

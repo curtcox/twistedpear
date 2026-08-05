@@ -14,11 +14,10 @@ export const InterfaceKind = {
   OPTICAL: "optical",
   ACOUSTIC: "acoustic",
   NTFY: "ntfy",
-  UNKNOWN: "unknown",
+  UNKNOWN: "unknown"
 } as const;
 
-export type InterfaceKindValue =
-  (typeof InterfaceKind)[keyof typeof InterfaceKind];
+export type InterfaceKindValue = (typeof InterfaceKind)[keyof typeof InterfaceKind];
 
 /** Default outbound preference: higher bitrate / lower latency first. */
 export const DEFAULT_INTERFACE_PRIORITY: ReadonlyArray<InterfaceKindValue> = [
@@ -34,13 +33,11 @@ export const DEFAULT_INTERFACE_PRIORITY: ReadonlyArray<InterfaceKindValue> = [
   InterfaceKind.OPTICAL,
   InterfaceKind.ACOUSTIC,
   InterfaceKind.NTFY,
-  InterfaceKind.UNKNOWN,
+  InterfaceKind.UNKNOWN
 ];
 
 /** Default bitrates (bps) used when an interface does not report one. */
-export const DEFAULT_INTERFACE_BITRATES: Readonly<
-  Partial<Record<InterfaceKindValue, number>>
-> = {
+export const DEFAULT_INTERFACE_BITRATES: Readonly<Partial<Record<InterfaceKindValue, number>>> = {
   [InterfaceKind.AUTO]: 10_000_000,
   [InterfaceKind.TCP]: 1_000_000,
   [InterfaceKind.WEBSOCKET]: 1_000_000,
@@ -53,14 +50,12 @@ export const DEFAULT_INTERFACE_BITRATES: Readonly<
   [InterfaceKind.FREENET]: 90_000,
   [InterfaceKind.OPTICAL]: 1_000,
   [InterfaceKind.ACOUSTIC]: 500,
-  [InterfaceKind.NTFY]: 10_000,
+  [InterfaceKind.NTFY]: 10_000
 };
 
 export interface InterfacePolicyOptions {
   readonly priority?: ReadonlyArray<InterfaceKindValue>;
-  readonly defaultBitrates?: Readonly<
-    Partial<Record<InterfaceKindValue, number>>
-  >;
+  readonly defaultBitrates?: Readonly<Partial<Record<InterfaceKindValue, number>>>;
 }
 
 export interface RankedInterface {
@@ -91,16 +86,10 @@ export function inferInterfaceKind(name: string): InterfaceKindValue {
   }
 
   if (normalized.includes("ble") || normalized.includes("bluetooth")) {
-    return normalized.includes("bluetooth")
-      ? InterfaceKind.BLUETOOTH
-      : InterfaceKind.BLE;
+    return normalized.includes("bluetooth") ? InterfaceKind.BLUETOOTH : InterfaceKind.BLE;
   }
 
-  if (
-    normalized.includes("rnode") ||
-    normalized.includes("kiss") ||
-    normalized.includes("lora")
-  ) {
+  if (normalized.includes("rnode") || normalized.includes("kiss") || normalized.includes("lora")) {
     return InterfaceKind.RNODE;
   }
 
@@ -112,22 +101,11 @@ export function inferInterfaceKind(name: string): InterfaceKindValue {
     return InterfaceKind.FREENET;
   }
 
-  if (
-    normalized.includes("optical") ||
-    normalized.includes("qr") ||
-    normalized.includes("camera") ||
-    normalized.includes("screen")
-  ) {
+  if (normalized.includes("optical") || normalized.includes("qr") || normalized.includes("camera") || normalized.includes("screen")) {
     return InterfaceKind.OPTICAL;
   }
 
-  if (
-    normalized.includes("acoustic") ||
-    normalized.includes("audio") ||
-    normalized.includes("speaker") ||
-    normalized.includes("microphone") ||
-    normalized.includes("mic")
-  ) {
+  if (normalized.includes("acoustic") || normalized.includes("audio") || normalized.includes("speaker") || normalized.includes("microphone") || normalized.includes("mic")) {
     return InterfaceKind.ACOUSTIC;
   }
 
@@ -138,10 +116,7 @@ export function inferInterfaceKind(name: string): InterfaceKindValue {
   return InterfaceKind.UNKNOWN;
 }
 
-function rankForKind(
-  kind: InterfaceKindValue,
-  priority: ReadonlyArray<InterfaceKindValue>,
-): number {
+function rankForKind(kind: InterfaceKindValue, priority: ReadonlyArray<InterfaceKindValue>): number {
   const index = priority.indexOf(kind);
   return index < 0 ? priority.length : index;
 }
@@ -149,7 +124,7 @@ function rankForKind(
 function effectiveBitrate(
   iface: PacketInterface,
   kind: InterfaceKindValue,
-  defaultBitrates: Readonly<Partial<Record<InterfaceKindValue, number>>>,
+  defaultBitrates: Readonly<Partial<Record<InterfaceKindValue, number>>>
 ): number {
   if (iface.bitrate !== null && iface.bitrate > 0) {
     return iface.bitrate;
@@ -161,7 +136,7 @@ function effectiveBitrate(
 /** Rank outgoing interfaces for outbound path selection. Online interfaces sort first. */
 export function rankOutgoingInterfaces(
   interfaces: ReadonlyArray<PacketInterface>,
-  options: InterfacePolicyOptions = {},
+  options: InterfacePolicyOptions = {}
 ): ReadonlyArray<RankedInterface> {
   const priority = options.priority ?? DEFAULT_INTERFACE_PRIORITY;
   const defaultBitrates = options.defaultBitrates ?? DEFAULT_INTERFACE_BITRATES;
@@ -174,7 +149,7 @@ export function rankOutgoingInterfaces(
         iface,
         kind,
         rank: rankForKind(kind, priority),
-        effectiveBitrate: effectiveBitrate(iface, kind, defaultBitrates),
+        effectiveBitrate: effectiveBitrate(iface, kind, defaultBitrates)
       };
     })
     .sort((left, right) => {
@@ -193,12 +168,8 @@ export function rankOutgoingInterfaces(
 /** Return the preferred online outgoing interface, if any. */
 export function selectPreferredInterface(
   interfaces: ReadonlyArray<PacketInterface>,
-  options?: InterfacePolicyOptions,
+  options?: InterfacePolicyOptions
 ): PacketInterface | null {
   const ranked = rankOutgoingInterfaces(interfaces, options);
-  return (
-    ranked.find((entry) => entry.iface.online)?.iface ??
-    ranked[0]?.iface ??
-    null
-  );
+  return ranked.find((entry) => entry.iface.online)?.iface ?? ranked[0]?.iface ?? null;
 }

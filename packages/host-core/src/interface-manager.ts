@@ -17,10 +17,7 @@ import {
   FREENET_DEFAULT_BITRATE,
   inferInterfaceKind,
 } from "@twistedpear/reticulum-interfaces";
-import type {
-  OpticalChannel,
-  AcousticChannel,
-} from "@twistedpear/reticulum-interfaces";
+import type { OpticalChannel, AcousticChannel } from "@twistedpear/reticulum-interfaces";
 import { createMdnsBonjourBridge } from "@twistedpear/reticulum-interfaces/bonjour-mdns";
 import type { BlePipe } from "@twistedpear/reticulum-interfaces";
 import { FreenetContractPacketLogBackend } from "@twistedpear/bridge-freenet";
@@ -46,15 +43,8 @@ import type {
 import { BridgeForwarder } from "./bridge-forwarder.js";
 import { validateHostConfig } from "./config.js";
 import { interfaceDirectionFlags } from "./types.js";
-import {
-  buildInterfaceDiagnostics,
-  buildInterfaceStatuses,
-} from "./interface-manager-view.js";
-import {
-  openAcousticInterface,
-  openNtfyInterface,
-  openOpticalInterface,
-} from "./interface-manager-media.js";
+import { buildInterfaceDiagnostics, buildInterfaceStatuses } from "./interface-manager-view.js";
+import { openAcousticInterface, openNtfyInterface, openOpticalInterface } from "./interface-manager-media.js";
 
 export type { InterfaceStatus } from "./types.js";
 
@@ -719,13 +709,7 @@ export class InterfaceManager {
   ): Promise<PacketInterface | null> {
     if (this.effects.optical === undefined) return null;
     const channel = await this.effects.optical.createChannel(config);
-    return openOpticalInterface(
-      this.provider,
-      channel,
-      config,
-      incoming,
-      outgoing,
-    );
+    return openOpticalInterface(this.provider, channel, config, incoming, outgoing);
   }
 
   private async createAcousticInterface(
@@ -735,13 +719,7 @@ export class InterfaceManager {
   ): Promise<PacketInterface | null> {
     if (this.effects.acoustic === undefined) return null;
     const channel = await this.effects.acoustic.createChannel(config);
-    return openAcousticInterface(
-      this.provider,
-      channel,
-      config,
-      incoming,
-      outgoing,
-    );
+    return openAcousticInterface(this.provider, channel, config, incoming, outgoing);
   }
 
   private async createNtfyInterface(

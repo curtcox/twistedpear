@@ -1,10 +1,4 @@
-import {
-  T256Error,
-  decode256t,
-  encode256t,
-  verify256t,
-  type Sha512Fn,
-} from "./codec.js";
+import { T256Error, decode256t, encode256t, verify256t, type Sha512Fn } from "./codec.js";
 
 export interface CasKeyValueStore {
   get(key: string): Promise<Uint8Array | null>;
@@ -36,7 +30,7 @@ export class CasStore {
   constructor(
     private readonly backend: CasKeyValueStore,
     private readonly sha512: Sha512Fn,
-    options: CasStoreOptions = {},
+    options: CasStoreOptions = {}
   ) {
     this.maxBlobBytes = options.maxBlobBytes ?? 16 * 1024 * 1024;
     this.maxTotalBytes = options.maxTotalBytes ?? 256 * 1024 * 1024;
@@ -84,10 +78,7 @@ export class CasStore {
     }
 
     if (!verify256t(id, stored, this.sha512)) {
-      throw new T256Error(
-        "HASH_MISMATCH",
-        "Stored CAS content does not match its 256t id",
-      );
+      throw new T256Error("HASH_MISMATCH", "Stored CAS content does not match its 256t id");
     }
 
     return stored;
@@ -112,9 +103,7 @@ export class CasStore {
   }
 
   private key(id: string): string {
-    const hex = [...decode256t(id).sha512!]
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
+    const hex = [...decode256t(id).sha512!].map((byte) => byte.toString(16).padStart(2, "0")).join("");
     return `${KEY_PREFIX}${hex}`;
   }
 }

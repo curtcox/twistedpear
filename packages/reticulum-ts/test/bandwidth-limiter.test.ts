@@ -4,11 +4,7 @@ import { BandwidthLimiter } from "../src/transport/bandwidth.js";
 
 class ManualClock implements Clock {
   private nowMs = 0;
-  private timers: Array<{
-    at: number;
-    callback: () => void;
-    cancelled: boolean;
-  }> = [];
+  private timers: Array<{ at: number; callback: () => void; cancelled: boolean }> = [];
 
   now(): number {
     return this.nowMs;
@@ -17,23 +13,14 @@ class ManualClock implements Clock {
   setTimeout(callback: () => void, milliseconds: number): Timer {
     const timer = { at: this.nowMs + milliseconds, callback, cancelled: false };
     this.timers.push(timer);
-    return {
-      cancel: () => {
-        timer.cancelled = true;
-      },
-    };
+    return { cancel: () => { timer.cancelled = true; } };
   }
 
   advance(milliseconds: number): void {
     this.nowMs += milliseconds;
-    const ready = this.timers.filter(
-      (timer) => !timer.cancelled && timer.at <= this.nowMs,
-    );
-    this.timers = this.timers.filter(
-      (timer) => timer.cancelled || timer.at > this.nowMs,
-    );
-    for (const timer of ready.sort((left, right) => left.at - right.at))
-      timer.callback();
+    const ready = this.timers.filter((timer) => !timer.cancelled && timer.at <= this.nowMs);
+    this.timers = this.timers.filter((timer) => timer.cancelled || timer.at > this.nowMs);
+    for (const timer of ready.sort((left, right) => left.at - right.at)) timer.callback();
   }
 }
 
@@ -42,9 +29,7 @@ describe("BandwidthLimiter", () => {
     const clock = new ManualClock();
     const limiter = new BandwidthLimiter(clock, 100);
     let completed = false;
-    const pending = limiter.consume(100).then(() => {
-      completed = true;
-    });
+    const pending = limiter.consume(100).then(() => { completed = true; });
     expect(limiter.queueDepthBytes()).toBe(100);
 
     clock.advance(999);
@@ -61,12 +46,8 @@ describe("BandwidthLimiter", () => {
     const limiter = new BandwidthLimiter(clock, 100);
     let first = false;
     let second = false;
-    const one = limiter.consume(50).then(() => {
-      first = true;
-    });
-    const two = limiter.consume(50).then(() => {
-      second = true;
-    });
+    const one = limiter.consume(50).then(() => { first = true; });
+    const two = limiter.consume(50).then(() => { second = true; });
 
     clock.advance(500);
     await one;
@@ -79,12 +60,8 @@ describe("BandwidthLimiter", () => {
 
   it("rejects disabled and fractional limits", () => {
     const clock = new ManualClock();
-    expect(() => new BandwidthLimiter(clock, 0)).toThrow(
-      /positive safe integer/,
-    );
-    expect(() => new BandwidthLimiter(clock, 1.5)).toThrow(
-      /positive safe integer/,
-    );
+    expect(() => new BandwidthLimiter(clock, 0)).toThrow(/positive safe integer/);
+    expect(() => new BandwidthLimiter(clock, 1.5)).toThrow(/positive safe integer/);
   });
 
   it("caps realtime reservations and releases them", () => {
@@ -92,9 +69,7 @@ describe("BandwidthLimiter", () => {
     const realtime = limiter.reserve("realtime", 60);
     expect(realtime).not.toBeNull();
     expect(limiter.reserve("realtime", 1)).toBeNull();
-    expect(limiter.reservationSnapshot()).toMatchObject([
-      { class: "realtime", bytesPerSecond: 60 },
-    ]);
+    expect(limiter.reservationSnapshot()).toMatchObject([{ class: "realtime", bytesPerSecond: 60 }]);
     realtime?.release();
     expect(limiter.reserve("realtime", 60)).not.toBeNull();
   });

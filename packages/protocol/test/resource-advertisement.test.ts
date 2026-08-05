@@ -36,13 +36,9 @@ import {
   stepResourceAdvertisementRoleFlagsPlanWithActions,
   stepResourceAdvertisementRoleFlagsWithActions,
   stepUnpackResourceAdvertisementWithActions,
-  unpackResourceAdvertisement,
+  unpackResourceAdvertisement
 } from "../src/resource-advertisement.js";
-import {
-  msgpackPackString,
-  msgpackPackStringMap,
-  msgpackPackUInt,
-} from "../src/msgpack-core.js";
+import { msgpackPackString, msgpackPackStringMap, msgpackPackUInt } from "../src/msgpack-core.js";
 
 describe("protocol msgpack string map", () => {
   it("packs short strings", () => {
@@ -69,7 +65,7 @@ describe("protocol resource advertisement", () => {
     f: 0,
     i: 0,
     l: 1,
-    q: null as Uint8Array | null,
+    q: null as Uint8Array | null
   };
 
   it("round-trips packed fields", () => {
@@ -90,7 +86,7 @@ describe("protocol resource advertisement", () => {
       s: false,
       u: true,
       p: false,
-      x: true,
+      x: true
     });
     expect(decodeResourceAdvertisementFlags(f)).toEqual({
       e: true,
@@ -98,7 +94,7 @@ describe("protocol resource advertisement", () => {
       s: false,
       u: true,
       p: false,
-      x: true,
+      x: true
     });
   });
 
@@ -109,46 +105,35 @@ describe("protocol resource advertisement", () => {
       s: false,
       u: true,
       p: false,
-      x: true,
+      x: true
     };
     const encodeStepped = stepEncodeResourceAdvertisementFlagsWithActions(
       initialEncodeResourceAdvertisementFlagsState(),
       {
         kind: "resource-advertisement/encode-flags-gate",
-        flags: flagFields,
-      },
+        flags: flagFields
+      }
     );
-    expect(
-      shouldUseEncodeResourceAdvertisementFlags(encodeStepped.actions),
-    ).toBe(true);
-    const packed = encodeResourceAdvertisementFlagsFromActions(
-      encodeStepped.actions,
-    );
+    expect(shouldUseEncodeResourceAdvertisementFlags(encodeStepped.actions)).toBe(true);
+    const packed = encodeResourceAdvertisementFlagsFromActions(encodeStepped.actions);
     expect(packed).toBe(encodeResourceAdvertisementFlags(flagFields));
 
     const decodeStepped = stepDecodeResourceAdvertisementFlagsWithActions(
       initialDecodeResourceAdvertisementFlagsState(),
       {
         kind: "resource-advertisement/decode-flags-gate",
-        flags: packed!,
-      },
+        flags: packed!
+      }
     );
-    expect(
-      shouldUseDecodeResourceAdvertisementFlags(decodeStepped.actions),
-    ).toBe(true);
-    expect(
-      resourceAdvertisementFlagFieldsFromActions(decodeStepped.actions),
-    ).toEqual(flagFields);
+    expect(shouldUseDecodeResourceAdvertisementFlags(decodeStepped.actions)).toBe(true);
+    expect(resourceAdvertisementFlagFieldsFromActions(decodeStepped.actions)).toEqual(flagFields);
 
     expect(
-      stepEncodeResourceAdvertisementFlagsWithActions(
-        initialEncodeResourceAdvertisementFlagsState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepEncodeResourceAdvertisementFlagsWithActions(initialEncodeResourceAdvertisementFlagsState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -163,8 +148,8 @@ describe("protocol resource advertisement", () => {
         s: false,
         u: true,
         p: false,
-        x: false,
-      }),
+        x: false
+      })
     };
     const response = {
       ...fields,
@@ -175,8 +160,8 @@ describe("protocol resource advertisement", () => {
         s: false,
         u: false,
         p: true,
-        x: false,
-      }),
+        x: false
+      })
     };
     expect(isResourceAdvertisementRequest(request)).toBe(true);
     expect(isResourceAdvertisementResponse(request)).toBe(false);
@@ -187,63 +172,51 @@ describe("protocol resource advertisement", () => {
       initialClassifyResourceAdvertisementState(),
       {
         kind: "resource-advertisement/classify-gate",
-        fields: request,
-      },
+        fields: request
+      }
     );
-    expect(
-      shouldClassifyResourceAdvertisementRequest(requestStepped.actions),
-    ).toBe(true);
-    expect(
-      shouldClassifyResourceAdvertisementResponse(requestStepped.actions),
-    ).toBe(false);
-    expect(
-      shouldRejectClassifyResourceAdvertisement(requestStepped.actions),
-    ).toBe(false);
+    expect(shouldClassifyResourceAdvertisementRequest(requestStepped.actions)).toBe(true);
+    expect(shouldClassifyResourceAdvertisementResponse(requestStepped.actions)).toBe(false);
+    expect(shouldRejectClassifyResourceAdvertisement(requestStepped.actions)).toBe(false);
 
     const responseStepped = stepClassifyResourceAdvertisementWithActions(
       initialClassifyResourceAdvertisementState(),
       {
         kind: "resource-advertisement/classify-gate",
-        fields: response,
-      },
+        fields: response
+      }
     );
-    expect(
-      shouldClassifyResourceAdvertisementResponse(responseStepped.actions),
-    ).toBe(true);
-    expect(
-      shouldClassifyResourceAdvertisementRequest(responseStepped.actions),
-    ).toBe(false);
+    expect(shouldClassifyResourceAdvertisementResponse(responseStepped.actions)).toBe(true);
+    expect(shouldClassifyResourceAdvertisementRequest(responseStepped.actions)).toBe(false);
 
     const neither = stepClassifyResourceAdvertisementWithActions(
       initialClassifyResourceAdvertisementState(),
       {
         kind: "resource-advertisement/classify-gate",
-        fields,
-      },
+        fields
+      }
     );
-    expect(shouldRejectClassifyResourceAdvertisement(neither.actions)).toBe(
-      true,
-    );
+    expect(shouldRejectClassifyResourceAdvertisement(neither.actions)).toBe(true);
   });
 
   it("plans request/response role flags", () => {
     expect(
       planResourceAdvertisementRoleFlags({
         requestIdPresent: true,
-        isResponse: false,
-      }),
+        isResponse: false
+      })
     ).toEqual({ u: true, p: false });
     expect(
       planResourceAdvertisementRoleFlags({
         requestIdPresent: true,
-        isResponse: true,
-      }),
+        isResponse: true
+      })
     ).toEqual({ u: false, p: true });
     expect(
       planResourceAdvertisementRoleFlags({
         requestIdPresent: false,
-        isResponse: false,
-      }),
+        isResponse: false
+      })
     ).toEqual({ u: false, p: false });
 
     const requestPlan = stepResourceAdvertisementRoleFlagsPlanWithActions(
@@ -251,17 +224,13 @@ describe("protocol resource advertisement", () => {
       {
         kind: "resource/advertisement-role-flags-plan-gate",
         requestIdPresent: true,
-        isResponse: false,
-      },
+        isResponse: false
+      }
     );
-    expect(
-      shouldUseResourceAdvertisementRoleFlagsPlan(requestPlan.actions),
-    ).toBe(true);
-    expect(
-      resourceAdvertisementRoleFlagsPlanFromActions(requestPlan.actions),
-    ).toEqual({
+    expect(shouldUseResourceAdvertisementRoleFlagsPlan(requestPlan.actions)).toBe(true);
+    expect(resourceAdvertisementRoleFlagsPlanFromActions(requestPlan.actions)).toEqual({
       u: true,
-      p: false,
+      p: false
     });
 
     const request = stepResourceAdvertisementRoleFlagsWithActions(
@@ -269,13 +238,13 @@ describe("protocol resource advertisement", () => {
       {
         kind: "resource/advertisement-role-flags-gate",
         requestIdPresent: true,
-        isResponse: false,
-      },
+        isResponse: false
+      }
     );
     expect(shouldUseResourceAdvertisementRoleFlags(request.actions)).toBe(true);
     expect(resourceAdvertisementRoleFlagsFromActions(request.actions)).toEqual({
       u: true,
-      p: false,
+      p: false
     });
 
     const response = stepResourceAdvertisementRoleFlagsWithActions(
@@ -283,15 +252,13 @@ describe("protocol resource advertisement", () => {
       {
         kind: "resource/advertisement-role-flags-gate",
         requestIdPresent: true,
-        isResponse: true,
-      },
+        isResponse: true
+      }
     );
-    expect(resourceAdvertisementRoleFlagsFromActions(response.actions)).toEqual(
-      {
-        u: false,
-        p: true,
-      },
-    );
+    expect(resourceAdvertisementRoleFlagsFromActions(response.actions)).toEqual({
+      u: false,
+      p: true
+    });
   });
 
   it("emits pack framing bytes from WithActions steps", () => {
@@ -299,8 +266,8 @@ describe("protocol resource advertisement", () => {
       initialPackResourceAdvertisementState(),
       {
         kind: "resource-advertisement/pack-gate",
-        fields,
-      },
+        fields
+      }
     );
     expect(shouldUsePackResourceAdvertisement(stepped.actions)).toBe(true);
     const packed = packResourceAdvertisementRawFromActions(stepped.actions);
@@ -314,8 +281,8 @@ describe("protocol resource advertisement", () => {
       initialUnpackResourceAdvertisementState(),
       {
         kind: "resource-advertisement/unpack-gate",
-        data: packed,
-      },
+        data: packed
+      }
     );
     expect(shouldUseUnpackResourceAdvertisement(ok.actions)).toBe(true);
     expect(shouldRejectUnpackResourceAdvertisement(ok.actions)).toBe(false);
@@ -328,12 +295,10 @@ describe("protocol resource advertisement", () => {
       initialUnpackResourceAdvertisementState(),
       {
         kind: "resource-advertisement/unpack-gate",
-        data: new Uint8Array([0xff]),
-      },
+        data: new Uint8Array([0xff])
+      }
     );
-    expect(shouldRejectUnpackResourceAdvertisement(rejected.actions)).toBe(
-      true,
-    );
+    expect(shouldRejectUnpackResourceAdvertisement(rejected.actions)).toBe(true);
     expect(shouldUseUnpackResourceAdvertisement(rejected.actions)).toBe(false);
     expect(resourceAdvertisementFieldsFromActions(rejected.actions)).toBeNull();
   });

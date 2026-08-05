@@ -7,11 +7,11 @@ import {
   PacketHeaderType,
   PacketType,
   TransportType,
-  hexToBytes,
+  hexToBytes
 } from "@twistedpear/reticulum-ts";
 import {
   FreenetInterface,
-  type FreenetPacketLogBackend,
+  type FreenetPacketLogBackend
 } from "../src/freenet.js";
 
 class MemoryPacketLogBackend implements FreenetPacketLogBackend {
@@ -57,12 +57,12 @@ describe("FreenetInterface", () => {
     const left = await FreenetInterface.open(provider, {
       name: "freenet-left",
       provider,
-      backend: leftBackend,
+      backend: leftBackend
     });
     const right = await FreenetInterface.open(provider, {
       name: "freenet-right",
       provider,
-      backend: rightBackend,
+      backend: rightBackend
     });
 
     const received = Promise.race([
@@ -73,8 +73,8 @@ describe("FreenetInterface", () => {
         throw new Error("no packet");
       })(),
       new Promise<Packet>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 1000),
-      ),
+        setTimeout(() => reject(new Error("timeout")), 1000)
+      )
     ]);
 
     const packet = Packet.fromFields(provider, {
@@ -84,7 +84,7 @@ describe("FreenetInterface", () => {
       packetType: PacketType.DATA,
       destinationHash: hexToBytes("00112233445566778899aabbccddeeff"),
       context: PacketContext.NONE,
-      data: new Uint8Array([1, 2, 3, 4]),
+      data: new Uint8Array([1, 2, 3, 4])
     });
     await left.send(packet);
     const got = await received;

@@ -3,7 +3,7 @@ import {
   Identity,
   NodeCryptoProvider,
   Token,
-  type Entropy,
+  type Entropy
 } from "../src/index.js";
 
 class ScriptedEntropy implements Entropy {
@@ -38,12 +38,8 @@ describe("Identity/Token entropy injection", () => {
     const plaintext = new TextEncoder().encode("hello sans-io");
     const stream = new Uint8Array(48).map((_, i) => (i * 17 + 9) & 0xff);
 
-    const a = identity.encrypt(plaintext, {
-      entropy: new ScriptedEntropy(stream),
-    });
-    const b = identity.encrypt(plaintext, {
-      entropy: new ScriptedEntropy(stream),
-    });
+    const a = identity.encrypt(plaintext, { entropy: new ScriptedEntropy(stream) });
+    const b = identity.encrypt(plaintext, { entropy: new ScriptedEntropy(stream) });
     expect([...a]).toEqual([...b]);
   });
 
@@ -54,12 +50,8 @@ describe("Identity/Token entropy injection", () => {
     const ivStream = new Uint8Array(16).map((_, i) => 200 - i);
     const plaintext = new Uint8Array([1, 2, 3, 4]);
 
-    const a = token.encrypt(plaintext, {
-      entropy: new ScriptedEntropy(ivStream),
-    });
-    const b = token.encrypt(plaintext, {
-      entropy: new ScriptedEntropy(ivStream),
-    });
+    const a = token.encrypt(plaintext, { entropy: new ScriptedEntropy(ivStream) });
+    const b = token.encrypt(plaintext, { entropy: new ScriptedEntropy(ivStream) });
     expect([...a]).toEqual([...b]);
     expect([...a.subarray(0, 16)]).toEqual([...ivStream]);
   });

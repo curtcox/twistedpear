@@ -1,20 +1,13 @@
-import {
-  TrustStore,
-  unpackPackage,
-  verifyPackage,
-} from "../../../packages/app-registry/dist/index.js";
+import { TrustStore, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import {
   T256_ID_LENGTH,
   decode256t,
   decodeCasLocator,
   toCatalogEntryLike,
   verify256t,
-  verifyCasLocator,
+  verifyCasLocator
 } from "../../../packages/cas-256t/dist/index.js";
-import {
-  describeCapability,
-  validateManifestCapabilities,
-} from "../../../packages/miniapp-runtime/dist/capabilities.js";
+import { describeCapability, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/capabilities.js";
 import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/confirm.js";
 import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 
@@ -61,9 +54,7 @@ export function createWebInstallService(options) {
         if (Date.now() - lastRequestedAt >= 5_000) {
           lastRequestedAt = Date.now();
           void options.requestCasLocator?.(t256).catch((error) => {
-            options.log?.(
-              `CAS locator re-request failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
+            options.log?.(`CAS locator re-request failed: ${error instanceof Error ? error.message : String(error)}`);
           });
         }
 
@@ -78,9 +69,7 @@ export function createWebInstallService(options) {
     try {
       decoded = decode256t(t256.trim());
     } catch (error) {
-      throw new Error(
-        error instanceof Error ? error.message : "Invalid 256t id",
-      );
+      throw new Error(error instanceof Error ? error.message : "Invalid 256t id");
     }
 
     if (decoded.inline !== null) {
@@ -93,9 +82,7 @@ export function createWebInstallService(options) {
 
     const hostSession = options.getHostSession();
     if (hostSession === null) {
-      throw new Error(
-        "Gateway link is offline — enable WS gateway before installing",
-      );
+      throw new Error("Gateway link is offline — enable WS gateway before installing");
     }
 
     if (!casLocators.has(t256)) {
@@ -110,16 +97,12 @@ export function createWebInstallService(options) {
           bytesReceived: 0,
           totalBytes: locator.packageSize,
           path: "hyperdrive",
-          verified: false,
+          verified: false
         });
 
         const hyperArchive = await options.tryHyperdriveFetch(locator);
         if (hyperArchive !== null) {
-          if (
-            !verify256t(t256, hyperArchive, (data) =>
-              options.provider.sha512(data),
-            )
-          ) {
+          if (!verify256t(t256, hyperArchive, (data) => options.provider.sha512(data))) {
             throw new Error("Hyperdrive archive does not match its 256t id");
           }
 
@@ -128,20 +111,20 @@ export function createWebInstallService(options) {
             bytesReceived: hyperArchive.length,
             totalBytes: hyperArchive.length,
             path: "hyperdrive",
-            verified: true,
+            verified: true
           });
           return { archive: hyperArchive, fetchPath: "hyperdrive", locator };
         }
       } catch (error) {
         options.log?.(
-          `Hyperdrive fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+          `Hyperdrive fetch failed: ${error instanceof Error ? error.message : String(error)}`
         );
         sendProgress?.({
           phase: "failed",
           bytesReceived: 0,
           totalBytes: locator.packageSize,
           path: "hyperdrive",
-          verified: false,
+          verified: false
         });
       }
     }
@@ -151,7 +134,7 @@ export function createWebInstallService(options) {
       bytesReceived: 0,
       totalBytes: 0,
       path: "resource",
-      verified: false,
+      verified: false
     });
 
     const result = await hostSession.fetchPlane.fetchPackage(options.provider, {
@@ -164,9 +147,9 @@ export function createWebInstallService(options) {
           bytesReceived: progress.bytesReceived,
           totalBytes: progress.totalBytes,
           path: progress.path,
-          verified: false,
+          verified: false
         });
-      },
+      }
     });
 
     const archive = result.archiveBytes;
@@ -189,40 +172,31 @@ export function createWebInstallService(options) {
     const sendProgress = (progress) => {
       options.send?.({
         type: "install-progress",
-        progress: { appId, ...progress },
+        progress: { appId, ...progress }
       });
     };
 
     try {
-      const {
-        archive,
-        fetchPath,
-        locator = null,
-      } = await resolveArchiveBytes(normalized, sendProgress);
+      const { archive, fetchPath, locator = null } = await resolveArchiveBytes(normalized, sendProgress);
       appId = unpackPackage(options.provider, archive).manifest.name;
       sendProgress({
         phase: "verifying",
         bytesReceived: archive.length,
         totalBytes: archive.length,
         path: fetchPath === "inline" ? "resource" : fetchPath,
-        verified: false,
+        verified: false
       });
 
       const minVersion = storage.activeVersion(appId) ?? undefined;
       const verified = verifyPackage(options.provider, archive, {
         hostApiVersion: HOST_API_VERSION,
-        ...(minVersion === undefined ? {} : { minVersion }),
+        ...(minVersion === undefined ? {} : { minVersion })
       });
-      const declared = validateManifestCapabilities(
-        verified.manifest.capabilities,
-      );
-      const trusted = await trustStore.isTrusted(
-        verified.manifest.publisherPublicKey,
-      );
+      const declared = validateManifestCapabilities(verified.manifest.capabilities);
+      const trusted = await trustStore.isTrusted(verified.manifest.publisherPublicKey);
       const trustedEntry = trusted
         ? (await trustStore.list()).find(
-            (entry) =>
-              entry.publisherPublicKey === verified.manifest.publisherPublicKey,
+            (entry) => entry.publisherPublicKey === verified.manifest.publisherPublicKey
           )
         : undefined;
 
@@ -232,9 +206,7 @@ export function createWebInstallService(options) {
 
       const review = await options.requestHostReply({
         type: "install-review",
-        token: generateConfirmationToken((length) =>
-          options.provider.randomBytes(length),
-        ),
+        token: generateConfirmationToken((length) => options.provider.randomBytes(length)),
         appId,
         version: verified.manifest.version,
         publisherPublicKey: verified.manifest.publisherPublicKey,
@@ -243,8 +215,8 @@ export function createWebInstallService(options) {
         capabilities: declared.map((id) => ({
           id,
           description: describeCapability(id),
-          granted: false,
-        })),
+          granted: false
+        }))
       });
 
       if (review === null || review.accept !== true) {
@@ -257,7 +229,7 @@ export function createWebInstallService(options) {
         bytesReceived: archive.length,
         totalBytes: archive.length,
         path: fetchPath === "inline" ? "resource" : fetchPath,
-        verified: true,
+        verified: true
       });
 
       if (Array.isArray(review.grants) && review.grants.length > 0) {
@@ -267,22 +239,20 @@ export function createWebInstallService(options) {
             appId,
             verified.manifest.publisherPublicKey,
             verified.manifest.capabilities,
-            review.grants,
+            review.grants
           );
         }
       }
 
       options.pushInstalled?.();
-      options.log?.(
-        `Installed ${installed.appId} v${installed.version} from 256t via ${fetchPath} (trusted: ${trusted})`,
-      );
+      options.log?.(`Installed ${installed.appId} v${installed.version} from 256t via ${fetchPath} (trusted: ${trusted})`);
       return {
         appId: installed.appId,
         version: installed.version,
         trusted,
         fetchPath,
         publisherPublicKey: verified.manifest.publisherPublicKey,
-        servingPublicKey: locator?.servingPublicKey ?? null,
+        servingPublicKey: locator?.servingPublicKey ?? null
       };
     } catch (error) {
       sendProgress({
@@ -290,7 +260,7 @@ export function createWebInstallService(options) {
         bytesReceived: 0,
         totalBytes: 0,
         path: null,
-        verified: false,
+        verified: false
       });
       throw error;
     }
@@ -302,7 +272,7 @@ export function createWebInstallService(options) {
     installFromT256,
     async pushTrustList() {
       options.send?.({ type: "trust", entries: await trustStore.list() });
-    },
+    }
   };
 }
 
@@ -310,10 +280,7 @@ function hexToBytes(hex) {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
   const bytes = new Uint8Array(normalized.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(
-      normalized.slice(index * 2, index * 2 + 2),
-      16,
-    );
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
   }
 
   return bytes;

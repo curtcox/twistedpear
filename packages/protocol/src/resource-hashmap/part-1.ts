@@ -24,7 +24,7 @@ import {
   msgpackPackBin,
   msgpackPackUInt,
   msgpackUnpack,
-  type MsgpackValue,
+  type MsgpackValue
 } from "../msgpack-core.js";
 import { equalByteArrays } from "../path-table.js";
 
@@ -38,15 +38,13 @@ export const RESOURCE_HASHMAP_MDU = 431;
 
 export function resourceHashmapMaxLen(
   overhead: number = RESOURCE_ADVERTISEMENT_OVERHEAD,
-  mdu: number = RESOURCE_HASHMAP_MDU,
+  mdu: number = RESOURCE_HASHMAP_MDU
 ): number {
   return Math.floor((mdu - overhead) / RESOURCE_MAPHASH_LEN);
 }
 
 /** Sliding collision-guard window size used while building resource part map hashes. */
-export function resourceMapHashCollisionGuardLimit(
-  hashmapMaxLen: number,
-): number {
+export function resourceMapHashCollisionGuardLimit(hashmapMaxLen: number): number {
   return hashmapMaxLen * 2 + 10;
 }
 
@@ -58,12 +56,8 @@ export function appendResourceMapHashCollisionGuard(input: {
   readonly guard: ReadonlyArray<Uint8Array>;
   readonly mapHash: Uint8Array;
   readonly hashmapMaxLen: number;
-}):
-  | { readonly collided: true }
-  | { readonly collided: false; readonly guard: readonly Uint8Array[] } {
-  if (
-    input.guard.some((existing) => equalByteArrays(existing, input.mapHash))
-  ) {
+}): { readonly collided: true } | { readonly collided: false; readonly guard: readonly Uint8Array[] } {
+  if (input.guard.some((existing) => equalByteArrays(existing, input.mapHash))) {
     return { collided: true };
   }
 
@@ -97,10 +91,7 @@ export function containsResourceHash(input: {
   return indexOfResourceHash(input) !== null;
 }
 
-export function packResourceHashmapUpdate(
-  segment: number,
-  hashmap: Uint8Array,
-): Uint8Array {
+export function packResourceHashmapUpdate(segment: number, hashmap: Uint8Array): Uint8Array {
   return msgpackPackArray([msgpackPackUInt(segment), msgpackPackBin(hashmap)]);
 }
 
@@ -119,7 +110,7 @@ function readBin(value: MsgpackValue | undefined): Uint8Array | null {
 }
 
 export function unpackResourceHashmapUpdate(
-  bytes: Uint8Array,
+  bytes: Uint8Array
 ): { readonly segment: number; readonly hashmap: Uint8Array } | null {
   try {
     const update = msgpackUnpack(bytes);
@@ -138,23 +129,22 @@ export function unpackResourceHashmapUpdate(
 }
 
 /** Split RESOURCE_HMU plaintext into resource hash prefix + msgpack update body. */
-export function splitResourceHashmapUpdatePacket(plaintext: Uint8Array): {
-  readonly resourceHash: Uint8Array;
-  readonly updateBytes: Uint8Array;
-} | null {
+export function splitResourceHashmapUpdatePacket(
+  plaintext: Uint8Array
+): { readonly resourceHash: Uint8Array; readonly updateBytes: Uint8Array } | null {
   if (plaintext.length < RESOURCE_HASH_SIZE) {
     return null;
   }
   return {
     resourceHash: plaintext.subarray(0, RESOURCE_HASH_SIZE),
-    updateBytes: plaintext.subarray(RESOURCE_HASH_SIZE),
+    updateBytes: plaintext.subarray(RESOURCE_HASH_SIZE)
   };
 }
 
 /** Pack RESOURCE_HMU plaintext: resource hash || msgpack update body. */
 export function packResourceHashmapUpdatePacket(
   resourceHash: Uint8Array,
-  updateBytes: Uint8Array,
+  updateBytes: Uint8Array
 ): Uint8Array {
   if (resourceHash.length !== RESOURCE_HASH_SIZE) {
     throw new Error(`resource hash must be ${RESOURCE_HASH_SIZE} bytes`);
@@ -172,9 +162,7 @@ export interface ResourcePartRequest {
   readonly requestedMapHashes: readonly Uint8Array[];
 }
 
-export function parseResourcePartRequest(
-  requestData: Uint8Array,
-): ResourcePartRequest | null {
+export function parseResourcePartRequest(requestData: Uint8Array): ResourcePartRequest | null {
   if (requestData.length < 1 + RESOURCE_HASH_SIZE) {
     return null;
   }
@@ -191,14 +179,8 @@ export function parseResourcePartRequest(
   const resourceHash = requestData.subarray(pad, pad + RESOURCE_HASH_SIZE);
   const requestedHashes = requestData.subarray(pad + RESOURCE_HASH_SIZE);
   const requestedMapHashes: Uint8Array[] = [];
-  for (
-    let index = 0;
-    index + RESOURCE_MAPHASH_LEN <= requestedHashes.length;
-    index += RESOURCE_MAPHASH_LEN
-  ) {
-    requestedMapHashes.push(
-      requestedHashes.subarray(index, index + RESOURCE_MAPHASH_LEN),
-    );
+  for (let index = 0; index + RESOURCE_MAPHASH_LEN <= requestedHashes.length; index += RESOURCE_MAPHASH_LEN) {
+    requestedMapHashes.push(requestedHashes.subarray(index, index + RESOURCE_MAPHASH_LEN));
   }
 
   return { wantsMoreHashmap, lastMapHash, resourceHash, requestedMapHashes };
@@ -230,10 +212,7 @@ export function planResourceHashmapSlotWrites(input: {
   for (let index = 0; index < hashes; index += 1) {
     writes.push({
       slot: index + input.segment * input.hashmapMaxLen,
-      mapHash: input.hashmap.subarray(
-        index * RESOURCE_MAPHASH_LEN,
-        (index + 1) * RESOURCE_MAPHASH_LEN,
-      ),
+      mapHash: input.hashmap.subarray(index * RESOURCE_MAPHASH_LEN, (index + 1) * RESOURCE_MAPHASH_LEN)
     });
   }
   return writes;
@@ -274,7 +253,7 @@ export function initialResourceHashmapSlotWritesPlanState(): ResourceHashmapSlot
 
 export function stepResourceHashmapSlotWritesPlanWithActions(
   state: ResourceHashmapSlotWritesPlanState,
-  event: ResourceHashmapSlotWritesPlanEvent,
+  event: ResourceHashmapSlotWritesPlanEvent
 ): ResourceHashmapSlotWritesPlanStepResult {
   if (event.kind === "resource/hashmap-slot-writes-plan-gate") {
     return {
@@ -283,12 +262,12 @@ export function stepResourceHashmapSlotWritesPlanWithActions(
       actions: planResourceHashmapSlotWrites({
         segment: event.segment,
         hashmap: event.hashmap,
-        hashmapMaxLen: event.hashmapMaxLen,
+        hashmapMaxLen: event.hashmapMaxLen
       }).map((write) => ({
         kind: "write" as const,
         slot: write.slot,
-        mapHash: write.mapHash,
-      })),
+        mapHash: write.mapHash
+      }))
     };
   }
 
@@ -296,20 +275,17 @@ export function stepResourceHashmapSlotWritesPlanWithActions(
 }
 
 export function shouldWriteResourceHashmapSlotsPlan(
-  actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>,
+  actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "write");
 }
 
 /** Extract slot writes from plan actions for {@link applyResourceHashmapSlotWrites}. */
 export function resourceHashmapSlotWritesPlanFromActions(
-  actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>,
+  actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>
 ): readonly ResourceHashmapSlotWrite[] {
   return actions
-    .filter(
-      (action): action is ResourceHashmapSlotWritesPlanAction =>
-        action.kind === "write",
-    )
+    .filter((action): action is ResourceHashmapSlotWritesPlanAction => action.kind === "write")
     .map((action) => ({ slot: action.slot, mapHash: action.mapHash }));
 }
 
@@ -348,7 +324,7 @@ export function initialResourceHashmapSlotWritesState(): ResourceHashmapSlotWrit
 
 export function stepResourceHashmapSlotWritesWithActions(
   state: ResourceHashmapSlotWritesState,
-  event: ResourceHashmapSlotWritesEvent,
+  event: ResourceHashmapSlotWritesEvent
 ): ResourceHashmapSlotWritesStepResult {
   if (event.kind === "resource/hashmap-slot-writes-gate") {
     const planActions = stepResourceHashmapSlotWritesPlanWithActions(
@@ -357,19 +333,17 @@ export function stepResourceHashmapSlotWritesWithActions(
         kind: "resource/hashmap-slot-writes-plan-gate",
         segment: event.segment,
         hashmap: event.hashmap,
-        hashmapMaxLen: event.hashmapMaxLen,
-      },
+        hashmapMaxLen: event.hashmapMaxLen
+      }
     ).actions;
     return {
       state,
       intents: [],
-      actions: resourceHashmapSlotWritesPlanFromActions(planActions).map(
-        (write) => ({
-          kind: "write" as const,
-          slot: write.slot,
-          mapHash: write.mapHash,
-        }),
-      ),
+      actions: resourceHashmapSlotWritesPlanFromActions(planActions).map((write) => ({
+        kind: "write" as const,
+        slot: write.slot,
+        mapHash: write.mapHash
+      }))
     };
   }
 
@@ -377,20 +351,17 @@ export function stepResourceHashmapSlotWritesWithActions(
 }
 
 export function shouldWriteResourceHashmapSlots(
-  actions: ReadonlyArray<ResourceHashmapSlotWritesAction>,
+  actions: ReadonlyArray<ResourceHashmapSlotWritesAction>
 ): boolean {
   return actions.some((action) => action.kind === "write");
 }
 
 /** Extract slot writes from step actions for {@link applyResourceHashmapSlotWrites}. */
 export function resourceHashmapSlotWritesFromActions(
-  actions: ReadonlyArray<ResourceHashmapSlotWritesAction>,
+  actions: ReadonlyArray<ResourceHashmapSlotWritesAction>
 ): readonly ResourceHashmapSlotWrite[] {
   return actions
-    .filter(
-      (action): action is ResourceHashmapSlotWritesAction =>
-        action.kind === "write",
-    )
+    .filter((action): action is ResourceHashmapSlotWritesAction => action.kind === "write")
     .map((action) => ({ slot: action.slot, mapHash: action.mapHash }));
 }
 
@@ -401,10 +372,7 @@ export function applyResourceHashmapSlotWrites(input: {
   readonly hashmap: ReadonlyArray<Uint8Array | null>;
   readonly hashmapHeight: number;
   readonly writes: ReadonlyArray<ResourceHashmapSlotWrite>;
-}): {
-  readonly hashmap: Array<Uint8Array | null>;
-  readonly hashmapHeight: number;
-} {
+}): { readonly hashmap: Array<Uint8Array | null>; readonly hashmapHeight: number } {
   const hashmap = [...input.hashmap];
   let hashmapHeight = input.hashmapHeight;
   for (const write of input.writes) {
@@ -451,13 +419,13 @@ export function initialApplyResourceHashmapSlotWritesState(): ApplyResourceHashm
 
 export function stepApplyResourceHashmapSlotWritesWithActions(
   state: ApplyResourceHashmapSlotWritesState,
-  event: ApplyResourceHashmapSlotWritesEvent,
+  event: ApplyResourceHashmapSlotWritesEvent
 ): ApplyResourceHashmapSlotWritesStepResult {
   if (event.kind === "resource-hashmap/apply-slot-writes-gate") {
     const applied = applyResourceHashmapSlotWrites({
       hashmap: event.hashmap,
       hashmapHeight: event.hashmapHeight,
-      writes: event.writes,
+      writes: event.writes
     });
     return {
       state,
@@ -466,9 +434,9 @@ export function stepApplyResourceHashmapSlotWritesWithActions(
         {
           kind: "use-fields",
           hashmap: applied.hashmap,
-          hashmapHeight: applied.hashmapHeight,
-        },
-      ],
+          hashmapHeight: applied.hashmapHeight
+        }
+      ]
     };
   }
 
@@ -476,27 +444,22 @@ export function stepApplyResourceHashmapSlotWritesWithActions(
 }
 
 export function shouldUseApplyResourceHashmapSlotWrites(
-  actions: ReadonlyArray<ApplyResourceHashmapSlotWritesAction>,
+  actions: ReadonlyArray<ApplyResourceHashmapSlotWritesAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract applied hashmap fields from step actions; null when no `use-fields`. */
 export function applyResourceHashmapSlotWritesFieldsFromActions(
-  actions: ReadonlyArray<ApplyResourceHashmapSlotWritesAction>,
-): {
-  readonly hashmap: Array<Uint8Array | null>;
-  readonly hashmapHeight: number;
-} | null {
+  actions: ReadonlyArray<ApplyResourceHashmapSlotWritesAction>
+): { readonly hashmap: Array<Uint8Array | null>; readonly hashmapHeight: number } | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields"
     ? { hashmap: action.hashmap, hashmapHeight: action.hashmapHeight }
     : null;
 }
 
-export function assembleResourceHashmapBytes(
-  mapHashes: ReadonlyArray<Uint8Array>,
-): Uint8Array {
+export function assembleResourceHashmapBytes(mapHashes: ReadonlyArray<Uint8Array>): Uint8Array {
   return assembleByteArrays(mapHashes);
 }
 

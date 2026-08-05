@@ -34,14 +34,12 @@ function pushBundle(socket: Socket, options: DevServerOptions): void {
   const payload = {
     type: "dev-bundle",
     manifest: options.manifest,
-    bundleHex: bytesToHex(bundle),
+    bundleHex: bytesToHex(bundle)
   };
   socket.write(`${JSON.stringify(payload)}\n`);
 }
 
-export async function startDevServer(
-  options: DevServerOptions,
-): Promise<DevServerHandle> {
+export async function startDevServer(options: DevServerOptions): Promise<DevServerHandle> {
   let activeSocket: Socket | null = null;
   const server: Server = createServer((socket) => {
     activeSocket = socket;
@@ -79,6 +77,6 @@ export async function startDevServer(
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
       });
-    },
+    }
   };
 }

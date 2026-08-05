@@ -1,5 +1,6 @@
 # Handbook: interactive diagnostic documentation for every host
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -31,23 +32,23 @@ sandbox on every host (Android, iOS, desktop, web). It is simultaneously:
 Because every applet executes against the real host it runs on, the same content serves
 three audiences without forking:
 
-| Audience   | What they get                                                                                                                                                  |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Testers    | Run applets (individually or "run all") and get pass / fail / unavailable with details; export a structured report and diff it against another device's report |
-| Developers | Every applet is a complete, copyable, SDK-only source sample; one tap opens it in DevStudio via the shared workspace / `share:cas`                             |
-| End users  | Plain-language chapters plus live "what can _this_ device do" pages that explain implementation differences instead of asserting them                          |
+| Audience | What they get |
+|---|---|
+| Testers | Run applets (individually or "run all") and get pass / fail / unavailable with details; export a structured report and diff it against another device's report |
+| Developers | Every applet is a complete, copyable, SDK-only source sample; one tap opens it in DevStudio via the shared workspace / `share:cas` |
+| End users | Plain-language chapters plus live "what can *this* device do" pages that explain implementation differences instead of asserting them |
 
 ## Why a mini-app (and what that buys us)
 
 1. **Dogfooding is the diagnostic.** If the Handbook installs, renders, and its applets
    pass, the reader has just verified packaging, install, sandbox, broker, widget
-   renderer, and every granted SDK surface on their host. The docs _are_ the test.
+   renderer, and every granted SDK surface on their host. The docs *are* the test.
 2. **One implementation, four platforms.** The widget protocol is already the
    cross-platform UI seam; no per-host docs UI to maintain.
 3. **Distribution for free.** The Handbook is published like any app — announced,
    seeded, installable by 256t id over any transport, updatable via Hyperdrive.
 4. **Honest platform differences.** A web host reader sees `BLE: unavailable in this
-host` from a live probe, not from prose that may be stale.
+   host` from a live probe, not from prose that may be stale.
 
 ## Architecture
 
@@ -73,7 +74,7 @@ apps/handbook/
 - **Applet = manifest + single SDK-only source file.** `applet.json` declares: id,
   title, required capabilities, which SDK surfaces it exercises, and an **expectations
   table keyed by platform** (`pass` / `unavailable` / `device-gated`). `main.js` is a
-  complete runnable sample — the code shown _is_ the code executed.
+  complete runnable sample — the code shown *is* the code executed.
 - **Two execution modes:**
   1. **Inline** — the Handbook runs the applet's exported `run(sdk, report)` in its own
      sandbox with its own grants and renders live results next to the source. Fast, no
@@ -143,7 +144,6 @@ capability model documents itself.
 ## Phases
 
 ### Phase D0 — Skeleton + pipeline (web + node first)
-
 - `apps/handbook` scaffold; content pipeline (markdown subset → widget trees; applet
   bundling; broken-link check); TOC + chapter navigation + reading position in
   `storage:kv`; **one applet end-to-end** (source view → inline run → result card).
@@ -156,7 +156,6 @@ position + 5 software-tier applets; `npm run test:handbook`. Web host CI:
 `npm run test:web-handbook` (Playwright install → chapters → applets → report).
 
 ### Phase D1 — Applet framework + SDK tour
-
 - Applet runner (inline + preview modes), result model, `not-granted` /
   `unavailable` rendering; the full Part III chapter set with applets covering every
   software-tier SDK namespace; widget gallery.
@@ -176,7 +175,6 @@ widget gallery; strict coverage gate (no deferred list); handbook ~71 KiB in
 Preview-mode chapter still uses inline packaging probes (confirmation-backed).
 
 ### Phase D2 — Diagnostics, reports, difference matrix
-
 - `host.info()` host addition (+ `HOST_API_VERSION` minor bump, all four hosts + node).
 - Run-all diagnostics; canonical report JSON; export via `share.put` + QR; report
   diff/matrix view; Part II chapters with live matrix.
@@ -197,7 +195,6 @@ round-trip + seeded web-status diff). Web Playwright Handbook CI:
 2026-07-10 capture: TOC search filtering (`widget gallery`), 38 chapters, 19 applets; regenerate with `npm run capture:handbook-web-ui`.
 
 ### Phase D3 — Mobile hosts + device-gated content
-
 - Run Handbook on Android emulator and iOS simulator harnesses (extend the existing
   `conformance/android-emulator` and `conformance/ios-sim` flows: install → open three
   chapters → run software-tier diagnostics → export report).
@@ -219,7 +216,6 @@ comparison rows deferred to STATUS-HARDWARE.
 2026-07-10 capture: chapter view with prev/next navigation; regenerate with `npm run capture:handbook-mobile-ui`.
 
 ### Phase D4 — Parts I & V, publish, seed
-
 - Concepts and reference chapters (reference pages generated from runtime sources);
   final editorial pass; "Open in DevStudio" integration.
 - Package and sign the Handbook; desktop hosts seed it by default alongside the

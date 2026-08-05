@@ -12,18 +12,13 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
 import { canRegisterLxmfDeliveryIdentity } from "./part-3.js";
-import type {
-  RegisterLxmfDeliveryIdentityAction,
-  RegisterLxmfDeliveryIdentityEvent,
-  RegisterLxmfDeliveryIdentityState,
-  RegisterLxmfDeliveryIdentityStepResult,
-} from "./part-3.js";
+import type { RegisterLxmfDeliveryIdentityAction, RegisterLxmfDeliveryIdentityEvent, RegisterLxmfDeliveryIdentityState, RegisterLxmfDeliveryIdentityStepResult } from "./part-3.js";
 export function stepRegisterLxmfDeliveryIdentityWithActions(
   state: RegisterLxmfDeliveryIdentityState,
-  event: RegisterLxmfDeliveryIdentityEvent,
+  event: RegisterLxmfDeliveryIdentityEvent
 ): RegisterLxmfDeliveryIdentityStepResult {
   if (event.kind === "lxmf/register-delivery-identity-gate") {
     return {
@@ -31,13 +26,11 @@ export function stepRegisterLxmfDeliveryIdentityWithActions(
       intents: [],
       actions: [
         {
-          kind: canRegisterLxmfDeliveryIdentity(
-            event.deliveryDestinationPresent,
-          )
+          kind: canRegisterLxmfDeliveryIdentity(event.deliveryDestinationPresent)
             ? "register"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -45,13 +38,13 @@ export function stepRegisterLxmfDeliveryIdentityWithActions(
 }
 
 export function shouldRegisterLxmfDeliveryIdentityNow(
-  actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>,
+  actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipRegisterLxmfDeliveryIdentity(
-  actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>,
+  actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -60,9 +53,7 @@ export function shouldSkipRegisterLxmfDeliveryIdentity(
  * Whether changing the outbound/propagation node hash should tear down an
  * existing propagation link before the adapter clears it.
  */
-export function shouldTeardownLxmfPropagationLink(
-  linkPresent: boolean,
-): boolean {
+export function shouldTeardownLxmfPropagationLink(linkPresent: boolean): boolean {
   return linkPresent;
 }
 
@@ -81,7 +72,8 @@ export type TeardownLxmfPropagationLinkEvent =
     };
 
 export type TeardownLxmfPropagationLinkAction =
-  { readonly kind: "teardown" } | { readonly kind: "skip" };
+  | { readonly kind: "teardown" }
+  | { readonly kind: "skip" };
 
 export interface TeardownLxmfPropagationLinkStepResult {
   readonly state: TeardownLxmfPropagationLinkState;
@@ -95,7 +87,7 @@ export function initialTeardownLxmfPropagationLinkState(): TeardownLxmfPropagati
 
 export function stepTeardownLxmfPropagationLinkWithActions(
   state: TeardownLxmfPropagationLinkState,
-  event: TeardownLxmfPropagationLinkEvent,
+  event: TeardownLxmfPropagationLinkEvent
 ): TeardownLxmfPropagationLinkStepResult {
   if (event.kind === "lxmf/teardown-propagation-link-gate") {
     return {
@@ -105,9 +97,9 @@ export function stepTeardownLxmfPropagationLinkWithActions(
         {
           kind: shouldTeardownLxmfPropagationLink(event.linkPresent)
             ? "teardown"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -115,21 +107,19 @@ export function stepTeardownLxmfPropagationLinkWithActions(
 }
 
 export function shouldTeardownLxmfPropagationLinkNow(
-  actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>,
+  actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>
 ): boolean {
   return actions.some((action) => action.kind === "teardown");
 }
 
 export function shouldSkipTeardownLxmfPropagationLink(
-  actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>,
+  actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether opportunistic payload extraction may proceed (message packed). */
-export function canExtractLxmfOpportunisticPayload(
-  packedPresent: boolean,
-): boolean {
+export function canExtractLxmfOpportunisticPayload(packedPresent: boolean): boolean {
   return packedPresent;
 }
 
@@ -148,7 +138,8 @@ export type ExtractLxmfOpportunisticPayloadEvent =
     };
 
 export type ExtractLxmfOpportunisticPayloadAction =
-  { readonly kind: "extract" } | { readonly kind: "skip" };
+  | { readonly kind: "extract" }
+  | { readonly kind: "skip" };
 
 export interface ExtractLxmfOpportunisticPayloadStepResult {
   readonly state: ExtractLxmfOpportunisticPayloadState;
@@ -162,7 +153,7 @@ export function initialExtractLxmfOpportunisticPayloadState(): ExtractLxmfOpport
 
 export function stepExtractLxmfOpportunisticPayloadWithActions(
   state: ExtractLxmfOpportunisticPayloadState,
-  event: ExtractLxmfOpportunisticPayloadEvent,
+  event: ExtractLxmfOpportunisticPayloadEvent
 ): ExtractLxmfOpportunisticPayloadStepResult {
   if (event.kind === "lxmf/extract-opportunistic-payload-gate") {
     return {
@@ -172,9 +163,9 @@ export function stepExtractLxmfOpportunisticPayloadWithActions(
         {
           kind: canExtractLxmfOpportunisticPayload(event.packedPresent)
             ? "extract"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -182,21 +173,19 @@ export function stepExtractLxmfOpportunisticPayloadWithActions(
 }
 
 export function shouldExtractLxmfOpportunisticPayloadNow(
-  actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>,
+  actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "extract");
 }
 
 export function shouldSkipExtractLxmfOpportunisticPayload(
-  actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>,
+  actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether delivery-parameter selection may run (message packed). */
-export function shouldSelectLxmfDeliveryParameters(
-  packedPresent: boolean,
-): boolean {
+export function shouldSelectLxmfDeliveryParameters(packedPresent: boolean): boolean {
   return packedPresent;
 }
 
@@ -215,7 +204,8 @@ export type SelectLxmfDeliveryParametersEvent =
     };
 
 export type SelectLxmfDeliveryParametersAction =
-  { readonly kind: "select" } | { readonly kind: "skip" };
+  | { readonly kind: "select" }
+  | { readonly kind: "skip" };
 
 export interface SelectLxmfDeliveryParametersStepResult {
   readonly state: SelectLxmfDeliveryParametersState;
@@ -229,7 +219,7 @@ export function initialSelectLxmfDeliveryParametersState(): SelectLxmfDeliveryPa
 
 export function stepSelectLxmfDeliveryParametersWithActions(
   state: SelectLxmfDeliveryParametersState,
-  event: SelectLxmfDeliveryParametersEvent,
+  event: SelectLxmfDeliveryParametersEvent
 ): SelectLxmfDeliveryParametersStepResult {
   if (event.kind === "lxmf/select-delivery-parameters-gate") {
     return {
@@ -239,9 +229,9 @@ export function stepSelectLxmfDeliveryParametersWithActions(
         {
           kind: shouldSelectLxmfDeliveryParameters(event.packedPresent)
             ? "select"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -249,19 +239,21 @@ export function stepSelectLxmfDeliveryParametersWithActions(
 }
 
 export function shouldSelectLxmfDeliveryParametersNow(
-  actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>,
+  actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>
 ): boolean {
   return actions.some((action) => action.kind === "select");
 }
 
 export function shouldSkipSelectLxmfDeliveryParameters(
-  actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>,
+  actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export type LxmfPropagationSyncPrepPlan =
-  "missing-node" | "missing-delivery-identity" | "ok";
+  | "missing-node"
+  | "missing-delivery-identity"
+  | "ok";
 
 /** Preflight for PropagationClient.syncMessages (node + delivery identity). */
 export function planLxmfPropagationSyncPrep(input: {
@@ -310,7 +302,7 @@ export function initialLxmfPropagationSyncPrepPlanState(): LxmfPropagationSyncPr
 
 export function stepLxmfPropagationSyncPrepPlanWithActions(
   state: LxmfPropagationSyncPrepPlanState,
-  event: LxmfPropagationSyncPrepPlanEvent,
+  event: LxmfPropagationSyncPrepPlanEvent
 ): LxmfPropagationSyncPrepPlanStepResult {
   if (event.kind === "propagation-sync-prep/plan-gate") {
     return {
@@ -320,10 +312,10 @@ export function stepLxmfPropagationSyncPrepPlanWithActions(
         {
           kind: planLxmfPropagationSyncPrep({
             nodeConfigured: event.nodeConfigured,
-            deliveryIdentityPresent: event.deliveryIdentityPresent,
-          }),
-        },
-      ],
+            deliveryIdentityPresent: event.deliveryIdentityPresent
+          })
+        }
+      ]
     };
   }
 
@@ -332,34 +324,34 @@ export function stepLxmfPropagationSyncPrepPlanWithActions(
 
 /** Whether plan actions allow propagation sync to proceed. */
 export function shouldPlanLxmfPropagationSyncPrepOk(
-  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 /** Whether plan actions reject a missing propagation node. */
 export function shouldRejectLxmfPropagationSyncPrepPlanMissingNode(
-  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-node");
 }
 
 /** Whether plan actions reject a missing delivery identity. */
 export function shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(
-  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-delivery-identity");
 }
 
 /** Extract the sync-prep plan from actions; null when empty. */
 export function lxmfPropagationSyncPrepPlanFromActions(
-  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
 ): LxmfPropagationSyncPrepPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "missing-node" ||
-      entry.kind === "missing-delivery-identity",
+      entry.kind === "missing-delivery-identity"
   );
   return action?.kind ?? null;
 }
@@ -400,46 +392,45 @@ export function initialLxmfPropagationSyncPrepState(): LxmfPropagationSyncPrepSt
   return {};
 }
 
-export const stepLxmfPropagationSyncPrep: StepFn<
-  LxmfPropagationSyncPrepState
-> = (state, event) => {
+export const stepLxmfPropagationSyncPrep: StepFn<LxmfPropagationSyncPrepState> = (
+  state,
+  event
+) => {
   const result = stepLxmfPropagationSyncPrepInner(
     state,
-    event as LxmfPropagationSyncPrepEvent,
+    event as LxmfPropagationSyncPrepEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfPropagationSyncPrepWithActions(
   state: LxmfPropagationSyncPrepState,
-  event: LxmfPropagationSyncPrepEvent,
+  event: LxmfPropagationSyncPrepEvent
 ): LxmfPropagationSyncPrepStepResult {
   return stepLxmfPropagationSyncPrepInner(state, event);
 }
 
 export function shouldProceedLxmfPropagationSyncPrep(
-  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>,
+  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectLxmfPropagationSyncMissingNode(
-  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>,
+  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-node");
 }
 
 export function shouldRejectLxmfPropagationSyncMissingDeliveryIdentity(
-  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>,
+  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>
 ): boolean {
-  return actions.some(
-    (action) => action.kind === "reject-missing-delivery-identity",
-  );
+  return actions.some((action) => action.kind === "reject-missing-delivery-identity");
 }
 
 function stepLxmfPropagationSyncPrepInner(
   state: LxmfPropagationSyncPrepState,
-  event: LxmfPropagationSyncPrepEvent,
+  event: LxmfPropagationSyncPrepEvent
 ): LxmfPropagationSyncPrepStepResult {
   if (event.kind === "propagation-sync-prep/gate") {
     const planActions = stepLxmfPropagationSyncPrepPlanWithActions(
@@ -447,21 +438,17 @@ function stepLxmfPropagationSyncPrepInner(
       {
         kind: "propagation-sync-prep/plan-gate",
         nodeConfigured: event.nodeConfigured,
-        deliveryIdentityPresent: event.deliveryIdentityPresent,
-      },
+        deliveryIdentityPresent: event.deliveryIdentityPresent
+      }
     ).actions;
     if (shouldRejectLxmfPropagationSyncPrepPlanMissingNode(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
     }
-    if (
-      shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(
-        planActions,
-      )
-    ) {
+    if (shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(planActions)) {
       return {
         state,
         intents: [],
-        actions: [{ kind: "reject-missing-delivery-identity" }],
+        actions: [{ kind: "reject-missing-delivery-identity" }]
       };
     }
     if (!shouldPlanLxmfPropagationSyncPrepOk(planActions)) {

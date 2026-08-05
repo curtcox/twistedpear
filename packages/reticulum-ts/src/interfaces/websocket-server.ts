@@ -1,11 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import {
-  createServer,
-  type IncomingMessage,
-  type Server,
-  type ServerResponse,
-} from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize, sep } from "node:path";
 import type { Duplex } from "node:stream";
 import {
@@ -19,20 +14,17 @@ import {
   shouldUseEncodeWsBinaryFrame,
   stepDecodeWsClientFrameWithActions,
   stepEncodeWsBinaryFrameWithActions,
-  wsClientFrameFromActions,
+  wsClientFrameFromActions
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import type { Reticulum } from "../reticulum.js";
 import type { Runtime } from "../runtime/runtime.js";
-import type {
-  PacketInterface,
-  ReticulumInterfaceOptions,
-} from "./interface.js";
+import type { PacketInterface, ReticulumInterfaceOptions } from "./interface.js";
 import {
   WebSocketClientInterface,
   type WebSocketClientInterfaceOptions,
   type WebSocketLike,
-  type WebSocketMessageEvent,
+  type WebSocketMessageEvent
 } from "./websocket-client.js";
 
 export interface WebSocketServerInterfaceOptions extends ReticulumInterfaceOptions {
@@ -45,18 +37,11 @@ export interface WebSocketServerInterfaceOptions extends ReticulumInterfaceOptio
   /** When set, non-WebSocket GET requests serve files from this directory. */
   readonly staticRoot?: string;
   /** Optional HTTP handler invoked before static/404 handling (e.g. gateway bulk fetch). */
-  readonly serveHttp?: (
-    request: IncomingMessage,
-    response: ServerResponse,
-  ) => void | Promise<void>;
+  readonly serveHttp?: (request: IncomingMessage, response: ServerResponse) => void | Promise<void>;
 }
 
-export type WebSocketSpawnedInterfaceHandler = (
-  iface: WebSocketClientInterface,
-) => void;
-export type WebSocketDetachedInterfaceHandler = (
-  iface: WebSocketClientInterface,
-) => void;
+export type WebSocketSpawnedInterfaceHandler = (iface: WebSocketClientInterface) => void;
+export type WebSocketDetachedInterfaceHandler = (iface: WebSocketClientInterface) => void;
 
 export class WebSocketServerInterface {
   readonly name: string;
@@ -76,7 +61,7 @@ export class WebSocketServerInterface {
   constructor(
     private readonly provider: CryptoProvider,
     private readonly runtime: Runtime,
-    private readonly options: WebSocketServerInterfaceOptions,
+    private readonly options: WebSocketServerInterfaceOptions
   ) {
     this.name = options.name;
     this.incoming = true;
@@ -101,20 +86,14 @@ export class WebSocketServerInterface {
     this.server = createServer((request, response) => {
       void this.handleHttpRequest(request, response);
     });
-    this.server.on("upgrade", (request, socket, head) =>
-      this.handleUpgrade(request, socket, head),
-    );
+    this.server.on("upgrade", (request, socket, head) => this.handleUpgrade(request, socket, head));
 
     await new Promise<void>((resolve, reject) => {
       this.server?.once("error", reject);
-      this.server?.listen(
-        this.options.listenPort,
-        this.options.listenHost,
-        () => {
-          this.server?.off("error", reject);
-          resolve();
-        },
-      );
+      this.server?.listen(this.options.listenPort, this.options.listenHost, () => {
+        this.server?.off("error", reject);
+        resolve();
+      });
     });
 
     const address = this.server.address();
@@ -160,10 +139,7 @@ export class WebSocketServerInterface {
     }
   }
 
-  private async handleHttpRequest(
-    request: IncomingMessage,
-    response: ServerResponse,
-  ): Promise<void> {
+  private async handleHttpRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (request.method !== "GET" && request.method !== "HEAD") {
       response.writeHead(405);
       response.end();
@@ -184,19 +160,10 @@ export class WebSocketServerInterface {
       return;
     }
 
-    serveStaticFile(
-      staticRoot,
-      request.url ?? "/",
-      request.method === "HEAD",
-      response,
-    );
+    serveStaticFile(staticRoot, request.url ?? "/", request.method === "HEAD", response);
   }
 
-  private handleUpgrade(
-    request: IncomingMessage,
-    socket: Duplex,
-    _head: Buffer,
-  ): void {
+  private handleUpgrade(request: IncomingMessage, socket: Duplex, _head: Buffer): void {
     const pathname = new URL(request.url ?? "/", "ws://localhost").pathname;
     if (pathname === "/dht-relay") {
       return;
@@ -228,10 +195,10 @@ export class WebSocketServerInterface {
         url: "ws://accepted",
         mtu: this.mtu,
         bitrate: this.bitrate,
-        outgoing: this.outgoing,
+        outgoing: this.outgoing
       },
       connection,
-      this.outgoing,
+      this.outgoing
     );
     let detached = false;
     const detach = () => {
@@ -277,10 +244,7 @@ export class WebSocketServerInterface {
     }
 
     const expected = `tp-token.${this.options.sharedToken}`;
-    return protocol
-      .split(",")
-      .map((value) => value.trim())
-      .find((value) => value === expected);
+    return protocol.split(",").map((value) => value.trim()).find((value) => value === expected);
   }
 }
 
@@ -310,13 +274,10 @@ class NodeWebSocketConnection implements WebSocketLike {
       throw new Error("WebSocket is closed");
     }
 
-    const encodeStepped = stepEncodeWsBinaryFrameWithActions(
-      initialEncodeWsBinaryFrameState(),
-      {
-        kind: "ws-frame/encode-gate",
-        data,
-      },
-    );
+    const encodeStepped = stepEncodeWsBinaryFrameWithActions(initialEncodeWsBinaryFrameState(), {
+      kind: "ws-frame/encode-gate",
+      data
+    });
     if (!shouldUseEncodeWsBinaryFrame(encodeStepped.actions)) {
       throw new Error("ws frame: missing use-raw action");
     }
@@ -337,44 +298,27 @@ class NodeWebSocketConnection implements WebSocketLike {
   }
 
   addEventListener(type: "open", listener: () => void): void;
-  addEventListener(
-    type: "message",
-    listener: (event: WebSocketMessageEvent) => void,
-  ): void;
+  addEventListener(type: "message", listener: (event: WebSocketMessageEvent) => void): void;
   addEventListener(type: "close" | "error", listener: () => void): void;
-  addEventListener(
-    type: "open" | "message" | "close" | "error",
-    listener: (() => void) | ((event: WebSocketMessageEvent) => void),
-  ): void {
+  addEventListener(type: "open" | "message" | "close" | "error", listener: (() => void) | ((event: WebSocketMessageEvent) => void)): void {
     this.listeners[type].push(listener as never);
   }
 
   removeEventListener(type: "open", listener: () => void): void;
-  removeEventListener(
-    type: "message",
-    listener: (event: WebSocketMessageEvent) => void,
-  ): void;
+  removeEventListener(type: "message", listener: (event: WebSocketMessageEvent) => void): void;
   removeEventListener(type: "close" | "error", listener: () => void): void;
-  removeEventListener(
-    type: "open" | "message" | "close" | "error",
-    listener: (() => void) | ((event: WebSocketMessageEvent) => void),
-  ): void {
-    this.listeners[type] = this.listeners[type].filter(
-      (current) => current !== listener,
-    ) as never;
+  removeEventListener(type: "open" | "message" | "close" | "error", listener: (() => void) | ((event: WebSocketMessageEvent) => void)): void {
+    this.listeners[type] = this.listeners[type].filter((current) => current !== listener) as never;
   }
 
   private handleData(chunk: Buffer): void {
     this.buffer = Buffer.concat([this.buffer, chunk]);
 
     while (true) {
-      const decodeStepped = stepDecodeWsClientFrameWithActions(
-        initialDecodeWsClientFrameState(),
-        {
-          kind: "ws-frame/decode-gate",
-          buffer: this.buffer,
-        },
-      );
+      const decodeStepped = stepDecodeWsClientFrameWithActions(initialDecodeWsClientFrameState(), {
+        kind: "ws-frame/decode-gate",
+        buffer: this.buffer
+      });
       if (
         shouldRejectDecodeWsClientFrame(decodeStepped.actions) ||
         !shouldUseDecodeWsClientFrame(decodeStepped.actions)
@@ -409,10 +353,7 @@ class NodeWebSocketConnection implements WebSocketLike {
 
   private emit(type: "open" | "close" | "error"): void;
   private emit(type: "message", event: WebSocketMessageEvent): void;
-  private emit(
-    type: "open" | "message" | "close" | "error",
-    event?: WebSocketMessageEvent,
-  ): void {
+  private emit(type: "open" | "message" | "close" | "error", event?: WebSocketMessageEvent): void {
     for (const listener of this.listeners[type]) {
       if (type === "message") {
         (listener as (messageEvent: WebSocketMessageEvent) => void)(event!);
@@ -431,7 +372,7 @@ function webSocketUpgradeResponse(key: string, protocol?: string): string {
     "HTTP/1.1 101 Switching Protocols",
     "Upgrade: websocket",
     "Connection: Upgrade",
-    `Sec-WebSocket-Accept: ${accept}`,
+    `Sec-WebSocket-Accept: ${accept}`
   ];
   if (protocol !== undefined) {
     lines.push(`Sec-WebSocket-Protocol: ${protocol}`);
@@ -441,31 +382,23 @@ function webSocketUpgradeResponse(key: string, protocol?: string): string {
   return lines.join("\r\n");
 }
 
-export function isWebSocketClientInterface(
-  value: PacketInterface,
-): value is WebSocketClientInterface {
+export function isWebSocketClientInterface(value: PacketInterface): value is WebSocketClientInterface {
   return value instanceof WebSocketClientInterface;
 }
 
-export function isWebSocketServerInterface(
-  value: unknown,
-): value is WebSocketServerInterface {
+export function isWebSocketServerInterface(value: unknown): value is WebSocketServerInterface {
   return value instanceof WebSocketServerInterface;
 }
 
 export async function registerWebSocketServerInterface(
   reticulum: Reticulum,
-  options: Omit<WebSocketServerInterfaceOptions, "provider" | "runtime">,
+  options: Omit<WebSocketServerInterfaceOptions, "provider" | "runtime">
 ): Promise<WebSocketServerInterface> {
-  const server = new WebSocketServerInterface(
-    reticulum.provider,
-    reticulum.runtime,
-    {
-      ...options,
-      provider: reticulum.provider,
-      runtime: reticulum.runtime,
-    },
-  );
+  const server = new WebSocketServerInterface(reticulum.provider, reticulum.runtime, {
+    ...options,
+    provider: reticulum.provider,
+    runtime: reticulum.runtime
+  });
   server.setSpawnHandler((client) => {
     reticulum.registerInterface(client);
   });
@@ -480,18 +413,14 @@ function serveStaticFile(
   staticRoot: string,
   requestPath: string,
   headOnly: boolean,
-  response: ServerResponse,
+  response: ServerResponse
 ): void {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath =
-    pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+  const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (
-    !resolvedPath.startsWith(resolvedRoot + sep) &&
-    resolvedPath !== resolvedRoot
-  ) {
+  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
     response.writeHead(403);
     response.end();
     return;

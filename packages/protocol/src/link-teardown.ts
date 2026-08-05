@@ -12,7 +12,7 @@ import {
   LinkStatus,
   LinkTeardownReason,
   type LinkStatusValue,
-  type LinkTeardownReasonValue,
+  type LinkTeardownReasonValue
 } from "./link-watchdog.js";
 
 export type LinkTeardownPlan =
@@ -59,14 +59,12 @@ export function initialLinkTeardownState(input: {
 }): LinkTeardownState {
   return {
     status: input.status,
-    initiator: input.initiator,
+    initiator: input.initiator
   };
 }
 
 /** PENDING/CLOSED links only close; otherwise send LINKCLOSE first. */
-export function planLinkTeardown(
-  status: LinkStatusValue | number,
-): LinkTeardownPlan {
+export function planLinkTeardown(status: LinkStatusValue | number): LinkTeardownPlan {
   if (status === LinkStatus.PENDING || status === LinkStatus.CLOSED) {
     return { kind: "close-only" };
   }
@@ -103,13 +101,13 @@ export function initialLinkTeardownPlanState(): LinkTeardownPlanState {
 
 export function stepLinkTeardownPlanWithActions(
   state: LinkTeardownPlanState,
-  event: LinkTeardownPlanEvent,
+  event: LinkTeardownPlanEvent
 ): LinkTeardownPlanStepResult {
   if (event.kind === "link/teardown-plan-gate") {
     return {
       state,
       intents: [],
-      actions: [planLinkTeardown(event.status)],
+      actions: [planLinkTeardown(event.status)]
     };
   }
 
@@ -118,25 +116,25 @@ export function stepLinkTeardownPlanWithActions(
 
 /** Whether step actions include close-only. */
 export function shouldCloseOnlyLinkTeardownPlan(
-  actions: ReadonlyArray<LinkTeardownPlanAction>,
+  actions: ReadonlyArray<LinkTeardownPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "close-only");
 }
 
 /** Whether step actions include send-teardown-then-close. */
 export function shouldSendLinkTeardownThenClosePlan(
-  actions: ReadonlyArray<LinkTeardownPlanAction>,
+  actions: ReadonlyArray<LinkTeardownPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "send-teardown-then-close");
 }
 
 /** Extract teardown plan from step actions; null when empty. */
 export function linkTeardownPlanFromActions(
-  actions: ReadonlyArray<LinkTeardownPlanAction>,
+  actions: ReadonlyArray<LinkTeardownPlanAction>
 ): LinkTeardownPlan | null {
   const action = actions.find(
     (entry) =>
-      entry.kind === "close-only" || entry.kind === "send-teardown-then-close",
+      entry.kind === "close-only" || entry.kind === "send-teardown-then-close"
   );
   return action ?? null;
 }
@@ -191,7 +189,7 @@ export function initialLinkTeardownReasonPlanState(): LinkTeardownReasonPlanStat
 
 export function stepLinkTeardownReasonPlanWithActions(
   state: LinkTeardownReasonPlanState,
-  event: LinkTeardownReasonPlanEvent,
+  event: LinkTeardownReasonPlanEvent
 ): LinkTeardownReasonPlanStepResult {
   if (event.kind === "link/teardown-reason-plan-gate") {
     return {
@@ -202,10 +200,10 @@ export function stepLinkTeardownReasonPlanWithActions(
           kind: "use-reason",
           reason: planLinkTeardownReason({
             initiator: event.initiator,
-            remote: event.remote,
-          }),
-        },
-      ],
+            remote: event.remote
+          })
+        }
+      ]
     };
   }
 
@@ -213,14 +211,14 @@ export function stepLinkTeardownReasonPlanWithActions(
 }
 
 export function shouldUseLinkTeardownReasonPlan(
-  actions: ReadonlyArray<LinkTeardownReasonPlanAction>,
+  actions: ReadonlyArray<LinkTeardownReasonPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-reason");
 }
 
 /** Extract teardown reason from plan-step actions; null when no `use-reason`. */
 export function linkTeardownReasonPlanFromActions(
-  actions: ReadonlyArray<LinkTeardownReasonPlanAction>,
+  actions: ReadonlyArray<LinkTeardownReasonPlanAction>
 ): LinkTeardownReasonValue | null {
   const action = actions.find((entry) => entry.kind === "use-reason");
   return action?.kind === "use-reason" ? action.reason : null;
@@ -259,7 +257,7 @@ export function initialLinkTeardownReasonState(): LinkTeardownReasonState {
 
 export function stepLinkTeardownReasonWithActions(
   state: LinkTeardownReasonState,
-  event: LinkTeardownReasonEvent,
+  event: LinkTeardownReasonEvent
 ): LinkTeardownReasonStepResult {
   if (event.kind === "link/teardown-reason-gate") {
     const planActions = stepLinkTeardownReasonPlanWithActions(
@@ -267,8 +265,8 @@ export function stepLinkTeardownReasonWithActions(
       {
         kind: "link/teardown-reason-plan-gate",
         initiator: event.initiator,
-        remote: event.remote,
-      },
+        remote: event.remote
+      }
     ).actions;
     const reason = linkTeardownReasonPlanFromActions(planActions);
     if (reason === null) {
@@ -277,7 +275,7 @@ export function stepLinkTeardownReasonWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-reason", reason }],
+      actions: [{ kind: "use-reason", reason }]
     };
   }
 
@@ -285,14 +283,14 @@ export function stepLinkTeardownReasonWithActions(
 }
 
 export function shouldUseLinkTeardownReason(
-  actions: ReadonlyArray<LinkTeardownReasonAction>,
+  actions: ReadonlyArray<LinkTeardownReasonAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-reason");
 }
 
 /** Extract teardown reason from step actions; null when no `use-reason`. */
 export function linkTeardownReasonFromActions(
-  actions: ReadonlyArray<LinkTeardownReasonAction>,
+  actions: ReadonlyArray<LinkTeardownReasonAction>
 ): LinkTeardownReasonValue | null {
   const action = actions.find((entry) => entry.kind === "use-reason");
   return action?.kind === "use-reason" ? action.reason : null;
@@ -322,7 +320,8 @@ export type AcceptLinkTeardownEvent =
     };
 
 export type AcceptLinkTeardownAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptLinkTeardownStepResult {
   readonly state: AcceptLinkTeardownState;
@@ -336,7 +335,7 @@ export function initialAcceptLinkTeardownState(): AcceptLinkTeardownState {
 
 export function stepAcceptLinkTeardownWithActions(
   state: AcceptLinkTeardownState,
-  event: AcceptLinkTeardownEvent,
+  event: AcceptLinkTeardownEvent
 ): AcceptLinkTeardownStepResult {
   if (event.kind === "link/accept-teardown-gate") {
     return {
@@ -346,12 +345,12 @@ export function stepAcceptLinkTeardownWithActions(
         {
           kind: shouldAcceptLinkTeardown({
             plaintextPresent: event.plaintextPresent,
-            linkIdMatches: event.linkIdMatches,
+            linkIdMatches: event.linkIdMatches
           })
             ? "accept"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -359,13 +358,13 @@ export function stepAcceptLinkTeardownWithActions(
 }
 
 export function shouldAcceptLinkTeardownNow(
-  actions: ReadonlyArray<AcceptLinkTeardownAction>,
+  actions: ReadonlyArray<AcceptLinkTeardownAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipLinkTeardownAccept(
-  actions: ReadonlyArray<AcceptLinkTeardownAction>,
+  actions: ReadonlyArray<AcceptLinkTeardownAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -377,35 +376,35 @@ export const stepLinkTeardown: StepFn<LinkTeardownState> = (state, event) => {
 
 export function stepLinkTeardownWithActions(
   state: LinkTeardownState,
-  event: LinkTeardownEvent,
+  event: LinkTeardownEvent
 ): LinkTeardownStepResult {
   return stepLinkTeardownInner(state, event);
 }
 
 /** Whether step actions include close-only. */
 export function shouldCloseOnlyLinkTeardown(
-  actions: ReadonlyArray<LinkTeardownAction>,
+  actions: ReadonlyArray<LinkTeardownAction>
 ): boolean {
   return actions.some((action) => action.kind === "close-only");
 }
 
 /** Whether step actions include send-teardown-then-close. */
 export function shouldSendLinkTeardownThenClose(
-  actions: ReadonlyArray<LinkTeardownAction>,
+  actions: ReadonlyArray<LinkTeardownAction>
 ): boolean {
   return actions.some((action) => action.kind === "send-teardown-then-close");
 }
 
 /** Whether step actions include accept-remote-close. */
 export function shouldAcceptRemoteLinkTeardown(
-  actions: ReadonlyArray<LinkTeardownAction>,
+  actions: ReadonlyArray<LinkTeardownAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept-remote-close");
 }
 
 /** Extract the send-teardown-then-close action, if any. */
 export function linkTeardownSendThenCloseAction(
-  actions: ReadonlyArray<LinkTeardownAction>,
+  actions: ReadonlyArray<LinkTeardownAction>
 ): Extract<LinkTeardownAction, { kind: "send-teardown-then-close" }> | null {
   for (const action of actions) {
     if (action.kind === "send-teardown-then-close") {
@@ -417,7 +416,7 @@ export function linkTeardownSendThenCloseAction(
 
 /** Extract the accept-remote-close action, if any. */
 export function linkTeardownRemoteCloseAction(
-  actions: ReadonlyArray<LinkTeardownAction>,
+  actions: ReadonlyArray<LinkTeardownAction>
 ): Extract<LinkTeardownAction, { kind: "accept-remote-close" }> | null {
   for (const action of actions) {
     if (action.kind === "accept-remote-close") {
@@ -429,21 +428,18 @@ export function linkTeardownRemoteCloseAction(
 
 function stepLinkTeardownInner(
   state: LinkTeardownState,
-  event: LinkTeardownEvent,
+  event: LinkTeardownEvent
 ): LinkTeardownStepResult {
   if (event.kind === "teardown/local") {
-    const planActions = stepLinkTeardownPlanWithActions(
-      initialLinkTeardownPlanState(),
-      {
-        kind: "link/teardown-plan-gate",
-        status: state.status,
-      },
-    ).actions;
+    const planActions = stepLinkTeardownPlanWithActions(initialLinkTeardownPlanState(), {
+      kind: "link/teardown-plan-gate",
+      status: state.status
+    }).actions;
     if (shouldCloseOnlyLinkTeardownPlan(planActions)) {
       return {
         state: { ...state, status: LinkStatus.CLOSED },
         intents: [],
-        actions: [{ kind: "close-only" }],
+        actions: [{ kind: "close-only" }]
       };
     }
     if (!shouldSendLinkTeardownThenClosePlan(planActions)) {
@@ -453,8 +449,8 @@ function stepLinkTeardownInner(
       stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
         kind: "link/teardown-reason-gate",
         initiator: state.initiator,
-        remote: false,
-      }).actions,
+        remote: false
+      }).actions
     );
     if (reason === null) {
       return { state, intents: [], actions: [] };
@@ -462,7 +458,7 @@ function stepLinkTeardownInner(
     return {
       state: { ...state, status: LinkStatus.CLOSED },
       intents: [],
-      actions: [{ kind: "send-teardown-then-close", reason }],
+      actions: [{ kind: "send-teardown-then-close", reason }]
     };
   }
 
@@ -472,8 +468,8 @@ function stepLinkTeardownInner(
         stepAcceptLinkTeardownWithActions(initialAcceptLinkTeardownState(), {
           kind: "link/accept-teardown-gate",
           plaintextPresent: event.plaintextPresent,
-          linkIdMatches: event.linkIdMatches,
-        }).actions,
+          linkIdMatches: event.linkIdMatches
+        }).actions
       )
     ) {
       return { state, intents: [], actions: [] };
@@ -482,8 +478,8 @@ function stepLinkTeardownInner(
       stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
         kind: "link/teardown-reason-gate",
         initiator: state.initiator,
-        remote: true,
-      }).actions,
+        remote: true
+      }).actions
     );
     if (reason === null) {
       return { state, intents: [], actions: [] };
@@ -491,7 +487,7 @@ function stepLinkTeardownInner(
     return {
       state: { ...state, status: LinkStatus.CLOSED },
       intents: [],
-      actions: [{ kind: "accept-remote-close", reason }],
+      actions: [{ kind: "accept-remote-close", reason }]
     };
   }
 

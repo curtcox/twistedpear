@@ -4,10 +4,7 @@
  */
 
 import { join } from "node:path";
-import {
-  captureHandbookScreenshot,
-  repoRoot,
-} from "./handbook-capture-lib.mjs";
+import { captureHandbookScreenshot, repoRoot } from "./handbook-capture-lib.mjs";
 
 const output = join(repoRoot, "docs/images/handbook-web-handbook.png");
 
@@ -17,7 +14,7 @@ await captureHandbookScreenshot({
   layout: { maxWidth: 960 },
   platform: "web",
   scene: "search",
-  logPrefix: "handbook-capture/web",
+  logPrefix: "handbook-capture/web"
 });
 
 console.log(`handbook web UI capture written to ${output}`);

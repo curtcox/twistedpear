@@ -9,7 +9,7 @@ describe("announce service", () => {
     await service.publish("app-a", payload);
 
     expect(await service.subscribe("app-a")).toEqual([
-      expect.objectContaining({ destination: "app-a", appData: payload }),
+      expect.objectContaining({ destination: "app-a", appData: payload })
     ]);
     expect(await service.subscribe("app-b")).toEqual([]);
   });
@@ -24,22 +24,17 @@ describe("announce service", () => {
     await service.publish("peer-b", second, "board");
 
     expect(snapshot.map((event) => event.appData)).toEqual([first]);
-    expect(
-      (await service.subscribe("board-app", "board")).map(
-        (event) => event.appData,
-      ),
-    ).toEqual([first, second]);
+    expect((await service.subscribe("board-app", "board")).map((event) => event.appData)).toEqual([
+      first,
+      second
+    ]);
   });
 
   it("does not exchange events between independent host services", async () => {
     const leftHostService = new AnnounceService();
     const rightHostService = new AnnounceService();
 
-    await leftHostService.publish(
-      "board",
-      new TextEncoder().encode("local only"),
-      "board",
-    );
+    await leftHostService.publish("board", new TextEncoder().encode("local only"), "board");
 
     expect(await rightHostService.subscribe("board", "board")).toEqual([]);
   });

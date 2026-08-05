@@ -2,7 +2,11 @@
   "name": "app-relay",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": ["announce:subscribe", "apps:install", "storage:kv"],
+  "capabilities": [
+    "announce:subscribe",
+    "apps:install",
+    "storage:kv"
+  ],
   "icon": null,
   "minHostApi": "0.2.0"
 }

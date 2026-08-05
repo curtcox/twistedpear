@@ -20,11 +20,11 @@ import {
   KvStorageBeeBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
-  createSimulatedDeviceManager,
+  createSimulatedDeviceManager
 } from "../../packages/miniapp-runtime/dist/index.js";
 import {
   assertAppletStatusMatchesExpectation,
-  parseResultStatus,
+  parseResultStatus
 } from "./expectations.mjs";
 import { makePeerSessionManager, makeRelayService } from "./host-fixtures.mjs";
 import { runHandbookPartPackagesSmoke } from "./part-packages.mjs";
@@ -37,25 +37,19 @@ import {
   tap,
   treeContainsText,
   waitFor,
-  waitForTreeText,
+  waitForTreeText
 } from "./ui-helpers.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
 const devstudioDir = join(root, "apps/devstudio");
-const RESULT_STATUSES = new Set([
-  "pass",
-  "fail",
-  "unavailable",
-  "not-granted",
-  "skipped",
-]);
+const RESULT_STATUSES = new Set(["pass", "fail", "unavailable", "not-granted", "skipped"]);
 
 const DEVICE_GATED_APPLET_IDS = new Set([
   "ble-peer",
   "rnode-serial",
   "multicast-auto",
-  "camera-qr-scan",
+  "camera-qr-scan"
 ]);
 
 const APPLET_CHAPTER = {
@@ -81,7 +75,7 @@ const APPLET_CHAPTER = {
   "ble-peer": "device-gated-probes",
   "rnode-serial": "device-gated-probes",
   "multicast-auto": "device-gated-probes",
-  "camera-qr-scan": "device-gated-probes",
+  "camera-qr-scan": "device-gated-probes"
 };
 
 class MemoryStore {
@@ -118,10 +112,7 @@ async function assertPreviewSlot(host, appsBackend) {
   if (!appsBackend.previewActive) {
     throw new Error("preview slot did not activate apps backend");
   }
-  await waitForTreeText(
-    host,
-    "Preview is running in the host dev-preview slot",
-  );
+  await waitForTreeText(host, "Preview is running in the host dev-preview slot");
   await tap(host, "applet-stoppreview-apps-package-preview", "hb.stoppreview");
   await waitForTreeText(host, "Preview stopped");
   if (appsBackend.previewActive) {
@@ -136,19 +127,17 @@ function launchManifest(app, publisherPublicKey) {
     version: app.version,
     entry: app.entry,
     capabilities: app.capabilities ?? [],
-    publisherPublicKey,
+    publisherPublicKey
   };
 }
 
 function buildHandbook() {
   const result = spawnSync(process.execPath, [join(handbookDir, "build.mjs")], {
     cwd: handbookDir,
-    encoding: "utf8",
+    encoding: "utf8"
   });
   if (result.status !== 0) {
-    throw new Error(
-      `handbook build failed:\n${result.stdout}\n${result.stderr}`,
-    );
+    throw new Error(`handbook build failed:\n${result.stdout}\n${result.stderr}`);
   }
   console.log(result.stdout.trim());
 }
@@ -157,37 +146,23 @@ async function packAppFromDir(appDirName, sourceDir) {
   const cwd = mkdtempSync(join(tmpdir(), `tp-handbook-${appDirName}-`));
   const appDir = join(cwd, appDirName);
   mkdirSync(appDir, { recursive: true });
-  cpSync(
-    join(sourceDir, "app.manifest.json"),
-    join(appDir, "app.manifest.json"),
-  );
+  cpSync(join(sourceDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
   cpSync(join(sourceDir, "bundle.js"), join(appDir, "bundle.js"));
 
   try {
-    const initCode = await runInit({
-      cwd,
-      identityPassphrase: "conformance identity passphrase",
-      args: [],
-    });
+    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     if (initCode !== 0) {
       throw new Error(`tp init failed for ${appDirName}`);
     }
 
-    const packCode = await runPack({
-      cwd,
-      args: [appDirName, "--out", `${appDirName}.tpkg`],
-    });
+    const packCode = await runPack({ cwd, args: [appDirName, "--out", `${appDirName}.tpkg`] });
     if (packCode !== 0) {
       throw new Error(`tp pack failed for ${appDirName}`);
     }
 
     const provider = new NodeCryptoProvider();
-    const archive = new Uint8Array(
-      readFileSync(join(cwd, `${appDirName}.tpkg`)),
-    );
-    const verified = verifyPackage(provider, archive, {
-      hostApiVersion: HOST_API_VERSION,
-    });
+    const archive = new Uint8Array(readFileSync(join(cwd, `${appDirName}.tpkg`)));
+    const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
     const bundle = verified.files.get(verified.manifest.entry);
     if (bundle === undefined) {
       throw new Error(`${appDirName} entry bundle missing`);
@@ -198,7 +173,7 @@ async function packAppFromDir(appDirName, sourceDir) {
       bundle,
       packageBytes: archive.length,
       publisherPublicKey: verified.manifest.publisherPublicKey,
-      archive,
+      archive
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -214,9 +189,7 @@ async function packDevstudio() {
 }
 
 function loadCatalog() {
-  return JSON.parse(
-    readFileSync(join(handbookDir, "generated/catalog.json"), "utf8"),
-  );
+  return JSON.parse(readFileSync(join(handbookDir, "generated/catalog.json"), "utf8"));
 }
 
 function assertResultSchema(result) {
@@ -249,7 +222,7 @@ function makeCasBackend() {
     async get(_appId, t256) {
       return blobs.get(t256) ?? null;
     },
-    blobs,
+    blobs
   };
 }
 
@@ -259,20 +232,17 @@ function makeAppsBackend() {
   return {
     async package(_appId, request) {
       const payload = new TextEncoder().encode(
-        JSON.stringify({
-          projectPrefix: request.projectPrefix,
-          manifest: request.manifest,
-        }),
+        JSON.stringify({ projectPrefix: request.projectPrefix, manifest: request.manifest })
       );
       const t256 = encode256t(payload, sha512);
       packages.set(t256, {
         name: request.manifest.name,
-        version: request.manifest.version,
+        version: request.manifest.version
       });
       return {
         packageHash: Buffer.from(sha512(payload).slice(0, 16)).toString("hex"),
         size: payload.length,
-        t256,
+        t256
       };
     },
     async publish(_appId, request) {
@@ -283,7 +253,7 @@ function makeAppsBackend() {
       return {
         t256: request.t256,
         driveKey: "handbook-mock-drive",
-        version: known.version,
+        version: known.version
       };
     },
     async install(_appId, request) {
@@ -294,7 +264,7 @@ function makeAppsBackend() {
       return {
         appId: known.name,
         version: known.version,
-        trusted: true,
+        trusted: true
       };
     },
     async preview() {
@@ -306,7 +276,7 @@ function makeAppsBackend() {
     },
     get previewActive() {
       return previewActive;
-    },
+    }
   };
 }
 
@@ -332,7 +302,7 @@ async function main() {
   const store = new MemoryStore();
   await store.set(
     "miniapp-resource:handbook:probe",
-    new TextEncoder().encode("handbook-resource-probe-payload"),
+    new TextEncoder().encode("handbook-resource-probe-payload")
   );
   const casBackend = makeCasBackend();
   const appsBackend = makeAppsBackend();
@@ -346,11 +316,7 @@ async function main() {
     peerSessionManager: makePeerSessionManager(),
     relayService: makeRelayService(),
     presenceBackend: {
-      snapshot: async () => ({
-        onlineInterfaces: 0,
-        preferredInterface: null,
-        peers: 0,
-      }),
+      snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
     },
     hostInfoBackend: {
       info: async () => ({
@@ -363,9 +329,9 @@ async function main() {
           kvQuotaBytes: null,
           seedStorageUsedBytes: null,
           seedStorageQuotaBytes: null,
-          memoryBytes: null,
-        },
-      }),
+          memoryBytes: null
+        }
+      })
     },
     resourceBackend: {
       fetch: async (_appId, request) => {
@@ -373,16 +339,11 @@ async function main() {
         if (bytes === null) {
           throw new Error(`Resource not found: ${request.resourceId}`);
         }
-        if (
-          request.budgetBytes !== undefined &&
-          bytes.length > request.budgetBytes
-        ) {
-          throw new Error(
-            `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
-          );
+        if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+          throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
         }
         return bytes;
-      },
+      }
     },
     freenetBackend: {
       get: async () => null,
@@ -391,35 +352,28 @@ async function main() {
       },
       update: async () => {
         throw new Error("Handbook conformance backend is read-only");
-      },
+      }
     },
     casBackend,
     appsBackend,
     confirmationChannel: {
-      confirm: async () => ({ approved: true }),
+      confirm: async () => ({ approved: true })
     },
     aiBackend: {
       chat: async (_appId, request) => ({
         message: {
           role: "assistant",
-          content: request.messages.at(-1)?.content.includes("handbook")
-            ? "handbook"
-            : "ok",
+          content: request.messages.at(-1)?.content.includes("handbook") ? "handbook" : "ok"
         },
         model: "handbook-mock",
-        usage: { promptTokens: 8, completionTokens: 1 },
-      }),
-    },
+        usage: { promptTokens: 8, completionTokens: 1 }
+      })
+    }
   });
 
   try {
     const manifest = launchManifest(packed.app, packed.publisherPublicKey);
-    await host.setGrants(
-      manifest.name,
-      packed.publisherPublicKey,
-      manifest.capabilities,
-      manifest.capabilities,
-    );
+    await host.setGrants(manifest.name, packed.publisherPublicKey, manifest.capabilities, manifest.capabilities);
     await host.launch(manifest, packed.bundle);
 
     await waitForTreeText(host, "TwistedPear Handbook");
@@ -461,9 +415,7 @@ async function main() {
       }, 20_000);
       const actualStatus = parseResultStatus(resultLine);
       if (actualStatus === null) {
-        throw new Error(
-          `applet ${applet.id} did not report a result: ${resultLine}`,
-        );
+        throw new Error(`applet ${applet.id} did not report a result: ${resultLine}`);
       }
       assertAppletStatusMatchesExpectation(applet, actualStatus, "node");
       console.log(`handbook: applet passed — ${applet.id} (${actualStatus})`);
@@ -481,7 +433,7 @@ async function main() {
       appletId: "identity-hash",
       status: "pass",
       details: "destinationHash observed",
-      timings: { ms: 1 },
+      timings: { ms: 1 }
     };
     assertResultSchema(resultRecord);
     console.log("handbook: result schema check passed");
@@ -490,9 +442,7 @@ async function main() {
     if (position === null) {
       throw new Error("handbook did not persist reading position");
     }
-    console.log(
-      `handbook: reading position persisted (${new TextDecoder().decode(position)})`,
-    );
+    console.log(`handbook: reading position persisted (${new TextDecoder().decode(position)})`);
 
     await assertReaderUx(host, store);
 
@@ -516,11 +466,7 @@ async function main() {
         return null;
       }
       const qr = findNodeById(tree.root, "diag-export-qr");
-      if (
-        qr !== null &&
-        typeof qr.props?.value === "string" &&
-        qr.props.value.length === 94
-      ) {
+      if (qr !== null && typeof qr.props?.value === "string" && qr.props.value.length === 94) {
         return { t256: qr.props.value };
       }
       return null;
@@ -536,17 +482,11 @@ async function main() {
       throw new Error(`unexpected schemaVersion ${localReport.schemaVersion}`);
     }
     if (localReport.host?.platform !== "node") {
-      throw new Error(
-        `expected platform node, got ${localReport.host?.platform}`,
-      );
+      throw new Error(`expected platform node, got ${localReport.host?.platform}`);
     }
-    const hostInfoResult = localReport.results?.find(
-      (row) => row.appletId === "host-info",
-    );
+    const hostInfoResult = localReport.results?.find((row) => row.appletId === "host-info");
     if (hostInfoResult?.status !== "pass") {
-      throw new Error(
-        `expected host-info pass in report, got ${JSON.stringify(hostInfoResult)}`,
-      );
+      throw new Error(`expected host-info pass in report, got ${JSON.stringify(hostInfoResult)}`);
     }
 
     const remoteReport = {
@@ -556,17 +496,17 @@ async function main() {
         ...localReport.host,
         platform: "web",
         roles: { transport: false, seeder: false, propagation: false },
-        interfaceTypes: ["websocket"],
+        interfaceTypes: ["websocket"]
       },
       results: localReport.results.map((row) =>
         row.appletId === "host-info"
           ? { ...row, status: "unavailable", details: "seeded web difference" }
-          : row,
-      ),
+          : row
+      )
     };
     const remotePut = await casBackend.put(
       "handbook",
-      new TextEncoder().encode(JSON.stringify(remoteReport)),
+      new TextEncoder().encode(JSON.stringify(remoteReport))
     );
 
     await tap(host, "diag-compare-input", "hb.compare.input", remotePut.t256);
@@ -590,14 +530,9 @@ async function main() {
     console.log("handbook: report diff matrix detected seed difference");
 
     const infoSmoke = await host.dispatchRaw(
-      {
-        id: "host-info-smoke",
-        namespace: "host",
-        method: "info",
-        capability: "presence",
-      },
+      { id: "host-info-smoke", namespace: "host", method: "info", capability: "presence" },
       manifest,
-      manifest.capabilities,
+      manifest.capabilities
     );
     if (!infoSmoke.ok || infoSmoke.result?.platform !== "node") {
       throw new Error(`host.info smoke failed: ${JSON.stringify(infoSmoke)}`);
@@ -607,7 +542,7 @@ async function main() {
       infoSmoke.result.grantedCapabilities.length === 0
     ) {
       throw new Error(
-        `host.info missing grantedCapabilities: ${JSON.stringify(infoSmoke.result)}`,
+        `host.info missing grantedCapabilities: ${JSON.stringify(infoSmoke.result)}`
       );
     }
     console.log("handbook: host.info smoke passed");
@@ -622,10 +557,7 @@ async function main() {
     if (handoffTree === null) {
       throw new Error("handbook handoff tree missing");
     }
-    const qrNode = findNodeById(
-      handoffTree.root,
-      "applet-devstudio-qr-identity-hash",
-    );
+    const qrNode = findNodeById(handoffTree.root, "applet-devstudio-qr-identity-hash");
     const handoffT256 = qrNode?.props?.value;
     if (typeof handoffT256 !== "string" || handoffT256.length !== 94) {
       throw new Error(`expected handoff 256t id, got ${String(handoffT256)}`);
@@ -635,13 +567,8 @@ async function main() {
       throw new Error("handoff missing from CAS");
     }
     const handoffPayload = JSON.parse(new TextDecoder().decode(handoffBytes));
-    if (
-      handoffPayload.kind !== "tp.devstudio.workspace.v1" ||
-      handoffPayload.project !== "hb-identity-hash"
-    ) {
-      throw new Error(
-        `unexpected handoff payload: ${JSON.stringify(handoffPayload)}`,
-      );
+    if (handoffPayload.kind !== "tp.devstudio.workspace.v1" || handoffPayload.project !== "hb-identity-hash") {
+      throw new Error(`unexpected handoff payload: ${JSON.stringify(handoffPayload)}`);
     }
     console.log("handbook: DevStudio handoff exported");
 
@@ -662,30 +589,25 @@ async function main() {
         chat: async () => ({
           message: { role: "assistant", content: "ok" },
           model: "devstudio-mock",
-          usage: { promptTokens: 1, completionTokens: 1 },
-        }),
+          usage: { promptTokens: 1, completionTokens: 1 }
+        })
       },
-      appsBackend: makeAppsBackend(),
+      appsBackend: makeAppsBackend()
     });
 
-    const devManifest = launchManifest(
-      devPacked.app,
-      devPacked.publisherPublicKey,
-    );
+    const devManifest = launchManifest(devPacked.app, devPacked.publisherPublicKey);
     await devHost.setGrants(
       devManifest.name,
       devPacked.publisherPublicKey,
       devManifest.capabilities,
-      devManifest.capabilities,
+      devManifest.capabilities
     );
     await devHost.launch(devManifest, devPacked.bundle);
     await waitForTreeText(devHost, "DevStudio");
     await tap(devHost, "import-input", "ds.importinput", handoffT256);
     await tap(devHost, "import-handoff", "ds.import");
     await waitForTreeText(devHost, "hb-identity-hash");
-    const imported = await store.get(
-      "miniapp-workspace:devstudio:hb-identity-hash/bundle.js",
-    );
+    const imported = await store.get("miniapp-workspace:devstudio:hb-identity-hash/bundle.js");
     if (imported === null) {
       throw new Error("DevStudio did not persist imported bundle.js");
     }
@@ -696,7 +618,7 @@ async function main() {
   }
 
   console.log(
-    `handbook: ${catalog.chapters.length} chapter(s) + ${catalog.applets.length} applet(s) + report/diff passed on Node sandbox`,
+    `handbook: ${catalog.chapters.length} chapter(s) + ${catalog.applets.length} applet(s) + report/diff passed on Node sandbox`
   );
 
   const partCount = await runHandbookPartPackagesSmoke();

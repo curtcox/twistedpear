@@ -237,11 +237,11 @@ import {
   initialReverseEntryExpiredState,
   initialTransmitLinkRelayState,
   initialTransmitOnInterfaceState,
-  initialTransmitReverseRelayState,
+  initialTransmitReverseRelayState
 } from "../src/index.js";
 
 describe("transport ingress", () => {
-  it("exposes rebroadcast and reverse-timeout constants", () => {
+it("exposes rebroadcast and reverse-timeout constants", () => {
     expect(LOCAL_REBROADCASTS_MAX).toBe(2);
     expect(REVERSE_TIMEOUT_SECONDS).toBe(8 * 60);
   });
@@ -253,8 +253,8 @@ describe("transport ingress", () => {
         packetType: PACKET_TYPE_ANNOUNCE,
         transportType: TRANSPORT_TRANSPORT,
         hasForeignTransportId: false,
-        alreadySeenHash: true,
-      }),
+        alreadySeenHash: true
+      })
     ).toBe(true);
     expect(
       shouldAcceptTransportPacket({
@@ -262,8 +262,8 @@ describe("transport ingress", () => {
         packetType: PACKET_TYPE_ANNOUNCE,
         transportType: TRANSPORT_TRANSPORT,
         hasForeignTransportId: true,
-        alreadySeenHash: false,
-      }),
+        alreadySeenHash: false
+      })
     ).toBe(true);
     expect(
       shouldAcceptTransportPacket({
@@ -271,56 +271,47 @@ describe("transport ingress", () => {
         packetType: PACKET_TYPE_ANNOUNCE,
         transportType: TRANSPORT_TRANSPORT,
         hasForeignTransportId: true,
-        alreadySeenHash: true,
-      }),
+        alreadySeenHash: true
+      })
     ).toBe(false);
   });
 
   it("emits transport-packet accept or skip from WithActions steps", () => {
     expect(
       shouldAcceptTransportPacketNow(
-        stepAcceptTransportPacketWithActions(
-          initialAcceptTransportPacketState(),
-          {
-            kind: "transport/accept-packet-gate",
-            filterPassed: true,
-            packetType: PACKET_TYPE_ANNOUNCE,
-            transportType: TRANSPORT_TRANSPORT,
-            hasForeignTransportId: false,
-            alreadySeenHash: true,
-          },
-        ).actions,
-      ),
+        stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+          kind: "transport/accept-packet-gate",
+          filterPassed: true,
+          packetType: PACKET_TYPE_ANNOUNCE,
+          transportType: TRANSPORT_TRANSPORT,
+          hasForeignTransportId: false,
+          alreadySeenHash: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldAcceptTransportPacketNow(
-        stepAcceptTransportPacketWithActions(
-          initialAcceptTransportPacketState(),
-          {
-            kind: "transport/accept-packet-gate",
-            filterPassed: false,
-            packetType: PACKET_TYPE_ANNOUNCE,
-            transportType: TRANSPORT_TRANSPORT,
-            hasForeignTransportId: true,
-            alreadySeenHash: false,
-          },
-        ).actions,
-      ),
+        stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+          kind: "transport/accept-packet-gate",
+          filterPassed: false,
+          packetType: PACKET_TYPE_ANNOUNCE,
+          transportType: TRANSPORT_TRANSPORT,
+          hasForeignTransportId: true,
+          alreadySeenHash: false
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAcceptTransportPacket(
-        stepAcceptTransportPacketWithActions(
-          initialAcceptTransportPacketState(),
-          {
-            kind: "transport/accept-packet-gate",
-            filterPassed: false,
-            packetType: PACKET_TYPE_ANNOUNCE,
-            transportType: TRANSPORT_TRANSPORT,
-            hasForeignTransportId: true,
-            alreadySeenHash: true,
-          },
-        ).actions,
-      ),
+        stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+          kind: "transport/accept-packet-gate",
+          filterPassed: false,
+          packetType: PACKET_TYPE_ANNOUNCE,
+          transportType: TRANSPORT_TRANSPORT,
+          hasForeignTransportId: true,
+          alreadySeenHash: true
+        }).actions
+      )
     ).toBe(true);
   });
 
@@ -333,8 +324,8 @@ describe("transport ingress", () => {
         localTransportHash: local,
         packetType: PACKET_TYPE_DATA,
         destinationType: PACKET_DEST_TYPE_SINGLE,
-        alreadySeenHash: false,
-      }),
+        alreadySeenHash: false
+      })
     ).toBe(false);
     expect(
       planPacketFilter({
@@ -342,8 +333,8 @@ describe("transport ingress", () => {
         localTransportHash: local,
         packetType: PACKET_TYPE_DATA,
         destinationType: PACKET_DEST_TYPE_SINGLE,
-        alreadySeenHash: false,
-      }),
+        alreadySeenHash: false
+      })
     ).toBe(true);
     expect(
       planPacketFilter({
@@ -351,8 +342,8 @@ describe("transport ingress", () => {
         localTransportHash: local,
         packetType: PACKET_TYPE_ANNOUNCE,
         destinationType: PACKET_DEST_TYPE_SINGLE,
-        alreadySeenHash: false,
-      }),
+        alreadySeenHash: false
+      })
     ).toBe(true);
     expect(
       planPacketFilter({
@@ -360,8 +351,8 @@ describe("transport ingress", () => {
         localTransportHash: local,
         packetType: PACKET_TYPE_DATA,
         destinationType: PACKET_DEST_TYPE_PLAIN,
-        alreadySeenHash: true,
-      }),
+        alreadySeenHash: true
+      })
     ).toBe(false);
     expect(
       planPacketFilter({
@@ -369,25 +360,22 @@ describe("transport ingress", () => {
         localTransportHash: local,
         packetType: PACKET_TYPE_ANNOUNCE,
         destinationType: PACKET_DEST_TYPE_SINGLE,
-        alreadySeenHash: true,
-      }),
+        alreadySeenHash: true
+      })
     ).toBe(true);
   });
 
   it("emits accept / reject actions from transport/packet-filter-gate", () => {
     const local = new Uint8Array([1, 2, 3]);
     const foreign = new Uint8Array([9, 9, 9]);
-    const rejectPlan = stepPacketFilterPlanWithActions(
-      initialPacketFilterPlanState(),
-      {
-        kind: "transport/packet-filter-plan-gate",
-        transportId: foreign,
-        localTransportHash: local,
-        packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-        alreadySeenHash: false,
-      },
-    );
+    const rejectPlan = stepPacketFilterPlanWithActions(initialPacketFilterPlanState(), {
+      kind: "transport/packet-filter-plan-gate",
+      transportId: foreign,
+      localTransportHash: local,
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      alreadySeenHash: false
+    });
     expect(packetFilterPlanFromActions(rejectPlan.actions)).toBe("reject");
     expect(shouldRejectPacketFilterPlan(rejectPlan.actions)).toBe(true);
     expect(shouldAcceptPacketFilterPlan(rejectPlan.actions)).toBe(false);
@@ -398,22 +386,19 @@ describe("transport ingress", () => {
       localTransportHash: local,
       packetType: PACKET_TYPE_DATA,
       destinationType: PACKET_DEST_TYPE_SINGLE,
-      alreadySeenHash: false,
+      alreadySeenHash: false
     });
     expect(shouldAcceptPacketFilter(reject.actions)).toBe(false);
     expect(shouldRejectPacketFilter(reject.actions)).toBe(true);
 
-    const acceptPlan = stepPacketFilterPlanWithActions(
-      initialPacketFilterPlanState(),
-      {
-        kind: "transport/packet-filter-plan-gate",
-        transportId: local,
-        localTransportHash: local,
-        packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-        alreadySeenHash: false,
-      },
-    );
+    const acceptPlan = stepPacketFilterPlanWithActions(initialPacketFilterPlanState(), {
+      kind: "transport/packet-filter-plan-gate",
+      transportId: local,
+      localTransportHash: local,
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      alreadySeenHash: false
+    });
     expect(packetFilterPlanFromActions(acceptPlan.actions)).toBe("accept");
     expect(shouldAcceptPacketFilterPlan(acceptPlan.actions)).toBe(true);
 
@@ -423,7 +408,7 @@ describe("transport ingress", () => {
       localTransportHash: local,
       packetType: PACKET_TYPE_DATA,
       destinationType: PACKET_DEST_TYPE_SINGLE,
-      alreadySeenHash: false,
+      alreadySeenHash: false
     });
     expect(shouldAcceptPacketFilter(accept.actions)).toBe(true);
     expect(shouldRejectPacketFilter(accept.actions)).toBe(false);
@@ -435,44 +420,38 @@ describe("transport ingress", () => {
       shouldDeferPacketHash({
         packetType: PACKET_TYPE_PROOF,
         context: PacketContextCode.LRPROOF,
-        destinationInLinkTable: false,
-      }),
+        destinationInLinkTable: false
+      })
     ).toBe(true);
     expect(
       shouldDeferPacketHash({
         packetType: PACKET_TYPE_ANNOUNCE,
         context: PacketContextCode.NONE,
-        destinationInLinkTable: true,
-      }),
+        destinationInLinkTable: true
+      })
     ).toBe(true);
     expect(
       shouldDeferPacketHash({
         packetType: PACKET_TYPE_ANNOUNCE,
         context: PacketContextCode.NONE,
-        destinationInLinkTable: false,
-      }),
+        destinationInLinkTable: false
+      })
     ).toBe(false);
 
-    const deferLrproof = stepPacketHashDeferWithActions(
-      initialPacketHashDeferState(),
-      {
-        kind: "transport/packet-hash-defer-gate",
-        packetType: PACKET_TYPE_PROOF,
-        context: PacketContextCode.LRPROOF,
-        destinationInLinkTable: false,
-      },
-    );
+    const deferLrproof = stepPacketHashDeferWithActions(initialPacketHashDeferState(), {
+      kind: "transport/packet-hash-defer-gate",
+      packetType: PACKET_TYPE_PROOF,
+      context: PacketContextCode.LRPROOF,
+      destinationInLinkTable: false
+    });
     expect(shouldDeferPacketHashActions(deferLrproof.actions)).toBe(true);
 
-    const rememberNow = stepPacketHashDeferWithActions(
-      initialPacketHashDeferState(),
-      {
-        kind: "transport/packet-hash-defer-gate",
-        packetType: PACKET_TYPE_ANNOUNCE,
-        context: PacketContextCode.NONE,
-        destinationInLinkTable: false,
-      },
-    );
+    const rememberNow = stepPacketHashDeferWithActions(initialPacketHashDeferState(), {
+      kind: "transport/packet-hash-defer-gate",
+      packetType: PACKET_TYPE_ANNOUNCE,
+      context: PacketContextCode.NONE,
+      destinationInLinkTable: false
+    });
     expect(shouldRememberPacketHashImmediately(rememberNow.actions)).toBe(true);
     expect(shouldDeferPacketHashActions(rememberNow.actions)).toBe(false);
   });
@@ -485,8 +464,8 @@ describe("transport ingress", () => {
         ifaceIsReceived: true,
         packetHops: 2,
         remainingHops: 2,
-        takenHops: 1,
-      }),
+        takenHops: 1
+      })
     ).toBe("outbound");
     expect(
       planLinkRelayTarget({
@@ -495,8 +474,8 @@ describe("transport ingress", () => {
         ifaceIsReceived: false,
         packetHops: 3,
         remainingHops: 3,
-        takenHops: 1,
-      }),
+        takenHops: 1
+      })
     ).toBe("received");
     expect(
       planLinkRelayTarget({
@@ -505,8 +484,8 @@ describe("transport ingress", () => {
         ifaceIsReceived: true,
         packetHops: 1,
         remainingHops: 3,
-        takenHops: 1,
-      }),
+        takenHops: 1
+      })
     ).toBe("outbound");
     expect(
       planLinkRelayTarget({
@@ -515,8 +494,8 @@ describe("transport ingress", () => {
         ifaceIsReceived: false,
         packetHops: 1,
         remainingHops: 3,
-        takenHops: 1,
-      }),
+        takenHops: 1
+      })
     ).toBeNull();
     expect(canLookupLinkRelayEntry(true)).toBe(true);
     expect(canLookupLinkRelayEntry(false)).toBe(false);
@@ -525,97 +504,75 @@ describe("transport ingress", () => {
   });
 
   it("emits link relay target actions from WithActions step", () => {
-    const outboundPlan = stepLinkRelayTargetPlanWithActions(
-      initialLinkRelayTargetPlanState(),
-      {
-        kind: "transport/link-relay-plan-gate",
-        sameInterface: true,
-        ifaceIsOutbound: true,
-        ifaceIsReceived: true,
-        packetHops: 2,
-        remainingHops: 2,
-        takenHops: 1,
-      },
-    );
+    const outboundPlan = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+      kind: "transport/link-relay-plan-gate",
+      sameInterface: true,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: true,
+      packetHops: 2,
+      remainingHops: 2,
+      takenHops: 1
+    });
     expect(shouldRelayLinkOutboundPlan(outboundPlan.actions)).toBe(true);
-    expect(linkRelayTargetPlanFromActions(outboundPlan.actions)).toBe(
-      "outbound",
-    );
+    expect(linkRelayTargetPlanFromActions(outboundPlan.actions)).toBe("outbound");
 
-    const outbound = stepLinkRelayTargetWithActions(
-      initialLinkRelayTargetState(),
-      {
-        kind: "transport/link-relay-gate",
-        sameInterface: true,
-        ifaceIsOutbound: true,
-        ifaceIsReceived: true,
-        packetHops: 2,
-        remainingHops: 2,
-        takenHops: 1,
-      },
-    );
+    const outbound = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
+      sameInterface: true,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: true,
+      packetHops: 2,
+      remainingHops: 2,
+      takenHops: 1
+    });
     expect(shouldRelayLinkOutbound(outbound.actions)).toBe(true);
     expect(linkRelayTargetFromActions(outbound.actions)).toBe("outbound");
 
-    const receivedPlan = stepLinkRelayTargetPlanWithActions(
-      initialLinkRelayTargetPlanState(),
-      {
-        kind: "transport/link-relay-plan-gate",
-        sameInterface: false,
-        ifaceIsOutbound: true,
-        ifaceIsReceived: false,
-        packetHops: 3,
-        remainingHops: 3,
-        takenHops: 1,
-      },
-    );
+    const receivedPlan = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+      kind: "transport/link-relay-plan-gate",
+      sameInterface: false,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: false,
+      packetHops: 3,
+      remainingHops: 3,
+      takenHops: 1
+    });
     expect(shouldRelayLinkReceivedPlan(receivedPlan.actions)).toBe(true);
-    expect(linkRelayTargetPlanFromActions(receivedPlan.actions)).toBe(
-      "received",
-    );
+    expect(linkRelayTargetPlanFromActions(receivedPlan.actions)).toBe("received");
 
-    const received = stepLinkRelayTargetWithActions(
-      initialLinkRelayTargetState(),
-      {
-        kind: "transport/link-relay-gate",
-        sameInterface: false,
-        ifaceIsOutbound: true,
-        ifaceIsReceived: false,
-        packetHops: 3,
-        remainingHops: 3,
-        takenHops: 1,
-      },
-    );
+    const received = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
+      sameInterface: false,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: false,
+      packetHops: 3,
+      remainingHops: 3,
+      takenHops: 1
+    });
     expect(shouldRelayLinkReceived(received.actions)).toBe(true);
     expect(linkRelayTargetFromActions(received.actions)).toBe("received");
 
-    const ignoredPlan = stepLinkRelayTargetPlanWithActions(
-      initialLinkRelayTargetPlanState(),
-      {
-        kind: "transport/link-relay-plan-gate",
-        sameInterface: false,
-        ifaceIsOutbound: false,
-        ifaceIsReceived: false,
-        packetHops: 1,
-        remainingHops: 3,
-        takenHops: 1,
-      },
-    );
+    const ignoredPlan = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+      kind: "transport/link-relay-plan-gate",
+      sameInterface: false,
+      ifaceIsOutbound: false,
+      ifaceIsReceived: false,
+      packetHops: 1,
+      remainingHops: 3,
+      takenHops: 1
+    });
     expect(shouldIgnoreLinkRelayTargetPlan(ignoredPlan.actions)).toBe(true);
     expect(linkRelayTargetPlanFromActions(ignoredPlan.actions)).toBeNull();
 
-    const ignored = stepLinkRelayTargetWithActions(
-      initialLinkRelayTargetState(),
-      {
-        kind: "transport/link-relay-gate",
-        sameInterface: false,
-        ifaceIsOutbound: false,
-        ifaceIsReceived: false,
-        packetHops: 1,
-        remainingHops: 3,
-        takenHops: 1,
-      },
-    );
+    const ignored = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
+      sameInterface: false,
+      ifaceIsOutbound: false,
+      ifaceIsReceived: false,
+      packetHops: 1,
+      remainingHops: 3,
+      takenHops: 1
+    });
     expect(shouldIgnoreLinkRelayTarget(ignored.actions)).toBe(true);
     expect(linkRelayTargetFromActions(ignored.actions)).toBeNull();
     expect(
@@ -626,8 +583,8 @@ describe("transport ingress", () => {
         ifaceIsReceived: true,
         packetHops: 2,
         remainingHops: 2,
-        takenHops: 1,
-      }).actions,
+        takenHops: 1
+      }).actions
     ).toEqual(outbound.actions);
     expect(
       stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
@@ -637,8 +594,8 @@ describe("transport ingress", () => {
         ifaceIsReceived: true,
         packetHops: 2,
         remainingHops: 2,
-        takenHops: 1,
-      }).actions,
+        takenHops: 1
+      }).actions
     ).toEqual(outboundPlan.actions);
   });
 
@@ -647,14 +604,14 @@ describe("transport ingress", () => {
       isReverseEntryExpired({
         timestamp: 100,
         nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS,
-        timeoutSeconds: REVERSE_TIMEOUT_SECONDS,
-      }),
+        timeoutSeconds: REVERSE_TIMEOUT_SECONDS
+      })
     ).toBe(false);
     expect(
       isReverseEntryExpired({
         timestamp: 100,
-        nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS + 1,
-      }),
+        nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS + 1
+      })
     ).toBe(true);
   });
 
@@ -664,38 +621,38 @@ describe("transport ingress", () => {
         transportIdPresent: true,
         isAnnounce: false,
         transportIdMatchesLocal: true,
-        hasPath: true,
-      }),
+        hasPath: true
+      })
     ).toBe(true);
     expect(
       canRelayTransportPacket({
         transportIdPresent: true,
         isAnnounce: true,
         transportIdMatchesLocal: true,
-        hasPath: true,
-      }),
+        hasPath: true
+      })
     ).toBe(false);
     expect(
       canRelayTransportPacket({
         transportIdPresent: true,
         isAnnounce: false,
         transportIdMatchesLocal: true,
-        hasPath: false,
-      }),
+        hasPath: false
+      })
     ).toBe(false);
     expect(shouldRecordLinkRelayTableEntry(PACKET_TYPE_LINKREQUEST)).toBe(true);
     expect(shouldRecordLinkRelayTableEntry(PACKET_TYPE_DATA)).toBe(false);
     expect(
       shouldRecordReverseTableEntry({
         packetType: PACKET_TYPE_PROOF,
-        context: PacketContextCode.LRPROOF,
-      }),
+        context: PacketContextCode.LRPROOF
+      })
     ).toBe(false);
     expect(
       shouldRecordReverseTableEntry({
         packetType: PACKET_TYPE_DATA,
-        context: PacketContextCode.NONE,
-      }),
+        context: PacketContextCode.NONE
+      })
     ).toBe(true);
   });
 
@@ -703,14 +660,14 @@ describe("transport ingress", () => {
     expect(
       isLocalPathRequestPacket({
         destinationTypePlain: true,
-        destinationHashMatches: true,
-      }),
+        destinationHashMatches: true
+      })
     ).toBe(true);
     expect(
       isLocalPathRequestPacket({
         destinationTypePlain: false,
-        destinationHashMatches: true,
-      }),
+        destinationHashMatches: true
+      })
     ).toBe(false);
 
     const pathRequest = stepLocalPathRequestPacketWithActions(
@@ -718,32 +675,24 @@ describe("transport ingress", () => {
       {
         kind: "transport/local-path-request-packet-gate",
         destinationTypePlain: true,
-        destinationHashMatches: true,
-      },
+        destinationHashMatches: true
+      }
     );
     expect(shouldTreatLocalPathRequestPacket(pathRequest.actions)).toBe(true);
-    expect(shouldTreatLocalPathRequestPacketOther(pathRequest.actions)).toBe(
-      false,
-    );
+    expect(shouldTreatLocalPathRequestPacketOther(pathRequest.actions)).toBe(false);
 
-    const other = stepLocalPathRequestPacketWithActions(
-      initialLocalPathRequestPacketState(),
-      {
-        kind: "transport/local-path-request-packet-gate",
-        destinationTypePlain: false,
-        destinationHashMatches: true,
-      },
-    );
+    const other = stepLocalPathRequestPacketWithActions(initialLocalPathRequestPacketState(), {
+      kind: "transport/local-path-request-packet-gate",
+      destinationTypePlain: false,
+      destinationHashMatches: true
+    });
     expect(shouldTreatLocalPathRequestPacket(other.actions)).toBe(false);
     expect(shouldTreatLocalPathRequestPacketOther(other.actions)).toBe(true);
 
-    const empty = stepLocalPathRequestPacketWithActions(
-      initialLocalPathRequestPacketState(),
-      {
-        kind: "timer/fired",
-        timer: { id: "x" },
-      },
-    );
+    const empty = stepLocalPathRequestPacketWithActions(initialLocalPathRequestPacketState(), {
+      kind: "timer/fired",
+      timer: { id: "x" }
+    });
     expect(shouldTreatLocalPathRequestPacket(empty.actions)).toBe(false);
     expect(shouldTreatLocalPathRequestPacketOther(empty.actions)).toBe(false);
   });
@@ -757,22 +706,22 @@ describe("transport ingress", () => {
       canRelayReversePacket({
         isProof: true,
         hasEntry: true,
-        entryExpired: false,
-      }),
+        entryExpired: false
+      })
     ).toBe(true);
     expect(
       canRelayReversePacket({
         isProof: true,
         hasEntry: true,
-        entryExpired: true,
-      }),
+        entryExpired: true
+      })
     ).toBe(false);
     expect(
       canRelayReversePacket({
         isProof: false,
         hasEntry: true,
-        entryExpired: false,
-      }),
+        entryExpired: false
+      })
     ).toBe(false);
     expect(shouldRelayReverseOnInterface(true)).toBe(true);
     expect(shouldRelayReverseOnInterface(false)).toBe(false);
@@ -782,43 +731,41 @@ describe("transport ingress", () => {
     expect(
       planTransportIngressDispatch({
         packetType: PACKET_TYPE_ANNOUNCE,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      }),
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
     ).toBe("announce");
     expect(
       planTransportIngressDispatch({
         packetType: PACKET_TYPE_LINKREQUEST,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      }),
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
     ).toBe("link-request");
     expect(
       planTransportIngressDispatch({
         packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_LINK,
-      }),
+        destinationType: PACKET_DEST_TYPE_LINK
+      })
     ).toBe("link-data");
     expect(
       planTransportIngressDispatch({
         packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_PLAIN,
-      }),
+        destinationType: PACKET_DEST_TYPE_PLAIN
+      })
     ).toBe("plain-data");
     expect(
       planTransportIngressDispatch({
         packetType: PACKET_TYPE_PROOF,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      }),
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
     ).toBe("proof");
     expect(
       planTransportIngressDispatch({
         packetType: 99,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      }),
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
     ).toBe("ignore");
     expect(planProofIngressKind(PacketContextCode.LRPROOF)).toBe("lrproof");
-    expect(planProofIngressKind(PacketContextCode.RESOURCE_PRF)).toBe(
-      "resource-prf",
-    );
+    expect(planProofIngressKind(PacketContextCode.RESOURCE_PRF)).toBe("resource-prf");
     expect(planProofIngressKind(PacketContextCode.NONE)).toBe("receipt");
   });
 
@@ -828,108 +775,84 @@ describe("transport ingress", () => {
     expect(
       shouldTransmitOnInterface({
         outgoing: true,
-        isExcludedInterface: true,
-      }),
+        isExcludedInterface: true
+      })
     ).toBe(false);
     expect(
       shouldTransmitOnInterface({
         outgoing: true,
         requireAttached: true,
-        isAttached: false,
-      }),
+        isAttached: false
+      })
     ).toBe(false);
     expect(
       shouldTransmitOnInterface({
         outgoing: true,
         requireAttached: true,
-        isAttached: true,
-      }),
+        isAttached: true
+      })
     ).toBe(true);
   });
 
   it("matches local destinations and LR-proof / plain-data / hash-remember plans", () => {
     expect(
-      shouldMatchLocalInboundDestination({
-        hashMatches: true,
-        directionIn: true,
-      }),
+      shouldMatchLocalInboundDestination({ hashMatches: true, directionIn: true })
     ).toBe(true);
     expect(
-      shouldMatchLocalInboundDestination({
-        hashMatches: true,
-        directionIn: false,
-      }),
+      shouldMatchLocalInboundDestination({ hashMatches: true, directionIn: false })
     ).toBe(false);
     expect(
-      shouldMatchLocalTypedDestination({
-        hashMatches: true,
-        typeMatches: true,
-      }),
+      shouldMatchLocalTypedDestination({ hashMatches: true, typeMatches: true })
     ).toBe(true);
     expect(
-      shouldMatchLocalTypedDestination({
-        hashMatches: true,
-        typeMatches: false,
-      }),
+      shouldMatchLocalTypedDestination({ hashMatches: true, typeMatches: false })
     ).toBe(false);
     expect(
       shouldDispatchLocalLinkRequest({
         hashMatches: true,
         typeMatches: true,
-        handlerPresent: true,
-      }),
+        handlerPresent: true
+      })
     ).toBe(true);
     expect(
       shouldDispatchLocalLinkRequest({
         hashMatches: true,
         typeMatches: true,
-        handlerPresent: false,
-      }),
+        handlerPresent: false
+      })
     ).toBe(false);
     expect(
-      shouldAcceptLinkLrProofCandidate({
-        linkIdMatches: true,
-        hopsMatch: true,
-      }),
+      shouldAcceptLinkLrProofCandidate({ linkIdMatches: true, hopsMatch: true })
     ).toBe(true);
     expect(
-      shouldAcceptLinkLrProofCandidate({
-        linkIdMatches: true,
-        hopsMatch: false,
-      }),
+      shouldAcceptLinkLrProofCandidate({ linkIdMatches: true, hopsMatch: false })
     ).toBe(false);
     expect(
-      planLocalPlainDataDelivery({
-        destinationPresent: true,
-        plaintextPresent: true,
-      }),
+      planLocalPlainDataDelivery({ destinationPresent: true, plaintextPresent: true })
     ).toBe("dispatch");
     expect(
-      planLocalPlainDataDelivery({
-        destinationPresent: true,
-        plaintextPresent: false,
-      }),
+      planLocalPlainDataDelivery({ destinationPresent: true, plaintextPresent: false })
     ).toBe("ignore");
     expect(
       shouldDispatchLocalPlainDataDelivery({
         planDispatch: true,
         destinationPresent: true,
-        plaintextPresent: true,
-      }),
+        plaintextPresent: true
+      })
     ).toBe(true);
     expect(
       shouldDispatchLocalPlainDataDelivery({
         planDispatch: true,
         destinationPresent: true,
-        plaintextPresent: false,
-      }),
+        plaintextPresent: false
+      })
     ).toBe(false);
     expect(
       shouldDispatchLocalPlainDataDelivery({
         planDispatch: false,
         destinationPresent: true,
-        plaintextPresent: true,
-      }),
+        plaintextPresent: true
+      })
     ).toBe(false);
     expect(planPacketHashRemember(false)).toBe("now");
     expect(planPacketHashRemember(true)).toBe("after-relay");
@@ -942,61 +865,39 @@ describe("transport ingress", () => {
   it("indexes link-ids and plans link-data ingress", () => {
     const a = new Uint8Array([1, 2, 3]);
     const b = new Uint8Array([4, 5, 6]);
-    expect(
-      indexOfMatchingLinkId({
-        linkIds: [a, b],
-        target: new Uint8Array([4, 5, 6]),
-      }),
-    ).toBe(1);
-    expect(
-      indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([9]) }),
-    ).toBeNull();
+    expect(indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([4, 5, 6]) })).toBe(1);
+    expect(indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([9]) })).toBeNull();
     expect(shouldDispatchResourceProofToLink(true)).toBe(true);
     expect(shouldDispatchResourceProofToLink(false)).toBe(false);
-    expect(planLinkDataIngressTarget({ activeIndex: 0, pendingIndex: 1 })).toBe(
-      "active",
-    );
-    expect(
-      planLinkDataIngressTarget({ activeIndex: null, pendingIndex: 2 }),
-    ).toBe("pending");
-    expect(
-      planLinkDataIngressTarget({ activeIndex: null, pendingIndex: null }),
-    ).toBe("none");
+    expect(planLinkDataIngressTarget({ activeIndex: 0, pendingIndex: 1 })).toBe("active");
+    expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: 2 })).toBe("pending");
+    expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: null })).toBe("none");
   });
 
   it("emits matching link-id index only from use-index/miss actions", () => {
     const a = new Uint8Array([1, 2, 3]);
     const b = new Uint8Array([4, 5, 6]);
-    const hit = stepIndexOfMatchingLinkIdWithActions(
-      initialIndexOfMatchingLinkIdState(),
-      {
-        kind: "transport/matching-link-id-index-gate",
-        linkIds: [a, b],
-        target: new Uint8Array([4, 5, 6]),
-      },
-    );
+    const hit = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "transport/matching-link-id-index-gate",
+      linkIds: [a, b],
+      target: new Uint8Array([4, 5, 6])
+    });
     expect(shouldUseMatchingLinkIdIndex(hit.actions)).toBe(true);
     expect(shouldMissMatchingLinkIdIndex(hit.actions)).toBe(false);
     expect(matchingLinkIdIndexFromActions(hit.actions)).toBe(1);
 
-    const miss = stepIndexOfMatchingLinkIdWithActions(
-      initialIndexOfMatchingLinkIdState(),
-      {
-        kind: "transport/matching-link-id-index-gate",
-        linkIds: [a, b],
-        target: new Uint8Array([9]),
-      },
-    );
+    const miss = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "transport/matching-link-id-index-gate",
+      linkIds: [a, b],
+      target: new Uint8Array([9])
+    });
     expect(shouldUseMatchingLinkIdIndex(miss.actions)).toBe(false);
     expect(shouldMissMatchingLinkIdIndex(miss.actions)).toBe(true);
     expect(matchingLinkIdIndexFromActions(miss.actions)).toBeNull();
 
-    const empty = stepIndexOfMatchingLinkIdWithActions(
-      initialIndexOfMatchingLinkIdState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "noop"
+    } as never);
     expect(shouldUseMatchingLinkIdIndex(empty.actions)).toBe(false);
     expect(shouldMissMatchingLinkIdIndex(empty.actions)).toBe(false);
     expect(matchingLinkIdIndexFromActions(empty.actions)).toBeNull();
@@ -1004,43 +905,21 @@ describe("transport ingress", () => {
 
   it("plans reverse-relay outcomes", () => {
     expect(
-      planReverseRelayOutcome({
-        canRelay: false,
-        entryExpired: true,
-        ifaceIsOutbound: true,
-      }),
+      planReverseRelayOutcome({ canRelay: false, entryExpired: true, ifaceIsOutbound: true })
     ).toBe("delete-expired");
     expect(
-      planReverseRelayOutcome({
-        canRelay: false,
-        entryExpired: false,
-        ifaceIsOutbound: true,
-      }),
+      planReverseRelayOutcome({ canRelay: false, entryExpired: false, ifaceIsOutbound: true })
     ).toBe("ignore");
     expect(
-      planReverseRelayOutcome({
-        canRelay: true,
-        entryExpired: false,
-        ifaceIsOutbound: false,
-      }),
+      planReverseRelayOutcome({ canRelay: true, entryExpired: false, ifaceIsOutbound: false })
     ).toBe("ignore");
     expect(
-      planReverseRelayOutcome({
-        canRelay: true,
-        entryExpired: false,
-        ifaceIsOutbound: true,
-      }),
+      planReverseRelayOutcome({ canRelay: true, entryExpired: false, ifaceIsOutbound: true })
     ).toBe("relay");
     expect(shouldDeleteExpiredReverseEntry(true)).toBe(true);
     expect(shouldDeleteExpiredReverseEntry(false)).toBe(false);
-    expect(
-      shouldTransmitReverseRelay({ relayOk: true, entryPresent: true }),
-    ).toBe(true);
-    expect(
-      shouldTransmitReverseRelay({ relayOk: true, entryPresent: false }),
-    ).toBe(false);
-    expect(
-      shouldTransmitReverseRelay({ relayOk: false, entryPresent: true }),
-    ).toBe(false);
+    expect(shouldTransmitReverseRelay({ relayOk: true, entryPresent: true })).toBe(true);
+    expect(shouldTransmitReverseRelay({ relayOk: true, entryPresent: false })).toBe(false);
+    expect(shouldTransmitReverseRelay({ relayOk: false, entryPresent: true })).toBe(false);
   });
 });

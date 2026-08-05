@@ -9,7 +9,7 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialResourceAdvertisePhasePlanState,
   shouldAdvertiseResourceAdvertisePhasePlan,
-  stepResourceAdvertisePhasePlanWithActions,
+  stepResourceAdvertisePhasePlanWithActions
 } from "./resource-status.js";
 
 export const RESOURCE_ADVERTISE_WAIT_MS = 250;
@@ -39,44 +39,36 @@ export interface ResourceAdvertiseWaitStepResult {
 export function initialResourceAdvertiseWaitState(): ResourceAdvertiseWaitState {
   return {
     armed: false,
-    concluded: false,
+    concluded: false
   };
 }
 
 /** Whether the advertise-wait loop should keep probing link readiness. */
-export function shouldContinueResourceAdvertiseWait(
-  concluded: boolean,
-): boolean {
+export function shouldContinueResourceAdvertiseWait(concluded: boolean): boolean {
   return !concluded;
 }
 
-export const stepResourceAdvertiseWait: StepFn<ResourceAdvertiseWaitState> = (
-  state,
-  event,
-) => {
-  const result = stepResourceAdvertiseWaitInner(
-    state,
-    event as ResourceAdvertiseWaitEvent,
-  );
+export const stepResourceAdvertiseWait: StepFn<ResourceAdvertiseWaitState> = (state, event) => {
+  const result = stepResourceAdvertiseWaitInner(state, event as ResourceAdvertiseWaitEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepResourceAdvertiseWaitWithActions(
   state: ResourceAdvertiseWaitState,
-  event: ResourceAdvertiseWaitEvent,
+  event: ResourceAdvertiseWaitEvent
 ): ResourceAdvertiseWaitStepResult {
   return stepResourceAdvertiseWaitInner(state, event);
 }
 
 function stepResourceAdvertiseWaitInner(
   state: ResourceAdvertiseWaitState,
-  event: ResourceAdvertiseWaitEvent,
+  event: ResourceAdvertiseWaitEvent
 ): ResourceAdvertiseWaitStepResult {
   if (event.kind === "advertise-wait/arm") {
     return {
       state: { armed: true, concluded: false },
       intents: [],
-      actions: [{ kind: "probe" }],
+      actions: [{ kind: "probe" }]
     };
   }
 
@@ -88,19 +80,14 @@ function stepResourceAdvertiseWaitInner(
       initialResourceAdvertisePhasePlanState(),
       {
         kind: "resource/advertise-phase-plan-gate",
-        linkReady: event.ready,
-      },
+        linkReady: event.ready
+      }
     ).actions;
     if (shouldAdvertiseResourceAdvertisePhasePlan(planActions)) {
       return {
         state: { ...state, concluded: true },
-        intents: [
-          {
-            kind: "timer/cancel",
-            timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID },
-          },
-        ],
-        actions: [{ kind: "resolve" }],
+        intents: [{ kind: "timer/cancel", timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID } }],
+        actions: [{ kind: "resolve" }]
       };
     }
     return {
@@ -108,27 +95,21 @@ function stepResourceAdvertiseWaitInner(
       intents: [
         {
           kind: "timer/set",
-          timer: {
-            id: RESOURCE_ADVERTISE_WAIT_TIMER_ID,
-            delayMs: RESOURCE_ADVERTISE_WAIT_MS,
-          },
-        },
+          timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID, delayMs: RESOURCE_ADVERTISE_WAIT_MS }
+        }
       ],
-      actions: [{ kind: "queue" }],
+      actions: [{ kind: "queue" }]
     };
   }
 
-  if (
-    event.kind === "timer/fired" &&
-    event.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID
-  ) {
+  if (event.kind === "timer/fired" && event.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
     if (!state.armed || state.concluded) {
       return { state, intents: [], actions: [] };
     }
     return {
       state,
       intents: [],
-      actions: [{ kind: "probe" }],
+      actions: [{ kind: "probe" }]
     };
   }
 

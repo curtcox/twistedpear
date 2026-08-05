@@ -1,7 +1,4 @@
-const {
-  withDangerousMod,
-  withProjectBuildGradle,
-} = require("expo/config-plugins");
+const { withDangerousMod, withProjectBuildGradle } = require("expo/config-plugins");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -15,29 +12,23 @@ function withPrivacyManifest(config) {
       fs.mkdirSync(projectRoot, { recursive: true });
       fs.writeFileSync(
         path.join(projectRoot, "PrivacyInfo.xcprivacy"),
-        JSON.stringify(
-          {
-            NSPrivacyTracking: false,
-            NSPrivacyCollectedDataTypes: [],
-            NSPrivacyAccessedAPITypes: [
-              {
-                NSPrivacyAccessedAPIType:
-                  "NSPrivacyAccessedAPICategoryFileTimestamp",
-                NSPrivacyAccessedAPITypeReasons: ["C617.1"],
-              },
-              {
-                NSPrivacyAccessedAPIType:
-                  "NSPrivacyAccessedAPICategoryUserDefaults",
-                NSPrivacyAccessedAPITypeReasons: ["CA92.1"],
-              },
-            ],
-          },
-          null,
-          2,
-        ),
+        JSON.stringify({
+          NSPrivacyTracking: false,
+          NSPrivacyCollectedDataTypes: [],
+          NSPrivacyAccessedAPITypes: [
+            {
+              NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryFileTimestamp",
+              NSPrivacyAccessedAPITypeReasons: ["C617.1"]
+            },
+            {
+              NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryUserDefaults",
+              NSPrivacyAccessedAPITypeReasons: ["CA92.1"]
+            }
+          ]
+        }, null, 2)
       );
       return config;
-    },
+    }
   ]);
 }
 
@@ -52,7 +43,7 @@ function withPinnedKotlinGradlePlugin(config) {
     }
     config.modResults.contents = contents.replace(
       /classpath\(['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin['"]\)/,
-      pinned,
+      pinned
     );
     return config;
   });
@@ -65,8 +56,7 @@ module.exports = ({ config }) => {
     extra: {
       ...(base.expo.extra ?? {}),
       ...(config.extra ?? {}),
-      storePosture:
-        process.env.TWISTEDPEAR_STORE_POSTURE === "store" ? "store" : "dev",
+      storePosture: process.env.TWISTEDPEAR_STORE_POSTURE === "store" ? "store" : "dev"
     },
     ios: {
       ...base.expo.ios,
@@ -74,9 +64,9 @@ module.exports = ({ config }) => {
       infoPlist: {
         ...(base.expo.ios?.infoPlist ?? {}),
         ...(config.ios?.infoPlist ?? {}),
-        ITSAppUsesNonExemptEncryption: false,
-      },
-    },
+        ITSAppUsesNonExemptEncryption: false
+      }
+    }
   };
 
   return withPinnedKotlinGradlePlugin(withPrivacyManifest(merged));

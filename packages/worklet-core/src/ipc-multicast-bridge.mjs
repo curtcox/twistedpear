@@ -4,9 +4,7 @@
  */
 
 function bytesToHex(bytes) {
-  return [...bytes]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("");
+  return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function hexToBytes(hex) {
@@ -66,23 +64,11 @@ export function createIpcMulticastBridge() {
     },
 
     async send(ifname, groupAddress, port, data) {
-      emit({
-        type: "multicast-send",
-        ifname,
-        groupAddress,
-        port,
-        dataHex: bytesToHex(data),
-      });
+      emit({ type: "multicast-send", ifname, groupAddress, port, dataHex: bytesToHex(data) });
     },
 
     async sendUnicast(ifname, targetAddress, port, data) {
-      emit({
-        type: "multicast-unicast",
-        ifname,
-        targetAddress,
-        port,
-        dataHex: bytesToHex(data),
-      });
+      emit({ type: "multicast-unicast", ifname, targetAddress, port, dataHex: bytesToHex(data) });
     },
 
     handleHostMessage(message) {
@@ -91,7 +77,7 @@ export function createIpcMulticastBridge() {
           message.ifname,
           hexToBytes(message.dataHex),
           message.sourceAddress,
-          message.port,
+          message.port
         );
         return;
       }
@@ -100,7 +86,7 @@ export function createIpcMulticastBridge() {
         interfaces = message.interfaces;
         events.onNetworkChange?.(message.interfaces);
       }
-    },
+    }
   };
 
   return bridge;

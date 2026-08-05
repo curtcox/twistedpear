@@ -21,14 +21,14 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   DestinationTypeCode,
   isDestinationDirectionCode,
-  isDestinationTypeCode,
+  isDestinationTypeCode
 } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
 
 export const DestinationAllowPolicyCode = {
   ALLOW_NONE: 0x00,
   ALLOW_ALL: 0x01,
-  ALLOW_LIST: 0x02,
+  ALLOW_LIST: 0x02
 } as const;
 
 export type DestinationAllowPolicyCodeValue =
@@ -54,7 +54,8 @@ export type DestinationRequestPathValidEvent =
     };
 
 export type DestinationRequestPathValidAction =
-  { readonly kind: "valid" } | { readonly kind: "invalid" };
+  | { readonly kind: "valid" }
+  | { readonly kind: "invalid" };
 
 export interface DestinationRequestPathValidStepResult {
   readonly state: DestinationRequestPathValidState;
@@ -68,7 +69,7 @@ export function initialDestinationRequestPathValidState(): DestinationRequestPat
 
 export function stepDestinationRequestPathValidWithActions(
   state: DestinationRequestPathValidState,
-  event: DestinationRequestPathValidEvent,
+  event: DestinationRequestPathValidEvent
 ): DestinationRequestPathValidStepResult {
   if (event.kind === "destination/request-path-valid-gate") {
     return {
@@ -76,9 +77,9 @@ export function stepDestinationRequestPathValidWithActions(
       intents: [],
       actions: [
         {
-          kind: isValidDestinationRequestPath(event.path) ? "valid" : "invalid",
-        },
-      ],
+          kind: isValidDestinationRequestPath(event.path) ? "valid" : "invalid"
+        }
+      ]
     };
   }
 
@@ -86,13 +87,13 @@ export function stepDestinationRequestPathValidWithActions(
 }
 
 export function shouldAcceptDestinationRequestPath(
-  actions: ReadonlyArray<DestinationRequestPathValidAction>,
+  actions: ReadonlyArray<DestinationRequestPathValidAction>
 ): boolean {
   return actions.some((action) => action.kind === "valid");
 }
 
 export function shouldRejectDestinationRequestPath(
-  actions: ReadonlyArray<DestinationRequestPathValidAction>,
+  actions: ReadonlyArray<DestinationRequestPathValidAction>
 ): boolean {
   return actions.some((action) => action.kind === "invalid");
 }
@@ -121,7 +122,8 @@ export type AcceptDestinationLinkRequestEvent =
     };
 
 export type AcceptDestinationLinkRequestAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface AcceptDestinationLinkRequestStepResult {
   readonly state: AcceptDestinationLinkRequestState;
@@ -135,7 +137,7 @@ export function initialAcceptDestinationLinkRequestState(): AcceptDestinationLin
 
 export function stepAcceptDestinationLinkRequestWithActions(
   state: AcceptDestinationLinkRequestState,
-  event: AcceptDestinationLinkRequestEvent,
+  event: AcceptDestinationLinkRequestEvent
 ): AcceptDestinationLinkRequestStepResult {
   if (event.kind === "destination/accept-link-request-gate") {
     return {
@@ -145,12 +147,12 @@ export function stepAcceptDestinationLinkRequestWithActions(
         {
           kind: canAcceptDestinationLinkRequest({
             acceptLinkRequests: event.acceptLinkRequests,
-            directionIn: event.directionIn,
+            directionIn: event.directionIn
           })
             ? "allow"
-            : "deny",
-        },
-      ],
+            : "deny"
+        }
+      ]
     };
   }
 
@@ -158,13 +160,13 @@ export function stepAcceptDestinationLinkRequestWithActions(
 }
 
 export function shouldAllowDestinationLinkRequest(
-  actions: ReadonlyArray<AcceptDestinationLinkRequestAction>,
+  actions: ReadonlyArray<AcceptDestinationLinkRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyDestinationLinkRequest(
-  actions: ReadonlyArray<AcceptDestinationLinkRequestAction>,
+  actions: ReadonlyArray<AcceptDestinationLinkRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -193,7 +195,8 @@ export type AnnounceDestinationEvent =
     };
 
 export type AnnounceDestinationAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface AnnounceDestinationStepResult {
   readonly state: AnnounceDestinationState;
@@ -207,7 +210,7 @@ export function initialAnnounceDestinationState(): AnnounceDestinationState {
 
 export function stepAnnounceDestinationWithActions(
   state: AnnounceDestinationState,
-  event: AnnounceDestinationEvent,
+  event: AnnounceDestinationEvent
 ): AnnounceDestinationStepResult {
   if (event.kind === "destination/announce-gate") {
     return {
@@ -217,12 +220,12 @@ export function stepAnnounceDestinationWithActions(
         {
           kind: canAnnounceDestination({
             typeSingle: event.typeSingle,
-            directionIn: event.directionIn,
+            directionIn: event.directionIn
           })
             ? "allow"
-            : "deny",
-        },
-      ],
+            : "deny"
+        }
+      ]
     };
   }
 
@@ -230,21 +233,19 @@ export function stepAnnounceDestinationWithActions(
 }
 
 export function shouldAllowDestinationAnnounce(
-  actions: ReadonlyArray<AnnounceDestinationAction>,
+  actions: ReadonlyArray<AnnounceDestinationAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyDestinationAnnounce(
-  actions: ReadonlyArray<AnnounceDestinationAction>,
+  actions: ReadonlyArray<AnnounceDestinationAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
 
 /** Whether announce/send/requestLink may run (destination attached to transport). */
-export function canOperateAttachedDestination(
-  transportPresent: boolean,
-): boolean {
+export function canOperateAttachedDestination(transportPresent: boolean): boolean {
   return transportPresent;
 }
 
@@ -263,7 +264,8 @@ export type OperateAttachedDestinationEvent =
     };
 
 export type OperateAttachedDestinationAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface OperateAttachedDestinationStepResult {
   readonly state: OperateAttachedDestinationState;
@@ -277,7 +279,7 @@ export function initialOperateAttachedDestinationState(): OperateAttachedDestina
 
 export function stepOperateAttachedDestinationWithActions(
   state: OperateAttachedDestinationState,
-  event: OperateAttachedDestinationEvent,
+  event: OperateAttachedDestinationEvent
 ): OperateAttachedDestinationStepResult {
   if (event.kind === "destination/operate-attached-gate") {
     return {
@@ -285,11 +287,9 @@ export function stepOperateAttachedDestinationWithActions(
       intents: [],
       actions: [
         {
-          kind: canOperateAttachedDestination(event.transportPresent)
-            ? "allow"
-            : "deny",
-        },
-      ],
+          kind: canOperateAttachedDestination(event.transportPresent) ? "allow" : "deny"
+        }
+      ]
     };
   }
 
@@ -297,13 +297,13 @@ export function stepOperateAttachedDestinationWithActions(
 }
 
 export function shouldAllowOperateAttachedDestination(
-  actions: ReadonlyArray<OperateAttachedDestinationAction>,
+  actions: ReadonlyArray<OperateAttachedDestinationAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyOperateAttachedDestination(
-  actions: ReadonlyArray<OperateAttachedDestinationAction>,
+  actions: ReadonlyArray<OperateAttachedDestinationAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -328,7 +328,8 @@ export type AnnounceWithIdentityEvent =
     };
 
 export type AnnounceWithIdentityAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface AnnounceWithIdentityStepResult {
   readonly state: AnnounceWithIdentityState;
@@ -342,7 +343,7 @@ export function initialAnnounceWithIdentityState(): AnnounceWithIdentityState {
 
 export function stepAnnounceWithIdentityWithActions(
   state: AnnounceWithIdentityState,
-  event: AnnounceWithIdentityEvent,
+  event: AnnounceWithIdentityEvent
 ): AnnounceWithIdentityStepResult {
   if (event.kind === "destination/announce-with-identity-gate") {
     return {
@@ -350,11 +351,9 @@ export function stepAnnounceWithIdentityWithActions(
       intents: [],
       actions: [
         {
-          kind: canAnnounceWithIdentity(event.identityPresent)
-            ? "allow"
-            : "deny",
-        },
-      ],
+          kind: canAnnounceWithIdentity(event.identityPresent) ? "allow" : "deny"
+        }
+      ]
     };
   }
 
@@ -362,21 +361,19 @@ export function stepAnnounceWithIdentityWithActions(
 }
 
 export function shouldAllowAnnounceWithIdentity(
-  actions: ReadonlyArray<AnnounceWithIdentityAction>,
+  actions: ReadonlyArray<AnnounceWithIdentityAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyAnnounceWithIdentity(
-  actions: ReadonlyArray<AnnounceWithIdentityAction>,
+  actions: ReadonlyArray<AnnounceWithIdentityAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
 
 /** Whether PROVE_APP should invoke the destination proof-requested callback. */
-export function shouldInvokeDestinationProofCallback(
-  callbackPresent: boolean,
-): boolean {
+export function shouldInvokeDestinationProofCallback(callbackPresent: boolean): boolean {
   return callbackPresent;
 }
 
@@ -395,7 +392,8 @@ export type DestinationProofCallbackEvent =
     };
 
 export type DestinationProofCallbackAction =
-  { readonly kind: "invoke" } | { readonly kind: "skip" };
+  | { readonly kind: "invoke" }
+  | { readonly kind: "skip" };
 
 export interface DestinationProofCallbackStepResult {
   readonly state: DestinationProofCallbackState;
@@ -409,7 +407,7 @@ export function initialDestinationProofCallbackState(): DestinationProofCallback
 
 export function stepDestinationProofCallbackWithActions(
   state: DestinationProofCallbackState,
-  event: DestinationProofCallbackEvent,
+  event: DestinationProofCallbackEvent
 ): DestinationProofCallbackStepResult {
   if (event.kind === "destination/proof-callback-gate") {
     return {
@@ -419,9 +417,9 @@ export function stepDestinationProofCallbackWithActions(
         {
           kind: shouldInvokeDestinationProofCallback(event.callbackPresent)
             ? "invoke"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -429,20 +427,20 @@ export function stepDestinationProofCallbackWithActions(
 }
 
 export function shouldInvokeDestinationProofCallbackNow(
-  actions: ReadonlyArray<DestinationProofCallbackAction>,
+  actions: ReadonlyArray<DestinationProofCallbackAction>
 ): boolean {
   return actions.some((action) => action.kind === "invoke");
 }
 
 export function shouldSkipDestinationProofCallback(
-  actions: ReadonlyArray<DestinationProofCallbackAction>,
+  actions: ReadonlyArray<DestinationProofCallbackAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a validated link should wrap the destination link-established callback. */
 export function shouldInvokeDestinationLinkEstablishedCallback(
-  callbackPresent: boolean,
+  callbackPresent: boolean
 ): boolean {
   return callbackPresent;
 }
@@ -462,4 +460,5 @@ export type DestinationLinkEstablishedCallbackEvent =
     };
 
 export type DestinationLinkEstablishedCallbackAction =
-  { readonly kind: "invoke" } | { readonly kind: "skip" };
+  | { readonly kind: "invoke" }
+  | { readonly kind: "skip" };

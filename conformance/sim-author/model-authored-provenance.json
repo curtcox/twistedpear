@@ -13,33 +13,29 @@
     "channels": ["x"],
     "maxProposals": 16
   },
-  "accepted": [
-    {
-      "proposal": {
-        "name": "DuplicateAction",
-        "actions": [
-          { "power": "duplicate", "source": "a", "destination": "b" },
-          { "power": "duplicate", "source": "a", "destination": "b" }
-        ]
-      },
-      "powers": ["duplicate"]
-    }
-  ],
+  "accepted": [{
+    "proposal": {
+      "name": "DuplicateAction",
+      "actions": [
+        { "power": "duplicate", "source": "a", "destination": "b" },
+        { "power": "duplicate", "source": "a", "destination": "b" }
+      ]
+    },
+    "powers": ["duplicate"]
+  }],
   "rejected": [],
-  "executions": [
-    {
-      "proposal": {
-        "name": "DuplicateAction",
-        "actions": [
-          { "power": "duplicate", "source": "a", "destination": "b" },
-          { "power": "duplicate", "source": "a", "destination": "b" }
-        ]
-      },
-      "finding": {
-        "oracle": "model-authored-duplicate-delivery",
-        "message": "model-authored strategy caused duplicate delivery"
-      },
-      "minimizedTraceLength": 2
-    }
-  ]
+  "executions": [{
+    "proposal": {
+      "name": "DuplicateAction",
+      "actions": [
+        { "power": "duplicate", "source": "a", "destination": "b" },
+        { "power": "duplicate", "source": "a", "destination": "b" }
+      ]
+    },
+    "finding": {
+      "oracle": "model-authored-duplicate-delivery",
+      "message": "model-authored strategy caused duplicate delivery"
+    },
+    "minimizedTraceLength": 2
+  }]
 }

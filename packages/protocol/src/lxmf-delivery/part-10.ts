@@ -12,19 +12,10 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
-import {
-  planLxmfPropagatedPackPrep,
-  shouldPlanLxmfPropagatedPackPrepOk,
-  shouldPlanLxmfPropagatedPackPrepSkip,
-} from "./part-9.js";
-import type {
-  LxmfPropagatedPackPrepEvent,
-  LxmfPropagatedPackPrepPlan,
-  LxmfPropagatedPackPrepPlanAction,
-  LxmfPropagatedPackPrepPlanEvent,
-} from "./part-9.js";
+import { planLxmfPropagatedPackPrep, shouldPlanLxmfPropagatedPackPrepOk, shouldPlanLxmfPropagatedPackPrepSkip } from "./part-9.js";
+import type { LxmfPropagatedPackPrepEvent, LxmfPropagatedPackPrepPlan, LxmfPropagatedPackPrepPlanAction, LxmfPropagatedPackPrepPlanEvent } from "./part-9.js";
 /**
  * PROPAGATED pack-prep-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagatedPackPrep` /
@@ -45,7 +36,7 @@ export function initialLxmfPropagatedPackPrepPlanState(): LxmfPropagatedPackPrep
 
 export function stepLxmfPropagatedPackPrepPlanWithActions(
   state: LxmfPropagatedPackPrepPlanState,
-  event: LxmfPropagatedPackPrepPlanEvent,
+  event: LxmfPropagatedPackPrepPlanEvent
 ): LxmfPropagatedPackPrepPlanStepResult {
   if (event.kind === "propagated-pack-prep/plan-gate") {
     return {
@@ -57,10 +48,10 @@ export function stepLxmfPropagatedPackPrepPlanWithActions(
             packedPresent: event.packedPresent,
             desiredMethod: event.desiredMethod,
             destinationIdentityPresent: event.destinationIdentityPresent,
-            timestampPresent: event.timestampPresent,
-          }),
-        },
-      ],
+            timestampPresent: event.timestampPresent
+          })
+        }
+      ]
     };
   }
 
@@ -69,28 +60,28 @@ export function stepLxmfPropagatedPackPrepPlanWithActions(
 
 /** Whether pack-prep-plan actions reject a missing destination identity. */
 export function shouldRejectLxmfPropagatedPackPrepPlanMissingIdentity(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-identity");
 }
 
 /** Whether pack-prep-plan actions reject a missing timestamp. */
 export function shouldRejectLxmfPropagatedPackPrepPlanMissingTimestamp(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-timestamp");
 }
 
 /** Extract the PROPAGATED pack-prep plan from actions; null when empty. */
 export function lxmfPropagatedPackPrepPlanFromActions(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>
 ): LxmfPropagatedPackPrepPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "skip" ||
       entry.kind === "ok" ||
       entry.kind === "missing-identity" ||
-      entry.kind === "missing-timestamp",
+      entry.kind === "missing-timestamp"
   );
   return action?.kind ?? null;
 }
@@ -126,49 +117,49 @@ export function initialLxmfPropagatedPackPrepState(): LxmfPropagatedPackPrepStat
 
 export const stepLxmfPropagatedPackPrep: StepFn<LxmfPropagatedPackPrepState> = (
   state,
-  event,
+  event
 ) => {
   const result = stepLxmfPropagatedPackPrepInner(
     state,
-    event as LxmfPropagatedPackPrepEvent,
+    event as LxmfPropagatedPackPrepEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfPropagatedPackPrepWithActions(
   state: LxmfPropagatedPackPrepState,
-  event: LxmfPropagatedPackPrepEvent,
+  event: LxmfPropagatedPackPrepEvent
 ): LxmfPropagatedPackPrepStepResult {
   return stepLxmfPropagatedPackPrepInner(state, event);
 }
 
 export function shouldSkipLxmfPropagatedPackPrep(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export function shouldProceedLxmfPropagatedPackPrep(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectLxmfPropagatedPackMissingIdentity(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-identity");
 }
 
 export function shouldRejectLxmfPropagatedPackMissingTimestamp(
-  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-timestamp");
 }
 
 function stepLxmfPropagatedPackPrepInner(
   state: LxmfPropagatedPackPrepState,
-  event: LxmfPropagatedPackPrepEvent,
+  event: LxmfPropagatedPackPrepEvent
 ): LxmfPropagatedPackPrepStepResult {
   if (event.kind === "propagated-pack-prep/gate") {
     const planActions = stepLxmfPropagatedPackPrepPlanWithActions(
@@ -178,25 +169,17 @@ function stepLxmfPropagatedPackPrepInner(
         packedPresent: event.packedPresent,
         desiredMethod: event.desiredMethod,
         destinationIdentityPresent: event.destinationIdentityPresent,
-        timestampPresent: event.timestampPresent,
-      },
+        timestampPresent: event.timestampPresent
+      }
     ).actions;
     if (shouldPlanLxmfPropagatedPackPrepSkip(planActions)) {
       return { state, intents: [], actions: [{ kind: "skip" }] };
     }
     if (shouldRejectLxmfPropagatedPackPrepPlanMissingIdentity(planActions)) {
-      return {
-        state,
-        intents: [],
-        actions: [{ kind: "reject-missing-identity" }],
-      };
+      return { state, intents: [], actions: [{ kind: "reject-missing-identity" }] };
     }
     if (shouldRejectLxmfPropagatedPackPrepPlanMissingTimestamp(planActions)) {
-      return {
-        state,
-        intents: [],
-        actions: [{ kind: "reject-missing-timestamp" }],
-      };
+      return { state, intents: [], actions: [{ kind: "reject-missing-timestamp" }] };
     }
     if (!shouldPlanLxmfPropagatedPackPrepOk(planActions)) {
       return { state, intents: [], actions: [] };

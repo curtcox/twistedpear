@@ -1,21 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  CAPABILITY_DEFINITIONS,
-  assertCapabilityAllowed,
-  GrantStore,
-  MemoryKvStoreBackend,
-  MiniappHost,
-} from "../src/index.js";
-import {
-  RelayBrokerService,
-  RelayBrokerServiceError,
-} from "../src/services/relay.js";
-import type {
-  RelayService,
-  RelayStatus,
-  InterfaceDiagnostic,
-  InterfaceStatus,
-} from "../src/services/relay.js";
+import { CAPABILITY_DEFINITIONS, assertCapabilityAllowed, GrantStore, MemoryKvStoreBackend, MiniappHost } from "../src/index.js";
+import { RelayBrokerService, RelayBrokerServiceError } from "../src/services/relay.js";
+import type { RelayService, RelayStatus, InterfaceDiagnostic, InterfaceStatus } from "../src/services/relay.js";
 
 class MockRelayService implements RelayService {
   mode: "off" | "bridge" | "transport-node" = "off";
@@ -56,12 +42,8 @@ describe("relay capabilities", () => {
     const ids = CAPABILITY_DEFINITIONS.map((entry) => entry.id);
     expect(ids).toContain("relay:configure");
     expect(ids).toContain("relay:read");
-    const configure = CAPABILITY_DEFINITIONS.find(
-      (entry) => entry.id === "relay:configure",
-    )!;
-    expect(configure.description).toMatch(
-      /camera.*microphone.*other people's traffic/i,
-    );
+    const configure = CAPABILITY_DEFINITIONS.find((entry) => entry.id === "relay:configure")!;
+    expect(configure.description).toMatch(/camera.*microphone.*other people's traffic/i);
     expect(configure.description).toMatch(/without another prompt/i);
   });
 
@@ -70,8 +52,8 @@ describe("relay capabilities", () => {
       assertCapabilityAllowed({
         capability: "relay:configure",
         declared: ["identity"],
-        granted: ["relay:configure"],
-      }),
+        granted: ["relay:configure"]
+      })
     ).toThrow();
   });
 
@@ -80,8 +62,8 @@ describe("relay capabilities", () => {
       assertCapabilityAllowed({
         capability: "relay:read",
         declared: ["relay:read"],
-        granted: [],
-      }),
+        granted: []
+      })
     ).toThrow();
   });
 });
@@ -90,39 +72,24 @@ describe("RelayBrokerService", () => {
   it("validates and forwards setMode", async () => {
     const mock = new MockRelayService();
     const notices: unknown[] = [];
-    const broker = new RelayBrokerService(mock, (notice) =>
-      notices.push(notice),
-    );
+    const broker = new RelayBrokerService(mock, (notice) => notices.push(notice));
     await broker.setMode("app", { mode: "bridge" });
     expect(mock.mode).toBe("bridge");
     expect(notices).toEqual([{ appId: "app", method: "setMode" }]);
-    await expect(
-      broker.setMode("app", { mode: "invalid" as never }),
-    ).rejects.toThrow(RelayBrokerServiceError);
+    await expect(broker.setMode("app", { mode: "invalid" as never })).rejects.toThrow(RelayBrokerServiceError);
   });
 
   it("validates interface kind on enable", async () => {
     const mock = new MockRelayService();
     const broker = new RelayBrokerService(mock);
     await broker.enable("app", { kind: "ntfy", options: { topic: "test" } });
-    expect(mock.enabled).toContainEqual({
-      kind: "ntfy",
-      options: { topic: "test" },
-    });
+    expect(mock.enabled).toContainEqual({ kind: "ntfy", options: { topic: "test" } });
+    await expect(broker.enable("app", { kind: "bad" as never })).rejects.toThrow(RelayBrokerServiceError);
     await expect(
-      broker.enable("app", { kind: "bad" as never }),
-    ).rejects.toThrow(RelayBrokerServiceError);
-    await expect(
-      broker.enable("app", {
-        kind: "ntfy",
-        options: { bearerToken: 42 as never },
-      }),
+      broker.enable("app", { kind: "ntfy", options: { bearerToken: 42 as never } })
     ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
     await expect(
-      broker.enable("app", {
-        kind: "ntfy",
-        options: { __protoPollution: true },
-      }),
+      broker.enable("app", { kind: "ntfy", options: { __protoPollution: true } })
     ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
   });
 
@@ -131,75 +98,46 @@ describe("RelayBrokerService", () => {
     const broker = new RelayBrokerService(mock);
     await broker.setDirection("app", { kind: "ntfy", direction: "rx" });
     expect(mock.directions).toContainEqual({ kind: "ntfy", direction: "rx" });
-    await expect(
-      broker.setDirection("app", {
-        kind: "ntfy",
-        direction: "sideways" as never,
-      }),
-    ).rejects.toThrow(RelayBrokerServiceError);
+    await expect(broker.setDirection("app", { kind: "ntfy", direction: "sideways" as never })).rejects.toThrow(
+      RelayBrokerServiceError
+    );
   });
 
   it("validates configuration patches and every policy matrix cell", async () => {
     const mock = new MockRelayService();
     const broker = new RelayBrokerService(mock);
-    await broker.configure("app", {
-      kind: "acoustic",
-      patch: { band: "ultrasonic", bitrate: 800 },
-    });
+    await broker.configure("app", { kind: "acoustic", patch: { band: "ultrasonic", bitrate: 800 } });
     await expect(
-      broker.configure("app", {
-        kind: "acoustic",
-        patch: { band: "infrared" as never },
-      }),
+      broker.configure("app", { kind: "acoustic", patch: { band: "infrared" as never } })
     ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
-    await broker.setPolicy("app", {
-      policy: { allow: { ntfy: { bluetooth: true } } },
-    });
+    await broker.setPolicy("app", { policy: { allow: { ntfy: { bluetooth: true } } } });
     await expect(
-      broker.setPolicy("app", {
-        policy: { allow: { ntfy: { bluetooth: "yes" as never } } },
-      }),
+      broker.setPolicy("app", { policy: { allow: { ntfy: { bluetooth: "yes" as never } } } })
     ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
     await expect(
-      broker.setPolicy("app", {
-        policy: { allow: { bogus: { tcp: true } } } as never,
-      }),
+      broker.setPolicy("app", { policy: { allow: { bogus: { tcp: true } } } as never })
     ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
   });
 });
 
 describe("MiniappHost relay broker path", () => {
-  const unusedBackend = {
-    name: "unused",
-    async spawn() {
-      throw new Error("not used");
-    },
-  };
+  const unusedBackend = { name: "unused", async spawn() { throw new Error("not used"); } };
   const manifest = {
     name: "relay-app",
     version: "1",
     entry: "bundle.js",
     publisherPublicKey: "publisher",
-    capabilities: ["relay:configure", "relay:read"],
+    capabilities: ["relay:configure", "relay:read"]
   };
 
   it("returns RELAY_UNCONFIGURED when relayService is not injected", async () => {
     const store = new MemoryKvStoreBackend();
-    const host = new MiniappHost({
-      backend: unusedBackend,
-      grantStore: new GrantStore(store),
-      kvBackend: store,
-    });
-    await host.setGrants(
-      "relay-app",
-      "publisher",
-      ["relay:read"],
-      ["relay:read"],
-    );
+    const host = new MiniappHost({ backend: unusedBackend, grantStore: new GrantStore(store), kvBackend: store });
+    await host.setGrants("relay-app", "publisher", ["relay:read"], ["relay:read"]);
     const response = await host.dispatchRaw(
       { id: "1", namespace: "relay", method: "status", payload: {} },
       manifest,
-      ["relay:read"],
+      ["relay:read"]
     );
     expect(response.error?.code).toBe("RELAY_UNCONFIGURED");
   });
@@ -211,39 +149,29 @@ describe("MiniappHost relay broker path", () => {
       backend: unusedBackend,
       grantStore: new GrantStore(store),
       kvBackend: store,
-      relayService: mock,
+      relayService: mock
     });
 
     const denied = await host.dispatchRaw(
       { id: "denied", namespace: "relay", method: "status", payload: {} },
       manifest,
-      [],
+      []
     );
     expect(denied.error?.code).toBe("CAPABILITY_DENIED");
 
-    await host.setGrants(
-      "relay-app",
-      "publisher",
-      ["relay:read", "relay:configure"],
-      ["relay:read", "relay:configure"],
-    );
+    await host.setGrants("relay-app", "publisher", ["relay:read", "relay:configure"], ["relay:read", "relay:configure"]);
     const status = await host.dispatchRaw(
       { id: "status", namespace: "relay", method: "status", payload: {} },
       manifest,
-      ["relay:read"],
+      ["relay:read"]
     );
     expect(status.ok).toBe(true);
     expect(status.result).toMatchObject({ mode: "off", onlineCount: 0 });
 
     const setMode = await host.dispatchRaw(
-      {
-        id: "mode",
-        namespace: "relay",
-        method: "setMode",
-        payload: { mode: "bridge" },
-      },
+      { id: "mode", namespace: "relay", method: "setMode", payload: { mode: "bridge" } },
       manifest,
-      ["relay:configure"],
+      ["relay:configure"]
     );
     expect(setMode.ok).toBe(true);
     expect(mock.mode).toBe("bridge");

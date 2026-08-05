@@ -11,48 +11,31 @@ function bytesToHex(bytes) {
 }
 
 function hexToBytes(value) {
-  if (
-    typeof value !== "string" ||
-    value.length === 0 ||
-    value.length % 2 !== 0 ||
-    !/^[0-9a-f]+$/i.test(value)
-  ) {
+  if (typeof value !== "string" || value.length === 0 || value.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(value)) {
     throw new Error("archiveHex must be non-empty hexadecimal bytes");
   }
-  return Uint8Array.from(value.match(/../g), (pair) =>
-    Number.parseInt(pair, 16),
-  );
+  return Uint8Array.from(value.match(/../g), (pair) => Number.parseInt(pair, 16));
 }
 
 function projectName(snapshot) {
   const children = snapshot?.widgetTree?.root?.children ?? [];
-  const selected = children.find(
-    (node) =>
-      typeof node?.id === "string" &&
-      node.id.startsWith("proj-") &&
-      node?.props?.label?.startsWith("▶ "),
+  const selected = children.find((node) =>
+    typeof node?.id === "string" && node.id.startsWith("proj-") && node?.props?.label?.startsWith("▶ ")
   );
   if (selected !== undefined) return selected.id.slice("proj-".length);
-  const any = children.find(
-    (node) => typeof node?.id === "string" && node.id.startsWith("proj-"),
-  );
+  const any = children.find((node) => typeof node?.id === "string" && node.id.startsWith("proj-"));
   return any?.id?.slice("proj-".length) ?? null;
 }
 
 function qrValue(snapshot) {
-  const node = (snapshot?.widgetTree?.root?.children ?? []).find(
-    (entry) => entry?.id === "package-qr",
-  );
+  const node = (snapshot?.widgetTree?.root?.children ?? []).find((entry) => entry?.id === "package-qr");
   return typeof node?.props?.value === "string" ? node.props.value : null;
 }
 
 function hasNode(node, id) {
   if (node === null || typeof node !== "object") return false;
   if (node.id === id) return true;
-  return (
-    Array.isArray(node.children) &&
-    node.children.some((child) => hasNode(child, id))
-  );
+  return Array.isArray(node.children) && node.children.some((child) => hasNode(child, id));
 }
 
 export function createCrossDeviceTestDriver(options) {
@@ -70,11 +53,7 @@ export function createCrossDeviceTestDriver(options) {
   return async function handleCrossDeviceCommand(request) {
     switch (request.cmd) {
       case "devstudio.load": {
-        if (
-          typeof request.bundle !== "string" ||
-          typeof request.manifest !== "object" ||
-          request.manifest === null
-        ) {
+        if (typeof request.bundle !== "string" || typeof request.manifest !== "object" || request.manifest === null) {
           throw new Error("devstudio.load requires manifest and bundle");
         }
         host().setDeveloperMode(true);
@@ -83,31 +62,22 @@ export function createCrossDeviceTestDriver(options) {
           request.manifest.name,
           request.manifest.publisherPublicKey ?? "dev",
           capabilities,
-          capabilities,
+          capabilities
         );
-        await host().devSideLoad(
-          request.manifest,
-          new TextEncoder().encode(request.bundle),
-        );
+        await host().devSideLoad(request.manifest, new TextEncoder().encode(request.bundle));
         const state = await waitForState(
           (snapshot) => hasNode(snapshot?.widgetTree?.root, "new-project"),
-          "DevStudio initial render",
+          "DevStudio initial render"
         );
         return { state };
       }
       case "project.create": {
         await host().handleUiEvent("new-project", "ds.newproject");
-        const state = await waitForState(
-          (snapshot) => projectName(snapshot) !== null,
-          "DevStudio project creation",
-        );
+        const state = await waitForState((snapshot) => projectName(snapshot) !== null, "DevStudio project creation");
         return { project: projectName(state), state };
       }
       case "project.write": {
-        if (
-          typeof request.path !== "string" ||
-          typeof request.content !== "string"
-        ) {
+        if (typeof request.path !== "string" || typeof request.content !== "string") {
           throw new Error("project.write requires path and content");
         }
         const current = await host().readWorkspaceFile(request.path);
@@ -115,17 +85,13 @@ export function createCrossDeviceTestDriver(options) {
         await host().handleUiEvent("editor", "ds.edit", {
           documentId: request.path,
           baseLength: current.length,
-          edits: [{ start: 0, end: current.length, text: request.content }],
+          edits: [{ start: 0, end: current.length, text: request.content }]
         });
         return { path: request.path, size: request.content.length };
       }
       case "preview": {
-        const action =
-          request.action === "stop" ? "ds.stoppreview" : "ds.preview";
-        await host().handleUiEvent(
-          action === "ds.preview" ? "preview" : "stop-preview",
-          action,
-        );
+        const action = request.action === "stop" ? "ds.stoppreview" : "ds.preview";
+        await host().handleUiEvent(action === "ds.preview" ? "preview" : "stop-preview", action);
         return { state: host().previewSnapshot() };
       }
       case "package": {
@@ -138,77 +104,48 @@ export function createCrossDeviceTestDriver(options) {
         return { state: host().snapshot() };
       }
       case "trust.import": {
-        if (typeof request.identity256t !== "string")
-          throw new Error("trust.import requires identity256t");
-        await options.importTrust(
-          request.identity256t,
-          String(request.label ?? "Cross-device publisher"),
-        );
+        if (typeof request.identity256t !== "string") throw new Error("trust.import requires identity256t");
+        await options.importTrust(request.identity256t, String(request.label ?? "Cross-device publisher"));
         return {};
       }
       case "install": {
-        if (typeof request.t256 !== "string")
-          throw new Error("install requires t256");
+        if (typeof request.t256 !== "string") throw new Error("install requires t256");
         return options.installFromT256(request.t256);
       }
       case "run": {
-        if (typeof request.appId !== "string")
-          throw new Error("run requires appId");
+        if (typeof request.appId !== "string") throw new Error("run requires appId");
         if (options.runApp !== undefined) {
           await options.runApp(request.appId);
         } else {
-          await host().launch(
-            options.installedStore(),
-            options.runtime,
-            request.appId,
-          );
+          await host().launch(options.installedStore(), options.runtime, request.appId);
         }
         return { state: host().snapshot() };
       }
       case "ui.event": {
-        if (
-          typeof request.nodeId !== "string" ||
-          typeof request.event !== "string"
-        ) {
+        if (typeof request.nodeId !== "string" || typeof request.event !== "string") {
           throw new Error("ui.event requires nodeId and event");
         }
-        await host().handleUiEvent(
-          request.nodeId,
-          request.event,
-          request.value,
-        );
+        await host().handleUiEvent(request.nodeId, request.event, request.value);
         return { state: host().snapshot() };
       }
       case "state":
         return { state: host().snapshot(), preview: host().previewSnapshot() };
       case "cas.has": {
-        if (typeof request.t256 !== "string")
-          throw new Error("cas.has requires t256");
-        if (options.casHas !== undefined)
-          return { present: await options.casHas(request.t256) };
-        return {
-          present:
-            (await options
-              .casStore()
-              .get(request.t256)
-              .catch(() => null)) !== null,
-        };
+        if (typeof request.t256 !== "string") throw new Error("cas.has requires t256");
+        if (options.casHas !== undefined) return { present: await options.casHas(request.t256) };
+        return { present: (await options.casStore().get(request.t256).catch(() => null)) !== null };
       }
       case "cas.read": {
-        if (typeof request.t256 !== "string")
-          throw new Error("cas.read requires t256");
+        if (typeof request.t256 !== "string") throw new Error("cas.read requires t256");
         const archive = await options.casStore().get(request.t256);
-        if (archive === null)
-          throw new Error(`CAS archive is unavailable: ${request.t256}`);
+        if (archive === null) throw new Error(`CAS archive is unavailable: ${request.t256}`);
         return { archiveHex: bytesToHex(archive), size: archive.length };
       }
       case "negative.verify": {
-        if (typeof request.t256 !== "string")
-          throw new Error("negative.verify requires t256");
+        if (typeof request.t256 !== "string") throw new Error("negative.verify requires t256");
         const archive = hexToBytes(request.archiveHex);
         const refused = !verify256t(request.t256, archive, options.sha512);
-        if (!refused)
-          throw new Error("corrupted archive unexpectedly matched its 256t id");
+        if (!refused) throw new Error("corrupted archive unexpectedly matched its 256t id");
         return { refused, stage: "sha512", codeExecuted: false };
       }
       case "trust.show":

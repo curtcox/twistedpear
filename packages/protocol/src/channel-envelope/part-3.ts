@@ -12,16 +12,8 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "../packet-receipt-timeout.js";
 import { PacketReceiptStatus } from "../packet-receipt-timeout.js";
 import { CHANNEL_ENVELOPE_HEADER_SIZE, CHANNEL_SEQ_MODULUS } from "./part-1.js";
-import {
-  channelEnvelopePackPlanFromActions,
-  planChannelEnvelopePack,
-} from "./part-2.js";
-import type {
-  ChannelEnvelopePackEvent,
-  ChannelEnvelopePackPlan,
-  ChannelEnvelopePackPlanAction,
-  ChannelEnvelopePackPlanEvent,
-} from "./part-2.js";
+import { channelEnvelopePackPlanFromActions, planChannelEnvelopePack } from "./part-2.js";
+import type { ChannelEnvelopePackEvent, ChannelEnvelopePackPlan, ChannelEnvelopePackPlanAction, ChannelEnvelopePackPlanEvent } from "./part-2.js";
 /**
  * Channel-envelope-pack-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelEnvelopePack`
@@ -42,13 +34,13 @@ export function initialChannelEnvelopePackPlanState(): ChannelEnvelopePackPlanSt
 
 export function stepChannelEnvelopePackPlanWithActions(
   state: ChannelEnvelopePackPlanState,
-  event: ChannelEnvelopePackPlanEvent,
+  event: ChannelEnvelopePackPlanEvent
 ): ChannelEnvelopePackPlanStepResult {
   if (event.kind === "channel/envelope-pack-plan-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: planChannelEnvelopePack(event.messagePresent) }],
+      actions: [{ kind: planChannelEnvelopePack(event.messagePresent) }]
     };
   }
 
@@ -56,13 +48,13 @@ export function stepChannelEnvelopePackPlanWithActions(
 }
 
 export function shouldProceedChannelEnvelopePackPlan(
-  actions: ReadonlyArray<ChannelEnvelopePackPlanAction>,
+  actions: ReadonlyArray<ChannelEnvelopePackPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectChannelEnvelopePackPlanMissingMessage(
-  actions: ReadonlyArray<ChannelEnvelopePackPlanAction>,
+  actions: ReadonlyArray<ChannelEnvelopePackPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-message");
 }
@@ -80,9 +72,7 @@ export type ChannelEnvelopePackState = Record<string, never>;
  * Plan nested via {@link stepChannelEnvelopePackPlanWithActions}
  * (`ok`|`missing-message`).
  */
-export type ChannelEnvelopePackAction = {
-  readonly kind: ChannelEnvelopePackPlan;
-};
+export type ChannelEnvelopePackAction = { readonly kind: ChannelEnvelopePackPlan };
 
 export interface ChannelEnvelopePackStepResult {
   readonly state: ChannelEnvelopePackState;
@@ -94,47 +84,41 @@ export function initialChannelEnvelopePackState(): ChannelEnvelopePackState {
   return {};
 }
 
-export const stepChannelEnvelopePack: StepFn<ChannelEnvelopePackState> = (
-  state,
-  event,
-) => {
-  const result = stepChannelEnvelopePackInner(
-    state,
-    event as ChannelEnvelopePackEvent,
-  );
+export const stepChannelEnvelopePack: StepFn<ChannelEnvelopePackState> = (state, event) => {
+  const result = stepChannelEnvelopePackInner(state, event as ChannelEnvelopePackEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepChannelEnvelopePackWithActions(
   state: ChannelEnvelopePackState,
-  event: ChannelEnvelopePackEvent,
+  event: ChannelEnvelopePackEvent
 ): ChannelEnvelopePackStepResult {
   return stepChannelEnvelopePackInner(state, event);
 }
 
 export function shouldProceedChannelEnvelopePack(
-  actions: ReadonlyArray<ChannelEnvelopePackAction>,
+  actions: ReadonlyArray<ChannelEnvelopePackAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectChannelEnvelopePackMissingMessage(
-  actions: ReadonlyArray<ChannelEnvelopePackAction>,
+  actions: ReadonlyArray<ChannelEnvelopePackAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-message");
 }
 
 function stepChannelEnvelopePackInner(
   state: ChannelEnvelopePackState,
-  event: ChannelEnvelopePackEvent,
+  event: ChannelEnvelopePackEvent
 ): ChannelEnvelopePackStepResult {
   if (event.kind === "channel/envelope-pack-gate") {
     const planActions = stepChannelEnvelopePackPlanWithActions(
       initialChannelEnvelopePackPlanState(),
       {
         kind: "channel/envelope-pack-plan-gate",
-        messagePresent: event.messagePresent,
-      },
+        messagePresent: event.messagePresent
+      }
     ).actions;
     const plan = channelEnvelopePackPlanFromActions(planActions);
     if (plan === null) {
@@ -147,9 +131,7 @@ function stepChannelEnvelopePackInner(
 }
 
 /** Whether a channel message-handler list should receive a new member. */
-export function shouldRegisterChannelMessageHandler(
-  alreadyPresent: boolean,
-): boolean {
+export function shouldRegisterChannelMessageHandler(alreadyPresent: boolean): boolean {
   return !alreadyPresent;
 }
 
@@ -168,7 +150,8 @@ export type RegisterChannelMessageHandlerEvent =
     };
 
 export type RegisterChannelMessageHandlerAction =
-  { readonly kind: "register" } | { readonly kind: "skip" };
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
 
 export interface RegisterChannelMessageHandlerStepResult {
   readonly state: RegisterChannelMessageHandlerState;
@@ -182,7 +165,7 @@ export function initialRegisterChannelMessageHandlerState(): RegisterChannelMess
 
 export function stepRegisterChannelMessageHandlerWithActions(
   state: RegisterChannelMessageHandlerState,
-  event: RegisterChannelMessageHandlerEvent,
+  event: RegisterChannelMessageHandlerEvent
 ): RegisterChannelMessageHandlerStepResult {
   if (event.kind === "channel/register-message-handler-gate") {
     return {
@@ -192,9 +175,9 @@ export function stepRegisterChannelMessageHandlerWithActions(
         {
           kind: shouldRegisterChannelMessageHandler(event.alreadyPresent)
             ? "register"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -202,13 +185,13 @@ export function stepRegisterChannelMessageHandlerWithActions(
 }
 
 export function shouldRegisterChannelMessageHandlerNow(
-  actions: ReadonlyArray<RegisterChannelMessageHandlerAction>,
+  actions: ReadonlyArray<RegisterChannelMessageHandlerAction>
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipRegisterChannelMessageHandler(
-  actions: ReadonlyArray<RegisterChannelMessageHandlerAction>,
+  actions: ReadonlyArray<RegisterChannelMessageHandlerAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -217,16 +200,12 @@ export function shouldSkipRegisterChannelMessageHandler(
  * Unregister a channel message handler: splice index or skip when absent.
  * Splice stays at the adapter.
  */
-export function planUnregisterChannelMessageHandler(
-  index: number,
-): number | null {
+export function planUnregisterChannelMessageHandler(index: number): number | null {
   return index >= 0 ? index : null;
 }
 
 /** Whether unregister may splice a planned handler index. */
-export function shouldUnregisterChannelMessageHandler(
-  indexPresent: boolean,
-): boolean {
+export function shouldUnregisterChannelMessageHandler(indexPresent: boolean): boolean {
   return indexPresent;
 }
 
@@ -262,14 +241,14 @@ export function initialChannelMessageHandlerUnregisterPlanState(): ChannelMessag
 
 export function stepChannelMessageHandlerUnregisterPlanWithActions(
   state: ChannelMessageHandlerUnregisterPlanState,
-  event: ChannelMessageHandlerUnregisterPlanEvent,
+  event: ChannelMessageHandlerUnregisterPlanEvent
 ): ChannelMessageHandlerUnregisterPlanStepResult {
   if (event.kind === "channel/message-handler-unregister-plan-gate") {
     const index = planUnregisterChannelMessageHandler(event.index);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }],
+      actions: index === null ? [] : [{ kind: "remove", index }]
     };
   }
 
@@ -277,14 +256,14 @@ export function stepChannelMessageHandlerUnregisterPlanWithActions(
 }
 
 export function channelMessageHandlerUnregisterPlanIndex(
-  actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>,
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemoveChannelMessageHandlerUnregisterPlan(
-  actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>,
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }
@@ -322,21 +301,21 @@ export function initialChannelMessageHandlerUnregisterState(): ChannelMessageHan
 
 export function stepChannelMessageHandlerUnregisterWithActions(
   state: ChannelMessageHandlerUnregisterState,
-  event: ChannelMessageHandlerUnregisterEvent,
+  event: ChannelMessageHandlerUnregisterEvent
 ): ChannelMessageHandlerUnregisterStepResult {
   if (event.kind === "channel/message-handler-unregister-gate") {
     const planActions = stepChannelMessageHandlerUnregisterPlanWithActions(
       initialChannelMessageHandlerUnregisterPlanState(),
       {
         kind: "channel/message-handler-unregister-plan-gate",
-        index: event.index,
-      },
+        index: event.index
+      }
     ).actions;
     const index = channelMessageHandlerUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }],
+      actions: index === null ? [] : [{ kind: "remove", index }]
     };
   }
 
@@ -344,14 +323,14 @@ export function stepChannelMessageHandlerUnregisterWithActions(
 }
 
 export function channelMessageHandlerUnregisterIndex(
-  actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>,
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemoveChannelMessageHandler(
-  actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>,
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }
@@ -376,7 +355,8 @@ export type StopChannelHandlerFanoutEvent =
     };
 
 export type StopChannelHandlerFanoutAction =
-  { readonly kind: "stop" } | { readonly kind: "continue" };
+  | { readonly kind: "stop" }
+  | { readonly kind: "continue" };
 
 export interface StopChannelHandlerFanoutStepResult {
   readonly state: StopChannelHandlerFanoutState;
@@ -390,7 +370,7 @@ export function initialStopChannelHandlerFanoutState(): StopChannelHandlerFanout
 
 export function stepStopChannelHandlerFanoutWithActions(
   state: StopChannelHandlerFanoutState,
-  event: StopChannelHandlerFanoutEvent,
+  event: StopChannelHandlerFanoutEvent
 ): StopChannelHandlerFanoutStepResult {
   if (event.kind === "channel/stop-handler-fanout-gate") {
     return {
@@ -398,11 +378,9 @@ export function stepStopChannelHandlerFanoutWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldStopChannelHandlerFanout(event.handled)
-            ? "stop"
-            : "continue",
-        },
-      ],
+          kind: shouldStopChannelHandlerFanout(event.handled) ? "stop" : "continue"
+        }
+      ]
     };
   }
 
@@ -410,13 +388,13 @@ export function stepStopChannelHandlerFanoutWithActions(
 }
 
 export function shouldStopChannelHandlerFanoutNow(
-  actions: ReadonlyArray<StopChannelHandlerFanoutAction>,
+  actions: ReadonlyArray<StopChannelHandlerFanoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "stop");
 }
 
 export function shouldContinueChannelHandlerFanout(
-  actions: ReadonlyArray<StopChannelHandlerFanoutAction>,
+  actions: ReadonlyArray<StopChannelHandlerFanoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "continue");
 }

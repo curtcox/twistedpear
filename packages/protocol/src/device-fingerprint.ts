@@ -49,17 +49,11 @@ export interface RawMotionSampleOut {
   readonly mag?: readonly [number, number, number];
 }
 
-export function sanitizeCameraFrame(
-  input: RawCameraFrameInput,
-): RawCameraFrame {
+export function sanitizeCameraFrame(input: RawCameraFrameInput): RawCameraFrame {
   if (!Number.isFinite(input.width) || input.width < 1 || input.width > 4096) {
     throw new Error("invalid camera frame width");
   }
-  if (
-    !Number.isFinite(input.height) ||
-    input.height < 1 ||
-    input.height > 4096
-  ) {
+  if (!Number.isFinite(input.height) || input.height < 1 || input.height > 4096) {
     throw new Error("invalid camera frame height");
   }
   if (!["rgba8", "yuv420", "jpeg"].includes(input.format)) {
@@ -69,11 +63,7 @@ export function sanitizeCameraFrame(
     width: Math.floor(input.width),
     height: Math.floor(input.height),
     format: input.format,
-    bytes: Uint8Array.from(input.bytes, (value) =>
-      Number.isFinite(value)
-        ? Math.max(0, Math.min(255, Math.floor(value)))
-        : 0,
-    ),
+    bytes: Uint8Array.from(input.bytes, (value) => Number.isFinite(value) ? Math.max(0, Math.min(255, Math.floor(value))) : 0)
   };
 }
 
@@ -92,33 +82,17 @@ export function sanitizePcmSample(input: RawPcmInput): RawPcmSample {
   return {
     sampleRate: input.sampleRate,
     channels: input.channels,
-    samples,
+    samples
   };
 }
 
-export function sanitizeMotionSamples(
-  input: RawMotionInput,
-): RawMotionSampleOut {
+export function sanitizeMotionSamples(input: RawMotionInput): RawMotionSampleOut {
   const quantize = (value: number) => Math.round(value * 1_000) / 1_000;
   return {
-    accel: [
-      quantize(input.accel[0]),
-      quantize(input.accel[1]),
-      quantize(input.accel[2]),
-    ],
-    gyro: [
-      quantize(input.gyro[0]),
-      quantize(input.gyro[1]),
-      quantize(input.gyro[2]),
-    ],
+    accel: [quantize(input.accel[0]), quantize(input.accel[1]), quantize(input.accel[2])],
+    gyro: [quantize(input.gyro[0]), quantize(input.gyro[1]), quantize(input.gyro[2])],
     ...(input.mag !== undefined
-      ? {
-          mag: [
-            quantize(input.mag[0]),
-            quantize(input.mag[1]),
-            quantize(input.mag[2]),
-          ] as const,
-        }
-      : {}),
+      ? { mag: [quantize(input.mag[0]), quantize(input.mag[1]), quantize(input.mag[2])] as const }
+      : {})
   };
 }

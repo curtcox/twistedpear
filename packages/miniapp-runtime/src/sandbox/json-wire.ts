@@ -3,10 +3,7 @@
  * (JSON.stringify turns typed arrays into numeric-key plain objects).
  */
 
-export type JsonWireBytes = {
-  readonly __tp: "u8";
-  readonly d: ReadonlyArray<number>;
-};
+export type JsonWireBytes = { readonly __tp: "u8"; readonly d: ReadonlyArray<number> };
 
 export function isJsonWireBytes(value: unknown): value is JsonWireBytes {
   return (
@@ -30,8 +27,8 @@ export function encodeJsonWireValue(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
         key,
-        encodeJsonWireValue(entry),
-      ]),
+        encodeJsonWireValue(entry)
+      ])
     );
   }
 
@@ -65,10 +62,7 @@ export function reviveJsonWireValue(value: unknown): unknown {
     if (
       keys.length > 0 &&
       keys.every((key) => /^\d+$/.test(key)) &&
-      keys
-        .map(Number)
-        .sort((a, b) => a - b)
-        .every((index, order) => index === order)
+      keys.map(Number).sort((a, b) => a - b).every((index, order) => index === order)
     ) {
       const length = keys.length;
       const bytes = new Uint8Array(length);
@@ -89,8 +83,8 @@ export function reviveJsonWireValue(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
         key,
-        reviveJsonWireValue(entry),
-      ]),
+        reviveJsonWireValue(entry)
+      ])
     );
   }
 

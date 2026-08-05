@@ -15,18 +15,12 @@ declare module "hyperbee" {
   }
 
   export default class Hyperbee {
-    constructor(
-      core: unknown,
-      options?: { keyEncoding?: string; valueEncoding?: string },
-    );
+    constructor(core: unknown, options?: { keyEncoding?: string; valueEncoding?: string });
     ready(): Promise<void>;
     close(): Promise<void>;
     get(key: string): Promise<{ value: Uint8Array } | null>;
     put(key: string, value: Uint8Array): Promise<void>;
     del(key: string): Promise<void>;
-    createReadStream(options?: {
-      gte?: string;
-      lt?: string;
-    }): AsyncIterable<HyperbeeEntry>;
+    createReadStream(options?: { gte?: string; lt?: string }): AsyncIterable<HyperbeeEntry>;
   }
 }

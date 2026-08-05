@@ -1,11 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  createHmac,
-  hkdfSync,
-  randomBytes,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes } from "node:crypto";
 import sodium from "sodium-native";
 import type { CryptoProvider, HkdfInput } from "./provider.js";
 
@@ -41,16 +34,8 @@ export class NodeCryptoProvider implements CryptoProvider {
       throw new Error(`Unsupported HKDF hash: ${input.hash}`);
     }
 
-    const output = hkdfSync(
-      "sha256",
-      input.keyMaterial,
-      input.salt,
-      input.info,
-      input.length,
-    );
-    return output instanceof ArrayBuffer
-      ? new Uint8Array(output)
-      : toUint8Array(output);
+    const output = hkdfSync("sha256", input.keyMaterial, input.salt, input.info, input.length);
+    return output instanceof ArrayBuffer ? new Uint8Array(output) : toUint8Array(output);
   }
 
   x25519PublicFromPrivate(privateKey: Uint8Array): Uint8Array {
@@ -59,10 +44,7 @@ export class NodeCryptoProvider implements CryptoProvider {
     return toUint8Array(publicKey);
   }
 
-  x25519SharedSecret(
-    privateKey: Uint8Array,
-    publicKey: Uint8Array,
-  ): Uint8Array {
+  x25519SharedSecret(privateKey: Uint8Array, publicKey: Uint8Array): Uint8Array {
     const shared = Buffer.alloc(sodium.crypto_scalarmult_BYTES);
     sodium.crypto_scalarmult(shared, toBuffer(privateKey), toBuffer(publicKey));
     return toUint8Array(shared);
@@ -71,89 +53,49 @@ export class NodeCryptoProvider implements CryptoProvider {
   ed25519PublicFromPrivate(privateKey: Uint8Array): Uint8Array {
     const publicKey = Buffer.alloc(sodium.crypto_sign_PUBLICKEYBYTES);
     const expandedPrivateKey = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES);
-    sodium.crypto_sign_seed_keypair(
-      publicKey,
-      expandedPrivateKey,
-      toBuffer(privateKey),
-    );
+    sodium.crypto_sign_seed_keypair(publicKey, expandedPrivateKey, toBuffer(privateKey));
     return toUint8Array(publicKey);
   }
 
   ed25519Sign(privateKey: Uint8Array, message: Uint8Array): Uint8Array {
     const publicKey = Buffer.alloc(sodium.crypto_sign_PUBLICKEYBYTES);
     const expandedPrivateKey = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES);
-    sodium.crypto_sign_seed_keypair(
-      publicKey,
-      expandedPrivateKey,
-      toBuffer(privateKey),
-    );
+    sodium.crypto_sign_seed_keypair(publicKey, expandedPrivateKey, toBuffer(privateKey));
 
     const signature = Buffer.alloc(sodium.crypto_sign_BYTES);
-    sodium.crypto_sign_detached(
-      signature,
-      toBuffer(message),
-      expandedPrivateKey,
-    );
+    sodium.crypto_sign_detached(signature, toBuffer(message), expandedPrivateKey);
     return toUint8Array(signature);
   }
 
-  ed25519Verify(
-    publicKey: Uint8Array,
-    message: Uint8Array,
-    signature: Uint8Array,
-  ): boolean {
+  ed25519Verify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): boolean {
     return sodium.crypto_sign_verify_detached(
       toBuffer(signature),
       toBuffer(message),
-      toBuffer(publicKey),
+      toBuffer(publicKey)
     );
   }
 
-  aes128CbcEncrypt(
-    plaintext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes128CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     const cipher = createCipheriv("aes-128-cbc", key, iv);
     cipher.setAutoPadding(false);
-    return toUint8Array(
-      Buffer.concat([cipher.update(plaintext), cipher.final()]),
-    );
+    return toUint8Array(Buffer.concat([cipher.update(plaintext), cipher.final()]));
   }
 
-  aes128CbcDecrypt(
-    ciphertext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes128CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     const decipher = createDecipheriv("aes-128-cbc", key, iv);
     decipher.setAutoPadding(false);
-    return toUint8Array(
-      Buffer.concat([decipher.update(ciphertext), decipher.final()]),
-    );
+    return toUint8Array(Buffer.concat([decipher.update(ciphertext), decipher.final()]));
   }
 
-  aes256CbcEncrypt(
-    plaintext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes256CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     const cipher = createCipheriv("aes-256-cbc", key, iv);
     cipher.setAutoPadding(false);
-    return toUint8Array(
-      Buffer.concat([cipher.update(plaintext), cipher.final()]),
-    );
+    return toUint8Array(Buffer.concat([cipher.update(plaintext), cipher.final()]));
   }
 
-  aes256CbcDecrypt(
-    ciphertext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes256CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     const decipher = createDecipheriv("aes-256-cbc", key, iv);
     decipher.setAutoPadding(false);
-    return toUint8Array(
-      Buffer.concat([decipher.update(ciphertext), decipher.final()]),
-    );
+    return toUint8Array(Buffer.concat([decipher.update(ciphertext), decipher.final()]));
   }
 }

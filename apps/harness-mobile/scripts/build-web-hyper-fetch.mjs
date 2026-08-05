@@ -12,22 +12,15 @@ import { buildSync } from "esbuild";
 
 const harnessRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(harnessRoot, "../..");
-const entry = join(
-  repoRoot,
-  "packages/bridge-hyper/src/client/web-gateway-hyper-fetch.ts",
-);
+const entry = join(repoRoot, "packages/bridge-hyper/src/client/web-gateway-hyper-fetch.ts");
 const publicDir = join(harnessRoot, "public");
 const output = join(publicDir, "web-hyper-fetch.js");
 const nodeEmptyStub = join(harnessRoot, "stubs/node-empty.web.js");
 
-const build = spawnSync(
-  "npm",
-  ["run", "build", "--workspace=@twistedpear/bridge-hyper"],
-  {
-    cwd: repoRoot,
-    stdio: "inherit",
-  },
-);
+const build = spawnSync("npm", ["run", "build", "--workspace=@twistedpear/bridge-hyper"], {
+  cwd: repoRoot,
+  stdio: "inherit"
+});
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
@@ -41,7 +34,7 @@ buildSync({
   format: "esm",
   outfile: output,
   banner: {
-    js: "var __filename='';var __dirname='';var process={env:{}};",
+    js: "var __filename='';var __dirname='';var process={env:{}};"
   },
   define: { global: "globalThis" },
   alias: {
@@ -49,9 +42,9 @@ buildSync({
     fs: nodeEmptyStub,
     path: nodeEmptyStub,
     "node:fs": nodeEmptyStub,
-    "node:path": nodeEmptyStub,
+    "node:path": nodeEmptyStub
   },
-  logLevel: "warning",
+  logLevel: "warning"
 });
 
 console.log(`web-hyper-fetch bundle written to ${output}`);

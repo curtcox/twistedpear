@@ -20,7 +20,7 @@ const deferredModules = [
   "node:stream",
   "bare-tcp",
   "bare-dgram",
-  "bare-fs",
+  "bare-fs"
 ];
 
 let bundleDirectory = null;
@@ -41,11 +41,11 @@ function ensureBundles() {
       {
         "@noble/hashes/crypto": nobleCrypto,
         "@noble/ciphers/crypto": nobleCrypto,
-        "@noble/curves/crypto": nobleCrypto,
+        "@noble/curves/crypto": nobleCrypto
       },
       null,
-      2,
-    )}\n`,
+      2
+    )}\n`
   );
 
   for (const name of ["tcp", "lifecycle"]) {
@@ -59,16 +59,16 @@ function ensureBundles() {
       importsPath,
       "--out",
       output,
-      join(bareRoot, `${name}-runner.mjs`),
+      join(bareRoot, `${name}-runner.mjs`)
     );
 
     const packed = spawnSync("npx", args, {
       cwd: repoRoot,
-      encoding: "utf8",
+      encoding: "utf8"
     });
     if (packed.status !== 0) {
       throw new Error(
-        `Failed to build ${name} Bare runner\n${packed.stdout ?? ""}${packed.stderr ?? ""}`,
+        `Failed to build ${name} Bare runner\n${packed.stdout ?? ""}${packed.stderr ?? ""}`
       );
     }
   }
@@ -78,17 +78,13 @@ function ensureBundles() {
 
 function runBundle(name, args) {
   const directory = ensureBundles();
-  const result = spawnSync(
-    bareBinary,
-    [join(directory, `${name}-runner.bundle`), ...args],
-    {
-      cwd: repoRoot,
-      encoding: "utf8",
-    },
-  );
+  const result = spawnSync(bareBinary, [join(directory, `${name}-runner.bundle`), ...args], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
   if (result.status !== 0) {
     throw new Error(
-      `${name} Bare runner failed\n${result.stdout ?? ""}${result.stderr ?? ""}`,
+      `${name} Bare runner failed\n${result.stdout ?? ""}${result.stderr ?? ""}`
     );
   }
 

@@ -2,7 +2,12 @@
   "name": "form-forge",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": ["workspace", "apps:package", "apps:preview", "ai:chat"],
+  "capabilities": [
+    "workspace",
+    "apps:package",
+    "apps:preview",
+    "ai:chat"
+  ],
   "icon": null,
   "minHostApi": "0.5.0"
 }

@@ -2,7 +2,7 @@ import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
   Packet,
   HdlcPacketInterface,
-  type ReticulumInterfaceOptions,
+  type ReticulumInterfaceOptions
 } from "@twistedpear/reticulum-ts";
 
 /**
@@ -45,10 +45,10 @@ export class FreenetInterface extends HdlcPacketInterface {
         ...options,
         name: options.name ?? "host-freenet",
         mtu: options.mtu ?? FREENET_INTERFACE_MTU,
-        bitrate: options.bitrate ?? FREENET_DEFAULT_BITRATE,
+        bitrate: options.bitrate ?? FREENET_DEFAULT_BITRATE
       },
       options.incoming ?? true,
-      options.outgoing ?? true,
+      options.outgoing ?? true
     );
     this.provider = provider;
     this.backend = options.backend;
@@ -61,7 +61,7 @@ export class FreenetInterface extends HdlcPacketInterface {
 
   static async open(
     provider: CryptoProvider,
-    options: FreenetInterfaceOptions,
+    options: FreenetInterfaceOptions
   ): Promise<FreenetInterface> {
     const iface = new FreenetInterface(provider, options);
     await iface.start();

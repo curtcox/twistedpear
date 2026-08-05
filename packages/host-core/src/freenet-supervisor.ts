@@ -2,7 +2,7 @@ import {
   createHash,
   createPrivateKey,
   createPublicKey,
-  randomBytes,
+  randomBytes
 } from "node:crypto";
 import { createServer } from "node:net";
 import {
@@ -11,13 +11,20 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  writeFileSync,
+  writeFileSync
 } from "node:fs";
 import { join } from "node:path";
-import { spawn, type SpawnOptionsWithoutStdio } from "node:child_process";
+import {
+  spawn,
+  type SpawnOptionsWithoutStdio
+} from "node:child_process";
 
 export type FreenetSupervisorStatus =
-  "stopped" | "starting" | "online" | "degraded" | "failed";
+  | "stopped"
+  | "starting"
+  | "online"
+  | "degraded"
+  | "failed";
 
 export interface FreenetSupervisorSpawnResult {
   readonly stdout: NodeJS.ReadableStream;
@@ -26,18 +33,9 @@ export interface FreenetSupervisorSpawnResult {
   kill(signal?: NodeJS.Signals | number): boolean;
   readonly exitCode: number | null;
   readonly signalCode: NodeJS.Signals | null;
-  once(
-    event: "exit",
-    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
-  ): void;
-  on(
-    event: "exit",
-    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
-  ): void;
-  off?(
-    event: "exit",
-    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
-  ): void;
+  once(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): void;
+  on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): void;
+  off?(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): void;
 }
 
 export type FreenetSupervisorSpawner = (
@@ -46,7 +44,7 @@ export type FreenetSupervisorSpawner = (
   options: {
     readonly env?: NodeJS.ProcessEnv;
     readonly stdio?: SpawnOptionsWithoutStdio["stdio"];
-  },
+  }
 ) => FreenetSupervisorSpawnResult;
 
 export interface FreenetSupervisorOptions {
@@ -61,10 +59,7 @@ export interface FreenetSupervisorOptions {
   readonly maxRestartAttempts?: number;
   readonly initialBackoffMs?: number;
   readonly maxBackoffMs?: number;
-  readonly onStatus?: (
-    status: FreenetSupervisorStatus,
-    detail?: string,
-  ) => void;
+  readonly onStatus?: (status: FreenetSupervisorStatus, detail?: string) => void;
   readonly spawner?: FreenetSupervisorSpawner;
   readonly allocatePort?: () => Promise<number>;
   readonly createToken?: () => string;
@@ -120,14 +115,14 @@ async function sha256File(path: string): Promise<string> {
 function writeGatewayTransportKey(path: string): void {
   const secret = randomBytes(32);
   writeFileSync(path, `${Buffer.from(secret).toString("hex")}\n`, {
-    mode: 0o600,
+    mode: 0o600
   });
   // Validate the secret is a usable X25519 key before handing it to Freenet.
   const pkcs8Prefix = Buffer.from("302e020100300506032b656e04220420", "hex");
   const privateKey = createPrivateKey({
     key: Buffer.concat([pkcs8Prefix, Buffer.from(secret)]),
     format: "der",
-    type: "pkcs8",
+    type: "pkcs8"
   });
   createPublicKey(privateKey);
   chmodSync(path, 0o600);
@@ -139,21 +134,18 @@ function defaultSpawner(
   options: {
     readonly env?: NodeJS.ProcessEnv;
     readonly stdio?: SpawnOptionsWithoutStdio["stdio"];
-  },
+  }
 ): FreenetSupervisorSpawnResult {
   return spawn(command, [...args], {
     ...options,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["ignore", "pipe", "pipe"]
   }) as unknown as FreenetSupervisorSpawnResult;
 }
 
-async function defaultReadyCheck(
-  port: number,
-  _token: string,
-): Promise<boolean> {
+async function defaultReadyCheck(port: number, _token: string): Promise<boolean> {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/`, {
-      signal: AbortSignal.timeout(1_500),
+      signal: AbortSignal.timeout(1_500)
     });
     return response.ok || response.status === 401 || response.status === 404;
   } catch {
@@ -198,7 +190,7 @@ export class FreenetSupervisor {
       restartAttempts: this.#restartAttempts,
       lastError: this.#lastError,
       binaryPath: this.#options.binaryPath,
-      stateDir: this.#stateDir,
+      stateDir: this.#stateDir
     };
   }
 
@@ -230,7 +222,7 @@ export class FreenetSupervisor {
       this.#homeDir,
       "Library",
       "Application Support",
-      "The-Freenet-Project-Inc.Freenet",
+      "The-Freenet-Project-Inc.Freenet"
     );
     mkdirSync(support, { recursive: true });
     writeFileSync(join(support, "gateways.toml"), "gateways = []\n");
@@ -243,11 +235,7 @@ export class FreenetSupervisor {
     this.#startGeneration += 1;
     const child = this.#child;
     this.#child = null;
-    if (
-      child !== null &&
-      child.exitCode === null &&
-      child.signalCode === null
-    ) {
+    if (child !== null && child.exitCode === null && child.signalCode === null) {
       child.kill("SIGTERM");
       await this.#waitForExit(child, 5_000);
       if (child.exitCode === null && child.signalCode === null) {
@@ -270,17 +258,14 @@ export class FreenetSupervisor {
     const actual = await sha256File(this.#options.binaryPath);
     if (actual.toLowerCase() !== expected.toLowerCase()) {
       throw new Error(
-        `Freenet binary SHA-256 mismatch (expected ${expected}, got ${actual})`,
+        `Freenet binary SHA-256 mismatch (expected ${expected}, got ${actual})`
       );
     }
   }
 
   async #launch(isRestart: boolean): Promise<void> {
     const generation = ++this.#startGeneration;
-    this.#setStatus(
-      "starting",
-      isRestart ? "restarting after unexpected exit" : undefined,
-    );
+    this.#setStatus("starting", isRestart ? "restarting after unexpected exit" : undefined);
 
     const allocatePort = this.#options.allocatePort ?? allocateEphemeralPort;
     const createToken =
@@ -326,7 +311,7 @@ export class FreenetSupervisor {
       "0",
       "--max-number-of-connections",
       "4",
-      "--disable-auto-update",
+      "--disable-auto-update"
     ];
 
     // Auth token is held for TwistedPear clients and never placed in wsUrl,
@@ -336,8 +321,8 @@ export class FreenetSupervisor {
       env: {
         ...process.env,
         HOME: this.#homeDir,
-        FREENET_TELEMETRY_ENABLED: "false",
-      },
+        FREENET_TELEMETRY_ENABLED: "false"
+      }
     });
     this.#child = child;
 
@@ -390,7 +375,7 @@ export class FreenetSupervisor {
   async #onExit(
     generation: number,
     code: number | null,
-    signal: NodeJS.Signals | null,
+    signal: NodeJS.Signals | null
   ): Promise<void> {
     if (generation !== this.#startGeneration) return;
     this.#child = null;
@@ -410,10 +395,7 @@ export class FreenetSupervisor {
     this.#restartAttempts += 1;
     const initial = this.#options.initialBackoffMs ?? 500;
     const maxBackoff = this.#options.maxBackoffMs ?? 30_000;
-    const delay = Math.min(
-      maxBackoff,
-      initial * 2 ** (this.#restartAttempts - 1),
-    );
+    const delay = Math.min(maxBackoff, initial * 2 ** (this.#restartAttempts - 1));
     const sleep = this.#options.sleep ?? defaultSleep;
     await sleep(delay);
     if (this.#stopping || generation !== this.#startGeneration) return;
@@ -432,7 +414,7 @@ export class FreenetSupervisor {
 
   #waitForExit(
     child: FreenetSupervisorSpawnResult,
-    timeoutMs: number,
+    timeoutMs: number
   ): Promise<void> {
     if (child.exitCode !== null || child.signalCode !== null) {
       return Promise.resolve();
@@ -450,7 +432,7 @@ export class FreenetSupervisor {
 /** Redact auth tokens from strings destined for logs or UI dumps. */
 export function redactFreenetAuthToken(
   text: string,
-  token: string | null | undefined,
+  token: string | null | undefined
 ): string {
   if (token === undefined || token === null || token.length === 0) {
     return text;

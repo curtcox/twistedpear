@@ -18,7 +18,7 @@ import {
   shouldSkipAcceptPropagationGetRequestData,
   stepAcceptPropagationGetRequestDataWithActions,
   stepPropagationGetPlanWithActions,
-  stepPropagationGetWithActions,
+  stepPropagationGetWithActions
 } from "../src/propagation-get.js";
 
 describe("protocol propagation get planner", () => {
@@ -31,7 +31,7 @@ describe("protocol propagation get planner", () => {
   const entries = [
     { transientId: idA, destinationHash: alice },
     { transientId: idB, destinationHash: bob },
-    { transientId: idC, destinationHash: alice },
+    { transientId: idC, destinationHash: alice }
   ];
 
   it("lists ids visible to the recipient", () => {
@@ -39,7 +39,7 @@ describe("protocol propagation get planner", () => {
       wants: null,
       haves: null,
       remoteDeliveryHash: alice,
-      entries,
+      entries
     });
     expect(plan.kind).toBe("list-ids");
     if (plan.kind === "list-ids") {
@@ -54,7 +54,7 @@ describe("protocol propagation get planner", () => {
       wants: null,
       haves: null,
       remoteDeliveryHash: null,
-      entries,
+      entries
     });
     expect(plan.kind).toBe("list-ids");
     if (plan.kind === "list-ids") {
@@ -67,12 +67,12 @@ describe("protocol propagation get planner", () => {
       wants: [idB, idA, new Uint8Array(32)],
       haves: [idC],
       remoteDeliveryHash: alice,
-      entries,
+      entries
     });
     expect(plan).toEqual({
       kind: "apply",
       deleteIds: [idC],
-      fetchIds: [idA],
+      fetchIds: [idA]
     });
   });
 
@@ -81,22 +81,19 @@ describe("protocol propagation get planner", () => {
       wants: [],
       haves: [idA],
       remoteDeliveryHash: null,
-      entries,
+      entries
     });
     expect(plan).toEqual({ kind: "apply", deleteIds: [idA], fetchIds: [] });
   });
 
   it("emits get-plan actions only from propagation/get-plan-gate", () => {
-    const listed = stepPropagationGetPlanWithActions(
-      initialPropagationGetPlanState(),
-      {
-        kind: "propagation/get-plan-gate",
-        wants: null,
-        haves: null,
-        remoteDeliveryHash: alice,
-        entries,
-      },
-    );
+    const listed = stepPropagationGetPlanWithActions(initialPropagationGetPlanState(), {
+      kind: "propagation/get-plan-gate",
+      wants: null,
+      haves: null,
+      remoteDeliveryHash: alice,
+      entries
+    });
     expect(shouldListPropagationGetPlanIds(listed.actions)).toBe(true);
     expect(shouldApplyPropagationGetPlan(listed.actions)).toBe(false);
     const ids = propagationGetPlanListIds(listed.actions);
@@ -105,37 +102,34 @@ describe("protocol propagation get planner", () => {
     expect([...ids![1]!]).toEqual([...idC]);
     expect(propagationGetPlanFromActions(listed.actions)).toEqual({
       kind: "list-ids",
-      transientIds: [idA, idC],
+      transientIds: [idA, idC]
     });
 
-    const applied = stepPropagationGetPlanWithActions(
-      initialPropagationGetPlanState(),
-      {
-        kind: "propagation/get-plan-gate",
-        wants: [idB, idA, new Uint8Array(32)],
-        haves: [idC],
-        remoteDeliveryHash: alice,
-        entries,
-      },
-    );
+    const applied = stepPropagationGetPlanWithActions(initialPropagationGetPlanState(), {
+      kind: "propagation/get-plan-gate",
+      wants: [idB, idA, new Uint8Array(32)],
+      haves: [idC],
+      remoteDeliveryHash: alice,
+      entries
+    });
     expect(shouldApplyPropagationGetPlan(applied.actions)).toBe(true);
     expect(shouldListPropagationGetPlanIds(applied.actions)).toBe(false);
     expect(propagationGetPlanApplyIds(applied.actions)).toEqual({
       deleteIds: [idC],
-      fetchIds: [idA],
+      fetchIds: [idA]
     });
     expect(propagationGetPlanFromActions(applied.actions)).toEqual({
       kind: "apply",
       deleteIds: [idC],
-      fetchIds: [idA],
+      fetchIds: [idA]
     });
 
     expect(
       stepPropagationGetPlanWithActions(initialPropagationGetPlanState(), {
         kind: "timer/fired",
         id: "x",
-        at: 0,
-      }).actions,
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -145,16 +139,14 @@ describe("protocol propagation get planner", () => {
 
     const accept = stepAcceptPropagationGetRequestDataWithActions(
       initialAcceptPropagationGetRequestDataState(),
-      { kind: "propagation/accept-get-request-data-gate", dataPresent: true },
+      { kind: "propagation/accept-get-request-data-gate", dataPresent: true }
     );
     expect(shouldAcceptPropagationGetRequestDataNow(accept.actions)).toBe(true);
-    expect(shouldSkipAcceptPropagationGetRequestData(accept.actions)).toBe(
-      false,
-    );
+    expect(shouldSkipAcceptPropagationGetRequestData(accept.actions)).toBe(false);
 
     const skip = stepAcceptPropagationGetRequestDataWithActions(
       initialAcceptPropagationGetRequestDataState(),
-      { kind: "propagation/accept-get-request-data-gate", dataPresent: false },
+      { kind: "propagation/accept-get-request-data-gate", dataPresent: false }
     );
     expect(shouldSkipAcceptPropagationGetRequestData(skip.actions)).toBe(true);
     expect(shouldAcceptPropagationGetRequestDataNow(skip.actions)).toBe(false);
@@ -166,7 +158,7 @@ describe("protocol propagation get planner", () => {
       wants: null,
       haves: null,
       remoteDeliveryHash: alice,
-      entries,
+      entries
     });
     expect(shouldListPropagationGetIds(listed.actions)).toBe(true);
     expect(shouldApplyPropagationGet(listed.actions)).toBe(false);
@@ -175,29 +167,26 @@ describe("protocol propagation get planner", () => {
     expect([...ids![0]!]).toEqual([...idA]);
     expect([...ids![1]!]).toEqual([...idC]);
 
-    const applied = stepPropagationGetWithActions(
-      initialPropagationGetState(),
-      {
-        kind: "get/received",
-        wants: [idB, idA, new Uint8Array(32)],
-        haves: [idC],
-        remoteDeliveryHash: alice,
-        entries,
-      },
-    );
+    const applied = stepPropagationGetWithActions(initialPropagationGetState(), {
+      kind: "get/received",
+      wants: [idB, idA, new Uint8Array(32)],
+      haves: [idC],
+      remoteDeliveryHash: alice,
+      entries
+    });
     expect(shouldApplyPropagationGet(applied.actions)).toBe(true);
     expect(shouldListPropagationGetIds(applied.actions)).toBe(false);
     expect(propagationGetApplyIds(applied.actions)).toEqual({
       deleteIds: [idC],
-      fetchIds: [idA],
+      fetchIds: [idA]
     });
 
     expect(
       stepPropagationGetWithActions(initialPropagationGetState(), {
         kind: "timer/fired",
         id: "x",
-        at: 0,
-      }).actions,
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -208,7 +197,7 @@ describe("protocol propagation get planner", () => {
       wants: null,
       haves: null,
       remoteDeliveryHash: alice,
-      entries,
+      entries
     };
     const a = stepPropagationGetWithActions(state, event);
     const b = stepPropagationGetWithActions(state, event);

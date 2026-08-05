@@ -18,15 +18,10 @@
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { canLoadIdentityKeyMaterial } from "./part-3.js";
-import type {
-  LoadIdentityKeyMaterialAction,
-  LoadIdentityKeyMaterialEvent,
-  LoadIdentityKeyMaterialState,
-  LoadIdentityKeyMaterialStepResult,
-} from "./part-3.js";
+import type { LoadIdentityKeyMaterialAction, LoadIdentityKeyMaterialEvent, LoadIdentityKeyMaterialState, LoadIdentityKeyMaterialStepResult } from "./part-3.js";
 export function stepLoadIdentityKeyMaterialWithActions(
   state: LoadIdentityKeyMaterialState,
-  event: LoadIdentityKeyMaterialEvent,
+  event: LoadIdentityKeyMaterialEvent
 ): LoadIdentityKeyMaterialStepResult {
   if (event.kind === "identity/load-key-material-gate") {
     return {
@@ -34,9 +29,9 @@ export function stepLoadIdentityKeyMaterialWithActions(
       intents: [],
       actions: [
         {
-          kind: canLoadIdentityKeyMaterial(event.splitOk) ? "allow" : "deny",
-        },
-      ],
+          kind: canLoadIdentityKeyMaterial(event.splitOk) ? "allow" : "deny"
+        }
+      ]
     };
   }
 
@@ -44,13 +39,13 @@ export function stepLoadIdentityKeyMaterialWithActions(
 }
 
 export function shouldAllowLoadIdentityKeyMaterial(
-  actions: ReadonlyArray<LoadIdentityKeyMaterialAction>,
+  actions: ReadonlyArray<LoadIdentityKeyMaterialAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyLoadIdentityKeyMaterial(
-  actions: ReadonlyArray<LoadIdentityKeyMaterialAction>,
+  actions: ReadonlyArray<LoadIdentityKeyMaterialAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }

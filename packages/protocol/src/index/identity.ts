@@ -53,7 +53,7 @@ export {
   type SplitIdentityPublicKeyAction,
   type SplitIdentityPublicKeyEvent,
   type SplitIdentityPublicKeyState,
-  type SplitIdentityPublicKeyStepResult,
+  type SplitIdentityPublicKeyStepResult
 } from "../identity-keygen.js";
 export {
   IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
@@ -205,7 +205,7 @@ export {
   type SplitIdentityCiphertextAction,
   type SplitIdentityCiphertextEvent,
   type SplitIdentityCiphertextState,
-  type SplitIdentityCiphertextStepResult,
+  type SplitIdentityCiphertextStepResult
 } from "../identity-ciphertext.js";
 export {
   IDENTITY_RATCHET_BYTES,
@@ -283,5 +283,5 @@ export {
   type PersistIdentityRatchetAction,
   type PersistIdentityRatchetEvent,
   type PersistIdentityRatchetState,
-  type PersistIdentityRatchetStepResult,
+  type PersistIdentityRatchetStepResult
 } from "../identity-ratchet-record.js";

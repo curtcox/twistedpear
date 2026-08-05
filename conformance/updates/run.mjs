@@ -15,7 +15,7 @@ import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
   unpackPackage,
-  verifyPackage,
+  verifyPackage
 } from "../../packages/app-registry/dist/index.js";
 import {
   DestinationDirection,
@@ -26,30 +26,16 @@ import {
   NodeCryptoProvider,
   PipeInterface,
   Reticulum,
-  nodeRuntime,
+  nodeRuntime
 } from "../../packages/reticulum-ts/dist/index.js";
 import { attachPackageResourceServer } from "../../packages/bridge-hyper/dist/index.js";
-import {
-  parseListResponse,
-  sendPackageResourceRequest,
-} from "../../packages/bridge-hyper/dist/resource-server.js";
+import { parseListResponse, sendPackageResourceRequest } from "../../packages/bridge-hyper/dist/resource-server.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
-import {
-  runInit,
-  runPublish,
-  runUpdate,
-} from "../../packages/cli/dist/commands/index.js";
-import {
-  listSeederArchives,
-  loadSeederState,
-  readSeederArchive,
-} from "../../packages/cli/dist/seed/register.js";
+import { runInit, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
+import { listSeederArchives, loadSeederState, readSeederArchive } from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../fixtures/packages/example-app",
-);
+const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
@@ -101,15 +87,11 @@ async function main() {
     const seederStateDir = join(cwd, ".tp/seeder");
     writeFileSync(
       join(cwd, "tp.config.json"),
-      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
+      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
     );
 
     const fixtureApp = stageExampleApp(cwd, fixtureAppSource);
-    const initCode = await runInit({
-      cwd,
-      identityPassphrase: IDENTITY_PASSPHRASE,
-      args: [],
-    });
+    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -125,7 +107,7 @@ async function main() {
     const identity = decryptIdentityBackup(
       provider,
       new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
-      IDENTITY_PASSPHRASE,
+      IDENTITY_PASSPHRASE
     );
 
     const catalog = new CatalogStore(provider);
@@ -133,13 +115,13 @@ async function main() {
       manifest: v1.manifest,
       packageSize: v1Archive.length,
       packageHash: v1.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
     const v1Entry = catalog.ingest({
       destinationHash: "updates-v1",
       appData: encodeAppAnnounceData(v1Summary),
       manifest: v1.manifest,
-      packageHash: v1.packageHash,
+      packageHash: v1.packageHash
     });
     if (v1Entry === null) {
       throw new Error("catalog did not accept v1 announce");
@@ -153,15 +135,12 @@ async function main() {
         packageHash: v1.packageHash,
         installedAt: Date.now(),
         manifest: v1.manifest,
-        archivePath: "v1.tpkg",
+        archivePath: "v1.tpkg"
       },
-      v1Archive.length,
+      v1Archive.length
     );
 
-    const updateCode = await runUpdate({
-      cwd,
-      args: [fixtureApp, "--version", "2.0.0"],
-    });
+    const updateCode = await runUpdate({ cwd, args: [fixtureApp, "--version", "2.0.0"] });
     if (updateCode !== 0) {
       throw new Error("tp update failed");
     }
@@ -176,13 +155,13 @@ async function main() {
       manifest: v2.manifest,
       packageSize: v2Archive.length,
       packageHash: v2.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
     const entry = catalog.ingest({
       destinationHash: "updates",
       appData: encodeAppAnnounceData(v2Summary),
       manifest: v2.manifest,
-      packageHash: v2.packageHash,
+      packageHash: v2.packageHash
     });
     if (entry === null || entry.version !== "2.0.0") {
       throw new Error("catalog did not accept v2 announce");
@@ -190,7 +169,7 @@ async function main() {
 
     verifyPackage(provider, v2Archive, {
       hostApiVersion: "0.1.0",
-      minVersion: v1.manifest.version,
+      minVersion: v1.manifest.version
     });
 
     installed.install(
@@ -200,9 +179,9 @@ async function main() {
         packageHash: v2.packageHash,
         installedAt: Date.now() + 1,
         manifest: v2.manifest,
-        archivePath: "v2.tpkg",
+        archivePath: "v2.tpkg"
       },
-      v2Archive.length,
+      v2Archive.length
     );
 
     const rolled = installed.rollback(entry.appId);
@@ -213,33 +192,31 @@ async function main() {
     assertPackageError(
       () =>
         verifyPackage(provider, v1Archive, {
-          minVersion: v2.manifest.version,
+          minVersion: v2.manifest.version
         }),
-      "DOWNGRADE",
+      "DOWNGRADE"
     );
 
     const other = new Identity(provider);
     assertPackageError(
       () =>
         verifyPackage(provider, v1Archive, {
-          expectedPublisherKey: other.getPublicKey(),
+          expectedPublisherKey: other.getPublicKey()
         }),
-      "WRONG_KEY",
+      "WRONG_KEY"
     );
 
     assertPackageError(
       () =>
         verifyPackage(provider, v1Archive, {
-          hostApiVersion: "0.0.1",
+          hostApiVersion: "0.0.1"
         }),
-      "MIN_HOST_API",
+      "MIN_HOST_API"
     );
 
     const state = loadSeederState(seederStateDir);
     if (listSeederArchives(state).length < 2) {
-      throw new Error(
-        `seeder state expected 2 archives, got ${listSeederArchives(state).length}`,
-      );
+      throw new Error(`seeder state expected 2 archives, got ${listSeederArchives(state).length}`);
     }
 
     const { left, right } = await connectPeers(provider, nodeRuntime());
@@ -249,26 +226,20 @@ async function main() {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: ["seeder", "updates"],
+      aspects: ["seeder", "updates"]
     });
 
     attachPackageResourceServer(seederDestination, {
       async listVersions() {
-        return listSeederArchives(loadSeederState(seederStateDir)).map(
-          (archive) => ({
-            version: archive.version,
-            packageHash: archive.packageHash,
-            size: archive.size,
-          }),
-        );
+        return listSeederArchives(loadSeederState(seederStateDir)).map((archive) => ({
+          version: archive.version,
+          packageHash: archive.packageHash,
+          size: archive.size
+        }));
       },
       async fetchArchive(version) {
-        return readSeederArchive(
-          seederStateDir,
-          loadSeederState(seederStateDir),
-          version,
-        );
-      },
+        return readSeederArchive(seederStateDir, loadSeederState(seederStateDir), version);
+      }
     });
 
     const consumerOut = left.registerDestination({
@@ -277,28 +248,23 @@ async function main() {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: ["seeder", "updates"],
+      aspects: ["seeder", "updates"]
     });
 
     let consumerLink = null;
     consumerOut.requestLink({
       linkEstablished(link) {
         consumerLink = link;
-      },
+      }
     });
 
     const activeLink = await waitFor(() => consumerLink);
     const publisherLink = await waitFor(
-      () =>
-        seederDestination.activeLinks.find(
-          (link) => link.status === LinkStatus.ACTIVE,
-        ) ?? null,
+      () => seederDestination.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
     );
     publisherLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
-    const listBytes = await sendPackageResourceRequest(activeLink, {
-      type: "list",
-    });
+    const listBytes = await sendPackageResourceRequest(activeLink, { type: "list" });
     const versions = parseListResponse(listBytes);
     if (versions.length < 1) {
       throw new Error("seeder resource list empty");
@@ -306,19 +272,16 @@ async function main() {
 
     const fetchedV1 = await sendPackageResourceRequest(activeLink, {
       type: "fetch",
-      version: v1.manifest.version,
+      version: v1.manifest.version
     });
     const fetchedV2 = await sendPackageResourceRequest(activeLink, {
       type: "fetch",
-      version: v2.manifest.version,
+      version: v2.manifest.version
     });
 
     const verifiedV1 = unpackPackage(provider, fetchedV1);
     const verifiedV2 = unpackPackage(provider, fetchedV2);
-    if (
-      verifiedV1.packageHash !== v1.packageHash ||
-      verifiedV2.packageHash !== v2.packageHash
-    ) {
+    if (verifiedV1.packageHash !== v1.packageHash || verifiedV2.packageHash !== v2.packageHash) {
       throw new Error("concurrent seeder fetch hash mismatch");
     }
 
@@ -327,9 +290,7 @@ async function main() {
     left.stop();
     right.stop();
 
-    console.log(
-      "updates: OTA, rollback, rejection matrix, concurrent seeder passed",
-    );
+    console.log("updates: OTA, rollback, rejection matrix, concurrent seeder passed");
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

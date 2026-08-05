@@ -13,40 +13,26 @@ import {
   PureCryptoProvider,
   Reticulum,
   bareRuntime,
-  hexToBytes,
+  hexToBytes
 } from "@twistedpear/reticulum-ts";
 import { LXMessageMethod } from "../../packages/lxmf-ts/dist/constants.js";
 import { LXMFRouter } from "../../packages/lxmf-ts/dist/router.js";
 
 const INTEROP_HOST = globalThis.process?.env?.INTEROP_HOST ?? "127.0.0.1";
-const LEAF_ECHO_PORT = Number.parseInt(
-  globalThis.process?.env?.LEAF_ECHO_PORT ?? "4242",
-  10,
-);
-const LXMF_ECHO_PORT = Number.parseInt(
-  globalThis.process?.env?.LXMF_ECHO_PORT ?? "4243",
-  10,
-);
-const LINK_ECHO_PORT = Number.parseInt(
-  globalThis.process?.env?.LINK_ECHO_PORT ?? "4244",
-  10,
-);
+const LEAF_ECHO_PORT = Number.parseInt(globalThis.process?.env?.LEAF_ECHO_PORT ?? "4242", 10);
+const LXMF_ECHO_PORT = Number.parseInt(globalThis.process?.env?.LXMF_ECHO_PORT ?? "4243", 10);
+const LINK_ECHO_PORT = Number.parseInt(globalThis.process?.env?.LINK_ECHO_PORT ?? "4244", 10);
 
 const provider = new PureCryptoProvider();
 const runtime = bareRuntime({ storePath: ".bare-interop-store" });
 
 function loadIdentity(name) {
-  const entry = identityVectors.identities.find(
-    (candidate) => candidate.name === name,
-  );
+  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(entry.privateKeyHex),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -100,9 +86,7 @@ async function waitForReceipt(receipt, timeoutMs = 15_000) {
     await sleep(50);
   }
 
-  throw new Error(
-    `Timed out waiting for delivered receipt; last status ${receipt.status}`,
-  );
+  throw new Error(`Timed out waiting for delivered receipt; last status ${receipt.status}`);
 }
 
 function bytesToAscii(bytes) {
@@ -119,7 +103,7 @@ async function runLeafEcho() {
   const iface = await reticulum.addTcpClientInterface({
     name: "python-leaf-echo-bare",
     targetHost: INTEROP_HOST,
-    targetPort: LEAF_ECHO_PORT,
+    targetPort: LEAF_ECHO_PORT
   });
   await waitForInterfaceOnline(iface);
 
@@ -129,7 +113,7 @@ async function runLeafEcho() {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"],
+    aspects: ["echo"]
   });
   aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -139,7 +123,7 @@ async function runLeafEcho() {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"],
+    aspects: ["echo"]
   });
 
   await aliceIn.announce();
@@ -150,10 +134,7 @@ async function runLeafEcho() {
     received.set(bytesToAscii(data), data);
   });
 
-  const payload = Uint8Array.from([
-    98, 97, 114, 101, 45, 105, 110, 116, 101, 114, 111, 112, 45, 112, 105, 110,
-    103,
-  ]);
+  const payload = Uint8Array.from([98, 97, 114, 101, 45, 105, 110, 116, 101, 114, 111, 112, 45, 112, 105, 110, 103]);
   const receipt = await bobOut.send(payload, { createReceipt: true });
   await waitForReceipt(receipt);
 
@@ -179,7 +160,7 @@ async function runLinkEcho() {
   const iface = await reticulum.addTcpClientInterface({
     name: "python-link-echo-bare",
     targetHost: INTEROP_HOST,
-    targetPort: LINK_ECHO_PORT,
+    targetPort: LINK_ECHO_PORT
   });
   await waitForInterfaceOnline(iface);
 
@@ -189,7 +170,7 @@ async function runLinkEcho() {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["link"],
+    aspects: ["link"]
   });
 
   await waitForPath(reticulum, bobOut.hash);
@@ -205,10 +186,7 @@ async function runLinkEcho() {
   }
 
   const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("link echo timeout")),
-      10_000,
-    );
+    const timer = setTimeout(() => reject(new Error("link echo timeout")), 10_000);
     link.callbacks.packet = (data) => {
       clearTimeout(timer);
       resolve(bytesToAscii(data));
@@ -235,7 +213,7 @@ async function runLxmfEcho() {
   const iface = await reticulum.addTcpClientInterface({
     name: "python-lxmf-echo-bare",
     targetHost: INTEROP_HOST,
-    targetPort: LXMF_ECHO_PORT,
+    targetPort: LXMF_ECHO_PORT
   });
   await waitForInterfaceOnline(iface);
 
@@ -247,10 +225,7 @@ async function runLxmfEcho() {
   await waitForPath(reticulum, bobOut.hash, 30_000);
 
   const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("LXMF echo timeout")),
-      30_000,
-    );
+    const timer = setTimeout(() => reject(new Error("LXMF echo timeout")), 30_000);
     router.onDelivery((message) => {
       clearTimeout(timer);
       resolve(message.contentAsString());
@@ -264,7 +239,7 @@ async function runLxmfEcho() {
     content: "Hello Python LXMF from Bare",
     desiredMethod: LXMessageMethod.OPPORTUNISTIC,
     deferStamp: true,
-    timestamp: Date.now() / 1_000,
+    timestamp: Date.now() / 1_000
   });
 
   const echoed = await received;
@@ -297,7 +272,7 @@ async function runUdpLoopback() {
     listenHost: "127.0.0.1",
     listenPort: rightPort,
     forwardHost: "127.0.0.1",
-    forwardPort: leftPort,
+    forwardPort: leftPort
   });
 
   const leftUdp = await left.addUdpInterface({
@@ -305,7 +280,7 @@ async function runUdpLoopback() {
     listenHost: "127.0.0.1",
     listenPort: leftPort,
     forwardHost: "127.0.0.1",
-    forwardPort: rightPort,
+    forwardPort: rightPort
   });
 
   const rightIn = right.registerDestination({
@@ -314,7 +289,7 @@ async function runUdpLoopback() {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "udp",
-    aspects: ["bare-interop"],
+    aspects: ["bare-interop"]
   });
   rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -330,24 +305,18 @@ async function runUdpLoopback() {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "udp",
-    aspects: ["bare-interop"],
+    aspects: ["bare-interop"]
   });
 
   const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("Bare UDP loopback timeout")),
-      5_000,
-    );
+    const timer = setTimeout(() => reject(new Error("Bare UDP loopback timeout")), 5_000);
     rightIn.setPacketCallback((data) => {
       clearTimeout(timer);
       resolve(bytesToAscii(data));
     });
   });
 
-  const receipt = await leftOut.send(
-    new TextEncoder().encode("bare-udp-ping"),
-    { createReceipt: true },
-  );
+  const receipt = await leftOut.send(new TextEncoder().encode("bare-udp-ping"), { createReceipt: true });
   await waitForReceipt(receipt);
   const echoed = await received;
   if (echoed !== "bare-udp-ping") {

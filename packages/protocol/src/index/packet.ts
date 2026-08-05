@@ -122,7 +122,7 @@ export {
   type RegisterPacketReceiptState,
   type RegisterPacketReceiptStepResult,
   type PacketReceiptStatusValue,
-  type PacketReceiptStatusValue as ProtocolPacketReceiptStatusValue,
+  type PacketReceiptStatusValue as ProtocolPacketReceiptStatusValue
 } from "../packet-receipt-timeout.js";
 export {
   PACKET_CONTEXT_NONE,
@@ -169,7 +169,7 @@ export {
   type LinkKeepaliveContextEvent,
   type LinkKeepaliveContextState,
   type LinkKeepaliveContextStepResult,
-  type PacketContextCodeValue,
+  type PacketContextCodeValue
 } from "../packet-context.js";
 export {
   PACKET_EXPLICIT_PROOF_SIZE,
@@ -242,7 +242,7 @@ export {
   type SplitPacketProofAction,
   type SplitPacketProofEvent,
   type SplitPacketProofState,
-  type SplitPacketProofStepResult,
+  type SplitPacketProofStepResult
 } from "../packet-proof.js";
 export {
   PACKET_CONTEXT_FLAG_SET,
@@ -352,5 +352,5 @@ export {
   type UnpackPacketFlagsAction,
   type UnpackPacketFlagsEvent,
   type UnpackPacketFlagsState,
-  type UnpackPacketFlagsStepResult,
+  type UnpackPacketFlagsStepResult
 } from "../packet-header.js";

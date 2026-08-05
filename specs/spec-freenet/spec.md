@@ -49,13 +49,13 @@ match the adopted packet-log codec below.
 
 All integers are unsigned big-endian:
 
-| Field          |    Bytes | Meaning                                  |
-| -------------- | -------: | ---------------------------------------- |
-| magic          |        5 | ASCII `TPFL` followed by version `0x01`  |
-| locator length |        2 | encoded signed 256t locator length       |
-| archive length |        4 | `.tpkg` byte length                      |
-| locator        | variable | unchanged SPEC-NAME signed locator bytes |
-| archive        | variable | untrusted `.tpkg` bytes                  |
+| Field | Bytes | Meaning |
+|---|---:|---|
+| magic | 5 | ASCII `TPFL` followed by version `0x01` |
+| locator length | 2 | encoded signed 256t locator length |
+| archive length | 4 | `.tpkg` byte length |
+| locator | variable | unchanged SPEC-NAME signed locator bytes |
+| archive | variable | untrusted `.tpkg` bytes |
 
 Contract parameters are the 94-byte ASCII 256t id. Conflicting valid puts
 converge on the lexicographically smaller complete state. Consumers must reject a
@@ -67,11 +67,11 @@ mismatch, a package hash mismatch, or a bad package/manifest signature.
 All integers are unsigned big-endian. Entries are sorted by
 `(direction, index)` and must be stored in that order.
 
-| Field       |    Bytes | Meaning                                                  |
-| ----------- | -------: | -------------------------------------------------------- |
-| magic       |        5 | ASCII `TPLG` followed by version `0x01`                  |
-| entry count |        4 | number of following entries                              |
-| entry…      | variable | direction (1) + index (8) + payload length (2) + payload |
+| Field | Bytes | Meaning |
+|---|---:|---|
+| magic | 5 | ASCII `TPLG` followed by version `0x01` |
+| entry count | 4 | number of following entries |
+| entry… | variable | direction (1) + index (8) + payload length (2) + payload |
 
 Contract parameters are a big-endian retention limit (2 bytes) optionally
 followed by a 32-byte peer-pair rendezvous so distinct tunnels do not share a
@@ -89,11 +89,11 @@ as a `return null` stub when enabled.
 All integers are unsigned big-endian. Entries are sorted by `transientId` and
 must be stored in that order.
 
-| Field       |    Bytes | Meaning                                                            |
-| ----------- | -------: | ------------------------------------------------------------------ |
-| magic       |        5 | ASCII `TPPS` followed by version `0x01`                            |
-| entry count |        4 | number of following entries                                        |
-| entry…      | variable | transient id (32) + storedAt ms (8) + lxmf length (4) + ciphertext |
+| Field | Bytes | Meaning |
+|---|---:|---|
+| magic | 5 | ASCII `TPPS` followed by version `0x01` |
+| entry count | 4 | number of following entries |
+| entry… | variable | transient id (32) + storedAt ms (8) + lxmf length (4) + ciphertext |
 
 Contract parameters are the 16-byte LXMF destination hash (`PROPAGATION_DESTINATION_HASH_SIZE`). Merge unions by
 `transientId`, keeps the earlier `storedAt` on conflict, and breaks remaining

@@ -30,7 +30,8 @@ export type StreamReadDeferEvent =
     };
 
 export type StreamReadDeferAction =
-  { readonly kind: "defer" } | { readonly kind: "proceed" };
+  | { readonly kind: "defer" }
+  | { readonly kind: "proceed" };
 
 export interface StreamReadDeferStepResult {
   readonly state: StreamReadDeferState;
@@ -44,7 +45,7 @@ export function initialStreamReadDeferState(): StreamReadDeferState {
 
 export function stepStreamReadDeferWithActions(
   state: StreamReadDeferState,
-  event: StreamReadDeferEvent,
+  event: StreamReadDeferEvent
 ): StreamReadDeferStepResult {
   if (event.kind === "stream/read-defer-gate") {
     return {
@@ -52,11 +53,9 @@ export function stepStreamReadDeferWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldDeferStreamRead(event.bufferLength, event.eof)
-            ? "defer"
-            : "proceed",
-        },
-      ],
+          kind: shouldDeferStreamRead(event.bufferLength, event.eof) ? "defer" : "proceed"
+        }
+      ]
     };
   }
 
@@ -64,22 +63,19 @@ export function stepStreamReadDeferWithActions(
 }
 
 export function shouldStreamReadDefer(
-  actions: ReadonlyArray<StreamReadDeferAction>,
+  actions: ReadonlyArray<StreamReadDeferAction>
 ): boolean {
   return actions.some((action) => action.kind === "defer");
 }
 
 export function shouldStreamReadProceed(
-  actions: ReadonlyArray<StreamReadDeferAction>,
+  actions: ReadonlyArray<StreamReadDeferAction>
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 /** Whether a read produced a returnable buffer (bytes copied or EOF empty result). */
-export function shouldReturnStreamReadResult(
-  copied: number,
-  eof: boolean,
-): boolean {
+export function shouldReturnStreamReadResult(copied: number, eof: boolean): boolean {
   return copied > 0 || eof;
 }
 
@@ -99,7 +95,8 @@ export type StreamReadReturnEvent =
     };
 
 export type StreamReadReturnAction =
-  { readonly kind: "yield" } | { readonly kind: "skip" };
+  | { readonly kind: "yield" }
+  | { readonly kind: "skip" };
 
 export interface StreamReadReturnStepResult {
   readonly state: StreamReadReturnState;
@@ -113,7 +110,7 @@ export function initialStreamReadReturnState(): StreamReadReturnState {
 
 export function stepStreamReadReturnWithActions(
   state: StreamReadReturnState,
-  event: StreamReadReturnEvent,
+  event: StreamReadReturnEvent
 ): StreamReadReturnStepResult {
   if (event.kind === "stream/read-return-gate") {
     return {
@@ -121,11 +118,9 @@ export function stepStreamReadReturnWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldReturnStreamReadResult(event.copied, event.eof)
-            ? "yield"
-            : "skip",
-        },
-      ],
+          kind: shouldReturnStreamReadResult(event.copied, event.eof) ? "yield" : "skip"
+        }
+      ]
     };
   }
 
@@ -133,22 +128,19 @@ export function stepStreamReadReturnWithActions(
 }
 
 export function shouldYieldStreamRead(
-  actions: ReadonlyArray<StreamReadReturnAction>,
+  actions: ReadonlyArray<StreamReadReturnAction>
 ): boolean {
   return actions.some((action) => action.kind === "yield");
 }
 
 export function shouldSkipStreamReadYield(
-  actions: ReadonlyArray<StreamReadReturnAction>,
+  actions: ReadonlyArray<StreamReadReturnAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Bytes to take from the current chunk into the remaining read window. */
-export function clampStreamChunkTake(
-  chunkLength: number,
-  remaining: number,
-): number {
+export function clampStreamChunkTake(chunkLength: number, remaining: number): number {
   return Math.min(chunkLength, remaining);
 }
 
@@ -184,7 +176,7 @@ export function initialClampStreamChunkTakeState(): ClampStreamChunkTakeState {
 
 export function stepClampStreamChunkTakeWithActions(
   state: ClampStreamChunkTakeState,
-  event: ClampStreamChunkTakeEvent,
+  event: ClampStreamChunkTakeEvent
 ): ClampStreamChunkTakeStepResult {
   if (event.kind === "stream/chunk-take-gate") {
     return {
@@ -193,9 +185,9 @@ export function stepClampStreamChunkTakeWithActions(
       actions: [
         {
           kind: "use-take",
-          take: clampStreamChunkTake(event.chunkLength, event.remaining),
-        },
-      ],
+          take: clampStreamChunkTake(event.chunkLength, event.remaining)
+        }
+      ]
     };
   }
 
@@ -203,24 +195,21 @@ export function stepClampStreamChunkTakeWithActions(
 }
 
 export function shouldUseStreamChunkTake(
-  actions: ReadonlyArray<ClampStreamChunkTakeAction>,
+  actions: ReadonlyArray<ClampStreamChunkTakeAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-take");
 }
 
 /** Extract clamped chunk take from step actions; null when no `use-take`. */
 export function streamChunkTakeFromActions(
-  actions: ReadonlyArray<ClampStreamChunkTakeAction>,
+  actions: ReadonlyArray<ClampStreamChunkTakeAction>
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-take");
   return action?.kind === "use-take" ? action.take : null;
 }
 
 /** Whether the taken bytes consume the entire front chunk (shift vs residual slice). */
-export function shouldConsumeStreamChunk(
-  take: number,
-  chunkLength: number,
-): boolean {
+export function shouldConsumeStreamChunk(take: number, chunkLength: number): boolean {
   return take === chunkLength;
 }
 
@@ -240,7 +229,8 @@ export type StreamChunkConsumeEvent =
     };
 
 export type StreamChunkConsumeAction =
-  { readonly kind: "consume" } | { readonly kind: "residual" };
+  | { readonly kind: "consume" }
+  | { readonly kind: "residual" };
 
 export interface StreamChunkConsumeStepResult {
   readonly state: StreamChunkConsumeState;
@@ -254,7 +244,7 @@ export function initialStreamChunkConsumeState(): StreamChunkConsumeState {
 
 export function stepStreamChunkConsumeWithActions(
   state: StreamChunkConsumeState,
-  event: StreamChunkConsumeEvent,
+  event: StreamChunkConsumeEvent
 ): StreamChunkConsumeStepResult {
   if (event.kind === "stream/chunk-consume-gate") {
     return {
@@ -264,9 +254,9 @@ export function stepStreamChunkConsumeWithActions(
         {
           kind: shouldConsumeStreamChunk(event.take, event.chunkLength)
             ? "consume"
-            : "residual",
-        },
-      ],
+            : "residual"
+        }
+      ]
     };
   }
 
@@ -274,13 +264,13 @@ export function stepStreamChunkConsumeWithActions(
 }
 
 export function shouldStreamChunkConsume(
-  actions: ReadonlyArray<StreamChunkConsumeAction>,
+  actions: ReadonlyArray<StreamChunkConsumeAction>
 ): boolean {
   return actions.some((action) => action.kind === "consume");
 }
 
 export function shouldStreamChunkResidual(
-  actions: ReadonlyArray<StreamChunkConsumeAction>,
+  actions: ReadonlyArray<StreamChunkConsumeAction>
 ): boolean {
   return actions.some((action) => action.kind === "residual");
 }
@@ -305,7 +295,8 @@ export type StreamEofMarkEvent =
     };
 
 export type StreamEofMarkAction =
-  { readonly kind: "mark" } | { readonly kind: "skip" };
+  | { readonly kind: "mark" }
+  | { readonly kind: "skip" };
 
 export interface StreamEofMarkStepResult {
   readonly state: StreamEofMarkState;
@@ -319,13 +310,13 @@ export function initialStreamEofMarkState(): StreamEofMarkState {
 
 export function stepStreamEofMarkWithActions(
   state: StreamEofMarkState,
-  event: StreamEofMarkEvent,
+  event: StreamEofMarkEvent
 ): StreamEofMarkStepResult {
   if (event.kind === "stream/eof-mark-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: shouldMarkStreamEof(event.eof) ? "mark" : "skip" }],
+      actions: [{ kind: shouldMarkStreamEof(event.eof) ? "mark" : "skip" }]
     };
   }
 
@@ -333,13 +324,13 @@ export function stepStreamEofMarkWithActions(
 }
 
 export function shouldStreamEofMark(
-  actions: ReadonlyArray<StreamEofMarkAction>,
+  actions: ReadonlyArray<StreamEofMarkAction>
 ): boolean {
   return actions.some((action) => action.kind === "mark");
 }
 
 export function shouldSkipStreamEofMark(
-  actions: ReadonlyArray<StreamEofMarkAction>,
+  actions: ReadonlyArray<StreamEofMarkAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -364,7 +355,8 @@ export type StreamIdAssignedEvent =
     };
 
 export type StreamIdAssignedAction =
-  { readonly kind: "assigned" } | { readonly kind: "unassigned" };
+  | { readonly kind: "assigned" }
+  | { readonly kind: "unassigned" };
 
 export interface StreamIdAssignedStepResult {
   readonly state: StreamIdAssignedState;
@@ -378,7 +370,7 @@ export function initialStreamIdAssignedState(): StreamIdAssignedState {
 
 export function stepStreamIdAssignedWithActions(
   state: StreamIdAssignedState,
-  event: StreamIdAssignedEvent,
+  event: StreamIdAssignedEvent
 ): StreamIdAssignedStepResult {
   if (event.kind === "stream/id-assigned-gate") {
     return {
@@ -386,11 +378,9 @@ export function stepStreamIdAssignedWithActions(
       intents: [],
       actions: [
         {
-          kind: isStreamIdAssigned(event.streamIdPresent)
-            ? "assigned"
-            : "unassigned",
-        },
-      ],
+          kind: isStreamIdAssigned(event.streamIdPresent) ? "assigned" : "unassigned"
+        }
+      ]
     };
   }
 
@@ -398,13 +388,13 @@ export function stepStreamIdAssignedWithActions(
 }
 
 export function shouldStreamIdAssigned(
-  actions: ReadonlyArray<StreamIdAssignedAction>,
+  actions: ReadonlyArray<StreamIdAssignedAction>
 ): boolean {
   return actions.some((action) => action.kind === "assigned");
 }
 
 export function shouldStreamIdUnassigned(
-  actions: ReadonlyArray<StreamIdAssignedAction>,
+  actions: ReadonlyArray<StreamIdAssignedAction>
 ): boolean {
   return actions.some((action) => action.kind === "unassigned");
 }
@@ -433,7 +423,8 @@ export type StreamDataMessageHandleEvent =
     };
 
 export type StreamDataMessageHandleAction =
-  { readonly kind: "handle" } | { readonly kind: "ignore" };
+  | { readonly kind: "handle" }
+  | { readonly kind: "ignore" };
 
 export interface StreamDataMessageHandleStepResult {
   readonly state: StreamDataMessageHandleState;
@@ -447,7 +438,7 @@ export function initialStreamDataMessageHandleState(): StreamDataMessageHandleSt
 
 export function stepStreamDataMessageHandleWithActions(
   state: StreamDataMessageHandleState,
-  event: StreamDataMessageHandleEvent,
+  event: StreamDataMessageHandleEvent
 ): StreamDataMessageHandleStepResult {
   if (event.kind === "stream/data-message-handle-gate") {
     return {
@@ -457,12 +448,12 @@ export function stepStreamDataMessageHandleWithActions(
         {
           kind: shouldHandleStreamDataMessage({
             messageStreamId: event.messageStreamId,
-            expectedStreamId: event.expectedStreamId,
+            expectedStreamId: event.expectedStreamId
           })
             ? "handle"
-            : "ignore",
-        },
-      ],
+            : "ignore"
+        }
+      ]
     };
   }
 

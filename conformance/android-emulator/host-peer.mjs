@@ -12,7 +12,7 @@ import {
   CatalogStore,
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
-  unpackPackage,
+  unpackPackage
 } from "../../packages/app-registry/dist/index.js";
 import {
   DestinationDirection,
@@ -20,32 +20,23 @@ import {
   NodeCryptoProvider,
   Reticulum,
   bytesToHex,
-  nodeRuntime,
+  nodeRuntime
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   DriveManager,
   attachPackageResourceServer,
-  createSwarm,
+  createSwarm
 } from "../../packages/bridge-hyper/dist/index.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../fixtures/packages/example-app",
-);
-const metaPath = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "fixture-meta.json",
-);
+const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const metaPath = join(dirname(fileURLToPath(import.meta.url)), "fixture-meta.json");
 
 const LEAF_HOST = process.env.LEAF_ECHO_HOST ?? "127.0.0.1";
 const LEAF_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
-const ANNOUNCE_MS = Number.parseInt(
-  process.env.HOST_PEER_ANNOUNCE_MS ?? "5000",
-  10,
-);
+const ANNOUNCE_MS = Number.parseInt(process.env.HOST_PEER_ANNOUNCE_MS ?? "5000", 10);
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
@@ -58,46 +49,35 @@ async function main() {
 
   writeFileSync(
     join(publisherDir, "tp.config.json"),
-    `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
+    `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
   );
 
   const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
-  const initCode = await runInit({
-    cwd: publisherDir,
-    identityPassphrase: IDENTITY_PASSPHRASE,
-    args: [],
-  });
+  const initCode = await runInit({ cwd: publisherDir, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
   if (initCode !== 0) {
     throw new Error("tp init failed");
   }
 
-  const publishCode = await runPublish({
-    cwd: publisherDir,
-    args: [fixtureApp],
-  });
+  const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
   if (publishCode !== 0) {
     throw new Error("tp publish failed");
   }
 
   const provider = new NodeCryptoProvider();
-  const meta = JSON.parse(
-    readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
-  );
-  const archive = new Uint8Array(
-    readFileSync(join(publisherDir, ".tp/last.tpkg")),
-  );
+  const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+  const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
   const unpacked = unpackPackage(provider, archive);
   const publisherIdentity = decryptIdentityBackup(
     provider,
     new Uint8Array(readFileSync(join(publisherDir, ".tp/identity"))),
-    IDENTITY_PASSPHRASE,
+    IDENTITY_PASSPHRASE
   );
 
   const summary = buildAppAnnounceSummary(provider, publisherIdentity, {
     manifest: unpacked.manifest,
     packageSize: archive.length,
     packageHash: unpacked.packageHash,
-    resourceAvailable: true,
+    resourceAvailable: true
   });
 
   const catalog = new CatalogStore(provider);
@@ -105,7 +85,7 @@ async function main() {
     destinationHash: meta.destinationName ?? "emulator-host-peer",
     appData: encodeAppAnnounceData(summary),
     manifest: unpacked.manifest,
-    packageHash: unpacked.packageHash,
+    packageHash: unpacked.packageHash
   });
   if (entry === null) {
     throw new Error("catalog ingest failed");
@@ -114,19 +94,13 @@ async function main() {
   const swarm = createSwarm();
   const seedDrive = new DriveManager({
     storagePath: join(seederStateDir, "drives"),
-    swarm,
+    swarm
   });
   await seedDrive.ready();
   await seedDrive.openDrive(meta.driveKey, { serve: true });
 
-  const publisherHash = bytesToHex(
-    provider.sha256(publisherIdentity.getPublicKey()).slice(0, 8),
-  );
-  const nameHash = bytesToHex(
-    provider
-      .sha256(new TextEncoder().encode(unpacked.manifest.name))
-      .slice(0, 8),
-  );
+  const publisherHash = bytesToHex(provider.sha256(publisherIdentity.getPublicKey()).slice(0, 8));
+  const nameHash = bytesToHex(provider.sha256(new TextEncoder().encode(unpacked.manifest.name)).slice(0, 8));
 
   const reticulum = Reticulum.create({ provider, runtime: nodeRuntime() });
   reticulum.start();
@@ -135,7 +109,7 @@ async function main() {
     name: "leaf-echo",
     targetHost: LEAF_HOST,
     targetPort: LEAF_PORT,
-    reconnectWaitMs: 1_000,
+    reconnectWaitMs: 1_000
   });
 
   const publisherDestination = reticulum.registerDestination({
@@ -144,22 +118,16 @@ async function main() {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "tp",
-    aspects: ["app", publisherHash, nameHash],
+    aspects: ["app", publisherHash, nameHash]
   });
 
   attachPackageResourceServer(publisherDestination, {
     async listVersions() {
-      return [
-        {
-          version: meta.version,
-          packageHash: unpacked.packageHash,
-          size: archive.length,
-        },
-      ];
+      return [{ version: meta.version, packageHash: unpacked.packageHash, size: archive.length }];
     },
     async fetchArchive() {
       return archive;
-    },
+    }
   });
 
   writeFileSync(
@@ -172,15 +140,15 @@ async function main() {
         packageHash: entry.packageHash,
         driveKey: meta.driveKey,
         publisherDir,
-        fixtureApp,
+        fixtureApp
       },
       null,
-      2,
-    )}\n`,
+      2
+    )}\n`
   );
 
   console.log(
-    `[android-emulator/host-peer] fixture ${entry.appId} v${entry.version} on ${LEAF_HOST}:${LEAF_PORT}`,
+    `[android-emulator/host-peer] fixture ${entry.appId} v${entry.version} on ${LEAF_HOST}:${LEAF_PORT}`
   );
 
   const shutdown = async () => {

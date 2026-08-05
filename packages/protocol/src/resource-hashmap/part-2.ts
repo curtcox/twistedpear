@@ -24,14 +24,10 @@ import {
   msgpackPackBin,
   msgpackPackUInt,
   msgpackUnpack,
-  type MsgpackValue,
+  type MsgpackValue
 } from "../msgpack-core.js";
 import { equalByteArrays } from "../path-table.js";
-import {
-  RESOURCE_HASHMAP_IS_EXHAUSTED,
-  RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
-  concatBytes,
-} from "./part-1.js";
+import { RESOURCE_HASHMAP_IS_EXHAUSTED, RESOURCE_HASHMAP_IS_NOT_EXHAUSTED, concatBytes } from "./part-1.js";
 import type { ResourcePartRequest, ResourcePartRequestPlan } from "./part-1.js";
 /**
  * Plan the next RESOURCE_REQ body from receiver window / hashmap state.
@@ -51,10 +47,7 @@ export function planResourcePartRequest(input: {
   let index = 0;
   let partNumber = input.consecutiveCompletedHeight + 1;
   const searchStart = partNumber;
-  const searchEnd = Math.min(
-    searchStart + input.window,
-    input.receivedParts.length,
-  );
+  const searchEnd = Math.min(searchStart + input.window, input.receivedParts.length);
 
   for (let cursor = searchStart; cursor < searchEnd; cursor += 1) {
     const part = input.receivedParts[cursor];
@@ -70,10 +63,7 @@ export function planResourcePartRequest(input: {
       }
     }
     partNumber += 1;
-    if (
-      index >= input.window ||
-      hashmapExhausted === RESOURCE_HASHMAP_IS_EXHAUSTED
-    ) {
+    if (index >= input.window || hashmapExhausted === RESOURCE_HASHMAP_IS_EXHAUSTED) {
       break;
     }
   }
@@ -91,11 +81,7 @@ export function planResourcePartRequest(input: {
   return {
     outstandingParts,
     waitingForHashmap,
-    requestData: concatBytes(
-      requestPrefix,
-      input.resourceHash,
-      ...requestedHashes,
-    ),
+    requestData: concatBytes(requestPrefix, input.resourceHash, ...requestedHashes)
   };
 }
 
@@ -154,8 +140,7 @@ export function planResourceReceivePart(input: {
         // After placing the current part, treat this slot as filled for contiguous scan.
         const filled =
           cursor === index ||
-          (input.receivedParts[cursor] !== null &&
-            input.receivedParts[cursor] !== undefined);
+          (input.receivedParts[cursor] !== null && input.receivedParts[cursor] !== undefined);
         if (!filled) {
           break;
         }
@@ -166,10 +151,8 @@ export function planResourceReceivePart(input: {
     }
   }
 
-  const progress =
-    input.totalParts === 0 ? 0 : receivedCount / input.totalParts;
-  const shouldAssemble =
-    receivedCount === input.totalParts && !input.assemblyStarted;
+  const progress = input.totalParts === 0 ? 0 : receivedCount / input.totalParts;
+  const shouldAssemble = receivedCount === input.totalParts && !input.assemblyStarted;
   const shouldRequestNext = !shouldAssemble && outstandingParts === 0;
 
   return {
@@ -180,7 +163,7 @@ export function planResourceReceivePart(input: {
     outstandingParts,
     progress,
     shouldAssemble,
-    shouldRequestNext,
+    shouldRequestNext
   };
 }
 
@@ -222,7 +205,7 @@ export function planResourceRequestFulfill(input: {
   const searchStart = input.receiverMinConsecutiveHeight;
   const searchEnd = Math.min(
     searchStart + input.hashmapMaxLen * 2 + input.windowMax,
-    input.partMapHashes.length,
+    input.partMapHashes.length
   );
 
   for (let index = searchStart; index < searchEnd; index += 1) {
@@ -230,11 +213,7 @@ export function planResourceRequestFulfill(input: {
     if (mapHash === undefined) {
       continue;
     }
-    if (
-      !input.request.requestedMapHashes.some((requested) =>
-        equalByteArrays(requested, mapHash),
-      )
-    ) {
+    if (!input.request.requestedMapHashes.some((requested) => equalByteArrays(requested, mapHash))) {
       continue;
     }
     if (!input.partSent[index]) {
@@ -253,7 +232,7 @@ export function planResourceRequestFulfill(input: {
     let partIndex = input.receiverMinConsecutiveHeight;
     const walkEnd = Math.min(
       partIndex + input.hashmapMaxLen * 2,
-      input.partMapHashes.length,
+      input.partMapHashes.length
     );
     for (let index = partIndex; index < walkEnd; index += 1) {
       partIndex += 1;
@@ -263,16 +242,10 @@ export function planResourceRequestFulfill(input: {
       }
     }
 
-    nextReceiverMinConsecutiveHeight = Math.max(
-      partIndex - 1 - input.windowMax,
-      0,
-    );
+    nextReceiverMinConsecutiveHeight = Math.max(partIndex - 1 - input.windowMax, 0);
     const segment = Math.floor(partIndex / input.hashmapMaxLen);
     const hashmapStart = segment * input.hashmapMaxLen;
-    const hashmapEnd = Math.min(
-      (segment + 1) * input.hashmapMaxLen,
-      input.partMapHashes.length,
-    );
+    const hashmapEnd = Math.min((segment + 1) * input.hashmapMaxLen, input.partMapHashes.length);
     const mapHashes: Uint8Array[] = [];
     for (let index = hashmapStart; index < hashmapEnd; index += 1) {
       const mapHash = input.partMapHashes[index];
@@ -283,7 +256,7 @@ export function planResourceRequestFulfill(input: {
     hashmapUpdate = {
       segment,
       mapHashes,
-      nextReceiverMinConsecutiveHeight,
+      nextReceiverMinConsecutiveHeight
     };
   }
 
@@ -292,8 +265,7 @@ export function planResourceRequestFulfill(input: {
     hashmapUpdate,
     nextSentParts,
     nextReceiverMinConsecutiveHeight,
-    status:
-      nextSentParts === input.totalParts ? "awaiting-proof" : "transferring",
+    status: nextSentParts === input.totalParts ? "awaiting-proof" : "transferring"
   };
 }
 
@@ -317,9 +289,7 @@ export function planResourceHashmapUpdateAccept(input: {
  * Whether a decrypted RESOURCE_HMU / cancel frame has a valid hash prefix.
  * Part/slot application stays at the adapter edge.
  */
-export function shouldAcceptResourceHashmapUpdateFrame(
-  splitOk: boolean,
-): boolean {
+export function shouldAcceptResourceHashmapUpdateFrame(splitOk: boolean): boolean {
   return splitOk;
 }
 
@@ -338,7 +308,8 @@ export type AcceptResourceHashmapUpdateFrameEvent =
     };
 
 export type AcceptResourceHashmapUpdateFrameAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptResourceHashmapUpdateFrameStepResult {
   readonly state: AcceptResourceHashmapUpdateFrameState;
@@ -352,7 +323,7 @@ export function initialAcceptResourceHashmapUpdateFrameState(): AcceptResourceHa
 
 export function stepAcceptResourceHashmapUpdateFrameWithActions(
   state: AcceptResourceHashmapUpdateFrameState,
-  event: AcceptResourceHashmapUpdateFrameEvent,
+  event: AcceptResourceHashmapUpdateFrameEvent
 ): AcceptResourceHashmapUpdateFrameStepResult {
   if (event.kind === "resource-hashmap/accept-update-frame-gate") {
     return {
@@ -360,11 +331,9 @@ export function stepAcceptResourceHashmapUpdateFrameWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptResourceHashmapUpdateFrame(event.splitOk)
-            ? "accept"
-            : "skip",
-        },
-      ],
+          kind: shouldAcceptResourceHashmapUpdateFrame(event.splitOk) ? "accept" : "skip"
+        }
+      ]
     };
   }
 
@@ -372,21 +341,19 @@ export function stepAcceptResourceHashmapUpdateFrameWithActions(
 }
 
 export function shouldAcceptResourceHashmapUpdateFrameNow(
-  actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>,
+  actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptResourceHashmapUpdateFrame(
-  actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>,
+  actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a parsed RESOURCE_REQ may be fulfilled. */
-export function shouldFulfillResourcePartRequest(
-  requestPresent: boolean,
-): boolean {
+export function shouldFulfillResourcePartRequest(requestPresent: boolean): boolean {
   return requestPresent;
 }
 
@@ -405,7 +372,8 @@ export type FulfillResourcePartRequestEvent =
     };
 
 export type FulfillResourcePartRequestAction =
-  { readonly kind: "fulfill" } | { readonly kind: "skip" };
+  | { readonly kind: "fulfill" }
+  | { readonly kind: "skip" };
 
 export interface FulfillResourcePartRequestStepResult {
   readonly state: FulfillResourcePartRequestState;
@@ -419,7 +387,7 @@ export function initialFulfillResourcePartRequestState(): FulfillResourcePartReq
 
 export function stepFulfillResourcePartRequestWithActions(
   state: FulfillResourcePartRequestState,
-  event: FulfillResourcePartRequestEvent,
+  event: FulfillResourcePartRequestEvent
 ): FulfillResourcePartRequestStepResult {
   if (event.kind === "resource-hashmap/fulfill-part-request-gate") {
     return {
@@ -427,11 +395,9 @@ export function stepFulfillResourcePartRequestWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldFulfillResourcePartRequest(event.requestPresent)
-            ? "fulfill"
-            : "skip",
-        },
-      ],
+          kind: shouldFulfillResourcePartRequest(event.requestPresent) ? "fulfill" : "skip"
+        }
+      ]
     };
   }
 
@@ -439,13 +405,13 @@ export function stepFulfillResourcePartRequestWithActions(
 }
 
 export function shouldFulfillResourcePartRequestNow(
-  actions: ReadonlyArray<FulfillResourcePartRequestAction>,
+  actions: ReadonlyArray<FulfillResourcePartRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "fulfill");
 }
 
 export function shouldSkipFulfillResourcePartRequest(
-  actions: ReadonlyArray<FulfillResourcePartRequestAction>,
+  actions: ReadonlyArray<FulfillResourcePartRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -470,7 +436,8 @@ export type ApplyResourceFulfillPartEvent =
     };
 
 export type ApplyResourceFulfillPartAction =
-  { readonly kind: "apply" } | { readonly kind: "skip" };
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
 
 export interface ApplyResourceFulfillPartStepResult {
   readonly state: ApplyResourceFulfillPartState;
@@ -484,7 +451,7 @@ export function initialApplyResourceFulfillPartState(): ApplyResourceFulfillPart
 
 export function stepApplyResourceFulfillPartWithActions(
   state: ApplyResourceFulfillPartState,
-  event: ApplyResourceFulfillPartEvent,
+  event: ApplyResourceFulfillPartEvent
 ): ApplyResourceFulfillPartStepResult {
   if (event.kind === "resource-hashmap/apply-fulfill-part-gate") {
     return {
@@ -492,11 +459,9 @@ export function stepApplyResourceFulfillPartWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldApplyResourceFulfillPart(event.partPresent)
-            ? "apply"
-            : "skip",
-        },
-      ],
+          kind: shouldApplyResourceFulfillPart(event.partPresent) ? "apply" : "skip"
+        }
+      ]
     };
   }
 
@@ -504,13 +469,13 @@ export function stepApplyResourceFulfillPartWithActions(
 }
 
 export function shouldApplyResourceFulfillPartNow(
-  actions: ReadonlyArray<ApplyResourceFulfillPartAction>,
+  actions: ReadonlyArray<ApplyResourceFulfillPartAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldSkipApplyResourceFulfillPart(
-  actions: ReadonlyArray<ApplyResourceFulfillPartAction>,
+  actions: ReadonlyArray<ApplyResourceFulfillPartAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }

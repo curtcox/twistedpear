@@ -13,9 +13,7 @@ export interface ObserveRingEntry {
 export interface ObserveRing {
   readonly push: (intent: Intent, at?: number) => void;
   readonly snapshot: () => readonly ObserveRingEntry[];
-  readonly subscribe: (
-    listener: (entry: ObserveRingEntry) => void,
-  ) => () => void;
+  readonly subscribe: (listener: (entry: ObserveRingEntry) => void) => () => void;
   readonly size: () => number;
 }
 
@@ -48,14 +46,14 @@ export function createObserveRing(capacity = 256): ObserveRing {
     },
     size() {
       return buffer.length;
-    },
+    }
   };
 }
 
 /** Convert a ring snapshot into a SPEC-TRACE-shaped recorded-history tape. */
 export function ringToRecordedHistory(
   entries: readonly ObserveRingEntry[],
-  node = "local",
+  node = "local"
 ): {
   readonly schema: "recorded-history";
   readonly version: 1;
@@ -71,7 +69,7 @@ export function ringToRecordedHistory(
     entries: entries.map((entry) => ({
       t: "intent" as const,
       node,
-      intent: entry.intent,
-    })),
+      intent: entry.intent
+    }))
   };
 }

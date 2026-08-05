@@ -3,9 +3,5 @@
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",
-  "peerDependencies": {
-    "expo": "*",
-    "expo-modules-core": "*",
-    "react-native": "*"
-  }
+  "peerDependencies": { "expo": "*", "expo-modules-core": "*", "react-native": "*" }
 }

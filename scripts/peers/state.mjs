@@ -5,20 +5,11 @@
  * `status`, or `logs` in a different shell can find it. Everything lives under
  * `.tmp/local-peers/` so a stale tree can be removed wholesale.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const repoRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
+export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 export const stateRoot = join(repoRoot, ".tmp", "local-peers");
 export const logDir = join(stateRoot, "logs");
 const statePath = join(stateRoot, "state.json");
@@ -59,11 +50,7 @@ export function writeObserveTape(label, snapshot, options = {}) {
     label: String(label),
     capturedAt: now.toISOString(),
     dropCensus: snapshot.dropCensus ?? { byReason: {}, byPeer: {} },
-    history: snapshot.history ?? {
-      schema: "recorded-history",
-      version: 1,
-      entries: [],
-    },
+    history: snapshot.history ?? { schema: "recorded-history", version: 1, entries: [] }
   };
   writeFileSync(path, `${JSON.stringify(envelope, null, 2)}\n`);
   return path;

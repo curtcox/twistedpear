@@ -13,14 +13,14 @@ import {
   rnsHkdfSha256RawFromActions,
   shouldRejectRnsHkdfSha256,
   shouldUseRnsHkdfSha256,
-  stepRnsHkdfSha256WithActions,
+  stepRnsHkdfSha256WithActions
 } from "./rns-hkdf.js";
 
 /** Mirrors RNS/Link.py link mode constants used for key length. */
 export const LinkKeyMode = {
   MODE_AES128_CBC: 0x00,
   MODE_AES256_CBC: 0x01,
-  MODE_AES256_GCM: 0x02,
+  MODE_AES256_GCM: 0x02
 } as const;
 
 export type LinkKeyModeValue = (typeof LinkKeyMode)[keyof typeof LinkKeyMode];
@@ -33,13 +33,14 @@ export const LINK_MODE_DEFAULT: LinkKeyModeValue = LinkKeyMode.MODE_AES256_CBC;
 // Accept AES-128 as well: Python RNS defaults to MODE_AES128_CBC when initiating.
 export const LINK_ENABLED_MODES: ReadonlyArray<LinkKeyModeValue> = [
   LinkKeyMode.MODE_AES128_CBC,
-  LinkKeyMode.MODE_AES256_CBC,
+  LinkKeyMode.MODE_AES256_CBC
 ];
 
 /** Whether a link mode is in the currently enabled set. */
 export function isLinkModeEnabled(mode: LinkKeyModeValue | number): boolean {
   return (LINK_ENABLED_MODES as ReadonlyArray<number>).includes(mode);
 }
+
 
 /**
  * isLinkModeEnabled gate is event-driven; no durable session fields.
@@ -56,7 +57,8 @@ export type LinkModeEnabledEvent =
     };
 
 export type LinkModeEnabledAction =
-  { readonly kind: "enabled" } | { readonly kind: "disabled" };
+  | { readonly kind: "enabled" }
+  | { readonly kind: "disabled" };
 
 export interface LinkModeEnabledStepResult {
   readonly state: LinkModeEnabledState;
@@ -70,7 +72,7 @@ export function initialLinkModeEnabledState(): LinkModeEnabledState {
 
 export function stepLinkModeEnabledWithActions(
   state: LinkModeEnabledState,
-  event: LinkModeEnabledEvent,
+  event: LinkModeEnabledEvent
 ): LinkModeEnabledStepResult {
   if (event.kind === "link/mode-enabled-gate") {
     return {
@@ -78,9 +80,9 @@ export function stepLinkModeEnabledWithActions(
       intents: [],
       actions: [
         {
-          kind: isLinkModeEnabled(event.mode) ? "enabled" : "disabled",
-        },
-      ],
+          kind: isLinkModeEnabled(event.mode) ? "enabled" : "disabled"
+        }
+      ]
     };
   }
 
@@ -88,13 +90,13 @@ export function stepLinkModeEnabledWithActions(
 }
 
 export function shouldTreatLinkModeEnabled(
-  actions: ReadonlyArray<LinkModeEnabledAction>,
+  actions: ReadonlyArray<LinkModeEnabledAction>
 ): boolean {
   return actions.some((action) => action.kind === "enabled");
 }
 
 export function shouldTreatLinkModeDisabled(
-  actions: ReadonlyArray<LinkModeEnabledAction>,
+  actions: ReadonlyArray<LinkModeEnabledAction>
 ): boolean {
   return actions.some((action) => action.kind === "disabled");
 }
@@ -106,6 +108,7 @@ export function isExpectedLinkMode(input: {
 }): boolean {
   return input.expected === input.received;
 }
+
 
 /**
  * isExpectedLinkMode gate is event-driven; no durable session fields.
@@ -123,7 +126,8 @@ export type ExpectedLinkModeEvent =
     };
 
 export type ExpectedLinkModeAction =
-  { readonly kind: "match" } | { readonly kind: "mismatch" };
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
 
 export interface ExpectedLinkModeStepResult {
   readonly state: ExpectedLinkModeState;
@@ -137,7 +141,7 @@ export function initialExpectedLinkModeState(): ExpectedLinkModeState {
 
 export function stepExpectedLinkModeWithActions(
   state: ExpectedLinkModeState,
-  event: ExpectedLinkModeEvent,
+  event: ExpectedLinkModeEvent
 ): ExpectedLinkModeStepResult {
   if (event.kind === "link/expected-mode-gate") {
     return {
@@ -145,14 +149,9 @@ export function stepExpectedLinkModeWithActions(
       intents: [],
       actions: [
         {
-          kind: isExpectedLinkMode({
-            expected: event.expected,
-            received: event.received,
-          })
-            ? "match"
-            : "mismatch",
-        },
-      ],
+          kind: isExpectedLinkMode({ expected: event.expected, received: event.received }) ? "match" : "mismatch"
+        }
+      ]
     };
   }
 
@@ -160,13 +159,13 @@ export function stepExpectedLinkModeWithActions(
 }
 
 export function shouldMatchExpectedLinkMode(
-  actions: ReadonlyArray<ExpectedLinkModeAction>,
+  actions: ReadonlyArray<ExpectedLinkModeAction>
 ): boolean {
   return actions.some((action) => action.kind === "match");
 }
 
 export function shouldMismatchExpectedLinkMode(
-  actions: ReadonlyArray<ExpectedLinkModeAction>,
+  actions: ReadonlyArray<ExpectedLinkModeAction>
 ): boolean {
   return actions.some((action) => action.kind === "mismatch");
 }
@@ -178,13 +177,13 @@ export function linkDerivedKeyLength(mode: LinkKeyModeValue | number): number {
 export function deriveRnsLinkKey(
   sharedSecret: Uint8Array,
   linkId: Uint8Array,
-  mode: LinkKeyModeValue | number = LinkKeyMode.MODE_AES256_CBC,
+  mode: LinkKeyModeValue | number = LinkKeyMode.MODE_AES256_CBC
 ): Uint8Array {
   return rnsHkdfSha256({
     length: linkDerivedKeyLength(mode),
     deriveFrom: sharedSecret,
     salt: linkId,
-    context: null,
+    context: null
   });
 }
 
@@ -192,10 +191,7 @@ export function deriveRnsLinkKey(
  * Build an order-independent shared secret from two peer materials (sim / tests).
  * Not wire ECDH — adapters should supply real X25519 shared secrets on the wire path.
  */
-export function orderIndependentSharedSecret(
-  a: Uint8Array,
-  b: Uint8Array,
-): Uint8Array {
+export function orderIndependentSharedSecret(a: Uint8Array, b: Uint8Array): Uint8Array {
   const leftFirst = compareBytes(a, b) <= 0;
   const first = leftFirst ? a : b;
   const second = leftFirst ? b : a;
@@ -206,14 +202,13 @@ export function orderIndependentSharedSecret(
     length: 32,
     deriveFrom: joined,
     salt: new Uint8Array(32),
-    context: SIM_ECDH_CONTEXT,
+    context: SIM_ECDH_CONTEXT
   });
 }
 
 /** ASCII "twistedpear-sim-ecdh" — avoids TextEncoder (no DOM in protocol tsconfig). */
 const SIM_ECDH_CONTEXT = Uint8Array.from([
-  116, 119, 105, 115, 116, 101, 100, 112, 101, 97, 114, 45, 115, 105, 109, 45,
-  101, 99, 100, 104,
+  116, 119, 105, 115, 116, 101, 100, 112, 101, 97, 114, 45, 115, 105, 109, 45, 101, 99, 100, 104
 ]);
 
 function compareBytes(left: Uint8Array, right: Uint8Array): number {
@@ -259,7 +254,7 @@ export function initialDeriveRnsLinkKeyState(): DeriveRnsLinkKeyState {
 
 export function stepDeriveRnsLinkKeyWithActions(
   state: DeriveRnsLinkKeyState,
-  event: DeriveRnsLinkKeyEvent,
+  event: DeriveRnsLinkKeyEvent
 ): DeriveRnsLinkKeyStepResult {
   if (event.kind === "link-key/derive-gate") {
     const mode = event.mode ?? LinkKeyMode.MODE_AES256_CBC;
@@ -268,7 +263,7 @@ export function stepDeriveRnsLinkKeyWithActions(
       length: linkDerivedKeyLength(mode),
       deriveFrom: event.sharedSecret,
       salt: event.linkId,
-      context: null,
+      context: null
     });
     if (
       shouldRejectRnsHkdfSha256(hkdf.actions) ||
@@ -287,20 +282,20 @@ export function stepDeriveRnsLinkKeyWithActions(
 }
 
 export function shouldUseDeriveRnsLinkKey(
-  actions: ReadonlyArray<DeriveRnsLinkKeyAction>,
+  actions: ReadonlyArray<DeriveRnsLinkKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectDeriveRnsLinkKey(
-  actions: ReadonlyArray<DeriveRnsLinkKeyAction>,
+  actions: ReadonlyArray<DeriveRnsLinkKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract derived link key from step actions; null when no `use-raw`. */
 export function deriveRnsLinkKeyRawFromActions(
-  actions: ReadonlyArray<DeriveRnsLinkKeyAction>,
+  actions: ReadonlyArray<DeriveRnsLinkKeyAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -338,19 +333,14 @@ export function initialOrderIndependentSharedSecretState(): OrderIndependentShar
 
 export function stepOrderIndependentSharedSecretWithActions(
   state: OrderIndependentSharedSecretState,
-  event: OrderIndependentSharedSecretEvent,
+  event: OrderIndependentSharedSecretEvent
 ): OrderIndependentSharedSecretStepResult {
   if (event.kind === "link-key/order-independent-shared-secret-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [
-          {
-            kind: "use-raw",
-            raw: orderIndependentSharedSecret(event.a, event.b),
-          },
-        ],
+        actions: [{ kind: "use-raw", raw: orderIndependentSharedSecret(event.a, event.b) }]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -361,20 +351,20 @@ export function stepOrderIndependentSharedSecretWithActions(
 }
 
 export function shouldUseOrderIndependentSharedSecret(
-  actions: ReadonlyArray<OrderIndependentSharedSecretAction>,
+  actions: ReadonlyArray<OrderIndependentSharedSecretAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectOrderIndependentSharedSecret(
-  actions: ReadonlyArray<OrderIndependentSharedSecretAction>,
+  actions: ReadonlyArray<OrderIndependentSharedSecretAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract shared secret from step actions; null when no `use-raw`. */
 export function orderIndependentSharedSecretRawFromActions(
-  actions: ReadonlyArray<OrderIndependentSharedSecretAction>,
+  actions: ReadonlyArray<OrderIndependentSharedSecretAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

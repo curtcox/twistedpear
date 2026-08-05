@@ -6,7 +6,7 @@ import {
   RESOURCE_WINDOW,
   RESOURCE_WINDOW_MAX,
   RESOURCE_WINDOW_MIN,
-  ResourceStatus,
+  ResourceStatus
 } from "../src/resource-watchdog.js";
 
 describe("resource session constants", () => {

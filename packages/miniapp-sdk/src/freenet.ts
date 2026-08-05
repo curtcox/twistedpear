@@ -5,15 +5,8 @@ export interface FreenetContractRecord {
   readonly stateHex: string;
 }
 
-export async function get(
-  keyHex: string,
-): Promise<FreenetContractRecord | null> {
-  return (await callHost(
-    "freenet",
-    "get",
-    { keyHex },
-    "freenet:contract",
-  )) as FreenetContractRecord | null;
+export async function get(keyHex: string): Promise<FreenetContractRecord | null> {
+  return (await callHost("freenet", "get", { keyHex }, "freenet:contract")) as FreenetContractRecord | null;
 }
 
 export async function put(options: {

@@ -13,18 +13,14 @@ export function isDarwin() {
 export function simctl(args) {
   const result = spawnSync("xcrun", ["simctl", ...args], { encoding: "utf8" });
   if (result.status !== 0) {
-    throw new Error(
-      `simctl ${args.join(" ")} failed: ${result.stderr || result.stdout}`,
-    );
+    throw new Error(`simctl ${args.join(" ")} failed: ${result.stderr || result.stdout}`);
   }
 
   return result.stdout ?? "";
 }
 
 export function simctlAvailable() {
-  return (
-    spawnSync("xcrun", ["simctl", "list"], { encoding: "utf8" }).status === 0
-  );
+  return spawnSync("xcrun", ["simctl", "list"], { encoding: "utf8" }).status === 0;
 }
 
 export function bootedSimulatorUdid() {
@@ -34,20 +30,12 @@ export function bootedSimulatorUdid() {
 }
 
 export function defaultSimulatorName() {
-  if (
-    process.env.IOS_SIM_DEVICE !== undefined &&
-    process.env.IOS_SIM_DEVICE.length > 0
-  ) {
+  if (process.env.IOS_SIM_DEVICE !== undefined && process.env.IOS_SIM_DEVICE.length > 0) {
     return process.env.IOS_SIM_DEVICE;
   }
 
   const listed = simctl(["list", "devices", "available"]);
-  const preferred = [
-    "iPhone 16",
-    "iPhone 15",
-    "iPhone 14",
-    "iPhone SE (3rd generation)",
-  ];
+  const preferred = ["iPhone 16", "iPhone 15", "iPhone 14", "iPhone SE (3rd generation)"];
   for (const name of preferred) {
     if (listed.includes(`${name} (`)) {
       return name;
@@ -64,9 +52,7 @@ export function defaultSimulatorName() {
 
 export function bootSimulator(deviceName = defaultSimulatorName()) {
   const listed = simctl(["list", "devices", "available"]);
-  const pattern = new RegExp(
-    `${deviceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(([0-9A-F-]{36})\\)`,
-  );
+  const pattern = new RegExp(`${deviceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(([0-9A-F-]{36})\\)`);
   const match = listed.match(pattern);
   if (match === null) {
     throw new Error(`No available simulator named ${deviceName}`);
@@ -102,32 +88,24 @@ export function buildAndInstallHarness(repoRoot, options = {}) {
 
   const worklet = spawnSync("npm", ["run", "build:worklet"], {
     cwd: repoRoot,
-    stdio: "inherit",
+    stdio: "inherit"
   });
   if (worklet.status !== 0) {
     throw new Error("build:worklet failed");
   }
 
-  const bareAddons = spawnSync(
-    "node",
-    ["scripts/link-bare-addons.mjs", "ios"],
-    {
-      cwd: harnessDir,
-      stdio: "inherit",
-    },
-  );
+  const bareAddons = spawnSync("node", ["scripts/link-bare-addons.mjs", "ios"], {
+    cwd: harnessDir,
+    stdio: "inherit"
+  });
   if (bareAddons.status !== 0) {
     throw new Error("link-bare-addons ios failed");
   }
 
-  const prebuild = spawnSync(
-    "npx",
-    ["expo", "prebuild", "--platform", "ios", "--no-install"],
-    {
-      cwd: harnessDir,
-      stdio: "inherit",
-    },
-  );
+  const prebuild = spawnSync("npx", ["expo", "prebuild", "--platform", "ios", "--no-install"], {
+    cwd: harnessDir,
+    stdio: "inherit"
+  });
   if (prebuild.status !== 0) {
     throw new Error("expo prebuild --platform ios failed");
   }
@@ -140,17 +118,15 @@ export function buildAndInstallHarness(repoRoot, options = {}) {
       stdio: "inherit",
       env: {
         ...process.env,
-        EXPO_NO_INTERACTIVE: "1",
-      },
-    },
+        EXPO_NO_INTERACTIVE: "1"
+      }
+    }
   );
   if (runIos.status !== 0) {
     throw new Error(`expo run:ios --device ${deviceName} failed`);
   }
 
   if (!harnessInstalledOnBootedSim()) {
-    throw new Error(
-      `Harness not installed on booted simulator after expo run:ios (${HARNESS_BUNDLE_ID})`,
-    );
+    throw new Error(`Harness not installed on booted simulator after expo run:ios (${HARNESS_BUNDLE_ID})`);
   }
 }

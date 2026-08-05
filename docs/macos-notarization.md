@@ -1,5 +1,6 @@
 # macOS Notarization Procedure
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -70,10 +71,10 @@ xcrun stapler validate release/TwistedPear-*.dmg
 
 When H12 account exists, add secrets to GitHub:
 
-| Secret                                     | Purpose              |
-| ------------------------------------------ | -------------------- |
-| `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` | notarytool           |
-| `CSC_LINK` / `CSC_KEY_PASSWORD`            | Developer ID signing |
+| Secret | Purpose |
+|---|---|
+| `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` | notarytool |
+| `CSC_LINK` / `CSC_KEY_PASSWORD` | Developer ID signing |
 
 Update `electron-pack-macos` to set `CSC_IDENTITY_AUTO_DISCOVERY=true` and
 `APPLE_NOTARIZE` credentials. Until then, notarization is manual per this document.

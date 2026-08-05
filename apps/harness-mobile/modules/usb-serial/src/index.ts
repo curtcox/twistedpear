@@ -1,9 +1,6 @@
 import { requireNativeModule, type EventSubscription } from "expo-modules-core";
 import { Platform } from "react-native";
-import type {
-  SerialPipe,
-  SerialPipeEvents,
-} from "@twistedpear/reticulum-interfaces";
+import type { SerialPipe, SerialPipeEvents } from "@twistedpear/reticulum-interfaces";
 import { resolveUsbSerialCapability } from "./capability.mjs";
 
 export interface UsbSerialDeviceInfo {
@@ -41,31 +38,13 @@ interface UsbSerialNative {
   write(data: Uint8Array): Promise<boolean>;
   isConnected(): boolean;
   getOpenDeviceId(): number | null;
-  addListener(
-    event: "onData",
-    listener: (event: UsbSerialDataEvent) => void,
-  ): EventSubscription;
-  addListener(
-    event: "onConnect",
-    listener: (event: UsbSerialConnectEvent) => void,
-  ): EventSubscription;
+  addListener(event: "onData", listener: (event: UsbSerialDataEvent) => void): EventSubscription;
+  addListener(event: "onConnect", listener: (event: UsbSerialConnectEvent) => void): EventSubscription;
   addListener(event: "onDisconnect", listener: () => void): EventSubscription;
-  addListener(
-    event: "onError",
-    listener: (event: UsbSerialErrorEvent) => void,
-  ): EventSubscription;
-  addListener(
-    event: "onDeviceAttached",
-    listener: (event: UsbSerialDeviceInfo) => void,
-  ): EventSubscription;
-  addListener(
-    event: "onDeviceDetached",
-    listener: (event: { readonly deviceId: number }) => void,
-  ): EventSubscription;
-  addListener(
-    event: "onPermissionResult",
-    listener: (event: UsbSerialPermissionEvent) => void,
-  ): EventSubscription;
+  addListener(event: "onError", listener: (event: UsbSerialErrorEvent) => void): EventSubscription;
+  addListener(event: "onDeviceAttached", listener: (event: UsbSerialDeviceInfo) => void): EventSubscription;
+  addListener(event: "onDeviceDetached", listener: (event: { readonly deviceId: number }) => void): EventSubscription;
+  addListener(event: "onPermissionResult", listener: (event: UsbSerialPermissionEvent) => void): EventSubscription;
 }
 
 function loadNativeUsbSerial(): UsbSerialNative | null {
@@ -83,10 +62,7 @@ const NativeUsbSerial = loadNativeUsbSerial();
 
 export type UsbSerialCapability =
   | { readonly supported: true; readonly reason: null }
-  | {
-      readonly supported: false;
-      readonly reason: "unsupported-on-ios" | "native-module-unavailable";
-    };
+  | { readonly supported: false; readonly reason: "unsupported-on-ios" | "native-module-unavailable" };
 
 export function getUsbSerialCapability(): UsbSerialCapability {
   const base = resolveUsbSerialCapability(Platform.OS);
@@ -102,16 +78,9 @@ export function getUsbSerialCapability(): UsbSerialCapability {
 }
 
 /** Wrap the Android USB-serial bridge as a SerialPipe for RNodeInterface. */
-export function createNativeSerialPipe(
-  deviceId: number,
-  baudRate = 115_200,
-): SerialPipe {
+export function createNativeSerialPipe(deviceId: number, baudRate = 115_200): SerialPipe {
   if (NativeUsbSerial === null) {
-    throw new Error(
-      Platform.OS === "ios"
-        ? "USB serial is unsupported on iOS; use BLE RNode instead"
-        : "USB serial bridge is only available in native Android builds",
-    );
+    throw new Error(Platform.OS === "ios" ? "USB serial is unsupported on iOS; use BLE RNode instead" : "USB serial bridge is only available in native Android builds");
   }
 
   let events: SerialPipeEvents = {};
@@ -143,10 +112,9 @@ export function createNativeSerialPipe(
       errorSubscription?.remove();
 
       dataSubscription = NativeUsbSerial.addListener("onData", (event) => {
-        const data =
-          event.data instanceof Uint8Array
-            ? event.data
-            : Uint8Array.from(event.data as ArrayLike<number>);
+        const data = event.data instanceof Uint8Array
+          ? event.data
+          : Uint8Array.from(event.data as ArrayLike<number>);
         bytesIn += data.length;
         events.onData?.(data);
       });
@@ -156,13 +124,10 @@ export function createNativeSerialPipe(
         events.onConnect?.();
       });
 
-      disconnectSubscription = NativeUsbSerial.addListener(
-        "onDisconnect",
-        () => {
-          connected = false;
-          events.onDisconnect?.();
-        },
-      );
+      disconnectSubscription = NativeUsbSerial.addListener("onDisconnect", () => {
+        connected = false;
+        events.onDisconnect?.();
+      });
 
       errorSubscription = NativeUsbSerial.addListener("onError", (event) => {
         events.onError?.(new Error(event.message));
@@ -196,7 +161,7 @@ export function createNativeSerialPipe(
     async write(data: Uint8Array) {
       await NativeUsbSerial.write(data);
       bytesOut += data.length;
-    },
+    }
   };
 
   return pipe;
@@ -210,15 +175,9 @@ export function listUsbSerialDevices(): ReadonlyArray<UsbSerialDeviceInfo> {
   return NativeUsbSerial.listDevices();
 }
 
-export async function requestUsbSerialPermission(
-  deviceId: number,
-): Promise<boolean> {
+export async function requestUsbSerialPermission(deviceId: number): Promise<boolean> {
   if (NativeUsbSerial === null) {
-    throw new Error(
-      Platform.OS === "ios"
-        ? "USB serial is unsupported on iOS; use BLE RNode instead"
-        : "USB serial bridge is only available in native Android builds",
-    );
+    throw new Error(Platform.OS === "ios" ? "USB serial is unsupported on iOS; use BLE RNode instead" : "USB serial bridge is only available in native Android builds");
   }
 
   return NativeUsbSerial.requestPermission(deviceId);
@@ -232,10 +191,7 @@ export function hasUsbSerialPermission(deviceId: number): boolean {
   return NativeUsbSerial.hasPermission(deviceId);
 }
 
-export async function openNativeSerialPipe(
-  deviceId: number,
-  baudRate = 115_200,
-): Promise<SerialPipe> {
+export async function openNativeSerialPipe(deviceId: number, baudRate = 115_200): Promise<SerialPipe> {
   const pipe = createNativeSerialPipe(deviceId, baudRate);
   await pipe.open();
   return pipe;

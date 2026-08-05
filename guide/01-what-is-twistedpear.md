@@ -16,7 +16,7 @@ and nothing that stops working if a business shuts down.
 desktop, phone, or browser tab. The host is your peer on the network: it holds your
 identity, talks to other people's hosts, and runs your apps.
 
-**A mini-app** is a small application that runs _inside_ your host. Chat, file sharing,
+**A mini-app** is a small application that runs *inside* your host. Chat, file sharing,
 a shared noticeboard, the Handbook. Mini-apps cannot touch your device directly. They
 ask the host for everything they need, and the host asks you.
 
@@ -45,7 +45,7 @@ therefore the chapter that decides whether TwistedPear feels alive or dead to yo
 
 ## Your identity is a key, not an account
 
-The first time your host starts, it generates a cryptographic keypair. That keypair _is_
+The first time your host starts, it generates a cryptographic keypair. That keypair *is*
 your identity. It is not registered anywhere. Nobody issued it to you and nobody can
 revoke it.
 
@@ -74,7 +74,7 @@ See [Chapter 8](08-trust-privacy-safety.md).
 
 ## What TwistedPear is not
 
-- **Not anonymous.** Message _contents_ are encrypted end to end, but someone physically
+- **Not anonymous.** Message *contents* are encrypted end to end, but someone physically
   near you can observe that your device is transmitting. See
   [Chapter 8](08-trust-privacy-safety.md).
 - **Not a replacement for native apps.** Mini-apps cannot use the camera arbitrarily, run

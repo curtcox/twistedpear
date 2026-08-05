@@ -134,9 +134,7 @@ pre {
   width: fit-content;
   font: inherit;
   font-weight: 650;
-  transition:
-    background 120ms ease,
-    transform 120ms ease;
+  transition: background 120ms ease, transform 120ms ease;
 }
 
 .widget-button:hover {
@@ -434,3 +432,4 @@ button.danger {
 .device-availability-permission-required {
   color: #e0b35a;
 }
+

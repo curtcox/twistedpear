@@ -10,11 +10,11 @@ import {
   stepGrantHost,
   type GrantEvent,
   type GrantHostState,
-  type GrantLifecycleState,
+  type GrantLifecycleState
 } from "@twistedpear/protocol";
 import {
   DEVICE_CAPABILITY_DEFINITIONS,
-  type DeviceCapability,
+  type DeviceCapability
 } from "./device-capabilities.gen.js";
 
 export type MiniappCapability =
@@ -49,124 +49,54 @@ export interface CapabilityDefinition {
 }
 
 const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
-  {
-    id: "identity",
-    description: "Use an app-scoped identity for signing and addressing.",
-  },
-  {
-    id: "presence",
-    description: "Read coarse peer/interface presence and host info.",
-  },
-  {
-    id: "announce:subscribe",
-    description: "Receive announces in the app namespace.",
-  },
+  { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
+  { id: "presence", description: "Read coarse peer/interface presence and host info." },
+  { id: "announce:subscribe", description: "Receive announces in the app namespace." },
   { id: "announce:publish", description: "Publish the app destination." },
-  {
-    id: "lxmf:send",
-    description: "Send LXMF messages from the app destination.",
-  },
-  {
-    id: "lxmf:receive",
-    description: "Receive LXMF messages for the app destination.",
-  },
+  { id: "lxmf:send", description: "Send LXMF messages from the app destination." },
+  { id: "lxmf:receive", description: "Receive LXMF messages for the app destination." },
   { id: "storage:kv", description: "Store local key/value data for this app." },
-  {
-    id: "storage:hyperbee",
-    description: "Store ordered local Hyperbee data for this app.",
-  },
-  {
-    id: "resource:fetch",
-    description: "Fetch package resources through host budget rules.",
-  },
-  {
-    id: "workspace",
-    description:
-      "Read and write project source files in this app's private workspace.",
-  },
-  {
-    id: "ai:chat",
-    description:
-      "Send prompts to the host-configured AI service; prompts may include workspace content.",
-  },
-  {
-    id: "ai:embed",
-    description:
-      "Send bounded text to the host-configured embedding model and rank vectors locally.",
-  },
-  {
-    id: "apps:package",
-    description:
-      "Package and sign apps under this device's publisher identity (asks each time).",
-  },
-  {
-    id: "apps:publish",
-    description:
-      "Publish signed apps so other users can find and install them (asks each time).",
-  },
-  {
-    id: "apps:install",
-    description:
-      "Ask the host to install apps from a 256t id (asks each time, with capability review).",
-  },
-  {
-    id: "apps:preview",
-    description: "Run a built app in the host's sandboxed dev-preview slot.",
-  },
-  {
-    id: "share:cas",
-    description:
-      "Store and retrieve bounded content-addressed data shared by 256t id.",
-  },
-  {
-    id: "peer:connect",
-    description:
-      "Ask trusted host chrome to find, confirm, and connect an app-scoped peer.",
-  },
-  {
-    id: "link:observe",
-    description:
-      "See which peers are reachable and how good the connection to each is.",
-  },
-  {
-    id: "link:probe",
-    description:
-      "Send a small test transmission to measure a connection (uses airtime and battery).",
-  },
+  { id: "storage:hyperbee", description: "Store ordered local Hyperbee data for this app." },
+  { id: "resource:fetch", description: "Fetch package resources through host budget rules." },
+  { id: "workspace", description: "Read and write project source files in this app's private workspace." },
+  { id: "ai:chat", description: "Send prompts to the host-configured AI service; prompts may include workspace content." },
+  { id: "ai:embed", description: "Send bounded text to the host-configured embedding model and rank vectors locally." },
+  { id: "apps:package", description: "Package and sign apps under this device's publisher identity (asks each time)." },
+  { id: "apps:publish", description: "Publish signed apps so other users can find and install them (asks each time)." },
+  { id: "apps:install", description: "Ask the host to install apps from a 256t id (asks each time, with capability review)." },
+  { id: "apps:preview", description: "Run a built app in the host's sandboxed dev-preview slot." },
+  { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." },
+  { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." },
+  { id: "link:observe", description: "See which peers are reachable and how good the connection to each is." },
+  { id: "link:probe", description: "Send a small test transmission to measure a connection (uses airtime and battery)." },
   {
     id: "relay:configure",
     description:
-      "Turn this device's radios, camera, microphone, speaker, and internet-push relaying on or off, and forward other people's traffic. This grant permits changes without another prompt.",
+      "Turn this device's radios, camera, microphone, speaker, and internet-push relaying on or off, and forward other people's traffic. This grant permits changes without another prompt."
   },
-  {
-    id: "relay:read",
-    description: "Read host relay mode, interface status, and diagnostics.",
-  },
+  { id: "relay:read", description: "Read host relay mode, interface status, and diagnostics." },
   {
     id: "freenet:contract",
     description:
-      "Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update).",
-  },
+      "Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update)."
+  }
 ];
 
 export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   ...CORE_CAPABILITY_DEFINITIONS,
   ...DEVICE_CAPABILITY_DEFINITIONS.map((entry) => ({
     id: entry.id as MiniappCapability,
-    description: entry.description,
-  })),
+    description: entry.description
+  }))
 ];
 
-const CAPABILITY_IDS = new Set<string>(
-  CAPABILITY_DEFINITIONS.map((definition) => definition.id),
-);
+const CAPABILITY_IDS = new Set<string>(CAPABILITY_DEFINITIONS.map((definition) => definition.id));
 
 export class CapabilityError extends Error {
   constructor(
-    readonly code:
-      "UNKNOWN_CAPABILITY" | "UNDECLARED_CAPABILITY" | "CAPABILITY_DENIED",
+    readonly code: "UNKNOWN_CAPABILITY" | "UNDECLARED_CAPABILITY" | "CAPABILITY_DENIED",
     message: string,
-    readonly capability: string,
+    readonly capability: string
   ) {
     super(message);
     this.name = "CapabilityError";
@@ -177,9 +107,7 @@ export function isMiniappCapability(value: string): value is MiniappCapability {
   return CAPABILITY_IDS.has(value);
 }
 
-export function validateManifestCapabilities(
-  capabilities: ReadonlyArray<string>,
-): MiniappCapability[] {
+export function validateManifestCapabilities(capabilities: ReadonlyArray<string>): MiniappCapability[] {
   const validated: MiniappCapability[] = [];
   const seen = new Set<string>();
 
@@ -188,7 +116,7 @@ export function validateManifestCapabilities(
       throw new CapabilityError(
         "UNKNOWN_CAPABILITY",
         `Unknown capability "${capability}". Update minHostApi if this app targets a newer host API.`,
-        capability,
+        capability
       );
     }
 
@@ -202,9 +130,7 @@ export function validateManifestCapabilities(
 }
 
 export function describeCapability(capability: MiniappCapability): string {
-  const definition = CAPABILITY_DEFINITIONS.find(
-    (entry) => entry.id === capability,
-  );
+  const definition = CAPABILITY_DEFINITIONS.find((entry) => entry.id === capability);
   return definition?.description ?? capability;
 }
 
@@ -221,10 +147,7 @@ export interface GrantKeyValueStore {
   delete(key: string): Promise<void>;
 }
 
-export function grantStoreKey(
-  appId: string,
-  publisherPublicKey: string,
-): string {
+export function grantStoreKey(appId: string, publisherPublicKey: string): string {
   return protocolGrantStoreKey(appId, publisherPublicKey);
 }
 
@@ -234,14 +157,14 @@ function throwGrantError(message: string, capability: string): never {
     message.includes("undeclared")
       ? `Capability "${capability}" was not declared by the signed manifest.`
       : message,
-    capability,
+    capability
   );
 }
 
 async function applyGrantStep(
   store: GrantKeyValueStore,
   state: ReturnType<typeof initialGrantHostState>,
-  event: GrantEvent,
+  event: GrantEvent
 ): Promise<ReturnType<typeof initialGrantHostState>> {
   const result = stepGrantHost(state, event as unknown as Event);
   if (result.state.lastError !== null) {
@@ -270,20 +193,18 @@ function authorityStoreKey(appId: string, publisherPublicKey: string): string {
 }
 
 function encodeAuthority(state: GrantHostState): Uint8Array {
-  return new TextEncoder().encode(
-    JSON.stringify({
-      version: 1,
-      appId: state.appId,
-      publisherPublicKey: state.publisherPublicKey,
-      lifecycles: state.lifecycles ?? {},
-    } satisfies PersistedGrantAuthority),
-  );
+  return new TextEncoder().encode(JSON.stringify({
+    version: 1,
+    appId: state.appId,
+    publisherPublicKey: state.publisherPublicKey,
+    lifecycles: state.lifecycles ?? {}
+  } satisfies PersistedGrantAuthority));
 }
 
 function decodeAuthority(
   raw: Uint8Array | null,
   appId: string,
-  publisherPublicKey: string,
+  publisherPublicKey: string
 ): Readonly<Record<string, GrantLifecycleState>> {
   if (raw === null) return {};
   let value: unknown;
@@ -292,38 +213,20 @@ function decodeAuthority(
   } catch {
     throw new Error("invalid persisted grant authority");
   }
-  if (typeof value !== "object" || value === null)
-    throw new Error("invalid persisted grant authority");
+  if (typeof value !== "object" || value === null) throw new Error("invalid persisted grant authority");
   const authority = value as Partial<PersistedGrantAuthority>;
-  if (
-    authority.version !== 1 ||
-    authority.appId !== appId ||
-    authority.publisherPublicKey !== publisherPublicKey ||
-    typeof authority.lifecycles !== "object" ||
-    authority.lifecycles === null
-  ) {
+  if (authority.version !== 1 || authority.appId !== appId ||
+      authority.publisherPublicKey !== publisherPublicKey ||
+      typeof authority.lifecycles !== "object" || authority.lifecycles === null) {
     throw new Error("invalid persisted grant authority");
   }
   for (const lifecycle of Object.values(authority.lifecycles)) {
-    if (
-      typeof lifecycle !== "object" ||
-      lifecycle === null ||
-      ![
-        "requested",
-        "granted",
-        "active",
-        "denied",
-        "expired",
-        "revoked",
-      ].includes(lifecycle.phase) ||
-      !Number.isSafeInteger(lifecycle.requestedAt) ||
-      (lifecycle.expiresAt !== null &&
-        !Number.isSafeInteger(lifecycle.expiresAt)) ||
-      (lifecycle.firstUsedAt !== null &&
-        !Number.isSafeInteger(lifecycle.firstUsedAt)) ||
-      (lifecycle.revokedAt !== null &&
-        !Number.isSafeInteger(lifecycle.revokedAt))
-    ) {
+    if (typeof lifecycle !== "object" || lifecycle === null ||
+        !["requested", "granted", "active", "denied", "expired", "revoked"].includes(lifecycle.phase) ||
+        !Number.isSafeInteger(lifecycle.requestedAt) ||
+        (lifecycle.expiresAt !== null && !Number.isSafeInteger(lifecycle.expiresAt)) ||
+        (lifecycle.firstUsedAt !== null && !Number.isSafeInteger(lifecycle.firstUsedAt)) ||
+        (lifecycle.revokedAt !== null && !Number.isSafeInteger(lifecycle.revokedAt))) {
       throw new Error("invalid persisted grant authority");
     }
   }
@@ -333,53 +236,35 @@ function decodeAuthority(
 export class GrantStore {
   constructor(private readonly store: GrantKeyValueStore) {}
 
-  private async loadState(
-    appId: string,
-    publisherPublicKey: string,
-  ): Promise<GrantHostState> {
+  private async loadState(appId: string, publisherPublicKey: string): Promise<GrantHostState> {
     const key = grantStoreKey(appId, publisherPublicKey);
     const [recordRaw, authorityRaw] = await Promise.all([
       this.store.get(key),
-      this.store.get(authorityStoreKey(appId, publisherPublicKey)),
+      this.store.get(authorityStoreKey(appId, publisherPublicKey))
     ]);
     let state = initialGrantHostState(appId, publisherPublicKey);
     if (recordRaw !== null) {
-      state = stepGrantHost(state, {
-        kind: "store/value",
-        key,
-        value: recordRaw,
-      }).state;
+      state = stepGrantHost(state, { kind: "store/value", key, value: recordRaw }).state;
       if (state.lastError !== null) throw new Error(state.lastError);
     }
     const persisted = decodeAuthority(authorityRaw, appId, publisherPublicKey);
-    return Object.keys(persisted).length === 0
-      ? state
-      : { ...state, lifecycles: persisted };
+    return Object.keys(persisted).length === 0 ? state : { ...state, lifecycles: persisted };
   }
 
   private async persistAuthority(state: GrantHostState): Promise<void> {
-    await this.store.set(
-      authorityStoreKey(state.appId, state.publisherPublicKey),
-      encodeAuthority(state),
-    );
+    await this.store.set(authorityStoreKey(state.appId, state.publisherPublicKey), encodeAuthority(state));
   }
 
-  async get(
-    appId: string,
-    publisherPublicKey: string,
-  ): Promise<GrantRecord | null> {
+  async get(appId: string, publisherPublicKey: string): Promise<GrantRecord | null> {
     const raw = await this.store.get(grantStoreKey(appId, publisherPublicKey));
     if (raw === null) {
       return null;
     }
 
-    const decodeStepped = stepDecodeGrantRecordWithActions(
-      initialDecodeGrantRecordState(),
-      {
-        kind: "grant/decode-gate",
-        bytes: raw,
-      },
-    );
+    const decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
+      kind: "grant/decode-gate",
+      bytes: raw
+    });
     if (
       shouldRejectDecodeGrantRecord(decodeStepped.actions) ||
       !shouldUseDecodeGrantRecord(decodeStepped.actions)
@@ -394,15 +279,12 @@ export class GrantStore {
       appId: parsed.appId,
       publisherPublicKey: parsed.publisherPublicKey,
       granted: validateManifestCapabilities([...parsed.granted]),
-      updatedAt: parsed.updatedAt,
+      updatedAt: parsed.updatedAt
     };
   }
 
   /** Read persisted lifecycle authority without deriving it from the public grant record. */
-  async authority(
-    appId: string,
-    publisherPublicKey: string,
-  ): Promise<Readonly<Record<string, GrantLifecycleState>>> {
+  async authority(appId: string, publisherPublicKey: string): Promise<Readonly<Record<string, GrantLifecycleState>>> {
     return (await this.loadState(appId, publisherPublicKey)).lifecycles ?? {};
   }
 
@@ -412,7 +294,7 @@ export class GrantStore {
     declared: ReadonlyArray<string>,
     requestedGrants: ReadonlyArray<string>,
     now: number,
-    ttlMs = Number.MAX_SAFE_INTEGER - now,
+    ttlMs = Number.MAX_SAFE_INTEGER - now
   ): Promise<GrantRecord> {
     const declaredCapabilities = validateManifestCapabilities(declared);
     const requested = validateManifestCapabilities(requestedGrants);
@@ -422,54 +304,41 @@ export class GrantStore {
       return phase === "denied" || phase === "expired" || phase === "revoked";
     });
     if (terminal !== undefined) {
-      throw new CapabilityError(
-        "CAPABILITY_DENIED",
-        "Terminal grant authority cannot be revived by set.",
-        terminal,
-      );
+      throw new CapabilityError("CAPABILITY_DENIED", "Terminal grant authority cannot be revived by set.", terminal);
     }
     const state = await applyGrantStep(this.store, before, {
       kind: "grant/set",
       at: now,
       declared: declaredCapabilities,
       requested,
-      ttlMs,
+      ttlMs
     } as GrantEvent);
 
     await this.persistAuthority(state);
 
     if (state.record === null) {
-      throw new CapabilityError(
-        "CAPABILITY_DENIED",
-        "Terminal grant authority cannot be revived by set.",
-        requested[0] ?? "unknown",
-      );
+      throw new CapabilityError("CAPABILITY_DENIED", "Terminal grant authority cannot be revived by set.", requested[0] ?? "unknown");
     }
 
     return {
       appId: state.record.appId,
       publisherPublicKey: state.record.publisherPublicKey,
       granted: validateManifestCapabilities([...state.record.granted]),
-      updatedAt: state.record.updatedAt,
+      updatedAt: state.record.updatedAt
     };
   }
 
-  async revoke(
-    appId: string,
-    publisherPublicKey: string,
-    capability: MiniappCapability,
-    now: number,
-  ): Promise<GrantRecord | null> {
+  async revoke(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<GrantRecord | null> {
     const before = await this.loadState(appId, publisherPublicKey);
     if (before.record === null) {
       return null;
     }
 
-    const state = await applyGrantStep(this.store, before, {
-      kind: "grant/revoke",
-      at: now,
-      capability,
-    } as GrantEvent);
+    const state = await applyGrantStep(
+      this.store,
+      before,
+      { kind: "grant/revoke", at: now, capability } as GrantEvent
+    );
     await this.persistAuthority(state);
 
     if (state.record === null) {
@@ -480,48 +349,30 @@ export class GrantStore {
       appId: state.record.appId,
       publisherPublicKey: state.record.publisherPublicKey,
       granted: validateManifestCapabilities([...state.record.granted]),
-      updatedAt: state.record.updatedAt,
+      updatedAt: state.record.updatedAt
     };
   }
 
-  async deny(
-    appId: string,
-    publisherPublicKey: string,
-    capability: MiniappCapability,
-    now: number,
-  ): Promise<void> {
+  async deny(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<void> {
     const state = await applyGrantStep(
       this.store,
       await this.loadState(appId, publisherPublicKey),
-      { kind: "grant/deny", at: now, capability } as GrantEvent,
+      { kind: "grant/deny", at: now, capability } as GrantEvent
     );
     await this.persistAuthority(state);
   }
 
-  async use(
-    appId: string,
-    publisherPublicKey: string,
-    capability: MiniappCapability,
-    now: number,
-  ): Promise<GrantRecord | null> {
+  async use(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<GrantRecord | null> {
     let state = await this.loadState(appId, publisherPublicKey);
-    state = await applyGrantStep(this.store, state, {
-      kind: "grant/ttl",
-      at: now,
-      capability,
-    } as GrantEvent);
-    state = await applyGrantStep(this.store, state, {
-      kind: "grant/first-use",
-      at: now,
-      capability,
-    } as GrantEvent);
+    state = await applyGrantStep(this.store, state, { kind: "grant/ttl", at: now, capability } as GrantEvent);
+    state = await applyGrantStep(this.store, state, { kind: "grant/first-use", at: now, capability } as GrantEvent);
     await this.persistAuthority(state);
     if (state.record === null) return null;
     return {
       appId: state.record.appId,
       publisherPublicKey: state.record.publisherPublicKey,
       granted: validateManifestCapabilities([...state.record.granted]),
-      updatedAt: state.record.updatedAt,
+      updatedAt: state.record.updatedAt
     };
   }
 
@@ -538,28 +389,20 @@ export function assertCapabilityAllowed(options: {
   const capabilities = validateManifestCapabilities([options.capability]);
   const capability = capabilities[0];
   if (capability === undefined) {
-    throw new CapabilityError(
-      "UNKNOWN_CAPABILITY",
-      `Unknown capability "${options.capability}".`,
-      options.capability,
-    );
+    throw new CapabilityError("UNKNOWN_CAPABILITY", `Unknown capability "${options.capability}".`, options.capability);
   }
   const declared = new Set(validateManifestCapabilities(options.declared));
   if (!declared.has(capability)) {
     throw new CapabilityError(
       "UNDECLARED_CAPABILITY",
       `Capability "${capability}" was not declared by the signed manifest.`,
-      capability,
+      capability
     );
   }
 
   const granted = new Set(validateManifestCapabilities(options.granted));
   if (!granted.has(capability)) {
-    throw new CapabilityError(
-      "CAPABILITY_DENIED",
-      `Capability "${capability}" has not been granted.`,
-      capability,
-    );
+    throw new CapabilityError("CAPABILITY_DENIED", `Capability "${capability}" has not been granted.`, capability);
   }
 
   return capability;

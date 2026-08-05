@@ -1,21 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PacketInterface } from "@twistedpear/reticulum-ts";
-import {
-  Identity,
-  PureCryptoProvider,
-  bytesToHex,
-} from "@twistedpear/reticulum-ts";
+import { Identity, PureCryptoProvider, bytesToHex } from "@twistedpear/reticulum-ts";
 import { encode256t, signCasLocator } from "@twistedpear/cas-256t";
 import {
   buildUnsignedManifest,
   packPackage,
-  signManifest,
+  signManifest
 } from "@twistedpear/app-registry";
-import {
-  assessFetchBudget,
-  BULK_BLOCK_RNODE_BYTES,
-  fetchPackage,
-} from "../src/fetch.js";
+import { assessFetchBudget, BULK_BLOCK_RNODE_BYTES, fetchPackage } from "../src/fetch.js";
 import type { DriveManager } from "../src/drive.js";
 
 function mockIface(name: string, online: boolean): PacketInterface {
@@ -28,7 +20,7 @@ function mockIface(name: string, online: boolean): PacketInterface {
     online,
     packets: (async function* () {})(),
     async send() {},
-    async close() {},
+    async close() {}
   };
 }
 
@@ -47,9 +39,9 @@ describe("fetch budget rules", () => {
         destinationHash: "dest",
         receivedAt: 0,
         expiresAt: 0,
-        manifest: null,
+        manifest: null
       },
-      [mockIface("rnode", true)],
+      [mockIface("rnode", true)]
     );
 
     expect(assessment.allowed).toBe(false);
@@ -69,9 +61,9 @@ describe("fetch budget rules", () => {
         destinationHash: "dest",
         receivedAt: 0,
         expiresAt: 0,
-        manifest: null,
+        manifest: null
       },
-      [mockIface("ble", true)],
+      [mockIface("ble", true)]
     );
 
     expect(assessment.allowed).toBe(true);
@@ -92,10 +84,10 @@ describe("fetch budget rules", () => {
         destinationHash: "dest",
         receivedAt: 0,
         expiresAt: 0,
-        manifest: null,
+        manifest: null
       },
       [mockIface("rnode", true)],
-      true,
+      true
     );
 
     expect(assessment.allowed).toBe(true);
@@ -106,12 +98,7 @@ describe("fetchPackage path selection", () => {
   it("ranks an available Freenet node after direct IP paths and before Resource", async () => {
     const provider = new PureCryptoProvider();
     const identity = new Identity(provider);
-    const files = [
-      {
-        path: "bundle.js",
-        content: new TextEncoder().encode("freenet-fetch-test"),
-      },
-    ];
+    const files = [{ path: "bundle.js", content: new TextEncoder().encode("freenet-fetch-test") }];
     const unsigned = buildUnsignedManifest(
       {
         name: "fetch.freenet",
@@ -119,26 +106,20 @@ describe("fetchPackage path selection", () => {
         entry: "bundle.js",
         driveKey: "e".repeat(64),
         publisherPublicKey: bytesToHex(identity.getPublicKey()),
-        files,
+        files
       },
-      provider,
+      provider
     );
     const manifest = signManifest(provider, identity, unsigned);
-    const packed = packPackage(provider, {
-      ...manifest,
-      signature: manifest.signature,
-      files,
-    });
-    const t256 = encode256t(packed.archiveBytes, (bytes) =>
-      provider.sha512(bytes),
-    );
+    const packed = packPackage(provider, { ...manifest, signature: manifest.signature, files });
+    const t256 = encode256t(packed.archiveBytes, (bytes) => provider.sha512(bytes));
     const locator = signCasLocator(identity, {
       t256,
       appId: manifest.name,
       version: manifest.version,
       driveKey: manifest.driveKey,
       packageHash: packed.packageHash,
-      packageSize: packed.archiveBytes.length,
+      packageSize: packed.archiveBytes.length
     });
     const driveManager = {
       activeDrive: null,
@@ -148,15 +129,15 @@ describe("fetchPackage path selection", () => {
       }),
       mirrorFrom: vi.fn(async () => {
         throw new Error("lan mirror unavailable");
-      }),
+      })
     } as unknown as DriveManager;
     const freenetFetcher = {
-      fetchLocator: vi.fn(async () => packed.archiveBytes),
+      fetchLocator: vi.fn(async () => packed.archiveBytes)
     };
     const resourceClient = {
       fetchVersion: vi.fn(async () => {
         throw new Error("resource should not be used");
-      }),
+      })
     };
 
     const result = await fetchPackage(provider, {
@@ -172,7 +153,7 @@ describe("fetchPackage path selection", () => {
         destinationHash: "dest",
         receivedAt: 0,
         expiresAt: 0,
-        manifest: packed.manifest,
+        manifest: packed.manifest
       },
       version: manifest.version,
       interfaces: [mockIface("tcp", true)],
@@ -180,7 +161,7 @@ describe("fetchPackage path selection", () => {
       lanMirrorKeyHex: "f".repeat(64),
       freenetFetcher,
       freenetLocator: locator,
-      resourceClient: resourceClient as never,
+      resourceClient: resourceClient as never
     });
 
     expect(result.path).toBe("freenet");
@@ -191,9 +172,7 @@ describe("fetchPackage path selection", () => {
   it("falls through from hyperdrive to resource", async () => {
     const provider = new PureCryptoProvider();
     const identity = new Identity(provider);
-    const files = [
-      { path: "bundle.js", content: new TextEncoder().encode("fetch-test") },
-    ];
+    const files = [{ path: "bundle.js", content: new TextEncoder().encode("fetch-test") }];
     const unsigned = buildUnsignedManifest(
       {
         name: "fetch.test",
@@ -201,22 +180,18 @@ describe("fetchPackage path selection", () => {
         entry: "bundle.js",
         driveKey: "b".repeat(64),
         publisherPublicKey: bytesToHex(identity.getPublicKey()),
-        files,
+        files
       },
-      provider,
+      provider
     );
     const manifest = signManifest(provider, identity, unsigned);
-    const packed = packPackage(provider, {
-      ...manifest,
-      signature: manifest.signature,
-      files,
-    });
+    const packed = packPackage(provider, { ...manifest, signature: manifest.signature, files });
 
     const driveManager = {
       openDrive: vi.fn(async () => {}),
       fetchVersion: vi.fn(async () => {
         throw new Error("dht blocked");
-      }),
+      })
     } as unknown as DriveManager;
 
     const resourceClient = {
@@ -224,8 +199,8 @@ describe("fetchPackage path selection", () => {
         packageHash: packed.packageHash,
         manifest: packed.manifest,
         files: packed.files,
-        archiveBytes: packed.archiveBytes,
-      })),
+        archiveBytes: packed.archiveBytes
+      }))
     };
 
     const result = await fetchPackage(provider, {
@@ -241,12 +216,12 @@ describe("fetchPackage path selection", () => {
         destinationHash: "dest",
         receivedAt: 0,
         expiresAt: 0,
-        manifest: packed.manifest,
+        manifest: packed.manifest
       },
       version: "1.0.0",
       interfaces: [mockIface("tcp", true)],
       driveManager,
-      resourceClient: resourceClient as never,
+      resourceClient: resourceClient as never
     });
 
     expect(result.path).toBe("resource");
@@ -256,12 +231,7 @@ describe("fetchPackage path selection", () => {
   it("uses lan-mirror when hyperdrive fails", async () => {
     const provider = new PureCryptoProvider();
     const identity = new Identity(provider);
-    const files = [
-      {
-        path: "bundle.js",
-        content: new TextEncoder().encode("lan-mirror-test"),
-      },
-    ];
+    const files = [{ path: "bundle.js", content: new TextEncoder().encode("lan-mirror-test") }];
     const unsigned = buildUnsignedManifest(
       {
         name: "fetch.lan",
@@ -269,22 +239,18 @@ describe("fetchPackage path selection", () => {
         entry: "bundle.js",
         driveKey: "c".repeat(64),
         publisherPublicKey: bytesToHex(identity.getPublicKey()),
-        files,
+        files
       },
-      provider,
+      provider
     );
     const manifest = signManifest(provider, identity, unsigned);
-    const packed = packPackage(provider, {
-      ...manifest,
-      signature: manifest.signature,
-      files,
-    });
+    const packed = packPackage(provider, { ...manifest, signature: manifest.signature, files });
 
     const driveManager = {
       activeDrive: null,
       openDrive: vi.fn(async () => {}),
       fetchVersion: vi.fn(async () => packed.archiveBytes),
-      mirrorFrom: vi.fn(async () => {}),
+      mirrorFrom: vi.fn(async () => {})
     } as unknown as DriveManager;
 
     const result = await fetchPackage(provider, {
@@ -300,13 +266,13 @@ describe("fetchPackage path selection", () => {
         destinationHash: "dest",
         receivedAt: 0,
         expiresAt: 0,
-        manifest: packed.manifest,
+        manifest: packed.manifest
       },
       version: "1.0.0",
       interfaces: [mockIface("tcp", true)],
       driveManager,
       lanMirrorKeyHex: "d".repeat(64),
-      forcePath: "lan-mirror",
+      forcePath: "lan-mirror"
     });
 
     expect(result.path).toBe("lan-mirror");

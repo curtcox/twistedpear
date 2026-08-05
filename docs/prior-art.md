@@ -1,5 +1,6 @@
 # Prior art and similar projects
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -24,14 +25,14 @@ accident is essentially impossible.
 These are ancestors and dependencies, not competitors. TwistedPear's protocol
 layer is a TypeScript implementation of this stack.
 
-| Project                                                      | What it is                                                                                                                                    | Relationship                                                                                                                                                                                                                   |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Reticulum](https://reticulum.network/)                      | Cryptography-first networking stack that runs over LoRa, packet radio, WiFi, TCP, I2P, serial — no central coordination, no plaintext option. | The transport TwistedPear reimplements ([reticulum-ts](../packages/reticulum-ts/)). Goal 1's "choose who is involved" is only meaningful because Reticulum makes the set of involved parties small and inspectable.            |
-| [LXMF](https://github.com/markqvist/LXMF)                    | Delay-tolerant message format and propagation-node scheme over Reticulum.                                                                     | Reimplemented as [lxmf-ts](../packages/lxmf-ts/); the messaging substrate for mini-apps.                                                                                                                                       |
-| [Sideband](https://unsigned.io/software/Sideband.html)       | Polished LXMF client (Android/desktop) with telemetry, voice, and a Python plugin system.                                                     | Closest existing user-facing app in the ecosystem. Its plugins are the seed of an app platform, but they are unsandboxed Python trusted implicitly — exactly the accident-prone model TwistedPear's runtime exists to replace. |
-| [NomadNet](https://github.com/markqvist/NomadNet)            | Terminal client whose nodes host pages, files, and small interactive "micron" apps for other users.                                           | The nearest thing to mini-apps over Reticulum today: server-side pages with input fields, not installable sandboxed programs.                                                                                                  |
-| [MeshChat](https://github.com/liamcottle/reticulum-meshchat) | Web-UI LXMF client interoperable with Sideband/NomadNet.                                                                                      | Demonstrates the ecosystem's interop culture that TwistedPear's conformance suites ([conformance](../conformance/)) are built to preserve.                                                                                     |
-| [Meshtastic](https://meshtastic.org/)                        | Popular LoRa mesh messaging firmware and apps.                                                                                                | Adjacent community, different layer: fixed-function messaging appliance, no app platform, weaker transport-agnosticism than Reticulum.                                                                                         |
+| Project | What it is | Relationship |
+|---|---|---|
+| [Reticulum](https://reticulum.network/) | Cryptography-first networking stack that runs over LoRa, packet radio, WiFi, TCP, I2P, serial — no central coordination, no plaintext option. | The transport TwistedPear reimplements ([reticulum-ts](../packages/reticulum-ts/)). Goal 1's "choose who is involved" is only meaningful because Reticulum makes the set of involved parties small and inspectable. |
+| [LXMF](https://github.com/markqvist/LXMF) | Delay-tolerant message format and propagation-node scheme over Reticulum. | Reimplemented as [lxmf-ts](../packages/lxmf-ts/); the messaging substrate for mini-apps. |
+| [Sideband](https://unsigned.io/software/Sideband.html) | Polished LXMF client (Android/desktop) with telemetry, voice, and a Python plugin system. | Closest existing user-facing app in the ecosystem. Its plugins are the seed of an app platform, but they are unsandboxed Python trusted implicitly — exactly the accident-prone model TwistedPear's runtime exists to replace. |
+| [NomadNet](https://github.com/markqvist/NomadNet) | Terminal client whose nodes host pages, files, and small interactive "micron" apps for other users. | The nearest thing to mini-apps over Reticulum today: server-side pages with input fields, not installable sandboxed programs. |
+| [MeshChat](https://github.com/liamcottle/reticulum-meshchat) | Web-UI LXMF client interoperable with Sideband/NomadNet. | Demonstrates the ecosystem's interop culture that TwistedPear's conformance suites ([conformance](../conformance/)) are built to preserve. |
+| [Meshtastic](https://meshtastic.org/) | Popular LoRa mesh messaging firmware and apps. | Adjacent community, different layer: fixed-function messaging appliance, no app platform, weaker transport-agnosticism than Reticulum. |
 
 ## 2. Peer-to-peer application runtimes
 
@@ -52,8 +53,8 @@ explicit non-goals.
 
 **[Veilid](https://veilid.com/)** (Cult of the Dead Cow, 2023) — "Tor, but for
 apps": a privacy-routed DHT and messaging fabric with a framework for building
-applications. Active (veilid-core 0.5.x, VeilidChat). It is a _framework_ for
-developers, not a _platform_ for users: no app runtime, no packaging, no
+applications. Active (veilid-core 0.5.x, VeilidChat). It is a *framework* for
+developers, not a *platform* for users: no app runtime, no packaging, no
 install/consent flow — every Veilid app is a separately installed native
 program the user must trust the ordinary way.
 
@@ -102,8 +103,8 @@ The lineage for goal 2's "dangerous by accident is essentially impossible."
 
 **[Sandstorm](https://sandstorm.io/)** — the strongest philosophical
 predecessor. Self-hosted web apps in fine-grained sandboxes where an app gets
-_nothing_ by default and acquires connections through the **Powerbox**: the
-user is never asked "allow X?" but rather "_which_ calendar should this app
+*nothing* by default and acquires connections through the **Powerbox**: the
+user is never asked "allow X?" but rather "*which* calendar should this app
 use?" — turning consent into an act of selection the user already understands.
 Its company failed commercially in 2017; the project survives community-
 maintained. Sandstorm targets a server you administer, not the mesh of
@@ -122,14 +123,14 @@ language/library stage.
 
 **Deployed permission systems as cautionary prior art** — Android/iOS runtime
 permissions, browser permission prompts, and Wasm/WASI and Deno's flag-based
-sandboxes all show the failure mode TwistedPear's "declare what and _why_
+sandboxes all show the failure mode TwistedPear's "declare what and *why*
 beforehand" rule answers: prompts arrive mid-task without rationale, users
 learn to click yes, and the grant, once given, is invisible. App-store privacy
 "nutrition labels" acknowledge the comprehension gap but are self-reported and
 unenforced.
 
 **WeChat mini programs** (and Alipay's, and Telegram's) — the largest
-mini-app runtime on earth, proving the _form factor_: small, quickly
+mini-app runtime on earth, proving the *form factor*: small, quickly
 installed, host-mediated apps with a constrained widget UI. It is also the
 perfect anti-TwistedPear: a single corporate gatekeeper approves every app and
 observes every interaction. The form is validated; the governance is the
@@ -182,7 +183,7 @@ involved" is answered "whoever runs your sync relay."
 
 ## 7. Transparency of "who is involved"
 
-No surveyed project treats _user-comprehensible involvement_ as a first-class,
+No surveyed project treats *user-comprehensible involvement* as a first-class,
 testable claim the way [RELEASE-PLAN.md](../RELEASE-PLAN.md) gate G7 does.
 Partial precedents: Little Snitch/OpenSnitch (per-connection visibility,
 expert-only), Tor Browser's circuit display (who relays this page — the
@@ -227,12 +228,12 @@ Every piece exists; the intersection doesn't. The attempted explanations:
    most resembles — and even it never faced mesh constraints or mobile.
 5. **The substrate is young.** Reticulum only reached usable maturity in the
    last few years, and local-first tooling and thinking are newer still. The
-   window in which this project is _buildable at all_ by a small effort opened
+   window in which this project is *buildable at all* by a small effort opened
    recently.
 
 ### 2. Why isn't anyone else trying to make it?
 
-Strictly, people _are_ trying — Pear, Veilid, Freenet 2023, Spritely, and the
+Strictly, people *are* trying — Pear, Veilid, Freenet 2023, Spritely, and the
 Reticulum community are all live — but each is optimizing a different corner,
 and no one is aiming at this exact spot. Plausible reasons the spot stays
 empty:
@@ -250,7 +251,7 @@ empty:
    builds the part it knows and assumes someone else will do the rest. §2 and
    §6 are littered with "infrastructure in search of an application layer."
 3. **The verification bar is repellent.** The parts that make this project
-   _credible_ rather than merely novel — abuse-ladder campaigns, formal twins,
+   *credible* rather than merely novel — abuse-ladder campaigns, formal twins,
    hostile-app suites, soak evidence, comprehension testing with outside
    humans ([abuse-resistance-loop.md](abuse-resistance-loop.md), gates G3/G7)
    — are precisely the work volunteers avoid and startups defer. Anyone
@@ -270,7 +271,7 @@ should correct them where they misread:
 
 1. **The premise is a conviction, not a market thesis.**
    [motivation.md](motivation.md) opens with a claim about how computing
-   _ought_ to work: far-away computers with no logical need to be involved
+   *ought* to work: far-away computers with no logical need to be involved
    should not be involved. Someone who holds that as a matter of principle
    doesn't need the market validation whose absence stops everyone in
    question 2 — which is exactly why the non-goals (no money, no marketing)
@@ -288,13 +289,13 @@ should correct them where they misread:
 3. **The unclaimed corner is the one that matters to this author.** Everyone
    else optimized transport (Reticulum, Veilid), anonymity (Freenet),
    sync (local-first), or developer reach (Pear). The corner left empty —
-   _user comprehension of who is involved and what an app may do_ — is the
+   *user comprehension of who is involved and what an app may do* — is the
    part that is a human-values problem rather than a systems problem, and it
    only gets built by someone who considers it the point rather than the
    polish. Gates G4 and G7 exist because that's the success criterion here:
    ordinary people knowing and choosing, even if adoption is only ever
    word-of-mouth.
-4. **Because the substrate finally permits it.** Building _now_, on a mature
+4. **Because the substrate finally permits it.** Building *now*, on a mature
    Reticulum, with Pear having proven P2P app distribution and Sandstorm
    having proven capability UX, is not starting from scratch — it is
    assembling proven pieces whose union no one with these values has had the

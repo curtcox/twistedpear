@@ -64,7 +64,7 @@ export const WIDGET_TYPES: ReadonlySet<string> = new Set([
   "audio-meter",
   "waveform",
   "map-preview",
-  "remote-video",
+  "remote-video"
 ]);
 
 export const WIDGET_STYLE_KEYS: ReadonlySet<string> = new Set([
@@ -80,13 +80,10 @@ export const WIDGET_STYLE_KEYS: ReadonlySet<string> = new Set([
   "backgroundColor",
   "color",
   "fontSize",
-  "fontWeight",
+  "fontWeight"
 ]);
 
-export const WIDGET_PROP_KEYS: ReadonlyMap<
-  WidgetType,
-  ReadonlySet<string>
-> = new Map([
+export const WIDGET_PROP_KEYS: ReadonlyMap<WidgetType, ReadonlySet<string>> = new Map([
   ["view", new Set(["accessibilityLabel"])],
   ["text", new Set(["value"])],
   ["image", new Set(["asset", "alt"])],
@@ -108,14 +105,10 @@ export const WIDGET_PROP_KEYS: ReadonlyMap<
   ["audio-meter", new Set(["session"])],
   ["waveform", new Set(["session"])],
   ["map-preview", new Set(["session", "zoom"])],
-  ["remote-video", new Set(["session", "peer"])],
+  ["remote-video", new Set(["session", "peer"])]
 ]);
 
-export const CODE_EDITOR_LANGUAGES: ReadonlySet<string> = new Set([
-  "javascript",
-  "json",
-  "text",
-]);
+export const CODE_EDITOR_LANGUAGES: ReadonlySet<string> = new Set(["javascript", "json", "text"]);
 export const MAX_QR_CODE_VALUE_LENGTH = 512;
 export const MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH = 256;
 export const MAX_DEVICE_SESSION_PROP_LENGTH = 128;
@@ -124,7 +117,7 @@ export const PREVIEW_SURFACE_TYPES: ReadonlySet<WidgetType> = new Set([
   "audio-meter",
   "waveform",
   "map-preview",
-  "remote-video",
+  "remote-video"
 ]);
 
 /** JSON Schema fragments for WidgetStyle value constraints (serializer input). */
@@ -132,54 +125,36 @@ export const STYLE_VALUE_SCHEMAS: Readonly<Record<string, object>> = {
   display: { enum: ["flex", "none"] },
   flexDirection: { enum: ["row", "column"] },
   alignItems: { enum: ["stretch", "flex-start", "center", "flex-end"] },
-  justifyContent: {
-    enum: ["flex-start", "center", "flex-end", "space-between"],
-  },
+  justifyContent: { enum: ["flex-start", "center", "flex-end", "space-between"] },
   gap: { type: "number" },
   padding: { type: "number" },
   margin: { type: "number" },
-  width: {
-    oneOf: [
-      { type: "number" },
-      { type: "string", pattern: "^[0-9]+(\\.[0-9]+)?%$" },
-    ],
-  },
-  height: {
-    oneOf: [
-      { type: "number" },
-      { type: "string", pattern: "^[0-9]+(\\.[0-9]+)?%$" },
-    ],
-  },
+  width: { oneOf: [{ type: "number" }, { type: "string", pattern: "^[0-9]+(\\.[0-9]+)?%$" }] },
+  height: { oneOf: [{ type: "number" }, { type: "string", pattern: "^[0-9]+(\\.[0-9]+)?%$" }] },
   backgroundColor: { type: "string" },
   color: { type: "string" },
   fontSize: { enum: [12, 14, 16, 20, 24, 32] },
-  fontWeight: { enum: ["regular", "medium", "bold"] },
+  fontWeight: { enum: ["regular", "medium", "bold"] }
 };
 
 /** Per-type prop value schemas beyond key membership (serializer + validate.ts). */
-export const EXTRA_PROP_SCHEMAS: Readonly<
-  Record<string, Readonly<Record<string, object>>>
-> = {
+export const EXTRA_PROP_SCHEMAS: Readonly<Record<string, Readonly<Record<string, object>>>> = {
   "code-editor": {
     documentId: {
       type: "string",
       minLength: 1,
-      maxLength: MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
+      maxLength: MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH
     },
-    language: { enum: [...CODE_EDITOR_LANGUAGES].sort() },
+    language: { enum: [...CODE_EDITOR_LANGUAGES].sort() }
   },
   "qr-code": {
-    value: {
-      type: "string",
-      minLength: 1,
-      maxLength: MAX_QR_CODE_VALUE_LENGTH,
-    },
-  },
+    value: { type: "string", minLength: 1, maxLength: MAX_QR_CODE_VALUE_LENGTH }
+  }
 };
 
 export const EXTRA_REQUIRED: Readonly<Record<string, ReadonlyArray<string>>> = {
   "code-editor": ["documentId"],
-  "qr-code": ["value"],
+  "qr-code": ["value"]
 };
 
 /** One member per WidgetType — missing keys fail typecheck at every visit site. */

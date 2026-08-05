@@ -15,16 +15,12 @@ export interface GatewayHyperswarmFetchOptions {
 }
 
 export function createGatewayHyperswarmDriveFetcher(
-  options: Omit<GatewayHyperswarmFetchOptions, "driveKeyHex" | "version"> = {},
+  options: Omit<GatewayHyperswarmFetchOptions, "driveKeyHex" | "version"> = {}
 ): DriveFetcher {
   return {
     fetchDriveVersion(driveKeyHex, version) {
-      return fetchDriveVersionViaHyperswarm({
-        ...options,
-        driveKeyHex,
-        version,
-      });
-    },
+      return fetchDriveVersionViaHyperswarm({ ...options, driveKeyHex, version });
+    }
   };
 }
 
@@ -33,7 +29,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function fetchDriveVersionViaHyperswarm(
-  options: GatewayHyperswarmFetchOptions,
+  options: GatewayHyperswarmFetchOptions
 ): Promise<Uint8Array> {
   const timeoutMs = options.timeoutMs ?? 60_000;
   const storagePath = mkdtempSync(join(tmpdir(), "tp-gateway-fetch-"));
@@ -43,7 +39,7 @@ export async function fetchDriveVersionViaHyperswarm(
       : { inboundBandwidthLimiter: options.inboundBandwidthLimiter }),
     ...(options.outboundBandwidthLimiter === undefined
       ? {}
-      : { outboundBandwidthLimiter: options.outboundBandwidthLimiter }),
+      : { outboundBandwidthLimiter: options.outboundBandwidthLimiter })
   });
   const driveManager = new DriveManager({ storagePath, swarm });
 

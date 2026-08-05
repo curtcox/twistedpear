@@ -1,9 +1,4 @@
-import {
-  BONJOUR_RETICULUM_SERVICE,
-  type DiscoveryPeer,
-  type DiscoveryProvider,
-  type DiscoveryProviderEvents,
-} from "./auto-discovery.js";
+import { BONJOUR_RETICULUM_SERVICE, type DiscoveryPeer, type DiscoveryProvider, type DiscoveryProviderEvents } from "./auto-discovery.js";
 import type { MulticastNetworkInfo } from "./pipes.js";
 
 export interface BonjourServiceRecord {
@@ -16,9 +11,7 @@ export interface BonjourServiceRecord {
 export interface BonjourBridgeEvents {
   readonly onServiceFound?: (record: BonjourServiceRecord) => void;
   readonly onServiceLost?: (id: string) => void;
-  readonly onNetworkChange?: (
-    interfaces: ReadonlyArray<MulticastNetworkInfo>,
-  ) => void;
+  readonly onNetworkChange?: (interfaces: ReadonlyArray<MulticastNetworkInfo>) => void;
   readonly onError?: (message: string) => void;
 }
 
@@ -47,11 +40,9 @@ export class BonjourDiscoveryProvider implements DiscoveryProvider {
   setEvents(events: DiscoveryProviderEvents): void {
     this.events = events;
     this.bridge.setEvents({
-      onServiceFound: (record) =>
-        this.events.onPeer?.(serviceRecordToPeer(record)),
-      onNetworkChange: (interfaces) =>
-        this.events.onNetworkChange?.(interfaces),
-      onError: (message) => this.events.onError?.(new Error(message)),
+      onServiceFound: (record) => this.events.onPeer?.(serviceRecordToPeer(record)),
+      onNetworkChange: (interfaces) => this.events.onNetworkChange?.(interfaces),
+      onError: (message) => this.events.onError?.(new Error(message))
     });
   }
 
@@ -63,29 +54,23 @@ export class BonjourDiscoveryProvider implements DiscoveryProvider {
     await this.bridge.stop();
   }
 
-  async advertise(
-    ifname: string,
-    address: string,
-    dataPort: number,
-  ): Promise<void> {
+  async advertise(ifname: string, address: string, dataPort: number): Promise<void> {
     await this.bridge.advertise({
       id: `${ifname}:${address}:${dataPort}`,
       ifname,
       host: address,
-      port: dataPort,
+      port: dataPort
     });
   }
 }
 
-export function serviceRecordToPeer(
-  record: BonjourServiceRecord,
-): DiscoveryPeer {
+export function serviceRecordToPeer(record: BonjourServiceRecord): DiscoveryPeer {
   return {
     id: record.id,
     ifname: record.ifname,
     address: record.host,
     dataPort: record.port,
     discoveredAt: Date.now(),
-    provider: "bonjour",
+    provider: "bonjour"
   };
 }

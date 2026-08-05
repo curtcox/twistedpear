@@ -5,7 +5,7 @@ import {
   SimFreenetContractHub,
   SIM_FREENET_DEFAULT_NOTIFY_LATENCY_MS,
   simFreenetDeriveKey,
-  simFreenetTransportClass,
+  simFreenetTransportClass
 } from "../src/adapters/sim/freenet.js";
 import { transportClass } from "../src/adapters/sim/transport-classes.js";
 import { SimTransport } from "../src/adapters/sim/transport.js";
@@ -17,7 +17,7 @@ describe("SimFreenetContractHub", () => {
     const right = new SimFreenetClient({ hub });
     const source = {
       wasm: new Uint8Array([0, 97, 115, 109]),
-      parameters: new Uint8Array([1]),
+      parameters: new Uint8Array([1])
     };
 
     const key = await left.put(source, new Uint8Array([9]));
@@ -37,12 +37,12 @@ describe("SimFreenetContractHub", () => {
     const clock = new SimClock(0);
     const hub = new SimFreenetContractHub({
       clock,
-      notify: { latencyMs: SIM_FREENET_DEFAULT_NOTIFY_LATENCY_MS },
+      notify: { latencyMs: SIM_FREENET_DEFAULT_NOTIFY_LATENCY_MS }
     });
     const client = new SimFreenetClient({ hub });
     const source = {
       wasm: new Uint8Array([0, 97, 115, 109]),
-      parameters: new Uint8Array([2]),
+      parameters: new Uint8Array([2])
     };
     const key = await client.put(source, new Uint8Array([1]));
     const seen: number[] = [];
@@ -61,11 +61,9 @@ describe("SimFreenetContractHub", () => {
   it("derives stable simulated contract keys", () => {
     const source = {
       wasm: new Uint8Array([0, 97, 115, 109]),
-      parameters: new Uint8Array([3]),
+      parameters: new Uint8Array([3])
     };
-    expect(simFreenetDeriveKey(source)).toEqual(
-      SimFreenetClient.deriveKey(source),
-    );
+    expect(simFreenetDeriveKey(source)).toEqual(SimFreenetClient.deriveKey(source));
   });
 });
 
@@ -79,60 +77,24 @@ describe("freenet transport class", () => {
 
   it("schedules contract-sized payloads slower than LAN", () => {
     const clock = new SimClock(0);
-    const lan = new SimTransport(
-      {
-        links: [
-          {
-            source: "a",
-            destination: "b",
-            class: "lan",
-            params: { lossRate: 0 },
-          },
-        ],
-      },
-      () => 0,
-    );
-    const freenet = new SimTransport(
-      {
-        links: [
-          {
-            source: "a",
-            destination: "b",
-            class: "freenet",
-            params: {
-              lossRate: 0,
-              burstLoss: {
-                goodToBad: 0,
-                badToGood: 1,
-                goodLossRate: 0,
-                badLossRate: 0,
-              },
-            },
-          },
-        ],
-      },
-      () => 0,
-    );
+    const lan = new SimTransport({
+      links: [{ source: "a", destination: "b", class: "lan", params: { lossRate: 0 } }]
+    }, () => 0);
+    const freenet = new SimTransport({
+      links: [{
+        source: "a",
+        destination: "b",
+        class: "freenet",
+        params: {
+          lossRate: 0,
+          burstLoss: { goodToBad: 0, badToGood: 1, goodLossRate: 0, badLossRate: 0 }
+        }
+      }]
+    }, () => 0);
     const payload = new Uint8Array(1024);
-    lan.applySend(
-      {
-        kind: "transport/send",
-        send: { channel: "x", destination: "b", payload },
-      },
-      "a",
-      0,
-    );
-    freenet.applySend(
-      {
-        kind: "transport/send",
-        send: { channel: "x", destination: "b", payload },
-      },
-      "a",
-      0,
-    );
-    expect(freenet.nextDeliverAt() ?? 0).toBeGreaterThan(
-      lan.nextDeliverAt() ?? 0,
-    );
+    lan.applySend({ kind: "transport/send", send: { channel: "x", destination: "b", payload } }, "a", 0);
+    freenet.applySend({ kind: "transport/send", send: { channel: "x", destination: "b", payload } }, "a", 0);
+    expect(freenet.nextDeliverAt() ?? 0).toBeGreaterThan(lan.nextDeliverAt() ?? 0);
     expect(clock.now()).toBe(0);
   });
 });

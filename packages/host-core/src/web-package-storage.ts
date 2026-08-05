@@ -1,13 +1,9 @@
 import {
   InstalledPackageStore,
   verifyPackage,
-  type InstalledPackageRecord,
+  type InstalledPackageRecord
 } from "@twistedpear/app-registry";
-import {
-  CasStore,
-  encode256t,
-  type CasKeyValueStore,
-} from "@twistedpear/cas-256t";
+import { CasStore, encode256t, type CasKeyValueStore } from "@twistedpear/cas-256t";
 import type { CryptoProvider, KeyValueStore } from "@twistedpear/reticulum-ts";
 import { PureCryptoProvider } from "@twistedpear/reticulum-ts/web";
 import type { WebIndexedDB } from "@twistedpear/reticulum-ts/web";
@@ -25,25 +21,13 @@ export interface WebStorageManager {
 }
 
 export interface WebOpfsRootDirectory {
-  getDirectoryHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<WebOpfsDirectoryHandle>;
-  getFileHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<WebOpfsFileHandle>;
+  getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<WebOpfsDirectoryHandle>;
+  getFileHandle(name: string, options?: { create?: boolean }): Promise<WebOpfsFileHandle>;
 }
 
 export interface WebOpfsDirectoryHandle {
-  getDirectoryHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<WebOpfsDirectoryHandle>;
-  getFileHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<WebOpfsFileHandle>;
+  getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<WebOpfsDirectoryHandle>;
+  getFileHandle(name: string, options?: { create?: boolean }): Promise<WebOpfsFileHandle>;
 }
 
 export interface WebOpfsFileHandle {
@@ -108,34 +92,24 @@ interface WebIdbRequest<T> {
 
 interface WebIdbDatabase {
   createObjectStore(name: string): void;
-  transaction(
-    name: string,
-    mode: "readonly" | "readwrite",
-  ): { objectStore(name: string): WebIdbObjectStore };
+  transaction(name: string, mode: "readonly" | "readwrite"): { objectStore(name: string): WebIdbObjectStore };
 }
 
 interface WebIdbOpenRequest extends WebIdbRequest<WebIdbDatabase> {
-  onupgradeneeded:
-    ((event: { readonly target: WebIdbOpenRequest | null }) => void) | null;
+  onupgradeneeded: ((event: { readonly target: WebIdbOpenRequest | null }) => void) | null;
 }
 
 class IndexedDbBlobStore implements CasKeyValueStore {
   private readonly ready: Promise<WebIdbDatabase>;
 
-  constructor(
-    indexedDB: WebIndexedDB,
-    private readonly dbName: string,
-  ) {
+  constructor(indexedDB: WebIndexedDB, private readonly dbName: string) {
     this.ready = new Promise((resolve, reject) => {
       const request = indexedDB.open(dbName, 1) as WebIdbOpenRequest;
       request.onupgradeneeded = (event) => {
         event.target?.result.createObjectStore(KV_OBJECT_STORE);
       };
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () =>
-        reject(
-          request.error ?? new Error(`Failed to open IndexedDB ${dbName}`),
-        );
+      request.onerror = () => reject(request.error ?? new Error(`Failed to open IndexedDB ${dbName}`));
     });
   }
 
@@ -145,16 +119,11 @@ class IndexedDbBlobStore implements CasKeyValueStore {
       return null;
     }
 
-    return result instanceof Uint8Array
-      ? Uint8Array.from(result)
-      : new Uint8Array(result);
+    return result instanceof Uint8Array ? Uint8Array.from(result) : new Uint8Array(result);
   }
 
   async set(key: string, value: Uint8Array): Promise<void> {
-    await this.request(
-      (store) => store.put(Uint8Array.from(value), key),
-      "readwrite",
-    );
+    await this.request((store) => store.put(Uint8Array.from(value), key), "readwrite");
   }
 
   async delete(key: string): Promise<void> {
@@ -168,16 +137,13 @@ class IndexedDbBlobStore implements CasKeyValueStore {
 
   private async request<T>(
     makeRequest: (store: WebIdbObjectStore) => WebIdbRequest<T>,
-    mode: "readonly" | "readwrite",
+    mode: "readonly" | "readwrite"
   ): Promise<T> {
     const database = await this.ready;
-    const request = makeRequest(
-      database.transaction(KV_OBJECT_STORE, mode).objectStore(KV_OBJECT_STORE),
-    );
+    const request = makeRequest(database.transaction(KV_OBJECT_STORE, mode).objectStore(KV_OBJECT_STORE));
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () =>
-        reject(request.error ?? new Error("IndexedDB request failed"));
+      request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
     });
   }
 }
@@ -215,9 +181,7 @@ class OpfsArchiveStore {
       directory = await directory.getDirectoryHandle(segment, { create: true });
     }
 
-    const fileHandle = await directory.getFileHandle(fileName, {
-      create: true,
-    });
+    const fileHandle = await directory.getFileHandle(fileName, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(bytes);
     await writable.close();
@@ -254,23 +218,12 @@ function packageArchivePath(appId: string, version: string): string {
   return `packages/${appId}/${version}.tpkg`;
 }
 
-function resolveBrowserStorage(
-  options: WebPackageStorageOptions,
-): WebStorageManager | undefined {
-  return (
-    options.storage ??
-    (
-      globalThis as {
-        readonly navigator?: { readonly storage?: WebStorageManager };
-      }
-    ).navigator?.storage
-  );
+function resolveBrowserStorage(options: WebPackageStorageOptions): WebStorageManager | undefined {
+  return options.storage ?? (globalThis as { readonly navigator?: { readonly storage?: WebStorageManager } }).navigator?.storage;
 }
 
 function resolveIndexedDb(options: WebPackageStorageOptions): WebIndexedDB {
-  const indexedDB =
-    options.indexedDB ??
-    (globalThis as { readonly indexedDB?: WebIndexedDB }).indexedDB;
+  const indexedDB = options.indexedDB ?? (globalThis as { readonly indexedDB?: WebIndexedDB }).indexedDB;
   if (indexedDB === undefined) {
     throw new Error("IndexedDB is required for web package storage");
   }
@@ -280,7 +233,7 @@ function resolveIndexedDb(options: WebPackageStorageOptions): WebIndexedDB {
 
 async function createArchiveStore(
   options: WebPackageStorageOptions,
-  kv: IndexedDbBlobStore,
+  kv: IndexedDbBlobStore
 ): Promise<{ store: ArchiveStore; backend: "opfs" | "indexeddb" }> {
   const storage = resolveBrowserStorage(options);
   if (storage?.getDirectory !== undefined) {
@@ -306,7 +259,7 @@ function catalogKeyValueAdapter(kv: IndexedDbBlobStore): KeyValueStore {
     },
     async delete(key: string): Promise<void> {
       await kv.delete(key);
-    },
+    }
   };
 }
 
@@ -325,7 +278,7 @@ class WebPackageStorage implements WebPackageStorageSession {
     options: WebPackageStorageOptions,
     kv: IndexedDbBlobStore,
     archive: { store: ArchiveStore; backend: "opfs" | "indexeddb" },
-    installedStore: InstalledPackageStore,
+    installedStore: InstalledPackageStore
   ) {
     this.provider = options.provider ?? new PureCryptoProvider();
     this.hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
@@ -337,11 +290,9 @@ class WebPackageStorage implements WebPackageStorageSession {
     this.casStore = new CasStore(kv, (data) => this.provider.sha512(data));
   }
 
-  async installArchive(
-    archiveBytes: Uint8Array,
-  ): Promise<WebPackageInstallResult> {
+  async installArchive(archiveBytes: Uint8Array): Promise<WebPackageInstallResult> {
     const verified = verifyPackage(this.provider, archiveBytes, {
-      hostApiVersion: this.hostApiVersion,
+      hostApiVersion: this.hostApiVersion
     });
     const appId = verified.manifest.name;
     const version = verified.manifest.version;
@@ -356,7 +307,7 @@ class WebPackageStorage implements WebPackageStorageSession {
           packageHash: existing.packageHash,
           t256: encode256t(archiveBytes, (data) => this.provider.sha512(data)),
           archivePath,
-          archiveBytes: stored.length,
+          archiveBytes: stored.length
         };
       }
     }
@@ -370,9 +321,9 @@ class WebPackageStorage implements WebPackageStorageSession {
         packageHash: verified.packageHash,
         installedAt: Date.now(),
         manifest: verified.manifest,
-        archivePath,
+        archivePath
       },
-      archiveBytes.length,
+      archiveBytes.length
     );
     await this.installedStore.save(this.catalogKv);
 
@@ -382,14 +333,11 @@ class WebPackageStorage implements WebPackageStorageSession {
       packageHash: verified.packageHash,
       t256,
       archivePath,
-      archiveBytes: archiveBytes.length,
+      archiveBytes: archiveBytes.length
     };
   }
 
-  async readArchive(
-    appId: string,
-    version: string,
-  ): Promise<Uint8Array | null> {
+  async readArchive(appId: string, version: string): Promise<Uint8Array | null> {
     const record = this.installedStore.get(appId, version);
     if (record === null) {
       return null;
@@ -419,7 +367,7 @@ class WebPackageStorage implements WebPackageStorageSession {
       persisted,
       packageUsedBytes: this.getPackageUsedBytes(),
       packageQuotaBytes: this.installedStore.quotaBytes,
-      archiveBackend: this.archiveBackend,
+      archiveBackend: this.archiveBackend
     };
   }
 
@@ -433,21 +381,17 @@ class WebPackageStorage implements WebPackageStorageSession {
 }
 
 export async function createWebPackageStorage(
-  options: WebPackageStorageOptions = {},
+  options: WebPackageStorageOptions = {}
 ): Promise<WebPackageStorageSession> {
   const dbName = options.dbName ?? DEFAULT_DB_NAME;
   const kv = new IndexedDbBlobStore(resolveIndexedDb(options), dbName);
   const archive = await createArchiveStore(options, kv);
-  const installedStore = new InstalledPackageStore(
-    options.packageQuotaBytes ?? DEFAULT_PACKAGE_QUOTA_BYTES,
-  );
+  const installedStore = new InstalledPackageStore(options.packageQuotaBytes ?? DEFAULT_PACKAGE_QUOTA_BYTES);
   await installedStore.load(catalogKeyValueAdapter(kv));
   return new WebPackageStorage(options, kv, archive, installedStore);
 }
 
-export async function resetWebPackageStorage(
-  options: WebPackageStorageOptions = {},
-): Promise<void> {
+export async function resetWebPackageStorage(options: WebPackageStorageOptions = {}): Promise<void> {
   const dbName = options.dbName ?? DEFAULT_DB_NAME;
   const indexedDB = resolveIndexedDb(options) as WebIndexedDB & {
     deleteDatabase(name: string): WebIdbRequest<undefined>;
@@ -456,7 +400,6 @@ export async function resetWebPackageStorage(
   await new Promise<void>((resolve, reject) => {
     const request = indexedDB.deleteDatabase(dbName);
     request.onsuccess = () => resolve();
-    request.onerror = () =>
-      reject(request.error ?? new Error("Failed to delete web package DB"));
+    request.onerror = () => reject(request.error ?? new Error("Failed to delete web package DB"));
   });
 }

@@ -9,10 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { hexToBytes } from "../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/pure.js";
-import {
-  DestinationDirection,
-  DestinationType,
-} from "../../packages/reticulum-ts/dist/destination.js";
+import { DestinationDirection, DestinationType } from "../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../packages/reticulum-ts/dist/registered-destination.js";
 import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
 import { LinkStatus } from "../../packages/reticulum-ts/dist/link.js";
@@ -27,7 +24,7 @@ import {
   repoRoot,
   sleep,
   waitForReceipt,
-  waitForPath,
+  waitForPath
 } from "../scenarios/bare/helpers.mjs";
 
 const provider = new PureCryptoProvider();
@@ -35,18 +32,9 @@ const runtime = nodeRuntime();
 
 const I2P_SAM_HOST = process.env.I2P_SAM_HOST ?? "127.0.0.1";
 const I2P_SAM_PORT = Number.parseInt(process.env.I2P_SAM_PORT ?? "7656", 10);
-const I2P_READY_TIMEOUT_MS = Number.parseInt(
-  process.env.I2P_READY_TIMEOUT_MS ?? "180000",
-  10,
-);
-const I2P_PATH_TIMEOUT_MS = Number.parseInt(
-  process.env.I2P_PATH_TIMEOUT_MS ?? "120000",
-  10,
-);
-const I2P_STATE_FILE = join(
-  repoRoot,
-  "conformance/scenarios/state/i2p-b32.txt",
-);
+const I2P_READY_TIMEOUT_MS = Number.parseInt(process.env.I2P_READY_TIMEOUT_MS ?? "180000", 10);
+const I2P_PATH_TIMEOUT_MS = Number.parseInt(process.env.I2P_PATH_TIMEOUT_MS ?? "120000", 10);
+const I2P_STATE_FILE = join(repoRoot, "conformance/scenarios/state/i2p-b32.txt");
 
 function loadIdentity(name) {
   const vectors = loadIdentityVectors();
@@ -55,10 +43,7 @@ function loadIdentity(name) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(entry.privateKeyHex),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -72,9 +57,7 @@ async function waitForPeerDestination(timeoutMs = I2P_READY_TIMEOUT_MS) {
     try {
       const destination = readFileSync(I2P_STATE_FILE, "utf8").trim();
       if (destination.length > 0) {
-        return destination.endsWith(".b32.i2p")
-          ? destination
-          : `${destination}.b32.i2p`;
+        return destination.endsWith(".b32.i2p") ? destination : `${destination}.b32.i2p`;
       }
     } catch {
       // Python peer has not written its b32 address yet.
@@ -83,9 +66,7 @@ async function waitForPeerDestination(timeoutMs = I2P_READY_TIMEOUT_MS) {
     await sleep(1_000);
   }
 
-  throw new Error(
-    `Timed out waiting for Python I2P peer b32 at ${I2P_STATE_FILE}`,
-  );
+  throw new Error(`Timed out waiting for Python I2P peer b32 at ${I2P_STATE_FILE}`);
 }
 
 async function withI2pInterface(peerDestination, callback) {
@@ -98,7 +79,7 @@ async function withI2pInterface(peerDestination, callback) {
     runtime,
     samHost: I2P_SAM_HOST,
     samPort: I2P_SAM_PORT,
-    peerDestination,
+    peerDestination
   });
   reticulum.registerInterface(iface);
 
@@ -111,7 +92,7 @@ async function withI2pInterface(peerDestination, callback) {
     await iface.close();
     reticulum.stop();
     throw new Error(
-      `I2P interface did not become online${iface.connectionError === null ? "" : `: ${iface.connectionError.message}`}`,
+      `I2P interface did not become online${iface.connectionError === null ? "" : `: ${iface.connectionError.message}`}`
     );
   }
 
@@ -133,7 +114,7 @@ async function runI2pEcho(reticulum) {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"],
+    aspects: ["echo"]
   });
   aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -143,7 +124,7 @@ async function runI2pEcho(reticulum) {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"],
+    aspects: ["echo"]
   });
 
   await aliceIn.announce();
@@ -169,10 +150,7 @@ async function runI2pEcho(reticulum) {
 
   if (!received.has("hello from python i2p echo")) {
     const greetingDeadline = Date.now() + 15_000;
-    while (
-      !received.has("hello from python i2p echo") &&
-      Date.now() < greetingDeadline
-    ) {
+    while (!received.has("hello from python i2p echo") && Date.now() < greetingDeadline) {
       await sleep(100);
     }
   }
@@ -193,7 +171,7 @@ async function runI2pLinkEcho(reticulum) {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["link"],
+    aspects: ["link"]
   });
 
   await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
@@ -209,10 +187,7 @@ async function runI2pLinkEcho(reticulum) {
   }
 
   const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("I2P link echo timeout")),
-      30_000,
-    );
+    const timer = setTimeout(() => reject(new Error("I2P link echo timeout")), 30_000);
     link.callbacks.packet = (data) => {
       clearTimeout(timer);
       resolve(bytesToAscii(data));
@@ -241,10 +216,7 @@ async function runI2pLxmfEcho(reticulum) {
   await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
 
   const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("I2P LXMF echo timeout")),
-      60_000,
-    );
+    const timer = setTimeout(() => reject(new Error("I2P LXMF echo timeout")), 60_000);
     router.onDelivery((message) => {
       clearTimeout(timer);
       resolve(message.contentAsString());
@@ -258,7 +230,7 @@ async function runI2pLxmfEcho(reticulum) {
     content: "Hello Python LXMF over I2P",
     desiredMethod: LXMessageMethod.OPPORTUNISTIC,
     deferStamp: true,
-    timestamp: Date.now() / 1_000,
+    timestamp: Date.now() / 1_000
   });
 
   const echoed = await received;
@@ -270,10 +242,7 @@ async function runI2pLxmfEcho(reticulum) {
 }
 
 async function runI2pAbsentSam() {
-  const absentPort = Number.parseInt(
-    process.env.I2P_ABSENT_SAM_PORT ?? "17656",
-    10,
-  );
+  const absentPort = Number.parseInt(process.env.I2P_ABSENT_SAM_PORT ?? "17656", 10);
   const iface = await I2PInterface.connect(provider, {
     name: "ts-i2p-absent",
     provider,
@@ -281,16 +250,14 @@ async function runI2pAbsentSam() {
     samHost: I2P_SAM_HOST,
     samPort: absentPort,
     peerDestination: "dummy.b32.i2p",
-    reconnectWaitMs: 100,
+    reconnectWaitMs: 100
   });
 
   await sleep(500);
 
   if (iface.online) {
     await iface.close();
-    throw new Error(
-      "Expected I2P interface to stay offline without SAM bridge",
-    );
+    throw new Error("Expected I2P interface to stay offline without SAM bridge");
   }
 
   await iface.close();

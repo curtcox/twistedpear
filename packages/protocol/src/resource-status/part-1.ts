@@ -12,10 +12,7 @@
  * {@link stepResourceAdvertisePhasePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  ResourceStatus,
-  type ResourceStatusValue,
-} from "../resource-watchdog.js";
+import { ResourceStatus, type ResourceStatusValue } from "../resource-watchdog.js";
 
 export interface ResourceStatusState {
   readonly status: ResourceStatusValue;
@@ -33,7 +30,7 @@ export type ResourceStatusEvent =
   | { readonly kind: "resource/fail" };
 
 export function initialResourceStatusState(
-  status: ResourceStatusValue = ResourceStatus.NONE,
+  status: ResourceStatusValue = ResourceStatus.NONE
 ): ResourceStatusState {
   return { status };
 }
@@ -61,7 +58,8 @@ export type ResourceCompleteEvent =
     };
 
 export type ResourceCompleteAction =
-  { readonly kind: "complete" } | { readonly kind: "incomplete" };
+  | { readonly kind: "complete" }
+  | { readonly kind: "incomplete" };
 
 export interface ResourceCompleteStepResult {
   readonly state: ResourceCompleteState;
@@ -75,7 +73,7 @@ export function initialResourceCompleteState(): ResourceCompleteState {
 
 export function stepResourceCompleteWithActions(
   state: ResourceCompleteState,
-  event: ResourceCompleteEvent,
+  event: ResourceCompleteEvent
 ): ResourceCompleteStepResult {
   if (event.kind === "resource/complete-gate") {
     return {
@@ -83,9 +81,9 @@ export function stepResourceCompleteWithActions(
       intents: [],
       actions: [
         {
-          kind: isResourceComplete(event.status) ? "complete" : "incomplete",
-        },
-      ],
+          kind: isResourceComplete(event.status) ? "complete" : "incomplete"
+        }
+      ]
     };
   }
 
@@ -93,13 +91,13 @@ export function stepResourceCompleteWithActions(
 }
 
 export function shouldTreatResourceComplete(
-  actions: ReadonlyArray<ResourceCompleteAction>,
+  actions: ReadonlyArray<ResourceCompleteAction>
 ): boolean {
   return actions.some((action) => action.kind === "complete");
 }
 
 export function shouldTreatResourceIncomplete(
-  actions: ReadonlyArray<ResourceCompleteAction>,
+  actions: ReadonlyArray<ResourceCompleteAction>
 ): boolean {
   return actions.some((action) => action.kind === "incomplete");
 }
@@ -109,9 +107,7 @@ export function isResourceTerminal(status: ResourceStatusValue): boolean {
 }
 
 /** Gate for handleRequest / hashmapUpdate / assemble / requestNext early-out. */
-export function canResourceContinueTransfer(
-  status: ResourceStatusValue,
-): boolean {
+export function canResourceContinueTransfer(status: ResourceStatusValue): boolean {
   return status !== ResourceStatus.FAILED;
 }
 
@@ -130,7 +126,8 @@ export type ResourceContinueTransferEvent =
     };
 
 export type ResourceContinueTransferAction =
-  { readonly kind: "continue" } | { readonly kind: "stop" };
+  | { readonly kind: "continue" }
+  | { readonly kind: "stop" };
 
 export interface ResourceContinueTransferStepResult {
   readonly state: ResourceContinueTransferState;
@@ -144,7 +141,7 @@ export function initialResourceContinueTransferState(): ResourceContinueTransfer
 
 export function stepResourceContinueTransferWithActions(
   state: ResourceContinueTransferState,
-  event: ResourceContinueTransferEvent,
+  event: ResourceContinueTransferEvent
 ): ResourceContinueTransferStepResult {
   if (event.kind === "resource/continue-transfer-gate") {
     return {
@@ -152,9 +149,9 @@ export function stepResourceContinueTransferWithActions(
       intents: [],
       actions: [
         {
-          kind: canResourceContinueTransfer(event.status) ? "continue" : "stop",
-        },
-      ],
+          kind: canResourceContinueTransfer(event.status) ? "continue" : "stop"
+        }
+      ]
     };
   }
 
@@ -162,13 +159,13 @@ export function stepResourceContinueTransferWithActions(
 }
 
 export function shouldContinueResourceTransfer(
-  actions: ReadonlyArray<ResourceContinueTransferAction>,
+  actions: ReadonlyArray<ResourceContinueTransferAction>
 ): boolean {
   return actions.some((action) => action.kind === "continue");
 }
 
 export function shouldStopResourceTransfer(
-  actions: ReadonlyArray<ResourceContinueTransferAction>,
+  actions: ReadonlyArray<ResourceContinueTransferAction>
 ): boolean {
   return actions.some((action) => action.kind === "stop");
 }
@@ -192,7 +189,8 @@ export type ResourceReceivePartAllowEvent =
     };
 
 export type ResourceReceivePartAllowAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface ResourceReceivePartAllowStepResult {
   readonly state: ResourceReceivePartAllowState;
@@ -206,7 +204,7 @@ export function initialResourceReceivePartAllowState(): ResourceReceivePartAllow
 
 export function stepResourceReceivePartAllowWithActions(
   state: ResourceReceivePartAllowState,
-  event: ResourceReceivePartAllowEvent,
+  event: ResourceReceivePartAllowEvent
 ): ResourceReceivePartAllowStepResult {
   if (event.kind === "resource/receive-part-allow-gate") {
     return {
@@ -214,9 +212,9 @@ export function stepResourceReceivePartAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canReceiveResourcePart(event.status) ? "allow" : "deny",
-        },
-      ],
+          kind: canReceiveResourcePart(event.status) ? "allow" : "deny"
+        }
+      ]
     };
   }
 
@@ -224,13 +222,13 @@ export function stepResourceReceivePartAllowWithActions(
 }
 
 export function shouldAllowResourceReceivePart(
-  actions: ReadonlyArray<ResourceReceivePartAllowAction>,
+  actions: ReadonlyArray<ResourceReceivePartAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyResourceReceivePart(
-  actions: ReadonlyArray<ResourceReceivePartAllowAction>,
+  actions: ReadonlyArray<ResourceReceivePartAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -258,7 +256,8 @@ export type ResourceWatchdogAllowEvent =
     };
 
 export type ResourceWatchdogAllowAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface ResourceWatchdogAllowStepResult {
   readonly state: ResourceWatchdogAllowState;
@@ -272,7 +271,7 @@ export function initialResourceWatchdogAllowState(): ResourceWatchdogAllowState 
 
 export function stepResourceWatchdogAllowWithActions(
   state: ResourceWatchdogAllowState,
-  event: ResourceWatchdogAllowEvent,
+  event: ResourceWatchdogAllowEvent
 ): ResourceWatchdogAllowStepResult {
   if (event.kind === "resource/watchdog-allow-gate") {
     return {
@@ -280,9 +279,9 @@ export function stepResourceWatchdogAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canRunResourceWatchdog(event.status) ? "allow" : "deny",
-        },
-      ],
+          kind: canRunResourceWatchdog(event.status) ? "allow" : "deny"
+        }
+      ]
     };
   }
 
@@ -290,13 +289,13 @@ export function stepResourceWatchdogAllowWithActions(
 }
 
 export function shouldAllowResourceWatchdog(
-  actions: ReadonlyArray<ResourceWatchdogAllowAction>,
+  actions: ReadonlyArray<ResourceWatchdogAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyResourceWatchdog(
-  actions: ReadonlyArray<ResourceWatchdogAllowAction>,
+  actions: ReadonlyArray<ResourceWatchdogAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -325,7 +324,8 @@ export type ResourceRequestNextAllowEvent =
     };
 
 export type ResourceRequestNextAllowAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface ResourceRequestNextAllowStepResult {
   readonly state: ResourceRequestNextAllowState;
@@ -339,7 +339,7 @@ export function initialResourceRequestNextAllowState(): ResourceRequestNextAllow
 
 export function stepResourceRequestNextAllowWithActions(
   state: ResourceRequestNextAllowState,
-  event: ResourceRequestNextAllowEvent,
+  event: ResourceRequestNextAllowEvent
 ): ResourceRequestNextAllowStepResult {
   if (event.kind === "resource/request-next-allow-gate") {
     return {
@@ -349,12 +349,12 @@ export function stepResourceRequestNextAllowWithActions(
         {
           kind: canRequestResourceNext({
             status: event.status,
-            waitingForHashmap: event.waitingForHashmap,
+            waitingForHashmap: event.waitingForHashmap
           })
             ? "allow"
-            : "deny",
-        },
-      ],
+            : "deny"
+        }
+      ]
     };
   }
 
@@ -362,21 +362,19 @@ export function stepResourceRequestNextAllowWithActions(
 }
 
 export function shouldAllowResourceRequestNext(
-  actions: ReadonlyArray<ResourceRequestNextAllowAction>,
+  actions: ReadonlyArray<ResourceRequestNextAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyResourceRequestNext(
-  actions: ReadonlyArray<ResourceRequestNextAllowAction>,
+  actions: ReadonlyArray<ResourceRequestNextAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
 
 /** Whether an incoming ADV should create a new resource (not already incoming). */
-export function shouldAcceptIncomingResourceAdvertisement(
-  alreadyIncoming: boolean,
-): boolean {
+export function shouldAcceptIncomingResourceAdvertisement(alreadyIncoming: boolean): boolean {
   return !alreadyIncoming;
 }
 
@@ -395,7 +393,8 @@ export type AcceptIncomingResourceAdvertisementEvent =
     };
 
 export type AcceptIncomingResourceAdvertisementAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptIncomingResourceAdvertisementStepResult {
   readonly state: AcceptIncomingResourceAdvertisementState;
@@ -409,7 +408,7 @@ export function initialAcceptIncomingResourceAdvertisementState(): AcceptIncomin
 
 export function stepAcceptIncomingResourceAdvertisementWithActions(
   state: AcceptIncomingResourceAdvertisementState,
-  event: AcceptIncomingResourceAdvertisementEvent,
+  event: AcceptIncomingResourceAdvertisementEvent
 ): AcceptIncomingResourceAdvertisementStepResult {
   if (event.kind === "resource/accept-incoming-adv-gate") {
     return {
@@ -419,9 +418,9 @@ export function stepAcceptIncomingResourceAdvertisementWithActions(
         {
           kind: shouldAcceptIncomingResourceAdvertisement(event.alreadyIncoming)
             ? "accept"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -429,21 +428,19 @@ export function stepAcceptIncomingResourceAdvertisementWithActions(
 }
 
 export function shouldAcceptIncomingResourceAdvertisementNow(
-  actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>,
+  actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipIncomingResourceAdvertisement(
-  actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>,
+  actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Map link readiness to the next advertise-phase status event. */
-export function planResourceAdvertisePhase(
-  linkReady: boolean,
-): "queue" | "advertise" {
+export function planResourceAdvertisePhase(linkReady: boolean): "queue" | "advertise" {
   return linkReady ? "advertise" : "queue";
 }
 

@@ -7,19 +7,7 @@ import { deflateSync } from "node:zlib";
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const SHELL_EXTENSIONS = new Set([
-  ".html",
-  ".js",
-  ".css",
-  ".json",
-  ".woff",
-  ".woff2",
-  ".ttf",
-  ".png",
-  ".ico",
-  ".svg",
-  ".webmanifest",
-]);
+const SHELL_EXTENSIONS = new Set([".html", ".js", ".css", ".json", ".woff", ".woff2", ".ttf", ".png", ".ico", ".svg", ".webmanifest"]);
 const ICON_SIZES = [192, 512];
 
 function collectShellAssets(rootDir) {
@@ -34,9 +22,7 @@ function collectShellAssets(rootDir) {
         continue;
       }
 
-      const extension = entry.includes(".")
-        ? entry.slice(entry.lastIndexOf("."))
-        : "";
+      const extension = entry.includes(".") ? entry.slice(entry.lastIndexOf(".")) : "";
       if (!SHELL_EXTENSIONS.has(extension)) {
         continue;
       }
@@ -116,7 +102,7 @@ export function createPwaIconPng(size) {
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
     pngChunk("IHDR", ihdr),
     pngChunk("IDAT", deflateSync(raw)),
-    pngChunk("IEND", Buffer.alloc(0)),
+    pngChunk("IEND", Buffer.alloc(0))
   ]);
 }
 
@@ -129,7 +115,7 @@ function writePwaIcons(outputDir) {
       src: `/${filename}`,
       sizes: `${size}x${size}`,
       type: "image/png",
-      purpose: "any",
+      purpose: "any"
     });
   }
   return icons;
@@ -153,13 +139,10 @@ export function applyPwaShell(outputDir) {
     display: "standalone",
     background_color: "#0f172a",
     theme_color: "#0f172a",
-    icons,
+    icons
   };
 
-  writeFileSync(
-    join(outputDir, "manifest.webmanifest"),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  );
+  writeFileSync(join(outputDir, "manifest.webmanifest"), `${JSON.stringify(manifest, null, 2)}\n`);
 
   const shellAssets = collectShellAssets(outputDir);
   const precacheJson = JSON.stringify(shellAssets);
@@ -219,22 +202,19 @@ self.addEventListener("fetch", (event) => {
   const injection = [
     '<link rel="manifest" href="/manifest.webmanifest" />',
     '<meta name="theme-color" content="#0f172a" />',
-    '<link rel="apple-touch-icon" href="/icon-192.png" />',
+    '<link rel="apple-touch-icon" href="/icon-192.png" />'
   ];
 
   if (!indexHtml.includes('rel="manifest"')) {
     if (indexHtml.includes("</head>")) {
-      indexHtml = indexHtml.replace(
-        "</head>",
-        `    ${injection.join("\n    ")}\n  </head>`,
-      );
+      indexHtml = indexHtml.replace("</head>", `    ${injection.join("\n    ")}\n  </head>`);
     } else {
       indexHtml = `${injection.join("\n")}\n${indexHtml}`;
     }
   } else if (!indexHtml.includes("apple-touch-icon")) {
     indexHtml = indexHtml.replace(
       '<link rel="manifest" href="/manifest.webmanifest" />',
-      '<link rel="manifest" href="/manifest.webmanifest" />\n    <link rel="apple-touch-icon" href="/icon-192.png" />',
+      '<link rel="manifest" href="/manifest.webmanifest" />\n    <link rel="apple-touch-icon" href="/icon-192.png" />'
     );
   }
 
@@ -246,17 +226,12 @@ if ("serviceWorker" in navigator) {
 
   if (!indexHtml.includes("serviceWorker.register")) {
     if (indexHtml.includes("</body>")) {
-      indexHtml = indexHtml.replace(
-        "</body>",
-        `    ${registration}\n  </body>`,
-      );
+      indexHtml = indexHtml.replace("</body>", `    ${registration}\n  </body>`);
     } else {
       indexHtml = `${indexHtml}\n${registration}\n`;
     }
   }
 
   writeFileSync(indexPath, indexHtml);
-  console.log(
-    `PWA shell: manifest + icons + service worker (${shellAssets.length} precached assets)`,
-  );
+  console.log(`PWA shell: manifest + icons + service worker (${shellAssets.length} precached assets)`);
 }

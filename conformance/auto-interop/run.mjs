@@ -8,10 +8,7 @@
 
 import { hexToBytes } from "../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/node.js";
-import {
-  DestinationDirection,
-  DestinationType,
-} from "../../packages/reticulum-ts/dist/destination.js";
+import { DestinationDirection, DestinationType } from "../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../packages/reticulum-ts/dist/registered-destination.js";
 import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
 import { LinkStatus } from "../../packages/reticulum-ts/dist/link.js";
@@ -25,16 +22,14 @@ import {
   loadIdentityVectors,
   sleep,
   waitForReceipt,
-  waitForPath,
+  waitForPath
 } from "../scenarios/bare/helpers.mjs";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 const IN_COMPOSE = process.env.AUTO_INTEROP_IN_COMPOSE === "1";
 // In the veth/netns harness the only usable link-local iface is the injected peer.
-const AUTO_OPTIONS = IN_COMPOSE
-  ? { allowedDevices: ["tpvethts", "tpvethpy"] }
-  : {};
+const AUTO_OPTIONS = IN_COMPOSE ? { allowedDevices: ["tpvethts", "tpvethpy"] } : {};
 
 function loadIdentity(name) {
   const vectors = loadIdentityVectors();
@@ -43,10 +38,7 @@ function loadIdentity(name) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(entry.privateKeyHex),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -77,15 +69,13 @@ async function withAutoInterface(callback) {
     runtime,
     ...AUTO_OPTIONS,
     onPeerSpawn: (peer) => reticulum.registerInterface(peer),
-    onPeerDetach: (peer) => reticulum.unregisterInterface(peer),
+    onPeerDetach: (peer) => reticulum.unregisterInterface(peer)
   });
 
   if (auto.peerInterfaces.length === 0 && auto.online === false) {
     await auto.close();
     reticulum.stop();
-    throw new Error(
-      "AutoInterface found no link-local IPv6 interfaces on this host",
-    );
+    throw new Error("AutoInterface found no link-local IPv6 interfaces on this host");
   }
 
   try {
@@ -107,7 +97,7 @@ async function runAutoEcho() {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["echo"],
+      aspects: ["echo"]
     });
     aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -117,13 +107,13 @@ async function runAutoEcho() {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["echo"],
+      aspects: ["echo"]
     });
 
     await aliceIn.announce();
     const peer = await waitForAutoPeer(auto);
     console.log(
-      `auto-interop: discovered peer ${peer.name} address=${"peerAddress" in peer ? peer.peerAddress : "?"}`,
+      `auto-interop: discovered peer ${peer.name} address=${"peerAddress" in peer ? peer.peerAddress : "?"}`
     );
     // Peer discovery is discovery-plane only; wait a beat for data-plane announces.
     await sleep(2_000);
@@ -150,18 +140,13 @@ async function runAutoEcho() {
 
     if (!received.has("hello from python auto echo")) {
       const greetingDeadline = Date.now() + 10_000;
-      while (
-        !received.has("hello from python auto echo") &&
-        Date.now() < greetingDeadline
-      ) {
+      while (!received.has("hello from python auto echo") && Date.now() < greetingDeadline) {
         await sleep(100);
       }
     }
 
     if (!received.has("hello from python auto echo")) {
-      throw new Error(
-        "AutoInterface interop greeting from Python peer was not received",
-      );
+      throw new Error("AutoInterface interop greeting from Python peer was not received");
     }
   });
 
@@ -178,7 +163,7 @@ async function runAutoLinkEcho() {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["link"],
+      aspects: ["link"]
     });
 
     await waitForAutoPeer(auto);
@@ -196,10 +181,7 @@ async function runAutoLinkEcho() {
     }
 
     const received = new Promise((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error("AutoInterface link echo timeout")),
-        15_000,
-      );
+      const timer = setTimeout(() => reject(new Error("AutoInterface link echo timeout")), 15_000);
       link.callbacks.packet = (data) => {
         clearTimeout(timer);
         resolve(bytesToAscii(data));
@@ -232,10 +214,7 @@ async function runAutoLxmfEcho() {
     await waitForPath(reticulum, bobOut.hash, 45_000);
 
     const received = new Promise((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error("AutoInterface LXMF echo timeout")),
-        45_000,
-      );
+      const timer = setTimeout(() => reject(new Error("AutoInterface LXMF echo timeout")), 45_000);
       router.onDelivery((message) => {
         clearTimeout(timer);
         resolve(message.contentAsString());
@@ -249,7 +228,7 @@ async function runAutoLxmfEcho() {
       content: "Hello Python LXMF over AutoInterface",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: Date.now() / 1_000,
+      timestamp: Date.now() / 1_000
     });
 
     const echoed = await received;
@@ -279,51 +258,36 @@ async function runAutoPeerExpiry() {
       if (peer.peerAddress === syntheticAddress) {
         detachedSynthetic += 1;
       }
-    },
+    }
   });
 
   if (auto.peerInterfaces.length === 0 && auto.online === false) {
     await auto.close();
     reticulum.stop();
-    console.log(
-      "auto-interop: peer expiry skipped (no link-local IPv6 interfaces)",
-    );
+    console.log("auto-interop: peer expiry skipped (no link-local IPv6 interfaces)");
     return;
   }
 
-  const adopted = /** @type {{ adopted: ReadonlyArray<{ name: string }> }} */ (
-    auto
-  ).adopted;
+  const adopted = /** @type {{ adopted: ReadonlyArray<{ name: string }> }} */ (auto).adopted;
   const ifname = adopted[0]?.name;
   if (ifname === undefined) {
     await auto.close();
     reticulum.stop();
-    throw new Error(
-      "AutoInterface peer expiry test found no adopted interface",
-    );
+    throw new Error("AutoInterface peer expiry test found no adopted interface");
   }
 
-  const addPeer =
-    /** @type {{ addPeer: (address: string, name: string) => void }} */ (
-      auto
-    ).addPeer.bind(auto);
+  const addPeer = /** @type {{ addPeer: (address: string, name: string) => void }} */ (auto).addPeer.bind(auto);
   addPeer(syntheticAddress, ifname);
   // Compose leaves the Python peer discoverable; only assert the synthetic entry.
-  if (
-    !auto.peerInterfaces.some((peer) => peer.peerAddress === syntheticAddress)
-  ) {
+  if (!auto.peerInterfaces.some((peer) => peer.peerAddress === syntheticAddress)) {
     await auto.close();
     reticulum.stop();
-    throw new Error(
-      "AutoInterface peer expiry test failed to spawn synthetic peer",
-    );
+    throw new Error("AutoInterface peer expiry test failed to spawn synthetic peer");
   }
 
   await sleep(4_500);
 
-  if (
-    auto.peerInterfaces.some((peer) => peer.peerAddress === syntheticAddress)
-  ) {
+  if (auto.peerInterfaces.some((peer) => peer.peerAddress === syntheticAddress)) {
     await auto.close();
     reticulum.stop();
     throw new Error("AutoInterface peer expiry test did not remove stale peer");
@@ -332,9 +296,7 @@ async function runAutoPeerExpiry() {
   if (detachedSynthetic !== 1) {
     await auto.close();
     reticulum.stop();
-    throw new Error(
-      `AutoInterface peer expiry test expected one synthetic detach, got ${detachedSynthetic}`,
-    );
+    throw new Error(`AutoInterface peer expiry test expected one synthetic detach, got ${detachedSynthetic}`);
   }
 
   await auto.close();

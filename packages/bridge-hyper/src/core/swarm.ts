@@ -13,20 +13,15 @@ export interface SwarmOptions {
 
 export interface SwarmSession {
   readonly swarm: Hyperswarm;
-  join(
-    topic: Uint8Array,
-    options?: { readonly server?: boolean; readonly client?: boolean },
-  ): Promise<void>;
-  replicate(store: {
-    replicate: (isInitiator: boolean) => { pipe<T>(destination: T): T };
-  }): void;
+  join(topic: Uint8Array, options?: { readonly server?: boolean; readonly client?: boolean }): Promise<void>;
+  replicate(store: { replicate: (isInitiator: boolean) => { pipe<T>(destination: T): T } }): void;
   destroy(): Promise<void>;
 }
 
 export function createSwarm(options: SwarmOptions = {}): SwarmSession {
   const swarm = new Hyperswarm({
     maxPeers: options.maxPeers ?? 64,
-    ...(options.dht === undefined ? {} : { dht: options.dht }),
+    ...(options.dht === undefined ? {} : { dht: options.dht })
   });
 
   if (options.bootstrap !== undefined) {
@@ -34,41 +29,28 @@ export function createSwarm(options: SwarmOptions = {}): SwarmSession {
     process.env.HYPERDHT_BOOTSTRAP = options.bootstrap.join(",");
   }
 
-  const replicators = new Set<{
-    replicate: (isInitiator: boolean) => { pipe<T>(destination: T): T };
-  }>();
+  const replicators = new Set<{ replicate: (isInitiator: boolean) => { pipe<T>(destination: T): T } }>();
 
   const throttler = (limiter: ByteRateLimiter | undefined) =>
     limiter === undefined
       ? null
       : new Transform({
-          transform(
-            data: Uint8Array,
-            callback: (error: Error | null, data?: Uint8Array) => void,
-          ) {
+          transform(data: Uint8Array, callback: (error: Error | null, data?: Uint8Array) => void) {
             void limiter.consume(data.byteLength).then(
               () => callback(null, data),
-              (error: unknown) =>
-                callback(
-                  error instanceof Error ? error : new Error(String(error)),
-                ),
+              (error: unknown) => callback(error instanceof Error ? error : new Error(String(error)))
             );
-          },
+          }
         });
 
   swarm.on("connection", (socket, peerInfo) => {
-    const connection = socket as {
-      on?(event: string, listener: () => void): void;
-    };
+    const connection = socket as { on?(event: string, listener: () => void): void };
     connection.on?.("error", () => {
       // Peers disconnect during replication; ignore reset errors.
     });
 
     for (const store of replicators) {
-      const stream = store.replicate(peerInfo.client) as {
-        on?(event: string, listener: () => void): void;
-        pipe<T>(destination: T): T;
-      };
+      const stream = store.replicate(peerInfo.client) as { on?(event: string, listener: () => void): void; pipe<T>(destination: T): T };
       stream.on?.("error", () => {
         // Ignore stream errors from transient peers.
       });
@@ -96,7 +78,7 @@ export function createSwarm(options: SwarmOptions = {}): SwarmSession {
     async destroy() {
       replicators.clear();
       await swarm.destroy();
-    },
+    }
   };
 }
 

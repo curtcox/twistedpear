@@ -32,53 +32,37 @@ import {
   stepPackIdentityPublicKeyWithActions,
   stepSplitIdentityEntropyWithActions,
   stepSplitIdentityPrivateKeyWithActions,
-  stepSplitIdentityPublicKeyWithActions,
+  stepSplitIdentityPublicKeyWithActions
 } from "../src/identity-keygen.js";
 
 describe("protocol identity keygen entropy", () => {
   it("splits 64-byte entropy into two 32-byte keys", () => {
-    const entropy = new Uint8Array(IDENTITY_KEY_ENTROPY_SIZE).map(
-      (_, i) => i + 1,
-    );
+    const entropy = new Uint8Array(IDENTITY_KEY_ENTROPY_SIZE).map((_, i) => i + 1);
     const keys = splitIdentityEntropy(entropy);
     expect([...keys.privateKey]).toEqual([...entropy.subarray(0, 32)]);
-    expect([...keys.signaturePrivateKey]).toEqual([
-      ...entropy.subarray(32, 64),
-    ]);
+    expect([...keys.signaturePrivateKey]).toEqual([...entropy.subarray(32, 64)]);
   });
 
   it("rejects short entropy", () => {
-    expect(() => splitIdentityEntropy(new Uint8Array(63))).toThrow(
-      /at least 64/,
-    );
+    expect(() => splitIdentityEntropy(new Uint8Array(63))).toThrow(/at least 64/);
   });
 
   it("emits use-fields|reject actions for identity entropy split", () => {
-    const entropy = new Uint8Array(IDENTITY_KEY_ENTROPY_SIZE).map(
-      (_, i) => i + 1,
-    );
-    const ok = stepSplitIdentityEntropyWithActions(
-      initialSplitIdentityEntropyState(),
-      {
-        kind: "identity-key/split-entropy-gate",
-        entropy,
-      },
-    );
+    const entropy = new Uint8Array(IDENTITY_KEY_ENTROPY_SIZE).map((_, i) => i + 1);
+    const ok = stepSplitIdentityEntropyWithActions(initialSplitIdentityEntropyState(), {
+      kind: "identity-key/split-entropy-gate",
+      entropy
+    });
     expect(shouldUseSplitIdentityEntropy(ok.actions)).toBe(true);
     expect(shouldRejectSplitIdentityEntropy(ok.actions)).toBe(false);
     const fields = identityEntropyFieldsFromActions(ok.actions)!;
     expect([...fields.privateKey]).toEqual([...entropy.subarray(0, 32)]);
-    expect([...fields.signaturePrivateKey]).toEqual([
-      ...entropy.subarray(32, 64),
-    ]);
+    expect([...fields.signaturePrivateKey]).toEqual([...entropy.subarray(32, 64)]);
 
-    const rejected = stepSplitIdentityEntropyWithActions(
-      initialSplitIdentityEntropyState(),
-      {
-        kind: "identity-key/split-entropy-gate",
-        entropy: new Uint8Array(63),
-      },
-    );
+    const rejected = stepSplitIdentityEntropyWithActions(initialSplitIdentityEntropyState(), {
+      kind: "identity-key/split-entropy-gate",
+      entropy: new Uint8Array(63)
+    });
     expect(shouldRejectSplitIdentityEntropy(rejected.actions)).toBe(true);
     expect(identityEntropyFieldsFromActions(rejected.actions)).toBeNull();
   });
@@ -106,37 +90,26 @@ describe("protocol identity keygen entropy", () => {
     const right = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(2);
     const packed = packIdentityPrivateKey(left, right);
 
-    const packOk = stepPackIdentityPrivateKeyWithActions(
-      initialPackIdentityPrivateKeyState(),
-      {
-        kind: "identity-key/pack-private-gate",
-        privateKey: left,
-        signaturePrivateKey: right,
-      },
-    );
+    const packOk = stepPackIdentityPrivateKeyWithActions(initialPackIdentityPrivateKeyState(), {
+      kind: "identity-key/pack-private-gate",
+      privateKey: left,
+      signaturePrivateKey: right
+    });
     expect(shouldUsePackIdentityPrivateKey(packOk.actions)).toBe(true);
-    expect([...packIdentityPrivateKeyRawFromActions(packOk.actions)!]).toEqual([
-      ...packed,
-    ]);
+    expect([...packIdentityPrivateKeyRawFromActions(packOk.actions)!]).toEqual([...packed]);
 
-    const packReject = stepPackIdentityPrivateKeyWithActions(
-      initialPackIdentityPrivateKeyState(),
-      {
-        kind: "identity-key/pack-private-gate",
-        privateKey: new Uint8Array(8),
-        signaturePrivateKey: right,
-      },
-    );
+    const packReject = stepPackIdentityPrivateKeyWithActions(initialPackIdentityPrivateKeyState(), {
+      kind: "identity-key/pack-private-gate",
+      privateKey: new Uint8Array(8),
+      signaturePrivateKey: right
+    });
     expect(shouldRejectPackIdentityPrivateKey(packReject.actions)).toBe(true);
     expect(packIdentityPrivateKeyRawFromActions(packReject.actions)).toBeNull();
 
-    const splitOk = stepSplitIdentityPrivateKeyWithActions(
-      initialSplitIdentityPrivateKeyState(),
-      {
-        kind: "identity-key/split-private-gate",
-        privateKeyBytes: packed,
-      },
-    );
+    const splitOk = stepSplitIdentityPrivateKeyWithActions(initialSplitIdentityPrivateKeyState(), {
+      kind: "identity-key/split-private-gate",
+      privateKeyBytes: packed
+    });
     expect(shouldUseSplitIdentityPrivateKey(splitOk.actions)).toBe(true);
     const fields = identityPrivateKeyFieldsFromActions(splitOk.actions)!;
     expect([...fields.privateKey]).toEqual([...left]);
@@ -146,8 +119,8 @@ describe("protocol identity keygen entropy", () => {
       initialSplitIdentityPrivateKeyState(),
       {
         kind: "identity-key/split-private-gate",
-        privateKeyBytes: new Uint8Array(8),
-      },
+        privateKeyBytes: new Uint8Array(8)
+      }
     );
     expect(shouldRejectSplitIdentityPrivateKey(splitReject.actions)).toBe(true);
     expect(identityPrivateKeyFieldsFromActions(splitReject.actions)).toBeNull();
@@ -158,48 +131,34 @@ describe("protocol identity keygen entropy", () => {
     const right = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(4);
     const packed = packIdentityPublicKey(left, right);
 
-    const packOk = stepPackIdentityPublicKeyWithActions(
-      initialPackIdentityPublicKeyState(),
-      {
-        kind: "identity-key/pack-public-gate",
-        publicKey: left,
-        signaturePublicKey: right,
-      },
-    );
+    const packOk = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), {
+      kind: "identity-key/pack-public-gate",
+      publicKey: left,
+      signaturePublicKey: right
+    });
     expect(shouldUsePackIdentityPublicKey(packOk.actions)).toBe(true);
-    expect([...packIdentityPublicKeyRawFromActions(packOk.actions)!]).toEqual([
-      ...packed,
-    ]);
+    expect([...packIdentityPublicKeyRawFromActions(packOk.actions)!]).toEqual([...packed]);
 
-    const packReject = stepPackIdentityPublicKeyWithActions(
-      initialPackIdentityPublicKeyState(),
-      {
-        kind: "identity-key/pack-public-gate",
-        publicKey: left,
-        signaturePublicKey: new Uint8Array(8),
-      },
-    );
+    const packReject = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), {
+      kind: "identity-key/pack-public-gate",
+      publicKey: left,
+      signaturePublicKey: new Uint8Array(8)
+    });
     expect(shouldRejectPackIdentityPublicKey(packReject.actions)).toBe(true);
 
-    const splitOk = stepSplitIdentityPublicKeyWithActions(
-      initialSplitIdentityPublicKeyState(),
-      {
-        kind: "identity-key/split-public-gate",
-        publicKeyBytes: packed,
-      },
-    );
+    const splitOk = stepSplitIdentityPublicKeyWithActions(initialSplitIdentityPublicKeyState(), {
+      kind: "identity-key/split-public-gate",
+      publicKeyBytes: packed
+    });
     expect(shouldUseSplitIdentityPublicKey(splitOk.actions)).toBe(true);
     const fields = identityPublicKeyFieldsFromActions(splitOk.actions)!;
     expect([...fields.publicKey]).toEqual([...left]);
     expect([...fields.signaturePublicKey]).toEqual([...right]);
 
-    const splitReject = stepSplitIdentityPublicKeyWithActions(
-      initialSplitIdentityPublicKeyState(),
-      {
-        kind: "identity-key/split-public-gate",
-        publicKeyBytes: new Uint8Array(8),
-      },
-    );
+    const splitReject = stepSplitIdentityPublicKeyWithActions(initialSplitIdentityPublicKeyState(), {
+      kind: "identity-key/split-public-gate",
+      publicKeyBytes: new Uint8Array(8)
+    });
     expect(shouldRejectSplitIdentityPublicKey(splitReject.actions)).toBe(true);
     expect(identityPublicKeyFieldsFromActions(splitReject.actions)).toBeNull();
   });
@@ -208,15 +167,15 @@ describe("protocol identity keygen entropy", () => {
     const entropy = new Uint8Array(IDENTITY_KEY_ENTROPY_SIZE).fill(7);
     const entropyEvent = {
       kind: "identity-key/split-entropy-gate" as const,
-      entropy,
+      entropy
     };
     const entropyA = stepSplitIdentityEntropyWithActions(
       initialSplitIdentityEntropyState(),
-      entropyEvent,
+      entropyEvent
     );
     const entropyB = stepSplitIdentityEntropyWithActions(
       initialSplitIdentityEntropyState(),
-      entropyEvent,
+      entropyEvent
     );
     expect(entropyA).toEqual(entropyB);
 
@@ -225,16 +184,10 @@ describe("protocol identity keygen entropy", () => {
     const event = {
       kind: "identity-key/pack-public-gate" as const,
       publicKey: left,
-      signaturePublicKey: right,
+      signaturePublicKey: right
     };
-    const a = stepPackIdentityPublicKeyWithActions(
-      initialPackIdentityPublicKeyState(),
-      event,
-    );
-    const b = stepPackIdentityPublicKeyWithActions(
-      initialPackIdentityPublicKeyState(),
-      event,
-    );
+    const a = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), event);
+    const b = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), event);
     expect(a).toEqual(b);
   });
 });

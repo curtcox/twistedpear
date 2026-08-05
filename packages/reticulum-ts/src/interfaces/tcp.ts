@@ -1,11 +1,7 @@
 import type { CryptoProvider } from "../crypto/provider.js";
 import type { DuplexConnection, Runtime, Timer } from "../runtime/runtime.js";
 import { Packet } from "../packet.js";
-import {
-  HdlcPacketInterface,
-  type PacketInterface,
-  type ReticulumInterfaceOptions,
-} from "./interface.js";
+import { HdlcPacketInterface, type PacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
 import {
   INTERFACE_CONNECT_TIMEOUT_MS,
   INTERFACE_CONNECT_TIMER_ID,
@@ -16,7 +12,7 @@ import {
   stepInterfaceConnectWithActions,
   stepInterfaceReconnectWithActions,
   type InterfaceReconnectEvent,
-  type InterfaceReconnectState,
+  type InterfaceReconnectState
 } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Interfaces/TCPInterface.py reconnect defaults. */
@@ -29,12 +25,7 @@ function isTransientSocketDisconnect(error: unknown): boolean {
     return false;
   }
   const code = "code" in error ? error.code : undefined;
-  return (
-    code === "EPIPE" ||
-    code === "ECONNRESET" ||
-    code === "ECONNABORTED" ||
-    code === "ERR_STREAM_DESTROYED"
-  );
+  return code === "EPIPE" || code === "ECONNRESET" || code === "ECONNABORTED" || code === "ERR_STREAM_DESTROYED";
 }
 
 export interface TcpClientInterfaceOptions extends ReticulumInterfaceOptions {
@@ -69,20 +60,20 @@ export class TcpClientInterface extends HdlcPacketInterface {
     private readonly provider: CryptoProvider,
     private readonly runtime: Runtime,
     private readonly options: TcpClientInterfaceOptions,
-    private readonly connected: DuplexConnection | null = null,
+    private readonly connected: DuplexConnection | null = null
   ) {
     super(options, options.incoming ?? true, options.outgoing ?? true);
     this.reconnectState = initialInterfaceReconnectState({
       maxTries: options.maxReconnectTries ?? null,
       waitMs: options.reconnectWaitMs ?? TCP_RECONNECT_WAIT_MS,
-      suppressReconnect: connected !== null,
+      suppressReconnect: connected !== null
     });
   }
 
   static async connect(
     provider: CryptoProvider,
     runtime: Runtime,
-    options: TcpClientInterfaceOptions,
+    options: TcpClientInterfaceOptions
   ): Promise<TcpClientInterface> {
     const iface = new TcpClientInterface(provider, runtime, options);
     await iface.initialConnect();
@@ -94,7 +85,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
     runtime: Runtime,
     options: Omit<TcpClientInterfaceOptions, "targetHost" | "targetPort">,
     connection: DuplexConnection,
-    outgoing: boolean,
+    outgoing: boolean
   ): TcpClientInterface {
     const iface = new TcpClientInterface(
       provider,
@@ -103,9 +94,9 @@ export class TcpClientInterface extends HdlcPacketInterface {
         ...options,
         targetHost: "0.0.0.0",
         targetPort: 0,
-        outgoing,
+        outgoing
       },
-      connection,
+      connection
     );
     iface.attachConnection(connection);
     return iface;
@@ -147,8 +138,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
       // unhandled rejection from fire-and-forget transmits (`void sendPacket`).
       if (isTransientSocketDisconnect(error)) {
         this.online = false;
-        this.lastConnectionError =
-          error instanceof Error ? error : new Error(String(error));
+        this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
         return;
       }
       throw error;
@@ -180,8 +170,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
       this.attachConnection(connection);
       return true;
     } catch (error) {
-      this.lastConnectionError =
-        error instanceof Error ? error : new Error(String(error));
+      this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
       this.online = false;
       return false;
     }
@@ -189,13 +178,10 @@ export class TcpClientInterface extends HdlcPacketInterface {
 
   private openConnection(): Promise<DuplexConnection> {
     return new Promise((resolve, reject) => {
-      const armed = stepInterfaceConnectWithActions(
-        initialInterfaceConnectState(),
-        {
-          kind: "interface-connect/arm",
-          timeoutMs: this.connectTimeoutMs(),
-        },
-      );
+      const armed = stepInterfaceConnectWithActions(initialInterfaceConnectState(), {
+        kind: "interface-connect/arm",
+        timeoutMs: this.connectTimeoutMs()
+      });
       let state = armed.state;
       let timer: Timer | null = null;
       let settled = false;
@@ -203,9 +189,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
       let pendingError: unknown = null;
 
       const finish = (
-        result:
-          | { ok: true; connection: DuplexConnection }
-          | { ok: false; error: Error },
+        result: { ok: true; connection: DuplexConnection } | { ok: false; error: Error }
       ): void => {
         if (settled) {
           return;
@@ -219,30 +203,24 @@ export class TcpClientInterface extends HdlcPacketInterface {
       };
 
       const applyIntents = (
-        intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"],
+        intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"]
       ): void => {
         for (const intent of intents) {
-          if (
-            intent.kind === "timer/set" &&
-            intent.timer.id === INTERFACE_CONNECT_TIMER_ID
-          ) {
+          if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
             timer?.cancel();
             timer = this.runtime.clock.setTimeout(() => {
               timer = null;
               const tick = stepInterfaceConnectWithActions(state, {
                 kind: "timer/fired",
                 id: INTERFACE_CONNECT_TIMER_ID,
-                at: this.runtime.clock.now(),
+                at: this.runtime.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
               applyActions(tick.actions);
             }, intent.timer.delayMs);
           }
-          if (
-            intent.kind === "timer/cancel" &&
-            intent.timer.id === INTERFACE_CONNECT_TIMER_ID
-          ) {
+          if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
             timer?.cancel();
             timer = null;
           }
@@ -250,7 +228,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
       };
 
       const applyActions = (
-        actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"],
+        actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"]
       ): void => {
         for (const action of actions) {
           if (action.kind === "connect") {
@@ -259,12 +237,12 @@ export class TcpClientInterface extends HdlcPacketInterface {
               .connect({
                 host: this.options.targetHost,
                 port: this.options.targetPort,
-                connectTimeoutMs: 0,
+                connectTimeoutMs: 0
               })
               .then((connection) => {
                 pendingConnection = connection;
                 const result = stepInterfaceConnectWithActions(state, {
-                  kind: "interface-connect/connected",
+                  kind: "interface-connect/connected"
                 });
                 state = result.state;
                 applyIntents(result.intents);
@@ -277,7 +255,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
               .catch((error: unknown) => {
                 pendingError = error;
                 const result = stepInterfaceConnectWithActions(state, {
-                  kind: "interface-connect/failed",
+                  kind: "interface-connect/failed"
                 });
                 state = result.state;
                 applyIntents(result.intents);
@@ -295,9 +273,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
             if (action.reason === "timeout") {
               finish({
                 ok: false,
-                error: new Error(
-                  `TCP connect timed out after ${this.connectTimeoutMs()}ms`,
-                ),
+                error: new Error(`TCP connect timed out after ${this.connectTimeoutMs()}ms`)
               });
               return;
             }
@@ -305,10 +281,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
             pendingError = null;
             finish({
               ok: false,
-              error:
-                error instanceof Error
-                  ? error
-                  : new Error(String(error ?? "connect failed")),
+              error: error instanceof Error ? error : new Error(String(error ?? "connect failed"))
             });
           }
         }
@@ -324,31 +297,22 @@ export class TcpClientInterface extends HdlcPacketInterface {
   }
 
   private applyReconnect(event: InterfaceReconnectEvent): void {
-    const result = stepInterfaceReconnectWithActions(
-      this.reconnectState,
-      event,
-    );
+    const result = stepInterfaceReconnectWithActions(this.reconnectState, event);
     this.reconnectState = result.state;
 
     for (const intent of result.intents) {
-      if (
-        intent.kind === "timer/cancel" &&
-        intent.timer.id === INTERFACE_RECONNECT_TIMER_ID
-      ) {
+      if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
         this.reconnectTimer?.cancel();
         this.reconnectTimer = null;
       }
-      if (
-        intent.kind === "timer/set" &&
-        intent.timer.id === INTERFACE_RECONNECT_TIMER_ID
-      ) {
+      if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
         this.reconnectTimer?.cancel();
         this.reconnectTimer = this.runtime.clock.setTimeout(() => {
           this.reconnectTimer = null;
           this.applyReconnect({
             kind: "timer/fired",
             id: INTERFACE_RECONNECT_TIMER_ID,
-            at: this.runtime.clock.now(),
+            at: this.runtime.clock.now()
           });
         }, intent.timer.delayMs);
       }
@@ -411,7 +375,7 @@ export class TcpServerInterface {
   constructor(
     private readonly provider: CryptoProvider,
     private readonly runtime: Runtime,
-    private readonly options: TcpServerInterfaceOptions,
+    private readonly options: TcpServerInterfaceOptions
   ) {
     this.name = options.name;
     this.incoming = options.incoming ?? true;
@@ -431,7 +395,7 @@ export class TcpServerInterface {
   async start(): Promise<void> {
     this.listener = await this.runtime.tcp.listen({
       host: this.options.listenHost,
-      port: this.options.listenPort,
+      port: this.options.listenPort
     });
     this.listenAddress = this.listener.address;
     this.online = true;
@@ -485,10 +449,10 @@ export class TcpServerInterface {
           mtu: this.mtu,
           bitrate: this.bitrate,
           incoming: this.incoming,
-          outgoing: this.outgoing,
+          outgoing: this.outgoing
         },
         connection,
-        this.outgoing,
+        this.outgoing
       );
       client.setCloseHandler((closed) => {
         const index = this.spawned.indexOf(closed);
@@ -501,14 +465,10 @@ export class TcpServerInterface {
   }
 }
 
-export function isTcpClientInterface(
-  value: PacketInterface,
-): value is TcpClientInterface {
+export function isTcpClientInterface(value: PacketInterface): value is TcpClientInterface {
   return value instanceof TcpClientInterface;
 }
 
-export function isTcpServerInterface(
-  value: unknown,
-): value is TcpServerInterface {
+export function isTcpServerInterface(value: unknown): value is TcpServerInterface {
   return value instanceof TcpServerInterface;
 }

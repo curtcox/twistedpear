@@ -1,7 +1,7 @@
 const {
   withAndroidManifest,
   AndroidConfig,
-  withInfoPlist,
+  withInfoPlist
 } = require("expo/config-plugins");
 
 const SERVICE_CLASS = "network.twistedpear.harness.NodeForegroundService";
@@ -24,9 +24,9 @@ function getOrCreateMainApplication(manifest) {
       "android:icon": "@mipmap/ic_launcher",
       "android:allowBackup": "true",
       "android:theme": "@style/AppTheme",
-      "android:supportsRtl": "true",
+      "android:supportsRtl": "true"
     },
-    service: [],
+    service: []
   };
   manifest.application.push(application);
   return application;
@@ -41,7 +41,7 @@ module.exports = function withNodeService(config) {
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
       application,
       "network.twistedpear.harness.FOREGROUND_SERVICE_ENABLED",
-      "true",
+      "true"
     );
 
     if (!Array.isArray(application.service)) {
@@ -49,7 +49,7 @@ module.exports = function withNodeService(config) {
     }
 
     const alreadyDeclared = application.service.some(
-      (entry) => entry.$?.["android:name"] === SERVICE_CLASS,
+      (entry) => entry.$?.["android:name"] === SERVICE_CLASS
     );
 
     if (!alreadyDeclared) {
@@ -58,21 +58,21 @@ module.exports = function withNodeService(config) {
           "android:name": SERVICE_CLASS,
           "android:enabled": "true",
           "android:exported": "false",
-          "android:foregroundServiceType": "dataSync",
-        },
+          "android:foregroundServiceType": "dataSync"
+        }
       });
     }
 
     const usesPermission = manifest["uses-permission"] ?? [];
     const permissions = new Set(
-      usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean),
+      usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean)
     );
 
     for (const permission of [
       "android.permission.FOREGROUND_SERVICE",
       "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
       "android.permission.POST_NOTIFICATIONS",
-      "android.permission.WAKE_LOCK",
+      "android.permission.WAKE_LOCK"
     ]) {
       if (!permissions.has(permission)) {
         usesPermission.push({ $: { "android:name": permission } });
@@ -84,20 +84,16 @@ module.exports = function withNodeService(config) {
   });
 
   config = withInfoPlist(config, (config) => {
-    config.modResults.UIBackgroundModes = Array.from(
-      new Set([
-        ...(config.modResults.UIBackgroundModes ?? []),
-        "fetch",
-        "processing",
-      ]),
-    );
-    config.modResults.BGTaskSchedulerPermittedIdentifiers = Array.from(
-      new Set([
-        ...(config.modResults.BGTaskSchedulerPermittedIdentifiers ?? []),
-        "network.twistedpear.harness.refresh",
-        "network.twistedpear.harness.processing",
-      ]),
-    );
+    config.modResults.UIBackgroundModes = Array.from(new Set([
+      ...(config.modResults.UIBackgroundModes ?? []),
+      "fetch",
+      "processing"
+    ]));
+    config.modResults.BGTaskSchedulerPermittedIdentifiers = Array.from(new Set([
+      ...(config.modResults.BGTaskSchedulerPermittedIdentifiers ?? []),
+      "network.twistedpear.harness.refresh",
+      "network.twistedpear.harness.processing"
+    ]));
     return config;
   });
 

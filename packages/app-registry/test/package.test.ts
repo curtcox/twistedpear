@@ -8,7 +8,7 @@ import {
   PureCryptoProvider,
   bytesToHex,
   hexToBytes,
-  type CryptoProvider,
+  type CryptoProvider
 } from "@twistedpear/reticulum-ts";
 import {
   CatalogStore,
@@ -24,23 +24,17 @@ import {
   signManifest,
   unpackPackage,
   verifyManifestSignature,
-  verifyPackage,
+  verifyPackage
 } from "../src/index.js";
 
-const FIXTURE_DIR = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../conformance/fixtures/packages",
-);
+const FIXTURE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../../conformance/fixtures/packages");
 
 /** Stable publisher key for conformance fixtures (must not change across test runs). */
 const FIXTURE_IDENTITY_PRIVATE_KEY =
   "04264798bb32f059dad1fa5eeb624195d9d698eecbf173a17535774e254f4132ac8f933df951884d7c826861a215cbd5b71db024632c620e893b98702a3b3072";
 
 function fixtureIdentity(provider: CryptoProvider): Identity {
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(FIXTURE_IDENTITY_PRIVATE_KEY),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(FIXTURE_IDENTITY_PRIVATE_KEY));
   if (identity === null) {
     throw new Error("invalid fixture identity key");
   }
@@ -54,19 +48,12 @@ function providers(): CryptoProvider[] {
 
 function sampleFiles(): { path: string; content: Uint8Array }[] {
   return [
-    {
-      path: "bundle.js",
-      content: new TextEncoder().encode('console.log("hello twistedpear");'),
-    },
-    { path: "icon.png", content: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) },
+    { path: "bundle.js", content: new TextEncoder().encode('console.log("hello twistedpear");') },
+    { path: "icon.png", content: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) }
   ];
 }
 
-function buildSignedPackage(
-  provider: CryptoProvider,
-  identity: Identity,
-  version = "1.0.0",
-) {
+function buildSignedPackage(provider: CryptoProvider, identity: Identity, version = "1.0.0") {
   const unsigned = buildUnsignedManifest(
     {
       name: "com.example.hello",
@@ -77,23 +64,23 @@ function buildSignedPackage(
       minHostApi: "0.1.0",
       driveKey: "a".repeat(64),
       publisherPublicKey: bytesToHex(identity.getPublicKey()),
-      files: sampleFiles(),
+      files: sampleFiles()
     },
-    provider,
+    provider
   );
 
   const manifest = signManifest(provider, identity, unsigned);
   return packPackage(provider, {
-    name: manifest.name,
-    version: manifest.version,
-    entry: manifest.entry,
-    capabilities: manifest.capabilities,
-    icon: manifest.icon,
-    minHostApi: manifest.minHostApi,
-    driveKey: manifest.driveKey,
-    publisherPublicKey: manifest.publisherPublicKey,
-    signature: manifest.signature,
-    files: sampleFiles(),
+  name: manifest.name,
+  version: manifest.version,
+  entry: manifest.entry,
+  capabilities: manifest.capabilities,
+  icon: manifest.icon,
+  minHostApi: manifest.minHostApi,
+  driveKey: manifest.driveKey,
+  publisherPublicKey: manifest.publisherPublicKey,
+  signature: manifest.signature,
+  files: sampleFiles()
   });
 }
 
@@ -102,96 +89,87 @@ describe("app-registry package format", () => {
     const label = provider.constructor.name;
 
     it(`${label}: pack → unpack → verify round-trips`, () => {
-      const identity = new Identity(provider);
-      const packed = buildSignedPackage(provider, identity);
-      const unpacked = unpackPackage(provider, packed.archiveBytes);
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
+    const unpacked = unpackPackage(provider, packed.archiveBytes);
 
-      expect(unpacked.packageHash).toBe(packed.packageHash);
-      expect(unpacked.manifest).toEqual(packed.manifest);
-      expect(unpacked.files.get("bundle.js")).toEqual(
-        sampleFiles()[0]!.content,
-      );
+    expect(unpacked.packageHash).toBe(packed.packageHash);
+    expect(unpacked.manifest).toEqual(packed.manifest);
+    expect(unpacked.files.get("bundle.js")).toEqual(sampleFiles()[0]!.content);
     });
 
     it(`${label}: produces identical package hash from same inputs`, () => {
-      const identity = new Identity(provider);
-      const first = buildSignedPackage(provider, identity);
-      const second = buildSignedPackage(provider, identity);
-      expect(first.packageHash).toBe(second.packageHash);
-      expect(first.archiveBytes).toEqual(second.archiveBytes);
+    const identity = new Identity(provider);
+    const first = buildSignedPackage(provider, identity);
+    const second = buildSignedPackage(provider, identity);
+    expect(first.packageHash).toBe(second.packageHash);
+    expect(first.archiveBytes).toEqual(second.archiveBytes);
     });
 
     it(`${label}: rejects modified file content`, () => {
-      const identity = new Identity(provider);
-      const packed = buildSignedPackage(provider, identity);
-      const tampered = new Uint8Array(packed.archiveBytes);
-      tampered[tampered.length - 5] ^= 0xff;
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
+    const tampered = new Uint8Array(packed.archiveBytes);
+    tampered[tampered.length - 5] ^= 0xff;
 
-      expect(() => unpackPackage(provider, tampered)).toThrowError(
-        expect.objectContaining({
-          code: expect.stringMatching(
-            /FILE_HASH_MISMATCH|SIGNATURE_INVALID|TRUNCATED/,
-          ),
-        }),
-      );
+    expect(() => unpackPackage(provider, tampered)).toThrowError(
+      expect.objectContaining({ code: expect.stringMatching(/FILE_HASH_MISMATCH|SIGNATURE_INVALID|TRUNCATED/) })
+    );
     });
 
     it(`${label}: rejects truncated archive`, () => {
-      const identity = new Identity(provider);
-      const packed = buildSignedPackage(provider, identity);
-      const truncated = packed.archiveBytes.subarray(
-        0,
-        packed.archiveBytes.length - 20,
-      );
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
+    const truncated = packed.archiveBytes.subarray(0, packed.archiveBytes.length - 20);
 
-      expect(() => unpackPackage(provider, truncated)).toThrowError(
-        expect.objectContaining({ code: "TRUNCATED" }),
-      );
+    expect(() => unpackPackage(provider, truncated)).toThrowError(
+      expect.objectContaining({ code: "TRUNCATED" })
+    );
     });
 
     it(`${label}: rejects invalid magic`, () => {
-      const identity = new Identity(provider);
-      const packed = buildSignedPackage(provider, identity);
-      const badMagic = new Uint8Array(packed.archiveBytes);
-      badMagic[0] = 0x00;
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
+    const badMagic = new Uint8Array(packed.archiveBytes);
+    badMagic[0] = 0x00;
 
-      expect(() => unpackPackage(provider, badMagic)).toThrowError(
-        expect.objectContaining({ code: "INVALID_MAGIC" }),
-      );
+    expect(() => unpackPackage(provider, badMagic)).toThrowError(
+      expect.objectContaining({ code: "INVALID_MAGIC" })
+    );
     });
 
     it(`${label}: rejects wrong signing key`, () => {
-      const identity = new Identity(provider);
-      const other = new Identity(provider);
-      const packed = buildSignedPackage(provider, identity);
+    const identity = new Identity(provider);
+    const other = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
 
-      expect(() =>
-        verifyPackage(provider, packed.archiveBytes, {
-          expectedPublisherKey: other.getPublicKey(),
-        }),
-      ).toThrowError(expect.objectContaining({ code: "WRONG_KEY" }));
+    expect(() =>
+      verifyPackage(provider, packed.archiveBytes, {
+        expectedPublisherKey: other.getPublicKey()
+      })
+    ).toThrowError(expect.objectContaining({ code: "WRONG_KEY" }));
     });
 
     it(`${label}: rejects downgrade`, () => {
-      const identity = new Identity(provider);
-      const packed = buildSignedPackage(provider, identity, "2.0.0");
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity, "2.0.0");
 
-      expect(() =>
-        verifyPackage(provider, packed.archiveBytes, {
-          minVersion: "2.1.0",
-        }),
-      ).toThrowError(expect.objectContaining({ code: "DOWNGRADE" }));
+    expect(() =>
+      verifyPackage(provider, packed.archiveBytes, {
+        minVersion: "2.1.0"
+      })
+    ).toThrowError(expect.objectContaining({ code: "DOWNGRADE" }));
     });
 
     it(`${label}: rejects minHostApi violation`, () => {
-      const identity = new Identity(provider);
-      const packed = buildSignedPackage(provider, identity);
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
 
-      expect(() =>
-        verifyPackage(provider, packed.archiveBytes, {
-          hostApiVersion: "0.0.1",
-        }),
-      ).toThrowError(expect.objectContaining({ code: "MIN_HOST_API" }));
+    expect(() =>
+      verifyPackage(provider, packed.archiveBytes, {
+        hostApiVersion: "0.0.1"
+      })
+    ).toThrowError(expect.objectContaining({ code: "MIN_HOST_API" }));
     });
   }
 });
@@ -213,7 +191,7 @@ describe("catalog", () => {
       manifest: packed.manifest,
       packageSize: packed.archiveBytes.length,
       packageHash: packed.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
 
     const catalog = new CatalogStore(provider);
@@ -221,7 +199,7 @@ describe("catalog", () => {
       destinationHash: "abc",
       appData: encodeAppAnnounceData(summary),
       manifest: packed.manifest,
-      packageHash: packed.packageHash,
+      packageHash: packed.packageHash
     });
 
     expect(entry).not.toBeNull();
@@ -229,15 +207,15 @@ describe("catalog", () => {
 
     const downgraded = {
       ...summary,
-      version: "0.9.0",
+      version: "0.9.0"
     };
 
     expect(
       catalog.ingest({
         destinationHash: "abc",
         appData: encodeAppAnnounceData(downgraded),
-        manifest: { ...packed.manifest, version: "0.9.0" },
-      }),
+        manifest: { ...packed.manifest, version: "0.9.0" }
+      })
     ).toBeNull();
   });
 
@@ -249,7 +227,7 @@ describe("catalog", () => {
       manifest: packed.manifest,
       packageSize: packed.archiveBytes.length,
       packageHash: packed.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
 
     const catalog = new CatalogStore(provider);
@@ -257,7 +235,7 @@ describe("catalog", () => {
       destinationHash: "abc",
       appData: encodeAppAnnounceData(summary),
       manifest: packed.manifest,
-      packageHash: packed.packageHash,
+      packageHash: packed.packageHash
     });
 
     const store = new Map<string, Uint8Array>();
@@ -273,7 +251,7 @@ describe("catalog", () => {
       },
       async list() {
         return [...store.keys()];
-      },
+      }
     };
 
     await catalog.save(kv);
@@ -291,7 +269,7 @@ describe("catalog", () => {
       manifest: packed.manifest,
       packageSize: packed.archiveBytes.length,
       packageHash: packed.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
 
     const catalog = new CatalogStore(provider);
@@ -300,17 +278,14 @@ describe("catalog", () => {
         destinationHash: "abc",
         appData: encodeAppAnnounceData(summary),
         manifest: packed.manifest,
-        packageHash: packed.packageHash,
-      }),
+        packageHash: packed.packageHash
+      })
     ).toBeNull();
   });
 
   it("caps entries per publisher without evicting others", () => {
     const provider = new NodeCryptoProvider();
-    const catalog = new CatalogStore(provider, {
-      maxPerPublisher: 2,
-      maxEntries: 10,
-    });
+    const catalog = new CatalogStore(provider, { maxPerPublisher: 2, maxEntries: 10 });
     const identity = new Identity(provider);
 
     for (let index = 0; index < 3; index += 1) {
@@ -325,28 +300,28 @@ describe("catalog", () => {
           minHostApi: "0.1.0",
           driveKey: "a".repeat(64),
           publisherPublicKey: bytesToHex(identity.getPublicKey()),
-          files: sampleFiles(),
+          files: sampleFiles()
         },
-        provider,
+        provider
       );
       const manifest = signManifest(provider, identity, unsigned);
       const packed = packPackage(provider, {
         ...manifest,
         signature: manifest.signature,
-        files: sampleFiles(),
+        files: sampleFiles()
       });
       const summary = buildAppAnnounceSummary(provider, identity, {
         manifest: packed.manifest,
         packageSize: packed.archiveBytes.length,
         packageHash: packed.packageHash,
-        resourceAvailable: false,
+        resourceAvailable: false
       });
 
       catalog.ingest({
         destinationHash: `dest-${index}`,
         appData: encodeAppAnnounceData(summary),
         manifest: packed.manifest,
-        packageHash: packed.packageHash,
+        packageHash: packed.packageHash
       });
     }
 
@@ -368,7 +343,7 @@ describe("installed package store", () => {
       files: [],
       driveKey: "a".repeat(64),
       publisherPublicKey: "b".repeat(128),
-      signature: "c".repeat(128),
+      signature: "c".repeat(128)
     };
 
     store.install(
@@ -378,9 +353,9 @@ describe("installed package store", () => {
         packageHash: "hash1",
         installedAt: 1,
         manifest,
-        archivePath: "/p1",
+        archivePath: "/p1"
       },
-      1000,
+      1000
     );
 
     store.install(
@@ -390,9 +365,9 @@ describe("installed package store", () => {
         packageHash: "hash2",
         installedAt: 2,
         manifest: { ...manifest, version: "2.0.0" },
-        archivePath: "/p2",
+        archivePath: "/p2"
       },
-      1000,
+      1000
     );
 
     expect(store.latestVersion("pub:app")).toBe("2.0.0");
@@ -412,14 +387,14 @@ describe("golden fixtures", () => {
       manifest: packed.manifest,
       packageSize: packed.archiveBytes.length,
       packageHash: packed.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
 
     mkdirSync(FIXTURE_DIR, { recursive: true });
     writeFileSync(resolve(FIXTURE_DIR, "tiny.tpkg"), packed.archiveBytes);
     writeFileSync(
       resolve(FIXTURE_DIR, "tiny.manifest.json"),
-      serializeCanonicalJson(packed.manifest),
+      serializeCanonicalJson(packed.manifest)
     );
     writeFileSync(
       resolve(FIXTURE_DIR, "tiny.meta.json"),
@@ -428,18 +403,15 @@ describe("golden fixtures", () => {
           packageHash: packed.packageHash,
           publisherPublicKey: packed.manifest.publisherPublicKey,
           publisherPrivateKey: bytesToHex(identity.getPrivateKey()),
-          appDataHex: bytesToHex(encodeAppAnnounceData(summary)),
+          appDataHex: bytesToHex(encodeAppAnnounceData(summary))
         },
         null,
-        2,
-      ),
+        2
+      )
     );
 
     expect(verifyManifestSignature(provider, packed.manifest)).toBe(true);
-    const roundTrip = unpackPackage(
-      provider,
-      readFileSync(resolve(FIXTURE_DIR, "tiny.tpkg")),
-    );
+    const roundTrip = unpackPackage(provider, readFileSync(resolve(FIXTURE_DIR, "tiny.tpkg")));
     expect(roundTrip.packageHash).toBe(packed.packageHash);
   });
 });

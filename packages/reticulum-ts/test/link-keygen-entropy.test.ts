@@ -7,7 +7,7 @@ import {
   PipeInterface,
   Reticulum,
   type Entropy,
-  nodeRuntime,
+  nodeRuntime
 } from "../src/index.js";
 
 class ScriptedEntropy implements Entropy {
@@ -41,9 +41,7 @@ describe("Link keygen entropy injection", () => {
       left.registerInterface(leftPipe);
       right.registerInterface(rightPipe);
 
-      const identitySeed = new Uint8Array(64).map(
-        (_, i) => (i * 17 + 3) & 0xff,
-      );
+      const identitySeed = new Uint8Array(64).map((_, i) => (i * 17 + 3) & 0xff);
       const identity = Identity.fromBytes(provider, identitySeed);
       expect(identity).not.toBeNull();
 
@@ -53,7 +51,7 @@ describe("Link keygen entropy injection", () => {
         direction: DestinationDirection.IN,
         type: DestinationType.SINGLE,
         appName: "entropy",
-        aspects: ["peer"],
+        aspects: ["peer"]
       });
 
       const leftOut = left.registerDestination({
@@ -62,7 +60,7 @@ describe("Link keygen entropy injection", () => {
         direction: DestinationDirection.OUT,
         type: DestinationType.SINGLE,
         appName: "entropy",
-        aspects: ["peer"],
+        aspects: ["peer"]
       });
 
       const link = leftOut.requestLink(undefined, { entropy });
@@ -87,9 +85,7 @@ describe("Link keygen entropy injection", () => {
       left.registerInterface(leftPipe);
       right.registerInterface(rightPipe);
 
-      const identitySeed = new Uint8Array(64).map(
-        (_, i) => (i * 19 + 5) & 0xff,
-      );
+      const identitySeed = new Uint8Array(64).map((_, i) => (i * 19 + 5) & 0xff);
       const identity = Identity.fromBytes(provider, identitySeed);
       expect(identity).not.toBeNull();
 
@@ -99,7 +95,7 @@ describe("Link keygen entropy injection", () => {
         direction: DestinationDirection.IN,
         type: DestinationType.SINGLE,
         appName: "runtime-entropy",
-        aspects: ["peer"],
+        aspects: ["peer"]
       });
 
       const leftOut = left.registerDestination({
@@ -108,7 +104,7 @@ describe("Link keygen entropy injection", () => {
         direction: DestinationDirection.OUT,
         type: DestinationType.SINGLE,
         appName: "runtime-entropy",
-        aspects: ["peer"],
+        aspects: ["peer"]
       });
 
       return [...leftOut.requestLink().linkId];

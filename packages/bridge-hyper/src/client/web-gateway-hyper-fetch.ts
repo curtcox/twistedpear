@@ -22,7 +22,7 @@ export function bulkFetchUrlFromGateway(
   gatewayUrl: string,
   driveKeyHex: string,
   version: string,
-  path = DEFAULT_BULK_FETCH_PATH,
+  path = DEFAULT_BULK_FETCH_PATH
 ): string {
   const url = new URL(gatewayHttpUrlFromWebSocket(gatewayUrl));
   url.pathname = path;
@@ -32,7 +32,7 @@ export function bulkFetchUrlFromGateway(
 }
 
 export async function fetchDriveVersionViaGateway(
-  options: WebGatewayHyperFetchOptions,
+  options: WebGatewayHyperFetchOptions
 ): Promise<Uint8Array> {
   const timeoutMs = options.timeoutMs ?? 90_000;
   const controller = new AbortController();
@@ -44,9 +44,9 @@ export async function fetchDriveVersionViaGateway(
         options.gatewayUrl,
         options.driveKeyHex,
         options.version,
-        options.bulkFetchPath,
+        options.bulkFetchPath
       ),
-      { signal: controller.signal },
+      { signal: controller.signal }
     );
 
     if (!response.ok) {
@@ -54,7 +54,7 @@ export async function fetchDriveVersionViaGateway(
       throw new Error(
         detail.length > 0
           ? `gateway bulk fetch failed (${response.status}): ${detail}`
-          : `gateway bulk fetch failed (${response.status})`,
+          : `gateway bulk fetch failed (${response.status})`
       );
     }
 
@@ -70,16 +70,11 @@ export async function fetchDriveVersionViaGateway(
   }
 }
 
-export async function fetchDriveVersionForWeb(
-  options: WebCompositeHyperFetchOptions,
-): Promise<Uint8Array> {
+export async function fetchDriveVersionForWeb(options: WebCompositeHyperFetchOptions): Promise<Uint8Array> {
   return fetchDriveVersionViaGateway(options);
 }
 
-export function dhtRelayUrlFromGateway(
-  gatewayUrl: string,
-  path = "/dht-relay",
-): string {
+export function dhtRelayUrlFromGateway(gatewayUrl: string, path = "/dht-relay"): string {
   const url = new URL(gatewayUrl);
   url.pathname = path;
   url.search = "";

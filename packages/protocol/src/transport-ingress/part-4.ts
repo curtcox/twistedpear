@@ -43,7 +43,7 @@ import {
   initialGateState,
   interpretGate,
   type GateState,
-  type GateStepResult,
+  type GateStepResult
 } from "@twistedpear/effects";
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -52,17 +52,13 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
-  PACKET_TYPE_PROOF,
+  PACKET_TYPE_PROOF
 } from "../packet-header.js";
 import { PacketContextCode } from "../packet-context.js";
 import { equalByteArrays } from "../path-table.js";
 import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
 import { planProofIngressKind } from "./part-3.js";
-import type {
-  ProofIngressKind,
-  ProofIngressPlanAction,
-  ProofIngressPlanEvent,
-} from "./part-3.js";
+import type { ProofIngressKind, ProofIngressPlanAction, ProofIngressPlanEvent } from "./part-3.js";
 /**
  * Proof ingress plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planProofIngressKind` /
@@ -73,13 +69,10 @@ type ProofIngressPlanGateEvent = Extract<
   { readonly kind: "transport/proof-ingress-plan-gate" }
 >;
 
-const proofIngressPlanGate = defineGate<
-  ProofIngressPlanGateEvent,
-  ProofIngressPlanAction
->({
+const proofIngressPlanGate = defineGate<ProofIngressPlanGateEvent, ProofIngressPlanAction>({
   event: "transport/proof-ingress-plan-gate",
   actions: ["lrproof", "resource-prf", "receipt"],
-  decide: (event) => [{ kind: planProofIngressKind(event.context) }],
+  decide: (event) => [{ kind: planProofIngressKind(event.context) }]
 });
 
 export type ProofIngressPlanState = GateState;
@@ -88,8 +81,7 @@ export type ProofIngressPlanStepResult = GateStepResult<ProofIngressPlanAction>;
 
 export const initialProofIngressPlanState = initialGateState;
 
-export const stepProofIngressPlanWithActions =
-  interpretGate(proofIngressPlanGate);
+export const stepProofIngressPlanWithActions = interpretGate(proofIngressPlanGate);
 
 /** Extract the proof ingress plan from actions; null when empty. */
 export const proofIngressPlanFromActions = gateConclusion<
@@ -97,14 +89,13 @@ export const proofIngressPlanFromActions = gateConclusion<
   ProofIngressKind
 >("lrproof", "resource-prf", "receipt");
 
-export const shouldHandleProofLrproofPlan =
-  gateConcluded<ProofIngressPlanAction>("lrproof");
+export const shouldHandleProofLrproofPlan = gateConcluded<ProofIngressPlanAction>("lrproof");
 
-export const shouldHandleProofResourcePrfPlan =
-  gateConcluded<ProofIngressPlanAction>("resource-prf");
+export const shouldHandleProofResourcePrfPlan = gateConcluded<
+  ProofIngressPlanAction
+>("resource-prf");
 
-export const shouldHandleProofReceiptPlan =
-  gateConcluded<ProofIngressPlanAction>("receipt");
+export const shouldHandleProofReceiptPlan = gateConcluded<ProofIngressPlanAction>("receipt");
 
 /**
  * Whether a packet should leave on this interface (outgoing + optional exclude /
@@ -154,14 +145,12 @@ const transmitOnInterfaceGate = defineGate<
         ...(event.requireAttached !== undefined
           ? { requireAttached: event.requireAttached }
           : {}),
-        ...(event.isAttached !== undefined
-          ? { isAttached: event.isAttached }
-          : {}),
+        ...(event.isAttached !== undefined ? { isAttached: event.isAttached } : {})
       })
         ? "transmit"
-        : "skip",
-    },
-  ],
+        : "skip"
+    }
+  ]
 });
 
 export type TransmitOnInterfaceState = GateState;
@@ -177,22 +166,20 @@ export type TransmitOnInterfaceEvent =
     };
 
 export type TransmitOnInterfaceAction =
-  { readonly kind: "transmit" } | { readonly kind: "skip" };
+  | { readonly kind: "transmit" }
+  | { readonly kind: "skip" };
 
-export type TransmitOnInterfaceStepResult =
-  GateStepResult<TransmitOnInterfaceAction>;
+export type TransmitOnInterfaceStepResult = GateStepResult<TransmitOnInterfaceAction>;
 
 export const initialTransmitOnInterfaceState = initialGateState;
 
-export const stepTransmitOnInterfaceWithActions = interpretGate(
-  transmitOnInterfaceGate,
-);
+export const stepTransmitOnInterfaceWithActions = interpretGate(transmitOnInterfaceGate);
 
-export const shouldTransmitOnInterfaceNow =
-  gateConcluded<TransmitOnInterfaceAction>("transmit");
+export const shouldTransmitOnInterfaceNow = gateConcluded<
+  TransmitOnInterfaceAction
+>("transmit");
 
-export const shouldSkipTransmitOnInterface =
-  gateConcluded<TransmitOnInterfaceAction>("skip");
+export const shouldSkipTransmitOnInterface = gateConcluded<TransmitOnInterfaceAction>("skip");
 
 /** Local IN destination match (announce / path-request answerer). */
 export function shouldMatchLocalInboundDestination(input: {
@@ -220,7 +207,7 @@ const matchLocalInboundDestinationGate = defineBooleanGate<
   event: "transport/match-local-inbound-destination-gate",
   whenTrue: "match",
   whenFalse: "mismatch",
-  decide: (event) => shouldMatchLocalInboundDestination(event),
+  decide: (event) => shouldMatchLocalInboundDestination(event)
 });
 
 export type MatchLocalInboundDestinationState = GateState;
@@ -234,22 +221,26 @@ export type MatchLocalInboundDestinationEvent =
     };
 
 export type MatchLocalInboundDestinationAction =
-  { readonly kind: "match" } | { readonly kind: "mismatch" };
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
 
-export type MatchLocalInboundDestinationStepResult =
-  GateStepResult<MatchLocalInboundDestinationAction>;
+export type MatchLocalInboundDestinationStepResult = GateStepResult<
+  MatchLocalInboundDestinationAction
+>;
 
 export const initialMatchLocalInboundDestinationState = initialGateState;
 
 export const stepMatchLocalInboundDestinationWithActions = interpretGate(
-  matchLocalInboundDestinationGate,
+  matchLocalInboundDestinationGate
 );
 
-export const shouldMatchLocalInboundDestinationNow =
-  gateConcluded<MatchLocalInboundDestinationAction>("match");
+export const shouldMatchLocalInboundDestinationNow = gateConcluded<
+  MatchLocalInboundDestinationAction
+>("match");
 
-export const shouldMismatchLocalInboundDestination =
-  gateConcluded<MatchLocalInboundDestinationAction>("mismatch");
+export const shouldMismatchLocalInboundDestination = gateConcluded<
+  MatchLocalInboundDestinationAction
+>("mismatch");
 
 /** Local typed destination match (plain DATA delivery). */
 export function shouldMatchLocalTypedDestination(input: {
@@ -277,7 +268,7 @@ const matchLocalTypedDestinationGate = defineBooleanGate<
   event: "transport/match-local-typed-destination-gate",
   whenTrue: "match",
   whenFalse: "mismatch",
-  decide: (event) => shouldMatchLocalTypedDestination(event),
+  decide: (event) => shouldMatchLocalTypedDestination(event)
 });
 
 export type MatchLocalTypedDestinationState = GateState;
@@ -291,22 +282,26 @@ export type MatchLocalTypedDestinationEvent =
     };
 
 export type MatchLocalTypedDestinationAction =
-  { readonly kind: "match" } | { readonly kind: "mismatch" };
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
 
-export type MatchLocalTypedDestinationStepResult =
-  GateStepResult<MatchLocalTypedDestinationAction>;
+export type MatchLocalTypedDestinationStepResult = GateStepResult<
+  MatchLocalTypedDestinationAction
+>;
 
 export const initialMatchLocalTypedDestinationState = initialGateState;
 
 export const stepMatchLocalTypedDestinationWithActions = interpretGate(
-  matchLocalTypedDestinationGate,
+  matchLocalTypedDestinationGate
 );
 
-export const shouldMatchLocalTypedDestinationNow =
-  gateConcluded<MatchLocalTypedDestinationAction>("match");
+export const shouldMatchLocalTypedDestinationNow = gateConcluded<
+  MatchLocalTypedDestinationAction
+>("match");
 
-export const shouldMismatchLocalTypedDestination =
-  gateConcluded<MatchLocalTypedDestinationAction>("mismatch");
+export const shouldMismatchLocalTypedDestination = gateConcluded<
+  MatchLocalTypedDestinationAction
+>("mismatch");
 
 /** Local LINKREQUEST dispatch (typed destination + handler present). */
 export function shouldDispatchLocalLinkRequest(input: {
@@ -335,7 +330,7 @@ const dispatchLocalLinkRequestGate = defineBooleanGate<
   event: "transport/dispatch-local-link-request-gate",
   whenTrue: "dispatch",
   whenFalse: "skip",
-  decide: (event) => shouldDispatchLocalLinkRequest(event),
+  decide: (event) => shouldDispatchLocalLinkRequest(event)
 });
 
 export type DispatchLocalLinkRequestState = GateState;
@@ -350,22 +345,24 @@ export type DispatchLocalLinkRequestEvent =
     };
 
 export type DispatchLocalLinkRequestAction =
-  { readonly kind: "dispatch" } | { readonly kind: "skip" };
+  | { readonly kind: "dispatch" }
+  | { readonly kind: "skip" };
 
-export type DispatchLocalLinkRequestStepResult =
-  GateStepResult<DispatchLocalLinkRequestAction>;
+export type DispatchLocalLinkRequestStepResult = GateStepResult<DispatchLocalLinkRequestAction>;
 
 export const initialDispatchLocalLinkRequestState = initialGateState;
 
 export const stepDispatchLocalLinkRequestWithActions = interpretGate(
-  dispatchLocalLinkRequestGate,
+  dispatchLocalLinkRequestGate
 );
 
-export const shouldDispatchLocalLinkRequestNow =
-  gateConcluded<DispatchLocalLinkRequestAction>("dispatch");
+export const shouldDispatchLocalLinkRequestNow = gateConcluded<
+  DispatchLocalLinkRequestAction
+>("dispatch");
 
-export const shouldSkipDispatchLocalLinkRequest =
-  gateConcluded<DispatchLocalLinkRequestAction>("skip");
+export const shouldSkipDispatchLocalLinkRequest = gateConcluded<
+  DispatchLocalLinkRequestAction
+>("skip");
 
 /**
  * After `planProofIngressKind === "lrproof"`: whether this pending link may validate.
@@ -396,7 +393,7 @@ const acceptLinkLrProofCandidateGate = defineBooleanGate<
   event: "transport/accept-link-lr-proof-candidate-gate",
   whenTrue: "accept",
   whenFalse: "reject",
-  decide: (event) => shouldAcceptLinkLrProofCandidate(event),
+  decide: (event) => shouldAcceptLinkLrProofCandidate(event)
 });
 
 export type AcceptLinkLrProofCandidateState = GateState;
@@ -410,22 +407,26 @@ export type AcceptLinkLrProofCandidateEvent =
     };
 
 export type AcceptLinkLrProofCandidateAction =
-  { readonly kind: "accept" } | { readonly kind: "reject" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
 
-export type AcceptLinkLrProofCandidateStepResult =
-  GateStepResult<AcceptLinkLrProofCandidateAction>;
+export type AcceptLinkLrProofCandidateStepResult = GateStepResult<
+  AcceptLinkLrProofCandidateAction
+>;
 
 export const initialAcceptLinkLrProofCandidateState = initialGateState;
 
 export const stepAcceptLinkLrProofCandidateWithActions = interpretGate(
-  acceptLinkLrProofCandidateGate,
+  acceptLinkLrProofCandidateGate
 );
 
-export const shouldAcceptLinkLrProofCandidateNow =
-  gateConcluded<AcceptLinkLrProofCandidateAction>("accept");
+export const shouldAcceptLinkLrProofCandidateNow = gateConcluded<
+  AcceptLinkLrProofCandidateAction
+>("accept");
 
-export const shouldRejectLinkLrProofCandidate =
-  gateConcluded<AcceptLinkLrProofCandidateAction>("reject");
+export const shouldRejectLinkLrProofCandidate = gateConcluded<
+  AcceptLinkLrProofCandidateAction
+>("reject");
 
 export type LocalPlainDataDeliveryPlan = "ignore" | "dispatch";
 
@@ -454,21 +455,18 @@ type ProofIngressGateEvent = Extract<
   { readonly kind: "transport/proof-ingress-gate" }
 >;
 
-export const proofIngressGate = defineGate<
-  ProofIngressGateEvent,
-  ProofIngressAction
->({
+export const proofIngressGate = defineGate<ProofIngressGateEvent, ProofIngressAction>({
   event: "transport/proof-ingress-gate",
   actions: ["lrproof", "resource-prf", "receipt"],
   decide: (event) => {
     const plan = proofIngressPlanFromActions(
       decideGate(proofIngressPlanGate, {
         ...event,
-        kind: "transport/proof-ingress-plan-gate",
-      }),
+        kind: "transport/proof-ingress-plan-gate"
+      })
     );
     return plan === null ? [] : [{ kind: plan }];
-  },
+  }
 });
 
 export type ProofIngressEvent =

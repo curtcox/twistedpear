@@ -12,50 +12,36 @@ import { fileURLToPath } from "node:url";
 import {
   CatalogStore,
   unpackPackage,
-  verifyPackage,
+  verifyPackage
 } from "../../packages/app-registry/dist/index.js";
-import {
-  DriveManager,
-  createSwarm,
-} from "../../packages/bridge-hyper/dist/index.js";
-import {
-  hexToBytes,
-  NodeCryptoProvider,
-} from "../../packages/reticulum-ts/dist/index.js";
+import { DriveManager, createSwarm } from "../../packages/bridge-hyper/dist/index.js";
+import { hexToBytes, NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import {
   printHelp,
   runInit,
   runPack,
   runPublish,
   runSign,
-  runUpdate,
+  runUpdate
 } from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../fixtures/packages/example-app",
-);
-const tpBin = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../packages/cli/dist/bin/tp.js",
-);
+const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const tpBin = resolve(dirname(fileURLToPath(import.meta.url)), "../../packages/cli/dist/bin/tp.js");
 const identityPassphrase = "conformance identity passphrase";
 
 function runTp(cwd, argv) {
   return spawnSync(process.execPath, [tpBin, ...argv], {
     cwd,
     encoding: "utf8",
-    env: { ...process.env, TP_IDENTITY_PASSPHRASE: identityPassphrase },
+    env: { ...process.env, TP_IDENTITY_PASSPHRASE: identityPassphrase }
   });
 }
 
 function assertExit(result, expectedCode, label) {
   if (result.status !== expectedCode) {
     const detail = (result.stderr || result.stdout || "").trim();
-    throw new Error(
-      `${label}: expected exit ${expectedCode}, got ${result.status}${detail ? ` — ${detail}` : ""}`,
-    );
+    throw new Error(`${label}: expected exit ${expectedCode}, got ${result.status}${detail ? ` — ${detail}` : ""}`);
   }
 }
 
@@ -87,22 +73,14 @@ async function fetchWithRetry(driveManager, version) {
   });
 }
 
-async function fetchFromPublisherStorage(
-  publisherDir,
-  consumerDir,
-  driveKey,
-  version,
-) {
+async function fetchFromPublisherStorage(publisherDir, consumerDir, driveKey, version) {
   const pubSwarm = createSwarm();
   const conSwarm = createSwarm();
   const publisherDrive = new DriveManager({
     storagePath: join(publisherDir, ".tp/storage"),
-    swarm: pubSwarm,
+    swarm: pubSwarm
   });
-  const consumerDrive = new DriveManager({
-    storagePath: consumerDir,
-    swarm: conSwarm,
-  });
+  const consumerDrive = new DriveManager({ storagePath: consumerDir, swarm: conSwarm });
 
   try {
     await publisherDrive.ready();
@@ -131,11 +109,7 @@ function testHelpAndFailures() {
     assertExit(runTp(emptyDir, ["pack"]), 1, "tp pack (no args)");
     assertExit(runTp(emptyDir, ["sign"]), 1, "tp sign (no args)");
     assertExit(runTp(emptyDir, ["publish"]), 1, "tp publish (no args)");
-    assertExit(
-      runTp(emptyDir, ["update", "app"]),
-      1,
-      "tp update (no --version)",
-    );
+    assertExit(runTp(emptyDir, ["update", "app"]), 1, "tp update (no --version)");
     assertExit(runTp(emptyDir, ["nope"]), 1, "tp unknown command");
   } finally {
     rmSync(emptyDir, { recursive: true, force: true });
@@ -155,37 +129,25 @@ async function testPublishConsumerFlow() {
     const packCode = await runPack({
       cwd: publisherDir,
       args: [fixtureApp, "--out", "packed.tpkg"],
-      identityPassphrase,
+      identityPassphrase
     });
     if (packCode !== 0) {
       throw new Error("runPack failed");
     }
 
-    const signCode = await runSign({
-      cwd: publisherDir,
-      args: ["packed.tpkg"],
-      identityPassphrase,
-    });
+    const signCode = await runSign({ cwd: publisherDir, args: ["packed.tpkg"], identityPassphrase });
     if (signCode !== 0) {
       throw new Error("runSign failed");
     }
 
-    const publishCode = await runPublish({
-      cwd: publisherDir,
-      args: [fixtureApp],
-      identityPassphrase,
-    });
+    const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp], identityPassphrase });
     if (publishCode !== 0) {
       throw new Error("runPublish failed");
     }
 
     const provider = new NodeCryptoProvider();
-    const meta = JSON.parse(
-      readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
-    );
-    const archive = new Uint8Array(
-      readFileSync(join(publisherDir, ".tp/last.tpkg")),
-    );
+    const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+    const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);
     verifyPackage(provider, archive, { hostApiVersion: "0.1.0" });
 
@@ -194,21 +156,14 @@ async function testPublishConsumerFlow() {
       destinationHash: meta.destinationName ?? "cli-e2e",
       appData: hexToBytes(meta.appDataHex),
       manifest: unpacked.manifest,
-      packageHash: unpacked.packageHash,
+      packageHash: unpacked.packageHash
     });
     if (entry === null || entry.version !== "1.0.0") {
       throw new Error("catalog ingest v1 failed");
     }
 
-    const fetchedV1 = await fetchFromPublisherStorage(
-      publisherDir,
-      consumerDir,
-      meta.driveKey,
-      meta.version,
-    );
-    const verifiedV1 = verifyPackage(provider, fetchedV1, {
-      hostApiVersion: "0.1.0",
-    });
+    const fetchedV1 = await fetchFromPublisherStorage(publisherDir, consumerDir, meta.driveKey, meta.version);
+    const verifiedV1 = verifyPackage(provider, fetchedV1, { hostApiVersion: "0.1.0" });
     if (verifiedV1.packageHash !== unpacked.packageHash) {
       throw new Error("consumer v1 hash mismatch");
     }
@@ -216,24 +171,20 @@ async function testPublishConsumerFlow() {
     const updateCode = await runUpdate({
       cwd: publisherDir,
       args: [fixtureApp, "--version", "2.0.0"],
-      identityPassphrase,
+      identityPassphrase
     });
     if (updateCode !== 0) {
       throw new Error("runUpdate failed");
     }
 
-    const metaV2 = JSON.parse(
-      readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
-    );
-    const archiveV2 = new Uint8Array(
-      readFileSync(join(publisherDir, ".tp/last.tpkg")),
-    );
+    const metaV2 = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+    const archiveV2 = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
     const unpackedV2 = unpackPackage(provider, archiveV2);
     const entryV2 = catalog.ingest({
       destinationHash: metaV2.destinationName ?? "cli-e2e-v2",
       appData: hexToBytes(metaV2.appDataHex),
       manifest: unpackedV2.manifest,
-      packageHash: unpackedV2.packageHash,
+      packageHash: unpackedV2.packageHash
     });
     if (entryV2 === null || entryV2.version !== "2.0.0") {
       throw new Error("catalog ingest v2 failed");
@@ -243,11 +194,9 @@ async function testPublishConsumerFlow() {
       publisherDir,
       consumerDir,
       metaV2.driveKey,
-      metaV2.version,
+      metaV2.version
     );
-    const verifiedV2 = verifyPackage(provider, fetchedV2, {
-      hostApiVersion: "0.1.0",
-    });
+    const verifiedV2 = verifyPackage(provider, fetchedV2, { hostApiVersion: "0.1.0" });
     if (verifiedV2.packageHash !== unpackedV2.packageHash) {
       throw new Error("consumer v2 hash mismatch");
     }

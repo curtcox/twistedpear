@@ -2,11 +2,7 @@ import { createServer, type Server as HttpServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
-import type {
-  CryptoProvider,
-  Identity,
-  Reticulum,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Identity, Reticulum } from "@twistedpear/reticulum-ts";
 import { createFilePropagationPersistence } from "./propagation-persistence.js";
 import {
   NodeCryptoProvider,
@@ -14,23 +10,20 @@ import {
   Reticulum as Rns,
   bytesToHex,
   nodeRuntime,
-  type Runtime,
+  type Runtime
 } from "@twistedpear/reticulum-ts";
 import { selectPreferredInterface } from "@twistedpear/reticulum-interfaces";
 import {
   FreenetClient,
   FreenetClientContractBackend,
-  FreenetPropagationStore,
+  FreenetPropagationStore
 } from "@twistedpear/bridge-freenet";
-import {
-  InterfaceManager,
-  type InterfaceEffectFactories,
-} from "./interface-manager.js";
+import { InterfaceManager, type InterfaceEffectFactories } from "./interface-manager.js";
 import {
   LXMFRouter,
   PropagationServer,
   createPropagationDestination,
-  DEFAULT_PROPAGATION_QUOTAS,
+  DEFAULT_PROPAGATION_QUOTAS
 } from "@twistedpear/lxmf-ts";
 import { ensureDir, saveHostConfigFile } from "./config.js";
 import { identityHashHex, loadOrCreateIdentity } from "./identity.js";
@@ -50,29 +43,26 @@ function freenetClientOptions(config: HostConfig): {
   }
   return {
     url: freenet.url,
-    ...(freenet.authToken === undefined
-      ? {}
-      : { authToken: freenet.authToken }),
+    ...(freenet.authToken === undefined ? {} : { authToken: freenet.authToken })
   };
 }
 
 function loadPropagationSetWasm(): Uint8Array {
   const require = createRequire(import.meta.url);
-  const packageJson =
-    require.resolve("@twistedpear/bridge-freenet/package.json");
+  const packageJson = require.resolve("@twistedpear/bridge-freenet/package.json");
   return Uint8Array.from(
     readFileSync(
       join(
         dirname(packageJson),
-        "contract/propagation-set/propagation-set-contract.wasm",
-      ),
-    ),
+        "contract/propagation-set/propagation-set-contract.wasm"
+      )
+    )
   );
 }
 
 function createFreenetPropagationMirror(
   config: HostConfig,
-  sharedClient: FreenetClient | null,
+  sharedClient: FreenetClient | null
 ): FreenetPropagationStore | null {
   const freenet = config.interfaces.freenet;
   if (!freenet.enabled) {
@@ -90,7 +80,7 @@ function createFreenetPropagationMirror(
   return new FreenetPropagationStore({
     client,
     wasm,
-    updateOptions: { fallbackCodeField: wasm },
+    updateOptions: { fallbackCodeField: wasm }
   });
 }
 
@@ -102,14 +92,14 @@ function createFreenetPropagationMirror(
  */
 function createFreenetContractBackend(
   config: HostConfig,
-  sharedClient: FreenetClient | null,
+  sharedClient: FreenetClient | null
 ): FreenetClientContractBackend | null {
   const options = freenetClientOptions(config);
   if (options === null) {
     return null;
   }
   return new FreenetClientContractBackend({
-    client: sharedClient ?? new FreenetClient(options),
+    client: sharedClient ?? new FreenetClient(options)
   });
 }
 
@@ -138,38 +128,24 @@ export interface NodeHostSession {
   readonly stop: () => Promise<void>;
 }
 
-export async function createNodeHost(
-  options: NodeHostOptions,
-): Promise<NodeHostSession> {
+export async function createNodeHost(options: NodeHostOptions): Promise<NodeHostSession> {
   const provider = options.provider ?? new NodeCryptoProvider();
   const runtime = options.runtime ?? nodeRuntime();
   const config = options.config;
   ensureDir(config.dataDir);
-  const moderation = new FileModerationStore(
-    join(config.dataDir, "moderation.json"),
-  );
+  const moderation = new FileModerationStore(join(config.dataDir, "moderation.json"));
 
   const transportEnabled =
-    config.roles.transport &&
-    config.roles.attachRnsd === null &&
-    config.relay.mode === "transport-node";
-  const inboundBandwidthLimiter = new BandwidthLimiter(
-    runtime.clock,
-    config.quotas.bandwidthBytesPerSecond,
-  );
-  const outboundBandwidthLimiter = new BandwidthLimiter(
-    runtime.clock,
-    config.quotas.bandwidthBytesPerSecond,
-  );
+    config.roles.transport && config.roles.attachRnsd === null && config.relay.mode === "transport-node";
+  const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, config.quotas.bandwidthBytesPerSecond);
+  const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, config.quotas.bandwidthBytesPerSecond);
   const reticulum = Rns.create({
     provider,
     runtime,
     inboundBandwidthLimiter,
     outboundBandwidthLimiter,
-    ...(options.interfaceEffects === undefined
-      ? {}
-      : { effects: options.interfaceEffects }),
-    ...(transportEnabled ? { transportEnabled: true } : {}),
+    ...(options.interfaceEffects === undefined ? {} : { effects: options.interfaceEffects }),
+    ...(transportEnabled ? { transportEnabled: true } : {})
   });
   reticulum.start();
 
@@ -178,7 +154,7 @@ export async function createNodeHost(
     config.identityPath,
     options.identityPassphrase === undefined
       ? undefined
-      : { passphrase: options.identityPassphrase, migrateLegacy: true },
+      : { passphrase: options.identityPassphrase, migrateLegacy: true }
   );
   const startedAt = Date.now();
   let announcesSeen = 0;
@@ -187,7 +163,7 @@ export async function createNodeHost(
   reticulum.registerAnnounceHandler({
     receivedAnnounce() {
       announcesSeen += 1;
-    },
+    }
   });
   reticulum.registerDropObserver((drop) => {
     dropCensus.record(drop);
@@ -200,10 +176,7 @@ export async function createNodeHost(
   const freenetOptions = freenetClientOptions(config);
   const sharedFreenetClient =
     freenetOptions === null ? null : new FreenetClient(freenetOptions);
-  const freenetBackend = createFreenetContractBackend(
-    config,
-    sharedFreenetClient,
-  );
+  const freenetBackend = createFreenetContractBackend(config, sharedFreenetClient);
 
   if (config.roles.seeder) {
     seederSession = await startSeederRole({
@@ -214,7 +187,7 @@ export async function createNodeHost(
       bootstrap: config.bootstrap,
       quotas: config.quotas,
       inboundBandwidthLimiter,
-      outboundBandwidthLimiter,
+      outboundBandwidthLimiter
     });
   }
 
@@ -222,18 +195,15 @@ export async function createNodeHost(
     lxmfRouter = new LXMFRouter({
       reticulum,
       provider,
-      inboundModeration: (sourceHash) => moderation.disposition(sourceHash),
+      inboundModeration: (sourceHash) => moderation.disposition(sourceHash)
     });
-    const freenetMirror = createFreenetPropagationMirror(
-      config,
-      sharedFreenetClient,
-    );
+    const freenetMirror = createFreenetPropagationMirror(config, sharedFreenetClient);
     propagationServer = new PropagationServer(
       provider,
       {
         ...DEFAULT_PROPAGATION_QUOTAS,
         maxBytes: config.quotas.propagationStoreBytes,
-        maxMessages: config.quotas.propagationMessageCount,
+        maxMessages: config.quotas.propagationMessageCount
       },
       {
         now: () => Date.now(),
@@ -241,22 +211,16 @@ export async function createNodeHost(
           const handle = setTimeout(callback, ms);
           return { cancel: () => clearTimeout(handle) };
         },
-        persistence: createFilePropagationPersistence(
-          join(config.dataDir, "propagation", "store.json"),
-        ),
-        ...(freenetMirror === null ? {} : { remoteMirror: freenetMirror }),
-      },
+        persistence: createFilePropagationPersistence(join(config.dataDir, "propagation", "store.json")),
+        ...(freenetMirror === null ? {} : { remoteMirror: freenetMirror })
+      }
     );
     if (freenetMirror !== null) {
       await propagationServer.pullRemoteMirror().catch(() => {
         // Offline Freenet must not block host startup.
       });
     }
-    const propagationDestination = createPropagationDestination(
-      provider,
-      reticulum,
-      identity,
-    );
+    const propagationDestination = createPropagationDestination(provider, reticulum, identity);
     propagationServer.registerHandlers(propagationDestination);
     await propagationDestination.announce();
   }
@@ -269,7 +233,7 @@ export async function createNodeHost(
     outboundBandwidthLimiter,
     onConfigChange: (nextConfig) => {
       saveHostConfigFile(join(nextConfig.dataDir, "config.json"), nextConfig);
-    },
+    }
   });
   await interfaceManager.start(config);
 
@@ -278,9 +242,7 @@ export async function createNodeHost(
     const preferred = selectPreferredInterface(interfaces);
     const linkOnline = interfaces.some((iface) => iface.online);
     const managerStatus = interfaceManager.status();
-    const autoIface = managerStatus.interfaces.find(
-      (i: InterfaceStatus) => i.kind === "auto",
-    );
+    const autoIface = managerStatus.interfaces.find((i: InterfaceStatus) => i.kind === "auto");
     return {
       running: true,
       uptimeMs: Date.now() - startedAt,
@@ -293,14 +255,8 @@ export async function createNodeHost(
       linkOnline,
       announcesSeen,
       dropCensus: dropCensus.snapshot(),
-      autoPeers:
-        autoIface && "peerInterfaces" in autoIface
-          ? (autoIface as { peerInterfaces: { length: number } }).peerInterfaces
-              .length
-          : 0,
-      onlineInterfaces:
-        managerStatus.onlineCount ??
-        interfaces.filter((iface) => iface.online).length,
+      autoPeers: autoIface && "peerInterfaces" in autoIface ? (autoIface as { peerInterfaces: { length: number } }).peerInterfaces.length : 0,
+      onlineInterfaces: managerStatus.onlineCount ?? interfaces.filter((iface) => iface.online).length,
       preferredInterface: preferred?.name ?? null,
       interfaces: managerStatus.interfaces ?? [],
       seedStorageUsedBytes: seederSession?.usedBytes() ?? 0,
@@ -312,7 +268,7 @@ export async function createNodeHost(
       pathTableCount: reticulum.pathTableCount,
       activeLinkCount: reticulum.activeLinkCount,
       bandwidthBytesOut: reticulum.bandwidthBytesOut,
-      bandwidthBytesIn: reticulum.bandwidthBytesIn,
+      bandwidthBytesIn: reticulum.bandwidthBytesIn
     };
   };
 
@@ -325,11 +281,7 @@ export async function createNodeHost(
       }
 
       const remote = request.socket.remoteAddress ?? "";
-      if (
-        remote !== "127.0.0.1" &&
-        remote !== "::1" &&
-        remote !== "::ffff:127.0.0.1"
-      ) {
+      if (remote !== "127.0.0.1" && remote !== "::1" && remote !== "::ffff:127.0.0.1") {
         response.statusCode = 403;
         response.end();
         return;
@@ -339,9 +291,7 @@ export async function createNodeHost(
       response.end(JSON.stringify(buildStatus()));
     });
     await new Promise<void>((resolve) => {
-      statusServer?.listen(config.statusEndpointPort, "127.0.0.1", () =>
-        resolve(),
-      );
+      statusServer?.listen(config.statusEndpointPort, "127.0.0.1", () => resolve());
     });
   }
 
@@ -355,11 +305,9 @@ export async function createNodeHost(
       platform: "tp-node",
       controlHost: config.testAgent.host,
       controlPort: config.testAgent.port,
-      log: (line) => console.log(`[peer-agent] ${line}`),
+      log: (line) => console.log(`[peer-agent] ${line}`)
     });
-    console.log(
-      `[peer-agent] ${config.testAgent.label} lxmf=${testAgent.lxmfAddress}`,
-    );
+    console.log(`[peer-agent] ${config.testAgent.label} lxmf=${testAgent.lxmfAddress}`);
   }
 
   return {
@@ -397,15 +345,13 @@ export async function createNodeHost(
       }
 
       await reticulum.stop();
-    },
+    }
   };
 }
 
 export async function runNodeHost(options: NodeHostOptions): Promise<void> {
   const session = await createNodeHost(options);
-  console.log(
-    `host-core: running (identity ${bytesToHex(session.identity.hash)})`,
-  );
+  console.log(`host-core: running (identity ${bytesToHex(session.identity.hash)})`);
 
   process.on("SIGINT", () => {
     void session.stop().then(() => process.exit(0));

@@ -4,14 +4,9 @@ export const ROLES = ["developer", "source", "target", "runner"];
 export function emptyCoverage() {
   return {
     cells: Object.fromEntries(
-      VARIANTS.map((variant) => [
-        variant,
-        Object.fromEntries(ROLES.map((role) => [role, []])),
-      ]),
+      VARIANTS.map((variant) => [variant, Object.fromEntries(ROLES.map((role) => [role, []]))])
     ),
-    empty: VARIANTS.flatMap((variant) =>
-      ROLES.map((role) => `${variant}.${role}`),
-    ),
+    empty: VARIANTS.flatMap((variant) => ROLES.map((role) => `${variant}.${role}`))
   };
 }
 
@@ -28,9 +23,7 @@ export function coverageFromProof(proof) {
     }
   }
   coverage.empty = VARIANTS.flatMap((variant) =>
-    ROLES.filter((role) => coverage.cells[variant][role].length === 0).map(
-      (role) => `${variant}.${role}`,
-    ),
+    ROLES.filter((role) => coverage.cells[variant][role].length === 0).map((role) => `${variant}.${role}`)
   );
   return coverage;
 }

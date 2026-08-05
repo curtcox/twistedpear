@@ -9,11 +9,11 @@ register: none
 Three storage surfaces, three capabilities, three purposes. All are **local-only** and all
 are **per-app**: another mini-app cannot read yours, and yours cannot read theirs.
 
-| Surface       | Capability         | For                            | Shape                         |
-| ------------- | ------------------ | ------------------------------ | ----------------------------- |
-| `storage.kv`  | `storage:kv`       | Settings, cursors, small state | Key → bytes                   |
+| Surface | Capability | For | Shape |
+|---|---|---|---|
+| `storage.kv` | `storage:kv` | Settings, cursors, small state | Key → bytes |
 | `storage.bee` | `storage:hyperbee` | Ordered records you range over | Sorted key/value with history |
-| `workspace`   | `workspace`        | Editable project source files  | Path → string                 |
+| `workspace` | `workspace` | Editable project source files | Path → string |
 
 ## Key/value
 
@@ -62,7 +62,7 @@ value that churns, put it in KV.
 
 ## Workspace
 
-The workspace is your app's private project source tree. It exists so an app can _edit code_ —
+The workspace is your app's private project source tree. It exists so an app can *edit code* —
 DevStudio is the reason it exists — and the `code-editor` widget resolves its content from
 here.
 
@@ -84,10 +84,10 @@ than overwriting a concurrent change. The per-file ceiling remains a host safety
 
 ## Quotas, and what happens when you hit one
 
-| Store     | Limit                                |
-| --------- | ------------------------------------ |
-| KV        | Host-configured byte quota per app   |
-| Hyperbee  | Shares the KV pool; history counts   |
+| Store | Limit |
+|---|---|
+| KV | Host-configured byte quota per app |
+| Hyperbee | Shares the KV pool; history counts |
 | Workspace | 256 KiB/file, 4 MiB total, 512 files |
 
 A write over quota **fails**. It does not evict, it does not silently truncate, and there is

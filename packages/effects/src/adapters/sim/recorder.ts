@@ -44,7 +44,7 @@ export type WriteTextFile = (path: string, contents: string) => void;
 export class FileHistoryRecorder<S> implements HistoryRecorder<S> {
   constructor(
     private readonly directory: string,
-    private readonly writeTextFile: WriteTextFile,
+    private readonly writeTextFile: WriteTextFile
   ) {}
 
   record(history: RecordedHistory<S>): string {
@@ -55,22 +55,18 @@ export class FileHistoryRecorder<S> implements HistoryRecorder<S> {
   }
 }
 
-export function snapshotConfig<S>(
-  config: SimKernelConfig<S>,
-): RecordedKernelConfig<S> {
+export function snapshotConfig<S>(config: SimKernelConfig<S>): RecordedKernelConfig<S> {
   return {
     seed: config.seed,
     startMs: config.startMs ?? 0,
     nodes: config.nodes.map((node) => ({
       id: node.id,
       ...(node.machine === undefined ? {} : { machine: node.machine }),
-      initial: node.initial,
+      initial: node.initial
     })),
     ...(config.delivery === undefined ? {} : { delivery: config.delivery }),
     ...(config.links === undefined ? {} : { links: config.links }),
-    ...(config.interleaveSalt === undefined
-      ? {}
-      : { interleaveSalt: config.interleaveSalt }),
+    ...(config.interleaveSalt === undefined ? {} : { interleaveSalt: config.interleaveSalt })
   };
 }
 
@@ -84,28 +80,18 @@ export function serializeHistory<S>(history: RecordedHistory<S>): string {
 
 export function parseHistory<S = unknown>(text: string): RecordedHistory<S> {
   const value = JSON.parse(text, (_key, item: unknown) => {
-    if (isRecord(item) && typeof item.$bytes === "string")
-      return hexToBytes(item.$bytes);
-    if (isRecord(item) && Array.isArray(item.$map))
-      return new Map(item.$map as Array<[unknown, unknown]>);
+    if (isRecord(item) && typeof item.$bytes === "string") return hexToBytes(item.$bytes);
+    if (isRecord(item) && Array.isArray(item.$map)) return new Map(item.$map as Array<[unknown, unknown]>);
     return item;
   }) as RecordedHistory<S>;
-  if (
-    value.version !== 1 ||
-    !Array.isArray(value.trace) ||
-    value.config === undefined
-  ) {
+  if (value.version !== 1 || !Array.isArray(value.trace) || value.config === undefined) {
     throw new Error("invalid simulation history");
   }
   return value;
 }
 
-export function historyEvents(
-  history: RecordedHistory,
-): readonly { node: NodeId; event: Event }[] {
-  return history.trace.flatMap((entry) =>
-    entry.t === "event" ? [{ node: entry.node, event: entry.event }] : [],
-  );
+export function historyEvents(history: RecordedHistory): readonly { node: NodeId; event: Event }[] {
+  return history.trace.flatMap((entry) => entry.t === "event" ? [{ node: entry.node, event: entry.event }] : []);
 }
 
 // Ensure trace serialization remains exercised beside the richer history format.
@@ -122,11 +108,9 @@ function bytesToHex(bytes: Uint8Array): string {
 }
 
 function hexToBytes(hex: string): Uint8Array {
-  if (hex.length % 2 !== 0 || /[^0-9a-f]/i.test(hex))
-    throw new Error("invalid byte encoding");
+  if (hex.length % 2 !== 0 || /[^0-9a-f]/i.test(hex)) throw new Error("invalid byte encoding");
   const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i += 1)
-    out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  for (let i = 0; i < out.length; i += 1) out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   return out;
 }
 

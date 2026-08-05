@@ -3,7 +3,7 @@ import {
   SansIOViolation,
   installTripwire,
   isTripwireInstalled,
-  uninstallTripwire,
+  uninstallTripwire
 } from "../src/tripwire.js";
 
 describe("sans-io tripwire", () => {

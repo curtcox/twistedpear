@@ -9,19 +9,19 @@ register: none
 Pick the host that matches the device in front of you. You can install more than one —
 they are separate peers with separate identities unless you deliberately share one.
 
-| Device                          | Host                                                                  | Best for                                                    |
-| ------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Mac, Windows, or Linux computer | [Desktop host](#desktop-macos-windows-linux)                          | The best experience. Also relays traffic for everyone else. |
-| Android phone or tablet         | [Android host](#android)                                              | Carrying the network with you; Bluetooth and LoRa radios.   |
-| iPhone or iPad                  | [iOS host](#iphone-and-ipad)                                          | Messaging and using apps. The most restricted host.         |
-| Any browser                     | [Web host](#web-browser)                                              | Trying TwistedPear in two minutes, with no install.         |
-| A spare computer or server      | [Headless node](09-managing-your-device.md#running-an-always-on-peer) | Keeping a community's network up 24/7.                      |
+| Device | Host | Best for |
+|---|---|---|
+| Mac, Windows, or Linux computer | [Desktop host](#desktop-macos-windows-linux) | The best experience. Also relays traffic for everyone else. |
+| Android phone or tablet | [Android host](#android) | Carrying the network with you; Bluetooth and LoRa radios. |
+| iPhone or iPad | [iOS host](#iphone-and-ipad) | Messaging and using apps. The most restricted host. |
+| Any browser | [Web host](#web-browser) | Trying TwistedPear in two minutes, with no install. |
+| A spare computer or server | [Headless node](09-managing-your-device.md#running-an-always-on-peer) | Keeping a community's network up 24/7. |
 
 ![The five host types side by side](/guide/images/02-host-lineup.png)
 
 **Screenshot 2.1 — The same host on five devices.** A composite image: desktop window,
 Android phone, iPhone, browser tab, and a terminal running `tp node`. All five show the
-same _Node status_ information, so the reader sees that it is one product, not five.
+same *Node status* information, so the reader sees that it is one product, not five.
 Label each panel with the device name.
 
 ## Before you start
@@ -56,8 +56,8 @@ npm run run:desktop
 
 **Screenshot 2.2 — Desktop host, main window.** Full window, 1280×800, light theme.
 Header reads "TwistedPear Host" with the subtitle "Desktop always-on peer". Left sidebar:
-_Node status_, _Catalog_, _Installed_, _Grants_, _Trusted publishers_, _Settings_. The
-_Node status_ panel is selected and shows worklet state, link count, crypto provider,
+*Node status*, *Catalog*, *Installed*, *Grants*, *Trusted publishers*, *Settings*. The
+*Node status* panel is selected and shows worklet state, link count, crypto provider,
 announces seen, and enabled roles.
 
 By default the desktop host turns on two roles that help everyone else:
@@ -87,8 +87,8 @@ cd apps/harness-mobile && npx expo run:android
 
 **Screenshot 2.3 — Android host, home screen.** Portrait phone screenshot. Title
 "TwistedPear", status card showing "Worklet: ready", "Link: up", "Identity: persisted",
-"Foreground service: running". Below it the _App catalog_ section with two installed
-apps, and the _Announce browser_ section listing three discovered peers.
+"Foreground service: running". Below it the *App catalog* section with two installed
+apps, and the *Announce browser* section listing three discovered peers.
 
 > **⚠️ Works, with limits — this is a developer build.** What you install today is the
 > `harness-mobile` development harness, titled "TwistedPear Harness", not a polished

@@ -5,13 +5,11 @@ import { bulkFetchUrlFromGateway } from "../src/client/web-gateway-hyper-fetch.j
 
 describe("gateway bulk fetch", () => {
   it("builds same-origin bulk fetch URLs from gateway websocket URLs", () => {
-    expect(
-      bulkFetchUrlFromGateway("ws://127.0.0.1:9480", "abc".repeat(16), "0.1.0"),
-    ).toBe(
+    expect(bulkFetchUrlFromGateway("ws://127.0.0.1:9480", "abc".repeat(16), "0.1.0")).toBe(
       "http://127.0.0.1:9480/bulk-fetch?driveKey=" +
         encodeURIComponent("abc".repeat(16)) +
         "&version=" +
-        encodeURIComponent("0.1.0"),
+        encodeURIComponent("0.1.0")
     );
   });
 
@@ -28,9 +26,9 @@ describe("gateway bulk fetch", () => {
         outboundBandwidthLimiter: {
           async consume(bytes) {
             limitedChunks.push(bytes);
-          },
-        },
-      },
+          }
+        }
+      }
     );
 
     const server = createServer((request, response) => {

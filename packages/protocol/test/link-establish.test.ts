@@ -7,7 +7,7 @@ import {
   encodeLinkSignallingBytes,
   modeFromLinkProofData,
   mtuFromLinkProofData,
-  splitLinkProofBody,
+  splitLinkProofBody
 } from "../src/link-proof.js";
 import {
   applyLinkEstablishEvent,
@@ -285,38 +285,19 @@ import {
   stepLinkUnregisterMembershipWithActions,
   stepLinkValidateRequestPlanWithActions,
   stepLinkValidateRequestWithActions,
-  stepMergeLinkRttWithActions,
+  stepMergeLinkRttWithActions
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
 import { PacketTypeCode } from "../src/packet-header.js";
-import {
-  planLinkInitiatorMtu,
-  planLinkRequestResponderMtu,
-  initialLinkInitiatorMtuPlanState,
-  initialLinkInitiatorMtuState,
-  initialLinkRequestResponderMtuPlanState,
-  initialLinkRequestResponderMtuState,
-  linkInitiatorMtuFromActions,
-  linkInitiatorMtuPlanFromActions,
-  linkRequestResponderMtuFromActions,
-  linkRequestResponderMtuPlanFromActions,
-  shouldUseLinkInitiatorMtu,
-  shouldUseLinkInitiatorMtuPlan,
-  shouldUseLinkRequestResponderMtu,
-  shouldUseLinkRequestResponderMtuPlan,
-  stepLinkInitiatorMtuPlanWithActions,
-  stepLinkInitiatorMtuWithActions,
-  stepLinkRequestResponderMtuPlanWithActions,
-  stepLinkRequestResponderMtuWithActions,
-} from "../src/link-metrics.js";
+import { planLinkInitiatorMtu, planLinkRequestResponderMtu, initialLinkInitiatorMtuPlanState, initialLinkInitiatorMtuState, initialLinkRequestResponderMtuPlanState, initialLinkRequestResponderMtuState, linkInitiatorMtuFromActions, linkInitiatorMtuPlanFromActions, linkRequestResponderMtuFromActions, linkRequestResponderMtuPlanFromActions, shouldUseLinkInitiatorMtu, shouldUseLinkInitiatorMtuPlan, shouldUseLinkRequestResponderMtu, shouldUseLinkRequestResponderMtuPlan, stepLinkInitiatorMtuPlanWithActions, stepLinkInitiatorMtuWithActions, stepLinkRequestResponderMtuPlanWithActions, stepLinkRequestResponderMtuWithActions } from "../src/link-metrics.js";
 import { LinkStatus } from "../src/link-watchdog.js";
 
 describe("protocol link proof framing", () => {
-  it("classifies proof payload sizes", () => {
+it("classifies proof payload sizes", () => {
     expect(classifyLinkProofPayload(LINK_PROOF_BODY_SIZE)).toBe("body-only");
-    expect(
-      classifyLinkProofPayload(LINK_PROOF_BODY_SIZE + LINK_PROOF_MTU_SIZE),
-    ).toBe("body-with-mtu");
+    expect(classifyLinkProofPayload(LINK_PROOF_BODY_SIZE + LINK_PROOF_MTU_SIZE)).toBe(
+      "body-with-mtu"
+    );
     expect(classifyLinkProofPayload(10)).toBe("invalid");
   });
 
@@ -327,8 +308,7 @@ describe("protocol link proof framing", () => {
     data.set(signalling, LINK_PROOF_BODY_SIZE);
     expect(modeFromLinkProofData(data, 0)).toBe(0x01);
     expect(mtuFromLinkProofData(data)).toBe(
-      ((signalling[0]! << 16) | (signalling[1]! << 8) | signalling[2]!) &
-        0x1fffff,
+      ((signalling[0]! << 16) | (signalling[1]! << 8) | signalling[2]!) & 0x1fffff
     );
     expect([...encodeLinkMtuBytes(0x123456)]).toEqual([0x12, 0x34, 0x56]);
   });

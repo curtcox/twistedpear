@@ -4,7 +4,7 @@ import { createMdnsBonjourBridge } from "@twistedpear/reticulum-interfaces/bonjo
 describe("createMdnsBonjourBridge", () => {
   it("starts, advertises, and stops without throwing", async () => {
     const bridge = createMdnsBonjourBridge({
-      interfaces: [{ name: "lo0", linkLocalAddress: "fe80::1" }],
+      interfaces: [{ name: "lo0", linkLocalAddress: "fe80::1" }]
     });
 
     await bridge.start();
@@ -12,7 +12,7 @@ describe("createMdnsBonjourBridge", () => {
       id: "test-peer",
       ifname: "lo0",
       host: "fe80::1",
-      port: 42_671,
+      port: 42_671
     });
     await bridge.stop();
     expect(bridge.interfaces).toHaveLength(1);

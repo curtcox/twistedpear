@@ -11,7 +11,7 @@ import type {
   StorageBeeBackend,
   StorageBeeDescriptor,
   StorageBeeEntry,
-  StorageBeeListOptions,
+  StorageBeeListOptions
 } from "./storage-bee.js";
 import { StorageBeeQuotaError, storageBeeDescriptor } from "./storage-bee.js";
 import type { ResourceFetchBackend, ResourceFetchRequest } from "./resource.js";
@@ -34,24 +34,17 @@ export class MemoryKvStoreBackend implements MiniappKvStoreBackend {
   }
 
   async list(prefix: string): Promise<ReadonlyArray<string>> {
-    return [...this.values.keys()]
-      .filter((key) => key.startsWith(prefix))
-      .sort();
+    return [...this.values.keys()].filter((key) => key.startsWith(prefix)).sort();
   }
 }
 
 export class MemoryBeeBackend implements StorageBeeBackend {
-  private readonly stores = new Map<
-    string,
-    Map<string, { value: Uint8Array; seq: number }>
-  >();
+  private readonly stores = new Map<string, Map<string, { value: Uint8Array; seq: number }>>();
   private seq = 0;
 
   constructor(private readonly quotaBytes?: number) {}
 
-  private store(
-    appId: string,
-  ): Map<string, { value: Uint8Array; seq: number }> {
+  private store(appId: string): Map<string, { value: Uint8Array; seq: number }> {
     let store = this.stores.get(appId);
     if (store === undefined) {
       store = new Map();
@@ -73,7 +66,7 @@ export class MemoryBeeBackend implements StorageBeeBackend {
       }
       if (used + value.length > this.quotaBytes) {
         throw new StorageBeeQuotaError(
-          `hyperbee quota exceeded for ${appId}: ${used + value.length} > ${this.quotaBytes}`,
+          `hyperbee quota exceeded for ${appId}: ${used + value.length} > ${this.quotaBytes}`
         );
       }
     }
@@ -85,21 +78,12 @@ export class MemoryBeeBackend implements StorageBeeBackend {
     this.store(appId).delete(key);
   }
 
-  async list(
-    appId: string,
-    options: StorageBeeListOptions = {},
-  ): Promise<ReadonlyArray<StorageBeeEntry>> {
+  async list(appId: string, options: StorageBeeListOptions = {}): Promise<ReadonlyArray<StorageBeeEntry>> {
     const entries = [...this.store(appId).entries()]
-      .filter(
-        ([key]) =>
-          (options.gte === undefined || key >= options.gte) &&
-          (options.lt === undefined || key < options.lt),
-      )
+      .filter(([key]) => (options.gte === undefined || key >= options.gte) && (options.lt === undefined || key < options.lt))
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([key, { value, seq }]) => ({ key, value: value.slice(), seq }));
-    return options.limit === undefined
-      ? entries
-      : entries.slice(0, options.limit);
+    return options.limit === undefined ? entries : entries.slice(0, options.limit);
   }
 
   descriptor(appId: string): StorageBeeDescriptor {
@@ -114,21 +98,13 @@ export class LoopbackResourceBackend implements ResourceFetchBackend {
     this.resources.set(resourceId, bytes.slice());
   }
 
-  async fetch(
-    _appId: string,
-    request: ResourceFetchRequest,
-  ): Promise<Uint8Array> {
+  async fetch(_appId: string, request: ResourceFetchRequest): Promise<Uint8Array> {
     const bytes = this.resources.get(request.resourceId);
     if (bytes === undefined) {
       throw new Error(`Resource not found: ${request.resourceId}`);
     }
-    if (
-      request.budgetBytes !== undefined &&
-      bytes.length > request.budgetBytes
-    ) {
-      throw new Error(
-        `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
-      );
+    if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+      throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
     }
     return bytes.slice();
   }
@@ -139,8 +115,8 @@ export class StaticPresenceBackend implements PresenceBackend {
     private readonly value: PresenceSnapshot = {
       peers: 0,
       onlineInterfaces: 1,
-      preferredInterface: "loopback",
-    },
+      preferredInterface: "loopback"
+    }
   ) {}
 
   async snapshot(): Promise<PresenceSnapshot> {
@@ -169,9 +145,7 @@ export interface LoopbackBinding {
  * same instance deliver LXMF between their apps; separate instances are
  * isolated islands.
  */
-export function createLoopbackBinding(
-  options: LoopbackBindingOptions = {},
-): LoopbackBinding {
+export function createLoopbackBinding(options: LoopbackBindingOptions = {}): LoopbackBinding {
   const resourceBackend = new LoopbackResourceBackend();
   for (const [resourceId, bytes] of options.resources ?? []) {
     resourceBackend.register(resourceId, bytes);
@@ -183,6 +157,6 @@ export function createLoopbackBinding(
     beeBackend: new MemoryBeeBackend(options.beeQuotaBytes),
     announceService: new AnnounceService(),
     presenceBackend: new StaticPresenceBackend(options.presence),
-    resourceBackend,
+    resourceBackend
   };
 }

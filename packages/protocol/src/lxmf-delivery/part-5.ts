@@ -12,7 +12,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
 
 /** Whether propagation inbound targets this router's local delivery destination. */
@@ -39,7 +39,8 @@ export type AcceptLxmfPropagationLocalDeliveryEvent =
     };
 
 export type AcceptLxmfPropagationLocalDeliveryAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptLxmfPropagationLocalDeliveryStepResult {
   readonly state: AcceptLxmfPropagationLocalDeliveryState;
@@ -53,7 +54,7 @@ export function initialAcceptLxmfPropagationLocalDeliveryState(): AcceptLxmfProp
 
 export function stepAcceptLxmfPropagationLocalDeliveryWithActions(
   state: AcceptLxmfPropagationLocalDeliveryState,
-  event: AcceptLxmfPropagationLocalDeliveryEvent,
+  event: AcceptLxmfPropagationLocalDeliveryEvent
 ): AcceptLxmfPropagationLocalDeliveryStepResult {
   if (event.kind === "propagation-local-delivery/accept-gate") {
     return {
@@ -63,12 +64,12 @@ export function stepAcceptLxmfPropagationLocalDeliveryWithActions(
         {
           kind: canAcceptLxmfPropagationLocalDelivery({
             deliveryDestinationPresent: event.deliveryDestinationPresent,
-            destinationHashMatches: event.destinationHashMatches,
+            destinationHashMatches: event.destinationHashMatches
           })
             ? "accept"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -76,19 +77,22 @@ export function stepAcceptLxmfPropagationLocalDeliveryWithActions(
 }
 
 export function shouldAcceptLxmfPropagationLocalDeliveryNow(
-  actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>,
+  actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptLxmfPropagationLocalDelivery(
-  actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>,
+  actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export type LxmfPropagationLocalIngressPlan =
-  "reject-prefix" | "reject-destination" | "reject-decrypt" | "deliver";
+  | "reject-prefix"
+  | "reject-destination"
+  | "reject-decrypt"
+  | "deliver";
 
 /**
  * Whether propagation local-delivery ingress may unpack+callback.
@@ -106,7 +110,7 @@ export function planLxmfPropagationLocalIngress(input: {
   if (
     !canAcceptLxmfPropagationLocalDelivery({
       deliveryDestinationPresent: input.deliveryDestinationPresent,
-      destinationHashMatches: input.destinationHashMatches,
+      destinationHashMatches: input.destinationHashMatches
     })
   ) {
     return "reject-destination";
@@ -153,7 +157,7 @@ export function initialLxmfPropagationLocalIngressPlanState(): LxmfPropagationLo
 
 export function stepLxmfPropagationLocalIngressPlanWithActions(
   state: LxmfPropagationLocalIngressPlanState,
-  event: LxmfPropagationLocalIngressPlanEvent,
+  event: LxmfPropagationLocalIngressPlanEvent
 ): LxmfPropagationLocalIngressPlanStepResult {
   if (event.kind === "propagation-local-ingress/plan-gate") {
     return {
@@ -165,10 +169,10 @@ export function stepLxmfPropagationLocalIngressPlanWithActions(
             prefixedPresent: event.prefixedPresent,
             deliveryDestinationPresent: event.deliveryDestinationPresent,
             destinationHashMatches: event.destinationHashMatches,
-            decryptedPresent: event.decryptedPresent,
-          }),
-        },
-      ],
+            decryptedPresent: event.decryptedPresent
+          })
+        }
+      ]
     };
   }
 
@@ -177,42 +181,42 @@ export function stepLxmfPropagationLocalIngressPlanWithActions(
 
 /** Whether plan actions allow local-ingress delivery. */
 export function shouldPlanLxmfPropagationLocalIngressDeliver(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "deliver");
 }
 
 /** Whether plan actions reject a missing prefix. */
 export function shouldRejectLxmfPropagationLocalIngressPlanPrefix(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-prefix");
 }
 
 /** Whether plan actions reject a destination mismatch. */
 export function shouldRejectLxmfPropagationLocalIngressPlanDestination(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-destination");
 }
 
 /** Whether plan actions reject a failed decrypt. */
 export function shouldRejectLxmfPropagationLocalIngressPlanDecrypt(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-decrypt");
 }
 
 /** Extract the local-ingress plan from actions; null when empty. */
 export function lxmfPropagationLocalIngressPlanFromActions(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
 ): LxmfPropagationLocalIngressPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "deliver" ||
       entry.kind === "reject-prefix" ||
       entry.kind === "reject-destination" ||
-      entry.kind === "reject-decrypt",
+      entry.kind === "reject-decrypt"
   );
   return action?.kind ?? null;
 }
@@ -256,43 +260,44 @@ export function initialLxmfPropagationLocalIngressState(): LxmfPropagationLocalI
   return {};
 }
 
-export const stepLxmfPropagationLocalIngress: StepFn<
-  LxmfPropagationLocalIngressState
-> = (state, event) => {
+export const stepLxmfPropagationLocalIngress: StepFn<LxmfPropagationLocalIngressState> = (
+  state,
+  event
+) => {
   const result = stepLxmfPropagationLocalIngressInner(
     state,
-    event as LxmfPropagationLocalIngressEvent,
+    event as LxmfPropagationLocalIngressEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfPropagationLocalIngressWithActions(
   state: LxmfPropagationLocalIngressState,
-  event: LxmfPropagationLocalIngressEvent,
+  event: LxmfPropagationLocalIngressEvent
 ): LxmfPropagationLocalIngressStepResult {
   return stepLxmfPropagationLocalIngressInner(state, event);
 }
 
 export function shouldDeliverLxmfPropagationLocalIngress(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "deliver");
 }
 
 export function shouldRejectLxmfPropagationLocalPrefix(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-prefix");
 }
 
 export function shouldRejectLxmfPropagationLocalDestination(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-destination");
 }
 
 export function shouldRejectLxmfPropagationLocalDecrypt(
-  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-decrypt");
 }
@@ -326,7 +331,8 @@ export type UnpackLxmfPropagationLocalIngressEvent =
     };
 
 export type UnpackLxmfPropagationLocalIngressAction =
-  { readonly kind: "unpack" } | { readonly kind: "skip" };
+  | { readonly kind: "unpack" }
+  | { readonly kind: "skip" };
 
 export interface UnpackLxmfPropagationLocalIngressStepResult {
   readonly state: UnpackLxmfPropagationLocalIngressState;
@@ -340,7 +346,7 @@ export function initialUnpackLxmfPropagationLocalIngressState(): UnpackLxmfPropa
 
 export function stepUnpackLxmfPropagationLocalIngressWithActions(
   state: UnpackLxmfPropagationLocalIngressState,
-  event: UnpackLxmfPropagationLocalIngressEvent,
+  event: UnpackLxmfPropagationLocalIngressEvent
 ): UnpackLxmfPropagationLocalIngressStepResult {
   if (event.kind === "propagation-local-ingress/unpack-gate") {
     return {
@@ -351,12 +357,12 @@ export function stepUnpackLxmfPropagationLocalIngressWithActions(
           kind: canUnpackLxmfPropagationLocalIngress({
             deliver: event.deliver,
             prefixedPresent: event.prefixedPresent,
-            decryptedPresent: event.decryptedPresent,
+            decryptedPresent: event.decryptedPresent
           })
             ? "unpack"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -364,20 +370,20 @@ export function stepUnpackLxmfPropagationLocalIngressWithActions(
 }
 
 export function shouldUnpackLxmfPropagationLocalIngressNow(
-  actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>,
+  actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "unpack");
 }
 
 export function shouldSkipUnpackLxmfPropagationLocalIngress(
-  actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>,
+  actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 function stepLxmfPropagationLocalIngressInner(
   state: LxmfPropagationLocalIngressState,
-  event: LxmfPropagationLocalIngressEvent,
+  event: LxmfPropagationLocalIngressEvent
 ): LxmfPropagationLocalIngressStepResult {
   if (event.kind === "propagation-local-ingress/gate") {
     const planActions = stepLxmfPropagationLocalIngressPlanWithActions(
@@ -387,8 +393,8 @@ function stepLxmfPropagationLocalIngressInner(
         prefixedPresent: event.prefixedPresent,
         deliveryDestinationPresent: event.deliveryDestinationPresent,
         destinationHashMatches: event.destinationHashMatches,
-        decryptedPresent: event.decryptedPresent,
-      },
+        decryptedPresent: event.decryptedPresent
+      }
     ).actions;
     if (shouldRejectLxmfPropagationLocalIngressPlanPrefix(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-prefix" }] };
@@ -409,7 +415,10 @@ function stepLxmfPropagationLocalIngressInner(
 }
 
 export type LxmfPropagationLinkReadyPlan =
-  "reuse" | "missing-node" | "missing-identity" | "establish";
+  | "reuse"
+  | "missing-node"
+  | "missing-identity"
+  | "establish";
 
 /** Whether outbound propagation may reuse a link, establish, or must abort. */
 export function planLxmfPropagationLinkReady(input: {

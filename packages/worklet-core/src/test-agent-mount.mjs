@@ -33,20 +33,14 @@ export function connectTestAgent(options) {
     platform: options.platform,
     controlHost: options.host,
     controlPort: options.port,
-    ...(options.handleCommand === undefined
-      ? {}
-      : { handleCommand: options.handleCommand }),
+    ...(options.handleCommand === undefined ? {} : { handleCommand: options.handleCommand }),
     // A host with a mini-app runtime routes the verified invite into its own
     // chrome; the agent only records that it did.
-    ...(options.receiveSessionInvite === undefined
-      ? {}
-      : { receiveSessionInvite: options.receiveSessionInvite }),
-    ...(options.acceptSessionInvite === undefined
-      ? {}
-      : { acceptSessionInvite: options.acceptSessionInvite }),
+    ...(options.receiveSessionInvite === undefined ? {} : { receiveSessionInvite: options.receiveSessionInvite }),
+    ...(options.acceptSessionInvite === undefined ? {} : { acceptSessionInvite: options.acceptSessionInvite }),
     // Prefer the shipping host delivery destination when the host already owns
     // one — invites must not require the agent to be mounted.
     ...(options.delivery === undefined ? {} : { delivery: options.delivery }),
-    ...(options.log === undefined ? {} : { log: options.log }),
+    ...(options.log === undefined ? {} : { log: options.log })
   });
 }

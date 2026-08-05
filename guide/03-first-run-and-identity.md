@@ -15,7 +15,7 @@ the guide.
 ![First-launch screen with the Create identity button](/guide/images/03-create-identity.png)
 
 **Screenshot 3.1 — First launch, before an identity exists.** Host window with the
-_Node status_ panel showing "Identity: none" and "Persisted: no". A single prominent
+*Node status* panel showing "Identity: none" and "Persisted: no". A single prominent
 **Create identity** button sits below. Everything else on screen is dimmed or empty,
 making it obvious this is the one action available.
 
@@ -73,13 +73,13 @@ identity shown here is disposable.
 
 Default identity locations are:
 
-| Platform      | Data directory                                               |
-| ------------- | ------------------------------------------------------------ |
-| macOS         | `~/Library/Application Support/TwistedPear/host`             |
-| Linux         | `~/.local/share/twistedpear/host`                            |
-| Windows       | `%APPDATA%/TwistedPear/host`                                 |
-| Android / iOS | Private app storage — not reachable without a device backup  |
-| Browser       | Stored in the browser's own database — see the warning below |
+| Platform | Data directory |
+|---|---|
+| macOS | `~/Library/Application Support/TwistedPear/host` |
+| Linux | `~/.local/share/twistedpear/host` |
+| Windows | `%APPDATA%/TwistedPear/host` |
+| Android / iOS | Private app storage — not reachable without a device backup |
+| Browser | Stored in the browser's own database — see the warning below |
 
 Store the `.tpidentity` file and its passphrase separately, or record both recovery-word
 groups offline. Restore with desktop **Import backup** / **Recover from words**, or with

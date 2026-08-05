@@ -1,27 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import {
-  visitWidget,
-  type WidgetNode,
-  type WidgetStyle,
-  type WidgetTree,
-} from "@twistedpear/miniapp-runtime/ui";
+import { createContext, useContext, useEffect, useRef, useState, type ReactElement } from "react";
+import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { visitWidget, type WidgetNode, type WidgetStyle, type WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 
 // Keep component/prop mapping aligned with describeWidgetTree() in miniapp-runtime (ui-golden tests).
 
@@ -35,7 +14,7 @@ export function MiniappWidgetTree({
   onEvent,
   readDocument,
   assets,
-  deviceSessions,
+  deviceSessions
 }: {
   readonly tree: WidgetTree | null;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
@@ -55,11 +34,7 @@ export function MiniappWidgetTree({
   return (
     <AssetContext.Provider value={assets ?? {}}>
       <DeviceSessionContext.Provider value={deviceSessions ?? []}>
-        <WidgetNodeView
-          node={tree.root}
-          {...(onEvent === undefined ? {} : { onEvent })}
-          {...(readDocument === undefined ? {} : { readDocument })}
-        />
+        <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
       </DeviceSessionContext.Provider>
     </AssetContext.Provider>
   );
@@ -78,7 +53,7 @@ function ScrollWidget({
   node,
   style,
   onEvent,
-  readDocument,
+  readDocument
 }: {
   readonly node: WidgetNode;
   readonly style: ReturnType<typeof widgetStyle>;
@@ -86,8 +61,7 @@ function ScrollWidget({
   readonly readDocument?: (documentId: string) => Promise<string>;
 }) {
   const scrollRef = useRef<ScrollView>(null);
-  const offset =
-    typeof node.props?.scrollOffset === "number" ? node.props.scrollOffset : 0;
+  const offset = typeof node.props?.scrollOffset === "number" ? node.props.scrollOffset : 0;
 
   useEffect(() => {
     if (offset > 0) {
@@ -109,12 +83,7 @@ function ScrollWidget({
       scrollEventThrottle={100}
     >
       {node.children?.map((child) => (
-        <WidgetNodeView
-          key={child.id}
-          node={child}
-          {...(onEvent === undefined ? {} : { onEvent })}
-          {...(readDocument === undefined ? {} : { readDocument })}
-        />
+        <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
       ))}
     </ScrollView>
   );
@@ -124,7 +93,7 @@ function CodeEditorWidget({
   node,
   style,
   onEvent,
-  readDocument,
+  readDocument
 }: {
   readonly node: WidgetNode;
   readonly style: ReturnType<typeof widgetStyle>;
@@ -144,9 +113,7 @@ function CodeEditorWidget({
         }
       });
     }
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [documentId, readDocument]);
   return (
     <TextInput
@@ -168,7 +135,7 @@ function CodeEditorWidget({
             onEvent?.(node.id, event, {
               documentId,
               baseLength: before.length,
-              edits: [edit],
+              edits: [edit]
             });
             baseline.current = text;
           }
@@ -181,7 +148,7 @@ function CodeEditorWidget({
 function WidgetNodeView({
   node,
   onEvent,
-  readDocument,
+  readDocument
 }: {
   readonly node: WidgetNode;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
@@ -191,7 +158,7 @@ function WidgetNodeView({
   const assets = useContext(AssetContext);
   const childProps = {
     ...(onEvent === undefined ? {} : { onEvent }),
-    ...(readDocument === undefined ? {} : { readDocument }),
+    ...(readDocument === undefined ? {} : { readDocument })
   };
 
   return visitWidget(node, {
@@ -218,9 +185,7 @@ function WidgetNodeView({
           }
         }}
       >
-        <Text style={styles.buttonLabel}>
-          {String(n.props?.label ?? "Button")}
-        </Text>
+        <Text style={styles.buttonLabel}>{String(n.props?.label ?? "Button")}</Text>
       </Pressable>
     ),
     "text-input": (n) => (
@@ -262,13 +227,11 @@ function WidgetNodeView({
         {n.children?.map((child) => (
           <WidgetNodeView key={child.id} node={child} {...childProps} />
         ))}
-        {(Array.isArray(n.props?.items) ? n.props.items : []).map(
-          (item, index) => (
-            <Text key={`${n.id}-${index}`} style={styles.muted}>
-              {typeof item === "string" ? item : JSON.stringify(item)}
-            </Text>
-          ),
-        )}
+        {(Array.isArray(n.props?.items) ? n.props.items : []).map((item, index) => (
+          <Text key={`${n.id}-${index}`} style={styles.muted}>
+            {typeof item === "string" ? item : JSON.stringify(item)}
+          </Text>
+        ))}
       </View>
     ),
     image: (n) => {
@@ -277,8 +240,7 @@ function WidgetNodeView({
       const alt = typeof n.props?.alt === "string" ? n.props.alt : assetName;
       if (svg !== undefined) {
         const width = typeof n.style?.width === "number" ? n.style.width : 40;
-        const height =
-          typeof n.style?.height === "number" ? n.style.height : 40;
+        const height = typeof n.style?.height === "number" ? n.style.height : 40;
         return (
           <Image
             testID={n.id}
@@ -299,9 +261,7 @@ function WidgetNodeView({
         </Text>
       );
     },
-    "code-editor": (n) => (
-      <CodeEditorWidget node={n} style={style} {...childProps} />
-    ),
+    "code-editor": (n) => <CodeEditorWidget node={n} style={style} {...childProps} />,
     "qr-code": (n) => (
       <View testID={n.id} style={style}>
         <Text selectable style={styles.muted}>
@@ -316,12 +276,12 @@ function WidgetNodeView({
     "audio-meter": (n) => <PreviewSurface node={n} style={style} />,
     waveform: (n) => <PreviewSurface node={n} style={style} />,
     "map-preview": (n) => <PreviewSurface node={n} style={style} />,
-    "remote-video": (n) => <PreviewSurface node={n} style={style} />,
+    "remote-video": (n) => <PreviewSurface node={n} style={style} />
   }) as ReactElement;
 }
 function PreviewSurface({
   node,
-  style,
+  style
 }: {
   readonly node: WidgetNode;
   readonly style: ReturnType<typeof widgetStyle>;
@@ -337,9 +297,7 @@ function PreviewSurface({
     <View testID={node.id} style={[styles.previewSurface, style]}>
       <Text style={styles.muted}>{label}</Text>
       {node.type === "camera-preview" && live?.classId === "camera" ? (
-        <Text style={styles.muted}>
-          Host camera preview (pixels stay in chrome)
-        </Text>
+        <Text style={styles.muted}>Host camera preview (pixels stay in chrome)</Text>
       ) : null}
       {node.type === "map-preview" && live?.classId === "location" ? (
         <Text style={styles.muted}>
@@ -350,9 +308,7 @@ function PreviewSurface({
         <View style={styles.previewMeter} />
       ) : null}
       {node.type === "remote-video" ? (
-        <Text style={styles.muted}>
-          Remote video shell · peer={String(node.props?.peer ?? "—")}
-        </Text>
+        <Text style={styles.muted}>Remote video shell · peer={String(node.props?.peer ?? "—")}</Text>
       ) : null}
     </View>
   );
@@ -361,19 +317,10 @@ function PreviewSurface({
 function minimalTextEdit(before: string, after: string) {
   if (before === after) return null;
   let start = 0;
-  while (
-    start < before.length &&
-    start < after.length &&
-    before[start] === after[start]
-  )
-    start += 1;
+  while (start < before.length && start < after.length && before[start] === after[start]) start += 1;
   let beforeEnd = before.length;
   let afterEnd = after.length;
-  while (
-    beforeEnd > start &&
-    afterEnd > start &&
-    before[beforeEnd - 1] === after[afterEnd - 1]
-  ) {
+  while (beforeEnd > start && afterEnd > start && before[beforeEnd - 1] === after[afterEnd - 1]) {
     beforeEnd -= 1;
     afterEnd -= 1;
   }
@@ -398,23 +345,18 @@ function widgetStyle(style?: WidgetStyle) {
     backgroundColor: style.backgroundColor,
     ...(style.color !== undefined ? { color: style.color } : {}),
     fontSize: style.fontSize,
-    fontWeight:
-      style.fontWeight === "bold"
-        ? "700"
-        : style.fontWeight === "medium"
-          ? "500"
-          : "400",
+    fontWeight: style.fontWeight === "bold" ? "700" : style.fontWeight === "medium" ? "500" : "400"
   } as const;
 }
 
 const styles = StyleSheet.create({
   // Default for unset text colors on dark host chrome (RNW otherwise paints black).
   text: {
-    color: "#e7ecf3",
+    color: "#e7ecf3"
   },
   muted: {
     color: "#9aa7b8",
-    fontSize: 13,
+    fontSize: 13
   },
   previewSurface: {
     backgroundColor: "#0f141b",
@@ -423,39 +365,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     justifyContent: "center",
-    gap: 6,
+    gap: 6
   },
   previewMeter: {
     height: 8,
     borderRadius: 999,
-    backgroundColor: "#2a5a3a",
+    backgroundColor: "#2a5a3a"
   },
   button: {
     backgroundColor: "#2b3645",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    alignSelf: "flex-start",
+    alignSelf: "flex-start"
   },
   buttonLabel: {
     color: "#f4f7fb",
-    fontSize: 13,
+    fontSize: 13
   },
   input: {
     backgroundColor: "#0f141b",
     color: "#f4f7fb",
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   codeEditor: {
     fontFamily: "monospace",
     minHeight: 220,
-    textAlignVertical: "top",
+    textAlignVertical: "top"
   },
   divider: {
     height: 1,
     backgroundColor: "#2b3645",
-    marginVertical: 8,
-  },
+    marginVertical: 8
+  }
 });

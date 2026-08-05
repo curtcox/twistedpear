@@ -9,7 +9,7 @@ import type {
   TcpListenOptions,
   TcpListener,
   UdpBindOptions,
-  UdpFactory,
+  UdpFactory
 } from "../runtime.js";
 
 function socketConnection(socket: Socket): DuplexConnection {
@@ -30,7 +30,7 @@ function socketConnection(socket: Socket): DuplexConnection {
       await new Promise<void>((resolve) => {
         socket.end(() => resolve());
       });
-    },
+    }
   };
 }
 
@@ -47,13 +47,9 @@ async function* readSocket(socket: Socket): AsyncGenerator<Uint8Array> {
 class NodeTcpFactory implements TcpFactory {
   async connect(options: TcpConnectOptions): Promise<DuplexConnection> {
     // `0` means no factory timer (caller owns connect timeout).
-    const timeoutMs =
-      options.connectTimeoutMs === 0 ? 0 : (options.connectTimeoutMs ?? 5_000);
+    const timeoutMs = options.connectTimeoutMs === 0 ? 0 : (options.connectTimeoutMs ?? 5_000);
     const socket = await new Promise<Socket>((resolve, reject) => {
-      const connection = createConnection({
-        host: options.host,
-        port: options.port,
-      });
+      const connection = createConnection({ host: options.host, port: options.port });
       let settled = false;
 
       const timer =
@@ -157,7 +153,7 @@ class NodeTcpFactory implements TcpFactory {
             }
           });
         });
-      },
+      }
     };
   }
 }
@@ -174,7 +170,7 @@ class NodeBoundDatagramSocket implements BoundDatagramSocket {
       this.queue.push({
         data: Uint8Array.from(message),
         host: remote.address,
-        port: remote.port,
+        port: remote.port
       });
     });
 
@@ -218,18 +214,14 @@ class NodeBoundDatagramSocket implements BoundDatagramSocket {
 }
 
 class NodeUdpFactory implements UdpFactory {
-  async bind(
-    host: string,
-    port: number,
-    options: UdpBindOptions = {},
-  ): Promise<BoundDatagramSocket> {
+  async bind(host: string, port: number, options: UdpBindOptions = {}): Promise<BoundDatagramSocket> {
     const reuseAddress = options.reuseAddress ?? false;
     // Linux needs SO_REUSEPORT for cooperative UDP binds; macOS returns ENOTSUP.
     const reusePort = reuseAddress && process.platform === "linux";
     const socket = createSocket({
       type: host.includes(":") ? "udp6" : "udp4",
       reuseAddr: reuseAddress,
-      ...(reusePort ? { reusePort: true } : {}),
+      ...(reusePort ? { reusePort: true } : {})
     });
     await new Promise<void>((resolve, reject) => {
       socket.once("error", reject);
@@ -245,9 +237,7 @@ class NodeUdpFactory implements UdpFactory {
 
 class AsyncDatagramQueue implements AsyncIterable<DatagramPacket> {
   private readonly values: DatagramPacket[] = [];
-  private readonly waiters: Array<
-    (result: IteratorResult<DatagramPacket>) => void
-  > = [];
+  private readonly waiters: Array<(result: IteratorResult<DatagramPacket>) => void> = [];
   private closed = false;
 
   push(packet: DatagramPacket): void {
@@ -286,7 +276,7 @@ class AsyncDatagramQueue implements AsyncIterable<DatagramPacket> {
         return new Promise<IteratorResult<DatagramPacket>>((resolve) => {
           this.waiters.push(resolve);
         });
-      },
+      }
     };
   }
 }

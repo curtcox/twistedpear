@@ -4,13 +4,7 @@
  * Writes fixture metadata to HANDBOOK_PEER_META_PATH (default: conformance/handbook/handbook-fixture-meta.json).
  */
 
-import {
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-  cpSync,
-  mkdirSync,
-} from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, cpSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,7 +13,7 @@ import {
   CatalogStore,
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
-  unpackPackage,
+  unpackPackage
 } from "../../packages/app-registry/dist/index.js";
 import {
   DestinationDirection,
@@ -27,19 +21,15 @@ import {
   NodeCryptoProvider,
   Reticulum,
   bytesToHex,
-  nodeRuntime,
+  nodeRuntime
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   DriveManager,
   attachPackageResourceServer,
-  createSwarm,
+  createSwarm
 } from "../../packages/bridge-hyper/dist/index.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
-import {
-  runInit,
-  runPack,
-  runPublish,
-} from "../../packages/cli/dist/commands/index.js";
+import { runInit, runPack, runPublish } from "../../packages/cli/dist/commands/index.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(repoRoot, "apps/handbook");
@@ -50,10 +40,7 @@ const metaPath =
 const LEAF_HOST = process.env.LEAF_ECHO_HOST ?? "127.0.0.1";
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 const LEAF_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
-const ANNOUNCE_MS = Number.parseInt(
-  process.env.HANDBOOK_PEER_ANNOUNCE_MS ?? "5000",
-  10,
-);
+const ANNOUNCE_MS = Number.parseInt(process.env.HANDBOOK_PEER_ANNOUNCE_MS ?? "5000", 10);
 const LOG_PREFIX = process.env.HANDBOOK_PEER_LOG_PREFIX ?? "handbook-peer";
 
 async function sleep(ms) {
@@ -63,12 +50,10 @@ async function sleep(ms) {
 function buildHandbook() {
   const result = spawnSync(process.execPath, [join(handbookDir, "build.mjs")], {
     cwd: handbookDir,
-    encoding: "utf8",
+    encoding: "utf8"
   });
   if (result.status !== 0) {
-    throw new Error(
-      `handbook build failed:\n${result.stdout}\n${result.stderr}`,
-    );
+    throw new Error(`handbook build failed:\n${result.stdout}\n${result.stderr}`);
   }
 }
 
@@ -81,60 +66,43 @@ async function main() {
 
   writeFileSync(
     join(publisherDir, "tp.config.json"),
-    `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
+    `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
   );
 
   mkdirSync(appDir, { recursive: true });
-  cpSync(
-    join(handbookDir, "app.manifest.json"),
-    join(appDir, "app.manifest.json"),
-  );
+  cpSync(join(handbookDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
   cpSync(join(handbookDir, "bundle.js"), join(appDir, "bundle.js"));
 
-  const initCode = await runInit({
-    cwd: publisherDir,
-    identityPassphrase: IDENTITY_PASSPHRASE,
-    args: [],
-  });
+  const initCode = await runInit({ cwd: publisherDir, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
   if (initCode !== 0) {
     throw new Error("tp init failed");
   }
 
-  const packCode = await runPack({
-    cwd: publisherDir,
-    args: ["handbook", "--out", "handbook.tpkg"],
-  });
+  const packCode = await runPack({ cwd: publisherDir, args: ["handbook", "--out", "handbook.tpkg"] });
   if (packCode !== 0) {
     throw new Error("tp pack failed");
   }
 
-  const publishCode = await runPublish({
-    cwd: publisherDir,
-    args: ["handbook"],
-  });
+  const publishCode = await runPublish({ cwd: publisherDir, args: ["handbook"] });
   if (publishCode !== 0) {
     throw new Error("tp publish failed");
   }
 
   const provider = new NodeCryptoProvider();
-  const meta = JSON.parse(
-    readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
-  );
-  const archive = new Uint8Array(
-    readFileSync(join(publisherDir, ".tp/last.tpkg")),
-  );
+  const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+  const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
   const unpacked = unpackPackage(provider, archive);
   const publisherIdentity = decryptIdentityBackup(
     provider,
     new Uint8Array(readFileSync(join(publisherDir, ".tp/identity"))),
-    IDENTITY_PASSPHRASE,
+    IDENTITY_PASSPHRASE
   );
 
   const summary = buildAppAnnounceSummary(provider, publisherIdentity, {
     manifest: unpacked.manifest,
     packageSize: archive.length,
     packageHash: unpacked.packageHash,
-    resourceAvailable: true,
+    resourceAvailable: true
   });
 
   const catalog = new CatalogStore(provider);
@@ -142,7 +110,7 @@ async function main() {
     destinationHash: meta.destinationName ?? "handbook-peer",
     appData: encodeAppAnnounceData(summary),
     manifest: unpacked.manifest,
-    packageHash: unpacked.packageHash,
+    packageHash: unpacked.packageHash
   });
   if (entry === null) {
     throw new Error("catalog ingest failed");
@@ -151,19 +119,13 @@ async function main() {
   const swarm = createSwarm();
   const seedDrive = new DriveManager({
     storagePath: join(seederStateDir, "drives"),
-    swarm,
+    swarm
   });
   await seedDrive.ready();
   await seedDrive.openDrive(meta.driveKey, { serve: true });
 
-  const publisherHash = bytesToHex(
-    provider.sha256(publisherIdentity.getPublicKey()).slice(0, 8),
-  );
-  const nameHash = bytesToHex(
-    provider
-      .sha256(new TextEncoder().encode(unpacked.manifest.name))
-      .slice(0, 8),
-  );
+  const publisherHash = bytesToHex(provider.sha256(publisherIdentity.getPublicKey()).slice(0, 8));
+  const nameHash = bytesToHex(provider.sha256(new TextEncoder().encode(unpacked.manifest.name)).slice(0, 8));
 
   const reticulum = Reticulum.create({ provider, runtime: nodeRuntime() });
   reticulum.start();
@@ -172,7 +134,7 @@ async function main() {
     name: "leaf-echo",
     targetHost: LEAF_HOST,
     targetPort: LEAF_PORT,
-    reconnectWaitMs: 1_000,
+    reconnectWaitMs: 1_000
   });
 
   const publisherDestination = reticulum.registerDestination({
@@ -181,22 +143,16 @@ async function main() {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "tp",
-    aspects: ["app", publisherHash, nameHash],
+    aspects: ["app", publisherHash, nameHash]
   });
 
   attachPackageResourceServer(publisherDestination, {
     async listVersions() {
-      return [
-        {
-          version: meta.version,
-          packageHash: unpacked.packageHash,
-          size: archive.length,
-        },
-      ];
+      return [{ version: meta.version, packageHash: unpacked.packageHash, size: archive.length }];
     },
     async fetchArchive() {
       return archive;
-    },
+    }
   });
 
   writeFileSync(
@@ -208,15 +164,15 @@ async function main() {
         version: entry.version,
         packageHash: entry.packageHash,
         driveKey: meta.driveKey,
-        publisherDir,
+        publisherDir
       },
       null,
-      2,
-    )}\n`,
+      2
+    )}\n`
   );
 
   console.log(
-    `[${LOG_PREFIX}] handbook ${entry.appId} v${entry.version} on ${LEAF_HOST}:${LEAF_PORT} → ${metaPath}`,
+    `[${LOG_PREFIX}] handbook ${entry.appId} v${entry.version} on ${LEAF_HOST}:${LEAF_PORT} → ${metaPath}`
   );
 
   const shutdown = async () => {

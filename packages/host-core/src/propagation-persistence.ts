@@ -1,9 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type {
-  PropagationPersistence,
-  PropagationStoredEntry,
-} from "@twistedpear/lxmf-ts";
+import type { PropagationPersistence, PropagationStoredEntry } from "@twistedpear/lxmf-ts";
 import { ensureDir } from "./config.js";
 
 interface SerializedPropagationStore {
@@ -14,22 +11,18 @@ interface SerializedPropagationStore {
   }>;
 }
 
-export function createFilePropagationPersistence(
-  storePath: string,
-): PropagationPersistence {
+export function createFilePropagationPersistence(storePath: string): PropagationPersistence {
   return {
     load(): ReadonlyArray<PropagationStoredEntry> {
       if (!existsSync(storePath)) {
         return [];
       }
 
-      const raw = JSON.parse(
-        readFileSync(storePath, "utf8"),
-      ) as SerializedPropagationStore;
+      const raw = JSON.parse(readFileSync(storePath, "utf8")) as SerializedPropagationStore;
       return raw.entries.map((entry) => ({
         transientId: hexToBytes(entry.transientIdHex),
         lxmfData: hexToBytes(entry.lxmfDataHex),
-        storedAt: entry.storedAt,
+        storedAt: entry.storedAt
       }));
     },
     save(entries: ReadonlyArray<PropagationStoredEntry>): void {
@@ -38,11 +31,11 @@ export function createFilePropagationPersistence(
         entries: entries.map((entry) => ({
           transientIdHex: bytesToHex(entry.transientId),
           lxmfDataHex: bytesToHex(entry.lxmfData),
-          storedAt: entry.storedAt,
-        })),
+          storedAt: entry.storedAt
+        }))
       };
       writeFileSync(storePath, `${JSON.stringify(payload)}\n`);
-    },
+    }
   };
 }
 

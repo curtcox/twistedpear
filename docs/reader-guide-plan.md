@@ -17,8 +17,8 @@ and [LIMITATIONS.md](../LIMITATIONS.md); where they disagree with this page, the
 Three reader-facing docs each maintain a "feature status" appendix listing everything they
 describe that is incomplete:
 
-- `guide/appendix-feature-status.md` (User Guide — people _using_ TwistedPear)
-- `authors/appendix-feature-status.md` (App Authoring Guide — people _writing_ apps)
+- `guide/appendix-feature-status.md` (User Guide — people *using* TwistedPear)
+- `authors/appendix-feature-status.md` (App Authoring Guide — people *writing* apps)
 - `cookbook/appendix-feature-status.md` (Cookbook — the 25 recipes in `cookbook/apps/`)
 
 Your job is to close the items on those three lists that are **software work this repo can
@@ -29,7 +29,6 @@ actually do**, and to leave the rest correctly documented rather than silently p
 Each appendix row has a "Tracked as" column. Use it to sort:
 
 **In scope (implement):**
-
 - Rows tracked as "This cookbook", `STATUS-SOFTWARE.md`, or a `docs/*.md` design doc, where
   the blocker is unwritten code rather than absent hardware, an Apple/Google account, or a
   deliberate v1 exclusion.
@@ -37,7 +36,6 @@ Each appendix row has a "Tracked as" column. Use it to sort:
   but has no surface ("Protocol mechanisms exist; no UI").
 
 **Out of scope (do not implement; verify the row's wording is still accurate and move on):**
-
 - Anything tracked as an `H<N>` hardware-debt ID (H2, H3, H4, H7, H8, H9, H11–H20) — these
   need physical handsets, RNodes, real LANs, or Windows machines.
 - Anything tracked as an `RQ-*` row in `STATUS-SOFTWARE.md` — those are long-duration soaks
@@ -67,7 +65,7 @@ deliberate product decisions and implementing them would be a regression against
    This is the highest-value item: it is what stops the other two guides' code snippets
    from rotting.
 
-2. **Identity backup and recovery.** Listed by _all three_ appendices (guide: "Guided
+2. **Identity backup and recovery.** Listed by *all three* appendices (guide: "Guided
    identity backup"; authors and cookbook: "Guided publisher-identity backup"). Today the
    key file is unencrypted with no export flow, no passphrase, and no recovery phrase.
    Implement export/import with passphrase encryption at rest and a recovery-phrase
@@ -79,7 +77,7 @@ deliberate product decisions and implementing them would be a regression against
    mechanisms exist but there is no UI. Find the existing mechanisms (start from
    `packages/protocol` and `packages/lxmf-ts`), then build the surface: persisted block and
    mute lists, enforcement on the receive path, and the UI in the host. "Reporting" has no
-   central authority to report _to_ — implement it as a local record plus an export, or
+   central authority to report *to* — implement it as a local record plus an export, or
    argue in the PR description that the row should be reworded instead.
 
 4. **Multi-part transfer over propagation.** Called out by the guide, the authors guide, and

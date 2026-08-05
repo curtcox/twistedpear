@@ -5,7 +5,7 @@ import {
   NodeCryptoProvider,
   PipeInterface,
   Reticulum,
-  nodeRuntime,
+  nodeRuntime
 } from "@twistedpear/reticulum-ts";
 import { mountTestAgent, type TestAgentSession } from "../src/test-agent.js";
 
@@ -16,10 +16,7 @@ interface ControlServer {
   readonly port: number;
   /** Resolves with the `hello` frame for the named peer. */
   hello(label: string): Promise<Record<string, unknown>>;
-  request(
-    label: string,
-    payload: Record<string, unknown>,
-  ): Promise<Record<string, unknown>>;
+  request(label: string, payload: Record<string, unknown>): Promise<Record<string, unknown>>;
   close(): Promise<void>;
 }
 
@@ -31,10 +28,7 @@ interface ControlServer {
 async function startControlServer(): Promise<ControlServer> {
   const sockets = new Map<string, Socket>();
   const hellos = new Map<string, Record<string, unknown>>();
-  const helloWaiters = new Map<
-    string,
-    (frame: Record<string, unknown>) => void
-  >();
+  const helloWaiters = new Map<string, (frame: Record<string, unknown>) => void>();
   const pending = new Map<number, (frame: Record<string, unknown>) => void>();
   let nextId = 1;
 
@@ -68,9 +62,7 @@ async function startControlServer(): Promise<ControlServer> {
     socket.on("error", () => {});
   });
 
-  await new Promise<void>((resolve) =>
-    server.listen(0, "127.0.0.1", () => resolve()),
-  );
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
   const address = server.address();
   if (address === null || typeof address === "string") {
     throw new Error("control server failed to bind");
@@ -91,9 +83,7 @@ async function startControlServer(): Promise<ControlServer> {
         throw new Error(`no agent connected for ${label}`);
       }
       const id = nextId++;
-      const response = new Promise<Record<string, unknown>>((resolve) =>
-        pending.set(id, resolve),
-      );
+      const response = new Promise<Record<string, unknown>>((resolve) => pending.set(id, resolve));
       socket.write(`${JSON.stringify({ id, ...payload })}\n`);
       return response;
     },
@@ -102,7 +92,7 @@ async function startControlServer(): Promise<ControlServer> {
         socket.destroy();
       }
       await new Promise<void>((resolve) => server.close(() => resolve()));
-    },
+    }
   };
 }
 
@@ -124,10 +114,7 @@ function waitFor(predicate: () => boolean, timeoutMs = 5_000): Promise<void> {
   });
 }
 
-async function waitForAsync(
-  predicate: () => Promise<boolean>,
-  timeoutMs = 5_000,
-): Promise<void> {
+async function waitForAsync(predicate: () => Promise<boolean>, timeoutMs = 5_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     if (await predicate()) {
@@ -160,18 +147,12 @@ describe("peer test agent", () => {
   const ANNOUNCE_INTERVAL_MS = 6_000;
   const CONVERGE_TIMEOUT_MS = 20_000;
 
-  async function twoAgents(
-    control: ControlServer,
-  ): Promise<[TestAgentSession, TestAgentSession]> {
+  async function twoAgents(control: ControlServer): Promise<[TestAgentSession, TestAgentSession]> {
     const left = Reticulum.create({ provider, runtime });
     const right = Reticulum.create({ provider, runtime });
     left.start();
     right.start();
-    const [leftPipe, rightPipe] = PipeInterface.pair(
-      provider,
-      { name: "left" },
-      { name: "right" },
-    );
+    const [leftPipe, rightPipe] = PipeInterface.pair(provider, { name: "left" }, { name: "right" });
     left.registerInterface(leftPipe);
     right.registerInterface(rightPipe);
 
@@ -184,10 +165,7 @@ describe("peer test agent", () => {
       controlHost: "127.0.0.1",
       controlPort: control.port,
       announceIntervalMs: ANNOUNCE_INTERVAL_MS,
-      handleCommand: async (request) => ({
-        echoedCommand: request.cmd,
-        value: request.value,
-      }),
+      handleCommand: async (request) => ({ echoedCommand: request.cmd, value: request.value })
     });
     const rightAgent = await mountTestAgent({
       reticulum: right,
@@ -197,7 +175,7 @@ describe("peer test agent", () => {
       platform: "test",
       controlHost: "127.0.0.1",
       controlPort: control.port,
-      announceIntervalMs: ANNOUNCE_INTERVAL_MS,
+      announceIntervalMs: ANNOUNCE_INTERVAL_MS
     });
 
     cleanups.push(async () => {
@@ -210,277 +188,184 @@ describe("peer test agent", () => {
     return [leftAgent, rightAgent];
   }
 
-  it(
-    "discovers the peer announce and round-trips a probe",
-    async () => {
-      const control = await startControlServer();
-      cleanups.push(() => control.close());
-      const [leftAgent, rightAgent] = await twoAgents(control);
+  it("discovers the peer announce and round-trips a probe", async () => {
+    const control = await startControlServer();
+    cleanups.push(() => control.close());
+    const [leftAgent, rightAgent] = await twoAgents(control);
 
-      await waitFor(
-        () =>
-          leftAgent
-            .peers()
-            .some((peer) => peer.destinationHash === rightAgent.lxmfAddress),
-        CONVERGE_TIMEOUT_MS,
-      );
-      await waitFor(
-        () =>
-          rightAgent
-            .peers()
-            .some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
-        CONVERGE_TIMEOUT_MS,
-      );
+    await waitFor(
+      () => leftAgent.peers().some((peer) => peer.destinationHash === rightAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
+    await waitFor(
+      () => rightAgent.peers().some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
 
-      await leftAgent.send(rightAgent.lxmfAddress, "n1");
+    await leftAgent.send(rightAgent.lxmfAddress, "n1");
 
-      await waitFor(() =>
-        rightAgent
-          .inbox()
-          .some((entry) => entry.nonce === "n1" && entry.kind === "probe"),
-      );
-      await waitFor(() =>
-        leftAgent
-          .inbox()
-          .some((entry) => entry.nonce === "n1" && entry.kind === "echo"),
-      );
-    },
-    CONVERGE_TIMEOUT_MS + 10_000,
-  );
+    await waitFor(() => rightAgent.inbox().some((entry) => entry.nonce === "n1" && entry.kind === "probe"));
+    await waitFor(() => leftAgent.inbox().some((entry) => entry.nonce === "n1" && entry.kind === "echo"));
+  }, CONVERGE_TIMEOUT_MS + 10_000);
 
-  it(
-    "serves info, peers, and send over the control channel",
-    async () => {
-      const control = await startControlServer();
-      cleanups.push(() => control.close());
-      const [leftAgent, rightAgent] = await twoAgents(control);
+  it("serves info, peers, and send over the control channel", async () => {
+    const control = await startControlServer();
+    cleanups.push(() => control.close());
+    const [leftAgent, rightAgent] = await twoAgents(control);
 
-      const hello = await control.hello("left");
-      expect(hello.lxmfAddress).toBe(leftAgent.lxmfAddress);
-      expect(hello.platform).toBe("test");
+    const hello = await control.hello("left");
+    expect(hello.lxmfAddress).toBe(leftAgent.lxmfAddress);
+    expect(hello.platform).toBe("test");
 
-      await control.hello("right");
-      await waitFor(() => leftAgent.peers().length > 0, CONVERGE_TIMEOUT_MS);
+    await control.hello("right");
+    await waitFor(() => leftAgent.peers().length > 0, CONVERGE_TIMEOUT_MS);
 
-      const info = await control.request("right", { cmd: "info" });
-      expect(info.ok).toBe(true);
-      expect(info.lxmfAddress).toBe(rightAgent.lxmfAddress);
+    const info = await control.request("right", { cmd: "info" });
+    expect(info.ok).toBe(true);
+    expect(info.lxmfAddress).toBe(rightAgent.lxmfAddress);
 
-      const extended = await control.request("left", {
-        cmd: "project.create",
-        value: 7,
-      });
-      expect(extended).toMatchObject({
-        ok: true,
-        echoedCommand: "project.create",
-        value: 7,
-      });
+    const extended = await control.request("left", { cmd: "project.create", value: 7 });
+    expect(extended).toMatchObject({ ok: true, echoedCommand: "project.create", value: 7 });
 
-      const sent = await control.request("left", {
-        cmd: "send",
-        toLxmfAddress: rightAgent.lxmfAddress,
-        nonce: "n2",
-      });
-      expect(sent.ok).toBe(true);
+    const sent = await control.request("left", {
+      cmd: "send",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      nonce: "n2"
+    });
+    expect(sent.ok).toBe(true);
 
-      await waitFor(() =>
-        rightAgent.inbox().some((entry) => entry.nonce === "n2"),
-      );
+    await waitFor(() => rightAgent.inbox().some((entry) => entry.nonce === "n2"));
 
-      const inbox = (await control.request("right", { cmd: "inbox" })) as {
-        ok: boolean;
-        inbox: Array<{ nonce: string; kind: string }>;
+    const inbox = (await control.request("right", { cmd: "inbox" })) as {
+      ok: boolean;
+      inbox: Array<{ nonce: string; kind: string }>;
+    };
+    expect(inbox.ok).toBe(true);
+    expect(inbox.inbox.some((entry) => entry.nonce === "n2" && entry.kind === "probe")).toBe(true);
+
+    const status = (await control.request("left", { cmd: "status" })) as {
+      status: { peerCount: number; label: string };
+    };
+    expect(status.status.label).toBe("left");
+    expect(status.status.peerCount).toBeGreaterThan(0);
+  }, CONVERGE_TIMEOUT_MS + 10_000);
+
+  it("exchanges media readiness and answers an active probe", async () => {
+    const control = await startControlServer();
+    cleanups.push(() => control.close());
+    const [leftAgent, rightAgent] = await twoAgents(control);
+    await control.hello("left");
+    await control.hello("right");
+    await waitFor(
+      () => leftAgent.peers().some((peer) => peer.destinationHash === rightAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
+    await waitFor(
+      () => rightAgent.peers().some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
+
+    const linkState = async (label: string) =>
+      (await control.request(label, { cmd: "link-state" })) as {
+        readiness: Array<{ kind: string; readiness: { downlinkBucket: string; consentPosture: string } }>;
+        probes: Array<{ id: string; rttMs: number | null; budgetBytes: number }>;
       };
-      expect(inbox.ok).toBe(true);
-      expect(
-        inbox.inbox.some(
-          (entry) => entry.nonce === "n2" && entry.kind === "probe",
-        ),
-      ).toBe(true);
 
-      const status = (await control.request("left", { cmd: "status" })) as {
-        status: { peerCount: number; label: string };
-      };
-      expect(status.status.label).toBe("left");
-      expect(status.status.peerCount).toBeGreaterThan(0);
-    },
-    CONVERGE_TIMEOUT_MS + 10_000,
-  );
+    const requested = await control.request("left", {
+      cmd: "request-readiness",
+      toLxmfAddress: rightAgent.lxmfAddress
+    });
+    expect(requested).toMatchObject({ ok: true });
 
-  it(
-    "exchanges media readiness and answers an active probe",
-    async () => {
-      const control = await startControlServer();
-      cleanups.push(() => control.close());
-      const [leftAgent, rightAgent] = await twoAgents(control);
-      await control.hello("left");
-      await control.hello("right");
-      await waitFor(
-        () =>
-          leftAgent
-            .peers()
-            .some((peer) => peer.destinationHash === rightAgent.lxmfAddress),
-        CONVERGE_TIMEOUT_MS,
-      );
-      await waitFor(
-        () =>
-          rightAgent
-            .peers()
-            .some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
-        CONVERGE_TIMEOUT_MS,
-      );
+    // The far side records the request; our side records only its answer.
+    await waitForAsync(async () => (await linkState("right")).readiness.some((entry) => entry.kind === "request"));
+    await waitForAsync(async () => (await linkState("left")).readiness.some((entry) => entry.kind === "response"));
+    const answered = (await linkState("left")).readiness.find((entry) => entry.kind === "response");
+    expect(answered?.readiness.downlinkBucket).toBe("audio");
+    expect(answered?.readiness.consentPosture).toBe("ask");
 
-      const linkState = async (label: string) =>
-        (await control.request(label, { cmd: "link-state" })) as {
-          readiness: Array<{
-            kind: string;
-            readiness: { downlinkBucket: string; consentPosture: string };
-          }>;
-          probes: Array<{
-            id: string;
-            rttMs: number | null;
-            budgetBytes: number;
-          }>;
-        };
+    const probe = (await control.request("left", {
+      cmd: "link-probe",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      budgetBytes: 1024
+    })) as { ok: boolean; probeId: string; budgetBytes: number };
+    expect(probe).toMatchObject({ ok: true, budgetBytes: 1024 });
 
-      const requested = await control.request("left", {
-        cmd: "request-readiness",
-        toLxmfAddress: rightAgent.lxmfAddress,
-      });
-      expect(requested).toMatchObject({ ok: true });
+    await waitForAsync(async () => (await linkState("left")).probes.some((entry) => entry.rttMs !== null));
+    const measured = (await linkState("left")).probes.find((entry) => entry.id === probe.probeId);
+    expect(measured?.rttMs).toBeGreaterThan(0);
+  }, CONVERGE_TIMEOUT_MS * 3);
 
-      // The far side records the request; our side records only its answer.
-      await waitForAsync(async () =>
-        (await linkState("right")).readiness.some(
-          (entry) => entry.kind === "request",
-        ),
-      );
-      await waitForAsync(async () =>
-        (await linkState("left")).readiness.some(
-          (entry) => entry.kind === "response",
-        ),
-      );
-      const answered = (await linkState("left")).readiness.find(
-        (entry) => entry.kind === "response",
-      );
-      expect(answered?.readiness.downlinkBucket).toBe("audio");
-      expect(answered?.readiness.consentPosture).toBe("ask");
+  it("delivers a verified session invite from the network into host chrome", async () => {
+    const control = await startControlServer();
+    cleanups.push(() => control.close());
+    const [leftAgent, rightAgent] = await twoAgents(control);
+    await control.hello("left");
+    await control.hello("right");
+    await waitFor(
+      () => rightAgent.peers().some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
 
-      const probe = (await control.request("left", {
-        cmd: "link-probe",
-        toLxmfAddress: rightAgent.lxmfAddress,
-        budgetBytes: 1024,
-      })) as { ok: boolean; probeId: string; budgetBytes: number };
-      expect(probe).toMatchObject({ ok: true, budgetBytes: 1024 });
+    const invites = async (label: string) =>
+      ((await control.request(label, { cmd: "invite-state" })) as {
+        invites: Array<{ kind: string; id: string; appId: string; peerLabel: string; requestedClasses: string[] }>;
+      }).invites;
 
-      await waitForAsync(async () =>
-        (await linkState("left")).probes.some((entry) => entry.rttMs !== null),
-      );
-      const measured = (await linkState("left")).probes.find(
-        (entry) => entry.id === probe.probeId,
-      );
-      expect(measured?.rttMs).toBeGreaterThan(0);
-    },
-    CONVERGE_TIMEOUT_MS * 3,
-  );
+    const sent = (await control.request("left", {
+      cmd: "send-invite",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      appId: "line-check",
+      requestedClasses: ["microphone"]
+    })) as { ok: boolean; inviteId: string };
+    expect(sent).toMatchObject({ ok: true });
 
-  it(
-    "delivers a verified session invite from the network into host chrome",
-    async () => {
-      const control = await startControlServer();
-      cleanups.push(() => control.close());
-      const [leftAgent, rightAgent] = await twoAgents(control);
-      await control.hello("left");
-      await control.hello("right");
-      await waitFor(
-        () =>
-          rightAgent
-            .peers()
-            .some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
-        CONVERGE_TIMEOUT_MS,
-      );
+    await waitForAsync(async () => (await invites("right")).some((entry) => entry.kind === "raised"));
+    const raised = (await invites("right")).find((entry) => entry.kind === "raised");
+    expect(raised?.appId).toBe("line-check");
+    expect(raised?.requestedClasses).toEqual(["microphone"]);
+    // The id is namespaced by the verified sender, and the label is named here.
+    expect(raised?.id.endsWith(sent.inviteId)).toBe(true);
+    expect(raised?.peerLabel).toContain("peer ");
 
-      const invites = async (label: string) =>
-        (
-          (await control.request(label, { cmd: "invite-state" })) as {
-            invites: Array<{
-              kind: string;
-              id: string;
-              appId: string;
-              peerLabel: string;
-              requestedClasses: string[];
-            }>;
-          }
-        ).invites;
+    const accepted = (await control.request("right", {
+      cmd: "accept-invite",
+      inviteId: raised?.id
+    })) as { ok: boolean; accepted: boolean; peerDestinationHash: string };
+    expect(accepted).toMatchObject({ ok: true, accepted: true });
+    expect(accepted.peerDestinationHash).toBe(leftAgent.lxmfAddress);
 
-      const sent = (await control.request("left", {
-        cmd: "send-invite",
-        toLxmfAddress: rightAgent.lxmfAddress,
-        appId: "line-check",
-        requestedClasses: ["microphone"],
-      })) as { ok: boolean; inviteId: string };
-      expect(sent).toMatchObject({ ok: true });
+    const frameHex = "01020304";
+    const nonce = `call-${Date.now().toString(36)}`;
+    const callSent = (await control.request("right", {
+      cmd: "send-call",
+      inviteId: raised?.id,
+      nonce,
+      payloadHex: frameHex
+    })) as { ok: boolean; sent: boolean; bytes: number };
+    expect(callSent).toMatchObject({ ok: true, sent: true, bytes: 4 });
 
-      await waitForAsync(async () =>
-        (await invites("right")).some((entry) => entry.kind === "raised"),
-      );
-      const raised = (await invites("right")).find(
-        (entry) => entry.kind === "raised",
-      );
-      expect(raised?.appId).toBe("line-check");
-      expect(raised?.requestedClasses).toEqual(["microphone"]);
-      // The id is namespaced by the verified sender, and the label is named here.
-      expect(raised?.id.endsWith(sent.inviteId)).toBe(true);
-      expect(raised?.peerLabel).toContain("peer ");
+    await waitForAsync(async () =>
+      ((await control.request("left", { cmd: "call-inbox" })) as { inbox: Array<{ nonce: string; kind: string }> }).inbox.some(
+        (entry) => entry.nonce === nonce && entry.kind === "payload"
+      )
+    );
+    await waitForAsync(async () =>
+      ((await control.request("right", { cmd: "call-inbox" })) as { inbox: Array<{ nonce: string; kind: string }> }).inbox.some(
+        (entry) => entry.nonce === nonce && entry.kind === "echo"
+      )
+    );
 
-      const accepted = (await control.request("right", {
-        cmd: "accept-invite",
-        inviteId: raised?.id,
-      })) as { ok: boolean; accepted: boolean; peerDestinationHash: string };
-      expect(accepted).toMatchObject({ ok: true, accepted: true });
-      expect(accepted.peerDestinationHash).toBe(leftAgent.lxmfAddress);
-
-      const frameHex = "01020304";
-      const nonce = `call-${Date.now().toString(36)}`;
-      const callSent = (await control.request("right", {
-        cmd: "send-call",
-        inviteId: raised?.id,
-        nonce,
-        payloadHex: frameHex,
-      })) as { ok: boolean; sent: boolean; bytes: number };
-      expect(callSent).toMatchObject({ ok: true, sent: true, bytes: 4 });
-
-      await waitForAsync(async () =>
-        (
-          (await control.request("left", { cmd: "call-inbox" })) as {
-            inbox: Array<{ nonce: string; kind: string }>;
-          }
-        ).inbox.some(
-          (entry) => entry.nonce === nonce && entry.kind === "payload",
-        ),
-      );
-      await waitForAsync(async () =>
-        (
-          (await control.request("right", { cmd: "call-inbox" })) as {
-            inbox: Array<{ nonce: string; kind: string }>;
-          }
-        ).inbox.some((entry) => entry.nonce === nonce && entry.kind === "echo"),
-      );
-
-      // An invite for an app this host will not ring never reaches chrome.
-      await control.request("left", {
-        cmd: "send-invite",
-        toLxmfAddress: rightAgent.lxmfAddress,
-        appId: "some-other-app",
-        requestedClasses: ["camera"],
-      });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      expect(
-        (await invites("right")).filter((entry) => entry.kind === "raised"),
-      ).toHaveLength(1);
-    },
-    CONVERGE_TIMEOUT_MS * 3,
-  );
+    // An invite for an app this host will not ring never reaches chrome.
+    await control.request("left", {
+      cmd: "send-invite",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      appId: "some-other-app",
+      requestedClasses: ["camera"]
+    });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect((await invites("right")).filter((entry) => entry.kind === "raised")).toHaveLength(1);
+  }, CONVERGE_TIMEOUT_MS * 3);
 
   it("rejects an out-of-budget probe request", async () => {
     const control = await startControlServer();
@@ -491,7 +376,7 @@ describe("peer test agent", () => {
     const response = await control.request("left", {
       cmd: "link-probe",
       toLxmfAddress: rightAgent.lxmfAddress,
-      budgetBytes: 65_536,
+      budgetBytes: 65_536
     });
     expect(response.ok).toBe(false);
     expect(String(response.error)).toContain("budget must be");
@@ -506,7 +391,7 @@ describe("peer test agent", () => {
     const response = await control.request("left", {
       cmd: "send",
       toLxmfAddress: "00112233445566778899aabbccddeeff",
-      nonce: "n3",
+      nonce: "n3"
     });
     expect(response.ok).toBe(false);
     expect(String(response.error)).toContain("not discovered");

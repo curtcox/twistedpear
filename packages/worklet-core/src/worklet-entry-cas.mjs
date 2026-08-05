@@ -7,7 +7,7 @@ import {
   decodeCasLocatorRequest,
   encodeCasLocator,
   encodeCasLocatorRequest,
-  verifyCasLocator,
+  verifyCasLocator
 } from "../../cas-256t/dist/index.js";
 
 export function createCasLocatorOps(deps) {
@@ -15,9 +15,7 @@ export function createCasLocatorOps(deps) {
 
   function ensureEntryCasStore() {
     if (entryCasStore === null) {
-      entryCasStore = new CasStore(deps.runtimeKeyValueStore(), (data) =>
-        deps.provider.sha512(data),
-      );
+      entryCasStore = new CasStore(deps.runtimeKeyValueStore(), (data) => deps.provider.sha512(data));
     }
     return entryCasStore;
   }
@@ -37,8 +35,7 @@ export function createCasLocatorOps(deps) {
   async function announceCasLocatorRequest(t256) {
     const node = await deps.ensureReticulum();
     const identity = await deps.resolveIdentity();
-    if (identity === null)
-      throw new Error("No host identity available for locator request");
+    if (identity === null) throw new Error("No host identity available for locator request");
     let destination = deps.casRequestDestinations.get(t256);
     if (destination === undefined) {
       destination = node.registerDestination({
@@ -47,7 +44,7 @@ export function createCasLocatorOps(deps) {
         direction: deps.DestinationDirection.IN,
         type: deps.DestinationType.SINGLE,
         appName: "tp",
-        aspects: casRequestAspects(t256),
+        aspects: casRequestAspects(t256)
       });
       deps.casRequestDestinations.set(t256, destination);
     }
@@ -75,7 +72,7 @@ export function createCasLocatorOps(deps) {
         direction: deps.DestinationDirection.IN,
         type: deps.DestinationType.SINGLE,
         appName: "tp",
-        aspects: casAnnounceAspects(t256),
+        aspects: casAnnounceAspects(t256)
       });
       deps.casResponseDestinations.set(t256, destination);
     }
@@ -101,9 +98,7 @@ export function createCasLocatorOps(deps) {
         if (Date.now() - lastRequestedAt >= 5_000) {
           lastRequestedAt = Date.now();
           void announceCasLocatorRequest(t256).catch((error) => {
-            deps.log?.(
-              `CAS locator re-request failed: ${error instanceof Error ? error.message : String(error)}`,
-            );
+            deps.log?.(`CAS locator re-request failed: ${error instanceof Error ? error.message : String(error)}`);
           });
         }
         setTimeout(poll, 500);
@@ -117,6 +112,6 @@ export function createCasLocatorOps(deps) {
     ingestCasLocator,
     announceCasLocatorRequest,
     respondToCasLocatorRequest,
-    waitForCasLocator,
+    waitForCasLocator
   };
 }

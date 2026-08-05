@@ -12,7 +12,7 @@ import {
   ensureBootedSimulator,
   harnessInstalledOnBootedSim,
   isDarwin,
-  simctlAvailable,
+  simctlAvailable
 } from "./helpers.mjs";
 
 const labDir = dirname(fileURLToPath(import.meta.url));
@@ -53,27 +53,27 @@ export async function runIosSharePolicy(options = {}) {
   ensureBootedSimulator();
   if (!harnessInstalledOnBootedSim()) {
     if (!buildIfNeeded) {
-      return skip(
-        "harness not installed (set IOS_SIM_SHARE_POLICY_BUILD=1 to build)",
-      );
+      return skip("harness not installed (set IOS_SIM_SHARE_POLICY_BUILD=1 to build)");
     }
     buildAndInstallHarness();
   }
 
-  const result = spawnSync("maestro", ["test", ".maestro/share-policy.yaml"], {
-    cwd: repoRoot,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`,
-    },
-  });
+  const result = spawnSync(
+    "maestro",
+    ["test", ".maestro/share-policy.yaml"],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
+      }
+    }
+  );
   if (result.status !== 0) {
     fail(`maestro share-policy failed with status ${result.status}`);
   }
-  console.log(
-    "[ios-sim/share-policy] grant / revoke / expiry / restart passed",
-  );
+  console.log("[ios-sim/share-policy] grant / revoke / expiry / restart passed");
   return { result: "pass", environment: "ios-simulator" };
 }
 

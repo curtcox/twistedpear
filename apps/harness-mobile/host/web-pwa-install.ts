@@ -13,20 +13,14 @@ export type PwaInstallAvailability = "deferred" | "installed" | "unavailable";
 
 export interface PwaInstallController {
   readonly getAvailability: () => PwaInstallAvailability;
-  readonly subscribe: (
-    listener: (availability: PwaInstallAvailability) => void,
-  ) => () => void;
+  readonly subscribe: (listener: (availability: PwaInstallAvailability) => void) => () => void;
   readonly promptInstall: () => Promise<PwaInstallOutcome | null>;
   readonly dispose: () => void;
 }
 
-function isBeforeInstallPromptLike(
-  event: Event,
-): event is BeforeInstallPromptLike {
+function isBeforeInstallPromptLike(event: Event): event is BeforeInstallPromptLike {
   const candidate = event as Partial<BeforeInstallPromptLike>;
-  return (
-    typeof candidate.prompt === "function" && candidate.userChoice !== undefined
-  );
+  return typeof candidate.prompt === "function" && candidate.userChoice !== undefined;
 }
 
 function isStandaloneDisplay(): boolean {
@@ -36,20 +30,15 @@ function isStandaloneDisplay(): boolean {
 
   return (
     window.matchMedia?.("(display-mode: standalone)").matches === true ||
-    ("standalone" in navigator &&
-      (navigator as { standalone?: boolean }).standalone === true)
+    ("standalone" in navigator && (navigator as { standalone?: boolean }).standalone === true)
   );
 }
 
 export function createPwaInstallController(
-  target: EventTarget = typeof window !== "undefined"
-    ? window
-    : new EventTarget(),
+  target: EventTarget = typeof window !== "undefined" ? window : new EventTarget()
 ): PwaInstallController {
   let deferred: BeforeInstallPromptLike | null = null;
-  let availability: PwaInstallAvailability = isStandaloneDisplay()
-    ? "installed"
-    : "unavailable";
+  let availability: PwaInstallAvailability = isStandaloneDisplay() ? "installed" : "unavailable";
   const listeners = new Set<(availability: PwaInstallAvailability) => void>();
 
   const setAvailability = (next: PwaInstallAvailability) => {
@@ -99,9 +88,7 @@ export function createPwaInstallController(
       deferred = null;
       await promptEvent.prompt();
       const choice = await promptEvent.userChoice;
-      setAvailability(
-        choice.outcome === "accepted" ? "installed" : "unavailable",
-      );
+      setAvailability(choice.outcome === "accepted" ? "installed" : "unavailable");
       return choice.outcome;
     },
     dispose() {
@@ -109,6 +96,6 @@ export function createPwaInstallController(
       target.removeEventListener("appinstalled", onAppInstalled);
       listeners.clear();
       deferred = null;
-    },
+    }
   };
 }

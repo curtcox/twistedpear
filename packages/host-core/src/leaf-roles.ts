@@ -9,19 +9,12 @@ export const DEFAULT_WEB_LEAF_ROLES: LeafRoleConfig = {
   transport: false,
   seeder: false,
   propagation: false,
-  attachRnsd: null,
+  attachRnsd: null
 };
 
 export function assertWebLeafRoles(roles: LeafRoleConfig): void {
-  if (
-    roles.transport ||
-    roles.seeder ||
-    roles.propagation ||
-    roles.attachRnsd !== null
-  ) {
-    throw new Error(
-      "Web host roles must be leaf-only (no transport, seeder, propagation, or rnsd attach)",
-    );
+  if (roles.transport || roles.seeder || roles.propagation || roles.attachRnsd !== null) {
+    throw new Error("Web host roles must be leaf-only (no transport, seeder, propagation, or rnsd attach)");
   }
 }
 

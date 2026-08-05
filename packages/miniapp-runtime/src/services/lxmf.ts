@@ -37,7 +37,7 @@ export class NamespacedLxmfService implements LxmfBackend {
       from: appId,
       subject: request.subject,
       body: request.body,
-      receivedAt: Date.now(),
+      receivedAt: Date.now()
     });
     await this.kv.set(outboxKey, this.encode(outbox));
 
@@ -48,7 +48,7 @@ export class NamespacedLxmfService implements LxmfBackend {
       from: appId,
       subject: request.subject,
       body: request.body,
-      receivedAt: Date.now(),
+      receivedAt: Date.now()
     });
     await this.kv.set(inboxKey, this.encode(inbox));
 

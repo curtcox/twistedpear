@@ -8,19 +8,15 @@ import {
   stepInterfaceConnectWithActions,
   stepInterfaceReconnectWithActions,
   type InterfaceReconnectEvent,
-  type InterfaceReconnectState,
+  type InterfaceReconnectState
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Packet } from "../packet.js";
 import type { Runtime, Timer } from "../runtime/runtime.js";
-import {
-  RawPacketInterface,
-  type ReticulumInterfaceOptions,
-} from "./interface.js";
+import { RawPacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
 
 export const WEBSOCKET_RECONNECT_WAIT_MS = INTERFACE_RECONNECT_WAIT_MS;
-export const WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS =
-  INTERFACE_CONNECT_TIMEOUT_MS;
+export const WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS = INTERFACE_CONNECT_TIMEOUT_MS;
 export const WEBSOCKET_HW_MTU = 262_144;
 
 export interface WebSocketClientInterfaceOptions extends ReticulumInterfaceOptions {
@@ -35,10 +31,7 @@ export interface WebSocketClientInterfaceOptions extends ReticulumInterfaceOptio
   readonly webSocketFactory?: WebSocketFactory;
 }
 
-export type WebSocketFactory = (
-  url: string,
-  protocols?: string | readonly string[],
-) => WebSocketLike;
+export type WebSocketFactory = (url: string, protocols?: string | readonly string[]) => WebSocketLike;
 
 export interface WebSocketLike {
   binaryType: string;
@@ -46,16 +39,10 @@ export interface WebSocketLike {
   send(data: Uint8Array): void;
   close(code?: number, reason?: string): void;
   addEventListener(type: "open", listener: () => void): void;
-  addEventListener(
-    type: "message",
-    listener: (event: WebSocketMessageEvent) => void,
-  ): void;
+  addEventListener(type: "message", listener: (event: WebSocketMessageEvent) => void): void;
   addEventListener(type: "close" | "error", listener: () => void): void;
   removeEventListener(type: "open", listener: () => void): void;
-  removeEventListener(
-    type: "message",
-    listener: (event: WebSocketMessageEvent) => void,
-  ): void;
+  removeEventListener(type: "message", listener: (event: WebSocketMessageEvent) => void): void;
   removeEventListener(type: "close" | "error", listener: () => void): void;
 }
 
@@ -72,17 +59,13 @@ export class WebSocketClientInterface extends RawPacketInterface {
     private readonly provider: CryptoProvider,
     private readonly runtime: Runtime,
     private readonly options: WebSocketClientInterfaceOptions,
-    connected: WebSocketLike | null = null,
+    connected: WebSocketLike | null = null
   ) {
-    super(
-      { ...options, mtu: options.mtu ?? WEBSOCKET_HW_MTU },
-      options.incoming ?? true,
-      options.outgoing ?? true,
-    );
+    super({ ...options, mtu: options.mtu ?? WEBSOCKET_HW_MTU }, options.incoming ?? true, options.outgoing ?? true);
     this.reconnectState = initialInterfaceReconnectState({
       maxTries: options.maxReconnectTries ?? null,
       waitMs: options.reconnectWaitMs ?? WEBSOCKET_RECONNECT_WAIT_MS,
-      suppressReconnect: connected !== null,
+      suppressReconnect: connected !== null
     });
     if (connected !== null) {
       this.attachSocket(connected);
@@ -92,7 +75,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
   static async connect(
     provider: CryptoProvider,
     runtime: Runtime,
-    options: WebSocketClientInterfaceOptions,
+    options: WebSocketClientInterfaceOptions
   ): Promise<WebSocketClientInterface> {
     const iface = new WebSocketClientInterface(provider, runtime, options);
     await iface.initialConnect();
@@ -104,14 +87,9 @@ export class WebSocketClientInterface extends RawPacketInterface {
     runtime: Runtime,
     options: WebSocketClientInterfaceOptions,
     socket: WebSocketLike,
-    outgoing: boolean,
+    outgoing: boolean
   ): WebSocketClientInterface {
-    return new WebSocketClientInterface(
-      provider,
-      runtime,
-      { ...options, outgoing },
-      socket,
-    );
+    return new WebSocketClientInterface(provider, runtime, { ...options, outgoing }, socket);
   }
 
   async initialConnect(): Promise<void> {
@@ -158,13 +136,10 @@ export class WebSocketClientInterface extends RawPacketInterface {
     socket.binaryType = "arraybuffer";
 
     return new Promise((resolve, reject) => {
-      const armed = stepInterfaceConnectWithActions(
-        initialInterfaceConnectState(),
-        {
-          kind: "interface-connect/arm",
-          timeoutMs: this.connectTimeoutMs(),
-        },
-      );
+      const armed = stepInterfaceConnectWithActions(initialInterfaceConnectState(), {
+        kind: "interface-connect/arm",
+        timeoutMs: this.connectTimeoutMs()
+      });
       let state = armed.state;
       let timer: Timer | null = null;
       let settled = false;
@@ -175,9 +150,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
         socket.removeEventListener("error", onFailure);
       };
 
-      const finish = (
-        result: { ok: true } | { ok: false; error: Error },
-      ): void => {
+      const finish = (result: { ok: true } | { ok: false; error: Error }): void => {
         if (settled) {
           return;
         }
@@ -191,30 +164,24 @@ export class WebSocketClientInterface extends RawPacketInterface {
       };
 
       const applyIntents = (
-        intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"],
+        intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"]
       ): void => {
         for (const intent of intents) {
-          if (
-            intent.kind === "timer/set" &&
-            intent.timer.id === INTERFACE_CONNECT_TIMER_ID
-          ) {
+          if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
             timer?.cancel();
             timer = this.runtime.clock.setTimeout(() => {
               timer = null;
               const tick = stepInterfaceConnectWithActions(state, {
                 kind: "timer/fired",
                 id: INTERFACE_CONNECT_TIMER_ID,
-                at: this.runtime.clock.now(),
+                at: this.runtime.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
               applyActions(tick.actions);
             }, intent.timer.delayMs);
           }
-          if (
-            intent.kind === "timer/cancel" &&
-            intent.timer.id === INTERFACE_CONNECT_TIMER_ID
-          ) {
+          if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
             timer?.cancel();
             timer = null;
           }
@@ -222,7 +189,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
       };
 
       const applyActions = (
-        actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"],
+        actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"]
       ): void => {
         for (const action of actions) {
           if (action.kind === "connect") {
@@ -238,17 +205,13 @@ export class WebSocketClientInterface extends RawPacketInterface {
               socket.close();
               finish({
                 ok: false,
-                error: new Error(
-                  `WebSocket connect timed out after ${this.connectTimeoutMs()}ms`,
-                ),
+                error: new Error(`WebSocket connect timed out after ${this.connectTimeoutMs()}ms`)
               });
               return;
             }
             finish({
               ok: false,
-              error: new Error(
-                `WebSocket connect failed for ${this.options.url}`,
-              ),
+              error: new Error(`WebSocket connect failed for ${this.options.url}`)
             });
           }
         }
@@ -256,7 +219,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
 
       const onOpen = () => {
         const result = stepInterfaceConnectWithActions(state, {
-          kind: "interface-connect/connected",
+          kind: "interface-connect/connected"
         });
         state = result.state;
         applyIntents(result.intents);
@@ -264,7 +227,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
       };
       const onFailure = () => {
         const result = stepInterfaceConnectWithActions(state, {
-          kind: "interface-connect/failed",
+          kind: "interface-connect/failed"
         });
         state = result.state;
         applyIntents(result.intents);
@@ -297,9 +260,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
   }
 
   private connectTimeoutMs(): number {
-    return (
-      this.options.connectTimeoutMs ?? WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS
-    );
+    return this.options.connectTimeoutMs ?? WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS;
   }
 
   private attachSocket(socket: WebSocketLike): void {
@@ -333,31 +294,22 @@ export class WebSocketClientInterface extends RawPacketInterface {
   }
 
   private applyReconnect(event: InterfaceReconnectEvent): void {
-    const result = stepInterfaceReconnectWithActions(
-      this.reconnectState,
-      event,
-    );
+    const result = stepInterfaceReconnectWithActions(this.reconnectState, event);
     this.reconnectState = result.state;
 
     for (const intent of result.intents) {
-      if (
-        intent.kind === "timer/cancel" &&
-        intent.timer.id === INTERFACE_RECONNECT_TIMER_ID
-      ) {
+      if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
         this.reconnectTimer?.cancel();
         this.reconnectTimer = null;
       }
-      if (
-        intent.kind === "timer/set" &&
-        intent.timer.id === INTERFACE_RECONNECT_TIMER_ID
-      ) {
+      if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
         this.reconnectTimer?.cancel();
         this.reconnectTimer = this.runtime.clock.setTimeout(() => {
           this.reconnectTimer = null;
           this.applyReconnect({
             kind: "timer/fired",
             id: INTERFACE_RECONNECT_TIMER_ID,
-            at: this.runtime.clock.now(),
+            at: this.runtime.clock.now()
           });
         }, intent.timer.delayMs);
       }
@@ -384,18 +336,12 @@ export class WebSocketClientInterface extends RawPacketInterface {
   }
 }
 
-function defaultWebSocketFactory(
-  url: string,
-  protocols?: string | readonly string[],
-): WebSocketLike {
+function defaultWebSocketFactory(url: string, protocols?: string | readonly string[]): WebSocketLike {
   if (globalThis.WebSocket === undefined) {
     throw new Error("No global WebSocket implementation is available");
   }
 
-  return new globalThis.WebSocket(
-    url,
-    protocols as string | string[] | undefined,
-  ) as WebSocketLike;
+  return new globalThis.WebSocket(url, protocols as string | string[] | undefined) as WebSocketLike;
 }
 
 async function toUint8Array(data: unknown): Promise<Uint8Array | null> {
@@ -408,9 +354,7 @@ async function toUint8Array(data: unknown): Promise<Uint8Array | null> {
   }
 
   if (ArrayBuffer.isView(data)) {
-    return new Uint8Array(
-      data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
-    );
+    return new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
   }
 
   if (data instanceof Blob) {

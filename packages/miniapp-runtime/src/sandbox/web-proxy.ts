@@ -1,8 +1,4 @@
-import type {
-  SandboxBackend,
-  SandboxInstance,
-  SandboxSpawnOptions,
-} from "./backend.js";
+import type { SandboxBackend, SandboxInstance, SandboxSpawnOptions } from "./backend.js";
 
 export interface WebSandboxProxyOutbound {
   readonly spawn: (request: {
@@ -14,11 +10,7 @@ export interface WebSandboxProxyOutbound {
     readonly bundleHex: string;
   }) => void;
   readonly postMessage: (instanceId: string, message: unknown) => void;
-  readonly ping: (
-    requestId: string,
-    instanceId: string,
-    timeoutMs: number,
-  ) => void;
+  readonly ping: (requestId: string, instanceId: string, timeoutMs: number) => void;
   readonly kill: (instanceId: string, reason: string) => void;
   readonly brokerResponse: (requestId: string, response: unknown) => void;
 }
@@ -29,35 +21,21 @@ export interface WebSandboxProxyController {
   handleSpawnFailed(requestId: string, message: string): void;
   handleMessage(instanceId: string, message: unknown): void;
   handlePingResult(requestId: string, alive: boolean): void;
-  handleBrokerRequest(
-    requestId: string,
-    instanceId: string,
-    request: unknown,
-  ): void;
+  handleBrokerRequest(requestId: string, instanceId: string, request: unknown): void;
 }
 
 function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 export function createWebSandboxProxyBackend(
-  outbound: WebSandboxProxyOutbound,
+  outbound: WebSandboxProxyOutbound
 ): WebSandboxProxyController {
-  const pendingSpawns = new Map<
-    string,
-    { resolve: () => void; reject: (error: Error) => void }
-  >();
+  const pendingSpawns = new Map<string, { resolve: () => void; reject: (error: Error) => void }>();
   const pendingPings = new Map<string, { resolve: (alive: boolean) => void }>();
   const instances = new Map<string, ProxySandboxInstance>();
 
-  const backend = new WebSandboxProxyBackend(
-    outbound,
-    pendingSpawns,
-    pendingPings,
-    instances,
-  );
+  const backend = new WebSandboxProxyBackend(outbound, pendingSpawns, pendingPings, instances);
 
   return {
     backend,
@@ -98,7 +76,7 @@ export function createWebSandboxProxyBackend(
         outbound.brokerResponse(requestId, {
           id: (request as { id?: string }).id,
           ok: false,
-          error: { message: "Sandbox instance is not active" },
+          error: { message: "Sandbox instance is not active" }
         });
         return;
       }
@@ -109,12 +87,10 @@ export function createWebSandboxProxyBackend(
           outbound.brokerResponse(requestId, {
             id: (request as { id?: string }).id,
             ok: false,
-            error: {
-              message: error instanceof Error ? error.message : String(error),
-            },
-          }),
+            error: { message: error instanceof Error ? error.message : String(error) }
+          })
       );
-    },
+    }
   };
 }
 
@@ -123,26 +99,15 @@ class WebSandboxProxyBackend implements SandboxBackend {
 
   constructor(
     private readonly outbound: WebSandboxProxyOutbound,
-    private readonly pendingSpawns: Map<
-      string,
-      { resolve: () => void; reject: (error: Error) => void }
-    >,
-    private readonly pendingPings: Map<
-      string,
-      { resolve: (alive: boolean) => void }
-    >,
-    private readonly instances: Map<string, ProxySandboxInstance>,
+    private readonly pendingSpawns: Map<string, { resolve: () => void; reject: (error: Error) => void }>,
+    private readonly pendingPings: Map<string, { resolve: (alive: boolean) => void }>,
+    private readonly instances: Map<string, ProxySandboxInstance>
   ) {}
 
   async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
     const requestId = `spawn-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
     const instanceId = `${options.appId}-${Date.now()}`;
-    const instance = new ProxySandboxInstance(
-      instanceId,
-      this.outbound,
-      this.pendingPings,
-      options.brokerEndpoint,
-    );
+    const instance = new ProxySandboxInstance(instanceId, this.outbound, this.pendingPings, options.brokerEndpoint);
     this.instances.set(instanceId, instance);
 
     await new Promise<void>((resolve, reject) => {
@@ -153,7 +118,7 @@ class WebSandboxProxyBackend implements SandboxBackend {
         appId: options.appId,
         version: options.version,
         entryPath: options.entryPath,
-        bundleHex: bytesToHex(options.bundle),
+        bundleHex: bytesToHex(options.bundle)
       });
     });
 
@@ -169,11 +134,8 @@ class ProxySandboxInstance implements SandboxInstance {
   constructor(
     id: string,
     private readonly outbound: WebSandboxProxyOutbound,
-    private readonly pendingPings: Map<
-      string,
-      { resolve: (alive: boolean) => void }
-    >,
-    private readonly brokerEndpoint: unknown,
+    private readonly pendingPings: Map<string, { resolve: (alive: boolean) => void }>,
+    private readonly brokerEndpoint: unknown
   ) {
     this.id = id;
   }
@@ -228,14 +190,12 @@ class ProxySandboxInstance implements SandboxInstance {
   }
 
   async handleBrokerRequest(request: unknown): Promise<unknown> {
-    const endpoint = this.brokerEndpoint as {
-      request?: (value: unknown) => Promise<unknown>;
-    };
+    const endpoint = this.brokerEndpoint as { request?: (value: unknown) => Promise<unknown> };
     if (typeof endpoint?.request !== "function") {
       return {
         id: (request as { id?: string }).id,
         ok: false,
-        error: { message: "Broker endpoint is not configured" },
+        error: { message: "Broker endpoint is not configured" }
       };
     }
 

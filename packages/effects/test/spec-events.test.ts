@@ -10,13 +10,7 @@ import { generateEventTypes } from "../../../scripts/generate-event-types.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..", "..", "..");
-const schemaPath = join(
-  repo,
-  "specs",
-  "spec-events",
-  "schema",
-  "events.schema.json",
-);
+const schemaPath = join(repo, "specs", "spec-events", "schema", "events.schema.json");
 const tapePath = join(repo, "specs", "spec-events", "tapes", "all-shapes.json");
 const generatedPath = join(repo, "packages", "effects", "src", "types.gen.ts");
 
@@ -26,14 +20,9 @@ interface TapeItem {
 }
 
 const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as {
-  $defs: Record<
-    string,
-    { oneOf?: Array<{ properties: { kind: { const: string } } }> }
-  >;
+  $defs: Record<string, { oneOf?: Array<{ properties: { kind: { const: string } } }> }>;
 };
-const tape = (
-  JSON.parse(readFileSync(tapePath, "utf8")) as { tape: TapeItem[] }
-).tape;
+const tape = (JSON.parse(readFileSync(tapePath, "utf8")) as { tape: TapeItem[] }).tape;
 
 function kindsOf(group: string): string[] {
   const defs = schema.$defs[group];
@@ -45,7 +34,7 @@ describe("SPEC-EVENTS example tapes", () => {
   const validators = {
     event: createValidator(`${schemaPath}#/$defs/event`),
     intent: createValidator(`${schemaPath}#/$defs/machineIntent`),
-    harness: createValidator(`${schemaPath}#/$defs/harnessIntent`),
+    harness: createValidator(`${schemaPath}#/$defs/harnessIntent`)
   } as Record<string, (value: unknown) => string[]>;
 
   it("every tape item validates against its group", () => {
@@ -57,45 +46,21 @@ describe("SPEC-EVENTS example tapes", () => {
   });
 
   it("the tape covers the full alphabet", () => {
-    const seen = (dir: TapeItem["dir"]) =>
-      new Set(
-        tape
-          .filter((item) => item.dir === dir)
-          .map((item) => item.payload.kind),
-      );
+    const seen = (dir: TapeItem["dir"]) => new Set(tape.filter((item) => item.dir === dir).map((item) => item.payload.kind));
     expect([...seen("event")].sort()).toEqual(kindsOf("event").sort());
     expect([...seen("intent")].sort()).toEqual(kindsOf("machineIntent").sort());
-    expect([...seen("harness")].sort()).toEqual(
-      kindsOf("harnessIntent").sort(),
-    );
+    expect([...seen("harness")].sort()).toEqual(kindsOf("harnessIntent").sort());
     const powers = new Set(
-      tape
-        .filter((item) => item.dir === "harness")
-        .map((item) => item.payload.action?.power),
+      tape.filter((item) => item.dir === "harness").map((item) => item.payload.action?.power)
     );
-    expect([...powers].sort()).toEqual([
-      "delay",
-      "drop",
-      "duplicate",
-      "inject",
-      "reorder",
-    ]);
+    expect([...powers].sort()).toEqual(["delay", "drop", "duplicate", "inject", "reorder"]);
   });
 
   it("payloads outside the alphabet are rejected", () => {
     expect(validators.event!({ kind: "no-such-event" })).not.toEqual([]);
-    expect(
-      validators.intent!({
-        kind: "transport/adversary",
-        action: { power: "drop", source: "a", destination: "b" },
-      }),
-    ).not.toEqual([]);
-    expect(
-      validators.intent!({ kind: "log", level: "fatal", message: "x" }),
-    ).not.toEqual([]);
-    expect(
-      validators.event!({ kind: "start", at: 0, extra: true }),
-    ).not.toEqual([]);
+    expect(validators.intent!({ kind: "transport/adversary", action: { power: "drop", source: "a", destination: "b" } })).not.toEqual([]);
+    expect(validators.intent!({ kind: "log", level: "fatal", message: "x" })).not.toEqual([]);
+    expect(validators.event!({ kind: "start", at: 0, extra: true })).not.toEqual([]);
   });
 });
 

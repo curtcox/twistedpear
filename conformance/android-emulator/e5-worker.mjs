@@ -13,7 +13,7 @@ import {
   maestroAvailable,
   maestroWithFixtureEnv,
   requireDevice,
-  waitForBootComplete,
+  waitForBootComplete
 } from "./helpers.mjs";
 import { updateS4SupportMatrix } from "../freenet-spike/update-s4-matrix.mjs";
 
@@ -27,7 +27,7 @@ async function sleep(ms) {
 
 function parseBenchmarkResults(text) {
   const match = text.match(
-    /spawn ([\d.]+)ms · kill ([\d.]+)ms · busy-loop ([\d.]+)ms · wasm (yes|no)(?: · kill failed)? \(([^)]+)\)/,
+    /spawn ([\d.]+)ms · kill ([\d.]+)ms · busy-loop ([\d.]+)ms · wasm (yes|no)(?: · kill failed)? \(([^)]+)\)/
   );
   if (match === null) {
     throw new Error(`Could not parse benchmark results from UI dump`);
@@ -42,29 +42,19 @@ function parseBenchmarkResults(text) {
     killMs: Number.parseFloat(match[2]),
     busyLoopKillMs: Number.parseFloat(match[3]),
     wasmExecuted,
-    busyLoopKilled,
+    busyLoopKilled
   };
 }
 
 function assertE5Evidence(result) {
   if (result.wasmExecuted !== true) {
-    throw new Error(
-      "E5 failed: WASM did not execute inside the BareKit worker",
-    );
+    throw new Error("E5 failed: WASM did not execute inside the BareKit worker");
   }
   if (result.busyLoopKilled !== true) {
-    throw new Error(
-      "E5 failed: watchdog did not kill the WASM-before-busy-loop worker",
-    );
+    throw new Error("E5 failed: watchdog did not kill the WASM-before-busy-loop worker");
   }
-  if (
-    !(result.spawnMs >= 0) ||
-    !(result.killMs >= 0) ||
-    !(result.busyLoopKillMs >= 0)
-  ) {
-    throw new Error(
-      "E5 failed: missing spawn/kill/watchdog latency measurements",
-    );
+  if (!(result.spawnMs >= 0) || !(result.killMs >= 0) || !(result.busyLoopKillMs >= 0)) {
+    throw new Error("E5 failed: missing spawn/kill/watchdog latency measurements");
   }
 }
 
@@ -79,9 +69,7 @@ async function main() {
   waitForBootComplete();
 
   if (!maestroAvailable()) {
-    throw new Error(
-      "maestro CLI not found (install from https://maestro.mobile.dev)",
-    );
+    throw new Error("maestro CLI not found (install from https://maestro.mobile.dev)");
   }
 
   readFileSync(join(labDir, "fixture-meta.json"), "utf8");
@@ -93,31 +81,26 @@ async function main() {
   const uiDump = readBenchmarkFromUi();
   const parsed = parseBenchmarkResults(uiDump);
   assertE5Evidence(parsed);
-  const meta = JSON.parse(
-    readFileSync(join(labDir, "fixture-meta.json"), "utf8"),
-  );
+  const meta = JSON.parse(readFileSync(join(labDir, "fixture-meta.json"), "utf8"));
   const result = {
     measuredAt: new Date().toISOString().slice(0, 10),
     platform: "android-emulator",
     environment: "android-emulator",
     hyperdrivePath: "verified-by-e1",
     appId: meta.appId,
-    ...parsed,
+    ...parsed
   };
 
   if (record) {
     writeFileSync(measuredPath, `${JSON.stringify(result, null, 2)}\n`);
-    const matrixPath = updateS4SupportMatrix(
-      "bare-worker-android-emulator",
-      result,
-    );
+    const matrixPath = updateS4SupportMatrix("bare-worker-android-emulator", result);
     console.log(`android-emulator/e5-worker: recorded ${measuredPath}`);
     console.log(`android-emulator/e5-worker: updated ${matrixPath}`);
   }
 
   console.log(
     `android-emulator/e5-worker: spawn ${result.spawnMs}ms, kill ${result.killMs}ms, ` +
-      `busy-loop ${result.busyLoopKillMs}ms, wasm=${result.wasmExecuted} (${result.backend})`,
+      `busy-loop ${result.busyLoopKillMs}ms, wasm=${result.wasmExecuted} (${result.backend})`
   );
 }
 

@@ -1,5 +1,6 @@
 # SPEC-ADAPTER — Effect adapter families and equivalence
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -22,14 +23,14 @@ reverse.
 Each family is the pairing of intents it executes with the events it produces
 (vocabulary owned by [SPEC-EVENTS](../spec-events/spec.md)):
 
-| Family    | Executes intents                            | Produces events                 | Real                                                        | Simulated                                          |
-| --------- | ------------------------------------------- | ------------------------------- | ----------------------------------------------------------- | -------------------------------------------------- |
-| Clock     | —                                           | `at` payloads on `start`/`tick` | `RealClock`                                                 | `SimClock` (virtual, kernel-owned)                 |
-| Entropy   | `need_entropy`                              | `entropy`                       | `RealEntropy` (platform CSPRNG)                             | `Xoshiro128StarStar` (seeded)                      |
-| Timers    | `timer/set`, `timer/cancel`                 | `timer/fired`                   | `RealTimers` (host timers)                                  | `SimTimers` (virtual-time queue)                   |
-| Transport | `transport/send`                            | `transport/recv`                | per-medium interfaces ([SPEC-MEDIA](../spec-media/spec.md)) | `SimTransport` (delivery models, links, adversary) |
-| Storage   | `store/read`, `store/write`, `store/delete` | `store/value`, `store/done`     | per-platform stores                                         | `SimStore` (in-memory)                             |
-| Logging   | `log`                                       | —                               | structured log sink                                         | recorded in trace only                             |
+| Family | Executes intents | Produces events | Real | Simulated |
+|---|---|---|---|---|
+| Clock | — | `at` payloads on `start`/`tick` | `RealClock` | `SimClock` (virtual, kernel-owned) |
+| Entropy | `need_entropy` | `entropy` | `RealEntropy` (platform CSPRNG) | `Xoshiro128StarStar` (seeded) |
+| Timers | `timer/set`, `timer/cancel` | `timer/fired` | `RealTimers` (host timers) | `SimTimers` (virtual-time queue) |
+| Transport | `transport/send` | `transport/recv` | per-medium interfaces ([SPEC-MEDIA](../spec-media/spec.md)) | `SimTransport` (delivery models, links, adversary) |
+| Storage | `store/read`, `store/write`, `store/delete` | `store/value`, `store/done` | per-platform stores | `SimStore` (in-memory) |
+| Logging | `log` | — | structured log sink | recorded in trace only |
 
 Family rules:
 

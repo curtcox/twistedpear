@@ -34,7 +34,7 @@ import {
   stepPackResourceProofWithActions,
   stepResourceRandomHashLengthValidWithActions,
   stepSplitResourceDecryptedPayloadWithActions,
-  stepSplitResourceProofWithActions,
+  stepSplitResourceProofWithActions
 } from "../src/resource-proof.js";
 
 describe("protocol resource proof", () => {
@@ -58,10 +58,10 @@ describe("protocol resource proof", () => {
           initialAcceptResourceProofPayloadState(),
           {
             kind: "resource-proof/accept-payload-gate",
-            dataLength: RESOURCE_PROOF_SIZE,
-          },
-        ).actions,
-      ),
+            dataLength: RESOURCE_PROOF_SIZE
+          }
+        ).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAcceptResourceProofPayload(
@@ -69,38 +69,30 @@ describe("protocol resource proof", () => {
           initialAcceptResourceProofPayloadState(),
           {
             kind: "resource-proof/accept-payload-gate",
-            dataLength: 10,
-          },
-        ).actions,
-      ),
+            dataLength: 10
+          }
+        ).actions
+      )
     ).toBe(true);
     expect(shouldAcceptResourceProofSplit(true)).toBe(true);
     expect(shouldAcceptResourceProofSplit(false)).toBe(false);
     expect(
       shouldAcceptResourceProofSplitNow(
-        stepAcceptResourceProofSplitWithActions(
-          initialAcceptResourceProofSplitState(),
-          {
-            kind: "resource-proof/accept-split-gate",
-            splitOk: true,
-          },
-        ).actions,
-      ),
+        stepAcceptResourceProofSplitWithActions(initialAcceptResourceProofSplitState(), {
+          kind: "resource-proof/accept-split-gate",
+          splitOk: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAcceptResourceProofSplit(
-        stepAcceptResourceProofSplitWithActions(
-          initialAcceptResourceProofSplitState(),
-          {
-            kind: "resource-proof/accept-split-gate",
-            splitOk: false,
-          },
-        ).actions,
-      ),
+        stepAcceptResourceProofSplitWithActions(initialAcceptResourceProofSplitState(), {
+          kind: "resource-proof/accept-split-gate",
+          splitOk: false
+        }).actions
+      )
     ).toBe(true);
-    expect(isValidResourceRandomHashLength(RESOURCE_RANDOM_HASH_SIZE)).toBe(
-      true,
-    );
+    expect(isValidResourceRandomHashLength(RESOURCE_RANDOM_HASH_SIZE)).toBe(true);
     expect(isValidResourceRandomHashLength(3)).toBe(false);
     expect(
       shouldAcceptResourceRandomHashLength(
@@ -108,10 +100,10 @@ describe("protocol resource proof", () => {
           initialResourceRandomHashLengthValidState(),
           {
             kind: "resource-proof/random-hash-length-valid-gate",
-            length: RESOURCE_RANDOM_HASH_SIZE,
-          },
-        ).actions,
-      ),
+            length: RESOURCE_RANDOM_HASH_SIZE
+          }
+        ).actions
+      )
     ).toBe(true);
     expect(
       shouldRejectResourceRandomHashLength(
@@ -119,19 +111,17 @@ describe("protocol resource proof", () => {
           initialResourceRandomHashLengthValidState(),
           {
             kind: "resource-proof/random-hash-length-valid-gate",
-            length: 3,
-          },
-        ).actions,
-      ),
+            length: 3
+          }
+        ).actions
+      )
     ).toBe(true);
   });
 
   it("validates expected proof bytes", () => {
     const packed = packResourceProof(hash, proof);
     expect(isValidResourceProof(packed, proof)).toBe(true);
-    expect(isValidResourceProof(packed, new Uint8Array(32).fill(9))).toBe(
-      false,
-    );
+    expect(isValidResourceProof(packed, new Uint8Array(32).fill(9))).toBe(false);
     expect(isValidResourceProof(new Uint8Array(10), proof)).toBe(false);
   });
 
@@ -142,14 +132,11 @@ describe("protocol resource proof", () => {
   });
 
   it("emits pack framing bytes from WithActions steps", () => {
-    const stepped = stepPackResourceProofWithActions(
-      initialPackResourceProofState(),
-      {
-        kind: "resource-proof/pack-gate",
-        resourceHash: hash,
-        proofHash: proof,
-      },
-    );
+    const stepped = stepPackResourceProofWithActions(initialPackResourceProofState(), {
+      kind: "resource-proof/pack-gate",
+      resourceHash: hash,
+      proofHash: proof
+    });
     expect(shouldUsePackResourceProof(stepped.actions)).toBe(true);
     const packed = packResourceProofRawFromActions(stepped.actions);
     expect(packed).not.toBeNull();
@@ -158,13 +145,10 @@ describe("protocol resource proof", () => {
 
   it("emits split fields or reject from WithActions steps", () => {
     const packed = packResourceProof(hash, proof);
-    const ok = stepSplitResourceProofWithActions(
-      initialSplitResourceProofState(),
-      {
-        kind: "resource-proof/split-gate",
-        proofData: packed,
-      },
-    );
+    const ok = stepSplitResourceProofWithActions(initialSplitResourceProofState(), {
+      kind: "resource-proof/split-gate",
+      proofData: packed
+    });
     expect(shouldUseSplitResourceProof(ok.actions)).toBe(true);
     expect(shouldRejectSplitResourceProof(ok.actions)).toBe(false);
     const fields = resourceProofFieldsFromActions(ok.actions);
@@ -172,13 +156,10 @@ describe("protocol resource proof", () => {
     expect([...fields!.resourceHash]).toEqual([...hash]);
     expect([...fields!.proofHash]).toEqual([...proof]);
 
-    const rejected = stepSplitResourceProofWithActions(
-      initialSplitResourceProofState(),
-      {
-        kind: "resource-proof/split-gate",
-        proofData: new Uint8Array(10),
-      },
-    );
+    const rejected = stepSplitResourceProofWithActions(initialSplitResourceProofState(), {
+      kind: "resource-proof/split-gate",
+      proofData: new Uint8Array(10)
+    });
     expect(shouldRejectSplitResourceProof(rejected.actions)).toBe(true);
     expect(shouldUseSplitResourceProof(rejected.actions)).toBe(false);
     expect(resourceProofFieldsFromActions(rejected.actions)).toBeNull();
@@ -190,8 +171,8 @@ describe("protocol resource proof", () => {
       initialSplitResourceDecryptedPayloadState(),
       {
         kind: "resource-proof/split-decrypted-gate",
-        decrypted,
-      },
+        decrypted
+      }
     );
     expect(shouldUseSplitResourceDecryptedPayload(ok.actions)).toBe(true);
     expect(shouldRejectSplitResourceDecryptedPayload(ok.actions)).toBe(false);
@@ -203,15 +184,11 @@ describe("protocol resource proof", () => {
       initialSplitResourceDecryptedPayloadState(),
       {
         kind: "resource-proof/split-decrypted-gate",
-        decrypted: new Uint8Array([1, 2]),
-      },
+        decrypted: new Uint8Array([1, 2])
+      }
     );
-    expect(shouldRejectSplitResourceDecryptedPayload(rejected.actions)).toBe(
-      true,
-    );
-    expect(shouldUseSplitResourceDecryptedPayload(rejected.actions)).toBe(
-      false,
-    );
+    expect(shouldRejectSplitResourceDecryptedPayload(rejected.actions)).toBe(true);
+    expect(shouldUseSplitResourceDecryptedPayload(rejected.actions)).toBe(false);
     expect(resourceDecryptedPayloadFromActions(rejected.actions)).toBeNull();
   });
 });

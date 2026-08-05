@@ -16,7 +16,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LinkResourceStrategy,
-  type LinkResourceStrategyValue,
+  type LinkResourceStrategyValue
 } from "../link-watchdog.js";
 
 export type LinkResourceAcceptPlan =
@@ -57,12 +57,12 @@ export function initialLinkResourceAdvertisementState(input: {
 }): LinkResourceAdvertisementState {
   return {
     strategy: input.strategy,
-    waitingApp: false,
+    waitingApp: false
   };
 }
 
 export function planLinkResourceAccept(
-  strategy: LinkResourceStrategyValue | number,
+  strategy: LinkResourceStrategyValue | number
 ): LinkResourceAcceptPlan {
   if (strategy === LinkResourceStrategy.ACCEPT_NONE) {
     return { kind: "ignore" };
@@ -120,7 +120,7 @@ export function initialLinkResourceAdvertisementPlanState(): LinkResourceAdverti
 
 export function stepLinkResourceAdvertisementPlanWithActions(
   state: LinkResourceAdvertisementPlanState,
-  event: LinkResourceAdvertisementPlanEvent,
+  event: LinkResourceAdvertisementPlanEvent
 ): LinkResourceAdvertisementPlanStepResult {
   if (event.kind === "resource-adv/advertisement-plan-gate") {
     return {
@@ -129,9 +129,9 @@ export function stepLinkResourceAdvertisementPlanWithActions(
       actions: [
         planLinkResourceAdvertisement({
           isRequest: event.isRequest,
-          strategy: event.strategy,
-        }),
-      ],
+          strategy: event.strategy
+        })
+      ]
     };
   }
 
@@ -139,40 +139,36 @@ export function stepLinkResourceAdvertisementPlanWithActions(
 }
 
 export function shouldIgnoreLinkResourceAdvertisementPlan(
-  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldAskAppLinkResourceAdvertisementPlan(
-  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ask-app");
 }
 
 export function shouldAcceptLinkResourceAdvertisementPlan(
-  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 /** Extract the advertisement plan from actions; null when empty. */
 export function linkResourceAdvertisementPlanFromActions(
-  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>
 ): LinkResourceAcceptPlan | null {
   const action = actions.find(
     (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "ask-app" ||
-      entry.kind === "accept",
+      entry.kind === "ignore" || entry.kind === "ask-app" || entry.kind === "accept"
   );
   return action ?? null;
 }
 
 /** After ask-app, map the app callback result to accept/reject. */
-export function planLinkResourceAcceptAppResult(
-  appAccepted: boolean,
-): "accept" | "reject" {
+export function planLinkResourceAcceptAppResult(appAccepted: boolean): "accept" | "reject" {
   return appAccepted ? "accept" : "reject";
 }
 
@@ -192,7 +188,8 @@ export type LinkResourceAcceptAppResultPlanEvent =
     };
 
 export type LinkResourceAcceptAppResultPlanAction =
-  { readonly kind: "accept" } | { readonly kind: "reject" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
 
 export interface LinkResourceAcceptAppResultPlanStepResult {
   readonly state: LinkResourceAcceptAppResultPlanState;
@@ -206,13 +203,13 @@ export function initialLinkResourceAcceptAppResultPlanState(): LinkResourceAccep
 
 export function stepLinkResourceAcceptAppResultPlanWithActions(
   state: LinkResourceAcceptAppResultPlanState,
-  event: LinkResourceAcceptAppResultPlanEvent,
+  event: LinkResourceAcceptAppResultPlanEvent
 ): LinkResourceAcceptAppResultPlanStepResult {
   if (event.kind === "resource-adv/app-result-plan-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: planLinkResourceAcceptAppResult(event.accepted) }],
+      actions: [{ kind: planLinkResourceAcceptAppResult(event.accepted) }]
     };
   }
 
@@ -220,75 +217,76 @@ export function stepLinkResourceAcceptAppResultPlanWithActions(
 }
 
 export function shouldAcceptLinkResourceAcceptAppResultPlan(
-  actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>,
+  actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectLinkResourceAcceptAppResultPlan(
-  actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>,
+  actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract the app-result plan from actions; null when empty. */
 export function linkResourceAcceptAppResultPlanFromActions(
-  actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>,
+  actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>
 ): "accept" | "reject" | null {
   const action = actions.find(
-    (entry) => entry.kind === "accept" || entry.kind === "reject",
+    (entry) => entry.kind === "accept" || entry.kind === "reject"
   );
   return action?.kind ?? null;
 }
 
-export const stepLinkResourceAdvertisement: StepFn<
-  LinkResourceAdvertisementState
-> = (state, event) => {
+export const stepLinkResourceAdvertisement: StepFn<LinkResourceAdvertisementState> = (
+  state,
+  event
+) => {
   const result = stepLinkResourceAdvertisementInner(
     state,
-    event as LinkResourceAdvertisementEvent,
+    event as LinkResourceAdvertisementEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkResourceAdvertisementWithActions(
   state: LinkResourceAdvertisementState,
-  event: LinkResourceAdvertisementEvent,
+  event: LinkResourceAdvertisementEvent
 ): LinkResourceAdvertisementStepResult {
   return stepLinkResourceAdvertisementInner(state, event);
 }
 
 /** Whether step actions include ignore. */
 export function shouldIgnoreLinkResourceAdvertisement(
-  actions: ReadonlyArray<LinkResourceAdvertisementAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 /** Whether step actions include ask-app. */
 export function shouldAskAppLinkResourceAdvertisement(
-  actions: ReadonlyArray<LinkResourceAdvertisementAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
 ): boolean {
   return actions.some((action) => action.kind === "ask-app");
 }
 
 /** Whether step actions include accept. */
 export function shouldAcceptLinkResourceAdvertisement(
-  actions: ReadonlyArray<LinkResourceAdvertisementAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 /** Whether step actions include reject. */
 export function shouldRejectLinkResourceAdvertisement(
-  actions: ReadonlyArray<LinkResourceAdvertisementAction>,
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 function stepLinkResourceAdvertisementInner(
   state: LinkResourceAdvertisementState,
-  event: LinkResourceAdvertisementEvent,
+  event: LinkResourceAdvertisementEvent
 ): LinkResourceAdvertisementStepResult {
   if (event.kind === "resource-adv/received") {
     const planActions = stepLinkResourceAdvertisementPlanWithActions(
@@ -296,21 +294,21 @@ function stepLinkResourceAdvertisementInner(
       {
         kind: "resource-adv/advertisement-plan-gate",
         isRequest: event.isRequest,
-        strategy: state.strategy,
-      },
+        strategy: state.strategy
+      }
     ).actions;
     if (shouldIgnoreLinkResourceAdvertisementPlan(planActions)) {
       return {
         state,
         intents: [],
-        actions: [{ kind: "ignore" }],
+        actions: [{ kind: "ignore" }]
       };
     }
     if (shouldAskAppLinkResourceAdvertisementPlan(planActions)) {
       return {
         state: { ...state, waitingApp: true },
         intents: [],
-        actions: [{ kind: "ask-app" }],
+        actions: [{ kind: "ask-app" }]
       };
     }
     if (!shouldAcceptLinkResourceAdvertisementPlan(planActions)) {
@@ -319,7 +317,7 @@ function stepLinkResourceAdvertisementInner(
     return {
       state,
       intents: [],
-      actions: [{ kind: "accept" }],
+      actions: [{ kind: "accept" }]
     };
   }
 
@@ -331,27 +329,23 @@ function stepLinkResourceAdvertisementInner(
       initialLinkResourceAcceptAppResultPlanState(),
       {
         kind: "resource-adv/app-result-plan-gate",
-        accepted: event.accepted,
-      },
+        accepted: event.accepted
+      }
     ).actions;
     if (shouldRejectLinkResourceAcceptAppResultPlan(planActions)) {
       return {
         state: { ...state, waitingApp: false },
         intents: [],
-        actions: [{ kind: "reject" }],
+        actions: [{ kind: "reject" }]
       };
     }
     if (!shouldAcceptLinkResourceAcceptAppResultPlan(planActions)) {
-      return {
-        state: { ...state, waitingApp: false },
-        intents: [],
-        actions: [],
-      };
+      return { state: { ...state, waitingApp: false }, intents: [], actions: [] };
     }
     return {
       state: { ...state, waitingApp: false },
       intents: [],
-      actions: [{ kind: "accept" }],
+      actions: [{ kind: "accept" }]
     };
   }
 
@@ -362,6 +356,7 @@ function stepLinkResourceAdvertisementInner(
 export function linkReadyForNewResource(outgoingCount: number): boolean {
   return outgoingCount === 0;
 }
+
 
 /**
  * linkReadyForNewResource gate is event-driven; no durable session fields.
@@ -379,7 +374,8 @@ export type LinkReadyForNewResourceEvent =
     };
 
 export type LinkReadyForNewResourceAction =
-  { readonly kind: "ready" } | { readonly kind: "busy" };
+  | { readonly kind: "ready" }
+  | { readonly kind: "busy" };
 
 export interface LinkReadyForNewResourceStepResult {
   readonly state: LinkReadyForNewResourceState;
@@ -393,7 +389,7 @@ export function initialLinkReadyForNewResourceState(): LinkReadyForNewResourceSt
 
 export function stepLinkReadyForNewResourceWithActions(
   state: LinkReadyForNewResourceState,
-  event: LinkReadyForNewResourceEvent,
+  event: LinkReadyForNewResourceEvent
 ): LinkReadyForNewResourceStepResult {
   if (event.kind === "link/ready-for-new-resource-gate") {
     return {
@@ -401,9 +397,9 @@ export function stepLinkReadyForNewResourceWithActions(
       intents: [],
       actions: [
         {
-          kind: linkReadyForNewResource(event.outgoingCount) ? "ready" : "busy",
-        },
-      ],
+          kind: linkReadyForNewResource(event.outgoingCount) ? "ready" : "busy"
+        }
+      ]
     };
   }
 
@@ -411,13 +407,13 @@ export function stepLinkReadyForNewResourceWithActions(
 }
 
 export function shouldLinkReadyForNewResource(
-  actions: ReadonlyArray<LinkReadyForNewResourceAction>,
+  actions: ReadonlyArray<LinkReadyForNewResourceAction>
 ): boolean {
   return actions.some((action) => action.kind === "ready");
 }
 
 export function shouldLinkBusyForNewResource(
-  actions: ReadonlyArray<LinkReadyForNewResourceAction>,
+  actions: ReadonlyArray<LinkReadyForNewResourceAction>
 ): boolean {
   return actions.some((action) => action.kind === "busy");
 }
@@ -445,7 +441,8 @@ export type HandleOutgoingResourceRequestEvent =
     };
 
 export type HandleOutgoingResourceRequestAction =
-  { readonly kind: "handle" } | { readonly kind: "skip" };
+  | { readonly kind: "handle" }
+  | { readonly kind: "skip" };
 
 export interface HandleOutgoingResourceRequestStepResult {
   readonly state: HandleOutgoingResourceRequestState;

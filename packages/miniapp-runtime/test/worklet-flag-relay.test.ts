@@ -12,7 +12,7 @@ describe("createWorkletFlagRelayService", () => {
       tcpOnline: true,
       autoOnline: false,
       bleOnline: false,
-      rnodeOnline: false,
+      rnodeOnline: false
     };
     let applied = 0;
     const targets: Array<{ host: string; port: number }> = [];
@@ -38,16 +38,13 @@ describe("createWorkletFlagRelayService", () => {
       },
       setPolicy() {
         // The host callback is the forwarding-policy boundary.
-      },
+      }
     });
 
-    expect(service.status()).toMatchObject({
-      mode: "transport-node",
-      onlineCount: 1,
-    });
+    expect(service.status()).toMatchObject({ mode: "transport-node", onlineCount: 1 });
     expect(service.list().find((entry) => entry.kind === "tcp")).toMatchObject({
       enabled: true,
-      online: true,
+      online: true
     });
 
     await service.enable("auto");
@@ -68,9 +65,7 @@ describe("createWorkletFlagRelayService", () => {
     expect(directions).toEqual([{ kind: "tcp", direction: "rx" }]);
 
     const diagnostics = await service.diagnostics();
-    expect(diagnostics.find((entry) => entry.kind === "ntfy")?.state).toBe(
-      "unsupported",
-    );
+    expect(diagnostics.find((entry) => entry.kind === "ntfy")?.state).toBe("unsupported");
   });
 
   it("rejects status-only mutations and unsupported interface kinds", async () => {
@@ -78,27 +73,17 @@ describe("createWorkletFlagRelayService", () => {
       tcpEnabled: false,
       autoEnabled: false,
       bleEnabled: false,
-      rnodeEnabled: false,
+      rnodeEnabled: false
     };
     const service = createWorkletFlagRelayService({
       getFlags: () => flags,
-      setFlags(patch) {
-        Object.assign(flags, patch);
-      },
-      async applyInterfaceConfig() {},
+      setFlags(patch) { Object.assign(flags, patch); },
+      async applyInterfaceConfig() {}
     });
 
-    await expect(service.setMode("bridge")).rejects.toMatchObject({
-      code: "RELAY_UNSUPPORTED",
-    });
-    await expect(service.setDirection("tcp", "rx")).rejects.toMatchObject({
-      code: "RELAY_UNSUPPORTED",
-    });
-    await expect(service.enable("ntfy")).rejects.toMatchObject({
-      code: "RELAY_UNSUPPORTED",
-    });
-    await expect(
-      service.setPolicy({ allow: { tcp: { auto: false } } }),
-    ).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
+    await expect(service.setMode("bridge")).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
+    await expect(service.setDirection("tcp", "rx")).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
+    await expect(service.enable("ntfy")).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
+    await expect(service.setPolicy({ allow: { tcp: { auto: false } } })).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
   });
 });

@@ -27,9 +27,7 @@ export interface ConfirmedPeerRoute {
   readonly transport?: HostPeerRoute;
 }
 
-export type ConfirmedPeerRouteListener = (
-  routes: ReadonlyArray<ConfirmedPeerRoute>,
-) => void;
+export type ConfirmedPeerRouteListener = (routes: ReadonlyArray<ConfirmedPeerRoute>) => void;
 
 /**
  * Single host-side source of truth for authenticated routes. Presence can observe it while
@@ -39,12 +37,7 @@ export class ConfirmedPeerRouteRegistry {
   private readonly entries = new Map<string, ConfirmedPeerRoute>();
   private readonly listeners = new Set<ConfirmedPeerRouteListener>();
 
-  attach(
-    ownerId: string,
-    service: string,
-    peer: EstablishedPeer,
-    connectedAt = Date.now(),
-  ): ConfirmedPeerRoute {
+  attach(ownerId: string, service: string, peer: EstablishedPeer, connectedAt = Date.now()): ConfirmedPeerRoute {
     const entry: ConfirmedPeerRoute = {
       ownerId,
       service,
@@ -53,7 +46,7 @@ export class ConfirmedPeerRouteRegistry {
       rendezvous: peer.rendezvous,
       dataPlane: peer.dataPlane,
       connectedAt,
-      ...(peer.route === undefined ? {} : { transport: peer.route }),
+      ...(peer.route === undefined ? {} : { transport: peer.route })
     };
     this.entries.set(ownerId, entry);
     this.publish();
@@ -68,34 +61,17 @@ export class ConfirmedPeerRouteRegistry {
     return [...this.entries.values()];
   }
 
-  resolve(
-    fingerprint: string,
-    service?: string,
-  ): ConfirmedPeerRoute | undefined {
-    return this.list().find(
-      (entry) =>
-        entry.fingerprint === fingerprint &&
-        (service === undefined || entry.service === service),
-    );
+  resolve(fingerprint: string, service?: string): ConfirmedPeerRoute | undefined {
+    return this.list().find((entry) => entry.fingerprint === fingerprint && (service === undefined || entry.service === service));
   }
 
-  async send(
-    fingerprint: string,
-    payload: Uint8Array,
-    service?: string,
-  ): Promise<void> {
+  async send(fingerprint: string, payload: Uint8Array, service?: string): Promise<void> {
     if (payload.length > MAX_ROUTE_PAYLOAD_BYTES) {
-      throw new PeerDiscoveryError(
-        "QUOTA_EXCEEDED",
-        "Peer route payload exceeds 64 KiB",
-      );
+      throw new PeerDiscoveryError("QUOTA_EXCEEDED", "Peer route payload exceeds 64 KiB");
     }
     const entry = this.resolve(fingerprint, service);
     if (entry?.transport === undefined) {
-      throw new PeerDiscoveryError(
-        "NO_RETURN_CHANNEL",
-        "Confirmed peer route has no direct transport",
-      );
+      throw new PeerDiscoveryError("NO_RETURN_CHANNEL", "Confirmed peer route has no direct transport");
     }
     await entry.transport.send(payload.slice());
   }

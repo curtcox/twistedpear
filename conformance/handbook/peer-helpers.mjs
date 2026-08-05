@@ -9,16 +9,13 @@ import { spawnSync } from "node:child_process";
 
 const handbookRoot = dirname(fileURLToPath(import.meta.url));
 
-export const HANDBOOK_FIXTURE_META_PATH = join(
-  handbookRoot,
-  "handbook-fixture-meta.json",
-);
+export const HANDBOOK_FIXTURE_META_PATH = join(handbookRoot, "handbook-fixture-meta.json");
 export const HARNESS_BUNDLE_ID = "network.twistedpear.harness";
 
 export function maestroAvailable() {
   const env = {
     ...process.env,
-    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
   };
   const result = spawnSync("maestro", ["--version"], { encoding: "utf8", env });
   return result.status === 0;
@@ -27,7 +24,7 @@ export function maestroAvailable() {
 export function maestro(args) {
   const env = {
     ...process.env,
-    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
   };
   const result = spawnSync("maestro", args, { stdio: "inherit", env });
   if (result.status !== 0) {
@@ -39,10 +36,7 @@ export function maestroHandbookSmoke() {
   maestro(["test", ".maestro/handbook-smoke.yaml"]);
 }
 
-export function waitForHandbookMeta(
-  timeoutMs = 180_000,
-  metaPath = HANDBOOK_FIXTURE_META_PATH,
-) {
+export function waitForHandbookMeta(timeoutMs = 180_000, metaPath = HANDBOOK_FIXTURE_META_PATH) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (existsSync(metaPath)) {
@@ -55,9 +49,7 @@ export function waitForHandbookMeta(
     spawnSync("sleep", ["1"]);
   }
 
-  throw new Error(
-    `Timed out waiting for ${metaPath} (handbook-peer still starting?)`,
-  );
+  throw new Error(`Timed out waiting for ${metaPath} (handbook-peer still starting?)`);
 }
 
 export function dockerAvailable() {

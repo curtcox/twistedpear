@@ -13,7 +13,7 @@ import {
   msgpackPackUInt,
   msgpackUnpack,
   msgpackUnpackAt,
-  type MsgpackValue,
+  type MsgpackValue
 } from "./msgpack-core.js";
 
 export interface LinkRequestFields {
@@ -30,7 +30,7 @@ export interface LinkResponseFields {
 export function msgpackPackLinkRequest(
   requestedAt: number,
   pathHash: Uint8Array,
-  data: Uint8Array | null,
+  data: Uint8Array | null
 ): Uint8Array {
   // `data` is already a msgpack-encoded value (e.g. LXMF `[None, None]` or
   // `msgpackPackBin(raw)` for opaque payloads). Embed it directly so Python
@@ -38,29 +38,25 @@ export function msgpackPackLinkRequest(
   return msgpackPackArray([
     msgpackPackFloat64(requestedAt),
     msgpackPackBin(pathHash),
-    data === null ? msgpackPackNil() : data,
+    data === null ? msgpackPackNil() : data
   ]);
 }
 
 export function msgpackPackLinkResponse(
   requestId: Uint8Array,
-  response: Uint8Array | null,
+  response: Uint8Array | null
 ): Uint8Array {
   // `response` is already a msgpack-encoded value (e.g. a packed ID list). Embed it
   // directly so Python umsgpack.unpackb yields a native object, not a bytes blob.
   return msgpackPackArray([
     msgpackPackBin(requestId),
-    response === null ? msgpackPackNil() : response,
+    response === null ? msgpackPackNil() : response
   ]);
 }
 
 export function msgpackUnpackLinkRequest(bytes: Uint8Array): LinkRequestFields {
   const [value, endOffset] = msgpackUnpackAt(bytes, 0);
-  if (
-    value.type !== "array" ||
-    value.array.length !== 3 ||
-    endOffset !== bytes.length
-  ) {
+  if (value.type !== "array" || value.array.length !== 3 || endOffset !== bytes.length) {
     throw new Error("Invalid request payload");
   }
 
@@ -89,7 +85,7 @@ export function msgpackUnpackLinkRequest(bytes: Uint8Array): LinkRequestFields {
   return {
     requestedAt: requestedAtValue.float,
     pathHash: Uint8Array.from(pathHashValue.bin),
-    data,
+    data
   };
 }
 
@@ -105,17 +101,13 @@ function msgpackRepackValue(value: MsgpackValue): Uint8Array {
     case "int":
       return msgpackPackUInt(value.int);
     case "array":
-      return msgpackPackArray(
-        value.array.map((entry) => msgpackRepackValue(entry)),
-      );
+      return msgpackPackArray(value.array.map((entry) => msgpackRepackValue(entry)));
     default:
       throw new Error("Unsupported link-request data msgpack type");
   }
 }
 
-export function msgpackUnpackLinkResponse(
-  bytes: Uint8Array,
-): LinkResponseFields {
+export function msgpackUnpackLinkResponse(bytes: Uint8Array): LinkResponseFields {
   const value = msgpackUnpack(bytes);
   if (value.type !== "array" || value.array.length !== 2) {
     throw new Error("Invalid response payload");
@@ -142,20 +134,20 @@ export function msgpackUnpackLinkResponse(
 
   return {
     requestId: Uint8Array.from(requestIdValue.bin),
-    response,
+    response
   };
 }
 
 /** Tuple form matching legacy reticulum-ts helpers. */
 export function msgpackUnpackLinkRequestTuple(
-  bytes: Uint8Array,
+  bytes: Uint8Array
 ): [number, Uint8Array, Uint8Array | null] {
   const unpacked = msgpackUnpackLinkRequest(bytes);
   return [unpacked.requestedAt, unpacked.pathHash, unpacked.data];
 }
 
 export function msgpackUnpackLinkResponseTuple(
-  bytes: Uint8Array,
+  bytes: Uint8Array
 ): [Uint8Array, Uint8Array | null] {
   const unpacked = msgpackUnpackLinkResponse(bytes);
   return [unpacked.requestId, unpacked.response];
@@ -194,7 +186,7 @@ export function initialPackLinkRequestState(): PackLinkRequestState {
 
 export function stepPackLinkRequestWithActions(
   state: PackLinkRequestState,
-  event: PackLinkRequestEvent,
+  event: PackLinkRequestEvent
 ): PackLinkRequestStepResult {
   if (event.kind === "link-request-codec/pack-gate") {
     return {
@@ -203,13 +195,9 @@ export function stepPackLinkRequestWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: msgpackPackLinkRequest(
-            event.requestedAt,
-            event.pathHash,
-            event.data,
-          ),
-        },
-      ],
+          raw: msgpackPackLinkRequest(event.requestedAt, event.pathHash, event.data)
+        }
+      ]
     };
   }
 
@@ -217,14 +205,14 @@ export function stepPackLinkRequestWithActions(
 }
 
 export function shouldUsePackLinkRequest(
-  actions: ReadonlyArray<PackLinkRequestAction>,
+  actions: ReadonlyArray<PackLinkRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract link-request pack bytes from step actions; null when no `use-raw`. */
 export function packLinkRequestRawFromActions(
-  actions: ReadonlyArray<PackLinkRequestAction>,
+  actions: ReadonlyArray<PackLinkRequestAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -262,7 +250,7 @@ export function initialPackLinkResponseState(): PackLinkResponseState {
 
 export function stepPackLinkResponseWithActions(
   state: PackLinkResponseState,
-  event: PackLinkResponseEvent,
+  event: PackLinkResponseEvent
 ): PackLinkResponseStepResult {
   if (event.kind === "link-response-codec/pack-gate") {
     return {
@@ -271,9 +259,9 @@ export function stepPackLinkResponseWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: msgpackPackLinkResponse(event.requestId, event.response),
-        },
-      ],
+          raw: msgpackPackLinkResponse(event.requestId, event.response)
+        }
+      ]
     };
   }
 
@@ -281,14 +269,14 @@ export function stepPackLinkResponseWithActions(
 }
 
 export function shouldUsePackLinkResponse(
-  actions: ReadonlyArray<PackLinkResponseAction>,
+  actions: ReadonlyArray<PackLinkResponseAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract link-response pack bytes from step actions; null when no `use-raw`. */
 export function packLinkResponseRawFromActions(
-  actions: ReadonlyArray<PackLinkResponseAction>,
+  actions: ReadonlyArray<PackLinkResponseAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -324,7 +312,7 @@ export function initialUnpackLinkRequestState(): UnpackLinkRequestState {
 
 export function stepUnpackLinkRequestWithActions(
   state: UnpackLinkRequestState,
-  event: UnpackLinkRequestEvent,
+  event: UnpackLinkRequestEvent
 ): UnpackLinkRequestStepResult {
   if (event.kind === "link-request-codec/unpack-gate") {
     try {
@@ -332,7 +320,7 @@ export function stepUnpackLinkRequestWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }],
+        actions: [{ kind: "use-fields", fields }]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -343,20 +331,20 @@ export function stepUnpackLinkRequestWithActions(
 }
 
 export function shouldUseUnpackLinkRequest(
-  actions: ReadonlyArray<UnpackLinkRequestAction>,
+  actions: ReadonlyArray<UnpackLinkRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackLinkRequest(
-  actions: ReadonlyArray<UnpackLinkRequestAction>,
+  actions: ReadonlyArray<UnpackLinkRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked link-request fields from step actions; null when no `use-fields`. */
 export function linkRequestFieldsFromActions(
-  actions: ReadonlyArray<UnpackLinkRequestAction>,
+  actions: ReadonlyArray<UnpackLinkRequestAction>
 ): LinkRequestFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -392,7 +380,7 @@ export function initialUnpackLinkResponseState(): UnpackLinkResponseState {
 
 export function stepUnpackLinkResponseWithActions(
   state: UnpackLinkResponseState,
-  event: UnpackLinkResponseEvent,
+  event: UnpackLinkResponseEvent
 ): UnpackLinkResponseStepResult {
   if (event.kind === "link-response-codec/unpack-gate") {
     try {
@@ -400,7 +388,7 @@ export function stepUnpackLinkResponseWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }],
+        actions: [{ kind: "use-fields", fields }]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -411,20 +399,20 @@ export function stepUnpackLinkResponseWithActions(
 }
 
 export function shouldUseUnpackLinkResponse(
-  actions: ReadonlyArray<UnpackLinkResponseAction>,
+  actions: ReadonlyArray<UnpackLinkResponseAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackLinkResponse(
-  actions: ReadonlyArray<UnpackLinkResponseAction>,
+  actions: ReadonlyArray<UnpackLinkResponseAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked link-response fields from step actions; null when no `use-fields`. */
 export function linkResponseFieldsFromActions(
-  actions: ReadonlyArray<UnpackLinkResponseAction>,
+  actions: ReadonlyArray<UnpackLinkResponseAction>
 ): LinkResponseFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

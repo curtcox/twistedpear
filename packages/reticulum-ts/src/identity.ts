@@ -105,7 +105,7 @@ import {
   shouldRejectTruncateHashBytes,
   shouldUseTruncateHashBytes,
   NAME_HASH_BYTES,
-  initialTruncateHashBytesState,
+  initialTruncateHashBytesState
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
@@ -150,6 +150,7 @@ export type IdentityCreateOptions =
       readonly entropy?: Entropy;
     };
 
+
 export interface DecryptOptions {
   readonly ratchets?: ReadonlyArray<Uint8Array>;
   readonly enforceRatchets?: boolean;
@@ -162,10 +163,7 @@ export interface DecryptResult {
 
 export class Identity {
   private static readonly knownRatchets = new Map<string, Uint8Array>();
-  private static readonly knownDestinations = new Map<
-    string,
-    KnownDestinationRecord
-  >();
+  private static readonly knownDestinations = new Map<string, KnownDestinationRecord>();
 
   private prvBytes: Uint8Array | null = null;
   private sigPrvBytes: Uint8Array | null = null;
@@ -175,41 +173,30 @@ export class Identity {
 
   constructor(
     private readonly provider: CryptoProvider,
-    createKeysOrOptions: IdentityCreateOptions = true,
+    createKeysOrOptions: IdentityCreateOptions = true
   ) {
     const createKeys =
       typeof createKeysOrOptions === "boolean"
         ? createKeysOrOptions
         : createKeysOrOptions.createKeys !== false;
     const entropy =
-      typeof createKeysOrOptions === "object"
-        ? createKeysOrOptions.entropy
-        : undefined;
+      typeof createKeysOrOptions === "object" ? createKeysOrOptions.entropy : undefined;
     if (createKeys) {
       this.createKeys(entropy);
     }
   }
 
-  static fromBytes(
-    provider: CryptoProvider,
-    privateKeyBytes: Uint8Array,
-  ): Identity | null {
+  static fromBytes(provider: CryptoProvider, privateKeyBytes: Uint8Array): Identity | null {
     const identity = new Identity(provider, false);
     return identity.loadPrivateKey(privateKeyBytes) ? identity : null;
   }
 
-  static fromPublicKey(
-    provider: CryptoProvider,
-    publicKeyBytes: Uint8Array,
-  ): Identity | null {
+  static fromPublicKey(provider: CryptoProvider, publicKeyBytes: Uint8Array): Identity | null {
     const identity = new Identity(provider, false);
     return identity.loadPublicKey(publicKeyBytes) ? identity : null;
   }
 
-  static getRandomHash(
-    provider: CryptoProvider,
-    entropy?: Entropy,
-  ): Uint8Array {
+  static getRandomHash(provider: CryptoProvider, entropy?: Entropy): Uint8Array {
     return entropy !== undefined
       ? entropy.randomBytes(TRUNCATED_HASH_BYTES)
       : provider.randomBytes(TRUNCATED_HASH_BYTES);
@@ -220,13 +207,10 @@ export class Identity {
   }
 
   static truncatedHash(provider: CryptoProvider, data: Uint8Array): Uint8Array {
-    const stepped = stepTruncateHashBytesWithActions(
-      initialTruncateHashBytesState(),
-      {
-        kind: "hash-truncate/truncate-gate",
-        digest: Identity.fullHash(provider, data),
-      },
-    );
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: Identity.fullHash(provider, data)
+    });
     const raw = truncateHashBytesRawFromActions(stepped.actions);
     if (
       shouldRejectTruncateHashBytes(stepped.actions) ||
@@ -238,25 +222,16 @@ export class Identity {
     return raw;
   }
 
-  static ratchetPublicBytes(
-    provider: CryptoProvider,
-    ratchetPrivate: Uint8Array,
-  ): Uint8Array {
+  static ratchetPublicBytes(provider: CryptoProvider, ratchetPrivate: Uint8Array): Uint8Array {
     return provider.x25519PublicFromPrivate(ratchetPrivate);
   }
 
-  static ratchetId(
-    provider: CryptoProvider,
-    ratchetPublicBytes: Uint8Array,
-  ): Uint8Array {
-    const stepped = stepTruncateHashBytesWithActions(
-      initialTruncateHashBytesState(),
-      {
-        kind: "hash-truncate/truncate-gate",
-        digest: Identity.fullHash(provider, ratchetPublicBytes),
-        length: NAME_HASH_BYTES,
-      },
-    );
+  static ratchetId(provider: CryptoProvider, ratchetPublicBytes: Uint8Array): Uint8Array {
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: Identity.fullHash(provider, ratchetPublicBytes),
+      length: NAME_HASH_BYTES
+    });
     const raw = truncateHashBytesRawFromActions(stepped.actions);
     if (
       shouldRejectTruncateHashBytes(stepped.actions) ||
@@ -272,28 +247,25 @@ export class Identity {
     destinationHash: Uint8Array,
     ratchet: Uint8Array,
     receivedAt: number,
-    store?: KeyValueStore,
+    store?: KeyValueStore
   ): void {
     const key = bytesToHex(destinationHash);
     Identity.knownRatchets.set(key, Uint8Array.from(ratchet));
 
     if (
       shouldPersistIdentityRatchetNow(
-        stepPersistIdentityRatchetWithActions(
-          initialPersistIdentityRatchetState(),
-          {
-            kind: "identity/persist-ratchet-gate",
-            storePresent: store !== undefined,
-          },
-        ).actions,
+        stepPersistIdentityRatchetWithActions(initialPersistIdentityRatchetState(), {
+          kind: "identity/persist-ratchet-gate",
+          storePresent: store !== undefined
+        }).actions
       )
     ) {
       const encodeStepped = stepEncodeIdentityRatchetRecordWithActions(
         initialEncodeIdentityRatchetRecordState(),
         {
           kind: "identity-ratchet/encode-gate",
-          record: { ratchet, received: receivedAt },
-        },
+          record: { ratchet, received: receivedAt }
+        }
       );
       if (
         shouldRejectEncodeIdentityRatchetRecord(encodeStepped.actions) ||
@@ -301,9 +273,7 @@ export class Identity {
       ) {
         return;
       }
-      const payload = encodeIdentityRatchetRecordRawFromActions(
-        encodeStepped.actions,
-      );
+      const payload = encodeIdentityRatchetRecordRawFromActions(encodeStepped.actions);
       if (payload === null) {
         return;
       }
@@ -314,20 +284,17 @@ export class Identity {
   static async getRatchet(
     destinationHash: Uint8Array,
     nowSeconds: number,
-    store?: KeyValueStore,
+    store?: KeyValueStore
   ): Promise<Uint8Array | null> {
     const key = bytesToHex(destinationHash);
     const cached = Identity.knownRatchets.get(key);
-    const beforeStore = stepIdentityRatchetLookupWithActions(
-      initialIdentityRatchetLookupState(),
-      {
-        kind: "identity/ratchet-lookup-gate",
-        cachedPresent: cached !== undefined,
-        storePresent: store !== undefined,
-        storedPresent: false,
-        usable: false,
-      },
-    );
+    const beforeStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
+      cachedPresent: cached !== undefined,
+      storePresent: store !== undefined,
+      storedPresent: false,
+      usable: false
+    });
     if (shouldUseCachedIdentityRatchet(beforeStore.actions)) {
       return Uint8Array.from(cached!);
     }
@@ -342,8 +309,8 @@ export class Identity {
         initialDecodeIdentityRatchetRecordState(),
         {
           kind: "identity-ratchet/decode-gate",
-          bytes: stored,
-        },
+          bytes: stored
+        }
       );
       if (shouldUseDecodeIdentityRatchetRecord(decodeStepped.actions)) {
         record = identityRatchetRecordFromActions(decodeStepped.actions);
@@ -352,35 +319,26 @@ export class Identity {
     const usable =
       record !== null &&
       shouldTreatIdentityRatchetRecordUsable(
-        stepIdentityRatchetRecordUsableWithActions(
-          initialIdentityRatchetRecordUsableState(),
-          {
-            kind: "identity-ratchet/usable-gate",
-            record,
-            nowSeconds,
-          },
-        ).actions,
+        stepIdentityRatchetRecordUsableWithActions(initialIdentityRatchetRecordUsableState(), {
+          kind: "identity-ratchet/usable-gate",
+          record,
+          nowSeconds
+        }).actions
       );
-    const afterStore = stepIdentityRatchetLookupWithActions(
-      initialIdentityRatchetLookupState(),
-      {
-        kind: "identity/ratchet-lookup-gate",
-        cachedPresent: false,
-        storePresent: true,
-        storedPresent: record !== null,
-        usable,
-      },
-    );
+    const afterStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
+      cachedPresent: false,
+      storePresent: true,
+      storedPresent: record !== null,
+      usable
+    });
     if (
       !shouldCommitRestoredIdentityRatchetNow(
-        stepCommitRestoredIdentityRatchetWithActions(
-          initialCommitRestoredIdentityRatchetState(),
-          {
-            kind: "identity/commit-restored-ratchet-gate",
-            planRestore: shouldRestoreIdentityRatchetLookup(afterStore.actions),
-            recordPresent: record !== null,
-          },
-        ).actions,
+        stepCommitRestoredIdentityRatchetWithActions(initialCommitRestoredIdentityRatchetState(), {
+          kind: "identity/commit-restored-ratchet-gate",
+          planRestore: shouldRestoreIdentityRatchetLookup(afterStore.actions),
+          recordPresent: record !== null
+        }).actions
       )
     ) {
       return null;
@@ -395,20 +353,17 @@ export class Identity {
     receivedFrom: Uint8Array,
     publicKey: Uint8Array,
     appData: Uint8Array | null,
-    timestamp: number,
+    timestamp: number
   ): void {
     Identity.knownDestinations.set(bytesToHex(destinationHash), {
       timestamp,
       receivedFrom: Uint8Array.from(receivedFrom),
       publicKey: Uint8Array.from(publicKey),
-      appData: appData === null ? null : Uint8Array.from(appData),
+      appData: appData === null ? null : Uint8Array.from(appData)
     });
   }
 
-  static recall(
-    provider: CryptoProvider,
-    destinationHash: Uint8Array,
-  ): Identity | null {
+  static recall(provider: CryptoProvider, destinationHash: Uint8Array): Identity | null {
     const record = Identity.knownDestinations.get(bytesToHex(destinationHash));
     const identity = new Identity(provider, false);
     const publicKeyLoaded =
@@ -416,24 +371,19 @@ export class Identity {
     const gate = stepIdentityRecallWithActions(initialIdentityRecallState(), {
       kind: "identity/recall-gate",
       recordPresent: record !== undefined,
-      publicKeyLoaded,
+      publicKeyLoaded
     });
     return shouldHitIdentityRecall(gate.actions) ? identity : null;
   }
 
   static recallAppData(destinationHash: Uint8Array): Uint8Array | null {
     const record = Identity.knownDestinations.get(bytesToHex(destinationHash));
-    const gate = stepIdentityRecallAppDataWithActions(
-      initialIdentityRecallAppDataState(),
-      {
-        kind: "identity/recall-app-data-gate",
-        recordPresent: record !== undefined,
-        appDataPresent: record?.appData !== undefined,
-      },
-    );
-    return shouldHitIdentityRecallAppData(gate.actions)
-      ? record!.appData!
-      : null;
+    const gate = stepIdentityRecallAppDataWithActions(initialIdentityRecallAppDataState(), {
+      kind: "identity/recall-app-data-gate",
+      recordPresent: record !== undefined,
+      appDataPresent: record?.appData !== undefined
+    });
+    return shouldHitIdentityRecallAppData(gate.actions) ? record!.appData! : null;
   }
 
   get hash(): Uint8Array {
@@ -441,8 +391,8 @@ export class Identity {
       !shouldAllowIdentityHash(
         stepIdentityHashAllowWithActions(initialIdentityHashAllowState(), {
           kind: "identity/hash-allow-gate",
-          identityHashPresent: this.identityHash !== null,
-        }).actions,
+          identityHashPresent: this.identityHash !== null
+        }).actions
       )
     ) {
       throw new Error("Identity has no loaded key material");
@@ -452,16 +402,13 @@ export class Identity {
   }
 
   createKeys(entropy?: Entropy): void {
-    const stepped = stepSplitIdentityEntropyWithActions(
-      initialSplitIdentityEntropyState(),
-      {
-        kind: "identity-key/split-entropy-gate",
-        entropy:
-          entropy !== undefined
-            ? entropy.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
-            : this.provider.randomBytes(IDENTITY_KEY_ENTROPY_SIZE),
-      },
-    );
+    const stepped = stepSplitIdentityEntropyWithActions(initialSplitIdentityEntropyState(), {
+      kind: "identity-key/split-entropy-gate",
+      entropy:
+        entropy !== undefined
+          ? entropy.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
+          : this.provider.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
+    });
     const material = identityEntropyFieldsFromActions(stepped.actions);
     if (
       shouldRejectSplitIdentityEntropy(stepped.actions) ||
@@ -469,7 +416,7 @@ export class Identity {
       material === null
     ) {
       throw new Error(
-        `Identity key entropy must be at least ${IDENTITY_KEY_ENTROPY_SIZE} bytes`,
+        `Identity key entropy must be at least ${IDENTITY_KEY_ENTROPY_SIZE} bytes`
       );
     }
     this.prvBytes = material.privateKey;
@@ -479,14 +426,11 @@ export class Identity {
 
   getPrivateKey(): Uint8Array {
     this.requirePrivateKey();
-    const packStepped = stepPackIdentityPrivateKeyWithActions(
-      initialPackIdentityPrivateKeyState(),
-      {
-        kind: "identity-key/pack-private-gate",
-        privateKey: this.prvBytes!,
-        signaturePrivateKey: this.sigPrvBytes!,
-      },
-    );
+    const packStepped = stepPackIdentityPrivateKeyWithActions(initialPackIdentityPrivateKeyState(), {
+      kind: "identity-key/pack-private-gate",
+      privateKey: this.prvBytes!,
+      signaturePrivateKey: this.sigPrvBytes!
+    });
     if (
       shouldRejectPackIdentityPrivateKey(packStepped.actions) ||
       !shouldUsePackIdentityPrivateKey(packStepped.actions)
@@ -502,14 +446,11 @@ export class Identity {
 
   getPublicKey(): Uint8Array {
     this.requirePublicKey();
-    const packStepped = stepPackIdentityPublicKeyWithActions(
-      initialPackIdentityPublicKeyState(),
-      {
-        kind: "identity-key/pack-public-gate",
-        publicKey: this.pubBytes!,
-        signaturePublicKey: this.sigPubBytes!,
-      },
-    );
+    const packStepped = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), {
+      kind: "identity-key/pack-public-gate",
+      publicKey: this.pubBytes!,
+      signaturePublicKey: this.sigPubBytes!
+    });
     if (
       shouldRejectPackIdentityPublicKey(packStepped.actions) ||
       !shouldUsePackIdentityPublicKey(packStepped.actions)
@@ -528,21 +469,18 @@ export class Identity {
       initialSplitIdentityPrivateKeyState(),
       {
         kind: "identity-key/split-private-gate",
-        privateKeyBytes,
-      },
+        privateKeyBytes
+      }
     );
     const split = shouldUseSplitIdentityPrivateKey(splitStepped.actions)
       ? identityPrivateKeyFieldsFromActions(splitStepped.actions)
       : null;
     if (
       !shouldAllowLoadIdentityKeyMaterial(
-        stepLoadIdentityKeyMaterialWithActions(
-          initialLoadIdentityKeyMaterialState(),
-          {
-            kind: "identity/load-key-material-gate",
-            splitOk: split !== null,
-          },
-        ).actions,
+        stepLoadIdentityKeyMaterialWithActions(initialLoadIdentityKeyMaterialState(), {
+          kind: "identity/load-key-material-gate",
+          splitOk: split !== null
+        }).actions
       )
     ) {
       return false;
@@ -559,21 +497,18 @@ export class Identity {
       initialSplitIdentityPublicKeyState(),
       {
         kind: "identity-key/split-public-gate",
-        publicKeyBytes,
-      },
+        publicKeyBytes
+      }
     );
     const split = shouldUseSplitIdentityPublicKey(splitStepped.actions)
       ? identityPublicKeyFieldsFromActions(splitStepped.actions)
       : null;
     if (
       !shouldAllowLoadIdentityKeyMaterial(
-        stepLoadIdentityKeyMaterialWithActions(
-          initialLoadIdentityKeyMaterialState(),
-          {
-            kind: "identity/load-key-material-gate",
-            splitOk: split !== null,
-          },
-        ).actions,
+        stepLoadIdentityKeyMaterialWithActions(initialLoadIdentityKeyMaterialState(), {
+          kind: "identity/load-key-material-gate",
+          splitOk: split !== null
+        }).actions
       )
     ) {
       return false;
@@ -605,60 +540,48 @@ export class Identity {
       (options.entropy !== undefined
         ? options.entropy.randomBytes(32)
         : this.provider.randomBytes(32));
-    const ephemeralPublicBytes =
-      this.provider.x25519PublicFromPrivate(ephemeralPrivateKey);
+    const ephemeralPublicBytes = this.provider.x25519PublicFromPrivate(ephemeralPrivateKey);
     const targetPublicKey =
-      options.ratchetPublicKey === undefined
-        ? this.pubBytes!
-        : options.ratchetPublicKey;
+      options.ratchetPublicKey === undefined ? this.pubBytes! : options.ratchetPublicKey;
 
-    const sharedKey = this.provider.x25519SharedSecret(
-      ephemeralPrivateKey,
-      targetPublicKey,
-    );
+    const sharedKey = this.provider.x25519SharedSecret(ephemeralPrivateKey, targetPublicKey);
     const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
     const token = new Token(this.provider, derivedKey);
     const ciphertext = token.encrypt(plaintext, {
       ...(options.tokenIv === undefined ? {} : { iv: options.tokenIv }),
-      ...(options.entropy === undefined ? {} : { entropy: options.entropy }),
+      ...(options.entropy === undefined ? {} : { entropy: options.entropy })
     });
-    const packStepped = stepPackIdentityCiphertextWithActions(
-      initialPackIdentityCiphertextState(),
-      {
-        kind: "identity-ciphertext/pack-gate",
-        ephemeralPublicKey: ephemeralPublicBytes,
-        tokenCiphertext: ciphertext,
-      },
-    );
+    const packStepped = stepPackIdentityCiphertextWithActions(initialPackIdentityCiphertextState(), {
+      kind: "identity-ciphertext/pack-gate",
+      ephemeralPublicKey: ephemeralPublicBytes,
+      tokenCiphertext: ciphertext
+    });
     if (
       shouldRejectPackIdentityCiphertext(packStepped.actions) ||
       !shouldUsePackIdentityCiphertext(packStepped.actions)
     ) {
       throw new Error(
-        `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`,
+        `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`
       );
     }
     const packed = packIdentityCiphertextRawFromActions(packStepped.actions);
     if (packed === null) {
       throw new Error(
-        `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`,
+        `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`
       );
     }
     return packed;
   }
 
-  decrypt(
-    ciphertextToken: Uint8Array,
-    options: DecryptOptions = {},
-  ): DecryptResult {
+  decrypt(ciphertextToken: Uint8Array, options: DecryptOptions = {}): DecryptResult {
     this.requirePrivateKey();
 
     const splitStepped = stepSplitIdentityCiphertextWithActions(
       initialSplitIdentityCiphertextState(),
       {
         kind: "identity-ciphertext/split-gate",
-        ciphertextToken,
-      },
+        ciphertextToken
+      }
     );
     const split = identityCiphertextFieldsFromActions(splitStepped.actions);
     /** Adapt ciphertext-frame accept via protocol actions (no ad-hoc
@@ -668,13 +591,10 @@ export class Identity {
       {
         kind: "identity-ciphertext/accept-frame-gate",
         splitOk:
-          shouldUseSplitIdentityCiphertext(splitStepped.actions) &&
-          split !== null,
-      },
+          shouldUseSplitIdentityCiphertext(splitStepped.actions) && split !== null
+      }
     );
-    const frameOk = shouldAcceptIdentityCiphertextFrameNow(
-      frameStepped.actions,
-    );
+    const frameOk = shouldAcceptIdentityCiphertextFrameNow(frameStepped.actions);
     let plaintext: Uint8Array | null = null;
     let ratchetId: Uint8Array | null = null;
 
@@ -688,32 +608,18 @@ export class Identity {
             initialAttemptIdentityRatchetDecryptState(),
             {
               kind: "identity/attempt-ratchet-decrypt-gate",
-              ratchetsPresent: options.ratchets !== undefined,
-            },
-          ).actions,
+              ratchetsPresent: options.ratchets !== undefined
+            }
+          ).actions
         )
       ) {
         for (const ratchet of options.ratchets!) {
           try {
-            const ratchetPublicBytes = Identity.ratchetPublicBytes(
-              this.provider,
-              ratchet,
-            );
+            const ratchetPublicBytes = Identity.ratchetPublicBytes(this.provider, ratchet);
             ratchetId = Identity.ratchetId(this.provider, ratchetPublicBytes);
-            const sharedKey = this.provider.x25519SharedSecret(
-              ratchet,
-              peerPublicBytes,
-            );
-            const derivedKey = rnsHkdf(
-              this.provider,
-              32,
-              sharedKey,
-              this.hash,
-              null,
-            );
-            plaintext = new Token(this.provider, derivedKey).decrypt(
-              ciphertext,
-            );
+            const sharedKey = this.provider.x25519SharedSecret(ratchet, peerPublicBytes);
+            const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
+            plaintext = new Token(this.provider, derivedKey).decrypt(ciphertext);
             break;
           } catch {
             plaintext = null;
@@ -723,17 +629,14 @@ export class Identity {
       }
     }
 
-    const afterRatchets = stepIdentityDecryptWithActions(
-      initialIdentityDecryptState(),
-      {
-        kind: "identity/decrypt-gate",
-        frameOk,
-        ratchetPlaintextPresent: plaintext !== null,
-        enforceRatchets: options.enforceRatchets === true,
-        identityFallbackDone: false,
-        identityPlaintextPresent: false,
-      },
-    );
+    const afterRatchets = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk,
+      ratchetPlaintextPresent: plaintext !== null,
+      enforceRatchets: options.enforceRatchets === true,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
     if (
       shouldRejectIdentityDecryptFrame(afterRatchets.actions) ||
       shouldRejectIdentityDecryptEnforced(afterRatchets.actions)
@@ -745,8 +648,8 @@ export class Identity {
         initialAcceptIdentityDecryptPlaintextState(),
         {
           kind: "identity-ciphertext/accept-plaintext-gate",
-          planAccept: plaintext !== null,
-        },
+          planAccept: plaintext !== null
+        }
       );
       if (shouldAcceptIdentityDecryptPlaintextNow(plaintextStepped.actions)) {
         return { plaintext, ratchetId };
@@ -760,29 +663,24 @@ export class Identity {
     try {
       const sharedKey = this.provider.x25519SharedSecret(
         this.prvBytes!,
-        split!.ephemeralPublicKey,
+        split!.ephemeralPublicKey
       );
       const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
-      plaintext = new Token(this.provider, derivedKey).decrypt(
-        split!.tokenCiphertext,
-      );
+      plaintext = new Token(this.provider, derivedKey).decrypt(split!.tokenCiphertext);
       ratchetId = null;
     } catch {
       plaintext = null;
       ratchetId = null;
     }
 
-    const afterIdentity = stepIdentityDecryptWithActions(
-      initialIdentityDecryptState(),
-      {
-        kind: "identity/decrypt-gate",
-        frameOk: true,
-        ratchetPlaintextPresent: false,
-        enforceRatchets: false,
-        identityFallbackDone: true,
-        identityPlaintextPresent: plaintext !== null,
-      },
-    );
+    const afterIdentity = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: true,
+      identityPlaintextPresent: plaintext !== null
+    });
     if (!shouldAcceptIdentityDecrypt(afterIdentity.actions)) {
       return { plaintext: null, ratchetId: null };
     }
@@ -790,8 +688,8 @@ export class Identity {
       initialAcceptIdentityDecryptPlaintextState(),
       {
         kind: "identity-ciphertext/accept-plaintext-gate",
-        planAccept: plaintext !== null,
-      },
+        planAccept: plaintext !== null
+      }
     );
     if (!shouldAcceptIdentityDecryptPlaintextNow(plaintextStepped.actions)) {
       return { plaintext: null, ratchetId: null };
@@ -802,25 +700,20 @@ export class Identity {
   prove(
     packetHash: Uint8Array,
     proofDestinationHash: Uint8Array,
-    sendProof: (
-      destinationHash: Uint8Array,
-      proofData: Uint8Array,
-    ) => Promise<void>,
-    useImplicitProof = true,
+    sendProof: (destinationHash: Uint8Array, proofData: Uint8Array) => Promise<void>,
+    useImplicitProof = true
   ): Promise<void> {
     const signature = this.sign(packetHash);
-    const stepped = stepPackPacketProofWithActions(
-      initialPackPacketProofState(),
-      {
-        kind: "packet-proof/pack-gate",
-        packetHash,
-        signature,
-        explicit: !useImplicitProof,
-      },
-    );
-    const proofData = shouldUsePackPacketProof(stepped.actions)
-      ? packPacketProofRawFromActions(stepped.actions)
-      : null;
+    const stepped = stepPackPacketProofWithActions(initialPackPacketProofState(), {
+      kind: "packet-proof/pack-gate",
+      packetHash,
+      signature,
+      explicit: !useImplicitProof
+    });
+    const proofData =
+      shouldUsePackPacketProof(stepped.actions)
+        ? packPacketProofRawFromActions(stepped.actions)
+        : null;
     if (proofData === null) {
       throw new Error("Identity.prove: missing use-raw action");
     }
@@ -829,30 +722,22 @@ export class Identity {
 
   private updatePublicMaterial(): void {
     this.pubBytes = this.provider.x25519PublicFromPrivate(this.prvBytes!);
-    this.sigPubBytes = this.provider.ed25519PublicFromPrivate(
-      this.sigPrvBytes!,
-    );
+    this.sigPubBytes = this.provider.ed25519PublicFromPrivate(this.sigPrvBytes!);
     this.updateHashes();
   }
 
   private updateHashes(): void {
-    this.identityHash = Identity.truncatedHash(
-      this.provider,
-      this.getPublicKey(),
-    );
+    this.identityHash = Identity.truncatedHash(this.provider, this.getPublicKey());
   }
 
   private requirePrivateKey(): void {
     if (
       !shouldAllowIdentityUsePrivateKey(
-        stepIdentityUsePrivateKeyWithActions(
-          initialIdentityUsePrivateKeyState(),
-          {
-            kind: "identity/use-private-key-gate",
-            privateKeyPresent: this.prvBytes !== null,
-            signaturePrivatePresent: this.sigPrvBytes !== null,
-          },
-        ).actions,
+        stepIdentityUsePrivateKeyWithActions(initialIdentityUsePrivateKeyState(), {
+          kind: "identity/use-private-key-gate",
+          privateKeyPresent: this.prvBytes !== null,
+          signaturePrivatePresent: this.sigPrvBytes !== null
+        }).actions
       )
     ) {
       throw new Error("Identity does not hold a private key");
@@ -862,14 +747,11 @@ export class Identity {
   private requirePublicKey(): void {
     if (
       !shouldAllowIdentityUsePublicKey(
-        stepIdentityUsePublicKeyWithActions(
-          initialIdentityUsePublicKeyState(),
-          {
-            kind: "identity/use-public-key-gate",
-            publicKeyPresent: this.pubBytes !== null,
-            signaturePublicPresent: this.sigPubBytes !== null,
-          },
-        ).actions,
+        stepIdentityUsePublicKeyWithActions(initialIdentityUsePublicKeyState(), {
+          kind: "identity/use-public-key-gate",
+          publicKeyPresent: this.pubBytes !== null,
+          signaturePublicPresent: this.sigPubBytes !== null
+        }).actions
       )
     ) {
       throw new Error("Identity does not hold a public key");

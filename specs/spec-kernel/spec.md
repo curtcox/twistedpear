@@ -1,5 +1,6 @@
 # SPEC-KERNEL — Deterministic scheduler semantics
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -46,7 +47,7 @@ short form "(time, source, destination)" describes only rule 3):
 2. **Timers** fire per node in ascending node-id order; within a node, due timers
    fire in ascending timer-id order.
 3. **Transport messages** are delivered in ascending `(deliverAt, source,
-destination)` order.
+   destination)` order.
 4. **Ties** beyond rule 3 (same instant, source, and destination) deliver in send
    order (queue insertion order).
 

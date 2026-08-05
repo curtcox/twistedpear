@@ -1,14 +1,14 @@
 import {
   FreenetClient,
   type FreenetClientOptions,
-  type FreenetUpdateOptions,
+  type FreenetUpdateOptions
 } from "../core/client.js";
 import {
   decodePacketLogState,
   encodePacketLogParameters,
   encodePacketLogState,
   mergePacketLogStates,
-  type PacketLogEntry,
+  type PacketLogEntry
 } from "../core/packet-log.js";
 
 /** Structural match for `FreenetPacketLogBackend` in reticulum-interfaces. */
@@ -75,7 +75,7 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
     this.#retention = options.retentionPerDirection ?? 64;
     this.#parameters = encodePacketLogParameters({
       retentionPerDirection: this.#retention,
-      rendezvous: options.rendezvous,
+      rendezvous: options.rendezvous
     });
     this.#localDirection = options.localDirection;
     this.#peerDirection = options.localDirection === 0 ? 1 : 0;
@@ -124,7 +124,7 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
     const entry: PacketLogEntry = {
       direction: this.#localDirection,
       index: this.#nextLocalIndex,
-      payload: Uint8Array.from(hdlcFrame),
+      payload: Uint8Array.from(hdlcFrame)
     };
     this.#nextLocalIndex += 1n;
     const encoded = encodePacketLogState([entry]);

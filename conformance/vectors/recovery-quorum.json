@@ -2,8 +2,20 @@
   "schema": "twistedpear.transition-v1",
   "machine": "recovery-quorum",
   "generatedBy": "scripts/vectors-generate-grant.mjs",
-  "states": ["idle", "collecting", "recovered", "rejected", "expired"],
-  "eventClasses": ["start", "share", "threshold-authorize", "reject", "ttl"],
+  "states": [
+    "idle",
+    "collecting",
+    "recovered",
+    "rejected",
+    "expired"
+  ],
+  "eventClasses": [
+    "start",
+    "share",
+    "threshold-authorize",
+    "reject",
+    "ttl"
+  ],
   "cells": [
     {
       "state": "idle",
@@ -90,7 +102,10 @@
       "expectedState": {
         "phase": "collecting",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -106,7 +121,10 @@
       "expectedState": {
         "phase": "collecting",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -121,8 +139,14 @@
       "expectedState": {
         "phase": "recovered",
         "threshold": 2,
-        "shares": ["a", "b"],
-        "recoveredWith": ["a", "b"]
+        "shares": [
+          "a",
+          "b"
+        ],
+        "recoveredWith": [
+          "a",
+          "b"
+        ]
       },
       "expectedIntents": [],
       "legal": true
@@ -136,7 +160,10 @@
       "expectedState": {
         "phase": "rejected",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -151,7 +178,10 @@
       "expectedState": {
         "phase": "expired",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -166,7 +196,10 @@
       "expectedState": {
         "phase": "recovered",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -182,7 +215,10 @@
       "expectedState": {
         "phase": "recovered",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -197,7 +233,10 @@
       "expectedState": {
         "phase": "recovered",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -212,7 +251,10 @@
       "expectedState": {
         "phase": "recovered",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -227,7 +269,10 @@
       "expectedState": {
         "phase": "recovered",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -242,7 +287,10 @@
       "expectedState": {
         "phase": "rejected",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -258,7 +306,10 @@
       "expectedState": {
         "phase": "rejected",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -273,7 +324,10 @@
       "expectedState": {
         "phase": "rejected",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -288,7 +342,10 @@
       "expectedState": {
         "phase": "rejected",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -303,7 +360,10 @@
       "expectedState": {
         "phase": "rejected",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -318,7 +378,10 @@
       "expectedState": {
         "phase": "expired",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -334,7 +397,10 @@
       "expectedState": {
         "phase": "expired",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -349,7 +415,10 @@
       "expectedState": {
         "phase": "expired",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -364,7 +433,10 @@
       "expectedState": {
         "phase": "expired",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],
@@ -379,7 +451,10 @@
       "expectedState": {
         "phase": "expired",
         "threshold": 2,
-        "shares": ["a", "b"],
+        "shares": [
+          "a",
+          "b"
+        ],
         "recoveredWith": []
       },
       "expectedIntents": [],

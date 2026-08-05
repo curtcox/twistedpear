@@ -1,5 +1,6 @@
 # Upstream publication
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -11,12 +12,12 @@ Software preparation is complete; community submission is a manual step.
 
 ## `reticulum-ts` API documentation
 
-| Item                 | Status     | Location                              |
-| -------------------- | ---------- | ------------------------------------- |
-| TypeDoc source       | Done       | `packages/reticulum-ts/typedoc.json`  |
-| Generated HTML       | Done       | `packages/reticulum-ts/docs/api/`     |
-| CI regeneration gate | Done       | `.github/workflows/ci.yml` `docs` job |
-| npm release          | Pending M8 | Tag `0.1.0` after plan-duration soaks |
+| Item | Status | Location |
+|---|---|---|
+| TypeDoc source | Done | `packages/reticulum-ts/typedoc.json` |
+| Generated HTML | Done | `packages/reticulum-ts/docs/api/` |
+| CI regeneration gate | Done | `.github/workflows/ci.yml` `docs` job |
+| npm release | Pending M8 | Tag `0.1.0` after plan-duration soaks |
 
 **Community publication steps (when tagging 0.1.0):**
 
@@ -27,13 +28,13 @@ Software preparation is complete; community submission is a manual step.
 
 ## BLE interface specification
 
-| Item                       | Status      | Location                                            |
-| -------------------------- | ----------- | --------------------------------------------------- |
-| Spec draft                 | Done        | [ble-interface.md](ble-interface.md) (v0.1.0-draft) |
-| Android implementation     | Done        | `apps/harness-mobile/modules/ble-bridge/`           |
-| JVM spec conformance tests | Done        | `BleBridgeTest.kt` (`npm run test:android-native`)  |
-| iOS appendix               | Done        | [ble-interface.md](ble-interface.md) §10            |
-| Device visibility matrix   | Pending H14 | Hardware runbook                                    |
+| Item | Status | Location |
+|---|---|---|
+| Spec draft | Done | [ble-interface.md](ble-interface.md) (v0.1.0-draft) |
+| Android implementation | Done | `apps/harness-mobile/modules/ble-bridge/` |
+| JVM spec conformance tests | Done | `BleBridgeTest.kt` (`npm run test:android-native`) |
+| iOS appendix | Done | [ble-interface.md](ble-interface.md) §10 |
+| Device visibility matrix | Pending H14 | Hardware runbook |
 
 **Community publication steps:**
 
@@ -47,14 +48,14 @@ Software preparation is complete; community submission is a manual step.
 
 ## WebSocket interface specification
 
-| Item                     | Status | Location                                                        |
-| ------------------------ | ------ | --------------------------------------------------------------- |
-| Spec draft               | Done   | [websocket-interface.md](websocket-interface.md) (v0.1.0-draft) |
-| Client implementation    | Done   | `packages/reticulum-ts/src/interfaces/websocket-client.ts`      |
-| Server implementation    | Done   | `packages/reticulum-ts/src/interfaces/websocket-server.ts`      |
-| Gateway CLI              | Done   | `tp node --ws-listen` / `--ws-token` / `--serve-web`            |
-| Conformance              | Done   | `test:web-interop`, `test:web-interop-browser`                  |
-| Web host (software tier) | Done   | [web-host.md](web-host.md) Phases W0–W4                         |
+| Item | Status | Location |
+|---|---|---|
+| Spec draft | Done | [websocket-interface.md](websocket-interface.md) (v0.1.0-draft) |
+| Client implementation | Done | `packages/reticulum-ts/src/interfaces/websocket-client.ts` |
+| Server implementation | Done | `packages/reticulum-ts/src/interfaces/websocket-server.ts` |
+| Gateway CLI | Done | `tp node --ws-listen` / `--ws-token` / `--serve-web` |
+| Conformance | Done | `test:web-interop`, `test:web-interop-browser` |
+| Web host (software tier) | Done | [web-host.md](web-host.md) Phases W0–W4 |
 
 **Community publication steps:**
 
@@ -74,9 +75,9 @@ release-note review, vector regeneration, and interop re-run.
 
 ## What remains hardware- or account-gated
 
-| Item                                     | Tracker                                        |
-| ---------------------------------------- | ---------------------------------------------- |
-| `reticulum-ts` 0.1.0 npm publish         | After 72 h transport-node soak                 |
-| BLE throughput numbers in LIMITATIONS §3 | H11                                            |
-| iOS BLE visibility matrix §10            | H14                                            |
-| macOS notarized desktop host             | [macos-notarization.md](macos-notarization.md) |
+| Item | Tracker |
+|---|---|
+| `reticulum-ts` 0.1.0 npm publish | After 72 h transport-node soak |
+| BLE throughput numbers in LIMITATIONS §3 | H11 |
+| iOS BLE visibility matrix §10 | H14 |
+| macOS notarized desktop host | [macos-notarization.md](macos-notarization.md) |

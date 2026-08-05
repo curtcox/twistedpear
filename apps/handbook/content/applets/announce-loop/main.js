@@ -12,7 +12,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `Expected announce array, got: ${typeof events}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -21,7 +21,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: "Subscribe returned no announces after publish",
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -29,16 +29,15 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: `Published and observed ${events.length} announce(s) in ${namespace}`,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted =
-      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
     report({
       status: notGranted ? "not-granted" : "fail",
       details: message,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   }
 }

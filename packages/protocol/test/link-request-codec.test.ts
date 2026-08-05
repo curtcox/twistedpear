@@ -24,7 +24,7 @@ import {
   stepPackLinkRequestWithActions,
   stepPackLinkResponseWithActions,
   stepUnpackLinkRequestWithActions,
-  stepUnpackLinkResponseWithActions,
+  stepUnpackLinkResponseWithActions
 } from "../src/link-request-codec.js";
 
 describe("protocol link request/response msgpack", () => {
@@ -42,9 +42,7 @@ describe("protocol link request/response msgpack", () => {
 
   it("round-trips a request with nil data", () => {
     const pathHash = new Uint8Array(16);
-    const unpacked = msgpackUnpackLinkRequest(
-      msgpackPackLinkRequest(1, pathHash, null),
-    );
+    const unpacked = msgpackUnpackLinkRequest(msgpackPackLinkRequest(1, pathHash, null));
     expect(unpacked.data).toBeNull();
   });
 
@@ -60,10 +58,7 @@ describe("protocol link request/response msgpack", () => {
   it("accepts Python-style nested msgpack data (not binary-framed)", () => {
     // umsgpack.packb([timestamp, path_hash, [None, None]]) from RNS Link.request
     const packed = Uint8Array.from(
-      Buffer.from(
-        "93cb41d26580b4800000c4109dc1a72883468f57fed571e796e9ce9892c0c0",
-        "hex",
-      ),
+      Buffer.from("93cb41d26580b4800000c4109dc1a72883468f57fed571e796e9ce9892c0c0", "hex")
     );
     const unpacked = msgpackUnpackLinkRequest(packed);
     expect(unpacked.pathHash).toHaveLength(16);
@@ -80,72 +75,49 @@ describe("protocol link request/response msgpack", () => {
     expect([...unpacked.requestId]).toEqual([...requestId]);
     // Embedded bin values unpack to their payload bytes.
     expect([...unpacked.response!]).toEqual([1, 2]);
-    expect(
-      msgpackUnpackLinkResponseTuple(
-        msgpackPackLinkResponse(requestId, null),
-      )[1],
-    ).toBeNull();
+    expect(msgpackUnpackLinkResponseTuple(msgpackPackLinkResponse(requestId, null))[1]).toBeNull();
   });
 
   it("rejects malformed payloads", () => {
-    expect(() => msgpackUnpackLinkRequest(new Uint8Array([0xc0]))).toThrow(
-      /Invalid request/,
-    );
-    expect(() => msgpackUnpackLinkResponse(new Uint8Array([0xc0]))).toThrow(
-      /Invalid response/,
-    );
+    expect(() => msgpackUnpackLinkRequest(new Uint8Array([0xc0]))).toThrow(/Invalid request/);
+    expect(() => msgpackUnpackLinkResponse(new Uint8Array([0xc0]))).toThrow(/Invalid response/);
   });
 
   it("emits pack framing bytes from WithActions steps", () => {
     const pathHash = new Uint8Array(16).map((_, i) => i + 1);
     const data = msgpackPackBin(Uint8Array.from([9, 8, 7]));
-    const requestStepped = stepPackLinkRequestWithActions(
-      initialPackLinkRequestState(),
-      {
-        kind: "link-request-codec/pack-gate",
-        requestedAt: 12.5,
-        pathHash,
-        data,
-      },
-    );
+    const requestStepped = stepPackLinkRequestWithActions(initialPackLinkRequestState(), {
+      kind: "link-request-codec/pack-gate",
+      requestedAt: 12.5,
+      pathHash,
+      data
+    });
     expect(shouldUsePackLinkRequest(requestStepped.actions)).toBe(true);
     const packedRequest = packLinkRequestRawFromActions(requestStepped.actions);
     expect(packedRequest).not.toBeNull();
-    expect([...packedRequest!]).toEqual([
-      ...msgpackPackLinkRequest(12.5, pathHash, data),
-    ]);
+    expect([...packedRequest!]).toEqual([...msgpackPackLinkRequest(12.5, pathHash, data)]);
 
     const requestId = new Uint8Array(16).map((_, i) => 100 + i);
     const responseBody = msgpackPackBin(Uint8Array.from([1, 2]));
-    const responseStepped = stepPackLinkResponseWithActions(
-      initialPackLinkResponseState(),
-      {
-        kind: "link-response-codec/pack-gate",
-        requestId,
-        response: responseBody,
-      },
-    );
+    const responseStepped = stepPackLinkResponseWithActions(initialPackLinkResponseState(), {
+      kind: "link-response-codec/pack-gate",
+      requestId,
+      response: responseBody
+    });
     expect(shouldUsePackLinkResponse(responseStepped.actions)).toBe(true);
-    const packedResponse = packLinkResponseRawFromActions(
-      responseStepped.actions,
-    );
+    const packedResponse = packLinkResponseRawFromActions(responseStepped.actions);
     expect(packedResponse).not.toBeNull();
-    expect([...packedResponse!]).toEqual([
-      ...msgpackPackLinkResponse(requestId, responseBody),
-    ]);
+    expect([...packedResponse!]).toEqual([...msgpackPackLinkResponse(requestId, responseBody)]);
   });
 
   it("emits unpack fields or reject from WithActions steps", () => {
     const pathHash = new Uint8Array(16).map((_, i) => i + 1);
     const data = msgpackPackBin(Uint8Array.from([9, 8, 7]));
     const packedRequest = msgpackPackLinkRequest(12.5, pathHash, data);
-    const okRequest = stepUnpackLinkRequestWithActions(
-      initialUnpackLinkRequestState(),
-      {
-        kind: "link-request-codec/unpack-gate",
-        data: packedRequest,
-      },
-    );
+    const okRequest = stepUnpackLinkRequestWithActions(initialUnpackLinkRequestState(), {
+      kind: "link-request-codec/unpack-gate",
+      data: packedRequest
+    });
     expect(shouldUseUnpackLinkRequest(okRequest.actions)).toBe(true);
     expect(shouldRejectUnpackLinkRequest(okRequest.actions)).toBe(false);
     const requestFields = linkRequestFieldsFromActions(okRequest.actions);
@@ -154,13 +126,10 @@ describe("protocol link request/response msgpack", () => {
     expect([...requestFields!.pathHash]).toEqual([...pathHash]);
     expect([...requestFields!.data!]).toEqual([9, 8, 7]);
 
-    const rejectedRequest = stepUnpackLinkRequestWithActions(
-      initialUnpackLinkRequestState(),
-      {
-        kind: "link-request-codec/unpack-gate",
-        data: new Uint8Array([0xc0]),
-      },
-    );
+    const rejectedRequest = stepUnpackLinkRequestWithActions(initialUnpackLinkRequestState(), {
+      kind: "link-request-codec/unpack-gate",
+      data: new Uint8Array([0xc0])
+    });
     expect(shouldRejectUnpackLinkRequest(rejectedRequest.actions)).toBe(true);
     expect(shouldUseUnpackLinkRequest(rejectedRequest.actions)).toBe(false);
     expect(linkRequestFieldsFromActions(rejectedRequest.actions)).toBeNull();
@@ -168,13 +137,10 @@ describe("protocol link request/response msgpack", () => {
     const requestId = new Uint8Array(16).map((_, i) => 100 + i);
     const responseBody = msgpackPackBin(Uint8Array.from([1, 2]));
     const packedResponse = msgpackPackLinkResponse(requestId, responseBody);
-    const okResponse = stepUnpackLinkResponseWithActions(
-      initialUnpackLinkResponseState(),
-      {
-        kind: "link-response-codec/unpack-gate",
-        data: packedResponse,
-      },
-    );
+    const okResponse = stepUnpackLinkResponseWithActions(initialUnpackLinkResponseState(), {
+      kind: "link-response-codec/unpack-gate",
+      data: packedResponse
+    });
     expect(shouldUseUnpackLinkResponse(okResponse.actions)).toBe(true);
     expect(shouldRejectUnpackLinkResponse(okResponse.actions)).toBe(false);
     const responseFields = linkResponseFieldsFromActions(okResponse.actions);
@@ -182,13 +148,10 @@ describe("protocol link request/response msgpack", () => {
     expect([...responseFields!.requestId]).toEqual([...requestId]);
     expect([...responseFields!.response!]).toEqual([1, 2]);
 
-    const rejectedResponse = stepUnpackLinkResponseWithActions(
-      initialUnpackLinkResponseState(),
-      {
-        kind: "link-response-codec/unpack-gate",
-        data: new Uint8Array([0xc0]),
-      },
-    );
+    const rejectedResponse = stepUnpackLinkResponseWithActions(initialUnpackLinkResponseState(), {
+      kind: "link-response-codec/unpack-gate",
+      data: new Uint8Array([0xc0])
+    });
     expect(shouldRejectUnpackLinkResponse(rejectedResponse.actions)).toBe(true);
     expect(shouldUseUnpackLinkResponse(rejectedResponse.actions)).toBe(false);
     expect(linkResponseFieldsFromActions(rejectedResponse.actions)).toBeNull();

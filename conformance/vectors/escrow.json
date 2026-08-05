@@ -56,7 +56,10 @@
       "eventClass": "quorum-authorize",
       "event": {
         "kind": "escrow/authorize",
-        "authorizers": ["a", "b"]
+        "authorizers": [
+          "a",
+          "b"
+        ]
       },
       "expectedState": {
         "phase": "pending",
@@ -138,7 +141,10 @@
       "eventClass": "quorum-authorize",
       "event": {
         "kind": "escrow/authorize",
-        "authorizers": ["a", "b"]
+        "authorizers": [
+          "a",
+          "b"
+        ]
       },
       "expectedState": {
         "phase": "funded",
@@ -220,14 +226,20 @@
       "eventClass": "quorum-authorize",
       "event": {
         "kind": "escrow/authorize",
-        "authorizers": ["a", "b"]
+        "authorizers": [
+          "a",
+          "b"
+        ]
       },
       "expectedState": {
         "phase": "released",
         "amount": 100,
         "quorum": 2,
         "releasedAmount": 100,
-        "authorizers": ["a", "b"]
+        "authorizers": [
+          "a",
+          "b"
+        ]
       },
       "expectedIntents": [],
       "legal": true
@@ -302,7 +314,10 @@
       "eventClass": "quorum-authorize",
       "event": {
         "kind": "escrow/authorize",
-        "authorizers": ["a", "b"]
+        "authorizers": [
+          "a",
+          "b"
+        ]
       },
       "expectedState": {
         "phase": "released",
@@ -384,7 +399,10 @@
       "eventClass": "quorum-authorize",
       "event": {
         "kind": "escrow/authorize",
-        "authorizers": ["a", "b"]
+        "authorizers": [
+          "a",
+          "b"
+        ]
       },
       "expectedState": {
         "phase": "refunded",
@@ -466,7 +484,10 @@
       "eventClass": "quorum-authorize",
       "event": {
         "kind": "escrow/authorize",
-        "authorizers": ["a", "b"]
+        "authorizers": [
+          "a",
+          "b"
+        ]
       },
       "expectedState": {
         "phase": "expired",

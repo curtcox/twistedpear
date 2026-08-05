@@ -22,9 +22,7 @@ export interface NormalizedHkdfParams {
   readonly length: number;
 }
 
-export function normalizeRnsHkdfParams(
-  input: RnsHkdfInput,
-): NormalizedHkdfParams {
+export function normalizeRnsHkdfParams(input: RnsHkdfInput): NormalizedHkdfParams {
   if (input.length < 1) {
     throw new Error("Invalid output key length");
   }
@@ -42,19 +40,13 @@ export function normalizeRnsHkdfParams(
     keyMaterial: input.deriveFrom,
     salt,
     info,
-    length: input.length,
+    length: input.length
   };
 }
 
 export function rnsHkdfSha256(input: RnsHkdfInput): Uint8Array {
   const params = normalizeRnsHkdfParams(input);
-  return nobleHkdf(
-    sha256,
-    params.keyMaterial,
-    params.salt,
-    params.info,
-    params.length,
-  );
+  return nobleHkdf(sha256, params.keyMaterial, params.salt, params.info, params.length);
 }
 
 /**
@@ -90,7 +82,7 @@ export function initialRnsHkdfSha256State(): RnsHkdfSha256State {
 
 export function stepRnsHkdfSha256WithActions(
   state: RnsHkdfSha256State,
-  event: RnsHkdfSha256Event,
+  event: RnsHkdfSha256Event
 ): RnsHkdfSha256StepResult {
   if (event.kind === "rns-hkdf/derive-gate") {
     try {
@@ -98,7 +90,7 @@ export function stepRnsHkdfSha256WithActions(
         length: event.length,
         deriveFrom: event.deriveFrom,
         ...(event.salt !== undefined ? { salt: event.salt } : {}),
-        ...(event.context !== undefined ? { context: event.context } : {}),
+        ...(event.context !== undefined ? { context: event.context } : {})
       };
       return {
         state,
@@ -106,9 +98,9 @@ export function stepRnsHkdfSha256WithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: rnsHkdfSha256(input),
-          },
-        ],
+            raw: rnsHkdfSha256(input)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -118,21 +110,17 @@ export function stepRnsHkdfSha256WithActions(
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUseRnsHkdfSha256(
-  actions: ReadonlyArray<RnsHkdfSha256Action>,
-): boolean {
+export function shouldUseRnsHkdfSha256(actions: ReadonlyArray<RnsHkdfSha256Action>): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
-export function shouldRejectRnsHkdfSha256(
-  actions: ReadonlyArray<RnsHkdfSha256Action>,
-): boolean {
+export function shouldRejectRnsHkdfSha256(actions: ReadonlyArray<RnsHkdfSha256Action>): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract derived key bytes from step actions; null when no `use-raw`. */
 export function rnsHkdfSha256RawFromActions(
-  actions: ReadonlyArray<RnsHkdfSha256Action>,
+  actions: ReadonlyArray<RnsHkdfSha256Action>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

@@ -37,7 +37,7 @@ import {
   stepLinkIdentifyWithActions,
   stepLinkIdentifySignedMaterialWithActions,
   stepPackLinkIdentifyPayloadWithActions,
-  stepSplitLinkIdentifyPayloadWithActions,
+  stepSplitLinkIdentifyPayloadWithActions
 } from "../src/link-identify.js";
 import {
   computeLinkMdu,
@@ -50,7 +50,7 @@ import {
   shouldMismatchLinkHops,
   shouldUseLinkMdu,
   stepComputeLinkMduWithActions,
-  stepLinkHopsMatchWithActions,
+  stepLinkHopsMatchWithActions
 } from "../src/link-metrics.js";
 import { PATHFINDER_MAX_HOPS } from "../src/path-table.js";
 
@@ -59,24 +59,18 @@ describe("protocol link identify", () => {
     expect(canAcceptLinkIdentify(false)).toBe(true);
     expect(canAcceptLinkIdentify(true)).toBe(false);
 
-    const accept = stepAcceptLinkIdentifyWithActions(
-      initialAcceptLinkIdentifyState(),
-      {
-        kind: "link-identify/accept-gate",
-        initiator: false,
-      },
-    );
+    const accept = stepAcceptLinkIdentifyWithActions(initialAcceptLinkIdentifyState(), {
+      kind: "link-identify/accept-gate",
+      initiator: false
+    });
     expect(accept.actions).toEqual([{ kind: "accept" }]);
     expect(shouldAcceptLinkIdentifyNow(accept.actions)).toBe(true);
     expect(shouldSkipLinkIdentifyAccept(accept.actions)).toBe(false);
 
-    const skip = stepAcceptLinkIdentifyWithActions(
-      initialAcceptLinkIdentifyState(),
-      {
-        kind: "link-identify/accept-gate",
-        initiator: true,
-      },
-    );
+    const skip = stepAcceptLinkIdentifyWithActions(initialAcceptLinkIdentifyState(), {
+      kind: "link-identify/accept-gate",
+      initiator: true
+    });
     expect(skip.actions).toEqual([{ kind: "skip" }]);
     expect(shouldAcceptLinkIdentifyNow(skip.actions)).toBe(false);
     expect(shouldSkipLinkIdentifyAccept(skip.actions)).toBe(true);
@@ -89,8 +83,8 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: true,
-      }),
+        signatureValid: true
+      })
     ).toBe("accept");
     expect(
       planLinkIdentifyOutcome({
@@ -98,8 +92,8 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: true,
-      }),
+        signatureValid: true
+      })
     ).toBe("reject");
     expect(
       planLinkIdentifyOutcome({
@@ -107,8 +101,8 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: false,
-      }),
+        signatureValid: false
+      })
     ).toBe("reject");
 
     const acceptPlan = stepLinkIdentifyOutcomePlanWithActions(
@@ -119,13 +113,11 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: true,
-      },
+        signatureValid: true
+      }
     );
     expect(shouldAcceptLinkIdentifyOutcomePlan(acceptPlan.actions)).toBe(true);
-    expect(linkIdentifyOutcomePlanFromActions(acceptPlan.actions)).toBe(
-      "accept",
-    );
+    expect(linkIdentifyOutcomePlanFromActions(acceptPlan.actions)).toBe("accept");
 
     const rejectPlan = stepLinkIdentifyOutcomePlanWithActions(
       initialLinkIdentifyOutcomePlanState(),
@@ -135,31 +127,20 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: false,
-      },
+        signatureValid: false
+      }
     );
     expect(shouldRejectLinkIdentifyOutcomePlan(rejectPlan.actions)).toBe(true);
-    expect(linkIdentifyOutcomePlanFromActions(rejectPlan.actions)).toBe(
-      "reject",
-    );
+    expect(linkIdentifyOutcomePlanFromActions(rejectPlan.actions)).toBe("reject");
 
     expect(
-      shouldCommitLinkRemoteIdentity({
-        planAccept: true,
-        identityPresent: true,
-      }),
+      shouldCommitLinkRemoteIdentity({ planAccept: true, identityPresent: true })
     ).toBe(true);
     expect(
-      shouldCommitLinkRemoteIdentity({
-        planAccept: true,
-        identityPresent: false,
-      }),
+      shouldCommitLinkRemoteIdentity({ planAccept: true, identityPresent: false })
     ).toBe(false);
     expect(
-      shouldCommitLinkRemoteIdentity({
-        planAccept: false,
-        identityPresent: true,
-      }),
+      shouldCommitLinkRemoteIdentity({ planAccept: false, identityPresent: true })
     ).toBe(false);
 
     const commitApply = stepCommitLinkRemoteIdentityWithActions(
@@ -167,8 +148,8 @@ describe("protocol link identify", () => {
       {
         kind: "link-identify/commit-remote-identity-gate",
         planAccept: true,
-        identityPresent: true,
-      },
+        identityPresent: true
+      }
     );
     expect(shouldCommitLinkRemoteIdentityNow(commitApply.actions)).toBe(true);
     expect(shouldSkipCommitLinkRemoteIdentity(commitApply.actions)).toBe(false);
@@ -178,8 +159,8 @@ describe("protocol link identify", () => {
       {
         kind: "link-identify/commit-remote-identity-gate",
         planAccept: true,
-        identityPresent: false,
-      },
+        identityPresent: false
+      }
     );
     expect(shouldCommitLinkRemoteIdentityNow(commitSkip.actions)).toBe(false);
     expect(shouldSkipCommitLinkRemoteIdentity(commitSkip.actions)).toBe(true);
@@ -193,8 +174,8 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: true,
-      },
+        signatureValid: true
+      }
     );
     expect(shouldRejectLinkIdentify(initiator.actions)).toBe(true);
     expect(shouldCommitLinkIdentify(initiator.actions)).toBe(false);
@@ -206,8 +187,8 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: false,
-      },
+        signatureValid: false
+      }
     );
     expect(shouldRejectLinkIdentify(badSig.actions)).toBe(true);
 
@@ -218,8 +199,8 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: true,
-        signatureValid: true,
-      },
+        signatureValid: true
+      }
     );
     expect(shouldCommitLinkIdentify(accepted.actions)).toBe(true);
     expect(shouldRejectLinkIdentify(accepted.actions)).toBe(false);
@@ -231,20 +212,17 @@ describe("protocol link identify", () => {
         plaintextPresent: true,
         partsPresent: true,
         identityPresent: false,
-        signatureValid: true,
-      },
+        signatureValid: true
+      }
     );
     expect(shouldRejectLinkIdentify(missingIdentity.actions)).toBe(true);
 
     expect(
-      stepLinkIdentifyWithActions(
-        initialLinkIdentifyState({ initiator: false }),
-        {
-          kind: "timer/fired",
-          id: "x",
-          atMs: 0,
-        },
-      ).actions,
+      stepLinkIdentifyWithActions(initialLinkIdentifyState({ initiator: false }), {
+        kind: "timer/fired",
+        id: "x",
+        atMs: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -255,7 +233,7 @@ describe("protocol link identify", () => {
       plaintextPresent: true,
       partsPresent: true,
       identityPresent: true,
-      signatureValid: true,
+      signatureValid: true
     };
     const a = stepLinkIdentifyWithActions(state, event);
     const b = stepLinkIdentifyWithActions(state, event);
@@ -278,43 +256,32 @@ describe("protocol link identify", () => {
   it("emits use-raw / reject from identify pack-gate", () => {
     const publicKey = new Uint8Array(64).map((_, i) => i);
     const signature = new Uint8Array(64).map((_, i) => 200 - i);
-    const ok = stepPackLinkIdentifyPayloadWithActions(
-      initialPackLinkIdentifyPayloadState(),
-      {
-        kind: "link-identify/pack-gate",
-        publicKey,
-        signature,
-      },
-    );
+    const ok = stepPackLinkIdentifyPayloadWithActions(initialPackLinkIdentifyPayloadState(), {
+      kind: "link-identify/pack-gate",
+      publicKey,
+      signature
+    });
     expect(shouldUsePackLinkIdentifyPayload(ok.actions)).toBe(true);
     expect(shouldRejectPackLinkIdentifyPayload(ok.actions)).toBe(false);
     const raw = packLinkIdentifyPayloadRawFromActions(ok.actions);
     expect(raw).not.toBeNull();
-    expect([...raw!]).toEqual([
-      ...packLinkIdentifyPayload(publicKey, signature),
-    ]);
+    expect([...raw!]).toEqual([...packLinkIdentifyPayload(publicKey, signature)]);
 
-    const bad = stepPackLinkIdentifyPayloadWithActions(
-      initialPackLinkIdentifyPayloadState(),
-      {
-        kind: "link-identify/pack-gate",
-        publicKey: new Uint8Array(8),
-        signature,
-      },
-    );
+    const bad = stepPackLinkIdentifyPayloadWithActions(initialPackLinkIdentifyPayloadState(), {
+      kind: "link-identify/pack-gate",
+      publicKey: new Uint8Array(8),
+      signature
+    });
     expect(shouldRejectPackLinkIdentifyPayload(bad.actions)).toBe(true);
     expect(shouldUsePackLinkIdentifyPayload(bad.actions)).toBe(false);
     expect(packLinkIdentifyPayloadRawFromActions(bad.actions)).toBeNull();
 
     expect(
-      stepPackLinkIdentifyPayloadWithActions(
-        initialPackLinkIdentifyPayloadState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          atMs: 0,
-        },
-      ).actions,
+      stepPackLinkIdentifyPayloadWithActions(initialPackLinkIdentifyPayloadState(), {
+        kind: "timer/fired",
+        id: "x",
+        atMs: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -322,13 +289,10 @@ describe("protocol link identify", () => {
     const publicKey = new Uint8Array(64).map((_, i) => i);
     const signature = new Uint8Array(64).map((_, i) => 200 - i);
     const packed = packLinkIdentifyPayload(publicKey, signature);
-    const ok = stepSplitLinkIdentifyPayloadWithActions(
-      initialSplitLinkIdentifyPayloadState(),
-      {
-        kind: "link-identify/split-gate",
-        plaintext: packed,
-      },
-    );
+    const ok = stepSplitLinkIdentifyPayloadWithActions(initialSplitLinkIdentifyPayloadState(), {
+      kind: "link-identify/split-gate",
+      plaintext: packed
+    });
     expect(shouldUseSplitLinkIdentifyPayload(ok.actions)).toBe(true);
     expect(shouldRejectSplitLinkIdentifyPayload(ok.actions)).toBe(false);
     const fields = linkIdentifyPayloadFieldsFromActions(ok.actions);
@@ -336,13 +300,10 @@ describe("protocol link identify", () => {
     expect([...fields!.publicKey]).toEqual([...publicKey]);
     expect([...fields!.signature]).toEqual([...signature]);
 
-    const bad = stepSplitLinkIdentifyPayloadWithActions(
-      initialSplitLinkIdentifyPayloadState(),
-      {
-        kind: "link-identify/split-gate",
-        plaintext: new Uint8Array(10),
-      },
-    );
+    const bad = stepSplitLinkIdentifyPayloadWithActions(initialSplitLinkIdentifyPayloadState(), {
+      kind: "link-identify/split-gate",
+      plaintext: new Uint8Array(10)
+    });
     expect(shouldRejectSplitLinkIdentifyPayload(bad.actions)).toBe(true);
     expect(shouldUseSplitLinkIdentifyPayload(bad.actions)).toBe(false);
     expect(linkIdentifyPayloadFieldsFromActions(bad.actions)).toBeNull();
@@ -354,30 +315,30 @@ describe("protocol link identify", () => {
     const packEvent = {
       kind: "link-identify/pack-gate" as const,
       publicKey,
-      signature,
+      signature
     };
     const packA = stepPackLinkIdentifyPayloadWithActions(
       initialPackLinkIdentifyPayloadState(),
-      packEvent,
+      packEvent
     );
     const packB = stepPackLinkIdentifyPayloadWithActions(
       initialPackLinkIdentifyPayloadState(),
-      packEvent,
+      packEvent
     );
     expect(packA).toEqual(packB);
 
     const packed = packLinkIdentifyPayload(publicKey, signature);
     const splitEvent = {
       kind: "link-identify/split-gate" as const,
-      plaintext: packed,
+      plaintext: packed
     };
     const splitA = stepSplitLinkIdentifyPayloadWithActions(
       initialSplitLinkIdentifyPayloadState(),
-      splitEvent,
+      splitEvent
     );
     const splitB = stepSplitLinkIdentifyPayloadWithActions(
       initialSplitLinkIdentifyPayloadState(),
-      splitEvent,
+      splitEvent
     );
     expect(splitA).toEqual(splitB);
   });
@@ -393,15 +354,11 @@ describe("protocol link identify", () => {
       {
         kind: "link-identify/signed-material-gate",
         linkId,
-        publicKey,
-      },
+        publicKey
+      }
     );
-    expect(shouldUseLinkIdentifySignedMaterial(signedStepped.actions)).toBe(
-      true,
-    );
-    const signedFromActions = linkIdentifySignedMaterialRawFromActions(
-      signedStepped.actions,
-    );
+    expect(shouldUseLinkIdentifySignedMaterial(signedStepped.actions)).toBe(true);
+    const signedFromActions = linkIdentifySignedMaterialRawFromActions(signedStepped.actions);
     expect(signedFromActions).not.toBeNull();
     expect([...signedFromActions!]).toEqual([...signed]);
   });
@@ -409,22 +366,21 @@ describe("protocol link identify", () => {
 
 describe("protocol link metrics", () => {
   it("computes MDU from MTU", () => {
-    expect(computeLinkMdu(500)).toBe(Math.floor((500 - 18 - 48) / 16) * 16 - 1);
+    expect(computeLinkMdu(500)).toBe(
+      Math.floor((500 - 18 - 48) / 16) * 16 - 1
+    );
   });
 
   it("emits MDU only from use-mdu actions", () => {
-    const stepped = stepComputeLinkMduWithActions(
-      initialComputeLinkMduState(),
-      {
-        kind: "link/mdu-gate",
-        mtu: 500,
-      },
-    );
+    const stepped = stepComputeLinkMduWithActions(initialComputeLinkMduState(), {
+      kind: "link/mdu-gate",
+      mtu: 500
+    });
     expect(shouldUseLinkMdu(stepped.actions)).toBe(true);
     expect(linkMduFromActions(stepped.actions)).toBe(computeLinkMdu(500));
 
     const empty = stepComputeLinkMduWithActions(initialComputeLinkMduState(), {
-      kind: "noop",
+      kind: "noop"
     } as never);
     expect(shouldUseLinkMdu(empty.actions)).toBe(false);
     expect(linkMduFromActions(empty.actions)).toBeNull();
@@ -432,32 +388,20 @@ describe("protocol link metrics", () => {
 
   it("matches hops with pathfinder wildcard", () => {
     expect(
-      linkHopsMatch({
-        expectedHops: null,
-        packetHops: 3,
-        pathfinderMaxHops: PATHFINDER_MAX_HOPS,
-      }),
+      linkHopsMatch({ expectedHops: null, packetHops: 3, pathfinderMaxHops: PATHFINDER_MAX_HOPS })
     ).toBe(true);
     expect(
-      linkHopsMatch({
-        expectedHops: 2,
-        packetHops: 2,
-        pathfinderMaxHops: PATHFINDER_MAX_HOPS,
-      }),
+      linkHopsMatch({ expectedHops: 2, packetHops: 2, pathfinderMaxHops: PATHFINDER_MAX_HOPS })
     ).toBe(true);
     expect(
-      linkHopsMatch({
-        expectedHops: 2,
-        packetHops: 3,
-        pathfinderMaxHops: PATHFINDER_MAX_HOPS,
-      }),
+      linkHopsMatch({ expectedHops: 2, packetHops: 3, pathfinderMaxHops: PATHFINDER_MAX_HOPS })
     ).toBe(false);
     expect(
       linkHopsMatch({
         expectedHops: PATHFINDER_MAX_HOPS,
         packetHops: 9,
-        pathfinderMaxHops: PATHFINDER_MAX_HOPS,
-      }),
+        pathfinderMaxHops: PATHFINDER_MAX_HOPS
+      })
     ).toBe(true);
   });
 
@@ -466,7 +410,7 @@ describe("protocol link metrics", () => {
       kind: "link/hops-match-gate",
       expectedHops: 2,
       packetHops: 2,
-      pathfinderMaxHops: PATHFINDER_MAX_HOPS,
+      pathfinderMaxHops: PATHFINDER_MAX_HOPS
     });
     expect(shouldMatchLinkHops(match.actions)).toBe(true);
     expect(shouldMismatchLinkHops(match.actions)).toBe(false);
@@ -475,7 +419,7 @@ describe("protocol link metrics", () => {
       kind: "link/hops-match-gate",
       expectedHops: 2,
       packetHops: 3,
-      pathfinderMaxHops: PATHFINDER_MAX_HOPS,
+      pathfinderMaxHops: PATHFINDER_MAX_HOPS
     });
     expect(shouldMatchLinkHops(mismatch.actions)).toBe(false);
     expect(shouldMismatchLinkHops(mismatch.actions)).toBe(true);
@@ -484,7 +428,7 @@ describe("protocol link metrics", () => {
       kind: "link/hops-match-gate",
       expectedHops: PATHFINDER_MAX_HOPS,
       packetHops: 9,
-      pathfinderMaxHops: PATHFINDER_MAX_HOPS,
+      pathfinderMaxHops: PATHFINDER_MAX_HOPS
     });
     expect(shouldMatchLinkHops(wildcard.actions)).toBe(true);
   });

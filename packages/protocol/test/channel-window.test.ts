@@ -116,7 +116,7 @@ import {
   stepExtendPacketReceiptTimeoutWithActions,
   stepIndexOfChannelTxEnvelopeWithActions,
   stepReplaceChannelResentPacketWithActions,
-  stepResendChannelTimeoutPacketWithActions,
+  stepResendChannelTimeoutPacketWithActions
 } from "../src/channel-window.js";
 
 describe("protocol channel window", () => {
@@ -128,7 +128,7 @@ describe("protocol channel window", () => {
       windowMin: 1,
       windowFlexibility: 1,
       fastRateRounds: 0,
-      mediumRateRounds: 0,
+      mediumRateRounds: 0
     });
 
     const normal = initialChannelWindowState(0.5);
@@ -137,16 +137,8 @@ describe("protocol channel window", () => {
   });
 
   it("computes packet timeouts deterministically", () => {
-    const a = channelPacketTimeoutSeconds({
-      tries: 2,
-      rtt: 0.2,
-      txRingLength: 1,
-    });
-    const b = channelPacketTimeoutSeconds({
-      tries: 2,
-      rtt: 0.2,
-      txRingLength: 1,
-    });
+    const a = channelPacketTimeoutSeconds({ tries: 2, rtt: 0.2, txRingLength: 1 });
+    const b = channelPacketTimeoutSeconds({ tries: 2, rtt: 0.2, txRingLength: 1 });
     expect(a).toBe(b);
     expect(a).toBeGreaterThan(0);
   });
@@ -158,19 +150,19 @@ describe("protocol channel window", () => {
         kind: "channel/packet-timeout-gate",
         tries: 2,
         rtt: 0.2,
-        txRingLength: 1,
-      },
+        txRingLength: 1
+      }
     );
     expect(shouldUseChannelPacketTimeout(stepped.actions)).toBe(true);
     expect(channelPacketTimeoutFromActions(stepped.actions)).toBe(
-      channelPacketTimeoutSeconds({ tries: 2, rtt: 0.2, txRingLength: 1 }),
+      channelPacketTimeoutSeconds({ tries: 2, rtt: 0.2, txRingLength: 1 })
     );
 
     const empty = stepChannelPacketTimeoutSecondsWithActions(
       initialChannelPacketTimeoutSecondsState(),
       {
-        kind: "noop",
-      } as never,
+        kind: "noop"
+      } as never
     );
     expect(shouldUseChannelPacketTimeout(empty.actions)).toBe(false);
     expect(channelPacketTimeoutFromActions(empty.actions)).toBeNull();
@@ -198,15 +190,9 @@ describe("protocol channel window", () => {
   });
 
   it("gates send readiness", () => {
-    expect(
-      channelAllowsSend({ isUsable: true, outstanding: 1, window: 2 }),
-    ).toBe(true);
-    expect(
-      channelAllowsSend({ isUsable: true, outstanding: 2, window: 2 }),
-    ).toBe(false);
-    expect(
-      channelAllowsSend({ isUsable: false, outstanding: 0, window: 2 }),
-    ).toBe(false);
+    expect(channelAllowsSend({ isUsable: true, outstanding: 1, window: 2 })).toBe(true);
+    expect(channelAllowsSend({ isUsable: true, outstanding: 2, window: 2 })).toBe(false);
+    expect(channelAllowsSend({ isUsable: false, outstanding: 0, window: 2 })).toBe(false);
     expect(channelRetryExhausted(5, 5)).toBe(true);
     expect(channelRetryExhausted(4, 5)).toBe(false);
   });
@@ -215,62 +201,53 @@ describe("protocol channel window", () => {
     const entries = [
       { packetPresent: true, delivered: false },
       { packetPresent: true, delivered: true },
-      { packetPresent: false, delivered: false },
+      { packetPresent: false, delivered: false }
     ];
     const stepped = stepCountChannelTxOutstandingWithActions(
       initialCountChannelTxOutstandingState(),
       {
         kind: "channel/tx-outstanding-gate",
-        entries,
-      },
+        entries
+      }
     );
     expect(shouldUseChannelTxOutstandingCount(stepped.actions)).toBe(true);
     expect(channelTxOutstandingCountFromActions(stepped.actions)).toBe(
-      countChannelTxOutstanding(entries),
+      countChannelTxOutstanding(entries)
     );
     expect(channelTxOutstandingCountFromActions(stepped.actions)).toBe(2);
 
     const empty = stepCountChannelTxOutstandingWithActions(
       initialCountChannelTxOutstandingState(),
       {
-        kind: "noop",
-      } as never,
+        kind: "noop"
+      } as never
     );
     expect(shouldUseChannelTxOutstandingCount(empty.actions)).toBe(false);
     expect(channelTxOutstandingCountFromActions(empty.actions)).toBeNull();
   });
 
   it("emits send-allow only from allow/deny actions", () => {
-    const allowed = stepChannelAllowsSendWithActions(
-      initialChannelAllowsSendState(),
-      {
-        kind: "channel/allows-send-gate",
-        isUsable: true,
-        outstanding: 1,
-        window: 2,
-      },
-    );
+    const allowed = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "channel/allows-send-gate",
+      isUsable: true,
+      outstanding: 1,
+      window: 2
+    });
     expect(shouldAllowChannelSend(allowed.actions)).toBe(true);
     expect(shouldDenyChannelSend(allowed.actions)).toBe(false);
 
-    const denied = stepChannelAllowsSendWithActions(
-      initialChannelAllowsSendState(),
-      {
-        kind: "channel/allows-send-gate",
-        isUsable: true,
-        outstanding: 2,
-        window: 2,
-      },
-    );
+    const denied = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "channel/allows-send-gate",
+      isUsable: true,
+      outstanding: 2,
+      window: 2
+    });
     expect(shouldAllowChannelSend(denied.actions)).toBe(false);
     expect(shouldDenyChannelSend(denied.actions)).toBe(true);
 
-    const empty = stepChannelAllowsSendWithActions(
-      initialChannelAllowsSendState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "noop"
+    } as never);
     expect(shouldAllowChannelSend(empty.actions)).toBe(false);
     expect(shouldDenyChannelSend(empty.actions)).toBe(false);
   });
@@ -280,29 +257,29 @@ describe("protocol channel window", () => {
       planChannelSend({
         ready: false,
         packedLength: null,
-        mdu: 100,
-      }),
+        mdu: 100
+      })
     ).toBe("link-not-ready");
     expect(
       planChannelSend({
         ready: true,
         packedLength: null,
-        mdu: 100,
-      }),
+        mdu: 100
+      })
     ).toBe("proceed");
     expect(
       planChannelSend({
         ready: true,
         packedLength: 50,
-        mdu: 100,
-      }),
+        mdu: 100
+      })
     ).toBe("proceed");
     expect(
       planChannelSend({
         ready: true,
         packedLength: 200,
-        mdu: 100,
-      }),
+        mdu: 100
+      })
     ).toBe("too-big");
   });
 
@@ -311,7 +288,7 @@ describe("protocol channel window", () => {
       kind: "channel/send-gate",
       ready: false,
       packedLength: null,
-      mdu: 100,
+      mdu: 100
     });
     expect(shouldRejectChannelSendLinkNotReady(notReady.actions)).toBe(true);
 
@@ -319,7 +296,7 @@ describe("protocol channel window", () => {
       kind: "channel/send-gate",
       ready: true,
       packedLength: 200,
-      mdu: 100,
+      mdu: 100
     });
     expect(shouldRejectChannelSendTooBig(tooBig.actions)).toBe(true);
 
@@ -327,114 +304,78 @@ describe("protocol channel window", () => {
       kind: "channel/send-gate",
       ready: true,
       packedLength: 50,
-      mdu: 100,
+      mdu: 100
     });
     expect(proceed.actions).toEqual([{ kind: "proceed" }]);
     expect(shouldProceedChannelSend(proceed.actions)).toBe(true);
   });
 
   it("emits channel send-plan actions from PlanWithActions", () => {
-    const notReady = stepChannelSendPlanWithActions(
-      initialChannelSendPlanState(),
-      {
-        kind: "channel/send-plan-gate",
-        ready: false,
-        packedLength: null,
-        mdu: 100,
-      },
-    );
-    expect(shouldRejectChannelSendPlanLinkNotReady(notReady.actions)).toBe(
-      true,
-    );
+    const notReady = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
+      kind: "channel/send-plan-gate",
+      ready: false,
+      packedLength: null,
+      mdu: 100
+    });
+    expect(shouldRejectChannelSendPlanLinkNotReady(notReady.actions)).toBe(true);
     expect(channelSendPlanFromActions(notReady.actions)).toBe("link-not-ready");
 
-    const tooBig = stepChannelSendPlanWithActions(
-      initialChannelSendPlanState(),
-      {
-        kind: "channel/send-plan-gate",
-        ready: true,
-        packedLength: 200,
-        mdu: 100,
-      },
-    );
+    const tooBig = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
+      kind: "channel/send-plan-gate",
+      ready: true,
+      packedLength: 200,
+      mdu: 100
+    });
     expect(shouldRejectChannelSendPlanTooBig(tooBig.actions)).toBe(true);
     expect(channelSendPlanFromActions(tooBig.actions)).toBe("too-big");
 
-    const proceed = stepChannelSendPlanWithActions(
-      initialChannelSendPlanState(),
-      {
-        kind: "channel/send-plan-gate",
-        ready: true,
-        packedLength: 50,
-        mdu: 100,
-      },
-    );
+    const proceed = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
+      kind: "channel/send-plan-gate",
+      ready: true,
+      packedLength: 50,
+      mdu: 100
+    });
     expect(shouldProceedChannelSendPlan(proceed.actions)).toBe(true);
     expect(channelSendPlanFromActions(proceed.actions)).toBe("proceed");
   });
 
   it("gates outlet transmit results", () => {
     expect(
-      isChannelOutletTransmitOk({
-        packetPresent: true,
-        rawLength: 10,
-        receiptPresent: true,
-      }),
+      isChannelOutletTransmitOk({ packetPresent: true, rawLength: 10, receiptPresent: true })
     ).toBe(true);
     expect(
-      isChannelOutletTransmitOk({
-        packetPresent: false,
-        rawLength: 10,
-        receiptPresent: true,
-      }),
+      isChannelOutletTransmitOk({ packetPresent: false, rawLength: 10, receiptPresent: true })
     ).toBe(false);
     expect(
-      isChannelOutletTransmitOk({
-        packetPresent: true,
-        rawLength: 0,
-        receiptPresent: true,
-      }),
+      isChannelOutletTransmitOk({ packetPresent: true, rawLength: 0, receiptPresent: true })
     ).toBe(false);
     expect(
-      isChannelOutletTransmitOk({
-        packetPresent: true,
-        rawLength: 10,
-        receiptPresent: false,
-      }),
+      isChannelOutletTransmitOk({ packetPresent: true, rawLength: 10, receiptPresent: false })
     ).toBe(false);
   });
 
   it("emits outlet-transmit only from ok/reject actions", () => {
-    const ok = stepChannelOutletTransmitWithActions(
-      initialChannelOutletTransmitState(),
-      {
-        kind: "channel/outlet-transmit-gate",
-        packetPresent: true,
-        rawLength: 10,
-        receiptPresent: true,
-      },
-    );
+    const ok = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+      kind: "channel/outlet-transmit-gate",
+      packetPresent: true,
+      rawLength: 10,
+      receiptPresent: true
+    });
     expect(shouldAcceptChannelOutletTransmit(ok.actions)).toBe(true);
     expect(shouldRejectChannelOutletTransmit(ok.actions)).toBe(false);
 
-    const reject = stepChannelOutletTransmitWithActions(
-      initialChannelOutletTransmitState(),
-      {
-        kind: "channel/outlet-transmit-gate",
-        packetPresent: true,
-        rawLength: 0,
-        receiptPresent: true,
-      },
-    );
+    const reject = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+      kind: "channel/outlet-transmit-gate",
+      packetPresent: true,
+      rawLength: 0,
+      receiptPresent: true
+    });
     expect(shouldAcceptChannelOutletTransmit(reject.actions)).toBe(false);
     expect(shouldRejectChannelOutletTransmit(reject.actions)).toBe(true);
 
-    const empty = stepChannelOutletTransmitWithActions(
-      initialChannelOutletTransmitState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+      kind: "noop"
+    } as never);
     expect(shouldAcceptChannelOutletTransmit(empty.actions)).toBe(false);
     expect(shouldRejectChannelOutletTransmit(empty.actions)).toBe(false);
   });
@@ -444,30 +385,21 @@ describe("protocol channel window", () => {
       countChannelTxOutstanding([
         { packetPresent: false, delivered: false },
         { packetPresent: true, delivered: false },
-        { packetPresent: true, delivered: true },
-      ]),
+        { packetPresent: true, delivered: true }
+      ])
     ).toBe(2);
     expect(countChannelTxOutstanding([])).toBe(0);
   });
 
   it("extends receipt timeout only when updated is greater", () => {
     expect(
-      shouldExtendPacketReceiptTimeout({
-        currentTimeout: null,
-        updatedTimeout: 1,
-      }),
+      shouldExtendPacketReceiptTimeout({ currentTimeout: null, updatedTimeout: 1 })
     ).toBe(false);
     expect(
-      shouldExtendPacketReceiptTimeout({
-        currentTimeout: 2,
-        updatedTimeout: 2,
-      }),
+      shouldExtendPacketReceiptTimeout({ currentTimeout: 2, updatedTimeout: 2 })
     ).toBe(false);
     expect(
-      shouldExtendPacketReceiptTimeout({
-        currentTimeout: 2,
-        updatedTimeout: 3,
-      }),
+      shouldExtendPacketReceiptTimeout({ currentTimeout: 2, updatedTimeout: 3 })
     ).toBe(true);
 
     const skipNull = stepExtendPacketReceiptTimeoutWithActions(
@@ -475,8 +407,8 @@ describe("protocol channel window", () => {
       {
         kind: "channel/extend-packet-receipt-timeout-gate",
         currentTimeout: null,
-        updatedTimeout: 1,
-      },
+        updatedTimeout: 1
+      }
     );
     expect(shouldExtendPacketReceiptTimeoutNow(skipNull.actions)).toBe(false);
     expect(shouldSkipExtendPacketReceiptTimeout(skipNull.actions)).toBe(true);
@@ -486,8 +418,8 @@ describe("protocol channel window", () => {
       {
         kind: "channel/extend-packet-receipt-timeout-gate",
         currentTimeout: 2,
-        updatedTimeout: 2,
-      },
+        updatedTimeout: 2
+      }
     );
     expect(shouldExtendPacketReceiptTimeoutNow(skipEqual.actions)).toBe(false);
     expect(shouldSkipExtendPacketReceiptTimeout(skipEqual.actions)).toBe(true);
@@ -497,15 +429,15 @@ describe("protocol channel window", () => {
       {
         kind: "channel/extend-packet-receipt-timeout-gate",
         currentTimeout: 2,
-        updatedTimeout: 3,
-      },
+        updatedTimeout: 3
+      }
     );
     expect(shouldExtendPacketReceiptTimeoutNow(extend.actions)).toBe(true);
     expect(shouldSkipExtendPacketReceiptTimeout(extend.actions)).toBe(false);
 
     const empty = stepExtendPacketReceiptTimeoutWithActions(
       initialExtendPacketReceiptTimeoutState(),
-      { kind: "noop" } as never,
+      { kind: "noop" } as never
     );
     expect(shouldExtendPacketReceiptTimeoutNow(empty.actions)).toBe(false);
     expect(shouldSkipExtendPacketReceiptTimeout(empty.actions)).toBe(false);
@@ -515,40 +447,30 @@ describe("protocol channel window", () => {
     expect(canArmChannelPacketReceipt(true)).toBe(true);
     expect(canArmChannelPacketReceipt(false)).toBe(false);
 
-    const arm = stepArmChannelPacketReceiptWithActions(
-      initialArmChannelPacketReceiptState(),
-      {
-        kind: "channel/arm-packet-receipt-gate",
-        receiptPresent: true,
-      },
-    );
+    const arm = stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+      kind: "channel/arm-packet-receipt-gate",
+      receiptPresent: true
+    });
     expect(shouldArmChannelPacketReceiptNow(arm.actions)).toBe(true);
     expect(shouldSkipArmChannelPacketReceipt(arm.actions)).toBe(false);
 
-    const skip = stepArmChannelPacketReceiptWithActions(
-      initialArmChannelPacketReceiptState(),
-      {
-        kind: "channel/arm-packet-receipt-gate",
-        receiptPresent: false,
-      },
-    );
+    const skip = stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+      kind: "channel/arm-packet-receipt-gate",
+      receiptPresent: false
+    });
     expect(shouldArmChannelPacketReceiptNow(skip.actions)).toBe(false);
     expect(shouldSkipArmChannelPacketReceipt(skip.actions)).toBe(true);
   });
 
   it("plans TX envelope ops and receipt timeout / resent gates", () => {
     expect(
-      planChannelTxEnvelopeOp({ indexOk: true, envelopePresent: true }),
+      planChannelTxEnvelopeOp({ indexOk: true, envelopePresent: true })
     ).toBe("process");
     expect(
-      planChannelTxEnvelopeOp({ indexOk: false, envelopePresent: true }),
+      planChannelTxEnvelopeOp({ indexOk: false, envelopePresent: true })
     ).toBe("miss");
     expect(
-      planChannelTxEnvelopeOp({
-        indexOk: true,
-        envelopePresent: true,
-        opOk: false,
-      }),
+      planChannelTxEnvelopeOp({ indexOk: true, envelopePresent: true, opOk: false })
     ).toBe("miss");
     expect(shouldApplyChannelPacketReceiptTimeout(true)).toBe(true);
     expect(shouldApplyChannelPacketReceiptTimeout(false)).toBe(false);
@@ -561,74 +483,56 @@ describe("protocol channel window", () => {
 
     const applyTimeout = stepApplyChannelPacketReceiptTimeoutWithActions(
       initialApplyChannelPacketReceiptTimeoutState(),
-      {
-        kind: "channel/apply-packet-receipt-timeout-gate",
-        timeoutPresent: true,
-      },
+      { kind: "channel/apply-packet-receipt-timeout-gate", timeoutPresent: true }
     );
-    expect(
-      shouldApplyChannelPacketReceiptTimeoutNow(applyTimeout.actions),
-    ).toBe(true);
-    expect(
-      shouldSkipApplyChannelPacketReceiptTimeout(applyTimeout.actions),
-    ).toBe(false);
+    expect(shouldApplyChannelPacketReceiptTimeoutNow(applyTimeout.actions)).toBe(true);
+    expect(shouldSkipApplyChannelPacketReceiptTimeout(applyTimeout.actions)).toBe(false);
 
     const skipTimeout = stepApplyChannelPacketReceiptTimeoutWithActions(
       initialApplyChannelPacketReceiptTimeoutState(),
-      {
-        kind: "channel/apply-packet-receipt-timeout-gate",
-        timeoutPresent: false,
-      },
+      { kind: "channel/apply-packet-receipt-timeout-gate", timeoutPresent: false }
     );
-    expect(shouldApplyChannelPacketReceiptTimeoutNow(skipTimeout.actions)).toBe(
-      false,
-    );
-    expect(
-      shouldSkipApplyChannelPacketReceiptTimeout(skipTimeout.actions),
-    ).toBe(true);
+    expect(shouldApplyChannelPacketReceiptTimeoutNow(skipTimeout.actions)).toBe(false);
+    expect(shouldSkipApplyChannelPacketReceiptTimeout(skipTimeout.actions)).toBe(true);
 
     const replace = stepReplaceChannelResentPacketWithActions(
       initialReplaceChannelResentPacketState(),
-      { kind: "channel/replace-resent-packet-gate", resentPresent: true },
+      { kind: "channel/replace-resent-packet-gate", resentPresent: true }
     );
     expect(shouldReplaceChannelResentPacketNow(replace.actions)).toBe(true);
     expect(shouldSkipReplaceChannelResentPacket(replace.actions)).toBe(false);
 
     const skipReplace = stepReplaceChannelResentPacketWithActions(
       initialReplaceChannelResentPacketState(),
-      { kind: "channel/replace-resent-packet-gate", resentPresent: false },
+      { kind: "channel/replace-resent-packet-gate", resentPresent: false }
     );
-    expect(shouldReplaceChannelResentPacketNow(skipReplace.actions)).toBe(
-      false,
-    );
-    expect(shouldSkipReplaceChannelResentPacket(skipReplace.actions)).toBe(
-      true,
-    );
+    expect(shouldReplaceChannelResentPacketNow(skipReplace.actions)).toBe(false);
+    expect(shouldSkipReplaceChannelResentPacket(skipReplace.actions)).toBe(true);
 
     const resend = stepResendChannelTimeoutPacketWithActions(
       initialResendChannelTimeoutPacketState(),
-      { kind: "channel/resend-timeout-packet-gate", packetPresent: true },
+      { kind: "channel/resend-timeout-packet-gate", packetPresent: true }
     );
     expect(shouldResendChannelTimeoutPacketNow(resend.actions)).toBe(true);
     expect(shouldSkipResendChannelTimeoutPacket(resend.actions)).toBe(false);
 
     const skipResend = stepResendChannelTimeoutPacketWithActions(
       initialResendChannelTimeoutPacketState(),
-      { kind: "channel/resend-timeout-packet-gate", packetPresent: false },
+      { kind: "channel/resend-timeout-packet-gate", packetPresent: false }
     );
     expect(shouldResendChannelTimeoutPacketNow(skipResend.actions)).toBe(false);
     expect(shouldSkipResendChannelTimeoutPacket(skipResend.actions)).toBe(true);
 
     const clear = stepClearChannelEnvelopePacketWithActions(
       initialClearChannelEnvelopePacketState(),
-      { kind: "channel/clear-envelope-packet-gate", packetPresent: true },
+      { kind: "channel/clear-envelope-packet-gate", packetPresent: true }
     );
     expect(shouldClearChannelEnvelopePacketNow(clear.actions)).toBe(true);
     expect(shouldSkipClearChannelEnvelopePacket(clear.actions)).toBe(false);
 
     const skipClear = stepClearChannelEnvelopePacketWithActions(
       initialClearChannelEnvelopePacketState(),
-      { kind: "channel/clear-envelope-packet-gate", packetPresent: false },
+      { kind: "channel/clear-envelope-packet-gate", packetPresent: false }
     );
     expect(shouldClearChannelEnvelopePacketNow(skipClear.actions)).toBe(false);
     expect(shouldSkipClearChannelEnvelopePacket(skipClear.actions)).toBe(true);
@@ -640,36 +544,26 @@ describe("protocol channel window", () => {
       {
         kind: "channel/tx-envelope-op-plan-gate",
         indexOk: true,
-        envelopePresent: true,
-      },
+        envelopePresent: true
+      }
     );
-    expect(channelTxEnvelopeOpPlanFromActions(processPlan.actions)).toBe(
-      "process",
-    );
-    expect(shouldProcessChannelTxEnvelopeOpPlan(processPlan.actions)).toBe(
-      true,
-    );
+    expect(channelTxEnvelopeOpPlanFromActions(processPlan.actions)).toBe("process");
+    expect(shouldProcessChannelTxEnvelopeOpPlan(processPlan.actions)).toBe(true);
     expect(shouldMissChannelTxEnvelopeOpPlan(processPlan.actions)).toBe(false);
 
-    const process = stepChannelTxEnvelopeOpWithActions(
-      initialChannelTxEnvelopeOpState(),
-      {
-        kind: "channel/tx-envelope-op-gate",
-        indexOk: true,
-        envelopePresent: true,
-      },
-    );
+    const process = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: true,
+      envelopePresent: true
+    });
     expect(shouldProcessChannelTxEnvelopeOp(process.actions)).toBe(true);
     expect(shouldMissChannelTxEnvelopeOp(process.actions)).toBe(false);
 
-    const missIndex = stepChannelTxEnvelopeOpWithActions(
-      initialChannelTxEnvelopeOpState(),
-      {
-        kind: "channel/tx-envelope-op-gate",
-        indexOk: false,
-        envelopePresent: true,
-      },
-    );
+    const missIndex = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: false,
+      envelopePresent: true
+    });
     expect(shouldMissChannelTxEnvelopeOp(missIndex.actions)).toBe(true);
 
     const missOpPlan = stepChannelTxEnvelopeOpPlanWithActions(
@@ -678,21 +572,18 @@ describe("protocol channel window", () => {
         kind: "channel/tx-envelope-op-plan-gate",
         indexOk: true,
         envelopePresent: true,
-        opOk: false,
-      },
+        opOk: false
+      }
     );
     expect(channelTxEnvelopeOpPlanFromActions(missOpPlan.actions)).toBe("miss");
     expect(shouldMissChannelTxEnvelopeOpPlan(missOpPlan.actions)).toBe(true);
 
-    const missOp = stepChannelTxEnvelopeOpWithActions(
-      initialChannelTxEnvelopeOpState(),
-      {
-        kind: "channel/tx-envelope-op-gate",
-        indexOk: true,
-        envelopePresent: true,
-        opOk: false,
-      },
-    );
+    const missOp = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: true,
+      envelopePresent: true,
+      opOk: false
+    });
     expect(shouldMissChannelTxEnvelopeOp(missOp.actions)).toBe(true);
     expect(channelTxEnvelopeOpPlanFromActions([])).toBeNull();
   });
@@ -703,53 +594,39 @@ describe("protocol channel window", () => {
     expect(
       indexOfChannelTxEnvelope({
         packetIds: [null, a, b],
-        targetId: new Uint8Array([3, 4]),
-      }),
+        targetId: new Uint8Array([3, 4])
+      })
     ).toBe(2);
+    expect(indexOfChannelTxEnvelope({ packetIds: [a], targetId: null })).toBeNull();
     expect(
-      indexOfChannelTxEnvelope({ packetIds: [a], targetId: null }),
-    ).toBeNull();
-    expect(
-      indexOfChannelTxEnvelope({
-        packetIds: [a],
-        targetId: new Uint8Array([9, 9]),
-      }),
+      indexOfChannelTxEnvelope({ packetIds: [a], targetId: new Uint8Array([9, 9]) })
     ).toBeNull();
   });
 
   it("emits TX-envelope index only from use-index/miss actions", () => {
     const a = new Uint8Array([1, 2]);
     const b = new Uint8Array([3, 4]);
-    const hit = stepIndexOfChannelTxEnvelopeWithActions(
-      initialIndexOfChannelTxEnvelopeState(),
-      {
-        kind: "channel/tx-envelope-index-gate",
-        packetIds: [null, a, b],
-        targetId: new Uint8Array([3, 4]),
-      },
-    );
+    const hit = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [null, a, b],
+      targetId: new Uint8Array([3, 4])
+    });
     expect(shouldUseChannelTxEnvelopeIndex(hit.actions)).toBe(true);
     expect(shouldMissChannelTxEnvelopeIndex(hit.actions)).toBe(false);
     expect(channelTxEnvelopeIndexFromActions(hit.actions)).toBe(2);
 
-    const miss = stepIndexOfChannelTxEnvelopeWithActions(
-      initialIndexOfChannelTxEnvelopeState(),
-      {
-        kind: "channel/tx-envelope-index-gate",
-        packetIds: [a],
-        targetId: new Uint8Array([9, 9]),
-      },
-    );
+    const miss = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [a],
+      targetId: new Uint8Array([9, 9])
+    });
     expect(shouldUseChannelTxEnvelopeIndex(miss.actions)).toBe(false);
     expect(shouldMissChannelTxEnvelopeIndex(miss.actions)).toBe(true);
     expect(channelTxEnvelopeIndexFromActions(miss.actions)).toBeNull();
 
-    const empty = stepIndexOfChannelTxEnvelopeWithActions(
-      initialIndexOfChannelTxEnvelopeState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "noop"
+    } as never);
     expect(shouldUseChannelTxEnvelopeIndex(empty.actions)).toBe(false);
     expect(shouldMissChannelTxEnvelopeIndex(empty.actions)).toBe(false);
     expect(channelTxEnvelopeIndexFromActions(empty.actions)).toBeNull();
@@ -757,42 +634,31 @@ describe("protocol channel window", () => {
 
   it("plans packet timeout ignore / retry / give-up without ad-hoc plan.kind reads", () => {
     expect(CHANNEL_MAX_TRIES).toBe(5);
-    expect(planChannelPacketTimeout({ delivered: true, tries: 1 })).toEqual({
-      kind: "ignore",
-    });
+    expect(planChannelPacketTimeout({ delivered: true, tries: 1 })).toEqual({ kind: "ignore" });
     expect(planChannelPacketTimeout({ delivered: false, tries: 2 })).toEqual({
       kind: "retry",
-      nextTries: 3,
+      nextTries: 3
     });
-    expect(planChannelPacketTimeout({ delivered: false, tries: 5 })).toEqual({
-      kind: "give-up",
-    });
+    expect(planChannelPacketTimeout({ delivered: false, tries: 5 })).toEqual({ kind: "give-up" });
 
     const ignorePlan = stepChannelPacketTimeoutPlanWithActions(
       initialChannelPacketTimeoutPlanState(),
       {
         kind: "channel/packet-timeout-plan-gate",
         delivered: true,
-        tries: 1,
-      },
+        tries: 1
+      }
     );
     expect(shouldIgnoreChannelPacketTimeoutPlan(ignorePlan.actions)).toBe(true);
-    expect(shouldGiveUpChannelPacketTimeoutPlan(ignorePlan.actions)).toBe(
-      false,
-    );
+    expect(shouldGiveUpChannelPacketTimeoutPlan(ignorePlan.actions)).toBe(false);
     expect(shouldRetryChannelPacketTimeoutPlan(ignorePlan.actions)).toBe(false);
-    expect(channelPacketTimeoutPlanFromActions(ignorePlan.actions)).toEqual({
-      kind: "ignore",
-    });
+    expect(channelPacketTimeoutPlanFromActions(ignorePlan.actions)).toEqual({ kind: "ignore" });
 
-    const ignore = stepChannelPacketTimeoutWithActions(
-      initialChannelPacketTimeoutState(),
-      {
-        kind: "channel/packet-timeout-gate",
-        delivered: true,
-        tries: 1,
-      },
-    );
+    const ignore = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "channel/packet-timeout-gate",
+      delivered: true,
+      tries: 1
+    });
     expect(shouldIgnoreChannelPacketTimeout(ignore.actions)).toBe(true);
     expect(shouldGiveUpChannelPacketTimeout(ignore.actions)).toBe(false);
     expect(shouldRetryChannelPacketTimeout(ignore.actions)).toBe(false);
@@ -802,31 +668,28 @@ describe("protocol channel window", () => {
       {
         kind: "channel/packet-timeout-plan-gate",
         delivered: false,
-        tries: 2,
-      },
+        tries: 2
+      }
     );
     expect(shouldRetryChannelPacketTimeoutPlan(retryPlan.actions)).toBe(true);
     expect(channelPacketTimeoutRetryFromActions(retryPlan.actions)).toEqual({
       kind: "retry",
-      nextTries: 3,
+      nextTries: 3
     });
     expect(channelPacketTimeoutPlanFromActions(retryPlan.actions)).toEqual({
       kind: "retry",
-      nextTries: 3,
+      nextTries: 3
     });
 
-    const retry = stepChannelPacketTimeoutWithActions(
-      initialChannelPacketTimeoutState(),
-      {
-        kind: "channel/packet-timeout-gate",
-        delivered: false,
-        tries: 2,
-      },
-    );
+    const retry = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "channel/packet-timeout-gate",
+      delivered: false,
+      tries: 2
+    });
     expect(shouldRetryChannelPacketTimeout(retry.actions)).toBe(true);
     expect(channelPacketTimeoutRetryFromActions(retry.actions)).toEqual({
       kind: "retry",
-      nextTries: 3,
+      nextTries: 3
     });
 
     const giveUpPlan = stepChannelPacketTimeoutPlanWithActions(
@@ -834,37 +697,31 @@ describe("protocol channel window", () => {
       {
         kind: "channel/packet-timeout-plan-gate",
         delivered: false,
-        tries: 5,
-      },
+        tries: 5
+      }
     );
     expect(shouldGiveUpChannelPacketTimeoutPlan(giveUpPlan.actions)).toBe(true);
     expect(channelPacketTimeoutRetryFromActions(giveUpPlan.actions)).toBeNull();
 
-    const giveUp = stepChannelPacketTimeoutWithActions(
-      initialChannelPacketTimeoutState(),
-      {
-        kind: "channel/packet-timeout-gate",
-        delivered: false,
-        tries: 5,
-      },
-    );
+    const giveUp = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "channel/packet-timeout-gate",
+      delivered: false,
+      tries: 5
+    });
     expect(shouldGiveUpChannelPacketTimeout(giveUp.actions)).toBe(true);
 
     const emptyPlan = stepChannelPacketTimeoutPlanWithActions(
       initialChannelPacketTimeoutPlanState(),
       {
-        kind: "noop",
-      } as never,
+        kind: "noop"
+      } as never
     );
     expect(shouldIgnoreChannelPacketTimeoutPlan(emptyPlan.actions)).toBe(false);
     expect(channelPacketTimeoutPlanFromActions(emptyPlan.actions)).toBeNull();
 
-    const empty = stepChannelPacketTimeoutWithActions(
-      initialChannelPacketTimeoutState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "noop"
+    } as never);
     expect(shouldIgnoreChannelPacketTimeout(empty.actions)).toBe(false);
   });
 
@@ -873,10 +730,7 @@ describe("protocol channel window", () => {
     state = { ...state, window: 3, windowMax: 7 };
     state = stepChannelWindow(state, { kind: "channel/timeout" }).state;
     expect(state.window).toBe(2);
-    state = stepChannelWindow(state, {
-      kind: "channel/delivered",
-      rtt: 0.5,
-    }).state;
+    state = stepChannelWindow(state, { kind: "channel/delivered", rtt: 0.5 }).state;
     expect(state.window).toBe(3);
   });
 
@@ -890,7 +744,7 @@ describe("protocol channel window", () => {
       envelopePresent: false,
       delivered: false,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(miss.actions).toEqual([]);
     expect(miss.state.window).toBe(4);
@@ -900,9 +754,9 @@ describe("protocol channel window", () => {
         stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
           kind: "channel/tx-envelope-op-gate",
           indexOk: false,
-          envelopePresent: false,
-        }).actions,
-      ),
+          envelopePresent: false
+        }).actions
+      )
     ).toBe(true);
 
     const ignore = stepChannelTxTimeoutWithActions(state, {
@@ -911,23 +765,20 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: true,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(ignore.actions).toEqual([]);
     expect(ignore.state.window).toBe(4);
     // Nested packet-timeout: delivered envelopes are ignore.
     expect(
       shouldIgnoreChannelPacketTimeout(
-        stepChannelPacketTimeoutWithActions(
-          initialChannelPacketTimeoutState(),
-          {
-            kind: "channel/packet-timeout-gate",
-            delivered: true,
-            tries: 1,
-            maxTries: CHANNEL_MAX_TRIES,
-          },
-        ).actions,
-      ),
+        stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+          kind: "channel/packet-timeout-gate",
+          delivered: true,
+          tries: 1,
+          maxTries: CHANNEL_MAX_TRIES
+        }).actions
+      )
     ).toBe(true);
 
     const giveUp = stepChannelTxTimeoutWithActions(state, {
@@ -936,23 +787,20 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: false,
       tries: CHANNEL_MAX_TRIES,
-      maxTries: CHANNEL_MAX_TRIES,
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(giveUp.actions).toEqual([{ kind: "give-up" }]);
     expect(shouldGiveUpChannelTxTimeout(giveUp.actions)).toBe(true);
     expect(giveUp.state.window).toBe(4);
     expect(
       shouldGiveUpChannelPacketTimeout(
-        stepChannelPacketTimeoutWithActions(
-          initialChannelPacketTimeoutState(),
-          {
-            kind: "channel/packet-timeout-gate",
-            delivered: false,
-            tries: CHANNEL_MAX_TRIES,
-            maxTries: CHANNEL_MAX_TRIES,
-          },
-        ).actions,
-      ),
+        stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+          kind: "channel/packet-timeout-gate",
+          delivered: false,
+          tries: CHANNEL_MAX_TRIES,
+          maxTries: CHANNEL_MAX_TRIES
+        }).actions
+      )
     ).toBe(true);
 
     const retry = stepChannelTxTimeoutWithActions(state, {
@@ -961,43 +809,36 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: false,
       tries: 2,
-      maxTries: CHANNEL_MAX_TRIES,
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(retry.actions).toEqual([{ kind: "retry", nextTries: 3 }]);
     expect(shouldRetryChannelTxTimeout(retry.actions)).toBe(true);
     expect(channelTxTimeoutRetryAction(retry.actions)).toEqual({
       kind: "retry",
-      nextTries: 3,
+      nextTries: 3
     });
     expect(retry.state.window).toBe(3);
     expect(
       channelPacketTimeoutRetryFromActions(
-        stepChannelPacketTimeoutWithActions(
-          initialChannelPacketTimeoutState(),
-          {
-            kind: "channel/packet-timeout-gate",
-            delivered: false,
-            tries: 2,
-            maxTries: CHANNEL_MAX_TRIES,
-          },
-        ).actions,
-      ),
+        stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+          kind: "channel/packet-timeout-gate",
+          delivered: false,
+          tries: 2,
+          maxTries: CHANNEL_MAX_TRIES
+        }).actions
+      )
     ).toEqual({ kind: "retry", nextTries: 3 });
   });
 
   it("StepFn wrapper omits actions while WithActions preserves them", () => {
-    const state = {
-      ...initialChannelWindowState(0.5),
-      window: 3,
-      windowMax: 7,
-    };
+    const state = { ...initialChannelWindowState(0.5), window: 3, windowMax: 7 };
     const withActions = stepChannelTxTimeoutWithActions(state, {
       kind: "channel/tx-timeout",
       indexOk: true,
       envelopePresent: true,
       delivered: false,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
+      maxTries: CHANNEL_MAX_TRIES
     });
     const stripped = stepChannelTxTimeout(state, {
       kind: "channel/tx-timeout",
@@ -1005,13 +846,10 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: false,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(withActions.actions).toEqual([{ kind: "retry", nextTries: 2 }]);
-    expect(stripped).toEqual({
-      state: withActions.state,
-      intents: withActions.intents,
-    });
+    expect(stripped).toEqual({ state: withActions.state, intents: withActions.intents });
   });
 
   it("plans receipt timeout refresh extensions without ad-hoc arm / timeout / extend checks", () => {
@@ -1021,50 +859,44 @@ describe("protocol channel window", () => {
         currentTimeout: 1,
         tries: 1,
         rtt: 0.2,
-        txRingLength: 1,
+        txRingLength: 1
       },
       {
         receiptPresent: true,
         currentTimeout: 0.01,
         tries: 2,
         rtt: 0.2,
-        txRingLength: 1,
+        txRingLength: 1
       },
       {
         receiptPresent: true,
         currentTimeout: 100,
         tries: 1,
         rtt: 0.2,
-        txRingLength: 1,
-      },
+        txRingLength: 1
+      }
     ];
     const extensions = planChannelTxReceiptTimeoutRefresh(entries);
     expect(extensions).toHaveLength(1);
     expect(extensions[0]!.index).toBe(1);
     expect(extensions[0]!.timeoutSeconds).toBe(
       channelPacketTimeoutFromActions(
-        stepChannelPacketTimeoutSecondsWithActions(
-          initialChannelPacketTimeoutSecondsState(),
-          {
-            kind: "channel/packet-timeout-gate",
-            tries: 2,
-            rtt: 0.2,
-            txRingLength: 1,
-          },
-        ).actions,
-      ),
+        stepChannelPacketTimeoutSecondsWithActions(initialChannelPacketTimeoutSecondsState(), {
+          kind: "channel/packet-timeout-gate",
+          tries: 2,
+          rtt: 0.2,
+          txRingLength: 1
+        }).actions
+      )
     );
     // Nested arm gate: absent receipt never extends.
     expect(
       shouldArmChannelPacketReceiptNow(
-        stepArmChannelPacketReceiptWithActions(
-          initialArmChannelPacketReceiptState(),
-          {
-            kind: "channel/arm-packet-receipt-gate",
-            receiptPresent: false,
-          },
-        ).actions,
-      ),
+        stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+          kind: "channel/arm-packet-receipt-gate",
+          receiptPresent: false
+        }).actions
+      )
     ).toBe(false);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(true)).toBe(true);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(false)).toBe(false);
@@ -1073,64 +905,46 @@ describe("protocol channel window", () => {
       initialApplyChannelTxReceiptTimeoutExtensionState(),
       {
         kind: "channel/apply-tx-receipt-timeout-extension-gate",
-        extensionPresent: true,
-      },
+        extensionPresent: true
+      }
     );
-    expect(
-      shouldApplyChannelTxReceiptTimeoutExtensionNow(applyExtension.actions),
-    ).toBe(true);
-    expect(
-      shouldSkipApplyChannelTxReceiptTimeoutExtension(applyExtension.actions),
-    ).toBe(false);
+    expect(shouldApplyChannelTxReceiptTimeoutExtensionNow(applyExtension.actions)).toBe(true);
+    expect(shouldSkipApplyChannelTxReceiptTimeoutExtension(applyExtension.actions)).toBe(false);
 
     const skipExtension = stepApplyChannelTxReceiptTimeoutExtensionWithActions(
       initialApplyChannelTxReceiptTimeoutExtensionState(),
       {
         kind: "channel/apply-tx-receipt-timeout-extension-gate",
-        extensionPresent: false,
-      },
+        extensionPresent: false
+      }
     );
-    expect(
-      shouldApplyChannelTxReceiptTimeoutExtensionNow(skipExtension.actions),
-    ).toBe(false);
-    expect(
-      shouldSkipApplyChannelTxReceiptTimeoutExtension(skipExtension.actions),
-    ).toBe(true);
+    expect(shouldApplyChannelTxReceiptTimeoutExtensionNow(skipExtension.actions)).toBe(false);
+    expect(shouldSkipApplyChannelTxReceiptTimeoutExtension(skipExtension.actions)).toBe(true);
 
     const planned = stepChannelTxReceiptTimeoutRefreshPlanWithActions(
       initialChannelTxReceiptTimeoutRefreshPlanState(),
       {
         kind: "channel/tx-receipt-timeout-refresh-plan-gate",
-        entries,
-      },
+        entries
+      }
     );
-    expect(
-      channelTxReceiptTimeoutRefreshPlanExtensions(planned.actions),
-    ).toEqual(extensions);
-    expect(
-      shouldExtendChannelTxReceiptTimeoutRefreshPlan(planned.actions),
-    ).toBe(true);
+    expect(channelTxReceiptTimeoutRefreshPlanExtensions(planned.actions)).toEqual(extensions);
+    expect(shouldExtendChannelTxReceiptTimeoutRefreshPlan(planned.actions)).toBe(true);
 
     const stepped = stepChannelTxReceiptTimeoutRefreshWithActions(
       initialChannelTxReceiptTimeoutRefreshState(),
       {
         kind: "channel/tx-receipt-timeout-refresh-gate",
-        entries,
-      },
+        entries
+      }
     );
-    expect(channelTxReceiptTimeoutExtensions(stepped.actions)).toEqual(
-      extensions,
-    );
+    expect(channelTxReceiptTimeoutExtensions(stepped.actions)).toEqual(extensions);
     expect(shouldExtendChannelTxReceiptTimeout(stepped.actions)).toBe(true);
   });
 
   it("TX timeout double-runs identically", () => {
     const run = () => {
-      let state = {
-        ...initialChannelWindowState(0.5),
-        window: 4,
-        windowMax: 7,
-      };
+      let state = { ...initialChannelWindowState(0.5), window: 4, windowMax: 7 };
       const steps = [];
       steps.push(
         stepChannelTxTimeoutWithActions(state, {
@@ -1139,8 +953,8 @@ describe("protocol channel window", () => {
           envelopePresent: true,
           delivered: false,
           tries: 1,
-          maxTries: CHANNEL_MAX_TRIES,
-        }),
+          maxTries: CHANNEL_MAX_TRIES
+        })
       );
       state = steps[0]!.state;
       steps.push(
@@ -1150,13 +964,13 @@ describe("protocol channel window", () => {
           envelopePresent: true,
           delivered: false,
           tries: CHANNEL_MAX_TRIES,
-          maxTries: CHANNEL_MAX_TRIES,
-        }),
+          maxTries: CHANNEL_MAX_TRIES
+        })
       );
       return steps.map((s) => ({
         window: s.state.window,
         actions: s.actions,
-        intents: s.intents,
+        intents: s.intents
       }));
     };
     expect(run()).toEqual(run());

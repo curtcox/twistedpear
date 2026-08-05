@@ -1,226 +1,15 @@
-import {
-  RESOURCE_ADVERTISEMENT_OVERHEAD,
-  RESOURCE_HASHMAP_IS_EXHAUSTED,
-  RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
-  RESOURCE_MAPHASH_LEN,
-  RESOURCE_MAX_ADV_RETRIES,
-  RESOURCE_MAX_RETRIES,
-  RESOURCE_PART_TIMEOUT_FACTOR,
-  RESOURCE_PROCESSING_GRACE,
-  RESOURCE_RANDOM_HASH_SIZE,
-  RESOURCE_SENDER_GRACE_TIME,
-  RESOURCE_ADVERTISE_WAIT_TIMER_ID,
-  RESOURCE_WINDOW,
-  RESOURCE_WINDOW_FLEXIBILITY,
-  RESOURCE_WINDOW_MAX,
-  RESOURCE_WINDOW_MAX_FAST,
-  RESOURCE_WINDOW_MAX_SLOW,
-  RESOURCE_WINDOW_MIN,
-  ResourceStatus,
-  applyResourceStatusEvent,
-  assembleByteArraysRawFromActions,
-  assembleResourceHashmapBytesRawFromActions,
-  encodeResourceAdvertisementFlagsFromActions,
-  initialAcceptIncomingResourceAdvertisementState,
-  initialAdvertiseResourceState,
-  initialAppendResourceMapHashCollisionGuardState,
-  initialAssembleByteArraysState,
-  initialAssembleResourceHashmapBytesState,
-  initialClassifyResourceAdvertisementState,
-  initialComputeResourceTimeoutState,
-  initialComputeResourceTotalPartsState,
-  initialContainsResourceHashState,
-  initialDecodeResourceAdvertisementFlagsState,
-  initialEncodeResourceAdvertisementFlagsState,
-  initialProveResourceAllowState,
-  initialResourceAdvertisementRoleFlagsState,
-  initialResourceAdvertiseWaitState,
-  initialResourceContinueTransferState,
-  initialResourceEncryptMaterialState,
-  initialResourceExpectedProofMaterialState,
-  initialResourceHashMaterialState,
-  initialResourceHashmapSlotWritesState,
-  initialResourcePartMapHashMaterialState,
-  initialResourceReceivePartAllowState,
-  initialResourceRequestNextAllowState,
-  initialResourceStatusState,
-  initialResourceWatchdogAllowState,
-  initialResourceCompleteState,
-  initialPackResourceAdvertisementState,
-  initialReadResourceRequestHashState,
-  initialUnpackResourceAdvertisementState,
-  packResourceAdvertisementRawFromActions,
-  packResourceHashmapUpdatePacketRawFromActions,
-  packResourceHashmapUpdateRawFromActions,
-  packResourceProofRawFromActions,
-  applyResourceHashmapSlotWritesFieldsFromActions,
-  initialApplyResourceHashmapSlotWritesState,
-  initialPackResourceHashmapUpdatePacketState,
-  initialPackResourceHashmapUpdateState,
-  initialPackResourceProofState,
-  initialParseResourcePartRequestState,
-  initialResourceAssembleState,
-  initialResourceHashmapUpdateAcceptState,
-  initialResourcePartRequestState,
-  initialResourceProofAcceptState,
-  initialResourceReceivePartState,
-  initialResourceRequestFulfillState,
-  initialSplitResourceDecryptedPayloadState,
-  initialSplitResourceHashmapUpdatePacketState,
-  initialSplitResourceProofState,
-  initialUnpackResourceHashmapUpdateState,
-  resourceAdvertisementFieldsFromActions,
-  resourceAdvertisementFlagFieldsFromActions,
-  resourceAdvertisementRoleFlagsFromActions,
-  resourceDecryptedPayloadFromActions,
-  resourceHashmapSlotWritesFromActions,
-  resourceHashmapUpdateFieldsFromActions,
-  resourceHashmapUpdatePacketFieldsFromActions,
-  resourceMapHashCollisionGuardFromActions,
-  resourcePartRequestFieldsFromActions,
-  resourcePartRequestFromActions,
-  resourceProofFieldsFromActions,
-  resourceReceivePartFromActions,
-  resourceRequestFulfillFromActions,
-  readResourceRequestHashRawFromActions,
-  shouldAppendResourceMapHashCollisionGuard,
-  shouldApplyResourceHashmapUpdateAccept,
-  shouldCollideResourceMapHashCollisionGuard,
-  shouldCompleteResourceAssemble,
-  shouldCompleteResourceProofAccept,
-  shouldClassifyResourceAdvertisementRequest,
-  shouldClassifyResourceAdvertisementResponse,
-  shouldPresentResourceHash,
-  shouldRejectUnpackResourceAdvertisement,
-  shouldRejectParseResourcePartRequest,
-  shouldRejectSplitResourceDecryptedPayload,
-  shouldRejectSplitResourceHashmapUpdatePacket,
-  shouldRejectSplitResourceProof,
-  shouldRejectUnpackResourceHashmapUpdate,
-  shouldUseApplyResourceHashmapSlotWrites,
-  shouldUseAssembleByteArrays,
-  shouldUseAssembleResourceHashmapBytes,
-  shouldUseDecodeResourceAdvertisementFlags,
-  shouldUseEncodeResourceAdvertisementFlags,
-  shouldUsePackResourceAdvertisement,
-  shouldUsePackResourceHashmapUpdate,
-  shouldUsePackResourceHashmapUpdatePacket,
-  shouldUsePackResourceProof,
-  shouldUseParseResourcePartRequest,
-  shouldUseReadResourceRequestHash,
-  shouldUseResourceAdvertisementRoleFlags,
-  shouldUseUnpackResourceAdvertisement,
-  shouldUseSplitResourceDecryptedPayload,
-  shouldUseSplitResourceHashmapUpdatePacket,
-  shouldUseSplitResourceProof,
-  shouldUseUnpackResourceHashmapUpdate,
-  shouldWriteResourceHashmapSlots,
-  stepAppendResourceMapHashCollisionGuardWithActions,
-  stepApplyResourceHashmapSlotWritesWithActions,
-  stepAssembleByteArraysWithActions,
-  stepAssembleResourceHashmapBytesWithActions,
-  stepClassifyResourceAdvertisementWithActions,
-  stepComputeResourceTimeoutWithActions,
-  stepComputeResourceTotalPartsWithActions,
-  stepContainsResourceHashWithActions,
-  stepDecodeResourceAdvertisementFlagsWithActions,
-  stepEncodeResourceAdvertisementFlagsWithActions,
-  stepPackResourceAdvertisementWithActions,
-  stepReadResourceRequestHashWithActions,
-  stepResourceEncryptMaterialWithActions,
-  stepResourceExpectedProofMaterialWithActions,
-  stepResourceHashMaterialWithActions,
-  stepResourcePartMapHashMaterialWithActions,
-  stepPackResourceHashmapUpdatePacketWithActions,
-  stepPackResourceHashmapUpdateWithActions,
-  stepPackResourceProofWithActions,
-  stepParseResourcePartRequestWithActions,
-  stepResourceAdvertisementRoleFlagsWithActions,
-  stepUnpackResourceAdvertisementWithActions,
-  stepCommitResourceAssemblePayloadWithActions,
-  stepResourceAssembleWithActions,
-  stepResourceHashmapSlotWritesWithActions,
-  stepResourceHashmapUpdateAcceptWithActions,
-  stepResourcePartRequestWithActions,
-  stepResourceProofAcceptWithActions,
-  stepResourceReceivePartWithActions,
-  stepResourceRequestFulfillWithActions,
-  stepSplitResourceDecryptedPayloadWithActions,
-  stepSplitResourceHashmapUpdatePacketWithActions,
-  stepSplitResourceProofWithActions,
-  stepUnpackResourceHashmapUpdateWithActions,
-  resourceEncryptMaterialRawFromActions,
-  resourceExpectedProofMaterialRawFromActions,
-  resourceHashMaterialRawFromActions,
-  resourceHashmapMaxLen,
-  resourcePartMapHashMaterialRawFromActions,
-  resourceTimeoutFromActions,
-  resourceTotalPartsFromActions,
-  shouldAcceptResourceRandomHashLength,
-  initialResourceRandomHashLengthValidState,
-  stepResourceRandomHashLengthValidWithActions,
-  shouldRejectResourceEncryptMaterial,
-  shouldRejectResourceHashMaterial,
-  shouldRejectResourcePartMapHashMaterial,
-  shouldUseComputeResourceTotalParts,
-  shouldUseResourceTimeout,
-  shouldUseResourceEncryptMaterial,
-  shouldUseResourceExpectedProofMaterial,
-  shouldUseResourceHashMaterial,
-  shouldUseResourcePartMapHashMaterial,
-  shouldAcceptIncomingResourceAdvertisementNow,
-  shouldAdvertiseResourceNow,
-  shouldAdvanceResourceAwaitingProofNow,
-  shouldAllowProveResource,
-  shouldAllowResourceReceivePart,
-  shouldAllowResourceRequestNext,
-  shouldAllowResourceWatchdog,
-  shouldApplyResourceFulfillPartNow,
-  shouldApplyResourceReceivePartSlotNow,
-  shouldCommitResourceAssemblePayloadNow,
-  shouldContinueResourceTransfer,
-  shouldFulfillResourcePartRequestNow,
-  shouldSendResourceHashmapUpdateNow,
-  shouldTreatResourceComplete,
-  stepAcceptIncomingResourceAdvertisementWithActions,
-  stepAdvertiseResourceWithActions,
-  stepAdvanceResourceAwaitingProofWithActions,
-  stepApplyResourceFulfillPartWithActions,
-  stepApplyResourceReceivePartSlotWithActions,
-  stepFulfillResourcePartRequestWithActions,
-  stepProveResourceAllowWithActions,
-  stepResourceAdvertiseWaitWithActions,
-  stepResourceCompleteWithActions,
-  stepResourceContinueTransferWithActions,
-  stepResourceReceivePartAllowWithActions,
-  stepResourceRequestNextAllowWithActions,
-  stepResourceWatchdogAllowWithActions,
-  stepResourceWatchdogWithActions,
-  stepSendResourceHashmapUpdateWithActions,
-  initialAdvanceResourceAwaitingProofState,
-  initialApplyResourceFulfillPartState,
-  initialApplyResourceReceivePartSlotState,
-  initialCommitResourceAssemblePayloadState,
-  initialFulfillResourcePartRequestState,
-  initialSendResourceHashmapUpdateState,
-  type ResourceStatusEvent,
-  type ResourceStatusValue,
-  type ResourceWatchdogState,
-  type ResourceWatchdogStepResult,
-} from "@twistedpear/protocol";
+import { RESOURCE_ADVERTISEMENT_OVERHEAD,RESOURCE_HASHMAP_IS_EXHAUSTED,RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,RESOURCE_MAPHASH_LEN,RESOURCE_MAX_ADV_RETRIES,RESOURCE_MAX_RETRIES,RESOURCE_PART_TIMEOUT_FACTOR,RESOURCE_PROCESSING_GRACE,RESOURCE_RANDOM_HASH_SIZE,RESOURCE_SENDER_GRACE_TIME,RESOURCE_ADVERTISE_WAIT_TIMER_ID,RESOURCE_WINDOW,RESOURCE_WINDOW_FLEXIBILITY,RESOURCE_WINDOW_MAX,RESOURCE_WINDOW_MAX_FAST,RESOURCE_WINDOW_MAX_SLOW,RESOURCE_WINDOW_MIN,ResourceStatus,applyResourceStatusEvent,assembleByteArraysRawFromActions,assembleResourceHashmapBytesRawFromActions,encodeResourceAdvertisementFlagsFromActions,initialAcceptIncomingResourceAdvertisementState,initialAdvertiseResourceState,initialAppendResourceMapHashCollisionGuardState,initialAssembleByteArraysState,initialAssembleResourceHashmapBytesState,initialClassifyResourceAdvertisementState,initialComputeResourceTimeoutState,initialComputeResourceTotalPartsState,initialContainsResourceHashState,initialDecodeResourceAdvertisementFlagsState,initialEncodeResourceAdvertisementFlagsState,initialProveResourceAllowState,initialResourceAdvertisementRoleFlagsState,initialResourceAdvertiseWaitState,initialResourceContinueTransferState,initialResourceEncryptMaterialState,initialResourceExpectedProofMaterialState,initialResourceHashMaterialState,initialResourceHashmapSlotWritesState,initialResourcePartMapHashMaterialState,initialResourceReceivePartAllowState,initialResourceRequestNextAllowState,initialResourceStatusState,initialResourceWatchdogAllowState,initialResourceCompleteState,initialPackResourceAdvertisementState,
+  initialReadResourceRequestHashState,initialUnpackResourceAdvertisementState,packResourceAdvertisementRawFromActions,packResourceHashmapUpdatePacketRawFromActions,packResourceHashmapUpdateRawFromActions,packResourceProofRawFromActions,applyResourceHashmapSlotWritesFieldsFromActions,initialApplyResourceHashmapSlotWritesState,initialPackResourceHashmapUpdatePacketState,initialPackResourceHashmapUpdateState,initialPackResourceProofState,initialParseResourcePartRequestState,initialResourceAssembleState,initialResourceHashmapUpdateAcceptState,initialResourcePartRequestState,initialResourceProofAcceptState,initialResourceReceivePartState,initialResourceRequestFulfillState,initialSplitResourceDecryptedPayloadState,initialSplitResourceHashmapUpdatePacketState,initialSplitResourceProofState,initialUnpackResourceHashmapUpdateState,resourceAdvertisementFieldsFromActions,resourceAdvertisementFlagFieldsFromActions,resourceAdvertisementRoleFlagsFromActions,resourceDecryptedPayloadFromActions,resourceHashmapSlotWritesFromActions,resourceHashmapUpdateFieldsFromActions,resourceHashmapUpdatePacketFieldsFromActions,resourceMapHashCollisionGuardFromActions,resourcePartRequestFieldsFromActions,resourcePartRequestFromActions,resourceProofFieldsFromActions,resourceReceivePartFromActions,resourceRequestFulfillFromActions,readResourceRequestHashRawFromActions,shouldAppendResourceMapHashCollisionGuard,shouldApplyResourceHashmapUpdateAccept,shouldCollideResourceMapHashCollisionGuard,shouldCompleteResourceAssemble,shouldCompleteResourceProofAccept,shouldClassifyResourceAdvertisementRequest,
+  shouldClassifyResourceAdvertisementResponse,shouldPresentResourceHash,shouldRejectUnpackResourceAdvertisement,shouldRejectParseResourcePartRequest,shouldRejectSplitResourceDecryptedPayload,shouldRejectSplitResourceHashmapUpdatePacket,shouldRejectSplitResourceProof,shouldRejectUnpackResourceHashmapUpdate,shouldUseApplyResourceHashmapSlotWrites,shouldUseAssembleByteArrays,shouldUseAssembleResourceHashmapBytes,shouldUseDecodeResourceAdvertisementFlags,shouldUseEncodeResourceAdvertisementFlags,shouldUsePackResourceAdvertisement,shouldUsePackResourceHashmapUpdate,shouldUsePackResourceHashmapUpdatePacket,shouldUsePackResourceProof,shouldUseParseResourcePartRequest,shouldUseReadResourceRequestHash,shouldUseResourceAdvertisementRoleFlags,shouldUseUnpackResourceAdvertisement,shouldUseSplitResourceDecryptedPayload,shouldUseSplitResourceHashmapUpdatePacket,shouldUseSplitResourceProof,shouldUseUnpackResourceHashmapUpdate,shouldWriteResourceHashmapSlots,stepAppendResourceMapHashCollisionGuardWithActions,stepApplyResourceHashmapSlotWritesWithActions,stepAssembleByteArraysWithActions,stepAssembleResourceHashmapBytesWithActions,stepClassifyResourceAdvertisementWithActions,stepComputeResourceTimeoutWithActions,stepComputeResourceTotalPartsWithActions,stepContainsResourceHashWithActions,stepDecodeResourceAdvertisementFlagsWithActions,stepEncodeResourceAdvertisementFlagsWithActions,stepPackResourceAdvertisementWithActions,stepReadResourceRequestHashWithActions,stepResourceEncryptMaterialWithActions,stepResourceExpectedProofMaterialWithActions,stepResourceHashMaterialWithActions,
+  stepResourcePartMapHashMaterialWithActions,stepPackResourceHashmapUpdatePacketWithActions,stepPackResourceHashmapUpdateWithActions,stepPackResourceProofWithActions,stepParseResourcePartRequestWithActions,stepResourceAdvertisementRoleFlagsWithActions,stepUnpackResourceAdvertisementWithActions,stepCommitResourceAssemblePayloadWithActions,stepResourceAssembleWithActions,stepResourceHashmapSlotWritesWithActions,stepResourceHashmapUpdateAcceptWithActions,stepResourcePartRequestWithActions,stepResourceProofAcceptWithActions,stepResourceReceivePartWithActions,stepResourceRequestFulfillWithActions,stepSplitResourceDecryptedPayloadWithActions,stepSplitResourceHashmapUpdatePacketWithActions,stepSplitResourceProofWithActions,stepUnpackResourceHashmapUpdateWithActions,resourceEncryptMaterialRawFromActions,resourceExpectedProofMaterialRawFromActions,resourceHashMaterialRawFromActions,resourceHashmapMaxLen,resourcePartMapHashMaterialRawFromActions,resourceTimeoutFromActions,resourceTotalPartsFromActions,shouldAcceptResourceRandomHashLength,initialResourceRandomHashLengthValidState,stepResourceRandomHashLengthValidWithActions,shouldRejectResourceEncryptMaterial,shouldRejectResourceHashMaterial,shouldRejectResourcePartMapHashMaterial,shouldUseComputeResourceTotalParts,shouldUseResourceTimeout,shouldUseResourceEncryptMaterial,shouldUseResourceExpectedProofMaterial,shouldUseResourceHashMaterial,shouldUseResourcePartMapHashMaterial,shouldAcceptIncomingResourceAdvertisementNow,shouldAdvertiseResourceNow,shouldAdvanceResourceAwaitingProofNow,shouldAllowProveResource,
+  shouldAllowResourceReceivePart,shouldAllowResourceRequestNext,shouldAllowResourceWatchdog,shouldApplyResourceFulfillPartNow,shouldApplyResourceReceivePartSlotNow,shouldCommitResourceAssemblePayloadNow,shouldContinueResourceTransfer,shouldFulfillResourcePartRequestNow,shouldSendResourceHashmapUpdateNow,shouldTreatResourceComplete,stepAcceptIncomingResourceAdvertisementWithActions,stepAdvertiseResourceWithActions,stepAdvanceResourceAwaitingProofWithActions,stepApplyResourceFulfillPartWithActions,stepApplyResourceReceivePartSlotWithActions,stepFulfillResourcePartRequestWithActions,stepProveResourceAllowWithActions,stepResourceAdvertiseWaitWithActions,stepResourceCompleteWithActions,stepResourceContinueTransferWithActions,stepResourceReceivePartAllowWithActions,stepResourceRequestNextAllowWithActions,stepResourceWatchdogAllowWithActions,stepResourceWatchdogWithActions,stepSendResourceHashmapUpdateWithActions,initialAdvanceResourceAwaitingProofState,initialApplyResourceFulfillPartState,initialApplyResourceReceivePartSlotState,initialCommitResourceAssemblePayloadState,initialFulfillResourcePartRequestState,initialSendResourceHashmapUpdateState,type ResourceStatusEvent,type ResourceStatusValue,type ResourceWatchdogState,type ResourceWatchdogStepResult } from "@twistedpear/protocol";
 import Bunzip from "seek-bzip";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { equalBytes } from "../crypto/bytes.js";
 import { Identity } from "../identity.js";
 import type { Link } from "../link.js";
 import type { LeafTransport } from "../transport/node.js";
-import {
-  Packet,
-  PacketContext,
-  PacketHeaderType,
-  PacketType,
-  TransportType,
-} from "../packet.js";
+import { Packet,PacketContext,PacketHeaderType,PacketType,TransportType } from "../packet.js";
 import { DestinationType } from "../destination.js";
 import type { Resource } from "../resource.js";
 /** Mirrors RNS/Resource.py constants. */
@@ -241,7 +30,7 @@ export {
   RESOURCE_PART_TIMEOUT_FACTOR,
   RESOURCE_SENDER_GRACE_TIME,
   RESOURCE_PROCESSING_GRACE,
-  type ResourceStatusValue,
+  type ResourceStatusValue
 };
 
 export interface ResourceCallbacks {
@@ -268,10 +57,7 @@ export const RESOURCE_PACKET_HEADER_MAX = 35;
 export const RESOURCE_IFAC_MIN_SIZE = 1;
 
 /** Compression adapter for Python RNS resource payloads. */
-export function decodeResourcePayload(
-  payload: Uint8Array,
-  compressed: boolean,
-): Uint8Array {
+export function decodeResourcePayload(payload: Uint8Array, compressed: boolean): Uint8Array {
   return compressed ? Uint8Array.from(Bunzip.decode(payload)) : payload;
 }
 
@@ -303,8 +89,8 @@ export class ResourceAdvertisement {
       initialUnpackResourceAdvertisementState(),
       {
         kind: "resource-advertisement/unpack-gate",
-        data: plaintext,
-      },
+        data: plaintext
+      }
     );
     if (shouldRejectUnpackResourceAdvertisement(stepped.actions)) {
       return false;
@@ -319,8 +105,8 @@ export class ResourceAdvertisement {
       initialClassifyResourceAdvertisementState(),
       {
         kind: "resource-advertisement/classify-gate",
-        fields,
-      },
+        fields
+      }
     );
     return shouldClassifyResourceAdvertisementRequest(classified.actions);
   }
@@ -330,8 +116,8 @@ export class ResourceAdvertisement {
       initialUnpackResourceAdvertisementState(),
       {
         kind: "resource-advertisement/unpack-gate",
-        data: plaintext,
-      },
+        data: plaintext
+      }
     );
     if (shouldRejectUnpackResourceAdvertisement(stepped.actions)) {
       return false;
@@ -346,8 +132,8 @@ export class ResourceAdvertisement {
       initialClassifyResourceAdvertisementState(),
       {
         kind: "resource-advertisement/classify-gate",
-        fields,
-      },
+        fields
+      }
     );
     return shouldClassifyResourceAdvertisementResponse(classified.actions);
   }
@@ -357,8 +143,8 @@ export class ResourceAdvertisement {
       initialUnpackResourceAdvertisementState(),
       {
         kind: "resource-advertisement/unpack-gate",
-        data,
-      },
+        data
+      }
     );
     if (
       shouldRejectUnpackResourceAdvertisement(stepped.actions) ||
@@ -374,8 +160,8 @@ export class ResourceAdvertisement {
       initialDecodeResourceAdvertisementFlagsState(),
       {
         kind: "resource-advertisement/decode-flags-gate",
-        flags: fields.f,
-      },
+        flags: fields.f
+      }
     );
     const flags = shouldUseDecodeResourceAdvertisementFlags(flagStepped.actions)
       ? resourceAdvertisementFlagFieldsFromActions(flagStepped.actions)
@@ -428,8 +214,8 @@ export class ResourceAdvertisement {
       {
         kind: "resource/advertisement-role-flags-gate",
         requestIdPresent: resource.requestId !== null,
-        isResponse: resource.isResponse,
-      },
+        isResponse: resource.isResponse
+      }
     );
     const role = shouldUseResourceAdvertisementRoleFlags(roleStepped.actions)
       ? resourceAdvertisementRoleFlagsFromActions(roleStepped.actions)
@@ -446,13 +232,11 @@ export class ResourceAdvertisement {
           s: this.s,
           u: this.u,
           p: this.p,
-          x: this.x,
-        },
-      },
+          x: this.x
+        }
+      }
     );
-    const packedFlags = shouldUseEncodeResourceAdvertisementFlags(
-      encodeStepped.actions,
-    )
+    const packedFlags = shouldUseEncodeResourceAdvertisementFlags(encodeStepped.actions)
       ? encodeResourceAdvertisementFlagsFromActions(encodeStepped.actions)
       : null;
     if (packedFlags === null) {
@@ -462,12 +246,10 @@ export class ResourceAdvertisement {
   }
 
   pack(segment = 0): Uint8Array {
-    const hashmapStart =
-      segment * ResourceAdvertisement.HASHMAP_MAX_LEN * RESOURCE_MAPHASH_LEN;
+    const hashmapStart = segment * ResourceAdvertisement.HASHMAP_MAX_LEN * RESOURCE_MAPHASH_LEN;
     const hashmapEnd = Math.min(
-      hashmapStart +
-        ResourceAdvertisement.HASHMAP_MAX_LEN * RESOURCE_MAPHASH_LEN,
-      this.m.length,
+      hashmapStart + ResourceAdvertisement.HASHMAP_MAX_LEN * RESOURCE_MAPHASH_LEN,
+      this.m.length
     );
     const stepped = stepPackResourceAdvertisementWithActions(
       initialPackResourceAdvertisementState(),
@@ -484,9 +266,9 @@ export class ResourceAdvertisement {
           f: this.f,
           i: this.i,
           l: this.l,
-          q: this.q,
-        },
-      },
+          q: this.q
+        }
+      }
     );
     const packed = shouldUsePackResourceAdvertisement(stepped.actions)
       ? packResourceAdvertisementRawFromActions(stepped.actions)
@@ -506,8 +288,8 @@ export function resourceTimeoutForLink(link: Link): number {
     {
       kind: "resource/timeout-gate",
       rtt: link.rtt ?? 1,
-      trafficTimeoutFactor: link.trafficTimeoutFactor,
-    },
+      trafficTimeoutFactor: link.trafficTimeoutFactor
+    }
   );
   const timeout = shouldUseResourceTimeout(stepped.actions)
     ? resourceTimeoutFromActions(stepped.actions)
@@ -519,7 +301,5 @@ export function resourceTimeoutForLink(link: Link): number {
 }
 
 export function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

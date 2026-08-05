@@ -12,10 +12,7 @@
  * {@link stepResourceAdvertisePhasePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  ResourceStatus,
-  type ResourceStatusValue,
-} from "../resource-watchdog.js";
+import { ResourceStatus, type ResourceStatusValue } from "../resource-watchdog.js";
 import { canValidateResourceProof } from "./part-1.js";
 import type { ResourceStatusEvent, ResourceStatusState } from "./part-1.js";
 /**
@@ -50,9 +47,7 @@ export type ResourceProofAcceptPlanEvent =
       readonly proofValid: boolean;
     };
 
-export type ResourceProofAcceptPlanAction = {
-  readonly kind: ResourceProofAcceptPlan;
-};
+export type ResourceProofAcceptPlanAction = { readonly kind: ResourceProofAcceptPlan };
 
 export interface ResourceProofAcceptPlanStepResult {
   readonly state: ResourceProofAcceptPlanState;
@@ -66,7 +61,7 @@ export function initialResourceProofAcceptPlanState(): ResourceProofAcceptPlanSt
 
 export function stepResourceProofAcceptPlanWithActions(
   state: ResourceProofAcceptPlanState,
-  event: ResourceProofAcceptPlanEvent,
+  event: ResourceProofAcceptPlanEvent
 ): ResourceProofAcceptPlanStepResult {
   if (event.kind === "resource/proof-accept-plan-gate") {
     return {
@@ -76,10 +71,10 @@ export function stepResourceProofAcceptPlanWithActions(
         {
           kind: planResourceProofAccept({
             status: event.status,
-            proofValid: event.proofValid,
-          }),
-        },
-      ],
+            proofValid: event.proofValid
+          })
+        }
+      ]
     };
   }
 
@@ -88,22 +83,22 @@ export function stepResourceProofAcceptPlanWithActions(
 
 /** Extract the proof-accept plan from actions; null when empty. */
 export function resourceProofAcceptPlanFromActions(
-  actions: ReadonlyArray<ResourceProofAcceptPlanAction>,
+  actions: ReadonlyArray<ResourceProofAcceptPlanAction>
 ): ResourceProofAcceptPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "complete" || entry.kind === "ignore",
+    (entry) => entry.kind === "complete" || entry.kind === "ignore"
   );
   return action?.kind ?? null;
 }
 
 export function shouldCompleteResourceProofAcceptPlan(
-  actions: ReadonlyArray<ResourceProofAcceptPlanAction>,
+  actions: ReadonlyArray<ResourceProofAcceptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "complete");
 }
 
 export function shouldIgnoreResourceProofAcceptPlan(
-  actions: ReadonlyArray<ResourceProofAcceptPlanAction>,
+  actions: ReadonlyArray<ResourceProofAcceptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
@@ -129,9 +124,7 @@ export type ResourceProofAcceptEvent =
  * Plan nested via {@link stepResourceProofAcceptPlanWithActions}
  * (`complete`|`ignore`).
  */
-export type ResourceProofAcceptAction = {
-  readonly kind: ResourceProofAcceptPlan;
-};
+export type ResourceProofAcceptAction = { readonly kind: ResourceProofAcceptPlan };
 
 export interface ResourceProofAcceptStepResult {
   readonly state: ResourceProofAcceptState;
@@ -143,39 +136,33 @@ export function initialResourceProofAcceptState(): ResourceProofAcceptState {
   return {};
 }
 
-export const stepResourceProofAccept: StepFn<ResourceProofAcceptState> = (
-  state,
-  event,
-) => {
-  const result = stepResourceProofAcceptInner(
-    state,
-    event as ResourceProofAcceptEvent,
-  );
+export const stepResourceProofAccept: StepFn<ResourceProofAcceptState> = (state, event) => {
+  const result = stepResourceProofAcceptInner(state, event as ResourceProofAcceptEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepResourceProofAcceptWithActions(
   state: ResourceProofAcceptState,
-  event: ResourceProofAcceptEvent,
+  event: ResourceProofAcceptEvent
 ): ResourceProofAcceptStepResult {
   return stepResourceProofAcceptInner(state, event);
 }
 
 export function shouldCompleteResourceProofAccept(
-  actions: ReadonlyArray<ResourceProofAcceptAction>,
+  actions: ReadonlyArray<ResourceProofAcceptAction>
 ): boolean {
   return actions.some((action) => action.kind === "complete");
 }
 
 export function shouldIgnoreResourceProofAccept(
-  actions: ReadonlyArray<ResourceProofAcceptAction>,
+  actions: ReadonlyArray<ResourceProofAcceptAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 function stepResourceProofAcceptInner(
   state: ResourceProofAcceptState,
-  event: ResourceProofAcceptEvent,
+  event: ResourceProofAcceptEvent
 ): ResourceProofAcceptStepResult {
   if (event.kind === "resource/proof-accept-gate") {
     const planActions = stepResourceProofAcceptPlanWithActions(
@@ -183,8 +170,8 @@ function stepResourceProofAcceptInner(
       {
         kind: "resource/proof-accept-plan-gate",
         status: event.status,
-        proofValid: event.proofValid,
-      },
+        proofValid: event.proofValid
+      }
     ).actions;
     const plan = resourceProofAcceptPlanFromActions(planActions);
     if (plan === null) {
@@ -198,7 +185,7 @@ function stepResourceProofAcceptInner(
 
 export function applyResourceStatusEvent(
   state: ResourceStatusState,
-  event: ResourceStatusEvent,
+  event: ResourceStatusEvent
 ): ResourceStatusState {
   return stepResourceStatusInner(state, event).state;
 }
@@ -208,7 +195,7 @@ export const stepResourceStatus: StepFn<ResourceStatusState> = (state, event) =>
 
 function stepResourceStatusInner(
   state: ResourceStatusState,
-  event: ResourceStatusEvent,
+  event: ResourceStatusEvent
 ): { state: ResourceStatusState; intents: Intent[] } {
   if (event.kind === "resource/queue") {
     return { state: { status: ResourceStatus.QUEUED }, intents: [] };

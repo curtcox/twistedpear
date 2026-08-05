@@ -5,11 +5,7 @@ export function createEnsureDevChannel(deps) {
       devChannel = deps.createDevChannelClient({
         isDeveloperMode: () => deps.ensureMiniappHost().isDeveloperMode(),
         onConnected: (address) => {
-          deps.send({
-            type: "dev-channel",
-            state: "connected",
-            detail: address,
-          });
+          deps.send({ type: "dev-channel", state: "connected", detail: address });
           deps.log(`Dev channel connected to ${address}`);
         },
         onDisconnected: () => {
@@ -26,7 +22,7 @@ export function createEnsureDevChannel(deps) {
         },
         onBundle: async (manifest, bundleBytes) => {
           await deps.ensureMiniappHost().devSideLoad(manifest, bundleBytes);
-        },
+        }
       });
     }
     return devChannel;

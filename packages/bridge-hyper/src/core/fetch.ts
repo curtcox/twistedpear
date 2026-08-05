@@ -2,12 +2,9 @@ import {
   DEFAULT_INTERFACE_BITRATES,
   InterfaceKind,
   inferInterfaceKind,
-  type InterfaceKindValue,
+  type InterfaceKindValue
 } from "@twistedpear/reticulum-interfaces/policy";
-import type {
-  CryptoProvider,
-  PacketInterface,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
 import { unpackPackage, type CatalogEntry } from "@twistedpear/app-registry";
 import type { CasLocator } from "@twistedpear/cas-256t";
 import type { DriveManager } from "./drive.js";
@@ -36,8 +33,7 @@ export interface FetchProgress {
   readonly path: FetchPath;
   readonly bytesReceived: number;
   readonly totalBytes: number;
-  readonly phase:
-    "starting" | "downloading" | "verifying" | "complete" | "failed";
+  readonly phase: "starting" | "downloading" | "verifying" | "complete" | "failed";
 }
 
 export interface FetchPackageOptions {
@@ -71,50 +67,34 @@ export interface FetchBudgetAssessment {
 export function assessFetchBudget(
   entry: CatalogEntry,
   interfaces: ReadonlyArray<PacketInterface>,
-  freenetNodeAvailable = false,
+  freenetNodeAvailable = false
 ): FetchBudgetAssessment {
-  const kinds = new Set(
-    interfaces
-      .filter((iface) => iface.online)
-      .map((iface) => inferInterfaceKind(iface.name)),
-  );
+  const kinds = new Set(interfaces.filter((iface) => iface.online).map((iface) => inferInterfaceKind(iface.name)));
   const onlyRnode =
     kinds.size > 0 &&
-    [...kinds].every(
-      (kind) => kind === InterfaceKind.RNODE || kind === InterfaceKind.I2P,
-    );
+    [...kinds].every((kind) => kind === InterfaceKind.RNODE || kind === InterfaceKind.I2P);
 
-  if (
-    !freenetNodeAvailable &&
-    onlyRnode &&
-    entry.packageSize > BULK_BLOCK_RNODE_BYTES
-  ) {
+  if (!freenetNodeAvailable && onlyRnode && entry.packageSize > BULK_BLOCK_RNODE_BYTES) {
     return {
       allowed: false,
       warning: null,
-      blockedReason: `Package size ${entry.packageSize} exceeds RNode bulk budget (${BULK_BLOCK_RNODE_BYTES} bytes)`,
+      blockedReason: `Package size ${entry.packageSize} exceeds RNode bulk budget (${BULK_BLOCK_RNODE_BYTES} bytes)`
     };
   }
 
-  if (
-    kinds.has(InterfaceKind.BLE) &&
-    entry.packageSize > SIZE_WARNING_BLE_BYTES
-  ) {
+  if (kinds.has(InterfaceKind.BLE) && entry.packageSize > SIZE_WARNING_BLE_BYTES) {
     return {
       allowed: true,
       warning: `Large package (${entry.packageSize} bytes) over BLE may take several minutes`,
-      blockedReason: null,
+      blockedReason: null
     };
   }
 
-  if (
-    kinds.has(InterfaceKind.RNODE) &&
-    entry.packageSize > SIZE_WARNING_RNODE_BYTES
-  ) {
+  if (kinds.has(InterfaceKind.RNODE) && entry.packageSize > SIZE_WARNING_RNODE_BYTES) {
     return {
       allowed: true,
       warning: `Package size ${entry.packageSize} bytes is large for LoRa transfer`,
-      blockedReason: null,
+      blockedReason: null
     };
   }
 
@@ -128,18 +108,14 @@ function ipPathsAvailable(interfaces: ReadonlyArray<PacketInterface>): boolean {
     }
 
     const kind = inferInterfaceKind(iface.name);
-    return (
-      kind === InterfaceKind.AUTO ||
-      kind === InterfaceKind.TCP ||
-      kind === InterfaceKind.UDP
-    );
+    return kind === InterfaceKind.AUTO || kind === InterfaceKind.TCP || kind === InterfaceKind.UDP;
   });
 }
 
 function orderedPaths(
   interfaces: ReadonlyArray<PacketInterface>,
   freenetAvailable: boolean,
-  forcePath?: FetchPath,
+  forcePath?: FetchPath
 ): FetchPath[] {
   if (forcePath !== undefined) {
     return [forcePath];
@@ -156,15 +132,14 @@ function orderedPaths(
 
 export async function fetchPackage(
   provider: CryptoProvider,
-  options: FetchPackageOptions,
+  options: FetchPackageOptions
 ): Promise<FetchPackageResult> {
   const freenetNodeAvailable =
-    options.freenetFetcher !== undefined &&
-    options.freenetLocator !== undefined;
+    options.freenetFetcher !== undefined && options.freenetLocator !== undefined;
   const budget = assessFetchBudget(
     options.entry,
     options.interfaces,
-    freenetNodeAvailable || options.forcePath === "freenet",
+    freenetNodeAvailable || options.forcePath === "freenet"
   );
   if (!budget.allowed) {
     throw new Error(budget.blockedReason ?? "fetch blocked by budget rules");
@@ -173,7 +148,7 @@ export async function fetchPackage(
   const paths = orderedPaths(
     options.interfaces,
     freenetNodeAvailable,
-    options.forcePath,
+    options.forcePath
   );
   let lastError: Error | null = null;
 
@@ -182,7 +157,7 @@ export async function fetchPackage(
       path,
       bytesReceived: 0,
       totalBytes: options.entry.packageSize,
-      phase: "starting",
+      phase: "starting"
     });
 
     if (options.signal?.aborted) {
@@ -195,7 +170,7 @@ export async function fetchPackage(
         path,
         bytesReceived: archiveBytes.length,
         totalBytes: archiveBytes.length,
-        phase: "verifying",
+        phase: "verifying"
       });
 
       const verified = unpackPackage(provider, archiveBytes);
@@ -207,7 +182,7 @@ export async function fetchPackage(
         path,
         bytesReceived: archiveBytes.length,
         totalBytes: archiveBytes.length,
-        phase: "complete",
+        phase: "complete"
       });
 
       return { path, archiveBytes, verified };
@@ -217,7 +192,7 @@ export async function fetchPackage(
         path,
         bytesReceived: 0,
         totalBytes: options.entry.packageSize,
-        phase: "failed",
+        phase: "failed"
       });
     }
   }
@@ -225,17 +200,11 @@ export async function fetchPackage(
   throw lastError ?? new Error("all fetch paths failed");
 }
 
-async function fetchByPath(
-  path: FetchPath,
-  options: FetchPackageOptions,
-): Promise<Uint8Array> {
+async function fetchByPath(path: FetchPath, options: FetchPackageOptions): Promise<Uint8Array> {
   switch (path) {
     case "hyperdrive": {
       if (options.driveFetcher !== undefined) {
-        return options.driveFetcher.fetchDriveVersion(
-          options.entry.driveKey,
-          options.version,
-        );
+        return options.driveFetcher.fetchDriveVersion(options.entry.driveKey, options.version);
       }
 
       if (options.driveManager === undefined) {
@@ -250,10 +219,7 @@ async function fetchByPath(
     }
 
     case "lan-mirror": {
-      if (
-        options.driveManager === undefined ||
-        options.lanMirrorKeyHex === undefined
-      ) {
+      if (options.driveManager === undefined || options.lanMirrorKeyHex === undefined) {
         throw new Error("lan mirror path unavailable");
       }
 
@@ -262,10 +228,7 @@ async function fetchByPath(
     }
 
     case "freenet": {
-      if (
-        options.freenetFetcher === undefined ||
-        options.freenetLocator === undefined
-      ) {
+      if (options.freenetFetcher === undefined || options.freenetLocator === undefined) {
         throw new Error("freenet path unavailable");
       }
       return options.freenetFetcher.fetchLocator(options.freenetLocator);
@@ -285,10 +248,7 @@ async function fetchByPath(
   }
 }
 
-export function estimateTransferSeconds(
-  sizeBytes: number,
-  kind: InterfaceKindValue,
-): number {
+export function estimateTransferSeconds(sizeBytes: number, kind: InterfaceKindValue): number {
   const bitrate = DEFAULT_INTERFACE_BITRATES[kind] ?? 5_000;
   return Math.ceil((sizeBytes * 8) / bitrate);
 }

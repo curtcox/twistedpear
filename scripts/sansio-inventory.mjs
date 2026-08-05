@@ -15,99 +15,31 @@ const OUT_PATH = path.join(ROOT, "violations.json");
 
 const PATTERNS = [
   { api: "Date.now", re: /\bDate\.now\b/g, suggestedEffect: "Clock" },
-  {
-    api: "new Date()",
-    re: /\bnew\s+Date\s*\(\s*\)/g,
-    suggestedEffect: "Clock",
-  },
-  {
-    api: "performance.now",
-    re: /\bperformance\.now\b/g,
-    suggestedEffect: "Clock",
-  },
-  {
-    api: "process.hrtime",
-    re: /\bprocess\.hrtime\b/g,
-    suggestedEffect: "Clock",
-  },
+  { api: "new Date()", re: /\bnew\s+Date\s*\(\s*\)/g, suggestedEffect: "Clock" },
+  { api: "performance.now", re: /\bperformance\.now\b/g, suggestedEffect: "Clock" },
+  { api: "process.hrtime", re: /\bprocess\.hrtime\b/g, suggestedEffect: "Clock" },
   { api: "Math.random", re: /\bMath\.random\b/g, suggestedEffect: "Entropy" },
-  {
-    api: "crypto.getRandomValues",
-    re: /\bcrypto\.getRandomValues\b/g,
-    suggestedEffect: "Entropy",
-  },
-  {
-    api: "crypto.randomBytes",
-    re: /\bcrypto\.randomBytes\s*\(|from\s+["']node:crypto["'].*randomBytes|randomBytes\s*\}\s*from\s+["']node:crypto["']/g,
-    suggestedEffect: "Entropy",
-  },
-  {
-    api: "crypto.randomUUID",
-    re: /\b(?:crypto\.)?randomUUID\s*\(/g,
-    suggestedEffect: "Entropy",
-  },
-  {
-    api: "setTimeout",
-    re: /(?<!\.)\bsetTimeout\s*\(/g,
-    suggestedEffect: "Timers",
-  },
-  {
-    api: "setInterval",
-    re: /(?<!\.)\bsetInterval\s*\(/g,
-    suggestedEffect: "Timers",
-  },
-  {
-    api: "setImmediate",
-    re: /(?<!\.)\bsetImmediate\s*\(/g,
-    suggestedEffect: "Timers",
-  },
-  {
-    api: "queueMicrotask",
-    re: /\bqueueMicrotask\s*\(/g,
-    suggestedEffect: "Timers",
-  },
-  {
-    api: "requestAnimationFrame",
-    re: /\brequestAnimationFrame\s*\(/g,
-    suggestedEffect: "Timers",
-  },
+  { api: "crypto.getRandomValues", re: /\bcrypto\.getRandomValues\b/g, suggestedEffect: "Entropy" },
+  { api: "crypto.randomBytes", re: /\bcrypto\.randomBytes\s*\(|from\s+["']node:crypto["'].*randomBytes|randomBytes\s*\}\s*from\s+["']node:crypto["']/g, suggestedEffect: "Entropy" },
+  { api: "crypto.randomUUID", re: /\b(?:crypto\.)?randomUUID\s*\(/g, suggestedEffect: "Entropy" },
+  { api: "setTimeout", re: /(?<!\.)\bsetTimeout\s*\(/g, suggestedEffect: "Timers" },
+  { api: "setInterval", re: /(?<!\.)\bsetInterval\s*\(/g, suggestedEffect: "Timers" },
+  { api: "setImmediate", re: /(?<!\.)\bsetImmediate\s*\(/g, suggestedEffect: "Timers" },
+  { api: "queueMicrotask", re: /\bqueueMicrotask\s*\(/g, suggestedEffect: "Timers" },
+  { api: "requestAnimationFrame", re: /\brequestAnimationFrame\s*\(/g, suggestedEffect: "Timers" },
   { api: "fetch", re: /\bfetch\s*\(/g, suggestedEffect: "Transport" },
-  {
-    api: "XMLHttpRequest",
-    re: /\bXMLHttpRequest\b/g,
-    suggestedEffect: "Transport",
-  },
+  { api: "XMLHttpRequest", re: /\bXMLHttpRequest\b/g, suggestedEffect: "Transport" },
   { api: "WebSocket", re: /\bWebSocket\b/g, suggestedEffect: "Transport" },
-  {
-    api: "node:net",
-    re: /from\s+["']node:net["']/g,
-    suggestedEffect: "Transport",
-  },
-  {
-    api: "node:dgram",
-    re: /from\s+["']node:dgram["']/g,
-    suggestedEffect: "Transport",
-  },
-  {
-    api: "node:tls",
-    re: /from\s+["']node:tls["']/g,
-    suggestedEffect: "Transport",
-  },
-  {
-    api: "node:http",
-    re: /from\s+["']node:https?["']/g,
-    suggestedEffect: "Transport",
-  },
+  { api: "node:net", re: /from\s+["']node:net["']/g, suggestedEffect: "Transport" },
+  { api: "node:dgram", re: /from\s+["']node:dgram["']/g, suggestedEffect: "Transport" },
+  { api: "node:tls", re: /from\s+["']node:tls["']/g, suggestedEffect: "Transport" },
+  { api: "node:http", re: /from\s+["']node:https?["']/g, suggestedEffect: "Transport" },
   { api: "node:fs", re: /from\s+["']node:fs["']/g, suggestedEffect: "Store" },
   { api: "node:os", re: /from\s+["']node:os["']/g, suggestedEffect: "adapter" },
   { api: "process.env", re: /\bprocess\.env\b/g, suggestedEffect: "adapter" },
-  {
-    api: "console",
-    re: /\bconsole\.(log|debug|info|warn|error)\s*\(/g,
-    suggestedEffect: "Intent log",
-  },
+  { api: "console", re: /\bconsole\.(log|debug|info|warn|error)\s*\(/g, suggestedEffect: "Intent log" },
   { api: "localStorage", re: /\blocalStorage\b/g, suggestedEffect: "Store" },
-  { api: "AsyncStorage", re: /\bAsyncStorage\b/g, suggestedEffect: "Store" },
+  { api: "AsyncStorage", re: /\bAsyncStorage\b/g, suggestedEffect: "Store" }
 ];
 
 function loadConfig() {
@@ -121,11 +53,7 @@ function walk(dir, files = []) {
     if (entry.isDirectory()) {
       if (entry.name === "node_modules" || entry.name === "dist") continue;
       walk(full, files);
-    } else if (
-      entry.isFile() &&
-      entry.name.endsWith(".ts") &&
-      !entry.name.endsWith(".d.ts")
-    ) {
+    } else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
       files.push(full);
     }
   }
@@ -158,11 +86,7 @@ function scanFile(absPath, relPosix) {
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     const trimmed = line.trim();
-    if (
-      trimmed.startsWith("//") ||
-      trimmed.startsWith("*") ||
-      trimmed.startsWith("/*")
-    ) {
+    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
       // Skip obvious comment-only lines; imperfect but good enough for inventory.
       if (!trimmed.includes("*/") || trimmed.startsWith("//")) continue;
     }
@@ -171,30 +95,13 @@ function scanFile(absPath, relPosix) {
       if (!pattern.re.test(line)) continue;
       // Avoid flagging clock.setTimeout / this.setTimeout method names when clearly method access
       // Still flag bare setTimeout( — pattern already requires setTimeout\s*(
-      if (
-        pattern.api === "setTimeout" &&
-        (/^\s*(?:public\s+|private\s+|protected\s+|async\s+)*setTimeout\s*\(/.test(
-          line,
-        ) ||
-          /\.\s*setTimeout\s*\(/.test(line))
-      ) {
+      if (pattern.api === "setTimeout" && (/^\s*(?:public\s+|private\s+|protected\s+|async\s+)*setTimeout\s*\(/.test(line) || /\.\s*setTimeout\s*\(/.test(line))) {
         continue;
       }
-      if (
-        pattern.api === "setInterval" &&
-        (/^\s*(?:public\s+|private\s+|protected\s+|async\s+)*setInterval\s*\(/.test(
-          line,
-        ) ||
-          /\.\s*setInterval\s*\(/.test(line))
-      ) {
+      if (pattern.api === "setInterval" && (/^\s*(?:public\s+|private\s+|protected\s+|async\s+)*setInterval\s*\(/.test(line) || /\.\s*setInterval\s*\(/.test(line))) {
         continue;
       }
-      if (
-        pattern.api === "crypto.randomBytes" &&
-        /provider\.randomBytes|this\.provider\.randomBytes|entropy\.randomBytes/.test(
-          line,
-        )
-      ) {
+      if (pattern.api === "crypto.randomBytes" && /provider\.randomBytes|this\.provider\.randomBytes|entropy\.randomBytes/.test(line)) {
         continue;
       }
       if (pattern.api === "fetch" && /\.\s*fetch\s*\(/.test(line)) {
@@ -205,7 +112,7 @@ function scanFile(absPath, relPosix) {
         line: i + 1,
         api: pattern.api,
         match: trimmed.slice(0, 120),
-        suggestedEffect: pattern.suggestedEffect,
+        suggestedEffect: pattern.suggestedEffect
       });
     }
   }
@@ -230,12 +137,7 @@ function main() {
     }
   }
 
-  violations.sort(
-    (a, b) =>
-      a.file.localeCompare(b.file) ||
-      a.line - b.line ||
-      a.api.localeCompare(b.api),
-  );
+  violations.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.api.localeCompare(b.api));
 
   const byFile = {};
   for (const v of violations) {
@@ -252,13 +154,11 @@ function main() {
       acc[v.api] = (acc[v.api] ?? 0) + 1;
       return acc;
     }, {}),
-    violations,
+    violations
   };
 
   fs.writeFileSync(OUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
-  console.log(
-    `Wrote ${OUT_PATH} (${report.violationCount} violations in ${report.filesWithViolations.length} files)`,
-  );
+  console.log(`Wrote ${OUT_PATH} (${report.violationCount} violations in ${report.filesWithViolations.length} files)`);
 }
 
 main();

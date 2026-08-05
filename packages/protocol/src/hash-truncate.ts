@@ -20,7 +20,7 @@ export const NAME_HASH_BYTES = NAME_HASH_BITS / 8;
 /** Truncate digest bytes to `length` (default RNS truncated hash). */
 export function truncateHashBytes(
   digest: Uint8Array,
-  length: number = TRUNCATED_HASH_BYTES,
+  length: number = TRUNCATED_HASH_BYTES
 ): Uint8Array {
   if (length < 0) {
     throw new Error("hash truncation length must be non-negative");
@@ -71,7 +71,7 @@ export function initialTruncateHashBytesState(): TruncateHashBytesState {
 
 export function stepTruncateHashBytesWithActions(
   state: TruncateHashBytesState,
-  event: TruncateHashBytesEvent,
+  event: TruncateHashBytesEvent
 ): TruncateHashBytesStepResult {
   if (event.kind === "hash-truncate/truncate-gate") {
     try {
@@ -81,12 +81,9 @@ export function stepTruncateHashBytesWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: truncateHashBytes(
-              event.digest,
-              event.length ?? TRUNCATED_HASH_BYTES,
-            ),
-          },
-        ],
+            raw: truncateHashBytes(event.digest, event.length ?? TRUNCATED_HASH_BYTES)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -97,20 +94,20 @@ export function stepTruncateHashBytesWithActions(
 }
 
 export function shouldUseTruncateHashBytes(
-  actions: ReadonlyArray<TruncateHashBytesAction>,
+  actions: ReadonlyArray<TruncateHashBytesAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectTruncateHashBytes(
-  actions: ReadonlyArray<TruncateHashBytesAction>,
+  actions: ReadonlyArray<TruncateHashBytesAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract truncated bytes from step actions; null when no `use-raw`. */
 export function truncateHashBytesRawFromActions(
-  actions: ReadonlyArray<TruncateHashBytesAction>,
+  actions: ReadonlyArray<TruncateHashBytesAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

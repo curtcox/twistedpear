@@ -10,20 +10,17 @@ import { spawnSync } from "node:child_process";
 const labDir = dirname(fileURLToPath(import.meta.url));
 
 export const PACKAGE_ID = "network.twistedpear.harness";
-export const FOREGROUND_SERVICE =
-  "network.twistedpear.harness.NodeForegroundService";
+export const FOREGROUND_SERVICE = "network.twistedpear.harness.NodeForegroundService";
 export const NOTIFICATION_TITLE = "TwistedPear node active";
 
 export function adb(args, options = {}) {
   const result = spawnSync("adb", args, {
     encoding: "utf8",
-    stdio: options.inherit ? "inherit" : "pipe",
+    stdio: options.inherit ? "inherit" : "pipe"
   });
 
   if (result.status !== 0) {
-    throw new Error(
-      `adb ${args.join(" ")} failed: ${result.stderr || result.stdout}`,
-    );
+    throw new Error(`adb ${args.join(" ")} failed: ${result.stderr || result.stdout}`);
   }
 
   return result.stdout ?? "";
@@ -38,9 +35,7 @@ export function requireDevice() {
     .filter((serial) => serial.length > 0 && !serial.startsWith("*"));
 
   if (serials.length === 0) {
-    throw new Error(
-      "No adb device connected (start an emulator or set ANDROID_SERIAL)",
-    );
+    throw new Error("No adb device connected (start an emulator or set ANDROID_SERIAL)");
   }
 
   return process.env.ANDROID_SERIAL ?? serials[0];
@@ -74,28 +69,17 @@ export function waitForFixtureMeta(timeoutMs = 120_000) {
     spawnSync("sleep", ["1"]);
   }
 
-  throw new Error(
-    "Timed out waiting for fixture-meta.json (host-peer publish still running?)",
-  );
+  throw new Error("Timed out waiting for fixture-meta.json (host-peer publish still running?)");
 }
 
 export function isForegroundServiceRunning() {
-  const services = adb([
-    "shell",
-    "dumpsys",
-    "activity",
-    "services",
-    PACKAGE_ID,
-  ]);
+  const services = adb(["shell", "dumpsys", "activity", "services", PACKAGE_ID]);
   return services.includes(FOREGROUND_SERVICE);
 }
 
 export function hasForegroundNotification() {
   const notifications = adb(["shell", "dumpsys", "notification", "--noredact"]);
-  return (
-    notifications.includes(NOTIFICATION_TITLE) ||
-    notifications.includes("TwistedPear")
-  );
+  return notifications.includes(NOTIFICATION_TITLE) || notifications.includes("TwistedPear");
 }
 
 export function pressHome() {
@@ -112,15 +96,13 @@ export function launchHarness() {
     "-a",
     "android.intent.action.MAIN",
     "-c",
-    "android.intent.category.LAUNCHER",
+    "android.intent.category.LAUNCHER"
   ]);
 }
 
 export function harnessInstalled() {
   try {
-    return adb(["shell", "pm", "list", "packages", PACKAGE_ID]).includes(
-      PACKAGE_ID,
-    );
+    return adb(["shell", "pm", "list", "packages", PACKAGE_ID]).includes(PACKAGE_ID);
   } catch {
     return false;
   }
@@ -133,50 +115,29 @@ export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
   const env = {
     ...process.env,
     EXPO_NO_INTERACTIVE: "1",
-    ANDROID_HOME:
-      process.env.ANDROID_HOME ??
-      `${process.env.HOME ?? ""}/Library/Android/sdk`,
+    ANDROID_HOME: process.env.ANDROID_HOME ?? `${process.env.HOME ?? ""}/Library/Android/sdk`
   };
-  const prebuild = spawnSync(
-    "npx",
-    ["expo", "prebuild", "--platform", "android", "--no-install"],
-    {
-      cwd: harnessDir,
-      stdio: "inherit",
-      env,
-    },
-  );
-  if (prebuild.status !== 0)
-    throw new Error("expo prebuild --platform android failed");
+  const prebuild = spawnSync("npx", ["expo", "prebuild", "--platform", "android", "--no-install"], {
+    cwd: harnessDir,
+    stdio: "inherit",
+    env
+  });
+  if (prebuild.status !== 0) throw new Error("expo prebuild --platform android failed");
   // Bare TCP/FS addons must land in react-native-bare-kit's jniLibs addons dir
   // before assembleDebug; otherwise the worklet cannot open host sockets.
-  const linkAddons = spawnSync(
-    "node",
-    ["scripts/link-bare-addons.mjs", "android"],
-    {
-      cwd: harnessDir,
-      stdio: "inherit",
-      env,
-    },
-  );
-  if (linkAddons.status !== 0)
-    throw new Error("link-bare-addons android failed");
+  const linkAddons = spawnSync("node", ["scripts/link-bare-addons.mjs", "android"], {
+    cwd: harnessDir,
+    stdio: "inherit",
+    env
+  });
+  if (linkAddons.status !== 0) throw new Error("link-bare-addons android failed");
   const assembled = spawnSync("./gradlew", ["assembleDebug"], {
     cwd: androidDir,
     stdio: "inherit",
-    env,
+    env
   });
-  if (assembled.status !== 0)
-    throw new Error("Android debug harness build failed");
-  const apk = join(
-    androidDir,
-    "app",
-    "build",
-    "outputs",
-    "apk",
-    "debug",
-    "app-debug.apk",
-  );
+  if (assembled.status !== 0) throw new Error("Android debug harness build failed");
+  const apk = join(androidDir, "app", "build", "outputs", "apk", "debug", "app-debug.apk");
   if (!existsSync(apk)) throw new Error(`Android debug APK is missing: ${apk}`);
   adb(["install", "-r", apk]);
 }
@@ -184,7 +145,7 @@ export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
 export function maestro(args) {
   const env = {
     ...process.env,
-    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
   };
   const result = spawnSync("maestro", args, { stdio: "inherit", env });
   if (result.status !== 0) {
@@ -195,16 +156,14 @@ export function maestro(args) {
 export function maestroAvailable() {
   const env = {
     ...process.env,
-    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`,
+    PATH: `${process.env.HOME ?? ""}/.maestro/bin:${process.env.PATH ?? ""}`
   };
   const result = spawnSync("maestro", ["--version"], { encoding: "utf8", env });
   return result.status === 0;
 }
 
 export function readFixtureAppId() {
-  const meta = JSON.parse(
-    readFileSync(join(labDir, "fixture-meta.json"), "utf8"),
-  );
+  const meta = JSON.parse(readFileSync(join(labDir, "fixture-meta.json"), "utf8"));
   if (typeof meta.appId !== "string" || meta.appId.length === 0) {
     throw new Error("fixture-meta.json missing appId (start host-peer first)");
   }
@@ -217,7 +176,7 @@ export {
   HARNESS_BUNDLE_ID,
   dockerAvailable,
   maestroHandbookSmoke,
-  waitForHandbookMeta,
+  waitForHandbookMeta
 } from "../handbook/peer-helpers.mjs";
 
 export function maestroWithFixtureEnv(flowPath) {

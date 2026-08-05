@@ -5,7 +5,14 @@
   "stateHeaderBytes": 9,
   "concurrentWriterEvidence": {
     "commutative": true,
-    "orderedIndexes": [0, 1, 2, 3, 4, 5],
+    "orderedIndexes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
     "gapDetectionRequired": true,
     "sameIndexConflictRule": "lexicographically-smaller-payload"
   },

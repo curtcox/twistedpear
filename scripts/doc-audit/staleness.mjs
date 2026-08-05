@@ -16,7 +16,7 @@ function lastGitEditDate(root, relPath) {
   try {
     const iso = execSync(`git log -1 --format=%cs -- "${relPath}"`, {
       cwd: root,
-      encoding: "utf8",
+      encoding: "utf8"
     }).trim();
     return iso || null;
   } catch {
@@ -56,7 +56,7 @@ export function auditStaleness(root = repoRoot()) {
     findings.push({
       path: rel,
       level,
-      message: `audited ${meta.audited}, last git edit ${gitEdit}`,
+      message: `audited ${meta.audited}, last git edit ${gitEdit}`
     });
   }
   return findings;

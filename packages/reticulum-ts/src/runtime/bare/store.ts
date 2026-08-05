@@ -59,16 +59,11 @@ export class BareKeyValueStore implements KeyValueStore {
   }
 
   private pathFor(key: string): string {
-    const encoded = Array.from(key, (char) =>
-      (char.codePointAt(0) ?? 0).toString(16).padStart(2, "0"),
-    ).join("");
+    const encoded = Array.from(key, (char) => (char.codePointAt(0) ?? 0).toString(16).padStart(2, "0")).join("");
     return `${this.rootPath}/${encoded}`;
   }
 
-  private async resolveStore(): Promise<
-    | { kind: "memory"; store: MemoryKeyValueStore }
-    | { kind: "fs"; fs: BareFsModule }
-  > {
+  private async resolveStore(): Promise<{ kind: "memory"; store: MemoryKeyValueStore } | { kind: "fs"; fs: BareFsModule }> {
     const fs = await loadBareFs();
     if (fs === null) {
       this.memoryFallback ??= new MemoryKeyValueStore();

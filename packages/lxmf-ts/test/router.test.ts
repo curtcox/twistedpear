@@ -5,7 +5,7 @@ import {
   PipeInterface,
   Reticulum,
   hexToBytes,
-  nodeRuntime,
+  nodeRuntime
 } from "@twistedpear/reticulum-ts";
 import {
   LXMessage,
@@ -16,7 +16,7 @@ import {
   PropagationTransferState,
   MultipartPropagationReceiver,
   createPropagationDestination,
-  sendMultipartPropagation,
+  sendMultipartPropagation
 } from "../src/index.js";
 import { msgpackUnpackPropagationEnvelope } from "../src/msgpack.js";
 
@@ -69,8 +69,7 @@ async function connectLxmfPeers(): Promise<{
 
 describe("LXMFRouter delivery", () => {
   it("delivers opportunistic messages over PipeInterface", async () => {
-    const { aliceRouter, bobRouter, aliceDelivery, bob } =
-      await connectLxmfPeers();
+    const { aliceRouter, bobRouter, aliceDelivery, bob } = await connectLxmfPeers();
 
     const received = new Promise<string>((resolve) => {
       bobRouter.onDelivery((message) => resolve(message.contentAsString()));
@@ -84,15 +83,14 @@ describe("LXMFRouter delivery", () => {
       content: "Opportunistic hello",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: 1700000001,
+      timestamp: 1700000001
     });
 
     await expect(received).resolves.toBe("Opportunistic hello");
   });
 
   it("delivers direct link messages over PipeInterface", async () => {
-    const { aliceRouter, bobRouter, aliceDelivery, bob } =
-      await connectLxmfPeers();
+    const { aliceRouter, bobRouter, aliceDelivery, bob } = await connectLxmfPeers();
 
     const received = new Promise<string>((resolve) => {
       bobRouter.onDelivery((message) => resolve(message.contentAsString()));
@@ -106,20 +104,17 @@ describe("LXMFRouter delivery", () => {
       content: "Direct hello",
       desiredMethod: LXMessageMethod.DIRECT,
       deferStamp: true,
-      timestamp: 1700000002,
+      timestamp: 1700000002
     });
 
     await expect(received).resolves.toBe("Direct hello");
   });
 
   it("enforces block policy before invoking the receive callback", async () => {
-    const { aliceRouter, bobRouter, aliceDelivery, bob } =
-      await connectLxmfPeers();
+    const { aliceRouter, bobRouter, aliceDelivery, bob } = await connectLxmfPeers();
     let delivered = false;
     bobRouter.setInboundModeration(() => "block");
-    bobRouter.onDelivery(() => {
-      delivered = true;
-    });
+    bobRouter.onDelivery(() => { delivered = true; });
 
     await aliceRouter.packAndSend({
       destination: bobRouter.createOutboundDestination(bob),
@@ -127,21 +122,18 @@ describe("LXMFRouter delivery", () => {
       content: "blocked",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: 1700000003,
+      timestamp: 1700000003
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(delivered).toBe(false);
   });
 
   it("delivers muted messages with notifications suppressed", async () => {
-    const { aliceRouter, bobRouter, aliceDelivery, bob } =
-      await connectLxmfPeers();
+    const { aliceRouter, bobRouter, aliceDelivery, bob } = await connectLxmfPeers();
     bobRouter.setInboundModeration(() => "mute");
-    const context = new Promise<{ disposition: string; notify: boolean }>(
-      (resolve) => {
-        bobRouter.onDelivery((_message, delivery) => resolve(delivery));
-      },
-    );
+    const context = new Promise<{ disposition: string; notify: boolean }>((resolve) => {
+      bobRouter.onDelivery((_message, delivery) => resolve(delivery));
+    });
 
     await aliceRouter.packAndSend({
       destination: bobRouter.createOutboundDestination(bob),
@@ -149,12 +141,9 @@ describe("LXMFRouter delivery", () => {
       content: "quiet",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: 1700000004,
+      timestamp: 1700000004
     });
-    await expect(context).resolves.toEqual({
-      disposition: "mute",
-      notify: false,
-    });
+    await expect(context).resolves.toEqual({ disposition: "mute", notify: false });
   });
 
   it("reassembles out-of-order-safe multipart messages from propagation", async () => {
@@ -183,11 +172,7 @@ describe("LXMFRouter delivery", () => {
     const aliceDelivery = aliceRouter.registerDeliveryIdentity(alice);
     nodeRouter.registerDeliveryIdentity(nodeIdentity);
     const bobDelivery = bobRouter.registerDeliveryIdentity(bob);
-    const nodePropagation = createPropagationDestination(
-      provider,
-      nodeReticulum,
-      nodeIdentity,
-    );
+    const nodePropagation = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
 
     const store = new PropagationNodeStore(provider);
     store.registerHandlers(nodePropagation);
@@ -207,7 +192,7 @@ describe("LXMFRouter delivery", () => {
       source: aliceDelivery,
       title: "Offline",
       content: largeContent,
-      now: () => 1700000004,
+      now: () => 1700000004
     });
     expect(transfer.chunkCount).toBeGreaterThan(1);
 
@@ -247,11 +232,7 @@ describe("LXMFRouter delivery", () => {
 
     const aliceRouter = new LXMFRouter({ reticulum: aliceReticulum, provider });
     aliceRouter.registerDeliveryIdentity(alice);
-    const nodePropagation = createPropagationDestination(
-      provider,
-      nodeReticulum,
-      nodeIdentity,
-    );
+    const nodePropagation = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
 
     const discovered = new Promise<string>((resolve) => {
       aliceRouter.watchPropagationNodes((destinationHash) => {
@@ -261,9 +242,7 @@ describe("LXMFRouter delivery", () => {
 
     await nodePropagation.announce();
     await expect(discovered).resolves.toBe(nodePropagation.hexhash);
-    expect(
-      Buffer.from(aliceRouter.outboundPropagationNodeHash!).toString("hex"),
-    ).toBe(nodePropagation.hexhash);
+    expect(Buffer.from(aliceRouter.outboundPropagationNodeHash!).toString("hex")).toBe(nodePropagation.hexhash);
   });
 });
 
@@ -282,18 +261,10 @@ describe("PropagationClient sync", () => {
     clientReticulum.registerInterface(clientPipe);
 
     const nodeRouter = new LXMFRouter({ reticulum: nodeReticulum, provider });
-    const clientRouter = new LXMFRouter({
-      reticulum: clientReticulum,
-      provider,
-    });
+    const clientRouter = new LXMFRouter({ reticulum: clientReticulum, provider });
     const nodeDelivery = nodeRouter.registerDeliveryIdentity(nodeIdentity);
-    const clientDelivery =
-      clientRouter.registerDeliveryIdentity(clientIdentity);
-    const nodePropagation = createPropagationDestination(
-      provider,
-      nodeReticulum,
-      nodeIdentity,
-    );
+    const clientDelivery = clientRouter.registerDeliveryIdentity(clientIdentity);
+    const nodePropagation = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
 
     const store = new PropagationNodeStore(provider);
     store.registerHandlers(nodePropagation);
@@ -312,11 +283,9 @@ describe("PropagationClient sync", () => {
       content: "Queued for propagation",
       desiredMethod: LXMessageMethod.PROPAGATED,
       deferStamp: true,
-      timestamp: 1700000003,
+      timestamp: 1700000003
     });
-    const [queuedMessage] = msgpackUnpackPropagationEnvelope(
-      packed.propagationPacked!,
-    );
+    const [queuedMessage] = msgpackUnpackPropagationEnvelope(packed.propagationPacked!);
     if (queuedMessage === undefined) {
       throw new Error("Missing propagation payload");
     }

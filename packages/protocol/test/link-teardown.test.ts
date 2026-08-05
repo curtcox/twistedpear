@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ChannelMessageState,
-  channelMessageStateFromPacketReceipt,
+  channelMessageStateFromPacketReceipt
 } from "../src/channel-envelope.js";
 import { PacketReceiptStatus } from "../src/packet-receipt-timeout.js";
 import {
@@ -32,79 +32,65 @@ import {
   stepLinkTeardownPlanWithActions,
   stepLinkTeardownReasonPlanWithActions,
   stepLinkTeardownReasonWithActions,
-  stepLinkTeardownWithActions,
+  stepLinkTeardownWithActions
 } from "../src/link-teardown.js";
 import { LinkStatus, LinkTeardownReason } from "../src/link-watchdog.js";
 
 describe("channelMessageStateFromPacketReceipt", () => {
   it("maps receipt statuses to channel message states", () => {
-    expect(channelMessageStateFromPacketReceipt(null)).toBe(
-      ChannelMessageState.MSGSTATE_FAILED,
-    );
+    expect(channelMessageStateFromPacketReceipt(null)).toBe(ChannelMessageState.MSGSTATE_FAILED);
     expect(channelMessageStateFromPacketReceipt(PacketReceiptStatus.SENT)).toBe(
-      ChannelMessageState.MSGSTATE_SENT,
+      ChannelMessageState.MSGSTATE_SENT
     );
-    expect(
-      channelMessageStateFromPacketReceipt(PacketReceiptStatus.DELIVERED),
-    ).toBe(ChannelMessageState.MSGSTATE_DELIVERED);
-    expect(
-      channelMessageStateFromPacketReceipt(PacketReceiptStatus.FAILED),
-    ).toBe(ChannelMessageState.MSGSTATE_FAILED);
+    expect(channelMessageStateFromPacketReceipt(PacketReceiptStatus.DELIVERED)).toBe(
+      ChannelMessageState.MSGSTATE_DELIVERED
+    );
+    expect(channelMessageStateFromPacketReceipt(PacketReceiptStatus.FAILED)).toBe(
+      ChannelMessageState.MSGSTATE_FAILED
+    );
   });
 });
 
 describe("link teardown planning", () => {
   it("closes only for pending/closed, otherwise sends teardown", () => {
-    expect(planLinkTeardown(LinkStatus.PENDING)).toEqual({
-      kind: "close-only",
-    });
+    expect(planLinkTeardown(LinkStatus.PENDING)).toEqual({ kind: "close-only" });
     expect(planLinkTeardown(LinkStatus.CLOSED)).toEqual({ kind: "close-only" });
-    expect(planLinkTeardown(LinkStatus.ACTIVE)).toEqual({
-      kind: "send-teardown-then-close",
-    });
+    expect(planLinkTeardown(LinkStatus.ACTIVE)).toEqual({ kind: "send-teardown-then-close" });
 
-    const pending = stepLinkTeardownPlanWithActions(
-      initialLinkTeardownPlanState(),
-      {
-        kind: "link/teardown-plan-gate",
-        status: LinkStatus.PENDING,
-      },
-    );
+    const pending = stepLinkTeardownPlanWithActions(initialLinkTeardownPlanState(), {
+      kind: "link/teardown-plan-gate",
+      status: LinkStatus.PENDING
+    });
     expect(pending.actions).toEqual([{ kind: "close-only" }]);
     expect(shouldCloseOnlyLinkTeardownPlan(pending.actions)).toBe(true);
     expect(shouldSendLinkTeardownThenClosePlan(pending.actions)).toBe(false);
-    expect(linkTeardownPlanFromActions(pending.actions)).toEqual({
-      kind: "close-only",
-    });
+    expect(linkTeardownPlanFromActions(pending.actions)).toEqual({ kind: "close-only" });
 
-    const active = stepLinkTeardownPlanWithActions(
-      initialLinkTeardownPlanState(),
-      {
-        kind: "link/teardown-plan-gate",
-        status: LinkStatus.ACTIVE,
-      },
-    );
+    const active = stepLinkTeardownPlanWithActions(initialLinkTeardownPlanState(), {
+      kind: "link/teardown-plan-gate",
+      status: LinkStatus.ACTIVE
+    });
     expect(active.actions).toEqual([{ kind: "send-teardown-then-close" }]);
     expect(shouldCloseOnlyLinkTeardownPlan(active.actions)).toBe(false);
     expect(shouldSendLinkTeardownThenClosePlan(active.actions)).toBe(true);
     expect(linkTeardownPlanFromActions(active.actions)).toEqual({
-      kind: "send-teardown-then-close",
+      kind: "send-teardown-then-close"
     });
     expect(linkTeardownPlanFromActions([])).toBeNull();
   });
 
   it("plans local and remote teardown reasons", () => {
     expect(planLinkTeardownReason({ initiator: true, remote: false })).toBe(
-      LinkTeardownReason.INITIATOR_CLOSED,
+      LinkTeardownReason.INITIATOR_CLOSED
     );
     expect(planLinkTeardownReason({ initiator: false, remote: false })).toBe(
-      LinkTeardownReason.DESTINATION_CLOSED,
+      LinkTeardownReason.DESTINATION_CLOSED
     );
     expect(planLinkTeardownReason({ initiator: true, remote: true })).toBe(
-      LinkTeardownReason.DESTINATION_CLOSED,
+      LinkTeardownReason.DESTINATION_CLOSED
     );
     expect(planLinkTeardownReason({ initiator: false, remote: true })).toBe(
-      LinkTeardownReason.INITIATOR_CLOSED,
+      LinkTeardownReason.INITIATOR_CLOSED
     );
 
     const localInitiatorPlan = stepLinkTeardownReasonPlanWithActions(
@@ -112,42 +98,34 @@ describe("link teardown planning", () => {
       {
         kind: "link/teardown-reason-plan-gate",
         initiator: true,
-        remote: false,
-      },
+        remote: false
+      }
     );
     expect(linkTeardownReasonPlanFromActions(localInitiatorPlan.actions)).toBe(
-      LinkTeardownReason.INITIATOR_CLOSED,
+      LinkTeardownReason.INITIATOR_CLOSED
     );
-    expect(shouldUseLinkTeardownReasonPlan(localInitiatorPlan.actions)).toBe(
-      true,
-    );
+    expect(shouldUseLinkTeardownReasonPlan(localInitiatorPlan.actions)).toBe(true);
 
-    const localInitiator = stepLinkTeardownReasonWithActions(
-      initialLinkTeardownReasonState(),
-      {
-        kind: "link/teardown-reason-gate",
-        initiator: true,
-        remote: false,
-      },
-    );
+    const localInitiator = stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
+      kind: "link/teardown-reason-gate",
+      initiator: true,
+      remote: false
+    });
     expect(localInitiator.actions).toEqual([
-      { kind: "use-reason", reason: LinkTeardownReason.INITIATOR_CLOSED },
+      { kind: "use-reason", reason: LinkTeardownReason.INITIATOR_CLOSED }
     ]);
     expect(shouldUseLinkTeardownReason(localInitiator.actions)).toBe(true);
     expect(linkTeardownReasonFromActions(localInitiator.actions)).toBe(
-      LinkTeardownReason.INITIATOR_CLOSED,
+      LinkTeardownReason.INITIATOR_CLOSED
     );
 
-    const remoteInitiator = stepLinkTeardownReasonWithActions(
-      initialLinkTeardownReasonState(),
-      {
-        kind: "link/teardown-reason-gate",
-        initiator: true,
-        remote: true,
-      },
-    );
+    const remoteInitiator = stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
+      kind: "link/teardown-reason-gate",
+      initiator: true,
+      remote: true
+    });
     expect(linkTeardownReasonFromActions(remoteInitiator.actions)).toBe(
-      LinkTeardownReason.DESTINATION_CLOSED,
+      LinkTeardownReason.DESTINATION_CLOSED
     );
     expect(linkTeardownReasonFromActions([])).toBeNull();
     expect(linkTeardownReasonPlanFromActions([])).toBeNull();
@@ -157,42 +135,36 @@ describe("link teardown planning", () => {
     expect(
       shouldAcceptLinkTeardown({
         plaintextPresent: true,
-        linkIdMatches: true,
-      }),
+        linkIdMatches: true
+      })
     ).toBe(true);
     expect(
       shouldAcceptLinkTeardown({
         plaintextPresent: false,
-        linkIdMatches: false,
-      }),
+        linkIdMatches: false
+      })
     ).toBe(false);
     expect(
       shouldAcceptLinkTeardown({
         plaintextPresent: true,
-        linkIdMatches: false,
-      }),
+        linkIdMatches: false
+      })
     ).toBe(false);
 
-    const accept = stepAcceptLinkTeardownWithActions(
-      initialAcceptLinkTeardownState(),
-      {
-        kind: "link/accept-teardown-gate",
-        plaintextPresent: true,
-        linkIdMatches: true,
-      },
-    );
+    const accept = stepAcceptLinkTeardownWithActions(initialAcceptLinkTeardownState(), {
+      kind: "link/accept-teardown-gate",
+      plaintextPresent: true,
+      linkIdMatches: true
+    });
     expect(accept.actions).toEqual([{ kind: "accept" }]);
     expect(shouldAcceptLinkTeardownNow(accept.actions)).toBe(true);
     expect(shouldSkipLinkTeardownAccept(accept.actions)).toBe(false);
 
-    const skip = stepAcceptLinkTeardownWithActions(
-      initialAcceptLinkTeardownState(),
-      {
-        kind: "link/accept-teardown-gate",
-        plaintextPresent: true,
-        linkIdMatches: false,
-      },
-    );
+    const skip = stepAcceptLinkTeardownWithActions(initialAcceptLinkTeardownState(), {
+      kind: "link/accept-teardown-gate",
+      plaintextPresent: true,
+      linkIdMatches: false
+    });
     expect(skip.actions).toEqual([{ kind: "skip" }]);
     expect(shouldAcceptLinkTeardownNow(skip.actions)).toBe(false);
     expect(shouldSkipLinkTeardownAccept(skip.actions)).toBe(true);
@@ -201,51 +173,42 @@ describe("link teardown planning", () => {
   it("emits teardown actions for local close-only / send / remote accept", () => {
     const pending = initialLinkTeardownState({
       status: LinkStatus.PENDING,
-      initiator: true,
+      initiator: true
     });
-    const closeOnly = stepLinkTeardownWithActions(pending, {
-      kind: "teardown/local",
-    });
+    const closeOnly = stepLinkTeardownWithActions(pending, { kind: "teardown/local" });
     expect(closeOnly.actions).toEqual([{ kind: "close-only" }]);
     expect(shouldCloseOnlyLinkTeardown(closeOnly.actions)).toBe(true);
     expect(closeOnly.state.status).toBe(LinkStatus.CLOSED);
 
     const active = initialLinkTeardownState({
       status: LinkStatus.ACTIVE,
-      initiator: true,
+      initiator: true
     });
-    const send = stepLinkTeardownWithActions(active, {
-      kind: "teardown/local",
-    });
+    const send = stepLinkTeardownWithActions(active, { kind: "teardown/local" });
     expect(send.actions).toEqual([
       {
         kind: "send-teardown-then-close",
-        reason: LinkTeardownReason.INITIATOR_CLOSED,
-      },
+        reason: LinkTeardownReason.INITIATOR_CLOSED
+      }
     ]);
     expect(shouldSendLinkTeardownThenClose(send.actions)).toBe(true);
-    expect(linkTeardownSendThenCloseAction(send.actions)).toEqual(
-      send.actions[0],
-    );
+    expect(linkTeardownSendThenCloseAction(send.actions)).toEqual(send.actions[0]);
 
     const responder = stepLinkTeardownWithActions(
-      initialLinkTeardownState({
-        status: LinkStatus.HANDSHAKE,
-        initiator: false,
-      }),
-      { kind: "teardown/local" },
+      initialLinkTeardownState({ status: LinkStatus.HANDSHAKE, initiator: false }),
+      { kind: "teardown/local" }
     );
     expect(responder.actions).toEqual([
       {
         kind: "send-teardown-then-close",
-        reason: LinkTeardownReason.DESTINATION_CLOSED,
-      },
+        reason: LinkTeardownReason.DESTINATION_CLOSED
+      }
     ]);
 
     const ignored = stepLinkTeardownWithActions(active, {
       kind: "teardown/remote",
       plaintextPresent: true,
-      linkIdMatches: false,
+      linkIdMatches: false
     });
     expect(ignored.actions).toEqual([]);
     expect(shouldAcceptRemoteLinkTeardown(ignored.actions)).toBe(false);
@@ -253,23 +216,21 @@ describe("link teardown planning", () => {
     const remote = stepLinkTeardownWithActions(active, {
       kind: "teardown/remote",
       plaintextPresent: true,
-      linkIdMatches: true,
+      linkIdMatches: true
     });
     expect(remote.actions).toEqual([
       {
         kind: "accept-remote-close",
-        reason: LinkTeardownReason.DESTINATION_CLOSED,
-      },
+        reason: LinkTeardownReason.DESTINATION_CLOSED
+      }
     ]);
     expect(shouldAcceptRemoteLinkTeardown(remote.actions)).toBe(true);
-    expect(linkTeardownRemoteCloseAction(remote.actions)).toEqual(
-      remote.actions[0],
-    );
+    expect(linkTeardownRemoteCloseAction(remote.actions)).toEqual(remote.actions[0]);
 
     const stripped = stepLinkTeardown(pending, { kind: "teardown/local" });
     expect(stripped).toEqual({
       state: closeOnly.state,
-      intents: closeOnly.intents,
+      intents: closeOnly.intents
     });
   });
 
@@ -278,39 +239,30 @@ describe("link teardown planning", () => {
       const steps = [];
       steps.push(
         stepLinkTeardownWithActions(
-          initialLinkTeardownState({
-            status: LinkStatus.PENDING,
-            initiator: true,
-          }),
-          { kind: "teardown/local" },
-        ),
+          initialLinkTeardownState({ status: LinkStatus.PENDING, initiator: true }),
+          { kind: "teardown/local" }
+        )
       );
       steps.push(
         stepLinkTeardownWithActions(
-          initialLinkTeardownState({
-            status: LinkStatus.ACTIVE,
-            initiator: false,
-          }),
-          { kind: "teardown/local" },
-        ),
+          initialLinkTeardownState({ status: LinkStatus.ACTIVE, initiator: false }),
+          { kind: "teardown/local" }
+        )
       );
       steps.push(
         stepLinkTeardownWithActions(
-          initialLinkTeardownState({
-            status: LinkStatus.ACTIVE,
-            initiator: true,
-          }),
+          initialLinkTeardownState({ status: LinkStatus.ACTIVE, initiator: true }),
           {
             kind: "teardown/remote",
             plaintextPresent: true,
-            linkIdMatches: true,
-          },
-        ),
+            linkIdMatches: true
+          }
+        )
       );
       return steps.map((s) => ({
         status: s.state.status,
         actions: s.actions,
-        intents: s.intents,
+        intents: s.intents
       }));
     };
     expect(run()).toEqual(run());

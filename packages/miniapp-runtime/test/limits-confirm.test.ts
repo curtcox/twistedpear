@@ -8,7 +8,7 @@ import {
   requestHostConfirmation,
   type BrokerContext,
   type ConfirmationRequest,
-  type GrantKeyValueStore,
+  type GrantKeyValueStore
 } from "../src/index.js";
 
 class MemoryStore implements GrantKeyValueStore {
@@ -35,7 +35,7 @@ const context: BrokerContext = {
   appId: "hello",
   publisherPublicKey: "publisher",
   declaredCapabilities: [],
-  grantedCapabilities: [],
+  grantedCapabilities: []
 };
 
 function pingRequest(id: number) {
@@ -45,10 +45,7 @@ function pingRequest(id: number) {
 describe("dynamic broker rate limits", () => {
   function brokerWithClock() {
     let nowValue = 1_000;
-    const broker = new MiniappBroker({
-      maxMessagesPerSecond: 5,
-      now: () => nowValue,
-    });
+    const broker = new MiniappBroker({ maxMessagesPerSecond: 5, now: () => nowValue });
     broker.register("test", "ping", null, () => "pong");
     return { broker, advance: (ms: number) => (nowValue += ms) };
   }
@@ -56,9 +53,7 @@ describe("dynamic broker rate limits", () => {
   it("enforces the constructor default", async () => {
     const { broker } = brokerWithClock();
     for (let index = 0; index < 5; index += 1) {
-      expect((await broker.dispatch(pingRequest(index), context)).ok).toBe(
-        true,
-      );
+      expect((await broker.dispatch(pingRequest(index), context)).ok).toBe(true);
     }
 
     const denied = await broker.dispatch(pingRequest(6), context);
@@ -95,7 +90,7 @@ describe("host resource limits", () => {
     version: "1.0.0",
     entry: "bundle.js",
     capabilities: ["storage:kv"],
-    publisherPublicKey: "publisher",
+    publisherPublicKey: "publisher"
   };
 
   function makeHost(store = new MemoryStore()) {
@@ -104,8 +99,8 @@ describe("host resource limits", () => {
       host: new MiniappHost({
         backend: new NodeWorkerSandboxBackend(),
         grantStore: new GrantStore(store),
-        kvBackend: store,
-      }),
+        kvBackend: store
+      })
     };
   }
 
@@ -120,13 +115,7 @@ describe("host resource limits", () => {
 
   it("applies a kv quota shrink to the next storage call", async () => {
     const { host, store } = makeHost();
-    await new GrantStore(store).set(
-      "hello",
-      "publisher",
-      manifest.capabilities,
-      ["storage:kv"],
-      1_000,
-    );
+    await new GrantStore(store).set("hello", "publisher", manifest.capabilities, ["storage:kv"], 1_000);
 
     const write = (id: string, size: number) =>
       host.dispatchRaw(
@@ -134,10 +123,10 @@ describe("host resource limits", () => {
           id,
           namespace: "storage.kv",
           method: "set",
-          payload: { key: "doc", value: new Uint8Array(size) },
+          payload: { key: "doc", value: new Uint8Array(size) }
         },
         manifest,
-        ["storage:kv"],
+        ["storage:kv"]
       );
 
     expect((await write("w1", 128)).ok).toBe(true);
@@ -153,19 +142,11 @@ describe("host resource limits", () => {
 
   it("marks memory limits as pending restart while the app runs", async () => {
     const { host, store } = makeHost();
-    await new GrantStore(store).set(
-      "hello",
-      "publisher",
-      manifest.capabilities,
-      ["storage:kv"],
-      1_000,
-    );
+    await new GrantStore(store).set("hello", "publisher", manifest.capabilities, ["storage:kv"], 1_000);
     const bundle = new TextEncoder().encode("export {};\n");
 
     await host.launch(manifest, bundle);
-    const limits = host.setResourceLimits("hello", {
-      memoryBytes: 64 * 1024 * 1024,
-    });
+    const limits = host.setResourceLimits("hello", { memoryBytes: 64 * 1024 * 1024 });
     expect(limits.memoryBytes).toBe(64 * 1024 * 1024);
     expect(limits.memoryPendingRestart).toBe(true);
 
@@ -175,25 +156,16 @@ describe("host resource limits", () => {
 
   it("rejects invalid limit values", () => {
     const { host } = makeHost();
-    expect(() => host.setResourceLimits("hello", { kvQuotaBytes: -1 })).toThrow(
-      RangeError,
-    );
-    expect(() => host.setResourceLimits("hello", { memoryBytes: 0 })).toThrow(
-      RangeError,
-    );
+    expect(() => host.setResourceLimits("hello", { kvQuotaBytes: -1 })).toThrow(RangeError);
+    expect(() => host.setResourceLimits("hello", { memoryBytes: 0 })).toThrow(RangeError);
   });
 
   it("does not expose any limits method through the broker", async () => {
     const { host } = makeHost();
     const response = await host.dispatchRaw(
-      {
-        id: "x",
-        namespace: "limits",
-        method: "set",
-        payload: { maxMessagesPerSecond: 100_000 },
-      },
+      { id: "x", namespace: "limits", method: "set", payload: { maxMessagesPerSecond: 100_000 } },
       manifest,
-      ["storage:kv"],
+      ["storage:kv"]
     );
     expect(response.ok).toBe(false);
     expect(response.error?.code).toBe("UNKNOWN_METHOD");
@@ -205,7 +177,7 @@ describe("host confirmation channel", () => {
     kind: "publish" as const,
     appId: "devstudio",
     publisherPublicKey: "publisher",
-    summary: { name: "hello", version: "1.0.0" },
+    summary: { name: "hello", version: "1.0.0" }
   };
 
   let tokenCounter = 0;
@@ -217,24 +189,19 @@ describe("host confirmation channel", () => {
       bytes[0] = tokenCounter;
       return bytes;
     },
-    delay: (ms: number) =>
-      new Promise<void>((resolve) => setTimeout(resolve, ms)),
+    delay: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
   };
 
   it("denies when no channel is configured", async () => {
-    await expect(
-      requestHostConfirmation(undefined, request, effects),
-    ).rejects.toMatchObject({
-      code: "CONFIRMATION_UNAVAILABLE",
+    await expect(requestHostConfirmation(undefined, request, effects)).rejects.toMatchObject({
+      code: "CONFIRMATION_UNAVAILABLE"
     });
   });
 
   it("propagates a denial", async () => {
     const channel = { confirm: async () => ({ approved: false }) };
-    await expect(
-      requestHostConfirmation(channel, request, effects),
-    ).rejects.toMatchObject({
-      code: "CONFIRMATION_DENIED",
+    await expect(requestHostConfirmation(channel, request, effects)).rejects.toMatchObject({
+      code: "CONFIRMATION_DENIED"
     });
   });
 
@@ -244,7 +211,7 @@ describe("host confirmation channel", () => {
       confirm: async (incoming: ConfirmationRequest) => {
         seen.push(incoming);
         return { approved: true };
-      },
+      }
     };
 
     await requestHostConfirmation(channel, request, effects);
@@ -257,10 +224,8 @@ describe("host confirmation channel", () => {
 
   it("times out into a denial", async () => {
     const channel = { confirm: () => new Promise<never>(() => {}) };
-    await expect(
-      requestHostConfirmation(channel, request, effects, 20),
-    ).rejects.toMatchObject({
-      code: "CONFIRMATION_TIMEOUT",
+    await expect(requestHostConfirmation(channel, request, effects, 20)).rejects.toMatchObject({
+      code: "CONFIRMATION_TIMEOUT"
     });
   });
 

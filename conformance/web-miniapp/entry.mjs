@@ -6,7 +6,7 @@
 import { WebSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/web.js";
 import {
   encodeJsonWireValue,
-  reviveJsonWireValue,
+  reviveJsonWireValue
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 
 function sleep(ms) {
@@ -17,10 +17,7 @@ function hexToBytes(hex) {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
   const bytes = new Uint8Array(normalized.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(
-      normalized.slice(index * 2, index * 2 + 2),
-      16,
-    );
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
   }
 
   return bytes;
@@ -79,23 +76,23 @@ function createSandboxRelay(sendToWorker) {
                     type: "sandbox-broker-request",
                     requestId,
                     instanceId: message.instanceId,
-                    request: encodeJsonWireValue(request),
+                    request: encodeJsonWireValue(request)
                   });
-                }),
-            },
+                })
+            }
           });
 
           instances.set(message.instanceId, instance);
           sendToWorker({
             type: "sandbox-spawned",
             requestId: message.requestId,
-            instanceId: message.instanceId,
+            instanceId: message.instanceId
           });
         } catch (error) {
           sendToWorker({
             type: "sandbox-spawn-failed",
             requestId: message.requestId,
-            message: error instanceof Error ? error.message : String(error),
+            message: error instanceof Error ? error.message : String(error)
           });
         }
 
@@ -110,14 +107,11 @@ function createSandboxRelay(sendToWorker) {
 
       if (message.type === "sandbox-ping") {
         const instance = instances.get(message.instanceId);
-        const alive =
-          instance === undefined
-            ? false
-            : await instance.ping(message.timeoutMs);
+        const alive = instance === undefined ? false : await instance.ping(message.timeoutMs);
         sendToWorker({
           type: "sandbox-ping-result",
           requestId: message.requestId,
-          alive,
+          alive
         });
         return;
       }
@@ -141,7 +135,7 @@ function createSandboxRelay(sendToWorker) {
         pendingBrokers.delete(message.requestId);
         waiter.resolve(reviveJsonWireValue(message.response));
       }
-    },
+    }
   };
 }
 
@@ -216,19 +210,14 @@ async function main() {
     type: "start",
     targetHost: "127.0.0.1",
     targetPort: 9480,
-    gatewayUrl: "ws://127.0.0.1:9480",
+    gatewayUrl: "ws://127.0.0.1:9480"
   });
   send({ type: "dev-side-load-hello" });
 
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
-    if (
-      latestRuntime?.widgetTree !== null &&
-      latestRuntime?.widgetTree !== undefined
-    ) {
-      if (
-        treeContainsText(latestRuntime.widgetTree, "Hello from web sandbox")
-      ) {
+    if (latestRuntime?.widgetTree !== null && latestRuntime?.widgetTree !== undefined) {
+      if (treeContainsText(latestRuntime.widgetTree, "Hello from web sandbox")) {
         break;
       }
     }
@@ -236,10 +225,7 @@ async function main() {
     await sleep(100);
   }
 
-  if (
-    latestRuntime?.widgetTree === null ||
-    latestRuntime?.widgetTree === undefined
-  ) {
+  if (latestRuntime?.widgetTree === null || latestRuntime?.widgetTree === undefined) {
     throw new Error("mini-app widget tree did not render");
   }
 
@@ -252,10 +238,7 @@ async function main() {
   let tapped = false;
   const tapDeadline = Date.now() + 10_000;
   while (Date.now() < tapDeadline) {
-    if (
-      latestRuntime?.widgetTree !== null &&
-      latestRuntime?.widgetTree !== undefined
-    ) {
+    if (latestRuntime?.widgetTree !== null && latestRuntime?.widgetTree !== undefined) {
       if (treeContainsText(latestRuntime.widgetTree, "Tapped!")) {
         tapped = true;
         break;
@@ -272,13 +255,13 @@ async function main() {
   globalThis.__WEB_MINIAPP__ = {
     status: "done",
     appId: latestRuntime.appId,
-    state: latestRuntime.state,
+    state: latestRuntime.state
   };
 }
 
 main().catch((error) => {
   globalThis.__WEB_MINIAPP__ = {
     status: "error",
-    message: error instanceof Error ? error.message : String(error),
+    message: error instanceof Error ? error.message : String(error)
   };
 });

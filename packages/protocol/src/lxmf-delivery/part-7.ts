@@ -12,19 +12,14 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
 import { LxmfDeliveryMethod } from "./part-1.js";
 import { shouldAwaitLxmfDeliveryReceipt } from "./part-6.js";
-import type {
-  AwaitLxmfDeliveryReceiptAction,
-  AwaitLxmfDeliveryReceiptEvent,
-  AwaitLxmfDeliveryReceiptState,
-  AwaitLxmfDeliveryReceiptStepResult,
-} from "./part-6.js";
+import type { AwaitLxmfDeliveryReceiptAction, AwaitLxmfDeliveryReceiptEvent, AwaitLxmfDeliveryReceiptState, AwaitLxmfDeliveryReceiptStepResult } from "./part-6.js";
 export function stepAwaitLxmfDeliveryReceiptWithActions(
   state: AwaitLxmfDeliveryReceiptState,
-  event: AwaitLxmfDeliveryReceiptEvent,
+  event: AwaitLxmfDeliveryReceiptEvent
 ): AwaitLxmfDeliveryReceiptStepResult {
   if (event.kind === "lxmf/await-delivery-receipt-gate") {
     return {
@@ -32,11 +27,9 @@ export function stepAwaitLxmfDeliveryReceiptWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAwaitLxmfDeliveryReceipt(event.receiptPresent)
-            ? "await"
-            : "skip",
-        },
-      ],
+          kind: shouldAwaitLxmfDeliveryReceipt(event.receiptPresent) ? "await" : "skip"
+        }
+      ]
     };
   }
 
@@ -44,21 +37,19 @@ export function stepAwaitLxmfDeliveryReceiptWithActions(
 }
 
 export function shouldAwaitLxmfDeliveryReceiptNow(
-  actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>,
+  actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>
 ): boolean {
   return actions.some((action) => action.kind === "await");
 }
 
 export function shouldSkipAwaitLxmfDeliveryReceipt(
-  actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>,
+  actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether an unpacked deliverable should invoke the delivery callback. */
-export function shouldInvokeLxmfDeliveryCallback(
-  messagePresent: boolean,
-): boolean {
+export function shouldInvokeLxmfDeliveryCallback(messagePresent: boolean): boolean {
   return messagePresent;
 }
 
@@ -77,7 +68,8 @@ export type InvokeLxmfDeliveryCallbackEvent =
     };
 
 export type InvokeLxmfDeliveryCallbackAction =
-  { readonly kind: "invoke" } | { readonly kind: "skip" };
+  | { readonly kind: "invoke" }
+  | { readonly kind: "skip" };
 
 export interface InvokeLxmfDeliveryCallbackStepResult {
   readonly state: InvokeLxmfDeliveryCallbackState;
@@ -91,7 +83,7 @@ export function initialInvokeLxmfDeliveryCallbackState(): InvokeLxmfDeliveryCall
 
 export function stepInvokeLxmfDeliveryCallbackWithActions(
   state: InvokeLxmfDeliveryCallbackState,
-  event: InvokeLxmfDeliveryCallbackEvent,
+  event: InvokeLxmfDeliveryCallbackEvent
 ): InvokeLxmfDeliveryCallbackStepResult {
   if (event.kind === "lxmf/invoke-delivery-callback-gate") {
     return {
@@ -99,11 +91,9 @@ export function stepInvokeLxmfDeliveryCallbackWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldInvokeLxmfDeliveryCallback(event.messagePresent)
-            ? "invoke"
-            : "skip",
-        },
-      ],
+          kind: shouldInvokeLxmfDeliveryCallback(event.messagePresent) ? "invoke" : "skip"
+        }
+      ]
     };
   }
 
@@ -111,13 +101,13 @@ export function stepInvokeLxmfDeliveryCallbackWithActions(
 }
 
 export function shouldInvokeLxmfDeliveryCallbackNow(
-  actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>,
+  actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>
 ): boolean {
   return actions.some((action) => action.kind === "invoke");
 }
 
 export function shouldSkipInvokeLxmfDeliveryCallback(
-  actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>,
+  actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -184,7 +174,7 @@ export function initialLxmfSendMethodPlanState(): LxmfSendMethodPlanState {
 
 export function stepLxmfSendMethodPlanWithActions(
   state: LxmfSendMethodPlanState,
-  event: LxmfSendMethodPlanEvent,
+  event: LxmfSendMethodPlanEvent
 ): LxmfSendMethodPlanStepResult {
   if (event.kind === "send/plan-gate") {
     return {
@@ -194,10 +184,10 @@ export function stepLxmfSendMethodPlanWithActions(
         {
           kind: planLxmfSendMethod({
             packed: event.packed,
-            method: event.method,
-          }),
-        },
-      ],
+            method: event.method
+          })
+        }
+      ]
     };
   }
 
@@ -206,42 +196,42 @@ export function stepLxmfSendMethodPlanWithActions(
 
 /** Whether plan actions reject an unpacked send. */
 export function shouldRejectLxmfSendMethodPlanUnpacked(
-  actions: ReadonlyArray<LxmfSendMethodPlanAction>,
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-unpacked");
 }
 
 /** Whether plan actions select opportunistic send. */
 export function shouldPlanLxmfSendMethodOpportunistic(
-  actions: ReadonlyArray<LxmfSendMethodPlanAction>,
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "opportunistic");
 }
 
 /** Whether plan actions select direct send. */
 export function shouldPlanLxmfSendMethodDirect(
-  actions: ReadonlyArray<LxmfSendMethodPlanAction>,
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "direct");
 }
 
 /** Whether plan actions select propagated send. */
 export function shouldPlanLxmfSendMethodPropagated(
-  actions: ReadonlyArray<LxmfSendMethodPlanAction>,
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "propagated");
 }
 
 /** Whether plan actions reject an unsupported delivery method. */
 export function shouldRejectLxmfSendMethodPlanUnsupported(
-  actions: ReadonlyArray<LxmfSendMethodPlanAction>,
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-unsupported");
 }
 
 /** Extract the send-method plan from actions; null when empty. */
 export function lxmfSendMethodPlanFromActions(
-  actions: ReadonlyArray<LxmfSendMethodPlanAction>,
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
 ): LxmfSendMethodPlan | null {
   const action = actions.find(
     (entry) =>
@@ -249,7 +239,7 @@ export function lxmfSendMethodPlanFromActions(
       entry.kind === "direct" ||
       entry.kind === "propagated" ||
       entry.kind === "reject-unpacked" ||
-      entry.kind === "reject-unsupported",
+      entry.kind === "reject-unsupported"
   );
   return action?.kind ?? null;
 }
@@ -292,59 +282,56 @@ export function initialLxmfSendMethodState(): LxmfSendMethodState {
   return {};
 }
 
-export const stepLxmfSendMethod: StepFn<LxmfSendMethodState> = (
-  state,
-  event,
-) => {
+export const stepLxmfSendMethod: StepFn<LxmfSendMethodState> = (state, event) => {
   const result = stepLxmfSendMethodInner(state, event as LxmfSendMethodEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfSendMethodWithActions(
   state: LxmfSendMethodState,
-  event: LxmfSendMethodEvent,
+  event: LxmfSendMethodEvent
 ): LxmfSendMethodStepResult {
   return stepLxmfSendMethodInner(state, event);
 }
 
 /** Whether step actions reject an unpacked send. */
 export function shouldRejectLxmfSendUnpacked(
-  actions: ReadonlyArray<LxmfSendMethodAction>,
+  actions: ReadonlyArray<LxmfSendMethodAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-unpacked");
 }
 
 /** Whether step actions dispatch opportunistic send. */
 export function shouldSendLxmfOpportunistic(
-  actions: ReadonlyArray<LxmfSendMethodAction>,
+  actions: ReadonlyArray<LxmfSendMethodAction>
 ): boolean {
   return actions.some((action) => action.kind === "send-opportunistic");
 }
 
 /** Whether step actions dispatch direct send. */
 export function shouldSendLxmfDirect(
-  actions: ReadonlyArray<LxmfSendMethodAction>,
+  actions: ReadonlyArray<LxmfSendMethodAction>
 ): boolean {
   return actions.some((action) => action.kind === "send-direct");
 }
 
 /** Whether step actions dispatch propagated send. */
 export function shouldSendLxmfPropagated(
-  actions: ReadonlyArray<LxmfSendMethodAction>,
+  actions: ReadonlyArray<LxmfSendMethodAction>
 ): boolean {
   return actions.some((action) => action.kind === "send-propagated");
 }
 
 /** Whether step actions reject an unsupported delivery method. */
 export function shouldRejectLxmfSendUnsupported(
-  actions: ReadonlyArray<LxmfSendMethodAction>,
+  actions: ReadonlyArray<LxmfSendMethodAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-unsupported");
 }
 
 /** Unsupported method code from a reject-unsupported action, if present. */
 export function lxmfSendUnsupportedMethod(
-  actions: ReadonlyArray<LxmfSendMethodAction>,
+  actions: ReadonlyArray<LxmfSendMethodAction>
 ): number | null {
   for (const action of actions) {
     if (action.kind === "reject-unsupported") {
@@ -356,17 +343,14 @@ export function lxmfSendUnsupportedMethod(
 
 function stepLxmfSendMethodInner(
   state: LxmfSendMethodState,
-  event: LxmfSendMethodEvent,
+  event: LxmfSendMethodEvent
 ): LxmfSendMethodStepResult {
   if (event.kind === "send/dispatch") {
-    const planActions = stepLxmfSendMethodPlanWithActions(
-      initialLxmfSendMethodPlanState(),
-      {
-        kind: "send/plan-gate",
-        packed: event.packed,
-        method: event.method,
-      },
-    ).actions;
+    const planActions = stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+      kind: "send/plan-gate",
+      packed: event.packed,
+      method: event.method
+    }).actions;
     if (shouldRejectLxmfSendMethodPlanUnpacked(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-unpacked" }] };
     }
@@ -385,15 +369,14 @@ function stepLxmfSendMethodInner(
     return {
       state,
       intents: [],
-      actions: [{ kind: "reject-unsupported", method: event.method }],
+      actions: [{ kind: "reject-unsupported", method: event.method }]
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export type LxmfDirectSendPlan =
-  "ok" | "missing-destination" | "missing-packed";
+export type LxmfDirectSendPlan = "ok" | "missing-destination" | "missing-packed";
 
 /** Whether DIRECT send may proceed (destination identity + packed envelope). */
 export function planLxmfDirectSend(input: {
@@ -426,21 +409,21 @@ export type LxmfDirectSendPlanAction =
 
 /** Whether plan actions allow DIRECT send to proceed. */
 export function shouldPlanLxmfDirectSendOk(
-  actions: ReadonlyArray<LxmfDirectSendPlanAction>,
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 /** Whether plan actions reject a missing destination / identity. */
 export function shouldRejectLxmfDirectSendPlanMissingDestination(
-  actions: ReadonlyArray<LxmfDirectSendPlanAction>,
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-destination");
 }
 
 /** Whether plan actions reject a missing packed envelope. */
 export function shouldRejectLxmfDirectSendPlanMissingPacked(
-  actions: ReadonlyArray<LxmfDirectSendPlanAction>,
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-packed");
 }

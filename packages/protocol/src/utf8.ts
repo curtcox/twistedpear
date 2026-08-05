@@ -22,17 +22,13 @@ export function utf8Encode(value: string): Uint8Array {
           0xf0 | (code >> 18),
           0x80 | ((code >> 12) & 0x3f),
           0x80 | ((code >> 6) & 0x3f),
-          0x80 | (code & 0x3f),
+          0x80 | (code & 0x3f)
         );
         continue;
       }
       out.push(0xef, 0xbf, 0xbd);
     } else {
-      out.push(
-        0xe0 | (code >> 12),
-        0x80 | ((code >> 6) & 0x3f),
-        0x80 | (code & 0x3f),
-      );
+      out.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
     }
   }
   return Uint8Array.from(out);
@@ -40,7 +36,7 @@ export function utf8Encode(value: string): Uint8Array {
 
 export function utf8Decode(bytes: Uint8Array): string {
   let out = "";
-  for (let i = 0; i < bytes.length;) {
+  for (let i = 0; i < bytes.length; ) {
     const b0 = bytes[i]!;
     if (b0 < 0x80) {
       out += String.fromCharCode(b0);
@@ -52,24 +48,16 @@ export function utf8Decode(bytes: Uint8Array): string {
     } else if ((b0 & 0xf0) === 0xe0 && i + 2 < bytes.length) {
       const b1 = bytes[i + 1]!;
       const b2 = bytes[i + 2]!;
-      out += String.fromCharCode(
-        ((b0 & 0x0f) << 12) | ((b1 & 0x3f) << 6) | (b2 & 0x3f),
-      );
+      out += String.fromCharCode(((b0 & 0x0f) << 12) | ((b1 & 0x3f) << 6) | (b2 & 0x3f));
       i += 3;
     } else if ((b0 & 0xf8) === 0xf0 && i + 3 < bytes.length) {
       const b1 = bytes[i + 1]!;
       const b2 = bytes[i + 2]!;
       const b3 = bytes[i + 3]!;
       let code =
-        ((b0 & 0x07) << 18) |
-        ((b1 & 0x3f) << 12) |
-        ((b2 & 0x3f) << 6) |
-        (b3 & 0x3f);
+        ((b0 & 0x07) << 18) | ((b1 & 0x3f) << 12) | ((b2 & 0x3f) << 6) | (b3 & 0x3f);
       code -= 0x10000;
-      out += String.fromCharCode(
-        0xd800 + (code >> 10),
-        0xdc00 + (code & 0x3ff),
-      );
+      out += String.fromCharCode(0xd800 + (code >> 10), 0xdc00 + (code & 0x3ff));
       i += 4;
     } else {
       out += "\ufffd";
@@ -115,28 +103,26 @@ export function initialUtf8EncodeState(): Utf8EncodeState {
 
 export function stepUtf8EncodeWithActions(
   state: Utf8EncodeState,
-  event: Utf8EncodeEvent,
+  event: Utf8EncodeEvent
 ): Utf8EncodeStepResult {
   if (event.kind === "utf8/encode-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: utf8Encode(event.value) }],
+      actions: [{ kind: "use-raw", raw: utf8Encode(event.value) }]
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUseUtf8Encode(
-  actions: ReadonlyArray<Utf8EncodeAction>,
-): boolean {
+export function shouldUseUtf8Encode(actions: ReadonlyArray<Utf8EncodeAction>): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract UTF-8 encoded bytes from step actions; null when no `use-raw`. */
 export function utf8EncodeRawFromActions(
-  actions: ReadonlyArray<Utf8EncodeAction>,
+  actions: ReadonlyArray<Utf8EncodeAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -177,30 +163,26 @@ export function initialUtf8DecodeState(): Utf8DecodeState {
 
 export function stepUtf8DecodeWithActions(
   state: Utf8DecodeState,
-  event: Utf8DecodeEvent,
+  event: Utf8DecodeEvent
 ): Utf8DecodeStepResult {
   if (event.kind === "utf8/decode-gate") {
     return {
       state,
       intents: [],
-      actions: [
-        { kind: "use-fields", fields: { text: utf8Decode(event.bytes) } },
-      ],
+      actions: [{ kind: "use-fields", fields: { text: utf8Decode(event.bytes) } }]
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUseUtf8Decode(
-  actions: ReadonlyArray<Utf8DecodeAction>,
-): boolean {
+export function shouldUseUtf8Decode(actions: ReadonlyArray<Utf8DecodeAction>): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract decoded UTF-8 text from step actions; null when no `use-fields`. */
 export function utf8DecodeTextFromActions(
-  actions: ReadonlyArray<Utf8DecodeAction>,
+  actions: ReadonlyArray<Utf8DecodeAction>
 ): string | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields.text : null;
@@ -237,28 +219,26 @@ export function initialUtf8OrBytesState(): Utf8OrBytesState {
 
 export function stepUtf8OrBytesWithActions(
   state: Utf8OrBytesState,
-  event: Utf8OrBytesEvent,
+  event: Utf8OrBytesEvent
 ): Utf8OrBytesStepResult {
   if (event.kind === "utf8/or-bytes-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: utf8OrBytes(event.value) }],
+      actions: [{ kind: "use-raw", raw: utf8OrBytes(event.value) }]
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUseUtf8OrBytes(
-  actions: ReadonlyArray<Utf8OrBytesAction>,
-): boolean {
+export function shouldUseUtf8OrBytes(actions: ReadonlyArray<Utf8OrBytesAction>): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract UTF-8-or-bytes result from step actions; null when no `use-raw`. */
 export function utf8OrBytesRawFromActions(
-  actions: ReadonlyArray<Utf8OrBytesAction>,
+  actions: ReadonlyArray<Utf8OrBytesAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

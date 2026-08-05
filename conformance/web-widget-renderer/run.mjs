@@ -14,14 +14,10 @@ const rendererRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(rendererRoot, "../..");
 
 function runBuild() {
-  const build = spawnSync(
-    "node",
-    ["conformance/web-widget-renderer/build.mjs"],
-    {
-      cwd: repoRoot,
-      stdio: "inherit",
-    },
-  );
+  const build = spawnSync("node", ["conformance/web-widget-renderer/build.mjs"], {
+    cwd: repoRoot,
+    stdio: "inherit"
+  });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
   }
@@ -60,7 +56,7 @@ function startStaticServer(root) {
               }
             });
           });
-        },
+        }
       });
     });
   });
@@ -68,15 +64,11 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath =
-    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (
-    !resolvedPath.startsWith(resolvedRoot + sep) &&
-    resolvedPath !== resolvedRoot
-  ) {
+  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
     response.writeHead(403);
     response.end();
     return;
@@ -88,9 +80,7 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, {
-    "content-type": staticContentType(extname(resolvedPath)),
-  });
+  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
   if (headOnly) {
     response.end();
     return;
@@ -123,47 +113,29 @@ async function runPlaywright(pageUrl) {
     await page.goto(pageUrl, { waitUntil: "load", timeout: 30_000 });
 
     try {
-      await page.waitForFunction(
-        () => globalThis.__WEB_WIDGET__?.status === "done",
-        undefined,
-        {
-          timeout: 30_000,
-        },
-      );
+      await page.waitForFunction(() => globalThis.__WEB_WIDGET__?.status === "done", undefined, {
+        timeout: 30_000
+      });
     } catch (error) {
-      const snapshot = await page.evaluate(
-        () => globalThis.__WEB_WIDGET__ ?? null,
-      );
+      const snapshot = await page.evaluate(() => globalThis.__WEB_WIDGET__ ?? null);
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`,
+        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`
       );
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_WIDGET__);
-    if (
-      result?.hello !== "ok" ||
-      result?.chat !== "ok" ||
-      result?.event !== "ok"
-    ) {
+    if (result?.hello !== "ok" || result?.chat !== "ok" || result?.event !== "ok") {
       throw new Error(`widget renderer incomplete: ${JSON.stringify(result)}`);
     }
 
-    await page
-      .getByText("Hello", { exact: true })
-      .waitFor({ state: "visible" });
-    await page
-      .getByText("Tap me", { exact: true })
-      .waitFor({ state: "visible" });
+    await page.getByText("Hello", { exact: true }).waitFor({ state: "visible" });
+    await page.getByText("Tap me", { exact: true }).waitFor({ state: "visible" });
     await page.getByText("Chat", { exact: true }).waitFor({ state: "visible" });
     await page.getByText("Send hello").waitFor({ state: "visible" });
     await page.getByPlaceholder("Peer app id").waitFor({ state: "visible" });
     await page.getByText("No messages yet").waitFor({ state: "visible" });
-    await page
-      .getByText("List child", { exact: true })
-      .waitFor({ state: "visible" });
-    await page
-      .getByText("List action", { exact: true })
-      .waitFor({ state: "visible" });
+    await page.getByText("List child", { exact: true }).waitFor({ state: "visible" });
+    await page.getByText("List action", { exact: true }).waitFor({ state: "visible" });
   } finally {
     await browser.close();
   }

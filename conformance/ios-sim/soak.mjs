@@ -14,33 +14,20 @@ import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
   unpackPackage,
-  verifyPackage,
+  verifyPackage
 } from "../../packages/app-registry/dist/index.js";
-import {
-  NodeCryptoProvider,
-  nodeRuntime,
-} from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
-import {
-  runInit,
-  runPack,
-  runPublish,
-} from "../../packages/cli/dist/commands/index.js";
+import { runInit, runPack, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { HOST_API_VERSION } from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 import { runBareLifecycleSliceProcess } from "../scenarios/bare/runner-host.mjs";
 import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
 
-const chatExample = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../apps/examples/chat",
-);
+const chatExample = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples/chat");
 const SOAK_DURATION_MS = Number(process.env.SOAK_DURATION_MS ?? "15000");
-const LIFECYCLE_CYCLES = Number.parseInt(
-  process.env.IOS_LIFECYCLE_CYCLES ?? "5",
-  10,
-);
+const LIFECYCLE_CYCLES = Number.parseInt(process.env.IOS_LIFECYCLE_CYCLES ?? "5", 10);
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 class MemoryStore {
@@ -69,17 +56,10 @@ function sleep(ms) {
 
 function waitForPeer(timeoutMs = 15_000) {
   return new Promise((resolve, reject) => {
-    const socket = createConnection({
-      host: INTEROP_HOST,
-      port: LEAF_ECHO_PORT,
-    });
+    const socket = createConnection({ host: INTEROP_HOST, port: LEAF_ECHO_PORT });
     const timer = setTimeout(() => {
       socket.destroy();
-      reject(
-        new Error(
-          `leaf-echo peer not reachable at ${INTEROP_HOST}:${LEAF_ECHO_PORT}`,
-        ),
-      );
+      reject(new Error(`leaf-echo peer not reachable at ${INTEROP_HOST}:${LEAF_ECHO_PORT}`));
     }, timeoutMs);
 
     socket.once("connect", () => {
@@ -117,22 +97,12 @@ async function miniappChurn(durationMs) {
     send: (message) => outbound.push(message),
     onDeveloperModeChange() {},
     onMiniappStateChange() {},
-    getPresenceSnapshot: () => ({
-      autoPeers: 0,
-      onlineInterfaces: 0,
-      preferredInterface: null,
-    }),
+    getPresenceSnapshot: () => ({ autoPeers: 0, onlineInterfaces: 0, preferredInterface: null })
   });
 
   try {
     process.chdir(cwd);
-    if (
-      (await runInit({
-        cwd,
-        identityPassphrase: IDENTITY_PASSPHRASE,
-        args: [],
-      })) !== 0
-    ) {
+    if ((await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] })) !== 0) {
       throw new Error("tp init failed");
     }
 
@@ -147,7 +117,7 @@ async function miniappChurn(durationMs) {
     const identity = decryptIdentityBackup(
       provider,
       new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
-      IDENTITY_PASSPHRASE,
+      IDENTITY_PASSPHRASE
     );
 
     const archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
@@ -156,21 +126,19 @@ async function miniappChurn(durationMs) {
       manifest: unpacked.manifest,
       packageSize: archive.length,
       packageHash: unpacked.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
     const entry = catalog.ingest({
       destinationHash: "ios-soak",
       appData: encodeAppAnnounceData(summary),
       manifest: unpacked.manifest,
-      packageHash: unpacked.packageHash,
+      packageHash: unpacked.packageHash
     });
     if (entry === null) {
       throw new Error("catalog ingest failed");
     }
 
-    const verified = verifyPackage(provider, archive, {
-      hostApiVersion: HOST_API_VERSION,
-    });
+    const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
     const archivePath = `packages/${entry.appId}/${verified.manifest.version}.tpkg`;
     await runtime.store.set(archivePath, archive);
     installed.install(
@@ -180,16 +148,16 @@ async function miniappChurn(durationMs) {
         packageHash: verified.packageHash,
         installedAt: Date.now(),
         manifest: verified.manifest,
-        archivePath,
+        archivePath
       },
-      archive.length,
+      archive.length
     );
 
     await miniappHost.setGrants(
       entry.appId,
       verified.manifest.publisherPublicKey,
       verified.manifest.capabilities,
-      verified.manifest.capabilities,
+      verified.manifest.capabilities
     );
 
     const deadline = Date.now() + durationMs;
@@ -202,9 +170,7 @@ async function miniappChurn(durationMs) {
       cycles += 1;
     }
 
-    console.log(
-      `[ios-sim/soak] mini-app launch/suspend/resume churn: ${cycles} cycles in ${durationMs}ms`,
-    );
+    console.log(`[ios-sim/soak] mini-app launch/suspend/resume churn: ${cycles} cycles in ${durationMs}ms`);
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
@@ -217,21 +183,14 @@ export async function runIosSoak(options = {}) {
 
   try {
     await waitForPeer();
-    runBareLifecycleSliceProcess({
-      label: "ios-soak",
-      cycles: LIFECYCLE_CYCLES,
-    });
-    console.log(
-      `[ios-sim/soak] lifecycle churn: ${LIFECYCLE_CYCLES} quiesce/reconnect cycles`,
-    );
+    runBareLifecycleSliceProcess({ label: "ios-soak", cycles: LIFECYCLE_CYCLES });
+    console.log(`[ios-sim/soak] lifecycle churn: ${LIFECYCLE_CYCLES} quiesce/reconnect cycles`);
   } catch (error) {
     if (requirePeer) {
       throw error;
     }
 
-    console.log(
-      `[ios-sim/soak] lifecycle churn skipped: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    console.log(`[ios-sim/soak] lifecycle churn skipped: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   console.log(`[ios-sim/soak] completed within ${durationMs}ms budget`);

@@ -109,7 +109,7 @@ import {
   shouldTransmitOnInterfaceNow,
   initialTransmitOnInterfaceState,
   stepDiscoveryPathRequestFulfillWithActions,
-  stepPathRequestIngressWithActions,
+  stepPathRequestIngressWithActions
 } from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "../destination.js";
@@ -120,7 +120,7 @@ import {
   PacketContext,
   PacketHeaderType,
   PacketType,
-  TransportType,
+  TransportType
 } from "../packet.js";
 import {
   LeafTransport,
@@ -131,13 +131,13 @@ import {
   hashKey,
   relayTransportPacket,
   rewritePacketHops,
-  type PathEntry,
+  type PathEntry
 } from "./node.js";
 import {
   PATH_REQUEST_TIMEOUT_SECONDS,
   buildPathRequestData,
   parsePathRequestData,
-  pathRequestTagKey,
+  pathRequestTagKey
 } from "./path.js";
 import { AnnounceRateLimiter } from "./rate.js";
 
@@ -176,21 +176,14 @@ export class TransportNode extends LeafTransport {
   private readonly linkTable = new Map<string, LinkTableEntry>();
   private readonly reverseTable = new Map<string, ReverseTableEntry>();
   private readonly announceRateLimiter: AnnounceRateLimiter;
-  private readonly discoveryPathRequests = new Map<
-    string,
-    DiscoveryPathRequest
-  >();
+  private readonly discoveryPathRequests = new Map<string, DiscoveryPathRequest>();
 
   constructor(options: TransportNodeOptions) {
     super(options);
-    this.announceRateLimiter =
-      options.announceRateLimiter ?? new AnnounceRateLimiter();
+    this.announceRateLimiter = options.announceRateLimiter ?? new AnnounceRateLimiter();
   }
 
-  protected override async inbound(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected override async inbound(packet: Packet, iface: PacketInterface): Promise<void> {
     if (!this.transportEnabled) {
       await super.inbound(packet, iface);
       return;
@@ -201,13 +194,10 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    const rememberStepped = stepPacketHashRememberWithActions(
-      initialPacketHashRememberState(),
-      {
-        kind: "transport/packet-hash-remember-gate",
-        deferred: this.shouldDeferPacketHash(workingPacket),
-      },
-    );
+    const rememberStepped = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
+      kind: "transport/packet-hash-remember-gate",
+      deferred: this.shouldDeferPacketHash(workingPacket)
+    });
     if (shouldRememberPacketHashNowActions(rememberStepped.actions)) {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
@@ -239,8 +229,8 @@ export class TransportNode extends LeafTransport {
       {
         kind: "transport/ingress-dispatch-gate",
         packetType: workingPacket.packetType,
-        destinationType: workingPacket.destinationType,
-      },
+        destinationType: workingPacket.destinationType
+      }
     );
     if (shouldDispatchTransportAnnounce(dispatchStepped.actions)) {
       await this.handleAnnounce(workingPacket, iface);
@@ -268,32 +258,22 @@ export class TransportNode extends LeafTransport {
     }
   }
 
-  protected override async handleAnnounce(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected override async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
     if (!this.transportEnabled) {
       await super.handleAnnounce(packet, iface);
       return;
     }
     const destinationKey = hashKey(packet.destinationHash);
     const now = this.clock.now() / 1000;
-    const gates = stepAnnounceIngressGatesWithActions(
-      initialAnnounceIngressGatesState(),
-      {
-        kind: "announce/ingress-gates",
-        context: packet.context,
-      },
-    );
+    const gates = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
+      kind: "announce/ingress-gates",
+      context: packet.context
+    });
     const blocked = this.announceRateLimiter.stepBlocked(destinationKey, now);
-    const rateDrop = observeDropFromAnnounceRateLimitActions(
-      gates.actions,
-      blocked.actions,
-      {
-        destinationKey,
-        ifaceId: iface.name,
-      },
-    );
+    const rateDrop = observeDropFromAnnounceRateLimitActions(gates.actions, blocked.actions, {
+      destinationKey,
+      ifaceId: iface.name
+    });
     if (rateDrop !== null) {
       this.emitDrop(rateDrop);
       return;
@@ -308,17 +288,13 @@ export class TransportNode extends LeafTransport {
     await this.rebroadcastAnnounce(packet, iface);
   }
 
-  protected override async handlePathRequest(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected override async handlePathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     if (!this.transportEnabled) {
       await super.handlePathRequest(packet, iface);
       return;
     }
     const parsed = parsePathRequestData(packet.data);
-    const path =
-      parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
+    const path = parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
     const localDestination =
       parsed === null
         ? undefined
@@ -329,10 +305,10 @@ export class TransportNode extends LeafTransport {
                 {
                   kind: "transport/match-local-inbound-destination-gate",
                   hashMatches: equalBytes(entry.hash, parsed.destinationHash),
-                  directionIn: entry.direction === DestinationDirection.IN,
-                },
-              ).actions,
-            ),
+                  directionIn: entry.direction === DestinationDirection.IN
+                }
+              ).actions
+            )
           );
     const tagKey =
       parsed !== null && parsed.tag !== null
@@ -341,47 +317,39 @@ export class TransportNode extends LeafTransport {
     const destinationKey =
       parsed !== null ? hashKey(parsed.destinationHash) : null;
     const existingDiscovery =
-      destinationKey !== null
-        ? this.discoveryPathRequests.get(destinationKey)
-        : undefined;
+      destinationKey !== null ? this.discoveryPathRequests.get(destinationKey) : undefined;
     const nowSeconds = this.clock.now() / 1000;
     const discoveryExpired =
       existingDiscovery !== undefined &&
       shouldTreatDiscoveryPathRequestExpired(
-        stepDiscoveryPathRequestExpiredWithActions(
-          initialDiscoveryPathRequestExpiredState(),
-          {
-            kind: "path-request/discovery-expired-gate",
-            timeoutAt: existingDiscovery.timeout,
-            nowSeconds,
-          },
-        ).actions,
+        stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+          kind: "path-request/discovery-expired-gate",
+          timeoutAt: existingDiscovery.timeout,
+          nowSeconds
+        }).actions
       );
 
-    const stepped = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: parsed !== null,
-        hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
-        tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
-        hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
-        transportEnabled: this.transportEnabled,
-        hasPath: path !== undefined,
-        shouldAnswerPath:
-          path !== undefined &&
-          shouldAnswerPathRequestNow(
-            stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
-              kind: "path-request/answer-path-gate",
-              nextHop: path.nextHop,
-              requestorTransportId: parsed?.requestorTransportId ?? null,
-            }).actions,
-          ),
-        discoveryPresent: existingDiscovery !== undefined,
-        discoveryExpired,
-        allowDiscovery: true,
-      },
-    );
+    const stepped = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: parsed !== null,
+      hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
+      tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
+      hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
+      transportEnabled: this.transportEnabled,
+      hasPath: path !== undefined,
+      shouldAnswerPath:
+        path !== undefined &&
+        shouldAnswerPathRequestNow(
+          stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+            kind: "path-request/answer-path-gate",
+            nextHop: path.nextHop,
+            requestorTransportId: parsed?.requestorTransportId ?? null
+          }).actions
+        ),
+      discoveryPresent: existingDiscovery !== undefined,
+      discoveryExpired,
+      allowDiscovery: true
+    });
 
     if (
       shouldIgnorePathRequestUnparsed(stepped.actions) ||
@@ -392,13 +360,10 @@ export class TransportNode extends LeafTransport {
 
     if (
       shouldRememberPathRequestTagNow(
-        stepRememberPathRequestTagWithActions(
-          initialRememberPathRequestTagState(),
-          {
-            kind: "path-request/remember-tag-gate",
-            tagKeyPresent: tagKey !== null,
-          },
-        ).actions,
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: tagKey !== null
+        }).actions
       )
     ) {
       this.discoveryPrTags.add(tagKey!);
@@ -407,13 +372,10 @@ export class TransportNode extends LeafTransport {
     if (shouldAnswerPathRequestLocal(stepped.actions)) {
       if (
         !shouldAnswerLocalPathRequestNow(
-          stepAnswerLocalPathRequestWithActions(
-            initialAnswerLocalPathRequestState(),
-            {
-              kind: "path-request/answer-local-handler-gate",
-              handlerPresent: localDestination?.answerPathRequest !== undefined,
-            },
-          ).actions,
+          stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+            kind: "path-request/answer-local-handler-gate",
+            handlerPresent: localDestination?.answerPathRequest !== undefined
+          }).actions
         )
       ) {
         return;
@@ -425,13 +387,10 @@ export class TransportNode extends LeafTransport {
     if (shouldAnswerPathRequestPath(stepped.actions)) {
       if (
         !shouldAnswerPathWithEntryNow(
-          stepAnswerPathWithEntryWithActions(
-            initialAnswerPathWithEntryState(),
-            {
-              kind: "path-request/answer-path-entry-gate",
-              pathPresent: path !== undefined,
-            },
-          ).actions,
+          stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
+            kind: "path-request/answer-path-entry-gate",
+            pathPresent: path !== undefined
+          }).actions
         )
       ) {
         return;
@@ -458,8 +417,8 @@ export class TransportNode extends LeafTransport {
           kind: "path-request/begin-discovery-gate",
           parsedOk: parsed !== null,
           tagPresent: parsed !== null && parsed.tag !== null,
-          destinationKeyPresent: destinationKey !== null,
-        }).actions,
+          destinationKeyPresent: destinationKey !== null
+        }).actions
       )
     ) {
       return;
@@ -473,9 +432,9 @@ export class TransportNode extends LeafTransport {
           initialClearExpiredDiscoveryPathRequestState(),
           {
             kind: "path-request/clear-expired-discovery-gate",
-            discoveryExpired,
-          },
-        ).actions,
+            discoveryExpired
+          }
+        ).actions
       )
     ) {
       this.discoveryPathRequests.delete(discoveryKey);
@@ -483,86 +442,65 @@ export class TransportNode extends LeafTransport {
 
     this.discoveryPathRequests.set(discoveryKey, {
       timeout: nowSeconds + PATH_REQUEST_TIMEOUT_SECONDS,
-      requestingInterface: iface,
+      requestingInterface: iface
     });
 
     for (const outbound of this.interfaces) {
       if (
         !shouldTransmitOnInterfaceNow(
-          stepTransmitOnInterfaceWithActions(
-            initialTransmitOnInterfaceState(),
-            {
-              kind: "transport/transmit-on-interface-gate",
-              outgoing: outbound.outgoing,
-              isExcludedInterface: outbound === iface,
-            },
-          ).actions,
+          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+            kind: "transport/transmit-on-interface-gate",
+            outgoing: outbound.outgoing,
+            isExcludedInterface: outbound === iface
+          }).actions
         )
       ) {
         continue;
       }
 
-      this.forwardPathRequest(
-        discoveryParsed.destinationHash,
-        discoveryParsed.tag!,
-        outbound,
-      );
+      this.forwardPathRequest(discoveryParsed.destinationHash, discoveryParsed.tag!, outbound);
     }
   }
 
   private shouldAcceptPacket(packet: Packet): boolean {
     return shouldAcceptTransportPacketNow(
-      stepAcceptTransportPacketWithActions(
-        initialAcceptTransportPacketState(),
-        {
-          kind: "transport/accept-packet-gate",
-          filterPassed: this.packetFilter(packet),
-          packetType: packet.packetType,
-          transportType: packet.transportType,
-          hasForeignTransportId:
-            packet.transportId !== null &&
-            !equalBytes(packet.transportId, this.transportIdentity.hash),
-          alreadySeenHash: this.packetHashes.has(hashKey(packet.hash())),
-        },
-      ).actions,
+      stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+        kind: "transport/accept-packet-gate",
+        filterPassed: this.packetFilter(packet),
+        packetType: packet.packetType,
+        transportType: packet.transportType,
+        hasForeignTransportId:
+          packet.transportId !== null &&
+          !equalBytes(packet.transportId, this.transportIdentity.hash),
+        alreadySeenHash: this.packetHashes.has(hashKey(packet.hash()))
+      }).actions
     );
   }
 
   private shouldDeferPacketHash(packet: Packet): boolean {
-    const stepped = stepPacketHashDeferWithActions(
-      initialPacketHashDeferState(),
-      {
-        kind: "transport/packet-hash-defer-gate",
-        packetType: packet.packetType,
-        context: packet.context,
-        destinationInLinkTable: this.linkTable.has(
-          hashKey(packet.destinationHash),
-        ),
-      },
-    );
+    const stepped = stepPacketHashDeferWithActions(initialPacketHashDeferState(), {
+      kind: "transport/packet-hash-defer-gate",
+      packetType: packet.packetType,
+      context: packet.context,
+      destinationInLinkTable: this.linkTable.has(hashKey(packet.destinationHash))
+    });
     return shouldDeferPacketHashActions(stepped.actions);
   }
 
-  private async relayTransportPacket(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<boolean> {
+  private async relayTransportPacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
     const path = this.getPathEntry(packet.destinationHash);
     if (
       path === undefined ||
       !shouldAllowRelayTransportPacket(
-        stepRelayTransportPacketAllowWithActions(
-          initialRelayTransportPacketAllowState(),
-          {
-            kind: "transport/relay-transport-packet-allow-gate",
-            transportIdPresent: packet.transportId !== null,
-            isAnnounce: packet.packetType === PacketType.ANNOUNCE,
-            transportIdMatchesLocal:
-              packet.transportId !== null &&
-              equalBytes(packet.transportId, this.transportIdentity.hash),
-            hasPath: true,
-          },
-        ).actions,
+        stepRelayTransportPacketAllowWithActions(initialRelayTransportPacketAllowState(), {
+          kind: "transport/relay-transport-packet-allow-gate",
+          transportIdPresent: packet.transportId !== null,
+          isAnnounce: packet.packetType === PacketType.ANNOUNCE,
+          transportIdMatchesLocal:
+            packet.transportId !== null &&
+            equalBytes(packet.transportId, this.transportIdentity.hash),
+          hasPath: true
+        }).actions
       )
     ) {
       return false;
@@ -573,13 +511,10 @@ export class TransportNode extends LeafTransport {
 
     if (
       shouldRecordLinkRelayTableEntryNow(
-        stepRecordLinkRelayTableEntryWithActions(
-          initialRecordLinkRelayTableEntryState(),
-          {
-            kind: "transport/record-link-relay-table-entry-gate",
-            packetType: packet.packetType,
-          },
-        ).actions,
+        stepRecordLinkRelayTableEntryWithActions(initialRecordLinkRelayTableEntryState(), {
+          kind: "transport/record-link-relay-table-entry-gate",
+          packetType: packet.packetType
+        }).actions
       )
     ) {
       const linkId = Link.linkIdFromLrPacket(this.provider, packet);
@@ -590,24 +525,21 @@ export class TransportNode extends LeafTransport {
         remainingHops: path.hops,
         receivedInterface: iface,
         takenHops: packet.hops,
-        destinationHash: packet.destinationHash,
+        destinationHash: packet.destinationHash
       });
     } else if (
       shouldRecordReverseTableEntryNow(
-        stepRecordReverseTableEntryWithActions(
-          initialRecordReverseTableEntryState(),
-          {
-            kind: "transport/record-reverse-table-entry-gate",
-            packetType: packet.packetType,
-            context: packet.context,
-          },
-        ).actions,
+        stepRecordReverseTableEntryWithActions(initialRecordReverseTableEntryState(), {
+          kind: "transport/record-reverse-table-entry-gate",
+          packetType: packet.packetType,
+          context: packet.context
+        }).actions
       )
     ) {
       this.reverseTable.set(hashKey(packet.truncatedHash()), {
         receivedInterface: iface,
         outboundInterface,
-        timestamp: this.clock.now() / 1000,
+        timestamp: this.clock.now() / 1000
       });
     }
 
@@ -616,19 +548,13 @@ export class TransportNode extends LeafTransport {
     return true;
   }
 
-  private async relayLinkPacket(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<boolean> {
+  private async relayLinkPacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
     if (
       !shouldAllowRelayLinkPacket(
-        stepRelayLinkPacketAllowWithActions(
-          initialRelayLinkPacketAllowState(),
-          {
-            kind: "transport/relay-link-packet-allow-gate",
-            packetType: packet.packetType,
-          },
-        ).actions,
+        stepRelayLinkPacketAllowWithActions(initialRelayLinkPacketAllowState(), {
+          kind: "transport/relay-link-packet-allow-gate",
+          packetType: packet.packetType
+        }).actions
       )
     ) {
       return false;
@@ -637,30 +563,24 @@ export class TransportNode extends LeafTransport {
     const entry = this.linkTable.get(hashKey(packet.destinationHash));
     if (
       !shouldHitLookupLinkRelayEntry(
-        stepLookupLinkRelayEntryWithActions(
-          initialLookupLinkRelayEntryState(),
-          {
-            kind: "transport/lookup-link-relay-entry-gate",
-            entryPresent: entry !== undefined,
-          },
-        ).actions,
+        stepLookupLinkRelayEntryWithActions(initialLookupLinkRelayEntryState(), {
+          kind: "transport/lookup-link-relay-entry-gate",
+          entryPresent: entry !== undefined
+        }).actions
       )
     ) {
       return false;
     }
 
-    const relayStepped = stepLinkRelayTargetWithActions(
-      initialLinkRelayTargetState(),
-      {
-        kind: "transport/link-relay-gate",
-        sameInterface: entry!.outboundInterface === entry!.receivedInterface,
-        ifaceIsOutbound: iface === entry!.outboundInterface,
-        ifaceIsReceived: iface === entry!.receivedInterface,
-        packetHops: packet.hops,
-        remainingHops: entry!.remainingHops,
-        takenHops: entry!.takenHops,
-      },
-    );
+    const relayStepped = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
+      sameInterface: entry!.outboundInterface === entry!.receivedInterface,
+      ifaceIsOutbound: iface === entry!.outboundInterface,
+      ifaceIsReceived: iface === entry!.receivedInterface,
+      packetHops: packet.hops,
+      remainingHops: entry!.remainingHops,
+      takenHops: entry!.takenHops
+    });
     if (shouldIgnoreLinkRelayTarget(relayStepped.actions)) {
       return false;
     }
@@ -674,8 +594,8 @@ export class TransportNode extends LeafTransport {
       !shouldTransmitLinkRelayNow(
         stepTransmitLinkRelayWithActions(initialTransmitLinkRelayState(), {
           kind: "transport/transmit-link-relay-gate",
-          outboundPresent: outboundInterface !== null,
-        }).actions,
+          outboundPresent: outboundInterface !== null
+        }).actions
       )
     ) {
       return false;
@@ -686,10 +606,7 @@ export class TransportNode extends LeafTransport {
     return true;
   }
 
-  private async relayReversePacket(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<boolean> {
+  private async relayReversePacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
     const key = hashKey(packet.destinationHash);
     const entry = this.reverseTable.get(key);
     const nowSeconds = this.clock.now() / 1000;
@@ -699,38 +616,28 @@ export class TransportNode extends LeafTransport {
         stepReverseEntryExpiredWithActions(initialReverseEntryExpiredState(), {
           kind: "transport/reverse-entry-expired-gate",
           timestamp: entry.timestamp,
-          nowSeconds,
-        }).actions,
+          nowSeconds
+        }).actions
       );
     const canRelay = shouldAllowRelayReversePacket(
-      stepRelayReversePacketAllowWithActions(
-        initialRelayReversePacketAllowState(),
-        {
-          kind: "transport/relay-reverse-packet-allow-gate",
-          isProof: packet.packetType === PacketType.PROOF,
-          hasEntry: entry !== undefined,
-          entryExpired,
-        },
-      ).actions,
+      stepRelayReversePacketAllowWithActions(initialRelayReversePacketAllowState(), {
+        kind: "transport/relay-reverse-packet-allow-gate",
+        isProof: packet.packetType === PacketType.PROOF,
+        hasEntry: entry !== undefined,
+        entryExpired
+      }).actions
     );
-    const stepped = stepReverseRelayOutcomeWithActions(
-      initialReverseRelayOutcomeState(),
-      {
-        kind: "transport/reverse-relay-gate",
-        canRelay,
-        entryExpired,
-        ifaceIsOutbound: shouldMatchRelayReverseOnInterface(
-          stepRelayReverseOnInterfaceWithActions(
-            initialRelayReverseOnInterfaceState(),
-            {
-              kind: "transport/relay-reverse-on-interface-gate",
-              ifaceIsOutbound:
-                entry !== undefined && iface === entry.outboundInterface,
-            },
-          ).actions,
-        ),
-      },
-    );
+    const stepped = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
+      canRelay,
+      entryExpired,
+      ifaceIsOutbound: shouldMatchRelayReverseOnInterface(
+        stepRelayReverseOnInterfaceWithActions(initialRelayReverseOnInterfaceState(), {
+          kind: "transport/relay-reverse-on-interface-gate",
+          ifaceIsOutbound: entry !== undefined && iface === entry.outboundInterface
+        }).actions
+      )
+    });
 
     if (shouldDeleteExpiredReverseEntryActions(stepped.actions)) {
       this.reverseTable.delete(key);
@@ -738,14 +645,11 @@ export class TransportNode extends LeafTransport {
     }
     if (
       !shouldTransmitReverseRelayNow(
-        stepTransmitReverseRelayWithActions(
-          initialTransmitReverseRelayState(),
-          {
-            kind: "transport/transmit-reverse-relay-gate",
-            relayOk: shouldRelayReversePacketActions(stepped.actions),
-            entryPresent: entry !== undefined,
-          },
-        ).actions,
+        stepTransmitReverseRelayWithActions(initialTransmitReverseRelayState(), {
+          kind: "transport/transmit-reverse-relay-gate",
+          relayOk: shouldRelayReversePacketActions(stepped.actions),
+          entryPresent: entry !== undefined
+        }).actions
       )
     ) {
       return false;
@@ -756,38 +660,24 @@ export class TransportNode extends LeafTransport {
     return true;
   }
 
-  private async rebroadcastAnnounce(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
-    const gates = stepAnnounceIngressGatesWithActions(
-      initialAnnounceIngressGatesState(),
-      {
-        kind: "announce/ingress-gates",
-        context: packet.context,
-      },
-    );
+  private async rebroadcastAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
+    const gates = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
+      kind: "announce/ingress-gates",
+      context: packet.context
+    });
     if (!shouldRebroadcastAnnounce(gates.actions)) {
       return;
     }
 
-    const rebroadcast = buildTransportAnnounce(
-      this.provider,
-      packet,
-      this.transportIdentity,
-      packet.hops,
-    );
+    const rebroadcast = buildTransportAnnounce(this.provider, packet, this.transportIdentity, packet.hops);
     for (const outbound of this.interfaces) {
       if (
         !shouldTransmitOnInterfaceNow(
-          stepTransmitOnInterfaceWithActions(
-            initialTransmitOnInterfaceState(),
-            {
-              kind: "transport/transmit-on-interface-gate",
-              outgoing: outbound.outgoing,
-              isExcludedInterface: outbound === iface,
-            },
-          ).actions,
+          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+            kind: "transport/transmit-on-interface-gate",
+            outgoing: outbound.outgoing,
+            isExcludedInterface: outbound === iface
+          }).actions
         )
       ) {
         continue;
@@ -802,10 +692,7 @@ export class TransportNode extends LeafTransport {
     }
   }
 
-  private async fulfillDiscoveryPathRequest(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  private async fulfillDiscoveryPathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
     const pending = this.discoveryPathRequests.get(destinationKey);
     const nowSeconds = this.clock.now() / 1000;
@@ -817,16 +704,13 @@ export class TransportNode extends LeafTransport {
         expired:
           pending !== undefined &&
           shouldTreatDiscoveryPathRequestExpired(
-            stepDiscoveryPathRequestExpiredWithActions(
-              initialDiscoveryPathRequestExpiredState(),
-              {
-                kind: "path-request/discovery-expired-gate",
-                timeoutAt: pending.timeout,
-                nowSeconds,
-              },
-            ).actions,
-          ),
-      },
+            stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+              kind: "path-request/discovery-expired-gate",
+              timeoutAt: pending.timeout,
+              nowSeconds
+            }).actions
+          )
+      }
     );
 
     if (shouldIgnoreDiscoveryPathFulfillActions(stepped.actions)) {
@@ -836,38 +720,26 @@ export class TransportNode extends LeafTransport {
     this.discoveryPathRequests.delete(destinationKey);
     if (
       !shouldFulfillDiscoveryPendingNow(
-        stepFulfillDiscoveryPendingWithActions(
-          initialFulfillDiscoveryPendingState(),
-          {
-            kind: "path-request/fulfill-pending-gate",
-            fulfillOk: shouldFulfillDiscoveryPathRequest(stepped.actions),
-            pendingPresent: pending !== undefined,
-          },
-        ).actions,
+        stepFulfillDiscoveryPendingWithActions(initialFulfillDiscoveryPendingState(), {
+          kind: "path-request/fulfill-pending-gate",
+          fulfillOk: shouldFulfillDiscoveryPathRequest(stepped.actions),
+          pendingPresent: pending !== undefined
+        }).actions
       )
     ) {
       return;
     }
 
-    const response = buildPathResponseAnnounce(
-      this.provider,
-      packet,
-      this.transportIdentity,
-      packet.hops,
-    );
+    const response = buildPathResponseAnnounce(this.provider, packet, this.transportIdentity, packet.hops);
     await this.transmit(pending!.requestingInterface, response.raw);
   }
 
   private forwardPathRequest(
     destinationHash: Uint8Array,
     tag: Uint8Array,
-    iface: PacketInterface,
+    iface: PacketInterface
   ): void {
-    const requestData = buildPathRequestData(
-      destinationHash,
-      this.transportIdentity.hash,
-      tag,
-    );
+    const requestData = buildPathRequestData(destinationHash, this.transportIdentity.hash, tag);
     const packet = Packet.fromFields(this.provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -875,7 +747,7 @@ export class TransportNode extends LeafTransport {
       packetType: PacketType.DATA,
       destinationHash: this.pathRequestHash,
       context: PacketContext.NONE,
-      data: requestData,
+      data: requestData
     });
 
     void this.transmit(iface, packet.raw);
@@ -888,8 +760,8 @@ export class TransportNode extends LeafTransport {
       !shouldTouchPathEntryNow(
         stepTouchPathEntryWithActions(initialTouchPathEntryState(), {
           kind: "path/touch-entry-gate",
-          pathPresent: existing !== undefined,
-        }).actions,
+          pathPresent: existing !== undefined
+        }).actions
       )
     ) {
       return;
@@ -897,7 +769,7 @@ export class TransportNode extends LeafTransport {
 
     const updated: PathEntry = {
       ...existing!,
-      timestamp: this.clock.now() / 1000,
+      timestamp: this.clock.now() / 1000
     };
     this.pathTable.set(key, updated);
   }

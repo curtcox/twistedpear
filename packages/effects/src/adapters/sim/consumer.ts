@@ -23,7 +23,7 @@ interface IntentFrame {
  */
 export function replayRecordedTrace<S>(
   history: RecordedHistory<S>,
-  resolveMachine: MachineResolver<S>,
+  resolveMachine: MachineResolver<S>
 ): TraceReplayResult<S> {
   const states = new Map<NodeId, S>();
   const steps = new Map<NodeId, ReturnType<MachineResolver<S>>>();
@@ -62,13 +62,11 @@ export function replayRecordedTrace<S>(
     }
     const frame = frames[frames.length - 1];
     if (frame === undefined) {
-      throw new Error(
-        `recorded intent for ${entry.node} with no pending dispatch`,
-      );
+      throw new Error(`recorded intent for ${entry.node} with no pending dispatch`);
     }
     if (frame.node !== entry.node) {
       throw new Error(
-        `recorded intent node mismatch: recorded=${entry.node} regenerated=${frame.node}`,
+        `recorded intent node mismatch: recorded=${entry.node} regenerated=${frame.node}`
       );
     }
     out.push({ t: "intent", node: frame.node, intent: frame.queue.shift()! });
@@ -79,7 +77,7 @@ export function replayRecordedTrace<S>(
     throw new Error(
       `machines produced intents beyond the recorded trace for: ${leftover
         .map((frame) => frame.node)
-        .join(", ")}`,
+        .join(", ")}`
     );
   }
 

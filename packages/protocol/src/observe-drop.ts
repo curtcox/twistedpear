@@ -13,10 +13,7 @@ import type { AddPathEntryAction } from "./path-table/part-4.js";
 import type { TransportIngressDispatchAction } from "./transport-ingress/part-3.js";
 import type { AnnounceIngressGatesAction } from "./transport-announce/part-3.js";
 
-export type ObserveDropIntent = Extract<
-  Intent,
-  { readonly kind: "observe/drop" }
->;
+export type ObserveDropIntent = Extract<Intent, { readonly kind: "observe/drop" }>;
 export type ObserveDropStage = ObserveDropIntent["stage"];
 export type ObserveDropReason = ObserveDropIntent["reason"];
 
@@ -28,7 +25,7 @@ export interface ObserveDropExtras {
 export function observeDropIntent(
   stage: ObserveDropStage,
   reason: ObserveDropReason,
-  extras: ObserveDropExtras = {},
+  extras: ObserveDropExtras = {}
 ): ObserveDropIntent {
   return {
     kind: "observe/drop",
@@ -37,34 +34,32 @@ export function observeDropIntent(
     ...(extras.destinationKey !== undefined
       ? { destinationKey: extras.destinationKey }
       : {}),
-    ...(extras.ifaceId !== undefined ? { ifaceId: extras.ifaceId } : {}),
+    ...(extras.ifaceId !== undefined ? { ifaceId: extras.ifaceId } : {})
   };
 }
 
 export function observeDropsFromIntents(
-  intents: readonly Intent[],
+  intents: readonly Intent[]
 ): readonly ObserveDropIntent[] {
-  return intents.filter(
-    (intent): intent is ObserveDropIntent => intent.kind === "observe/drop",
-  );
+  return intents.filter((intent): intent is ObserveDropIntent => intent.kind === "observe/drop");
 }
 
 export function enrichObserveDrop(
   intent: ObserveDropIntent,
-  extras: ObserveDropExtras,
+  extras: ObserveDropExtras
 ): ObserveDropIntent {
   const destinationKey = extras.destinationKey ?? intent.destinationKey;
   const ifaceId = extras.ifaceId ?? intent.ifaceId;
   return observeDropIntent(intent.stage, intent.reason, {
     ...(destinationKey !== undefined ? { destinationKey } : {}),
-    ...(ifaceId !== undefined ? { ifaceId } : {}),
+    ...(ifaceId !== undefined ? { ifaceId } : {})
   });
 }
 
 /** Rung 3: ingress dispatch concluded `ignore`. */
 export function observeDropFromIngressDispatch(
   actions: ReadonlyArray<TransportIngressDispatchAction>,
-  extras: ObserveDropExtras = {},
+  extras: ObserveDropExtras = {}
 ): ObserveDropIntent | null {
   if (!actions.some((action) => action.kind === "ignore")) {
     return null;
@@ -80,7 +75,7 @@ export function observeDropFromAnnounceRateLimit(
   input: {
     readonly applyRateLimit: boolean;
     readonly blocked: boolean;
-  } & ObserveDropExtras,
+  } & ObserveDropExtras
 ): ObserveDropIntent | null {
   if (!input.applyRateLimit || !input.blocked) {
     return null;
@@ -91,12 +86,12 @@ export function observeDropFromAnnounceRateLimit(
 export function observeDropFromAnnounceRateLimitActions(
   gates: ReadonlyArray<AnnounceIngressGatesAction>,
   blocked: ReadonlyArray<AnnounceBlockedAction>,
-  extras: ObserveDropExtras = {},
+  extras: ObserveDropExtras = {}
 ): ObserveDropIntent | null {
   return observeDropFromAnnounceRateLimit({
     applyRateLimit: gates.some((action) => action.kind === "apply-rate-limit"),
     blocked: blocked.some((action) => action.kind === "blocked"),
-    ...extras,
+    ...extras
   });
 }
 
@@ -115,19 +110,18 @@ const VALIDATE_REJECT_REASONS: Readonly<
   "reject-parse": "reject_parse",
   "reject-public-key": "reject_public_key",
   "reject-signature": "reject_signature",
-  "reject-destination-hash": "reject_destination_hash",
+  "reject-destination-hash": "reject_destination_hash"
 };
 
 /** Rung 5: validate concluded a reject-* plan. */
 export function observeDropFromAnnounceValidate(
   plan: AnnounceValidatePlan | null,
-  extras: ObserveDropExtras = {},
+  extras: ObserveDropExtras = {}
 ): ObserveDropIntent | null {
   if (plan === null) {
     return null;
   }
-  const reason =
-    VALIDATE_REJECT_REASONS[plan as keyof typeof VALIDATE_REJECT_REASONS];
+  const reason = VALIDATE_REJECT_REASONS[plan as keyof typeof VALIDATE_REJECT_REASONS];
   if (reason === undefined) {
     return null;
   }
@@ -137,7 +131,7 @@ export function observeDropFromAnnounceValidate(
 /** Rung 6: parsed-announce accept concluded `skip`. */
 export function observeDropFromParsedAnnounce(
   actions: ReadonlyArray<AcceptParsedAnnounceAction>,
-  extras: ObserveDropExtras = {},
+  extras: ObserveDropExtras = {}
 ): ObserveDropIntent | null {
   if (!actions.some((action) => action.kind === "skip")) {
     return null;
@@ -148,7 +142,7 @@ export function observeDropFromParsedAnnounce(
 /** Rung 7: local-echo ignore concluded `ignore`. */
 export function observeDropFromLocalAnnounce(
   actions: ReadonlyArray<IgnoreLocalAnnounceAction>,
-  extras: ObserveDropExtras = {},
+  extras: ObserveDropExtras = {}
 ): ObserveDropIntent | null {
   if (!actions.some((action) => action.kind === "ignore")) {
     return null;
@@ -159,7 +153,7 @@ export function observeDropFromLocalAnnounce(
 /** Rung 8: path-entry concluded `skip`. */
 export function observeDropFromPathEntry(
   actions: ReadonlyArray<AddPathEntryAction>,
-  extras: ObserveDropExtras = {},
+  extras: ObserveDropExtras = {}
 ): ObserveDropIntent | null {
   if (!actions.some((action) => action.kind === "skip")) {
     return null;

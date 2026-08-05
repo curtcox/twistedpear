@@ -11,38 +11,38 @@ const contracts = [
     name: "locator",
     manifest: resolve(
       root,
-      "packages/bridge-freenet/contract/locator/Cargo.toml",
+      "packages/bridge-freenet/contract/locator/Cargo.toml"
     ),
     artifact: "twistedpear_freenet_locator_contract.wasm",
     destination: resolve(
       root,
-      "packages/bridge-freenet/contract/locator/locator-contract.wasm",
-    ),
+      "packages/bridge-freenet/contract/locator/locator-contract.wasm"
+    )
   },
   {
     name: "propagation-set",
     manifest: resolve(
       root,
-      "packages/bridge-freenet/contract/propagation-set/Cargo.toml",
+      "packages/bridge-freenet/contract/propagation-set/Cargo.toml"
     ),
     artifact: "twistedpear_freenet_propagation_set_contract.wasm",
     destination: resolve(
       root,
-      "packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm",
-    ),
+      "packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm"
+    )
   },
   {
     name: "packet-log",
     manifest: resolve(
       root,
-      "packages/bridge-freenet/contract/packet-log/Cargo.toml",
+      "packages/bridge-freenet/contract/packet-log/Cargo.toml"
     ),
     artifact: "twistedpear_freenet_packet_log_contract.wasm",
     destination: resolve(
       root,
-      "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
-    ),
-  },
+      "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm"
+    )
+  }
 ];
 
 const selected = process.argv
@@ -57,7 +57,7 @@ if (toBuild.length === 0) {
   console.error(
     `Unknown Freenet contract(s): ${selected.join(", ")}. Expected: ${contracts
       .map((contract) => contract.name)
-      .join(", ")}`,
+      .join(", ")}`
   );
   process.exitCode = 1;
   process.exit(1);
@@ -76,9 +76,9 @@ for (const contract of toBuild) {
       "--manifest-path",
       contract.manifest,
       "--target-dir",
-      targetDir,
+      targetDir
     ],
-    { cwd: dirname(contract.manifest), stdio: "inherit" },
+    { cwd: dirname(contract.manifest), stdio: "inherit" }
   );
   if (result.status !== 0) {
     process.exitCode = result.status ?? 1;
@@ -86,9 +86,7 @@ for (const contract of toBuild) {
   }
   copyFileSync(
     resolve(targetDir, `wasm32-unknown-unknown/release/${contract.artifact}`),
-    contract.destination,
+    contract.destination
   );
-  console.log(
-    `Freenet ${contract.name} contract written to ${contract.destination}`,
-  );
+  console.log(`Freenet ${contract.name} contract written to ${contract.destination}`);
 }

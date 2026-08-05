@@ -14,7 +14,7 @@ import {
   share,
   storage,
   ui,
-  workspace,
+  workspace
 } from "@twistedpear/miniapp-sdk";
 
 // Handbook runtime — TOC, chapter renderer, inline applet runner, diagnostics.
@@ -29,19 +29,13 @@ const LAST_REPORT_KEY = "handbook:last-report";
 const REPORT_SCHEMA_VERSION = 1;
 const DEVSTUDIO_HANDOFF_KIND = "tp.devstudio.workspace.v1";
 
-const DIAGNOSTIC_GROUP_ORDER = [
-  "crypto",
-  "interfaces",
-  "storage",
-  "distribution",
-  "runtime",
-];
+const DIAGNOSTIC_GROUP_ORDER = ["crypto", "interfaces", "storage", "distribution", "runtime"];
 const DIAGNOSTIC_GROUP_LABELS = {
   crypto: "Crypto & messaging",
   interfaces: "Interfaces & presence",
   storage: "Storage & workspace",
   distribution: "Distribution & fetch",
-  runtime: "Runtime & UI",
+  runtime: "Runtime & UI"
 };
 
 /** @type {"toc" | "chapter" | "diagnostics" | "grant-intro"} */
@@ -97,7 +91,7 @@ function makeSdk() {
     ui,
     share,
     apps,
-    ai,
+    ai
   };
 }
 
@@ -127,7 +121,7 @@ function chapterNeighbors(id) {
   }
   return {
     prev: index > 0 ? order[index - 1] : null,
-    next: index < order.length - 1 ? order[index + 1] : null,
+    next: index < order.length - 1 ? order[index + 1] : null
   };
 }
 
@@ -136,8 +130,7 @@ function chapterMatchesSearch(chapterMeta, query) {
     return true;
   }
   const chapter = findChapter(chapterMeta.id);
-  const haystack =
-    `${chapterMeta.title} ${chapter?.searchText ?? ""}`.toLowerCase();
+  const haystack = `${chapterMeta.title} ${chapter?.searchText ?? ""}`.toLowerCase();
   return haystack.includes(query);
 }
 
@@ -201,16 +194,13 @@ function resultCard(appletId, result) {
 
   const label = result.status.toUpperCase();
   const timing =
-    result.timings && typeof result.timings.ms === "number"
-      ? ` (${result.timings.ms} ms)`
-      : "";
+    result.timings && typeof result.timings.ms === "number" ? ` (${result.timings.ms} ms)` : "";
   const procedureMatch =
     typeof result.details === "string"
       ? result.details.match(/(?:Guided procedure[^:]*:\n)([\s\S]+)$/)
       : null;
   const body =
-    procedureMatch !== null &&
-    (result.status === "unavailable" || result.status === "skipped")
+    procedureMatch !== null && (result.status === "unavailable" || result.status === "skipped")
       ? `${label}${timing}\n\nGuided procedure:\n${procedureMatch[1].trim()}`
       : `${label}${timing}\n${result.details}`;
   return textNode(`result-${appletId}`, body);
@@ -231,30 +221,25 @@ function explainStatus(status) {
 
 function renderTableBlock(bid, block, children) {
   children.push(
-    textNode(`${bid}-header`, block.headers.join(" · "), {
-      fontWeight: "bold",
-    }),
+    textNode(`${bid}-header`, block.headers.join(" · "), { fontWeight: "bold" })
   );
   const items = block.rows.map((row) => row.join(" — "));
   children.push({
     id: `${bid}-rows`,
     type: "list",
-    props: { items },
+    props: { items }
   });
 }
 
 async function renderGrantIntro(children) {
   children.push(
-    textNode("grant-intro-title", "Capabilities at install", {
-      fontSize: 20,
-      fontWeight: "bold",
-    }),
+    textNode("grant-intro-title", "Capabilities at install", { fontSize: 20, fontWeight: "bold" })
   );
   children.push(
     textNode(
       "grant-intro-blurb",
-      "The Handbook requested the capabilities below. You may grant a subset at install — withheld capabilities turn matching applets into not-granted teaching cards instead of errors.",
-    ),
+      "The Handbook requested the capabilities below. You may grant a subset at install — withheld capabilities turn matching applets into not-granted teaching cards instead of errors."
+    )
   );
 
   /** @type {Set<string>} */
@@ -277,23 +262,17 @@ async function renderGrantIntro(children) {
         : granted.has(cap.id)
           ? " ✓ granted"
           : " ✗ withheld";
-    children.push(
-      textNode(`grant-cap-${i}`, `• ${cap.id} — ${cap.description}${status}`),
-    );
+    children.push(textNode(`grant-cap-${i}`, `• ${cap.id} — ${cap.description}${status}`));
   }
 
   children.push(
     textNode(
       "grant-intro-note",
-      "Revoke or add grants later in host Settings. Double-gated apps:* capabilities also require a host confirmation on each call.",
-    ),
+      "Revoke or add grants later in host Settings. Double-gated apps:* capabilities also require a host confirmation on each call."
+    )
   );
   children.push(
-    widgetButton(
-      "grant-intro-continue",
-      "Continue to Handbook",
-      "hb.grantintro.dismiss",
-    ),
+    widgetButton("grant-intro-continue", "Continue to Handbook", "hb.grantintro.dismiss")
   );
 }
 
@@ -316,9 +295,7 @@ function appletsByDiagnosticGroup() {
 function renderAppletBlock(appletId, children) {
   const applet = findApplet(appletId);
   if (applet === null) {
-    children.push(
-      textNode(`missing-${appletId}`, `Missing applet: ${appletId}`),
-    );
+    children.push(textNode(`missing-${appletId}`, `Missing applet: ${appletId}`));
     return;
   }
 
@@ -326,14 +303,14 @@ function renderAppletBlock(appletId, children) {
   children.push(
     textNode(`applet-title-${appletId}`, `Applet: ${applet.title}`, {
       fontSize: 16,
-      fontWeight: "bold",
-    }),
+      fontWeight: "bold"
+    })
   );
   children.push(
     textNode(
       `applet-caps-${appletId}`,
-      `Requires: ${applet.capabilities.join(", ")}`,
-    ),
+      `Requires: ${applet.capabilities.join(", ")}`
+    )
   );
   children.push({
     id: `applet-src-${appletId}`,
@@ -341,42 +318,30 @@ function renderAppletBlock(appletId, children) {
     props: {
       documentId: `applets/${appletId}/main.js`,
       language: "javascript",
-      readOnly: true,
-    },
+      readOnly: true
+    }
   });
   children.push(
-    widgetButton(`applet-run-${appletId}`, "Run applet", "hb.runapplet"),
+    widgetButton(`applet-run-${appletId}`, "Run applet", "hb.runapplet")
   );
   if (appletSupportsMode(applet, "preview") && applet.preview !== null) {
     children.push(
-      widgetButton(
-        `applet-preview-${appletId}`,
-        "Run as real app",
-        "hb.runpreview",
-      ),
+      widgetButton(`applet-preview-${appletId}`, "Run as real app", "hb.runpreview")
     );
     if (previewRunning && previewAppletId === appletId) {
       children.push(
-        widgetButton(
-          `applet-stoppreview-${appletId}`,
-          "Stop preview",
-          "hb.stoppreview",
-        ),
+        widgetButton(`applet-stoppreview-${appletId}`, "Stop preview", "hb.stoppreview")
       );
       children.push(
         textNode(
           `applet-preview-active-${appletId}`,
-          "Preview is running in the host dev-preview slot. Stop preview to return here.",
-        ),
+          "Preview is running in the host dev-preview slot. Stop preview to return here."
+        )
       );
     }
   }
   children.push(
-    widgetButton(
-      `applet-devstudio-${appletId}`,
-      "Open in DevStudio",
-      "hb.devstudio",
-    ),
+    widgetButton(`applet-devstudio-${appletId}`, "Open in DevStudio", "hb.devstudio")
   );
 
   const handoff = devstudioHandoffs[appletId];
@@ -384,8 +349,8 @@ function renderAppletBlock(appletId, children) {
     children.push(
       textNode(
         `applet-devstudio-meta-${appletId}`,
-        `DevStudio handoff: ${handoff.project}\nPaste in DevStudio → Import from 256t`,
-      ),
+        `DevStudio handoff: ${handoff.project}\nPaste in DevStudio → Import from 256t`
+      )
     );
     children.push({
       id: `applet-devstudio-qr-${appletId}`,
@@ -393,8 +358,8 @@ function renderAppletBlock(appletId, children) {
       props: {
         value: handoff.t256,
         caption: handoff.project,
-        size: 96,
-      },
+        size: 96
+      }
     });
   }
 
@@ -437,18 +402,14 @@ function renderChapterBlocks(chapter, children) {
         props: {
           documentId: block.documentId,
           language: block.language,
-          readOnly: true,
-        },
+          readOnly: true
+        }
       });
       continue;
     }
     if (block.type === "chapter-link") {
       children.push(
-        widgetButton(
-          `link-${block.chapterId}-${bid}`,
-          `→ ${block.label}`,
-          "hb.openchapter",
-        ),
+        widgetButton(`link-${block.chapterId}-${bid}`, `→ ${block.label}`, "hb.openchapter")
       );
       continue;
     }
@@ -472,9 +433,9 @@ async function fetchHostInfoSafe() {
         kvQuotaBytes: null,
         seedStorageUsedBytes: null,
         seedStorageQuotaBytes: null,
-        memoryBytes: null,
+        memoryBytes: null
       },
-      error: error instanceof Error ? error.message : String(error),
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -488,17 +449,17 @@ function buildReportDocument(hostInfo) {
             appletId: applet.id,
             status: "skipped",
             details: "Not run",
-            timings: { ms: 0 },
+            timings: { ms: 0 }
           }
         : {
             appletId: applet.id,
             status: result.status,
             details: result.details,
-            timings: result.timings ?? { ms: 0 },
+            timings: result.timings ?? { ms: 0 }
           };
     return {
       ...row,
-      expectations: applet.expectations ?? {},
+      expectations: applet.expectations ?? {}
     };
   });
 
@@ -508,16 +469,14 @@ function buildReportDocument(hostInfo) {
     generatedAt: new Date().toISOString(),
     host: hostInfo,
     dropCensus: hostInfo?.dropCensus ?? { byReason: {}, byPeer: {} },
-    results,
+    results
   };
 }
 
 function diffDropCensus(localReport, remoteReport) {
   const local = localReport.dropCensus?.byReason ?? {};
   const remote = remoteReport.dropCensus?.byReason ?? {};
-  const keys = [
-    ...new Set([...Object.keys(local), ...Object.keys(remote)]),
-  ].sort();
+  const keys = [...new Set([...Object.keys(local), ...Object.keys(remote)])].sort();
   return keys.map((key) => {
     const localCount = local[key] ?? 0;
     const remoteCount = remote[key] ?? 0;
@@ -531,14 +490,14 @@ function diffDropCensus(localReport, remoteReport) {
       unexpected: !same,
       note: same ? "same drop count" : "drop census differs",
       localExpected: null,
-      remoteExpected: null,
+      remoteExpected: null
     };
   });
 }
 
 function diffReports(localReport, remoteReport) {
   const remoteById = new Map(
-    (remoteReport.results ?? []).map((row) => [row.appletId, row]),
+    (remoteReport.results ?? []).map((row) => [row.appletId, row])
   );
   const localPlatform = localReport.host?.platform ?? "unknown";
   const remotePlatform = remoteReport.host?.platform ?? "unknown";
@@ -547,13 +506,9 @@ function diffReports(localReport, remoteReport) {
     const remote = remoteById.get(local.appletId);
     const applet = findApplet(local.appletId);
     const localExpected =
-      local.expectations?.[localPlatform] ??
-      applet?.expectations?.[localPlatform] ??
-      null;
+      local.expectations?.[localPlatform] ?? applet?.expectations?.[localPlatform] ?? null;
     const remoteExpected =
-      remote?.expectations?.[remotePlatform] ??
-      applet?.expectations?.[remotePlatform] ??
-      null;
+      remote?.expectations?.[remotePlatform] ?? applet?.expectations?.[remotePlatform] ?? null;
     const remoteStatus = remote?.status ?? "missing";
     const same = remote !== undefined && remote.status === local.status;
     const expectedDiff =
@@ -578,7 +533,7 @@ function diffReports(localReport, remoteReport) {
       unexpected,
       note,
       localExpected,
-      remoteExpected,
+      remoteExpected
     });
   }
   return rows;
@@ -587,31 +542,23 @@ function diffReports(localReport, remoteReport) {
 function renderDiagnostics(children) {
   children.push(widgetButton("back-toc-diag", "← Contents", "hb.toc"));
   children.push({ id: "diag-sep", type: "divider" });
-  children.push(
-    textNode("diag-title", "Diagnostics", { fontSize: 20, fontWeight: "bold" }),
-  );
+  children.push(textNode("diag-title", "Diagnostics", { fontSize: 20, fontWeight: "bold" }));
   children.push(
     textNode(
       "diag-blurb",
-      "Run every applet on this host, export a shareable report, or paste another report’s 256t id to compare.",
-    ),
+      "Run every applet on this host, export a shareable report, or paste another report’s 256t id to compare."
+    )
   );
 
   children.push(
     widgetButton(
       "diag-run-all",
       runningAll ? "Running all…" : "Run all diagnostics",
-      "hb.runall",
-    ),
+      "hb.runall"
+    )
   );
 
-  const counts = {
-    pass: 0,
-    fail: 0,
-    unavailable: 0,
-    "not-granted": 0,
-    skipped: 0,
-  };
+  const counts = { pass: 0, fail: 0, unavailable: 0, "not-granted": 0, skipped: 0 };
   const grouped = appletsByDiagnosticGroup();
   for (const group of DIAGNOSTIC_GROUP_ORDER) {
     const applets = grouped[group];
@@ -619,10 +566,11 @@ function renderDiagnostics(children) {
       continue;
     }
     children.push(
-      textNode(`diag-group-${group}`, DIAGNOSTIC_GROUP_LABELS[group] ?? group, {
-        fontSize: 14,
-        fontWeight: "bold",
-      }),
+      textNode(
+        `diag-group-${group}`,
+        DIAGNOSTIC_GROUP_LABELS[group] ?? group,
+        { fontSize: 14, fontWeight: "bold" }
+      )
     );
     for (const applet of applets) {
       const result = appletResults[applet.id];
@@ -633,51 +581,47 @@ function renderDiagnostics(children) {
       children.push(
         textNode(
           `diag-row-${applet.id}`,
-          `  ${applet.id}: ${status.toUpperCase()}`,
-        ),
+          `  ${applet.id}: ${status.toUpperCase()}`
+        )
       );
     }
   }
   children.push(
     textNode(
       "diag-summary",
-      `Summary — pass ${counts.pass}, fail ${counts.fail}, unavailable ${counts.unavailable}, not-granted ${counts["not-granted"]}, skipped ${counts.skipped}`,
-    ),
+      `Summary — pass ${counts.pass}, fail ${counts.fail}, unavailable ${counts.unavailable}, not-granted ${counts["not-granted"]}, skipped ${counts.skipped}`
+    )
   );
 
   children.push({ id: "diag-export-sep", type: "divider" });
-  children.push(
-    widgetButton("diag-export", "Export report (share.put)", "hb.export"),
-  );
+  children.push(widgetButton("diag-export", "Export report (share.put)", "hb.export"));
   if (exportState.reportId !== null) {
     children.push(
       textNode(
         "diag-export-meta",
-        `Exported ${exportState.generatedAt ?? ""}\n${exportState.reportId}`,
-      ),
+        `Exported ${exportState.generatedAt ?? ""}\n${exportState.reportId}`
+      )
     );
     children.push({
       id: "diag-export-qr",
       type: "qr-code",
       props: {
         value: exportState.reportId,
-        caption: "Scan or copy report 256t id",
-      },
+        caption: "Scan or copy report 256t id"
+      }
     });
   }
 
   children.push({ id: "diag-compare-sep", type: "divider" });
-  children.push(
-    textNode("diag-compare-label", "Compare with remote report id:"),
-  );
+  children.push(textNode("diag-compare-label", "Compare with remote report id:"));
   children.push({
     id: "diag-compare-input",
     type: "text-input",
     props: {
       value: compareInput,
       placeholder: "Paste 256t id",
-      event: "hb.compare.input",
-    },
+      event: "hb.compare.input"
+    }
   });
   children.push(widgetButton("diag-compare", "Compare report", "hb.compare"));
 
@@ -690,27 +634,26 @@ function renderDiagnostics(children) {
     children.push(
       textNode(
         "diag-compare-hosts",
-        `Local host: ${localPlat}  ·  Remote host: ${remotePlat}`,
-      ),
+        `Local host: ${localPlat}  ·  Remote host: ${remotePlat}`
+      )
     );
-    const dropRows = compareState.rows.filter(
-      (row) =>
-        typeof row.appletId === "string" && row.appletId.startsWith("drop:"),
+    const dropRows = compareState.rows.filter((row) =>
+      typeof row.appletId === "string" && row.appletId.startsWith("drop:")
     );
     if (dropRows.length > 0) {
       children.push(
         textNode("diag-compare-group-drops", "Announce drop census", {
           fontSize: 14,
-          fontWeight: "bold",
-        }),
+          fontWeight: "bold"
+        })
       );
       for (const row of dropRows) {
         const mark = row.same ? "=" : "≠";
         children.push(
           textNode(
             `diag-compare-${row.appletId}`,
-            `  ${mark} ${row.appletId.slice("drop:".length)}  local=${row.local} remote=${row.remote}`,
-          ),
+            `  ${mark} ${row.appletId.slice("drop:".length)}  local=${row.local} remote=${row.remote}`
+          )
         );
       }
     }
@@ -721,7 +664,7 @@ function renderDiagnostics(children) {
         continue;
       }
       const groupRows = compareState.rows.filter((row) =>
-        applets.some((applet) => applet.id === row.appletId),
+        applets.some((applet) => applet.id === row.appletId)
       );
       if (groupRows.length === 0) {
         continue;
@@ -730,8 +673,8 @@ function renderDiagnostics(children) {
         textNode(
           `diag-compare-group-${group}`,
           DIAGNOSTIC_GROUP_LABELS[group] ?? group,
-          { fontSize: 14, fontWeight: "bold" },
-        ),
+          { fontSize: 14, fontWeight: "bold" }
+        )
       );
       for (const row of groupRows) {
         const mark = row.expectedDiff ? "≈" : row.same ? "=" : "≠";
@@ -742,8 +685,8 @@ function renderDiagnostics(children) {
         children.push(
           textNode(
             `diag-diff-${row.appletId}`,
-            `  ${mark} ${row.appletId}: ${row.local} / ${row.remote}${expectNote}${row.note ? ` — ${row.note}` : ""}`,
-          ),
+            `  ${mark} ${row.appletId}: ${row.local} / ${row.remote}${expectNote}${row.note ? ` — ${row.note}` : ""}`
+          )
         );
       }
     }

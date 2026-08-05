@@ -13,24 +13,19 @@ import {
   MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
-  createLoopbackBinding,
+  createLoopbackBinding
 } from "../../packages/miniapp-runtime/dist/index.js";
 import { normalizeResults, registerGrants, runCallScript } from "./calls.mjs";
 
 const PRESENCE = { peers: 2, onlineInterfaces: 1, preferredInterface: "auto" };
-const RESOURCES = new Map([
-  ["offer:demo", new TextEncoder().encode("hello-resource")],
-]);
+const RESOURCES = new Map([["offer:demo", new TextEncoder().encode("hello-resource")]]);
 
 async function runLoopback() {
-  const binding = createLoopbackBinding({
-    presence: PRESENCE,
-    resources: RESOURCES,
-  });
+  const binding = createLoopbackBinding({ presence: PRESENCE, resources: RESOURCES });
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
     grantStore: new GrantStore(new MemoryKvStoreBackend()),
-    ...binding,
+    ...binding
   });
   await registerGrants(host);
   return runCallScript(host);
@@ -49,20 +44,14 @@ async function runReference() {
       resourceBackend: {
         fetch: async (_appId, request) => {
           const bytes = RESOURCES.get(request.resourceId);
-          if (bytes === undefined)
-            throw new Error(`Resource not found: ${request.resourceId}`);
-          if (
-            request.budgetBytes !== undefined &&
-            bytes.length > request.budgetBytes
-          ) {
-            throw new Error(
-              `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
-            );
+          if (bytes === undefined) throw new Error(`Resource not found: ${request.resourceId}`);
+          if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+            throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
           }
           return bytes;
-        },
+        }
       },
-      presenceBackend: { snapshot: async () => PRESENCE },
+      presenceBackend: { snapshot: async () => PRESENCE }
     });
     await registerGrants(host);
     return await runCallScript(host);
@@ -82,20 +71,14 @@ if (loopbackText !== referenceText) {
   const b = referenceText.split("\n");
   for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
     if (a[i] !== b[i]) {
-      console.error(
-        `first divergence at line ${i}:\n  loopback:  ${a[i]}\n  reference: ${b[i]}`,
-      );
+      console.error(`first divergence at line ${i}:\n  loopback:  ${a[i]}\n  reference: ${b[i]}`);
       break;
     }
   }
-  throw new Error(
-    "loopback and reference bindings produced different observable results",
-  );
+  throw new Error("loopback and reference bindings produced different observable results");
 }
 
-console.log(
-  `bind-loopback: ${loopback.length} calls identical across loopback and reference bindings`,
-);
+console.log(`bind-loopback: ${loopback.length} calls identical across loopback and reference bindings`);
 
 // SPEC-SDK vector suite over the loopback binding (the reference binding
 // replays the same vectors in conformance/sdk-interop).
@@ -103,10 +86,6 @@ const { runSdkVectors } = await import("../sdk-interop/vectors.mjs");
 const replay = await runSdkVectors("loopback");
 if (replay.failures.length > 0) {
   for (const failure of replay.failures) console.error(failure);
-  throw new Error(
-    `SPEC-SDK vectors failed over the loopback binding (${replay.failures.length} failures)`,
-  );
+  throw new Error(`SPEC-SDK vectors failed over the loopback binding (${replay.failures.length} failures)`);
 }
-console.log(
-  `bind-loopback: ${replay.vectors} SPEC-SDK vectors (${replay.steps} steps) passed over the loopback binding`,
-);
+console.log(`bind-loopback: ${replay.vectors} SPEC-SDK vectors (${replay.steps} steps) passed over the loopback binding`);

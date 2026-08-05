@@ -8,7 +8,7 @@ import {
   KISS_RADIO_STATE_ON,
   encodeDetectRequest,
   encodeKissFrame,
-  encodeRadioStateAsk,
+  encodeRadioStateAsk
 } from "../src/rnode/kiss.js";
 import { RNodeInterface } from "../src/rnode/interface.js";
 
@@ -22,11 +22,7 @@ class MockSerialPipe implements SerialPipe {
   readonly writes: Uint8Array[] = [];
 
   get stats() {
-    return {
-      bytesIn: this.bytesIn,
-      bytesOut: this.bytesOut,
-      connected: this.connected,
-    };
+    return { bytesIn: this.bytesIn, bytesOut: this.bytesOut, connected: this.connected };
   }
 
   setEvents(events: SerialPipeEvents): void {
@@ -47,14 +43,8 @@ class MockSerialPipe implements SerialPipe {
     this.writes.push(data);
     this.bytesOut += data.length;
 
-    const detect = encodeKissFrame(
-      KISS_CMD_DETECT,
-      Uint8Array.from([KISS_DETECT_RESP]),
-    );
-    const radioOn = encodeKissFrame(
-      KISS_CMD_RADIO_STATE,
-      Uint8Array.from([KISS_RADIO_STATE_ON]),
-    );
+    const detect = encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP]));
+    const radioOn = encodeKissFrame(KISS_CMD_RADIO_STATE, Uint8Array.from([KISS_RADIO_STATE_ON]));
 
     if (this.sameBytes(data, encodeDetectRequest())) {
       this.emit(detect);
@@ -74,10 +64,7 @@ class MockSerialPipe implements SerialPipe {
   }
 
   private sameBytes(left: Uint8Array, right: Uint8Array): boolean {
-    return (
-      left.length === right.length &&
-      left.every((value, index) => value === right[index])
-    );
+    return left.length === right.length && left.every((value, index) => value === right[index]);
   }
 }
 
@@ -88,7 +75,7 @@ describe("RNodeInterface lifecycle", () => {
       name: "rnode-test",
       provider,
       pipe,
-      reconnectWaitMs: 50,
+      reconnectWaitMs: 50
     });
 
     expect(iface.online).toBe(true);
@@ -105,7 +92,7 @@ describe("RNodeInterface lifecycle", () => {
       name: "rnode-reconnect",
       provider,
       pipe,
-      reconnectWaitMs: 30,
+      reconnectWaitMs: 30
     });
 
     expect(iface.online).toBe(true);

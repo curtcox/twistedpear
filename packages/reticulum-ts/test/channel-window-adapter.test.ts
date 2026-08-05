@@ -35,7 +35,7 @@ import {
   stepChannelPacketTimeoutSecondsWithActions,
   stepCountChannelTxOutstandingWithActions,
   stepIndexOfChannelRingSequenceWithActions,
-  stepIndexOfChannelTxEnvelopeWithActions,
+  stepIndexOfChannelTxEnvelopeWithActions
 } from "@twistedpear/protocol";
 
 describe("Channel window adapter", () => {
@@ -49,7 +49,7 @@ describe("Channel window adapter", () => {
     const outlet = {
       rtt: ChannelWindowLimits.RTT_SLOW + 1,
       mdu: 500,
-      isUsable: true,
+      isUsable: true
     };
     const channel = new Channel(outlet as never);
     const expected = initialChannelWindowState(outlet.rtt);
@@ -70,7 +70,7 @@ describe("Channel window adapter", () => {
       { tries: 1, rtt: 0.2, txRingLength: 0 },
       { tries: 2, rtt: 0.2, txRingLength: 1 },
       { tries: 3, rtt: 0.01, txRingLength: 4 },
-      { tries: 5, rtt: 1.0, txRingLength: 2 },
+      { tries: 5, rtt: 1.0, txRingLength: 2 }
     ];
     for (const input of cases) {
       const legacy =
@@ -81,13 +81,13 @@ describe("Channel window adapter", () => {
         initialChannelPacketTimeoutSecondsState(),
         {
           kind: "channel/packet-timeout-gate",
-          ...input,
-        },
+          ...input
+        }
       );
       expect(shouldUseChannelPacketTimeout(stepped.actions)).toBe(true);
       expect(channelPacketTimeoutFromActions(stepped.actions)).toBe(legacy);
       expect(channelPacketTimeoutFromActions(stepped.actions)).toBe(
-        channelPacketTimeoutSeconds(input),
+        channelPacketTimeoutSeconds(input)
       );
     }
   });
@@ -96,18 +96,18 @@ describe("Channel window adapter", () => {
     const entries = [
       { packetPresent: true, delivered: false },
       { packetPresent: true, delivered: true },
-      { packetPresent: false, delivered: false },
+      { packetPresent: false, delivered: false }
     ];
     const stepped = stepCountChannelTxOutstandingWithActions(
       initialCountChannelTxOutstandingState(),
       {
         kind: "channel/tx-outstanding-gate",
-        entries,
-      },
+        entries
+      }
     );
     expect(shouldUseChannelTxOutstandingCount(stepped.actions)).toBe(true);
     expect(channelTxOutstandingCountFromActions(stepped.actions)).toBe(
-      countChannelTxOutstanding(entries),
+      countChannelTxOutstanding(entries)
     );
   });
 
@@ -115,26 +115,23 @@ describe("Channel window adapter", () => {
     const cases = [
       { isUsable: true, outstanding: 1, window: 2, allow: true },
       { isUsable: true, outstanding: 2, window: 2, allow: false },
-      { isUsable: false, outstanding: 0, window: 2, allow: false },
+      { isUsable: false, outstanding: 0, window: 2, allow: false }
     ];
     for (const input of cases) {
-      const stepped = stepChannelAllowsSendWithActions(
-        initialChannelAllowsSendState(),
-        {
-          kind: "channel/allows-send-gate",
-          isUsable: input.isUsable,
-          outstanding: input.outstanding,
-          window: input.window,
-        },
-      );
+      const stepped = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+        kind: "channel/allows-send-gate",
+        isUsable: input.isUsable,
+        outstanding: input.outstanding,
+        window: input.window
+      });
       expect(shouldAllowChannelSend(stepped.actions)).toBe(input.allow);
       expect(shouldDenyChannelSend(stepped.actions)).toBe(!input.allow);
       expect(shouldAllowChannelSend(stepped.actions)).toBe(
         channelAllowsSend({
           isUsable: input.isUsable,
           outstanding: input.outstanding,
-          window: input.window,
-        }),
+          window: input.window
+        })
       );
     }
   });
@@ -144,28 +141,23 @@ describe("Channel window adapter", () => {
       { packetPresent: true, rawLength: 10, receiptPresent: true, ok: true },
       { packetPresent: false, rawLength: 10, receiptPresent: true, ok: false },
       { packetPresent: true, rawLength: 0, receiptPresent: true, ok: false },
-      { packetPresent: true, rawLength: 10, receiptPresent: false, ok: false },
+      { packetPresent: true, rawLength: 10, receiptPresent: false, ok: false }
     ];
     for (const input of cases) {
-      const stepped = stepChannelOutletTransmitWithActions(
-        initialChannelOutletTransmitState(),
-        {
-          kind: "channel/outlet-transmit-gate",
-          packetPresent: input.packetPresent,
-          rawLength: input.rawLength,
-          receiptPresent: input.receiptPresent,
-        },
-      );
+      const stepped = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+        kind: "channel/outlet-transmit-gate",
+        packetPresent: input.packetPresent,
+        rawLength: input.rawLength,
+        receiptPresent: input.receiptPresent
+      });
       expect(shouldAcceptChannelOutletTransmit(stepped.actions)).toBe(input.ok);
-      expect(shouldRejectChannelOutletTransmit(stepped.actions)).toBe(
-        !input.ok,
-      );
+      expect(shouldRejectChannelOutletTransmit(stepped.actions)).toBe(!input.ok);
       expect(shouldAcceptChannelOutletTransmit(stepped.actions)).toBe(
         isChannelOutletTransmitOk({
           packetPresent: input.packetPresent,
           rawLength: input.rawLength,
-          receiptPresent: input.receiptPresent,
-        }),
+          receiptPresent: input.receiptPresent
+        })
       );
     }
   });
@@ -173,30 +165,24 @@ describe("Channel window adapter", () => {
   it("matches TX-envelope index via use-index/miss actions", () => {
     const a = new Uint8Array([1, 2]);
     const b = new Uint8Array([3, 4]);
-    const hit = stepIndexOfChannelTxEnvelopeWithActions(
-      initialIndexOfChannelTxEnvelopeState(),
-      {
-        kind: "channel/tx-envelope-index-gate",
-        packetIds: [null, a, b],
-        targetId: new Uint8Array([3, 4]),
-      },
-    );
+    const hit = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [null, a, b],
+      targetId: new Uint8Array([3, 4])
+    });
     expect(shouldUseChannelTxEnvelopeIndex(hit.actions)).toBe(true);
     expect(channelTxEnvelopeIndexFromActions(hit.actions)).toBe(
       indexOfChannelTxEnvelope({
         packetIds: [null, a, b],
-        targetId: new Uint8Array([3, 4]),
-      }),
+        targetId: new Uint8Array([3, 4])
+      })
     );
 
-    const miss = stepIndexOfChannelTxEnvelopeWithActions(
-      initialIndexOfChannelTxEnvelopeState(),
-      {
-        kind: "channel/tx-envelope-index-gate",
-        packetIds: [a],
-        targetId: null,
-      },
-    );
+    const miss = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [a],
+      targetId: null
+    });
     expect(shouldMissChannelTxEnvelopeIndex(miss.actions)).toBe(true);
     expect(channelTxEnvelopeIndexFromActions(miss.actions)).toBeNull();
   });
@@ -207,12 +193,12 @@ describe("Channel window adapter", () => {
       {
         kind: "channel/ring-sequence-index-gate",
         ringSequences: [2, 3, 5],
-        target: 3,
-      },
+        target: 3
+      }
     );
     expect(shouldUseChannelRingSequenceIndex(hit.actions)).toBe(true);
     expect(channelRingSequenceIndexFromActions(hit.actions)).toBe(
-      indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 3 }),
+      indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 3 })
     );
 
     const miss = stepIndexOfChannelRingSequenceWithActions(
@@ -220,8 +206,8 @@ describe("Channel window adapter", () => {
       {
         kind: "channel/ring-sequence-index-gate",
         ringSequences: [2, 3, 5],
-        target: 9,
-      },
+        target: 9
+      }
     );
     expect(shouldMissChannelRingSequenceIndex(miss.actions)).toBe(true);
     expect(channelRingSequenceIndexFromActions(miss.actions)).toBeNull();

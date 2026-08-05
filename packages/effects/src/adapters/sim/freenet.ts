@@ -3,7 +3,7 @@ import { SimClock } from "./clock.js";
 import {
   sampleLatency,
   transportClass,
-  type LatencyDistribution,
+  type LatencyDistribution
 } from "./transport-classes.js";
 
 /** S2 local 1 KiB p95 update→notify on the local-executor path (~89 ms). */
@@ -101,7 +101,7 @@ export class SimFreenetContractHub {
     const record: SimFreenetContractRecord = {
       key: Uint8Array.from(key),
       codeHash: Uint8Array.from(codeHash),
-      state: Uint8Array.from(state),
+      state: Uint8Array.from(state)
     };
     this.#states.set(bytesToHex(key), record);
     this.#emit(bytesToHex(key), record.state);
@@ -117,7 +117,7 @@ export class SimFreenetContractHub {
     return {
       key: Uint8Array.from(record.key),
       codeHash: Uint8Array.from(record.codeHash),
-      state: Uint8Array.from(record.state),
+      state: Uint8Array.from(record.state)
     };
   }
 
@@ -139,7 +139,7 @@ export class SimFreenetContractHub {
     const record: SimFreenetContractRecord = {
       key: Uint8Array.from(key),
       codeHash: Uint8Array.from(codeHash),
-      state: Uint8Array.from(state),
+      state: Uint8Array.from(state)
     };
     this.#states.set(keyHex, record);
     this.#emit(keyHex, record.state);
@@ -147,7 +147,7 @@ export class SimFreenetContractHub {
 
   subscribe(
     key: Uint8Array,
-    listener: (state: Uint8Array) => void,
+    listener: (state: Uint8Array) => void
   ): () => void {
     this.#assertOpen();
     const keyHex = bytesToHex(key);
@@ -177,7 +177,7 @@ export class SimFreenetContractHub {
     }
     return this.#pending.reduce(
       (earliest, entry) => Math.min(earliest, entry.deliverAt),
-      Number.POSITIVE_INFINITY,
+      Number.POSITIVE_INFINITY
     );
   }
 
@@ -217,7 +217,7 @@ export class SimFreenetContractHub {
     this.#pending.push({
       deliverAt: this.#clock.now() + delayMs,
       keyHex,
-      state: Uint8Array.from(state),
+      state: Uint8Array.from(state)
     });
   }
 
@@ -259,10 +259,7 @@ export class SimFreenetClient {
     return this.#hub;
   }
 
-  async put(
-    source: SimFreenetContractSource,
-    state: Uint8Array,
-  ): Promise<Uint8Array> {
+  async put(source: SimFreenetContractSource, state: Uint8Array): Promise<Uint8Array> {
     return this.#hub.put(source, state);
   }
 
@@ -273,14 +270,14 @@ export class SimFreenetClient {
   async update(
     key: Uint8Array,
     codeHash: Uint8Array,
-    state: Uint8Array,
+    state: Uint8Array
   ): Promise<void> {
     this.#hub.update(key, codeHash, state);
   }
 
   async subscribe(
     key: Uint8Array,
-    listener: (state: Uint8Array) => void,
+    listener: (state: Uint8Array) => void
   ): Promise<() => void> {
     return this.#hub.subscribe(key, listener);
   }

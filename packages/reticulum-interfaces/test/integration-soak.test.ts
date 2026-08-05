@@ -1,21 +1,12 @@
 import { describe, expect, it } from "vitest";
-import {
-  PureCryptoProvider,
-  Reticulum,
-  nodeRuntime,
-  type PacketInterface,
-} from "@twistedpear/reticulum-ts";
-import type {
-  MulticastBridge,
-  MulticastBridgeEvents,
-  MulticastNetworkInfo,
-} from "../src/pipes.js";
+import { PureCryptoProvider, Reticulum, nodeRuntime, type PacketInterface } from "@twistedpear/reticulum-ts";
+import type { MulticastBridge, MulticastBridgeEvents, MulticastNetworkInfo } from "../src/pipes.js";
 import { AutoInterfaceBridge } from "../src/auto-bridge.js";
 import { SimulatedBlePipe } from "../src/ble/sim.js";
 import { BleInterface } from "../src/ble/interface.js";
 import {
   rankOutgoingInterfaces,
-  selectPreferredInterface,
+  selectPreferredInterface
 } from "../src/policy.js";
 import type { SerialPipe, SerialPipeEvents } from "../src/pipes.js";
 import { RNodeInterface } from "../src/rnode/interface.js";
@@ -28,29 +19,21 @@ import {
   decodeKissFrames,
   encodeDetectRequest,
   encodeKissFrame,
-  encodeRadioStateAsk,
+  encodeRadioStateAsk
 } from "../src/rnode/kiss.js";
 
 const provider = new PureCryptoProvider();
 const runtime = nodeRuntime();
 
-const SOAK_DURATION_MS = Number.parseInt(
-  process.env.SOAK_DURATION_MS ?? "12000",
-  10,
-);
-const FLAP_INTERVAL_MS = Number.parseInt(
-  process.env.INTEGRATION_SOAK_FLAP_MS ?? "2000",
-  10,
-);
+const SOAK_DURATION_MS = Number.parseInt(process.env.SOAK_DURATION_MS ?? "12000", 10);
+const FLAP_INTERVAL_MS = Number.parseInt(process.env.INTEGRATION_SOAK_FLAP_MS ?? "2000", 10);
 
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 class MockMulticastBridge implements MulticastBridge {
-  interfaces: MulticastNetworkInfo[] = [
-    { name: "mock0", linkLocalAddress: "fe80::1" },
-  ];
+  interfaces: MulticastNetworkInfo[] = [{ name: "mock0", linkLocalAddress: "fe80::1" }];
   private events: MulticastBridgeEvents = {};
 
   setEvents(events: MulticastBridgeEvents): void {
@@ -84,11 +67,7 @@ class SimulatedRNodePipe implements SerialPipe {
   }
 
   get stats() {
-    return {
-      bytesIn: this.bytesIn,
-      bytesOut: this.bytesOut,
-      connected: this.openState,
-    };
+    return { bytesIn: this.bytesIn, bytesOut: this.bytesOut, connected: this.openState };
   }
 
   setEvents(events: SerialPipeEvents): void {
@@ -112,16 +91,9 @@ class SimulatedRNodePipe implements SerialPipe {
 
     for (const frame of decoded.frames) {
       if (frame.command === KISS_CMD_DETECT) {
-        this.reply(
-          encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])),
-        );
+        this.reply(encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])));
       } else if (frame.command === KISS_CMD_RADIO_STATE) {
-        this.reply(
-          encodeKissFrame(
-            KISS_CMD_RADIO_STATE,
-            Uint8Array.from([KISS_RADIO_STATE_ON]),
-          ),
-        );
+        this.reply(encodeKissFrame(KISS_CMD_RADIO_STATE, Uint8Array.from([KISS_RADIO_STATE_ON])));
       }
     }
   }
@@ -136,16 +108,8 @@ describe("integration soak (M9)", () => {
   it(
     "keeps simulated BLE, AutoInterface, and RNode alive under interface flapping",
     async () => {
-      const leftPipe = new SimulatedBlePipe({
-        mtu: 247,
-        lossRate: 0.02,
-        random: () => 0.99,
-      });
-      const rightPipe = new SimulatedBlePipe({
-        mtu: 247,
-        lossRate: 0.02,
-        random: () => 0.99,
-      });
+      const leftPipe = new SimulatedBlePipe({ mtu: 247, lossRate: 0.02, random: () => 0.99 });
+      const rightPipe = new SimulatedBlePipe({ mtu: 247, lossRate: 0.02, random: () => 0.99 });
       leftPipe.linkPeer(rightPipe);
 
       const reticulum = Reticulum.create({ provider, runtime });
@@ -157,7 +121,7 @@ describe("integration soak (M9)", () => {
         provider,
         runtime,
         bridge: autoBridge,
-        peeringTimeoutMs: 500,
+        peeringTimeoutMs: 500
       });
       reticulum.registerInterface(autoIface);
 
@@ -166,7 +130,7 @@ describe("integration soak (M9)", () => {
         name: "soak-rnode",
         provider,
         pipe: rnodePipe,
-        reconnectWaitMs: 100,
+        reconnectWaitMs: 100
       });
       reticulum.registerInterface(rnodeIface);
 
@@ -188,13 +152,13 @@ describe("integration soak (M9)", () => {
             name: "soak-ble-left",
             provider,
             pipe: leftPipe,
-            pipeMtu: 247,
+            pipeMtu: 247
           });
           bleRight = await BleInterface.open(provider, {
             name: "soak-ble-right",
             provider,
             pipe: rightPipe,
-            pipeMtu: 247,
+            pipeMtu: 247
           });
           reticulum.registerInterface(bleLeft);
           reticulum.registerInterface(bleRight);
@@ -228,6 +192,6 @@ describe("integration soak (M9)", () => {
       await autoIface.close();
       reticulum.stop();
     },
-    SOAK_DURATION_MS + 10_000,
+    SOAK_DURATION_MS + 10_000
   );
 });

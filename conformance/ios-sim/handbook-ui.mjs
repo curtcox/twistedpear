@@ -13,14 +13,14 @@ import {
   dockerAvailable,
   maestroAvailable,
   maestroHandbookSmoke,
-  waitForHandbookMeta,
+  waitForHandbookMeta
 } from "../handbook/peer-helpers.mjs";
 import {
   buildAndInstallHarness,
   ensureBootedSimulator,
   harnessInstalledOnBootedSim,
   isDarwin,
-  simctlAvailable,
+  simctlAvailable
 } from "./helpers.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -59,51 +59,28 @@ export async function runIosHandbookUiSmoke() {
 
   ensureBootedSimulator();
 
-  if (
-    process.env.IOS_SIM_HANDBOOK_UI_BUILD === "1" ||
-    !harnessInstalledOnBootedSim()
-  ) {
-    console.log(
-      "[ios-sim/handbook-ui] building and installing harness on simulator (set IOS_SIM_HANDBOOK_UI_BUILD=0 to skip when already installed)",
-    );
+  if (process.env.IOS_SIM_HANDBOOK_UI_BUILD === "1" || !harnessInstalledOnBootedSim()) {
+    console.log("[ios-sim/handbook-ui] building and installing harness on simulator (set IOS_SIM_HANDBOOK_UI_BUILD=0 to skip when already installed)");
     buildAndInstallHarness(repoRoot);
   } else {
-    console.log(
-      "[ios-sim/handbook-ui] harness already installed on booted simulator",
-    );
+    console.log("[ios-sim/handbook-ui] harness already installed on booted simulator");
   }
 
-  spawnSync(
-    "docker",
-    [
-      "compose",
-      "-f",
-      "conformance/docker/docker-compose.yml",
-      "up",
-      "-d",
-      "--build",
-      "leaf-echo",
-    ],
-    {
-      cwd: repoRoot,
-      stdio: "inherit",
-    },
-  );
+  spawnSync("docker", ["compose", "-f", "conformance/docker/docker-compose.yml", "up", "-d", "--build", "leaf-echo"], {
+    cwd: repoRoot,
+    stdio: "inherit"
+  });
 
-  const handbookPeer = spawn(
-    "node",
-    ["conformance/handbook/handbook-peer.mjs"],
-    {
-      cwd: repoRoot,
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        LEAF_ECHO_HOST: "127.0.0.1",
-        LEAF_ECHO_PORT: "4242",
-        HANDBOOK_PEER_LOG_PREFIX: "ios-sim/handbook-peer",
-      },
-    },
-  );
+  const handbookPeer = spawn("node", ["conformance/handbook/handbook-peer.mjs"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      LEAF_ECHO_HOST: "127.0.0.1",
+      LEAF_ECHO_PORT: "4242",
+      HANDBOOK_PEER_LOG_PREFIX: "ios-sim/handbook-peer"
+    }
+  });
 
   try {
     waitForHandbookMeta();
@@ -112,14 +89,10 @@ export async function runIosHandbookUiSmoke() {
     console.log("[ios-sim/handbook-ui] passed");
   } finally {
     handbookPeer.kill("SIGTERM");
-    spawnSync(
-      "docker",
-      ["compose", "-f", "conformance/docker/docker-compose.yml", "down"],
-      {
-        cwd: repoRoot,
-        stdio: "inherit",
-      },
-    );
+    spawnSync("docker", ["compose", "-f", "conformance/docker/docker-compose.yml", "down"], {
+      cwd: repoRoot,
+      stdio: "inherit"
+    });
   }
 }
 

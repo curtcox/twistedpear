@@ -18,7 +18,7 @@ const webHostDir = join(repoRoot, "dist/web-host");
 function runBuild() {
   const build = spawnSync("npm", ["run", "build:web-host"], {
     cwd: repoRoot,
-    stdio: "inherit",
+    stdio: "inherit"
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -58,7 +58,7 @@ function startStaticServer(root) {
               }
             });
           });
-        },
+        }
       });
     });
   });
@@ -66,15 +66,11 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath =
-    pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+  const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (
-    !resolvedPath.startsWith(resolvedRoot + sep) &&
-    resolvedPath !== resolvedRoot
-  ) {
+  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
     response.writeHead(403);
     response.end();
     return;
@@ -86,9 +82,7 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, {
-    "content-type": staticContentType(extname(resolvedPath)),
-  });
+  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
   if (headOnly) {
     response.end();
     return;
@@ -137,62 +131,46 @@ async function runPlaywright(pageUrl) {
     });
 
     await page.goto(pageUrl, { waitUntil: "networkidle", timeout: 120_000 });
-    await page.waitForFunction(
-      () => navigator.serviceWorker?.controller !== null,
-      undefined,
-      {
-        timeout: 60_000,
-      },
-    );
+    await page.waitForFunction(() => navigator.serviceWorker?.controller !== null, undefined, {
+      timeout: 60_000
+    });
 
-    const manifestHref = await page
-      .locator('link[rel="manifest"]')
-      .getAttribute("href");
+    const manifestHref = await page.locator('link[rel="manifest"]').getAttribute("href");
     if (manifestHref === null || manifestHref.length === 0) {
       throw new Error("expected web app manifest link in index.html");
     }
 
-    await page.waitForSelector('[data-testid="pwa-install"]', {
-      timeout: 60_000,
-    });
+    await page.waitForSelector('[data-testid="pwa-install"]', { timeout: 60_000 });
     await page.evaluate(() => {
       window.__dispatchFakeInstallPrompt?.();
     });
     await page.waitForFunction(
       () => {
-        const status = document.querySelector(
-          '[data-testid="pwa-install-status"]',
-        );
+        const status = document.querySelector('[data-testid="pwa-install-status"]');
         return status?.textContent?.includes("ready") === true;
       },
       undefined,
-      { timeout: 15_000 },
+      { timeout: 15_000 }
     );
 
     const installButton = page.getByTestId("pwa-install");
     if (await installButton.isDisabled()) {
-      throw new Error(
-        "expected Install TwistedPear button to enable after beforeinstallprompt",
-      );
+      throw new Error("expected Install TwistedPear button to enable after beforeinstallprompt");
     }
 
     await installButton.click();
     await page.waitForFunction(
       () => {
-        const status = document.querySelector(
-          '[data-testid="pwa-install-status"]',
-        );
+        const status = document.querySelector('[data-testid="pwa-install-status"]');
         return status?.textContent?.includes("installed") === true;
       },
       undefined,
-      { timeout: 15_000 },
+      { timeout: 15_000 }
     );
 
     await context.setOffline(true);
     await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
-    await page
-      .getByText("Reticulum leaf peer in the browser")
-      .waitFor({ timeout: 30_000 });
+    await page.getByText("Reticulum leaf peer in the browser").waitFor({ timeout: 30_000 });
     return { manifestHref };
   } finally {
     await browser.close();
@@ -210,16 +188,14 @@ try {
     "sw.js",
     "web-core.worker.js",
     "icon-192.png",
-    "icon-512.png",
+    "icon-512.png"
   ]) {
     if (!existsSync(join(webHostDir, required))) {
       throw new Error(`web-host build missing ${required}`);
     }
   }
 
-  const manifest = JSON.parse(
-    readFileSync(join(webHostDir, "manifest.webmanifest"), "utf8"),
-  );
+  const manifest = JSON.parse(readFileSync(join(webHostDir, "manifest.webmanifest"), "utf8"));
   if (!Array.isArray(manifest.icons) || manifest.icons.length < 2) {
     throw new Error("web app manifest missing install icons");
   }
@@ -227,9 +203,7 @@ try {
   staticServer = await startStaticServer(webHostDir);
   const pageUrl = `http://127.0.0.1:${staticServer.port}/`;
   const result = await runPlaywright(pageUrl);
-  console.log(
-    `web-pwa: offline shell + install prompt (manifest ${result.manifestHref})`,
-  );
+  console.log(`web-pwa: offline shell + install prompt (manifest ${result.manifestHref})`);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`web-pwa: failed — ${message}`);

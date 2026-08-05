@@ -10,7 +10,7 @@ export {
   type PathAwaitAction,
   type PathAwaitEvent,
   type PathAwaitState,
-  type PathAwaitStepResult,
+  type PathAwaitStepResult
 } from "../path-await.js";
 export {
   PATH_RESPONSE_GRACE_TIMER_ID,
@@ -21,7 +21,7 @@ export {
   type PathResponseGraceAction,
   type PathResponseGraceEvent,
   type PathResponseGraceState,
-  type PathResponseGraceStepResult,
+  type PathResponseGraceStepResult
 } from "../path-response-grace.js";
 export {
   PATHFINDER_EXPIRY_SECONDS,
@@ -266,7 +266,7 @@ export {
   type UsePathForOutboundAction,
   type UsePathForOutboundEvent,
   type UsePathForOutboundState,
-  type UsePathForOutboundStepResult,
+  type UsePathForOutboundStepResult
 } from "../path-table.js";
 export {
   PATH_REQUEST_HASH_BYTES,
@@ -300,5 +300,6 @@ export {
   type PathRequestTagKeyAction,
   type PathRequestTagKeyEvent,
   type PathRequestTagKeyState,
-  type PathRequestTagKeyStepResult,
+  type PathRequestTagKeyStepResult
 } from "../path-request.js";
+

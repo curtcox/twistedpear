@@ -2,12 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  decodeMessages,
-  encodeMessage,
-  type HostToWorkletMessage,
-  type WorkletToHostMessage,
-} from "@twistedpear/host-core/protocol";
+import { decodeMessages, encodeMessage, type HostToWorkletMessage, type WorkletToHostMessage } from "@twistedpear/host-core/protocol";
 
 const hostRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const workletBundle = join(hostRoot, "worklet/worklet.bundle");
@@ -32,17 +27,15 @@ export class WorkletSupervisor {
   start(useNodeFallback = false): void {
     this.stopping = false;
     this.usingNodeFallback = useNodeFallback;
-    const command = useNodeFallback
-      ? (process.env.TWISTEDPEAR_NODE_BIN ?? "node")
-      : bareBin;
+    const command = useNodeFallback ? process.env.TWISTEDPEAR_NODE_BIN ?? "node" : bareBin;
     const args = useNodeFallback ? [workletSource] : [workletBundle];
     this.child = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
         TWISTEDPEAR_HOST_DESKTOP: "1",
-        ...(useNodeFallback ? { TWISTEDPEAR_WORKLET_NODE_FALLBACK: "1" } : {}),
-      },
+        ...(useNodeFallback ? { TWISTEDPEAR_WORKLET_NODE_FALLBACK: "1" } : {})
+      }
     });
 
     this.child.stdout.on("data", (chunk: Buffer) => {
@@ -57,10 +50,7 @@ export class WorkletSupervisor {
     this.child.stderr.on("data", (chunk: Buffer) => {
       const line = chunk.toString("utf8").trim();
       console.error(`[worklet] ${line}`);
-      if (
-        !this.usingNodeFallback &&
-        line.includes("[ipc-stdio] stdin unavailable")
-      ) {
+      if (!this.usingNodeFallback && line.includes("[ipc-stdio] stdin unavailable")) {
         this.restartWithNodeFallback();
       }
     });
@@ -70,10 +60,7 @@ export class WorkletSupervisor {
       this.options.onExit(code, signal);
       if (!this.stopping) {
         this.restartAttempts += 1;
-        const delay = Math.min(
-          30_000,
-          500 * 2 ** Math.min(this.restartAttempts, 6),
-        );
+        const delay = Math.min(30_000, 500 * 2 ** Math.min(this.restartAttempts, 6));
         setTimeout(() => this.start(this.usingNodeFallback), delay);
       }
     });

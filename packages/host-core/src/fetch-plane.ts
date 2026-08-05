@@ -1,8 +1,5 @@
 import type { CatalogEntry } from "@twistedpear/app-registry";
-import type {
-  CryptoProvider,
-  PacketInterface,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
 import type { FetchPath, FetchProgress } from "@twistedpear/bridge-hyper";
 import type { CasLocator } from "@twistedpear/cas-256t";
 
@@ -25,8 +22,5 @@ export interface FetchPlaneResult {
 }
 
 export interface FetchPlane {
-  fetchPackage(
-    provider: CryptoProvider,
-    request: FetchPlaneRequest,
-  ): Promise<FetchPlaneResult>;
+  fetchPackage(provider: CryptoProvider, request: FetchPlaneRequest): Promise<FetchPlaneResult>;
 }

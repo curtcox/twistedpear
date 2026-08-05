@@ -9,7 +9,7 @@ import {
   resourceTimeoutFromActions,
   shouldUseResourceTimeout,
   stepComputeResourceTimeoutWithActions,
-  stepResourceWatchdogWithActions,
+  stepResourceWatchdogWithActions
 } from "../src/resource-watchdog.js";
 
 describe("protocol resource watchdog", () => {
@@ -24,38 +24,32 @@ describe("protocol resource watchdog", () => {
       {
         kind: "resource/timeout-gate",
         rtt: 1,
-        trafficTimeoutFactor: 6,
-      },
+        trafficTimeoutFactor: 6
+      }
     );
     expect(shouldUseResourceTimeout(stepped.actions)).toBe(true);
-    expect(resourceTimeoutFromActions(stepped.actions)).toBe(
-      computeResourceTimeout(1, 6),
-    );
+    expect(resourceTimeoutFromActions(stepped.actions)).toBe(computeResourceTimeout(1, 6));
 
     const empty = stepComputeResourceTimeoutWithActions(
       initialComputeResourceTimeoutState(),
-      { kind: "noop" } as never,
+      { kind: "noop" } as never
     );
     expect(shouldUseResourceTimeout(empty.actions)).toBe(false);
     expect(resourceTimeoutFromActions(empty.actions)).toBeNull();
   });
 
   it("cancels advertised transfers when retries are exhausted", () => {
-    let state = initialResourceWatchdogState({
-      initiator: true,
-      timeout: 5,
-      retriesLeft: 0,
-    });
+    let state = initialResourceWatchdogState({ initiator: true, timeout: 5, retriesLeft: 0 });
     state = stepResourceWatchdogWithActions(state, {
       kind: "resource/sync",
       status: ResourceStatus.ADVERTISED,
-      advSent: 100,
+      advSent: 100
     }).state;
 
     const tick = stepResourceWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "resource-watchdog",
-      at: (100 + 5 + RESOURCE_PROCESSING_GRACE + 1) * 1000,
+      at: (100 + 5 + RESOURCE_PROCESSING_GRACE + 1) * 1000
     });
 
     expect(tick.actions).toEqual([{ kind: "cancel" }]);
@@ -63,71 +57,59 @@ describe("protocol resource watchdog", () => {
   });
 
   it("retries advertise and decrements retriesLeft", () => {
-    let state = initialResourceWatchdogState({
-      initiator: true,
-      timeout: 5,
-      retriesLeft: 2,
-    });
+    let state = initialResourceWatchdogState({ initiator: true, timeout: 5, retriesLeft: 2 });
     state = stepResourceWatchdogWithActions(state, {
       kind: "resource/sync",
       status: ResourceStatus.ADVERTISED,
-      advSent: 10,
+      advSent: 10
     }).state;
 
     const tick = stepResourceWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "resource-watchdog",
-      at: (10 + 5 + RESOURCE_PROCESSING_GRACE + 0.1) * 1000,
+      at: (10 + 5 + RESOURCE_PROCESSING_GRACE + 0.1) * 1000
     });
 
     expect(tick.actions).toEqual([{ kind: "advertise" }]);
     expect(tick.state.retriesLeft).toBe(1);
-    expect(
-      tick.intents[0]?.kind === "timer/set" ? tick.intents[0].timer.delayMs : 0,
-    ).toBe(RESOURCE_WATCHDOG_PERIOD_MS);
+    expect(tick.intents[0]?.kind === "timer/set" ? tick.intents[0].timer.delayMs : 0).toBe(
+      RESOURCE_WATCHDOG_PERIOD_MS
+    );
   });
 
   it("requests next parts for receiver during transfer", () => {
-    let state = initialResourceWatchdogState({
-      initiator: false,
-      timeout: 5,
-      retriesLeft: 4,
-    });
+    let state = initialResourceWatchdogState({ initiator: false, timeout: 5, retriesLeft: 4 });
     state = stepResourceWatchdogWithActions(state, {
       kind: "resource/sync",
       status: ResourceStatus.TRANSFERRING,
       outstandingParts: 0,
       receivedCount: 1,
-      totalParts: 4,
+      totalParts: 4
     }).state;
 
     const tick = stepResourceWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "resource-watchdog",
-      at: 1_000,
+      at: 1_000
     });
 
     expect(tick.actions).toEqual([{ kind: "request-next" }]);
   });
 
   it("does not request next when parts are outstanding", () => {
-    let state = initialResourceWatchdogState({
-      initiator: false,
-      timeout: 5,
-      retriesLeft: 4,
-    });
+    let state = initialResourceWatchdogState({ initiator: false, timeout: 5, retriesLeft: 4 });
     state = stepResourceWatchdogWithActions(state, {
       kind: "resource/sync",
       status: ResourceStatus.TRANSFERRING,
       outstandingParts: 2,
       receivedCount: 1,
-      totalParts: 4,
+      totalParts: 4
     }).state;
 
     const tick = stepResourceWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "resource-watchdog",
-      at: 1_000,
+      at: 1_000
     });
 
     expect(tick.actions).toEqual([]);
@@ -136,20 +118,16 @@ describe("protocol resource watchdog", () => {
 
   it("double-runs identically", () => {
     const run = () => {
-      let state = initialResourceWatchdogState({
-        initiator: true,
-        timeout: 8,
-        retriesLeft: 1,
-      });
+      let state = initialResourceWatchdogState({ initiator: true, timeout: 8, retriesLeft: 1 });
       state = stepResourceWatchdogWithActions(state, {
         kind: "resource/sync",
         status: ResourceStatus.ADVERTISED,
-        advSent: 0,
+        advSent: 0
       }).state;
       return stepResourceWatchdogWithActions(state, {
         kind: "timer/fired",
         id: "resource-watchdog",
-        at: (8 + RESOURCE_PROCESSING_GRACE + 1) * 1000,
+        at: (8 + RESOURCE_PROCESSING_GRACE + 1) * 1000
       });
     };
     expect(run()).toEqual(run());

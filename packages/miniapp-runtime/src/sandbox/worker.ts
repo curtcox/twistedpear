@@ -1,9 +1,5 @@
 import { prepareBundleSource } from "./prepare-bundle.js";
-import type {
-  SandboxBackend,
-  SandboxInstance,
-  SandboxSpawnOptions,
-} from "./backend.js";
+import type { SandboxBackend, SandboxInstance, SandboxSpawnOptions } from "./backend.js";
 
 export class WorkerBackendUnavailableError extends Error {
   constructor() {
@@ -19,38 +15,26 @@ interface BareWorkerLike {
 }
 
 interface BareWorkerConstructor {
-  new (
-    source: string | URL,
-    options?: { type?: string; data?: unknown },
-  ): BareWorkerLike;
+  new (source: string | URL, options?: { type?: string; data?: unknown }): BareWorkerLike;
 }
 
 export class BareWorkerSandboxBackend implements SandboxBackend {
   readonly name = "bare-worker";
 
   async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
-    const WorkerCtor = (globalThis as { Worker?: BareWorkerConstructor })
-      .Worker;
+    const WorkerCtor = (globalThis as { Worker?: BareWorkerConstructor }).Worker;
     if (WorkerCtor === undefined) {
       throw new WorkerBackendUnavailableError();
     }
 
-    const source = prepareBundleSource(
-      new TextDecoder().decode(options.bundle),
-    );
+    const source = prepareBundleSource(new TextDecoder().decode(options.bundle));
     const bootstrap = createBareBootstrapSource();
-    const worker = new WorkerCtor(
-      `data:text/javascript,${encodeURIComponent(bootstrap)}`,
-      {
-        type: "module",
-        data: { appId: options.appId, bundleSource: source },
-      },
-    );
+    const worker = new WorkerCtor(`data:text/javascript,${encodeURIComponent(bootstrap)}`, {
+      type: "module",
+      data: { appId: options.appId, bundleSource: source }
+    });
 
-    const pending = new Map<
-      string,
-      { resolve: (value: unknown) => void; reject: (error: Error) => void }
-    >();
+    const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
     let killed = false;
     let alive = true;
 
@@ -77,24 +61,20 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
             type: "broker-response",
             id: message.id,
             ok: false,
-            error: { message: "Broker endpoint is not configured" },
+            error: { message: "Broker endpoint is not configured" }
           });
           return;
         }
 
         void endpoint.request(message).then(
-          (response) =>
-            worker.postMessage({
-              type: "broker-response",
-              ...(response as object),
-            }),
+          (response) => worker.postMessage({ type: "broker-response", ...(response as object) }),
           (error: Error) =>
             worker.postMessage({
               type: "broker-response",
               id: message.id,
               ok: false,
-              error: { message: error.message },
-            }),
+              error: { message: error.message }
+            })
         );
         return;
       }
@@ -109,9 +89,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
         if (message.ok) {
           waiter.resolve(message.result);
         } else {
-          waiter.reject(
-            new Error(message.error?.message ?? "Broker request failed"),
-          );
+          waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
         }
       }
     };
@@ -148,7 +126,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
             reject: () => {
               clearTimeout(timer);
               resolve(false);
-            },
+            }
           });
           worker.postMessage({ type: "ping", id });
         });
@@ -162,7 +140,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
         alive = false;
         worker.postMessage({ type: "kill", reason });
         worker.terminate();
-      },
+      }
     };
   }
 }

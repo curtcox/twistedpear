@@ -15,10 +15,7 @@ export interface AiChatRequest {
 export interface AiChatResponse {
   readonly message: { readonly role: "assistant"; readonly content: string };
   readonly model: string;
-  readonly usage: {
-    readonly promptTokens: number;
-    readonly completionTokens: number;
-  } | null;
+  readonly usage: { readonly promptTokens: number; readonly completionTokens: number } | null;
 }
 
 export type AiChatStreamEvent =
@@ -29,14 +26,12 @@ export async function chat(request: AiChatRequest): Promise<AiChatResponse> {
   return (await callHost("ai", "chat", request, "ai:chat")) as AiChatResponse;
 }
 
-export async function* chatStream(
-  request: AiChatRequest,
-): AsyncGenerator<AiChatStreamEvent> {
+export async function *chatStream(request: AiChatRequest): AsyncGenerator<AiChatStreamEvent> {
   const started = (await callHost(
     "ai",
     "chatStreamStart",
     request,
-    "ai:chat",
+    "ai:chat"
   )) as { streamId: string };
   let completed = false;
   try {
@@ -45,7 +40,7 @@ export async function* chatStream(
         "ai",
         "chatStreamNext",
         { streamId: started.streamId },
-        "ai:chat",
+        "ai:chat"
       )) as IteratorResult<AiChatStreamEvent>;
       if (next.done === true) {
         completed = true;
@@ -59,7 +54,7 @@ export async function* chatStream(
         "ai",
         "chatStreamCancel",
         { streamId: started.streamId },
-        "ai:chat",
+        "ai:chat"
       );
     }
   }
@@ -78,39 +73,21 @@ export interface AiEmbedResponse {
 
 export interface AiVectorSearchRequest {
   readonly query: string;
-  readonly documents: ReadonlyArray<{
-    readonly id: string;
-    readonly text: string;
-  }>;
+  readonly documents: ReadonlyArray<{ readonly id: string; readonly text: string }>;
   readonly limit?: number;
   readonly model?: string;
 }
 
 export interface AiVectorSearchResponse {
-  readonly matches: ReadonlyArray<{
-    readonly id: string;
-    readonly score: number;
-  }>;
+  readonly matches: ReadonlyArray<{ readonly id: string; readonly score: number }>;
   readonly model: string;
   readonly usage: { readonly promptTokens: number } | null;
 }
 
 export async function embed(request: AiEmbedRequest): Promise<AiEmbedResponse> {
-  return (await callHost(
-    "ai",
-    "embed",
-    request,
-    "ai:embed",
-  )) as AiEmbedResponse;
+  return (await callHost("ai", "embed", request, "ai:embed")) as AiEmbedResponse;
 }
 
-export async function search(
-  request: AiVectorSearchRequest,
-): Promise<AiVectorSearchResponse> {
-  return (await callHost(
-    "ai",
-    "search",
-    request,
-    "ai:embed",
-  )) as AiVectorSearchResponse;
+export async function search(request: AiVectorSearchRequest): Promise<AiVectorSearchResponse> {
+  return (await callHost("ai", "search", request, "ai:embed")) as AiVectorSearchResponse;
 }

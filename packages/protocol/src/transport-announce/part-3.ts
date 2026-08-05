@@ -23,24 +23,19 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   PACKET_CONTEXT_PATH_RESPONSE,
-  PACKET_CONTEXT_NONE,
+  PACKET_CONTEXT_NONE
 } from "../packet-context.js";
 import {
   PACKET_HEADER_2,
   PACKET_TYPE_ANNOUNCE,
-  type PacketHeaderFields,
+  type PacketHeaderFields
 } from "../packet-header.js";
 import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
 import { shouldMatchAnnounceAspect } from "./part-2.js";
-import type {
-  MatchAnnounceAspectAction,
-  MatchAnnounceAspectEvent,
-  MatchAnnounceAspectState,
-  MatchAnnounceAspectStepResult,
-} from "./part-2.js";
+import type { MatchAnnounceAspectAction, MatchAnnounceAspectEvent, MatchAnnounceAspectState, MatchAnnounceAspectStepResult } from "./part-2.js";
 export function stepMatchAnnounceAspectWithActions(
   state: MatchAnnounceAspectState,
-  event: MatchAnnounceAspectEvent,
+  event: MatchAnnounceAspectEvent
 ): MatchAnnounceAspectStepResult {
   if (event.kind === "announce/match-aspect-gate") {
     return {
@@ -51,12 +46,12 @@ export function stepMatchAnnounceAspectWithActions(
           kind: shouldMatchAnnounceAspect({
             hasFilter: event.hasFilter,
             filterParsed: event.filterParsed,
-            hashMatches: event.hashMatches,
+            hashMatches: event.hashMatches
           })
             ? "match"
-            : "mismatch",
-        },
-      ],
+            : "mismatch"
+        }
+      ]
     };
   }
 
@@ -64,13 +59,13 @@ export function stepMatchAnnounceAspectWithActions(
 }
 
 export function shouldMatchAnnounceAspectNow(
-  actions: ReadonlyArray<MatchAnnounceAspectAction>,
+  actions: ReadonlyArray<MatchAnnounceAspectAction>
 ): boolean {
   return actions.some((action) => action.kind === "match");
 }
 
 export function shouldMismatchAnnounceAspect(
-  actions: ReadonlyArray<MatchAnnounceAspectAction>,
+  actions: ReadonlyArray<MatchAnnounceAspectAction>
 ): boolean {
   return actions.some((action) => action.kind === "mismatch");
 }
@@ -85,14 +80,12 @@ export interface AnnounceIngressGates {
  * PATH_RESPONSE announces skip rate-limit / rate-record / rebroadcast.
  * Non-path-response announces enable all three.
  */
-export function planAnnounceIngressGates(
-  context: number,
-): AnnounceIngressGates {
+export function planAnnounceIngressGates(context: number): AnnounceIngressGates {
   const allow = context !== PACKET_CONTEXT_PATH_RESPONSE;
   return {
     applyRateLimit: allow,
     recordRate: allow,
-    rebroadcast: allow,
+    rebroadcast: allow
   };
 }
 
@@ -129,7 +122,7 @@ export function initialAnnounceIngressGatesPlanState(): AnnounceIngressGatesPlan
 
 export function stepAnnounceIngressGatesPlanWithActions(
   state: AnnounceIngressGatesPlanState,
-  event: AnnounceIngressGatesPlanEvent,
+  event: AnnounceIngressGatesPlanEvent
 ): AnnounceIngressGatesPlanStepResult {
   if (event.kind === "announce/ingress-gates-plan-gate") {
     const gates = planAnnounceIngressGates(event.context);
@@ -141,9 +134,9 @@ export function stepAnnounceIngressGatesPlanWithActions(
           kind: "use-gates",
           applyRateLimit: gates.applyRateLimit,
           recordRate: gates.recordRate,
-          rebroadcast: gates.rebroadcast,
-        },
-      ],
+          rebroadcast: gates.rebroadcast
+        }
+      ]
     };
   }
 
@@ -151,21 +144,21 @@ export function stepAnnounceIngressGatesPlanWithActions(
 }
 
 export function shouldUseAnnounceIngressGatesPlan(
-  actions: ReadonlyArray<AnnounceIngressGatesPlanAction>,
+  actions: ReadonlyArray<AnnounceIngressGatesPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-gates");
 }
 
 /** Extract announce ingress gates from plan actions; null when no `use-gates`. */
 export function announceIngressGatesPlanFromActions(
-  actions: ReadonlyArray<AnnounceIngressGatesPlanAction>,
+  actions: ReadonlyArray<AnnounceIngressGatesPlanAction>
 ): AnnounceIngressGates | null {
   const action = actions.find((entry) => entry.kind === "use-gates");
   return action?.kind === "use-gates"
     ? {
         applyRateLimit: action.applyRateLimit,
         recordRate: action.recordRate,
-        rebroadcast: action.rebroadcast,
+        rebroadcast: action.rebroadcast
       }
     : null;
 }
@@ -199,53 +192,47 @@ export function initialAnnounceIngressGatesState(): AnnounceIngressGatesState {
   return {};
 }
 
-export const stepAnnounceIngressGates: StepFn<AnnounceIngressGatesState> = (
-  state,
-  event,
-) => {
-  const result = stepAnnounceIngressGatesInner(
-    state,
-    event as AnnounceIngressGatesEvent,
-  );
+export const stepAnnounceIngressGates: StepFn<AnnounceIngressGatesState> = (state, event) => {
+  const result = stepAnnounceIngressGatesInner(state, event as AnnounceIngressGatesEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepAnnounceIngressGatesWithActions(
   state: AnnounceIngressGatesState,
-  event: AnnounceIngressGatesEvent,
+  event: AnnounceIngressGatesEvent
 ): AnnounceIngressGatesStepResult {
   return stepAnnounceIngressGatesInner(state, event);
 }
 
 export function shouldApplyAnnounceRateLimit(
-  actions: ReadonlyArray<AnnounceIngressGatesAction>,
+  actions: ReadonlyArray<AnnounceIngressGatesAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply-rate-limit");
 }
 
 export function shouldRecordAnnounceRate(
-  actions: ReadonlyArray<AnnounceIngressGatesAction>,
+  actions: ReadonlyArray<AnnounceIngressGatesAction>
 ): boolean {
   return actions.some((action) => action.kind === "record-rate");
 }
 
 export function shouldRebroadcastAnnounce(
-  actions: ReadonlyArray<AnnounceIngressGatesAction>,
+  actions: ReadonlyArray<AnnounceIngressGatesAction>
 ): boolean {
   return actions.some((action) => action.kind === "rebroadcast");
 }
 
 function stepAnnounceIngressGatesInner(
   state: AnnounceIngressGatesState,
-  event: AnnounceIngressGatesEvent,
+  event: AnnounceIngressGatesEvent
 ): AnnounceIngressGatesStepResult {
   if (event.kind === "announce/ingress-gates") {
     const planActions = stepAnnounceIngressGatesPlanWithActions(
       initialAnnounceIngressGatesPlanState(),
       {
         kind: "announce/ingress-gates-plan-gate",
-        context: event.context,
-      },
+        context: event.context
+      }
     ).actions;
     const plan = announceIngressGatesPlanFromActions(planActions);
     if (plan === null) {

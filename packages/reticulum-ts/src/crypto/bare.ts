@@ -50,13 +50,7 @@ export class BareCryptoProvider implements CryptoProvider {
       throw new Error(`Unsupported HKDF hash: ${input.hash}`);
     }
 
-    return nobleHkdf(
-      sha256,
-      input.keyMaterial,
-      input.salt,
-      input.info,
-      input.length,
-    );
+    return nobleHkdf(sha256, input.keyMaterial, input.salt, input.info, input.length);
   }
 
   x25519PublicFromPrivate(privateKey: Uint8Array): Uint8Array {
@@ -66,10 +60,7 @@ export class BareCryptoProvider implements CryptoProvider {
     return toUint8Array(publicKey);
   }
 
-  x25519SharedSecret(
-    privateKey: Uint8Array,
-    publicKey: Uint8Array,
-  ): Uint8Array {
+  x25519SharedSecret(privateKey: Uint8Array, publicKey: Uint8Array): Uint8Array {
     const lib = loadSodium();
     const shared = Buffer.alloc(lib.crypto_scalarmult_BYTES);
     lib.crypto_scalarmult(shared, toBuffer(privateKey), toBuffer(publicKey));
@@ -80,11 +71,7 @@ export class BareCryptoProvider implements CryptoProvider {
     const lib = loadSodium();
     const publicKey = Buffer.alloc(lib.crypto_sign_PUBLICKEYBYTES);
     const expandedPrivateKey = Buffer.alloc(lib.crypto_sign_SECRETKEYBYTES);
-    lib.crypto_sign_seed_keypair(
-      publicKey,
-      expandedPrivateKey,
-      toBuffer(privateKey),
-    );
+    lib.crypto_sign_seed_keypair(publicKey, expandedPrivateKey, toBuffer(privateKey));
     return toUint8Array(publicKey);
   }
 
@@ -92,59 +79,35 @@ export class BareCryptoProvider implements CryptoProvider {
     const lib = loadSodium();
     const publicKey = Buffer.alloc(lib.crypto_sign_PUBLICKEYBYTES);
     const expandedPrivateKey = Buffer.alloc(lib.crypto_sign_SECRETKEYBYTES);
-    lib.crypto_sign_seed_keypair(
-      publicKey,
-      expandedPrivateKey,
-      toBuffer(privateKey),
-    );
+    lib.crypto_sign_seed_keypair(publicKey, expandedPrivateKey, toBuffer(privateKey));
 
     const signature = Buffer.alloc(lib.crypto_sign_BYTES);
     lib.crypto_sign_detached(signature, toBuffer(message), expandedPrivateKey);
     return toUint8Array(signature);
   }
 
-  ed25519Verify(
-    publicKey: Uint8Array,
-    message: Uint8Array,
-    signature: Uint8Array,
-  ): boolean {
+  ed25519Verify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): boolean {
     const lib = loadSodium();
     return lib.crypto_sign_verify_detached(
       toBuffer(signature),
       toBuffer(message),
-      toBuffer(publicKey),
+      toBuffer(publicKey)
     );
   }
 
-  aes128CbcEncrypt(
-    plaintext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes128CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).encrypt(plaintext);
   }
 
-  aes128CbcDecrypt(
-    ciphertext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes128CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).decrypt(ciphertext);
   }
 
-  aes256CbcEncrypt(
-    plaintext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes256CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).encrypt(plaintext);
   }
 
-  aes256CbcDecrypt(
-    ciphertext: Uint8Array,
-    key: Uint8Array,
-    iv: Uint8Array,
-  ): Uint8Array {
+  aes256CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).decrypt(ciphertext);
   }
 }

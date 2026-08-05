@@ -1,8 +1,4 @@
-import {
-  ContainmentTracker,
-  containmentRegressions,
-  summarizeContainment,
-} from "../src/metrics.js";
+import { ContainmentTracker, containmentRegressions, summarizeContainment } from "../src/metrics.js";
 import { describe, expect, it } from "vitest";
 
 describe("response containment metrics", () => {
@@ -22,33 +18,17 @@ describe("response containment metrics", () => {
       revocationPropagationMs: 250,
       egressAttributability: 2 / 3,
       networkKillLatencyMs: 500,
-      damageWindow: 3,
+      damageWindow: 3
     });
-    expect(summarizeContainment([lora.snapshot()])).toMatchObject([
-      { transport: "lora", scenarios: 1 },
-    ]);
+    expect(summarizeContainment([lora.snapshot()])).toMatchObject([{ transport: "lora", scenarios: 1 }]);
   });
 
   it("gates containment deltas against reviewed limits", () => {
-    const actual = [
-      {
-        transport: "lan" as const,
-        scenarios: 1,
-        revocationPropagationMs: 11,
-        egressAttributability: 0.9,
-        networkKillLatencyMs: 9,
-        damageWindow: 0,
-      },
-    ];
-    expect(
-      containmentRegressions(actual, [
-        {
-          transport: "lan",
-          revocationPropagationMsMax: 10,
-          egressAttributabilityMin: 0.8,
-          networkKillLatencyMsMax: 10,
-        },
-      ]),
-    ).toEqual(["lan: revocation propagation 11 exceeds 10"]);
+    const actual = [{ transport: "lan" as const, scenarios: 1, revocationPropagationMs: 11,
+      egressAttributability: 0.9, networkKillLatencyMs: 9, damageWindow: 0 }];
+    expect(containmentRegressions(actual, [{ transport: "lan", revocationPropagationMsMax: 10,
+      egressAttributabilityMin: 0.8, networkKillLatencyMsMax: 10 }])).toEqual([
+      "lan: revocation propagation 11 exceeds 10"
+    ]);
   });
 });

@@ -13,7 +13,7 @@ import {
   maestro,
   maestroAvailable,
   requireDevice,
-  waitForBootComplete,
+  waitForBootComplete
 } from "./helpers.mjs";
 
 const labDir = dirname(fileURLToPath(import.meta.url));
@@ -61,6 +61,4 @@ if (!harnessInstalled()) {
 }
 
 maestro(["test", ".maestro/share-policy.yaml"]);
-console.log(
-  "android-emulator share-policy: grant / revoke / expiry / restart passed",
-);
+console.log("android-emulator share-policy: grant / revoke / expiry / restart passed");

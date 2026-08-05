@@ -32,12 +32,7 @@
         "precise": { "minBps": 32, "targetBps": 128, "burstBytes": 256 }
       },
       "consentClass": "low",
-      "degradationLadder": [
-        "precise@1Hz",
-        "precise@0.1Hz",
-        "coarse-on-movement",
-        "coarse-on-demand"
-      ],
+      "degradationLadder": ["precise@1Hz", "precise@0.1Hz", "coarse-on-movement", "coarse-on-demand"],
       "description": "Host-mediated geolocation. Default tier is quantized coarse (~1 km); precise is a separate elevated grant."
     },
     {
@@ -98,38 +93,15 @@
           "targetBps": 2000000,
           "burstBytes": 1048576,
           "encodings": {
-            "720p30": {
-              "minBps": 1000000,
-              "targetBps": 2000000,
-              "burstBytes": 1048576
-            },
-            "480p15": {
-              "minBps": 350000,
-              "targetBps": 750000,
-              "burstBytes": 524288
-            },
-            "240p10": {
-              "minBps": 100000,
-              "targetBps": 250000,
-              "burstBytes": 262144
-            },
-            "thumbnails-1fps": {
-              "minBps": 20000,
-              "targetBps": 50000,
-              "burstBytes": 65536
-            }
+            "720p30": { "minBps": 1000000, "targetBps": 2000000, "burstBytes": 1048576 },
+            "480p15": { "minBps": 350000, "targetBps": 750000, "burstBytes": 524288 },
+            "240p10": { "minBps": 100000, "targetBps": 250000, "burstBytes": 262144 },
+            "thumbnails-1fps": { "minBps": 20000, "targetBps": 50000, "burstBytes": 65536 }
           }
         }
       },
       "consentClass": "elevated",
-      "degradationLadder": [
-        "720p30",
-        "480p15",
-        "240p10",
-        "thumbnails-1fps",
-        "derived-events",
-        "cas-snapshot"
-      ],
+      "degradationLadder": ["720p30", "480p15", "240p10", "thumbnails-1fps", "derived-events", "cas-snapshot"],
       "description": "Camera. Default derived tier yields barcodes, motion events, and counts — not full frames."
     },
     {
@@ -164,32 +136,14 @@
           "targetBps": 768000,
           "burstBytes": 65536,
           "encodings": {
-            "48k-pcm": {
-              "minBps": 384000,
-              "targetBps": 768000,
-              "burstBytes": 65536
-            },
-            "16k-opus": {
-              "minBps": 16000,
-              "targetBps": 24000,
-              "burstBytes": 8192
-            },
-            "8k-narrowband": {
-              "minBps": 8000,
-              "targetBps": 12000,
-              "burstBytes": 4096
-            }
+            "48k-pcm": { "minBps": 384000, "targetBps": 768000, "burstBytes": 65536 },
+            "16k-opus": { "minBps": 16000, "targetBps": 24000, "burstBytes": 8192 },
+            "8k-narrowband": { "minBps": 8000, "targetBps": 12000, "burstBytes": 4096 }
           }
         }
       },
       "consentClass": "elevated",
-      "degradationLadder": [
-        "48k-pcm",
-        "16k-opus",
-        "8k-narrowband",
-        "vad-transcript",
-        "transcript-only"
-      ],
+      "degradationLadder": ["48k-pcm", "16k-opus", "8k-narrowband", "vad-transcript", "transcript-only"],
       "description": "Microphone. Default derived tier yields level, VAD, tone/DTMF, and transcript — not raw PCM."
     },
     {
@@ -423,32 +377,14 @@
           "targetBps": 2000000,
           "burstBytes": 1048576,
           "encodings": {
-            "720p30": {
-              "minBps": 1000000,
-              "targetBps": 2000000,
-              "burstBytes": 1048576
-            },
-            "480p15": {
-              "minBps": 350000,
-              "targetBps": 750000,
-              "burstBytes": 524288
-            },
-            "thumbnails-1fps": {
-              "minBps": 20000,
-              "targetBps": 50000,
-              "burstBytes": 65536
-            }
+            "720p30": { "minBps": 1000000, "targetBps": 2000000, "burstBytes": 1048576 },
+            "480p15": { "minBps": 350000, "targetBps": 750000, "burstBytes": 524288 },
+            "thumbnails-1fps": { "minBps": 20000, "targetBps": 50000, "burstBytes": 65536 }
           }
         }
       },
       "consentClass": "sensitive",
-      "degradationLadder": [
-        "720p30",
-        "480p15",
-        "thumbnails-1fps",
-        "derived-events",
-        "cas-snapshot"
-      ],
+      "degradationLadder": ["720p30", "480p15", "thumbnails-1fps", "derived-events", "cas-snapshot"],
       "description": "Screen capture. Always requires an explicit per-session region picker in host chrome."
     },
     {
@@ -526,9 +462,7 @@
       "defaults": { "maxRateHz": 5, "maxSessionMs": 3600000 },
       "streamable": false,
       "remoteEligible": false,
-      "bandwidth": {
-        "near-far": { "minBps": 1, "targetBps": 8, "burstBytes": 16 }
-      },
+      "bandwidth": { "near-far": { "minBps": 1, "targetBps": 8, "burstBytes": 16 } },
       "consentClass": "low",
       "degradationLadder": ["near-far"],
       "description": "Near/far proximity scalar, rate-capped."
@@ -549,9 +483,7 @@
       "defaults": { "maxRateHz": 1, "maxSessionMs": 3600000 },
       "streamable": false,
       "remoteEligible": false,
-      "bandwidth": {
-        "pressure": { "minBps": 4, "targetBps": 16, "burstBytes": 32 }
-      },
+      "bandwidth": { "pressure": { "minBps": 4, "targetBps": 16, "burstBytes": 32 } },
       "consentClass": "low",
       "degradationLadder": ["pressure"],
       "description": "Atmospheric pressure scalar in hPa, rate-capped."
@@ -572,9 +504,7 @@
       "defaults": { "maxRateHz": 0.2, "maxSessionMs": 3600000 },
       "streamable": false,
       "remoteEligible": false,
-      "bandwidth": {
-        "celsius": { "minBps": 2, "targetBps": 8, "burstBytes": 16 }
-      },
+      "bandwidth": { "celsius": { "minBps": 2, "targetBps": 8, "burstBytes": 16 } },
       "consentClass": "low",
       "degradationLadder": ["celsius"],
       "description": "Ambient temperature scalar in °C, rate-capped."
@@ -595,9 +525,7 @@
       "defaults": { "maxRateHz": 0.2, "maxSessionMs": 3600000 },
       "streamable": false,
       "remoteEligible": false,
-      "bandwidth": {
-        "humidity": { "minBps": 2, "targetBps": 8, "burstBytes": 16 }
-      },
+      "bandwidth": { "humidity": { "minBps": 2, "targetBps": 8, "burstBytes": 16 } },
       "consentClass": "low",
       "degradationLadder": ["humidity"],
       "description": "Relative humidity percent scalar, rate-capped."
@@ -618,9 +546,7 @@
       "defaults": { "maxRateHz": 0.1, "maxSessionMs": 86400000 },
       "streamable": false,
       "remoteEligible": false,
-      "bandwidth": {
-        "coarse": { "minBps": 1, "targetBps": 4, "burstBytes": 16 }
-      },
+      "bandwidth": { "coarse": { "minBps": 1, "targetBps": 4, "burstBytes": 16 } },
       "consentClass": "low",
       "degradationLadder": ["coarse"],
       "description": "Coarse device thermal buckets only — precise curves are a fingerprinting vector."

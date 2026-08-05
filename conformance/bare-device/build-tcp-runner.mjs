@@ -16,11 +16,11 @@ writeFileSync(
     {
       "@noble/hashes/crypto": nobleCrypto,
       "@noble/ciphers/crypto": nobleCrypto,
-      "@noble/curves/crypto": nobleCrypto,
+      "@noble/curves/crypto": nobleCrypto
     },
     null,
-    2,
-  )}\n`,
+    2
+  )}\n`
 );
 
 const result = spawnSync(
@@ -55,9 +55,9 @@ const result = spawnSync(
     importsPath,
     "--out",
     join(deviceRoot, "tcp-runner.bundle"),
-    join(deviceRoot, "tcp-runner.mjs"),
+    join(deviceRoot, "tcp-runner.mjs")
   ],
-  { stdio: "inherit", cwd: deviceRoot },
+  { stdio: "inherit", cwd: deviceRoot }
 );
 
 if (result.status !== 0) {

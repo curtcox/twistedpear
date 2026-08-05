@@ -1,5 +1,6 @@
 # Sans-IO protocol discipline
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -43,15 +44,15 @@ entropy.
 
 The following direct effects are forbidden:
 
-| Effect         | Examples                                                                       |
-| -------------- | ------------------------------------------------------------------------------ |
-| Current time   | `Date.now`, `new Date()`, `performance.now`, `process.hrtime`                  |
-| Randomness     | `Math.random`, platform crypto RNGs, UUID or nanoid generators                 |
-| Scheduling     | timers, immediates, microtasks, animation frames, timer-like floating promises |
-| Network        | `fetch`, WebSocket, TCP/UDP/TLS/HTTP, BLE, LoRa, or serial modules             |
-| Storage        | filesystem APIs, AsyncStorage, databases, keychains, or browser storage        |
-| Environment    | `process.env`, OS, locale, or timezone queries                                 |
-| Direct logging | `console`; adapters receive structured log intents instead                     |
+| Effect | Examples |
+|---|---|
+| Current time | `Date.now`, `new Date()`, `performance.now`, `process.hrtime` |
+| Randomness | `Math.random`, platform crypto RNGs, UUID or nanoid generators |
+| Scheduling | timers, immediates, microtasks, animation frames, timer-like floating promises |
+| Network | `fetch`, WebSocket, TCP/UDP/TLS/HTTP, BLE, LoRa, or serial modules |
+| Storage | filesystem APIs, AsyncStorage, databases, keychains, or browser storage |
+| Environment | `process.env`, OS, locale, or timezone queries |
+| Direct logging | `console`; adapters receive structured log intents instead |
 
 Adapter implementations are deliberately outside the pure boundary. They may import protocol
 code; protocol code must not import adapters or IO-capable packages.
@@ -66,7 +67,10 @@ type StepResult<State, Intent> = {
   intents: Intent[];
 };
 
-function step(state: State, event: Event): StepResult<State, Intent> {
+function step(
+  state: State,
+  event: Event,
+): StepResult<State, Intent> {
   // Pure and synchronous.
 }
 ```
@@ -102,15 +106,15 @@ global oracles.
 
 The boundary is protected by independent layers:
 
-| Layer                        | What it catches                                                         |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| TypeScript project boundary  | Ambient Node/DOM APIs referenced from the pure protocol package         |
-| Inventory and empty ratchet  | Deny-list use across all configured roots and growth in exceptions      |
-| Scoped ESLint rules          | Restricted globals, imports, syntax, and inline suppressions            |
-| Dependency-cruiser gate      | Imports from protocol roots into adapters, native modules, or built-ins |
-| Runtime tripwire             | Dynamic or indirect access that static checks can miss                  |
-| Determinism and replay tests | Unnamed nondeterminism and platform-dependent behavior                  |
-| Canary                       | Regressions in the enforcement layers themselves                        |
+| Layer | What it catches |
+|---|---|
+| TypeScript project boundary | Ambient Node/DOM APIs referenced from the pure protocol package |
+| Inventory and empty ratchet | Deny-list use across all configured roots and growth in exceptions |
+| Scoped ESLint rules | Restricted globals, imports, syntax, and inline suppressions |
+| Dependency-cruiser gate | Imports from protocol roots into adapters, native modules, or built-ins |
+| Runtime tripwire | Dynamic or indirect access that static checks can miss |
+| Determinism and replay tests | Unnamed nondeterminism and platform-dependent behavior |
+| Canary | Regressions in the enforcement layers themselves |
 
 The canary temporarily seeds a forbidden time read in a fixture, verifies that the configured
 layers reject it, and restores the fixture. The simulator additionally requires externally visible

@@ -1,55 +1,41 @@
-import {
-  appDestinationName,
-  unpackPackage,
-  type CatalogEntry,
-} from "@twistedpear/app-registry";
+import { appDestinationName, unpackPackage, type CatalogEntry } from "@twistedpear/app-registry";
 import {
   parseListResponse,
-  sendPackageResourceRequest,
+  sendPackageResourceRequest
 } from "@twistedpear/bridge-hyper/resource-server";
-import type {
-  CryptoProvider,
-  Link,
-  Reticulum,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Link, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   DestinationDirection,
   DestinationType,
   Identity,
   LinkStatus,
-  hexToBytes,
+  hexToBytes
 } from "@twistedpear/reticulum-ts/web";
-import type {
-  FetchPlane,
-  FetchPlaneRequest,
-  FetchPlaneResult,
-} from "./fetch-plane.js";
+import type { FetchPlane, FetchPlaneRequest, FetchPlaneResult } from "./fetch-plane.js";
 
 export interface ResourceFetchPlaneOptions {
   readonly reticulum: Reticulum;
   readonly provider: CryptoProvider;
 }
 
-export function createResourceFetchPlane(
-  options: ResourceFetchPlaneOptions,
-): FetchPlane {
+export function createResourceFetchPlane(options: ResourceFetchPlaneOptions): FetchPlane {
   return {
     async fetchPackage(provider, request) {
       return fetchPackageResource(provider, options.reticulum, request);
-    },
+    }
   };
 }
 
 async function fetchPackageResource(
   provider: CryptoProvider,
   reticulum: Reticulum,
-  request: FetchPlaneRequest,
+  request: FetchPlaneRequest
 ): Promise<FetchPlaneResult> {
   request.onProgress?.({
     path: "resource",
     bytesReceived: 0,
     totalBytes: request.entry.packageSize,
-    phase: "starting",
+    phase: "starting"
   });
 
   if (request.signal?.aborted) {
@@ -61,14 +47,14 @@ async function fetchPackageResource(
     const archiveBytes = await sendPackageResourceRequest(
       link,
       { type: "fetch", version: request.version },
-      { timeoutMs: 120_000 },
+      { timeoutMs: 120_000 }
     );
 
     request.onProgress?.({
       path: "resource",
       bytesReceived: archiveBytes.length,
       totalBytes: archiveBytes.length,
-      phase: "verifying",
+      phase: "verifying"
     });
 
     const verified = unpackPackage(provider, archiveBytes);
@@ -80,13 +66,13 @@ async function fetchPackageResource(
       path: "resource",
       bytesReceived: archiveBytes.length,
       totalBytes: archiveBytes.length,
-      phase: "complete",
+      phase: "complete"
     });
 
     return {
       path: "resource",
       archiveBytes,
-      packageHash: verified.packageHash,
+      packageHash: verified.packageHash
     };
   } finally {
     await link.teardown();
@@ -96,7 +82,7 @@ async function fetchPackageResource(
 export async function listResourceVersions(
   provider: CryptoProvider,
   reticulum: Reticulum,
-  entry: CatalogEntry,
+  entry: CatalogEntry
 ) {
   const link = await openPublisherLink(provider, reticulum, entry);
   try {
@@ -110,21 +96,15 @@ export async function listResourceVersions(
 async function openPublisherLink(
   provider: CryptoProvider,
   reticulum: Reticulum,
-  entry: CatalogEntry,
+  entry: CatalogEntry
 ): Promise<Link> {
-  const publisherKey = hexToBytes(
-    entry.servingPublicKey ?? entry.publisherPublicKey,
-  );
+  const publisherKey = hexToBytes(entry.servingPublicKey ?? entry.publisherPublicKey);
   const publisherIdentity = Identity.fromPublicKey(provider, publisherKey);
   if (publisherIdentity === null) {
     throw new Error("Invalid serving public key");
   }
 
-  const destinationName = appDestinationName(
-    provider,
-    entry.publisherPublicKey,
-    entry.name,
-  );
+  const destinationName = appDestinationName(provider, entry.publisherPublicKey, entry.name);
   const parts = destinationName.split(".");
   const appName = parts[0] ?? "tp";
   const aspects = parts.slice(1);
@@ -135,7 +115,7 @@ async function openPublisherLink(
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName,
-    aspects,
+    aspects
   });
 
   const link = out.requestLink({});

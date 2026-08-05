@@ -4,7 +4,7 @@ export {
   BULK_BLOCK_RNODE_BYTES,
   assessFetchBudget,
   fetchPackage,
-  estimateTransferSeconds,
+  estimateTransferSeconds
 } from "./core/fetch.js";
 export type {
   DriveFetcher,
@@ -12,5 +12,5 @@ export type {
   FetchProgress,
   FetchPackageOptions,
   FetchPackageResult,
-  FetchBudgetAssessment,
+  FetchBudgetAssessment
 } from "./core/fetch.js";

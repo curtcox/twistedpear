@@ -17,18 +17,18 @@ Recipe and screenshots: [8. Apps that build apps](../../08-apps-that-build-apps.
 
 ## Capabilities
 
-| Capability           | Note                                                         |
-| -------------------- | ------------------------------------------------------------ |
-| `announce:subscribe` | Standing grant; revocable at any time from the host.         |
-| `apps:install`       | Host-confirmed on every call, plus a full capability review. |
-| `storage:kv`         | Standing grant; revocable at any time from the host.         |
+| Capability | Note |
+|---|---|
+| `announce:subscribe` | Standing grant; revocable at any time from the host. |
+| `apps:install` | Host-confirmed on every call, plus a full capability review. |
+| `storage:kv` | Standing grant; revocable at any time from the host. |
 
 ## Files
 
-| File                                   | Purpose                                                      |
-| -------------------------------------- | ------------------------------------------------------------ |
+| File | Purpose |
+|---|---|
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
 
 ## Run it
 

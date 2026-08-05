@@ -34,12 +34,9 @@ export interface DeliveredLinkMeasurement {
   readonly mtu: number;
 }
 
-export type LinkMeasurement =
-  DeclaredLinkMeasurement | DeliveredLinkMeasurement;
+export type LinkMeasurement = DeclaredLinkMeasurement | DeliveredLinkMeasurement;
 
-export function initialLinkQuality(
-  measurement: DeclaredLinkMeasurement,
-): LinkQuality {
+export function initialLinkQuality(measurement: DeclaredLinkMeasurement): LinkQuality {
   return {
     goodputBps: finiteNonNegative(measurement.effectiveBps),
     rttMs: 0,
@@ -48,21 +45,20 @@ export function initialLinkQuality(
     mtu: positiveInteger(measurement.mtu),
     source: "declared",
     samples: 0,
-    confidence: "low",
+    confidence: "low"
   };
 }
 
 export function updateLinkQuality(
   previous: LinkQuality | null,
-  measurement: LinkMeasurement,
+  measurement: LinkMeasurement
 ): LinkQuality {
   if (measurement.kind === "declared") {
     return previous ?? initialLinkQuality(measurement);
   }
 
   const durationMs = Math.max(1, finiteNonNegative(measurement.durationMs));
-  const sampleGoodput =
-    (finiteNonNegative(measurement.deliveredBytes) * 8_000) / durationMs;
+  const sampleGoodput = (finiteNonNegative(measurement.deliveredBytes) * 8_000) / durationMs;
   const deliveredPackets = finiteNonNegative(measurement.deliveredPackets ?? 0);
   const lostPackets = finiteNonNegative(measurement.lostPackets ?? 0);
   const packetTotal = deliveredPackets + lostPackets;
@@ -72,22 +68,17 @@ export function updateLinkQuality(
   // A declared seed is an interface nameplate, not a prior measurement. The
   // first real sample replaces it outright; blending would carry the guess
   // into every number that follows.
-  const prior =
-    previous === null || previous.source === "declared" ? undefined : previous;
+  const prior = previous === null || previous.source === "declared" ? undefined : previous;
 
   return {
     goodputBps: ewma(prior?.goodputBps, sampleGoodput, alpha),
     rttMs: ewma(prior?.rttMs, finiteNonNegative(measurement.rttMs), alpha),
-    jitterMs: ewma(
-      prior?.jitterMs,
-      finiteNonNegative(measurement.jitterMs ?? 0),
-      alpha,
-    ),
+    jitterMs: ewma(prior?.jitterMs, finiteNonNegative(measurement.jitterMs ?? 0), alpha),
     lossRatio: clamp(ewma(prior?.lossRatio, sampleLoss, alpha), 0, 1),
     mtu: positiveInteger(measurement.mtu),
     source: measurement.kind,
     samples,
-    confidence: confidenceFor(measurement.kind, samples),
+    confidence: confidenceFor(measurement.kind, samples)
   };
 }
 
@@ -111,15 +102,12 @@ export interface RouteQualityReport {
 /** Folds host route telemetry into a `LinkQuality` without inflating its source. */
 export function linkQualityFromRoute(
   declared: DeclaredLinkMeasurement,
-  reported?: RouteQualityReport,
+  reported?: RouteQualityReport
 ): LinkQuality {
   const base = initialLinkQuality(declared);
   if (reported === undefined) return base;
   const source = reported.source ?? "declared";
-  const samples = Math.max(
-    0,
-    Math.floor(finiteNonNegative(reported.samples ?? 0)),
-  );
+  const samples = Math.max(0, Math.floor(finiteNonNegative(reported.samples ?? 0)));
   return {
     goodputBps: finiteNonNegative(reported.goodputBps),
     rttMs: finiteNonNegative(reported.rttMs),
@@ -128,9 +116,7 @@ export function linkQualityFromRoute(
     mtu: positiveInteger(reported.mtu),
     source,
     samples,
-    confidence:
-      reported.confidence ??
-      (source === "declared" ? "low" : confidenceFor(source, samples)),
+    confidence: reported.confidence ?? (source === "declared" ? "low" : confidenceFor(source, samples))
   };
 }
 
@@ -171,7 +157,7 @@ export interface LinkDeliveryObservation {
 
 export function openLinkObservation(
   declared: DeclaredLinkMeasurement,
-  atMs: number,
+  atMs: number
 ): LinkObservationWindow {
   return {
     quality: initialLinkQuality(declared),
@@ -180,37 +166,26 @@ export function openLinkObservation(
     windowPackets: 0,
     lostPackets: 0,
     rttMs: 0,
-    mtu: positiveInteger(declared.mtu),
+    mtu: positiveInteger(declared.mtu)
   };
 }
 
 export function observeLinkDelivery(
   window: LinkObservationWindow,
-  observation: LinkDeliveryObservation,
+  observation: LinkDeliveryObservation
 ): LinkObservationWindow {
   const atMs = finiteNonNegative(observation.atMs);
-  const minSampleBytes = positiveInteger(
-    observation.minSampleBytes ?? LINK_OBSERVATION_MIN_SAMPLE_BYTES,
-  );
-  const maxWindowMs = positiveInteger(
-    observation.maxWindowMs ?? LINK_OBSERVATION_MAX_WINDOW_MS,
-  );
-  const rttMs =
-    observation.rttMs === undefined
-      ? window.rttMs
-      : finiteNonNegative(observation.rttMs);
-  const mtu =
-    observation.mtu === undefined
-      ? window.mtu
-      : positiveInteger(observation.mtu);
+  const minSampleBytes = positiveInteger(observation.minSampleBytes ?? LINK_OBSERVATION_MIN_SAMPLE_BYTES);
+  const maxWindowMs = positiveInteger(observation.maxWindowMs ?? LINK_OBSERVATION_MAX_WINDOW_MS);
+  const rttMs = observation.rttMs === undefined ? window.rttMs : finiteNonNegative(observation.rttMs);
+  const mtu = observation.mtu === undefined ? window.mtu : positiveInteger(observation.mtu);
 
   // A clock that jumped backwards restarts the window rather than producing a
   // negative span and an absurd goodput.
   const started = atMs < window.windowStartMs ? atMs : window.windowStartMs;
   const windowBytes = window.windowBytes + finiteNonNegative(observation.bytes);
   const windowPackets = window.windowPackets + 1;
-  const lostPackets =
-    window.lostPackets + finiteNonNegative(observation.lostPackets ?? 0);
+  const lostPackets = window.lostPackets + finiteNonNegative(observation.lostPackets ?? 0);
 
   if (windowBytes < minSampleBytes) {
     const stale = atMs - started >= maxWindowMs;
@@ -221,7 +196,7 @@ export function observeLinkDelivery(
       windowPackets: stale ? 0 : windowPackets,
       lostPackets: stale ? 0 : lostPackets,
       rttMs,
-      mtu,
+      mtu
     };
   }
 
@@ -233,31 +208,24 @@ export function observeLinkDelivery(
       rttMs,
       deliveredPackets: windowPackets,
       lostPackets,
-      mtu,
+      mtu
     }),
     windowStartMs: atMs,
     windowBytes: 0,
     windowPackets: 0,
     lostPackets: 0,
     rttMs,
-    mtu,
+    mtu
   };
 }
 
-function confidenceFor(
-  source: "observed" | "probed",
-  samples: number,
-): LinkQualityConfidence {
+function confidenceFor(source: "observed" | "probed", samples: number): LinkQualityConfidence {
   if (source === "probed") return samples >= 3 ? "high" : "medium";
   if (samples >= 8) return "high";
   return samples >= 3 ? "medium" : "low";
 }
 
-function ewma(
-  previous: number | undefined,
-  sample: number,
-  alpha: number,
-): number {
+function ewma(previous: number | undefined, sample: number, alpha: number): number {
   if (previous === undefined || previous === 0) return sample;
   return previous + alpha * (sample - previous);
 }

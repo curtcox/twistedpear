@@ -1,284 +1,26 @@
-import {
-  DestinationProofStrategyCode,
-  PATHFINDER_EXPIRY_SECONDS,
-  PATHFINDER_MAX_HOPS,
-  PATH_AWAIT_TIMER_ID,
-  PATH_REQUEST_TIMEOUT_SECONDS,
-  PATH_RESPONSE_GRACE_TIMER_ID,
-  initialPathAwaitState,
-  initialPathResponseGraceState,
-  stepPathAwaitWithActions,
-  stepPathResponseGraceWithActions,
-  announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
-  appendPathRandomBlobFieldsFromActions,
-  aspectFilterFromActions,
-  initialEmitDestinationProofState,
-  initialParseAspectFilterState,
-  shouldEmitDestinationProofNow,
-  shouldRejectParseAspectFilter,
-  shouldUseAppendPathRandomBlob,
-  shouldUseParseAspectFilter,
-  shouldUsePathExpiry,
-  stepAppendPathRandomBlobWithActions,
-  stepComputePathExpiryWithActions,
-  stepParseAspectFilterWithActions,
-  clonePacketWithHopsFieldsFromActions,
-  initialClonePacketWithHopsState,
-  initialComputePathExpiryState,
-  initialPathResponseAnnounceFieldsState,
-  initialTransportAnnounceFieldsState,
-  pathExpiryFromActions,
-  pathResponseAnnounceFieldsFromActions,
-  shouldUseClonePacketWithHops,
-  shouldUsePathResponseAnnounceFields,
-  shouldUseTransportAnnounceFields,
-  stepClonePacketWithHopsWithActions,
-  stepPathResponseAnnounceFieldsWithActions,
-  stepTransportAnnounceFieldsWithActions,
-  transportAnnounceFieldsFromActions,
-  initialAcceptCachedPathResponsePacketState,
-  initialAnswerLocalPathRequestState,
-  initialAnswerPathRequestState,
-  initialAnswerPathWithEntryState,
-  initialRememberPathRequestTagState,
-  initialUsePathForOutboundState,
-  shouldAcceptCachedPathResponsePacketNow,
-  shouldAnswerLocalPathRequestNow,
-  shouldAnswerPathRequestNow,
-  shouldAnswerPathWithEntryNow,
-  shouldRememberPathRequestTagNow,
-  shouldUsePathForOutboundNow,
-  stepAcceptCachedPathResponsePacketWithActions,
-  stepAnswerLocalPathRequestWithActions,
-  stepAnswerPathRequestWithActions,
-  stepAnswerPathWithEntryWithActions,
-  stepRememberPathRequestTagWithActions,
-  stepUsePathForOutboundWithActions,
-  activeLinkUnregisterRemoveIndex,
-  initialAcceptParsedAnnounceState,
-  initialAppendPathRandomBlobState,
-  initialDestinationProofState,
-  initialDispatchAnnounceHandlersState,
-  initialIgnoreLocalAnnounceState,
-  initialLinkActivateMembershipState,
-  initialLinkDataIngressTargetState,
-  initialLinkRegisterListState,
-  initialLinkUnregisterMembershipState,
-  initialLocalPlainDataDeliveryState,
-  initialDispatchLocalPlainDataDeliveryState,
-  initialMatchAnnounceAspectState,
-  initialOutboundReceiptState,
-  initialPacketFilterState,
-  initialPacketReceiptProofIngressState,
-  initialPacketReceiptUnregisterState,
-  initialPathEntryLookupState,
-  initialPathOutboundState,
-  initialPathRequestIngressState,
-  initialProofIngressState,
-  initialReceiveAnnouncePathResponseState,
-  initialTransportIngressDispatchState,
-  initialTransportMemberUnregisterState,
-  packetReceiptUnregisterIndex,
-  pendingLinkMembershipRemoveIndex,
-  pendingLinkUnregisterRemoveIndex,
-  shouldAcceptLinkLrProofCandidateNow,
-  shouldAcceptParsedAnnounceNow,
-  shouldAnswerPathRequestLocal,
-  shouldAnswerPathRequestPath,
-  shouldAppendActiveLinkMembershipActions,
-  shouldDirectPathOutbound,
-  shouldDispatchLocalLinkRequestNow,
-  shouldDispatchLocalPlainDataDeliveryActions,
-  shouldDispatchLocalPlainDataDeliveryNow,
-  shouldDispatchResourceProofToLinkNow,
-  shouldDispatchTransportAnnounce,
-  shouldDispatchTransportLinkData,
-  shouldDispatchTransportLinkRequest,
-  shouldDispatchTransportPlainData,
-  shouldDispatchTransportProof,
-  shouldHandleProofLrproof,
-  shouldHandleProofReceipt,
-  shouldHandleProofResourcePrf,
-  shouldIgnoreTransportIngressDispatch,
-  shouldIngressLinkDataActive,
-  shouldIngressLinkDataPending,
-  shouldExpirePathEntryLookup,
-  shouldFailAndDropOutboundReceiptNow,
-  shouldHitPathEntryLookup,
-  shouldIgnoreLocalAnnounceNow,
-  shouldIgnorePathRequestSeenTag,
-  shouldIgnorePathRequestUnparsed,
-  shouldKeepOutboundReceiptNow,
-  shouldDispatchAnnounceHandlersNow,
-  shouldMatchAnnounceAspectNow,
-  shouldMissPathEntryLookup,
-  shouldWrapPathOutbound,
-  shouldMatchLocalInboundDestinationNow,
-  shouldMatchLocalTypedDestinationNow,
-  shouldOutboundFailAndDropReceipt,
-  shouldOutboundKeepReceipt,
-  shouldReceiveAnnouncePathResponseNow,
-  shouldRegisterLinkActive,
-  shouldRegisterLinkMemberNow,
-  shouldRegisterLinkPending,
-  shouldRegisterPacketReceiptNow,
-  shouldRegisterTransportMemberNow,
-  shouldRemoveActiveLinkUnregisterActions,
-  shouldRemovePacketReceiptProofIngress,
-  shouldRemovePendingLinkMembershipActions,
-  shouldRemovePendingLinkUnregisterActions,
-  shouldTransmitOnInterfaceNow,
-  shouldRemovePacketReceipt,
-  shouldRemoveTransportMember,
-  shouldProveDestination,
-  shouldAcceptPacketFilter,
-  shouldUseMatchingLinkIdIndex,
-  matchingLinkIdIndexFromActions,
-  initialAcceptLinkLrProofCandidateState,
-  initialAddPathEntryState,
-  initialDispatchLocalLinkRequestState,
-  initialDispatchResourceProofToLinkState,
-  initialEmitPathRequestState,
-  initialFailAndDropOutboundReceiptState,
-  initialIndexOfMatchingLinkIdState,
-  initialKeepOutboundReceiptState,
-  initialLocalPathRequestPacketState,
-  initialMatchLocalInboundDestinationState,
-  initialMatchLocalTypedDestinationState,
-  initialPathEntryExpiredState,
-  initialRegisterLinkMemberState,
-  initialRegisterPacketReceiptState,
-  initialRegisterTransportMemberState,
-  initialRelayTransportPacketState,
-  initialRewritePacketHopsState,
-  initialStripTransportHeadersState,
-  initialTransmitOnInterfaceState,
-  initialWrapTransportPacketState,
-  shouldAddPathEntryNow,
-  shouldEmitPathRequestNow,
-  shouldTreatLocalPathRequestPacket,
-  shouldTreatPathEntryExpired,
-  isReverseEntryExpired,
-  stepDestinationProofWithActions,
-  stepEmitDestinationProofWithActions,
-  stepAcceptLinkLrProofCandidateWithActions,
-  stepAcceptParsedAnnounceWithActions,
-  stepAddPathEntryWithActions,
-  stepDispatchAnnounceHandlersWithActions,
-  stepDispatchLocalLinkRequestWithActions,
-  stepDispatchLocalPlainDataDeliveryWithActions,
-  stepDispatchResourceProofToLinkWithActions,
-  stepEmitPathRequestWithActions,
-  stepIgnoreLocalAnnounceWithActions,
-  stepIndexOfMatchingLinkIdWithActions,
-  stepLinkActivateMembershipWithActions,
-  stepLinkDataIngressTargetWithActions,
-  stepLinkRegisterListWithActions,
-  stepLinkUnregisterMembershipWithActions,
-  stepLocalPathRequestPacketWithActions,
-  stepLocalPlainDataDeliveryWithActions,
-  stepMatchAnnounceAspectWithActions,
-  stepMatchLocalInboundDestinationWithActions,
-  stepMatchLocalTypedDestinationWithActions,
-  stepFailAndDropOutboundReceiptWithActions,
-  stepKeepOutboundReceiptWithActions,
-  stepOutboundReceiptWithActions,
-  stepPacketFilterWithActions,
-  stepPacketReceiptProofIngressWithActions,
-  stepPacketReceiptUnregisterWithActions,
-  stepPathEntryExpiredWithActions,
-  stepPathEntryLookupWithActions,
-  stepPathOutboundWithActions,
-  stepPathRequestIngressWithActions,
-  stepProofIngressWithActions,
-  stepReceiveAnnouncePathResponseWithActions,
-  stepRegisterLinkMemberWithActions,
-  stepRegisterPacketReceiptWithActions,
-  stepRegisterTransportMemberWithActions,
-  stepRelayTransportPacketWithActions,
-  stepRewritePacketHopsWithActions,
-  stepStripTransportHeadersWithActions,
-  stepTransmitOnInterfaceWithActions,
-  stepTransportIngressDispatchWithActions,
-  stepTransportMemberUnregisterWithActions,
-  stepWrapTransportPacketWithActions,
-  transportMemberUnregisterIndex,
-  relayTransportPacketRawFromActions,
-  rewritePacketHopsRawFromActions,
-  shouldUseRelayTransportPacket,
-  shouldUseRewritePacketHops,
-  shouldUseStripTransportHeaders,
-  shouldUseWrapTransportPacket,
-  stripTransportHeadersRawFromActions,
-  timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
-  wrapTransportPacketRawFromActions,
-  type PacketHeaderFields,
-} from "@twistedpear/protocol";
+import { DestinationProofStrategyCode,PATHFINDER_EXPIRY_SECONDS,PATHFINDER_MAX_HOPS,PATH_AWAIT_TIMER_ID,PATH_REQUEST_TIMEOUT_SECONDS,PATH_RESPONSE_GRACE_TIMER_ID,initialPathAwaitState,initialPathResponseGraceState,stepPathAwaitWithActions,stepPathResponseGraceWithActions,announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,appendPathRandomBlobFieldsFromActions,aspectFilterFromActions,initialEmitDestinationProofState,initialParseAspectFilterState,shouldEmitDestinationProofNow,shouldRejectParseAspectFilter,shouldUseAppendPathRandomBlob,shouldUseParseAspectFilter,shouldUsePathExpiry,stepAppendPathRandomBlobWithActions,stepComputePathExpiryWithActions,stepParseAspectFilterWithActions,clonePacketWithHopsFieldsFromActions,initialClonePacketWithHopsState,initialComputePathExpiryState,initialPathResponseAnnounceFieldsState,initialTransportAnnounceFieldsState,pathExpiryFromActions,pathResponseAnnounceFieldsFromActions,shouldUseClonePacketWithHops,shouldUsePathResponseAnnounceFields,shouldUseTransportAnnounceFields,stepClonePacketWithHopsWithActions,stepPathResponseAnnounceFieldsWithActions,stepTransportAnnounceFieldsWithActions,transportAnnounceFieldsFromActions,initialAcceptCachedPathResponsePacketState,initialAnswerLocalPathRequestState,initialAnswerPathRequestState,initialAnswerPathWithEntryState,initialRememberPathRequestTagState,initialUsePathForOutboundState,shouldAcceptCachedPathResponsePacketNow,shouldAnswerLocalPathRequestNow,shouldAnswerPathRequestNow,shouldAnswerPathWithEntryNow,shouldRememberPathRequestTagNow,shouldUsePathForOutboundNow,
+  stepAcceptCachedPathResponsePacketWithActions,stepAnswerLocalPathRequestWithActions,stepAnswerPathRequestWithActions,stepAnswerPathWithEntryWithActions,stepRememberPathRequestTagWithActions,stepUsePathForOutboundWithActions,activeLinkUnregisterRemoveIndex,initialAcceptParsedAnnounceState,initialAppendPathRandomBlobState,initialDestinationProofState,initialDispatchAnnounceHandlersState,initialIgnoreLocalAnnounceState,initialLinkActivateMembershipState,initialLinkDataIngressTargetState,initialLinkRegisterListState,initialLinkUnregisterMembershipState,initialLocalPlainDataDeliveryState,initialDispatchLocalPlainDataDeliveryState,initialMatchAnnounceAspectState,initialOutboundReceiptState,initialPacketFilterState,initialPacketReceiptProofIngressState,initialPacketReceiptUnregisterState,initialPathEntryLookupState,initialPathOutboundState,initialPathRequestIngressState,initialProofIngressState,initialReceiveAnnouncePathResponseState,initialTransportIngressDispatchState,initialTransportMemberUnregisterState,packetReceiptUnregisterIndex,pendingLinkMembershipRemoveIndex,pendingLinkUnregisterRemoveIndex,shouldAcceptLinkLrProofCandidateNow,shouldAcceptParsedAnnounceNow,shouldAnswerPathRequestLocal,shouldAnswerPathRequestPath,shouldAppendActiveLinkMembershipActions,shouldDirectPathOutbound,shouldDispatchLocalLinkRequestNow,shouldDispatchLocalPlainDataDeliveryActions,shouldDispatchLocalPlainDataDeliveryNow,shouldDispatchResourceProofToLinkNow,shouldDispatchTransportAnnounce,shouldDispatchTransportLinkData,shouldDispatchTransportLinkRequest,shouldDispatchTransportPlainData,
+  shouldDispatchTransportProof,shouldHandleProofLrproof,shouldHandleProofReceipt,shouldHandleProofResourcePrf,shouldIgnoreTransportIngressDispatch,shouldIngressLinkDataActive,shouldIngressLinkDataPending,shouldExpirePathEntryLookup,shouldFailAndDropOutboundReceiptNow,shouldHitPathEntryLookup,shouldIgnoreLocalAnnounceNow,shouldIgnorePathRequestSeenTag,shouldIgnorePathRequestUnparsed,shouldKeepOutboundReceiptNow,shouldDispatchAnnounceHandlersNow,shouldMatchAnnounceAspectNow,shouldMissPathEntryLookup,shouldWrapPathOutbound,shouldMatchLocalInboundDestinationNow,shouldMatchLocalTypedDestinationNow,shouldOutboundFailAndDropReceipt,shouldOutboundKeepReceipt,shouldReceiveAnnouncePathResponseNow,shouldRegisterLinkActive,shouldRegisterLinkMemberNow,shouldRegisterLinkPending,shouldRegisterPacketReceiptNow,shouldRegisterTransportMemberNow,shouldRemoveActiveLinkUnregisterActions,shouldRemovePacketReceiptProofIngress,shouldRemovePendingLinkMembershipActions,shouldRemovePendingLinkUnregisterActions,shouldTransmitOnInterfaceNow,shouldRemovePacketReceipt,shouldRemoveTransportMember,shouldProveDestination,shouldAcceptPacketFilter,shouldUseMatchingLinkIdIndex,matchingLinkIdIndexFromActions,initialAcceptLinkLrProofCandidateState,initialAddPathEntryState,initialDispatchLocalLinkRequestState,initialDispatchResourceProofToLinkState,initialEmitPathRequestState,initialFailAndDropOutboundReceiptState,initialIndexOfMatchingLinkIdState,initialKeepOutboundReceiptState,initialLocalPathRequestPacketState,initialMatchLocalInboundDestinationState,initialMatchLocalTypedDestinationState,
+  initialPathEntryExpiredState,initialRegisterLinkMemberState,initialRegisterPacketReceiptState,initialRegisterTransportMemberState,initialRelayTransportPacketState,initialRewritePacketHopsState,initialStripTransportHeadersState,initialTransmitOnInterfaceState,initialWrapTransportPacketState,shouldAddPathEntryNow,shouldEmitPathRequestNow,shouldTreatLocalPathRequestPacket,shouldTreatPathEntryExpired,isReverseEntryExpired,stepDestinationProofWithActions,stepEmitDestinationProofWithActions,stepAcceptLinkLrProofCandidateWithActions,stepAcceptParsedAnnounceWithActions,stepAddPathEntryWithActions,stepDispatchAnnounceHandlersWithActions,stepDispatchLocalLinkRequestWithActions,stepDispatchLocalPlainDataDeliveryWithActions,stepDispatchResourceProofToLinkWithActions,stepEmitPathRequestWithActions,stepIgnoreLocalAnnounceWithActions,stepIndexOfMatchingLinkIdWithActions,stepLinkActivateMembershipWithActions,stepLinkDataIngressTargetWithActions,stepLinkRegisterListWithActions,stepLinkUnregisterMembershipWithActions,stepLocalPathRequestPacketWithActions,stepLocalPlainDataDeliveryWithActions,stepMatchAnnounceAspectWithActions,stepMatchLocalInboundDestinationWithActions,stepMatchLocalTypedDestinationWithActions,stepFailAndDropOutboundReceiptWithActions,stepKeepOutboundReceiptWithActions,stepOutboundReceiptWithActions,stepPacketFilterWithActions,stepPacketReceiptProofIngressWithActions,stepPacketReceiptUnregisterWithActions,stepPathEntryExpiredWithActions,stepPathEntryLookupWithActions,stepPathOutboundWithActions,stepPathRequestIngressWithActions,stepProofIngressWithActions,
+  stepReceiveAnnouncePathResponseWithActions,stepRegisterLinkMemberWithActions,stepRegisterPacketReceiptWithActions,stepRegisterTransportMemberWithActions,stepRelayTransportPacketWithActions,stepRewritePacketHopsWithActions,stepStripTransportHeadersWithActions,stepTransmitOnInterfaceWithActions,stepTransportIngressDispatchWithActions,stepTransportMemberUnregisterWithActions,stepWrapTransportPacketWithActions,transportMemberUnregisterIndex,relayTransportPacketRawFromActions,rewritePacketHopsRawFromActions,shouldUseRelayTransportPacket,shouldUseRewritePacketHops,shouldUseStripTransportHeaders,shouldUseWrapTransportPacket,stripTransportHeadersRawFromActions,timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,wrapTransportPacketRawFromActions,type PacketHeaderFields } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../../crypto/provider.js";
-import { Announce, type ParsedAnnounce } from "../../announce.js";
-import { bytesToHex, equalBytes } from "../../crypto/bytes.js";
-import {
-  Destination,
-  DestinationDirection,
-  DestinationType,
-  type DestinationTypeValue,
-  type DestinationDirectionValue,
-} from "../../destination.js";
-import { Identity, TRUNCATED_HASH_LENGTH } from "../../identity.js";
+import { Announce,type ParsedAnnounce } from "../../announce.js";
+import { bytesToHex,equalBytes } from "../../crypto/bytes.js";
+import { Destination,DestinationDirection,DestinationType,type DestinationTypeValue,type DestinationDirectionValue } from "../../destination.js";
+import { Identity,TRUNCATED_HASH_LENGTH } from "../../identity.js";
 import type { PacketInterface } from "../../interfaces/interface.js";
 import type { Link } from "../../link.js";
 import { PacketReceipt } from "../../packet-receipt.js";
-import {
-  Packet,
-  PacketContext,
-  PacketHeaderType,
-  PacketType,
-  TransportType,
-  type PacketFields,
-} from "../../packet.js";
-import type { Clock, Entropy, Timer } from "../../runtime/runtime.js";
-import { BandwidthLimiter, type ByteRateLimiter } from "../bandwidth.js";
-import {
-  buildPathRequestData,
-  parsePathRequestData,
-  pathRequestDestinationHash,
-  pathRequestTagKey,
-} from "../path.js";
-import {
-  DestinationProofStrategy,
-  TRUNCATED_HASH_BYTES,
-  announceEmittedFromRandomBlob,
-  buildPathResponseAnnounce,
-  buildTransportAnnounce,
-  cloneWithHops,
-  hashKey,
-  packetHeaderFields,
-  relayTransportPacket,
-  rewritePacketHops,
-  stripTransportHeaders,
-  timebaseFromRandomBlobs,
-  wrapTransportPacket,
-} from "./shared.js";
-import type {
-  AnnounceHandler,
-  DestinationProofStrategyValue,
-  DropObserver,
-  LeafTransportOptions,
-  LocalDestination,
-  PathEntry,
-  ReceivedAnnounceInfo,
-} from "./shared.js";
+import { Packet,PacketContext,PacketHeaderType,PacketType,TransportType,type PacketFields } from "../../packet.js";
+import type { Clock,Entropy,Timer } from "../../runtime/runtime.js";
+import { BandwidthLimiter,type ByteRateLimiter } from "../bandwidth.js";
+import { buildPathRequestData,parsePathRequestData,pathRequestDestinationHash,pathRequestTagKey } from "../path.js";
+import { DestinationProofStrategy, TRUNCATED_HASH_BYTES, announceEmittedFromRandomBlob, buildPathResponseAnnounce, buildTransportAnnounce, cloneWithHops, hashKey, packetHeaderFields, relayTransportPacket, rewritePacketHops, stripTransportHeaders, timebaseFromRandomBlobs, wrapTransportPacket } from "./shared.js";
+import type { AnnounceHandler, DestinationProofStrategyValue, DropObserver, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./shared.js";
 import { LeafTransport } from "../node.js";
-import {
-  notifyDropObservers,
-  dropFromIngressIgnore,
-  dropFromValidatePlan,
-  dropFromParsedSkip,
-  dropFromLocalEcho,
-  dropFromPathSkip,
-} from "../drop-notify.js";
+import { notifyDropObservers, dropFromIngressIgnore, dropFromValidatePlan, dropFromParsedSkip, dropFromLocalEcho, dropFromPathSkip } from "../drop-notify.js";
 export class LeafTransportLayer1 {
-  protected readonly pathTable = new Map<string, PathEntry>();
+protected readonly pathTable = new Map<string, PathEntry>();
   protected readonly packetHashes = new Set<string>();
   protected readonly receipts: PacketReceipt[] = [];
   protected readonly destinations: LocalDestination[] = [];
@@ -302,25 +44,23 @@ export class LeafTransportLayer1 {
     this.useImplicitProof = options.useImplicitProof ?? true;
     this.transportEnabled = options.transportEnabled ?? false;
     this.pathRequestHash = pathRequestDestinationHash(options.provider);
-    this.inboundBandwidth =
-      options.inboundBandwidthLimiter ??
-      (options.bandwidthBytesPerSecond === undefined
+    this.inboundBandwidth = options.inboundBandwidthLimiter ?? (
+      options.bandwidthBytesPerSecond === undefined
         ? null
-        : new BandwidthLimiter(options.clock, options.bandwidthBytesPerSecond));
-    this.outboundBandwidth =
-      options.outboundBandwidthLimiter ??
-      (options.bandwidthBytesPerSecond === undefined
+        : new BandwidthLimiter(options.clock, options.bandwidthBytesPerSecond)
+    );
+    this.outboundBandwidth = options.outboundBandwidthLimiter ?? (
+      options.bandwidthBytesPerSecond === undefined
         ? null
-        : new BandwidthLimiter(options.clock, options.bandwidthBytesPerSecond));
+        : new BandwidthLimiter(options.clock, options.bandwidthBytesPerSecond)
+    );
   }
 
   protected emitDrop(drop: Parameters<typeof notifyDropObservers>[1]): void {
     notifyDropObservers(this.dropObservers, drop);
   }
 
-  get clock(): Clock {
-    return this.options.clock;
-  }
+  get clock(): Clock { return this.options.clock; }
 
   get entropy(): Entropy {
     return this.options.entropy;
@@ -337,22 +77,19 @@ export class LeafTransportLayer1 {
   getPathEntry(destinationHash: Uint8Array): PathEntry | undefined {
     const key = hashKey(destinationHash);
     const entry = this.pathTable.get(key);
-    const stepped = stepPathEntryLookupWithActions(
-      initialPathEntryLookupState(),
-      {
-        kind: "path/entry-lookup-gate",
-        entryPresent: entry !== undefined,
-        expired:
-          entry !== undefined &&
-          shouldTreatPathEntryExpired(
-            stepPathEntryExpiredWithActions(initialPathEntryExpiredState(), {
-              kind: "path/entry-expired-gate",
-              expires: entry.expires,
-              nowSeconds: this.clock.now() / 1000,
-            }).actions,
-          ),
-      },
-    );
+    const stepped = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
+      kind: "path/entry-lookup-gate",
+      entryPresent: entry !== undefined,
+      expired:
+        entry !== undefined &&
+        shouldTreatPathEntryExpired(
+          stepPathEntryExpiredWithActions(initialPathEntryExpiredState(), {
+            kind: "path/entry-expired-gate",
+            expires: entry.expires,
+            nowSeconds: this.clock.now() / 1000
+          }).actions
+        )
+    });
     if (shouldMissPathEntryLookup(stepped.actions)) {
       return undefined;
     }
@@ -377,15 +114,8 @@ export class LeafTransportLayer1 {
     await iface.send(packet);
   }
 
-  protected async inbound(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
-    const workingPacket = cloneWithHops(
-      this.options.provider,
-      packet,
-      packet.hops + 1,
-    );
+  protected async inbound(packet: Packet, iface: PacketInterface): Promise<void> {
+    const workingPacket = cloneWithHops(this.options.provider, packet, packet.hops + 1);
 
     if (!this.packetFilter(workingPacket)) {
       return;
@@ -398,8 +128,8 @@ export class LeafTransportLayer1 {
       {
         kind: "transport/ingress-dispatch-gate",
         packetType: workingPacket.packetType,
-        destinationType: workingPacket.destinationType,
-      },
+        destinationType: workingPacket.destinationType
+      }
     );
     if (shouldDispatchTransportAnnounce(dispatchStepped.actions)) {
       await this.handleAnnounce(workingPacket, iface);
@@ -427,10 +157,7 @@ export class LeafTransportLayer1 {
     }
   }
 
-  protected async handleLinkRequest(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected async handleLinkRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     for (const destination of this.destinations) {
       const stepped = stepDispatchLocalLinkRequestWithActions(
         initialDispatchLocalLinkRequestState(),
@@ -438,8 +165,8 @@ export class LeafTransportLayer1 {
           kind: "transport/dispatch-local-link-request-gate",
           hashMatches: equalBytes(destination.hash, packet.destinationHash),
           typeMatches: destination.type === packet.destinationType,
-          handlerPresent: destination.handleLinkRequest !== undefined,
-        },
+          handlerPresent: destination.handleLinkRequest !== undefined
+        }
       );
       if (shouldDispatchLocalLinkRequestNow(stepped.actions)) {
         destination.handleLinkRequest!(packet, iface);
@@ -448,28 +175,16 @@ export class LeafTransportLayer1 {
     }
   }
 
-  protected async handleLinkData(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected async handleLinkData(packet: Packet, iface: PacketInterface): Promise<void> {
     /** Adapt matching-link-id indexes via protocol actions (no ad-hoc
      * `indexOfMatchingLinkId` reads). */
-    const activeIndex = this.indexOfMatchingLink(
-      this.activeLinks,
-      packet.destinationHash,
-    );
-    const pendingIndex = this.indexOfMatchingLink(
-      this.pendingLinks,
-      packet.destinationHash,
-    );
-    const stepped = stepLinkDataIngressTargetWithActions(
-      initialLinkDataIngressTargetState(),
-      {
-        kind: "transport/link-data-ingress-gate",
-        activeIndex,
-        pendingIndex,
-      },
-    );
+    const activeIndex = this.indexOfMatchingLink(this.activeLinks, packet.destinationHash);
+    const pendingIndex = this.indexOfMatchingLink(this.pendingLinks, packet.destinationHash);
+    const stepped = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex,
+      pendingIndex
+    });
     if (shouldIngressLinkDataActive(stepped.actions)) {
       await this.activeLinks[activeIndex!]!.receive(packet, iface);
       return;
@@ -480,17 +195,10 @@ export class LeafTransportLayer1 {
     }
   }
 
-  protected async handleAnnounce(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
     const validatePlan = Announce.validatePlan(this.options.provider, packet);
-    const validateDrop = dropFromValidatePlan(
-      validatePlan,
-      destinationKey,
-      iface.name,
-    );
+    const validateDrop = dropFromValidatePlan(validatePlan, destinationKey, iface.name);
     if (validateDrop !== null) {
       this.emitDrop(validateDrop);
       return;
@@ -503,13 +211,11 @@ export class LeafTransportLayer1 {
       initialAcceptParsedAnnounceState(),
       {
         kind: "announce/accept-parsed-gate",
-        parsedPresent: parsed !== null,
-      },
+        parsedPresent: parsed !== null
+      }
     );
     if (!shouldAcceptParsedAnnounceNow(acceptStepped.actions)) {
-      this.emitDrop(
-        dropFromParsedSkip(acceptStepped.actions, destinationKey, iface.name),
-      );
+      this.emitDrop(dropFromParsedSkip(acceptStepped.actions, destinationKey, iface.name));
       return;
     }
     const announce = parsed!;
@@ -521,26 +227,20 @@ export class LeafTransportLayer1 {
           {
             kind: "transport/match-local-inbound-destination-gate",
             hashMatches: equalBytes(entry.hash, packet.destinationHash),
-            directionIn: entry.direction === DestinationDirection.IN,
-          },
-        ).actions,
-      ),
+            directionIn: entry.direction === DestinationDirection.IN
+          }
+        ).actions
+      )
     );
     const ignoreLocalStepped = stepIgnoreLocalAnnounceWithActions(
       initialIgnoreLocalAnnounceState(),
       {
         kind: "announce/ignore-local-gate",
-        hasLocalInboundDestination: localDestination !== undefined,
-      },
+        hasLocalInboundDestination: localDestination !== undefined
+      }
     );
     if (shouldIgnoreLocalAnnounceNow(ignoreLocalStepped.actions)) {
-      this.emitDrop(
-        dropFromLocalEcho(
-          ignoreLocalStepped.actions,
-          destinationKey,
-          iface.name,
-        ),
-      );
+      this.emitDrop(dropFromLocalEcho(ignoreLocalStepped.actions, destinationKey, iface.name));
       return;
     }
 
@@ -559,15 +259,13 @@ export class LeafTransportLayer1 {
           : {
               hops: existing.hops,
               expires: existing.expires,
-              randomBlobs: existing.randomBlobs,
-            },
+              randomBlobs: existing.randomBlobs
+            }
     });
     const shouldAdd = shouldAddPathEntryNow(addStepped.actions);
 
     if (!shouldAdd) {
-      this.emitDrop(
-        dropFromPathSkip(addStepped.actions, destinationKey, iface.name),
-      );
+      this.emitDrop(dropFromPathSkip(addStepped.actions, destinationKey, iface.name));
       return;
     }
 
@@ -576,8 +274,8 @@ export class LeafTransportLayer1 {
       {
         kind: "path/append-random-blob-gate",
         randomBlobs: existing?.randomBlobs ?? [],
-        randomBlob,
-      },
+        randomBlob
+      }
     );
     const randomBlobs = shouldUseAppendPathRandomBlob(blobStepped.actions)
       ? appendPathRandomBlobFieldsFromActions(blobStepped.actions)
@@ -586,13 +284,10 @@ export class LeafTransportLayer1 {
       return;
     }
 
-    const expiryStepped = stepComputePathExpiryWithActions(
-      initialComputePathExpiryState(),
-      {
-        kind: "path/expiry-gate",
-        nowSeconds: now,
-      },
-    );
+    const expiryStepped = stepComputePathExpiryWithActions(initialComputePathExpiryState(), {
+      kind: "path/expiry-gate",
+      nowSeconds: now
+    });
     const expires = shouldUsePathExpiry(expiryStepped.actions)
       ? pathExpiryFromActions(expiryStepped.actions)
       : null;
@@ -608,7 +303,7 @@ export class LeafTransportLayer1 {
       randomBlobs,
       receivedInterface: iface,
       packetHash: packet.hash(),
-      announceRaw: Uint8Array.from(packet.raw),
+      announceRaw: Uint8Array.from(packet.raw)
     };
     this.pathTable.set(hashKey(packet.destinationHash), entry);
 
@@ -617,22 +312,16 @@ export class LeafTransportLayer1 {
       receivedFrom,
       announce.publicKey,
       announce.appData,
-      now,
+      now
     );
 
-    const announcedIdentity = Identity.recall(
-      this.options.provider,
-      packet.destinationHash,
-    );
+    const announcedIdentity = Identity.recall(this.options.provider, packet.destinationHash);
     if (
       !shouldDispatchAnnounceHandlersNow(
-        stepDispatchAnnounceHandlersWithActions(
-          initialDispatchAnnounceHandlersState(),
-          {
-            kind: "announce/dispatch-handlers-gate",
-            identityPresent: announcedIdentity !== null,
-          },
-        ).actions,
+        stepDispatchAnnounceHandlersWithActions(initialDispatchAnnounceHandlersState(), {
+          kind: "announce/dispatch-handlers-gate",
+          identityPresent: announcedIdentity !== null
+        }).actions
       )
     ) {
       return;
@@ -642,35 +331,28 @@ export class LeafTransportLayer1 {
     for (const handler of this.announceHandlers) {
       if (
         !shouldReceiveAnnouncePathResponseNow(
-          stepReceiveAnnouncePathResponseWithActions(
-            initialReceiveAnnouncePathResponseState(),
-            {
-              kind: "announce/receive-path-response-gate",
-              context: packet.context,
-              ...(handler.receivePathResponses !== undefined
-                ? { receivePathResponses: handler.receivePathResponses }
-                : {}),
-            },
-          ).actions,
+          stepReceiveAnnouncePathResponseWithActions(initialReceiveAnnouncePathResponseState(), {
+            kind: "announce/receive-path-response-gate",
+            context: packet.context,
+            ...(handler.receivePathResponses !== undefined
+              ? { receivePathResponses: handler.receivePathResponses }
+              : {})
+          }).actions
         )
       ) {
         continue;
       }
 
       if (handler.aspectFilter != null) {
-        const filterStepped = stepParseAspectFilterWithActions(
-          initialParseAspectFilterState(),
-          {
-            kind: "destination/aspect-filter-gate",
-            filter: handler.aspectFilter,
-          },
-        );
+        const filterStepped = stepParseAspectFilterWithActions(initialParseAspectFilterState(), {
+          kind: "destination/aspect-filter-gate",
+          filter: handler.aspectFilter
+        });
         const parsedFilter = shouldUseParseAspectFilter(filterStepped.actions)
           ? aspectFilterFromActions(filterStepped.actions)
           : null;
         const filterParsed =
-          !shouldRejectParseAspectFilter(filterStepped.actions) &&
-          parsedFilter !== null;
+          !shouldRejectParseAspectFilter(filterStepped.actions) && parsedFilter !== null;
         const expected =
           parsedFilter === null
             ? null
@@ -678,21 +360,16 @@ export class LeafTransportLayer1 {
                 this.options.provider,
                 identity,
                 parsedFilter.appName,
-                ...parsedFilter.aspects,
+                ...parsedFilter.aspects
               );
         if (
           !shouldMatchAnnounceAspectNow(
-            stepMatchAnnounceAspectWithActions(
-              initialMatchAnnounceAspectState(),
-              {
-                kind: "announce/match-aspect-gate",
-                hasFilter: true,
-                filterParsed,
-                hashMatches:
-                  expected !== null &&
-                  equalBytes(packet.destinationHash, expected),
-              },
-            ).actions,
+            stepMatchAnnounceAspectWithActions(initialMatchAnnounceAspectState(), {
+              kind: "announce/match-aspect-gate",
+              hasFilter: true,
+              filterParsed,
+              hashMatches: expected !== null && equalBytes(packet.destinationHash, expected)
+            }).actions
           )
         ) {
           continue;
@@ -704,25 +381,19 @@ export class LeafTransportLayer1 {
         announcedIdentity: identity,
         appData: announce.appData,
         announce,
-        packet,
+        packet
       });
     }
   }
 
-  protected async handleData(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected async handleData(packet: Packet, iface: PacketInterface): Promise<void> {
     const pathRequestStepped = stepLocalPathRequestPacketWithActions(
       initialLocalPathRequestPacketState(),
       {
         kind: "transport/local-path-request-packet-gate",
         destinationTypePlain: packet.destinationType === DestinationType.PLAIN,
-        destinationHashMatches: equalBytes(
-          packet.destinationHash,
-          this.pathRequestHash,
-        ),
-      },
+        destinationHashMatches: equalBytes(packet.destinationHash, this.pathRequestHash)
+      }
     );
     /* Handle path-request DATA only from `path-request` (no ad-hoc `isLocalPathRequestPacket` reads). */
     if (shouldTreatLocalPathRequestPacket(pathRequestStepped.actions)) {
@@ -732,36 +403,30 @@ export class LeafTransportLayer1 {
 
     const destination = this.destinations.find((entry) =>
       shouldMatchLocalTypedDestinationNow(
-        stepMatchLocalTypedDestinationWithActions(
-          initialMatchLocalTypedDestinationState(),
-          {
-            kind: "transport/match-local-typed-destination-gate",
-            hashMatches: equalBytes(entry.hash, packet.destinationHash),
-            typeMatches: entry.type === packet.destinationType,
-          },
-        ).actions,
-      ),
+        stepMatchLocalTypedDestinationWithActions(initialMatchLocalTypedDestinationState(), {
+          kind: "transport/match-local-typed-destination-gate",
+          hashMatches: equalBytes(entry.hash, packet.destinationHash),
+          typeMatches: entry.type === packet.destinationType
+        }).actions
+      )
     );
-    const plaintext =
-      destination === undefined ? null : destination.decrypt(packet.data);
+    const plaintext = destination === undefined ? null : destination.decrypt(packet.data);
     const deliveryStepped = stepLocalPlainDataDeliveryWithActions(
       initialLocalPlainDataDeliveryState(),
       {
         kind: "transport/local-plain-data-gate",
         destinationPresent: destination !== undefined,
-        plaintextPresent: plaintext !== null,
-      },
+        plaintextPresent: plaintext !== null
+      }
     );
     const dispatchStepped = stepDispatchLocalPlainDataDeliveryWithActions(
       initialDispatchLocalPlainDataDeliveryState(),
       {
         kind: "transport/dispatch-local-plain-data-gate",
-        planDispatch: shouldDispatchLocalPlainDataDeliveryActions(
-          deliveryStepped.actions,
-        ),
+        planDispatch: shouldDispatchLocalPlainDataDeliveryActions(deliveryStepped.actions),
         destinationPresent: destination !== undefined,
-        plaintextPresent: plaintext !== null,
-      },
+        plaintextPresent: plaintext !== null
+      }
     );
     if (!shouldDispatchLocalPlainDataDeliveryNow(dispatchStepped.actions)) {
       return;
@@ -769,42 +434,30 @@ export class LeafTransportLayer1 {
 
     destination!.dispatchPacket(plaintext!, packet);
 
-    const proofStepped = stepDestinationProofWithActions(
-      initialDestinationProofState(),
-      {
-        kind: "destination/proof-gate",
-        strategy: destination!.proofStrategy,
-        appWantsProof: destination!.shouldProve(packet),
-      },
-    );
+    const proofStepped = stepDestinationProofWithActions(initialDestinationProofState(), {
+      kind: "destination/proof-gate",
+      strategy: destination!.proofStrategy,
+      appWantsProof: destination!.shouldProve(packet)
+    });
     if (shouldProveDestination(proofStepped.actions)) {
       await this.sendProof(destination!, packet, iface);
     }
   }
 
-  protected async handleProof(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
-    const proofStepped = stepProofIngressWithActions(
-      initialProofIngressState(),
-      {
-        kind: "transport/proof-ingress-gate",
-        context: packet.context,
-      },
-    );
+  protected async handleProof(packet: Packet, iface: PacketInterface): Promise<void> {
+    const proofStepped = stepProofIngressWithActions(initialProofIngressState(), {
+      kind: "transport/proof-ingress-gate",
+      context: packet.context
+    });
     if (shouldHandleProofLrproof(proofStepped.actions)) {
       for (const link of this.pendingLinks) {
         if (
           shouldAcceptLinkLrProofCandidateNow(
-            stepAcceptLinkLrProofCandidateWithActions(
-              initialAcceptLinkLrProofCandidateState(),
-              {
-                kind: "transport/accept-link-lr-proof-candidate-gate",
-                linkIdMatches: equalBytes(link.linkId, packet.destinationHash),
-                hopsMatch: link.hopsMatch(packet),
-              },
-            ).actions,
+            stepAcceptLinkLrProofCandidateWithActions(initialAcceptLinkLrProofCandidateState(), {
+              kind: "transport/accept-link-lr-proof-candidate-gate",
+              linkIdMatches: equalBytes(link.linkId, packet.destinationHash),
+              hopsMatch: link.hopsMatch(packet)
+            }).actions
           )
         ) {
           await link.validateProof(packet, iface);
@@ -815,19 +468,13 @@ export class LeafTransportLayer1 {
     }
 
     if (shouldHandleProofResourcePrf(proofStepped.actions)) {
-      const activeIndex = this.indexOfMatchingLink(
-        this.activeLinks,
-        packet.destinationHash,
-      );
+      const activeIndex = this.indexOfMatchingLink(this.activeLinks, packet.destinationHash);
       if (
         shouldDispatchResourceProofToLinkNow(
-          stepDispatchResourceProofToLinkWithActions(
-            initialDispatchResourceProofToLinkState(),
-            {
-              kind: "transport/dispatch-resource-proof-to-link-gate",
-              activeIndexPresent: activeIndex !== null,
-            },
-          ).actions,
+          stepDispatchResourceProofToLinkWithActions(initialDispatchResourceProofToLinkState(), {
+            kind: "transport/dispatch-resource-proof-to-link-gate",
+            activeIndexPresent: activeIndex !== null
+          }).actions
         )
       ) {
         await this.activeLinks[activeIndex!]!.handleResourceProof(packet);
@@ -849,45 +496,32 @@ export class LeafTransportLayer1 {
         initialPacketReceiptProofIngressState(),
         {
           kind: "receipt/proof-ingress-gate",
-          truncatedHashMatches: equalBytes(
-            packet.destinationHash,
-            receipt.truncatedHash,
-          ),
+          truncatedHashMatches: equalBytes(packet.destinationHash, receipt.truncatedHash),
           identityPresent: identity !== null,
-          proofAccepted,
-        },
+          proofAccepted
+        }
       );
       if (shouldRemovePacketReceiptProofIngress(proofIngressStepped.actions)) {
         const receiptStepped = stepPacketReceiptUnregisterWithActions(
           initialPacketReceiptUnregisterState(),
           {
             kind: "receipt/unregister-gate",
-            index: this.receipts.indexOf(receipt),
-          },
+            index: this.receipts.indexOf(receipt)
+          }
         );
         const index = packetReceiptUnregisterIndex(receiptStepped.actions);
-        if (
-          shouldRemovePacketReceipt(receiptStepped.actions) &&
-          index !== null
-        ) {
+        if (shouldRemovePacketReceipt(receiptStepped.actions) && index !== null) {
           this.receipts.splice(index, 1);
         }
       }
     }
   }
 
-  protected async sendProof(
-    destination: LocalDestination,
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
-    const emit = stepEmitDestinationProofWithActions(
-      initialEmitDestinationProofState(),
-      {
-        kind: "destination/emit-proof-gate",
-        identityPresent: destination.identity !== null,
-      },
-    );
+  protected async sendProof(destination: LocalDestination, packet: Packet, iface: PacketInterface): Promise<void> {
+    const emit = stepEmitDestinationProofWithActions(initialEmitDestinationProofState(), {
+      kind: "destination/emit-proof-gate",
+      identityPresent: destination.identity !== null
+    });
     if (!shouldEmitDestinationProofNow(emit.actions)) {
       return;
     }
@@ -903,18 +537,15 @@ export class LeafTransportLayer1 {
           destinationType: DestinationType.SINGLE,
           packetType: PacketType.PROOF,
           destinationHash: proofDestinationHash,
-          data: proofData,
+          data: proofData
         });
         await this.outbound(proofPacket, iface);
       },
-      this.useImplicitProof,
+      this.useImplicitProof
     );
   }
 
-  protected async outbound(
-    packet: Packet,
-    attachedInterface: PacketInterface | null,
-  ): Promise<boolean> {
+  protected async outbound(packet: Packet, attachedInterface: PacketInterface | null): Promise<boolean> {
     const path = this.getPathEntry(packet.destinationHash);
     const stepped = stepPathOutboundWithActions(initialPathOutboundState(), {
       kind: "path/outbound-gate",
@@ -922,7 +553,7 @@ export class LeafTransportLayer1 {
       destinationType: packet.destinationType,
       headerType: packet.headerType,
       hasPath: path !== undefined,
-      pathHops: path?.hops ?? 0,
+      pathHops: path?.hops ?? 0
     });
 
     if (
@@ -930,8 +561,8 @@ export class LeafTransportLayer1 {
       shouldUsePathForOutboundNow(
         stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
           kind: "path/use-for-outbound-gate",
-          pathPresent: path !== undefined,
-        }).actions,
+          pathPresent: path !== undefined
+        }).actions
       )
     ) {
       const wrapped = wrapTransportPacket(packet, path!.nextHop);
@@ -944,8 +575,8 @@ export class LeafTransportLayer1 {
       shouldUsePathForOutboundNow(
         stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
           kind: "path/use-for-outbound-gate",
-          pathPresent: path !== undefined,
-        }).actions,
+          pathPresent: path !== undefined
+        }).actions
       )
     ) {
       await this.transmit(path!.receivedInterface, packet.raw);
@@ -956,16 +587,12 @@ export class LeafTransportLayer1 {
     for (const iface of this.interfaces) {
       if (
         !shouldTransmitOnInterfaceNow(
-          stepTransmitOnInterfaceWithActions(
-            initialTransmitOnInterfaceState(),
-            {
-              kind: "transport/transmit-on-interface-gate",
-              outgoing: iface.outgoing,
-              requireAttached: attachedInterface !== null,
-              isAttached:
-                attachedInterface !== null && iface === attachedInterface,
-            },
-          ).actions,
+          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+            kind: "transport/transmit-on-interface-gate",
+            outgoing: iface.outgoing,
+            requireAttached: attachedInterface !== null,
+            isAttached: attachedInterface !== null && iface === attachedInterface
+          }).actions
         )
       ) {
         continue;
@@ -979,13 +606,9 @@ export class LeafTransportLayer1 {
     return sent;
   }
 
-  protected async handlePathRequest(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected async handlePathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     const parsed = parsePathRequestData(packet.data);
-    const path =
-      parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
+    const path = parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
     const localDestination =
       parsed === null
         ? undefined
@@ -996,39 +619,36 @@ export class LeafTransportLayer1 {
                 {
                   kind: "transport/match-local-inbound-destination-gate",
                   hashMatches: equalBytes(entry.hash, parsed.destinationHash),
-                  directionIn: entry.direction === DestinationDirection.IN,
-                },
-              ).actions,
-            ),
+                  directionIn: entry.direction === DestinationDirection.IN
+                }
+              ).actions
+            )
           );
     const tagKey =
       parsed !== null && parsed.tag !== null
         ? pathRequestTagKey(parsed.destinationHash, parsed.tag)
         : null;
-    const stepped = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: parsed !== null,
-        hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
-        tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
-        hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
-        transportEnabled: this.transportEnabled,
-        hasPath: path !== undefined,
-        shouldAnswerPath:
-          path !== undefined &&
-          shouldAnswerPathRequestNow(
-            stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
-              kind: "path-request/answer-path-gate",
-              nextHop: path.nextHop,
-              requestorTransportId: parsed?.requestorTransportId ?? null,
-            }).actions,
-          ),
-        discoveryPresent: false,
-        discoveryExpired: false,
-        allowDiscovery: false,
-      },
-    );
+    const stepped = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: parsed !== null,
+      hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
+      tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
+      hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
+      transportEnabled: this.transportEnabled,
+      hasPath: path !== undefined,
+      shouldAnswerPath:
+        path !== undefined &&
+        shouldAnswerPathRequestNow(
+          stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+            kind: "path-request/answer-path-gate",
+            nextHop: path.nextHop,
+            requestorTransportId: parsed?.requestorTransportId ?? null
+          }).actions
+        ),
+      discoveryPresent: false,
+      discoveryExpired: false,
+      allowDiscovery: false
+    });
 
     if (
       shouldIgnorePathRequestUnparsed(stepped.actions) ||
@@ -1039,13 +659,10 @@ export class LeafTransportLayer1 {
 
     if (
       shouldRememberPathRequestTagNow(
-        stepRememberPathRequestTagWithActions(
-          initialRememberPathRequestTagState(),
-          {
-            kind: "path-request/remember-tag-gate",
-            tagKeyPresent: tagKey !== null,
-          },
-        ).actions,
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: tagKey !== null
+        }).actions
       )
     ) {
       this.discoveryPrTags.add(tagKey!);
@@ -1054,13 +671,10 @@ export class LeafTransportLayer1 {
     if (shouldAnswerPathRequestLocal(stepped.actions)) {
       if (
         !shouldAnswerLocalPathRequestNow(
-          stepAnswerLocalPathRequestWithActions(
-            initialAnswerLocalPathRequestState(),
-            {
-              kind: "path-request/answer-local-handler-gate",
-              handlerPresent: localDestination?.answerPathRequest !== undefined,
-            },
-          ).actions,
+          stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+            kind: "path-request/answer-local-handler-gate",
+            handlerPresent: localDestination?.answerPathRequest !== undefined
+          }).actions
         )
       ) {
         return;
@@ -1074,25 +688,19 @@ export class LeafTransportLayer1 {
       shouldAnswerPathWithEntryNow(
         stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
           kind: "path-request/answer-path-entry-gate",
-          pathPresent: path !== undefined,
-        }).actions,
+          pathPresent: path !== undefined
+        }).actions
       )
     ) {
       await this.sendPathResponse(path!, iface);
     }
   }
 
-  protected async sendPathResponse(
-    path: PathEntry,
-    iface: PacketInterface,
-  ): Promise<void> {
+  protected async sendPathResponse(path: PathEntry, iface: PacketInterface): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      const armed = stepPathResponseGraceWithActions(
-        initialPathResponseGraceState(),
-        {
-          kind: "path-response-grace/arm",
-        },
-      );
+      const armed = stepPathResponseGraceWithActions(initialPathResponseGraceState(), {
+        kind: "path-response-grace/arm"
+      });
       let state = armed.state;
       let concluded = false;
 
@@ -1105,18 +713,15 @@ export class LeafTransportLayer1 {
       };
 
       const applyIntents = (
-        intents: ReturnType<typeof stepPathResponseGraceWithActions>["intents"],
+        intents: ReturnType<typeof stepPathResponseGraceWithActions>["intents"]
       ): void => {
         for (const intent of intents) {
-          if (
-            intent.kind === "timer/set" &&
-            intent.timer.id === PATH_RESPONSE_GRACE_TIMER_ID
-          ) {
+          if (intent.kind === "timer/set" && intent.timer.id === PATH_RESPONSE_GRACE_TIMER_ID) {
             this.clock.setTimeout(() => {
               const tick = stepPathResponseGraceWithActions(state, {
                 kind: "timer/fired",
                 id: PATH_RESPONSE_GRACE_TIMER_ID,
-                at: this.clock.now(),
+                at: this.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
@@ -1127,7 +732,7 @@ export class LeafTransportLayer1 {
       };
 
       const applyActions = async (
-        actions: ReturnType<typeof stepPathResponseGraceWithActions>["actions"],
+        actions: ReturnType<typeof stepPathResponseGraceWithActions>["actions"]
       ): Promise<void> => {
         for (const action of actions) {
           if (action.kind === "transmit") {
@@ -1138,9 +743,9 @@ export class LeafTransportLayer1 {
                   initialAcceptCachedPathResponsePacketState(),
                   {
                     kind: "path-response/accept-cached-packet-gate",
-                    decodedOk: cached !== null,
-                  },
-                ).actions,
+                    decodedOk: cached !== null
+                  }
+                ).actions
               )
             ) {
               return;
@@ -1149,7 +754,7 @@ export class LeafTransportLayer1 {
               this.provider,
               cached!,
               this.transportIdentity,
-              path.hops,
+              path.hops
             );
             await this.outbound(response, iface);
           }
@@ -1166,18 +771,12 @@ export class LeafTransportLayer1 {
 
   /** Adapt matching-link-id index via protocol actions (no ad-hoc
    * `indexOfMatchingLinkId` reads). */
-  protected indexOfMatchingLink(
-    links: readonly Link[],
-    target: Uint8Array,
-  ): number | null {
-    const stepped = stepIndexOfMatchingLinkIdWithActions(
-      initialIndexOfMatchingLinkIdState(),
-      {
-        kind: "transport/matching-link-id-index-gate",
-        linkIds: links.map((link) => link.linkId),
-        target,
-      },
-    );
+  protected indexOfMatchingLink(links: readonly Link[], target: Uint8Array): number | null {
+    const stepped = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "transport/matching-link-id-index-gate",
+      linkIds: links.map((link) => link.linkId),
+      target
+    });
     return shouldUseMatchingLinkIdIndex(stepped.actions)
       ? matchingLinkIdIndexFromActions(stepped.actions)
       : null;
@@ -1190,7 +789,7 @@ export class LeafTransportLayer1 {
       localTransportHash: this.options.transportIdentity.hash,
       packetType: packet.packetType,
       destinationType: packet.destinationType,
-      alreadySeenHash: this.packetHashes.has(hashKey(packet.hash())),
+      alreadySeenHash: this.packetHashes.has(hashKey(packet.hash()))
     });
     return shouldAcceptPacketFilter(stepped.actions);
   }

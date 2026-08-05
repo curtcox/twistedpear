@@ -18,7 +18,7 @@ const SOAK_DURATION_MS = Number(process.env.SOAK_DURATION_MS ?? "15000");
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-soak/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit",
+    stdio: "inherit"
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -58,7 +58,7 @@ function startStaticServer(root) {
               }
             });
           });
-        },
+        }
       });
     });
   });
@@ -66,15 +66,11 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath =
-    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (
-    !resolvedPath.startsWith(resolvedRoot + sep) &&
-    resolvedPath !== resolvedRoot
-  ) {
+  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
     response.writeHead(403);
     response.end();
     return;
@@ -86,9 +82,7 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, {
-    "content-type": staticContentType(extname(resolvedPath)),
-  });
+  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
   if (headOnly) {
     response.end();
     return;
@@ -113,13 +107,9 @@ async function runPlaywright(pageUrl) {
   try {
     const page = await browser.newPage();
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
-    await page.waitForFunction(
-      () => globalThis.__WEB_SOAK__?.status === "done",
-      undefined,
-      {
-        timeout: Math.max(SOAK_DURATION_MS + 60_000, 120_000),
-      },
-    );
+    await page.waitForFunction(() => globalThis.__WEB_SOAK__?.status === "done", undefined, {
+      timeout: Math.max(SOAK_DURATION_MS + 60_000, 120_000)
+    });
 
     const result = await page.evaluate(() => globalThis.__WEB_SOAK__);
     if (result?.status !== "done") {
@@ -127,9 +117,7 @@ async function runPlaywright(pageUrl) {
     }
 
     if ((result.cycles ?? 0) < 1) {
-      throw new Error(
-        `web soak completed zero cycles: ${JSON.stringify(result)}`,
-      );
+      throw new Error(`web soak completed zero cycles: ${JSON.stringify(result)}`);
     }
 
     return result;
@@ -146,7 +134,7 @@ try {
   const pageUrl = `http://127.0.0.1:${staticServer.port}/?duration=${SOAK_DURATION_MS}`;
   const result = await runPlaywright(pageUrl);
   console.log(
-    `web-soak: ${result.cycles} launch cycles in ${result.elapsedMs}ms (${result.interfaceFlaps} interface flaps)`,
+    `web-soak: ${result.cycles} launch cycles in ${result.elapsedMs}ms (${result.interfaceFlaps} interface flaps)`
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

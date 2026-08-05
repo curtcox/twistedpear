@@ -15,9 +15,7 @@ export type DiscoveryProviderKind = "multicast" | "bonjour";
 
 export interface DiscoveryProviderEvents {
   readonly onPeer?: (peer: DiscoveryPeer) => void;
-  readonly onNetworkChange?: (
-    interfaces: ReadonlyArray<MulticastNetworkInfo>,
-  ) => void;
+  readonly onNetworkChange?: (interfaces: ReadonlyArray<MulticastNetworkInfo>) => void;
   readonly onError?: (error: Error) => void;
 }
 
@@ -42,24 +40,20 @@ export function selectDiscoveryProviders(options: {
   readonly bonjourAvailable: boolean;
   readonly allowConcurrent?: boolean;
 }): DiscoverySelection {
-  const multicastUsable =
-    options.multicastAvailable && options.multicastEntitled !== false;
+  const multicastUsable = options.multicastAvailable && options.multicastEntitled !== false;
   const active: DiscoveryProviderKind[] = [];
 
   if (multicastUsable) {
     active.push("multicast");
   }
 
-  if (
-    options.bonjourAvailable &&
-    (!multicastUsable || options.allowConcurrent === true)
-  ) {
+  if (options.bonjourAvailable && (!multicastUsable || options.allowConcurrent === true)) {
     active.push("bonjour");
   }
 
   return {
     primary: active[0] ?? null,
-    active,
+    active
   };
 }
 
@@ -80,9 +74,8 @@ export class MulticastDiscoveryProvider implements DiscoveryProvider {
   setEvents(events: DiscoveryProviderEvents): void {
     this.events = events;
     this.bridge.setEvents({
-      onNetworkChange: (interfaces) =>
-        this.events.onNetworkChange?.(interfaces),
-      onPacket: () => {},
+      onNetworkChange: (interfaces) => this.events.onNetworkChange?.(interfaces),
+      onPacket: () => {}
     });
   }
 
@@ -94,11 +87,7 @@ export class MulticastDiscoveryProvider implements DiscoveryProvider {
     await this.bridge.stop();
   }
 
-  async advertise(
-    ifname: string,
-    address: string,
-    dataPort: number,
-  ): Promise<void> {
+  async advertise(ifname: string, address: string, dataPort: number): Promise<void> {
     void address;
     await this.bridge.bindPort(ifname, dataPort);
   }

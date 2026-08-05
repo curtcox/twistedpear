@@ -72,15 +72,15 @@ Bottom: **Install** and **Cancel**.
 Every capability is deny-by-default in the sense that matters: the app gets nothing it did
 not ask for and you did not approve. Common ones, in plain terms:
 
-| The app asks to…   | What that actually allows                                          |
-| ------------------ | ------------------------------------------------------------------ |
-| Send messages      | Send messages _from the app's own address_, not from yours.        |
-| Receive messages   | Receive messages addressed to the app.                             |
-| Store local data   | Keep data on your device, in a private area only this app can see. |
-| Read presence      | See which peers and interfaces are around, coarsely.               |
-| Publish an address | Announce itself on the network so others can find it.              |
-| Fetch resources    | Download data, subject to your bandwidth limits.                   |
-| Install other apps | Ask _you_ to install something — it asks again every time.         |
+| The app asks to… | What that actually allows |
+|---|---|
+| Send messages | Send messages *from the app's own address*, not from yours. |
+| Receive messages | Receive messages addressed to the app. |
+| Store local data | Keep data on your device, in a private area only this app can see. |
+| Read presence | See which peers and interfaces are around, coarsely. |
+| Publish an address | Announce itself on the network so others can find it. |
+| Fetch resources | Download data, subject to your bandwidth limits. |
+| Install other apps | Ask *you* to install something — it asks again every time. |
 
 Two things it can never ask for: direct access to your files, and direct access to the
 network. Those do not exist as capabilities. Everything goes through the host.
@@ -105,7 +105,7 @@ recognise the author. Untrusted publishers can still be installed from, with a c
 warning.
 
 Separately, and automatically, the host pins the key it first saw for each app. If an app
-called "Chat" later arrives signed by a _different_ key, the install is refused rather
+called "Chat" later arrives signed by a *different* key, the install is refused rather
 than silently accepted. This protects you even for publishers you never explicitly
 trusted.
 

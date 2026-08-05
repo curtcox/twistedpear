@@ -219,11 +219,10 @@ Accepted grants push `set-freenet-config` into the Bare worklet so
 `freenet:contract` reads/writes use the granted companion node (writes require
 an extra chrome confirmation before the backend is attached). Packet-tunnel
 grants attach `FreenetInterface` with the embedded packet-log WASM (rendezvous
-
-- local direction required in chrome). Propagation grants attach
-  `FreenetPropagationStore` with the embedded propagation-set WASM and start a
-  mobile `PropagationServer` / LXMF role with that store as `remoteMirror`
-  (local persistence + `pullRemoteMirror` on attach).
++ local direction required in chrome). Propagation grants attach
+`FreenetPropagationStore` with the embedded propagation-set WASM and start a
+mobile `PropagationServer` / LXMF role with that store as `remoteMirror`
+(local persistence + `pullRemoteMirror` on attach).
 
 **Status (2026-07-29):** contract, packet-tunnel, and Freenet-backed
 propagation LXMF role attach from the mobile grant path; Maestro covers

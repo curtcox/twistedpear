@@ -1,22 +1,9 @@
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  powerMonitor,
-  Tray,
-  Menu,
-  nativeImage,
-  session,
-} from "electron";
+import { app, BrowserWindow, dialog, ipcMain, powerMonitor, Tray, Menu, nativeImage, session } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import type {
-  WorkletStatus,
-  WorkletToHostMessage,
-} from "@twistedpear/host-core/protocol";
+import type { WorkletStatus, WorkletToHostMessage } from "@twistedpear/host-core/protocol";
 import { HostDesktopBridges } from "./bridges.js";
 import { WorkletSupervisor } from "./supervisor.js";
 
@@ -27,10 +14,7 @@ if (testCdpPort !== undefined && /^\d+$/.test(testCdpPort)) {
 }
 // Multipeer / CDP hosts need permissionless fake A/V so WebRTC track attach
 // can record bytes without a physical camera or microphone.
-if (
-  process.env.TP_TEST_AGENT !== undefined ||
-  (testCdpPort !== undefined && /^\d+$/.test(testCdpPort))
-) {
+if (process.env.TP_TEST_AGENT !== undefined || (testCdpPort !== undefined && /^\d+$/.test(testCdpPort))) {
   app.commandLine.appendSwitch("use-fake-device-for-media-stream");
   app.commandLine.appendSwitch("use-fake-ui-for-media-stream");
 }
@@ -46,22 +30,14 @@ let isQuitting = false;
 let networkSnapshot = JSON.stringify(networkInterfaces());
 let networkPollTimer: ReturnType<typeof setInterval> | null = null;
 
-function ntfyConfiguration(): {
-  readonly baseUrl: URL;
-  readonly token: string | null;
-} | null {
+function ntfyConfiguration(): { readonly baseUrl: URL; readonly token: string | null } | null {
   const raw = process.env.TWISTEDPEAR_NTFY_URL?.trim();
   if (!raw) return null;
   try {
     const baseUrl = new URL(raw.endsWith("/") ? raw : `${raw}/`);
-    const localHttp =
-      baseUrl.protocol === "http:" &&
-      ["localhost", "127.0.0.1", "::1"].includes(baseUrl.hostname);
+    const localHttp = baseUrl.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(baseUrl.hostname);
     if (baseUrl.protocol !== "https:" && !localHttp) return null;
-    return {
-      baseUrl,
-      token: process.env.TWISTEDPEAR_NTFY_TOKEN?.trim() || null,
-    };
+    return { baseUrl, token: process.env.TWISTEDPEAR_NTFY_TOKEN?.trim() || null };
   } catch {
     return null;
   }
@@ -69,8 +45,7 @@ function ntfyConfiguration(): {
 
 function requestedMiniapp(): string | null {
   const argument = process.argv.find((value) => value.startsWith("--app="));
-  const requested =
-    argument?.slice("--app=".length) ?? process.env.TP_DESKTOP_APP ?? "";
+  const requested = argument?.slice("--app=".length) ?? process.env.TP_DESKTOP_APP ?? "";
   return /^[a-z0-9][a-z0-9._-]*$/.test(requested) ? requested : null;
 }
 
@@ -102,8 +77,8 @@ function createWindow(): void {
       // Sandbox has been observed to leave the renderer deaf to worklet
       // request/reply traffic under TP_TEST_AGENT (WebRTC signal + device bridge
       // both time out). Keep sandbox for normal launches.
-      sandbox: !testHarness,
-    },
+      sandbox: !testHarness
+    }
   });
 
   mainWindow.on("close", (event) => {
@@ -117,7 +92,7 @@ function createWindow(): void {
 
   const appId = requestedMiniapp();
   void mainWindow.loadFile(join(hostRoot, "src/renderer/index.html"), {
-    query: appId === null ? {} : { app: appId },
+    query: appId === null ? {} : { app: appId }
   });
 }
 
@@ -148,7 +123,7 @@ function ensureSupervisor(): WorkletSupervisor {
     },
     onExit(code, signal) {
       broadcast("worklet-exit", { code, signal });
-    },
+    }
   });
 
   const testAgent = parseTestAgentEnv(process.env.TP_TEST_AGENT);
@@ -162,14 +137,14 @@ function ensureSupervisor(): WorkletSupervisor {
     targetHost: "127.0.0.1",
     targetPort: 4242,
     multicastEntitled: true,
-    bonjourEnabled: true,
+    bonjourEnabled: true
   });
   supervisor.send({
     type: "set-interfaces",
     tcp: false,
     auto: true,
     ble: false,
-    rnode: false,
+    rnode: false
   });
 
   // `TP_TEST_AGENT=host:port:label` puts this host into the single-machine
@@ -179,19 +154,9 @@ function ensureSupervisor(): WorkletSupervisor {
   if (testAgent !== null) {
     const passphrase = process.env.TP_IDENTITY_PASSPHRASE;
     if (passphrase !== undefined) {
-      supervisor.send({
-        type: "identity-unlock",
-        passphrase,
-        confirmation: passphrase,
-      });
+      supervisor.send({ type: "identity-unlock", passphrase, confirmation: passphrase });
     }
-    supervisor.send({
-      type: "set-interfaces",
-      tcp: true,
-      auto: true,
-      ble: false,
-      rnode: false,
-    });
+    supervisor.send({ type: "set-interfaces", tcp: true, auto: true, ble: false, rnode: false });
     supervisor.send({ type: "connect-test-agent", ...testAgent });
   }
 
@@ -199,7 +164,7 @@ function ensureSupervisor(): WorkletSupervisor {
 }
 
 function parseTestAgentEnv(
-  value: string | undefined,
+  value: string | undefined
 ): { host: string; port: number; label: string } | null {
   if (value === undefined || value === "") {
     return null;
@@ -210,34 +175,19 @@ function parseTestAgentEnv(
     console.error(`Ignoring malformed TP_TEST_AGENT: ${value}`);
     return null;
   }
-  return {
-    host,
-    port,
-    label: label === undefined || label === "" ? "desktop" : label,
-  };
+  return { host, port, label: label === undefined || label === "" ? "desktop" : label };
 }
 
 app.whenReady().then(() => {
-  session.defaultSession.setPermissionCheckHandler(
-    (_webContents, permission, requestingOrigin, details) =>
-      permission === "media" &&
-      (details.mediaType === "video" || details.mediaType === "audio") &&
-      requestingOrigin.startsWith("file://"),
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission, requestingOrigin, details) =>
+    permission === "media" && (details.mediaType === "video" || details.mediaType === "audio") && requestingOrigin.startsWith("file://")
   );
-  session.defaultSession.setPermissionRequestHandler(
-    (webContents, permission, callback, details) => {
-      const fromHostWindow =
-        webContents === mainWindow?.webContents &&
-        details.requestingUrl.startsWith("file://");
-      const trustedMediaOnly =
-        "mediaTypes" in details &&
-        (details.mediaTypes?.length ?? 0) > 0 &&
-        details.mediaTypes?.every(
-          (mediaType) => mediaType === "video" || mediaType === "audio",
-        ) === true;
-      callback(permission === "media" && fromHostWindow && trustedMediaOnly);
-    },
-  );
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    const fromHostWindow = webContents === mainWindow?.webContents && details.requestingUrl.startsWith("file://");
+    const trustedMediaOnly = "mediaTypes" in details && (details.mediaTypes?.length ?? 0) > 0 &&
+      details.mediaTypes?.every((mediaType) => mediaType === "video" || mediaType === "audio") === true;
+    callback(permission === "media" && fromHostWindow && trustedMediaOnly);
+  });
   if (process.platform === "darwin" || process.platform === "win32") {
     app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
   }
@@ -256,9 +206,9 @@ app.whenReady().then(() => {
         click: () => {
           supervisor?.stop();
           app.quit();
-        },
-      },
-    ]),
+        }
+      }
+    ])
   );
 
   powerMonitor.on("suspend", () => {
@@ -308,98 +258,56 @@ ipcMain.handle("host:ntfy-status", () => {
   const config = ntfyConfiguration();
   return config === null
     ? { configured: false }
-    : {
-        configured: true,
-        server: `${config.baseUrl.origin}${config.baseUrl.pathname}`,
-      };
+    : { configured: true, server: `${config.baseUrl.origin}${config.baseUrl.pathname}` };
 });
-ipcMain.handle(
-  "host:ntfy-request",
-  async (
-    _event,
-    request: {
-      readonly url: string;
-      readonly method: string;
-      readonly headers?: Record<string, string>;
-      readonly body?: string;
-    },
-  ) => {
-    const config = ntfyConfiguration();
-    if (config === null) throw new Error("ntfy is not configured");
-    const requested = new URL(request.url);
-    const basePath = config.baseUrl.pathname.endsWith("/")
-      ? config.baseUrl.pathname
-      : `${config.baseUrl.pathname}/`;
-    if (
-      requested.origin !== config.baseUrl.origin ||
-      !requested.pathname.startsWith(basePath) ||
-      requested.username !== "" ||
-      requested.password !== "" ||
-      requested.hash !== "" ||
-      !["GET", "POST"].includes(request.method) ||
-      new TextEncoder().encode(request.body ?? "").length > 40_000
-    ) {
-      throw new Error("ntfy request is outside the configured host policy");
-    }
-    const headers = new Headers(request.headers);
-    headers.delete("authorization");
-    if (config.token !== null)
-      headers.set("Authorization", `Bearer ${config.token}`);
-    const response = await fetch(requested, {
-      method: request.method,
-      headers,
-      ...(request.body === undefined ? {} : { body: request.body }),
-      redirect: "error",
-    });
-    const declaredLength = Number(
-      response.headers.get("content-length") ?? "0",
-    );
-    if (Number.isFinite(declaredLength) && declaredLength > 256_000)
-      throw new Error("ntfy response exceeds host budget");
-    const body = await response.text();
-    if (new TextEncoder().encode(body).length > 256_000)
-      throw new Error("ntfy response exceeds host budget");
-    return {
-      status: response.status,
-      body,
-      contentLength: response.headers.get("content-length"),
-    };
-  },
-);
-ipcMain.handle(
-  "host:save-identity-backup",
-  async (_event, backupHex: string) => {
-    const selected = await dialog.showSaveDialog(mainWindow!, {
-      defaultPath: "identity.tpidentity",
-      filters: [{ name: "TwistedPear identity", extensions: ["tpidentity"] }],
-    });
-    if (selected.canceled || selected.filePath === "") return false;
-    await writeFile(selected.filePath, Buffer.from(backupHex, "hex"), {
-      mode: 0o600,
-    });
-    return true;
-  },
-);
+ipcMain.handle("host:ntfy-request", async (_event, request: { readonly url: string; readonly method: string; readonly headers?: Record<string, string>; readonly body?: string }) => {
+  const config = ntfyConfiguration();
+  if (config === null) throw new Error("ntfy is not configured");
+  const requested = new URL(request.url);
+  const basePath = config.baseUrl.pathname.endsWith("/") ? config.baseUrl.pathname : `${config.baseUrl.pathname}/`;
+  if (
+    requested.origin !== config.baseUrl.origin ||
+    !requested.pathname.startsWith(basePath) ||
+    requested.username !== "" || requested.password !== "" || requested.hash !== "" ||
+    !["GET", "POST"].includes(request.method) ||
+    new TextEncoder().encode(request.body ?? "").length > 40_000
+  ) {
+    throw new Error("ntfy request is outside the configured host policy");
+  }
+  const headers = new Headers(request.headers);
+  headers.delete("authorization");
+  if (config.token !== null) headers.set("Authorization", `Bearer ${config.token}`);
+  const response = await fetch(requested, { method: request.method, headers, ...(request.body === undefined ? {} : { body: request.body }), redirect: "error" });
+  const declaredLength = Number(response.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > 256_000) throw new Error("ntfy response exceeds host budget");
+  const body = await response.text();
+  if (new TextEncoder().encode(body).length > 256_000) throw new Error("ntfy response exceeds host budget");
+  return { status: response.status, body, contentLength: response.headers.get("content-length") };
+});
+ipcMain.handle("host:save-identity-backup", async (_event, backupHex: string) => {
+  const selected = await dialog.showSaveDialog(mainWindow!, {
+    defaultPath: "identity.tpidentity",
+    filters: [{ name: "TwistedPear identity", extensions: ["tpidentity"] }]
+  });
+  if (selected.canceled || selected.filePath === "") return false;
+  await writeFile(selected.filePath, Buffer.from(backupHex, "hex"), { mode: 0o600 });
+  return true;
+});
 ipcMain.handle("host:open-identity-backup", async () => {
   const selected = await dialog.showOpenDialog(mainWindow!, {
     properties: ["openFile"],
-    filters: [{ name: "TwistedPear identity", extensions: ["tpidentity"] }],
+    filters: [{ name: "TwistedPear identity", extensions: ["tpidentity"] }]
   });
   const path = selected.filePaths[0];
-  return selected.canceled || path === undefined
-    ? null
-    : (await readFile(path)).toString("hex");
+  return selected.canceled || path === undefined ? null : (await readFile(path)).toString("hex");
 });
-ipcMain.handle(
-  "host:set-identity-content-protection",
-  (_event, enabled: boolean) => {
-    mainWindow?.setContentProtection(enabled);
-  },
-);
+ipcMain.handle("host:set-identity-content-protection", (_event, enabled: boolean) => {
+  mainWindow?.setContentProtection(enabled);
+});
 ipcMain.handle("host:save-moderation-report", async (_event, json: string) => {
   const selected = await dialog.showSaveDialog(mainWindow!, {
     defaultPath: "twistedpear-local-reports.json",
-    filters: [{ name: "JSON", extensions: ["json"] }],
+    filters: [{ name: "JSON", extensions: ["json"] }]
   });
   if (selected.canceled || selected.filePath === "") return false;
   await writeFile(selected.filePath, json, { encoding: "utf8", mode: 0o600 });

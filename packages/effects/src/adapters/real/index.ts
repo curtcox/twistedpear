@@ -55,7 +55,7 @@ export class RealTimers {
     this.handles.set(id, {
       cancel: () => {
         timers.clearTimeout(handle);
-      },
+      }
     });
   }
 

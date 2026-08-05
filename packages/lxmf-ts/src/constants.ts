@@ -19,13 +19,10 @@ import {
   type LxmfFieldValue,
   type LxmfMessageFields,
   type LxmfPeerErrorValue,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "@twistedpear/protocol";
 
-export {
-  LxmfMessageState as LXMessageState,
-  type LxmfMessageStateValue as LXMessageStateValue,
-} from "@twistedpear/protocol";
+export { LxmfMessageState as LXMessageState, type LxmfMessageStateValue as LXMessageStateValue } from "@twistedpear/protocol";
 
 export const APP_NAME = LXMF_APP_NAME;
 
@@ -56,7 +53,7 @@ export type PeerErrorValue = LxmfPeerErrorValue;
 /** Mirrors LXMF/LXMRouter.py propagation transfer states. */
 export {
   PropagationTransferState,
-  type PropagationTransferStateValue,
+  type PropagationTransferStateValue
 } from "@twistedpear/protocol";
 
 /** Core LXMF field identifiers from LXMF/LXMF.py. */

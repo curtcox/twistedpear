@@ -38,6 +38,7 @@ export function shouldIgnoreInitiatorKeepaliveProbe(input: {
   return input.initiator && input.contextKeepalive && input.probePayload;
 }
 
+
 /**
  * shouldIgnoreInitiatorKeepaliveProbe gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `shouldIgnoreInitiatorKeepaliveProbe` reads beside
@@ -56,7 +57,8 @@ export type IgnoreInitiatorKeepaliveProbeEvent =
     };
 
 export type IgnoreInitiatorKeepaliveProbeAction =
-  { readonly kind: "ignore" } | { readonly kind: "proceed" };
+  | { readonly kind: "ignore" }
+  | { readonly kind: "proceed" };
 
 export interface IgnoreInitiatorKeepaliveProbeStepResult {
   readonly state: IgnoreInitiatorKeepaliveProbeState;
@@ -70,7 +72,7 @@ export function initialIgnoreInitiatorKeepaliveProbeState(): IgnoreInitiatorKeep
 
 export function stepIgnoreInitiatorKeepaliveProbeWithActions(
   state: IgnoreInitiatorKeepaliveProbeState,
-  event: IgnoreInitiatorKeepaliveProbeEvent,
+  event: IgnoreInitiatorKeepaliveProbeEvent
 ): IgnoreInitiatorKeepaliveProbeStepResult {
   if (event.kind === "link-keepalive/ignore-initiator-probe-gate") {
     return {
@@ -78,15 +80,9 @@ export function stepIgnoreInitiatorKeepaliveProbeWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldIgnoreInitiatorKeepaliveProbe({
-            initiator: event.initiator,
-            contextKeepalive: event.contextKeepalive,
-            probePayload: event.probePayload,
-          })
-            ? "ignore"
-            : "proceed",
-        },
-      ],
+          kind: shouldIgnoreInitiatorKeepaliveProbe({ initiator: event.initiator, contextKeepalive: event.contextKeepalive, probePayload: event.probePayload }) ? "ignore" : "proceed"
+        }
+      ]
     };
   }
 
@@ -94,13 +90,13 @@ export function stepIgnoreInitiatorKeepaliveProbeWithActions(
 }
 
 export function shouldIgnoreInitiatorKeepaliveProbeNow(
-  actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>,
+  actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldProceedInitiatorKeepaliveProbe(
-  actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>,
+  actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
@@ -111,6 +107,7 @@ export function shouldReplyKeepaliveProbe(input: {
 }): boolean {
   return !input.initiator && input.probePayload;
 }
+
 
 /**
  * shouldReplyKeepaliveProbe gate is event-driven; no durable session fields.
@@ -129,7 +126,8 @@ export type ReplyKeepaliveProbeEvent =
     };
 
 export type ReplyKeepaliveProbeAction =
-  { readonly kind: "reply" } | { readonly kind: "skip" };
+  | { readonly kind: "reply" }
+  | { readonly kind: "skip" };
 
 export interface ReplyKeepaliveProbeStepResult {
   readonly state: ReplyKeepaliveProbeState;
@@ -143,7 +141,7 @@ export function initialReplyKeepaliveProbeState(): ReplyKeepaliveProbeState {
 
 export function stepReplyKeepaliveProbeWithActions(
   state: ReplyKeepaliveProbeState,
-  event: ReplyKeepaliveProbeEvent,
+  event: ReplyKeepaliveProbeEvent
 ): ReplyKeepaliveProbeStepResult {
   if (event.kind === "link-keepalive/reply-probe-gate") {
     return {
@@ -151,14 +149,9 @@ export function stepReplyKeepaliveProbeWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldReplyKeepaliveProbe({
-            initiator: event.initiator,
-            probePayload: event.probePayload,
-          })
-            ? "reply"
-            : "skip",
-        },
-      ],
+          kind: shouldReplyKeepaliveProbe({ initiator: event.initiator, probePayload: event.probePayload }) ? "reply" : "skip"
+        }
+      ]
     };
   }
 
@@ -166,13 +159,13 @@ export function stepReplyKeepaliveProbeWithActions(
 }
 
 export function shouldReplyKeepaliveProbeNow(
-  actions: ReadonlyArray<ReplyKeepaliveProbeAction>,
+  actions: ReadonlyArray<ReplyKeepaliveProbeAction>
 ): boolean {
   return actions.some((action) => action.kind === "reply");
 }
 
 export function shouldSkipKeepaliveProbeReply(
-  actions: ReadonlyArray<ReplyKeepaliveProbeAction>,
+  actions: ReadonlyArray<ReplyKeepaliveProbeAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -184,7 +177,8 @@ export function shouldSkipKeepaliveProbeReply(
 export type PackLinkKeepaliveProbeState = Record<string, never>;
 
 export type PackLinkKeepaliveProbeEvent =
-  Event | { readonly kind: "link-keepalive/pack-probe-gate" };
+  | Event
+  | { readonly kind: "link-keepalive/pack-probe-gate" };
 
 export type PackLinkKeepaliveProbeAction = {
   readonly kind: "use-raw";
@@ -203,13 +197,13 @@ export function initialPackLinkKeepaliveProbeState(): PackLinkKeepaliveProbeStat
 
 export function stepPackLinkKeepaliveProbeWithActions(
   state: PackLinkKeepaliveProbeState,
-  event: PackLinkKeepaliveProbeEvent,
+  event: PackLinkKeepaliveProbeEvent
 ): PackLinkKeepaliveProbeStepResult {
   if (event.kind === "link-keepalive/pack-probe-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: packLinkKeepaliveProbe() }],
+      actions: [{ kind: "use-raw", raw: packLinkKeepaliveProbe() }]
     };
   }
 
@@ -217,14 +211,14 @@ export function stepPackLinkKeepaliveProbeWithActions(
 }
 
 export function shouldUsePackLinkKeepaliveProbe(
-  actions: ReadonlyArray<PackLinkKeepaliveProbeAction>,
+  actions: ReadonlyArray<PackLinkKeepaliveProbeAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract packed keepalive probe from step actions; null when no `use-raw`. */
 export function packLinkKeepaliveProbeRawFromActions(
-  actions: ReadonlyArray<PackLinkKeepaliveProbeAction>,
+  actions: ReadonlyArray<PackLinkKeepaliveProbeAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -238,7 +232,8 @@ export function packLinkKeepaliveProbeRawFromActions(
 export type PackLinkKeepaliveReplyState = Record<string, never>;
 
 export type PackLinkKeepaliveReplyEvent =
-  Event | { readonly kind: "link-keepalive/pack-reply-gate" };
+  | Event
+  | { readonly kind: "link-keepalive/pack-reply-gate" };
 
 export type PackLinkKeepaliveReplyAction = {
   readonly kind: "use-raw";
@@ -257,13 +252,13 @@ export function initialPackLinkKeepaliveReplyState(): PackLinkKeepaliveReplyStat
 
 export function stepPackLinkKeepaliveReplyWithActions(
   state: PackLinkKeepaliveReplyState,
-  event: PackLinkKeepaliveReplyEvent,
+  event: PackLinkKeepaliveReplyEvent
 ): PackLinkKeepaliveReplyStepResult {
   if (event.kind === "link-keepalive/pack-reply-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: packLinkKeepaliveReply() }],
+      actions: [{ kind: "use-raw", raw: packLinkKeepaliveReply() }]
     };
   }
 
@@ -271,14 +266,14 @@ export function stepPackLinkKeepaliveReplyWithActions(
 }
 
 export function shouldUsePackLinkKeepaliveReply(
-  actions: ReadonlyArray<PackLinkKeepaliveReplyAction>,
+  actions: ReadonlyArray<PackLinkKeepaliveReplyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract packed keepalive reply from step actions; null when no `use-raw`. */
 export function packLinkKeepaliveReplyRawFromActions(
-  actions: ReadonlyArray<PackLinkKeepaliveReplyAction>,
+  actions: ReadonlyArray<PackLinkKeepaliveReplyAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -316,7 +311,7 @@ export function initialClassifyLinkKeepaliveState(): ClassifyLinkKeepaliveState 
 
 export function stepClassifyLinkKeepaliveWithActions(
   state: ClassifyLinkKeepaliveState,
-  event: ClassifyLinkKeepaliveEvent,
+  event: ClassifyLinkKeepaliveEvent
 ): ClassifyLinkKeepaliveStepResult {
   if (event.kind === "link-keepalive/classify-gate") {
     if (isLinkKeepaliveProbe(event.data)) {
@@ -332,19 +327,19 @@ export function stepClassifyLinkKeepaliveWithActions(
 }
 
 export function shouldClassifyLinkKeepaliveProbe(
-  actions: ReadonlyArray<ClassifyLinkKeepaliveAction>,
+  actions: ReadonlyArray<ClassifyLinkKeepaliveAction>
 ): boolean {
   return actions.some((action) => action.kind === "probe");
 }
 
 export function shouldClassifyLinkKeepaliveReply(
-  actions: ReadonlyArray<ClassifyLinkKeepaliveAction>,
+  actions: ReadonlyArray<ClassifyLinkKeepaliveAction>
 ): boolean {
   return actions.some((action) => action.kind === "reply");
 }
 
 export function shouldRejectClassifyLinkKeepalive(
-  actions: ReadonlyArray<ClassifyLinkKeepaliveAction>,
+  actions: ReadonlyArray<ClassifyLinkKeepaliveAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }

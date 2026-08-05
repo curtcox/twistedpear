@@ -23,24 +23,11 @@ await ui.render({
     type: "view",
     style: { padding: 16, gap: 12 },
     children: [
-      {
-        id: "title",
-        type: "text",
-        props: { value: "Chat" },
-        style: { fontSize: 20, fontWeight: "bold" },
-      },
-      {
-        id: "peer",
-        type: "text-input",
-        props: { value: peer, placeholder: "Peer app id", event: "chat.peer" },
-      },
-      {
-        id: "send",
-        type: "button",
-        props: { label: "Send", event: "chat.send" },
-      },
-    ],
-  },
+      { id: "title", type: "text", props: { value: "Chat" }, style: { fontSize: 20, fontWeight: "bold" } },
+      { id: "peer", type: "text-input", props: { value: peer, placeholder: "Peer app id", event: "chat.peer" } },
+      { id: "send", type: "button", props: { label: "Send", event: "chat.send" } }
+    ]
+  }
 });
 ```
 
@@ -52,21 +39,21 @@ attributed, so keep them stable across renders for anything the user interacts w
 
 The allowlist is closed. These are all of them:
 
-| Component     | For                                                |
-| ------------- | -------------------------------------------------- |
-| `view`        | A layout box. The only container.                  |
-| `text`        | A run of text.                                     |
-| `image`       | A bitmap from your package.                        |
-| `button`      | A tappable control that emits an event.            |
-| `text-input`  | Single-line text entry; emits on change.           |
-| `switch`      | A boolean toggle.                                  |
-| `scroll`      | A scrollable region.                               |
-| `list`        | A vertical collection.                             |
-| `progress`    | A determinate or indeterminate progress indicator. |
-| `divider`     | A horizontal rule.                                 |
-| `spacer`      | Flexible empty space.                              |
-| `code-editor` | A source editor, addressed by workspace document.  |
-| `qr-code`     | A scannable code for a short string.               |
+| Component | For |
+|---|---|
+| `view` | A layout box. The only container. |
+| `text` | A run of text. |
+| `image` | A bitmap from your package. |
+| `button` | A tappable control that emits an event. |
+| `text-input` | Single-line text entry; emits on change. |
+| `switch` | A boolean toggle. |
+| `scroll` | A scrollable region. |
+| `list` | A vertical collection. |
+| `progress` | A determinate or indeterminate progress indicator. |
+| `divider` | A horizontal rule. |
+| `spacer` | Flexible empty space. |
+| `code-editor` | A source editor, addressed by workspace document. |
+| `qr-code` | A scannable code for a short string. |
 
 There is no modal, no menu, no tab bar, and no native date picker. Build those out of `view`,
 `text`, and `button` — or reconsider whether your app needs them.
@@ -143,7 +130,7 @@ ui.onEvent(async ({ event, value }) => {
   `switch`, `{ documentId, text }` for a `code-editor`.
 - **Validate `value` anyway.** Check the type before you use it, as the example does.
 - The host rejects events for nodes you have not rendered, so event forgery for unknown nodes
-  is not a threat you have to defend against — but a node you _did_ render can be interacted
+  is not a threat you have to defend against — but a node you *did* render can be interacted
   with in any order, at any time.
 
 There is no unmount, no lifecycle hook, and no navigation stack. Your app is a value plus a
@@ -152,7 +139,7 @@ There is no unmount, no lifecycle hook, and no navigation stack. Your app is a v
 ## Re-rendering
 
 Call `ui.render` with a complete fresh tree. The host diffs against the previous tree and
-applies an incremental update, so you are not paying for a full redraw — but you _are_ paying
+applies an incremental update, so you are not paying for a full redraw — but you *are* paying
 to serialise and ship the whole tree across the broker each time.
 
 That matters at scale. A 5,000-node tree at 60 renders per second is not a thing you can do;
@@ -160,14 +147,14 @@ see [Chapter 12](12-limits-and-budgets.md) for the actual ceilings.
 
 ## What rejects a tree
 
-| Rejection                 | Default |
-| ------------------------- | ------- |
-| Unknown component type    | —       |
-| Unknown prop or style key | —       |
-| Duplicate node id         | —       |
-| Too many nodes            | 5,000   |
-| Too deep                  | 32      |
-| Message too large         | 256 KiB |
+| Rejection | Default |
+|---|---|
+| Unknown component type | — |
+| Unknown prop or style key | — |
+| Duplicate node id | — |
+| Too many nodes | 5,000 |
+| Too deep | 32 |
+| Message too large | 256 KiB |
 
 These are host-configurable, so treat the numbers as the generous case rather than a target.
 A rejected render throws; it does not partially apply.

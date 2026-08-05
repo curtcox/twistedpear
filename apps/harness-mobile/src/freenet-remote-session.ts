@@ -7,7 +7,7 @@ import {
   assertNoTokenInText,
   freenetGrantLogSafe,
   type FreenetRemoteGrant,
-  validateFreenetNodeUrl,
+  validateFreenetNodeUrl
 } from "./freenet-remote-grant";
 
 export type FreenetRemoteSessionStatus =
@@ -20,15 +20,14 @@ export type FreenetRemoteSessionStatus =
   | "degraded";
 
 export type FreenetRemoteProbeReason =
-  "auth-failed" | "unavailable" | "timeout" | "malformed-url";
+  | "auth-failed"
+  | "unavailable"
+  | "timeout"
+  | "malformed-url";
 
 export type FreenetRemoteProbeResult =
   | { readonly ok: true }
-  | {
-      readonly ok: false;
-      readonly reason: FreenetRemoteProbeReason;
-      readonly detail?: string;
-    };
+  | { readonly ok: false; readonly reason: FreenetRemoteProbeReason; readonly detail?: string };
 
 export interface FreenetRemoteSession {
   readonly status: FreenetRemoteSessionStatus;
@@ -54,13 +53,13 @@ export function idleFreenetRemoteSession(): FreenetRemoteSession {
     grant: null,
     lastError: null,
     pendingWriteConfirmation: false,
-    reconnectAttempts: 0,
+    reconnectAttempts: 0
   };
 }
 
 export function reduceFreenetRemoteSession(
   current: FreenetRemoteSession,
-  event: FreenetRemoteSessionEvent,
+  event: FreenetRemoteSessionEvent
 ): FreenetRemoteSession {
   switch (event.type) {
     case "enable":
@@ -69,7 +68,7 @@ export function reduceFreenetRemoteSession(
         grant: event.grant,
         lastError: null,
         pendingWriteConfirmation: false,
-        reconnectAttempts: 0,
+        reconnectAttempts: 0
       };
     case "probe-result": {
       if (current.grant === null) return current;
@@ -78,7 +77,7 @@ export function reduceFreenetRemoteSession(
           ...current,
           status: "online",
           lastError: null,
-          reconnectAttempts: 0,
+          reconnectAttempts: 0
         };
       }
       const status =
@@ -90,7 +89,7 @@ export function reduceFreenetRemoteSession(
       return {
         ...current,
         status,
-        lastError: event.result.detail ?? event.result.reason,
+        lastError: event.result.detail ?? event.result.reason
       };
     }
     case "disconnect":
@@ -98,7 +97,7 @@ export function reduceFreenetRemoteSession(
       return {
         ...current,
         status: "unavailable",
-        lastError: current.lastError ?? "node disconnected",
+        lastError: current.lastError ?? "node disconnected"
       };
     case "reconnect":
       if (current.grant === null) return current;
@@ -106,13 +105,10 @@ export function reduceFreenetRemoteSession(
         ...current,
         status: "reconnecting",
         lastError: null,
-        reconnectAttempts: current.reconnectAttempts + 1,
+        reconnectAttempts: current.reconnectAttempts + 1
       };
     case "request-write-confirmation":
-      if (
-        current.grant === null ||
-        !current.grant.capabilities.contractWrites
-      ) {
+      if (current.grant === null || !current.grant.capabilities.contractWrites) {
         return current;
       }
       return { ...current, pendingWriteConfirmation: true };
@@ -137,18 +133,14 @@ export async function probeFreenetRemoteNode(
   options?: {
     readonly open?: (
       url: string,
-      options?: { readonly authToken?: string },
+      options?: { readonly authToken?: string }
     ) => Promise<FreenetRemoteProbeResult>;
     readonly timeoutMs?: number;
-  },
+  }
 ): Promise<FreenetRemoteProbeResult> {
   const urlCheck = validateFreenetNodeUrl(grant.nodeUrl);
   if (!urlCheck.ok) {
-    return {
-      ok: false,
-      reason: "malformed-url",
-      detail: urlCheck.errors.join("; "),
-    };
+    return { ok: false, reason: "malformed-url", detail: urlCheck.errors.join("; ") };
   }
 
   const open = options?.open ?? defaultOpenWebSocket;
@@ -157,7 +149,7 @@ export async function probeFreenetRemoteNode(
       ? grant.authToken
       : undefined;
   const result = await open(grant.nodeUrl.trim(), {
-    ...(authToken === undefined ? {} : { authToken }),
+    ...(authToken === undefined ? {} : { authToken })
   });
   if (authToken !== undefined) {
     assertNoTokenInText(JSON.stringify(freenetGrantLogSafe(grant)), authToken);
@@ -170,7 +162,7 @@ export async function probeFreenetRemoteNode(
 
 function defaultOpenWebSocket(
   url: string,
-  options?: { readonly authToken?: string },
+  options?: { readonly authToken?: string }
 ): Promise<FreenetRemoteProbeResult> {
   return new Promise((resolve) => {
     let settled = false;
@@ -195,7 +187,7 @@ function defaultOpenWebSocket(
       finish({
         ok: false,
         reason: "unavailable",
-        detail: error instanceof Error ? error.message : String(error),
+        detail: error instanceof Error ? error.message : String(error)
       });
       return;
     }
@@ -206,11 +198,7 @@ function defaultOpenWebSocket(
       } catch {
         /* ignore */
       }
-      finish({
-        ok: false,
-        reason: "timeout",
-        detail: "WebSocket open timed out",
-      });
+      finish({ ok: false, reason: "timeout", detail: "WebSocket open timed out" });
     }, 4_000);
 
     socket.onopen = () => {
@@ -230,25 +218,19 @@ function defaultOpenWebSocket(
       clearTimeout(timer);
       if (settled) return;
       if (event.code === 1008 || event.code === 4001 || event.code === 4401) {
-        finish({
-          ok: false,
-          reason: "auth-failed",
-          detail: `close ${event.code}`,
-        });
+        finish({ ok: false, reason: "auth-failed", detail: `close ${event.code}` });
         return;
       }
       finish({
         ok: false,
         reason: "unavailable",
-        detail: `closed ${event.code}`,
+        detail: `closed ${event.code}`
       });
     };
   });
 }
 
-export function freenetRemoteSessionStatusLabel(
-  session: FreenetRemoteSession,
-): string {
+export function freenetRemoteSessionStatusLabel(session: FreenetRemoteSession): string {
   switch (session.status) {
     case "idle":
       return "Idle";
@@ -271,13 +253,13 @@ export function freenetRemoteSessionStatusLabel(
 
 /** Log/UI dump snapshot — never includes the raw auth token. */
 export function freenetRemoteSessionLogSafe(
-  session: FreenetRemoteSession,
+  session: FreenetRemoteSession
 ): Record<string, unknown> {
   return {
     status: session.status,
     lastError: session.lastError,
     pendingWriteConfirmation: session.pendingWriteConfirmation,
     reconnectAttempts: session.reconnectAttempts,
-    grant: session.grant === null ? null : freenetGrantLogSafe(session.grant),
+    grant: session.grant === null ? null : freenetGrantLogSafe(session.grant)
   };
 }

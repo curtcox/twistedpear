@@ -15,7 +15,7 @@ export interface FreenetPropagationRoleStatus {
 
 /** True when the grant asked for propagation and the worklet role is running. */
 export function freenetPropagationRoleOnline(
-  status: FreenetPropagationRoleStatus,
+  status: FreenetPropagationRoleStatus
 ): boolean {
   return (
     status.freenetPropagation === true &&
@@ -26,7 +26,7 @@ export function freenetPropagationRoleOnline(
 }
 
 export function freenetPropagationRoleLabel(
-  status: FreenetPropagationRoleStatus,
+  status: FreenetPropagationRoleStatus
 ): string {
   if (freenetPropagationRoleOnline(status)) {
     const messages = status.propagationMessageCount ?? 0;

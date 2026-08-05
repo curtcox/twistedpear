@@ -4,7 +4,7 @@
  */
 import {
   decodePublisherIdentity256t,
-  encodePublisherIdentity256t,
+  encodePublisherIdentity256t
 } from "../../../packages/app-registry/dist/index.js";
 import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { createCrossDeviceTestDriver } from "../../../packages/worklet-core/src/index.mjs";
@@ -22,21 +22,18 @@ export function createTestSupportOps(deps) {
     const publisherPublicKey = decodePublisherIdentity256t(identityString);
     const confirmation = await requestRendererReply({
       type: "confirm-request",
-      token: generateConfirmationToken((length) =>
-        provider.randomBytes(length),
-      ),
+      token: generateConfirmationToken((length) => provider.randomBytes(length)),
       kind: "trust-import",
       appId: "host",
       publisherPublicKey,
-      summary: { label, source: "paste" },
+      summary: { label, source: "paste" }
     });
-    if (confirmation?.approved !== true)
-      throw new Error("Publisher trust import denied");
+    if (confirmation?.approved !== true) throw new Error("Publisher trust import denied");
     await ensureTrustStore().add({
       publisherPublicKey,
       label,
       addedAt: Date.now(),
-      source: "paste",
+      source: "paste"
     });
   }
 
@@ -52,10 +49,9 @@ export function createTestSupportOps(deps) {
         sha512: (bytes) => provider.sha512(bytes),
         async publisherIdentity256t() {
           const identity = await resolveIdentity();
-          if (identity === null)
-            throw new Error("Host identity is unavailable");
+          if (identity === null) throw new Error("Host identity is unavailable");
           return encodePublisherIdentity256t(identity.getPublicKey());
-        },
+        }
       });
     }
     return state.crossDeviceTestDriver;

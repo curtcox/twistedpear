@@ -27,10 +27,7 @@ export interface StorageBeeBackend {
   get(appId: string, key: string): Promise<Uint8Array | null>;
   put(appId: string, key: string, value: Uint8Array): Promise<void>;
   del(appId: string, key: string): Promise<void>;
-  list(
-    appId: string,
-    options?: StorageBeeListOptions,
-  ): Promise<ReadonlyArray<StorageBeeEntry>>;
+  list(appId: string, options?: StorageBeeListOptions): Promise<ReadonlyArray<StorageBeeEntry>>;
   descriptor(appId: string): StorageBeeDescriptor;
 }
 
@@ -38,6 +35,6 @@ export function storageBeeDescriptor(appId: string): StorageBeeDescriptor {
   return {
     appId,
     namespace: `miniapp-bee:${appId}`,
-    localOnly: true,
+    localOnly: true
   };
 }

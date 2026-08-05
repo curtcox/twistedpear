@@ -12,10 +12,7 @@
  * {@link stepResourceAdvertisePhasePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  ResourceStatus,
-  type ResourceStatusValue,
-} from "../resource-watchdog.js";
+import { ResourceStatus, type ResourceStatusValue } from "../resource-watchdog.js";
 import { planResourceAdvertisePhase } from "./part-1.js";
 import type { ResourceAdvertisePhasePlan } from "./part-1.js";
 /**
@@ -33,9 +30,7 @@ export type ResourceAdvertisePhasePlanEvent =
       readonly linkReady: boolean;
     };
 
-export type ResourceAdvertisePhasePlanAction = {
-  readonly kind: ResourceAdvertisePhasePlan;
-};
+export type ResourceAdvertisePhasePlanAction = { readonly kind: ResourceAdvertisePhasePlan };
 
 export interface ResourceAdvertisePhasePlanStepResult {
   readonly state: ResourceAdvertisePhasePlanState;
@@ -49,13 +44,13 @@ export function initialResourceAdvertisePhasePlanState(): ResourceAdvertisePhase
 
 export function stepResourceAdvertisePhasePlanWithActions(
   state: ResourceAdvertisePhasePlanState,
-  event: ResourceAdvertisePhasePlanEvent,
+  event: ResourceAdvertisePhasePlanEvent
 ): ResourceAdvertisePhasePlanStepResult {
   if (event.kind === "resource/advertise-phase-plan-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: planResourceAdvertisePhase(event.linkReady) }],
+      actions: [{ kind: planResourceAdvertisePhase(event.linkReady) }]
     };
   }
 
@@ -64,22 +59,20 @@ export function stepResourceAdvertisePhasePlanWithActions(
 
 /** Extract the advertise-phase plan from actions; null when empty. */
 export function resourceAdvertisePhasePlanFromActions(
-  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>,
+  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>
 ): ResourceAdvertisePhasePlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "queue" || entry.kind === "advertise",
-  );
+  const action = actions.find((entry) => entry.kind === "queue" || entry.kind === "advertise");
   return action?.kind ?? null;
 }
 
 export function shouldQueueResourceAdvertisePhasePlan(
-  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>,
+  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "queue");
 }
 
 export function shouldAdvertiseResourceAdvertisePhasePlan(
-  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>,
+  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "advertise");
 }
@@ -104,7 +97,8 @@ export type ProveResourceAllowEvent =
     };
 
 export type ProveResourceAllowAction =
-  { readonly kind: "allow" } | { readonly kind: "deny" };
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
 
 export interface ProveResourceAllowStepResult {
   readonly state: ProveResourceAllowState;
@@ -118,7 +112,7 @@ export function initialProveResourceAllowState(): ProveResourceAllowState {
 
 export function stepProveResourceAllowWithActions(
   state: ProveResourceAllowState,
-  event: ProveResourceAllowEvent,
+  event: ProveResourceAllowEvent
 ): ProveResourceAllowStepResult {
   if (event.kind === "resource/prove-allow-gate") {
     return {
@@ -126,9 +120,9 @@ export function stepProveResourceAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canProveResource(event.dataPresent) ? "allow" : "deny",
-        },
-      ],
+          kind: canProveResource(event.dataPresent) ? "allow" : "deny"
+        }
+      ]
     };
   }
 
@@ -136,13 +130,13 @@ export function stepProveResourceAllowWithActions(
 }
 
 export function shouldAllowProveResource(
-  actions: ReadonlyArray<ProveResourceAllowAction>,
+  actions: ReadonlyArray<ProveResourceAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyProveResource(
-  actions: ReadonlyArray<ProveResourceAllowAction>,
+  actions: ReadonlyArray<ProveResourceAllowAction>
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -151,9 +145,7 @@ export function shouldDenyProveResource(
  * Whether Resource.send should auto-advertise after construction.
  * Default true when the option is omitted (`advertise !== false`).
  */
-export function shouldAdvertiseResource(
-  advertiseOption: boolean | undefined,
-): boolean {
+export function shouldAdvertiseResource(advertiseOption: boolean | undefined): boolean {
   return advertiseOption !== false;
 }
 
@@ -172,7 +164,8 @@ export type AdvertiseResourceEvent =
     };
 
 export type AdvertiseResourceAction =
-  { readonly kind: "advertise" } | { readonly kind: "skip" };
+  | { readonly kind: "advertise" }
+  | { readonly kind: "skip" };
 
 export interface AdvertiseResourceStepResult {
   readonly state: AdvertiseResourceState;
@@ -186,7 +179,7 @@ export function initialAdvertiseResourceState(): AdvertiseResourceState {
 
 export function stepAdvertiseResourceWithActions(
   state: AdvertiseResourceState,
-  event: AdvertiseResourceEvent,
+  event: AdvertiseResourceEvent
 ): AdvertiseResourceStepResult {
   if (event.kind === "resource/advertise-option-gate") {
     return {
@@ -194,11 +187,9 @@ export function stepAdvertiseResourceWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAdvertiseResource(event.advertiseOption)
-            ? "advertise"
-            : "skip",
-        },
-      ],
+          kind: shouldAdvertiseResource(event.advertiseOption) ? "advertise" : "skip"
+        }
+      ]
     };
   }
 
@@ -206,13 +197,13 @@ export function stepAdvertiseResourceWithActions(
 }
 
 export function shouldAdvertiseResourceNow(
-  actions: ReadonlyArray<AdvertiseResourceAction>,
+  actions: ReadonlyArray<AdvertiseResourceAction>
 ): boolean {
   return actions.some((action) => action.kind === "advertise");
 }
 
 export function shouldSkipAdvertiseResource(
-  actions: ReadonlyArray<AdvertiseResourceAction>,
+  actions: ReadonlyArray<AdvertiseResourceAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -252,9 +243,7 @@ export type ResourceAssembleOutcomePlanEvent =
       readonly hashMatches: boolean;
     };
 
-export type ResourceAssembleOutcomePlanAction = {
-  readonly kind: ResourceAssembleOutcome;
-};
+export type ResourceAssembleOutcomePlanAction = { readonly kind: ResourceAssembleOutcome };
 
 export interface ResourceAssembleOutcomePlanStepResult {
   readonly state: ResourceAssembleOutcomePlanState;
@@ -268,7 +257,7 @@ export function initialResourceAssembleOutcomePlanState(): ResourceAssembleOutco
 
 export function stepResourceAssembleOutcomePlanWithActions(
   state: ResourceAssembleOutcomePlanState,
-  event: ResourceAssembleOutcomePlanEvent,
+  event: ResourceAssembleOutcomePlanEvent
 ): ResourceAssembleOutcomePlanStepResult {
   if (event.kind === "resource/assemble-outcome-plan-gate") {
     return {
@@ -279,10 +268,10 @@ export function stepResourceAssembleOutcomePlanWithActions(
           kind: planResourceAssembleOutcome({
             decryptedPresent: event.decryptedPresent,
             payloadPresent: event.payloadPresent,
-            hashMatches: event.hashMatches,
-          }),
-        },
-      ],
+            hashMatches: event.hashMatches
+          })
+        }
+      ]
     };
   }
 
@@ -291,22 +280,22 @@ export function stepResourceAssembleOutcomePlanWithActions(
 
 /** Extract the assemble outcome from actions; null when empty. */
 export function resourceAssembleOutcomePlanFromActions(
-  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>,
+  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>
 ): ResourceAssembleOutcome | null {
   const action = actions.find(
-    (entry) => entry.kind === "complete" || entry.kind === "corrupt",
+    (entry) => entry.kind === "complete" || entry.kind === "corrupt"
   );
   return action?.kind ?? null;
 }
 
 export function shouldCompleteResourceAssembleOutcomePlan(
-  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>,
+  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "complete");
 }
 
 export function shouldCorruptResourceAssembleOutcomePlan(
-  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>,
+  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "corrupt");
 }
@@ -345,39 +334,33 @@ export function initialResourceAssembleState(): ResourceAssembleState {
   return {};
 }
 
-export const stepResourceAssemble: StepFn<ResourceAssembleState> = (
-  state,
-  event,
-) => {
-  const result = stepResourceAssembleInner(
-    state,
-    event as ResourceAssembleEvent,
-  );
+export const stepResourceAssemble: StepFn<ResourceAssembleState> = (state, event) => {
+  const result = stepResourceAssembleInner(state, event as ResourceAssembleEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepResourceAssembleWithActions(
   state: ResourceAssembleState,
-  event: ResourceAssembleEvent,
+  event: ResourceAssembleEvent
 ): ResourceAssembleStepResult {
   return stepResourceAssembleInner(state, event);
 }
 
 export function shouldCompleteResourceAssemble(
-  actions: ReadonlyArray<ResourceAssembleAction>,
+  actions: ReadonlyArray<ResourceAssembleAction>
 ): boolean {
   return actions.some((action) => action.kind === "complete");
 }
 
 export function shouldCorruptResourceAssemble(
-  actions: ReadonlyArray<ResourceAssembleAction>,
+  actions: ReadonlyArray<ResourceAssembleAction>
 ): boolean {
   return actions.some((action) => action.kind === "corrupt");
 }
 
 function stepResourceAssembleInner(
   state: ResourceAssembleState,
-  event: ResourceAssembleEvent,
+  event: ResourceAssembleEvent
 ): ResourceAssembleStepResult {
   if (event.kind === "resource/assemble-gate") {
     const planActions = stepResourceAssembleOutcomePlanWithActions(
@@ -386,8 +369,8 @@ function stepResourceAssembleInner(
         kind: "resource/assemble-outcome-plan-gate",
         decryptedPresent: event.decryptedPresent,
         payloadPresent: event.payloadPresent,
-        hashMatches: event.hashMatches,
-      },
+        hashMatches: event.hashMatches
+      }
     ).actions;
     const plan = resourceAssembleOutcomePlanFromActions(planActions);
     if (plan === null) {
@@ -426,7 +409,8 @@ export type CommitResourceAssemblePayloadEvent =
     };
 
 export type CommitResourceAssemblePayloadAction =
-  { readonly kind: "commit" } | { readonly kind: "skip" };
+  | { readonly kind: "commit" }
+  | { readonly kind: "skip" };
 
 export interface CommitResourceAssemblePayloadStepResult {
   readonly state: CommitResourceAssemblePayloadState;
@@ -440,7 +424,7 @@ export function initialCommitResourceAssemblePayloadState(): CommitResourceAssem
 
 export function stepCommitResourceAssemblePayloadWithActions(
   state: CommitResourceAssemblePayloadState,
-  event: CommitResourceAssemblePayloadEvent,
+  event: CommitResourceAssemblePayloadEvent
 ): CommitResourceAssemblePayloadStepResult {
   if (event.kind === "resource/commit-assemble-payload-gate") {
     return {
@@ -450,12 +434,12 @@ export function stepCommitResourceAssemblePayloadWithActions(
         {
           kind: shouldCommitResourceAssemblePayload({
             outcomeComplete: event.outcomeComplete,
-            payloadPresent: event.payloadPresent,
+            payloadPresent: event.payloadPresent
           })
             ? "commit"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -463,13 +447,13 @@ export function stepCommitResourceAssemblePayloadWithActions(
 }
 
 export function shouldCommitResourceAssemblePayloadNow(
-  actions: ReadonlyArray<CommitResourceAssemblePayloadAction>,
+  actions: ReadonlyArray<CommitResourceAssemblePayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "commit");
 }
 
 export function shouldSkipCommitResourceAssemblePayload(
-  actions: ReadonlyArray<CommitResourceAssemblePayloadAction>,
+  actions: ReadonlyArray<CommitResourceAssemblePayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }

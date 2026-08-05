@@ -251,35 +251,29 @@ import {
   stepRememberLxmfMessageWithActions,
   stepSelectLxmfDeliveryParametersWithActions,
   stepTeardownLxmfPropagationLinkWithActions,
-  stepUnpackLxmfPropagationLocalIngressWithActions,
+  stepUnpackLxmfPropagationLocalIngressWithActions
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
 describe("protocol lxmf delivery", () => {
-  it("emits PROPAGATED pack prep actions from stepLxmfPropagatedPackPrepWithActions", () => {
-    const skip = stepLxmfPropagatedPackPrepWithActions(
-      initialLxmfPropagatedPackPrepState(),
-      {
-        kind: "propagated-pack-prep/gate",
-        packedPresent: true,
-        desiredMethod: LxmfDeliveryMethod.DIRECT,
-        destinationIdentityPresent: true,
-        timestampPresent: true,
-      },
-    );
+it("emits PROPAGATED pack prep actions from stepLxmfPropagatedPackPrepWithActions", () => {
+    const skip = stepLxmfPropagatedPackPrepWithActions(initialLxmfPropagatedPackPrepState(), {
+      kind: "propagated-pack-prep/gate",
+      packedPresent: true,
+      desiredMethod: LxmfDeliveryMethod.DIRECT,
+      destinationIdentityPresent: true,
+      timestampPresent: true
+    });
     expect(skip.actions).toEqual([{ kind: "skip" }]);
     expect(shouldSkipLxmfPropagatedPackPrep(skip.actions)).toBe(true);
 
-    const ok = stepLxmfPropagatedPackPrepWithActions(
-      initialLxmfPropagatedPackPrepState(),
-      {
-        kind: "propagated-pack-prep/gate",
-        packedPresent: true,
-        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
-        destinationIdentityPresent: true,
-        timestampPresent: true,
-      },
-    );
+    const ok = stepLxmfPropagatedPackPrepWithActions(initialLxmfPropagatedPackPrepState(), {
+      kind: "propagated-pack-prep/gate",
+      packedPresent: true,
+      desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+      destinationIdentityPresent: true,
+      timestampPresent: true
+    });
     expect(ok.actions).toEqual([{ kind: "proceed" }]);
     expect(shouldProceedLxmfPropagatedPackPrep(ok.actions)).toBe(true);
 
@@ -290,15 +284,11 @@ describe("protocol lxmf delivery", () => {
         packedPresent: true,
         desiredMethod: LxmfDeliveryMethod.PROPAGATED,
         destinationIdentityPresent: false,
-        timestampPresent: true,
-      },
+        timestampPresent: true
+      }
     );
-    expect(missingIdentity.actions).toEqual([
-      { kind: "reject-missing-identity" },
-    ]);
-    expect(
-      shouldRejectLxmfPropagatedPackMissingIdentity(missingIdentity.actions),
-    ).toBe(true);
+    expect(missingIdentity.actions).toEqual([{ kind: "reject-missing-identity" }]);
+    expect(shouldRejectLxmfPropagatedPackMissingIdentity(missingIdentity.actions)).toBe(true);
 
     const missingTimestamp = stepLxmfPropagatedPackPrepWithActions(
       initialLxmfPropagatedPackPrepState(),
@@ -307,15 +297,11 @@ describe("protocol lxmf delivery", () => {
         packedPresent: true,
         desiredMethod: LxmfDeliveryMethod.PROPAGATED,
         destinationIdentityPresent: true,
-        timestampPresent: false,
-      },
+        timestampPresent: false
+      }
     );
-    expect(missingTimestamp.actions).toEqual([
-      { kind: "reject-missing-timestamp" },
-    ]);
-    expect(
-      shouldRejectLxmfPropagatedPackMissingTimestamp(missingTimestamp.actions),
-    ).toBe(true);
+    expect(missingTimestamp.actions).toEqual([{ kind: "reject-missing-timestamp" }]);
+    expect(shouldRejectLxmfPropagatedPackMissingTimestamp(missingTimestamp.actions)).toBe(true);
   });
 
   it("is deterministic for PROPAGATED pack prep gate events", () => {
@@ -325,7 +311,7 @@ describe("protocol lxmf delivery", () => {
       packedPresent: true,
       desiredMethod: LxmfDeliveryMethod.PROPAGATED,
       destinationIdentityPresent: true,
-      timestampPresent: true,
+      timestampPresent: true
     };
     const a = stepLxmfPropagatedPackPrepWithActions(state, event);
     const b = stepLxmfPropagatedPackPrepWithActions(state, event);
@@ -336,18 +322,15 @@ describe("protocol lxmf delivery", () => {
   it("plans opportunistic send destination gate", () => {
     expect(planLxmfOpportunisticSend({ destinationPresent: true })).toBe("ok");
     expect(planLxmfOpportunisticSend({ destinationPresent: false })).toBe(
-      "missing-destination",
+      "missing-destination"
     );
   });
 
   it("emits OPPORTUNISTIC send-plan actions only from opportunistic-send/plan-gate", () => {
-    const ok = stepLxmfOpportunisticSendPlanWithActions(
-      initialLxmfOpportunisticSendPlanState(),
-      {
-        kind: "opportunistic-send/plan-gate",
-        destinationPresent: true,
-      },
-    );
+    const ok = stepLxmfOpportunisticSendPlanWithActions(initialLxmfOpportunisticSendPlanState(), {
+      kind: "opportunistic-send/plan-gate",
+      destinationPresent: true
+    });
     expect(shouldPlanLxmfOpportunisticSendOk(ok.actions)).toBe(true);
     expect(lxmfOpportunisticSendPlanFromActions(ok.actions)).toBe("ok");
 
@@ -355,59 +338,41 @@ describe("protocol lxmf delivery", () => {
       initialLxmfOpportunisticSendPlanState(),
       {
         kind: "opportunistic-send/plan-gate",
-        destinationPresent: false,
-      },
+        destinationPresent: false
+      }
     );
-    expect(
-      shouldRejectLxmfOpportunisticSendPlanMissingDestination(missing.actions),
-    ).toBe(true);
-    expect(lxmfOpportunisticSendPlanFromActions(missing.actions)).toBe(
-      "missing-destination",
-    );
+    expect(shouldRejectLxmfOpportunisticSendPlanMissingDestination(missing.actions)).toBe(true);
+    expect(lxmfOpportunisticSendPlanFromActions(missing.actions)).toBe("missing-destination");
 
     expect(
-      stepLxmfOpportunisticSendPlanWithActions(
-        initialLxmfOpportunisticSendPlanState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepLxmfOpportunisticSendPlanWithActions(initialLxmfOpportunisticSendPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
   it("emits OPPORTUNISTIC send gate actions from stepLxmfOpportunisticSendWithActions", () => {
-    const ok = stepLxmfOpportunisticSendWithActions(
-      initialLxmfOpportunisticSendState(),
-      {
-        kind: "opportunistic-send/gate",
-        destinationPresent: true,
-      },
-    );
+    const ok = stepLxmfOpportunisticSendWithActions(initialLxmfOpportunisticSendState(), {
+      kind: "opportunistic-send/gate",
+      destinationPresent: true
+    });
     expect(shouldProceedLxmfOpportunisticSend(ok.actions)).toBe(true);
 
-    const missing = stepLxmfOpportunisticSendWithActions(
-      initialLxmfOpportunisticSendState(),
-      {
-        kind: "opportunistic-send/gate",
-        destinationPresent: false,
-      },
-    );
-    expect(
-      shouldRejectLxmfOpportunisticMissingDestination(missing.actions),
-    ).toBe(true);
+    const missing = stepLxmfOpportunisticSendWithActions(initialLxmfOpportunisticSendState(), {
+      kind: "opportunistic-send/gate",
+      destinationPresent: false
+    });
+    expect(shouldRejectLxmfOpportunisticMissingDestination(missing.actions)).toBe(true);
     expect(shouldProceedLxmfOpportunisticSend(missing.actions)).toBe(false);
 
     expect(
-      stepLxmfOpportunisticSendWithActions(
-        initialLxmfOpportunisticSendState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepLxmfOpportunisticSendWithActions(initialLxmfOpportunisticSendState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -415,7 +380,7 @@ describe("protocol lxmf delivery", () => {
     const state = initialLxmfOpportunisticSendState();
     const event = {
       kind: "opportunistic-send/gate" as const,
-      destinationPresent: true,
+      destinationPresent: true
     };
     const a = stepLxmfOpportunisticSendWithActions(state, event);
     const b = stepLxmfOpportunisticSendWithActions(state, event);
@@ -429,53 +394,53 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: true,
-      }),
+        decryptedPresent: true
+      })
     ).toBe("deliver");
     expect(
       planLxmfPropagationLocalIngress({
         prefixedPresent: false,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: true,
-      }),
+        decryptedPresent: true
+      })
     ).toBe("reject-prefix");
     expect(
       planLxmfPropagationLocalIngress({
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: false,
-        decryptedPresent: true,
-      }),
+        decryptedPresent: true
+      })
     ).toBe("reject-destination");
     expect(
       planLxmfPropagationLocalIngress({
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: false,
-      }),
+        decryptedPresent: false
+      })
     ).toBe("reject-decrypt");
     expect(
       canUnpackLxmfPropagationLocalIngress({
         deliver: true,
         prefixedPresent: true,
-        decryptedPresent: true,
-      }),
+        decryptedPresent: true
+      })
     ).toBe(true);
     expect(
       canUnpackLxmfPropagationLocalIngress({
         deliver: true,
         prefixedPresent: true,
-        decryptedPresent: false,
-      }),
+        decryptedPresent: false
+      })
     ).toBe(false);
     expect(
       canUnpackLxmfPropagationLocalIngress({
         deliver: false,
         prefixedPresent: true,
-        decryptedPresent: true,
-      }),
+        decryptedPresent: true
+      })
     ).toBe(false);
 
     const unpackOk = stepUnpackLxmfPropagationLocalIngressWithActions(
@@ -484,27 +449,21 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-local-ingress/unpack-gate",
         deliver: true,
         prefixedPresent: true,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
-    expect(shouldUnpackLxmfPropagationLocalIngressNow(unpackOk.actions)).toBe(
-      true,
-    );
-    expect(shouldSkipUnpackLxmfPropagationLocalIngress(unpackOk.actions)).toBe(
-      false,
-    );
+    expect(shouldUnpackLxmfPropagationLocalIngressNow(unpackOk.actions)).toBe(true);
+    expect(shouldSkipUnpackLxmfPropagationLocalIngress(unpackOk.actions)).toBe(false);
     const unpackSkip = stepUnpackLxmfPropagationLocalIngressWithActions(
       initialUnpackLxmfPropagationLocalIngressState(),
       {
         kind: "propagation-local-ingress/unpack-gate",
         deliver: false,
         prefixedPresent: true,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
-    expect(
-      shouldSkipUnpackLxmfPropagationLocalIngress(unpackSkip.actions),
-    ).toBe(true);
+    expect(shouldSkipUnpackLxmfPropagationLocalIngress(unpackSkip.actions)).toBe(true);
 
     expect(shouldAcceptLxmfWireFrame(true)).toBe(true);
     expect(shouldAcceptLxmfWireFrame(false)).toBe(false);
@@ -514,39 +473,33 @@ describe("protocol lxmf delivery", () => {
       shouldAcceptLxmfWireFrameNow(
         stepAcceptLxmfWireFrameWithActions(initialAcceptLxmfWireFrameState(), {
           kind: "lxmf/accept-wire-frame-gate",
-          wirePresent: true,
-        }).actions,
-      ),
+          wirePresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAcceptLxmfWireFrame(
         stepAcceptLxmfWireFrameWithActions(initialAcceptLxmfWireFrameState(), {
           kind: "lxmf/accept-wire-frame-gate",
-          wirePresent: false,
-        }).actions,
-      ),
+          wirePresent: false
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldCommitRememberedLxmfHashNow(
-        stepCommitRememberedLxmfHashWithActions(
-          initialCommitRememberedLxmfHashState(),
-          {
-            kind: "lxmf/commit-remembered-hash-gate",
-            hashPresent: true,
-          },
-        ).actions,
-      ),
+        stepCommitRememberedLxmfHashWithActions(initialCommitRememberedLxmfHashState(), {
+          kind: "lxmf/commit-remembered-hash-gate",
+          hashPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipCommitRememberedLxmfHash(
-        stepCommitRememberedLxmfHashWithActions(
-          initialCommitRememberedLxmfHashState(),
-          {
-            kind: "lxmf/commit-remembered-hash-gate",
-            hashPresent: false,
-          },
-        ).actions,
-      ),
+        stepCommitRememberedLxmfHashWithActions(initialCommitRememberedLxmfHashState(), {
+          kind: "lxmf/commit-remembered-hash-gate",
+          hashPresent: false
+        }).actions
+      )
     ).toBe(true);
   });
 
@@ -558,15 +511,11 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
-    expect(shouldPlanLxmfPropagationLocalIngressDeliver(deliver.actions)).toBe(
-      true,
-    );
-    expect(lxmfPropagationLocalIngressPlanFromActions(deliver.actions)).toBe(
-      "deliver",
-    );
+    expect(shouldPlanLxmfPropagationLocalIngressDeliver(deliver.actions)).toBe(true);
+    expect(lxmfPropagationLocalIngressPlanFromActions(deliver.actions)).toBe("deliver");
 
     const prefix = stepLxmfPropagationLocalIngressPlanWithActions(
       initialLxmfPropagationLocalIngressPlanState(),
@@ -575,15 +524,11 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: false,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
-    expect(
-      shouldRejectLxmfPropagationLocalIngressPlanPrefix(prefix.actions),
-    ).toBe(true);
-    expect(lxmfPropagationLocalIngressPlanFromActions(prefix.actions)).toBe(
-      "reject-prefix",
-    );
+    expect(shouldRejectLxmfPropagationLocalIngressPlanPrefix(prefix.actions)).toBe(true);
+    expect(lxmfPropagationLocalIngressPlanFromActions(prefix.actions)).toBe("reject-prefix");
 
     const destination = stepLxmfPropagationLocalIngressPlanWithActions(
       initialLxmfPropagationLocalIngressPlanState(),
@@ -592,17 +537,15 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: false,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
-    expect(
-      shouldRejectLxmfPropagationLocalIngressPlanDestination(
-        destination.actions,
-      ),
-    ).toBe(true);
-    expect(
-      lxmfPropagationLocalIngressPlanFromActions(destination.actions),
-    ).toBe("reject-destination");
+    expect(shouldRejectLxmfPropagationLocalIngressPlanDestination(destination.actions)).toBe(
+      true
+    );
+    expect(lxmfPropagationLocalIngressPlanFromActions(destination.actions)).toBe(
+      "reject-destination"
+    );
 
     const decrypt = stepLxmfPropagationLocalIngressPlanWithActions(
       initialLxmfPropagationLocalIngressPlanState(),
@@ -611,15 +554,11 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: false,
-      },
+        decryptedPresent: false
+      }
     );
-    expect(
-      shouldRejectLxmfPropagationLocalIngressPlanDecrypt(decrypt.actions),
-    ).toBe(true);
-    expect(lxmfPropagationLocalIngressPlanFromActions(decrypt.actions)).toBe(
-      "reject-decrypt",
-    );
+    expect(shouldRejectLxmfPropagationLocalIngressPlanDecrypt(decrypt.actions)).toBe(true);
+    expect(lxmfPropagationLocalIngressPlanFromActions(decrypt.actions)).toBe("reject-decrypt");
 
     expect(
       stepLxmfPropagationLocalIngressPlanWithActions(
@@ -627,9 +566,9 @@ describe("protocol lxmf delivery", () => {
         {
           kind: "timer/fired",
           id: "x",
-          at: 0,
-        },
-      ).actions,
+          at: 0
+        }
+      ).actions
     ).toEqual([]);
   });
 
@@ -641,12 +580,10 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
-    expect(shouldDeliverLxmfPropagationLocalIngress(deliver.actions)).toBe(
-      true,
-    );
+    expect(shouldDeliverLxmfPropagationLocalIngress(deliver.actions)).toBe(true);
     expect(shouldRejectLxmfPropagationLocalPrefix(deliver.actions)).toBe(false);
 
     const prefix = stepLxmfPropagationLocalIngressWithActions(
@@ -656,8 +593,8 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: false,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
     expect(shouldRejectLxmfPropagationLocalPrefix(prefix.actions)).toBe(true);
 
@@ -668,12 +605,10 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: false,
-        decryptedPresent: true,
-      },
+        decryptedPresent: true
+      }
     );
-    expect(
-      shouldRejectLxmfPropagationLocalDestination(destination.actions),
-    ).toBe(true);
+    expect(shouldRejectLxmfPropagationLocalDestination(destination.actions)).toBe(true);
 
     const decrypt = stepLxmfPropagationLocalIngressWithActions(
       initialLxmfPropagationLocalIngressState(),
@@ -682,20 +617,17 @@ describe("protocol lxmf delivery", () => {
         prefixedPresent: true,
         deliveryDestinationPresent: true,
         destinationHashMatches: true,
-        decryptedPresent: false,
-      },
+        decryptedPresent: false
+      }
     );
     expect(shouldRejectLxmfPropagationLocalDecrypt(decrypt.actions)).toBe(true);
 
     expect(
-      stepLxmfPropagationLocalIngressWithActions(
-        initialLxmfPropagationLocalIngressState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepLxmfPropagationLocalIngressWithActions(initialLxmfPropagationLocalIngressState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -706,7 +638,7 @@ describe("protocol lxmf delivery", () => {
       prefixedPresent: true,
       deliveryDestinationPresent: true,
       destinationHashMatches: true,
-      decryptedPresent: true,
+      decryptedPresent: true
     };
     const a = stepLxmfPropagationLocalIngressWithActions(state, event);
     const b = stepLxmfPropagationLocalIngressWithActions(state, event);
@@ -719,29 +651,29 @@ describe("protocol lxmf delivery", () => {
       planLxmfPropagationLinkReady({
         canReuseLink: true,
         nodeConfigured: true,
-        nodeIdentityPresent: true,
-      }),
+        nodeIdentityPresent: true
+      })
     ).toBe("reuse");
     expect(
       planLxmfPropagationLinkReady({
         canReuseLink: false,
         nodeConfigured: false,
-        nodeIdentityPresent: false,
-      }),
+        nodeIdentityPresent: false
+      })
     ).toBe("missing-node");
     expect(
       planLxmfPropagationLinkReady({
         canReuseLink: false,
         nodeConfigured: true,
-        nodeIdentityPresent: false,
-      }),
+        nodeIdentityPresent: false
+      })
     ).toBe("missing-identity");
     expect(
       planLxmfPropagationLinkReady({
         canReuseLink: false,
         nodeConfigured: true,
-        nodeIdentityPresent: true,
-      }),
+        nodeIdentityPresent: true
+      })
     ).toBe("establish");
   });
 
@@ -752,13 +684,11 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/plan-gate",
         canReuseLink: true,
         nodeConfigured: true,
-        nodeIdentityPresent: true,
-      },
+        nodeIdentityPresent: true
+      }
     );
     expect(shouldPlanLxmfPropagationLinkReadyReuse(reuse.actions)).toBe(true);
-    expect(lxmfPropagationLinkReadyPlanFromActions(reuse.actions)).toBe(
-      "reuse",
-    );
+    expect(lxmfPropagationLinkReadyPlanFromActions(reuse.actions)).toBe("reuse");
 
     const missingNode = stepLxmfPropagationLinkReadyPlanWithActions(
       initialLxmfPropagationLinkReadyPlanState(),
@@ -766,15 +696,11 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/plan-gate",
         canReuseLink: false,
         nodeConfigured: false,
-        nodeIdentityPresent: false,
-      },
+        nodeIdentityPresent: false
+      }
     );
-    expect(
-      shouldRejectLxmfPropagationLinkReadyPlanMissingNode(missingNode.actions),
-    ).toBe(true);
-    expect(lxmfPropagationLinkReadyPlanFromActions(missingNode.actions)).toBe(
-      "missing-node",
-    );
+    expect(shouldRejectLxmfPropagationLinkReadyPlanMissingNode(missingNode.actions)).toBe(true);
+    expect(lxmfPropagationLinkReadyPlanFromActions(missingNode.actions)).toBe("missing-node");
 
     const missingIdentity = stepLxmfPropagationLinkReadyPlanWithActions(
       initialLxmfPropagationLinkReadyPlanState(),
@@ -782,17 +708,15 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/plan-gate",
         canReuseLink: false,
         nodeConfigured: true,
-        nodeIdentityPresent: false,
-      },
+        nodeIdentityPresent: false
+      }
     );
     expect(
-      shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(
-        missingIdentity.actions,
-      ),
+      shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(missingIdentity.actions)
     ).toBe(true);
-    expect(
-      lxmfPropagationLinkReadyPlanFromActions(missingIdentity.actions),
-    ).toBe("missing-identity");
+    expect(lxmfPropagationLinkReadyPlanFromActions(missingIdentity.actions)).toBe(
+      "missing-identity"
+    );
 
     const establish = stepLxmfPropagationLinkReadyPlanWithActions(
       initialLxmfPropagationLinkReadyPlanState(),
@@ -800,25 +724,18 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/plan-gate",
         canReuseLink: false,
         nodeConfigured: true,
-        nodeIdentityPresent: true,
-      },
+        nodeIdentityPresent: true
+      }
     );
-    expect(shouldPlanLxmfPropagationLinkReadyEstablish(establish.actions)).toBe(
-      true,
-    );
-    expect(lxmfPropagationLinkReadyPlanFromActions(establish.actions)).toBe(
-      "establish",
-    );
+    expect(shouldPlanLxmfPropagationLinkReadyEstablish(establish.actions)).toBe(true);
+    expect(lxmfPropagationLinkReadyPlanFromActions(establish.actions)).toBe("establish");
 
     expect(
-      stepLxmfPropagationLinkReadyPlanWithActions(
-        initialLxmfPropagationLinkReadyPlanState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepLxmfPropagationLinkReadyPlanWithActions(initialLxmfPropagationLinkReadyPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -829,8 +746,8 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/gate",
         canReuseLink: true,
         nodeConfigured: true,
-        nodeIdentityPresent: true,
-      },
+        nodeIdentityPresent: true
+      }
     );
     expect(shouldReuseLxmfPropagationLink(reuse.actions)).toBe(true);
     expect(shouldEstablishLxmfPropagationLink(reuse.actions)).toBe(false);
@@ -841,12 +758,10 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/gate",
         canReuseLink: false,
         nodeConfigured: false,
-        nodeIdentityPresent: false,
-      },
+        nodeIdentityPresent: false
+      }
     );
-    expect(shouldRejectLxmfPropagationMissingNode(missingNode.actions)).toBe(
-      true,
-    );
+    expect(shouldRejectLxmfPropagationMissingNode(missingNode.actions)).toBe(true);
 
     const missingIdentity = stepLxmfPropagationLinkReadyWithActions(
       initialLxmfPropagationLinkReadyState(),
@@ -854,12 +769,10 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/gate",
         canReuseLink: false,
         nodeConfigured: true,
-        nodeIdentityPresent: false,
-      },
+        nodeIdentityPresent: false
+      }
     );
-    expect(
-      shouldRejectLxmfPropagationMissingIdentity(missingIdentity.actions),
-    ).toBe(true);
+    expect(shouldRejectLxmfPropagationMissingIdentity(missingIdentity.actions)).toBe(true);
 
     const establish = stepLxmfPropagationLinkReadyWithActions(
       initialLxmfPropagationLinkReadyState(),
@@ -867,21 +780,18 @@ describe("protocol lxmf delivery", () => {
         kind: "propagation-link/gate",
         canReuseLink: false,
         nodeConfigured: true,
-        nodeIdentityPresent: true,
-      },
+        nodeIdentityPresent: true
+      }
     );
     expect(shouldEstablishLxmfPropagationLink(establish.actions)).toBe(true);
     expect(shouldReuseLxmfPropagationLink(establish.actions)).toBe(false);
 
     expect(
-      stepLxmfPropagationLinkReadyWithActions(
-        initialLxmfPropagationLinkReadyState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepLxmfPropagationLinkReadyWithActions(initialLxmfPropagationLinkReadyState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -891,7 +801,7 @@ describe("protocol lxmf delivery", () => {
       kind: "propagation-link/gate" as const,
       canReuseLink: false,
       nodeConfigured: true,
-      nodeIdentityPresent: true,
+      nodeIdentityPresent: true
     };
     const a = stepLxmfPropagationLinkReadyWithActions(state, event);
     const b = stepLxmfPropagationLinkReadyWithActions(state, event);
@@ -900,15 +810,9 @@ describe("protocol lxmf delivery", () => {
   });
 
   it("plans pack timestamp and stamp inclusion", () => {
-    expect(planLxmfPackTimestamp({ hasTimestamp: true, hasNow: false })).toBe(
-      "use-timestamp",
-    );
-    expect(planLxmfPackTimestamp({ hasTimestamp: false, hasNow: true })).toBe(
-      "use-now",
-    );
-    expect(planLxmfPackTimestamp({ hasTimestamp: false, hasNow: false })).toBe(
-      "reject",
-    );
+    expect(planLxmfPackTimestamp({ hasTimestamp: true, hasNow: false })).toBe("use-timestamp");
+    expect(planLxmfPackTimestamp({ hasTimestamp: false, hasNow: true })).toBe("use-now");
+    expect(planLxmfPackTimestamp({ hasTimestamp: false, hasNow: false })).toBe("reject");
     expect(shouldIncludeLxmfStamp(undefined)).toBe(true);
     expect(shouldIncludeLxmfStamp(false)).toBe(true);
     expect(shouldIncludeLxmfStamp(true)).toBe(false);
@@ -918,117 +822,92 @@ describe("protocol lxmf delivery", () => {
       shouldIncludeLxmfStampNow(
         stepIncludeLxmfStampWithActions(initialIncludeLxmfStampState(), {
           kind: "lxmf/include-stamp-gate",
-          deferStamp: undefined,
-        }).actions,
-      ),
+          deferStamp: undefined
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipIncludeLxmfStamp(
         stepIncludeLxmfStampWithActions(initialIncludeLxmfStampState(), {
           kind: "lxmf/include-stamp-gate",
-          deferStamp: true,
-        }).actions,
-      ),
+          deferStamp: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldRememberLxmfMessageNow(
         stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
           kind: "lxmf/remember-message-gate",
-          hasHash: true,
-        }).actions,
-      ),
+          hasHash: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipRememberLxmfMessage(
         stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
           kind: "lxmf/remember-message-gate",
-          hasHash: false,
-        }).actions,
-      ),
+          hasHash: false
+        }).actions
+      )
     ).toBe(true);
   });
 
   it("emits pack-timestamp-plan actions only from pack-timestamp/plan-gate", () => {
-    const useTimestamp = stepLxmfPackTimestampPlanWithActions(
-      initialLxmfPackTimestampPlanState(),
-      {
-        kind: "pack-timestamp/plan-gate",
-        hasTimestamp: true,
-        hasNow: false,
-      },
-    );
-    expect(shouldPlanLxmfPackTimestampUseTimestamp(useTimestamp.actions)).toBe(
-      true,
-    );
-    expect(lxmfPackTimestampPlanFromActions(useTimestamp.actions)).toBe(
-      "use-timestamp",
-    );
+    const useTimestamp = stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+      kind: "pack-timestamp/plan-gate",
+      hasTimestamp: true,
+      hasNow: false
+    });
+    expect(shouldPlanLxmfPackTimestampUseTimestamp(useTimestamp.actions)).toBe(true);
+    expect(lxmfPackTimestampPlanFromActions(useTimestamp.actions)).toBe("use-timestamp");
 
-    const useNow = stepLxmfPackTimestampPlanWithActions(
-      initialLxmfPackTimestampPlanState(),
-      {
-        kind: "pack-timestamp/plan-gate",
-        hasTimestamp: false,
-        hasNow: true,
-      },
-    );
+    const useNow = stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+      kind: "pack-timestamp/plan-gate",
+      hasTimestamp: false,
+      hasNow: true
+    });
     expect(shouldPlanLxmfPackTimestampUseNow(useNow.actions)).toBe(true);
     expect(lxmfPackTimestampPlanFromActions(useNow.actions)).toBe("use-now");
 
-    const reject = stepLxmfPackTimestampPlanWithActions(
-      initialLxmfPackTimestampPlanState(),
-      {
-        kind: "pack-timestamp/plan-gate",
-        hasTimestamp: false,
-        hasNow: false,
-      },
-    );
+    const reject = stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+      kind: "pack-timestamp/plan-gate",
+      hasTimestamp: false,
+      hasNow: false
+    });
     expect(shouldRejectLxmfPackTimestampPlan(reject.actions)).toBe(true);
     expect(lxmfPackTimestampPlanFromActions(reject.actions)).toBe("reject");
 
     expect(
-      stepLxmfPackTimestampPlanWithActions(
-        initialLxmfPackTimestampPlanState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
   it("emits pack timestamp actions from stepLxmfPackTimestampWithActions", () => {
-    const useTimestamp = stepLxmfPackTimestampWithActions(
-      initialLxmfPackTimestampState(),
-      {
-        kind: "pack-timestamp/select",
-        hasTimestamp: true,
-        hasNow: false,
-      },
-    );
+    const useTimestamp = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
+      kind: "pack-timestamp/select",
+      hasTimestamp: true,
+      hasNow: false
+    });
     expect(useTimestamp.actions).toEqual([{ kind: "use-timestamp" }]);
     expect(shouldUseLxmfPackTimestamp(useTimestamp.actions)).toBe(true);
 
-    const useNow = stepLxmfPackTimestampWithActions(
-      initialLxmfPackTimestampState(),
-      {
-        kind: "pack-timestamp/select",
-        hasTimestamp: false,
-        hasNow: true,
-      },
-    );
+    const useNow = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
+      kind: "pack-timestamp/select",
+      hasTimestamp: false,
+      hasNow: true
+    });
     expect(useNow.actions).toEqual([{ kind: "use-now" }]);
     expect(shouldUseLxmfPackNow(useNow.actions)).toBe(true);
 
-    const reject = stepLxmfPackTimestampWithActions(
-      initialLxmfPackTimestampState(),
-      {
-        kind: "pack-timestamp/select",
-        hasTimestamp: false,
-        hasNow: false,
-      },
-    );
+    const reject = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
+      kind: "pack-timestamp/select",
+      hasTimestamp: false,
+      hasNow: false
+    });
     expect(reject.actions).toEqual([{ kind: "reject" }]);
     expect(shouldRejectLxmfPackTimestampSelect(reject.actions)).toBe(true);
   });
@@ -1038,7 +917,7 @@ describe("protocol lxmf delivery", () => {
     const event = {
       kind: "pack-timestamp/select" as const,
       hasTimestamp: true,
-      hasNow: false,
+      hasNow: false
     };
     const a = stepLxmfPackTimestampWithActions(state, event);
     const b = stepLxmfPackTimestampWithActions(state, event);

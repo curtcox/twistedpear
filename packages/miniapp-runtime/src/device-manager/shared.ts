@@ -1,66 +1,9 @@
-import {
-  DEVICE_CLASS_REGISTRY,
-  DEVICE_STREAM_KIND,
-  ActuatorSafetyError,
-  assertAidAllowed,
-  adaptStreamAdmission,
-  decideStreamAdmission,
-  degradationLadderFor,
-  defaultTierForClass,
-  deriveCameraSample,
-  deriveMicrophoneSample,
-  deriveMotionSample,
-  deviceCapabilityId,
-  deviceClassById,
-  initialDeviceSessionState,
-  initialRemoteGrantStore,
-  initialShareOfferStore,
-  isDeviceSessionLive,
-  isRemoteGrantLive,
-  isShareOfferLive,
-  quantizeAmbientLux,
-  quantizeLocationCoarse,
-  remoteGrantKey,
-  sanitizeCameraFrame,
-  sanitizeMotionSamples,
-  sanitizePcmSample,
-  stepDeviceSession,
-  stepRemoteGrantStore,
-  stepShareOfferStore,
-  validateActuatorCommand,
-  type AdmissionDecision,
-  type CameraDerivedInput,
-  type DeviceClassEntry,
-  type DeviceCommand,
-  type DeviceConsentClass,
-  type DeviceSessionState,
-  type LinkSupply,
-  type MicrophoneDerivedInput,
-  type PreciseLocationFix,
-  type RawCameraFrameInput,
-  type RawMotionInput,
-  type RawMotionSample,
-  type RawPcmInput,
-  type RemoteDeviceGrant,
-  type ShareOffer,
-  type StreamDemand,
-  type StreamPlane,
-} from "@twistedpear/protocol";
-import { assertCapabilityAllowed, CapabilityError } from "../capabilities.js";
-import {
-  requestHostConfirmation,
-  type ConfirmationEffects,
-  type HostConfirmationChannel,
-} from "../confirm.js";
-import {
-  DeviceStreamSidecar,
-  type DeviceSidecarDelivery,
-} from "../device-sidecar.js";
-import type { StreamEgress, StreamEgressFactory } from "../media-stream.js";
-import {
-  createHostBridgedDrivers,
-  type DeviceHostBridge,
-} from "../drivers/host-bridge.js";
+import { DEVICE_CLASS_REGISTRY,DEVICE_STREAM_KIND,ActuatorSafetyError,assertAidAllowed,adaptStreamAdmission,decideStreamAdmission,degradationLadderFor,defaultTierForClass,deriveCameraSample,deriveMicrophoneSample,deriveMotionSample,deviceCapabilityId,deviceClassById,initialDeviceSessionState,initialRemoteGrantStore,initialShareOfferStore,isDeviceSessionLive,isRemoteGrantLive,isShareOfferLive,quantizeAmbientLux,quantizeLocationCoarse,remoteGrantKey,sanitizeCameraFrame,sanitizeMotionSamples,sanitizePcmSample,stepDeviceSession,stepRemoteGrantStore,stepShareOfferStore,validateActuatorCommand,type AdmissionDecision,type CameraDerivedInput,type DeviceClassEntry,type DeviceCommand,type DeviceConsentClass,type DeviceSessionState,type LinkSupply,type MicrophoneDerivedInput,type PreciseLocationFix,type RawCameraFrameInput,type RawMotionInput,type RawMotionSample,type RawPcmInput,type RemoteDeviceGrant,type ShareOffer,type StreamDemand,type StreamPlane } from "@twistedpear/protocol";
+import { assertCapabilityAllowed,CapabilityError } from "../capabilities.js";
+import { requestHostConfirmation,type ConfirmationEffects,type HostConfirmationChannel } from "../confirm.js";
+import { DeviceStreamSidecar,type DeviceSidecarDelivery } from "../device-sidecar.js";
+import type { StreamEgress,StreamEgressFactory } from "../media-stream.js";
+import { createHostBridgedDrivers,type DeviceHostBridge } from "../drivers/host-bridge.js";
 import { DeviceManager } from "../device-manager.js";
 export type DeviceAvailability =
   | "available"
@@ -93,9 +36,7 @@ export interface DeviceOpenRequest {
   readonly tier?: string;
   readonly purpose: string;
   readonly rateHz?: number;
-  readonly options?: Readonly<Record<string, unknown>> & {
-    readonly voiceDuplex?: boolean;
-  };
+  readonly options?: Readonly<Record<string, unknown>> & { readonly voiceDuplex?: boolean };
   readonly maxDurationMs?: number;
 }
 
@@ -156,10 +97,7 @@ export type DeviceSample =
       readonly kind: "camera";
       readonly tier: "derived";
       readonly at: number;
-      readonly barcodes: ReadonlyArray<{
-        readonly format: string;
-        readonly value: string;
-      }>;
+      readonly barcodes: ReadonlyArray<{ readonly format: string; readonly value: string }>;
       readonly motionDetected: boolean;
       readonly faceCount: number;
       readonly objectCount: number;
@@ -256,8 +194,7 @@ export type DeviceSample =
       readonly kind: "thermal" | "battery";
       readonly tier: "coarse";
       readonly at: number;
-      readonly bucket:
-        "cold" | "nominal" | "warm" | "hot" | "critical" | "unknown";
+      readonly bucket: "cold" | "nominal" | "warm" | "hot" | "critical" | "unknown";
     }
   | {
       readonly kind: "stt";
@@ -303,7 +240,7 @@ export class DeviceError extends Error {
       | "DEVICE_SESSION_EXPIRED"
       | "DEVICE_BAD_REQUEST"
       | "DEVICE_UNCONFIGURED",
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = "DeviceError";
@@ -321,10 +258,7 @@ export interface DeviceManagerOptions {
   readonly policyDisabled?: ReadonlySet<string>;
   readonly sidecar?: DeviceStreamSidecar;
   /** Host-owned link measurements used for admission. */
-  readonly linkSupply?: (
-    appId: string,
-    peer: DevicePeerHandle,
-  ) => Promise<ReadonlyArray<LinkSupply>>;
+  readonly linkSupply?: (appId: string, peer: DevicePeerHandle) => Promise<ReadonlyArray<LinkSupply>>;
   /** Host-owned binding for WebRTC, Pears, Reticulum, LXMF, or CAS egress. */
   readonly streamEgressFactory?: StreamEgressFactory;
   /** Max concurrent remote sessions host-wide (serving side). */
@@ -346,10 +280,7 @@ export interface DeviceManagerOptions {
   }>;
   readonly confirmShareOfferRevoke?: (offer: ShareOffer) => Promise<boolean>;
   /** Host-owned group membership resolver; apps never enumerate group members. */
-  readonly shareOfferTargetsPeer?: (
-    offer: ShareOffer,
-    peer: DevicePeerHandle,
-  ) => boolean;
+  readonly shareOfferTargetsPeer?: (offer: ShareOffer, peer: DevicePeerHandle) => boolean;
 }
 
 /** Host-chrome view of a live device session (includes opaque handle for kill). */
@@ -385,14 +316,12 @@ export const SENSITIVE_DEFAULT_TTL_MS = 15 * 60_000;
 
 export function applyAdvisoryCandidateCeilings(
   hostCandidates: ReadonlyArray<LinkSupply>,
-  advisory: ReadonlyArray<LinkSupply> | undefined,
+  advisory: ReadonlyArray<LinkSupply> | undefined
 ): ReadonlyArray<LinkSupply> {
   if (advisory === undefined) return hostCandidates;
   const capped: LinkSupply[] = [];
   for (const host of hostCandidates) {
-    const ceiling = advisory.find(
-      (candidate) => candidate.plane === host.plane,
-    );
+    const ceiling = advisory.find((candidate) => candidate.plane === host.plane);
     if (ceiling === undefined) continue;
     const hostMeasured = host.measuredGoodputBps ?? host.effectiveBps;
     const advisoryMeasured = ceiling.measuredGoodputBps ?? ceiling.effectiveBps;
@@ -401,32 +330,20 @@ export function applyAdvisoryCandidateCeilings(
       effectiveBps: Math.min(host.effectiveBps, ceiling.effectiveBps),
       headroomBps: Math.min(host.headroomBps, ceiling.headroomBps),
       measuredGoodputBps: Math.min(hostMeasured, advisoryMeasured),
-      queueDepthBytes: Math.max(
-        host.queueDepthBytes ?? 0,
-        ceiling.queueDepthBytes ?? 0,
-      ),
+      queueDepthBytes: Math.max(host.queueDepthBytes ?? 0, ceiling.queueDepthBytes ?? 0),
       metered: host.metered === true || ceiling.metered === true,
-      lowBattery: host.lowBattery === true || ceiling.lowBattery === true,
+      lowBattery: host.lowBattery === true || ceiling.lowBattery === true
     });
   }
   return capped;
 }
 
-export function codecMatchesTier(
-  classId: string,
-  tierId: string,
-  codec: string,
-): boolean {
+export function codecMatchesTier(classId: string, tierId: string, codec: string): boolean {
   if ((classId === "microphone" || classId === "speaker") && tierId === "pcm") {
     return codec === "opus" || codec === "pcm";
   }
-  if (
-    (classId === "camera" || classId === "screen-capture") &&
-    tierId === "frames"
-  ) {
-    return (
-      codec === "vp8" || codec === "vp9" || codec === "h264" || codec === "jpeg"
-    );
+  if ((classId === "camera" || classId === "screen-capture") && tierId === "frames") {
+    return codec === "vp8" || codec === "vp9" || codec === "h264" || codec === "jpeg";
   }
   return false;
 }
@@ -440,13 +357,11 @@ export function assertDeviceCapabilityAllowed(options: {
   assertCapabilityAllowed({
     capability: options.capability,
     declared: expandDeviceCapabilities(options.declared),
-    granted: expandDeviceCapabilities(options.granted),
+    granted: expandDeviceCapabilities(options.granted)
   });
 }
 
-export function expandDeviceCapabilities(
-  capabilities: ReadonlyArray<string>,
-): string[] {
+export function expandDeviceCapabilities(capabilities: ReadonlyArray<string>): string[] {
   const expanded = new Set<string>(capabilities);
   for (const capability of capabilities) {
     if (!capability.startsWith("device:")) continue;
@@ -460,14 +375,10 @@ export function expandDeviceCapabilities(
 }
 
 export function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
-export function floatSamplesToBytes(
-  samples: ReadonlyArray<number>,
-): Uint8Array {
+export function floatSamplesToBytes(samples: ReadonlyArray<number>): Uint8Array {
   const bytes = new Uint8Array(samples.length * 4);
   const view = new DataView(bytes.buffer);
   for (let i = 0; i < samples.length; i += 1) {
@@ -481,17 +392,15 @@ export function encodeDerivedEvent(sample: DeviceSample): Uint8Array {
 }
 
 /** Simulated drivers for Phase 1–2 end-to-end coverage without hardware. */
-export function createSimulatedLocationDriver(
-  fix: PreciseLocationFix = {
-    latitude: 37.7749,
-    longitude: -122.4194,
-    accuracyM: 5,
-  },
-): DeviceDriver {
+export function createSimulatedLocationDriver(fix: PreciseLocationFix = {
+  latitude: 37.7749,
+  longitude: -122.4194,
+  accuracyM: 5
+}): DeviceDriver {
   return {
     classId: "location",
     availability: () => "available",
-    sense: async () => fix,
+    sense: async () => fix
   };
 }
 
@@ -499,7 +408,7 @@ export function createSimulatedAmbientLightDriver(lux = 320): DeviceDriver {
   return {
     classId: "ambient-light",
     availability: () => "available",
-    sense: async () => lux,
+    sense: async () => lux
   };
 }
 
@@ -508,33 +417,33 @@ export function createSimulatedCameraDriver(
     barcodes: [{ format: "qr", value: "TPI1:example" }],
     motionDetected: false,
     faceCount: 0,
-    objectCount: 1,
-  },
+    objectCount: 1
+  }
 ): DeviceDriver {
   return {
     classId: "camera",
     availability: () => "available",
-    sense: async () => input,
+    sense: async () => input
   };
 }
 
 export function createSimulatedMicrophoneDriver(
-  input: MicrophoneDerivedInput = { level: 0.2, tones: [] },
+  input: MicrophoneDerivedInput = { level: 0.2, tones: [] }
 ): DeviceDriver {
   return {
     classId: "microphone",
     availability: () => "available",
-    sense: async () => input,
+    sense: async () => input
   };
 }
 
 export function createSimulatedMotionDriver(
-  sample: RawMotionSample = { accel: [0.1, 0.2, 1.0], gyro: [0, 0, 0] },
+  sample: RawMotionSample = { accel: [0.1, 0.2, 1.0], gyro: [0, 0, 0] }
 ): DeviceDriver {
   return {
     classId: "motion",
     availability: () => "available",
-    sense: async () => sample,
+    sense: async () => sample
   };
 }
 
@@ -543,10 +452,7 @@ export interface SimulatedActuatorLog {
   stopped: number;
 }
 
-export function createActuatorDriver(
-  classId: string,
-  log: SimulatedActuatorLog,
-): DeviceDriver {
+export function createActuatorDriver(classId: string, log: SimulatedActuatorLog): DeviceDriver {
   return {
     classId,
     availability: () => "available",
@@ -555,37 +461,27 @@ export function createActuatorDriver(
     },
     stop: async () => {
       log.stopped += 1;
-    },
+    }
   };
 }
 
-export function createSimulatedTorchDriver(
-  log: SimulatedActuatorLog = { commands: [], stopped: 0 },
-): DeviceDriver {
+export function createSimulatedTorchDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
   return createActuatorDriver("torch", log);
 }
 
-export function createSimulatedSpeakerDriver(
-  log: SimulatedActuatorLog = { commands: [], stopped: 0 },
-): DeviceDriver {
+export function createSimulatedSpeakerDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
   return createActuatorDriver("speaker", log);
 }
 
-export function createSimulatedTtsDriver(
-  log: SimulatedActuatorLog = { commands: [], stopped: 0 },
-): DeviceDriver {
+export function createSimulatedTtsDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
   return createActuatorDriver("tts", log);
 }
 
-export function createSimulatedHapticsDriver(
-  log: SimulatedActuatorLog = { commands: [], stopped: 0 },
-): DeviceDriver {
+export function createSimulatedHapticsDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
   return createActuatorDriver("haptics", log);
 }
 
-export function createSimulatedNfcDriver(
-  log: SimulatedActuatorLog = { commands: [], stopped: 0 },
-): DeviceDriver {
+export function createSimulatedNfcDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
   return createActuatorDriver("nfc", log);
 }
 
@@ -596,13 +492,13 @@ export function createSimulatedRawCameraDriver(
     format: "rgba8",
     bytes: new Uint8Array(16 * 16 * 4),
     deviceModel: "secret-phone",
-    sensorCalibration: { fx: 1 },
-  },
+    sensorCalibration: { fx: 1 }
+  }
 ): DeviceDriver {
   return {
     classId: "camera",
     availability: () => "available",
-    sense: async () => input,
+    sense: async () => input
   };
 }
 
@@ -611,13 +507,13 @@ export function createSimulatedRawMicrophoneDriver(
     sampleRate: 16_000,
     channels: 1,
     samples: [0.1, -0.1, 0.2],
-    deviceId: "mic-fingerprint",
-  },
+    deviceId: "mic-fingerprint"
+  }
 ): DeviceDriver {
   return {
     classId: "microphone",
     availability: () => "available",
-    sense: async () => input,
+    sense: async () => input
   };
 }
 
@@ -626,13 +522,13 @@ export function createSimulatedRawMotionDriver(
     accel: [0.1234, 0.5678, 0.9012],
     gyro: [0.01, -0.02, 0.03],
     calibrationBias: { ax: 0.001 },
-    deviceSerial: "imu-serial",
-  },
+    deviceSerial: "imu-serial"
+  }
 ): DeviceDriver {
   return {
     classId: "motion",
     availability: () => "available",
-    sense: async () => input,
+    sense: async () => input
   };
 }
 
@@ -641,13 +537,13 @@ export function createSimulatedScreenCaptureDriver(
     width: 8,
     height: 8,
     format: "rgba8",
-    bytes: new Uint8Array(8 * 8 * 4),
-  },
+    bytes: new Uint8Array(8 * 8 * 4)
+  }
 ): DeviceDriver {
   return {
     classId: "screen-capture",
     availability: () => "available",
-    sense: async () => input,
+    sense: async () => input
   };
 }
 
@@ -655,7 +551,7 @@ export function createSimulatedBiometricDriver(passed = true): DeviceDriver {
   return {
     classId: "biometric",
     availability: () => "available",
-    sense: async () => ({ passed }),
+    sense: async () => ({ passed })
   };
 }
 
@@ -663,30 +559,24 @@ export function createSimulatedSttDriver(
   transcript: { text?: string; isFinal?: boolean; confidence?: number } = {
     text: "hello twistedpear",
     isFinal: true,
-    confidence: 0.9,
-  },
+    confidence: 0.9
+  }
 ): DeviceDriver {
   return {
     classId: "stt",
     availability: () => "available",
-    sense: async () => transcript,
+    sense: async () => transcript
   };
 }
 
 export function createSimulatedScalarDriver(
-  classId:
-    | "proximity"
-    | "barometer"
-    | "thermometer"
-    | "hygrometer"
-    | "thermal"
-    | "battery",
-  reading: unknown,
+  classId: "proximity" | "barometer" | "thermometer" | "hygrometer" | "thermal" | "battery",
+  reading: unknown
 ): DeviceDriver {
   return {
     classId,
     availability: () => "available",
-    sense: async () => reading,
+    sense: async () => reading
   };
 }
 
@@ -715,18 +605,16 @@ export function createSimulatedDeviceDrivers(): DeviceDriver[] {
     createSimulatedScalarDriver("thermometer", { celsius: 22 }),
     createSimulatedScalarDriver("hygrometer", { relativeHumidity: 45 }),
     createSimulatedScalarDriver("thermal", { bucket: "nominal" }),
-    createSimulatedScalarDriver("battery", { bucket: "nominal" }),
+    createSimulatedScalarDriver("battery", { bucket: "nominal" })
   ];
 }
 
 export function createSimulatedDeviceManager(
-  options: Omit<DeviceManagerOptions, "drivers"> & {
-    readonly drivers?: ReadonlyArray<DeviceDriver>;
-  } = {},
+  options: Omit<DeviceManagerOptions, "drivers"> & { readonly drivers?: ReadonlyArray<DeviceDriver> } = {}
 ): DeviceManager {
   return new DeviceManager({
     ...options,
-    drivers: options.drivers ?? createSimulatedDeviceDrivers(),
+    drivers: options.drivers ?? createSimulatedDeviceDrivers()
   });
 }
 
@@ -736,13 +624,11 @@ export function createSimulatedDeviceManager(
  */
 export function createHybridDeviceDrivers(
   bridgedClassIds: ReadonlyArray<string>,
-  bridge: DeviceHostBridge,
+  bridge: DeviceHostBridge
 ): ReadonlyArray<DeviceDriver> {
   const bridged = new Set(bridgedClassIds);
   return [
-    ...createSimulatedDeviceDrivers().filter(
-      (driver) => !bridged.has(driver.classId),
-    ),
-    ...createHostBridgedDrivers(bridgedClassIds, bridge),
+    ...createSimulatedDeviceDrivers().filter((driver) => !bridged.has(driver.classId)),
+    ...createHostBridgedDrivers(bridgedClassIds, bridge)
   ];
 }

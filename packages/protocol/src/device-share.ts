@@ -20,14 +20,7 @@ export interface ShareOffer {
 }
 
 export type ShareOfferEvent =
-  | {
-      readonly kind: "share/grant";
-      readonly offer: Omit<
-        ShareOffer,
-        "direction" | "phase" | "revokedAt" | "expiresAt"
-      >;
-      readonly ttlMs: number;
-    }
+  | { readonly kind: "share/grant"; readonly offer: Omit<ShareOffer, "direction" | "phase" | "revokedAt" | "expiresAt">; readonly ttlMs: number }
   | { readonly kind: "share/revoke"; readonly id: string; readonly at: number }
   | { readonly kind: "share/ttl"; readonly id: string; readonly at: number }
   | { readonly kind: "share/clear-sensitive"; readonly at: number };
@@ -38,7 +31,7 @@ export function initialShareOfferStore(): ReadonlyMap<string, ShareOffer> {
 
 export function stepShareOfferStore(
   store: ReadonlyMap<string, ShareOffer>,
-  event: ShareOfferEvent,
+  event: ShareOfferEvent
 ): ReadonlyMap<string, ShareOffer> {
   if (event.kind === "share/clear-sensitive") return new Map();
   const next = new Map(store);
@@ -48,7 +41,7 @@ export function stepShareOfferStore(
       direction: "send",
       expiresAt: event.offer.grantedAt + Math.max(0, event.ttlMs),
       phase: "active",
-      revokedAt: null,
+      revokedAt: null
     });
     return next;
   }
@@ -62,30 +55,17 @@ export function stepShareOfferStore(
   return next;
 }
 
-export function isShareOfferLive(
-  offer: ShareOffer | undefined,
-  at: number,
-): boolean {
-  return (
-    offer !== undefined && offer.phase === "active" && at < offer.expiresAt
-  );
+export function isShareOfferLive(offer: ShareOffer | undefined, at: number): boolean {
+  return offer !== undefined && offer.phase === "active" && at < offer.expiresAt;
 }
 
 export function shareOfferPermits(
   offer: ShareOffer | undefined,
-  input: {
-    readonly appId: string;
-    readonly targetId: string;
-    readonly classId: string;
-    readonly tierId: string;
-    readonly at: number;
-  },
+  input: { readonly appId: string; readonly targetId: string; readonly classId: string; readonly tierId: string; readonly at: number }
 ): boolean {
-  return (
-    isShareOfferLive(offer, input.at) &&
+  return isShareOfferLive(offer, input.at) &&
     offer?.appId === input.appId &&
     offer.targetId === input.targetId &&
     offer.classId === input.classId &&
-    offer.tierId === input.tierId
-  );
+    offer.tierId === input.tierId;
 }

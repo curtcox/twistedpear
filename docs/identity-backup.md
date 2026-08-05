@@ -59,17 +59,17 @@ be stranded if policy changes later.
 
 The `.tpidentity` backup and the on-disk identity vault use the same fixed binary container:
 
-| Bytes | Field                                                               |
-| ----: | ------------------------------------------------------------------- |
-|     8 | ASCII magic `TPIDBK01`                                              |
-|     1 | flags; must be zero in v1                                           |
-|     1 | scrypt `log2(N)`; `15` in v1                                        |
-|     2 | unsigned big-endian `r`; `8` in v1                                  |
-|     2 | unsigned big-endian `p`; `3` in v1                                  |
-|    16 | random scrypt salt                                                  |
-|    12 | random AES-GCM nonce                                                |
-|    16 | Reticulum identity hash, for confirmation after import              |
-|    80 | AES-GCM output: encrypted 64-byte private identity plus 16-byte tag |
+| Bytes | Field |
+|---:|---|
+| 8 | ASCII magic `TPIDBK01` |
+| 1 | flags; must be zero in v1 |
+| 1 | scrypt `log2(N)`; `15` in v1 |
+| 2 | unsigned big-endian `r`; `8` in v1 |
+| 2 | unsigned big-endian `p`; `3` in v1 |
+| 16 | random scrypt salt |
+| 12 | random AES-GCM nonce |
+| 16 | Reticulum identity hash, for confirmation after import |
+| 80 | AES-GCM output: encrypted 64-byte private identity plus 16-byte tag |
 
 The first 58 bytes are AES-GCM associated data, binding the format, KDF parameters, nonce,
 and expected identity hash to the ciphertext. Decoders reject unknown flags, unsupported or

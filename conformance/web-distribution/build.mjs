@@ -3,13 +3,7 @@
  * Pack chat example and bundle the W3 browser distribution spike for Playwright.
  */
 
-import {
-  cpSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,9 +22,7 @@ const chatDir = resolve(distributionRoot, "../../apps/examples/chat");
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 function bytesToHex(bytes) {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 async function packChatFixture() {
@@ -39,19 +31,12 @@ async function packChatFixture() {
   cpSync(chatDir, appDir, { recursive: true });
 
   try {
-    const initCode = await runInit({
-      cwd,
-      identityPassphrase: IDENTITY_PASSPHRASE,
-      args: [],
-    });
+    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed for chat");
     }
 
-    const packCode = await runPack({
-      cwd,
-      args: ["chat", "--out", "chat.tpkg"],
-    });
+    const packCode = await runPack({ cwd, args: ["chat", "--out", "chat.tpkg"] });
     if (packCode !== 0) {
       throw new Error("tp pack failed for chat");
     }
@@ -60,14 +45,12 @@ async function packChatFixture() {
     const identity = decryptIdentityBackup(
       provider,
       new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
-      IDENTITY_PASSPHRASE,
+      IDENTITY_PASSPHRASE
     );
     const privateKeyHex = bytesToHex(identity.getPrivateKey());
 
     const archive = new Uint8Array(readFileSync(join(cwd, "chat.tpkg")));
-    const verified = verifyPackage(provider, archive, {
-      hostApiVersion: "0.1.0",
-    });
+    const verified = verifyPackage(provider, archive, { hostApiVersion: "0.1.0" });
     const t256 = encode256t(archive, (data) => provider.sha512(data));
     if (!verify256t(t256, archive, (data) => provider.sha512(data))) {
       throw new Error("256t id does not verify against archive");
@@ -81,7 +64,7 @@ async function packChatFixture() {
       privateKeyHex,
       archiveHex: bytesToHex(archive),
       t256,
-      archiveBytes: archive.length,
+      archiveBytes: archive.length
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -108,9 +91,9 @@ const build = spawnSync(
     "--workspace=@twistedpear/app-registry",
     "--workspace=@twistedpear/cas-256t",
     "--workspace=@twistedpear/bridge-hyper",
-    "--workspace=@twistedpear/cli",
+    "--workspace=@twistedpear/cli"
   ],
-  { cwd: repoRoot, stdio: "inherit" },
+  { cwd: repoRoot, stdio: "inherit" }
 );
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
@@ -118,16 +101,14 @@ if (build.status !== 0) {
 
 const workerBuild = spawnSync("node", ["scripts/build-web-worker.mjs"], {
   cwd: harnessRoot,
-  stdio: "inherit",
+  stdio: "inherit"
 });
 if (workerBuild.status !== 0) {
   process.exit(workerBuild.status ?? 1);
 }
 
 const fixture = await packChatFixture();
-console.log(
-  `web-distribution: packed chat (${fixture.archiveBytes} bytes) t256=${fixture.t256.slice(0, 16)}…`,
-);
+console.log(`web-distribution: packed chat (${fixture.archiveBytes} bytes) t256=${fixture.t256.slice(0, 16)}…`);
 
 writeFileSync(
   join(distributionRoot, "fixtures.mjs"),
@@ -137,11 +118,11 @@ writeFileSync(
       version: fixture.version,
       capabilities: fixture.capabilities,
       publisherPublicKey: fixture.publisherPublicKey,
-      t256: fixture.t256,
+      t256: fixture.t256
     },
     null,
-    2,
-  )};\n`,
+    2
+  )};\n`
 );
 
 writeFileSync(
@@ -153,17 +134,13 @@ writeFileSync(
       t256: fixture.t256,
       appId: fixture.appId,
       version: fixture.version,
-      packageHash: verifyPackage(
-        new NodeCryptoProvider(),
-        hexToBytes(fixture.archiveHex),
-        {
-          hostApiVersion: "0.1.0",
-        },
-      ).packageHash,
+      packageHash: verifyPackage(new NodeCryptoProvider(), hexToBytes(fixture.archiveHex), {
+        hostApiVersion: "0.1.0"
+      }).packageHash
     },
     null,
-    2,
-  )};\n`,
+    2
+  )};\n`
 );
 
 buildSync({
@@ -172,12 +149,12 @@ buildSync({
   platform: "browser",
   format: "esm",
   outfile: join(distributionRoot, "distribution.bundle.js"),
-  logLevel: "warning",
+  logLevel: "warning"
 });
 
 writeFileSync(
   join(distributionRoot, "web-core.worker.js"),
-  readFileSync(join(harnessRoot, "public/web-core.worker.js"), "utf8"),
+  readFileSync(join(harnessRoot, "public/web-core.worker.js"), "utf8")
 );
 
 console.log("web-distribution bundle written");

@@ -9,19 +9,11 @@ import {
   createVectorHost,
   executeStep,
   normalizeValue,
-  registerApp,
+  registerApp
 } from "./vector-hosts.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const VECTORS_PATH = join(
-  here,
-  "..",
-  "..",
-  "specs",
-  "spec-sdk",
-  "vectors",
-  "calls.json",
-);
+const VECTORS_PATH = join(here, "..", "..", "specs", "spec-sdk", "vectors", "calls.json");
 
 export async function runSdkVectors(bindingKind) {
   const doc = JSON.parse(readFileSync(VECTORS_PATH, "utf8"));
@@ -30,17 +22,12 @@ export async function runSdkVectors(bindingKind) {
 
   for (const vector of doc.vectors) {
     const vectorApp = vector.app ?? doc.defaultApp;
-    const { host, ready, close } = createVectorHost(
-      vector.host ?? "standard",
-      bindingKind,
-    );
+    const { host, ready, close } = createVectorHost(vector.host ?? "standard", bindingKind);
     await ready;
     try {
       if (vectorApp.register !== false) await registerApp(host, vectorApp);
       if (vector.setup?.maxMessagesPerSecond !== undefined) {
-        host.setResourceLimits(vectorApp.name, {
-          maxMessagesPerSecond: vector.setup.maxMessagesPerSecond,
-        });
+        host.setResourceLimits(vectorApp.name, { maxMessagesPerSecond: vector.setup.maxMessagesPerSecond });
       }
       for (const [index, step] of vector.steps.entries()) {
         steps += 1;
@@ -48,43 +35,31 @@ export async function runSdkVectors(bindingKind) {
         const response = await executeStep(host, vectorApp, step);
         const expect = step.expect;
         if (response.ok !== expect.ok) {
-          failures.push(
-            `${where}: expected ok=${expect.ok}, got ok=${response.ok} (${JSON.stringify(response.error ?? response.result)})`,
-          );
+          failures.push(`${where}: expected ok=${expect.ok}, got ok=${response.ok} (${JSON.stringify(response.error ?? response.result)})`);
           continue;
         }
         if (!expect.ok) {
           const code = response.error?.code ?? "BROKER_ERROR";
           if (code !== expect.code) {
-            failures.push(
-              `${where}: expected code ${expect.code}, got ${code}: ${response.error?.message}`,
-            );
+            failures.push(`${where}: expected code ${expect.code}, got ${code}: ${response.error?.message}`);
           } else if (
             expect.messageIncludes !== undefined &&
-            !response.error.message
-              .toLowerCase()
-              .includes(expect.messageIncludes.toLowerCase())
+            !response.error.message.toLowerCase().includes(expect.messageIncludes.toLowerCase())
           ) {
-            failures.push(
-              `${where}: message "${response.error.message}" lacks "${expect.messageIncludes}"`,
-            );
+            failures.push(`${where}: message "${response.error.message}" lacks "${expect.messageIncludes}"`);
           }
           continue;
         }
         if (expect.result !== undefined) {
           const got = normalizeValue(response.result) ?? null;
           if (JSON.stringify(got) !== JSON.stringify(expect.result)) {
-            failures.push(
-              `${where}: result mismatch\n  expected ${JSON.stringify(expect.result)}\n  got      ${JSON.stringify(got)}`,
-            );
+            failures.push(`${where}: result mismatch\n  expected ${JSON.stringify(expect.result)}\n  got      ${JSON.stringify(got)}`);
           }
         }
         if (expect.resultKeys !== undefined) {
           const keys = Object.keys(response.result ?? {}).sort();
           if (JSON.stringify(keys) !== JSON.stringify(expect.resultKeys)) {
-            failures.push(
-              `${where}: result keys ${JSON.stringify(keys)} != ${JSON.stringify(expect.resultKeys)}`,
-            );
+            failures.push(`${where}: result keys ${JSON.stringify(keys)} != ${JSON.stringify(expect.resultKeys)}`);
           }
         }
       }

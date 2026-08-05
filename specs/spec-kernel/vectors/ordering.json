@@ -5,7 +5,10 @@
     {
       "name": "rule1-timers-before-transport",
       "rule": 1,
-      "expected": ["timer:a:t@5", "recv:b->a:1@5"],
+      "expected": [
+        "timer:a:t@5",
+        "recv:b->a:1@5"
+      ],
       "traceHash": "70585e6546859b00"
     },
     {
@@ -33,7 +36,10 @@
     {
       "name": "rule4-ties-in-send-order",
       "rule": 4,
-      "expected": ["recv:a->b:1@4", "recv:a->b:2@4"],
+      "expected": [
+        "recv:a->b:1@4",
+        "recv:a->b:2@4"
+      ],
       "traceHash": "c96fbf3e7bbb5682"
     }
   ]

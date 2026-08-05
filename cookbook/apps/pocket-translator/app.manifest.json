@@ -2,7 +2,10 @@
   "name": "pocket-translator",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": ["ai:chat", "storage:kv"],
+  "capabilities": [
+    "ai:chat",
+    "storage:kv"
+  ],
   "icon": null,
   "minHostApi": "0.5.0"
 }

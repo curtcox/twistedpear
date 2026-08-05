@@ -15,13 +15,10 @@ import {
   CorestoreBeeBackend,
   GrantStore,
   MiniappHost,
-  NodeWorkerSandboxBackend,
+  NodeWorkerSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
 
-const examplesDir = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../apps/examples",
-);
+const examplesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples");
 const EXAMPLE_NAMES = ["chat", "file-drop", "board"];
 const SOAK_DURATION_MS = Number(process.env.SOAK_DURATION_MS ?? "15000");
 
@@ -69,7 +66,7 @@ function launchManifest(app, publisherPublicKey) {
     version: app.version,
     entry: app.entry,
     capabilities: app.capabilities ?? [],
-    publisherPublicKey,
+    publisherPublicKey
   };
 }
 
@@ -79,28 +76,19 @@ async function packExample(name) {
   cpSync(join(examplesDir, name), appDir, { recursive: true });
 
   try {
-    const initCode = await runInit({
-      cwd,
-      identityPassphrase: "conformance identity passphrase",
-      args: [],
-    });
+    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     if (initCode !== 0) {
       throw new Error(`tp init failed for ${name}`);
     }
 
-    const packCode = await runPack({
-      cwd,
-      args: [name, "--out", `${name}.tpkg`],
-    });
+    const packCode = await runPack({ cwd, args: [name, "--out", `${name}.tpkg`] });
     if (packCode !== 0) {
       throw new Error(`tp pack failed for ${name}`);
     }
 
     const provider = new NodeCryptoProvider();
     const archive = new Uint8Array(readFileSync(join(cwd, `${name}.tpkg`)));
-    const verified = verifyPackage(provider, archive, {
-      hostApiVersion: "0.1.0",
-    });
+    const verified = verifyPackage(provider, archive, { hostApiVersion: "0.1.0" });
     const bundle = verified.files.get(verified.manifest.entry);
     if (bundle === undefined) {
       throw new Error(`Entry bundle missing for ${name}`);
@@ -109,7 +97,7 @@ async function packExample(name) {
     return {
       app: verified.manifest,
       bundle,
-      publisherPublicKey: verified.manifest.publisherPublicKey,
+      publisherPublicKey: verified.manifest.publisherPublicKey
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -129,7 +117,7 @@ async function createHost(store, beePath) {
       get: async (appId, key) => beeBackend.get(appId, key),
       put: async (appId, key, value) => beeBackend.put(appId, key, value),
       del: async (appId, key) => beeBackend.del(appId, key),
-      list: async (appId, listOptions) => beeBackend.list(appId, listOptions),
+      list: async (appId, listOptions) => beeBackend.list(appId, listOptions)
     },
     resourceBackend: {
       fetch: async (_appId, request) => {
@@ -139,8 +127,8 @@ async function createHost(store, beePath) {
         }
 
         return bytes;
-      },
-    },
+      }
+    }
   });
 
   return { host, beeBackend };
@@ -148,16 +136,9 @@ async function createHost(store, beePath) {
 
 async function cycleApp(host, packed, flapInterface) {
   const manifest = launchManifest(packed.app, packed.publisherPublicKey);
-  await host.setGrants(
-    manifest.name,
-    manifest.publisherPublicKey,
-    manifest.capabilities,
-    manifest.capabilities,
-  );
+  await host.setGrants(manifest.name, manifest.publisherPublicKey, manifest.capabilities, manifest.capabilities);
   await host.launch(manifest, packed.bundle);
-  await waitFor(async () =>
-    host.snapshot().widgetTree === null ? null : host.snapshot().widgetTree,
-  );
+  await waitFor(async () => (host.snapshot().widgetTree === null ? null : host.snapshot().widgetTree));
 
   if (flapInterface) {
     await host.suspend("interface-offline");
@@ -177,10 +158,7 @@ async function main() {
   const store = new MemoryStore();
   const beePath = mkdtempSync(join(tmpdir(), "miniapp-soak-bee-"));
   const { host, beeBackend } = await createHost(store, beePath);
-  await store.set(
-    "miniapp-resource:offer:demo",
-    new TextEncoder().encode("soak-payload"),
-  );
+  await store.set("miniapp-resource:offer:demo", new TextEncoder().encode("soak-payload"));
 
   const started = Date.now();
   let cycles = 0;
@@ -203,7 +181,7 @@ async function main() {
     }
 
     console.log(
-      `miniapp-soak: ${cycles} launch cycles across ${EXAMPLE_NAMES.join(", ")} in ${Date.now() - started}ms (${interfaceFlaps} interface flaps)`,
+      `miniapp-soak: ${cycles} launch cycles across ${EXAMPLE_NAMES.join(", ")} in ${Date.now() - started}ms (${interfaceFlaps} interface flaps)`
     );
   } finally {
     await beeBackend.close();

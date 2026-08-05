@@ -12,7 +12,7 @@ if (!Number.isInteger(cycles) || cycles < 1) {
 const summary = await runBareLifecycleSlice({
   label,
   cycles,
-  storePath: `.${label}-lifecycle-store`,
+  storePath: `.${label}-lifecycle-store`
 });
 
 console.log(`[bare-runner-result] ${JSON.stringify(summary)}`);

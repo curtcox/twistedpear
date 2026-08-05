@@ -5,48 +5,18 @@ import { fileURLToPath } from "node:url";
 
 export const INTEROP_ENABLED = process.env.INTEROP === "1";
 
-export const LEAF_ECHO_PORT = Number.parseInt(
-  process.env.LEAF_ECHO_PORT ?? "4242",
-  10,
-);
-export const LXMF_ECHO_PORT = Number.parseInt(
-  process.env.LXMF_ECHO_PORT ?? "4243",
-  10,
-);
-export const LINK_ECHO_PORT = Number.parseInt(
-  process.env.LINK_ECHO_PORT ?? "4244",
-  10,
-);
-export const PROPAGATION_LXMD_PORT = Number.parseInt(
-  process.env.PROPAGATION_LXMD_PORT ?? "4245",
-  10,
-);
-export const UDP_TS_PORT = Number.parseInt(
-  process.env.UDP_TS_PORT ?? "4246",
-  10,
-);
-export const UDP_ECHO_PORT = Number.parseInt(
-  process.env.UDP_ECHO_PORT ?? "4247",
-  10,
-);
-export const RESOURCE_ECHO_PORT = Number.parseInt(
-  process.env.RESOURCE_ECHO_PORT ?? "4248",
-  10,
-);
-export const PROPAGATION_TS_PORT = Number.parseInt(
-  process.env.PROPAGATION_TS_PORT ?? "4249",
-  10,
-);
-export const TRANSPORT_HUB_PORT = Number.parseInt(
-  process.env.TRANSPORT_HUB_PORT ?? "4250",
-  10,
-);
+export const LEAF_ECHO_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
+export const LXMF_ECHO_PORT = Number.parseInt(process.env.LXMF_ECHO_PORT ?? "4243", 10);
+export const LINK_ECHO_PORT = Number.parseInt(process.env.LINK_ECHO_PORT ?? "4244", 10);
+export const PROPAGATION_LXMD_PORT = Number.parseInt(process.env.PROPAGATION_LXMD_PORT ?? "4245", 10);
+export const UDP_TS_PORT = Number.parseInt(process.env.UDP_TS_PORT ?? "4246", 10);
+export const UDP_ECHO_PORT = Number.parseInt(process.env.UDP_ECHO_PORT ?? "4247", 10);
+export const RESOURCE_ECHO_PORT = Number.parseInt(process.env.RESOURCE_ECHO_PORT ?? "4248", 10);
+export const PROPAGATION_TS_PORT = Number.parseInt(process.env.PROPAGATION_TS_PORT ?? "4249", 10);
+export const TRANSPORT_HUB_PORT = Number.parseInt(process.env.TRANSPORT_HUB_PORT ?? "4250", 10);
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-export const COMPOSE_FILE = join(
-  REPO_ROOT,
-  "conformance/docker/docker-compose.yml",
-);
+export const COMPOSE_FILE = join(REPO_ROOT, "conformance/docker/docker-compose.yml");
 
 export function dockerAvailable() {
   try {
@@ -95,21 +65,15 @@ async function isTcpReady(host, port) {
 }
 
 export function composeUp(...services) {
-  if (
-    services.length === 0 ||
-    services.some((service) => !/^[a-z0-9-]+$/.test(service))
-  ) {
+  if (services.length === 0 || services.some((service) => !/^[a-z0-9-]+$/.test(service))) {
     throw new Error("composeUp requires one or more valid service names");
   }
 
-  execSync(
-    `docker compose -f "${COMPOSE_FILE}" up -d --build ${services.join(" ")}`,
-    {
-      stdio: "inherit",
-      cwd: REPO_ROOT,
-      timeout: 180_000,
-    },
-  );
+  execSync(`docker compose -f "${COMPOSE_FILE}" up -d --build ${services.join(" ")}`, {
+    stdio: "inherit",
+    cwd: REPO_ROOT,
+    timeout: 180_000
+  });
 }
 
 export function tryComposeUp(service) {
@@ -125,7 +89,7 @@ export function composeDown(...services) {
   if (services.length === 0) {
     execSync(`docker compose -f "${COMPOSE_FILE}" down`, {
       stdio: "inherit",
-      cwd: REPO_ROOT,
+      cwd: REPO_ROOT
     });
     return;
   }
@@ -136,36 +100,33 @@ export function composeDown(...services) {
 
   execSync(`docker compose -f "${COMPOSE_FILE}" stop ${services.join(" ")}`, {
     stdio: "inherit",
-    cwd: REPO_ROOT,
+    cwd: REPO_ROOT
   });
   execSync(`docker compose -f "${COMPOSE_FILE}" rm -f ${services.join(" ")}`, {
     stdio: "inherit",
-    cwd: REPO_ROOT,
+    cwd: REPO_ROOT
   });
 }
 
 export function composePause(service) {
   execSync(`docker compose -f "${COMPOSE_FILE}" pause ${service}`, {
     stdio: "inherit",
-    cwd: REPO_ROOT,
+    cwd: REPO_ROOT
   });
 }
 
 export function composeUnpause(service) {
   execSync(`docker compose -f "${COMPOSE_FILE}" unpause ${service}`, {
     stdio: "inherit",
-    cwd: REPO_ROOT,
+    cwd: REPO_ROOT
   });
 }
 
 export function composeLogs(service, tail = 50) {
-  return execSync(
-    `docker compose -f "${COMPOSE_FILE}" logs --tail=${tail} ${service}`,
-    {
-      encoding: "utf8",
-      cwd: REPO_ROOT,
-    },
-  );
+  return execSync(`docker compose -f "${COMPOSE_FILE}" logs --tail=${tail} ${service}`, {
+    encoding: "utf8",
+    cwd: REPO_ROOT
+  });
 }
 
 export async function waitForReadyLine(service, timeoutMs = 30_000) {
@@ -192,20 +153,15 @@ export async function waitForReadyLine(service, timeoutMs = 30_000) {
   } catch (error) {
     logs = `(compose logs unavailable: ${error instanceof Error ? error.message : String(error)})`;
   }
-  const suffix =
-    lastError instanceof Error ? `\nLast poll error: ${lastError.message}` : "";
-  throw new Error(
-    `Timed out waiting for READY line from ${service}. Logs:\n${logs}${suffix}`,
-  );
+  const suffix = lastError instanceof Error ? `\nLast poll error: ${lastError.message}` : "";
+  throw new Error(`Timed out waiting for READY line from ${service}. Logs:\n${logs}${suffix}`);
 }
 
 export async function withComposeService(service, port, run) {
   const startedCompose = tryComposeUp(service);
   const udpOnly = service === "udp-echo";
   if (!startedCompose && (udpOnly || !(await isTcpReady("127.0.0.1", port)))) {
-    throw new Error(
-      `Failed to start ${service} and no peer is listening on 127.0.0.1:${port}`,
-    );
+    throw new Error(`Failed to start ${service} and no peer is listening on 127.0.0.1:${port}`);
   }
 
   // Prefer READY over bare TCP accept: peers often bind before RNS/LXMF is live,
@@ -227,9 +183,7 @@ export async function withComposeService(service, port, run) {
     return await run();
   } catch (error) {
     if (startedCompose) {
-      console.error(
-        `Interop peer logs for ${service}:\n${composeLogs(service, 100)}`,
-      );
+      console.error(`Interop peer logs for ${service}:\n${composeLogs(service, 100)}`);
     }
     throw error;
   } finally {
@@ -244,9 +198,7 @@ export async function withTransportHubLeaves(run) {
   try {
     return await run();
   } catch (error) {
-    console.error(
-      `Transport leaf logs:\n${composeLogs("transport-leaf-bob", 100)}${composeLogs("transport-leaf-alice", 100)}`,
-    );
+    console.error(`Transport leaf logs:\n${composeLogs("transport-leaf-bob", 100)}${composeLogs("transport-leaf-alice", 100)}`);
     throw error;
   } finally {
     composeDown("transport-leaf-bob", "transport-leaf-alice");
@@ -254,14 +206,10 @@ export async function withTransportHubLeaves(run) {
 }
 
 export function spawnComposeService(service) {
-  return spawn(
-    "docker",
-    ["compose", "-f", COMPOSE_FILE, "up", "--build", service],
-    {
-      cwd: REPO_ROOT,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
+  return spawn("docker", ["compose", "-f", COMPOSE_FILE, "up", "--build", service], {
+    cwd: REPO_ROOT,
+    stdio: ["ignore", "pipe", "pipe"]
+  });
 }
 
 export function composeRun(service, args = [], env = {}, timeoutMs = 120_000) {
@@ -277,13 +225,13 @@ export function composeRun(service, args = [], env = {}, timeoutMs = 120_000) {
         "run",
         "--rm",
         service,
-        ...args,
+        ...args
       ],
       {
         cwd: REPO_ROOT,
         env: { ...process.env, ...env },
-        stdio: ["ignore", "pipe", "pipe"],
-      },
+        stdio: ["ignore", "pipe", "pipe"]
+      }
     );
     let stdout = "";
     let stderr = "";
@@ -294,11 +242,7 @@ export function composeRun(service, args = [], env = {}, timeoutMs = 120_000) {
       }
       settled = true;
       child.kill("SIGKILL");
-      reject(
-        new Error(
-          `docker compose run ${service} timed out after ${timeoutMs}ms`,
-        ),
-      );
+      reject(new Error(`docker compose run ${service} timed out after ${timeoutMs}ms`));
     }, timeoutMs);
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
@@ -329,8 +273,8 @@ export function composeRun(service, args = [], env = {}, timeoutMs = 120_000) {
       const detail = [stdout, stderr].filter(Boolean).join("\n").trim();
       reject(
         new Error(
-          `docker compose run ${service} failed with status ${code ?? 1}${detail ? `\n${detail}` : ""}`,
-        ),
+          `docker compose run ${service} failed with status ${code ?? 1}${detail ? `\n${detail}` : ""}`
+        )
       );
     });
   });
@@ -348,7 +292,5 @@ export async function waitForLogLine(service, pattern, timeoutMs = 30_000) {
     await sleep(500);
   }
 
-  throw new Error(
-    `Timed out waiting for ${pattern} from ${service}. Logs:\n${composeLogs(service, 100)}`,
-  );
+  throw new Error(`Timed out waiting for ${pattern} from ${service}. Logs:\n${composeLogs(service, 100)}`);
 }

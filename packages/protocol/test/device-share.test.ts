@@ -3,7 +3,7 @@ import {
   initialShareOfferStore,
   isShareOfferLive,
   shareOfferPermits,
-  stepShareOfferStore,
+  stepShareOfferStore
 } from "../src/index.js";
 
 describe("outbound share offer store", () => {
@@ -20,31 +20,22 @@ describe("outbound share offer store", () => {
         classId: "microphone",
         tierId: "pcm",
         maxRung: "16k-opus",
-        grantedAt: 0,
+        grantedAt: 0
       },
-      ttlMs: 100,
+      ttlMs: 100
     });
     const offer = store.get("offer-1");
     expect(isShareOfferLive(offer, 99)).toBe(true);
-    expect(
-      shareOfferPermits(offer, {
-        appId: "line-check",
-        targetId: "peer-a",
-        classId: "microphone",
-        tierId: "pcm",
-        at: 50,
-      }),
-    ).toBe(true);
-    store = stepShareOfferStore(store, {
-      kind: "share/ttl",
-      id: "offer-1",
-      at: 100,
-    });
+    expect(shareOfferPermits(offer, {
+      appId: "line-check",
+      targetId: "peer-a",
+      classId: "microphone",
+      tierId: "pcm",
+      at: 50
+    })).toBe(true);
+    store = stepShareOfferStore(store, { kind: "share/ttl", id: "offer-1", at: 100 });
     expect(store.get("offer-1")?.phase).toBe("expired");
-    store = stepShareOfferStore(store, {
-      kind: "share/clear-sensitive",
-      at: 101,
-    });
+    store = stepShareOfferStore(store, { kind: "share/clear-sensitive", at: 101 });
     expect(store.size).toBe(0);
   });
 });

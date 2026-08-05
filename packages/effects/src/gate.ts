@@ -46,7 +46,7 @@ export interface Gate<GE extends GateAction, A extends GateAction> {
 /** Step signature of an interpreted gate: accepts the wire alphabet too. */
 export type GateStepFn<GE extends GateAction, A extends GateAction> = (
   state: GateState,
-  event: Event | GE,
+  event: Event | GE
 ) => GateStepResult<A>;
 
 export type GateActionOf<G> = G extends Gate<GateAction, infer A> ? A : never;
@@ -63,18 +63,14 @@ export class UndeclaredGateActionError extends Error {
   }
 }
 
-function validateGate<GE extends GateAction, A extends GateAction>(
-  gate: Gate<GE, A>,
-): void {
+function validateGate<GE extends GateAction, A extends GateAction>(gate: Gate<GE, A>): void {
   if (gate.actions.length === 0) {
     throw new Error(`gate declares no actions: ${gate.event}`);
   }
   const seen = new Set<string>();
   for (const kind of gate.actions) {
     if (seen.has(kind)) {
-      throw new Error(
-        `gate declares a duplicate action: ${gate.event}/${kind}`,
-      );
+      throw new Error(`gate declares a duplicate action: ${gate.event}/${kind}`);
     }
     seen.add(kind);
   }
@@ -82,7 +78,7 @@ function validateGate<GE extends GateAction, A extends GateAction>(
 
 /** Declare a gate. Validates the action alphabet at construction. */
 export function defineGate<GE extends GateAction, A extends GateAction>(
-  gate: Gate<GE, A>,
+  gate: Gate<GE, A>
 ): Gate<GE, A> {
   validateGate(gate);
   return gate;
@@ -95,7 +91,7 @@ export function defineGate<GE extends GateAction, A extends GateAction>(
 export function defineBooleanGate<
   GE extends GateAction,
   T extends string,
-  F extends string,
+  F extends string
 >(spec: {
   readonly event: GE["kind"];
   readonly whenTrue: T;
@@ -105,9 +101,7 @@ export function defineBooleanGate<
   return defineGate<GE, { readonly kind: T | F }>({
     event: spec.event,
     actions: [spec.whenTrue, spec.whenFalse],
-    decide: (event) => [
-      { kind: spec.decide(event) ? spec.whenTrue : spec.whenFalse },
-    ],
+    decide: (event) => [{ kind: spec.decide(event) ? spec.whenTrue : spec.whenFalse }]
   });
 }
 
@@ -118,7 +112,7 @@ export function defineBooleanGate<
 export function defineOptionGate<
   GE extends GateAction,
   V extends string,
-  N extends string,
+  N extends string
 >(spec: {
   readonly event: GE["kind"];
   readonly kinds: readonly V[];
@@ -128,7 +122,7 @@ export function defineOptionGate<
   return defineGate<GE, { readonly kind: V | N }>({
     event: spec.event,
     actions: [...spec.kinds, spec.none],
-    decide: (event) => [{ kind: spec.decide(event) ?? spec.none }],
+    decide: (event) => [{ kind: spec.decide(event) ?? spec.none }]
   });
 }
 
@@ -138,7 +132,7 @@ export function defineOptionGate<
  */
 export function decideGate<GE extends GateAction, A extends GateAction>(
   gate: Gate<GE, A>,
-  event: NoInfer<GE>,
+  event: NoInfer<GE>
 ): readonly A[] {
   const actions = gate.decide(event);
   const declared: readonly string[] = gate.actions;
@@ -152,7 +146,7 @@ export function decideGate<GE extends GateAction, A extends GateAction>(
 
 /** Interpret gate data as the standard stateless step function. */
 export function interpretGate<GE extends GateAction, A extends GateAction>(
-  gate: Gate<GE, A>,
+  gate: Gate<GE, A>
 ): GateStepFn<GE, A> {
   validateGate(gate);
   return (state: GateState, event: Event | GE): GateStepResult<A> => {
@@ -173,7 +167,7 @@ export function initialGateState(): GateState {
  * emit intents, so this is the kernel-facing view of a gate.
  */
 export function gateStepFn<GE extends GateAction, A extends GateAction>(
-  gate: Gate<GE, A>,
+  gate: Gate<GE, A>
 ): StepFn<GateState> {
   validateGate(gate);
   return (state: GateState) => ({ state, intents: [] });
@@ -181,7 +175,7 @@ export function gateStepFn<GE extends GateAction, A extends GateAction>(
 
 /** Reader: whether the gate concluded with `kind`. */
 export function gateConcluded<A extends GateAction>(
-  kind: A["kind"],
+  kind: A["kind"]
 ): (actions: ReadonlyArray<A>) => boolean {
   return (actions) => actions.some((action) => action.kind === kind);
 }
@@ -190,14 +184,11 @@ export function gateConcluded<A extends GateAction>(
  * Reader: the concluded kind restricted to `kinds`; `null` when the gate did
  * not conclude in that set (empty actions, or an abstain/none conclusion).
  */
-export function gateConclusion<
-  A extends GateAction,
-  K extends A["kind"] = A["kind"],
->(...kinds: readonly K[]): (actions: ReadonlyArray<A>) => K | null {
+export function gateConclusion<A extends GateAction, K extends A["kind"] = A["kind"]>(
+  ...kinds: readonly K[]
+): (actions: ReadonlyArray<A>) => K | null {
   return (actions) => {
-    const match = actions.find((action) =>
-      (kinds as readonly string[]).includes(action.kind),
-    );
+    const match = actions.find((action) => (kinds as readonly string[]).includes(action.kind));
     return match === undefined ? null : (match.kind as K);
   };
 }
@@ -206,22 +197,17 @@ export function gateConclusion<
 export function gatePayload<
   A extends GateAction,
   K extends A["kind"],
-  F extends keyof Extract<A, { readonly kind: K }>,
->(
-  kind: K,
-  field: F,
-): (actions: ReadonlyArray<A>) => Extract<A, { readonly kind: K }>[F] | null {
+  F extends keyof Extract<A, { readonly kind: K }>
+>(kind: K, field: F): (actions: ReadonlyArray<A>) => Extract<A, { readonly kind: K }>[F] | null {
   return (actions) => {
     const match = actions.find((action) => action.kind === kind);
-    return match === undefined
-      ? null
-      : (match as Extract<A, { readonly kind: K }>)[field];
+    return match === undefined ? null : (match as Extract<A, { readonly kind: K }>)[field];
   };
 }
 
 /** Enumerate the complete gate × action-kind coverage frame. */
 export function enumerateGateCells<GE extends GateAction, A extends GateAction>(
-  gate: Gate<GE, A>,
+  gate: Gate<GE, A>
 ): readonly GateCell[] {
   validateGate(gate);
   return gate.actions.map((actionKind) => ({ event: gate.event, actionKind }));

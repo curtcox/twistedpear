@@ -22,11 +22,7 @@ export interface BleReassemblyState {
   activeSequence: number | null;
 }
 
-export function encodeBleFrame(
-  sequence: number,
-  flags: number,
-  payload: Uint8Array,
-): Uint8Array {
+export function encodeBleFrame(sequence: number, flags: number, payload: Uint8Array): Uint8Array {
   if (payload.length > 0xffff) {
     throw new Error("BLE frame payload exceeds 65535 bytes");
   }
@@ -48,14 +44,11 @@ export function decodeBleFrameHeader(bytes: Uint8Array): BleFrameHeader | null {
   return {
     sequence: bytes[0] ?? 0,
     flags: bytes[1] ?? 0,
-    payloadLength: ((bytes[2] ?? 0) << 8) | (bytes[3] ?? 0),
+    payloadLength: ((bytes[2] ?? 0) << 8) | (bytes[3] ?? 0)
   };
 }
 
-export function fragmentForMtu(
-  payload: Uint8Array,
-  mtu: number,
-): ReadonlyArray<Uint8Array> {
+export function fragmentForMtu(payload: Uint8Array, mtu: number): ReadonlyArray<Uint8Array> {
   const maxPayload = Math.max(1, mtu - BLE_FRAME_HEADER_SIZE);
   const frames: Uint8Array[] = [];
   let offset = 0;
@@ -77,23 +70,20 @@ export function createBleReassemblyState(): BleReassemblyState {
   return {
     buffer: new Uint8Array(0),
     expectedSequence: 0,
-    activeSequence: null,
+    activeSequence: null
   };
 }
 
 export function reassembleBleFrames(
   state: BleReassemblyState,
-  frameBytes: Uint8Array,
+  frameBytes: Uint8Array
 ): { readonly state: BleReassemblyState; readonly message: Uint8Array | null } {
   const header = decodeBleFrameHeader(frameBytes);
   if (header === null) {
     return { state, message: null };
   }
 
-  const payload = frameBytes.subarray(
-    BLE_FRAME_HEADER_SIZE,
-    BLE_FRAME_HEADER_SIZE + header.payloadLength,
-  );
+  const payload = frameBytes.subarray(BLE_FRAME_HEADER_SIZE, BLE_FRAME_HEADER_SIZE + header.payloadLength);
   if (payload.length !== header.payloadLength) {
     return { state, message: null };
   }
@@ -102,26 +92,15 @@ export function reassembleBleFrames(
     return { state, message: null };
   }
 
-  if (
-    state.activeSequence !== null &&
-    header.sequence !== state.expectedSequence
-  ) {
+  if (state.activeSequence !== null && header.sequence !== state.expectedSequence) {
     return {
-      state: {
-        buffer: new Uint8Array(0),
-        expectedSequence: 0,
-        activeSequence: null,
-      },
-      message: null,
+      state: { buffer: new Uint8Array(0), expectedSequence: 0, activeSequence: null },
+      message: null
     };
   }
 
   if (state.activeSequence === null) {
-    state = {
-      ...state,
-      activeSequence: header.sequence,
-      buffer: new Uint8Array(0),
-    };
+    state = { ...state, activeSequence: header.sequence, buffer: new Uint8Array(0) };
   }
 
   const merged = new Uint8Array(state.buffer.length + payload.length);
@@ -132,16 +111,12 @@ export function reassembleBleFrames(
   if ((header.flags & BLE_FLAG_MORE) !== 0) {
     return {
       state: { ...state, buffer: merged, expectedSequence: nextSequence },
-      message: null,
+      message: null
     };
   }
 
   return {
-    state: {
-      buffer: new Uint8Array(0),
-      expectedSequence: 0,
-      activeSequence: null,
-    },
-    message: merged,
+    state: { buffer: new Uint8Array(0), expectedSequence: 0, activeSequence: null },
+    message: merged
   };
 }

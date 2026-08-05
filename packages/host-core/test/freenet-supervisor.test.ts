@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   FreenetSupervisor,
   redactFreenetAuthToken,
-  type FreenetSupervisorSpawnResult,
+  type FreenetSupervisorSpawnResult
 } from "../src/freenet-supervisor.js";
 
 class FakeChild extends EventEmitter implements FreenetSupervisorSpawnResult {
@@ -47,10 +47,7 @@ describe("FreenetSupervisor", () => {
     return dir;
   }
 
-  function writeBinary(
-    dir: string,
-    contents = "#!/bin/sh\necho freenet\n",
-  ): string {
+  function writeBinary(dir: string, contents = "#!/bin/sh\necho freenet\n"): string {
     const path = join(dir, "freenet-fake");
     writeFileSync(path, contents, { mode: 0o755 });
     return path;
@@ -80,7 +77,7 @@ describe("FreenetSupervisor", () => {
         const child = new FakeChild();
         children.push(child);
         return child;
-      },
+      }
     });
 
     const snapshot = await supervisor.start();
@@ -105,7 +102,7 @@ describe("FreenetSupervisor", () => {
       dataDir,
       expectedSha256: "0".repeat(64),
       readyCheck: async () => true,
-      spawner: () => new FakeChild(),
+      spawner: () => new FakeChild()
     });
 
     await expect(supervisor.start()).rejects.toThrow(/SHA-256 mismatch/);
@@ -125,7 +122,7 @@ describe("FreenetSupervisor", () => {
       createToken: () => "token",
       readyCheck: async () => true,
       sleep: async () => {},
-      spawner: () => new FakeChild(),
+      spawner: () => new FakeChild()
     });
 
     await supervisor.start();
@@ -156,7 +153,7 @@ describe("FreenetSupervisor", () => {
         const child = new FakeChild();
         children.push(child);
         return child;
-      },
+      }
     });
 
     await supervisor.start();
@@ -193,7 +190,7 @@ describe("FreenetSupervisor", () => {
         };
       })(),
       sleep: async () => {},
-      spawner: () => child,
+      spawner: () => child
     });
 
     await expect(supervisor.start()).rejects.toThrow(/did not become ready/);
@@ -203,9 +200,9 @@ describe("FreenetSupervisor", () => {
 
 describe("redactFreenetAuthToken", () => {
   it("removes the token from log-bound text", () => {
-    expect(
-      redactFreenetAuthToken("token=secret-value ok", "secret-value"),
-    ).toBe("token=[redacted-token] ok");
+    expect(redactFreenetAuthToken("token=secret-value ok", "secret-value")).toBe(
+      "token=[redacted-token] ok"
+    );
     expect(redactFreenetAuthToken("plain", null)).toBe("plain");
   });
 });

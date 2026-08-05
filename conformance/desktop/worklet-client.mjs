@@ -6,15 +6,9 @@
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  decodeMessages,
-  encodeMessage,
-} from "../../packages/host-core/dist/protocol.js";
+import { decodeMessages, encodeMessage } from "../../packages/host-core/dist/protocol.js";
 
-const hostRoot = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../apps/host-desktop",
-);
+const hostRoot = join(dirname(fileURLToPath(import.meta.url)), "../../apps/host-desktop");
 const workletBundle = join(hostRoot, "worklet/worklet.bundle");
 const bareBin = join(hostRoot, "../../node_modules/bare/bin/bare");
 
@@ -31,7 +25,7 @@ export class DesktopWorkletClient {
 
     this.child = spawn(bareBin, [workletBundle], {
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env, TWISTEDPEAR_HOST_DESKTOP: "1" },
+      env: { ...process.env, TWISTEDPEAR_HOST_DESKTOP: "1" }
     });
 
     this.exitPromise = new Promise((resolve) => {

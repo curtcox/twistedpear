@@ -11,12 +11,12 @@ cannot see. This chapter is about closing that gap.
 
 ## The four loops, fastest first
 
-| Loop                       | Cost     | Catches                                            |
-| -------------------------- | -------- | -------------------------------------------------- |
-| Preview slot               | Seconds  | Logic, layout, capability denials                  |
-| Dev side-load              | Seconds  | The same, in a real host with real host chrome     |
-| Install from a package     | A minute | Manifest errors, signing, the actual grant screen  |
-| Install on a second device | Minutes  | Announce, resolution, seeding, real link behaviour |
+| Loop | Cost | Catches |
+|---|---|---|
+| Preview slot | Seconds | Logic, layout, capability denials |
+| Dev side-load | Seconds | The same, in a real host with real host chrome |
+| Install from a package | A minute | Manifest errors, signing, the actual grant screen |
+| Install on a second device | Minutes | Announce, resolution, seeding, real link behaviour |
 
 Do not skip the last one. Everything that is genuinely hard about this platform — resolution,
 seeding, slow links, partial grants — lives there and nowhere else.
@@ -46,7 +46,7 @@ one — including by you, which matters more than it sounds when you are debuggi
 ## Reading a failure
 
 **`CapabilityError`** — you called something you were not granted. Check the manifest declares
-it _and_ the user granted it; both are required. `host.info().grantedCapabilities` tells you
+it *and* the user granted it; both are required. `host.info().grantedCapabilities` tells you
 what you actually have.
 
 **Widget validation error** — the tree was rejected whole and the previous tree is retained,

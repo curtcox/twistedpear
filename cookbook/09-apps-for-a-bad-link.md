@@ -12,11 +12,11 @@ valley, two people in a building with no infrastructure.
 
 The numbers are not close to each other.
 
-| Interface      | Order of magnitude | 1 KiB takes about | 180 KiB package takes about |
-| -------------- | ------------------ | ----------------- | --------------------------- |
-| TCP over wifi  | tens of Mbit/s     | instant           | under a second              |
-| Bluetooth LE   | tens of kbit/s     | under a second    | a minute or two             |
-| LoRa via RNode | hundreds of bit/s  | tens of seconds   | **hours**                   |
+| Interface | Order of magnitude | 1 KiB takes about | 180 KiB package takes about |
+|---|---|---|---|
+| TCP over wifi | tens of Mbit/s | instant | under a second |
+| Bluetooth LE | tens of kbit/s | under a second | a minute or two |
+| LoRa via RNode | hundreds of bit/s | tens of seconds | **hours** |
 
 That last cell is the entire design constraint. A one-kilobyte message is not "small" on
 LoRa; it is roughly half a minute of a channel that everyone within radio range is sharing
@@ -52,11 +52,11 @@ showing "38 bytes per beacon · 2 peers in range"; Net ledger showing a check-in
 callsigns and an **Outbox (3)** button. The absence of any IP interface should be visible in
 each shot.
 
-| Recipe                      | Capabilities                              | Directory                                      |
-| --------------------------- | ----------------------------------------- | ---------------------------------------------- |
-| [Nine line](#nine-line)     | `lxmf:send`, `storage:kv`                 | [apps/nine-line](apps/nine-line/README.md)     |
-| [Beacon lite](#beacon-lite) | `announce:publish`, `presence`            | [apps/beacon-lite](apps/beacon-lite/README.md) |
-| [Net ledger](#net-ledger)   | `lxmf:send`, `lxmf:receive`, `storage:kv` | [apps/net-ledger](apps/net-ledger/README.md)   |
+| Recipe | Capabilities | Directory |
+|---|---|---|
+| [Nine line](#nine-line) | `lxmf:send`, `storage:kv` | [apps/nine-line](apps/nine-line/README.md) |
+| [Beacon lite](#beacon-lite) | `announce:publish`, `presence` | [apps/beacon-lite](apps/beacon-lite/README.md) |
+| [Net ledger](#net-ledger) | `lxmf:send`, `lxmf:receive`, `storage:kv` | [apps/net-ledger](apps/net-ledger/README.md) |
 
 ---
 
@@ -90,7 +90,7 @@ no room for ambiguity — both ends agree on what position four means, forever, 
 format is fixed by the form.
 
 Compare honestly. As JSON with descriptive keys, a filled report runs 380–450 bytes. Positional,
-the same content is 190–230. On LoRa that difference is roughly a _minute_ of airtime per
+the same content is 190–230. On LoRa that difference is roughly a *minute* of airtime per
 report, on a channel other people need.
 
 The escape is the detail people forget: `replace(/\|/g, "/")` before joining, because a
@@ -163,11 +163,7 @@ The payload is three single-character keys:
 ```javascript
 function payload() {
   // s = state index, n = short note, t = minutes since the hour, for coarse freshness
-  return {
-    s: STATES.indexOf(state),
-    n: note.slice(0, 12),
-    t: new Date().getUTCMinutes(),
-  };
+  return { s: STATES.indexOf(state), n: note.slice(0, 12), t: new Date().getUTCMinutes() };
 }
 ```
 
@@ -240,10 +236,7 @@ immediately, and the roster is complete and useful whether or not anything is ev
 ```javascript
 async function checkIn() {
   if (call.trim().length === 0) return;
-  checkins = [
-    ...checkins,
-    { call: call.trim().toUpperCase(), at: Date.now(), note: note.trim() },
-  ];
+  checkins = [...checkins, { call: call.trim().toUpperCase(), at: Date.now(), note: note.trim() }];
   await persist();
   status = `${checkins.length} check-ins logged locally`;
 }

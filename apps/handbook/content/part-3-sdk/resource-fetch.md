@@ -1,5 +1,6 @@
 # Resource fetch
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -19,7 +20,7 @@ import { resource } from "@twistedpear/miniapp-sdk";
 
 const bytes = await resource.fetch({
   resourceId: "offer:demo",
-  budgetBytes: 4096,
+  budgetBytes: 4096
 });
 ```
 

@@ -58,7 +58,7 @@ import {
   streamDataChunkLengthFromActions,
   streamDataMessageFieldsFromActions,
   streamReadSizeFromActions,
-  streamReadyCallbackUnregisterIndex,
+  streamReadyCallbackUnregisterIndex
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
 
@@ -79,13 +79,7 @@ export class StreamDataMessage implements ChannelMessage {
   eof = false;
   compressed = false;
 
-  constructor(
-    options: {
-      readonly streamId?: number;
-      readonly data?: Uint8Array;
-      readonly eof?: boolean;
-    } = {},
-  ) {
+  constructor(options: { readonly streamId?: number; readonly data?: Uint8Array; readonly eof?: boolean } = {}) {
     if (options.streamId !== undefined) {
       this.streamId = options.streamId;
     }
@@ -100,34 +94,22 @@ export class StreamDataMessage implements ChannelMessage {
   }
 
   pack(): Uint8Array {
-    const assigned = stepStreamIdAssignedWithActions(
-      initialStreamIdAssignedState(),
-      {
-        kind: "stream/id-assigned-gate",
-        streamIdPresent: this.streamId !== null,
-      },
-    );
-    if (
-      shouldStreamIdUnassigned(assigned.actions) ||
-      !shouldStreamIdAssigned(assigned.actions)
-    ) {
+    const assigned = stepStreamIdAssignedWithActions(initialStreamIdAssignedState(), {
+      kind: "stream/id-assigned-gate",
+      streamIdPresent: this.streamId !== null
+    });
+    if (shouldStreamIdUnassigned(assigned.actions) || !shouldStreamIdAssigned(assigned.actions)) {
       throw new Error("stream_id is required");
     }
 
-    const { actions } = stepPackStreamDataMessageWithActions(
-      initialPackStreamDataMessageState(),
-      {
-        kind: "stream-data/pack-gate",
-        streamId: this.streamId!,
-        data: this.data,
-        eof: this.eof,
-        compressed: this.compressed,
-      },
-    );
-    if (
-      shouldRejectPackStreamDataMessage(actions) ||
-      !shouldUsePackStreamDataMessage(actions)
-    ) {
+    const { actions } = stepPackStreamDataMessageWithActions(initialPackStreamDataMessageState(), {
+      kind: "stream-data/pack-gate",
+      streamId: this.streamId!,
+      data: this.data,
+      eof: this.eof,
+      compressed: this.compressed
+    });
+    if (shouldRejectPackStreamDataMessage(actions) || !shouldUsePackStreamDataMessage(actions)) {
       throw new Error("StreamDataMessage.pack: missing use-raw action");
     }
     const packed = packStreamDataMessageRawFromActions(actions);
@@ -138,17 +120,11 @@ export class StreamDataMessage implements ChannelMessage {
   }
 
   unpack(raw: Uint8Array): void {
-    const { actions } = stepUnpackStreamDataMessageWithActions(
-      initialUnpackStreamDataMessageState(),
-      {
-        kind: "stream-data/unpack-gate",
-        data: raw,
-      },
-    );
-    if (
-      shouldRejectUnpackStreamDataMessage(actions) ||
-      !shouldUseUnpackStreamDataMessage(actions)
-    ) {
+    const { actions } = stepUnpackStreamDataMessageWithActions(initialUnpackStreamDataMessageState(), {
+      kind: "stream-data/unpack-gate",
+      data: raw
+    });
+    if (shouldRejectUnpackStreamDataMessage(actions) || !shouldUseUnpackStreamDataMessage(actions)) {
       throw new Error("StreamDataMessage is truncated");
     }
     const fields = streamDataMessageFieldsFromActions(actions);
@@ -174,7 +150,7 @@ export class RawChannelReader {
 
   constructor(
     private readonly streamId: number,
-    private readonly channel: Channel,
+    private readonly channel: Channel
   ) {
     this.channel.registerMessageType(StreamDataMessage, { isSystemType: true });
     this.handler = (message) => {
@@ -187,8 +163,8 @@ export class RawChannelReader {
         {
           kind: "stream/data-message-handle-gate",
           messageStreamId: message.streamId,
-          expectedStreamId: this.streamId,
-        },
+          expectedStreamId: this.streamId
+        }
       );
       if (
         shouldIgnoreStreamDataMessage(handleStepped.actions) ||
@@ -197,31 +173,19 @@ export class RawChannelReader {
         return false;
       }
 
-      const appendStepped = stepAppendStreamDataWithActions(
-        initialAppendStreamDataState(),
-        {
-          kind: "stream/append-gate",
-          length: message.data.length,
-        },
-      );
-      if (
-        shouldPerformStreamAppend(appendStepped.actions) &&
-        !shouldSkipStreamAppend(appendStepped.actions)
-      ) {
+      const appendStepped = stepAppendStreamDataWithActions(initialAppendStreamDataState(), {
+        kind: "stream/append-gate",
+        length: message.data.length
+      });
+      if (shouldPerformStreamAppend(appendStepped.actions) && !shouldSkipStreamAppend(appendStepped.actions)) {
         this.append(message.data);
       }
 
-      const eofStepped = stepStreamEofMarkWithActions(
-        initialStreamEofMarkState(),
-        {
-          kind: "stream/eof-mark-gate",
-          eof: message.eof,
-        },
-      );
-      if (
-        shouldStreamEofMark(eofStepped.actions) &&
-        !shouldSkipStreamEofMark(eofStepped.actions)
-      ) {
+      const eofStepped = stepStreamEofMarkWithActions(initialStreamEofMarkState(), {
+        kind: "stream/eof-mark-gate",
+        eof: message.eof
+      });
+      if (shouldStreamEofMark(eofStepped.actions) && !shouldSkipStreamEofMark(eofStepped.actions)) {
         this.eof = true;
       }
 
@@ -243,8 +207,8 @@ export class RawChannelReader {
       initialStreamReadyCallbackUnregisterState(),
       {
         kind: "stream/ready-callback-unregister-gate",
-        index: this.listeners.indexOf(callback),
-      },
+        index: this.listeners.indexOf(callback)
+      }
     );
     const index = streamReadyCallbackUnregisterIndex(stepped.actions);
     if (shouldRemoveStreamReadyCallback(stepped.actions) && index !== null) {
@@ -253,18 +217,12 @@ export class RawChannelReader {
   }
 
   read(size: number): Uint8Array | null {
-    const deferStepped = stepStreamReadDeferWithActions(
-      initialStreamReadDeferState(),
-      {
-        kind: "stream/read-defer-gate",
-        bufferLength: this.bufferLength,
-        eof: this.eof,
-      },
-    );
-    if (
-      shouldStreamReadDefer(deferStepped.actions) ||
-      !shouldStreamReadProceed(deferStepped.actions)
-    ) {
+    const deferStepped = stepStreamReadDeferWithActions(initialStreamReadDeferState(), {
+      kind: "stream/read-defer-gate",
+      bufferLength: this.bufferLength,
+      eof: this.eof
+    });
+    if (shouldStreamReadDefer(deferStepped.actions) || !shouldStreamReadProceed(deferStepped.actions)) {
       return null;
     }
 
@@ -273,8 +231,8 @@ export class RawChannelReader {
       {
         kind: "stream/read-size-gate",
         size,
-        bufferLength: this.bufferLength,
-      },
+        bufferLength: this.bufferLength
+      }
     );
     const clampedSize = shouldUseStreamReadSize(readSizeStepped.actions)
       ? streamReadSizeFromActions(readSizeStepped.actions)
@@ -292,8 +250,8 @@ export class RawChannelReader {
         {
           kind: "stream/chunk-take-gate",
           chunkLength: chunk.length,
-          remaining: output.length - copied,
-        },
+          remaining: output.length - copied
+        }
       );
       const take = shouldUseStreamChunkTake(takeStepped.actions)
         ? streamChunkTakeFromActions(takeStepped.actions)
@@ -303,14 +261,11 @@ export class RawChannelReader {
       }
       output.set(chunk.subarray(0, take), copied);
       copied += take;
-      const consumeStepped = stepStreamChunkConsumeWithActions(
-        initialStreamChunkConsumeState(),
-        {
-          kind: "stream/chunk-consume-gate",
-          take,
-          chunkLength: chunk.length,
-        },
-      );
+      const consumeStepped = stepStreamChunkConsumeWithActions(initialStreamChunkConsumeState(), {
+        kind: "stream/chunk-consume-gate",
+        take,
+        chunkLength: chunk.length
+      });
       if (
         shouldStreamChunkConsume(consumeStepped.actions) &&
         !shouldStreamChunkResidual(consumeStepped.actions)
@@ -322,18 +277,12 @@ export class RawChannelReader {
     }
 
     this.bufferLength -= copied;
-    const returnStepped = stepStreamReadReturnWithActions(
-      initialStreamReadReturnState(),
-      {
-        kind: "stream/read-return-gate",
-        copied,
-        eof: this.eof,
-      },
-    );
-    if (
-      shouldYieldStreamRead(returnStepped.actions) &&
-      !shouldSkipStreamReadYield(returnStepped.actions)
-    ) {
+    const returnStepped = stepStreamReadReturnWithActions(initialStreamReadReturnState(), {
+      kind: "stream/read-return-gate",
+      copied,
+      eof: this.eof
+    });
+    if (shouldYieldStreamRead(returnStepped.actions) && !shouldSkipStreamReadYield(returnStepped.actions)) {
       return output;
     }
     return null;
@@ -345,17 +294,11 @@ export class RawChannelReader {
   }
 
   private append(data: Uint8Array): void {
-    const appendStepped = stepAppendStreamDataWithActions(
-      initialAppendStreamDataState(),
-      {
-        kind: "stream/append-gate",
-        length: data.length,
-      },
-    );
-    if (
-      shouldSkipStreamAppend(appendStepped.actions) ||
-      !shouldPerformStreamAppend(appendStepped.actions)
-    ) {
+    const appendStepped = stepAppendStreamDataWithActions(initialAppendStreamDataState(), {
+      kind: "stream/append-gate",
+      length: data.length
+    });
+    if (shouldSkipStreamAppend(appendStepped.actions) || !shouldPerformStreamAppend(appendStepped.actions)) {
       return;
     }
 
@@ -371,7 +314,7 @@ export class RawChannelWriter {
 
   constructor(
     private readonly streamId: number,
-    private readonly channel: Channel,
+    private readonly channel: Channel
   ) {}
 
   async write(data: Uint8Array): Promise<number> {
@@ -381,8 +324,8 @@ export class RawChannelWriter {
         kind: "stream/data-chunk-length-gate",
         length: data.length,
         maxDataLen: StreamDataMessage.MAX_DATA_LEN,
-        maxChunkLen: RawChannelWriter.MAX_CHUNK_LEN,
-      },
+        maxChunkLen: RawChannelWriter.MAX_CHUNK_LEN
+      }
     );
     const length = shouldUseStreamDataChunkLength(lengthStepped.actions)
       ? streamDataChunkLengthFromActions(lengthStepped.actions)
@@ -394,7 +337,7 @@ export class RawChannelWriter {
     const message = new StreamDataMessage({
       streamId: this.streamId,
       data: chunk,
-      eof: this.eof,
+      eof: this.eof
     });
     await this.channel.send(message);
     return chunk.length;
@@ -411,15 +354,15 @@ export class Buffer {
   static createReader(
     streamId: number,
     channel: Channel,
-    readyCallback?: StreamReadyCallback,
+    readyCallback?: StreamReadyCallback
   ): RawChannelReader {
     const reader = new RawChannelReader(streamId, channel);
     const registerStepped = stepStreamReadyCallbackRegisterWithActions(
       initialStreamReadyCallbackRegisterState(),
       {
         kind: "stream/ready-callback-register-gate",
-        callbackPresent: readyCallback !== undefined,
-      },
+        callbackPresent: readyCallback !== undefined
+      }
     );
     if (
       shouldRegisterStreamReadyNow(registerStepped.actions) &&

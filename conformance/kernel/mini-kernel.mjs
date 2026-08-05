@@ -21,7 +21,7 @@ export class MiniKernel {
       nodeOrder: order.nodeOrder ?? "asc",
       timerIdOrder: order.timerIdOrder ?? "asc",
       transportPairOrder: order.transportPairOrder ?? "asc",
-      ties: order.ties ?? "fifo",
+      ties: order.ties ?? "fifo"
     };
     this.now = config.startMs ?? 0;
     this.latencyMs = config.delivery?.latencyMs ?? 0;
@@ -34,7 +34,7 @@ export class MiniKernel {
         id: node.id,
         state: node.initial,
         step: node.step,
-        timers: new Map(),
+        timers: new Map()
       });
     }
   }
@@ -96,8 +96,7 @@ export class MiniKernel {
       }
     }
     for (const msg of this.queue) {
-      if (soonest === undefined || msg.deliverAt < soonest)
-        soonest = msg.deliverAt;
+      if (soonest === undefined || msg.deliverAt < soonest) soonest = msg.deliverAt;
     }
     return soonest;
   }
@@ -114,9 +113,7 @@ export class MiniKernel {
 
   deliverTimers(at) {
     const flip = this.order.nodeOrder === "desc" ? -1 : 1;
-    const nodeIds = [...this.nodes.keys()].sort((a, b) =>
-      a < b ? -flip : a > b ? flip : 0,
-    );
+    const nodeIds = [...this.nodes.keys()].sort((a, b) => (a < b ? -flip : a > b ? flip : 0));
     for (const id of nodeIds) {
       const node = this.requireNode(id);
       const due = [...node.timers.entries()]
@@ -139,8 +136,7 @@ export class MiniKernel {
     due.sort((a, b) => {
       if (a.deliverAt !== b.deliverAt) return a.deliverAt - b.deliverAt;
       if (a.source !== b.source) return a.source < b.source ? -flip : flip;
-      if (a.destination !== b.destination)
-        return a.destination < b.destination ? -flip : flip;
+      if (a.destination !== b.destination) return a.destination < b.destination ? -flip : flip;
       return (a.seq - b.seq) * tie;
     });
     for (const msg of due) {
@@ -149,7 +145,7 @@ export class MiniKernel {
         channel: msg.channel,
         source: msg.source,
         payload: msg.payload,
-        at,
+        at
       });
     }
   }
@@ -181,7 +177,7 @@ export class MiniKernel {
         source: node.id,
         destination: intent.send.destination,
         payload: intent.send.payload.slice(),
-        seq: this.seq,
+        seq: this.seq
       });
       this.seq += 1;
       return;

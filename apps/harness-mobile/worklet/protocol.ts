@@ -21,8 +21,7 @@ export interface CatalogEntryView {
 
 export interface InstallProgress {
   readonly appId: string;
-  readonly phase:
-    "starting" | "downloading" | "verifying" | "complete" | "failed";
+  readonly phase: "starting" | "downloading" | "verifying" | "complete" | "failed";
   readonly bytesReceived: number;
   readonly totalBytes: number;
   readonly path: string | null;
@@ -191,9 +190,7 @@ export interface SessionInviteView {
   readonly appId: string;
   readonly peer: { readonly id: string };
   readonly verifiedPeerLabel: string;
-  readonly requestedClasses: ReadonlyArray<
-    "camera" | "microphone" | "screen-capture"
-  >;
+  readonly requestedClasses: ReadonlyArray<"camera" | "microphone" | "screen-capture">;
   readonly receivedAt: number;
   readonly expiresAt: number;
   readonly phase: "pending" | "accepted" | "declined" | "expired";
@@ -230,21 +227,8 @@ export interface WorkletStatus {
   readonly preferredInterface: string | null;
   readonly onlineInterfaces: number;
   readonly relayMode?: "off" | "bridge" | "transport-node";
-  readonly relayDirections?: Readonly<
-    Partial<
-      Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">
-    >
-  >;
-  readonly relayInterfaces?: ReadonlyArray<{
-    readonly kind: string;
-    readonly enabled: boolean;
-    readonly online: boolean;
-    readonly direction: "tx" | "rx" | "both";
-    readonly bitrate: number | null;
-    readonly bytesIn: number;
-    readonly bytesOut: number;
-    readonly supported: boolean;
-  }>;
+  readonly relayDirections?: Readonly<Partial<Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">>>;
+  readonly relayInterfaces?: ReadonlyArray<{ readonly kind: string; readonly enabled: boolean; readonly online: boolean; readonly direction: "tx" | "rx" | "both"; readonly bitrate: number | null; readonly bytesIn: number; readonly bytesOut: number; readonly supported: boolean }>;
   readonly catalogEntries: number;
   readonly installedPackages: number;
   readonly storageUsedBytes: number;
@@ -312,11 +296,7 @@ export type HostToWorkletMessage =
   | {
       readonly type: "set-relay-config";
       readonly mode?: "off" | "bridge" | "transport-node";
-      readonly directions?: Readonly<
-        Partial<
-          Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">
-        >
-      >;
+      readonly directions?: Readonly<Partial<Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">>>;
     }
   | {
       readonly type: "set-freenet-config";
@@ -336,89 +316,15 @@ export type HostToWorkletMessage =
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }
   | { readonly type: "refresh-storage" }
-  | {
-      readonly type: "sandbox-spawned";
-      readonly requestId: string;
-      readonly instanceId: string;
-    }
-  | {
-      readonly type: "sandbox-spawn-failed";
-      readonly requestId: string;
-      readonly message: string;
-    }
-  | {
-      readonly type: "sandbox-ping-result";
-      readonly requestId: string;
-      readonly alive: boolean;
-    }
-  | {
-      readonly type: "sandbox-broker-request";
-      readonly requestId: string;
-      readonly instanceId: string;
-      readonly request: unknown;
-    }
-  | {
-      readonly type: "confirm-response";
-      readonly token: string;
-      readonly approved: boolean;
-      readonly detail?: unknown;
-    }
-  | {
-      readonly type: "launch-confirm";
-      readonly token: string;
-      readonly accept: boolean;
-      readonly grants?: ReadonlyArray<string>;
-    }
-  | {
-      readonly type: "install-confirm";
-      readonly token: string;
-      readonly accept: boolean;
-      readonly grants?: ReadonlyArray<string>;
-    }
-  | {
-      readonly type: "peer-chrome-response";
-      readonly token: string;
-      readonly accepted?: boolean;
-      readonly approved?: boolean;
-      readonly code?: string;
-      readonly signal?: string;
-      readonly opened?: boolean;
-      readonly attached?: boolean;
-      readonly sent?: boolean;
-      readonly played?: boolean;
-      readonly sessionId?: string;
-      readonly framesHex?: ReadonlyArray<string>;
-      readonly error?: string;
-      readonly bytesSent?: number;
-      readonly trackCount?: number;
-      readonly connectionState?: string;
-      readonly voiceProcessing?: {
-        readonly echoCancellation: boolean;
-        readonly noiseSuppression: boolean;
-        readonly autoGainControl: boolean;
-        readonly voiceDuplex: boolean;
-      } | null;
-      readonly http?: {
-        readonly status: number;
-        readonly body: string;
-        readonly contentLength: string | null;
-      };
-      readonly availability?: {
-        readonly state:
-          | "available"
-          | "permission-required"
-          | "unsupported"
-          | "offline"
-          | "policy-disabled";
-        readonly reason?: string;
-      };
-    }
-  | {
-      readonly type: "media-opus-play-response";
-      readonly token: string;
-      readonly played?: boolean;
-      readonly error?: string;
-    }
+  | { readonly type: "sandbox-spawned"; readonly requestId: string; readonly instanceId: string }
+  | { readonly type: "sandbox-spawn-failed"; readonly requestId: string; readonly message: string }
+  | { readonly type: "sandbox-ping-result"; readonly requestId: string; readonly alive: boolean }
+  | { readonly type: "sandbox-broker-request"; readonly requestId: string; readonly instanceId: string; readonly request: unknown }
+  | { readonly type: "confirm-response"; readonly token: string; readonly approved: boolean; readonly detail?: unknown }
+  | { readonly type: "launch-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
+  | { readonly type: "install-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
+  | { readonly type: "peer-chrome-response"; readonly token: string; readonly accepted?: boolean; readonly approved?: boolean; readonly code?: string; readonly signal?: string; readonly opened?: boolean; readonly attached?: boolean; readonly sent?: boolean; readonly played?: boolean; readonly sessionId?: string; readonly framesHex?: ReadonlyArray<string>; readonly error?: string; readonly bytesSent?: number; readonly trackCount?: number; readonly connectionState?: string; readonly voiceProcessing?: { readonly echoCancellation: boolean; readonly noiseSuppression: boolean; readonly autoGainControl: boolean; readonly voiceDuplex: boolean } | null; readonly http?: { readonly status: number; readonly body: string; readonly contentLength: string | null }; readonly availability?: { readonly state: "available" | "permission-required" | "unsupported" | "offline" | "policy-disabled"; readonly reason?: string } }
+  | { readonly type: "media-opus-play-response"; readonly token: string; readonly played?: boolean; readonly error?: string }
   | {
       readonly type: "media-opus-duplex-response";
       readonly token: string;
@@ -434,12 +340,7 @@ export type HostToWorkletMessage =
       readonly played?: boolean;
       readonly error?: string;
     }
-  | {
-      readonly type: "media-codec-response";
-      readonly token: string;
-      readonly dataHex?: string;
-      readonly error?: string;
-    }
+  | { readonly type: "media-codec-response"; readonly token: string; readonly dataHex?: string; readonly error?: string }
   | { readonly type: "install-from-256t"; readonly t256: string }
   | { readonly type: "trust-list" }
   | {
@@ -450,61 +351,19 @@ export type HostToWorkletMessage =
     }
   | { readonly type: "trust-remove"; readonly publisherPublicKey: string }
   | { readonly type: "trust-show" }
-  | {
-      readonly type: "cross-device-command";
-      readonly token: string;
-      readonly command: Readonly<Record<string, unknown>>;
-    }
-  | {
-      readonly type: "install-app";
-      readonly appId: string;
-      readonly forcePath?: "hyperdrive" | "lan-mirror" | "freenet" | "resource";
-      readonly archiveHex?: string;
-    }
-  | {
-      readonly type: "seed-miniapp-kv";
-      readonly key: string;
-      readonly valueHex: string;
-    }
-  | {
-      readonly type: "delete-package";
-      readonly appId: string;
-      readonly version: string;
-    }
+  | { readonly type: "cross-device-command"; readonly token: string; readonly command: Readonly<Record<string, unknown>> }
+  | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "freenet" | "resource"; readonly archiveHex?: string }
+  | { readonly type: "seed-miniapp-kv"; readonly key: string; readonly valueHex: string }
+  | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
   | { readonly type: "rollback-package"; readonly appId: string }
-  | {
-      readonly type: "get-grants";
-      readonly appId: string;
-      readonly publisherPublicKey: string;
-      readonly declaredCapabilities: ReadonlyArray<string>;
-    }
-  | {
-      readonly type: "set-grants";
-      readonly appId: string;
-      readonly publisherPublicKey: string;
-      readonly declaredCapabilities: ReadonlyArray<string>;
-      readonly grantedCapabilities: ReadonlyArray<string>;
-    }
-  | {
-      readonly type: "revoke-grant";
-      readonly appId: string;
-      readonly publisherPublicKey: string;
-      readonly capability: string;
-      readonly declaredCapabilities: ReadonlyArray<string>;
-    }
+  | { readonly type: "get-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string> }
+  | { readonly type: "set-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string>; readonly grantedCapabilities: ReadonlyArray<string> }
+  | { readonly type: "revoke-grant"; readonly appId: string; readonly publisherPublicKey: string; readonly capability: string; readonly declaredCapabilities: ReadonlyArray<string> }
   | { readonly type: "device-list" }
-  | {
-      readonly type: "device-set-class-disabled";
-      readonly classId: string;
-      readonly disabled: boolean;
-    }
+  | { readonly type: "device-set-class-disabled"; readonly classId: string; readonly disabled: boolean }
   | { readonly type: "device-set-remote"; readonly enabled: boolean }
   | { readonly type: "device-kill-session"; readonly handle: string }
-  | {
-      readonly type: "device-revoke-share";
-      readonly appId: string;
-      readonly id: string;
-    }
+  | { readonly type: "device-revoke-share"; readonly appId: string; readonly id: string }
   | {
       readonly type: "device-test-seed-share";
       readonly appId?: string;
@@ -514,11 +373,7 @@ export type HostToWorkletMessage =
     }
   | { readonly type: "session-invite-accept"; readonly id: string }
   | { readonly type: "session-invite-decline"; readonly id: string }
-  | {
-      readonly type: "peer-webrtc-data";
-      readonly sessionId: string;
-      readonly dataHex: string;
-    }
+  | { readonly type: "peer-webrtc-data"; readonly sessionId: string; readonly dataHex: string }
   | {
       readonly type: "device-bridge-response";
       readonly token: string;
@@ -530,28 +385,11 @@ export type HostToWorkletMessage =
   | { readonly type: "stop-miniapp" }
   | { readonly type: "suspend-miniapp" }
   | { readonly type: "resume-miniapp" }
-  | {
-      readonly type: "miniapp-ui-event";
-      readonly nodeId: string;
-      readonly event: string;
-      readonly value?: unknown;
-    }
-  | {
-      readonly type: "workspace-read";
-      readonly token: string;
-      readonly documentId: string;
-    }
-  | {
-      readonly type: "dev-side-load";
-      readonly manifest: Record<string, unknown>;
-      readonly bundleHex: string;
-    }
+  | { readonly type: "miniapp-ui-event"; readonly nodeId: string; readonly event: string; readonly value?: unknown }
+  | { readonly type: "workspace-read"; readonly token: string; readonly documentId: string }
+  | { readonly type: "dev-side-load"; readonly manifest: Record<string, unknown>; readonly bundleHex: string }
   | { readonly type: "dev-side-load-hello" }
-  | {
-      readonly type: "connect-dev-channel";
-      readonly host: string;
-      readonly port: number;
-    }
+  | { readonly type: "connect-dev-channel"; readonly host: string; readonly port: number }
   | { readonly type: "disconnect-dev-channel" }
   /** Test-only: mounts the peer control agent for `conformance/local-multipeer`. */
   | {
@@ -561,27 +399,10 @@ export type HostToWorkletMessage =
       readonly label: string;
       readonly platform?: string;
     }
-  | {
-      readonly type: "multicast-packet";
-      readonly ifname: string;
-      readonly dataHex: string;
-      readonly sourceAddress: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "multicast-interfaces";
-      readonly interfaces: ReadonlyArray<MulticastNetworkInfo>;
-    }
-  | {
-      readonly type: "bonjour-peer";
-      readonly ifname: string;
-      readonly address: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "bonjour-interfaces";
-      readonly interfaces: ReadonlyArray<MulticastNetworkInfo>;
-    }
+  | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
+  | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
+  | { readonly type: "bonjour-peer"; readonly ifname: string; readonly address: string; readonly port: number }
+  | { readonly type: "bonjour-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "ble-data"; readonly dataHex: string }
   | { readonly type: "ble-connect"; readonly mtu: number }
   | { readonly type: "ble-disconnect" }
@@ -594,22 +415,11 @@ export type HostToWorkletMessage =
 
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
-  | {
-      readonly type: "relay-attribution";
-      readonly appId: string;
-      readonly method: string;
-      readonly kind?: string;
-    }
+  | { readonly type: "relay-attribution"; readonly appId: string; readonly method: string; readonly kind?: string }
   | { readonly type: "log"; readonly line: string }
   | { readonly type: "announce"; readonly entry: AnnounceEntry }
-  | {
-      readonly type: "catalog";
-      readonly entries: ReadonlyArray<CatalogEntryView>;
-    }
-  | {
-      readonly type: "installed";
-      readonly packages: ReadonlyArray<InstalledPackageView>;
-    }
+  | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
+  | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }
   | { readonly type: "storage-quota"; readonly quota: WebStorageQuotaView }
   | {
       readonly type: "sandbox-spawn";
@@ -620,33 +430,12 @@ export type WorkletToHostMessage =
       readonly entryPath: string;
       readonly bundleHex: string;
     }
-  | {
-      readonly type: "sandbox-post";
-      readonly instanceId: string;
-      readonly payload: unknown;
-    }
-  | {
-      readonly type: "sandbox-ping";
-      readonly requestId: string;
-      readonly instanceId: string;
-      readonly timeoutMs: number;
-    }
-  | {
-      readonly type: "sandbox-kill";
-      readonly instanceId: string;
-      readonly reason: string;
-    }
-  | {
-      readonly type: "sandbox-broker-response";
-      readonly requestId: string;
-      readonly response: unknown;
-    }
+  | { readonly type: "sandbox-post"; readonly instanceId: string; readonly payload: unknown }
+  | { readonly type: "sandbox-ping"; readonly requestId: string; readonly instanceId: string; readonly timeoutMs: number }
+  | { readonly type: "sandbox-kill"; readonly instanceId: string; readonly reason: string }
+  | { readonly type: "sandbox-broker-response"; readonly requestId: string; readonly response: unknown }
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
-  | {
-      readonly type: "grants";
-      readonly appId: string;
-      readonly capabilities: ReadonlyArray<CapabilityGrantView>;
-    }
+  | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
   | {
       readonly type: "device-state";
       readonly inventory: ReadonlyArray<DeviceDescriptorView>;
@@ -658,10 +447,7 @@ export type WorkletToHostMessage =
       readonly shareOffers: DeviceStateView["shareOffers"];
     }
   | { readonly type: "session-invite"; readonly invite: SessionInviteView }
-  | {
-      readonly type: "session-invites";
-      readonly invites: ReadonlyArray<SessionInviteView>;
-    }
+  | { readonly type: "session-invites"; readonly invites: ReadonlyArray<SessionInviteView> }
   | {
       readonly type: "device-bridge-request";
       readonly token: string;
@@ -670,27 +456,10 @@ export type WorkletToHostMessage =
       readonly options?: Readonly<Record<string, unknown>>;
       readonly command?: Readonly<Record<string, unknown>>;
     }
-  | {
-      readonly type: "miniapp-runtime";
-      readonly slot?: "main" | "preview";
-      readonly runtime: MiniappRuntimeView | null;
-    }
-  | {
-      readonly type: "miniapp-benchmark";
-      readonly result: MiniappBenchmarkResult;
-    }
-  | {
-      readonly type: "miniapp-log";
-      readonly appId: string;
-      readonly line: string;
-    }
-  | {
-      readonly type: "workspace-file";
-      readonly token: string;
-      readonly documentId: string;
-      readonly content?: string;
-      readonly error?: string;
-    }
+  | { readonly type: "miniapp-runtime"; readonly slot?: "main" | "preview"; readonly runtime: MiniappRuntimeView | null }
+  | { readonly type: "miniapp-benchmark"; readonly result: MiniappBenchmarkResult }
+  | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }
+  | { readonly type: "workspace-file"; readonly token: string; readonly documentId: string; readonly content?: string; readonly error?: string }
   | {
       readonly type: "confirm-request";
       readonly token: string;
@@ -717,129 +486,27 @@ export type WorkletToHostMessage =
       readonly trustedLabel: string | null;
       readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
     }
-  | {
-      readonly type: "install-256t-result";
-      readonly ok: boolean;
-      readonly appId?: string;
-      readonly version?: string;
-      readonly trusted?: boolean;
-      readonly error?: string;
-    }
-  | {
-      readonly type: "trust";
-      readonly entries: ReadonlyArray<TrustedPublisherView>;
-    }
+  | { readonly type: "install-256t-result"; readonly ok: boolean; readonly appId?: string; readonly version?: string; readonly trusted?: boolean; readonly error?: string }
+  | { readonly type: "trust"; readonly entries: ReadonlyArray<TrustedPublisherView> }
   | { readonly type: "trust-identity"; readonly identity256t: string | null }
-  | {
-      readonly type: "cross-device-result";
-      readonly token: string;
-      readonly ok: boolean;
-      readonly result?: Readonly<Record<string, unknown>>;
-      readonly error?: string;
-    }
-  | {
-      readonly type: "dev-channel";
-      readonly state: "connected" | "disconnected" | "loaded" | "error";
-      readonly detail?: string;
-    }
-  | {
-      readonly type: "peer-manual-present";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly code: string;
-      readonly expectsResponse: boolean;
-    }
-  | {
-      readonly type: "peer-manual-enter";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly service: string;
-    }
-  | {
-      readonly type: "peer-confirm-request";
-      readonly token: string;
-      readonly appId: string;
-      readonly service: string;
-      readonly purpose: string;
-      readonly peer: {
-        readonly displayLabel: string;
-        readonly fingerprint: string;
-        readonly matchingWords: ReadonlyArray<string>;
-        readonly dataPlane: string;
-      };
-    }
+  | { readonly type: "cross-device-result"; readonly token: string; readonly ok: boolean; readonly result?: Readonly<Record<string, unknown>>; readonly error?: string }
+  | { readonly type: "dev-channel"; readonly state: "connected" | "disconnected" | "loaded" | "error"; readonly detail?: string }
+  | { readonly type: "peer-manual-present"; readonly token: string; readonly sessionId: string; readonly code: string; readonly expectsResponse: boolean }
+  | { readonly type: "peer-manual-enter"; readonly token: string; readonly sessionId: string; readonly service: string }
+  | { readonly type: "peer-confirm-request"; readonly token: string; readonly appId: string; readonly service: string; readonly purpose: string; readonly peer: { readonly displayLabel: string; readonly fingerprint: string; readonly matchingWords: ReadonlyArray<string>; readonly dataPlane: string } }
   | { readonly type: "peer-qr-availability"; readonly token: string }
-  | {
-      readonly type: "peer-qr-present";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly codes: ReadonlyArray<string>;
-      readonly expectsResponse: boolean;
-    }
-  | {
-      readonly type: "peer-qr-scan";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly service: string;
-    }
-  | {
-      readonly type: "peer-ntfy-present";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly code: string;
-      readonly server: string;
-    }
-  | {
-      readonly type: "peer-ntfy-enter";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly service: string;
-      readonly server: string;
-    }
-  | {
-      readonly type: "peer-ntfy-http";
-      readonly token: string;
-      readonly request: {
-        readonly url: string;
-        readonly method: string;
-        readonly headers: Readonly<Record<string, string>>;
-        readonly body?: string;
-      };
-    }
+  | { readonly type: "peer-qr-present"; readonly token: string; readonly sessionId: string; readonly codes: ReadonlyArray<string>; readonly expectsResponse: boolean }
+  | { readonly type: "peer-qr-scan"; readonly token: string; readonly sessionId: string; readonly service: string }
+  | { readonly type: "peer-ntfy-present"; readonly token: string; readonly sessionId: string; readonly code: string; readonly server: string }
+  | { readonly type: "peer-ntfy-enter"; readonly token: string; readonly sessionId: string; readonly service: string; readonly server: string }
+  | { readonly type: "peer-ntfy-http"; readonly token: string; readonly request: { readonly url: string; readonly method: string; readonly headers: Readonly<Record<string, string>>; readonly body?: string } }
   | { readonly type: "peer-audio-availability"; readonly token: string }
-  | {
-      readonly type: "peer-audio-transmit";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly framesHex: ReadonlyArray<string>;
-      readonly expectsResponse: boolean;
-    }
-  | {
-      readonly type: "peer-audio-receive";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly service: string;
-    }
-  | {
-      readonly type: "peer-webrtc-signal";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly role: "offer" | "answer";
-      readonly remoteSignal?: string;
-    }
-  | {
-      readonly type: "peer-webrtc-establish";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly remoteSignal?: string;
-    }
+  | { readonly type: "peer-audio-transmit"; readonly token: string; readonly sessionId: string; readonly framesHex: ReadonlyArray<string>; readonly expectsResponse: boolean }
+  | { readonly type: "peer-audio-receive"; readonly token: string; readonly sessionId: string; readonly service: string }
+  | { readonly type: "peer-webrtc-signal"; readonly token: string; readonly sessionId: string; readonly role: "offer" | "answer"; readonly remoteSignal?: string }
+  | { readonly type: "peer-webrtc-establish"; readonly token: string; readonly sessionId: string; readonly remoteSignal?: string }
   | { readonly type: "peer-webrtc-close"; readonly sessionId: string }
-  | {
-      readonly type: "peer-webrtc-data-send";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly dataHex: string;
-    }
+  | { readonly type: "peer-webrtc-data-send"; readonly token: string; readonly sessionId: string; readonly dataHex: string }
   | {
       readonly type: "peer-webrtc-media-attach";
       readonly token: string;
@@ -847,23 +514,9 @@ export type WorkletToHostMessage =
       readonly classId: string;
       readonly tierId: string;
     }
-  | {
-      readonly type: "peer-webrtc-media-stats";
-      readonly token: string;
-      readonly sessionId: string;
-    }
-  | {
-      readonly type: "peer-webrtc-media-detach";
-      readonly token: string;
-      readonly sessionId: string;
-      readonly classId: string;
-    }
-  | {
-      readonly type: "media-opus-play-request";
-      readonly token: string;
-      readonly encoding: string;
-      readonly dataHex: string;
-    }
+  | { readonly type: "peer-webrtc-media-stats"; readonly token: string; readonly sessionId: string }
+  | { readonly type: "peer-webrtc-media-detach"; readonly token: string; readonly sessionId: string; readonly classId: string }
+  | { readonly type: "media-opus-play-request"; readonly token: string; readonly encoding: string; readonly dataHex: string }
   | { readonly type: "media-opus-duplex-request"; readonly token: string }
   | {
       readonly type: "media-codec-request";
@@ -880,76 +533,31 @@ export type WorkletToHostMessage =
       readonly captureAtUs: number;
       readonly dataHex: string;
     }
-  | {
-      readonly type: "inbound-media-frame";
-      readonly appId: string;
-      readonly handle: string;
-      readonly sink: { readonly kind: string; readonly widgetId?: string };
-      readonly encoding: string;
-      readonly dataHex: string;
-    }
+  | { readonly type: "inbound-media-frame"; readonly appId: string; readonly handle: string; readonly sink: { readonly kind: string; readonly widgetId?: string }; readonly encoding: string; readonly dataHex: string }
   | { readonly type: "peer-chrome-cancel"; readonly sessionId: string }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }
-  | {
-      readonly type: "multicast-join";
-      readonly ifname: string;
-      readonly groupAddress: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "multicast-bind";
-      readonly ifname: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "multicast-send";
-      readonly ifname: string;
-      readonly groupAddress: string;
-      readonly port: number;
-      readonly dataHex: string;
-    }
-  | {
-      readonly type: "multicast-unicast";
-      readonly ifname: string;
-      readonly targetAddress: string;
-      readonly port: number;
-      readonly dataHex: string;
-    }
+  | { readonly type: "multicast-join"; readonly ifname: string; readonly groupAddress: string; readonly port: number }
+  | { readonly type: "multicast-bind"; readonly ifname: string; readonly port: number }
+  | { readonly type: "multicast-send"; readonly ifname: string; readonly groupAddress: string; readonly port: number; readonly dataHex: string }
+  | { readonly type: "multicast-unicast"; readonly ifname: string; readonly targetAddress: string; readonly port: number; readonly dataHex: string }
   | { readonly type: "bonjour-start" }
   | { readonly type: "bonjour-stop" }
-  | {
-      readonly type: "bonjour-advertise";
-      readonly ifname: string;
-      readonly address: string;
-      readonly port: number;
-    }
+  | { readonly type: "bonjour-advertise"; readonly ifname: string; readonly address: string; readonly port: number }
   | { readonly type: "ble-start"; readonly identityHashHex: string }
   | { readonly type: "ble-stop" }
   | { readonly type: "ble-write"; readonly dataHex: string }
-  | {
-      readonly type: "peer-bluetooth-send";
-      readonly framesHex: ReadonlyArray<string>;
-    }
-  | {
-      readonly type: "serial-start";
-      readonly deviceId: number;
-      readonly baudRate: number;
-    }
+  | { readonly type: "peer-bluetooth-send"; readonly framesHex: ReadonlyArray<string> }
+  | { readonly type: "serial-start"; readonly deviceId: number; readonly baudRate: number }
   | { readonly type: "serial-web-start"; readonly baudRate: number }
   | { readonly type: "serial-stop" }
   | { readonly type: "serial-write"; readonly dataHex: string };
 
-export function encodeMessage(
-  message: HostToWorkletMessage | WorkletToHostMessage,
-): string {
+export function encodeMessage(message: HostToWorkletMessage | WorkletToHostMessage): string {
   return `${JSON.stringify(message)}\n`;
 }
 
-export function decodeMessages(buffer: string): {
-  readonly messages: ReadonlyArray<WorkletToHostMessage>;
-  readonly remainder: string;
-} {
+export function decodeMessages(buffer: string): { readonly messages: ReadonlyArray<WorkletToHostMessage>; readonly remainder: string } {
   const messages: WorkletToHostMessage[] = [];
   let remainder = buffer;
 

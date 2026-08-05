@@ -9,7 +9,7 @@ const cryptoShim = {
 
     return array;
   },
-  subtle: {},
+  subtle: {}
 };
 
 const resolved = globalThis.crypto ?? cryptoShim;

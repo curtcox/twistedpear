@@ -17,18 +17,18 @@ Recipe and screenshots: [6. Apps that move files](../../06-apps-that-move-files.
 
 ## Capabilities
 
-| Capability       | Note                                                                               |
-| ---------------- | ---------------------------------------------------------------------------------- |
-| `share:cas`      | `share.get` resolves only if a locator announce for those bytes was already heard. |
-| `resource:fetch` | The host applies its own byte budget on top of the one you pass.                   |
-| `storage:kv`     | Standing grant; revocable at any time from the host.                               |
+| Capability | Note |
+|---|---|
+| `share:cas` | `share.get` resolves only if a locator announce for those bytes was already heard. |
+| `resource:fetch` | The host applies its own byte budget on top of the one you pass. |
+| `storage:kv` | Standing grant; revocable at any time from the host. |
 
 ## Files
 
-| File                                   | Purpose                                                      |
-| -------------------------------------- | ------------------------------------------------------------ |
+| File | Purpose |
+|---|---|
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
 
 ## Run it
 

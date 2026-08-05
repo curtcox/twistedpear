@@ -34,14 +34,8 @@ declare module "hyperswarm" {
 
   export default class Hyperswarm {
     constructor(options?: { maxPeers?: number; dht?: DHT });
-    on(
-      event: "connection",
-      listener: (socket: Connection, peerInfo: PeerInfo) => void,
-    ): void;
-    join(
-      topic: Uint8Array,
-      options?: { server?: boolean; client?: boolean },
-    ): { flushed(): Promise<void> };
+    on(event: "connection", listener: (socket: Connection, peerInfo: PeerInfo) => void): void;
+    join(topic: Uint8Array, options?: { server?: boolean; client?: boolean }): { flushed(): Promise<void> };
     flush(): Promise<void>;
     destroy(): Promise<void>;
   }
@@ -57,11 +51,7 @@ declare module "hyperswarm" {
 
 declare module "b4a" {
   export function from(value: string, encoding?: string): Uint8Array;
-  export function subarray(
-    buffer: Uint8Array,
-    start: number,
-    end?: number,
-  ): Uint8Array;
+  export function subarray(buffer: Uint8Array, start: number, end?: number): Uint8Array;
 }
 
 declare module "@hyperswarm/dht-relay" {
@@ -80,10 +70,7 @@ declare module "@hyperswarm/dht-relay/ws" {
   import type { Duplex } from "streamx";
 
   export default class WsStream extends Duplex {
-    constructor(
-      isInitiator: boolean,
-      socket: WebSocket | import("ws").WebSocket,
-    );
+    constructor(isInitiator: boolean, socket: WebSocket | import("ws").WebSocket);
   }
 }
 
@@ -103,9 +90,7 @@ declare module "dht-universal" {
 
 declare module "dht-universal/relay.js" {
   export class DHT {
-    static create(options: {
-      relays: ReadonlyArray<string>;
-    }): Promise<{ destroy(): Promise<void> }>;
+    static create(options: { relays: ReadonlyArray<string> }): Promise<{ destroy(): Promise<void> }>;
     ready(): Promise<void>;
     destroy(): Promise<void>;
   }
@@ -132,7 +117,7 @@ declare module "ws" {
       request: IncomingMessage,
       socket: Duplex,
       head: Buffer,
-      callback: (socket: WebSocket) => void,
+      callback: (socket: WebSocket) => void
     ): void;
     close(callback?: (error?: Error) => void): void;
   }

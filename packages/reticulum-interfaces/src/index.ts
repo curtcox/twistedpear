@@ -6,7 +6,7 @@ export type {
   MulticastNetworkInfo,
   PipeStats,
   SerialPipe,
-  SerialPipeEvents,
+  SerialPipeEvents
 } from "./pipes.js";
 
 export {
@@ -17,7 +17,7 @@ export {
   type DiscoveryProvider,
   type DiscoveryProviderEvents,
   type DiscoveryProviderKind,
-  type DiscoverySelection,
+  type DiscoverySelection
 } from "./auto-discovery.js";
 
 export {
@@ -25,7 +25,7 @@ export {
   serviceRecordToPeer,
   type BonjourBridge,
   type BonjourBridgeEvents,
-  type BonjourServiceRecord,
+  type BonjourServiceRecord
 } from "./bonjour.js";
 
 export {
@@ -37,13 +37,13 @@ export {
   AUTO_HW_MTU,
   AUTO_PEERING_TIMEOUT_MS,
   type AutoInterfaceOptions,
-  type AutoInterfacePeerHandle,
+  type AutoInterfacePeerHandle
 } from "./auto-common.js";
 export { AutoInterface } from "./auto.js";
 
 export {
   AutoInterfaceBridge,
-  type AutoInterfaceBridgeOptions,
+  type AutoInterfaceBridgeOptions
 } from "./auto-bridge.js";
 
 export {
@@ -59,13 +59,9 @@ export {
   fragmentForMtu,
   reassembleBleFrames,
   type BleFrameHeader,
-  type BleReassemblyState,
+  type BleReassemblyState
 } from "./ble/spec-framing.js";
-export {
-  BleInterface,
-  BLE_INTERFACE_MTU,
-  type BleInterfaceOptions,
-} from "./ble/interface.js";
+export { BleInterface, BLE_INTERFACE_MTU, type BleInterfaceOptions } from "./ble/interface.js";
 export { SimulatedBlePipe, type SimulatedBlePipeOptions } from "./ble/sim.js";
 
 export {
@@ -88,14 +84,14 @@ export {
   kissEscape,
   parseFirmwareVersion,
   type KissDecodeState,
-  type KissFrame,
+  type KissFrame
 } from "./rnode/kiss.js";
 export {
   RNODE_INTERFACE_MTU,
   RNODE_RECONNECT_WAIT_MS,
   RNodeInterface,
   type RNodeInterfaceOptions,
-  type RNodeStatus,
+  type RNodeStatus
 } from "./rnode/interface.js";
 
 export {
@@ -106,29 +102,26 @@ export {
   SamClient,
   type I2PInterfaceOptions,
   type SamClientOptions,
-  type SamSessionInfo,
+  type SamSessionInfo
 } from "./i2p.js";
 
 export {
   OPTICAL_INTERFACE_MTU,
   OPTICAL_DEFAULT_BITRATE,
-  OpticalInterface,
+  OpticalInterface
 } from "./optical/interface.js";
 export {
   OPTICAL_CHUNK_PAYLOAD_BYTES,
   createOpticalReassemblyState,
   reassembleOpticalChunk,
   sliceForDisplay,
-  type OpticalReassemblyState,
+  type OpticalReassemblyState
 } from "./optical/framing.js";
 export {
   type OpticalChannel,
-  type OpticalInterfaceOptions,
+  type OpticalInterfaceOptions
 } from "./optical/channel.js";
-export {
-  SimulatedOpticalChannel,
-  type SimulatedOpticalChannelOptions,
-} from "./optical/sim.js";
+export { SimulatedOpticalChannel, type SimulatedOpticalChannelOptions } from "./optical/sim.js";
 
 export {
   ACOUSTIC_DEFAULT_BITRATE,
@@ -136,20 +129,17 @@ export {
   AcousticInterface,
   type AcousticBand,
   type AcousticChannel,
-  type AcousticInterfaceOptions,
+  type AcousticInterfaceOptions
 } from "./acoustic/interface.js";
 export { decodeAcousticFec, encodeAcousticFec } from "./acoustic/interface.js";
-export {
-  SimulatedAcousticChannel,
-  type SimulatedAcousticChannelOptions,
-} from "./acoustic/sim.js";
+export { SimulatedAcousticChannel, type SimulatedAcousticChannelOptions } from "./acoustic/sim.js";
 
 export {
   FREENET_DEFAULT_BITRATE,
   FREENET_INTERFACE_MTU,
   FreenetInterface,
   type FreenetInterfaceOptions,
-  type FreenetPacketLogBackend,
+  type FreenetPacketLogBackend
 } from "./freenet.js";
 
 export {
@@ -161,5 +151,5 @@ export {
   selectPreferredInterface,
   type InterfaceKindValue,
   type InterfacePolicyOptions,
-  type RankedInterface,
+  type RankedInterface
 } from "./policy.js";

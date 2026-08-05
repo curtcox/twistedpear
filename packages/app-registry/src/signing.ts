@@ -1,28 +1,21 @@
 import type { CryptoProvider, Identity } from "@twistedpear/reticulum-ts";
-import {
-  Identity as IdentityClass,
-  bytesToHex,
-} from "@twistedpear/reticulum-ts";
+import { Identity as IdentityClass, bytesToHex } from "@twistedpear/reticulum-ts";
 import {
   type AppManifest,
   type UnsignedManifest,
   manifestPublisherKeyBytes,
   manifestSignatureBytes,
   manifestSigningPayload,
-  validateManifestStructure,
+  validateManifestStructure
 } from "./manifest.js";
 
-export function signManifest(
-  provider: CryptoProvider,
-  identity: Identity,
-  manifest: UnsignedManifest,
-): AppManifest {
+export function signManifest(provider: CryptoProvider, identity: Identity, manifest: UnsignedManifest): AppManifest {
   validateManifestStructure(manifest);
 
   const publisherKey = identity.getPublicKey();
   const manifestWithKey: UnsignedManifest = {
     ...manifest,
-    publisherPublicKey: bytesToHex(publisherKey),
+    publisherPublicKey: bytesToHex(publisherKey)
   };
 
   const payload = manifestSigningPayload(manifestWithKey);
@@ -30,14 +23,11 @@ export function signManifest(
 
   return {
     ...manifestWithKey,
-    signature: bytesToHex(signature),
+    signature: bytesToHex(signature)
   };
 }
 
-export function verifyManifestSignature(
-  provider: CryptoProvider,
-  manifest: AppManifest,
-): boolean {
+export function verifyManifestSignature(provider: CryptoProvider, manifest: AppManifest): boolean {
   try {
     const { signature: _signature, ...unsigned } = manifest;
     validateManifestStructure(unsigned);

@@ -39,9 +39,7 @@ async function main() {
     }
 
     const appDir = join(workDir, "hello-miniapp");
-    const manifest = JSON.parse(
-      readFileSync(join(appDir, "app.manifest.json"), "utf8"),
-    );
+    const manifest = JSON.parse(readFileSync(join(appDir, "app.manifest.json"), "utf8"));
     const server = await startDevServer({
       appDir,
       host: "127.0.0.1",
@@ -52,8 +50,8 @@ async function main() {
         entry: manifest.entry,
         capabilities: manifest.capabilities ?? [],
         publisherPublicKey: "dev",
-        minHostApi: manifest.minHostApi,
-      },
+        minHostApi: manifest.minHostApi
+      }
     });
 
     const socket = createConnection({ host: "127.0.0.1", port: 34988 });
@@ -79,31 +77,22 @@ async function main() {
       throw new Error("hot reload did not push an updated bundle");
     }
 
-    console.log(
-      "dev-loop: create → dev server → bundle push → hot reload passed",
-    );
+    console.log("dev-loop: create → dev server → bundle push → hot reload passed");
 
     const blocked = createDevChannelClient({
       isDeveloperMode: () => false,
-      onBundle: async () => {},
+      onBundle: async () => {}
     });
     try {
       await blocked.connect("127.0.0.1", 34988);
-      throw new Error(
-        "dev channel connected while developer mode was disabled",
-      );
+      throw new Error("dev channel connected while developer mode was disabled");
     } catch (error) {
-      if (
-        !(error instanceof Error) ||
-        !error.message.includes("Developer mode is disabled")
-      ) {
+      if (!(error instanceof Error) || !error.message.includes("Developer mode is disabled")) {
         throw error;
       }
     }
 
-    console.log(
-      "dev-loop: dev channel refuses connections when developer mode is off",
-    );
+    console.log("dev-loop: dev channel refuses connections when developer mode is off");
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }

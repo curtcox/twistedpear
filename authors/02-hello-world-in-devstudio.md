@@ -65,14 +65,9 @@ await ui.render({
     type: "view",
     style: { padding: 16, gap: 8 },
     children: [
-      {
-        id: "title",
-        type: "text",
-        props: { value: "Hello" },
-        style: { fontSize: 20 },
-      },
-    ],
-  },
+      { id: "title", type: "text", props: { value: "Hello" }, style: { fontSize: 20 } }
+    ]
+  }
 });
 ```
 
@@ -108,20 +103,11 @@ async function render() {
       type: "view",
       style: { padding: 16, gap: 8 },
       children: [
-        {
-          id: "title",
-          type: "text",
-          props: { value: "Hello" },
-          style: { fontSize: 20 },
-        },
+        { id: "title", type: "text", props: { value: "Hello" }, style: { fontSize: 20 } },
         { id: "count", type: "text", props: { value: `Taps: ${taps}` } },
-        {
-          id: "go",
-          type: "button",
-          props: { label: "Tap me", event: "hello.tap" },
-        },
-      ],
-    },
+        { id: "go", type: "button", props: { label: "Tap me", event: "hello.tap" } }
+      ]
+    }
   });
 }
 

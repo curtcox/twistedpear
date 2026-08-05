@@ -2,7 +2,12 @@
   "name": "roll-call",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": ["identity", "lxmf:send", "lxmf:receive", "storage:kv"],
+  "capabilities": [
+    "identity",
+    "lxmf:send",
+    "lxmf:receive",
+    "storage:kv"
+  ],
   "icon": null,
   "minHostApi": "0.1.0"
 }

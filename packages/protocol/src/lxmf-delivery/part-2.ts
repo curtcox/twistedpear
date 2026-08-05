@@ -12,7 +12,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
 import { planLxMessagePack } from "./part-1.js";
 import type { LxMessagePackGate, LxMessagePackPlanEvent } from "./part-1.js";
@@ -41,7 +41,7 @@ export function initialLxMessagePackPlanState(): LxMessagePackPlanState {
 
 export function stepLxMessagePackPlanWithActions(
   state: LxMessagePackPlanState,
-  event: LxMessagePackPlanEvent,
+  event: LxMessagePackPlanEvent
 ): LxMessagePackPlanStepResult {
   if (event.kind === "lxmessage-pack/plan-gate") {
     return {
@@ -52,10 +52,10 @@ export function stepLxMessagePackPlanWithActions(
           kind: planLxMessagePack({
             destinationDirectionOut: event.destinationDirectionOut,
             sourceDirectionIn: event.sourceDirectionIn,
-            sourceIdentityPresent: event.sourceIdentityPresent,
-          }),
-        },
-      ],
+            sourceIdentityPresent: event.sourceIdentityPresent
+          })
+        }
+      ]
     };
   }
 
@@ -64,34 +64,34 @@ export function stepLxMessagePackPlanWithActions(
 
 /** Whether pack-plan actions allow LXMessage.pack to proceed. */
 export function shouldPlanLxMessagePackOk(
-  actions: ReadonlyArray<LxMessagePackPlanAction>,
+  actions: ReadonlyArray<LxMessagePackPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 /** Whether pack-plan actions reject a bad destination direction. */
 export function shouldRejectLxMessagePackPlanBadDestination(
-  actions: ReadonlyArray<LxMessagePackPlanAction>,
+  actions: ReadonlyArray<LxMessagePackPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "bad-destination");
 }
 
 /** Whether pack-plan actions reject a bad source direction / identity. */
 export function shouldRejectLxMessagePackPlanBadSource(
-  actions: ReadonlyArray<LxMessagePackPlanAction>,
+  actions: ReadonlyArray<LxMessagePackPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "bad-source");
 }
 
 /** Extract the LXMessage.pack plan from actions; null when empty. */
 export function lxMessagePackPlanFromActions(
-  actions: ReadonlyArray<LxMessagePackPlanAction>,
+  actions: ReadonlyArray<LxMessagePackPlanAction>
 ): LxMessagePackGate | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "bad-destination" ||
-      entry.kind === "bad-source",
+      entry.kind === "bad-source"
   );
   return action?.kind ?? null;
 }
@@ -141,49 +141,42 @@ export const stepLxMessagePack: StepFn<LxMessagePackState> = (state, event) => {
 
 export function stepLxMessagePackWithActions(
   state: LxMessagePackState,
-  event: LxMessagePackEvent,
+  event: LxMessagePackEvent
 ): LxMessagePackStepResult {
   return stepLxMessagePackInner(state, event);
 }
 
 export function shouldProceedLxMessagePack(
-  actions: ReadonlyArray<LxMessagePackAction>,
+  actions: ReadonlyArray<LxMessagePackAction>
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectLxMessagePackBadDestination(
-  actions: ReadonlyArray<LxMessagePackAction>,
+  actions: ReadonlyArray<LxMessagePackAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-bad-destination");
 }
 
 export function shouldRejectLxMessagePackBadSource(
-  actions: ReadonlyArray<LxMessagePackAction>,
+  actions: ReadonlyArray<LxMessagePackAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-bad-source");
 }
 
 function stepLxMessagePackInner(
   state: LxMessagePackState,
-  event: LxMessagePackEvent,
+  event: LxMessagePackEvent
 ): LxMessagePackStepResult {
   if (event.kind === "lxmessage-pack/gate") {
-    const planActions = stepLxMessagePackPlanWithActions(
-      initialLxMessagePackPlanState(),
-      {
-        kind: "lxmessage-pack/plan-gate",
-        destinationDirectionOut: event.destinationDirectionOut,
-        sourceDirectionIn: event.sourceDirectionIn,
-        sourceIdentityPresent: event.sourceIdentityPresent,
-      },
-    ).actions;
+    const planActions = stepLxMessagePackPlanWithActions(initialLxMessagePackPlanState(), {
+      kind: "lxmessage-pack/plan-gate",
+      destinationDirectionOut: event.destinationDirectionOut,
+      sourceDirectionIn: event.sourceDirectionIn,
+      sourceIdentityPresent: event.sourceIdentityPresent
+    }).actions;
     if (shouldRejectLxMessagePackPlanBadDestination(planActions)) {
-      return {
-        state,
-        intents: [],
-        actions: [{ kind: "reject-bad-destination" }],
-      };
+      return { state, intents: [], actions: [{ kind: "reject-bad-destination" }] };
     }
     if (shouldRejectLxMessagePackPlanBadSource(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-bad-source" }] };
@@ -246,7 +239,7 @@ export function initialLxmfPackTimestampPlanState(): LxmfPackTimestampPlanState 
 
 export function stepLxmfPackTimestampPlanWithActions(
   state: LxmfPackTimestampPlanState,
-  event: LxmfPackTimestampPlanEvent,
+  event: LxmfPackTimestampPlanEvent
 ): LxmfPackTimestampPlanStepResult {
   if (event.kind === "pack-timestamp/plan-gate") {
     return {
@@ -256,10 +249,10 @@ export function stepLxmfPackTimestampPlanWithActions(
         {
           kind: planLxmfPackTimestamp({
             hasTimestamp: event.hasTimestamp,
-            hasNow: event.hasNow,
-          }),
-        },
-      ],
+            hasNow: event.hasNow
+          })
+        }
+      ]
     };
   }
 
@@ -268,34 +261,34 @@ export function stepLxmfPackTimestampPlanWithActions(
 
 /** Whether plan actions select an explicit timestamp. */
 export function shouldPlanLxmfPackTimestampUseTimestamp(
-  actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
+  actions: ReadonlyArray<LxmfPackTimestampPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-timestamp");
 }
 
 /** Whether plan actions select injected now. */
 export function shouldPlanLxmfPackTimestampUseNow(
-  actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
+  actions: ReadonlyArray<LxmfPackTimestampPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-now");
 }
 
 /** Whether plan actions reject timestamp selection. */
 export function shouldRejectLxmfPackTimestampPlan(
-  actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
+  actions: ReadonlyArray<LxmfPackTimestampPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract the pack-timestamp plan from actions; null when empty. */
 export function lxmfPackTimestampPlanFromActions(
-  actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
+  actions: ReadonlyArray<LxmfPackTimestampPlanAction>
 ): LxmfPackTimestampPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "use-timestamp" ||
       entry.kind === "use-now" ||
-      entry.kind === "reject",
+      entry.kind === "reject"
   );
   return action?.kind ?? null;
 }
@@ -336,45 +329,39 @@ export function initialLxmfPackTimestampState(): LxmfPackTimestampState {
   return {};
 }
 
-export const stepLxmfPackTimestamp: StepFn<LxmfPackTimestampState> = (
-  state,
-  event,
-) => {
-  const result = stepLxmfPackTimestampInner(
-    state,
-    event as LxmfPackTimestampEvent,
-  );
+export const stepLxmfPackTimestamp: StepFn<LxmfPackTimestampState> = (state, event) => {
+  const result = stepLxmfPackTimestampInner(state, event as LxmfPackTimestampEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfPackTimestampWithActions(
   state: LxmfPackTimestampState,
-  event: LxmfPackTimestampEvent,
+  event: LxmfPackTimestampEvent
 ): LxmfPackTimestampStepResult {
   return stepLxmfPackTimestampInner(state, event);
 }
 
 export function shouldUseLxmfPackTimestamp(
-  actions: ReadonlyArray<LxmfPackTimestampAction>,
+  actions: ReadonlyArray<LxmfPackTimestampAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-timestamp");
 }
 
 export function shouldUseLxmfPackNow(
-  actions: ReadonlyArray<LxmfPackTimestampAction>,
+  actions: ReadonlyArray<LxmfPackTimestampAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-now");
 }
 
 export function shouldRejectLxmfPackTimestampSelect(
-  actions: ReadonlyArray<LxmfPackTimestampAction>,
+  actions: ReadonlyArray<LxmfPackTimestampAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 function stepLxmfPackTimestampInner(
   state: LxmfPackTimestampState,
-  event: LxmfPackTimestampEvent,
+  event: LxmfPackTimestampEvent
 ): LxmfPackTimestampStepResult {
   if (event.kind === "pack-timestamp/select") {
     const planActions = stepLxmfPackTimestampPlanWithActions(
@@ -382,8 +369,8 @@ function stepLxmfPackTimestampInner(
       {
         kind: "pack-timestamp/plan-gate",
         hasTimestamp: event.hasTimestamp,
-        hasNow: event.hasNow,
-      },
+        hasNow: event.hasNow
+      }
     ).actions;
     if (shouldPlanLxmfPackTimestampUseTimestamp(planActions)) {
       return { state, intents: [], actions: [{ kind: "use-timestamp" }] };
@@ -401,9 +388,7 @@ function stepLxmfPackTimestampInner(
 }
 
 /** Whether packing should include a stamp field (omit when deferStamp is true). */
-export function shouldIncludeLxmfStamp(
-  deferStamp: boolean | undefined,
-): boolean {
+export function shouldIncludeLxmfStamp(deferStamp: boolean | undefined): boolean {
   return deferStamp !== true;
 }
 
@@ -422,7 +407,8 @@ export type IncludeLxmfStampEvent =
     };
 
 export type IncludeLxmfStampAction =
-  { readonly kind: "include" } | { readonly kind: "skip" };
+  | { readonly kind: "include" }
+  | { readonly kind: "skip" };
 
 export interface IncludeLxmfStampStepResult {
   readonly state: IncludeLxmfStampState;
@@ -436,7 +422,7 @@ export function initialIncludeLxmfStampState(): IncludeLxmfStampState {
 
 export function stepIncludeLxmfStampWithActions(
   state: IncludeLxmfStampState,
-  event: IncludeLxmfStampEvent,
+  event: IncludeLxmfStampEvent
 ): IncludeLxmfStampStepResult {
   if (event.kind === "lxmf/include-stamp-gate") {
     return {
@@ -444,9 +430,9 @@ export function stepIncludeLxmfStampWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldIncludeLxmfStamp(event.deferStamp) ? "include" : "skip",
-        },
-      ],
+          kind: shouldIncludeLxmfStamp(event.deferStamp) ? "include" : "skip"
+        }
+      ]
     };
   }
 
@@ -454,16 +440,15 @@ export function stepIncludeLxmfStampWithActions(
 }
 
 export function shouldIncludeLxmfStampNow(
-  actions: ReadonlyArray<IncludeLxmfStampAction>,
+  actions: ReadonlyArray<IncludeLxmfStampAction>
 ): boolean {
   return actions.some((action) => action.kind === "include");
 }
 
 export function shouldSkipIncludeLxmfStamp(
-  actions: ReadonlyArray<IncludeLxmfStampAction>,
+  actions: ReadonlyArray<IncludeLxmfStampAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
-export type LxmfDeliverableAcceptPlan =
-  "accept" | "reject-unsigned" | "reject-seen";
+export type LxmfDeliverableAcceptPlan = "accept" | "reject-unsigned" | "reject-seen";

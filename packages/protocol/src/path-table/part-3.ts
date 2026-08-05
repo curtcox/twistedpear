@@ -28,18 +28,17 @@ import {
   PACKET_DEST_TYPE_GROUP,
   PACKET_DEST_TYPE_PLAIN,
   PACKET_HEADER_1,
-  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_ANNOUNCE
 } from "../packet-header.js";
 import type { TouchPathEntryAction } from "./part-2.js";
 export function shouldSkipTouchPathEntry(
-  actions: ReadonlyArray<TouchPathEntryAction>,
+  actions: ReadonlyArray<TouchPathEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a pending discovery path-request should be fulfilled by an announce. */
-export type DiscoveryPathRequestFulfillPlan =
-  "ignore" | "drop-expired" | "fulfill";
+export type DiscoveryPathRequestFulfillPlan = "ignore" | "drop-expired" | "fulfill";
 
 export function planDiscoveryPathRequestFulfill(input: {
   readonly hasPending: boolean;
@@ -86,7 +85,7 @@ export function initialDiscoveryPathRequestFulfillPlanState(): DiscoveryPathRequ
 
 export function stepDiscoveryPathRequestFulfillPlanWithActions(
   state: DiscoveryPathRequestFulfillPlanState,
-  event: DiscoveryPathRequestFulfillPlanEvent,
+  event: DiscoveryPathRequestFulfillPlanEvent
 ): DiscoveryPathRequestFulfillPlanStepResult {
   if (event.kind === "path-request/discovery-fulfill-plan-gate") {
     return {
@@ -96,10 +95,10 @@ export function stepDiscoveryPathRequestFulfillPlanWithActions(
         {
           kind: planDiscoveryPathRequestFulfill({
             hasPending: event.hasPending,
-            expired: event.expired,
-          }),
-        },
-      ],
+            expired: event.expired
+          })
+        }
+      ]
     };
   }
 
@@ -108,31 +107,29 @@ export function stepDiscoveryPathRequestFulfillPlanWithActions(
 
 /** Extract the discovery path-request fulfill plan from actions; null when empty. */
 export function discoveryPathRequestFulfillPlanFromActions(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
 ): DiscoveryPathRequestFulfillPlan | null {
   const action = actions.find(
     (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "drop-expired" ||
-      entry.kind === "fulfill",
+      entry.kind === "ignore" || entry.kind === "drop-expired" || entry.kind === "fulfill"
   );
   return action?.kind ?? null;
 }
 
 export function shouldIgnoreDiscoveryPathFulfillPlan(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldDropExpiredDiscoveryPathRequestPlan(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "drop-expired");
 }
 
 export function shouldFulfillDiscoveryPathRequestPlan(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "fulfill");
 }
@@ -167,51 +164,52 @@ export function initialDiscoveryPathRequestFulfillState(): DiscoveryPathRequestF
   return {};
 }
 
-export const stepDiscoveryPathRequestFulfill: StepFn<
-  DiscoveryPathRequestFulfillState
-> = (state, event) => {
+export const stepDiscoveryPathRequestFulfill: StepFn<DiscoveryPathRequestFulfillState> = (
+  state,
+  event
+) => {
   const result = stepDiscoveryPathRequestFulfillInner(
     state,
-    event as DiscoveryPathRequestFulfillEvent,
+    event as DiscoveryPathRequestFulfillEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepDiscoveryPathRequestFulfillWithActions(
   state: DiscoveryPathRequestFulfillState,
-  event: DiscoveryPathRequestFulfillEvent,
+  event: DiscoveryPathRequestFulfillEvent
 ): DiscoveryPathRequestFulfillStepResult {
   return stepDiscoveryPathRequestFulfillInner(state, event);
 }
 
 export function discoveryPathRequestFulfillFromActions(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
 ): DiscoveryPathRequestFulfillPlan | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldIgnoreDiscoveryPathFulfillActions(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldDropExpiredDiscoveryPathRequest(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
 ): boolean {
   return actions.some((action) => action.kind === "drop-expired");
 }
 
 export function shouldFulfillDiscoveryPathRequest(
-  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
 ): boolean {
   return actions.some((action) => action.kind === "fulfill");
 }
 
 function stepDiscoveryPathRequestFulfillInner(
   state: DiscoveryPathRequestFulfillState,
-  event: DiscoveryPathRequestFulfillEvent,
+  event: DiscoveryPathRequestFulfillEvent
 ): DiscoveryPathRequestFulfillStepResult {
   if (event.kind === "path-request/discovery-fulfill-gate") {
     const planActions = stepDiscoveryPathRequestFulfillPlanWithActions(
@@ -219,8 +217,8 @@ function stepDiscoveryPathRequestFulfillInner(
       {
         kind: "path-request/discovery-fulfill-plan-gate",
         hasPending: event.hasPending,
-        expired: event.expired,
-      },
+        expired: event.expired
+      }
     ).actions;
     const plan = discoveryPathRequestFulfillPlanFromActions(planActions);
     if (plan === null) {
@@ -259,7 +257,8 @@ export type FulfillDiscoveryPendingEvent =
     };
 
 export type FulfillDiscoveryPendingAction =
-  { readonly kind: "fulfill" } | { readonly kind: "skip" };
+  | { readonly kind: "fulfill" }
+  | { readonly kind: "skip" };
 
 export interface FulfillDiscoveryPendingStepResult {
   readonly state: FulfillDiscoveryPendingState;
@@ -273,7 +272,7 @@ export function initialFulfillDiscoveryPendingState(): FulfillDiscoveryPendingSt
 
 export function stepFulfillDiscoveryPendingWithActions(
   state: FulfillDiscoveryPendingState,
-  event: FulfillDiscoveryPendingEvent,
+  event: FulfillDiscoveryPendingEvent
 ): FulfillDiscoveryPendingStepResult {
   if (event.kind === "path-request/fulfill-pending-gate") {
     return {
@@ -283,12 +282,12 @@ export function stepFulfillDiscoveryPendingWithActions(
         {
           kind: shouldFulfillDiscoveryPending({
             fulfillOk: event.fulfillOk,
-            pendingPresent: event.pendingPresent,
+            pendingPresent: event.pendingPresent
           })
             ? "fulfill"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -296,13 +295,13 @@ export function stepFulfillDiscoveryPendingWithActions(
 }
 
 export function shouldFulfillDiscoveryPendingNow(
-  actions: ReadonlyArray<FulfillDiscoveryPendingAction>,
+  actions: ReadonlyArray<FulfillDiscoveryPendingAction>
 ): boolean {
   return actions.some((action) => action.kind === "fulfill");
 }
 
 export function shouldSkipFulfillDiscoveryPending(
-  actions: ReadonlyArray<FulfillDiscoveryPendingAction>,
+  actions: ReadonlyArray<FulfillDiscoveryPendingAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -376,7 +375,7 @@ export function initialPathOutboundPlanState(): PathOutboundPlanState {
 
 export function stepPathOutboundPlanWithActions(
   state: PathOutboundPlanState,
-  event: PathOutboundPlanEvent,
+  event: PathOutboundPlanEvent
 ): PathOutboundPlanStepResult {
   if (event.kind === "path/outbound-plan-gate") {
     return {
@@ -389,10 +388,10 @@ export function stepPathOutboundPlanWithActions(
             destinationType: event.destinationType,
             headerType: event.headerType,
             hasPath: event.hasPath,
-            pathHops: event.pathHops,
-          }),
-        },
-      ],
+            pathHops: event.pathHops
+          })
+        }
+      ]
     };
   }
 
@@ -401,25 +400,22 @@ export function stepPathOutboundPlanWithActions(
 
 /** Extract the path-outbound plan from actions; null when empty. */
 export function pathOutboundPlanFromActions(
-  actions: ReadonlyArray<PathOutboundPlanAction>,
+  actions: ReadonlyArray<PathOutboundPlanAction>
 ): PathOutboundKind | null {
   const action = actions.find(
-    (entry) =>
-      entry.kind === "wrap" ||
-      entry.kind === "direct" ||
-      entry.kind === "flood",
+    (entry) => entry.kind === "wrap" || entry.kind === "direct" || entry.kind === "flood"
   );
   return action?.kind ?? null;
 }
 
 export function shouldWrapPathOutboundPlan(
-  actions: ReadonlyArray<PathOutboundPlanAction>,
+  actions: ReadonlyArray<PathOutboundPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "wrap");
 }
 
 export function shouldDirectPathOutboundPlan(
-  actions: ReadonlyArray<PathOutboundPlanAction>,
+  actions: ReadonlyArray<PathOutboundPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "direct");
 }
@@ -455,27 +451,24 @@ export interface PathOutboundStepResult {
 
 export function stepPathOutboundWithActions(
   state: PathOutboundState,
-  event: PathOutboundEvent,
+  event: PathOutboundEvent
 ): PathOutboundStepResult {
   return stepPathOutboundInner(state, event);
 }
 
 export function stepPathOutboundInner(
   state: PathOutboundState,
-  event: PathOutboundEvent,
+  event: PathOutboundEvent
 ): PathOutboundStepResult {
   if (event.kind === "path/outbound-gate") {
-    const planActions = stepPathOutboundPlanWithActions(
-      initialPathOutboundPlanState(),
-      {
-        kind: "path/outbound-plan-gate",
-        packetType: event.packetType,
-        destinationType: event.destinationType,
-        headerType: event.headerType,
-        hasPath: event.hasPath,
-        pathHops: event.pathHops,
-      },
-    ).actions;
+    const planActions = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
+      packetType: event.packetType,
+      destinationType: event.destinationType,
+      headerType: event.headerType,
+      hasPath: event.hasPath,
+      pathHops: event.pathHops
+    }).actions;
     const plan = pathOutboundPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };

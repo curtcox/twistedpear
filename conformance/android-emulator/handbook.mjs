@@ -10,10 +10,10 @@ export async function runAndroidHandbookSlice() {
   const result = await runHandbookMobileSlice({
     platform: "android",
     sandboxBackend: "bare-worker",
-    label: "android-emulator",
+    label: "android-emulator"
   });
   console.log(
-    `android-emulator/handbook: ${result.chapters} chapter(s), ${result.applets} applet(s), report ${result.reportId.slice(0, 12)}…`,
+    `android-emulator/handbook: ${result.chapters} chapter(s), ${result.applets} applet(s), report ${result.reportId.slice(0, 12)}…`
   );
 }
 

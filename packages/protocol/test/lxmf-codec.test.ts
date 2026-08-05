@@ -38,13 +38,9 @@ import {
   unpackBinList,
   unpackLxmPayload,
   unpackPropagationEnvelope,
-  unpackPropagationRequest,
+  unpackPropagationRequest
 } from "../src/lxmf-codec.js";
-import {
-  msgpackPackArray,
-  msgpackPackBin,
-  msgpackPackUInt,
-} from "../src/msgpack-core.js";
+import { msgpackPackArray, msgpackPackBin, msgpackPackUInt } from "../src/msgpack-core.js";
 
 describe("protocol lxmf codec", () => {
   it("round-trips LXM payloads", () => {
@@ -53,7 +49,7 @@ describe("protocol lxmf codec", () => {
       new Uint8Array([1]),
       new Uint8Array([2, 3]),
       { 1: new Uint8Array([9]) },
-      new Uint8Array([7]),
+      new Uint8Array([7])
     );
     const unpacked = unpackLxmPayload(packed);
     expect(unpacked.timestamp).toBe(1.5);
@@ -81,17 +77,14 @@ describe("protocol lxmf codec", () => {
   });
 
   it("emits pack framing bytes from WithActions steps", () => {
-    const payloadStepped = stepPackLxmPayloadWithActions(
-      initialPackLxmPayloadState(),
-      {
-        kind: "lxmf-codec/pack-payload-gate",
-        timestamp: 1.5,
-        title: new Uint8Array([1]),
-        content: new Uint8Array([2, 3]),
-        fields: { 1: new Uint8Array([9]) },
-        stamp: new Uint8Array([7]),
-      },
-    );
+    const payloadStepped = stepPackLxmPayloadWithActions(initialPackLxmPayloadState(), {
+      kind: "lxmf-codec/pack-payload-gate",
+      timestamp: 1.5,
+      title: new Uint8Array([1]),
+      content: new Uint8Array([2, 3]),
+      fields: { 1: new Uint8Array([9]) },
+      stamp: new Uint8Array([7])
+    });
     expect(shouldUsePackLxmPayload(payloadStepped.actions)).toBe(true);
     const packedPayload = packLxmPayloadRawFromActions(payloadStepped.actions);
     expect(packedPayload).not.toBeNull();
@@ -101,8 +94,8 @@ describe("protocol lxmf codec", () => {
         new Uint8Array([1]),
         new Uint8Array([2, 3]),
         { 1: new Uint8Array([9]) },
-        new Uint8Array([7]),
-      ),
+        new Uint8Array([7])
+      )
     ]);
 
     const wants = [new Uint8Array([1, 2])];
@@ -112,35 +105,27 @@ describe("protocol lxmf codec", () => {
         kind: "lxmf-codec/pack-propagation-request-gate",
         wants,
         haves: null,
-        transferLimitKb: 100,
-      },
+        transferLimitKb: 100
+      }
     );
     expect(shouldUsePackPropagationRequest(requestStepped.actions)).toBe(true);
-    const packedRequest = packPropagationRequestRawFromActions(
-      requestStepped.actions,
-    );
+    const packedRequest = packPropagationRequestRawFromActions(requestStepped.actions);
     expect(packedRequest).not.toBeNull();
-    expect([...packedRequest!]).toEqual([
-      ...packPropagationRequest(wants, null, 100),
-    ]);
+    expect([...packedRequest!]).toEqual([...packPropagationRequest(wants, null, 100)]);
 
     const envelopeStepped = stepPackPropagationEnvelopeWithActions(
       initialPackPropagationEnvelopeState(),
       {
         kind: "lxmf-codec/pack-propagation-envelope-gate",
         timestamp: 10,
-        messages: [new Uint8Array([4, 5])],
-      },
+        messages: [new Uint8Array([4, 5])]
+      }
     );
-    expect(shouldUsePackPropagationEnvelope(envelopeStepped.actions)).toBe(
-      true,
-    );
-    const packedEnvelope = packPropagationEnvelopeRawFromActions(
-      envelopeStepped.actions,
-    );
+    expect(shouldUsePackPropagationEnvelope(envelopeStepped.actions)).toBe(true);
+    const packedEnvelope = packPropagationEnvelopeRawFromActions(envelopeStepped.actions);
     expect(packedEnvelope).not.toBeNull();
     expect([...packedEnvelope!]).toEqual([
-      ...packPropagationEnvelope(10, [new Uint8Array([4, 5])]),
+      ...packPropagationEnvelope(10, [new Uint8Array([4, 5])])
     ]);
   });
 
@@ -150,15 +135,12 @@ describe("protocol lxmf codec", () => {
       new Uint8Array([1]),
       new Uint8Array([2, 3]),
       { 1: new Uint8Array([9]) },
-      new Uint8Array([7]),
+      new Uint8Array([7])
     );
-    const okPayload = stepUnpackLxmPayloadWithActions(
-      initialUnpackLxmPayloadState(),
-      {
-        kind: "lxmf-codec/unpack-payload-gate",
-        data: packedPayload,
-      },
-    );
+    const okPayload = stepUnpackLxmPayloadWithActions(initialUnpackLxmPayloadState(), {
+      kind: "lxmf-codec/unpack-payload-gate",
+      data: packedPayload
+    });
     expect(shouldUseUnpackLxmPayload(okPayload.actions)).toBe(true);
     expect(shouldRejectUnpackLxmPayload(okPayload.actions)).toBe(false);
     const payloadFields = lxmPayloadFieldsFromActions(okPayload.actions);
@@ -166,13 +148,10 @@ describe("protocol lxmf codec", () => {
     expect(payloadFields!.timestamp).toBe(1.5);
     expect([...payloadFields!.title]).toEqual([1]);
 
-    const rejectedPayload = stepUnpackLxmPayloadWithActions(
-      initialUnpackLxmPayloadState(),
-      {
-        kind: "lxmf-codec/unpack-payload-gate",
-        data: new Uint8Array([0xc0]),
-      },
-    );
+    const rejectedPayload = stepUnpackLxmPayloadWithActions(initialUnpackLxmPayloadState(), {
+      kind: "lxmf-codec/unpack-payload-gate",
+      data: new Uint8Array([0xc0])
+    });
     expect(shouldRejectUnpackLxmPayload(rejectedPayload.actions)).toBe(true);
     expect(shouldUseUnpackLxmPayload(rejectedPayload.actions)).toBe(false);
     expect(lxmPayloadFieldsFromActions(rejectedPayload.actions)).toBeNull();
@@ -183,13 +162,11 @@ describe("protocol lxmf codec", () => {
       initialUnpackPropagationRequestState(),
       {
         kind: "lxmf-codec/unpack-propagation-request-gate",
-        data: packedRequest,
-      },
+        data: packedRequest
+      }
     );
     expect(shouldUseUnpackPropagationRequest(okRequest.actions)).toBe(true);
-    const requestFields = propagationRequestFieldsFromActions(
-      okRequest.actions,
-    );
+    const requestFields = propagationRequestFieldsFromActions(okRequest.actions);
     expect(requestFields).not.toBeNull();
     expect(requestFields!.wants).toHaveLength(1);
     expect(requestFields!.haves).toBeNull();
@@ -199,30 +176,22 @@ describe("protocol lxmf codec", () => {
       initialUnpackPropagationRequestState(),
       {
         kind: "lxmf-codec/unpack-propagation-request-gate",
-        data: new Uint8Array([0xc0]),
-      },
+        data: new Uint8Array([0xc0])
+      }
     );
-    expect(shouldRejectUnpackPropagationRequest(rejectedRequest.actions)).toBe(
-      true,
-    );
-    expect(
-      propagationRequestFieldsFromActions(rejectedRequest.actions),
-    ).toBeNull();
+    expect(shouldRejectUnpackPropagationRequest(rejectedRequest.actions)).toBe(true);
+    expect(propagationRequestFieldsFromActions(rejectedRequest.actions)).toBeNull();
 
-    const packedEnvelope = packPropagationEnvelope(10, [
-      new Uint8Array([4, 5]),
-    ]);
+    const packedEnvelope = packPropagationEnvelope(10, [new Uint8Array([4, 5])]);
     const okEnvelope = stepUnpackPropagationEnvelopeWithActions(
       initialUnpackPropagationEnvelopeState(),
       {
         kind: "lxmf-codec/unpack-propagation-envelope-gate",
-        data: packedEnvelope,
-      },
+        data: packedEnvelope
+      }
     );
     expect(shouldUseUnpackPropagationEnvelope(okEnvelope.actions)).toBe(true);
-    const envelopeFields = propagationEnvelopeFieldsFromActions(
-      okEnvelope.actions,
-    );
+    const envelopeFields = propagationEnvelopeFieldsFromActions(okEnvelope.actions);
     expect(envelopeFields).not.toBeNull();
     expect(envelopeFields!.messages).toHaveLength(1);
     expect([...envelopeFields!.messages[0]!]).toEqual([4, 5]);
@@ -231,40 +200,29 @@ describe("protocol lxmf codec", () => {
       initialUnpackPropagationEnvelopeState(),
       {
         kind: "lxmf-codec/unpack-propagation-envelope-gate",
-        data: new Uint8Array([0xc0]),
-      },
+        data: new Uint8Array([0xc0])
+      }
     );
-    expect(
-      shouldRejectUnpackPropagationEnvelope(rejectedEnvelope.actions),
-    ).toBe(true);
-    expect(
-      propagationEnvelopeFieldsFromActions(rejectedEnvelope.actions),
-    ).toBeNull();
+    expect(shouldRejectUnpackPropagationEnvelope(rejectedEnvelope.actions)).toBe(true);
+    expect(propagationEnvelopeFieldsFromActions(rejectedEnvelope.actions)).toBeNull();
 
-    const packedList = msgpackPackArray([
-      msgpackPackBin(new Uint8Array([9, 8])),
-    ]);
+    const packedList = msgpackPackArray([msgpackPackBin(new Uint8Array([9, 8]))]);
     const okList = stepUnpackBinListWithActions(initialUnpackBinListState(), {
       kind: "lxmf-codec/unpack-bin-list-gate",
       data: packedList,
-      label: "transient id list",
+      label: "transient id list"
     });
     expect(shouldUseUnpackBinList(okList.actions)).toBe(true);
     const listFields = binListFieldsFromActions(okList.actions);
     expect(listFields).not.toBeNull();
     expect([...listFields!.entries[0]!]).toEqual([9, 8]);
-    expect([...unpackBinList(packedList, "transient id list")[0]!]).toEqual([
-      9, 8,
-    ]);
+    expect([...unpackBinList(packedList, "transient id list")[0]!]).toEqual([9, 8]);
 
-    const rejectedList = stepUnpackBinListWithActions(
-      initialUnpackBinListState(),
-      {
-        kind: "lxmf-codec/unpack-bin-list-gate",
-        data: msgpackPackUInt(1),
-        label: "transient id list",
-      },
-    );
+    const rejectedList = stepUnpackBinListWithActions(initialUnpackBinListState(), {
+      kind: "lxmf-codec/unpack-bin-list-gate",
+      data: msgpackPackUInt(1),
+      label: "transient id list"
+    });
     expect(shouldRejectUnpackBinList(rejectedList.actions)).toBe(true);
     expect(binListFieldsFromActions(rejectedList.actions)).toBeNull();
   });

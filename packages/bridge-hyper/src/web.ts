@@ -5,15 +5,12 @@ export type {
   WebFetchPlane,
   WebFetchPlaneRequest,
   WebFetchPlaneResult,
-  WebFetchProgress,
+  WebFetchProgress
 } from "./client/fetch-plane-web.js";
 export {
   bulkFetchUrlFromGateway,
   dhtRelayUrlFromGateway,
   fetchDriveVersionForWeb,
-  fetchDriveVersionViaGateway,
+  fetchDriveVersionViaGateway
 } from "./client/web-gateway-hyper-fetch.js";
-export type {
-  WebCompositeHyperFetchOptions,
-  WebGatewayHyperFetchOptions,
-} from "./client/web-gateway-hyper-fetch.js";
+export type { WebCompositeHyperFetchOptions, WebGatewayHyperFetchOptions } from "./client/web-gateway-hyper-fetch.js";

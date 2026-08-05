@@ -12,7 +12,7 @@ export const DEFAULT_CONFIG: TpConfig = {
   identityPath: ".tp/identity",
   bootstrap: [],
   seederAddress: null,
-  storageDir: ".tp/storage",
+  storageDir: ".tp/storage"
 };
 
 export function loadConfig(cwd: string): TpConfig {
@@ -21,14 +21,12 @@ export function loadConfig(cwd: string): TpConfig {
     return DEFAULT_CONFIG;
   }
 
-  const parsed = JSON.parse(
-    readFileSync(configPath, "utf8"),
-  ) as Partial<TpConfig>;
+  const parsed = JSON.parse(readFileSync(configPath, "utf8")) as Partial<TpConfig>;
   return {
     identityPath: parsed.identityPath ?? DEFAULT_CONFIG.identityPath,
     bootstrap: parsed.bootstrap ?? DEFAULT_CONFIG.bootstrap,
     seederAddress: parsed.seederAddress ?? DEFAULT_CONFIG.seederAddress,
-    storageDir: parsed.storageDir ?? DEFAULT_CONFIG.storageDir,
+    storageDir: parsed.storageDir ?? DEFAULT_CONFIG.storageDir
   };
 }
 

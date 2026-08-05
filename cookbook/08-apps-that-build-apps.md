@@ -15,12 +15,12 @@ first page on why before it shows any code.
 
 ## Why these grants are different
 
-| Capability     | What the app can do                                                                   |
-| -------------- | ------------------------------------------------------------------------------------- |
+| Capability | What the app can do |
+|---|---|
 | `apps:package` | Turn workspace files into a signed `.tpkg` **using this device's publisher identity** |
-| `apps:publish` | Announce that package so others can install it                                        |
-| `apps:install` | Ask the host to install a package by identifier                                       |
-| `apps:preview` | Run a project in the host's dev-preview slot                                          |
+| `apps:publish` | Announce that package so others can install it |
+| `apps:install` | Ask the host to install a package by identifier |
+| `apps:preview` | Run a project in the host's dev-preview slot |
 
 The one to think hardest about is `apps:package`. A signature says "this device's publisher
 vouches for these bytes" — and an app with this grant can put that signature on bytes the
@@ -65,11 +65,11 @@ swatch reading "Hello" and a QR-coded 256t identifier beneath it; Form forge sho
 designed six-field list awaiting review; App relay showing three heard app announces with
 **Install…** buttons and a trusted-publishers line.
 
-| Recipe                        | Capabilities                                                | Directory                                        |
-| ----------------------------- | ----------------------------------------------------------- | ------------------------------------------------ |
+| Recipe | Capabilities | Directory |
+|---|---|---|
 | [Sticker mill](#sticker-mill) | `workspace`, `apps:package`, `apps:preview`, `apps:publish` | [apps/sticker-mill](apps/sticker-mill/README.md) |
-| [Form forge](#form-forge)     | `workspace`, `apps:package`, `apps:preview`, `ai:chat`      | [apps/form-forge](apps/form-forge/README.md)     |
-| [App relay](#app-relay)       | `announce:subscribe`, `apps:install`, `storage:kv`          | [apps/app-relay](apps/app-relay/README.md)       |
+| [Form forge](#form-forge) | `workspace`, `apps:package`, `apps:preview`, `ai:chat` | [apps/form-forge](apps/form-forge/README.md) |
+| [App relay](#app-relay) | `announce:subscribe`, `apps:install`, `storage:kv` | [apps/app-relay](apps/app-relay/README.md) |
 
 ---
 
@@ -130,7 +130,7 @@ try {
 }
 ```
 
-Render _before_ awaiting. The confirmation may sit on screen for up to a minute, and when the
+Render *before* awaiting. The confirmation may sit on screen for up to a minute, and when the
 user dismisses it they will look at your app to see what happened — so the app should already
 be saying "waiting", not still showing the state from before they tapped.
 
@@ -188,17 +188,9 @@ generator:
 
 ```javascript
 for (const item of candidate) {
-  if (
-    typeof item?.label !== "string" ||
-    item.label.length === 0 ||
-    item.label.length > 60
-  )
-    return null;
+  if (typeof item?.label !== "string" || item.label.length === 0 || item.label.length > 60) return null;
   if (!TYPES.includes(item?.type)) return null;
-  const name = item.label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .slice(0, 24);
+  const name = item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24);
   if (name.length === 0) return null;
   clean.push({ name, label: item.label, type: item.type });
 }
@@ -254,7 +246,7 @@ The trust list is the entire product, and its default is honest about being bad:
 ```javascript
 trusted.length === 0
   ? "Trusting nobody — showing everything heard. This is not a safe default."
-  : `Trusting ${trusted.length} publisher(s)`;
+  : `Trusting ${trusted.length} publisher(s)`
 ```
 
 There is no registry, no store, no search, and no moderation. Nobody reviews anyone's code.

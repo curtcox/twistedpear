@@ -1,5 +1,6 @@
 # SPEC-MEDIA / Serial profile (adopted)
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -17,18 +18,18 @@ behavior (baud, flow control) is gated on hardware
 
 ## 1. Upstream pin
 
-| Upstream                         | Version              | Role                               |
-| -------------------------------- | -------------------- | ---------------------------------- |
+| Upstream | Version | Role |
+|---|---|---|
 | RNS SerialInterface HDLC framing | RNS 0.9.4-compatible | Byte framing on the serial carrier |
 
 ## 2. Subset
 
-| Feature                                               | TwistedPear use         | Pinned by                                                                               |
-| ----------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
-| HDLC frame round-trip incl. flag/escape byte-stuffing | Serial packet framing   | `packages/protocol` `hdlc.test.ts` ("round-trips payloads including flag/escape bytes") |
-| Streamed decode across chunk boundaries               | Partial-read reassembly | `hdlc.test.ts` ("streams across chunk boundaries")                                      |
-| Deterministic framing                                 | Replay/determinism      | `hdlc.test.ts` ("double-runs identically")                                              |
-| Node serialport driver availability                   | Host serial carrier     | `npm run test:serialport-load` ("Node serialport import OK")                            |
+| Feature | TwistedPear use | Pinned by |
+|---|---|---|
+| HDLC frame round-trip incl. flag/escape byte-stuffing | Serial packet framing | `packages/protocol` `hdlc.test.ts` ("round-trips payloads including flag/escape bytes") |
+| Streamed decode across chunk boundaries | Partial-read reassembly | `hdlc.test.ts` ("streams across chunk boundaries") |
+| Deterministic framing | Replay/determinism | `hdlc.test.ts` ("double-runs identically") |
+| Node serialport driver availability | Host serial carrier | `npm run test:serialport-load` ("Node serialport import OK") |
 
 ## 3. Extensions
 

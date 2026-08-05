@@ -20,17 +20,9 @@ export async function handlePeerWebRtcMessage(message, send) {
       const state = sessions.get(message.sessionId);
       if (state?.channel?.readyState === "open") {
         state.channel.send(unhex(message.dataHex));
-        send({
-          type: "peer-chrome-response",
-          token: message.token,
-          sent: true,
-        });
+        send({ type: "peer-chrome-response", token: message.token, sent: true });
       } else {
-        send({
-          type: "peer-chrome-response",
-          token: message.token,
-          sent: false,
-        });
+        send({ type: "peer-chrome-response", token: message.token, sent: false });
       }
       return;
     }
@@ -44,11 +36,7 @@ export async function handlePeerWebRtcMessage(message, send) {
     }
     if (message.type === "peer-webrtc-media-detach") {
       detachMedia(message);
-      send({
-        type: "peer-chrome-response",
-        token: message.token,
-        attached: false,
-      });
+      send({ type: "peer-chrome-response", token: message.token, attached: false });
       return;
     }
     if (message.type === "peer-webrtc-close") {
@@ -61,20 +49,19 @@ export async function handlePeerWebRtcMessage(message, send) {
         token: message.token,
         error: error instanceof Error ? error.message : String(error),
         opened: false,
-        attached: false,
+        attached: false
       });
     }
   }
 }
 
 async function signal(message, send) {
-  const PeerConnection =
-    globalThis.RTCPeerConnection ?? globalThis.webkitRTCPeerConnection;
+  const PeerConnection = globalThis.RTCPeerConnection ?? globalThis.webkitRTCPeerConnection;
   if (typeof PeerConnection !== "function") {
     send({
       type: "peer-chrome-response",
       token: message.token,
-      error: "RTCPeerConnection is unavailable in this renderer",
+      error: "RTCPeerConnection is unavailable in this renderer"
     });
     return;
   }
@@ -83,7 +70,7 @@ async function signal(message, send) {
     pc,
     channel: null,
     role: message.role,
-    localTracks: [],
+    localTracks: []
   };
   sessions.set(message.sessionId, state);
   pc.addEventListener("track", () => {
@@ -96,8 +83,7 @@ async function signal(message, send) {
     state.channel.binaryType = "arraybuffer";
     await pc.setLocalDescription(await pc.createOffer());
   } else {
-    if (message.remoteSignal === undefined)
-      throw new Error("WebRTC offer is missing");
+    if (message.remoteSignal === undefined) throw new Error("WebRTC offer is missing");
     pc.addEventListener("datachannel", (event) => {
       state.channel = event.channel;
       state.channel.binaryType = "arraybuffer";
@@ -123,7 +109,7 @@ async function signal(message, send) {
   send({
     type: "peer-chrome-response",
     token: message.token,
-    signal: JSON.stringify({ type: local.type, sdp: local.sdp }),
+    signal: JSON.stringify({ type: local.type, sdp: local.sdp })
   });
 }
 
@@ -131,38 +117,26 @@ async function establish(message, send) {
   const state = sessions.get(message.sessionId);
   if (state === undefined) throw new Error("WebRTC state is missing");
   if (state.role === "offer") {
-    if (message.remoteSignal === undefined)
-      throw new Error("WebRTC answer is missing");
+    if (message.remoteSignal === undefined) throw new Error("WebRTC answer is missing");
     await state.pc.setRemoteDescription(JSON.parse(message.remoteSignal));
   }
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline && state.channel?.readyState !== "open") {
-    if (
-      state.pc.connectionState === "failed" ||
-      state.pc.connectionState === "closed"
-    )
-      break;
+    if (state.pc.connectionState === "failed" || state.pc.connectionState === "closed") break;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   if (state.channel?.readyState !== "open") {
     throw new Error(
       state.pc.iceConnectionState === "failed"
         ? "ICE failed; this network may require TURN"
-        : "Data channel timed out",
+        : "Data channel timed out"
     );
   }
   state.channel.addEventListener("message", (event) => {
     void (async () => {
-      const buffer =
-        event.data instanceof Blob
-          ? await event.data.arrayBuffer()
-          : event.data;
+      const buffer = event.data instanceof Blob ? await event.data.arrayBuffer() : event.data;
       if (buffer instanceof ArrayBuffer) {
-        send({
-          type: "peer-webrtc-data",
-          sessionId: message.sessionId,
-          dataHex: hex(new Uint8Array(buffer)),
-        });
+        send({ type: "peer-webrtc-data", sessionId: message.sessionId, dataHex: hex(new Uint8Array(buffer)) });
       }
     })();
   });
@@ -177,19 +151,11 @@ async function attachMedia(message, send) {
     throw new Error("getUserMedia is unavailable");
   }
   const audio = message.classId === "microphone";
-  const video =
-    message.classId === "camera" || message.classId === "screen-capture";
-  if (!audio && !video)
-    throw new Error(`Unsupported media class ${message.classId}`);
+  const video = message.classId === "camera" || message.classId === "screen-capture";
+  if (!audio && !video) throw new Error(`Unsupported media class ${message.classId}`);
   const stream = await nav.mediaDevices.getUserMedia({
-    audio: audio
-      ? {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }
-      : false,
-    video: video ? { facingMode: "user" } : false,
+    audio: audio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
+    video: video ? { facingMode: "user" } : false
   });
   const tracks = stream.getTracks();
   if (tracks.length === 0) throw new Error("No media tracks from getUserMedia");
@@ -198,18 +164,9 @@ async function attachMedia(message, send) {
     const transceiver = state.pc.getTransceivers?.().find((entry) => {
       const senderKind = entry.sender?.track?.kind;
       const receiverKind = entry.receiver?.track?.kind;
-      return (
-        senderKind === kind ||
-        receiverKind === kind ||
-        (senderKind === undefined &&
-          receiverKind === undefined &&
-          entry.mid !== null)
-      );
+      return senderKind === kind || receiverKind === kind || (senderKind === undefined && receiverKind === undefined && entry.mid !== null);
     });
-    if (
-      transceiver?.sender &&
-      typeof transceiver.sender.replaceTrack === "function"
-    ) {
+    if (transceiver?.sender && typeof transceiver.sender.replaceTrack === "function") {
       await transceiver.sender.replaceTrack(track);
     } else {
       state.pc.addTrack(track);
@@ -231,13 +188,8 @@ async function attachMedia(message, send) {
     bytesSent,
     connectionState: state.pc.connectionState,
     voiceProcessing: audio
-      ? {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          voiceDuplex: true,
-        }
-      : null,
+      ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, voiceDuplex: true }
+      : null
   });
 }
 
@@ -250,7 +202,7 @@ async function mediaStats(message, send) {
     token: message.token,
     bytesSent,
     trackCount: state.localTracks.length,
-    connectionState: state.pc.connectionState,
+    connectionState: state.pc.connectionState
   });
 }
 
@@ -311,7 +263,5 @@ function hex(bytes) {
 }
 
 function unhex(text) {
-  return Uint8Array.from(text.match(/.{1,2}/g) ?? [], (pair) =>
-    Number.parseInt(pair, 16),
-  );
+  return Uint8Array.from(text.match(/.{1,2}/g) ?? [], (pair) => Number.parseInt(pair, 16));
 }

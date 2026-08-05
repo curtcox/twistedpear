@@ -11,7 +11,7 @@ export const MANIFEST_SIGNING_FIELDS = [
   "minHostApi",
   "files",
   "driveKey",
-  "publisherPublicKey",
+  "publisherPublicKey"
 ] as const;
 
 export interface ManifestFileEntry {
@@ -36,8 +36,7 @@ export interface AppManifest {
 
 export type UnsignedManifest = Omit<AppManifest, "signature">;
 
-const SEMVER_RE =
-  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+const SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
 
 export function isValidSemver(version: string): boolean {
   return SEMVER_RE.test(version);
@@ -59,7 +58,7 @@ export function compareSemver(left: string, right: string): number {
       Number(match[2]),
       Number(match[3]),
       match[4] ?? "",
-      match[5] ?? "",
+      match[5] ?? ""
     ];
   };
 
@@ -187,17 +186,11 @@ export function validateManifestStructure(manifest: UnsignedManifest): void {
     throw new Error("Manifest icon must appear in files table");
   }
 
-  if (
-    manifest.driveKey.length !== 64 ||
-    !/^[0-9a-f]+$/.test(manifest.driveKey)
-  ) {
+  if (manifest.driveKey.length !== 64 || !/^[0-9a-f]+$/.test(manifest.driveKey)) {
     throw new Error("Invalid driveKey hex");
   }
 
-  if (
-    manifest.publisherPublicKey.length !== 128 ||
-    !/^[0-9a-f]+$/.test(manifest.publisherPublicKey)
-  ) {
+  if (manifest.publisherPublicKey.length !== 128 || !/^[0-9a-f]+$/.test(manifest.publisherPublicKey)) {
     throw new Error("Invalid publisherPublicKey hex");
   }
 }
@@ -209,15 +202,11 @@ export function parseManifestJson(text: string): AppManifest {
   return parsed;
 }
 
-export function manifestToJson(
-  manifest: AppManifest | UnsignedManifest,
-): string {
+export function manifestToJson(manifest: AppManifest | UnsignedManifest): string {
   return `${JSON.stringify(manifest, null, 2)}\n`;
 }
 
-export function manifestPublisherKeyBytes(
-  manifest: UnsignedManifest,
-): Uint8Array {
+export function manifestPublisherKeyBytes(manifest: UnsignedManifest): Uint8Array {
   return hexToBytes(manifest.publisherPublicKey);
 }
 

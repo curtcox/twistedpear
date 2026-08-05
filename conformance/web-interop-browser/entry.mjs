@@ -16,25 +16,17 @@ import {
   WebSocketClientInterface,
   bytesToHex,
   hexToBytes,
-  webRuntime,
+  webRuntime
 } from "../../packages/reticulum-ts/dist/web.js";
-import {
-  LXMessageMethod,
-  LXMFRouter,
-} from "../../packages/lxmf-ts/dist/index.js";
+import { LXMessageMethod, LXMFRouter } from "../../packages/lxmf-ts/dist/index.js";
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find(
-    (candidate) => candidate.name === name,
-  );
+  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(entry.privateKeyHex),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -75,9 +67,7 @@ async function waitForReceipt(receipt, timeoutMs = 15_000) {
     await sleep(50);
   }
 
-  throw new Error(
-    `Timed out waiting for delivered receipt; last status ${receipt.status}`,
-  );
+  throw new Error(`Timed out waiting for delivered receipt; last status ${receipt.status}`);
 }
 
 function bytesToAscii(bytes) {
@@ -89,8 +79,8 @@ async function runWebLeafHostSmoke(wsUrl) {
     gatewayUrl: wsUrl,
     identity: {
       storeName: "twistedpear-web-interop-identity",
-      passphrase: "web-interop-browser-passphrase",
-    },
+      passphrase: "web-interop-browser-passphrase"
+    }
   });
 
   const firstStatus = first.getStatus();
@@ -119,8 +109,8 @@ async function runWebLeafHostSmoke(wsUrl) {
     gatewayUrl: wsUrl,
     identity: {
       storeName: "twistedpear-web-interop-identity",
-      passphrase: "web-interop-browser-passphrase",
-    },
+      passphrase: "web-interop-browser-passphrase"
+    }
   });
 
   if (second.getStatus().identityHash !== firstStatus.identityHash) {
@@ -140,7 +130,7 @@ async function runPacketEcho(wsUrl) {
     name: "browser-leaf-ws",
     provider,
     runtime,
-    url: wsUrl,
+    url: wsUrl
   });
   leaf.registerInterface(wsClient);
 
@@ -153,7 +143,7 @@ async function runPacketEcho(wsUrl) {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"],
+    aspects: ["echo"]
   });
   aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -163,7 +153,7 @@ async function runPacketEcho(wsUrl) {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"],
+    aspects: ["echo"]
   });
 
   const received = new Map();
@@ -173,9 +163,7 @@ async function runPacketEcho(wsUrl) {
 
   await aliceIn.announce();
   if (typeof globalThis.__WAIT_FOR_GATEWAY_PATH__ !== "function") {
-    throw new Error(
-      "browser packet echo: gateway path verifier is unavailable",
-    );
+    throw new Error("browser packet echo: gateway path verifier is unavailable");
   }
   await globalThis.__WAIT_FOR_GATEWAY_PATH__(bytesToHex(aliceIn.hash));
   await waitForPath(leaf, bobOut.hash);
@@ -187,35 +175,23 @@ async function runPacketEcho(wsUrl) {
   // browser return path is live. Re-announce while waiting because the first
   // transported announce can race interface startup in a cold CI container.
   const greetingDeadline = Date.now() + 20_000;
-  while (
-    !received.has("hello from python leaf echo") &&
-    Date.now() < greetingDeadline
-  ) {
+  while (!received.has("hello from python leaf echo") && Date.now() < greetingDeadline) {
     await aliceIn.announce();
     await sleep(1_000);
   }
   if (!received.has("hello from python leaf echo")) {
-    throw new Error(
-      "browser packet echo: Python greeting was not received before ping",
-    );
+    throw new Error("browser packet echo: Python greeting was not received before ping");
   }
 
   await aliceIn.announce();
   await sleep(500);
 
   const payload = new TextEncoder().encode("web-browser-interop-ping");
-  for (
-    let attempt = 0;
-    attempt < 3 && !received.has("web-browser-interop-ping");
-    attempt += 1
-  ) {
+  for (let attempt = 0; attempt < 3 && !received.has("web-browser-interop-ping"); attempt += 1) {
     const receipt = await bobOut.send(payload, { createReceipt: true });
     await waitForReceipt(receipt);
     const attemptDeadline = Date.now() + 10_000;
-    while (
-      !received.has("web-browser-interop-ping") &&
-      Date.now() < attemptDeadline
-    ) {
+    while (!received.has("web-browser-interop-ping") && Date.now() < attemptDeadline) {
       await sleep(100);
     }
   }
@@ -238,7 +214,7 @@ async function runLxmfEcho(wsUrl) {
     name: "browser-leaf-ws-lxmf",
     provider,
     runtime,
-    url: wsUrl,
+    url: wsUrl
   });
   leaf.registerInterface(wsClient);
 
@@ -279,7 +255,7 @@ async function runLxmfEcho(wsUrl) {
       content: "Hello Python LXMF from browser",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: Date.now() / 1_000,
+      timestamp: Date.now() / 1_000
     });
     globalThis.__WEB_INTEROP__.lxmf = `awaiting-echo-${attempt + 1}`;
     const attemptDeadline = Date.now() + 15_000;
@@ -309,7 +285,7 @@ async function main() {
     status: "running",
     webLeafHost: null,
     packet: null,
-    lxmf: null,
+    lxmf: null
   };
 
   await runLxmfEcho(wsUrl);
@@ -329,6 +305,6 @@ main().catch((error) => {
     webLeafHost: globalThis.__WEB_INTEROP__?.webLeafHost ?? null,
     packet: globalThis.__WEB_INTEROP__?.packet ?? null,
     lxmf: globalThis.__WEB_INTEROP__?.lxmf ?? null,
-    message: error instanceof Error ? error.message : String(error),
+    message: error instanceof Error ? error.message : String(error)
   };
 });

@@ -24,11 +24,11 @@ a short history beneath, and Breath pacer mid-cycle with its progress bar about 
 filled and "Breathe in" above it. Beneath the trio, a single host **Grants** panel is shown
 with all three apps listed and the text "No capabilities requested" against each.
 
-| Recipe                            | Capabilities | Directory                                            |
-| --------------------------------- | ------------ | ---------------------------------------------------- |
-| [Unit converter](#unit-converter) | _(none)_     | [apps/unit-converter](apps/unit-converter/README.md) |
-| [Dice table](#dice-table)         | _(none)_     | [apps/dice-table](apps/dice-table/README.md)         |
-| [Breath pacer](#breath-pacer)     | _(none)_     | [apps/breath-pacer](apps/breath-pacer/README.md)     |
+| Recipe | Capabilities | Directory |
+|---|---|---|
+| [Unit converter](#unit-converter) | _(none)_ | [apps/unit-converter](apps/unit-converter/README.md) |
+| [Dice table](#dice-table) | _(none)_ | [apps/dice-table](apps/dice-table/README.md) |
+| [Breath pacer](#breath-pacer) | _(none)_ | [apps/breath-pacer](apps/breath-pacer/README.md) |
 
 ---
 
@@ -76,7 +76,7 @@ ui.onEvent(async ({ event, value }) => {
     const id = event.slice("conv.select.".length);
     selected = UNITS.find((unit) => unit.id === id) ?? selected;
   } else {
-    return; // unknown event: render nothing, change nothing
+    return;                       // unknown event: render nothing, change nothing
   }
   await render();
 });
@@ -167,7 +167,7 @@ the background."
 ### The interesting part
 
 ```javascript
-const TICK_MS = 250; // four renders per second, against a 60-per-second ceiling
+const TICK_MS = 250;   // four renders per second, against a 60-per-second ceiling
 
 async function tick() {
   elapsedMs += TICK_MS;

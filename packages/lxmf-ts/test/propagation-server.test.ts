@@ -3,7 +3,7 @@ import { NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import {
   PropagationServer,
   DEFAULT_PROPAGATION_QUOTAS,
-  type PropagationStoredEntry,
+  type PropagationStoredEntry
 } from "../src/propagation-server.js";
 
 describe("PropagationServer quotas", () => {
@@ -14,15 +14,15 @@ describe("PropagationServer quotas", () => {
       {
         ...DEFAULT_PROPAGATION_QUOTAS,
         maxMessages: 2,
-        maxBytes: 10_000_000,
+        maxBytes: 10_000_000
       },
       {
         now: () => Date.now(),
         schedule: (ms: number, callback: () => void) => {
           const handle = setTimeout(callback, ms);
           return { cancel: () => clearTimeout(handle) };
-        },
-      },
+        }
+      }
     );
 
     const first = new Uint8Array(32);
@@ -46,15 +46,15 @@ describe("PropagationServer quotas", () => {
       provider,
       {
         ...DEFAULT_PROPAGATION_QUOTAS,
-        maxMessageBytes: 16,
+        maxMessageBytes: 16
       },
       {
         now: () => Date.now(),
         schedule: (ms: number, callback: () => void) => {
           const handle = setTimeout(callback, ms);
           return { cancel: () => clearTimeout(handle) };
-        },
-      },
+        }
+      }
     );
 
     const oversized = new Uint8Array(32);
@@ -72,9 +72,9 @@ describe("PropagationServer quotas", () => {
         snapshot = entries.map((entry) => ({
           transientId: Uint8Array.from(entry.transientId),
           lxmfData: Uint8Array.from(entry.lxmfData),
-          storedAt: entry.storedAt,
+          storedAt: entry.storedAt
         }));
-      },
+      }
     };
 
     const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
@@ -83,7 +83,7 @@ describe("PropagationServer quotas", () => {
         const handle = setTimeout(callback, ms);
         return { cancel: () => clearTimeout(handle) };
       },
-      persistence,
+      persistence
     });
     const payload = new Uint8Array(32);
     payload[0] = 42;
@@ -99,8 +99,8 @@ describe("PropagationServer quotas", () => {
           const handle = setTimeout(callback, ms);
           return { cancel: () => clearTimeout(handle) };
         },
-        persistence,
-      },
+        persistence
+      }
     );
     expect(restarted.stats.messageCount).toBe(1);
     expect(restarted.stats.usedBytes).toBe(32);
@@ -123,14 +123,14 @@ describe("PropagationServer quotas", () => {
             entries.map((entry) => ({
               transientId: Uint8Array.from(entry.transientId),
               lxmfData: Uint8Array.from(entry.lxmfData),
-              storedAt: entry.storedAt,
-            })),
+              storedAt: entry.storedAt
+            }))
           );
         },
         pull() {
           return remote;
-        },
-      },
+        }
+      }
     });
 
     const payload = new Uint8Array(32);
@@ -147,7 +147,7 @@ describe("PropagationServer quotas", () => {
         data[0] = 9;
         return data;
       })(),
-      storedAt: Date.now(),
+      storedAt: Date.now()
     });
     expect(await server.pullRemoteMirror()).toBe(1);
     expect(server.stats.messageCount).toBe(2);

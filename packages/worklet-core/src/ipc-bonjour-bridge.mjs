@@ -44,7 +44,7 @@ export function createIpcBonjourBridge() {
       if (message.type === "bonjour-interfaces") {
         interfaces = message.interfaces;
       }
-    },
+    }
   };
 
   return bridge;

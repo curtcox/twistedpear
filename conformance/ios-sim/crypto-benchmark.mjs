@@ -10,15 +10,12 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const baselinePath = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "crypto-baseline.json",
-);
+const baselinePath = join(dirname(fileURLToPath(import.meta.url)), "crypto-baseline.json");
 
 function resolveBareBinary() {
   const candidates = [
     join(repoRoot, "node_modules/.bin/bare"),
-    join(repoRoot, "node_modules/bare/bin/bare"),
+    join(repoRoot, "node_modules/bare/bin/bare")
   ];
 
   for (const candidate of candidates) {
@@ -39,18 +36,14 @@ function runBareBenchmark() {
     return null;
   }
 
-  const result = spawnSync(
-    bareBinary,
-    [join(repoRoot, "conformance/bare-runtime/benchmark-bare.mjs")],
-    {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        BENCHMARK_ITERATIONS: process.env.BENCHMARK_ITERATIONS ?? "100",
-      },
-    },
-  );
+  const result = spawnSync(bareBinary, [join(repoRoot, "conformance/bare-runtime/benchmark-bare.mjs")], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      BENCHMARK_ITERATIONS: process.env.BENCHMARK_ITERATIONS ?? "100"
+    }
+  });
 
   if (result.status !== 0) {
     return null;
@@ -60,23 +53,17 @@ function runBareBenchmark() {
 }
 
 function runNodePureBenchmark() {
-  const result = spawnSync(
-    "node",
-    [join(repoRoot, "conformance/bare-runtime/benchmark-node.mjs")],
-    {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        BENCHMARK_ITERATIONS: process.env.BENCHMARK_ITERATIONS ?? "100",
-      },
-    },
-  );
+  const result = spawnSync("node", [join(repoRoot, "conformance/bare-runtime/benchmark-node.mjs")], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      BENCHMARK_ITERATIONS: process.env.BENCHMARK_ITERATIONS ?? "100"
+    }
+  });
 
   if (result.status !== 0) {
-    throw new Error(
-      `node crypto benchmark failed\n${result.stdout}\n${result.stderr}`,
-    );
+    throw new Error(`node crypto benchmark failed\n${result.stdout}\n${result.stderr}`);
   }
 
   return JSON.parse(result.stdout);
@@ -94,30 +81,23 @@ export function runIosCryptoBenchmark(options = {}) {
 
   if (current === null) {
     if (requireBare) {
-      throw new Error(
-        "bare crypto benchmark required but Bare runtime comparison was unavailable",
-      );
+      throw new Error("bare crypto benchmark required but Bare runtime comparison was unavailable");
     }
 
     const nodeCurrent = runNodePureBenchmark();
     const nodeBaseline = JSON.parse(
-      readFileSync(
-        join(repoRoot, "conformance/bare-runtime/baseline-node.json"),
-        "utf8",
-      ),
+      readFileSync(join(repoRoot, "conformance/bare-runtime/baseline-node.json"), "utf8")
     );
     const pureAvg = averageOps(nodeCurrent.results);
     const baselineAvg = averageOps(nodeBaseline.results);
     const ratio = pureAvg / baselineAvg;
 
     if (ratio < 0.5) {
-      throw new Error(
-        `pure provider regressed vs node baseline (${Math.round(ratio * 100)}%)`,
-      );
+      throw new Error(`pure provider regressed vs node baseline (${Math.round(ratio * 100)}%)`);
     }
 
     console.log(
-      `[ios-sim/crypto] bare comparison unavailable; decision=${baseline.decision} pureAvg=${pureAvg} ops/s (node baseline check ${Math.round(ratio * 100)}%)`,
+      `[ios-sim/crypto] bare comparison unavailable; decision=${baseline.decision} pureAvg=${pureAvg} ops/s (node baseline check ${Math.round(ratio * 100)}%)`
     );
     return;
   }
@@ -128,12 +108,12 @@ export function runIosCryptoBenchmark(options = {}) {
 
   if (ratio < baseline.minimumPureToBareRatio) {
     throw new Error(
-      `pure provider too slow vs bare (${Math.round(ratio * 100)}% < ${Math.round(baseline.minimumPureToBareRatio * 100)}% minimum)`,
+      `pure provider too slow vs bare (${Math.round(ratio * 100)}% < ${Math.round(baseline.minimumPureToBareRatio * 100)}% minimum)`
     );
   }
 
   console.log(
-    `[ios-sim/crypto] decision=${baseline.decision} bareAvg=${bareAvg} ops/s pureAvg=${pureAvg} ops/s ratio=${Math.round(ratio * 100)}%`,
+    `[ios-sim/crypto] decision=${baseline.decision} bareAvg=${bareAvg} ops/s pureAvg=${pureAvg} ops/s ratio=${Math.round(ratio * 100)}%`
   );
 }
 

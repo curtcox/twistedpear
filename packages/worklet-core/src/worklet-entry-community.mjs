@@ -4,19 +4,12 @@ export async function joinCommunityNetwork(deps) {
   deps.log(deps.communityNetwork.privacyNotice);
   for (const endpoint of deps.communityNetwork.endpoints) {
     await deps.stopTcpInterface();
-    deps.setPendingTarget({
-      targetHost: endpoint.host,
-      targetPort: endpoint.port,
-    });
+    deps.setPendingTarget({ targetHost: endpoint.host, targetPort: endpoint.port });
     deps.log(`Trying ${endpoint.label}`);
     if (await deps.startTcpInterface(endpoint.host, endpoint.port)) {
-      deps.log(
-        `Joined ${deps.communityNetwork.label} through ${endpoint.label}`,
-      );
+      deps.log(`Joined ${deps.communityNetwork.label} through ${endpoint.label}`);
       return;
     }
   }
-  deps.log(
-    "Community bootstrap unavailable; try again later or configure your own TCP peer",
-  );
+  deps.log("Community bootstrap unavailable; try again later or configure your own TCP peer");
 }

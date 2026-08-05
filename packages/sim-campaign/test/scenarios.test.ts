@@ -2,13 +2,10 @@ import {
   containmentRegressions,
   coverageFrame,
   createProductionScenarioRegistry,
-  runCampaign,
+  runCampaign
 } from "../src/index.js";
 import { describe, expect, it } from "vitest";
-import {
-  SimKernel,
-  MemoryHistoryRecorder,
-} from "@twistedpear/effects/adapters/sim";
+import { SimKernel, MemoryHistoryRecorder } from "@twistedpear/effects/adapters/sim";
 
 const cells = coverageFrame({ capabilities: ["identity"] });
 
@@ -19,18 +16,16 @@ describe("production abuse scenario registry", () => {
       cells,
       seeds: { from: 1, to: 1 },
       scenario: registry.create,
-      parallelism: 5,
+      parallelism: 5
     });
     expect(registry.supportedCells).toHaveLength(25);
     expect(report.coverage).toHaveLength(25);
-    expect(
-      new Set(report.coverage.flatMap((entry) => entry.protocolMachines)),
-    ).toEqual(
-      new Set(["grant-host", "link-handshake", "miniapp-host/identity.sign"]),
+    expect(new Set(report.coverage.flatMap((entry) => entry.protocolMachines))).toEqual(
+      new Set(["grant-host", "link-handshake", "miniapp-host/identity.sign"])
     );
-    expect(
-      new Set(report.coverage.flatMap((entry) => entry.adversaryPowers)),
-    ).toEqual(new Set(["inject", "duplicate", "delay", "reorder", "drop"]));
+    expect(new Set(report.coverage.flatMap((entry) => entry.adversaryPowers))).toEqual(
+      new Set(["inject", "duplicate", "delay", "reorder", "drop"])
+    );
     expect(report.findings).toEqual([]);
     for (const entry of report.coverage) {
       expect(entry.productionPath).toBeTruthy();
@@ -46,144 +41,77 @@ describe("production abuse scenario registry", () => {
     const [cell] = coverageFrame({
       capabilities: ["identity"],
       positions: ["malicious-app"],
-      verbs: ["exfiltrate"],
+      verbs: ["exfiltrate"]
     });
     expect(cell).toBeDefined();
     const registry = createProductionScenarioRegistry({
       cells: [cell!],
-      defectIds: new Set(["identity|malicious-app|exfiltrate"]),
+      defectIds: new Set(["identity|malicious-app|exfiltrate"])
     });
     const report = await runCampaign({
       cells: [cell!],
       seeds: { from: 1, to: 5 },
-      scenario: registry.create,
+      scenario: registry.create
     });
     expect(report.canaryFindings.length).toBeGreaterThan(0);
     expect(report.canaryFindings.length).toBeLessThan(5);
     expect(report.findings).toEqual([]);
     const repaired = createProductionScenarioRegistry({ cells: [cell!] });
-    const repairedReport = await runCampaign({
-      cells: [cell!],
-      seeds: { from: 1, to: 5 },
-      scenario: repaired.create,
-    });
+    const repairedReport = await runCampaign({ cells: [cell!], seeds: { from: 1, to: 5 }, scenario: repaired.create });
     expect(repairedReport.canaryFindings).toEqual([]);
   });
 
   it("mutating any coverage axis changes executable semantics and position powers", async () => {
-    const variants = coverageFrame({
-      capabilities: ["identity", "storage:kv"],
-      positions: ["malicious-app", "malicious-relay"],
-      verbs: ["exfiltrate", "deny"],
-    });
+    const variants = coverageFrame({ capabilities: ["identity", "storage:kv"],
+      positions: ["malicious-app", "malicious-relay"], verbs: ["exfiltrate", "deny"] });
     const registry = createProductionScenarioRegistry({ cells: variants });
-    const report = await runCampaign({
-      cells: variants,
-      seeds: { from: 1, to: 1 },
-      scenario: registry.create,
-    });
-    expect(new Set(report.coverage.map((entry) => entry.name)).size).toBe(
-      variants.length,
-    );
-    const app = report.coverage.find((entry) =>
-      entry.cell.includes("malicious-app"),
-    );
-    const relay = report.coverage.find((entry) =>
-      entry.cell.includes("malicious-relay"),
-    );
+    const report = await runCampaign({ cells: variants, seeds: { from: 1, to: 1 }, scenario: registry.create });
+    expect(new Set(report.coverage.map((entry) => entry.name)).size).toBe(variants.length);
+    const app = report.coverage.find((entry) => entry.cell.includes("malicious-app"));
+    const relay = report.coverage.find((entry) => entry.cell.includes("malicious-relay"));
     expect(app?.adversaryPowers).toEqual(["inject"]);
     expect(app?.adversaryPowers).not.toContain("drop");
     expect(app?.adversaryPowers).not.toContain("delay");
     expect(relay?.adversaryPowers).toContain("delay");
 
-    const states = await Promise.all(
-      variants.map(async (variant) => {
-        const scenario = registry.create(variant, 1);
-        await scenario.prepare?.();
-        const kernel = new SimKernel(scenario.config);
-        kernel.start();
-        kernel.runUntilIdle(20_000);
-        return kernel.getNodeState("service") as any;
-      }),
-    );
+    const states = await Promise.all(variants.map(async (variant) => {
+      const scenario = registry.create(variant, 1);
+      await scenario.prepare?.();
+      const kernel = new SimKernel(scenario.config);
+      kernel.start(); kernel.runUntilIdle(20_000);
+      return kernel.getNodeState("service") as any;
+    }));
     expect(new Set(states.map((state) => state.productionPath)).size).toBe(2);
-    expect(
-      new Set(states.map((state) => state.productionObservation.handler)).size,
-    ).toBe(2);
-    expect(
-      new Set(
-        states.map((state) => state.productionObservation.storageKeys.length),
-      ).size,
-    ).toBeGreaterThan(1);
+    expect(new Set(states.map((state) => state.productionObservation.handler)).size).toBe(2);
+    expect(new Set(states.map((state) => state.productionObservation.storageKeys.length)).size).toBeGreaterThan(1);
   });
 
   it("detects a weakened shipping capability gate for every counted handler", async () => {
-    const capabilities = [
-      "identity",
-      "presence",
-      "announce:publish",
-      "lxmf:send",
-      "storage:kv",
-      "resource:fetch",
-      "workspace",
-      "share:cas",
-    ] as const;
+    const capabilities = ["identity", "presence", "announce:publish", "lxmf:send",
+      "storage:kv", "resource:fetch", "workspace", "share:cas"] as const;
     for (const capability of capabilities) {
-      const [cell] = coverageFrame({
-        capabilities: [capability],
-        positions: ["malicious-app"],
-        verbs: ["exfiltrate"],
-      });
+      const [cell] = coverageFrame({ capabilities: [capability], positions: ["malicious-app"], verbs: ["exfiltrate"] });
       const id = `${capability}|malicious-app|exfiltrate`;
-      const broken = createProductionScenarioRegistry({
-        cells: [cell!],
-        defectIds: new Set([id]),
-      });
-      const brokenReport = await runCampaign({
-        cells: [cell!],
-        seeds: { from: 1, to: 8 },
-        scenario: broken.create,
-      });
+      const broken = createProductionScenarioRegistry({ cells: [cell!], defectIds: new Set([id]) });
+      const brokenReport = await runCampaign({ cells: [cell!], seeds: { from: 1, to: 8 }, scenario: broken.create });
       expect(brokenReport.canaryFindings.length, capability).toBeGreaterThan(0);
 
       const shipping = createProductionScenarioRegistry({ cells: [cell!] });
-      const shippingReport = await runCampaign({
-        cells: [cell!],
-        seeds: { from: 1, to: 8 },
-        scenario: shipping.create,
-      });
+      const shippingReport = await runCampaign({ cells: [cell!], seeds: { from: 1, to: 8 }, scenario: shipping.create });
       expect(shippingReport.canaryFindings, capability).toEqual([]);
     }
   });
 
   it("records, reruns, and shrinks deliberate production projection breaks", async () => {
-    const [identity] = coverageFrame({
-      capabilities: ["identity"],
-      positions: ["malicious-app"],
-      verbs: ["spoof"],
-    });
-    for (const oracleBreak of [
-      "grant-coverage",
-      "id-uniqueness",
-      "revocation-monotonicity",
-    ] as const) {
+    const [identity] = coverageFrame({ capabilities: ["identity"], positions: ["malicious-app"], verbs: ["spoof"] });
+    for (const oracleBreak of ["grant-coverage", "id-uniqueness", "revocation-monotonicity"] as const) {
       const recorder = new MemoryHistoryRecorder<any>();
-      const registry = createProductionScenarioRegistry({
-        cells: [identity!],
-        recorder,
-        oracleBreak,
-      });
-      const report = await runCampaign({
-        cells: [identity!],
-        seeds: { from: 9, to: 9 },
-        scenario: registry.create,
-      });
+      const registry = createProductionScenarioRegistry({ cells: [identity!], recorder, oracleBreak });
+      const report = await runCampaign({ cells: [identity!], seeds: { from: 9, to: 9 }, scenario: registry.create });
       expect(report.findings[0]?.violation.oracle).toBe(oracleBreak);
       expect(recorder.histories.length).toBeGreaterThanOrEqual(2);
       expect(recorder.histories.at(-1)?.violation?.oracle).toBe(oracleBreak);
-      expect(recorder.histories.at(-1)!.trace.length).toBeLessThan(
-        recorder.histories[0]!.trace.length,
-      );
+      expect(recorder.histories.at(-1)!.trace.length).toBeLessThan(recorder.histories[0]!.trace.length);
     }
   });
 
@@ -191,19 +119,12 @@ describe("production abuse scenario registry", () => {
     const [cell] = coverageFrame({
       capabilities: ["identity"],
       positions: ["malicious-app"],
-      verbs: ["spoof"],
+      verbs: ["spoof"]
     });
     expect(cell).toBeDefined();
     const run = async (latencyMultiplier: number) => {
-      const registry = createProductionScenarioRegistry({
-        cells: [cell!],
-        latencyMultiplier,
-      });
-      return runCampaign({
-        cells: [cell!],
-        seeds: { from: 1, to: 4 },
-        scenario: registry.create,
-      });
+      const registry = createProductionScenarioRegistry({ cells: [cell!], latencyMultiplier });
+      return runCampaign({ cells: [cell!], seeds: { from: 1, to: 4 }, scenario: registry.create });
     };
     const normal = await run(1);
     const slow = await run(4);
@@ -211,7 +132,7 @@ describe("production abuse scenario registry", () => {
       transport: entry.transport,
       revocationPropagationMsMax: entry.revocationPropagationMs!,
       egressAttributabilityMin: entry.egressAttributability!,
-      networkKillLatencyMsMax: entry.networkKillLatencyMs!,
+      networkKillLatencyMsMax: entry.networkKillLatencyMs!
     }));
     expect(containmentRegressions(normal.containment, baseline)).toEqual([]);
     expect(containmentRegressions(slow.containment, baseline)).not.toEqual([]);
@@ -222,14 +143,10 @@ describe("production abuse scenario registry", () => {
     const id = "identity|malicious-app|exfiltrate";
     const registry = createProductionScenarioRegistry({
       cells: [cell!],
-      reviewedUnsupported: {
-        [id]: "requires a hardware-backed identity side channel outside this model",
-      },
+      reviewedUnsupported: { [id]: "requires a hardware-backed identity side channel outside this model" }
     });
     expect(registry.supportedCells).toEqual([]);
     expect(registry.unsupportedCells[id]).toMatch(/outside this model/);
-    expect(() => registry.create(cell!, 1)).toThrow(
-      /unsupported campaign scenario/,
-    );
+    expect(() => registry.create(cell!, 1)).toThrow(/unsupported campaign scenario/);
   });
 });

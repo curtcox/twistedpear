@@ -7,7 +7,7 @@ export async function run(sdk, report) {
     "1. On both phones, open the host app and enable the BLE interface.",
     "2. Keep both devices in foreground for ~30 s until AutoInterface/BLE discovery runs.",
     "3. Confirm presence shows at least one peer on the preferred BLE path.",
-    "4. Re-run this applet — expect pass when a BLE peer is visible.",
+    "4. Re-run this applet — expect pass when a BLE peer is visible."
   ].join("\n");
 
   try {
@@ -17,7 +17,7 @@ export async function run(sdk, report) {
       report({
         status: "unavailable",
         details: `BLE interface not listed on ${info.platform}.\n\nGuided procedure (real device):\n${procedure}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -27,7 +27,7 @@ export async function run(sdk, report) {
       report({
         status: "unavailable",
         details: `BLE interface present but no peer connected (peers=${snap.peers ?? 0}).\n\nGuided procedure:\n${procedure}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -35,16 +35,15 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: `BLE peer visible (peers=${snap.peers}, preferred=${snap.preferredInterface ?? "none"})`,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted =
-      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
     report({
       status: notGranted ? "not-granted" : "fail",
       details: message,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   }
 }

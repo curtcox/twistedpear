@@ -58,8 +58,7 @@ export function createDevChannelClient(options) {
       });
 
       nextSocket.on("data", (chunk) => {
-        buffer +=
-          typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk);
+        buffer += typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk);
         const newline = buffer.indexOf("\n");
         if (newline < 0) {
           return;
@@ -89,24 +88,15 @@ export function createDevChannelClient(options) {
       return;
     }
 
-    if (
-      payload.type !== "dev-bundle" ||
-      typeof payload.bundleHex !== "string"
-    ) {
+    if (payload.type !== "dev-bundle" || typeof payload.bundleHex !== "string") {
       options.onError?.("Unexpected dev channel message");
       return;
     }
 
     void options
       .onBundle(payload.manifest ?? {}, hexToBytes(payload.bundleHex))
-      .then(() =>
-        options.onBundleLoaded?.(payload.manifest?.name ?? "mini-app"),
-      )
-      .catch((error) =>
-        options.onError?.(
-          error instanceof Error ? error.message : String(error),
-        ),
-      );
+      .then(() => options.onBundleLoaded?.(payload.manifest?.name ?? "mini-app"))
+      .catch((error) => options.onError?.(error instanceof Error ? error.message : String(error)));
   }
 
   async function disconnect() {
@@ -128,6 +118,6 @@ export function createDevChannelClient(options) {
     disconnect,
     isConnected() {
       return socket !== null && !socket.destroyed;
-    },
+    }
   };
 }

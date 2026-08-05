@@ -14,13 +14,7 @@ services:
     ports:
       - "4242:4242"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()",
-        ]
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -35,13 +29,7 @@ services:
     ports:
       - "4243:4242"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()",
-        ]
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -56,13 +44,7 @@ services:
     ports:
       - "4244:4242"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()",
-        ]
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -94,13 +76,7 @@ services:
     ports:
       - "4248:4242"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()",
-        ]
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -115,13 +91,7 @@ services:
     ports:
       - "4245:4242"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()",
-        ]
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -214,13 +184,7 @@ services:
     volumes:
       - ../scenarios/state:/conformance/scenarios/state
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "from pathlib import Path; raise SystemExit(0 if Path('/conformance/scenarios/state/i2p-b32.txt').is_file() else 1)",
-        ]
+      test: ["CMD", "python", "-c", "from pathlib import Path; raise SystemExit(0 if Path('/conformance/scenarios/state/i2p-b32.txt').is_file() else 1)"]
       interval: 5s
       timeout: 3s
       retries: 36

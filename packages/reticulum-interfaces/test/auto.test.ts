@@ -1,18 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  Identity,
-  PureCryptoProvider,
-  nodeRuntime,
-} from "@twistedpear/reticulum-ts";
+import { Identity, PureCryptoProvider, nodeRuntime } from "@twistedpear/reticulum-ts";
 import { descopeLinkLocal } from "../src/auto-common.js";
 import { AutoInterface, scopeIpv6Address } from "../src/auto.js";
 
 function deriveMulticastAddress(groupId: string): string {
   const provider = new PureCryptoProvider();
-  const groupHash = Identity.fullHash(
-    provider,
-    new TextEncoder().encode(groupId),
-  );
+  const groupHash = Identity.fullHash(provider, new TextEncoder().encode(groupId));
   const parts = [
     "0",
     hexPair(groupHash[3] ?? 0, groupHash[2] ?? 0),
@@ -20,7 +13,7 @@ function deriveMulticastAddress(groupId: string): string {
     hexPair(groupHash[7] ?? 0, groupHash[6] ?? 0),
     hexPair(groupHash[9] ?? 0, groupHash[8] ?? 0),
     hexPair(groupHash[11] ?? 0, groupHash[10] ?? 0),
-    hexPair(groupHash[13] ?? 0, groupHash[12] ?? 0),
+    hexPair(groupHash[13] ?? 0, groupHash[12] ?? 0)
   ];
 
   return `ff12:${parts.join(":")}`;
@@ -61,15 +54,9 @@ describe("AutoInterface helpers", () => {
 
   it("canonicalizes link-local zero compression for peer keys", async () => {
     const { normalizeLinkLocal } = await import("../src/auto-common.js");
-    expect(normalizeLinkLocal("fe80:0:0:0:d8c4:13ff:fede:9ac0")).toBe(
-      "fe80::d8c4:13ff:fede:9ac0",
-    );
-    expect(normalizeLinkLocal("fe80::d8c4:13ff:fede:9ac0%tpvethts")).toBe(
-      "fe80::d8c4:13ff:fede:9ac0",
-    );
-    expect(normalizeLinkLocal("FE80::D8C4:13FF:FEDE:9AC0")).toBe(
-      "fe80::d8c4:13ff:fede:9ac0",
-    );
+    expect(normalizeLinkLocal("fe80:0:0:0:d8c4:13ff:fede:9ac0")).toBe("fe80::d8c4:13ff:fede:9ac0");
+    expect(normalizeLinkLocal("fe80::d8c4:13ff:fede:9ac0%tpvethts")).toBe("fe80::d8c4:13ff:fede:9ac0");
+    expect(normalizeLinkLocal("FE80::D8C4:13FF:FEDE:9AC0")).toBe("fe80::d8c4:13ff:fede:9ac0");
   });
 
   it("derives stable multicast addresses from group id", () => {
@@ -96,7 +83,7 @@ describe("AutoInterface helpers", () => {
         onPeerSpawn: () => {},
         onPeerDetach: () => {
           detached += 1;
-        },
+        }
       });
     } catch {
       return;
@@ -107,18 +94,14 @@ describe("AutoInterface helpers", () => {
       return;
     }
 
-    const adopted = (
-      auto as unknown as { adopted: ReadonlyArray<{ name: string }> }
-    ).adopted;
+    const adopted = (auto as unknown as { adopted: ReadonlyArray<{ name: string }> }).adopted;
     const ifname = adopted[0]?.name;
     if (ifname === undefined) {
       await auto.close();
       return;
     }
 
-    const addPeer = (
-      auto as unknown as { addPeer: (address: string, name: string) => void }
-    ).addPeer.bind(auto);
+    const addPeer = (auto as unknown as { addPeer: (address: string, name: string) => void }).addPeer.bind(auto);
     addPeer("fe80::dead:beef", ifname);
     expect(auto.peerInterfaces.length).toBe(1);
 

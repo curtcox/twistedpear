@@ -7,25 +7,19 @@ import { fileURLToPath } from "node:url";
 import {
   calibrateTransportTrace,
   parseCalibrationPolicy,
-  parseCalibrationTrace,
+  parseCalibrationTrace
 } from "@twistedpear/effects/adapters/sim";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 function usage() {
-  console.error(
-    "usage: node conformance/sim-calibration/run.mjs TRACE.json [--output REPORT.json]",
-  );
+  console.error("usage: node conformance/sim-calibration/run.mjs TRACE.json [--output REPORT.json]");
 }
 
 const args = process.argv.slice(2);
 const traceArgument = args[0];
 const outputIndex = args.indexOf("--output");
-if (
-  traceArgument === undefined ||
-  args.includes("--help") ||
-  (outputIndex >= 0 && args[outputIndex + 1] === undefined)
-) {
+if (traceArgument === undefined || args.includes("--help") || (outputIndex >= 0 && args[outputIndex + 1] === undefined)) {
   usage();
   process.exit(traceArgument === undefined ? 2 : 0);
 }
@@ -34,9 +28,7 @@ const tracePath = resolve(traceArgument);
 const policyPath = resolve(here, "policy.json");
 const traceBytes = await readFile(tracePath);
 const trace = parseCalibrationTrace(JSON.parse(traceBytes.toString("utf8")));
-const policy = parseCalibrationPolicy(
-  JSON.parse(await readFile(policyPath, "utf8")),
-);
+const policy = parseCalibrationPolicy(JSON.parse(await readFile(policyPath, "utf8")));
 const calibration = calibrateTransportTrace(trace, policy);
 const report = {
   schemaVersion: 1,
@@ -44,10 +36,10 @@ const report = {
   trace: {
     transport: trace.transport,
     provenance: trace.provenance,
-    radio: trace.radio,
+    radio: trace.radio
   },
   policy: policy.transports[trace.transport],
-  calibration,
+  calibration
 };
 const serialized = `${JSON.stringify(report, null, 2)}\n`;
 
@@ -58,8 +50,6 @@ if (outputIndex >= 0) {
 }
 
 if (!calibration.comparison.withinTolerance) {
-  console.error(
-    `${trace.transport} calibration differs from the reviewed preset beyond policy tolerance`,
-  );
+  console.error(`${trace.transport} calibration differs from the reviewed preset beyond policy tolerance`);
   process.exitCode = 1;
 }

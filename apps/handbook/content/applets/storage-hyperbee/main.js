@@ -13,7 +13,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: "Hyperbee get returned null after put",
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -22,7 +22,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: "Hyperbee value mismatch",
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -32,7 +32,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: "Hyperbee list did not include the put key",
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -43,7 +43,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: "Hyperbee value still present after del",
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -51,19 +51,16 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: "Hyperbee open → put → get → list → del succeeded",
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted =
-      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
-    const unavailable = /not configured|UNCONFIGURED|unavailable/i.test(
-      message,
-    );
+    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const unavailable = /not configured|UNCONFIGURED|unavailable/i.test(message);
     report({
       status: notGranted ? "not-granted" : unavailable ? "unavailable" : "fail",
       details: message,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   }
 }

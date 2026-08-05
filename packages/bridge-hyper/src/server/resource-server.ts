@@ -2,7 +2,7 @@ import {
   LinkResourceStrategy,
   Resource,
   type Link,
-  type RegisteredDestination,
+  type RegisteredDestination
 } from "@twistedpear/reticulum-ts";
 
 export const RESOURCE_PROTOCOL_VERSION = 1;
@@ -23,15 +23,11 @@ export interface PackageResourceServerOptions {
 }
 
 function encodeRequest(request: PackageResourceRequest): Uint8Array {
-  return new TextEncoder().encode(
-    JSON.stringify({ v: RESOURCE_PROTOCOL_VERSION, ...request }),
-  );
+  return new TextEncoder().encode(JSON.stringify({ v: RESOURCE_PROTOCOL_VERSION, ...request }));
 }
 
 function decodeRequest(bytes: Uint8Array): PackageResourceRequest {
-  const value = JSON.parse(
-    new TextDecoder().decode(bytes),
-  ) as PackageResourceRequest & { v?: number };
+  const value = JSON.parse(new TextDecoder().decode(bytes)) as PackageResourceRequest & { v?: number };
   if (value.type === "list") {
     return { type: "list" };
   }
@@ -43,16 +39,11 @@ function decodeRequest(bytes: Uint8Array): PackageResourceRequest {
   throw new Error("Invalid package resource request");
 }
 
-function encodeListResponse(
-  versions: ReadonlyArray<PackageVersionInfo>,
-): Uint8Array {
+function encodeListResponse(versions: ReadonlyArray<PackageVersionInfo>): Uint8Array {
   return new TextEncoder().encode(JSON.stringify({ versions }));
 }
 
-export function attachPackageResourceServer(
-  destination: RegisteredDestination,
-  options: PackageResourceServerOptions,
-): void {
+export function attachPackageResourceServer(destination: RegisteredDestination, options: PackageResourceServerOptions): void {
   destination.setLinkEstablishedCallback((link) => {
     link.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
     link.callbacks.packet = async (data) => {
@@ -67,12 +58,8 @@ export function attachPackageResourceServer(
         const archive = await options.fetchArchive(request.version);
         Resource.send(link, archive, { advertise: true });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "package resource error";
-        Resource.send(
-          link,
-          new TextEncoder().encode(JSON.stringify({ error: message })),
-        );
+        const message = error instanceof Error ? error.message : "package resource error";
+        Resource.send(link, new TextEncoder().encode(JSON.stringify({ error: message })));
       }
     };
   });
@@ -85,14 +72,11 @@ export interface PackageResourceRequestOptions {
 export async function sendPackageResourceRequest(
   link: Link,
   request: PackageResourceRequest,
-  options: PackageResourceRequestOptions = {},
+  options: PackageResourceRequestOptions = {}
 ): Promise<Uint8Array> {
   const timeoutMs = options.timeoutMs ?? 120_000;
   return new Promise<Uint8Array>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("package resource request timed out")),
-      timeoutMs,
-    );
+    const timer = setTimeout(() => reject(new Error("package resource request timed out")), timeoutMs);
     link.callbacks.resourceConcluded = (resource) => {
       clearTimeout(timer);
       resolve(resource.data ?? new Uint8Array(0));
@@ -102,11 +86,7 @@ export async function sendPackageResourceRequest(
   });
 }
 
-export function parseListResponse(
-  bytes: Uint8Array,
-): ReadonlyArray<PackageVersionInfo> {
-  const parsed = JSON.parse(new TextDecoder().decode(bytes)) as {
-    versions: PackageVersionInfo[];
-  };
+export function parseListResponse(bytes: Uint8Array): ReadonlyArray<PackageVersionInfo> {
+  const parsed = JSON.parse(new TextDecoder().decode(bytes)) as { versions: PackageVersionInfo[] };
   return parsed.versions;
 }

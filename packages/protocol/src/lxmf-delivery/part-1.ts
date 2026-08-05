@@ -12,14 +12,14 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
 
 export const LxmfDeliveryMethod = {
   OPPORTUNISTIC: 0x01,
   DIRECT: 0x02,
   PROPAGATED: 0x03,
-  PAPER: 0x05,
+  PAPER: 0x05
 } as const;
 
 export type LxmfDeliveryMethodValue =
@@ -28,7 +28,7 @@ export type LxmfDeliveryMethodValue =
 export const LxmfDeliveryRepresentation = {
   UNKNOWN: 0x00,
   PACKET: 0x01,
-  RESOURCE: 0x02,
+  RESOURCE: 0x02
 } as const;
 
 export type LxmfDeliveryRepresentationValue =
@@ -58,18 +58,16 @@ export const LXMF_ENCRYPTED_PACKET_MAX_CONTENT =
   LXMF_ENCRYPTED_PACKET_MDU - LXMF_OVERHEAD + LXMF_DESTINATION_LENGTH;
 
 /** Max direct/propagated content that fits a link packet. */
-export const LXMF_LINK_PACKET_MAX_CONTENT =
-  LXMF_LINK_PACKET_MDU - LXMF_OVERHEAD;
+export const LXMF_LINK_PACKET_MAX_CONTENT = LXMF_LINK_PACKET_MDU - LXMF_OVERHEAD;
 
 export function lxmfContentSizeFromPackedLength(
   packedLength: number,
   destinationLength: number = LXMF_DESTINATION_LENGTH,
   signatureLength: number = LXMF_SIGNATURE_LENGTH,
   timestampSize: number = LXMF_TIMESTAMP_SIZE,
-  structOverhead: number = LXMF_STRUCT_OVERHEAD,
+  structOverhead: number = LXMF_STRUCT_OVERHEAD
 ): number {
-  const payloadLength =
-    packedLength - (2 * destinationLength + signatureLength);
+  const payloadLength = packedLength - (2 * destinationLength + signatureLength);
   return payloadLength - timestampSize - structOverhead;
 }
 
@@ -107,13 +105,13 @@ export function planLxmfDelivery(input: {
       return {
         kind: "reject-opportunistic-too-large",
         contentSize: input.contentSize,
-        maxContent: input.encryptedPacketMaxContent,
+        maxContent: input.encryptedPacketMaxContent
       };
     }
     return {
       kind: "deliver",
       method: LxmfDeliveryMethod.OPPORTUNISTIC,
-      representation: LxmfDeliveryRepresentation.PACKET,
+      representation: LxmfDeliveryRepresentation.PACKET
     };
   }
 
@@ -124,15 +122,13 @@ export function planLxmfDelivery(input: {
       representation:
         input.contentSize <= input.linkPacketMaxContent
           ? LxmfDeliveryRepresentation.PACKET
-          : LxmfDeliveryRepresentation.RESOURCE,
+          : LxmfDeliveryRepresentation.RESOURCE
     };
   }
 
   if (desiredMethod === LxmfDeliveryMethod.PROPAGATED) {
     if (input.propagationPackedLength === undefined) {
-      throw new Error(
-        "PROPAGATED delivery planning requires propagationPackedLength",
-      );
+      throw new Error("PROPAGATED delivery planning requires propagationPackedLength");
     }
     return {
       kind: "deliver",
@@ -140,7 +136,7 @@ export function planLxmfDelivery(input: {
       representation:
         input.propagationPackedLength > input.linkPacketMaxContent
           ? LxmfDeliveryRepresentation.RESOURCE
-          : LxmfDeliveryRepresentation.PACKET,
+          : LxmfDeliveryRepresentation.PACKET
     };
   }
 
@@ -180,7 +176,7 @@ export function initialLxmfDeliveryPlanState(): LxmfDeliveryPlanState {
 
 export function stepLxmfDeliveryPlanWithActions(
   state: LxmfDeliveryPlanState,
-  event: LxmfDeliveryPlanEvent,
+  event: LxmfDeliveryPlanEvent
 ): LxmfDeliveryPlanStepResult {
   if (event.kind === "delivery/plan-gate") {
     return {
@@ -194,9 +190,9 @@ export function stepLxmfDeliveryPlanWithActions(
           linkPacketMaxContent: event.linkPacketMaxContent,
           ...(event.propagationPackedLength !== undefined
             ? { propagationPackedLength: event.propagationPackedLength }
-            : {}),
-        }),
-      ],
+            : {})
+        })
+      ]
     };
   }
 
@@ -205,30 +201,28 @@ export function stepLxmfDeliveryPlanWithActions(
 
 /** Whether plan actions include deliver (set method + representation). */
 export function shouldDeliverLxmfDeliveryPlan(
-  actions: ReadonlyArray<LxmfDeliveryPlanAction>,
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "deliver");
 }
 
 /** Whether plan actions reject opportunistic content as too large. */
 export function shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(
-  actions: ReadonlyArray<LxmfDeliveryPlanAction>,
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
 ): boolean {
-  return actions.some(
-    (action) => action.kind === "reject-opportunistic-too-large",
-  );
+  return actions.some((action) => action.kind === "reject-opportunistic-too-large");
 }
 
 /** Whether plan actions reject an unsupported delivery method. */
 export function shouldRejectLxmfDeliveryPlanUnsupportedMethod(
-  actions: ReadonlyArray<LxmfDeliveryPlanAction>,
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-unsupported-method");
 }
 
 /** Deliver method/representation from a deliver plan action, if present. */
 export function lxmfDeliveryPlanDeliverParams(
-  actions: ReadonlyArray<LxmfDeliveryPlanAction>,
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
 ): {
   readonly method: LxmfDeliveryMethodValue;
   readonly representation: LxmfDeliveryRepresentationValue;
@@ -243,7 +237,7 @@ export function lxmfDeliveryPlanDeliverParams(
 
 /** Size bounds from a reject-opportunistic-too-large plan action, if present. */
 export function lxmfDeliveryPlanOpportunisticRejectSizes(
-  actions: ReadonlyArray<LxmfDeliveryPlanAction>,
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
 ): { readonly contentSize: number; readonly maxContent: number } | null {
   for (const action of actions) {
     if (action.kind === "reject-opportunistic-too-large") {
@@ -255,7 +249,7 @@ export function lxmfDeliveryPlanOpportunisticRejectSizes(
 
 /** Unsupported method from a reject-unsupported-method plan action, if present. */
 export function lxmfDeliveryPlanUnsupportedMethod(
-  actions: ReadonlyArray<LxmfDeliveryPlanAction>,
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
 ): number | null {
   for (const action of actions) {
     if (action.kind === "reject-unsupported-method") {
@@ -267,13 +261,13 @@ export function lxmfDeliveryPlanUnsupportedMethod(
 
 /** Extract the delivery plan from actions; null when empty. */
 export function lxmfDeliveryPlanFromActions(
-  actions: ReadonlyArray<LxmfDeliveryPlanAction>,
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
 ): LxmfDeliveryPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "deliver" ||
       entry.kind === "reject-opportunistic-too-large" ||
-      entry.kind === "reject-unsupported-method",
+      entry.kind === "reject-unsupported-method"
   );
   return action ?? null;
 }
@@ -332,37 +326,35 @@ export const stepLxmfDelivery: StepFn<LxmfDeliveryState> = (state, event) => {
 
 export function stepLxmfDeliveryWithActions(
   state: LxmfDeliveryState,
-  event: LxmfDeliveryEvent,
+  event: LxmfDeliveryEvent
 ): LxmfDeliveryStepResult {
   return stepLxmfDeliveryInner(state, event);
 }
 
 /** Whether step actions include deliver (set method + representation). */
 export function shouldDeliverLxmf(
-  actions: ReadonlyArray<LxmfDeliveryAction>,
+  actions: ReadonlyArray<LxmfDeliveryAction>
 ): boolean {
   return actions.some((action) => action.kind === "deliver");
 }
 
 /** Whether step actions reject opportunistic content as too large. */
 export function shouldRejectLxmfOpportunisticTooLarge(
-  actions: ReadonlyArray<LxmfDeliveryAction>,
+  actions: ReadonlyArray<LxmfDeliveryAction>
 ): boolean {
-  return actions.some(
-    (action) => action.kind === "reject-opportunistic-too-large",
-  );
+  return actions.some((action) => action.kind === "reject-opportunistic-too-large");
 }
 
 /** Whether step actions reject an unsupported delivery method. */
 export function shouldRejectLxmfUnsupportedMethod(
-  actions: ReadonlyArray<LxmfDeliveryAction>,
+  actions: ReadonlyArray<LxmfDeliveryAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-unsupported-method");
 }
 
 /** Deliver method/representation from a deliver action, if present. */
 export function lxmfDeliveryDeliverParams(
-  actions: ReadonlyArray<LxmfDeliveryAction>,
+  actions: ReadonlyArray<LxmfDeliveryAction>
 ): {
   readonly method: LxmfDeliveryMethodValue;
   readonly representation: LxmfDeliveryRepresentationValue;
@@ -377,7 +369,7 @@ export function lxmfDeliveryDeliverParams(
 
 /** Size bounds from a reject-opportunistic-too-large action, if present. */
 export function lxmfDeliveryOpportunisticRejectSizes(
-  actions: ReadonlyArray<LxmfDeliveryAction>,
+  actions: ReadonlyArray<LxmfDeliveryAction>
 ): { readonly contentSize: number; readonly maxContent: number } | null {
   for (const action of actions) {
     if (action.kind === "reject-opportunistic-too-large") {
@@ -389,22 +381,19 @@ export function lxmfDeliveryOpportunisticRejectSizes(
 
 function stepLxmfDeliveryInner(
   state: LxmfDeliveryState,
-  event: LxmfDeliveryEvent,
+  event: LxmfDeliveryEvent
 ): LxmfDeliveryStepResult {
   if (event.kind === "delivery/select") {
-    const planActions = stepLxmfDeliveryPlanWithActions(
-      initialLxmfDeliveryPlanState(),
-      {
-        kind: "delivery/plan-gate",
-        desiredMethod: event.desiredMethod,
-        contentSize: event.contentSize,
-        encryptedPacketMaxContent: event.encryptedPacketMaxContent,
-        linkPacketMaxContent: event.linkPacketMaxContent,
-        ...(event.propagationPackedLength !== undefined
-          ? { propagationPackedLength: event.propagationPackedLength }
-          : {}),
-      },
-    ).actions;
+    const planActions = stepLxmfDeliveryPlanWithActions(initialLxmfDeliveryPlanState(), {
+      kind: "delivery/plan-gate",
+      desiredMethod: event.desiredMethod,
+      contentSize: event.contentSize,
+      encryptedPacketMaxContent: event.encryptedPacketMaxContent,
+      linkPacketMaxContent: event.linkPacketMaxContent,
+      ...(event.propagationPackedLength !== undefined
+        ? { propagationPackedLength: event.propagationPackedLength }
+        : {})
+    }).actions;
     if (shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(planActions)) {
       const sizes = lxmfDeliveryPlanOpportunisticRejectSizes(planActions);
       return {
@@ -414,9 +403,9 @@ function stepLxmfDeliveryInner(
           {
             kind: "reject-opportunistic-too-large",
             contentSize: sizes?.contentSize ?? 0,
-            maxContent: sizes?.maxContent ?? 0,
-          },
-        ],
+            maxContent: sizes?.maxContent ?? 0
+          }
+        ]
       };
     }
     if (shouldRejectLxmfDeliveryPlanUnsupportedMethod(planActions)) {
@@ -426,9 +415,9 @@ function stepLxmfDeliveryInner(
         actions: [
           {
             kind: "reject-unsupported-method",
-            method: lxmfDeliveryPlanUnsupportedMethod(planActions) ?? 0,
-          },
-        ],
+            method: lxmfDeliveryPlanUnsupportedMethod(planActions) ?? 0
+          }
+        ]
       };
     }
     if (!shouldDeliverLxmfDeliveryPlan(planActions)) {
@@ -442,10 +431,9 @@ function stepLxmfDeliveryInner(
         {
           kind: "deliver",
           method: params?.method ?? LxmfDeliveryMethod.OPPORTUNISTIC,
-          representation:
-            params?.representation ?? LxmfDeliveryRepresentation.UNKNOWN,
-        },
-      ],
+          representation: params?.representation ?? LxmfDeliveryRepresentation.UNKNOWN
+        }
+      ]
     };
   }
 

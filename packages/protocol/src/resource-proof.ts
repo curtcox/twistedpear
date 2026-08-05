@@ -19,7 +19,7 @@ export interface ResourceProofFields {
 
 export function packResourceProof(
   resourceHash: Uint8Array,
-  proofHash: Uint8Array,
+  proofHash: Uint8Array
 ): Uint8Array {
   if (resourceHash.length !== RESOURCE_PROOF_HASH_SIZE) {
     throw new Error(`resource hash must be ${RESOURCE_PROOF_HASH_SIZE} bytes`);
@@ -33,21 +33,19 @@ export function packResourceProof(
   return output;
 }
 
-export function splitResourceProof(
-  proofData: Uint8Array,
-): ResourceProofFields | null {
+export function splitResourceProof(proofData: Uint8Array): ResourceProofFields | null {
   if (proofData.length !== RESOURCE_PROOF_SIZE) {
     return null;
   }
   return {
     resourceHash: proofData.subarray(0, RESOURCE_PROOF_HASH_SIZE),
-    proofHash: proofData.subarray(RESOURCE_PROOF_HASH_SIZE),
+    proofHash: proofData.subarray(RESOURCE_PROOF_HASH_SIZE)
   };
 }
 
 export function isValidResourceProof(
   proofData: Uint8Array,
-  expectedProof: Uint8Array,
+  expectedProof: Uint8Array
 ): boolean {
   const split = splitResourceProof(proofData);
   if (split === null) {
@@ -76,7 +74,8 @@ export type AcceptResourceProofPayloadEvent =
     };
 
 export type AcceptResourceProofPayloadAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptResourceProofPayloadStepResult {
   readonly state: AcceptResourceProofPayloadState;
@@ -90,7 +89,7 @@ export function initialAcceptResourceProofPayloadState(): AcceptResourceProofPay
 
 export function stepAcceptResourceProofPayloadWithActions(
   state: AcceptResourceProofPayloadState,
-  event: AcceptResourceProofPayloadEvent,
+  event: AcceptResourceProofPayloadEvent
 ): AcceptResourceProofPayloadStepResult {
   if (event.kind === "resource-proof/accept-payload-gate") {
     return {
@@ -98,11 +97,9 @@ export function stepAcceptResourceProofPayloadWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptResourceProofPayload(event.dataLength)
-            ? "accept"
-            : "skip",
-        },
-      ],
+          kind: shouldAcceptResourceProofPayload(event.dataLength) ? "accept" : "skip"
+        }
+      ]
     };
   }
 
@@ -110,13 +107,13 @@ export function stepAcceptResourceProofPayloadWithActions(
 }
 
 export function shouldAcceptResourceProofPayloadNow(
-  actions: ReadonlyArray<AcceptResourceProofPayloadAction>,
+  actions: ReadonlyArray<AcceptResourceProofPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptResourceProofPayload(
-  actions: ReadonlyArray<AcceptResourceProofPayloadAction>,
+  actions: ReadonlyArray<AcceptResourceProofPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -141,7 +138,8 @@ export type AcceptResourceProofSplitEvent =
     };
 
 export type AcceptResourceProofSplitAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptResourceProofSplitStepResult {
   readonly state: AcceptResourceProofSplitState;
@@ -155,7 +153,7 @@ export function initialAcceptResourceProofSplitState(): AcceptResourceProofSplit
 
 export function stepAcceptResourceProofSplitWithActions(
   state: AcceptResourceProofSplitState,
-  event: AcceptResourceProofSplitEvent,
+  event: AcceptResourceProofSplitEvent
 ): AcceptResourceProofSplitStepResult {
   if (event.kind === "resource-proof/accept-split-gate") {
     return {
@@ -163,11 +161,9 @@ export function stepAcceptResourceProofSplitWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptResourceProofSplit(event.splitOk)
-            ? "accept"
-            : "skip",
-        },
-      ],
+          kind: shouldAcceptResourceProofSplit(event.splitOk) ? "accept" : "skip"
+        }
+      ]
     };
   }
 
@@ -175,13 +171,13 @@ export function stepAcceptResourceProofSplitWithActions(
 }
 
 export function shouldAcceptResourceProofSplitNow(
-  actions: ReadonlyArray<AcceptResourceProofSplitAction>,
+  actions: ReadonlyArray<AcceptResourceProofSplitAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptResourceProofSplit(
-  actions: ReadonlyArray<AcceptResourceProofSplitAction>,
+  actions: ReadonlyArray<AcceptResourceProofSplitAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -206,7 +202,8 @@ export type ResourceRandomHashLengthValidEvent =
     };
 
 export type ResourceRandomHashLengthValidAction =
-  { readonly kind: "valid" } | { readonly kind: "invalid" };
+  | { readonly kind: "valid" }
+  | { readonly kind: "invalid" };
 
 export interface ResourceRandomHashLengthValidStepResult {
   readonly state: ResourceRandomHashLengthValidState;
@@ -220,7 +217,7 @@ export function initialResourceRandomHashLengthValidState(): ResourceRandomHashL
 
 export function stepResourceRandomHashLengthValidWithActions(
   state: ResourceRandomHashLengthValidState,
-  event: ResourceRandomHashLengthValidEvent,
+  event: ResourceRandomHashLengthValidEvent
 ): ResourceRandomHashLengthValidStepResult {
   if (event.kind === "resource-proof/random-hash-length-valid-gate") {
     return {
@@ -228,11 +225,9 @@ export function stepResourceRandomHashLengthValidWithActions(
       intents: [],
       actions: [
         {
-          kind: isValidResourceRandomHashLength(event.length)
-            ? "valid"
-            : "invalid",
-        },
-      ],
+          kind: isValidResourceRandomHashLength(event.length) ? "valid" : "invalid"
+        }
+      ]
     };
   }
 
@@ -240,13 +235,13 @@ export function stepResourceRandomHashLengthValidWithActions(
 }
 
 export function shouldAcceptResourceRandomHashLength(
-  actions: ReadonlyArray<ResourceRandomHashLengthValidAction>,
+  actions: ReadonlyArray<ResourceRandomHashLengthValidAction>
 ): boolean {
   return actions.some((action) => action.kind === "valid");
 }
 
 export function shouldRejectResourceRandomHashLength(
-  actions: ReadonlyArray<ResourceRandomHashLengthValidAction>,
+  actions: ReadonlyArray<ResourceRandomHashLengthValidAction>
 ): boolean {
   return actions.some((action) => action.kind === "invalid");
 }
@@ -254,7 +249,7 @@ export function shouldRejectResourceRandomHashLength(
 /** After link decrypt, drop the leading random-hash prefix. */
 export function splitResourceDecryptedPayload(
   decrypted: Uint8Array,
-  randomHashSize: number = RESOURCE_RANDOM_HASH_SIZE,
+  randomHashSize: number = RESOURCE_RANDOM_HASH_SIZE
 ): Uint8Array | null {
   if (decrypted.length < randomHashSize) {
     return null;
@@ -294,7 +289,7 @@ export function initialPackResourceProofState(): PackResourceProofState {
 
 export function stepPackResourceProofWithActions(
   state: PackResourceProofState,
-  event: PackResourceProofEvent,
+  event: PackResourceProofEvent
 ): PackResourceProofStepResult {
   if (event.kind === "resource-proof/pack-gate") {
     return {
@@ -303,9 +298,9 @@ export function stepPackResourceProofWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packResourceProof(event.resourceHash, event.proofHash),
-        },
-      ],
+          raw: packResourceProof(event.resourceHash, event.proofHash)
+        }
+      ]
     };
   }
 
@@ -313,14 +308,14 @@ export function stepPackResourceProofWithActions(
 }
 
 export function shouldUsePackResourceProof(
-  actions: ReadonlyArray<PackResourceProofAction>,
+  actions: ReadonlyArray<PackResourceProofAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract resource-proof pack bytes from step actions; null when no `use-raw`. */
 export function packResourceProofRawFromActions(
-  actions: ReadonlyArray<PackResourceProofAction>,
+  actions: ReadonlyArray<PackResourceProofAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -356,7 +351,7 @@ export function initialSplitResourceProofState(): SplitResourceProofState {
 
 export function stepSplitResourceProofWithActions(
   state: SplitResourceProofState,
-  event: SplitResourceProofEvent,
+  event: SplitResourceProofEvent
 ): SplitResourceProofStepResult {
   if (event.kind === "resource-proof/split-gate") {
     const fields = splitResourceProof(event.proofData);
@@ -366,7 +361,7 @@ export function stepSplitResourceProofWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
@@ -374,20 +369,20 @@ export function stepSplitResourceProofWithActions(
 }
 
 export function shouldUseSplitResourceProof(
-  actions: ReadonlyArray<SplitResourceProofAction>,
+  actions: ReadonlyArray<SplitResourceProofAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitResourceProof(
-  actions: ReadonlyArray<SplitResourceProofAction>,
+  actions: ReadonlyArray<SplitResourceProofAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split resource-proof fields from step actions; null when no `use-fields`. */
 export function resourceProofFieldsFromActions(
-  actions: ReadonlyArray<SplitResourceProofAction>,
+  actions: ReadonlyArray<SplitResourceProofAction>
 ): ResourceProofFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -424,12 +419,12 @@ export function initialSplitResourceDecryptedPayloadState(): SplitResourceDecryp
 
 export function stepSplitResourceDecryptedPayloadWithActions(
   state: SplitResourceDecryptedPayloadState,
-  event: SplitResourceDecryptedPayloadEvent,
+  event: SplitResourceDecryptedPayloadEvent
 ): SplitResourceDecryptedPayloadStepResult {
   if (event.kind === "resource-proof/split-decrypted-gate") {
     const raw = splitResourceDecryptedPayload(
       event.decrypted,
-      event.randomHashSize ?? RESOURCE_RANDOM_HASH_SIZE,
+      event.randomHashSize ?? RESOURCE_RANDOM_HASH_SIZE
     );
     if (raw === null) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -437,7 +432,7 @@ export function stepSplitResourceDecryptedPayloadWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw }],
+      actions: [{ kind: "use-raw", raw }]
     };
   }
 
@@ -445,20 +440,20 @@ export function stepSplitResourceDecryptedPayloadWithActions(
 }
 
 export function shouldUseSplitResourceDecryptedPayload(
-  actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>,
+  actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectSplitResourceDecryptedPayload(
-  actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>,
+  actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract decrypted payload bytes from step actions; null when no `use-raw`. */
 export function resourceDecryptedPayloadFromActions(
-  actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>,
+  actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

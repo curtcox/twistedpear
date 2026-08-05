@@ -12,16 +12,11 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
 import { LxmfDeliveryRepresentation } from "./part-1.js";
 import { planLxmfPropagationLinkReady } from "./part-5.js";
-import type {
-  LxmfPropagationLinkReadyEvent,
-  LxmfPropagationLinkReadyPlan,
-  LxmfPropagationLinkReadyPlanAction,
-  LxmfPropagationLinkReadyPlanEvent,
-} from "./part-5.js";
+import type { LxmfPropagationLinkReadyEvent, LxmfPropagationLinkReadyPlan, LxmfPropagationLinkReadyPlanAction, LxmfPropagationLinkReadyPlanEvent } from "./part-5.js";
 /**
  * Propagation link-ready-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagationLinkReady` /
@@ -42,7 +37,7 @@ export function initialLxmfPropagationLinkReadyPlanState(): LxmfPropagationLinkR
 
 export function stepLxmfPropagationLinkReadyPlanWithActions(
   state: LxmfPropagationLinkReadyPlanState,
-  event: LxmfPropagationLinkReadyPlanEvent,
+  event: LxmfPropagationLinkReadyPlanEvent
 ): LxmfPropagationLinkReadyPlanStepResult {
   if (event.kind === "propagation-link/plan-gate") {
     return {
@@ -53,10 +48,10 @@ export function stepLxmfPropagationLinkReadyPlanWithActions(
           kind: planLxmfPropagationLinkReady({
             canReuseLink: event.canReuseLink,
             nodeConfigured: event.nodeConfigured,
-            nodeIdentityPresent: event.nodeIdentityPresent,
-          }),
-        },
-      ],
+            nodeIdentityPresent: event.nodeIdentityPresent
+          })
+        }
+      ]
     };
   }
 
@@ -65,42 +60,42 @@ export function stepLxmfPropagationLinkReadyPlanWithActions(
 
 /** Whether plan actions reuse an existing propagation link. */
 export function shouldPlanLxmfPropagationLinkReadyReuse(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reuse");
 }
 
 /** Whether plan actions establish a new propagation link. */
 export function shouldPlanLxmfPropagationLinkReadyEstablish(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "establish");
 }
 
 /** Whether plan actions reject a missing propagation node. */
 export function shouldRejectLxmfPropagationLinkReadyPlanMissingNode(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-node");
 }
 
 /** Whether plan actions reject a missing node identity. */
 export function shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-identity");
 }
 
 /** Extract the link-ready plan from actions; null when empty. */
 export function lxmfPropagationLinkReadyPlanFromActions(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
 ): LxmfPropagationLinkReadyPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "reuse" ||
       entry.kind === "establish" ||
       entry.kind === "missing-node" ||
-      entry.kind === "missing-identity",
+      entry.kind === "missing-identity"
   );
   return action?.kind ?? null;
 }
@@ -134,50 +129,51 @@ export function initialLxmfPropagationLinkReadyState(): LxmfPropagationLinkReady
   return {};
 }
 
-export const stepLxmfPropagationLinkReady: StepFn<
-  LxmfPropagationLinkReadyState
-> = (state, event) => {
+export const stepLxmfPropagationLinkReady: StepFn<LxmfPropagationLinkReadyState> = (
+  state,
+  event
+) => {
   const result = stepLxmfPropagationLinkReadyInner(
     state,
-    event as LxmfPropagationLinkReadyEvent,
+    event as LxmfPropagationLinkReadyEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfPropagationLinkReadyWithActions(
   state: LxmfPropagationLinkReadyState,
-  event: LxmfPropagationLinkReadyEvent,
+  event: LxmfPropagationLinkReadyEvent
 ): LxmfPropagationLinkReadyStepResult {
   return stepLxmfPropagationLinkReadyInner(state, event);
 }
 
 export function shouldReuseLxmfPropagationLink(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reuse");
 }
 
 export function shouldEstablishLxmfPropagationLink(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
 ): boolean {
   return actions.some((action) => action.kind === "establish");
 }
 
 export function shouldRejectLxmfPropagationMissingNode(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-node");
 }
 
 export function shouldRejectLxmfPropagationMissingIdentity(
-  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-identity");
 }
 
 function stepLxmfPropagationLinkReadyInner(
   state: LxmfPropagationLinkReadyState,
-  event: LxmfPropagationLinkReadyEvent,
+  event: LxmfPropagationLinkReadyEvent
 ): LxmfPropagationLinkReadyStepResult {
   if (event.kind === "propagation-link/gate") {
     const planActions = stepLxmfPropagationLinkReadyPlanWithActions(
@@ -186,8 +182,8 @@ function stepLxmfPropagationLinkReadyInner(
         kind: "propagation-link/plan-gate",
         canReuseLink: event.canReuseLink,
         nodeConfigured: event.nodeConfigured,
-        nodeIdentityPresent: event.nodeIdentityPresent,
-      },
+        nodeIdentityPresent: event.nodeIdentityPresent
+      }
     ).actions;
     if (shouldPlanLxmfPropagationLinkReadyReuse(planActions)) {
       return { state, intents: [], actions: [{ kind: "reuse" }] };
@@ -196,11 +192,7 @@ function stepLxmfPropagationLinkReadyInner(
       return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
     }
     if (shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(planActions)) {
-      return {
-        state,
-        intents: [],
-        actions: [{ kind: "reject-missing-identity" }],
-      };
+      return { state, intents: [], actions: [{ kind: "reject-missing-identity" }] };
     }
     if (!shouldPlanLxmfPropagationLinkReadyEstablish(planActions)) {
       return { state, intents: [], actions: [] };
@@ -212,7 +204,10 @@ function stepLxmfPropagationLinkReadyInner(
 }
 
 export type LxmfPropagatedSendPlan =
-  "ok" | "missing-node" | "missing-packed" | "resource-unimplemented";
+  | "ok"
+  | "missing-node"
+  | "missing-packed"
+  | "resource-unimplemented";
 
 /** Whether PROPAGATED send may proceed (node + packed envelope + PACKET representation). */
 export function planLxmfPropagatedSend(input: {
@@ -267,7 +262,7 @@ export function initialLxmfPropagatedSendPlanState(): LxmfPropagatedSendPlanStat
 
 export function stepLxmfPropagatedSendPlanWithActions(
   state: LxmfPropagatedSendPlanState,
-  event: LxmfPropagatedSendPlanEvent,
+  event: LxmfPropagatedSendPlanEvent
 ): LxmfPropagatedSendPlanStepResult {
   if (event.kind === "propagated-send/plan-gate") {
     return {
@@ -278,10 +273,10 @@ export function stepLxmfPropagatedSendPlanWithActions(
           kind: planLxmfPropagatedSend({
             nodeConfigured: event.nodeConfigured,
             hasPropagationPacked: event.hasPropagationPacked,
-            representation: event.representation,
-          }),
-        },
-      ],
+            representation: event.representation
+          })
+        }
+      ]
     };
   }
 
@@ -290,42 +285,42 @@ export function stepLxmfPropagatedSendPlanWithActions(
 
 /** Whether plan actions allow PROPAGATED send to proceed. */
 export function shouldPlanLxmfPropagatedSendOk(
-  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 /** Whether plan actions reject a missing propagation node. */
 export function shouldRejectLxmfPropagatedSendPlanMissingNode(
-  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-node");
 }
 
 /** Whether plan actions reject a missing packed envelope. */
 export function shouldRejectLxmfPropagatedSendPlanMissingPacked(
-  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing-packed");
 }
 
 /** Whether plan actions reject unimplemented RESOURCE representation. */
 export function shouldRejectLxmfPropagatedSendPlanResourceUnimplemented(
-  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "resource-unimplemented");
 }
 
 /** Extract the PROPAGATED send plan from actions; null when empty. */
 export function lxmfPropagatedSendPlanFromActions(
-  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
 ): LxmfPropagatedSendPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "missing-node" ||
       entry.kind === "missing-packed" ||
-      entry.kind === "resource-unimplemented",
+      entry.kind === "resource-unimplemented"
   );
   return action?.kind ?? null;
 }
@@ -368,53 +363,45 @@ export function initialLxmfPropagatedSendState(): LxmfPropagatedSendState {
   return {};
 }
 
-export const stepLxmfPropagatedSend: StepFn<LxmfPropagatedSendState> = (
-  state,
-  event,
-) => {
-  const result = stepLxmfPropagatedSendInner(
-    state,
-    event as LxmfPropagatedSendEvent,
-  );
+export const stepLxmfPropagatedSend: StepFn<LxmfPropagatedSendState> = (state, event) => {
+  const result = stepLxmfPropagatedSendInner(state, event as LxmfPropagatedSendEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLxmfPropagatedSendWithActions(
   state: LxmfPropagatedSendState,
-  event: LxmfPropagatedSendEvent,
+  event: LxmfPropagatedSendEvent
 ): LxmfPropagatedSendStepResult {
   return stepLxmfPropagatedSendInner(state, event);
 }
 
 export function shouldProceedLxmfPropagatedSend(
-  actions: ReadonlyArray<LxmfPropagatedSendAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectLxmfPropagatedMissingNode(
-  actions: ReadonlyArray<LxmfPropagatedSendAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-node");
 }
 
 export function shouldRejectLxmfPropagatedMissingPacked(
-  actions: ReadonlyArray<LxmfPropagatedSendAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-packed");
 }
 
 export function shouldRejectLxmfPropagatedResourceUnimplemented(
-  actions: ReadonlyArray<LxmfPropagatedSendAction>,
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
 ): boolean {
-  return actions.some(
-    (action) => action.kind === "reject-resource-unimplemented",
-  );
+  return actions.some((action) => action.kind === "reject-resource-unimplemented");
 }
 
 function stepLxmfPropagatedSendInner(
   state: LxmfPropagatedSendState,
-  event: LxmfPropagatedSendEvent,
+  event: LxmfPropagatedSendEvent
 ): LxmfPropagatedSendStepResult {
   if (event.kind === "propagated-send/gate") {
     const planActions = stepLxmfPropagatedSendPlanWithActions(
@@ -423,25 +410,17 @@ function stepLxmfPropagatedSendInner(
         kind: "propagated-send/plan-gate",
         nodeConfigured: event.nodeConfigured,
         hasPropagationPacked: event.hasPropagationPacked,
-        representation: event.representation,
-      },
+        representation: event.representation
+      }
     ).actions;
     if (shouldRejectLxmfPropagatedSendPlanMissingNode(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
     }
     if (shouldRejectLxmfPropagatedSendPlanMissingPacked(planActions)) {
-      return {
-        state,
-        intents: [],
-        actions: [{ kind: "reject-missing-packed" }],
-      };
+      return { state, intents: [], actions: [{ kind: "reject-missing-packed" }] };
     }
     if (shouldRejectLxmfPropagatedSendPlanResourceUnimplemented(planActions)) {
-      return {
-        state,
-        intents: [],
-        actions: [{ kind: "reject-resource-unimplemented" }],
-      };
+      return { state, intents: [], actions: [{ kind: "reject-resource-unimplemented" }] };
     }
     if (!shouldPlanLxmfPropagatedSendOk(planActions)) {
       return { state, intents: [], actions: [] };
@@ -453,9 +432,7 @@ function stepLxmfPropagatedSendInner(
 }
 
 /** Whether outbound LXMF should await / poll a delivery receipt. */
-export function shouldAwaitLxmfDeliveryReceipt(
-  receiptPresent: boolean,
-): boolean {
+export function shouldAwaitLxmfDeliveryReceipt(receiptPresent: boolean): boolean {
   return receiptPresent;
 }
 
@@ -474,7 +451,8 @@ export type AwaitLxmfDeliveryReceiptEvent =
     };
 
 export type AwaitLxmfDeliveryReceiptAction =
-  { readonly kind: "await" } | { readonly kind: "skip" };
+  | { readonly kind: "await" }
+  | { readonly kind: "skip" };
 
 export interface AwaitLxmfDeliveryReceiptStepResult {
   readonly state: AwaitLxmfDeliveryReceiptState;

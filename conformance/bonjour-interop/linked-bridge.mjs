@@ -58,7 +58,7 @@ export function createLinkedMulticastBridge(linkLocalAddress) {
 
     _deliver(ifname, data, sourceAddress, port) {
       events.onPacket?.(ifname, data, sourceAddress, port);
-    },
+    }
   };
 
   return bridge;
@@ -109,7 +109,7 @@ export function createLinkedBonjourBridge(linkLocalAddress) {
 
     get events() {
       return events;
-    },
+    }
   };
 
   return bridge;

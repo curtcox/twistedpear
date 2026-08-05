@@ -6,14 +6,8 @@ import { verifyPackage } from "@twistedpear/app-registry";
 import { verify256t } from "@twistedpear/cas-256t";
 import { PureCryptoProvider } from "@twistedpear/reticulum-ts/web";
 import type { WebIndexedDB } from "@twistedpear/reticulum-ts/web";
-import type {
-  WebOpfsRootDirectory,
-  WebStorageManager,
-} from "../src/web-package-storage.js";
-import {
-  createWebPackageStorage,
-  resetWebPackageStorage,
-} from "../src/web-package-storage.js";
+import type { WebOpfsRootDirectory, WebStorageManager } from "../src/web-package-storage.js";
+import { createWebPackageStorage, resetWebPackageStorage } from "../src/web-package-storage.js";
 
 type IndexedDbRequest<T> = {
   readonly result: T;
@@ -40,10 +34,7 @@ class MemoryIndexedDb implements WebIndexedDB {
     const store = this.stores.get(name)!;
     const request: IndexedDbRequest<{
       createObjectStore(name: string): void;
-      transaction(
-        _name: string,
-        mode: "readonly" | "readwrite",
-      ): { objectStore(): IndexedDbStore };
+      transaction(_name: string, mode: "readonly" | "readwrite"): { objectStore(): IndexedDbStore };
     }> = {
       result: {
         createObjectStore() {},
@@ -72,20 +63,18 @@ class MemoryIndexedDb implements WebIndexedDB {
                 },
                 getAllKeys() {
                   return createRequest([...store.keys()]);
-                },
+                }
               };
-            },
+            }
           };
-        },
+        }
       },
       error: null,
       onsuccess: null,
-      onerror: null,
+      onerror: null
     };
 
-    let upgradeHandler:
-      ((event: { readonly target: typeof request | null }) => void) | null =
-      null;
+    let upgradeHandler: ((event: { readonly target: typeof request | null }) => void) | null = null;
     let successHandler: (() => void) | null = null;
     return {
       ...request,
@@ -102,7 +91,7 @@ class MemoryIndexedDb implements WebIndexedDB {
       set onsuccess(handler) {
         successHandler = handler;
         handler?.();
-      },
+      }
     };
   }
 
@@ -115,10 +104,7 @@ class MemoryIndexedDb implements WebIndexedDB {
 class MemoryOpfsRoot implements WebOpfsRootDirectory {
   private readonly entries = new Map<string, MemoryOpfsRoot | MemoryOpfsFile>();
 
-  async getDirectoryHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<WebOpfsRootDirectory> {
+  async getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<WebOpfsRootDirectory> {
     const existing = this.entries.get(name);
     if (existing instanceof MemoryOpfsRoot) {
       return existing;
@@ -133,15 +119,9 @@ class MemoryOpfsRoot implements WebOpfsRootDirectory {
     return created;
   }
 
-  async getFileHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<{
+  async getFileHandle(name: string, options?: { create?: boolean }): Promise<{
     getFile(): Promise<{ arrayBuffer(): Promise<ArrayBuffer> }>;
-    createWritable(): Promise<{
-      write(data: Uint8Array): Promise<void>;
-      close(): Promise<void>;
-    }>;
+    createWritable(): Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }>;
   }> {
     const existing = this.entries.get(name);
     if (existing instanceof MemoryOpfsFile) {
@@ -169,24 +149,18 @@ class MemoryOpfsFile {
     const snapshot = Uint8Array.from(this.bytes);
     return {
       async arrayBuffer() {
-        return snapshot.buffer.slice(
-          snapshot.byteOffset,
-          snapshot.byteOffset + snapshot.byteLength,
-        );
-      },
+        return snapshot.buffer.slice(snapshot.byteOffset, snapshot.byteOffset + snapshot.byteLength);
+      }
     };
   }
 
-  async createWritable(): Promise<{
-    write(data: Uint8Array): Promise<void>;
-    close(): Promise<void>;
-  }> {
+  async createWritable(): Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }> {
     const file = this;
     return {
       async write(data: Uint8Array) {
         file.bytes = Uint8Array.from(data);
       },
-      async close() {},
+      async close() {}
     };
   }
 }
@@ -203,7 +177,7 @@ function createRequest<T>(result: T): IndexedDbRequest<T> {
       successHandler = handler;
       handler?.();
     },
-    onerror: null,
+    onerror: null
   };
 }
 
@@ -221,17 +195,12 @@ function createMemoryStorage(): WebStorageManager {
     },
     async getDirectory() {
       return root;
-    },
+    }
   };
 }
 
-const fixtureRoot = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../conformance/fixtures/packages",
-);
-const tinyArchive = new Uint8Array(
-  readFileSync(join(fixtureRoot, "tiny.tpkg")),
-);
+const fixtureRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/fixtures/packages");
+const tinyArchive = new Uint8Array(readFileSync(join(fixtureRoot, "tiny.tpkg")));
 
 describe("web package storage", () => {
   it("installs a .tpkg into CAS + OPFS and survives reload", async () => {
@@ -243,18 +212,14 @@ describe("web package storage", () => {
     const first = await createWebPackageStorage({
       dbName,
       indexedDB,
-      storage,
+      storage
     });
 
     const installed = await first.installArchive(tinyArchive);
     expect(installed.appId).toBe("com.example.hello");
     expect(installed.version).toBe("1.0.0");
     expect(first.archiveBackend).toBe("opfs");
-    expect(
-      verify256t(installed.t256, tinyArchive, (data) =>
-        new PureCryptoProvider().sha512(data),
-      ),
-    ).toBe(true);
+    expect(verify256t(installed.t256, tinyArchive, (data) => new PureCryptoProvider().sha512(data))).toBe(true);
 
     const quota = await first.getQuotaInfo();
     expect(quota.packageUsedBytes).toBe(tinyArchive.length);
@@ -265,16 +230,14 @@ describe("web package storage", () => {
     const second = await createWebPackageStorage({
       dbName,
       indexedDB,
-      storage,
+      storage
     });
     expect(second.listInstalled()).toHaveLength(1);
     expect(second.activeVersion("com.example.hello")).toBe("1.0.0");
 
     const reloaded = await second.readArchive("com.example.hello", "1.0.0");
     expect(reloaded).not.toBeNull();
-    verifyPackage(new PureCryptoProvider(), reloaded!, {
-      hostApiVersion: "0.1.0",
-    });
+    verifyPackage(new PureCryptoProvider(), reloaded!, { hostApiVersion: "0.1.0" });
   });
 
   it("falls back to IndexedDB archives when OPFS is unavailable", async () => {
@@ -291,16 +254,13 @@ describe("web package storage", () => {
         },
         async persisted() {
           return false;
-        },
-      },
+        }
+      }
     });
 
     expect(session.archiveBackend).toBe("indexeddb");
     const installed = await session.installArchive(tinyArchive);
-    const reloaded = await session.readArchive(
-      installed.appId,
-      installed.version,
-    );
+    const reloaded = await session.readArchive(installed.appId, installed.version);
     expect(reloaded).toEqual(tinyArchive);
   });
 });

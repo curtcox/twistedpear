@@ -17,7 +17,7 @@ const targets = [
   "packages/lxmf-ts/src",
   "packages/reticulum-ts/src",
   "packages/miniapp-runtime/src",
-  "packages/reticulum-interfaces/src",
+  "packages/reticulum-interfaces/src"
 ].filter((p) => fs.existsSync(path.join(ROOT, p)));
 
 const result = spawnSync(
@@ -29,9 +29,9 @@ const result = spawnSync(
     "json",
     "--output-to",
     outPath,
-    ...targets,
+    ...targets
   ],
-  { cwd: ROOT, encoding: "utf8", stdio: ["inherit", "pipe", "pipe"] },
+  { cwd: ROOT, encoding: "utf8", stdio: ["inherit", "pipe", "pipe"] }
 );
 
 if (result.stdout) process.stdout.write(result.stdout);

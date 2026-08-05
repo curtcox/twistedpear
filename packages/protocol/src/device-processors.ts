@@ -20,20 +20,14 @@ export interface MotionDerivedSample {
 }
 
 export interface CameraDerivedInput {
-  readonly barcodes?: ReadonlyArray<{
-    readonly format: string;
-    readonly value: string;
-  }>;
+  readonly barcodes?: ReadonlyArray<{ readonly format: string; readonly value: string }>;
   readonly motionDetected?: boolean;
   readonly faceCount?: number;
   readonly objectCount?: number;
 }
 
 export interface CameraDerivedSample {
-  readonly barcodes: ReadonlyArray<{
-    readonly format: string;
-    readonly value: string;
-  }>;
+  readonly barcodes: ReadonlyArray<{ readonly format: string; readonly value: string }>;
   readonly motionDetected: boolean;
   readonly faceCount: number;
   readonly objectCount: number;
@@ -64,10 +58,7 @@ export function deriveMotionSample(raw: RawMotionSample): MotionDerivedSample {
   const events: Array<"step" | "shake" | "tilt"> = [];
   if (magnitude >= SHAKE_ACCEL_THRESHOLD) events.push("shake");
   else if (magnitude >= STEP_ACCEL_THRESHOLD) events.push("step");
-  if (
-    Math.abs(ax) >= TILT_ACCEL_THRESHOLD ||
-    Math.abs(ay) >= TILT_ACCEL_THRESHOLD
-  ) {
+  if (Math.abs(ax) >= TILT_ACCEL_THRESHOLD || Math.abs(ay) >= TILT_ACCEL_THRESHOLD) {
     events.push("tilt");
   }
 
@@ -80,46 +71,34 @@ export function deriveMotionSample(raw: RawMotionSample): MotionDerivedSample {
 
   return {
     orientation: { x, y, z, w },
-    events,
+    events
   };
 }
 
 /** Strip camera raw input down to derived-tier fields (never frames). */
-export function deriveCameraSample(
-  input: CameraDerivedInput,
-): CameraDerivedSample {
+export function deriveCameraSample(input: CameraDerivedInput): CameraDerivedSample {
   const barcodes = (input.barcodes ?? [])
-    .filter(
-      (entry) =>
-        typeof entry.format === "string" && typeof entry.value === "string",
-    )
-    .map((entry) => ({
-      format: entry.format,
-      value: entry.value.slice(0, 512),
-    }));
+    .filter((entry) => typeof entry.format === "string" && typeof entry.value === "string")
+    .map((entry) => ({ format: entry.format, value: entry.value.slice(0, 512) }));
   return {
     barcodes,
     motionDetected: Boolean(input.motionDetected),
     faceCount: clampCount(input.faceCount),
-    objectCount: clampCount(input.objectCount),
+    objectCount: clampCount(input.objectCount)
   };
 }
 
 /** Compute level / VAD / tones from PCM or a precomputed level. */
-export function deriveMicrophoneSample(
-  input: MicrophoneDerivedInput,
-): MicrophoneDerivedSample {
+export function deriveMicrophoneSample(input: MicrophoneDerivedInput): MicrophoneDerivedSample {
   const level =
     typeof input.level === "number" && Number.isFinite(input.level)
       ? clamp01(input.level)
       : rmsLevel(input.pcm ?? []);
-  const tones = (input.tones ?? [])
-    .filter((tone) => typeof tone === "string")
-    .slice(0, 16);
+  const tones = (input.tones ?? []).filter((tone) => typeof tone === "string").slice(0, 16);
   return {
     level,
     voiceActive: level >= VAD_LEVEL_THRESHOLD,
-    tones,
+    tones
   };
 }
 
@@ -139,7 +118,6 @@ function clamp01(value: number): number {
 }
 
 function clampCount(value: number | undefined): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
-    return 0;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return 0;
   return Math.min(100, Math.floor(value));
 }

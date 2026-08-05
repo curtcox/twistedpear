@@ -7,16 +7,12 @@ import {
   fetchDriveVersionViaGateway,
   gatewayHttpUrlFromWebSocket,
   type WebCompositeHyperFetchOptions,
-  type WebGatewayHyperFetchOptions,
+  type WebGatewayHyperFetchOptions
 } from "./web-gateway-hyper-fetch.js";
 import { fetchDriveVersionViaRelayedDht } from "../core/relay-hyper-fetch.js";
 
 export type { WebCompositeHyperFetchOptions, WebGatewayHyperFetchOptions };
-export {
-  bulkFetchUrlFromGateway,
-  fetchDriveVersionViaGateway,
-  gatewayHttpUrlFromWebSocket,
-};
+export { bulkFetchUrlFromGateway, fetchDriveVersionViaGateway, gatewayHttpUrlFromWebSocket };
 
 export interface WebHyperFetchOptions {
   readonly relayUrl: string;
@@ -25,10 +21,7 @@ export interface WebHyperFetchOptions {
   readonly timeoutMs?: number;
 }
 
-function openRelaySocket(
-  relayUrl: string,
-  timeoutMs: number,
-): Promise<WebSocket> {
+function openRelaySocket(relayUrl: string, timeoutMs: number): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(relayUrl);
     const timer = setTimeout(() => {
@@ -48,25 +41,18 @@ function openRelaySocket(
   });
 }
 
-export async function fetchDriveVersionViaRelay(
-  options: WebHyperFetchOptions,
-): Promise<Uint8Array> {
+export async function fetchDriveVersionViaRelay(options: WebHyperFetchOptions): Promise<Uint8Array> {
   return fetchDriveVersionViaRelayedDht({
     driveKeyHex: options.driveKeyHex,
     version: options.version,
-    ...(options.timeoutMs === undefined
-      ? {}
-      : { timeoutMs: options.timeoutMs }),
+    ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
     async createStore() {
       const store = new Corestore(RAM);
       await store.ready();
       return store;
     },
     async createDht() {
-      const socket = await openRelaySocket(
-        options.relayUrl,
-        Math.min(options.timeoutMs ?? 15_000, 15_000),
-      );
+      const socket = await openRelaySocket(options.relayUrl, Math.min(options.timeoutMs ?? 15_000, 15_000));
       const dht = new DHT(new WsStream(true, socket));
       await dht.ready();
       const destroy = dht.destroy.bind(dht);
@@ -75,34 +61,24 @@ export async function fetchDriveVersionViaRelay(
         socket.close();
       };
       return dht as import("../core/relay-hyper-fetch.js").RelayedDht;
-    },
+    }
   });
 }
 
-export async function fetchDriveVersionForWeb(
-  options: WebCompositeHyperFetchOptions,
-): Promise<Uint8Array> {
+export async function fetchDriveVersionForWeb(options: WebCompositeHyperFetchOptions): Promise<Uint8Array> {
   try {
     return await fetchDriveVersionViaGateway(options);
   } catch {
     return fetchDriveVersionViaRelay({
-      relayUrl: dhtRelayUrlFromGateway(
-        options.gatewayUrl,
-        options.dhtRelayPath,
-      ),
+      relayUrl: dhtRelayUrlFromGateway(options.gatewayUrl, options.dhtRelayPath),
       driveKeyHex: options.driveKeyHex,
       version: options.version,
-      ...(options.timeoutMs === undefined
-        ? {}
-        : { timeoutMs: options.timeoutMs }),
+      ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs })
     });
   }
 }
 
-export function dhtRelayUrlFromGateway(
-  gatewayUrl: string,
-  path = "/dht-relay",
-): string {
+export function dhtRelayUrlFromGateway(gatewayUrl: string, path = "/dht-relay"): string {
   const url = new URL(gatewayUrl);
   url.pathname = path;
   url.search = "";

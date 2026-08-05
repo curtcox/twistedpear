@@ -1,166 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useCallback,useEffect,useMemo,useRef,useState } from "react";
+import { Image,Platform,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,View } from "react-native";
 import qrcodeModule from "qrcode-generator";
 import { decodePeerQrRgba } from "@twistedpear/peer-discovery";
-import {
-  decodePeerAudioFskStream,
-  encodePeerAudioFsk,
-} from "@twistedpear/protocol";
+import { decodePeerAudioFskStream,encodePeerAudioFsk } from "@twistedpear/protocol";
 import { StatusBar } from "expo-status-bar";
-import {
-  validateWidgetTree,
-  type WidgetTree,
-} from "@twistedpear/miniapp-runtime/ui";
+import { validateWidgetTree,type WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { createWebCoreBridge } from "./host/web-core-bridge";
-import {
-  createPwaInstallController,
-  type PwaInstallAvailability,
-} from "./host/web-pwa-install";
+import { createPwaInstallController,type PwaInstallAvailability } from "./host/web-pwa-install";
 import { webSerialSupported } from "./host/web-serial-relay";
-import type {
-  AnnounceEntry,
-  CapabilityGrantView,
-  ConfirmationKind,
-  HostConfirmationRequestView,
-  HostToWorkletMessage,
-  Install256tResultView,
-  InstallProgress,
-  InstallReviewRequestView,
-  InstalledPackageView,
-  LaunchReviewCapabilityView,
-  LaunchReviewRequestView,
-  MiniappRuntimeView,
-  TrustedPublisherView,
-  WebStorageQuotaView,
-  WorkletStatus,
-  WorkletToHostMessage,
-  DeviceStateView,
-  SessionInviteView,
-} from "./worklet/protocol";
-import {
-  ActionButton,
-  CONFIRM_KIND_TITLES,
-  DEFAULT_PASSPHRASE,
-  HostConfirmationModal,
-  MAX_ANNOUNCES,
-  PeerChromeModal,
-  Row,
-  audioHex,
-  audioUnhex,
-  chatWidgetTree,
-  defaultGatewayUrl,
-  formatBytes,
-  handleWebMediaCodecRequest,
-  helloWidgetTree,
-  initialStatus,
-  outboundWebRtcMediaBytes,
-  playInboundAudioFrame,
-  playPeerAudio,
-  recordPeerAudio,
-  styles,
-  webBytesToHex,
-  webDecodeOpus,
-  webEncodeOpus,
-  webHexToBytes,
-} from "./app-web-shared.js";
+import type { AnnounceEntry,CapabilityGrantView,ConfirmationKind,HostConfirmationRequestView,HostToWorkletMessage,Install256tResultView,InstallProgress,InstallReviewRequestView,InstalledPackageView,LaunchReviewCapabilityView,LaunchReviewRequestView,MiniappRuntimeView,TrustedPublisherView,WebStorageQuotaView,WorkletStatus,WorkletToHostMessage,DeviceStateView,SessionInviteView } from "./worklet/protocol";
+import { ActionButton, CONFIRM_KIND_TITLES, DEFAULT_PASSPHRASE, HostConfirmationModal, MAX_ANNOUNCES, PeerChromeModal, Row, audioHex, audioUnhex, chatWidgetTree, defaultGatewayUrl, formatBytes, handleWebMediaCodecRequest, helloWidgetTree, initialStatus, outboundWebRtcMediaBytes, playInboundAudioFrame, playPeerAudio, recordPeerAudio, styles, webBytesToHex, webDecodeOpus, webEncodeOpus, webHexToBytes } from "./app-web-shared.js";
 import type { useWebHarnessController } from "./app-web-controller.js";
 export type WebHarnessScope = ReturnType<typeof useWebHarnessController>;
 export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
-  const {
-    status,
-    setStatus,
-    announces,
-    setAnnounces,
-    logLines,
-    setLogLines,
-    gatewayUrl,
-    setGatewayUrl,
-    sharedToken,
-    setSharedToken,
-    ntfyUrl,
-    setNtfyUrl,
-    ntfyToken,
-    setNtfyToken,
-    wsEnabled,
-    setWsEnabled,
-    rnodeEnabled,
-    setRnodeEnabled,
-    webSerialAvailable,
-    previewTree,
-    setPreviewTree,
-    lastWidgetEvent,
-    setLastWidgetEvent,
-    storageQuota,
-    setStorageQuota,
-    installed,
-    setInstalled,
-    selectedInstalledAppId,
-    setSelectedInstalledAppId,
-    grantCapabilities,
-    setGrantCapabilities,
-    miniappRuntime,
-    setMiniappRuntime,
-    developerMode,
-    setDeveloperMode,
-    hostModal,
-    setHostModal,
-    peerModal,
-    setPeerModal,
-    install256tInput,
-    setInstall256tInput,
-    installProgress,
-    setInstallProgress,
-    trustedPublishers,
-    setTrustedPublishers,
-    trustIdentityInput,
-    setTrustIdentityInput,
-    trustLabelInput,
-    setTrustLabelInput,
-    hostIdentity256t,
-    setHostIdentity256t,
-    deviceState,
-    setDeviceState,
-    sessionInvites,
-    setSessionInvites,
-    pwaInstallAvailability,
-    setPwaInstallAvailability,
-    pwaInstallRef,
-    peerRtcRef,
-    previewOptions,
-    bridgeRef,
-    workspaceReadCounterRef,
-    crossDeviceCounterRef,
-    pendingCrossDeviceRef,
-    pendingWorkspaceReadsRef,
-    appendLog,
-    sendToWorker,
-    readWorkspaceDocument,
-    handleWorkerMessage,
-    ensureBridge,
-    pushGatewayConfig,
-    performPeerAudio,
-    connectWebSerialRnode,
-    promptPwaInstall,
-  } = scope;
-  return (
-    <>
-      <View style={styles.card}>
+  const { status, setStatus, announces, setAnnounces, logLines, setLogLines, gatewayUrl, setGatewayUrl, sharedToken, setSharedToken, ntfyUrl, setNtfyUrl, ntfyToken, setNtfyToken, wsEnabled, setWsEnabled, rnodeEnabled, setRnodeEnabled, webSerialAvailable, previewTree, setPreviewTree, lastWidgetEvent, setLastWidgetEvent, storageQuota, setStorageQuota, installed, setInstalled, selectedInstalledAppId, setSelectedInstalledAppId, grantCapabilities, setGrantCapabilities, miniappRuntime, setMiniappRuntime, developerMode, setDeveloperMode, hostModal, setHostModal, peerModal, setPeerModal, install256tInput, setInstall256tInput, installProgress, setInstallProgress, trustedPublishers, setTrustedPublishers, trustIdentityInput, setTrustIdentityInput, trustLabelInput, setTrustLabelInput, hostIdentity256t, setHostIdentity256t, deviceState, setDeviceState, sessionInvites, setSessionInvites, pwaInstallAvailability, setPwaInstallAvailability, pwaInstallRef, peerRtcRef, previewOptions, bridgeRef, workspaceReadCounterRef, crossDeviceCounterRef, pendingCrossDeviceRef, pendingWorkspaceReadsRef, appendLog, sendToWorker, readWorkspaceDocument, handleWorkerMessage, ensureBridge, pushGatewayConfig, performPeerAudio, connectWebSerialRnode, promptPwaInstall } = scope;
+  return <>
+<View style={styles.card}>
         <Text style={styles.sectionTitle}>Install from 256t (W3)</Text>
         <Text style={styles.muted}>
-          Paste or scan a 94-character package id. The host waits for a CAS
-          locator announce, fetches over Reticulum Resource, then shows
-          capability review before installing into OPFS/IndexedDB.
+          Paste or scan a 94-character package id. The host waits for a CAS locator announce, fetches over Reticulum
+          Resource, then shows capability review before installing into OPFS/IndexedDB.
         </Text>
         <TextInput
           testID="install-256t-input"
@@ -198,8 +58,8 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Publisher trust (W3)</Text>
         <Text style={styles.muted}>
-          Import a publisher identity string (94-character inline 256t) to mark
-          installs from that key as trusted in the review UI.
+          Import a publisher identity string (94-character inline 256t) to mark installs from that key as trusted in the
+          review UI.
         </Text>
         <TextInput
           testID="trust-identity-input"
@@ -230,7 +90,7 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
                 type: "trust-add",
                 identityString,
                 label: trustLabelInput.trim() || "Unnamed publisher",
-                source: "paste",
+                source: "paste"
               });
               setTrustIdentityInput("");
             }}
@@ -240,10 +100,7 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
             label="Show my identity"
             onPress={() => sendToWorker({ type: "trust-show" })}
           />
-          <ActionButton
-            label="Refresh trust"
-            onPress={() => sendToWorker({ type: "trust-list" })}
-          />
+          <ActionButton label="Refresh trust" onPress={() => sendToWorker({ type: "trust-list" })} />
         </View>
         {hostIdentity256t !== null ? (
           <Text testID="trust-identity-view" style={styles.mono}>
@@ -260,12 +117,7 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
               </Text>
               <ActionButton
                 label="Remove"
-                onPress={() =>
-                  sendToWorker({
-                    type: "trust-remove",
-                    publisherPublicKey: entry.publisherPublicKey,
-                  })
-                }
+                onPress={() => sendToWorker({ type: "trust-remove", publisherPublicKey: entry.publisherPublicKey })}
               />
             </View>
           ))
@@ -275,10 +127,7 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Installed packages</Text>
         <View style={styles.buttonRow}>
-          <ActionButton
-            label="Refresh"
-            onPress={() => sendToWorker({ type: "list-installed" })}
-          />
+          <ActionButton label="Refresh" onPress={() => sendToWorker({ type: "list-installed" })} />
         </View>
         {installed.length === 0 ? (
           <Text style={styles.muted}>No packages installed yet.</Text>
@@ -293,7 +142,7 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
                     type: "get-grants",
                     appId: pkg.appId,
                     publisherPublicKey: pkg.publisherPublicKey ?? "",
-                    declaredCapabilities: pkg.capabilities ?? [],
+                    declaredCapabilities: pkg.capabilities ?? []
                   });
                 }}
               >
@@ -303,18 +152,14 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
               </Pressable>
               <ActionButton
                 label="Launch"
-                onPress={() =>
-                  sendToWorker({ type: "launch-miniapp", appId: pkg.appId })
-                }
+                onPress={() => sendToWorker({ type: "launch-miniapp", appId: pkg.appId })}
               />
             </View>
           ))
         )}
         {selectedInstalledAppId !== null && grantCapabilities.length > 0 ? (
           <>
-            <Text style={styles.muted}>
-              Grants for {selectedInstalledAppId}
-            </Text>
+            <Text style={styles.muted}>Grants for {selectedInstalledAppId}</Text>
             {grantCapabilities
               .filter((capability) => capability.declared)
               .map((capability) => (
@@ -324,28 +169,20 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
                   label={capability.id}
                   value={capability.granted}
                   onChange={(granted) => {
-                    const selected = installed.find(
-                      (pkg) => pkg.appId === selectedInstalledAppId,
-                    );
+                    const selected = installed.find((pkg) => pkg.appId === selectedInstalledAppId);
                     if (selected === undefined) {
                       return;
                     }
 
                     const nextGranted = grantCapabilities
-                      .filter(
-                        (entry) =>
-                          entry.declared &&
-                          (entry.id === capability.id
-                            ? granted
-                            : entry.granted),
-                      )
+                      .filter((entry) => entry.declared && (entry.id === capability.id ? granted : entry.granted))
                       .map((entry) => entry.id);
                     sendToWorker({
                       type: "set-grants",
                       appId: selected.appId,
                       publisherPublicKey: selected.publisherPublicKey ?? "",
                       declaredCapabilities: selected.capabilities ?? [],
-                      grantedCapabilities: nextGranted,
+                      grantedCapabilities: nextGranted
                     });
                   }}
                 />
@@ -357,8 +194,7 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Widget preview (W-S3)</Text>
         <Text style={styles.muted}>
-          Shared `@twistedpear/widget-renderer-rn` via react-native-web — same
-          renderer as mobile harness.
+          Shared `@twistedpear/widget-renderer-rn` via react-native-web — same renderer as mobile harness.
         </Text>
         <View style={styles.buttonRow}>
           {previewOptions.map((option) => (
@@ -374,9 +210,7 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
           tree={previewTree}
           onEvent={(nodeId, event, value) => {
             const detail =
-              value === undefined
-                ? `${nodeId}:${event}`
-                : `${nodeId}:${event}:${JSON.stringify(value)}`;
+              value === undefined ? `${nodeId}:${event}` : `${nodeId}:${event}:${JSON.stringify(value)}`;
             setLastWidgetEvent(detail);
           }}
         />
@@ -387,18 +221,14 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Unavailable on web</Text>
-        <Text style={styles.muted}>
-          AutoInterface / multicast / Bonjour — not available in browser tabs.
-        </Text>
+        <Text style={styles.muted}>AutoInterface / multicast / Bonjour — not available in browser tabs.</Text>
         <Text style={styles.muted}>BLE — requires native host bridges.</Text>
         <Text style={styles.muted}>
-          USB RNode on web uses Web Serial (Chromium); native Android/iOS USB
-          paths stay on mobile harness.
+          USB RNode on web uses Web Serial (Chromium); native Android/iOS USB paths stay on mobile harness.
         </Text>
         <Text style={styles.muted}>
-          Hyperdrive install uses gateway `/bulk-fetch` (Hyperswarm on the
-          node); DHT relay remains experimental fallback. Resource + 256t
-          install always supported.
+          Hyperdrive install uses gateway `/bulk-fetch` (Hyperswarm on the node); DHT relay remains experimental
+          fallback. Resource + 256t install always supported.
         </Text>
       </View>
 
@@ -408,12 +238,8 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
           <Text style={styles.muted}>No announces received yet.</Text>
         ) : (
           announces.slice(0, 8).map((entry) => (
-            <Text
-              key={`${entry.destinationHash}-${entry.receivedAt}`}
-              style={styles.announceLine}
-            >
-              {entry.destinationHash.slice(0, 16)}… · {entry.hops} hop
-              {entry.hops === 1 ? "" : "s"}
+            <Text key={`${entry.destinationHash}-${entry.receivedAt}`} style={styles.announceLine}>
+              {entry.destinationHash.slice(0, 16)}… · {entry.hops} hop{entry.hops === 1 ? "" : "s"}
             </Text>
           ))
         )}
@@ -426,6 +252,5 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
           </Text>
         ))}
       </ScrollView>
-    </>
-  );
+  </>;
 }

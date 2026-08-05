@@ -69,9 +69,7 @@
         "adversary": { "type": "string" },
         "powers": {
           "type": "array",
-          "items": {
-            "enum": ["drop", "delay", "reorder", "duplicate", "inject"]
-          }
+          "items": { "enum": ["drop", "delay", "reorder", "duplicate", "inject"] }
         }
       },
       "additionalProperties": false

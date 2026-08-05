@@ -3,16 +3,8 @@ import type { Intent } from "../../types.js";
 export interface StoreResult {
   readonly intents: Intent[];
   readonly events: Array<
-    | {
-        readonly kind: "store/value";
-        readonly key: string;
-        readonly value: Uint8Array | undefined;
-      }
-    | {
-        readonly kind: "store/done";
-        readonly key: string;
-        readonly op: "write" | "delete";
-      }
+    | { readonly kind: "store/value"; readonly key: string; readonly value: Uint8Array | undefined }
+    | { readonly kind: "store/done"; readonly key: string; readonly op: "write" | "delete" }
   >;
 }
 
@@ -23,9 +15,7 @@ export class SimStore {
   applyIntent(intent: Intent): StoreResult["events"] {
     if (intent.kind === "store/read") {
       const value = this.data.get(intent.read.key);
-      return [
-        { kind: "store/value", key: intent.read.key, value: value?.slice() },
-      ];
+      return [{ kind: "store/value", key: intent.read.key, value: value?.slice() }];
     }
     if (intent.kind === "store/write") {
       this.data.set(intent.write.key, intent.write.value.slice());

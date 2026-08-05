@@ -47,21 +47,13 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions,
+  stepDestinationRequestAllowWithActions
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
-import {
-  linkRegisterListPlanFromActions,
-  planLinkRegisterList,
-} from "./part-7.js";
-import type {
-  LinkRegisterListAction,
-  LinkRegisterListEvent,
-  LinkRegisterListPlanAction,
-  LinkRegisterListPlanEvent,
-} from "./part-7.js";
+import { linkRegisterListPlanFromActions, planLinkRegisterList } from "./part-7.js";
+import type { LinkRegisterListAction, LinkRegisterListEvent, LinkRegisterListPlanAction, LinkRegisterListPlanEvent } from "./part-7.js";
 /**
  * Link register-list plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkRegisterList` /
@@ -82,13 +74,13 @@ export function initialLinkRegisterListPlanState(): LinkRegisterListPlanState {
 
 export function stepLinkRegisterListPlanWithActions(
   state: LinkRegisterListPlanState,
-  event: LinkRegisterListPlanEvent,
+  event: LinkRegisterListPlanEvent
 ): LinkRegisterListPlanStepResult {
   if (event.kind === "link/register-list-plan-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: planLinkRegisterList(event.initiator) }],
+      actions: [{ kind: planLinkRegisterList(event.initiator) }]
     };
   }
 
@@ -96,13 +88,13 @@ export function stepLinkRegisterListPlanWithActions(
 }
 
 export function shouldRegisterLinkPendingPlan(
-  actions: ReadonlyArray<LinkRegisterListPlanAction>,
+  actions: ReadonlyArray<LinkRegisterListPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "pending");
 }
 
 export function shouldRegisterLinkActivePlan(
-  actions: ReadonlyArray<LinkRegisterListPlanAction>,
+  actions: ReadonlyArray<LinkRegisterListPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "active");
 }
@@ -127,7 +119,8 @@ export type RegisterLinkMemberEvent =
     };
 
 export type RegisterLinkMemberAction =
-  { readonly kind: "register" } | { readonly kind: "skip" };
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
 
 export interface RegisterLinkMemberStepResult {
   readonly state: RegisterLinkMemberState;
@@ -141,7 +134,7 @@ export function initialRegisterLinkMemberState(): RegisterLinkMemberState {
 
 export function stepRegisterLinkMemberWithActions(
   state: RegisterLinkMemberState,
-  event: RegisterLinkMemberEvent,
+  event: RegisterLinkMemberEvent
 ): RegisterLinkMemberStepResult {
   if (event.kind === "link/register-member-gate") {
     return {
@@ -149,11 +142,9 @@ export function stepRegisterLinkMemberWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldRegisterLinkMember(event.alreadyPresent)
-            ? "register"
-            : "skip",
-        },
-      ],
+          kind: shouldRegisterLinkMember(event.alreadyPresent) ? "register" : "skip"
+        }
+      ]
     };
   }
 
@@ -161,13 +152,13 @@ export function stepRegisterLinkMemberWithActions(
 }
 
 export function shouldRegisterLinkMemberNow(
-  actions: ReadonlyArray<RegisterLinkMemberAction>,
+  actions: ReadonlyArray<RegisterLinkMemberAction>
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipRegisterLinkMember(
-  actions: ReadonlyArray<RegisterLinkMemberAction>,
+  actions: ReadonlyArray<RegisterLinkMemberAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -187,7 +178,7 @@ export function planLinkActivateMembership(input: {
 }): LinkActivateMembershipPlan {
   return {
     removePendingIndex: input.pendingIndex >= 0 ? input.pendingIndex : null,
-    appendActive: !input.alreadyActive,
+    appendActive: !input.alreadyActive
   };
 }
 
@@ -224,12 +215,12 @@ export function initialLinkActivateMembershipPlanState(): LinkActivateMembership
 
 export function stepLinkActivateMembershipPlanWithActions(
   state: LinkActivateMembershipPlanState,
-  event: LinkActivateMembershipPlanEvent,
+  event: LinkActivateMembershipPlanEvent
 ): LinkActivateMembershipPlanStepResult {
   if (event.kind === "link/activate-membership-plan-gate") {
     const plan = planLinkActivateMembership({
       pendingIndex: event.pendingIndex,
-      alreadyActive: event.alreadyActive,
+      alreadyActive: event.alreadyActive
     });
     return {
       state,
@@ -238,9 +229,9 @@ export function stepLinkActivateMembershipPlanWithActions(
         {
           kind: "plan",
           removePendingIndex: plan.removePendingIndex,
-          appendActive: plan.appendActive,
-        },
-      ],
+          appendActive: plan.appendActive
+        }
+      ]
     };
   }
 
@@ -249,7 +240,7 @@ export function stepLinkActivateMembershipPlanWithActions(
 
 /** Extract the activate-membership plan from actions; null when empty. */
 export function linkActivateMembershipPlanFromActions(
-  actions: ReadonlyArray<LinkActivateMembershipPlanAction>,
+  actions: ReadonlyArray<LinkActivateMembershipPlanAction>
 ): LinkActivateMembershipPlan | null {
   const action = actions.find((entry) => entry.kind === "plan");
   if (action === undefined) {
@@ -257,21 +248,17 @@ export function linkActivateMembershipPlanFromActions(
   }
   return {
     removePendingIndex: action.removePendingIndex,
-    appendActive: action.appendActive,
+    appendActive: action.appendActive
   };
 }
 
 /** Whether activate may splice pending after {@link planLinkActivateMembership}. */
-export function shouldRemovePendingLinkMembership(
-  indexPresent: boolean,
-): boolean {
+export function shouldRemovePendingLinkMembership(indexPresent: boolean): boolean {
   return indexPresent;
 }
 
 /** Whether activate may unique-push to active after {@link planLinkActivateMembership}. */
-export function shouldAppendActiveLinkMembership(
-  appendActive: boolean,
-): boolean {
+export function shouldAppendActiveLinkMembership(appendActive: boolean): boolean {
   return appendActive;
 }
 
@@ -290,7 +277,7 @@ export function planLinkUnregisterMembership(input: {
 }): LinkUnregisterMembershipPlan {
   return {
     removePendingIndex: input.pendingIndex >= 0 ? input.pendingIndex : null,
-    removeActiveIndex: input.activeIndex >= 0 ? input.activeIndex : null,
+    removeActiveIndex: input.activeIndex >= 0 ? input.activeIndex : null
   };
 }
 
@@ -310,7 +297,7 @@ export type LinkUnregisterMembershipPlanAction = {
 
 /** Extract the unregister-membership plan from actions; null when empty. */
 export function linkUnregisterMembershipPlanFromActions(
-  actions: ReadonlyArray<LinkUnregisterMembershipPlanAction>,
+  actions: ReadonlyArray<LinkUnregisterMembershipPlanAction>
 ): LinkUnregisterMembershipPlan | null {
   const action = actions.find((entry) => entry.kind === "plan");
   if (action === undefined) {
@@ -318,7 +305,7 @@ export function linkUnregisterMembershipPlanFromActions(
   }
   return {
     removePendingIndex: action.removePendingIndex,
-    removeActiveIndex: action.removeActiveIndex,
+    removeActiveIndex: action.removeActiveIndex
   };
 }
 
@@ -337,23 +324,20 @@ export interface LinkRegisterListStepResult {
 
 export function stepLinkRegisterListWithActions(
   state: LinkRegisterListState,
-  event: LinkRegisterListEvent,
+  event: LinkRegisterListEvent
 ): LinkRegisterListStepResult {
   return stepLinkRegisterListInner(state, event);
 }
 
 export function stepLinkRegisterListInner(
   state: LinkRegisterListState,
-  event: LinkRegisterListEvent,
+  event: LinkRegisterListEvent
 ): LinkRegisterListStepResult {
   if (event.kind === "link/register-list-gate") {
-    const planActions = stepLinkRegisterListPlanWithActions(
-      initialLinkRegisterListPlanState(),
-      {
-        kind: "link/register-list-plan-gate",
-        initiator: event.initiator,
-      },
-    ).actions;
+    const planActions = stepLinkRegisterListPlanWithActions(initialLinkRegisterListPlanState(), {
+      kind: "link/register-list-plan-gate",
+      initiator: event.initiator
+    }).actions;
     const plan = linkRegisterListPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };
@@ -391,14 +375,14 @@ export interface LinkActivateMembershipStepResult {
 
 export function stepLinkActivateMembershipWithActions(
   state: LinkActivateMembershipState,
-  event: LinkActivateMembershipEvent,
+  event: LinkActivateMembershipEvent
 ): LinkActivateMembershipStepResult {
   return stepLinkActivateMembershipInner(state, event);
 }
 
 export function stepLinkActivateMembershipInner(
   state: LinkActivateMembershipState,
-  event: LinkActivateMembershipEvent,
+  event: LinkActivateMembershipEvent
 ): LinkActivateMembershipStepResult {
   if (event.kind === "link/activate-membership-gate") {
     const planActions = stepLinkActivateMembershipPlanWithActions(
@@ -406,8 +390,8 @@ export function stepLinkActivateMembershipInner(
       {
         kind: "link/activate-membership-plan-gate",
         pendingIndex: event.pendingIndex,
-        alreadyActive: event.alreadyActive,
-      },
+        alreadyActive: event.alreadyActive
+      }
     ).actions;
     const plan = linkActivateMembershipPlanFromActions(planActions);
     if (plan === null) {

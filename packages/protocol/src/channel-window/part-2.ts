@@ -23,15 +23,10 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { isChannelOutletTransmitOk } from "./part-1.js";
-import type {
-  ChannelOutletTransmitAction,
-  ChannelOutletTransmitEvent,
-  ChannelOutletTransmitState,
-  ChannelOutletTransmitStepResult,
-} from "./part-1.js";
+import type { ChannelOutletTransmitAction, ChannelOutletTransmitEvent, ChannelOutletTransmitState, ChannelOutletTransmitStepResult } from "./part-1.js";
 export function stepChannelOutletTransmitWithActions(
   state: ChannelOutletTransmitState,
-  event: ChannelOutletTransmitEvent,
+  event: ChannelOutletTransmitEvent
 ): ChannelOutletTransmitStepResult {
   if (event.kind === "channel/outlet-transmit-gate") {
     return {
@@ -42,12 +37,12 @@ export function stepChannelOutletTransmitWithActions(
           kind: isChannelOutletTransmitOk({
             packetPresent: event.packetPresent,
             rawLength: event.rawLength,
-            receiptPresent: event.receiptPresent,
+            receiptPresent: event.receiptPresent
           })
             ? "ok"
-            : "reject",
-        },
-      ],
+            : "reject"
+        }
+      ]
     };
   }
 
@@ -55,13 +50,13 @@ export function stepChannelOutletTransmitWithActions(
 }
 
 export function shouldAcceptChannelOutletTransmit(
-  actions: ReadonlyArray<ChannelOutletTransmitAction>,
+  actions: ReadonlyArray<ChannelOutletTransmitAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectChannelOutletTransmit(
-  actions: ReadonlyArray<ChannelOutletTransmitAction>,
+  actions: ReadonlyArray<ChannelOutletTransmitAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -71,10 +66,7 @@ export function shouldRejectChannelOutletTransmit(
  * Packet presence / delivery status are supplied by the adapter.
  */
 export function countChannelTxOutstanding(
-  entries: ReadonlyArray<{
-    readonly packetPresent: boolean;
-    readonly delivered: boolean;
-  }>,
+  entries: ReadonlyArray<{ readonly packetPresent: boolean; readonly delivered: boolean }>
 ): number {
   let outstanding = 0;
   for (const entry of entries) {
@@ -119,7 +111,7 @@ export function initialCountChannelTxOutstandingState(): CountChannelTxOutstandi
 
 export function stepCountChannelTxOutstandingWithActions(
   state: CountChannelTxOutstandingState,
-  event: CountChannelTxOutstandingEvent,
+  event: CountChannelTxOutstandingEvent
 ): CountChannelTxOutstandingStepResult {
   if (event.kind === "channel/tx-outstanding-gate") {
     return {
@@ -128,9 +120,9 @@ export function stepCountChannelTxOutstandingWithActions(
       actions: [
         {
           kind: "use-count",
-          count: countChannelTxOutstanding(event.entries),
-        },
-      ],
+          count: countChannelTxOutstanding(event.entries)
+        }
+      ]
     };
   }
 
@@ -138,14 +130,14 @@ export function stepCountChannelTxOutstandingWithActions(
 }
 
 export function shouldUseChannelTxOutstandingCount(
-  actions: ReadonlyArray<CountChannelTxOutstandingAction>,
+  actions: ReadonlyArray<CountChannelTxOutstandingAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-count");
 }
 
 /** Extract outstanding count from step actions; null when no `use-count`. */
 export function channelTxOutstandingCountFromActions(
-  actions: ReadonlyArray<CountChannelTxOutstandingAction>,
+  actions: ReadonlyArray<CountChannelTxOutstandingAction>
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-count");
   return action?.kind === "use-count" ? action.count : null;
@@ -171,7 +163,8 @@ export type ArmChannelPacketReceiptEvent =
     };
 
 export type ArmChannelPacketReceiptAction =
-  { readonly kind: "arm" } | { readonly kind: "skip" };
+  | { readonly kind: "arm" }
+  | { readonly kind: "skip" };
 
 export interface ArmChannelPacketReceiptStepResult {
   readonly state: ArmChannelPacketReceiptState;
@@ -185,7 +178,7 @@ export function initialArmChannelPacketReceiptState(): ArmChannelPacketReceiptSt
 
 export function stepArmChannelPacketReceiptWithActions(
   state: ArmChannelPacketReceiptState,
-  event: ArmChannelPacketReceiptEvent,
+  event: ArmChannelPacketReceiptEvent
 ): ArmChannelPacketReceiptStepResult {
   if (event.kind === "channel/arm-packet-receipt-gate") {
     return {
@@ -193,11 +186,9 @@ export function stepArmChannelPacketReceiptWithActions(
       intents: [],
       actions: [
         {
-          kind: canArmChannelPacketReceipt(event.receiptPresent)
-            ? "arm"
-            : "skip",
-        },
-      ],
+          kind: canArmChannelPacketReceipt(event.receiptPresent) ? "arm" : "skip"
+        }
+      ]
     };
   }
 
@@ -205,13 +196,13 @@ export function stepArmChannelPacketReceiptWithActions(
 }
 
 export function shouldArmChannelPacketReceiptNow(
-  actions: ReadonlyArray<ArmChannelPacketReceiptAction>,
+  actions: ReadonlyArray<ArmChannelPacketReceiptAction>
 ): boolean {
   return actions.some((action) => action.kind === "arm");
 }
 
 export function shouldSkipArmChannelPacketReceipt(
-  actions: ReadonlyArray<ArmChannelPacketReceiptAction>,
+  actions: ReadonlyArray<ArmChannelPacketReceiptAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -224,9 +215,7 @@ export function shouldExtendPacketReceiptTimeout(input: {
   readonly currentTimeout: number | null;
   readonly updatedTimeout: number;
 }): boolean {
-  return (
-    input.currentTimeout !== null && input.updatedTimeout > input.currentTimeout
-  );
+  return input.currentTimeout !== null && input.updatedTimeout > input.currentTimeout;
 }
 
 /**
@@ -245,7 +234,8 @@ export type ExtendPacketReceiptTimeoutEvent =
     };
 
 export type ExtendPacketReceiptTimeoutAction =
-  { readonly kind: "extend" } | { readonly kind: "skip" };
+  | { readonly kind: "extend" }
+  | { readonly kind: "skip" };
 
 export interface ExtendPacketReceiptTimeoutStepResult {
   readonly state: ExtendPacketReceiptTimeoutState;
@@ -259,7 +249,7 @@ export function initialExtendPacketReceiptTimeoutState(): ExtendPacketReceiptTim
 
 export function stepExtendPacketReceiptTimeoutWithActions(
   state: ExtendPacketReceiptTimeoutState,
-  event: ExtendPacketReceiptTimeoutEvent,
+  event: ExtendPacketReceiptTimeoutEvent
 ): ExtendPacketReceiptTimeoutStepResult {
   if (event.kind === "channel/extend-packet-receipt-timeout-gate") {
     return {
@@ -269,12 +259,12 @@ export function stepExtendPacketReceiptTimeoutWithActions(
         {
           kind: shouldExtendPacketReceiptTimeout({
             currentTimeout: event.currentTimeout,
-            updatedTimeout: event.updatedTimeout,
+            updatedTimeout: event.updatedTimeout
           })
             ? "extend"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -282,13 +272,13 @@ export function stepExtendPacketReceiptTimeoutWithActions(
 }
 
 export function shouldExtendPacketReceiptTimeoutNow(
-  actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>,
+  actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "extend");
 }
 
 export function shouldSkipExtendPacketReceiptTimeout(
-  actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>,
+  actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -344,18 +334,20 @@ export function initialIndexOfChannelTxEnvelopeState(): IndexOfChannelTxEnvelope
 
 export function stepIndexOfChannelTxEnvelopeWithActions(
   state: IndexOfChannelTxEnvelopeState,
-  event: IndexOfChannelTxEnvelopeEvent,
+  event: IndexOfChannelTxEnvelopeEvent
 ): IndexOfChannelTxEnvelopeStepResult {
   if (event.kind === "channel/tx-envelope-index-gate") {
     const index = indexOfChannelTxEnvelope({
       packetIds: event.packetIds,
-      targetId: event.targetId,
+      targetId: event.targetId
     });
     return {
       state,
       intents: [],
       actions:
-        index === null ? [{ kind: "miss" }] : [{ kind: "use-index", index }],
+        index === null
+          ? [{ kind: "miss" }]
+          : [{ kind: "use-index", index }]
     };
   }
 
@@ -363,20 +355,20 @@ export function stepIndexOfChannelTxEnvelopeWithActions(
 }
 
 export function shouldUseChannelTxEnvelopeIndex(
-  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>,
+  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-index");
 }
 
 export function shouldMissChannelTxEnvelopeIndex(
-  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>,
+  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 /** Extract TX-envelope index from step actions; null when no `use-index`. */
 export function channelTxEnvelopeIndexFromActions(
-  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>,
+  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-index");
   return action?.kind === "use-index" ? action.index : null;
@@ -408,16 +400,14 @@ export type ChannelTxEnvelopeOpPlanEvent =
       readonly opOk?: boolean;
     };
 
-export type ChannelTxEnvelopeOpPlanAction = {
-  readonly kind: ChannelTxEnvelopeOpPlan;
-};
+export type ChannelTxEnvelopeOpPlanAction = { readonly kind: ChannelTxEnvelopeOpPlan };
 
 /** Extract the TX-envelope-op plan from actions; null when empty. */
 export function channelTxEnvelopeOpPlanFromActions(
-  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>,
+  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>
 ): ChannelTxEnvelopeOpPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "miss" || entry.kind === "process",
+    (entry) => entry.kind === "miss" || entry.kind === "process"
   );
   return action?.kind ?? null;
 }
@@ -432,4 +422,5 @@ export type ChannelTxEnvelopeOpEvent =
     };
 
 export type ChannelTxEnvelopeOpAction =
-  { readonly kind: "miss" } | { readonly kind: "process" };
+  | { readonly kind: "miss" }
+  | { readonly kind: "process" };

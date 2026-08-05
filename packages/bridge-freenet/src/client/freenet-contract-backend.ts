@@ -2,7 +2,7 @@ import { bytesToHex, hexToBytes } from "@twistedpear/reticulum-ts";
 import {
   FreenetClient,
   type FreenetClientOptions,
-  type FreenetUpdateOptions,
+  type FreenetUpdateOptions
 } from "../core/client.js";
 
 /**
@@ -49,9 +49,7 @@ export class FreenetClientContractBackend implements FreenetContractBackendPort 
     return this.#client;
   }
 
-  async get(
-    keyHex: string,
-  ): Promise<{ keyHex: string; stateHex: string } | null> {
+  async get(keyHex: string): Promise<{ keyHex: string; stateHex: string } | null> {
     const key = hexToBytes(keyHex);
     const record = await this.#client.get(key).catch(() => null);
     if (record === null) {
@@ -59,7 +57,7 @@ export class FreenetClientContractBackend implements FreenetContractBackendPort 
     }
     return {
       keyHex: bytesToHex(record.key),
-      stateHex: bytesToHex(record.state),
+      stateHex: bytesToHex(record.state)
     };
   }
 
@@ -91,7 +89,7 @@ export class FreenetClientContractBackend implements FreenetContractBackendPort 
       this.#updateOptions?.codeField !== undefined ||
       this.#updateOptions?.fallbackCodeField !== undefined
         ? {}
-        : { fallbackCodeField: cachedWasm }),
+        : { fallbackCodeField: cachedWasm })
     };
     await this.#client.update(key, codeHash, state, updateOptions);
   }
@@ -105,13 +103,11 @@ export class FreenetClientContractBackend implements FreenetContractBackendPort 
 }
 
 export function createFreenetContractBackend(
-  options: FreenetClientOptions & {
-    readonly updateOptions?: FreenetUpdateOptions;
-  } = {},
+  options: FreenetClientOptions & { readonly updateOptions?: FreenetUpdateOptions } = {}
 ): FreenetClientContractBackend {
   const { updateOptions, ...clientOptions } = options;
   return new FreenetClientContractBackend({
     clientOptions,
-    ...(updateOptions === undefined ? {} : { updateOptions }),
+    ...(updateOptions === undefined ? {} : { updateOptions })
   });
 }

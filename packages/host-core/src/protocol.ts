@@ -21,8 +21,7 @@ export interface CatalogEntryView {
 
 export interface InstallProgress {
   readonly appId: string;
-  readonly phase:
-    "starting" | "downloading" | "verifying" | "complete" | "failed";
+  readonly phase: "starting" | "downloading" | "verifying" | "complete" | "failed";
   readonly bytesReceived: number;
   readonly totalBytes: number;
   readonly path: string | null;
@@ -118,57 +117,18 @@ export type HostToWorkletMessage =
   | { readonly type: "join-community-network" }
   | { readonly type: "create-identity" }
   | { readonly type: "reset-identity" }
-  | {
-      readonly type: "identity-unlock";
-      readonly passphrase: string;
-      readonly confirmation?: string;
-    }
-  | {
-      readonly type: "identity-export";
-      readonly currentPassphrase: string;
-      readonly backupPassphrase: string;
-    }
-  | {
-      readonly type: "identity-recovery-show";
-      readonly currentPassphrase: string;
-    }
-  | {
-      readonly type: "identity-import";
-      readonly backupHex: string;
-      readonly backupPassphrase: string;
-      readonly vaultPassphrase: string;
-    }
-  | {
-      readonly type: "identity-recovery-import";
-      readonly first: string;
-      readonly second: string;
-      readonly vaultPassphrase: string;
-    }
-  | {
-      readonly type: "identity-change-passphrase";
-      readonly currentPassphrase: string;
-      readonly nextPassphrase: string;
-    }
+  | { readonly type: "identity-unlock"; readonly passphrase: string; readonly confirmation?: string }
+  | { readonly type: "identity-export"; readonly currentPassphrase: string; readonly backupPassphrase: string }
+  | { readonly type: "identity-recovery-show"; readonly currentPassphrase: string }
+  | { readonly type: "identity-import"; readonly backupHex: string; readonly backupPassphrase: string; readonly vaultPassphrase: string }
+  | { readonly type: "identity-recovery-import"; readonly first: string; readonly second: string; readonly vaultPassphrase: string }
+  | { readonly type: "identity-change-passphrase"; readonly currentPassphrase: string; readonly nextPassphrase: string }
   | { readonly type: "moderation-list" }
-  | {
-      readonly type: "moderation-block";
-      readonly sourceHash: string;
-      readonly label?: string;
-    }
+  | { readonly type: "moderation-block"; readonly sourceHash: string; readonly label?: string }
   | { readonly type: "moderation-unblock"; readonly sourceHash: string }
-  | {
-      readonly type: "moderation-mute";
-      readonly sourceHash: string;
-      readonly label?: string;
-    }
+  | { readonly type: "moderation-mute"; readonly sourceHash: string; readonly label?: string }
   | { readonly type: "moderation-unmute"; readonly sourceHash: string }
-  | {
-      readonly type: "moderation-report";
-      readonly sourceHash: string;
-      readonly reason: string;
-      readonly note?: string;
-      readonly messageHash?: string;
-    }
+  | { readonly type: "moderation-report"; readonly sourceHash: string; readonly reason: string; readonly note?: string; readonly messageHash?: string }
   | { readonly type: "moderation-export-reports" }
   | {
       readonly type: "set-interfaces";
@@ -202,87 +162,26 @@ export type HostToWorkletMessage =
     }
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }
-  | {
-      readonly type: "install-app";
-      readonly appId: string;
-      readonly forcePath?: "hyperdrive" | "lan-mirror" | "freenet" | "resource";
-      readonly archiveHex?: string;
-    }
-  | {
-      readonly type: "delete-package";
-      readonly appId: string;
-      readonly version: string;
-    }
+  | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "freenet" | "resource"; readonly archiveHex?: string }
+  | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
   | { readonly type: "rollback-package"; readonly appId: string }
-  | {
-      readonly type: "get-grants";
-      readonly appId: string;
-      readonly publisherPublicKey: string;
-      readonly declaredCapabilities: ReadonlyArray<string>;
-    }
-  | {
-      readonly type: "set-grants";
-      readonly appId: string;
-      readonly publisherPublicKey: string;
-      readonly declaredCapabilities: ReadonlyArray<string>;
-      readonly grantedCapabilities: ReadonlyArray<string>;
-    }
-  | {
-      readonly type: "revoke-grant";
-      readonly appId: string;
-      readonly publisherPublicKey: string;
-      readonly capability: string;
-      readonly declaredCapabilities: ReadonlyArray<string>;
-    }
+  | { readonly type: "get-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string> }
+  | { readonly type: "set-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string>; readonly grantedCapabilities: ReadonlyArray<string> }
+  | { readonly type: "revoke-grant"; readonly appId: string; readonly publisherPublicKey: string; readonly capability: string; readonly declaredCapabilities: ReadonlyArray<string> }
   | { readonly type: "launch-miniapp"; readonly appId: string }
   | { readonly type: "stop-miniapp" }
   | { readonly type: "suspend-miniapp" }
   | { readonly type: "resume-miniapp" }
-  | {
-      readonly type: "miniapp-ui-event";
-      readonly nodeId: string;
-      readonly event: string;
-      readonly value?: unknown;
-    }
-  | {
-      readonly type: "dev-side-load";
-      readonly manifest: Record<string, unknown>;
-      readonly bundleHex: string;
-    }
-  | {
-      readonly type: "connect-dev-channel";
-      readonly host: string;
-      readonly port: number;
-    }
+  | { readonly type: "miniapp-ui-event"; readonly nodeId: string; readonly event: string; readonly value?: unknown }
+  | { readonly type: "dev-side-load"; readonly manifest: Record<string, unknown>; readonly bundleHex: string }
+  | { readonly type: "connect-dev-channel"; readonly host: string; readonly port: number }
   | { readonly type: "disconnect-dev-channel" }
   /** Test-only: mounts the peer control agent for `conformance/local-multipeer`. */
-  | {
-      readonly type: "connect-test-agent";
-      readonly host: string;
-      readonly port: number;
-      readonly label: string;
-    }
-  | {
-      readonly type: "multicast-packet";
-      readonly ifname: string;
-      readonly dataHex: string;
-      readonly sourceAddress: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "multicast-interfaces";
-      readonly interfaces: ReadonlyArray<MulticastNetworkInfo>;
-    }
-  | {
-      readonly type: "bonjour-peer";
-      readonly ifname: string;
-      readonly address: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "bonjour-interfaces";
-      readonly interfaces: ReadonlyArray<MulticastNetworkInfo>;
-    }
+  | { readonly type: "connect-test-agent"; readonly host: string; readonly port: number; readonly label: string }
+  | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
+  | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
+  | { readonly type: "bonjour-peer"; readonly ifname: string; readonly address: string; readonly port: number }
+  | { readonly type: "bonjour-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "ble-data"; readonly dataHex: string }
   | { readonly type: "ble-connect"; readonly mtu: number }
   | { readonly type: "ble-disconnect" }
@@ -295,126 +194,39 @@ export type HostToWorkletMessage =
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
   | { readonly type: "log"; readonly line: string }
-  | {
-      readonly type: "identity-locked";
-      readonly legacy: boolean;
-      readonly creating: boolean;
-    }
-  | {
-      readonly type: "identity-operation";
-      readonly operation: string;
-      readonly ok: boolean;
-      readonly identityHash?: string;
-      readonly backupHex?: string;
-      readonly first?: string;
-      readonly second?: string;
-      readonly error?: string;
-    }
-  | {
-      readonly type: "moderation-state";
-      readonly blocked: ReadonlyArray<{
-        sourceHash: string;
-        label: string | null;
-        createdAt: number;
-      }>;
-      readonly muted: ReadonlyArray<{
-        sourceHash: string;
-        label: string | null;
-        createdAt: number;
-      }>;
-      readonly reports: ReadonlyArray<{
-        id: string;
-        sourceHash: string;
-        reason: string;
-        note: string;
-        messageHash: string | null;
-        createdAt: number;
-      }>;
-    }
+  | { readonly type: "identity-locked"; readonly legacy: boolean; readonly creating: boolean }
+  | { readonly type: "identity-operation"; readonly operation: string; readonly ok: boolean; readonly identityHash?: string; readonly backupHex?: string; readonly first?: string; readonly second?: string; readonly error?: string }
+  | { readonly type: "moderation-state"; readonly blocked: ReadonlyArray<{ sourceHash: string; label: string | null; createdAt: number }>; readonly muted: ReadonlyArray<{ sourceHash: string; label: string | null; createdAt: number }>; readonly reports: ReadonlyArray<{ id: string; sourceHash: string; reason: string; note: string; messageHash: string | null; createdAt: number }> }
   | { readonly type: "moderation-report-export"; readonly json: string }
   | { readonly type: "announce"; readonly entry: AnnounceEntry }
-  | {
-      readonly type: "catalog";
-      readonly entries: ReadonlyArray<CatalogEntryView>;
-    }
-  | {
-      readonly type: "installed";
-      readonly packages: ReadonlyArray<InstalledPackageView>;
-    }
+  | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
+  | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
-  | {
-      readonly type: "grants";
-      readonly appId: string;
-      readonly capabilities: ReadonlyArray<CapabilityGrantView>;
-    }
+  | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
   | { readonly type: "miniapp-runtime"; readonly runtime: MiniappRuntimeView }
-  | {
-      readonly type: "miniapp-log";
-      readonly appId: string;
-      readonly line: string;
-    }
-  | {
-      readonly type: "dev-channel";
-      readonly state: "connected" | "disconnected" | "loaded" | "error";
-      readonly detail?: string;
-    }
+  | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }
+  | { readonly type: "dev-channel"; readonly state: "connected" | "disconnected" | "loaded" | "error"; readonly detail?: string }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }
-  | {
-      readonly type: "multicast-join";
-      readonly ifname: string;
-      readonly groupAddress: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "multicast-bind";
-      readonly ifname: string;
-      readonly port: number;
-    }
-  | {
-      readonly type: "multicast-send";
-      readonly ifname: string;
-      readonly groupAddress: string;
-      readonly port: number;
-      readonly dataHex: string;
-    }
-  | {
-      readonly type: "multicast-unicast";
-      readonly ifname: string;
-      readonly targetAddress: string;
-      readonly port: number;
-      readonly dataHex: string;
-    }
+  | { readonly type: "multicast-join"; readonly ifname: string; readonly groupAddress: string; readonly port: number }
+  | { readonly type: "multicast-bind"; readonly ifname: string; readonly port: number }
+  | { readonly type: "multicast-send"; readonly ifname: string; readonly groupAddress: string; readonly port: number; readonly dataHex: string }
+  | { readonly type: "multicast-unicast"; readonly ifname: string; readonly targetAddress: string; readonly port: number; readonly dataHex: string }
   | { readonly type: "bonjour-start" }
   | { readonly type: "bonjour-stop" }
-  | {
-      readonly type: "bonjour-advertise";
-      readonly ifname: string;
-      readonly address: string;
-      readonly port: number;
-    }
+  | { readonly type: "bonjour-advertise"; readonly ifname: string; readonly address: string; readonly port: number }
   | { readonly type: "ble-start"; readonly identityHashHex: string }
   | { readonly type: "ble-stop" }
   | { readonly type: "ble-write"; readonly dataHex: string }
-  | {
-      readonly type: "serial-start";
-      readonly baudRate: number;
-      readonly deviceId?: number;
-      readonly portPath?: string;
-    }
+  | { readonly type: "serial-start"; readonly baudRate: number; readonly deviceId?: number; readonly portPath?: string }
   | { readonly type: "serial-stop" }
   | { readonly type: "serial-write"; readonly dataHex: string };
 
-export function encodeMessage(
-  message: HostToWorkletMessage | WorkletToHostMessage,
-): string {
+export function encodeMessage(message: HostToWorkletMessage | WorkletToHostMessage): string {
   return `${JSON.stringify(message)}\n`;
 }
 
-export function decodeMessages(buffer: string): {
-  readonly messages: ReadonlyArray<WorkletToHostMessage>;
-  readonly remainder: string;
-} {
+export function decodeMessages(buffer: string): { readonly messages: ReadonlyArray<WorkletToHostMessage>; readonly remainder: string } {
   const messages: WorkletToHostMessage[] = [];
   let remainder = buffer;
 

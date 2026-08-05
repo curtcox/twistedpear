@@ -50,15 +50,8 @@ export interface MulticastNetworkInfo {
 }
 
 export interface MulticastBridgeEvents {
-  readonly onPacket?: (
-    ifname: string,
-    data: Uint8Array,
-    sourceAddress: string,
-    port: number,
-  ) => void;
-  readonly onNetworkChange?: (
-    interfaces: ReadonlyArray<MulticastNetworkInfo>,
-  ) => void;
+  readonly onPacket?: (ifname: string, data: Uint8Array, sourceAddress: string, port: number) => void;
+  readonly onNetworkChange?: (interfaces: ReadonlyArray<MulticastNetworkInfo>) => void;
 }
 
 /** Android/desktop multicast bridge for AutoInterface. */
@@ -68,17 +61,7 @@ export interface MulticastBridge {
   stop(): Promise<void>;
   joinGroup(ifname: string, groupAddress: string, port: number): Promise<void>;
   bindPort(ifname: string, port: number): Promise<void>;
-  send(
-    ifname: string,
-    groupAddress: string,
-    port: number,
-    data: Uint8Array,
-  ): Promise<void>;
-  sendUnicast(
-    ifname: string,
-    targetAddress: string,
-    port: number,
-    data: Uint8Array,
-  ): Promise<void>;
+  send(ifname: string, groupAddress: string, port: number, data: Uint8Array): Promise<void>;
+  sendUnicast(ifname: string, targetAddress: string, port: number, data: Uint8Array): Promise<void>;
   setEvents(events: MulticastBridgeEvents): void;
 }

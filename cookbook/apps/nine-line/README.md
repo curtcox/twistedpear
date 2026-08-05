@@ -17,17 +17,17 @@ Designing a message format for hundreds of bits per second, and queueing when th
 
 ## Capabilities
 
-| Capability   | Note                                                 |
-| ------------ | ---------------------------------------------------- |
-| `lxmf:send`  | Standing grant; revocable at any time from the host. |
+| Capability | Note |
+|---|---|
+| `lxmf:send` | Standing grant; revocable at any time from the host. |
 | `storage:kv` | Standing grant; revocable at any time from the host. |
 
 ## Files
 
-| File                                   | Purpose                                                      |
-| -------------------------------------- | ------------------------------------------------------------ |
+| File | Purpose |
+|---|---|
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
 
 ## Run it
 

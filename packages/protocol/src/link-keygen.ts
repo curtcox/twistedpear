@@ -20,32 +20,28 @@ export interface LinkResponderKeyMaterial {
   readonly privateKey: Uint8Array;
 }
 
-export function splitInitiatorLinkEntropy(
-  entropy: Uint8Array,
-): LinkInitiatorKeyMaterial {
+export function splitInitiatorLinkEntropy(entropy: Uint8Array): LinkInitiatorKeyMaterial {
   if (entropy.length < LINK_INITIATOR_ENTROPY_SIZE) {
     throw new Error(
-      `Initiator link entropy must be at least ${LINK_INITIATOR_ENTROPY_SIZE} bytes`,
+      `Initiator link entropy must be at least ${LINK_INITIATOR_ENTROPY_SIZE} bytes`
     );
   }
   return {
     privateKey: Uint8Array.from(entropy.subarray(0, LINK_X25519_KEY_SIZE)),
     signaturePrivateKey: Uint8Array.from(
-      entropy.subarray(LINK_X25519_KEY_SIZE, LINK_INITIATOR_ENTROPY_SIZE),
-    ),
+      entropy.subarray(LINK_X25519_KEY_SIZE, LINK_INITIATOR_ENTROPY_SIZE)
+    )
   };
 }
 
-export function splitResponderLinkEntropy(
-  entropy: Uint8Array,
-): LinkResponderKeyMaterial {
+export function splitResponderLinkEntropy(entropy: Uint8Array): LinkResponderKeyMaterial {
   if (entropy.length < LINK_RESPONDER_ENTROPY_SIZE) {
     throw new Error(
-      `Responder link entropy must be at least ${LINK_RESPONDER_ENTROPY_SIZE} bytes`,
+      `Responder link entropy must be at least ${LINK_RESPONDER_ENTROPY_SIZE} bytes`
     );
   }
   return {
-    privateKey: Uint8Array.from(entropy.subarray(0, LINK_X25519_KEY_SIZE)),
+    privateKey: Uint8Array.from(entropy.subarray(0, LINK_X25519_KEY_SIZE))
   };
 }
 
@@ -79,19 +75,14 @@ export function initialSplitInitiatorLinkEntropyState(): SplitInitiatorLinkEntro
 
 export function stepSplitInitiatorLinkEntropyWithActions(
   state: SplitInitiatorLinkEntropyState,
-  event: SplitInitiatorLinkEntropyEvent,
+  event: SplitInitiatorLinkEntropyEvent
 ): SplitInitiatorLinkEntropyStepResult {
   if (event.kind === "link-keygen/split-initiator-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [
-          {
-            kind: "use-fields",
-            fields: splitInitiatorLinkEntropy(event.entropy),
-          },
-        ],
+        actions: [{ kind: "use-fields", fields: splitInitiatorLinkEntropy(event.entropy) }]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -102,20 +93,20 @@ export function stepSplitInitiatorLinkEntropyWithActions(
 }
 
 export function shouldUseSplitInitiatorLinkEntropy(
-  actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>,
+  actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitInitiatorLinkEntropy(
-  actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>,
+  actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract initiator key material from step actions; null when no `use-fields`. */
 export function initiatorLinkEntropyFieldsFromActions(
-  actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>,
+  actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>
 ): LinkInitiatorKeyMaterial | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -151,19 +142,14 @@ export function initialSplitResponderLinkEntropyState(): SplitResponderLinkEntro
 
 export function stepSplitResponderLinkEntropyWithActions(
   state: SplitResponderLinkEntropyState,
-  event: SplitResponderLinkEntropyEvent,
+  event: SplitResponderLinkEntropyEvent
 ): SplitResponderLinkEntropyStepResult {
   if (event.kind === "link-keygen/split-responder-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [
-          {
-            kind: "use-fields",
-            fields: splitResponderLinkEntropy(event.entropy),
-          },
-        ],
+        actions: [{ kind: "use-fields", fields: splitResponderLinkEntropy(event.entropy) }]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -174,20 +160,20 @@ export function stepSplitResponderLinkEntropyWithActions(
 }
 
 export function shouldUseSplitResponderLinkEntropy(
-  actions: ReadonlyArray<SplitResponderLinkEntropyAction>,
+  actions: ReadonlyArray<SplitResponderLinkEntropyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitResponderLinkEntropy(
-  actions: ReadonlyArray<SplitResponderLinkEntropyAction>,
+  actions: ReadonlyArray<SplitResponderLinkEntropyAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract responder key material from step actions; null when no `use-fields`. */
 export function responderLinkEntropyFieldsFromActions(
-  actions: ReadonlyArray<SplitResponderLinkEntropyAction>,
+  actions: ReadonlyArray<SplitResponderLinkEntropyAction>
 ): LinkResponderKeyMaterial | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

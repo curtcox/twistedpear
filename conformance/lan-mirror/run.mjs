@@ -13,24 +13,14 @@ import {
   CatalogStore,
   InstalledPackageStore,
   unpackPackage,
-  verifyPackage,
+  verifyPackage
 } from "../../packages/app-registry/dist/index.js";
-import {
-  DriveManager,
-  createSwarm,
-  fetchPackage,
-} from "../../packages/bridge-hyper/dist/index.js";
-import {
-  hexToBytes,
-  NodeCryptoProvider,
-} from "../../packages/reticulum-ts/dist/index.js";
+import { DriveManager, createSwarm, fetchPackage } from "../../packages/bridge-hyper/dist/index.js";
+import { hexToBytes, NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../fixtures/packages/example-app",
-);
+const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 const HOST_API_VERSION = "0.1.0";
 
 async function sleep(ms) {
@@ -43,13 +33,9 @@ async function waitFor(evaluate, timeoutMs = 20_000) {
     const remaining = timeoutMs - (Date.now() - started);
     const value = await Promise.race([
       evaluate(),
-      sleep(remaining).then(() => Symbol.for("timeout")),
+      sleep(remaining).then(() => Symbol.for("timeout"))
     ]);
-    if (
-      value !== Symbol.for("timeout") &&
-      value !== null &&
-      value !== undefined
-    ) {
+    if (value !== Symbol.for("timeout") && value !== null && value !== undefined) {
       return value;
     }
 
@@ -79,7 +65,7 @@ function mockTcpInterface() {
     online: true,
     packets: (async function* () {})(),
     async send() {},
-    async close() {},
+    async close() {}
   };
 }
 
@@ -99,34 +85,23 @@ async function main() {
   try {
     writeFileSync(
       join(publisherDir, "tp.config.json"),
-      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
+      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
     );
 
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
-    const initCode = await runInit({
-      cwd: publisherDir,
-      identityPassphrase: "conformance identity passphrase",
-      args: [],
-    });
+    const initCode = await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
 
-    const publishCode = await runPublish({
-      cwd: publisherDir,
-      args: [fixtureApp],
-    });
+    const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
     if (publishCode !== 0) {
       throw new Error("tp publish failed");
     }
 
     const provider = new NodeCryptoProvider();
-    const meta = JSON.parse(
-      readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
-    );
-    const archive = new Uint8Array(
-      readFileSync(join(publisherDir, ".tp/last.tpkg")),
-    );
+    const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+    const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);
 
     const catalog = new CatalogStore(provider);
@@ -135,7 +110,7 @@ async function main() {
       destinationHash: meta.destinationName ?? "lan-mirror",
       appData: hexToBytes(meta.appDataHex),
       manifest: unpacked.manifest,
-      packageHash: unpacked.packageHash,
+      packageHash: unpacked.packageHash
     });
     if (entry === null) {
       throw new Error("catalog ingest failed");
@@ -143,22 +118,12 @@ async function main() {
 
     pubSwarm = createSwarm();
     seedSwarm = createSwarm();
-    publisherDrive = new DriveManager({
-      storagePath: join(publisherDir, ".tp/storage"),
-      swarm: pubSwarm,
-    });
-    seedDrive = new DriveManager({
-      storagePath: join(seederStateDir, "drives"),
-      swarm: seedSwarm,
-    });
+    publisherDrive = new DriveManager({ storagePath: join(publisherDir, ".tp/storage"), swarm: pubSwarm });
+    seedDrive = new DriveManager({ storagePath: join(seederStateDir, "drives"), swarm: seedSwarm });
     await publisherDrive.ready();
     await seedDrive.ready();
     await publisherDrive.openDrive(meta.driveKey);
-    await publisherDrive.publishVersion(
-      meta.version,
-      archive,
-      unpacked.packageHash,
-    );
+    await publisherDrive.publishVersion(meta.version, archive, unpacked.packageHash);
     await seedDrive.openDrive(meta.driveKey, { serve: true });
     await fetchWithRetry(seedDrive, meta.version);
 
@@ -168,10 +133,7 @@ async function main() {
     publisherDrive = null;
 
     consumerSwarm = createSwarm();
-    consumerDrive = new DriveManager({
-      storagePath: consumerDir,
-      swarm: consumerSwarm,
-    });
+    consumerDrive = new DriveManager({ storagePath: consumerDir, swarm: consumerSwarm });
     await consumerDrive.ready();
     await consumerDrive.openDrive(meta.driveKey);
     await fetchWithRetry(consumerDrive, meta.version);
@@ -181,12 +143,10 @@ async function main() {
       version: entry.version,
       interfaces: [mockTcpInterface()],
       driveManager: consumerDrive,
-      forcePath: "hyperdrive",
+      forcePath: "hyperdrive"
     });
 
-    const verified = verifyPackage(provider, result.archiveBytes, {
-      hostApiVersion: HOST_API_VERSION,
-    });
+    const verified = verifyPackage(provider, result.archiveBytes, { hostApiVersion: HOST_API_VERSION });
     if (verified.packageHash !== unpacked.packageHash) {
       throw new Error("lan-mirror package hash mismatch");
     }
@@ -198,15 +158,13 @@ async function main() {
         packageHash: verified.packageHash,
         installedAt: Date.now(),
         manifest: verified.manifest,
-        archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`,
+        archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`
       },
-      result.archiveBytes.length,
+      result.archiveBytes.length
     );
 
     if (result.path !== "hyperdrive") {
-      throw new Error(
-        `expected hyperdrive path from seeder consumer, got ${result.path}`,
-      );
+      throw new Error(`expected hyperdrive path from seeder consumer, got ${result.path}`);
     }
 
     await consumerDrive.close();

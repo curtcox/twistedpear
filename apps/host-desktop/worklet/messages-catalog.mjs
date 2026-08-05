@@ -6,27 +6,26 @@ import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js"
 import {
   decodePublisherIdentity256t,
   encodePublisherIdentity256t,
-  verifyPackage,
+  verifyPackage
 } from "../../../packages/app-registry/dist/index.js";
-import {
-  PackageResourceClient,
-  assessFetchBudget,
-  fetchPackage,
-} from "../../../packages/bridge-hyper/dist/worklet.js";
-import {
-  HOST_API_VERSION,
-  validateManifestCapabilities,
-} from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { PackageResourceClient, assessFetchBudget, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
+import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 
 export function createCatalogMessageHandlers(deps) {
-  const { state, provider, runtime, send, log, refuseStoreAction } = deps;
+  const {
+    state,
+    provider,
+    runtime,
+    send,
+    log,
+    refuseStoreAction
+  } = deps;
   const ensureCatalog = (...args) => deps.ensureCatalog(...args);
   const persistCatalogState = (...args) => deps.persistCatalogState(...args);
   const pushCatalog = (...args) => deps.pushCatalog(...args);
   const ensureTrustStore = (...args) => deps.ensureTrustStore(...args);
   const pushTrustList = (...args) => deps.pushTrustList(...args);
-  const ensurePackageDriveManager = (...args) =>
-    deps.ensurePackageDriveManager(...args);
+  const ensurePackageDriveManager = (...args) => deps.ensurePackageDriveManager(...args);
   const resolveIdentity = (...args) => deps.resolveIdentity(...args);
   const installFromT256 = (...args) => deps.installFromT256(...args);
 
@@ -45,14 +44,13 @@ export function createCatalogMessageHandlers(deps) {
           bytesReceived: 0,
           totalBytes: 0,
           path: null,
-          verified: false,
-        },
+          verified: false
+        }
       });
       return;
     }
 
-    const { catalogStore: catalog, installedStore: installed } =
-      ensureCatalog();
+    const { catalogStore: catalog, installedStore: installed } = ensureCatalog();
     const entry = catalog.get(message.appId);
     if (entry === null) {
       log(`Install failed: unknown app ${message.appId}`);
@@ -78,8 +76,8 @@ export function createCatalogMessageHandlers(deps) {
         bytesReceived: 0,
         totalBytes: entry.packageSize,
         path: message.forcePath ?? null,
-        verified: false,
-      },
+        verified: false
+      }
     });
 
     const installVerifiedPackage = async (archive, path) => {
@@ -91,13 +89,13 @@ export function createCatalogMessageHandlers(deps) {
           bytesReceived: archive.length,
           totalBytes: archive.length,
           path,
-          verified: false,
-        },
+          verified: false
+        }
       });
 
       const verified = verifyPackage(provider, archive, {
         hostApiVersion: HOST_API_VERSION,
-        minVersion: installed.latestVersion(entry.appId) ?? undefined,
+        minVersion: installed.latestVersion(entry.appId) ?? undefined
       });
       validateManifestCapabilities(verified.manifest.capabilities);
       const archivePath = `packages/${entry.appId}/${verified.manifest.version}.tpkg`;
@@ -109,9 +107,9 @@ export function createCatalogMessageHandlers(deps) {
           packageHash: verified.packageHash,
           installedAt: Date.now(),
           manifest: verified.manifest,
-          archivePath,
+          archivePath
         },
-        archive.length,
+        archive.length
       );
       await persistCatalogState();
       send({
@@ -122,21 +120,16 @@ export function createCatalogMessageHandlers(deps) {
           bytesReceived: archive.length,
           totalBytes: archive.length,
           path,
-          verified: true,
-        },
+          verified: true
+        }
       });
       pushCatalog();
-      log(
-        `Installed ${entry.name} v${verified.manifest.version} via ${path} (verified)`,
-      );
+      log(`Installed ${entry.name} v${verified.manifest.version} via ${path} (verified)`);
     };
 
     try {
       if (message.archiveHex) {
-        await installVerifiedPackage(
-          hexToBytes(message.archiveHex),
-          message.forcePath ?? "resource",
-        );
+        await installVerifiedPackage(hexToBytes(message.archiveHex), message.forcePath ?? "resource");
         return;
       }
 
@@ -148,17 +141,14 @@ export function createCatalogMessageHandlers(deps) {
       const driveManager = await ensurePackageDriveManager();
       let resourceClient = null;
       const publisherPublicKeyHex =
-        entry.manifest?.publisherPublicKey ??
-        (entry.publisherPublicKey.length === 128
-          ? entry.publisherPublicKey
-          : null);
+        entry.manifest?.publisherPublicKey ?? (entry.publisherPublicKey.length === 128 ? entry.publisherPublicKey : null);
       if (publisherPublicKeyHex !== null) {
         resourceClient = new PackageResourceClient({
           provider,
           runtime,
           publisherPublicKeyHex,
           appName: entry.name,
-          identity,
+          identity
         });
         await resourceClient.start();
       }
@@ -175,19 +165,14 @@ export function createCatalogMessageHandlers(deps) {
             type: "install-progress",
             progress: {
               appId: entry.appId,
-              phase:
-                progress.phase === "verifying"
-                  ? "verifying"
-                  : progress.phase === "complete"
-                    ? "complete"
-                    : "downloading",
+              phase: progress.phase === "verifying" ? "verifying" : progress.phase === "complete" ? "complete" : "downloading",
               bytesReceived: progress.bytesReceived,
               totalBytes: progress.totalBytes,
               path: progress.path,
-              verified: progress.phase === "complete",
-            },
+              verified: progress.phase === "complete"
+            }
           });
-        },
+        }
       });
 
       if (resourceClient !== null) {
@@ -204,12 +189,10 @@ export function createCatalogMessageHandlers(deps) {
           bytesReceived: 0,
           totalBytes: entry.packageSize,
           path: message.forcePath ?? null,
-          verified: false,
-        },
+          verified: false
+        }
       });
-      log(
-        `Install failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Install failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   };
@@ -259,22 +242,16 @@ export function createCatalogMessageHandlers(deps) {
 
   const handleTrustAdd = async (message) => {
     try {
-      const publisherPublicKey = decodePublisherIdentity256t(
-        message.identityString,
-      );
+      const publisherPublicKey = decodePublisherIdentity256t(message.identityString);
       await ensureTrustStore().add({
         publisherPublicKey,
         label: message.label ?? "Unnamed publisher",
         addedAt: Date.now(),
-        source: message.source ?? "paste",
+        source: message.source ?? "paste"
       });
-      log(
-        `Trusted publisher ${message.label ?? publisherPublicKey.slice(0, 16)}`,
-      );
+      log(`Trusted publisher ${message.label ?? publisherPublicKey.slice(0, 16)}`);
     } catch (error) {
-      log(
-        `Trust add failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Trust add failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     await pushTrustList();
     return;
@@ -294,10 +271,7 @@ export function createCatalogMessageHandlers(deps) {
       return;
     }
 
-    send({
-      type: "trust-identity",
-      identity256t: encodePublisherIdentity256t(identity.getPublicKey()),
-    });
+    send({ type: "trust-identity", identity256t: encodePublisherIdentity256t(identity.getPublicKey()) });
     return;
   };
 
@@ -312,7 +286,7 @@ export function createCatalogMessageHandlers(deps) {
       "trust-list": handleTrustList,
       "trust-add": handleTrustAdd,
       "trust-remove": handleTrustRemove,
-      "trust-show": handleTrustShow,
-    },
+      "trust-show": handleTrustShow
+    }
   };
 }

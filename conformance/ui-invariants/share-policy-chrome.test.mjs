@@ -12,7 +12,7 @@ import { readModuleSource } from "./worklet-source.mjs";
 const surfaces = [
   { name: "desktop renderer", path: "apps/host-desktop/src/renderer/app.js" },
   { name: "mobile harness", path: "apps/harness-mobile/App.tsx" },
-  { name: "web harness", path: "apps/harness-mobile/App.web.tsx" },
+  { name: "web harness", path: "apps/harness-mobile/App.web.tsx" }
 ];
 
 describe("share policy chrome", () => {

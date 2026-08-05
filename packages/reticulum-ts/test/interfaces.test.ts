@@ -18,7 +18,7 @@ import {
   decodeHdlcFrames,
   encodeHdlcFrame,
   hexToBytes,
-  nodeRuntime,
+  nodeRuntime
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -31,7 +31,7 @@ function packet(data = new Uint8Array([1, 2, 3])): Packet {
     packetType: PacketType.DATA,
     destinationHash: hexToBytes("00112233445566778899aabbccddeeff"),
     context: PacketContext.NONE,
-    data,
+    data
   });
 }
 
@@ -55,7 +55,7 @@ describe("HDLC framing", () => {
       HDLC_ESCAPE,
       HDLC_ESCAPE ^ HDLC_ESCAPE_MASK,
       0x03,
-      HDLC_FLAG,
+      HDLC_FLAG
     ]);
 
     const decoded = decodeHdlcFrames(encoded);
@@ -80,9 +80,7 @@ describe("HDLC framing", () => {
   });
 
   it("ignores empty delimiter runs", () => {
-    const decoded = decodeHdlcFrames(
-      new Uint8Array([HDLC_FLAG, HDLC_FLAG, HDLC_FLAG]),
-    );
+    const decoded = decodeHdlcFrames(new Uint8Array([HDLC_FLAG, HDLC_FLAG, HDLC_FLAG]));
     expect(decoded.frames).toHaveLength(0);
   });
 });
@@ -95,16 +93,12 @@ describe("PipeInterface", () => {
     await left.send(outgoing);
 
     const incoming = await nextPacket(right.packets);
-    expect(Buffer.from(incoming.raw).toString("hex")).toBe(
-      Buffer.from(outgoing.raw).toString("hex"),
-    );
+    expect(Buffer.from(incoming.raw).toString("hex")).toBe(Buffer.from(outgoing.raw).toString("hex"));
   });
 
   it("rejects packets larger than its MTU", async () => {
     const [left] = PipeInterface.pair(provider, { name: "small", mtu: 8 });
-    await expect(left.send(packet(new Uint8Array([1, 2, 3])))).rejects.toThrow(
-      "Packet exceeds interface MTU",
-    );
+    await expect(left.send(packet(new Uint8Array([1, 2, 3])))).rejects.toThrow("Packet exceeds interface MTU");
   });
 
   it("ends the packet stream when closed", async () => {
@@ -126,7 +120,7 @@ describe("WebSocket interfaces", () => {
       provider,
       runtime,
       listenHost: "127.0.0.1",
-      listenPort: 0,
+      listenPort: 0
     });
     const spawned = new Promise<WebSocketClientInterface>((resolve) => {
       server.setSpawnHandler(resolve);
@@ -143,35 +137,25 @@ describe("WebSocket interfaces", () => {
       name: "ws-client",
       provider,
       runtime,
-      url: `ws://127.0.0.1:${address!.port}`,
+      url: `ws://127.0.0.1:${address!.port}`
     });
     const accepted = await spawned;
 
-    const outgoing = packet(
-      new Uint8Array([0x01, HDLC_FLAG, 0x02, HDLC_ESCAPE, 0x03]),
-    );
+    const outgoing = packet(new Uint8Array([0x01, HDLC_FLAG, 0x02, HDLC_ESCAPE, 0x03]));
     await client.send(outgoing);
 
     const incoming = await nextPacket(accepted.packets);
-    expect(Buffer.from(incoming.raw).toString("hex")).toBe(
-      Buffer.from(outgoing.raw).toString("hex"),
-    );
+    expect(Buffer.from(incoming.raw).toString("hex")).toBe(Buffer.from(outgoing.raw).toString("hex"));
 
     await accepted.send(outgoing);
     const echoed = await nextPacket(client.packets);
-    expect(Buffer.from(echoed.raw).toString("hex")).toBe(
-      Buffer.from(outgoing.raw).toString("hex"),
-    );
+    expect(Buffer.from(echoed.raw).toString("hex")).toBe(Buffer.from(outgoing.raw).toString("hex"));
 
     await client.close();
-    await expect(
-      Promise.race([
-        detached,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("detach timeout")), 500),
-        ),
-      ]),
-    ).resolves.toBe(accepted);
+    await expect(Promise.race([
+      detached,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("detach timeout")), 500))
+    ])).resolves.toBe(accepted);
     expect(server.clients).toHaveLength(0);
     await server.close();
   });
@@ -184,7 +168,7 @@ describe("WebSocket interfaces", () => {
       runtime,
       listenHost: "127.0.0.1",
       listenPort: 0,
-      sharedToken: "secret",
+      sharedToken: "secret"
     });
 
     await server.start();
@@ -196,7 +180,7 @@ describe("WebSocket interfaces", () => {
       provider,
       runtime,
       url: `ws://127.0.0.1:${address!.port}`,
-      sharedToken: "secret",
+      sharedToken: "secret"
     });
 
     expect(client.online).toBe(true);
@@ -207,27 +191,21 @@ describe("WebSocket interfaces", () => {
 
   it("serves static assets from the gateway HTTP listener", async () => {
     const runtime = nodeRuntime();
-    const staticRoot = join(
-      dirname(fileURLToPath(import.meta.url)),
-      "fixtures",
-      "web-static",
-    );
+    const staticRoot = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "web-static");
     const server = new WebSocketServerInterface(provider, runtime, {
       name: "ws-static",
       provider,
       runtime,
       listenHost: "127.0.0.1",
       listenPort: 0,
-      staticRoot,
+      staticRoot
     });
 
     await server.start();
     const address = server.address;
     expect(address).not.toBeNull();
 
-    const response = await fetch(
-      `http://127.0.0.1:${address!.port}/index.html`,
-    );
+    const response = await fetch(`http://127.0.0.1:${address!.port}/index.html`);
     expect(response.status).toBe(200);
     expect(await response.text()).toContain("web-host placeholder");
 

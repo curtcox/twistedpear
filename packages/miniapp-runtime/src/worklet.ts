@@ -13,35 +13,14 @@ export {
   describeCapability,
   grantStoreKey,
   isMiniappCapability,
-  validateManifestCapabilities,
+  validateManifestCapabilities
 } from "./capabilities.js";
-export type {
-  CapabilityDefinition,
-  GrantKeyValueStore,
-  GrantRecord,
-  MiniappCapability,
-} from "./capabilities.js";
+export type { CapabilityDefinition, GrantKeyValueStore, GrantRecord, MiniappCapability } from "./capabilities.js";
 export { MiniappLifecycle } from "./lifecycle.js";
-export type {
-  MiniappLifecycleSnapshot,
-  MiniappLifecycleState,
-  LifecycleOptions,
-} from "./lifecycle.js";
-export type {
-  SandboxBackend,
-  SandboxInstance,
-  SandboxLimits,
-  SandboxSpawnOptions,
-} from "./sandbox/backend.js";
-export {
-  BareWorkerSandboxBackend,
-  WorkerBackendUnavailableError,
-} from "./sandbox/worker.js";
-export {
-  encodeJsonWireValue,
-  reviveJsonWireValue,
-  isJsonWireBytes,
-} from "./sandbox/json-wire.js";
+export type { MiniappLifecycleSnapshot, MiniappLifecycleState, LifecycleOptions } from "./lifecycle.js";
+export type { SandboxBackend, SandboxInstance, SandboxLimits, SandboxSpawnOptions } from "./sandbox/backend.js";
+export { BareWorkerSandboxBackend, WorkerBackendUnavailableError } from "./sandbox/worker.js";
+export { encodeJsonWireValue, reviveJsonWireValue, isJsonWireBytes } from "./sandbox/json-wire.js";
 export type { JsonWireBytes } from "./sandbox/json-wire.js";
 export { createSandboxBackend } from "./sandbox/worklet-factory.js";
 export { prepareBundleSource } from "./sandbox/prepare-bundle.js";
@@ -53,19 +32,19 @@ export type {
   MiniappHostOptions,
   MiniappHostSnapshot,
   ResourceLimitUpdate,
-  ResourceLimitsSnapshot,
+  ResourceLimitsSnapshot
 } from "./host.js";
 export {
   ConfirmationError,
   DEFAULT_CONFIRMATION_TIMEOUT_MS,
   generateConfirmationToken,
-  requestHostConfirmation,
+  requestHostConfirmation
 } from "./confirm.js";
 export type {
   ConfirmationKind,
   ConfirmationRequest,
   ConfirmationResult,
-  HostConfirmationChannel,
+  HostConfirmationChannel
 } from "./confirm.js";
 export { KvStorageBeeBackend } from "./services/storage-bee-kv.js";
 export { createOpenRouterBackend } from "./services/ai-openrouter.js";
@@ -74,7 +53,7 @@ export {
   DeviceBrokerService,
   DeviceBrokerServiceError,
   DeviceError,
-  DeviceManager,
+  DeviceManager
 } from "./services/device.js";
 export type {
   DeviceDescriptor,
@@ -82,17 +61,14 @@ export type {
   DeviceOpenRequest,
   DeviceSample,
   DeviceSession,
-  DeviceSessionHandle,
+  DeviceSessionHandle
 } from "./services/device.js";
 export {
   createSimulatedDeviceDrivers,
   createSimulatedDeviceManager,
-  createHybridDeviceDrivers,
+  createHybridDeviceDrivers
 } from "./device-manager.js";
-export type {
-  DeviceChromeSession,
-  DeviceManagerOptions,
-} from "./device-manager.js";
+export type { DeviceChromeSession, DeviceManagerOptions } from "./device-manager.js";
 export {
   CodecStreamEgressFactory,
   ReservedStreamEgressFactory,
@@ -105,24 +81,26 @@ export {
   createPeerRouteLinkSupply,
   createPeerRoutePlaneOpeners,
   createWebRtcMediaTrackPlaneOpener,
-  createDelegatedWebRtcMediaPlaneOpener,
+  createDelegatedWebRtcMediaPlaneOpener
 } from "./media-stream.js";
 export type {
   CasDerivedPlaneOpenerOptions,
   PearsBulkAppendPlaneOpenerOptions,
   WebRtcMediaTrackHandle,
-  WebRtcMediaTrackPlaneOpenerOptions,
+  WebRtcMediaTrackPlaneOpenerOptions
 } from "./media-stream.js";
 export { SessionInviteService } from "./session-invite.js";
 export type { SessionInvite, SessionInviteChrome } from "./session-invite.js";
 export {
   createHostBridgedDriver,
-  createHostBridgedDrivers,
+  createHostBridgedDrivers
 } from "./drivers/host-bridge.js";
 export type { DeviceHostBridge } from "./drivers/host-bridge.js";
 export type { RelayService } from "./services/relay.js";
-export { createWorkletFlagRelayService } from "./services/worklet-flag-relay.js";
+export {
+  createWorkletFlagRelayService
+} from "./services/worklet-flag-relay.js";
 export type {
   WorkletFlagRelayController,
-  WorkletFlagRelaySnapshot,
+  WorkletFlagRelaySnapshot
 } from "./services/worklet-flag-relay.js";

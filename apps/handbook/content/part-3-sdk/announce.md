@@ -1,5 +1,6 @@
 # Announce & subscribe
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-10
@@ -12,7 +13,7 @@ mini-app observe announces in a namespace — useful for discovery without polli
 ## Control-plane role
 
 Announces are part of the Reticulum **control plane**. They do not carry bulk data;
-they tell peers _where_ to open a link or which 256t id to fetch.
+they tell peers *where* to open a link or which 256t id to fetch.
 
 ## Capabilities
 

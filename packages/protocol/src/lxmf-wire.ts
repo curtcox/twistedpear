@@ -12,11 +12,10 @@ import {
   LXMF_DESTINATION_LENGTH,
   LXMF_SIGNATURE_LENGTH,
   LxmfDeliveryMethod,
-  type LxmfDeliveryMethodValue,
+  type LxmfDeliveryMethodValue
 } from "./lxmf-delivery.js";
 
-export const LXMF_WIRE_HEADER_SIZE =
-  2 * LXMF_DESTINATION_LENGTH + LXMF_SIGNATURE_LENGTH;
+export const LXMF_WIRE_HEADER_SIZE = 2 * LXMF_DESTINATION_LENGTH + LXMF_SIGNATURE_LENGTH;
 
 export interface LxmfWireFields {
   readonly destinationHash: Uint8Array;
@@ -43,9 +42,7 @@ export function packLxmfWire(input: {
   readonly payload: Uint8Array;
 }): Uint8Array {
   if (input.destinationHash.length !== LXMF_DESTINATION_LENGTH) {
-    throw new Error(
-      `destination hash must be ${LXMF_DESTINATION_LENGTH} bytes`,
-    );
+    throw new Error(`destination hash must be ${LXMF_DESTINATION_LENGTH} bytes`);
   }
   if (input.sourceHash.length !== LXMF_DESTINATION_LENGTH) {
     throw new Error(`source hash must be ${LXMF_DESTINATION_LENGTH} bytes`);
@@ -53,12 +50,7 @@ export function packLxmfWire(input: {
   if (input.signature.length !== LXMF_SIGNATURE_LENGTH) {
     throw new Error(`signature must be ${LXMF_SIGNATURE_LENGTH} bytes`);
   }
-  return concatBytes(
-    input.destinationHash,
-    input.sourceHash,
-    input.signature,
-    input.payload,
-  );
+  return concatBytes(input.destinationHash, input.sourceHash, input.signature, input.payload);
 }
 
 export function splitLxmfWire(bytes: Uint8Array): LxmfWireFields | null {
@@ -67,15 +59,9 @@ export function splitLxmfWire(bytes: Uint8Array): LxmfWireFields | null {
   }
   return {
     destinationHash: bytes.subarray(0, LXMF_DESTINATION_LENGTH),
-    sourceHash: bytes.subarray(
-      LXMF_DESTINATION_LENGTH,
-      2 * LXMF_DESTINATION_LENGTH,
-    ),
-    signature: bytes.subarray(
-      2 * LXMF_DESTINATION_LENGTH,
-      LXMF_WIRE_HEADER_SIZE,
-    ),
-    payload: bytes.subarray(LXMF_WIRE_HEADER_SIZE),
+    sourceHash: bytes.subarray(LXMF_DESTINATION_LENGTH, 2 * LXMF_DESTINATION_LENGTH),
+    signature: bytes.subarray(2 * LXMF_DESTINATION_LENGTH, LXMF_WIRE_HEADER_SIZE),
+    payload: bytes.subarray(LXMF_WIRE_HEADER_SIZE)
   };
 }
 
@@ -83,16 +69,13 @@ export function splitLxmfWire(bytes: Uint8Array): LxmfWireFields | null {
 export function lxmfHashableMaterial(
   destinationHash: Uint8Array,
   sourceHash: Uint8Array,
-  payloadWithoutStamp: Uint8Array,
+  payloadWithoutStamp: Uint8Array
 ): Uint8Array {
   return concatBytes(destinationHash, sourceHash, payloadWithoutStamp);
 }
 
 /** Material signed: hashableMaterial || messageHash. */
-export function lxmfSignedMaterial(
-  hashableMaterial: Uint8Array,
-  messageHash: Uint8Array,
-): Uint8Array {
+export function lxmfSignedMaterial(hashableMaterial: Uint8Array, messageHash: Uint8Array): Uint8Array {
   return concatBytes(hashableMaterial, messageHash);
 }
 
@@ -136,7 +119,7 @@ export function initialLxmfHashableMaterialState(): LxmfHashableMaterialState {
 
 export function stepLxmfHashableMaterialWithActions(
   state: LxmfHashableMaterialState,
-  event: LxmfHashableMaterialEvent,
+  event: LxmfHashableMaterialEvent
 ): LxmfHashableMaterialStepResult {
   if (event.kind === "lxmf-wire/hashable-material-gate") {
     return {
@@ -148,10 +131,10 @@ export function stepLxmfHashableMaterialWithActions(
           raw: lxmfHashableMaterial(
             event.destinationHash,
             event.sourceHash,
-            event.payloadWithoutStamp,
-          ),
-        },
-      ],
+            event.payloadWithoutStamp
+          )
+        }
+      ]
     };
   }
 
@@ -159,14 +142,14 @@ export function stepLxmfHashableMaterialWithActions(
 }
 
 export function shouldUseLxmfHashableMaterial(
-  actions: ReadonlyArray<LxmfHashableMaterialAction>,
+  actions: ReadonlyArray<LxmfHashableMaterialAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract LXMF hashable material from step actions; null when no `use-raw`. */
 export function lxmfHashableMaterialRawFromActions(
-  actions: ReadonlyArray<LxmfHashableMaterialAction>,
+  actions: ReadonlyArray<LxmfHashableMaterialAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -204,7 +187,7 @@ export function initialLxmfSignedMaterialState(): LxmfSignedMaterialState {
 
 export function stepLxmfSignedMaterialWithActions(
   state: LxmfSignedMaterialState,
-  event: LxmfSignedMaterialEvent,
+  event: LxmfSignedMaterialEvent
 ): LxmfSignedMaterialStepResult {
   if (event.kind === "lxmf-wire/signed-material-gate") {
     return {
@@ -213,9 +196,9 @@ export function stepLxmfSignedMaterialWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: lxmfSignedMaterial(event.hashableMaterial, event.messageHash),
-        },
-      ],
+          raw: lxmfSignedMaterial(event.hashableMaterial, event.messageHash)
+        }
+      ]
     };
   }
 
@@ -223,14 +206,14 @@ export function stepLxmfSignedMaterialWithActions(
 }
 
 export function shouldUseLxmfSignedMaterial(
-  actions: ReadonlyArray<LxmfSignedMaterialAction>,
+  actions: ReadonlyArray<LxmfSignedMaterialAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract LXMF signed material from step actions; null when no `use-raw`. */
 export function lxmfSignedMaterialRawFromActions(
-  actions: ReadonlyArray<LxmfSignedMaterialAction>,
+  actions: ReadonlyArray<LxmfSignedMaterialAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -266,7 +249,7 @@ export function initialLxmfOpportunisticPayloadState(): LxmfOpportunisticPayload
 
 export function stepLxmfOpportunisticPayloadWithActions(
   state: LxmfOpportunisticPayloadState,
-  event: LxmfOpportunisticPayloadEvent,
+  event: LxmfOpportunisticPayloadEvent
 ): LxmfOpportunisticPayloadStepResult {
   if (event.kind === "lxmf-wire/opportunistic-payload-gate") {
     try {
@@ -276,9 +259,9 @@ export function stepLxmfOpportunisticPayloadWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: lxmfOpportunisticPayload(event.packed),
-          },
-        ],
+            raw: lxmfOpportunisticPayload(event.packed)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -289,20 +272,20 @@ export function stepLxmfOpportunisticPayloadWithActions(
 }
 
 export function shouldUseLxmfOpportunisticPayload(
-  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>,
+  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectLxmfOpportunisticPayload(
-  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>,
+  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract opportunistic payload from step actions; null when no `use-raw`. */
 export function lxmfOpportunisticPayloadRawFromActions(
-  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>,
+  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -312,7 +295,7 @@ export function lxmfOpportunisticPayloadRawFromActions(
 export function lxmfInboundDeliveryBytes(
   method: LxmfDeliveryMethodValue,
   destinationHash: Uint8Array,
-  packetData: Uint8Array,
+  packetData: Uint8Array
 ): Uint8Array {
   if (method === LxmfDeliveryMethod.OPPORTUNISTIC) {
     return concatBytes(destinationHash, packetData);
@@ -326,26 +309,22 @@ export interface LxmfDestinationPrefixed {
 }
 
 /** Split destination-hash-prefixed LXMF / propagation envelopes. */
-export function splitLxmfDestinationPrefixed(
-  bytes: Uint8Array,
-): LxmfDestinationPrefixed | null {
+export function splitLxmfDestinationPrefixed(bytes: Uint8Array): LxmfDestinationPrefixed | null {
   if (bytes.length < LXMF_DESTINATION_LENGTH) {
     return null;
   }
   return {
     destinationHash: bytes.subarray(0, LXMF_DESTINATION_LENGTH),
-    remainder: bytes.subarray(LXMF_DESTINATION_LENGTH),
+    remainder: bytes.subarray(LXMF_DESTINATION_LENGTH)
   };
 }
 
 export function packLxmfDestinationPrefixed(
   destinationHash: Uint8Array,
-  remainder: Uint8Array,
+  remainder: Uint8Array
 ): Uint8Array {
   if (destinationHash.length !== LXMF_DESTINATION_LENGTH) {
-    throw new Error(
-      `destination hash must be ${LXMF_DESTINATION_LENGTH} bytes`,
-    );
+    throw new Error(`destination hash must be ${LXMF_DESTINATION_LENGTH} bytes`);
   }
   return concatBytes(destinationHash, remainder);
 }
@@ -383,7 +362,7 @@ export function initialPackLxmfWireState(): PackLxmfWireState {
 
 export function stepPackLxmfWireWithActions(
   state: PackLxmfWireState,
-  event: PackLxmfWireEvent,
+  event: PackLxmfWireEvent
 ): PackLxmfWireStepResult {
   if (event.kind === "lxmf-wire/pack-gate") {
     try {
@@ -397,10 +376,10 @@ export function stepPackLxmfWireWithActions(
               destinationHash: event.destinationHash,
               sourceHash: event.sourceHash,
               signature: event.signature,
-              payload: event.payload,
-            }),
-          },
-        ],
+              payload: event.payload
+            })
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -410,21 +389,17 @@ export function stepPackLxmfWireWithActions(
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUsePackLxmfWire(
-  actions: ReadonlyArray<PackLxmfWireAction>,
-): boolean {
+export function shouldUsePackLxmfWire(actions: ReadonlyArray<PackLxmfWireAction>): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
-export function shouldRejectPackLxmfWire(
-  actions: ReadonlyArray<PackLxmfWireAction>,
-): boolean {
+export function shouldRejectPackLxmfWire(actions: ReadonlyArray<PackLxmfWireAction>): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed LXMF wire bytes from step actions; null when no `use-raw`. */
 export function packLxmfWireRawFromActions(
-  actions: ReadonlyArray<PackLxmfWireAction>,
+  actions: ReadonlyArray<PackLxmfWireAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -460,7 +435,7 @@ export function initialSplitLxmfWireState(): SplitLxmfWireState {
 
 export function stepSplitLxmfWireWithActions(
   state: SplitLxmfWireState,
-  event: SplitLxmfWireEvent,
+  event: SplitLxmfWireEvent
 ): SplitLxmfWireStepResult {
   if (event.kind === "lxmf-wire/split-gate") {
     const fields = splitLxmfWire(event.bytes);
@@ -470,28 +445,24 @@ export function stepSplitLxmfWireWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUseSplitLxmfWire(
-  actions: ReadonlyArray<SplitLxmfWireAction>,
-): boolean {
+export function shouldUseSplitLxmfWire(actions: ReadonlyArray<SplitLxmfWireAction>): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
-export function shouldRejectSplitLxmfWire(
-  actions: ReadonlyArray<SplitLxmfWireAction>,
-): boolean {
+export function shouldRejectSplitLxmfWire(actions: ReadonlyArray<SplitLxmfWireAction>): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split LXMF wire fields from step actions; null when no `use-fields`. */
 export function lxmfWireFieldsFromActions(
-  actions: ReadonlyArray<SplitLxmfWireAction>,
+  actions: ReadonlyArray<SplitLxmfWireAction>
 ): LxmfWireFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -528,7 +499,7 @@ export function initialPackLxmfDestinationPrefixedState(): PackLxmfDestinationPr
 
 export function stepPackLxmfDestinationPrefixedWithActions(
   state: PackLxmfDestinationPrefixedState,
-  event: PackLxmfDestinationPrefixedEvent,
+  event: PackLxmfDestinationPrefixedEvent
 ): PackLxmfDestinationPrefixedStepResult {
   if (event.kind === "lxmf-destination-prefixed/pack-gate") {
     try {
@@ -538,12 +509,9 @@ export function stepPackLxmfDestinationPrefixedWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: packLxmfDestinationPrefixed(
-              event.destinationHash,
-              event.remainder,
-            ),
-          },
-        ],
+            raw: packLxmfDestinationPrefixed(event.destinationHash, event.remainder)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -554,20 +522,20 @@ export function stepPackLxmfDestinationPrefixedWithActions(
 }
 
 export function shouldUsePackLxmfDestinationPrefixed(
-  actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>,
+  actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackLxmfDestinationPrefixed(
-  actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>,
+  actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed destination-prefixed bytes from step actions; null when no `use-raw`. */
 export function packLxmfDestinationPrefixedRawFromActions(
-  actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>,
+  actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -603,7 +571,7 @@ export function initialSplitLxmfDestinationPrefixedState(): SplitLxmfDestination
 
 export function stepSplitLxmfDestinationPrefixedWithActions(
   state: SplitLxmfDestinationPrefixedState,
-  event: SplitLxmfDestinationPrefixedEvent,
+  event: SplitLxmfDestinationPrefixedEvent
 ): SplitLxmfDestinationPrefixedStepResult {
   if (event.kind === "lxmf-destination-prefixed/split-gate") {
     const fields = splitLxmfDestinationPrefixed(event.bytes);
@@ -613,7 +581,7 @@ export function stepSplitLxmfDestinationPrefixedWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
@@ -621,20 +589,20 @@ export function stepSplitLxmfDestinationPrefixedWithActions(
 }
 
 export function shouldUseSplitLxmfDestinationPrefixed(
-  actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>,
+  actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitLxmfDestinationPrefixed(
-  actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>,
+  actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split destination-prefixed fields from step actions; null when no `use-fields`. */
 export function lxmfDestinationPrefixedFieldsFromActions(
-  actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>,
+  actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>
 ): LxmfDestinationPrefixed | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -673,7 +641,7 @@ export function initialLxmfInboundDeliveryState(): LxmfInboundDeliveryState {
 
 export function stepLxmfInboundDeliveryWithActions(
   state: LxmfInboundDeliveryState,
-  event: LxmfInboundDeliveryEvent,
+  event: LxmfInboundDeliveryEvent
 ): LxmfInboundDeliveryStepResult {
   if (event.kind === "lxmf-inbound-delivery/rebuild-gate") {
     return {
@@ -682,13 +650,9 @@ export function stepLxmfInboundDeliveryWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: lxmfInboundDeliveryBytes(
-            event.method,
-            event.destinationHash,
-            event.packetData,
-          ),
-        },
-      ],
+          raw: lxmfInboundDeliveryBytes(event.method, event.destinationHash, event.packetData)
+        }
+      ]
     };
   }
 
@@ -696,14 +660,14 @@ export function stepLxmfInboundDeliveryWithActions(
 }
 
 export function shouldUseLxmfInboundDelivery(
-  actions: ReadonlyArray<LxmfInboundDeliveryAction>,
+  actions: ReadonlyArray<LxmfInboundDeliveryAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract inbound-delivery rebuild bytes from step actions; null when no `use-raw`. */
 export function lxmfInboundDeliveryRawFromActions(
-  actions: ReadonlyArray<LxmfInboundDeliveryAction>,
+  actions: ReadonlyArray<LxmfInboundDeliveryAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

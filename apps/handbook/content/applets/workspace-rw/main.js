@@ -7,33 +7,26 @@ export async function run(sdk, report) {
   const body = `workspace-probe-${started}`;
   try {
     await sdk.workspace.write(path, body);
-    await sdk.workspace.patch(path, body.length, [
-      { start: body.length, end: body.length, text: "-patched" },
-    ]);
+    await sdk.workspace.patch(path, body.length, [{ start: body.length, end: body.length, text: "-patched" }]);
     const read = await sdk.workspace.read(path);
     if (read !== `${body}-patched`) {
       report({
         status: "fail",
         details: `Workspace read mismatch: ${String(read)}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
 
     const listed = await sdk.workspace.list("probes/");
-    if (
-      !Array.isArray(listed) ||
-      !listed.some((entry) => entry.path === path || entry === path)
-    ) {
+    if (!Array.isArray(listed) || !listed.some((entry) => entry.path === path || entry === path)) {
       const paths = Array.isArray(listed)
-        ? listed
-            .map((entry) => (typeof entry === "string" ? entry : entry.path))
-            .join(", ")
+        ? listed.map((entry) => (typeof entry === "string" ? entry : entry.path)).join(", ")
         : String(listed);
       report({
         status: "fail",
         details: `Workspace list missing ${path}; got: ${paths}`,
-        timings: { ms: Date.now() - started },
+        timings: { ms: Date.now() - started }
       });
       return;
     }
@@ -42,19 +35,16 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: `Workspace write → patch → read → list → remove for ${path}`,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted =
-      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
-    const unavailable = /not configured|UNCONFIGURED|unavailable/i.test(
-      message,
-    );
+    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const unavailable = /not configured|UNCONFIGURED|unavailable/i.test(message);
     report({
       status: notGranted ? "not-granted" : unavailable ? "unavailable" : "fail",
       details: message,
-      timings: { ms: Date.now() - started },
+      timings: { ms: Date.now() - started }
     });
   }
 }

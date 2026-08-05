@@ -4,10 +4,7 @@
  * registerGlobals). Without them, replies stay fail-closed with an explicit error.
  */
 
-import type {
-  HostToWorkletMessage,
-  WorkletToHostMessage,
-} from "../worklet/protocol";
+import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
 
 type MediaTrackLike = {
   kind: string;
@@ -22,20 +19,14 @@ type PeerRtcState = {
     localDescription: { type: string; sdp: string } | null;
     addTransceiver(kind: string, init: { direction: string }): void;
     addTrack(track: MediaTrackLike): unknown;
-    createDataChannel(
-      label: string,
-      init: { ordered: boolean },
-    ): PeerRtcChannel;
+    createDataChannel(label: string, init: { ordered: boolean }): PeerRtcChannel;
     createOffer(): Promise<{ type: string; sdp: string }>;
     createAnswer(): Promise<{ type: string; sdp: string }>;
     setLocalDescription(desc: unknown): Promise<void>;
     setRemoteDescription(desc: unknown): Promise<void>;
     getTransceivers?(): ReadonlyArray<{
       mid: string | null;
-      sender?: {
-        track?: { kind?: string } | null;
-        replaceTrack?(track: MediaTrackLike | null): Promise<void>;
-      };
+      sender?: { track?: { kind?: string } | null; replaceTrack?(track: MediaTrackLike | null): Promise<void> };
       receiver?: { track?: { kind?: string } | null };
     }>;
     getStats(): Promise<Map<string, { type: string; bytesSent?: number }>>;
@@ -65,8 +56,7 @@ type Send = (message: HostToWorkletMessage) => void;
 
 function hexToBytes(hex: string): Uint8Array {
   const out = new Uint8Array(Math.floor(hex.length / 2));
-  for (let i = 0; i < out.length; i += 1)
-    out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  for (let i = 0; i < out.length; i += 1) out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   return out;
 }
 
@@ -76,49 +66,25 @@ function bytesToHex(bytes: Uint8Array): string {
 
 function resolveNativeRtc(): {
   RTCPeerConnection: new () => PeerRtcState["pc"];
-  mediaDevices: {
-    getUserMedia(
-      constraints: unknown,
-    ): Promise<{ getTracks(): MediaTrackLike[] }>;
-  };
+  mediaDevices: { getUserMedia(constraints: unknown): Promise<{ getTracks(): MediaTrackLike[] }> };
 } | null {
   const global = globalThis as unknown as {
     RTCPeerConnection?: new () => PeerRtcState["pc"];
-    navigator?: {
-      mediaDevices?: {
-        getUserMedia(
-          constraints: unknown,
-        ): Promise<{ getTracks(): MediaTrackLike[] }>;
-      };
-    };
+    navigator?: { mediaDevices?: { getUserMedia(constraints: unknown): Promise<{ getTracks(): MediaTrackLike[] }> } };
   };
-  if (
-    typeof global.RTCPeerConnection === "function" &&
-    typeof global.navigator?.mediaDevices?.getUserMedia === "function"
-  ) {
-    return {
-      RTCPeerConnection: global.RTCPeerConnection,
-      mediaDevices: global.navigator.mediaDevices,
-    };
+  if (typeof global.RTCPeerConnection === "function" && typeof global.navigator?.mediaDevices?.getUserMedia === "function") {
+    return { RTCPeerConnection: global.RTCPeerConnection, mediaDevices: global.navigator.mediaDevices };
   }
   try {
     // Fallback if index.js did not register yet (e.g. hot reload).
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const webrtc = require("react-native-webrtc") as {
-      registerGlobals?: () => void;
-    };
+    const webrtc = require("react-native-webrtc") as { registerGlobals?: () => void };
     webrtc.registerGlobals?.();
   } catch {
     return null;
   }
-  if (
-    typeof global.RTCPeerConnection === "function" &&
-    typeof global.navigator?.mediaDevices?.getUserMedia === "function"
-  ) {
-    return {
-      RTCPeerConnection: global.RTCPeerConnection,
-      mediaDevices: global.navigator.mediaDevices,
-    };
+  if (typeof global.RTCPeerConnection === "function" && typeof global.navigator?.mediaDevices?.getUserMedia === "function") {
+    return { RTCPeerConnection: global.RTCPeerConnection, mediaDevices: global.navigator.mediaDevices };
   }
   return null;
 }
@@ -128,9 +94,7 @@ async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
   const report = await pc.getStats();
   let bytes = 0;
   const values: Iterable<unknown> =
-    report != null &&
-    typeof (report as { values?: () => Iterable<unknown> }).values ===
-      "function"
+    report != null && typeof (report as { values?: () => Iterable<unknown> }).values === "function"
       ? (report as { values: () => Iterable<unknown> }).values()
       : Array.isArray(report)
         ? report
@@ -179,8 +143,7 @@ async function ensureMicrophonePermission(): Promise<void> {
         check?(permission: string): Promise<boolean>;
       };
     };
-    if (rn.Platform?.OS !== "android" || rn.PermissionsAndroid === undefined)
-      return;
+    if (rn.Platform?.OS !== "android" || rn.PermissionsAndroid === undefined) return;
     const permission = rn.PermissionsAndroid.PERMISSIONS.RECORD_AUDIO;
     if (typeof rn.PermissionsAndroid.check === "function") {
       const already = await rn.PermissionsAndroid.check(permission);
@@ -191,53 +154,36 @@ async function ensureMicrophonePermission(): Promise<void> {
       throw new Error("Microphone permission was denied");
     }
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "Microphone permission was denied"
-    )
-      throw error;
+    if (error instanceof Error && error.message === "Microphone permission was denied") throw error;
     // Non-Android or missing PermissionsAndroid — getUserMedia will fail closed on its own.
   }
 }
 
 async function captureLocalMedia(
-  mediaDevices: {
-    getUserMedia(
-      constraints: unknown,
-    ): Promise<{ getTracks(): MediaTrackLike[] }>;
-  },
-  classId: string,
+  mediaDevices: { getUserMedia(constraints: unknown): Promise<{ getTracks(): MediaTrackLike[] }> },
+  classId: string
 ): Promise<MediaTrackLike[]> {
   const audio = classId === "microphone";
   const video = classId === "camera" || classId === "screen-capture";
   if (!audio && !video) throw new Error(`Unsupported media class ${classId}`);
   if (audio) await ensureMicrophonePermission();
-  const voiceConstraints = {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-  };
+  const voiceConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
   try {
     const stream = await mediaDevices.getUserMedia({
       audio: audio ? voiceConstraints : false,
-      video: video ? { facingMode: "user" } : false,
+      video: video ? { facingMode: "user" } : false
     });
     return stream.getTracks();
   } catch (error) {
     // Emulator / older RN WebRTC builds sometimes reject AEC constraint bags.
     if (!audio) throw error;
-    const stream = await mediaDevices.getUserMedia({
-      audio: true,
-      video: false,
-    });
+    const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
     return stream.getTracks();
   }
 }
 
 function unsupportedError(): Error {
-  return new Error(
-    "Native WebRTC is unavailable (rebuild the native app after installing react-native-webrtc)",
-  );
+  return new Error("Native WebRTC is unavailable (rebuild the native app after installing react-native-webrtc)");
 }
 
 export function createNativePeerRtcStore(): NativePeerRtcStore {
@@ -248,7 +194,7 @@ export function handleNativePeerWebRtcMessage(
   message: WorkletToHostMessage,
   store: NativePeerRtcStore,
   send: Send,
-  appendLog: (line: string) => void,
+  appendLog: (line: string) => void
 ): boolean {
   if (message.type === "peer-webrtc-signal") {
     void (async () => {
@@ -266,43 +212,28 @@ export function handleNativePeerWebRtcMessage(
             const transceiver = pc.getTransceivers?.().find((entry) => {
               const senderKind = entry.sender?.track?.kind;
               const receiverKind = entry.receiver?.track?.kind;
-              return (
-                senderKind === kind ||
-                receiverKind === kind ||
-                (senderKind === undefined &&
-                  receiverKind === undefined &&
-                  entry.mid !== null)
-              );
+              return senderKind === kind || receiverKind === kind || (senderKind === undefined && receiverKind === undefined && entry.mid !== null);
             });
-            if (
-              transceiver?.sender &&
-              typeof transceiver.sender.replaceTrack === "function"
-            ) {
+            if (transceiver?.sender && typeof transceiver.sender.replaceTrack === "function") {
               await transceiver.sender.replaceTrack(track);
               return;
             }
             pc.addTrack(track);
-          },
+          }
         };
         store.set(message.sessionId, state);
         if (message.role === "offer") {
           pc.addTransceiver("audio", { direction: "sendrecv" });
           pc.addTransceiver("video", { direction: "sendrecv" });
-          state.channel = pc.createDataChannel("twistedpear-peer", {
-            ordered: true,
-          });
+          state.channel = pc.createDataChannel("twistedpear-peer", { ordered: true });
           state.channel.binaryType = "arraybuffer";
           await pc.setLocalDescription(await pc.createOffer());
         } else {
-          if (message.remoteSignal === undefined)
-            throw new Error("WebRTC offer is missing");
-          pc.addEventListener(
-            "datachannel",
-            (event: { channel: PeerRtcChannel }) => {
-              state.channel = event.channel;
-              state.channel.binaryType = "arraybuffer";
-            },
-          );
+          if (message.remoteSignal === undefined) throw new Error("WebRTC offer is missing");
+          pc.addEventListener("datachannel", (event: { channel: PeerRtcChannel }) => {
+            state.channel = event.channel;
+            state.channel.binaryType = "arraybuffer";
+          });
           await pc.setRemoteDescription(JSON.parse(message.remoteSignal));
           await pc.setLocalDescription(await pc.createAnswer());
         }
@@ -320,23 +251,16 @@ export function handleNativePeerWebRtcMessage(
           });
         }
         const local = pc.localDescription;
-        if (local === null)
-          throw new Error("WebRTC did not produce a local signal");
-        send({
-          type: "peer-chrome-response",
-          token: message.token,
-          signal: JSON.stringify({ type: local.type, sdp: local.sdp }),
-        });
+        if (local === null) throw new Error("WebRTC did not produce a local signal");
+        send({ type: "peer-chrome-response", token: message.token, signal: JSON.stringify({ type: local.type, sdp: local.sdp }) });
       } catch (error) {
         store.get(message.sessionId)?.pc.close();
         store.delete(message.sessionId);
-        appendLog(
-          `WebRTC signaling unavailable: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        appendLog(`WebRTC signaling unavailable: ${error instanceof Error ? error.message : String(error)}`);
         send({
           type: "peer-chrome-response",
           token: message.token,
-          ...(error instanceof Error ? { error: error.message } : {}),
+          ...(error instanceof Error ? { error: error.message } : {})
         });
       }
     })();
@@ -349,65 +273,40 @@ export function handleNativePeerWebRtcMessage(
       try {
         if (state === undefined) throw new Error("WebRTC state is missing");
         if (state.role === "offer") {
-          if (message.remoteSignal === undefined)
-            throw new Error("WebRTC answer is missing");
+          if (message.remoteSignal === undefined) throw new Error("WebRTC answer is missing");
           await state.pc.setRemoteDescription(JSON.parse(message.remoteSignal));
         }
         const deadline = Date.now() + 30_000;
         while (Date.now() < deadline && state.channel?.readyState !== "open") {
-          if (
-            state.pc.connectionState === "failed" ||
-            state.pc.connectionState === "closed"
-          )
-            break;
+          if (state.pc.connectionState === "failed" || state.pc.connectionState === "closed") break;
           await new Promise((resolve) => setTimeout(resolve, 25));
         }
         if (state.channel?.readyState !== "open") {
-          throw new Error(
-            state.pc.iceConnectionState === "failed"
-              ? "ICE failed; this network may require TURN"
-              : "Data channel timed out",
-          );
+          throw new Error(state.pc.iceConnectionState === "failed" ? "ICE failed; this network may require TURN" : "Data channel timed out");
         }
-        state.channel.addEventListener(
-          "message",
-          (event: { data: ArrayBuffer | Blob | ArrayBufferView }) => {
-            void (async () => {
-              const buffer =
-                event.data instanceof Blob
-                  ? await event.data.arrayBuffer()
-                  : event.data instanceof ArrayBuffer
-                    ? event.data
-                    : event.data.buffer.slice(
-                        event.data.byteOffset,
-                        event.data.byteOffset + event.data.byteLength,
-                      );
-              if (buffer instanceof ArrayBuffer) {
-                send({
-                  type: "peer-webrtc-data",
-                  sessionId: message.sessionId,
-                  dataHex: bytesToHex(new Uint8Array(buffer)),
-                });
-              }
-            })();
-          },
-        );
-        send({
-          type: "peer-chrome-response",
-          token: message.token,
-          opened: true,
+        state.channel.addEventListener("message", (event: { data: ArrayBuffer | Blob | ArrayBufferView }) => {
+          void (async () => {
+            const buffer =
+              event.data instanceof Blob
+                ? await event.data.arrayBuffer()
+                : event.data instanceof ArrayBuffer
+                  ? event.data
+                  : event.data.buffer.slice(event.data.byteOffset, event.data.byteOffset + event.data.byteLength);
+            if (buffer instanceof ArrayBuffer) {
+              send({ type: "peer-webrtc-data", sessionId: message.sessionId, dataHex: bytesToHex(new Uint8Array(buffer)) });
+            }
+          })();
         });
+        send({ type: "peer-chrome-response", token: message.token, opened: true });
       } catch (error) {
         state?.pc.close();
         store.delete(message.sessionId);
-        appendLog(
-          `WebRTC route unavailable: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        appendLog(`WebRTC route unavailable: ${error instanceof Error ? error.message : String(error)}`);
         send({
           type: "peer-chrome-response",
           token: message.token,
           opened: false,
-          ...(error instanceof Error ? { error: error.message } : {}),
+          ...(error instanceof Error ? { error: error.message } : {})
         });
       }
     })();
@@ -433,12 +332,8 @@ export function handleNativePeerWebRtcMessage(
         const rtc = resolveNativeRtc();
         if (rtc === null) throw unsupportedError();
         const audio = message.classId === "microphone";
-        const tracks = await captureLocalMedia(
-          rtc.mediaDevices,
-          message.classId,
-        );
-        if (tracks.length === 0)
-          throw new Error("No media tracks from getUserMedia");
+        const tracks = await captureLocalMedia(rtc.mediaDevices, message.classId);
+        if (tracks.length === 0) throw new Error("No media tracks from getUserMedia");
         for (const track of tracks) {
           await state.attachTrack(track);
           state.localTracks.push(track);
@@ -452,11 +347,7 @@ export function handleNativePeerWebRtcMessage(
           state.pc.iceConnectionState !== "connected" &&
           state.pc.iceConnectionState !== "completed"
         ) {
-          if (
-            state.pc.connectionState === "failed" ||
-            state.pc.connectionState === "closed"
-          )
-            break;
+          if (state.pc.connectionState === "failed" || state.pc.connectionState === "closed") break;
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
         let bytesSent = 0;
@@ -472,20 +363,15 @@ export function handleNativePeerWebRtcMessage(
           bytesSent,
           connectionState: state.pc.connectionState,
           voiceProcessing: audio
-            ? {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-                voiceDuplex: true,
-              }
-            : null,
+            ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, voiceDuplex: true }
+            : null
         });
       } catch (error) {
         send({
           type: "peer-chrome-response",
           token: message.token,
           attached: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     })();
@@ -503,13 +389,13 @@ export function handleNativePeerWebRtcMessage(
           token: message.token,
           bytesSent,
           trackCount: state.localTracks.length,
-          connectionState: state.pc.connectionState,
+          connectionState: state.pc.connectionState
         });
       } catch (error) {
         send({
           type: "peer-chrome-response",
           token: message.token,
-          error: error instanceof Error ? error.message : String(error),
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     })();
@@ -530,11 +416,7 @@ export function handleNativePeerWebRtcMessage(
         if (index >= 0) state?.localTracks.splice(index, 1);
       }
     }
-    send({
-      type: "peer-chrome-response",
-      token: message.token,
-      attached: false,
-    });
+    send({ type: "peer-chrome-response", token: message.token, attached: false });
     return true;
   }
 

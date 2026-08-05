@@ -31,13 +31,13 @@ Sizes below are **compressed GitHub release assets** from
 (sha256 digests from the release API). Unpacked binary size and a signed
 TwistedPear embedding are still open.
 
-| Asset                                       |                  Bytes |
-| ------------------------------------------- | ---------------------: |
-| `freenet-x86_64-unknown-linux-musl.tar.gz`  | 19,194,733 (~18.3 MiB) |
+| Asset | Bytes |
+|---|---:|
+| `freenet-x86_64-unknown-linux-musl.tar.gz` | 19,194,733 (~18.3 MiB) |
 | `freenet-aarch64-unknown-linux-musl.tar.gz` | 18,063,482 (~17.2 MiB) |
-| `freenet-x86_64-pc-windows-msvc.zip`        | 16,335,490 (~15.6 MiB) |
-| `freenet.exe` (standalone)                  | 47,792,128 (~45.6 MiB) |
-| `Freenet-0.2.112.dmg`                       | 35,892,355 (~34.2 MiB) |
+| `freenet-x86_64-pc-windows-msvc.zip` | 16,335,490 (~15.6 MiB) |
+| `freenet.exe` (standalone) | 47,792,128 (~45.6 MiB) |
+| `Freenet-0.2.112.dmg` | 35,892,355 (~34.2 MiB) |
 
 Compressed Linux/Windows node archives are far smaller than the installed macOS
 app bundle; the Windows standalone `freenet.exe` is closer to half that size.

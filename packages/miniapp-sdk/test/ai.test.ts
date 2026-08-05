@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { chat, chatStream, embed, search } from "../src/ai.js";
 import { setMiniappHostTransport } from "../src/rpc.js";
-import type {
-  BrokerRequest,
-  BrokerResponse,
-} from "@twistedpear/miniapp-runtime";
+import type { BrokerRequest, BrokerResponse } from "@twistedpear/miniapp-runtime";
 
 const request = { messages: [{ role: "user" as const, content: "hi" }] };
 
@@ -16,17 +13,11 @@ describe("AI SDK", () => {
         return {
           id: brokerRequest.id,
           ok: true,
-          result: {
-            message: { role: "assistant", content: "whole" },
-            model: "m",
-            usage: null,
-          },
+          result: { message: { role: "assistant", content: "whole" }, model: "m", usage: null }
         };
-      },
+      }
     });
-    await expect(chat(request)).resolves.toMatchObject({
-      message: { content: "whole" },
-    });
+    await expect(chat(request)).resolves.toMatchObject({ message: { content: "whole" } });
   });
 
   it("turns broker stream sessions into an async iterable", async () => {
@@ -34,17 +25,16 @@ describe("AI SDK", () => {
     const events = [
       { done: false, value: { type: "delta", delta: "hel" } },
       { done: false, value: { type: "delta", delta: "lo" } },
-      { done: true },
+      { done: true }
     ];
     setMiniappHostTransport({
       async request(brokerRequest: BrokerRequest): Promise<BrokerResponse> {
         methods.push(brokerRequest.method);
-        const result =
-          brokerRequest.method === "chatStreamStart"
-            ? { streamId: "stream-1" }
-            : events.shift();
+        const result = brokerRequest.method === "chatStreamStart"
+          ? { streamId: "stream-1" }
+          : events.shift();
         return { id: brokerRequest.id, ok: true, result };
-      },
+      }
     });
 
     const deltas: string[] = [];
@@ -56,7 +46,7 @@ describe("AI SDK", () => {
       "chatStreamStart",
       "chatStreamNext",
       "chatStreamNext",
-      "chatStreamNext",
+      "chatStreamNext"
     ]);
   });
 
@@ -68,47 +58,38 @@ describe("AI SDK", () => {
         return {
           id: brokerRequest.id,
           ok: true,
-          result:
-            brokerRequest.method === "chatStreamStart"
-              ? { streamId: "stream-2" }
-              : brokerRequest.method === "chatStreamNext"
-                ? { done: false, value: { type: "delta", delta: "first" } }
-                : { cancelled: true },
+          result: brokerRequest.method === "chatStreamStart"
+            ? { streamId: "stream-2" }
+            : brokerRequest.method === "chatStreamNext"
+              ? { done: false, value: { type: "delta", delta: "first" } }
+              : { cancelled: true }
         };
-      },
+      }
     });
 
     for await (const _event of chatStream(request)) break;
-    expect(methods).toEqual([
-      "chatStreamStart",
-      "chatStreamNext",
-      "chatStreamCancel",
-    ]);
+    expect(methods).toEqual(["chatStreamStart", "chatStreamNext", "chatStreamCancel"]);
   });
 
   it("forwards embedding and vector-search requests with the separate grant", async () => {
     const seen: Array<{ method: string; capability: string }> = [];
     setMiniappHostTransport({
       async request(brokerRequest): Promise<BrokerResponse> {
-        seen.push({
-          method: brokerRequest.method,
-          capability: brokerRequest.capability,
-        });
+        seen.push({ method: brokerRequest.method, capability: brokerRequest.capability });
         return {
           id: brokerRequest.id,
           ok: true,
-          result:
-            brokerRequest.method === "embed"
-              ? { vectors: [[1, 0]], model: "e", usage: null }
-              : { matches: [{ id: "a", score: 1 }], model: "e", usage: null },
+          result: brokerRequest.method === "embed"
+            ? { vectors: [[1, 0]], model: "e", usage: null }
+            : { matches: [{ id: "a", score: 1 }], model: "e", usage: null }
         };
-      },
+      }
     });
     await embed({ inputs: ["pear"] });
     await search({ query: "pear", documents: [{ id: "a", text: "pear" }] });
     expect(seen).toEqual([
       { method: "embed", capability: "ai:embed" },
-      { method: "search", capability: "ai:embed" },
+      { method: "search", capability: "ai:embed" }
     ]);
   });
 });

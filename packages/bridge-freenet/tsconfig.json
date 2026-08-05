@@ -19,5 +19,8 @@
     "verbatimModuleSyntax": true
   },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../cas-256t" }, { "path": "../reticulum-ts" }]
+  "references": [
+    { "path": "../cas-256t" },
+    { "path": "../reticulum-ts" }
+  ]
 }

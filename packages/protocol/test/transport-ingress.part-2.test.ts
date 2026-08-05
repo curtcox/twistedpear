@@ -237,11 +237,11 @@ import {
   initialReverseEntryExpiredState,
   initialTransmitLinkRelayState,
   initialTransmitOnInterfaceState,
-  initialTransmitReverseRelayState,
+  initialTransmitReverseRelayState
 } from "../src/index.js";
 
 describe("transport ingress", () => {
-  it("plans transport list membership register/unregister", () => {
+it("plans transport list membership register/unregister", () => {
     expect(shouldRegisterTransportMember(false)).toBe(true);
     expect(shouldRegisterTransportMember(true)).toBe(false);
     expect(planUnregisterTransportMember(0)).toBe(0);
@@ -254,21 +254,16 @@ describe("transport ingress", () => {
       initialTransportMemberUnregisterPlanState(),
       {
         kind: "transport/member-unregister-plan-gate",
-        index: 3,
-      },
+        index: 3
+      }
     );
-    expect(shouldRemoveTransportMemberUnregisterPlan(removePlan.actions)).toBe(
-      true,
-    );
+    expect(shouldRemoveTransportMemberUnregisterPlan(removePlan.actions)).toBe(true);
     expect(transportMemberUnregisterPlanIndex(removePlan.actions)).toBe(3);
 
-    const remove = stepTransportMemberUnregisterWithActions(
-      initialTransportMemberUnregisterState(),
-      {
-        kind: "transport/member-unregister-gate",
-        index: 3,
-      },
-    );
+    const remove = stepTransportMemberUnregisterWithActions(initialTransportMemberUnregisterState(), {
+      kind: "transport/member-unregister-gate",
+      index: 3
+    });
     expect(shouldRemoveTransportMember(remove.actions)).toBe(true);
     expect(transportMemberUnregisterIndex(remove.actions)).toBe(3);
 
@@ -276,21 +271,16 @@ describe("transport ingress", () => {
       initialTransportMemberUnregisterPlanState(),
       {
         kind: "transport/member-unregister-plan-gate",
-        index: -1,
-      },
+        index: -1
+      }
     );
-    expect(shouldRemoveTransportMemberUnregisterPlan(skipPlan.actions)).toBe(
-      false,
-    );
+    expect(shouldRemoveTransportMemberUnregisterPlan(skipPlan.actions)).toBe(false);
     expect(transportMemberUnregisterPlanIndex(skipPlan.actions)).toBeNull();
 
-    const skip = stepTransportMemberUnregisterWithActions(
-      initialTransportMemberUnregisterState(),
-      {
-        kind: "transport/member-unregister-gate",
-        index: -1,
-      },
-    );
+    const skip = stepTransportMemberUnregisterWithActions(initialTransportMemberUnregisterState(), {
+      kind: "transport/member-unregister-gate",
+      index: -1
+    });
     expect(shouldRemoveTransportMember(skip.actions)).toBe(false);
     expect(transportMemberUnregisterIndex(skip.actions)).toBeNull();
   });
@@ -301,27 +291,21 @@ describe("transport ingress", () => {
       {
         kind: "transport/ingress-dispatch-plan-gate",
         packetType: PACKET_TYPE_ANNOUNCE,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
-    expect(transportIngressDispatchPlanFromActions(announcePlan.actions)).toBe(
-      "announce",
-    );
-    expect(shouldDispatchTransportAnnouncePlan(announcePlan.actions)).toBe(
-      true,
-    );
+    expect(transportIngressDispatchPlanFromActions(announcePlan.actions)).toBe("announce");
+    expect(shouldDispatchTransportAnnouncePlan(announcePlan.actions)).toBe(true);
 
     const announce = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
         kind: "transport/ingress-dispatch-gate",
         packetType: PACKET_TYPE_ANNOUNCE,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
-    expect(transportIngressDispatchFromActions(announce.actions)).toBe(
-      "announce",
-    );
+    expect(transportIngressDispatchFromActions(announce.actions)).toBe("announce");
     expect(shouldDispatchTransportAnnounce(announce.actions)).toBe(true);
 
     const linkRequestPlan = stepTransportIngressDispatchPlanWithActions(
@@ -329,20 +313,18 @@ describe("transport ingress", () => {
       {
         kind: "transport/ingress-dispatch-plan-gate",
         packetType: PACKET_TYPE_LINKREQUEST,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
-    expect(
-      shouldDispatchTransportLinkRequestPlan(linkRequestPlan.actions),
-    ).toBe(true);
+    expect(shouldDispatchTransportLinkRequestPlan(linkRequestPlan.actions)).toBe(true);
 
     const linkRequest = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
         kind: "transport/ingress-dispatch-gate",
         packetType: PACKET_TYPE_LINKREQUEST,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
     expect(shouldDispatchTransportLinkRequest(linkRequest.actions)).toBe(true);
 
@@ -351,20 +333,18 @@ describe("transport ingress", () => {
       {
         kind: "transport/ingress-dispatch-plan-gate",
         packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_LINK,
-      },
+        destinationType: PACKET_DEST_TYPE_LINK
+      }
     );
-    expect(shouldDispatchTransportLinkDataPlan(linkDataPlan.actions)).toBe(
-      true,
-    );
+    expect(shouldDispatchTransportLinkDataPlan(linkDataPlan.actions)).toBe(true);
 
     const linkData = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
         kind: "transport/ingress-dispatch-gate",
         packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_LINK,
-      },
+        destinationType: PACKET_DEST_TYPE_LINK
+      }
     );
     expect(shouldDispatchTransportLinkData(linkData.actions)).toBe(true);
 
@@ -373,20 +353,18 @@ describe("transport ingress", () => {
       {
         kind: "transport/ingress-dispatch-plan-gate",
         packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
-    expect(shouldDispatchTransportPlainDataPlan(plainDataPlan.actions)).toBe(
-      true,
-    );
+    expect(shouldDispatchTransportPlainDataPlan(plainDataPlan.actions)).toBe(true);
 
     const plainData = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
         kind: "transport/ingress-dispatch-gate",
         packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
     expect(shouldDispatchTransportPlainData(plainData.actions)).toBe(true);
 
@@ -395,19 +373,16 @@ describe("transport ingress", () => {
       {
         kind: "transport/ingress-dispatch-plan-gate",
         packetType: PACKET_TYPE_PROOF,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
     expect(shouldDispatchTransportProofPlan(proofPlan.actions)).toBe(true);
 
-    const proof = stepTransportIngressDispatchWithActions(
-      initialTransportIngressDispatchState(),
-      {
-        kind: "transport/ingress-dispatch-gate",
-        packetType: PACKET_TYPE_PROOF,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
-    );
+    const proof = stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
+      kind: "transport/ingress-dispatch-gate",
+      packetType: PACKET_TYPE_PROOF,
+      destinationType: PACKET_DEST_TYPE_SINGLE
+    });
     expect(shouldDispatchTransportProof(proof.actions)).toBe(true);
 
     const ignorePlan = stepTransportIngressDispatchPlanWithActions(
@@ -415,41 +390,30 @@ describe("transport ingress", () => {
       {
         kind: "transport/ingress-dispatch-plan-gate",
         packetType: 0xff,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
     );
-    expect(shouldIgnoreTransportIngressDispatchPlan(ignorePlan.actions)).toBe(
-      true,
-    );
+    expect(shouldIgnoreTransportIngressDispatchPlan(ignorePlan.actions)).toBe(true);
 
-    const ignore = stepTransportIngressDispatchWithActions(
-      initialTransportIngressDispatchState(),
-      {
-        kind: "transport/ingress-dispatch-gate",
-        packetType: 0xff,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-      },
-    );
+    const ignore = stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
+      kind: "transport/ingress-dispatch-gate",
+      packetType: 0xff,
+      destinationType: PACKET_DEST_TYPE_SINGLE
+    });
     expect(shouldIgnoreTransportIngressDispatch(ignore.actions)).toBe(true);
     expect(
-      stepTransportIngressDispatchWithActions(
-        initialTransportIngressDispatchState(),
-        {
-          kind: "transport/ingress-dispatch-gate",
-          packetType: PACKET_TYPE_ANNOUNCE,
-          destinationType: PACKET_DEST_TYPE_SINGLE,
-        },
-      ).actions,
+      stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
+        kind: "transport/ingress-dispatch-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }).actions
     ).toEqual(announce.actions);
     expect(
-      stepTransportIngressDispatchPlanWithActions(
-        initialTransportIngressDispatchPlanState(),
-        {
-          kind: "transport/ingress-dispatch-plan-gate",
-          packetType: PACKET_TYPE_ANNOUNCE,
-          destinationType: PACKET_DEST_TYPE_SINGLE,
-        },
-      ).actions,
+      stepTransportIngressDispatchPlanWithActions(initialTransportIngressDispatchPlanState(), {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }).actions
     ).toEqual(announcePlan.actions);
   });
 
@@ -459,22 +423,17 @@ describe("transport ingress", () => {
       {
         kind: "transport/link-data-ingress-plan-gate",
         activeIndex: 0,
-        pendingIndex: 1,
-      },
+        pendingIndex: 1
+      }
     );
-    expect(linkDataIngressTargetPlanFromActions(activePlan.actions)).toBe(
-      "active",
-    );
+    expect(linkDataIngressTargetPlanFromActions(activePlan.actions)).toBe("active");
     expect(shouldIngressLinkDataActivePlan(activePlan.actions)).toBe(true);
 
-    const active = stepLinkDataIngressTargetWithActions(
-      initialLinkDataIngressTargetState(),
-      {
-        kind: "transport/link-data-ingress-gate",
-        activeIndex: 0,
-        pendingIndex: 1,
-      },
-    );
+    const active = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex: 0,
+      pendingIndex: 1
+    });
     expect(linkDataIngressTargetFromActions(active.actions)).toBe("active");
     expect(shouldIngressLinkDataActive(active.actions)).toBe(true);
 
@@ -483,22 +442,17 @@ describe("transport ingress", () => {
       {
         kind: "transport/link-data-ingress-plan-gate",
         activeIndex: null,
-        pendingIndex: 2,
-      },
+        pendingIndex: 2
+      }
     );
     expect(shouldIngressLinkDataPendingPlan(pendingPlan.actions)).toBe(true);
-    expect(linkDataIngressTargetPlanFromActions(pendingPlan.actions)).toBe(
-      "pending",
-    );
+    expect(linkDataIngressTargetPlanFromActions(pendingPlan.actions)).toBe("pending");
 
-    const pending = stepLinkDataIngressTargetWithActions(
-      initialLinkDataIngressTargetState(),
-      {
-        kind: "transport/link-data-ingress-gate",
-        activeIndex: null,
-        pendingIndex: 2,
-      },
-    );
+    const pending = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex: null,
+      pendingIndex: 2
+    });
     expect(shouldIngressLinkDataPending(pending.actions)).toBe(true);
 
     const nonePlan = stepLinkDataIngressTargetPlanWithActions(
@@ -506,40 +460,31 @@ describe("transport ingress", () => {
       {
         kind: "transport/link-data-ingress-plan-gate",
         activeIndex: null,
-        pendingIndex: null,
-      },
+        pendingIndex: null
+      }
     );
     expect(shouldIngressLinkDataNonePlan(nonePlan.actions)).toBe(true);
     expect(linkDataIngressTargetPlanFromActions(nonePlan.actions)).toBe("none");
 
-    const none = stepLinkDataIngressTargetWithActions(
-      initialLinkDataIngressTargetState(),
-      {
-        kind: "transport/link-data-ingress-gate",
-        activeIndex: null,
-        pendingIndex: null,
-      },
-    );
+    const none = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex: null,
+      pendingIndex: null
+    });
     expect(shouldIngressLinkDataNone(none.actions)).toBe(true);
     expect(
-      stepLinkDataIngressTargetWithActions(
-        initialLinkDataIngressTargetState(),
-        {
-          kind: "transport/link-data-ingress-gate",
-          activeIndex: 0,
-          pendingIndex: 1,
-        },
-      ).actions,
+      stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+        kind: "transport/link-data-ingress-gate",
+        activeIndex: 0,
+        pendingIndex: 1
+      }).actions
     ).toEqual(active.actions);
     expect(
-      stepLinkDataIngressTargetPlanWithActions(
-        initialLinkDataIngressTargetPlanState(),
-        {
-          kind: "transport/link-data-ingress-plan-gate",
-          activeIndex: 0,
-          pendingIndex: 1,
-        },
-      ).actions,
+      stepLinkDataIngressTargetPlanWithActions(initialLinkDataIngressTargetPlanState(), {
+        kind: "transport/link-data-ingress-plan-gate",
+        activeIndex: 0,
+        pendingIndex: 1
+      }).actions
     ).toEqual(activePlan.actions);
   });
 
@@ -550,31 +495,20 @@ describe("transport ingress", () => {
         kind: "transport/reverse-relay-plan-gate",
         canRelay: false,
         entryExpired: true,
-        ifaceIsOutbound: true,
-      },
+        ifaceIsOutbound: true
+      }
     );
-    expect(reverseRelayOutcomePlanFromActions(deleteExpiredPlan.actions)).toBe(
-      "delete-expired",
-    );
-    expect(shouldDeleteExpiredReverseEntryPlan(deleteExpiredPlan.actions)).toBe(
-      true,
-    );
+    expect(reverseRelayOutcomePlanFromActions(deleteExpiredPlan.actions)).toBe("delete-expired");
+    expect(shouldDeleteExpiredReverseEntryPlan(deleteExpiredPlan.actions)).toBe(true);
 
-    const deleteExpired = stepReverseRelayOutcomeWithActions(
-      initialReverseRelayOutcomeState(),
-      {
-        kind: "transport/reverse-relay-gate",
-        canRelay: false,
-        entryExpired: true,
-        ifaceIsOutbound: true,
-      },
-    );
-    expect(reverseRelayOutcomeFromActions(deleteExpired.actions)).toBe(
-      "delete-expired",
-    );
-    expect(shouldDeleteExpiredReverseEntryActions(deleteExpired.actions)).toBe(
-      true,
-    );
+    const deleteExpired = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
+      canRelay: false,
+      entryExpired: true,
+      ifaceIsOutbound: true
+    });
+    expect(reverseRelayOutcomeFromActions(deleteExpired.actions)).toBe("delete-expired");
+    expect(shouldDeleteExpiredReverseEntryActions(deleteExpired.actions)).toBe(true);
 
     const ignorePlan = stepReverseRelayOutcomePlanWithActions(
       initialReverseRelayOutcomePlanState(),
@@ -582,20 +516,17 @@ describe("transport ingress", () => {
         kind: "transport/reverse-relay-plan-gate",
         canRelay: true,
         entryExpired: false,
-        ifaceIsOutbound: false,
-      },
+        ifaceIsOutbound: false
+      }
     );
     expect(shouldIgnoreReverseRelayOutcomePlan(ignorePlan.actions)).toBe(true);
 
-    const ignore = stepReverseRelayOutcomeWithActions(
-      initialReverseRelayOutcomeState(),
-      {
-        kind: "transport/reverse-relay-gate",
-        canRelay: true,
-        entryExpired: false,
-        ifaceIsOutbound: false,
-      },
-    );
+    const ignore = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
+      canRelay: true,
+      entryExpired: false,
+      ifaceIsOutbound: false
+    });
     expect(shouldIgnoreReverseRelayOutcome(ignore.actions)).toBe(true);
 
     const relayPlan = stepReverseRelayOutcomePlanWithActions(
@@ -604,61 +535,49 @@ describe("transport ingress", () => {
         kind: "transport/reverse-relay-plan-gate",
         canRelay: true,
         entryExpired: false,
-        ifaceIsOutbound: true,
-      },
+        ifaceIsOutbound: true
+      }
     );
     expect(shouldRelayReversePacketPlan(relayPlan.actions)).toBe(true);
     expect(reverseRelayOutcomePlanFromActions(relayPlan.actions)).toBe("relay");
 
-    const relay = stepReverseRelayOutcomeWithActions(
-      initialReverseRelayOutcomeState(),
-      {
-        kind: "transport/reverse-relay-gate",
-        canRelay: true,
-        entryExpired: false,
-        ifaceIsOutbound: true,
-      },
-    );
+    const relay = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
+      canRelay: true,
+      entryExpired: false,
+      ifaceIsOutbound: true
+    });
     expect(shouldRelayReversePacketActions(relay.actions)).toBe(true);
     expect(
       stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
         kind: "transport/reverse-relay-gate",
         canRelay: true,
         entryExpired: false,
-        ifaceIsOutbound: true,
-      }).actions,
+        ifaceIsOutbound: true
+      }).actions
     ).toEqual(relay.actions);
     expect(
-      stepReverseRelayOutcomePlanWithActions(
-        initialReverseRelayOutcomePlanState(),
-        {
-          kind: "transport/reverse-relay-plan-gate",
-          canRelay: true,
-          entryExpired: false,
-          ifaceIsOutbound: true,
-        },
-      ).actions,
+      stepReverseRelayOutcomePlanWithActions(initialReverseRelayOutcomePlanState(), {
+        kind: "transport/reverse-relay-plan-gate",
+        canRelay: true,
+        entryExpired: false,
+        ifaceIsOutbound: true
+      }).actions
     ).toEqual(relayPlan.actions);
   });
 
   it("emits packet-hash remember actions from the gate step", () => {
-    const nowPlan = stepPacketHashRememberPlanWithActions(
-      initialPacketHashRememberPlanState(),
-      {
-        kind: "transport/packet-hash-remember-plan-gate",
-        deferred: false,
-      },
-    );
+    const nowPlan = stepPacketHashRememberPlanWithActions(initialPacketHashRememberPlanState(), {
+      kind: "transport/packet-hash-remember-plan-gate",
+      deferred: false
+    });
     expect(packetHashRememberPlanFromActions(nowPlan.actions)).toBe("now");
     expect(shouldRememberPacketHashNowPlan(nowPlan.actions)).toBe(true);
 
-    const now = stepPacketHashRememberWithActions(
-      initialPacketHashRememberState(),
-      {
-        kind: "transport/packet-hash-remember-gate",
-        deferred: false,
-      },
-    );
+    const now = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
+      kind: "transport/packet-hash-remember-gate",
+      deferred: false
+    });
     expect(packetHashRememberFromActions(now.actions)).toBe("now");
     expect(shouldRememberPacketHashNowActions(now.actions)).toBe(true);
 
@@ -666,40 +585,28 @@ describe("transport ingress", () => {
       initialPacketHashRememberPlanState(),
       {
         kind: "transport/packet-hash-remember-plan-gate",
-        deferred: true,
-      },
+        deferred: true
+      }
     );
-    expect(shouldRememberPacketHashAfterRelayPlan(afterRelayPlan.actions)).toBe(
-      true,
-    );
-    expect(packetHashRememberPlanFromActions(afterRelayPlan.actions)).toBe(
-      "after-relay",
-    );
+    expect(shouldRememberPacketHashAfterRelayPlan(afterRelayPlan.actions)).toBe(true);
+    expect(packetHashRememberPlanFromActions(afterRelayPlan.actions)).toBe("after-relay");
 
-    const afterRelay = stepPacketHashRememberWithActions(
-      initialPacketHashRememberState(),
-      {
-        kind: "transport/packet-hash-remember-gate",
-        deferred: true,
-      },
-    );
-    expect(shouldRememberPacketHashAfterRelayActions(afterRelay.actions)).toBe(
-      true,
-    );
+    const afterRelay = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
+      kind: "transport/packet-hash-remember-gate",
+      deferred: true
+    });
+    expect(shouldRememberPacketHashAfterRelayActions(afterRelay.actions)).toBe(true);
     expect(
       stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
         kind: "transport/packet-hash-remember-gate",
-        deferred: false,
-      }).actions,
+        deferred: false
+      }).actions
     ).toEqual(now.actions);
     expect(
-      stepPacketHashRememberPlanWithActions(
-        initialPacketHashRememberPlanState(),
-        {
-          kind: "transport/packet-hash-remember-plan-gate",
-          deferred: false,
-        },
-      ).actions,
+      stepPacketHashRememberPlanWithActions(initialPacketHashRememberPlanState(), {
+        kind: "transport/packet-hash-remember-plan-gate",
+        deferred: false
+      }).actions
     ).toEqual(nowPlan.actions);
   });
 
@@ -709,46 +616,31 @@ describe("transport ingress", () => {
       {
         kind: "transport/local-plain-data-plan-gate",
         destinationPresent: true,
-        plaintextPresent: true,
-      },
+        plaintextPresent: true
+      }
     );
-    expect(localPlainDataDeliveryPlanFromActions(dispatchPlan.actions)).toBe(
-      "dispatch",
-    );
-    expect(shouldDispatchLocalPlainDataDeliveryPlan(dispatchPlan.actions)).toBe(
-      true,
-    );
+    expect(localPlainDataDeliveryPlanFromActions(dispatchPlan.actions)).toBe("dispatch");
+    expect(shouldDispatchLocalPlainDataDeliveryPlan(dispatchPlan.actions)).toBe(true);
 
-    const dispatch = stepLocalPlainDataDeliveryWithActions(
-      initialLocalPlainDataDeliveryState(),
-      {
-        kind: "transport/local-plain-data-gate",
-        destinationPresent: true,
-        plaintextPresent: true,
-      },
-    );
-    expect(localPlainDataDeliveryFromActions(dispatch.actions)).toBe(
-      "dispatch",
-    );
-    expect(shouldDispatchLocalPlainDataDeliveryActions(dispatch.actions)).toBe(
-      true,
-    );
+    const dispatch = stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
+      kind: "transport/local-plain-data-gate",
+      destinationPresent: true,
+      plaintextPresent: true
+    });
+    expect(localPlainDataDeliveryFromActions(dispatch.actions)).toBe("dispatch");
+    expect(shouldDispatchLocalPlainDataDeliveryActions(dispatch.actions)).toBe(true);
 
     const commit = stepDispatchLocalPlainDataDeliveryWithActions(
       initialDispatchLocalPlainDataDeliveryState(),
       {
         kind: "transport/dispatch-local-plain-data-gate",
-        planDispatch: shouldDispatchLocalPlainDataDeliveryActions(
-          dispatch.actions,
-        ),
+        planDispatch: shouldDispatchLocalPlainDataDeliveryActions(dispatch.actions),
         destinationPresent: true,
-        plaintextPresent: true,
-      },
+        plaintextPresent: true
+      }
     );
     expect(shouldDispatchLocalPlainDataDeliveryNow(commit.actions)).toBe(true);
-    expect(shouldSkipDispatchLocalPlainDataDelivery(commit.actions)).toBe(
-      false,
-    );
+    expect(shouldSkipDispatchLocalPlainDataDelivery(commit.actions)).toBe(false);
 
     const skipNarrow = stepDispatchLocalPlainDataDeliveryWithActions(
       initialDispatchLocalPlainDataDeliveryState(),
@@ -756,129 +648,96 @@ describe("transport ingress", () => {
         kind: "transport/dispatch-local-plain-data-gate",
         planDispatch: true,
         destinationPresent: true,
-        plaintextPresent: false,
-      },
+        plaintextPresent: false
+      }
     );
-    expect(shouldDispatchLocalPlainDataDeliveryNow(skipNarrow.actions)).toBe(
-      false,
-    );
-    expect(shouldSkipDispatchLocalPlainDataDelivery(skipNarrow.actions)).toBe(
-      true,
-    );
+    expect(shouldDispatchLocalPlainDataDeliveryNow(skipNarrow.actions)).toBe(false);
+    expect(shouldSkipDispatchLocalPlainDataDelivery(skipNarrow.actions)).toBe(true);
 
     const ignorePlan = stepLocalPlainDataDeliveryPlanWithActions(
       initialLocalPlainDataDeliveryPlanState(),
       {
         kind: "transport/local-plain-data-plan-gate",
         destinationPresent: true,
-        plaintextPresent: false,
-      },
+        plaintextPresent: false
+      }
     );
-    expect(shouldIgnoreLocalPlainDataDeliveryPlan(ignorePlan.actions)).toBe(
-      true,
-    );
-    expect(localPlainDataDeliveryPlanFromActions(ignorePlan.actions)).toBe(
-      "ignore",
-    );
+    expect(shouldIgnoreLocalPlainDataDeliveryPlan(ignorePlan.actions)).toBe(true);
+    expect(localPlainDataDeliveryPlanFromActions(ignorePlan.actions)).toBe("ignore");
 
-    const ignore = stepLocalPlainDataDeliveryWithActions(
-      initialLocalPlainDataDeliveryState(),
-      {
-        kind: "transport/local-plain-data-gate",
-        destinationPresent: true,
-        plaintextPresent: false,
-      },
-    );
+    const ignore = stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
+      kind: "transport/local-plain-data-gate",
+      destinationPresent: true,
+      plaintextPresent: false
+    });
     expect(shouldIgnoreLocalPlainDataDelivery(ignore.actions)).toBe(true);
     expect(
-      stepLocalPlainDataDeliveryWithActions(
-        initialLocalPlainDataDeliveryState(),
-        {
-          kind: "transport/local-plain-data-gate",
-          destinationPresent: true,
-          plaintextPresent: true,
-        },
-      ).actions,
+      stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
+        kind: "transport/local-plain-data-gate",
+        destinationPresent: true,
+        plaintextPresent: true
+      }).actions
     ).toEqual(dispatch.actions);
     expect(
-      stepLocalPlainDataDeliveryPlanWithActions(
-        initialLocalPlainDataDeliveryPlanState(),
-        {
-          kind: "transport/local-plain-data-plan-gate",
-          destinationPresent: true,
-          plaintextPresent: true,
-        },
-      ).actions,
+      stepLocalPlainDataDeliveryPlanWithActions(initialLocalPlainDataDeliveryPlanState(), {
+        kind: "transport/local-plain-data-plan-gate",
+        destinationPresent: true,
+        plaintextPresent: true
+      }).actions
     ).toEqual(dispatchPlan.actions);
   });
 
   it("emits proof ingress actions from the gate step", () => {
-    const lrproofPlan = stepProofIngressPlanWithActions(
-      initialProofIngressPlanState(),
-      {
-        kind: "transport/proof-ingress-plan-gate",
-        context: PacketContextCode.LRPROOF,
-      },
-    );
+    const lrproofPlan = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+      kind: "transport/proof-ingress-plan-gate",
+      context: PacketContextCode.LRPROOF
+    });
     expect(proofIngressPlanFromActions(lrproofPlan.actions)).toBe("lrproof");
     expect(shouldHandleProofLrproofPlan(lrproofPlan.actions)).toBe(true);
 
     const lrproof = stepProofIngressWithActions(initialProofIngressState(), {
       kind: "transport/proof-ingress-gate",
-      context: PacketContextCode.LRPROOF,
+      context: PacketContextCode.LRPROOF
     });
     expect(proofIngressKindFromActions(lrproof.actions)).toBe("lrproof");
     expect(shouldHandleProofLrproof(lrproof.actions)).toBe(true);
 
-    const resourcePrfPlan = stepProofIngressPlanWithActions(
-      initialProofIngressPlanState(),
-      {
-        kind: "transport/proof-ingress-plan-gate",
-        context: PacketContextCode.RESOURCE_PRF,
-      },
-    );
-    expect(shouldHandleProofResourcePrfPlan(resourcePrfPlan.actions)).toBe(
-      true,
-    );
-    expect(proofIngressPlanFromActions(resourcePrfPlan.actions)).toBe(
-      "resource-prf",
-    );
+    const resourcePrfPlan = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+      kind: "transport/proof-ingress-plan-gate",
+      context: PacketContextCode.RESOURCE_PRF
+    });
+    expect(shouldHandleProofResourcePrfPlan(resourcePrfPlan.actions)).toBe(true);
+    expect(proofIngressPlanFromActions(resourcePrfPlan.actions)).toBe("resource-prf");
 
-    const resourcePrf = stepProofIngressWithActions(
-      initialProofIngressState(),
-      {
-        kind: "transport/proof-ingress-gate",
-        context: PacketContextCode.RESOURCE_PRF,
-      },
-    );
+    const resourcePrf = stepProofIngressWithActions(initialProofIngressState(), {
+      kind: "transport/proof-ingress-gate",
+      context: PacketContextCode.RESOURCE_PRF
+    });
     expect(shouldHandleProofResourcePrf(resourcePrf.actions)).toBe(true);
 
-    const receiptPlan = stepProofIngressPlanWithActions(
-      initialProofIngressPlanState(),
-      {
-        kind: "transport/proof-ingress-plan-gate",
-        context: PacketContextCode.NONE,
-      },
-    );
+    const receiptPlan = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+      kind: "transport/proof-ingress-plan-gate",
+      context: PacketContextCode.NONE
+    });
     expect(shouldHandleProofReceiptPlan(receiptPlan.actions)).toBe(true);
     expect(proofIngressPlanFromActions(receiptPlan.actions)).toBe("receipt");
 
     const receipt = stepProofIngressWithActions(initialProofIngressState(), {
       kind: "transport/proof-ingress-gate",
-      context: PacketContextCode.NONE,
+      context: PacketContextCode.NONE
     });
     expect(shouldHandleProofReceipt(receipt.actions)).toBe(true);
     expect(
       stepProofIngressWithActions(initialProofIngressState(), {
         kind: "transport/proof-ingress-gate",
-        context: PacketContextCode.LRPROOF,
-      }).actions,
+        context: PacketContextCode.LRPROOF
+      }).actions
     ).toEqual(lrproof.actions);
     expect(
       stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
         kind: "transport/proof-ingress-plan-gate",
-        context: PacketContextCode.LRPROOF,
-      }).actions,
+        context: PacketContextCode.LRPROOF
+      }).actions
     ).toEqual(lrproofPlan.actions);
   });
 
@@ -890,8 +749,8 @@ describe("transport ingress", () => {
         transportIdPresent: true,
         isAnnounce: false,
         transportIdMatchesLocal: true,
-        hasPath: true,
-      },
+        hasPath: true
+      }
     );
     expect(shouldAllowRelayTransportPacket(allowRelay.actions)).toBe(true);
     expect(shouldDenyRelayTransportPacket(allowRelay.actions)).toBe(false);
@@ -903,8 +762,8 @@ describe("transport ingress", () => {
         transportIdPresent: true,
         isAnnounce: true,
         transportIdMatchesLocal: true,
-        hasPath: true,
-      },
+        hasPath: true
+      }
     );
     expect(shouldDenyRelayTransportPacket(denyRelay.actions)).toBe(true);
 
@@ -912,20 +771,17 @@ describe("transport ingress", () => {
       initialRecordLinkRelayTableEntryState(),
       {
         kind: "transport/record-link-relay-table-entry-gate",
-        packetType: PACKET_TYPE_LINKREQUEST,
-      },
+        packetType: PACKET_TYPE_LINKREQUEST
+      }
     );
     expect(shouldRecordLinkRelayTableEntryNow(recordLink.actions)).toBe(true);
     expect(
       shouldSkipRecordLinkRelayTableEntry(
-        stepRecordLinkRelayTableEntryWithActions(
-          initialRecordLinkRelayTableEntryState(),
-          {
-            kind: "transport/record-link-relay-table-entry-gate",
-            packetType: PACKET_TYPE_DATA,
-          },
-        ).actions,
-      ),
+        stepRecordLinkRelayTableEntryWithActions(initialRecordLinkRelayTableEntryState(), {
+          kind: "transport/record-link-relay-table-entry-gate",
+          packetType: PACKET_TYPE_DATA
+        }).actions
+      )
     ).toBe(true);
 
     const recordReverse = stepRecordReverseTableEntryWithActions(
@@ -933,84 +789,69 @@ describe("transport ingress", () => {
       {
         kind: "transport/record-reverse-table-entry-gate",
         packetType: PACKET_TYPE_DATA,
-        context: PacketContextCode.NONE,
-      },
+        context: PacketContextCode.NONE
+      }
     );
     expect(shouldRecordReverseTableEntryNow(recordReverse.actions)).toBe(true);
     expect(
       shouldSkipRecordReverseTableEntry(
-        stepRecordReverseTableEntryWithActions(
-          initialRecordReverseTableEntryState(),
-          {
-            kind: "transport/record-reverse-table-entry-gate",
-            packetType: PACKET_TYPE_PROOF,
-            context: PacketContextCode.LRPROOF,
-          },
-        ).actions,
-      ),
+        stepRecordReverseTableEntryWithActions(initialRecordReverseTableEntryState(), {
+          kind: "transport/record-reverse-table-entry-gate",
+          packetType: PACKET_TYPE_PROOF,
+          context: PacketContextCode.LRPROOF
+        }).actions
+      )
     ).toBe(true);
 
     expect(
       shouldAllowRelayLinkPacket(
-        stepRelayLinkPacketAllowWithActions(
-          initialRelayLinkPacketAllowState(),
-          {
-            kind: "transport/relay-link-packet-allow-gate",
-            packetType: PACKET_TYPE_DATA,
-          },
-        ).actions,
-      ),
+        stepRelayLinkPacketAllowWithActions(initialRelayLinkPacketAllowState(), {
+          kind: "transport/relay-link-packet-allow-gate",
+          packetType: PACKET_TYPE_DATA
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldDenyRelayLinkPacket(
-        stepRelayLinkPacketAllowWithActions(
-          initialRelayLinkPacketAllowState(),
-          {
-            kind: "transport/relay-link-packet-allow-gate",
-            packetType: PACKET_TYPE_ANNOUNCE,
-          },
-        ).actions,
-      ),
+        stepRelayLinkPacketAllowWithActions(initialRelayLinkPacketAllowState(), {
+          kind: "transport/relay-link-packet-allow-gate",
+          packetType: PACKET_TYPE_ANNOUNCE
+        }).actions
+      )
     ).toBe(true);
 
     expect(
       shouldHitLookupLinkRelayEntry(
-        stepLookupLinkRelayEntryWithActions(
-          initialLookupLinkRelayEntryState(),
-          {
-            kind: "transport/lookup-link-relay-entry-gate",
-            entryPresent: true,
-          },
-        ).actions,
-      ),
+        stepLookupLinkRelayEntryWithActions(initialLookupLinkRelayEntryState(), {
+          kind: "transport/lookup-link-relay-entry-gate",
+          entryPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldMissLookupLinkRelayEntry(
-        stepLookupLinkRelayEntryWithActions(
-          initialLookupLinkRelayEntryState(),
-          {
-            kind: "transport/lookup-link-relay-entry-gate",
-            entryPresent: false,
-          },
-        ).actions,
-      ),
+        stepLookupLinkRelayEntryWithActions(initialLookupLinkRelayEntryState(), {
+          kind: "transport/lookup-link-relay-entry-gate",
+          entryPresent: false
+        }).actions
+      )
     ).toBe(true);
 
     expect(
       shouldTransmitLinkRelayNow(
         stepTransmitLinkRelayWithActions(initialTransmitLinkRelayState(), {
           kind: "transport/transmit-link-relay-gate",
-          outboundPresent: true,
-        }).actions,
-      ),
+          outboundPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipTransmitLinkRelay(
         stepTransmitLinkRelayWithActions(initialTransmitLinkRelayState(), {
           kind: "transport/transmit-link-relay-gate",
-          outboundPresent: false,
-        }).actions,
-      ),
+          outboundPresent: false
+        }).actions
+      )
     ).toBe(true);
   });
 });

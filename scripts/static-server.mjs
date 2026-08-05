@@ -27,15 +27,11 @@ function staticContentType(extension) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath =
-    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (
-    !resolvedPath.startsWith(resolvedRoot + sep) &&
-    resolvedPath !== resolvedRoot
-  ) {
+  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
     response.writeHead(403);
     response.end();
     return;
@@ -47,9 +43,7 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, {
-    "content-type": staticContentType(extname(resolvedPath)),
-  });
+  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
   if (headOnly) {
     response.end();
     return;
@@ -69,12 +63,7 @@ export function startStaticServer(staticRoot, options = {}) {
       return;
     }
 
-    serveStatic(
-      staticRoot,
-      request.url ?? "/",
-      request.method === "HEAD",
-      response,
-    );
+    serveStatic(staticRoot, request.url ?? "/", request.method === "HEAD", response);
   });
 
   return new Promise((resolve, reject) => {
@@ -101,7 +90,7 @@ export function startStaticServer(staticRoot, options = {}) {
               }
             });
           });
-        },
+        }
       });
     });
   });

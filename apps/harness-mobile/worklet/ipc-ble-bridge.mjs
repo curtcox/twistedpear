@@ -6,9 +6,7 @@
 const DEFAULT_MTU = 247;
 
 function bytesToHex(bytes) {
-  return [...bytes]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("");
+  return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function hexToBytes(hex) {
@@ -102,7 +100,7 @@ export function createIpcBleBridge(identityHash) {
       if (message.type === "ble-error") {
         events.onError?.(new Error(message.message));
       }
-    },
+    }
   };
 
   return pipe;

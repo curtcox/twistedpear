@@ -4,10 +4,7 @@
  */
 import { PACKET_LOG_WASM_BASE64 } from "./packet-log-wasm.generated.mjs";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
-import {
-  DestinationDirection,
-  DestinationType,
-} from "../../../packages/reticulum-ts/dist/destination.js";
+import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
@@ -16,7 +13,7 @@ import { FreenetContractPacketLogBackend } from "../../../packages/bridge-freene
 import {
   DEFAULT_PROPAGATION_QUOTAS,
   PropagationServer,
-  createPropagationDestination,
+  createPropagationDestination
 } from "../../../packages/lxmf-ts/dist/index.js";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
 import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
@@ -33,18 +30,16 @@ export function createNodeLifecycleOps(deps) {
     inboundBandwidthLimiter,
     outboundBandwidthLimiter,
     startStatusTimer,
-    stopStatusTimer,
+    stopStatusTimer
   } = deps;
   const resolveIdentity = (...args) => deps.resolveIdentity(...args);
-  const registerAnnounceHandler = (...args) =>
-    deps.registerAnnounceHandler(...args);
+  const registerAnnounceHandler = (...args) => deps.registerAnnounceHandler(...args);
   const startAutoInterface = (...args) => deps.startAutoInterface(...args);
   const stopAutoInterface = (...args) => deps.stopAutoInterface(...args);
   const ensureMiniappHost = (...args) => deps.ensureMiniappHost(...args);
   const ensureCatalog = (...args) => deps.ensureCatalog(...args);
   const loadPropagationCache = (...args) => deps.loadPropagationCache(...args);
-  const createWorkletPropagationPersistence = (...args) =>
-    deps.createWorkletPropagationPersistence(...args);
+  const createWorkletPropagationPersistence = (...args) => deps.createWorkletPropagationPersistence(...args);
 
   async function startPropagation() {
     if (state.propagationServer !== null) {
@@ -58,23 +53,15 @@ export function createNodeLifecycleOps(deps) {
     }
 
     await loadPropagationCache();
-    state.propagationServer = new PropagationServer(
-      provider,
-      DEFAULT_PROPAGATION_QUOTAS,
-      {
-        now: () => Date.now(),
-        schedule: (ms, callback) => {
-          const handle = setTimeout(callback, ms);
-          return { cancel: () => clearTimeout(handle) };
-        },
-        persistence: createWorkletPropagationPersistence(),
-      },
-    );
-    state.propagationDestination = createPropagationDestination(
-      provider,
-      node,
-      identity,
-    );
+    state.propagationServer = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+          now: () => Date.now(),
+          schedule: (ms, callback) => {
+            const handle = setTimeout(callback, ms);
+            return { cancel: () => clearTimeout(handle) };
+          },
+          persistence: createWorkletPropagationPersistence()
+        });
+    state.propagationDestination = createPropagationDestination(provider, node, identity);
     state.propagationServer.registerHandlers(state.propagationDestination);
     await state.propagationDestination.announce();
     status.propagationEnabled = true;
@@ -134,9 +121,7 @@ export function createNodeLifecycleOps(deps) {
     if (state.packetLogWasmCache !== null) {
       return state.packetLogWasmCache;
     }
-    state.packetLogWasmCache = Uint8Array.from(
-      Buffer.from(PACKET_LOG_WASM_BASE64, "base64"),
-    );
+    state.packetLogWasmCache = Uint8Array.from(Buffer.from(PACKET_LOG_WASM_BASE64, "base64"));
     return state.packetLogWasmCache;
   }
 
@@ -149,10 +134,7 @@ export function createNodeLifecycleOps(deps) {
       pushStatus();
       return;
     }
-    if (
-      typeof rendezvousHex !== "string" ||
-      !/^[0-9a-fA-F]{64}$/.test(rendezvousHex)
-    ) {
+    if (typeof rendezvousHex !== "string" || !/^[0-9a-fA-F]{64}$/.test(rendezvousHex)) {
       log("Freenet HDLC interface requires a 64-character hex rendezvous");
       status.freenetInterfaceEnabled = false;
       pushStatus();
@@ -171,34 +153,30 @@ export function createNodeLifecycleOps(deps) {
       const backend = new FreenetContractPacketLogBackend({
         clientOptions: {
           url,
-          ...(state.pendingFreenetAuthToken === null
-            ? {}
-            : { authToken: state.pendingFreenetAuthToken }),
+          ...(state.pendingFreenetAuthToken === null ? {} : { authToken: state.pendingFreenetAuthToken })
         },
         wasm,
         rendezvous: hexToBytes(rendezvousHex),
         localDirection: state.pendingFreenetLocalDirection,
-        updateOptions: { fallbackCodeField: wasm },
+        updateOptions: { fallbackCodeField: wasm }
       });
       state.freenetIface = await FreenetInterface.open(provider, {
         name: "host-freenet",
         provider,
-        backend,
+        backend
       });
       node.registerInterface(state.freenetIface);
       status.freenetInterfaceOnline = state.freenetIface.online === true;
       log(
         status.freenetInterfaceOnline
           ? "Freenet HDLC interface online"
-          : "Freenet HDLC interface started; waiting for Freenet node",
+          : "Freenet HDLC interface started; waiting for Freenet node"
       );
     } catch (error) {
       state.freenetIface = null;
       status.freenetInterfaceOnline = false;
       status.freenetInterfaceEnabled = false;
-      log(
-        `Freenet HDLC interface failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Freenet HDLC interface failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     pushStatus();
   }
@@ -255,7 +233,7 @@ export function createNodeLifecycleOps(deps) {
       provider,
       runtime,
       inboundBandwidthLimiter,
-      outboundBandwidthLimiter,
+      outboundBandwidthLimiter
     });
     state.reticulum.start();
     status.running = true;
@@ -267,7 +245,7 @@ export function createNodeLifecycleOps(deps) {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["echo"],
+      aspects: ["echo"]
     });
     inbound.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
     await inbound.announce();
@@ -276,9 +254,7 @@ export function createNodeLifecycleOps(deps) {
     startStatusTimer();
     pushStatus();
     await ensureHostLxmfDelivery().catch((error) => {
-      log(
-        `Host LXMF delivery deferred: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      log(`Host LXMF delivery deferred: ${error instanceof Error ? error.message : String(error)}`);
     });
     return state.reticulum;
   }
@@ -302,19 +278,14 @@ export function createNodeLifecycleOps(deps) {
       provider,
       identity,
       announceIntervalMs: 60_000,
-      receiveSessionInvite: (invite) =>
-        ensureMiniappHost().receiveSessionInvite(invite),
+      receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite),
       isInvitableApp: (appId) => {
         const { installedStore: installed } = ensureCatalog();
-        return (
-          installed.activeVersion(appId) !== undefined || appId === "line-check"
-        );
+        return installed.activeVersion(appId) !== undefined || appId === "line-check";
       },
-      log,
+      log
     });
-    log(
-      `Host LXMF delivery ready (${state.hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`,
-    );
+    log(`Host LXMF delivery ready (${state.hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`);
     return state.hostLxmfDelivery;
   }
 
@@ -333,7 +304,7 @@ export function createNodeLifecycleOps(deps) {
       state.tcpIface = await node.addTcpClientInterface({
         name: "harness-tcp",
         targetHost,
-        targetPort,
+        targetPort
       });
     }
 
@@ -377,27 +348,21 @@ export function createNodeLifecycleOps(deps) {
     log(`Starting RNode interface over ${state.pendingRnodePortPath}`);
     state.serialBridge = createIpcSerialBridge({
       portPath: state.pendingRnodePortPath,
-      baudRate: state.pendingRnodeBaudRate,
+      baudRate: state.pendingRnodeBaudRate
     });
     state.rnodeIface = await RNodeInterface.open(provider, {
       name: "host-rnode",
       provider,
-      pipe: state.serialBridge,
+      pipe: state.serialBridge
     });
     node.registerInterface(state.rnodeIface);
 
     status.rnodeConnected = state.serialBridge.connected;
-    status.rnodeDeviceName = status.rnodeConnected
-      ? state.pendingRnodePortPath
-      : null;
+    status.rnodeDeviceName = status.rnodeConnected ? state.pendingRnodePortPath : null;
     if (state.rnodeIface.online) {
-      log(
-        `RNode interface online (firmware: ${state.rnodeIface.rnodeStatus.firmwareVersion ?? "unknown"})`,
-      );
+      log(`RNode interface online (firmware: ${state.rnodeIface.rnodeStatus.firmwareVersion ?? "unknown"})`);
     } else {
-      log(
-        "RNode interface started; waiting for USB serial connection from host",
-      );
+      log("RNode interface started; waiting for USB serial connection from host");
     }
 
     pushStatus();
@@ -451,10 +416,7 @@ export function createNodeLifecycleOps(deps) {
         return;
       }
 
-      await startTcpInterface(
-        state.pendingTarget.targetHost,
-        state.pendingTarget.targetPort,
-      );
+      await startTcpInterface(state.pendingTarget.targetHost, state.pendingTarget.targetPort);
       return;
     }
 
@@ -462,21 +424,13 @@ export function createNodeLifecycleOps(deps) {
   }
 
   async function reconnectTcpAfterNetworkChange() {
-    if (
-      state.nodeSuspended ||
-      !status.running ||
-      !status.tcpEnabled ||
-      state.pendingTarget === null
-    ) {
+    if (state.nodeSuspended || !status.running || !status.tcpEnabled || state.pendingTarget === null) {
       return;
     }
 
     log("Network change detected; reconnecting TCP interface");
     await stopTcpInterface();
-    await startTcpInterface(
-      state.pendingTarget.targetHost,
-      state.pendingTarget.targetPort,
-    );
+    await startTcpInterface(state.pendingTarget.targetHost, state.pendingTarget.targetPort);
   }
 
   return {
@@ -497,6 +451,6 @@ export function createNodeLifecycleOps(deps) {
     ensureHostLxmfDelivery,
     stopHostLxmfDelivery,
     applyInterfaceConfig,
-    reconnectTcpAfterNetworkChange,
+    reconnectTcpAfterNetworkChange
   };
 }

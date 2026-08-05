@@ -39,9 +39,7 @@ function decodeMessages(buffer) {
 }
 
 function bytesToHex(bytes) {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function hexToBytes(hex) {
@@ -152,23 +150,14 @@ async function main() {
   sendToWorker({
     type: "start",
     gatewayUrl: "ws://127.0.0.1:9",
-    identityPassphrase: "web-rnode-browser-test",
+    identityPassphrase: "web-rnode-browser-test"
   });
   sendToWorker({ type: "create-identity" });
-  sendToWorker({
-    type: "set-interfaces",
-    tcp: false,
-    auto: false,
-    ble: false,
-    rnode: true,
-  });
+  sendToWorker({ type: "set-interfaces", tcp: false, auto: false, ble: false, rnode: true });
 
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    if (
-      latestStatus?.rnodeConnected === true &&
-      latestStatus?.onlineInterfaces >= 1
-    ) {
+    if (latestStatus?.rnodeConnected === true && latestStatus?.onlineInterfaces >= 1) {
       break;
     }
 
@@ -176,28 +165,24 @@ async function main() {
   }
 
   if (latestStatus?.rnodeConnected !== true) {
-    throw new Error(
-      `RNode serial did not connect: ${JSON.stringify(latestStatus)}`,
-    );
+    throw new Error(`RNode serial did not connect: ${JSON.stringify(latestStatus)}`);
   }
 
   if (latestStatus.onlineInterfaces < 1) {
-    throw new Error(
-      `RNode interface did not come online: ${JSON.stringify(latestStatus)}`,
-    );
+    throw new Error(`RNode interface did not come online: ${JSON.stringify(latestStatus)}`);
   }
 
   globalThis.__WEB_RNODE__ = {
     status: "done",
     rnodeConnected: latestStatus.rnodeConnected,
     rnodeDeviceName: latestStatus.rnodeDeviceName,
-    onlineInterfaces: latestStatus.onlineInterfaces,
+    onlineInterfaces: latestStatus.onlineInterfaces
   };
 }
 
 main().catch((error) => {
   globalThis.__WEB_RNODE__ = {
     status: "error",
-    message: error instanceof Error ? error.message : String(error),
+    message: error instanceof Error ? error.message : String(error)
   };
 });

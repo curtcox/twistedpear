@@ -1,5 +1,6 @@
 # Single-Mac Automated Validation Plan
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -25,11 +26,11 @@ battery-manager soaks (H3).
 
 Three scripts support this plan:
 
-| Script                                                         | Purpose                                                                                                                                                                                                                 |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `conformance/mac-validation/setup.sh`                          | Idempotent installer for repo deps, Playwright Chromium, CocoaPods, JDK 17, Android SDK/AVD, Maestro, the conformance Docker image, and optional vector venv. Safe to re-run.                                           |
+| Script | Purpose |
+|---|---|
+| `conformance/mac-validation/setup.sh` | Idempotent installer for repo deps, Playwright Chromium, CocoaPods, JDK 17, Android SDK/AVD, Maestro, the conformance Docker image, and optional vector venv. Safe to re-run. |
 | `conformance/mac-validation/doctor.mjs` (`npm run doctor:mac`) | Verifies every tool is present, correctly versioned, and functional. Exits non-zero with per-check fix hints on failure. `--ai` additionally makes live (free) key-verification calls to the Anthropic and OpenAI APIs. |
-| `conformance/mac-validation/triage.mjs` (`npm run triage:mac`) | Builds a provider-neutral Stage 9 triage package from failed validation logs: command metadata, bounded log tails, the reusable prompt, and matching `STATUS-SOFTWARE.md` row candidates.                               |
+| `conformance/mac-validation/triage.mjs` (`npm run triage:mac`) | Builds a provider-neutral Stage 9 triage package from failed validation logs: command metadata, bounded log tails, the reusable prompt, and matching `STATUS-SOFTWARE.md` row candidates. |
 
 Run order: `bash conformance/mac-validation/setup.sh` then `npm run doctor:mac`.
 The doctor is the gate for every later stage — do not start a stage whose
@@ -68,24 +69,24 @@ doctor checks these and prints the fix, but they require account or GUI steps.
 
 ### Tool inventory
 
-| Tool                                                                                    | Used by                                                                                              | Install mechanism                                                                                                   | Verify (what doctor runs)                                                                                                            |
-| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Node ≥ 22 + npm                                                                         | everything                                                                                           | already installed (`~/.local/bin/node`)                                                                             | `node --version` ≥ 22                                                                                                                |
-| Workspace deps (vitest, playwright, bare, tsc, esbuild)                                 | all suites                                                                                           | `npm ci` from repo root                                                                                             | `node_modules/.bin/{vitest,playwright,tsc}` and `node_modules/bare/bin/bare` exist                                                   |
-| Playwright Chromium browser                                                             | all `test:web-*` suites                                                                              | `npx playwright install chromium`                                                                                   | launch Chromium headless and close it                                                                                                |
-| Docker + compose                                                                        | `test:interop`, all `INTEROP=1` lanes, web gateway suites                                            | already installed; keep Docker Desktop running                                                                      | `docker info` succeeds; `docker compose version`                                                                                     |
-| Python peer image                                                                       | same                                                                                                 | `docker compose -f conformance/docker/docker-compose.yml build`                                                     | image present (`docker images`)                                                                                                      |
-| Xcode + iOS simulator runtime                                                           | `test:ios-sim*`, `expo run:ios`                                                                      | already installed (Xcode 26.6)                                                                                      | `xcodebuild -version`; `xcrun simctl list runtimes` shows an iOS runtime                                                             |
-| CocoaPods                                                                               | `expo run:ios` native build                                                                          | `brew install cocoapods`                                                                                            | `pod --version`                                                                                                                      |
-| JDK 17 (Temurin)                                                                        | Android Gradle builds (`test:android-native`, `expo run:android`) — system JDK 25 is too new for AGP | `brew install --cask temurin@17`                                                                                    | `/usr/libexec/java_home -V` lists an exact 17.x runtime                                                                              |
-| Android SDK (cmdline-tools, platform-tools, emulator, API 34 system image, build-tools) | `test:android-emulator*`, `test:android-native`                                                      | `brew install --cask android-commandlinetools`, then `sdkmanager --sdk_root=$ANDROID_HOME ...` (setup.sh does this) | `adb version`; `emulator -list-avds` lists `Pixel_8_API_34`                                                                          |
-| AVD `Pixel_8_API_34` (arm64-v8a on Apple Silicon)                                       | emulator UI lab E1–E5                                                                                | `avdmanager create avd` (setup.sh)                                                                                  | listed by `emulator -list-avds`                                                                                                      |
-| Maestro CLI                                                                             | Maestro flows in `test:android-emulator`                                                             | `curl -fsSL https://get.maestro.mobile.dev \| bash` (installs to `~/.maestro/bin`)                                  | `maestro --version`                                                                                                                  |
-| Python 3                                                                                | `vectors:generate` (optional — vectors are committed)                                                | already installed                                                                                                   | `python3 --version`                                                                                                                  |
-| `.venv-rns` with `rns==0.9.4`                                                           | regenerating identity/token vectors (optional)                                                       | `python3 -m venv .venv-rns && .venv-rns/bin/pip install rns==0.9.4` (setup.sh `--with-vectors`)                     | `.venv-rns/bin/python3 -c "import RNS"`                                                                                              |
-| `gh` CLI                                                                                | dispatching plan-duration soaks to CI as an alternative to local runs                                | already installed                                                                                                   | `gh auth status`                                                                                                                     |
-| Anthropic API access                                                                    | optional Stage 9 triage/agentic/judge layers                                                         | `export ANTHROPIC_API_KEY=...` in shell profile (or provider CLI login)                                             | `GET https://api.anthropic.com/v1/models` with `x-api-key` + `anthropic-version: 2023-06-01` returns 200 (free — no tokens consumed) |
-| OpenAI API access                                                                       | scripted Stage 9 triage, Agents SDK harnesses, and independent judge                                 | `export OPENAI_API_KEY=...`                                                                                         | `GET https://api.openai.com/v1/models` with `Authorization: Bearer` returns 200 (free)                                               |
+| Tool | Used by | Install mechanism | Verify (what doctor runs) |
+|---|---|---|---|
+| Node ≥ 22 + npm | everything | already installed (`~/.local/bin/node`) | `node --version` ≥ 22 |
+| Workspace deps (vitest, playwright, bare, tsc, esbuild) | all suites | `npm ci` from repo root | `node_modules/.bin/{vitest,playwright,tsc}` and `node_modules/bare/bin/bare` exist |
+| Playwright Chromium browser | all `test:web-*` suites | `npx playwright install chromium` | launch Chromium headless and close it |
+| Docker + compose | `test:interop`, all `INTEROP=1` lanes, web gateway suites | already installed; keep Docker Desktop running | `docker info` succeeds; `docker compose version` |
+| Python peer image | same | `docker compose -f conformance/docker/docker-compose.yml build` | image present (`docker images`) |
+| Xcode + iOS simulator runtime | `test:ios-sim*`, `expo run:ios` | already installed (Xcode 26.6) | `xcodebuild -version`; `xcrun simctl list runtimes` shows an iOS runtime |
+| CocoaPods | `expo run:ios` native build | `brew install cocoapods` | `pod --version` |
+| JDK 17 (Temurin) | Android Gradle builds (`test:android-native`, `expo run:android`) — system JDK 25 is too new for AGP | `brew install --cask temurin@17` | `/usr/libexec/java_home -V` lists an exact 17.x runtime |
+| Android SDK (cmdline-tools, platform-tools, emulator, API 34 system image, build-tools) | `test:android-emulator*`, `test:android-native` | `brew install --cask android-commandlinetools`, then `sdkmanager --sdk_root=$ANDROID_HOME ...` (setup.sh does this) | `adb version`; `emulator -list-avds` lists `Pixel_8_API_34` |
+| AVD `Pixel_8_API_34` (arm64-v8a on Apple Silicon) | emulator UI lab E1–E5 | `avdmanager create avd` (setup.sh) | listed by `emulator -list-avds` |
+| Maestro CLI | Maestro flows in `test:android-emulator` | `curl -fsSL https://get.maestro.mobile.dev \| bash` (installs to `~/.maestro/bin`) | `maestro --version` |
+| Python 3 | `vectors:generate` (optional — vectors are committed) | already installed | `python3 --version` |
+| `.venv-rns` with `rns==0.9.4` | regenerating identity/token vectors (optional) | `python3 -m venv .venv-rns && .venv-rns/bin/pip install rns==0.9.4` (setup.sh `--with-vectors`) | `.venv-rns/bin/python3 -c "import RNS"` |
+| `gh` CLI | dispatching plan-duration soaks to CI as an alternative to local runs | already installed | `gh auth status` |
+| Anthropic API access | optional Stage 9 triage/agentic/judge layers | `export ANTHROPIC_API_KEY=...` in shell profile (or provider CLI login) | `GET https://api.anthropic.com/v1/models` with `x-api-key` + `anthropic-version: 2023-06-01` returns 200 (free — no tokens consumed) |
+| OpenAI API access | scripted Stage 9 triage, Agents SDK harnesses, and independent judge | `export OPENAI_API_KEY=...` | `GET https://api.openai.com/v1/models` with `Authorization: Bearer` returns 200 (free) |
 
 Disk budget: allow ~30 GB free (Android SDK + system image ~12 GB, Xcode
 simulator runtime already present, Docker images ~3 GB, node_modules +
@@ -323,12 +324,12 @@ account and record the exact model used in the validation notes.
 If Anthropic tools are unavailable, degraded, or blocked by account policy,
 use OpenAI tooling for the same layer:
 
-| Layer                       | Primary path                                    | OpenAI fallback                                                                                                                            |
-| --------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Failure triage              | Claude Code or Anthropic API over captured logs | Codex in this repo, or a small script against the OpenAI Responses API                                                                     |
-| Exploratory browser testing | Claude browser tooling or Playwright            | Codex app/browser tooling, Codex CLI with Playwright, or an OpenAI Agents SDK harness that drives Playwright                               |
-| Exploratory desktop testing | Claude computer-use tooling                     | Codex app computer/browser tooling if available; otherwise run manual Electron exploration and use OpenAI only for log/screenshot analysis |
-| Ambiguous verdicts          | Anthropic + OpenAI agreement                    | Two materially different OpenAI models/prompts, followed by human review on disagreement                                                   |
+| Layer | Primary path | OpenAI fallback |
+|---|---|---|
+| Failure triage | Claude Code or Anthropic API over captured logs | Codex in this repo, or a small script against the OpenAI Responses API |
+| Exploratory browser testing | Claude browser tooling or Playwright | Codex app/browser tooling, Codex CLI with Playwright, or an OpenAI Agents SDK harness that drives Playwright |
+| Exploratory desktop testing | Claude computer-use tooling | Codex app computer/browser tooling if available; otherwise run manual Electron exploration and use OpenAI only for log/screenshot analysis |
+| Ambiguous verdicts | Anthropic + OpenAI agreement | Two materially different OpenAI models/prompts, followed by human review on disagreement |
 
 OpenAI API keys and Codex access are separate auth paths. `doctor:mac -- --ai`
 only verifies the API-key path for scripted calls. If using Codex app/CLI as
@@ -416,19 +417,19 @@ The triage package includes the failed logs and command metadata for follow-up c
 
 The pass completed Stages 0–8 with `--continue-on-failure` and reported **23 suite failures**. Triage evidence lives in `.tmp/mac-validation/2026-07-08T23-57-31-857Z/triage-package.md`. High-level classification:
 
-| Cluster                                    | Suites                                                                                                                  | Class           | Next verification                                                            |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| Docker peer path timeouts                  | `test:interop`, `test:transport-role`, `test:rnsd-mode`, `test:link-benchmark`, `test:web-interop`, `test:bare-interop` | environment     | Confirm compose peers are up and reachable on localhost ports                |
-| Worklet Bare-pack (`ws` → `stream`/`zlib`) | `build:worklet`, `test:desktop`, `test:ios-sim:required`, `test:harness-install`                                        | product bug     | Re-run `npm run build:worklet` after Bare shim / dependency graph fix        |
-| Android emulator lane                      | `test:android-native`, `expo run:android`, `test:android-emulator*`                                                     | mixed           | Fix minSdk 28, generate `fixture-meta.json`, rebuild dev client              |
-| Web gaps                                   | `test:web-pwa`, `test:web-interop-browser`, `test:web-rnode`                                                            | product / flaky | Re-run individual Stage 4 suites after bundle/IDB fixes                      |
-| Isolated exports / missing entrypoints     | `test:propagation-interop`, `test:desktop-soak`                                                                         | product bug     | Fix missing `msgpackUnpackPropagationEnvelope` export; add desktop soak loop |
+| Cluster | Suites | Class | Next verification |
+|---|---|---|---|
+| Docker peer path timeouts | `test:interop`, `test:transport-role`, `test:rnsd-mode`, `test:link-benchmark`, `test:web-interop`, `test:bare-interop` | environment | Confirm compose peers are up and reachable on localhost ports |
+| Worklet Bare-pack (`ws` → `stream`/`zlib`) | `build:worklet`, `test:desktop`, `test:ios-sim:required`, `test:harness-install` | product bug | Re-run `npm run build:worklet` after Bare shim / dependency graph fix |
+| Android emulator lane | `test:android-native`, `expo run:android`, `test:android-emulator*` | mixed | Fix minSdk 28, generate `fixture-meta.json`, rebuild dev client |
+| Web gaps | `test:web-pwa`, `test:web-interop-browser`, `test:web-rnode` | product / flaky | Re-run individual Stage 4 suites after bundle/IDB fixes |
+| Isolated exports / missing entrypoints | `test:propagation-interop`, `test:desktop-soak` | product bug | Fix missing `msgpackUnpackPropagationEnvelope` export; add desktop soak loop |
 
 **2026-07-09 partial re-verification:** the worklet Bare-pack cluster
 (`build:worklet`, `test:desktop`, `test:ios-sim:required`, `test:harness-install`)
 and `test:desktop-soak` now pass locally. `test:propagation-interop` still
-fails after the export fix (in-process sync: _Propagation node identity is
-unknown_). Electron `npm run start --workspace=host-desktop` launches when
+fails after the export fix (in-process sync: *Propagation node identity is
+unknown*). Electron `npm run start --workspace=host-desktop` launches when
 `ELECTRON_RUN_AS_NODE` is unset (the start script does this automatically); the
 desktop GUI screenshot is in [desktop-host.md](desktop-host.md). The Bare worklet
 child no longer hits linked `node:os` / `node:worker_threads` imports (Phase 4c);

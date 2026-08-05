@@ -4,7 +4,10 @@
  */
 import type { ObserveDropIntent } from "@twistedpear/protocol";
 import type { DropCensusCounts } from "./drop-census.js";
-import { ringToRecordedHistory, type ObserveRing } from "./observe-ring.js";
+import {
+  ringToRecordedHistory,
+  type ObserveRing
+} from "./observe-ring.js";
 
 export interface ObserveAgentState {
   observeSubscribed: boolean;
@@ -15,12 +18,11 @@ export interface ObserveAgentState {
 
 export function handleObserveCommand(
   state: ObserveAgentState,
-  request: { readonly cmd: string; readonly domain?: unknown },
+  request: { readonly cmd: string; readonly domain?: unknown }
 ): Record<string, unknown> | null {
   switch (request.cmd) {
     case "subscribe": {
-      const domain =
-        typeof request.domain === "string" ? request.domain : "observe";
+      const domain = typeof request.domain === "string" ? request.domain : "observe";
       if (domain !== "observe") {
         throw new Error(`unsupported subscribe domain: ${domain}`);
       }
@@ -33,11 +35,8 @@ export function handleObserveCommand(
     }
     case "observe-snapshot":
       return {
-        history: ringToRecordedHistory(
-          state.observeRing.snapshot(),
-          state.label,
-        ),
-        dropCensus: state.dropCensusSnapshot(),
+        history: ringToRecordedHistory(state.observeRing.snapshot(), state.label),
+        dropCensus: state.dropCensusSnapshot()
       };
     default:
       return null;
@@ -50,7 +49,7 @@ export function recordObserveDrop(
     readonly observeRing: ObserveRing;
     readonly notifyObserve: ((drop: ObserveDropIntent) => void) | null;
   },
-  drop: ObserveDropIntent,
+  drop: ObserveDropIntent
 ): void {
   state.dropCensus.record(drop);
   state.observeRing.push(drop);

@@ -135,7 +135,7 @@ import {
   initialApplyResourceReceivePartSlotState,
   initialFulfillResourcePartRequestState,
   initialSendResourceHashmapUpdateState,
-  unpackResourceHashmapUpdate,
+  unpackResourceHashmapUpdate
 } from "../src/resource-hashmap.js";
 
 describe("protocol resource hashmap", () => {
@@ -157,22 +157,14 @@ describe("protocol resource hashmap", () => {
           kind: "resource-hashmap/collision-guard-gate",
           guard,
           mapHash,
-          hashmapMaxLen,
-        },
+          hashmapMaxLen
+        }
       );
-      expect(shouldAppendResourceMapHashCollisionGuard(stepped.actions)).toBe(
-        true,
-      );
-      expect(shouldCollideResourceMapHashCollisionGuard(stepped.actions)).toBe(
-        false,
-      );
+      expect(shouldAppendResourceMapHashCollisionGuard(stepped.actions)).toBe(true);
+      expect(shouldCollideResourceMapHashCollisionGuard(stepped.actions)).toBe(false);
       const next = resourceMapHashCollisionGuardFromActions(stepped.actions);
       expect(next).not.toBeNull();
-      const bare = appendResourceMapHashCollisionGuard({
-        guard,
-        mapHash,
-        hashmapMaxLen,
-      });
+      const bare = appendResourceMapHashCollisionGuard({ guard, mapHash, hashmapMaxLen });
       expect(bare.collided).toBe(false);
       if (!bare.collided) {
         expect(next).toHaveLength(bare.guard.length);
@@ -187,59 +179,42 @@ describe("protocol resource hashmap", () => {
         kind: "resource-hashmap/collision-guard-gate",
         guard,
         mapHash: guard[0]!,
-        hashmapMaxLen,
-      },
+        hashmapMaxLen
+      }
     );
-    expect(shouldCollideResourceMapHashCollisionGuard(collided.actions)).toBe(
-      true,
-    );
-    expect(shouldAppendResourceMapHashCollisionGuard(collided.actions)).toBe(
-      false,
-    );
-    expect(
-      resourceMapHashCollisionGuardFromActions(collided.actions),
-    ).toBeNull();
+    expect(shouldCollideResourceMapHashCollisionGuard(collided.actions)).toBe(true);
+    expect(shouldAppendResourceMapHashCollisionGuard(collided.actions)).toBe(false);
+    expect(resourceMapHashCollisionGuardFromActions(collided.actions)).toBeNull();
     expect(
       appendResourceMapHashCollisionGuard({
         guard,
         mapHash: guard[0]!,
-        hashmapMaxLen,
-      }).collided,
+        hashmapMaxLen
+      }).collided
     ).toBe(true);
   });
 
   it("finds resource hashes by membership", () => {
     const a = new Uint8Array([1, 2, 3]);
     const b = new Uint8Array([4, 5, 6]);
-    expect(
-      indexOfResourceHash({
-        hashes: [a, b],
-        target: new Uint8Array([4, 5, 6]),
-      }),
-    ).toBe(1);
+    expect(indexOfResourceHash({ hashes: [a, b], target: new Uint8Array([4, 5, 6]) })).toBe(1);
     expect(containsResourceHash({ hashes: [a, b], target: a })).toBe(true);
     expect(containsResourceHash({ hashes: [a], target: b })).toBe(false);
 
-    const present = stepContainsResourceHashWithActions(
-      initialContainsResourceHashState(),
-      {
-        kind: "resource-hashmap/contains-hash-gate",
-        hashes: [a, b],
-        target: new Uint8Array([4, 5, 6]),
-      },
-    );
+    const present = stepContainsResourceHashWithActions(initialContainsResourceHashState(), {
+      kind: "resource-hashmap/contains-hash-gate",
+      hashes: [a, b],
+      target: new Uint8Array([4, 5, 6])
+    });
     expect(shouldPresentResourceHash(present.actions)).toBe(true);
     expect(shouldAbsentResourceHash(present.actions)).toBe(false);
     expect(resourceHashIndexFromActions(present.actions)).toBe(1);
 
-    const absent = stepContainsResourceHashWithActions(
-      initialContainsResourceHashState(),
-      {
-        kind: "resource-hashmap/contains-hash-gate",
-        hashes: [a],
-        target: b,
-      },
-    );
+    const absent = stepContainsResourceHashWithActions(initialContainsResourceHashState(), {
+      kind: "resource-hashmap/contains-hash-gate",
+      hashes: [a],
+      target: b
+    });
     expect(shouldAbsentResourceHash(absent.actions)).toBe(true);
     expect(shouldPresentResourceHash(absent.actions)).toBe(false);
     expect(resourceHashIndexFromActions(absent.actions)).toBeNull();
@@ -248,10 +223,7 @@ describe("protocol resource hashmap", () => {
   it("round-trips hashmap update msgpack", () => {
     const hashmap = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
     const packed = packResourceHashmapUpdate(2, hashmap);
-    expect(unpackResourceHashmapUpdate(packed)).toEqual({
-      segment: 2,
-      hashmap,
-    });
+    expect(unpackResourceHashmapUpdate(packed)).toEqual({ segment: 2, hashmap });
   });
 
   it("splits HMU packets after the resource hash", () => {
@@ -283,23 +255,16 @@ describe("protocol resource hashmap", () => {
     exhausted[0] = RESOURCE_HASHMAP_IS_EXHAUSTED;
     exhausted.set(last, 1);
     exhausted.set(resourceHash, 1 + RESOURCE_MAPHASH_LEN);
-    const readStepped = stepReadResourceRequestHashWithActions(
-      initialReadResourceRequestHashState(),
-      {
-        kind: "resource-hashmap/read-request-hash-gate",
-        requestData: exhausted,
-      },
-    );
+    const readStepped = stepReadResourceRequestHashWithActions(initialReadResourceRequestHashState(), {
+      kind: "resource-hashmap/read-request-hash-gate",
+      requestData: exhausted
+    });
     expect(shouldUseReadResourceRequestHash(readStepped.actions)).toBe(true);
-    const requestHash = readResourceRequestHashRawFromActions(
-      readStepped.actions,
-    );
+    const requestHash = readResourceRequestHashRawFromActions(readStepped.actions);
     expect(requestHash).not.toBeNull();
     expect([...requestHash!]).toEqual([...resourceHash]);
     expect([...readResourceRequestHash(exhausted)]).toEqual([...resourceHash]);
-    expect([...parseResourcePartRequest(exhausted)!.lastMapHash!]).toEqual([
-      ...last,
-    ]);
+    expect([...parseResourcePartRequest(exhausted)!.lastMapHash!]).toEqual([...last]);
   });
 
   it("plans slot writes and assembles hashmap bytes", () => {
@@ -307,26 +272,22 @@ describe("protocol resource hashmap", () => {
       initialAssembleResourceHashmapBytesState(),
       {
         kind: "resource-hashmap/assemble-bytes-gate",
-        mapHashes: [new Uint8Array([1, 2, 3, 4]), new Uint8Array([5, 6, 7, 8])],
-      },
+        mapHashes: [new Uint8Array([1, 2, 3, 4]), new Uint8Array([5, 6, 7, 8])]
+      }
     );
-    expect(shouldUseAssembleResourceHashmapBytes(assembleStepped.actions)).toBe(
-      true,
-    );
-    const hashmap = assembleResourceHashmapBytesRawFromActions(
-      assembleStepped.actions,
-    );
+    expect(shouldUseAssembleResourceHashmapBytes(assembleStepped.actions)).toBe(true);
+    const hashmap = assembleResourceHashmapBytesRawFromActions(assembleStepped.actions);
     expect(hashmap).not.toBeNull();
     expect([...hashmap!]).toEqual([
       ...assembleResourceHashmapBytes([
         new Uint8Array([1, 2, 3, 4]),
-        new Uint8Array([5, 6, 7, 8]),
-      ]),
+        new Uint8Array([5, 6, 7, 8])
+      ])
     ]);
     const writes = planResourceHashmapSlotWrites({
       segment: 1,
       hashmap: hashmap!,
-      hashmapMaxLen: 10,
+      hashmapMaxLen: 10
     });
     expect(writes).toHaveLength(2);
     expect(writes[0]!.slot).toBe(10);
@@ -338,25 +299,20 @@ describe("protocol resource hashmap", () => {
         kind: "resource/hashmap-slot-writes-plan-gate",
         segment: 1,
         hashmap: hashmap!,
-        hashmapMaxLen: 10,
-      },
+        hashmapMaxLen: 10
+      }
     );
     expect(shouldWriteResourceHashmapSlotsPlan(planStepped.actions)).toBe(true);
-    const fromPlan = resourceHashmapSlotWritesPlanFromActions(
-      planStepped.actions,
-    );
+    const fromPlan = resourceHashmapSlotWritesPlanFromActions(planStepped.actions);
     expect(fromPlan).toHaveLength(2);
     expect(fromPlan[0]!.slot).toBe(10);
 
-    const stepped = stepResourceHashmapSlotWritesWithActions(
-      initialResourceHashmapSlotWritesState(),
-      {
-        kind: "resource/hashmap-slot-writes-gate",
-        segment: 1,
-        hashmap: hashmap!,
-        hashmapMaxLen: 10,
-      },
-    );
+    const stepped = stepResourceHashmapSlotWritesWithActions(initialResourceHashmapSlotWritesState(), {
+      kind: "resource/hashmap-slot-writes-gate",
+      segment: 1,
+      hashmap: hashmap!,
+      hashmapMaxLen: 10
+    });
     expect(shouldWriteResourceHashmapSlots(stepped.actions)).toBe(true);
     const fromActions = resourceHashmapSlotWritesFromActions(stepped.actions);
     expect(fromActions).toHaveLength(2);
@@ -369,15 +325,15 @@ describe("protocol resource hashmap", () => {
       segment: 0,
       hashmap: assembleResourceHashmapBytes([
         new Uint8Array([1, 2, 3, 4]),
-        new Uint8Array([5, 6, 7, 8]),
+        new Uint8Array([5, 6, 7, 8])
       ]),
-      hashmapMaxLen: 10,
+      hashmapMaxLen: 10
     });
     const existing = new Uint8Array([9, 9, 9, 9]);
     const applied = applyResourceHashmapSlotWrites({
       hashmap: [existing, null],
       hashmapHeight: 1,
-      writes,
+      writes
     });
     expect([...applied.hashmap[0]!]).toEqual([9, 9, 9, 9]);
     expect([...applied.hashmap[1]!]).toEqual([5, 6, 7, 8]);
@@ -389,13 +345,11 @@ describe("protocol resource hashmap", () => {
         kind: "resource-hashmap/apply-slot-writes-gate",
         hashmap: [existing, null],
         hashmapHeight: 1,
-        writes,
-      },
+        writes
+      }
     );
     expect(shouldUseApplyResourceHashmapSlotWrites(stepped.actions)).toBe(true);
-    const fromActions = applyResourceHashmapSlotWritesFieldsFromActions(
-      stepped.actions,
-    );
+    const fromActions = applyResourceHashmapSlotWritesFieldsFromActions(stepped.actions);
     expect(fromActions).not.toBeNull();
     expect([...fromActions!.hashmap[0]!]).toEqual([9, 9, 9, 9]);
     expect([...fromActions!.hashmap[1]!]).toEqual([5, 6, 7, 8]);
@@ -412,7 +366,7 @@ describe("protocol resource hashmap", () => {
       consecutiveCompletedHeight: 0,
       window: 2,
       hashmapHeight: 3,
-      resourceHash,
+      resourceHash
     });
     expect(plan.outstandingParts).toBe(2);
     expect(plan.waitingForHashmap).toBe(false);
@@ -431,7 +385,7 @@ describe("protocol resource hashmap", () => {
       consecutiveCompletedHeight: 0,
       window: 4,
       hashmapHeight: 1,
-      resourceHash,
+      resourceHash
     });
     expect(exhausted.waitingForHashmap).toBe(true);
     expect(exhausted.outstandingParts).toBe(0);
@@ -450,7 +404,7 @@ describe("protocol resource hashmap", () => {
       receivedCount: 0,
       outstandingParts: 1,
       totalParts: 2,
-      assemblyStarted: false,
+      assemblyStarted: false
     });
     expect(plan.matched).toBe(true);
     expect(plan.slot).toBe(0);
@@ -469,7 +423,7 @@ describe("protocol resource hashmap", () => {
         wantsMoreHashmap: false,
         lastMapHash: null,
         resourceHash: new Uint8Array(32),
-        requestedMapHashes: [mapA, mapB],
+        requestedMapHashes: [mapA, mapB]
       },
       partMapHashes: [mapA, mapB],
       partSent: [false, true],
@@ -477,11 +431,11 @@ describe("protocol resource hashmap", () => {
       hashmapMaxLen: 10,
       windowMax: 4,
       totalParts: 2,
-      sentParts: 1,
+      sentParts: 1
     });
     expect(plan.partActions).toEqual([
       { index: 0, kind: "send" },
-      { index: 1, kind: "resend" },
+      { index: 1, kind: "resend" }
     ]);
     expect(plan.nextSentParts).toBe(2);
     expect(plan.hashmapUpdate).toBeNull();
@@ -496,7 +450,7 @@ describe("protocol resource hashmap", () => {
         wantsMoreHashmap: true,
         lastMapHash: last,
         resourceHash: new Uint8Array(32),
-        requestedMapHashes: [],
+        requestedMapHashes: []
       },
       partMapHashes: [last, next],
       partSent: [true, false],
@@ -504,7 +458,7 @@ describe("protocol resource hashmap", () => {
       hashmapMaxLen: 10,
       windowMax: 4,
       totalParts: 2,
-      sentParts: 1,
+      sentParts: 1
     });
     expect(plan.hashmapUpdate).not.toBeNull();
     expect(plan.hashmapUpdate!.segment).toBe(0);
@@ -518,22 +472,22 @@ describe("protocol resource hashmap", () => {
       planResourceHashmapUpdateAccept({
         canContinue: true,
         splitOk: true,
-        unpackOk: true,
-      }),
+        unpackOk: true
+      })
     ).toBe("apply");
     expect(
       planResourceHashmapUpdateAccept({
         canContinue: false,
         splitOk: true,
-        unpackOk: true,
-      }),
+        unpackOk: true
+      })
     ).toBe("ignore");
     expect(
       planResourceHashmapUpdateAccept({
         canContinue: true,
         splitOk: false,
-        unpackOk: true,
-      }),
+        unpackOk: true
+      })
     ).toBe("ignore");
     expect(shouldAcceptResourceHashmapUpdateFrame(true)).toBe(true);
     expect(shouldAcceptResourceHashmapUpdateFrame(false)).toBe(false);
@@ -546,103 +500,71 @@ describe("protocol resource hashmap", () => {
       initialAcceptResourceHashmapUpdateFrameState(),
       {
         kind: "resource-hashmap/accept-update-frame-gate",
-        splitOk: true,
-      },
+        splitOk: true
+      }
     );
-    expect(shouldAcceptResourceHashmapUpdateFrameNow(acceptFrame.actions)).toBe(
-      true,
-    );
-    expect(
-      shouldSkipAcceptResourceHashmapUpdateFrame(acceptFrame.actions),
-    ).toBe(false);
+    expect(shouldAcceptResourceHashmapUpdateFrameNow(acceptFrame.actions)).toBe(true);
+    expect(shouldSkipAcceptResourceHashmapUpdateFrame(acceptFrame.actions)).toBe(false);
     const skipFrame = stepAcceptResourceHashmapUpdateFrameWithActions(
       initialAcceptResourceHashmapUpdateFrameState(),
       {
         kind: "resource-hashmap/accept-update-frame-gate",
-        splitOk: false,
-      },
+        splitOk: false
+      }
     );
-    expect(shouldAcceptResourceHashmapUpdateFrameNow(skipFrame.actions)).toBe(
-      false,
-    );
-    expect(shouldSkipAcceptResourceHashmapUpdateFrame(skipFrame.actions)).toBe(
-      true,
-    );
+    expect(shouldAcceptResourceHashmapUpdateFrameNow(skipFrame.actions)).toBe(false);
+    expect(shouldSkipAcceptResourceHashmapUpdateFrame(skipFrame.actions)).toBe(true);
 
     const fulfillReq = stepFulfillResourcePartRequestWithActions(
       initialFulfillResourcePartRequestState(),
       {
         kind: "resource-hashmap/fulfill-part-request-gate",
-        requestPresent: true,
-      },
+        requestPresent: true
+      }
     );
     expect(shouldFulfillResourcePartRequestNow(fulfillReq.actions)).toBe(true);
-    expect(shouldSkipFulfillResourcePartRequest(fulfillReq.actions)).toBe(
-      false,
-    );
+    expect(shouldSkipFulfillResourcePartRequest(fulfillReq.actions)).toBe(false);
     const skipFulfillReq = stepFulfillResourcePartRequestWithActions(
       initialFulfillResourcePartRequestState(),
       {
         kind: "resource-hashmap/fulfill-part-request-gate",
-        requestPresent: false,
-      },
+        requestPresent: false
+      }
     );
-    expect(shouldFulfillResourcePartRequestNow(skipFulfillReq.actions)).toBe(
-      false,
-    );
-    expect(shouldSkipFulfillResourcePartRequest(skipFulfillReq.actions)).toBe(
-      true,
-    );
+    expect(shouldFulfillResourcePartRequestNow(skipFulfillReq.actions)).toBe(false);
+    expect(shouldSkipFulfillResourcePartRequest(skipFulfillReq.actions)).toBe(true);
 
-    const apply = stepApplyResourceFulfillPartWithActions(
-      initialApplyResourceFulfillPartState(),
-      {
-        kind: "resource-hashmap/apply-fulfill-part-gate",
-        partPresent: true,
-      },
-    );
+    const apply = stepApplyResourceFulfillPartWithActions(initialApplyResourceFulfillPartState(), {
+      kind: "resource-hashmap/apply-fulfill-part-gate",
+      partPresent: true
+    });
     expect(shouldApplyResourceFulfillPartNow(apply.actions)).toBe(true);
     expect(shouldSkipApplyResourceFulfillPart(apply.actions)).toBe(false);
 
-    const skip = stepApplyResourceFulfillPartWithActions(
-      initialApplyResourceFulfillPartState(),
-      {
-        kind: "resource-hashmap/apply-fulfill-part-gate",
-        partPresent: false,
-      },
-    );
+    const skip = stepApplyResourceFulfillPartWithActions(initialApplyResourceFulfillPartState(), {
+      kind: "resource-hashmap/apply-fulfill-part-gate",
+      partPresent: false
+    });
     expect(shouldApplyResourceFulfillPartNow(skip.actions)).toBe(false);
     expect(shouldSkipApplyResourceFulfillPart(skip.actions)).toBe(true);
     expect(shouldSendResourceHashmapUpdate(true)).toBe(true);
     expect(shouldSendResourceHashmapUpdate(false)).toBe(false);
     expect(shouldAdvanceResourceAwaitingProof("awaiting-proof")).toBe(true);
     expect(shouldAdvanceResourceAwaitingProof("transferring")).toBe(false);
-    expect(
-      shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: true }),
-    ).toBe(true);
-    expect(
-      shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: false }),
-    ).toBe(false);
-    expect(
-      shouldApplyResourceReceivePartSlot({ matched: false, slotPresent: true }),
-    ).toBe(false);
+    expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: true })).toBe(true);
+    expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: false })).toBe(false);
+    expect(shouldApplyResourceReceivePartSlot({ matched: false, slotPresent: true })).toBe(false);
 
-    const sendHmu = stepSendResourceHashmapUpdateWithActions(
-      initialSendResourceHashmapUpdateState(),
-      {
-        kind: "resource-hashmap/send-hashmap-update-gate",
-        hashmapUpdatePresent: true,
-      },
-    );
+    const sendHmu = stepSendResourceHashmapUpdateWithActions(initialSendResourceHashmapUpdateState(), {
+      kind: "resource-hashmap/send-hashmap-update-gate",
+      hashmapUpdatePresent: true
+    });
     expect(shouldSendResourceHashmapUpdateNow(sendHmu.actions)).toBe(true);
     expect(shouldSkipSendResourceHashmapUpdate(sendHmu.actions)).toBe(false);
-    const skipHmu = stepSendResourceHashmapUpdateWithActions(
-      initialSendResourceHashmapUpdateState(),
-      {
-        kind: "resource-hashmap/send-hashmap-update-gate",
-        hashmapUpdatePresent: false,
-      },
-    );
+    const skipHmu = stepSendResourceHashmapUpdateWithActions(initialSendResourceHashmapUpdateState(), {
+      kind: "resource-hashmap/send-hashmap-update-gate",
+      hashmapUpdatePresent: false
+    });
     expect(shouldSendResourceHashmapUpdateNow(skipHmu.actions)).toBe(false);
     expect(shouldSkipSendResourceHashmapUpdate(skipHmu.actions)).toBe(true);
 
@@ -650,8 +572,8 @@ describe("protocol resource hashmap", () => {
       initialAdvanceResourceAwaitingProofState(),
       {
         kind: "resource-hashmap/advance-awaiting-proof-gate",
-        status: "awaiting-proof",
-      },
+        status: "awaiting-proof"
+      }
     );
     expect(shouldAdvanceResourceAwaitingProofNow(advance.actions)).toBe(true);
     expect(shouldSkipAdvanceResourceAwaitingProof(advance.actions)).toBe(false);
@@ -659,35 +581,29 @@ describe("protocol resource hashmap", () => {
       initialAdvanceResourceAwaitingProofState(),
       {
         kind: "resource-hashmap/advance-awaiting-proof-gate",
-        status: "transferring",
-      },
+        status: "transferring"
+      }
     );
-    expect(shouldAdvanceResourceAwaitingProofNow(skipAdvance.actions)).toBe(
-      false,
-    );
-    expect(shouldSkipAdvanceResourceAwaitingProof(skipAdvance.actions)).toBe(
-      true,
-    );
+    expect(shouldAdvanceResourceAwaitingProofNow(skipAdvance.actions)).toBe(false);
+    expect(shouldSkipAdvanceResourceAwaitingProof(skipAdvance.actions)).toBe(true);
 
     const applySlot = stepApplyResourceReceivePartSlotWithActions(
       initialApplyResourceReceivePartSlotState(),
       {
         kind: "resource-hashmap/apply-receive-part-slot-gate",
         matched: true,
-        slotPresent: true,
-      },
+        slotPresent: true
+      }
     );
     expect(shouldApplyResourceReceivePartSlotNow(applySlot.actions)).toBe(true);
-    expect(shouldSkipApplyResourceReceivePartSlot(applySlot.actions)).toBe(
-      false,
-    );
+    expect(shouldSkipApplyResourceReceivePartSlot(applySlot.actions)).toBe(false);
     const skipSlot = stepApplyResourceReceivePartSlotWithActions(
       initialApplyResourceReceivePartSlotState(),
       {
         kind: "resource-hashmap/apply-receive-part-slot-gate",
         matched: true,
-        slotPresent: false,
-      },
+        slotPresent: false
+      }
     );
     expect(shouldApplyResourceReceivePartSlotNow(skipSlot.actions)).toBe(false);
     expect(shouldSkipApplyResourceReceivePartSlot(skipSlot.actions)).toBe(true);
@@ -704,7 +620,7 @@ describe("protocol resource hashmap", () => {
           wantsMoreHashmap: false,
           lastMapHash: null,
           resourceHash: new Uint8Array(32),
-          requestedMapHashes: [mapA, mapB],
+          requestedMapHashes: [mapA, mapB]
         },
         partMapHashes: [mapA, mapB],
         partSent: [false, true],
@@ -712,43 +628,40 @@ describe("protocol resource hashmap", () => {
         hashmapMaxLen: 10,
         windowMax: 4,
         totalParts: 2,
-        sentParts: 1,
-      },
+        sentParts: 1
+      }
     );
     expect(shouldFulfillResourceRequestPlan(fulfillPlan.actions)).toBe(true);
-    expect(
-      resourceRequestFulfillPlanFromActions(fulfillPlan.actions)?.status,
-    ).toBe("awaiting-proof");
-
-    const fulfilled = stepResourceRequestFulfillWithActions(
-      initialResourceRequestFulfillState(),
-      {
-        kind: "resource/request-fulfill-gate",
-        request: {
-          wantsMoreHashmap: false,
-          lastMapHash: null,
-          resourceHash: new Uint8Array(32),
-          requestedMapHashes: [mapA, mapB],
-        },
-        partMapHashes: [mapA, mapB],
-        partSent: [false, true],
-        receiverMinConsecutiveHeight: 0,
-        hashmapMaxLen: 10,
-        windowMax: 4,
-        totalParts: 2,
-        sentParts: 1,
-      },
+    expect(resourceRequestFulfillPlanFromActions(fulfillPlan.actions)?.status).toBe(
+      "awaiting-proof"
     );
+
+    const fulfilled = stepResourceRequestFulfillWithActions(initialResourceRequestFulfillState(), {
+      kind: "resource/request-fulfill-gate",
+      request: {
+        wantsMoreHashmap: false,
+        lastMapHash: null,
+        resourceHash: new Uint8Array(32),
+        requestedMapHashes: [mapA, mapB]
+      },
+      partMapHashes: [mapA, mapB],
+      partSent: [false, true],
+      receiverMinConsecutiveHeight: 0,
+      hashmapMaxLen: 10,
+      windowMax: 4,
+      totalParts: 2,
+      sentParts: 1
+    });
     expect(shouldFulfillResourceRequest(fulfilled.actions)).toBe(true);
     expect(resourceRequestFulfillFromActions(fulfilled.actions)).toEqual({
       partActions: [
         { index: 0, kind: "send" },
-        { index: 1, kind: "resend" },
+        { index: 1, kind: "resend" }
       ],
       hashmapUpdate: null,
       nextSentParts: 2,
       nextReceiverMinConsecutiveHeight: 0,
-      status: "awaiting-proof",
+      status: "awaiting-proof"
     });
 
     const receivePlan = stepResourceReceivePartPlanWithActions(
@@ -763,29 +676,24 @@ describe("protocol resource hashmap", () => {
         receivedCount: 0,
         outstandingParts: 1,
         totalParts: 2,
-        assemblyStarted: false,
-      },
+        assemblyStarted: false
+      }
     );
     expect(shouldApplyResourceReceivePartPlan(receivePlan.actions)).toBe(true);
-    expect(resourceReceivePartPlanFromActions(receivePlan.actions)?.slot).toBe(
-      0,
-    );
+    expect(resourceReceivePartPlanFromActions(receivePlan.actions)?.slot).toBe(0);
 
-    const received = stepResourceReceivePartWithActions(
-      initialResourceReceivePartState(),
-      {
-        kind: "resource/receive-part-gate",
-        partHash: mapA,
-        hashmap: [mapA, mapB],
-        receivedParts: [null, null],
-        consecutiveCompletedHeight: -1,
-        window: 4,
-        receivedCount: 0,
-        outstandingParts: 1,
-        totalParts: 2,
-        assemblyStarted: false,
-      },
-    );
+    const received = stepResourceReceivePartWithActions(initialResourceReceivePartState(), {
+      kind: "resource/receive-part-gate",
+      partHash: mapA,
+      hashmap: [mapA, mapB],
+      receivedParts: [null, null],
+      consecutiveCompletedHeight: -1,
+      window: 4,
+      receivedCount: 0,
+      outstandingParts: 1,
+      totalParts: 2,
+      assemblyStarted: false
+    });
     expect(resourceReceivePartFromActions(received.actions)).toEqual({
       matched: true,
       slot: 0,
@@ -794,7 +702,7 @@ describe("protocol resource hashmap", () => {
       outstandingParts: 0,
       progress: 0.5,
       shouldAssemble: false,
-      shouldRequestNext: true,
+      shouldRequestNext: true
     });
 
     const hash = new Uint8Array(32).fill(7);
@@ -807,26 +715,21 @@ describe("protocol resource hashmap", () => {
         consecutiveCompletedHeight: -1,
         window: 4,
         hashmapHeight: 1,
-        resourceHash: hash,
-      },
+        resourceHash: hash
+      }
     );
     expect(shouldEmitResourcePartRequestPlan(requestPlan.actions)).toBe(true);
-    expect(
-      resourcePartRequestPlanFromActions(requestPlan.actions)?.outstandingParts,
-    ).toBe(1);
+    expect(resourcePartRequestPlanFromActions(requestPlan.actions)?.outstandingParts).toBe(1);
 
-    const requested = stepResourcePartRequestWithActions(
-      initialResourcePartRequestState(),
-      {
-        kind: "resource/part-request-gate",
-        receivedParts: [null],
-        hashmap: [mapA],
-        consecutiveCompletedHeight: -1,
-        window: 4,
-        hashmapHeight: 1,
-        resourceHash: hash,
-      },
-    );
+    const requested = stepResourcePartRequestWithActions(initialResourcePartRequestState(), {
+      kind: "resource/part-request-gate",
+      receivedParts: [null],
+      hashmap: [mapA],
+      consecutiveCompletedHeight: -1,
+      window: 4,
+      hashmapHeight: 1,
+      resourceHash: hash
+    });
     expect(shouldEmitResourcePartRequest(requested.actions)).toBe(true);
     const partRequestPlan = resourcePartRequestFromActions(requested.actions);
     expect(partRequestPlan).not.toBeNull();
@@ -839,15 +742,11 @@ describe("protocol resource hashmap", () => {
         kind: "resource/hashmap-update-accept-plan-gate",
         canContinue: true,
         splitOk: true,
-        unpackOk: true,
-      },
+        unpackOk: true
+      }
     );
-    expect(shouldApplyResourceHashmapUpdateAcceptPlan(acceptPlan.actions)).toBe(
-      true,
-    );
-    expect(resourceHashmapUpdateAcceptPlanFromActions(acceptPlan.actions)).toBe(
-      "apply",
-    );
+    expect(shouldApplyResourceHashmapUpdateAcceptPlan(acceptPlan.actions)).toBe(true);
+    expect(resourceHashmapUpdateAcceptPlanFromActions(acceptPlan.actions)).toBe("apply");
 
     const accepted = stepResourceHashmapUpdateAcceptWithActions(
       initialResourceHashmapUpdateAcceptState(),
@@ -855,13 +754,11 @@ describe("protocol resource hashmap", () => {
         kind: "resource/hashmap-update-accept-gate",
         canContinue: true,
         splitOk: true,
-        unpackOk: true,
-      },
+        unpackOk: true
+      }
     );
     expect(shouldApplyResourceHashmapUpdateAccept(accepted.actions)).toBe(true);
-    expect(shouldIgnoreResourceHashmapUpdateAccept(accepted.actions)).toBe(
-      false,
-    );
+    expect(shouldIgnoreResourceHashmapUpdateAccept(accepted.actions)).toBe(false);
 
     const ignorePlan = stepResourceHashmapUpdateAcceptPlanWithActions(
       initialResourceHashmapUpdateAcceptPlanState(),
@@ -869,12 +766,10 @@ describe("protocol resource hashmap", () => {
         kind: "resource/hashmap-update-accept-plan-gate",
         canContinue: false,
         splitOk: true,
-        unpackOk: true,
-      },
+        unpackOk: true
+      }
     );
-    expect(
-      shouldIgnoreResourceHashmapUpdateAcceptPlan(ignorePlan.actions),
-    ).toBe(true);
+    expect(shouldIgnoreResourceHashmapUpdateAcceptPlan(ignorePlan.actions)).toBe(true);
 
     const ignored = stepResourceHashmapUpdateAcceptWithActions(
       initialResourceHashmapUpdateAcceptState(),
@@ -882,21 +777,18 @@ describe("protocol resource hashmap", () => {
         kind: "resource/hashmap-update-accept-gate",
         canContinue: false,
         splitOk: true,
-        unpackOk: true,
-      },
+        unpackOk: true
+      }
     );
     expect(shouldIgnoreResourceHashmapUpdateAccept(ignored.actions)).toBe(true);
     expect(shouldApplyResourceHashmapUpdateAccept(ignored.actions)).toBe(false);
 
     expect(
-      stepResourceRequestFulfillWithActions(
-        initialResourceRequestFulfillState(),
-        {
-          kind: "timer/fired",
-          id: "x",
-          at: 0,
-        },
-      ).actions,
+      stepResourceRequestFulfillWithActions(initialResourceRequestFulfillState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
     ).toEqual([]);
   });
 
@@ -906,15 +798,15 @@ describe("protocol resource hashmap", () => {
       kind: "resource/hashmap-update-accept-gate" as const,
       canContinue: true,
       splitOk: true,
-      unpackOk: true,
+      unpackOk: true
     };
     const a = stepResourceHashmapUpdateAcceptWithActions(
       initialResourceHashmapUpdateAcceptState(),
-      event,
+      event
     );
     const b = stepResourceHashmapUpdateAcceptWithActions(
       initialResourceHashmapUpdateAcceptState(),
-      event,
+      event
     );
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
@@ -925,7 +817,7 @@ describe("protocol resource hashmap", () => {
         wantsMoreHashmap: false as const,
         lastMapHash: null,
         resourceHash: new Uint8Array(32),
-        requestedMapHashes: [mapA],
+        requestedMapHashes: [mapA]
       },
       partMapHashes: [mapA],
       partSent: [false],
@@ -933,15 +825,15 @@ describe("protocol resource hashmap", () => {
       hashmapMaxLen: 10,
       windowMax: 4,
       totalParts: 1,
-      sentParts: 0,
+      sentParts: 0
     };
     const fa = stepResourceRequestFulfillWithActions(
       initialResourceRequestFulfillState(),
-      fulfillEvent,
+      fulfillEvent
     );
     const fb = stepResourceRequestFulfillWithActions(
       initialResourceRequestFulfillState(),
-      fulfillEvent,
+      fulfillEvent
     );
     expect(fa).toEqual(fb);
   });
@@ -953,8 +845,8 @@ describe("protocol resource hashmap", () => {
       {
         kind: "resource-hashmap/pack-update-gate",
         segment: 2,
-        hashmap,
-      },
+        hashmap
+      }
     );
     expect(shouldUsePackResourceHashmapUpdate(packStepped.actions)).toBe(true);
     const packed = packResourceHashmapUpdateRawFromActions(packStepped.actions);
@@ -965,31 +857,25 @@ describe("protocol resource hashmap", () => {
       initialUnpackResourceHashmapUpdateState(),
       {
         kind: "resource-hashmap/unpack-update-gate",
-        bytes: packed!,
-      },
+        bytes: packed!
+      }
     );
     expect(shouldUseUnpackResourceHashmapUpdate(unpackOk.actions)).toBe(true);
-    expect(shouldRejectUnpackResourceHashmapUpdate(unpackOk.actions)).toBe(
-      false,
-    );
+    expect(shouldRejectUnpackResourceHashmapUpdate(unpackOk.actions)).toBe(false);
     expect(resourceHashmapUpdateFieldsFromActions(unpackOk.actions)).toEqual({
       segment: 2,
-      hashmap,
+      hashmap
     });
 
     const unpackRejected = stepUnpackResourceHashmapUpdateWithActions(
       initialUnpackResourceHashmapUpdateState(),
       {
         kind: "resource-hashmap/unpack-update-gate",
-        bytes: new Uint8Array([0xff]),
-      },
+        bytes: new Uint8Array([0xff])
+      }
     );
-    expect(
-      shouldRejectUnpackResourceHashmapUpdate(unpackRejected.actions),
-    ).toBe(true);
-    expect(
-      resourceHashmapUpdateFieldsFromActions(unpackRejected.actions),
-    ).toBeNull();
+    expect(shouldRejectUnpackResourceHashmapUpdate(unpackRejected.actions)).toBe(true);
+    expect(resourceHashmapUpdateFieldsFromActions(unpackRejected.actions)).toBeNull();
   });
 
   it("emits packet pack/split framing from WithActions steps", () => {
@@ -1000,36 +886,24 @@ describe("protocol resource hashmap", () => {
       {
         kind: "resource-hashmap/pack-packet-gate",
         resourceHash: hash,
-        updateBytes: update,
-      },
+        updateBytes: update
+      }
     );
-    expect(shouldUsePackResourceHashmapUpdatePacket(packStepped.actions)).toBe(
-      true,
-    );
-    const plaintext = packResourceHashmapUpdatePacketRawFromActions(
-      packStepped.actions,
-    );
+    expect(shouldUsePackResourceHashmapUpdatePacket(packStepped.actions)).toBe(true);
+    const plaintext = packResourceHashmapUpdatePacketRawFromActions(packStepped.actions);
     expect(plaintext).not.toBeNull();
-    expect([...plaintext!]).toEqual([
-      ...packResourceHashmapUpdatePacket(hash, update),
-    ]);
+    expect([...plaintext!]).toEqual([...packResourceHashmapUpdatePacket(hash, update)]);
 
     const splitOk = stepSplitResourceHashmapUpdatePacketWithActions(
       initialSplitResourceHashmapUpdatePacketState(),
       {
         kind: "resource-hashmap/split-packet-gate",
-        plaintext: plaintext!,
-      },
+        plaintext: plaintext!
+      }
     );
-    expect(shouldUseSplitResourceHashmapUpdatePacket(splitOk.actions)).toBe(
-      true,
-    );
-    expect(shouldRejectSplitResourceHashmapUpdatePacket(splitOk.actions)).toBe(
-      false,
-    );
-    const fields = resourceHashmapUpdatePacketFieldsFromActions(
-      splitOk.actions,
-    );
+    expect(shouldUseSplitResourceHashmapUpdatePacket(splitOk.actions)).toBe(true);
+    expect(shouldRejectSplitResourceHashmapUpdatePacket(splitOk.actions)).toBe(false);
+    const fields = resourceHashmapUpdatePacketFieldsFromActions(splitOk.actions);
     expect(fields).not.toBeNull();
     expect([...fields!.resourceHash]).toEqual([...hash]);
     expect([...fields!.updateBytes]).toEqual([...update]);
@@ -1038,15 +912,11 @@ describe("protocol resource hashmap", () => {
       initialSplitResourceHashmapUpdatePacketState(),
       {
         kind: "resource-hashmap/split-packet-gate",
-        plaintext: new Uint8Array(8),
-      },
+        plaintext: new Uint8Array(8)
+      }
     );
-    expect(
-      shouldRejectSplitResourceHashmapUpdatePacket(splitRejected.actions),
-    ).toBe(true);
-    expect(
-      resourceHashmapUpdatePacketFieldsFromActions(splitRejected.actions),
-    ).toBeNull();
+    expect(shouldRejectSplitResourceHashmapUpdatePacket(splitRejected.actions)).toBe(true);
+    expect(resourceHashmapUpdatePacketFieldsFromActions(splitRejected.actions)).toBeNull();
   });
 
   it("emits part-request parse fields or reject from WithActions steps", () => {
@@ -1057,13 +927,10 @@ describe("protocol resource hashmap", () => {
     notExhausted.set(resourceHash, 1);
     notExhausted.set(mapHash, 33);
 
-    const ok = stepParseResourcePartRequestWithActions(
-      initialParseResourcePartRequestState(),
-      {
-        kind: "resource-hashmap/parse-part-request-gate",
-        requestData: notExhausted,
-      },
-    );
+    const ok = stepParseResourcePartRequestWithActions(initialParseResourcePartRequestState(), {
+      kind: "resource-hashmap/parse-part-request-gate",
+      requestData: notExhausted
+    });
     expect(shouldUseParseResourcePartRequest(ok.actions)).toBe(true);
     expect(shouldRejectParseResourcePartRequest(ok.actions)).toBe(false);
     const fields = resourcePartRequestFieldsFromActions(ok.actions);
@@ -1072,13 +939,10 @@ describe("protocol resource hashmap", () => {
     expect([...fields!.resourceHash]).toEqual([...resourceHash]);
     expect(fields!.requestedMapHashes).toHaveLength(1);
 
-    const rejected = stepParseResourcePartRequestWithActions(
-      initialParseResourcePartRequestState(),
-      {
-        kind: "resource-hashmap/parse-part-request-gate",
-        requestData: new Uint8Array(2),
-      },
-    );
+    const rejected = stepParseResourcePartRequestWithActions(initialParseResourcePartRequestState(), {
+      kind: "resource-hashmap/parse-part-request-gate",
+      requestData: new Uint8Array(2)
+    });
     expect(shouldRejectParseResourcePartRequest(rejected.actions)).toBe(true);
     expect(resourcePartRequestFieldsFromActions(rejected.actions)).toBeNull();
   });

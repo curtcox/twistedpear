@@ -38,9 +38,7 @@ export type PropagationStorePlan =
       readonly evictKeys: readonly string[];
     };
 
-export function propagationDestinationHash(
-  lxmfData: Uint8Array,
-): Uint8Array | null {
+export function propagationDestinationHash(lxmfData: Uint8Array): Uint8Array | null {
   if (lxmfData.length < PROPAGATION_DESTINATION_HASH_SIZE) {
     return null;
   }
@@ -49,7 +47,7 @@ export function propagationDestinationHash(
 
 export function isPropagationMessageTooLarge(
   messageBytes: number,
-  quotas: PropagationQuotas,
+  quotas: PropagationQuotas
 ): boolean {
   return messageBytes > quotas.maxMessageBytes;
 }
@@ -70,7 +68,8 @@ export type PropagationMessageTooLargeEvent =
     };
 
 export type PropagationMessageTooLargeAction =
-  { readonly kind: "too-large" } | { readonly kind: "fit" };
+  | { readonly kind: "too-large" }
+  | { readonly kind: "fit" };
 
 export interface PropagationMessageTooLargeStepResult {
   readonly state: PropagationMessageTooLargeState;
@@ -84,7 +83,7 @@ export function initialPropagationMessageTooLargeState(): PropagationMessageTooL
 
 export function stepPropagationMessageTooLargeWithActions(
   state: PropagationMessageTooLargeState,
-  event: PropagationMessageTooLargeEvent,
+  event: PropagationMessageTooLargeEvent
 ): PropagationMessageTooLargeStepResult {
   if (event.kind === "propagation/message-too-large-gate") {
     return {
@@ -94,9 +93,9 @@ export function stepPropagationMessageTooLargeWithActions(
         {
           kind: isPropagationMessageTooLarge(event.messageBytes, event.quotas)
             ? "too-large"
-            : "fit",
-        },
-      ],
+            : "fit"
+        }
+      ]
     };
   }
 
@@ -104,19 +103,19 @@ export function stepPropagationMessageTooLargeWithActions(
 }
 
 export function shouldTreatPropagationMessageTooLarge(
-  actions: ReadonlyArray<PropagationMessageTooLargeAction>,
+  actions: ReadonlyArray<PropagationMessageTooLargeAction>
 ): boolean {
   return actions.some((action) => action.kind === "too-large");
 }
 
 export function shouldTreatPropagationMessageFit(
-  actions: ReadonlyArray<PropagationMessageTooLargeAction>,
+  actions: ReadonlyArray<PropagationMessageTooLargeAction>
 ): boolean {
   return actions.some((action) => action.kind === "fit");
 }
 
 export function selectOldestPropagationKey(
-  entries: ReadonlyArray<PropagationCatalogEntry>,
+  entries: ReadonlyArray<PropagationCatalogEntry>
 ): string | null {
   let oldest: PropagationCatalogEntry | null = null;
   for (const entry of entries) {
@@ -157,14 +156,14 @@ export function initialSelectOldestPropagationKeyState(): SelectOldestPropagatio
 
 export function stepSelectOldestPropagationKeyWithActions(
   state: SelectOldestPropagationKeyState,
-  event: SelectOldestPropagationKeyEvent,
+  event: SelectOldestPropagationKeyEvent
 ): SelectOldestPropagationKeyStepResult {
   if (event.kind === "propagation/select-oldest-key-gate") {
     const key = selectOldestPropagationKey(event.entries);
     return {
       state,
       intents: [],
-      actions: key === null ? [{ kind: "miss" }] : [{ kind: "use-key", key }],
+      actions: key === null ? [{ kind: "miss" }] : [{ kind: "use-key", key }]
     };
   }
 
@@ -172,20 +171,20 @@ export function stepSelectOldestPropagationKeyWithActions(
 }
 
 export function shouldUseOldestPropagationKey(
-  actions: ReadonlyArray<SelectOldestPropagationKeyAction>,
+  actions: ReadonlyArray<SelectOldestPropagationKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-key");
 }
 
 export function shouldMissOldestPropagationKey(
-  actions: ReadonlyArray<SelectOldestPropagationKeyAction>,
+  actions: ReadonlyArray<SelectOldestPropagationKeyAction>
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 /** Extract oldest propagation key from step actions; null when no `use-key`. */
 export function oldestPropagationKeyFromActions(
-  actions: ReadonlyArray<SelectOldestPropagationKeyAction>,
+  actions: ReadonlyArray<SelectOldestPropagationKeyAction>
 ): string | null {
   const action = actions.find((entry) => entry.kind === "use-key");
   return action?.kind === "use-key" ? action.key : null;
@@ -194,12 +193,9 @@ export function oldestPropagationKeyFromActions(
 /** When remoteDeliveryHash is null, all entries are visible. */
 export function propagationEntryVisibleToRecipient(
   destinationHash: Uint8Array,
-  remoteDeliveryHash: Uint8Array | null,
+  remoteDeliveryHash: Uint8Array | null
 ): boolean {
-  return (
-    remoteDeliveryHash === null ||
-    equalByteArrays(destinationHash, remoteDeliveryHash)
-  );
+  return remoteDeliveryHash === null || equalByteArrays(destinationHash, remoteDeliveryHash);
 }
 
 /**
@@ -259,32 +255,32 @@ export type PropagationStorePlanEvent =
 export type PropagationStorePlanAction = PropagationStorePlan;
 
 export function shouldRejectTooLargePropagationStorePlan(
-  actions: ReadonlyArray<PropagationStorePlanAction>,
+  actions: ReadonlyArray<PropagationStorePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-too-large");
 }
 
 export function shouldRejectCapacityPropagationStorePlan(
-  actions: ReadonlyArray<PropagationStorePlanAction>,
+  actions: ReadonlyArray<PropagationStorePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject-capacity");
 }
 
 export function shouldDuplicatePropagationStorePlan(
-  actions: ReadonlyArray<PropagationStorePlanAction>,
+  actions: ReadonlyArray<PropagationStorePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "duplicate");
 }
 
 export function shouldAcceptPropagationStorePlan(
-  actions: ReadonlyArray<PropagationStorePlanAction>,
+  actions: ReadonlyArray<PropagationStorePlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 /** Whether plan actions include either reject-too-large or reject-capacity. */
 export function shouldRejectPropagationStorePlan(
-  actions: ReadonlyArray<PropagationStorePlanAction>,
+  actions: ReadonlyArray<PropagationStorePlanAction>
 ): boolean {
   return (
     shouldRejectTooLargePropagationStorePlan(actions) ||
@@ -294,7 +290,7 @@ export function shouldRejectPropagationStorePlan(
 
 /** Eviction keys from an accept plan action, if present. */
 export function propagationStorePlanEvictKeys(
-  actions: ReadonlyArray<PropagationStorePlanAction>,
+  actions: ReadonlyArray<PropagationStorePlanAction>
 ): readonly string[] | null {
   for (const action of actions) {
     if (action.kind === "accept") {
@@ -305,9 +301,7 @@ export function propagationStorePlanEvictKeys(
 }
 
 /** Whether store may commit after destination-hash extraction succeeds. */
-export function shouldCommitPropagationStoreEntry(
-  destinationHashPresent: boolean,
-): boolean {
+export function shouldCommitPropagationStoreEntry(destinationHashPresent: boolean): boolean {
   return destinationHashPresent;
 }
 
@@ -326,7 +320,8 @@ export type CommitPropagationStoreEntryEvent =
     };
 
 export type CommitPropagationStoreEntryAction =
-  { readonly kind: "commit" } | { readonly kind: "skip" };
+  | { readonly kind: "commit" }
+  | { readonly kind: "skip" };
 
 export interface CommitPropagationStoreEntryStepResult {
   readonly state: CommitPropagationStoreEntryState;
@@ -340,7 +335,7 @@ export function initialCommitPropagationStoreEntryState(): CommitPropagationStor
 
 export function stepCommitPropagationStoreEntryWithActions(
   state: CommitPropagationStoreEntryState,
-  event: CommitPropagationStoreEntryEvent,
+  event: CommitPropagationStoreEntryEvent
 ): CommitPropagationStoreEntryStepResult {
   if (event.kind === "propagation/commit-store-entry-gate") {
     return {
@@ -350,9 +345,9 @@ export function stepCommitPropagationStoreEntryWithActions(
         {
           kind: shouldCommitPropagationStoreEntry(event.destinationHashPresent)
             ? "commit"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -360,7 +355,7 @@ export function stepCommitPropagationStoreEntryWithActions(
 }
 
 export function shouldCommitPropagationStoreEntryNow(
-  actions: ReadonlyArray<CommitPropagationStoreEntryAction>,
+  actions: ReadonlyArray<CommitPropagationStoreEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "commit");
 }

@@ -4,7 +4,7 @@ import type {
   Intent,
   NodeId,
   StepFn,
-  TransportAdversaryAction,
+  TransportAdversaryAction
 } from "@twistedpear/effects";
 
 export interface AdversaryState {
@@ -34,37 +34,29 @@ export class UnlowerableAttackProposalError extends Error {
 /** Lower an authored strategy to a deterministic ordinary-node step function. */
 export function compileAttackProposal(
   proposal: AttackProposal,
-  allowedPowers: readonly DolevYaoPower[],
+  allowedPowers: readonly DolevYaoPower[]
 ): CompiledAdversary {
-  if (proposal.actions.length === 0)
-    throw new UnlowerableAttackProposalError("proposal has no actions");
+  if (proposal.actions.length === 0) throw new UnlowerableAttackProposalError("proposal has no actions");
   for (const action of proposal.actions) {
     if (!allowedPowers.includes(action.power)) {
-      throw new UnlowerableAttackProposalError(
-        `proposal requires out-of-model power: ${action.power}`,
-      );
+      throw new UnlowerableAttackProposalError(`proposal requires out-of-model power: ${action.power}`);
     }
     if (action.source.length === 0 || action.destination.length === 0) {
-      throw new UnlowerableAttackProposalError(
-        "proposal link endpoints must be named",
-      );
+      throw new UnlowerableAttackProposalError("proposal link endpoints must be named");
     }
   }
   const step: StepFn<AdversaryState> = (state, event) => {
     if (event.kind !== "start" || state.acted) return { state, intents: [] };
     return {
       state: { ...state, acted: true },
-      intents: proposal.actions.map((action): Intent => ({
-        kind: "transport/adversary",
-        action,
-      })),
+      intents: proposal.actions.map((action): Intent => ({ kind: "transport/adversary", action }))
     };
   };
   return {
     initial: { acted: false, entropyRequested: false },
     step,
     powers: [...new Set(proposal.actions.map((action) => action.power))],
-    proposal,
+    proposal
   };
 }
 
@@ -76,49 +68,38 @@ export interface FuzzAdversaryOptions {
 }
 
 /** Search-based attacker whose choices come exclusively from the kernel entropy tape. */
-export function createFuzzAdversary(
-  options: FuzzAdversaryOptions,
-): CompiledAdversary {
-  if (options.payloads.length === 0)
-    throw new Error("fuzz adversary needs at least one payload");
-  const proposal: AttackProposal = {
-    name: "entropy-driven-payload-fuzzer",
-    actions: [
-      {
-        power: "inject",
-        source: options.source,
-        destination: options.destination,
-        channel: options.channel,
-        payload: options.payloads[0]!,
-      },
-    ],
-  };
+export function createFuzzAdversary(options: FuzzAdversaryOptions): CompiledAdversary {
+  if (options.payloads.length === 0) throw new Error("fuzz adversary needs at least one payload");
+  const proposal: AttackProposal = { name: "entropy-driven-payload-fuzzer", actions: [{
+    power: "inject",
+    source: options.source,
+    destination: options.destination,
+    channel: options.channel,
+    payload: options.payloads[0]!
+  }] };
   const step: StepFn<AdversaryState> = (state, event: Event) => {
     if (event.kind === "start" && !state.entropyRequested) {
       return {
         state: { ...state, entropyRequested: true },
-        intents: [{ kind: "need_entropy", nbytes: 2 }],
+        intents: [{ kind: "need_entropy", nbytes: 2 }]
       };
     }
     if (event.kind === "entropy" && !state.acted) {
-      const payload =
-        options.payloads[event.bytes[0]! % options.payloads.length]!;
+      const payload = options.payloads[event.bytes[0]! % options.payloads.length]!;
       const delayMs = event.bytes[1]!;
       return {
         state: { ...state, acted: true },
-        intents: [
-          {
-            kind: "transport/adversary",
-            action: {
-              power: "inject",
-              source: options.source,
-              destination: options.destination,
-              channel: options.channel,
-              payload,
-              delayMs,
-            },
-          },
-        ],
+        intents: [{
+          kind: "transport/adversary",
+          action: {
+            power: "inject",
+            source: options.source,
+            destination: options.destination,
+            channel: options.channel,
+            payload,
+            delayMs
+          }
+        }]
       };
     }
     return { state, intents: [] };
@@ -127,6 +108,6 @@ export function createFuzzAdversary(
     initial: { acted: false, entropyRequested: false },
     step,
     powers: ["inject"],
-    proposal,
+    proposal
   };
 }

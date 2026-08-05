@@ -38,30 +38,25 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
 
 export function packIdentityCiphertext(
   ephemeralPublicKey: Uint8Array,
-  tokenCiphertext: Uint8Array,
+  tokenCiphertext: Uint8Array
 ): Uint8Array {
   if (ephemeralPublicKey.length !== IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE) {
     throw new Error(
-      `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`,
+      `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`
     );
   }
   return concatBytes(ephemeralPublicKey, tokenCiphertext);
 }
 
 export function splitIdentityCiphertext(
-  ciphertextToken: Uint8Array,
+  ciphertextToken: Uint8Array
 ): IdentityCiphertextFields | null {
   if (ciphertextToken.length <= IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE) {
     return null;
   }
   return {
-    ephemeralPublicKey: ciphertextToken.subarray(
-      0,
-      IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
-    ),
-    tokenCiphertext: ciphertextToken.subarray(
-      IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
-    ),
+    ephemeralPublicKey: ciphertextToken.subarray(0, IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE),
+    tokenCiphertext: ciphertextToken.subarray(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE)
   };
 }
 
@@ -96,7 +91,7 @@ export function initialPackIdentityCiphertextState(): PackIdentityCiphertextStat
 
 export function stepPackIdentityCiphertextWithActions(
   state: PackIdentityCiphertextState,
-  event: PackIdentityCiphertextEvent,
+  event: PackIdentityCiphertextEvent
 ): PackIdentityCiphertextStepResult {
   if (event.kind === "identity-ciphertext/pack-gate") {
     try {
@@ -106,12 +101,9 @@ export function stepPackIdentityCiphertextWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: packIdentityCiphertext(
-              event.ephemeralPublicKey,
-              event.tokenCiphertext,
-            ),
-          },
-        ],
+            raw: packIdentityCiphertext(event.ephemeralPublicKey, event.tokenCiphertext)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -122,20 +114,20 @@ export function stepPackIdentityCiphertextWithActions(
 }
 
 export function shouldUsePackIdentityCiphertext(
-  actions: ReadonlyArray<PackIdentityCiphertextAction>,
+  actions: ReadonlyArray<PackIdentityCiphertextAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackIdentityCiphertext(
-  actions: ReadonlyArray<PackIdentityCiphertextAction>,
+  actions: ReadonlyArray<PackIdentityCiphertextAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed identity ciphertext from step actions; null when no `use-raw`. */
 export function packIdentityCiphertextRawFromActions(
-  actions: ReadonlyArray<PackIdentityCiphertextAction>,
+  actions: ReadonlyArray<PackIdentityCiphertextAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -171,7 +163,7 @@ export function initialSplitIdentityCiphertextState(): SplitIdentityCiphertextSt
 
 export function stepSplitIdentityCiphertextWithActions(
   state: SplitIdentityCiphertextState,
-  event: SplitIdentityCiphertextEvent,
+  event: SplitIdentityCiphertextEvent
 ): SplitIdentityCiphertextStepResult {
   if (event.kind === "identity-ciphertext/split-gate") {
     const fields = splitIdentityCiphertext(event.ciphertextToken);
@@ -181,7 +173,7 @@ export function stepSplitIdentityCiphertextWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
@@ -189,20 +181,20 @@ export function stepSplitIdentityCiphertextWithActions(
 }
 
 export function shouldUseSplitIdentityCiphertext(
-  actions: ReadonlyArray<SplitIdentityCiphertextAction>,
+  actions: ReadonlyArray<SplitIdentityCiphertextAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitIdentityCiphertext(
-  actions: ReadonlyArray<SplitIdentityCiphertextAction>,
+  actions: ReadonlyArray<SplitIdentityCiphertextAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split identity-ciphertext fields from step actions; null when no `use-fields`. */
 export function identityCiphertextFieldsFromActions(
-  actions: ReadonlyArray<SplitIdentityCiphertextAction>,
+  actions: ReadonlyArray<SplitIdentityCiphertextAction>
 ): IdentityCiphertextFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -228,7 +220,8 @@ export type AcceptIdentityCiphertextFrameEvent =
     };
 
 export type AcceptIdentityCiphertextFrameAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptIdentityCiphertextFrameStepResult {
   readonly state: AcceptIdentityCiphertextFrameState;
@@ -242,7 +235,7 @@ export function initialAcceptIdentityCiphertextFrameState(): AcceptIdentityCiphe
 
 export function stepAcceptIdentityCiphertextFrameWithActions(
   state: AcceptIdentityCiphertextFrameState,
-  event: AcceptIdentityCiphertextFrameEvent,
+  event: AcceptIdentityCiphertextFrameEvent
 ): AcceptIdentityCiphertextFrameStepResult {
   if (event.kind === "identity-ciphertext/accept-frame-gate") {
     return {
@@ -250,11 +243,9 @@ export function stepAcceptIdentityCiphertextFrameWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptIdentityCiphertextFrame(event.splitOk)
-            ? "accept"
-            : "skip",
-        },
-      ],
+          kind: shouldAcceptIdentityCiphertextFrame(event.splitOk) ? "accept" : "skip"
+        }
+      ]
     };
   }
 
@@ -262,21 +253,19 @@ export function stepAcceptIdentityCiphertextFrameWithActions(
 }
 
 export function shouldAcceptIdentityCiphertextFrameNow(
-  actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>,
+  actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipIdentityCiphertextFrameAccept(
-  actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>,
+  actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether identity decrypt may return accepted plaintext after plan outcome. */
-export function shouldAcceptIdentityDecryptPlaintext(
-  planAccept: boolean,
-): boolean {
+export function shouldAcceptIdentityDecryptPlaintext(planAccept: boolean): boolean {
   return planAccept;
 }
 
@@ -295,7 +284,8 @@ export type AcceptIdentityDecryptPlaintextEvent =
     };
 
 export type AcceptIdentityDecryptPlaintextAction =
-  { readonly kind: "accept" } | { readonly kind: "skip" };
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
 
 export interface AcceptIdentityDecryptPlaintextStepResult {
   readonly state: AcceptIdentityDecryptPlaintextState;
@@ -309,7 +299,7 @@ export function initialAcceptIdentityDecryptPlaintextState(): AcceptIdentityDecr
 
 export function stepAcceptIdentityDecryptPlaintextWithActions(
   state: AcceptIdentityDecryptPlaintextState,
-  event: AcceptIdentityDecryptPlaintextEvent,
+  event: AcceptIdentityDecryptPlaintextEvent
 ): AcceptIdentityDecryptPlaintextStepResult {
   if (event.kind === "identity-ciphertext/accept-plaintext-gate") {
     return {
@@ -317,11 +307,9 @@ export function stepAcceptIdentityDecryptPlaintextWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptIdentityDecryptPlaintext(event.planAccept)
-            ? "accept"
-            : "skip",
-        },
-      ],
+          kind: shouldAcceptIdentityDecryptPlaintext(event.planAccept) ? "accept" : "skip"
+        }
+      ]
     };
   }
 
@@ -329,19 +317,23 @@ export function stepAcceptIdentityDecryptPlaintextWithActions(
 }
 
 export function shouldAcceptIdentityDecryptPlaintextNow(
-  actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>,
+  actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipIdentityDecryptPlaintextAccept(
-  actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>,
+  actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export type IdentityDecryptPlan =
-  "reject-frame" | "accept" | "reject-enforced" | "try-identity" | "reject";
+  | "reject-frame"
+  | "accept"
+  | "reject-enforced"
+  | "try-identity"
+  | "reject";
 
 /**
  * After ciphertext frame split and optional ratchet decrypt attempts.
@@ -383,13 +375,11 @@ export type IdentityDecryptOutcomePlanEvent =
       readonly identityPlaintextPresent: boolean;
     };
 
-export type IdentityDecryptOutcomePlanAction = {
-  readonly kind: IdentityDecryptPlan;
-};
+export type IdentityDecryptOutcomePlanAction = { readonly kind: IdentityDecryptPlan };
 
 /** Extract the decrypt plan from actions; null when empty. */
 export function identityDecryptOutcomePlanFromActions(
-  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
 ): IdentityDecryptPlan | null {
   const action = actions.find(
     (entry) =>
@@ -397,7 +387,7 @@ export function identityDecryptOutcomePlanFromActions(
       entry.kind === "accept" ||
       entry.kind === "reject-enforced" ||
       entry.kind === "try-identity" ||
-      entry.kind === "reject",
+      entry.kind === "reject"
   );
   return action?.kind ?? null;
 }

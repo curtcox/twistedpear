@@ -9,23 +9,11 @@ interface BleBridgeNative {
   isConnected(): boolean;
   getMtu(): number;
   shouldActAsCentral(localHash: Uint8Array, peerHash: Uint8Array): boolean;
-  addListener(
-    event: "onData",
-    listener: (event: BleDataEvent) => void,
-  ): EventSubscription;
-  addListener(
-    event: "onConnect",
-    listener: (event: BleConnectEvent) => void,
-  ): EventSubscription;
+  addListener(event: "onData", listener: (event: BleDataEvent) => void): EventSubscription;
+  addListener(event: "onConnect", listener: (event: BleConnectEvent) => void): EventSubscription;
   addListener(event: "onDisconnect", listener: () => void): EventSubscription;
-  addListener(
-    event: "onError",
-    listener: (event: BleErrorEvent) => void,
-  ): EventSubscription;
-  addListener(
-    event: "onPeerDiscovered",
-    listener: (event: BlePeerDiscoveredEvent) => void,
-  ): EventSubscription;
+  addListener(event: "onError", listener: (event: BleErrorEvent) => void): EventSubscription;
+  addListener(event: "onPeerDiscovered", listener: (event: BlePeerDiscoveredEvent) => void): EventSubscription;
 }
 
 export interface BleDataEvent {
@@ -58,38 +46,26 @@ function loadNativeBleBridge(): BleBridgeNative | null {
 
 const NativeBleBridge = loadNativeBleBridge();
 
-export function getBleBridgeCapability(): {
-  readonly supported: boolean;
-  readonly reason: string | null;
-  readonly backgroundModesRequired: boolean;
-} {
+export function getBleBridgeCapability(): { readonly supported: boolean; readonly reason: string | null; readonly backgroundModesRequired: boolean } {
   if (NativeBleBridge === null) {
-    return {
-      supported: false,
-      reason: "native BLE bridge unavailable",
-      backgroundModesRequired: false,
-    };
+    return { supported: false, reason: "native BLE bridge unavailable", backgroundModesRequired: false };
   }
 
   return {
     supported: true,
     reason: null,
-    backgroundModesRequired: Platform.OS === "ios",
+    backgroundModesRequired: Platform.OS === "ios"
   };
 }
 
 /** Wrap the Android BLE bridge as a BlePipe for BleInterface. */
 export function createNativeBlePipe(identityHash: Uint8Array): BlePipe {
   if (NativeBleBridge === null) {
-    throw new Error(
-      "BLE bridge is only available in native Android and iOS builds",
-    );
+    throw new Error("BLE bridge is only available in native Android and iOS builds");
   }
 
   if (identityHash.length !== 16) {
-    throw new Error(
-      "Identity hash must be 16 bytes for the BLE control beacon",
-    );
+    throw new Error("Identity hash must be 16 bytes for the BLE control beacon");
   }
 
   let events: BlePipeEvents = {};
@@ -126,30 +102,23 @@ export function createNativeBlePipe(identityHash: Uint8Array): BlePipe {
       errorSubscription?.remove();
 
       dataSubscription = NativeBleBridge.addListener("onData", (event) => {
-        const data =
-          event.data instanceof Uint8Array
-            ? event.data
-            : Uint8Array.from(event.data as ArrayLike<number>);
+        const data = event.data instanceof Uint8Array
+          ? event.data
+          : Uint8Array.from(event.data as ArrayLike<number>);
         bytesIn += data.length;
         events.onData?.(data);
       });
 
-      connectSubscription = NativeBleBridge.addListener(
-        "onConnect",
-        (event) => {
-          connected = true;
-          mtu = event.mtu;
-          events.onConnect?.();
-        },
-      );
+      connectSubscription = NativeBleBridge.addListener("onConnect", (event) => {
+        connected = true;
+        mtu = event.mtu;
+        events.onConnect?.();
+      });
 
-      disconnectSubscription = NativeBleBridge.addListener(
-        "onDisconnect",
-        () => {
-          connected = false;
-          events.onDisconnect?.();
-        },
-      );
+      disconnectSubscription = NativeBleBridge.addListener("onDisconnect", () => {
+        connected = false;
+        events.onDisconnect?.();
+      });
 
       errorSubscription = NativeBleBridge.addListener("onError", (event) => {
         events.onError?.(new Error(event.message));
@@ -177,28 +146,21 @@ export function createNativeBlePipe(identityHash: Uint8Array): BlePipe {
     async write(data: Uint8Array) {
       await NativeBleBridge.write(data);
       bytesOut += data.length;
-    },
+    }
   };
 
   return pipe;
 }
 
-export function shouldActAsCentral(
-  localHash: Uint8Array,
-  peerHash: Uint8Array,
-): boolean {
+export function shouldActAsCentral(localHash: Uint8Array, peerHash: Uint8Array): boolean {
   if (NativeBleBridge === null) {
-    throw new Error(
-      "BLE bridge is only available in native Android and iOS builds",
-    );
+    throw new Error("BLE bridge is only available in native Android and iOS builds");
   }
 
   return NativeBleBridge.shouldActAsCentral(localHash, peerHash);
 }
 
-export async function startNativeBlePipe(
-  identityHash: Uint8Array,
-): Promise<BlePipe> {
+export async function startNativeBlePipe(identityHash: Uint8Array): Promise<BlePipe> {
   const pipe = createNativeBlePipe(identityHash);
   await pipe.start();
   return pipe;

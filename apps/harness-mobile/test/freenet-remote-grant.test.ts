@@ -8,7 +8,7 @@ import {
   generateFreenetRendezvousHex,
   revokeFreenetRemoteGrant,
   validateFreenetNodeUrl,
-  validateFreenetRemoteGrant,
+  validateFreenetRemoteGrant
 } from "../src/freenet-remote-grant.js";
 
 describe("freenet remote-node grant", () => {
@@ -21,14 +21,12 @@ describe("freenet remote-node grant", () => {
 
   it("rejects malformed and unsafe URLs", () => {
     expect(validateFreenetNodeUrl("http://example.com").ok).toBe(false);
-    expect(validateFreenetNodeUrl("ws://user:pass@example.com/v1").ok).toBe(
-      false,
-    );
+    expect(validateFreenetNodeUrl("ws://user:pass@example.com/v1").ok).toBe(false);
     expect(
-      validateFreenetNodeUrl("ws://127.0.0.1:50509/v1?token=secret").ok,
+      validateFreenetNodeUrl("ws://127.0.0.1:50509/v1?token=secret").ok
     ).toBe(false);
     expect(
-      validateFreenetNodeUrl("ws://127.0.0.1:50509/v1/contract/command").ok,
+      validateFreenetNodeUrl("ws://127.0.0.1:50509/v1/contract/command").ok
     ).toBe(true);
   });
 
@@ -40,21 +38,21 @@ describe("freenet remote-node grant", () => {
         contractReads: true,
         contractWrites: false,
         packetTunnel: false,
-        propagation: false,
-      },
+        propagation: false
+      }
     };
     expect(validateFreenetRemoteGrant(draft).ok).toBe(false);
 
     expect(() =>
       acceptFreenetRemoteGrant(
         { ...draft, operatorLabel: "home node" },
-        { acceptedDisclosure: false },
-      ),
+        { acceptedDisclosure: false }
+      )
     ).toThrow(/disclosure/);
 
     const enabled = acceptFreenetRemoteGrant(
       { ...draft, operatorLabel: "home node" },
-      { acceptedDisclosure: true, now: 42 },
+      { acceptedDisclosure: true, now: 42 }
     );
     expect(enabled.enabled).toBe(true);
     expect(enabled.acceptedAt).toBe(42);
@@ -68,8 +66,8 @@ describe("freenet remote-node grant", () => {
         contractReads: false,
         contractWrites: true,
         packetTunnel: false,
-        propagation: false,
-      },
+        propagation: false
+      }
     });
     expect(result.ok).toBe(false);
     expect(result.errors.some((line) => line.includes("reads"))).toBe(true);
@@ -83,17 +81,13 @@ describe("freenet remote-node grant", () => {
         contractReads: false,
         contractWrites: false,
         packetTunnel: true,
-        propagation: false,
-      },
+        propagation: false
+      }
     });
     expect(missing.ok).toBe(false);
-    expect(missing.errors.some((line) => line.includes("rendezvous"))).toBe(
-      true,
-    );
+    expect(missing.errors.some((line) => line.includes("rendezvous"))).toBe(true);
 
-    const rendezvousHex = generateFreenetRendezvousHex(() =>
-      new Uint8Array(32).fill(7),
-    );
+    const rendezvousHex = generateFreenetRendezvousHex(() => new Uint8Array(32).fill(7));
     expect(rendezvousHex).toHaveLength(64);
     const ok = validateFreenetRemoteGrant({
       nodeUrl: "ws://127.0.0.1:50509/v1/contract/command",
@@ -104,8 +98,8 @@ describe("freenet remote-node grant", () => {
         contractReads: false,
         contractWrites: false,
         packetTunnel: true,
-        propagation: false,
-      },
+        propagation: false
+      }
     });
     expect(ok.ok).toBe(true);
 
@@ -119,10 +113,10 @@ describe("freenet remote-node grant", () => {
           contractReads: false,
           contractWrites: false,
           packetTunnel: true,
-          propagation: true,
-        },
+          propagation: true
+        }
       },
-      { acceptedDisclosure: true, now: 99 },
+      { acceptedDisclosure: true, now: 99 }
     );
     expect(enabled.capabilities.packetTunnel).toBe(true);
     expect(enabled.capabilities.propagation).toBe(true);
@@ -139,10 +133,10 @@ describe("freenet remote-node grant", () => {
           contractReads: true,
           contractWrites: false,
           packetTunnel: false,
-          propagation: false,
-        },
+          propagation: false
+        }
       },
-      { acceptedDisclosure: true },
+      { acceptedDisclosure: true }
     );
     const revoked = revokeFreenetRemoteGrant(enabled);
     expect(revoked.enabled).toBe(false);
@@ -161,18 +155,15 @@ describe("freenet remote-node grant", () => {
         contractReads: true,
         contractWrites: false,
         packetTunnel: false,
-        propagation: false,
+        propagation: false
       },
-      acceptedAt: 1,
+      acceptedAt: 1
     };
     const safe = freenetGrantLogSafe(grant);
     expect(JSON.stringify(safe)).not.toContain("super-secret-token");
     expect(safe.authTokenPresent).toBe(true);
     expect(() =>
-      assertNoTokenInText(
-        "status ok token=super-secret-token",
-        grant.authToken,
-      ),
+      assertNoTokenInText("status ok token=super-secret-token", grant.authToken)
     ).toThrow(/leaked/);
   });
 });

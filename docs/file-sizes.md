@@ -35,14 +35,14 @@ again as a reported job (see below).
 Thresholds live in `size-rules.json`. Rules are ordered and the first matching rule wins,
 so `**/*.test.ts` is classified as a test before it is classified as TypeScript.
 
-| Type                                |      Warn |     Danger |
-| ----------------------------------- | --------: | ---------: |
-| Markdown documentation              | 272 lines |  593 lines |
-| Test and conformance source         | 371 lines | 1161 lines |
-| TypeScript source                   | 400 lines |  797 lines |
-| Build, tooling, and worklet scripts | 392 lines |  769 lines |
-| JavaScript source                   | 228 lines |  763 lines |
-| Native and Python source            | 377 lines |  685 lines |
+| Type | Warn | Danger |
+|---|---:|---:|
+| Markdown documentation | 272 lines | 593 lines |
+| Test and conformance source | 371 lines | 1161 lines |
+| TypeScript source | 400 lines | 797 lines |
+| Build, tooling, and worklet scripts | 392 lines | 769 lines |
+| JavaScript source | 228 lines | 763 lines |
+| Native and Python source | 377 lines | 685 lines |
 
 These values were re-derived from the post-cleanup distribution on 2026-08-02. Each
 rule records that distribution (`count`, median, p90, and maximum) in `size-rules.json`.

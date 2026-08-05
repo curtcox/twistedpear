@@ -4,7 +4,7 @@ import {
   initialComputeResourceTimeoutState,
   resourceTimeoutFromActions,
   shouldUseResourceTimeout,
-  stepComputeResourceTimeoutWithActions,
+  stepComputeResourceTimeoutWithActions
 } from "@twistedpear/protocol";
 import { RESOURCE_SENDER_GRACE_TIME } from "../src/resource.js";
 
@@ -13,7 +13,7 @@ describe("resource watchdog adapter", () => {
     for (const [rtt, factor] of [
       [1, 6],
       [0.25, 4],
-      [2, 6],
+      [2, 6]
     ] as const) {
       const legacy = rtt * factor + RESOURCE_SENDER_GRACE_TIME;
       const stepped = stepComputeResourceTimeoutWithActions(
@@ -21,13 +21,13 @@ describe("resource watchdog adapter", () => {
         {
           kind: "resource/timeout-gate",
           rtt,
-          trafficTimeoutFactor: factor,
-        },
+          trafficTimeoutFactor: factor
+        }
       );
       expect(shouldUseResourceTimeout(stepped.actions)).toBe(true);
       expect(resourceTimeoutFromActions(stepped.actions)).toBe(legacy);
       expect(resourceTimeoutFromActions(stepped.actions)).toBe(
-        computeResourceTimeout(rtt, factor),
+        computeResourceTimeout(rtt, factor)
       );
     }
   });

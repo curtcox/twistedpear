@@ -5,9 +5,7 @@
 const DEFAULT_BAUD_RATE = 115_200;
 
 function bytesToHex(bytes) {
-  return [...bytes]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("");
+  return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function hexToBytes(hex) {
@@ -23,10 +21,7 @@ function hexToBytes(hex) {
  * @param {(message: object) => void} emitHostMessage
  * @param {number} [baudRate]
  */
-export function createWebSerialPipe(
-  emitHostMessage,
-  baudRate = DEFAULT_BAUD_RATE,
-) {
+export function createWebSerialPipe(emitHostMessage, baudRate = DEFAULT_BAUD_RATE) {
   let events = {};
   let openState = false;
   let connected = false;
@@ -93,7 +88,7 @@ export function createWebSerialPipe(
       if (message.type === "serial-error") {
         events.onError?.(new Error(message.message));
       }
-    },
+    }
   };
 
   return pipe;

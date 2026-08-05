@@ -1,5 +1,6 @@
 # SPEC-MEDIA — Physical/link media profiles (adopted per medium)
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -17,14 +18,14 @@ constraints, and the interop evidence that pins it, using the five-section templ
 
 ## Profiles
 
-| Medium             | Upstream definition                                       | Profile                              | Framing status                                     |
-| ------------------ | --------------------------------------------------------- | ------------------------------------ | -------------------------------------------------- |
-| AutoInterface      | RNS AutoInterface (link-local IPv6 + multicast discovery) | [autointerface.md](autointerface.md) | normative                                          |
-| WebSocket          | TwistedPear-defined framing                               | [websocket.md](websocket.md)         | normative                                          |
-| BLE                | TwistedPear-defined                                       | [ble.md](ble.md)                     | normative (framing); physical gated on hardware    |
-| RNode / LoRa       | RNode KISS-style framing                                  | [rnode-lora.md](rnode-lora.md)       | normative (framing); LoRa on-air gated on hardware |
-| Serial             | RNS serial (HDLC) framing                                 | [serial.md](serial.md)               | normative (framing); serial line gated on hardware |
-| Relay/media policy | TwistedPear-defined                                       | [relay.md](relay.md)                 | normative; physical media gated on hardware        |
+| Medium | Upstream definition | Profile | Framing status |
+|---|---|---|---|
+| AutoInterface | RNS AutoInterface (link-local IPv6 + multicast discovery) | [autointerface.md](autointerface.md) | normative |
+| WebSocket | TwistedPear-defined framing | [websocket.md](websocket.md) | normative |
+| BLE | TwistedPear-defined | [ble.md](ble.md) | normative (framing); physical gated on hardware |
+| RNode / LoRa | RNode KISS-style framing | [rnode-lora.md](rnode-lora.md) | normative (framing); LoRa on-air gated on hardware |
+| Serial | RNS serial (HDLC) framing | [serial.md](serial.md) | normative (framing); serial line gated on hardware |
+| Relay/media policy | TwistedPear-defined | [relay.md](relay.md) | normative; physical media gated on hardware |
 
 Framing and discovery are machine-checked for every medium (each profile's subset rows
 cite a pinned vector or interop test). Radio/physical-layer claims for BLE, LoRa, and

@@ -3,19 +3,12 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import {
-  DestinationDirection,
-  DestinationType,
-} from "../../../packages/reticulum-ts/dist/destination.js";
+import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
 import { BandwidthLimiter } from "../../../packages/reticulum-ts/dist/transport/bandwidth.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
 import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
-import {
-  DEFAULT_INTERFACE_BITRATES,
-  inferInterfaceKind,
-  selectPreferredInterface,
-} from "../../../packages/reticulum-interfaces/dist/policy.js";
+import { DEFAULT_INTERFACE_BITRATES, inferInterfaceKind, selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { createDesktopPeerChrome } from "./peer-chrome.mjs";
 import { createPeerSessionOps } from "./peer-session.mjs";
@@ -32,7 +25,7 @@ import {
   envValue,
   hostDataPath,
   refuseStorePosture,
-  shouldRefuseDeveloperMode,
+  shouldRefuseDeveloperMode
 } from "./host-environment.mjs";
 import { createModerationOps, normalizedSourceHash } from "./moderation.mjs";
 import { createTestSupportOps } from "./test-support.mjs";
@@ -53,15 +46,13 @@ import {
   createRuntimeKeyValueStore,
   createStatusTimer,
   createTrustStoreOps,
-  createWorkletPropagationPersistenceOps,
+  createWorkletPropagationPersistenceOps
 } from "../../../packages/worklet-core/src/index.mjs";
 import { IPC } from "./ipc-stdio.mjs";
 
-const NODE_FALLBACK =
-  globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
+const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
 if (!NODE_FALLBACK) {
-  const { installBareWebSocketGlobal } =
-    await import("../../../conformance/freenet-spike/bare-websocket-shim.mjs");
+  const { installBareWebSocketGlobal } = await import("../../../conformance/freenet-spike/bare-websocket-shim.mjs");
   installBareWebSocketGlobal();
 }
 
@@ -115,38 +106,27 @@ const state = {
   crossDeviceTestDriver: null,
   relayService: null,
   relayBridge: null,
-  relayPolicy: {},
+  relayPolicy: {}
 };
 
 const provider = await createCryptoProvider(IS_DESKTOP_HOST);
 const runtime = NODE_FALLBACK
-  ? (
-      await import("../../../packages/reticulum-ts/dist/runtime/node/runtime.js")
-    ).nodeRuntime()
+  ? (await import("../../../packages/reticulum-ts/dist/runtime/node/runtime.js")).nodeRuntime()
   : bareRuntime({ storePath: hostDataPath("host-desktop-store") });
-const inboundBandwidthLimiter = new BandwidthLimiter(
-  runtime.clock,
-  HOST_BANDWIDTH_BYTES_PER_SECOND,
-);
-const outboundBandwidthLimiter = new BandwidthLimiter(
-  runtime.clock,
-  HOST_BANDWIDTH_BYTES_PER_SECOND,
-);
+const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
+const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
 const IDENTITY_STORE_KEY = "host-identity";
 const MODERATION_STORE_KEY = "host-moderation-v1";
 
-const { persistModerationState, pushModerationState, loadModerationState } =
-  createModerationOps({
-    state,
-    runtime,
-    send,
-    moderationStoreKey: MODERATION_STORE_KEY,
-  });
+const { persistModerationState, pushModerationState, loadModerationState } = createModerationOps({
+  state,
+  runtime,
+  send,
+  moderationStoreKey: MODERATION_STORE_KEY
+});
 
 const NodeWorkerSandboxBackend = NODE_FALLBACK
-  ? (
-      await import("../../../packages/miniapp-runtime/dist/sandbox/node-worker.js")
-    ).NodeWorkerSandboxBackend
+  ? (await import("../../../packages/miniapp-runtime/dist/sandbox/node-worker.js")).NodeWorkerSandboxBackend
   : null;
 
 /** @type {import("./protocol.ts").WorkletStatus} */
@@ -174,12 +154,7 @@ const status = {
   bandwidthBytesOut: 0,
   transportEnabled: false,
   relayMode: "off",
-  relayDirections: {
-    tcp: "both",
-    auto: "both",
-    bluetooth: "both",
-    rnode: "both",
-  },
+  relayDirections: { tcp: "both", auto: "both", bluetooth: "both", rnode: "both" },
   propagationEnabled: false,
   freenetEnabled: false,
   freenetUrl: null,
@@ -193,7 +168,7 @@ const status = {
   installedPackages: 0,
   storageUsedBytes: 0,
   developerMode: false,
-  miniappRunning: false,
+  miniappRunning: false
 };
 
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
@@ -202,28 +177,22 @@ const PROPAGATION_STORE_KEY = "propagation-store";
 const freenetBackendProxy = {
   async get(keyHex) {
     if (state.freenetBackendImpl === null) {
-      throw new Error(
-        "Freenet is not configured on this host (enable it in Settings)",
-      );
+      throw new Error("Freenet is not configured on this host (enable it in Settings)");
     }
     return state.freenetBackendImpl.get(keyHex);
   },
   async put(options) {
     if (state.freenetBackendImpl === null) {
-      throw new Error(
-        "Freenet is not configured on this host (enable it in Settings)",
-      );
+      throw new Error("Freenet is not configured on this host (enable it in Settings)");
     }
     return state.freenetBackendImpl.put(options);
   },
   async update(options) {
     if (state.freenetBackendImpl === null) {
-      throw new Error(
-        "Freenet is not configured on this host (enable it in Settings)",
-      );
+      throw new Error("Freenet is not configured on this host (enable it in Settings)");
     }
     return state.freenetBackendImpl.update(options);
-  },
+  }
 };
 /** @type {Map<string, string>} fingerprint → WebRTC sessionId */
 const webRtcSessionByFingerprint = new Map();
@@ -264,7 +233,7 @@ const {
   persistIdentity,
   createIdentity,
   resetIdentity,
-  resolveIdentity,
+  resolveIdentity
 } = createIdentityOps({
   state,
   provider,
@@ -273,14 +242,14 @@ const {
   send,
   log,
   pushStatus,
-  identityStoreKey: IDENTITY_STORE_KEY,
+  identityStoreKey: IDENTITY_STORE_KEY
 });
 
 const {
   ensureEntryCasStore,
   ingestCasLocator,
   respondToCasLocatorRequest,
-  waitForCasLocator,
+  waitForCasLocator
 } = createCasLocatorOps({
   provider,
   DestinationDirection,
@@ -293,68 +262,59 @@ const {
   ensureReticulum: (...args) => ensureReticulum(...args),
   resolveIdentity,
   log,
-  logReannounce: (t256) =>
-    log(`Re-announced CAS locator for ${t256.slice(0, 16)}…`),
+  logReannounce: (t256) => log(`Re-announced CAS locator for ${t256.slice(0, 16)}…`)
 });
 
-const { ensureTrustStore, pushTrustList } = createTrustStoreOps({
+const { ensureTrustStore, pushTrustList } = createTrustStoreOps({ runtimeKeyValueStore, send });
+
+const { ensureCatalog, persistCatalogState, loadCatalogState, pushCatalog } = createCatalogOps({
+  provider,
+  packageQuotaBytes: PACKAGE_QUOTA_BYTES,
   runtimeKeyValueStore,
-  send,
+  status,
+  pushStatus,
+  send
 });
 
-const { ensureCatalog, persistCatalogState, loadCatalogState, pushCatalog } =
-  createCatalogOps({
-    provider,
-    packageQuotaBytes: PACKAGE_QUOTA_BYTES,
-    runtimeKeyValueStore,
-    status,
-    pushStatus,
-    send,
-  });
-
-const { ensurePeerLinkDestination, automaticReticulumChannel } =
-  createAutomaticReticulumDiscovery({
-    provider,
-    DestinationDirection,
-    DestinationType,
-    status,
-    getReticulum: () => state.reticulum,
-    ensureReticulum: (...args) => ensureReticulum(...args),
-    peerLinkDestinations,
-    automaticDiscoveryDestinations,
-    automaticDiscoveryHandlers,
-    automaticInboundBuckets,
-    automaticInboundWaiters,
-    automaticInboundRoutes,
-    automaticAnswerWaiters,
-    automaticOfferKeys,
-  });
-
-const {
-  loadPropagationCache,
-  createPersistence: createWorkletPropagationPersistence,
-} = createWorkletPropagationPersistenceOps({
-  runtime,
-  propagationStoreKey: PROPAGATION_STORE_KEY,
-  getPropagationStoreCache: () => state.propagationStoreCache,
-  setPropagationStoreCache: (cache) => {
-    state.propagationStoreCache = cache;
-  },
+const { ensurePeerLinkDestination, automaticReticulumChannel } = createAutomaticReticulumDiscovery({
+  provider,
+  DestinationDirection,
+  DestinationType,
+  status,
+  getReticulum: () => state.reticulum,
+  ensureReticulum: (...args) => ensureReticulum(...args),
+  peerLinkDestinations,
+  automaticDiscoveryDestinations,
+  automaticDiscoveryHandlers,
+  automaticInboundBuckets,
+  automaticInboundWaiters,
+  automaticInboundRoutes,
+  automaticAnswerWaiters,
+  automaticOfferKeys
 });
 
-const { publishArchiveAsIdentity, publishArchiveFromWorklet } =
-  createPublishArchiveOps({
-    provider,
-    DestinationDirection,
-    DestinationType,
-    nodeFallback: NODE_FALLBACK,
-    casLocators,
-    casResponseDestinations,
-    ensureReticulum: (...args) => ensureReticulum(...args),
-    resolveIdentity,
-    ensurePackageDriveManager: (...args) => ensurePackageDriveManager(...args),
-    log,
+const { loadPropagationCache, createPersistence: createWorkletPropagationPersistence } =
+  createWorkletPropagationPersistenceOps({
+    runtime,
+    propagationStoreKey: PROPAGATION_STORE_KEY,
+    getPropagationStoreCache: () => state.propagationStoreCache,
+    setPropagationStoreCache: (cache) => {
+      state.propagationStoreCache = cache;
+    }
   });
+
+const { publishArchiveAsIdentity, publishArchiveFromWorklet } = createPublishArchiveOps({
+  provider,
+  DestinationDirection,
+  DestinationType,
+  nodeFallback: NODE_FALLBACK,
+  casLocators,
+  casResponseDestinations,
+  ensureReticulum: (...args) => ensureReticulum(...args),
+  resolveIdentity,
+  ensurePackageDriveManager: (...args) => ensurePackageDriveManager(...args),
+  log
+});
 
 const installFromT256 = createInstallFromT256({
   provider,
@@ -373,7 +333,7 @@ const installFromT256 = createInstallFromT256({
   ensureMiniappHost: (...args) => ensureMiniappHost(...args),
   requestHostReply: requestRendererReply,
   installLogMessage: (appId, version, source, trusted) =>
-    `Installed ${appId} v${version} from 256t via ${source} (trusted: ${trusted})`,
+    `Installed ${appId} v${version} from 256t via ${source} (trusted: ${trusted})`
 });
 
 const dropCensus = createDropCensus();
@@ -388,14 +348,14 @@ const registerAnnounceHandler = createRegisterAnnounceHandler({
   persistCatalogState,
   pushCatalog,
   log,
-  dropCensus,
+  dropCensus
 });
 
 const ensureDevChannel = createEnsureDevChannel({
   createDevChannelClient,
   ensureMiniappHost: (...args) => ensureMiniappHost(...args),
   send,
-  log,
+  log
 });
 
 const { startAutoInterface, stopAutoInterface } = createAutoInterfaceOps({
@@ -420,7 +380,7 @@ const { startAutoInterface, stopAutoInterface } = createAutoInterfaceOps({
   getMulticastEntitled: () => state.multicastEntitled,
   getBonjourDiscoveryEnabled: () => state.bonjourDiscoveryEnabled,
   createIpcMulticastBridge,
-  createIpcBonjourBridge,
+  createIpcBonjourBridge
 });
 
 const quiesceInterfaces = createQuiesceInterfaces({
@@ -430,7 +390,7 @@ const quiesceInterfaces = createQuiesceInterfaces({
   stopAutoInterface,
   stopBleInterface: (...args) => stopBleInterface(...args),
   stopRnodeInterface: (...args) => stopRnodeInterface(...args),
-  stopFreenetInterface: (...args) => stopFreenetInterface(...args),
+  stopFreenetInterface: (...args) => stopFreenetInterface(...args)
 });
 
 const {
@@ -449,7 +409,7 @@ const {
   ensureReticulum,
   ensureHostLxmfDelivery,
   applyInterfaceConfig,
-  reconnectTcpAfterNetworkChange,
+  reconnectTcpAfterNetworkChange
 } = createNodeLifecycleOps({
   state,
   provider,
@@ -470,23 +430,20 @@ const {
   ensureMiniappHost: (...args) => ensureMiniappHost(...args),
   ensureCatalog,
   loadPropagationCache,
-  createWorkletPropagationPersistence,
+  createWorkletPropagationPersistence
 });
 
 const peerChromeBase = createDesktopPeerChrome({
   requestReply: requestRendererReply,
   send,
-  createToken: () =>
-    generateConfirmationToken((length) => provider.randomBytes(length)),
-  ntfyServer: envValue("TWISTEDPEAR_NTFY_URL"),
+  createToken: () => generateConfirmationToken((length) => provider.randomBytes(length)),
+  ntfyServer: envValue("TWISTEDPEAR_NTFY_URL")
 });
 const harnessPeerPair = createHarnessPeerPair();
 const peerChrome = {
   ...peerChromeBase,
   get manual() {
-    return harnessPeerPair.enabled
-      ? harnessPeerPair.channel
-      : peerChromeBase.manual;
+    return harnessPeerPair.enabled ? harnessPeerPair.channel : peerChromeBase.manual;
   },
   qr: peerChromeBase.qr,
   audio: peerChromeBase.audio,
@@ -494,35 +451,34 @@ const peerChrome = {
   async confirm(peer, pairingRequest) {
     if (harnessPeerPair.enabled) return true;
     return peerChromeBase.confirm(peer, pairingRequest);
-  },
+  }
 };
 
-const { ensurePeerSessionManager, peerSessionManagerProxy } =
-  createPeerSessionOps({
-    state,
-    provider,
-    send,
-    log,
-    envValue,
-    peerChrome,
-    requestRendererReply,
-    outboundBandwidthLimiter,
-    webRtcSessionByFingerprint,
-    webRtcRouteListeners,
-    webRtcRoutePending,
-    peerLinks,
-    resolveIdentity,
-    ensureReticulum,
-    ensurePeerLinkDestination,
-    automaticReticulumChannel,
-  });
+const { ensurePeerSessionManager, peerSessionManagerProxy } = createPeerSessionOps({
+  state,
+  provider,
+  send,
+  log,
+  envValue,
+  peerChrome,
+  requestRendererReply,
+  outboundBandwidthLimiter,
+  webRtcSessionByFingerprint,
+  webRtcRouteListeners,
+  webRtcRoutePending,
+  peerLinks,
+  resolveIdentity,
+  ensureReticulum,
+  ensurePeerLinkDestination,
+  automaticReticulumChannel
+});
 
 const {
   ensureMiniappHost,
   loadRelayConfig,
   persistRelayConfig,
   seedBundledCatalogIfNeeded,
-  ensurePackageDriveManager,
+  ensurePackageDriveManager
 } = createMiniappHostOps({
   state,
   provider,
@@ -552,22 +508,21 @@ const {
   ensureEntryCasStore,
   publishArchiveFromWorklet,
   publishArchiveAsIdentity,
-  installFromT256,
+  installFromT256
 });
 
-const { importTrustedPublisherForTest, ensureCrossDeviceTestDriver } =
-  createTestSupportOps({
-    state,
-    provider,
-    runtime,
-    requestRendererReply,
-    ensureTrustStore,
-    ensureMiniappHost,
-    ensureCatalog,
-    ensureEntryCasStore,
-    installFromT256,
-    resolveIdentity,
-  });
+const { importTrustedPublisherForTest, ensureCrossDeviceTestDriver } = createTestSupportOps({
+  state,
+  provider,
+  runtime,
+  requestRendererReply,
+  ensureTrustStore,
+  ensureMiniappHost,
+  ensureCatalog,
+  ensureEntryCasStore,
+  installFromT256,
+  resolveIdentity
+});
 
 function send(message) {
   IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
@@ -597,54 +552,11 @@ function pushStatus() {
     status.bandwidthBytesIn = state.reticulum.bandwidthBytesIn;
     status.bandwidthBytesOut = state.reticulum.bandwidthBytesOut;
     status.transportEnabled = state.reticulum.isTransportEnabled;
-    const relayKinds = [
-      "tcp",
-      "websocket",
-      "auto",
-      "i2p",
-      "rnode",
-      "bluetooth",
-      "optical",
-      "acoustic",
-      "ntfy",
-      "freenet",
-    ];
+    const relayKinds = ["tcp", "websocket", "auto", "i2p", "rnode", "bluetooth", "optical", "acoustic", "ntfy", "freenet"];
     status.relayInterfaces = relayKinds.map((kind) => {
-      const matching = interfaces.filter(
-        (iface) =>
-          inferInterfaceKind(iface.name) === kind ||
-          (kind === "bluetooth" && inferInterfaceKind(iface.name) === "ble"),
-      );
-      const enabled =
-        kind === "tcp"
-          ? status.tcpEnabled
-          : kind === "auto"
-            ? status.autoEnabled
-            : kind === "bluetooth"
-              ? status.bleEnabled
-              : kind === "rnode"
-                ? status.rnodeEnabled
-                : kind === "freenet"
-                  ? status.freenetInterfaceEnabled
-                  : false;
-      return {
-        kind,
-        enabled,
-        online: matching.some((iface) => iface.online),
-        direction: status.relayDirections?.[kind] ?? "both",
-        bitrate:
-          matching.find((iface) => iface.bitrate !== null)?.bitrate ??
-          DEFAULT_INTERFACE_BITRATES[kind] ??
-          null,
-        bytesIn: matching.reduce((sum, iface) => sum + (iface.bytesIn ?? 0), 0),
-        bytesOut: matching.reduce(
-          (sum, iface) => sum + (iface.bytesOut ?? 0),
-          0,
-        ),
-        supported: ["tcp", "auto", "rnode", "bluetooth", "freenet"].includes(
-          kind,
-        ),
-      };
+      const matching = interfaces.filter((iface) => inferInterfaceKind(iface.name) === kind || (kind === "bluetooth" && inferInterfaceKind(iface.name) === "ble"));
+      const enabled = kind === "tcp" ? status.tcpEnabled : kind === "auto" ? status.autoEnabled : kind === "bluetooth" ? status.bleEnabled : kind === "rnode" ? status.rnodeEnabled : kind === "freenet" ? status.freenetInterfaceEnabled : false;
+      return { kind, enabled, online: matching.some((iface) => iface.online), direction: status.relayDirections?.[kind] ?? "both", bitrate: matching.find((iface) => iface.bitrate !== null)?.bitrate ?? DEFAULT_INTERFACE_BITRATES[kind] ?? null, bytesIn: matching.reduce((sum, iface) => sum + (iface.bytesIn ?? 0), 0), bytesOut: matching.reduce((sum, iface) => sum + (iface.bytesOut ?? 0), 0), supported: ["tcp", "auto", "rnode", "bluetooth", "freenet"].includes(kind) };
     });
   } else {
     status.preferredInterface = null;
@@ -692,7 +604,7 @@ const nodeMessages = createNodeMessageHandlers({
   ensureMiniappHost,
   loadRelayConfig,
   persistRelayConfig,
-  loadPacketLogWasm,
+  loadPacketLogWasm
 });
 
 const identityMessages = createIdentityMessageHandlers({
@@ -712,7 +624,7 @@ const identityMessages = createIdentityMessageHandlers({
   ensureMiniappHost,
   pushModerationState,
   persistModerationState,
-  normalizedSourceHash,
+  normalizedSourceHash
 });
 
 const catalogMessages = createCatalogMessageHandlers({
@@ -733,7 +645,7 @@ const catalogMessages = createCatalogMessageHandlers({
   ensurePackageDriveManager,
   resolveIdentity,
   installFromT256,
-  importTrustedPublisherForTest,
+  importTrustedPublisherForTest
 });
 
 const miniappMessages = createMiniappMessageHandlers({
@@ -752,7 +664,7 @@ const miniappMessages = createMiniappMessageHandlers({
   ensureMiniappHost,
   ensureCatalog,
   ensureDevChannel,
-  runtimeKeyValueStore,
+  runtimeKeyValueStore
 });
 
 const handleConnectTestAgent = createTestAgentHandler({
@@ -768,7 +680,7 @@ const handleConnectTestAgent = createTestAgentHandler({
   ensureHostLxmfDelivery,
   ensureMiniappHost,
   ensurePeerSessionManager,
-  ensureCrossDeviceTestDriver,
+  ensureCrossDeviceTestDriver
 });
 
 const hostMessageHandlers = {
@@ -776,7 +688,7 @@ const hostMessageHandlers = {
   ...identityMessages.handlers,
   ...catalogMessages.handlers,
   ...miniappMessages.handlers,
-  "connect-test-agent": handleConnectTestAgent,
+  "connect-test-agent": handleConnectTestAgent
 };
 
 async function handleHostMessage(raw) {
@@ -805,9 +717,7 @@ async function handleHostMessage(raw) {
 }
 
 void loadPersistedIdentity().then(() =>
-  loadCatalogState()
-    .then(() => seedBundledCatalogIfNeeded())
-    .then(pushCatalog),
+  loadCatalogState().then(() => seedBundledCatalogIfNeeded()).then(pushCatalog)
 );
 void loadModerationState();
 pushStatus();
@@ -822,7 +732,7 @@ const HOST_REPLY_TYPES = new Set([
   "peer-chrome-response",
   "device-bridge-response",
   "media-codec-response",
-  "media-opus-play-response",
+  "media-opus-play-response"
 ]);
 IPC.on("data", (data) => {
   hostMessageBuffer += data.toString();
@@ -836,9 +746,7 @@ IPC.on("data", (data) => {
       const parsed = JSON.parse(line);
       if (parsed && HOST_REPLY_TYPES.has(parsed.type)) {
         if (!hostReplyChannel.resolveReply(parsed)) {
-          log(
-            `Orphan host reply ${parsed.type} token=${typeof parsed.token === "string" ? parsed.token.slice(0, 12) : "?"}`,
-          );
+          log(`Orphan host reply ${parsed.type} token=${typeof parsed.token === "string" ? parsed.token.slice(0, 12) : "?"}`);
         }
         continue;
       }
@@ -848,9 +756,7 @@ IPC.on("data", (data) => {
     hostMessageQueue = hostMessageQueue
       .then(() => handleHostMessage(line))
       .catch((error) => {
-        log(
-          `Worklet error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
         pushStatus();
       });
   }

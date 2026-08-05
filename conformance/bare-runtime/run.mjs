@@ -30,10 +30,7 @@ async function main() {
 
   console.log("bare-runtime: fs checks passed");
 
-  const listener = await runtime.tcp.listen({
-    host: "127.0.0.1",
-    port: 29_717,
-  });
+  const listener = await runtime.tcp.listen({ host: "127.0.0.1", port: 29_717 });
   let accepted = false;
   const acceptTask = (async () => {
     for await (const connection of listener.accept()) {
@@ -43,19 +40,13 @@ async function main() {
     }
   })();
 
-  const client = await runtime.tcp.connect({
-    host: "127.0.0.1",
-    port: 29_717,
-    connectTimeoutMs: 5_000,
-  });
+  const client = await runtime.tcp.connect({ host: "127.0.0.1", port: 29_717, connectTimeoutMs: 5_000 });
   await client.write(Uint8Array.from([1]));
   await client.close();
 
   await Promise.race([
     acceptTask,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("tcp accept timeout")), 5_000),
-    ),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("tcp accept timeout")), 5_000))
   ]);
   await listener.close();
 
@@ -81,9 +72,7 @@ async function main() {
   await sender.send(datagram, "127.0.0.1", udpPort);
   const echoed = await Promise.race([
     receiveTask,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("udp smoke timeout")), 5_000),
-    ),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("udp smoke timeout")), 5_000))
   ]);
 
   if (echoed === null || echoed.data.length !== datagram.length) {

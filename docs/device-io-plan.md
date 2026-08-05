@@ -24,19 +24,19 @@ and SDK namespace are built — see [device-io.md](device-io.md) and
 design rationale and the per-host driver, chrome, and hardening work that remains.
 
 Companion plan: [Reticulum relay and configurable interfaces](relay-interfaces-plan.md). That
-plan promotes camera/screen and mic/speaker into _packet transports_ for relaying. This plan
-exposes the same hardware as _application-visible devices_. They share drivers and permission
+plan promotes camera/screen and mic/speaker into *packet transports* for relaying. This plan
+exposes the same hardware as *application-visible devices*. They share drivers and permission
 plumbing but are different planes and must not be conflated — see
 [Boundary with the relay plan](#boundary-with-the-relay-plan).
 
 ## The four decisions this plan is built on
 
-| Decision             | Choice                                                                                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| What an app receives | **Tiered.** Host-derived results are the default tier; raw samples are a separate, harder-to-grant tier.                                                                                                            |
-| Network model        | **Both directions, per-session consent.** A local app may push a device stream to a peer, and a peer may acquire a device on this host under a distinct remote grant with its own confirmation, indicator, and TTL. |
-| Future devices       | **Versioned device-class registry.** Capability strings stay closed and install-blocking; a normative registry grows by host-API version with a uniform open/read/stream/close shape.                               |
-| Deliverable          | This plan document. No code.                                                                                                                                                                                        |
+| Decision | Choice |
+|---|---|
+| What an app receives | **Tiered.** Host-derived results are the default tier; raw samples are a separate, harder-to-grant tier. |
+| Network model | **Both directions, per-session consent.** A local app may push a device stream to a peer, and a peer may acquire a device on this host under a distinct remote grant with its own confirmation, indicator, and TTL. |
+| Future devices | **Versioned device-class registry.** Capability strings stay closed and install-blocking; a normative registry grows by host-API version with a uniform open/read/stream/close shape. |
+| Deliverable | This plan document. No code. |
 
 ## Scope and boundary
 
@@ -52,13 +52,13 @@ work once the contract exists.
 
 ### Boundary with the relay plan
 
-| Question      | Relay plan                                | This plan                                        |
-| ------------- | ----------------------------------------- | ------------------------------------------------ |
-| What flows    | Reticulum packets                         | Sensor samples and derived results               |
-| Who consumes  | The Transport node                        | A granted mini-app, or a peer's mini-app         |
-| Camera means  | An optical modem receiving framed packets | A camera the app can preview, analyze, or stream |
-| Speaker means | An acoustic modem emitting framed packets | Audio output an app can drive, including TTS     |
-| Capability    | `relay:configure`, `relay:read`           | `device:*` (this plan)                           |
+| Question | Relay plan | This plan |
+|---|---|---|
+| What flows | Reticulum packets | Sensor samples and derived results |
+| Who consumes | The Transport node | A granted mini-app, or a peer's mini-app |
+| Camera means | An optical modem receiving framed packets | A camera the app can preview, analyze, or stream |
+| Speaker means | An acoustic modem emitting framed packets | Audio output an app can drive, including TTS |
+| Capability | `relay:configure`, `relay:read` | `device:*` (this plan) |
 
 A device may not be held by both planes at once. The Device Manager and the relay plan's
 Interface Manager share one **device arbitration lock** per physical device; whichever acquires
@@ -66,22 +66,22 @@ it first wins, and the other reports `busy` with an attribution string naming th
 
 ## What existed to build on (as of 2026-07-23)
 
-| Capability                                                         | Where                                                                                                                                        | Status for this plan                                                                             |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Closed capability taxonomy, install-blocking unknown strings       | [`capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts)                                                                         | Extend with generated `device:*` ids; keep the closed-set guarantee.                             |
-| Grant lifecycle machine with TTL, revoke, terminal phases          | [`grant-machine.ts`](../packages/protocol/src/grant-machine.ts), [SPEC-CAP](../specs/spec-cap/spec.md)                                       | Reuse unchanged. TTL is what makes short-lived device grants work.                               |
-| Brokered, capability-checked, rate-limited RPC                     | [`broker.ts`](../packages/miniapp-runtime/src/broker.ts)                                                                                     | Reuse for control plane. **Not** suitable for sample data — see [device-io.md](device-io.md).    |
-| Host-chrome confirmation the app cannot draw over                  | [`confirm.ts`](../packages/miniapp-runtime/src/confirm.ts), [SPEC-CHROME](../specs/spec-chrome/spec.md)                                      | Add `ConfirmationKind` values for device sessions and remote acquisition.                        |
-| Polling stream precedent (`chatStreamStart/Next/Cancel`)           | [`services/ai.ts`](../packages/miniapp-runtime/src/services/ai.ts), [`sdk/ai.ts`](../packages/miniapp-sdk/src/ai.ts)                         | Reuse the _shape_ for control and low-rate events; not the transport for media.                  |
-| App-scoped opaque peer handles with a chosen data plane            | [`sdk/peers.ts`](../packages/miniapp-sdk/src/peers.ts), `services/peers.ts`                                                                  | Reuse as the addressing and consent primitive for remote streaming.                              |
-| Host-side effect boundaries for mic PCM, camera/QR, ntfy           | [`peer-discovery/src/{audio,qr,ntfy}.ts`](../packages/peer-discovery/src/)                                                                   | Promote into the first two device drivers; the boundary already has the right shape.             |
-| Audio framing, reassembly, FSK modem                               | [`peer-audio-framing.ts`](../packages/protocol/src/peer-audio-framing.ts), [`peer-audio-fsk.ts`](../packages/protocol/src/peer-audio-fsk.ts) | Reuse for chunked sample transport and the acoustic path.                                        |
-| Interface ranking and bitrate table                                | [`policy.ts`](../packages/reticulum-interfaces/src/policy.ts)                                                                                | The input to bandwidth admission control.                                                        |
-| Host rate limiter and transfer budgets (524,288 B/s per direction) | [battery and bandwidth policy](battery-bandwidth-policy.md)                                                                                  | Streams must be admitted _inside_ this budget, not beside it.                                    |
-| Two transport planes: Reticulum control plane, Pears bulk plane    | [`bridge-hyper`](../packages/bridge-hyper/), [Pears bulk plane](../apps/handbook/content/part-1-concepts/pears-bulk-plane.md)                | The two ends of the streaming ladder.                                                            |
-| Host-rendered declarative widget tree                              | [`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts)                                                                               | Add preview surfaces so an app can _show_ a camera it never receives frames from.                |
-| Native module pattern (Expo config plugins, Swift/Kotlin)          | [`apps/harness-mobile/modules/`](../apps/harness-mobile/modules/)                                                                            | The template for camera, location, motion, and torch modules. `peer-audio` already exists (iOS). |
-| Sans-IO discipline, generated event alphabet                       | [AGENTS.md](../AGENTS.md), [`spec-events/schema`](../specs/spec-events/schema/)                                                              | Session and admission machines are pure; drivers live in adapters.                               |
+| Capability | Where | Status for this plan |
+|---|---|---|
+| Closed capability taxonomy, install-blocking unknown strings | [`capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts) | Extend with generated `device:*` ids; keep the closed-set guarantee. |
+| Grant lifecycle machine with TTL, revoke, terminal phases | [`grant-machine.ts`](../packages/protocol/src/grant-machine.ts), [SPEC-CAP](../specs/spec-cap/spec.md) | Reuse unchanged. TTL is what makes short-lived device grants work. |
+| Brokered, capability-checked, rate-limited RPC | [`broker.ts`](../packages/miniapp-runtime/src/broker.ts) | Reuse for control plane. **Not** suitable for sample data — see [device-io.md](device-io.md). |
+| Host-chrome confirmation the app cannot draw over | [`confirm.ts`](../packages/miniapp-runtime/src/confirm.ts), [SPEC-CHROME](../specs/spec-chrome/spec.md) | Add `ConfirmationKind` values for device sessions and remote acquisition. |
+| Polling stream precedent (`chatStreamStart/Next/Cancel`) | [`services/ai.ts`](../packages/miniapp-runtime/src/services/ai.ts), [`sdk/ai.ts`](../packages/miniapp-sdk/src/ai.ts) | Reuse the *shape* for control and low-rate events; not the transport for media. |
+| App-scoped opaque peer handles with a chosen data plane | [`sdk/peers.ts`](../packages/miniapp-sdk/src/peers.ts), `services/peers.ts` | Reuse as the addressing and consent primitive for remote streaming. |
+| Host-side effect boundaries for mic PCM, camera/QR, ntfy | [`peer-discovery/src/{audio,qr,ntfy}.ts`](../packages/peer-discovery/src/) | Promote into the first two device drivers; the boundary already has the right shape. |
+| Audio framing, reassembly, FSK modem | [`peer-audio-framing.ts`](../packages/protocol/src/peer-audio-framing.ts), [`peer-audio-fsk.ts`](../packages/protocol/src/peer-audio-fsk.ts) | Reuse for chunked sample transport and the acoustic path. |
+| Interface ranking and bitrate table | [`policy.ts`](../packages/reticulum-interfaces/src/policy.ts) | The input to bandwidth admission control. |
+| Host rate limiter and transfer budgets (524,288 B/s per direction) | [battery and bandwidth policy](battery-bandwidth-policy.md) | Streams must be admitted *inside* this budget, not beside it. |
+| Two transport planes: Reticulum control plane, Pears bulk plane | [`bridge-hyper`](../packages/bridge-hyper/), [Pears bulk plane](../apps/handbook/content/part-1-concepts/pears-bulk-plane.md) | The two ends of the streaming ladder. |
+| Host-rendered declarative widget tree | [`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts) | Add preview surfaces so an app can *show* a camera it never receives frames from. |
+| Native module pattern (Expo config plugins, Swift/Kotlin) | [`apps/harness-mobile/modules/`](../apps/harness-mobile/modules/) | The template for camera, location, motion, and torch modules. `peer-audio` already exists (iOS). |
+| Sans-IO discipline, generated event alphabet | [AGENTS.md](../AGENTS.md), [`spec-events/schema`](../specs/spec-events/schema/) | Session and admission machines are pure; drivers live in adapters. |
 
 ## Device-class registry
 
@@ -94,47 +94,47 @@ Each entry declares:
 
 ```ts
 interface DeviceClassEntry {
-  readonly id: string; // "camera", "location", "motion", …
+  readonly id: string;                    // "camera", "location", "motion", …
   readonly role: "sensor" | "actuator" | "transducer" | "service";
-  readonly addedInHostApi: string; // "0.10.0" — drives minHostApi negotiation
+  readonly addedInHostApi: string;        // "0.10.0" — drives minHostApi negotiation
   readonly tiers: ReadonlyArray<DeviceTier>;
-  readonly sampleSchema: string; // $ref into the SPEC-DEVICE schema
+  readonly sampleSchema: string;          // $ref into the SPEC-DEVICE schema
   readonly defaults: {
-    readonly maxRateHz: number; // hard ceiling the host enforces
-    readonly maxSessionMs: number; // session TTL before re-consent
-    readonly dutyCycle?: number; // for actuators (torch, speaker)
+    readonly maxRateHz: number;           // hard ceiling the host enforces
+    readonly maxSessionMs: number;        // session TTL before re-consent
+    readonly dutyCycle?: number;          // for actuators (torch, speaker)
   };
-  readonly streamable: boolean; // may be streamed to a peer at all
-  readonly remoteEligible: boolean; // a peer may acquire it (see remote model)
-  readonly bandwidth: BandwidthProfile; // min / target / burst, per tier & encoding
+  readonly streamable: boolean;           // may be streamed to a peer at all
+  readonly remoteEligible: boolean;       // a peer may acquire it (see remote model)
+  readonly bandwidth: BandwidthProfile;   // min / target / burst, per tier & encoding
   readonly consentClass: "low" | "elevated" | "sensitive";
 }
 ```
 
 A new device class is **a registry entry plus a driver**. It adds no new SDK methods, no new
 broker namespace, and no new UI shape — that is the point of the uniform session API below.
-Capability ids are _generated_ from the registry, so `CAPABILITY_DEFINITIONS` stays a closed,
+Capability ids are *generated* from the registry, so `CAPABILITY_DEFINITIONS` stays a closed,
 install-blocking set while the registry is the thing that grows.
 
 ### Initial registry (host API 0.10.0)
 
-| Class                                                 | Role       | Derived tier (default)                                                                            | Raw tier (opt-in)                                  | Notes                                                                                                                                  |
-| ----------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `location`                                            | sensor     | `coarse` — ~1 km cell, ≤ 1 fix/min                                                                | `precise` — full fix, speed, heading, altitude     | Coarse is computed host-side by quantizing; the app never sees the precise fix.                                                        |
-| `camera`                                              | sensor     | `derived` — barcode/QR payloads, motion events, face/object counts, downscaled thumbnails ≤ 1 fps | `frames` — full-rate frames                        | Preview to the user needs _neither_ tier — see [preview surfaces](#preview-surfaces-showing-without-seeing).                           |
-| `microphone`                                          | sensor     | `derived` — level, VAD, transcript (via `stt`), tone/DTMF                                         | `pcm` — raw PCM                                    | Existing effect boundary becomes the driver.                                                                                           |
-| `motion`                                              | sensor     | `derived` — orientation quaternion, step/shake/tilt events, ≤ 10 Hz                               | `samples` — accel/gyro/magnetometer at device rate | One class, three physical sensors; fusion is host-side. Raw high-rate motion is a known fingerprinting and keystroke-inference vector. |
-| `ambient-light`                                       | sensor     | single tier — quantized lux, ≤ 1 Hz                                                               | —                                                  | No raw tier needed.                                                                                                                    |
-| `proximity`, `barometer`, `thermometer`, `hygrometer` | sensor     | single tier — scalar, rate-capped                                                                 | —                                                  | Registry entries land with their drivers; no API change.                                                                               |
-| `screen-capture`                                      | sensor     | `derived` — user-selected region, downscaled, ≤ 1 fps                                             | `frames`                                           | `sensitive`. Always an explicit per-session picker in host chrome; never a silent whole-screen grab.                                   |
-| `torch`                                               | actuator   | single tier                                                                                       | —                                                  | Hard strobe-rate cap (see [actuator safety](#actuator-and-output-safety)).                                                             |
-| `speaker`                                             | actuator   | `play` — app supplies an asset id or TTS text                                                     | `pcm` — raw PCM out                                | `play` covers most apps and cannot be used to emit arbitrary ultrasonic carriers.                                                      |
-| `tts`                                                 | service    | single tier — text in, speech out                                                                 | —                                                  | Composes `speaker`; text is bounded and logged.                                                                                        |
-| `stt`                                                 | service    | single tier — transcript out                                                                      | —                                                  | Composes `microphone`; the transcript is the derived tier of mic.                                                                      |
-| `nfc`                                                 | transducer | `ndef` — read/write NDEF tags                                                                     | `apdu` — raw APDU exchange                         | The "card reader". `apdu` is `sensitive` and **payment applets are blocklisted** — see below.                                          |
-| `biometric`                                           | service    | single tier — assertion only                                                                      | —                                                  | Returns a signed pass/fail assertion. Templates never leave the OS enclave; there is no raw tier and never will be.                    |
-| `haptics`                                             | actuator   | single tier                                                                                       | —                                                  | Duty-cycle capped.                                                                                                                     |
-| `battery`, `thermal`                                  | sensor     | single tier — coarse buckets                                                                      | —                                                  | Precise battery curves are a fingerprinting vector; buckets only.                                                                      |
+| Class | Role | Derived tier (default) | Raw tier (opt-in) | Notes |
+|---|---|---|---|---|
+| `location` | sensor | `coarse` — ~1 km cell, ≤ 1 fix/min | `precise` — full fix, speed, heading, altitude | Coarse is computed host-side by quantizing; the app never sees the precise fix. |
+| `camera` | sensor | `derived` — barcode/QR payloads, motion events, face/object counts, downscaled thumbnails ≤ 1 fps | `frames` — full-rate frames | Preview to the user needs *neither* tier — see [preview surfaces](#preview-surfaces-showing-without-seeing). |
+| `microphone` | sensor | `derived` — level, VAD, transcript (via `stt`), tone/DTMF | `pcm` — raw PCM | Existing effect boundary becomes the driver. |
+| `motion` | sensor | `derived` — orientation quaternion, step/shake/tilt events, ≤ 10 Hz | `samples` — accel/gyro/magnetometer at device rate | One class, three physical sensors; fusion is host-side. Raw high-rate motion is a known fingerprinting and keystroke-inference vector. |
+| `ambient-light` | sensor | single tier — quantized lux, ≤ 1 Hz | — | No raw tier needed. |
+| `proximity`, `barometer`, `thermometer`, `hygrometer` | sensor | single tier — scalar, rate-capped | — | Registry entries land with their drivers; no API change. |
+| `screen-capture` | sensor | `derived` — user-selected region, downscaled, ≤ 1 fps | `frames` | `sensitive`. Always an explicit per-session picker in host chrome; never a silent whole-screen grab. |
+| `torch` | actuator | single tier | — | Hard strobe-rate cap (see [actuator safety](#actuator-and-output-safety)). |
+| `speaker` | actuator | `play` — app supplies an asset id or TTS text | `pcm` — raw PCM out | `play` covers most apps and cannot be used to emit arbitrary ultrasonic carriers. |
+| `tts` | service | single tier — text in, speech out | — | Composes `speaker`; text is bounded and logged. |
+| `stt` | service | single tier — transcript out | — | Composes `microphone`; the transcript is the derived tier of mic. |
+| `nfc` | transducer | `ndef` — read/write NDEF tags | `apdu` — raw APDU exchange | The "card reader". `apdu` is `sensitive` and **payment applets are blocklisted** — see below. |
+| `biometric` | service | single tier — assertion only | — | Returns a signed pass/fail assertion. Templates never leave the OS enclave; there is no raw tier and never will be. |
+| `haptics` | actuator | single tier | — | Duty-cycle capped. |
+| `battery`, `thermal` | sensor | single tier — coarse buckets | — | Precise battery curves are a fingerprinting vector; buckets only. |
 
 Deliberately excluded from any tier, permanently: payment credentials (PAN, track data,
 EMV payment applets), biometric templates, and the raw contents of the secure enclave. The
@@ -166,18 +166,18 @@ implies the default tier; the reverse is never true.
 
 Two cross-cutting capabilities:
 
-- **`device:stream`** — may stream _any_ device data it already holds to a peer. Streaming is
+- **`device:stream`** — may stream *any* device data it already holds to a peer. Streaming is
   never implied by a device grant alone; sending a sensor off-device is its own decision.
-- **`device:remote`** — may _request_ a device on a peer's host. On the requesting side this
+- **`device:remote`** — may *request* a device on a peer's host. On the requesting side this
   is a normal capability; on the serving side it is not an app capability at all, it is a
   host-owned policy plus per-session confirmation.
 
 ### Three consent classes
 
-| Class       | Examples                                                                                                                  | Gate                                                                                                                                                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `low`       | `ambient-light`, `battery`, coarse `location`, `haptics`                                                                  | Install-time grant only.                                                                                                                                                                                                                    |
-| `elevated`  | `camera` derived, `microphone` derived, `motion` derived, `torch`, `speaker`, `tts`, `stt`, precise `location`            | Install-time grant **plus** a host-chrome session confirmation on first use per session, with a visible active-use indicator for the session's duration.                                                                                    |
+| Class | Examples | Gate |
+|---|---|---|
+| `low` | `ambient-light`, `battery`, coarse `location`, `haptics` | Install-time grant only. |
+| `elevated` | `camera` derived, `microphone` derived, `motion` derived, `torch`, `speaker`, `tts`, `stt`, precise `location` | Install-time grant **plus** a host-chrome session confirmation on first use per session, with a visible active-use indicator for the session's duration. |
 | `sensitive` | `camera:frames`, `microphone:pcm`, `screen-capture`, `nfc:apdu`, anything streamed off-device, anything acquired remotely | Install-time grant **plus** per-session confirmation naming the app, the device, the tier, the destination (local or a named peer), and the duration — **every session, no remember-me**. Short TTL. Persistent, non-dismissible indicator. |
 
 The grant lifecycle machine already supports exactly this: `approve` requires a `ttlMs` and
@@ -209,16 +209,16 @@ with device fields, and is queryable by the user.
 Host-side processors turn raw device output into the derived tier. They run in the host, never
 in the sandbox, and are the only consumer of raw data for `derived`-tier sessions.
 
-| Processor                                     | Feeds                       | Implementation posture                                                                                                                                                       |
-| --------------------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Barcode/QR decode                             | `camera:derived`            | Reuse [`peer-discovery/src/qr.ts`](../packages/peer-discovery/src/qr.ts).                                                                                                    |
-| Motion/scene events, object & face **counts** | `camera:derived`            | Platform vision APIs where present; a bundled model otherwise. Counts and bounding boxes only — **no identity, no recognition, no matching against a gallery**.              |
-| Thumbnail downscale                           | `camera:derived`            | Fixed ladder (160/320/640 px), rate-capped.                                                                                                                                  |
-| VAD, level, tone/DTMF                         | `microphone:derived`        | Reuse the existing PCM effect boundary and FSK work.                                                                                                                         |
-| STT                                           | `stt`, `microphone:derived` | On-device engine by default. A host-configured cloud engine is opt-in, disclosed at consent time, and refused for `sensitive` sessions unless the user explicitly allows it. |
-| TTS                                           | `tts`                       | Platform synthesizer.                                                                                                                                                        |
-| Sensor fusion, step/shake/tilt                | `motion:derived`            | Pure function over raw samples; belongs in `packages/protocol` (Sans-IO), driven by adapter-supplied samples.                                                                |
-| Geofence, quantization                        | `location:coarse`           | Pure; Sans-IO.                                                                                                                                                               |
+| Processor | Feeds | Implementation posture |
+|---|---|---|
+| Barcode/QR decode | `camera:derived` | Reuse [`peer-discovery/src/qr.ts`](../packages/peer-discovery/src/qr.ts). |
+| Motion/scene events, object & face **counts** | `camera:derived` | Platform vision APIs where present; a bundled model otherwise. Counts and bounding boxes only — **no identity, no recognition, no matching against a gallery**. |
+| Thumbnail downscale | `camera:derived` | Fixed ladder (160/320/640 px), rate-capped. |
+| VAD, level, tone/DTMF | `microphone:derived` | Reuse the existing PCM effect boundary and FSK work. |
+| STT | `stt`, `microphone:derived` | On-device engine by default. A host-configured cloud engine is opt-in, disclosed at consent time, and refused for `sensitive` sessions unless the user explicitly allows it. |
+| TTS | `tts` | Platform synthesizer. |
+| Sensor fusion, step/shake/tilt | `motion:derived` | Pure function over raw samples; belongs in `packages/protocol` (Sans-IO), driven by adapter-supplied samples. |
+| Geofence, quantization | `location:coarse` | Pure; Sans-IO. |
 
 Processors are pure-where-possible so they are testable from recorded sample tapes. The
 [`spec-events/tapes`](../specs/spec-events/tapes/) precedent applies directly: record a device
@@ -234,13 +234,13 @@ choosing to do so is a visible, separately-granted decision.
 Reticulum is a control plane with hard bandwidth limits; media does not belong on it by
 default. The selection order, computed per stream:
 
-| Plane                                    | Used when                                      | Typical fit                               |
-| ---------------------------------------- | ---------------------------------------------- | ----------------------------------------- |
-| Direct/WebRTC data plane (via `peers`)   | Peer reachable over IP, NAT traversal succeeds | Real-time A/V, low latency                |
-| Pears bulk plane (Hyperdrive/Hyperswarm) | IP present, latency tolerant                   | Recordings, batches, replayable capture   |
-| Reticulum link                           | No IP path, or the only path is mesh           | Derived events, telemetry, low-rate audio |
-| LXMF message                             | Intermittent, store-and-forward                | Periodic samples, alerts                  |
-| CAS + announce                           | No live path at all                            | Snapshots the peer fetches later          |
+| Plane | Used when | Typical fit |
+|---|---|---|
+| Direct/WebRTC data plane (via `peers`) | Peer reachable over IP, NAT traversal succeeds | Real-time A/V, low latency |
+| Pears bulk plane (Hyperdrive/Hyperswarm) | IP present, latency tolerant | Recordings, batches, replayable capture |
+| Reticulum link | No IP path, or the only path is mesh | Derived events, telemetry, low-rate audio |
+| LXMF message | Intermittent, store-and-forward | Periodic samples, alerts |
+| CAS + announce | No live path at all | Snapshots the peer fetches later |
 
 The `dataPlane` field already on [`PeerSummary`](../packages/miniapp-sdk/src/peers.ts) is the
 existing hook; streams extend it rather than inventing parallel addressing.
@@ -256,7 +256,7 @@ enforceable rather than aspirational. Before a single sample leaves the device:
    [`policy.ts`](../packages/reticulum-interfaces/src/policy.ts) `effectiveBitrate`, corrected
    by measured goodput where a measurement exists, and reduced by the host limiter's
    uncommitted headroom (default 524,288 B/s per direction, shared with relay, Hyperdrive, and
-   package fetches — streams are admitted _inside_ that budget, never beside it).
+   package fetches — streams are admitted *inside* that budget, never beside it).
 3. **Decide.** `accept` at the requested quality · `degrade` to the highest rung the link
    sustains · `defer` (queue for a better path, with a bounded local ring buffer) ·
    `reject` with `DEVICE_BANDWIDTH_INSUFFICIENT` and the numbers that produced the refusal.
@@ -290,18 +290,18 @@ streams start at a lower rung and require re-confirmation to climb.
 Availability is reported by `device.inventory()` and `host.info()`, never asserted in prose —
 the same discipline as the [live difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md).
 
-| Class                                     | Desktop          | Android                | iOS                          | Web                           | Headless         |
-| ----------------------------------------- | ---------------- | ---------------------- | ---------------------------- | ----------------------------- | ---------------- |
-| `location`                                | coarse (IP/WiFi) | full                   | full                         | browser geolocation           | none             |
-| `camera`                                  | full             | full                   | full                         | `getUserMedia`                | none             |
-| `microphone`, `speaker`                   | full             | full                   | full                         | `getUserMedia` / WebAudio     | none             |
-| `tts`, `stt`                              | platform         | platform               | platform                     | Web Speech (uneven)           | optional engine  |
-| `motion`                                  | none             | full                   | full                         | sensor APIs, permission-gated | none             |
-| `ambient-light`, `proximity`, `barometer` | rare             | common                 | partial                      | mostly unavailable            | none             |
-| `torch`, `haptics`                        | none             | full                   | full                         | torch via track constraints   | none             |
-| `nfc`                                     | reader-dependent | full                   | restricted (Core NFC limits) | WebNFC (Chrome/Android only)  | reader-dependent |
-| `screen-capture`                          | full             | full (MediaProjection) | restricted                   | `getDisplayMedia`             | none             |
-| `biometric`                               | platform         | full                   | full                         | WebAuthn                      | none             |
+| Class | Desktop | Android | iOS | Web | Headless |
+|---|---|---|---|---|---|
+| `location` | coarse (IP/WiFi) | full | full | browser geolocation | none |
+| `camera` | full | full | full | `getUserMedia` | none |
+| `microphone`, `speaker` | full | full | full | `getUserMedia` / WebAudio | none |
+| `tts`, `stt` | platform | platform | platform | Web Speech (uneven) | optional engine |
+| `motion` | none | full | full | sensor APIs, permission-gated | none |
+| `ambient-light`, `proximity`, `barometer` | rare | common | partial | mostly unavailable | none |
+| `torch`, `haptics` | none | full | full | torch via track constraints | none |
+| `nfc` | reader-dependent | full | restricted (Core NFC limits) | WebNFC (Chrome/Android only) | reader-dependent |
+| `screen-capture` | full | full (MediaProjection) | restricted | `getDisplayMedia` | none |
+| `biometric` | platform | full | full | WebAuthn | none |
 
 iOS constraints from [LIMITATIONS.md](../LIMITATIONS.md) §4 apply directly: no background
 device sessions, and downloaded-code review scrutiny means the derived-default posture, the
@@ -335,7 +335,7 @@ rather than failing, with the clamp reported to the app.
   designed to be conspicuous enough that users grant them rarely.
 - **Sensor fusion is a real deanonymization risk.** An app holding `motion:samples` +
   `location:precise` + `microphone:pcm` can infer far more than any one grant suggests. The
-  grant review screen must show _combinations_, not just a list, and the host should warn on
+  grant review screen must show *combinations*, not just a list, and the host should warn on
   known-dangerous combinations.
 - **Fingerprinting.** Raw sensor calibration data, precise battery curves, and full-rate motion
   are strong device fingerprints. Quantize by default; expose exact values only at raw tiers.
@@ -385,14 +385,14 @@ rather than failing, with the clamp reported to the app.
 
 ## Specs to add
 
-| Spec                        | Contents                                                                                                                                                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `specs/spec-device/`        | The device-class registry (normative JSON schema + generated table + vectors), tier semantics, session lifecycle machine with TLA+ model, error taxonomy. The registry is the artifact everything else generates from. |
-| `specs/spec-stream/`        | Sample framing, encodings per class, the degradation ladders, and the admission decision function with vectors.                                                                                                        |
-| Extend `specs/spec-cap/`    | Device consent classes, session TTL policy, and the generated-capability rule.                                                                                                                                         |
-| Extend `specs/spec-chrome/` | The three new confirmation kinds and the indicator/attribution requirements.                                                                                                                                           |
-| Extend `specs/spec-widget/` | Preview surface widget kinds and the no-read-back property.                                                                                                                                                            |
-| Extend `specs/spec-events/` | Device events and intents in the generated alphabet ([`types.gen.ts`](../packages/effects/src/types.gen.ts) is regenerated, not hand-edited).                                                                          |
+| Spec | Contents |
+|---|---|
+| `specs/spec-device/` | The device-class registry (normative JSON schema + generated table + vectors), tier semantics, session lifecycle machine with TLA+ model, error taxonomy. The registry is the artifact everything else generates from. |
+| `specs/spec-stream/` | Sample framing, encodings per class, the degradation ladders, and the admission decision function with vectors. |
+| Extend `specs/spec-cap/` | Device consent classes, session TTL policy, and the generated-capability rule. |
+| Extend `specs/spec-chrome/` | The three new confirmation kinds and the indicator/attribution requirements. |
+| Extend `specs/spec-widget/` | Preview surface widget kinds and the no-read-back property. |
+| Extend `specs/spec-events/` | Device events and intents in the generated alphabet ([`types.gen.ts`](../packages/effects/src/types.gen.ts) is regenerated, not hand-edited). |
 
 ## Remaining phasing
 

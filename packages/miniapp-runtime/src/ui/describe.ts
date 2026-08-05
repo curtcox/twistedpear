@@ -1,9 +1,4 @@
-import {
-  visitWidget,
-  type WidgetNode,
-  type WidgetStyle,
-  type WidgetTree,
-} from "./schema.js";
+import { visitWidget, type WidgetNode, type WidgetStyle, type WidgetTree } from "./schema.js";
 
 /**
  * Canonical host render model for widget trees. Golden tests compare this structure
@@ -25,7 +20,7 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
   const style = describeStyle(node.style);
   const base = {
     id: node.id,
-    ...(style === undefined ? {} : { style }),
+    ...(style === undefined ? {} : { style })
   };
 
   return visitWidget(node, {
@@ -34,21 +29,21 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
       return {
         ...base,
         component: "View",
-        ...(children === undefined ? {} : { children }),
+        ...(children === undefined ? {} : { children })
       };
     },
     text: (n) => ({
       ...base,
       component: "Text",
-      props: { value: String(n.props?.value ?? "") },
+      props: { value: String(n.props?.value ?? "") }
     }),
     button: (n) => ({
       ...base,
       component: "Button",
       props: {
         label: String(n.props?.label ?? "Button"),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
     }),
     "text-input": (n) => ({
       ...base,
@@ -56,67 +51,62 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
       props: {
         value: String(n.props?.value ?? ""),
         placeholder: String(n.props?.placeholder ?? ""),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
     }),
     switch: (n) => ({
       ...base,
       component: "Switch",
       props: {
         value: Boolean(n.props?.value),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
     }),
     scroll: (n) => {
       const children = describeChildren(n);
       return {
         ...base,
         component: "ScrollView",
-        ...(children === undefined ? {} : { children }),
+        ...(children === undefined ? {} : { children })
       };
     },
     divider: () => ({
       ...base,
-      component: "Divider",
+      component: "Divider"
     }),
     spacer: () => ({
       ...base,
       component: "Spacer",
-      props: { height: 8 },
+      props: { height: 8 }
     }),
     progress: (n) => ({
       ...base,
       component: "Progress",
-      props: { value: n.props?.value ?? 0 },
+      props: { value: n.props?.value ?? 0 }
     }),
     list: (n) => ({
       ...base,
       component: "List",
-      children: (Array.isArray(n.props?.items) ? n.props.items : []).map(
-        (item, index) => ({
-          component: "ListItem",
-          id: `${n.id}-item-${index}`,
-          props: {
-            value: typeof item === "string" ? item : JSON.stringify(item),
-          },
-        }),
-      ),
+      children: (Array.isArray(n.props?.items) ? n.props.items : []).map((item, index) => ({
+        component: "ListItem",
+        id: `${n.id}-item-${index}`,
+        props: { value: typeof item === "string" ? item : JSON.stringify(item) }
+      }))
     }),
     image: (n) => ({
       ...base,
       component: "Image",
-      props: { asset: String(n.props?.asset ?? "") },
+      props: { asset: String(n.props?.asset ?? "") }
     }),
     "code-editor": (n) => ({
       ...base,
       component: "CodeEditor",
       props: {
         documentId: String(n.props?.documentId ?? ""),
-        language:
-          typeof n.props?.language === "string" ? n.props.language : "text",
+        language: typeof n.props?.language === "string" ? n.props.language : "text",
         readOnly: Boolean(n.props?.readOnly),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
     }),
     "qr-code": (n) => ({
       ...base,
@@ -124,25 +114,20 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
       props: {
         value: String(n.props?.value ?? ""),
         ...(typeof n.props?.size === "number" ? { size: n.props.size } : {}),
-        ...(typeof n.props?.caption === "string"
-          ? { caption: n.props.caption }
-          : {}),
-      },
+        ...(typeof n.props?.caption === "string" ? { caption: n.props.caption } : {})
+      }
     }),
     "camera-preview": (n) => describePreview(base, n),
     "audio-meter": (n) => describePreview(base, n),
     waveform: (n) => describePreview(base, n),
     "map-preview": (n) => describePreview(base, n),
-    "remote-video": (n) => describePreview(base, n),
+    "remote-video": (n) => describePreview(base, n)
   });
 }
 
 function describePreview(
-  base: {
-    readonly id: string;
-    readonly style?: Readonly<Record<string, unknown>>;
-  },
-  node: WidgetNode,
+  base: { readonly id: string; readonly style?: Readonly<Record<string, unknown>> },
+  node: WidgetNode
 ): RenderedWidgetNode {
   return {
     ...base,
@@ -150,22 +135,14 @@ function describePreview(
     props: {
       surface: node.type,
       session: String(node.props?.session ?? ""),
-      ...(typeof node.props?.aspectRatio === "string"
-        ? { aspectRatio: node.props.aspectRatio }
-        : {}),
-      ...(typeof node.props?.zoom === "number"
-        ? { zoom: node.props.zoom }
-        : {}),
-      ...(typeof node.props?.peer === "string"
-        ? { peer: node.props.peer }
-        : {}),
-    },
+      ...(typeof node.props?.aspectRatio === "string" ? { aspectRatio: node.props.aspectRatio } : {}),
+      ...(typeof node.props?.zoom === "number" ? { zoom: node.props.zoom } : {}),
+      ...(typeof node.props?.peer === "string" ? { peer: node.props.peer } : {})
+    }
   };
 }
 
-function describeChildren(
-  node: WidgetNode,
-): ReadonlyArray<RenderedWidgetNode> | undefined {
+function describeChildren(node: WidgetNode): ReadonlyArray<RenderedWidgetNode> | undefined {
   if (node.children === undefined || node.children.length === 0) {
     return undefined;
   }
@@ -173,9 +150,7 @@ function describeChildren(
   return node.children.map(describeWidgetNode);
 }
 
-function describeStyle(
-  style?: WidgetStyle,
-): Readonly<Record<string, unknown>> | undefined {
+function describeStyle(style?: WidgetStyle): Readonly<Record<string, unknown>> | undefined {
   if (style === undefined) {
     return undefined;
   }
@@ -219,11 +194,7 @@ function describeStyle(
   }
   if (style.fontWeight !== undefined) {
     described.fontWeight =
-      style.fontWeight === "bold"
-        ? "700"
-        : style.fontWeight === "medium"
-          ? "500"
-          : "400";
+      style.fontWeight === "bold" ? "700" : style.fontWeight === "medium" ? "500" : "400";
   }
 
   return Object.keys(described).length === 0 ? undefined : described;

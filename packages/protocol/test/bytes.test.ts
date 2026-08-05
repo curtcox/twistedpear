@@ -5,7 +5,7 @@ import {
   concatByteArrays,
   initialAssembleByteArraysState,
   shouldUseAssembleByteArrays,
-  stepAssembleByteArraysWithActions,
+  stepAssembleByteArraysWithActions
 } from "../src/bytes.js";
 
 describe("protocol bytes helpers", () => {
@@ -20,24 +20,18 @@ describe("protocol bytes helpers", () => {
   it("assembles byte arrays only from use-raw actions", () => {
     const a = new Uint8Array([1, 2]);
     const b = new Uint8Array([3]);
-    const stepped = stepAssembleByteArraysWithActions(
-      initialAssembleByteArraysState(),
-      {
-        kind: "bytes/assemble-gate",
-        parts: [a, b],
-      },
-    );
+    const stepped = stepAssembleByteArraysWithActions(initialAssembleByteArraysState(), {
+      kind: "bytes/assemble-gate",
+      parts: [a, b]
+    });
     expect(shouldUseAssembleByteArrays(stepped.actions)).toBe(true);
     const raw = assembleByteArraysRawFromActions(stepped.actions);
     expect(raw).not.toBeNull();
     expect([...raw!]).toEqual([...assembleByteArrays([a, b])]);
 
-    const empty = stepAssembleByteArraysWithActions(
-      initialAssembleByteArraysState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepAssembleByteArraysWithActions(initialAssembleByteArraysState(), {
+      kind: "noop"
+    } as never);
     expect(shouldUseAssembleByteArrays(empty.actions)).toBe(false);
     expect(assembleByteArraysRawFromActions(empty.actions)).toBeNull();
   });

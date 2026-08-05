@@ -20,7 +20,7 @@ const nodeModules = join(repoRoot, "node_modules");
 const targets = {
   ios: {
     out: join(bareKitRoot, "ios/addons"),
-    target: ["ios-arm64", "ios-arm64-simulator", "ios-x64-simulator"],
+    target: ["ios-arm64", "ios-arm64-simulator", "ios-x64-simulator"]
   },
   android: {
     // Must match react-native-bare-kit/android/build.gradle jniLibs.srcDirs
@@ -29,8 +29,8 @@ const targets = {
     target: ["android-arm", "android-arm64", "android-ia32", "android-x64"],
     // bare-kit's android/link.js passes this so patchelf --add-needed wires
     // each addon .so to libbare-kit.so; without it dlopen fails at runtime.
-    needs: ["libbare-kit.so"],
-  },
+    needs: ["libbare-kit.so"]
+  }
 };
 
 function listAddonPackages(root) {
@@ -80,7 +80,7 @@ mkdirSync(out, { recursive: true });
 
 const addons = listAddonPackages(nodeModules);
 if (addons.length === 0) {
-  throw new Error('No packages with "addon": true found under node_modules');
+  throw new Error("No packages with \"addon\": true found under node_modules");
 }
 
 const failures = [];
@@ -89,7 +89,7 @@ for (const addonPath of addons) {
   try {
     // Skip ABIs the package does not ship (e.g. bare-posix has no android-arm).
     const available = target.filter((abi) =>
-      existsSync(join(addonPath, "prebuilds", abi)),
+      existsSync(join(addonPath, "prebuilds", abi))
     );
     if (available.length === 0) {
       console.log("skipped (no prebuilds for this platform)");
@@ -98,7 +98,7 @@ for (const addonPath of addons) {
     await link(addonPath, {
       target: available,
       out,
-      ...(needs === undefined ? {} : { needs }),
+      ...(needs === undefined ? {} : { needs })
     });
     console.log("ok");
   } catch (error) {
@@ -109,13 +109,11 @@ for (const addonPath of addons) {
 }
 
 const linkedTcp = existsSync(join(out, "arm64-v8a"))
-  ? readdirSync(join(out, "arm64-v8a")).some((name) =>
-      name.includes("bare-tcp"),
-    )
+  ? readdirSync(join(out, "arm64-v8a")).some((name) => name.includes("bare-tcp"))
   : false;
 if (platform === "android" && !linkedTcp) {
   throw new Error(
-    `bare-tcp was not linked into ${out} (android TCP peer will stay offline)`,
+    `bare-tcp was not linked into ${out} (android TCP peer will stay offline)`
   );
 }
 if (failures.length > 0) {

@@ -9,17 +9,14 @@ import {
   NodeCryptoProvider,
   PipeInterface,
   Reticulum,
-  nodeRuntime,
+  nodeRuntime
 } from "../src/index.js";
 import { msgpackPackBin } from "../src/msgpack.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 
-async function waitFor<T>(
-  evaluate: () => T | null | undefined,
-  timeoutMs = 2000,
-): Promise<T> {
+async function waitFor<T>(evaluate: () => T | null | undefined, timeoutMs = 2000): Promise<T> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const value = evaluate();
@@ -56,7 +53,7 @@ async function connectPeers(): Promise<{
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["peer"],
+    aspects: ["peer"]
   });
 
   await rightIn.announce();
@@ -68,21 +65,19 @@ async function connectPeers(): Promise<{
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["peer"],
+    aspects: ["peer"]
   });
 
   let leftLink: Link | null = null;
   leftOut.requestLink({
     linkEstablished(link) {
       leftLink = link;
-    },
+    }
   });
 
   const establishedLeftLink = await waitFor(() => leftLink);
   const rightLink = await waitFor(
-    () =>
-      rightIn.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ??
-      null,
+    () => rightIn.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
   );
 
   return {
@@ -91,7 +86,7 @@ async function connectPeers(): Promise<{
     leftOut,
     rightIn,
     leftLink: establishedLeftLink,
-    rightLink,
+    rightLink
   };
 }
 
@@ -100,10 +95,7 @@ describe("Link establishment over PipeInterface", () => {
     const { leftLink, rightLink } = await connectPeers();
 
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error("payload timeout")),
-        2000,
-      );
+      const timer = setTimeout(() => reject(new Error("payload timeout")), 2000);
       rightLink.callbacks.packet = (data) => {
         clearTimeout(timer);
         resolve(data);
@@ -123,7 +115,7 @@ describe("Link request/response", () => {
     rightIn.registerRequestHandler(
       "/echo",
       (_path, data) => (data === null ? null : msgpackPackBin(data)),
-      DestinationAllowPolicy.ALLOW_ALL,
+      DestinationAllowPolicy.ALLOW_ALL
     );
 
     const responsePromise = new Promise<Uint8Array | null>((resolve) => {
@@ -131,7 +123,7 @@ describe("Link request/response", () => {
         .request("/echo", msgpackPackBin(new TextEncoder().encode("ping")), {
           timeout: 2,
           response: (receipt) => resolve(receipt.response),
-          failed: () => resolve(null),
+          failed: () => resolve(null)
         })
         .then((receipt) => {
           if (receipt === false) {

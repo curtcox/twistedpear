@@ -12,35 +12,24 @@ import {
   STYLE_VALUE_SCHEMAS,
   WIDGET_PROP_KEYS,
   WIDGET_STYLE_KEYS,
-  WIDGET_TYPES,
+  WIDGET_TYPES
 } from "../packages/miniapp-runtime/dist/ui/schema.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const OUTPUT_PATH = join(
-  here,
-  "..",
-  "specs",
-  "spec-widget",
-  "schema",
-  "widget.schema.json",
-);
+const OUTPUT_PATH = join(here, "..", "specs", "spec-widget", "schema", "widget.schema.json");
 
 export function generateWidgetSchema() {
   const styleProperties = {};
   for (const key of [...WIDGET_STYLE_KEYS].sort()) {
     const value = STYLE_VALUE_SCHEMAS[key];
     if (value === undefined) {
-      throw new Error(
-        `WIDGET_STYLE_KEYS has key "${key}" with no value schema — update ui/schema.ts`,
-      );
+      throw new Error(`WIDGET_STYLE_KEYS has key "${key}" with no value schema — update ui/schema.ts`);
     }
     styleProperties[key] = value;
   }
   for (const key of Object.keys(STYLE_VALUE_SCHEMAS)) {
     if (!WIDGET_STYLE_KEYS.has(key)) {
-      throw new Error(
-        `stale style value schema for "${key}" — not in WIDGET_STYLE_KEYS`,
-      );
+      throw new Error(`stale style value schema for "${key}" — not in WIDGET_STYLE_KEYS`);
     }
   }
 
@@ -56,18 +45,16 @@ export function generateWidgetSchema() {
         : {
             type: "object",
             properties,
-            ...(EXTRA_REQUIRED[type] === undefined
-              ? {}
-              : { required: EXTRA_REQUIRED[type] }),
-            additionalProperties: false,
+            ...(EXTRA_REQUIRED[type] === undefined ? {} : { required: EXTRA_REQUIRED[type] }),
+            additionalProperties: false
           };
     const branch = {
       type: "object",
       properties: {
         type: { const: type },
-        props: propsSchema,
+        props: propsSchema
       },
-      ...(EXTRA_REQUIRED[type] === undefined ? {} : { required: ["props"] }),
+      ...(EXTRA_REQUIRED[type] === undefined ? {} : { required: ["props"] })
     };
     return branch;
   });
@@ -87,25 +74,24 @@ export function generateWidgetSchema() {
           type: { enum: [...WIDGET_TYPES].sort() },
           props: { type: "object" },
           style: { $ref: "#/$defs/style" },
-          children: { type: "array", items: { $ref: "#/$defs/node" } },
+          children: { type: "array", items: { $ref: "#/$defs/node" } }
         },
         additionalProperties: false,
-        allOf: [{ oneOf: typeBranches }],
+        allOf: [{ oneOf: typeBranches }]
       },
       style: {
         type: "object",
         properties: styleProperties,
-        additionalProperties: false,
+        additionalProperties: false
       },
       tree: {
         type: "object",
         required: ["root"],
         properties: { root: { $ref: "#/$defs/node" } },
-        additionalProperties: false,
+        additionalProperties: false
       },
       patch: {
-        description:
-          "Update-stream operation (ui/diff.ts). A replace whose id was absent from the previous frame signals a structural change; hosts always deliver the full next tree alongside the stream.",
+        description: "Update-stream operation (ui/diff.ts). A replace whose id was absent from the previous frame signals a structural change; hosts always deliver the full next tree alongside the stream.",
         oneOf: [
           {
             type: "object",
@@ -113,37 +99,33 @@ export function generateWidgetSchema() {
             properties: {
               op: { const: "replace" },
               id: { type: "string", minLength: 1 },
-              node: { $ref: "#/$defs/node" },
+              node: { $ref: "#/$defs/node" }
             },
-            additionalProperties: false,
+            additionalProperties: false
           },
           {
             type: "object",
             required: ["op", "id"],
             properties: {
               op: { const: "remove" },
-              id: { type: "string", minLength: 1 },
+              id: { type: "string", minLength: 1 }
             },
-            additionalProperties: false,
-          },
-        ],
+            additionalProperties: false
+          }
+        ]
       },
       patchStream: {
         type: "array",
-        items: { $ref: "#/$defs/patch" },
-      },
-    },
+        items: { $ref: "#/$defs/patch" }
+      }
+    }
   };
 }
 
 const invokedDirectly =
   process.argv[1] !== undefined &&
-  fileURLToPath(import.meta.url) ===
-    (await import("node:path")).resolve(process.argv[1]);
+  fileURLToPath(import.meta.url) === (await import("node:path")).resolve(process.argv[1]);
 if (invokedDirectly) {
-  writeFileSync(
-    OUTPUT_PATH,
-    JSON.stringify(generateWidgetSchema(), null, 2) + "\n",
-  );
+  writeFileSync(OUTPUT_PATH, JSON.stringify(generateWidgetSchema(), null, 2) + "\n");
   console.log(`wrote ${OUTPUT_PATH}`);
 }

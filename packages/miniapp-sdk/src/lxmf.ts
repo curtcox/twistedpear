@@ -1,8 +1,4 @@
-import type {
-  LxmfDelivery,
-  LxmfInboxMessage,
-  LxmfSendRequest,
-} from "@twistedpear/miniapp-runtime";
+import type { LxmfDelivery, LxmfInboxMessage, LxmfSendRequest } from "@twistedpear/miniapp-runtime";
 import { callHost } from "./rpc.js";
 
 export async function send(request: LxmfSendRequest): Promise<LxmfDelivery> {
@@ -14,6 +10,6 @@ export async function receive(): Promise<ReadonlyArray<LxmfInboxMessage>> {
     "lxmf",
     "receive",
     undefined,
-    "lxmf:receive",
+    "lxmf:receive"
   )) as ReadonlyArray<LxmfInboxMessage>;
 }

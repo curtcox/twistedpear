@@ -28,9 +28,7 @@ export function createMiniappAnnounceService(options) {
 
   function aspectFor(appId, namespace) {
     const scope = namespace ?? `miniapp-announce:${appId}`;
-    return bytesToHex(
-      provider.sha256(new TextEncoder().encode(scope)).subarray(0, 16),
-    );
+    return bytesToHex(provider.sha256(new TextEncoder().encode(scope)).subarray(0, 16));
   }
 
   function storeAppData(appData) {
@@ -54,7 +52,7 @@ export function createMiniappAnnounceService(options) {
           direction: DestinationDirection.IN,
           type: DestinationType.SINGLE,
           appName: "tp",
-          aspects: ["miniapp", aspect],
+          aspects: ["miniapp", aspect]
         });
         destinations.set(aspect, destination);
       }
@@ -64,7 +62,7 @@ export function createMiniappAnnounceService(options) {
       bucket.push({
         destination: bytesToHex(destination.hash),
         appData: storeAppData(payload),
-        receivedAt: Date.now(),
+        receivedAt: Date.now()
       });
       buckets.set(aspect, bucket.slice(-256));
     },
@@ -80,14 +78,14 @@ export function createMiniappAnnounceService(options) {
             bucket.push({
               destination: bytesToHex(info.destinationHash),
               appData: storeAppData(info.appData ?? new Uint8Array()),
-              receivedAt: Date.now(),
+              receivedAt: Date.now()
             });
             buckets.set(aspect, bucket.slice(-256));
-          },
+          }
         });
         handlers.add(aspect);
       }
       return [...(buckets.get(aspect) ?? [])];
-    },
+    }
   };
 }

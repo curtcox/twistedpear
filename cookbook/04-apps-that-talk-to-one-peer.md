@@ -7,7 +7,7 @@ register: none
 -->
 
 LXMF gives a mini-app one thing: send a message to an address, and read what has arrived.
-That is the entire surface. It is worth being precise about what is _not_ in it, because
+That is the entire surface. It is worth being precise about what is *not* in it, because
 every mistake in this chapter comes from assuming one of these exists:
 
 - **No sessions.** Nothing correlates a reply to a request. That is your job.
@@ -48,11 +48,11 @@ three ticks and two ellipses, and Dead drop showing one received signed note. Ea
 has a small grey line near the top reading `This app: …` followed by an address, and the three addresses are
 visibly different from each other.
 
-| Recipe                        | Capabilities                            | Directory                                        |
-| ----------------------------- | --------------------------------------- | ------------------------------------------------ |
+| Recipe | Capabilities | Directory |
+|---|---|---|
 | [Signal check](#signal-check) | `identity`, `lxmf:send`, `lxmf:receive` | [apps/signal-check](apps/signal-check/README.md) |
-| [Roll call](#roll-call)       | + `storage:kv`                          | [apps/roll-call](apps/roll-call/README.md)       |
-| [Dead drop](#dead-drop)       | `identity`, `lxmf:send`, `lxmf:receive` | [apps/dead-drop](apps/dead-drop/README.md)       |
+| [Roll call](#roll-call) | + `storage:kv` | [apps/roll-call](apps/roll-call/README.md) |
+| [Dead drop](#dead-drop) | `identity`, `lxmf:send`, `lxmf:receive` | [apps/dead-drop](apps/dead-drop/README.md) |
 
 ---
 
@@ -91,19 +91,15 @@ and on receipt:
 for (const message of messages) {
   if (message.subject === "signal-check/ping") {
     // Someone is pinging us. Answer with the same nonce so they can match it.
-    await lxmf.send({
-      to: message.from,
-      subject: "signal-check/pong",
-      body: message.body,
-    });
+    await lxmf.send({ to: message.from, subject: "signal-check/pong", body: message.body });
     continue;
   }
   if (message.subject !== "signal-check/pong") continue;
   const sentAt = outstanding.get(message.body);
-  if (sentAt === undefined) continue; // unknown nonce: not ours, ignore
+  if (sentAt === undefined) continue;              // unknown nonce: not ours, ignore
   outstanding.delete(message.body);
   results = results.map((row) =>
-    row.nonce === message.body ? { ...row, ms: Date.now() - sentAt } : row,
+    row.nonce === message.body ? { ...row, ms: Date.now() - sentAt } : row
   );
 }
 ```
@@ -120,7 +116,7 @@ Three habits here are worth stealing wholesale:
   succeeded. Some of them will stay that way forever, and that is a normal outcome.
 
 The measurement is honest about what it is measuring, too. The elapsed time includes however
-long the _other_ app sat closed, because nothing was delivered while it was. This is not a
+long the *other* app sat closed, because nothing was delivered while it was. This is not a
 network latency measurement, and the footnote on screen says so.
 
 Full source: [apps/signal-check/bundle.js](apps/signal-check/bundle.js).
@@ -187,7 +183,7 @@ Full source: [apps/roll-call/bundle.js](apps/roll-call/bundle.js).
   this turns an unresponsive app into a working one.
 - **Persist the answers.** Currently a `Map` that dies with the app. `storage:kv` is already
   granted; this is four lines.
-- **Relay the roster.** Have each answering peer include _their_ roster, and merge. You have
+- **Relay the roster.** Have each answering peer include *their* roster, and merge. You have
   now built gossip, along with all of gossip's problems — start with a hop count.
 
 ---
@@ -228,7 +224,7 @@ an authenticity claim about an identity, not about a person and not about a fact
 Two attacks this recipe does not stop, deliberately left in so you can fix them:
 
 - **Replay.** The envelope has no timestamp and no nonce, so a signed note can be captured
-  and re-sent forever. Add a timestamp _inside_ the signed payload — outside it, it is just
+  and re-sent forever. Add a timestamp *inside* the signed payload — outside it, it is just
   a suggestion.
 - **Rebinding.** The envelope carries `from` as a field, but nothing ties the signature to
   the sender's address. Sign a structure that includes the address, not just the text.

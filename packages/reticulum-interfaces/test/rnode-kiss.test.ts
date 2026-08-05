@@ -6,7 +6,7 @@ import {
   createKissDecodeState,
   decodeKissFrames,
   encodeDetectRequest,
-  encodeKissFrame,
+  encodeKissFrame
 } from "../src/rnode/kiss.js";
 
 describe("RNode KISS framing", () => {
@@ -30,10 +30,7 @@ describe("RNode KISS framing", () => {
   });
 
   it("parses detect response transcript", () => {
-    const transcript = encodeKissFrame(
-      KISS_CMD_DETECT,
-      Uint8Array.from([KISS_DETECT_RESP]),
-    );
+    const transcript = encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP]));
     const decoded = decodeKissFrames(transcript, createKissDecodeState());
     expect(decoded.frames[0]?.payload[0]).toBe(KISS_DETECT_RESP);
   });

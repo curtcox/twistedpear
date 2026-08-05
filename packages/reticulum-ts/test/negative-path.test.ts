@@ -10,21 +10,15 @@ import {
   PacketHeaderType,
   PureCryptoProvider,
   hexToBytes,
-  type CryptoProvider,
+  type CryptoProvider
 } from "../src/index.js";
 
-const providers: ReadonlyArray<CryptoProvider> = [
-  new NodeCryptoProvider(),
-  new PureCryptoProvider(),
-];
+const providers: ReadonlyArray<CryptoProvider> = [new NodeCryptoProvider(), new PureCryptoProvider()];
 
 const packetVectors = JSON.parse(
-  readFileSync(resolve("conformance/vectors/packet.json"), "utf8"),
+  readFileSync(resolve("conformance/vectors/packet.json"), "utf8")
 ) as {
-  readonly packets: ReadonlyArray<{
-    readonly rawHex: string;
-    readonly headerType?: number;
-  }>;
+  readonly packets: ReadonlyArray<{ readonly rawHex: string; readonly headerType?: number }>;
   readonly announces: ReadonlyArray<{ readonly rawHex: string }>;
 };
 
@@ -38,14 +32,10 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
     });
 
     it("returns null when header-2 packets are missing transport id bytes", () => {
-      const valid = packetVectors.packets.find(
-        (vector) => vector.headerType === 1,
-      );
+      const valid = packetVectors.packets.find((vector) => vector.headerType === 1);
       expect(valid).toBeDefined();
       const raw = hexToBytes(valid!.rawHex);
-      expect(
-        Packet.decode(provider, raw.subarray(0, raw.length - 20)),
-      ).toBeNull();
+      expect(Packet.decode(provider, raw.subarray(0, raw.length - 20))).toBeNull();
     });
 
     it("returns null for packets with invalid enum combinations in flags", () => {
@@ -57,9 +47,9 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
               (PacketContextFlag.UNSET << 5) |
               (0 << 4) |
               (0 << 2) |
-              0xff,
-          ]),
-        ),
+              0xff
+          ])
+        )
       ).toBeNull();
     });
 
@@ -70,10 +60,7 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(packet).not.toBeNull();
       expect(Announce.parse(packet!)).not.toBeNull();
 
-      const truncated = Packet.decode(
-        provider,
-        raw.subarray(0, 2 + 16 + 1 + 8),
-      );
+      const truncated = Packet.decode(provider, raw.subarray(0, 2 + 16 + 1 + 8));
       expect(truncated).not.toBeNull();
       expect(Announce.parse(truncated!)).toBeNull();
     });
@@ -86,8 +73,7 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(Announce.validate(provider, packet!)).toBe(true);
 
       const badSignature = Uint8Array.from(raw);
-      badSignature[badSignature.length - 1] =
-        badSignature[badSignature.length - 1]! ^ 0x01;
+      badSignature[badSignature.length - 1] = badSignature[badSignature.length - 1]! ^ 0x01;
       const tamperedSignature = Packet.decode(provider, badSignature);
       expect(tamperedSignature).not.toBeNull();
       expect(Announce.validate(provider, tamperedSignature!)).toBe(false);
@@ -105,25 +91,20 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(packet).not.toBeNull();
 
       const identityVector = JSON.parse(
-        readFileSync(resolve("conformance/vectors/identity.json"), "utf8"),
+        readFileSync(resolve("conformance/vectors/identity.json"), "utf8")
       ) as {
         identities: ReadonlyArray<{ name: string; privateKeyHex: string }>;
       };
-      const alice = identityVector.identities.find(
-        (entry) => entry.name === "alice",
-      );
+      const alice = identityVector.identities.find((entry) => entry.name === "alice");
       expect(alice).toBeDefined();
 
-      const identity = Identity.fromBytes(
-        provider,
-        hexToBytes(alice!.privateKeyHex),
-      );
+      const identity = Identity.fromBytes(provider, hexToBytes(alice!.privateKeyHex));
       expect(identity).not.toBeNull();
 
       expect(packet!.validateProof(identity!, new Uint8Array(16))).toBe(false);
       expect(packet!.validateProof(identity!, new Uint8Array(128))).toBe(false);
     });
-  },
+  }
 );
 
 describe("negative-path packet construction", () => {
@@ -139,8 +120,8 @@ describe("negative-path packet construction", () => {
         transportType: packet!.transportType,
         destinationType: packet!.destinationType,
         packetType: packet!.packetType,
-        destinationHash: packet!.destinationHash,
-      }),
+        destinationHash: packet!.destinationHash
+      })
     ).toThrow("Unknown packet context flag");
 
     expect(() =>
@@ -150,8 +131,8 @@ describe("negative-path packet construction", () => {
         transportType: packet!.transportType,
         destinationType: packet!.destinationType,
         packetType: 0x7f,
-        destinationHash: packet!.destinationHash,
-      }),
+        destinationHash: packet!.destinationHash
+      })
     ).toThrow("Unknown packet type");
   });
 });

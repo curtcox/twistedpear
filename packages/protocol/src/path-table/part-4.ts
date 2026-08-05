@@ -28,19 +28,13 @@ import {
   PACKET_DEST_TYPE_GROUP,
   PACKET_DEST_TYPE_PLAIN,
   PACKET_HEADER_1,
-  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_ANNOUNCE
 } from "../packet-header.js";
 import { PATHFINDER_EXPIRY_SECONDS, PATHFINDER_MAX_HOPS } from "./part-1.js";
 import { stepPathOutboundInner } from "./part-3.js";
-import type {
-  PathOutboundAction,
-  PathOutboundEvent,
-  PathOutboundKind,
-  PathOutboundPlanAction,
-  PathOutboundState,
-} from "./part-3.js";
+import type { PathOutboundAction, PathOutboundEvent, PathOutboundKind, PathOutboundPlanAction, PathOutboundState } from "./part-3.js";
 export function shouldFloodPathOutboundPlan(
-  actions: ReadonlyArray<PathOutboundPlanAction>,
+  actions: ReadonlyArray<PathOutboundPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "flood");
 }
@@ -55,27 +49,21 @@ export const stepPathOutbound: StepFn<PathOutboundState> = (state, event) => {
 };
 
 export function pathOutboundFromActions(
-  actions: ReadonlyArray<PathOutboundAction>,
+  actions: ReadonlyArray<PathOutboundAction>
 ): PathOutboundKind | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
-export function shouldWrapPathOutbound(
-  actions: ReadonlyArray<PathOutboundAction>,
-): boolean {
+export function shouldWrapPathOutbound(actions: ReadonlyArray<PathOutboundAction>): boolean {
   return actions.some((action) => action.kind === "wrap");
 }
 
-export function shouldDirectPathOutbound(
-  actions: ReadonlyArray<PathOutboundAction>,
-): boolean {
+export function shouldDirectPathOutbound(actions: ReadonlyArray<PathOutboundAction>): boolean {
   return actions.some((action) => action.kind === "direct");
 }
 
-export function shouldFloodPathOutbound(
-  actions: ReadonlyArray<PathOutboundAction>,
-): boolean {
+export function shouldFloodPathOutbound(actions: ReadonlyArray<PathOutboundAction>): boolean {
   return actions.some((action) => action.kind === "flood");
 }
 
@@ -106,9 +94,7 @@ export function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
   return value;
 }
 
-export function timebaseFromRandomBlobs(
-  randomBlobs: ReadonlyArray<Uint8Array>,
-): number {
+export function timebaseFromRandomBlobs(randomBlobs: ReadonlyArray<Uint8Array>): number {
   let latest = 0;
   for (const blob of randomBlobs) {
     latest = Math.max(latest, announceEmittedFromRandomBlob(blob));
@@ -130,7 +116,7 @@ export function equalByteArrays(left: Uint8Array, right: Uint8Array): boolean {
 
 export function shouldAnswerPathRequest(
   nextHop: Uint8Array,
-  requestorTransportId: Uint8Array | null,
+  requestorTransportId: Uint8Array | null
 ): boolean {
   if (requestorTransportId === null) {
     return true;
@@ -154,7 +140,8 @@ export type AnswerPathRequestEvent =
     };
 
 export type AnswerPathRequestAction =
-  { readonly kind: "answer" } | { readonly kind: "skip" };
+  | { readonly kind: "answer" }
+  | { readonly kind: "skip" };
 
 export interface AnswerPathRequestStepResult {
   readonly state: AnswerPathRequestState;
@@ -168,7 +155,7 @@ export function initialAnswerPathRequestState(): AnswerPathRequestState {
 
 export function stepAnswerPathRequestWithActions(
   state: AnswerPathRequestState,
-  event: AnswerPathRequestEvent,
+  event: AnswerPathRequestEvent
 ): AnswerPathRequestStepResult {
   if (event.kind === "path-request/answer-path-gate") {
     return {
@@ -176,14 +163,11 @@ export function stepAnswerPathRequestWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAnswerPathRequest(
-            event.nextHop,
-            event.requestorTransportId,
-          )
+          kind: shouldAnswerPathRequest(event.nextHop, event.requestorTransportId)
             ? "answer"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -191,13 +175,13 @@ export function stepAnswerPathRequestWithActions(
 }
 
 export function shouldAnswerPathRequestNow(
-  actions: ReadonlyArray<AnswerPathRequestAction>,
+  actions: ReadonlyArray<AnswerPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "answer");
 }
 
 export function shouldSkipAnswerPathRequest(
-  actions: ReadonlyArray<AnswerPathRequestAction>,
+  actions: ReadonlyArray<AnswerPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -216,16 +200,12 @@ export function shouldAddPathEntry(input: PathAddDecisionInput): boolean {
   if (hops <= existing.hops) {
     const pathTimebase = timebaseFromRandomBlobs(existing.randomBlobs);
     const announceEmitted = announceEmittedFromRandomBlob(randomBlob);
-    const seen = existing.randomBlobs.some((blob) =>
-      equalByteArrays(blob, randomBlob),
-    );
+    const seen = existing.randomBlobs.some((blob) => equalByteArrays(blob, randomBlob));
     return !seen && announceEmitted > pathTimebase;
   }
 
   if (isPathEntryExpired({ expires: existing.expires, nowSeconds })) {
-    return !existing.randomBlobs.some((blob) =>
-      equalByteArrays(blob, randomBlob),
-    );
+    return !existing.randomBlobs.some((blob) => equalByteArrays(blob, randomBlob));
   }
 
   return false;
@@ -249,7 +229,8 @@ export type AddPathEntryEvent =
     };
 
 export type AddPathEntryAction =
-  { readonly kind: "add" } | { readonly kind: "skip" };
+  | { readonly kind: "add" }
+  | { readonly kind: "skip" };
 
 export interface AddPathEntryStepResult {
   readonly state: AddPathEntryState;
@@ -263,7 +244,7 @@ export function initialAddPathEntryState(): AddPathEntryState {
 
 export function stepAddPathEntryWithActions(
   state: AddPathEntryState,
-  event: AddPathEntryEvent,
+  event: AddPathEntryEvent
 ): AddPathEntryStepResult {
   if (event.kind === "path/add-entry-gate") {
     return {
@@ -275,12 +256,12 @@ export function stepAddPathEntryWithActions(
             hops: event.hops,
             randomBlob: event.randomBlob,
             nowSeconds: event.nowSeconds,
-            existing: event.existing,
+            existing: event.existing
           })
             ? "add"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -288,13 +269,13 @@ export function stepAddPathEntryWithActions(
 }
 
 export function shouldAddPathEntryNow(
-  actions: ReadonlyArray<AddPathEntryAction>,
+  actions: ReadonlyArray<AddPathEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "add");
 }
 
 export function shouldSkipAddPathEntry(
-  actions: ReadonlyArray<AddPathEntryAction>,
+  actions: ReadonlyArray<AddPathEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -334,7 +315,7 @@ export function initialComputePathExpiryState(): ComputePathExpiryState {
 
 export function stepComputePathExpiryWithActions(
   state: ComputePathExpiryState,
-  event: ComputePathExpiryEvent,
+  event: ComputePathExpiryEvent
 ): ComputePathExpiryStepResult {
   if (event.kind === "path/expiry-gate") {
     return {
@@ -343,9 +324,9 @@ export function stepComputePathExpiryWithActions(
       actions: [
         {
           kind: "use-expiry",
-          expires: computePathExpiry(event.nowSeconds),
-        },
-      ],
+          expires: computePathExpiry(event.nowSeconds)
+        }
+      ]
     };
   }
 
@@ -353,14 +334,14 @@ export function stepComputePathExpiryWithActions(
 }
 
 export function shouldUsePathExpiry(
-  actions: ReadonlyArray<ComputePathExpiryAction>,
+  actions: ReadonlyArray<ComputePathExpiryAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-expiry");
 }
 
 /** Extract path expiry instant from step actions; null when no `use-expiry`. */
 export function pathExpiryFromActions(
-  actions: ReadonlyArray<ComputePathExpiryAction>,
+  actions: ReadonlyArray<ComputePathExpiryAction>
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-expiry");
   return action?.kind === "use-expiry" ? action.expires : null;
@@ -390,7 +371,8 @@ export type PathEntryExpiredEvent =
     };
 
 export type PathEntryExpiredAction =
-  { readonly kind: "expired" } | { readonly kind: "live" };
+  | { readonly kind: "expired" }
+  | { readonly kind: "live" };
 
 export interface PathEntryExpiredStepResult {
   readonly state: PathEntryExpiredState;
@@ -404,7 +386,7 @@ export function initialPathEntryExpiredState(): PathEntryExpiredState {
 
 export function stepPathEntryExpiredWithActions(
   state: PathEntryExpiredState,
-  event: PathEntryExpiredEvent,
+  event: PathEntryExpiredEvent
 ): PathEntryExpiredStepResult {
   if (event.kind === "path/entry-expired-gate") {
     return {
@@ -414,12 +396,12 @@ export function stepPathEntryExpiredWithActions(
         {
           kind: isPathEntryExpired({
             expires: event.expires,
-            nowSeconds: event.nowSeconds,
+            nowSeconds: event.nowSeconds
           })
             ? "expired"
-            : "live",
-        },
-      ],
+            : "live"
+        }
+      ]
     };
   }
 
@@ -427,13 +409,13 @@ export function stepPathEntryExpiredWithActions(
 }
 
 export function shouldTreatPathEntryExpired(
-  actions: ReadonlyArray<PathEntryExpiredAction>,
+  actions: ReadonlyArray<PathEntryExpiredAction>
 ): boolean {
   return actions.some((action) => action.kind === "expired");
 }
 
 export function shouldTreatPathEntryLive(
-  actions: ReadonlyArray<PathEntryExpiredAction>,
+  actions: ReadonlyArray<PathEntryExpiredAction>
 ): boolean {
   return actions.some((action) => action.kind === "live");
 }
@@ -469,11 +451,10 @@ export type PathEntryLookupPlanAction = { readonly kind: PathEntryLookupPlan };
 
 /** Extract the path-entry lookup plan from actions; null when empty. */
 export function pathEntryLookupPlanFromActions(
-  actions: ReadonlyArray<PathEntryLookupPlanAction>,
+  actions: ReadonlyArray<PathEntryLookupPlanAction>
 ): PathEntryLookupPlan | null {
   const action = actions.find(
-    (entry) =>
-      entry.kind === "miss" || entry.kind === "expired" || entry.kind === "hit",
+    (entry) => entry.kind === "miss" || entry.kind === "expired" || entry.kind === "hit"
   );
   return action?.kind ?? null;
 }

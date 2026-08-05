@@ -28,15 +28,13 @@ import {
   PACKET_DEST_TYPE_GROUP,
   PACKET_DEST_TYPE_PLAIN,
   PACKET_HEADER_1,
-  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_ANNOUNCE
 } from "../packet-header.js";
 import { canAnswerLocalPathRequest } from "./part-1.js";
-import type {
-  AnswerLocalPathRequestEvent,
-  AnswerLocalPathRequestState,
-} from "./part-1.js";
+import type { AnswerLocalPathRequestEvent, AnswerLocalPathRequestState } from "./part-1.js";
 export type AnswerLocalPathRequestAction =
-  { readonly kind: "answer" } | { readonly kind: "skip" };
+  | { readonly kind: "answer" }
+  | { readonly kind: "skip" };
 
 export interface AnswerLocalPathRequestStepResult {
   readonly state: AnswerLocalPathRequestState;
@@ -50,7 +48,7 @@ export function initialAnswerLocalPathRequestState(): AnswerLocalPathRequestStat
 
 export function stepAnswerLocalPathRequestWithActions(
   state: AnswerLocalPathRequestState,
-  event: AnswerLocalPathRequestEvent,
+  event: AnswerLocalPathRequestEvent
 ): AnswerLocalPathRequestStepResult {
   if (event.kind === "path-request/answer-local-handler-gate") {
     return {
@@ -58,11 +56,9 @@ export function stepAnswerLocalPathRequestWithActions(
       intents: [],
       actions: [
         {
-          kind: canAnswerLocalPathRequest(event.handlerPresent)
-            ? "answer"
-            : "skip",
-        },
-      ],
+          kind: canAnswerLocalPathRequest(event.handlerPresent) ? "answer" : "skip"
+        }
+      ]
     };
   }
 
@@ -70,13 +66,13 @@ export function stepAnswerLocalPathRequestWithActions(
 }
 
 export function shouldAnswerLocalPathRequestNow(
-  actions: ReadonlyArray<AnswerLocalPathRequestAction>,
+  actions: ReadonlyArray<AnswerLocalPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "answer");
 }
 
 export function shouldSkipAnswerLocalPathRequest(
-  actions: ReadonlyArray<AnswerLocalPathRequestAction>,
+  actions: ReadonlyArray<AnswerLocalPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -110,7 +106,8 @@ export type BeginPathDiscoveryEvent =
     };
 
 export type BeginPathDiscoveryAction =
-  { readonly kind: "begin" } | { readonly kind: "skip" };
+  | { readonly kind: "begin" }
+  | { readonly kind: "skip" };
 
 export interface BeginPathDiscoveryStepResult {
   readonly state: BeginPathDiscoveryState;
@@ -124,7 +121,7 @@ export function initialBeginPathDiscoveryState(): BeginPathDiscoveryState {
 
 export function stepBeginPathDiscoveryWithActions(
   state: BeginPathDiscoveryState,
-  event: BeginPathDiscoveryEvent,
+  event: BeginPathDiscoveryEvent
 ): BeginPathDiscoveryStepResult {
   if (event.kind === "path-request/begin-discovery-gate") {
     return {
@@ -135,12 +132,12 @@ export function stepBeginPathDiscoveryWithActions(
           kind: shouldBeginPathDiscovery({
             parsedOk: event.parsedOk,
             tagPresent: event.tagPresent,
-            destinationKeyPresent: event.destinationKeyPresent,
+            destinationKeyPresent: event.destinationKeyPresent
           })
             ? "begin"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -148,21 +145,19 @@ export function stepBeginPathDiscoveryWithActions(
 }
 
 export function shouldBeginPathDiscoveryNow(
-  actions: ReadonlyArray<BeginPathDiscoveryAction>,
+  actions: ReadonlyArray<BeginPathDiscoveryAction>
 ): boolean {
   return actions.some((action) => action.kind === "begin");
 }
 
 export function shouldSkipBeginPathDiscovery(
-  actions: ReadonlyArray<BeginPathDiscoveryAction>,
+  actions: ReadonlyArray<BeginPathDiscoveryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether an expired discovery path-request entry should be cleared before reinsert. */
-export function shouldClearExpiredDiscoveryPathRequest(
-  discoveryExpired: boolean,
-): boolean {
+export function shouldClearExpiredDiscoveryPathRequest(discoveryExpired: boolean): boolean {
   return discoveryExpired;
 }
 
@@ -181,7 +176,8 @@ export type ClearExpiredDiscoveryPathRequestEvent =
     };
 
 export type ClearExpiredDiscoveryPathRequestAction =
-  { readonly kind: "clear" } | { readonly kind: "skip" };
+  | { readonly kind: "clear" }
+  | { readonly kind: "skip" };
 
 export interface ClearExpiredDiscoveryPathRequestStepResult {
   readonly state: ClearExpiredDiscoveryPathRequestState;
@@ -195,7 +191,7 @@ export function initialClearExpiredDiscoveryPathRequestState(): ClearExpiredDisc
 
 export function stepClearExpiredDiscoveryPathRequestWithActions(
   state: ClearExpiredDiscoveryPathRequestState,
-  event: ClearExpiredDiscoveryPathRequestEvent,
+  event: ClearExpiredDiscoveryPathRequestEvent
 ): ClearExpiredDiscoveryPathRequestStepResult {
   if (event.kind === "path-request/clear-expired-discovery-gate") {
     return {
@@ -205,9 +201,9 @@ export function stepClearExpiredDiscoveryPathRequestWithActions(
         {
           kind: shouldClearExpiredDiscoveryPathRequest(event.discoveryExpired)
             ? "clear"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -215,13 +211,13 @@ export function stepClearExpiredDiscoveryPathRequestWithActions(
 }
 
 export function shouldClearExpiredDiscoveryPathRequestNow(
-  actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>,
+  actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "clear");
 }
 
 export function shouldSkipClearExpiredDiscoveryPathRequest(
-  actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>,
+  actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -246,7 +242,8 @@ export type RememberPathRequestTagEvent =
     };
 
 export type RememberPathRequestTagAction =
-  { readonly kind: "remember" } | { readonly kind: "skip" };
+  | { readonly kind: "remember" }
+  | { readonly kind: "skip" };
 
 export interface RememberPathRequestTagStepResult {
   readonly state: RememberPathRequestTagState;
@@ -260,7 +257,7 @@ export function initialRememberPathRequestTagState(): RememberPathRequestTagStat
 
 export function stepRememberPathRequestTagWithActions(
   state: RememberPathRequestTagState,
-  event: RememberPathRequestTagEvent,
+  event: RememberPathRequestTagEvent
 ): RememberPathRequestTagStepResult {
   if (event.kind === "path-request/remember-tag-gate") {
     return {
@@ -268,11 +265,9 @@ export function stepRememberPathRequestTagWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldRememberPathRequestTag(event.tagKeyPresent)
-            ? "remember"
-            : "skip",
-        },
-      ],
+          kind: shouldRememberPathRequestTag(event.tagKeyPresent) ? "remember" : "skip"
+        }
+      ]
     };
   }
 
@@ -280,13 +275,13 @@ export function stepRememberPathRequestTagWithActions(
 }
 
 export function shouldRememberPathRequestTagNow(
-  actions: ReadonlyArray<RememberPathRequestTagAction>,
+  actions: ReadonlyArray<RememberPathRequestTagAction>
 ): boolean {
   return actions.some((action) => action.kind === "remember");
 }
 
 export function shouldSkipRememberPathRequestTag(
-  actions: ReadonlyArray<RememberPathRequestTagAction>,
+  actions: ReadonlyArray<RememberPathRequestTagAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -311,7 +306,8 @@ export type UsePathForOutboundEvent =
     };
 
 export type UsePathForOutboundAction =
-  { readonly kind: "use" } | { readonly kind: "skip" };
+  | { readonly kind: "use" }
+  | { readonly kind: "skip" };
 
 export interface UsePathForOutboundStepResult {
   readonly state: UsePathForOutboundState;
@@ -325,7 +321,7 @@ export function initialUsePathForOutboundState(): UsePathForOutboundState {
 
 export function stepUsePathForOutboundWithActions(
   state: UsePathForOutboundState,
-  event: UsePathForOutboundEvent,
+  event: UsePathForOutboundEvent
 ): UsePathForOutboundStepResult {
   if (event.kind === "path/use-for-outbound-gate") {
     return {
@@ -333,9 +329,9 @@ export function stepUsePathForOutboundWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldUsePathForOutbound(event.pathPresent) ? "use" : "skip",
-        },
-      ],
+          kind: shouldUsePathForOutbound(event.pathPresent) ? "use" : "skip"
+        }
+      ]
     };
   }
 
@@ -343,13 +339,13 @@ export function stepUsePathForOutboundWithActions(
 }
 
 export function shouldUsePathForOutboundNow(
-  actions: ReadonlyArray<UsePathForOutboundAction>,
+  actions: ReadonlyArray<UsePathForOutboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "use");
 }
 
 export function shouldSkipUsePathForOutbound(
-  actions: ReadonlyArray<UsePathForOutboundAction>,
+  actions: ReadonlyArray<UsePathForOutboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -374,7 +370,8 @@ export type AnswerPathWithEntryEvent =
     };
 
 export type AnswerPathWithEntryAction =
-  { readonly kind: "answer" } | { readonly kind: "skip" };
+  | { readonly kind: "answer" }
+  | { readonly kind: "skip" };
 
 export interface AnswerPathWithEntryStepResult {
   readonly state: AnswerPathWithEntryState;
@@ -388,7 +385,7 @@ export function initialAnswerPathWithEntryState(): AnswerPathWithEntryState {
 
 export function stepAnswerPathWithEntryWithActions(
   state: AnswerPathWithEntryState,
-  event: AnswerPathWithEntryEvent,
+  event: AnswerPathWithEntryEvent
 ): AnswerPathWithEntryStepResult {
   if (event.kind === "path-request/answer-path-entry-gate") {
     return {
@@ -396,11 +393,9 @@ export function stepAnswerPathWithEntryWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAnswerPathWithEntry(event.pathPresent)
-            ? "answer"
-            : "skip",
-        },
-      ],
+          kind: shouldAnswerPathWithEntry(event.pathPresent) ? "answer" : "skip"
+        }
+      ]
     };
   }
 
@@ -408,13 +403,13 @@ export function stepAnswerPathWithEntryWithActions(
 }
 
 export function shouldAnswerPathWithEntryNow(
-  actions: ReadonlyArray<AnswerPathWithEntryAction>,
+  actions: ReadonlyArray<AnswerPathWithEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "answer");
 }
 
 export function shouldSkipAnswerPathWithEntry(
-  actions: ReadonlyArray<AnswerPathWithEntryAction>,
+  actions: ReadonlyArray<AnswerPathWithEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -439,7 +434,8 @@ export type TouchPathEntryEvent =
     };
 
 export type TouchPathEntryAction =
-  { readonly kind: "touch" } | { readonly kind: "skip" };
+  | { readonly kind: "touch" }
+  | { readonly kind: "skip" };
 
 export interface TouchPathEntryStepResult {
   readonly state: TouchPathEntryState;
@@ -453,7 +449,7 @@ export function initialTouchPathEntryState(): TouchPathEntryState {
 
 export function stepTouchPathEntryWithActions(
   state: TouchPathEntryState,
-  event: TouchPathEntryEvent,
+  event: TouchPathEntryEvent
 ): TouchPathEntryStepResult {
   if (event.kind === "path/touch-entry-gate") {
     return {
@@ -461,9 +457,9 @@ export function stepTouchPathEntryWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldTouchPathEntry(event.pathPresent) ? "touch" : "skip",
-        },
-      ],
+          kind: shouldTouchPathEntry(event.pathPresent) ? "touch" : "skip"
+        }
+      ]
     };
   }
 
@@ -471,7 +467,7 @@ export function stepTouchPathEntryWithActions(
 }
 
 export function shouldTouchPathEntryNow(
-  actions: ReadonlyArray<TouchPathEntryAction>,
+  actions: ReadonlyArray<TouchPathEntryAction>
 ): boolean {
   return actions.some((action) => action.kind === "touch");
 }

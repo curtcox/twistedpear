@@ -16,7 +16,7 @@ import {
   PACKET_HEADER_2,
   TRANSPORT_BROADCAST,
   TRANSPORT_ID_BYTES,
-  TRANSPORT_TRANSPORT,
+  TRANSPORT_TRANSPORT
 } from "../transport-framing.js";
 import { decodePacketRaw } from "./part-2.js";
 import type { PacketHeaderFields } from "./part-1.js";
@@ -44,7 +44,7 @@ export function initialDecodePacketRawState(): DecodePacketRawState {
 
 export function stepDecodePacketRawWithActions(
   state: DecodePacketRawState,
-  event: DecodePacketRawEvent,
+  event: DecodePacketRawEvent
 ): DecodePacketRawStepResult {
   if (event.kind === "packet-header/decode-gate") {
     const fields = decodePacketRaw(event.raw);
@@ -54,7 +54,7 @@ export function stepDecodePacketRawWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }],
+      actions: [{ kind: "use-fields", fields }]
     };
   }
 
@@ -62,20 +62,20 @@ export function stepDecodePacketRawWithActions(
 }
 
 export function shouldUseDecodePacketRaw(
-  actions: ReadonlyArray<DecodePacketRawAction>,
+  actions: ReadonlyArray<DecodePacketRawAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectDecodePacketRaw(
-  actions: ReadonlyArray<DecodePacketRawAction>,
+  actions: ReadonlyArray<DecodePacketRawAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract decoded packet header fields from step actions; null when no `use-fields`. */
 export function packetHeaderFieldsFromActions(
-  actions: ReadonlyArray<DecodePacketRawAction>,
+  actions: ReadonlyArray<DecodePacketRawAction>
 ): PacketHeaderFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

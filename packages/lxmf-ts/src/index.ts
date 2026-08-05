@@ -11,7 +11,7 @@ export {
   PropagationTransferState,
   DESTINATION_LENGTH,
   SIGNATURE_LENGTH,
-  LXMF_OVERHEAD,
+  LXMF_OVERHEAD
 } from "./constants.js";
 export type {
   FieldValue,
@@ -20,7 +20,7 @@ export type {
   LXMessageRepresentationValue,
   LXMessageStateValue,
   LXMessageUnverifiedReasonValue,
-  PropagationTransferStateValue,
+  PropagationTransferStateValue
 } from "./constants.js";
 export {
   LXMessage,
@@ -29,18 +29,11 @@ export {
   rememberMessage,
   messagesEqual,
   ENCRYPTED_PACKET_MAX_CONTENT,
-  LINK_PACKET_MAX_CONTENT,
+  LINK_PACKET_MAX_CONTENT
 } from "./message.js";
-export type {
-  LXMessagePackOptions,
-  LXMessageUnpackOptions,
-} from "./message.js";
+export type { LXMessagePackOptions, LXMessageUnpackOptions } from "./message.js";
 export { LXMFRouter, stampCostFromAppData } from "./router.js";
-export type {
-  DeliveryCallback,
-  DeliveryContext,
-  LXMFRouterOptions,
-} from "./router.js";
+export type { DeliveryCallback, DeliveryContext, LXMFRouterOptions } from "./router.js";
 export {
   DEFAULT_MULTIPART_BUDGET_BYTES,
   MAX_MULTIPART_BYTES,
@@ -51,17 +44,16 @@ export {
   sendMultipartPropagation,
   type MultipartCheckpoint,
   type MultipartCheckpointStore,
-  type MultipartReceiveResult,
+  type MultipartReceiveResult
 } from "./multipart.js";
-export { PropagationClient } from "./propagation.js";
-export type {
-  PropagationClientOptions,
-  PropagationSyncResult,
+export {
+  PropagationClient
 } from "./propagation.js";
+export type { PropagationClientOptions, PropagationSyncResult } from "./propagation.js";
 export {
   PropagationNodeStore,
   createPropagationDestination,
-  propagationDestinationForIdentity,
+  propagationDestinationForIdentity
 } from "./propagation-node.js";
 export {
   PropagationServer,
@@ -73,11 +65,11 @@ export {
   type PropagationServerTimer,
   type PropagationPersistence,
   type PropagationRemoteMirror,
-  type PropagationStoredEntry,
+  type PropagationStoredEntry
 } from "./propagation-server.js";
 export {
   msgpackPackPropagationEnvelope,
   msgpackPackPropagationRequest,
   msgpackUnpackPropagationEnvelope,
-  msgpackUnpackPropagationRequest,
+  msgpackUnpackPropagationRequest
 } from "./msgpack.js";

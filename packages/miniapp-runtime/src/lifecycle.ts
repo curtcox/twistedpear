@@ -1,11 +1,6 @@
-import type {
-  SandboxBackend,
-  SandboxInstance,
-  SandboxSpawnOptions,
-} from "./sandbox/backend.js";
+import type { SandboxBackend, SandboxInstance, SandboxSpawnOptions } from "./sandbox/backend.js";
 
-export type MiniappLifecycleState =
-  "installed" | "launching" | "running" | "suspended" | "stopped" | "crashed";
+export type MiniappLifecycleState = "installed" | "launching" | "running" | "suspended" | "stopped" | "crashed";
 
 export interface MiniappLifecycleSnapshot {
   readonly appId: string;
@@ -30,11 +25,8 @@ export class MiniappLifecycle {
 
   constructor(
     private readonly backend: SandboxBackend,
-    private readonly spawnOptions: Omit<
-      SandboxSpawnOptions,
-      "brokerEndpoint"
-    > & { readonly brokerEndpoint?: unknown },
-    private readonly options: LifecycleOptions,
+    private readonly spawnOptions: Omit<SandboxSpawnOptions, "brokerEndpoint"> & { readonly brokerEndpoint?: unknown },
+    private readonly options: LifecycleOptions
   ) {
     this.updatedAt = this.now();
   }
@@ -45,7 +37,7 @@ export class MiniappLifecycle {
       version: this.spawnOptions.version,
       state: this.state,
       reason: this.reason,
-      updatedAt: this.updatedAt,
+      updatedAt: this.updatedAt
     };
   }
 
@@ -57,7 +49,7 @@ export class MiniappLifecycle {
     this.transition("launching", null);
     this.instance = await this.backend.spawn({
       ...this.spawnOptions,
-      brokerEndpoint: this.spawnOptions.brokerEndpoint,
+      brokerEndpoint: this.spawnOptions.brokerEndpoint
     });
     this.transition("running", null);
     return this.snapshot();
@@ -65,11 +57,7 @@ export class MiniappLifecycle {
 
   async suspend(reason = "host-suspended"): Promise<MiniappLifecycleSnapshot> {
     if (this.instance !== null) {
-      await this.instance.postMessage({
-        type: "lifecycle",
-        state: "suspended",
-        reason,
-      });
+      await this.instance.postMessage({ type: "lifecycle", state: "suspended", reason });
     }
 
     this.transition("suspended", reason);
@@ -96,11 +84,7 @@ export class MiniappLifecycle {
     return this.snapshot();
   }
 
-  async deliverUiEvent(event: {
-    readonly nodeId: string;
-    readonly event: string;
-    readonly value?: unknown;
-  }): Promise<void> {
+  async deliverUiEvent(event: { readonly nodeId: string; readonly event: string; readonly value?: unknown }): Promise<void> {
     if (this.instance === null) {
       throw new Error("No sandbox instance is running");
     }
@@ -140,10 +124,7 @@ export class MiniappLifecycle {
     return this.snapshot();
   }
 
-  private transition(
-    state: MiniappLifecycleState,
-    reason: string | null,
-  ): void {
+  private transition(state: MiniappLifecycleState, reason: string | null): void {
     this.state = state;
     this.reason = reason;
     this.updatedAt = this.now();

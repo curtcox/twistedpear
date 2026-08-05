@@ -2,9 +2,7 @@ import type { SandboxBackend } from "./backend.js";
 import { BareWorkerSandboxBackend } from "./worker.js";
 import { NodeWorkerSandboxBackend } from "./node-worker.js";
 
-export function createSandboxBackend(
-  preferred?: "bare-worker" | "node-worker",
-): SandboxBackend {
+export function createSandboxBackend(preferred?: "bare-worker" | "node-worker"): SandboxBackend {
   if (preferred === "node-worker") {
     return new NodeWorkerSandboxBackend();
   }

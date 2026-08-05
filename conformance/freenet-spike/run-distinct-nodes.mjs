@@ -19,7 +19,7 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
-  writeFileSync,
+  writeFileSync
 } from "node:fs";
 import { createPrivateKey, createPublicKey, randomBytes } from "node:crypto";
 import { connect } from "node:net";
@@ -39,22 +39,22 @@ const binary =
 const wsPorts = [
   Number(process.env.FREENET_GATEWAY_WS_PORT ?? 17649),
   Number(process.env.FREENET_PUBLISHER_WS_PORT ?? 17650),
-  Number(process.env.FREENET_SUBSCRIBER_WS_PORT ?? 17651),
+  Number(process.env.FREENET_SUBSCRIBER_WS_PORT ?? 17651)
 ];
 const networkPorts = [
   Number(process.env.FREENET_GATEWAY_NETWORK_PORT ?? 31478),
   Number(process.env.FREENET_PUBLISHER_NETWORK_PORT ?? 31479),
-  Number(process.env.FREENET_SUBSCRIBER_NETWORK_PORT ?? 31480),
+  Number(process.env.FREENET_SUBSCRIBER_NETWORK_PORT ?? 31480)
 ];
 const settleMs = Number(process.env.FREENET_TOPOLOGY_SETTLE_MS ?? 15_000);
 const readyTimeoutMs = Number(
-  process.env.FREENET_TOPOLOGY_READY_TIMEOUT_MS ?? 60_000,
+  process.env.FREENET_TOPOLOGY_READY_TIMEOUT_MS ?? 60_000
 );
 
 for (const port of [...wsPorts, ...networkPorts]) {
   assert(
     Number.isSafeInteger(port) && port >= 1 && port <= 65535,
-    `Invalid Freenet distinct-node port: ${port}`,
+    `Invalid Freenet distinct-node port: ${port}`
   );
 }
 
@@ -71,7 +71,7 @@ function isolateHome() {
     homeRoot,
     "Library",
     "Application Support",
-    "The-Freenet-Project-Inc.Freenet",
+    "The-Freenet-Project-Inc.Freenet"
   );
   mkdirSync(support, { recursive: true });
   writeFileSync(join(support, "gateways.toml"), "gateways = []\n");
@@ -82,11 +82,11 @@ function x25519PublicKey(secret) {
   const privateKey = createPrivateKey({
     key: Buffer.concat([pkcs8Prefix, secret]),
     format: "der",
-    type: "pkcs8",
+    type: "pkcs8"
   });
   const publicDer = createPublicKey(privateKey).export({
     format: "der",
-    type: "spki",
+    type: "spki"
   });
   return Buffer.from(publicDer).subarray(-32);
 }
@@ -100,7 +100,7 @@ function nodeArgs(index) {
   const name = ["gateway", "publisher", "subscriber"][index];
   const nodeRoot = join(root, name);
   for (const directory of ["config", "data", "logs"].map((part) =>
-    join(nodeRoot, part),
+    join(nodeRoot, part)
   )) {
     mkdirSync(directory, { recursive: true });
   }
@@ -131,14 +131,14 @@ function nodeArgs(index) {
     join(nodeRoot, "logs"),
     "--log-level",
     "info",
-    "--disable-auto-update",
+    "--disable-auto-update"
   ];
   if (index === 0) {
     args.push("--is-gateway", "--transport-keypair", secretPath);
   } else {
     args.push(
       "--gateway",
-      `127.0.0.1:${networkPorts[0]},${gatewayPublicKey.toString("hex")}`,
+      `127.0.0.1:${networkPorts[0]},${gatewayPublicKey.toString("hex")}`
     );
   }
   return args;
@@ -149,9 +149,9 @@ function startNode(name, args) {
     env: {
       ...process.env,
       HOME: homeRoot,
-      FREENET_TELEMETRY_ENABLED: "false",
+      FREENET_TELEMETRY_ENABLED: "false"
     },
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["ignore", "pipe", "pipe"]
   });
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
@@ -188,8 +188,7 @@ function waitForPort(port, timeoutMs = 30_000) {
 }
 
 function waitForExit(child, timeoutMs) {
-  if (child.exitCode !== null || child.signalCode !== null)
-    return Promise.resolve();
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, timeoutMs);
     child.once("exit", () => {
@@ -216,13 +215,11 @@ async function stopNamed(name) {
 
 async function stopNodes() {
   for (const { child } of children) {
-    if (child.exitCode === null && child.signalCode === null)
-      child.kill("SIGINT");
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGINT");
   }
   await Promise.all(children.map(({ child }) => waitForExit(child, 5_000)));
   for (const { child } of children) {
-    if (child.exitCode === null && child.signalCode === null)
-      child.kill("SIGKILL");
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
   }
   await Promise.all(children.map(({ child }) => waitForExit(child, 1_000)));
   children.length = 0;
@@ -250,7 +247,7 @@ async function waitForGatewayPeers(minimumPeers, timeoutMs = readyTimeoutMs) {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(
-    `Gateway dashboard showed ${lastCount} peer row(s); wanted >= ${minimumPeers}`,
+    `Gateway dashboard showed ${lastCount} peer row(s); wanted >= ${minimumPeers}`
   );
 }
 
@@ -265,7 +262,7 @@ function subscriberUrl() {
 async function runNodeScript(script, env, label) {
   const child = spawn(process.execPath, [join(spikeRoot, script)], {
     env: { ...process.env, ...env },
-    stdio: "inherit",
+    stdio: "inherit"
   });
   const exitCode = await new Promise((resolve, reject) => {
     child.once("error", reject);
@@ -287,7 +284,7 @@ async function runNodeScriptWithRetry(script, env, label, attempts = 2) {
       lastError = error;
       if (attempt >= attempts) break;
       console.error(
-        `[freenet-distinct-nodes] ${label} attempt ${attempt} failed; retrying after settle`,
+        `[freenet-distinct-nodes] ${label} attempt ${attempt} failed; retrying after settle`
       );
       await new Promise((resolve) => setTimeout(resolve, 8_000));
       await waitForGatewayPeers(2, 30_000).catch(() => {});
@@ -326,7 +323,7 @@ await runMain(async () => {
     step(
       smoke
         ? "cross-node notify smoke (1 sample; not gate evidence)"
-        : "cross-node notify diagnostic series (incomplete label; not gate evidence)",
+        : "cross-node notify diagnostic series (incomplete label; not gate evidence)"
     );
     await runNodeScript(
       "measure-roundtrip.mjs",
@@ -337,9 +334,9 @@ await runMain(async () => {
           ? "local-distinct-smoke"
           : "local-distinct-cross-node",
         FREENET_SAMPLE_COUNT: smoke ? "1" : "10",
-        FREENET_ALLOW_INCOMPLETE: "1",
+        FREENET_ALLOW_INCOMPLETE: "1"
       },
-      "cross-node notify",
+      "cross-node notify"
     );
 
     step("F2 HDLC across distinct Freenet WebSocket endpoints");
@@ -348,9 +345,9 @@ await runMain(async () => {
       {
         FREENET_LEFT_NODE_URL: publisherUrl(),
         FREENET_RIGHT_NODE_URL: subscriberUrl(),
-        FREENET_F2_LABEL: "local-distinct-nodes",
+        FREENET_F2_LABEL: "local-distinct-nodes"
       },
-      "distinct-node F2 HDLC",
+      "distinct-node F2 HDLC"
     );
 
     step("F2 announce + LXMF across distinct Freenet WebSocket endpoints");
@@ -359,9 +356,9 @@ await runMain(async () => {
       {
         FREENET_LEFT_NODE_URL: publisherUrl(),
         FREENET_RIGHT_NODE_URL: subscriberUrl(),
-        FREENET_F2_LABEL: "local-distinct-nodes",
+        FREENET_F2_LABEL: "local-distinct-nodes"
       },
-      "distinct-node F2 announce+LXMF",
+      "distinct-node F2 announce+LXMF"
     );
 
     step("restart subscriber Freenet node and re-prove F2");
@@ -375,13 +372,13 @@ await runMain(async () => {
       {
         FREENET_LEFT_NODE_URL: publisherUrl(),
         FREENET_RIGHT_NODE_URL: subscriberUrl(),
-        FREENET_F2_LABEL: "local-distinct-nodes-after-restart",
+        FREENET_F2_LABEL: "local-distinct-nodes-after-restart"
       },
-      "F2 after subscriber restart",
+      "F2 after subscriber restart"
     );
 
     step(
-      "F3 publish on publisher / retrieve on subscriber after stopping publisher Freenet node",
+      "F3 publish on publisher / retrieve on subscriber after stopping publisher Freenet node"
     );
     // Let the ring settle after the F2 restart path before a fresh PUT.
     await new Promise((resolve) => setTimeout(resolve, 8_000));
@@ -392,7 +389,7 @@ await runMain(async () => {
     writeFileSync(
       stopPublisherHook,
       `#!/bin/sh\nkill -INT ${publisher.child.pid} 2>/dev/null || true\nsleep 2\n`,
-      { mode: 0o755 },
+      { mode: 0o755 }
     );
     await runNodeScriptWithRetry(
       "prove-f3-propagation.mjs",
@@ -400,23 +397,19 @@ await runMain(async () => {
         FREENET_PUBLISHER_NODE_URL: publisherUrl(),
         FREENET_SUBSCRIBER_NODE_URL: subscriberUrl(),
         FREENET_F3_LABEL: "local-distinct-nodes",
-        FREENET_F3_AFTER_PUBLISH_HOOK: stopPublisherHook,
+        FREENET_F3_AFTER_PUBLISH_HOOK: stopPublisherHook
       },
-      "distinct-node F3",
+      "distinct-node F3"
     );
     await stopNamed("publisher");
 
     console.log(
       "[freenet-distinct-nodes] B3 scenarios completed" +
-        (smoke
-          ? " (smoke; not gate evidence)"
-          : " (diagnostic notify; review before promoting)"),
+        (smoke ? " (smoke; not gate evidence)" : " (diagnostic notify; review before promoting)")
     );
   } catch (error) {
     for (const { name } of children) {
-      console.error(
-        `\n--- ${name} tail ---\n${tails.get(name) ?? "(no output)"}`,
-      );
+      console.error(`\n--- ${name} tail ---\n${tails.get(name) ?? "(no output)"}`);
     }
     throw error;
   } finally {

@@ -8,7 +8,11 @@
     "seedFrom": 1,
     "seedTo": 20,
     "changedDial": "interleaving-search-budget",
-    "unchanged": ["transport fidelity", "adversary powers", "coverage frame"]
+    "unchanged": [
+      "transport fidelity",
+      "adversary powers",
+      "coverage frame"
+    ]
   },
   "nextIncrement": {
     "rung": "L3",

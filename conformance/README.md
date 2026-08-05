@@ -1,5 +1,6 @@
 # Conformance Harness
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -49,21 +50,21 @@ Live interop scenarios are added per milestone under `conformance/scenarios`.
 
 ## Phase 3 distribution
 
-| Suite                       | Command                                                  | Milestone        |
-| --------------------------- | -------------------------------------------------------- | ---------------- |
-| Package format              | `npm test -- packages/app-registry/test/package.test.ts` | M0               |
-| Bare Hyperdrive             | `npm run test:bare-hyperdrive`                           | M1               |
-| Freenet F0/F1 probe         | `npm run test:freenet-spike`                             | Optional / gated |
-| Dist interop                | `npm run test:dist-interop`                              | M2/M3            |
-| Fetch strategy              | `npm test -- packages/bridge-hyper/test/fetch.test.ts`   | M4               |
-| CLI e2e                     | `npm run test:cli`                                       | M5               |
-| Harness install             | `npm run test:harness-install`                           | M7               |
-| Seeder                      | `npm run test:seeder`                                    | M6               |
-| Updates / rollback          | `npm run test:updates`                                   | M8               |
-| Size budgets                | `npm run test:budgets`                                   | M9               |
-| Distribution soak           | `npm run test:dist-soak`                                 | M9               |
-| Mixed-network two-peer soak | `npm run test:mixed-network-soak`                        | M9               |
-| End-to-end demo             | `npm run demo:phase3`                                    | M9               |
+| Suite | Command | Milestone |
+|---|---|---|
+| Package format | `npm test -- packages/app-registry/test/package.test.ts` | M0 |
+| Bare Hyperdrive | `npm run test:bare-hyperdrive` | M1 |
+| Freenet F0/F1 probe | `npm run test:freenet-spike` | Optional / gated |
+| Dist interop | `npm run test:dist-interop` | M2/M3 |
+| Fetch strategy | `npm test -- packages/bridge-hyper/test/fetch.test.ts` | M4 |
+| CLI e2e | `npm run test:cli` | M5 |
+| Harness install | `npm run test:harness-install` | M7 |
+| Seeder | `npm run test:seeder` | M6 |
+| Updates / rollback | `npm run test:updates` | M8 |
+| Size budgets | `npm run test:budgets` | M9 |
+| Distribution soak | `npm run test:dist-soak` | M9 |
+| Mixed-network two-peer soak | `npm run test:mixed-network-soak` | M9 |
+| End-to-end demo | `npm run demo:phase3` | M9 |
 
 ### Device lab runbook (Phase 3 §7)
 
@@ -82,40 +83,40 @@ exit checklist before closing Phase 3.
 
 ## Phase 4 mini-app runtime
 
-| Suite                         | Command                                                       | Milestone |
-| ----------------------------- | ------------------------------------------------------------- | --------- |
-| UI golden (render model)      | `npm test -- packages/miniapp-runtime/test/ui-golden.test.ts` | M4        |
-| Hostile apps                  | `npm run test:hostile-apps`                                   | M2        |
-| SDK interop                   | `npm run test:sdk-interop`                                    | M3        |
-| Dev loop                      | `npm run test:dev-loop`                                       | M6        |
-| Example apps                  | `npm run test:examples`                                       | M7        |
-| Mini-app soak                 | `npm run test:miniapp-soak`                                   | M8        |
-| Isolation benchmark (desktop) | `npm run test:miniapp-benchmark`                              | M0        |
-| Phase 4 demo                  | `npm run demo:phase4`                                         | M8        |
-| DevStudio two-instance loop   | `npm run test:devstudio-loop`                                 | —         |
+| Suite | Command | Milestone |
+|---|---|---|
+| UI golden (render model) | `npm test -- packages/miniapp-runtime/test/ui-golden.test.ts` | M4 |
+| Hostile apps | `npm run test:hostile-apps` | M2 |
+| SDK interop | `npm run test:sdk-interop` | M3 |
+| Dev loop | `npm run test:dev-loop` | M6 |
+| Example apps | `npm run test:examples` | M7 |
+| Mini-app soak | `npm run test:miniapp-soak` | M8 |
+| Isolation benchmark (desktop) | `npm run test:miniapp-benchmark` | M0 |
+| Phase 4 demo | `npm run demo:phase4` | M8 |
+| DevStudio two-instance loop | `npm run test:devstudio-loop` | — |
 
 Peer-to-peer example interop (two sandboxed apps on two hosts) and 24 h launch/suspend/kill
 soak are nightly/device-gated per [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H9–H11).
 
 ## Phase 5 iOS host
 
-| Suite                           | Command                                                                             | Milestone |
-| ------------------------------- | ----------------------------------------------------------------------------------- | --------- |
-| iOS simulator toolchain smoke   | `npm run test:ios-sim:required` on macOS CI                                         | M0        |
-| iOS TCP slice vs Python RNS     | `IOS_SIM_TCP_REQUIRED=1 npm run test:ios-sim:required` with `leaf-echo` docker peer | M0        |
-| iOS full host loop              | `conformance/ios-sim/full-loop.mjs` in `test:ios-sim`                               | M1        |
-| iOS lifecycle quiesce/reconnect | `conformance/ios-sim/lifecycle.mjs` in `test:ios-sim` (requires `leaf-echo`)        | M2        |
-| USB serial iOS probe            | `conformance/ios-sim/usb-probe.mjs` in `test:ios-sim`                               | M1        |
-| Discovery provider policy       | `npm test -- packages/reticulum-interfaces/test/auto-discovery.test.ts`             | M3        |
-| Bonjour Node ⇄ Bare interop     | `npm run test:bonjour-interop`                                                      | M3        |
-| Store posture refusal           | exercised by `conformance/ios-sim/store-posture.mjs` in `test:ios-sim`              | M5        |
-| Store posture bundle guard      | `TWISTEDPEAR_STORE_POSTURE=store npm run build:worklet`                             | M5        |
-| iOS simulator soak              | `npm run test:ios-soak:required` nightly with `leaf-echo`                           | M6        |
-| iOS dev loop                    | `conformance/ios-sim/dev-loop.mjs` in `test:ios-sim`                                | M1        |
-| iOS hostile smoke               | `conformance/ios-sim/hostile-smoke.mjs` in `test:ios-sim`                           | M1        |
-| iOS interface policy            | `conformance/ios-sim/interface-policy.mjs` in `test:ios-sim`                        | M6        |
-| iOS crypto decision             | `conformance/ios-sim/crypto-benchmark.mjs` in `test:ios-sim`                        | M0        |
-| Phase 5 demo                    | `npm run demo:phase5`                                                               | M6        |
+| Suite | Command | Milestone |
+|---|---|---|
+| iOS simulator toolchain smoke | `npm run test:ios-sim:required` on macOS CI | M0 |
+| iOS TCP slice vs Python RNS | `IOS_SIM_TCP_REQUIRED=1 npm run test:ios-sim:required` with `leaf-echo` docker peer | M0 |
+| iOS full host loop | `conformance/ios-sim/full-loop.mjs` in `test:ios-sim` | M1 |
+| iOS lifecycle quiesce/reconnect | `conformance/ios-sim/lifecycle.mjs` in `test:ios-sim` (requires `leaf-echo`) | M2 |
+| USB serial iOS probe | `conformance/ios-sim/usb-probe.mjs` in `test:ios-sim` | M1 |
+| Discovery provider policy | `npm test -- packages/reticulum-interfaces/test/auto-discovery.test.ts` | M3 |
+| Bonjour Node ⇄ Bare interop | `npm run test:bonjour-interop` | M3 |
+| Store posture refusal | exercised by `conformance/ios-sim/store-posture.mjs` in `test:ios-sim` | M5 |
+| Store posture bundle guard | `TWISTEDPEAR_STORE_POSTURE=store npm run build:worklet` | M5 |
+| iOS simulator soak | `npm run test:ios-soak:required` nightly with `leaf-echo` | M6 |
+| iOS dev loop | `conformance/ios-sim/dev-loop.mjs` in `test:ios-sim` | M1 |
+| iOS hostile smoke | `conformance/ios-sim/hostile-smoke.mjs` in `test:ios-sim` | M1 |
+| iOS interface policy | `conformance/ios-sim/interface-policy.mjs` in `test:ios-sim` | M6 |
+| iOS crypto decision | `conformance/ios-sim/crypto-benchmark.mjs` in `test:ios-sim` | M0 |
+| Phase 5 demo | `npm run demo:phase5` | M6 |
 
 `npm run test:ios-sim` skips on non-macOS hosts. CI jobs that are meant to validate
 the simulator lane use `test:ios-sim:required` so missing Xcode or simulator runtime is
@@ -150,16 +151,16 @@ document. Record results in the phase exit checklist before closing Phase 4.
 
 ## Phase 6 desktop host
 
-| Suite                                        | Command                                      | Milestone |
-| -------------------------------------------- | -------------------------------------------- | --------- |
-| Desktop smoke                                | `npm run test:desktop`                       | M0/M4/M6  |
-| Widget parity (RN ⇄ DOM contract)            | `npm run test:widget-parity`                 | M4        |
-| Desktop soak slice                           | `npm run test:desktop-soak`                  | M7        |
-| Transport role vs Python leaf + two-leaf hub | `INTEROP=1 npm run test:transport-role`      | M1        |
-| rnsd attach mode                             | `INTEROP=1 npm run test:rnsd-mode`           | M5        |
-| Propagation interop                          | `INTEROP=1 npm run test:propagation-interop` | M3        |
-| host-core unit tests                         | `npm test -- packages/host-core/test`        | M0        |
-| Phase 6 demo                                 | `npm run demo:phase6`                        | M7        |
+| Suite | Command | Milestone |
+|---|---|---|
+| Desktop smoke | `npm run test:desktop` | M0/M4/M6 |
+| Widget parity (RN ⇄ DOM contract) | `npm run test:widget-parity` | M4 |
+| Desktop soak slice | `npm run test:desktop-soak` | M7 |
+| Transport role vs Python leaf + two-leaf hub | `INTEROP=1 npm run test:transport-role` | M1 |
+| rnsd attach mode | `INTEROP=1 npm run test:rnsd-mode` | M5 |
+| Propagation interop | `INTEROP=1 npm run test:propagation-interop` | M3 |
+| host-core unit tests | `npm test -- packages/host-core/test` | M0 |
+| Phase 6 demo | `npm run demo:phase6` | M7 |
 
 CI runs `desktop-smoke` on every push; `desktop-interop` runs transport/rnsd/propagation
 suites against dockerized Python peers when `INTEROP=1`.

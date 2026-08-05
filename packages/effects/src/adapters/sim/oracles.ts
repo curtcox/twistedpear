@@ -26,7 +26,7 @@ export interface GrantCoverageView {
 }
 
 export function grantCoverageOracle<S>(
-  project: (state: S, node: NodeId) => GrantCoverageView,
+  project: (state: S, node: NodeId) => GrantCoverageView
 ): Oracle<S> {
   return {
     name: "grant-coverage",
@@ -39,15 +39,13 @@ export function grantCoverageOracle<S>(
         for (const blob of view.storedBlobIds) stored.push({ node, blob });
       }
       const uncovered = stored.filter(({ blob }) => !live.has(blob));
-      return uncovered.length === 0
-        ? null
-        : {
-            oracle: "grant-coverage",
-            message: `stored blobs lack a live grant: ${uncovered.map(({ blob }) => blob).join(", ")}`,
-            nodes: [...new Set(uncovered.map(({ node }) => node))],
-            details: { blobIds: uncovered.map(({ blob }) => blob) },
-          };
-    },
+      return uncovered.length === 0 ? null : {
+        oracle: "grant-coverage",
+        message: `stored blobs lack a live grant: ${uncovered.map(({ blob }) => blob).join(", ")}`,
+        nodes: [...new Set(uncovered.map(({ node }) => node))],
+        details: { blobIds: uncovered.map(({ blob }) => blob) }
+      };
+    }
   };
 }
 
@@ -58,7 +56,7 @@ export interface GrantIdentity {
 }
 
 export function idUniquenessOracle<S>(
-  grants: (state: S, node: NodeId) => readonly GrantIdentity[],
+  grants: (state: S, node: NodeId) => readonly GrantIdentity[]
 ): Oracle<S> {
   return {
     name: "id-uniqueness",
@@ -72,17 +70,14 @@ export function idUniquenessOracle<S>(
               oracle: "id-uniqueness",
               message: `distinct grants share id ${grant.id}`,
               nodes: [prior.node, node],
-              details: {
-                id: grant.id,
-                fingerprints: [prior.fingerprint, grant.fingerprint],
-              },
+              details: { id: grant.id, fingerprints: [prior.fingerprint, grant.fingerprint] }
             };
           }
           seen.set(grant.id, { fingerprint: grant.fingerprint, node });
         }
       }
       return null;
-    },
+    }
   };
 }
 
@@ -93,7 +88,7 @@ export interface GrantAuthorization {
 }
 
 export function revocationMonotonicityOracle<S>(
-  grants: (state: S, node: NodeId) => readonly GrantAuthorization[],
+  grants: (state: S, node: NodeId) => readonly GrantAuthorization[]
 ): Oracle<S> {
   return {
     name: "revocation-monotonicity",
@@ -101,24 +96,18 @@ export function revocationMonotonicityOracle<S>(
       for (const [node, state] of world.nodes) {
         for (const grant of grants(state, node)) {
           if (grant.revokedAt === undefined) continue;
-          const accessAt = grant.accessTimes.find(
-            (at) => at > grant.revokedAt!,
-          );
+          const accessAt = grant.accessTimes.find((at) => at > grant.revokedAt!);
           if (accessAt !== undefined) {
             return {
               oracle: "revocation-monotonicity",
               message: `revoked grant ${grant.id} authorized access at ${accessAt}`,
               nodes: [node],
-              details: {
-                grantId: grant.id,
-                revokedAt: grant.revokedAt,
-                accessAt,
-              },
+              details: { grantId: grant.id, revokedAt: grant.revokedAt, accessAt }
             };
           }
         }
       }
       return null;
-    },
+    }
   };
 }

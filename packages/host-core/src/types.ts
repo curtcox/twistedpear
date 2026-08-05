@@ -1,17 +1,9 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import {
-  DEFAULT_WEB_LEAF_ROLES,
-  assertWebLeafRoles,
-  type WebLeafHostStatus,
-} from "./leaf-roles.js";
+import { DEFAULT_WEB_LEAF_ROLES, assertWebLeafRoles, type WebLeafHostStatus } from "./leaf-roles.js";
 import type { DropCensusCounts } from "./drop-census.js";
 
-export {
-  DEFAULT_WEB_LEAF_ROLES,
-  assertWebLeafRoles,
-  type WebLeafHostStatus,
-} from "./leaf-roles.js";
+export { DEFAULT_WEB_LEAF_ROLES, assertWebLeafRoles, type WebLeafHostStatus } from "./leaf-roles.js";
 export type { DropCensusCounts, DropCensusKey } from "./drop-census.js";
 export { createDropCensus, dropCensusKey } from "./drop-census.js";
 
@@ -36,10 +28,7 @@ export interface RnsdAttachConfig {
 
 export type InterfaceDirection = "tx" | "rx" | "both";
 
-export function interfaceDirectionFlags(direction: InterfaceDirection): {
-  incoming: boolean;
-  outgoing: boolean;
-} {
+export function interfaceDirectionFlags(direction: InterfaceDirection): { incoming: boolean; outgoing: boolean } {
   return direction === "tx"
     ? { incoming: false, outgoing: true }
     : direction === "rx"
@@ -149,17 +138,7 @@ export interface HostInterfaceConfig {
 
 export type RelayMode = "off" | "bridge" | "transport-node";
 
-export type RelayInterfaceKind =
-  | "tcp"
-  | "websocket"
-  | "auto"
-  | "i2p"
-  | "rnode"
-  | "bluetooth"
-  | "optical"
-  | "acoustic"
-  | "ntfy"
-  | "freenet";
+export type RelayInterfaceKind = "tcp" | "websocket" | "auto" | "i2p" | "rnode" | "bluetooth" | "optical" | "acoustic" | "ntfy" | "freenet";
 
 export interface RelayPolicyEntry {
   readonly from: RelayInterfaceKind;
@@ -250,78 +229,45 @@ export const DEFAULT_QUOTAS: HostQuotas = {
   seedStorageBytes: 2 * 1024 * 1024 * 1024,
   propagationStoreBytes: 256 * 1024 * 1024,
   propagationMessageCount: 10_000,
-  bandwidthBytesPerSecond: 512 * 1024,
+  bandwidthBytesPerSecond: 512 * 1024
 };
 
 export const DEFAULT_DESKTOP_ROLES: HostRoleConfig = {
   transport: true,
   seeder: true,
   propagation: false,
-  attachRnsd: null,
+  attachRnsd: null
 };
 
 export const DEFAULT_RELAY_CONFIG: HostRelayConfig = {
-  mode: "off",
+  mode: "off"
 };
 
 export const DEFAULT_INTERFACE_CONFIG: HostInterfaceConfig = {
-  tcp: {
-    enabled: false,
-    mode: "client",
-    targetHost: "127.0.0.1",
-    targetPort: 4242,
-    direction: "both",
-    relay: true,
-  },
-  websocket: {
-    enabled: false,
-    listenHost: "127.0.0.1",
-    listenPort: 9480,
-    direction: "both",
-    relay: true,
-  },
-  auto: {
-    enabled: true,
-    multicast: true,
-    bonjour: true,
-    direction: "both",
-    relay: true,
-  },
+  tcp: { enabled: false, mode: "client", targetHost: "127.0.0.1", targetPort: 4242, direction: "both", relay: true },
+  websocket: { enabled: false, listenHost: "127.0.0.1", listenPort: 9480, direction: "both", relay: true },
+  auto: { enabled: true, multicast: true, bonjour: true, direction: "both", relay: true },
   i2p: { enabled: false, direction: "both", relay: true },
   rnode: { enabled: false, baudRate: 115_200, direction: "both", relay: true },
   bluetooth: { enabled: false, direction: "both", relay: true },
   optical: { enabled: false, direction: "both", relay: true },
   acoustic: { enabled: false, direction: "both", relay: true },
   ntfy: { enabled: false, direction: "both", relay: true },
-  freenet: { enabled: false, direction: "both", relay: true },
+  freenet: { enabled: false, direction: "both", relay: true }
 };
 
-export function defaultHostDataDir(
-  platform: NodeJS.Platform = process.platform,
-): string {
+export function defaultHostDataDir(platform: NodeJS.Platform = process.platform): string {
   switch (platform) {
     case "darwin":
-      return join(
-        homedir(),
-        "Library",
-        "Application Support",
-        "TwistedPear",
-        "host",
-      );
+      return join(homedir(), "Library", "Application Support", "TwistedPear", "host");
     case "win32":
-      return join(
-        process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"),
-        "TwistedPear",
-        "host",
-      );
+      return join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "TwistedPear", "host");
     default:
       return join(homedir(), ".local", "share", "twistedpear", "host");
   }
 }
 
-export function defaultHostConfig(
-  overrides: HostConfigOverrides = {},
-): HostConfig {
+export function defaultHostConfig(overrides: HostConfigOverrides = {}): HostConfig {
   const dataDir = overrides.dataDir ?? defaultHostDataDir();
   const baseInterfaces = DEFAULT_INTERFACE_CONFIG;
   return {
@@ -332,37 +278,25 @@ export function defaultHostConfig(
     relay: { ...DEFAULT_RELAY_CONFIG, ...overrides.relay },
     interfaces: {
       tcp: { ...baseInterfaces.tcp, ...overrides.interfaces?.tcp },
-      websocket: {
-        ...baseInterfaces.websocket,
-        ...overrides.interfaces?.websocket,
-      },
+      websocket: { ...baseInterfaces.websocket, ...overrides.interfaces?.websocket },
       auto: { ...baseInterfaces.auto, ...overrides.interfaces?.auto },
       i2p: { ...baseInterfaces.i2p, ...overrides.interfaces?.i2p },
       rnode: { ...baseInterfaces.rnode, ...overrides.interfaces?.rnode },
-      bluetooth: {
-        ...baseInterfaces.bluetooth,
-        ...overrides.interfaces?.bluetooth,
-      },
+      bluetooth: { ...baseInterfaces.bluetooth, ...overrides.interfaces?.bluetooth },
       optical: { ...baseInterfaces.optical, ...overrides.interfaces?.optical },
-      acoustic: {
-        ...baseInterfaces.acoustic,
-        ...overrides.interfaces?.acoustic,
-      },
+      acoustic: { ...baseInterfaces.acoustic, ...overrides.interfaces?.acoustic },
       ntfy: { ...baseInterfaces.ntfy, ...overrides.interfaces?.ntfy },
-      freenet: { ...baseInterfaces.freenet, ...overrides.interfaces?.freenet },
+      freenet: { ...baseInterfaces.freenet, ...overrides.interfaces?.freenet }
     },
     quotas: { ...DEFAULT_QUOTAS, ...overrides.quotas },
     statusEndpoint: overrides.statusEndpoint ?? false,
-    statusEndpointPort:
-      overrides.statusEndpointPort ?? DEFAULT_STATUS_ENDPOINT_PORT,
+    statusEndpointPort: overrides.statusEndpointPort ?? DEFAULT_STATUS_ENDPOINT_PORT,
     testAgent: overrides.testAgent ?? null,
-    ai: overrides.ai ?? null,
+    ai: overrides.ai ?? null
   };
 }
 
-export function defaultWebLeafConfig(
-  overrides: HostConfigOverrides = {},
-): HostConfig {
+export function defaultWebLeafConfig(overrides: HostConfigOverrides = {}): HostConfig {
   return defaultHostConfig({
     ...overrides,
     roles: { ...DEFAULT_WEB_LEAF_ROLES, ...overrides.roles },
@@ -370,20 +304,15 @@ export function defaultWebLeafConfig(
     interfaces: {
       tcp: { enabled: false, mode: "client", ...overrides.interfaces?.tcp },
       websocket: { enabled: false, ...overrides.interfaces?.websocket },
-      auto: {
-        enabled: false,
-        multicast: false,
-        bonjour: false,
-        ...overrides.interfaces?.auto,
-      },
+      auto: { enabled: false, multicast: false, bonjour: false, ...overrides.interfaces?.auto },
       i2p: { enabled: false, ...overrides.interfaces?.i2p },
       rnode: { enabled: false, ...overrides.interfaces?.rnode },
       bluetooth: { enabled: false, ...overrides.interfaces?.bluetooth },
       optical: { enabled: false, ...overrides.interfaces?.optical },
       acoustic: { enabled: false, ...overrides.interfaces?.acoustic },
       ntfy: { enabled: false, ...overrides.interfaces?.ntfy },
-      freenet: { enabled: false, ...overrides.interfaces?.freenet },
-    },
+      freenet: { enabled: false, ...overrides.interfaces?.freenet }
+    }
   });
 }
 

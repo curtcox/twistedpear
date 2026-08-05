@@ -4,7 +4,7 @@
 
 const probeTape = [
   { kind: "start", at: 0 },
-  { kind: "tick", at: 10 },
+  { kind: "tick", at: 10 }
 ];
 
 let leakedCounter = 0;
@@ -16,41 +16,29 @@ export const machines = {
       event.kind === "tick"
         ? {
             state: { readings: state.readings + 1 },
-            intents: [
-              { kind: "log", level: "debug", message: `now=${Date.now()}` },
-            ],
+            intents: [{ kind: "log", level: "debug", message: `now=${Date.now()}` }]
           }
         : { state, intents: [] },
-    tape: probeTape,
+    tape: probeTape
   },
   "canary-ambient-randomness": {
     initial: null,
     step: (state, event) =>
       event.kind === "tick"
-        ? {
-            state,
-            intents: [
-              { kind: "need_entropy", nbytes: Math.random() > 0.5 ? 1 : 2 },
-            ],
-          }
+        ? { state, intents: [{ kind: "need_entropy", nbytes: Math.random() > 0.5 ? 1 : 2 }] }
         : { state, intents: [] },
-    tape: probeTape,
+    tape: probeTape
   },
   "canary-nondeterministic": {
     initial: null,
     step: (state, event) => {
       if (event.kind === "tick") {
         leakedCounter += 1;
-        return {
-          state,
-          intents: [
-            { kind: "log", level: "debug", message: `run=${leakedCounter}` },
-          ],
-        };
+        return { state, intents: [{ kind: "log", level: "debug", message: `run=${leakedCounter}` }] };
       }
       return { state, intents: [] };
     },
-    tape: probeTape,
+    tape: probeTape
   },
   "canary-input-mutator": {
     initial: { seen: [] },
@@ -61,7 +49,7 @@ export const machines = {
       }
       return { state, intents: [] };
     },
-    tape: probeTape,
+    tape: probeTape
   },
   "canary-invented-intent": {
     initial: null,
@@ -69,8 +57,8 @@ export const machines = {
       event.kind === "tick"
         ? { state, intents: [{ kind: "teleport", destination: "b" }] }
         : { state, intents: [] },
-    tape: probeTape,
-  },
+    tape: probeTape
+  }
 };
 
 export const EXPECTED_FAILURE = {
@@ -78,5 +66,5 @@ export const EXPECTED_FAILURE = {
   "canary-ambient-randomness": "tripwire",
   "canary-nondeterministic": "determinism",
   "canary-input-mutator": "frozen-input",
-  "canary-invented-intent": "alphabet",
+  "canary-invented-intent": "alphabet"
 };

@@ -6,7 +6,7 @@ import {
   shouldUseStampCostFromAppData,
   stampCostFromActions,
   stampCostFromAppData,
-  stepStampCostFromAppDataWithActions,
+  stepStampCostFromAppDataWithActions
 } from "../src/stamp-cost.js";
 
 describe("protocol stamp cost", () => {
@@ -23,24 +23,18 @@ describe("protocol stamp cost", () => {
 
   it("extracts via use-fields actions", () => {
     const appData = msgpackPackArray([msgpackPackUInt(0), msgpackPackUInt(7)]);
-    const ok = stepStampCostFromAppDataWithActions(
-      initialStampCostFromAppDataState(),
-      {
-        kind: "lxmf/stamp-cost-gate",
-        appData,
-      },
-    );
+    const ok = stepStampCostFromAppDataWithActions(initialStampCostFromAppDataState(), {
+      kind: "lxmf/stamp-cost-gate",
+      appData
+    });
     expect(shouldUseStampCostFromAppData(ok.actions)).toBe(true);
     expect(shouldRejectStampCostFromAppData(ok.actions)).toBe(false);
     expect(stampCostFromActions(ok.actions)).toBe(7);
 
-    const rejected = stepStampCostFromAppDataWithActions(
-      initialStampCostFromAppDataState(),
-      {
-        kind: "lxmf/stamp-cost-gate",
-        appData: null,
-      },
-    );
+    const rejected = stepStampCostFromAppDataWithActions(initialStampCostFromAppDataState(), {
+      kind: "lxmf/stamp-cost-gate",
+      appData: null
+    });
     expect(shouldRejectStampCostFromAppData(rejected.actions)).toBe(true);
     expect(stampCostFromActions(rejected.actions)).toBeNull();
   });

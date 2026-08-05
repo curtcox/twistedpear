@@ -13,10 +13,7 @@ export function initialEchoState(): EchoState {
   return { inbox: [], pendingAcks: [] };
 }
 
-export function stepEcho(
-  state: EchoState,
-  event: Event,
-): StepResult<EchoState> {
+export function stepEcho(state: EchoState, event: Event): StepResult<EchoState> {
   if (event.kind === "start") {
     return { state, intents: [] };
   }
@@ -27,7 +24,7 @@ export function stepEcho(
     if (text.startsWith("echo:")) {
       return {
         state: { ...state, inbox: [...state.inbox, text] },
-        intents: [],
+        intents: []
       };
     }
     const ackId = `ack:${event.source}:${state.inbox.length}`;
@@ -37,20 +34,20 @@ export function stepEcho(
         send: {
           channel: event.channel,
           destination: event.source,
-          payload: encodeUtf8(`echo:${text}`),
-        },
+          payload: encodeUtf8(`echo:${text}`)
+        }
       },
       {
         kind: "timer/set",
-        timer: { id: ackId, delayMs: 10 },
-      },
+        timer: { id: ackId, delayMs: 10 }
+      }
     ];
     return {
       state: {
         inbox: [...state.inbox, text],
-        pendingAcks: [...state.pendingAcks, ackId],
+        pendingAcks: [...state.pendingAcks, ackId]
       },
-      intents,
+      intents
     };
   }
 
@@ -62,9 +59,9 @@ export function stepEcho(
         {
           kind: "log",
           level: "debug",
-          message: `ack-complete:${event.id}`,
-        },
-      ],
+          message: `ack-complete:${event.id}`
+        }
+      ]
     };
   }
 

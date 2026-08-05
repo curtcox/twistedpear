@@ -22,7 +22,7 @@ import {
   stepComputeKeepaliveWithActions,
   stepComputeLinkEstablishmentTimeoutWithActions,
   stepComputeLinkRequestTimeoutWithActions,
-  stepLinkWatchdogWithActions,
+  stepLinkWatchdogWithActions
 } from "../src/link-watchdog.js";
 
 describe("protocol link watchdog", () => {
@@ -32,24 +32,16 @@ describe("protocol link watchdog", () => {
   });
 
   it("emits keepalive only from use-keepalive actions", () => {
-    const stepped = stepComputeKeepaliveWithActions(
-      initialComputeKeepaliveState(),
-      {
-        kind: "link/keepalive-gate",
-        rtt: 1.0,
-      },
-    );
+    const stepped = stepComputeKeepaliveWithActions(initialComputeKeepaliveState(), {
+      kind: "link/keepalive-gate",
+      rtt: 1.0
+    });
     expect(shouldUseLinkKeepalive(stepped.actions)).toBe(true);
-    expect(linkKeepaliveFromActions(stepped.actions)).toBe(
-      computeKeepalive(1.0),
-    );
+    expect(linkKeepaliveFromActions(stepped.actions)).toBe(computeKeepalive(1.0));
 
-    const empty = stepComputeKeepaliveWithActions(
-      initialComputeKeepaliveState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepComputeKeepaliveWithActions(initialComputeKeepaliveState(), {
+      kind: "noop"
+    } as never);
     expect(shouldUseLinkKeepalive(empty.actions)).toBe(false);
     expect(linkKeepaliveFromActions(empty.actions)).toBeNull();
   });
@@ -65,17 +57,17 @@ describe("protocol link watchdog", () => {
       initialComputeLinkEstablishmentTimeoutState(),
       {
         kind: "link/establishment-timeout-gate",
-        hops: 3,
-      },
+        hops: 3
+      }
     );
     expect(shouldUseLinkEstablishmentTimeout(stepped.actions)).toBe(true);
     expect(linkEstablishmentTimeoutFromActions(stepped.actions)).toBe(
-      computeLinkEstablishmentTimeout(3),
+      computeLinkEstablishmentTimeout(3)
     );
 
     const empty = stepComputeLinkEstablishmentTimeoutWithActions(
       initialComputeLinkEstablishmentTimeoutState(),
-      { kind: "noop" } as never,
+      { kind: "noop" } as never
     );
     expect(shouldUseLinkEstablishmentTimeout(empty.actions)).toBe(false);
     expect(linkEstablishmentTimeoutFromActions(empty.actions)).toBeNull();
@@ -83,7 +75,7 @@ describe("protocol link watchdog", () => {
 
   it("computes link request timeout from rtt", () => {
     expect(computeLinkRequestTimeout(1)).toBe(
-      LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125,
+      LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125
     );
   });
 
@@ -92,17 +84,15 @@ describe("protocol link watchdog", () => {
       initialComputeLinkRequestTimeoutState(),
       {
         kind: "link/request-timeout-gate",
-        rtt: 1,
-      },
+        rtt: 1
+      }
     );
     expect(shouldUseLinkRequestTimeout(stepped.actions)).toBe(true);
-    expect(linkRequestTimeoutFromActions(stepped.actions)).toBe(
-      computeLinkRequestTimeout(1),
-    );
+    expect(linkRequestTimeoutFromActions(stepped.actions)).toBe(computeLinkRequestTimeout(1));
 
     const empty = stepComputeLinkRequestTimeoutWithActions(
       initialComputeLinkRequestTimeoutState(),
-      { kind: "noop" } as never,
+      { kind: "noop" } as never
     );
     expect(shouldUseLinkRequestTimeout(empty.actions)).toBe(false);
     expect(linkRequestTimeoutFromActions(empty.actions)).toBeNull();
@@ -116,131 +106,88 @@ describe("protocol link watchdog", () => {
   });
 
   it("closes pending links after establishment timeout", () => {
-    let state = initialLinkWatchdogState({
-      initiator: true,
-      requestTime: 100,
-      establishmentTimeout: 10,
-    });
+    let state = initialLinkWatchdogState({ initiator: true, requestTime: 100, establishmentTimeout: 10 });
     const tick = stepLinkWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "link-watchdog",
-      at: 110_000,
+      at: 110_000
     });
-    expect(tick.actions).toEqual([
-      { kind: "close", reason: LinkTeardownReason.TIMEOUT },
-    ]);
+    expect(tick.actions).toEqual([{ kind: "close", reason: LinkTeardownReason.TIMEOUT }]);
     expect(tick.state.status).toBe(LinkStatus.CLOSED);
   });
 
   it("reschedules before establishment timeout elapses", () => {
-    const state = initialLinkWatchdogState({
-      initiator: true,
-      requestTime: 100,
-      establishmentTimeout: 10,
-    });
+    const state = initialLinkWatchdogState({ initiator: true, requestTime: 100, establishmentTimeout: 10 });
     const tick = stepLinkWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "link-watchdog",
-      at: 105_000,
+      at: 105_000
     });
     expect(tick.actions).toEqual([]);
     expect(tick.intents[0]?.kind).toBe("timer/set");
-    expect(
-      tick.intents[0]?.kind === "timer/set" ? tick.intents[0].timer.delayMs : 0,
-    ).toBe(5000);
+    expect(tick.intents[0]?.kind === "timer/set" ? tick.intents[0].timer.delayMs : 0).toBe(5000);
   });
 
   it("marks active links stale and eventually tears down", () => {
-    let state = initialLinkWatchdogState({
-      initiator: true,
-      requestTime: 0,
-      establishmentTimeout: 5,
-    });
+    let state = initialLinkWatchdogState({ initiator: true, requestTime: 0, establishmentTimeout: 5 });
     state = stepLinkWatchdogWithActions(state, {
       kind: "link/status",
       status: LinkStatus.ACTIVE,
-      activatedAt: 0,
+      activatedAt: 0
     }).state;
-    state = stepLinkWatchdogWithActions(state, {
-      kind: "link/rtt-measured",
-      rtt: 1.0,
-    }).state;
-    state = stepLinkWatchdogWithActions(state, {
-      kind: "link/inbound",
-      at: 0,
-    }).state;
+    state = stepLinkWatchdogWithActions(state, { kind: "link/rtt-measured", rtt: 1.0 }).state;
+    state = stepLinkWatchdogWithActions(state, { kind: "link/inbound", at: 0 }).state;
 
     const staleAt = state.keepalive + state.staleTime + 1;
     const stale = stepLinkWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "link-watchdog",
-      at: staleAt * 1000,
+      at: staleAt * 1000
     });
-    expect(stale.actions.some((action) => action.kind === "mark-stale")).toBe(
-      true,
-    );
+    expect(stale.actions.some((action) => action.kind === "mark-stale")).toBe(true);
     expect(stale.state.status).toBe(LinkStatus.STALE);
 
     const closed = stepLinkWatchdogWithActions(stale.state, {
       kind: "timer/fired",
       id: "link-watchdog",
-      at: (staleAt + 10) * 1000,
+      at: (staleAt + 10) * 1000
     });
     expect(closed.actions).toEqual([
       { kind: "send-teardown" },
-      { kind: "close", reason: LinkTeardownReason.TIMEOUT },
+      { kind: "close", reason: LinkTeardownReason.TIMEOUT }
     ]);
   });
 
   it("requests keepalive when inbound is overdue on initiator", () => {
-    let state = initialLinkWatchdogState({
-      initiator: true,
-      requestTime: 0,
-      establishmentTimeout: 5,
-    });
+    let state = initialLinkWatchdogState({ initiator: true, requestTime: 0, establishmentTimeout: 5 });
     state = stepLinkWatchdogWithActions(state, {
       kind: "link/status",
       status: LinkStatus.ACTIVE,
-      activatedAt: 0,
+      activatedAt: 0
     }).state;
-    state = stepLinkWatchdogWithActions(state, {
-      kind: "link/rtt-measured",
-      rtt: 1.0,
-    }).state;
+    state = stepLinkWatchdogWithActions(state, { kind: "link/rtt-measured", rtt: 1.0 }).state;
 
     const overdue = state.keepalive + 1;
     const tick = stepLinkWatchdogWithActions(state, {
       kind: "timer/fired",
       id: "link-watchdog",
-      at: overdue * 1000,
+      at: overdue * 1000
     });
-    expect(
-      tick.actions.some((action) => action.kind === "send-keepalive"),
-    ).toBe(true);
+    expect(tick.actions.some((action) => action.kind === "send-keepalive")).toBe(true);
   });
 
   it("double-runs identically", () => {
     const run = () => {
-      let state = initialLinkWatchdogState({
-        initiator: false,
-        requestTime: 50,
-        establishmentTimeout: 12,
-      });
+      let state = initialLinkWatchdogState({ initiator: false, requestTime: 50, establishmentTimeout: 12 });
       const steps = [
         stepLinkWatchdogWithActions(state, { kind: "start", at: 0 }),
-        stepLinkWatchdogWithActions(state, {
-          kind: "timer/fired",
-          id: "link-watchdog",
-          at: 62_000,
-        }),
+        stepLinkWatchdogWithActions(state, { kind: "timer/fired", id: "link-watchdog", at: 62_000 })
       ];
       return steps.map((step) => ({
         status: step.state.status,
         actions: step.actions,
         delay:
-          step.intents[0]?.kind === "timer/set"
-            ? step.intents[0].timer.delayMs
-            : null,
+          step.intents[0]?.kind === "timer/set" ? step.intents[0].timer.delayMs : null
       }));
     };
     expect(run()).toEqual(run());
@@ -248,32 +195,18 @@ describe("protocol link watchdog", () => {
 
   it("revives STALE to ACTIVE on inbound", () => {
     const stale = {
-      ...initialLinkWatchdogState({
-        initiator: true,
-        requestTime: 1,
-        establishmentTimeout: 10,
-      }),
+      ...initialLinkWatchdogState({ initiator: true, requestTime: 1, establishmentTimeout: 10 }),
       status: LinkStatus.STALE,
-      lastInbound: 1,
+      lastInbound: 1
     };
-    const revived = stepLinkWatchdogWithActions(stale, {
-      kind: "link/inbound",
-      at: 42,
-    });
+    const revived = stepLinkWatchdogWithActions(stale, { kind: "link/inbound", at: 42 });
     expect(revived.state.status).toBe(LinkStatus.ACTIVE);
     expect(revived.state.lastInbound).toBe(42);
   });
 
   it("records lastKeepalive on keepalive-sent", () => {
-    const state = initialLinkWatchdogState({
-      initiator: true,
-      requestTime: 0,
-      establishmentTimeout: 5,
-    });
-    const stepped = stepLinkWatchdogWithActions(state, {
-      kind: "link/keepalive-sent",
-      at: 77,
-    });
+    const state = initialLinkWatchdogState({ initiator: true, requestTime: 0, establishmentTimeout: 5 });
+    const stepped = stepLinkWatchdogWithActions(state, { kind: "link/keepalive-sent", at: 77 });
     expect(stepped.state.lastKeepalive).toBe(77);
   });
 });

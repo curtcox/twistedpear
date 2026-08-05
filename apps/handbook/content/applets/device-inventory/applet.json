@@ -36,14 +36,7 @@
     "device:share-policy:read",
     "device:stream:raw-inbound"
   ],
-  "surfaces": [
-    "links.peers",
-    "links.probe",
-    "device.inventory",
-    "device.diagnostics",
-    "device.shareOffers",
-    "device.acceptInboundStream"
-  ],
+  "surfaces": ["links.peers", "links.probe", "device.inventory", "device.diagnostics", "device.shareOffers", "device.acceptInboundStream"],
   "expectations": {
     "android": "pass",
     "ios": "pass",

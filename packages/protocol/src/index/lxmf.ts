@@ -2,7 +2,7 @@ export {
   decideLxmfModeration,
   type LxmfModerationDecision,
   type LxmfModerationDisposition,
-  type LxmfModerationState,
+  type LxmfModerationState
 } from "../lxmf-moderation.js";
 export {
   binListFieldsFromActions,
@@ -80,7 +80,7 @@ export {
   type UnpackPropagationRequestAction,
   type UnpackPropagationRequestEvent,
   type UnpackPropagationRequestState,
-  type UnpackPropagationRequestStepResult,
+  type UnpackPropagationRequestStepResult
 } from "../lxmf-codec.js";
 export {
   LxmfMessageState,
@@ -112,7 +112,7 @@ export {
   type LxmfReceiptSendState,
   type LxmfReceiptSendStepResult,
   type LxmfSendEvent,
-  type LxmfSendState,
+  type LxmfSendState
 } from "../lxmf-send-state.js";
 export {
   LXMF_DESTINATION_LENGTH,
@@ -552,7 +552,7 @@ export {
   type LxMessagePackPlanState,
   type LxMessagePackPlanStepResult,
   type LxMessagePackState,
-  type LxMessagePackStepResult,
+  type LxMessagePackStepResult
 } from "../lxmf-delivery.js";
 export {
   LXMF_APP_NAME,
@@ -562,7 +562,7 @@ export {
   LxmfUnverifiedReason,
   type LxmfFieldValue,
   type LxmfMessageFields,
-  type LxmfUnverifiedReasonValue,
+  type LxmfUnverifiedReasonValue
 } from "../lxmf-fields.js";
 export {
   LXMF_WIRE_HEADER_SIZE,
@@ -644,7 +644,7 @@ export {
   type SplitLxmfWireAction,
   type SplitLxmfWireEvent,
   type SplitLxmfWireState,
-  type SplitLxmfWireStepResult,
+  type SplitLxmfWireStepResult
 } from "../lxmf-wire.js";
 export {
   LXMF_PEER_ERROR_NO_ACCESS,
@@ -662,5 +662,5 @@ export {
   type DecodeLxmfPeerErrorState,
   type DecodeLxmfPeerErrorStepResult,
   type LxmfPeerErrorFields,
-  type LxmfPeerErrorValue,
+  type LxmfPeerErrorValue
 } from "../lxmf-peer-error.js";

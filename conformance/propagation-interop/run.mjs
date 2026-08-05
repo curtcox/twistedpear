@@ -9,14 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeHost } from "../../packages/host-core/dist/node-host.js";
 import { resolveHostConfig } from "../../packages/host-core/dist/config.js";
-import {
-  NodeCryptoProvider,
-  Reticulum,
-  nodeRuntime,
-  Identity,
-  hexToBytes,
-  PipeInterface,
-} from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider, Reticulum, nodeRuntime, Identity, hexToBytes, PipeInterface } from "../../packages/reticulum-ts/dist/index.js";
 import {
   LXMessage,
   LXMessageMethod,
@@ -26,7 +19,7 @@ import {
   DEFAULT_PROPAGATION_QUOTAS,
   PropagationTransferState,
   createPropagationDestination,
-  msgpackUnpackPropagationEnvelope,
+  msgpackUnpackPropagationEnvelope
 } from "../../packages/lxmf-ts/dist/index.js";
 import {
   interopReady,
@@ -36,7 +29,7 @@ import {
   PROPAGATION_LXMD_PORT,
   PROPAGATION_TS_PORT,
   composeRun,
-  waitForLogLine,
+  waitForLogLine
 } from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
@@ -45,21 +38,16 @@ if (!interopReady()) {
 }
 
 const identityVectors = JSON.parse(
-  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find(
-    (candidate) => candidate.name === name,
-  );
+  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(entry.privateKeyHex),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -67,12 +55,7 @@ function loadIdentity(provider, name) {
   return identity;
 }
 
-async function waitForPath(
-  reticulum,
-  destinationHash,
-  timeoutMs = 15_000,
-  onTick = null,
-) {
+async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000, onTick = null) {
   const deadline = Date.now() + timeoutMs;
   let lastRequest = 0;
   while (Date.now() < deadline) {
@@ -111,22 +94,15 @@ async function runInProcessPropagationSync() {
 
   const nodeIdentity = new Identity(provider);
   const server = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
-    now: () => Date.now(),
-    schedule: (ms, callback) => {
-      const handle = setTimeout(callback, ms);
-      return { cancel: () => clearTimeout(handle) };
-    },
-  });
-  const destination = createPropagationDestination(
-    provider,
-    nodeReticulum,
-    nodeIdentity,
-  );
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+      });
+  const destination = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
   server.registerHandlers(destination);
-  const nodeDelivery = new LXMFRouter({
-    reticulum: nodeReticulum,
-    provider,
-  }).registerDeliveryIdentity(nodeIdentity);
+  const nodeDelivery = new LXMFRouter({ reticulum: nodeReticulum, provider }).registerDeliveryIdentity(nodeIdentity);
   await nodeDelivery.announce();
   await destination.announce();
 
@@ -138,10 +114,7 @@ async function runInProcessPropagationSync() {
   const client = new PropagationClient({ router, provider });
   client.setPropagationNode(destination.hash);
   const result = await client.syncMessages(10);
-  if (
-    result.state !== PropagationTransferState.COMPLETE &&
-    result.state !== PropagationTransferState.IDLE
-  ) {
+  if (result.state !== PropagationTransferState.COMPLETE && result.state !== PropagationTransferState.IDLE) {
     throw new Error(`propagation sync failed: ${result.state}`);
   }
 
@@ -154,24 +127,19 @@ async function runHostCorePropagationBoot() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-host-"));
   try {
     const session = await createNodeHost({
-      identityPassphrase: "conformance identity passphrase",
+        identityPassphrase: "conformance identity passphrase",
       config: resolveHostConfig({
         dataDir,
         overrides: {
-          roles: {
-            transport: false,
-            seeder: false,
-            propagation: true,
-            attachRnsd: null,
-          },
+          roles: { transport: false, seeder: false, propagation: true, attachRnsd: null },
           interfaces: {
             tcp: { enabled: false, mode: "client" },
             auto: { enabled: false, multicast: false, bonjour: false },
             i2p: { enabled: false },
-            rnode: { enabled: false },
-          },
-        },
-      }),
+            rnode: { enabled: false }
+          }
+        }
+      })
     });
 
     const status = session.getStatus();
@@ -200,7 +168,7 @@ async function runLxmfOpportunisticOverTcp() {
     await reticulum.addTcpClientInterface({
       name: "python-lxmf-echo",
       targetHost: "127.0.0.1",
-      targetPort: LXMF_ECHO_PORT,
+      targetPort: LXMF_ECHO_PORT
     });
 
     const router = new LXMFRouter({ reticulum, provider });
@@ -210,17 +178,12 @@ async function runLxmfOpportunisticOverTcp() {
     await aliceDelivery.announce();
     // Re-announce while discovering the peer so a mid-handshake TCP reset does
     // not leave the Python echo without a return path to alice.
-    await waitForPath(reticulum, bobOut.hash, 15_000, () =>
-      aliceDelivery.announce(),
-    );
+    await waitForPath(reticulum, bobOut.hash, 15_000, () => aliceDelivery.announce());
     await aliceDelivery.announce();
     await sleep(300);
 
     const received = new Promise((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error("LXMF echo timeout")),
-        15_000,
-      );
+      const timer = setTimeout(() => reject(new Error("LXMF echo timeout")), 15_000);
       router.onDelivery((message) => {
         clearTimeout(timer);
         resolve(message.contentAsString());
@@ -234,7 +197,7 @@ async function runLxmfOpportunisticOverTcp() {
       content: "Hello Python LXMF",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: Date.now() / 1_000,
+      timestamp: Date.now() / 1_000
     });
 
     const content = await received;
@@ -254,33 +217,25 @@ async function runTsPropagationServerPythonClientSync() {
   const alice = loadIdentity(provider, "alice");
   const bob = loadIdentity(provider, "bob");
 
-  const reticulum = Reticulum.create({
-    provider,
-    runtime,
-    transportEnabled: true,
-  });
+  const reticulum = Reticulum.create({ provider, runtime, transportEnabled: true });
   reticulum.start();
 
   await reticulum.addTcpServerInterface({
     name: "propagation-ts-server",
     listenHost: "0.0.0.0",
-    listenPort: PROPAGATION_TS_PORT,
+    listenPort: PROPAGATION_TS_PORT
   });
 
   const router = new LXMFRouter({ reticulum, provider });
   const nodeDelivery = router.registerDeliveryIdentity(bob);
-  const nodePropagation = createPropagationDestination(
-    provider,
-    reticulum,
-    bob,
-  );
+  const nodePropagation = createPropagationDestination(provider, reticulum, bob);
   const server = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
-    now: () => Date.now(),
-    schedule: (ms, callback) => {
-      const handle = setTimeout(callback, ms);
-      return { cancel: () => clearTimeout(handle) };
-    },
-  });
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+      });
   server.registerHandlers(nodePropagation);
 
   await nodeDelivery.announce();
@@ -296,11 +251,9 @@ async function runTsPropagationServerPythonClientSync() {
     content: "TS propagation server seed",
     desiredMethod: LXMessageMethod.PROPAGATED,
     deferStamp: true,
-    timestamp: Date.now() / 1_000,
+    timestamp: Date.now() / 1_000
   });
-  const [queuedMessage] = msgpackUnpackPropagationEnvelope(
-    packed.propagationPacked,
-  );
+  const [queuedMessage] = msgpackUnpackPropagationEnvelope(packed.propagationPacked);
   if (queuedMessage === undefined) {
     throw new Error("Missing propagation payload for TS server seed");
   }
@@ -328,9 +281,9 @@ async function runTsPropagationServerPythonClientSync() {
         "--propagation-hash",
         propagationHash,
         "--recipient",
-        "alice",
+        "alice"
       ],
-      {},
+      {}
     );
 
     if (!syncOutput.includes("SYNC_OK TS propagation server seed")) {
@@ -345,80 +298,67 @@ async function runTsPropagationServerPythonClientSync() {
 }
 
 async function runLxmdServerTsClientSync() {
-  await withComposeService(
-    "propagation-lxmd",
-    PROPAGATION_LXMD_PORT,
-    async () => {
-      const match = await waitForLogLine(
-        "propagation-lxmd",
-        /READY ([0-9a-f]+)/i,
-      );
-      const propagationHash = match[1];
+  await withComposeService("propagation-lxmd", PROPAGATION_LXMD_PORT, async () => {
+    const match = await waitForLogLine("propagation-lxmd", /READY ([0-9a-f]+)/i);
+    const propagationHash = match[1];
 
-      await composeRun(
-        "propagation-tools",
-        [
-          "propagation_publish.py",
-          "--target-host",
-          "host.docker.internal",
-          "--target-port",
-          String(PROPAGATION_LXMD_PORT),
-          "--propagation-hash",
-          propagationHash,
-          "--content",
-          "Hello from lxmd publisher",
-        ],
-        {},
-      );
-      await sleep(1500);
+    await composeRun(
+      "propagation-tools",
+      [
+        "propagation_publish.py",
+        "--target-host",
+        "host.docker.internal",
+        "--target-port",
+        String(PROPAGATION_LXMD_PORT),
+        "--propagation-hash",
+        propagationHash,
+        "--content",
+        "Hello from lxmd publisher"
+      ],
+      {}
+    );
+    await sleep(1500);
 
-      const provider = new NodeCryptoProvider();
-      const runtime = nodeRuntime();
-      const alice = loadIdentity(provider, "alice");
+    const provider = new NodeCryptoProvider();
+    const runtime = nodeRuntime();
+    const alice = loadIdentity(provider, "alice");
 
-      const reticulum = Reticulum.create({ provider, runtime });
-      reticulum.start();
+    const reticulum = Reticulum.create({ provider, runtime });
+    reticulum.start();
 
-      await reticulum.addTcpClientInterface({
-        name: "python-lxmd",
-        targetHost: "127.0.0.1",
-        targetPort: PROPAGATION_LXMD_PORT,
+    await reticulum.addTcpClientInterface({
+      name: "python-lxmd",
+      targetHost: "127.0.0.1",
+      targetPort: PROPAGATION_LXMD_PORT
+    });
+
+    const router = new LXMFRouter({ reticulum, provider });
+    const aliceDelivery = router.registerDeliveryIdentity(alice);
+    await aliceDelivery.announce();
+    await waitForPath(reticulum, hexToBytes(propagationHash));
+
+    const received = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("lxmd sync delivery timeout")), 20_000);
+      router.onDelivery((message) => {
+        clearTimeout(timer);
+        resolve(message.contentAsString());
       });
+    });
 
-      const router = new LXMFRouter({ reticulum, provider });
-      const aliceDelivery = router.registerDeliveryIdentity(alice);
-      await aliceDelivery.announce();
-      await waitForPath(reticulum, hexToBytes(propagationHash));
+    const client = new PropagationClient({ router, provider });
+    client.setPropagationNode(hexToBytes(propagationHash));
+    const result = await client.syncMessages();
+    if (result.state !== PropagationTransferState.COMPLETE && result.state !== PropagationTransferState.IDLE) {
+      throw new Error(`lxmd client sync failed: ${result.state}`);
+    }
 
-      const received = new Promise((resolve, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error("lxmd sync delivery timeout")),
-          20_000,
-        );
-        router.onDelivery((message) => {
-          clearTimeout(timer);
-          resolve(message.contentAsString());
-        });
-      });
+    const content = await received;
+    if (content !== "Hello from lxmd publisher") {
+      throw new Error(`unexpected lxmd sync content: ${content}`);
+    }
 
-      const client = new PropagationClient({ router, provider });
-      client.setPropagationNode(hexToBytes(propagationHash));
-      const result = await client.syncMessages();
-      if (
-        result.state !== PropagationTransferState.COMPLETE &&
-        result.state !== PropagationTransferState.IDLE
-      ) {
-        throw new Error(`lxmd client sync failed: ${result.state}`);
-      }
-
-      const content = await received;
-      if (content !== "Hello from lxmd publisher") {
-        throw new Error(`unexpected lxmd sync content: ${content}`);
-      }
-
-      await reticulum.stop();
-    },
-  );
+    await reticulum.stop();
+  });
 
   console.log("propagation-interop: lxmd server → TS client sync passed");
 }
@@ -426,44 +366,35 @@ async function runLxmdServerTsClientSync() {
 async function runPropagationStoreRestart() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-restart-"));
   try {
-    const { createFilePropagationPersistence } =
-      await import("../../packages/host-core/dist/propagation-persistence.js");
-    const { PropagationServer, DEFAULT_PROPAGATION_QUOTAS } =
-      await import("../../packages/lxmf-ts/dist/index.js");
-    const { NodeCryptoProvider } =
-      await import("../../packages/reticulum-ts/dist/index.js");
+    const { createFilePropagationPersistence } = await import("../../packages/host-core/dist/propagation-persistence.js");
+    const { PropagationServer, DEFAULT_PROPAGATION_QUOTAS } = await import("../../packages/lxmf-ts/dist/index.js");
+    const { NodeCryptoProvider } = await import("../../packages/reticulum-ts/dist/index.js");
     const storePath = join(dataDir, "store.json");
     const provider = new NodeCryptoProvider();
     const persistence = createFilePropagationPersistence(storePath);
     const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
-      now: () => Date.now(),
-      schedule: (ms, callback) => {
-        const handle = setTimeout(callback, ms);
-        return { cancel: () => clearTimeout(handle) };
-      },
-      persistence,
-    });
-    const payload = new Uint8Array(32);
-    payload[0] = 99;
-    first.storePropagationData(payload);
-    await sleep(400);
-
-    const restarted = new PropagationServer(
-      provider,
-      DEFAULT_PROPAGATION_QUOTAS,
-      {
         now: () => Date.now(),
         schedule: (ms, callback) => {
           const handle = setTimeout(callback, ms);
           return { cancel: () => clearTimeout(handle) };
         },
-        persistence,
-      },
-    );
+        persistence
+      });
+    const payload = new Uint8Array(32);
+    payload[0] = 99;
+    first.storePropagationData(payload);
+    await sleep(400);
+
+    const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence
+      });
     if (restarted.stats.messageCount !== 1) {
-      throw new Error(
-        `propagation store restart expected 1 message, got ${restarted.stats.messageCount}`,
-      );
+      throw new Error(`propagation store restart expected 1 message, got ${restarted.stats.messageCount}`);
     }
   } finally {
     rmSync(dataDir, { recursive: true, force: true });
@@ -483,9 +414,7 @@ try {
   process.exit(0);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(
-    `::error::propagation-interop failed: ${message.split("\n")[0]}`,
-  );
+  console.error(`::error::propagation-interop failed: ${message.split("\n")[0]}`);
   console.error(error);
   process.exit(1);
 }

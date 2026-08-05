@@ -7,7 +7,7 @@ import {
   encodeLinkedDeviceCertificate,
   linkedDeviceAnnounceAspects,
   signLinkedDeviceCertificate,
-  verifyLinkedDeviceCertificate,
+  verifyLinkedDeviceCertificate
 } from "../src/linked-device.js";
 
 const provider = new NodeCryptoProvider();
@@ -32,32 +32,21 @@ describe("linked device identities", () => {
     const certificate = signLinkedDeviceCertificate(account, device, {
       deviceId,
       label: "Curt's phone",
-      createdAt: 1_752_000_000_000,
+      createdAt: 1_752_000_000_000
     });
     const encoded = encodeLinkedDeviceCertificate(certificate);
     expect(encoded.length).toBeLessThanOrEqual(383);
     const decoded = decodeLinkedDeviceCertificate(encoded);
     expect(decoded).toEqual(certificate);
     expect(verifyLinkedDeviceCertificate(provider, decoded)).toBe(true);
-    expect(
-      linkedDeviceAnnounceAspects(provider, certificate.accountPublicKey)[0],
-    ).toBe("linked-device");
+    expect(linkedDeviceAnnounceAspects(provider, certificate.accountPublicKey)[0]).toBe("linked-device");
   });
 
   it("rejects a relabelled or mismatched certificate", () => {
     const account = new Identity(provider);
     const deviceId = createLinkedDeviceId(provider);
     const device = deriveLinkedDeviceIdentity(provider, account, deviceId);
-    const certificate = signLinkedDeviceCertificate(account, device, {
-      deviceId,
-      label: "Laptop",
-      createdAt: 10,
-    });
-    expect(
-      verifyLinkedDeviceCertificate(provider, {
-        ...certificate,
-        label: "Phone",
-      }),
-    ).toBe(false);
+    const certificate = signLinkedDeviceCertificate(account, device, { deviceId, label: "Laptop", createdAt: 10 });
+    expect(verifyLinkedDeviceCertificate(provider, { ...certificate, label: "Phone" })).toBe(false);
   });
 });

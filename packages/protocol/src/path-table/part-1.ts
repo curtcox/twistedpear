@@ -28,7 +28,7 @@ import {
   PACKET_DEST_TYPE_GROUP,
   PACKET_DEST_TYPE_PLAIN,
   PACKET_HEADER_1,
-  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_ANNOUNCE
 } from "../packet-header.js";
 
 export { TRUNCATED_HASH_BYTES };
@@ -66,7 +66,8 @@ export type EmitPathRequestEvent =
     };
 
 export type EmitPathRequestAction =
-  { readonly kind: "emit" } | { readonly kind: "skip" };
+  | { readonly kind: "emit" }
+  | { readonly kind: "skip" };
 
 export interface EmitPathRequestStepResult {
   readonly state: EmitPathRequestState;
@@ -80,7 +81,7 @@ export function initialEmitPathRequestState(): EmitPathRequestState {
 
 export function stepEmitPathRequestWithActions(
   state: EmitPathRequestState,
-  event: EmitPathRequestEvent,
+  event: EmitPathRequestEvent
 ): EmitPathRequestStepResult {
   if (event.kind === "path-request/emit-gate") {
     return {
@@ -93,12 +94,12 @@ export function stepEmitPathRequestWithActions(
             nowSeconds: event.nowSeconds,
             ...(event.minIntervalSeconds !== undefined
               ? { minIntervalSeconds: event.minIntervalSeconds }
-              : {}),
+              : {})
           })
             ? "emit"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -106,13 +107,13 @@ export function stepEmitPathRequestWithActions(
 }
 
 export function shouldEmitPathRequestNow(
-  actions: ReadonlyArray<EmitPathRequestAction>,
+  actions: ReadonlyArray<EmitPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "emit");
 }
 
 export function shouldSkipEmitPathRequest(
-  actions: ReadonlyArray<EmitPathRequestAction>,
+  actions: ReadonlyArray<EmitPathRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -141,7 +142,8 @@ export type DiscoveryPathRequestExpiredEvent =
     };
 
 export type DiscoveryPathRequestExpiredAction =
-  { readonly kind: "expired" } | { readonly kind: "live" };
+  | { readonly kind: "expired" }
+  | { readonly kind: "live" };
 
 export interface DiscoveryPathRequestExpiredStepResult {
   readonly state: DiscoveryPathRequestExpiredState;
@@ -155,7 +157,7 @@ export function initialDiscoveryPathRequestExpiredState(): DiscoveryPathRequestE
 
 export function stepDiscoveryPathRequestExpiredWithActions(
   state: DiscoveryPathRequestExpiredState,
-  event: DiscoveryPathRequestExpiredEvent,
+  event: DiscoveryPathRequestExpiredEvent
 ): DiscoveryPathRequestExpiredStepResult {
   if (event.kind === "path-request/discovery-expired-gate") {
     return {
@@ -165,12 +167,12 @@ export function stepDiscoveryPathRequestExpiredWithActions(
         {
           kind: isDiscoveryPathRequestExpired({
             timeoutAt: event.timeoutAt,
-            nowSeconds: event.nowSeconds,
+            nowSeconds: event.nowSeconds
           })
             ? "expired"
-            : "live",
-        },
-      ],
+            : "live"
+        }
+      ]
     };
   }
 
@@ -178,13 +180,13 @@ export function stepDiscoveryPathRequestExpiredWithActions(
 }
 
 export function shouldTreatDiscoveryPathRequestExpired(
-  actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>
 ): boolean {
   return actions.some((action) => action.kind === "expired");
 }
 
 export function shouldTreatDiscoveryPathRequestLive(
-  actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>,
+  actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>
 ): boolean {
   return actions.some((action) => action.kind === "live");
 }
@@ -267,9 +269,7 @@ export type PathRequestIngressPlanEvent =
       readonly allowDiscovery?: boolean;
     };
 
-export type PathRequestIngressPlanAction = {
-  readonly kind: PathRequestIngressPlan;
-};
+export type PathRequestIngressPlanAction = { readonly kind: PathRequestIngressPlan };
 
 export interface PathRequestIngressPlanStepResult {
   readonly state: PathRequestIngressPlanState;
@@ -283,7 +283,7 @@ export function initialPathRequestIngressPlanState(): PathRequestIngressPlanStat
 
 export function stepPathRequestIngressPlanWithActions(
   state: PathRequestIngressPlanState,
-  event: PathRequestIngressPlanEvent,
+  event: PathRequestIngressPlanEvent
 ): PathRequestIngressPlanStepResult {
   if (event.kind === "path-request/ingress-plan-gate") {
     return {
@@ -301,12 +301,10 @@ export function stepPathRequestIngressPlanWithActions(
             shouldAnswerPath: event.shouldAnswerPath,
             discoveryPresent: event.discoveryPresent,
             discoveryExpired: event.discoveryExpired,
-            ...(event.allowDiscovery !== undefined
-              ? { allowDiscovery: event.allowDiscovery }
-              : {}),
-          }),
-        },
-      ],
+            ...(event.allowDiscovery !== undefined ? { allowDiscovery: event.allowDiscovery } : {})
+          })
+        }
+      ]
     };
   }
 
@@ -315,7 +313,7 @@ export function stepPathRequestIngressPlanWithActions(
 
 /** Extract the path-request ingress plan from actions; null when empty. */
 export function pathRequestIngressPlanFromActions(
-  actions: ReadonlyArray<PathRequestIngressPlanAction>,
+  actions: ReadonlyArray<PathRequestIngressPlanAction>
 ): PathRequestIngressPlan | null {
   const action = actions.find(
     (entry) =>
@@ -325,7 +323,7 @@ export function pathRequestIngressPlanFromActions(
       entry.kind === "answer-path" ||
       entry.kind === "ignore" ||
       entry.kind === "ignore-in-flight-discovery" ||
-      entry.kind === "start-discovery",
+      entry.kind === "start-discovery"
   );
   return action?.kind ?? null;
 }
@@ -367,76 +365,70 @@ export function initialPathRequestIngressState(): PathRequestIngressState {
   return {};
 }
 
-export const stepPathRequestIngress: StepFn<PathRequestIngressState> = (
-  state,
-  event,
-) => {
-  const result = stepPathRequestIngressInner(
-    state,
-    event as PathRequestIngressEvent,
-  );
+export const stepPathRequestIngress: StepFn<PathRequestIngressState> = (state, event) => {
+  const result = stepPathRequestIngressInner(state, event as PathRequestIngressEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPathRequestIngressWithActions(
   state: PathRequestIngressState,
-  event: PathRequestIngressEvent,
+  event: PathRequestIngressEvent
 ): PathRequestIngressStepResult {
   return stepPathRequestIngressInner(state, event);
 }
 
 export function pathRequestIngressFromActions(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): PathRequestIngressPlan | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldIgnorePathRequestUnparsed(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore-unparsed");
 }
 
 export function shouldIgnorePathRequestSeenTag(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore-seen-tag");
 }
 
 export function shouldAnswerPathRequestLocal(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "answer-local");
 }
 
 export function shouldAnswerPathRequestPath(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "answer-path");
 }
 
 export function shouldIgnorePathRequestIngress(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldIgnorePathRequestInFlightDiscovery(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore-in-flight-discovery");
 }
 
 export function shouldStartPathRequestDiscovery(
-  actions: ReadonlyArray<PathRequestIngressAction>,
+  actions: ReadonlyArray<PathRequestIngressAction>
 ): boolean {
   return actions.some((action) => action.kind === "start-discovery");
 }
 
 function stepPathRequestIngressInner(
   state: PathRequestIngressState,
-  event: PathRequestIngressEvent,
+  event: PathRequestIngressEvent
 ): PathRequestIngressStepResult {
   if (event.kind === "path-request/ingress-gate") {
     const planActions = stepPathRequestIngressPlanWithActions(
@@ -452,10 +444,8 @@ function stepPathRequestIngressInner(
         shouldAnswerPath: event.shouldAnswerPath,
         discoveryPresent: event.discoveryPresent,
         discoveryExpired: event.discoveryExpired,
-        ...(event.allowDiscovery !== undefined
-          ? { allowDiscovery: event.allowDiscovery }
-          : {}),
-      },
+        ...(event.allowDiscovery !== undefined ? { allowDiscovery: event.allowDiscovery } : {})
+      }
     ).actions;
     const plan = pathRequestIngressPlanFromActions(planActions);
     if (plan === null) {

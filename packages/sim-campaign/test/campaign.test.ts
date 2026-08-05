@@ -5,26 +5,21 @@ import {
   CAPABILITIES,
   coverageFrame,
   runCampaign,
-  serializeCampaignReport,
+  serializeCampaignReport
 } from "../src/index.js";
 import { describe, expect, it } from "vitest";
 
-interface State {
-  readonly bad: boolean;
-}
+interface State { readonly bad: boolean }
 
 function step(state: State, event: Event): { state: State; intents: Intent[] } {
-  return event.kind === "start"
-    ? { state: { bad: true }, intents: [] }
-    : { state, intents: [] };
+  return event.kind === "start" ? { state: { bad: true }, intents: [] } : { state, intents: [] };
 }
 
 const canary: Oracle<State> = {
   name: "campaign-canary",
-  check: (world) =>
-    [...world.nodes.values()].some((state) => state.bad)
-      ? { oracle: "campaign-canary", message: "expected canary" }
-      : null,
+  check: (world) => [...world.nodes.values()].some((state) => state.bad)
+    ? { oracle: "campaign-canary", message: "expected canary" }
+    : null
 };
 
 describe("coverage campaigns", () => {
@@ -37,30 +32,25 @@ describe("coverage campaigns", () => {
     const cells = coverageFrame({
       capabilities: ["identity"],
       positions: ["malicious-app"],
-      verbs: ["spoof"],
+      verbs: ["spoof"]
     });
-    const execute = () =>
-      runCampaign({
-        cells,
-        seeds: { from: 1, to: 3 },
-        parallelism: 2,
-        scenario: (_cell, seed) => ({
-          config: {
-            seed,
-            nodes: [{ id: "host", initial: { bad: false }, step }],
-            oracles: [canary],
-          },
-        }),
-      });
+    const execute = () => runCampaign({
+      cells,
+      seeds: { from: 1, to: 3 },
+      parallelism: 2,
+      scenario: (_cell, seed) => ({
+        config: {
+          seed,
+          nodes: [{ id: "host", initial: { bad: false }, step }],
+          oracles: [canary]
+        }
+      })
+    });
     const a = await execute();
     const b = await execute();
     expect(serializeCampaignReport(a)).toBe(serializeCampaignReport(b));
     expect(a.scenariosRun).toBe(3);
     expect(a.findings).toHaveLength(3);
-    expect(a.saturation.at(-1)).toEqual({
-      scenarios: 3,
-      distinctFindings: 1,
-      newFindings: 1,
-    });
+    expect(a.saturation.at(-1)).toEqual({ scenarios: 3, distinctFindings: 1, newFindings: 1 });
   });
 });

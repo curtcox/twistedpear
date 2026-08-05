@@ -1,5 +1,6 @@
 # SPEC-CHROME — Host chrome and confirmation conduct
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -50,7 +51,7 @@ render-level and stay informative until a snapshot-based check exists.
   (`npm run test:chrome`). Each fixture cites the rule it attacks and asserts a
   broker-observable property:
   - **CHROME-R2** — every `apps:*` call raises exactly one host-chrome
-    confirmation _before_ the backend runs; a grant alone never suffices.
+    confirmation *before* the backend runs; a grant alone never suffices.
   - **CHROME-R4** — no app-reachable broker method (`host.confirm`,
     `apps.approve`, `ui.confirm`, …) can resolve a pending confirmation; all
     fail `UNKNOWN_METHOD` and the confirmation stays open until the chrome

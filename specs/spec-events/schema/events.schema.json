@@ -324,10 +324,7 @@
           "properties": {
             "kind": { "const": "store/value" },
             "key": { "type": "string" },
-            "value": {
-              "$ref": "#/$defs/bytes",
-              "x-presence": "explicit-undefined"
-            }
+            "value": { "$ref": "#/$defs/bytes", "x-presence": "explicit-undefined" }
           },
           "additionalProperties": false
         },

@@ -36,7 +36,11 @@
         "name": "com.example.full",
         "version": "2.3.4",
         "entry": "bundle.js",
-        "capabilities": ["identity", "lxmf:send", "storage:kv"],
+        "capabilities": [
+          "identity",
+          "lxmf:send",
+          "storage:kv"
+        ],
         "icon": "icon.png",
         "minHostApi": "0.1.0",
         "files": [

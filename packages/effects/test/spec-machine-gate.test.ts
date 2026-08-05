@@ -10,10 +10,7 @@ import { runMachineGate } from "../../../conformance/machine/gate.mjs";
 // @ts-ignore — see above.
 import { machines as referenceMachines } from "../../../conformance/machine/reference-machines.mjs";
 // @ts-ignore — see above.
-import {
-  machines as canaryMachines,
-  EXPECTED_FAILURE,
-} from "../../../conformance/machine/canary-machines.mjs";
+import { machines as canaryMachines, EXPECTED_FAILURE } from "../../../conformance/machine/canary-machines.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..", "..", "..");
@@ -31,15 +28,11 @@ describe("SPEC-MACHINE freestanding gate", () => {
     expect(result.checks).toBeGreaterThanOrEqual(4);
   });
 
-  for (const [name, expected] of Object.entries(
-    EXPECTED_FAILURE as Record<string, string>,
-  )) {
+  for (const [name, expected] of Object.entries(EXPECTED_FAILURE as Record<string, string>)) {
     it(`canary ${name} fails the ${expected} check`, () => {
       const machine = (canaryMachines as Record<string, unknown>)[name];
       const result = runMachineGate({ [name]: machine }) as GateResult;
-      expect(result.failures.map((failure) => failure.check)).toContain(
-        expected,
-      );
+      expect(result.failures.map((failure) => failure.check)).toContain(expected);
     });
   }
 
@@ -57,7 +50,7 @@ describe("SPEC-MACHINE freestanding gate", () => {
               : { state, intents: [] },
           tape: [{ kind: "start", at: 0 }, { kind: "tick", at: 5 }]
         }
-      };\n`,
+      };\n`
     );
     const pass = spawnSync(process.execPath, [cli, good], { encoding: "utf8" });
     expect(pass.status, pass.stdout + pass.stderr).toBe(0);
@@ -74,7 +67,7 @@ describe("SPEC-MACHINE freestanding gate", () => {
               : { state, intents: [] },
           tape: [{ kind: "tick", at: 5 }]
         }
-      };\n`,
+      };\n`
     );
     const fail = spawnSync(process.execPath, [cli, bad], { encoding: "utf8" });
     expect(fail.status, fail.stdout + fail.stderr).toBe(1);

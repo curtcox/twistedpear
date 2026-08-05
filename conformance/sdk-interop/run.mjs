@@ -14,7 +14,7 @@ import {
   NodeWorkerSandboxBackend,
   StorageBeeQuotaError,
   assertCapabilityAllowed,
-  CapabilityError,
+  CapabilityError
 } from "../../packages/miniapp-runtime/dist/index.js";
 
 class MemoryStore {
@@ -43,7 +43,7 @@ function manifest(appId, capabilities) {
     version: "1.0.0",
     entry: "bundle.js",
     capabilities,
-    publisherPublicKey: `publisher-${appId}`,
+    publisherPublicKey: `publisher-${appId}`
   };
 }
 
@@ -58,7 +58,7 @@ async function main() {
   await beeBackend.ready();
 
   const resources = new Map([
-    ["offer:demo", new TextEncoder().encode("hello-resource")],
+    ["offer:demo", new TextEncoder().encode("hello-resource")]
   ]);
 
   const host = new MiniappHost({
@@ -74,25 +74,20 @@ async function main() {
           throw new Error(`Resource not found: ${request.resourceId}`);
         }
 
-        if (
-          request.budgetBytes !== undefined &&
-          bytes.length > request.budgetBytes
-        ) {
-          throw new Error(
-            `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
-          );
+        if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+          throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
         }
 
         return bytes;
-      },
+      }
     },
     presenceBackend: {
       snapshot: async () => ({
         peers: 2,
         onlineInterfaces: 1,
-        preferredInterface: "auto",
-      }),
-    },
+        preferredInterface: "auto"
+      })
+    }
   });
 
   const appA = manifest("app-a", [
@@ -104,7 +99,7 @@ async function main() {
     "announce:publish",
     "announce:subscribe",
     "resource:fetch",
-    "presence",
+    "presence"
   ]);
   const appB = manifest("app-b", [
     "identity",
@@ -115,33 +110,18 @@ async function main() {
     "announce:publish",
     "announce:subscribe",
     "resource:fetch",
-    "presence",
+    "presence"
   ]);
 
   const allGrants = appA.capabilities;
-  await host.setGrants(
-    "app-a",
-    appA.publisherPublicKey,
-    appA.capabilities,
-    allGrants,
-  );
-  await host.setGrants(
-    "app-b",
-    appB.publisherPublicKey,
-    appB.capabilities,
-    allGrants,
-  );
+  await host.setGrants("app-a", appA.publisherPublicKey, appA.capabilities, allGrants);
+  await host.setGrants("app-b", appB.publisherPublicKey, appB.capabilities, allGrants);
 
   const destinationA = await dispatch(
     host,
-    {
-      id: "id-1",
-      namespace: "identity",
-      method: "destinationHash",
-      capability: "identity",
-    },
+    { id: "id-1", namespace: "identity", method: "destinationHash", capability: "identity" },
     appA,
-    allGrants,
+    allGrants
   );
   if (!destinationA.ok || typeof destinationA.result !== "string") {
     throw new Error("identity.destinationHash failed for app-a");
@@ -154,10 +134,10 @@ async function main() {
       namespace: "identity",
       method: "sign",
       capability: "identity",
-      payload: { payload: new TextEncoder().encode("payload") },
+      payload: { payload: new TextEncoder().encode("payload") }
     },
     appA,
-    allGrants,
+    allGrants
   );
   if (!signed.ok) {
     throw new Error("identity.sign failed");
@@ -170,47 +150,29 @@ async function main() {
       namespace: "lxmf",
       method: "send",
       capability: "lxmf:send",
-      payload: { to: "app-b", subject: "ping", body: "hello" },
+      payload: { to: "app-b", subject: "ping", body: "hello" }
     },
     appA,
-    allGrants,
+    allGrants
   );
 
   const inboxB = await dispatch(
     host,
-    {
-      id: "id-4",
-      namespace: "lxmf",
-      method: "receive",
-      capability: "lxmf:receive",
-    },
+    { id: "id-4", namespace: "lxmf", method: "receive", capability: "lxmf:receive" },
     appB,
-    allGrants,
+    allGrants
   );
-  if (
-    !inboxB.ok ||
-    !Array.isArray(inboxB.result) ||
-    inboxB.result.length !== 1
-  ) {
+  if (!inboxB.ok || !Array.isArray(inboxB.result) || inboxB.result.length !== 1) {
     throw new Error("lxmf receive on app-b failed");
   }
 
   const inboxA = await dispatch(
     host,
-    {
-      id: "id-5",
-      namespace: "lxmf",
-      method: "receive",
-      capability: "lxmf:receive",
-    },
+    { id: "id-5", namespace: "lxmf", method: "receive", capability: "lxmf:receive" },
     appA,
-    allGrants,
+    allGrants
   );
-  if (
-    !inboxA.ok ||
-    !Array.isArray(inboxA.result) ||
-    inboxA.result.length !== 0
-  ) {
+  if (!inboxA.ok || !Array.isArray(inboxA.result) || inboxA.result.length !== 0) {
     throw new Error("app-a should not see app-b traffic in its inbox");
   }
 
@@ -221,10 +183,10 @@ async function main() {
       namespace: "storage.kv",
       method: "set",
       capability: "storage:kv",
-      payload: { key: "secret", value: new TextEncoder().encode("a") },
+      payload: { key: "secret", value: new TextEncoder().encode("a") }
     },
     appA,
-    allGrants,
+    allGrants
   );
 
   const crossKv = await dispatch(
@@ -234,10 +196,10 @@ async function main() {
       namespace: "storage.kv",
       method: "get",
       capability: "storage:kv",
-      payload: { key: "secret" },
+      payload: { key: "secret" }
     },
     appB,
-    allGrants,
+    allGrants
   );
   if (!crossKv.ok || crossKv.result !== null) {
     throw new Error("KV isolation failed between apps");
@@ -252,10 +214,10 @@ async function main() {
       namespace: "storage.bee",
       method: "get",
       capability: "storage:hyperbee",
-      payload: { key: "post:1" },
+      payload: { key: "post:1" }
     },
     appB,
-    allGrants,
+    allGrants
   );
   if (!beeCross.ok || new TextDecoder().decode(beeCross.result) !== "beta") {
     throw new Error("Hyperbee read failed for app-b");
@@ -268,13 +230,10 @@ async function main() {
       namespace: "announce",
       method: "publish",
       capability: "announce:publish",
-      payload: {
-        appData: new TextEncoder().encode("board-post"),
-        namespace: "board",
-      },
+      payload: { appData: new TextEncoder().encode("board-post"), namespace: "board" }
     },
     appA,
-    allGrants,
+    allGrants
   );
 
   const announces = await dispatch(
@@ -284,16 +243,12 @@ async function main() {
       namespace: "announce",
       method: "subscribe",
       capability: "announce:subscribe",
-      payload: { namespace: "board" },
+      payload: { namespace: "board" }
     },
     appB,
-    allGrants,
+    allGrants
   );
-  if (
-    !announces.ok ||
-    !Array.isArray(announces.result) ||
-    announces.result.length === 0
-  ) {
+  if (!announces.ok || !Array.isArray(announces.result) || announces.result.length === 0) {
     throw new Error("announce.subscribe failed");
   }
 
@@ -304,28 +259,20 @@ async function main() {
       namespace: "resource",
       method: "fetch",
       capability: "resource:fetch",
-      payload: { resourceId: "offer:demo", budgetBytes: 32 },
+      payload: { resourceId: "offer:demo", budgetBytes: 32 }
     },
     appA,
-    allGrants,
+    allGrants
   );
-  if (
-    !fetched.ok ||
-    new TextDecoder().decode(fetched.result) !== "hello-resource"
-  ) {
+  if (!fetched.ok || new TextDecoder().decode(fetched.result) !== "hello-resource") {
     throw new Error("resource.fetch failed");
   }
 
   const presence = await dispatch(
     host,
-    {
-      id: "id-12",
-      namespace: "presence",
-      method: "snapshot",
-      capability: "presence",
-    },
+    { id: "id-12", namespace: "presence", method: "snapshot", capability: "presence" },
     appA,
-    allGrants,
+    allGrants
   );
   if (!presence.ok || presence.result?.peers !== 2) {
     throw new Error("presence.snapshot failed");
@@ -335,7 +282,7 @@ async function main() {
     assertCapabilityAllowed({
       capability: "storage:kv",
       declared: ["storage:kv"],
-      granted: [],
+      granted: []
     });
     throw new Error("expected capability denial");
   } catch (error) {
@@ -352,10 +299,10 @@ async function main() {
       namespace: "storage.kv",
       method: "get",
       capability: "storage:kv",
-      payload: { key: "secret" },
+      payload: { key: "secret" }
     },
     appA,
-    [],
+    []
   );
   if (denied.ok || denied.error?.code !== "CAPABILITY_DENIED") {
     throw new Error("grant enforcement failed closed");
@@ -368,10 +315,10 @@ async function main() {
       namespace: "storage.kv",
       method: "set",
       capability: "storage:kv",
-      payload: { key: "big", value: new Uint8Array(96) },
+      payload: { key: "big", value: new Uint8Array(96) }
     },
     appA,
-    allGrants,
+    allGrants
   );
   if (kvQuota.ok) {
     throw new Error("expected KV quota denial via broker");
@@ -379,17 +326,9 @@ async function main() {
 
   const quotaBee = new CorestoreBeeBackend(join(beePath, "quota-only"), 24);
   await quotaBee.ready();
-  await quotaBee.put(
-    "quota-app",
-    "a",
-    new TextEncoder().encode("123456789012345678901234"),
-  );
+  await quotaBee.put("quota-app", "a", new TextEncoder().encode("123456789012345678901234"));
   try {
-    await quotaBee.put(
-      "quota-app",
-      "b",
-      new TextEncoder().encode("123456789012345678901234"),
-    );
+    await quotaBee.put("quota-app", "b", new TextEncoder().encode("123456789012345678901234"));
     throw new Error("expected Hyperbee quota error");
   } catch (error) {
     if (!(error instanceof StorageBeeQuotaError)) {
@@ -398,19 +337,11 @@ async function main() {
   }
   await quotaBee.close();
 
-  const broker = new MiniappBroker({
-    maxMessagesPerSecond: 1,
-    now: () => 2_000,
-  });
+  const broker = new MiniappBroker({ maxMessagesPerSecond: 1, now: () => 2_000 });
   broker.register("ui", "render", null, () => "ok");
   const limited = await broker.dispatch(
     { id: "flood-1", namespace: "ui", method: "render" },
-    {
-      appId: "flood",
-      publisherPublicKey: "pub",
-      declaredCapabilities: [],
-      grantedCapabilities: [],
-    },
+    { appId: "flood", publisherPublicKey: "pub", declaredCapabilities: [], grantedCapabilities: [] }
   );
   if (!limited.ok) {
     throw new Error("first broker message should pass");
@@ -418,12 +349,7 @@ async function main() {
 
   const throttled = await broker.dispatch(
     { id: "flood-2", namespace: "ui", method: "render" },
-    {
-      appId: "flood",
-      publisherPublicKey: "pub",
-      declaredCapabilities: [],
-      grantedCapabilities: [],
-    },
+    { appId: "flood", publisherPublicKey: "pub", declaredCapabilities: [], grantedCapabilities: [] }
   );
   if (throttled.error?.code !== "RATE_LIMITED") {
     throw new Error("broker rate limit not enforced");
@@ -432,9 +358,7 @@ async function main() {
   await beeBackend.close();
   rmSync(beePath, { recursive: true, force: true });
 
-  console.log(
-    "sdk-interop: identity, lxmf, storage, announce, resource, presence, grants, quotas passed",
-  );
+  console.log("sdk-interop: identity, lxmf, storage, announce, resource, presence, grants, quotas passed");
 
   // SPEC-SDK vector suite over the reference binding (the loopback binding
   // replays the same vectors in conformance/bind-loopback).
@@ -442,13 +366,9 @@ async function main() {
   const replay = await runSdkVectors("reference");
   if (replay.failures.length > 0) {
     for (const failure of replay.failures) console.error(failure);
-    throw new Error(
-      `SPEC-SDK vectors failed over the reference binding (${replay.failures.length} failures)`,
-    );
+    throw new Error(`SPEC-SDK vectors failed over the reference binding (${replay.failures.length} failures)`);
   }
-  console.log(
-    `sdk-interop: ${replay.vectors} SPEC-SDK vectors (${replay.steps} steps) passed over the reference binding`,
-  );
+  console.log(`sdk-interop: ${replay.vectors} SPEC-SDK vectors (${replay.steps} steps) passed over the reference binding`);
 }
 
 main().catch((error) => {

@@ -3,7 +3,7 @@ import {
   auditArchivePlacement,
   auditCounterparts,
   auditLiveDocsHaveNoPlanSections,
-  auditPlannedLinksToLive,
+  auditPlannedLinksToLive
 } from "../../scripts/doc-audit/segregation.mjs";
 
 const format = (findings) =>

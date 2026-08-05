@@ -2,12 +2,7 @@
  * Expo web replacement for react-native-bare-kit Worklet IPC (Phase W1).
  */
 
-import {
-  decodeMessages,
-  encodeMessage,
-  type HostToWorkletMessage,
-  type WorkletToHostMessage,
-} from "../worklet/protocol";
+import { decodeMessages, encodeMessage, type HostToWorkletMessage, type WorkletToHostMessage } from "../worklet/protocol";
 import { createWebSandboxRelay } from "./web-sandbox-relay";
 import { createWebSerialRelay } from "./web-serial-relay";
 
@@ -35,9 +30,9 @@ export class WebCoreWorklet {
 
       this.worker.postMessage({
         channel: "host-ipc",
-        data: new TextDecoder().decode(data),
+        data: new TextDecoder().decode(data)
       });
-    },
+    }
   };
 
   start(_bundlePath: string, _bundle?: unknown): void {
@@ -79,9 +74,7 @@ export function createWebCoreBridge() {
   });
 
   worklet.IPC.on("data", (data) => {
-    const decoded = decodeMessages(
-      `${buffer}${new TextDecoder().decode(data)}`,
-    );
+    const decoded = decodeMessages(`${buffer}${new TextDecoder().decode(data)}`);
     buffer = decoded.remainder;
     for (const message of decoded.messages) {
       if (
@@ -101,9 +94,9 @@ export function createWebCoreBridge() {
             new TextEncoder().encode(
               encodeMessage({
                 type: "serial-error",
-                message: error instanceof Error ? error.message : String(error),
-              }),
-            ),
+                message: error instanceof Error ? error.message : String(error)
+              })
+            )
           );
         });
         continue;
@@ -129,6 +122,6 @@ export function createWebCoreBridge() {
       sandboxRelay.dispose();
       worklet.terminate();
       buffer = "";
-    },
+    }
   };
 }

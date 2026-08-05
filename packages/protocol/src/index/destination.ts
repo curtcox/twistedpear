@@ -174,7 +174,7 @@ export {
   type RequestLinkDestinationAction,
   type RequestLinkDestinationEvent,
   type RequestLinkDestinationState,
-  type RequestLinkDestinationStepResult,
+  type RequestLinkDestinationStepResult
 } from "../destination-allow.js";
 export {
   DestinationProofStrategyCode,
@@ -206,7 +206,7 @@ export {
   type EmitDestinationProofAction,
   type EmitDestinationProofEvent,
   type EmitDestinationProofState,
-  type EmitDestinationProofStepResult,
+  type EmitDestinationProofStepResult
 } from "../destination-proof.js";
 export {
   DESTINATION_IDENTITY_HASH_BYTES,
@@ -286,5 +286,5 @@ export {
   type ValidateDestinationNamePartAction,
   type ValidateDestinationNamePartEvent,
   type ValidateDestinationNamePartState,
-  type ValidateDestinationNamePartStepResult,
+  type ValidateDestinationNamePartStepResult
 } from "../destination-name.js";

@@ -3,13 +3,7 @@
  * Pack chat example and bundle the W4 browser Hyperdrive-over-relay spike for Playwright.
  */
 
-import {
-  cpSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,9 +22,7 @@ const chatDir = resolve(hyperdriveRoot, "../../apps/examples/chat");
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 function bytesToHex(bytes) {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function hexToBytes(hex) {
@@ -48,19 +40,12 @@ async function packChatFixture() {
   cpSync(chatDir, appDir, { recursive: true });
 
   try {
-    const initCode = await runInit({
-      cwd,
-      identityPassphrase: IDENTITY_PASSPHRASE,
-      args: [],
-    });
+    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed for chat");
     }
 
-    const packCode = await runPack({
-      cwd,
-      args: ["chat", "--out", "chat.tpkg"],
-    });
+    const packCode = await runPack({ cwd, args: ["chat", "--out", "chat.tpkg"] });
     if (packCode !== 0) {
       throw new Error("tp pack failed for chat");
     }
@@ -69,14 +54,12 @@ async function packChatFixture() {
     const identity = decryptIdentityBackup(
       provider,
       new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
-      IDENTITY_PASSPHRASE,
+      IDENTITY_PASSPHRASE
     );
     const privateKeyHex = bytesToHex(identity.getPrivateKey());
 
     const archive = new Uint8Array(readFileSync(join(cwd, "chat.tpkg")));
-    const verified = verifyPackage(provider, archive, {
-      hostApiVersion: "0.1.0",
-    });
+    const verified = verifyPackage(provider, archive, { hostApiVersion: "0.1.0" });
     const t256 = encode256t(archive, (data) => provider.sha512(data));
     if (!verify256t(t256, archive, (data) => provider.sha512(data))) {
       throw new Error("256t id does not verify against archive");
@@ -91,7 +74,7 @@ async function packChatFixture() {
       archiveHex: bytesToHex(archive),
       t256,
       packageHash: verified.packageHash,
-      archiveBytes: archive.length,
+      archiveBytes: archive.length
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -109,9 +92,9 @@ const build = spawnSync(
     "--workspace=@twistedpear/app-registry",
     "--workspace=@twistedpear/cas-256t",
     "--workspace=@twistedpear/bridge-hyper",
-    "--workspace=@twistedpear/cli",
+    "--workspace=@twistedpear/cli"
   ],
-  { cwd: repoRoot, stdio: "inherit" },
+  { cwd: repoRoot, stdio: "inherit" }
 );
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
@@ -119,16 +102,14 @@ if (build.status !== 0) {
 
 const workerBuild = spawnSync("node", ["scripts/build-web-worker.mjs"], {
   cwd: harnessRoot,
-  stdio: "inherit",
+  stdio: "inherit"
 });
 if (workerBuild.status !== 0) {
   process.exit(workerBuild.status ?? 1);
 }
 
 const fixture = await packChatFixture();
-console.log(
-  `web-hyperdrive-browser: packed chat (${fixture.archiveBytes} bytes) t256=${fixture.t256.slice(0, 16)}…`,
-);
+console.log(`web-hyperdrive-browser: packed chat (${fixture.archiveBytes} bytes) t256=${fixture.t256.slice(0, 16)}…`);
 
 writeFileSync(
   join(hyperdriveRoot, "fixtures.mjs"),
@@ -138,11 +119,11 @@ writeFileSync(
       version: fixture.version,
       capabilities: fixture.capabilities,
       publisherPublicKey: fixture.publisherPublicKey,
-      t256: fixture.t256,
+      t256: fixture.t256
     },
     null,
-    2,
-  )};\n`,
+    2
+  )};\n`
 );
 
 writeFileSync(
@@ -154,17 +135,14 @@ writeFileSync(
       t256: fixture.t256,
       appId: fixture.appId,
       version: fixture.version,
-      packageHash: fixture.packageHash,
+      packageHash: fixture.packageHash
     },
     null,
-    2,
-  )};\n`,
+    2
+  )};\n`
 );
 
-writeFileSync(
-  join(hyperdriveRoot, "test-hyper-archive"),
-  hexToBytes(fixture.archiveHex),
-);
+writeFileSync(join(hyperdriveRoot, "test-hyper-archive"), hexToBytes(fixture.archiveHex));
 
 buildSync({
   entryPoints: [join(hyperdriveRoot, "entry.mjs")],
@@ -172,17 +150,11 @@ buildSync({
   platform: "browser",
   format: "esm",
   outfile: join(hyperdriveRoot, "hyperdrive.bundle.js"),
-  logLevel: "warning",
+  logLevel: "warning"
 });
 
-cpSync(
-  join(harnessRoot, "public/web-hyper-fetch.js"),
-  join(hyperdriveRoot, "web-hyper-fetch.js"),
-);
+cpSync(join(harnessRoot, "public/web-hyper-fetch.js"), join(hyperdriveRoot, "web-hyper-fetch.js"));
 
-cpSync(
-  join(harnessRoot, "public/web-core.worker.js"),
-  join(hyperdriveRoot, "web-core.worker.js"),
-);
+cpSync(join(harnessRoot, "public/web-core.worker.js"), join(hyperdriveRoot, "web-core.worker.js"));
 
 console.log("web-hyperdrive-browser bundle written");

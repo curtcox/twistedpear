@@ -1,5 +1,6 @@
 # SPEC-EVENTS — Event and intent vocabulary
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -23,30 +24,30 @@ informative prose):
 
 **Intents** (machine → host):
 
-| Kind                  | Payload                                                                 |
-| --------------------- | ----------------------------------------------------------------------- |
-| `need_entropy`        | `nbytes`                                                                |
-| `timer/set`           | `{ id, delayMs }`                                                       |
-| `timer/cancel`        | `{ id }`                                                                |
-| `transport/send`      | `{ channel, destination, payload }`                                     |
-| `store/read`          | `{ key }`                                                               |
-| `store/write`         | `{ key, value }`                                                        |
-| `store/delete`        | `{ key }`                                                               |
-| `log`                 | `level` (`debug`/`info`/`warn`/`error`), `message`                      |
-| `observe/drop`        | `stage`, `reason` (closed enums), optional `destinationKey` / `ifaceId` |
-| `transport/adversary` | Dolev-Yao action — **harness extension, see below**                     |
+| Kind | Payload |
+|---|---|
+| `need_entropy` | `nbytes` |
+| `timer/set` | `{ id, delayMs }` |
+| `timer/cancel` | `{ id }` |
+| `transport/send` | `{ channel, destination, payload }` |
+| `store/read` | `{ key }` |
+| `store/write` | `{ key, value }` |
+| `store/delete` | `{ key }` |
+| `log` | `level` (`debug`/`info`/`warn`/`error`), `message` |
+| `observe/drop` | `stage`, `reason` (closed enums), optional `destinationKey` / `ifaceId` |
+| `transport/adversary` | Dolev-Yao action — **harness extension, see below** |
 
 **Events** (host → machine):
 
-| Kind             | Payload                            |
-| ---------------- | ---------------------------------- |
-| `start`          | `at`                               |
-| `tick`           | `at`                               |
-| `entropy`        | `bytes`                            |
-| `timer/fired`    | `{ id, at }`                       |
+| Kind | Payload |
+|---|---|
+| `start` | `at` |
+| `tick` | `at` |
+| `entropy` | `bytes` |
+| `timer/fired` | `{ id, at }` |
 | `transport/recv` | `{ channel, source, payload, at }` |
-| `store/value`    | `{ key, value? }`                  |
-| `store/done`     | `{ key, op }`                      |
+| `store/value` | `{ key, value? }` |
+| `store/done` | `{ key, op }` |
 
 ### Harness extension: `transport/adversary`
 

@@ -2,7 +2,10 @@
   "name": "link-weather",
   "version": "2.0.0",
   "entry": "bundle.js",
-  "capabilities": ["presence", "peer:connect"],
+  "capabilities": [
+    "presence",
+    "peer:connect"
+  ],
   "icon": null,
   "minHostApi": "0.8.0"
 }

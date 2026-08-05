@@ -1,28 +1,12 @@
 #!/usr/bin/env node
-import {
-  runCreate,
-  runDev,
-  runIdentity,
-  runInit,
-  runNode,
-  runPack,
-  runPublish,
-  runSeed,
-  runSign,
-  runTrust,
-  runUpdate,
-  printHelp,
-  type CommandContext,
-} from "../commands/index.js";
+import { runCreate, runDev, runIdentity, runInit, runNode, runPack, runPublish, runSeed, runSign, runTrust, runUpdate, printHelp, type CommandContext } from "../commands/index.js";
 import { readHiddenSecret } from "./secret-reader.js";
 
 const [command, ...args] = process.argv.slice(2);
 
 if (command === undefined || command === "--help" || command === "-h") {
   console.log("tp — TwistedPear publish tooling");
-  console.log(
-    "Commands: init, identity, create, dev, pack, sign, publish, update, seed, node, trust",
-  );
+  console.log("Commands: init, identity, create, dev, pack, sign, publish, update, seed, node, trust");
   process.exit(0);
 }
 
@@ -37,7 +21,7 @@ const handlers: Record<string, (ctx: CommandContext) => Promise<number>> = {
   update: runUpdate,
   seed: runSeed,
   node: runNode,
-  trust: runTrust,
+  trust: runTrust
 };
 
 const handler = handlers[command];
@@ -52,35 +36,22 @@ if (args.includes("--help") || args.includes("-h")) {
   process.exit(0);
 }
 
-const identityCommands = new Set([
-  "init",
-  "identity",
-  "dev",
-  "pack",
-  "sign",
-  "publish",
-  "update",
-  "seed",
-  "node",
-]);
+const identityCommands = new Set(["init", "identity", "dev", "pack", "sign", "publish", "update", "seed", "node"]);
 const environmentPassphrase = process.env.TP_IDENTITY_PASSPHRASE;
 const identityPassphrase = identityCommands.has(command)
-  ? (environmentPassphrase ?? (await readHiddenSecret("Identity passphrase")))
+  ? environmentPassphrase ?? await readHiddenSecret("Identity passphrase")
   : undefined;
-const identityPassphraseConfirmation =
-  command === "init" && environmentPassphrase === undefined
-    ? await readHiddenSecret("Confirm identity passphrase")
-    : identityPassphrase;
+const identityPassphraseConfirmation = command === "init" && environmentPassphrase === undefined
+  ? await readHiddenSecret("Confirm identity passphrase")
+  : identityPassphrase;
 
 handler({
   cwd: process.cwd(),
   args,
   ...(identityPassphrase === undefined ? {} : { identityPassphrase }),
-  ...(identityPassphraseConfirmation === undefined
-    ? {}
-    : { identityPassphraseConfirmation }),
+  ...(identityPassphraseConfirmation === undefined ? {} : { identityPassphraseConfirmation }),
   interactive: process.stdin.isTTY === true && process.stdout.isTTY === true,
-  readSecret: readHiddenSecret,
+  readSecret: readHiddenSecret
 })
   .then((code) => process.exit(code))
   .catch((error) => {

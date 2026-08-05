@@ -7,14 +7,9 @@ import {
   initialLinkAwaitState,
   stepDeliveryReceiptPollWithActions,
   stepLinkAwaitWithActions,
-  type ReceiptPollStatusValue,
+  type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
-import type {
-  Link,
-  PacketReceipt,
-  RegisteredDestination,
-  Reticulum,
-} from "@twistedpear/reticulum-ts";
+import type { Link, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 
 /** Await an outbound link with the Sans-IO link-await machine. */
 export function awaitOutboundLink(
@@ -24,13 +19,13 @@ export function awaitOutboundLink(
     readonly timeoutMs?: number;
     readonly timeoutError: string;
     readonly onTimeout?: () => void;
-  },
+  }
 ): Promise<Link> {
   const timeoutMs = options.timeoutMs ?? LINK_AWAIT_DEFAULT_TIMEOUT_MS;
   return new Promise<Link>((resolve, reject) => {
     const armed = stepLinkAwaitWithActions(initialLinkAwaitState(), {
       kind: "link-await/arm",
-      timeoutMs,
+      timeoutMs
     });
     let state = armed.state;
     let timer: { cancel(): void } | null = null;
@@ -52,30 +47,24 @@ export function awaitOutboundLink(
     };
 
     const applyIntents = (
-      intents: ReturnType<typeof stepLinkAwaitWithActions>["intents"],
+      intents: ReturnType<typeof stepLinkAwaitWithActions>["intents"]
     ): void => {
       for (const intent of intents) {
-        if (
-          intent.kind === "timer/set" &&
-          intent.timer.id === LINK_AWAIT_TIMER_ID
-        ) {
+        if (intent.kind === "timer/set" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
           timer?.cancel();
           timer = reticulum.runtime.clock.setTimeout(() => {
             timer = null;
             const tick = stepLinkAwaitWithActions(state, {
               kind: "timer/fired",
               id: LINK_AWAIT_TIMER_ID,
-              at: reticulum.runtime.clock.now(),
+              at: reticulum.runtime.clock.now()
             });
             state = tick.state;
             applyIntents(tick.intents);
             applyActions(tick.actions);
           }, intent.timer.delayMs);
         }
-        if (
-          intent.kind === "timer/cancel" &&
-          intent.timer.id === LINK_AWAIT_TIMER_ID
-        ) {
+        if (intent.kind === "timer/cancel" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
           timer?.cancel();
           timer = null;
         }
@@ -83,7 +72,7 @@ export function awaitOutboundLink(
     };
 
     const applyActions = (
-      actions: ReturnType<typeof stepLinkAwaitWithActions>["actions"],
+      actions: ReturnType<typeof stepLinkAwaitWithActions>["actions"]
     ): void => {
       for (const action of actions) {
         if (action.kind === "request-link") {
@@ -91,12 +80,12 @@ export function awaitOutboundLink(
             linkEstablished(establishLink) {
               pendingLink = establishLink;
               const result = stepLinkAwaitWithActions(state, {
-                kind: "link-await/established",
+                kind: "link-await/established"
               });
               state = result.state;
               applyIntents(result.intents);
               applyActions(result.actions);
-            },
+            }
           });
         }
         if (action.kind === "resolve") {
@@ -120,17 +109,14 @@ export function awaitOutboundLink(
 export function pollDeliveryReceipt(
   reticulum: Reticulum,
   receipt: PacketReceipt,
-  timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
+  timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS
 ): Promise<ReceiptPollStatusValue> {
   return new Promise<ReceiptPollStatusValue>((resolve) => {
-    const armed = stepDeliveryReceiptPollWithActions(
-      initialDeliveryReceiptPollState(),
-      {
-        kind: "poll/arm",
-        at: reticulum.runtime.clock.now(),
-        timeoutMs,
-      },
-    );
+    const armed = stepDeliveryReceiptPollWithActions(initialDeliveryReceiptPollState(), {
+      kind: "poll/arm",
+      at: reticulum.runtime.clock.now(),
+      timeoutMs
+    });
     let state = armed.state;
     let timer: { cancel(): void } | null = null;
     let concluded = false;
@@ -146,27 +132,21 @@ export function pollDeliveryReceipt(
     };
 
     const applyIntents = (
-      intents: ReturnType<typeof stepDeliveryReceiptPollWithActions>["intents"],
+      intents: ReturnType<typeof stepDeliveryReceiptPollWithActions>["intents"]
     ): void => {
       for (const intent of intents) {
-        if (
-          intent.kind === "timer/cancel" &&
-          intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID
-        ) {
+        if (intent.kind === "timer/cancel" && intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
           timer?.cancel();
           timer = null;
         }
-        if (
-          intent.kind === "timer/set" &&
-          intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID
-        ) {
+        if (intent.kind === "timer/set" && intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
           timer?.cancel();
           timer = reticulum.runtime.clock.setTimeout(() => {
             timer = null;
             const tick = stepDeliveryReceiptPollWithActions(state, {
               kind: "timer/fired",
               id: DELIVERY_RECEIPT_POLL_TIMER_ID,
-              at: reticulum.runtime.clock.now(),
+              at: reticulum.runtime.clock.now()
             });
             state = tick.state;
             applyIntents(tick.intents);
@@ -177,14 +157,14 @@ export function pollDeliveryReceipt(
     };
 
     const applyActions = (
-      actions: ReturnType<typeof stepDeliveryReceiptPollWithActions>["actions"],
+      actions: ReturnType<typeof stepDeliveryReceiptPollWithActions>["actions"]
     ): void => {
       for (const action of actions) {
         if (action.kind === "probe") {
           const probe = stepDeliveryReceiptPollWithActions(state, {
             kind: "poll/receipt-status",
             status: receipt.status as ReceiptPollStatusValue,
-            at: reticulum.runtime.clock.now(),
+            at: reticulum.runtime.clock.now()
           });
           state = probe.state;
           applyIntents(probe.intents);

@@ -47,48 +47,13 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions,
+  stepDestinationRequestAllowWithActions
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
-import {
-  canSendLinkAppResponse,
-  initialInvokeLinkAppRequestHandlerState,
-  initialSendLinkAppRequestResponseState,
-  initialSendLinkAppResponseAllowState,
-  linkAppRequestDispatchPlanFromActions,
-  planLinkAppRequestDispatch,
-  planLinkAppRequestResponse,
-  shouldAllowSendLinkAppResponse,
-  shouldForbidLinkAppRequestDispatch,
-  shouldIgnoreLinkAppRequestDispatch,
-  shouldIgnoreLinkAppRequestResponsePlan,
-  shouldInvokeLinkAppRequestDispatch,
-  shouldInvokeLinkAppRequestHandler,
-  shouldInvokeLinkAppRequestHandlerNow,
-  shouldRejectLinkAppRequestResponseTooBigPlan,
-  shouldSendLinkAppRequestResponse,
-  shouldSendLinkAppRequestResponseNow,
-  shouldSendLinkAppRequestResponsePlan,
-  stepInvokeLinkAppRequestHandlerWithActions,
-  stepSendLinkAppRequestResponseWithActions,
-  stepSendLinkAppResponseAllowWithActions,
-} from "./part-5.js";
-import type {
-  InvokeLinkAppRequestHandlerAction,
-  LinkAppRequestDispatchAction,
-  LinkAppRequestDispatchEvent,
-  LinkAppRequestDispatchPlan,
-  LinkAppRequestDispatchPlanAction,
-  LinkAppRequestDispatchPlanEvent,
-  LinkAppRequestInboundAction,
-  LinkAppRequestInboundEvent,
-  LinkAppRequestResponsePlan,
-  LinkAppRequestResponsePlanAction,
-  LinkAppRequestResponsePlanEvent,
-  SendLinkAppRequestResponseAction,
-} from "./part-5.js";
+import { canSendLinkAppResponse, initialInvokeLinkAppRequestHandlerState, initialSendLinkAppRequestResponseState, initialSendLinkAppResponseAllowState, linkAppRequestDispatchPlanFromActions, planLinkAppRequestDispatch, planLinkAppRequestResponse, shouldAllowSendLinkAppResponse, shouldForbidLinkAppRequestDispatch, shouldIgnoreLinkAppRequestDispatch, shouldIgnoreLinkAppRequestResponsePlan, shouldInvokeLinkAppRequestDispatch, shouldInvokeLinkAppRequestHandler, shouldInvokeLinkAppRequestHandlerNow, shouldRejectLinkAppRequestResponseTooBigPlan, shouldSendLinkAppRequestResponse, shouldSendLinkAppRequestResponseNow, shouldSendLinkAppRequestResponsePlan, stepInvokeLinkAppRequestHandlerWithActions, stepSendLinkAppRequestResponseWithActions, stepSendLinkAppResponseAllowWithActions } from "./part-5.js";
+import type { InvokeLinkAppRequestHandlerAction, LinkAppRequestDispatchAction, LinkAppRequestDispatchEvent, LinkAppRequestDispatchPlan, LinkAppRequestDispatchPlanAction, LinkAppRequestDispatchPlanEvent, LinkAppRequestInboundAction, LinkAppRequestInboundEvent, LinkAppRequestResponsePlan, LinkAppRequestResponsePlanAction, LinkAppRequestResponsePlanEvent, SendLinkAppRequestResponseAction } from "./part-5.js";
 /**
  * App-request dispatch plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequestDispatch` /
@@ -109,7 +74,7 @@ export function initialLinkAppRequestDispatchPlanState(): LinkAppRequestDispatch
 
 export function stepLinkAppRequestDispatchPlanWithActions(
   state: LinkAppRequestDispatchPlanState,
-  event: LinkAppRequestDispatchPlanEvent,
+  event: LinkAppRequestDispatchPlanEvent
 ): LinkAppRequestDispatchPlanStepResult {
   if (event.kind === "link/app-request-dispatch-plan-gate") {
     return {
@@ -121,10 +86,10 @@ export function stepLinkAppRequestDispatchPlanWithActions(
             plaintextPresent: event.plaintextPresent,
             handlerDestinationPresent: event.handlerDestinationPresent,
             handlerPresent: event.handlerPresent,
-            requestAllowed: event.requestAllowed,
-          }),
-        },
-      ],
+            requestAllowed: event.requestAllowed
+          })
+        }
+      ]
     };
   }
 
@@ -132,19 +97,19 @@ export function stepLinkAppRequestDispatchPlanWithActions(
 }
 
 export function shouldIgnoreLinkAppRequestDispatchPlan(
-  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>,
+  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldForbidLinkAppRequestDispatchPlan(
-  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>,
+  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "forbidden");
 }
 
 export function shouldInvokeLinkAppRequestDispatchPlan(
-  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>,
+  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "invoke-handler");
 }
@@ -171,7 +136,7 @@ export function initialLinkAppRequestDispatchState(): LinkAppRequestDispatchStat
 
 export function stepLinkAppRequestDispatchWithActions(
   state: LinkAppRequestDispatchState,
-  event: LinkAppRequestDispatchEvent,
+  event: LinkAppRequestDispatchEvent
 ): LinkAppRequestDispatchStepResult {
   if (event.kind === "link/app-request-dispatch-gate") {
     const planActions = stepLinkAppRequestDispatchPlanWithActions(
@@ -181,8 +146,8 @@ export function stepLinkAppRequestDispatchWithActions(
         plaintextPresent: event.plaintextPresent,
         handlerDestinationPresent: event.handlerDestinationPresent,
         handlerPresent: event.handlerPresent,
-        requestAllowed: event.requestAllowed,
-      },
+        requestAllowed: event.requestAllowed
+      }
     ).actions;
     const plan = linkAppRequestDispatchPlanFromActions(planActions);
     if (plan === null) {
@@ -196,25 +161,25 @@ export function stepLinkAppRequestDispatchWithActions(
 
 /** Extract the dispatch plan from actions; null when empty. */
 export function linkAppRequestDispatchFromActions(
-  actions: ReadonlyArray<LinkAppRequestDispatchAction>,
+  actions: ReadonlyArray<LinkAppRequestDispatchAction>
 ): LinkAppRequestDispatchPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ignore" ||
       entry.kind === "forbidden" ||
-      entry.kind === "invoke-handler",
+      entry.kind === "invoke-handler"
   );
   return action?.kind ?? null;
 }
 
 export function shouldSkipInvokeLinkAppRequestHandler(
-  actions: ReadonlyArray<InvokeLinkAppRequestHandlerAction>,
+  actions: ReadonlyArray<InvokeLinkAppRequestHandlerAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 export function shouldSkipSendLinkAppRequestResponse(
-  actions: ReadonlyArray<SendLinkAppRequestResponseAction>,
+  actions: ReadonlyArray<SendLinkAppRequestResponseAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -239,7 +204,7 @@ export function initialLinkAppRequestResponsePlanState(): LinkAppRequestResponse
 
 export function stepLinkAppRequestResponsePlanWithActions(
   state: LinkAppRequestResponsePlanState,
-  event: LinkAppRequestResponsePlanEvent,
+  event: LinkAppRequestResponsePlanEvent
 ): LinkAppRequestResponsePlanStepResult {
   if (event.kind === "link/app-request-response-plan-gate") {
     return {
@@ -249,10 +214,10 @@ export function stepLinkAppRequestResponsePlanWithActions(
         {
           kind: planLinkAppRequestResponse({
             responsePresent: event.responsePresent,
-            responseFitsMdu: event.responseFitsMdu,
-          }),
-        },
-      ],
+            responseFitsMdu: event.responseFitsMdu
+          })
+        }
+      ]
     };
   }
 
@@ -261,13 +226,13 @@ export function stepLinkAppRequestResponsePlanWithActions(
 
 /** Extract the response plan from actions; null when empty. */
 export function linkAppRequestResponsePlanFromActions(
-  actions: ReadonlyArray<LinkAppRequestResponsePlanAction>,
+  actions: ReadonlyArray<LinkAppRequestResponsePlanAction>
 ): LinkAppRequestResponsePlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ignore" ||
       entry.kind === "response-too-big" ||
-      entry.kind === "send-response",
+      entry.kind === "send-response"
   );
   return action?.kind ?? null;
 }
@@ -302,85 +267,82 @@ export function initialLinkAppRequestInboundState(input: {
 }): LinkAppRequestInboundState {
   return {
     waitingHandler: false,
-    mdu: input.mdu,
+    mdu: input.mdu
   };
 }
 
 export const stepLinkAppRequestInbound: StepFn<LinkAppRequestInboundState> = (
   state,
-  event,
+  event
 ) => {
   const result = stepLinkAppRequestInboundInner(
     state,
-    event as LinkAppRequestInboundEvent,
+    event as LinkAppRequestInboundEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkAppRequestInboundWithActions(
   state: LinkAppRequestInboundState,
-  event: LinkAppRequestInboundEvent,
+  event: LinkAppRequestInboundEvent
 ): LinkAppRequestInboundStepResult {
   return stepLinkAppRequestInboundInner(state, event);
 }
 
 /** Whether step actions include ignore. */
 export function shouldIgnoreLinkAppRequestInbound(
-  actions: ReadonlyArray<LinkAppRequestInboundAction>,
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 /** Whether step actions include forbidden. */
 export function shouldForbidLinkAppRequestInbound(
-  actions: ReadonlyArray<LinkAppRequestInboundAction>,
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "forbidden");
 }
 
 /** Whether step actions include invoke-handler. */
 export function shouldInvokeLinkAppRequestInbound(
-  actions: ReadonlyArray<LinkAppRequestInboundAction>,
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "invoke-handler");
 }
 
 /** Whether step actions include send-response. */
 export function shouldSendLinkAppRequestInboundResponse(
-  actions: ReadonlyArray<LinkAppRequestInboundAction>,
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "send-response");
 }
 
 /** Whether step actions include ignore-response. */
 export function shouldIgnoreLinkAppRequestInboundResponse(
-  actions: ReadonlyArray<LinkAppRequestInboundAction>,
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore-response");
 }
 
 /** Whether step actions include response-too-big. */
 export function shouldRejectLinkAppRequestInboundTooBig(
-  actions: ReadonlyArray<LinkAppRequestInboundAction>,
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
 ): boolean {
   return actions.some((action) => action.kind === "response-too-big");
 }
 
 function stepLinkAppRequestInboundInner(
   state: LinkAppRequestInboundState,
-  event: LinkAppRequestInboundEvent,
+  event: LinkAppRequestInboundEvent
 ): LinkAppRequestInboundStepResult {
   if (event.kind === "app-request/received") {
     const requestAllowed = shouldAllowDestinationRequest(
-      stepDestinationRequestAllowWithActions(
-        initialDestinationRequestAllowState(),
-        {
-          kind: "destination/request-allow-gate",
-          allow: event.allow,
-          allowedList: event.allowedList,
-          remoteIdentityHash: event.remoteIdentityHash,
-        },
-      ).actions,
+      stepDestinationRequestAllowWithActions(initialDestinationRequestAllowState(), {
+        kind: "destination/request-allow-gate",
+        allow: event.allow,
+        allowedList: event.allowedList,
+        remoteIdentityHash: event.remoteIdentityHash
+      }).actions
     );
     const dispatchActions = stepLinkAppRequestDispatchWithActions(
       initialLinkAppRequestDispatchState(),
@@ -389,8 +351,8 @@ function stepLinkAppRequestInboundInner(
         plaintextPresent: event.plaintextPresent,
         handlerDestinationPresent: event.handlerDestinationPresent,
         handlerPresent: event.handlerPresent,
-        requestAllowed,
-      },
+        requestAllowed
+      }
     ).actions;
     if (shouldIgnoreLinkAppRequestDispatch(dispatchActions)) {
       return { state, intents: [], actions: [{ kind: "ignore" }] };
@@ -404,8 +366,8 @@ function stepLinkAppRequestInboundInner(
         kind: "link/invoke-app-request-handler-gate",
         dispatchInvoke: shouldInvokeLinkAppRequestDispatch(dispatchActions),
         unpackedPresent: event.unpackedPresent,
-        handlerPresent: event.handlerPresent,
-      },
+        handlerPresent: event.handlerPresent
+      }
     );
     if (!shouldInvokeLinkAppRequestHandlerNow(invokeStepped.actions)) {
       return { state, intents: [], actions: [{ kind: "ignore" }] };
@@ -413,7 +375,7 @@ function stepLinkAppRequestInboundInner(
     return {
       state: { ...state, waitingHandler: true },
       intents: [],
-      actions: [{ kind: "invoke-handler" }],
+      actions: [{ kind: "invoke-handler" }]
     };
   }
 
@@ -422,52 +384,37 @@ function stepLinkAppRequestInboundInner(
       return { state, intents: [], actions: [] };
     }
     const responseFitsMdu = shouldAllowSendLinkAppResponse(
-      stepSendLinkAppResponseAllowWithActions(
-        initialSendLinkAppResponseAllowState(),
-        {
-          kind: "link/send-app-response-allow-gate",
-          packedLength: event.packedLength,
-          mdu: state.mdu,
-        },
-      ).actions,
+      stepSendLinkAppResponseAllowWithActions(initialSendLinkAppResponseAllowState(), {
+        kind: "link/send-app-response-allow-gate",
+        packedLength: event.packedLength,
+        mdu: state.mdu
+      }).actions
     );
     const responsePlanActions = stepLinkAppRequestResponsePlanWithActions(
       initialLinkAppRequestResponsePlanState(),
       {
         kind: "link/app-request-response-plan-gate",
         responsePresent: event.responsePresent,
-        responseFitsMdu,
-      },
+        responseFitsMdu
+      }
     ).actions;
     const next = { ...state, waitingHandler: false };
     if (shouldIgnoreLinkAppRequestResponsePlan(responsePlanActions)) {
-      return {
-        state: next,
-        intents: [],
-        actions: [{ kind: "ignore-response" }],
-      };
+      return { state: next, intents: [], actions: [{ kind: "ignore-response" }] };
     }
     if (shouldRejectLinkAppRequestResponseTooBigPlan(responsePlanActions)) {
-      return {
-        state: next,
-        intents: [],
-        actions: [{ kind: "response-too-big" }],
-      };
+      return { state: next, intents: [], actions: [{ kind: "response-too-big" }] };
     }
     const sendStepped = stepSendLinkAppRequestResponseWithActions(
       initialSendLinkAppRequestResponseState(),
       {
         kind: "link/send-app-request-response-gate",
         planSend: shouldSendLinkAppRequestResponsePlan(responsePlanActions),
-        packedPresent: event.responsePresent,
-      },
+        packedPresent: event.responsePresent
+      }
     );
     if (!shouldSendLinkAppRequestResponseNow(sendStepped.actions)) {
-      return {
-        state: next,
-        intents: [],
-        actions: [{ kind: "ignore-response" }],
-      };
+      return { state: next, intents: [], actions: [{ kind: "ignore-response" }] };
     }
     return { state: next, intents: [], actions: [{ kind: "send-response" }] };
   }
@@ -479,6 +426,7 @@ function stepLinkAppRequestInboundInner(
 export function shouldUpdateLinkLastData(contextKeepalive: boolean): boolean {
   return !contextKeepalive;
 }
+
 
 /**
  * shouldUpdateLinkLastData gate is event-driven; no durable session fields.
@@ -496,7 +444,8 @@ export type UpdateLinkLastDataEvent =
     };
 
 export type UpdateLinkLastDataAction =
-  { readonly kind: "update" } | { readonly kind: "skip" };
+  | { readonly kind: "update" }
+  | { readonly kind: "skip" };
 
 export interface UpdateLinkLastDataStepResult {
   readonly state: UpdateLinkLastDataState;
@@ -510,7 +459,7 @@ export function initialUpdateLinkLastDataState(): UpdateLinkLastDataState {
 
 export function stepUpdateLinkLastDataWithActions(
   state: UpdateLinkLastDataState,
-  event: UpdateLinkLastDataEvent,
+  event: UpdateLinkLastDataEvent
 ): UpdateLinkLastDataStepResult {
   if (event.kind === "link/update-last-data-gate") {
     return {
@@ -518,11 +467,9 @@ export function stepUpdateLinkLastDataWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldUpdateLinkLastData(event.contextKeepalive)
-            ? "update"
-            : "skip",
-        },
-      ],
+          kind: shouldUpdateLinkLastData(event.contextKeepalive) ? "update" : "skip"
+        }
+      ]
     };
   }
 
@@ -530,13 +477,13 @@ export function stepUpdateLinkLastDataWithActions(
 }
 
 export function shouldUpdateLinkLastDataNow(
-  actions: ReadonlyArray<UpdateLinkLastDataAction>,
+  actions: ReadonlyArray<UpdateLinkLastDataAction>
 ): boolean {
   return actions.some((action) => action.kind === "update");
 }
 
 export function shouldSkipLinkLastDataUpdate(
-  actions: ReadonlyArray<UpdateLinkLastDataAction>,
+  actions: ReadonlyArray<UpdateLinkLastDataAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -544,6 +491,7 @@ export function shouldSkipLinkLastDataUpdate(
 export function isLinkInboundDataPacket(packetType: number): boolean {
   return packetType === PacketTypeCode.DATA;
 }
+
 
 /**
  * isLinkInboundDataPacket gate is event-driven; no durable session fields.

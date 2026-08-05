@@ -14,19 +14,10 @@ const helloTree = validateWidgetTree({
     type: "view",
     style: { padding: 16, gap: 8 },
     children: [
-      {
-        id: "title",
-        type: "text",
-        props: { value: "Hello" },
-        style: { fontSize: 20, fontWeight: "bold" },
-      },
-      {
-        id: "go",
-        type: "button",
-        props: { label: "Tap me", event: "hello.tap" },
-      },
-    ],
-  },
+      { id: "title", type: "text", props: { value: "Hello" }, style: { fontSize: 20, fontWeight: "bold" } },
+      { id: "go", type: "button", props: { label: "Tap me", event: "hello.tap" } }
+    ]
+  }
 });
 
 const chatTree = validateWidgetTree({
@@ -35,43 +26,28 @@ const chatTree = validateWidgetTree({
     type: "view",
     style: { padding: 16, gap: 12 },
     children: [
-      {
-        id: "title",
-        type: "text",
-        props: { value: "Chat" },
-        style: { fontSize: 20, fontWeight: "bold" },
-      },
+      { id: "title", type: "text", props: { value: "Chat" }, style: { fontSize: 20, fontWeight: "bold" } },
       {
         id: "peer-input",
         type: "text-input",
-        props: { value: "", placeholder: "Peer app id", event: "chat.peer" },
+        props: { value: "", placeholder: "Peer app id", event: "chat.peer" }
       },
-      {
-        id: "send",
-        type: "button",
-        props: { label: "Send hello", event: "chat.send" },
-      },
+      { id: "send", type: "button", props: { label: "Send hello", event: "chat.send" } },
       {
         id: "inbox-scroll",
         type: "scroll",
-        children: [
-          { id: "inbox", type: "text", props: { value: "No messages yet" } },
-        ],
+        children: [{ id: "inbox", type: "text", props: { value: "No messages yet" } }]
       },
       {
         id: "actions",
         type: "list",
         children: [
           { id: "list-label", type: "text", props: { value: "List child" } },
-          {
-            id: "list-action",
-            type: "button",
-            props: { label: "List action", event: "chat.list" },
-          },
-        ],
-      },
-    ],
-  },
+          { id: "list-action", type: "button", props: { label: "List action", event: "chat.list" } }
+        ]
+      }
+    ]
+  }
 });
 
 function sleep(ms) {
@@ -83,7 +59,7 @@ async function main() {
     status: "running",
     hello: null,
     chat: null,
-    event: null,
+    event: null
   };
 
   const helloRoot = document.getElementById("hello-root");
@@ -98,13 +74,11 @@ async function main() {
       tree: helloTree,
       onEvent: (nodeId, event) => {
         lastEvent = `${nodeId}:${event}`;
-      },
-    }),
+      }
+    })
   );
 
-  createRoot(chatRoot).render(
-    React.createElement(MiniappWidgetTree, { tree: chatTree }),
-  );
+  createRoot(chatRoot).render(React.createElement(MiniappWidgetTree, { tree: chatTree }));
 
   await sleep(100);
 
@@ -116,11 +90,7 @@ async function main() {
   globalThis.__WEB_WIDGET__.hello = "ok";
 
   const chatText = chatRoot.textContent ?? "";
-  if (
-    !chatText.includes("Chat") ||
-    !chatText.includes("Send hello") ||
-    !chatText.includes("No messages yet")
-  ) {
+  if (!chatText.includes("Chat") || !chatText.includes("Send hello") || !chatText.includes("No messages yet")) {
     throw new Error(`chat tree render failed: ${JSON.stringify(chatText)}`);
   }
   if (!chatText.includes("List child") || !chatText.includes("List action")) {
@@ -128,23 +98,16 @@ async function main() {
   }
 
   const peerInput = chatRoot.querySelector("input");
-  if (
-    peerInput === null ||
-    peerInput.getAttribute("placeholder") !== "Peer app id"
-  ) {
-    throw new Error(
-      `chat peer input placeholder missing: ${peerInput?.getAttribute("placeholder") ?? "no input"}`,
-    );
+  if (peerInput === null || peerInput.getAttribute("placeholder") !== "Peer app id") {
+    throw new Error(`chat peer input placeholder missing: ${peerInput?.getAttribute("placeholder") ?? "no input"}`);
   }
 
   globalThis.__WEB_WIDGET__.chat = "ok";
 
   const tapLabel = Array.from(helloRoot.querySelectorAll("*")).find(
-    (element) => element.textContent === "Tap me",
+    (element) => element.textContent === "Tap me"
   );
-  const tapTarget =
-    tapLabel?.closest("[tabindex],button,a,[role='button']") ??
-    tapLabel?.parentElement;
+  const tapTarget = tapLabel?.closest("[tabindex],button,a,[role='button']") ?? tapLabel?.parentElement;
   if (tapTarget === null || tapTarget === undefined) {
     throw new Error("hello tree button not found");
   }
@@ -153,9 +116,7 @@ async function main() {
   await sleep(50);
 
   if (lastEvent !== "go:hello.tap") {
-    throw new Error(
-      `hello button event mismatch: ${JSON.stringify(lastEvent)}`,
-    );
+    throw new Error(`hello button event mismatch: ${JSON.stringify(lastEvent)}`);
   }
 
   globalThis.__WEB_WIDGET__.event = "ok";
@@ -168,6 +129,6 @@ main().catch((error) => {
     hello: globalThis.__WEB_WIDGET__?.hello ?? null,
     chat: globalThis.__WEB_WIDGET__?.chat ?? null,
     event: globalThis.__WEB_WIDGET__?.event ?? null,
-    message: error instanceof Error ? error.message : String(error),
+    message: error instanceof Error ? error.message : String(error)
   };
 });

@@ -7,7 +7,7 @@ import {
   PacketHeaderType,
   PacketType,
   TransportType,
-  hexToBytes,
+  hexToBytes
 } from "@twistedpear/reticulum-ts";
 import { NtfyPacketInterface } from "../src/ntfy-interface.js";
 
@@ -21,7 +21,7 @@ function makePacket(data = new Uint8Array([1, 2, 3])): Packet {
     packetType: PacketType.DATA,
     destinationHash: hexToBytes("00112233445566778899aabbccddeeff"),
     context: PacketContext.NONE,
-    data,
+    data
   });
 }
 
@@ -32,16 +32,8 @@ function createMockNtfyServer() {
   const messages: string[] = [];
   let pollCount = 0;
 
-  const mockFetch: typeof fetch = async (
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ) => {
-    const url =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url;
+  const mockFetch: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     const method = init?.method ?? "GET";
 
     if (method === "POST") {
@@ -55,12 +47,10 @@ function createMockNtfyServer() {
     if (method === "GET" && url.includes("poll=1")) {
       pollCount++;
       // Return accumulated messages as ndjson
-      const events = messages.map((msg) =>
-        JSON.stringify({ event: "message", message: msg }),
-      );
+      const events = messages.map((msg) => JSON.stringify({ event: "message", message: msg }));
       return new Response(events.join("\n"), {
         status: 200,
-        headers: { "Content-Type": "application/x-ndjson" },
+        headers: { "Content-Type": "application/x-ndjson" }
       });
     }
 
@@ -81,7 +71,7 @@ describe("NtfyPacketInterface", () => {
       topic: "test-topic",
       secret: "test-secret-key",
       pollIntervalMs: 50_000,
-      fetch: mockFetch,
+      fetch: mockFetch
     });
     await iface.start();
 
@@ -103,7 +93,7 @@ describe("NtfyPacketInterface", () => {
       topic: "shared-topic",
       secret: "shared-secret",
       pollIntervalMs: 50_000,
-      fetch: mockFetch,
+      fetch: mockFetch
     });
 
     const ifaceB = new NtfyPacketInterface(provider, {
@@ -113,7 +103,7 @@ describe("NtfyPacketInterface", () => {
       topic: "shared-topic",
       secret: "shared-secret",
       pollIntervalMs: 50,
-      fetch: mockFetch,
+      fetch: mockFetch
     });
 
     await ifaceA.start();
@@ -132,8 +122,8 @@ describe("NtfyPacketInterface", () => {
     const result = await Promise.race([
       iterator.next(),
       new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 500),
-      ),
+        setTimeout(() => reject(new Error("timeout")), 500)
+      )
     ]);
 
     expect(result.done).toBe(false);
@@ -154,13 +144,11 @@ describe("NtfyPacketInterface", () => {
       secret: "secret",
       pollIntervalMs: 50_000,
       fetch: mockFetch,
-      outgoing: false,
+      outgoing: false
     });
     await iface.start();
 
-    await expect(iface.send(makePacket())).rejects.toThrow(
-      "not configured for outbound",
-    );
+    await expect(iface.send(makePacket())).rejects.toThrow("not configured for outbound");
     await iface.close();
   });
 
@@ -174,7 +162,7 @@ describe("NtfyPacketInterface", () => {
       topic: "status-topic",
       secret: "secret",
       pollIntervalMs: 50_000,
-      fetch: mockFetch,
+      fetch: mockFetch
     });
 
     expect(iface.online).toBe(false);
@@ -199,7 +187,7 @@ describe("NtfyPacketInterface", () => {
       secret: "secret",
       bearerToken: "my-token",
       pollIntervalMs: 50_000,
-      fetch: mockFetch,
+      fetch: mockFetch
     });
     await iface.start();
     await iface.send(makePacket());

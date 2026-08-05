@@ -17,16 +17,16 @@ Hyperbee's lexicographic key order used deliberately, so listing is a range scan
 
 ## Capabilities
 
-| Capability         | Note                                                       |
-| ------------------ | ---------------------------------------------------------- |
+| Capability | Note |
+|---|---|
 | `storage:hyperbee` | Local-only in v1; there is no replication between devices. |
 
 ## Files
 
-| File                                   | Purpose                                                      |
-| -------------------------------------- | ------------------------------------------------------------ |
+| File | Purpose |
+|---|---|
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
 
 ## Run it
 

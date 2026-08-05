@@ -60,26 +60,22 @@ import {
   type ClientRateLimitState,
   type PersistDebounceState,
   type PropagationGetAction,
-  type PropagationStoreAction,
+  type PropagationStoreAction
 } from "@twistedpear/protocol";
-import type {
-  CryptoProvider,
-  Identity,
-  RegisteredDestination,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Identity, RegisteredDestination } from "@twistedpear/reticulum-ts";
 import {
   Destination,
   DestinationAllowPolicy,
   DestinationDirection,
   DestinationType,
   Identity as RnsIdentity,
-  type Link,
+  type Link
 } from "@twistedpear/reticulum-ts";
 import { APP_NAME, MESSAGE_GET_PATH, PeerError } from "./constants.js";
 import {
   msgpackPackArray,
   msgpackPackUInt,
-  msgpackPackBin,
+  msgpackPackBin
 } from "./msgpack.js";
 
 export interface PropagationServerQuotas {
@@ -93,7 +89,7 @@ export const DEFAULT_PROPAGATION_QUOTAS: PropagationServerQuotas = {
   maxBytes: 256 * 1024 * 1024,
   maxMessages: 10_000,
   maxMessageBytes: 1_000_000,
-  perClientRequestsPerMinute: 120,
+  perClientRequestsPerMinute: 120
 };
 
 interface StoredPropagationMessage {
@@ -146,10 +142,7 @@ export interface PropagationServerOptions {
   /** Injected wall-clock in ms — protocol code never reads OS time. */
   readonly now: () => number;
   /** Injected scheduler — adapters supply real timers. */
-  readonly schedule: (
-    ms: number,
-    callback: () => void,
-  ) => PropagationServerTimer;
+  readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
 }
 
 /** Production propagation-node server with quotas and eviction. */
@@ -161,22 +154,16 @@ export class PropagationServer {
   private readonly persistence: PropagationPersistence | null;
   private readonly remoteMirror: PropagationRemoteMirror | null;
   private readonly now: () => number;
-  private readonly schedule: (
-    ms: number,
-    callback: () => void,
-  ) => PropagationServerTimer;
+  private readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
   private persistTimer: PropagationServerTimer | null = null;
-  private persistDebounceState: PersistDebounceState =
-    initialPersistDebounceState();
+  private persistDebounceState: PersistDebounceState = initialPersistDebounceState();
 
   constructor(
     private readonly provider: CryptoProvider,
     private readonly quotas: PropagationServerQuotas = DEFAULT_PROPAGATION_QUOTAS,
-    options: PropagationServerOptions,
+    options: PropagationServerOptions
   ) {
-    this.clientRateState = initialClientRateLimitState(
-      quotas.perClientRequestsPerMinute,
-    );
+    this.clientRateState = initialClientRateLimitState(quotas.perClientRequestsPerMinute);
     this.persistence = options.persistence ?? null;
     this.remoteMirror = options.remoteMirror ?? null;
     this.now = options.now;
@@ -193,7 +180,7 @@ export class PropagationServer {
       messageCount: this.entries.size,
       usedBytes: this.usedBytes,
       quotaBytes: this.quotas.maxBytes,
-      evictions: this.evictions,
+      evictions: this.evictions
     };
   }
 
@@ -201,17 +188,14 @@ export class PropagationServer {
     destination.registerRequestHandler(
       MESSAGE_GET_PATH,
       (_path, data, _requestId, _linkId, remoteIdentity) => {
-        const clientKey =
-          remoteIdentity === null
-            ? "anonymous"
-            : Buffer.from(remoteIdentity.hash).toString("hex");
+        const clientKey = remoteIdentity === null ? "anonymous" : Buffer.from(remoteIdentity.hash).toString("hex");
         if (!this.allowClientRequest(clientKey)) {
           return msgpackPackUInt(PeerError.NO_ACCESS);
         }
 
         return this.handleGetRequest(data, remoteIdentity);
       },
-      DestinationAllowPolicy.ALLOW_ALL,
+      DestinationAllowPolicy.ALLOW_ALL
     );
 
     destination.setLinkEstablishedCallback((link) => {
@@ -223,27 +207,24 @@ export class PropagationServer {
     const transientId = RnsIdentity.fullHash(this.provider, lxmfData);
     const key = Buffer.from(transientId).toString("hex");
     const destinationHash = propagationDestinationHash(lxmfData);
-    const stepped = stepPropagationStoreWithActions(
-      initialPropagationStoreState(),
-      {
-        kind: "store/received",
-        quotas: this.quotas,
-        messageBytes: lxmfData.length,
-        alreadyStored: this.entries.has(key),
-        usedBytes: this.usedBytes,
-        entries: [...this.entries.entries()].map(([entryKey, entry]) => ({
-          key: entryKey,
-          size: entry.size,
-          storedAt: entry.storedAt,
-        })),
-        destinationHashPresent: destinationHash !== null,
-      },
-    );
+    const stepped = stepPropagationStoreWithActions(initialPropagationStoreState(), {
+      kind: "store/received",
+      quotas: this.quotas,
+      messageBytes: lxmfData.length,
+      alreadyStored: this.entries.has(key),
+      usedBytes: this.usedBytes,
+      entries: [...this.entries.entries()].map(([entryKey, entry]) => ({
+        key: entryKey,
+        size: entry.size,
+        storedAt: entry.storedAt
+      })),
+      destinationHashPresent: destinationHash !== null
+    });
     return this.applyPropagationStoreActions(stepped.actions, {
       transientId,
       key,
       lxmfData,
-      destinationHash,
+      destinationHash
     });
   }
 
@@ -254,7 +235,7 @@ export class PropagationServer {
       readonly key: string;
       readonly lxmfData: Uint8Array;
       readonly destinationHash: Uint8Array | null;
-    },
+    }
   ): Uint8Array | null {
     if (shouldRejectPropagationStore(actions)) {
       return null;
@@ -267,8 +248,8 @@ export class PropagationServer {
       {
         kind: "propagation/apply-store-commit-gate",
         planAccept: shouldAcceptPropagationStore(actions),
-        destinationHashPresent: input.destinationHash !== null,
-      },
+        destinationHashPresent: input.destinationHash !== null
+      }
     );
     /* Commit store only from `apply` (no ad-hoc accept / destinationHash reads). */
     if (!shouldApplyPropagationStoreCommitNow(applyStepped.actions)) {
@@ -282,8 +263,8 @@ export class PropagationServer {
         initialEvictPropagationCatalogEntryState(),
         {
           kind: "propagation/evict-catalog-entry-gate",
-          entryPresent: entry !== undefined,
-        },
+          entryPresent: entry !== undefined
+        }
       );
       if (shouldEvictPropagationCatalogEntryNow(evictStepped.actions)) {
         this.delete(entry!.transientId);
@@ -297,7 +278,7 @@ export class PropagationServer {
       destinationHash: Uint8Array.from(input.destinationHash!),
       lxmfData: Uint8Array.from(input.lxmfData),
       storedAt,
-      size: input.lxmfData.length,
+      size: input.lxmfData.length
     });
     this.usedBytes += input.lxmfData.length;
     this.schedulePersist();
@@ -311,8 +292,8 @@ export class PropagationServer {
       initialDeletePropagationCatalogEntryState(),
       {
         kind: "propagation/delete-catalog-entry-gate",
-        entryPresent: entry !== undefined,
-      },
+        entryPresent: entry !== undefined
+      }
     );
     if (!shouldDeletePropagationCatalogEntryNow(deleteStepped.actions)) {
       return false;
@@ -332,27 +313,22 @@ export class PropagationServer {
       {
         kind: "propagation/message-too-large-gate",
         messageBytes: entry.lxmfData.length,
-        quotas: this.quotas,
-      },
+        quotas: this.quotas
+      }
     );
-    const stepped = stepPropagationRestoreWithActions(
-      initialPropagationRestoreState(),
-      {
-        kind: "propagation/restore-gate",
-        tooLarge: shouldTreatPropagationMessageTooLarge(
-          tooLargeStepped.actions,
-        ),
-        alreadyStored: this.entries.has(key),
-        destinationHashPresent: destinationHash !== null,
-      },
-    );
+    const stepped = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
+      kind: "propagation/restore-gate",
+      tooLarge: shouldTreatPropagationMessageTooLarge(tooLargeStepped.actions),
+      alreadyStored: this.entries.has(key),
+      destinationHashPresent: destinationHash !== null
+    });
     const applyStepped = stepApplyPropagationRestoreWithActions(
       initialApplyPropagationRestoreState(),
       {
         kind: "propagation/apply-restore-gate",
         planAccept: shouldAcceptPropagationRestore(stepped.actions),
-        destinationHashPresent: destinationHash !== null,
-      },
+        destinationHashPresent: destinationHash !== null
+      }
     );
     /* Apply restore insert only from `apply` (no ad-hoc accept / destinationHash reads). */
     if (!shouldApplyPropagationRestoreNow(applyStepped.actions)) {
@@ -364,7 +340,7 @@ export class PropagationServer {
       destinationHash: Uint8Array.from(destinationHash!),
       lxmfData: Uint8Array.from(entry.lxmfData),
       storedAt: entry.storedAt,
-      size: entry.lxmfData.length,
+      size: entry.lxmfData.length
     });
     this.usedBytes += entry.lxmfData.length;
   }
@@ -374,30 +350,22 @@ export class PropagationServer {
       return;
     }
 
-    const result = stepPersistDebounceWithActions(this.persistDebounceState, {
-      kind: "persist/request",
-    });
+    const result = stepPersistDebounceWithActions(this.persistDebounceState, { kind: "persist/request" });
     this.persistDebounceState = result.state;
 
     for (const intent of result.intents) {
       if (intent.kind === "timer/cancel") {
         this.persistTimer?.cancel();
         this.persistTimer = null;
-      } else if (
-        intent.kind === "timer/set" &&
-        intent.timer.id === "persist-debounce"
-      ) {
+      } else if (intent.kind === "timer/set" && intent.timer.id === "persist-debounce") {
         this.persistTimer?.cancel();
         this.persistTimer = this.schedule(intent.timer.delayMs, () => {
           this.persistTimer = null;
-          const fired = stepPersistDebounceWithActions(
-            this.persistDebounceState,
-            {
-              kind: "timer/fired",
-              id: "persist-debounce",
-              at: this.now(),
-            },
-          );
+          const fired = stepPersistDebounceWithActions(this.persistDebounceState, {
+            kind: "timer/fired",
+            id: "persist-debounce",
+            at: this.now()
+          });
           this.persistDebounceState = fired.state;
           if (fired.actions.some((action) => action.kind === "flush")) {
             this.flushCatalog();
@@ -438,7 +406,7 @@ export class PropagationServer {
     return [...this.entries.values()].map((entry) => ({
       transientId: entry.transientId,
       lxmfData: entry.lxmfData,
-      storedAt: entry.storedAt,
+      storedAt: entry.storedAt
     }));
   }
 
@@ -450,9 +418,9 @@ export class PropagationServer {
         entries: [...this.entries.entries()].map(([key, entry]) => ({
           key,
           size: entry.size,
-          storedAt: entry.storedAt,
-        })),
-      },
+          storedAt: entry.storedAt
+        }))
+      }
     );
     const oldestKey = oldestPropagationKeyFromActions(selectStepped.actions);
     const oldest = oldestKey === null ? undefined : this.entries.get(oldestKey);
@@ -461,8 +429,8 @@ export class PropagationServer {
       {
         kind: "propagation/evict-oldest-entry-gate",
         oldestKeyPresent: oldestKey !== null,
-        entryPresent: oldest !== undefined,
-      },
+        entryPresent: oldest !== undefined
+      }
     );
     if (!shouldEvictOldestPropagationEntryNow(evictStepped.actions)) {
       return false;
@@ -477,7 +445,7 @@ export class PropagationServer {
     const stepped = stepAllowClientRequestWithActions(this.clientRateState, {
       kind: "rate/allow-gate",
       clientKey,
-      at: this.now(),
+      at: this.now()
     });
     this.clientRateState = stepped.state;
     return shouldAllowClientRequest(stepped.actions);
@@ -489,8 +457,8 @@ export class PropagationServer {
         initialUnpackPropagationEnvelopeState(),
         {
           kind: "lxmf-codec/unpack-propagation-envelope-gate",
-          data,
-        },
+          data
+        }
       );
       if (
         shouldRejectUnpackPropagationEnvelope(unpackStepped.actions) ||
@@ -498,9 +466,7 @@ export class PropagationServer {
       ) {
         return;
       }
-      const fields = propagationEnvelopeFieldsFromActions(
-        unpackStepped.actions,
-      );
+      const fields = propagationEnvelopeFieldsFromActions(unpackStepped.actions);
       if (fields === null) {
         return;
       }
@@ -510,16 +476,13 @@ export class PropagationServer {
     };
   }
 
-  private handleGetRequest(
-    data: Uint8Array | null,
-    remoteIdentity: Identity | null,
-  ): Uint8Array | null {
+  private handleGetRequest(data: Uint8Array | null, remoteIdentity: Identity | null): Uint8Array | null {
     const acceptStepped = stepAcceptPropagationGetRequestDataWithActions(
       initialAcceptPropagationGetRequestDataState(),
       {
         kind: "propagation/accept-get-request-data-gate",
-        dataPresent: data !== null,
-      },
+        dataPresent: data !== null
+      }
     );
     if (!shouldAcceptPropagationGetRequestDataNow(acceptStepped.actions)) {
       return null;
@@ -529,8 +492,8 @@ export class PropagationServer {
       initialUnpackPropagationRequestState(),
       {
         kind: "lxmf-codec/unpack-propagation-request-gate",
-        data: data!,
-      },
+        data: data!
+      }
     );
     if (
       shouldRejectUnpackPropagationRequest(unpackStepped.actions) ||
@@ -538,9 +501,7 @@ export class PropagationServer {
     ) {
       return null;
     }
-    const requestFields = propagationRequestFieldsFromActions(
-      unpackStepped.actions,
-    );
+    const requestFields = propagationRequestFieldsFromActions(unpackStepped.actions);
     if (requestFields === null) {
       return null;
     }
@@ -554,27 +515,24 @@ export class PropagationServer {
             direction: DestinationDirection.OUT,
             type: DestinationType.SINGLE,
             appName: APP_NAME,
-            aspects: ["delivery"],
+            aspects: ["delivery"]
           }).hash;
 
-    const stepped = stepPropagationGetWithActions(
-      initialPropagationGetState(),
-      {
-        kind: "get/received",
-        wants,
-        haves,
-        remoteDeliveryHash,
-        entries: [...this.entries.values()].map((entry) => ({
-          transientId: entry.transientId,
-          destinationHash: entry.destinationHash,
-        })),
-      },
-    );
+    const stepped = stepPropagationGetWithActions(initialPropagationGetState(), {
+      kind: "get/received",
+      wants,
+      haves,
+      remoteDeliveryHash,
+      entries: [...this.entries.values()].map((entry) => ({
+        transientId: entry.transientId,
+        destinationHash: entry.destinationHash
+      }))
+    });
     return this.applyPropagationGetActions(stepped.actions);
   }
 
   private applyPropagationGetActions(
-    actions: readonly PropagationGetAction[],
+    actions: readonly PropagationGetAction[]
   ): Uint8Array | null {
     if (shouldListPropagationGetIds(actions)) {
       const transientIds = propagationGetListIds(actions) ?? [];
@@ -594,10 +552,7 @@ export class PropagationServer {
     }
 
     const messages = apply.fetchIds
-      .map(
-        (transientId) =>
-          this.entries.get(Buffer.from(transientId).toString("hex")) ?? null,
-      )
+      .map((transientId) => this.entries.get(Buffer.from(transientId).toString("hex")) ?? null)
       .filter((entry): entry is StoredPropagationMessage => entry !== null)
       .map((entry) => entry.lxmfData);
 
@@ -605,15 +560,10 @@ export class PropagationServer {
   }
 }
 
-export function decodePropagationPeerError(
-  response: Uint8Array,
-): number | null {
-  const stepped = stepDecodeLxmfPeerErrorWithActions(
-    initialDecodeLxmfPeerErrorState(),
-    {
-      kind: "lxmf/peer-error-decode-gate",
-      response,
-    },
-  );
+export function decodePropagationPeerError(response: Uint8Array): number | null {
+  const stepped = stepDecodeLxmfPeerErrorWithActions(initialDecodeLxmfPeerErrorState(), {
+    kind: "lxmf/peer-error-decode-gate",
+    response
+  });
   return lxmfPeerErrorFromActions(stepped.actions);
 }

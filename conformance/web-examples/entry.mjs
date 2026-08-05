@@ -6,7 +6,7 @@
 import { WebSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/web.js";
 import {
   encodeJsonWireValue,
-  reviveJsonWireValue,
+  reviveJsonWireValue
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { EXAMPLE_FIXTURES } from "./fixtures.mjs";
 
@@ -84,23 +84,23 @@ function createSandboxRelay(sendToWorker) {
                     type: "sandbox-broker-request",
                     requestId,
                     instanceId: message.instanceId,
-                    request: encodeJsonWireValue(request),
+                    request: encodeJsonWireValue(request)
                   });
-                }),
-            },
+                })
+            }
           });
 
           instances.set(message.instanceId, instance);
           sendToWorker({
             type: "sandbox-spawned",
             requestId: message.requestId,
-            instanceId: message.instanceId,
+            instanceId: message.instanceId
           });
         } catch (error) {
           sendToWorker({
             type: "sandbox-spawn-failed",
             requestId: message.requestId,
-            message: error instanceof Error ? error.message : String(error),
+            message: error instanceof Error ? error.message : String(error)
           });
         }
 
@@ -115,14 +115,11 @@ function createSandboxRelay(sendToWorker) {
 
       if (message.type === "sandbox-ping") {
         const instance = instances.get(message.instanceId);
-        const alive =
-          instance === undefined
-            ? false
-            : await instance.ping(message.timeoutMs);
+        const alive = instance === undefined ? false : await instance.ping(message.timeoutMs);
         sendToWorker({
           type: "sandbox-ping-result",
           requestId: message.requestId,
-          alive,
+          alive
         });
         return;
       }
@@ -146,7 +143,7 @@ function createSandboxRelay(sendToWorker) {
         pendingBrokers.delete(message.requestId);
         waiter.resolve(reviveJsonWireValue(message.response));
       }
-    },
+    }
   };
 }
 
@@ -154,30 +151,21 @@ function hexToBytes(hex) {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
   const bytes = new Uint8Array(normalized.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(
-      normalized.slice(index * 2, index * 2 + 2),
-      16,
-    );
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
   }
 
   return bytes;
 }
 
 function bytesToHex(bytes) {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 async function waitForRuntime(getRuntime, predicate, timeoutMs = 15_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const runtime = getRuntime();
-    if (
-      runtime?.widgetTree !== null &&
-      runtime?.widgetTree !== undefined &&
-      predicate(runtime)
-    ) {
+    if (runtime?.widgetTree !== null && runtime?.widgetTree !== undefined && predicate(runtime)) {
       return runtime;
     }
 
@@ -191,7 +179,7 @@ async function exerciseExample(send, getRuntime, name, fixture, steps) {
   send({
     type: "install-app",
     appId: fixture.name,
-    archiveHex: fixture.archiveHex,
+    archiveHex: fixture.archiveHex
   });
   await sleep(300);
 
@@ -200,7 +188,7 @@ async function exerciseExample(send, getRuntime, name, fixture, steps) {
     appId: fixture.name,
     publisherPublicKey: fixture.publisherPublicKey,
     declaredCapabilities: fixture.capabilities,
-    grantedCapabilities: fixture.capabilities,
+    grantedCapabilities: fixture.capabilities
   });
   await sleep(100);
 
@@ -250,8 +238,8 @@ async function main() {
             type: "launch-confirm",
             token: message.token,
             accept: true,
-            grants: message.capabilities.map((capability) => capability.id),
-          }),
+            grants: message.capabilities.map((capability) => capability.id)
+          })
         });
         continue;
       }
@@ -262,8 +250,8 @@ async function main() {
           data: encodeMessage({
             type: "confirm-response",
             token: message.token,
-            approved: true,
-          }),
+            approved: true
+          })
         });
         continue;
       }
@@ -282,97 +270,46 @@ async function main() {
     type: "start",
     targetHost: "127.0.0.1",
     targetPort: 9480,
-    gatewayUrl: "ws://127.0.0.1:9480",
+    gatewayUrl: "ws://127.0.0.1:9480"
   });
 
   const getRuntime = () => latestRuntime;
   const passed = [];
 
-  await exerciseExample(
-    send,
-    getRuntime,
-    "chat",
-    EXAMPLE_FIXTURES.chat,
-    async () => {
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "Chat"),
-      );
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "Me:"),
-      );
-      send({
-        type: "miniapp-ui-event",
-        nodeId: "peer-input",
-        event: "chat.peer",
-        value: "chat-peer",
-      });
-      await sleep(250);
-      send({ type: "miniapp-ui-event", nodeId: "send", event: "chat.send" });
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "Sent hello"),
-      );
-    },
-  );
+  await exerciseExample(send, getRuntime, "chat", EXAMPLE_FIXTURES.chat, async () => {
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Chat"));
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Me:"));
+    send({ type: "miniapp-ui-event", nodeId: "peer-input", event: "chat.peer", value: "chat-peer" });
+    await sleep(250);
+    send({ type: "miniapp-ui-event", nodeId: "send", event: "chat.send" });
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Sent hello"));
+  });
   passed.push("chat");
 
-  await exerciseExample(
-    send,
-    getRuntime,
-    "file-drop",
-    EXAMPLE_FIXTURES["file-drop"],
-    async () => {
-      send({
-        type: "seed-miniapp-kv",
-        key: "miniapp-resource:offer:demo",
-        valueHex: bytesToHex(new TextEncoder().encode("phase4-demo-payload")),
-      });
-      await sleep(100);
+  await exerciseExample(send, getRuntime, "file-drop", EXAMPLE_FIXTURES["file-drop"], async () => {
+    send({
+      type: "seed-miniapp-kv",
+      key: "miniapp-resource:offer:demo",
+      valueHex: bytesToHex(new TextEncoder().encode("phase4-demo-payload"))
+    });
+    await sleep(100);
 
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "File Drop"),
-      );
-      send({
-        type: "miniapp-ui-event",
-        nodeId: "fetch",
-        event: "resource.fetch",
-      });
-      await waitForRuntime(getRuntime, (runtime) => {
-        const texts = collectTextValues(runtime.widgetTree.root);
-        return texts.some(
-          (value) => value.includes("Fetched") || value.includes("Resource"),
-        );
-      });
-    },
-  );
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "File Drop"));
+    send({ type: "miniapp-ui-event", nodeId: "fetch", event: "resource.fetch" });
+    await waitForRuntime(getRuntime, (runtime) => {
+      const texts = collectTextValues(runtime.widgetTree.root);
+      return texts.some((value) => value.includes("Fetched") || value.includes("Resource"));
+    });
+  });
   passed.push("file-drop");
 
-  await exerciseExample(
-    send,
-    getRuntime,
-    "board",
-    EXAMPLE_FIXTURES.board,
-    async () => {
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "Board"),
-      );
-      send({
-        type: "miniapp-ui-event",
-        nodeId: "publish",
-        event: "board.publish",
-      });
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "Published 1 post"),
-      );
-      send({
-        type: "miniapp-ui-event",
-        nodeId: "refresh",
-        event: "board.refresh",
-      });
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "1 local post"),
-      );
-    },
-  );
+  await exerciseExample(send, getRuntime, "board", EXAMPLE_FIXTURES.board, async () => {
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Board"));
+    send({ type: "miniapp-ui-event", nodeId: "publish", event: "board.publish" });
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Published 1 post"));
+    send({ type: "miniapp-ui-event", nodeId: "refresh", event: "board.refresh" });
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "1 local post"));
+  });
   passed.push("board");
 
   globalThis.__WEB_EXAMPLES__ = { status: "done", passed };
@@ -381,6 +318,6 @@ async function main() {
 main().catch((error) => {
   globalThis.__WEB_EXAMPLES__ = {
     status: "error",
-    message: error instanceof Error ? error.message : String(error),
+    message: error instanceof Error ? error.message : String(error)
   };
 });

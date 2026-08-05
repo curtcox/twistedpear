@@ -21,56 +21,55 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   DestinationTypeCode,
   isDestinationDirectionCode,
-  isDestinationTypeCode,
+  isDestinationTypeCode
 } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
 import { DestinationAllowPolicyCode } from "./part-1.js";
 import { stepDestinationConstructionInner } from "./part-2.js";
-import type {
-  DestinationConstructionAction,
-  DestinationConstructionEvent,
-  DestinationConstructionState,
-} from "./part-2.js";
+import type { DestinationConstructionAction, DestinationConstructionEvent, DestinationConstructionState } from "./part-2.js";
 export function initialDestinationConstructionState(): DestinationConstructionState {
   return {};
 }
 
-export const stepDestinationConstruction: StepFn<
-  DestinationConstructionState
-> = (state, event) => {
+export const stepDestinationConstruction: StepFn<DestinationConstructionState> = (
+  state,
+  event
+) => {
   const result = stepDestinationConstructionInner(
     state,
-    event as DestinationConstructionEvent,
+    event as DestinationConstructionEvent
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function shouldProceedDestinationConstruction(
-  actions: ReadonlyArray<DestinationConstructionAction>,
+  actions: ReadonlyArray<DestinationConstructionAction>
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectDestinationConstructionBadDirection(
-  actions: ReadonlyArray<DestinationConstructionAction>,
+  actions: ReadonlyArray<DestinationConstructionAction>
 ): boolean {
   return actions.some((action) => action.kind === "bad-direction");
 }
 
 export function shouldRejectDestinationConstructionBadType(
-  actions: ReadonlyArray<DestinationConstructionAction>,
+  actions: ReadonlyArray<DestinationConstructionAction>
 ): boolean {
   return actions.some((action) => action.kind === "bad-type");
 }
 
 export function shouldRejectDestinationConstructionBadIdentityBinding(
-  actions: ReadonlyArray<DestinationConstructionAction>,
+  actions: ReadonlyArray<DestinationConstructionAction>
 ): boolean {
   return actions.some((action) => action.kind === "bad-identity-binding");
 }
 
 export type DestinationDecryptPlan =
-  "return-ciphertext" | "reject" | "decrypt-with-identity";
+  | "return-ciphertext"
+  | "reject"
+  | "decrypt-with-identity";
 
 /** How destination decrypt should proceed for inbound ciphertext. */
 export function planDestinationDecrypt(input: {
@@ -102,9 +101,7 @@ export type DestinationDecryptPlanEvent =
       readonly identityPresent: boolean;
     };
 
-export type DestinationDecryptPlanAction = {
-  readonly kind: DestinationDecryptPlan;
-};
+export type DestinationDecryptPlanAction = { readonly kind: DestinationDecryptPlan };
 
 export interface DestinationDecryptPlanStepResult {
   readonly state: DestinationDecryptPlanState;
@@ -118,7 +115,7 @@ export function initialDestinationDecryptPlanState(): DestinationDecryptPlanStat
 
 export function stepDestinationDecryptPlanWithActions(
   state: DestinationDecryptPlanState,
-  event: DestinationDecryptPlanEvent,
+  event: DestinationDecryptPlanEvent
 ): DestinationDecryptPlanStepResult {
   if (event.kind === "destination/decrypt-plan-gate") {
     return {
@@ -128,10 +125,10 @@ export function stepDestinationDecryptPlanWithActions(
         {
           kind: planDestinationDecrypt({
             typePlain: event.typePlain,
-            identityPresent: event.identityPresent,
-          }),
-        },
-      ],
+            identityPresent: event.identityPresent
+          })
+        }
+      ]
     };
   }
 
@@ -140,31 +137,31 @@ export function stepDestinationDecryptPlanWithActions(
 
 /** Extract the decrypt plan from actions; null when empty. */
 export function destinationDecryptPlanFromActions(
-  actions: ReadonlyArray<DestinationDecryptPlanAction>,
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
 ): DestinationDecryptPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "return-ciphertext" ||
       entry.kind === "reject" ||
-      entry.kind === "decrypt-with-identity",
+      entry.kind === "decrypt-with-identity"
   );
   return action?.kind ?? null;
 }
 
 export function shouldReturnDestinationDecryptPlanCiphertext(
-  actions: ReadonlyArray<DestinationDecryptPlanAction>,
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "return-ciphertext");
 }
 
 export function shouldRejectDestinationDecryptPlan(
-  actions: ReadonlyArray<DestinationDecryptPlanAction>,
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 export function shouldDecryptDestinationPlanWithIdentity(
-  actions: ReadonlyArray<DestinationDecryptPlanAction>,
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "decrypt-with-identity");
 }
@@ -190,9 +187,7 @@ export type DestinationDecryptEvent =
  * Plan nested via {@link stepDestinationDecryptPlanWithActions}
  * (`return-ciphertext`|`reject`|`decrypt-with-identity`).
  */
-export type DestinationDecryptAction = {
-  readonly kind: DestinationDecryptPlan;
-};
+export type DestinationDecryptAction = { readonly kind: DestinationDecryptPlan };
 
 export interface DestinationDecryptStepResult {
   readonly state: DestinationDecryptState;
@@ -204,45 +199,39 @@ export function initialDestinationDecryptState(): DestinationDecryptState {
   return {};
 }
 
-export const stepDestinationDecrypt: StepFn<DestinationDecryptState> = (
-  state,
-  event,
-) => {
-  const result = stepDestinationDecryptInner(
-    state,
-    event as DestinationDecryptEvent,
-  );
+export const stepDestinationDecrypt: StepFn<DestinationDecryptState> = (state, event) => {
+  const result = stepDestinationDecryptInner(state, event as DestinationDecryptEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepDestinationDecryptWithActions(
   state: DestinationDecryptState,
-  event: DestinationDecryptEvent,
+  event: DestinationDecryptEvent
 ): DestinationDecryptStepResult {
   return stepDestinationDecryptInner(state, event);
 }
 
 export function shouldReturnDestinationDecryptCiphertext(
-  actions: ReadonlyArray<DestinationDecryptAction>,
+  actions: ReadonlyArray<DestinationDecryptAction>
 ): boolean {
   return actions.some((action) => action.kind === "return-ciphertext");
 }
 
 export function shouldRejectDestinationDecrypt(
-  actions: ReadonlyArray<DestinationDecryptAction>,
+  actions: ReadonlyArray<DestinationDecryptAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 export function shouldDecryptDestinationWithIdentity(
-  actions: ReadonlyArray<DestinationDecryptAction>,
+  actions: ReadonlyArray<DestinationDecryptAction>
 ): boolean {
   return actions.some((action) => action.kind === "decrypt-with-identity");
 }
 
 function stepDestinationDecryptInner(
   state: DestinationDecryptState,
-  event: DestinationDecryptEvent,
+  event: DestinationDecryptEvent
 ): DestinationDecryptStepResult {
   if (event.kind === "destination/decrypt-gate") {
     const planActions = stepDestinationDecryptPlanWithActions(
@@ -250,8 +239,8 @@ function stepDestinationDecryptInner(
       {
         kind: "destination/decrypt-plan-gate",
         typePlain: event.typePlain,
-        identityPresent: event.identityPresent,
-      },
+        identityPresent: event.identityPresent
+      }
     ).actions;
     const plan = destinationDecryptPlanFromActions(planActions);
     if (plan === null) {
@@ -264,7 +253,9 @@ function stepDestinationDecryptInner(
 }
 
 export type DestinationEncryptPlan =
-  "use-plaintext" | "reject" | "encrypt-with-identity";
+  | "use-plaintext"
+  | "reject"
+  | "encrypt-with-identity";
 
 /** How destination send should proceed for outbound data. */
 export function planDestinationEncrypt(input: {
@@ -296,9 +287,7 @@ export type DestinationEncryptPlanEvent =
       readonly identityPresent: boolean;
     };
 
-export type DestinationEncryptPlanAction = {
-  readonly kind: DestinationEncryptPlan;
-};
+export type DestinationEncryptPlanAction = { readonly kind: DestinationEncryptPlan };
 
 export interface DestinationEncryptPlanStepResult {
   readonly state: DestinationEncryptPlanState;
@@ -312,7 +301,7 @@ export function initialDestinationEncryptPlanState(): DestinationEncryptPlanStat
 
 export function stepDestinationEncryptPlanWithActions(
   state: DestinationEncryptPlanState,
-  event: DestinationEncryptPlanEvent,
+  event: DestinationEncryptPlanEvent
 ): DestinationEncryptPlanStepResult {
   if (event.kind === "destination/encrypt-plan-gate") {
     return {
@@ -322,10 +311,10 @@ export function stepDestinationEncryptPlanWithActions(
         {
           kind: planDestinationEncrypt({
             typePlain: event.typePlain,
-            identityPresent: event.identityPresent,
-          }),
-        },
-      ],
+            identityPresent: event.identityPresent
+          })
+        }
+      ]
     };
   }
 
@@ -334,31 +323,31 @@ export function stepDestinationEncryptPlanWithActions(
 
 /** Extract the encrypt plan from actions; null when empty. */
 export function destinationEncryptPlanFromActions(
-  actions: ReadonlyArray<DestinationEncryptPlanAction>,
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
 ): DestinationEncryptPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "use-plaintext" ||
       entry.kind === "reject" ||
-      entry.kind === "encrypt-with-identity",
+      entry.kind === "encrypt-with-identity"
   );
   return action?.kind ?? null;
 }
 
 export function shouldUseDestinationEncryptPlanPlaintext(
-  actions: ReadonlyArray<DestinationEncryptPlanAction>,
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-plaintext");
 }
 
 export function shouldRejectDestinationEncryptPlan(
-  actions: ReadonlyArray<DestinationEncryptPlanAction>,
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 export function shouldEncryptDestinationPlanWithIdentity(
-  actions: ReadonlyArray<DestinationEncryptPlanAction>,
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "encrypt-with-identity");
 }
@@ -384,9 +373,7 @@ export type DestinationEncryptEvent =
  * Plan nested via {@link stepDestinationEncryptPlanWithActions}
  * (`use-plaintext`|`reject`|`encrypt-with-identity`).
  */
-export type DestinationEncryptAction = {
-  readonly kind: DestinationEncryptPlan;
-};
+export type DestinationEncryptAction = { readonly kind: DestinationEncryptPlan };
 
 export interface DestinationEncryptStepResult {
   readonly state: DestinationEncryptState;
@@ -398,45 +385,39 @@ export function initialDestinationEncryptState(): DestinationEncryptState {
   return {};
 }
 
-export const stepDestinationEncrypt: StepFn<DestinationEncryptState> = (
-  state,
-  event,
-) => {
-  const result = stepDestinationEncryptInner(
-    state,
-    event as DestinationEncryptEvent,
-  );
+export const stepDestinationEncrypt: StepFn<DestinationEncryptState> = (state, event) => {
+  const result = stepDestinationEncryptInner(state, event as DestinationEncryptEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepDestinationEncryptWithActions(
   state: DestinationEncryptState,
-  event: DestinationEncryptEvent,
+  event: DestinationEncryptEvent
 ): DestinationEncryptStepResult {
   return stepDestinationEncryptInner(state, event);
 }
 
 export function shouldUseDestinationEncryptPlaintext(
-  actions: ReadonlyArray<DestinationEncryptAction>,
+  actions: ReadonlyArray<DestinationEncryptAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-plaintext");
 }
 
 export function shouldRejectDestinationEncrypt(
-  actions: ReadonlyArray<DestinationEncryptAction>,
+  actions: ReadonlyArray<DestinationEncryptAction>
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 export function shouldEncryptDestinationWithIdentity(
-  actions: ReadonlyArray<DestinationEncryptAction>,
+  actions: ReadonlyArray<DestinationEncryptAction>
 ): boolean {
   return actions.some((action) => action.kind === "encrypt-with-identity");
 }
 
 function stepDestinationEncryptInner(
   state: DestinationEncryptState,
-  event: DestinationEncryptEvent,
+  event: DestinationEncryptEvent
 ): DestinationEncryptStepResult {
   if (event.kind === "destination/encrypt-gate") {
     const planActions = stepDestinationEncryptPlanWithActions(
@@ -444,8 +425,8 @@ function stepDestinationEncryptInner(
       {
         kind: "destination/encrypt-plan-gate",
         typePlain: event.typePlain,
-        identityPresent: event.identityPresent,
-      },
+        identityPresent: event.identityPresent
+      }
     ).actions;
     const plan = destinationEncryptPlanFromActions(planActions);
     if (plan === null) {

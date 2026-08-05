@@ -47,7 +47,7 @@ export function initialLinkProofSignedMaterialState(): LinkProofSignedMaterialSt
 
 export function stepLinkProofSignedMaterialWithActions(
   state: LinkProofSignedMaterialState,
-  event: LinkProofSignedMaterialEvent,
+  event: LinkProofSignedMaterialEvent
 ): LinkProofSignedMaterialStepResult {
   if (event.kind === "link-proof/signed-material-gate") {
     return {
@@ -60,10 +60,10 @@ export function stepLinkProofSignedMaterialWithActions(
             event.linkId,
             event.publicKey,
             event.ownerSigPublicKey,
-            event.signallingBytes,
-          ),
-        },
-      ],
+            event.signallingBytes
+          )
+        }
+      ]
     };
   }
 
@@ -71,14 +71,14 @@ export function stepLinkProofSignedMaterialWithActions(
 }
 
 export function shouldUseLinkProofSignedMaterial(
-  actions: ReadonlyArray<LinkProofSignedMaterialAction>,
+  actions: ReadonlyArray<LinkProofSignedMaterialAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract link-proof signed material from step actions; null when no `use-raw`. */
 export function linkProofSignedMaterialRawFromActions(
-  actions: ReadonlyArray<LinkProofSignedMaterialAction>,
+  actions: ReadonlyArray<LinkProofSignedMaterialAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -116,7 +116,7 @@ export function initialLinkRequestHashablePartState(): LinkRequestHashablePartSt
 
 export function stepLinkRequestHashablePartWithActions(
   state: LinkRequestHashablePartState,
-  event: LinkRequestHashablePartEvent,
+  event: LinkRequestHashablePartEvent
 ): LinkRequestHashablePartStepResult {
   if (event.kind === "link-proof/request-hashable-gate") {
     return {
@@ -125,12 +125,9 @@ export function stepLinkRequestHashablePartWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: linkRequestHashablePart(
-            event.hashablePart,
-            event.requestDataLength,
-          ),
-        },
-      ],
+          raw: linkRequestHashablePart(event.hashablePart, event.requestDataLength)
+        }
+      ]
     };
   }
 
@@ -138,14 +135,14 @@ export function stepLinkRequestHashablePartWithActions(
 }
 
 export function shouldUseLinkRequestHashablePart(
-  actions: ReadonlyArray<LinkRequestHashablePartAction>,
+  actions: ReadonlyArray<LinkRequestHashablePartAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract truncated link-request hashable bytes from step actions; null when no `use-raw`. */
 export function linkRequestHashablePartRawFromActions(
-  actions: ReadonlyArray<LinkRequestHashablePartAction>,
+  actions: ReadonlyArray<LinkRequestHashablePartAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

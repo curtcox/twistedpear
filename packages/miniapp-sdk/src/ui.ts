@@ -22,11 +22,7 @@ export async function subscribeEvents(handlerId: string): Promise<void> {
  * before the bundle runs; this export documents the surface for app authors.
  */
 export function onEvent(handler: UiEventHandler): void {
-  const injected = (
-    globalThis as {
-      sdk?: { ui?: { onEvent?: (next: UiEventHandler) => void } };
-    }
-  ).sdk;
+  const injected = (globalThis as { sdk?: { ui?: { onEvent?: (next: UiEventHandler) => void } } }).sdk;
   if (injected?.ui?.onEvent === undefined) {
     throw new Error("ui.onEvent is only available inside a host sandbox");
   }

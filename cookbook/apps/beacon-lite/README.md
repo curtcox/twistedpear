@@ -17,17 +17,17 @@ The smallest announce payload worth sending, and pacing it against a LoRa duty c
 
 ## Capabilities
 
-| Capability         | Note                                                 |
-| ------------------ | ---------------------------------------------------- |
+| Capability | Note |
+|---|---|
 | `announce:publish` | Standing grant; revocable at any time from the host. |
-| `presence`         | Standing grant; revocable at any time from the host. |
+| `presence` | Standing grant; revocable at any time from the host. |
 
 ## Files
 
-| File                                   | Purpose                                                      |
-| -------------------------------------- | ------------------------------------------------------------ |
+| File | Purpose |
+|---|---|
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
 
 ## Run it
 

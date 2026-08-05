@@ -20,7 +20,7 @@ import {
   createLinkedBonjourBridge,
   createLinkedMulticastBridge,
   linkBonjourBridges,
-  linkMulticastBridges,
+  linkMulticastBridges
 } from "./linked-bridge.mjs";
 
 function sleep(ms) {
@@ -46,7 +46,7 @@ async function openBonjourPeer({ runtime, bridge, bonjourBridge, label }) {
   bonjour.setEvents({
     onPeer: (peer) => {
       pendingPeers.push(peer);
-    },
+    }
   });
 
   await bonjour.start();
@@ -57,24 +57,20 @@ async function openBonjourPeer({ runtime, bridge, bonjourBridge, label }) {
     runtime,
     bridge,
     onAdvertiseInterface: async (iface) => {
-      await bonjour.advertise(
-        iface.name,
-        iface.linkLocalAddress,
-        AUTO_DEFAULT_DATA_PORT,
-      );
+      await bonjour.advertise(iface.name, iface.linkLocalAddress, AUTO_DEFAULT_DATA_PORT);
     },
     onPeerSpawn: (peer) => {
       reticulum.registerInterface(peer);
     },
     onPeerDetach: (peer) => {
       reticulum.unregisterInterface(peer);
-    },
+    }
   });
 
   bonjour.setEvents({
     onPeer: (peer) => {
       auto.notifyPeerDiscovered(peer.address, peer.ifname);
-    },
+    }
   });
 
   for (const peer of pendingPeers) {
@@ -98,14 +94,14 @@ export async function runBonjourInterop() {
     runtime: nodeRuntime(),
     bridge: bridgeA,
     bonjourBridge: bonjourA,
-    label: "bonjour-node",
+    label: "bonjour-node"
   });
 
   const barePeer = await openBonjourPeer({
     runtime: bareRuntime({ storePath: bareStore }),
     bridge: bridgeB,
     bonjourBridge: bonjourB,
-    label: "bonjour-bare",
+    label: "bonjour-bare"
   });
 
   await nodePeer.auto.advertiseDiscovery();
@@ -115,30 +111,21 @@ export async function runBonjourInterop() {
   try {
     await sleep(500);
 
-    if (
-      nodePeer.auto.peerInterfaces.length !== 1 ||
-      barePeer.auto.peerInterfaces.length !== 1
-    ) {
+    if (nodePeer.auto.peerInterfaces.length !== 1 || barePeer.auto.peerInterfaces.length !== 1) {
       throw new Error(
-        `Bonjour interop: expected one peer per side (node=${nodePeer.auto.peerInterfaces.length}, bare=${barePeer.auto.peerInterfaces.length})`,
+        `Bonjour interop: expected one peer per side (node=${nodePeer.auto.peerInterfaces.length}, bare=${barePeer.auto.peerInterfaces.length})`
       );
     }
 
     if (nodePeer.auto.peerInterfaces[0]?.peerAddress !== "fe80::2") {
-      throw new Error(
-        `Bonjour interop: node peer address mismatch (${nodePeer.auto.peerInterfaces[0]?.peerAddress})`,
-      );
+      throw new Error(`Bonjour interop: node peer address mismatch (${nodePeer.auto.peerInterfaces[0]?.peerAddress})`);
     }
 
     if (barePeer.auto.peerInterfaces[0]?.peerAddress !== "fe80::1") {
-      throw new Error(
-        `Bonjour interop: bare peer address mismatch (${barePeer.auto.peerInterfaces[0]?.peerAddress})`,
-      );
+      throw new Error(`Bonjour interop: bare peer address mismatch (${barePeer.auto.peerInterfaces[0]?.peerAddress})`);
     }
 
-    console.log(
-      "[bonjour-interop] Node ⇄ Bare Bonjour discovery + unicast peer spawn passed",
-    );
+    console.log("[bonjour-interop] Node ⇄ Bare Bonjour discovery + unicast peer spawn passed");
   } finally {
     await nodePeer.bonjour.stop();
     await barePeer.bonjour.stop();

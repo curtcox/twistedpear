@@ -17,19 +17,19 @@ The full `apps:*` loop: write project files, preview, package, publish, get a 25
 
 ## Capabilities
 
-| Capability     | Note                                                                   |
-| -------------- | ---------------------------------------------------------------------- |
-| `workspace`    | 256 KiB per file, 4 MiB and 512 files per app.                         |
-| `apps:package` | Host-confirmed on every call.                                          |
+| Capability | Note |
+|---|---|
+| `workspace` | 256 KiB per file, 4 MiB and 512 files per app. |
+| `apps:package` | Host-confirmed on every call. |
 | `apps:preview` | One preview slot per host; previewing again replaces the last preview. |
-| `apps:publish` | Host-confirmed on every call; auto-denied after 60 s.                  |
+| `apps:publish` | Host-confirmed on every call; auto-denied after 60 s. |
 
 ## Files
 
-| File                                   | Purpose                                                      |
-| -------------------------------------- | ------------------------------------------------------------ |
+| File | Purpose |
+|---|---|
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
 
 ## Run it
 

@@ -9,7 +9,7 @@ import {
   PacketContext,
   PacketHeaderType,
   PacketType,
-  TransportType,
+  TransportType
 } from "@twistedpear/reticulum-ts";
 import { FreenetInterface } from "@twistedpear/reticulum-interfaces";
 import { FreenetContractPacketLogBackend } from "../../packages/bridge-freenet/dist/index.js";
@@ -33,7 +33,7 @@ const rightToken =
 
 if (leftUrl === undefined || rightUrl === undefined) {
   throw new Error(
-    "FREENET_NODE_URL (or FREENET_LEFT_NODE_URL / FREENET_RIGHT_NODE_URL) is required for the F2 interface proof",
+    "FREENET_NODE_URL (or FREENET_LEFT_NODE_URL / FREENET_RIGHT_NODE_URL) is required for the F2 interface proof"
   );
 }
 
@@ -41,9 +41,9 @@ const wasm = Uint8Array.from(
   readFileSync(
     join(
       repoRoot,
-      "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
-    ),
-  ),
+      "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm"
+    )
+  )
 );
 const rendezvous = randomBytes(32);
 const provider = new NodeCryptoProvider();
@@ -54,7 +54,7 @@ const leftBackend = new FreenetContractPacketLogBackend({
   rendezvous,
   localDirection: 0,
   retentionPerDirection: 32,
-  updateOptions: { fallbackCodeField: wasm },
+  updateOptions: { fallbackCodeField: wasm }
 });
 const rightBackend = new FreenetContractPacketLogBackend({
   clientOptions: { url: rightUrl, authToken: rightToken },
@@ -62,18 +62,18 @@ const rightBackend = new FreenetContractPacketLogBackend({
   rendezvous,
   localDirection: 1,
   retentionPerDirection: 32,
-  updateOptions: { fallbackCodeField: wasm },
+  updateOptions: { fallbackCodeField: wasm }
 });
 
 const left = await FreenetInterface.open(provider, {
   name: "f2-left",
   provider,
-  backend: leftBackend,
+  backend: leftBackend
 });
 const right = await FreenetInterface.open(provider, {
   name: "f2-right",
   provider,
-  backend: rightBackend,
+  backend: rightBackend
 });
 
 const payload = new TextEncoder().encode(`tp-f2:${label}:${Date.now()}`);
@@ -84,13 +84,13 @@ const packet = Packet.fromFields(provider, {
   packetType: PacketType.DATA,
   destinationHash: provider.randomBytes(16),
   context: PacketContext.NONE,
-  data: payload,
+  data: payload
 });
 
 const distinct = leftUrl !== rightUrl;
 console.log(
   `F2 proof: sending HDLC packet left → right over Freenet packet-log` +
-    (distinct ? ` (distinct nodes)` : ""),
+    (distinct ? ` (distinct nodes)` : "")
 );
 const received = Promise.race([
   (async () => {
@@ -100,8 +100,8 @@ const received = Promise.race([
     throw new Error("no packet");
   })(),
   new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("F2 packet receive timeout")), 30_000),
-  ),
+    setTimeout(() => reject(new Error("F2 packet receive timeout")), 30_000)
+  )
 ]);
 
 await left.send(packet);
@@ -109,10 +109,7 @@ const got = await received;
 await left.close();
 await right.close();
 
-if (
-  !(got instanceof Packet) ||
-  Buffer.from(got.data).toString() !== Buffer.from(payload).toString()
-) {
+if (!(got instanceof Packet) || Buffer.from(got.data).toString() !== Buffer.from(payload).toString()) {
   throw new Error("F2 proof failed: payload mismatch");
 }
 
@@ -128,7 +125,7 @@ const artifact = {
   result: "pass",
   notes: distinct
     ? "Distinct Freenet WebSocket endpoints, opposite localDirection; state-reconciling notify path."
-    : "Same Freenet node, two FreenetInterface peers with opposite localDirection. Announce+LXMF host exit remains separate.",
+    : "Same Freenet node, two FreenetInterface peers with opposite localDirection. Announce+LXMF host exit remains separate."
 };
 
 const outDir = join(repoRoot, ".tmp");

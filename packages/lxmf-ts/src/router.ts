@@ -85,15 +85,9 @@ import {
   decideLxmfModeration,
   type LxmfSendEvent,
   type LxmfModerationDisposition,
-  type ReceiptPollStatusValue,
+  type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
-import type {
-  CryptoProvider,
-  Link,
-  Packet,
-  RegisteredDestination,
-  Reticulum,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Link, Packet, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
   DestinationDirection,
@@ -102,27 +96,16 @@ import {
   bytesToHex,
   equalBytes,
   Identity,
-  PacketContext,
+  PacketContext
 } from "@twistedpear/reticulum-ts";
-import {
-  APP_NAME,
-  LXMessageMethod,
-  type LXMessageMethodValue,
-} from "./constants.js";
-import {
-  LXMessage,
-  rememberMessage,
-  type LXMessagePackOptions,
-} from "./message.js";
+import { APP_NAME, LXMessageMethod, type LXMessageMethodValue } from "./constants.js";
+import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
 import { awaitOutboundLink, pollDeliveryReceipt } from "./router-await.js";
 
 export interface LXMFRouterOptions {
   readonly reticulum: Reticulum;
   readonly provider: CryptoProvider;
-  readonly inboundModeration?: (
-    sourceHashHex: string,
-    message: LXMessage,
-  ) => LxmfModerationDisposition;
+  readonly inboundModeration?: (sourceHashHex: string, message: LXMessage) => LxmfModerationDisposition;
 }
 
 export interface DeliveryContext {
@@ -130,10 +113,7 @@ export interface DeliveryContext {
   readonly notify: boolean;
 }
 
-export type DeliveryCallback = (
-  message: LXMessage,
-  context: DeliveryContext,
-) => void;
+export type DeliveryCallback = (message: LXMessage, context: DeliveryContext) => void;
 
 export class LXMFRouter {
   readonly reticulum: Reticulum;
@@ -144,10 +124,7 @@ export class LXMFRouter {
   private readonly seenMessages = new Set<string>();
   private outboundPropagationNode: Uint8Array | null = null;
   private outboundPropagationLink: Link | null = null;
-  private inboundModeration: (
-    sourceHashHex: string,
-    message: LXMessage,
-  ) => LxmfModerationDisposition;
+  private inboundModeration: (sourceHashHex: string, message: LXMessage) => LxmfModerationDisposition;
 
   constructor(options: LXMFRouterOptions) {
     this.reticulum = options.reticulum;
@@ -162,14 +139,12 @@ export class LXMFRouter {
           initialRegisterLxmfDeliveryIdentityState(),
           {
             kind: "lxmf/register-delivery-identity-gate",
-            deliveryDestinationPresent: this.deliveryDestination !== null,
-          },
-        ).actions,
+            deliveryDestinationPresent: this.deliveryDestination !== null
+          }
+        ).actions
       )
     ) {
-      throw new Error(
-        "Only one delivery identity is supported per LXMF router instance",
-      );
+      throw new Error("Only one delivery identity is supported per LXMF router instance");
     }
 
     const destination = this.reticulum.registerDestination({
@@ -178,7 +153,7 @@ export class LXMFRouter {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: APP_NAME,
-      aspects: ["delivery"],
+      aspects: ["delivery"]
     });
 
     destination.setPacketCallback((data, packet) => {
@@ -206,12 +181,7 @@ export class LXMFRouter {
     this.deliveryCallback = callback;
   }
 
-  setInboundModeration(
-    policy: (
-      sourceHashHex: string,
-      message: LXMessage,
-    ) => LxmfModerationDisposition,
-  ): void {
+  setInboundModeration(policy: (sourceHashHex: string, message: LXMessage) => LxmfModerationDisposition): void {
     this.inboundModeration = policy;
   }
 
@@ -223,9 +193,9 @@ export class LXMFRouter {
           initialTeardownLxmfPropagationLinkState(),
           {
             kind: "lxmf/teardown-propagation-link-gate",
-            linkPresent: this.outboundPropagationLink !== null,
-          },
-        ).actions,
+            linkPresent: this.outboundPropagationLink !== null
+          }
+        ).actions
       )
     ) {
       this.outboundPropagationLink!.teardown();
@@ -237,15 +207,13 @@ export class LXMFRouter {
     return this.outboundPropagationNode;
   }
 
-  watchPropagationNodes(
-    callback?: (destinationHash: Uint8Array) => void,
-  ): void {
+  watchPropagationNodes(callback?: (destinationHash: Uint8Array) => void): void {
     this.reticulum.registerAnnounceHandler({
       aspectFilter: `${APP_NAME}.propagation`,
       receivedAnnounce: (info) => {
         this.setOutboundPropagationNode(info.destinationHash);
         callback?.(info.destinationHash);
-      },
+      }
     });
   }
 
@@ -255,25 +223,22 @@ export class LXMFRouter {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: APP_NAME,
-      aspects: ["delivery"],
+      aspects: ["delivery"]
     });
   }
 
   async send(message: LXMessage): Promise<void> {
-    const stepped = stepLxmfSendMethodWithActions(
-      initialLxmfSendMethodState(),
-      {
-        kind: "send/dispatch",
-        packed: message.packed !== null,
-        method: message.method,
-      },
-    );
+    const stepped = stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+      kind: "send/dispatch",
+      packed: message.packed !== null,
+      method: message.method
+    });
     await this.applyLxmfSendMethodActions(message, stepped.actions);
   }
 
   private async applyLxmfSendMethodActions(
     message: LXMessage,
-    actions: ReturnType<typeof stepLxmfSendMethodWithActions>["actions"],
+    actions: ReturnType<typeof stepLxmfSendMethodWithActions>["actions"]
   ): Promise<void> {
     if (shouldRejectLxmfSendUnpacked(actions)) {
       throw new Error("LXMessage must be packed before sending");
@@ -302,11 +267,12 @@ export class LXMFRouter {
   private applySendState(message: LXMessage, event: LxmfSendEvent): void {
     const next = applyLxmfSendEvent(
       initialLxmfSendState(message.state, message.progress),
-      event,
+      event
     );
     message.state = next.state;
     message.progress = next.progress;
   }
+
 
   private nowSeconds(): number {
     return this.reticulum.runtime.clock.now() / 1000;
@@ -316,20 +282,17 @@ export class LXMFRouter {
     const message = LXMessage.pack({
       provider: this.provider,
       now: () => this.nowSeconds(),
-      ...options,
+      ...options
     });
     return this.send(message);
   }
 
   private async sendOpportunistic(message: LXMessage): Promise<void> {
     const destination = message.destination;
-    const stepped = stepLxmfOpportunisticSendWithActions(
-      initialLxmfOpportunisticSendState(),
-      {
-        kind: "opportunistic-send/gate",
-        destinationPresent: destination !== null,
-      },
-    );
+    const stepped = stepLxmfOpportunisticSendWithActions(initialLxmfOpportunisticSendState(), {
+      kind: "opportunistic-send/gate",
+      destinationPresent: destination !== null
+    });
     if (
       shouldRejectLxmfOpportunisticMissingDestination(stepped.actions) ||
       !shouldProceedLxmfOpportunisticSend(stepped.actions) ||
@@ -344,71 +307,54 @@ export class LXMFRouter {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: APP_NAME,
-      aspects: ["delivery"],
+      aspects: ["delivery"]
     });
 
-    const receipt = await outbound.send(message.opportunisticPayload(), {
-      createReceipt: true,
+    const receipt = await outbound.send(message.opportunisticPayload(), { createReceipt: true });
+    const afterSend = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
+      mode: "opportunistic",
+      phase: "after-send",
+      receiptPresent: receipt !== null,
+      delivered: false
     });
-    const afterSend = stepLxmfReceiptSendWithActions(
-      initialLxmfReceiptSendState(),
-      {
-        kind: "receipt-send/map",
-        mode: "opportunistic",
-        phase: "after-send",
-        receiptPresent: receipt !== null,
-        delivered: false,
-      },
-    );
     const afterSendEvent = lxmfReceiptSendApplyEvent(afterSend.actions);
-    if (
-      shouldApplyLxmfReceiptSend(afterSend.actions) &&
-      afterSendEvent !== null
-    ) {
+    if (shouldApplyLxmfReceiptSend(afterSend.actions) && afterSendEvent !== null) {
       this.applySendState(message, afterSendEvent);
     }
     const awaitReceipt = stepAwaitLxmfDeliveryReceiptWithActions(
       initialAwaitLxmfDeliveryReceiptState(),
       {
         kind: "lxmf/await-delivery-receipt-gate",
-        receiptPresent: receipt !== null,
-      },
+        receiptPresent: receipt !== null
+      }
     );
     if (!shouldAwaitLxmfDeliveryReceiptNow(awaitReceipt.actions)) {
       return;
     }
 
     const pollStatus = await pollDeliveryReceipt(this.reticulum, receipt!);
-    const afterPoll = stepLxmfReceiptSendWithActions(
-      initialLxmfReceiptSendState(),
-      {
-        kind: "receipt-send/map",
-        mode: "opportunistic",
-        phase: "after-poll",
-        receiptPresent: true,
-        delivered: pollStatus === ReceiptPollStatus.DELIVERED,
-      },
-    );
+    const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
+      mode: "opportunistic",
+      phase: "after-poll",
+      receiptPresent: true,
+      delivered: pollStatus === ReceiptPollStatus.DELIVERED
+    });
     const afterPollEvent = lxmfReceiptSendApplyEvent(afterPoll.actions);
-    if (
-      shouldApplyLxmfReceiptSend(afterPoll.actions) &&
-      afterPollEvent !== null
-    ) {
+    if (shouldApplyLxmfReceiptSend(afterPoll.actions) && afterPollEvent !== null) {
       this.applySendState(message, afterPollEvent);
     }
   }
 
   private async sendDirect(message: LXMessage): Promise<void> {
     const destination = message.destination;
-    const stepped = stepLxmfDirectSendWithActions(
-      initialLxmfDirectSendState(),
-      {
-        kind: "direct-send/gate",
-        destinationPresent: destination !== null,
-        destinationIdentityPresent: destination?.identity !== null,
-        packed: message.packed !== null,
-      },
-    );
+    const stepped = stepLxmfDirectSendWithActions(initialLxmfDirectSendState(), {
+      kind: "direct-send/gate",
+      destinationPresent: destination !== null,
+      destinationIdentityPresent: destination?.identity !== null,
+      packed: message.packed !== null
+    });
     if (
       shouldRejectLxmfDirectMissingDestination(stepped.actions) ||
       destination === null ||
@@ -416,10 +362,7 @@ export class LXMFRouter {
     ) {
       throw new Error("Direct LXMF requires destination");
     }
-    if (
-      shouldRejectLxmfDirectMissingPacked(stepped.actions) ||
-      message.packed === null
-    ) {
+    if (shouldRejectLxmfDirectMissingPacked(stepped.actions) || message.packed === null) {
       throw new Error("Direct LXMF requires packed message");
     }
     if (!shouldProceedLxmfDirectSend(stepped.actions)) {
@@ -429,14 +372,11 @@ export class LXMFRouter {
     const recipientIdentity = destination.identity;
     const destinationKey = bytesToHex(destination.hash);
     let link = this.directLinks.get(destinationKey) ?? null;
-    const reuseDirect = stepReuseActiveLinkWithActions(
-      initialReuseActiveLinkState(),
-      {
-        kind: "link/reuse-active-gate",
-        linkPresent: link !== null,
-        status: link?.status ?? 0,
-      },
-    );
+    const reuseDirect = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
+      kind: "link/reuse-active-gate",
+      linkPresent: link !== null,
+      status: link?.status ?? 0
+    });
     if (!shouldReuseActiveLinkNow(reuseDirect.actions)) {
       const outbound = this.reticulum.registerDestination({
         provider: this.provider,
@@ -444,11 +384,11 @@ export class LXMFRouter {
         direction: DestinationDirection.OUT,
         type: DestinationType.SINGLE,
         appName: APP_NAME,
-        aspects: ["delivery"],
+        aspects: ["delivery"]
       });
 
       link = await awaitOutboundLink(this.reticulum, outbound, {
-        timeoutError: "Direct LXMF link timeout",
+        timeoutError: "Direct LXMF link timeout"
       });
 
       this.directLinks.set(destinationKey, link);
@@ -462,22 +402,16 @@ export class LXMFRouter {
 
   private async sendPropagated(message: LXMessage): Promise<void> {
     const packed = message.propagationPacked;
-    const stepped = stepLxmfPropagatedSendWithActions(
-      initialLxmfPropagatedSendState(),
-      {
-        kind: "propagated-send/gate",
-        nodeConfigured: this.outboundPropagationNode !== null,
-        hasPropagationPacked: packed !== null,
-        representation: message.representation,
-      },
-    );
+    const stepped = stepLxmfPropagatedSendWithActions(initialLxmfPropagatedSendState(), {
+      kind: "propagated-send/gate",
+      nodeConfigured: this.outboundPropagationNode !== null,
+      hasPropagationPacked: packed !== null,
+      representation: message.representation
+    });
     if (shouldRejectLxmfPropagatedMissingNode(stepped.actions)) {
       throw new Error("No outbound propagation node configured");
     }
-    if (
-      shouldRejectLxmfPropagatedMissingPacked(stepped.actions) ||
-      packed === null
-    ) {
+    if (shouldRejectLxmfPropagatedMissingPacked(stepped.actions) || packed === null) {
       throw new Error("PROPAGATED LXMF requires propagationPacked");
     }
     if (shouldRejectLxmfPropagatedResourceUnimplemented(stepped.actions)) {
@@ -491,24 +425,18 @@ export class LXMFRouter {
     this.applySendState(message, { kind: "lxmf/begin-sending" });
 
     const result = await link.sendContext(PacketContext.NONE, packed, {
-      createReceipt: true,
+      createReceipt: true
     });
 
-    const afterSend = stepLxmfReceiptSendWithActions(
-      initialLxmfReceiptSendState(),
-      {
-        kind: "receipt-send/map",
-        mode: "propagated",
-        phase: "after-send",
-        receiptPresent: result.receipt !== null,
-        delivered: false,
-      },
-    );
+    const afterSend = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
+      mode: "propagated",
+      phase: "after-send",
+      receiptPresent: result.receipt !== null,
+      delivered: false
+    });
     const afterSendEvent = lxmfReceiptSendApplyEvent(afterSend.actions);
-    if (
-      shouldApplyLxmfReceiptSend(afterSend.actions) &&
-      afterSendEvent !== null
-    ) {
+    if (shouldApplyLxmfReceiptSend(afterSend.actions) && afterSendEvent !== null) {
       this.applySendState(message, afterSendEvent);
     }
 
@@ -516,57 +444,46 @@ export class LXMFRouter {
       initialAwaitLxmfDeliveryReceiptState(),
       {
         kind: "lxmf/await-delivery-receipt-gate",
-        receiptPresent: result.receipt !== null,
-      },
+        receiptPresent: result.receipt !== null
+      }
     );
     let pollStatus: ReceiptPollStatusValue | null = null;
     if (shouldAwaitLxmfDeliveryReceiptNow(awaitReceipt.actions)) {
       pollStatus = await pollDeliveryReceipt(this.reticulum, result.receipt!);
     }
-    const afterPoll = stepLxmfReceiptSendWithActions(
-      initialLxmfReceiptSendState(),
-      {
-        kind: "receipt-send/map",
-        mode: "propagated",
-        phase: "after-poll",
-        receiptPresent: result.receipt !== null,
-        delivered: pollStatus === ReceiptPollStatus.DELIVERED,
-      },
-    );
+    const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
+      mode: "propagated",
+      phase: "after-poll",
+      receiptPresent: result.receipt !== null,
+      delivered: pollStatus === ReceiptPollStatus.DELIVERED
+    });
     const afterPollEvent = lxmfReceiptSendApplyEvent(afterPoll.actions);
-    if (
-      shouldApplyLxmfReceiptSend(afterPoll.actions) &&
-      afterPollEvent !== null
-    ) {
+    if (shouldApplyLxmfReceiptSend(afterPoll.actions) && afterPollEvent !== null) {
       this.applySendState(message, afterPollEvent);
     }
   }
 
   private async ensureOutboundPropagationLink(): Promise<Link> {
-    const reuseStepped = stepReuseActiveLinkWithActions(
-      initialReuseActiveLinkState(),
-      {
-        kind: "link/reuse-active-gate",
-        linkPresent: this.outboundPropagationLink !== null,
-        status: this.outboundPropagationLink?.status ?? 0,
-      },
-    );
+    const reuseStepped = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
+      kind: "link/reuse-active-gate",
+      linkPresent: this.outboundPropagationLink !== null,
+      status: this.outboundPropagationLink?.status ?? 0
+    });
     const canReuse = shouldReuseActiveLinkNow(reuseStepped.actions);
     const nodeConfigured = this.outboundPropagationNode !== null;
     const nodeIdentity =
       this.outboundPropagationNode === null
         ? null
-        : this.reticulum.resolveDestinationIdentity(
-            this.outboundPropagationNode,
-          );
+        : this.reticulum.resolveDestinationIdentity(this.outboundPropagationNode);
     const stepped = stepLxmfPropagationLinkReadyWithActions(
       initialLxmfPropagationLinkReadyState(),
       {
         kind: "propagation-link/gate",
         canReuseLink: canReuse,
         nodeConfigured,
-        nodeIdentityPresent: nodeIdentity !== null,
-      },
+        nodeIdentityPresent: nodeIdentity !== null
+      }
     );
     if (shouldReuseLxmfPropagationLink(stepped.actions)) {
       return this.outboundPropagationLink!;
@@ -590,31 +507,24 @@ export class LXMFRouter {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: APP_NAME,
-      aspects: ["propagation"],
+      aspects: ["propagation"]
     });
 
     const link = await awaitOutboundLink(this.reticulum, outbound, {
-      timeoutError: "Propagation link timeout",
+      timeoutError: "Propagation link timeout"
     });
 
     this.outboundPropagationLink = link;
     return link;
   }
 
-  handleDeliveryPacket(
-    data: Uint8Array,
-    packet: Packet,
-    method: LXMessageMethodValue,
-  ): boolean {
-    const rebuildStepped = stepLxmfInboundDeliveryWithActions(
-      initialLxmfInboundDeliveryState(),
-      {
-        kind: "lxmf-inbound-delivery/rebuild-gate",
-        method,
-        destinationHash: packet.destinationHash,
-        packetData: data,
-      },
-    );
+  handleDeliveryPacket(data: Uint8Array, packet: Packet, method: LXMessageMethodValue): boolean {
+    const rebuildStepped = stepLxmfInboundDeliveryWithActions(initialLxmfInboundDeliveryState(), {
+      kind: "lxmf-inbound-delivery/rebuild-gate",
+      method,
+      destinationHash: packet.destinationHash,
+      packetData: data
+    });
     const lxmfData = shouldUseLxmfInboundDelivery(rebuildStepped.actions)
       ? lxmfInboundDeliveryRawFromActions(rebuildStepped.actions)
       : null;
@@ -630,17 +540,14 @@ export class LXMFRouter {
     };
   }
 
-  deliver(
-    lxmfData: Uint8Array,
-    method: LXMessageMethodValue = LXMessageMethod.DIRECT,
-  ): boolean {
+  deliver(lxmfData: Uint8Array, method: LXMessageMethodValue = LXMessageMethod.DIRECT): boolean {
     const message = this.unpackDeliverable(lxmfData, method);
     const invoke = stepInvokeLxmfDeliveryCallbackWithActions(
       initialInvokeLxmfDeliveryCallbackState(),
       {
         kind: "lxmf/invoke-delivery-callback-gate",
-        messagePresent: message !== null,
-      },
+        messagePresent: message !== null
+      }
     );
     if (!shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
       return false;
@@ -658,8 +565,8 @@ export class LXMFRouter {
       initialSplitLxmfDestinationPrefixedState(),
       {
         kind: "lxmf-destination-prefixed/split-gate",
-        bytes: lxmfData,
-      },
+        bytes: lxmfData
+      }
     );
     const prefixed =
       shouldRejectSplitLxmfDestinationPrefixed(splitStepped.actions) ||
@@ -676,8 +583,8 @@ export class LXMFRouter {
       {
         kind: "propagation-local-delivery/accept-gate",
         deliveryDestinationPresent: deliveryDestination !== null,
-        destinationHashMatches,
-      },
+        destinationHashMatches
+      }
     );
     const decrypted =
       prefixed !== null &&
@@ -693,8 +600,8 @@ export class LXMFRouter {
         prefixedPresent: prefixed !== null,
         deliveryDestinationPresent: deliveryDestination !== null,
         destinationHashMatches,
-        decryptedPresent: decrypted !== null,
-      },
+        decryptedPresent: decrypted !== null
+      }
     );
 
     const unpackIngress = stepUnpackLxmfPropagationLocalIngressWithActions(
@@ -703,8 +610,8 @@ export class LXMFRouter {
         kind: "propagation-local-ingress/unpack-gate",
         deliver: shouldDeliverLxmfPropagationLocalIngress(ingress.actions),
         prefixedPresent: prefixed !== null,
-        decryptedPresent: decrypted !== null,
-      },
+        decryptedPresent: decrypted !== null
+      }
     );
     if (!shouldUnpackLxmfPropagationLocalIngressNow(unpackIngress.actions)) {
       return null;
@@ -715,8 +622,8 @@ export class LXMFRouter {
       {
         kind: "lxmf-destination-prefixed/pack-gate",
         destinationHash: prefixed!.destinationHash,
-        remainder: decrypted!,
-      },
+        remainder: decrypted!
+      }
     );
     if (
       shouldRejectPackLxmfDestinationPrefixed(packStepped.actions) ||
@@ -724,22 +631,17 @@ export class LXMFRouter {
     ) {
       return null;
     }
-    const deliveryData = packLxmfDestinationPrefixedRawFromActions(
-      packStepped.actions,
-    );
+    const deliveryData = packLxmfDestinationPrefixedRawFromActions(packStepped.actions);
     if (deliveryData === null) {
       return null;
     }
-    const message = this.unpackDeliverable(
-      deliveryData,
-      LXMessageMethod.PROPAGATED,
-    );
+    const message = this.unpackDeliverable(deliveryData, LXMessageMethod.PROPAGATED);
     const invoke = stepInvokeLxmfDeliveryCallbackWithActions(
       initialInvokeLxmfDeliveryCallbackState(),
       {
         kind: "lxmf/invoke-delivery-callback-gate",
-        messagePresent: message !== null,
-      },
+        messagePresent: message !== null
+      }
     );
     if (shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
       const context = this.moderate(message!);
@@ -758,55 +660,39 @@ export class LXMFRouter {
   private moderate(message: LXMessage): DeliveryContext | null {
     const sourceHashHex = bytesToHex(message.sourceHash);
     const disposition = this.inboundModeration(sourceHashHex, message);
-    const decision = decideLxmfModeration(
-      {
-        blocked: disposition === "block" ? new Set([sourceHashHex]) : new Set(),
-        muted: disposition === "mute" ? new Set([sourceHashHex]) : new Set(),
-      },
-      sourceHashHex,
-    );
+    const decision = decideLxmfModeration({
+      blocked: disposition === "block" ? new Set([sourceHashHex]) : new Set(),
+      muted: disposition === "mute" ? new Set([sourceHashHex]) : new Set()
+    }, sourceHashHex);
     return decision.deliver
-      ? {
-          disposition: decision.disposition as "allow" | "mute",
-          notify: decision.notify,
-        }
+      ? { disposition: decision.disposition as "allow" | "mute", notify: decision.notify }
       : null;
   }
 
-  private unpackDeliverable(
-    lxmfData: Uint8Array,
-    method: LXMessageMethodValue,
-  ): LXMessage | null {
+  private unpackDeliverable(lxmfData: Uint8Array, method: LXMessageMethodValue): LXMessage | null {
     try {
       const message = LXMessage.unpackFromBytes(lxmfData, {
         provider: this.provider,
-        originalMethod: method,
+        originalMethod: method
       });
 
-      const accept = stepLxmfDeliverableAcceptWithActions(
-        initialLxmfDeliverableAcceptState(),
-        {
-          kind: "deliverable/accept-gate",
-          signatureValidated: message.signatureValidated,
-          hasHash: message.hash !== null,
-          alreadySeen:
-            message.hash !== null &&
-            this.seenMessages.has(bytesToHex(message.hash)),
-        },
-      );
+      const accept = stepLxmfDeliverableAcceptWithActions(initialLxmfDeliverableAcceptState(), {
+        kind: "deliverable/accept-gate",
+        signatureValidated: message.signatureValidated,
+        hasHash: message.hash !== null,
+        alreadySeen:
+          message.hash !== null && this.seenMessages.has(bytesToHex(message.hash))
+      });
       if (!shouldAcceptLxmfDeliverable(accept.actions)) {
         return null;
       }
 
       if (
         shouldRememberLxmfMessageNow(
-          stepRememberLxmfMessageWithActions(
-            initialRememberLxmfMessageState(),
-            {
-              kind: "lxmf/remember-message-gate",
-              hasHash: message.hash !== null,
-            },
-          ).actions,
+          stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
+            kind: "lxmf/remember-message-gate",
+            hasHash: message.hash !== null
+          }).actions
         )
       ) {
         rememberMessage(this.seenMessages, message);
@@ -822,15 +708,10 @@ export class LXMFRouter {
 }
 
 /** Adapt stamp-cost extraction via protocol actions (no ad-hoc reads). */
-export function stampCostFromAppData(
-  appData: Uint8Array | null,
-): number | null {
-  const stepped = stepStampCostFromAppDataWithActions(
-    initialStampCostFromAppDataState(),
-    {
-      kind: "lxmf/stamp-cost-gate",
-      appData,
-    },
-  );
+export function stampCostFromAppData(appData: Uint8Array | null): number | null {
+  const stepped = stepStampCostFromAppDataWithActions(initialStampCostFromAppDataState(), {
+    kind: "lxmf/stamp-cost-gate",
+    appData
+  });
   return stampCostFromActions(stepped.actions);
 }

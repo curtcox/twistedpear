@@ -1,9 +1,6 @@
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Packet } from "../packet.js";
-import {
-  HdlcPacketInterface,
-  type ReticulumInterfaceOptions,
-} from "./interface.js";
+import { HdlcPacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
 
 export interface PipeInterfaceOptions extends ReticulumInterfaceOptions {
   readonly provider: CryptoProvider;
@@ -12,17 +9,14 @@ export interface PipeInterfaceOptions extends ReticulumInterfaceOptions {
 export class PipeInterface extends HdlcPacketInterface {
   private peer: PipeInterface | null = null;
 
-  constructor(
-    private readonly provider: CryptoProvider,
-    options: PipeInterfaceOptions,
-  ) {
+  constructor(private readonly provider: CryptoProvider, options: PipeInterfaceOptions) {
     super(options);
   }
 
   static pair(
     provider: CryptoProvider,
     left: Omit<PipeInterfaceOptions, "provider"> = { name: "pipe:left" },
-    right: Omit<PipeInterfaceOptions, "provider"> = { name: "pipe:right" },
+    right: Omit<PipeInterfaceOptions, "provider"> = { name: "pipe:right" }
   ): readonly [PipeInterface, PipeInterface] {
     const leftInterface = new PipeInterface(provider, { ...left, provider });
     const rightInterface = new PipeInterface(provider, { ...right, provider });

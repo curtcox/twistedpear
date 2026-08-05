@@ -8,19 +8,13 @@ import {
   DestinationType,
   Identity,
   NodeCryptoProvider,
-  hexToBytes,
+  hexToBytes
 } from "@twistedpear/reticulum-ts";
 import { APP_NAME, LXMessage, LXMessageMethod } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
 const vectors = JSON.parse(
-  readFileSync(
-    join(
-      dirname(fileURLToPath(import.meta.url)),
-      "../../../conformance/vectors/lxmf.json",
-    ),
-    "utf8",
-  ),
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/vectors/lxmf.json"), "utf8")
 ) as {
   messages: ReadonlyArray<{
     name: string;
@@ -37,29 +31,18 @@ const vectors = JSON.parse(
 };
 
 const identityVectors = JSON.parse(
-  readFileSync(
-    join(
-      dirname(fileURLToPath(import.meta.url)),
-      "../../../conformance/vectors/identity.json",
-    ),
-    "utf8",
-  ),
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/vectors/identity.json"), "utf8")
 ) as {
   identities: ReadonlyArray<{ name: string; privateKeyHex: string }>;
 };
 
 function identityByName(name: string): Identity {
-  const entry = identityVectors.identities.find(
-    (candidate) => candidate.name === name,
-  );
+  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(
-    provider,
-    hexToBytes(entry.privateKeyHex),
-  );
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -73,7 +56,7 @@ function deliverySource(identity: Identity): Destination {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: APP_NAME,
-    aspects: ["delivery"],
+    aspects: ["delivery"]
   });
 }
 
@@ -83,7 +66,7 @@ function deliveryDestination(identity: Identity): Destination {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: APP_NAME,
-    aspects: ["delivery"],
+    aspects: ["delivery"]
   });
 }
 
@@ -98,8 +81,8 @@ describe("LXMF golden vectors", () => {
       const fields = Object.fromEntries(
         Object.entries(vector.fieldsHex).map(([key, value]) => [
           Number.parseInt(key, 16),
-          hexToBytes(value),
-        ]),
+          hexToBytes(value)
+        ])
       );
 
       const message = LXMessage.pack({
@@ -111,33 +94,25 @@ describe("LXMF golden vectors", () => {
         fields,
         timestamp: vector.timestamp,
         deferStamp: true,
-        desiredMethod: LXMessageMethod.DIRECT,
+        desiredMethod: LXMessageMethod.DIRECT
       });
 
-      expect(Buffer.from(message.packed!).toString("hex")).toBe(
-        vector.packedHex,
-      );
-      expect(Buffer.from(message.hash!).toString("hex")).toBe(
-        vector.messageHashHex,
-      );
-      expect(Buffer.from(message.signature!).toString("hex")).toBe(
-        vector.signatureHex,
-      );
+      expect(Buffer.from(message.packed!).toString("hex")).toBe(vector.packedHex);
+      expect(Buffer.from(message.hash!).toString("hex")).toBe(vector.messageHashHex);
+      expect(Buffer.from(message.signature!).toString("hex")).toBe(vector.signatureHex);
     });
 
     it(`unpacks and validates ${vector.name}`, () => {
       const packed = hexToBytes(vector.packedHex);
       const message = LXMessage.unpackFromBytes(packed, {
         provider,
-        sourceIdentity: alice,
+        sourceIdentity: alice
       });
 
       expect(message.signatureValidated).toBe(true);
       expect(message.titleAsString()).toBe(vector.title);
       expect(message.contentAsString()).toBe(vector.content);
-      expect(Buffer.from(message.hash!).toString("hex")).toBe(
-        vector.messageHashHex,
-      );
+      expect(Buffer.from(message.hash!).toString("hex")).toBe(vector.messageHashHex);
     });
   }
 });

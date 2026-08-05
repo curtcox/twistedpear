@@ -9,14 +9,8 @@ import { rnsHkdf } from "../../packages/reticulum-ts/dist/crypto/hkdf.js";
 import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
 import { nodeRuntime } from "../../packages/reticulum-ts/dist/runtime/node/runtime.js";
 
-const ITERATIONS = Number.parseInt(
-  process.env.BENCHMARK_ITERATIONS ?? "200",
-  10,
-);
-const MIN_DURATION_MS = Number.parseInt(
-  process.env.BENCHMARK_MIN_DURATION_MS ?? "250",
-  10,
-);
+const ITERATIONS = Number.parseInt(process.env.BENCHMARK_ITERATIONS ?? "200", 10);
+const MIN_DURATION_MS = Number.parseInt(process.env.BENCHMARK_MIN_DURATION_MS ?? "250", 10);
 
 function benchmark(name, fn) {
   const warmupIterations = Math.min(50, ITERATIONS);
@@ -66,18 +60,14 @@ function runCryptoBenchmarks(provider) {
       rnsHkdf(provider, 64, shared, linkId, null);
     }),
     benchmark("aes-256-cbc-encrypt-512", () => {
-      provider.aes256CbcEncrypt(
-        payload,
-        derived.slice(0, 32),
-        derived.slice(32, 48),
-      );
+      provider.aes256CbcEncrypt(payload, derived.slice(0, 32), derived.slice(32, 48));
     }),
     benchmark("ed25519-sign-64", () => {
       provider.ed25519Sign(sigKey, payload.slice(0, 64));
     }),
     benchmark("sha256-resource-chunk", () => {
       provider.sha256(payload);
-    }),
+    })
   ];
 }
 
@@ -92,11 +82,11 @@ async function main() {
         runtime: "node",
         provider: "pure",
         iterations: ITERATIONS,
-        results: runCryptoBenchmarks(provider),
+        results: runCryptoBenchmarks(provider)
       },
       null,
-      2,
-    ),
+      2
+    )
   );
 }
 

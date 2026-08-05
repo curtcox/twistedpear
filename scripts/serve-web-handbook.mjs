@@ -13,7 +13,7 @@ const port = Number(process.env.TP_HANDBOOK_PORT ?? "9482");
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-handbook/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit",
+    stdio: "inherit"
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);

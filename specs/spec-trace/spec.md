@@ -1,5 +1,6 @@
 # SPEC-TRACE — Replayable trace format
 
+
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -20,11 +21,11 @@ that lets one Mac stand in for a fleet of devices.
 A trace is an ordered sequence of entries
 ([trace.ts](../../packages/effects/src/trace.ts)):
 
-| Entry   | Shape                           | Meaning                            |
-| ------- | ------------------------------- | ---------------------------------- |
-| event   | `{ t: "event", node, event }`   | An event was dispatched to `node`  |
-| intent  | `{ t: "intent", node, intent }` | `node`'s step returned this intent |
-| advance | `{ t: "advance", at }`          | Virtual time advanced to `at`      |
+| Entry | Shape | Meaning |
+|---|---|---|
+| event | `{ t: "event", node, event }` | An event was dispatched to `node` |
+| intent | `{ t: "intent", node, intent }` | `node`'s step returned this intent |
+| advance | `{ t: "advance", at }` | Virtual time advanced to `at` |
 
 Event and intent payloads use the closed vocabulary of
 [SPEC-EVENTS](../spec-events/spec.md). An on-disk history wraps a trace with the

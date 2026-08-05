@@ -37,6 +37,6 @@ export function createDropCensus() {
         byPeerOut[peer] = peerOut;
       }
       return { byReason: byReasonOut, byPeer: byPeerOut };
-    },
+    }
   };
 }

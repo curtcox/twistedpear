@@ -1,5 +1,6 @@
 # iOS Host Strategy
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-08-05
@@ -10,16 +11,16 @@ Status: Phase 5 simulator-first baseline.
 
 ## Capability Matrix
 
-| Area                    | Foreground                            | Background grace                      | Suspended              | Background task wake            |
-| ----------------------- | ------------------------------------- | ------------------------------------- | ---------------------- | ------------------------------- |
-| TCP client              | runs normally                         | quiesce and close cleanly             | stopped                | bounded reconnect for sync only |
-| AutoInterface multicast | runs when entitlement/device permits  | send final state, stop timers         | stopped                | not promised                    |
-| Bonjour discovery       | advertises/browses while foregrounded | best-effort quiesce                   | stopped                | best-effort sync trigger        |
-| BLE phone pipe          | central/peripheral active             | existing links may survive briefly    | OS-managed only        | background modes only           |
-| RNode                   | BLE-only on iOS                       | existing BLE link may survive briefly | OS-managed only        | not promised                    |
-| LXMF                    | local send/receive                    | persist pending work                  | store-and-forward only | propagation sync budget         |
-| Mini-app runtime        | one foreground app                    | suspend message sent                  | no execution           | no mini-app execution           |
-| Relay bridge            | foreground only                       | quiesce with interfaces               | stopped                | not promised                    |
+| Area | Foreground | Background grace | Suspended | Background task wake |
+|---|---|---|---|---|
+| TCP client | runs normally | quiesce and close cleanly | stopped | bounded reconnect for sync only |
+| AutoInterface multicast | runs when entitlement/device permits | send final state, stop timers | stopped | not promised |
+| Bonjour discovery | advertises/browses while foregrounded | best-effort quiesce | stopped | best-effort sync trigger |
+| BLE phone pipe | central/peripheral active | existing links may survive briefly | OS-managed only | background modes only |
+| RNode | BLE-only on iOS | existing BLE link may survive briefly | OS-managed only | not promised |
+| LXMF | local send/receive | persist pending work | store-and-forward only | propagation sync budget |
+| Mini-app runtime | one foreground app | suspend message sent | no execution | no mini-app execution |
+| Relay bridge | foreground only | quiesce with interfaces | stopped | not promised |
 
 iOS has no foreground-service equivalent. The host therefore treats backgrounding as a
 state transition, not as a hidden daemon mode. On background, the native lifecycle module
@@ -68,12 +69,12 @@ The lifecycle slice (`conformance/scenarios/bare/lifecycle-slice.mjs`) records T
 quiesce/reconnect timing against the docker `leaf-echo` peer. Results are written to
 `conformance/ios-sim/measured-lifecycle.json` when the peer is reachable.
 
-| Metric                    | Simulator tier (CI)       | Device target (H13)         |
-| ------------------------- | ------------------------- | --------------------------- |
-| Quiesce/reconnect cycles  | 10–100 per run            | Same procedure on dev build |
-| Reconnect p50             | recorded in measured JSON | compare vs simulator        |
-| Reconnect p95             | recorded in measured JSON | compare vs simulator        |
-| Background grace duration | not simulated             | measured on iPhone          |
+| Metric | Simulator tier (CI) | Device target (H13) |
+|---|---|---|
+| Quiesce/reconnect cycles | 10–100 per run | Same procedure on dev build |
+| Reconnect p50 | recorded in measured JSON | compare vs simulator |
+| Reconnect p95 | recorded in measured JSON | compare vs simulator |
+| Background grace duration | not simulated | measured on iPhone |
 
 Regenerate: `IOS_LIFECYCLE_CYCLES=10 node conformance/ios-sim/lifecycle.mjs --require-peer`
 (with `docker compose ... leaf-echo` running).

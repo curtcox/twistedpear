@@ -20,9 +20,7 @@ class FakePeerConnection {
   channel = new FakeChannel();
   transceivers: Array<{ kind: string; direction: string }> = [];
   attached: MediaStreamTrack[] = [];
-  private readonly trackListeners = new Set<
-    (event: { track: MediaStreamTrack; streams: MediaStream[] }) => void
-  >();
+  private readonly trackListeners = new Set<(event: { track: MediaStreamTrack; streams: MediaStream[] }) => void>();
 
   createDataChannel() {
     return this.channel as unknown as RTCDataChannel;
@@ -47,12 +45,7 @@ class FakePeerConnection {
   async setRemoteDescription(_value: RTCSessionDescriptionInit) {}
   addEventListener(type: string, listener: (...args: never[]) => void) {
     if (type === "track") {
-      this.trackListeners.add(
-        listener as (event: {
-          track: MediaStreamTrack;
-          streams: MediaStream[];
-        }) => void,
-      );
+      this.trackListeners.add(listener as (event: { track: MediaStreamTrack; streams: MediaStream[] }) => void);
     }
   }
   removeEventListener() {}
@@ -79,7 +72,7 @@ const invitation = (candidate: Uint8Array): PeerInvitation => ({
   issuedAt: 1,
   expiresAt: 2,
   capabilities: ["webrtc"],
-  signature: new Uint8Array(64),
+  signature: new Uint8Array(64)
 });
 
 describe("host-owned WebRTC route", () => {
@@ -87,42 +80,20 @@ describe("host-owned WebRTC route", () => {
     const fake = new FakePeerConnection();
     const controller = new WebRtcRouteController({
       createPeerConnection: () => fake as unknown as RTCPeerConnection,
-      openTimeoutMs: 100,
+      openTimeoutMs: 100
     });
     const candidates = await controller.candidates(
-      {
-        service: "app",
-        purpose: "test",
-        mechanisms: ["manual"],
-        timeoutMs: 1_000,
-      },
-      { role: "offer", sessionId },
+      { service: "app", purpose: "test", mechanisms: ["manual"], timeoutMs: 1_000 },
+      { role: "offer", sessionId }
     );
-    expect(new TextDecoder().decode(candidates[0]?.value)).toContain(
-      "offer-sdp",
-    );
-    const answer = new TextEncoder().encode(
-      JSON.stringify({ type: "answer", sdp: "answer-sdp" }),
-    );
+    expect(new TextDecoder().decode(candidates[0]?.value)).toContain("offer-sdp");
+    const answer = new TextEncoder().encode(JSON.stringify({ type: "answer", sdp: "answer-sdp" }));
     const established = await controller.establish(
-      {
-        sharedSecret: new Uint8Array(32),
-        remoteInvitation: invitation(answer),
-        localCandidates: candidates,
-      },
-      {
-        fingerprint: "peer-fp",
-        displayLabel: "Peer",
-        matchingWords: ["one", "two", "three"],
-        dataPlane: "webrtc",
-      },
-      { kind: "manual" } as never,
+      { sharedSecret: new Uint8Array(32), remoteInvitation: invitation(answer), localCandidates: candidates },
+      { fingerprint: "peer-fp", displayLabel: "Peer", matchingWords: ["one", "two", "three"], dataPlane: "webrtc" },
+      { kind: "manual" } as never
     );
-    expect(established).toMatchObject({
-      authenticated: true,
-      confirmed: true,
-      dataPlane: "webrtc",
-    });
+    expect(established).toMatchObject({ authenticated: true, confirmed: true, dataPlane: "webrtc" });
     const route = controller.route("peer-fp");
     route?.send(new Uint8Array([1, 2, 3]));
     expect(fake.channel.sent).toHaveLength(1);
@@ -135,37 +106,21 @@ describe("host-owned WebRTC route", () => {
     const controller = new WebRtcRouteController({
       createPeerConnection: () => fake as unknown as RTCPeerConnection,
       openTimeoutMs: 100,
-      mediaTransceivers: ["audio", "video"],
+      mediaTransceivers: ["audio", "video"]
     });
     const candidates = await controller.candidates(
-      {
-        service: "app",
-        purpose: "call",
-        mechanisms: ["manual"],
-        timeoutMs: 1_000,
-      },
-      { role: "offer", sessionId },
+      { service: "app", purpose: "call", mechanisms: ["manual"], timeoutMs: 1_000 },
+      { role: "offer", sessionId }
     );
     expect(fake.transceivers).toEqual([
       { kind: "audio", direction: "sendrecv" },
-      { kind: "video", direction: "sendrecv" },
+      { kind: "video", direction: "sendrecv" }
     ]);
-    const answer = new TextEncoder().encode(
-      JSON.stringify({ type: "answer", sdp: "answer-sdp" }),
-    );
+    const answer = new TextEncoder().encode(JSON.stringify({ type: "answer", sdp: "answer-sdp" }));
     await controller.establish(
-      {
-        sharedSecret: new Uint8Array(32),
-        remoteInvitation: invitation(answer),
-        localCandidates: candidates,
-      },
-      {
-        fingerprint: "peer-fp",
-        displayLabel: "Peer",
-        matchingWords: ["a", "b", "c"],
-        dataPlane: "webrtc",
-      },
-      { kind: "manual" } as never,
+      { sharedSecret: new Uint8Array(32), remoteInvitation: invitation(answer), localCandidates: candidates },
+      { fingerprint: "peer-fp", displayLabel: "Peer", matchingWords: ["a", "b", "c"], dataPlane: "webrtc" },
+      { kind: "manual" } as never
     );
     const route = controller.route("peer-fp");
     expect(route?.connection).toBe(fake as unknown as RTCPeerConnection);

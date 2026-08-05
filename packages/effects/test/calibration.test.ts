@@ -2,7 +2,7 @@ import {
   calibrateTransportTrace,
   parseCalibrationPolicy,
   parseCalibrationTrace,
-  type CalibrationObservation,
+  type CalibrationObservation
 } from "../src/adapters/sim/index.js";
 import { describe, expect, it } from "vitest";
 
@@ -15,7 +15,7 @@ const policy = parseCalibrationPolicy({
       bandwidthRelative: 0.1,
       latencyMinRelative: 0.1,
       latencyMaxRelative: 0.1,
-      lossRateAbsolute: 0.01,
+      lossRateAbsolute: 0.01
     },
     lora: {
       minimumObservations: 100,
@@ -23,9 +23,9 @@ const policy = parseCalibrationPolicy({
       bandwidthRelative: 0.1,
       latencyMinRelative: 0.1,
       latencyMaxRelative: 0.1,
-      lossRateAbsolute: 0.01,
-    },
-  },
+      lossRateAbsolute: 0.01
+    }
+  }
 });
 
 function traceInput(overrides: Record<string, unknown> = {}) {
@@ -41,8 +41,7 @@ function traceInput(overrides: Record<string, unknown> = {}) {
           sequence,
           payloadBytes,
           sentAtMs,
-          receivedAtMs:
-            sentAtMs + latency + (payloadBytes * 8 * 1_000) / 125_000,
+          receivedAtMs: sentAtMs + latency + payloadBytes * 8 * 1_000 / 125_000
         });
         sequence += 1;
       }
@@ -57,11 +56,11 @@ function traceInput(overrides: Record<string, unknown> = {}) {
       source: "unit-test fixture; never calibration evidence",
       hardware: ["test central", "test peripheral"],
       software: ["test recorder"],
-      environment: "deterministic unit test",
+      environment: "deterministic unit test"
     },
     radio: { mtu: 247, phy: "1M" },
     observations,
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -81,22 +80,15 @@ describe("physical transport calibration", () => {
 
   it("rejects traces without an admissible external evidence provenance", () => {
     const input = traceInput();
-    expect(() =>
-      parseCalibrationTrace({
-        ...input,
-        provenance: { ...input.provenance, kind: "simulation" },
-      }),
-    ).toThrow(/guarded-hardware or independent-deployment/);
+    expect(() => parseCalibrationTrace({
+      ...input,
+      provenance: { ...input.provenance, kind: "simulation" }
+    })).toThrow(/guarded-hardware or independent-deployment/);
   });
 
   it("rejects evidence below the pre-registered sample floor", () => {
     const input = traceInput();
-    const trace = parseCalibrationTrace({
-      ...input,
-      observations: input.observations.slice(0, 20),
-    });
-    expect(() => calibrateTransportTrace(trace, policy)).toThrow(
-      /at least 100 observations/,
-    );
+    const trace = parseCalibrationTrace({ ...input, observations: input.observations.slice(0, 20) });
+    expect(() => calibrateTransportTrace(trace, policy)).toThrow(/at least 100 observations/);
   });
 });

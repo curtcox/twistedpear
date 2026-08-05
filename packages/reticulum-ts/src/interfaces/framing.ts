@@ -5,5 +5,5 @@ export {
   decodeHdlcFrames,
   encodeHdlcFrame,
   type HdlcDecodeResult,
-  type HdlcDecodeState,
+  type HdlcDecodeState
 } from "@twistedpear/protocol";

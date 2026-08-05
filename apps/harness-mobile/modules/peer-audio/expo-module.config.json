@@ -1,7 +1,5 @@
 {
   "platforms": ["android", "ios"],
-  "android": {
-    "modules": ["expo.modules.twistedpear.peeraudio.PeerAudioModule"]
-  },
+  "android": { "modules": ["expo.modules.twistedpear.peeraudio.PeerAudioModule"] },
   "ios": { "modules": ["TwistedPearPeerAudioModule"] }
 }

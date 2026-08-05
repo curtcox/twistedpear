@@ -19,15 +19,10 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
 import { concatBytes, shouldAcceptParsedAnnounce } from "./part-1.js";
-import type {
-  AcceptParsedAnnounceAction,
-  AcceptParsedAnnounceEvent,
-  AcceptParsedAnnounceState,
-  AcceptParsedAnnounceStepResult,
-} from "./part-1.js";
+import type { AcceptParsedAnnounceAction, AcceptParsedAnnounceEvent, AcceptParsedAnnounceState, AcceptParsedAnnounceStepResult } from "./part-1.js";
 export function stepAcceptParsedAnnounceWithActions(
   state: AcceptParsedAnnounceState,
-  event: AcceptParsedAnnounceEvent,
+  event: AcceptParsedAnnounceEvent
 ): AcceptParsedAnnounceStepResult {
   if (event.kind === "announce/accept-parsed-gate") {
     return {
@@ -35,11 +30,9 @@ export function stepAcceptParsedAnnounceWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptParsedAnnounce(event.parsedPresent)
-            ? "accept"
-            : "skip",
-        },
-      ],
+          kind: shouldAcceptParsedAnnounce(event.parsedPresent) ? "accept" : "skip"
+        }
+      ]
     };
   }
 
@@ -47,13 +40,13 @@ export function stepAcceptParsedAnnounceWithActions(
 }
 
 export function shouldAcceptParsedAnnounceNow(
-  actions: ReadonlyArray<AcceptParsedAnnounceAction>,
+  actions: ReadonlyArray<AcceptParsedAnnounceAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipParsedAnnounceAccept(
-  actions: ReadonlyArray<AcceptParsedAnnounceAction>,
+  actions: ReadonlyArray<AcceptParsedAnnounceAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -61,7 +54,7 @@ export function shouldSkipParsedAnnounceAccept(
 /** Material hashed then truncated for destination-hash check after announce validate. */
 export function announceDestinationHashMaterial(
   nameHash: Uint8Array,
-  identityHash: Uint8Array,
+  identityHash: Uint8Array
 ): Uint8Array {
   return concatBytes(nameHash, identityHash);
 }
@@ -98,7 +91,7 @@ export function initialAnnounceDestinationHashMaterialState(): AnnounceDestinati
 
 export function stepAnnounceDestinationHashMaterialWithActions(
   state: AnnounceDestinationHashMaterialState,
-  event: AnnounceDestinationHashMaterialEvent,
+  event: AnnounceDestinationHashMaterialEvent
 ): AnnounceDestinationHashMaterialStepResult {
   if (event.kind === "announce/destination-hash-material-gate") {
     return {
@@ -107,12 +100,9 @@ export function stepAnnounceDestinationHashMaterialWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: announceDestinationHashMaterial(
-            event.nameHash,
-            event.identityHash,
-          ),
-        },
-      ],
+          raw: announceDestinationHashMaterial(event.nameHash, event.identityHash)
+        }
+      ]
     };
   }
 
@@ -120,14 +110,14 @@ export function stepAnnounceDestinationHashMaterialWithActions(
 }
 
 export function shouldUseAnnounceDestinationHashMaterial(
-  actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>,
+  actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract announce destination-hash material from step actions; null when no `use-raw`. */
 export function announceDestinationHashMaterialRawFromActions(
-  actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>,
+  actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -135,7 +125,7 @@ export function announceDestinationHashMaterialRawFromActions(
 
 export function announceDestinationHashMatches(
   destinationHash: Uint8Array,
-  expectedTruncatedHash: Uint8Array,
+  expectedTruncatedHash: Uint8Array
 ): boolean {
   return equalByteArrays(destinationHash, expectedTruncatedHash);
 }
@@ -156,7 +146,8 @@ export type AnnounceDestinationHashMatchEvent =
     };
 
 export type AnnounceDestinationHashMatchAction =
-  { readonly kind: "match" } | { readonly kind: "mismatch" };
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
 
 export interface AnnounceDestinationHashMatchStepResult {
   readonly state: AnnounceDestinationHashMatchState;
@@ -170,7 +161,7 @@ export function initialAnnounceDestinationHashMatchState(): AnnounceDestinationH
 
 export function stepAnnounceDestinationHashMatchWithActions(
   state: AnnounceDestinationHashMatchState,
-  event: AnnounceDestinationHashMatchEvent,
+  event: AnnounceDestinationHashMatchEvent
 ): AnnounceDestinationHashMatchStepResult {
   if (event.kind === "announce/destination-hash-match-gate") {
     return {
@@ -180,12 +171,12 @@ export function stepAnnounceDestinationHashMatchWithActions(
         {
           kind: announceDestinationHashMatches(
             event.destinationHash,
-            event.expectedTruncatedHash,
+            event.expectedTruncatedHash
           )
             ? "match"
-            : "mismatch",
-        },
-      ],
+            : "mismatch"
+        }
+      ]
     };
   }
 
@@ -193,13 +184,13 @@ export function stepAnnounceDestinationHashMatchWithActions(
 }
 
 export function shouldMatchAnnounceDestinationHash(
-  actions: ReadonlyArray<AnnounceDestinationHashMatchAction>,
+  actions: ReadonlyArray<AnnounceDestinationHashMatchAction>
 ): boolean {
   return actions.some((action) => action.kind === "match");
 }
 
 export function shouldMismatchAnnounceDestinationHash(
-  actions: ReadonlyArray<AnnounceDestinationHashMatchAction>,
+  actions: ReadonlyArray<AnnounceDestinationHashMatchAction>
 ): boolean {
   return actions.some((action) => action.kind === "mismatch");
 }
@@ -224,7 +215,8 @@ export type AnnouncePacketTypeEvent =
     };
 
 export type AnnouncePacketTypeAction =
-  { readonly kind: "announce" } | { readonly kind: "other" };
+  | { readonly kind: "announce" }
+  | { readonly kind: "other" };
 
 export interface AnnouncePacketTypeStepResult {
   readonly state: AnnouncePacketTypeState;
@@ -238,15 +230,15 @@ export function initialAnnouncePacketTypeState(): AnnouncePacketTypeState {
 
 export function stepAnnouncePacketTypeWithActions(
   state: AnnouncePacketTypeState,
-  event: AnnouncePacketTypeEvent,
+  event: AnnouncePacketTypeEvent
 ): AnnouncePacketTypeStepResult {
   if (event.kind === "announce/packet-type-gate") {
     return {
       state,
       intents: [],
       actions: [
-        { kind: isAnnouncePacketType(event.packetType) ? "announce" : "other" },
-      ],
+        { kind: isAnnouncePacketType(event.packetType) ? "announce" : "other" }
+      ]
     };
   }
 
@@ -254,13 +246,13 @@ export function stepAnnouncePacketTypeWithActions(
 }
 
 export function shouldTreatAnnouncePacketType(
-  actions: ReadonlyArray<AnnouncePacketTypeAction>,
+  actions: ReadonlyArray<AnnouncePacketTypeAction>
 ): boolean {
   return actions.some((action) => action.kind === "announce");
 }
 
 export function shouldTreatAnnouncePacketTypeOther(
-  actions: ReadonlyArray<AnnouncePacketTypeAction>,
+  actions: ReadonlyArray<AnnouncePacketTypeAction>
 ): boolean {
   return actions.some((action) => action.kind === "other");
 }
@@ -301,7 +293,8 @@ export type AttemptAnnounceSignatureValidateEvent =
     };
 
 export type AttemptAnnounceSignatureValidateAction =
-  { readonly kind: "attempt" } | { readonly kind: "skip" };
+  | { readonly kind: "attempt" }
+  | { readonly kind: "skip" };
 
 export interface AttemptAnnounceSignatureValidateStepResult {
   readonly state: AttemptAnnounceSignatureValidateState;
@@ -315,7 +308,7 @@ export function initialAttemptAnnounceSignatureValidateState(): AttemptAnnounceS
 
 export function stepAttemptAnnounceSignatureValidateWithActions(
   state: AttemptAnnounceSignatureValidateState,
-  event: AttemptAnnounceSignatureValidateEvent,
+  event: AttemptAnnounceSignatureValidateEvent
 ): AttemptAnnounceSignatureValidateStepResult {
   if (event.kind === "announce/attempt-signature-validate-gate") {
     return {
@@ -326,12 +319,12 @@ export function stepAttemptAnnounceSignatureValidateWithActions(
           kind: shouldAttemptAnnounceSignatureValidate({
             parsedOk: event.parsedOk,
             identityPresent: event.identityPresent,
-            publicKeyLoaded: event.publicKeyLoaded,
+            publicKeyLoaded: event.publicKeyLoaded
           })
             ? "attempt"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -339,13 +332,13 @@ export function stepAttemptAnnounceSignatureValidateWithActions(
 }
 
 export function shouldAttemptAnnounceSignatureValidateNow(
-  actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>,
+  actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>
 ): boolean {
   return actions.some((action) => action.kind === "attempt");
 }
 
 export function shouldSkipAnnounceSignatureValidate(
-  actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>,
+  actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -388,7 +381,8 @@ export type CheckAnnounceDestinationHashEvent =
     };
 
 export type CheckAnnounceDestinationHashAction =
-  { readonly kind: "check" } | { readonly kind: "skip" };
+  | { readonly kind: "check" }
+  | { readonly kind: "skip" };
 
 export interface CheckAnnounceDestinationHashStepResult {
   readonly state: CheckAnnounceDestinationHashState;
@@ -402,7 +396,7 @@ export function initialCheckAnnounceDestinationHashState(): CheckAnnounceDestina
 
 export function stepCheckAnnounceDestinationHashWithActions(
   state: CheckAnnounceDestinationHashState,
-  event: CheckAnnounceDestinationHashEvent,
+  event: CheckAnnounceDestinationHashEvent
 ): CheckAnnounceDestinationHashStepResult {
   if (event.kind === "announce/check-destination-hash-gate") {
     return {
@@ -415,12 +409,12 @@ export function stepCheckAnnounceDestinationHashWithActions(
             identityPresent: event.identityPresent,
             publicKeyLoaded: event.publicKeyLoaded,
             signatureValid: event.signatureValid,
-            onlyValidateSignature: event.onlyValidateSignature,
+            onlyValidateSignature: event.onlyValidateSignature
           })
             ? "check"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -428,13 +422,13 @@ export function stepCheckAnnounceDestinationHashWithActions(
 }
 
 export function shouldCheckAnnounceDestinationHashNow(
-  actions: ReadonlyArray<CheckAnnounceDestinationHashAction>,
+  actions: ReadonlyArray<CheckAnnounceDestinationHashAction>
 ): boolean {
   return actions.some((action) => action.kind === "check");
 }
 
 export function shouldSkipAnnounceDestinationHashCheck(
-  actions: ReadonlyArray<CheckAnnounceDestinationHashAction>,
+  actions: ReadonlyArray<CheckAnnounceDestinationHashAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }

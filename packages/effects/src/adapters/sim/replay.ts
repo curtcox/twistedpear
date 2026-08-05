@@ -1,10 +1,6 @@
 import type { Event, NodeId, StepFn } from "../../types.js";
 import { hashTrace, type TraceEntry } from "../../trace.js";
-import {
-  SimKernel,
-  type SimKernelConfig,
-  type SimNodeConfig,
-} from "./kernel.js";
+import { SimKernel, type SimKernelConfig, type SimNodeConfig } from "./kernel.js";
 
 export interface RecordedEvent {
   readonly node: NodeId;
@@ -33,7 +29,7 @@ export interface ReplayResult<S> {
  */
 export function replayEvents<S>(
   config: SimKernelConfig<S>,
-  events: readonly RecordedEvent[],
+  events: readonly RecordedEvent[]
 ): ReplayResult<S> {
   const kernel = new SimKernel(config);
   for (const { node, event } of events) {
@@ -56,38 +52,32 @@ export function hashNodeStates<S>(states: ReadonlyMap<NodeId, S>): string {
       intent: {
         kind: "log" as const,
         level: "debug" as const,
-        message: JSON.stringify(state),
-      },
-    })),
+        message: JSON.stringify(state)
+      }
+    }))
   );
 }
 
 /** Run scenario, replay its event trace, assert identical final state hashes. */
 export function assertReplayDeterminism<S>(
   config: SimKernelConfig<S>,
-  run: (kernel: SimKernel<S>) => void,
-): {
-  readonly liveHash: string;
-  readonly replayHash: string;
-  readonly stateHash: string;
-} {
+  run: (kernel: SimKernel<S>) => void
+): { readonly liveHash: string; readonly replayHash: string; readonly stateHash: string } {
   const live = new SimKernel(config);
   run(live);
   const events = eventsFromTrace(live.getTrace());
   const replayed = replayEvents(config, events);
   const liveStateHash = hashNodeStates(
-    new Map(config.nodes.map((node) => [node.id, live.getNodeState(node.id)])),
+    new Map(config.nodes.map((node) => [node.id, live.getNodeState(node.id)]))
   );
   const replayStateHash = hashNodeStates(replayed.states);
   if (liveStateHash !== replayStateHash) {
-    throw new Error(
-      `replay state hash mismatch: live=${liveStateHash} replay=${replayStateHash}`,
-    );
+    throw new Error(`replay state hash mismatch: live=${liveStateHash} replay=${replayStateHash}`);
   }
   return {
     liveHash: live.getTraceHash(),
     replayHash: replayed.traceHash,
-    stateHash: liveStateHash,
+    stateHash: liveStateHash
   };
 }
 

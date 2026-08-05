@@ -19,9 +19,7 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
       : (() => {
           const [host, portText] = options.attachRnsd.split(":");
           if (host === undefined || portText === undefined) {
-            throw new Error(
-              `Invalid rnsd attach address: ${options.attachRnsd}`,
-            );
+            throw new Error(`Invalid rnsd attach address: ${options.attachRnsd}`);
           }
 
           return { host, port: Number.parseInt(portText, 10) };
@@ -34,7 +32,7 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
         transport: options.transport && attachRnsd === null,
         seeder: true,
         propagation: options.propagation ?? false,
-        attachRnsd,
+        attachRnsd
       },
       interfaces: {
         tcp: {
@@ -42,15 +40,15 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
           mode: "client",
           ...(attachRnsd === null
             ? {}
-            : { targetHost: attachRnsd.host, targetPort: attachRnsd.port }),
+            : { targetHost: attachRnsd.host, targetPort: attachRnsd.port })
         },
         auto: { enabled: attachRnsd === null, multicast: true, bonjour: true },
         websocket: { enabled: false },
         i2p: { enabled: false },
-        rnode: { enabled: false },
+        rnode: { enabled: false }
       },
-      statusEndpoint: options.statusEndpoint ?? false,
-    },
+      statusEndpoint: options.statusEndpoint ?? false
+    }
   });
 
   await runNodeHost({ config, identityPassphrase: options.identityPassphrase });

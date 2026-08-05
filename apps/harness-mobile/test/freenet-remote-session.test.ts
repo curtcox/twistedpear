@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptFreenetRemoteGrant,
-  assertNoTokenInText,
+  assertNoTokenInText
 } from "../src/freenet-remote-grant.js";
 import {
   freenetRemoteSessionStatusLabel,
   freenetRemoteSessionLogSafe,
   idleFreenetRemoteSession,
   probeFreenetRemoteNode,
-  reduceFreenetRemoteSession,
+  reduceFreenetRemoteSession
 } from "../src/freenet-remote-session.js";
 
 function enabledGrant(writes = false) {
@@ -21,10 +21,10 @@ function enabledGrant(writes = false) {
         contractReads: true,
         contractWrites: writes,
         packetTunnel: false,
-        propagation: false,
-      },
+        propagation: false
+      }
     },
-    { acceptedDisclosure: true, now: 1 },
+    { acceptedDisclosure: true, now: 1 }
   );
 }
 
@@ -36,12 +36,9 @@ describe("freenet remote-node session", () => {
     expect(session.status).toBe("connecting");
 
     const result = await probeFreenetRemoteNode(grant, {
-      open: async () => ({ ok: true }),
+      open: async () => ({ ok: true })
     });
-    session = reduceFreenetRemoteSession(session, {
-      type: "probe-result",
-      result,
-    });
+    session = reduceFreenetRemoteSession(session, { type: "probe-result", result });
     expect(session.status).toBe("online");
     expect(freenetRemoteSessionStatusLabel(session)).toBe("Online");
   });
@@ -54,18 +51,15 @@ describe("freenet remote-node session", () => {
       open: async () => ({
         ok: false,
         reason: "auth-failed",
-        detail: "unauthorized",
-      }),
+        detail: "unauthorized"
+      })
     });
-    session = reduceFreenetRemoteSession(session, {
-      type: "probe-result",
-      result,
-    });
+    session = reduceFreenetRemoteSession(session, { type: "probe-result", result });
     expect(session.status).toBe("auth-failed");
     expect(freenetRemoteSessionStatusLabel(session)).toMatch(/Authentication/);
     assertNoTokenInText(
       JSON.stringify(freenetRemoteSessionLogSafe(session)),
-      grant.authToken,
+      grant.authToken
     );
   });
 
@@ -76,7 +70,7 @@ describe("freenet remote-node session", () => {
       open: async (url, options) => {
         seen = { url, authToken: options?.authToken };
         return { ok: true };
-      },
+      }
     });
     expect(seen.url).toBe(grant.nodeUrl);
     expect(seen.authToken).toBe("secret-token-value");
@@ -88,7 +82,7 @@ describe("freenet remote-node session", () => {
     session = reduceFreenetRemoteSession(session, { type: "enable", grant });
     session = reduceFreenetRemoteSession(session, {
       type: "probe-result",
-      result: { ok: true },
+      result: { ok: true }
     });
     session = reduceFreenetRemoteSession(session, { type: "disconnect" });
     expect(session.status).toBe("unavailable");
@@ -97,7 +91,7 @@ describe("freenet remote-node session", () => {
     expect(session.reconnectAttempts).toBe(1);
     session = reduceFreenetRemoteSession(session, {
       type: "probe-result",
-      result: { ok: false, reason: "unavailable" },
+      result: { ok: false, reason: "unavailable" }
     });
     expect(session.status).toBe("degraded");
   });
@@ -106,14 +100,14 @@ describe("freenet remote-node session", () => {
     let session = idleFreenetRemoteSession();
     session = reduceFreenetRemoteSession(session, {
       type: "enable",
-      grant: enabledGrant(true),
+      grant: enabledGrant(true)
     });
     session = reduceFreenetRemoteSession(session, {
       type: "probe-result",
-      result: { ok: true },
+      result: { ok: true }
     });
     session = reduceFreenetRemoteSession(session, {
-      type: "request-write-confirmation",
+      type: "request-write-confirmation"
     });
     expect(session.pendingWriteConfirmation).toBe(true);
     session = reduceFreenetRemoteSession(session, { type: "confirm-write" });
@@ -126,12 +120,12 @@ describe("freenet remote-node session", () => {
     const result = await probeFreenetRemoteNode(bad, {
       open: async () => {
         throw new Error("should not open");
-      },
+      }
     });
     expect(result).toEqual({
       ok: false,
       reason: "malformed-url",
-      detail: expect.stringMatching(/non-ws/),
+      detail: expect.stringMatching(/non-ws/)
     });
   });
 
@@ -139,7 +133,7 @@ describe("freenet remote-node session", () => {
     let session = idleFreenetRemoteSession();
     session = reduceFreenetRemoteSession(session, {
       type: "enable",
-      grant: enabledGrant(),
+      grant: enabledGrant()
     });
     session = reduceFreenetRemoteSession(session, { type: "revoke" });
     expect(session).toEqual(idleFreenetRemoteSession());

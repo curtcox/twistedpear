@@ -7,10 +7,7 @@ import type { Event, Intent } from "@twistedpear/effects";
 
 export const PKCS7_BLOCK_SIZE = 16;
 
-export function pkcs7Pad(
-  data: Uint8Array,
-  blockSize: number = PKCS7_BLOCK_SIZE,
-): Uint8Array {
+export function pkcs7Pad(data: Uint8Array, blockSize: number = PKCS7_BLOCK_SIZE): Uint8Array {
   const remainder = data.length % blockSize;
   const paddingLength = blockSize - remainder;
   const padded = new Uint8Array(data.length + paddingLength);
@@ -19,19 +16,14 @@ export function pkcs7Pad(
   return padded;
 }
 
-export function pkcs7Unpad(
-  data: Uint8Array,
-  blockSize: number = PKCS7_BLOCK_SIZE,
-): Uint8Array {
+export function pkcs7Unpad(data: Uint8Array, blockSize: number = PKCS7_BLOCK_SIZE): Uint8Array {
   if (data.length === 0) {
     throw new Error("Cannot unpad empty data");
   }
 
   const paddingLength = data[data.length - 1]!;
   if (paddingLength > blockSize || paddingLength === 0) {
-    throw new Error(
-      `Cannot unpad, invalid padding length of ${paddingLength} bytes`,
-    );
+    throw new Error(`Cannot unpad, invalid padding length of ${paddingLength} bytes`);
   }
 
   return data.subarray(0, data.length - paddingLength);
@@ -69,7 +61,7 @@ export function initialPackPkcs7State(): PackPkcs7State {
 
 export function stepPkcs7PadWithActions(
   state: PackPkcs7State,
-  event: PackPkcs7Event,
+  event: PackPkcs7Event
 ): PackPkcs7StepResult {
   if (event.kind === "pkcs7/pad-gate") {
     return {
@@ -78,24 +70,22 @@ export function stepPkcs7PadWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: pkcs7Pad(event.data, event.blockSize ?? PKCS7_BLOCK_SIZE),
-        },
-      ],
+          raw: pkcs7Pad(event.data, event.blockSize ?? PKCS7_BLOCK_SIZE)
+        }
+      ]
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUsePkcs7Pad(
-  actions: ReadonlyArray<PackPkcs7Action>,
-): boolean {
+export function shouldUsePkcs7Pad(actions: ReadonlyArray<PackPkcs7Action>): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract padded bytes from step actions; null when no `use-raw`. */
 export function pkcs7PadRawFromActions(
-  actions: ReadonlyArray<PackPkcs7Action>,
+  actions: ReadonlyArray<PackPkcs7Action>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -132,7 +122,7 @@ export function initialUnpackPkcs7State(): UnpackPkcs7State {
 
 export function stepPkcs7UnpadWithActions(
   state: UnpackPkcs7State,
-  event: UnpackPkcs7Event,
+  event: UnpackPkcs7Event
 ): UnpackPkcs7StepResult {
   if (event.kind === "pkcs7/unpad-gate") {
     try {
@@ -142,9 +132,9 @@ export function stepPkcs7UnpadWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: pkcs7Unpad(event.data, event.blockSize ?? PKCS7_BLOCK_SIZE),
-          },
-        ],
+            raw: pkcs7Unpad(event.data, event.blockSize ?? PKCS7_BLOCK_SIZE)
+          }
+        ]
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -154,21 +144,17 @@ export function stepPkcs7UnpadWithActions(
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUsePkcs7Unpad(
-  actions: ReadonlyArray<UnpackPkcs7Action>,
-): boolean {
+export function shouldUsePkcs7Unpad(actions: ReadonlyArray<UnpackPkcs7Action>): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
-export function shouldRejectPkcs7Unpad(
-  actions: ReadonlyArray<UnpackPkcs7Action>,
-): boolean {
+export function shouldRejectPkcs7Unpad(actions: ReadonlyArray<UnpackPkcs7Action>): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpadded bytes from step actions; null when no `use-raw`. */
 export function pkcs7UnpadRawFromActions(
-  actions: ReadonlyArray<UnpackPkcs7Action>,
+  actions: ReadonlyArray<UnpackPkcs7Action>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

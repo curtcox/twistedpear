@@ -1,13 +1,10 @@
 import { unpackPackage, verifyPackage } from "../../app-registry/dist/index.js";
 import { toCatalogEntryLike, verify256t } from "../../cas-256t/dist/index.js";
-import {
-  PackageResourceClient,
-  fetchPackage,
-} from "../../bridge-hyper/dist/worklet.js";
+import { PackageResourceClient, fetchPackage } from "../../bridge-hyper/dist/worklet.js";
 import {
   generateConfirmationToken,
   HOST_API_VERSION,
-  validateManifestCapabilities,
+  validateManifestCapabilities
 } from "../../miniapp-runtime/dist/worklet.js";
 
 export function createInstallFromT256(deps) {
@@ -21,12 +18,9 @@ export function createInstallFromT256(deps) {
       const locator = await deps.waitForCasLocator(t256);
       resolvedLocator = locator;
       const identity = await deps.resolveIdentity();
-      if (identity === null)
-        throw new Error("No host identity available for fetch");
+      if (identity === null) throw new Error("No host identity available for fetch");
       const node = await deps.ensureReticulum();
-      const driveManager = deps.nodeFallback
-        ? undefined
-        : await deps.ensurePackageDriveManager();
+      const driveManager = deps.nodeFallback ? undefined : await deps.ensurePackageDriveManager();
       const resourceClient = new PackageResourceClient({
         provider: deps.provider,
         runtime: deps.runtime,
@@ -34,7 +28,7 @@ export function createInstallFromT256(deps) {
         servingPublicKeyHex: locator.servingPublicKey,
         appName: locator.appId,
         identity,
-        reticulum: node,
+        reticulum: node
       });
       await resourceClient.start();
       try {
@@ -44,7 +38,7 @@ export function createInstallFromT256(deps) {
           interfaces: deps.getReticulum()?.listInterfaces() ?? [],
           driveManager,
           resourceClient,
-          ...(deps.nodeFallback ? { forcePath: "resource" } : {}),
+          ...(deps.nodeFallback ? { forcePath: "resource" } : {})
         });
         archive = result.archiveBytes;
         fetchedFrom = result.path ?? "resource";
@@ -61,35 +55,24 @@ export function createInstallFromT256(deps) {
     const appId = unpackPackage(deps.provider, archive).manifest.name;
     const verified = verifyPackage(deps.provider, archive, {
       hostApiVersion: HOST_API_VERSION,
-      minVersion: installed.latestVersion(appId) ?? undefined,
+      minVersion: installed.latestVersion(appId) ?? undefined
     });
-    const declared = validateManifestCapabilities(
-      verified.manifest.capabilities,
-    );
-    const trusted = await deps
-      .ensureTrustStore()
-      .isTrusted(verified.manifest.publisherPublicKey);
+    const declared = validateManifestCapabilities(verified.manifest.capabilities);
+    const trusted = await deps.ensureTrustStore().isTrusted(verified.manifest.publisherPublicKey);
     const trustedEntry = trusted
       ? (await deps.ensureTrustStore().list()).find(
-          (entry) =>
-            entry.publisherPublicKey === verified.manifest.publisherPublicKey,
+          (entry) => entry.publisherPublicKey === verified.manifest.publisherPublicKey
         )
       : undefined;
     const review = await deps.requestHostReply({
       type: "install-review",
-      token: generateConfirmationToken((length) =>
-        deps.provider.randomBytes(length),
-      ),
+      token: generateConfirmationToken((length) => deps.provider.randomBytes(length)),
       appId,
       version: verified.manifest.version,
       publisherPublicKey: verified.manifest.publisherPublicKey,
       trusted,
       trustedLabel: trustedEntry?.label ?? null,
-      capabilities: declared.map((id) => ({
-        id,
-        description: id,
-        granted: false,
-      })),
+      capabilities: declared.map((id) => ({ id, description: id, granted: false }))
     });
     if (review === null || review.accept !== true) {
       throw new Error("Install cancelled at capability review");
@@ -104,30 +87,23 @@ export function createInstallFromT256(deps) {
         packageHash: verified.packageHash,
         installedAt: Date.now(),
         manifest: verified.manifest,
-        archivePath,
+        archivePath
       },
-      archive.length,
+      archive.length
     );
     await deps.persistCatalogState();
     if (Array.isArray(review.grants) && review.grants.length > 0) {
-      await deps
-        .ensureMiniappHost()
-        .setGrants(
-          appId,
-          verified.manifest.publisherPublicKey,
-          verified.manifest.capabilities,
-          review.grants,
-        );
+      await deps.ensureMiniappHost().setGrants(
+        appId,
+        verified.manifest.publisherPublicKey,
+        verified.manifest.capabilities,
+        review.grants
+      );
     }
     deps.pushCatalog();
     deps.log(
-      deps.installLogMessage?.(
-        appId,
-        verified.manifest.version,
-        fetchedFrom,
-        trusted,
-      ) ??
-        `Installed ${appId} v${verified.manifest.version} from 256t via ${fetchedFrom}`,
+      deps.installLogMessage?.(appId, verified.manifest.version, fetchedFrom, trusted) ??
+        `Installed ${appId} v${verified.manifest.version} from 256t via ${fetchedFrom}`
     );
     return {
       appId,
@@ -135,7 +111,7 @@ export function createInstallFromT256(deps) {
       trusted,
       source: fetchedFrom,
       publisherPublicKey: verified.manifest.publisherPublicKey,
-      servingPublicKey: resolvedLocator?.servingPublicKey ?? null,
+      servingPublicKey: resolvedLocator?.servingPublicKey ?? null
     };
   };
 }

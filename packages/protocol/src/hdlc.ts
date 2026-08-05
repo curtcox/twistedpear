@@ -35,10 +35,7 @@ export function encodeHdlcFrame(payload: Uint8Array): Uint8Array {
   return Uint8Array.from(output);
 }
 
-export function decodeHdlcFrames(
-  input: Uint8Array,
-  state: HdlcDecodeState = {},
-): HdlcDecodeResult {
+export function decodeHdlcFrames(input: Uint8Array, state: HdlcDecodeState = {}): HdlcDecodeResult {
   const frames: Uint8Array[] = [];
   const buffer = Array.from(state.buffer ?? new Uint8Array());
   let inEscape = state.inEscape ?? false;
@@ -69,7 +66,7 @@ export function decodeHdlcFrames(
   return {
     frames,
     buffer: Uint8Array.from(buffer),
-    inEscape,
+    inEscape
   };
 }
 
@@ -84,18 +81,15 @@ export function initialHdlcStreamState(): HdlcStreamState {
   return { buffer: new Uint8Array(), inEscape: false, frames: [] };
 }
 
-export function pushHdlcBytes(
-  state: HdlcStreamState,
-  input: Uint8Array,
-): HdlcStreamState {
+export function pushHdlcBytes(state: HdlcStreamState, input: Uint8Array): HdlcStreamState {
   const decoded = decodeHdlcFrames(input, {
     buffer: state.buffer,
-    inEscape: state.inEscape,
+    inEscape: state.inEscape
   });
   return {
     buffer: decoded.buffer,
     inEscape: decoded.inEscape,
-    frames: [...state.frames, ...decoded.frames],
+    frames: [...state.frames, ...decoded.frames]
   };
 }
 
@@ -130,13 +124,13 @@ export function initialEncodeHdlcFrameState(): EncodeHdlcFrameState {
 
 export function stepEncodeHdlcFrameWithActions(
   state: EncodeHdlcFrameState,
-  event: EncodeHdlcFrameEvent,
+  event: EncodeHdlcFrameEvent
 ): EncodeHdlcFrameStepResult {
   if (event.kind === "hdlc/encode-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: encodeHdlcFrame(event.payload) }],
+      actions: [{ kind: "use-raw", raw: encodeHdlcFrame(event.payload) }]
     };
   }
 
@@ -144,14 +138,14 @@ export function stepEncodeHdlcFrameWithActions(
 }
 
 export function shouldUseEncodeHdlcFrame(
-  actions: ReadonlyArray<EncodeHdlcFrameAction>,
+  actions: ReadonlyArray<EncodeHdlcFrameAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract encoded HDLC frame from step actions; null when no `use-raw`. */
 export function encodeHdlcFrameRawFromActions(
-  actions: ReadonlyArray<EncodeHdlcFrameAction>,
+  actions: ReadonlyArray<EncodeHdlcFrameAction>
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -190,7 +184,7 @@ export function initialDecodeHdlcFramesState(): DecodeHdlcFramesState {
 
 export function stepDecodeHdlcFramesWithActions(
   state: DecodeHdlcFramesState,
-  event: DecodeHdlcFramesEvent,
+  event: DecodeHdlcFramesEvent
 ): DecodeHdlcFramesStepResult {
   if (event.kind === "hdlc/decode-gate") {
     return {
@@ -199,9 +193,9 @@ export function stepDecodeHdlcFramesWithActions(
       actions: [
         {
           kind: "use-fields",
-          fields: decodeHdlcFrames(event.input, event.decodeState ?? {}),
-        },
-      ],
+          fields: decodeHdlcFrames(event.input, event.decodeState ?? {})
+        }
+      ]
     };
   }
 
@@ -209,14 +203,14 @@ export function stepDecodeHdlcFramesWithActions(
 }
 
 export function shouldUseDecodeHdlcFrames(
-  actions: ReadonlyArray<DecodeHdlcFramesAction>,
+  actions: ReadonlyArray<DecodeHdlcFramesAction>
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract decoded HDLC result from step actions; null when no `use-fields`. */
 export function hdlcDecodeResultFromActions(
-  actions: ReadonlyArray<DecodeHdlcFramesAction>,
+  actions: ReadonlyArray<DecodeHdlcFramesAction>
 ): HdlcDecodeResult | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

@@ -5,23 +5,15 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const staging = fs.mkdtempSync(path.join(os.tmpdir(), "twistedpear-gitleaks-"));
 
 try {
-  const listed = spawnSync(
-    "git",
-    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-    {
-      cwd: ROOT,
-      encoding: "utf8",
-    },
-  );
-  if (listed.status !== 0)
-    throw new Error(listed.stderr || "git ls-files failed");
+  const listed = spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
+    cwd: ROOT,
+    encoding: "utf8"
+  });
+  if (listed.status !== 0) throw new Error(listed.stderr || "git ls-files failed");
   for (const relative of listed.stdout.split("\0").filter(Boolean)) {
     const source = path.join(ROOT, relative);
     if (!fs.existsSync(source) || !fs.statSync(source).isFile()) continue;
@@ -44,9 +36,9 @@ try {
       "--report-format",
       "json",
       "--report-path",
-      path.join(ROOT, "gitleaks.json"),
+      path.join(ROOT, "gitleaks.json")
     ],
-    { cwd: ROOT, stdio: "inherit" },
+    { cwd: ROOT, stdio: "inherit" }
   );
   process.exitCode = result.status ?? 1;
 } finally {

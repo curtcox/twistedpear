@@ -1,11 +1,5 @@
 import { callHost, MiniappHostError } from "./rpc.js";
-import type {
-  InboundStream,
-  ShareOffer,
-  StreamOffer,
-  StreamOfferBatch,
-  StreamSink,
-} from "@twistedpear/miniapp-runtime";
+import type { InboundStream, ShareOffer, StreamOffer, StreamOfferBatch, StreamSink } from "@twistedpear/miniapp-runtime";
 
 export type DeviceAvailability =
   | "available"
@@ -36,9 +30,7 @@ export interface DeviceOpenRequest {
   readonly tier?: string;
   readonly purpose: string;
   readonly rateHz?: number;
-  readonly options?: Readonly<Record<string, unknown>> & {
-    readonly voiceDuplex?: boolean;
-  };
+  readonly options?: Readonly<Record<string, unknown>> & { readonly voiceDuplex?: boolean };
   readonly maxDurationMs?: number;
 }
 
@@ -71,10 +63,7 @@ export type DeviceSample =
       readonly kind: "camera";
       readonly tier: "derived";
       readonly at: number;
-      readonly barcodes: ReadonlyArray<{
-        readonly format: string;
-        readonly value: string;
-      }>;
+      readonly barcodes: ReadonlyArray<{ readonly format: string; readonly value: string }>;
       readonly motionDetected: boolean;
       readonly faceCount: number;
       readonly objectCount: number;
@@ -101,20 +90,13 @@ export type DeviceSample =
     };
 
 export class DeviceError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-  ) {
+  constructor(readonly code: string, message: string) {
     super(message);
     this.name = "DeviceError";
   }
 }
 
-async function deviceCall<T>(
-  method: string,
-  payload?: unknown,
-  capability?: string,
-): Promise<T> {
+async function deviceCall<T>(method: string, payload?: unknown, capability?: string): Promise<T> {
   try {
     return (await callHost("device", method, payload, capability)) as T;
   } catch (error) {
@@ -144,19 +126,13 @@ export async function close(session: DeviceSession | string): Promise<void> {
   await deviceCall("close", { handle });
 }
 
-export async function read(
-  session: DeviceSession | string,
-): Promise<DeviceSample> {
+export async function read(session: DeviceSession | string): Promise<DeviceSample> {
   const handle = typeof session === "string" ? session : session.handle;
   return deviceCall("read", { handle });
 }
 
 export type DeviceCommand =
-  | {
-      readonly kind: "torch";
-      readonly on: boolean;
-      readonly strobeIntervalMs?: number;
-    }
+  | { readonly kind: "torch"; readonly on: boolean; readonly strobeIntervalMs?: number }
   | {
       readonly kind: "speaker";
       readonly assetId?: string;
@@ -170,16 +146,11 @@ export type DeviceCommand =
       readonly intensity?: number;
     }
   | { readonly kind: "nfc"; readonly action: "write"; readonly ndef: string }
-  | {
-      readonly kind: "nfc";
-      readonly action: "apdu";
-      readonly aid: string;
-      readonly apdu: string;
-    };
+  | { readonly kind: "nfc"; readonly action: "apdu"; readonly aid: string; readonly apdu: string };
 
 export async function write(
   session: DeviceSession | string,
-  command: DeviceCommand,
+  command: DeviceCommand
 ): Promise<void> {
   const handle = typeof session === "string" ? session : session.handle;
   await deviceCall("write", { handle, command });
@@ -196,8 +167,7 @@ export interface DeviceStreamConstraints {
     readonly metered?: boolean;
     readonly lowBattery?: boolean;
   }>;
-  readonly preferredPlane?:
-    "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
+  readonly preferredPlane?: "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
   readonly encoding?: string;
   readonly codec?: "vp8" | "vp9" | "h264" | "opus" | "pcm" | "jpeg";
 }
@@ -221,17 +191,14 @@ export interface DeviceStreamSession {
 export async function stream(
   session: DeviceSession | string,
   peer: string,
-  constraints?: DeviceStreamConstraints,
+  constraints?: DeviceStreamConstraints
 ): Promise<DeviceStreamSession> {
   const handle = typeof session === "string" ? session : session.handle;
   return deviceCall("stream", { handle, peer, constraints });
 }
 
-export async function closeStream(
-  streamHandle: string | DeviceStreamSession,
-): Promise<void> {
-  const handle =
-    typeof streamHandle === "string" ? streamHandle : streamHandle.handle;
+export async function closeStream(streamHandle: string | DeviceStreamSession): Promise<void> {
+  const handle = typeof streamHandle === "string" ? streamHandle : streamHandle.handle;
   await deviceCall("closeStream", { handle });
 }
 
@@ -245,57 +212,33 @@ export async function shareOffers(): Promise<ReadonlyArray<ShareOffer>> {
 }
 
 /** Opens trusted host chrome; the app supplies only untrusted purpose text. */
-export async function requestShareOffer(
-  purpose: string,
-): Promise<ShareOffer | null> {
+export async function requestShareOffer(purpose: string): Promise<ShareOffer | null> {
   return deviceCall("requestShareOffer", { purpose }, "device:stream");
 }
 
 /** Requests revocation in host chrome; apps cannot mutate the store directly. */
 export async function revokeShareOffer(id: string): Promise<boolean> {
-  const result = await deviceCall<{ revoked: boolean }>(
-    "revokeShareOffer",
-    { id },
-    "device:stream",
-  );
+  const result = await deviceCall<{ revoked: boolean }>("revokeShareOffer", { id }, "device:stream");
   return result.revoked;
 }
 
 export type { ShareOffer };
 
-export async function* incoming(): AsyncIterable<StreamOffer> {
+export async function *incoming(): AsyncIterable<StreamOffer> {
   let cursor: string | undefined;
   while (true) {
-    const batch = await deviceCall<StreamOfferBatch>(
-      "incoming",
-      { cursor },
-      "device:stream",
-    );
+    const batch = await deviceCall<StreamOfferBatch>("incoming", { cursor }, "device:stream");
     cursor = batch.cursor;
     for (const offer of batch.offers) yield offer;
   }
 }
 
-export function accept(
-  offer: StreamOffer | string,
-  sink: StreamSink,
-): Promise<InboundStream> {
-  return deviceCall(
-    "accept",
-    { offerId: typeof offer === "string" ? offer : offer.id, sink },
-    "device:stream",
-  );
+export function accept(offer: StreamOffer | string, sink: StreamSink): Promise<InboundStream> {
+  return deviceCall("accept", { offerId: typeof offer === "string" ? offer : offer.id, sink }, "device:stream");
 }
 
-export async function decline(
-  offer: StreamOffer | string,
-  reason?: string,
-): Promise<void> {
-  await deviceCall(
-    "decline",
-    { offerId: typeof offer === "string" ? offer : offer.id, reason },
-    "device:stream",
-  );
+export async function decline(offer: StreamOffer | string, reason?: string): Promise<void> {
+  await deviceCall("decline", { offerId: typeof offer === "string" ? offer : offer.id, reason }, "device:stream");
 }
 
 export type { InboundStream, StreamOffer, StreamSink };

@@ -142,7 +142,7 @@ import {
   stepPathRequestIngressWithActions,
   stepPathTable,
   initialPathTableState,
-  timebaseFromRandomBlobs,
+  timebaseFromRandomBlobs
 } from "../src/index.js";
 
 function blobWithEmitted(emitted: number): Uint8Array {
@@ -159,9 +159,7 @@ describe("protocol path table", () => {
   it("answers path requests unless next hop is the requestor", () => {
     const nextHop = new Uint8Array([1, 2, 3]);
     expect(shouldAnswerPathRequest(nextHop, null)).toBe(true);
-    expect(shouldAnswerPathRequest(nextHop, new Uint8Array([9, 9, 9]))).toBe(
-      true,
-    );
+    expect(shouldAnswerPathRequest(nextHop, new Uint8Array([9, 9, 9]))).toBe(true);
     expect(shouldAnswerPathRequest(nextHop, nextHop)).toBe(false);
 
     expect(
@@ -169,18 +167,18 @@ describe("protocol path table", () => {
         stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
           kind: "path-request/answer-path-gate",
           nextHop,
-          requestorTransportId: null,
-        }).actions,
-      ),
+          requestorTransportId: null
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAnswerPathRequest(
         stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
           kind: "path-request/answer-path-gate",
           nextHop,
-          requestorTransportId: nextHop,
-        }).actions,
-      ),
+          requestorTransportId: nextHop
+        }).actions
+      )
     ).toBe(true);
   });
 
@@ -190,40 +188,38 @@ describe("protocol path table", () => {
         hops: 1,
         randomBlob: blobWithEmitted(100),
         nowSeconds: 0,
-        existing: null,
-      }),
+        existing: null
+      })
     ).toBe(true);
     expect(
       shouldAddPathEntry({
         hops: PATHFINDER_MAX_HOPS + 1,
         randomBlob: blobWithEmitted(100),
         nowSeconds: 0,
-        existing: null,
-      }),
+        existing: null
+      })
     ).toBe(false);
   });
 
   it("prefers newer announce timebase at equal-or-better hops", () => {
     const older = blobWithEmitted(10);
     const newer = blobWithEmitted(20);
-    expect(announceEmittedFromRandomBlob(newer)).toBeGreaterThan(
-      announceEmittedFromRandomBlob(older),
-    );
+    expect(announceEmittedFromRandomBlob(newer)).toBeGreaterThan(announceEmittedFromRandomBlob(older));
     expect(
       shouldAddPathEntry({
         hops: 2,
         randomBlob: newer,
         nowSeconds: 100,
-        existing: { hops: 2, expires: 1_000, randomBlobs: [older] },
-      }),
+        existing: { hops: 2, expires: 1_000, randomBlobs: [older] }
+      })
     ).toBe(true);
     expect(
       shouldAddPathEntry({
         hops: 2,
         randomBlob: older,
         nowSeconds: 100,
-        existing: { hops: 2, expires: 1_000, randomBlobs: [newer] },
-      }),
+        existing: { hops: 2, expires: 1_000, randomBlobs: [newer] }
+      })
     ).toBe(false);
   });
 
@@ -236,28 +232,19 @@ describe("protocol path table", () => {
         destinationKey: "dest",
         hops: 1,
         randomBlob: blob,
-        at: 10,
+        at: 10
       } as never).state;
-      return {
-        lastAdded: state.lastAdded,
-        hops: state.entries.get("dest")?.hops,
-      };
+      return { lastAdded: state.lastAdded, hops: state.entries.get("dest")?.hops };
     };
     expect(run()).toEqual(run());
   });
 
   it("throttles path-request emission by min interval", () => {
     expect(
-      shouldEmitPathRequest({
-        lastRequestAt: 100,
-        nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL - 1,
-      }),
+      shouldEmitPathRequest({ lastRequestAt: 100, nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL - 1 })
     ).toBe(false);
     expect(
-      shouldEmitPathRequest({
-        lastRequestAt: 100,
-        nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL,
-      }),
+      shouldEmitPathRequest({ lastRequestAt: 100, nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL })
     ).toBe(true);
 
     expect(
@@ -265,53 +252,43 @@ describe("protocol path table", () => {
         stepEmitPathRequestWithActions(initialEmitPathRequestState(), {
           kind: "path-request/emit-gate",
           lastRequestAt: 100,
-          nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL - 1,
-        }).actions,
-      ),
+          nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL - 1
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldEmitPathRequestNow(
         stepEmitPathRequestWithActions(initialEmitPathRequestState(), {
           kind: "path-request/emit-gate",
           lastRequestAt: 100,
-          nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL,
-        }).actions,
-      ),
+          nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL
+        }).actions
+      )
     ).toBe(true);
   });
 
   it("expires discovery path-request entries past absolute deadline", () => {
     const timeoutAt = 100 + PATH_REQUEST_TIMEOUT_SECONDS;
-    expect(
-      isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt }),
-    ).toBe(false);
-    expect(
-      isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt + 1 }),
-    ).toBe(true);
+    expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt })).toBe(false);
+    expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt + 1 })).toBe(true);
 
     expect(
       shouldTreatDiscoveryPathRequestLive(
-        stepDiscoveryPathRequestExpiredWithActions(
-          initialDiscoveryPathRequestExpiredState(),
-          {
-            kind: "path-request/discovery-expired-gate",
-            timeoutAt,
-            nowSeconds: timeoutAt,
-          },
-        ).actions,
-      ),
+        stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+          kind: "path-request/discovery-expired-gate",
+          timeoutAt,
+          nowSeconds: timeoutAt
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldTreatDiscoveryPathRequestExpired(
-        stepDiscoveryPathRequestExpiredWithActions(
-          initialDiscoveryPathRequestExpiredState(),
-          {
-            kind: "path-request/discovery-expired-gate",
-            timeoutAt,
-            nowSeconds: timeoutAt + 1,
-          },
-        ).actions,
-      ),
+        stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+          kind: "path-request/discovery-expired-gate",
+          timeoutAt,
+          nowSeconds: timeoutAt + 1
+        }).actions
+      )
     ).toBe(true);
   });
 
@@ -325,18 +302,18 @@ describe("protocol path table", () => {
         stepPathEntryExpiredWithActions(initialPathEntryExpiredState(), {
           kind: "path/entry-expired-gate",
           expires: 100,
-          nowSeconds: 99,
-        }).actions,
-      ),
+          nowSeconds: 99
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldTreatPathEntryExpired(
         stepPathEntryExpiredWithActions(initialPathEntryExpiredState(), {
           kind: "path/entry-expired-gate",
           expires: 100,
-          nowSeconds: 100,
-        }).actions,
-      ),
+          nowSeconds: 100
+        }).actions
+      )
     ).toBe(true);
   });
 
@@ -345,54 +322,38 @@ describe("protocol path table", () => {
     const second = new Uint8Array([4, 5, 6]);
     const once = appendPathRandomBlob({ randomBlobs: [], randomBlob: first });
     expect(once).toHaveLength(1);
-    expect(
-      appendPathRandomBlob({ randomBlobs: once, randomBlob: first }),
-    ).toHaveLength(1);
-    expect(
-      appendPathRandomBlob({ randomBlobs: once, randomBlob: second }),
-    ).toHaveLength(2);
+    expect(appendPathRandomBlob({ randomBlobs: once, randomBlob: first })).toHaveLength(1);
+    expect(appendPathRandomBlob({ randomBlobs: once, randomBlob: second })).toHaveLength(2);
 
-    const stepped = stepAppendPathRandomBlobWithActions(
-      initialAppendPathRandomBlobState(),
-      {
-        kind: "path/append-random-blob-gate",
-        randomBlobs: once,
-        randomBlob: second,
-      },
-    );
+    const stepped = stepAppendPathRandomBlobWithActions(initialAppendPathRandomBlobState(), {
+      kind: "path/append-random-blob-gate",
+      randomBlobs: once,
+      randomBlob: second
+    });
     expect(shouldUseAppendPathRandomBlob(stepped.actions)).toBe(true);
     const fields = appendPathRandomBlobFieldsFromActions(stepped.actions);
     expect(fields).not.toBeNull();
     expect(fields).toHaveLength(2);
     expect([...fields![1]!]).toEqual([...second]);
 
-    const empty = stepAppendPathRandomBlobWithActions(
-      initialAppendPathRandomBlobState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepAppendPathRandomBlobWithActions(initialAppendPathRandomBlobState(), {
+      kind: "noop"
+    } as never);
     expect(shouldUseAppendPathRandomBlob(empty.actions)).toBe(false);
     expect(appendPathRandomBlobFieldsFromActions(empty.actions)).toBeNull();
   });
 
   it("emits path expiry only from use-expiry actions", () => {
-    const stepped = stepComputePathExpiryWithActions(
-      initialComputePathExpiryState(),
-      {
-        kind: "path/expiry-gate",
-        nowSeconds: 100,
-      },
-    );
+    const stepped = stepComputePathExpiryWithActions(initialComputePathExpiryState(), {
+      kind: "path/expiry-gate",
+      nowSeconds: 100
+    });
     expect(shouldUsePathExpiry(stepped.actions)).toBe(true);
     expect(pathExpiryFromActions(stepped.actions)).toBe(computePathExpiry(100));
 
-    const empty = stepComputePathExpiryWithActions(
-      initialComputePathExpiryState(),
-      {
-        kind: "noop",
-      } as never,
-    );
+    const empty = stepComputePathExpiryWithActions(initialComputePathExpiryState(), {
+      kind: "noop"
+    } as never);
     expect(shouldUsePathExpiry(empty.actions)).toBe(false);
     expect(pathExpiryFromActions(empty.actions)).toBeNull();
   });
@@ -404,8 +365,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE,
         headerType: PACKET_HEADER_1,
         hasPath: true,
-        pathHops: 3,
-      }),
+        pathHops: 3
+      })
     ).toBe("wrap");
     expect(
       planPathOutbound({
@@ -413,8 +374,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE,
         headerType: PACKET_HEADER_1,
         hasPath: true,
-        pathHops: 1,
-      }),
+        pathHops: 1
+      })
     ).toBe("direct");
     expect(
       planPathOutbound({
@@ -422,8 +383,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE,
         headerType: PACKET_HEADER_1,
         hasPath: true,
-        pathHops: 3,
-      }),
+        pathHops: 3
+      })
     ).toBe("flood");
     expect(
       planPathOutbound({
@@ -431,8 +392,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_PLAIN,
         headerType: PACKET_HEADER_1,
         hasPath: true,
-        pathHops: 3,
-      }),
+        pathHops: 3
+      })
     ).toBe("flood");
     expect(
       planPathOutbound({
@@ -440,8 +401,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_GROUP,
         headerType: PACKET_HEADER_1,
         hasPath: true,
-        pathHops: 3,
-      }),
+        pathHops: 3
+      })
     ).toBe("flood");
     expect(
       planPathOutbound({
@@ -449,8 +410,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE,
         headerType: PACKET_HEADER_2,
         hasPath: true,
-        pathHops: 3,
-      }),
+        pathHops: 3
+      })
     ).toBe("flood");
     expect(
       planPathOutbound({
@@ -458,8 +419,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE,
         headerType: PACKET_HEADER_1,
         hasPath: false,
-        pathHops: 0,
-      }),
+        pathHops: 0
+      })
     ).toBe("flood");
   });
 
@@ -474,8 +435,8 @@ describe("protocol path table", () => {
         hasPath: false,
         shouldAnswerPath: false,
         discoveryPresent: false,
-        discoveryExpired: false,
-      }),
+        discoveryExpired: false
+      })
     ).toBe("ignore-unparsed");
     expect(
       planPathRequestIngress({
@@ -487,8 +448,8 @@ describe("protocol path table", () => {
         hasPath: false,
         shouldAnswerPath: false,
         discoveryPresent: false,
-        discoveryExpired: false,
-      }),
+        discoveryExpired: false
+      })
     ).toBe("ignore-seen-tag");
     expect(
       planPathRequestIngress({
@@ -500,8 +461,8 @@ describe("protocol path table", () => {
         hasPath: true,
         shouldAnswerPath: true,
         discoveryPresent: false,
-        discoveryExpired: false,
-      }),
+        discoveryExpired: false
+      })
     ).toBe("answer-local");
     expect(
       planPathRequestIngress({
@@ -513,8 +474,8 @@ describe("protocol path table", () => {
         hasPath: true,
         shouldAnswerPath: true,
         discoveryPresent: false,
-        discoveryExpired: false,
-      }),
+        discoveryExpired: false
+      })
     ).toBe("ignore");
     expect(
       planPathRequestIngress({
@@ -526,8 +487,8 @@ describe("protocol path table", () => {
         hasPath: true,
         shouldAnswerPath: true,
         discoveryPresent: false,
-        discoveryExpired: false,
-      }),
+        discoveryExpired: false
+      })
     ).toBe("answer-path");
     expect(
       planPathRequestIngress({
@@ -539,8 +500,8 @@ describe("protocol path table", () => {
         hasPath: true,
         shouldAnswerPath: false,
         discoveryPresent: false,
-        discoveryExpired: false,
-      }),
+        discoveryExpired: false
+      })
     ).toBe("ignore");
     expect(
       planPathRequestIngress({
@@ -553,8 +514,8 @@ describe("protocol path table", () => {
         shouldAnswerPath: false,
         discoveryPresent: false,
         discoveryExpired: false,
-        allowDiscovery: false,
-      }),
+        allowDiscovery: false
+      })
     ).toBe("ignore");
     expect(
       planPathRequestIngress({
@@ -567,8 +528,8 @@ describe("protocol path table", () => {
         shouldAnswerPath: false,
         discoveryPresent: true,
         discoveryExpired: false,
-        allowDiscovery: true,
-      }),
+        allowDiscovery: true
+      })
     ).toBe("ignore-in-flight-discovery");
     expect(
       planPathRequestIngress({
@@ -581,8 +542,8 @@ describe("protocol path table", () => {
         shouldAnswerPath: false,
         discoveryPresent: true,
         discoveryExpired: true,
-        allowDiscovery: true,
-      }),
+        allowDiscovery: true
+      })
     ).toBe("start-discovery");
     expect(
       planPathRequestIngress({
@@ -595,8 +556,8 @@ describe("protocol path table", () => {
         shouldAnswerPath: false,
         discoveryPresent: false,
         discoveryExpired: false,
-        allowDiscovery: true,
-      }),
+        allowDiscovery: true
+      })
     ).toBe("start-discovery");
   });
 
@@ -605,39 +566,33 @@ describe("protocol path table", () => {
     expect(canAnswerLocalPathRequest(false)).toBe(false);
     expect(
       shouldAnswerLocalPathRequestNow(
-        stepAnswerLocalPathRequestWithActions(
-          initialAnswerLocalPathRequestState(),
-          {
-            kind: "path-request/answer-local-handler-gate",
-            handlerPresent: true,
-          },
-        ).actions,
-      ),
+        stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+          kind: "path-request/answer-local-handler-gate",
+          handlerPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAnswerLocalPathRequest(
-        stepAnswerLocalPathRequestWithActions(
-          initialAnswerLocalPathRequestState(),
-          {
-            kind: "path-request/answer-local-handler-gate",
-            handlerPresent: false,
-          },
-        ).actions,
-      ),
+        stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+          kind: "path-request/answer-local-handler-gate",
+          handlerPresent: false
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldBeginPathDiscovery({
         parsedOk: true,
         tagPresent: true,
-        destinationKeyPresent: true,
-      }),
+        destinationKeyPresent: true
+      })
     ).toBe(true);
     expect(
       shouldBeginPathDiscovery({
         parsedOk: true,
         tagPresent: true,
-        destinationKeyPresent: false,
-      }),
+        destinationKeyPresent: false
+      })
     ).toBe(false);
     expect(
       shouldBeginPathDiscoveryNow(
@@ -645,9 +600,9 @@ describe("protocol path table", () => {
           kind: "path-request/begin-discovery-gate",
           parsedOk: true,
           tagPresent: true,
-          destinationKeyPresent: true,
-        }).actions,
-      ),
+          destinationKeyPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipBeginPathDiscovery(
@@ -655,9 +610,9 @@ describe("protocol path table", () => {
           kind: "path-request/begin-discovery-gate",
           parsedOk: true,
           tagPresent: true,
-          destinationKeyPresent: false,
-        }).actions,
-      ),
+          destinationKeyPresent: false
+        }).actions
+      )
     ).toBe(true);
     expect(shouldClearExpiredDiscoveryPathRequest(true)).toBe(true);
     expect(shouldClearExpiredDiscoveryPathRequest(false)).toBe(false);
@@ -667,10 +622,10 @@ describe("protocol path table", () => {
           initialClearExpiredDiscoveryPathRequestState(),
           {
             kind: "path-request/clear-expired-discovery-gate",
-            discoveryExpired: true,
-          },
-        ).actions,
-      ),
+            discoveryExpired: true
+          }
+        ).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipClearExpiredDiscoveryPathRequest(
@@ -678,34 +633,28 @@ describe("protocol path table", () => {
           initialClearExpiredDiscoveryPathRequestState(),
           {
             kind: "path-request/clear-expired-discovery-gate",
-            discoveryExpired: false,
-          },
-        ).actions,
-      ),
+            discoveryExpired: false
+          }
+        ).actions
+      )
     ).toBe(true);
     expect(shouldRememberPathRequestTag(true)).toBe(true);
     expect(shouldRememberPathRequestTag(false)).toBe(false);
     expect(
       shouldRememberPathRequestTagNow(
-        stepRememberPathRequestTagWithActions(
-          initialRememberPathRequestTagState(),
-          {
-            kind: "path-request/remember-tag-gate",
-            tagKeyPresent: true,
-          },
-        ).actions,
-      ),
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipRememberPathRequestTag(
-        stepRememberPathRequestTagWithActions(
-          initialRememberPathRequestTagState(),
-          {
-            kind: "path-request/remember-tag-gate",
-            tagKeyPresent: false,
-          },
-        ).actions,
-      ),
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: false
+        }).actions
+      )
     ).toBe(true);
     expect(shouldUsePathForOutbound(true)).toBe(true);
     expect(shouldUsePathForOutbound(false)).toBe(false);
@@ -713,17 +662,17 @@ describe("protocol path table", () => {
       shouldUsePathForOutboundNow(
         stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
           kind: "path/use-for-outbound-gate",
-          pathPresent: true,
-        }).actions,
-      ),
+          pathPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipUsePathForOutbound(
         stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
           kind: "path/use-for-outbound-gate",
-          pathPresent: false,
-        }).actions,
-      ),
+          pathPresent: false
+        }).actions
+      )
     ).toBe(true);
     expect(shouldAnswerPathWithEntry(true)).toBe(true);
     expect(shouldAnswerPathWithEntry(false)).toBe(false);
@@ -731,17 +680,17 @@ describe("protocol path table", () => {
       shouldAnswerPathWithEntryNow(
         stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
           kind: "path-request/answer-path-entry-gate",
-          pathPresent: true,
-        }).actions,
-      ),
+          pathPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAnswerPathWithEntry(
         stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
           kind: "path-request/answer-path-entry-gate",
-          pathPresent: false,
-        }).actions,
-      ),
+          pathPresent: false
+        }).actions
+      )
     ).toBe(true);
     expect(shouldTouchPathEntry(true)).toBe(true);
     expect(shouldTouchPathEntry(false)).toBe(false);
@@ -749,17 +698,17 @@ describe("protocol path table", () => {
       shouldTouchPathEntryNow(
         stepTouchPathEntryWithActions(initialTouchPathEntryState(), {
           kind: "path/touch-entry-gate",
-          pathPresent: true,
-        }).actions,
-      ),
+          pathPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipTouchPathEntry(
         stepTouchPathEntryWithActions(initialTouchPathEntryState(), {
           kind: "path/touch-entry-gate",
-          pathPresent: false,
-        }).actions,
-      ),
+          pathPresent: false
+        }).actions
+      )
     ).toBe(true);
   });
 
@@ -771,9 +720,9 @@ describe("protocol path table", () => {
           hops: 1,
           randomBlob: new Uint8Array(10),
           nowSeconds: 100,
-          existing: null,
-        }).actions,
-      ),
+          existing: null
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipAddPathEntry(
@@ -782,9 +731,9 @@ describe("protocol path table", () => {
           hops: PATHFINDER_MAX_HOPS + 1,
           randomBlob: new Uint8Array(10),
           nowSeconds: 100,
-          existing: null,
-        }).actions,
-      ),
+          existing: null
+        }).actions
+      )
     ).toBe(true);
   });
 
@@ -792,68 +741,56 @@ describe("protocol path table", () => {
     expect(
       planDiscoveryPathRequestFulfill({
         hasPending: false,
-        expired: false,
-      }),
+        expired: false
+      })
     ).toBe("ignore");
     expect(
       planDiscoveryPathRequestFulfill({
         hasPending: true,
-        expired: true,
-      }),
+        expired: true
+      })
     ).toBe("drop-expired");
     expect(
       planDiscoveryPathRequestFulfill({
         hasPending: true,
-        expired: false,
-      }),
+        expired: false
+      })
     ).toBe("fulfill");
     expect(
-      shouldFulfillDiscoveryPending({ fulfillOk: true, pendingPresent: true }),
+      shouldFulfillDiscoveryPending({ fulfillOk: true, pendingPresent: true })
     ).toBe(true);
     expect(
-      shouldFulfillDiscoveryPending({ fulfillOk: true, pendingPresent: false }),
+      shouldFulfillDiscoveryPending({ fulfillOk: true, pendingPresent: false })
     ).toBe(false);
     expect(
-      shouldFulfillDiscoveryPending({ fulfillOk: false, pendingPresent: true }),
+      shouldFulfillDiscoveryPending({ fulfillOk: false, pendingPresent: true })
     ).toBe(false);
     expect(
       shouldFulfillDiscoveryPendingNow(
-        stepFulfillDiscoveryPendingWithActions(
-          initialFulfillDiscoveryPendingState(),
-          {
-            kind: "path-request/fulfill-pending-gate",
-            fulfillOk: true,
-            pendingPresent: true,
-          },
-        ).actions,
-      ),
+        stepFulfillDiscoveryPendingWithActions(initialFulfillDiscoveryPendingState(), {
+          kind: "path-request/fulfill-pending-gate",
+          fulfillOk: true,
+          pendingPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(
       shouldSkipFulfillDiscoveryPending(
-        stepFulfillDiscoveryPendingWithActions(
-          initialFulfillDiscoveryPendingState(),
-          {
-            kind: "path-request/fulfill-pending-gate",
-            fulfillOk: false,
-            pendingPresent: true,
-          },
-        ).actions,
-      ),
+        stepFulfillDiscoveryPendingWithActions(initialFulfillDiscoveryPendingState(), {
+          kind: "path-request/fulfill-pending-gate",
+          fulfillOk: false,
+          pendingPresent: true
+        }).actions
+      )
     ).toBe(true);
     expect(shouldIgnoreDiscoveryPathFulfill(true)).toBe(true);
     expect(shouldIgnoreDiscoveryPathFulfill(false)).toBe(false);
   });
 
   it("plans path-table get miss/expired/hit", () => {
-    expect(planPathEntryLookup({ entryPresent: false, expired: false })).toBe(
-      "miss",
-    );
-    expect(planPathEntryLookup({ entryPresent: true, expired: true })).toBe(
-      "expired",
-    );
-    expect(planPathEntryLookup({ entryPresent: true, expired: false })).toBe(
-      "hit",
-    );
+    expect(planPathEntryLookup({ entryPresent: false, expired: false })).toBe("miss");
+    expect(planPathEntryLookup({ entryPresent: true, expired: true })).toBe("expired");
+    expect(planPathEntryLookup({ entryPresent: true, expired: false })).toBe("hit");
   });
 
   it("emits path-request ingress actions from the gate step", () => {
@@ -869,48 +806,38 @@ describe("protocol path table", () => {
         hasPath: false,
         shouldAnswerPath: false,
         discoveryPresent: false,
-        discoveryExpired: false,
-      },
+        discoveryExpired: false
+      }
     );
-    expect(pathRequestIngressPlanFromActions(ignoreUnparsedPlan.actions)).toBe(
-      "ignore-unparsed",
-    );
+    expect(pathRequestIngressPlanFromActions(ignoreUnparsedPlan.actions)).toBe("ignore-unparsed");
 
-    const ignoreUnparsed = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: false,
-        hasTag: false,
-        tagAlreadySeen: false,
-        hasLocalAnswerer: false,
-        transportEnabled: true,
-        hasPath: false,
-        shouldAnswerPath: false,
-        discoveryPresent: false,
-        discoveryExpired: false,
-      },
-    );
-    expect(pathRequestIngressFromActions(ignoreUnparsed.actions)).toBe(
-      "ignore-unparsed",
-    );
+    const ignoreUnparsed = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: false,
+      hasTag: false,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: false,
+      shouldAnswerPath: false,
+      discoveryPresent: false,
+      discoveryExpired: false
+    });
+    expect(pathRequestIngressFromActions(ignoreUnparsed.actions)).toBe("ignore-unparsed");
     expect(shouldIgnorePathRequestUnparsed(ignoreUnparsed.actions)).toBe(true);
 
-    const answerLocal = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: true,
-        hasTag: true,
-        tagAlreadySeen: false,
-        hasLocalAnswerer: true,
-        transportEnabled: true,
-        hasPath: true,
-        shouldAnswerPath: true,
-        discoveryPresent: false,
-        discoveryExpired: false,
-      },
-    );
+    const answerLocal = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: true,
+      transportEnabled: true,
+      hasPath: true,
+      shouldAnswerPath: true,
+      discoveryPresent: false,
+      discoveryExpired: false
+    });
     expect(shouldAnswerPathRequestLocal(answerLocal.actions)).toBe(true);
 
     const answerPathPlan = stepPathRequestIngressPlanWithActions(
@@ -925,28 +852,23 @@ describe("protocol path table", () => {
         hasPath: true,
         shouldAnswerPath: true,
         discoveryPresent: false,
-        discoveryExpired: false,
-      },
+        discoveryExpired: false
+      }
     );
-    expect(pathRequestIngressPlanFromActions(answerPathPlan.actions)).toBe(
-      "answer-path",
-    );
+    expect(pathRequestIngressPlanFromActions(answerPathPlan.actions)).toBe("answer-path");
 
-    const answerPath = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: true,
-        hasTag: true,
-        tagAlreadySeen: false,
-        hasLocalAnswerer: false,
-        transportEnabled: true,
-        hasPath: true,
-        shouldAnswerPath: true,
-        discoveryPresent: false,
-        discoveryExpired: false,
-      },
-    );
+    const answerPath = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: true,
+      shouldAnswerPath: true,
+      discoveryPresent: false,
+      discoveryExpired: false
+    });
     expect(shouldAnswerPathRequestPath(answerPath.actions)).toBe(true);
 
     const startDiscoveryPlan = stepPathRequestIngressPlanWithActions(
@@ -962,40 +884,46 @@ describe("protocol path table", () => {
         shouldAnswerPath: false,
         discoveryPresent: false,
         discoveryExpired: false,
-        allowDiscovery: true,
-      },
+        allowDiscovery: true
+      }
     );
-    expect(pathRequestIngressPlanFromActions(startDiscoveryPlan.actions)).toBe(
-      "start-discovery",
-    );
+    expect(pathRequestIngressPlanFromActions(startDiscoveryPlan.actions)).toBe("start-discovery");
 
-    const startDiscovery = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: true,
-        hasTag: true,
-        tagAlreadySeen: false,
-        hasLocalAnswerer: false,
-        transportEnabled: true,
-        hasPath: false,
-        shouldAnswerPath: false,
-        discoveryPresent: false,
-        discoveryExpired: false,
-        allowDiscovery: true,
-      },
-    );
+    const startDiscovery = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: false,
+      shouldAnswerPath: false,
+      discoveryPresent: false,
+      discoveryExpired: false,
+      allowDiscovery: true
+    });
     expect(shouldStartPathRequestDiscovery(startDiscovery.actions)).toBe(true);
     expect(shouldIgnorePathRequestSeenTag(startDiscovery.actions)).toBe(false);
     expect(shouldIgnorePathRequestIngress(startDiscovery.actions)).toBe(false);
-    expect(
-      shouldIgnorePathRequestInFlightDiscovery(startDiscovery.actions),
-    ).toBe(false);
+    expect(shouldIgnorePathRequestInFlightDiscovery(startDiscovery.actions)).toBe(false);
 
-    const again = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
+    const again = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: false,
+      shouldAnswerPath: false,
+      discoveryPresent: false,
+      discoveryExpired: false,
+      allowDiscovery: true
+    });
+    expect(again.actions).toEqual(startDiscovery.actions);
+    expect(
+      stepPathRequestIngressPlanWithActions(initialPathRequestIngressPlanState(), {
+        kind: "path-request/ingress-plan-gate",
         parsedOk: true,
         hasTag: true,
         tagAlreadySeen: false,
@@ -1005,27 +933,8 @@ describe("protocol path table", () => {
         shouldAnswerPath: false,
         discoveryPresent: false,
         discoveryExpired: false,
-        allowDiscovery: true,
-      },
-    );
-    expect(again.actions).toEqual(startDiscovery.actions);
-    expect(
-      stepPathRequestIngressPlanWithActions(
-        initialPathRequestIngressPlanState(),
-        {
-          kind: "path-request/ingress-plan-gate",
-          parsedOk: true,
-          hasTag: true,
-          tagAlreadySeen: false,
-          hasLocalAnswerer: false,
-          transportEnabled: true,
-          hasPath: false,
-          shouldAnswerPath: false,
-          discoveryPresent: false,
-          discoveryExpired: false,
-          allowDiscovery: true,
-        },
-      ).actions,
+        allowDiscovery: true
+      }).actions
     ).toEqual(startDiscoveryPlan.actions);
   });
 
@@ -1035,25 +944,17 @@ describe("protocol path table", () => {
       {
         kind: "path-request/discovery-fulfill-plan-gate",
         hasPending: false,
-        expired: false,
-      },
+        expired: false
+      }
     );
-    expect(discoveryPathRequestFulfillPlanFromActions(ignorePlan.actions)).toBe(
-      "ignore",
-    );
+    expect(discoveryPathRequestFulfillPlanFromActions(ignorePlan.actions)).toBe("ignore");
     expect(shouldIgnoreDiscoveryPathFulfillPlan(ignorePlan.actions)).toBe(true);
 
     const ignore = stepDiscoveryPathRequestFulfillWithActions(
       initialDiscoveryPathRequestFulfillState(),
-      {
-        kind: "path-request/discovery-fulfill-gate",
-        hasPending: false,
-        expired: false,
-      },
+      { kind: "path-request/discovery-fulfill-gate", hasPending: false, expired: false }
     );
-    expect(discoveryPathRequestFulfillFromActions(ignore.actions)).toBe(
-      "ignore",
-    );
+    expect(discoveryPathRequestFulfillFromActions(ignore.actions)).toBe("ignore");
     expect(shouldIgnoreDiscoveryPathFulfillActions(ignore.actions)).toBe(true);
 
     const dropExpiredPlan = stepDiscoveryPathRequestFulfillPlanWithActions(
@@ -1061,61 +962,42 @@ describe("protocol path table", () => {
       {
         kind: "path-request/discovery-fulfill-plan-gate",
         hasPending: true,
-        expired: true,
-      },
+        expired: true
+      }
     );
-    expect(
-      shouldDropExpiredDiscoveryPathRequestPlan(dropExpiredPlan.actions),
-    ).toBe(true);
-    expect(
-      discoveryPathRequestFulfillPlanFromActions(dropExpiredPlan.actions),
-    ).toBe("drop-expired");
+    expect(shouldDropExpiredDiscoveryPathRequestPlan(dropExpiredPlan.actions)).toBe(true);
+    expect(discoveryPathRequestFulfillPlanFromActions(dropExpiredPlan.actions)).toBe(
+      "drop-expired"
+    );
 
     const dropExpired = stepDiscoveryPathRequestFulfillWithActions(
       initialDiscoveryPathRequestFulfillState(),
-      {
-        kind: "path-request/discovery-fulfill-gate",
-        hasPending: true,
-        expired: true,
-      },
+      { kind: "path-request/discovery-fulfill-gate", hasPending: true, expired: true }
     );
-    expect(shouldDropExpiredDiscoveryPathRequest(dropExpired.actions)).toBe(
-      true,
-    );
+    expect(shouldDropExpiredDiscoveryPathRequest(dropExpired.actions)).toBe(true);
 
     const fulfillPlan = stepDiscoveryPathRequestFulfillPlanWithActions(
       initialDiscoveryPathRequestFulfillPlanState(),
       {
         kind: "path-request/discovery-fulfill-plan-gate",
         hasPending: true,
-        expired: false,
-      },
+        expired: false
+      }
     );
-    expect(shouldFulfillDiscoveryPathRequestPlan(fulfillPlan.actions)).toBe(
-      true,
-    );
-    expect(
-      discoveryPathRequestFulfillPlanFromActions(fulfillPlan.actions),
-    ).toBe("fulfill");
+    expect(shouldFulfillDiscoveryPathRequestPlan(fulfillPlan.actions)).toBe(true);
+    expect(discoveryPathRequestFulfillPlanFromActions(fulfillPlan.actions)).toBe("fulfill");
 
     const fulfill = stepDiscoveryPathRequestFulfillWithActions(
       initialDiscoveryPathRequestFulfillState(),
-      {
-        kind: "path-request/discovery-fulfill-gate",
-        hasPending: true,
-        expired: false,
-      },
+      { kind: "path-request/discovery-fulfill-gate", hasPending: true, expired: false }
     );
     expect(shouldFulfillDiscoveryPathRequest(fulfill.actions)).toBe(true);
     expect(
-      stepDiscoveryPathRequestFulfillWithActions(
-        initialDiscoveryPathRequestFulfillState(),
-        {
-          kind: "path-request/discovery-fulfill-gate",
-          hasPending: true,
-          expired: false,
-        },
-      ).actions,
+      stepDiscoveryPathRequestFulfillWithActions(initialDiscoveryPathRequestFulfillState(), {
+        kind: "path-request/discovery-fulfill-gate",
+        hasPending: true,
+        expired: false
+      }).actions
     ).toEqual(fulfill.actions);
     expect(
       stepDiscoveryPathRequestFulfillPlanWithActions(
@@ -1123,24 +1005,21 @@ describe("protocol path table", () => {
         {
           kind: "path-request/discovery-fulfill-plan-gate",
           hasPending: true,
-          expired: false,
-        },
-      ).actions,
+          expired: false
+        }
+      ).actions
     ).toEqual(fulfillPlan.actions);
   });
 
   it("emits path outbound actions from the gate step", () => {
-    const wrapPlan = stepPathOutboundPlanWithActions(
-      initialPathOutboundPlanState(),
-      {
-        kind: "path/outbound-plan-gate",
-        packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-        headerType: PACKET_HEADER_1,
-        hasPath: true,
-        pathHops: 3,
-      },
-    );
+    const wrapPlan = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 3
+    });
     expect(pathOutboundPlanFromActions(wrapPlan.actions)).toBe("wrap");
     expect(shouldWrapPathOutboundPlan(wrapPlan.actions)).toBe(true);
 
@@ -1150,22 +1029,19 @@ describe("protocol path table", () => {
       destinationType: PACKET_DEST_TYPE_SINGLE,
       headerType: PACKET_HEADER_1,
       hasPath: true,
-      pathHops: 3,
+      pathHops: 3
     });
     expect(pathOutboundFromActions(wrap.actions)).toBe("wrap");
     expect(shouldWrapPathOutbound(wrap.actions)).toBe(true);
 
-    const directPlan = stepPathOutboundPlanWithActions(
-      initialPathOutboundPlanState(),
-      {
-        kind: "path/outbound-plan-gate",
-        packetType: PACKET_TYPE_DATA,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-        headerType: PACKET_HEADER_1,
-        hasPath: true,
-        pathHops: 1,
-      },
-    );
+    const directPlan = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 1
+    });
     expect(shouldDirectPathOutboundPlan(directPlan.actions)).toBe(true);
     expect(pathOutboundPlanFromActions(directPlan.actions)).toBe("direct");
 
@@ -1175,21 +1051,18 @@ describe("protocol path table", () => {
       destinationType: PACKET_DEST_TYPE_SINGLE,
       headerType: PACKET_HEADER_1,
       hasPath: true,
-      pathHops: 1,
+      pathHops: 1
     });
     expect(shouldDirectPathOutbound(direct.actions)).toBe(true);
 
-    const floodPlan = stepPathOutboundPlanWithActions(
-      initialPathOutboundPlanState(),
-      {
-        kind: "path/outbound-plan-gate",
-        packetType: PACKET_TYPE_ANNOUNCE,
-        destinationType: PACKET_DEST_TYPE_SINGLE,
-        headerType: PACKET_HEADER_1,
-        hasPath: true,
-        pathHops: 3,
-      },
-    );
+    const floodPlan = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
+      packetType: PACKET_TYPE_ANNOUNCE,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 3
+    });
     expect(shouldFloodPathOutboundPlan(floodPlan.actions)).toBe(true);
     expect(pathOutboundPlanFromActions(floodPlan.actions)).toBe("flood");
 
@@ -1199,7 +1072,7 @@ describe("protocol path table", () => {
       destinationType: PACKET_DEST_TYPE_SINGLE,
       headerType: PACKET_HEADER_1,
       hasPath: true,
-      pathHops: 3,
+      pathHops: 3
     });
     expect(shouldFloodPathOutbound(flood.actions)).toBe(true);
     expect(
@@ -1209,8 +1082,8 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE,
         headerType: PACKET_HEADER_1,
         hasPath: true,
-        pathHops: 3,
-      }).actions,
+        pathHops: 3
+      }).actions
     ).toEqual(flood.actions);
     expect(
       stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
@@ -1219,82 +1092,70 @@ describe("protocol path table", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE,
         headerType: PACKET_HEADER_1,
         hasPath: true,
-        pathHops: 3,
-      }).actions,
+        pathHops: 3
+      }).actions
     ).toEqual(floodPlan.actions);
   });
 
   it("emits path entry lookup actions from the gate step", () => {
-    const missPlan = stepPathEntryLookupPlanWithActions(
-      initialPathEntryLookupPlanState(),
-      {
-        kind: "path/entry-lookup-plan-gate",
-        entryPresent: false,
-        expired: false,
-      },
-    );
+    const missPlan = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+      kind: "path/entry-lookup-plan-gate",
+      entryPresent: false,
+      expired: false
+    });
     expect(pathEntryLookupPlanFromActions(missPlan.actions)).toBe("miss");
     expect(shouldMissPathEntryLookupPlan(missPlan.actions)).toBe(true);
 
     const miss = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
       kind: "path/entry-lookup-gate",
       entryPresent: false,
-      expired: false,
+      expired: false
     });
     expect(pathEntryLookupFromActions(miss.actions)).toBe("miss");
     expect(shouldMissPathEntryLookup(miss.actions)).toBe(true);
 
-    const expiredPlan = stepPathEntryLookupPlanWithActions(
-      initialPathEntryLookupPlanState(),
-      {
-        kind: "path/entry-lookup-plan-gate",
-        entryPresent: true,
-        expired: true,
-      },
-    );
+    const expiredPlan = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+      kind: "path/entry-lookup-plan-gate",
+      entryPresent: true,
+      expired: true
+    });
     expect(shouldExpirePathEntryLookupPlan(expiredPlan.actions)).toBe(true);
     expect(pathEntryLookupPlanFromActions(expiredPlan.actions)).toBe("expired");
 
-    const expired = stepPathEntryLookupWithActions(
-      initialPathEntryLookupState(),
-      {
-        kind: "path/entry-lookup-gate",
-        entryPresent: true,
-        expired: true,
-      },
-    );
+    const expired = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
+      kind: "path/entry-lookup-gate",
+      entryPresent: true,
+      expired: true
+    });
     expect(shouldExpirePathEntryLookup(expired.actions)).toBe(true);
 
-    const hitPlan = stepPathEntryLookupPlanWithActions(
-      initialPathEntryLookupPlanState(),
-      {
-        kind: "path/entry-lookup-plan-gate",
-        entryPresent: true,
-        expired: false,
-      },
-    );
+    const hitPlan = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+      kind: "path/entry-lookup-plan-gate",
+      entryPresent: true,
+      expired: false
+    });
     expect(shouldHitPathEntryLookupPlan(hitPlan.actions)).toBe(true);
     expect(pathEntryLookupPlanFromActions(hitPlan.actions)).toBe("hit");
 
     const hit = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
       kind: "path/entry-lookup-gate",
       entryPresent: true,
-      expired: false,
+      expired: false
     });
     expect(shouldHitPathEntryLookup(hit.actions)).toBe(true);
     expect(
       stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
         kind: "path/entry-lookup-gate",
         entryPresent: true,
-        expired: false,
-      }).actions,
+        expired: false
+      }).actions
     ).toEqual(hit.actions);
     expect(
       stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
         kind: "path/entry-lookup-plan-gate",
         entryPresent: true,
-        expired: false,
-      }).actions,
+        expired: false
+      }).actions
     ).toEqual(hitPlan.actions);
   });
 });

@@ -12,18 +12,15 @@ import {
   appDestinationName,
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
-  unpackPackage,
+  unpackPackage
 } from "../../packages/app-registry/dist/index.js";
 import { BleInterface } from "../../packages/reticulum-interfaces/dist/ble/interface.js";
 import { SimulatedBlePipe } from "../../packages/reticulum-interfaces/dist/ble/sim.js";
 import {
   PackageResourceClient,
-  attachPackageResourceServer,
+  attachPackageResourceServer
 } from "../../packages/bridge-hyper/dist/index.js";
-import {
-  sendPackageResourceRequest,
-  parseListResponse,
-} from "../../packages/bridge-hyper/dist/resource-server.js";
+import { sendPackageResourceRequest, parseListResponse } from "../../packages/bridge-hyper/dist/resource-server.js";
 import {
   DestinationDirection,
   DestinationProofStrategy,
@@ -35,25 +32,18 @@ import {
   PipeInterface,
   Reticulum,
   hexToBytes,
-  nodeRuntime,
+  nodeRuntime
 } from "../../packages/reticulum-ts/dist/index.js";
 
 function destinationParts(provider, publisherPublicKeyHex, appName) {
-  const parts = appDestinationName(
-    provider,
-    publisherPublicKeyHex,
-    appName,
-  ).split(".");
+  const parts = appDestinationName(provider, publisherPublicKeyHex, appName).split(".");
   return {
     appName: parts[0] ?? "tp",
-    aspects: parts.slice(1),
+    aspects: parts.slice(1)
   };
 }
 
-const fixtureDir = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../fixtures/packages",
-);
+const fixtureDir = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages");
 
 async function waitFor(evaluate, timeoutMs = 10_000) {
   const started = Date.now();
@@ -84,11 +74,7 @@ function connectPeers(provider, runtime) {
 
 function connectTransportTopology(provider, runtime) {
   const left = Reticulum.create({ provider, runtime });
-  const transport = Reticulum.create({
-    provider,
-    runtime,
-    transportEnabled: true,
-  });
+  const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
   const right = Reticulum.create({ provider, runtime });
   left.start();
   transport.start();
@@ -117,7 +103,7 @@ function testCatalogBasics(provider, archive, unpacked, appData) {
     destinationHash: "deadbeef",
     appData,
     manifest: unpacked.manifest,
-    packageHash: unpacked.packageHash,
+    packageHash: unpacked.packageHash
   });
 
   if (entry === null) {
@@ -131,7 +117,7 @@ function testCatalogBasics(provider, archive, unpacked, appData) {
       destinationHash: "deadbeef",
       appData: tampered,
       manifest: unpacked.manifest,
-      packageHash: unpacked.packageHash,
+      packageHash: unpacked.packageHash
     }) !== null
   ) {
     throw new Error("tampered announce should be rejected");
@@ -144,7 +130,7 @@ function testCatalogBasics(provider, archive, unpacked, appData) {
       destinationHash: "oversized",
       appData: oversized,
       manifest: unpacked.manifest,
-      packageHash: unpacked.packageHash,
+      packageHash: unpacked.packageHash
     }) !== null
   ) {
     throw new Error("oversized announce should be rejected");
@@ -155,27 +141,21 @@ function testCatalogBasics(provider, archive, unpacked, appData) {
     manifest: unpacked.manifest,
     packageSize: archive.length,
     packageHash: unpacked.packageHash,
-    resourceAvailable: true,
+    resourceAvailable: true
   });
   if (
     catalog.ingest({
       destinationHash: "mis-signed",
       appData: encodeAppAnnounceData(misSigned),
       manifest: unpacked.manifest,
-      packageHash: unpacked.packageHash,
+      packageHash: unpacked.packageHash
     }) !== null
   ) {
     throw new Error("mis-signed announce should be rejected");
   }
 
-  const floodCatalog = new CatalogStore(provider, {
-    maxPerPublisher: 2,
-    maxEntries: 10,
-  });
-  const publisher = Identity.fromBytes(
-    provider,
-    hexToBytes(metaFromFixture().publisherPrivateKey),
-  );
+  const floodCatalog = new CatalogStore(provider, { maxPerPublisher: 2, maxEntries: 10 });
+  const publisher = Identity.fromBytes(provider, hexToBytes(metaFromFixture().publisherPrivateKey));
   if (publisher === null) {
     throw new Error("invalid fixture publisher key");
   }
@@ -185,17 +165,17 @@ function testCatalogBasics(provider, archive, unpacked, appData) {
     const appName = `flood-app-${index}`;
     const unsigned = {
       ...unpacked.manifest,
-      name: appName,
+      name: appName
     };
     const summary = buildAppAnnounceSummary(provider, publisher, {
       manifest: unsigned,
       packageSize: archive.length,
       packageHash: unpacked.packageHash,
-      resourceAvailable: true,
+      resourceAvailable: true
     });
     const ingested = floodCatalog.ingest({
       destinationHash: `flood-${index}`,
-      appData: encodeAppAnnounceData(summary),
+      appData: encodeAppAnnounceData(summary)
     });
     if (ingested !== null) {
       accepted += 1;
@@ -203,9 +183,7 @@ function testCatalogBasics(provider, archive, unpacked, appData) {
   }
 
   if (accepted !== 2 || floodCatalog.list().length !== 2) {
-    throw new Error(
-      "publisher flood should cap at maxPerPublisher without evicting unrelated entries",
-    );
+    throw new Error("publisher flood should cap at maxPerPublisher without evicting unrelated entries");
   }
 
   return catalog;
@@ -215,9 +193,7 @@ let fixtureMeta = null;
 
 function metaFromFixture() {
   if (fixtureMeta === null) {
-    fixtureMeta = JSON.parse(
-      readFileSync(resolve(fixtureDir, "tiny.meta.json"), "utf8"),
-    );
+    fixtureMeta = JSON.parse(readFileSync(resolve(fixtureDir, "tiny.meta.json"), "utf8"));
   }
 
   return fixtureMeta;
@@ -237,7 +213,7 @@ async function testCatalogPersistence(catalog, provider) {
     },
     async list() {
       return [...store.keys()];
-    },
+    }
   };
 
   await catalog.save(kv);
@@ -249,13 +225,7 @@ async function testCatalogPersistence(catalog, provider) {
   }
 }
 
-async function testDirectResourceFetch(
-  provider,
-  runtime,
-  archive,
-  unpacked,
-  publisherIdentity,
-) {
+async function testDirectResourceFetch(provider, runtime, archive, unpacked, publisherIdentity) {
   const { left, right } = connectPeers(provider, runtime);
   const publisher = right.registerDestination({
     provider,
@@ -263,22 +233,16 @@ async function testDirectResourceFetch(
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "tp",
-    aspects: ["app", "fixture", "tiny"],
+    aspects: ["app", "fixture", "tiny"]
   });
 
   attachPackageResourceServer(publisher, {
     async listVersions() {
-      return [
-        {
-          version: unpacked.manifest.version,
-          packageHash: unpacked.packageHash,
-          size: archive.length,
-        },
-      ];
+      return [{ version: unpacked.manifest.version, packageHash: unpacked.packageHash, size: archive.length }];
     },
     async fetchArchive() {
       return archive;
-    },
+    }
   });
 
   await publisher.announce();
@@ -290,38 +254,31 @@ async function testDirectResourceFetch(
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "tp",
-    aspects: ["app", "fixture", "tiny"],
+    aspects: ["app", "fixture", "tiny"]
   });
 
   let consumerLink = null;
   consumerOut.requestLink({
     linkEstablished(link) {
       consumerLink = link;
-    },
+    }
   });
 
   const activeLink = await waitFor(() => consumerLink);
   const publisherLink = await waitFor(
-    () =>
-      publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ??
-      null,
+    () => publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
   );
   publisherLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
-  const listBytes = await sendPackageResourceRequest(activeLink, {
-    type: "list",
-  });
+  const listBytes = await sendPackageResourceRequest(activeLink, { type: "list" });
   const versions = parseListResponse(listBytes);
-  if (
-    versions.length !== 1 ||
-    versions[0].packageHash !== unpacked.packageHash
-  ) {
+  if (versions.length !== 1 || versions[0].packageHash !== unpacked.packageHash) {
     throw new Error("resource list response mismatch");
   }
 
   const fetchedArchive = await sendPackageResourceRequest(activeLink, {
     type: "fetch",
-    version: unpacked.manifest.version,
+    version: unpacked.manifest.version
   });
   const resourceVerified = unpackPackage(provider, fetchedArchive);
   if (resourceVerified.packageHash !== unpacked.packageHash) {
@@ -333,17 +290,8 @@ async function testDirectResourceFetch(
   await stopNodes(left, right);
 }
 
-async function testTransportNodeCatalogAndResource(
-  provider,
-  runtime,
-  archive,
-  unpacked,
-  publisherIdentity,
-) {
-  const { left, transport, right } = connectTransportTopology(
-    provider,
-    runtime,
-  );
+async function testTransportNodeCatalogAndResource(provider, runtime, archive, unpacked, publisherIdentity) {
+  const { left, transport, right } = connectTransportTopology(provider, runtime);
   const catalog = new CatalogStore(provider);
 
   let announcesReceived = 0;
@@ -356,9 +304,9 @@ async function testTransportNodeCatalogAndResource(
 
       catalog.ingest({
         destinationHash: Buffer.from(info.destinationHash).toString("hex"),
-        appData: info.appData,
+        appData: info.appData
       });
-    },
+    }
   });
 
   const publisher = right.registerDestination({
@@ -367,41 +315,32 @@ async function testTransportNodeCatalogAndResource(
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "tp",
-    aspects: ["app", "fixture", "transport"],
+    aspects: ["app", "fixture", "transport"]
   });
 
   attachPackageResourceServer(publisher, {
     async listVersions() {
-      return [
-        {
-          version: unpacked.manifest.version,
-          packageHash: unpacked.packageHash,
-          size: archive.length,
-        },
-      ];
+      return [{ version: unpacked.manifest.version, packageHash: unpacked.packageHash, size: archive.length }];
     },
     async fetchArchive() {
       return archive;
-    },
+    }
   });
 
   const summary = buildAppAnnounceSummary(provider, publisherIdentity, {
     manifest: unpacked.manifest,
     packageSize: archive.length,
     packageHash: unpacked.packageHash,
-    resourceAvailable: true,
+    resourceAvailable: true
   });
 
   await publisher.announce({ appData: encodeAppAnnounceData(summary) });
   await waitFor(() => (left.hasPath(publisher.hash) ? true : null), 15_000);
   const catalogEntry = await waitFor(() => catalog.list()[0] ?? null, 5_000);
 
-  if (
-    catalogEntry === null ||
-    !unpacked.packageHash.startsWith(catalogEntry.packageHash)
-  ) {
+  if (catalogEntry === null || !unpacked.packageHash.startsWith(catalogEntry.packageHash)) {
     throw new Error(
-      `transport-node announce did not reach consumer catalog (announces=${announcesReceived}, path=${left.hasPath(publisher.hash)})`,
+      `transport-node announce did not reach consumer catalog (announces=${announcesReceived}, path=${left.hasPath(publisher.hash)})`
     );
   }
 
@@ -411,33 +350,27 @@ async function testTransportNodeCatalogAndResource(
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "tp",
-    aspects: ["app", "fixture", "transport"],
+    aspects: ["app", "fixture", "transport"]
   });
 
   let consumerLink = null;
   consumerOut.requestLink({
     linkEstablished(link) {
       consumerLink = link;
-    },
+    }
   });
 
   const activeLink = await waitFor(() => consumerLink, 15_000);
   const publisherLink = await waitFor(
-    () =>
-      publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ??
-      null,
-    15_000,
+    () => publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null,
+    15_000
   );
   publisherLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
-  const fetchedArchive = await sendPackageResourceRequest(
-    activeLink,
-    {
-      type: "fetch",
-      version: unpacked.manifest.version,
-    },
-    { timeoutMs: 15_000 },
-  );
+  const fetchedArchive = await sendPackageResourceRequest(activeLink, {
+    type: "fetch",
+    version: unpacked.manifest.version
+  }, { timeoutMs: 15_000 });
   const fetched = unpackPackage(provider, fetchedArchive);
   if (fetched.packageHash !== unpacked.packageHash) {
     throw new Error("transport-node resource fetch hash mismatch");
@@ -448,30 +381,20 @@ async function testTransportNodeCatalogAndResource(
   await stopNodes(left, transport, right);
 }
 
-async function testSimulatedBleResourceFetch(
-  provider,
-  runtime,
-  archive,
-  unpacked,
-  publisherIdentity,
-) {
+async function testSimulatedBleResourceFetch(provider, runtime, archive, unpacked, publisherIdentity) {
   const publisherPipe = new SimulatedBlePipe({
     mtu: 185,
     lossRate: 0.02,
-    random: () => 0.99,
+    random: () => 0.99
   });
   const consumerPipe = new SimulatedBlePipe({
     mtu: 185,
     lossRate: 0.02,
-    random: () => 0.99,
+    random: () => 0.99
   });
   publisherPipe.linkPeer(consumerPipe);
 
-  const appParts = destinationParts(
-    provider,
-    unpacked.manifest.publisherPublicKey,
-    unpacked.manifest.name,
-  );
+  const appParts = destinationParts(provider, unpacked.manifest.publisherPublicKey, unpacked.manifest.name);
 
   const publisherNode = Reticulum.create({ provider, runtime });
   publisherNode.start();
@@ -479,7 +402,7 @@ async function testSimulatedBleResourceFetch(
     name: "ble-publisher",
     provider,
     pipe: publisherPipe,
-    pipeMtu: 185,
+    pipeMtu: 185
   });
   publisherNode.registerInterface(publisherBle);
 
@@ -489,23 +412,17 @@ async function testSimulatedBleResourceFetch(
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: appParts.appName,
-    aspects: appParts.aspects,
+    aspects: appParts.aspects
   });
   publisher.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
   attachPackageResourceServer(publisher, {
     async listVersions() {
-      return [
-        {
-          version: unpacked.manifest.version,
-          packageHash: unpacked.packageHash,
-          size: archive.length,
-        },
-      ];
+      return [{ version: unpacked.manifest.version, packageHash: unpacked.packageHash, size: archive.length }];
     },
     async fetchArchive() {
       return archive;
-    },
+    }
   });
 
   const resourceClient = new PackageResourceClient({
@@ -513,14 +430,14 @@ async function testSimulatedBleResourceFetch(
     runtime,
     publisherPublicKeyHex: unpacked.manifest.publisherPublicKey,
     appName: unpacked.manifest.name,
-    identity: new Identity(provider),
+    identity: new Identity(provider)
   });
   await resourceClient.start();
   const consumerBle = await BleInterface.open(provider, {
     name: "ble-consumer",
     provider,
     pipe: consumerPipe,
-    pipeMtu: 185,
+    pipeMtu: 185
   });
   resourceClient.node.registerInterface(consumerBle);
 
@@ -528,18 +445,15 @@ async function testSimulatedBleResourceFetch(
     manifest: unpacked.manifest,
     packageSize: archive.length,
     packageHash: unpacked.packageHash,
-    resourceAvailable: true,
+    resourceAvailable: true
   });
   await publisher.announce({ appData: encodeAppAnnounceData(summary) });
 
-  await waitFor(
-    () => (resourceClient.node.hasPath(publisher.hash) ? true : null),
-    15_000,
-  );
+  await waitFor(() => (resourceClient.node.hasPath(publisher.hash) ? true : null), 15_000);
 
   const fetched = await resourceClient.fetchVersion(unpacked.manifest.version, {
     maxAttempts: 3,
-    requestTimeoutMs: 15_000,
+    requestTimeoutMs: 15_000
   });
 
   if (fetched.packageHash !== unpacked.packageHash) {
@@ -558,19 +472,9 @@ async function testSimulatedBleResourceFetch(
   await publisherNode.stop();
 }
 
-async function testResourceFetchRetryAfterDisconnect(
-  provider,
-  runtime,
-  archive,
-  unpacked,
-  publisherIdentity,
-) {
+async function testResourceFetchRetryAfterDisconnect(provider, runtime, archive, unpacked, publisherIdentity) {
   const { left, right } = connectPeers(provider, runtime);
-  const appParts = destinationParts(
-    provider,
-    unpacked.manifest.publisherPublicKey,
-    unpacked.manifest.name,
-  );
+  const appParts = destinationParts(provider, unpacked.manifest.publisherPublicKey, unpacked.manifest.name);
 
   const publisher = right.registerDestination({
     provider,
@@ -578,22 +482,16 @@ async function testResourceFetchRetryAfterDisconnect(
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: appParts.appName,
-    aspects: appParts.aspects,
+    aspects: appParts.aspects
   });
 
   attachPackageResourceServer(publisher, {
     async listVersions() {
-      return [
-        {
-          version: unpacked.manifest.version,
-          packageHash: unpacked.packageHash,
-          size: archive.length,
-        },
-      ];
+      return [{ version: unpacked.manifest.version, packageHash: unpacked.packageHash, size: archive.length }];
     },
     async fetchArchive() {
       return archive;
-    },
+    }
   });
 
   await publisher.announce();
@@ -604,21 +502,19 @@ async function testResourceFetchRetryAfterDisconnect(
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: appParts.appName,
-    aspects: appParts.aspects,
+    aspects: appParts.aspects
   });
 
   let consumerLink = null;
   consumerOut.requestLink({
     linkEstablished(link) {
       consumerLink = link;
-    },
+    }
   });
 
   const activeLink = await waitFor(() => consumerLink);
   const publisherLink = await waitFor(
-    () =>
-      publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ??
-      null,
+    () => publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
   );
   publisherLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
@@ -629,20 +525,18 @@ async function testResourceFetchRetryAfterDisconnect(
   consumerOut.requestLink({
     linkEstablished(link) {
       consumerLink2 = link;
-    },
+    }
   });
 
   const activeLink2 = await waitFor(() => consumerLink2);
   const publisherLink2 = await waitFor(
-    () =>
-      publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ??
-      null,
+    () => publisher.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
   );
   publisherLink2.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
   const fetchedArchive = await sendPackageResourceRequest(activeLink2, {
     type: "fetch",
-    version: unpacked.manifest.version,
+    version: unpacked.manifest.version
   });
   const verified = unpackPackage(provider, fetchedArchive);
   if (verified.packageHash !== unpacked.packageHash) {
@@ -663,57 +557,26 @@ async function main() {
   try {
     archive = new Uint8Array(readFileSync(archivePath));
   } catch {
-    console.log(
-      "dist-interop: skipped (run app-registry tests first to generate fixtures)",
-    );
+    console.log("dist-interop: skipped (run app-registry tests first to generate fixtures)");
     return;
   }
 
   const meta = metaFromFixture();
   const unpacked = unpackPackage(provider, archive);
   const appData = hexToBytes(meta.appDataHex);
-  const publisherIdentity = Identity.fromBytes(
-    provider,
-    hexToBytes(meta.publisherPrivateKey),
-  );
+  const publisherIdentity = Identity.fromBytes(provider, hexToBytes(meta.publisherPrivateKey));
   if (publisherIdentity === null) {
     throw new Error("invalid fixture publisher key");
   }
 
   const catalog = testCatalogBasics(provider, archive, unpacked, appData);
   await testCatalogPersistence(catalog, provider);
-  await testDirectResourceFetch(
-    provider,
-    runtime,
-    archive,
-    unpacked,
-    publisherIdentity,
-  );
-  await testTransportNodeCatalogAndResource(
-    provider,
-    runtime,
-    archive,
-    unpacked,
-    publisherIdentity,
-  );
-  await testSimulatedBleResourceFetch(
-    provider,
-    runtime,
-    archive,
-    unpacked,
-    publisherIdentity,
-  );
-  await testResourceFetchRetryAfterDisconnect(
-    provider,
-    runtime,
-    archive,
-    unpacked,
-    publisherIdentity,
-  );
+  await testDirectResourceFetch(provider, runtime, archive, unpacked, publisherIdentity);
+  await testTransportNodeCatalogAndResource(provider, runtime, archive, unpacked, publisherIdentity);
+  await testSimulatedBleResourceFetch(provider, runtime, archive, unpacked, publisherIdentity);
+  await testResourceFetchRetryAfterDisconnect(provider, runtime, archive, unpacked, publisherIdentity);
 
-  console.log(
-    "dist-interop: catalog abuse, transport-node, simulated BLE, disconnect retry passed",
-  );
+  console.log("dist-interop: catalog abuse, transport-node, simulated BLE, disconnect retry passed");
 }
 
 main()

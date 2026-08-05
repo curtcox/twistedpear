@@ -14,24 +14,19 @@ never enters the sandbox, which is the only reason this capability can exist at 
 const reply = await ai.chat({ messages, model, maxTokens, temperature });
 
 let text = "";
-for await (const event of ai.chatStream({
-  messages,
-  model,
-  maxTokens,
-  temperature,
-})) {
+for await (const event of ai.chatStream({ messages, model, maxTokens, temperature })) {
   if (event.type === "delta") text += event.delta;
 }
 ```
 
 Four constraints shape every app in this chapter, and they are not incidental:
 
-| Constraint                                      | Consequence for your design                                                           |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Coalesced streaming**                         | Deltas are grouped to protect the broker rate budget; do not assume token boundaries. |
-| **One in-flight request per app**               | A second concurrent call is rejected. Disable the button.                             |
-| **≤ 64 messages, `maxTokens` clamped to 8,192** | Long conversations must be summarised or truncated by you.                            |
-| **Model allowlisted host-side**                 | You cannot pick an arbitrary model, and the list can differ per host.                 |
+| Constraint | Consequence for your design |
+|---|---|
+| **Coalesced streaming** | Deltas are grouped to protect the broker rate budget; do not assume token boundaries. |
+| **One in-flight request per app** | A second concurrent call is rejected. Disable the button. |
+| **≤ 64 messages, `maxTokens` clamped to 8,192** | Long conversations must be summarised or truncated by you. |
+| **Model allowlisted host-side** | You cannot pick an arbitrary model, and the list can differ per host. |
 
 > **⚠️ Works, with limits — AI chat.** Streaming and whole-reply calls share one in-flight
 > slot, at most 64 messages, a host-clamped 8,192 `maxTokens`, and the host model allowlist.
@@ -51,11 +46,11 @@ offline"; Ask the handbook showing an answer with a "Sources:" line beneath it; 
 showing a structured four-field review panel awaiting confirmation. The first capture is
 visibly on a host whose interface list shows no IP connectivity.
 
-| Recipe                                  | Capabilities                       | Directory                                                  |
-| --------------------------------------- | ---------------------------------- | ---------------------------------------------------------- |
-| [Pocket translator](#pocket-translator) | `ai:chat`, `storage:kv`            | [apps/pocket-translator](apps/pocket-translator/README.md) |
-| [Ask the handbook](#ask-the-handbook)   | `ai:chat`, `ai:embed`, `workspace` | [apps/ask-the-handbook](apps/ask-the-handbook/README.md)   |
-| [Triage notes](#triage-notes)           | `ai:chat`, `storage:hyperbee`      | [apps/triage-notes](apps/triage-notes/README.md)           |
+| Recipe | Capabilities | Directory |
+|---|---|---|
+| [Pocket translator](#pocket-translator) | `ai:chat`, `storage:kv` | [apps/pocket-translator](apps/pocket-translator/README.md) |
+| [Ask the handbook](#ask-the-handbook) | `ai:chat`, `ai:embed`, `workspace` | [apps/ask-the-handbook](apps/ask-the-handbook/README.md) |
+| [Triage notes](#triage-notes) | `ai:chat`, `storage:hyperbee` | [apps/triage-notes](apps/triage-notes/README.md) |
 
 ---
 
@@ -89,7 +84,7 @@ if (cached !== null) {
 
 Which turns the app into something genuinely useful in the situation you would want it: you
 look up the twenty phrases you need while you still have a link, and they keep working when
-you do not. The app is designed so that its value _accumulates_ rather than depending on
+you do not. The app is designed so that its value *accumulates* rather than depending on
 connectivity at the moment of use.
 
 The concurrency guard is two pieces working together:
@@ -106,8 +101,8 @@ if (source.trim().length === 0 || inFlight) return;
 ```
 
 The `disabled` prop stops most double-taps; the `inFlight` guard stops the rest, including
-events that arrive while a render is in progress. Do both. A second concurrent AI call is
-rejected outright, and a rejection the user caused by tapping twice looks exactly like a bug.
+  events that arrive while a render is in progress. Do both. A second concurrent AI call is
+  rejected outright, and a rejection the user caused by tapping twice looks exactly like a bug.
 
 The translation itself paints while the stream arrives:
 
@@ -246,8 +241,7 @@ function validate(candidate) {
   const clean = {};
   for (const field of FIELDS) {
     const value = candidate[field];
-    if (typeof value !== "string" || value.length === 0 || value.length > 200)
-      return null;
+    if (typeof value !== "string" || value.length === 0 || value.length > 200) return null;
     clean[field] = value;
   }
   if (!SEVERITIES.includes(clean.severity.toLowerCase())) return null;
@@ -263,14 +257,14 @@ access to its database, and will one day store a 40 KiB "severity".
 
 The parse itself assumes the reply is malformed until proven otherwise:
 
-````javascript
+```javascript
 let candidate = null;
 try {
   candidate = JSON.parse(reply.content.trim().replace(/^```(json)?|```$/g, ""));
 } catch (error) {
   candidate = null;
 }
-````
+```
 
 The code-fence strip is there because models add fences even when told not to. Ask for the
 format you want, and then handle not getting it.

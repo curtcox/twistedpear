@@ -9,29 +9,13 @@ export function migrateLegacyGrantRecord(bytes: Uint8Array): Uint8Array | null {
     const keys = topLevelObjectKeys(text);
     if (keys === null || new Set(keys).size !== keys.length) return null;
     const value: unknown = JSON.parse(text);
-    if (typeof value !== "object" || value === null || Array.isArray(value))
-      return null;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
     const record = value as Record<string, unknown>;
-    if (
-      Object.keys(record).some(
-        (key) =>
-          !["appId", "publisherPublicKey", "granted", "updatedAt"].includes(
-            key,
-          ),
-      )
-    )
-      return null;
-    if (
-      typeof record.appId !== "string" ||
-      typeof record.publisherPublicKey !== "string" ||
-      !Array.isArray(record.granted) ||
-      record.granted.some((entry) => typeof entry !== "string") ||
-      new Set(record.granted).size !== record.granted.length ||
-      typeof record.updatedAt !== "number" ||
-      !Number.isSafeInteger(record.updatedAt) ||
-      record.updatedAt < 0
-    )
-      return null;
+    if (Object.keys(record).some((key) => !["appId", "publisherPublicKey", "granted", "updatedAt"].includes(key))) return null;
+    if (typeof record.appId !== "string" || typeof record.publisherPublicKey !== "string" ||
+        !Array.isArray(record.granted) || record.granted.some((entry) => typeof entry !== "string") ||
+        new Set(record.granted).size !== record.granted.length ||
+        typeof record.updatedAt !== "number" || !Number.isSafeInteger(record.updatedAt) || record.updatedAt < 0) return null;
     return encodeGrantRecord(record as unknown as GrantRecord);
   } catch {
     return null;
@@ -48,18 +32,11 @@ function topLevelObjectKeys(text: string): readonly string[] | null {
 
   while (offset < text.length) {
     const character = text[offset]!;
-    if (/\s/.test(character)) {
-      offset += 1;
-      continue;
-    }
-    if (character === '"') {
+    if (/\s/.test(character)) { offset += 1; continue; }
+    if (character === "\"") {
       const end = jsonStringEnd(text, offset);
       if (end === null) return null;
-      if (
-        objectDepth === 1 &&
-        arrayDepth === 0 &&
-        (previous === "open" || previous === "comma")
-      ) {
+      if (objectDepth === 1 && arrayDepth === 0 && (previous === "open" || previous === "comma")) {
         const key: unknown = JSON.parse(text.slice(offset, end));
         if (typeof key !== "string") return null;
         keys.push(key);
@@ -68,23 +45,12 @@ function topLevelObjectKeys(text: string): readonly string[] | null {
       offset = end;
       continue;
     }
-    if (character === "{") {
-      objectDepth += 1;
-      previous = "open";
-    } else if (character === "}") {
-      objectDepth -= 1;
-      previous = "other";
-    } else if (character === "[") {
-      arrayDepth += 1;
-      previous = "other";
-    } else if (character === "]") {
-      arrayDepth -= 1;
-      previous = "other";
-    } else if (character === ",") {
-      previous = "comma";
-    } else if (character !== ":") {
-      previous = "other";
-    }
+    if (character === "{") { objectDepth += 1; previous = "open"; }
+    else if (character === "}") { objectDepth -= 1; previous = "other"; }
+    else if (character === "[") { arrayDepth += 1; previous = "other"; }
+    else if (character === "]") { arrayDepth -= 1; previous = "other"; }
+    else if (character === ",") { previous = "comma"; }
+    else if (character !== ":") { previous = "other"; }
     if (objectDepth < 0 || arrayDepth < 0) return null;
     offset += 1;
   }
@@ -93,11 +59,8 @@ function topLevelObjectKeys(text: string): readonly string[] | null {
 
 function jsonStringEnd(text: string, start: number): number | null {
   for (let offset = start + 1; offset < text.length; offset += 1) {
-    if (text[offset] === "\\") {
-      offset += 1;
-      continue;
-    }
-    if (text[offset] === '"') return offset + 1;
+    if (text[offset] === "\\") { offset += 1; continue; }
+    if (text[offset] === "\"") return offset + 1;
   }
   return null;
 }

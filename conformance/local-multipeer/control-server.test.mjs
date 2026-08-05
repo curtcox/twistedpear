@@ -22,8 +22,8 @@ function agentSocket(port, label = "node2") {
       label,
       platform: "test",
       identityHash: "11".repeat(16),
-      lxmfAddress: "22".repeat(16),
-    })}\n`,
+      lxmfAddress: "22".repeat(16)
+    })}\n`
   );
   return socket;
 }
@@ -46,9 +46,7 @@ describe("local multi-peer control server", () => {
         return;
       }
       const request = JSON.parse(buffer.slice(0, newline));
-      socket.write(
-        `${JSON.stringify({ id: request.id, ok: true, peers: [] })}\n`,
-      );
+      socket.write(`${JSON.stringify({ id: request.id, ok: true, peers: [] })}\n`);
     });
 
     await expect(control.peers("node2")).resolves.toEqual([]);
@@ -59,13 +57,9 @@ describe("local multi-peer control server", () => {
       const newline = commandBuffer.indexOf("\n");
       if (newline < 0) return;
       const request = JSON.parse(commandBuffer.slice(0, newline));
-      socket.write(
-        `${JSON.stringify({ id: request.id, ok: true, command: request.cmd })}\n`,
-      );
+      socket.write(`${JSON.stringify({ id: request.id, ok: true, command: request.cmd })}\n`);
     });
-    await expect(
-      control.command("node2", "project.create", { name: "hello" }),
-    ).resolves.toMatchObject({ command: "project.create" });
+    await expect(control.command("node2", "project.create", { name: "hello" })).resolves.toMatchObject({ command: "project.create" });
   });
 
   it("rejects a pending command as soon as its agent disconnects", async () => {
@@ -77,9 +71,7 @@ describe("local multi-peer control server", () => {
     const pending = control.request("node2", { cmd: "status" }, 10_000);
     socket.destroy();
 
-    await expect(pending).rejects.toThrow(
-      "disconnected while answering status",
-    );
+    await expect(pending).rejects.toThrow("disconnected while answering status");
   });
 
   it("settles attach waiters when the server closes", async () => {
@@ -96,17 +88,10 @@ describe("observe tape persistence", () => {
     const path = writeObserveTape(
       "hub",
       {
-        history: {
-          schema: "recorded-history",
-          version: 1,
-          entries: [{ t: 1, kind: "observe/drop" }],
-        },
-        dropCensus: {
-          byReason: { "announce-rate-limit:rate_limited": 2 },
-          byPeer: {},
-        },
+        history: { schema: "recorded-history", version: 1, entries: [{ t: 1, kind: "observe/drop" }] },
+        dropCensus: { byReason: { "announce-rate-limit:rate_limited": 2 }, byPeer: {} }
       },
-      { now: new Date("2026-08-05T12:00:00.000Z") },
+      { now: new Date("2026-08-05T12:00:00.000Z") }
     );
     cleanups.push(() => rmSync(path, { force: true }));
 
@@ -116,11 +101,7 @@ describe("observe tape persistence", () => {
       label: "hub",
       capturedAt: "2026-08-05T12:00:00.000Z",
       dropCensus: { byReason: { "announce-rate-limit:rate_limited": 2 } },
-      history: {
-        schema: "recorded-history",
-        version: 1,
-        entries: [{ t: 1, kind: "observe/drop" }],
-      },
+      history: { schema: "recorded-history", version: 1, entries: [{ t: 1, kind: "observe/drop" }] }
     });
   });
 });

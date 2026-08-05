@@ -56,10 +56,7 @@ export function kissEscape(data: Uint8Array): Uint8Array {
   return Uint8Array.from(escaped);
 }
 
-export function encodeKissFrame(
-  command: number,
-  payload: Uint8Array = new Uint8Array(0),
-): Uint8Array {
+export function encodeKissFrame(command: number, payload: Uint8Array = new Uint8Array(0)): Uint8Array {
   const body = new Uint8Array(1 + payload.length);
   body[0] = command;
   body.set(payload, 1);
@@ -75,13 +72,7 @@ export function createKissDecodeState(): KissDecodeState {
   return { buffer: new Uint8Array(0), inEscape: false };
 }
 
-export function decodeKissFrames(
-  bytes: Uint8Array,
-  state: KissDecodeState,
-): {
-  readonly frames: ReadonlyArray<KissFrame>;
-  readonly state: KissDecodeState;
-} {
+export function decodeKissFrames(bytes: Uint8Array, state: KissDecodeState): { readonly frames: ReadonlyArray<KissFrame>; readonly state: KissDecodeState } {
   const frames: KissFrame[] = [];
   let buffer = state.buffer;
   let inEscape = state.inEscape;
@@ -98,10 +89,7 @@ export function decodeKissFrames(
         const body = merged.subarray(start, index);
         const decoded = unescapeKissBody(body, inEscape);
         if (decoded !== null && decoded.length > 0) {
-          frames.push({
-            command: decoded[0] ?? KISS_CMD_UNKNOWN,
-            payload: decoded.subarray(1),
-          });
+          frames.push({ command: decoded[0] ?? KISS_CMD_UNKNOWN, payload: decoded.subarray(1) });
         }
       }
 
@@ -114,10 +102,7 @@ export function decodeKissFrames(
   return { frames, state: { buffer, inEscape } };
 }
 
-function unescapeKissBody(
-  body: Uint8Array,
-  initialEscape: boolean,
-): Uint8Array | null {
+function unescapeKissBody(body: Uint8Array, initialEscape: boolean): Uint8Array | null {
   const output: number[] = [];
   let inEscape = initialEscape;
 
@@ -151,10 +136,7 @@ export function encodeDetectRequest(): Uint8Array {
 }
 
 export function encodeRadioStateAsk(): Uint8Array {
-  return encodeKissFrame(
-    KISS_CMD_RADIO_STATE,
-    Uint8Array.from([KISS_RADIO_STATE_ASK]),
-  );
+  return encodeKissFrame(KISS_CMD_RADIO_STATE, Uint8Array.from([KISS_RADIO_STATE_ASK]));
 }
 
 export function encodeFrequencyCommand(frequencyHz: number): Uint8Array {

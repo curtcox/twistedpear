@@ -1,468 +1,33 @@
-import {
-  LINK_ENABLED_MODES,
-  LINK_ESTABLISHMENT_TIMEOUT_PER_HOP,
-  LINK_INITIATOR_ENTROPY_SIZE,
-  LINK_KEEPALIVE,
-  LINK_KEEPALIVE_MAX_RTT,
-  LINK_KEEPALIVE_MIN,
-  LINK_KEEPALIVE_TIMEOUT_FACTOR,
-  LINK_MODE_BYTEMASK,
-  LINK_MODE_DEFAULT,
-  LINK_MTU_BYTEMASK,
-  LINK_PROOF_BODY_SIZE,
-  LINK_PROOF_MTU_SIZE,
-  LINK_PROOF_SIGNATURE_SIZE,
-  LINK_REQUEST_ECPUB_SIZE,
-  LINK_RESPONSE_MAX_GRACE_TIME,
-  LINK_RESPONDER_ENTROPY_SIZE,
-  LINK_STALE_FACTOR,
-  LINK_STALE_GRACE,
-  LINK_TRAFFIC_TIMEOUT_FACTOR,
-  LINK_WATCHDOG_MAX_SLEEP_MS,
-  LINK_X25519_KEY_SIZE,
-  LinkMode,
-  LinkResourceStrategy,
-  LinkStatus,
-  LinkTeardownReason,
-  shouldAcceptLinkIdentifyNow,
-  initialAcceptLinkIdentifyState,
-  stepAcceptLinkIdentifyWithActions,
-  shouldAcceptLinkOwnerPublicKeyNow,
-  initialAcceptLinkOwnerPublicKeyState,
-  stepAcceptLinkOwnerPublicKeyWithActions,
-  shouldAcceptLinkRttNow,
-  initialAcceptLinkRttState,
-  stepAcceptLinkRttWithActions,
-  shouldAllowIdentifyOnLink,
-  initialIdentifyOnLinkAllowState,
-  stepIdentifyOnLinkAllowWithActions,
-  shouldAllowLinkRequest,
-  initialLinkRequestAllowState,
-  stepLinkRequestAllowWithActions,
-  shouldAllowLinkSend,
-  initialLinkSendAllowState,
-  stepLinkSendAllowWithActions,
-  shouldAllowPerformLinkHandshake,
-  initialPerformLinkHandshakeAllowState,
-  stepPerformLinkHandshakeAllowWithActions,
-  shouldAllowProveLink,
-  initialProveLinkAllowState,
-  stepProveLinkAllowWithActions,
-  shouldAllowResendLinkPacket,
-  initialResendLinkPacketAllowState,
-  stepResendLinkPacketAllowWithActions,
-  shouldAllowUpdateLinkKeepalive,
-  initialUpdateLinkKeepaliveAllowState,
-  stepUpdateLinkKeepaliveAllowWithActions,
-  shouldAllowValidateLinkProof,
-  initialValidateLinkProofAllowState,
-  stepValidateLinkProofAllowWithActions,
-  deriveRnsLinkKeyRawFromActions,
-  encodeLinkMtuBytesRawFromActions,
-  encodeLinkSignallingBytesRawFromActions,
-  initialComputeKeepaliveState,
-  initialIndexOfPendingLinkAppRequestState,
-  initialDeliverPendingLinkAppResponseState,
-  initialComputeLinkEstablishmentTimeoutState,
-  initialComputeLinkMduState,
-  initialComputeLinkRequestTimeoutState,
-  initialComputeLinkRttSecondsState,
-  initialContainsResourceHashState,
-  initialLinkAppRequestInboundState,
-  initialInvokeLinkAppRequestHandlerState,
-  initialLinkEstablishState,
-  initialLinkIdentifyState,
-  initialCommitLinkRemoteIdentityState,
-  initialLinkProofValidateState,
-  initialLinkResourceAdvertisementState,
-  initialLinkTeardownState,
-  initialLinkTokenAccessState,
-  initialLinkValidateRequestState,
-  initialMergeLinkRttState,
-  initialPendingLinkRequestRegisterState,
-  initialRequestLinkDestinationState,
-  initialSendLinkAppRequestResponseState,
-  shouldTreatLinkClosed,
-  initialLinkClosedState,
-  stepLinkClosedWithActions,
-  shouldMatchExpectedLinkMode,
-  initialExpectedLinkModeState,
-  stepExpectedLinkModeWithActions,
-  shouldTreatLinkModeEnabled,
-  initialLinkModeEnabledState,
-  stepLinkModeEnabledWithActions,
-  linkEstablishActivatedAction,
-  linkEstablishmentTimeoutFromActions,
-  linkIdentifySignedMaterialRawFromActions,
-  linkKeepaliveFromActions,
-  linkMduFromActions,
-  linkProofSignedMaterialRawFromActions,
-  shouldLinkReadyForNewResource,
-  initialLinkReadyForNewResourceState,
-  stepLinkReadyForNewResourceWithActions,
-  linkRequestHashablePartRawFromActions,
-  linkRequestTimeoutFromActions,
-  linkRttSecondsFromActions,
-  linkTeardownRemoteCloseAction,
-  linkTeardownSendThenCloseAction,
-  mergeLinkRttFromActions,
-  modeFromLinkProofDataFromActions,
-  modeFromLinkRequestDataFromActions,
-  msgpackFloatFromActions,
-  mtuFromLinkProofDataFromActions,
-  mtuFromLinkRequestDataFromActions,
-  packLinkKeepaliveProbeRawFromActions,
-  packLinkKeepaliveReplyRawFromActions,
-  packLinkIdentifyPayloadRawFromActions,
-  packLinkProofDataRawFromActions,
-  packLinkRequestDataRawFromActions,
-  packMsgpackFloat64RawFromActions,
-  initialClassifyLinkKeepaliveState,
-  initialClassifyLinkProofPayloadState,
-  initialEncodeLinkMtuBytesState,
-  initialEncodeLinkSignallingBytesState,
-  initialLinkProofSignedMaterialState,
-  initialLinkRequestHashablePartState,
-  initialModeFromLinkProofDataState,
-  initialModeFromLinkRequestDataState,
-  initialMtuFromLinkProofDataState,
-  initialMtuFromLinkRequestDataState,
-  initialLinkAppRequestState,
-  initialLinkAppRequestTransmitState,
-  initialLinkDataContextState,
-  initialLinkHopsMatchState,
-  initialLinkInitiatorMtuState,
-  initialLinkRequestResponderMtuState,
-  initialLinkResourceConcludeState,
-  initialLinkIdentifySignedMaterialState,
-  initialPackLinkIdentifyPayloadState,
-  initialPackLinkKeepaliveProbeState,
-  initialPackLinkKeepaliveReplyState,
-  initialPackLinkProofDataState,
-  initialPackLinkRequestDataState,
-  initialPackLinkRequestState,
-  initialPackLinkResponseState,
-  initialPackMsgpackFloat64State,
-  initialSplitLinkIdentifyPayloadState,
-  initialSplitLinkProofBodyState,
-  initialSplitLinkRequestDataState,
-  initialUnpackLinkRequestState,
-  initialUnpackLinkResponseState,
-  initialUnpackMsgpackFloatState,
-  linkIdentifyPayloadFieldsFromActions,
-  linkInitiatorMtuFromActions,
-  linkProofBodyFieldsFromActions,
-  linkRequestFieldsFromActions,
-  linkRequestKeyFieldsFromActions,
-  linkRequestResponderMtuFromActions,
-  linkResponseFieldsFromActions,
-  packLinkRequestRawFromActions,
-  packLinkResponseRawFromActions,
-  shouldClassifyLinkKeepaliveProbe,
-  shouldClassifyLinkProofPayloadBodyOnly,
-  shouldClassifyLinkProofPayloadBodyWithMtu,
-  shouldRejectMtuFromLinkProofData,
-  shouldRejectMtuFromLinkRequestData,
-  shouldRejectPackLinkIdentifyPayload,
-  shouldRejectSplitLinkIdentifyPayload,
-  shouldRejectSplitLinkProofBody,
-  shouldRejectSplitLinkRequestData,
-  shouldRejectUnpackLinkRequest,
-  shouldRejectUnpackLinkResponse,
-  shouldRejectUnpackMsgpackFloat,
-  shouldUseEncodeLinkMtuBytes,
-  shouldUseEncodeLinkSignallingBytes,
-  shouldMatchLinkHops,
-  shouldUseLinkEstablishmentTimeout,
-  shouldUseLinkInitiatorMtu,
-  shouldUseLinkKeepalive,
-  shouldUseLinkMdu,
-  shouldUseLinkProofSignedMaterial,
-  shouldUseLinkRequestHashablePart,
-  shouldUseLinkRequestResponderMtu,
-  shouldUseLinkRequestTimeout,
-  shouldUseLinkRttSeconds,
-  shouldUseMergeLinkRtt,
-  shouldUseModeFromLinkProofData,
-  shouldUseModeFromLinkRequestData,
-  shouldUseMtuFromLinkProofData,
-  shouldUseMtuFromLinkRequestData,
-  shouldUseLinkIdentifySignedMaterial,
-  shouldUsePackLinkIdentifyPayload,
-  shouldUsePackLinkKeepaliveProbe,
-  shouldUsePackLinkKeepaliveReply,
-  shouldUsePackLinkProofData,
-  shouldUsePackLinkRequest,
-  shouldUsePackLinkRequestData,
-  shouldUsePackLinkResponse,
-  shouldUsePackMsgpackFloat64,
-  shouldUseSplitLinkIdentifyPayload,
-  shouldUseSplitLinkProofBody,
-  shouldUseSplitLinkRequestData,
-  shouldUseUnpackLinkRequest,
-  shouldUseUnpackLinkResponse,
-  shouldUseUnpackMsgpackFloat,
-  stepClassifyLinkKeepaliveWithActions,
-  stepClassifyLinkProofPayloadWithActions,
-  stepComputeKeepaliveWithActions,
-  stepComputeLinkEstablishmentTimeoutWithActions,
-  stepComputeLinkMduWithActions,
-  stepComputeLinkRequestTimeoutWithActions,
-  stepComputeLinkRttSecondsWithActions,
-  stepEncodeLinkMtuBytesWithActions,
-  stepEncodeLinkSignallingBytesWithActions,
-  stepLinkProofSignedMaterialWithActions,
-  stepLinkRequestHashablePartWithActions,
-  stepMergeLinkRttWithActions,
-  stepModeFromLinkProofDataWithActions,
-  stepModeFromLinkRequestDataWithActions,
-  stepMtuFromLinkProofDataWithActions,
-  stepMtuFromLinkRequestDataWithActions,
-  stepLinkHopsMatchWithActions,
-  stepLinkInitiatorMtuWithActions,
-  stepLinkRequestResponderMtuWithActions,
-  stepLinkIdentifySignedMaterialWithActions,
-  stepPackLinkIdentifyPayloadWithActions,
-  stepPackLinkKeepaliveProbeWithActions,
-  stepPackLinkKeepaliveReplyWithActions,
-  stepPackLinkProofDataWithActions,
-  stepPackLinkRequestDataWithActions,
-  stepPackLinkRequestWithActions,
-  stepPackLinkResponseWithActions,
-  stepPackMsgpackFloat64WithActions,
-  stepSplitLinkIdentifyPayloadWithActions,
-  stepSplitLinkProofBodyWithActions,
-  stepSplitLinkRequestDataWithActions,
-  stepUnpackLinkRequestWithActions,
-  stepIndexOfPendingLinkAppRequestWithActions,
-  stepDeliverPendingLinkAppResponseWithActions,
-  stepUnpackLinkResponseWithActions,
-  stepUnpackMsgpackFloatWithActions,
-  initialPendingLinkRequestUnregisterState,
-  pendingLinkRequestUnregisterIndex,
-  shouldAcceptLinkEstablishRtt,
-  shouldAcceptLinkPacketInterfaceNow,
-  initialAcceptLinkPacketInterfaceState,
-  stepAcceptLinkPacketInterfaceWithActions,
-  shouldAcceptLinkResourceAdvertisement,
-  shouldAcceptRemoteLinkTeardown,
-  shouldAcceptResourceHashmapUpdateFrameNow,
-  shouldAcceptResourceProofPayloadNow,
-  initialAcceptResourceProofPayloadState,
-  stepAcceptResourceProofPayloadWithActions,
-  shouldAcceptResourceProofSplitNow,
-  initialAcceptResourceProofSplitState,
-  stepAcceptResourceProofSplitWithActions,
-  shouldActivateLinkEstablish,
-  shouldAllowRequestLinkDestination,
-  shouldAskAppLinkResourceAdvertisement,
-  shouldAttemptLinkProofCryptoNow,
-  initialAttemptLinkProofCryptoState,
-  stepAttemptLinkProofCryptoWithActions,
-  shouldCloseOnlyLinkTeardown,
-  shouldCommitLinkIdentify,
-  shouldCommitLinkRemoteIdentityNow,
-  shouldContinueLinkValidateRequestNow,
-  initialContinueLinkValidateRequestState,
-  stepContinueLinkValidateRequestWithActions,
-  shouldProceedLinkValidateRequest,
-  shouldCreateLinkChannelNow,
-  initialCreateLinkChannelState,
-  stepCreateLinkChannelWithActions,
-  shouldCreateLinkToken,
-  shouldDispatchLinkPlaintextNow,
-  initialDispatchLinkPlaintextState,
-  stepDispatchLinkPlaintextWithActions,
-  shouldUsePendingLinkAppRequestIndex,
-  pendingLinkAppRequestIndexFromActions,
-  shouldDeliverPendingLinkAppResponseNow,
-  shouldEncryptLinkPayloadNow,
-  initialEncryptLinkPayloadState,
-  stepEncryptLinkPayloadWithActions,
-  shouldEnterLinkHandshake,
-  shouldFailLinkEstablish,
-  shouldForbidLinkAppRequestInbound,
-  shouldHandleIncomingResourceByHashNow,
-  initialHandleIncomingResourceByHashState,
-  stepHandleIncomingResourceByHashWithActions,
-  shouldHandleOutgoingResourceRequestNow,
-  initialHandleOutgoingResourceRequestState,
-  stepHandleOutgoingResourceRequestWithActions,
-  shouldIgnoreInitiatorKeepaliveProbeNow,
-  initialIgnoreInitiatorKeepaliveProbeState,
-  stepIgnoreInitiatorKeepaliveProbeWithActions,
-  shouldIgnoreLinkAppRequestInbound,
-  shouldIgnoreLinkAppRequestInboundResponse,
-  shouldIgnoreLinkEstablishRtt,
-  shouldHandleLinkDataChannel,
-  shouldHandleLinkDataClose,
-  shouldHandleLinkDataIdentify,
-  shouldHandleLinkDataKeepalive,
-  shouldHandleLinkDataPlaintext,
-  shouldHandleLinkDataRequest,
-  shouldHandleLinkDataResource,
-  shouldHandleLinkDataResourceAdv,
-  shouldHandleLinkDataResourceHmu,
-  shouldHandleLinkDataResourceIcl,
-  shouldHandleLinkDataResourceRcl,
-  shouldHandleLinkDataResourceReq,
-  shouldHandleLinkDataResponse,
-  shouldHandleLinkDataRtt,
-  shouldIgnoreLinkDataContext,
-  shouldIgnoreLinkResourceAdvertisement,
-  shouldInvokeLinkAppRequestHandlerNow,
-  shouldInvokeLinkAppRequestInbound,
-  shouldKeepPendingLinkAppRequestTransmit,
-  shouldPresentResourceHash,
-  shouldRegisterLinkResourceNow,
-  initialRegisterLinkResourceState,
-  stepRegisterLinkResourceWithActions,
-  shouldRegisterPendingLinkRequestNow,
-  shouldRejectLinkAppRequest,
-  shouldRejectLinkAppRequestInboundTooBig,
-  shouldRejectLinkIdentify,
-  shouldRejectLinkProofValidate,
-  shouldRejectLinkResourceAdvertisement,
-  shouldRejectLinkTokenNoKey,
-  shouldRemoveIncomingLinkResourceConclude,
-  shouldRemoveOutgoingLinkResourceConclude,
-  incomingLinkResourceConcludeIndex,
-  outgoingLinkResourceConcludeIndex,
-  shouldReplyKeepaliveProbeNow,
-  initialReplyKeepaliveProbeState,
-  stepReplyKeepaliveProbeWithActions,
-  shouldReuseLinkToken,
-  shouldSendLinkAppRequest,
-  shouldSendLinkAppRequestInboundResponse,
-  shouldSendLinkAppRequestResponseNow,
-  shouldSendLinkTeardownThenClose,
-  shouldTeardownLinkEstablish,
-  shouldUnregisterLinkAppRequestTransmit,
-  shouldRemovePendingLinkRequest,
-  shouldUpdateLinkLastDataNow,
-  initialUpdateLinkLastDataState,
-  stepUpdateLinkLastDataWithActions,
-  shouldDispatchLinkInboundData,
-  initialLinkInboundDataPacketState,
-  stepLinkInboundDataPacketWithActions,
-  identityPublicKeyFieldsFromActions,
-  initialLinkKeepaliveContextState,
-  initialSplitIdentityPublicKeyState,
-  initialDeriveRnsLinkKeyState,
-  initialSplitInitiatorLinkEntropyState,
-  initialSplitResponderLinkEntropyState,
-  initiatorLinkEntropyFieldsFromActions,
-  responderLinkEntropyFieldsFromActions,
-  shouldRejectDeriveRnsLinkKey,
-  shouldRejectSplitInitiatorLinkEntropy,
-  shouldUseDeriveRnsLinkKey,
-  shouldRejectSplitResponderLinkEntropy,
-  shouldTreatLinkKeepaliveContext,
-  shouldTreatLinkKeepaliveOther,
-  shouldUseSplitIdentityPublicKey,
-  shouldUseSplitInitiatorLinkEntropy,
-  shouldUseSplitResponderLinkEntropy,
-  stepLinkKeepaliveContextWithActions,
-  stepSplitIdentityPublicKeyWithActions,
-  stepDeriveRnsLinkKeyWithActions,
-  stepSplitInitiatorLinkEntropyWithActions,
-  stepSplitResponderLinkEntropyWithActions,
-  initialSplitResourceHashmapUpdatePacketState,
-  initialAcceptResourceHashmapUpdateFrameState,
-  initialSplitResourceProofState,
-  resourceHashmapUpdatePacketFieldsFromActions,
-  resourceProofFieldsFromActions,
-  shouldRejectSplitResourceHashmapUpdatePacket,
-  shouldRejectSplitResourceProof,
-  shouldUseSplitResourceHashmapUpdatePacket,
-  shouldUseSplitResourceProof,
-  stepLinkAppRequestInboundWithActions,
-  stepLinkAppRequestTransmitWithActions,
-  stepLinkAppRequestWithActions,
-  stepInvokeLinkAppRequestHandlerWithActions,
-  stepSendLinkAppRequestResponseWithActions,
-  stepLinkDataContextWithActions,
-  stepLinkEstablishWithActions,
-  stepLinkIdentifyWithActions,
-  stepCommitLinkRemoteIdentityWithActions,
-  stepLinkProofValidateWithActions,
-  stepLinkResourceAdvertisementWithActions,
-  stepContainsResourceHashWithActions,
-  stepLinkResourceConcludeWithActions,
-  stepPendingLinkRequestRegisterWithActions,
-  stepPendingLinkRequestUnregisterWithActions,
-  stepRequestLinkDestinationWithActions,
-  stepLinkTeardownWithActions,
-  stepLinkTokenAccessWithActions,
-  stepLinkValidateRequestWithActions,
-  stepLinkWatchdogWithActions,
-  stepSplitResourceHashmapUpdatePacketWithActions,
-  stepAcceptResourceHashmapUpdateFrameWithActions,
-  stepSplitResourceProofWithActions,
-  stepUtf8EncodeWithActions,
-  initialUtf8EncodeState,
-  shouldUseUtf8Encode,
-  utf8EncodeRawFromActions,
-  type LinkAppRequestInboundAction,
-  type LinkAppRequestInboundState,
-  type LinkEstablishAction,
-  type LinkIdentifyAction,
-  type LinkModeValue,
-  type LinkRequestFields,
-  type LinkResourceAdvertisementAction,
-  type LinkResourceAdvertisementState,
-  type LinkResourceStrategyValue,
-  type LinkStatusValue,
-  type LinkTeardownAction,
-  type LinkTeardownReasonValue,
-  type LinkWatchdogState,
-  type LinkWatchdogStepResult,
-} from "@twistedpear/protocol";
+import { LINK_ENABLED_MODES,LINK_ESTABLISHMENT_TIMEOUT_PER_HOP,LINK_INITIATOR_ENTROPY_SIZE,LINK_KEEPALIVE,LINK_KEEPALIVE_MAX_RTT,LINK_KEEPALIVE_MIN,LINK_KEEPALIVE_TIMEOUT_FACTOR,LINK_MODE_BYTEMASK,LINK_MODE_DEFAULT,LINK_MTU_BYTEMASK,LINK_PROOF_BODY_SIZE,LINK_PROOF_MTU_SIZE,LINK_PROOF_SIGNATURE_SIZE,LINK_REQUEST_ECPUB_SIZE,LINK_RESPONSE_MAX_GRACE_TIME,LINK_RESPONDER_ENTROPY_SIZE,LINK_STALE_FACTOR,LINK_STALE_GRACE,LINK_TRAFFIC_TIMEOUT_FACTOR,LINK_WATCHDOG_MAX_SLEEP_MS,LINK_X25519_KEY_SIZE,LinkMode,LinkResourceStrategy,LinkStatus,LinkTeardownReason,shouldAcceptLinkIdentifyNow,initialAcceptLinkIdentifyState,stepAcceptLinkIdentifyWithActions,shouldAcceptLinkOwnerPublicKeyNow,initialAcceptLinkOwnerPublicKeyState,stepAcceptLinkOwnerPublicKeyWithActions,shouldAcceptLinkRttNow,initialAcceptLinkRttState,stepAcceptLinkRttWithActions,shouldAllowIdentifyOnLink,initialIdentifyOnLinkAllowState,stepIdentifyOnLinkAllowWithActions,shouldAllowLinkRequest,initialLinkRequestAllowState,stepLinkRequestAllowWithActions,shouldAllowLinkSend,initialLinkSendAllowState,stepLinkSendAllowWithActions,shouldAllowPerformLinkHandshake,initialPerformLinkHandshakeAllowState,stepPerformLinkHandshakeAllowWithActions,shouldAllowProveLink,initialProveLinkAllowState,stepProveLinkAllowWithActions,shouldAllowResendLinkPacket,initialResendLinkPacketAllowState,stepResendLinkPacketAllowWithActions,shouldAllowUpdateLinkKeepalive,initialUpdateLinkKeepaliveAllowState,stepUpdateLinkKeepaliveAllowWithActions,shouldAllowValidateLinkProof,initialValidateLinkProofAllowState,stepValidateLinkProofAllowWithActions,
+  deriveRnsLinkKeyRawFromActions,encodeLinkMtuBytesRawFromActions,encodeLinkSignallingBytesRawFromActions,initialComputeKeepaliveState,initialIndexOfPendingLinkAppRequestState,initialDeliverPendingLinkAppResponseState,initialComputeLinkEstablishmentTimeoutState,initialComputeLinkMduState,initialComputeLinkRequestTimeoutState,initialComputeLinkRttSecondsState,initialContainsResourceHashState,initialLinkAppRequestInboundState,initialInvokeLinkAppRequestHandlerState,initialLinkEstablishState,initialLinkIdentifyState,initialCommitLinkRemoteIdentityState,initialLinkProofValidateState,initialLinkResourceAdvertisementState,initialLinkTeardownState,initialLinkTokenAccessState,initialLinkValidateRequestState,initialMergeLinkRttState,initialPendingLinkRequestRegisterState,initialRequestLinkDestinationState,initialSendLinkAppRequestResponseState,shouldTreatLinkClosed,initialLinkClosedState,stepLinkClosedWithActions,shouldMatchExpectedLinkMode,initialExpectedLinkModeState,stepExpectedLinkModeWithActions,shouldTreatLinkModeEnabled,initialLinkModeEnabledState,stepLinkModeEnabledWithActions,linkEstablishActivatedAction,linkEstablishmentTimeoutFromActions,linkIdentifySignedMaterialRawFromActions,linkKeepaliveFromActions,linkMduFromActions,linkProofSignedMaterialRawFromActions,shouldLinkReadyForNewResource,initialLinkReadyForNewResourceState,stepLinkReadyForNewResourceWithActions,linkRequestHashablePartRawFromActions,linkRequestTimeoutFromActions,linkRttSecondsFromActions,linkTeardownRemoteCloseAction,linkTeardownSendThenCloseAction,mergeLinkRttFromActions,modeFromLinkProofDataFromActions,
+  modeFromLinkRequestDataFromActions,msgpackFloatFromActions,mtuFromLinkProofDataFromActions,mtuFromLinkRequestDataFromActions,packLinkKeepaliveProbeRawFromActions,packLinkKeepaliveReplyRawFromActions,packLinkIdentifyPayloadRawFromActions,packLinkProofDataRawFromActions,packLinkRequestDataRawFromActions,packMsgpackFloat64RawFromActions,initialClassifyLinkKeepaliveState,initialClassifyLinkProofPayloadState,initialEncodeLinkMtuBytesState,initialEncodeLinkSignallingBytesState,initialLinkProofSignedMaterialState,initialLinkRequestHashablePartState,initialModeFromLinkProofDataState,initialModeFromLinkRequestDataState,initialMtuFromLinkProofDataState,initialMtuFromLinkRequestDataState,initialLinkAppRequestState,initialLinkAppRequestTransmitState,initialLinkDataContextState,initialLinkHopsMatchState,initialLinkInitiatorMtuState,initialLinkRequestResponderMtuState,initialLinkResourceConcludeState,initialLinkIdentifySignedMaterialState,initialPackLinkIdentifyPayloadState,initialPackLinkKeepaliveProbeState,initialPackLinkKeepaliveReplyState,initialPackLinkProofDataState,initialPackLinkRequestDataState,initialPackLinkRequestState,initialPackLinkResponseState,initialPackMsgpackFloat64State,initialSplitLinkIdentifyPayloadState,initialSplitLinkProofBodyState,initialSplitLinkRequestDataState,initialUnpackLinkRequestState,initialUnpackLinkResponseState,initialUnpackMsgpackFloatState,linkIdentifyPayloadFieldsFromActions,linkInitiatorMtuFromActions,linkProofBodyFieldsFromActions,linkRequestFieldsFromActions,linkRequestKeyFieldsFromActions,linkRequestResponderMtuFromActions,
+  linkResponseFieldsFromActions,packLinkRequestRawFromActions,packLinkResponseRawFromActions,shouldClassifyLinkKeepaliveProbe,shouldClassifyLinkProofPayloadBodyOnly,shouldClassifyLinkProofPayloadBodyWithMtu,shouldRejectMtuFromLinkProofData,shouldRejectMtuFromLinkRequestData,shouldRejectPackLinkIdentifyPayload,shouldRejectSplitLinkIdentifyPayload,shouldRejectSplitLinkProofBody,shouldRejectSplitLinkRequestData,shouldRejectUnpackLinkRequest,shouldRejectUnpackLinkResponse,shouldRejectUnpackMsgpackFloat,shouldUseEncodeLinkMtuBytes,shouldUseEncodeLinkSignallingBytes,shouldMatchLinkHops,shouldUseLinkEstablishmentTimeout,shouldUseLinkInitiatorMtu,shouldUseLinkKeepalive,shouldUseLinkMdu,shouldUseLinkProofSignedMaterial,shouldUseLinkRequestHashablePart,shouldUseLinkRequestResponderMtu,shouldUseLinkRequestTimeout,shouldUseLinkRttSeconds,shouldUseMergeLinkRtt,shouldUseModeFromLinkProofData,shouldUseModeFromLinkRequestData,shouldUseMtuFromLinkProofData,shouldUseMtuFromLinkRequestData,shouldUseLinkIdentifySignedMaterial,shouldUsePackLinkIdentifyPayload,shouldUsePackLinkKeepaliveProbe,shouldUsePackLinkKeepaliveReply,shouldUsePackLinkProofData,shouldUsePackLinkRequest,shouldUsePackLinkRequestData,shouldUsePackLinkResponse,shouldUsePackMsgpackFloat64,shouldUseSplitLinkIdentifyPayload,shouldUseSplitLinkProofBody,shouldUseSplitLinkRequestData,shouldUseUnpackLinkRequest,shouldUseUnpackLinkResponse,shouldUseUnpackMsgpackFloat,stepClassifyLinkKeepaliveWithActions,stepClassifyLinkProofPayloadWithActions,stepComputeKeepaliveWithActions,stepComputeLinkEstablishmentTimeoutWithActions,
+  stepComputeLinkMduWithActions,stepComputeLinkRequestTimeoutWithActions,stepComputeLinkRttSecondsWithActions,stepEncodeLinkMtuBytesWithActions,stepEncodeLinkSignallingBytesWithActions,stepLinkProofSignedMaterialWithActions,stepLinkRequestHashablePartWithActions,stepMergeLinkRttWithActions,stepModeFromLinkProofDataWithActions,stepModeFromLinkRequestDataWithActions,stepMtuFromLinkProofDataWithActions,stepMtuFromLinkRequestDataWithActions,stepLinkHopsMatchWithActions,stepLinkInitiatorMtuWithActions,stepLinkRequestResponderMtuWithActions,stepLinkIdentifySignedMaterialWithActions,stepPackLinkIdentifyPayloadWithActions,stepPackLinkKeepaliveProbeWithActions,stepPackLinkKeepaliveReplyWithActions,stepPackLinkProofDataWithActions,stepPackLinkRequestDataWithActions,stepPackLinkRequestWithActions,stepPackLinkResponseWithActions,stepPackMsgpackFloat64WithActions,stepSplitLinkIdentifyPayloadWithActions,stepSplitLinkProofBodyWithActions,stepSplitLinkRequestDataWithActions,stepUnpackLinkRequestWithActions,stepIndexOfPendingLinkAppRequestWithActions,stepDeliverPendingLinkAppResponseWithActions,stepUnpackLinkResponseWithActions,stepUnpackMsgpackFloatWithActions,initialPendingLinkRequestUnregisterState,pendingLinkRequestUnregisterIndex,shouldAcceptLinkEstablishRtt,shouldAcceptLinkPacketInterfaceNow,initialAcceptLinkPacketInterfaceState,stepAcceptLinkPacketInterfaceWithActions,shouldAcceptLinkResourceAdvertisement,shouldAcceptRemoteLinkTeardown,shouldAcceptResourceHashmapUpdateFrameNow,shouldAcceptResourceProofPayloadNow,initialAcceptResourceProofPayloadState,
+  stepAcceptResourceProofPayloadWithActions,shouldAcceptResourceProofSplitNow,initialAcceptResourceProofSplitState,stepAcceptResourceProofSplitWithActions,shouldActivateLinkEstablish,shouldAllowRequestLinkDestination,shouldAskAppLinkResourceAdvertisement,shouldAttemptLinkProofCryptoNow,initialAttemptLinkProofCryptoState,stepAttemptLinkProofCryptoWithActions,shouldCloseOnlyLinkTeardown,shouldCommitLinkIdentify,shouldCommitLinkRemoteIdentityNow,shouldContinueLinkValidateRequestNow,initialContinueLinkValidateRequestState,stepContinueLinkValidateRequestWithActions,shouldProceedLinkValidateRequest,shouldCreateLinkChannelNow,initialCreateLinkChannelState,stepCreateLinkChannelWithActions,shouldCreateLinkToken,shouldDispatchLinkPlaintextNow,initialDispatchLinkPlaintextState,stepDispatchLinkPlaintextWithActions,shouldUsePendingLinkAppRequestIndex,pendingLinkAppRequestIndexFromActions,shouldDeliverPendingLinkAppResponseNow,shouldEncryptLinkPayloadNow,initialEncryptLinkPayloadState,stepEncryptLinkPayloadWithActions,shouldEnterLinkHandshake,shouldFailLinkEstablish,shouldForbidLinkAppRequestInbound,shouldHandleIncomingResourceByHashNow,initialHandleIncomingResourceByHashState,stepHandleIncomingResourceByHashWithActions,shouldHandleOutgoingResourceRequestNow,initialHandleOutgoingResourceRequestState,stepHandleOutgoingResourceRequestWithActions,shouldIgnoreInitiatorKeepaliveProbeNow,initialIgnoreInitiatorKeepaliveProbeState,stepIgnoreInitiatorKeepaliveProbeWithActions,shouldIgnoreLinkAppRequestInbound,shouldIgnoreLinkAppRequestInboundResponse,shouldIgnoreLinkEstablishRtt,
+  shouldHandleLinkDataChannel,shouldHandleLinkDataClose,shouldHandleLinkDataIdentify,shouldHandleLinkDataKeepalive,shouldHandleLinkDataPlaintext,shouldHandleLinkDataRequest,shouldHandleLinkDataResource,shouldHandleLinkDataResourceAdv,shouldHandleLinkDataResourceHmu,shouldHandleLinkDataResourceIcl,shouldHandleLinkDataResourceRcl,shouldHandleLinkDataResourceReq,shouldHandleLinkDataResponse,shouldHandleLinkDataRtt,shouldIgnoreLinkDataContext,shouldIgnoreLinkResourceAdvertisement,shouldInvokeLinkAppRequestHandlerNow,shouldInvokeLinkAppRequestInbound,shouldKeepPendingLinkAppRequestTransmit,shouldPresentResourceHash,shouldRegisterLinkResourceNow,initialRegisterLinkResourceState,stepRegisterLinkResourceWithActions,shouldRegisterPendingLinkRequestNow,shouldRejectLinkAppRequest,shouldRejectLinkAppRequestInboundTooBig,shouldRejectLinkIdentify,shouldRejectLinkProofValidate,shouldRejectLinkResourceAdvertisement,shouldRejectLinkTokenNoKey,shouldRemoveIncomingLinkResourceConclude,shouldRemoveOutgoingLinkResourceConclude,incomingLinkResourceConcludeIndex,outgoingLinkResourceConcludeIndex,shouldReplyKeepaliveProbeNow,initialReplyKeepaliveProbeState,stepReplyKeepaliveProbeWithActions,shouldReuseLinkToken,shouldSendLinkAppRequest,shouldSendLinkAppRequestInboundResponse,shouldSendLinkAppRequestResponseNow,shouldSendLinkTeardownThenClose,shouldTeardownLinkEstablish,shouldUnregisterLinkAppRequestTransmit,shouldRemovePendingLinkRequest,shouldUpdateLinkLastDataNow,initialUpdateLinkLastDataState,stepUpdateLinkLastDataWithActions,shouldDispatchLinkInboundData,initialLinkInboundDataPacketState,
+  stepLinkInboundDataPacketWithActions,identityPublicKeyFieldsFromActions,initialLinkKeepaliveContextState,initialSplitIdentityPublicKeyState,initialDeriveRnsLinkKeyState,initialSplitInitiatorLinkEntropyState,initialSplitResponderLinkEntropyState,initiatorLinkEntropyFieldsFromActions,responderLinkEntropyFieldsFromActions,shouldRejectDeriveRnsLinkKey,shouldRejectSplitInitiatorLinkEntropy,shouldUseDeriveRnsLinkKey,shouldRejectSplitResponderLinkEntropy,shouldTreatLinkKeepaliveContext,shouldTreatLinkKeepaliveOther,shouldUseSplitIdentityPublicKey,shouldUseSplitInitiatorLinkEntropy,shouldUseSplitResponderLinkEntropy,stepLinkKeepaliveContextWithActions,stepSplitIdentityPublicKeyWithActions,stepDeriveRnsLinkKeyWithActions,stepSplitInitiatorLinkEntropyWithActions,stepSplitResponderLinkEntropyWithActions,initialSplitResourceHashmapUpdatePacketState,initialAcceptResourceHashmapUpdateFrameState,initialSplitResourceProofState,resourceHashmapUpdatePacketFieldsFromActions,resourceProofFieldsFromActions,shouldRejectSplitResourceHashmapUpdatePacket,shouldRejectSplitResourceProof,shouldUseSplitResourceHashmapUpdatePacket,shouldUseSplitResourceProof,stepLinkAppRequestInboundWithActions,stepLinkAppRequestTransmitWithActions,stepLinkAppRequestWithActions,stepInvokeLinkAppRequestHandlerWithActions,stepSendLinkAppRequestResponseWithActions,stepLinkDataContextWithActions,stepLinkEstablishWithActions,stepLinkIdentifyWithActions,stepCommitLinkRemoteIdentityWithActions,stepLinkProofValidateWithActions,stepLinkResourceAdvertisementWithActions,stepContainsResourceHashWithActions,
+  stepLinkResourceConcludeWithActions,stepPendingLinkRequestRegisterWithActions,stepPendingLinkRequestUnregisterWithActions,stepRequestLinkDestinationWithActions,stepLinkTeardownWithActions,stepLinkTokenAccessWithActions,stepLinkValidateRequestWithActions,stepLinkWatchdogWithActions,stepSplitResourceHashmapUpdatePacketWithActions,stepAcceptResourceHashmapUpdateFrameWithActions,stepSplitResourceProofWithActions,stepUtf8EncodeWithActions,initialUtf8EncodeState,shouldUseUtf8Encode,utf8EncodeRawFromActions,type LinkAppRequestInboundAction,type LinkAppRequestInboundState,type LinkEstablishAction,type LinkIdentifyAction,type LinkModeValue,type LinkRequestFields,type LinkResourceAdvertisementAction,type LinkResourceAdvertisementState,type LinkResourceStrategyValue,type LinkStatusValue,type LinkTeardownAction,type LinkTeardownReasonValue,type LinkWatchdogState,type LinkWatchdogStepResult } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Token } from "../crypto/token.js";
-import { Channel, LinkChannelOutlet } from "../channel.js";
+import { Channel,LinkChannelOutlet } from "../channel.js";
 import { equalBytes } from "../crypto/bytes.js";
-import { DestinationDirection, DestinationType } from "../destination.js";
+import { DestinationDirection,DestinationType } from "../destination.js";
 import { Identity } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
 import { LinkRequestReceipt } from "../link-request-receipt.js";
-import {
-  Packet,
-  PacketContext,
-  PacketHeaderType,
-  PacketType,
-  TransportType,
-} from "../packet.js";
+import { Packet,PacketContext,PacketHeaderType,PacketType,TransportType } from "../packet.js";
 import type { PacketReceipt } from "../packet-receipt.js";
-import type {
-  RegisteredDestination,
-  RequestHandler,
-} from "../registered-destination.js";
+import type { RegisteredDestination,RequestHandler } from "../registered-destination.js";
 import { RETICULUM_MTU } from "../reticulum.js";
 import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
-import { Resource, ResourceAdvertisement } from "../resource.js";
-import {
-  LINK_ECPUB_SIZE,
-  LINK_KEY_SIZE,
-  LINK_MTU_SIZE,
-  LINK_SIGNATURE_SIZE,
-  linkEstablishmentTimeoutForHops,
-  linkMduForMtu,
-  linkRequestTimeoutForRtt,
-  linkRttSecondsForRequest,
-  mergedLinkRtt,
-} from "./shared.js";
-import type {
-  InitiatorLinkOptions,
-  LinkCallbacks,
-  LinkRequestOptions,
-  LinkSendContextResult,
-} from "./shared.js";
+import { Resource,ResourceAdvertisement } from "../resource.js";
+import { LINK_ECPUB_SIZE, LINK_KEY_SIZE, LINK_MTU_SIZE, LINK_SIGNATURE_SIZE, linkEstablishmentTimeoutForHops, linkMduForMtu, linkRequestTimeoutForRtt, linkRttSecondsForRequest, mergedLinkRtt } from "./shared.js";
+import type { InitiatorLinkOptions, LinkCallbacks, LinkRequestOptions, LinkSendContextResult } from "./shared.js";
 import { Link } from "../link.js";
 export class LinkLayer1 {
-  readonly type = DestinationType.LINK;
+readonly type = DestinationType.LINK;
   readonly callbacks: LinkCallbacks;
   readonly initiator: boolean;
   readonly owner: RegisteredDestination | null;
@@ -516,7 +81,7 @@ export class LinkLayer1 {
       readonly owner: RegisteredDestination | null;
       readonly destination: RegisteredDestination | null;
       readonly callbacks?: LinkCallbacks;
-    },
+    }
   ) {
     this.provider = provider;
     this.transport = transport;
@@ -527,21 +92,16 @@ export class LinkLayer1 {
     this.callbacks = options.callbacks ?? {};
   }
 
-  static linkIdFromLrPacket(
-    provider: CryptoProvider,
-    packet: Packet,
-  ): Uint8Array {
-    const stepped = stepLinkRequestHashablePartWithActions(
-      initialLinkRequestHashablePartState(),
-      {
-        kind: "link-proof/request-hashable-gate",
-        hashablePart: packet.hashablePart(),
-        requestDataLength: packet.data.length,
-      },
-    );
-    const hashablePart = shouldUseLinkRequestHashablePart(stepped.actions)
-      ? linkRequestHashablePartRawFromActions(stepped.actions)
-      : null;
+  static linkIdFromLrPacket(provider: CryptoProvider, packet: Packet): Uint8Array {
+    const stepped = stepLinkRequestHashablePartWithActions(initialLinkRequestHashablePartState(), {
+      kind: "link-proof/request-hashable-gate",
+      hashablePart: packet.hashablePart(),
+      requestDataLength: packet.data.length
+    });
+    const hashablePart =
+      shouldUseLinkRequestHashablePart(stepped.actions)
+        ? linkRequestHashablePartRawFromActions(stepped.actions)
+        : null;
     if (hashablePart === null) {
       throw new Error("Link.linkIdFromLrPacket: missing use-raw action");
     }
@@ -549,13 +109,10 @@ export class LinkLayer1 {
   }
 
   static signallingBytes(mtu: number, mode: LinkModeValue): Uint8Array {
-    const modeEnabled = stepLinkModeEnabledWithActions(
-      initialLinkModeEnabledState(),
-      {
-        kind: "link/mode-enabled-gate",
-        mode,
-      },
-    );
+    const modeEnabled = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+      kind: "link/mode-enabled-gate",
+      mode
+    });
     if (!shouldTreatLinkModeEnabled(modeEnabled.actions)) {
       throw new Error(`Requested link mode ${mode} is not enabled`);
     }
@@ -565,8 +122,8 @@ export class LinkLayer1 {
       {
         kind: "link-proof/encode-signalling-gate",
         mtu,
-        mode,
-      },
+        mode
+      }
     );
     const raw = encodeLinkSignallingBytesRawFromActions(stepped.actions);
     if (!shouldUseEncodeLinkSignallingBytes(stepped.actions) || raw === null) {
@@ -595,38 +152,32 @@ export class LinkLayer1 {
   async request(
     path: string,
     data: Uint8Array | null = null,
-    options: LinkRequestOptions = {},
+    options: LinkRequestOptions = {}
   ): Promise<LinkRequestReceipt | false> {
-    const requestAllow = stepLinkRequestAllowWithActions(
-      initialLinkRequestAllowState(),
-      {
-        kind: "link/request-allow-gate",
-        status: this.status,
-        rtt: this.rtt,
-      },
-    );
+    const requestAllow = stepLinkRequestAllowWithActions(initialLinkRequestAllowState(), {
+      kind: "link/request-allow-gate",
+      status: this.status,
+      rtt: this.rtt
+    });
     if (!shouldAllowLinkRequest(requestAllow.actions)) {
       return false;
     }
 
     const pathEncode = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
       kind: "utf8/encode-gate",
-      value: path,
+      value: path
     });
     const pathBytes = utf8EncodeRawFromActions(pathEncode.actions);
     if (!shouldUseUtf8Encode(pathEncode.actions) || pathBytes === null) {
       throw new Error("Link.request: missing utf8 use-raw action");
     }
     const pathHash = Identity.truncatedHash(this.provider, pathBytes);
-    const packStepped = stepPackLinkRequestWithActions(
-      initialPackLinkRequestState(),
-      {
-        kind: "link-request-codec/pack-gate",
-        requestedAt: this.clock.now() / 1000,
-        pathHash,
-        data,
-      },
-    );
+    const packStepped = stepPackLinkRequestWithActions(initialPackLinkRequestState(), {
+      kind: "link-request-codec/pack-gate",
+      requestedAt: this.clock.now() / 1000,
+      pathHash,
+      data
+    });
     const packedRequest = shouldUsePackLinkRequest(packStepped.actions)
       ? packLinkRequestRawFromActions(packStepped.actions)
       : null;
@@ -635,16 +186,13 @@ export class LinkLayer1 {
     }
     const timeout = options.timeout ?? linkRequestTimeoutForRtt(this.rtt!);
 
-    const appRequestStepped = stepLinkAppRequestWithActions(
-      initialLinkAppRequestState(),
-      {
-        kind: "link/app-request-gate",
-        status: this.status,
-        rtt: this.rtt,
-        packedLength: packedRequest.length,
-        mdu: this.mdu,
-      },
-    );
+    const appRequestStepped = stepLinkAppRequestWithActions(initialLinkAppRequestState(), {
+      kind: "link/app-request-gate",
+      status: this.status,
+      rtt: this.rtt,
+      packedLength: packedRequest.length,
+      mdu: this.mdu
+    });
     if (shouldRejectLinkAppRequest(appRequestStepped.actions)) {
       return false;
     }
@@ -659,26 +207,24 @@ export class LinkLayer1 {
       packetType: PacketType.DATA,
       destinationHash: this.linkId,
       context: PacketContext.REQUEST,
-      data: this.encrypt(packedRequest),
+      data: this.encrypt(packedRequest)
     });
 
     const pending = new LinkRequestReceipt({
-      link: this as unknown as Link,
+      link: (this as unknown as Link),
       requestId: packet.truncatedHash(),
       timeout,
       now: () => this.clock.now() / 1000,
       requestSize: packedRequest.length,
       callbacks: {
-        ...(options.response === undefined
-          ? {}
-          : { response: options.response }),
-        ...(options.failed === undefined ? {} : { failed: options.failed }),
-      },
+        ...(options.response === undefined ? {} : { response: options.response }),
+        ...(options.failed === undefined ? {} : { failed: options.failed })
+      }
     });
 
     const sentReceipt = await this.transport.sendPacket(packet, {
       attachedInterface: this.attachedInterface,
-      createReceipt: true,
+      createReceipt: true
     });
     this.hadOutbound(false);
 
@@ -686,8 +232,8 @@ export class LinkLayer1 {
       initialLinkAppRequestTransmitState(),
       {
         kind: "link/app-request-transmit-gate",
-        receiptPresent: sentReceipt !== null,
-      },
+        receiptPresent: sentReceipt !== null
+      }
     );
     if (shouldUnregisterLinkAppRequestTransmit(transmitStepped.actions)) {
       this.unregisterPendingRequest(pending);
@@ -706,8 +252,8 @@ export class LinkLayer1 {
       initialPendingLinkRequestUnregisterState(),
       {
         kind: "link/pending-request-unregister-gate",
-        index: this.pendingRequests.indexOf(receipt),
-      },
+        index: this.pendingRequests.indexOf(receipt)
+      }
     );
     const index = pendingLinkRequestUnregisterIndex(stepped.actions);
     if (shouldRemovePendingLinkRequest(stepped.actions) && index !== null) {
@@ -716,9 +262,7 @@ export class LinkLayer1 {
   }
 
   encrypt(plaintext: Uint8Array): Uint8Array {
-    return this.tokenInstance().encrypt(plaintext, {
-      entropy: this.transport.entropy,
-    });
+    return this.tokenInstance().encrypt(plaintext, { entropy: this.transport.entropy });
   }
 
   async send(data: Uint8Array): Promise<void> {
@@ -728,26 +272,20 @@ export class LinkLayer1 {
   async sendContext(
     context: number,
     data: Uint8Array,
-    options: { createReceipt?: boolean; encrypt?: boolean } = {},
+    options: { createReceipt?: boolean; encrypt?: boolean } = {}
   ): Promise<LinkSendContextResult> {
-    const sendAllow = stepLinkSendAllowWithActions(
-      initialLinkSendAllowState(),
-      {
-        kind: "link/send-allow-gate",
-        status: this.status,
-      },
-    );
+    const sendAllow = stepLinkSendAllowWithActions(initialLinkSendAllowState(), {
+      kind: "link/send-allow-gate",
+      status: this.status
+    });
     if (!shouldAllowLinkSend(sendAllow.actions)) {
       throw new Error("Cannot send on inactive link");
     }
 
-    const encryptStepped = stepEncryptLinkPayloadWithActions(
-      initialEncryptLinkPayloadState(),
-      {
-        kind: "link/encrypt-payload-gate",
-        encryptOption: options.encrypt,
-      },
-    );
+    const encryptStepped = stepEncryptLinkPayloadWithActions(initialEncryptLinkPayloadState(), {
+      kind: "link/encrypt-payload-gate",
+      encryptOption: options.encrypt
+    });
     const payload = shouldEncryptLinkPayloadNow(encryptStepped.actions)
       ? this.encrypt(data)
       : data;
@@ -758,23 +296,20 @@ export class LinkLayer1 {
       packetType: PacketType.DATA,
       destinationHash: this.linkId,
       context,
-      data: payload,
+      data: payload
     });
 
     const receipt = await this.transport.sendPacket(packet, {
       attachedInterface: this.attachedInterface,
-      createReceipt: options.createReceipt ?? false,
+      createReceipt: options.createReceipt ?? false
     });
     this.hadOutbound(
       shouldTreatLinkKeepaliveContext(
-        stepLinkKeepaliveContextWithActions(
-          initialLinkKeepaliveContextState(),
-          {
-            kind: "link/keepalive-context-gate",
-            context,
-          },
-        ).actions,
-      ),
+        stepLinkKeepaliveContextWithActions(initialLinkKeepaliveContextState(), {
+          kind: "link/keepalive-context-gate",
+          context
+        }).actions
+      )
     );
     return { raw: packet.raw, receipt };
   }
@@ -782,12 +317,9 @@ export class LinkLayer1 {
   async teardown(): Promise<void> {
     await this.applyLinkTeardownActions(
       stepLinkTeardownWithActions(
-        initialLinkTeardownState({
-          status: this.status,
-          initiator: this.initiator,
-        }),
-        { kind: "teardown/local" },
-      ).actions,
+        initialLinkTeardownState({ status: this.status, initiator: this.initiator }),
+        { kind: "teardown/local" }
+      ).actions
     );
   }
 
@@ -800,16 +332,13 @@ export class LinkLayer1 {
     this.token = null;
     this.channel?.shutdown();
     this.channel = null;
-    for (const resource of [
-      ...this.incomingResourcesList,
-      ...this.outgoingResourcesList,
-    ]) {
+    for (const resource of [...this.incomingResourcesList, ...this.outgoingResourcesList]) {
       resource.cancel();
     }
     this.incomingResourcesList.length = 0;
     this.outgoingResourcesList.length = 0;
-    this.transport.unregisterLink(this as unknown as Link);
-    this.callbacks.linkClosed?.(this as unknown as Link);
+    this.transport.unregisterLink((this as unknown as Link));
+    this.callbacks.linkClosed?.((this as unknown as Link));
   }
 
   updateMdu(): void {
@@ -824,17 +353,15 @@ export class LinkLayer1 {
       this.applyWatchdogResult(
         stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
           kind: "link/keepalive-sent",
-          at: now,
-        }),
+          at: now
+        })
       );
     } else {
       this.lastData = now;
     }
   }
 
-  protected async applyLinkTeardownActions(
-    actions: readonly LinkTeardownAction[],
-  ): Promise<void> {
+  protected async applyLinkTeardownActions(actions: readonly LinkTeardownAction[]): Promise<void> {
     if (shouldCloseOnlyLinkTeardown(actions)) {
       this.close();
       return;
@@ -869,7 +396,7 @@ export class LinkLayer1 {
   protected async sendKeepalive(): Promise<void> {
     const packProbe = stepPackLinkKeepaliveProbeWithActions(
       initialPackLinkKeepaliveProbeState(),
-      { kind: "link-keepalive/pack-probe-gate" },
+      { kind: "link-keepalive/pack-probe-gate" }
     );
     if (!shouldUsePackLinkKeepaliveProbe(packProbe.actions)) {
       throw new Error("Link.sendKeepalive: missing use-raw action");
@@ -883,9 +410,7 @@ export class LinkLayer1 {
 
   protected startWatchdog(): void {
     this.applyWatchdogResult(
-      stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
-        kind: "link/watchdog-start",
-      }),
+      stepLinkWatchdogWithActions(this.snapshotWatchdogState(), { kind: "link/watchdog-start" })
     );
   }
 
@@ -904,7 +429,7 @@ export class LinkLayer1 {
   protected watchdogTick(): void {
     const closedStepped = stepLinkClosedWithActions(initialLinkClosedState(), {
       kind: "link/closed-gate",
-      status: this.status,
+      status: this.status
     });
     if (shouldTreatLinkClosed(closedStepped.actions)) {
       return;
@@ -914,8 +439,8 @@ export class LinkLayer1 {
       stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
         kind: "timer/fired",
         id: "link-watchdog",
-        at: this.clock.now(),
-      }),
+        at: this.clock.now()
+      })
     );
   }
 
@@ -931,7 +456,7 @@ export class LinkLayer1 {
       keepalive: this.keepalive,
       staleTime: this.staleTime,
       rtt: this.rtt,
-      teardownReason: this.teardownReason,
+      teardownReason: this.teardownReason
     };
   }
 
@@ -943,8 +468,7 @@ export class LinkLayer1 {
     this.activatedAt = result.state.activatedAt;
     this.lastInbound = result.state.lastInbound;
     this.lastKeepalive = result.state.lastKeepalive;
-    this.teardownReason = result.state
-      .teardownReason as LinkTeardownReasonValue | null;
+    this.teardownReason = result.state.teardownReason as LinkTeardownReasonValue | null;
 
     for (const action of result.actions) {
       if (action.kind === "send-keepalive") {
@@ -975,7 +499,7 @@ export class LinkLayer1 {
     const gate = stepLinkTokenAccessWithActions(initialLinkTokenAccessState(), {
       kind: "token/access-gate",
       derivedKeyPresent: this.derivedKey !== null,
-      tokenPresent: this.token !== null,
+      tokenPresent: this.token !== null
     });
     if (shouldRejectLinkTokenNoKey(gate.actions)) {
       throw new Error("Link has no derived key");

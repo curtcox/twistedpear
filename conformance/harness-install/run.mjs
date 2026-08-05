@@ -17,14 +17,14 @@ import {
   CatalogStore,
   InstalledPackageStore,
   unpackPackage,
-  verifyPackage,
+  verifyPackage
 } from "../../packages/app-registry/dist/index.js";
 import {
   DriveManager,
   PackageResourceClient,
   attachPackageResourceServer,
   createSwarm,
-  fetchPackage,
+  fetchPackage
 } from "../../packages/bridge-hyper/dist/index.js";
 import {
   DestinationDirection,
@@ -35,17 +35,14 @@ import {
   Reticulum,
   bytesToHex,
   hexToBytes,
-  nodeRuntime,
+  nodeRuntime
 } from "../../packages/reticulum-ts/dist/index.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { repoRoot } from "../scenarios/bare/helpers.mjs";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../fixtures/packages/example-app",
-);
+const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 const HOST_API_VERSION = "0.1.0";
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
@@ -80,7 +77,7 @@ async function fetchWithRetry(driveManager, version) {
 async function buildWorkletBundle() {
   const result = spawnSync("npm", ["run", "build:worklet"], {
     cwd: repoRoot,
-    stdio: "inherit",
+    stdio: "inherit"
   });
 
   if (result.status !== 0) {
@@ -107,13 +104,13 @@ function mockTcpInterface() {
     online: true,
     packets: (async function* () {})(),
     async send() {},
-    async close() {},
+    async close() {}
   };
 }
 
 async function installFetched(provider, installed, entry, result, pathLabel) {
   const verified = verifyPackage(provider, result.archiveBytes, {
-    hostApiVersion: HOST_API_VERSION,
+    hostApiVersion: HOST_API_VERSION
   });
 
   installed.install(
@@ -123,9 +120,9 @@ async function installFetched(provider, installed, entry, result, pathLabel) {
       packageHash: verified.packageHash,
       installedAt: Date.now(),
       manifest: verified.manifest,
-      archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`,
+      archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`
     },
-    result.archiveBytes.length,
+    result.archiveBytes.length
   );
 
   if (result.path !== pathLabel) {
@@ -155,39 +152,28 @@ async function main() {
   try {
     writeFileSync(
       join(publisherDir, "tp.config.json"),
-      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
+      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
     );
 
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
-    const initCode = await runInit({
-      cwd: publisherDir,
-      identityPassphrase: IDENTITY_PASSPHRASE,
-      args: [],
-    });
+    const initCode = await runInit({ cwd: publisherDir, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
 
-    const publishCode = await runPublish({
-      cwd: publisherDir,
-      args: [fixtureApp],
-    });
+    const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
     if (publishCode !== 0) {
       throw new Error("tp publish failed");
     }
 
     const provider = new NodeCryptoProvider();
-    const meta = JSON.parse(
-      readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
-    );
-    const archive = new Uint8Array(
-      readFileSync(join(publisherDir, ".tp/last.tpkg")),
-    );
+    const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+    const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);
     const publisherIdentity = decryptIdentityBackup(
       provider,
       new Uint8Array(readFileSync(join(publisherDir, ".tp/identity"))),
-      IDENTITY_PASSPHRASE,
+      IDENTITY_PASSPHRASE
     );
 
     const catalog = new CatalogStore(provider);
@@ -195,7 +181,7 @@ async function main() {
       destinationHash: meta.destinationName ?? "harness-install",
       appData: hexToBytes(meta.appDataHex),
       manifest: unpacked.manifest,
-      packageHash: unpacked.packageHash,
+      packageHash: unpacked.packageHash
     });
     if (entry === null) {
       throw new Error("catalog ingest failed");
@@ -205,20 +191,16 @@ async function main() {
     seedSwarm = createSwarm();
     publisherDrive = new DriveManager({
       storagePath: join(publisherDir, ".tp/storage"),
-      swarm: pubSwarm,
+      swarm: pubSwarm
     });
     seedDrive = new DriveManager({
       storagePath: join(seederStateDir, "drives"),
-      swarm: seedSwarm,
+      swarm: seedSwarm
     });
     await publisherDrive.ready();
     await seedDrive.ready();
     await publisherDrive.openDrive(meta.driveKey);
-    await publisherDrive.publishVersion(
-      meta.version,
-      archive,
-      unpacked.packageHash,
-    );
+    await publisherDrive.publishVersion(meta.version, archive, unpacked.packageHash);
     await seedDrive.openDrive(meta.driveKey, { serve: true });
     await fetchWithRetry(seedDrive, meta.version);
 
@@ -231,10 +213,7 @@ async function main() {
     const interfaces = [mockTcpInterface()];
 
     const conSwarm = createSwarm();
-    const consumerDrive = new DriveManager({
-      storagePath: consumerDir,
-      swarm: conSwarm,
-    });
+    const consumerDrive = new DriveManager({ storagePath: consumerDir, swarm: conSwarm });
     await consumerDrive.ready();
     await consumerDrive.openDrive(meta.driveKey);
     await fetchWithRetry(consumerDrive, meta.version);
@@ -244,27 +223,15 @@ async function main() {
       version: entry.version,
       interfaces,
       driveManager: consumerDrive,
-      forcePath: "hyperdrive",
+      forcePath: "hyperdrive"
     });
-    await installFetched(
-      provider,
-      installed,
-      entry,
-      hyperdriveResult,
-      "hyperdrive",
-    );
+    await installFetched(provider, installed, entry, hyperdriveResult, "hyperdrive");
 
     await consumerDrive.close();
     await conSwarm.destroy();
 
-    const publisherHash = bytesToHex(
-      provider.sha256(publisherIdentity.getPublicKey()).slice(0, 8),
-    );
-    const nameHash = bytesToHex(
-      provider
-        .sha256(new TextEncoder().encode(unpacked.manifest.name))
-        .slice(0, 8),
-    );
+    const publisherHash = bytesToHex(provider.sha256(publisherIdentity.getPublicKey()).slice(0, 8));
+    const nameHash = bytesToHex(provider.sha256(new TextEncoder().encode(unpacked.manifest.name)).slice(0, 8));
 
     publisherNode = Reticulum.create({ provider, runtime: nodeRuntime() });
     publisherNode.start();
@@ -277,22 +244,16 @@ async function main() {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: ["app", publisherHash, nameHash],
+      aspects: ["app", publisherHash, nameHash]
     });
 
     attachPackageResourceServer(publisherDestination, {
       async listVersions() {
-        return [
-          {
-            version: meta.version,
-            packageHash: unpacked.packageHash,
-            size: archive.length,
-          },
-        ];
+        return [{ version: meta.version, packageHash: unpacked.packageHash, size: archive.length }];
       },
       async fetchArchive() {
         return archive;
-      },
+      }
     });
 
     await publisherDestination.announce();
@@ -303,7 +264,7 @@ async function main() {
       runtime: nodeRuntime(),
       publisherPublicKeyHex: unpacked.manifest.publisherPublicKey,
       appName: unpacked.manifest.name,
-      identity: consumerIdentity,
+      identity: consumerIdentity
     });
     await resourceClient.start();
     resourceClient.node.registerInterface(consumerPipe);
@@ -313,15 +274,9 @@ async function main() {
       version: entry.version,
       interfaces,
       resourceClient,
-      forcePath: "resource",
+      forcePath: "resource"
     });
-    await installFetched(
-      provider,
-      installed,
-      entry,
-      resourceResult,
-      "resource",
-    );
+    await installFetched(provider, installed, entry, resourceResult, "resource");
 
     await resourceClient.stop();
     resourceClient = null;
@@ -333,9 +288,7 @@ async function main() {
     await seedSwarm.destroy();
     seedSwarm = null;
 
-    console.log(
-      "harness-install: catalog ingest, hyperdrive install, resource install passed",
-    );
+    console.log("harness-install: catalog ingest, hyperdrive install, resource install passed");
   } finally {
     if (resourceClient !== null) {
       await resourceClient.stop();

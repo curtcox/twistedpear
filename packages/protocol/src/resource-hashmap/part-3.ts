@@ -24,13 +24,10 @@ import {
   msgpackPackBin,
   msgpackPackUInt,
   msgpackUnpack,
-  type MsgpackValue,
+  type MsgpackValue
 } from "../msgpack-core.js";
 import { equalByteArrays } from "../path-table.js";
-import {
-  planResourcePartRequest,
-  shouldApplyResourceReceivePartSlot,
-} from "./part-2.js";
+import { planResourcePartRequest, shouldApplyResourceReceivePartSlot } from "./part-2.js";
 import type { ResourcePartRequestPlan } from "./part-1.js";
 /**
  * Resource receive-part slot-write gate is event-driven; no durable session
@@ -48,7 +45,8 @@ export type ApplyResourceReceivePartSlotEvent =
     };
 
 export type ApplyResourceReceivePartSlotAction =
-  { readonly kind: "apply" } | { readonly kind: "skip" };
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
 
 export interface ApplyResourceReceivePartSlotStepResult {
   readonly state: ApplyResourceReceivePartSlotState;
@@ -62,7 +60,7 @@ export function initialApplyResourceReceivePartSlotState(): ApplyResourceReceive
 
 export function stepApplyResourceReceivePartSlotWithActions(
   state: ApplyResourceReceivePartSlotState,
-  event: ApplyResourceReceivePartSlotEvent,
+  event: ApplyResourceReceivePartSlotEvent
 ): ApplyResourceReceivePartSlotStepResult {
   if (event.kind === "resource-hashmap/apply-receive-part-slot-gate") {
     return {
@@ -72,12 +70,12 @@ export function stepApplyResourceReceivePartSlotWithActions(
         {
           kind: shouldApplyResourceReceivePartSlot({
             matched: event.matched,
-            slotPresent: event.slotPresent,
+            slotPresent: event.slotPresent
           })
             ? "apply"
-            : "skip",
-        },
-      ],
+            : "skip"
+        }
+      ]
     };
   }
 
@@ -85,21 +83,19 @@ export function stepApplyResourceReceivePartSlotWithActions(
 }
 
 export function shouldApplyResourceReceivePartSlotNow(
-  actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>,
+  actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>
 ): boolean {
   return actions.some((action) => action.kind === "apply");
 }
 
 export function shouldSkipApplyResourceReceivePartSlot(
-  actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>,
+  actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether fulfill should emit a hashmap-update frame. */
-export function shouldSendResourceHashmapUpdate(
-  hashmapUpdatePresent: boolean,
-): boolean {
+export function shouldSendResourceHashmapUpdate(hashmapUpdatePresent: boolean): boolean {
   return hashmapUpdatePresent;
 }
 
@@ -118,7 +114,8 @@ export type SendResourceHashmapUpdateEvent =
     };
 
 export type SendResourceHashmapUpdateAction =
-  { readonly kind: "send" } | { readonly kind: "skip" };
+  | { readonly kind: "send" }
+  | { readonly kind: "skip" };
 
 export interface SendResourceHashmapUpdateStepResult {
   readonly state: SendResourceHashmapUpdateState;
@@ -132,7 +129,7 @@ export function initialSendResourceHashmapUpdateState(): SendResourceHashmapUpda
 
 export function stepSendResourceHashmapUpdateWithActions(
   state: SendResourceHashmapUpdateState,
-  event: SendResourceHashmapUpdateEvent,
+  event: SendResourceHashmapUpdateEvent
 ): SendResourceHashmapUpdateStepResult {
   if (event.kind === "resource-hashmap/send-hashmap-update-gate") {
     return {
@@ -140,11 +137,9 @@ export function stepSendResourceHashmapUpdateWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldSendResourceHashmapUpdate(event.hashmapUpdatePresent)
-            ? "send"
-            : "skip",
-        },
-      ],
+          kind: shouldSendResourceHashmapUpdate(event.hashmapUpdatePresent) ? "send" : "skip"
+        }
+      ]
     };
   }
 
@@ -152,20 +147,20 @@ export function stepSendResourceHashmapUpdateWithActions(
 }
 
 export function shouldSendResourceHashmapUpdateNow(
-  actions: ReadonlyArray<SendResourceHashmapUpdateAction>,
+  actions: ReadonlyArray<SendResourceHashmapUpdateAction>
 ): boolean {
   return actions.some((action) => action.kind === "send");
 }
 
 export function shouldSkipSendResourceHashmapUpdate(
-  actions: ReadonlyArray<SendResourceHashmapUpdateAction>,
+  actions: ReadonlyArray<SendResourceHashmapUpdateAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether fulfill should advance status to awaiting-proof. */
 export function shouldAdvanceResourceAwaitingProof(
-  status: "transferring" | "awaiting-proof",
+  status: "transferring" | "awaiting-proof"
 ): boolean {
   return status === "awaiting-proof";
 }
@@ -185,7 +180,8 @@ export type AdvanceResourceAwaitingProofEvent =
     };
 
 export type AdvanceResourceAwaitingProofAction =
-  { readonly kind: "advance" } | { readonly kind: "skip" };
+  | { readonly kind: "advance" }
+  | { readonly kind: "skip" };
 
 export interface AdvanceResourceAwaitingProofStepResult {
   readonly state: AdvanceResourceAwaitingProofState;
@@ -199,7 +195,7 @@ export function initialAdvanceResourceAwaitingProofState(): AdvanceResourceAwait
 
 export function stepAdvanceResourceAwaitingProofWithActions(
   state: AdvanceResourceAwaitingProofState,
-  event: AdvanceResourceAwaitingProofEvent,
+  event: AdvanceResourceAwaitingProofEvent
 ): AdvanceResourceAwaitingProofStepResult {
   if (event.kind === "resource-hashmap/advance-awaiting-proof-gate") {
     return {
@@ -207,11 +203,9 @@ export function stepAdvanceResourceAwaitingProofWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAdvanceResourceAwaitingProof(event.status)
-            ? "advance"
-            : "skip",
-        },
-      ],
+          kind: shouldAdvanceResourceAwaitingProof(event.status) ? "advance" : "skip"
+        }
+      ]
     };
   }
 
@@ -219,13 +213,13 @@ export function stepAdvanceResourceAwaitingProofWithActions(
 }
 
 export function shouldAdvanceResourceAwaitingProofNow(
-  actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>,
+  actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>
 ): boolean {
   return actions.some((action) => action.kind === "advance");
 }
 
 export function shouldSkipAdvanceResourceAwaitingProof(
-  actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>,
+  actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -268,7 +262,7 @@ export function initialResourcePartRequestPlanState(): ResourcePartRequestPlanSt
 
 export function stepResourcePartRequestPlanWithActions(
   state: ResourcePartRequestPlanState,
-  event: ResourcePartRequestPlanEvent,
+  event: ResourcePartRequestPlanEvent
 ): ResourcePartRequestPlanStepResult {
   if (event.kind === "resource/part-request-plan-gate") {
     const plan = planResourcePartRequest({
@@ -277,7 +271,7 @@ export function stepResourcePartRequestPlanWithActions(
       consecutiveCompletedHeight: event.consecutiveCompletedHeight,
       window: event.window,
       hashmapHeight: event.hashmapHeight,
-      resourceHash: event.resourceHash,
+      resourceHash: event.resourceHash
     });
     return {
       state,
@@ -287,9 +281,9 @@ export function stepResourcePartRequestPlanWithActions(
           kind: "request",
           outstandingParts: plan.outstandingParts,
           waitingForHashmap: plan.waitingForHashmap,
-          requestData: plan.requestData,
-        },
-      ],
+          requestData: plan.requestData
+        }
+      ]
     };
   }
 
@@ -297,20 +291,20 @@ export function stepResourcePartRequestPlanWithActions(
 }
 
 export function shouldEmitResourcePartRequestPlan(
-  actions: ReadonlyArray<ResourcePartRequestPlanAction>,
+  actions: ReadonlyArray<ResourcePartRequestPlanAction>
 ): boolean {
   return actions.some((action) => action.kind === "request");
 }
 
 export function resourcePartRequestPlanFromActions(
-  actions: ReadonlyArray<ResourcePartRequestPlanAction>,
+  actions: ReadonlyArray<ResourcePartRequestPlanAction>
 ): ResourcePartRequestPlan | null {
   for (const action of actions) {
     if (action.kind === "request") {
       return {
         outstandingParts: action.outstandingParts,
         waitingForHashmap: action.waitingForHashmap,
-        requestData: action.requestData,
+        requestData: action.requestData
       };
     }
   }
@@ -353,39 +347,33 @@ export function initialResourcePartRequestState(): ResourcePartRequestState {
   return {};
 }
 
-export const stepResourcePartRequest: StepFn<ResourcePartRequestState> = (
-  state,
-  event,
-) => {
-  const result = stepResourcePartRequestInner(
-    state,
-    event as ResourcePartRequestEvent,
-  );
+export const stepResourcePartRequest: StepFn<ResourcePartRequestState> = (state, event) => {
+  const result = stepResourcePartRequestInner(state, event as ResourcePartRequestEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepResourcePartRequestWithActions(
   state: ResourcePartRequestState,
-  event: ResourcePartRequestEvent,
+  event: ResourcePartRequestEvent
 ): ResourcePartRequestStepResult {
   return stepResourcePartRequestInner(state, event);
 }
 
 export function shouldEmitResourcePartRequest(
-  actions: ReadonlyArray<ResourcePartRequestAction>,
+  actions: ReadonlyArray<ResourcePartRequestAction>
 ): boolean {
   return actions.some((action) => action.kind === "request");
 }
 
 export function resourcePartRequestFromActions(
-  actions: ReadonlyArray<ResourcePartRequestAction>,
+  actions: ReadonlyArray<ResourcePartRequestAction>
 ): ResourcePartRequestPlan | null {
   for (const action of actions) {
     if (action.kind === "request") {
       return {
         outstandingParts: action.outstandingParts,
         waitingForHashmap: action.waitingForHashmap,
-        requestData: action.requestData,
+        requestData: action.requestData
       };
     }
   }
@@ -394,7 +382,7 @@ export function resourcePartRequestFromActions(
 
 function stepResourcePartRequestInner(
   state: ResourcePartRequestState,
-  event: ResourcePartRequestEvent,
+  event: ResourcePartRequestEvent
 ): ResourcePartRequestStepResult {
   if (event.kind === "resource/part-request-gate") {
     const planActions = stepResourcePartRequestPlanWithActions(
@@ -406,8 +394,8 @@ function stepResourcePartRequestInner(
         consecutiveCompletedHeight: event.consecutiveCompletedHeight,
         window: event.window,
         hashmapHeight: event.hashmapHeight,
-        resourceHash: event.resourceHash,
-      },
+        resourceHash: event.resourceHash
+      }
     ).actions;
     const plan = resourcePartRequestPlanFromActions(planActions);
     if (plan === null) {
@@ -421,9 +409,9 @@ function stepResourcePartRequestInner(
           kind: "request",
           outstandingParts: plan.outstandingParts,
           waitingForHashmap: plan.waitingForHashmap,
-          requestData: plan.requestData,
-        },
-      ],
+          requestData: plan.requestData
+        }
+      ]
     };
   }
 

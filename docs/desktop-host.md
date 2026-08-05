@@ -1,5 +1,6 @@
 # TwistedPear Desktop Host
 
+
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-08-05
@@ -16,12 +17,12 @@ The desktop host is the always-on peer that carries transport routing, package s
 
 ## Roles (defaults)
 
-| Role                | Default | Notes                                    |
-| ------------------- | ------- | ---------------------------------------- |
-| Transport node      | on      | Disabled when `--attach-rnsd` is set     |
-| Seeder / LAN mirror | on      | Quota'd archive + Hyperdrive serving     |
-| Propagation server  | off     | Enable with `--propagation` or UI toggle |
-| rnsd attach         | off     | `--attach-rnsd host:port` leaf mode      |
+| Role | Default | Notes |
+|------|---------|-------|
+| Transport node | on | Disabled when `--attach-rnsd` is set |
+| Seeder / LAN mirror | on | Quota'd archive + Hyperdrive serving |
+| Propagation server | off | Enable with `--propagation` or UI toggle |
+| rnsd attach | off | `--attach-rnsd host:port` leaf mode |
 
 ## Headless usage
 

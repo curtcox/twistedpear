@@ -40,9 +40,9 @@ spawnChecked(
     "bare-tls",
     "--out",
     join(root, "bare-freenet.bundle"),
-    join(root, "bare-entry.mjs"),
+    join(root, "bare-entry.mjs")
   ],
-  { cwd: root },
+  { cwd: root }
 );
 
 console.log("freenet-spike: Bare SDK probe bundle written");

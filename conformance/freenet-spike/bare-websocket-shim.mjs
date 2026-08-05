@@ -54,7 +54,9 @@ export class BareWebSocket {
         type: "message",
         target: this,
         data:
-          this.binaryType === "arraybuffer" ? copied : new Uint8Array(copied),
+          this.binaryType === "arraybuffer"
+            ? copied
+            : new Uint8Array(copied)
       });
     });
     this.#socket.on("error", (error) => {
@@ -68,7 +70,7 @@ export class BareWebSocket {
         target: this,
         code: 1006,
         reason: this.#lastError?.message ?? "",
-        wasClean: false,
+        wasClean: false
       });
     });
   }
@@ -97,11 +99,7 @@ export class BareWebSocket {
     const bytes =
       data instanceof Uint8Array
         ? data
-        : new Uint8Array(
-            data.buffer ?? data,
-            data.byteOffset ?? 0,
-            data.byteLength,
-          );
+        : new Uint8Array(data.buffer ?? data, data.byteOffset ?? 0, data.byteLength);
     this.#socket.write(Buffer.from(bytes));
   }
 

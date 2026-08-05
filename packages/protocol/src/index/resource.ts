@@ -29,7 +29,7 @@ export {
   type ResourceWatchdogAction,
   type ResourceWatchdogEvent,
   type ResourceWatchdogState,
-  type ResourceWatchdogStepResult,
+  type ResourceWatchdogStepResult
 } from "../resource-watchdog.js";
 export {
   applyResourceStatusEvent,
@@ -171,7 +171,7 @@ export {
   type ResourceWatchdogAllowAction,
   type ResourceWatchdogAllowEvent,
   type ResourceWatchdogAllowState,
-  type ResourceWatchdogAllowStepResult,
+  type ResourceWatchdogAllowStepResult
 } from "../resource-status.js";
 export {
   RESOURCE_ADVERTISE_WAIT_MS,
@@ -183,7 +183,7 @@ export {
   type ResourceAdvertiseWaitAction,
   type ResourceAdvertiseWaitEvent,
   type ResourceAdvertiseWaitState,
-  type ResourceAdvertiseWaitStepResult,
+  type ResourceAdvertiseWaitStepResult
 } from "../resource-advertise-wait.js";
 export {
   decodeResourceAdvertisementFlags,
@@ -252,7 +252,7 @@ export {
   type UnpackResourceAdvertisementAction,
   type UnpackResourceAdvertisementEvent,
   type UnpackResourceAdvertisementState,
-  type UnpackResourceAdvertisementStepResult,
+  type UnpackResourceAdvertisementStepResult
 } from "../resource-advertisement.js";
 export {
   RESOURCE_ADVERTISEMENT_OVERHEAD,
@@ -508,7 +508,7 @@ export {
   type UnpackResourceHashmapUpdateAction,
   type UnpackResourceHashmapUpdateEvent,
   type UnpackResourceHashmapUpdateState,
-  type UnpackResourceHashmapUpdateStepResult,
+  type UnpackResourceHashmapUpdateStepResult
 } from "../resource-hashmap.js";
 export {
   RESOURCE_PROOF_HASH_SIZE,
@@ -571,7 +571,7 @@ export {
   type SplitResourceProofAction,
   type SplitResourceProofEvent,
   type SplitResourceProofState,
-  type SplitResourceProofStepResult,
+  type SplitResourceProofStepResult
 } from "../resource-proof.js";
 export {
   computeResourceTotalParts,
@@ -621,5 +621,5 @@ export {
   type ResourcePartMapHashMaterialAction,
   type ResourcePartMapHashMaterialEvent,
   type ResourcePartMapHashMaterialState,
-  type ResourcePartMapHashMaterialStepResult,
+  type ResourcePartMapHashMaterialStepResult
 } from "../resource-material.js";
