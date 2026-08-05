@@ -11,6 +11,8 @@
     {
       "id": "unit-tests",
       "title": "Unit tests (vitest)",
+      "commit": "0000000000000000000000000000000000000000",
+      "branchSha": "0000000000000000000000000000000000000000",
       "command": "npx vitest run",
       "startedAt": "2026-07-21T00:00:00.000Z",
       "finishedAt": "2026-07-21T00:00:01.000Z",
@@ -22,6 +24,8 @@
     {
       "id": "typescript",
       "title": "TypeScript (tsc -b)",
+      "commit": "0000000000000000000000000000000000000000",
+      "branchSha": "0000000000000000000000000000000000000000",
       "command": "npm run lint",
       "startedAt": "2026-07-21T00:00:01.000Z",
       "finishedAt": "2026-07-21T00:00:02.000Z",

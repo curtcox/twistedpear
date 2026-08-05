@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 import { ROOT, RESULTS_DIR } from "./paths.mjs";
 import { gates } from "../checks/registry.mjs";
 import { summarizeStaticAnalysis } from "./static-analysis-metrics.mjs";
+import { hasExpectedProvenance } from "./verify-publication.mjs";
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -33,6 +34,9 @@ function gitBranch() {
   });
   return (r.stdout || "").trim() || null;
 }
+
+const CHECKOUT_COMMIT = gitSha();
+const BRANCH_SHA = process.env.GITHUB_SHA ?? CHECKOUT_COMMIT;
 
 // SITE_REPORT_JOBS=file-sizes,unit-tests regenerates a subset locally without
 // paying for the full suite. Skipped jobs keep their previously recorded result.
@@ -74,8 +78,25 @@ function copyOutput(relative) {
 function runJob(job) {
   const importedCheck = IMPORT_DIR ? path.join(IMPORT_DIR, "artifacts", "checks", `${job.id}.json`) : null;
   if (job.imported && importedCheck && fs.existsSync(importedCheck)) {
-    for (const rel of job.copyOutputs ?? []) copyOutput(rel);
     const result = JSON.parse(fs.readFileSync(importedCheck, "utf8"));
+    if (!hasExpectedProvenance(result, CHECKOUT_COMMIT, BRANCH_SHA)) {
+      return {
+        id: job.id,
+        title: job.title,
+        commit: CHECKOUT_COMMIT,
+        branchSha: BRANCH_SHA,
+        command: result.command ?? job.command.join(" "),
+        startedAt: result.startedAt ?? nowIso(),
+        finishedAt: nowIso(),
+        exitCode: 1,
+        ok: false,
+        logFile: null,
+        durationMs: 0,
+        imported: true,
+        importError: `imported evidence SHA mismatch: commit=${result.commit ?? "missing"}, branchSha=${result.branchSha ?? "missing"}, expected=${BRANCH_SHA}`
+      };
+    }
+    for (const rel of job.copyOutputs ?? []) copyOutput(rel);
     return {
       ...result,
       command: result.command ?? job.command.join(" "),
@@ -88,6 +109,8 @@ function runJob(job) {
     return {
       id: job.id,
       title: job.title,
+      commit: CHECKOUT_COMMIT,
+      branchSha: BRANCH_SHA,
       command: job.command.join(" "),
       startedAt: nowIso(),
       finishedAt: nowIso(),
@@ -103,6 +126,8 @@ function runJob(job) {
     return {
       id: job.id,
       title: job.title,
+      commit: CHECKOUT_COMMIT,
+      branchSha: BRANCH_SHA,
       command: job.command.join(" "),
       startedAt: nowIso(),
       finishedAt: nowIso(),
@@ -120,6 +145,8 @@ function runJob(job) {
     return {
       id: job.id,
       title: job.title,
+      commit: CHECKOUT_COMMIT,
+      branchSha: BRANCH_SHA,
       command: job.command.join(" "),
       startedAt: nowIso(),
       finishedAt: nowIso(),
@@ -161,6 +188,8 @@ function runJob(job) {
   return {
     id: job.id,
     title: job.title,
+    commit: CHECKOUT_COMMIT,
+    branchSha: BRANCH_SHA,
     command: job.command.join(" "),
     startedAt,
     finishedAt: nowIso(),
@@ -252,9 +281,9 @@ function main() {
 
   const meta = {
     generatedAt: nowIso(),
-    commit: gitSha(),
+    commit: CHECKOUT_COMMIT,
     branch: process.env.GITHUB_REF_NAME ?? process.env.GITHUB_HEAD_REF ?? gitBranch(),
-    branchSha: process.env.GITHUB_SHA ?? gitSha(),
+    branchSha: BRANCH_SHA,
     node: process.version,
     ref: process.env.GITHUB_REF ?? null,
     runId: process.env.GITHUB_RUN_ID ?? null,

@@ -5,6 +5,10 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { gates } from "../../scripts/checks/registry.mjs";
 import { summarizeStaticAnalysis } from "../../scripts/site/static-analysis-metrics.mjs";
+import {
+  hasExpectedProvenance,
+  validatePublicationSummary,
+} from "../../scripts/site/verify-publication.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const manifest = JSON.parse(
@@ -107,6 +111,9 @@ describe("static-analysis gate registry", () => {
       "SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}",
     );
     expect(reports).toContain("logFile: `artifacts/logs/${job.id}.log`");
+    expect(pagesWorkflow).toContain("cancel-in-progress: true");
+    expect(pagesWorkflow).toContain("Refuse to deploy a superseded main build");
+    expect(pagesWorkflow).toContain("verify-publication.mjs");
 
     const plan = spawnSync(
       globalThis.process.execPath,
@@ -160,6 +167,34 @@ describe("static-analysis gate registry", () => {
         `${id} structured artifact`,
       ).toBe(true);
     }
+  });
+
+  it("rejects stale or mixed-SHA publication summaries", () => {
+    const sha = "a".repeat(40);
+    const summary = {
+      commit: sha,
+      branchSha: sha,
+      ok: true,
+      jobs: [{ id: "lint", commit: sha, branchSha: sha }],
+    };
+    expect(validatePublicationSummary(summary, sha)).toEqual([]);
+    expect(hasExpectedProvenance(summary.jobs[0], sha)).toBe(true);
+    expect(hasExpectedProvenance(summary.jobs[0], "b".repeat(40))).toBe(false);
+    expect(
+      validatePublicationSummary(
+        {
+          ...summary,
+          jobs: [{ id: "lint", commit: "b".repeat(40), branchSha: sha }],
+        },
+        sha,
+      ),
+    ).toEqual([`lint provenance commit=${"b".repeat(40)}, branchSha=${sha}`]);
+    expect(
+      validatePublicationSummary(
+        { ...summary, ok: false, failed: ["coverage"] },
+        sha,
+      ),
+    ).toEqual(["reported checks failed: coverage"]);
   });
 
   it("publishes every mutation outcome category", () => {

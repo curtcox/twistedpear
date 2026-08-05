@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   static-analysis-plan:
@@ -136,8 +136,8 @@ jobs:
           if-no-files-found: warn
 
   deploy:
-    needs: build
-    if: always() && needs.build.result == 'success'
+    needs: [build, freshness]
+    if: always() && needs.build.result == 'success' && needs.freshness.result == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -146,8 +146,38 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v4
 
+  freshness:
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse to deploy a superseded main build
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const latest = await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'main'
+            });
+            if (latest.data.sha !== context.sha) {
+              core.setFailed(`Pages build ${context.sha} is stale; current main is ${latest.data.sha}`);
+            }
+
+  verify-deployment:
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify published analysis provenance
+        run: node scripts/site/verify-publication.mjs "https://curtcox.github.io/twistedpear/results/raw/summary.json?sha=${GITHUB_SHA}" "${GITHUB_SHA}"
+
   aggregate:
-    needs: [build, deploy]
+    needs: [build, deploy, verify-deployment]
     if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:

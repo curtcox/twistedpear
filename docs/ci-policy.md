@@ -166,6 +166,9 @@ Pushes to `main` (and `workflow_dispatch`) build and deploy
 
 Reports are published even when a reported check fails; the workflow’s aggregate job then
 fails so the run stays red. Enable **Settings → Pages → GitHub Actions** once per repository.
+Each report and imported gate result is bound to the workflow SHA. Superseded runs cannot
+deploy, and the workflow verifies the public `/results/raw/summary.json` SHA after GitHub
+Pages reports a successful deployment.
 
 ## What CI does not cover (hardware or account)
 

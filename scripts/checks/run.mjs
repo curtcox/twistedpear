@@ -14,6 +14,14 @@ const only = value("only");
 const requiredFilter = value("requires");
 const matrix = args.includes("--matrix");
 
+function gitSha() {
+  const result = spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" });
+  return (result.stdout || "unknown").trim();
+}
+
+const checkoutCommit = gitSha();
+const branchSha = process.env.GITHUB_SHA ?? checkoutCommit;
+
 function hasCommand(command, commandArgs = ["--version"]) {
   return spawnSync(command, commandArgs, { encoding: "utf8" }).status === 0;
 }
@@ -75,6 +83,8 @@ for (const gate of selected) {
   const artifact = {
     id: gate.id,
     title: gate.title,
+    commit: checkoutCommit,
+    branchSha,
     command: gate.command.join(" "),
     requires: gate.requires,
     startedAt,
