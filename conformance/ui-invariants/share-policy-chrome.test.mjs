@@ -32,7 +32,12 @@ describe("share policy chrome", () => {
         : surface.path.endsWith(".web.tsx")
           ? "sendToWorker"
           : "sendToWorklet";
-      expect(source).toContain(`${sender}({ type: "device-revoke-share"`);
+      const escapedSender = sender.replace(".", "\\.");
+      expect(source).toMatch(
+        new RegExp(
+          `${escapedSender}\\(\\s*\\{\\s*type:\\s*"device-revoke-share"`,
+        ),
+      );
     });
   }
 });

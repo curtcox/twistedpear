@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { gates } from "./registry.mjs";
 
 const root = process.argv[2] ?? "gate-artifacts";
 const output = process.argv[3] ?? "static-analysis-summary.json";
-const artifacts = [];
+const discovered = new Map();
 function walk(directory) {
   if (!fs.existsSync(directory)) return;
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -15,7 +16,8 @@ function walk(directory) {
       target.includes(`${path.sep}checks${path.sep}`)
     ) {
       try {
-        artifacts.push(JSON.parse(fs.readFileSync(target, "utf8")));
+        const artifact = JSON.parse(fs.readFileSync(target, "utf8"));
+        discovered.set(artifact.id, artifact);
       } catch {
         /* keep aggregating */
       }
@@ -23,7 +25,23 @@ function walk(directory) {
   }
 }
 walk(root);
-artifacts.sort((a, b) => a.id.localeCompare(b.id));
+const artifacts = gates
+  .filter((gate) => gate.tier === "pr")
+  .map(
+    (gate) =>
+      discovered.get(gate.id) ?? {
+        id: gate.id,
+        title: gate.title,
+        command: gate.command.join(" "),
+        requires: gate.requires,
+        startedAt: null,
+        finishedAt: null,
+        exitCode: null,
+        ok: false,
+        host: null,
+        error: "Gate did not produce a result artifact.",
+      },
+  );
 const summary = {
   version: 1,
   generatedAt: new Date().toISOString(),
@@ -38,7 +56,8 @@ const lines = [
   "| Gate | Result |",
   "|---|---:|",
   ...artifacts.map(
-    (item) => `| ${item.title} | ${item.ok ? "✅ pass" : "❌ fail"} |`,
+    (item) =>
+      `| ${item.title} | ${item.ok ? "✅ pass" : item.error ? "❌ missing result" : "❌ fail"} |`,
   ),
   "",
   `[Workflow run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`,

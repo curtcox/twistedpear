@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-03
+audited: 2026-08-05
 register: none
 counterpart: docs/static-analysis-plan.md
 -->
@@ -30,7 +30,9 @@ renderer, and runner OS. The registry drives:
 surfaces every registry gate separately and writes a step summary plus
 `artifacts/checks/<id>.json`. `ci-green` is the single aggregate CI result. Pull requests
 also receive one updated per-gate dashboard comment and a `static-analysis-summary`
-artifact.
+artifact. Aggregation is registry-complete: if checkout, setup, installation, or a shared
+build fails before a gate can write its result, the dashboard includes that gate as a
+missing-result failure rather than silently omitting it.
 
 ## Ratcheted Node analysis
 
@@ -45,8 +47,8 @@ intentionally loosen a baseline.
 | Complexity      | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                 |
 | Repository lint | `npm run lint:all`         | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                         |
 | Typed lint      | `npm run lint:typed`       | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                  |
-| Formatting      | `npm run format:check`     | Prettier deviations grandfathered in `format-ratchet.json`; new deviations fail                                                                          |
-| Properties      | `npm run test:properties`  | seeded FastCheck codec round-trips and executable link/resource model traces                                                                             |
+| Formatting      | `npm run format:check`     | empty `format-ratchet.json`; the repository is normalized and every new deviation fails                                                                  |
+| Properties      | `npm run test:properties`  | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces  |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
@@ -60,6 +62,12 @@ commands are registry gates. Advisory exceptions require an ID, reason, and expi
 license expressions outside `license-allowlist.json` are ratcheted. GitHub secret scanning
 and push protection are enabled for the repository; Gitleaks keeps the same protection
 runnable locally and in CI.
+
+The first advisory survey found one transitive high-severity `vite` result in the local
+VitePress documentation toolchain, with no fix available through that dependency path.
+It has a narrow, expiring exception in `audit-allowlist.json`; all other high/critical
+findings remain unallowlisted. The repository-wide Prettier normalization commit is
+recorded in `.git-blame-ignore-revs`.
 
 ## Other source languages and nightly mutation testing
 

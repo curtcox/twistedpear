@@ -1,5 +1,13 @@
 {
   "version": 1,
   "description": "Temporary high/critical npm advisory exceptions. Each exception requires a reason and expires; this list may not grow on a PR.",
-  "entries": []
+  "entries": [
+    {
+      "id": "vite",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-03",
+      "reason": "Vite 5.4.21 is transitive through VitePress 1.6.4, is used only by the local documentation toolchain, and npm reports no fix through that dependency path; upgrade or remove before expiry."
+    }
+  ]
 }

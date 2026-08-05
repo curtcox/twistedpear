@@ -54,6 +54,45 @@ describe("static-analysis gate registry", () => {
     expect(reports).toContain("for (const gate of gates)");
   });
 
+  it("marks missing PR gate results as failures in the aggregate", () => {
+    const fixture = fs.mkdtempSync(
+      path.join(os.tmpdir(), "twistedpear-static-analysis-summary-"),
+    );
+    try {
+      const resultDir = path.join(fixture, "gate-lint", "artifacts", "checks");
+      fs.mkdirSync(resultDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(resultDir, "lint.json"),
+        JSON.stringify({ id: "lint", title: "Lint", ok: true }),
+      );
+      const output = path.join(fixture, "summary.json");
+      const aggregate = spawnSync(
+        globalThis.process.execPath,
+        ["scripts/checks/aggregate.mjs", fixture, output],
+        { cwd: root, encoding: "utf8" },
+      );
+      expect(aggregate.status).toBe(0);
+
+      const summary = JSON.parse(fs.readFileSync(output, "utf8"));
+      const prGates = gates.filter((gate) => gate.tier === "pr");
+      expect(summary.gates).toHaveLength(prGates.length);
+      expect(summary.gates.map(({ id }) => id)).toEqual(
+        prGates.map(({ id }) => id),
+      );
+      expect(summary.gates.find(({ id }) => id === "lint").ok).toBe(true);
+      expect(summary.gates.find(({ id }) => id === "properties")).toMatchObject(
+        {
+          ok: false,
+          error: "Gate did not produce a result artifact.",
+        },
+      );
+      expect(summary.ok).toBe(false);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+      fs.rmSync(path.join(root, "static-analysis-summary.md"), { force: true });
+    }
+  });
+
   it("publishes structured metrics for every gate on GitHub Pages", () => {
     expect(reports).toContain("summarizeStaticAnalysis");
     expect(reports).toContain("job.metrics =");
