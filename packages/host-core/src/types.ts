@@ -28,6 +28,14 @@ export interface RnsdAttachConfig {
 
 export type InterfaceDirection = "tx" | "rx" | "both";
 
+export function interfaceDirectionFlags(direction: InterfaceDirection): { incoming: boolean; outgoing: boolean } {
+  return direction === "tx"
+    ? { incoming: false, outgoing: true }
+    : direction === "rx"
+      ? { incoming: true, outgoing: false }
+      : { incoming: true, outgoing: true };
+}
+
 export interface RelayInterfaceCommon {
   readonly enabled: boolean;
   /** Which directions this interface may use. Defaults to "both". */

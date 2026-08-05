@@ -131,6 +131,7 @@ export {
   type AcousticChannel,
   type AcousticInterfaceOptions
 } from "./acoustic/interface.js";
+export { decodeAcousticFec, encodeAcousticFec } from "./acoustic/interface.js";
 export { SimulatedAcousticChannel, type SimulatedAcousticChannelOptions } from "./acoustic/sim.js";
 
 export {

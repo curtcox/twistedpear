@@ -24,9 +24,13 @@ export function createNodeMessageHandlers(deps) {
   const stopNode = (...args) => deps.stopNode(...args);
   const startPropagation = (...args) => deps.startPropagation(...args);
   const stopPropagation = (...args) => deps.stopPropagation(...args);
+  const ensureMiniappHost = (...args) => deps.ensureMiniappHost(...args);
+  const loadRelayConfig = (...args) => deps.loadRelayConfig(...args);
+  const persistRelayConfig = (...args) => deps.persistRelayConfig(...args);
 
   const handleStart = async (message) => {
     state.pendingTarget = { targetHost: message.targetHost, targetPort: message.targetPort };
+    await loadRelayConfig();
     state.multicastEntitled = message.multicastEntitled !== false;
     state.bonjourDiscoveryEnabled = message.bonjourEnabled !== false;
     if (status.tcpEnabled) {
@@ -86,6 +90,20 @@ export function createNodeMessageHandlers(deps) {
     return;
   };
 
+  const handleSetRelayConfig = async (message) => {
+    ensureMiniappHost();
+    const relay = state.relayService;
+    if (relay === null) throw new Error("Relay service is unavailable");
+    if (typeof message.mode === "string") await relay.setMode(message.mode);
+    if (message.directions && typeof message.directions === "object") {
+      for (const [kind, direction] of Object.entries(message.directions)) {
+        await relay.setDirection(kind, direction);
+      }
+    }
+    status.relayMode = relay.status().mode;
+    pushStatus();
+  };
+
   const handleSetFreenetConfig = async (message) => {
     const enabled = message.enabled === true;
     const interfaceEnabled = message.interfaceEnabled === true;
@@ -122,6 +140,7 @@ export function createNodeMessageHandlers(deps) {
     }
     pushStatus();
     await applyInterfaceConfig();
+    await persistRelayConfig();
     return;
   };
 
@@ -194,6 +213,7 @@ export function createNodeMessageHandlers(deps) {
       "network-change": handleNetworkChange,
       "stop": handleStop,
       "set-propagation": handleSetPropagation,
+      "set-relay-config": handleSetRelayConfig,
       "set-freenet-config": handleSetFreenetConfig,
       "join-community-network": handleJoinCommunityNetwork,
       "set-interfaces": handleSetInterfaces,

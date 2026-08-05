@@ -218,6 +218,16 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Relay &amp; Interfaces</Text>
+        <Text style={styles.muted}>Browser hosts are leaf peers and never forward other peers&apos; traffic. Configure relaying on the gateway node.</Text>
+        {(["tcp", "websocket", "auto", "i2p", "rnode", "bluetooth", "optical", "acoustic", "ntfy", "freenet"] as const).map((kind) => (
+          <Text key={`web-relay-${kind}`} style={styles.muted}>
+            {kind}: {kind === "websocket" ? (wsEnabled ? (status.linkOnline ? "leaf link online" : "leaf link offline") : "disabled") : kind === "rnode" ? (webSerialAvailable ? "leaf-only" : "unsupported") : "unsupported for relay"}
+          </Text>
+        ))}
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Gateway</Text>
         <Text style={styles.muted}>Connect through a node with `--ws-listen` (same origin when using `--serve-web`).</Text>
         <TextInput

@@ -1,7 +1,13 @@
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import { Packet, HdlcPacketInterface } from "@twistedpear/reticulum-ts";
 import type { OpticalChannel, OpticalInterfaceOptions } from "./channel.js";
-import { sliceForDisplay, OPTICAL_CHUNK_PAYLOAD_BYTES } from "./framing.js";
+import {
+  createOpticalReassemblyState,
+  reassembleOpticalChunk,
+  sliceForDisplay,
+  OPTICAL_CHUNK_PAYLOAD_BYTES,
+  type OpticalReassemblyState
+} from "./framing.js";
 
 export const OPTICAL_INTERFACE_MTU = 250;
 export const OPTICAL_DEFAULT_BITRATE = 1_000;
@@ -18,6 +24,7 @@ export class OpticalInterface extends HdlcPacketInterface {
   private readonly provider: CryptoProvider;
   private readonly channel: OpticalChannel;
   private readActive = false;
+  private reassembly: OpticalReassemblyState = createOpticalReassemblyState();
 
   constructor(provider: CryptoProvider, options: OpticalInterfaceOptions) {
     super(
@@ -33,7 +40,9 @@ export class OpticalInterface extends HdlcPacketInterface {
     this.channel = options.channel;
     this.channel.setReceiver((frame) => {
       if (this.readActive) {
-        this.receiveBytes(frame);
+        const result = reassembleOpticalChunk(this.reassembly, frame);
+        this.reassembly = result.state;
+        if (result.payload !== null) this.receiveBytes(result.payload);
       }
     });
   }

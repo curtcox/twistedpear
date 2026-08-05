@@ -42,6 +42,9 @@ describe("relay capabilities", () => {
     const ids = CAPABILITY_DEFINITIONS.map((entry) => entry.id);
     expect(ids).toContain("relay:configure");
     expect(ids).toContain("relay:read");
+    const configure = CAPABILITY_DEFINITIONS.find((entry) => entry.id === "relay:configure")!;
+    expect(configure.description).toMatch(/camera.*microphone.*other people's traffic/i);
+    expect(configure.description).toMatch(/without another prompt/i);
   });
 
   it("denies relay:configure when not declared", () => {
@@ -68,9 +71,11 @@ describe("relay capabilities", () => {
 describe("RelayBrokerService", () => {
   it("validates and forwards setMode", async () => {
     const mock = new MockRelayService();
-    const broker = new RelayBrokerService(mock);
+    const notices: unknown[] = [];
+    const broker = new RelayBrokerService(mock, (notice) => notices.push(notice));
     await broker.setMode("app", { mode: "bridge" });
     expect(mock.mode).toBe("bridge");
+    expect(notices).toEqual([{ appId: "app", method: "setMode" }]);
     await expect(broker.setMode("app", { mode: "invalid" as never })).rejects.toThrow(RelayBrokerServiceError);
   });
 
@@ -80,6 +85,12 @@ describe("RelayBrokerService", () => {
     await broker.enable("app", { kind: "ntfy", options: { topic: "test" } });
     expect(mock.enabled).toContainEqual({ kind: "ntfy", options: { topic: "test" } });
     await expect(broker.enable("app", { kind: "bad" as never })).rejects.toThrow(RelayBrokerServiceError);
+    await expect(
+      broker.enable("app", { kind: "ntfy", options: { bearerToken: 42 as never } })
+    ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
+    await expect(
+      broker.enable("app", { kind: "ntfy", options: { __protoPollution: true } })
+    ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
   });
 
   it("validates direction on setDirection", async () => {
@@ -90,6 +101,22 @@ describe("RelayBrokerService", () => {
     await expect(broker.setDirection("app", { kind: "ntfy", direction: "sideways" as never })).rejects.toThrow(
       RelayBrokerServiceError
     );
+  });
+
+  it("validates configuration patches and every policy matrix cell", async () => {
+    const mock = new MockRelayService();
+    const broker = new RelayBrokerService(mock);
+    await broker.configure("app", { kind: "acoustic", patch: { band: "ultrasonic", bitrate: 800 } });
+    await expect(
+      broker.configure("app", { kind: "acoustic", patch: { band: "infrared" as never } })
+    ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
+    await broker.setPolicy("app", { policy: { allow: { ntfy: { bluetooth: true } } } });
+    await expect(
+      broker.setPolicy("app", { policy: { allow: { ntfy: { bluetooth: "yes" as never } } } })
+    ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
+    await expect(
+      broker.setPolicy("app", { policy: { allow: { bogus: { tcp: true } } } as never })
+    ).rejects.toMatchObject({ code: "RELAY_BAD_REQUEST" });
   });
 });
 

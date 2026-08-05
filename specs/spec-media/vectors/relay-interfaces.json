@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "directions": {
+    "tx": { "incoming": false, "outgoing": true },
+    "rx": { "incoming": true, "outgoing": false },
+    "both": { "incoming": true, "outgoing": true }
+  },
+  "optical": {
+    "inputHex": "00010203",
+    "frameBytes": 12,
+    "framesHex": ["544f0001000451b100010203", "544f0101000451b100010203"]
+  },
+  "acousticFec": {
+    "inputHex": "005aff",
+    "encodedHex": "0000005a5a5affffff"
+  },
+  "ntfy": {
+    "secret": "relay-secret",
+    "nonceHex": "000102030405060708090a0b0c0d0e0f1011121314151617",
+    "inputHex": "00010203",
+    "sealedHex": "01000102030405060708090a0b0c0d0e0f10111213141516176b3a8c2f9ee4febe318a1917989baaa2b5a8e925"
+  }
+}

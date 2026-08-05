@@ -17,6 +17,7 @@ import {
   generateConfirmationToken
 } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
+import { BridgeForwarder } from "../../../packages/host-core/dist/bridge-forwarder.js";
 import {
   createMiniappAnnounceService,
   createWorkletMiniappHost
@@ -54,6 +55,54 @@ export function createMiniappHostOps(deps) {
   const publishArchiveFromWorklet = (...args) => deps.publishArchiveFromWorklet(...args);
   const publishArchiveAsIdentity = (...args) => deps.publishArchiveAsIdentity(...args);
   const installFromT256 = (...args) => deps.installFromT256(...args);
+  const relayConfigStore = runtimeKeyValueStore();
+  const relayConfigStoreKey = "relay-config-v1";
+  let relayConfigLoaded = false;
+
+  async function persistRelayConfig() {
+    await relayConfigStore.set(
+      relayConfigStoreKey,
+      new TextEncoder().encode(JSON.stringify({
+        mode: status.relayMode,
+        directions: status.relayDirections,
+        policy: state.relayPolicy,
+        enabled: {
+          tcp: status.tcpEnabled,
+          auto: status.autoEnabled,
+          bluetooth: status.bleEnabled,
+          rnode: status.rnodeEnabled
+        }
+      }))
+    );
+  }
+
+  async function loadRelayConfig() {
+    if (relayConfigLoaded) return;
+    relayConfigLoaded = true;
+    const stored = await relayConfigStore.get(relayConfigStoreKey);
+    if (stored === null) return;
+    try {
+      const saved = JSON.parse(new TextDecoder().decode(stored));
+      ensureMiniappHost();
+      const relay = state.relayService;
+      if (relay === null) throw new Error("Relay service is unavailable");
+      if (saved.enabled && typeof saved.enabled === "object") {
+        for (const kind of ["tcp", "auto", "bluetooth", "rnode"]) {
+          if (saved.enabled[kind] === true) await relay.enable(kind);
+          else if (saved.enabled[kind] === false) await relay.disable(kind);
+        }
+      }
+      if (["off", "bridge", "transport-node"].includes(saved.mode)) await relay.setMode(saved.mode);
+      if (saved.directions && typeof saved.directions === "object") {
+        for (const [kind, direction] of Object.entries(saved.directions)) {
+          if (["tx", "rx", "both"].includes(direction)) await relay.setDirection(kind, direction);
+        }
+      }
+      if (saved.policy && typeof saved.policy === "object") await relay.setPolicy(saved.policy);
+    } catch (error) {
+      log(`Ignored invalid persisted relay config: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 
   const transportAnnounceService = createMiniappAnnounceService({
     provider,
@@ -86,7 +135,11 @@ export function createMiniappHostOps(deps) {
           if (patch.bleEnabled !== undefined) status.bleEnabled = patch.bleEnabled;
           if (patch.rnodeEnabled !== undefined) status.rnodeEnabled = patch.rnodeEnabled;
         },
-        applyInterfaceConfig,
+        async applyInterfaceConfig() {
+          await applyInterfaceConfig();
+          state.relayBridge?.refresh();
+          await persistRelayConfig();
+        },
         setTcpTarget(host, port) {
           state.pendingTarget = { targetHost: host, targetPort: port };
         },
@@ -94,8 +147,46 @@ export function createMiniappHostOps(deps) {
           if (typeof options.deviceId === "string") state.pendingRnodeDeviceId = options.deviceId;
           if (typeof options.portPath === "string") state.pendingRnodePortPath = options.portPath;
           if (typeof options.baudRate === "number") state.pendingRnodeBaudRate = options.baudRate;
+        },
+        async setMode(mode) {
+          const node = await ensureReticulum();
+          state.relayBridge?.stop();
+          state.relayBridge = null;
+          node.setTransportEnabled(mode === "transport-node");
+          status.transportEnabled = mode === "transport-node";
+          status.relayMode = mode;
+          if (mode === "bridge") {
+            state.relayBridge = new BridgeForwarder({
+              provider,
+              getInterfaces: () => node.listInterfaces(),
+              getPolicy: () => state.relayPolicy
+            });
+            state.relayBridge.start();
+          }
+          pushStatus();
+          await persistRelayConfig();
+        },
+        async setDirection(kind, direction) {
+          const iface = kind === "tcp" ? state.tcpIface
+            : kind === "auto" ? state.autoIface
+              : kind === "bluetooth" ? state.bleIface
+                : kind === "rnode" ? state.rnodeIface
+                  : null;
+          if (iface !== null) {
+            iface.incoming = direction !== "tx";
+            iface.outgoing = direction !== "rx";
+          }
+          status.relayDirections = { ...status.relayDirections, [kind]: direction };
+          state.relayBridge?.refresh();
+          pushStatus();
+          await persistRelayConfig();
+        },
+        async setPolicy(policy) {
+          state.relayPolicy = policy;
+          await persistRelayConfig();
         }
       });
+      state.relayService = relayService;
       state.miniappHost = createWorkletMiniappHost({
         provider,
         kvStore: runtimeKeyValueStore(),
@@ -104,6 +195,7 @@ export function createMiniappHostOps(deps) {
           ? {}
           : { createSandboxBackend: () => new NodeWorkerSandboxBackend(), sandboxBackend: "node-worker" }),
         getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (state.peerSessionManager?.routes.list().length ?? 0) }),
+        relayMutation: (notice) => send({ type: "relay-attribution", ...notice }),
         getHostInfoSnapshot: () => {
           const interfaceTypes = [];
           if (status.tcpEnabled) interfaceTypes.push("tcp");
@@ -397,6 +489,8 @@ export function createMiniappHostOps(deps) {
   return {
     transportAnnounceService,
     ensureMiniappHost,
+    loadRelayConfig,
+    persistRelayConfig,
     seedBundledCatalogIfNeeded,
     ensurePackageDriveManager
   };

@@ -11,7 +11,9 @@ import {
 } from "@twistedpear/reticulum-ts";
 import {
   AcousticInterface,
-  SimulatedAcousticChannel
+  SimulatedAcousticChannel,
+  decodeAcousticFec,
+  encodeAcousticFec
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -40,6 +42,13 @@ async function nextPacket(iterable: AsyncIterable<Packet>, timeoutMs = 500): Pro
 }
 
 describe("AcousticInterface with SimulatedAcousticChannel", () => {
+  it("corrects one corrupted repetition in every encoded byte", () => {
+    const data = Uint8Array.from({ length: 128 }, (_, index) => index);
+    const encoded = encodeAcousticFec(data);
+    for (let index = 1; index < encoded.length; index += 3) encoded[index] ^= 0b0101_1010;
+    expect(decodeAcousticFec(encoded)).toEqual(data);
+  });
+
   it("sends a packet through linked channels and receives it", async () => {
     const channelA = new SimulatedAcousticChannel();
     const channelB = new SimulatedAcousticChannel();
@@ -62,6 +71,12 @@ describe("AcousticInterface with SimulatedAcousticChannel", () => {
     // The HDLC-encoded bytes from A's writeBytes → transmit → peer B's receiver → B's receiveBytes → HDLC decode
     const received = await nextPacket(ifaceB.packets);
     expect(Array.from(received.data)).toEqual([1, 2, 3]);
+    expect(ifaceA.bytesOut).toBeGreaterThan(0);
+    expect(ifaceB.bytesIn).toBeGreaterThan(0);
+
+    await ifaceA.send(makePacket(new Uint8Array([4, 5, 6])));
+    const second = await nextPacket(ifaceB.packets);
+    expect(Array.from(second.data)).toEqual([4, 5, 6]);
 
     await ifaceA.close();
     await ifaceB.close();

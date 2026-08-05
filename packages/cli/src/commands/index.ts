@@ -11,4 +11,4 @@ export {
   runUpdate,
   runSeed
 } from "./app-commands.js";
-export { runNode, resolveFreenetNodeFlags } from "./node-commands.js";
+export { runNode, resolveFreenetNodeFlags, resolveRelayNodeFlags } from "./node-commands.js";

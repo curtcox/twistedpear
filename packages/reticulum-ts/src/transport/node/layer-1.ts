@@ -31,7 +31,7 @@ protected readonly pathTable = new Map<string, PathEntry>();
   protected readonly pendingLinks: Link[] = [];
   protected readonly activeLinks: Link[] = [];
   protected readonly useImplicitProof: boolean;
-  protected readonly transportEnabled: boolean;
+  transportEnabled: boolean;
   protected readonly pathRequestHash: Uint8Array;
   protected readonly pathRequests = new Map<string, number>();
   protected readonly discoveryPrTags = new Set<string>();

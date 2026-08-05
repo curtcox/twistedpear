@@ -8,7 +8,7 @@ import { BandwidthLimiter } from "../../../packages/reticulum-ts/dist/transport/
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
 import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
-import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
+import { DEFAULT_INTERFACE_BITRATES, inferInterfaceKind, selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { createDesktopPeerChrome } from "./peer-chrome.mjs";
 import { createPeerSessionOps } from "./peer-session.mjs";
@@ -103,7 +103,10 @@ const state = {
   attachWebRtcMediaTrack: null,
   moderationState: { version: 1, blocked: [], muted: [], reports: [] },
   testAgent: null,
-  crossDeviceTestDriver: null
+  crossDeviceTestDriver: null,
+  relayService: null,
+  relayBridge: null,
+  relayPolicy: {}
 };
 
 const provider = await createCryptoProvider(IS_DESKTOP_HOST);
@@ -149,7 +152,9 @@ const status = {
   activeLinkCount: 0,
   bandwidthBytesIn: 0,
   bandwidthBytesOut: 0,
-  transportEnabled: IS_DESKTOP_HOST,
+  transportEnabled: false,
+  relayMode: "off",
+  relayDirections: { tcp: "both", auto: "both", bluetooth: "both", rnode: "both" },
   propagationEnabled: false,
   freenetEnabled: false,
   freenetUrl: null,
@@ -391,6 +396,7 @@ const quiesceInterfaces = createQuiesceInterfaces({
 const {
   startPropagation,
   stopPropagation,
+  ensureMiniappHost,
   stopBleInterface,
   stopRnodeInterface,
   stopFreenetInterface,
@@ -469,6 +475,8 @@ const { ensurePeerSessionManager, peerSessionManagerProxy } = createPeerSessionO
 
 const {
   ensureMiniappHost,
+  loadRelayConfig,
+  persistRelayConfig,
   seedBundledCatalogIfNeeded,
   ensurePackageDriveManager
 } = createMiniappHostOps({
@@ -544,6 +552,12 @@ function pushStatus() {
     status.bandwidthBytesIn = state.reticulum.bandwidthBytesIn;
     status.bandwidthBytesOut = state.reticulum.bandwidthBytesOut;
     status.transportEnabled = state.reticulum.isTransportEnabled;
+    const relayKinds = ["tcp", "websocket", "auto", "i2p", "rnode", "bluetooth", "optical", "acoustic", "ntfy", "freenet"];
+    status.relayInterfaces = relayKinds.map((kind) => {
+      const matching = interfaces.filter((iface) => inferInterfaceKind(iface.name) === kind || (kind === "bluetooth" && inferInterfaceKind(iface.name) === "ble"));
+      const enabled = kind === "tcp" ? status.tcpEnabled : kind === "auto" ? status.autoEnabled : kind === "bluetooth" ? status.bleEnabled : kind === "rnode" ? status.rnodeEnabled : kind === "freenet" ? status.freenetInterfaceEnabled : false;
+      return { kind, enabled, online: matching.some((iface) => iface.online), direction: status.relayDirections?.[kind] ?? "both", bitrate: matching.find((iface) => iface.bitrate !== null)?.bitrate ?? DEFAULT_INTERFACE_BITRATES[kind] ?? null, bytesIn: matching.reduce((sum, iface) => sum + (iface.bytesIn ?? 0), 0), bytesOut: matching.reduce((sum, iface) => sum + (iface.bytesOut ?? 0), 0), supported: ["tcp", "auto", "rnode", "bluetooth", "freenet"].includes(kind) };
+    });
   } else {
     status.preferredInterface = null;
     status.onlineInterfaces = 0;
@@ -588,6 +602,8 @@ const nodeMessages = createNodeMessageHandlers({
   stopPropagation,
   ensureReticulum,
   ensureMiniappHost,
+  loadRelayConfig,
+  persistRelayConfig,
   loadPacketLogWasm
 });
 

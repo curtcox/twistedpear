@@ -83,6 +83,7 @@ import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
+import { BridgeForwarder } from "../../../packages/host-core/dist/bridge-forwarder.js";
 import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, meterHostPeerRoute, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
 
 export async function ensureBareWebSocketImpl(context) {
@@ -317,7 +318,11 @@ export function ensureMiniappHostImpl(context) {
                 if (patch.rnodeEnabled !== undefined)
                     context.status.rnodeEnabled = patch.rnodeEnabled;
             },
-            applyInterfaceConfig,
+            async applyInterfaceConfig() {
+                await applyInterfaceConfig();
+                context.relayBridge?.refresh();
+                await context.persistRelayConfig();
+            },
             setTcpTarget(host, port) {
                 context.pendingTarget = { targetHost: host, targetPort: port };
             },
@@ -326,8 +331,45 @@ export function ensureMiniappHostImpl(context) {
                     context.pendingRnodeDeviceId = options.deviceId;
                 if (typeof options.baudRate === "number")
                     context.pendingRnodeBaudRate = options.baudRate;
+            },
+            async setMode(mode) {
+                const node = await context.ensureReticulum();
+                context.relayBridge?.stop();
+                context.relayBridge = null;
+                node.setTransportEnabled(mode === "transport-node");
+                context.status.relayMode = mode;
+                if (mode === "bridge") {
+                    context.relayBridge = new BridgeForwarder({
+                        provider: context.provider,
+                        getInterfaces: () => node.listInterfaces(),
+                        getPolicy: () => context.relayPolicy
+                    });
+                    context.relayBridge.start();
+                }
+                context.pushStatus();
+                await context.persistRelayConfig();
+            },
+            async setDirection(kind, direction) {
+                const iface = kind === "tcp" ? context.tcpIface
+                    : kind === "auto" ? context.autoIface
+                        : kind === "bluetooth" ? context.bleIface
+                            : kind === "rnode" ? context.rnodeIface
+                                : null;
+                if (iface !== null) {
+                    iface.incoming = direction !== "tx";
+                    iface.outgoing = direction !== "rx";
+                }
+                context.status.relayDirections = { ...context.status.relayDirections, [kind]: direction };
+                context.relayBridge?.refresh();
+                context.pushStatus();
+                await context.persistRelayConfig();
+            },
+            async setPolicy(policy) {
+                context.relayPolicy = policy;
+                await context.persistRelayConfig();
             }
         });
+        context.relayService = relayService;
         context.miniappHost = createWorkletMiniappHost({
             provider,
             kvStore: context.runtimeKeyValueStore(),
@@ -340,6 +382,7 @@ export function ensureMiniappHostImpl(context) {
                 await context.ensureMiniappHost().launch(installed, context.runtime, appId);
             },
             getPresenceSnapshot: () => ({ ...context.status, autoPeers: context.status.autoPeers + (context.peerSessionManager?.routes.list().length ?? 0) }),
+            relayMutation: (notice) => context.send({ type: "relay-attribution", ...notice }),
             peerSessionManager: context.peerSessionManagerProxy,
             realtimeReservations: { reserveRealtime: (bytesPerSecond) => context.outboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
             controlReservations: { reserveControl: (bytesPerSecond) => context.outboundBandwidthLimiter.reserve("control", bytesPerSecond) },

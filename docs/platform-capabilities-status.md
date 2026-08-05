@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-31
+audited: 2026-08-05
 register: none
 -->
 
@@ -70,7 +70,9 @@ Cross-cutting wiring gaps (affect many rows below):
 - Shipping desktop / android / ios worklets inject `peerSessionManager`, a **simulated**
   `deviceManager` (with host Devices chrome), and a **flag-plane** `relayService`
   (`createWorkletFlagRelayService`) that drives the same `applyInterfaceConfig` path as
-  Settings. Full `InterfaceManager` / bridge-mode ownership is still node-only.
+  Settings. Those worklets now hot-toggle the real transport node, bridge forwarder,
+  policy matrix, and supported interface directions; the full ten-kind `InterfaceManager`
+  remains node-only and unavailable kinds are reported explicitly.
 - Desktop and web replace simulated `location` / `camera` / `microphone` / `battery` /
   `tts` / `haptics` drivers with **host-bridged** Chromium/browser effects where APIs
   exist; other device classes remain simulated. Native mobile bridges `location` /
@@ -131,12 +133,14 @@ Cross-cutting wiring gaps (affect many rows below):
   Line Check conformance path are complete. Shipping hosts still need their observed
   transport telemetry wired into `LinkObservatoryBackend`; until then those cells remain
   `partial` rather than claiming live link measurements.
-- **`relay:*` on web**: full transport-node relay is out of scope for browser leaves
+- **`relay:*` on web**: forwarding is out of scope for browser leaves
   ([LIMITATIONS §8](../LIMITATIONS.md)); cells are `n/a`. On `node`, `InterfaceManager` is
   exposed on `NodeHostSession` and a focused wiring test proves the mini-app broker path
   (`packages/cli/test/host-relay-device-wiring.test.ts`). On desktop/android/ios, worklets
-  inject `createWorkletFlagRelayService` over Settings `applyInterfaceConfig` → `partial`
-  (bridge mode / InterfaceManager ownership still open).
+  inject `createWorkletFlagRelayService` over Settings `applyInterfaceConfig`, real hot
+  transport/bridge switching, direction control, policy, telemetry rows, and attribution
+  chrome → `partial` because optional I2P/optical/acoustic/ntfy/Freenet effect ownership is
+  not uniform across shipping worklets.
 - **`freenet:contract`**: brokered in HOST_API 0.11.0 with irreversible-update
   confirmation on put/update. `createNodeHost` exposes `freenetBackend` when
   `interfaces.freenet.url` is set; desktop Settings drive a worklet proxy via

@@ -28,8 +28,43 @@ import type { useNativeHarnessController } from "./app-native-controller.js";
 export type NativeHarnessScope = ReturnType<typeof useNativeHarnessController>;
 export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope }) {
   const { status, setStatus, announces, setAnnounces, catalog, setCatalog, installed, setInstalled, installProgress, setInstallProgress, serviceRunning, setServiceRunning, lifecycleState, setLifecycleState, logLines, setLogLines, tcpEnabled, setTcpEnabled, autoEnabled, setAutoEnabled, bleEnabled, setBleEnabled, rnodeEnabled, setRnodeEnabled, usbDevices, setUsbDevices, selectedUsbDeviceId, setSelectedUsbDeviceId, selectedCatalogAppId, setSelectedCatalogAppId, selectedInstalledAppId, setSelectedInstalledAppId, grantCapabilities, setGrantCapabilities, miniappRuntime, setMiniappRuntime, miniappBenchmark, setMiniappBenchmark, miniappLogs, setMiniappLogs, developerMode, setDeveloperMode, devChannelDetail, setDevChannelDetail, devHost, setDevHost, devPort, setDevPort, ntfyUrl, setNtfyUrl, ntfyToken, setNtfyToken, freenetGrant, setFreenetGrant, freenetDisclosureAccepted, setFreenetDisclosureAccepted, freenetGrantError, setFreenetGrantError, freenetSession, setFreenetSession, peerModal, setPeerModal, hostConfirm, setHostConfirm, hostReview, setHostReview, install256tInput, setInstall256tInput, trustIdentityInput, setTrustIdentityInput, trustLabelInput, setTrustLabelInput, trustedPublishers, setTrustedPublishers, hostIdentity256t, setHostIdentity256t, deviceState, setDeviceState, sessionInvites, setSessionInvites, cameraPermission, requestCameraPermission, peerCameraActive, setPeerCameraActive, peerQrFrame, setPeerQrFrame, workletRef, ipcBufferRef, multicastIpcRef, bonjourIpcRef, bleIpcRef, usbIpcRef, workspaceReadCounterRef, peerRtcRef, pendingWorkspaceReadsRef, appendLog, sendToWorklet, seedShareOfferChrome, revokeShareOfferChrome, applyFreenetGrantToWorklet, activateFreenetGrant, readWorkspaceDocument, handleWorkletMessage, performPeerAudio, pushInterfaceConfig, workletReadyRef, stopWorklet, startWorklet, interfacesWantedWorkletRef, peerQrUri } = scope;
+  const { relayNotice, setRelayNotice } = scope;
+  const [relayMode, setRelayMode] = useState<"off" | "bridge" | "transport-node">("off");
+  const [relayDirections, setRelayDirections] = useState<Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">>({
+    tcp: "both",
+    auto: "both",
+    bluetooth: "both",
+    rnode: "both"
+  });
+  useEffect(() => {
+    if (status.relayMode !== undefined) setRelayMode(status.relayMode);
+    if (status.relayDirections !== undefined) setRelayDirections((previous) => ({ ...previous, ...status.relayDirections }));
+  }, [status.relayMode, status.relayDirections]);
+  const selectRelayMode = (mode: "off" | "bridge" | "transport-node") => {
+    setRelayMode(mode);
+    void startWorklet().then((ready) => { if (ready) sendToWorklet({ type: "set-relay-config", mode }); });
+  };
+  const cycleDirection = (kind: keyof typeof relayDirections) => {
+    const current = relayDirections[kind];
+    const direction = current === "both" ? "rx" : current === "rx" ? "tx" : "both";
+    setRelayDirections((previous) => ({ ...previous, [kind]: direction }));
+    void startWorklet().then((ready) => { if (ready) sendToWorklet({ type: "set-relay-config", directions: { [kind]: direction } }); });
+  };
   return <>
 <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Relay &amp; Interfaces</Text>
+        {relayNotice === null ? null : (
+          <View style={styles.card}>
+            <Text>Mini-app {relayNotice.appId} changed relay settings ({relayNotice.method}{relayNotice.kind === undefined ? "" : `: ${relayNotice.kind}`}).</Text>
+            <ActionButton label="Dismiss" onPress={() => setRelayNotice(null)} />
+          </View>
+        )}
+        <Text style={styles.muted}>Off keeps this device online without forwarding peer traffic.</Text>
+        <View style={styles.buttonRow}>
+          <ActionButton label={relayMode === "off" ? "✓ Off" : "Off"} onPress={() => selectRelayMode("off")} />
+          <ActionButton label={relayMode === "bridge" ? "✓ Bridge" : "Bridge"} onPress={() => selectRelayMode("bridge")} />
+          <ActionButton label={relayMode === "transport-node" ? "✓ Transport" : "Transport"} onPress={() => selectRelayMode("transport-node")} />
+        </View>
         <View style={styles.buttonRow}>
           <ActionButton
             testID="create-identity"
@@ -50,6 +85,18 @@ export function NativeHarnessViewPart2({ scope }: { scope: NativeHarnessScope })
           />
         </View>
         <Row testID="tcp-client-switch" label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
+        {(["tcp", "auto", "bluetooth", "rnode"] as const).map((kind) => (
+          <ActionButton
+            key={`relay-direction-${kind}`}
+            label={`${kind} direction: ${relayDirections[kind].toUpperCase()}`}
+            onPress={() => cycleDirection(kind)}
+          />
+        ))}
+        {(status.relayInterfaces ?? []).map((entry) => (
+          <Text key={`relay-status-${entry.kind}`} style={styles.muted}>
+            {entry.kind}: {entry.supported ? (entry.enabled ? (entry.online ? "online" : "offline") : "disabled") : "unsupported"} · {entry.direction.toUpperCase()} · {entry.bitrate ?? "—"} bps · ↓{entry.bytesIn} ↑{entry.bytesOut}
+          </Text>
+        ))}
         <View style={styles.buttonRow}>
           <ActionButton
             testID="connect-test-agent"

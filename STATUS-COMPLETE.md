@@ -1,9 +1,8 @@
 # TwistedPear — Verified complete work
 
-
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-05
 register: complete
 -->
 
@@ -14,7 +13,7 @@ This is an evidence archive, not a backlog. Open software work is tracked in
 [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md); device-, account-, and real-network-gated work is
 tracked in [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
-Last audited: 2026-07-21.
+Last audited: 2026-08-05.
 
 ## v1 release pipeline
 
@@ -33,6 +32,7 @@ Last audited: 2026-07-21.
 | PD-BANDWIDTH | done | Shared zero-burst ingress/egress caps across Reticulum, forwarding, Hyperdrive, and gateway bulk fetch | `packages/reticulum-ts/src/transport/bandwidth.ts`, `packages/bridge-hyper/src/core/swarm.ts` | `npx vitest run packages/reticulum-ts/test/bandwidth-limiter.test.ts packages/bridge-hyper/test/gateway-bulk-fetch.test.ts` |
 | PD-BOOTSTRAP | done | Opt-in, redundant community Reticulum TCP profile with explicit privacy notice on desktop and Android | `packages/host-core/src/community-network.ts`, `docs/community-network.md` | `npx vitest run packages/host-core/test/community-network.test.ts conformance/ui-invariants/community-network.test.mjs` |
 | RG7 | done | Separately granted embeddings and bounded cosine vector search | `packages/miniapp-sdk/test/ai.test.ts`, `packages/miniapp-runtime/test/workspace-ai.test.ts`, `cookbook/apps/ask-the-handbook/` | `npx vitest run packages/miniapp-sdk/test/ai.test.ts packages/miniapp-runtime/test/workspace-ai.test.ts conformance/cookbook/cookbook.test.mjs` |
+| RELAY | done | Configurable ten-kind Interface Manager, hot off/bridge/transport relay, optical/acoustic/ntfy adapters, brokered SDK, host status chrome, spec and vectors (software tier) | [live docs](docs/relay-interfaces.md), `packages/host-core/test/`, `packages/reticulum-interfaces/test/`, `packages/miniapp-runtime/test/relay.test.ts` | `npm test -- packages/host-core/test/interface-manager.test.ts packages/host-core/test/bridge-forwarder.test.ts packages/host-core/test/ntfy-interface.test.ts packages/host-core/test/relay-vectors.test.ts packages/reticulum-interfaces/test/optical-interface.test.ts packages/reticulum-interfaces/test/acoustic-interface.test.ts packages/miniapp-runtime/test/relay.test.ts` |
 
 ---
 

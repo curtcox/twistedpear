@@ -32,6 +32,7 @@ import {
   defaultHostConfig,
   defaultWebLeafConfig
 } from "../src/types.js";
+import { validateHostConfig } from "../src/config.js";
 
 describe("host-core protocol", () => {
   it("round-trips newline-delimited JSON", () => {
@@ -61,6 +62,19 @@ describe("host-core config", () => {
     expect(() =>
       assertWebLeafRoles({ transport: true, seeder: false, propagation: false, attachRnsd: null })
     ).toThrow(/leaf-only/);
+  });
+
+  it("rejects unsafe relay and interface configurations before effects start", () => {
+    expect(() => validateHostConfig(defaultHostConfig({
+      roles: { transport: false },
+      relay: { mode: "transport-node" }
+    }))).toThrow(/transport role/);
+    expect(() => validateHostConfig(defaultHostConfig({
+      interfaces: { ntfy: { enabled: true, topic: "topic" } }
+    }))).toThrow(/topic and secret/);
+    expect(() => validateHostConfig(defaultHostConfig({
+      interfaces: { rnode: { enabled: true } }
+    }))).toThrow(/portPath/);
   });
 });
 
@@ -136,7 +150,7 @@ describe("host-core interface manager exposure", () => {
         identityPassphrase: "conformance identity passphrase",
         config: defaultHostConfig({
           dataDir,
-          roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
+          roles: { transport: true, seeder: false, propagation: false, attachRnsd: null },
           relay: { mode: "off" },
           interfaces: {
             tcp: { enabled: false, mode: "client" },
@@ -149,8 +163,12 @@ describe("host-core interface manager exposure", () => {
 
       expect(session.interfaceManager).toBeDefined();
       expect(session.interfaceManager.status().mode).toBe("off");
+      expect(session.reticulum.isTransportEnabled).toBe(false);
       await session.interfaceManager.setMode("transport-node");
       expect(session.interfaceManager.status().mode).toBe("transport-node");
+      expect(session.reticulum.isTransportEnabled).toBe(true);
+      await session.interfaceManager.setMode("off");
+      expect(session.reticulum.isTransportEnabled).toBe(false);
       expect(Array.isArray(session.interfaceManager.list())).toBe(true);
       await expect(session.interfaceManager.diagnostics()).resolves.toEqual(expect.any(Array));
       await session.stop();

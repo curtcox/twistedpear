@@ -8,6 +8,7 @@ import type {
   RelayService,
   RelayStatus
 } from "./relay.js";
+import { RelayBrokerServiceError } from "./relay.js";
 
 const MANAGED_KINDS: ReadonlyArray<RelayInterfaceKind> = ["tcp", "auto", "bluetooth", "rnode"];
 
@@ -33,6 +34,12 @@ export interface WorkletFlagRelayController {
   setTcpTarget?(host: string, port: number): void;
   /** Optional: stash RNode device/port before enabling. */
   setRnodeOptions?(options: Record<string, unknown>): void;
+  /** Change actual relay behavior; omitted by hosts that cannot hot-toggle it. */
+  setMode?(mode: RelayMode): void | Promise<void>;
+  /** Rebuild or reconfigure the real PacketInterface direction. */
+  setDirection?(kind: RelayInterfaceKind, direction: InterfaceDirection): void | Promise<void>;
+  /** Apply bridge forwarding policy in the host transport plane. */
+  setPolicy?(policy: RelayPolicyMatrix): void | Promise<void>;
   /** Desktop defaults to transport-node; mobile leaf defaults to off. */
   initialMode?: RelayMode;
 }
@@ -81,6 +88,12 @@ export function createWorkletFlagRelayService(controller: WorkletFlagRelayContro
     }
   };
 
+  const requireManaged = (kind: RelayInterfaceKind): void => {
+    if (kindToEnabled(kind, controller.getFlags()) === null) {
+      throw new RelayBrokerServiceError("RELAY_UNSUPPORTED", `${kind} is not managed by this host`);
+    }
+  };
+
   const list = (): ReadonlyArray<InterfaceStatus> => {
     const flags = controller.getFlags();
     return MANAGED_KINDS.map((kind) => {
@@ -101,21 +114,15 @@ export function createWorkletFlagRelayService(controller: WorkletFlagRelayContro
 
   return {
     async setMode(next: RelayMode): Promise<void> {
-      mode = next;
-      if (next === "off") {
-        controller.setFlags({
-          tcpEnabled: false,
-          autoEnabled: false,
-          bleEnabled: false,
-          rnodeEnabled: false
-        });
-        await controller.applyInterfaceConfig();
+      if (next === mode) return;
+      if (controller.setMode === undefined) {
+        throw new RelayBrokerServiceError("RELAY_UNSUPPORTED", "This host cannot hot-change relay mode");
       }
+      await controller.setMode(next);
+      mode = next;
     },
     async enable(kind: RelayInterfaceKind, options?: Record<string, unknown>): Promise<void> {
-      if (kindToEnabled(kind, controller.getFlags()) === null) {
-        return;
-      }
+      requireManaged(kind);
       if (kind === "tcp") {
         const host = typeof options?.targetHost === "string" ? options.targetHost : undefined;
         const port = typeof options?.targetPort === "number" ? options.targetPort : 4242;
@@ -134,11 +141,11 @@ export function createWorkletFlagRelayService(controller: WorkletFlagRelayContro
         controller.setFlags({ rnodeEnabled: true });
       }
       await controller.applyInterfaceConfig();
+      const direction = directions.get(kind) ?? "both";
+      if (direction !== "both") await controller.setDirection?.(kind, direction);
     },
     async disable(kind: RelayInterfaceKind): Promise<void> {
-      if (kindToEnabled(kind, controller.getFlags()) === null) {
-        return;
-      }
+      requireManaged(kind);
       if (kind === "tcp") controller.setFlags({ tcpEnabled: false });
       else if (kind === "auto") controller.setFlags({ autoEnabled: false });
       else if (kind === "bluetooth") controller.setFlags({ bleEnabled: false });
@@ -146,15 +153,25 @@ export function createWorkletFlagRelayService(controller: WorkletFlagRelayContro
       await controller.applyInterfaceConfig();
     },
     async setDirection(kind: RelayInterfaceKind, direction: InterfaceDirection): Promise<void> {
-      if (kindToEnabled(kind, controller.getFlags()) === null) {
-        return;
+      requireManaged(kind);
+      if (directions.get(kind) === direction) return;
+      if (controller.setDirection === undefined) {
+        throw new RelayBrokerServiceError("RELAY_UNSUPPORTED", `${kind} direction cannot be changed on this host`);
       }
+      await controller.setDirection(kind, direction);
       directions.set(kind, direction);
     },
     async configure(kind: RelayInterfaceKind, patch: Record<string, unknown>): Promise<void> {
-      await this.enable(kind, patch);
+      const wasEnabled = kindToEnabled(kind, controller.getFlags()) === true;
+      if (patch.enabled === false) await this.disable(kind);
+      else if (patch.enabled === true || wasEnabled) await this.enable(kind, patch);
+      if (patch.direction !== undefined) await this.setDirection(kind, patch.direction as InterfaceDirection);
     },
     async setPolicy(next: RelayPolicyMatrix): Promise<void> {
+      if (controller.setPolicy === undefined) {
+        throw new RelayBrokerServiceError("RELAY_UNSUPPORTED", "This host does not implement a relay policy matrix");
+      }
+      await controller.setPolicy(next);
       policy = next;
     },
     list,

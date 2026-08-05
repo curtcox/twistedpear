@@ -48,6 +48,11 @@ const extractedContext = {
   get sendPeerChromeResponse() { return sendPeerChromeResponse; }, set sendPeerChromeResponse(value) { sendPeerChromeResponse = value; },
   get sessionInviteBanner() { return sessionInviteBanner; },
   get settingAuto() { return settingAuto; },
+  get settingRelayMode() { return settingRelayMode; },
+  get settingTcpDirection() { return settingTcpDirection; },
+  get settingAutoDirection() { return settingAutoDirection; },
+  get settingRnodeDirection() { return settingRnodeDirection; },
+  get relayInterfaceTable() { return relayInterfaceTable; },
   get settingRnodePort() { return settingRnodePort; },
   get settingTcp() { return settingTcp; },
   get showHostModal() { return showHostModal; }, set showHostModal(value) { showHostModal = value; },
@@ -99,6 +104,10 @@ const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
 const settingRnodePort = document.querySelector("#setting-rnode-port");
+const settingRelayMode = document.querySelector("#setting-relay-mode");
+const settingTcpDirection = document.querySelector("#setting-tcp-direction");
+const settingAutoDirection = document.querySelector("#setting-auto-direction");
+const settingRnodeDirection = document.querySelector("#setting-rnode-direction");
 const settingFreenet = document.querySelector("#setting-freenet");
 const settingFreenetUrl = document.querySelector("#setting-freenet-url");
 const settingFreenetToken = document.querySelector("#setting-freenet-token");
@@ -120,6 +129,8 @@ const moderationBlocked = document.querySelector("#moderation-blocked");
 const moderationMuted = document.querySelector("#moderation-muted");
 const moderationSummary = document.querySelector("#moderation-summary");
 const deviceActiveBanner = document.querySelector("#device-active-banner");
+const relayAttributionBanner = document.querySelector("#relay-attribution-banner");
+const relayInterfaceTable = document.querySelector("#relay-interface-table");
 const sessionInviteBanner = document.querySelector("#session-invite-banner");
 const deviceInventory = document.querySelector("#device-inventory");
 const deviceSessions = document.querySelector("#device-sessions");
@@ -195,6 +206,33 @@ if (!host) {
   for (const element of [settingTcp, settingAuto, settingRnodePort]) {
     element?.addEventListener("change", applyInterfaceSettings);
   }
+
+  const applyRelaySettings = () => {
+    const relay = {
+      mode: settingRelayMode?.value ?? "off",
+      directions: {
+        tcp: settingTcpDirection?.value ?? "both",
+        auto: settingAutoDirection?.value ?? "both",
+        rnode: settingRnodeDirection?.value ?? "both"
+      }
+    };
+    localStorage.setItem("tp-relay-config", JSON.stringify(relay));
+    host.send({ type: "set-relay-config", ...relay });
+  };
+  try {
+    const savedRelay = JSON.parse(localStorage.getItem("tp-relay-config") ?? "{}");
+    if (settingRelayMode && ["off", "bridge", "transport-node"].includes(savedRelay.mode)) settingRelayMode.value = savedRelay.mode;
+    for (const [element, kind] of [[settingTcpDirection, "tcp"], [settingAutoDirection, "auto"], [settingRnodeDirection, "rnode"]]) {
+      const value = savedRelay.directions?.[kind];
+      if (element && ["tx", "rx", "both"].includes(value)) element.value = value;
+    }
+  } catch {
+    // Ignore malformed local relay settings.
+  }
+  for (const element of [settingRelayMode, settingTcpDirection, settingAutoDirection, settingRnodeDirection]) {
+    element?.addEventListener("change", applyRelaySettings);
+  }
+  applyRelaySettings();
 
   const applyAiSettings = () => {
     const config = {
@@ -357,6 +395,13 @@ if (!host) {
       if (settingPropagation) {
         settingPropagation.checked = Boolean(message.status.propagationEnabled);
       }
+    }
+
+    if (message.type === "relay-attribution" && relayAttributionBanner) {
+      const target = message.kind ? ` for ${message.kind}` : "";
+      relayAttributionBanner.textContent = `Mini-app ${message.appId} changed relay settings${target}. Click to dismiss.`;
+      relayAttributionBanner.hidden = false;
+      relayAttributionBanner.onclick = () => { relayAttributionBanner.hidden = true; };
     }
 
     if (message.type === "log") {

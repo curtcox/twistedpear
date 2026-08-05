@@ -57,6 +57,41 @@ function connectTransportTopology(): {
 }
 
 describe("TransportNode over PipeInterface", () => {
+  it("hot-toggles forwarding without replacing registered interfaces", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const transport = Reticulum.create({ provider, runtime });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    transport.start();
+    right.start();
+    const [leftPipe, transportLeftPipe] = PipeInterface.pair(provider);
+    const [transportRightPipe, rightPipe] = PipeInterface.pair(provider);
+    left.registerInterface(leftPipe);
+    transport.registerInterface(transportLeftPipe);
+    transport.registerInterface(transportRightPipe);
+    right.registerInterface(rightPipe);
+    const destination = right.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["hot-toggle"]
+    });
+
+    await destination.announce();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(left.hasPath(destination.hash)).toBe(false);
+
+    transport.setTransportEnabled(true);
+    expect(transport.isTransportEnabled).toBe(true);
+    await destination.announce();
+    await waitFor(() => (left.hasPath(destination.hash) ? true : null));
+
+    transport.setTransportEnabled(false);
+    expect(transport.isTransportEnabled).toBe(false);
+  });
+
   it("continues announce fan-out when one interface send fails", async () => {
     const left = Reticulum.create({ provider, runtime });
     const transport = Reticulum.create({ provider, runtime, transportEnabled: true });

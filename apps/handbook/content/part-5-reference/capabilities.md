@@ -30,7 +30,7 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`peer:connect`** — Ask trusted host chrome to find, confirm, and connect an app-scoped peer.
 - **`link:observe`** — See which peers are reachable and how good the connection to each is.
 - **`link:probe`** — Send a small test transmission to measure a connection (uses airtime and battery).
-- **`relay:configure`** — Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time).
+- **`relay:configure`** — Turn this device's radios, camera, microphone, speaker, and internet-push relaying on or off, and forward other people's traffic. This grant permits changes without another prompt.
 - **`relay:read`** — Read host relay mode, interface status, and diagnostics.
 - **`freenet:contract`** — Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update).
 - **`device:location`** — Host-mediated geolocation. Default tier is quantized coarse (~1 km); precise is a separate elevated grant. (default tier; consent: low).

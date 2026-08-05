@@ -3,7 +3,7 @@ import { createWorkletFlagRelayService } from "../src/services/worklet-flag-rela
 import type { WorkletFlagRelaySnapshot } from "../src/services/worklet-flag-relay.js";
 
 describe("createWorkletFlagRelayService", () => {
-  it("reports flags, enables/disables interfaces, and turns mode off", async () => {
+  it("reports flags and routes mutations through the real host control callbacks", async () => {
     const flags: WorkletFlagRelaySnapshot = {
       tcpEnabled: true,
       autoEnabled: false,
@@ -16,6 +16,8 @@ describe("createWorkletFlagRelayService", () => {
     };
     let applied = 0;
     const targets: Array<{ host: string; port: number }> = [];
+    const modes: string[] = [];
+    const directions: Array<{ kind: string; direction: string }> = [];
     const service = createWorkletFlagRelayService({
       initialMode: "transport-node",
       getFlags: () => flags,
@@ -27,6 +29,15 @@ describe("createWorkletFlagRelayService", () => {
       },
       setTcpTarget(host, port) {
         targets.push({ host, port });
+      },
+      setMode(mode) {
+        modes.push(mode);
+      },
+      setDirection(kind, direction) {
+        directions.push({ kind, direction });
+      },
+      setPolicy() {
+        // The host callback is the forwarding-policy boundary.
       }
     });
 
@@ -45,11 +56,34 @@ describe("createWorkletFlagRelayService", () => {
 
     await service.setMode("off");
     expect(service.status().mode).toBe("off");
-    expect(flags.tcpEnabled).toBe(false);
-    expect(flags.autoEnabled).toBe(false);
-    expect(applied).toBe(3);
+    expect(flags.tcpEnabled).toBe(true);
+    expect(flags.autoEnabled).toBe(true);
+    expect(modes).toEqual(["off"]);
+    expect(applied).toBe(2);
+
+    await service.setDirection("tcp", "rx");
+    expect(directions).toEqual([{ kind: "tcp", direction: "rx" }]);
 
     const diagnostics = await service.diagnostics();
     expect(diagnostics.find((entry) => entry.kind === "ntfy")?.state).toBe("unsupported");
+  });
+
+  it("rejects status-only mutations and unsupported interface kinds", async () => {
+    const flags: WorkletFlagRelaySnapshot = {
+      tcpEnabled: false,
+      autoEnabled: false,
+      bleEnabled: false,
+      rnodeEnabled: false
+    };
+    const service = createWorkletFlagRelayService({
+      getFlags: () => flags,
+      setFlags(patch) { Object.assign(flags, patch); },
+      async applyInterfaceConfig() {}
+    });
+
+    await expect(service.setMode("bridge")).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
+    await expect(service.setDirection("tcp", "rx")).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
+    await expect(service.enable("ntfy")).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
+    await expect(service.setPolicy({ allow: { tcp: { auto: false } } })).rejects.toMatchObject({ code: "RELAY_UNSUPPORTED" });
   });
 });

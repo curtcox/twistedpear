@@ -7,7 +7,6 @@ import { PipeInterface, type PipeInterfaceOptions } from "./interfaces/pipe.js";
 import type { Runtime } from "./runtime/runtime.js";
 import { RegisteredDestination } from "./registered-destination.js";
 import {
-  LeafTransport,
   type AnnounceHandler,
   type DropObserver,
   type LeafTransportOptions
@@ -34,7 +33,8 @@ export class Reticulum {
   readonly provider: CryptoProvider;
   readonly runtime: Runtime;
   readonly transportIdentity: Identity;
-  private readonly transport: LeafTransport;
+  private readonly transport: TransportNode;
+  private readonly interfaceObservers = new Set<() => void>();
   private started = false;
 
   constructor(options: ReticulumOptions) {
@@ -59,10 +59,10 @@ export class Reticulum {
         : { outboundBandwidthLimiter: options.outboundBandwidthLimiter }),
       ...(options.useImplicitProof === undefined ? {} : { useImplicitProof: options.useImplicitProof })
     };
-    this.transport =
-      options.transportEnabled === true
-        ? new TransportNode({ ...transportOptions, transportEnabled: true })
-        : new LeafTransport(transportOptions);
+    this.transport = new TransportNode({
+      ...transportOptions,
+      transportEnabled: options.transportEnabled === true
+    });
   }
 
   static create(options: ReticulumOptions): Reticulum {
@@ -97,10 +97,18 @@ export class Reticulum {
 
   registerInterface(iface: PacketInterface): void {
     this.transport.registerInterface(iface);
+    for (const observer of this.interfaceObservers) observer();
   }
 
   unregisterInterface(iface: PacketInterface): void {
     this.transport.unregisterInterface(iface);
+    for (const observer of this.interfaceObservers) observer();
+  }
+
+  /** Observe registry changes, including clients spawned by server interfaces. */
+  observeInterfaces(observer: () => void): () => void {
+    this.interfaceObservers.add(observer);
+    return () => this.interfaceObservers.delete(observer);
   }
 
   async addPipeInterface(options: Omit<PipeInterfaceOptions, "provider">): Promise<PipeInterface> {
@@ -127,6 +135,9 @@ export class Reticulum {
     });
     server.setSpawnHandler((client) => {
       this.registerInterface(client);
+    });
+    server.setDetachHandler((client) => {
+      this.unregisterInterface(client);
     });
     await server.start();
     return server;
@@ -178,7 +189,12 @@ export class Reticulum {
   }
 
   get isTransportEnabled(): boolean {
-    return this.transport instanceof TransportNode;
+    return this.transport.transportEnabled;
+  }
+
+  /** Hot-toggle transport-node forwarding without replacing registered state. */
+  setTransportEnabled(enabled: boolean): void {
+    this.transport.transportEnabled = enabled;
   }
 
   listInterfaces(): ReadonlyArray<PacketInterface> {

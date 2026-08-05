@@ -88,9 +88,24 @@ describe("sliceForDisplay / reassembleOpticalChunk", () => {
   it("single chunk for small payload", () => {
     const data = new Uint8Array(10);
     const chunks = sliceForDisplay(data);
-    expect(chunks.length).toBe(1);
-    expect(chunks[0]![0]).toBe(0); // seq
-    expect(chunks[0]![1]).toBe(1); // total
+    expect(chunks.length).toBe(2); // one source plus one repair frame
+    expect(chunks[0]!.subarray(0, 2)).toEqual(new Uint8Array([0x54, 0x4f]));
+    expect(chunks[0]![2]).toBe(0);
+    expect(chunks[0]![3]).toBe(1);
+  });
+
+  it("recovers one dropped source frame from the repair frame", () => {
+    const data = Uint8Array.from({ length: 500 }, (_, index) => index & 0xff);
+    const chunks = sliceForDisplay(data);
+    const withoutSecondSource = chunks.filter((chunk) => chunk[2] !== 1);
+    let state = createOpticalReassemblyState();
+    let payload: Uint8Array | null = null;
+    for (const chunk of withoutSecondSource.reverse()) {
+      const result = reassembleOpticalChunk(state, chunk);
+      state = result.state;
+      payload = result.payload ?? payload;
+    }
+    expect(payload).toEqual(data);
   });
 });
 
@@ -111,24 +126,11 @@ describe("OpticalInterface with SimulatedOpticalChannel", () => {
       channel: channelB
     });
 
-    const pkt = makePacket();
+    const data = Uint8Array.from({ length: 210 }, (_, index) => index & 0xff);
+    const pkt = makePacket(data);
     await ifaceA.send(pkt);
-
-    // Channel B receives the display chunks from A and delivers to its interface
-    // Wait for async delivery
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    // The chunks from A's display are delivered to B's receiver.
-    // But since the OpticalInterface uses HDLC framing and then sliceForDisplay,
-    // and the simulated channel delivers raw chunks, B needs to reassemble.
-    // Actually let's verify the interface correctly sends/receives.
-
-    // The simulated channel delivers individual chunks. The HdlcPacketInterface
-    // on B side will accumulate HDLC frames from the received chunk bytes.
-    // However, the chunks include sequence headers. We need the receiving side
-    // to reassemble chunks before passing to HDLC decode.
-    // This means we need the channel receiver to do reassembly.
-    // Let me verify the actual flow works with the current design.
+    const received = await nextPacket(ifaceB.packets);
+    expect(received.data).toEqual(data);
 
     await ifaceA.close();
     await ifaceB.close();

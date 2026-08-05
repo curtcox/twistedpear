@@ -1,5 +1,37 @@
-import type { CryptoProvider } from "@twistedpear/reticulum-ts";
-import { Packet, HdlcPacketInterface, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import {
+  Packet,
+  HdlcPacketInterface,
+  framePeerAudioPayload,
+  decodePeerAudioFrame,
+  initialPeerAudioAssemblyState,
+  stepPeerAudioAssembly,
+  type CryptoProvider,
+  type ReticulumInterfaceOptions,
+  type PeerAudioAssemblyState,
+} from "@twistedpear/reticulum-ts";
+
+/** Three-way bit-majority repetition code for the noisy acoustic carrier. */
+export function encodeAcousticFec(bytes: Uint8Array): Uint8Array {
+  const encoded = new Uint8Array(bytes.length * 3);
+  for (let index = 0; index < bytes.length; index += 1) {
+    encoded[index * 3] = bytes[index]!;
+    encoded[index * 3 + 1] = bytes[index]!;
+    encoded[index * 3 + 2] = bytes[index]!;
+  }
+  return encoded;
+}
+
+export function decodeAcousticFec(encoded: Uint8Array): Uint8Array | null {
+  if (encoded.length === 0 || encoded.length % 3 !== 0) return null;
+  const decoded = new Uint8Array(encoded.length / 3);
+  for (let index = 0; index < decoded.length; index += 1) {
+    const a = encoded[index * 3]!;
+    const b = encoded[index * 3 + 1]!;
+    const c = encoded[index * 3 + 2]!;
+    decoded[index] = (a & b) | (a & c) | (b & c);
+  }
+  return decoded;
+}
 
 export const ACOUSTIC_INTERFACE_MTU = 128;
 export const ACOUSTIC_DEFAULT_BITRATE = 500;
@@ -42,27 +74,30 @@ export class AcousticInterface extends HdlcPacketInterface {
   private readonly provider: CryptoProvider;
   private readonly channel: AcousticChannel;
   private readActive = false;
+  private assembly: PeerAudioAssemblyState = initialPeerAudioAssemblyState(
+    Date.now() + 30_000,
+  );
+  private completedSessionId: Uint8Array | null = null;
 
   constructor(provider: CryptoProvider, options: AcousticInterfaceOptions) {
     super(
       {
         ...options,
         mtu: options.mtu ?? ACOUSTIC_INTERFACE_MTU,
-        bitrate: options.bitrate ?? ACOUSTIC_DEFAULT_BITRATE
+        bitrate: options.bitrate ?? ACOUSTIC_DEFAULT_BITRATE,
       },
       options.incoming ?? true,
-      options.outgoing ?? true
+      options.outgoing ?? true,
     );
     this.provider = provider;
     this.channel = options.channel;
-    this.channel.setReceiver((frame) => {
-      if (this.readActive) {
-        this.receiveBytes(frame);
-      }
-    });
+    this.channel.setReceiver((frame) => this.receiveAcousticFrame(frame));
   }
 
-  static async open(provider: CryptoProvider, options: AcousticInterfaceOptions): Promise<AcousticInterface> {
+  static async open(
+    provider: CryptoProvider,
+    options: AcousticInterfaceOptions,
+  ): Promise<AcousticInterface> {
     const iface = new AcousticInterface(provider, options);
     await iface.start();
     return iface;
@@ -78,8 +113,55 @@ export class AcousticInterface extends HdlcPacketInterface {
     return Packet.decode(this.provider, frame);
   }
 
+  private receiveAcousticFrame(frame: Uint8Array): void {
+    if (!this.readActive) return;
+    const decoded = decodeAcousticFec(frame);
+    if (decoded === null) return;
+    let sessionId: Uint8Array;
+    try {
+      sessionId = decodePeerAudioFrame(decoded).sessionId;
+    } catch {
+      return;
+    }
+    if (this.sameCompletedSession(sessionId)) return;
+    if (!this.stepAssembly(decoded, sessionId)) {
+      this.assembly = initialPeerAudioAssemblyState(Date.now() + 30_000);
+      this.stepAssembly(decoded, sessionId);
+    }
+  }
+
+  private sameCompletedSession(sessionId: Uint8Array): boolean {
+    return (
+      this.completedSessionId !== null &&
+      this.completedSessionId.length === sessionId.length &&
+      this.completedSessionId.every((byte, index) => byte === sessionId[index])
+    );
+  }
+
+  private stepAssembly(decoded: Uint8Array, sessionId: Uint8Array): boolean {
+    try {
+      const result = stepPeerAudioAssembly(this.assembly, decoded, Date.now());
+      this.assembly =
+        result.payload === null
+          ? result.state
+          : initialPeerAudioAssemblyState(Date.now() + 30_000);
+      if (result.payload !== null) {
+        this.completedSessionId = sessionId;
+        this.receiveBytes(result.payload);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   protected override async writeBytes(bytes: Uint8Array): Promise<void> {
-    await this.channel.transmit([bytes]);
+    const frames = framePeerAudioPayload(
+      this.provider.randomBytes(16),
+      bytes,
+      96,
+    ).map(encodeAcousticFec);
+    await this.channel.transmit(frames);
   }
 
   protected async closeInterface(): Promise<void> {

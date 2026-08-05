@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-16
+audited: 2026-08-05
 register: hardware
 -->
 
@@ -33,6 +33,7 @@ Last audited: 2026-07-06.
 | 8 | Spare Linux box (home server) | low | H20 |
 | 9 | Phone + desktop on LAN (Handbook) | low | H21 |
 | 10 | RNode + phone (Handbook) | moderate | H22 |
+| 11 | 2 camera/audio-capable phones + disposable ntfy topic | low | H23 |
 
 ---
 
@@ -62,6 +63,7 @@ Last audited: 2026-07-06.
 | H20 | Always-on Linux server | 6 | 2-week unattended `tp node` run |
 | H21 | 1 Android phone + desktop | D | Handbook device-gated probes (BLE / AutoInterface) + cross-device report diff |
 | H22 | RNode pair + phone | D | Handbook RNode serial applet pass on hardware |
+| H23 | 2 phones + real ntfy service | Relay | Optical/acoustic/ntfy loopback, mixed-media relay, permission and attribution evidence |
 
 ---
 
@@ -514,3 +516,21 @@ Software proves desktop Bare (`npm run test:bare-hyperdrive`). On phone/emulator
 3. Export report and compare with a TCP-only host — RNode row should show **=** on phone, **≈** (expected unavailable) on desktop.
 
 **Pass:** applet reports `pass` with RNode path online.
+
+## H23 — Relay physical media and live ntfy evidence
+
+**Clears:** the external validation gates in
+[the relay interfaces plan](docs/relay-interfaces-plan.md).
+
+1. Run bidirectional optical camera↔screen and acoustic speaker↔microphone packet
+   loopbacks between two physical phones; include frame loss/noise, foreground/background,
+   permission prompts, and live medium indicators.
+2. Run encrypted packet round-trips through a disposable public ntfy topic and a
+   self-hosted server; verify wrong-secret rejection, bearer auth, reconnect, and cleanup.
+3. Exercise ntfy→BLE and BLE→optical bridge policies plus a two-hop transport-node path.
+4. From a granted mini-app, change a sensitive interface and verify persistent app
+   attribution, Settings synchronization, restart persistence, byte counters, quotas,
+   direction gates, and policy denials on Android and iOS.
+
+**Pass:** the five evidence groups in the plan have reproducible logs, measured limits are
+recorded in `LIMITATIONS.md`, and any discovered software defects are closed separately.

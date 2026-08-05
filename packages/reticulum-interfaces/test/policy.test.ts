@@ -29,6 +29,7 @@ describe("interface prioritization policy", () => {
     expect(inferInterfaceKind("harness-auto")).toBe(InterfaceKind.AUTO);
     expect(inferInterfaceKind("docker-peer")).toBe(InterfaceKind.UNKNOWN);
     expect(inferInterfaceKind("harness-ble")).toBe(InterfaceKind.BLE);
+    expect(inferInterfaceKind("host-ws-gateway")).toBe(InterfaceKind.WEBSOCKET);
     expect(inferInterfaceKind("rnode-usb")).toBe(InterfaceKind.RNODE);
     expect(inferInterfaceKind("host-freenet")).toBe(InterfaceKind.FREENET);
   });

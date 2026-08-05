@@ -226,6 +226,9 @@ export interface WorkletStatus {
   readonly autoPeers: number;
   readonly preferredInterface: string | null;
   readonly onlineInterfaces: number;
+  readonly relayMode?: "off" | "bridge" | "transport-node";
+  readonly relayDirections?: Readonly<Partial<Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">>>;
+  readonly relayInterfaces?: ReadonlyArray<{ readonly kind: string; readonly enabled: boolean; readonly online: boolean; readonly direction: "tx" | "rx" | "both"; readonly bitrate: number | null; readonly bytesIn: number; readonly bytesOut: number; readonly supported: boolean }>;
   readonly catalogEntries: number;
   readonly installedPackages: number;
   readonly storageUsedBytes: number;
@@ -289,6 +292,11 @@ export type HostToWorkletMessage =
       readonly rnode: boolean;
       readonly rnodeDeviceId?: number | null;
       readonly rnodeBaudRate?: number;
+    }
+  | {
+      readonly type: "set-relay-config";
+      readonly mode?: "off" | "bridge" | "transport-node";
+      readonly directions?: Readonly<Partial<Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">>>;
     }
   | {
       readonly type: "set-freenet-config";
@@ -407,6 +415,7 @@ export type HostToWorkletMessage =
 
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
+  | { readonly type: "relay-attribution"; readonly appId: string; readonly method: string; readonly kind?: string }
   | { readonly type: "log"; readonly line: string }
   | { readonly type: "announce"; readonly entry: AnnounceEntry }
   | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }

@@ -304,6 +304,7 @@ export function createWorkletMiniappHost(options) {
     controlReservations: options.controlReservations,
     inboundMediaBackend: options.inboundMediaBackend ?? peerRouteMediaBridge,
     relayService: options.relayService,
+    relayMutation: options.relayMutation,
     ...(options.freenetBackend === undefined ? {} : { freenetBackend: options.freenetBackend }),
     deviceManager,
     callbacks: {

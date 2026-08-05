@@ -17,6 +17,7 @@
     </header>
     <aside id="session-invite-banner" class="device-active-banner" hidden aria-live="polite"></aside>
     <aside id="device-active-banner" class="device-active-banner" hidden aria-live="polite"></aside>
+    <aside id="relay-attribution-banner" class="device-active-banner" hidden aria-live="polite"></aside>
     <main>
       <section class="panel">
         <h2>Node status</h2>
@@ -71,6 +72,30 @@
           <label><input type="checkbox" id="device-remote-enabled" /> Allow remote peers to request devices on this host</label>
           <div id="device-sessions" class="device-sessions"></div>
           <div id="device-inventory" class="device-inventory"></div>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Relay &amp; Interfaces</h2>
+        <p class="muted">Interfaces remain available for this device in Off mode; Bridge and Transport Node additionally forward peer traffic.</p>
+        <div class="settings-grid">
+          <label>Relay mode
+            <select id="setting-relay-mode" class="setting-input">
+              <option value="off">Off</option>
+              <option value="bridge">Bridge</option>
+              <option value="transport-node">Transport node</option>
+            </select>
+          </label>
+          <label>TCP direction
+            <select id="setting-tcp-direction" class="setting-input"><option value="both">TX + RX</option><option value="tx">TX only</option><option value="rx">RX only</option></select>
+          </label>
+          <label>Auto (LAN) direction
+            <select id="setting-auto-direction" class="setting-input"><option value="both">TX + RX</option><option value="tx">TX only</option><option value="rx">RX only</option></select>
+          </label>
+          <label>RNode direction
+            <select id="setting-rnode-direction" class="setting-input"><option value="both">TX + RX</option><option value="tx">TX only</option><option value="rx">RX only</option></select>
+          </label>
+          <small class="setting-note">Bluetooth is unavailable on desktop. Optical, acoustic, ntfy, I2P, and WebSocket relay diagnostics are exposed through the SDK when a corresponding host driver is installed.</small>
+          <div id="relay-interface-table" class="device-inventory" aria-live="polite"></div>
         </div>
       </section>
       <section class="panel">

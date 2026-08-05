@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-08-05
 register: none
 -->
 
@@ -63,6 +63,9 @@ The codebase already has the seams a browser port needs:
 Roles: the web host is always a **leaf peer**. Browsers cannot accept inbound
 connections, so transport node, seeder, and propagation-server roles are
 permanently out of scope for this target (see [LIMITATIONS.md](../LIMITATIONS.md) §8).
+The Relay & Interfaces panel therefore shows the complete interface taxonomy but marks
+forwarding unsupported and directs configuration to the gateway. `relay:*` is `n/a` on web;
+the WebSocket and WebSerial interfaces still carry the browser's own leaf traffic.
 
 ## Workstream A — WebSocket Reticulum interface
 

@@ -46,10 +46,12 @@ export interface TcpServerInterfaceOptions extends ReticulumInterfaceOptions {
 }
 
 export type SpawnedInterfaceHandler = (iface: TcpClientInterface) => void;
+export type DetachedInterfaceHandler = (iface: TcpClientInterface) => void;
 
 export class TcpClientInterface extends HdlcPacketInterface {
   private connection: DuplexConnection | null = null;
   private lastConnectionError: Error | null = null;
+  private onClosed: DetachedInterfaceHandler | null = null;
   private readTask: Promise<void> | null = null;
   private reconnectTimer: Timer | null = null;
   private reconnectState: InterfaceReconnectState;
@@ -104,6 +106,10 @@ export class TcpClientInterface extends HdlcPacketInterface {
     return this.lastConnectionError;
   }
 
+  setCloseHandler(handler: DetachedInterfaceHandler): void {
+    this.onClosed = handler;
+  }
+
   async initialConnect(): Promise<void> {
     if (this.connected !== null) {
       this.attachConnection(this.connected);
@@ -146,6 +152,8 @@ export class TcpClientInterface extends HdlcPacketInterface {
       await this.connection.close();
       this.connection = null;
     }
+    this.onClosed?.(this);
+    this.onClosed = null;
   }
 
   private attachConnection(connection: DuplexConnection): void {
@@ -360,6 +368,7 @@ export class TcpServerInterface {
   private acceptTask: Promise<void> | null = null;
   private readonly spawned: TcpClientInterface[] = [];
   private onSpawned: SpawnedInterfaceHandler | null = null;
+  private onDetached: DetachedInterfaceHandler | null = null;
   private closed = false;
   private listenAddress: { host: string; port: number } | null = null;
 
@@ -369,7 +378,7 @@ export class TcpServerInterface {
     private readonly options: TcpServerInterfaceOptions
   ) {
     this.name = options.name;
-    this.incoming = true;
+    this.incoming = options.incoming ?? true;
     this.outgoing = options.outgoing ?? true;
     this.mtu = options.mtu ?? 500;
     this.bitrate = options.bitrate ?? null;
@@ -377,6 +386,10 @@ export class TcpServerInterface {
 
   setSpawnHandler(handler: SpawnedInterfaceHandler): void {
     this.onSpawned = handler;
+  }
+
+  setDetachHandler(handler: DetachedInterfaceHandler): void {
+    this.onDetached = handler;
   }
 
   async start(): Promise<void> {
@@ -435,11 +448,17 @@ export class TcpServerInterface {
           runtime: this.runtime,
           mtu: this.mtu,
           bitrate: this.bitrate,
+          incoming: this.incoming,
           outgoing: this.outgoing
         },
         connection,
         this.outgoing
       );
+      client.setCloseHandler((closed) => {
+        const index = this.spawned.indexOf(closed);
+        if (index >= 0) this.spawned.splice(index, 1);
+        this.onDetached?.(closed);
+      });
       this.spawned.push(client);
       this.onSpawned?.(client);
     }

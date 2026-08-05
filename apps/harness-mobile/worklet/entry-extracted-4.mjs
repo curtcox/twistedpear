@@ -100,6 +100,7 @@ export async function handleHostMessageImpl(context, raw) {
     }
     if (message.type === "start") {
         context.pendingTarget = { targetHost: message.targetHost, targetPort: message.targetPort };
+        await context.loadRelayConfig();
         const nextNtfyUrl = typeof message.ntfyUrl === "string" && message.ntfyUrl.trim() !== "" ? message.ntfyUrl.trim() : null;
         if (nextNtfyUrl !== context.ntfyUrl) {
             context.ntfyUrl = nextNtfyUrl;
@@ -640,6 +641,19 @@ export async function handleHostMessageImpl(context, raw) {
         context.pendingRnodeBaudRate = message.rnodeBaudRate ?? 115200;
         context.pushStatus();
         await context.applyInterfaceConfig();
+        await context.persistRelayConfig();
+        return;
+    }
+    if (message.type === "set-relay-config") {
+        context.ensureMiniappHost();
+        if (context.relayService === null)
+            throw new Error("Relay service is unavailable");
+        if (typeof message.mode === "string")
+            await context.relayService.setMode(message.mode);
+        if (message.directions && typeof message.directions === "object") {
+            for (const [kind, direction] of Object.entries(message.directions))
+                await context.relayService.setDirection(kind, direction);
+        }
         return;
     }
     if (message.type === "set-freenet-config") {

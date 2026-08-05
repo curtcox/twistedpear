@@ -109,7 +109,9 @@ protected readonly broker: MiniappBroker;
     this.appsService =
       options.appsBackend === undefined ? null : new AppsService(options.appsBackend, options.confirmationChannel);
     this.peerService = options.peerSessionManager === undefined ? null : new PeerBrokerService(options.peerSessionManager);
-    this.relayService = options.relayService === undefined ? null : new RelayBrokerService(options.relayService);
+    this.relayService = options.relayService === undefined
+      ? null
+      : new RelayBrokerService(options.relayService, options.relayMutation);
     this.freenetService =
       options.freenetBackend === undefined
         ? null

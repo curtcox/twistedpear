@@ -1,3 +1,4 @@
+/* global TextDecoder, TextEncoder */
 /**
  * Bare worklet entry (bundled with bare-pack for react-native-bare-kit).
  * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
@@ -174,6 +175,11 @@ const extractedContext = {
   get resolveIdentity() { return resolveIdentity; }, set resolveIdentity(value) { resolveIdentity = value; },
   get resumeInterfaces() { return resumeInterfaces; }, set resumeInterfaces(value) { resumeInterfaces = value; },
   get reticulum() { return reticulum; }, set reticulum(value) { reticulum = value; },
+  get relayBridge() { return relayBridge; }, set relayBridge(value) { relayBridge = value; },
+  get relayPolicy() { return relayPolicy; }, set relayPolicy(value) { relayPolicy = value; },
+  get relayService() { return relayService; }, set relayService(value) { relayService = value; },
+  get loadRelayConfig() { return loadRelayConfig; },
+  get persistRelayConfig() { return persistRelayConfig; },
   get rnodeIface() { return rnodeIface; }, set rnodeIface(value) { rnodeIface = value; },
   get runtime() { return runtime; },
   get runtimeKeyValueStore() { return runtimeKeyValueStore; }, set runtimeKeyValueStore(value) { runtimeKeyValueStore = value; },
@@ -244,6 +250,8 @@ const status = {
   autoPeers: 0,
   preferredInterface: null,
   onlineInterfaces: 0,
+  relayMode: "off",
+  relayDirections: { tcp: "both", auto: "both", bluetooth: "both", rnode: "both" },
   catalogEntries: 0,
   installedPackages: 0,
   storageUsedBytes: 0,
@@ -458,6 +466,45 @@ let hostLxmfDelivery = null;
 /** Test-only peer control agent; mounted only by `connect-test-agent`. */
 let testAgent = null;
 let crossDeviceTestDriver = null;
+let relayBridge = null;
+let relayPolicy = {};
+let relayService = null;
+let relayConfigLoaded = false;
+const RELAY_CONFIG_STORE_KEY = "relay-config-v1";
+async function persistRelayConfig() {
+  await runtime.store.set(RELAY_CONFIG_STORE_KEY, new TextEncoder().encode(JSON.stringify({
+    mode: status.relayMode,
+    directions: status.relayDirections,
+    policy: relayPolicy,
+    enabled: { tcp: status.tcpEnabled, auto: status.autoEnabled,
+      bluetooth: status.bleEnabled, rnode: status.rnodeEnabled }
+  })));
+}
+async function loadRelayConfig() {
+  if (relayConfigLoaded) return;
+  relayConfigLoaded = true;
+  const stored = await runtime.store.get(RELAY_CONFIG_STORE_KEY);
+  if (stored === undefined) return;
+  try {
+    const saved = JSON.parse(new TextDecoder().decode(stored));
+    ensureMiniappHost();
+    if (saved.enabled && typeof saved.enabled === "object") {
+      for (const kind of ["tcp", "auto", "bluetooth", "rnode"]) {
+        if (saved.enabled[kind] === true) await relayService.enable(kind);
+        else if (saved.enabled[kind] === false) await relayService.disable(kind);
+      }
+    }
+    if (["off", "bridge", "transport-node"].includes(saved.mode)) await relayService.setMode(saved.mode);
+    if (saved.directions && typeof saved.directions === "object") {
+      for (const [kind, direction] of Object.entries(saved.directions)) {
+        if (["tx", "rx", "both"].includes(direction)) await relayService.setDirection(kind, direction);
+      }
+    }
+    if (saved.policy && typeof saved.policy === "object") await relayService.setPolicy(saved.policy);
+  } catch (error) {
+    log(`Ignored invalid persisted relay config: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 async function importTrustedPublisher(identityString, label, source = "paste") { return importTrustedPublisherImpl(extractedContext, identityString, label, source); }
 function ensureCrossDeviceTestDriver() { return ensureCrossDeviceTestDriverImpl(extractedContext); }
 async function handleNativeMediaOpusCommand(request) { return handleNativeMediaOpusCommandImpl(extractedContext, request); }

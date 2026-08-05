@@ -214,6 +214,8 @@ export const initialStatus: WorkletStatus = {
   autoPeers: 0,
   preferredInterface: null,
   onlineInterfaces: 0,
+  relayMode: "off",
+  relayDirections: { tcp: "both", auto: "both", bluetooth: "both", rnode: "both" },
   catalogEntries: 0,
   installedPackages: 0,
   storageUsedBytes: 0,

@@ -55,7 +55,7 @@ import {
   sleep
 } from "../../../packages/worklet-core/src/index.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
-import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
+import { DEFAULT_INTERFACE_BITRATES, inferInterfaceKind, selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import {
   decodePublisherIdentity256t,
   encodePublisherIdentity256t,
@@ -248,6 +248,12 @@ export function pushStatusImpl(context) {
         const preferred = selectPreferredInterface(interfaces);
         context.status.preferredInterface = preferred?.name ?? null;
         context.status.onlineInterfaces = interfaces.filter((iface) => iface.online).length;
+        const relayKinds = ["tcp", "websocket", "auto", "i2p", "rnode", "bluetooth", "optical", "acoustic", "ntfy", "freenet"];
+        context.status.relayInterfaces = relayKinds.map((kind) => {
+            const matching = interfaces.filter((iface) => inferInterfaceKind(iface.name) === kind || (kind === "bluetooth" && inferInterfaceKind(iface.name) === "ble"));
+            const enabled = kind === "tcp" ? context.status.tcpEnabled : kind === "auto" ? context.status.autoEnabled : kind === "bluetooth" ? context.status.bleEnabled : kind === "rnode" ? context.status.rnodeEnabled : kind === "freenet" ? context.status.freenetInterfaceOnline : false;
+            return { kind, enabled, online: matching.some((iface) => iface.online), direction: context.status.relayDirections?.[kind] ?? "both", bitrate: matching.find((iface) => iface.bitrate !== null)?.bitrate ?? DEFAULT_INTERFACE_BITRATES[kind] ?? null, bytesIn: matching.reduce((sum, iface) => sum + (iface.bytesIn ?? 0), 0), bytesOut: matching.reduce((sum, iface) => sum + (iface.bytesOut ?? 0), 0), supported: ["tcp", "auto", "rnode", "bluetooth", "freenet"].includes(kind) };
+        });
     }
     else {
         context.status.preferredInterface = null;

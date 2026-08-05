@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-28
+audited: 2026-08-05
 register: none
 -->
 
@@ -31,6 +31,7 @@ tp node --data-dir ~/.local/share/twistedpear/host
 tp seed --transport --state-dir .tp/seeder
 tp node --attach-rnsd 127.0.0.1:4242 --no-transport
 tp node --propagation --status-endpoint
+tp node --relay-mode bridge --enable ntfy --ntfy-topic my-topic --ntfy-secret '<shared secret>' --direction rx
 # External Freenet node (not bundled): contracts/propagation URL, optional HDLC interface
 tp node --freenet --propagation
 tp node --freenet-interface --freenet-node ws://127.0.0.1:50509/v1/contract/command
@@ -74,6 +75,11 @@ Platform data directory:
 - Windows: `%APPDATA%/TwistedPear/host`
 
 Config file: `<data-dir>/config.json` — roles, interfaces, quotas.
+
+The headless host uses the full [Interface Manager](relay-interfaces.md), hot-persists
+relay/interface changes, and includes the ten-kind table in `/status`. Electron Settings
+hot-controls relay mode and supported interface directions, mirrors mini-app mutations,
+shows byte/bitrate state for every kind, and displays persistent app attribution.
 
 ## Quotas (conservative defaults)
 

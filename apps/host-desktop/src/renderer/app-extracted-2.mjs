@@ -106,6 +106,18 @@ export function renderStatusImpl(__scope, status) {
     if (!__scope.statusGrid || !status) {
         return;
     }
+    if (__scope.settingRelayMode && status.relayMode) __scope.settingRelayMode.value = status.relayMode;
+    for (const [element, kind] of [[__scope.settingTcpDirection, "tcp"], [__scope.settingAutoDirection, "auto"], [__scope.settingRnodeDirection, "rnode"]]) {
+        const direction = status.relayDirections?.[kind];
+        if (element && direction) element.value = direction;
+    }
+    if (__scope.relayInterfaceTable && Array.isArray(status.relayInterfaces)) {
+        __scope.relayInterfaceTable.replaceChildren(...status.relayInterfaces.map((entry) => {
+            const row = document.createElement("p");
+            row.textContent = `${entry.kind}: ${entry.supported ? (entry.enabled ? (entry.online ? "online" : "offline") : "disabled") : "unsupported"} · ${entry.direction.toUpperCase()} · ${entry.bitrate ?? "—"} bps · ↓${__scope.formatBytes(entry.bytesIn)} ↑${__scope.formatBytes(entry.bytesOut)}`;
+            return row;
+        }));
+    }
     const rows = [
         ["Running", String(status.running)],
         ["Identity", status.identityHash ?? "—"],

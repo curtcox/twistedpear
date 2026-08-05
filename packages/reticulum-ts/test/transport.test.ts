@@ -235,6 +235,27 @@ describe("TCP loopback interface", () => {
     expect(bytesToHex(payload)).toBe("010203");
 
     await server.close();
+    expect(right.listInterfaces()).toHaveLength(0);
+  });
+
+  it("threads server receive direction to spawned clients", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const right = Reticulum.create({ provider, runtime });
+    const server = await right.addTcpServerInterface({
+      name: "server-tx-only",
+      listenHost: "127.0.0.1",
+      listenPort: 0,
+      incoming: false,
+      outgoing: true
+    });
+    await left.addTcpClientInterface({
+      name: "client",
+      targetHost: "127.0.0.1",
+      targetPort: server.address!.port
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(server.clients[0]?.incoming).toBe(false);
+    await server.close();
   });
 
   it("reconnects after the server restarts", async () => {

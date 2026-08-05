@@ -69,7 +69,11 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." },
   { id: "link:observe", description: "See which peers are reachable and how good the connection to each is." },
   { id: "link:probe", description: "Send a small test transmission to measure a connection (uses airtime and battery)." },
-  { id: "relay:configure", description: "Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time)." },
+  {
+    id: "relay:configure",
+    description:
+      "Turn this device's radios, camera, microphone, speaker, and internet-push relaying on or off, and forward other people's traffic. This grant permits changes without another prompt."
+  },
   { id: "relay:read", description: "Read host relay mode, interface status, and diagnostics." },
   {
     id: "freenet:contract",

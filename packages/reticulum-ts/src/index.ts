@@ -50,6 +50,13 @@ export {
   RawPacketInterface
 } from "./interfaces/interface.js";
 export type { PacketInterface, ReticulumInterfaceOptions } from "./interfaces/interface.js";
+export {
+  decodePeerAudioFrame,
+  framePeerAudioPayload,
+  initialPeerAudioAssemblyState,
+  stepPeerAudioAssembly
+} from "@twistedpear/protocol";
+export type { PeerAudioAssemblyState } from "@twistedpear/protocol";
 export { PipeInterface } from "./interfaces/pipe.js";
 export type { PipeInterfaceOptions } from "./interfaces/pipe.js";
 export {
@@ -61,7 +68,7 @@ export {
   isTcpClientInterface,
   isTcpServerInterface
 } from "./interfaces/tcp.js";
-export type { SpawnedInterfaceHandler, TcpClientInterfaceOptions, TcpServerInterfaceOptions } from "./interfaces/tcp.js";
+export type { DetachedInterfaceHandler, SpawnedInterfaceHandler, TcpClientInterfaceOptions, TcpServerInterfaceOptions } from "./interfaces/tcp.js";
 export { UdpInterface, UDP_HW_MTU } from "./interfaces/udp.js";
 export type { UdpInterfaceOptions } from "./interfaces/udp.js";
 export {

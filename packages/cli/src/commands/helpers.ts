@@ -61,7 +61,7 @@ export function printHelp(command: string): void {
     publish: "tp publish <app-dir> [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-contract <wasm>]  Pack, sign, publish to Hyperdrive and optionally Freenet",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
-    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint [port]] [--test-agent host:port[:label]] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-binary <path>] [--freenet-binary-sha256 <hex>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
+    node: "tp node [--data-dir <path>] [--relay-mode <off|bridge|transport-node>] [--enable <kind>] [--disable <kind>] [--direction <tx|rx|both>] [--ntfy-server <url>] [--ntfy-topic <topic>] [--ntfy-secret <secret>] [--rnode-port <path>] [--i2p-peer <destination>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint [port]] [--test-agent host:port[:label]] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-binary <path>] [--freenet-binary-sha256 <hex>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
     trust: "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers"
   };
 

@@ -25,6 +25,7 @@ constraints, and the interop evidence that pins it, using the five-section templ
 | BLE | TwistedPear-defined | [ble.md](ble.md) | normative (framing); physical gated on hardware |
 | RNode / LoRa | RNode KISS-style framing | [rnode-lora.md](rnode-lora.md) | normative (framing); LoRa on-air gated on hardware |
 | Serial | RNS serial (HDLC) framing | [serial.md](serial.md) | normative (framing); serial line gated on hardware |
+| Relay/media policy | TwistedPear-defined | [relay.md](relay.md) | normative; physical media gated on hardware |
 
 Framing and discovery are machine-checked for every medium (each profile's subset rows
 cite a pinned vector or interop test). Radio/physical-layer claims for BLE, LoRa, and

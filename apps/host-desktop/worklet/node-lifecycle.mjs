@@ -27,7 +27,6 @@ export function createNodeLifecycleOps(deps) {
     status,
     log,
     pushStatus,
-    isDesktopHost: IS_DESKTOP_HOST,
     inboundBandwidthLimiter,
     outboundBandwidthLimiter,
     startStatusTimer,
@@ -234,8 +233,7 @@ export function createNodeLifecycleOps(deps) {
       provider,
       runtime,
       inboundBandwidthLimiter,
-      outboundBandwidthLimiter,
-      ...(IS_DESKTOP_HOST ? { transportEnabled: true } : {})
+      outboundBandwidthLimiter
     });
     state.reticulum.start();
     status.running = true;

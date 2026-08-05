@@ -4,6 +4,7 @@ import type { PacketInterface } from "@twistedpear/reticulum-ts";
 export const InterfaceKind = {
   AUTO: "auto",
   TCP: "tcp",
+  WEBSOCKET: "websocket",
   UDP: "udp",
   BLE: "ble",
   BLUETOOTH: "bluetooth",
@@ -22,6 +23,7 @@ export type InterfaceKindValue = (typeof InterfaceKind)[keyof typeof InterfaceKi
 export const DEFAULT_INTERFACE_PRIORITY: ReadonlyArray<InterfaceKindValue> = [
   InterfaceKind.AUTO,
   InterfaceKind.TCP,
+  InterfaceKind.WEBSOCKET,
   InterfaceKind.UDP,
   InterfaceKind.BLE,
   InterfaceKind.BLUETOOTH,
@@ -38,6 +40,7 @@ export const DEFAULT_INTERFACE_PRIORITY: ReadonlyArray<InterfaceKindValue> = [
 export const DEFAULT_INTERFACE_BITRATES: Readonly<Partial<Record<InterfaceKindValue, number>>> = {
   [InterfaceKind.AUTO]: 10_000_000,
   [InterfaceKind.TCP]: 1_000_000,
+  [InterfaceKind.WEBSOCKET]: 1_000_000,
   [InterfaceKind.UDP]: 1_000_000,
   [InterfaceKind.BLE]: 20_000,
   [InterfaceKind.BLUETOOTH]: 20_000,
@@ -68,6 +71,10 @@ export function inferInterfaceKind(name: string): InterfaceKindValue {
 
   if (normalized.includes("auto")) {
     return InterfaceKind.AUTO;
+  }
+
+  if (normalized.includes("websocket") || normalized.includes("ws-gateway")) {
+    return InterfaceKind.WEBSOCKET;
   }
 
   if (normalized.includes("tcp")) {

@@ -1,33 +1,99 @@
 import { GrantStore } from "../capabilities.js";
-import { MiniappBroker,type BrokerContext,type BrokerRequest,type BrokerResponse } from "../broker.js";
+import {
+  MiniappBroker,
+  type BrokerContext,
+  type BrokerRequest,
+  type BrokerResponse,
+} from "../broker.js";
 import type { HostConfirmationChannel } from "../confirm.js";
 import { MiniappLifecycle } from "../lifecycle.js";
-import { AnnounceService,type AnnounceBackend } from "../services/announce.js";
-import { AppIdentityService,type IdentityBackend } from "../services/identity.js";
+import { AnnounceService, type AnnounceBackend } from "../services/announce.js";
+import {
+  AppIdentityService,
+  type IdentityBackend,
+} from "../services/identity.js";
 import { NamespacedLxmfService } from "../services/lxmf.js";
-import { PresenceService,type PresenceBackend } from "../services/presence.js";
-import { LinkQualityService,LinkServiceError,PeerRouteLinkObservatory,type LinkObservatoryBackend,type LinkProbeOptions,type LinkQualityServiceOptions } from "../services/links.js";
-import { HostInfoService,defaultHostInfo,type HostInfo,type HostInfoBackend } from "../services/host-info.js";
-import { ResourceService,type ResourceFetchBackend } from "../services/resource.js";
+import { PresenceService, type PresenceBackend } from "../services/presence.js";
+import {
+  LinkQualityService,
+  LinkServiceError,
+  PeerRouteLinkObservatory,
+  type LinkObservatoryBackend,
+  type LinkProbeOptions,
+  type LinkQualityServiceOptions,
+} from "../services/links.js";
+import {
+  HostInfoService,
+  defaultHostInfo,
+  type HostInfo,
+  type HostInfoBackend,
+} from "../services/host-info.js";
+import {
+  ResourceService,
+  type ResourceFetchBackend,
+} from "../services/resource.js";
 import { HOST_API_VERSION } from "../host-api.js";
-import { AiService,AiServiceError,type AiChatBackend,type AiChatRequest,type AiChatStreamEvent,type AiEmbedRequest,type AiVectorSearchRequest } from "../services/ai.js";
-import { AppsService,AppsServiceError,type AppsBackend } from "../services/apps.js";
-import { WorkspaceService,type WorkspaceLimits } from "../services/workspace.js";
+import {
+  AiService,
+  AiServiceError,
+  type AiChatBackend,
+  type AiChatRequest,
+  type AiChatStreamEvent,
+  type AiEmbedRequest,
+  type AiVectorSearchRequest,
+} from "../services/ai.js";
+import {
+  AppsService,
+  AppsServiceError,
+  type AppsBackend,
+} from "../services/apps.js";
+import {
+  WorkspaceService,
+  type WorkspaceLimits,
+} from "../services/workspace.js";
 import type { StorageBeeBackend } from "../services/storage-bee.js";
-import { NamespacedKvService,type MiniappKvStoreBackend } from "../services/storage-kv.js";
+import {
+  NamespacedKvService,
+  type MiniappKvStoreBackend,
+} from "../services/storage-kv.js";
 import type { GrantRecord } from "../capabilities.js";
 import type { SandboxBackend } from "../sandbox/backend.js";
-import type { WidgetNode,WidgetTree } from "../ui/schema.js";
-import { diffWidgetTrees,type WidgetPatch } from "../ui/diff.js";
+import type { WidgetNode, WidgetTree } from "../ui/schema.js";
+import { diffWidgetTrees, type WidgetPatch } from "../ui/diff.js";
 import { validateWidgetTree } from "../ui/validate.js";
-import { PeerBrokerService,PeerServiceError,type PeerRequestPayload } from "../services/peers.js";
-import type { PeerHandle,PeerSessionManager } from "@twistedpear/peer-discovery";
+import {
+  PeerBrokerService,
+  PeerServiceError,
+  type PeerRequestPayload,
+} from "../services/peers.js";
+import type {
+  PeerHandle,
+  PeerSessionManager,
+} from "@twistedpear/peer-discovery";
 import type { PeerMediaReadiness } from "@twistedpear/protocol";
-import { RelayBrokerService,RelayBrokerServiceError,type RelayService } from "../services/relay.js";
-import { FreenetBrokerService,FreenetBrokerServiceError,type FreenetContractBackend } from "../services/freenet.js";
-import { DeviceBrokerService,DeviceBrokerServiceError,type DeviceOpenRequest,type DeviceSessionHandle } from "../services/device.js";
+import {
+  RelayBrokerService,
+  RelayBrokerServiceError,
+  type RelayMutationNotice,
+  type RelayService,
+} from "../services/relay.js";
+import {
+  FreenetBrokerService,
+  FreenetBrokerServiceError,
+  type FreenetContractBackend,
+} from "../services/freenet.js";
+import {
+  DeviceBrokerService,
+  DeviceBrokerServiceError,
+  type DeviceOpenRequest,
+  type DeviceSessionHandle,
+} from "../services/device.js";
 import type { DeviceManager } from "../device-manager.js";
-import { InboundMediaRouter,type InboundMediaBackend,type StreamSink } from "../media-stream.js";
+import {
+  InboundMediaRouter,
+  type InboundMediaBackend,
+  type StreamSink,
+} from "../media-stream.js";
 export interface LaunchManifest {
   readonly name: string;
   readonly version: string;
@@ -51,10 +117,19 @@ export interface MiniappHostSnapshot {
 }
 
 export interface MiniappHostCallbacks {
-  readonly onWidgetTree?: (tree: WidgetTree, patches: ReadonlyArray<WidgetPatch>) => void;
-  readonly onEvent?: (event: { readonly nodeId: string; readonly event: string; readonly value?: unknown }) => void;
+  readonly onWidgetTree?: (
+    tree: WidgetTree,
+    patches: ReadonlyArray<WidgetPatch>,
+  ) => void;
+  readonly onEvent?: (event: {
+    readonly nodeId: string;
+    readonly event: string;
+    readonly value?: unknown;
+  }) => void;
   readonly onLog?: (entry: MiniappHostLogEntry) => void;
-  readonly onLifecycle?: (snapshot: ReturnType<MiniappLifecycle["snapshot"]>) => void;
+  readonly onLifecycle?: (
+    snapshot: ReturnType<MiniappLifecycle["snapshot"]>,
+  ) => void;
 }
 
 export interface MiniappHostOptions {
@@ -70,11 +145,17 @@ export interface MiniappHostOptions {
   /** Host-owned, app-scoped peer roster and link measurement backend. */
   readonly linkObservatoryBackend?: LinkObservatoryBackend;
   readonly confirmCostlyLinkProbe?: LinkQualityServiceOptions["confirmCostlyProbe"];
-  readonly localMediaReadiness?: (appId: string, peer: PeerHandle) => PeerMediaReadiness | null;
+  readonly localMediaReadiness?: (
+    appId: string,
+    peer: PeerHandle,
+  ) => PeerMediaReadiness | null;
   readonly controlReservations?: import("../services/links.js").PeerRouteLinkObservatoryOptions["controlReservations"];
   readonly hostInfoBackend?: HostInfoBackend;
   readonly callbacks?: MiniappHostCallbacks;
-  readonly deriveDestinationHash?: (appId: string, publisherPublicKey: string) => Promise<string>;
+  readonly deriveDestinationHash?: (
+    appId: string,
+    publisherPublicKey: string,
+  ) => Promise<string>;
   readonly kvQuotaBytes?: number;
   readonly confirmationChannel?: HostConfirmationChannel;
   readonly aiBackend?: AiChatBackend;
@@ -85,6 +166,8 @@ export interface MiniappHostOptions {
   readonly peerSessionManager?: PeerSessionManager;
   /** Host-owned relay/interface configuration service. */
   readonly relayService?: RelayService;
+  /** Host chrome notice after a granted app successfully changes relay configuration. */
+  readonly relayMutation?: (notice: RelayMutationNotice) => void;
   /** Optional Freenet contract-state backend (desktop/headless when a node is configured). */
   readonly freenetBackend?: FreenetContractBackend;
   /** Host-owned device manager (inventory, sessions, drivers). */
@@ -93,13 +176,18 @@ export interface MiniappHostOptions {
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
   /** Independent audit sink used by production-backed simulation projections. */
-  readonly brokerAudit?: (entry: import("../broker.js").BrokerAuditEntry) => void;
+  readonly brokerAudit?: (
+    entry: import("../broker.js").BrokerAuditEntry,
+  ) => void;
   /** Negative-control hook used to prove campaign sensitivity to broker policy drift. */
   readonly enforceBrokerCapabilities?: boolean;
 }
 
 export interface CasShareBackend {
-  put(appId: string, content: Uint8Array): Promise<{ t256: string; size: number }>;
+  put(
+    appId: string,
+    content: Uint8Array,
+  ): Promise<{ t256: string; size: number }>;
   get(appId: string, t256: string): Promise<Uint8Array | null>;
 }
 
@@ -137,7 +225,10 @@ export interface AiStreamSession {
   readonly iterator: AsyncIterator<AiChatStreamEvent>;
 }
 
-export function findWidgetNode(root: WidgetNode, nodeId: string): WidgetNode | null {
+export function findWidgetNode(
+  root: WidgetNode,
+  nodeId: string,
+): WidgetNode | null {
   if (root.id === nodeId) {
     return root;
   }

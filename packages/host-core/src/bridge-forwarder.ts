@@ -42,7 +42,8 @@ export class BridgeForwarder {
   private readonly provider: CryptoProvider;
   private readonly getInterfaces: () => ReadonlyArray<PacketInterface>;
   private readonly getPolicy: () => RelayPolicyMatrix;
-  private readonly limiter: SimpleTokenBucket;
+  private readonly bytesPerSecond: number;
+  private readonly limiters = new Map<string, SimpleTokenBucket>();
   private readonly recentHashes = new Set<string>();
   private readonly maxRecentHashes: number;
   private readonly now: () => number;
@@ -53,7 +54,7 @@ export class BridgeForwarder {
     this.provider = options.provider;
     this.getInterfaces = options.getInterfaces;
     this.getPolicy = options.getPolicy;
-    this.limiter = new SimpleTokenBucket(options.bytesPerSecond ?? 64_000, options.now ?? Date.now);
+    this.bytesPerSecond = options.bytesPerSecond ?? 64_000;
     this.maxRecentHashes = options.maxRecentHashes ?? 4096;
     this.now = options.now ?? Date.now;
   }
@@ -66,6 +67,12 @@ export class BridgeForwarder {
     }
   }
 
+  /** Attach interfaces added while bridge mode remains active. */
+  refresh(): void {
+    if (!this.running) return;
+    for (const iface of this.getInterfaces()) this.attach(iface);
+  }
+
   stop(): void {
     this.running = false;
     for (const [iface] of this.consumers) {
@@ -73,6 +80,7 @@ export class BridgeForwarder {
     }
     this.consumers.clear();
     this.recentHashes.clear();
+    this.limiters.clear();
   }
 
   attach(iface: PacketInterface): void {
@@ -97,7 +105,7 @@ export class BridgeForwarder {
 
   private async onPacket(packet: Packet, from: PacketInterface): Promise<void> {
     if (packet.hops <= 0) return;
-    const hash = bytesToHex(packet.hash());
+    const hash = this.dedupHash(packet);
     if (this.recentHashes.has(hash)) return;
     this.recentHashes.add(hash);
     if (this.recentHashes.size > this.maxRecentHashes) {
@@ -113,16 +121,26 @@ export class BridgeForwarder {
       (candidate) => candidate !== from && candidate.outgoing && this.isRelayAllowed(fromKind, candidate)
     );
 
-    await this.limiter.consume(packet.raw.length);
     await Promise.all(
       targets.map(async (target) => {
         try {
+          await this.limiterFor(fromKind, inferInterfaceKind(target.name) as RelayInterfaceKind).consume(packet.raw.length);
           await target.send(relayed);
         } catch {
           // Transient failure on one interface must not stop fan-out.
         }
       })
     );
+  }
+
+  private limiterFor(from: RelayInterfaceKind, to: RelayInterfaceKind): SimpleTokenBucket {
+    const key = `${from}->${to}`;
+    let limiter = this.limiters.get(key);
+    if (limiter === undefined) {
+      limiter = new SimpleTokenBucket(this.bytesPerSecond, this.now);
+      this.limiters.set(key, limiter);
+    }
+    return limiter;
   }
 
   private decrementHops(packet: Packet): Packet | null {
@@ -147,6 +165,29 @@ export class BridgeForwarder {
       return PacketClass.fromFields(this.provider, fields);
     } catch {
       return null;
+    }
+  }
+
+  /** A relay loop key must not change merely because a bridge decremented hops. */
+  private dedupHash(packet: Packet): string {
+    try {
+      const fields = {
+        headerType: packet.headerType,
+        contextFlag: packet.contextFlag,
+        transportType: packet.transportType,
+        destinationType: packet.destinationType,
+        packetType: packet.packetType,
+        destinationHash: packet.destinationHash,
+        context: packet.context,
+        data: packet.data,
+        hops: 0
+      };
+      const normalized = packet.transportId === null
+        ? PacketClass.fromFields(this.provider, fields)
+        : PacketClass.fromFields(this.provider, { ...fields, transportId: packet.transportId });
+      return bytesToHex(normalized.hash());
+    } catch {
+      return bytesToHex(packet.hash());
     }
   }
 

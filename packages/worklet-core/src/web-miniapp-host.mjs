@@ -229,6 +229,7 @@ export function createWebWorkletMiniappHost(options) {
     controlReservations: options.controlReservations,
     inboundMediaBackend: options.inboundMediaBackend ?? peerRouteMediaBridge,
     relayService: options.relayService,
+    relayMutation: options.relayMutation,
     deviceManager,
     beeBackend,
     confirmationChannel,

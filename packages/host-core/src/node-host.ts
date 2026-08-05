@@ -18,14 +18,14 @@ import {
   FreenetClientContractBackend,
   FreenetPropagationStore
 } from "@twistedpear/bridge-freenet";
-import { InterfaceManager } from "./interface-manager.js";
+import { InterfaceManager, type InterfaceEffectFactories } from "./interface-manager.js";
 import {
   LXMFRouter,
   PropagationServer,
   createPropagationDestination,
   DEFAULT_PROPAGATION_QUOTAS
 } from "@twistedpear/lxmf-ts";
-import { ensureDir } from "./config.js";
+import { ensureDir, saveHostConfigFile } from "./config.js";
 import { identityHashHex, loadOrCreateIdentity } from "./identity.js";
 import { startSeederRole } from "./roles/seeder.js";
 import { FileModerationStore } from "./moderation-store.js";
@@ -108,6 +108,8 @@ export interface NodeHostOptions {
   readonly provider?: CryptoProvider;
   readonly runtime?: Runtime;
   readonly identityPassphrase?: string;
+  /** Host-owned BLE/camera/audio drivers for physical relay interfaces. */
+  readonly interfaceEffects?: InterfaceEffectFactories;
 }
 
 export interface NodeHostSession {
@@ -142,6 +144,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     runtime,
     inboundBandwidthLimiter,
     outboundBandwidthLimiter,
+    ...(options.interfaceEffects === undefined ? {} : { effects: options.interfaceEffects }),
     ...(transportEnabled ? { transportEnabled: true } : {})
   });
   reticulum.start();
@@ -227,7 +230,10 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     provider,
     runtime,
     inboundBandwidthLimiter,
-    outboundBandwidthLimiter
+    outboundBandwidthLimiter,
+    onConfigChange: (nextConfig) => {
+      saveHostConfigFile(join(nextConfig.dataDir, "config.json"), nextConfig);
+    }
   });
   await interfaceManager.start(config);
 
@@ -241,11 +247,11 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       running: true,
       uptimeMs: Date.now() - startedAt,
       identityHash: identityHashHex(identity),
-      transportEnabled,
+      transportEnabled: reticulum.isTransportEnabled,
       seederEnabled: config.roles.seeder,
       propagationEnabled: config.roles.propagation,
       attachRnsd: config.roles.attachRnsd,
-      relayMode: config.relay.mode,
+      relayMode: interfaceManager.relayMode,
       linkOnline,
       announcesSeen,
       dropCensus: dropCensus.snapshot(),

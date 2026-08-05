@@ -12,6 +12,7 @@ export {
   defaultHostConfig,
   defaultHostDataDir,
   defaultWebLeafConfig,
+  interfaceDirectionFlags,
   assertWebLeafRoles,
   DEFAULT_DESKTOP_ROLES,
   DEFAULT_WEB_LEAF_ROLES,
@@ -59,13 +60,14 @@ export {
   type InterfaceManagerOptions,
   type ManagedInterface
 } from "./interface-manager.js";
-export { NtfyPacketInterface, type NtfyPacketInterfaceOptions } from "./ntfy-interface.js";
+export { NtfyPacketInterface, openNtfyPacket, sealNtfyPacket, type NtfyPacketInterfaceOptions } from "./ntfy-interface.js";
 export {
   ensureDir,
   loadHostConfigFile,
   parseRnsdAttachArg,
   resolveHostConfig,
-  saveHostConfigFile
+  saveHostConfigFile,
+  validateHostConfig
 } from "./config.js";
 export {
   atomicWritePrivateFile,

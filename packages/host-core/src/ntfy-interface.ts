@@ -8,6 +8,29 @@ const NTFY_AUTH_TAG_BYTES = 16;
 const MAX_NTFY_MESSAGE_BYTES = 20_000;
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
 
+function ntfyKey(secret: string): Uint8Array {
+  return sha256(new TextEncoder().encode(secret));
+}
+
+export function sealNtfyPacket(secret: string, nonce: Uint8Array, bytes: Uint8Array): Uint8Array {
+  if (nonce.length !== 24) throw new Error("ntfy nonce must be 24 bytes");
+  const header = new Uint8Array(NTFY_MESSAGE_HEADER_BYTES);
+  header[0] = 0x01;
+  header.set(nonce, 1);
+  return concat([header, xchacha20poly1305(ntfyKey(secret), nonce, header).encrypt(bytes)]);
+}
+
+export function openNtfyPacket(secret: string, packet: Uint8Array): Uint8Array | null {
+  if (packet.length < NTFY_MESSAGE_HEADER_BYTES + NTFY_AUTH_TAG_BYTES || packet[0] !== 0x01) return null;
+  const nonce = packet.subarray(1, NTFY_MESSAGE_HEADER_BYTES);
+  const header = packet.subarray(0, NTFY_MESSAGE_HEADER_BYTES);
+  try {
+    return xchacha20poly1305(ntfyKey(secret), nonce, header).decrypt(packet.subarray(NTFY_MESSAGE_HEADER_BYTES));
+  } catch {
+    return null;
+  }
+}
+
 function concat(parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const size = parts.reduce((sum, part) => sum + part.length, 0);
   const out = new Uint8Array(size);
@@ -42,7 +65,6 @@ export interface NtfyPacketInterfaceOptions extends ReticulumInterfaceOptions {
 }
 
 export class NtfyPacketInterface extends RawPacketInterface {
-  private readonly key: Uint8Array;
   private readonly fetchEffect: typeof fetch;
   private readonly topicUrl: string;
   private readonly pollIntervalMs: number;
@@ -60,7 +82,6 @@ export class NtfyPacketInterface extends RawPacketInterface {
     });
     this.provider = provider;
     this.ntfyOptions = options;
-    this.key = sha256(new TextEncoder().encode(options.secret));
     this.fetchEffect = options.fetch ?? globalThis.fetch;
     this.topicUrl = `${options.baseUrl.replace(/\/$/, "")}/${encodeURIComponent(options.topic)}`;
     this.pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
@@ -70,7 +91,9 @@ export class NtfyPacketInterface extends RawPacketInterface {
     if (this.isClosed) return;
     this.online = true;
     this.abortController = new AbortController();
-    this.pollTask = this.runPollLoop();
+    if (this.incoming) {
+      this.pollTask = this.runPollLoop();
+    }
   }
 
   protected decodePacket(frame: Uint8Array): Packet | null {
@@ -79,11 +102,7 @@ export class NtfyPacketInterface extends RawPacketInterface {
 
   protected override async writeBytes(bytes: Uint8Array): Promise<void> {
     const nonce = this.provider.randomBytes(24);
-    const header = new Uint8Array(NTFY_MESSAGE_HEADER_BYTES);
-    header[0] = 0x01;
-    header.set(nonce, 1);
-    const ciphertext = xchacha20poly1305(this.key, nonce, header).encrypt(bytes);
-    const body = base64url(concat([header, ciphertext]));
+    const body = base64url(sealNtfyPacket(this.ntfyOptions.secret, nonce, bytes));
     const response = await this.fetchEffect(this.topicUrl, {
       method: "POST",
       headers: this.headers({ "Content-Type": "text/plain; charset=utf-8" }),
@@ -91,8 +110,10 @@ export class NtfyPacketInterface extends RawPacketInterface {
       signal: this.abortController?.signal ?? null
     });
     if (!response.ok) {
+      this.online = false;
       throw new Error(`ntfy publish failed (${response.status})`);
     }
+    this.online = true;
   }
 
   protected override async closeInterface(): Promise<void> {
@@ -115,6 +136,7 @@ export class NtfyPacketInterface extends RawPacketInterface {
         await this.pollOnce();
       } catch (error) {
         if (this.isClosed) return;
+        this.online = false;
       }
       if (!this.isClosed) {
         await this.sleep(this.pollIntervalMs);
@@ -133,6 +155,7 @@ export class NtfyPacketInterface extends RawPacketInterface {
     if (!response.ok) {
       throw new Error(`ntfy poll failed (${response.status})`);
     }
+    this.online = true;
     const text = await response.text();
     for (const line of text.split("\n")) {
       const trimmed = line.trim();
@@ -156,17 +179,7 @@ export class NtfyPacketInterface extends RawPacketInterface {
   }
 
   private tryDecrypt(packet: Uint8Array): Uint8Array | null {
-    if (packet.length < NTFY_MESSAGE_HEADER_BYTES + NTFY_AUTH_TAG_BYTES) return null;
-    const version = packet[0];
-    if (version !== 0x01) return null;
-    const nonce = packet.subarray(1, NTFY_MESSAGE_HEADER_BYTES);
-    const header = packet.subarray(0, NTFY_MESSAGE_HEADER_BYTES);
-    const ciphertext = packet.subarray(NTFY_MESSAGE_HEADER_BYTES);
-    try {
-      return xchacha20poly1305(this.key, nonce, header).decrypt(ciphertext);
-    } catch {
-      return null;
-    }
+    return openNtfyPacket(this.ntfyOptions.secret, packet);
   }
 
   private headers(extra: Record<string, string>): Headers {

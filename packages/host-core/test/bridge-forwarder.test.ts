@@ -44,6 +44,26 @@ function makeBridgePair(name: string): [PipeInterface, PipeInterface] {
 }
 
 describe("BridgeForwarder", () => {
+  it("attaches interfaces added during bridge mode", async () => {
+    const [netA, bridgeA] = makeBridgePair("refresh-a");
+    const [netB, bridgeB] = makeBridgePair("refresh-b");
+    const interfaces = [bridgeA] as PipeInterface[];
+    const forwarder = new BridgeForwarder({
+      provider,
+      getInterfaces: () => interfaces,
+      getPolicy: () => ({})
+    });
+    forwarder.start();
+    interfaces.push(bridgeB);
+    forwarder.refresh();
+
+    await netA.send(packet());
+    expect((await nextPacket(netB.packets)).data).toEqual(new Uint8Array([1, 2, 3]));
+
+    forwarder.stop();
+    await Promise.all([bridgeA.close(), bridgeB.close(), netA.close(), netB.close()]);
+  });
+
   it("forwards a packet from one interface to another", async () => {
     const [netA, bridgeA] = makeBridgePair("a");
     const [netB, bridgeB] = makeBridgePair("b");
@@ -102,10 +122,10 @@ describe("BridgeForwarder", () => {
     });
     forwarder.start();
 
-    const original = packet();
+    const original = packet(5);
     await netA.send(original);
     const first = await nextPacket(netB.packets);
-    expect(first.hops).toBe(2);
+    expect(first.hops).toBe(4);
 
     // Re-inject the forwarded packet from the B side; it should not come back to A.
     await netB.send(first);

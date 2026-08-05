@@ -127,6 +127,9 @@ The package-level READMEs for
 | Relay over any medium, configurable interfaces | [Relay interfaces — current](relay-interfaces.md), [plan](relay-interfaces-plan.md) |
 | BLE roles, framing, and conformance | [BLE interface](ble-interface.md) |
 | WebSocket framing, lifecycle, and gateway endpoints | [WebSocket interface](websocket-interface.md) |
+| Screen/camera packet framing and erasure recovery | [Optical interface](optical-interface.md) |
+| Speaker/microphone packet framing and FEC | [Acoustic interface](acoustic-interface.md) |
+| Encrypted ntfy packet transport | [ntfy interface](ntfy-interface.md) |
 | Freenet as a transport and app substrate | [Freenet — current](freenet.md), [plan](freenet-plan.md) |
 | Freenet remaining work, simulator-first sequencing | [Freenet simulator-first work plan](freenet-simulator-first-work-plan.md) |
 | Freenet app-execution decision (Option A) | [ADR (archived decision)](../archive/decisions/freenet-app-execution.md) |

@@ -54,6 +54,10 @@ export interface PacketInterface {
   readonly incoming: boolean;
   readonly outgoing: boolean;
   readonly online: boolean;
+  /** Encoded medium bytes accepted from the interface, when metering is available. */
+  readonly bytesIn?: number;
+  /** Encoded medium bytes successfully written, when metering is available. */
+  readonly bytesOut?: number;
   readonly packets: AsyncIterable<Packet>;
   send(packet: Packet): Promise<void>;
   close(): Promise<void>;
@@ -66,6 +70,8 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   readonly incoming: boolean;
   readonly outgoing: boolean;
   online = false;
+  bytesIn = 0;
+  bytesOut = 0;
 
   private readonly queue = new AsyncPacketQueue();
   private closed = false;
@@ -116,7 +122,9 @@ export abstract class AbstractPacketInterface implements PacketInterface {
       throw new Error(`Packet exceeds interface MTU (${packet.raw.length} > ${this.mtu})`);
     }
 
-    await this.writeBytes(this.encodeOutgoing(packet.raw));
+    const encoded = this.encodeOutgoing(packet.raw);
+    await this.writeBytes(encoded);
+    this.bytesOut += encoded.length;
   }
 
   async close(): Promise<void> {
@@ -146,6 +154,8 @@ export abstract class AbstractPacketInterface implements PacketInterface {
     if (!this.incoming) {
       return;
     }
+
+    this.bytesIn += bytes.length;
 
     for (const frame of this.decodeIncoming(bytes)) {
       const packet = this.decodePacket(frame);

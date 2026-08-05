@@ -179,11 +179,15 @@ export class TransportNode extends LeafTransport {
   private readonly discoveryPathRequests = new Map<string, DiscoveryPathRequest>();
 
   constructor(options: TransportNodeOptions) {
-    super({ ...options, transportEnabled: true });
+    super(options);
     this.announceRateLimiter = options.announceRateLimiter ?? new AnnounceRateLimiter();
   }
 
   protected override async inbound(packet: Packet, iface: PacketInterface): Promise<void> {
+    if (!this.transportEnabled) {
+      await super.inbound(packet, iface);
+      return;
+    }
     const workingPacket = cloneWithHops(this.provider, packet, packet.hops + 1);
 
     if (!this.shouldAcceptPacket(workingPacket)) {
@@ -255,6 +259,10 @@ export class TransportNode extends LeafTransport {
   }
 
   protected override async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
+    if (!this.transportEnabled) {
+      await super.handleAnnounce(packet, iface);
+      return;
+    }
     const destinationKey = hashKey(packet.destinationHash);
     const now = this.clock.now() / 1000;
     const gates = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
@@ -281,6 +289,10 @@ export class TransportNode extends LeafTransport {
   }
 
   protected override async handlePathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
+    if (!this.transportEnabled) {
+      await super.handlePathRequest(packet, iface);
+      return;
+    }
     const parsed = parsePathRequestData(packet.data);
     const path = parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
     const localDestination =
@@ -323,7 +335,7 @@ export class TransportNode extends LeafTransport {
       hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
       tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
       hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
-      transportEnabled: true,
+      transportEnabled: this.transportEnabled,
       hasPath: path !== undefined,
       shouldAnswerPath:
         path !== undefined &&

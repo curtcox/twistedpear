@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-08-05
 register: none
 -->
 
@@ -20,12 +20,18 @@ Status: Phase 5 simulator-first baseline.
 | RNode | BLE-only on iOS | existing BLE link may survive briefly | OS-managed only | not promised |
 | LXMF | local send/receive | persist pending work | store-and-forward only | propagation sync budget |
 | Mini-app runtime | one foreground app | suspend message sent | no execution | no mini-app execution |
+| Relay bridge | foreground only | quiesce with interfaces | stopped | not promised |
 
 iOS has no foreground-service equivalent. The host therefore treats backgrounding as a
 state transition, not as a hidden daemon mode. On background, the native lifecycle module
 enters a grace window and the worklet receives `suspend-node` IPC to quiesce interfaces;
 on foreground, `resume-node` restarts them. The harness status screen shows the current
 lifecycle state, including an explicit "node suspended by iOS" message.
+
+The Relay & Interfaces card controls off/bridge/transport mode and direction for the
+worklet-managed TCP, Auto, BLE, and RNode paths, lists unavailable kinds as unsupported,
+and mirrors authorized mini-app changes with a dismissible attribution notice. Optical and
+acoustic adapter software exists, but physical camera/audio driver evidence is H23.
 
 ## Permission Flows
 
