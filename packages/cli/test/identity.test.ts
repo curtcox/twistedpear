@@ -114,6 +114,8 @@ describe("tp identity", () => {
     }
   });
 
+  // This exercises several production-strength password KDF operations and can exceed
+  // Vitest's default timeout when V8 coverage instrumentation is enabled on CI runners.
   it("requires force and an interactive candidate-hash confirmation before replacement", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-cli-replace-"));
     const provider = new NodeCryptoProvider();
@@ -164,5 +166,5 @@ describe("tp identity", () => {
       log.mockRestore();
       rmSync(cwd, { recursive: true, force: true });
     }
-  });
+  }, 120_000);
 });

@@ -91,6 +91,8 @@ describe("identity backup", () => {
     expect(() => validateNewIdentityPassphrase("long enough pass", "long enough pass")).not.toThrow();
   });
 
+  // This intentionally repeats production-strength password KDF operations and can
+  // exceed Vitest's default timeout under V8 coverage instrumentation on CI runners.
   it("round-trips randomly generated identities with fresh container entropy", () => {
     for (const passphrase of ["random passphrase alpha", "random passphrase beta"]) {
       const identity = new Identity(provider);
@@ -100,5 +102,5 @@ describe("identity backup", () => {
       expect(decryptIdentityBackup(provider, first, passphrase).getPrivateKey()).toEqual(identity.getPrivateKey());
       expect(decryptIdentityBackup(provider, second, passphrase).getPrivateKey()).toEqual(identity.getPrivateKey());
     }
-  });
+  }, 120_000);
 });
