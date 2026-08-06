@@ -17,7 +17,8 @@ if (run) {
   // megabytes and GitHub discards the whole summary ("upload aborted, supports
   // content up to a size of 1024k"), losing the gate table run.mjs writes. The
   // parent process keeps its own GITHUB_STEP_SUMMARY; only Stryker loses it.
-  const { GITHUB_STEP_SUMMARY: _discarded, ...env } = process.env;
+  const env = { ...process.env };
+  delete env.GITHUB_STEP_SUMMARY;
   const result = spawnSync(
     process.execPath,
     ["node_modules/@stryker-mutator/core/bin/stryker.js", "run"],

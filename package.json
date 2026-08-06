@@ -250,6 +250,9 @@
     "formal:tamarin": "node formal/run-symbolic-provers.mjs tamarin",
     "formal:proverif": "node formal/run-symbolic-provers.mjs proverif"
   },
+  "overrides": {
+    "js-yaml": "^4.3.1"
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@stryker-mutator/core": "^9.6.1",
