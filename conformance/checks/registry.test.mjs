@@ -121,6 +121,16 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain("if: always() && !cancelled()");
     expect(pagesWorkflow).toContain("Refuse to deploy a superseded main build");
     expect(pagesWorkflow).toContain("verify-publication.mjs");
+    // Every job gating the publish must carry a status-check function in its
+    // condition. Without one GitHub skips the job when any transitive
+    // dependency failed — a single failing metric gate silently skipped
+    // freshness, and deploy along with it, so nothing published.
+    for (const condition of [
+      "if: always() && needs.build.result == 'success'",
+      "if: always() && needs.build.result == 'success' && needs.freshness.result == 'success'",
+    ]) {
+      expect(pagesWorkflow).toContain(condition);
+    }
 
     const plan = spawnSync(
       globalThis.process.execPath,

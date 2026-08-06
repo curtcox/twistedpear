@@ -169,7 +169,12 @@ jobs:
 
   freshness:
     needs: build
-    if: needs.build.result == 'success'
+    # always() is load-bearing, not decoration. Without a status-check function
+    # here GitHub skips this job whenever any transitive dependency failed —
+    # including a single metric gate — and deploy, which requires freshness to
+    # have succeeded, is skipped with it. That silently blocked publishing on
+    # every run where a published metric reported a finding.
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Refuse to deploy a superseded main build
