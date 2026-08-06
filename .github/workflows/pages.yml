@@ -29,7 +29,6 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       imports: ${{ steps.plan.outputs.imports }}
-      deferred: ${{ steps.plan.outputs.deferred }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -120,12 +119,19 @@ jobs:
           sudo install ktlint /usr/local/bin/ktlint
       - name: Verify TLA+ tools
         run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
+      # Resolved here rather than read from static-analysis-plan's outputs. This
+      # job runs under always(), so it also runs when that job never produced
+      # outputs — and an empty defer list silently puts the ~70 minute mutation
+      # survey back on the publish path, which is what deferring it prevents.
+      - name: Resolve gates deferred off the publish path
+        id: defer
+        run: node scripts/checks/pages-plan.mjs | grep '^deferred=' >> "$GITHUB_OUTPUT"
       - name: Run checks and capture reports
         run: npm run site:reports -- --tier=all
         env:
           SITE_REPORT_IMPORT_DIR: imported-static-analysis
           SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}
-          SITE_REPORT_DEFER_GATES: ${{ needs.static-analysis-plan.outputs.deferred }}
+          SITE_REPORT_DEFER_GATES: ${{ steps.defer.outputs.deferred }}
       - name: Report pending screenshots for the guide, authoring guide, and cookbook
         run: npm run site:section-images:report
       - name: Build documentation site

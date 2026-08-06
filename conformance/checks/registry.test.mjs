@@ -110,8 +110,14 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain(
       "SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}",
     );
+    // Resolved inside the build job, not read from another job's outputs: the
+    // build runs under always(), so an upstream failure must not empty the
+    // defer list and put the mutation survey back on the publish path.
     expect(pagesWorkflow).toContain(
-      "SITE_REPORT_DEFER_GATES: ${{ needs.static-analysis-plan.outputs.deferred }}",
+      "SITE_REPORT_DEFER_GATES: ${{ steps.defer.outputs.deferred }}",
+    );
+    expect(pagesWorkflow).toContain(
+      "node scripts/checks/pages-plan.mjs | grep '^deferred=' >> \"$GITHUB_OUTPUT\"",
     );
     expect(reports).toContain("logFile: `artifacts/logs/${job.id}.log`");
     // In-flight Pages runs must finish rather than being cancelled: the
