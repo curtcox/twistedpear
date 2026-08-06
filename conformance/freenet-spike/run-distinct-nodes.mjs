@@ -328,7 +328,7 @@ await runMain(async () => {
         ? "cross-node notify smoke (1 sample; not gate evidence)"
         : "cross-node notify diagnostic series (incomplete label; not gate evidence)",
     );
-    await runNodeScript(
+    await runNodeScriptWithRetry(
       "measure-roundtrip.mjs",
       {
         FREENET_NODE_URL: publisherUrl(),
@@ -338,6 +338,12 @@ await runMain(async () => {
           : "local-distinct-cross-node",
         FREENET_SAMPLE_COUNT: smoke ? "1" : "10",
         FREENET_ALLOW_INCOMPLETE: "1",
+        // Cross-node reconciliation is the fallback when a notify is lost, and
+        // three freshly-started nodes on a shared CI runner regularly need more
+        // than the 15s default to converge. This is a convergence deadline, not
+        // a performance budget: the step still fails if reconcile never lands.
+        FREENET_NOTIFY_TIMEOUT_MS:
+          process.env.FREENET_NOTIFY_TIMEOUT_MS ?? "60000",
       },
       "cross-node notify",
     );
