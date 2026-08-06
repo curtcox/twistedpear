@@ -12,15 +12,32 @@ import {
   CatalogStore,
   InstalledPackageStore,
   unpackPackage,
-  verifyPackage
+  verifyPackage,
 } from "../../packages/app-registry/dist/index.js";
-import { DriveManager, createSwarm, fetchPackage } from "../../packages/bridge-hyper/dist/index.js";
-import { hexToBytes, NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
-import { runInit, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
-import { loadSeederState, readSeederArchive } from "../../packages/cli/dist/seed/register.js";
+import {
+  DriveManager,
+  createSwarm,
+  fetchPackage,
+} from "../../packages/bridge-hyper/dist/index.js";
+import {
+  hexToBytes,
+  NodeCryptoProvider,
+} from "../../packages/reticulum-ts/dist/index.js";
+import {
+  runInit,
+  runPublish,
+  runUpdate,
+} from "../../packages/cli/dist/commands/index.js";
+import {
+  loadSeederState,
+  readSeederArchive,
+} from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const fixtureAppSource = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../fixtures/packages/example-app",
+);
 const SOAK_DURATION_MS = Number(process.env.SOAK_DURATION_MS ?? "15000");
 const HOST_API_VERSION = "0.1.0";
 
@@ -62,15 +79,22 @@ function mockInterface(name, online = true) {
     online,
     packets: (async function* () {})(),
     async send() {},
-    async close() {}
+    async close() {},
   };
 }
 
-async function replicateVersion(publisherDir, seedDrive, driveKey, version, archive, packageHash) {
+async function replicateVersion(
+  publisherDir,
+  seedDrive,
+  driveKey,
+  version,
+  archive,
+  packageHash,
+) {
   const pubSwarm = createSwarm();
   const publisherDrive = new DriveManager({
     storagePath: join(publisherDir, ".tp/storage"),
-    swarm: pubSwarm
+    swarm: pubSwarm,
   });
 
   try {
@@ -98,11 +122,15 @@ async function main() {
   try {
     writeFileSync(
       join(publisherDir, "tp.config.json"),
-      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
+      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
     );
 
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
-    const initCode = await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({
+      cwd: publisherDir,
+      identityPassphrase: "conformance identity passphrase",
+      args: [],
+    });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -112,11 +140,17 @@ async function main() {
     const installed = new InstalledPackageStore(64 * 1024 * 1024);
 
     seedSwarm = createSwarm();
-    seedDrive = new DriveManager({ storagePath: join(seederStateDir, "drives"), swarm: seedSwarm });
+    seedDrive = new DriveManager({
+      storagePath: join(seederStateDir, "drives"),
+      swarm: seedSwarm,
+    });
     await seedDrive.ready();
 
     consumerSwarm = createSwarm();
-    consumerDrive = new DriveManager({ storagePath: consumerDir, swarm: consumerSwarm });
+    consumerDrive = new DriveManager({
+      storagePath: consumerDir,
+      swarm: consumerSwarm,
+    });
     await consumerDrive.ready();
 
     let cycle = 0;
@@ -126,20 +160,30 @@ async function main() {
     while (Date.now() - startedAt < SOAK_DURATION_MS) {
       const version = cycle === 0 ? "1.0.0" : `1.0.${cycle}`;
       if (cycle === 0) {
-        const code = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
+        const code = await runPublish({
+          cwd: publisherDir,
+          args: [fixtureApp],
+        });
         if (code !== 0) {
           throw new Error("initial publish failed");
         }
       } else {
-        const code = await runUpdate({ cwd: publisherDir, args: [fixtureApp, "--version", version] });
+        const code = await runUpdate({
+          cwd: publisherDir,
+          args: [fixtureApp, "--version", version],
+        });
         if (code !== 0) {
           throw new Error(`update ${version} failed`);
         }
       }
 
-      const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+      const meta = JSON.parse(
+        readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
+      );
       driveKey = meta.driveKey;
-      const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
+      const archive = new Uint8Array(
+        readFileSync(join(publisherDir, ".tp/last.tpkg")),
+      );
       const unpacked = unpackPackage(provider, archive);
       verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
 
@@ -147,7 +191,7 @@ async function main() {
         destinationHash: `${meta.destinationName ?? "soak"}-${cycle}`,
         appData: hexToBytes(meta.appDataHex),
         manifest: unpacked.manifest,
-        packageHash: unpacked.packageHash
+        packageHash: unpacked.packageHash,
       });
       if (entry === null || entry.version !== version) {
         throw new Error(`catalog ingest failed for ${version}`);
@@ -157,45 +201,60 @@ async function main() {
         await seedDrive.openDrive(driveKey, { serve: true });
       }
 
-      await replicateVersion(publisherDir, seedDrive, driveKey, meta.version, archive, unpacked.packageHash);
+      await replicateVersion(
+        publisherDir,
+        seedDrive,
+        driveKey,
+        meta.version,
+        archive,
+        unpacked.packageHash,
+      );
 
       if (consumerDrive.activeDrive === null) {
         await consumerDrive.openDrive(driveKey);
       }
 
       const online = cycle % 2 === 0;
-      const interfaces = [mockInterface("lan", online), mockInterface("rnode", !online)];
+      const interfaces = [
+        mockInterface("lan", online),
+        mockInterface("rnode", !online),
+      ];
       const seederState = loadSeederState(seederStateDir);
       const resourceClient = online
         ? undefined
         : {
             async fetchVersion(version) {
-              const archiveBytes = readSeederArchive(seederStateDir, seederState, version);
+              const archiveBytes = readSeederArchive(
+                seederStateDir,
+                seederState,
+                version,
+              );
               return unpackPackage(provider, archiveBytes);
-            }
+            },
           };
 
-      const fetchResult = await waitFor(
-        async () => {
-          try {
-            return await fetchPackage(provider, {
-              entry,
-              version: entry.version,
-              interfaces,
-              driveManager: consumerDrive,
-              resourceClient,
-              ...(online ? { forcePath: "hyperdrive" } : {})
-            });
-          } catch {
-            // Hyperdrive replication to the consumer can lag the seeder publish.
-            return null;
-          }
+      const fetchResult = await waitFor(async () => {
+        try {
+          return await fetchPackage(provider, {
+            entry,
+            version: entry.version,
+            interfaces,
+            driveManager: consumerDrive,
+            resourceClient,
+            ...(online ? { forcePath: "hyperdrive" } : {}),
+          });
+        } catch {
+          // Hyperdrive replication to the consumer can lag the seeder publish.
+          return null;
+        }
+      }, 10_000);
+      const installVerified = verifyPackage(
+        provider,
+        fetchResult.archiveBytes,
+        {
+          hostApiVersion: HOST_API_VERSION,
         },
-        10_000
       );
-      const installVerified = verifyPackage(provider, fetchResult.archiveBytes, {
-        hostApiVersion: HOST_API_VERSION
-      });
       if (installVerified.packageHash !== unpacked.packageHash) {
         throw new Error(`install hash mismatch on cycle ${cycle}`);
       }
@@ -207,9 +266,9 @@ async function main() {
           packageHash: installVerified.packageHash,
           installedAt: Date.now(),
           manifest: installVerified.manifest,
-          archivePath: `packages/${entry.appId}/${installVerified.manifest.version}.tpkg`
+          archivePath: `packages/${entry.appId}/${installVerified.manifest.version}.tpkg`,
         },
-        fetchResult.archiveBytes.length
+        fetchResult.archiveBytes.length,
       );
 
       cycle += 1;

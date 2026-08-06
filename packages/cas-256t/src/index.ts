@@ -9,7 +9,7 @@ export {
   encode256t,
   encode256tParts,
   sha512Hex,
-  verify256t
+  verify256t,
 } from "./codec.js";
 export type { Decoded256t, Sha512Fn } from "./codec.js";
 export { CasQuotaError, CasStore } from "./store.js";
@@ -29,6 +29,6 @@ export {
   encodeCasLocator,
   signCasLocator,
   toCatalogEntryLike,
-  verifyCasLocator
+  verifyCasLocator,
 } from "./locator.js";
 export type { CasLocator } from "./locator.js";

@@ -41,7 +41,8 @@ var TwistedPearPeerAudio = (() => {
     let crc = 4294967295;
     for (const byte of bytes) {
       crc ^= byte;
-      for (let bit = 0; bit < 8; bit += 1) crc = crc >>> 1 ^ (crc & 1 ? 3988292384 : 0);
+      for (let bit = 0; bit < 8; bit += 1)
+        crc = crc >>> 1 ^ (crc & 1 ? 3988292384 : 0);
     }
     return (crc ^ 4294967295) >>> 0;
   }
@@ -51,16 +52,25 @@ var TwistedPearPeerAudio = (() => {
     const markHz = options.markHz ?? 2400;
     const spaceHz = options.spaceHz ?? 1200;
     const amplitude = options.amplitude ?? 0.7;
-    if (sampleRate < 8e3 || sampleRate > 192e3 || baud < 100 || baud > 4800 || markHz <= baud / 2 || spaceHz <= baud / 2 || Math.max(markHz, spaceHz) >= sampleRate / 2 || amplitude <= 0 || amplitude > 1) throw new PeerAudioFskError("MALFORMED", "Invalid audible FSK profile");
+    if (sampleRate < 8e3 || sampleRate > 192e3 || baud < 100 || baud > 4800 || markHz <= baud / 2 || spaceHz <= baud / 2 || Math.max(markHz, spaceHz) >= sampleRate / 2 || amplitude <= 0 || amplitude > 1)
+      throw new PeerAudioFskError("MALFORMED", "Invalid audible FSK profile");
     return { sampleRate, baud, markHz, spaceHz, amplitude };
   }
   function packet(payload) {
-    if (payload.length < 1 || payload.length > MAX_PEER_AUDIO_MODEM_BYTES) throw new PeerAudioFskError("OVERSIZED", "Audible FSK payload exceeds size budget");
+    if (payload.length < 1 || payload.length > MAX_PEER_AUDIO_MODEM_BYTES)
+      throw new PeerAudioFskError(
+        "OVERSIZED",
+        "Audible FSK payload exceeds size budget"
+      );
     const out = new Uint8Array(HEADER_BYTES + payload.length + 4);
     out.fill(PREAMBLE, 0, PREAMBLE_BYTES);
     new DataView(out.buffer).setUint16(PREAMBLE_BYTES, payload.length, false);
     out.set(payload, HEADER_BYTES);
-    new DataView(out.buffer).setUint32(HEADER_BYTES + payload.length, crc32(payload), false);
+    new DataView(out.buffer).setUint32(
+      HEADER_BYTES + payload.length,
+      crc32(payload),
+      false
+    );
     return out;
   }
   function encodePeerAudioFsk(payload, options = {}) {
@@ -99,22 +109,45 @@ var TwistedPearPeerAudio = (() => {
   function decodePeerAudioFsk(pcm, options = {}) {
     const config = settings(options);
     const symbols = Math.floor(pcm.length * config.baud / config.sampleRate);
-    if (symbols < (HEADER_BYTES + 4) * 8) throw new PeerAudioFskError("SIGNAL", "Audible FSK signal is too short");
+    if (symbols < (HEADER_BYTES + 4) * 8)
+      throw new PeerAudioFskError("SIGNAL", "Audible FSK signal is too short");
     const decoded = new Uint8Array(Math.floor(symbols / 8));
     for (let symbol = 0; symbol < decoded.length * 8; symbol += 1) {
       const start = Math.round(symbol * config.sampleRate / config.baud);
       const end = Math.round((symbol + 1) * config.sampleRate / config.baud);
       const mark = energy(pcm, start, end, config.markHz, config.sampleRate);
       const space = energy(pcm, start, end, config.spaceHz, config.sampleRate);
-      if (Math.max(mark, space) < 1e-6) throw new PeerAudioFskError("SIGNAL", "Audible FSK carrier was not detected");
-      if (mark > space) decoded[Math.floor(symbol / 8)] = (decoded[Math.floor(symbol / 8)] ?? 0) | 1 << 7 - symbol % 8;
+      if (Math.max(mark, space) < 1e-6)
+        throw new PeerAudioFskError(
+          "SIGNAL",
+          "Audible FSK carrier was not detected"
+        );
+      if (mark > space)
+        decoded[Math.floor(symbol / 8)] = (decoded[Math.floor(symbol / 8)] ?? 0) | 1 << 7 - symbol % 8;
     }
-    if (!decoded.subarray(0, PREAMBLE_BYTES).every((byte) => byte === PREAMBLE)) throw new PeerAudioFskError("SIGNAL", "Audible FSK preamble was not detected");
-    const length = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength).getUint16(PREAMBLE_BYTES, false);
-    if (length < 1 || length > MAX_PEER_AUDIO_MODEM_BYTES || HEADER_BYTES + length + 4 > decoded.length) throw new PeerAudioFskError("MALFORMED", "Audible FSK packet length is invalid");
+    if (!decoded.subarray(0, PREAMBLE_BYTES).every((byte) => byte === PREAMBLE))
+      throw new PeerAudioFskError(
+        "SIGNAL",
+        "Audible FSK preamble was not detected"
+      );
+    const length = new DataView(
+      decoded.buffer,
+      decoded.byteOffset,
+      decoded.byteLength
+    ).getUint16(PREAMBLE_BYTES, false);
+    if (length < 1 || length > MAX_PEER_AUDIO_MODEM_BYTES || HEADER_BYTES + length + 4 > decoded.length)
+      throw new PeerAudioFskError(
+        "MALFORMED",
+        "Audible FSK packet length is invalid"
+      );
     const payload = decoded.slice(HEADER_BYTES, HEADER_BYTES + length);
-    const expected = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength).getUint32(HEADER_BYTES + length, false);
-    if (crc32(payload) !== expected) throw new PeerAudioFskError("CRC", "Audible FSK payload CRC mismatch");
+    const expected = new DataView(
+      decoded.buffer,
+      decoded.byteOffset,
+      decoded.byteLength
+    ).getUint32(HEADER_BYTES + length, false);
+    if (crc32(payload) !== expected)
+      throw new PeerAudioFskError("CRC", "Audible FSK payload CRC mismatch");
     return payload;
   }
   function decodePeerAudioFskStream(pcm, options = {}) {
@@ -124,7 +157,8 @@ var TwistedPearPeerAudio = (() => {
     for (let start = 0; start < pcm.length; start += windowSamples) {
       let energySum = 0;
       const end = Math.min(pcm.length, start + windowSamples);
-      for (let index = start; index < end; index += 1) energySum += (pcm[index] ?? 0) ** 2;
+      for (let index = start; index < end; index += 1)
+        energySum += (pcm[index] ?? 0) ** 2;
       active.push(Math.sqrt(energySum / Math.max(1, end - start)) > 0.02);
     }
     const decoded = [];
@@ -137,17 +171,22 @@ var TwistedPearPeerAudio = (() => {
       const last = window;
       let firstSignal = first * windowSamples;
       const firstWindowEnd = Math.min(pcm.length, (first + 1) * windowSamples);
-      while (firstSignal < firstWindowEnd && Math.abs(pcm[firstSignal] ?? 0) <= 0.02) firstSignal += 1;
+      while (firstSignal < firstWindowEnd && Math.abs(pcm[firstSignal] ?? 0) <= 0.02)
+        firstSignal += 1;
       const start = Math.max(0, firstSignal - 1);
       let lastSignal = Math.min(pcm.length, last * windowSamples) - 1;
       const lastWindowStart = Math.max(start, (last - 1) * windowSamples);
-      while (lastSignal > lastWindowStart && Math.abs(pcm[lastSignal] ?? 0) <= 0.02) lastSignal -= 1;
+      while (lastSignal > lastWindowStart && Math.abs(pcm[lastSignal] ?? 0) <= 0.02)
+        lastSignal -= 1;
       const end = Math.min(pcm.length, lastSignal + 2);
       let payload = null;
       const symbolSamples = config.sampleRate / config.baud;
       for (let adjustment = 0; adjustment <= Math.ceil(symbolSamples / 2) && payload === null; adjustment += 1) {
         try {
-          payload = decodePeerAudioFsk(pcm.slice(start + adjustment, end), options);
+          payload = decodePeerAudioFsk(
+            pcm.slice(start + adjustment, end),
+            options
+          );
         } catch {
         }
       }

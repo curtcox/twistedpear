@@ -10,16 +10,25 @@ import {
   PureCryptoProvider,
   ResourceAdvertisement,
   hexToBytes,
-  type CryptoProvider
+  type CryptoProvider,
 } from "../src/index.js";
 
-const providers: ReadonlyArray<CryptoProvider> = [new NodeCryptoProvider(), new PureCryptoProvider()];
-const FUZZ_ITERATIONS = Number.parseInt(process.env.FUZZ_ITERATIONS ?? "256", 10);
+const providers: ReadonlyArray<CryptoProvider> = [
+  new NodeCryptoProvider(),
+  new PureCryptoProvider(),
+];
+const FUZZ_ITERATIONS = Number.parseInt(
+  process.env.FUZZ_ITERATIONS ?? "256",
+  10,
+);
 
 const packetVectors = JSON.parse(
-  readFileSync(resolve("conformance/vectors/packet.json"), "utf8")
+  readFileSync(resolve("conformance/vectors/packet.json"), "utf8"),
 ) as {
-  readonly packets: ReadonlyArray<{ readonly rawHex: string; readonly headerType?: number }>;
+  readonly packets: ReadonlyArray<{
+    readonly rawHex: string;
+    readonly headerType?: number;
+  }>;
   readonly announces: ReadonlyArray<{ readonly rawHex: string }>;
 };
 
@@ -54,7 +63,7 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
           mutate(raw, 1),
           mutate(raw, 7),
           truncate(raw, 3),
-          concatGarbage(raw, 11)
+          concatGarbage(raw, 11),
         ];
       });
 
@@ -97,7 +106,9 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
 
     it(`survives ${FUZZ_ITERATIONS} link-context packet mutations without throwing`, () => {
       const linkContexts = [0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff];
-      const seeds = packetVectors.packets.map((vector) => hexToBytes(vector.rawHex));
+      const seeds = packetVectors.packets.map((vector) =>
+        hexToBytes(vector.rawHex),
+      );
 
       for (let iteration = 0; iteration < FUZZ_ITERATIONS; iteration += 1) {
         const base = seeds[iteration % seeds.length]!;
@@ -109,5 +120,5 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
         expect(() => Packet.decode(provider, mutated)).not.toThrow();
       }
     });
-  }
+  },
 );

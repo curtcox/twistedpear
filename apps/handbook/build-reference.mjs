@@ -9,7 +9,7 @@ import {
   ensureDir,
   fail,
   root,
-  writeText
+  writeText,
 } from "./build-content.mjs";
 
 function transformLimitationsMarkdown(source) {
@@ -18,13 +18,19 @@ function transformLimitationsMarkdown(source) {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/\[([^\]]+)\]\(docs\/web-host\.md\)/g, "[$1](chapter:host-web)")
-    .replace(/\[([^\]]+)\]\(docs\/miniapp-runtime\.md\)/g, "[$1](chapter:ref-host-api)")
+    .replace(
+      /\[([^\]]+)\]\(docs\/miniapp-runtime\.md\)/g,
+      "[$1](chapter:ref-host-api)",
+    )
     .replace(/\[([^\]]+)\]\(docs\/security-review\.md\)/g, "$1")
     .replace(/\[([^\]]+)\]\(docs\/ios-multicast-entitlement\.md\)/g, "$1")
     .replace(/\[([^\]]+)\]\(docs\/ios-submission\.md\)/g, "$1")
     .replace(/\[([^\]]+)\]\(\.\.\/STATUS-HARDWARE\.md\)/g, "STATUS-HARDWARE")
     .replace(/\[([^\]]+)\]\(\.\.\/PLAN\.md\)/g, "PLAN")
-    .replace(/\[([^\]]+)\]\((?:\.\.\/)+LIMITATIONS\.md[^)]*\)/g, "[$1](chapter:ref-limitations)")
+    .replace(
+      /\[([^\]]+)\]\((?:\.\.\/)+LIMITATIONS\.md[^)]*\)/g,
+      "[$1](chapter:ref-limitations)",
+    )
     .replace(/\[([^\]]+)\]\([^)]*\.md[^)]*\)/g, "$1");
 }
 
@@ -38,7 +44,7 @@ function referenceHeader(title) {
     "audited: 2026-07-21",
     "register: none",
     "-->",
-    ""
+    "",
   ];
 }
 
@@ -47,13 +53,15 @@ function generateLimitationsChapter(refDir) {
   if (!existsSync(limitationsPath)) {
     fail("LIMITATIONS.md not found for ref-limitations generation");
   }
-  const body = transformLimitationsMarkdown(readFileSync(limitationsPath, "utf8"));
+  const body = transformLimitationsMarkdown(
+    readFileSync(limitationsPath, "utf8"),
+  );
   const limitationsMd = [
     ...referenceHeader("Known limitations"),
     "Platform compromises and measured constraints. Cross-linked from host chapters",
     "and the [live difference matrix](chapter:difference-matrix).",
     "",
-    body.trim()
+    body.trim(),
   ].join("\n");
   writeText(join(refDir, "limitations.md"), `${limitationsMd}\n`);
 }
@@ -70,36 +78,55 @@ export async function generateReferenceChapters() {
   let codeEditorLanguages = new Set();
   let hostApiVersion = "0.3.0";
   let hostApiChangelog = [];
-  let workspaceLimits = { maxFileBytes: 256 * 1024, maxTotalBytes: 4 * 1024 * 1024, maxFiles: 512 };
+  let workspaceLimits = {
+    maxFileBytes: 256 * 1024,
+    maxTotalBytes: 4 * 1024 * 1024,
+    maxFiles: 512,
+  };
   let aiLimits = { maxMessages: 64, maxTokensCap: 8192 };
   let hostQuotas = {
     seedStorageBytes: 2 * 1024 * 1024 * 1024,
     propagationStoreBytes: 256 * 1024 * 1024,
     propagationMessageCount: 10_000,
-    bandwidthBytesPerSecond: 512 * 1024
+    bandwidthBytesPerSecond: 512 * 1024,
   };
-  let defaultRoles = { transport: true, seeder: true, propagation: false, attachRnsd: null };
+  let defaultRoles = {
+    transport: true,
+    seeder: true,
+    propagation: false,
+    attachRnsd: null,
+  };
   let defaultInterfaces = {
-    tcp: { enabled: false, mode: "client", targetHost: "127.0.0.1", targetPort: 4242 },
+    tcp: {
+      enabled: false,
+      mode: "client",
+      targetHost: "127.0.0.1",
+      targetPort: 4242,
+    },
     websocket: { enabled: false, listenHost: "127.0.0.1", listenPort: 9480 },
     auto: { enabled: true, multicast: true, bonjour: true },
     i2p: { enabled: false },
-    rnode: { enabled: false, baudRate: 115_200 }
+    rnode: { enabled: false, baudRate: 115_200 },
   };
   try {
-    const runtimeCaps = await import("../../packages/miniapp-runtime/dist/capabilities.js");
+    const runtimeCaps =
+      await import("../../packages/miniapp-runtime/dist/capabilities.js");
     capabilityDefinitions = runtimeCaps.CAPABILITY_DEFINITIONS;
-    const runtimeUi = await import("../../packages/miniapp-runtime/dist/ui/schema.js");
+    const runtimeUi =
+      await import("../../packages/miniapp-runtime/dist/ui/schema.js");
     widgetTypes = [...runtimeUi.WIDGET_TYPES].sort();
     widgetPropKeys = runtimeUi.WIDGET_PROP_KEYS;
     widgetStyleKeys = runtimeUi.WIDGET_STYLE_KEYS;
     codeEditorLanguages = runtimeUi.CODE_EDITOR_LANGUAGES;
-    const hostApi = await import("../../packages/miniapp-runtime/dist/host-api.js");
+    const hostApi =
+      await import("../../packages/miniapp-runtime/dist/host-api.js");
     hostApiVersion = hostApi.HOST_API_VERSION;
     hostApiChangelog = hostApi.HOST_API_CHANGELOG;
-    const workspace = await import("../../packages/miniapp-runtime/dist/services/workspace.js");
+    const workspace =
+      await import("../../packages/miniapp-runtime/dist/services/workspace.js");
     workspaceLimits = workspace.DEFAULT_WORKSPACE_LIMITS;
-    const ai = await import("../../packages/miniapp-runtime/dist/services/ai.js");
+    const ai =
+      await import("../../packages/miniapp-runtime/dist/services/ai.js");
     aiLimits = ai.DEFAULT_AI_SERVICE_LIMITS;
     const hostCore = await import("../../packages/host-core/dist/types.js");
     hostQuotas = hostCore.DEFAULT_QUOTAS;
@@ -107,23 +134,77 @@ export async function generateReferenceChapters() {
     defaultInterfaces = hostCore.DEFAULT_INTERFACE_CONFIG;
   } catch {
     capabilityDefinitions = [
-      { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
-      { id: "presence", description: "Read coarse peer/interface presence and host info." },
-      { id: "announce:subscribe", description: "Receive announces in the app namespace." },
+      {
+        id: "identity",
+        description: "Use an app-scoped identity for signing and addressing.",
+      },
+      {
+        id: "presence",
+        description: "Read coarse peer/interface presence and host info.",
+      },
+      {
+        id: "announce:subscribe",
+        description: "Receive announces in the app namespace.",
+      },
       { id: "announce:publish", description: "Publish the app destination." },
-      { id: "lxmf:send", description: "Send LXMF messages from the app destination." },
-      { id: "lxmf:receive", description: "Receive LXMF messages for the app destination." },
-      { id: "storage:kv", description: "Store local key/value data for this app." },
-      { id: "storage:hyperbee", description: "Store ordered local Hyperbee data for this app." },
-      { id: "resource:fetch", description: "Fetch package resources through host budget rules." },
-      { id: "workspace", description: "Read and write project source files in this app's private workspace." },
-      { id: "ai:chat", description: "Send prompts to the host-configured AI service." },
-      { id: "ai:embed", description: "Send bounded text to the host-configured embedding model and rank vectors locally." },
-      { id: "apps:package", description: "Package and sign apps under this device's publisher identity." },
-      { id: "apps:publish", description: "Publish signed apps so other users can find and install them." },
-      { id: "apps:install", description: "Ask the host to install apps from a 256t id." },
-      { id: "apps:preview", description: "Run a built app in the host's sandboxed dev-preview slot." },
-      { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." }
+      {
+        id: "lxmf:send",
+        description: "Send LXMF messages from the app destination.",
+      },
+      {
+        id: "lxmf:receive",
+        description: "Receive LXMF messages for the app destination.",
+      },
+      {
+        id: "storage:kv",
+        description: "Store local key/value data for this app.",
+      },
+      {
+        id: "storage:hyperbee",
+        description: "Store ordered local Hyperbee data for this app.",
+      },
+      {
+        id: "resource:fetch",
+        description: "Fetch package resources through host budget rules.",
+      },
+      {
+        id: "workspace",
+        description:
+          "Read and write project source files in this app's private workspace.",
+      },
+      {
+        id: "ai:chat",
+        description: "Send prompts to the host-configured AI service.",
+      },
+      {
+        id: "ai:embed",
+        description:
+          "Send bounded text to the host-configured embedding model and rank vectors locally.",
+      },
+      {
+        id: "apps:package",
+        description:
+          "Package and sign apps under this device's publisher identity.",
+      },
+      {
+        id: "apps:publish",
+        description:
+          "Publish signed apps so other users can find and install them.",
+      },
+      {
+        id: "apps:install",
+        description: "Ask the host to install apps from a 256t id.",
+      },
+      {
+        id: "apps:preview",
+        description:
+          "Run a built app in the host's sandboxed dev-preview slot.",
+      },
+      {
+        id: "share:cas",
+        description:
+          "Store and retrieve bounded content-addressed data shared by 256t id.",
+      },
     ];
     widgetTypes = [
       "button",
@@ -138,9 +219,14 @@ export async function generateReferenceChapters() {
       "switch",
       "text",
       "text-input",
-      "view"
+      "view",
     ];
-    hostApiChangelog = [{ version: hostApiVersion, note: "See packages/miniapp-runtime/src/host-api.ts" }];
+    hostApiChangelog = [
+      {
+        version: hostApiVersion,
+        note: "See packages/miniapp-runtime/src/host-api.ts",
+      },
+    ];
   }
 
   const capabilitiesMd = [
@@ -148,20 +234,27 @@ export async function generateReferenceChapters() {
     "Generated from `CAPABILITY_DEFINITIONS` in `packages/miniapp-runtime`.",
     "Every id below must be exercised by at least one Handbook applet (coverage gate).",
     "",
-    ...capabilityDefinitions.map((entry) => `- **\`${entry.id}\`** — ${entry.description}`),
+    ...capabilityDefinitions.map(
+      (entry) => `- **\`${entry.id}\`** — ${entry.description}`,
+    ),
     "",
     "Manifests declare the full list; users may grant a subset at install.",
     "Withholding a capability turns matching probes into `not-granted` cards.",
     "",
     "Tutorial: [Capability model](chapter:sdk-capabilities).",
-    "Per-namespace guides: [Developing mini-apps](chapter:sdk-identity)."
+    "Per-namespace guides: [Developing mini-apps](chapter:sdk-identity).",
   ].join("\n");
 
   const widgetLines = [];
   for (const type of widgetTypes) {
     const props = widgetPropKeys.get(type);
     const propList =
-      props === undefined || props.size === 0 ? "none" : [...props].sort().map((p) => `\`${p}\``).join(", ");
+      props === undefined || props.size === 0
+        ? "none"
+        : [...props]
+            .sort()
+            .map((p) => `\`${p}\``)
+            .join(", ");
     widgetLines.push(`- **\`${type}\`** — props: ${propList}`);
   }
 
@@ -179,7 +272,10 @@ export async function generateReferenceChapters() {
     "## Styles",
     "",
     widgetStyleKeys.size > 0
-      ? [...widgetStyleKeys].sort().map((key) => `- \`${key}\``).join("\n")
+      ? [...widgetStyleKeys]
+          .sort()
+          .map((key) => `- \`${key}\``)
+          .join("\n")
       : "- See `WIDGET_STYLE_KEYS` in the runtime.",
     "",
     "## Limits",
@@ -188,11 +284,11 @@ export async function generateReferenceChapters() {
     `- \`code-editor\` languages: ${[...codeEditorLanguages].sort().join(", ")}`,
     `- \`qr-code\` value: up to 512 characters (94-char 256t ids fit)`,
     "",
-    "Live gallery: [Widget gallery](chapter:sdk-widget-gallery)."
+    "Live gallery: [Widget gallery](chapter:sdk-widget-gallery).",
   ].join("\n");
 
   const changelogLines = hostApiChangelog.map(
-    (entry) => `- **\`${entry.version}\`** — ${entry.note}`
+    (entry) => `- **\`${entry.version}\`** — ${entry.note}`,
   );
 
   const hostApiMd = [
@@ -213,7 +309,7 @@ export async function generateReferenceChapters() {
     "",
     `- ${workspaceLimits.maxFileBytes} bytes/file`,
     `- ${workspaceLimits.maxTotalBytes} bytes total per app`,
-    `- ${workspaceLimits.maxFiles} files per app`
+    `- ${workspaceLimits.maxFiles} files per app`,
   ].join("\n");
 
   const packagesMd = [
@@ -225,7 +321,7 @@ export async function generateReferenceChapters() {
     "- Ed25519 signature over the manifest hash",
     "",
     "Packaging flow: [Packaging & preview](chapter:sdk-apps-package).",
-    "Distribution tutorial: [Publish, install & update](chapter:sdk-apps-update)."
+    "Distribution tutorial: [Publish, install & update](chapter:sdk-apps-update).",
   ].join("\n");
 
   const interfacesMd = [
@@ -261,7 +357,7 @@ export async function generateReferenceChapters() {
     "## RNode serial",
     "",
     "USB serial on desktop/Android; BLE-only on iOS. WebSerial (Chromium) is optional.",
-    "LoRa bandwidth budgets apply — see [Known limitations](chapter:ref-limitations) §6."
+    "LoRa bandwidth budgets apply — see [Known limitations](chapter:ref-limitations) §6.",
   ].join("\n");
 
   const quotasMd = [
@@ -294,7 +390,7 @@ export async function generateReferenceChapters() {
     "",
     "BLE install budgets (~180 KiB at measured rates) and Resource fetch caps are",
     "enforced per link type. See [Resource fetch](chapter:sdk-resource-fetch) and",
-    "`conformance/budgets/measured.json`."
+    "`conformance/budgets/measured.json`.",
   ].join("\n");
 
   const cliMd = [
@@ -322,7 +418,7 @@ export async function generateReferenceChapters() {
     "- `tp trust list|show|add|remove` — manage trusted publisher keys",
     "",
     "Handbook packaging in CI: `npm run build:handbook` then `tp pack` in a temp dir.",
-    "Tutorial: [Packaging & preview](chapter:sdk-apps-package)."
+    "Tutorial: [Packaging & preview](chapter:sdk-apps-package).",
   ].join("\n");
 
   const hostConfigMd = [
@@ -375,7 +471,7 @@ export async function generateReferenceChapters() {
     "## Status endpoint",
     "",
     "Opt-in JSON at `http://127.0.0.1:9473/status` when `statusEndpoint: true`",
-    "or `tp node --status-endpoint`."
+    "or `tp node --status-endpoint`.",
   ].join("\n");
 
   writeText(join(refDir, "capabilities.md"), `${capabilitiesMd}\n`);

@@ -41,7 +41,7 @@ import {
   tokenHmacMatches,
   tokenKeyFieldsFromActions,
   tokenSignedMaterial,
-  tokenSignedMaterialRawFromActions
+  tokenSignedMaterialRawFromActions,
 } from "../src/token-framing.js";
 
 describe("protocol token framing", () => {
@@ -62,7 +62,7 @@ describe("protocol token framing", () => {
     const key128 = new Uint8Array(32).map((_, i) => i);
     const ok = stepSplitTokenKeyWithActions(initialSplitTokenKeyState(), {
       kind: "token-framing/split-key-gate",
-      key: key128
+      key: key128,
     });
     expect(shouldUseSplitTokenKey(ok.actions)).toBe(true);
     expect(shouldRejectSplitTokenKey(ok.actions)).toBe(false);
@@ -74,7 +74,7 @@ describe("protocol token framing", () => {
 
     const rejected = stepSplitTokenKeyWithActions(initialSplitTokenKeyState(), {
       kind: "token-framing/split-key-gate",
-      key: new Uint8Array(10)
+      key: new Uint8Array(10),
     });
     expect(shouldRejectSplitTokenKey(rejected.actions)).toBe(true);
     expect(shouldUseSplitTokenKey(rejected.actions)).toBe(false);
@@ -92,7 +92,9 @@ describe("protocol token framing", () => {
     expect([...split!.iv]).toEqual([...iv]);
     expect([...split!.ciphertext]).toEqual([...ciphertext]);
     expect([...split!.hmac]).toEqual([...hmac]);
-    expect([...split!.signedMaterial]).toEqual([...tokenSignedMaterial(iv, ciphertext)]);
+    expect([...split!.signedMaterial]).toEqual([
+      ...tokenSignedMaterial(iv, ciphertext),
+    ]);
     expect(tokenHmacMatches(split!.hmac, hmac)).toBe(true);
   });
 
@@ -113,17 +115,17 @@ describe("protocol token framing", () => {
       shouldAcceptTokenIvLength(
         stepTokenIvLengthValidWithActions(initialTokenIvLengthValidState(), {
           kind: "token-framing/iv-length-valid-gate",
-          length: TOKEN_IV_SIZE
-        }).actions
-      )
+          length: TOKEN_IV_SIZE,
+        }).actions,
+      ),
     ).toBe(true);
     expect(
       shouldRejectTokenIvLength(
         stepTokenIvLengthValidWithActions(initialTokenIvLengthValidState(), {
           kind: "token-framing/iv-length-valid-gate",
-          length: 8
-        }).actions
-      )
+          length: 8,
+        }).actions,
+      ),
     ).toBe(true);
   });
 
@@ -132,39 +134,45 @@ describe("protocol token framing", () => {
       shouldAcceptTokenFrameNow(
         stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
           kind: "token-framing/accept-frame-gate",
-          framePresent: true
-        }).actions
-      )
+          framePresent: true,
+        }).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipAcceptTokenFrame(
         stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
           kind: "token-framing/accept-frame-gate",
-          framePresent: false
-        }).actions
-      )
+          framePresent: false,
+        }).actions,
+      ),
     ).toBe(true);
   });
 
   it("emits signed-material raw or reject from WithActions steps", () => {
     const iv = new Uint8Array(TOKEN_IV_SIZE).fill(1);
     const ciphertext = new Uint8Array([9, 8, 7, 6]);
-    const ok = stepTokenSignedMaterialWithActions(initialTokenSignedMaterialState(), {
-      kind: "token-framing/signed-material-gate",
-      iv,
-      ciphertext
-    });
+    const ok = stepTokenSignedMaterialWithActions(
+      initialTokenSignedMaterialState(),
+      {
+        kind: "token-framing/signed-material-gate",
+        iv,
+        ciphertext,
+      },
+    );
     expect(shouldUseTokenSignedMaterial(ok.actions)).toBe(true);
     expect(shouldRejectTokenSignedMaterial(ok.actions)).toBe(false);
     const material = tokenSignedMaterialRawFromActions(ok.actions);
     expect(material).not.toBeNull();
     expect([...material!]).toEqual([...tokenSignedMaterial(iv, ciphertext)]);
 
-    const rejected = stepTokenSignedMaterialWithActions(initialTokenSignedMaterialState(), {
-      kind: "token-framing/signed-material-gate",
-      iv: new Uint8Array(8),
-      ciphertext
-    });
+    const rejected = stepTokenSignedMaterialWithActions(
+      initialTokenSignedMaterialState(),
+      {
+        kind: "token-framing/signed-material-gate",
+        iv: new Uint8Array(8),
+        ciphertext,
+      },
+    );
     expect(shouldRejectTokenSignedMaterial(rejected.actions)).toBe(true);
     expect(shouldUseTokenSignedMaterial(rejected.actions)).toBe(false);
     expect(tokenSignedMaterialRawFromActions(rejected.actions)).toBeNull();
@@ -175,18 +183,21 @@ describe("protocol token framing", () => {
     const match = stepTokenHmacMatchWithActions(initialTokenHmacMatchState(), {
       kind: "token-framing/hmac-match-gate",
       received: hmac,
-      expected: hmac
+      expected: hmac,
     });
     expect(shouldMatchTokenHmac(match.actions)).toBe(true);
     expect(shouldMismatchTokenHmac(match.actions)).toBe(false);
     expect(tokenHmacMatches(hmac, hmac)).toBe(true);
 
     const other = new Uint8Array(TOKEN_HMAC_SIZE).fill(9);
-    const mismatch = stepTokenHmacMatchWithActions(initialTokenHmacMatchState(), {
-      kind: "token-framing/hmac-match-gate",
-      received: hmac,
-      expected: other
-    });
+    const mismatch = stepTokenHmacMatchWithActions(
+      initialTokenHmacMatchState(),
+      {
+        kind: "token-framing/hmac-match-gate",
+        received: hmac,
+        expected: other,
+      },
+    );
     expect(shouldMatchTokenHmac(mismatch.actions)).toBe(false);
     expect(shouldMismatchTokenHmac(mismatch.actions)).toBe(true);
   });
@@ -199,7 +210,7 @@ describe("protocol token framing", () => {
       kind: "token-framing/pack-gate",
       iv,
       ciphertext,
-      hmac
+      hmac,
     });
     expect(shouldUsePackTokenFrame(ok.actions)).toBe(true);
     expect(shouldRejectPackTokenFrame(ok.actions)).toBe(false);
@@ -207,12 +218,15 @@ describe("protocol token framing", () => {
     expect(packed).not.toBeNull();
     expect([...packed!]).toEqual([...packTokenFrame({ iv, ciphertext, hmac })]);
 
-    const rejected = stepPackTokenFrameWithActions(initialPackTokenFrameState(), {
-      kind: "token-framing/pack-gate",
-      iv: new Uint8Array(8),
-      ciphertext,
-      hmac
-    });
+    const rejected = stepPackTokenFrameWithActions(
+      initialPackTokenFrameState(),
+      {
+        kind: "token-framing/pack-gate",
+        iv: new Uint8Array(8),
+        ciphertext,
+        hmac,
+      },
+    );
     expect(shouldRejectPackTokenFrame(rejected.actions)).toBe(true);
     expect(shouldUsePackTokenFrame(rejected.actions)).toBe(false);
     expect(packTokenFrameRawFromActions(rejected.actions)).toBeNull();
@@ -225,7 +239,7 @@ describe("protocol token framing", () => {
     const packed = packTokenFrame({ iv, ciphertext, hmac });
     const ok = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
       kind: "token-framing/split-gate",
-      token: packed
+      token: packed,
     });
     expect(shouldUseSplitTokenFrame(ok.actions)).toBe(true);
     expect(shouldRejectSplitTokenFrame(ok.actions)).toBe(false);
@@ -235,10 +249,13 @@ describe("protocol token framing", () => {
     expect([...fields!.ciphertext]).toEqual([...ciphertext]);
     expect([...fields!.hmac]).toEqual([...hmac]);
 
-    const rejected = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
-      kind: "token-framing/split-gate",
-      token: new Uint8Array(TOKEN_OVERHEAD)
-    });
+    const rejected = stepSplitTokenFrameWithActions(
+      initialSplitTokenFrameState(),
+      {
+        kind: "token-framing/split-gate",
+        token: new Uint8Array(TOKEN_OVERHEAD),
+      },
+    );
     expect(shouldRejectSplitTokenFrame(rejected.actions)).toBe(true);
     expect(shouldUseSplitTokenFrame(rejected.actions)).toBe(false);
     expect(tokenFrameFieldsFromActions(rejected.actions)).toBeNull();

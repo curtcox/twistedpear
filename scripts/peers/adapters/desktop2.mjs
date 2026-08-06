@@ -4,7 +4,13 @@
  */
 import { spawn } from "node:child_process";
 import { openSync } from "node:fs";
-import { CONTROL_PORT, dataDirFor, logPath, processAlive, repoRoot } from "../state.mjs";
+import {
+  CONTROL_PORT,
+  dataDirFor,
+  logPath,
+  processAlive,
+  repoRoot,
+} from "../state.mjs";
 
 export const DESKTOP2_CDP_PORT = 34993;
 const PASSPHRASE = "local-multipeer conformance passphrase";
@@ -53,17 +59,22 @@ export const desktop2Adapter = {
         TP_TEST_AGENT: `127.0.0.1:${CONTROL_PORT}:desktop2`,
         TP_CDP_PORT: String(DESKTOP2_CDP_PORT),
         TP_IDENTITY_PASSPHRASE: PASSPHRASE,
-        TWISTEDPEAR_HOST_DATA_DIR: dataDirFor("desktop2")
-      }
+        TWISTEDPEAR_HOST_DATA_DIR: dataDirFor("desktop2"),
+      },
     });
     child.unref();
     log(`desktop2: electron pid ${child.pid}`);
-    return { kind: "desktop", pid: child.pid, cdpPort: DESKTOP2_CDP_PORT, dataDir: dataDirFor("desktop2") };
+    return {
+      kind: "desktop",
+      pid: child.pid,
+      cdpPort: DESKTOP2_CDP_PORT,
+      dataDir: dataDirFor("desktop2"),
+    };
   },
 
   async down(entry, ctx) {
     await downDesktop(entry, ctx, "desktop2");
   },
 
-  running: (entry) => processAlive(entry?.pid)
+  running: (entry) => processAlive(entry?.pid),
 };

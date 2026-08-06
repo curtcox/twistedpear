@@ -16,11 +16,16 @@ const output = join(rendererRoot, "widget.bundle.js");
 
 const build = spawnSync(
   "npm",
-  ["run", "build", "--workspace=@twistedpear/miniapp-runtime", "--workspace=@twistedpear/widget-renderer-rn"],
+  [
+    "run",
+    "build",
+    "--workspace=@twistedpear/miniapp-runtime",
+    "--workspace=@twistedpear/widget-renderer-rn",
+  ],
   {
     cwd: repoRoot,
-    stdio: "inherit"
-  }
+    stdio: "inherit",
+  },
 );
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
@@ -34,20 +39,32 @@ buildSync({
   globalName: "TwistedPearWebWidgetRenderer",
   outfile: output,
   alias: {
-    "react-native": "react-native-web"
+    "react-native": "react-native-web",
   },
   define: {
     __DEV__: "false",
-    "process.env.NODE_ENV": '"production"'
+    "process.env.NODE_ENV": '"production"',
   },
-  logLevel: "warning"
+  logLevel: "warning",
 });
 
-const forbidden = ["node:crypto", "node:net", "node:http", "node:fs", "sodium-native", "bare-fs", "corestore", "hyperdrive", "hyperswarm"];
+const forbidden = [
+  "node:crypto",
+  "node:net",
+  "node:http",
+  "node:fs",
+  "sodium-native",
+  "bare-fs",
+  "corestore",
+  "hyperdrive",
+  "hyperswarm",
+];
 const source = readFileSync(output, "utf8");
 const hits = forbidden.filter((needle) => source.includes(needle));
 if (hits.length > 0) {
-  throw new Error(`web-widget-renderer bundle guard failed: forbidden imports leaked (${hits.join(", ")})`);
+  throw new Error(
+    `web-widget-renderer bundle guard failed: forbidden imports leaked (${hits.join(", ")})`,
+  );
 }
 
 console.log(`web-widget-renderer bundle written to ${output}`);

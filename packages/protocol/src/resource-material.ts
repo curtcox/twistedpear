@@ -21,30 +21,48 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
 }
 
 /** Plaintext encrypted on the wire: randomHash || data. */
-export function resourceEncryptMaterial(randomHash: Uint8Array, data: Uint8Array): Uint8Array {
+export function resourceEncryptMaterial(
+  randomHash: Uint8Array,
+  data: Uint8Array,
+): Uint8Array {
   if (randomHash.length !== RESOURCE_RANDOM_HASH_SIZE) {
-    throw new Error(`resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
+    throw new Error(
+      `resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`,
+    );
   }
   return concatBytes(randomHash, data);
 }
 
 /** Material hashed for the resource identity hash: data || randomHash. */
-export function resourceHashMaterial(data: Uint8Array, randomHash: Uint8Array): Uint8Array {
+export function resourceHashMaterial(
+  data: Uint8Array,
+  randomHash: Uint8Array,
+): Uint8Array {
   if (randomHash.length !== RESOURCE_RANDOM_HASH_SIZE) {
-    throw new Error(`resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
+    throw new Error(
+      `resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`,
+    );
   }
   return concatBytes(data, randomHash);
 }
 
 /** Material hashed for the expected proof: data || resourceHash. */
-export function resourceExpectedProofMaterial(data: Uint8Array, resourceHash: Uint8Array): Uint8Array {
+export function resourceExpectedProofMaterial(
+  data: Uint8Array,
+  resourceHash: Uint8Array,
+): Uint8Array {
   return concatBytes(data, resourceHash);
 }
 
 /** Material hashed (then truncated) for a part map-hash: partData || randomHash. */
-export function resourcePartMapHashMaterial(partData: Uint8Array, randomHash: Uint8Array): Uint8Array {
+export function resourcePartMapHashMaterial(
+  partData: Uint8Array,
+  randomHash: Uint8Array,
+): Uint8Array {
   if (randomHash.length !== RESOURCE_RANDOM_HASH_SIZE) {
-    throw new Error(`resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
+    throw new Error(
+      `resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`,
+    );
   }
   return concatBytes(partData, randomHash);
 }
@@ -85,7 +103,7 @@ export function initialResourceEncryptMaterialState(): ResourceEncryptMaterialSt
 
 export function stepResourceEncryptMaterialWithActions(
   state: ResourceEncryptMaterialState,
-  event: ResourceEncryptMaterialEvent
+  event: ResourceEncryptMaterialEvent,
 ): ResourceEncryptMaterialStepResult {
   if (event.kind === "resource-material/encrypt-gate") {
     try {
@@ -95,9 +113,9 @@ export function stepResourceEncryptMaterialWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: resourceEncryptMaterial(event.randomHash, event.data)
-          }
-        ]
+            raw: resourceEncryptMaterial(event.randomHash, event.data),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -108,20 +126,20 @@ export function stepResourceEncryptMaterialWithActions(
 }
 
 export function shouldUseResourceEncryptMaterial(
-  actions: ReadonlyArray<ResourceEncryptMaterialAction>
+  actions: ReadonlyArray<ResourceEncryptMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectResourceEncryptMaterial(
-  actions: ReadonlyArray<ResourceEncryptMaterialAction>
+  actions: ReadonlyArray<ResourceEncryptMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract encrypt material bytes from step actions; null when no `use-raw`. */
 export function resourceEncryptMaterialRawFromActions(
-  actions: ReadonlyArray<ResourceEncryptMaterialAction>
+  actions: ReadonlyArray<ResourceEncryptMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -158,7 +176,7 @@ export function initialResourceHashMaterialState(): ResourceHashMaterialState {
 
 export function stepResourceHashMaterialWithActions(
   state: ResourceHashMaterialState,
-  event: ResourceHashMaterialEvent
+  event: ResourceHashMaterialEvent,
 ): ResourceHashMaterialStepResult {
   if (event.kind === "resource-material/hash-gate") {
     try {
@@ -168,9 +186,9 @@ export function stepResourceHashMaterialWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: resourceHashMaterial(event.data, event.randomHash)
-          }
-        ]
+            raw: resourceHashMaterial(event.data, event.randomHash),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -181,20 +199,20 @@ export function stepResourceHashMaterialWithActions(
 }
 
 export function shouldUseResourceHashMaterial(
-  actions: ReadonlyArray<ResourceHashMaterialAction>
+  actions: ReadonlyArray<ResourceHashMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectResourceHashMaterial(
-  actions: ReadonlyArray<ResourceHashMaterialAction>
+  actions: ReadonlyArray<ResourceHashMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract hash material bytes from step actions; null when no `use-raw`. */
 export function resourceHashMaterialRawFromActions(
-  actions: ReadonlyArray<ResourceHashMaterialAction>
+  actions: ReadonlyArray<ResourceHashMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -232,7 +250,7 @@ export function initialResourceExpectedProofMaterialState(): ResourceExpectedPro
 
 export function stepResourceExpectedProofMaterialWithActions(
   state: ResourceExpectedProofMaterialState,
-  event: ResourceExpectedProofMaterialEvent
+  event: ResourceExpectedProofMaterialEvent,
 ): ResourceExpectedProofMaterialStepResult {
   if (event.kind === "resource-material/expected-proof-gate") {
     return {
@@ -241,9 +259,9 @@ export function stepResourceExpectedProofMaterialWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: resourceExpectedProofMaterial(event.data, event.resourceHash)
-        }
-      ]
+          raw: resourceExpectedProofMaterial(event.data, event.resourceHash),
+        },
+      ],
     };
   }
 
@@ -251,14 +269,14 @@ export function stepResourceExpectedProofMaterialWithActions(
 }
 
 export function shouldUseResourceExpectedProofMaterial(
-  actions: ReadonlyArray<ResourceExpectedProofMaterialAction>
+  actions: ReadonlyArray<ResourceExpectedProofMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract expected-proof material bytes from step actions; null when no `use-raw`. */
 export function resourceExpectedProofMaterialRawFromActions(
-  actions: ReadonlyArray<ResourceExpectedProofMaterialAction>
+  actions: ReadonlyArray<ResourceExpectedProofMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -296,7 +314,7 @@ export function initialResourcePartMapHashMaterialState(): ResourcePartMapHashMa
 
 export function stepResourcePartMapHashMaterialWithActions(
   state: ResourcePartMapHashMaterialState,
-  event: ResourcePartMapHashMaterialEvent
+  event: ResourcePartMapHashMaterialEvent,
 ): ResourcePartMapHashMaterialStepResult {
   if (event.kind === "resource-material/part-map-hash-gate") {
     try {
@@ -306,9 +324,9 @@ export function stepResourcePartMapHashMaterialWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: resourcePartMapHashMaterial(event.partData, event.randomHash)
-          }
-        ]
+            raw: resourcePartMapHashMaterial(event.partData, event.randomHash),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -319,20 +337,20 @@ export function stepResourcePartMapHashMaterialWithActions(
 }
 
 export function shouldUseResourcePartMapHashMaterial(
-  actions: ReadonlyArray<ResourcePartMapHashMaterialAction>
+  actions: ReadonlyArray<ResourcePartMapHashMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectResourcePartMapHashMaterial(
-  actions: ReadonlyArray<ResourcePartMapHashMaterialAction>
+  actions: ReadonlyArray<ResourcePartMapHashMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract part map-hash material bytes from step actions; null when no `use-raw`. */
 export function resourcePartMapHashMaterialRawFromActions(
-  actions: ReadonlyArray<ResourcePartMapHashMaterialAction>
+  actions: ReadonlyArray<ResourcePartMapHashMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -370,7 +388,7 @@ export function initialComputeResourceTotalPartsState(): ComputeResourceTotalPar
 
 export function stepComputeResourceTotalPartsWithActions(
   state: ComputeResourceTotalPartsState,
-  event: ComputeResourceTotalPartsEvent
+  event: ComputeResourceTotalPartsEvent,
 ): ComputeResourceTotalPartsStepResult {
   if (event.kind === "resource-material/total-parts-gate") {
     return {
@@ -379,9 +397,9 @@ export function stepComputeResourceTotalPartsWithActions(
       actions: [
         {
           kind: "use-parts",
-          parts: computeResourceTotalParts(event.length, event.sdu)
-        }
-      ]
+          parts: computeResourceTotalParts(event.length, event.sdu),
+        },
+      ],
     };
   }
 
@@ -389,14 +407,14 @@ export function stepComputeResourceTotalPartsWithActions(
 }
 
 export function shouldUseComputeResourceTotalParts(
-  actions: ReadonlyArray<ComputeResourceTotalPartsAction>
+  actions: ReadonlyArray<ComputeResourceTotalPartsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-parts");
 }
 
 /** Extract total parts from step actions; null when no `use-parts`. */
 export function resourceTotalPartsFromActions(
-  actions: ReadonlyArray<ComputeResourceTotalPartsAction>
+  actions: ReadonlyArray<ComputeResourceTotalPartsAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-parts");
   return action?.kind === "use-parts" ? action.parts : null;

@@ -4,7 +4,7 @@ import {
   initialUtf8DecodeState,
   shouldUseUtf8Decode,
   stepUtf8DecodeWithActions,
-  utf8DecodeTextFromActions
+  utf8DecodeTextFromActions,
 } from "@twistedpear/protocol";
 
 export {
@@ -20,7 +20,7 @@ export {
   msgpackUnpackLinkRequestTuple as msgpackUnpackRequest,
   msgpackUnpackLinkResponseTuple as msgpackUnpackResponse,
   utf8Decode,
-  utf8Encode
+  utf8Encode,
 } from "@twistedpear/protocol";
 
 export interface MsgpackMapValue {
@@ -42,7 +42,10 @@ export function msgpackUnpack(bytes: Uint8Array): MsgpackValue {
   return value;
 }
 
-function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, number] {
+function msgpackUnpackAt(
+  bytes: Uint8Array,
+  offset: number,
+): [MsgpackValue, number] {
   const tag = bytes[offset];
   if (tag === undefined) {
     throw new Error("Unexpected end of msgpack input");
@@ -53,7 +56,11 @@ function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, numb
   }
 
   if (tag === 0xcb) {
-    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, bytes.byteLength - offset);
+    const view = new DataView(
+      bytes.buffer,
+      bytes.byteOffset + offset,
+      bytes.byteLength - offset,
+    );
     return [{ type: "float", float: view.getFloat64(1, false) }, offset + 9];
   }
 
@@ -101,13 +108,19 @@ function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, numb
   if ((tag & 0xe0) === 0xa0) {
     const length = tag & 0x1f;
     const stringBytes = bytes.subarray(offset + 1, offset + 1 + length);
-    return [{ type: "string", string: utf8DecodeViaActions(stringBytes) }, offset + 1 + length];
+    return [
+      { type: "string", string: utf8DecodeViaActions(stringBytes) },
+      offset + 1 + length,
+    ];
   }
 
   if (tag === 0xd9) {
     const length = bytes[offset + 1]!;
     const stringBytes = bytes.subarray(offset + 2, offset + 2 + length);
-    return [{ type: "string", string: utf8DecodeViaActions(stringBytes) }, offset + 2 + length];
+    return [
+      { type: "string", string: utf8DecodeViaActions(stringBytes) },
+      offset + 2 + length,
+    ];
   }
 
   if (tag === 0xcc) {
@@ -120,7 +133,11 @@ function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, numb
   }
 
   if (tag === 0xce) {
-    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, bytes.byteLength - offset);
+    const view = new DataView(
+      bytes.buffer,
+      bytes.byteOffset + offset,
+      bytes.byteLength - offset,
+    );
     return [{ type: "int", int: view.getUint32(1, false) }, offset + 5];
   }
 
@@ -134,7 +151,7 @@ function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, numb
 function utf8DecodeViaActions(bytes: Uint8Array): string {
   const stepped = stepUtf8DecodeWithActions(initialUtf8DecodeState(), {
     kind: "utf8/decode-gate",
-    bytes
+    bytes,
   });
   const text = utf8DecodeTextFromActions(stepped.actions);
   if (!shouldUseUtf8Decode(stepped.actions) || text === null) {

@@ -15,12 +15,24 @@
     {
       "t": "event",
       "node": "b",
-      "event": { "kind": "transport/recv", "channel": "x", "source": "a", "payload": { "$bytes": "01" }, "at": 1 }
+      "event": {
+        "kind": "transport/recv",
+        "channel": "x",
+        "source": "a",
+        "payload": { "$bytes": "01" },
+        "at": 1
+      }
     },
     {
       "t": "event",
       "node": "b",
-      "event": { "kind": "transport/recv", "channel": "x", "source": "a", "payload": { "$bytes": "01" }, "at": 1 }
+      "event": {
+        "kind": "transport/recv",
+        "channel": "x",
+        "source": "a",
+        "payload": { "$bytes": "01" },
+        "at": 1
+      }
     }
   ],
   "violation": {

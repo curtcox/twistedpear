@@ -18,7 +18,7 @@ import {
   NodeCryptoProvider,
   Reticulum,
   hexToBytes,
-  nodeRuntime
+  nodeRuntime,
 } from "@twistedpear/reticulum-ts";
 import { LXMessageMethod, LXMFRouter } from "@twistedpear/lxmf-ts";
 import { FreenetInterface } from "@twistedpear/reticulum-interfaces";
@@ -35,7 +35,10 @@ const rightUrl =
   process.env.FREENET_RIGHT_NODE_URL ??
   process.env.FREENET_SUBSCRIBER_NODE_URL ??
   sharedUrl;
-const label = process.env.FREENET_F2_ANNOUNCE_LABEL ?? process.env.FREENET_F2_LABEL ?? "local-isolated";
+const label =
+  process.env.FREENET_F2_ANNOUNCE_LABEL ??
+  process.env.FREENET_F2_LABEL ??
+  "local-isolated";
 const leftToken =
   process.env.FREENET_LEFT_NODE_TOKEN ?? process.env.FREENET_NODE_TOKEN;
 const rightToken =
@@ -45,20 +48,25 @@ const lxmfTimeoutMs = Number(process.env.FREENET_F2_LXMF_TIMEOUT_MS ?? 60_000);
 
 if (leftUrl === undefined || rightUrl === undefined) {
   throw new Error(
-    "FREENET_NODE_URL (or FREENET_LEFT_NODE_URL / FREENET_RIGHT_NODE_URL) is required for the F2 announce+LXMF proof"
+    "FREENET_NODE_URL (or FREENET_LEFT_NODE_URL / FREENET_RIGHT_NODE_URL) is required for the F2 announce+LXMF proof",
   );
 }
 
 const identityVectors = JSON.parse(
-  readFileSync(join(repoRoot, "conformance/vectors/identity.json"), "utf8")
+  readFileSync(join(repoRoot, "conformance/vectors/identity.json"), "utf8"),
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  const entry = identityVectors.identities.find(
+    (candidate) => candidate.name === name,
+  );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -84,9 +92,9 @@ const wasm = Uint8Array.from(
   readFileSync(
     join(
       repoRoot,
-      "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm"
-    )
-  )
+      "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
+    ),
+  ),
 );
 const rendezvous = randomBytes(32);
 const provider = new NodeCryptoProvider();
@@ -98,7 +106,7 @@ const leftBackend = new FreenetContractPacketLogBackend({
   rendezvous,
   localDirection: 0,
   retentionPerDirection: 64,
-  updateOptions: { fallbackCodeField: wasm }
+  updateOptions: { fallbackCodeField: wasm },
 });
 const rightBackend = new FreenetContractPacketLogBackend({
   clientOptions: { url: rightUrl, authToken: rightToken },
@@ -106,7 +114,7 @@ const rightBackend = new FreenetContractPacketLogBackend({
   rendezvous,
   localDirection: 1,
   retentionPerDirection: 64,
-  updateOptions: { fallbackCodeField: wasm }
+  updateOptions: { fallbackCodeField: wasm },
 });
 
 const leftReticulum = Reticulum.create({ provider, runtime });
@@ -117,12 +125,12 @@ rightReticulum.start();
 const leftIface = await FreenetInterface.open(provider, {
   name: "f2-announce-left",
   provider,
-  backend: leftBackend
+  backend: leftBackend,
 });
 const rightIface = await FreenetInterface.open(provider, {
   name: "f2-announce-right",
   provider,
-  backend: rightBackend
+  backend: rightBackend,
 });
 leftReticulum.registerInterface(leftIface);
 rightReticulum.registerInterface(rightIface);
@@ -139,7 +147,7 @@ const distinct = leftUrl !== rightUrl;
 const content = `tp-f2-announce-lxmf:${label}:${Date.now()}`;
 console.log(
   `F2 announce+LXMF: Alice → Bob over Freenet packet-log` +
-    (distinct ? " (distinct nodes)" : " (same node)")
+    (distinct ? " (distinct nodes)" : " (same node)"),
 );
 
 try {
@@ -150,7 +158,7 @@ try {
   const received = new Promise((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new Error("LXMF delivery timeout over FreenetInterface")),
-      lxmfTimeoutMs
+      lxmfTimeoutMs,
     );
     rightRouter.onDelivery((message) => {
       clearTimeout(timer);
@@ -165,7 +173,7 @@ try {
     content,
     desiredMethod: LXMessageMethod.OPPORTUNISTIC,
     deferStamp: true,
-    timestamp: 1_700_000_400
+    timestamp: 1_700_000_400,
   });
 
   const got = await received;
@@ -190,7 +198,7 @@ const artifact = {
   result: "pass",
   notes: distinct
     ? "Distinct Freenet WebSocket endpoints, opposite localDirection; announce + opportunistic LXMF."
-    : "Same Freenet node, opposite localDirection; announce + opportunistic LXMF."
+    : "Same Freenet node, opposite localDirection; announce + opportunistic LXMF.",
 };
 
 const outDir = join(repoRoot, ".tmp");

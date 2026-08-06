@@ -15,7 +15,8 @@ import type { Event, Intent } from "@twistedpear/effects";
 
 export const LINK_PROOF_SIGNATURE_SIZE = 64;
 export const LINK_PROOF_PUBLIC_KEY_SIZE = 32;
-export const LINK_PROOF_BODY_SIZE = LINK_PROOF_SIGNATURE_SIZE + LINK_PROOF_PUBLIC_KEY_SIZE;
+export const LINK_PROOF_BODY_SIZE =
+  LINK_PROOF_SIGNATURE_SIZE + LINK_PROOF_PUBLIC_KEY_SIZE;
 export const LINK_PROOF_MTU_SIZE = 3;
 export const LINK_REQUEST_ECPUB_SIZE = 64;
 export const LINK_MTU_BYTEMASK = 0x1fffff;
@@ -23,7 +24,9 @@ export const LINK_MODE_BYTEMASK = 0xe0;
 
 export type LinkProofPayloadKind = "body-only" | "body-with-mtu" | "invalid";
 
-export function classifyLinkProofPayload(dataLength: number): LinkProofPayloadKind {
+export function classifyLinkProofPayload(
+  dataLength: number,
+): LinkProofPayloadKind {
   if (dataLength === LINK_PROOF_BODY_SIZE) {
     return "body-only";
   }
@@ -38,7 +41,9 @@ export interface LinkProofBodyFields {
   readonly peerPublicKey: Uint8Array;
 }
 
-export function splitLinkProofBody(data: Uint8Array): LinkProofBodyFields | null {
+export function splitLinkProofBody(
+  data: Uint8Array,
+): LinkProofBodyFields | null {
   if (data.length < LINK_PROOF_BODY_SIZE) {
     return null;
   }
@@ -46,13 +51,17 @@ export function splitLinkProofBody(data: Uint8Array): LinkProofBodyFields | null
     signature: data.subarray(0, LINK_PROOF_SIGNATURE_SIZE),
     peerPublicKey: data.subarray(
       LINK_PROOF_SIGNATURE_SIZE,
-      LINK_PROOF_SIGNATURE_SIZE + LINK_PROOF_PUBLIC_KEY_SIZE
-    )
+      LINK_PROOF_SIGNATURE_SIZE + LINK_PROOF_PUBLIC_KEY_SIZE,
+    ),
   };
 }
 
-export function encodeLinkSignallingBytes(mtu: number, mode: number): Uint8Array {
-  const signallingValue = (mtu & LINK_MTU_BYTEMASK) + (((mode << 5) & LINK_MODE_BYTEMASK) << 16);
+export function encodeLinkSignallingBytes(
+  mtu: number,
+  mode: number,
+): Uint8Array {
+  const signallingValue =
+    (mtu & LINK_MTU_BYTEMASK) + (((mode << 5) & LINK_MODE_BYTEMASK) << 16);
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
   view.setUint32(0, signallingValue, false);
@@ -65,14 +74,21 @@ export function decodeLinkModeFromSignallingByte(byte: number): number {
 
 export function encodeLinkMtuBytes(mtu: number): Uint8Array {
   const value = mtu & 0xffffff;
-  return new Uint8Array([(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]);
+  return new Uint8Array([
+    (value >> 16) & 0xff,
+    (value >> 8) & 0xff,
+    value & 0xff,
+  ]);
 }
 
 export function decodeLinkMtuFromBytes(bytes: Uint8Array): number {
   return ((bytes[0]! << 16) | (bytes[1]! << 8) | bytes[2]!) & LINK_MTU_BYTEMASK;
 }
 
-export function modeFromLinkRequestData(data: Uint8Array, defaultMode: number): number {
+export function modeFromLinkRequestData(
+  data: Uint8Array,
+  defaultMode: number,
+): number {
   if (data.length > LINK_REQUEST_ECPUB_SIZE) {
     return decodeLinkModeFromSignallingByte(data[LINK_REQUEST_ECPUB_SIZE]!);
   }
@@ -86,7 +102,10 @@ export function mtuFromLinkRequestData(data: Uint8Array): number | null {
   return decodeLinkMtuFromBytes(data.subarray(LINK_REQUEST_ECPUB_SIZE));
 }
 
-export function modeFromLinkProofData(data: Uint8Array, defaultMode: number): number {
+export function modeFromLinkProofData(
+  data: Uint8Array,
+  defaultMode: number,
+): number {
   if (data.length > LINK_PROOF_BODY_SIZE) {
     return decodeLinkModeFromSignallingByte(data[LINK_PROOF_BODY_SIZE]!);
   }
@@ -98,7 +117,10 @@ export function mtuFromLinkProofData(data: Uint8Array): number | null {
     return null;
   }
   return decodeLinkMtuFromBytes(
-    data.subarray(LINK_PROOF_BODY_SIZE, LINK_PROOF_BODY_SIZE + LINK_PROOF_MTU_SIZE)
+    data.subarray(
+      LINK_PROOF_BODY_SIZE,
+      LINK_PROOF_BODY_SIZE + LINK_PROOF_MTU_SIZE,
+    ),
   );
 }
 
@@ -118,7 +140,7 @@ export function linkProofSignedMaterial(
   linkId: Uint8Array,
   publicKey: Uint8Array,
   ownerSigPublicKey: Uint8Array,
-  signallingBytes: Uint8Array
+  signallingBytes: Uint8Array,
 ): Uint8Array {
   return concatBytes(linkId, publicKey, ownerSigPublicKey, signallingBytes);
 }
@@ -127,13 +149,17 @@ export function linkProofSignedMaterial(
 export function packLinkProofData(
   signature: Uint8Array,
   publicKey: Uint8Array,
-  signallingBytes: Uint8Array = new Uint8Array(0)
+  signallingBytes: Uint8Array = new Uint8Array(0),
 ): Uint8Array {
   if (signature.length !== LINK_PROOF_SIGNATURE_SIZE) {
-    throw new Error(`link proof signature must be ${LINK_PROOF_SIGNATURE_SIZE} bytes`);
+    throw new Error(
+      `link proof signature must be ${LINK_PROOF_SIGNATURE_SIZE} bytes`,
+    );
   }
   if (publicKey.length !== LINK_PROOF_PUBLIC_KEY_SIZE) {
-    throw new Error(`link proof public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`);
+    throw new Error(
+      `link proof public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`,
+    );
   }
   return concatBytes(signature, publicKey, signallingBytes);
 }
@@ -148,35 +174,47 @@ export interface LinkRequestKeyFields {
 export function packLinkRequestData(
   publicKey: Uint8Array,
   signaturePublicKey: Uint8Array,
-  signallingBytes: Uint8Array = new Uint8Array(0)
+  signallingBytes: Uint8Array = new Uint8Array(0),
 ): Uint8Array {
   if (publicKey.length !== LINK_PROOF_PUBLIC_KEY_SIZE) {
-    throw new Error(`link request public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`);
+    throw new Error(
+      `link request public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`,
+    );
   }
   if (signaturePublicKey.length !== LINK_PROOF_PUBLIC_KEY_SIZE) {
-    throw new Error(`link request signature public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`);
+    throw new Error(
+      `link request signature public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`,
+    );
   }
   return concatBytes(publicKey, signaturePublicKey, signallingBytes);
 }
 
-export function splitLinkRequestData(data: Uint8Array): LinkRequestKeyFields | null {
-  if (data.length !== LINK_REQUEST_ECPUB_SIZE && data.length !== LINK_REQUEST_ECPUB_SIZE + LINK_PROOF_MTU_SIZE) {
+export function splitLinkRequestData(
+  data: Uint8Array,
+): LinkRequestKeyFields | null {
+  if (
+    data.length !== LINK_REQUEST_ECPUB_SIZE &&
+    data.length !== LINK_REQUEST_ECPUB_SIZE + LINK_PROOF_MTU_SIZE
+  ) {
     return null;
   }
   return {
     publicKey: data.subarray(0, LINK_PROOF_PUBLIC_KEY_SIZE),
-    signaturePublicKey: data.subarray(LINK_PROOF_PUBLIC_KEY_SIZE, LINK_REQUEST_ECPUB_SIZE),
+    signaturePublicKey: data.subarray(
+      LINK_PROOF_PUBLIC_KEY_SIZE,
+      LINK_REQUEST_ECPUB_SIZE,
+    ),
     signallingBytes:
       data.length === LINK_REQUEST_ECPUB_SIZE + LINK_PROOF_MTU_SIZE
         ? data.subarray(LINK_REQUEST_ECPUB_SIZE)
-        : new Uint8Array(0)
+        : new Uint8Array(0),
   };
 }
 
 /** Truncate link-request hashable material when signalling bytes are present. */
 export function linkRequestHashablePart(
   hashablePart: Uint8Array,
-  requestDataLength: number
+  requestDataLength: number,
 ): Uint8Array {
   if (requestDataLength <= LINK_REQUEST_ECPUB_SIZE) {
     return hashablePart;
@@ -218,7 +256,7 @@ export function initialPackLinkProofDataState(): PackLinkProofDataState {
 
 export function stepPackLinkProofDataWithActions(
   state: PackLinkProofDataState,
-  event: PackLinkProofDataEvent
+  event: PackLinkProofDataEvent,
 ): PackLinkProofDataStepResult {
   if (event.kind === "link-proof/pack-gate") {
     return {
@@ -227,9 +265,13 @@ export function stepPackLinkProofDataWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packLinkProofData(event.signature, event.publicKey, event.signallingBytes)
-        }
-      ]
+          raw: packLinkProofData(
+            event.signature,
+            event.publicKey,
+            event.signallingBytes,
+          ),
+        },
+      ],
     };
   }
 
@@ -237,14 +279,14 @@ export function stepPackLinkProofDataWithActions(
 }
 
 export function shouldUsePackLinkProofData(
-  actions: ReadonlyArray<PackLinkProofDataAction>
+  actions: ReadonlyArray<PackLinkProofDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract link-proof pack bytes from step actions; null when no `use-raw`. */
 export function packLinkProofDataRawFromActions(
-  actions: ReadonlyArray<PackLinkProofDataAction>
+  actions: ReadonlyArray<PackLinkProofDataAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -280,7 +322,7 @@ export function initialSplitLinkProofBodyState(): SplitLinkProofBodyState {
 
 export function stepSplitLinkProofBodyWithActions(
   state: SplitLinkProofBodyState,
-  event: SplitLinkProofBodyEvent
+  event: SplitLinkProofBodyEvent,
 ): SplitLinkProofBodyStepResult {
   if (event.kind === "link-proof/split-body-gate") {
     const fields = splitLinkProofBody(event.data);
@@ -290,7 +332,7 @@ export function stepSplitLinkProofBodyWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -298,20 +340,20 @@ export function stepSplitLinkProofBodyWithActions(
 }
 
 export function shouldUseSplitLinkProofBody(
-  actions: ReadonlyArray<SplitLinkProofBodyAction>
+  actions: ReadonlyArray<SplitLinkProofBodyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitLinkProofBody(
-  actions: ReadonlyArray<SplitLinkProofBodyAction>
+  actions: ReadonlyArray<SplitLinkProofBodyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split link-proof body fields from step actions; null when no `use-fields`. */
 export function linkProofBodyFieldsFromActions(
-  actions: ReadonlyArray<SplitLinkProofBodyAction>
+  actions: ReadonlyArray<SplitLinkProofBodyAction>,
 ): LinkProofBodyFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -350,7 +392,7 @@ export function initialPackLinkRequestDataState(): PackLinkRequestDataState {
 
 export function stepPackLinkRequestDataWithActions(
   state: PackLinkRequestDataState,
-  event: PackLinkRequestDataEvent
+  event: PackLinkRequestDataEvent,
 ): PackLinkRequestDataStepResult {
   if (event.kind === "link-request/pack-gate") {
     return {
@@ -362,10 +404,10 @@ export function stepPackLinkRequestDataWithActions(
           raw: packLinkRequestData(
             event.publicKey,
             event.signaturePublicKey,
-            event.signallingBytes
-          )
-        }
-      ]
+            event.signallingBytes,
+          ),
+        },
+      ],
     };
   }
 
@@ -373,14 +415,14 @@ export function stepPackLinkRequestDataWithActions(
 }
 
 export function shouldUsePackLinkRequestData(
-  actions: ReadonlyArray<PackLinkRequestDataAction>
+  actions: ReadonlyArray<PackLinkRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract link-request pack bytes from step actions; null when no `use-raw`. */
 export function packLinkRequestDataRawFromActions(
-  actions: ReadonlyArray<PackLinkRequestDataAction>
+  actions: ReadonlyArray<PackLinkRequestDataAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -416,7 +458,7 @@ export function initialSplitLinkRequestDataState(): SplitLinkRequestDataState {
 
 export function stepSplitLinkRequestDataWithActions(
   state: SplitLinkRequestDataState,
-  event: SplitLinkRequestDataEvent
+  event: SplitLinkRequestDataEvent,
 ): SplitLinkRequestDataStepResult {
   if (event.kind === "link-request/split-gate") {
     const fields = splitLinkRequestData(event.data);
@@ -426,7 +468,7 @@ export function stepSplitLinkRequestDataWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -434,20 +476,20 @@ export function stepSplitLinkRequestDataWithActions(
 }
 
 export function shouldUseSplitLinkRequestData(
-  actions: ReadonlyArray<SplitLinkRequestDataAction>
+  actions: ReadonlyArray<SplitLinkRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitLinkRequestData(
-  actions: ReadonlyArray<SplitLinkRequestDataAction>
+  actions: ReadonlyArray<SplitLinkRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split link-request fields from step actions; null when no `use-fields`. */
 export function linkRequestKeyFieldsFromActions(
-  actions: ReadonlyArray<SplitLinkRequestDataAction>
+  actions: ReadonlyArray<SplitLinkRequestDataAction>,
 ): LinkRequestKeyFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

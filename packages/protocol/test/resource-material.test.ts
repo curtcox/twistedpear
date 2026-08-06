@@ -28,7 +28,7 @@ import {
   stepResourceEncryptMaterialWithActions,
   stepResourceExpectedProofMaterialWithActions,
   stepResourceHashMaterialWithActions,
-  stepResourcePartMapHashMaterialWithActions
+  stepResourcePartMapHashMaterialWithActions,
 } from "../src/resource-material.js";
 
 describe("protocol resource materials", () => {
@@ -38,10 +38,22 @@ describe("protocol resource materials", () => {
     const hash = new Uint8Array(32).fill(5);
     const part = new Uint8Array([6, 7]);
 
-    expect([...resourceEncryptMaterial(randomHash, data)]).toEqual([...randomHash, ...data]);
-    expect([...resourceHashMaterial(data, randomHash)]).toEqual([...data, ...randomHash]);
-    expect([...resourceExpectedProofMaterial(data, hash)]).toEqual([...data, ...hash]);
-    expect([...resourcePartMapHashMaterial(part, randomHash)]).toEqual([...part, ...randomHash]);
+    expect([...resourceEncryptMaterial(randomHash, data)]).toEqual([
+      ...randomHash,
+      ...data,
+    ]);
+    expect([...resourceHashMaterial(data, randomHash)]).toEqual([
+      ...data,
+      ...randomHash,
+    ]);
+    expect([...resourceExpectedProofMaterial(data, hash)]).toEqual([
+      ...data,
+      ...hash,
+    ]);
+    expect([...resourcePartMapHashMaterial(part, randomHash)]).toEqual([
+      ...part,
+      ...randomHash,
+    ]);
   });
 
   it("computes total parts from payload length and SDU", () => {
@@ -62,43 +74,49 @@ describe("protocol resource materials", () => {
       {
         kind: "resource-material/encrypt-gate",
         randomHash,
-        data
-      }
+        data,
+      },
     );
     expect(shouldUseResourceEncryptMaterial(encryptStepped.actions)).toBe(true);
-    expect([...resourceEncryptMaterialRawFromActions(encryptStepped.actions)!]).toEqual([
-      ...randomHash,
-      ...data
-    ]);
-    expect(shouldRejectResourceEncryptMaterial(encryptStepped.actions)).toBe(false);
+    expect([
+      ...resourceEncryptMaterialRawFromActions(encryptStepped.actions)!,
+    ]).toEqual([...randomHash, ...data]);
+    expect(shouldRejectResourceEncryptMaterial(encryptStepped.actions)).toBe(
+      false,
+    );
 
     const badEncrypt = stepResourceEncryptMaterialWithActions(
       initialResourceEncryptMaterialState(),
       {
         kind: "resource-material/encrypt-gate",
         randomHash: new Uint8Array(1),
-        data
-      }
+        data,
+      },
     );
     expect(shouldRejectResourceEncryptMaterial(badEncrypt.actions)).toBe(true);
     expect(shouldUseResourceEncryptMaterial(badEncrypt.actions)).toBe(false);
 
-    const hashStepped = stepResourceHashMaterialWithActions(initialResourceHashMaterialState(), {
-      kind: "resource-material/hash-gate",
-      data,
-      randomHash
-    });
+    const hashStepped = stepResourceHashMaterialWithActions(
+      initialResourceHashMaterialState(),
+      {
+        kind: "resource-material/hash-gate",
+        data,
+        randomHash,
+      },
+    );
     expect(shouldUseResourceHashMaterial(hashStepped.actions)).toBe(true);
-    expect([...resourceHashMaterialRawFromActions(hashStepped.actions)!]).toEqual([
-      ...data,
-      ...randomHash
-    ]);
+    expect([
+      ...resourceHashMaterialRawFromActions(hashStepped.actions)!,
+    ]).toEqual([...data, ...randomHash]);
 
-    const badHash = stepResourceHashMaterialWithActions(initialResourceHashMaterialState(), {
-      kind: "resource-material/hash-gate",
-      data,
-      randomHash: new Uint8Array(1)
-    });
+    const badHash = stepResourceHashMaterialWithActions(
+      initialResourceHashMaterialState(),
+      {
+        kind: "resource-material/hash-gate",
+        data,
+        randomHash: new Uint8Array(1),
+      },
+    );
     expect(shouldRejectResourceHashMaterial(badHash.actions)).toBe(true);
 
     const proofStepped = stepResourceExpectedProofMaterialWithActions(
@@ -106,45 +124,50 @@ describe("protocol resource materials", () => {
       {
         kind: "resource-material/expected-proof-gate",
         data,
-        resourceHash: hash
-      }
+        resourceHash: hash,
+      },
     );
-    expect(shouldUseResourceExpectedProofMaterial(proofStepped.actions)).toBe(true);
-    expect([...resourceExpectedProofMaterialRawFromActions(proofStepped.actions)!]).toEqual([
-      ...data,
-      ...hash
-    ]);
+    expect(shouldUseResourceExpectedProofMaterial(proofStepped.actions)).toBe(
+      true,
+    );
+    expect([
+      ...resourceExpectedProofMaterialRawFromActions(proofStepped.actions)!,
+    ]).toEqual([...data, ...hash]);
 
     const partStepped = stepResourcePartMapHashMaterialWithActions(
       initialResourcePartMapHashMaterialState(),
       {
         kind: "resource-material/part-map-hash-gate",
         partData: part,
-        randomHash
-      }
+        randomHash,
+      },
     );
-    expect(shouldUseResourcePartMapHashMaterial(partStepped.actions)).toBe(true);
-    expect([...resourcePartMapHashMaterialRawFromActions(partStepped.actions)!]).toEqual([
-      ...part,
-      ...randomHash
-    ]);
+    expect(shouldUseResourcePartMapHashMaterial(partStepped.actions)).toBe(
+      true,
+    );
+    expect([
+      ...resourcePartMapHashMaterialRawFromActions(partStepped.actions)!,
+    ]).toEqual([...part, ...randomHash]);
 
     const badPart = stepResourcePartMapHashMaterialWithActions(
       initialResourcePartMapHashMaterialState(),
       {
         kind: "resource-material/part-map-hash-gate",
         partData: part,
-        randomHash: new Uint8Array(1)
-      }
+        randomHash: new Uint8Array(1),
+      },
     );
     expect(shouldRejectResourcePartMapHashMaterial(badPart.actions)).toBe(true);
 
     expect(
-      stepResourceEncryptMaterialWithActions(initialResourceEncryptMaterialState(), {
-        kind: "timer/fired",
-        id: "x",
-        at: 0
-      }).actions
+      stepResourceEncryptMaterialWithActions(
+        initialResourceEncryptMaterialState(),
+        {
+          kind: "timer/fired",
+          id: "x",
+          at: 0,
+        },
+      ).actions,
     ).toEqual([]);
   });
 
@@ -154,13 +177,13 @@ describe("protocol resource materials", () => {
       {
         kind: "resource-material/total-parts-gate",
         length: 250,
-        sdu: 100
-      }
+        sdu: 100,
+      },
     );
     expect(shouldUseComputeResourceTotalParts(stepped.actions)).toBe(true);
     expect(resourceTotalPartsFromActions(stepped.actions)).toBe(3);
     expect(resourceTotalPartsFromActions(stepped.actions)).toBe(
-      computeResourceTotalParts(250, 100)
+      computeResourceTotalParts(250, 100),
     );
   });
 });

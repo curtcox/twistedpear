@@ -1,4 +1,8 @@
-import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node:http";
+import type {
+  IncomingMessage,
+  Server as HttpServer,
+  ServerResponse,
+} from "node:http";
 import type { ByteRateLimiter } from "@twistedpear/reticulum-ts";
 
 import type { DriveFetcher } from "../core/fetch.js";
@@ -6,13 +10,18 @@ import type { DriveFetcher } from "../core/fetch.js";
 export const DEFAULT_BULK_FETCH_PATH = "/bulk-fetch";
 
 /** @deprecated Prefer DriveFetcher; kept as the HTTP handler callback shape. */
-export type GatewayBulkFetcher = (driveKeyHex: string, version: string) => Promise<Uint8Array>;
+export type GatewayBulkFetcher = (
+  driveKeyHex: string,
+  version: string,
+) => Promise<Uint8Array>;
 
-export function driveFetcherFromBulk(fetcher: GatewayBulkFetcher): DriveFetcher {
+export function driveFetcherFromBulk(
+  fetcher: GatewayBulkFetcher,
+): DriveFetcher {
   return {
     fetchDriveVersion(driveKeyHex, version) {
       return fetcher(driveKeyHex, version);
-    }
+    },
   };
 }
 
@@ -28,7 +37,7 @@ export interface GatewayBulkFetchServerSession {
 
 export function createGatewayBulkFetchHttpHandler(
   fetcher: GatewayBulkFetcher,
-  options: GatewayBulkFetchServerOptions = {}
+  options: GatewayBulkFetchServerOptions = {},
 ): (request: IncomingMessage, response: ServerResponse) => Promise<void> {
   const path = options.path ?? DEFAULT_BULK_FETCH_PATH;
 
@@ -57,7 +66,7 @@ export function createGatewayBulkFetchHttpHandler(
       response.writeHead(200, {
         "content-type": "application/octet-stream",
         "content-length": String(archive.length),
-        "access-control-allow-origin": "*"
+        "access-control-allow-origin": "*",
       });
       if (request.method === "HEAD") {
         response.end();
@@ -71,7 +80,10 @@ export function createGatewayBulkFetchHttpHandler(
       }
       const chunkBytes = 16 * 1024;
       for (let offset = 0; offset < archive.length; offset += chunkBytes) {
-        const chunk = archive.subarray(offset, Math.min(offset + chunkBytes, archive.length));
+        const chunk = archive.subarray(
+          offset,
+          Math.min(offset + chunkBytes, archive.length),
+        );
         await limiter.consume(chunk.length);
         response.write(chunk);
       }
@@ -87,7 +99,7 @@ export function createGatewayBulkFetchHttpHandler(
 export function attachGatewayBulkFetchServer(
   httpServer: HttpServer,
   fetcher: GatewayBulkFetcher,
-  options: GatewayBulkFetchServerOptions = {}
+  options: GatewayBulkFetchServerOptions = {},
 ): GatewayBulkFetchServerSession {
   const path = options.path ?? DEFAULT_BULK_FETCH_PATH;
   const handler = createGatewayBulkFetchHttpHandler(fetcher, options);
@@ -102,6 +114,6 @@ export function attachGatewayBulkFetchServer(
     close() {
       httpServer.off("request", onRequest);
       return Promise.resolve();
-    }
+    },
   };
 }

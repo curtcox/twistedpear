@@ -1,6 +1,5 @@
 # TwistedPear — v1 release plan
 
-
 <!-- tp-doc
 lifecycle: planned
 audited: 2026-07-18
@@ -22,41 +21,41 @@ what they do, and running a dangerous program by accident is essentially impossi
 
 ## 1. What v1 ships
 
-| Target | Channel | Verification bar |
-|---|---|---|
-| Desktop host (macOS, Linux) | Signed installers; macOS notarized | Full loop + plan-duration desktop soak + real-LAN evidence (H18) |
-| Desktop host (Windows) | NSIS installer | Ships only if H17 passes; otherwise deferred, not "unverified" |
-| Android host | Direct APK / F-Droid — no Play Store | Device evidence H1–H3, H6–H7, H9–H11 |
-| Web host | Self-served from user's node (`tp node --serve-web`) | Web conformance suites + sandbox adversarial review parity |
-| Headless node / seeder | `tp` CLI | 2-week unattended run (H20) |
-| `reticulum-ts` 0.1.0 | Tagged package release | After the 72 h transport soak (per STATUS-SOFTWARE) |
+| Target                      | Channel                                              | Verification bar                                                 |
+| --------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------- |
+| Desktop host (macOS, Linux) | Signed installers; macOS notarized                   | Full loop + plan-duration desktop soak + real-LAN evidence (H18) |
+| Desktop host (Windows)      | NSIS installer                                       | Ships only if H17 passes; otherwise deferred, not "unverified"   |
+| Android host                | Direct APK / F-Droid — no Play Store                 | Device evidence H1–H3, H6–H7, H9–H11                             |
+| Web host                    | Self-served from user's node (`tp node --serve-web`) | Web conformance suites + sandbox adversarial review parity       |
+| Headless node / seeder      | `tp` CLI                                             | 2-week unattended run (H20)                                      |
+| `reticulum-ts` 0.1.0        | Tagged package release                               | After the 72 h transport soak (per STATUS-SOFTWARE)              |
 
 **Not in v1:** iOS beyond dev-build (no store submission; dossier stays current),
 Play Store submission, node-to-node propagation peering (use `lxmd`), React
 reconciler renderer. **Conditional:** RNode/LoRa support ships as verified only if
-H4/H8 hardware evidence lands in time; otherwise it ships labeled *experimental,
-simulator-verified only* in LIMITATIONS §3/§6.
+H4/H8 hardware evidence lands in time; otherwise it ships labeled _experimental,
+simulator-verified only_ in LIMITATIONS §3/§6.
 
 ## 2. Release gates
 
 v1 is ready when every gate is green. Gates are evidence statements, not work items —
 the work lives in the pipeline (§4).
 
-| ID | Status | Gate | Statement | Evidence source |
-|---|---|---|---|---|
-| G1 | planned | **G1 — Software qualification** | Every row of the release-qualification table in STATUS-SOFTWARE is complete (plan-duration soaks; `reticulum-ts` 0.1.0 tagged) | `npm run validate:mac -- --stage 8 --plan-duration` logs; release tag |
-| G2 | planned | **G2 — Core device evidence** | H1, H2, H3, H6, H7, H9, H10, H11, H18, H20, H21 passed and logged; LIMITATIONS §§3, 5–7 updated with measured values | STATUS-HARDWARE checklists |
-| G3 | planned | **G3 — Safety bar: abuse ladder holds L3** | L0–L3 rungs green per [docs/abuse-resistance-loop.md](docs/abuse-resistance-loop.md): escrow/recovery + quorum oracles clean under colluding relays and compromised host; every genuine finding fixed with a committed reproducer | `conformance/sim-campaign/artifacts/report.json`; `conformance/sim-regressions/` |
-| G4 | planned | **G4 — Trust loop verified end-to-end** | On real devices, a user can: see an app's source before running, verify author signature, review requested capabilities and reasons, grant/deny, and revoke — and an unsigned/tampered/over-reaching package is refused (hostile-app suites + H9/H11 on device) | `test:hostile-apps` + H-register logs |
-| G5 | planned | **G5 — Packaging and provenance** | Versioned, signed artifacts for every shipped target; macOS notarized (needs H12 account); install docs match a from-scratch install on a clean machine | Release artifacts + walkthrough log |
-| G6 | planned | **G6 — Docs tell the truth** | LIMITATIONS reflects final measured values; README/Handbook install paths verified; release notes state what is verified vs experimental | Doc review against G1–G5 evidence |
-| G7 | planned | **G7 — Human-layer resistance** | The trust UI survives adversaries who target the user, not the system: spoofing-resistance fixtures prove a mini-app cannot imitate host chrome or grant dialogs; deception/impersonation abuse verbs sit in the campaign coverage cube with clean oracles; automated UI invariants prove "who is involved" and capability status are reachable from every mini-app screen; a11y scans gate green on trust-critical surfaces; scripted comprehension sessions with outside testers pass their pre-committed thresholds | `test:hostile-apps` + `test:ui-invariants` tiers; campaign report; tester session logs (S3, S6–S7) |
+| ID  | Status  | Gate                                       | Statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Evidence source                                                                                    |
+| --- | ------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| G1  | planned | **G1 — Software qualification**            | Every row of the release-qualification table in STATUS-SOFTWARE is complete (plan-duration soaks; `reticulum-ts` 0.1.0 tagged)                                                                                                                                                                                                                                                                                                                                                                                         | `npm run validate:mac -- --stage 8 --plan-duration` logs; release tag                              |
+| G2  | planned | **G2 — Core device evidence**              | H1, H2, H3, H6, H7, H9, H10, H11, H18, H20, H21 passed and logged; LIMITATIONS §§3, 5–7 updated with measured values                                                                                                                                                                                                                                                                                                                                                                                                   | STATUS-HARDWARE checklists                                                                         |
+| G3  | planned | **G3 — Safety bar: abuse ladder holds L3** | L0–L3 rungs green per [docs/abuse-resistance-loop.md](docs/abuse-resistance-loop.md): escrow/recovery + quorum oracles clean under colluding relays and compromised host; every genuine finding fixed with a committed reproducer                                                                                                                                                                                                                                                                                      | `conformance/sim-campaign/artifacts/report.json`; `conformance/sim-regressions/`                   |
+| G4  | planned | **G4 — Trust loop verified end-to-end**    | On real devices, a user can: see an app's source before running, verify author signature, review requested capabilities and reasons, grant/deny, and revoke — and an unsigned/tampered/over-reaching package is refused (hostile-app suites + H9/H11 on device)                                                                                                                                                                                                                                                        | `test:hostile-apps` + H-register logs                                                              |
+| G5  | planned | **G5 — Packaging and provenance**          | Versioned, signed artifacts for every shipped target; macOS notarized (needs H12 account); install docs match a from-scratch install on a clean machine                                                                                                                                                                                                                                                                                                                                                                | Release artifacts + walkthrough log                                                                |
+| G6  | planned | **G6 — Docs tell the truth**               | LIMITATIONS reflects final measured values; README/Handbook install paths verified; release notes state what is verified vs experimental                                                                                                                                                                                                                                                                                                                                                                               | Doc review against G1–G5 evidence                                                                  |
+| G7  | planned | **G7 — Human-layer resistance**            | The trust UI survives adversaries who target the user, not the system: spoofing-resistance fixtures prove a mini-app cannot imitate host chrome or grant dialogs; deception/impersonation abuse verbs sit in the campaign coverage cube with clean oracles; automated UI invariants prove "who is involved" and capability status are reachable from every mini-app screen; a11y scans gate green on trust-critical surfaces; scripted comprehension sessions with outside testers pass their pre-committed thresholds | `test:hostile-apps` + `test:ui-invariants` tiers; campaign report; tester session logs (S3, S6–S7) |
 
 G3 is the deliberate hard choice: L3 requires escrow/recovery product semantics that
 do not exist yet (today an explicit scope boundary in the simulation docs). That new
 product work sits at the center of the pipeline — see S4. G7 exists because
 motivation.md's first claim ("users always know who is involved") is a
-*comprehension* claim, and functional flow tests cannot discharge it; its tester
+_comprehension_ claim, and functional flow tests cannot discharge it; its tester
 sessions are the plan's only gate step that requires human perception.
 
 ## 3. Operating rules
@@ -120,7 +119,7 @@ All calendar-bound waits start here, once, then run unattended under the driver'
 monitoring:
 
 1. **[user]** Start the plan-duration soaks: `npm run validate:mac -- --stage 8
-   --plan-duration` (Mac powered and awake; the 72 h transport soak is the long
+--plan-duration` (Mac powered and awake; the 72 h transport soak is the long
    pole).
 2. **[user]** Order the hardware in STATUS-HARDWARE's acquisition order — two used
    Android phones first, plus the spare Linux box for H20.
@@ -158,7 +157,7 @@ Pure software, no dependencies; builds the automated half of G7:
 ### S4 — Safety climb to L3
 
 Runs exactly as specified in [docs/abuse-resistance-loop.md](docs/abuse-resistance-loop.md):
-one fidelity *or* difficulty increment per turn, six stages per turn, ratchet.
+one fidelity _or_ difficulty increment per turn, six stages per turn, ratchet.
 Sequence within this stage:
 
 1. **Hold L2.** Fresh campaign confirming the current rung's exit criteria; fix

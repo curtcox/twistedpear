@@ -7,17 +7,44 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..");
-const REGISTRY_PATH = join(ROOT, "specs", "spec-device", "registry", "device-classes.json");
-const SCHEMA_PATH = join(ROOT, "specs", "spec-device", "schema", "device-registry.schema.json");
-const PROTOCOL_OUT = join(ROOT, "packages", "protocol", "src", "device-registry.gen.ts");
-const CAPS_OUT = join(ROOT, "packages", "miniapp-runtime", "src", "device-capabilities.gen.ts");
+const REGISTRY_PATH = join(
+  ROOT,
+  "specs",
+  "spec-device",
+  "registry",
+  "device-classes.json",
+);
+const SCHEMA_PATH = join(
+  ROOT,
+  "specs",
+  "spec-device",
+  "schema",
+  "device-registry.schema.json",
+);
+const PROTOCOL_OUT = join(
+  ROOT,
+  "packages",
+  "protocol",
+  "src",
+  "device-registry.gen.ts",
+);
+const CAPS_OUT = join(
+  ROOT,
+  "packages",
+  "miniapp-runtime",
+  "src",
+  "device-capabilities.gen.ts",
+);
 
 function capabilityId(classId, suffix) {
-  return suffix === null || suffix === undefined ? `device:${classId}` : `device:${classId}:${suffix}`;
+  return suffix === null || suffix === undefined
+    ? `device:${classId}`
+    : `device:${classId}:${suffix}`;
 }
 
 function capabilityDescription(entry, tier) {
-  const tierLabel = tier.capabilitySuffix === null ? "default tier" : `${tier.id} tier`;
+  const tierLabel =
+    tier.capabilitySuffix === null ? "default tier" : `${tier.id} tier`;
   return `${entry.description} (${tierLabel}; consent: ${tier.consentClass}).`;
 }
 
@@ -32,12 +59,16 @@ export function generateDeviceRegistry(registryPath = REGISTRY_PATH) {
   for (const entry of registry.classes) {
     const defaults = entry.tiers.filter((tier) => tier.default);
     if (defaults.length !== 1) {
-      throw new Error(`device class ${entry.id} must have exactly one default tier`);
+      throw new Error(
+        `device class ${entry.id} must have exactly one default tier`,
+      );
     }
     defaultTierCounts.set(entry.id, defaults[0].id);
     for (const tierId of Object.keys(entry.bandwidth)) {
       if (!entry.tiers.some((tier) => tier.id === tierId)) {
-        throw new Error(`bandwidth profile ${tierId} has no matching tier on ${entry.id}`);
+        throw new Error(
+          `bandwidth profile ${tierId} has no matching tier on ${entry.id}`,
+        );
       }
     }
   }
@@ -51,7 +82,7 @@ export function generateDeviceRegistry(registryPath = REGISTRY_PATH) {
         classId: entry.id,
         tierId: tier.id,
         consentClass: tier.consentClass,
-        isDefaultTier: tier.default
+        isDefaultTier: tier.default,
       });
     }
   }
@@ -62,13 +93,14 @@ export function generateDeviceRegistry(registryPath = REGISTRY_PATH) {
       classId: null,
       tierId: null,
       consentClass: cross.consentClass,
-      isDefaultTier: false
+      isDefaultTier: false,
     });
   }
 
   const ids = new Set();
   for (const capability of capabilities) {
-    if (ids.has(capability.id)) throw new Error(`duplicate capability id ${capability.id}`);
+    if (ids.has(capability.id))
+      throw new Error(`duplicate capability id ${capability.id}`);
     ids.add(capability.id);
   }
 
@@ -174,16 +206,18 @@ export type DeviceCapability = typeof DEVICE_CAPABILITY_DEFINITIONS[number]["id"
   return {
     classCount: registry.classes.length,
     capabilityCount: capabilities.length,
-    defaultTierCounts: Object.fromEntries(defaultTierCounts)
+    defaultTierCounts: Object.fromEntries(defaultTierCounts),
   };
 }
 
-const invokedDirectly = process.argv[1] !== undefined &&
-  fileURLToPath(import.meta.url) === (await import("node:path")).resolve(process.argv[1]);
+const invokedDirectly =
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) ===
+    (await import("node:path")).resolve(process.argv[1]);
 if (invokedDirectly) {
   const result = generateDeviceRegistry();
   console.log(
-    `generated device registry: ${result.classCount} classes, ${result.capabilityCount} capabilities →`
+    `generated device registry: ${result.classCount} classes, ${result.capabilityCount} capabilities →`,
   );
   console.log(`  ${PROTOCOL_OUT}`);
   console.log(`  ${CAPS_OUT}`);

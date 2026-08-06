@@ -7,17 +7,17 @@ import {
   decodePropagationSetState,
   encodePropagationSetParameters,
   encodePropagationSetState,
-  mergePropagationSetStates
+  mergePropagationSetStates,
 } from "../src/index.js";
 
 const vector = JSON.parse(
   readFileSync(
     new URL(
       "../../../specs/spec-freenet/vectors/propagation-set-state.json",
-      import.meta.url
+      import.meta.url,
     ),
-    "utf8"
-  )
+    "utf8",
+  ),
 ) as {
   contractArtifact: {
     bytes: number;
@@ -44,11 +44,11 @@ describe("Freenet propagation-set state", () => {
 
   it("encodes destination-hash parameters", () => {
     const encoded = encodePropagationSetParameters({
-      destinationHash: hexToBytes(vector.parametersHex)
+      destinationHash: hexToBytes(vector.parametersHex),
     });
     expect(Buffer.from(encoded).toString("hex")).toBe(vector.parametersHex);
     expect(decodePropagationSetParameters(encoded).destinationHash).toEqual(
-      hexToBytes(vector.parametersHex)
+      hexToBytes(vector.parametersHex),
     );
   });
 
@@ -57,19 +57,19 @@ describe("Freenet propagation-set state", () => {
       readFileSync(
         new URL(
           "../contract/propagation-set/propagation-set-contract.wasm",
-          import.meta.url
-        )
-      )
+          import.meta.url,
+        ),
+      ),
     );
     const derived = FreenetClient.deriveKey({
       wasm,
-      parameters: hexToBytes(vector.keyDerivation.parametersHex)
+      parameters: hexToBytes(vector.keyDerivation.parametersHex),
     });
     expect(Buffer.from(derived.codeHash).toString("hex")).toBe(
-      vector.keyDerivation.codeHashHex
+      vector.keyDerivation.codeHashHex,
     );
     expect(Buffer.from(derived.key).toString("hex")).toBe(
-      vector.keyDerivation.instanceIdHex
+      vector.keyDerivation.instanceIdHex,
     );
   });
 
@@ -78,18 +78,19 @@ describe("Freenet propagation-set state", () => {
       readFileSync(
         new URL(
           "../contract/propagation-set/propagation-set-contract.wasm",
-          import.meta.url
-        )
-      )
+          import.meta.url,
+        ),
+      ),
     );
     expect(wasm).toHaveLength(vector.contractArtifact.bytes);
     expect(Buffer.from(provider.sha256(wasm)).toString("hex")).toBe(
-      vector.contractArtifact.sha256Hex
+      vector.contractArtifact.sha256Hex,
     );
     expect(
       Buffer.from(
-        FreenetClient.deriveKey({ wasm, parameters: new Uint8Array() }).codeHash
-      ).toString("hex")
+        FreenetClient.deriveKey({ wasm, parameters: new Uint8Array() })
+          .codeHash,
+      ).toString("hex"),
     ).toBe(vector.contractArtifact.codeHashHex);
   });
 
@@ -103,8 +104,8 @@ describe("Freenet propagation-set state", () => {
       expect(Buffer.from(rightLeft).toString("hex")).toBe(testCase.mergedHex);
       expect(
         decodePropagationSetState(leftRight).map(
-          (entry) => entry.transientId[31]
-        )
+          (entry) => entry.transientId[31],
+        ),
       ).toEqual(testCase.mergedTransientSuffixes);
     });
   }
@@ -114,11 +115,11 @@ describe("Freenet propagation-set state", () => {
       {
         transientId: new Uint8Array(32).fill(1),
         storedAt: 10n,
-        lxmfData: new Uint8Array([0xaa])
-      }
+        lxmfData: new Uint8Array([0xaa]),
+      },
     ]);
     expect(
-      Buffer.from(mergePropagationSetStates(encoded, encoded)).toString("hex")
+      Buffer.from(mergePropagationSetStates(encoded, encoded)).toString("hex"),
     ).toBe(Buffer.from(encoded).toString("hex"));
   });
 });

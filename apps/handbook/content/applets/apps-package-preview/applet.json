@@ -4,7 +4,12 @@
   "title": "Package + preview (confirmed)",
   "executionModes": ["inline", "preview"],
   "capabilities": ["apps:package", "apps:preview", "workspace"],
-  "surfaces": ["apps.packageProject", "apps.preview", "apps.stopPreview", "workspace.write"],
+  "surfaces": [
+    "apps.packageProject",
+    "apps.preview",
+    "apps.stopPreview",
+    "workspace.write"
+  ],
   "expectations": {
     "android": "pass",
     "ios": "pass",

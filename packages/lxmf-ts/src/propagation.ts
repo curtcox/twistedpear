@@ -50,25 +50,24 @@ import {
   stepUnpackBinListWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
-  type PropagationTransferStateValue
+  type PropagationTransferStateValue,
 } from "@twistedpear/protocol";
 import type { Intent } from "@twistedpear/effects";
-import type { CryptoProvider, Link, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
+import type {
+  CryptoProvider,
+  Link,
+  RegisteredDestination,
+  Reticulum,
+} from "@twistedpear/reticulum-ts";
 import {
   Destination,
   DestinationDirection,
   DestinationType,
-  Identity
+  Identity,
 } from "@twistedpear/reticulum-ts";
-import {
-  APP_NAME,
-  MESSAGE_GET_PATH
-} from "./constants.js";
+import { APP_NAME, MESSAGE_GET_PATH } from "./constants.js";
 import { LXMessage } from "./message.js";
-import {
-  msgpackPackArray,
-  msgpackPackBin
-} from "./msgpack.js";
+import { msgpackPackArray, msgpackPackBin } from "./msgpack.js";
 import type { LXMFRouter } from "./router.js";
 
 export interface PropagationClientOptions {
@@ -82,7 +81,6 @@ export interface PropagationSyncResult {
   readonly messages: ReadonlyArray<LXMessage>;
 }
 
-
 /** Minimal propagation-node client. Mirrors LXMF/LXMRouter.py download flow. */
 export class PropagationClient {
   readonly router: LXMFRouter;
@@ -90,7 +88,8 @@ export class PropagationClient {
   readonly deliveryLimitKb: number;
   private propagationNodeHash: Uint8Array | null = null;
   private propagationLink: Link | null = null;
-  private transferMachine: PropagationTransferMachineState = initialPropagationTransferState();
+  private transferMachine: PropagationTransferMachineState =
+    initialPropagationTransferState();
   private linkTimer: { cancel(): void } | null = null;
   private pendingLinkResolve: ((link: Link) => void) | null = null;
   private pendingLinkReject: ((error: Error) => void) | null = null;
@@ -111,9 +110,9 @@ export class PropagationClient {
           initialTeardownLxmfPropagationLinkState(),
           {
             kind: "lxmf/teardown-propagation-link-gate",
-            linkPresent: this.propagationLink !== null
-          }
-        ).actions
+            linkPresent: this.propagationLink !== null,
+          },
+        ).actions,
       )
     ) {
       this.propagationLink!.teardown();
@@ -129,17 +128,24 @@ export class PropagationClient {
     return this.transferMachine.phase;
   }
 
-  async syncMessages(maxMessages: number | null = null): Promise<PropagationSyncResult> {
-    const prep = stepLxmfPropagationSyncPrepWithActions(initialLxmfPropagationSyncPrepState(), {
-      kind: "propagation-sync-prep/gate",
-      nodeConfigured: this.propagationNodeHash !== null,
-      deliveryIdentityPresent: this.router.deliveryIdentity !== null
-    });
+  async syncMessages(
+    maxMessages: number | null = null,
+  ): Promise<PropagationSyncResult> {
+    const prep = stepLxmfPropagationSyncPrepWithActions(
+      initialLxmfPropagationSyncPrepState(),
+      {
+        kind: "propagation-sync-prep/gate",
+        nodeConfigured: this.propagationNodeHash !== null,
+        deliveryIdentityPresent: this.router.deliveryIdentity !== null,
+      },
+    );
     if (shouldRejectLxmfPropagationSyncMissingNode(prep.actions)) {
       throw new Error("No propagation node configured");
     }
     if (shouldRejectLxmfPropagationSyncMissingDeliveryIdentity(prep.actions)) {
-      throw new Error("Router must register a delivery identity before syncing");
+      throw new Error(
+        "Router must register a delivery identity before syncing",
+      );
     }
     if (
       !shouldProceedLxmfPropagationSyncPrep(prep.actions) ||
@@ -164,10 +170,12 @@ export class PropagationClient {
           {
             kind: "lxmf-codec/pack-propagation-request-gate",
             wants: null,
-            haves: null
-          }
+            haves: null,
+          },
         );
-        const listRequest = shouldUsePackPropagationRequest(packListStepped.actions)
+        const listRequest = shouldUsePackPropagationRequest(
+          packListStepped.actions,
+        )
           ? packPropagationRequestRawFromActions(packListStepped.actions)
           : null;
         if (listRequest === null) {
@@ -178,7 +186,7 @@ export class PropagationClient {
           link,
           MESSAGE_GET_PATH,
           listRequest,
-          action.timeoutSec
+          action.timeoutSec,
         );
 
         if (
@@ -187,9 +195,9 @@ export class PropagationClient {
               initialAcceptPropagationPeerResponseState(),
               {
                 kind: "propagation-transfer/accept-peer-response-gate",
-                responsePresent: listResponse !== null
-              }
-            ).actions
+                responsePresent: listResponse !== null,
+              },
+            ).actions,
           )
         ) {
           this.applyTransfer({ kind: "xfer/list-null" });
@@ -200,8 +208,8 @@ export class PropagationClient {
           initialDecodeLxmfPeerErrorState(),
           {
             kind: "lxmf/peer-error-decode-gate",
-            response: listResponse!
-          }
+            response: listResponse!,
+          },
         );
         if (
           shouldHandlePropagationPeerErrorNow(
@@ -209,21 +217,29 @@ export class PropagationClient {
               initialHandlePropagationPeerErrorState(),
               {
                 kind: "propagation-transfer/handle-peer-error-gate",
-                errorPresent: shouldUseDecodeLxmfPeerError(listErrorStepped.actions)
-              }
-            ).actions
+                errorPresent: shouldUseDecodeLxmfPeerError(
+                  listErrorStepped.actions,
+                ),
+              },
+            ).actions,
           )
         ) {
           const listError = lxmfPeerErrorFromActions(listErrorStepped.actions);
-          this.applyTransfer({ kind: "xfer/list-peer-error", code: listError! });
+          this.applyTransfer({
+            kind: "xfer/list-peer-error",
+            code: listError!,
+          });
           return { state: this.state, messages: [] };
         }
 
-        const unpackListStepped = stepUnpackBinListWithActions(initialUnpackBinListState(), {
-          kind: "lxmf-codec/unpack-bin-list-gate",
-          data: listResponse!,
-          label: "transient id list"
-        });
+        const unpackListStepped = stepUnpackBinListWithActions(
+          initialUnpackBinListState(),
+          {
+            kind: "lxmf-codec/unpack-bin-list-gate",
+            data: listResponse!,
+            label: "transient id list",
+          },
+        );
         if (
           shouldRejectUnpackBinList(unpackListStepped.actions) ||
           !shouldUseUnpackBinList(unpackListStepped.actions)
@@ -239,7 +255,9 @@ export class PropagationClient {
         const transientIds = listFields.entries;
 
         const wants =
-          maxMessages === null ? [...transientIds] : transientIds.slice(0, Math.max(0, maxMessages));
+          maxMessages === null
+            ? [...transientIds]
+            : transientIds.slice(0, Math.max(0, maxMessages));
 
         if (
           shouldTreatPropagationListAsEmptyNow(
@@ -247,16 +265,19 @@ export class PropagationClient {
               initialTreatPropagationListAsEmptyState(),
               {
                 kind: "propagation-transfer/list-as-empty-gate",
-                wantCount: wants.length
-              }
-            ).actions
+                wantCount: wants.length,
+              },
+            ).actions,
           )
         ) {
           this.applyTransfer({ kind: "xfer/list-empty" });
           return { state: this.state, messages: [] };
         }
 
-        const afterList = this.applyTransfer({ kind: "xfer/list-ready", wantCount: wants.length });
+        const afterList = this.applyTransfer({
+          kind: "xfer/list-ready",
+          wantCount: wants.length,
+        });
         return this.continueDownload(link, wants, afterList.actions);
       }
     }
@@ -271,7 +292,7 @@ export class PropagationClient {
   private async continueDownload(
     link: Link,
     wants: ReadonlyArray<Uint8Array>,
-    actions: ReadonlyArray<PropagationTransferAction>
+    actions: ReadonlyArray<PropagationTransferAction>,
   ): Promise<PropagationSyncResult> {
     for (const action of actions) {
       if (action.kind !== "request-download") {
@@ -284,10 +305,12 @@ export class PropagationClient {
           kind: "lxmf-codec/pack-propagation-request-gate",
           wants,
           haves: null,
-          transferLimitKb: this.deliveryLimitKb
-        }
+          transferLimitKb: this.deliveryLimitKb,
+        },
       );
-      const downloadRequest = shouldUsePackPropagationRequest(packDownloadStepped.actions)
+      const downloadRequest = shouldUsePackPropagationRequest(
+        packDownloadStepped.actions,
+      )
         ? packPropagationRequestRawFromActions(packDownloadStepped.actions)
         : null;
       if (downloadRequest === null) {
@@ -298,7 +321,7 @@ export class PropagationClient {
         link,
         MESSAGE_GET_PATH,
         downloadRequest,
-        action.timeoutSec
+        action.timeoutSec,
       );
 
       if (
@@ -307,20 +330,23 @@ export class PropagationClient {
             initialAcceptPropagationPeerResponseState(),
             {
               kind: "propagation-transfer/accept-peer-response-gate",
-              responsePresent: downloadResponse !== null
-            }
-          ).actions
+              responsePresent: downloadResponse !== null,
+            },
+          ).actions,
         )
       ) {
         this.applyTransfer({ kind: "xfer/download-null" });
         return { state: this.state, messages: [] };
       }
 
-      const unpackDownloadStepped = stepUnpackBinListWithActions(initialUnpackBinListState(), {
-        kind: "lxmf-codec/unpack-bin-list-gate",
-        data: downloadResponse!,
-        label: "message list response"
-      });
+      const unpackDownloadStepped = stepUnpackBinListWithActions(
+        initialUnpackBinListState(),
+        {
+          kind: "lxmf-codec/unpack-bin-list-gate",
+          data: downloadResponse!,
+          label: "message list response",
+        },
+      );
       if (
         shouldRejectUnpackBinList(unpackDownloadStepped.actions) ||
         !shouldUseUnpackBinList(unpackDownloadStepped.actions)
@@ -328,7 +354,9 @@ export class PropagationClient {
         this.applyTransfer({ kind: "xfer/download-malformed" });
         return { state: this.state, messages: [] };
       }
-      const downloadFields = binListFieldsFromActions(unpackDownloadStepped.actions);
+      const downloadFields = binListFieldsFromActions(
+        unpackDownloadStepped.actions,
+      );
       if (downloadFields === null) {
         this.applyTransfer({ kind: "xfer/download-malformed" });
         return { state: this.state, messages: [] };
@@ -345,9 +373,9 @@ export class PropagationClient {
               initialAcceptPropagationDeliveredMessageState(),
               {
                 kind: "propagation-transfer/accept-delivered-message-gate",
-                messagePresent: message !== null
-              }
-            ).actions
+                messagePresent: message !== null,
+              },
+            ).actions,
           )
         ) {
           messages.push(message!);
@@ -357,7 +385,7 @@ export class PropagationClient {
 
       const afterDownload = this.applyTransfer({
         kind: "xfer/download-ready",
-        downloadedCount: haves.length
+        downloadedCount: haves.length,
       });
 
       for (const next of afterDownload.actions) {
@@ -369,9 +397,9 @@ export class PropagationClient {
               {
                 kind: "propagation-transfer/request-haves-ack-gate",
                 actionIsHavesAck: true,
-                haveCount: haves.length
-              }
-            ).actions
+                haveCount: haves.length,
+              },
+            ).actions,
           )
         ) {
           const packHavesStepped = stepPackPropagationRequestWithActions(
@@ -379,10 +407,12 @@ export class PropagationClient {
             {
               kind: "lxmf-codec/pack-propagation-request-gate",
               wants: null,
-              haves
-            }
+              haves,
+            },
           );
-          const havesRequest = shouldUsePackPropagationRequest(packHavesStepped.actions)
+          const havesRequest = shouldUsePackPropagationRequest(
+            packHavesStepped.actions,
+          )
             ? packPropagationRequestRawFromActions(packHavesStepped.actions)
             : null;
           if (havesRequest !== null) {
@@ -390,7 +420,7 @@ export class PropagationClient {
               link,
               MESSAGE_GET_PATH,
               havesRequest,
-              next.timeoutSec
+              next.timeoutSec,
             );
           }
           this.applyTransfer({ kind: "xfer/haves-acked" });
@@ -404,9 +434,12 @@ export class PropagationClient {
   }
 
   private applyTransfer(
-    event: Parameters<typeof stepPropagationTransferWithActions>[1]
+    event: Parameters<typeof stepPropagationTransferWithActions>[1],
   ): ReturnType<typeof stepPropagationTransferWithActions> {
-    const result = stepPropagationTransferWithActions(this.transferMachine, event);
+    const result = stepPropagationTransferWithActions(
+      this.transferMachine,
+      event,
+    );
     this.transferMachine = result.state;
     this.applyTransferIntents(result.intents);
     this.applyTransferActions(result.actions);
@@ -415,25 +448,33 @@ export class PropagationClient {
 
   private applyTransferIntents(intents: readonly Intent[]): void {
     for (const intent of intents) {
-      if (intent.kind === "timer/cancel" && intent.timer.id === PROPAGATION_LINK_TIMER_ID) {
+      if (
+        intent.kind === "timer/cancel" &&
+        intent.timer.id === PROPAGATION_LINK_TIMER_ID
+      ) {
         this.linkTimer?.cancel();
         this.linkTimer = null;
       }
-      if (intent.kind === "timer/set" && intent.timer.id === PROPAGATION_LINK_TIMER_ID) {
+      if (
+        intent.kind === "timer/set" &&
+        intent.timer.id === PROPAGATION_LINK_TIMER_ID
+      ) {
         this.linkTimer?.cancel();
         this.linkTimer = this.router.reticulum.runtime.clock.setTimeout(() => {
           this.linkTimer = null;
           this.applyTransfer({
             kind: "timer/fired",
             id: PROPAGATION_LINK_TIMER_ID,
-            at: this.router.reticulum.runtime.clock.now()
+            at: this.router.reticulum.runtime.clock.now(),
           });
         }, intent.timer.delayMs);
       }
     }
   }
 
-  private applyTransferActions(actions: ReadonlyArray<PropagationTransferAction>): void {
+  private applyTransferActions(
+    actions: ReadonlyArray<PropagationTransferAction>,
+  ): void {
     for (const action of actions) {
       if (action.kind === "establish-link") {
         // Reuse path applies begin without arming a wait — ignore establish IO.
@@ -445,7 +486,7 @@ export class PropagationClient {
           linkEstablished: (establishLink) => {
             this.pendingEstablishedLink = establishLink;
             this.applyTransfer({ kind: "xfer/link-arrived" });
-          }
+          },
         });
       }
       if (
@@ -455,9 +496,9 @@ export class PropagationClient {
             initialTeardownLxmfPropagationLinkState(),
             {
               kind: "lxmf/teardown-propagation-link-gate",
-              linkPresent: this.propagationLink !== null
-            }
-          ).actions
+              linkPresent: this.propagationLink !== null,
+            },
+          ).actions,
         )
       ) {
         this.propagationLink!.teardown();
@@ -489,11 +530,14 @@ export class PropagationClient {
   }
 
   private async ensurePropagationLink(): Promise<Link> {
-    const reuseStepped = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
-      kind: "link/reuse-active-gate",
-      linkPresent: this.propagationLink !== null,
-      status: this.propagationLink?.status ?? 0
-    });
+    const reuseStepped = stepReuseActiveLinkWithActions(
+      initialReuseActiveLinkState(),
+      {
+        kind: "link/reuse-active-gate",
+        linkPresent: this.propagationLink !== null,
+        status: this.propagationLink?.status ?? 0,
+      },
+    );
     if (shouldReuseActiveLinkNow(reuseStepped.actions)) {
       // Keep transfer phase in sync; establish-link is ignored without a pending wait.
       this.applyTransfer({ kind: "xfer/begin" });
@@ -504,15 +548,17 @@ export class PropagationClient {
     const nodeIdentity =
       this.propagationNodeHash === null
         ? null
-        : this.router.reticulum.resolveDestinationIdentity(this.propagationNodeHash);
+        : this.router.reticulum.resolveDestinationIdentity(
+            this.propagationNodeHash,
+          );
     const ready = stepLxmfPropagationLinkReadyWithActions(
       initialLxmfPropagationLinkReadyState(),
       {
         kind: "propagation-link/gate",
         canReuseLink: false,
         nodeConfigured: this.propagationNodeHash !== null,
-        nodeIdentityPresent: nodeIdentity !== null
-      }
+        nodeIdentityPresent: nodeIdentity !== null,
+      },
     );
     if (shouldRejectLxmfPropagationMissingNode(ready.actions)) {
       throw new Error("No propagation node configured");
@@ -533,7 +579,7 @@ export class PropagationClient {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: APP_NAME,
-      aspects: ["propagation"]
+      aspects: ["propagation"],
     });
 
     return new Promise<Link>((resolve, reject) => {
@@ -551,13 +597,16 @@ async function awaitLinkRequest(
   link: Link,
   path: string,
   data: Uint8Array | null,
-  timeout: number
+  timeout: number,
 ): Promise<Uint8Array | null> {
   return new Promise((resolve) => {
-    const armed = stepLinkAppRequestAwaitWithActions(initialLinkAppRequestAwaitState(), {
-      kind: "app-request-await/arm",
-      timeoutSec: timeout
-    });
+    const armed = stepLinkAppRequestAwaitWithActions(
+      initialLinkAppRequestAwaitState(),
+      {
+        kind: "app-request-await/arm",
+        timeoutSec: timeout,
+      },
+    );
     let state = armed.state;
     let concluded = false;
 
@@ -570,7 +619,7 @@ async function awaitLinkRequest(
     };
 
     const applyActions = (
-      actions: ReturnType<typeof stepLinkAppRequestAwaitWithActions>["actions"]
+      actions: ReturnType<typeof stepLinkAppRequestAwaitWithActions>["actions"],
     ): void => {
       for (const action of actions) {
         if (action.kind === "send-request") {
@@ -580,23 +629,23 @@ async function awaitLinkRequest(
               response: (receipt) => {
                 const result = stepLinkAppRequestAwaitWithActions(state, {
                   kind: "app-request-await/response",
-                  response: receipt.response
+                  response: receipt.response,
                 });
                 state = result.state;
                 applyActions(result.actions);
               },
               failed: () => {
                 const result = stepLinkAppRequestAwaitWithActions(state, {
-                  kind: "app-request-await/failed"
+                  kind: "app-request-await/failed",
                 });
                 state = result.state;
                 applyActions(result.actions);
-              }
+              },
             })
             .then((receipt) => {
               if (receipt === false) {
                 const result = stepLinkAppRequestAwaitWithActions(state, {
-                  kind: "app-request-await/send-rejected"
+                  kind: "app-request-await/send-rejected",
                 });
                 state = result.state;
                 applyActions(result.actions);

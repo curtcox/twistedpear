@@ -7,10 +7,11 @@ import {
   DEVICE_CLASS_REGISTRY,
   deviceClassById,
   type DeviceBandwidthProfile,
-  type DeviceClassEntry
+  type DeviceClassEntry,
 } from "./device-registry.gen.js";
 
-export type StreamPlane = "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
+export type StreamPlane =
+  "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
 
 export type AdmissionDecisionKind = "accept" | "degrade" | "defer" | "reject";
 
@@ -64,7 +65,7 @@ const PLANE_ORDER: ReadonlyArray<StreamPlane> = [
   "pears-bulk",
   "reticulum",
   "lxmf",
-  "cas"
+  "cas",
 ];
 
 export function degradationLadderFor(classId: string): ReadonlyArray<string> {
@@ -76,7 +77,7 @@ export function degradationLadderFor(classId: string): ReadonlyArray<string> {
 export function bandwidthProfileFor(
   classId: string,
   tierId: string,
-  encoding?: string
+  encoding?: string,
 ): DeviceBandwidthProfile | undefined {
   const entry = deviceClassById(classId);
   const profile = entry?.bandwidth[tierId];
@@ -85,7 +86,11 @@ export function bandwidthProfileFor(
 }
 
 export function demandBps(demand: StreamDemand): number {
-  const profile = bandwidthProfileFor(demand.classId, demand.tierId, demand.encoding);
+  const profile = bandwidthProfileFor(
+    demand.classId,
+    demand.tierId,
+    demand.encoding,
+  );
   if (profile === undefined) return 0;
   const rate = demand.rateHz ?? 1;
   // Raw media profiles are already bitrates. Event/sample profiles are expressed
@@ -96,13 +101,18 @@ export function demandBps(demand: StreamDemand): number {
   return Math.max(profile.minBps, Math.min(scaled, profile.burstBytes * 8));
 }
 
-export function selectPlane(candidates: ReadonlyArray<LinkSupply>): LinkSupply | undefined {
+export function selectPlane(
+  candidates: ReadonlyArray<LinkSupply>,
+): LinkSupply | undefined {
   const viable = candidates.filter((candidate) => supplyBps(candidate) > 0);
-  const available = [...(viable.length > 0 ? viable : candidates)].sort((left, right) => {
-    const planeDelta = PLANE_ORDER.indexOf(left.plane) - PLANE_ORDER.indexOf(right.plane);
-    if (planeDelta !== 0) return planeDelta;
-    return supplyBps(right) - supplyBps(left);
-  });
+  const available = [...(viable.length > 0 ? viable : candidates)].sort(
+    (left, right) => {
+      const planeDelta =
+        PLANE_ORDER.indexOf(left.plane) - PLANE_ORDER.indexOf(right.plane);
+      if (planeDelta !== 0) return planeDelta;
+      return supplyBps(right) - supplyBps(left);
+    },
+  );
   return available[0];
 }
 
@@ -123,28 +133,31 @@ export function supplyBps(supply: LinkSupply): number {
  */
 export function decideStreamAdmission(
   demand: StreamDemand,
-  candidates: ReadonlyArray<LinkSupply>
+  candidates: ReadonlyArray<LinkSupply>,
 ): AdmissionDecision {
   const ladder = degradationLadderFor(demand.classId);
   const selected = selectPlane(candidates);
   if (selected === undefined) {
-    return casSnapshotAdmission(demand, ladder) ?? {
-      kind: "reject",
-      plane: "cas",
-      rung: ladder[ladder.length - 1] ?? "on-demand",
-      rungIndex: Math.max(0, ladder.length - 1),
-      demandBps: demandBps(demand),
-      admittedDemandBps: 0,
-      supplyBps: 0,
-      reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no candidate plane"
-    };
+    return (
+      casSnapshotAdmission(demand, ladder) ?? {
+        kind: "reject",
+        plane: "cas",
+        rung: ladder[ladder.length - 1] ?? "on-demand",
+        rungIndex: Math.max(0, ladder.length - 1),
+        demandBps: demandBps(demand),
+        admittedDemandBps: 0,
+        supplyBps: 0,
+        reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no candidate plane",
+      }
+    );
   }
 
   const requiredBps = demandBps(demand);
   const supply = supplyBps(selected);
-  const requestedRungIndex = demand.encoding === undefined
-    ? 0
-    : Math.max(0, ladder.indexOf(demand.encoding));
+  const requestedRungIndex =
+    demand.encoding === undefined
+      ? 0
+      : Math.max(0, ladder.indexOf(demand.encoding));
   if (requiredBps <= 0) {
     return {
       kind: "reject",
@@ -154,7 +167,7 @@ export function decideStreamAdmission(
       demandBps: requiredBps,
       admittedDemandBps: 0,
       supplyBps: supply,
-      reason: "DEVICE_BANDWIDTH_INSUFFICIENT: unknown or empty demand profile"
+      reason: "DEVICE_BANDWIDTH_INSUFFICIENT: unknown or empty demand profile",
     };
   }
   if (supply <= 0) {
@@ -167,12 +180,17 @@ export function decideStreamAdmission(
         demandBps: requiredBps,
         admittedDemandBps: 0,
         supplyBps: supply,
-        reason: "DEVICE_BANDWIDTH_INSUFFICIENT: zero supply"
+        reason: "DEVICE_BANDWIDTH_INSUFFICIENT: zero supply",
       }
     );
   }
 
-  let rungIndex = highestSustainableRung(ladder, requiredBps, supply, requestedRungIndex);
+  let rungIndex = highestSustainableRung(
+    ladder,
+    requiredBps,
+    supply,
+    requestedRungIndex,
+  );
   if (selected.metered === true || selected.lowBattery === true) {
     rungIndex = Math.min(ladder.length - 1, rungIndex + 1);
   }
@@ -182,7 +200,7 @@ export function decideStreamAdmission(
     requiredBps,
     profileMinimumBps(demand),
     rungIndex - requestedRungIndex,
-    ladder.length - requestedRungIndex
+    ladder.length - requestedRungIndex,
   );
   if (admittedDemand > supply) {
     // Live planes cannot carry even the bottom live rung; fall through to CAS
@@ -196,7 +214,7 @@ export function decideStreamAdmission(
         demandBps: requiredBps,
         admittedDemandBps: admittedDemand,
         supplyBps: supply,
-        reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no sustainable rung"
+        reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no sustainable rung",
       }
     );
   }
@@ -209,7 +227,7 @@ export function decideStreamAdmission(
       demandBps: requiredBps,
       admittedDemandBps: admittedDemand,
       supplyBps: supply,
-      reason: "accepted at requested quality"
+      reason: "accepted at requested quality",
     };
   }
   // Prefer honest degradation (including bottom-of-ladder derived events) over defer
@@ -223,7 +241,7 @@ export function decideStreamAdmission(
       demandBps: requiredBps,
       admittedDemandBps: admittedDemand,
       supplyBps: supply,
-      reason: `degraded to ${rung}`
+      reason: `degraded to ${rung}`,
     };
   }
   if ((selected.queueDepthBytes ?? 0) < DEFAULT_HOST_LIMIT_BPS) {
@@ -235,7 +253,7 @@ export function decideStreamAdmission(
       demandBps: requiredBps,
       admittedDemandBps: admittedDemand,
       supplyBps: supply,
-      reason: "defer until better path or headroom"
+      reason: "defer until better path or headroom",
     };
   }
   return {
@@ -246,21 +264,30 @@ export function decideStreamAdmission(
     demandBps: requiredBps,
     admittedDemandBps: admittedDemand,
     supplyBps: supply,
-    reason: "DEVICE_BANDWIDTH_INSUFFICIENT"
+    reason: "DEVICE_BANDWIDTH_INSUFFICIENT",
   };
 }
 
 /** Downshift immediately on sustained deficit; upshift only after hysteresis. */
-export function adaptStreamAdmission(input: AdaptationInput): AdmissionDecision {
+export function adaptStreamAdmission(
+  input: AdaptationInput,
+): AdmissionDecision {
   const supply = supplyBps(input.supply);
   const deficitStreak = input.deficitStreak ?? 0;
   const surplusStreak = input.surplusStreak ?? 0;
   let rungIndex = input.previous.rungIndex;
 
-  if (supply < input.previous.admittedDemandBps && deficitStreak >= DOWNSHIFT_AFTER) {
+  if (
+    supply < input.previous.admittedDemandBps &&
+    deficitStreak >= DOWNSHIFT_AFTER
+  ) {
     rungIndex = Math.min(input.ladder.length - 1, rungIndex + 1);
   } else if (
-    supply >= Math.min(input.previous.demandBps, input.previous.admittedDemandBps * 2) &&
+    supply >=
+      Math.min(
+        input.previous.demandBps,
+        input.previous.admittedDemandBps * 2,
+      ) &&
     surplusStreak >= UPSHIFT_AFTER &&
     input.supply.metered !== true &&
     input.supply.lowBattery !== true
@@ -271,11 +298,15 @@ export function adaptStreamAdmission(input: AdaptationInput): AdmissionDecision 
   const rung = input.ladder[rungIndex] ?? input.previous.rung;
   const kind: AdmissionDecisionKind = rungIndex === 0 ? "accept" : "degrade";
   const rungDelta = rungIndex - input.previous.rungIndex;
-  const admittedDemandBps = rungDelta === 0
-    ? input.previous.admittedDemandBps
-    : rungDelta > 0
-      ? input.previous.admittedDemandBps / 2 ** rungDelta
-      : Math.min(input.previous.demandBps, input.previous.admittedDemandBps * 2 ** -rungDelta);
+  const admittedDemandBps =
+    rungDelta === 0
+      ? input.previous.admittedDemandBps
+      : rungDelta > 0
+        ? input.previous.admittedDemandBps / 2 ** rungDelta
+        : Math.min(
+            input.previous.demandBps,
+            input.previous.admittedDemandBps * 2 ** -rungDelta,
+          );
   return {
     kind,
     plane: input.supply.plane,
@@ -284,16 +315,22 @@ export function adaptStreamAdmission(input: AdaptationInput): AdmissionDecision 
     demandBps: input.previous.demandBps,
     admittedDemandBps,
     supplyBps: supply,
-    reason: rungIndex === input.previous.rungIndex ? "hold" : `adapt to ${rung}`
+    reason:
+      rungIndex === input.previous.rungIndex ? "hold" : `adapt to ${rung}`,
   };
 }
 
 /** Property helper: accepted/degraded streams must fit in headroom. */
-export function admittedWithinHeadroom(decision: AdmissionDecision, headroomBps: number): boolean {
+export function admittedWithinHeadroom(
+  decision: AdmissionDecision,
+  headroomBps: number,
+): boolean {
   if (decision.kind === "reject" || decision.kind === "defer") return true;
   // CAS snapshots are store-and-forward; they do not claim live headroom.
   if (decision.plane === "cas" && decision.rung === "cas-snapshot") return true;
-  return decision.admittedDemandBps <= headroomBps && decision.admittedDemandBps > 0;
+  return (
+    decision.admittedDemandBps <= headroomBps && decision.admittedDemandBps > 0
+  );
 }
 
 export function allDeviceClassIds(): ReadonlyArray<string> {
@@ -306,16 +343,19 @@ export function allDeviceClassIds(): ReadonlyArray<string> {
  */
 function casSnapshotAdmission(
   demand: StreamDemand,
-  ladder: ReadonlyArray<string>
+  ladder: ReadonlyArray<string>,
 ): AdmissionDecision | null {
   const rungIndex = ladder.indexOf("cas-snapshot");
   if (rungIndex < 0) return null;
   const requiredBps = demandBps(demand);
-  const requestedRungIndex = demand.encoding === undefined
-    ? 0
-    : Math.max(0, ladder.indexOf(demand.encoding));
+  const requestedRungIndex =
+    demand.encoding === undefined
+      ? 0
+      : Math.max(0, ladder.indexOf(demand.encoding));
   const kind: AdmissionDecisionKind =
-    requestedRungIndex === rungIndex && demand.encoding === "cas-snapshot" ? "accept" : "degrade";
+    requestedRungIndex === rungIndex && demand.encoding === "cas-snapshot"
+      ? "accept"
+      : "degrade";
   return {
     kind,
     plane: "cas",
@@ -324,7 +364,7 @@ function casSnapshotAdmission(
     demandBps: requiredBps,
     admittedDemandBps: Math.max(1, profileMinimumBps(demand)),
     supplyBps: 0,
-    reason: "no live path; admitted cas-snapshot"
+    reason: "no live path; admitted cas-snapshot",
   };
 }
 
@@ -332,7 +372,7 @@ function highestSustainableRung(
   ladder: ReadonlyArray<string>,
   demand: number,
   supply: number,
-  startIndex = 0
+  startIndex = 0,
 ): number {
   // Index 0 is highest quality. Each step roughly halves demand.
   for (let index = startIndex; index < ladder.length; index += 1) {
@@ -343,11 +383,20 @@ function highestSustainableRung(
 }
 
 function profileMinimumBps(demand: StreamDemand): number {
-  return bandwidthProfileFor(demand.classId, demand.tierId, demand.encoding)?.minBps ?? 0;
+  return (
+    bandwidthProfileFor(demand.classId, demand.tierId, demand.encoding)
+      ?.minBps ?? 0
+  );
 }
 
-function demandAtRung(demand: number, minimum: number, index: number, ladderLength: number): number {
-  if (ladderLength > 0 && index >= ladderLength - 1) return Math.min(demand, minimum);
+function demandAtRung(
+  demand: number,
+  minimum: number,
+  index: number,
+  ladderLength: number,
+): number {
+  if (ladderLength > 0 && index >= ladderLength - 1)
+    return Math.min(demand, minimum);
   return Math.max(minimum, demand / 2 ** index);
 }
 

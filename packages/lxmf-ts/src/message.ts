@@ -98,7 +98,7 @@ import {
   shouldUseUtf8Decode,
   shouldUseUtf8OrBytes,
   utf8DecodeTextFromActions,
-  utf8OrBytesRawFromActions
+  utf8OrBytesRawFromActions,
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
@@ -106,7 +106,7 @@ import {
   DestinationDirection,
   DestinationType,
   Identity,
-  equalBytes
+  equalBytes,
 } from "@twistedpear/reticulum-ts";
 import {
   DESTINATION_LENGTH,
@@ -118,7 +118,7 @@ import {
   type LXMessageRepresentationValue,
   type LXMessageStateValue,
   type LXMessageUnverifiedReasonValue,
-  APP_NAME
+  APP_NAME,
 } from "./constants.js";
 
 /** Mirrors RNS/Packet.py encrypted MDU with LXMF timestamp allowance. */
@@ -165,7 +165,8 @@ export class LXMessage {
   state: LXMessageStateValue = LXMessageState.GENERATING;
   method: LXMessageMethodValue = LXMessageMethod.DIRECT;
   desiredMethod: LXMessageMethodValue | null = LXMessageMethod.DIRECT;
-  representation: LXMessageRepresentationValue = LXMessageRepresentation.UNKNOWN;
+  representation: LXMessageRepresentationValue =
+    LXMessageRepresentation.UNKNOWN;
   incoming = false;
   signatureValidated = false;
   unverifiedReason: LXMessageUnverifiedReasonValue | null = null;
@@ -186,8 +187,14 @@ export class LXMessage {
   }) {
     this.destination = options.destination ?? null;
     this.source = options.source ?? null;
-    this.destinationHash = options.destinationHash ?? options.destination?.hash ?? new Uint8Array(DESTINATION_LENGTH);
-    this.sourceHash = options.sourceHash ?? options.source?.hash ?? new Uint8Array(DESTINATION_LENGTH);
+    this.destinationHash =
+      options.destinationHash ??
+      options.destination?.hash ??
+      new Uint8Array(DESTINATION_LENGTH);
+    this.sourceHash =
+      options.sourceHash ??
+      options.source?.hash ??
+      new Uint8Array(DESTINATION_LENGTH);
     this.title = encodeTextOrBytes(options.title ?? "");
     this.content = encodeTextOrBytes(options.content ?? "");
     this.fields = options.fields ?? {};
@@ -197,9 +204,10 @@ export class LXMessage {
   static pack(options: LXMessagePackOptions): LXMessage {
     const packGate = stepLxMessagePackWithActions(initialLxMessagePackState(), {
       kind: "lxmessage-pack/gate",
-      destinationDirectionOut: options.destination.direction === DestinationDirection.OUT,
+      destinationDirectionOut:
+        options.destination.direction === DestinationDirection.OUT,
       sourceDirectionIn: options.source.direction === DestinationDirection.IN,
-      sourceIdentityPresent: options.source.identity !== null
+      sourceIdentityPresent: options.source.identity !== null,
     });
     if (shouldRejectLxMessagePackBadDestination(packGate.actions)) {
       throw new Error("LXMessage destination must be OUT");
@@ -214,14 +222,17 @@ export class LXMessage {
       ...(options.title === undefined ? {} : { title: options.title }),
       ...(options.content === undefined ? {} : { content: options.content }),
       ...(options.fields === undefined ? {} : { fields: options.fields }),
-      desiredMethod: options.desiredMethod ?? LXMessageMethod.DIRECT
+      desiredMethod: options.desiredMethod ?? LXMessageMethod.DIRECT,
     });
 
-    const timestampGate = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
-      kind: "pack-timestamp/select",
-      hasTimestamp: options.timestamp !== undefined,
-      hasNow: options.now !== undefined
-    });
+    const timestampGate = stepLxmfPackTimestampWithActions(
+      initialLxmfPackTimestampState(),
+      {
+        kind: "pack-timestamp/select",
+        hasTimestamp: options.timestamp !== undefined,
+        hasNow: options.now !== undefined,
+      },
+    );
     if (shouldUseLxmfPackTimestamp(timestampGate.actions)) {
       message.timestamp = options.timestamp!;
     } else if (shouldUseLxmfPackNow(timestampGate.actions)) {
@@ -231,16 +242,24 @@ export class LXMessage {
     }
     message.pack(options.provider, {
       ...(options.stamp === undefined ? {} : { stamp: options.stamp }),
-      ...(options.deferStamp === undefined ? {} : { deferStamp: options.deferStamp })
+      ...(options.deferStamp === undefined
+        ? {}
+        : { deferStamp: options.deferStamp }),
     });
     return message;
   }
 
-  static unpackFromBytes(lxmfBytes: Uint8Array, options: LXMessageUnpackOptions): LXMessage {
-    const splitStepped = stepSplitLxmfWireWithActions(initialSplitLxmfWireState(), {
-      kind: "lxmf-wire/split-gate",
-      bytes: lxmfBytes
-    });
+  static unpackFromBytes(
+    lxmfBytes: Uint8Array,
+    options: LXMessageUnpackOptions,
+  ): LXMessage {
+    const splitStepped = stepSplitLxmfWireWithActions(
+      initialSplitLxmfWireState(),
+      {
+        kind: "lxmf-wire/split-gate",
+        bytes: lxmfBytes,
+      },
+    );
     const wire = lxmfWireFieldsFromActions(splitStepped.actions);
     if (
       shouldRejectSplitLxmfWire(splitStepped.actions) ||
@@ -248,8 +267,8 @@ export class LXMessage {
       !shouldAcceptLxmfWireFrameNow(
         stepAcceptLxmfWireFrameWithActions(initialAcceptLxmfWireFrameState(), {
           kind: "lxmf/accept-wire-frame-gate",
-          wirePresent: wire !== null
-        }).actions
+          wirePresent: wire !== null,
+        }).actions,
       ) ||
       wire === null
     ) {
@@ -257,64 +276,82 @@ export class LXMessage {
     }
 
     const { destinationHash, sourceHash, signature, payload } = wire;
-    const unpackPayloadStepped = stepUnpackLxmPayloadWithActions(initialUnpackLxmPayloadState(), {
-      kind: "lxmf-codec/unpack-payload-gate",
-      data: payload
-    });
+    const unpackPayloadStepped = stepUnpackLxmPayloadWithActions(
+      initialUnpackLxmPayloadState(),
+      {
+        kind: "lxmf-codec/unpack-payload-gate",
+        data: payload,
+      },
+    );
     if (
       shouldRejectUnpackLxmPayload(unpackPayloadStepped.actions) ||
       !shouldUseUnpackLxmPayload(unpackPayloadStepped.actions)
     ) {
       throw new Error("Invalid LXMF payload");
     }
-    const unpackedPayload = lxmPayloadFieldsFromActions(unpackPayloadStepped.actions);
+    const unpackedPayload = lxmPayloadFieldsFromActions(
+      unpackPayloadStepped.actions,
+    );
     if (unpackedPayload === null) {
       throw new Error("Invalid LXMF payload");
     }
     const { timestamp, title, content, fields, stamp } = unpackedPayload;
-    const packCoreStepped = stepPackLxmPayloadWithActions(initialPackLxmPayloadState(), {
-      kind: "lxmf-codec/pack-payload-gate",
-      timestamp,
-      title,
-      content,
-      fields
-    });
+    const packCoreStepped = stepPackLxmPayloadWithActions(
+      initialPackLxmPayloadState(),
+      {
+        kind: "lxmf-codec/pack-payload-gate",
+        timestamp,
+        title,
+        content,
+        fields,
+      },
+    );
     if (!shouldUsePackLxmPayload(packCoreStepped.actions)) {
       throw new Error("Invalid LXMF payload");
     }
-    const payloadWithoutStamp = packLxmPayloadRawFromActions(packCoreStepped.actions);
+    const payloadWithoutStamp = packLxmPayloadRawFromActions(
+      packCoreStepped.actions,
+    );
     if (payloadWithoutStamp === null) {
       throw new Error("Invalid LXMF payload");
     }
-    const hashedStepped = stepLxmfHashableMaterialWithActions(initialLxmfHashableMaterialState(), {
-      kind: "lxmf-wire/hashable-material-gate",
-      destinationHash,
-      sourceHash,
-      payloadWithoutStamp
-    });
-    const hashedPart =
-      shouldUseLxmfHashableMaterial(hashedStepped.actions)
-        ? lxmfHashableMaterialRawFromActions(hashedStepped.actions)
-        : null;
+    const hashedStepped = stepLxmfHashableMaterialWithActions(
+      initialLxmfHashableMaterialState(),
+      {
+        kind: "lxmf-wire/hashable-material-gate",
+        destinationHash,
+        sourceHash,
+        payloadWithoutStamp,
+      },
+    );
+    const hashedPart = shouldUseLxmfHashableMaterial(hashedStepped.actions)
+      ? lxmfHashableMaterialRawFromActions(hashedStepped.actions)
+      : null;
     if (hashedPart === null) {
       throw new Error("LXMF hashable material: missing use-raw action");
     }
     const messageHash = Identity.fullHash(options.provider, hashedPart);
-    const signedStepped = stepLxmfSignedMaterialWithActions(initialLxmfSignedMaterialState(), {
-      kind: "lxmf-wire/signed-material-gate",
-      hashableMaterial: hashedPart,
-      messageHash
-    });
-    const signedPart =
-      shouldUseLxmfSignedMaterial(signedStepped.actions)
-        ? lxmfSignedMaterialRawFromActions(signedStepped.actions)
-        : null;
+    const signedStepped = stepLxmfSignedMaterialWithActions(
+      initialLxmfSignedMaterialState(),
+      {
+        kind: "lxmf-wire/signed-material-gate",
+        hashableMaterial: hashedPart,
+        messageHash,
+      },
+    );
+    const signedPart = shouldUseLxmfSignedMaterial(signedStepped.actions)
+      ? lxmfSignedMaterialRawFromActions(signedStepped.actions)
+      : null;
     if (signedPart === null) {
       throw new Error("LXMF signed material: missing use-raw action");
     }
 
-    const sourceIdentity = options.sourceIdentity ?? Identity.recall(options.provider, sourceHash);
-    const destinationIdentity = Identity.recall(options.provider, destinationHash);
+    const sourceIdentity =
+      options.sourceIdentity ?? Identity.recall(options.provider, sourceHash);
+    const destinationIdentity = Identity.recall(
+      options.provider,
+      destinationHash,
+    );
 
     const message = new LXMessage({
       destination:
@@ -325,7 +362,7 @@ export class LXMessage {
               direction: DestinationDirection.OUT,
               type: DestinationType.SINGLE,
               appName: APP_NAME,
-              aspects: ["delivery"]
+              aspects: ["delivery"],
             }),
       source:
         sourceIdentity === null
@@ -335,14 +372,14 @@ export class LXMessage {
               direction: DestinationDirection.IN,
               type: DestinationType.SINGLE,
               appName: APP_NAME,
-              aspects: ["delivery"]
+              aspects: ["delivery"],
             }),
       destinationHash,
       sourceHash,
       title,
       content,
       fields,
-      desiredMethod: options.originalMethod ?? null
+      desiredMethod: options.originalMethod ?? null,
     });
 
     message.hash = messageHash;
@@ -352,12 +389,17 @@ export class LXMessage {
     message.packed = Uint8Array.from(lxmfBytes);
     message.incoming = true;
 
-    const signatureGate = stepLxmfSignatureWithActions(initialLxmfSignatureState(), {
-      kind: "signature/outcome-gate",
-      sourceIdentityPresent: sourceIdentity !== null,
-      signatureValid:
-        sourceIdentity !== null ? sourceIdentity.validate(signature, signedPart) : false
-    });
+    const signatureGate = stepLxmfSignatureWithActions(
+      initialLxmfSignatureState(),
+      {
+        kind: "signature/outcome-gate",
+        sourceIdentityPresent: sourceIdentity !== null,
+        signatureValid:
+          sourceIdentity !== null
+            ? sourceIdentity.validate(signature, signedPart)
+            : false,
+      },
+    );
     const outcome = lxmfSignatureOutcomeFromActions(signatureGate.actions);
     if (outcome !== null) {
       message.signatureValidated = outcome.signatureValidated;
@@ -369,33 +411,43 @@ export class LXMessage {
 
   pack(
     provider: CryptoProvider,
-    options: { stamp?: Uint8Array | null; deferStamp?: boolean } = {}
+    options: { stamp?: Uint8Array | null; deferStamp?: boolean } = {},
   ): void {
-    const packGate = stepLxMessageInstancePackWithActions(initialLxMessageInstancePackState(), {
-      kind: "instance-pack/gate",
-      alreadyPacked: this.packed !== null,
-      destinationPresent: this.destination !== null,
-      sourcePresent: this.source !== null,
-      sourceIdentityPresent: this.source?.identity !== null,
-      timestampPresent: this.timestamp !== null
-    });
+    const packGate = stepLxMessageInstancePackWithActions(
+      initialLxMessageInstancePackState(),
+      {
+        kind: "instance-pack/gate",
+        alreadyPacked: this.packed !== null,
+        destinationPresent: this.destination !== null,
+        sourcePresent: this.source !== null,
+        sourceIdentityPresent: this.source?.identity !== null,
+        timestampPresent: this.timestamp !== null,
+      },
+    );
     if (shouldRejectLxMessageInstanceAlreadyPacked(packGate.actions)) {
       throw new Error("LXMessage is already packed");
     }
     if (shouldRejectLxMessageInstanceMissingEndpoints(packGate.actions)) {
-      throw new Error("LXMessage requires destination and source destinations to pack");
+      throw new Error(
+        "LXMessage requires destination and source destinations to pack",
+      );
     }
     if (shouldRejectLxMessageInstanceMissingTimestamp(packGate.actions)) {
-      throw new Error("LXMessage.pack requires timestamp to be set before packing");
+      throw new Error(
+        "LXMessage.pack requires timestamp to be set before packing",
+      );
     }
 
-    const packCoreStepped = stepPackLxmPayloadWithActions(initialPackLxmPayloadState(), {
-      kind: "lxmf-codec/pack-payload-gate",
-      timestamp: this.timestamp!,
-      title: this.title,
-      content: this.content,
-      fields: this.fields
-    });
+    const packCoreStepped = stepPackLxmPayloadWithActions(
+      initialPackLxmPayloadState(),
+      {
+        kind: "lxmf-codec/pack-payload-gate",
+        timestamp: this.timestamp!,
+        title: this.title,
+        content: this.content,
+        fields: this.fields,
+      },
+    );
     if (!shouldUsePackLxmPayload(packCoreStepped.actions)) {
       throw new Error("LXMessage failed to pack payload");
     }
@@ -403,16 +455,18 @@ export class LXMessage {
     if (payloadCore === null) {
       throw new Error("LXMessage failed to pack payload");
     }
-    const hashedStepped = stepLxmfHashableMaterialWithActions(initialLxmfHashableMaterialState(), {
-      kind: "lxmf-wire/hashable-material-gate",
-      destinationHash: this.destination!.hash,
-      sourceHash: this.source!.hash,
-      payloadWithoutStamp: payloadCore
-    });
-    const hashedPart =
-      shouldUseLxmfHashableMaterial(hashedStepped.actions)
-        ? lxmfHashableMaterialRawFromActions(hashedStepped.actions)
-        : null;
+    const hashedStepped = stepLxmfHashableMaterialWithActions(
+      initialLxmfHashableMaterialState(),
+      {
+        kind: "lxmf-wire/hashable-material-gate",
+        destinationHash: this.destination!.hash,
+        sourceHash: this.source!.hash,
+        payloadWithoutStamp: payloadCore,
+      },
+    );
+    const hashedPart = shouldUseLxmfHashableMaterial(hashedStepped.actions)
+      ? lxmfHashableMaterialRawFromActions(hashedStepped.actions)
+      : null;
     if (hashedPart === null) {
       throw new Error("LXMF hashable material: missing use-raw action");
     }
@@ -423,21 +477,24 @@ export class LXMessage {
       shouldIncludeLxmfStampNow(
         stepIncludeLxmfStampWithActions(initialIncludeLxmfStampState(), {
           kind: "lxmf/include-stamp-gate",
-          deferStamp: options.deferStamp
-        }).actions
+          deferStamp: options.deferStamp,
+        }).actions,
       )
     ) {
       stamp = options.stamp ?? null;
     }
 
-    const packPayloadStepped = stepPackLxmPayloadWithActions(initialPackLxmPayloadState(), {
-      kind: "lxmf-codec/pack-payload-gate",
-      timestamp: this.timestamp!,
-      title: this.title,
-      content: this.content,
-      fields: this.fields,
-      stamp
-    });
+    const packPayloadStepped = stepPackLxmPayloadWithActions(
+      initialPackLxmPayloadState(),
+      {
+        kind: "lxmf-codec/pack-payload-gate",
+        timestamp: this.timestamp!,
+        title: this.title,
+        content: this.content,
+        fields: this.fields,
+        stamp,
+      },
+    );
     if (!shouldUsePackLxmPayload(packPayloadStepped.actions)) {
       throw new Error("LXMessage failed to pack payload");
     }
@@ -445,15 +502,17 @@ export class LXMessage {
     if (payload === null) {
       throw new Error("LXMessage failed to pack payload");
     }
-    const signedStepped = stepLxmfSignedMaterialWithActions(initialLxmfSignedMaterialState(), {
-      kind: "lxmf-wire/signed-material-gate",
-      hashableMaterial: hashedPart,
-      messageHash: this.hash
-    });
-    const signedPart =
-      shouldUseLxmfSignedMaterial(signedStepped.actions)
-        ? lxmfSignedMaterialRawFromActions(signedStepped.actions)
-        : null;
+    const signedStepped = stepLxmfSignedMaterialWithActions(
+      initialLxmfSignedMaterialState(),
+      {
+        kind: "lxmf-wire/signed-material-gate",
+        hashableMaterial: hashedPart,
+        messageHash: this.hash,
+      },
+    );
+    const signedPart = shouldUseLxmfSignedMaterial(signedStepped.actions)
+      ? lxmfSignedMaterialRawFromActions(signedStepped.actions)
+      : null;
     if (signedPart === null) {
       throw new Error("LXMF signed material: missing use-raw action");
     }
@@ -461,13 +520,16 @@ export class LXMessage {
     this.signatureValidated = true;
     this.stamp = stamp;
 
-    const packStepped = stepPackLxmfWireWithActions(initialPackLxmfWireState(), {
-      kind: "lxmf-wire/pack-gate",
-      destinationHash: this.destination!.hash,
-      sourceHash: this.source!.hash,
-      signature: this.signature,
-      payload
-    });
+    const packStepped = stepPackLxmfWireWithActions(
+      initialPackLxmfWireState(),
+      {
+        kind: "lxmf-wire/pack-gate",
+        destinationHash: this.destination!.hash,
+        sourceHash: this.source!.hash,
+        signature: this.signature,
+        payload,
+      },
+    );
     if (
       shouldRejectPackLxmfWire(packStepped.actions) ||
       !shouldUsePackLxmfWire(packStepped.actions)
@@ -485,7 +547,7 @@ export class LXMessage {
   titleAsString(): string {
     const stepped = stepUtf8DecodeWithActions(initialUtf8DecodeState(), {
       kind: "utf8/decode-gate",
-      bytes: this.title
+      bytes: this.title,
     });
     const text = utf8DecodeTextFromActions(stepped.actions);
     if (!shouldUseUtf8Decode(stepped.actions) || text === null) {
@@ -497,7 +559,7 @@ export class LXMessage {
   contentAsString(): string {
     const stepped = stepUtf8DecodeWithActions(initialUtf8DecodeState(), {
       kind: "utf8/decode-gate",
-      bytes: this.content
+      bytes: this.content,
     });
     const text = utf8DecodeTextFromActions(stepped.actions);
     if (!shouldUseUtf8Decode(stepped.actions) || text === null) {
@@ -513,18 +575,23 @@ export class LXMessage {
           initialExtractLxmfOpportunisticPayloadState(),
           {
             kind: "lxmf/extract-opportunistic-payload-gate",
-            packedPresent: this.packed !== null
-          }
-        ).actions
+            packedPresent: this.packed !== null,
+          },
+        ).actions,
       )
     ) {
-      throw new Error("LXMessage must be packed before extracting opportunistic payload");
+      throw new Error(
+        "LXMessage must be packed before extracting opportunistic payload",
+      );
     }
 
-    const stepped = stepLxmfOpportunisticPayloadWithActions(initialLxmfOpportunisticPayloadState(), {
-      kind: "lxmf-wire/opportunistic-payload-gate",
-      packed: this.packed!
-    });
+    const stepped = stepLxmfOpportunisticPayloadWithActions(
+      initialLxmfOpportunisticPayloadState(),
+      {
+        kind: "lxmf-wire/opportunistic-payload-gate",
+        packed: this.packed!,
+      },
+    );
     if (
       shouldRejectLxmfOpportunisticPayload(stepped.actions) ||
       !shouldUseLxmfOpportunisticPayload(stepped.actions)
@@ -546,9 +613,9 @@ export class LXMessage {
           initialSelectLxmfDeliveryParametersState(),
           {
             kind: "lxmf/select-delivery-parameters-gate",
-            packedPresent: packed !== null
-          }
-        ).actions
+            packedPresent: packed !== null,
+          },
+        ).actions,
       )
     ) {
       return;
@@ -557,30 +624,36 @@ export class LXMessage {
     const desiredMethod = this.desiredMethod ?? LXMessageMethod.DIRECT;
     const contentSize = lxmfContentSizeFromPackedLength(packed!.length);
 
-    const prep = stepLxmfPropagatedPackPrepWithActions(initialLxmfPropagatedPackPrepState(), {
-      kind: "propagated-pack-prep/gate",
-      packedPresent: true,
-      desiredMethod,
-      destinationIdentityPresent: this.destination !== null && this.destination.identity !== null,
-      timestampPresent: this.timestamp !== null
-    });
+    const prep = stepLxmfPropagatedPackPrepWithActions(
+      initialLxmfPropagatedPackPrepState(),
+      {
+        kind: "propagated-pack-prep/gate",
+        packedPresent: true,
+        desiredMethod,
+        destinationIdentityPresent:
+          this.destination !== null && this.destination.identity !== null,
+        timestampPresent: this.timestamp !== null,
+      },
+    );
     if (shouldRejectLxmfPropagatedPackMissingIdentity(prep.actions)) {
       throw new Error("PROPAGATED LXMF requires destination identity");
     }
     if (shouldRejectLxmfPropagatedPackMissingTimestamp(prep.actions)) {
-      throw new Error("LXMessage.pack requires timestamp to be set before packing");
+      throw new Error(
+        "LXMessage.pack requires timestamp to be set before packing",
+      );
     }
     if (shouldProceedLxmfPropagatedPackPrep(prep.actions)) {
       const encryptedPayload = this.destination!.identity!.encrypt(
-        packed!.subarray(DESTINATION_LENGTH)
+        packed!.subarray(DESTINATION_LENGTH),
       );
       const prefixStepped = stepPackLxmfDestinationPrefixedWithActions(
         initialPackLxmfDestinationPrefixedState(),
         {
           kind: "lxmf-destination-prefixed/pack-gate",
           destinationHash: this.destination!.hash,
-          remainder: encryptedPayload
-        }
+          remainder: encryptedPayload,
+        },
       );
       if (
         shouldRejectPackLxmfDestinationPrefixed(prefixStepped.actions) ||
@@ -588,7 +661,9 @@ export class LXMessage {
       ) {
         throw new Error(`destination hash must be ${DESTINATION_LENGTH} bytes`);
       }
-      const lxmfData = packLxmfDestinationPrefixedRawFromActions(prefixStepped.actions);
+      const lxmfData = packLxmfDestinationPrefixedRawFromActions(
+        prefixStepped.actions,
+      );
       if (lxmfData === null) {
         throw new Error(`destination hash must be ${DESTINATION_LENGTH} bytes`);
       }
@@ -598,13 +673,15 @@ export class LXMessage {
         {
           kind: "lxmf-codec/pack-propagation-envelope-gate",
           timestamp: this.timestamp!,
-          messages: [lxmfData]
-        }
+          messages: [lxmfData],
+        },
       );
       if (!shouldUsePackPropagationEnvelope(envelopeStepped.actions)) {
         throw new Error("LXMessage failed to pack propagation envelope");
       }
-      const propagationPacked = packPropagationEnvelopeRawFromActions(envelopeStepped.actions);
+      const propagationPacked = packPropagationEnvelopeRawFromActions(
+        envelopeStepped.actions,
+      );
       if (propagationPacked === null) {
         throw new Error("LXMessage failed to pack propagation envelope");
       }
@@ -619,18 +696,18 @@ export class LXMessage {
       linkPacketMaxContent: LINK_PACKET_MAX_CONTENT,
       ...(desiredMethod === LXMessageMethod.PROPAGATED
         ? { propagationPackedLength: this.propagationPacked!.length }
-        : {})
+        : {}),
     });
     this.applyLxmfDeliveryActions(stepped.actions);
   }
 
   private applyLxmfDeliveryActions(
-    actions: ReturnType<typeof stepLxmfDeliveryWithActions>["actions"]
+    actions: ReturnType<typeof stepLxmfDeliveryWithActions>["actions"],
   ): void {
     if (shouldRejectLxmfOpportunisticTooLarge(actions)) {
       const sizes = lxmfDeliveryOpportunisticRejectSizes(actions);
       throw new TypeError(
-        `Opportunistic LXMF content of length ${sizes!.contentSize} exceeds single-packet limit ${sizes!.maxContent}`
+        `Opportunistic LXMF content of length ${sizes!.contentSize} exceeds single-packet limit ${sizes!.maxContent}`,
       );
     }
     if (!shouldDeliverLxmf(actions)) {
@@ -645,18 +722,24 @@ export class LXMessage {
   }
 }
 
-export function deliveryDestinationHash(provider: CryptoProvider, identity: Identity): Uint8Array {
+export function deliveryDestinationHash(
+  provider: CryptoProvider,
+  identity: Identity,
+): Uint8Array {
   return Destination.hash(provider, identity.hash, APP_NAME, "delivery");
 }
 
-export function propagationDestinationHash(provider: CryptoProvider, identity: Identity): Uint8Array {
+export function propagationDestinationHash(
+  provider: CryptoProvider,
+  identity: Identity,
+): Uint8Array {
   return Destination.hash(provider, identity.hash, APP_NAME, "propagation");
 }
 
 function encodeTextOrBytes(value: string | Uint8Array): Uint8Array {
   const stepped = stepUtf8OrBytesWithActions(initialUtf8OrBytesState(), {
     kind: "utf8/or-bytes-gate",
-    value
+    value,
   });
   const raw = utf8OrBytesRawFromActions(stepped.actions);
   if (!shouldUseUtf8OrBytes(stepped.actions) || raw === null) {
@@ -670,8 +753,8 @@ export function rememberMessage(seen: Set<string>, message: LXMessage): void {
     !shouldRememberLxmfMessageNow(
       stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
         kind: "lxmf/remember-message-gate",
-        hasHash: message.hash !== null
-      }).actions
+        hasHash: message.hash !== null,
+      }).actions,
     )
   ) {
     return;
@@ -679,10 +762,13 @@ export function rememberMessage(seen: Set<string>, message: LXMessage): void {
   const hash = message.hash;
   if (
     !shouldCommitRememberedLxmfHashNow(
-      stepCommitRememberedLxmfHashWithActions(initialCommitRememberedLxmfHashState(), {
-        kind: "lxmf/commit-remembered-hash-gate",
-        hashPresent: hash !== null
-      }).actions
+      stepCommitRememberedLxmfHashWithActions(
+        initialCommitRememberedLxmfHashState(),
+        {
+          kind: "lxmf/commit-remembered-hash-gate",
+          hashPresent: hash !== null,
+        },
+      ).actions,
     ) ||
     hash === null
   ) {

@@ -13,7 +13,9 @@ describe("tp create/dev", () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-create-"));
     try {
       await expect(runCreate({ cwd, args: ["hello"] })).resolves.toBe(0);
-      const manifest = JSON.parse(await readFile(join(cwd, "hello-miniapp", "app.manifest.json"), "utf8")) as {
+      const manifest = JSON.parse(
+        await readFile(join(cwd, "hello-miniapp", "app.manifest.json"), "utf8"),
+      ) as {
         minHostApi: string;
         capabilities: string[];
       };
@@ -28,7 +30,9 @@ describe("tp create/dev", () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-dev-"));
     try {
       await runCreate({ cwd, args: ["chat-min"] });
-      const manifest = JSON.parse(await readFile(join(cwd, "chat-min", "app.manifest.json"), "utf8")) as {
+      const manifest = JSON.parse(
+        await readFile(join(cwd, "chat-min", "app.manifest.json"), "utf8"),
+      ) as {
         name: string;
         version: string;
         entry: string;
@@ -46,25 +50,32 @@ describe("tp create/dev", () => {
           entry: manifest.entry,
           capabilities: manifest.capabilities,
           publisherPublicKey: "dev",
-          minHostApi: manifest.minHostApi
-        }
+          minHostApi: manifest.minHostApi,
+        },
       });
 
       const [host, portString] = server.url.split(":");
       const port = Number(portString);
-      const payload = await new Promise<{ type: string; bundleHex: string }>((resolve, reject) => {
-        const socket = createConnection({ host, port });
-        let buffer = "";
-        socket.on("data", (chunk) => {
-          buffer += chunk.toString();
-          const newline = buffer.indexOf("\n");
-          if (newline >= 0) {
-            resolve(JSON.parse(buffer.slice(0, newline)) as { type: string; bundleHex: string });
-            socket.end();
-          }
-        });
-        socket.on("error", reject);
-      });
+      const payload = await new Promise<{ type: string; bundleHex: string }>(
+        (resolve, reject) => {
+          const socket = createConnection({ host, port });
+          let buffer = "";
+          socket.on("data", (chunk) => {
+            buffer += chunk.toString();
+            const newline = buffer.indexOf("\n");
+            if (newline >= 0) {
+              resolve(
+                JSON.parse(buffer.slice(0, newline)) as {
+                  type: string;
+                  bundleHex: string;
+                },
+              );
+              socket.end();
+            }
+          });
+          socket.on("error", reject);
+        },
+      );
 
       await server.close();
       expect(payload.type).toBe("dev-bundle");

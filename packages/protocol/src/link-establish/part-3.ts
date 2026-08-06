@@ -47,13 +47,23 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions
+  stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
-import { planLinkProofValidateOutcome, shouldAcceptLinkProofValidateOutcomePlan, shouldRejectLinkProofValidateOutcomePlan } from "./part-2.js";
-import type { LinkProofValidateAction, LinkProofValidateEvent, LinkProofValidateOutcome, LinkProofValidateOutcomePlanAction, LinkProofValidateOutcomePlanEvent } from "./part-2.js";
+import {
+  planLinkProofValidateOutcome,
+  shouldAcceptLinkProofValidateOutcomePlan,
+  shouldRejectLinkProofValidateOutcomePlan,
+} from "./part-2.js";
+import type {
+  LinkProofValidateAction,
+  LinkProofValidateEvent,
+  LinkProofValidateOutcome,
+  LinkProofValidateOutcomePlanAction,
+  LinkProofValidateOutcomePlanEvent,
+} from "./part-2.js";
 /**
  * Proof-validate outcome plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkProofValidateOutcome` /
@@ -74,7 +84,7 @@ export function initialLinkProofValidateOutcomePlanState(): LinkProofValidateOut
 
 export function stepLinkProofValidateOutcomePlanWithActions(
   state: LinkProofValidateOutcomePlanState,
-  event: LinkProofValidateOutcomePlanEvent
+  event: LinkProofValidateOutcomePlanEvent,
 ): LinkProofValidateOutcomePlanStepResult {
   if (event.kind === "proof/validate-outcome-plan-gate") {
     return {
@@ -88,10 +98,10 @@ export function stepLinkProofValidateOutcomePlanWithActions(
             layoutValid: event.layoutValid,
             bodyPresent: event.bodyPresent,
             peerPublicPresent: event.peerPublicPresent,
-            signatureValid: event.signatureValid
-          })
-        }
-      ]
+            signatureValid: event.signatureValid,
+          }),
+        },
+      ],
     };
   }
 
@@ -100,10 +110,10 @@ export function stepLinkProofValidateOutcomePlanWithActions(
 
 /** Extract the proof-validate outcome plan from actions; null when empty. */
 export function linkProofValidateOutcomePlanFromActions(
-  actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>
+  actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>,
 ): LinkProofValidateOutcome | null {
   const action = actions.find(
-    (entry) => entry.kind === "accept" || entry.kind === "reject"
+    (entry) => entry.kind === "accept" || entry.kind === "reject",
   );
   return action?.kind ?? null;
 }
@@ -126,33 +136,39 @@ export function initialLinkProofValidateState(): LinkProofValidateState {
   return {};
 }
 
-export const stepLinkProofValidate: StepFn<LinkProofValidateState> = (state, event) => {
-  const result = stepLinkProofValidateInner(state, event as LinkProofValidateEvent);
+export const stepLinkProofValidate: StepFn<LinkProofValidateState> = (
+  state,
+  event,
+) => {
+  const result = stepLinkProofValidateInner(
+    state,
+    event as LinkProofValidateEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkProofValidateWithActions(
   state: LinkProofValidateState,
-  event: LinkProofValidateEvent
+  event: LinkProofValidateEvent,
 ): LinkProofValidateStepResult {
   return stepLinkProofValidateInner(state, event);
 }
 
 export function shouldAcceptLinkProofValidate(
-  actions: ReadonlyArray<LinkProofValidateAction>
+  actions: ReadonlyArray<LinkProofValidateAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectLinkProofValidate(
-  actions: ReadonlyArray<LinkProofValidateAction>
+  actions: ReadonlyArray<LinkProofValidateAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 function stepLinkProofValidateInner(
   state: LinkProofValidateState,
-  event: LinkProofValidateEvent
+  event: LinkProofValidateEvent,
 ): LinkProofValidateStepResult {
   if (event.kind === "proof/validate-gate") {
     const planActions = stepLinkProofValidateOutcomePlanWithActions(
@@ -164,8 +180,8 @@ function stepLinkProofValidateInner(
         layoutValid: event.layoutValid,
         bodyPresent: event.bodyPresent,
         peerPublicPresent: event.peerPublicPresent,
-        signatureValid: event.signatureValid
-      }
+        signatureValid: event.signatureValid,
+      },
     ).actions;
     if (shouldRejectLinkProofValidateOutcomePlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -194,7 +210,6 @@ export function shouldAttemptLinkProofCrypto(input: {
   );
 }
 
-
 /**
  * shouldAttemptLinkProofCrypto gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `shouldAttemptLinkProofCrypto` reads beside
@@ -213,8 +228,7 @@ export type AttemptLinkProofCryptoEvent =
     };
 
 export type AttemptLinkProofCryptoAction =
-  | { readonly kind: "attempt" }
-  | { readonly kind: "skip" };
+  { readonly kind: "attempt" } | { readonly kind: "skip" };
 
 export interface AttemptLinkProofCryptoStepResult {
   readonly state: AttemptLinkProofCryptoState;
@@ -228,7 +242,7 @@ export function initialAttemptLinkProofCryptoState(): AttemptLinkProofCryptoStat
 
 export function stepAttemptLinkProofCryptoWithActions(
   state: AttemptLinkProofCryptoState,
-  event: AttemptLinkProofCryptoEvent
+  event: AttemptLinkProofCryptoEvent,
 ): AttemptLinkProofCryptoStepResult {
   if (event.kind === "link/attempt-proof-crypto-gate") {
     return {
@@ -236,9 +250,16 @@ export function stepAttemptLinkProofCryptoWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAttemptLinkProofCrypto({ modeMatches: event.modeMatches, layoutValid: event.layoutValid, bodyPresent: event.bodyPresent, peerPublicPresent: event.peerPublicPresent }) ? "attempt" : "skip"
-        }
-      ]
+          kind: shouldAttemptLinkProofCrypto({
+            modeMatches: event.modeMatches,
+            layoutValid: event.layoutValid,
+            bodyPresent: event.bodyPresent,
+            peerPublicPresent: event.peerPublicPresent,
+          })
+            ? "attempt"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -246,13 +267,13 @@ export function stepAttemptLinkProofCryptoWithActions(
 }
 
 export function shouldAttemptLinkProofCryptoNow(
-  actions: ReadonlyArray<AttemptLinkProofCryptoAction>
+  actions: ReadonlyArray<AttemptLinkProofCryptoAction>,
 ): boolean {
   return actions.some((action) => action.kind === "attempt");
 }
 
 export function shouldSkipLinkProofCrypto(
-  actions: ReadonlyArray<AttemptLinkProofCryptoAction>
+  actions: ReadonlyArray<AttemptLinkProofCryptoAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -263,7 +284,6 @@ export function canAcceptLinkRtt(input: {
 }): boolean {
   return !input.initiator && !isLinkClosed(input.status);
 }
-
 
 /**
  * canAcceptLinkRtt gate is event-driven; no durable session fields.
@@ -281,8 +301,7 @@ export type AcceptLinkRttEvent =
     };
 
 export type AcceptLinkRttAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptLinkRttStepResult {
   readonly state: AcceptLinkRttState;
@@ -296,7 +315,7 @@ export function initialAcceptLinkRttState(): AcceptLinkRttState {
 
 export function stepAcceptLinkRttWithActions(
   state: AcceptLinkRttState,
-  event: AcceptLinkRttEvent
+  event: AcceptLinkRttEvent,
 ): AcceptLinkRttStepResult {
   if (event.kind === "link/accept-rtt-gate") {
     return {
@@ -304,9 +323,14 @@ export function stepAcceptLinkRttWithActions(
       intents: [],
       actions: [
         {
-          kind: canAcceptLinkRtt({ status: event.status, initiator: event.initiator }) ? "accept" : "skip"
-        }
-      ]
+          kind: canAcceptLinkRtt({
+            status: event.status,
+            initiator: event.initiator,
+          })
+            ? "accept"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -314,13 +338,13 @@ export function stepAcceptLinkRttWithActions(
 }
 
 export function shouldAcceptLinkRttNow(
-  actions: ReadonlyArray<AcceptLinkRttAction>
+  actions: ReadonlyArray<AcceptLinkRttAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipLinkRttAccept(
-  actions: ReadonlyArray<AcceptLinkRttAction>
+  actions: ReadonlyArray<AcceptLinkRttAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -331,7 +355,6 @@ export function canIdentifyOnLink(input: {
 }): boolean {
   return input.initiator && input.status === LinkStatus.ACTIVE;
 }
-
 
 /**
  * canIdentifyOnLink gate is event-driven; no durable session fields.
@@ -349,8 +372,7 @@ export type IdentifyOnLinkAllowEvent =
     };
 
 export type IdentifyOnLinkAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface IdentifyOnLinkAllowStepResult {
   readonly state: IdentifyOnLinkAllowState;
@@ -364,7 +386,7 @@ export function initialIdentifyOnLinkAllowState(): IdentifyOnLinkAllowState {
 
 export function stepIdentifyOnLinkAllowWithActions(
   state: IdentifyOnLinkAllowState,
-  event: IdentifyOnLinkAllowEvent
+  event: IdentifyOnLinkAllowEvent,
 ): IdentifyOnLinkAllowStepResult {
   if (event.kind === "link/identify-allow-gate") {
     return {
@@ -372,9 +394,14 @@ export function stepIdentifyOnLinkAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canIdentifyOnLink({ status: event.status, initiator: event.initiator }) ? "allow" : "deny"
-        }
-      ]
+          kind: canIdentifyOnLink({
+            status: event.status,
+            initiator: event.initiator,
+          })
+            ? "allow"
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -382,13 +409,13 @@ export function stepIdentifyOnLinkAllowWithActions(
 }
 
 export function shouldAllowIdentifyOnLink(
-  actions: ReadonlyArray<IdentifyOnLinkAllowAction>
+  actions: ReadonlyArray<IdentifyOnLinkAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyIdentifyOnLink(
-  actions: ReadonlyArray<IdentifyOnLinkAllowAction>
+  actions: ReadonlyArray<IdentifyOnLinkAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -400,7 +427,6 @@ export function canLinkRequest(input: {
 }): boolean {
   return input.status === LinkStatus.ACTIVE && input.rtt !== null;
 }
-
 
 /**
  * canLinkRequest gate is event-driven; no durable session fields.
@@ -419,8 +445,7 @@ export type LinkRequestAllowEvent =
     };
 
 export type LinkRequestAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface LinkRequestAllowStepResult {
   readonly state: LinkRequestAllowState;
@@ -434,7 +459,7 @@ export function initialLinkRequestAllowState(): LinkRequestAllowState {
 
 export function stepLinkRequestAllowWithActions(
   state: LinkRequestAllowState,
-  event: LinkRequestAllowEvent
+  event: LinkRequestAllowEvent,
 ): LinkRequestAllowStepResult {
   if (event.kind === "link/request-allow-gate") {
     return {
@@ -442,9 +467,11 @@ export function stepLinkRequestAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canLinkRequest({ status: event.status, rtt: event.rtt }) ? "allow" : "deny"
-        }
-      ]
+          kind: canLinkRequest({ status: event.status, rtt: event.rtt })
+            ? "allow"
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -452,13 +479,13 @@ export function stepLinkRequestAllowWithActions(
 }
 
 export function shouldAllowLinkRequest(
-  actions: ReadonlyArray<LinkRequestAllowAction>
+  actions: ReadonlyArray<LinkRequestAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyLinkRequest(
-  actions: ReadonlyArray<LinkRequestAllowAction>
+  actions: ReadonlyArray<LinkRequestAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -466,7 +493,6 @@ export function shouldDenyLinkRequest(
 export function canUpdateLinkKeepalive(rttPresent: boolean): boolean {
   return rttPresent;
 }
-
 
 /**
  * canUpdateLinkKeepalive gate is event-driven; no durable session fields.
@@ -484,8 +510,7 @@ export type UpdateLinkKeepaliveAllowEvent =
     };
 
 export type UpdateLinkKeepaliveAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface UpdateLinkKeepaliveAllowStepResult {
   readonly state: UpdateLinkKeepaliveAllowState;

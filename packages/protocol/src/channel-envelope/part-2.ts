@@ -11,8 +11,16 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "../packet-receipt-timeout.js";
 import { PacketReceiptStatus } from "../packet-receipt-timeout.js";
-import { channelMessageTypeRegistrationPlanFromActions, planChannelMessageTypeRegistration } from "./part-1.js";
-import type { ChannelMessageTypeRegistrationEvent, ChannelMessageTypeRegistrationPlan, ChannelMessageTypeRegistrationPlanAction, ChannelMessageTypeRegistrationPlanEvent } from "./part-1.js";
+import {
+  channelMessageTypeRegistrationPlanFromActions,
+  planChannelMessageTypeRegistration,
+} from "./part-1.js";
+import type {
+  ChannelMessageTypeRegistrationEvent,
+  ChannelMessageTypeRegistrationPlan,
+  ChannelMessageTypeRegistrationPlanAction,
+  ChannelMessageTypeRegistrationPlanEvent,
+} from "./part-1.js";
 /**
  * Channel-message-type-registration-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelMessageTypeRegistration`
@@ -33,7 +41,7 @@ export function initialChannelMessageTypeRegistrationPlanState(): ChannelMessage
 
 export function stepChannelMessageTypeRegistrationPlanWithActions(
   state: ChannelMessageTypeRegistrationPlanState,
-  event: ChannelMessageTypeRegistrationPlanEvent
+  event: ChannelMessageTypeRegistrationPlanEvent,
 ): ChannelMessageTypeRegistrationPlanStepResult {
   if (event.kind === "channel/message-type-registration-plan-gate") {
     return {
@@ -43,10 +51,10 @@ export function stepChannelMessageTypeRegistrationPlanWithActions(
         {
           kind: planChannelMessageTypeRegistration({
             msgType: event.msgType,
-            isSystemType: event.isSystemType
-          })
-        }
-      ]
+            isSystemType: event.isSystemType,
+          }),
+        },
+      ],
     };
   }
 
@@ -54,19 +62,19 @@ export function stepChannelMessageTypeRegistrationPlanWithActions(
 }
 
 export function shouldProceedChannelMessageTypeRegistrationPlan(
-  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectChannelMessageTypeRegistrationPlanMissingMsgtype(
-  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-msgtype");
 }
 
 export function shouldRejectChannelMessageTypeRegistrationPlanSystemReserved(
-  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "system-reserved");
 }
@@ -98,45 +106,44 @@ export function initialChannelMessageTypeRegistrationState(): ChannelMessageType
   return {};
 }
 
-export const stepChannelMessageTypeRegistration: StepFn<ChannelMessageTypeRegistrationState> = (
-  state,
-  event
-) => {
+export const stepChannelMessageTypeRegistration: StepFn<
+  ChannelMessageTypeRegistrationState
+> = (state, event) => {
   const result = stepChannelMessageTypeRegistrationInner(
     state,
-    event as ChannelMessageTypeRegistrationEvent
+    event as ChannelMessageTypeRegistrationEvent,
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepChannelMessageTypeRegistrationWithActions(
   state: ChannelMessageTypeRegistrationState,
-  event: ChannelMessageTypeRegistrationEvent
+  event: ChannelMessageTypeRegistrationEvent,
 ): ChannelMessageTypeRegistrationStepResult {
   return stepChannelMessageTypeRegistrationInner(state, event);
 }
 
 export function shouldProceedChannelMessageTypeRegistration(
-  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectChannelMessageTypeMissingMsgtype(
-  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-msgtype");
 }
 
 export function shouldRejectChannelMessageTypeSystemReserved(
-  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>,
 ): boolean {
   return actions.some((action) => action.kind === "system-reserved");
 }
 
 function stepChannelMessageTypeRegistrationInner(
   state: ChannelMessageTypeRegistrationState,
-  event: ChannelMessageTypeRegistrationEvent
+  event: ChannelMessageTypeRegistrationEvent,
 ): ChannelMessageTypeRegistrationStepResult {
   if (event.kind === "channel/message-type-registration-gate") {
     const planActions = stepChannelMessageTypeRegistrationPlanWithActions(
@@ -144,8 +151,8 @@ function stepChannelMessageTypeRegistrationInner(
       {
         kind: "channel/message-type-registration-plan-gate",
         msgType: event.msgType,
-        isSystemType: event.isSystemType
-      }
+        isSystemType: event.isSystemType,
+      },
     ).actions;
     const plan = channelMessageTypeRegistrationPlanFromActions(planActions);
     if (plan === null) {
@@ -158,10 +165,7 @@ function stepChannelMessageTypeRegistrationInner(
 }
 
 export type ChannelEnvelopeUnpackPlan =
-  | "ok"
-  | "missing-raw"
-  | "truncated"
-  | "not-registered";
+  "ok" | "missing-raw" | "truncated" | "not-registered";
 
 /** Whether Envelope.unpack may construct a typed message from raw bytes. */
 export function planChannelEnvelopeUnpack(input: {
@@ -198,7 +202,9 @@ export type ChannelEnvelopeUnpackPlanEvent =
       readonly factoryRegistered: boolean;
     };
 
-export type ChannelEnvelopeUnpackPlanAction = { readonly kind: ChannelEnvelopeUnpackPlan };
+export type ChannelEnvelopeUnpackPlanAction = {
+  readonly kind: ChannelEnvelopeUnpackPlan;
+};
 
 export interface ChannelEnvelopeUnpackPlanStepResult {
   readonly state: ChannelEnvelopeUnpackPlanState;
@@ -212,7 +218,7 @@ export function initialChannelEnvelopeUnpackPlanState(): ChannelEnvelopeUnpackPl
 
 export function stepChannelEnvelopeUnpackPlanWithActions(
   state: ChannelEnvelopeUnpackPlanState,
-  event: ChannelEnvelopeUnpackPlanEvent
+  event: ChannelEnvelopeUnpackPlanEvent,
 ): ChannelEnvelopeUnpackPlanStepResult {
   if (event.kind === "channel/envelope-unpack-plan-gate") {
     return {
@@ -223,10 +229,10 @@ export function stepChannelEnvelopeUnpackPlanWithActions(
           kind: planChannelEnvelopeUnpack({
             rawPresent: event.rawPresent,
             framingOk: event.framingOk,
-            factoryRegistered: event.factoryRegistered
-          })
-        }
-      ]
+            factoryRegistered: event.factoryRegistered,
+          }),
+        },
+      ],
     };
   }
 
@@ -235,38 +241,38 @@ export function stepChannelEnvelopeUnpackPlanWithActions(
 
 /** Extract the unpack plan from actions; null when empty. */
 export function channelEnvelopeUnpackPlanFromActions(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): ChannelEnvelopeUnpackPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "missing-raw" ||
       entry.kind === "truncated" ||
-      entry.kind === "not-registered"
+      entry.kind === "not-registered",
   );
   return action?.kind ?? null;
 }
 
 export function shouldProceedChannelEnvelopeUnpackPlan(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectChannelEnvelopeUnpackPlanMissingRaw(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-raw");
 }
 
 export function shouldRejectChannelEnvelopeUnpackPlanTruncate(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "truncated");
 }
 
 export function shouldRejectChannelEnvelopeUnpackPlanNotRegistered(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "not-registered");
 }
@@ -293,7 +299,9 @@ export type ChannelEnvelopeUnpackEvent =
  * Plan nested via {@link stepChannelEnvelopeUnpackPlanWithActions}
  * (`ok`|`missing-raw`|`truncated`|`not-registered`).
  */
-export type ChannelEnvelopeUnpackAction = { readonly kind: ChannelEnvelopeUnpackPlan };
+export type ChannelEnvelopeUnpackAction = {
+  readonly kind: ChannelEnvelopeUnpackPlan;
+};
 
 export interface ChannelEnvelopeUnpackStepResult {
   readonly state: ChannelEnvelopeUnpackState;
@@ -305,45 +313,51 @@ export function initialChannelEnvelopeUnpackState(): ChannelEnvelopeUnpackState 
   return {};
 }
 
-export const stepChannelEnvelopeUnpack: StepFn<ChannelEnvelopeUnpackState> = (state, event) => {
-  const result = stepChannelEnvelopeUnpackInner(state, event as ChannelEnvelopeUnpackEvent);
+export const stepChannelEnvelopeUnpack: StepFn<ChannelEnvelopeUnpackState> = (
+  state,
+  event,
+) => {
+  const result = stepChannelEnvelopeUnpackInner(
+    state,
+    event as ChannelEnvelopeUnpackEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepChannelEnvelopeUnpackWithActions(
   state: ChannelEnvelopeUnpackState,
-  event: ChannelEnvelopeUnpackEvent
+  event: ChannelEnvelopeUnpackEvent,
 ): ChannelEnvelopeUnpackStepResult {
   return stepChannelEnvelopeUnpackInner(state, event);
 }
 
 export function shouldProceedChannelEnvelopeUnpack(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectChannelEnvelopeUnpackMissingRaw(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-raw");
 }
 
 export function shouldRejectChannelEnvelopeUnpackTruncate(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "truncated");
 }
 
 export function shouldRejectChannelEnvelopeUnpackNotRegistered(
-  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "not-registered");
 }
 
 function stepChannelEnvelopeUnpackInner(
   state: ChannelEnvelopeUnpackState,
-  event: ChannelEnvelopeUnpackEvent
+  event: ChannelEnvelopeUnpackEvent,
 ): ChannelEnvelopeUnpackStepResult {
   if (event.kind === "channel/envelope-unpack-gate") {
     const planActions = stepChannelEnvelopeUnpackPlanWithActions(
@@ -352,8 +366,8 @@ function stepChannelEnvelopeUnpackInner(
         kind: "channel/envelope-unpack-plan-gate",
         rawPresent: event.rawPresent,
         framingOk: event.framingOk,
-        factoryRegistered: event.factoryRegistered
-      }
+        factoryRegistered: event.factoryRegistered,
+      },
     ).actions;
     const plan = channelEnvelopeUnpackPlanFromActions(planActions);
     if (plan === null) {
@@ -368,7 +382,9 @@ function stepChannelEnvelopeUnpackInner(
 export type ChannelEnvelopePackPlan = "missing-message" | "ok";
 
 /** Whether Envelope.pack may serialize from a typed message. */
-export function planChannelEnvelopePack(messagePresent: boolean): ChannelEnvelopePackPlan {
+export function planChannelEnvelopePack(
+  messagePresent: boolean,
+): ChannelEnvelopePackPlan {
   return messagePresent ? "ok" : "missing-message";
 }
 
@@ -379,14 +395,16 @@ export type ChannelEnvelopePackPlanEvent =
       readonly messagePresent: boolean;
     };
 
-export type ChannelEnvelopePackPlanAction = { readonly kind: ChannelEnvelopePackPlan };
+export type ChannelEnvelopePackPlanAction = {
+  readonly kind: ChannelEnvelopePackPlan;
+};
 
 /** Extract the pack plan from actions; null when empty. */
 export function channelEnvelopePackPlanFromActions(
-  actions: ReadonlyArray<ChannelEnvelopePackPlanAction>
+  actions: ReadonlyArray<ChannelEnvelopePackPlanAction>,
 ): ChannelEnvelopePackPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "ok" || entry.kind === "missing-message"
+    (entry) => entry.kind === "ok" || entry.kind === "missing-message",
   );
   return action?.kind ?? null;
 }

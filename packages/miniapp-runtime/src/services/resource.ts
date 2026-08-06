@@ -16,7 +16,10 @@ export interface ResourceFetchBackend {
 export class ResourceService {
   constructor(private readonly backend: ResourceFetchBackend) {}
 
-  async fetch(appId: string, request: ResourceFetchRequest): Promise<Uint8Array> {
+  async fetch(
+    appId: string,
+    request: ResourceFetchRequest,
+  ): Promise<Uint8Array> {
     return this.backend.fetch(appId, request);
   }
 }

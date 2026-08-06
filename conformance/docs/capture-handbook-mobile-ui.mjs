@@ -4,7 +4,10 @@
  */
 
 import { join } from "node:path";
-import { captureHandbookScreenshot, repoRoot } from "./handbook-capture-lib.mjs";
+import {
+  captureHandbookScreenshot,
+  repoRoot,
+} from "./handbook-capture-lib.mjs";
 
 const output = join(repoRoot, "docs/images/ios-handbook-mobile.png");
 
@@ -14,7 +17,7 @@ await captureHandbookScreenshot({
   layout: { maxWidth: 390, pageBackground: "#000", rootBackground: "#fff" },
   platform: "ios",
   scene: "chapter",
-  logPrefix: "handbook-capture/ios"
+  logPrefix: "handbook-capture/ios",
 });
 
 console.log(`handbook mobile UI capture written to ${output}`);

@@ -10,7 +10,10 @@ const LINK_RE = /(?<!!)\[[^\]]*\]\(([^)]+)\)/g;
  * @param {string[]} [files]
  * @returns {{ doc: string; target: string; line: number }[]}
  */
-export function findBrokenMarkdownLinks(root = repoRoot(), files = trackedMarkdownPaths(root)) {
+export function findBrokenMarkdownLinks(
+  root = repoRoot(),
+  files = trackedMarkdownPaths(root),
+) {
   /** @type {{ doc: string; target: string; line: number }[]} */
   const broken = [];
 

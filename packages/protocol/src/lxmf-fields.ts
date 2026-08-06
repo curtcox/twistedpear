@@ -9,7 +9,7 @@ export const LXMF_OFFER_REQUEST_PATH = "/offer";
 
 export const LxmfUnverifiedReason = {
   SOURCE_UNKNOWN: 0x01,
-  SIGNATURE_INVALID: 0x02
+  SIGNATURE_INVALID: 0x02,
 } as const;
 
 export type LxmfUnverifiedReasonValue =
@@ -36,7 +36,7 @@ export const LxmfField = {
   CUSTOM_DATA: 0xfc,
   CUSTOM_META: 0xfd,
   NON_SPECIFIC: 0xfe,
-  DEBUG: 0xff
+  DEBUG: 0xff,
 } as const;
 
 export type LxmfFieldValue = (typeof LxmfField)[keyof typeof LxmfField];

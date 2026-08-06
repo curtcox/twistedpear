@@ -1,6 +1,5 @@
 # SPEC-MSG — LXMF message layer (adopted)
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -27,10 +26,10 @@ exactly this subset. Propagation-node behavior is described informatively in
 
 ## 1. Upstream pin
 
-| Upstream | Version | Role |
-|---|---|---|
-| LXMF | 0.7.0 | Golden vector generation ([conformance/vectors/lxmf.json](../../conformance/vectors/lxmf.json)) and interop |
-| Python RNS (transport) | 0.9.5 | Live LXMF interop peer ([conformance/docker](../../conformance/docker/)) |
+| Upstream               | Version | Role                                                                                                        |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| LXMF                   | 0.7.0   | Golden vector generation ([conformance/vectors/lxmf.json](../../conformance/vectors/lxmf.json)) and interop |
+| Python RNS (transport) | 0.9.5   | Live LXMF interop peer ([conformance/docker](../../conformance/docker/))                                    |
 
 ## 2. Subset
 
@@ -38,17 +37,17 @@ Every row cites a pinned vector in
 [conformance/vectors/lxmf.json](../../conformance/vectors/lxmf.json), the golden-vector
 replay, or an interop/router test.
 
-| Upstream feature | TwistedPear use | Pinned by |
-|---|---|---|
-| Message wire encoding (timestamp, title, content, signature, hash) | LXMF message codec | `lxmf.json` → `hello-world`; `packages/lxmf-ts` `golden-vectors.test.ts` ("LXMF golden vectors") |
-| Empty-fields message | Minimal message round-trip | `lxmf.json` → `empty-fields` |
-| Message fields map (typed field 0x8 = thread-id) | Field-carrying messages | `lxmf.json` → `with-fields` |
-| Opportunistic delivery (single-packet) | `lxmf.send` fast path | `packages/lxmf-ts` `router.test.ts` ("delivers opportunistic messages over PipeInterface"); `npm run test:interop` ("exchanges opportunistic LXMF messages with Python LXMF echo peer") |
-| Direct-link delivery | `lxmf.send` over an established link | `router.test.ts` ("delivers direct link messages over PipeInterface") |
-| Propagated delivery via propagation node | Store-and-forward `lxmf.send`/`receive` | `router.test.ts` ("delivers propagated messages via a propagation node over PipeInterface") |
-| Propagation-node discovery (`lxmf.propagation` announces) | Node discovery | `router.test.ts` ("discovers propagation nodes from lxmf.propagation announces") |
-| Propagation sync (client download) | `lxmf.receive` from a node | `router.test.ts` ("downloads queued messages from a propagation node over PipeInterface"); `npm run test:propagation-interop` (TS↔Python sync slices) |
-| Propagation-node quotas (count/size eviction, persistence) | Node resource limits | `propagation-server.test.ts` ("PropagationServer quotas") |
+| Upstream feature                                                   | TwistedPear use                         | Pinned by                                                                                                                                                                               |
+| ------------------------------------------------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Message wire encoding (timestamp, title, content, signature, hash) | LXMF message codec                      | `lxmf.json` → `hello-world`; `packages/lxmf-ts` `golden-vectors.test.ts` ("LXMF golden vectors")                                                                                        |
+| Empty-fields message                                               | Minimal message round-trip              | `lxmf.json` → `empty-fields`                                                                                                                                                            |
+| Message fields map (typed field 0x8 = thread-id)                   | Field-carrying messages                 | `lxmf.json` → `with-fields`                                                                                                                                                             |
+| Opportunistic delivery (single-packet)                             | `lxmf.send` fast path                   | `packages/lxmf-ts` `router.test.ts` ("delivers opportunistic messages over PipeInterface"); `npm run test:interop` ("exchanges opportunistic LXMF messages with Python LXMF echo peer") |
+| Direct-link delivery                                               | `lxmf.send` over an established link    | `router.test.ts` ("delivers direct link messages over PipeInterface")                                                                                                                   |
+| Propagated delivery via propagation node                           | Store-and-forward `lxmf.send`/`receive` | `router.test.ts` ("delivers propagated messages via a propagation node over PipeInterface")                                                                                             |
+| Propagation-node discovery (`lxmf.propagation` announces)          | Node discovery                          | `router.test.ts` ("discovers propagation nodes from lxmf.propagation announces")                                                                                                        |
+| Propagation sync (client download)                                 | `lxmf.receive` from a node              | `router.test.ts` ("downloads queued messages from a propagation node over PipeInterface"); `npm run test:propagation-interop` (TS↔Python sync slices)                                   |
+| Propagation-node quotas (count/size eviction, persistence)         | Node resource limits                    | `propagation-server.test.ts` ("PropagationServer quotas")                                                                                                                               |
 
 ## 3. Extensions
 

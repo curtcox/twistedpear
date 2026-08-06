@@ -8,7 +8,7 @@ import {
   PacketType,
   PipeInterface,
   TransportType,
-  hexToBytes
+  hexToBytes,
 } from "@twistedpear/reticulum-ts";
 import { BridgeForwarder } from "../src/bridge-forwarder.js";
 
@@ -23,23 +23,30 @@ function packet(hops = 3, data = new Uint8Array([1, 2, 3])): Packet {
     destinationHash: hexToBytes("00112233445566778899aabbccddeeff"),
     context: PacketContext.NONE,
     data,
-    hops
+    hops,
   });
 }
 
-async function nextPacket(iterable: AsyncIterable<Packet>, timeoutMs = 200): Promise<Packet> {
+async function nextPacket(
+  iterable: AsyncIterable<Packet>,
+  timeoutMs = 200,
+): Promise<Packet> {
   const result = await Promise.race([
     iterable[Symbol.asyncIterator]().next(),
     new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), timeoutMs)
-    )
+      setTimeout(() => reject(new Error("timeout")), timeoutMs),
+    ),
   ]);
   expect(result.done).toBe(false);
   return result.value;
 }
 
 function makeBridgePair(name: string): [PipeInterface, PipeInterface] {
-  const [networkSide, bridgeSide] = PipeInterface.pair(provider, { name: `${name}-network` }, { name });
+  const [networkSide, bridgeSide] = PipeInterface.pair(
+    provider,
+    { name: `${name}-network` },
+    { name },
+  );
   return [networkSide, bridgeSide];
 }
 
@@ -51,17 +58,24 @@ describe("BridgeForwarder", () => {
     const forwarder = new BridgeForwarder({
       provider,
       getInterfaces: () => interfaces,
-      getPolicy: () => ({})
+      getPolicy: () => ({}),
     });
     forwarder.start();
     interfaces.push(bridgeB);
     forwarder.refresh();
 
     await netA.send(packet());
-    expect((await nextPacket(netB.packets)).data).toEqual(new Uint8Array([1, 2, 3]));
+    expect((await nextPacket(netB.packets)).data).toEqual(
+      new Uint8Array([1, 2, 3]),
+    );
 
     forwarder.stop();
-    await Promise.all([bridgeA.close(), bridgeB.close(), netA.close(), netB.close()]);
+    await Promise.all([
+      bridgeA.close(),
+      bridgeB.close(),
+      netA.close(),
+      netB.close(),
+    ]);
   });
 
   it("forwards a packet from one interface to another", async () => {
@@ -71,7 +85,7 @@ describe("BridgeForwarder", () => {
     const forwarder = new BridgeForwarder({
       provider,
       getInterfaces: () => [bridgeA, bridgeB],
-      getPolicy: () => ({})
+      getPolicy: () => ({}),
     });
     forwarder.start();
 
@@ -81,7 +95,12 @@ describe("BridgeForwarder", () => {
     expect(Array.from(received.data)).toEqual([1, 2, 3]);
 
     forwarder.stop();
-    await Promise.all([bridgeA.close(), bridgeB.close(), netA.close(), netB.close()]);
+    await Promise.all([
+      bridgeA.close(),
+      bridgeB.close(),
+      netA.close(),
+      netB.close(),
+    ]);
   });
 
   it("drops packets that have expired hops", async () => {
@@ -91,7 +110,7 @@ describe("BridgeForwarder", () => {
     const forwarder = new BridgeForwarder({
       provider,
       getInterfaces: () => [bridgeA, bridgeB],
-      getPolicy: () => ({})
+      getPolicy: () => ({}),
     });
     forwarder.start();
 
@@ -102,13 +121,18 @@ describe("BridgeForwarder", () => {
       Promise.race([
         iterator.next(),
         new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 100)
-        )
-      ])
+          setTimeout(() => reject(new Error("timeout")), 100),
+        ),
+      ]),
     ).rejects.toThrow("timeout");
 
     forwarder.stop();
-    await Promise.all([bridgeA.close(), bridgeB.close(), netA.close(), netB.close()]);
+    await Promise.all([
+      bridgeA.close(),
+      bridgeB.close(),
+      netA.close(),
+      netB.close(),
+    ]);
   });
 
   it("suppresses loops by dropping already-seen packets", async () => {
@@ -118,7 +142,7 @@ describe("BridgeForwarder", () => {
     const forwarder = new BridgeForwarder({
       provider,
       getInterfaces: () => [bridgeA, bridgeB],
-      getPolicy: () => ({})
+      getPolicy: () => ({}),
     });
     forwarder.start();
 
@@ -134,13 +158,18 @@ describe("BridgeForwarder", () => {
       Promise.race([
         iterator.next(),
         new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 100)
-        )
-      ])
+          setTimeout(() => reject(new Error("timeout")), 100),
+        ),
+      ]),
     ).rejects.toThrow("timeout");
 
     forwarder.stop();
-    await Promise.all([bridgeA.close(), bridgeB.close(), netA.close(), netB.close()]);
+    await Promise.all([
+      bridgeA.close(),
+      bridgeB.close(),
+      netA.close(),
+      netB.close(),
+    ]);
   });
 
   it("respects the relay policy matrix", async () => {
@@ -152,9 +181,9 @@ describe("BridgeForwarder", () => {
       getInterfaces: () => [bridgeA, bridgeB],
       getPolicy: () => ({
         allow: {
-          bluetooth: { auto: false }
-        }
-      })
+          bluetooth: { auto: false },
+        },
+      }),
     });
     forwarder.start();
 
@@ -164,13 +193,18 @@ describe("BridgeForwarder", () => {
       Promise.race([
         iterator.next(),
         new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 100)
-        )
-      ])
+          setTimeout(() => reject(new Error("timeout")), 100),
+        ),
+      ]),
     ).rejects.toThrow("timeout");
 
     forwarder.stop();
-    await Promise.all([bridgeA.close(), bridgeB.close(), netA.close(), netB.close()]);
+    await Promise.all([
+      bridgeA.close(),
+      bridgeB.close(),
+      netA.close(),
+      netB.close(),
+    ]);
   });
 
   it("allows freenet as both relay source and destination by default", async () => {
@@ -180,7 +214,7 @@ describe("BridgeForwarder", () => {
     const forwarder = new BridgeForwarder({
       provider,
       getInterfaces: () => [bridgeFreenet, bridgeTcp],
-      getPolicy: () => ({})
+      getPolicy: () => ({}),
     });
     forwarder.start();
 
@@ -197,7 +231,7 @@ describe("BridgeForwarder", () => {
       bridgeFreenet.close(),
       bridgeTcp.close(),
       netFreenet.close(),
-      netTcp.close()
+      netTcp.close(),
     ]);
   });
 
@@ -210,9 +244,9 @@ describe("BridgeForwarder", () => {
       getInterfaces: () => [bridgeFreenet, bridgeAuto],
       getPolicy: () => ({
         allow: {
-          freenet: { auto: false }
-        }
-      })
+          freenet: { auto: false },
+        },
+      }),
     });
     forwarder.start();
 
@@ -222,9 +256,9 @@ describe("BridgeForwarder", () => {
       Promise.race([
         iterator.next(),
         new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 100)
-        )
-      ])
+          setTimeout(() => reject(new Error("timeout")), 100),
+        ),
+      ]),
     ).rejects.toThrow("timeout");
 
     forwarder.stop();
@@ -232,7 +266,7 @@ describe("BridgeForwarder", () => {
       bridgeFreenet.close(),
       bridgeAuto.close(),
       netFreenet.close(),
-      netAuto.close()
+      netAuto.close(),
     ]);
   });
 });

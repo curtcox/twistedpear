@@ -1,6 +1,5 @@
 # Motivation
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -29,7 +28,7 @@ if users cannot see and control what programs do.
 ## Trust without a central authority
 
 No central authority determines whether a program is safe. Instead, the
-platform is built so that running a dangerous program *by accident* is
+platform is built so that running a dangerous program _by accident_ is
 essentially impossible:
 
 - Programs must publish their source code.

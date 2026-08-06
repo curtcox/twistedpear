@@ -23,16 +23,24 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   PACKET_CONTEXT_PATH_RESPONSE,
-  PACKET_CONTEXT_NONE
+  PACKET_CONTEXT_NONE,
 } from "../packet-context.js";
 import {
   PACKET_HEADER_2,
   PACKET_TYPE_ANNOUNCE,
-  type PacketHeaderFields
+  type PacketHeaderFields,
 } from "../packet-header.js";
 import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
-import { pathResponseAnnounceFieldsPlanFromActions, planPathResponseAnnounceFields } from "./part-1.js";
-import type { PathResponseAnnounceFieldsAction, PathResponseAnnounceFieldsEvent, PathResponseAnnounceFieldsPlanAction, PathResponseAnnounceFieldsPlanEvent } from "./part-1.js";
+import {
+  pathResponseAnnounceFieldsPlanFromActions,
+  planPathResponseAnnounceFields,
+} from "./part-1.js";
+import type {
+  PathResponseAnnounceFieldsAction,
+  PathResponseAnnounceFieldsEvent,
+  PathResponseAnnounceFieldsPlanAction,
+  PathResponseAnnounceFieldsPlanEvent,
+} from "./part-1.js";
 /**
  * Path-response announce field plan leaf is event-driven; no durable session
  * fields. Conclusions leave via machine actions (no ad-hoc
@@ -53,7 +61,7 @@ export function initialPathResponseAnnounceFieldsPlanState(): PathResponseAnnoun
 
 export function stepPathResponseAnnounceFieldsPlanWithActions(
   state: PathResponseAnnounceFieldsPlanState,
-  event: PathResponseAnnounceFieldsPlanEvent
+  event: PathResponseAnnounceFieldsPlanEvent,
 ): PathResponseAnnounceFieldsPlanStepResult {
   if (event.kind === "transport/path-response-announce-fields-plan-gate") {
     return {
@@ -65,10 +73,10 @@ export function stepPathResponseAnnounceFieldsPlanWithActions(
           fields: planPathResponseAnnounceFields({
             source: event.source,
             transportId: event.transportId,
-            hops: event.hops
-          })
-        }
-      ]
+            hops: event.hops,
+          }),
+        },
+      ],
     };
   }
 
@@ -76,7 +84,7 @@ export function stepPathResponseAnnounceFieldsPlanWithActions(
 }
 
 export function shouldUsePathResponseAnnounceFieldsPlan(
-  actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>
+  actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
@@ -102,7 +110,7 @@ export function initialPathResponseAnnounceFieldsState(): PathResponseAnnounceFi
 
 export function stepPathResponseAnnounceFieldsWithActions(
   state: PathResponseAnnounceFieldsState,
-  event: PathResponseAnnounceFieldsEvent
+  event: PathResponseAnnounceFieldsEvent,
 ): PathResponseAnnounceFieldsStepResult {
   if (event.kind === "transport/path-response-announce-fields-gate") {
     const planActions = stepPathResponseAnnounceFieldsPlanWithActions(
@@ -111,8 +119,8 @@ export function stepPathResponseAnnounceFieldsWithActions(
         kind: "transport/path-response-announce-fields-plan-gate",
         source: event.source,
         transportId: event.transportId,
-        hops: event.hops
-      }
+        hops: event.hops,
+      },
     ).actions;
     const fields = pathResponseAnnounceFieldsPlanFromActions(planActions);
     if (fields === null) {
@@ -124,9 +132,9 @@ export function stepPathResponseAnnounceFieldsWithActions(
       actions: [
         {
           kind: "use-fields",
-          fields
-        }
-      ]
+          fields,
+        },
+      ],
     };
   }
 
@@ -134,21 +142,23 @@ export function stepPathResponseAnnounceFieldsWithActions(
 }
 
 export function shouldUsePathResponseAnnounceFields(
-  actions: ReadonlyArray<PathResponseAnnounceFieldsAction>
+  actions: ReadonlyArray<PathResponseAnnounceFieldsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract path-response announce fields from step actions; null when no `use-fields`. */
 export function pathResponseAnnounceFieldsFromActions(
-  actions: ReadonlyArray<PathResponseAnnounceFieldsAction>
+  actions: ReadonlyArray<PathResponseAnnounceFieldsAction>,
 ): PacketHeaderFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
 }
 
 /** Whether a cached path-response announce packet decoded successfully. */
-export function shouldAcceptCachedPathResponsePacket(decodedOk: boolean): boolean {
+export function shouldAcceptCachedPathResponsePacket(
+  decodedOk: boolean,
+): boolean {
   return decodedOk;
 }
 
@@ -167,8 +177,7 @@ export type AcceptCachedPathResponsePacketEvent =
     };
 
 export type AcceptCachedPathResponsePacketAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptCachedPathResponsePacketStepResult {
   readonly state: AcceptCachedPathResponsePacketState;
@@ -182,7 +191,7 @@ export function initialAcceptCachedPathResponsePacketState(): AcceptCachedPathRe
 
 export function stepAcceptCachedPathResponsePacketWithActions(
   state: AcceptCachedPathResponsePacketState,
-  event: AcceptCachedPathResponsePacketEvent
+  event: AcceptCachedPathResponsePacketEvent,
 ): AcceptCachedPathResponsePacketStepResult {
   if (event.kind === "path-response/accept-cached-packet-gate") {
     return {
@@ -190,9 +199,11 @@ export function stepAcceptCachedPathResponsePacketWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptCachedPathResponsePacket(event.decodedOk) ? "accept" : "skip"
-        }
-      ]
+          kind: shouldAcceptCachedPathResponsePacket(event.decodedOk)
+            ? "accept"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -200,13 +211,13 @@ export function stepAcceptCachedPathResponsePacketWithActions(
 }
 
 export function shouldAcceptCachedPathResponsePacketNow(
-  actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>
+  actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptCachedPathResponsePacket(
-  actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>
+  actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -241,8 +252,7 @@ export type ReceiveAnnouncePathResponseEvent =
     };
 
 export type ReceiveAnnouncePathResponseAction =
-  | { readonly kind: "receive" }
-  | { readonly kind: "skip" };
+  { readonly kind: "receive" } | { readonly kind: "skip" };
 
 export interface ReceiveAnnouncePathResponseStepResult {
   readonly state: ReceiveAnnouncePathResponseState;
@@ -256,7 +266,7 @@ export function initialReceiveAnnouncePathResponseState(): ReceiveAnnouncePathRe
 
 export function stepReceiveAnnouncePathResponseWithActions(
   state: ReceiveAnnouncePathResponseState,
-  event: ReceiveAnnouncePathResponseEvent
+  event: ReceiveAnnouncePathResponseEvent,
 ): ReceiveAnnouncePathResponseStepResult {
   if (event.kind === "announce/receive-path-response-gate") {
     return {
@@ -268,12 +278,12 @@ export function stepReceiveAnnouncePathResponseWithActions(
             context: event.context,
             ...(event.receivePathResponses !== undefined
               ? { receivePathResponses: event.receivePathResponses }
-              : {})
+              : {}),
           })
             ? "receive"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -281,19 +291,21 @@ export function stepReceiveAnnouncePathResponseWithActions(
 }
 
 export function shouldReceiveAnnouncePathResponseNow(
-  actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>
+  actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>,
 ): boolean {
   return actions.some((action) => action.kind === "receive");
 }
 
 export function shouldSkipAnnouncePathResponse(
-  actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>
+  actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Drop announces that target a local IN destination (already ours). */
-export function shouldIgnoreLocalAnnounce(hasLocalInboundDestination: boolean): boolean {
+export function shouldIgnoreLocalAnnounce(
+  hasLocalInboundDestination: boolean,
+): boolean {
   return hasLocalInboundDestination;
 }
 
@@ -312,8 +324,7 @@ export type IgnoreLocalAnnounceEvent =
     };
 
 export type IgnoreLocalAnnounceAction =
-  | { readonly kind: "ignore" }
-  | { readonly kind: "proceed" };
+  { readonly kind: "ignore" } | { readonly kind: "proceed" };
 
 export interface IgnoreLocalAnnounceStepResult {
   readonly state: IgnoreLocalAnnounceState;
@@ -327,7 +338,7 @@ export function initialIgnoreLocalAnnounceState(): IgnoreLocalAnnounceState {
 
 export function stepIgnoreLocalAnnounceWithActions(
   state: IgnoreLocalAnnounceState,
-  event: IgnoreLocalAnnounceEvent
+  event: IgnoreLocalAnnounceEvent,
 ): IgnoreLocalAnnounceStepResult {
   if (event.kind === "announce/ignore-local-gate") {
     return {
@@ -337,9 +348,9 @@ export function stepIgnoreLocalAnnounceWithActions(
         {
           kind: shouldIgnoreLocalAnnounce(event.hasLocalInboundDestination)
             ? "ignore"
-            : "proceed"
-        }
-      ]
+            : "proceed",
+        },
+      ],
     };
   }
 
@@ -347,13 +358,13 @@ export function stepIgnoreLocalAnnounceWithActions(
 }
 
 export function shouldIgnoreLocalAnnounceNow(
-  actions: ReadonlyArray<IgnoreLocalAnnounceAction>
+  actions: ReadonlyArray<IgnoreLocalAnnounceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldProceedLocalAnnounce(
-  actions: ReadonlyArray<IgnoreLocalAnnounceAction>
+  actions: ReadonlyArray<IgnoreLocalAnnounceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
@@ -378,8 +389,7 @@ export type DispatchAnnounceHandlersEvent =
     };
 
 export type DispatchAnnounceHandlersAction =
-  | { readonly kind: "dispatch" }
-  | { readonly kind: "skip" };
+  { readonly kind: "dispatch" } | { readonly kind: "skip" };
 
 export interface DispatchAnnounceHandlersStepResult {
   readonly state: DispatchAnnounceHandlersState;
@@ -393,7 +403,7 @@ export function initialDispatchAnnounceHandlersState(): DispatchAnnounceHandlers
 
 export function stepDispatchAnnounceHandlersWithActions(
   state: DispatchAnnounceHandlersState,
-  event: DispatchAnnounceHandlersEvent
+  event: DispatchAnnounceHandlersEvent,
 ): DispatchAnnounceHandlersStepResult {
   if (event.kind === "announce/dispatch-handlers-gate") {
     return {
@@ -401,9 +411,11 @@ export function stepDispatchAnnounceHandlersWithActions(
       intents: [],
       actions: [
         {
-          kind: canDispatchAnnounceHandlers(event.identityPresent) ? "dispatch" : "skip"
-        }
-      ]
+          kind: canDispatchAnnounceHandlers(event.identityPresent)
+            ? "dispatch"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -411,13 +423,13 @@ export function stepDispatchAnnounceHandlersWithActions(
 }
 
 export function shouldDispatchAnnounceHandlersNow(
-  actions: ReadonlyArray<DispatchAnnounceHandlersAction>
+  actions: ReadonlyArray<DispatchAnnounceHandlersAction>,
 ): boolean {
   return actions.some((action) => action.kind === "dispatch");
 }
 
 export function shouldSkipDispatchAnnounceHandlers(
-  actions: ReadonlyArray<DispatchAnnounceHandlersAction>
+  actions: ReadonlyArray<DispatchAnnounceHandlersAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -454,8 +466,7 @@ export type MatchAnnounceAspectEvent =
     };
 
 export type MatchAnnounceAspectAction =
-  | { readonly kind: "match" }
-  | { readonly kind: "mismatch" };
+  { readonly kind: "match" } | { readonly kind: "mismatch" };
 
 export interface MatchAnnounceAspectStepResult {
   readonly state: MatchAnnounceAspectState;

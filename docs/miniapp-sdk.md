@@ -1,6 +1,5 @@
 # Mini-app SDK
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-31
@@ -15,30 +14,30 @@ private keys, sockets, filesystems, and Bare APIs are never exposed to app code.
 Capabilities are declared in `app.manifest.json` and granted by the user at install. The
 grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in the runtime).
 
-| Capability | User-facing description |
-|---|---|
-| `identity` | Use an app-scoped identity for signing and addressing. |
-| `presence` | Read coarse peer/interface presence and host info. |
-| `announce:subscribe` | Receive announces in the app namespace. |
-| `announce:publish` | Publish the app destination. |
-| `lxmf:send` | Send LXMF messages from the app destination. |
-| `lxmf:receive` | Receive LXMF messages for the app destination. |
-| `storage:kv` | Store local key/value data for this app. |
-| `storage:hyperbee` | Store ordered local Hyperbee data for this app. |
-| `resource:fetch` | Fetch package resources through host budget rules. |
-| `workspace` | Read and write project source files in this app's private workspace. |
-| `ai:chat` | Send prompts to the host-configured AI service; prompts may include workspace content. |
-| `ai:embed` | Send bounded text to the host-configured embedding model and rank vectors locally. |
-| `apps:package` | Package and sign apps under this device's publisher identity (asks each time). |
-| `apps:publish` | Publish signed apps so other users can find and install them (asks each time). |
-| `apps:install` | Ask the host to install apps from a 256t id (asks each time, with capability review). |
-| `apps:preview` | Run a built app in the host's sandboxed dev-preview slot. |
-| `share:cas` | Store and retrieve bounded content-addressed data shared by 256t id. |
-| `peer:connect` | Ask trusted host chrome to find, confirm, and connect an app-scoped peer. |
-| `link:observe` | Read app-scoped peer link quality and two-sided media readiness. |
-| `link:probe` | Request a bounded active measurement for one app-scoped peer. |
-| `device:share-policy:read` | Read this app's live host-authored outbound media offers. |
-| `device:stream:raw-inbound` | Receive raw inbound media instead of a host-rendered sink. |
+| Capability                  | User-facing description                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| `identity`                  | Use an app-scoped identity for signing and addressing.                                 |
+| `presence`                  | Read coarse peer/interface presence and host info.                                     |
+| `announce:subscribe`        | Receive announces in the app namespace.                                                |
+| `announce:publish`          | Publish the app destination.                                                           |
+| `lxmf:send`                 | Send LXMF messages from the app destination.                                           |
+| `lxmf:receive`              | Receive LXMF messages for the app destination.                                         |
+| `storage:kv`                | Store local key/value data for this app.                                               |
+| `storage:hyperbee`          | Store ordered local Hyperbee data for this app.                                        |
+| `resource:fetch`            | Fetch package resources through host budget rules.                                     |
+| `workspace`                 | Read and write project source files in this app's private workspace.                   |
+| `ai:chat`                   | Send prompts to the host-configured AI service; prompts may include workspace content. |
+| `ai:embed`                  | Send bounded text to the host-configured embedding model and rank vectors locally.     |
+| `apps:package`              | Package and sign apps under this device's publisher identity (asks each time).         |
+| `apps:publish`              | Publish signed apps so other users can find and install them (asks each time).         |
+| `apps:install`              | Ask the host to install apps from a 256t id (asks each time, with capability review).  |
+| `apps:preview`              | Run a built app in the host's sandboxed dev-preview slot.                              |
+| `share:cas`                 | Store and retrieve bounded content-addressed data shared by 256t id.                   |
+| `peer:connect`              | Ask trusted host chrome to find, confirm, and connect an app-scoped peer.              |
+| `link:observe`              | Read app-scoped peer link quality and two-sided media readiness.                       |
+| `link:probe`                | Request a bounded active measurement for one app-scoped peer.                          |
+| `device:share-policy:read`  | Read this app's live host-authored outbound media offers.                              |
+| `device:stream:raw-inbound` | Receive raw inbound media instead of a host-rendered sink.                             |
 
 Unknown capability strings block install. Adding a capability bumps `HOST_API_VERSION` minor
 (the dev-environment capabilities above shipped in `0.2.0`; `host.info()` shipped in `0.3.0`).
@@ -167,10 +166,19 @@ await ui.render({
     type: "view",
     style: { padding: 16, gap: 8 },
     children: [
-      { id: "title", type: "text", props: { value: "Hello" }, style: { fontSize: 20 } },
-      { id: "go", type: "button", props: { label: "Tap me", event: "hello.tap" } }
-    ]
-  }
+      {
+        id: "title",
+        type: "text",
+        props: { value: "Hello" },
+        style: { fontSize: 20 },
+      },
+      {
+        id: "go",
+        type: "button",
+        props: { label: "Tap me", event: "hello.tap" },
+      },
+    ],
+  },
 });
 
 ui.onEvent(async ({ event }) => {

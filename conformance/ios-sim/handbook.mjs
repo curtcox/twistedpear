@@ -10,10 +10,10 @@ export async function runIosHandbookSlice() {
   const result = await runHandbookMobileSlice({
     platform: "ios",
     sandboxBackend: "bare-worker",
-    label: "ios-sim"
+    label: "ios-sim",
   });
   console.log(
-    `[ios-sim/handbook] ${result.chapters} chapter(s), ${result.applets} applet(s), report ${result.reportId.slice(0, 12)}…`
+    `[ios-sim/handbook] ${result.chapters} chapter(s), ${result.applets} applet(s), report ${result.reportId.slice(0, 12)}…`,
   );
 }
 

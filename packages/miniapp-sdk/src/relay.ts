@@ -54,13 +54,20 @@ export interface RelayPolicyMatrix {
 }
 
 export class RelayError extends Error {
-  constructor(readonly code: string, message: string) {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
     super(message);
     this.name = "RelayError";
   }
 }
 
-async function relayCall<T>(method: string, payload: unknown, capability?: string): Promise<T> {
+async function relayCall<T>(
+  method: string,
+  payload: unknown,
+  capability?: string,
+): Promise<T> {
   try {
     return (await callHost("relay", method, payload, capability)) as T;
   } catch (error) {
@@ -77,7 +84,7 @@ export async function setMode(mode: RelayMode): Promise<void> {
 
 export async function enable(
   kind: RelayInterfaceKind,
-  options?: Record<string, unknown>
+  options?: Record<string, unknown>,
 ): Promise<void> {
   await relayCall("enable", { kind, options }, "relay:configure");
 }
@@ -88,14 +95,14 @@ export async function disable(kind: RelayInterfaceKind): Promise<void> {
 
 export async function setDirection(
   kind: RelayInterfaceKind,
-  direction: InterfaceDirection
+  direction: InterfaceDirection,
 ): Promise<void> {
   await relayCall("setDirection", { kind, direction }, "relay:configure");
 }
 
 export async function configure(
   kind: RelayInterfaceKind,
-  patch: Record<string, unknown>
+  patch: Record<string, unknown>,
 ): Promise<void> {
   await relayCall("configure", { kind, patch }, "relay:configure");
 }
@@ -112,6 +119,8 @@ export async function status(): Promise<RelayStatus> {
   return relayCall("status", {}, "relay:read");
 }
 
-export async function diagnostics(): Promise<ReadonlyArray<InterfaceDiagnostic>> {
+export async function diagnostics(): Promise<
+  ReadonlyArray<InterfaceDiagnostic>
+> {
   return relayCall("diagnostics", {}, "relay:read");
 }

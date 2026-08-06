@@ -29,9 +29,10 @@ const PLANNED_HEADING =
  */
 const REGISTER_PATHS = new Set([
   "STATUS-COMPLETE.md",
+  "STATUS-COMPLETE-PHASES.md",
   "STATUS-SOFTWARE.md",
   "STATUS-HARDWARE.md",
-  "RELEASE-PLAN.md"
+  "RELEASE-PLAN.md",
 ]);
 
 /** @typedef {{ path: string; message: string }} Finding */
@@ -64,13 +65,13 @@ export function auditArchivePlacement(root = repoRoot()) {
     if (meta.lifecycle === "historical" && !inArchive) {
       findings.push({
         path,
-        message: "lifecycle: historical must live under archive/"
+        message: "lifecycle: historical must live under archive/",
       });
     }
     if (inArchive && meta.lifecycle !== "historical") {
       findings.push({
         path,
-        message: `archive/ holds only historical documents, found lifecycle: ${meta.lifecycle}`
+        message: `archive/ holds only historical documents, found lifecycle: ${meta.lifecycle}`,
       });
     }
   }
@@ -93,7 +94,7 @@ export function auditCounterparts(root = repoRoot()) {
     if (!other) {
       findings.push({
         path,
-        message: `counterpart ${meta.counterpart} is not a tracked markdown file with a tp-doc header`
+        message: `counterpart ${meta.counterpart} is not a tracked markdown file with a tp-doc header`,
       });
       continue;
     }
@@ -101,13 +102,13 @@ export function auditCounterparts(root = repoRoot()) {
     if (!(pair.has("live") && pair.has("planned"))) {
       findings.push({
         path,
-        message: `counterpart pair must be one live and one planned, got ${meta.lifecycle} and ${other.meta.lifecycle}`
+        message: `counterpart pair must be one live and one planned, got ${meta.lifecycle} and ${other.meta.lifecycle}`,
       });
     }
     if (other.meta.counterpart !== path) {
       findings.push({
         path,
-        message: `counterpart ${meta.counterpart} does not point back (it names ${other.meta.counterpart ?? "nothing"})`
+        message: `counterpart ${meta.counterpart} does not point back (it names ${other.meta.counterpart ?? "nothing"})`,
       });
     }
   }
@@ -123,7 +124,7 @@ export function auditCounterparts(root = repoRoot()) {
 export function auditPlannedLinksToLive(root = repoRoot()) {
   const docs = loadDocs(root);
   const lifecycleByPath = new Map(
-    docs.map((doc) => [doc.path, doc.meta.lifecycle])
+    docs.map((doc) => [doc.path, doc.meta.lifecycle]),
   );
   /** @type {Finding[]} */
   const findings = [];
@@ -136,13 +137,13 @@ export function auditPlannedLinksToLive(root = repoRoot()) {
       .filter((t) => !/^(https?:|mailto:)/.test(t))
       .map((t) => normalize(dir ? `${dir}/${t}` : t));
     const reachesLive = targets.some(
-      (t) => lifecycleByPath.get(t) === "live" && existsSync(join(root, t))
+      (t) => lifecycleByPath.get(t) === "live" && existsSync(join(root, t)),
     );
     if (!reachesLive) {
       findings.push({
         path,
         message:
-          "a planned document must link the live document describing what ships today"
+          "a planned document must link the live document describing what ships today",
       });
     }
   }
@@ -166,7 +167,7 @@ export function auditLiveDocsHaveNoPlanSections(root = repoRoot()) {
       if (!PLANNED_HEADING.test(line)) return;
       findings.push({
         path,
-        message: `line ${index + 1}: planned-work heading in a live document — move it to the -plan.md counterpart: ${line.trim()}`
+        message: `line ${index + 1}: planned-work heading in a live document — move it to the -plan.md counterpart: ${line.trim()}`,
       });
     });
   }

@@ -8,7 +8,7 @@ import {
   maestro,
   maestroAvailable,
   requireDevice,
-  waitForBootComplete
+  waitForBootComplete,
 } from "./helpers.mjs";
 
 const required =
@@ -40,4 +40,6 @@ if (!maestroAvailable()) {
 
 waitForBootComplete();
 maestro(["test", ".maestro/freenet-remote-grant.yaml"]);
-console.log("android-emulator freenet-grant: disclosure / enable / revoke passed");
+console.log(
+  "android-emulator freenet-grant: disclosure / enable / revoke passed",
+);

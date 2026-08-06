@@ -26,27 +26,30 @@ export function initialPersistDebounceState(): PersistDebounceState {
   return { pending: false };
 }
 
-export const stepPersistDebounce: StepFn<PersistDebounceState> = (state, event) => {
+export const stepPersistDebounce: StepFn<PersistDebounceState> = (
+  state,
+  event,
+) => {
   const result = stepPersistDebounceInner(state, event as PersistDebounceEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPersistDebounceWithActions(
   state: PersistDebounceState,
-  event: PersistDebounceEvent
+  event: PersistDebounceEvent,
 ): PersistDebounceStepResult {
   return stepPersistDebounceInner(state, event);
 }
 
 function stepPersistDebounceInner(
   state: PersistDebounceState,
-  event: PersistDebounceEvent
+  event: PersistDebounceEvent,
 ): PersistDebounceStepResult {
   if (event.kind === "persist/cancel") {
     return {
       state: { pending: false },
       intents: [{ kind: "timer/cancel", timer: { id: "persist-debounce" } }],
-      actions: []
+      actions: [],
     };
   }
 
@@ -55,9 +58,12 @@ function stepPersistDebounceInner(
       state: { pending: true },
       intents: [
         { kind: "timer/cancel", timer: { id: "persist-debounce" } },
-        { kind: "timer/set", timer: { id: "persist-debounce", delayMs: PERSIST_DEBOUNCE_MS } }
+        {
+          kind: "timer/set",
+          timer: { id: "persist-debounce", delayMs: PERSIST_DEBOUNCE_MS },
+        },
       ],
-      actions: []
+      actions: [],
     };
   }
 
@@ -68,7 +74,7 @@ function stepPersistDebounceInner(
     return {
       state: { pending: false },
       intents: [],
-      actions: [{ kind: "flush" }]
+      actions: [{ kind: "flush" }],
     };
   }
 

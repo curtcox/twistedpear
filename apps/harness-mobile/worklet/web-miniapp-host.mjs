@@ -1,1 +1,4 @@
-export { createWebWorkletMiniappHost, hexToBytes } from "../../../packages/worklet-core/src/web-miniapp-host.mjs";
+export {
+  createWebWorkletMiniappHost,
+  hexToBytes,
+} from "../../../packages/worklet-core/src/web-miniapp-host.mjs";

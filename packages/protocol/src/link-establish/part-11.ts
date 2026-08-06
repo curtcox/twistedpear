@@ -47,14 +47,22 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions
+  stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { mergeLinkRtt, stepLinkEstablishInner } from "./part-10.js";
-import type { LinkEstablishAction, LinkEstablishEvent, LinkEstablishState } from "./part-1.js";
-import type { MergeLinkRttAction, MergeLinkRttEvent, MergeLinkRttState } from "./part-10.js";
+import type {
+  LinkEstablishAction,
+  LinkEstablishEvent,
+  LinkEstablishState,
+} from "./part-1.js";
+import type {
+  MergeLinkRttAction,
+  MergeLinkRttEvent,
+  MergeLinkRttState,
+} from "./part-10.js";
 export interface MergeLinkRttStepResult {
   readonly state: MergeLinkRttState;
   readonly intents: readonly Intent[];
@@ -67,7 +75,7 @@ export function initialMergeLinkRttState(): MergeLinkRttState {
 
 export function stepMergeLinkRttWithActions(
   state: MergeLinkRttState,
-  event: MergeLinkRttEvent
+  event: MergeLinkRttEvent,
 ): MergeLinkRttStepResult {
   if (event.kind === "link/merge-rtt-gate") {
     return {
@@ -76,22 +84,24 @@ export function stepMergeLinkRttWithActions(
       actions: [
         {
           kind: "use-rtt",
-          rtt: mergeLinkRtt(event.measuredSeconds, event.remoteSeconds)
-        }
-      ]
+          rtt: mergeLinkRtt(event.measuredSeconds, event.remoteSeconds),
+        },
+      ],
     };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export function shouldUseMergeLinkRtt(actions: ReadonlyArray<MergeLinkRttAction>): boolean {
+export function shouldUseMergeLinkRtt(
+  actions: ReadonlyArray<MergeLinkRttAction>,
+): boolean {
   return actions.some((action) => action.kind === "use-rtt");
 }
 
 /** Extract merged RTT from step actions; null when no `use-rtt`. */
 export function mergeLinkRttFromActions(
-  actions: ReadonlyArray<MergeLinkRttAction>
+  actions: ReadonlyArray<MergeLinkRttAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-rtt");
   return action?.kind === "use-rtt" ? action.rtt : null;
@@ -99,7 +109,7 @@ export function mergeLinkRttFromActions(
 
 export function applyLinkEstablishEvent(
   state: LinkEstablishState,
-  event: LinkEstablishEvent
+  event: LinkEstablishEvent,
 ): LinkEstablishState {
   return stepLinkEstablishInner(state, event).state;
 }
@@ -111,49 +121,49 @@ export const stepLinkEstablish: StepFn<LinkEstablishState> = (state, event) => {
 
 /** Whether step actions include enter-handshake. */
 export function shouldEnterLinkHandshake(
-  actions: ReadonlyArray<LinkEstablishAction>
+  actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
   return actions.some((action) => action.kind === "enter-handshake");
 }
 
 /** Whether step actions include activated. */
 export function shouldActivateLinkEstablish(
-  actions: ReadonlyArray<LinkEstablishAction>
+  actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
   return actions.some((action) => action.kind === "activated");
 }
 
 /** Whether step actions include failed. */
 export function shouldFailLinkEstablish(
-  actions: ReadonlyArray<LinkEstablishAction>
+  actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
   return actions.some((action) => action.kind === "failed");
 }
 
 /** Whether step actions include ignore (LRRTT gate). */
 export function shouldIgnoreLinkEstablishRtt(
-  actions: ReadonlyArray<LinkEstablishAction>
+  actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 /** Whether step actions include accept-rtt (proceed to unpack / activate). */
 export function shouldAcceptLinkEstablishRtt(
-  actions: ReadonlyArray<LinkEstablishAction>
+  actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept-rtt");
 }
 
 /** Whether step actions include teardown (full link close after LRRTT failure). */
 export function shouldTeardownLinkEstablish(
-  actions: ReadonlyArray<LinkEstablishAction>
+  actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
   return actions.some((action) => action.kind === "teardown");
 }
 
 /** Extract the activated action from an establish step, if any. */
 export function linkEstablishActivatedAction(
-  actions: ReadonlyArray<LinkEstablishAction>
+  actions: ReadonlyArray<LinkEstablishAction>,
 ): Extract<LinkEstablishAction, { kind: "activated" }> | null {
   for (const action of actions) {
     if (action.kind === "activated") {

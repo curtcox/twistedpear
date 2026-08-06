@@ -4,12 +4,15 @@
  */
 Bare.on("unhandledRejection", (reason) => {
   const detail =
-    reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason);
+    reason instanceof Error
+      ? `${reason.name}: ${reason.message}`
+      : String(reason);
   console.error("[bare] unhandledRejection", detail);
 });
 
 Bare.on("uncaughtException", (err) => {
-  const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  const detail =
+    err instanceof Error ? `${err.name}: ${err.message}` : String(err);
   console.error("[bare] uncaughtException", detail);
 });
 

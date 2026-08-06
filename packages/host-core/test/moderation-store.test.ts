@@ -8,7 +8,10 @@ const ALICE = "01".repeat(16);
 
 describe("FileModerationStore", () => {
   it("persists block and mute policy with block precedence", () => {
-    const path = join(mkdtempSync(join(tmpdir(), "tp-moderation-")), "moderation.json");
+    const path = join(
+      mkdtempSync(join(tmpdir(), "tp-moderation-")),
+      "moderation.json",
+    );
     const store = new FileModerationStore(path, () => 42);
     store.mute(ALICE, "Alice");
     expect(store.disposition(ALICE)).toBe("mute");
@@ -20,13 +23,20 @@ describe("FileModerationStore", () => {
   });
 
   it("records local-only reports and exports a portable JSON record", () => {
-    const path = join(mkdtempSync(join(tmpdir(), "tp-reports-")), "moderation.json");
+    const path = join(
+      mkdtempSync(join(tmpdir(), "tp-reports-")),
+      "moderation.json",
+    );
     const store = new FileModerationStore(path, () => 1234);
-    const report = store.report({ sourceHash: ALICE, reason: "spam", note: "Repeated unsolicited messages" });
+    const report = store.report({
+      sourceHash: ALICE,
+      reason: "spam",
+      note: "Repeated unsolicited messages",
+    });
     expect(report.id).toBe("ya-0");
     expect(JSON.parse(store.exportReports())).toMatchObject({
       format: "twistedpear-local-reports-v1",
-      reports: [{ sourceHash: ALICE, reason: "spam" }]
+      reports: [{ sourceHash: ALICE, reason: "spam" }],
     });
     expect(JSON.parse(readFileSync(path, "utf8")).reports).toHaveLength(1);
   });

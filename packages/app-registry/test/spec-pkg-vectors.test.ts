@@ -6,15 +6,27 @@ import {
   NodeCryptoProvider,
   PureCryptoProvider,
   hexToBytes,
-  type CryptoProvider
+  type CryptoProvider,
 } from "@twistedpear/reticulum-ts";
 import { PackageError, unpackPackage, verifyPackage } from "../src/index.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — grant-time capability check lives in the runtime package.
-import { CapabilityError, assertCapabilityAllowed } from "../../miniapp-runtime/dist/index.js";
+import {
+  CapabilityError,
+  assertCapabilityAllowed,
+} from "../../miniapp-runtime/dist/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const vectorsPath = join(here, "..", "..", "..", "specs", "spec-pkg", "vectors", "packages.json");
+const vectorsPath = join(
+  here,
+  "..",
+  "..",
+  "..",
+  "specs",
+  "spec-pkg",
+  "vectors",
+  "packages.json",
+);
 
 interface GoldenVector {
   name: string;
@@ -27,7 +39,11 @@ interface HostileVector {
   name: string;
   archive: string;
   reject: string;
-  verifyOptions?: { expectedPublisherKey?: string; minVersion?: string; hostApiVersion?: string };
+  verifyOptions?: {
+    expectedPublisherKey?: string;
+    minVersion?: string;
+    hostApiVersion?: string;
+  };
 }
 
 interface GrantRejectVector {
@@ -60,7 +76,7 @@ describe("SPEC-PKG package vectors", () => {
       "TRUNCATED",
       "WRONG_KEY",
       "DOWNGRADE",
-      "MIN_HOST_API"
+      "MIN_HOST_API",
     ]) {
       expect([...codes], `missing reject class ${code}`).toContain(code);
     }
@@ -89,11 +105,17 @@ describe("SPEC-PKG package vectors", () => {
           const options = {
             ...(vector.verifyOptions.expectedPublisherKey === undefined
               ? {}
-              : { expectedPublisherKey: unhex(vector.verifyOptions.expectedPublisherKey) }),
-            ...(vector.verifyOptions.minVersion === undefined ? {} : { minVersion: vector.verifyOptions.minVersion }),
+              : {
+                  expectedPublisherKey: unhex(
+                    vector.verifyOptions.expectedPublisherKey,
+                  ),
+                }),
+            ...(vector.verifyOptions.minVersion === undefined
+              ? {}
+              : { minVersion: vector.verifyOptions.minVersion }),
             ...(vector.verifyOptions.hostApiVersion === undefined
               ? {}
-              : { hostApiVersion: vector.verifyOptions.hostApiVersion })
+              : { hostApiVersion: vector.verifyOptions.hostApiVersion }),
           };
           verifyPackage(provider, archive, options);
         };
@@ -116,7 +138,7 @@ describe("SPEC-PKG package vectors", () => {
         assertCapabilityAllowed({
           capability: vector.capability,
           declared: result.manifest.capabilities,
-          granted: result.manifest.capabilities
+          granted: result.manifest.capabilities,
         });
       };
       expect(attempt).toThrowError(CapabilityError as ErrorConstructor);

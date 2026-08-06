@@ -1,6 +1,5 @@
 # Interop Scenarios
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -55,11 +54,11 @@ can take a few minutes on a cold start; override `I2P_READY_TIMEOUT_MS` if neede
 
 ## Layout
 
-| Path | Purpose |
-|---|---|
-| `config/` | Reticulum configs for Python peers |
-| `python/` | Python scenario drivers (leaf echo, link echo, LXMF echo, transport hub leaves) |
-| `ts/harness.mjs` | Shared docker/compose helpers for interop runners |
+| Path             | Purpose                                                                         |
+| ---------------- | ------------------------------------------------------------------------------- |
+| `config/`        | Reticulum configs for Python peers                                              |
+| `python/`        | Python scenario drivers (leaf echo, link echo, LXMF echo, transport hub leaves) |
+| `ts/harness.mjs` | Shared docker/compose helpers for interop runners                               |
 
 Python peers print `READY <destination_hash_hex>` once their inbound destination has announced.
 

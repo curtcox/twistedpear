@@ -21,5 +21,5 @@ export const DEVICE_REGISTER_IDS = [
   "H19-A",
   "H20-A",
   "H21-A",
-  "H22-A"
+  "H22-A",
 ];

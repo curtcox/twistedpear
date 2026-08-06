@@ -1,6 +1,5 @@
 # DevStudio: the in-platform development environment
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-21
@@ -16,16 +15,16 @@ itself.
 
 ## Capabilities it requests
 
-| Capability | Used for |
-|---|---|
-| `workspace` | Project source files (`<project>/app.json` + sources) |
-| `ai:chat` | AI-assisted editing through the host's OpenRouter-compatible endpoint |
+| Capability     | Used for                                                                   |
+| -------------- | -------------------------------------------------------------------------- |
+| `workspace`    | Project source files (`<project>/app.json` + sources)                      |
+| `ai:chat`      | AI-assisted editing through the host's OpenRouter-compatible endpoint      |
 | `apps:package` | Pack + sign a project under the device publisher identity (asks each time) |
-| `apps:publish` | Publish the signed package to other users (asks each time) |
-| `apps:install` | Install an app from a pasted 256t string (asks + capability review) |
-| `apps:preview` | Run the app under development in the host's dev-preview slot |
-| `share:cas` | Content-addressed sharing by 256t id |
-| `storage:kv` | UI state |
+| `apps:publish` | Publish the signed package to other users (asks each time)                 |
+| `apps:install` | Install an app from a pasted 256t string (asks + capability review)        |
+| `apps:preview` | Run the app under development in the host's dev-preview slot               |
+| `share:cas`    | Content-addressed sharing by 256t id                                       |
+| `storage:kv`   | UI state                                                                   |
 
 Like every mini-app it can be granted a subset: without `ai:chat` the editor
 still works, without `apps:publish` it is a local-only IDE, and so on.

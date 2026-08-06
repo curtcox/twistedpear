@@ -1,6 +1,5 @@
 # TwistedPear Harness (Phase 3–4 dev shell)
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20

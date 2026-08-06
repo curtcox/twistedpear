@@ -6,7 +6,9 @@ export interface SerialNodePipeOptions {
 }
 
 /** Desktop SerialPipe over the `serialport` package (optional native dependency). */
-export function createSerialNodePipe(options: SerialNodePipeOptions): SerialPipe {
+export function createSerialNodePipe(
+  options: SerialNodePipeOptions,
+): SerialPipe {
   let connected = false;
   let bytesIn = 0;
   let bytesOut = 0;
@@ -15,7 +17,10 @@ export function createSerialNodePipe(options: SerialNodePipeOptions): SerialPipe
     readonly open: () => Promise<void>;
     readonly close: () => Promise<void>;
     readonly write: (data: Uint8Array) => Promise<void>;
-    readonly on: (event: string, listener: (...args: unknown[]) => void) => void;
+    readonly on: (
+      event: string,
+      listener: (...args: unknown[]) => void,
+    ) => void;
   } | null = null;
 
   const stats: PipeStats = {
@@ -27,7 +32,7 @@ export function createSerialNodePipe(options: SerialNodePipeOptions): SerialPipe
     },
     get connected() {
       return connected;
-    }
+    },
   };
 
   return {
@@ -52,7 +57,7 @@ export function createSerialNodePipe(options: SerialNodePipeOptions): SerialPipe
       const instance = new SerialPort({
         path: options.path,
         baudRate: options.baudRate ?? 115_200,
-        autoOpen: false
+        autoOpen: false,
       });
 
       port = {
@@ -78,11 +83,13 @@ export function createSerialNodePipe(options: SerialNodePipeOptions): SerialPipe
           }),
         on: (event, listener) => {
           instance.on(event, listener);
-        }
+        },
       };
 
       port.on("data", (chunk: unknown) => {
-        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as ArrayBuffer);
+        const buffer = Buffer.isBuffer(chunk)
+          ? chunk
+          : Buffer.from(chunk as ArrayBuffer);
         bytesIn += buffer.length;
         events.onData?.(new Uint8Array(buffer));
       });
@@ -98,7 +105,9 @@ export function createSerialNodePipe(options: SerialNodePipeOptions): SerialPipe
       });
 
       port.on("error", (error: unknown) => {
-        events.onError?.(error instanceof Error ? error : new Error(String(error)));
+        events.onError?.(
+          error instanceof Error ? error : new Error(String(error)),
+        );
       });
 
       await port.open();
@@ -120,7 +129,7 @@ export function createSerialNodePipe(options: SerialNodePipeOptions): SerialPipe
       }
 
       await port.write(data);
-    }
+    },
   };
 }
 

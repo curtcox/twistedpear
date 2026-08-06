@@ -2,9 +2,17 @@
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { compareDiagnosticSet, printDiagnosticResult, readJson, writeJson } from "../ratchet/lib.mjs";
+import {
+  compareDiagnosticSet,
+  printDiagnosticResult,
+  readJson,
+  writeJson,
+} from "../ratchet/lib.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 const write = process.argv.includes("--write");
 const allowRegressions = process.argv.includes("--allow-regressions");
 
@@ -18,20 +26,38 @@ const GENERATED_FIXTURE_IMPORTS = new Set([
   "conformance/web-handbook/entry.mjs:./fixtures.mjs",
   "conformance/web-hyperdrive-browser/entry.mjs:./fixtures.mjs",
   "conformance/web-hyperdrive-browser/run.mjs:./publisher-data.mjs",
-  "conformance/web-storage/entry.mjs:./fixture.mjs"
+  "conformance/web-storage/entry.mjs:./fixture.mjs",
 ]);
 
 function run(command, args) {
-  const result = spawnSync(command, args, { cwd: ROOT, encoding: "utf8", maxBuffer: 128 * 1024 * 1024 });
+  const result = spawnSync(command, args, {
+    cwd: ROOT,
+    encoding: "utf8",
+    maxBuffer: 128 * 1024 * 1024,
+  });
   if (!result.stdout?.trim()) {
     process.stderr.write(result.stderr ?? "");
-    throw new Error(`${command} produced no structured output (exit ${result.status})`);
+    throw new Error(
+      `${command} produced no structured output (exit ${result.status})`,
+    );
   }
   return JSON.parse(result.stdout);
 }
 
-const knip = run(process.execPath, ["node_modules/knip/bin/knip.js", "--reporter", "json"]);
-const cruise = run(process.execPath, ["node_modules/dependency-cruiser/bin/dependency-cruise.mjs", "--config", ".dependency-cruiser.cjs", "--output-type", "json", "packages", "apps"]);
+const knip = run(process.execPath, [
+  "node_modules/knip/bin/knip.js",
+  "--reporter",
+  "json",
+]);
+const cruise = run(process.execPath, [
+  "node_modules/dependency-cruiser/bin/dependency-cruise.mjs",
+  "--config",
+  ".dependency-cruiser.cjs",
+  "--output-type",
+  "json",
+  "packages",
+  "apps",
+]);
 const findings = [];
 
 for (const file of knip.files ?? []) findings.push(`knip:file:${file}`);
@@ -40,16 +66,36 @@ for (const issue of Object.values(knip.issues ?? {})) {
   for (const [kind, values] of Object.entries(issue)) {
     if (kind === "file") continue;
     for (const value of Array.isArray(values) ? values : [values]) {
-      if (value == null || (typeof value === "object" && Object.keys(value).length === 0)) continue;
-      const identity = typeof value === "string" ? value : value.name ?? JSON.stringify(value);
-      if (kind === "unresolved" && GENERATED_FIXTURE_IMPORTS.has(`${file}:${identity}`)) continue;
+      if (
+        value == null ||
+        (typeof value === "object" && Object.keys(value).length === 0)
+      )
+        continue;
+      const identity =
+        typeof value === "string"
+          ? value
+          : (value.name ?? JSON.stringify(value));
+      if (
+        kind === "unresolved" &&
+        GENERATED_FIXTURE_IMPORTS.has(`${file}:${identity}`)
+      )
+        continue;
       findings.push(`knip:${kind}:${file}:${identity}`);
     }
   }
 }
 for (const violation of cruise.summary?.violations ?? cruise.violations ?? []) {
-  if ([violation.from, violation.to].some((file) => /(^|\/)(dist|archive|site)\/|\.bundle(?:\.mjs)?$|\.gen\.ts$/.test(file ?? ""))) continue;
-  findings.push(`depcruise:${violation.rule?.name ?? violation.rule?.id ?? "rule"}:${violation.from}:${violation.to ?? ""}`);
+  if (
+    [violation.from, violation.to].some((file) =>
+      /(^|\/)(dist|archive|site)\/|\.bundle(?:\.mjs)?$|\.gen\.ts$/.test(
+        file ?? "",
+      ),
+    )
+  )
+    continue;
+  findings.push(
+    `depcruise:${violation.rule?.name ?? violation.rule?.id ?? "rule"}:${violation.from}:${violation.to ?? ""}`,
+  );
 }
 
 const allowed = {
@@ -65,21 +111,47 @@ const allowed = {
   "miniapp-sdk": ["miniapp-runtime"],
   "bridge-hyper": ["app-registry", "reticulum-interfaces", "reticulum-ts"],
   "bridge-freenet": ["cas-256t", "reticulum-ts"],
-  cli: ["app-registry", "bridge-freenet", "bridge-hyper", "host-core", "miniapp-runtime", "reticulum-ts", "cas-256t"],
-  "host-core": ["app-registry", "bridge-freenet", "bridge-hyper", "cas-256t", "lxmf-ts", "peer-discovery", "protocol", "reticulum-interfaces", "reticulum-ts"],
+  cli: [
+    "app-registry",
+    "bridge-freenet",
+    "bridge-hyper",
+    "host-core",
+    "miniapp-runtime",
+    "reticulum-ts",
+    "cas-256t",
+  ],
+  "host-core": [
+    "app-registry",
+    "bridge-freenet",
+    "bridge-hyper",
+    "cas-256t",
+    "lxmf-ts",
+    "peer-discovery",
+    "protocol",
+    "reticulum-interfaces",
+    "reticulum-ts",
+  ],
   "worklet-core": [],
   "widget-renderer-rn": ["miniapp-runtime"],
   "widget-renderer-headless": ["miniapp-runtime"],
   "sim-adversaries": ["effects", "protocol", "miniapp-runtime"],
-  "sim-campaign": ["effects", "miniapp-runtime", "protocol", "sim-adversaries"]
+  "sim-campaign": ["effects", "miniapp-runtime", "protocol", "sim-adversaries"],
 };
 for (const [pkg, permitted] of Object.entries(allowed)) {
-  const manifest = readJson(path.join(ROOT, "packages", pkg, "package.json"), {});
-  for (const section of ["dependencies", "devDependencies", "peerDependencies"]) {
+  const manifest = readJson(
+    path.join(ROOT, "packages", pkg, "package.json"),
+    {},
+  );
+  for (const section of [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+  ]) {
     for (const dependency of Object.keys(manifest[section] ?? {})) {
       if (!dependency.startsWith("@twistedpear/")) continue;
       const target = dependency.slice("@twistedpear/".length);
-      if (!permitted.includes(target)) findings.push(`layer:${pkg}:${section}:${target}`);
+      if (!permitted.includes(target))
+        findings.push(`layer:${pkg}:${section}:${target}`);
     }
   }
 }
@@ -89,8 +161,11 @@ writeJson(path.join(ROOT, "structure.json"), {
   version: 1,
   count: findings.length,
   findings,
-  knip: { files: (knip.files ?? []).length, workspaces: Object.keys(knip.issues ?? {}).length },
-  dependencyCruiser: cruise.summary ?? null
+  knip: {
+    files: (knip.files ?? []).length,
+    workspaces: Object.keys(knip.issues ?? {}).length,
+  },
+  dependencyCruiser: cruise.summary ?? null,
 });
 const comparison = compareDiagnosticSet({
   root: ROOT,
@@ -98,8 +173,10 @@ const comparison = compareDiagnosticSet({
   current: findings,
   write,
   allowRegressions,
-  description: "Unused-code, cycle, orphan, dependency-type, and package-layer findings present when structural analysis landed; entries may only disappear.",
-  envName: "STRUCTURE_RATCHET_BASE_REF"
+  description:
+    "Unused-code, cycle, orphan, dependency-type, and package-layer findings present when structural analysis landed; entries may only disappear.",
+  envName: "STRUCTURE_RATCHET_BASE_REF",
 });
 if (write) console.log(`Structure ratchet: wrote ${findings.length} findings.`);
-else if (!printDiagnosticResult("Structure ratchet", comparison)) process.exit(1);
+else if (!printDiagnosticResult("Structure ratchet", comparison))
+  process.exit(1);

@@ -4,7 +4,6 @@
  * Skips when no adb device or maestro CLI is available unless ANDROID_EMULATOR_REQUIRED=1.
  */
 
-
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
@@ -16,7 +15,7 @@ import {
   requireDevice,
   waitForBootComplete,
   waitForFixtureMeta,
-  waitForHandbookMeta
+  waitForHandbookMeta,
 } from "./helpers.mjs";
 import { runAndroidHandbookSlice } from "./handbook.mjs";
 
@@ -35,7 +34,11 @@ async function startHostPeer() {
   const child = spawn("node", ["conformance/android-emulator/host-peer.mjs"], {
     cwd: repoRoot,
     stdio: "inherit",
-    env: { ...process.env, LEAF_ECHO_HOST: "127.0.0.1", LEAF_ECHO_PORT: "4242" }
+    env: {
+      ...process.env,
+      LEAF_ECHO_HOST: "127.0.0.1",
+      LEAF_ECHO_PORT: "4242",
+    },
   });
 
   await sleep(5_000);
@@ -53,7 +56,9 @@ async function main() {
       throw error;
     }
 
-    console.log(`android-emulator: skipped (${error instanceof Error ? error.message : String(error)})`);
+    console.log(
+      `android-emulator: skipped (${error instanceof Error ? error.message : String(error)})`,
+    );
     return;
   }
 
@@ -75,22 +80,38 @@ async function main() {
     return;
   }
 
-  spawnSync("docker", ["compose", "-f", "conformance/docker/docker-compose.yml", "up", "-d", "--build", "leaf-echo"], {
-    cwd: repoRoot,
-    stdio: "inherit"
-  });
+  spawnSync(
+    "docker",
+    [
+      "compose",
+      "-f",
+      "conformance/docker/docker-compose.yml",
+      "up",
+      "-d",
+      "--build",
+      "leaf-echo",
+    ],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+    },
+  );
 
   const hostPeer = await startHostPeer();
-  const handbookPeer = spawn("node", ["conformance/handbook/handbook-peer.mjs"], {
-    cwd: repoRoot,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      LEAF_ECHO_HOST: "127.0.0.1",
-      LEAF_ECHO_PORT: "4242",
-      HANDBOOK_PEER_LOG_PREFIX: "android-emulator/handbook-peer"
-    }
-  });
+  const handbookPeer = spawn(
+    "node",
+    ["conformance/handbook/handbook-peer.mjs"],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        LEAF_ECHO_HOST: "127.0.0.1",
+        LEAF_ECHO_PORT: "4242",
+        HANDBOOK_PEER_LOG_PREFIX: "android-emulator/handbook-peer",
+      },
+    },
+  );
   waitForBootComplete();
 
   try {
@@ -102,20 +123,28 @@ async function main() {
     maestroWithFixtureEnv(".maestro/e4-ota-rollback.yaml");
     maestroHandbookSmoke();
 
-    const e3 = spawnSync("node", ["conformance/android-emulator/e3-foreground.mjs"], {
-      cwd: repoRoot,
-      stdio: "inherit",
-      env: { ...process.env, ANDROID_SERIAL: deviceSerial }
-    });
+    const e3 = spawnSync(
+      "node",
+      ["conformance/android-emulator/e3-foreground.mjs"],
+      {
+        cwd: repoRoot,
+        stdio: "inherit",
+        env: { ...process.env, ANDROID_SERIAL: deviceSerial },
+      },
+    );
     if (e3.status !== 0) {
       throw new Error("e3-foreground failed");
     }
 
-    const e5 = spawnSync("node", ["conformance/android-emulator/e5-worker.mjs"], {
-      cwd: repoRoot,
-      stdio: "inherit",
-      env: { ...process.env, ANDROID_SERIAL: deviceSerial }
-    });
+    const e5 = spawnSync(
+      "node",
+      ["conformance/android-emulator/e5-worker.mjs"],
+      {
+        cwd: repoRoot,
+        stdio: "inherit",
+        env: { ...process.env, ANDROID_SERIAL: deviceSerial },
+      },
+    );
     if (e5.status !== 0) {
       throw new Error("e5-worker failed");
     }
@@ -129,22 +158,28 @@ async function main() {
         env: {
           ...process.env,
           ANDROID_SERIAL: deviceSerial,
-          FREENET_GRANT_REQUIRED: "1"
-        }
-      }
+          FREENET_GRANT_REQUIRED: "1",
+        },
+      },
     );
     if (freenetGrant.status !== 0) {
       throw new Error("freenet-grant failed");
     }
 
-    console.log("android-emulator: E1–E5 UI flows + Freenet grant + handbook smoke passed");
+    console.log(
+      "android-emulator: E1–E5 UI flows + Freenet grant + handbook smoke passed",
+    );
   } finally {
     hostPeer.kill("SIGTERM");
     handbookPeer.kill("SIGTERM");
-    spawnSync("docker", ["compose", "-f", "conformance/docker/docker-compose.yml", "down"], {
-      cwd: repoRoot,
-      stdio: "inherit"
-    });
+    spawnSync(
+      "docker",
+      ["compose", "-f", "conformance/docker/docker-compose.yml", "down"],
+      {
+        cwd: repoRoot,
+        stdio: "inherit",
+      },
+    );
   }
 }
 

@@ -20,29 +20,45 @@ export interface WebIdentityPackedFields {
 export function packWebIdentityRecord(
   salt: Uint8Array,
   iv: Uint8Array,
-  ciphertext: Uint8Array
+  ciphertext: Uint8Array,
 ): Uint8Array {
   if (salt.length !== WEB_IDENTITY_SALT_BYTES) {
-    throw new Error(`web identity salt must be ${WEB_IDENTITY_SALT_BYTES} bytes`);
+    throw new Error(
+      `web identity salt must be ${WEB_IDENTITY_SALT_BYTES} bytes`,
+    );
   }
   if (iv.length !== WEB_IDENTITY_IV_BYTES) {
     throw new Error(`web identity iv must be ${WEB_IDENTITY_IV_BYTES} bytes`);
   }
-  const packed = new Uint8Array(WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES + ciphertext.length);
+  const packed = new Uint8Array(
+    WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES + ciphertext.length,
+  );
   packed.set(salt, 0);
   packed.set(iv, WEB_IDENTITY_SALT_BYTES);
   packed.set(ciphertext, WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES);
   return packed;
 }
 
-export function splitWebIdentityRecord(packed: Uint8Array): WebIdentityPackedFields {
-  if (packed.length < WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES + WEB_IDENTITY_MIN_CIPHERTEXT_BYTES) {
+export function splitWebIdentityRecord(
+  packed: Uint8Array,
+): WebIdentityPackedFields {
+  if (
+    packed.length <
+    WEB_IDENTITY_SALT_BYTES +
+      WEB_IDENTITY_IV_BYTES +
+      WEB_IDENTITY_MIN_CIPHERTEXT_BYTES
+  ) {
     throw new Error("Stored web identity record is truncated");
   }
   return {
     salt: packed.subarray(0, WEB_IDENTITY_SALT_BYTES),
-    iv: packed.subarray(WEB_IDENTITY_SALT_BYTES, WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES),
-    ciphertext: packed.subarray(WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES)
+    iv: packed.subarray(
+      WEB_IDENTITY_SALT_BYTES,
+      WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES,
+    ),
+    ciphertext: packed.subarray(
+      WEB_IDENTITY_SALT_BYTES + WEB_IDENTITY_IV_BYTES,
+    ),
   };
 }
 
@@ -78,7 +94,7 @@ export function initialPackWebIdentityRecordState(): PackWebIdentityRecordState 
 
 export function stepPackWebIdentityRecordWithActions(
   state: PackWebIdentityRecordState,
-  event: PackWebIdentityRecordEvent
+  event: PackWebIdentityRecordEvent,
 ): PackWebIdentityRecordStepResult {
   if (event.kind === "web-identity/pack-gate") {
     try {
@@ -88,9 +104,9 @@ export function stepPackWebIdentityRecordWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: packWebIdentityRecord(event.salt, event.iv, event.ciphertext)
-          }
-        ]
+            raw: packWebIdentityRecord(event.salt, event.iv, event.ciphertext),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -101,20 +117,20 @@ export function stepPackWebIdentityRecordWithActions(
 }
 
 export function shouldUsePackWebIdentityRecord(
-  actions: ReadonlyArray<PackWebIdentityRecordAction>
+  actions: ReadonlyArray<PackWebIdentityRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackWebIdentityRecord(
-  actions: ReadonlyArray<PackWebIdentityRecordAction>
+  actions: ReadonlyArray<PackWebIdentityRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed web-identity record from step actions; null when no `use-raw`. */
 export function packWebIdentityRecordRawFromActions(
-  actions: ReadonlyArray<PackWebIdentityRecordAction>
+  actions: ReadonlyArray<PackWebIdentityRecordAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -150,14 +166,16 @@ export function initialSplitWebIdentityRecordState(): SplitWebIdentityRecordStat
 
 export function stepSplitWebIdentityRecordWithActions(
   state: SplitWebIdentityRecordState,
-  event: SplitWebIdentityRecordEvent
+  event: SplitWebIdentityRecordEvent,
 ): SplitWebIdentityRecordStepResult {
   if (event.kind === "web-identity/split-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields: splitWebIdentityRecord(event.packed) }]
+        actions: [
+          { kind: "use-fields", fields: splitWebIdentityRecord(event.packed) },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -168,20 +186,20 @@ export function stepSplitWebIdentityRecordWithActions(
 }
 
 export function shouldUseSplitWebIdentityRecord(
-  actions: ReadonlyArray<SplitWebIdentityRecordAction>
+  actions: ReadonlyArray<SplitWebIdentityRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitWebIdentityRecord(
-  actions: ReadonlyArray<SplitWebIdentityRecordAction>
+  actions: ReadonlyArray<SplitWebIdentityRecordAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split web-identity fields from step actions; null when no `use-fields`. */
 export function webIdentityRecordFieldsFromActions(
-  actions: ReadonlyArray<SplitWebIdentityRecordAction>
+  actions: ReadonlyArray<SplitWebIdentityRecordAction>,
 ): WebIdentityPackedFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

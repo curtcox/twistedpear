@@ -25,7 +25,7 @@ export function createHash(algorithm) {
     },
     digest() {
       return Buffer.from(sha256(concat(chunks)));
-    }
+    },
   };
 }
 
@@ -42,7 +42,7 @@ export function createHmac(algorithm, key) {
     },
     digest() {
       return Buffer.from(hmac(sha256, key, concat(chunks)));
-    }
+    },
   };
 }
 
@@ -68,7 +68,7 @@ export function createCipheriv(algorithm, key, iv) {
     },
     final() {
       return Buffer.from(cipher.encrypt(concat(chunks)));
-    }
+    },
   };
 }
 
@@ -86,7 +86,7 @@ export function createDecipheriv(algorithm, key, iv) {
     },
     final() {
       return Buffer.from(cipher.decrypt(concat(chunks)));
-    }
+    },
   };
 }
 

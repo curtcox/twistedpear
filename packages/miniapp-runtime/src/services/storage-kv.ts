@@ -16,7 +16,7 @@ export class NamespacedKvService {
   constructor(
     private readonly backend: MiniappKvStoreBackend,
     private readonly appId: string,
-    private readonly quotaBytes = 1024 * 1024
+    private readonly quotaBytes = 1024 * 1024,
   ) {}
 
   async get(key: string): Promise<Uint8Array | null> {
@@ -46,7 +46,9 @@ export class NamespacedKvService {
 
   async list(): Promise<ReadonlyArray<string>> {
     const prefix = this.prefix();
-    return (await this.backend.list(prefix)).map((key) => key.slice(prefix.length));
+    return (await this.backend.list(prefix)).map((key) =>
+      key.slice(prefix.length),
+    );
   }
 
   private key(key: string): string {

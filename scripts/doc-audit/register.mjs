@@ -71,7 +71,7 @@ export function auditRegisterConsistency(root = repoRoot()) {
       conflicts.push(
         `${id}: conflicting statuses ${[...statuses].join(", ")} (${group
           .map((r) => `${r.file}:${r.line}`)
-          .join("; ")})`
+          .join("; ")})`,
       );
     }
     const done = group.some((r) => r.status === "done");
@@ -93,7 +93,7 @@ export function findVitestRegisterTodos(root = repoRoot()) {
   try {
     raw = execSync(
       'rg -o "register:[A-Za-z0-9-]+" conformance packages --glob "*.test.mjs" --glob "*.test.ts" 2>/dev/null || true',
-      { cwd: root, encoding: "utf8", shell: "/bin/bash" }
+      { cwd: root, encoding: "utf8", shell: "/bin/bash" },
     );
   } catch {
     return [];
@@ -119,17 +119,25 @@ export function auditTodoMarkers(root = repoRoot()) {
 
   for (const row of rows) {
     if (row.status === "done" && todoIds.has(row.id)) {
-      problems.push(`${row.id} is done in register but still has register:${row.id} todo`);
+      problems.push(
+        `${row.id} is done in register but still has register:${row.id} todo`,
+      );
     }
   }
 
   for (const row of rows) {
     if (row.status !== "open") continue;
-    if (row.id.startsWith("H") && !todoIds.has(row.id) && !row.id.includes("-")) {
+    if (
+      row.id.startsWith("H") &&
+      !todoIds.has(row.id) &&
+      !row.id.includes("-")
+    ) {
       continue;
     }
     if (/^H\d+-/.test(row.id) && !todoIds.has(row.id)) {
-      problems.push(`warn: open ${row.id} has no register:${row.id} vitest todo`);
+      problems.push(
+        `warn: open ${row.id} has no register:${row.id} vitest todo`,
+      );
     }
   }
 

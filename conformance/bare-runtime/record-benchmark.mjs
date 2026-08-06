@@ -12,13 +12,16 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const baselinePath = join(repoRoot, "conformance/bare-runtime/baseline-node.json");
+const baselinePath = join(
+  repoRoot,
+  "conformance/bare-runtime/baseline-node.json",
+);
 const compare = process.argv.includes("--compare");
 
 function runBenchmark(script) {
   const result = spawnSync("node", [script], {
     cwd: repoRoot,
-    encoding: "utf8"
+    encoding: "utf8",
   });
 
   if (result.status !== 0) {
@@ -31,7 +34,9 @@ function runBenchmark(script) {
 function compareToBaseline(current, baseline) {
   const regressions = [];
   for (const baseEntry of baseline.results) {
-    const currentEntry = current.results.find((entry) => entry.name === baseEntry.name);
+    const currentEntry = current.results.find(
+      (entry) => entry.name === baseEntry.name,
+    );
     if (currentEntry === undefined) {
       regressions.push(`${baseEntry.name}: missing from current run`);
       continue;
@@ -40,7 +45,7 @@ function compareToBaseline(current, baseline) {
     const ratio = currentEntry.opsPerSec / baseEntry.opsPerSec;
     if (ratio < 0.5) {
       regressions.push(
-        `${baseEntry.name}: ${currentEntry.opsPerSec} ops/s vs baseline ${baseEntry.opsPerSec} (${Math.round(ratio * 100)}%)`
+        `${baseEntry.name}: ${currentEntry.opsPerSec} ops/s vs baseline ${baseEntry.opsPerSec} (${Math.round(ratio * 100)}%)`,
       );
     }
   }
@@ -49,7 +54,9 @@ function compareToBaseline(current, baseline) {
 }
 
 async function main() {
-  const current = runBenchmark(join(repoRoot, "conformance/bare-runtime/benchmark-node.mjs"));
+  const current = runBenchmark(
+    join(repoRoot, "conformance/bare-runtime/benchmark-node.mjs"),
+  );
 
   if (compare) {
     const baseline = JSON.parse(readFileSync(baselinePath, "utf8"));

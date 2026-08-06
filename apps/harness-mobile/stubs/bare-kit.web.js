@@ -1,7 +1,7 @@
 export const Worklet = class {
   IPC = {
     on() {},
-    write() {}
+    write() {},
   };
 
   start() {}

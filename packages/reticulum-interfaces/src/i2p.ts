@@ -1,5 +1,13 @@
-import type { CryptoProvider, DuplexConnection, Runtime } from "@twistedpear/reticulum-ts";
-import { Packet, HdlcPacketInterface, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import type {
+  CryptoProvider,
+  DuplexConnection,
+  Runtime,
+} from "@twistedpear/reticulum-ts";
+import {
+  Packet,
+  HdlcPacketInterface,
+  type ReticulumInterfaceOptions,
+} from "@twistedpear/reticulum-ts";
 
 /** Mirrors RNS/Interfaces/I2PInterface.py SAM defaults. */
 export const I2P_DEFAULT_SAM_HOST = "127.0.0.1";
@@ -49,8 +57,8 @@ export class SamClient {
     const connection = await this.openSamConnection();
     await connection.write(
       new TextEncoder().encode(
-        `SESSION CREATE STYLE=STREAM ID=${this.sessionName} DESTINATION=TRANSIENT\n`
-      )
+        `SESSION CREATE STYLE=STREAM ID=${this.sessionName} DESTINATION=TRANSIENT\n`,
+      ),
     );
     const { response } = await readSamLine(connection);
     const destination = parseSamValue(response, "DESTINATION");
@@ -69,8 +77,8 @@ export class SamClient {
     const connection = await this.openSamConnection();
     await connection.write(
       new TextEncoder().encode(
-        `STREAM CONNECT ID=${this.sessionName} DESTINATION=${destination} SILENT=false\n`
-      )
+        `STREAM CONNECT ID=${this.sessionName} DESTINATION=${destination} SILENT=false\n`,
+      ),
     );
     const { response, remainder, iterator } = await readSamLine(connection);
     if (!response.startsWith("STREAM STATUS RESULT=OK")) {
@@ -95,10 +103,12 @@ export class SamClient {
     const connection = await this.runtime.tcp.connect({
       host: this.host,
       port: this.port,
-      connectTimeoutMs: 10_000
+      connectTimeoutMs: 10_000,
     });
 
-    await connection.write(new TextEncoder().encode("HELLO VERSION MIN=3.0 MAX=3.3\n"));
+    await connection.write(
+      new TextEncoder().encode("HELLO VERSION MIN=3.0 MAX=3.3\n"),
+    );
     const { response } = await readSamLine(connection);
     if (!response.startsWith("HELLO REPLY RESULT=OK")) {
       await connection.close();
@@ -129,18 +139,25 @@ export class I2PInterface extends HdlcPacketInterface {
 
   constructor(
     private readonly provider: CryptoProvider,
-    private readonly options: I2PInterfaceOptions
+    private readonly options: I2PInterfaceOptions,
   ) {
-    super({ ...options, mtu: options.mtu ?? 1_000 }, options.incoming ?? true, options.outgoing ?? true);
+    super(
+      { ...options, mtu: options.mtu ?? 1_000 },
+      options.incoming ?? true,
+      options.outgoing ?? true,
+    );
     this.sam = new SamClient({
       runtime: options.runtime,
       sessionName: options.sessionName ?? `reticulum-ts-${nextSamSessionId++}`,
       ...(options.samHost === undefined ? {} : { host: options.samHost }),
-      ...(options.samPort === undefined ? {} : { port: options.samPort })
+      ...(options.samPort === undefined ? {} : { port: options.samPort }),
     });
   }
 
-  static async connect(provider: CryptoProvider, options: I2PInterfaceOptions): Promise<I2PInterface> {
+  static async connect(
+    provider: CryptoProvider,
+    options: I2PInterfaceOptions,
+  ): Promise<I2PInterface> {
     const iface = new I2PInterface(provider, options);
     await iface.initialConnect();
     return iface;
@@ -184,12 +201,15 @@ export class I2PInterface extends HdlcPacketInterface {
 
     try {
       await this.sam.ensureSession();
-      this.connection = await this.sam.connectStream(this.options.peerDestination);
+      this.connection = await this.sam.connectStream(
+        this.options.peerDestination,
+      );
       this.lastConnectionError = null;
       this.online = true;
       this.readTask = this.readLoop();
     } catch (error) {
-      this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
+      this.lastConnectionError =
+        error instanceof Error ? error : new Error(String(error));
       this.online = false;
       this.scheduleReconnect();
     }
@@ -205,7 +225,8 @@ export class I2PInterface extends HdlcPacketInterface {
         this.receiveBytes(chunk);
       }
     } catch (error) {
-      this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
+      this.lastConnectionError =
+        error instanceof Error ? error : new Error(String(error));
       this.online = false;
       this.scheduleReconnect();
     }
@@ -237,7 +258,7 @@ async function readSamLine(connection: DuplexConnection): Promise<{
       return {
         response: new TextDecoder().decode(concatBytes(...chunks)).trim(),
         remainder: new Uint8Array(),
-        iterator
+        iterator,
       };
     }
 
@@ -249,7 +270,7 @@ async function readSamLine(connection: DuplexConnection): Promise<{
       return {
         response: new TextDecoder().decode(merged.subarray(0, newline)).trim(),
         remainder: merged.subarray(newline + 1),
-        iterator
+        iterator,
       };
     }
   }
@@ -258,7 +279,7 @@ async function readSamLine(connection: DuplexConnection): Promise<{
 function withBufferedReadable(
   connection: DuplexConnection,
   iterator: AsyncIterator<Uint8Array>,
-  remainder: Uint8Array
+  remainder: Uint8Array,
 ): DuplexConnection {
   return {
     write: (data) => connection.write(data),
@@ -275,7 +296,7 @@ function withBufferedReadable(
         }
         yield next.value;
       }
-    })()
+    })(),
   };
 }
 

@@ -26,7 +26,7 @@ running the same app in the same room, one of which was closed when the other po
 never agree about what was said — and no amount of application code can fix that, because
 the bytes were never stored anywhere.
 
-**So there is no source of truth.** Each host's store is a record of what *that host heard*.
+**So there is no source of truth.** Each host's store is a record of what _that host heard_.
 Design for that and announce-based apps are pleasant. Design against it and you will spend
 your time building a sync protocol that the platform cannot support.
 
@@ -34,7 +34,7 @@ your time building a sync protocol that the platform cannot support.
 
 **Diagram 5.0 — Announce fan-out.** An announce reaches only the hosts in radio range that
 are running the same app and listening at that instant. A host that was closed never hears it
-and never will. Each host's store is a record of what *that* host heard, so no two are
+and never will. Each host's store is a record of what _that_ host heard, so no two are
 guaranteed to agree.
 
 ![The three discovery apps and a host's announce browser](/cookbook/images/05-chapter-opener.png)
@@ -82,7 +82,7 @@ Two SDK calls do all of it, and no others are involved:
   current local backend resolves after buffering it. A transport-backed backend should
   resolve after queueing it for transmission; neither result can tell you who heard it.
 - **`announce.subscribe(namespace)`** resolves **once** with an array of the announces the host
-  has buffered for that namespace *at the instant you call it*. Each entry is
+  has buffered for that namespace _at the instant you call it_. Each entry is
   `{ destination, appData, receivedAt }`: `destination` is the peer that announced, `appData`
   is the raw bytes they sent (you decode and parse them yourself — they are as trustworthy as
   a query string), and `receivedAt` is when this host heard it.
@@ -91,7 +91,7 @@ Four things trip people up:
 
 1. **It is a snapshot, not a stream.** `subscribe` does not stay open and push later announces
    at you; the promise resolves with whatever is already buffered and never resolves again. So
-   an app that subscribes once at launch shows what the host had *already* heard. To keep
+   an app that subscribes once at launch shows what the host had _already_ heard. To keep
    finding peers who announce afterwards, call `subscribe` again on a timer — poll, exactly the
    way [Link weather](#link-weather) polls `presence.snapshot()`, and for the same reason:
    there is no event to await.
@@ -125,11 +125,11 @@ The underlying docs, in order of authority:
 - [Appendix: feature status](appendix-feature-status.md) — the snapshot/poll limit, recorded
   next to the matching `presence.snapshot()` one.
 
-| Recipe | Capabilities | Directory |
-|---|---|---|
+| Recipe                                    | Capabilities                                                 | Directory                                                    |
+| ----------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | [Neighborhood board](#neighborhood-board) | `announce:publish`, `announce:subscribe`, `storage:hyperbee` | [apps/neighborhood-board](apps/neighborhood-board/README.md) |
-| [Swap shelf](#swap-shelf) | `announce:publish`, `announce:subscribe`, `storage:kv` | [apps/swap-shelf](apps/swap-shelf/README.md) |
-| [Link weather](#link-weather) | `presence`, `peer:connect` | [apps/link-weather](apps/link-weather/README.md) |
+| [Swap shelf](#swap-shelf)                 | `announce:publish`, `announce:subscribe`, `storage:kv`       | [apps/swap-shelf](apps/swap-shelf/README.md)                 |
+| [Link weather](#link-weather)             | `presence`, `peer:connect`                                   | [apps/link-weather](apps/link-weather/README.md)             |
 
 ---
 
@@ -159,12 +159,21 @@ announce.subscribe(ANNOUNCE_NAMESPACE).then(async (events) => {
   for (const event of events) {
     let data;
     try {
-      data = JSON.parse(decoder.decode(event.appData));   // raw bytes from a stranger
+      data = JSON.parse(decoder.decode(event.appData)); // raw bytes from a stranger
     } catch (error) {
-      continue;                                            // not our JSON — drop it
+      continue; // not our JSON — drop it
     }
-    if (data === null || typeof data !== "object" || typeof data.text !== "string") continue;
-    await store(event.destination, data.text, data.at ?? new Date().toISOString());
+    if (
+      data === null ||
+      typeof data !== "object" ||
+      typeof data.text !== "string"
+    )
+      continue;
+    await store(
+      event.destination,
+      data.text,
+      data.at ?? new Date().toISOString(),
+    );
     await render();
   }
 });
@@ -251,7 +260,7 @@ interface running at a few hundred bits per second, the four bytes you saved on 
 are four bytes of airtime on a channel every one of your neighbours is sharing, on every
 single listing, forever.
 
-The counter is shown to the user *live*, which turns an invisible protocol limit into an
+The counter is shown to the user _live_, which turns an invisible protocol limit into an
 ordinary editing constraint — the same way a character counter does. Users are good at
 writing to a budget when they can see it, and terrible at it when they cannot.
 
@@ -317,7 +326,7 @@ on the two devices:
 ```javascript
 interfaces.includes("rnode") || interfaces.includes("ble")
   ? "Slow link present. Budget every byte you send."
-  : "IP-backed link. Bulk transfer is plausible here and nowhere else."
+  : "IP-backed link. Bulk transfer is plausible here and nowhere else.";
 ```
 
 Any non-trivial app should branch on this. Fetching a two-megabyte file is reasonable over
@@ -334,7 +343,7 @@ Invite and join are the two directions of the same host-owned operation:
 ```javascript
 const handle = await peers.request({
   purpose: "Inspect and establish a Link Weather peer connection",
-  mechanisms: ["qr"]
+  mechanisms: ["qr"],
 });
 const summary = await peers.info(handle);
 ```
@@ -388,7 +397,7 @@ Full source: [apps/link-weather/bundle.js](apps/link-weather/bundle.js).
 - **Log the readings.** Add `storage:hyperbee`, sample every minute while open, and you have a
   connectivity history for the times you were looking.
 - **Show quota as bars.** `progress` widgets against the numbers from `host.info().quota`.
-- **Turn it into a preflight check.** Have your *other* app call `host.info()` on launch and
+- **Turn it into a preflight check.** Have your _other_ app call `host.info()` on launch and
   refuse to attempt a large transfer over a radio interface. That is the actual lesson of this
   recipe.
 - **Filter by your real requirement.** Pass only mechanisms acceptable for the task, or use

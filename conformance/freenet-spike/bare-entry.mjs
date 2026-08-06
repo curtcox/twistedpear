@@ -4,7 +4,7 @@ import {
   FreenetWsApi,
   GetRequest,
   PutRequest,
-  UpdateRequest
+  UpdateRequest,
 } from "@freenetorg/freenet-stdlib";
 import { installBareWebSocketGlobal } from "./bare-websocket-shim.mjs";
 
@@ -17,7 +17,7 @@ const result = {
     typeof PutRequest === "function" &&
     typeof UpdateRequest === "function",
   webSocketGlobal: typeof globalThis.WebSocket === "function",
-  shims: ["bare-ws@2.0.4", "bare-encoding@1.0.3"]
+  shims: ["bare-ws@2.0.4", "bare-encoding@1.0.3"],
 };
 
 const nodeUrl = Bare.argv[2];
@@ -46,17 +46,17 @@ if (nodeUrl !== undefined && contractKey !== undefined) {
     },
     onClose(_code, reason) {
       openedReject(new Error(`Freenet connection closed: ${reason}`));
-    }
+    },
   };
 
   api = new FreenetWsApi(new URL(nodeUrl), handler);
   await opened;
   const response = await api.get(
-    new GetRequest(ContractKey.fromInstanceId(contractKey))
+    new GetRequest(ContractKey.fromInstanceId(contractKey)),
   );
   result.liveGet = {
     key: response.key.encode(),
-    stateBytes: response.state.length
+    stateBytes: response.state.length,
   };
 }
 

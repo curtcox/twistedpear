@@ -1,6 +1,5 @@
 # LXMF Propagation Node
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -21,11 +20,11 @@ Or set `"propagation": true` in host config roles.
 
 ### Store limits
 
-| Limit | Default |
-|-------|---------|
-| Total bytes | 256 MiB |
-| Message count | 10,000 |
-| Per-message size | 1 MiB |
+| Limit               | Default      |
+| ------------------- | ------------ |
+| Total bytes         | 256 MiB      |
+| Message count       | 10,000       |
+| Per-message size    | 1 MiB        |
 | Per-client requests | 120 / minute |
 
 Oldest messages are evicted when byte or count quotas are exceeded.

@@ -1,6 +1,5 @@
 # Abuse-Resistance Simulation Loop
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -11,12 +10,12 @@ How TwistedPear keeps raising its resistance to abuse over time. This is the **o
 manual for the repeating cycle**, not a substrate build plan — the substrate is already
 built and green.
 
-- *Why the same-core simulator is trustworthy*: [simulation-architecture.html](simulation-architecture.html).
-- *How the substrate was built (11 phases, complete)*: [simulation-implementation-plan.md](../archive/design/simulation-implementation-plan.md).
-- *Current status and the one open evidence boundary*: [simulation.md](simulation.md).
+- _Why the same-core simulator is trustworthy_: [simulation-architecture.html](simulation-architecture.html).
+- _How the substrate was built (11 phases, complete)_: [simulation-implementation-plan.md](../archive/design/simulation-implementation-plan.md).
+- _Current status and the one open evidence boundary_: [simulation.md](simulation.md).
 
 This document adds the missing piece: a **turn-the-crank loop** that uses that machinery to
-uncover and fix *increasingly complicated* failure scenarios, plus the fidelity ramp,
+uncover and fix _increasingly complicated_ failure scenarios, plus the fidelity ramp,
 efficiency budget, and visualization artifacts that keep the loop legible and affordable.
 
 ---
@@ -25,16 +24,16 @@ efficiency budget, and visualization artifacts that keep the loop legible and af
 
 The loop does not start from zero. It inherits, and reuses by name:
 
-| Capability | Entry point | What it gives the loop |
-|---|---|---|
-| Deterministic kernel + transport classes (lan/internet/ble/lora) | `packages/effects/src/adapters/sim/` | Every finding is a reproducible `(seed, config)` history. |
-| Coverage-frame campaign (200 cells × seeds ⇒ 2,000 scenarios) | `npm run test:sim-campaign` → `conformance/sim-campaign/artifacts/report.json` | The enumeration surface and the saturation/containment/completeness report. |
-| Fixed production-backed corpus (400 scenarios, byte-identical cross-OS) | `npm run test:sim-fixed-replay` | The regression floor that must never move silently. |
-| Oracles + recorder + `ddmin` shrinking | `packages/effects/.../{oracles,recorder,shrink}.ts` | Turns an oracle trip into a minimal committed reproducer. |
-| Adversaries: scripted → fuzz → LLM-authored | `packages/sim-adversaries/`, `npm run sim:author`, `npm run test:fuzz` | The attacker supply, weakest to strongest. |
-| Containment metrics + completeness estimation | `packages/sim-campaign/src/{metrics,estimation}.ts` | Revocation speed, egress attributability, network-kill latency; capture-recapture floor. |
-| Formal twins (TLA+/Tamarin/ProVerif) | `npm run formal:all`, `formal/` | Proves what sampling can only estimate for the authority machines. |
-| Transport calibration harness (provenance-enforcing) | `npm run calibrate:sim-transport` → `conformance/sim-calibration/` | The gate for turning hardware traces into higher-fidelity models. |
+| Capability                                                              | Entry point                                                                    | What it gives the loop                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Deterministic kernel + transport classes (lan/internet/ble/lora)        | `packages/effects/src/adapters/sim/`                                           | Every finding is a reproducible `(seed, config)` history.                                |
+| Coverage-frame campaign (200 cells × seeds ⇒ 2,000 scenarios)           | `npm run test:sim-campaign` → `conformance/sim-campaign/artifacts/report.json` | The enumeration surface and the saturation/containment/completeness report.              |
+| Fixed production-backed corpus (400 scenarios, byte-identical cross-OS) | `npm run test:sim-fixed-replay`                                                | The regression floor that must never move silently.                                      |
+| Oracles + recorder + `ddmin` shrinking                                  | `packages/effects/.../{oracles,recorder,shrink}.ts`                            | Turns an oracle trip into a minimal committed reproducer.                                |
+| Adversaries: scripted → fuzz → LLM-authored                             | `packages/sim-adversaries/`, `npm run sim:author`, `npm run test:fuzz`         | The attacker supply, weakest to strongest.                                               |
+| Containment metrics + completeness estimation                           | `packages/sim-campaign/src/{metrics,estimation}.ts`                            | Revocation speed, egress attributability, network-kill latency; capture-recapture floor. |
+| Formal twins (TLA+/Tamarin/ProVerif)                                    | `npm run formal:all`, `formal/`                                                | Proves what sampling can only estimate for the authority machines.                       |
+| Transport calibration harness (provenance-enforcing)                    | `npm run calibrate:sim-transport` → `conformance/sim-calibration/`             | The gate for turning hardware traces into higher-fidelity models.                        |
 
 The loop's job is to keep pulling new, harder findings out of this machinery, fix them, and
 ratchet the difficulty up — without ever sacrificing the reproducibility guarantee the whole
@@ -44,7 +43,7 @@ thing rests on.
 
 ## 2. The loop, one full turn
 
-Each turn is six stages. A turn is *not done* until stage 6 re-establishes a green,
+Each turn is six stages. A turn is _not done_ until stage 6 re-establishes a green,
 byte-identical baseline at the current difficulty rung. The stages map directly onto the
 capabilities the request named: raise fidelity, run efficiently, produce artifacts, find
 solutions, implement them, repeat.
@@ -66,8 +65,8 @@ solutions, implement them, repeat.
 ```
 
 **Invariant carried through every stage** (from the architecture doc's cross-cutting rules):
-the Sans-IO fence stays up, determinism is asserted not assumed, and *a finding that cannot
-be replayed without its author (LLM included) does not count.*
+the Sans-IO fence stays up, determinism is asserted not assumed, and _a finding that cannot
+be replayed without its author (LLM included) does not count._
 
 ---
 
@@ -75,7 +74,7 @@ be replayed without its author (LLM included) does not count.*
 
 The request's core ask is scenarios that get progressively harder. That progression is made
 explicit as a **ladder of rungs**. Each rung is a named, committed configuration of the
-campaign; the loop only climbs to rung *N+1* after rung *N* is green and its findings are
+campaign; the loop only climbs to rung _N+1_ after rung _N_ is green and its findings are
 fixed and regression-locked. Rungs compose three difficulty dials:
 
 - **Interleaving depth** — how much reordering/partitioning/adversarial scheduling the
@@ -86,14 +85,14 @@ fixed and regression-locked. Rungs compose three difficulty dials:
 - **Fidelity** — how close the transport/social models sit to reality (flat models →
   calibrated distributions → hardware-trace-fit models; see §4).
 
-| Rung | Interleaving | Adversary | Fidelity | Exit criterion |
-|---|---|---|---|---|
-| **L0 — floor** | today's schedules | scripted historical fixtures | current models | every historical fixture trips its expected oracle or is documented out-of-model |
-| **L1 — search** | + reorder/duplicate/delay | fuzz over event orderings & payloads | current models | fuzzer finds a seeded canary and shrinks it; zero genuine findings survive |
-| **L2 — authored** | + partition windows | LLM-proposed → compiled → replayed-without-model | current models | one end-to-end authored finding reproduced model-free; no un-fixed genuine finding |
-| **L3 — colluding** | + colluding-pair & below-quorum schedules | colluding relays, compromised host | + calibrated transport distributions | escrow/recovery + quorum oracles clean under collusion; social cost-functions hold |
-| **L4 — calibrated** | full network churn | full adversary matrix | + BLE/LoRa hardware-trace-fit models | calibration provenance accepted (§4); numerical thresholds justified by traces |
-| **L5 — adaptive** | adaptive schedules driven by prior findings | coverage-guided + LLM adapting to defenses | calibrated | new-finding saturation curve flattens; completeness floor holds with tighter bars |
+| Rung                | Interleaving                                | Adversary                                        | Fidelity                             | Exit criterion                                                                     |
+| ------------------- | ------------------------------------------- | ------------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------- |
+| **L0 — floor**      | today's schedules                           | scripted historical fixtures                     | current models                       | every historical fixture trips its expected oracle or is documented out-of-model   |
+| **L1 — search**     | + reorder/duplicate/delay                   | fuzz over event orderings & payloads             | current models                       | fuzzer finds a seeded canary and shrinks it; zero genuine findings survive         |
+| **L2 — authored**   | + partition windows                         | LLM-proposed → compiled → replayed-without-model | current models                       | one end-to-end authored finding reproduced model-free; no un-fixed genuine finding |
+| **L3 — colluding**  | + colluding-pair & below-quorum schedules   | colluding relays, compromised host               | + calibrated transport distributions | escrow/recovery + quorum oracles clean under collusion; social cost-functions hold |
+| **L4 — calibrated** | full network churn                          | full adversary matrix                            | + BLE/LoRa hardware-trace-fit models | calibration provenance accepted (§4); numerical thresholds justified by traces     |
+| **L5 — adaptive**   | adaptive schedules driven by prior findings | coverage-guided + LLM adapting to defenses       | calibrated                           | new-finding saturation curve flattens; completeness floor holds with tighter bars  |
 
 L0–L2 run on the substrate as-is. L3 needs product semantics for escrow/recovery (today a
 scope boundary). L4 needs guarded hardware evidence (the one open boundary in
@@ -112,7 +111,7 @@ acceptance test, because the architecture doc is explicit that model fidelity is
 shrunk, not eliminated." Increments, roughly in leverage order:
 
 1. **Transport distributions over constants.** Replace any remaining flat latency/loss with
-   sampled distributions per link class; the LoRa duty-cycle budget must *change conclusions*
+   sampled distributions per link class; the LoRa duty-cycle budget must _change conclusions_
    (a saturation attack that is cheap on LAN must be expensive on LoRa). Acceptance: the
    architecture doc's own test — LoRa scarcity visibly alters outcomes.
 2. **Adversary sophistication.** Add positions and powers only as the modeled position
@@ -138,7 +137,7 @@ the bisect must be unambiguous — was it the model or the code?
 ## 5. Raising difficulty without raising fidelity (stage ①, the other dial)
 
 Between fidelity bumps, the loop still climbs by turning the interleaving and adversary dials
-on the *existing* models — cheaper, and it exhausts the current fidelity level before paying
+on the _existing_ models — cheaper, and it exhausts the current fidelity level before paying
 for the next. Concretely per turn: widen the seed range on the hardest-hitting cells, enable
 the next scheduling class (reorder → duplicate → partition → colluding-pair), or promote the
 adversary tier (scripted → fuzz → authored → adaptive). The saturation curve (§7) tells you
@@ -152,9 +151,9 @@ More scenarios per unit time and per CI dollar, without weakening the reproducib
 
 - **Tiered execution.** Keep three tiers already implied by the tree: a **PR tier** (fixed
   400-scenario replay, byte-compared, fast), a **nightly tier** (full 2,000-scenario campaign
-  + fuzz + authored replay), and a **campaign tier** (widened seed ranges / new rungs, run on
-  demand). The PR tier must stay byte-identical across OSes — it is the regression floor.
-- **Seed budgeting.** Allocate seeds by marginal yield: cells still producing *new* distinct
+  - fuzz + authored replay), and a **campaign tier** (widened seed ranges / new rungs, run on
+    demand). The PR tier must stay byte-identical across OSes — it is the regression floor.
+- **Seed budgeting.** Allocate seeds by marginal yield: cells still producing _new_ distinct
   findings get more seeds; saturated cells get the minimum needed to stay green. The
   saturation curve in `report.json` is the allocator's input.
 - **Coverage-guided prioritization.** Prefer `(cell, seed)` regions adjacent to recent
@@ -188,7 +187,7 @@ Planned artifacts, in priority order:
 2. **Saturation curves** — new distinct findings per thousand scenarios, per rung, so the
    "are we done at this level?" decision (§6) is a picture, not a guess.
 3. **Containment trend lines** — revocation-propagation speed, egress attributability, and
-   network-kill latency, broken out *per transport class* (LoRa included), tracked across
+   network-kill latency, broken out _per transport class_ (LoRa included), tracked across
    turns so a regression that slows containment is a visible delta.
 4. **Completeness gauge** — the capture-recapture floor with its 95% band, shown as a
    floor-with-error-bars and never as a proof of exhaustion.
@@ -210,10 +209,10 @@ A finding is not fixed until its minimal reproducer is committed and permanently
 **Triage (④).** Cluster raw findings by their shrunk causal core (the `ddmin` output), not by
 symptom — many scenarios usually collapse onto one root cause. For each cluster, classify:
 
-- *Genuine defect* → route to a fix; the minimized history becomes a pending regression.
-- *Model artifact* → the transport/social/adversary model is wrong or too generous; fix the
+- _Genuine defect_ → route to a fix; the minimized history becomes a pending regression.
+- _Model artifact_ → the transport/social/adversary model is wrong or too generous; fix the
   model and note it, do not "fix" product code around a modeling error.
-- *Out-of-model* → no shipping product path exists yet (e.g. escrow before it's integrated);
+- _Out-of-model_ → no shipping product path exists yet (e.g. escrow before it's integrated);
   record as an explicit scope boundary with the criterion for revisiting.
 
 **Solution strategies (⑤), preferred order.** Design out > contain > detect:
@@ -237,11 +236,11 @@ step. Changes are verified by driving the actual affected flow, not just the tes
 
 - **Re-baseline.** After a fix, regenerate the fixed corpus and confirm it is byte-identical
   across OSes; the new baseline hash replaces the old one in the status doc. The regression
-  floor only ever moves *up*, deliberately, with the change that moved it.
+  floor only ever moves _up_, deliberately, with the change that moved it.
 - **Lock the rung.** A difficulty rung is "held" once its exit criterion (§3) is met and all
   its findings are fixed. Held rungs run in every subsequent nightly, so climbing never
   silently regresses a lower rung.
-- **Cadence.** PR tier on every change; nightly tier scheduled; one *deliberate* difficulty
+- **Cadence.** PR tier on every change; nightly tier scheduled; one _deliberate_ difficulty
   or fidelity increment per loop turn (weekly is a reasonable default), gated on the previous
   turn being green. The loop has no terminal state — L5 is steady-state.
 - **Definition of done, per turn.** New increment merged; campaign green at the current rung;
@@ -255,7 +254,7 @@ step. Changes are verified by driving the actual affected flow, not just the tes
 The loop does not get to quietly outgrow the limits the architecture doc already stated:
 
 - **Environment models are approximations.** The same-core design collapses the fidelity
-  question for protocol *logic*, not for the transport/adversary *models*. LoRa is the
+  question for protocol _logic_, not for the transport/adversary _models_. LoRa is the
   highest-leverage, highest-risk approximation; historical replay is its cheap check,
   guarded hardware its ultimate one.
 - **The physical layer can lie.** Some abuses live in the gap between the clean event model

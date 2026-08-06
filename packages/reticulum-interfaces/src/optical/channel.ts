@@ -1,4 +1,7 @@
-import type { CryptoProvider, ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import type {
+  CryptoProvider,
+  ReticulumInterfaceOptions,
+} from "@twistedpear/reticulum-ts";
 
 /**
  * A channel representing the camera (inbound) and screen/display (outbound) medium.

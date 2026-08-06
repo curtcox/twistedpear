@@ -22,7 +22,7 @@ export const ChannelMessageState = {
   MSGSTATE_NEW: 0,
   MSGSTATE_SENT: 1,
   MSGSTATE_DELIVERED: 2,
-  MSGSTATE_FAILED: 3
+  MSGSTATE_FAILED: 3,
 } as const;
 
 export type ChannelMessageStateValue =
@@ -35,7 +35,7 @@ export const ChannelExceptionTypeCode = {
   ME_NOT_REGISTERED: 2,
   ME_LINK_NOT_READY: 3,
   ME_ALREADY_SENT: 4,
-  ME_TOO_BIG: 5
+  ME_TOO_BIG: 5,
 } as const;
 
 export type ChannelExceptionTypeCodeValue =
@@ -43,7 +43,7 @@ export type ChannelExceptionTypeCodeValue =
 
 /** Map packet-receipt status to channel message state. */
 export function channelMessageStateFromPacketReceipt(
-  receiptStatus: PacketReceiptStatusValue | null
+  receiptStatus: PacketReceiptStatusValue | null,
 ): ChannelMessageStateValue {
   if (receiptStatus === null) {
     return ChannelMessageState.MSGSTATE_FAILED;
@@ -88,7 +88,7 @@ export function initialChannelMessageStateFromPacketReceiptState(): ChannelMessa
 
 export function stepChannelMessageStateFromPacketReceiptWithActions(
   state: ChannelMessageStateFromPacketReceiptState,
-  event: ChannelMessageStateFromPacketReceiptEvent
+  event: ChannelMessageStateFromPacketReceiptEvent,
 ): ChannelMessageStateFromPacketReceiptStepResult {
   if (event.kind === "channel/message-state-from-receipt-gate") {
     return {
@@ -97,9 +97,11 @@ export function stepChannelMessageStateFromPacketReceiptWithActions(
       actions: [
         {
           kind: "use-state",
-          messageState: channelMessageStateFromPacketReceipt(event.receiptStatus)
-        }
-      ]
+          messageState: channelMessageStateFromPacketReceipt(
+            event.receiptStatus,
+          ),
+        },
+      ],
     };
   }
 
@@ -107,21 +109,23 @@ export function stepChannelMessageStateFromPacketReceiptWithActions(
 }
 
 export function shouldUseChannelMessageStateFromPacketReceipt(
-  actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>
+  actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-state");
 }
 
 /** Extract channel message state from step actions; null when no `use-state`. */
 export function channelMessageStateFromActions(
-  actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>
+  actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>,
 ): ChannelMessageStateValue | null {
   const action = actions.find((entry) => entry.kind === "use-state");
   return action?.kind === "use-state" ? action.messageState : null;
 }
 
 /** Whether send/resend should immediately fire packetDelivered for an already-delivered outlet state. */
-export function shouldEmitChannelImmediateDelivery(packetState: number): boolean {
+export function shouldEmitChannelImmediateDelivery(
+  packetState: number,
+): boolean {
   return packetState === ChannelMessageState.MSGSTATE_DELIVERED;
 }
 
@@ -140,8 +144,7 @@ export type EmitChannelImmediateDeliveryEvent =
     };
 
 export type EmitChannelImmediateDeliveryAction =
-  | { readonly kind: "emit" }
-  | { readonly kind: "skip" };
+  { readonly kind: "emit" } | { readonly kind: "skip" };
 
 export interface EmitChannelImmediateDeliveryStepResult {
   readonly state: EmitChannelImmediateDeliveryState;
@@ -155,7 +158,7 @@ export function initialEmitChannelImmediateDeliveryState(): EmitChannelImmediate
 
 export function stepEmitChannelImmediateDeliveryWithActions(
   state: EmitChannelImmediateDeliveryState,
-  event: EmitChannelImmediateDeliveryEvent
+  event: EmitChannelImmediateDeliveryEvent,
 ): EmitChannelImmediateDeliveryStepResult {
   if (event.kind === "channel/emit-immediate-delivery-gate") {
     return {
@@ -163,9 +166,11 @@ export function stepEmitChannelImmediateDeliveryWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldEmitChannelImmediateDelivery(event.packetState) ? "emit" : "skip"
-        }
-      ]
+          kind: shouldEmitChannelImmediateDelivery(event.packetState)
+            ? "emit"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -173,13 +178,13 @@ export function stepEmitChannelImmediateDeliveryWithActions(
 }
 
 export function shouldEmitChannelImmediateDeliveryNow(
-  actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>
+  actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>,
 ): boolean {
   return actions.some((action) => action.kind === "emit");
 }
 
 export function shouldSkipEmitChannelImmediateDelivery(
-  actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>
+  actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -203,13 +208,17 @@ export function packChannelEnvelope(input: PackedChannelEnvelope): Uint8Array {
   view.setUint16(0, input.msgType & 0xffff, false);
   view.setUint16(2, input.sequence & 0xffff, false);
   view.setUint16(4, input.payload.length & 0xffff, false);
-  const out = new Uint8Array(CHANNEL_ENVELOPE_HEADER_SIZE + input.payload.length);
+  const out = new Uint8Array(
+    CHANNEL_ENVELOPE_HEADER_SIZE + input.payload.length,
+  );
   out.set(header, 0);
   out.set(input.payload, CHANNEL_ENVELOPE_HEADER_SIZE);
   return out;
 }
 
-export function unpackChannelEnvelope(raw: Uint8Array): UnpackedChannelEnvelope | null {
+export function unpackChannelEnvelope(
+  raw: Uint8Array,
+): UnpackedChannelEnvelope | null {
   if (raw.length < CHANNEL_ENVELOPE_HEADER_SIZE) {
     return null;
   }
@@ -224,7 +233,10 @@ export function unpackChannelEnvelope(raw: Uint8Array): UnpackedChannelEnvelope 
     msgType,
     sequence,
     length,
-    payload: raw.subarray(CHANNEL_ENVELOPE_HEADER_SIZE, CHANNEL_ENVELOPE_HEADER_SIZE + length)
+    payload: raw.subarray(
+      CHANNEL_ENVELOPE_HEADER_SIZE,
+      CHANNEL_ENVELOPE_HEADER_SIZE + length,
+    ),
   };
 }
 
@@ -260,7 +272,7 @@ export function initialPackChannelEnvelopeState(): PackChannelEnvelopeState {
 
 export function stepPackChannelEnvelopeWithActions(
   state: PackChannelEnvelopeState,
-  event: PackChannelEnvelopeEvent
+  event: PackChannelEnvelopeEvent,
 ): PackChannelEnvelopeStepResult {
   if (event.kind === "channel-envelope/pack-gate") {
     try {
@@ -273,10 +285,10 @@ export function stepPackChannelEnvelopeWithActions(
             raw: packChannelEnvelope({
               msgType: event.msgType,
               sequence: event.sequence,
-              payload: event.payload
-            })
-          }
-        ]
+              payload: event.payload,
+            }),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -287,20 +299,20 @@ export function stepPackChannelEnvelopeWithActions(
 }
 
 export function shouldUsePackChannelEnvelope(
-  actions: ReadonlyArray<PackChannelEnvelopeAction>
+  actions: ReadonlyArray<PackChannelEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackChannelEnvelope(
-  actions: ReadonlyArray<PackChannelEnvelopeAction>
+  actions: ReadonlyArray<PackChannelEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed channel envelope from step actions; null when no `use-raw`. */
 export function packChannelEnvelopeRawFromActions(
-  actions: ReadonlyArray<PackChannelEnvelopeAction>
+  actions: ReadonlyArray<PackChannelEnvelopeAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -336,7 +348,7 @@ export function initialUnpackChannelEnvelopeState(): UnpackChannelEnvelopeState 
 
 export function stepUnpackChannelEnvelopeWithActions(
   state: UnpackChannelEnvelopeState,
-  event: UnpackChannelEnvelopeEvent
+  event: UnpackChannelEnvelopeEvent,
 ): UnpackChannelEnvelopeStepResult {
   if (event.kind === "channel-envelope/unpack-gate") {
     const fields = unpackChannelEnvelope(event.raw);
@@ -350,20 +362,20 @@ export function stepUnpackChannelEnvelopeWithActions(
 }
 
 export function shouldUseUnpackChannelEnvelope(
-  actions: ReadonlyArray<UnpackChannelEnvelopeAction>
+  actions: ReadonlyArray<UnpackChannelEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackChannelEnvelope(
-  actions: ReadonlyArray<UnpackChannelEnvelopeAction>
+  actions: ReadonlyArray<UnpackChannelEnvelopeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked channel envelope from step actions; null when no `use-fields`. */
 export function channelEnvelopeFieldsFromActions(
-  actions: ReadonlyArray<UnpackChannelEnvelopeAction>
+  actions: ReadonlyArray<UnpackChannelEnvelopeAction>,
 ): UnpackedChannelEnvelope | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -374,9 +386,7 @@ export function isChannelSystemMsgType(msgType: number): boolean {
 }
 
 export type ChannelMessageTypeRegistrationPlan =
-  | "ok"
-  | "missing-msgtype"
-  | "system-reserved";
+  "ok" | "missing-msgtype" | "system-reserved";
 
 /** Whether a channel MSGTYPE may be registered (missing / system-reserved gates). */
 export function planChannelMessageTypeRegistration(input: {
@@ -406,13 +416,13 @@ export type ChannelMessageTypeRegistrationPlanAction = {
 
 /** Extract the registration plan from actions; null when empty. */
 export function channelMessageTypeRegistrationPlanFromActions(
-  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): ChannelMessageTypeRegistrationPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "missing-msgtype" ||
-      entry.kind === "system-reserved"
+      entry.kind === "system-reserved",
   );
   return action?.kind ?? null;
 }

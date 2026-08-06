@@ -7,7 +7,7 @@ import {
   DestinationType,
   Identity,
   NodeCryptoProvider,
-  type Entropy
+  type Entropy,
 } from "../src/index.js";
 
 class ScriptedEntropy implements Entropy {
@@ -36,12 +36,14 @@ describe("Announce entropy injection", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["announce"]
+      aspects: ["announce"],
     });
 
-    const expected = new Uint8Array(ANNOUNCE_RANDOM_HASH_SIZE).map((_, i) => (i * 7 + 2) & 0xff);
+    const expected = new Uint8Array(ANNOUNCE_RANDOM_HASH_SIZE).map(
+      (_, i) => (i * 7 + 2) & 0xff,
+    );
     const packet = Announce.buildPacket(provider, destination, {
-      entropy: new ScriptedEntropy(expected)
+      entropy: new ScriptedEntropy(expected),
     });
     const parsed = Announce.parse(packet);
     expect(parsed).not.toBeNull();

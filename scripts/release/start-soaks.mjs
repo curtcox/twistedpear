@@ -13,30 +13,56 @@ export function plan(now = new Date()) {
   return {
     logDir,
     command: process.execPath,
-    args: ["conformance/mac-validation/run.mjs", "--stage", "8", "--plan-duration", "--log-dir", logDir]
+    args: [
+      "conformance/mac-validation/run.mjs",
+      "--stage",
+      "8",
+      "--plan-duration",
+      "--log-dir",
+      logDir,
+    ],
   };
 }
 
 async function main(argv = process.argv.slice(2)) {
   const prepared = plan();
   console.log(`[release] Stage-8 logs: ${prepared.logDir}`);
-  console.log(`[release] command: ${prepared.command} ${prepared.args.join(" ")}`);
+  console.log(
+    `[release] command: ${prepared.command} ${prepared.args.join(" ")}`,
+  );
   if (argv.includes("--dry-run")) return;
 
   mkdirSync(prepared.logDir, { recursive: true });
   const startLog = join(prepared.logDir, "release-start.log");
-  writeFileSync(startLog, `[release] plan-duration Stage 8 started at ${new Date().toISOString()}\n[release] log directory: ${prepared.logDir}\n`);
-  record({ root, id: "soaks:plan-duration", status: "started", log: startLog, note: "Stage-8 serial plan-duration runner started" });
-
-  const watcher = spawn(process.execPath, ["scripts/release/watch-soaks.mjs", prepared.logDir, "--watch"], {
-    cwd: root,
-    detached: true,
-    stdio: "ignore"
+  writeFileSync(
+    startLog,
+    `[release] plan-duration Stage 8 started at ${new Date().toISOString()}\n[release] log directory: ${prepared.logDir}\n`,
+  );
+  record({
+    root,
+    id: "soaks:plan-duration",
+    status: "started",
+    log: startLog,
+    note: "Stage-8 serial plan-duration runner started",
   });
+
+  const watcher = spawn(
+    process.execPath,
+    ["scripts/release/watch-soaks.mjs", prepared.logDir, "--watch"],
+    {
+      cwd: root,
+      detached: true,
+      stdio: "ignore",
+    },
+  );
   watcher.unref();
   console.log(`[release] soak watcher detached (pid ${watcher.pid})`);
 
-  const child = spawn(prepared.command, prepared.args, { cwd: root, env: process.env, stdio: "inherit" });
+  const child = spawn(prepared.command, prepared.args, {
+    cwd: root,
+    env: process.env,
+    stdio: "inherit",
+  });
   const status = await new Promise((resolve) => {
     child.on("error", () => resolve(1));
     child.on("close", (code) => resolve(code ?? 1));

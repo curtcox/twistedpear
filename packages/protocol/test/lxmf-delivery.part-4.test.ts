@@ -251,12 +251,12 @@ import {
   stepRememberLxmfMessageWithActions,
   stepSelectLxmfDeliveryParametersWithActions,
   stepTeardownLxmfPropagationLinkWithActions,
-  stepUnpackLxmfPropagationLocalIngressWithActions
+  stepUnpackLxmfPropagationLocalIngressWithActions,
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
 describe("protocol lxmf delivery", () => {
-it("gates delivery-identity registration and propagation-link teardown", () => {
+  it("gates delivery-identity registration and propagation-link teardown", () => {
     expect(canRegisterLxmfDeliveryIdentity(false)).toBe(true);
     expect(canRegisterLxmfDeliveryIdentity(true)).toBe(false);
     expect(shouldTeardownLxmfPropagationLink(true)).toBe(true);
@@ -271,10 +271,10 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialRegisterLxmfDeliveryIdentityState(),
           {
             kind: "lxmf/register-delivery-identity-gate",
-            deliveryDestinationPresent: false
-          }
-        ).actions
-      )
+            deliveryDestinationPresent: false,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipRegisterLxmfDeliveryIdentity(
@@ -282,10 +282,10 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialRegisterLxmfDeliveryIdentityState(),
           {
             kind: "lxmf/register-delivery-identity-gate",
-            deliveryDestinationPresent: true
-          }
-        ).actions
-      )
+            deliveryDestinationPresent: true,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldTeardownLxmfPropagationLinkNow(
@@ -293,10 +293,10 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialTeardownLxmfPropagationLinkState(),
           {
             kind: "lxmf/teardown-propagation-link-gate",
-            linkPresent: true
-          }
-        ).actions
-      )
+            linkPresent: true,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipTeardownLxmfPropagationLink(
@@ -304,10 +304,10 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialTeardownLxmfPropagationLinkState(),
           {
             kind: "lxmf/teardown-propagation-link-gate",
-            linkPresent: false
-          }
-        ).actions
-      )
+            linkPresent: false,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldExtractLxmfOpportunisticPayloadNow(
@@ -315,10 +315,10 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialExtractLxmfOpportunisticPayloadState(),
           {
             kind: "lxmf/extract-opportunistic-payload-gate",
-            packedPresent: true
-          }
-        ).actions
-      )
+            packedPresent: true,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipExtractLxmfOpportunisticPayload(
@@ -326,10 +326,10 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialExtractLxmfOpportunisticPayloadState(),
           {
             kind: "lxmf/extract-opportunistic-payload-gate",
-            packedPresent: false
-          }
-        ).actions
-      )
+            packedPresent: false,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSelectLxmfDeliveryParametersNow(
@@ -337,10 +337,10 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialSelectLxmfDeliveryParametersState(),
           {
             kind: "lxmf/select-delivery-parameters-gate",
-            packedPresent: true
-          }
-        ).actions
-      )
+            packedPresent: true,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipSelectLxmfDeliveryParameters(
@@ -348,28 +348,28 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
           initialSelectLxmfDeliveryParametersState(),
           {
             kind: "lxmf/select-delivery-parameters-gate",
-            packedPresent: false
-          }
-        ).actions
-      )
+            packedPresent: false,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       planLxmfPropagationSyncPrep({
         nodeConfigured: false,
-        deliveryIdentityPresent: false
-      })
+        deliveryIdentityPresent: false,
+      }),
     ).toBe("missing-node");
     expect(
       planLxmfPropagationSyncPrep({
         nodeConfigured: true,
-        deliveryIdentityPresent: false
-      })
+        deliveryIdentityPresent: false,
+      }),
     ).toBe("missing-delivery-identity");
     expect(
       planLxmfPropagationSyncPrep({
         nodeConfigured: true,
-        deliveryIdentityPresent: true
-      })
+        deliveryIdentityPresent: true,
+      }),
     ).toBe("ok");
   });
 
@@ -379,8 +379,8 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
       {
         kind: "propagation-sync-prep/plan-gate",
         nodeConfigured: true,
-        deliveryIdentityPresent: true
-      }
+        deliveryIdentityPresent: true,
+      },
     );
     expect(shouldPlanLxmfPropagationSyncPrepOk(ok.actions)).toBe(true);
     expect(lxmfPropagationSyncPrepPlanFromActions(ok.actions)).toBe("ok");
@@ -390,42 +390,54 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
       {
         kind: "propagation-sync-prep/plan-gate",
         nodeConfigured: false,
-        deliveryIdentityPresent: false
-      }
+        deliveryIdentityPresent: false,
+      },
     );
-    expect(shouldRejectLxmfPropagationSyncPrepPlanMissingNode(missingNode.actions)).toBe(true);
-    expect(lxmfPropagationSyncPrepPlanFromActions(missingNode.actions)).toBe("missing-node");
+    expect(
+      shouldRejectLxmfPropagationSyncPrepPlanMissingNode(missingNode.actions),
+    ).toBe(true);
+    expect(lxmfPropagationSyncPrepPlanFromActions(missingNode.actions)).toBe(
+      "missing-node",
+    );
 
     const missingIdentity = stepLxmfPropagationSyncPrepPlanWithActions(
       initialLxmfPropagationSyncPrepPlanState(),
       {
         kind: "propagation-sync-prep/plan-gate",
         nodeConfigured: true,
-        deliveryIdentityPresent: false
-      }
+        deliveryIdentityPresent: false,
+      },
     );
     expect(
-      shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(missingIdentity.actions)
+      shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(
+        missingIdentity.actions,
+      ),
     ).toBe(true);
-    expect(lxmfPropagationSyncPrepPlanFromActions(missingIdentity.actions)).toBe(
-      "missing-delivery-identity"
-    );
+    expect(
+      lxmfPropagationSyncPrepPlanFromActions(missingIdentity.actions),
+    ).toBe("missing-delivery-identity");
 
     expect(
-      stepLxmfPropagationSyncPrepPlanWithActions(initialLxmfPropagationSyncPrepPlanState(), {
-        kind: "timer/fired",
-        id: "x",
-        at: 0
-      }).actions
+      stepLxmfPropagationSyncPrepPlanWithActions(
+        initialLxmfPropagationSyncPrepPlanState(),
+        {
+          kind: "timer/fired",
+          id: "x",
+          at: 0,
+        },
+      ).actions,
     ).toEqual([]);
   });
 
   it("emits propagation sync-prep gate actions from stepLxmfPropagationSyncPrepWithActions", () => {
-    const ok = stepLxmfPropagationSyncPrepWithActions(initialLxmfPropagationSyncPrepState(), {
-      kind: "propagation-sync-prep/gate",
-      nodeConfigured: true,
-      deliveryIdentityPresent: true
-    });
+    const ok = stepLxmfPropagationSyncPrepWithActions(
+      initialLxmfPropagationSyncPrepState(),
+      {
+        kind: "propagation-sync-prep/gate",
+        nodeConfigured: true,
+        deliveryIdentityPresent: true,
+      },
+    );
     expect(shouldProceedLxmfPropagationSyncPrep(ok.actions)).toBe(true);
 
     const missingNode = stepLxmfPropagationSyncPrepWithActions(
@@ -433,30 +445,39 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
       {
         kind: "propagation-sync-prep/gate",
         nodeConfigured: false,
-        deliveryIdentityPresent: false
-      }
+        deliveryIdentityPresent: false,
+      },
     );
-    expect(shouldRejectLxmfPropagationSyncMissingNode(missingNode.actions)).toBe(true);
-    expect(shouldProceedLxmfPropagationSyncPrep(missingNode.actions)).toBe(false);
+    expect(
+      shouldRejectLxmfPropagationSyncMissingNode(missingNode.actions),
+    ).toBe(true);
+    expect(shouldProceedLxmfPropagationSyncPrep(missingNode.actions)).toBe(
+      false,
+    );
 
     const missingIdentity = stepLxmfPropagationSyncPrepWithActions(
       initialLxmfPropagationSyncPrepState(),
       {
         kind: "propagation-sync-prep/gate",
         nodeConfigured: true,
-        deliveryIdentityPresent: false
-      }
+        deliveryIdentityPresent: false,
+      },
     );
-    expect(shouldRejectLxmfPropagationSyncMissingDeliveryIdentity(missingIdentity.actions)).toBe(
-      true
-    );
+    expect(
+      shouldRejectLxmfPropagationSyncMissingDeliveryIdentity(
+        missingIdentity.actions,
+      ),
+    ).toBe(true);
 
     expect(
-      stepLxmfPropagationSyncPrepWithActions(initialLxmfPropagationSyncPrepState(), {
-        kind: "timer/fired",
-        id: "x",
-        at: 0
-      }).actions
+      stepLxmfPropagationSyncPrepWithActions(
+        initialLxmfPropagationSyncPrepState(),
+        {
+          kind: "timer/fired",
+          id: "x",
+          at: 0,
+        },
+      ).actions,
     ).toEqual([]);
   });
 
@@ -465,7 +486,7 @@ it("gates delivery-identity registration and propagation-link teardown", () => {
     const event = {
       kind: "propagation-sync-prep/gate" as const,
       nodeConfigured: true,
-      deliveryIdentityPresent: true
+      deliveryIdentityPresent: true,
     };
     const a = stepLxmfPropagationSyncPrepWithActions(state, event);
     const b = stepLxmfPropagationSyncPrepWithActions(state, event);

@@ -59,7 +59,7 @@ export function announceSignedMaterial(input: {
     input.nameHash,
     input.randomHash,
     input.ratchetPublicKey ?? new Uint8Array(),
-    input.appData ?? new Uint8Array()
+    input.appData ?? new Uint8Array(),
   );
 }
 
@@ -99,7 +99,7 @@ export function initialAnnounceSignedMaterialState(): AnnounceSignedMaterialStat
 
 export function stepAnnounceSignedMaterialWithActions(
   state: AnnounceSignedMaterialState,
-  event: AnnounceSignedMaterialEvent
+  event: AnnounceSignedMaterialEvent,
 ): AnnounceSignedMaterialStepResult {
   if (event.kind === "announce/signed-material-gate") {
     return {
@@ -114,10 +114,10 @@ export function stepAnnounceSignedMaterialWithActions(
             nameHash: event.nameHash,
             randomHash: event.randomHash,
             ratchetPublicKey: event.ratchetPublicKey,
-            appData: event.appData
-          })
-        }
-      ]
+            appData: event.appData,
+          }),
+        },
+      ],
     };
   }
 
@@ -125,14 +125,14 @@ export function stepAnnounceSignedMaterialWithActions(
 }
 
 export function shouldUseAnnounceSignedMaterial(
-  actions: ReadonlyArray<AnnounceSignedMaterialAction>
+  actions: ReadonlyArray<AnnounceSignedMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract announce signed material from step actions; null when no `use-raw`. */
 export function announceSignedMaterialRawFromActions(
-  actions: ReadonlyArray<AnnounceSignedMaterialAction>
+  actions: ReadonlyArray<AnnounceSignedMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -147,22 +147,32 @@ export function packAnnouncePayload(input: {
   readonly appData: Uint8Array | null;
 }): Uint8Array {
   if (input.publicKey.length !== ANNOUNCE_PUBLIC_KEY_SIZE) {
-    throw new Error(`Announce public key must be ${ANNOUNCE_PUBLIC_KEY_SIZE} bytes`);
+    throw new Error(
+      `Announce public key must be ${ANNOUNCE_PUBLIC_KEY_SIZE} bytes`,
+    );
   }
   if (input.nameHash.length !== ANNOUNCE_NAME_HASH_SIZE) {
-    throw new Error(`Announce name hash must be ${ANNOUNCE_NAME_HASH_SIZE} bytes`);
+    throw new Error(
+      `Announce name hash must be ${ANNOUNCE_NAME_HASH_SIZE} bytes`,
+    );
   }
   if (input.randomHash.length !== ANNOUNCE_RANDOM_HASH_SIZE) {
-    throw new Error(`Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`);
+    throw new Error(
+      `Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`,
+    );
   }
   if (
     input.ratchetPublicKey !== null &&
     input.ratchetPublicKey.length !== ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE
   ) {
-    throw new Error(`Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`);
+    throw new Error(
+      `Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`,
+    );
   }
   if (input.signature.length !== ANNOUNCE_SIGNATURE_SIZE) {
-    throw new Error(`Announce signature must be ${ANNOUNCE_SIGNATURE_SIZE} bytes`);
+    throw new Error(
+      `Announce signature must be ${ANNOUNCE_SIGNATURE_SIZE} bytes`,
+    );
   }
 
   return concatBytes(
@@ -171,13 +181,13 @@ export function packAnnouncePayload(input: {
     input.randomHash,
     input.ratchetPublicKey ?? new Uint8Array(),
     input.signature,
-    input.appData ?? new Uint8Array()
+    input.appData ?? new Uint8Array(),
   );
 }
 
 export function parseAnnouncePayload(
   data: Uint8Array,
-  hasRatchet: boolean
+  hasRatchet: boolean,
 ): AnnouncePayloadFields | null {
   const ratchetLength = hasRatchet ? ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE : 0;
   const minimumLength =
@@ -212,7 +222,7 @@ export function parseAnnouncePayload(
     randomHash,
     ratchetPublicKey,
     signature,
-    appData
+    appData,
   };
 }
 
@@ -252,7 +262,7 @@ export function initialPackAnnouncePayloadState(): PackAnnouncePayloadState {
 
 export function stepPackAnnouncePayloadWithActions(
   state: PackAnnouncePayloadState,
-  event: PackAnnouncePayloadEvent
+  event: PackAnnouncePayloadEvent,
 ): PackAnnouncePayloadStepResult {
   if (event.kind === "announce/pack-payload-gate") {
     return {
@@ -267,10 +277,10 @@ export function stepPackAnnouncePayloadWithActions(
             randomHash: event.randomHash,
             ratchetPublicKey: event.ratchetPublicKey,
             signature: event.signature,
-            appData: event.appData
-          })
-        }
-      ]
+            appData: event.appData,
+          }),
+        },
+      ],
     };
   }
 
@@ -278,14 +288,14 @@ export function stepPackAnnouncePayloadWithActions(
 }
 
 export function shouldUsePackAnnouncePayload(
-  actions: ReadonlyArray<PackAnnouncePayloadAction>
+  actions: ReadonlyArray<PackAnnouncePayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract announce pack bytes from step actions; null when no `use-raw`. */
 export function packAnnouncePayloadRawFromActions(
-  actions: ReadonlyArray<PackAnnouncePayloadAction>
+  actions: ReadonlyArray<PackAnnouncePayloadAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -322,7 +332,7 @@ export function initialParseAnnouncePayloadState(): ParseAnnouncePayloadState {
 
 export function stepParseAnnouncePayloadWithActions(
   state: ParseAnnouncePayloadState,
-  event: ParseAnnouncePayloadEvent
+  event: ParseAnnouncePayloadEvent,
 ): ParseAnnouncePayloadStepResult {
   if (event.kind === "announce/parse-payload-gate") {
     const fields = parseAnnouncePayload(event.data, event.hasRatchet);
@@ -332,7 +342,7 @@ export function stepParseAnnouncePayloadWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -340,20 +350,20 @@ export function stepParseAnnouncePayloadWithActions(
 }
 
 export function shouldUseParseAnnouncePayload(
-  actions: ReadonlyArray<ParseAnnouncePayloadAction>
+  actions: ReadonlyArray<ParseAnnouncePayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectParseAnnouncePayload(
-  actions: ReadonlyArray<ParseAnnouncePayloadAction>
+  actions: ReadonlyArray<ParseAnnouncePayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract parsed announce payload fields from step actions; null when no `use-fields`. */
 export function announcePayloadFieldsFromActions(
-  actions: ReadonlyArray<ParseAnnouncePayloadAction>
+  actions: ReadonlyArray<ParseAnnouncePayloadAction>,
 ): AnnouncePayloadFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -379,8 +389,7 @@ export type AcceptAnnouncePayloadEvent =
     };
 
 export type AcceptAnnouncePayloadAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptAnnouncePayloadStepResult {
   readonly state: AcceptAnnouncePayloadState;
@@ -394,7 +403,7 @@ export function initialAcceptAnnouncePayloadState(): AcceptAnnouncePayloadState 
 
 export function stepAcceptAnnouncePayloadWithActions(
   state: AcceptAnnouncePayloadState,
-  event: AcceptAnnouncePayloadEvent
+  event: AcceptAnnouncePayloadEvent,
 ): AcceptAnnouncePayloadStepResult {
   if (event.kind === "announce/accept-payload-gate") {
     return {
@@ -402,9 +411,11 @@ export function stepAcceptAnnouncePayloadWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptAnnouncePayload(event.fieldsPresent) ? "accept" : "skip"
-        }
-      ]
+          kind: shouldAcceptAnnouncePayload(event.fieldsPresent)
+            ? "accept"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -412,13 +423,13 @@ export function stepAcceptAnnouncePayloadWithActions(
 }
 
 export function shouldAcceptAnnouncePayloadNow(
-  actions: ReadonlyArray<AcceptAnnouncePayloadAction>
+  actions: ReadonlyArray<AcceptAnnouncePayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAnnouncePayloadAccept(
-  actions: ReadonlyArray<AcceptAnnouncePayloadAction>
+  actions: ReadonlyArray<AcceptAnnouncePayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -443,8 +454,7 @@ export type AcceptParsedAnnounceEvent =
     };
 
 export type AcceptParsedAnnounceAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptParsedAnnounceStepResult {
   readonly state: AcceptParsedAnnounceState;

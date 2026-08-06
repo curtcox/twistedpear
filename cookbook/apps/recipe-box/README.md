@@ -17,16 +17,16 @@ The workspace as a plain filesystem, and the 256 KiB per-file / 512-file ceiling
 
 ## Capabilities
 
-| Capability | Note |
-|---|---|
+| Capability  | Note                                           |
+| ----------- | ---------------------------------------------- |
 | `workspace` | 256 KiB per file, 4 MiB and 512 files per app. |
 
 ## Files
 
-| File | Purpose |
-|---|---|
+| File                                   | Purpose                                                      |
+| -------------------------------------- | ------------------------------------------------------------ |
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
+| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
 
 ## Run it
 

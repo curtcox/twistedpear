@@ -9,7 +9,7 @@ export async function run(sdk, report) {
     "2. On this phone, open the host installer and choose Scan QR / camera import.",
     "3. Grant camera permission when prompted.",
     "4. Scan the QR — confirm install or compare completes.",
-    "5. Re-run this applet after a successful scan to record pass (manual confirmation)."
+    "5. Re-run this applet after a successful scan to record pass (manual confirmation).",
   ].join("\n");
 
   try {
@@ -19,7 +19,7 @@ export async function run(sdk, report) {
       report({
         status: "unavailable",
         details: `Camera QR install is a mobile host flow (${info.platform} has no camera installer path).\n\nGuided procedure:\n${procedure}`,
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       });
       return;
     }
@@ -27,15 +27,16 @@ export async function run(sdk, report) {
     report({
       status: "unavailable",
       details: `Camera QR scan requires a physical device and user action — not exercisable headlessly.\n\nGuided procedure:\n${procedure}`,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const notGranted =
+      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
     report({
       status: notGranted ? "not-granted" : "fail",
       details: message,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   }
 }

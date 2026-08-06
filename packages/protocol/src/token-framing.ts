@@ -43,14 +43,14 @@ export function splitTokenKey(key: Uint8Array): TokenKeyParts {
     return {
       mode: "aes128",
       signingKey: key.subarray(0, 16),
-      encryptionKey: key.subarray(16, 32)
+      encryptionKey: key.subarray(16, 32),
     };
   }
   if (key.length === 64) {
     return {
       mode: "aes256",
       signingKey: key.subarray(0, 32),
-      encryptionKey: key.subarray(32, 64)
+      encryptionKey: key.subarray(32, 64),
     };
   }
   throw new Error(`Token key must be 32 or 64 bytes, not ${key.length}`);
@@ -70,7 +70,10 @@ export function packTokenFrame(input: {
   return concatBytes(input.iv, input.ciphertext, input.hmac);
 }
 
-export function tokenSignedMaterial(iv: Uint8Array, ciphertext: Uint8Array): Uint8Array {
+export function tokenSignedMaterial(
+  iv: Uint8Array,
+  ciphertext: Uint8Array,
+): Uint8Array {
   if (iv.length !== TOKEN_IV_SIZE) {
     throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
   }
@@ -108,7 +111,7 @@ export function initialTokenSignedMaterialState(): TokenSignedMaterialState {
 
 export function stepTokenSignedMaterialWithActions(
   state: TokenSignedMaterialState,
-  event: TokenSignedMaterialEvent
+  event: TokenSignedMaterialEvent,
 ): TokenSignedMaterialStepResult {
   if (event.kind === "token-framing/signed-material-gate") {
     try {
@@ -118,9 +121,9 @@ export function stepTokenSignedMaterialWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: tokenSignedMaterial(event.iv, event.ciphertext)
-          }
-        ]
+            raw: tokenSignedMaterial(event.iv, event.ciphertext),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -131,20 +134,20 @@ export function stepTokenSignedMaterialWithActions(
 }
 
 export function shouldUseTokenSignedMaterial(
-  actions: ReadonlyArray<TokenSignedMaterialAction>
+  actions: ReadonlyArray<TokenSignedMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectTokenSignedMaterial(
-  actions: ReadonlyArray<TokenSignedMaterialAction>
+  actions: ReadonlyArray<TokenSignedMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract token signed material from step actions; null when no `use-raw`. */
 export function tokenSignedMaterialRawFromActions(
-  actions: ReadonlyArray<TokenSignedMaterialAction>
+  actions: ReadonlyArray<TokenSignedMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -156,17 +159,23 @@ export function splitTokenFrame(token: Uint8Array): TokenFrameParts | null {
   }
   const iv = token.subarray(0, TOKEN_IV_SIZE);
   const hmac = token.subarray(token.length - TOKEN_HMAC_SIZE);
-  const ciphertext = token.subarray(TOKEN_IV_SIZE, token.length - TOKEN_HMAC_SIZE);
+  const ciphertext = token.subarray(
+    TOKEN_IV_SIZE,
+    token.length - TOKEN_HMAC_SIZE,
+  );
   return {
     iv,
     ciphertext,
     hmac,
-    signedMaterial: token.subarray(0, token.length - TOKEN_HMAC_SIZE)
+    signedMaterial: token.subarray(0, token.length - TOKEN_HMAC_SIZE),
   };
 }
 
 /** Constant-time HMAC compare for token verify. */
-export function tokenHmacMatches(received: Uint8Array, expected: Uint8Array): boolean {
+export function tokenHmacMatches(
+  received: Uint8Array,
+  expected: Uint8Array,
+): boolean {
   if (received.length !== expected.length) {
     return false;
   }
@@ -193,8 +202,7 @@ export type TokenHmacMatchEvent =
     };
 
 export type TokenHmacMatchAction =
-  | { readonly kind: "match" }
-  | { readonly kind: "mismatch" };
+  { readonly kind: "match" } | { readonly kind: "mismatch" };
 
 export interface TokenHmacMatchStepResult {
   readonly state: TokenHmacMatchState;
@@ -208,7 +216,7 @@ export function initialTokenHmacMatchState(): TokenHmacMatchState {
 
 export function stepTokenHmacMatchWithActions(
   state: TokenHmacMatchState,
-  event: TokenHmacMatchEvent
+  event: TokenHmacMatchEvent,
 ): TokenHmacMatchStepResult {
   if (event.kind === "token-framing/hmac-match-gate") {
     return {
@@ -216,9 +224,11 @@ export function stepTokenHmacMatchWithActions(
       intents: [],
       actions: [
         {
-          kind: tokenHmacMatches(event.received, event.expected) ? "match" : "mismatch"
-        }
-      ]
+          kind: tokenHmacMatches(event.received, event.expected)
+            ? "match"
+            : "mismatch",
+        },
+      ],
     };
   }
 
@@ -226,13 +236,13 @@ export function stepTokenHmacMatchWithActions(
 }
 
 export function shouldMatchTokenHmac(
-  actions: ReadonlyArray<TokenHmacMatchAction>
+  actions: ReadonlyArray<TokenHmacMatchAction>,
 ): boolean {
   return actions.some((action) => action.kind === "match");
 }
 
 export function shouldMismatchTokenHmac(
-  actions: ReadonlyArray<TokenHmacMatchAction>
+  actions: ReadonlyArray<TokenHmacMatchAction>,
 ): boolean {
   return actions.some((action) => action.kind === "mismatch");
 }
@@ -257,8 +267,7 @@ export type TokenIvLengthValidEvent =
     };
 
 export type TokenIvLengthValidAction =
-  | { readonly kind: "valid" }
-  | { readonly kind: "invalid" };
+  { readonly kind: "valid" } | { readonly kind: "invalid" };
 
 export interface TokenIvLengthValidStepResult {
   readonly state: TokenIvLengthValidState;
@@ -272,13 +281,15 @@ export function initialTokenIvLengthValidState(): TokenIvLengthValidState {
 
 export function stepTokenIvLengthValidWithActions(
   state: TokenIvLengthValidState,
-  event: TokenIvLengthValidEvent
+  event: TokenIvLengthValidEvent,
 ): TokenIvLengthValidStepResult {
   if (event.kind === "token-framing/iv-length-valid-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: isValidTokenIvLength(event.length) ? "valid" : "invalid" }]
+      actions: [
+        { kind: isValidTokenIvLength(event.length) ? "valid" : "invalid" },
+      ],
     };
   }
 
@@ -286,13 +297,13 @@ export function stepTokenIvLengthValidWithActions(
 }
 
 export function shouldAcceptTokenIvLength(
-  actions: ReadonlyArray<TokenIvLengthValidAction>
+  actions: ReadonlyArray<TokenIvLengthValidAction>,
 ): boolean {
   return actions.some((action) => action.kind === "valid");
 }
 
 export function shouldRejectTokenIvLength(
-  actions: ReadonlyArray<TokenIvLengthValidAction>
+  actions: ReadonlyArray<TokenIvLengthValidAction>,
 ): boolean {
   return actions.some((action) => action.kind === "invalid");
 }
@@ -317,8 +328,7 @@ export type AcceptTokenFrameEvent =
     };
 
 export type AcceptTokenFrameAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptTokenFrameStepResult {
   readonly state: AcceptTokenFrameState;
@@ -332,7 +342,7 @@ export function initialAcceptTokenFrameState(): AcceptTokenFrameState {
 
 export function stepAcceptTokenFrameWithActions(
   state: AcceptTokenFrameState,
-  event: AcceptTokenFrameEvent
+  event: AcceptTokenFrameEvent,
 ): AcceptTokenFrameStepResult {
   if (event.kind === "token-framing/accept-frame-gate") {
     return {
@@ -340,9 +350,9 @@ export function stepAcceptTokenFrameWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptTokenFrame(event.framePresent) ? "accept" : "skip"
-        }
-      ]
+          kind: shouldAcceptTokenFrame(event.framePresent) ? "accept" : "skip",
+        },
+      ],
     };
   }
 
@@ -350,13 +360,13 @@ export function stepAcceptTokenFrameWithActions(
 }
 
 export function shouldAcceptTokenFrameNow(
-  actions: ReadonlyArray<AcceptTokenFrameAction>
+  actions: ReadonlyArray<AcceptTokenFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptTokenFrame(
-  actions: ReadonlyArray<AcceptTokenFrameAction>
+  actions: ReadonlyArray<AcceptTokenFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -391,14 +401,14 @@ export function initialSplitTokenKeyState(): SplitTokenKeyState {
 
 export function stepSplitTokenKeyWithActions(
   state: SplitTokenKeyState,
-  event: SplitTokenKeyEvent
+  event: SplitTokenKeyEvent,
 ): SplitTokenKeyStepResult {
   if (event.kind === "token-framing/split-key-gate") {
     try {
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields: splitTokenKey(event.key) }]
+        actions: [{ kind: "use-fields", fields: splitTokenKey(event.key) }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -409,20 +419,20 @@ export function stepSplitTokenKeyWithActions(
 }
 
 export function shouldUseSplitTokenKey(
-  actions: ReadonlyArray<SplitTokenKeyAction>
+  actions: ReadonlyArray<SplitTokenKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitTokenKey(
-  actions: ReadonlyArray<SplitTokenKeyAction>
+  actions: ReadonlyArray<SplitTokenKeyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split token-key fields from step actions; null when no `use-fields`. */
 export function tokenKeyFieldsFromActions(
-  actions: ReadonlyArray<SplitTokenKeyAction>
+  actions: ReadonlyArray<SplitTokenKeyAction>,
 ): TokenKeyParts | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -460,7 +470,7 @@ export function initialPackTokenFrameState(): PackTokenFrameState {
 
 export function stepPackTokenFrameWithActions(
   state: PackTokenFrameState,
-  event: PackTokenFrameEvent
+  event: PackTokenFrameEvent,
 ): PackTokenFrameStepResult {
   if (event.kind === "token-framing/pack-gate") {
     try {
@@ -473,10 +483,10 @@ export function stepPackTokenFrameWithActions(
             raw: packTokenFrame({
               iv: event.iv,
               ciphertext: event.ciphertext,
-              hmac: event.hmac
-            })
-          }
-        ]
+              hmac: event.hmac,
+            }),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -487,20 +497,20 @@ export function stepPackTokenFrameWithActions(
 }
 
 export function shouldUsePackTokenFrame(
-  actions: ReadonlyArray<PackTokenFrameAction>
+  actions: ReadonlyArray<PackTokenFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackTokenFrame(
-  actions: ReadonlyArray<PackTokenFrameAction>
+  actions: ReadonlyArray<PackTokenFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract token-frame pack bytes from step actions; null when no `use-raw`. */
 export function packTokenFrameRawFromActions(
-  actions: ReadonlyArray<PackTokenFrameAction>
+  actions: ReadonlyArray<PackTokenFrameAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -536,7 +546,7 @@ export function initialSplitTokenFrameState(): SplitTokenFrameState {
 
 export function stepSplitTokenFrameWithActions(
   state: SplitTokenFrameState,
-  event: SplitTokenFrameEvent
+  event: SplitTokenFrameEvent,
 ): SplitTokenFrameStepResult {
   if (event.kind === "token-framing/split-gate") {
     const fields = splitTokenFrame(event.token);
@@ -546,7 +556,7 @@ export function stepSplitTokenFrameWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -554,20 +564,20 @@ export function stepSplitTokenFrameWithActions(
 }
 
 export function shouldUseSplitTokenFrame(
-  actions: ReadonlyArray<SplitTokenFrameAction>
+  actions: ReadonlyArray<SplitTokenFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitTokenFrame(
-  actions: ReadonlyArray<SplitTokenFrameAction>
+  actions: ReadonlyArray<SplitTokenFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split token-frame fields from step actions; null when no `use-fields`. */
 export function tokenFrameFieldsFromActions(
-  actions: ReadonlyArray<SplitTokenFrameAction>
+  actions: ReadonlyArray<SplitTokenFrameAction>,
 ): TokenFrameParts | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

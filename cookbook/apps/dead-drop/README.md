@@ -17,18 +17,18 @@ Recipe and screenshots: [4. Apps that talk to one peer](../../04-apps-that-talk-
 
 ## Capabilities
 
-| Capability | Note |
-|---|---|
-| `identity` | Standing grant; revocable at any time from the host. |
-| `lxmf:send` | Standing grant; revocable at any time from the host. |
+| Capability     | Note                                                 |
+| -------------- | ---------------------------------------------------- |
+| `identity`     | Standing grant; revocable at any time from the host. |
+| `lxmf:send`    | Standing grant; revocable at any time from the host. |
 | `lxmf:receive` | Standing grant; revocable at any time from the host. |
 
 ## Files
 
-| File | Purpose |
-|---|---|
+| File                                   | Purpose                                                      |
+| -------------------------------------- | ------------------------------------------------------------ |
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
+| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
 
 ## Run it
 

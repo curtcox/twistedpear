@@ -56,13 +56,17 @@ export function defaultHostInfo(overrides: Partial<HostInfo> = {}): HostInfo {
     platform: overrides.platform ?? "node",
     hostVersion: overrides.hostVersion ?? "0.0.0",
     hostApiVersion: overrides.hostApiVersion ?? "0.0.0",
-    roles: overrides.roles ?? { transport: false, seeder: false, propagation: false },
+    roles: overrides.roles ?? {
+      transport: false,
+      seeder: false,
+      propagation: false,
+    },
     interfaceTypes: overrides.interfaceTypes ?? [],
     quotas: overrides.quotas ?? {
       kvQuotaBytes: null,
       seedStorageUsedBytes: null,
       seedStorageQuotaBytes: null,
-      memoryBytes: null
-    }
+      memoryBytes: null,
+    },
   };
 }

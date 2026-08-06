@@ -1,6 +1,5 @@
 # SPEC-MEDIA / RNode–LoRa profile (adopted)
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -17,18 +16,18 @@ LoRa on-air behavior remains gated on hardware
 
 ## 1. Upstream pin
 
-| Upstream | Version | Role |
-|---|---|---|
+| Upstream                    | Version              | Role                                                                                                                               |
+| --------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | RNode firmware KISS framing | RNS 0.9.4-compatible | Golden byte transcripts ([conformance/vectors/rnode-kiss-transcripts.json](../../conformance/vectors/rnode-kiss-transcripts.json)) |
 
 ## 2. Subset
 
-| Feature | TwistedPear use | Pinned by |
-|---|---|---|
-| Detect + radio-state handshake | Device bring-up | `rnode-kiss-transcripts.json` → `detect-handshake`, `radio-state-query`; `packages/reticulum-interfaces` `rnode-transcripts.test.ts` |
-| Firmware/platform query | Capability detection | `rnode-kiss-transcripts.json` → `firmware-version`, `platform-query` |
-| KISS data-frame round-trip | Packet carriage over serial | `rnode-kiss-transcripts.json` → `data-frame-roundtrip` |
-| Interface lifecycle (online after handshake, offline + reconnect on disconnect) | Link state management | `rnode-interface.test.ts` ("goes online after detect and radio-state handshake", "marks offline on pipe disconnect and attempts reconnect") |
+| Feature                                                                         | TwistedPear use             | Pinned by                                                                                                                                   |
+| ------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Detect + radio-state handshake                                                  | Device bring-up             | `rnode-kiss-transcripts.json` → `detect-handshake`, `radio-state-query`; `packages/reticulum-interfaces` `rnode-transcripts.test.ts`        |
+| Firmware/platform query                                                         | Capability detection        | `rnode-kiss-transcripts.json` → `firmware-version`, `platform-query`                                                                        |
+| KISS data-frame round-trip                                                      | Packet carriage over serial | `rnode-kiss-transcripts.json` → `data-frame-roundtrip`                                                                                      |
+| Interface lifecycle (online after handshake, offline + reconnect on disconnect) | Link state management       | `rnode-interface.test.ts` ("goes online after detect and radio-state handshake", "marks offline on pipe disconnect and attempts reconnect") |
 
 ## 3. Extensions
 

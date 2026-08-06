@@ -5,7 +5,7 @@ import {
   MemoryMultipartCheckpointStore,
   MultipartPropagationReceiver,
   sendMultipartPropagation,
-  type LXMFRouter
+  type LXMFRouter,
 } from "../src/index.js";
 import type { LXMessage } from "../src/message.js";
 
@@ -21,11 +21,11 @@ function captureSender() {
         sourceHash: new Uint8Array(16).fill(1),
         destinationHash: new Uint8Array(16).fill(2),
         method: options.desiredMethod,
-        signatureValidated: true
+        signatureValidated: true,
       } as LXMessage;
       messages.push(message);
       return message;
-    }
+    },
   } as unknown as LXMFRouter;
   return { router, messages };
 }
@@ -40,10 +40,14 @@ describe("multipart propagation", () => {
       source: {} as never,
       content,
       transferId: new Uint8Array(16).fill(7),
-      now: () => 1
+      now: () => 1,
     });
     expect(sent.chunkCount).toBe(16);
-    expect(messages.every((message) => message.method === LXMessageMethod.PROPAGATED)).toBe(true);
+    expect(
+      messages.every(
+        (message) => message.method === LXMessageMethod.PROPAGATED,
+      ),
+    ).toBe(true);
 
     const store = new MemoryMultipartCheckpointStore();
     const firstReceiver = new MultipartPropagationReceiver(provider, store);
@@ -51,7 +55,9 @@ describe("multipart propagation", () => {
 
     const resumedReceiver = new MultipartPropagationReceiver(provider, store);
     let completed: Uint8Array | null = null;
-    for (const message of messages.filter((_message, index) => index !== 14).reverse()) {
+    for (const message of messages
+      .filter((_message, index) => index !== 14)
+      .reverse()) {
       completed = resumedReceiver.ingest(message).content ?? completed;
     }
     expect(completed).toEqual(content);
@@ -65,7 +71,7 @@ describe("multipart propagation", () => {
       source: {} as never,
       content: new Uint8Array(300),
       completedChunks: new Set([0, 2]),
-      now: () => 1
+      now: () => 1,
     });
     expect(result.sentChunks).toEqual([1, 3, 4, 5, 6, 7, 8, 9]);
     expect(messages).toHaveLength(8);
@@ -73,27 +79,33 @@ describe("multipart propagation", () => {
 
   it("enforces the caller's transfer budget", async () => {
     const { router } = captureSender();
-    await expect(sendMultipartPropagation({
-      router,
-      destination: {} as never,
-      source: {} as never,
-      content: new Uint8Array(129),
-      budgetBytes: 128
-    })).rejects.toThrow("exceeds budget");
-    await expect(sendMultipartPropagation({
-      router,
-      destination: {} as never,
-      source: {} as never,
-      content: new Uint8Array(1),
-      budgetBytes: Number.NaN
-    })).rejects.toThrow("positive integer");
-    await expect(sendMultipartPropagation({
-      router,
-      destination: {} as never,
-      source: {} as never,
-      content: new Uint8Array(1),
-      title: "x".repeat(17)
-    })).rejects.toThrow("title exceeds");
+    await expect(
+      sendMultipartPropagation({
+        router,
+        destination: {} as never,
+        source: {} as never,
+        content: new Uint8Array(129),
+        budgetBytes: 128,
+      }),
+    ).rejects.toThrow("exceeds budget");
+    await expect(
+      sendMultipartPropagation({
+        router,
+        destination: {} as never,
+        source: {} as never,
+        content: new Uint8Array(1),
+        budgetBytes: Number.NaN,
+      }),
+    ).rejects.toThrow("positive integer");
+    await expect(
+      sendMultipartPropagation({
+        router,
+        destination: {} as never,
+        source: {} as never,
+        content: new Uint8Array(1),
+        title: "x".repeat(17),
+      }),
+    ).rejects.toThrow("title exceeds");
   });
 
   it("rejects a transfer above the receiver's budget before checkpointing", async () => {
@@ -103,12 +115,12 @@ describe("multipart propagation", () => {
       destination: {} as never,
       source: {} as never,
       content: new Uint8Array(96),
-      now: () => 1
+      now: () => 1,
     });
     const receiver = new MultipartPropagationReceiver(
       provider,
       new MemoryMultipartCheckpointStore(),
-      64
+      64,
     );
     expect(() => receiver.ingest(messages[0]!)).toThrow("receive budget");
   });
@@ -120,10 +132,11 @@ describe("multipart propagation", () => {
       destination: {} as never,
       source: {} as never,
       content: new Uint8Array(64),
-      now: () => 1
+      now: () => 1,
     });
     messages[0]!.signatureValidated = false;
-    expect(() => new MultipartPropagationReceiver(provider).ingest(messages[0]!))
-      .toThrow("not authenticated");
+    expect(() =>
+      new MultipartPropagationReceiver(provider).ingest(messages[0]!),
+    ).toThrow("not authenticated");
   });
 });

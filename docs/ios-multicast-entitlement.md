@@ -1,6 +1,5 @@
 # iOS multicast entitlement application (Phase 2 M8)
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20
@@ -12,11 +11,11 @@ Apple review lead time is unpredictable; file early.
 
 ## Application metadata
 
-| Field | Value |
-|---|---|
-| Bundle ID | `network.twistedpear.harness` |
-| Entitlement | `com.apple.developer.networking.multicast` |
-| Platform | iOS (simulator build first; device after approval) |
+| Field       | Value                                              |
+| ----------- | -------------------------------------------------- |
+| Bundle ID   | `network.twistedpear.harness`                      |
+| Entitlement | `com.apple.developer.networking.multicast`         |
+| Platform    | iOS (simulator build first; device after approval) |
 
 ## Use case summary (for Apple)
 

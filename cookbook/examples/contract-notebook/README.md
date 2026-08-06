@@ -25,8 +25,8 @@ whose encoding and update rules you understand.
 
 ## Capabilities
 
-| Capability | Note |
-|---|---|
+| Capability         | Note                                                                                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `freenet:contract` | Desktop/headless with an external node only. Reads contract state; every put/update asks again because publication is global and irreversible. |
 
 ## Run it

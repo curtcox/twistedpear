@@ -16,7 +16,7 @@ const repoRoot = join(handbookRoot, "../..");
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-handbook/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -56,7 +56,7 @@ function startStaticServer(root) {
               }
             });
           });
-        }
+        },
       });
     });
   });
@@ -64,11 +64,15 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath =
+    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+  if (
+    !resolvedPath.startsWith(resolvedRoot + sep) &&
+    resolvedPath !== resolvedRoot
+  ) {
     response.writeHead(403);
     response.end();
     return;
@@ -80,7 +84,9 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
+  response.writeHead(200, {
+    "content-type": staticContentType(extname(resolvedPath)),
+  });
   if (headOnly) {
     response.end();
     return;
@@ -113,13 +119,19 @@ async function runPlaywright(pageUrl) {
 
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
     try {
-      await page.waitForFunction(() => globalThis.__WEB_HANDBOOK__?.status === "done", undefined, {
-        timeout: 300_000
-      });
+      await page.waitForFunction(
+        () => globalThis.__WEB_HANDBOOK__?.status === "done",
+        undefined,
+        {
+          timeout: 300_000,
+        },
+      );
     } catch (error) {
-      const snapshot = await page.evaluate(() => globalThis.__WEB_HANDBOOK__ ?? null);
+      const snapshot = await page.evaluate(
+        () => globalThis.__WEB_HANDBOOK__ ?? null,
+      );
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`
+        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`,
       );
     }
 
@@ -128,12 +140,17 @@ async function runPlaywright(pageUrl) {
       throw new Error(`web handbook incomplete: ${JSON.stringify(result)}`);
     }
 
-    if (!Array.isArray(result.passedApplets) || result.passedApplets.length === 0) {
+    if (
+      !Array.isArray(result.passedApplets) ||
+      result.passedApplets.length === 0
+    ) {
       throw new Error(`expected applets to pass: ${JSON.stringify(result)}`);
     }
 
     if (typeof result.reportId !== "string" || result.reportId.length !== 94) {
-      throw new Error(`expected report 256t id: ${JSON.stringify(result.reportId)}`);
+      throw new Error(
+        `expected report 256t id: ${JSON.stringify(result.reportId)}`,
+      );
     }
 
     return result;
@@ -154,8 +171,8 @@ try {
       chapters: result.chapters,
       applets: result.passedApplets?.length,
       reportId: result.reportId?.slice(0, 12),
-      steps: result.steps?.length
-    })}`
+      steps: result.steps?.length,
+    })}`,
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

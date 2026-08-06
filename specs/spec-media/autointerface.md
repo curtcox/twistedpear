@@ -1,6 +1,5 @@
 # SPEC-MEDIA / AutoInterface profile (adopted)
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -14,8 +13,8 @@ Per-medium profile using the five-section template in
 
 ## 1. Upstream pin
 
-| Upstream | Version | Role |
-|---|---|---|
+| Upstream                 | Version             | Role                                               |
+| ------------------------ | ------------------- | -------------------------------------------------- |
 | Python RNS AutoInterface | 0.9.5 (docker peer) | Live link-local IPv6 + multicast discovery interop |
 
 Framing beneath AutoInterface is Reticulum's ([SPEC-WIRE](../spec-wire/spec.md)); this
@@ -23,13 +22,13 @@ profile covers only discovery and the datagram carrier.
 
 ## 2. Subset
 
-| Feature | TwistedPear use | Pinned by |
-|---|---|---|
-| Link-local IPv6 scoping (zone-id handling) | Peer/data-plane key matching | `packages/reticulum-interfaces` `auto.test.ts` ("adds an interface scope…", "strips zone ids so data-plane recv keys match discovery peers") |
-| Stable multicast group address from group id | Discovery group addressing | `auto.test.ts` ("derives stable multicast addresses from group id") |
-| Peer expiry after peering timeout | Presence liveness | `auto.test.ts` ("expires stale peers after the peering timeout") |
-| Multicast discovery with Bonjour fallback | LAN peer discovery | `auto-discovery.test.ts` ("prefers multicast…", "falls back to Bonjour…") |
-| Bidirectional datagram echo, link echo, LXMF echo | End-to-end carriage | `npm run test:auto-interop` ("bidirectional echo passed", "link echo passed", "LXMF echo passed") |
+| Feature                                           | TwistedPear use              | Pinned by                                                                                                                                    |
+| ------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Link-local IPv6 scoping (zone-id handling)        | Peer/data-plane key matching | `packages/reticulum-interfaces` `auto.test.ts` ("adds an interface scope…", "strips zone ids so data-plane recv keys match discovery peers") |
+| Stable multicast group address from group id      | Discovery group addressing   | `auto.test.ts` ("derives stable multicast addresses from group id")                                                                          |
+| Peer expiry after peering timeout                 | Presence liveness            | `auto.test.ts` ("expires stale peers after the peering timeout")                                                                             |
+| Multicast discovery with Bonjour fallback         | LAN peer discovery           | `auto-discovery.test.ts` ("prefers multicast…", "falls back to Bonjour…")                                                                    |
+| Bidirectional datagram echo, link echo, LXMF echo | End-to-end carriage          | `npm run test:auto-interop` ("bidirectional echo passed", "link echo passed", "LXMF echo passed")                                            |
 
 ## 3. Extensions
 

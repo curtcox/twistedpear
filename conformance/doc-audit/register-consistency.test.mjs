@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   auditRegisterConsistency,
-  auditTodoMarkers
+  auditTodoMarkers,
 } from "../../scripts/doc-audit/register.mjs";
 
 describe("doc-audit register consistency", () => {

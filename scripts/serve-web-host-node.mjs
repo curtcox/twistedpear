@@ -38,8 +38,8 @@ const nodeProcess = spawn(
   {
     cwd: repoRoot,
     stdio: "inherit",
-    env: { ...process.env }
-  }
+    env: { ...process.env },
+  },
 );
 
 const pageUrl = `http://127.0.0.1:${wsPort}/`;

@@ -18,7 +18,10 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
-import { ANNOUNCE_RANDOM_HASH_SIZE, ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE } from "./part-1.js";
+import {
+  ANNOUNCE_RANDOM_HASH_SIZE,
+  ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,
+} from "./part-1.js";
 import { planAnnounceValidateOutcome } from "./part-2.js";
 import type { AnnounceValidatePlan } from "./part-2.js";
 /**
@@ -40,7 +43,9 @@ export type AnnounceValidateOutcomePlanEvent =
       readonly destinationHashMatches: boolean;
     };
 
-export type AnnounceValidateOutcomePlanAction = { readonly kind: AnnounceValidatePlan };
+export type AnnounceValidateOutcomePlanAction = {
+  readonly kind: AnnounceValidatePlan;
+};
 
 export interface AnnounceValidateOutcomePlanStepResult {
   readonly state: AnnounceValidateOutcomePlanState;
@@ -54,7 +59,7 @@ export function initialAnnounceValidateOutcomePlanState(): AnnounceValidateOutco
 
 export function stepAnnounceValidateOutcomePlanWithActions(
   state: AnnounceValidateOutcomePlanState,
-  event: AnnounceValidateOutcomePlanEvent
+  event: AnnounceValidateOutcomePlanEvent,
 ): AnnounceValidateOutcomePlanStepResult {
   if (event.kind === "announce/validate-outcome-plan-gate") {
     return {
@@ -67,10 +72,10 @@ export function stepAnnounceValidateOutcomePlanWithActions(
             publicKeyLoaded: event.publicKeyLoaded,
             signatureValid: event.signatureValid,
             onlyValidateSignature: event.onlyValidateSignature,
-            destinationHashMatches: event.destinationHashMatches
-          })
-        }
-      ]
+            destinationHashMatches: event.destinationHashMatches,
+          }),
+        },
+      ],
     };
   }
 
@@ -79,16 +84,17 @@ export function stepAnnounceValidateOutcomePlanWithActions(
 
 /** Whether plan actions accept (full or signature-only). */
 export function shouldAcceptAnnounceValidateOutcomePlan(
-  actions: ReadonlyArray<AnnounceValidateOutcomePlanAction>
+  actions: ReadonlyArray<AnnounceValidateOutcomePlanAction>,
 ): boolean {
   return actions.some(
-    (action) => action.kind === "accept" || action.kind === "accept-signature-only"
+    (action) =>
+      action.kind === "accept" || action.kind === "accept-signature-only",
   );
 }
 
 /** Extract the validate plan from actions; null when empty. */
 export function announceValidateOutcomePlanFromActions(
-  actions: ReadonlyArray<AnnounceValidateOutcomePlanAction>
+  actions: ReadonlyArray<AnnounceValidateOutcomePlanAction>,
 ): AnnounceValidatePlan | null {
   const action = actions.find(
     (entry) =>
@@ -97,7 +103,7 @@ export function announceValidateOutcomePlanFromActions(
       entry.kind === "reject-parse" ||
       entry.kind === "reject-public-key" ||
       entry.kind === "reject-signature" ||
-      entry.kind === "reject-destination-hash"
+      entry.kind === "reject-destination-hash",
   );
   return action?.kind ?? null;
 }
@@ -138,30 +144,37 @@ export function initialAnnounceValidateState(): AnnounceValidateState {
   return {};
 }
 
-export const stepAnnounceValidate: StepFn<AnnounceValidateState> = (state, event) => {
-  const result = stepAnnounceValidateInner(state, event as AnnounceValidateEvent);
+export const stepAnnounceValidate: StepFn<AnnounceValidateState> = (
+  state,
+  event,
+) => {
+  const result = stepAnnounceValidateInner(
+    state,
+    event as AnnounceValidateEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepAnnounceValidateWithActions(
   state: AnnounceValidateState,
-  event: AnnounceValidateEvent
+  event: AnnounceValidateEvent,
 ): AnnounceValidateStepResult {
   return stepAnnounceValidateInner(state, event);
 }
 
 /** Whether validate may return true from accept / accept-signature-only actions. */
 export function shouldAcceptAnnounceValidate(
-  actions: ReadonlyArray<AnnounceValidateAction>
+  actions: ReadonlyArray<AnnounceValidateAction>,
 ): boolean {
   return actions.some(
-    (action) => action.kind === "accept" || action.kind === "accept-signature-only"
+    (action) =>
+      action.kind === "accept" || action.kind === "accept-signature-only",
   );
 }
 
 function stepAnnounceValidateInner(
   state: AnnounceValidateState,
-  event: AnnounceValidateEvent
+  event: AnnounceValidateEvent,
 ): AnnounceValidateStepResult {
   if (event.kind === "announce/validate-gate") {
     const planActions = stepAnnounceValidateOutcomePlanWithActions(
@@ -172,8 +185,8 @@ function stepAnnounceValidateInner(
         publicKeyLoaded: event.publicKeyLoaded,
         signatureValid: event.signatureValid,
         onlyValidateSignature: event.onlyValidateSignature,
-        destinationHashMatches: event.destinationHashMatches
-      }
+        destinationHashMatches: event.destinationHashMatches,
+      },
     ).actions;
     const plan = announceValidateOutcomePlanFromActions(planActions);
     if (plan === null) {
@@ -258,7 +271,7 @@ export function initialAnnounceBuildPlanState(): AnnounceBuildPlanState {
 
 export function stepAnnounceBuildPlanWithActions(
   state: AnnounceBuildPlanState,
-  event: AnnounceBuildPlanEvent
+  event: AnnounceBuildPlanEvent,
 ): AnnounceBuildPlanStepResult {
   if (event.kind === "announce/build-plan-gate") {
     return {
@@ -271,10 +284,10 @@ export function stepAnnounceBuildPlanWithActions(
             directionIn: event.directionIn,
             identityPresent: event.identityPresent,
             randomHashLength: event.randomHashLength,
-            ratchetPublicKeyLength: event.ratchetPublicKeyLength
-          })
-        }
-      ]
+            ratchetPublicKeyLength: event.ratchetPublicKeyLength,
+          }),
+        },
+      ],
     };
   }
 
@@ -282,44 +295,44 @@ export function stepAnnounceBuildPlanWithActions(
 }
 
 export function shouldOkAnnounceBuildPlan(
-  actions: ReadonlyArray<AnnounceBuildPlanAction>
+  actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectAnnounceBuildPlanNotAnnounceableType(
-  actions: ReadonlyArray<AnnounceBuildPlanAction>
+  actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "not-announceable-type");
 }
 
 export function shouldRejectAnnounceBuildPlanNotAnnounceableDirection(
-  actions: ReadonlyArray<AnnounceBuildPlanAction>
+  actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "not-announceable-direction");
 }
 
 export function shouldRejectAnnounceBuildPlanMissingIdentity(
-  actions: ReadonlyArray<AnnounceBuildPlanAction>
+  actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "missing-identity");
 }
 
 export function shouldRejectAnnounceBuildPlanBadRandomHash(
-  actions: ReadonlyArray<AnnounceBuildPlanAction>
+  actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-random-hash");
 }
 
 export function shouldRejectAnnounceBuildPlanBadRatchet(
-  actions: ReadonlyArray<AnnounceBuildPlanAction>
+  actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-ratchet");
 }
 
 /** Extract the build plan from actions; null when empty. */
 export function announceBuildPlanFromActions(
-  actions: ReadonlyArray<AnnounceBuildPlanAction>
+  actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): AnnounceBuildPlan | null {
   const action = actions.find(
     (entry) =>
@@ -328,7 +341,7 @@ export function announceBuildPlanFromActions(
       entry.kind === "not-announceable-direction" ||
       entry.kind === "missing-identity" ||
       entry.kind === "bad-random-hash" ||
-      entry.kind === "bad-ratchet"
+      entry.kind === "bad-ratchet",
   );
   return action?.kind ?? null;
 }
@@ -384,75 +397,94 @@ export const stepAnnounceBuild: StepFn<AnnounceBuildState> = (state, event) => {
 
 export function stepAnnounceBuildWithActions(
   state: AnnounceBuildState,
-  event: AnnounceBuildEvent
+  event: AnnounceBuildEvent,
 ): AnnounceBuildStepResult {
   return stepAnnounceBuildInner(state, event);
 }
 
 export function shouldProceedAnnounceBuild(
-  actions: ReadonlyArray<AnnounceBuildAction>
+  actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proceed");
 }
 
 export function shouldRejectAnnounceBuildNotAnnounceableType(
-  actions: ReadonlyArray<AnnounceBuildAction>
+  actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-not-announceable-type");
+  return actions.some(
+    (action) => action.kind === "reject-not-announceable-type",
+  );
 }
 
 export function shouldRejectAnnounceBuildNotAnnounceableDirection(
-  actions: ReadonlyArray<AnnounceBuildAction>
+  actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-not-announceable-direction");
+  return actions.some(
+    (action) => action.kind === "reject-not-announceable-direction",
+  );
 }
 
 export function shouldRejectAnnounceBuildMissingIdentity(
-  actions: ReadonlyArray<AnnounceBuildAction>
+  actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-missing-identity");
 }
 
 export function shouldRejectAnnounceBuildBadRandomHash(
-  actions: ReadonlyArray<AnnounceBuildAction>
+  actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-bad-random-hash");
 }
 
 export function shouldRejectAnnounceBuildBadRatchet(
-  actions: ReadonlyArray<AnnounceBuildAction>
+  actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-bad-ratchet");
 }
 
 function stepAnnounceBuildInner(
   state: AnnounceBuildState,
-  event: AnnounceBuildEvent
+  event: AnnounceBuildEvent,
 ): AnnounceBuildStepResult {
   if (event.kind === "announce/build-gate") {
-    const planActions = stepAnnounceBuildPlanWithActions(initialAnnounceBuildPlanState(), {
-      kind: "announce/build-plan-gate",
-      typeSingle: event.typeSingle,
-      directionIn: event.directionIn,
-      identityPresent: event.identityPresent,
-      randomHashLength: event.randomHashLength,
-      ratchetPublicKeyLength: event.ratchetPublicKeyLength
-    }).actions;
+    const planActions = stepAnnounceBuildPlanWithActions(
+      initialAnnounceBuildPlanState(),
+      {
+        kind: "announce/build-plan-gate",
+        typeSingle: event.typeSingle,
+        directionIn: event.directionIn,
+        identityPresent: event.identityPresent,
+        randomHashLength: event.randomHashLength,
+        ratchetPublicKeyLength: event.ratchetPublicKeyLength,
+      },
+    ).actions;
     if (shouldRejectAnnounceBuildPlanNotAnnounceableType(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-not-announceable-type" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-not-announceable-type" }],
+      };
     }
     if (shouldRejectAnnounceBuildPlanNotAnnounceableDirection(planActions)) {
       return {
         state,
         intents: [],
-        actions: [{ kind: "reject-not-announceable-direction" }]
+        actions: [{ kind: "reject-not-announceable-direction" }],
       };
     }
     if (shouldRejectAnnounceBuildPlanMissingIdentity(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-missing-identity" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-missing-identity" }],
+      };
     }
     if (shouldRejectAnnounceBuildPlanBadRandomHash(planActions)) {
-      return { state, intents: [], actions: [{ kind: "reject-bad-random-hash" }] };
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-bad-random-hash" }],
+      };
     }
     if (shouldRejectAnnounceBuildPlanBadRatchet(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-bad-ratchet" }] };

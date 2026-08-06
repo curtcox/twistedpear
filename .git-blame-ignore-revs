@@ -1,0 +1,5 @@
+# git blame ignore revisions
+
+# Formatting-only commits that should not pollute git blame.
+# Add the SHA of the repository-wide Prettier commit after it lands on main:
+# <sha>  # Empty format-ratchet.json; apply repository-wide Prettier formatting

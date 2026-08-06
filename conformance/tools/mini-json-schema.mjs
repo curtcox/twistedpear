@@ -54,14 +54,24 @@ export function createValidator(schemaPath) {
 
   function typeMatches(value, type) {
     switch (type) {
-      case "null": return value === null;
-      case "boolean": return typeof value === "boolean";
-      case "string": return typeof value === "string";
-      case "number": return typeof value === "number";
-      case "integer": return typeof value === "number" && Number.isInteger(value);
-      case "array": return Array.isArray(value);
-      case "object": return typeof value === "object" && value !== null && !Array.isArray(value);
-      default: throw new Error(`unsupported type keyword: ${type}`);
+      case "null":
+        return value === null;
+      case "boolean":
+        return typeof value === "boolean";
+      case "string":
+        return typeof value === "string";
+      case "number":
+        return typeof value === "number";
+      case "integer":
+        return typeof value === "number" && Number.isInteger(value);
+      case "array":
+        return Array.isArray(value);
+      case "object":
+        return (
+          typeof value === "object" && value !== null && !Array.isArray(value)
+        );
+      default:
+        throw new Error(`unsupported type keyword: ${type}`);
     }
   }
 
@@ -85,11 +95,17 @@ export function createValidator(schemaPath) {
     if (schema.const !== undefined && !deepEqual(value, schema.const)) {
       errors.push(`${path}: expected const ${JSON.stringify(schema.const)}`);
     }
-    if (schema.enum !== undefined && !schema.enum.some((item) => deepEqual(value, item))) {
+    if (
+      schema.enum !== undefined &&
+      !schema.enum.some((item) => deepEqual(value, item))
+    ) {
       errors.push(`${path}: not one of enum ${JSON.stringify(schema.enum)}`);
     }
     if (typeof value === "string") {
-      if (schema.pattern !== undefined && !new RegExp(schema.pattern).test(value)) {
+      if (
+        schema.pattern !== undefined &&
+        !new RegExp(schema.pattern).test(value)
+      ) {
         errors.push(`${path}: does not match pattern ${schema.pattern}`);
       }
       if (schema.minLength !== undefined && value.length < schema.minLength) {
@@ -119,7 +135,9 @@ export function createValidator(schemaPath) {
         return branchErrors.length === 0;
       });
       if (matches.length !== 1) {
-        errors.push(`${path}: matched ${matches.length} oneOf branches, expected exactly 1`);
+        errors.push(
+          `${path}: matched ${matches.length} oneOf branches, expected exactly 1`,
+        );
       }
     }
     if (schema.anyOf !== undefined) {
@@ -150,7 +168,13 @@ export function createValidator(schemaPath) {
         } else if (schema.additionalProperties === false) {
           errors.push(`${path}: unexpected property "${key}"`);
         } else if (schema.additionalProperties !== undefined) {
-          check(item, schema.additionalProperties, ctx, `${path}/${key}`, errors);
+          check(
+            item,
+            schema.additionalProperties,
+            ctx,
+            `${path}/${key}`,
+            errors,
+          );
         }
       }
     }
@@ -165,7 +189,13 @@ export function createValidator(schemaPath) {
 
 function deepEqual(a, b) {
   if (a === b) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null
+  )
+    return false;
   if (Array.isArray(a) !== Array.isArray(b)) return false;
   const aKeys = Object.keys(a);
   const bKeys = Object.keys(b);

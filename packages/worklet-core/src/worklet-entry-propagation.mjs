@@ -1,5 +1,8 @@
 /* global TextDecoder, TextEncoder */
-import { bytesToHex, hexToBytes } from "../../reticulum-ts/dist/crypto/bytes.js";
+import {
+  bytesToHex,
+  hexToBytes,
+} from "../../reticulum-ts/dist/crypto/bytes.js";
 
 export function createWorkletPropagationPersistenceOps(deps) {
   async function loadPropagationCache() {
@@ -18,26 +21,28 @@ export function createWorkletPropagationPersistenceOps(deps) {
   function createPersistence() {
     return {
       load() {
-        return (deps.getPropagationStoreCache()?.entries ?? []).map((entry) => ({
-          transientId: hexToBytes(entry.transientIdHex),
-          lxmfData: hexToBytes(entry.lxmfDataHex),
-          storedAt: entry.storedAt
-        }));
+        return (deps.getPropagationStoreCache()?.entries ?? []).map(
+          (entry) => ({
+            transientId: hexToBytes(entry.transientIdHex),
+            lxmfData: hexToBytes(entry.lxmfDataHex),
+            storedAt: entry.storedAt,
+          }),
+        );
       },
       save(entries) {
         const cache = {
           entries: entries.map((entry) => ({
             transientIdHex: bytesToHex(entry.transientId),
             lxmfDataHex: bytesToHex(entry.lxmfData),
-            storedAt: entry.storedAt
-          }))
+            storedAt: entry.storedAt,
+          })),
         };
         deps.setPropagationStoreCache(cache);
         void deps.runtime.store.set(
           deps.propagationStoreKey,
-          new TextEncoder().encode(JSON.stringify(cache))
+          new TextEncoder().encode(JSON.stringify(cache)),
         );
-      }
+      },
     };
   }
 

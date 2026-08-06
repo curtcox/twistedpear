@@ -12,7 +12,15 @@
  * `classifyLinkProofPayload` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
-import { classifyLinkProofPayload, encodeLinkMtuBytes, encodeLinkSignallingBytes, modeFromLinkProofData, modeFromLinkRequestData, mtuFromLinkProofData, mtuFromLinkRequestData } from "./part-1.js";
+import {
+  classifyLinkProofPayload,
+  encodeLinkMtuBytes,
+  encodeLinkSignallingBytes,
+  modeFromLinkProofData,
+  modeFromLinkRequestData,
+  mtuFromLinkProofData,
+  mtuFromLinkRequestData,
+} from "./part-1.js";
 /**
  * Link signalling-byte encode framing is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `encodeLinkSignallingBytes`
@@ -45,7 +53,7 @@ export function initialEncodeLinkSignallingBytesState(): EncodeLinkSignallingByt
 
 export function stepEncodeLinkSignallingBytesWithActions(
   state: EncodeLinkSignallingBytesState,
-  event: EncodeLinkSignallingBytesEvent
+  event: EncodeLinkSignallingBytesEvent,
 ): EncodeLinkSignallingBytesStepResult {
   if (event.kind === "link-proof/encode-signalling-gate") {
     return {
@@ -54,9 +62,9 @@ export function stepEncodeLinkSignallingBytesWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: encodeLinkSignallingBytes(event.mtu, event.mode)
-        }
-      ]
+          raw: encodeLinkSignallingBytes(event.mtu, event.mode),
+        },
+      ],
     };
   }
 
@@ -64,14 +72,14 @@ export function stepEncodeLinkSignallingBytesWithActions(
 }
 
 export function shouldUseEncodeLinkSignallingBytes(
-  actions: ReadonlyArray<EncodeLinkSignallingBytesAction>
+  actions: ReadonlyArray<EncodeLinkSignallingBytesAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract encoded signalling bytes from step actions; null when no `use-raw`. */
 export function encodeLinkSignallingBytesRawFromActions(
-  actions: ReadonlyArray<EncodeLinkSignallingBytesAction>
+  actions: ReadonlyArray<EncodeLinkSignallingBytesAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -108,13 +116,13 @@ export function initialEncodeLinkMtuBytesState(): EncodeLinkMtuBytesState {
 
 export function stepEncodeLinkMtuBytesWithActions(
   state: EncodeLinkMtuBytesState,
-  event: EncodeLinkMtuBytesEvent
+  event: EncodeLinkMtuBytesEvent,
 ): EncodeLinkMtuBytesStepResult {
   if (event.kind === "link-proof/encode-mtu-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: encodeLinkMtuBytes(event.mtu) }]
+      actions: [{ kind: "use-raw", raw: encodeLinkMtuBytes(event.mtu) }],
     };
   }
 
@@ -122,14 +130,14 @@ export function stepEncodeLinkMtuBytesWithActions(
 }
 
 export function shouldUseEncodeLinkMtuBytes(
-  actions: ReadonlyArray<EncodeLinkMtuBytesAction>
+  actions: ReadonlyArray<EncodeLinkMtuBytesAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract encoded MTU bytes from step actions; null when no `use-raw`. */
 export function encodeLinkMtuBytesRawFromActions(
-  actions: ReadonlyArray<EncodeLinkMtuBytesAction>
+  actions: ReadonlyArray<EncodeLinkMtuBytesAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -167,7 +175,7 @@ export function initialModeFromLinkRequestDataState(): ModeFromLinkRequestDataSt
 
 export function stepModeFromLinkRequestDataWithActions(
   state: ModeFromLinkRequestDataState,
-  event: ModeFromLinkRequestDataEvent
+  event: ModeFromLinkRequestDataEvent,
 ): ModeFromLinkRequestDataStepResult {
   if (event.kind === "link-proof/mode-from-request-gate") {
     return {
@@ -176,9 +184,9 @@ export function stepModeFromLinkRequestDataWithActions(
       actions: [
         {
           kind: "use-mode",
-          mode: modeFromLinkRequestData(event.data, event.defaultMode)
-        }
-      ]
+          mode: modeFromLinkRequestData(event.data, event.defaultMode),
+        },
+      ],
     };
   }
 
@@ -186,14 +194,14 @@ export function stepModeFromLinkRequestDataWithActions(
 }
 
 export function shouldUseModeFromLinkRequestData(
-  actions: ReadonlyArray<ModeFromLinkRequestDataAction>
+  actions: ReadonlyArray<ModeFromLinkRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-mode");
 }
 
 /** Extract decoded link-request mode from step actions; null when no `use-mode`. */
 export function modeFromLinkRequestDataFromActions(
-  actions: ReadonlyArray<ModeFromLinkRequestDataAction>
+  actions: ReadonlyArray<ModeFromLinkRequestDataAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-mode");
   return action?.kind === "use-mode" ? action.mode : null;
@@ -231,7 +239,7 @@ export function initialModeFromLinkProofDataState(): ModeFromLinkProofDataState 
 
 export function stepModeFromLinkProofDataWithActions(
   state: ModeFromLinkProofDataState,
-  event: ModeFromLinkProofDataEvent
+  event: ModeFromLinkProofDataEvent,
 ): ModeFromLinkProofDataStepResult {
   if (event.kind === "link-proof/mode-from-proof-gate") {
     return {
@@ -240,9 +248,9 @@ export function stepModeFromLinkProofDataWithActions(
       actions: [
         {
           kind: "use-mode",
-          mode: modeFromLinkProofData(event.data, event.defaultMode)
-        }
-      ]
+          mode: modeFromLinkProofData(event.data, event.defaultMode),
+        },
+      ],
     };
   }
 
@@ -250,14 +258,14 @@ export function stepModeFromLinkProofDataWithActions(
 }
 
 export function shouldUseModeFromLinkProofData(
-  actions: ReadonlyArray<ModeFromLinkProofDataAction>
+  actions: ReadonlyArray<ModeFromLinkProofDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-mode");
 }
 
 /** Extract decoded link-proof mode from step actions; null when no `use-mode`. */
 export function modeFromLinkProofDataFromActions(
-  actions: ReadonlyArray<ModeFromLinkProofDataAction>
+  actions: ReadonlyArray<ModeFromLinkProofDataAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-mode");
   return action?.kind === "use-mode" ? action.mode : null;
@@ -293,7 +301,7 @@ export function initialMtuFromLinkRequestDataState(): MtuFromLinkRequestDataStat
 
 export function stepMtuFromLinkRequestDataWithActions(
   state: MtuFromLinkRequestDataState,
-  event: MtuFromLinkRequestDataEvent
+  event: MtuFromLinkRequestDataEvent,
 ): MtuFromLinkRequestDataStepResult {
   if (event.kind === "link-proof/mtu-from-request-gate") {
     const mtu = mtuFromLinkRequestData(event.data);
@@ -307,20 +315,20 @@ export function stepMtuFromLinkRequestDataWithActions(
 }
 
 export function shouldUseMtuFromLinkRequestData(
-  actions: ReadonlyArray<MtuFromLinkRequestDataAction>
+  actions: ReadonlyArray<MtuFromLinkRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-mtu");
 }
 
 export function shouldRejectMtuFromLinkRequestData(
-  actions: ReadonlyArray<MtuFromLinkRequestDataAction>
+  actions: ReadonlyArray<MtuFromLinkRequestDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract decoded link-request MTU from step actions; null when no `use-mtu`. */
 export function mtuFromLinkRequestDataFromActions(
-  actions: ReadonlyArray<MtuFromLinkRequestDataAction>
+  actions: ReadonlyArray<MtuFromLinkRequestDataAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-mtu");
   return action?.kind === "use-mtu" ? action.mtu : null;
@@ -356,7 +364,7 @@ export function initialMtuFromLinkProofDataState(): MtuFromLinkProofDataState {
 
 export function stepMtuFromLinkProofDataWithActions(
   state: MtuFromLinkProofDataState,
-  event: MtuFromLinkProofDataEvent
+  event: MtuFromLinkProofDataEvent,
 ): MtuFromLinkProofDataStepResult {
   if (event.kind === "link-proof/mtu-from-proof-gate") {
     const mtu = mtuFromLinkProofData(event.data);
@@ -370,20 +378,20 @@ export function stepMtuFromLinkProofDataWithActions(
 }
 
 export function shouldUseMtuFromLinkProofData(
-  actions: ReadonlyArray<MtuFromLinkProofDataAction>
+  actions: ReadonlyArray<MtuFromLinkProofDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-mtu");
 }
 
 export function shouldRejectMtuFromLinkProofData(
-  actions: ReadonlyArray<MtuFromLinkProofDataAction>
+  actions: ReadonlyArray<MtuFromLinkProofDataAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract decoded link-proof MTU from step actions; null when no `use-mtu`. */
 export function mtuFromLinkProofDataFromActions(
-  actions: ReadonlyArray<MtuFromLinkProofDataAction>
+  actions: ReadonlyArray<MtuFromLinkProofDataAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-mtu");
   return action?.kind === "use-mtu" ? action.mtu : null;
@@ -420,7 +428,7 @@ export function initialClassifyLinkProofPayloadState(): ClassifyLinkProofPayload
 
 export function stepClassifyLinkProofPayloadWithActions(
   state: ClassifyLinkProofPayloadState,
-  event: ClassifyLinkProofPayloadEvent
+  event: ClassifyLinkProofPayloadEvent,
 ): ClassifyLinkProofPayloadStepResult {
   if (event.kind === "link-proof/classify-payload-gate") {
     const kind = classifyLinkProofPayload(event.dataLength);
@@ -437,19 +445,19 @@ export function stepClassifyLinkProofPayloadWithActions(
 }
 
 export function shouldClassifyLinkProofPayloadBodyOnly(
-  actions: ReadonlyArray<ClassifyLinkProofPayloadAction>
+  actions: ReadonlyArray<ClassifyLinkProofPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "body-only");
 }
 
 export function shouldClassifyLinkProofPayloadBodyWithMtu(
-  actions: ReadonlyArray<ClassifyLinkProofPayloadAction>
+  actions: ReadonlyArray<ClassifyLinkProofPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "body-with-mtu");
 }
 
 export function shouldRejectClassifyLinkProofPayload(
-  actions: ReadonlyArray<ClassifyLinkProofPayloadAction>
+  actions: ReadonlyArray<ClassifyLinkProofPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }

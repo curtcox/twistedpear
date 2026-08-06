@@ -35,7 +35,7 @@ export function spawnChecked(command, args, options = {}) {
     env: options.env,
     encoding: "utf8",
     timeout: options.timeoutMs,
-    maxBuffer: 16 * 1024 * 1024
+    maxBuffer: 16 * 1024 * 1024,
   });
 
   if (result.error) {
@@ -49,10 +49,10 @@ export function spawnChecked(command, args, options = {}) {
       [
         `${command} ${args.join(" ")} exited ${result.status} (expected ${expectStatus})`,
         stdout.length > 0 ? `stdout:\n${stdout}` : null,
-        stderr.length > 0 ? `stderr:\n${stderr}` : null
+        stderr.length > 0 ? `stderr:\n${stderr}` : null,
       ]
         .filter(Boolean)
-        .join("\n")
+        .join("\n"),
     );
   }
 
@@ -69,7 +69,7 @@ export function withTempDir(prefix = "tp-conformance-") {
     path,
     dispose() {
       rmSync(path, { recursive: true, force: true });
-    }
+    },
   };
 }
 

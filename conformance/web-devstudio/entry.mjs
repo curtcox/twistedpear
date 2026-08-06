@@ -6,7 +6,7 @@
 import { WebSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/web.js";
 import {
   encodeJsonWireValue,
-  reviveJsonWireValue
+  reviveJsonWireValue,
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { DEVSTUDIO_FIXTURE } from "./fixtures.mjs";
 
@@ -82,7 +82,10 @@ function hexToBytes(hex) {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
   const bytes = new Uint8Array(normalized.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
+    bytes[index] = Number.parseInt(
+      normalized.slice(index * 2, index * 2 + 2),
+      16,
+    );
   }
 
   return bytes;
@@ -111,23 +114,23 @@ function createSandboxRelay(sendToWorker) {
                     type: "sandbox-broker-request",
                     requestId,
                     instanceId: message.instanceId,
-                    request: encodeJsonWireValue(request)
+                    request: encodeJsonWireValue(request),
                   });
-                })
-            }
+                }),
+            },
           });
 
           instances.set(message.instanceId, instance);
           sendToWorker({
             type: "sandbox-spawned",
             requestId: message.requestId,
-            instanceId: message.instanceId
+            instanceId: message.instanceId,
           });
         } catch (error) {
           sendToWorker({
             type: "sandbox-spawn-failed",
             requestId: message.requestId,
-            message: error instanceof Error ? error.message : String(error)
+            message: error instanceof Error ? error.message : String(error),
           });
         }
 
@@ -142,11 +145,14 @@ function createSandboxRelay(sendToWorker) {
 
       if (message.type === "sandbox-ping") {
         const instance = instances.get(message.instanceId);
-        const alive = instance === undefined ? false : await instance.ping(message.timeoutMs);
+        const alive =
+          instance === undefined
+            ? false
+            : await instance.ping(message.timeoutMs);
         sendToWorker({
           type: "sandbox-ping-result",
           requestId: message.requestId,
-          alive
+          alive,
         });
         return;
       }
@@ -170,7 +176,7 @@ function createSandboxRelay(sendToWorker) {
         pendingBrokers.delete(message.requestId);
         waiter.resolve(reviveJsonWireValue(message.response));
       }
-    }
+    },
   };
 }
 
@@ -178,7 +184,11 @@ async function waitForRuntime(getRuntime, predicate, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const runtime = getRuntime();
-    if (runtime?.widgetTree !== null && runtime?.widgetTree !== undefined && predicate(runtime)) {
+    if (
+      runtime?.widgetTree !== null &&
+      runtime?.widgetTree !== undefined &&
+      predicate(runtime)
+    ) {
       return runtime;
     }
 
@@ -232,8 +242,8 @@ async function main() {
             type: "launch-confirm",
             token: message.token,
             accept: true,
-            grants: message.capabilities.map((capability) => capability.id)
-          })
+            grants: message.capabilities.map((capability) => capability.id),
+          }),
         });
         continue;
       }
@@ -245,8 +255,8 @@ async function main() {
             type: "install-confirm",
             token: message.token,
             accept: true,
-            grants: message.capabilities.map((capability) => capability.id)
-          })
+            grants: message.capabilities.map((capability) => capability.id),
+          }),
         });
         continue;
       }
@@ -257,13 +267,16 @@ async function main() {
           data: encodeMessage({
             type: "confirm-response",
             token: message.token,
-            approved: true
-          })
+            approved: true,
+          }),
         });
         continue;
       }
 
-      if (message.type === "miniapp-runtime" && (message.slot === undefined || message.slot === "main")) {
+      if (
+        message.type === "miniapp-runtime" &&
+        (message.slot === undefined || message.slot === "main")
+      ) {
         if (message.runtime !== null) {
           latestRuntime = message.runtime;
         }
@@ -294,17 +307,26 @@ async function main() {
     targetHost: "127.0.0.1",
     targetPort: 9480,
     gatewayUrl,
-    identityPassphrase: "web-devstudio-test"
+    identityPassphrase: "web-devstudio-test",
   });
-  send({ type: "import-identity", privateKeyHex: DEVSTUDIO_FIXTURE.privateKeyHex });
-  send({ type: "set-interfaces", tcp: true, auto: false, ble: false, rnode: false });
+  send({
+    type: "import-identity",
+    privateKeyHex: DEVSTUDIO_FIXTURE.privateKeyHex,
+  });
+  send({
+    type: "set-interfaces",
+    tcp: true,
+    auto: false,
+    ble: false,
+    rnode: false,
+  });
   await sleep(2_000);
   record("gateway-online");
 
   send({
     type: "install-app",
     appId: DEVSTUDIO_FIXTURE.appId,
-    archiveHex: DEVSTUDIO_FIXTURE.archiveHex
+    archiveHex: DEVSTUDIO_FIXTURE.archiveHex,
   });
   await sleep(400);
   record("devstudio-installed");
@@ -314,18 +336,29 @@ async function main() {
     appId: DEVSTUDIO_FIXTURE.appId,
     publisherPublicKey: DEVSTUDIO_FIXTURE.publisherPublicKey,
     declaredCapabilities: DEVSTUDIO_FIXTURE.capabilities,
-    grantedCapabilities: DEVSTUDIO_FIXTURE.capabilities
+    grantedCapabilities: DEVSTUDIO_FIXTURE.capabilities,
   });
   await sleep(100);
 
   send({ type: "launch-miniapp", appId: DEVSTUDIO_FIXTURE.appId });
-  await waitForRuntime(() => latestRuntime, (runtime) => treeContainsText(runtime.widgetTree, "DevStudio"));
-  record("devstudio-launched");
-
-  send({ type: "miniapp-ui-event", nodeId: "new-project", event: "ds.newproject" });
   await waitForRuntime(
     () => latestRuntime,
-    (runtime) => findNode(runtime.widgetTree.root, (node) => node.type === "code-editor") !== null
+    (runtime) => treeContainsText(runtime.widgetTree, "DevStudio"),
+  );
+  record("devstudio-launched");
+
+  send({
+    type: "miniapp-ui-event",
+    nodeId: "new-project",
+    event: "ds.newproject",
+  });
+  await waitForRuntime(
+    () => latestRuntime,
+    (runtime) =>
+      findNode(
+        runtime.widgetTree.root,
+        (node) => node.type === "code-editor",
+      ) !== null,
   );
   record("hello-project-created");
 
@@ -333,13 +366,19 @@ async function main() {
   await waitForRuntime(
     () => latestRuntime,
     (runtime) => {
-      const qr = findNode(runtime.widgetTree.root, (node) => node.type === "qr-code");
+      const qr = findNode(
+        runtime.widgetTree.root,
+        (node) => node.type === "qr-code",
+      );
       return qr !== null && T256_PATTERN.test(String(qr.props?.value ?? ""));
     },
-    45_000
+    45_000,
   );
   const packagedRuntime = latestRuntime;
-  const qrNode = findNode(packagedRuntime.widgetTree.root, (node) => node.type === "qr-code");
+  const qrNode = findNode(
+    packagedRuntime.widgetTree.root,
+    (node) => node.type === "qr-code",
+  );
   const packagedT256 = String(qrNode.props.value);
   record("packaged");
 
@@ -349,12 +388,15 @@ async function main() {
     (runtime) => {
       const texts = collectTextValues(runtime.widgetTree.root);
       if (texts.some((value) => value.includes("Publish failed"))) {
-        throw new Error(texts.find((value) => value.includes("Publish failed")) ?? "Publish failed");
+        throw new Error(
+          texts.find((value) => value.includes("Publish failed")) ??
+            "Publish failed",
+        );
       }
 
       return texts.some((value) => value.includes("Published v0.1.0"));
     },
-    45_000
+    45_000,
   );
   record("published");
 
@@ -362,7 +404,7 @@ async function main() {
     status: "done",
     steps,
     packagedT256,
-    appId: DEVSTUDIO_FIXTURE.appId
+    appId: DEVSTUDIO_FIXTURE.appId,
   };
 }
 
@@ -370,6 +412,6 @@ main().catch((error) => {
   globalThis.__WEB_DEVSTUDIO__ = {
     status: "error",
     message: error instanceof Error ? error.message : String(error),
-    steps: globalThis.__WEB_DEVSTUDIO__?.steps ?? []
+    steps: globalThis.__WEB_DEVSTUDIO__?.steps ?? [],
   };
 });

@@ -15,7 +15,7 @@ const harnessRoot = join(repoRoot, "apps/harness-mobile");
 
 const workerBuild = spawnSync("node", ["scripts/build-web-worker.mjs"], {
   cwd: harnessRoot,
-  stdio: "inherit"
+  stdio: "inherit",
 });
 if (workerBuild.status !== 0) {
   process.exit(workerBuild.status ?? 1);
@@ -27,9 +27,12 @@ buildSync({
   platform: "browser",
   format: "esm",
   outfile: join(rnodeRoot, "rnode.bundle.js"),
-  logLevel: "warning"
+  logLevel: "warning",
 });
 
-cpSync(join(harnessRoot, "public/web-core.worker.js"), join(rnodeRoot, "web-core.worker.js"));
+cpSync(
+  join(harnessRoot, "public/web-core.worker.js"),
+  join(rnodeRoot, "web-core.worker.js"),
+);
 
 console.log("web-rnode bundle written");

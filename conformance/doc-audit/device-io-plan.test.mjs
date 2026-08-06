@@ -3,8 +3,14 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const plan = readFileSync(join(repositoryRoot, "docs/device-io-plan.md"), "utf8");
+const repositoryRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+const plan = readFileSync(
+  join(repositoryRoot, "docs/device-io-plan.md"),
+  "utf8",
+);
 const live = readFileSync(join(repositoryRoot, "docs/device-io.md"), "utf8");
 
 describe("device I/O plan", () => {

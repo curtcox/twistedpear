@@ -4,7 +4,7 @@ import {
   PureCryptoProvider,
   Reticulum,
   hexToBytes,
-  nodeRuntime
+  nodeRuntime,
 } from "@twistedpear/reticulum-ts";
 import { LXMessageMethod, LXMFRouter } from "@twistedpear/lxmf-ts";
 import { readFileSync } from "node:fs";
@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   FreenetInterface,
-  type FreenetPacketLogBackend
+  type FreenetPacketLogBackend,
 } from "../src/freenet.js";
 
 const provider = new PureCryptoProvider();
@@ -22,22 +22,25 @@ const identityVectors = JSON.parse(
   readFileSync(
     join(
       dirname(fileURLToPath(import.meta.url)),
-      "../../../conformance/vectors/identity.json"
+      "../../../conformance/vectors/identity.json",
     ),
-    "utf8"
-  )
+    "utf8",
+  ),
 ) as {
   identities: ReadonlyArray<{ name: string; privateKeyHex: string }>;
 };
 
 function loadIdentity(name: string): Identity {
   const entry = identityVectors.identities.find(
-    (candidate) => candidate.name === name
+    (candidate) => candidate.name === name,
   );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -66,7 +69,10 @@ class LinkedMemoryPacketLogBackend implements FreenetPacketLogBackend {
   }
 
   async publishFrame(hdlcFrame: Uint8Array): Promise<void> {
-    this.peer?.#receiver?.(Uint8Array.from(hdlcFrame));
+    const peer = this.peer;
+    if (peer) {
+      peer.#receiver?.(Uint8Array.from(hdlcFrame));
+    }
   }
 }
 
@@ -77,7 +83,7 @@ async function sleep(ms: number): Promise<void> {
 async function waitForPath(
   reticulum: Reticulum,
   destinationHash: Uint8Array,
-  timeoutMs = 15_000
+  timeoutMs = 15_000,
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -104,12 +110,12 @@ describe("FreenetInterface announce and LXMF", () => {
     const leftIface = await FreenetInterface.open(provider, {
       name: "freenet-left",
       provider,
-      backend: leftBackend
+      backend: leftBackend,
     });
     const rightIface = await FreenetInterface.open(provider, {
       name: "freenet-right",
       provider,
-      backend: rightBackend
+      backend: rightBackend,
     });
     leftReticulum.registerInterface(leftIface);
     rightReticulum.registerInterface(rightIface);
@@ -141,7 +147,7 @@ describe("FreenetInterface announce and LXMF", () => {
       content: "Hello over FreenetInterface",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: 1_700_000_300
+      timestamp: 1_700_000_300,
     });
 
     await expect(received).resolves.toBe("Hello over FreenetInterface");

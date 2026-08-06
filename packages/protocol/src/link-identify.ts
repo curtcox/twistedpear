@@ -35,8 +35,7 @@ export type AcceptLinkIdentifyEvent =
     };
 
 export type AcceptLinkIdentifyAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptLinkIdentifyStepResult {
   readonly state: AcceptLinkIdentifyState;
@@ -50,7 +49,7 @@ export function initialAcceptLinkIdentifyState(): AcceptLinkIdentifyState {
 
 export function stepAcceptLinkIdentifyWithActions(
   state: AcceptLinkIdentifyState,
-  event: AcceptLinkIdentifyEvent
+  event: AcceptLinkIdentifyEvent,
 ): AcceptLinkIdentifyStepResult {
   if (event.kind === "link-identify/accept-gate") {
     return {
@@ -58,9 +57,9 @@ export function stepAcceptLinkIdentifyWithActions(
       intents: [],
       actions: [
         {
-          kind: canAcceptLinkIdentify(event.initiator) ? "accept" : "skip"
-        }
-      ]
+          kind: canAcceptLinkIdentify(event.initiator) ? "accept" : "skip",
+        },
+      ],
     };
   }
 
@@ -68,13 +67,13 @@ export function stepAcceptLinkIdentifyWithActions(
 }
 
 export function shouldAcceptLinkIdentifyNow(
-  actions: ReadonlyArray<AcceptLinkIdentifyAction>
+  actions: ReadonlyArray<AcceptLinkIdentifyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipLinkIdentifyAccept(
-  actions: ReadonlyArray<AcceptLinkIdentifyAction>
+  actions: ReadonlyArray<AcceptLinkIdentifyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -124,8 +123,7 @@ export type LinkIdentifyOutcomePlanEvent =
     };
 
 export type LinkIdentifyOutcomePlanAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "reject" };
+  { readonly kind: "accept" } | { readonly kind: "reject" };
 
 export interface LinkIdentifyOutcomePlanStepResult {
   readonly state: LinkIdentifyOutcomePlanState;
@@ -139,7 +137,7 @@ export function initialLinkIdentifyOutcomePlanState(): LinkIdentifyOutcomePlanSt
 
 export function stepLinkIdentifyOutcomePlanWithActions(
   state: LinkIdentifyOutcomePlanState,
-  event: LinkIdentifyOutcomePlanEvent
+  event: LinkIdentifyOutcomePlanEvent,
 ): LinkIdentifyOutcomePlanStepResult {
   if (event.kind === "identify/outcome-plan-gate") {
     return {
@@ -152,10 +150,10 @@ export function stepLinkIdentifyOutcomePlanWithActions(
             plaintextPresent: event.plaintextPresent,
             partsPresent: event.partsPresent,
             identityPresent: event.identityPresent,
-            signatureValid: event.signatureValid
-          })
-        }
-      ]
+            signatureValid: event.signatureValid,
+          }),
+        },
+      ],
     };
   }
 
@@ -163,23 +161,23 @@ export function stepLinkIdentifyOutcomePlanWithActions(
 }
 
 export function shouldAcceptLinkIdentifyOutcomePlan(
-  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>
+  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectLinkIdentifyOutcomePlan(
-  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>
+  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract the identify-outcome plan from actions; null when empty. */
 export function linkIdentifyOutcomePlanFromActions(
-  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>
+  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>,
 ): LinkIdentifyOutcome | null {
   const action = actions.find(
-    (entry) => entry.kind === "accept" || entry.kind === "reject"
+    (entry) => entry.kind === "accept" || entry.kind === "reject",
   );
   return action?.kind ?? null;
 }
@@ -211,8 +209,7 @@ export type CommitLinkRemoteIdentityEvent =
     };
 
 export type CommitLinkRemoteIdentityAction =
-  | { readonly kind: "commit" }
-  | { readonly kind: "skip" };
+  { readonly kind: "commit" } | { readonly kind: "skip" };
 
 export interface CommitLinkRemoteIdentityStepResult {
   readonly state: CommitLinkRemoteIdentityState;
@@ -226,7 +223,7 @@ export function initialCommitLinkRemoteIdentityState(): CommitLinkRemoteIdentity
 
 export function stepCommitLinkRemoteIdentityWithActions(
   state: CommitLinkRemoteIdentityState,
-  event: CommitLinkRemoteIdentityEvent
+  event: CommitLinkRemoteIdentityEvent,
 ): CommitLinkRemoteIdentityStepResult {
   if (event.kind === "link-identify/commit-remote-identity-gate") {
     return {
@@ -236,12 +233,12 @@ export function stepCommitLinkRemoteIdentityWithActions(
         {
           kind: shouldCommitLinkRemoteIdentity({
             planAccept: event.planAccept,
-            identityPresent: event.identityPresent
+            identityPresent: event.identityPresent,
           })
             ? "commit"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -249,13 +246,13 @@ export function stepCommitLinkRemoteIdentityWithActions(
 }
 
 export function shouldCommitLinkRemoteIdentityNow(
-  actions: ReadonlyArray<CommitLinkRemoteIdentityAction>
+  actions: ReadonlyArray<CommitLinkRemoteIdentityAction>,
 ): boolean {
   return actions.some((action) => action.kind === "commit");
 }
 
 export function shouldSkipCommitLinkRemoteIdentity(
-  actions: ReadonlyArray<CommitLinkRemoteIdentityAction>
+  actions: ReadonlyArray<CommitLinkRemoteIdentityAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -280,8 +277,7 @@ export type LinkIdentifyEvent =
  * (`accept`|`reject`).
  */
 export type LinkIdentifyAction =
-  | { readonly kind: "reject" }
-  | { readonly kind: "commit" };
+  { readonly kind: "reject" } | { readonly kind: "commit" };
 
 export interface LinkIdentifyStepResult {
   readonly state: LinkIdentifyState;
@@ -302,28 +298,28 @@ export const stepLinkIdentify: StepFn<LinkIdentifyState> = (state, event) => {
 
 export function stepLinkIdentifyWithActions(
   state: LinkIdentifyState,
-  event: LinkIdentifyEvent
+  event: LinkIdentifyEvent,
 ): LinkIdentifyStepResult {
   return stepLinkIdentifyInner(state, event);
 }
 
 /** Whether step actions include reject. */
 export function shouldRejectLinkIdentify(
-  actions: ReadonlyArray<LinkIdentifyAction>
+  actions: ReadonlyArray<LinkIdentifyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Whether step actions include commit (set remoteIdentity + callback). */
 export function shouldCommitLinkIdentify(
-  actions: ReadonlyArray<LinkIdentifyAction>
+  actions: ReadonlyArray<LinkIdentifyAction>,
 ): boolean {
   return actions.some((action) => action.kind === "commit");
 }
 
 function stepLinkIdentifyInner(
   state: LinkIdentifyState,
-  event: LinkIdentifyEvent
+  event: LinkIdentifyEvent,
 ): LinkIdentifyStepResult {
   if (event.kind === "identify/received") {
     const planActions = stepLinkIdentifyOutcomePlanWithActions(
@@ -334,16 +330,16 @@ function stepLinkIdentifyInner(
         plaintextPresent: event.plaintextPresent,
         partsPresent: event.partsPresent,
         identityPresent: event.identityPresent,
-        signatureValid: event.signatureValid
-      }
+        signatureValid: event.signatureValid,
+      },
     ).actions;
     const commitStepped = stepCommitLinkRemoteIdentityWithActions(
       initialCommitLinkRemoteIdentityState(),
       {
         kind: "link-identify/commit-remote-identity-gate",
         planAccept: shouldAcceptLinkIdentifyOutcomePlan(planActions),
-        identityPresent: event.identityPresent
-      }
+        identityPresent: event.identityPresent,
+      },
     );
     if (!shouldCommitLinkRemoteIdentityNow(commitStepped.actions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -360,7 +356,7 @@ export interface LinkIdentifyPayloadFields {
 }
 
 export function splitLinkIdentifyPayload(
-  plaintext: Uint8Array
+  plaintext: Uint8Array,
 ): LinkIdentifyPayloadFields | null {
   if (plaintext.length !== LINK_IDENTIFY_PAYLOAD_SIZE) {
     return null;
@@ -369,15 +365,15 @@ export function splitLinkIdentifyPayload(
     publicKey: plaintext.subarray(0, LINK_IDENTIFY_PUBLIC_KEY_SIZE),
     signature: plaintext.subarray(
       LINK_IDENTIFY_PUBLIC_KEY_SIZE,
-      LINK_IDENTIFY_PAYLOAD_SIZE
-    )
+      LINK_IDENTIFY_PAYLOAD_SIZE,
+    ),
   };
 }
 
 /** Bytes signed by the identifying identity: linkId || publicKey. */
 export function linkIdentifySignedMaterial(
   linkId: Uint8Array,
-  publicKey: Uint8Array
+  publicKey: Uint8Array,
 ): Uint8Array {
   const out = new Uint8Array(linkId.length + publicKey.length);
   out.set(linkId, 0);
@@ -417,7 +413,7 @@ export function initialLinkIdentifySignedMaterialState(): LinkIdentifySignedMate
 
 export function stepLinkIdentifySignedMaterialWithActions(
   state: LinkIdentifySignedMaterialState,
-  event: LinkIdentifySignedMaterialEvent
+  event: LinkIdentifySignedMaterialEvent,
 ): LinkIdentifySignedMaterialStepResult {
   if (event.kind === "link-identify/signed-material-gate") {
     return {
@@ -426,9 +422,9 @@ export function stepLinkIdentifySignedMaterialWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: linkIdentifySignedMaterial(event.linkId, event.publicKey)
-        }
-      ]
+          raw: linkIdentifySignedMaterial(event.linkId, event.publicKey),
+        },
+      ],
     };
   }
 
@@ -436,14 +432,14 @@ export function stepLinkIdentifySignedMaterialWithActions(
 }
 
 export function shouldUseLinkIdentifySignedMaterial(
-  actions: ReadonlyArray<LinkIdentifySignedMaterialAction>
+  actions: ReadonlyArray<LinkIdentifySignedMaterialAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract link-identify signed material from step actions; null when no `use-raw`. */
 export function linkIdentifySignedMaterialRawFromActions(
-  actions: ReadonlyArray<LinkIdentifySignedMaterialAction>
+  actions: ReadonlyArray<LinkIdentifySignedMaterialAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -452,7 +448,7 @@ export function linkIdentifySignedMaterialRawFromActions(
 /** Pack identify plaintext for outbound LINKIDENTIFY (publicKey || signature). */
 export function packLinkIdentifyPayload(
   publicKey: Uint8Array,
-  signature: Uint8Array
+  signature: Uint8Array,
 ): Uint8Array {
   if (
     publicKey.length !== LINK_IDENTIFY_PUBLIC_KEY_SIZE ||
@@ -497,7 +493,7 @@ export function initialPackLinkIdentifyPayloadState(): PackLinkIdentifyPayloadSt
 
 export function stepPackLinkIdentifyPayloadWithActions(
   state: PackLinkIdentifyPayloadState,
-  event: PackLinkIdentifyPayloadEvent
+  event: PackLinkIdentifyPayloadEvent,
 ): PackLinkIdentifyPayloadStepResult {
   if (event.kind === "link-identify/pack-gate") {
     try {
@@ -507,9 +503,9 @@ export function stepPackLinkIdentifyPayloadWithActions(
         actions: [
           {
             kind: "use-raw",
-            raw: packLinkIdentifyPayload(event.publicKey, event.signature)
-          }
-        ]
+            raw: packLinkIdentifyPayload(event.publicKey, event.signature),
+          },
+        ],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -520,20 +516,20 @@ export function stepPackLinkIdentifyPayloadWithActions(
 }
 
 export function shouldUsePackLinkIdentifyPayload(
-  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>
+  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 export function shouldRejectPackLinkIdentifyPayload(
-  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>
+  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract packed identify payload from step actions; null when no `use-raw`. */
 export function packLinkIdentifyPayloadRawFromActions(
-  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>
+  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -569,7 +565,7 @@ export function initialSplitLinkIdentifyPayloadState(): SplitLinkIdentifyPayload
 
 export function stepSplitLinkIdentifyPayloadWithActions(
   state: SplitLinkIdentifyPayloadState,
-  event: SplitLinkIdentifyPayloadEvent
+  event: SplitLinkIdentifyPayloadEvent,
 ): SplitLinkIdentifyPayloadStepResult {
   if (event.kind === "link-identify/split-gate") {
     const fields = splitLinkIdentifyPayload(event.plaintext);
@@ -579,7 +575,7 @@ export function stepSplitLinkIdentifyPayloadWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -587,20 +583,20 @@ export function stepSplitLinkIdentifyPayloadWithActions(
 }
 
 export function shouldUseSplitLinkIdentifyPayload(
-  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>
+  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitLinkIdentifyPayload(
-  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>
+  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split identify payload fields from step actions; null when no `use-fields`. */
 export function linkIdentifyPayloadFieldsFromActions(
-  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>
+  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>,
 ): LinkIdentifyPayloadFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

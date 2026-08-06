@@ -37,7 +37,9 @@ export function wrapTransportPacketBytes(input: {
     packetFlagsLowNibble(input.packedFlags);
   const header = new Uint8Array([flags, input.hops & 0xff]);
   const rest = input.raw.subarray(2);
-  const wrapped = new Uint8Array(header.length + input.nextHop.length + rest.length);
+  const wrapped = new Uint8Array(
+    header.length + input.nextHop.length + rest.length,
+  );
   wrapped.set(header, 0);
   wrapped.set(input.nextHop, header.length);
   wrapped.set(rest, header.length + input.nextHop.length);
@@ -50,7 +52,10 @@ export function stripTransportHeadersBytes(raw: Uint8Array): Uint8Array {
   }
 
   const flags =
-    ((raw[0]! & 0b00001111) | (PACKET_HEADER_1 << 6) | (TRANSPORT_BROADCAST << 4)) & 0xff;
+    ((raw[0]! & 0b00001111) |
+      (PACKET_HEADER_1 << 6) |
+      (TRANSPORT_BROADCAST << 4)) &
+    0xff;
   const output = new Uint8Array(raw.length - TRANSPORT_ID_BYTES);
   output[0] = flags;
   output[1] = raw[1]!;
@@ -94,7 +99,10 @@ export function relayTransportPacketBytes(input: {
 }
 
 /** Rewrite only the hops byte of an already-framed packet (forward / reverse relay). */
-export function rewritePacketHopsBytes(raw: Uint8Array, hops: number): Uint8Array {
+export function rewritePacketHopsBytes(
+  raw: Uint8Array,
+  hops: number,
+): Uint8Array {
   if (raw.length < 2) {
     throw new Error("packet raw too short");
   }
@@ -139,7 +147,7 @@ export function initialWrapTransportPacketState(): WrapTransportPacketState {
 
 export function stepWrapTransportPacketWithActions(
   state: WrapTransportPacketState,
-  event: WrapTransportPacketEvent
+  event: WrapTransportPacketEvent,
 ): WrapTransportPacketStepResult {
   if (event.kind === "transport/wrap-packet-gate") {
     return {
@@ -152,10 +160,10 @@ export function stepWrapTransportPacketWithActions(
             packedFlags: event.packedFlags,
             hops: event.hops,
             raw: event.raw,
-            nextHop: event.nextHop
-          })
-        }
-      ]
+            nextHop: event.nextHop,
+          }),
+        },
+      ],
     };
   }
 
@@ -163,14 +171,14 @@ export function stepWrapTransportPacketWithActions(
 }
 
 export function shouldUseWrapTransportPacket(
-  actions: ReadonlyArray<WrapTransportPacketAction>
+  actions: ReadonlyArray<WrapTransportPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract wrap framing bytes from step actions; null when no `use-raw` action. */
 export function wrapTransportPacketRawFromActions(
-  actions: ReadonlyArray<WrapTransportPacketAction>
+  actions: ReadonlyArray<WrapTransportPacketAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -207,13 +215,15 @@ export function initialStripTransportHeadersState(): StripTransportHeadersState 
 
 export function stepStripTransportHeadersWithActions(
   state: StripTransportHeadersState,
-  event: StripTransportHeadersEvent
+  event: StripTransportHeadersEvent,
 ): StripTransportHeadersStepResult {
   if (event.kind === "transport/strip-headers-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: stripTransportHeadersBytes(event.raw) }]
+      actions: [
+        { kind: "use-raw", raw: stripTransportHeadersBytes(event.raw) },
+      ],
     };
   }
 
@@ -221,14 +231,14 @@ export function stepStripTransportHeadersWithActions(
 }
 
 export function shouldUseStripTransportHeaders(
-  actions: ReadonlyArray<StripTransportHeadersAction>
+  actions: ReadonlyArray<StripTransportHeadersAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract strip framing bytes from step actions; null when no `use-raw` action. */
 export function stripTransportHeadersRawFromActions(
-  actions: ReadonlyArray<StripTransportHeadersAction>
+  actions: ReadonlyArray<StripTransportHeadersAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -268,7 +278,7 @@ export function initialRelayTransportPacketState(): RelayTransportPacketState {
 
 export function stepRelayTransportPacketWithActions(
   state: RelayTransportPacketState,
-  event: RelayTransportPacketEvent
+  event: RelayTransportPacketEvent,
 ): RelayTransportPacketStepResult {
   if (event.kind === "transport/relay-packet-bytes-gate") {
     return {
@@ -281,10 +291,10 @@ export function stepRelayTransportPacketWithActions(
             raw: event.raw,
             hops: event.hops,
             remainingHops: event.remainingHops,
-            nextHop: event.nextHop
-          })
-        }
-      ]
+            nextHop: event.nextHop,
+          }),
+        },
+      ],
     };
   }
 
@@ -292,14 +302,14 @@ export function stepRelayTransportPacketWithActions(
 }
 
 export function shouldUseRelayTransportPacket(
-  actions: ReadonlyArray<RelayTransportPacketAction>
+  actions: ReadonlyArray<RelayTransportPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract relay framing bytes from step actions; null when no `use-raw` action. */
 export function relayTransportPacketRawFromActions(
-  actions: ReadonlyArray<RelayTransportPacketAction>
+  actions: ReadonlyArray<RelayTransportPacketAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -337,13 +347,15 @@ export function initialRewritePacketHopsState(): RewritePacketHopsState {
 
 export function stepRewritePacketHopsWithActions(
   state: RewritePacketHopsState,
-  event: RewritePacketHopsEvent
+  event: RewritePacketHopsEvent,
 ): RewritePacketHopsStepResult {
   if (event.kind === "transport/rewrite-packet-hops-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: rewritePacketHopsBytes(event.raw, event.hops) }]
+      actions: [
+        { kind: "use-raw", raw: rewritePacketHopsBytes(event.raw, event.hops) },
+      ],
     };
   }
 
@@ -351,14 +363,14 @@ export function stepRewritePacketHopsWithActions(
 }
 
 export function shouldUseRewritePacketHops(
-  actions: ReadonlyArray<RewritePacketHopsAction>
+  actions: ReadonlyArray<RewritePacketHopsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract hop-rewrite framing bytes from step actions; null when no `use-raw` action. */
 export function rewritePacketHopsRawFromActions(
-  actions: ReadonlyArray<RewritePacketHopsAction>
+  actions: ReadonlyArray<RewritePacketHopsAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;

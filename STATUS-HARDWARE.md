@@ -1,6 +1,5 @@
 # TwistedPear — Remaining hardware-gated work
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-08-05
@@ -21,49 +20,49 @@ Last audited: 2026-07-06.
 
 ## Hardware acquisition order
 
-| Priority | Item | Approx. cost | Register rows |
-|---|---|---|---|
-| 1 | 1 used Android phone (API 31+, USB host) | low | H1, H6 (partial), H10 (partial), H11 |
-| 2 | 2nd Android phone (different OEM if possible) | low | H2, H3, H7, H9, H14 |
-| 3 | Paid Apple Developer account | moderate | H12 |
-| 4 | 1 iPhone (borrowed OK) | low | H13, H14, H15, H16 |
-| 5 | RNode pair (LoRa) with USB + BLE | moderate | H4, H8, H16, H19 |
-| 6 | 2nd desktop/laptop for LAN tests | low | H18 |
-| 7 | Windows 10/11 machine | low | H17 |
-| 8 | Spare Linux box (home server) | low | H20 |
-| 9 | Phone + desktop on LAN (Handbook) | low | H21 |
-| 10 | RNode + phone (Handbook) | moderate | H22 |
-| 11 | 2 camera/audio-capable phones + disposable ntfy topic | low | H23 |
+| Priority | Item                                                  | Approx. cost | Register rows                        |
+| -------- | ----------------------------------------------------- | ------------ | ------------------------------------ |
+| 1        | 1 used Android phone (API 31+, USB host)              | low          | H1, H6 (partial), H10 (partial), H11 |
+| 2        | 2nd Android phone (different OEM if possible)         | low          | H2, H3, H7, H9, H14                  |
+| 3        | Paid Apple Developer account                          | moderate     | H12                                  |
+| 4        | 1 iPhone (borrowed OK)                                | low          | H13, H14, H15, H16                   |
+| 5        | RNode pair (LoRa) with USB + BLE                      | moderate     | H4, H8, H16, H19                     |
+| 6        | 2nd desktop/laptop for LAN tests                      | low          | H18                                  |
+| 7        | Windows 10/11 machine                                 | low          | H17                                  |
+| 8        | Spare Linux box (home server)                         | low          | H20                                  |
+| 9        | Phone + desktop on LAN (Handbook)                     | low          | H21                                  |
+| 10       | RNode + phone (Handbook)                              | moderate     | H22                                  |
+| 11       | 2 camera/audio-capable phones + disposable ntfy topic | low          | H23                                  |
 
 ---
 
 ## Register overview
 
-| # | Needs | Phases | Deferred criterion |
-|---|---|---|---|
-| H1 | 1 Android phone | 2 | M0 device slice, M1 device benchmarks, M2 backgrounding (basic) |
-| H2 | 2 Android phones | 2, 3, 4 | M3 real WiFi AutoInterface; M5 S3 BLE throughput + BLE-only LXMF 1 h |
-| H3 | Aggressive-OEM Android | 2 | M2 foreground service 8 h under battery manager |
-| H4 | RNode pair | 2, 3, 5, 6 | M6 USB/BLE RNode; LoRa E2E |
-| H5 | iPhone (optional Phase 2) | 2 | None required — simulator sufficed for M8 |
-| H6 | Android + desktop on LAN | 3 | M7 install from desktop seeder over AutoInterface |
-| H7 | 2 Android phones | 3 | M7 BLE-only budget package install |
-| H8 | RNode pair | 3 | M4 live budget rule (block bulk / allow tiny over LoRa) |
-| H9 | 2 Android phones | 4 | Chat example LXMF over BLE-only, sandboxed |
-| H10 | Android + desktop on LAN | 4 | File-drop phone↔desktop over AutoInterface |
-| H11 | Mid/low-tier Android | 4 | M2 watchdog tuning on weak hardware |
-| H12 | Paid Apple Developer account | 5 | Multicast entitlement filed; device signing |
-| H13 | 1 iPhone | 5 | M0–M2 device slices, permission prompts, background measurements |
-| H14 | iPhone + Android | 5 | M4 BLE 1 h incl. iOS background; visibility matrix |
-| H15 | iPhone + desktop + Android on WiFi | 5 | M3 Bonjour/multicast on real LAN |
-| H16 | iPhone + RNode | 5 | M4 RNode BLE + LoRa E2E from iOS |
-| H17 | Windows 10/11 | 6 | host-desktop install + full loop |
-| H18 | 2 desktops + phone (+ iPhone) on WiFi | 6 | Real LAN discovery, desktop seed install, transport routing |
-| H19 | RNode pair + desktop USB | 6 | Desktop USB serial gateway, LoRa E2E |
-| H20 | Always-on Linux server | 6 | 2-week unattended `tp node` run |
-| H21 | 1 Android phone + desktop | D | Handbook device-gated probes (BLE / AutoInterface) + cross-device report diff |
-| H22 | RNode pair + phone | D | Handbook RNode serial applet pass on hardware |
-| H23 | 2 phones + real ntfy service | Relay | Optical/acoustic/ntfy loopback, mixed-media relay, permission and attribution evidence |
+| #   | Needs                                 | Phases     | Deferred criterion                                                                     |
+| --- | ------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| H1  | 1 Android phone                       | 2          | M0 device slice, M1 device benchmarks, M2 backgrounding (basic)                        |
+| H2  | 2 Android phones                      | 2, 3, 4    | M3 real WiFi AutoInterface; M5 S3 BLE throughput + BLE-only LXMF 1 h                   |
+| H3  | Aggressive-OEM Android                | 2          | M2 foreground service 8 h under battery manager                                        |
+| H4  | RNode pair                            | 2, 3, 5, 6 | M6 USB/BLE RNode; LoRa E2E                                                             |
+| H5  | iPhone (optional Phase 2)             | 2          | None required — simulator sufficed for M8                                              |
+| H6  | Android + desktop on LAN              | 3          | M7 install from desktop seeder over AutoInterface                                      |
+| H7  | 2 Android phones                      | 3          | M7 BLE-only budget package install                                                     |
+| H8  | RNode pair                            | 3          | M4 live budget rule (block bulk / allow tiny over LoRa)                                |
+| H9  | 2 Android phones                      | 4          | Chat example LXMF over BLE-only, sandboxed                                             |
+| H10 | Android + desktop on LAN              | 4          | File-drop phone↔desktop over AutoInterface                                             |
+| H11 | Mid/low-tier Android                  | 4          | M2 watchdog tuning on weak hardware                                                    |
+| H12 | Paid Apple Developer account          | 5          | Multicast entitlement filed; device signing                                            |
+| H13 | 1 iPhone                              | 5          | M0–M2 device slices, permission prompts, background measurements                       |
+| H14 | iPhone + Android                      | 5          | M4 BLE 1 h incl. iOS background; visibility matrix                                     |
+| H15 | iPhone + desktop + Android on WiFi    | 5          | M3 Bonjour/multicast on real LAN                                                       |
+| H16 | iPhone + RNode                        | 5          | M4 RNode BLE + LoRa E2E from iOS                                                       |
+| H17 | Windows 10/11                         | 6          | host-desktop install + full loop                                                       |
+| H18 | 2 desktops + phone (+ iPhone) on WiFi | 6          | Real LAN discovery, desktop seed install, transport routing                            |
+| H19 | RNode pair + desktop USB              | 6          | Desktop USB serial gateway, LoRa E2E                                                   |
+| H20 | Always-on Linux server                | 6          | 2-week unattended `tp node` run                                                        |
+| H21 | 1 Android phone + desktop             | D          | Handbook device-gated probes (BLE / AutoInterface) + cross-device report diff          |
+| H22 | RNode pair + phone                    | D          | Handbook RNode serial applet pass on hardware                                          |
+| H23 | 2 phones + real ntfy service          | Relay      | Optical/acoustic/ntfy loopback, mixed-media relay, permission and attribution evidence |
 
 ---
 
@@ -99,10 +98,10 @@ npm run test:bare-benchmark-bare   # desktop baseline for comparison
 
 **Pass:** service notification visible; node survives 30 min.
 
-| Measurement | LIMITATIONS |
-|---|---|
-| Device crypto vs Node baseline | §1 |
-| sodium-native vs pure on device | §1 |
+| Measurement                     | LIMITATIONS |
+| ------------------------------- | ----------- |
+| Device crypto vs Node baseline  | §1          |
+| sodium-native vs pure on device | §1          |
 
 ---
 
@@ -135,11 +134,11 @@ backgrounded ≥30 min; run 1 hour.
 
 **Pass:** ≥10 LXMF round-trips; no silent stalls &gt;5 min.
 
-| Measurement | LIMITATIONS |
-|---|---|
-| BLE sustained kbps | §3 |
-| BLE connection setup time | §3 |
-| BLE-only LXMF reliability (1 h) | §3 |
+| Measurement                     | LIMITATIONS |
+| ------------------------------- | ----------- |
+| BLE sustained kbps              | §3          |
+| BLE connection setup time       | §3          |
+| BLE-only LXMF reliability (1 h) | §3          |
 
 ---
 
@@ -153,9 +152,9 @@ backgrounded ≥30 min; run 1 hour.
 
 **Pass (exempt):** link held or reconnects within 2 min for 8 h.
 
-| Measurement | LIMITATIONS |
-|---|---|
-| OEM kill time without battery exempt | §5 |
+| Measurement                          | LIMITATIONS |
+| ------------------------------------ | ----------- |
+| OEM kill time without battery exempt | §5          |
 
 ---
 
@@ -177,9 +176,9 @@ Two RNodes, phone on one side, desktop transport on other; announce + LXMF over 
 
 **Pass:** LXMF delivered (≤5 min latency typical); record LIMITATIONS §3.
 
-| Measurement | LIMITATIONS |
-|---|---|
-| LoRa LXMF latency | §3 |
+| Measurement       | LIMITATIONS |
+| ----------------- | ----------- |
+| LoRa LXMF latency | §3          |
 
 ### H4-D — simulation calibration evidence
 
@@ -229,9 +228,9 @@ Install → verified ✓; hash matches desktop publish output.
 
 Resource button → same content hash as Hyperswarm path.
 
-| Measurement | LIMITATIONS |
-|---|---|
-| Desktop seeder LAN install time | §6 |
+| Measurement                     | LIMITATIONS |
+| ------------------------------- | ----------- |
+| Desktop seeder LAN install time | §6          |
 
 ---
 
@@ -256,11 +255,11 @@ Record wall-clock time vs `conformance/budgets/measured.json` BLE estimate → L
 1. **Bulk blocked:** RNode-only; package &gt; 64 KiB → budget error, no corrupt partial
 2. **Tiny succeeds:** `tiny` fixture via Resource path; record latency
 
-| Measurement | LIMITATIONS |
-|---|---|
-| BLE install time (`tiny`) | §6 |
-| LoRa Resource install time (`tiny`) | §6 |
-| Live RNode bulk block threshold | §6 |
+| Measurement                         | LIMITATIONS |
+| ----------------------------------- | ----------- |
+| BLE install time (`tiny`)           | §6          |
+| LoRa Resource install time (`tiny`) | §6          |
+| Live RNode bulk block threshold     | §6          |
 
 ---
 
@@ -286,9 +285,9 @@ Record wall-clock time vs `conformance/budgets/measured.json` BLE estimate → L
 
 **Pass:** bidirectional transfer; warning visible for oversized Resource.
 
-| Measurement | LIMITATIONS |
-|---|---|
-| File-drop transfer time (AutoInterface) | §6 |
+| Measurement                             | LIMITATIONS |
+| --------------------------------------- | ----------- |
+| File-drop transfer time (AutoInterface) | §6          |
 
 ---
 
@@ -299,9 +298,9 @@ Record wall-clock time vs `conformance/budgets/measured.json` BLE estimate → L
 1. Install all three examples; normal use 2–3 min each; background/foreground — **no false kills**
 2. Dev-channel hostile fixtures: busy-loop killed; allocation bomb killed; host intact after
 
-| Measurement | LIMITATIONS |
-|---|---|
-| False-positive watchdog rate | §7 |
+| Measurement                                                 | LIMITATIONS                   |
+| ----------------------------------------------------------- | ----------------------------- |
+| False-positive watchdog rate                                | §7                            |
 | Bare Worker spawn/kill latency (if E5 not done on emulator) | `docs/miniapp-runtime.md` ADR |
 
 ---
@@ -336,12 +335,12 @@ Catalog → install → grant → launch → update → rollback; real Local Net
 Background grace window, reconnect time, Low Power Mode, BG-task fire rate over 1 h →
 [docs/ios-host.md](docs/ios-host.md), LIMITATIONS §4.
 
-| Measurement | Document |
-|---|---|
-| Background grace-window | docs/ios-host.md, LIMITATIONS §4 |
-| Reconnect + re-announce time | docs/ios-host.md |
-| BG-task fire rate | LIMITATIONS §4 |
-| Crypto ops/sec on device | `conformance/ios-sim/crypto-baseline.json` |
+| Measurement                  | Document                                   |
+| ---------------------------- | ------------------------------------------ |
+| Background grace-window      | docs/ios-host.md, LIMITATIONS §4           |
+| Reconnect + re-announce time | docs/ios-host.md                           |
+| BG-task fire rate            | LIMITATIONS §4                             |
+| Crypto ops/sec on device     | `conformance/ios-sim/crypto-baseline.json` |
 
 ---
 
@@ -356,10 +355,10 @@ Bidirectional over BLE-only.
 Background iPhone 5 min → 1 h; fill matrix in [docs/ble-interface.md](docs/ble-interface.md) §10:
 
 | Scanner | Advertiser | iPhone FG | iPhone BG |
-|---|---|---|---|
-| Android | iPhone | measured | measured |
-| iPhone | iPhone | measured | measured |
-| iPhone | Android | measured | — |
+| ------- | ---------- | --------- | --------- |
+| Android | iPhone     | measured  | measured  |
+| iPhone  | iPhone     | measured  | measured  |
+| iPhone  | Android    | measured  | —         |
 
 ---
 
@@ -478,20 +477,20 @@ Software proves desktop Bare (`npm run test:bare-hyperdrive`). On phone/emulator
 
 ## CI vs device matrix (quick reference)
 
-| Test | CI / simulator | Device (this doc) |
-|---|---|---|
-| Worklet TCP slice | `test:bare-device` | H1-A |
-| AutoInterface | `test:auto-interop` (docker) | H2-A, H6-B |
-| BLE Reticulum | simulated pipe | H2-B/C, H7, H9, H14 |
-| RNode driver | golden transcripts | H4, H8, H16, H19 |
-| Harness install | `test:harness-install` | H6, H7, emulator E1–E3 |
-| Full mini-app loop | `demo:phase4`, `test:examples` | H9, H10, H11 |
-| iOS full loop | `test:ios-sim`, `demo:phase5` | H13-C |
-| Desktop full loop | `test:desktop`, `demo:phase6` | H17, H18 |
-| 8 h Android background | — | H3 |
-| Flagship BLE-only install | simulated BLE in dist-interop | H7 |
-| PLAN §6 flagship (publish → BLE install → launch) | partial CI | H7 + H9 |
-| Handbook software tier | `test:handbook`, `test:handbook-mobile`, `test:web-handbook` | H21, H22 |
+| Test                                              | CI / simulator                                               | Device (this doc)      |
+| ------------------------------------------------- | ------------------------------------------------------------ | ---------------------- |
+| Worklet TCP slice                                 | `test:bare-device`                                           | H1-A                   |
+| AutoInterface                                     | `test:auto-interop` (docker)                                 | H2-A, H6-B             |
+| BLE Reticulum                                     | simulated pipe                                               | H2-B/C, H7, H9, H14    |
+| RNode driver                                      | golden transcripts                                           | H4, H8, H16, H19       |
+| Harness install                                   | `test:harness-install`                                       | H6, H7, emulator E1–E3 |
+| Full mini-app loop                                | `demo:phase4`, `test:examples`                               | H9, H10, H11           |
+| iOS full loop                                     | `test:ios-sim`, `demo:phase5`                                | H13-C                  |
+| Desktop full loop                                 | `test:desktop`, `demo:phase6`                                | H17, H18               |
+| 8 h Android background                            | —                                                            | H3                     |
+| Flagship BLE-only install                         | simulated BLE in dist-interop                                | H7                     |
+| PLAN §6 flagship (publish → BLE install → launch) | partial CI                                                   | H7 + H9                |
+| Handbook software tier                            | `test:handbook`, `test:handbook-mobile`, `test:web-handbook` | H21, H22               |
 
 ---
 

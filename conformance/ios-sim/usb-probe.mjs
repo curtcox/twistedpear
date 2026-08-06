@@ -23,10 +23,14 @@ export function runUsbSerialProbe() {
 
   const desktop = resolveUsbSerialCapability("web");
   if (desktop.supported || desktop.reason !== "native-module-unavailable") {
-    fail(`expected native-module-unavailable on web, got ${JSON.stringify(desktop)}`);
+    fail(
+      `expected native-module-unavailable on web, got ${JSON.stringify(desktop)}`,
+    );
   }
 
-  console.log("[ios-sim/usb-probe] iOS reports unsupported-on-ios; Android path remains available");
+  console.log(
+    "[ios-sim/usb-probe] iOS reports unsupported-on-ios; Android path remains available",
+  );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

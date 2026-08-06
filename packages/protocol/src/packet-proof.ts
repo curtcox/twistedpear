@@ -13,7 +13,8 @@ import { equalByteArrays } from "./path-table.js";
 
 export const PACKET_FULL_HASH_SIZE = 32;
 export const PACKET_SIGNATURE_SIZE = 64;
-export const PACKET_EXPLICIT_PROOF_SIZE = PACKET_FULL_HASH_SIZE + PACKET_SIGNATURE_SIZE;
+export const PACKET_EXPLICIT_PROOF_SIZE =
+  PACKET_FULL_HASH_SIZE + PACKET_SIGNATURE_SIZE;
 
 export type PacketProofFields =
   | {
@@ -46,8 +47,7 @@ export type PacketTypeProofEvent =
     };
 
 export type PacketTypeProofAction =
-  | { readonly kind: "proof" }
-  | { readonly kind: "other" };
+  { readonly kind: "proof" } | { readonly kind: "other" };
 
 export interface PacketTypeProofStepResult {
   readonly state: PacketTypeProofState;
@@ -61,13 +61,15 @@ export function initialPacketTypeProofState(): PacketTypeProofState {
 
 export function stepPacketTypeProofWithActions(
   state: PacketTypeProofState,
-  event: PacketTypeProofEvent
+  event: PacketTypeProofEvent,
 ): PacketTypeProofStepResult {
   if (event.kind === "packet-proof/packet-type-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: isPacketTypeProof(event.packetType) ? "proof" : "other" }]
+      actions: [
+        { kind: isPacketTypeProof(event.packetType) ? "proof" : "other" },
+      ],
     };
   }
 
@@ -75,13 +77,13 @@ export function stepPacketTypeProofWithActions(
 }
 
 export function shouldTreatPacketTypeProof(
-  actions: ReadonlyArray<PacketTypeProofAction>
+  actions: ReadonlyArray<PacketTypeProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "proof");
 }
 
 export function shouldTreatPacketTypeOther(
-  actions: ReadonlyArray<PacketTypeProofAction>
+  actions: ReadonlyArray<PacketTypeProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "other");
 }
@@ -100,7 +102,7 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
 export function packPacketProof(
   packetHash: Uint8Array,
   signature: Uint8Array,
-  explicit: boolean = true
+  explicit: boolean = true,
 ): Uint8Array {
   if (packetHash.length !== PACKET_FULL_HASH_SIZE) {
     throw new Error(`packet hash must be ${PACKET_FULL_HASH_SIZE} bytes`);
@@ -116,7 +118,7 @@ export function splitPacketProof(proof: Uint8Array): PacketProofFields | null {
     return {
       kind: "explicit",
       packetHash: proof.subarray(0, PACKET_FULL_HASH_SIZE),
-      signature: proof.subarray(PACKET_FULL_HASH_SIZE)
+      signature: proof.subarray(PACKET_FULL_HASH_SIZE),
     };
   }
   if (proof.length === PACKET_SIGNATURE_SIZE) {
@@ -158,7 +160,7 @@ export function initialPackPacketProofState(): PackPacketProofState {
 
 export function stepPackPacketProofWithActions(
   state: PackPacketProofState,
-  event: PackPacketProofEvent
+  event: PackPacketProofEvent,
 ): PackPacketProofStepResult {
   if (event.kind === "packet-proof/pack-gate") {
     return {
@@ -167,9 +169,13 @@ export function stepPackPacketProofWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packPacketProof(event.packetHash, event.signature, event.explicit)
-        }
-      ]
+          raw: packPacketProof(
+            event.packetHash,
+            event.signature,
+            event.explicit,
+          ),
+        },
+      ],
     };
   }
 
@@ -177,14 +183,14 @@ export function stepPackPacketProofWithActions(
 }
 
 export function shouldUsePackPacketProof(
-  actions: ReadonlyArray<PackPacketProofAction>
+  actions: ReadonlyArray<PackPacketProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract packet-proof pack bytes from step actions; null when no `use-raw`. */
 export function packPacketProofRawFromActions(
-  actions: ReadonlyArray<PackPacketProofAction>
+  actions: ReadonlyArray<PackPacketProofAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -220,7 +226,7 @@ export function initialSplitPacketProofState(): SplitPacketProofState {
 
 export function stepSplitPacketProofWithActions(
   state: SplitPacketProofState,
-  event: SplitPacketProofEvent
+  event: SplitPacketProofEvent,
 ): SplitPacketProofStepResult {
   if (event.kind === "packet-proof/split-gate") {
     const fields = splitPacketProof(event.proof);
@@ -230,7 +236,7 @@ export function stepSplitPacketProofWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-fields", fields }]
+      actions: [{ kind: "use-fields", fields }],
     };
   }
 
@@ -238,20 +244,20 @@ export function stepSplitPacketProofWithActions(
 }
 
 export function shouldUseSplitPacketProof(
-  actions: ReadonlyArray<SplitPacketProofAction>
+  actions: ReadonlyArray<SplitPacketProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectSplitPacketProof(
-  actions: ReadonlyArray<SplitPacketProofAction>
+  actions: ReadonlyArray<SplitPacketProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract split packet-proof fields from step actions; null when no `use-fields`. */
 export function packetProofFieldsFromActions(
-  actions: ReadonlyArray<SplitPacketProofAction>
+  actions: ReadonlyArray<SplitPacketProofAction>,
 ): PacketProofFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -260,7 +266,7 @@ export function packetProofFieldsFromActions(
 /** Whether an explicit proof's embedded hash matches the packet hash. */
 export function packetProofHashMatches(
   proof: PacketProofFields,
-  packetHash: Uint8Array
+  packetHash: Uint8Array,
 ): boolean {
   if (proof.kind !== "explicit") {
     return true;
@@ -284,8 +290,7 @@ export type PacketProofHashMatchEvent =
     };
 
 export type PacketProofHashMatchAction =
-  | { readonly kind: "match" }
-  | { readonly kind: "mismatch" };
+  { readonly kind: "match" } | { readonly kind: "mismatch" };
 
 export interface PacketProofHashMatchStepResult {
   readonly state: PacketProofHashMatchState;
@@ -299,7 +304,7 @@ export function initialPacketProofHashMatchState(): PacketProofHashMatchState {
 
 export function stepPacketProofHashMatchWithActions(
   state: PacketProofHashMatchState,
-  event: PacketProofHashMatchEvent
+  event: PacketProofHashMatchEvent,
 ): PacketProofHashMatchStepResult {
   if (event.kind === "packet-proof/hash-match-gate") {
     return {
@@ -309,9 +314,9 @@ export function stepPacketProofHashMatchWithActions(
         {
           kind: packetProofHashMatches(event.proof, event.packetHash)
             ? "match"
-            : "mismatch"
-        }
-      ]
+            : "mismatch",
+        },
+      ],
     };
   }
 
@@ -319,13 +324,13 @@ export function stepPacketProofHashMatchWithActions(
 }
 
 export function shouldMatchPacketProofHash(
-  actions: ReadonlyArray<PacketProofHashMatchAction>
+  actions: ReadonlyArray<PacketProofHashMatchAction>,
 ): boolean {
   return actions.some((action) => action.kind === "match");
 }
 
 export function shouldMismatchPacketProofHash(
-  actions: ReadonlyArray<PacketProofHashMatchAction>
+  actions: ReadonlyArray<PacketProofHashMatchAction>,
 ): boolean {
   return actions.some((action) => action.kind === "mismatch");
 }
@@ -374,8 +379,7 @@ export type AcceptPacketReceiptProofEvent =
     };
 
 export type AcceptPacketReceiptProofAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptPacketReceiptProofStepResult {
   readonly state: AcceptPacketReceiptProofState;
@@ -389,7 +393,7 @@ export function initialAcceptPacketReceiptProofState(): AcceptPacketReceiptProof
 
 export function stepAcceptPacketReceiptProofWithActions(
   state: AcceptPacketReceiptProofState,
-  event: AcceptPacketReceiptProofEvent
+  event: AcceptPacketReceiptProofEvent,
 ): AcceptPacketReceiptProofStepResult {
   if (event.kind === "receipt/accept-proof-gate") {
     return {
@@ -399,12 +403,12 @@ export function stepAcceptPacketReceiptProofWithActions(
         {
           kind: shouldAcceptPacketReceiptProof({
             planAccept: event.planAccept,
-            splitPresent: event.splitPresent
+            splitPresent: event.splitPresent,
           })
             ? "accept"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -412,13 +416,13 @@ export function stepAcceptPacketReceiptProofWithActions(
 }
 
 export function shouldAcceptPacketReceiptProofNow(
-  actions: ReadonlyArray<AcceptPacketReceiptProofAction>
+  actions: ReadonlyArray<AcceptPacketReceiptProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipAcceptPacketReceiptProof(
-  actions: ReadonlyArray<AcceptPacketReceiptProofAction>
+  actions: ReadonlyArray<AcceptPacketReceiptProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -456,7 +460,7 @@ export function initialPacketReceiptProofAcceptPlanState(): PacketReceiptProofAc
 
 export function stepPacketReceiptProofAcceptPlanWithActions(
   state: PacketReceiptProofAcceptPlanState,
-  event: PacketReceiptProofAcceptPlanEvent
+  event: PacketReceiptProofAcceptPlanEvent,
 ): PacketReceiptProofAcceptPlanStepResult {
   if (event.kind === "receipt/proof-accept-plan-gate") {
     return {
@@ -467,10 +471,10 @@ export function stepPacketReceiptProofAcceptPlanWithActions(
           kind: planPacketReceiptProofAccept({
             splitOk: event.splitOk,
             hashMatches: event.hashMatches,
-            signatureValid: event.signatureValid
-          })
-        }
-      ]
+            signatureValid: event.signatureValid,
+          }),
+        },
+      ],
     };
   }
 
@@ -478,22 +482,22 @@ export function stepPacketReceiptProofAcceptPlanWithActions(
 }
 
 export function packetReceiptProofAcceptPlanFromActions(
-  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>
+  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>,
 ): PacketReceiptProofAcceptPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "accept" || entry.kind === "reject"
+    (entry) => entry.kind === "accept" || entry.kind === "reject",
   );
   return action?.kind ?? null;
 }
 
 export function shouldAcceptPacketReceiptProofAcceptPlan(
-  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>
+  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectPacketReceiptProofAcceptPlan(
-  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>
+  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -533,46 +537,45 @@ export function initialPacketReceiptProofAcceptState(): PacketReceiptProofAccept
   return {};
 }
 
-export const stepPacketReceiptProofAccept: StepFn<PacketReceiptProofAcceptState> = (
-  state,
-  event
-) => {
+export const stepPacketReceiptProofAccept: StepFn<
+  PacketReceiptProofAcceptState
+> = (state, event) => {
   const result = stepPacketReceiptProofAcceptInner(
     state,
-    event as PacketReceiptProofAcceptEvent
+    event as PacketReceiptProofAcceptEvent,
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPacketReceiptProofAcceptWithActions(
   state: PacketReceiptProofAcceptState,
-  event: PacketReceiptProofAcceptEvent
+  event: PacketReceiptProofAcceptEvent,
 ): PacketReceiptProofAcceptStepResult {
   return stepPacketReceiptProofAcceptInner(state, event);
 }
 
 export function packetReceiptProofAcceptFromActions(
-  actions: ReadonlyArray<PacketReceiptProofAcceptAction>
+  actions: ReadonlyArray<PacketReceiptProofAcceptAction>,
 ): PacketReceiptProofAcceptPlan | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldAcceptPacketReceiptProofActions(
-  actions: ReadonlyArray<PacketReceiptProofAcceptAction>
+  actions: ReadonlyArray<PacketReceiptProofAcceptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldRejectPacketReceiptProofActions(
-  actions: ReadonlyArray<PacketReceiptProofAcceptAction>
+  actions: ReadonlyArray<PacketReceiptProofAcceptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 function stepPacketReceiptProofAcceptInner(
   state: PacketReceiptProofAcceptState,
-  event: PacketReceiptProofAcceptEvent
+  event: PacketReceiptProofAcceptEvent,
 ): PacketReceiptProofAcceptStepResult {
   if (event.kind === "receipt/proof-accept-gate") {
     const planActions = stepPacketReceiptProofAcceptPlanWithActions(
@@ -581,8 +584,8 @@ function stepPacketReceiptProofAcceptInner(
         kind: "receipt/proof-accept-plan-gate",
         splitOk: event.splitOk,
         hashMatches: event.hashMatches,
-        signatureValid: event.signatureValid
-      }
+        signatureValid: event.signatureValid,
+      },
     ).actions;
     const plan = packetReceiptProofAcceptPlanFromActions(planActions);
     if (plan === null) {

@@ -6,7 +6,7 @@ import {
   frameDeviceStreamPayload,
   sanitizeCameraFrame,
   sanitizeMotionSamples,
-  sanitizePcmSample
+  sanitizePcmSample,
 } from "../src/index.js";
 
 describe("device stream framing", () => {
@@ -17,24 +17,33 @@ describe("device stream framing", () => {
       sampleKind: DEVICE_STREAM_KIND.pcm,
       sessionToken: 42,
       sequence: 3,
-      payload
+      payload,
     });
     expect(decodeDeviceStreamFrame(encoded)).toEqual({
       version: 1,
       sampleKind: 2,
       sessionToken: 42,
       sequence: 3,
-      payload
+      payload,
     });
   });
 
   it("chunks large payloads", () => {
     const payload = new Uint8Array(200);
     payload.fill(7);
-    const frames = frameDeviceStreamPayload(1, DEVICE_STREAM_KIND.cameraFrame, payload, 64);
+    const frames = frameDeviceStreamPayload(
+      1,
+      DEVICE_STREAM_KIND.cameraFrame,
+      payload,
+      64,
+    );
     expect(frames.length).toBe(4);
     expect(decodeDeviceStreamFrame(frames[0]!).payload.length).toBe(64);
-    expect(decodeDeviceStreamFrame(frames[0]!)).toMatchObject({ version: 2, captureAtUs: 0, clockId: 0 });
+    expect(decodeDeviceStreamFrame(frames[0]!)).toMatchObject({
+      version: 2,
+      captureAtUs: 0,
+      clockId: 0,
+    });
   });
 
   it("emits timed TPD2 frames while retaining TPD1 decode compatibility", () => {
@@ -45,13 +54,13 @@ describe("device stream framing", () => {
       sequence: 9,
       captureAtUs: 12_345_678,
       clockId: 42,
-      payload: new Uint8Array([1, 2])
+      payload: new Uint8Array([1, 2]),
     });
     expect(new TextDecoder().decode(encoded.subarray(0, 4))).toBe("TPD2");
     expect(decodeDeviceStreamFrame(encoded)).toMatchObject({
       version: 2,
       captureAtUs: 12_345_678,
-      clockId: 42
+      clockId: 42,
     });
   });
 
@@ -62,8 +71,8 @@ describe("device stream framing", () => {
         sampleKind: 0 as never,
         sessionToken: 1,
         sequence: 0,
-        payload: new Uint8Array([1])
-      })
+        payload: new Uint8Array([1]),
+      }),
     ).toThrow(/control/i);
   });
 });
@@ -76,13 +85,13 @@ describe("fingerprint sanitization", () => {
       format: "rgba8",
       bytes: new Uint8Array(64),
       deviceModel: "Pixel",
-      sensorCalibration: { fx: 1 }
+      sensorCalibration: { fx: 1 },
     });
     expect(frame).toEqual({
       width: 4,
       height: 4,
       format: "rgba8",
-      bytes: new Uint8Array(64)
+      bytes: new Uint8Array(64),
     });
     expect(frame).not.toHaveProperty("deviceModel");
   });
@@ -93,16 +102,16 @@ describe("fingerprint sanitization", () => {
         sampleRate: 16_000,
         channels: 1,
         samples: [1.5, -2],
-        deviceId: "bad"
-      })
+        deviceId: "bad",
+      }),
     ).toEqual({ sampleRate: 16_000, channels: 1, samples: [1, -1] });
 
     expect(
       sanitizeMotionSamples({
         accel: [0.12345, 0, 0],
         gyro: [0, 0, 0],
-        deviceSerial: "x"
-      }).accel[0]
+        deviceSerial: "x",
+      }).accel[0],
     ).toBe(0.123);
   });
 });

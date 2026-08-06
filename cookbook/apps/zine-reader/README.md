@@ -17,17 +17,17 @@ Caching a fetched artifact into the workspace so a second read costs no bytes.
 
 ## Capabilities
 
-| Capability | Note |
-|---|---|
+| Capability  | Note                                                                               |
+| ----------- | ---------------------------------------------------------------------------------- |
 | `share:cas` | `share.get` resolves only if a locator announce for those bytes was already heard. |
-| `workspace` | 256 KiB per file, 4 MiB and 512 files per app. |
+| `workspace` | 256 KiB per file, 4 MiB and 512 files per app.                                     |
 
 ## Files
 
-| File | Purpose |
-|---|---|
+| File                                   | Purpose                                                      |
+| -------------------------------------- | ------------------------------------------------------------ |
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
-| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
+| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
 
 ## Run it
 

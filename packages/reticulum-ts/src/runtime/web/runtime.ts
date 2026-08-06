@@ -11,7 +11,7 @@ import type {
   TcpListenOptions,
   TcpListener,
   Timer,
-  UdpFactory
+  UdpFactory,
 } from "../runtime.js";
 
 export interface WebRuntimeOptions {
@@ -92,14 +92,21 @@ class WebEntropy implements Entropy {
 class IndexedDbKeyValueStore implements KeyValueStore {
   private readonly ready: Promise<WebIDBDatabase>;
 
-  constructor(indexedDB: WebIndexedDB, private readonly storeName: string) {
+  constructor(
+    indexedDB: WebIndexedDB,
+    private readonly storeName: string,
+  ) {
     this.ready = new Promise((resolve, reject) => {
       const request = indexedDB.open(storeName, 1);
       request.onupgradeneeded = (event) => {
         event.target?.result.createObjectStore("kv");
       };
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error(`Failed to open IndexedDB store ${storeName}`));
+      request.onerror = () =>
+        reject(
+          request.error ??
+            new Error(`Failed to open IndexedDB store ${storeName}`),
+        );
     });
   }
 
@@ -109,11 +116,16 @@ class IndexedDbKeyValueStore implements KeyValueStore {
       return undefined;
     }
 
-    return result instanceof Uint8Array ? Uint8Array.from(result) : new Uint8Array(result);
+    return result instanceof Uint8Array
+      ? Uint8Array.from(result)
+      : new Uint8Array(result);
   }
 
   async set(key: string, value: Uint8Array): Promise<void> {
-    await this.request((store) => store.put(Uint8Array.from(value), key), "readwrite");
+    await this.request(
+      (store) => store.put(Uint8Array.from(value), key),
+      "readwrite",
+    );
   }
 
   async delete(key: string): Promise<void> {
@@ -122,20 +134,25 @@ class IndexedDbKeyValueStore implements KeyValueStore {
 
   private async request<T>(
     makeRequest: (store: WebIDBObjectStore) => WebIDBRequest<T>,
-    mode: "readonly" | "readwrite"
+    mode: "readonly" | "readwrite",
   ): Promise<T> {
     const database = await this.ready;
-    const request = makeRequest(database.transaction("kv", mode).objectStore("kv"));
+    const request = makeRequest(
+      database.transaction("kv", mode).objectStore("kv"),
+    );
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
+      request.onerror = () =>
+        reject(request.error ?? new Error("IndexedDB request failed"));
     });
   }
 }
 
 class UnsupportedTcpFactory implements TcpFactory {
   async connect(_options: TcpConnectOptions): Promise<DuplexConnection> {
-    throw new Error("TCP is unavailable in the web runtime; use WebSocketClientInterface");
+    throw new Error(
+      "TCP is unavailable in the web runtime; use WebSocketClientInterface",
+    );
   }
 
   async listen(_options: TcpListenOptions): Promise<TcpListener> {
@@ -150,7 +167,9 @@ class UnsupportedUdpFactory implements UdpFactory {
 }
 
 export function webRuntime(options: WebRuntimeOptions = {}): Runtime {
-  const indexedDB = options.indexedDB ?? (globalThis as { readonly indexedDB?: WebIndexedDB }).indexedDB;
+  const indexedDB =
+    options.indexedDB ??
+    (globalThis as { readonly indexedDB?: WebIndexedDB }).indexedDB;
   if (indexedDB === undefined) {
     throw new Error("IndexedDB is required for the web runtime store");
   }
@@ -158,8 +177,11 @@ export function webRuntime(options: WebRuntimeOptions = {}): Runtime {
   return {
     clock: options.clock ?? new WebClock(),
     entropy: options.entropy ?? new WebEntropy(),
-    store: new IndexedDbKeyValueStore(indexedDB, options.storeName ?? "twistedpear-reticulum"),
+    store: new IndexedDbKeyValueStore(
+      indexedDB,
+      options.storeName ?? "twistedpear-reticulum",
+    ),
     tcp: new UnsupportedTcpFactory(),
-    udp: new UnsupportedUdpFactory()
+    udp: new UnsupportedUdpFactory(),
   };
 }

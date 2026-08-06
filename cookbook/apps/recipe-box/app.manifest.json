@@ -2,9 +2,7 @@
   "name": "recipe-box",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": [
-    "workspace"
-  ],
+  "capabilities": ["workspace"],
   "icon": null,
   "minHostApi": "0.1.0"
 }

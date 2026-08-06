@@ -16,10 +16,15 @@
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { shouldKeepOutboundReceipt } from "./part-1.js";
-import type { KeepOutboundReceiptAction, KeepOutboundReceiptEvent, KeepOutboundReceiptState, KeepOutboundReceiptStepResult } from "./part-1.js";
+import type {
+  KeepOutboundReceiptAction,
+  KeepOutboundReceiptEvent,
+  KeepOutboundReceiptState,
+  KeepOutboundReceiptStepResult,
+} from "./part-1.js";
 export function stepKeepOutboundReceiptWithActions(
   state: KeepOutboundReceiptState,
-  event: KeepOutboundReceiptEvent
+  event: KeepOutboundReceiptEvent,
 ): KeepOutboundReceiptStepResult {
   if (event.kind === "receipt/keep-outbound-gate") {
     return {
@@ -29,12 +34,12 @@ export function stepKeepOutboundReceiptWithActions(
         {
           kind: shouldKeepOutboundReceipt({
             planKeep: event.planKeep,
-            sent: event.sent
+            sent: event.sent,
           })
             ? "keep"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -42,13 +47,13 @@ export function stepKeepOutboundReceiptWithActions(
 }
 
 export function shouldKeepOutboundReceiptNow(
-  actions: ReadonlyArray<KeepOutboundReceiptAction>
+  actions: ReadonlyArray<KeepOutboundReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "keep");
 }
 
 export function shouldSkipKeepOutboundReceipt(
-  actions: ReadonlyArray<KeepOutboundReceiptAction>
+  actions: ReadonlyArray<KeepOutboundReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -64,7 +69,11 @@ export function planPacketReceiptProofIngress(input: {
   readonly identityPresent: boolean;
   readonly proofAccepted: boolean;
 }): PacketReceiptProofIngressPlan {
-  if (input.truncatedHashMatches && input.identityPresent && input.proofAccepted) {
+  if (
+    input.truncatedHashMatches &&
+    input.identityPresent &&
+    input.proofAccepted
+  ) {
     return "remove-receipt";
   }
   return "continue";
@@ -103,7 +112,7 @@ export function initialPacketReceiptProofIngressPlanState(): PacketReceiptProofI
 
 export function stepPacketReceiptProofIngressPlanWithActions(
   state: PacketReceiptProofIngressPlanState,
-  event: PacketReceiptProofIngressPlanEvent
+  event: PacketReceiptProofIngressPlanEvent,
 ): PacketReceiptProofIngressPlanStepResult {
   if (event.kind === "receipt/proof-ingress-plan-gate") {
     return {
@@ -114,10 +123,10 @@ export function stepPacketReceiptProofIngressPlanWithActions(
           kind: planPacketReceiptProofIngress({
             truncatedHashMatches: event.truncatedHashMatches,
             identityPresent: event.identityPresent,
-            proofAccepted: event.proofAccepted
-          })
-        }
-      ]
+            proofAccepted: event.proofAccepted,
+          }),
+        },
+      ],
     };
   }
 
@@ -126,20 +135,20 @@ export function stepPacketReceiptProofIngressPlanWithActions(
 
 /** Extract the packet-receipt proof ingress plan from actions; null when empty. */
 export function packetReceiptProofIngressPlanFromActions(
-  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>
+  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>,
 ): PacketReceiptProofIngressPlan | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldRemovePacketReceiptProofIngressPlan(
-  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>
+  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove-receipt");
 }
 
 export function shouldContinuePacketReceiptProofIngressPlan(
-  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>
+  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "continue");
 }
@@ -189,14 +198,14 @@ export function initialPacketReceiptUnregisterPlanState(): PacketReceiptUnregist
 
 export function stepPacketReceiptUnregisterPlanWithActions(
   state: PacketReceiptUnregisterPlanState,
-  event: PacketReceiptUnregisterPlanEvent
+  event: PacketReceiptUnregisterPlanEvent,
 ): PacketReceiptUnregisterPlanStepResult {
   if (event.kind === "receipt/unregister-plan-gate") {
     const index = planUnregisterPacketReceipt(event.index);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
+      actions: index === null ? [] : [{ kind: "remove", index }],
     };
   }
 
@@ -204,14 +213,14 @@ export function stepPacketReceiptUnregisterPlanWithActions(
 }
 
 export function packetReceiptUnregisterPlanIndex(
-  actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>
+  actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemovePacketReceiptUnregisterPlan(
-  actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>
+  actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }
@@ -248,21 +257,21 @@ export function initialPacketReceiptUnregisterState(): PacketReceiptUnregisterSt
 
 export function stepPacketReceiptUnregisterWithActions(
   state: PacketReceiptUnregisterState,
-  event: PacketReceiptUnregisterEvent
+  event: PacketReceiptUnregisterEvent,
 ): PacketReceiptUnregisterStepResult {
   if (event.kind === "receipt/unregister-gate") {
     const planActions = stepPacketReceiptUnregisterPlanWithActions(
       initialPacketReceiptUnregisterPlanState(),
       {
         kind: "receipt/unregister-plan-gate",
-        index: event.index
-      }
+        index: event.index,
+      },
     ).actions;
     const index = packetReceiptUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
+      actions: index === null ? [] : [{ kind: "remove", index }],
     };
   }
 
@@ -270,14 +279,14 @@ export function stepPacketReceiptUnregisterWithActions(
 }
 
 export function packetReceiptUnregisterIndex(
-  actions: ReadonlyArray<PacketReceiptUnregisterAction>
+  actions: ReadonlyArray<PacketReceiptUnregisterAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemovePacketReceipt(
-  actions: ReadonlyArray<PacketReceiptUnregisterAction>
+  actions: ReadonlyArray<PacketReceiptUnregisterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }
@@ -302,8 +311,7 @@ export type RegisterPacketReceiptEvent =
     };
 
 export type RegisterPacketReceiptAction =
-  | { readonly kind: "register" }
-  | { readonly kind: "skip" };
+  { readonly kind: "register" } | { readonly kind: "skip" };
 
 export interface RegisterPacketReceiptStepResult {
   readonly state: RegisterPacketReceiptState;
@@ -317,7 +325,7 @@ export function initialRegisterPacketReceiptState(): RegisterPacketReceiptState 
 
 export function stepRegisterPacketReceiptWithActions(
   state: RegisterPacketReceiptState,
-  event: RegisterPacketReceiptEvent
+  event: RegisterPacketReceiptEvent,
 ): RegisterPacketReceiptStepResult {
   if (event.kind === "receipt/register-gate") {
     return {
@@ -325,9 +333,11 @@ export function stepRegisterPacketReceiptWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldRegisterPacketReceipt(event.createReceipt) ? "register" : "skip"
-        }
-      ]
+          kind: shouldRegisterPacketReceipt(event.createReceipt)
+            ? "register"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -335,13 +345,13 @@ export function stepRegisterPacketReceiptWithActions(
 }
 
 export function shouldRegisterPacketReceiptNow(
-  actions: ReadonlyArray<RegisterPacketReceiptAction>
+  actions: ReadonlyArray<RegisterPacketReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipRegisterPacketReceipt(
-  actions: ReadonlyArray<RegisterPacketReceiptAction>
+  actions: ReadonlyArray<RegisterPacketReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -349,7 +359,9 @@ export function shouldSkipRegisterPacketReceipt(
 export type PacketReceiptCallbackPlan = "clear" | "set";
 
 /** Whether a packet-receipt timeout/delivery callback should be cleared or assigned. */
-export function planPacketReceiptCallback(callbackPresent: boolean): PacketReceiptCallbackPlan {
+export function planPacketReceiptCallback(
+  callbackPresent: boolean,
+): PacketReceiptCallbackPlan {
   return callbackPresent ? "set" : "clear";
 }
 
@@ -366,7 +378,7 @@ export type PacketReceiptCallbackPlanAction = {
 
 /** Extract the packet-receipt callback plan from actions; null when empty. */
 export function packetReceiptCallbackPlanFromActions(
-  actions: ReadonlyArray<PacketReceiptCallbackPlanAction>
+  actions: ReadonlyArray<PacketReceiptCallbackPlanAction>,
 ): PacketReceiptCallbackPlan | null {
   const action = actions[0];
   return action?.kind ?? null;
@@ -380,8 +392,7 @@ export type PacketReceiptCallbackEvent =
     };
 
 export type PacketReceiptCallbackAction =
-  | { readonly kind: "clear" }
-  | { readonly kind: "set" };
+  { readonly kind: "clear" } | { readonly kind: "set" };
 
 /**
  * Packet-receipt proof ingress is event-driven; no durable session fields.
@@ -412,14 +423,14 @@ export interface PacketReceiptProofIngressStepResult {
 
 export function stepPacketReceiptProofIngressWithActions(
   state: PacketReceiptProofIngressState,
-  event: PacketReceiptProofIngressEvent
+  event: PacketReceiptProofIngressEvent,
 ): PacketReceiptProofIngressStepResult {
   return stepPacketReceiptProofIngressInner(state, event);
 }
 
 export function stepPacketReceiptProofIngressInner(
   state: PacketReceiptProofIngressState,
-  event: PacketReceiptProofIngressEvent
+  event: PacketReceiptProofIngressEvent,
 ): PacketReceiptProofIngressStepResult {
   if (event.kind === "receipt/proof-ingress-gate") {
     const planActions = stepPacketReceiptProofIngressPlanWithActions(
@@ -428,8 +439,8 @@ export function stepPacketReceiptProofIngressInner(
         kind: "receipt/proof-ingress-plan-gate",
         truncatedHashMatches: event.truncatedHashMatches,
         identityPresent: event.identityPresent,
-        proofAccepted: event.proofAccepted
-      }
+        proofAccepted: event.proofAccepted,
+      },
     ).actions;
     const plan = packetReceiptProofIngressPlanFromActions(planActions);
     if (plan === null) {

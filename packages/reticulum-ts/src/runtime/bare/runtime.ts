@@ -46,8 +46,10 @@ export function bareRuntime(options: BareRuntimeOptions = {}): Runtime {
   return {
     clock: options.clock ?? new BareClock(),
     entropy: options.entropy ?? new BareEntropy(),
-    store: new BareKeyValueStore({ rootPath: options.storePath ?? ".reticulum-store" }),
+    store: new BareKeyValueStore({
+      rootPath: options.storePath ?? ".reticulum-store",
+    }),
     tcp: bareTcpFactory,
-    udp: bareUdpFactory
+    udp: bareUdpFactory,
   };
 }

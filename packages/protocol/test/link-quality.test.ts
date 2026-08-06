@@ -4,14 +4,16 @@ import {
   linkQualityFromRoute,
   observeLinkDelivery,
   openLinkObservation,
-  updateLinkQuality
+  updateLinkQuality,
 } from "../src/index.js";
 
 const DECLARED = { kind: "declared", effectiveBps: 64_000, mtu: 500 } as const;
 
 describe("link quality estimator", () => {
   it("starts from a low-confidence declared interface rate", () => {
-    expect(initialLinkQuality({ kind: "declared", effectiveBps: 5_000, mtu: 500 })).toEqual({
+    expect(
+      initialLinkQuality({ kind: "declared", effectiveBps: 5_000, mtu: 500 }),
+    ).toEqual({
       goodputBps: 5_000,
       rttMs: 0,
       jitterMs: 0,
@@ -19,12 +21,16 @@ describe("link quality estimator", () => {
       mtu: 500,
       source: "declared",
       samples: 0,
-      confidence: "low"
+      confidence: "low",
     });
   });
 
   it("replaces a declared nameplate with the first real measurement", () => {
-    const declared = initialLinkQuality({ kind: "declared", effectiveBps: 10_000, mtu: 1_000 });
+    const declared = initialLinkQuality({
+      kind: "declared",
+      effectiveBps: 10_000,
+      mtu: 1_000,
+    });
     const observed = updateLinkQuality(declared, {
       kind: "observed",
       deliveredBytes: 1_000,
@@ -33,7 +39,7 @@ describe("link quality estimator", () => {
       jitterMs: 12,
       deliveredPackets: 9,
       lostPackets: 1,
-      mtu: 900
+      mtu: 900,
     });
     expect(observed).toMatchObject({
       goodputBps: 8_000,
@@ -42,29 +48,48 @@ describe("link quality estimator", () => {
       lossRatio: 0.1,
       source: "observed",
       samples: 1,
-      confidence: "low"
+      confidence: "low",
     });
   });
 
   it("applies an EWMA once there is a measured prior", () => {
-    const declared = initialLinkQuality({ kind: "declared", effectiveBps: 10_000, mtu: 1_000 });
-    const sample = { kind: "observed", durationMs: 1_000, rttMs: 100, mtu: 900 } as const;
-    const first = updateLinkQuality(declared, { ...sample, deliveredBytes: 1_000 });
-    const second = updateLinkQuality(first, { ...sample, deliveredBytes: 2_000 });
+    const declared = initialLinkQuality({
+      kind: "declared",
+      effectiveBps: 10_000,
+      mtu: 1_000,
+    });
+    const sample = {
+      kind: "observed",
+      durationMs: 1_000,
+      rttMs: 100,
+      mtu: 900,
+    } as const;
+    const first = updateLinkQuality(declared, {
+      ...sample,
+      deliveredBytes: 1_000,
+    });
+    const second = updateLinkQuality(first, {
+      ...sample,
+      deliveredBytes: 2_000,
+    });
     // 8_000 + 0.25 × (16_000 − 8_000)
     expect(second.goodputBps).toBe(10_000);
     expect(second.samples).toBe(2);
   });
 
   it("gives probes confidence faster without accepting invalid numbers", () => {
-    let quality = initialLinkQuality({ kind: "declared", effectiveBps: Number.POSITIVE_INFINITY, mtu: 0 });
+    let quality = initialLinkQuality({
+      kind: "declared",
+      effectiveBps: Number.POSITIVE_INFINITY,
+      mtu: 0,
+    });
     for (let index = 0; index < 3; index += 1) {
       quality = updateLinkQuality(quality, {
         kind: "probed",
         deliveredBytes: 512,
         durationMs: 100,
         rttMs: 50,
-        mtu: 256
+        mtu: 256,
       });
     }
     expect(quality.goodputBps).toBeGreaterThan(0);
@@ -76,7 +101,13 @@ describe("link quality estimator", () => {
 
 describe("route telemetry mapping", () => {
   it("treats an unqualified transport number as declared, not measured", () => {
-    expect(linkQualityFromRoute(DECLARED, { goodputBps: 2_000_000, rttMs: 12, mtu: 1_200 })).toEqual({
+    expect(
+      linkQualityFromRoute(DECLARED, {
+        goodputBps: 2_000_000,
+        rttMs: 12,
+        mtu: 1_200,
+      }),
+    ).toEqual({
       goodputBps: 2_000_000,
       rttMs: 12,
       jitterMs: 0,
@@ -84,7 +115,7 @@ describe("route telemetry mapping", () => {
       mtu: 1_200,
       source: "declared",
       samples: 0,
-      confidence: "low"
+      confidence: "low",
     });
   });
 
@@ -98,28 +129,50 @@ describe("route telemetry mapping", () => {
         lossRatio: 0.02,
         source: "observed",
         samples: 9,
-        confidence: "high"
-      })
-    ).toMatchObject({ goodputBps: 41_000, source: "observed", samples: 9, confidence: "high" });
+        confidence: "high",
+      }),
+    ).toMatchObject({
+      goodputBps: 41_000,
+      source: "observed",
+      samples: 9,
+      confidence: "high",
+    });
   });
 
   it("falls back to the declared interface rate when no transport reports", () => {
-    expect(linkQualityFromRoute(DECLARED)).toEqual(initialLinkQuality(DECLARED));
+    expect(linkQualityFromRoute(DECLARED)).toEqual(
+      initialLinkQuality(DECLARED),
+    );
   });
 });
 
 describe("passive route observation window", () => {
   it("stays declared until a window carries a credible number of bytes", () => {
     let window = openLinkObservation(DECLARED, 1_000);
-    window = observeLinkDelivery(window, { bytes: 100, atMs: 1_100, rttMs: 40, mtu: 500 });
+    window = observeLinkDelivery(window, {
+      bytes: 100,
+      atMs: 1_100,
+      rttMs: 40,
+      mtu: 500,
+    });
     expect(window.quality.source).toBe("declared");
     expect(window.windowBytes).toBe(100);
   });
 
   it("closes a filled window into an observed sample", () => {
     let window = openLinkObservation(DECLARED, 1_000);
-    window = observeLinkDelivery(window, { bytes: 1_024, atMs: 1_100, rttMs: 40, mtu: 500 });
-    window = observeLinkDelivery(window, { bytes: 1_024, atMs: 1_500, rttMs: 40, mtu: 500 });
+    window = observeLinkDelivery(window, {
+      bytes: 1_024,
+      atMs: 1_100,
+      rttMs: 40,
+      mtu: 500,
+    });
+    window = observeLinkDelivery(window, {
+      bytes: 1_024,
+      atMs: 1_500,
+      rttMs: 40,
+      mtu: 500,
+    });
     expect(window.quality.source).toBe("observed");
     // 2048 bytes across a 500 ms span, and the declared 64 kbps seed is gone.
     expect(window.quality.goodputBps).toBe(32_768);
@@ -139,7 +192,11 @@ describe("passive route observation window", () => {
 
   it("restarts rather than inventing a span when the clock moves backwards", () => {
     let window = openLinkObservation(DECLARED, 10_000);
-    window = observeLinkDelivery(window, { bytes: 4_096, atMs: 9_000, mtu: 500 });
+    window = observeLinkDelivery(window, {
+      bytes: 4_096,
+      atMs: 9_000,
+      mtu: 500,
+    });
     expect(window.quality.goodputBps).toBeGreaterThan(0);
     expect(Number.isFinite(window.quality.goodputBps)).toBe(true);
   });

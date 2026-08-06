@@ -11,13 +11,16 @@ import {
   PipeInterface,
   Resource,
   Reticulum,
-  nodeRuntime
+  nodeRuntime,
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 
-async function waitFor<T>(evaluate: () => T | null | undefined, timeoutMs = 5000): Promise<T> {
+async function waitFor<T>(
+  evaluate: () => T | null | undefined,
+  timeoutMs = 5000,
+): Promise<T> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const value = evaluate();
@@ -50,7 +53,7 @@ async function connectPeers(): Promise<{
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["resource"]
+    aspects: ["resource"],
   });
 
   await rightIn.announce();
@@ -62,36 +65,43 @@ async function connectPeers(): Promise<{
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["resource"]
+    aspects: ["resource"],
   });
 
   let leftLink: import("../src/index.js").Link | null = null;
   leftOut.requestLink({
     linkEstablished(link) {
       leftLink = link;
-    }
+    },
   });
 
   const establishedLeftLink = await waitFor(() => leftLink);
   const rightLink = await waitFor(
-    () => rightIn.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
+    () =>
+      rightIn.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ??
+      null,
   );
 
   rightLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
   return {
     leftLink: establishedLeftLink,
-    rightLink
+    rightLink,
   };
 }
 
 describe("Resource transfer over PipeInterface", () => {
   it("transfers bytes from initiator to responder", async () => {
     const { leftLink, rightLink } = await connectPeers();
-    const payload = new TextEncoder().encode("resource payload " + "x".repeat(512));
+    const payload = new TextEncoder().encode(
+      "resource payload " + "x".repeat(512),
+    );
 
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("resource timeout")), 8000);
+      const timer = setTimeout(
+        () => reject(new Error("resource timeout")),
+        8000,
+      );
       rightLink.callbacks.resourceConcluded = (resource) => {
         clearTimeout(timer);
         resolve(resource.data ?? new Uint8Array(0));
@@ -100,7 +110,9 @@ describe("Resource transfer over PipeInterface", () => {
 
     Resource.send(leftLink, payload, { advertise: true });
     const data = await received;
-    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+    expect(new TextDecoder().decode(data)).toBe(
+      new TextDecoder().decode(payload),
+    );
   });
 
   it("transfers bytes from responder to initiator", async () => {
@@ -108,7 +120,10 @@ describe("Resource transfer over PipeInterface", () => {
     const payload = new TextEncoder().encode("reverse resource payload");
 
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("resource timeout")), 8000);
+      const timer = setTimeout(
+        () => reject(new Error("resource timeout")),
+        8000,
+      );
       leftLink.callbacks.resourceConcluded = (resource) => {
         clearTimeout(timer);
         resolve(resource.data ?? new Uint8Array(0));
@@ -117,15 +132,22 @@ describe("Resource transfer over PipeInterface", () => {
 
     Resource.send(rightLink, payload, { advertise: true });
     const data = await received;
-    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+    expect(new TextDecoder().decode(data)).toBe(
+      new TextDecoder().decode(payload),
+    );
   });
 
   it("transfers a multi-window payload", async () => {
     const { leftLink, rightLink } = await connectPeers();
-    const payload = new TextEncoder().encode("large resource " + "y".repeat(100_000));
+    const payload = new TextEncoder().encode(
+      "large resource " + "y".repeat(100_000),
+    );
 
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("resource timeout")), 10000);
+      const timer = setTimeout(
+        () => reject(new Error("resource timeout")),
+        10000,
+      );
       rightLink.callbacks.resourceConcluded = (resource) => {
         clearTimeout(timer);
         resolve(resource.data ?? new Uint8Array(0));
@@ -135,7 +157,9 @@ describe("Resource transfer over PipeInterface", () => {
     Resource.send(leftLink, payload, { advertise: true });
     const data = await received;
     expect(data.length).toBe(payload.length);
-    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+    expect(new TextDecoder().decode(data)).toBe(
+      new TextDecoder().decode(payload),
+    );
   });
 });
 
@@ -158,7 +182,9 @@ describe("Buffer streaming over PipeInterface", () => {
     await writer.close();
 
     const data = await received;
-    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+    expect(new TextDecoder().decode(data)).toBe(
+      new TextDecoder().decode(payload),
+    );
     reader.close();
   });
 });

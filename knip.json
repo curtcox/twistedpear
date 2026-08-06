@@ -9,7 +9,11 @@
         "conformance/**/*.test.mjs",
         "vitest.config.ts"
       ],
-      "project": ["scripts/**/*.{js,mjs,ts}", "formal/**/*.{js,mjs,ts}", "conformance/**/*.{js,mjs,ts}"]
+      "project": [
+        "scripts/**/*.{js,mjs,ts}",
+        "formal/**/*.{js,mjs,ts}",
+        "conformance/**/*.{js,mjs,ts}"
+      ]
     },
     "packages/*": {
       "entry": ["src/index.{ts,tsx,js,mjs}", "test/**/*.test.{ts,tsx,js,mjs}"],
@@ -17,11 +21,34 @@
       "ignore": ["src/**/*.gen.ts"]
     },
     "apps/*": {
-      "entry": ["src/**/*.{ts,tsx,js,mjs}", "test/**/*.test.{ts,tsx,js,mjs}", "scripts/**/*.{js,mjs}"],
+      "entry": [
+        "src/**/*.{ts,tsx,js,mjs}",
+        "test/**/*.test.{ts,tsx,js,mjs}",
+        "scripts/**/*.{js,mjs}"
+      ],
       "project": ["**/*.{ts,tsx,js,mjs}"],
       "ignore": ["**/*.bundle.mjs", "**/*.bundle"]
     }
   },
   "ignoreDependencies": ["mermaid", "vitepress-plugin-mermaid"],
-  "ignore": ["archive/**", "site/**", "**/dist/**", "**/*.gen.ts", "**/*.bundle.mjs", "**/*.bundle", "apps/harness-mobile/android/**", "apps/harness-mobile/ios/**", "apps/harness-mobile/public/**", "packages/reticulum-ts/docs/api/**", "conformance/docs/.tmp-handbook-capture/**", "conformance/**/fixtures.mjs", "conformance/**/publisher-data.mjs", "conformance/**/web-core.worker.js", "conformance/**/web-hyper-fetch.js", "conformance/web-storage/fixture.mjs", "apps/handbook/generated/**", "apps/handbook/seeds/**"]
+  "ignore": [
+    "archive/**",
+    "site/**",
+    "**/dist/**",
+    "**/*.gen.ts",
+    "**/*.bundle.mjs",
+    "**/*.bundle",
+    "apps/harness-mobile/android/**",
+    "apps/harness-mobile/ios/**",
+    "apps/harness-mobile/public/**",
+    "packages/reticulum-ts/docs/api/**",
+    "conformance/docs/.tmp-handbook-capture/**",
+    "conformance/**/fixtures.mjs",
+    "conformance/**/publisher-data.mjs",
+    "conformance/**/web-core.worker.js",
+    "conformance/**/web-hyper-fetch.js",
+    "conformance/web-storage/fixture.mjs",
+    "apps/handbook/generated/**",
+    "apps/handbook/seeds/**"
+  ]
 }

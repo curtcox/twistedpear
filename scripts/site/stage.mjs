@@ -11,6 +11,7 @@ const ROOT_DOCS = [
   "RELEASE-PLAN.md",
   "LIMITATIONS.md",
   "STATUS-COMPLETE.md",
+  "STATUS-COMPLETE-PHASES.md",
   "STATUS-SOFTWARE.md",
   "STATUS-HARDWARE.md"
 ];
@@ -29,6 +30,7 @@ const GITHUB_TOP = new Set([
   "release",
   "node_modules",
   "STATUS-COMPLETE.md",
+  "STATUS-COMPLETE-PHASES.md",
   "STATUS-SOFTWARE.md",
   "STATUS-HARDWARE.md",
   "RELEASE-PLAN.md",

@@ -9,7 +9,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const rendererHtml = join(repoRoot, "apps/host-desktop/src/renderer/index.html");
+const rendererHtml = join(
+  repoRoot,
+  "apps/host-desktop/src/renderer/index.html",
+);
 const output = join(repoRoot, "docs/images/desktop-host.png");
 
 mkdirSync(dirname(output), { recursive: true });

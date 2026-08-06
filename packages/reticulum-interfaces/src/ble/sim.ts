@@ -38,7 +38,11 @@ export class SimulatedBlePipe implements BlePipe {
   }
 
   get stats() {
-    return { bytesIn: this.bytesIn, bytesOut: this.bytesOut, connected: this.isConnected };
+    return {
+      bytesIn: this.bytesIn,
+      bytesOut: this.bytesOut,
+      connected: this.isConnected,
+    };
   }
 
   get connected(): boolean {
@@ -69,7 +73,10 @@ export class SimulatedBlePipe implements BlePipe {
     }
 
     this.bytesOut += data.length;
-    if (this.disconnectAfterBytes !== null && this.bytesOut >= this.disconnectAfterBytes) {
+    if (
+      this.disconnectAfterBytes !== null &&
+      this.bytesOut >= this.disconnectAfterBytes
+    ) {
       await this.stop();
       return;
     }

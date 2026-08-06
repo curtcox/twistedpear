@@ -7,7 +7,7 @@ import {
   PacketHeaderType,
   PacketType,
   TransportType,
-  hexToBytes
+  hexToBytes,
 } from "@twistedpear/reticulum-ts";
 import {
   OpticalInterface,
@@ -15,7 +15,7 @@ import {
   sliceForDisplay,
   createOpticalReassemblyState,
   reassembleOpticalChunk,
-  OPTICAL_CHUNK_PAYLOAD_BYTES
+  OPTICAL_CHUNK_PAYLOAD_BYTES,
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -28,16 +28,19 @@ function makePacket(data = new Uint8Array([1, 2, 3])): Packet {
     packetType: PacketType.DATA,
     destinationHash: hexToBytes("00112233445566778899aabbccddeeff"),
     context: PacketContext.NONE,
-    data
+    data,
   });
 }
 
-async function nextPacket(iterable: AsyncIterable<Packet>, timeoutMs = 500): Promise<Packet> {
+async function nextPacket(
+  iterable: AsyncIterable<Packet>,
+  timeoutMs = 500,
+): Promise<Packet> {
   const result = await Promise.race([
     iterable[Symbol.asyncIterator]().next(),
     new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), timeoutMs)
-    )
+      setTimeout(() => reject(new Error("timeout")), timeoutMs),
+    ),
   ]);
   expect(result.done).toBe(false);
   return result.value;
@@ -118,12 +121,12 @@ describe("OpticalInterface with SimulatedOpticalChannel", () => {
     const ifaceA = await OpticalInterface.open(provider, {
       name: "optical-a",
       provider,
-      channel: channelA
+      channel: channelA,
     });
     const ifaceB = await OpticalInterface.open(provider, {
       name: "optical-b",
       provider,
-      channel: channelB
+      channel: channelB,
     });
 
     const data = Uint8Array.from({ length: 210 }, (_, index) => index & 0xff);
@@ -143,7 +146,7 @@ describe("OpticalInterface with SimulatedOpticalChannel", () => {
       provider,
       channel,
       incoming: false,
-      outgoing: true
+      outgoing: true,
     });
 
     expect(iface.incoming).toBe(false);
@@ -158,12 +161,14 @@ describe("OpticalInterface with SimulatedOpticalChannel", () => {
       provider,
       channel,
       incoming: true,
-      outgoing: false
+      outgoing: false,
     });
 
     expect(iface.incoming).toBe(true);
     expect(iface.outgoing).toBe(false);
-    await expect(iface.send(makePacket())).rejects.toThrow("not configured for outbound");
+    await expect(iface.send(makePacket())).rejects.toThrow(
+      "not configured for outbound",
+    );
     await iface.close();
   });
 
@@ -172,7 +177,7 @@ describe("OpticalInterface with SimulatedOpticalChannel", () => {
     const iface = await OpticalInterface.open(provider, {
       name: "optical-status",
       provider,
-      channel
+      channel,
     });
     expect(iface.online).toBe(true);
     await iface.close();

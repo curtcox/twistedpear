@@ -67,7 +67,7 @@ export const IPC = {
       .then((process) => attachStdin(process))
       .catch((error) => {
         console.error(
-          `[ipc-stdio] stdin unavailable: ${error instanceof Error ? error.message : String(error)}`
+          `[ipc-stdio] stdin unavailable: ${error instanceof Error ? error.message : String(error)}`,
         );
       });
   },
@@ -89,5 +89,5 @@ export const IPC = {
           console.log(text);
         }
       });
-  }
+  },
 };

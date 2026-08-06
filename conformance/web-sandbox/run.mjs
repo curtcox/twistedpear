@@ -4,7 +4,13 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { createReadStream, existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,7 +24,7 @@ const record = process.env.WEB_SANDBOX_RECORD === "1";
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-sandbox/build.mjs"], {
     cwd: repoRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
@@ -58,7 +64,7 @@ function startStaticServer(root) {
               }
             });
           });
-        }
+        },
       });
     });
   });
@@ -66,11 +72,15 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath =
+    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+  if (
+    !resolvedPath.startsWith(resolvedRoot + sep) &&
+    resolvedPath !== resolvedRoot
+  ) {
     response.writeHead(403);
     response.end();
     return;
@@ -82,7 +92,9 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
+  response.writeHead(200, {
+    "content-type": staticContentType(extname(resolvedPath)),
+  });
   if (headOnly) {
     response.end();
     return;
@@ -115,13 +127,19 @@ async function runPlaywright(pageUrl) {
     await page.goto(pageUrl, { waitUntil: "load", timeout: 30_000 });
 
     try {
-      await page.waitForFunction(() => globalThis.__WEB_SANDBOX__?.status === "done", undefined, {
-        timeout: 30_000
-      });
+      await page.waitForFunction(
+        () => globalThis.__WEB_SANDBOX__?.status === "done",
+        undefined,
+        {
+          timeout: 30_000,
+        },
+      );
     } catch (error) {
-      const snapshot = await page.evaluate(() => globalThis.__WEB_SANDBOX__ ?? null);
+      const snapshot = await page.evaluate(
+        () => globalThis.__WEB_SANDBOX__ ?? null,
+      );
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`
+        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`,
       );
     }
 
@@ -132,14 +150,20 @@ async function runPlaywright(pageUrl) {
       typeof result?.wasm?.supported !== "boolean" ||
       typeof result?.busyLoopKillMs !== "number"
     ) {
-      throw new Error(`web sandbox spike incomplete: ${JSON.stringify(result)}`);
+      throw new Error(
+        `web sandbox spike incomplete: ${JSON.stringify(result)}`,
+      );
     }
 
     if (result.busyLoopKillMs >= 1_000) {
-      throw new Error(`busy-loop kill exceeded 1s (${result.busyLoopKillMs}ms)`);
+      throw new Error(
+        `busy-loop kill exceeded 1s (${result.busyLoopKillMs}ms)`,
+      );
     }
 
-    const tabAlive = await page.evaluate(() => document.title === "web-sandbox");
+    const tabAlive = await page.evaluate(
+      () => document.title === "web-sandbox",
+    );
     if (!tabAlive) {
       throw new Error("browser tab was not responsive after busy-loop kill");
     }
@@ -165,7 +189,7 @@ try {
     runtime: "chromium",
     wasmSupported: result.wasm.supported,
     wasmError: result.wasm.error,
-    busyLoopKillMs: result.busyLoopKillMs
+    busyLoopKillMs: result.busyLoopKillMs,
   };
 
   if (record) {
@@ -173,11 +197,14 @@ try {
     console.log(`web-sandbox: recorded ${measuredPath}`);
   } else {
     const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
-    if (typeof baseline.busyLoopKillMs === "number" && baseline.busyLoopKillMs > 0) {
+    if (
+      typeof baseline.busyLoopKillMs === "number" &&
+      baseline.busyLoopKillMs > 0
+    ) {
       const ratio = summary.busyLoopKillMs / baseline.busyLoopKillMs;
       if (ratio > 3) {
         throw new Error(
-          `web sandbox busy-loop kill regression: ${summary.busyLoopKillMs}ms vs baseline ${baseline.busyLoopKillMs}ms`
+          `web sandbox busy-loop kill regression: ${summary.busyLoopKillMs}ms vs baseline ${baseline.busyLoopKillMs}ms`,
         );
       }
     }

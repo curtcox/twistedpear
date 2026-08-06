@@ -6,7 +6,7 @@ import {
   reassembleOpticalChunk,
   sliceForDisplay,
   OPTICAL_CHUNK_PAYLOAD_BYTES,
-  type OpticalReassemblyState
+  type OpticalReassemblyState,
 } from "./framing.js";
 
 export const OPTICAL_INTERFACE_MTU = 250;
@@ -31,10 +31,10 @@ export class OpticalInterface extends HdlcPacketInterface {
       {
         ...options,
         mtu: options.mtu ?? OPTICAL_INTERFACE_MTU,
-        bitrate: options.bitrate ?? OPTICAL_DEFAULT_BITRATE
+        bitrate: options.bitrate ?? OPTICAL_DEFAULT_BITRATE,
       },
       options.incoming ?? true,
-      options.outgoing ?? true
+      options.outgoing ?? true,
     );
     this.provider = provider;
     this.channel = options.channel;
@@ -47,7 +47,10 @@ export class OpticalInterface extends HdlcPacketInterface {
     });
   }
 
-  static async open(provider: CryptoProvider, options: OpticalInterfaceOptions): Promise<OpticalInterface> {
+  static async open(
+    provider: CryptoProvider,
+    options: OpticalInterfaceOptions,
+  ): Promise<OpticalInterface> {
     const iface = new OpticalInterface(provider, options);
     await iface.start();
     return iface;

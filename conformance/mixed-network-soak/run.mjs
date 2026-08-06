@@ -13,14 +13,28 @@ import {
   CatalogStore,
   InstalledPackageStore,
   unpackPackage,
-  verifyPackage
+  verifyPackage,
 } from "../../packages/app-registry/dist/index.js";
-import { DriveManager, createSwarm, fetchPackage } from "../../packages/bridge-hyper/dist/index.js";
-import { hexToBytes, NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
-import { runInit, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
+import {
+  DriveManager,
+  createSwarm,
+  fetchPackage,
+} from "../../packages/bridge-hyper/dist/index.js";
+import {
+  hexToBytes,
+  NodeCryptoProvider,
+} from "../../packages/reticulum-ts/dist/index.js";
+import {
+  runInit,
+  runPublish,
+  runUpdate,
+} from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const fixtureAppSource = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../fixtures/packages/example-app",
+);
 const SOAK_DURATION_MS = Number(process.env.SOAK_DURATION_MS ?? "15000");
 const HOST_API_VERSION = "0.1.0";
 
@@ -34,9 +48,13 @@ async function waitFor(evaluate, timeoutMs = 20_000) {
     const remaining = timeoutMs - (Date.now() - started);
     const value = await Promise.race([
       evaluate(),
-      sleep(remaining).then(() => Symbol.for("timeout"))
+      sleep(remaining).then(() => Symbol.for("timeout")),
     ]);
-    if (value !== Symbol.for("timeout") && value !== null && value !== undefined) {
+    if (
+      value !== Symbol.for("timeout") &&
+      value !== null &&
+      value !== undefined
+    ) {
       return value;
     }
 
@@ -66,15 +84,22 @@ function mockInterface(name, online = true) {
     online,
     packets: (async function* () {})(),
     async send() {},
-    async close() {}
+    async close() {},
   };
 }
 
-async function replicateVersion(publisherDir, seedDrive, driveKey, version, archive, packageHash) {
+async function replicateVersion(
+  publisherDir,
+  seedDrive,
+  driveKey,
+  version,
+  archive,
+  packageHash,
+) {
   const pubSwarm = createSwarm();
   const publisherDrive = new DriveManager({
     storagePath: join(publisherDir, ".tp/storage"),
-    swarm: pubSwarm
+    swarm: pubSwarm,
   });
 
   try {
@@ -88,9 +113,15 @@ async function replicateVersion(publisherDir, seedDrive, driveKey, version, arch
   }
 }
 
-async function installVerified(provider, installed, entry, fetchResult, expectedHash) {
+async function installVerified(
+  provider,
+  installed,
+  entry,
+  fetchResult,
+  expectedHash,
+) {
   const verified = verifyPackage(provider, fetchResult.archiveBytes, {
-    hostApiVersion: HOST_API_VERSION
+    hostApiVersion: HOST_API_VERSION,
   });
   if (verified.packageHash !== expectedHash) {
     throw new Error(`package hash mismatch on path ${fetchResult.path}`);
@@ -103,9 +134,9 @@ async function installVerified(provider, installed, entry, fetchResult, expected
       packageHash: verified.packageHash,
       installedAt: Date.now(),
       manifest: verified.manifest,
-      archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`
+      archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`,
     },
-    fetchResult.archiveBytes.length
+    fetchResult.archiveBytes.length,
   );
 }
 
@@ -126,11 +157,15 @@ async function main() {
   try {
     writeFileSync(
       join(publisherDir, "tp.config.json"),
-      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
+      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
     );
 
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
-    const initCode = await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({
+      cwd: publisherDir,
+      identityPassphrase: "conformance identity passphrase",
+      args: [],
+    });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -141,7 +176,10 @@ async function main() {
     const installedB = new InstalledPackageStore(64 * 1024 * 1024);
 
     seedSwarm = createSwarm();
-    seedDrive = new DriveManager({ storagePath: join(seederStateDir, "drives"), swarm: seedSwarm });
+    seedDrive = new DriveManager({
+      storagePath: join(seederStateDir, "drives"),
+      swarm: seedSwarm,
+    });
     await seedDrive.ready();
 
     peerASwarm = createSwarm();
@@ -159,20 +197,30 @@ async function main() {
     while (Date.now() - startedAt < SOAK_DURATION_MS) {
       const version = cycle === 0 ? "1.0.0" : `1.0.${cycle}`;
       if (cycle === 0) {
-        const code = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
+        const code = await runPublish({
+          cwd: publisherDir,
+          args: [fixtureApp],
+        });
         if (code !== 0) {
           throw new Error("initial publish failed");
         }
       } else {
-        const code = await runUpdate({ cwd: publisherDir, args: [fixtureApp, "--version", version] });
+        const code = await runUpdate({
+          cwd: publisherDir,
+          args: [fixtureApp, "--version", version],
+        });
         if (code !== 0) {
           throw new Error(`update ${version} failed`);
         }
       }
 
-      const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
+      const meta = JSON.parse(
+        readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
+      );
       driveKey = meta.driveKey;
-      const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
+      const archive = new Uint8Array(
+        readFileSync(join(publisherDir, ".tp/last.tpkg")),
+      );
       const unpacked = unpackPackage(provider, archive);
       verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
 
@@ -180,7 +228,7 @@ async function main() {
         destinationHash: `${meta.destinationName ?? "mixed"}-${cycle}`,
         appData: hexToBytes(meta.appDataHex),
         manifest: unpacked.manifest,
-        packageHash: unpacked.packageHash
+        packageHash: unpacked.packageHash,
       });
       if (entry === null || entry.version !== version) {
         throw new Error(`catalog ingest failed for ${version}`);
@@ -190,7 +238,14 @@ async function main() {
         await seedDrive.openDrive(driveKey, { serve: true });
       }
 
-      await replicateVersion(publisherDir, seedDrive, driveKey, meta.version, archive, unpacked.packageHash);
+      await replicateVersion(
+        publisherDir,
+        seedDrive,
+        driveKey,
+        meta.version,
+        archive,
+        unpacked.packageHash,
+      );
 
       if (peerADrive.activeDrive === null) {
         await peerADrive.openDrive(driveKey);
@@ -204,20 +259,35 @@ async function main() {
       const peerAResult = await fetchPackage(provider, {
         entry,
         version: entry.version,
-        interfaces: [mockInterface("lan", online), mockInterface("rnode", !online)],
+        interfaces: [
+          mockInterface("lan", online),
+          mockInterface("rnode", !online),
+        ],
         driveManager: peerADrive,
-        forcePath: "hyperdrive"
+        forcePath: "hyperdrive",
       });
-      await installVerified(provider, installedA, entry, peerAResult, unpacked.packageHash);
+      await installVerified(
+        provider,
+        installedA,
+        entry,
+        peerAResult,
+        unpacked.packageHash,
+      );
 
       const peerBResult = await fetchPackage(provider, {
         entry,
         version: entry.version,
         interfaces: [mockInterface("wifi", true)],
         driveManager: peerBDrive,
-        forcePath: "hyperdrive"
+        forcePath: "hyperdrive",
       });
-      await installVerified(provider, installedB, entry, peerBResult, unpacked.packageHash);
+      await installVerified(
+        provider,
+        installedB,
+        entry,
+        peerBResult,
+        unpacked.packageHash,
+      );
 
       cycle += 1;
       await sleep(200);
@@ -231,7 +301,9 @@ async function main() {
       throw new Error("both peers must retain multiple installed versions");
     }
 
-    console.log(`mixed-network-soak: ${cycle} cycles in ${SOAK_DURATION_MS}ms passed`);
+    console.log(
+      `mixed-network-soak: ${cycle} cycles in ${SOAK_DURATION_MS}ms passed`,
+    );
   } finally {
     if (peerBDrive !== null) {
       await peerBDrive.close();

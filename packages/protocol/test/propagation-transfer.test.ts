@@ -30,114 +30,157 @@ import {
   stepHandlePropagationPeerErrorWithActions,
   stepPropagationTransferWithActions,
   stepRequestPropagationHavesAckWithActions,
-  stepTreatPropagationListAsEmptyWithActions
+  stepTreatPropagationListAsEmptyWithActions,
 } from "../src/propagation-transfer.js";
 
 describe("protocol propagation transfer", () => {
   it("begins by establishing a link", () => {
-    const result = stepPropagationTransferWithActions(initialPropagationTransferState(), {
-      kind: "xfer/begin"
-    });
+    const result = stepPropagationTransferWithActions(
+      initialPropagationTransferState(),
+      {
+        kind: "xfer/begin",
+      },
+    );
     expect(result.state.phase).toBe(PropagationTransferState.LINK_ESTABLISHING);
     expect(result.intents).toEqual([
       {
         kind: "timer/set",
-        timer: { id: PROPAGATION_LINK_TIMER_ID, delayMs: PROPAGATION_LINK_TIMEOUT_MS }
-      }
+        timer: {
+          id: PROPAGATION_LINK_TIMER_ID,
+          delayMs: PROPAGATION_LINK_TIMEOUT_MS,
+        },
+      },
     ]);
     expect(result.actions).toEqual([
-      { kind: "establish-link", timeoutMs: PROPAGATION_LINK_TIMEOUT_MS }
+      { kind: "establish-link", timeoutMs: PROPAGATION_LINK_TIMEOUT_MS },
     ]);
   });
 
   it("cancels the link timer on link-arrived, link-ready, and cancel", () => {
     let state = initialPropagationTransferState();
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
-    const arrived = stepPropagationTransferWithActions(state, { kind: "xfer/link-arrived" });
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/begin",
+    }).state;
+    const arrived = stepPropagationTransferWithActions(state, {
+      kind: "xfer/link-arrived",
+    });
     expect(arrived.intents).toEqual([
-      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
+      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } },
     ]);
     expect(arrived.actions).toEqual([{ kind: "resolve-link-wait" }]);
-    expect(arrived.state.phase).toBe(PropagationTransferState.LINK_ESTABLISHING);
+    expect(arrived.state.phase).toBe(
+      PropagationTransferState.LINK_ESTABLISHING,
+    );
 
-    const ready = stepPropagationTransferWithActions(arrived.state, { kind: "xfer/link-ready" });
+    const ready = stepPropagationTransferWithActions(arrived.state, {
+      kind: "xfer/link-ready",
+    });
     expect(ready.intents).toEqual([
-      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
+      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } },
     ]);
 
-    state = stepPropagationTransferWithActions(initialPropagationTransferState(), {
-      kind: "xfer/begin"
-    }).state;
-    const cancelled = stepPropagationTransferWithActions(state, { kind: "xfer/cancel" });
+    state = stepPropagationTransferWithActions(
+      initialPropagationTransferState(),
+      {
+        kind: "xfer/begin",
+      },
+    ).state;
+    const cancelled = stepPropagationTransferWithActions(state, {
+      kind: "xfer/cancel",
+    });
     expect(cancelled.intents).toEqual([
-      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
+      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } },
     ]);
   });
 
   it("ignores late link-arrived when not establishing", () => {
-    const idle = stepPropagationTransferWithActions(initialPropagationTransferState(), {
-      kind: "xfer/link-arrived"
-    });
+    const idle = stepPropagationTransferWithActions(
+      initialPropagationTransferState(),
+      {
+        kind: "xfer/link-arrived",
+      },
+    );
     expect(idle.actions).toEqual([]);
     expect(idle.intents).toEqual([]);
 
-    let state = stepPropagationTransferWithActions(initialPropagationTransferState(), {
-      kind: "xfer/begin"
-    }).state;
+    let state = stepPropagationTransferWithActions(
+      initialPropagationTransferState(),
+      {
+        kind: "xfer/begin",
+      },
+    ).state;
     state = stepPropagationTransferWithActions(state, {
       kind: "timer/fired",
       id: PROPAGATION_LINK_TIMER_ID,
-      at: PROPAGATION_LINK_TIMEOUT_MS
+      at: PROPAGATION_LINK_TIMEOUT_MS,
     }).state;
-    const late = stepPropagationTransferWithActions(state, { kind: "xfer/link-arrived" });
+    const late = stepPropagationTransferWithActions(state, {
+      kind: "xfer/link-arrived",
+    });
     expect(late.state.phase).toBe(PropagationTransferState.LINK_FAILED);
     expect(late.actions).toEqual([]);
   });
 
   it("maps peer errors after list response", () => {
     let state = initialPropagationTransferState();
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/link-ready" }).state;
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/begin",
+    }).state;
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/link-ready",
+    }).state;
     const noId = stepPropagationTransferWithActions(state, {
       kind: "xfer/list-peer-error",
-      code: PropagationPeerError.NO_IDENTITY
+      code: PropagationPeerError.NO_IDENTITY,
     });
     expect(noId.state.phase).toBe(PropagationTransferState.NO_IDENTITY_RCVD);
 
     const noAccess = stepPropagationTransferWithActions(state, {
       kind: "xfer/list-peer-error",
-      code: PropagationPeerError.NO_ACCESS
+      code: PropagationPeerError.NO_ACCESS,
     });
     expect(noAccess.state.phase).toBe(PropagationTransferState.NO_ACCESS);
   });
 
   it("completes the happy path with haves ack", () => {
     let state = initialPropagationTransferState();
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/link-ready" }).state;
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/begin",
+    }).state;
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/link-ready",
+    }).state;
     let result = stepPropagationTransferWithActions(state, {
       kind: "xfer/list-ready",
-      wantCount: 2
+      wantCount: 2,
     });
     expect(result.state.phase).toBe(PropagationTransferState.REQUEST_SENT);
     expect(result.actions[0]?.kind).toBe("request-download");
 
     result = stepPropagationTransferWithActions(result.state, {
       kind: "xfer/download-ready",
-      downloadedCount: 2
+      downloadedCount: 2,
     });
     expect(result.state.phase).toBe(PropagationTransferState.RESPONSE_RECEIVED);
     expect(result.actions[0]?.kind).toBe("request-haves-ack");
 
-    result = stepPropagationTransferWithActions(result.state, { kind: "xfer/haves-acked" });
+    result = stepPropagationTransferWithActions(result.state, {
+      kind: "xfer/haves-acked",
+    });
     expect(result.state.phase).toBe(PropagationTransferState.COMPLETE);
   });
 
   it("completes immediately on empty list", () => {
     let state = initialPropagationTransferState();
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/link-ready" }).state;
-    const result = stepPropagationTransferWithActions(state, { kind: "xfer/list-empty" });
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/begin",
+    }).state;
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/link-ready",
+    }).state;
+    const result = stepPropagationTransferWithActions(state, {
+      kind: "xfer/list-empty",
+    });
     expect(result.state.phase).toBe(PropagationTransferState.COMPLETE);
   });
 
@@ -150,10 +193,10 @@ describe("protocol propagation transfer", () => {
           initialAcceptPropagationPeerResponseState(),
           {
             kind: "propagation-transfer/accept-peer-response-gate",
-            responsePresent: true
-          }
-        ).actions
-      )
+            responsePresent: true,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipAcceptPropagationPeerResponse(
@@ -161,10 +204,10 @@ describe("protocol propagation transfer", () => {
           initialAcceptPropagationPeerResponseState(),
           {
             kind: "propagation-transfer/accept-peer-response-gate",
-            responsePresent: false
-          }
-        ).actions
-      )
+            responsePresent: false,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(shouldHandlePropagationPeerError(true)).toBe(true);
     expect(shouldHandlePropagationPeerError(false)).toBe(false);
@@ -174,10 +217,10 @@ describe("protocol propagation transfer", () => {
           initialHandlePropagationPeerErrorState(),
           {
             kind: "propagation-transfer/handle-peer-error-gate",
-            errorPresent: true
-          }
-        ).actions
-      )
+            errorPresent: true,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipHandlePropagationPeerError(
@@ -185,10 +228,10 @@ describe("protocol propagation transfer", () => {
           initialHandlePropagationPeerErrorState(),
           {
             kind: "propagation-transfer/handle-peer-error-gate",
-            errorPresent: false
-          }
-        ).actions
-      )
+            errorPresent: false,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(shouldAcceptPropagationDeliveredMessage(true)).toBe(true);
     expect(shouldAcceptPropagationDeliveredMessage(false)).toBe(false);
@@ -198,10 +241,10 @@ describe("protocol propagation transfer", () => {
           initialAcceptPropagationDeliveredMessageState(),
           {
             kind: "propagation-transfer/accept-delivered-message-gate",
-            messagePresent: true
-          }
-        ).actions
-      )
+            messagePresent: true,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipAcceptPropagationDeliveredMessage(
@@ -209,10 +252,10 @@ describe("protocol propagation transfer", () => {
           initialAcceptPropagationDeliveredMessageState(),
           {
             kind: "propagation-transfer/accept-delivered-message-gate",
-            messagePresent: false
-          }
-        ).actions
-      )
+            messagePresent: false,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(shouldTreatPropagationListAsEmpty(0)).toBe(true);
     expect(shouldTreatPropagationListAsEmpty(2)).toBe(false);
@@ -222,10 +265,10 @@ describe("protocol propagation transfer", () => {
           initialTreatPropagationListAsEmptyState(),
           {
             kind: "propagation-transfer/list-as-empty-gate",
-            wantCount: 0
-          }
-        ).actions
-      )
+            wantCount: 0,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldTreatPropagationListAsNonempty(
@@ -233,28 +276,28 @@ describe("protocol propagation transfer", () => {
           initialTreatPropagationListAsEmptyState(),
           {
             kind: "propagation-transfer/list-as-empty-gate",
-            wantCount: 2
-          }
-        ).actions
-      )
+            wantCount: 2,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldRequestPropagationHavesAck({
         actionIsHavesAck: true,
-        haveCount: 1
-      })
+        haveCount: 1,
+      }),
     ).toBe(true);
     expect(
       shouldRequestPropagationHavesAck({
         actionIsHavesAck: true,
-        haveCount: 0
-      })
+        haveCount: 0,
+      }),
     ).toBe(false);
     expect(
       shouldRequestPropagationHavesAck({
         actionIsHavesAck: false,
-        haveCount: 3
-      })
+        haveCount: 3,
+      }),
     ).toBe(false);
     expect(
       shouldRequestPropagationHavesAckNow(
@@ -263,10 +306,10 @@ describe("protocol propagation transfer", () => {
           {
             kind: "propagation-transfer/request-haves-ack-gate",
             actionIsHavesAck: true,
-            haveCount: 1
-          }
-        ).actions
-      )
+            haveCount: 1,
+          },
+        ).actions,
+      ),
     ).toBe(true);
     expect(
       shouldSkipRequestPropagationHavesAck(
@@ -275,25 +318,27 @@ describe("protocol propagation transfer", () => {
           {
             kind: "propagation-transfer/request-haves-ack-gate",
             actionIsHavesAck: true,
-            haveCount: 0
-          }
-        ).actions
-      )
+            haveCount: 0,
+          },
+        ).actions,
+      ),
     ).toBe(true);
   });
 
   it("marks link failed on timeout and emits reject-link-wait", () => {
     let state = initialPropagationTransferState();
-    state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
+    state = stepPropagationTransferWithActions(state, {
+      kind: "xfer/begin",
+    }).state;
     const result = stepPropagationTransferWithActions(state, {
       kind: "timer/fired",
       id: PROPAGATION_LINK_TIMER_ID,
-      at: PROPAGATION_LINK_TIMEOUT_MS
+      at: PROPAGATION_LINK_TIMEOUT_MS,
     });
     expect(result.state.phase).toBe(PropagationTransferState.LINK_FAILED);
     expect(result.actions).toEqual([
       { kind: "teardown-link" },
-      { kind: "reject-link-wait", reason: "timeout" }
+      { kind: "reject-link-wait", reason: "timeout" },
     ]);
   });
 
@@ -303,11 +348,15 @@ describe("protocol propagation transfer", () => {
       const steps = [
         stepPropagationTransferWithActions(state, { kind: "xfer/begin" }),
         stepPropagationTransferWithActions(
-          stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state,
-          { kind: "xfer/link-ready" }
-        )
+          stepPropagationTransferWithActions(state, { kind: "xfer/begin" })
+            .state,
+          { kind: "xfer/link-ready" },
+        ),
       ];
-      return steps.map((step) => ({ phase: step.state.phase, actions: step.actions }));
+      return steps.map((step) => ({
+        phase: step.state.phase,
+        actions: step.actions,
+      }));
     };
     expect(run()).toEqual(run());
   });

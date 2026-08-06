@@ -47,16 +47,37 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions
+  stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { canLinkHandshake } from "./part-1.js";
-import { initialAcceptLinkRttState, shouldAcceptLinkRttNow, stepAcceptLinkRttWithActions } from "./part-3.js";
-import { initialTeardownLinkFromRttState, planLinkRttOutcome, shouldActivateLinkRttOutcomePlan, shouldIgnoreLinkRttOutcomePlan, shouldTeardownLinkFromRtt, shouldTeardownLinkRttOutcomePlan } from "./part-9.js";
-import type { LinkEstablishEvent, LinkEstablishState, LinkEstablishStepResult } from "./part-1.js";
-import type { LinkAppRequestTransmitOutcomePlanAction, LinkRttOutcome, LinkRttOutcomePlanAction, LinkRttOutcomePlanEvent, TeardownLinkFromRttState } from "./part-9.js";
+import {
+  initialAcceptLinkRttState,
+  shouldAcceptLinkRttNow,
+  stepAcceptLinkRttWithActions,
+} from "./part-3.js";
+import {
+  initialTeardownLinkFromRttState,
+  planLinkRttOutcome,
+  shouldActivateLinkRttOutcomePlan,
+  shouldIgnoreLinkRttOutcomePlan,
+  shouldTeardownLinkFromRtt,
+  shouldTeardownLinkRttOutcomePlan,
+} from "./part-9.js";
+import type {
+  LinkEstablishEvent,
+  LinkEstablishState,
+  LinkEstablishStepResult,
+} from "./part-1.js";
+import type {
+  LinkAppRequestTransmitOutcomePlanAction,
+  LinkRttOutcome,
+  LinkRttOutcomePlanAction,
+  LinkRttOutcomePlanEvent,
+  TeardownLinkFromRttState,
+} from "./part-9.js";
 /**
  * LRRTT outcome plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkRttOutcome` /
@@ -77,7 +98,7 @@ export function initialLinkRttOutcomePlanState(): LinkRttOutcomePlanState {
 
 export function stepLinkRttOutcomePlanWithActions(
   state: LinkRttOutcomePlanState,
-  event: LinkRttOutcomePlanEvent
+  event: LinkRttOutcomePlanEvent,
 ): LinkRttOutcomePlanStepResult {
   if (event.kind === "rtt/outcome-plan-gate") {
     return {
@@ -87,10 +108,10 @@ export function stepLinkRttOutcomePlanWithActions(
         {
           kind: planLinkRttOutcome({
             canAccept: event.canAccept,
-            plaintextPresent: event.plaintextPresent
-          })
-        }
-      ]
+            plaintextPresent: event.plaintextPresent,
+          }),
+        },
+      ],
     };
   }
 
@@ -99,13 +120,13 @@ export function stepLinkRttOutcomePlanWithActions(
 
 /** Extract the LRRTT outcome plan from actions; null when empty. */
 export function linkRttOutcomePlanFromActions(
-  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): LinkRttOutcome | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ignore" ||
       entry.kind === "activate" ||
-      entry.kind === "teardown"
+      entry.kind === "teardown",
   );
   return action?.kind ?? null;
 }
@@ -119,8 +140,7 @@ export type TeardownLinkFromRttEvent =
     };
 
 export type TeardownLinkFromRttAction =
-  | { readonly kind: "teardown" }
-  | { readonly kind: "skip" };
+  { readonly kind: "teardown" } | { readonly kind: "skip" };
 
 export interface TeardownLinkFromRttStepResult {
   readonly state: TeardownLinkFromRttState;
@@ -130,7 +150,7 @@ export interface TeardownLinkFromRttStepResult {
 
 export function stepTeardownLinkFromRttWithActions(
   state: TeardownLinkFromRttState,
-  event: TeardownLinkFromRttEvent
+  event: TeardownLinkFromRttEvent,
 ): TeardownLinkFromRttStepResult {
   if (event.kind === "link/teardown-from-rtt-gate") {
     return {
@@ -140,12 +160,12 @@ export function stepTeardownLinkFromRttWithActions(
         {
           kind: shouldTeardownLinkFromRtt({
             outcomeTeardown: event.outcomeTeardown,
-            plaintextPresent: event.plaintextPresent
+            plaintextPresent: event.plaintextPresent,
           })
             ? "teardown"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -153,22 +173,23 @@ export function stepTeardownLinkFromRttWithActions(
 }
 
 export function shouldTeardownLinkFromRttNow(
-  actions: ReadonlyArray<TeardownLinkFromRttAction>
+  actions: ReadonlyArray<TeardownLinkFromRttAction>,
 ): boolean {
   return actions.some((action) => action.kind === "teardown");
 }
 
 export function shouldSkipTeardownLinkFromRtt(
-  actions: ReadonlyArray<TeardownLinkFromRttAction>
+  actions: ReadonlyArray<TeardownLinkFromRttAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether link plaintext DATA callback may fire after decrypt. */
-export function shouldDispatchLinkPlaintext(plaintextPresent: boolean): boolean {
+export function shouldDispatchLinkPlaintext(
+  plaintextPresent: boolean,
+): boolean {
   return plaintextPresent;
 }
-
 
 /**
  * shouldDispatchLinkPlaintext gate is event-driven; no durable session fields.
@@ -185,8 +206,7 @@ export type DispatchLinkPlaintextEvent =
     };
 
 export type DispatchLinkPlaintextAction =
-  | { readonly kind: "dispatch" }
-  | { readonly kind: "skip" };
+  { readonly kind: "dispatch" } | { readonly kind: "skip" };
 
 export interface DispatchLinkPlaintextStepResult {
   readonly state: DispatchLinkPlaintextState;
@@ -200,7 +220,7 @@ export function initialDispatchLinkPlaintextState(): DispatchLinkPlaintextState 
 
 export function stepDispatchLinkPlaintextWithActions(
   state: DispatchLinkPlaintextState,
-  event: DispatchLinkPlaintextEvent
+  event: DispatchLinkPlaintextEvent,
 ): DispatchLinkPlaintextStepResult {
   if (event.kind === "link/dispatch-plaintext-gate") {
     return {
@@ -208,9 +228,11 @@ export function stepDispatchLinkPlaintextWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldDispatchLinkPlaintext(event.plaintextPresent) ? "dispatch" : "skip"
-        }
-      ]
+          kind: shouldDispatchLinkPlaintext(event.plaintextPresent)
+            ? "dispatch"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -218,13 +240,13 @@ export function stepDispatchLinkPlaintextWithActions(
 }
 
 export function shouldDispatchLinkPlaintextNow(
-  actions: ReadonlyArray<DispatchLinkPlaintextAction>
+  actions: ReadonlyArray<DispatchLinkPlaintextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "dispatch");
 }
 
 export function shouldSkipLinkPlaintextDispatch(
-  actions: ReadonlyArray<DispatchLinkPlaintextAction>
+  actions: ReadonlyArray<DispatchLinkPlaintextAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -236,7 +258,6 @@ export function canResendLinkPacket(input: {
 }): boolean {
   return input.packetDecoded && input.attachedInterfacePresent;
 }
-
 
 /**
  * canResendLinkPacket gate is event-driven; no durable session fields.
@@ -254,8 +275,7 @@ export type ResendLinkPacketAllowEvent =
     };
 
 export type ResendLinkPacketAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface ResendLinkPacketAllowStepResult {
   readonly state: ResendLinkPacketAllowState;
@@ -269,7 +289,7 @@ export function initialResendLinkPacketAllowState(): ResendLinkPacketAllowState 
 
 export function stepResendLinkPacketAllowWithActions(
   state: ResendLinkPacketAllowState,
-  event: ResendLinkPacketAllowEvent
+  event: ResendLinkPacketAllowEvent,
 ): ResendLinkPacketAllowStepResult {
   if (event.kind === "link/resend-packet-allow-gate") {
     return {
@@ -277,9 +297,14 @@ export function stepResendLinkPacketAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canResendLinkPacket({ packetDecoded: event.packetDecoded, attachedInterfacePresent: event.attachedInterfacePresent }) ? "allow" : "deny"
-        }
-      ]
+          kind: canResendLinkPacket({
+            packetDecoded: event.packetDecoded,
+            attachedInterfacePresent: event.attachedInterfacePresent,
+          })
+            ? "allow"
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -287,34 +312,40 @@ export function stepResendLinkPacketAllowWithActions(
 }
 
 export function shouldAllowResendLinkPacket(
-  actions: ReadonlyArray<ResendLinkPacketAllowAction>
+  actions: ReadonlyArray<ResendLinkPacketAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyResendLinkPacket(
-  actions: ReadonlyArray<ResendLinkPacketAllowAction>
+  actions: ReadonlyArray<ResendLinkPacketAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
 
 export function shouldKeepPendingLinkAppRequestTransmitOutcomePlan(
-  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>
+  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "keep-pending");
 }
 
 export function shouldUnregisterLinkAppRequestTransmitOutcomePlan(
-  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>
+  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "unregister");
 }
 
-export function computeLinkRttSeconds(nowSeconds: number, requestTimeSeconds: number): number {
+export function computeLinkRttSeconds(
+  nowSeconds: number,
+  requestTimeSeconds: number,
+): number {
   return nowSeconds - requestTimeSeconds;
 }
 
-export function mergeLinkRtt(measuredSeconds: number, remoteSeconds: number): number {
+export function mergeLinkRtt(
+  measuredSeconds: number,
+  remoteSeconds: number,
+): number {
   return Math.max(measuredSeconds, remoteSeconds);
 }
 
@@ -350,7 +381,7 @@ export function initialComputeLinkRttSecondsState(): ComputeLinkRttSecondsState 
 
 export function stepComputeLinkRttSecondsWithActions(
   state: ComputeLinkRttSecondsState,
-  event: ComputeLinkRttSecondsEvent
+  event: ComputeLinkRttSecondsEvent,
 ): ComputeLinkRttSecondsStepResult {
   if (event.kind === "link/rtt-seconds-gate") {
     return {
@@ -359,9 +390,12 @@ export function stepComputeLinkRttSecondsWithActions(
       actions: [
         {
           kind: "use-rtt",
-          rtt: computeLinkRttSeconds(event.nowSeconds, event.requestTimeSeconds)
-        }
-      ]
+          rtt: computeLinkRttSeconds(
+            event.nowSeconds,
+            event.requestTimeSeconds,
+          ),
+        },
+      ],
     };
   }
 
@@ -369,14 +403,14 @@ export function stepComputeLinkRttSecondsWithActions(
 }
 
 export function shouldUseLinkRttSeconds(
-  actions: ReadonlyArray<ComputeLinkRttSecondsAction>
+  actions: ReadonlyArray<ComputeLinkRttSecondsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-rtt");
 }
 
 /** Extract RTT seconds from step actions; null when no `use-rtt`. */
 export function linkRttSecondsFromActions(
-  actions: ReadonlyArray<ComputeLinkRttSecondsAction>
+  actions: ReadonlyArray<ComputeLinkRttSecondsAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-rtt");
   return action?.kind === "use-rtt" ? action.rtt : null;
@@ -404,14 +438,14 @@ export type MergeLinkRttAction = {
 
 export function stepLinkEstablishWithActions(
   state: LinkEstablishState,
-  event: LinkEstablishEvent
+  event: LinkEstablishEvent,
 ): LinkEstablishStepResult {
   return stepLinkEstablishInner(state, event);
 }
 
 export function stepLinkEstablishInner(
   state: LinkEstablishState,
-  event: LinkEstablishEvent
+  event: LinkEstablishEvent,
 ): LinkEstablishStepResult {
   if (event.kind === "establish/handshake") {
     if (!canLinkHandshake(state.status)) {
@@ -420,7 +454,7 @@ export function stepLinkEstablishInner(
     return {
       state: { ...state, status: LinkStatus.HANDSHAKE },
       intents: [],
-      actions: [{ kind: "enter-handshake" }]
+      actions: [{ kind: "enter-handshake" }],
     };
   }
 
@@ -430,7 +464,7 @@ export function stepLinkEstablishInner(
         ...state,
         status: LinkStatus.ACTIVE,
         rtt: event.rtt,
-        activatedAt: event.atSeconds
+        activatedAt: event.atSeconds,
       },
       intents: [],
       actions: [
@@ -439,9 +473,9 @@ export function stepLinkEstablishInner(
           rtt: event.rtt,
           activatedAt: event.atSeconds,
           sendRtt: state.initiator,
-          activateMembership: state.initiator
-        }
-      ]
+          activateMembership: state.initiator,
+        },
+      ],
     };
   }
 
@@ -451,10 +485,10 @@ export function stepLinkEstablishInner(
         ...state,
         status: LinkStatus.CLOSED,
         rtt: null,
-        activatedAt: null
+        activatedAt: null,
       },
       intents: [],
-      actions: [{ kind: "failed" }]
+      actions: [{ kind: "failed" }],
     };
   }
 
@@ -463,14 +497,17 @@ export function stepLinkEstablishInner(
       stepAcceptLinkRttWithActions(initialAcceptLinkRttState(), {
         kind: "link/accept-rtt-gate",
         status: state.status,
-        initiator: state.initiator
-      }).actions
+        initiator: state.initiator,
+      }).actions,
     );
-    const planActions = stepLinkRttOutcomePlanWithActions(initialLinkRttOutcomePlanState(), {
-      kind: "rtt/outcome-plan-gate",
-      canAccept,
-      plaintextPresent: event.plaintextPresent
-    }).actions;
+    const planActions = stepLinkRttOutcomePlanWithActions(
+      initialLinkRttOutcomePlanState(),
+      {
+        kind: "rtt/outcome-plan-gate",
+        canAccept,
+        plaintextPresent: event.plaintextPresent,
+      },
+    ).actions;
     if (shouldIgnoreLinkRttOutcomePlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "ignore" }] };
     }
@@ -479,8 +516,8 @@ export function stepLinkEstablishInner(
         stepTeardownLinkFromRttWithActions(initialTeardownLinkFromRttState(), {
           kind: "link/teardown-from-rtt-gate",
           outcomeTeardown: shouldTeardownLinkRttOutcomePlan(planActions),
-          plaintextPresent: event.plaintextPresent
-        }).actions
+          plaintextPresent: event.plaintextPresent,
+        }).actions,
       )
     ) {
       return { state, intents: [], actions: [{ kind: "teardown" }] };
@@ -497,10 +534,10 @@ export function stepLinkEstablishInner(
         ...state,
         status: LinkStatus.CLOSED,
         rtt: null,
-        activatedAt: null
+        activatedAt: null,
       },
       intents: [],
-      actions: [{ kind: "teardown" }]
+      actions: [{ kind: "teardown" }],
     };
   }
 

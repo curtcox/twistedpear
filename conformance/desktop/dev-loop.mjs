@@ -72,7 +72,11 @@ export async function runDesktopDevLoop() {
     send: (message) => outbound.push(message),
     onDeveloperModeChange() {},
     onMiniappStateChange() {},
-    getPresenceSnapshot: () => ({ autoPeers: 0, onlineInterfaces: 0, preferredInterface: null })
+    getPresenceSnapshot: () => ({
+      autoPeers: 0,
+      onlineInterfaces: 0,
+      preferredInterface: null,
+    }),
   });
 
   try {
@@ -82,7 +86,9 @@ export async function runDesktopDevLoop() {
     }
 
     const appDir = join(workDir, "hello-miniapp");
-    const manifest = JSON.parse(readFileSync(join(appDir, "app.manifest.json"), "utf8"));
+    const manifest = JSON.parse(
+      readFileSync(join(appDir, "app.manifest.json"), "utf8"),
+    );
     const server = await startDevServer({
       appDir,
       host: "127.0.0.1",
@@ -93,8 +99,8 @@ export async function runDesktopDevLoop() {
         entry: manifest.entry,
         capabilities: manifest.capabilities ?? [],
         publisherPublicKey: "dev",
-        minHostApi: manifest.minHostApi
-      }
+        minHostApi: manifest.minHostApi,
+      },
     });
 
     const socket = createConnection({ host: "127.0.0.1", port: 34990 });
@@ -109,14 +115,22 @@ export async function runDesktopDevLoop() {
     }
 
     miniappHost.setDeveloperMode(true);
-    await miniappHost.devSideLoad(first.manifest ?? manifest, Buffer.from(first.bundleHex, "hex"));
-    const initialRuntime = outbound.findLast((message) => message.type === "miniapp-runtime");
+    await miniappHost.devSideLoad(
+      first.manifest ?? manifest,
+      Buffer.from(first.bundleHex, "hex"),
+    );
+    const initialRuntime = outbound.findLast(
+      (message) => message.type === "miniapp-runtime",
+    );
     if (initialRuntime?.runtime?.devBadge !== true) {
       throw new Error("dev side-load did not set DEV badge");
     }
 
     const bundlePath = join(appDir, "bundle.js");
-    writeFileSync(bundlePath, `${readFileSync(bundlePath, "utf8")}\n// hot reload marker\n`);
+    writeFileSync(
+      bundlePath,
+      `${readFileSync(bundlePath, "utf8")}\n// hot reload marker\n`,
+    );
 
     const second = await readDevPayload(socket);
     socket.end();
@@ -126,27 +140,39 @@ export async function runDesktopDevLoop() {
       throw new Error("hot reload did not push an updated bundle");
     }
 
-    await miniappHost.devSideLoad(second.manifest ?? manifest, Buffer.from(second.bundleHex, "hex"));
+    await miniappHost.devSideLoad(
+      second.manifest ?? manifest,
+      Buffer.from(second.bundleHex, "hex"),
+    );
 
     const blocked = createDevChannelClient({
       isDeveloperMode: () => false,
-      onBundle: async () => {}
+      onBundle: async () => {},
     });
     try {
       await blocked.connect("127.0.0.1", 34990);
-      throw new Error("dev channel connected while developer mode was disabled");
+      throw new Error(
+        "dev channel connected while developer mode was disabled",
+      );
     } catch (error) {
-      if (!(error instanceof Error) || !error.message.includes("Developer mode is disabled")) {
+      if (
+        !(error instanceof Error) ||
+        !error.message.includes("Developer mode is disabled")
+      ) {
         throw error;
       }
     }
 
     const elapsedMs = Date.now() - started;
     if (elapsedMs > BUDGET_MS) {
-      throw new Error(`dev-loop exceeded ${BUDGET_MS}ms budget (${elapsedMs}ms)`);
+      throw new Error(
+        `dev-loop exceeded ${BUDGET_MS}ms budget (${elapsedMs}ms)`,
+      );
     }
 
-    console.log(`desktop-dev-loop: create → dev server → side-load → hot reload passed in ${elapsedMs}ms`);
+    console.log(
+      `desktop-dev-loop: create → dev server → side-load → hot reload passed in ${elapsedMs}ms`,
+    );
   } finally {
     await miniappHost.stop().catch(() => {});
     await new Promise((resolve) => setTimeout(resolve, 100));

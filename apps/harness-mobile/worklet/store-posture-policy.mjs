@@ -9,12 +9,12 @@ export function refuseStorePosture(action, send) {
 
   send({
     type: "log",
-    line: `${action} refused in store posture variant`
+    line: `${action} refused in store posture variant`,
   });
   send({
     type: "dev-channel",
     state: "error",
-    detail: `${action} is disabled in ${STORE_POSTURE} posture`
+    detail: `${action} is disabled in ${STORE_POSTURE} posture`,
   });
   return true;
 }

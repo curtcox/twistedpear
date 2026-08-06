@@ -103,16 +103,19 @@ import {
   stepDestinationSendWithActions,
   stepOperateAttachedDestinationWithActions,
   stepRegisterDestinationLinkWithActions,
-  stepRequestLinkDestinationWithActions
+  stepRequestLinkDestinationWithActions,
 } from "../src/destination-allow.js";
-import { DestinationDirectionCode, DestinationTypeCode } from "../src/packet-header.js";
+import {
+  DestinationDirectionCode,
+  DestinationTypeCode,
+} from "../src/packet-header.js";
 import {
   LinkRequestReceiptStatus,
   initialAttachLinkRequestPacketReceiptState,
   shouldAttachLinkRequestPacketReceipt,
   shouldAttachLinkRequestPacketReceiptNow,
   shouldSkipLinkRequestPacketReceiptAttach,
-  stepAttachLinkRequestPacketReceiptWithActions
+  stepAttachLinkRequestPacketReceiptWithActions,
 } from "../src/link-request-receipt.js";
 
 describe("destination allow policy", () => {
@@ -122,29 +125,29 @@ describe("destination allow policy", () => {
       planDestinationRequestAllow({
         allow: DestinationAllowPolicyCode.ALLOW_ALL,
         allowedList: [],
-        remoteIdentityHash: null
-      })
+        remoteIdentityHash: null,
+      }),
     ).toBe(true);
     expect(
       planDestinationRequestAllow({
         allow: DestinationAllowPolicyCode.ALLOW_NONE,
         allowedList: [hash],
-        remoteIdentityHash: hash
-      })
+        remoteIdentityHash: hash,
+      }),
     ).toBe(false);
     expect(
       planDestinationRequestAllow({
         allow: DestinationAllowPolicyCode.ALLOW_LIST,
         allowedList: [hash],
-        remoteIdentityHash: hash
-      })
+        remoteIdentityHash: hash,
+      }),
     ).toBe(true);
     expect(
       planDestinationRequestAllow({
         allow: DestinationAllowPolicyCode.ALLOW_LIST,
         allowedList: [hash],
-        remoteIdentityHash: new Uint8Array([9, 9, 9])
-      })
+        remoteIdentityHash: new Uint8Array([9, 9, 9]),
+      }),
     ).toBe(false);
 
     const allowAllPlan = stepDestinationRequestAllowPlanWithActions(
@@ -153,11 +156,13 @@ describe("destination allow policy", () => {
         kind: "destination/request-allow-plan-gate",
         allow: DestinationAllowPolicyCode.ALLOW_ALL,
         allowedList: [],
-        remoteIdentityHash: null
-      }
+        remoteIdentityHash: null,
+      },
     );
     expect(shouldAllowDestinationRequestPlan(allowAllPlan.actions)).toBe(true);
-    expect(destinationRequestAllowPlanFromActions(allowAllPlan.actions)).toBe("allow");
+    expect(destinationRequestAllowPlanFromActions(allowAllPlan.actions)).toBe(
+      "allow",
+    );
 
     const allowAll = stepDestinationRequestAllowWithActions(
       initialDestinationRequestAllowState(),
@@ -165,8 +170,8 @@ describe("destination allow policy", () => {
         kind: "destination/request-allow-gate",
         allow: DestinationAllowPolicyCode.ALLOW_ALL,
         allowedList: [],
-        remoteIdentityHash: null
-      }
+        remoteIdentityHash: null,
+      },
     );
     expect(shouldAllowDestinationRequest(allowAll.actions)).toBe(true);
     expect(shouldDenyDestinationRequest(allowAll.actions)).toBe(false);
@@ -177,11 +182,13 @@ describe("destination allow policy", () => {
         kind: "destination/request-allow-plan-gate",
         allow: DestinationAllowPolicyCode.ALLOW_NONE,
         allowedList: [hash],
-        remoteIdentityHash: hash
-      }
+        remoteIdentityHash: hash,
+      },
     );
     expect(shouldDenyDestinationRequestPlan(denyNonePlan.actions)).toBe(true);
-    expect(destinationRequestAllowPlanFromActions(denyNonePlan.actions)).toBe("deny");
+    expect(destinationRequestAllowPlanFromActions(denyNonePlan.actions)).toBe(
+      "deny",
+    );
 
     const denyNone = stepDestinationRequestAllowWithActions(
       initialDestinationRequestAllowState(),
@@ -189,8 +196,8 @@ describe("destination allow policy", () => {
         kind: "destination/request-allow-gate",
         allow: DestinationAllowPolicyCode.ALLOW_NONE,
         allowedList: [hash],
-        remoteIdentityHash: hash
-      }
+        remoteIdentityHash: hash,
+      },
     );
     expect(shouldAllowDestinationRequest(denyNone.actions)).toBe(false);
     expect(shouldDenyDestinationRequest(denyNone.actions)).toBe(true);
@@ -201,8 +208,8 @@ describe("destination allow policy", () => {
         kind: "destination/request-allow-gate",
         allow: DestinationAllowPolicyCode.ALLOW_LIST,
         allowedList: [hash],
-        remoteIdentityHash: hash
-      }
+        remoteIdentityHash: hash,
+      },
     );
     expect(shouldAllowDestinationRequest(allowList.actions)).toBe(true);
     expect(shouldDenyDestinationRequest(allowList.actions)).toBe(false);
@@ -216,8 +223,8 @@ describe("destination allow policy", () => {
       initialDestinationRequestPathValidState(),
       {
         kind: "destination/request-path-valid-gate",
-        path: "/echo"
-      }
+        path: "/echo",
+      },
     );
     expect(shouldAcceptDestinationRequestPath(valid.actions)).toBe(true);
     expect(shouldRejectDestinationRequestPath(valid.actions)).toBe(false);
@@ -226,8 +233,8 @@ describe("destination allow policy", () => {
       initialDestinationRequestPathValidState(),
       {
         kind: "destination/request-path-valid-gate",
-        path: ""
-      }
+        path: "",
+      },
     );
     expect(shouldAcceptDestinationRequestPath(invalid.actions)).toBe(false);
     expect(shouldRejectDestinationRequestPath(invalid.actions)).toBe(true);
@@ -235,13 +242,22 @@ describe("destination allow policy", () => {
 
   it("accepts inbound link requests only when enabled and IN", () => {
     expect(
-      canAcceptDestinationLinkRequest({ acceptLinkRequests: true, directionIn: true })
+      canAcceptDestinationLinkRequest({
+        acceptLinkRequests: true,
+        directionIn: true,
+      }),
     ).toBe(true);
     expect(
-      canAcceptDestinationLinkRequest({ acceptLinkRequests: false, directionIn: true })
+      canAcceptDestinationLinkRequest({
+        acceptLinkRequests: false,
+        directionIn: true,
+      }),
     ).toBe(false);
     expect(
-      canAcceptDestinationLinkRequest({ acceptLinkRequests: true, directionIn: false })
+      canAcceptDestinationLinkRequest({
+        acceptLinkRequests: true,
+        directionIn: false,
+      }),
     ).toBe(false);
 
     const allow = stepAcceptDestinationLinkRequestWithActions(
@@ -249,8 +265,8 @@ describe("destination allow policy", () => {
       {
         kind: "destination/accept-link-request-gate",
         acceptLinkRequests: true,
-        directionIn: true
-      }
+        directionIn: true,
+      },
     );
     expect(shouldAllowDestinationLinkRequest(allow.actions)).toBe(true);
     expect(shouldDenyDestinationLinkRequest(allow.actions)).toBe(false);
@@ -260,31 +276,43 @@ describe("destination allow policy", () => {
       {
         kind: "destination/accept-link-request-gate",
         acceptLinkRequests: false,
-        directionIn: true
-      }
+        directionIn: true,
+      },
     );
     expect(shouldAllowDestinationLinkRequest(deny.actions)).toBe(false);
     expect(shouldDenyDestinationLinkRequest(deny.actions)).toBe(true);
   });
 
   it("allows announces only for IN SINGLE destinations", () => {
-    expect(canAnnounceDestination({ typeSingle: true, directionIn: true })).toBe(true);
-    expect(canAnnounceDestination({ typeSingle: false, directionIn: true })).toBe(false);
-    expect(canAnnounceDestination({ typeSingle: true, directionIn: false })).toBe(false);
+    expect(
+      canAnnounceDestination({ typeSingle: true, directionIn: true }),
+    ).toBe(true);
+    expect(
+      canAnnounceDestination({ typeSingle: false, directionIn: true }),
+    ).toBe(false);
+    expect(
+      canAnnounceDestination({ typeSingle: true, directionIn: false }),
+    ).toBe(false);
 
-    const allow = stepAnnounceDestinationWithActions(initialAnnounceDestinationState(), {
-      kind: "destination/announce-gate",
-      typeSingle: true,
-      directionIn: true
-    });
+    const allow = stepAnnounceDestinationWithActions(
+      initialAnnounceDestinationState(),
+      {
+        kind: "destination/announce-gate",
+        typeSingle: true,
+        directionIn: true,
+      },
+    );
     expect(shouldAllowDestinationAnnounce(allow.actions)).toBe(true);
     expect(shouldDenyDestinationAnnounce(allow.actions)).toBe(false);
 
-    const deny = stepAnnounceDestinationWithActions(initialAnnounceDestinationState(), {
-      kind: "destination/announce-gate",
-      typeSingle: false,
-      directionIn: true
-    });
+    const deny = stepAnnounceDestinationWithActions(
+      initialAnnounceDestinationState(),
+      {
+        kind: "destination/announce-gate",
+        typeSingle: false,
+        directionIn: true,
+      },
+    );
     expect(shouldAllowDestinationAnnounce(deny.actions)).toBe(false);
     expect(shouldDenyDestinationAnnounce(deny.actions)).toBe(true);
   });
@@ -303,8 +331,8 @@ describe("destination allow policy", () => {
       initialOperateAttachedDestinationState(),
       {
         kind: "destination/operate-attached-gate",
-        transportPresent: true
-      }
+        transportPresent: true,
+      },
     );
     expect(shouldAllowOperateAttachedDestination(attached.actions)).toBe(true);
     expect(shouldDenyOperateAttachedDestination(attached.actions)).toBe(false);
@@ -313,16 +341,19 @@ describe("destination allow policy", () => {
       initialOperateAttachedDestinationState(),
       {
         kind: "destination/operate-attached-gate",
-        transportPresent: false
-      }
+        transportPresent: false,
+      },
     );
     expect(shouldAllowOperateAttachedDestination(detached.actions)).toBe(false);
     expect(shouldDenyOperateAttachedDestination(detached.actions)).toBe(true);
 
-    const withIdentity = stepAnnounceWithIdentityWithActions(initialAnnounceWithIdentityState(), {
-      kind: "destination/announce-with-identity-gate",
-      identityPresent: true
-    });
+    const withIdentity = stepAnnounceWithIdentityWithActions(
+      initialAnnounceWithIdentityState(),
+      {
+        kind: "destination/announce-with-identity-gate",
+        identityPresent: true,
+      },
+    );
     expect(shouldAllowAnnounceWithIdentity(withIdentity.actions)).toBe(true);
     expect(shouldDenyAnnounceWithIdentity(withIdentity.actions)).toBe(false);
 
@@ -330,110 +361,151 @@ describe("destination allow policy", () => {
       initialAnnounceWithIdentityState(),
       {
         kind: "destination/announce-with-identity-gate",
-        identityPresent: false
-      }
+        identityPresent: false,
+      },
     );
-    expect(shouldAllowAnnounceWithIdentity(withoutIdentity.actions)).toBe(false);
+    expect(shouldAllowAnnounceWithIdentity(withoutIdentity.actions)).toBe(
+      false,
+    );
     expect(shouldDenyAnnounceWithIdentity(withoutIdentity.actions)).toBe(true);
 
     const proofInvoke = stepDestinationProofCallbackWithActions(
       initialDestinationProofCallbackState(),
       {
         kind: "destination/proof-callback-gate",
-        callbackPresent: true
-      }
+        callbackPresent: true,
+      },
     );
-    expect(shouldInvokeDestinationProofCallbackNow(proofInvoke.actions)).toBe(true);
+    expect(shouldInvokeDestinationProofCallbackNow(proofInvoke.actions)).toBe(
+      true,
+    );
     expect(shouldSkipDestinationProofCallback(proofInvoke.actions)).toBe(false);
 
     const proofSkip = stepDestinationProofCallbackWithActions(
       initialDestinationProofCallbackState(),
       {
         kind: "destination/proof-callback-gate",
-        callbackPresent: false
-      }
+        callbackPresent: false,
+      },
     );
-    expect(shouldInvokeDestinationProofCallbackNow(proofSkip.actions)).toBe(false);
+    expect(shouldInvokeDestinationProofCallbackNow(proofSkip.actions)).toBe(
+      false,
+    );
     expect(shouldSkipDestinationProofCallback(proofSkip.actions)).toBe(true);
 
     const establishedInvoke = stepDestinationLinkEstablishedCallbackWithActions(
       initialDestinationLinkEstablishedCallbackState(),
       {
         kind: "destination/link-established-callback-gate",
-        callbackPresent: true
-      }
+        callbackPresent: true,
+      },
     );
-    expect(shouldInvokeDestinationLinkEstablishedCallbackNow(establishedInvoke.actions)).toBe(
-      true
-    );
-    expect(shouldSkipDestinationLinkEstablishedCallback(establishedInvoke.actions)).toBe(false);
+    expect(
+      shouldInvokeDestinationLinkEstablishedCallbackNow(
+        establishedInvoke.actions,
+      ),
+    ).toBe(true);
+    expect(
+      shouldSkipDestinationLinkEstablishedCallback(establishedInvoke.actions),
+    ).toBe(false);
 
     const establishedSkip = stepDestinationLinkEstablishedCallbackWithActions(
       initialDestinationLinkEstablishedCallbackState(),
       {
         kind: "destination/link-established-callback-gate",
-        callbackPresent: false
-      }
+        callbackPresent: false,
+      },
     );
-    expect(shouldInvokeDestinationLinkEstablishedCallbackNow(establishedSkip.actions)).toBe(
-      false
-    );
-    expect(shouldSkipDestinationLinkEstablishedCallback(establishedSkip.actions)).toBe(true);
+    expect(
+      shouldInvokeDestinationLinkEstablishedCallbackNow(
+        establishedSkip.actions,
+      ),
+    ).toBe(false);
+    expect(
+      shouldSkipDestinationLinkEstablishedCallback(establishedSkip.actions),
+    ).toBe(true);
   });
 
   it("allows sends only for OUT destinations", () => {
     expect(canDestinationSend(true)).toBe(true);
     expect(canDestinationSend(false)).toBe(false);
 
-    const allow = stepDestinationSendWithActions(initialDestinationSendState(), {
-      kind: "destination/send-gate",
-      directionOut: true
-    });
+    const allow = stepDestinationSendWithActions(
+      initialDestinationSendState(),
+      {
+        kind: "destination/send-gate",
+        directionOut: true,
+      },
+    );
     expect(shouldAllowDestinationSend(allow.actions)).toBe(true);
     expect(shouldDenyDestinationSend(allow.actions)).toBe(false);
 
     const deny = stepDestinationSendWithActions(initialDestinationSendState(), {
       kind: "destination/send-gate",
-      directionOut: false
+      directionOut: false,
     });
     expect(shouldAllowDestinationSend(deny.actions)).toBe(false);
     expect(shouldDenyDestinationSend(deny.actions)).toBe(true);
   });
 
   it("allows link requests only to OUT SINGLE destinations", () => {
-    expect(canRequestLinkDestination({ typeSingle: true, directionOut: true })).toBe(true);
-    expect(canRequestLinkDestination({ typeSingle: false, directionOut: true })).toBe(false);
-    expect(canRequestLinkDestination({ typeSingle: true, directionOut: false })).toBe(false);
+    expect(
+      canRequestLinkDestination({ typeSingle: true, directionOut: true }),
+    ).toBe(true);
+    expect(
+      canRequestLinkDestination({ typeSingle: false, directionOut: true }),
+    ).toBe(false);
+    expect(
+      canRequestLinkDestination({ typeSingle: true, directionOut: false }),
+    ).toBe(false);
 
-    const allow = stepRequestLinkDestinationWithActions(initialRequestLinkDestinationState(), {
-      kind: "destination/request-link-gate",
-      typeSingle: true,
-      directionOut: true
-    });
+    const allow = stepRequestLinkDestinationWithActions(
+      initialRequestLinkDestinationState(),
+      {
+        kind: "destination/request-link-gate",
+        typeSingle: true,
+        directionOut: true,
+      },
+    );
     expect(shouldAllowRequestLinkDestination(allow.actions)).toBe(true);
     expect(shouldDenyRequestLinkDestination(allow.actions)).toBe(false);
 
-    const deny = stepRequestLinkDestinationWithActions(initialRequestLinkDestinationState(), {
-      kind: "destination/request-link-gate",
-      typeSingle: false,
-      directionOut: true
-    });
+    const deny = stepRequestLinkDestinationWithActions(
+      initialRequestLinkDestinationState(),
+      {
+        kind: "destination/request-link-gate",
+        typeSingle: false,
+        directionOut: true,
+      },
+    );
     expect(shouldAllowRequestLinkDestination(deny.actions)).toBe(false);
     expect(shouldDenyRequestLinkDestination(deny.actions)).toBe(true);
   });
 
   it("validates destination identity binding by type", () => {
     expect(
-      isValidDestinationIdentityBinding({ typePlain: true, identityPresent: false })
+      isValidDestinationIdentityBinding({
+        typePlain: true,
+        identityPresent: false,
+      }),
     ).toBe(true);
     expect(
-      isValidDestinationIdentityBinding({ typePlain: true, identityPresent: true })
+      isValidDestinationIdentityBinding({
+        typePlain: true,
+        identityPresent: true,
+      }),
     ).toBe(false);
     expect(
-      isValidDestinationIdentityBinding({ typePlain: false, identityPresent: true })
+      isValidDestinationIdentityBinding({
+        typePlain: false,
+        identityPresent: true,
+      }),
     ).toBe(true);
     expect(
-      isValidDestinationIdentityBinding({ typePlain: false, identityPresent: false })
+      isValidDestinationIdentityBinding({
+        typePlain: false,
+        identityPresent: false,
+      }),
     ).toBe(false);
 
     const valid = stepDestinationIdentityBindingValidWithActions(
@@ -441,8 +513,8 @@ describe("destination allow policy", () => {
       {
         kind: "destination/identity-binding-valid-gate",
         typePlain: true,
-        identityPresent: false
-      }
+        identityPresent: false,
+      },
     );
     expect(valid.actions).toEqual([{ kind: "valid" }]);
     expect(shouldAcceptDestinationIdentityBinding(valid.actions)).toBe(true);
@@ -453,8 +525,8 @@ describe("destination allow policy", () => {
       {
         kind: "destination/identity-binding-valid-gate",
         typePlain: true,
-        identityPresent: true
-      }
+        identityPresent: true,
+      },
     );
     expect(invalid.actions).toEqual([{ kind: "invalid" }]);
     expect(shouldAcceptDestinationIdentityBinding(invalid.actions)).toBe(false);
@@ -466,57 +538,61 @@ describe("destination allow policy", () => {
       planDestinationConstruction({
         direction: DestinationDirectionCode.IN,
         type: DestinationTypeCode.SINGLE,
-        identityBindingValid: true
-      })
+        identityBindingValid: true,
+      }),
     ).toBe("ok");
     expect(
       planDestinationConstruction({
         direction: 0,
         type: DestinationTypeCode.SINGLE,
-        identityBindingValid: true
-      })
+        identityBindingValid: true,
+      }),
     ).toBe("bad-direction");
     expect(
       planDestinationConstruction({
         direction: DestinationDirectionCode.OUT,
         type: 99,
-        identityBindingValid: true
-      })
+        identityBindingValid: true,
+      }),
     ).toBe("bad-type");
     expect(
       planDestinationConstruction({
         direction: DestinationDirectionCode.OUT,
         type: DestinationTypeCode.PLAIN,
-        identityBindingValid: false
-      })
+        identityBindingValid: false,
+      }),
     ).toBe("bad-identity-binding");
     expect(
       planDestinationConstruction({
         direction: DestinationDirectionCode.OUT,
         type: DestinationTypeCode.SINGLE,
-        identityBindingValid: false
-      })
+        identityBindingValid: false,
+      }),
     ).toBe("bad-identity-binding");
   });
 
   it("plans destination decrypt by type and identity", () => {
-    expect(planDestinationDecrypt({ typePlain: true, identityPresent: false })).toBe(
-      "return-ciphertext"
-    );
-    expect(planDestinationDecrypt({ typePlain: false, identityPresent: false })).toBe("reject");
-    expect(planDestinationDecrypt({ typePlain: false, identityPresent: true })).toBe(
-      "decrypt-with-identity"
-    );
+    expect(
+      planDestinationDecrypt({ typePlain: true, identityPresent: false }),
+    ).toBe("return-ciphertext");
+    expect(
+      planDestinationDecrypt({ typePlain: false, identityPresent: false }),
+    ).toBe("reject");
+    expect(
+      planDestinationDecrypt({ typePlain: false, identityPresent: true }),
+    ).toBe("decrypt-with-identity");
   });
 
   it("plans destination encrypt by type and identity", () => {
-    expect(planDestinationEncrypt({ typePlain: true, identityPresent: false })).toBe(
-      "use-plaintext"
-    );
-    expect(planDestinationEncrypt({ typePlain: false, identityPresent: false })).toBe("reject");
-    expect(planDestinationEncrypt({ typePlain: false, identityPresent: true })).toBe(
-      "encrypt-with-identity"
-    );
+    expect(
+      planDestinationEncrypt({ typePlain: true, identityPresent: false }),
+    ).toBe("use-plaintext");
+    expect(
+      planDestinationEncrypt({ typePlain: false, identityPresent: false }),
+    ).toBe("reject");
+    expect(
+      planDestinationEncrypt({ typePlain: false, identityPresent: true }),
+    ).toBe("encrypt-with-identity");
   });
 
   it("emits destination construction/decrypt/encrypt-plan actions from PlanWithActions", () => {
@@ -526,8 +602,8 @@ describe("destination allow policy", () => {
         kind: "destination/construction-plan-gate",
         direction: DestinationDirectionCode.IN,
         type: DestinationTypeCode.SINGLE,
-        identityBindingValid: true
-      }
+        identityBindingValid: true,
+      },
     );
     expect(shouldProceedDestinationConstructionPlan(ok.actions)).toBe(true);
     expect(destinationConstructionPlanFromActions(ok.actions)).toBe("ok");
@@ -538,11 +614,15 @@ describe("destination allow policy", () => {
         kind: "destination/construction-plan-gate",
         direction: 0,
         type: DestinationTypeCode.SINGLE,
-        identityBindingValid: true
-      }
+        identityBindingValid: true,
+      },
     );
-    expect(shouldRejectDestinationConstructionPlanBadDirection(badDirection.actions)).toBe(true);
-    expect(destinationConstructionPlanFromActions(badDirection.actions)).toBe("bad-direction");
+    expect(
+      shouldRejectDestinationConstructionPlanBadDirection(badDirection.actions),
+    ).toBe(true);
+    expect(destinationConstructionPlanFromActions(badDirection.actions)).toBe(
+      "bad-direction",
+    );
 
     const badType = stepDestinationConstructionPlanWithActions(
       initialDestinationConstructionPlanState(),
@@ -550,10 +630,12 @@ describe("destination allow policy", () => {
         kind: "destination/construction-plan-gate",
         direction: DestinationDirectionCode.OUT,
         type: 99,
-        identityBindingValid: true
-      }
+        identityBindingValid: true,
+      },
     );
-    expect(shouldRejectDestinationConstructionPlanBadType(badType.actions)).toBe(true);
+    expect(
+      shouldRejectDestinationConstructionPlanBadType(badType.actions),
+    ).toBe(true);
 
     const badBinding = stepDestinationConstructionPlanWithActions(
       initialDestinationConstructionPlanState(),
@@ -561,71 +643,109 @@ describe("destination allow policy", () => {
         kind: "destination/construction-plan-gate",
         direction: DestinationDirectionCode.OUT,
         type: DestinationTypeCode.PLAIN,
-        identityBindingValid: false
-      }
+        identityBindingValid: false,
+      },
     );
-    expect(shouldRejectDestinationConstructionPlanBadIdentityBinding(badBinding.actions)).toBe(
-      true
+    expect(
+      shouldRejectDestinationConstructionPlanBadIdentityBinding(
+        badBinding.actions,
+      ),
+    ).toBe(true);
+
+    const plain = stepDestinationDecryptPlanWithActions(
+      initialDestinationDecryptPlanState(),
+      {
+        kind: "destination/decrypt-plan-gate",
+        typePlain: true,
+        identityPresent: false,
+      },
+    );
+    expect(shouldReturnDestinationDecryptPlanCiphertext(plain.actions)).toBe(
+      true,
+    );
+    expect(destinationDecryptPlanFromActions(plain.actions)).toBe(
+      "return-ciphertext",
     );
 
-    const plain = stepDestinationDecryptPlanWithActions(initialDestinationDecryptPlanState(), {
-      kind: "destination/decrypt-plan-gate",
-      typePlain: true,
-      identityPresent: false
-    });
-    expect(shouldReturnDestinationDecryptPlanCiphertext(plain.actions)).toBe(true);
-    expect(destinationDecryptPlanFromActions(plain.actions)).toBe("return-ciphertext");
-
-    const reject = stepDestinationDecryptPlanWithActions(initialDestinationDecryptPlanState(), {
-      kind: "destination/decrypt-plan-gate",
-      typePlain: false,
-      identityPresent: false
-    });
+    const reject = stepDestinationDecryptPlanWithActions(
+      initialDestinationDecryptPlanState(),
+      {
+        kind: "destination/decrypt-plan-gate",
+        typePlain: false,
+        identityPresent: false,
+      },
+    );
     expect(shouldRejectDestinationDecryptPlan(reject.actions)).toBe(true);
     expect(destinationDecryptPlanFromActions(reject.actions)).toBe("reject");
 
-    const decrypt = stepDestinationDecryptPlanWithActions(initialDestinationDecryptPlanState(), {
-      kind: "destination/decrypt-plan-gate",
-      typePlain: false,
-      identityPresent: true
-    });
-    expect(shouldDecryptDestinationPlanWithIdentity(decrypt.actions)).toBe(true);
-    expect(destinationDecryptPlanFromActions(decrypt.actions)).toBe("decrypt-with-identity");
+    const decrypt = stepDestinationDecryptPlanWithActions(
+      initialDestinationDecryptPlanState(),
+      {
+        kind: "destination/decrypt-plan-gate",
+        typePlain: false,
+        identityPresent: true,
+      },
+    );
+    expect(shouldDecryptDestinationPlanWithIdentity(decrypt.actions)).toBe(
+      true,
+    );
+    expect(destinationDecryptPlanFromActions(decrypt.actions)).toBe(
+      "decrypt-with-identity",
+    );
 
-    const usePlain = stepDestinationEncryptPlanWithActions(initialDestinationEncryptPlanState(), {
-      kind: "destination/encrypt-plan-gate",
-      typePlain: true,
-      identityPresent: false
-    });
-    expect(shouldUseDestinationEncryptPlanPlaintext(usePlain.actions)).toBe(true);
-    expect(destinationEncryptPlanFromActions(usePlain.actions)).toBe("use-plaintext");
+    const usePlain = stepDestinationEncryptPlanWithActions(
+      initialDestinationEncryptPlanState(),
+      {
+        kind: "destination/encrypt-plan-gate",
+        typePlain: true,
+        identityPresent: false,
+      },
+    );
+    expect(shouldUseDestinationEncryptPlanPlaintext(usePlain.actions)).toBe(
+      true,
+    );
+    expect(destinationEncryptPlanFromActions(usePlain.actions)).toBe(
+      "use-plaintext",
+    );
 
     const encryptReject = stepDestinationEncryptPlanWithActions(
       initialDestinationEncryptPlanState(),
       {
         kind: "destination/encrypt-plan-gate",
         typePlain: false,
-        identityPresent: false
-      }
+        identityPresent: false,
+      },
     );
-    expect(shouldRejectDestinationEncryptPlan(encryptReject.actions)).toBe(true);
+    expect(shouldRejectDestinationEncryptPlan(encryptReject.actions)).toBe(
+      true,
+    );
 
-    const encrypt = stepDestinationEncryptPlanWithActions(initialDestinationEncryptPlanState(), {
-      kind: "destination/encrypt-plan-gate",
-      typePlain: false,
-      identityPresent: true
-    });
-    expect(shouldEncryptDestinationPlanWithIdentity(encrypt.actions)).toBe(true);
-    expect(destinationEncryptPlanFromActions(encrypt.actions)).toBe("encrypt-with-identity");
+    const encrypt = stepDestinationEncryptPlanWithActions(
+      initialDestinationEncryptPlanState(),
+      {
+        kind: "destination/encrypt-plan-gate",
+        typePlain: false,
+        identityPresent: true,
+      },
+    );
+    expect(shouldEncryptDestinationPlanWithIdentity(encrypt.actions)).toBe(
+      true,
+    );
+    expect(destinationEncryptPlanFromActions(encrypt.actions)).toBe(
+      "encrypt-with-identity",
+    );
   });
 
   it("emits destination construction actions from stepDestinationConstructionWithActions", () => {
-    const ok = stepDestinationConstructionWithActions(initialDestinationConstructionState(), {
-      kind: "destination/construction-gate",
-      direction: DestinationDirectionCode.IN,
-      type: DestinationTypeCode.SINGLE,
-      identityPresent: true
-    });
+    const ok = stepDestinationConstructionWithActions(
+      initialDestinationConstructionState(),
+      {
+        kind: "destination/construction-gate",
+        direction: DestinationDirectionCode.IN,
+        type: DestinationTypeCode.SINGLE,
+        identityPresent: true,
+      },
+    );
     expect(ok.actions).toEqual([{ kind: "ok" }]);
     expect(shouldProceedDestinationConstruction(ok.actions)).toBe(true);
 
@@ -635,18 +755,25 @@ describe("destination allow policy", () => {
         kind: "destination/construction-gate",
         direction: 0,
         type: DestinationTypeCode.SINGLE,
-        identityPresent: true
-      }
+        identityPresent: true,
+      },
     );
-    expect(shouldRejectDestinationConstructionBadDirection(badDirection.actions)).toBe(true);
+    expect(
+      shouldRejectDestinationConstructionBadDirection(badDirection.actions),
+    ).toBe(true);
 
-    const badType = stepDestinationConstructionWithActions(initialDestinationConstructionState(), {
-      kind: "destination/construction-gate",
-      direction: DestinationDirectionCode.OUT,
-      type: 99,
-      identityPresent: true
-    });
-    expect(shouldRejectDestinationConstructionBadType(badType.actions)).toBe(true);
+    const badType = stepDestinationConstructionWithActions(
+      initialDestinationConstructionState(),
+      {
+        kind: "destination/construction-gate",
+        direction: DestinationDirectionCode.OUT,
+        type: 99,
+        identityPresent: true,
+      },
+    );
+    expect(shouldRejectDestinationConstructionBadType(badType.actions)).toBe(
+      true,
+    );
 
     const badBinding = stepDestinationConstructionWithActions(
       initialDestinationConstructionState(),
@@ -654,54 +781,74 @@ describe("destination allow policy", () => {
         kind: "destination/construction-gate",
         direction: DestinationDirectionCode.OUT,
         type: DestinationTypeCode.PLAIN,
-        identityPresent: true
-      }
+        identityPresent: true,
+      },
     );
-    expect(shouldRejectDestinationConstructionBadIdentityBinding(badBinding.actions)).toBe(true);
+    expect(
+      shouldRejectDestinationConstructionBadIdentityBinding(badBinding.actions),
+    ).toBe(true);
   });
 
   it("emits destination decrypt/encrypt actions from WithActions steps", () => {
-    const plain = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
-      kind: "destination/decrypt-gate",
-      typePlain: true,
-      identityPresent: false
-    });
+    const plain = stepDestinationDecryptWithActions(
+      initialDestinationDecryptState(),
+      {
+        kind: "destination/decrypt-gate",
+        typePlain: true,
+        identityPresent: false,
+      },
+    );
     expect(plain.actions).toEqual([{ kind: "return-ciphertext" }]);
     expect(shouldReturnDestinationDecryptCiphertext(plain.actions)).toBe(true);
 
-    const reject = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
-      kind: "destination/decrypt-gate",
-      typePlain: false,
-      identityPresent: false
-    });
+    const reject = stepDestinationDecryptWithActions(
+      initialDestinationDecryptState(),
+      {
+        kind: "destination/decrypt-gate",
+        typePlain: false,
+        identityPresent: false,
+      },
+    );
     expect(shouldRejectDestinationDecrypt(reject.actions)).toBe(true);
 
-    const decrypt = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
-      kind: "destination/decrypt-gate",
-      typePlain: false,
-      identityPresent: true
-    });
+    const decrypt = stepDestinationDecryptWithActions(
+      initialDestinationDecryptState(),
+      {
+        kind: "destination/decrypt-gate",
+        typePlain: false,
+        identityPresent: true,
+      },
+    );
     expect(shouldDecryptDestinationWithIdentity(decrypt.actions)).toBe(true);
 
-    const usePlain = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
-      kind: "destination/encrypt-gate",
-      typePlain: true,
-      identityPresent: false
-    });
+    const usePlain = stepDestinationEncryptWithActions(
+      initialDestinationEncryptState(),
+      {
+        kind: "destination/encrypt-gate",
+        typePlain: true,
+        identityPresent: false,
+      },
+    );
     expect(shouldUseDestinationEncryptPlaintext(usePlain.actions)).toBe(true);
 
-    const encryptReject = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
-      kind: "destination/encrypt-gate",
-      typePlain: false,
-      identityPresent: false
-    });
+    const encryptReject = stepDestinationEncryptWithActions(
+      initialDestinationEncryptState(),
+      {
+        kind: "destination/encrypt-gate",
+        typePlain: false,
+        identityPresent: false,
+      },
+    );
     expect(shouldRejectDestinationEncrypt(encryptReject.actions)).toBe(true);
 
-    const encrypt = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
-      kind: "destination/encrypt-gate",
-      typePlain: false,
-      identityPresent: true
-    });
+    const encrypt = stepDestinationEncryptWithActions(
+      initialDestinationEncryptState(),
+      {
+        kind: "destination/encrypt-gate",
+        typePlain: false,
+        identityPresent: true,
+      },
+    );
     expect(shouldEncryptDestinationWithIdentity(encrypt.actions)).toBe(true);
   });
 
@@ -710,10 +857,16 @@ describe("destination allow policy", () => {
       kind: "destination/construction-gate" as const,
       direction: DestinationDirectionCode.IN,
       type: DestinationTypeCode.SINGLE,
-      identityPresent: true
+      identityPresent: true,
     };
-    const a = stepDestinationConstructionWithActions(initialDestinationConstructionState(), event);
-    const b = stepDestinationConstructionWithActions(initialDestinationConstructionState(), event);
+    const a = stepDestinationConstructionWithActions(
+      initialDestinationConstructionState(),
+      event,
+    );
+    const b = stepDestinationConstructionWithActions(
+      initialDestinationConstructionState(),
+      event,
+    );
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
@@ -722,17 +875,23 @@ describe("destination allow policy", () => {
     expect(shouldRegisterDestinationLink(true)).toBe(true);
     expect(shouldRegisterDestinationLink(false)).toBe(false);
 
-    const register = stepRegisterDestinationLinkWithActions(initialRegisterDestinationLinkState(), {
-      kind: "destination/register-link-gate",
-      validatedLinkPresent: true
-    });
+    const register = stepRegisterDestinationLinkWithActions(
+      initialRegisterDestinationLinkState(),
+      {
+        kind: "destination/register-link-gate",
+        validatedLinkPresent: true,
+      },
+    );
     expect(shouldRegisterDestinationLinkNow(register.actions)).toBe(true);
     expect(shouldSkipDestinationLinkRegister(register.actions)).toBe(false);
 
-    const skip = stepRegisterDestinationLinkWithActions(initialRegisterDestinationLinkState(), {
-      kind: "destination/register-link-gate",
-      validatedLinkPresent: false
-    });
+    const skip = stepRegisterDestinationLinkWithActions(
+      initialRegisterDestinationLinkState(),
+      {
+        kind: "destination/register-link-gate",
+        validatedLinkPresent: false,
+      },
+    );
     expect(shouldRegisterDestinationLinkNow(skip.actions)).toBe(false);
     expect(shouldSkipDestinationLinkRegister(skip.actions)).toBe(true);
   });
@@ -752,18 +911,20 @@ describe("link request receipt status", () => {
       initialAttachLinkRequestPacketReceiptState(),
       {
         kind: "link/attach-request-packet-receipt-gate",
-        packetReceiptPresent: true
-      }
+        packetReceiptPresent: true,
+      },
     );
     expect(shouldAttachLinkRequestPacketReceiptNow(attach.actions)).toBe(true);
-    expect(shouldSkipLinkRequestPacketReceiptAttach(attach.actions)).toBe(false);
+    expect(shouldSkipLinkRequestPacketReceiptAttach(attach.actions)).toBe(
+      false,
+    );
 
     const skip = stepAttachLinkRequestPacketReceiptWithActions(
       initialAttachLinkRequestPacketReceiptState(),
       {
         kind: "link/attach-request-packet-receipt-gate",
-        packetReceiptPresent: false
-      }
+        packetReceiptPresent: false,
+      },
     );
     expect(shouldAttachLinkRequestPacketReceiptNow(skip.actions)).toBe(false);
     expect(shouldSkipLinkRequestPacketReceiptAttach(skip.actions)).toBe(true);

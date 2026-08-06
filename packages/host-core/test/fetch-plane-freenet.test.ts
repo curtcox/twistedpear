@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildUnsignedManifest,
   packPackage,
-  signManifest
+  signManifest,
 } from "@twistedpear/app-registry";
 import { encode256t, signCasLocator } from "@twistedpear/cas-256t";
 import {
   Identity,
   PureCryptoProvider,
   bytesToHex,
-  type PacketInterface
+  type PacketInterface,
 } from "@twistedpear/reticulum-ts";
 import { createBridgeHyperFetchPlane } from "../src/fetch-plane-bridge-hyper.js";
 
@@ -23,7 +23,7 @@ function onlineTcpInterface(): PacketInterface {
     online: true,
     packets: (async function* () {})(),
     async send() {},
-    async close() {}
+    async close() {},
   };
 }
 
@@ -34,8 +34,8 @@ describe("bridge fetch plane Freenet path", () => {
     const files = [
       {
         path: "bundle.js",
-        content: new TextEncoder().encode("host fetch-plane Freenet test")
-      }
+        content: new TextEncoder().encode("host fetch-plane Freenet test"),
+      },
     ];
     const unsigned = buildUnsignedManifest(
       {
@@ -44,36 +44,33 @@ describe("bridge fetch plane Freenet path", () => {
         entry: "bundle.js",
         driveKey: "a".repeat(64),
         publisherPublicKey: bytesToHex(identity.getPublicKey()),
-        files
+        files,
       },
-      provider
+      provider,
     );
     const manifest = signManifest(provider, identity, unsigned);
     const packed = packPackage(provider, {
       ...manifest,
       signature: manifest.signature,
-      files
+      files,
     });
     const locator = signCasLocator(identity, {
-      t256: encode256t(
-        packed.archiveBytes,
-        (bytes) => provider.sha512(bytes)
-      ),
+      t256: encode256t(packed.archiveBytes, (bytes) => provider.sha512(bytes)),
       appId: manifest.name,
       version: manifest.version,
       driveKey: manifest.driveKey,
       packageHash: packed.packageHash,
-      packageSize: packed.archiveBytes.length
+      packageSize: packed.archiveBytes.length,
     });
     const driveFetcher = {
-      fetchDriveVersion: vi.fn(async () => packed.archiveBytes)
+      fetchDriveVersion: vi.fn(async () => packed.archiveBytes),
     };
     const freenetFetcher = {
-      fetchLocator: vi.fn(async () => packed.archiveBytes)
+      fetchLocator: vi.fn(async () => packed.archiveBytes),
     };
     const plane = createBridgeHyperFetchPlane({
       driveFetcher,
-      freenetFetcher
+      freenetFetcher,
     });
 
     const result = await plane.fetchPackage(provider, {
@@ -89,12 +86,12 @@ describe("bridge fetch plane Freenet path", () => {
         destinationHash: "destination",
         receivedAt: 0,
         expiresAt: 60_000,
-        manifest: packed.manifest
+        manifest: packed.manifest,
       },
       version: manifest.version,
       interfaces: [onlineTcpInterface()],
       freenetLocator: locator,
-      forcePath: "freenet"
+      forcePath: "freenet",
     });
 
     expect(result.path).toBe("freenet");

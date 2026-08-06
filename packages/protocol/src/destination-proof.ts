@@ -11,7 +11,7 @@ import type { Event, Intent } from "@twistedpear/effects";
 export const DestinationProofStrategyCode = {
   PROVE_NONE: 0x21,
   PROVE_APP: 0x22,
-  PROVE_ALL: 0x23
+  PROVE_ALL: 0x23,
 } as const;
 
 export type DestinationProofStrategyCodeValue =
@@ -54,8 +54,7 @@ export type EmitDestinationProofEvent =
     };
 
 export type EmitDestinationProofAction =
-  | { readonly kind: "emit" }
-  | { readonly kind: "skip" };
+  { readonly kind: "emit" } | { readonly kind: "skip" };
 
 export interface EmitDestinationProofStepResult {
   readonly state: EmitDestinationProofState;
@@ -69,7 +68,7 @@ export function initialEmitDestinationProofState(): EmitDestinationProofState {
 
 export function stepEmitDestinationProofWithActions(
   state: EmitDestinationProofState,
-  event: EmitDestinationProofEvent
+  event: EmitDestinationProofEvent,
 ): EmitDestinationProofStepResult {
   if (event.kind === "destination/emit-proof-gate") {
     return {
@@ -77,9 +76,11 @@ export function stepEmitDestinationProofWithActions(
       intents: [],
       actions: [
         {
-          kind: canEmitDestinationProof(event.identityPresent) ? "emit" : "skip"
-        }
-      ]
+          kind: canEmitDestinationProof(event.identityPresent)
+            ? "emit"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -87,13 +88,13 @@ export function stepEmitDestinationProofWithActions(
 }
 
 export function shouldEmitDestinationProofNow(
-  actions: ReadonlyArray<EmitDestinationProofAction>
+  actions: ReadonlyArray<EmitDestinationProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "emit");
 }
 
 export function shouldSkipEmitDestinationProof(
-  actions: ReadonlyArray<EmitDestinationProofAction>
+  actions: ReadonlyArray<EmitDestinationProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -115,7 +116,9 @@ export type DestinationProofPlanEvent =
       readonly appWantsProof?: boolean;
     };
 
-export type DestinationProofPlanAction = { readonly kind: DestinationProofPlan };
+export type DestinationProofPlanAction = {
+  readonly kind: DestinationProofPlan;
+};
 
 export interface DestinationProofPlanStepResult {
   readonly state: DestinationProofPlanState;
@@ -129,17 +132,19 @@ export function initialDestinationProofPlanState(): DestinationProofPlanState {
 
 export function stepDestinationProofPlanWithActions(
   state: DestinationProofPlanState,
-  event: DestinationProofPlanEvent
+  event: DestinationProofPlanEvent,
 ): DestinationProofPlanStepResult {
   if (event.kind === "destination/proof-plan-gate") {
     const prove = planDestinationProof({
       strategy: event.strategy,
-      ...(event.appWantsProof !== undefined ? { appWantsProof: event.appWantsProof } : {})
+      ...(event.appWantsProof !== undefined
+        ? { appWantsProof: event.appWantsProof }
+        : {}),
     });
     return {
       state,
       intents: [],
-      actions: [{ kind: prove ? "prove" : "skip" }]
+      actions: [{ kind: prove ? "prove" : "skip" }],
     };
   }
 
@@ -148,22 +153,22 @@ export function stepDestinationProofPlanWithActions(
 
 /** Extract the destination-proof plan from actions; null when empty. */
 export function destinationProofPlanFromActions(
-  actions: ReadonlyArray<DestinationProofPlanAction>
+  actions: ReadonlyArray<DestinationProofPlanAction>,
 ): DestinationProofPlan | null {
   const action = actions.find(
-    (entry) => entry.kind === "prove" || entry.kind === "skip"
+    (entry) => entry.kind === "prove" || entry.kind === "skip",
   );
   return action?.kind ?? null;
 }
 
 export function shouldProveDestinationPlan(
-  actions: ReadonlyArray<DestinationProofPlanAction>
+  actions: ReadonlyArray<DestinationProofPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "prove");
 }
 
 export function shouldSkipDestinationProofPlan(
-  actions: ReadonlyArray<DestinationProofPlanAction>
+  actions: ReadonlyArray<DestinationProofPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -185,8 +190,7 @@ export type DestinationProofEvent =
     };
 
 export type DestinationProofAction =
-  | { readonly kind: "prove" }
-  | { readonly kind: "skip" };
+  { readonly kind: "prove" } | { readonly kind: "skip" };
 
 export interface DestinationProofStepResult {
   readonly state: DestinationProofState;
@@ -200,7 +204,7 @@ export function initialDestinationProofState(): DestinationProofState {
 
 export function stepDestinationProofWithActions(
   state: DestinationProofState,
-  event: DestinationProofEvent
+  event: DestinationProofEvent,
 ): DestinationProofStepResult {
   if (event.kind === "destination/proof-gate") {
     const planActions = stepDestinationProofPlanWithActions(
@@ -208,8 +212,10 @@ export function stepDestinationProofWithActions(
       {
         kind: "destination/proof-plan-gate",
         strategy: event.strategy,
-        ...(event.appWantsProof !== undefined ? { appWantsProof: event.appWantsProof } : {})
-      }
+        ...(event.appWantsProof !== undefined
+          ? { appWantsProof: event.appWantsProof }
+          : {}),
+      },
     ).actions;
     const plan = destinationProofPlanFromActions(planActions);
     if (plan === null) {
@@ -218,7 +224,7 @@ export function stepDestinationProofWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: plan }]
+      actions: [{ kind: plan }],
     };
   }
 
@@ -226,13 +232,13 @@ export function stepDestinationProofWithActions(
 }
 
 export function shouldProveDestination(
-  actions: ReadonlyArray<DestinationProofAction>
+  actions: ReadonlyArray<DestinationProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "prove");
 }
 
 export function shouldSkipDestinationProof(
-  actions: ReadonlyArray<DestinationProofAction>
+  actions: ReadonlyArray<DestinationProofAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }

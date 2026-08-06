@@ -40,20 +40,20 @@ these on your own host.
 
 ## Chapters
 
-| # | Chapter | Apps | What the chapter is really about |
-|---|---|---|---|
-| 1 | [How to use this cookbook](01-how-to-use-this-cookbook.md) | — | Running a recipe, reading a recipe, and the shape every sample shares. |
-| 2 | [Apps with no capabilities](02-apps-with-no-capabilities.md) | 3 | How much you can build with an empty grant — and why that is a feature. |
-| 3 | [Apps that remember](03-apps-that-remember.md) | 4 | `storage:kv` versus `storage:hyperbee`, and choosing keys you can list. |
-| 4 | [Apps that talk to one peer](04-apps-that-talk-to-one-peer.md) | 3 | LXMF without sessions, replies that may never come, and what a signature proves. |
-| 5 | [Apps that find each other](05-apps-that-find-each-other.md) | 3 | Announce as serverless fan-out, and living without a source of truth. |
-| 6 | [Apps that move files](06-apps-that-move-files.md) | 3 | `share:cas`, budgeted fetches, the workspace, and caching as courtesy. |
-| 7 | [Apps that use a model](07-apps-that-use-a-model.md) | 3 | One in-flight `ai.chat`, treating output as untrusted, and working when it is gone. |
-| 8 | [Apps that build apps](08-apps-that-build-apps.md) | 3 | The `apps:*` loop, and why every step of it stops for a host confirmation. |
-| 9 | [Apps for a bad link](09-apps-for-a-bad-link.md) | 3 | Designing backwards from hundreds of bits per second. |
-| 10 | [Apps that use Freenet](10-apps-that-use-freenet.md) | integration example | Brokered contract reads and irreversible, host-confirmed writes through an external node. |
-| — | [Appendix: app index](appendix-app-index.md) | 25 | Every sample, its capabilities, and its size, in one table. |
-| — | [Appendix: feature status](appendix-feature-status.md) | — | Everything this cookbook marks incomplete, with its blocker. |
+| #   | Chapter                                                        | Apps                | What the chapter is really about                                                          |
+| --- | -------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------- |
+| 1   | [How to use this cookbook](01-how-to-use-this-cookbook.md)     | —                   | Running a recipe, reading a recipe, and the shape every sample shares.                    |
+| 2   | [Apps with no capabilities](02-apps-with-no-capabilities.md)   | 3                   | How much you can build with an empty grant — and why that is a feature.                   |
+| 3   | [Apps that remember](03-apps-that-remember.md)                 | 4                   | `storage:kv` versus `storage:hyperbee`, and choosing keys you can list.                   |
+| 4   | [Apps that talk to one peer](04-apps-that-talk-to-one-peer.md) | 3                   | LXMF without sessions, replies that may never come, and what a signature proves.          |
+| 5   | [Apps that find each other](05-apps-that-find-each-other.md)   | 3                   | Announce as serverless fan-out, and living without a source of truth.                     |
+| 6   | [Apps that move files](06-apps-that-move-files.md)             | 3                   | `share:cas`, budgeted fetches, the workspace, and caching as courtesy.                    |
+| 7   | [Apps that use a model](07-apps-that-use-a-model.md)           | 3                   | One in-flight `ai.chat`, treating output as untrusted, and working when it is gone.       |
+| 8   | [Apps that build apps](08-apps-that-build-apps.md)             | 3                   | The `apps:*` loop, and why every step of it stops for a host confirmation.                |
+| 9   | [Apps for a bad link](09-apps-for-a-bad-link.md)               | 3                   | Designing backwards from hundreds of bits per second.                                     |
+| 10  | [Apps that use Freenet](10-apps-that-use-freenet.md)           | integration example | Brokered contract reads and irreversible, host-confirmed writes through an external node. |
+| —   | [Appendix: app index](appendix-app-index.md)                   | 25                  | Every sample, its capabilities, and its size, in one table.                               |
+| —   | [Appendix: feature status](appendix-feature-status.md)         | —                   | Everything this cookbook marks incomplete, with its blocker.                              |
 
 ## The sample apps
 

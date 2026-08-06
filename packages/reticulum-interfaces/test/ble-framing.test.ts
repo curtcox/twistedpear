@@ -5,7 +5,7 @@ import {
   decodeBleFrameHeader,
   encodeBleFrame,
   fragmentForMtu,
-  reassembleBleFrames
+  reassembleBleFrames,
 } from "../src/ble/spec-framing.js";
 
 describe("BLE framing", () => {

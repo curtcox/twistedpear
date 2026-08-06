@@ -6,9 +6,13 @@ import {
   SimStore,
   SimTimers,
   SimTransport,
-  Xoshiro128StarStar
+  Xoshiro128StarStar,
 } from "../../packages/effects/dist/adapters/sim/index.js";
-import { RealClock, RealEntropy, RealTimers } from "../../packages/effects/dist/adapters/real/index.js";
+import {
+  RealClock,
+  RealEntropy,
+  RealTimers,
+} from "../../packages/effects/dist/adapters/real/index.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -20,7 +24,7 @@ export const realAdapters = {
     return {
       set: (id, delayMs, onFire) => timers.set(id, delayMs, onFire),
       cancel: (id) => timers.cancel(id),
-      settle: (maxMs) => sleep(maxMs)
+      settle: (maxMs) => sleep(maxMs),
     };
   },
   transport: () => {
@@ -36,11 +40,11 @@ export const realAdapters = {
             channel: send.channel,
             source,
             payload: send.payload.slice(),
-            at: 0
+            at: 0,
           });
         }, 0);
       },
-      settle: (maxMs) => sleep(Math.min(maxMs, 20))
+      settle: (maxMs) => sleep(Math.min(maxMs, 20)),
     };
   },
   storage: () => {
@@ -50,7 +54,13 @@ export const realAdapters = {
         await Promise.resolve(); // async completion, like a platform store
         if (intent.kind === "store/read") {
           const value = data.get(intent.read.key);
-          return [{ kind: "store/value", key: intent.read.key, value: value?.slice() }];
+          return [
+            {
+              kind: "store/value",
+              key: intent.read.key,
+              value: value?.slice(),
+            },
+          ];
         }
         if (intent.kind === "store/write") {
           data.set(intent.write.key, intent.write.value.slice());
@@ -61,16 +71,17 @@ export const realAdapters = {
           return [{ kind: "store/done", key: intent.del.key, op: "delete" }];
         }
         return [];
-      }
+      },
     };
   },
   logging: () => {
     const records = [];
     return {
-      emit: (intent) => records.push({ level: intent.level, message: intent.message }),
-      records: () => records
+      emit: (intent) =>
+        records.push({ level: intent.level, message: intent.message }),
+      records: () => records,
     };
-  }
+  },
 };
 
 export const simAdapters = {
@@ -82,7 +93,7 @@ export const simAdapters = {
         clock.set(next);
         next += 5; // scripted virtual schedule
         return clock.now();
-      }
+      },
     };
   },
   entropy: () => new Xoshiro128StarStar(0xdecafbad),
@@ -112,7 +123,7 @@ export const simAdapters = {
             callbacks.delete(id);
           }
         }
-      }
+      },
     };
   },
   transport: () => {
@@ -124,7 +135,11 @@ export const simAdapters = {
         deliver = cb;
       },
       send: (source, send) => {
-        transport.applySend({ kind: "transport/send", send }, source, clock.now());
+        transport.applySend(
+          { kind: "transport/send", send },
+          source,
+          clock.now(),
+        );
       },
       settle: (maxMs) => {
         let guard = 0;
@@ -140,17 +155,17 @@ export const simAdapters = {
               channel: msg.channel,
               source: msg.source,
               payload: msg.payload,
-              at: next
+              at: next,
             });
           }
         }
-      }
+      },
     };
   },
   storage: () => {
     const store = new SimStore();
     return {
-      apply: (intent) => Promise.resolve(store.applyIntent(intent))
+      apply: (intent) => Promise.resolve(store.applyIntent(intent)),
     };
   },
   logging: () => {
@@ -158,7 +173,11 @@ export const simAdapters = {
     const trace = [];
     return {
       emit: (intent) => trace.push({ t: "intent", node: "n", intent }),
-      records: () => trace.map((entry) => ({ level: entry.intent.level, message: entry.intent.message }))
+      records: () =>
+        trace.map((entry) => ({
+          level: entry.intent.level,
+          message: entry.intent.message,
+        })),
     };
-  }
+  },
 };

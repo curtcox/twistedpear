@@ -47,16 +47,39 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions
+  stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { stepLinkAppRequestInner } from "./part-4.js";
-import { linkUnregisterMembershipPlanFromActions, planLinkUnregisterMembership, stepLinkActivateMembershipInner, stepLinkRegisterListInner } from "./part-8.js";
-import type { LinkAppRequestAction, LinkAppRequestEvent, LinkAppRequestPlan, LinkAppRequestState } from "./part-4.js";
-import type { LinkRegisterList, LinkRegisterListAction, LinkRegisterListEvent } from "./part-7.js";
-import type { LinkActivateMembershipAction, LinkActivateMembershipEvent, LinkActivateMembershipState, LinkRegisterListState, LinkUnregisterMembershipAction, LinkUnregisterMembershipEvent, LinkUnregisterMembershipPlanAction, LinkUnregisterMembershipPlanEvent } from "./part-8.js";
+import {
+  linkUnregisterMembershipPlanFromActions,
+  planLinkUnregisterMembership,
+  stepLinkActivateMembershipInner,
+  stepLinkRegisterListInner,
+} from "./part-8.js";
+import type {
+  LinkAppRequestAction,
+  LinkAppRequestEvent,
+  LinkAppRequestPlan,
+  LinkAppRequestState,
+} from "./part-4.js";
+import type {
+  LinkRegisterList,
+  LinkRegisterListAction,
+  LinkRegisterListEvent,
+} from "./part-7.js";
+import type {
+  LinkActivateMembershipAction,
+  LinkActivateMembershipEvent,
+  LinkActivateMembershipState,
+  LinkRegisterListState,
+  LinkUnregisterMembershipAction,
+  LinkUnregisterMembershipEvent,
+  LinkUnregisterMembershipPlanAction,
+  LinkUnregisterMembershipPlanEvent,
+} from "./part-8.js";
 /**
  * Link unregister-membership plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkUnregisterMembership`
@@ -76,12 +99,12 @@ export function initialLinkUnregisterMembershipPlanState(): LinkUnregisterMember
 
 export function stepLinkUnregisterMembershipPlanWithActions(
   state: LinkUnregisterMembershipPlanState,
-  event: LinkUnregisterMembershipPlanEvent
+  event: LinkUnregisterMembershipPlanEvent,
 ): LinkUnregisterMembershipPlanStepResult {
   if (event.kind === "link/unregister-membership-plan-gate") {
     const plan = planLinkUnregisterMembership({
       pendingIndex: event.pendingIndex,
-      activeIndex: event.activeIndex
+      activeIndex: event.activeIndex,
     });
     return {
       state,
@@ -90,9 +113,9 @@ export function stepLinkUnregisterMembershipPlanWithActions(
         {
           kind: "plan",
           removePendingIndex: plan.removePendingIndex,
-          removeActiveIndex: plan.removeActiveIndex
-        }
-      ]
+          removeActiveIndex: plan.removeActiveIndex,
+        },
+      ],
     };
   }
 
@@ -100,7 +123,9 @@ export function stepLinkUnregisterMembershipPlanWithActions(
 }
 
 /** Whether unregister may splice active after {@link planLinkUnregisterMembership}. */
-export function shouldRemoveActiveLinkMembership(indexPresent: boolean): boolean {
+export function shouldRemoveActiveLinkMembership(
+  indexPresent: boolean,
+): boolean {
   return indexPresent;
 }
 
@@ -108,26 +133,32 @@ export function initialLinkRegisterListState(): LinkRegisterListState {
   return {};
 }
 
-export const stepLinkRegisterList: StepFn<LinkRegisterListState> = (state, event) => {
-  const result = stepLinkRegisterListInner(state, event as LinkRegisterListEvent);
+export const stepLinkRegisterList: StepFn<LinkRegisterListState> = (
+  state,
+  event,
+) => {
+  const result = stepLinkRegisterListInner(
+    state,
+    event as LinkRegisterListEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function linkRegisterListFromActions(
-  actions: ReadonlyArray<LinkRegisterListAction>
+  actions: ReadonlyArray<LinkRegisterListAction>,
 ): LinkRegisterList | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldRegisterLinkPending(
-  actions: ReadonlyArray<LinkRegisterListAction>
+  actions: ReadonlyArray<LinkRegisterListAction>,
 ): boolean {
   return actions.some((action) => action.kind === "pending");
 }
 
 export function shouldRegisterLinkActive(
-  actions: ReadonlyArray<LinkRegisterListAction>
+  actions: ReadonlyArray<LinkRegisterListAction>,
 ): boolean {
   return actions.some((action) => action.kind === "active");
 }
@@ -136,26 +167,32 @@ export function initialLinkActivateMembershipState(): LinkActivateMembershipStat
   return {};
 }
 
-export const stepLinkActivateMembership: StepFn<LinkActivateMembershipState> = (state, event) => {
-  const result = stepLinkActivateMembershipInner(state, event as LinkActivateMembershipEvent);
+export const stepLinkActivateMembership: StepFn<LinkActivateMembershipState> = (
+  state,
+  event,
+) => {
+  const result = stepLinkActivateMembershipInner(
+    state,
+    event as LinkActivateMembershipEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function shouldRemovePendingLinkMembershipActions(
-  actions: ReadonlyArray<LinkActivateMembershipAction>
+  actions: ReadonlyArray<LinkActivateMembershipAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove-pending");
 }
 
 export function pendingLinkMembershipRemoveIndex(
-  actions: ReadonlyArray<LinkActivateMembershipAction>
+  actions: ReadonlyArray<LinkActivateMembershipAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove-pending");
   return action?.kind === "remove-pending" ? action.index : null;
 }
 
 export function shouldAppendActiveLinkMembershipActions(
-  actions: ReadonlyArray<LinkActivateMembershipAction>
+  actions: ReadonlyArray<LinkActivateMembershipAction>,
 ): boolean {
   return actions.some((action) => action.kind === "append-active");
 }
@@ -177,53 +214,52 @@ export function initialLinkUnregisterMembershipState(): LinkUnregisterMembership
   return {};
 }
 
-export const stepLinkUnregisterMembership: StepFn<LinkUnregisterMembershipState> = (
-  state,
-  event
-) => {
+export const stepLinkUnregisterMembership: StepFn<
+  LinkUnregisterMembershipState
+> = (state, event) => {
   const result = stepLinkUnregisterMembershipInner(
     state,
-    event as LinkUnregisterMembershipEvent
+    event as LinkUnregisterMembershipEvent,
   );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkUnregisterMembershipWithActions(
   state: LinkUnregisterMembershipState,
-  event: LinkUnregisterMembershipEvent
+  event: LinkUnregisterMembershipEvent,
 ): LinkUnregisterMembershipStepResult {
   return stepLinkUnregisterMembershipInner(state, event);
 }
 
 export function pendingLinkUnregisterRemoveIndex(
-  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove-pending");
   return action?.kind === "remove-pending" ? action.index : null;
 }
 
 export function activeLinkUnregisterRemoveIndex(
-  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove-active");
   return action?.kind === "remove-active" ? action.index : null;
 }
 
 export function shouldRemovePendingLinkUnregisterActions(
-  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove-pending");
 }
 
 export function shouldRemoveActiveLinkUnregisterActions(
-  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove-active");
 }
 
 function stepLinkUnregisterMembershipInner(
   state: LinkUnregisterMembershipState,
-  event: LinkUnregisterMembershipEvent
+  event: LinkUnregisterMembershipEvent,
 ): LinkUnregisterMembershipStepResult {
   if (event.kind === "link/unregister-membership-gate") {
     const planActions = stepLinkUnregisterMembershipPlanWithActions(
@@ -231,8 +267,8 @@ function stepLinkUnregisterMembershipInner(
       {
         kind: "link/unregister-membership-plan-gate",
         pendingIndex: event.pendingIndex,
-        activeIndex: event.activeIndex
-      }
+        activeIndex: event.activeIndex,
+      },
     ).actions;
     const plan = linkUnregisterMembershipPlanFromActions(planActions);
     if (plan === null) {
@@ -255,26 +291,29 @@ export function initialLinkAppRequestState(): LinkAppRequestState {
   return {};
 }
 
-export const stepLinkAppRequest: StepFn<LinkAppRequestState> = (state, event) => {
+export const stepLinkAppRequest: StepFn<LinkAppRequestState> = (
+  state,
+  event,
+) => {
   const result = stepLinkAppRequestInner(state, event as LinkAppRequestEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function linkAppRequestFromActions(
-  actions: ReadonlyArray<LinkAppRequestAction>
+  actions: ReadonlyArray<LinkAppRequestAction>,
 ): LinkAppRequestPlan | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldSendLinkAppRequest(
-  actions: ReadonlyArray<LinkAppRequestAction>
+  actions: ReadonlyArray<LinkAppRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "send");
 }
 
 export function shouldRejectLinkAppRequest(
-  actions: ReadonlyArray<LinkAppRequestAction>
+  actions: ReadonlyArray<LinkAppRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -308,48 +347,54 @@ export function initialLinkAppRequestTransmitState(): LinkAppRequestTransmitStat
   return {};
 }
 
-export const stepLinkAppRequestTransmit: StepFn<LinkAppRequestTransmitState> = (state, event) => {
-  const result = stepLinkAppRequestTransmitInner(state, event as LinkAppRequestTransmitEvent);
+export const stepLinkAppRequestTransmit: StepFn<LinkAppRequestTransmitState> = (
+  state,
+  event,
+) => {
+  const result = stepLinkAppRequestTransmitInner(
+    state,
+    event as LinkAppRequestTransmitEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkAppRequestTransmitWithActions(
   state: LinkAppRequestTransmitState,
-  event: LinkAppRequestTransmitEvent
+  event: LinkAppRequestTransmitEvent,
 ): LinkAppRequestTransmitStepResult {
   return stepLinkAppRequestTransmitInner(state, event);
 }
 
 export function linkAppRequestTransmitFromActions(
-  actions: ReadonlyArray<LinkAppRequestTransmitAction>
+  actions: ReadonlyArray<LinkAppRequestTransmitAction>,
 ): LinkAppRequestTransmitOutcome | null {
   const action = actions[0];
   return action?.kind ?? null;
 }
 
 export function shouldKeepPendingLinkAppRequestTransmit(
-  actions: ReadonlyArray<LinkAppRequestTransmitAction>
+  actions: ReadonlyArray<LinkAppRequestTransmitAction>,
 ): boolean {
   return actions.some((action) => action.kind === "keep-pending");
 }
 
 export function shouldUnregisterLinkAppRequestTransmit(
-  actions: ReadonlyArray<LinkAppRequestTransmitAction>
+  actions: ReadonlyArray<LinkAppRequestTransmitAction>,
 ): boolean {
   return actions.some((action) => action.kind === "unregister");
 }
 
 function stepLinkAppRequestTransmitInner(
   state: LinkAppRequestTransmitState,
-  event: LinkAppRequestTransmitEvent
+  event: LinkAppRequestTransmitEvent,
 ): LinkAppRequestTransmitStepResult {
   if (event.kind === "link/app-request-transmit-gate") {
     const planActions = stepLinkAppRequestTransmitOutcomePlanWithActions(
       initialLinkAppRequestTransmitOutcomePlanState(),
       {
         kind: "link/app-request-transmit-outcome-plan-gate",
-        receiptPresent: event.receiptPresent
-      }
+        receiptPresent: event.receiptPresent,
+      },
     ).actions;
     const plan = linkAppRequestTransmitOutcomePlanFromActions(planActions);
     if (plan === null) {
@@ -394,19 +439,19 @@ export type LinkRttOutcomePlanAction =
   | { readonly kind: "teardown" };
 
 export function shouldIgnoreLinkRttOutcomePlan(
-  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
 export function shouldActivateLinkRttOutcomePlan(
-  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "activate");
 }
 
 export function shouldTeardownLinkRttOutcomePlan(
-  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "teardown");
 }
@@ -437,7 +482,7 @@ export type LinkAppRequestTransmitOutcome = "keep-pending" | "unregister";
 
 /** After app-request sendPacket: attach receipt or unregister the pending request. */
 export function planLinkAppRequestTransmitOutcome(
-  receiptPresent: boolean
+  receiptPresent: boolean,
 ): LinkAppRequestTransmitOutcome {
   return receiptPresent ? "keep-pending" : "unregister";
 }
@@ -473,13 +518,15 @@ export function initialLinkAppRequestTransmitOutcomePlanState(): LinkAppRequestT
 
 export function stepLinkAppRequestTransmitOutcomePlanWithActions(
   state: LinkAppRequestTransmitOutcomePlanState,
-  event: LinkAppRequestTransmitOutcomePlanEvent
+  event: LinkAppRequestTransmitOutcomePlanEvent,
 ): LinkAppRequestTransmitOutcomePlanStepResult {
   if (event.kind === "link/app-request-transmit-outcome-plan-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: planLinkAppRequestTransmitOutcome(event.receiptPresent) }]
+      actions: [
+        { kind: planLinkAppRequestTransmitOutcome(event.receiptPresent) },
+      ],
     };
   }
 
@@ -488,10 +535,10 @@ export function stepLinkAppRequestTransmitOutcomePlanWithActions(
 
 /** Extract the transmit-outcome plan from actions; null when empty. */
 export function linkAppRequestTransmitOutcomePlanFromActions(
-  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>
+  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>,
 ): LinkAppRequestTransmitOutcome | null {
   const action = actions.find(
-    (entry) => entry.kind === "keep-pending" || entry.kind === "unregister"
+    (entry) => entry.kind === "keep-pending" || entry.kind === "unregister",
   );
   return action?.kind ?? null;
 }

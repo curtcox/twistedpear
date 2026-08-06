@@ -6,7 +6,14 @@
  * scripted model call. It intentionally does not call any AI provider.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -20,7 +27,7 @@ export function parseArgs(argv) {
     logDir: undefined,
     out: undefined,
     statusPath: join(repoRoot, "STATUS-SOFTWARE.md"),
-    help: false
+    help: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -28,14 +35,21 @@ export function parseArgs(argv) {
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--all") options.all = true;
     else if (arg === "--log-dir") options.logDir = resolve(argv[++i]);
-    else if (arg.startsWith("--log-dir=")) options.logDir = resolve(arg.slice("--log-dir=".length));
+    else if (arg.startsWith("--log-dir="))
+      options.logDir = resolve(arg.slice("--log-dir=".length));
     else if (arg === "--out") options.out = resolve(argv[++i]);
-    else if (arg.startsWith("--out=")) options.out = resolve(arg.slice("--out=".length));
+    else if (arg.startsWith("--out="))
+      options.out = resolve(arg.slice("--out=".length));
     else if (arg === "--status") options.statusPath = resolve(argv[++i]);
-    else if (arg.startsWith("--status=")) options.statusPath = resolve(arg.slice("--status=".length));
-    else if (arg === "--max-log-bytes") options.maxLogBytes = readPositiveInteger(argv[++i], arg);
+    else if (arg.startsWith("--status="))
+      options.statusPath = resolve(arg.slice("--status=".length));
+    else if (arg === "--max-log-bytes")
+      options.maxLogBytes = readPositiveInteger(argv[++i], arg);
     else if (arg.startsWith("--max-log-bytes=")) {
-      options.maxLogBytes = readPositiveInteger(arg.slice("--max-log-bytes=".length), "--max-log-bytes");
+      options.maxLogBytes = readPositiveInteger(
+        arg.slice("--max-log-bytes=".length),
+        "--max-log-bytes",
+      );
     } else {
       throw new Error(`unknown option: ${arg}`);
     }
@@ -45,7 +59,8 @@ export function parseArgs(argv) {
 }
 
 function readPositiveInteger(value, flag) {
-  if (!/^[1-9]\d*$/.test(value ?? "")) throw new Error(`${flag} requires a positive integer`);
+  if (!/^[1-9]\d*$/.test(value ?? ""))
+    throw new Error(`${flag} requires a positive integer`);
   return Number.parseInt(value, 10);
 }
 
@@ -65,7 +80,9 @@ Options:
 
 function latestValidationLogDir() {
   if (!existsSync(defaultValidationRoot)) {
-    throw new Error(`no validation log root found at ${defaultValidationRoot}; pass --log-dir`);
+    throw new Error(
+      `no validation log root found at ${defaultValidationRoot}; pass --log-dir`,
+    );
   }
 
   const dirs = readdirSync(defaultValidationRoot)
@@ -73,7 +90,10 @@ function latestValidationLogDir() {
     .filter((path) => statSync(path).isDirectory())
     .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
 
-  if (dirs.length === 0) throw new Error(`no validation runs found under ${defaultValidationRoot}; pass --log-dir`);
+  if (dirs.length === 0)
+    throw new Error(
+      `no validation runs found under ${defaultValidationRoot}; pass --log-dir`,
+    );
   return dirs[0];
 }
 
@@ -84,14 +104,31 @@ export function readLogEntries(logDir) {
     .map((name) => {
       const path = join(logDir, name);
       const text = readFileSync(path, "utf8");
-      const command = matchFirst(text, /^\[mac-validation\] command: (.+)$/m) ?? basename(path, ".log");
-      const cwd = matchFirst(text, /^\[mac-validation\] cwd: (.+)$/m) ?? repoRoot;
+      const command =
+        matchFirst(text, /^\[mac-validation\] command: (.+)$/m) ??
+        basename(path, ".log");
+      const cwd =
+        matchFirst(text, /^\[mac-validation\] cwd: (.+)$/m) ?? repoRoot;
       const exitText = matchFirst(text, /^\[mac-validation\] exit: (.+)$/m);
-      const exitCode = exitText !== undefined && /^\d+$/.test(exitText) ? Number.parseInt(exitText, 10) : undefined;
+      const exitCode =
+        exitText !== undefined && /^\d+$/.test(exitText)
+          ? Number.parseInt(exitText, 10)
+          : undefined;
       const stage = matchFirst(name, /^stage-(\d+)-/);
       const script = matchFirst(command, /\bnpm run ([^ ]+)/);
       const helper = matchFirst(text, /^\[mac-validation\] helper: (.+)$/m);
-      return { path, name, text, command, cwd, exitCode, exitStatus: exitText ?? "unknown", stage, script, helper };
+      return {
+        path,
+        name,
+        text,
+        command,
+        cwd,
+        exitCode,
+        exitStatus: exitText ?? "unknown",
+        stage,
+        script,
+        helper,
+      };
     });
 }
 
@@ -109,7 +146,9 @@ export function statusCandidates(statusPath, entries) {
     const bare = entry.script.replace(/^test:/, "");
     return [entry.script, bare, bare.replace(/-/g, " ")];
   });
-  const stageTerms = entries.map((entry) => entry.stage ? `Stage ${entry.stage}` : "").filter(Boolean);
+  const stageTerms = entries
+    .map((entry) => (entry.stage ? `Stage ${entry.stage}` : ""))
+    .filter(Boolean);
   const terms = [...new Set([...scriptTerms, ...stageTerms])]
     .map((term) => term.toLowerCase())
     .filter((term) => term.length >= 3);
@@ -135,14 +174,23 @@ function fenced(text) {
 }
 
 export function isFailedEntry(entry) {
-  if (entry.helper === "caffeinate" || entry.name === "plan-duration-caffeinate.log") {
+  if (
+    entry.helper === "caffeinate" ||
+    entry.name === "plan-duration-caffeinate.log"
+  ) {
     return !["0", "SIGTERM"].includes(entry.exitStatus);
   }
 
   return entry.exitStatus !== "0";
 }
 
-export function renderPackage({ logDir, entries, included, statusRows, maxLogBytes }) {
+export function renderPackage({
+  logDir,
+  entries,
+  included,
+  statusRows,
+  maxLogBytes,
+}) {
   const failures = entries.filter(isFailedEntry);
   const lines = [
     "# TwistedPear mac-validation triage package",
@@ -162,11 +210,13 @@ export function renderPackage({ logDir, entries, included, statusRows, maxLogByt
     "## Command Results",
     "",
     "| Stage | Exit | Script | Command | Log |",
-    "|---|---:|---|---|---|"
+    "|---|---:|---|---|---|",
   ];
 
   for (const entry of entries) {
-    lines.push(`| ${entry.stage ?? ""} | ${entry.exitStatus} | ${entry.script ?? ""} | \`${entry.command.replaceAll("|", "\\|")}\` | \`${entry.path}\` |`);
+    lines.push(
+      `| ${entry.stage ?? ""} | ${entry.exitStatus} | ${entry.script ?? ""} | \`${entry.command.replaceAll("|", "\\|")}\` | \`${entry.path}\` |`,
+    );
   }
 
   if (statusRows.length > 0) {
@@ -175,7 +225,12 @@ export function renderPackage({ logDir, entries, included, statusRows, maxLogByt
   }
 
   if (included.length === 0) {
-    lines.push("", "## Log Tails", "", "No failed logs found. Re-run with `--all` to package passing logs.");
+    lines.push(
+      "",
+      "## Log Tails",
+      "",
+      "No failed logs found. Re-run with `--all` to package passing logs.",
+    );
   } else {
     lines.push("", "## Log Tails", "");
     for (const entry of included) {
@@ -188,7 +243,7 @@ export function renderPackage({ logDir, entries, included, statusRows, maxLogByt
         `- Command: \`${entry.command}\``,
         "",
         fenced(tailText(entry.text, maxLogBytes)),
-        ""
+        "",
       );
     }
   }
@@ -210,20 +265,25 @@ export function main() {
 
   const entries = readLogEntries(logDir);
   const included = options.all ? entries : entries.filter(isFailedEntry);
-  const statusRows = statusCandidates(options.statusPath, included.length > 0 ? included : entries);
+  const statusRows = statusCandidates(
+    options.statusPath,
+    included.length > 0 ? included : entries,
+  );
   const out = options.out ?? join(logDir, "triage-package.md");
   const markdown = renderPackage({
     logDir,
     entries,
     included,
     statusRows,
-    maxLogBytes: options.maxLogBytes
+    maxLogBytes: options.maxLogBytes,
   });
 
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, markdown);
   console.log(`[mac-validation] triage package: ${out}`);
-  console.log(`[mac-validation] included ${included.length} of ${entries.length} log(s)`);
+  console.log(
+    `[mac-validation] included ${included.length} of ${entries.length} log(s)`,
+  );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

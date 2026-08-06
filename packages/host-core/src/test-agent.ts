@@ -20,7 +20,7 @@ import {
   hexToBytes,
   type CryptoProvider,
   type DuplexConnection,
-  type Reticulum
+  type Reticulum,
 } from "@twistedpear/reticulum-ts";
 import { LXMessageMethod } from "@twistedpear/lxmf-ts";
 import {
@@ -31,16 +31,16 @@ import {
   parseMediaReadiness,
   READINESS_REQUEST_ID,
   READINESS_RESPONSE_ID,
-  type PeerMediaReadiness
+  type PeerMediaReadiness,
 } from "@twistedpear/protocol";
 import {
   sessionInviteContent,
   SESSION_INVITE_TITLE,
-  type DeliveredSessionInvite
+  type DeliveredSessionInvite,
 } from "./session-invite-carrier.js";
 import {
   createHostLxmfDelivery,
-  type HostLxmfDeliverySession
+  type HostLxmfDeliverySession,
 } from "./host-lxmf-delivery.js";
 import { createDropCensus, type DropCensusCounts } from "./drop-census.js";
 import { createObserveRing } from "./observe-ring.js";
@@ -114,7 +114,9 @@ export interface TestAgentInviteEntry {
   readonly id: string;
   readonly appId: string;
   readonly peerLabel: string;
-  readonly requestedClasses: ReadonlyArray<"camera" | "microphone" | "screen-capture">;
+  readonly requestedClasses: ReadonlyArray<
+    "camera" | "microphone" | "screen-capture"
+  >;
   readonly expiresAt: number;
   readonly at: number;
   /** LXMF delivery hash of the other party, when known. */
@@ -181,7 +183,9 @@ export interface TestAgentOptions {
    * Ignored when `delivery` is provided — that session already owns chrome
    * delivery; the agent only observes raised invites for the harness.
    */
-  readonly receiveSessionInvite?: (invite: DeliveredSessionInvite) => Promise<void>;
+  readonly receiveSessionInvite?: (
+    invite: DeliveredSessionInvite,
+  ) => Promise<void>;
   /**
    * Trusted-chrome accept for a raised invite. GUI hosts call into the mini-app
    * host; headless peers omit it and the agent only records the accept.
@@ -197,7 +201,7 @@ export interface TestAgentOptions {
   readonly log?: (line: string) => void;
   /** Optional host-specific commands used by deeper conformance harnesses. */
   readonly handleCommand?: (
-    request: Readonly<Record<string, unknown>>
+    request: Readonly<Record<string, unknown>>,
   ) => Promise<Readonly<Record<string, unknown>>>;
 }
 
@@ -229,8 +233,18 @@ function nonceFrom(content: string, prefix: string): string | null {
  * Resolves once the LXMF delivery destination exists, so callers can read
  * `lxmfAddress` immediately without waiting for the harness to be up.
  */
-export async function mountTestAgent(options: TestAgentOptions): Promise<TestAgentSession> {
-  const { reticulum, provider, identity, label, platform, controlHost, controlPort } = options;
+export async function mountTestAgent(
+  options: TestAgentOptions,
+): Promise<TestAgentSession> {
+  const {
+    reticulum,
+    provider,
+    identity,
+    label,
+    platform,
+    controlHost,
+    controlPort,
+  } = options;
   const log = options.log ?? (() => {});
   const reconnectWaitMs = options.reconnectWaitMs ?? 1_000;
   const announceIntervalMs = options.announceIntervalMs ?? 10_000;
@@ -260,12 +274,12 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
           requestedClasses: invite.requestedClasses,
           expiresAt: invite.expiresAt,
           at: Date.now(),
-          ...(peerDestinationHash === undefined ? {} : { peerDestinationHash })
+          ...(peerDestinationHash === undefined ? {} : { peerDestinationHash }),
         });
         await options.receiveSessionInvite?.(invite);
       },
       isInvitableApp: (appId) => invitableApps.has(appId),
-      log
+      log,
     }));
   if (!ownsDelivery) {
     deliverySession.onInvite((invite) => {
@@ -278,7 +292,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         requestedClasses: invite.requestedClasses,
         expiresAt: invite.expiresAt,
         at: Date.now(),
-        ...(peerDestinationHash === undefined ? {} : { peerDestinationHash })
+        ...(peerDestinationHash === undefined ? {} : { peerDestinationHash }),
       });
     });
   }
@@ -292,7 +306,9 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   function peerDestinationHashForInvite(inviteId: string): string | undefined {
     const prefix = inviteId.slice(0, 16);
     if (prefix.length < 16) return undefined;
-    return deliverySession.peers().find((peer) => peer.destinationHash.startsWith(prefix))?.destinationHash;
+    return deliverySession
+      .peers()
+      .find((peer) => peer.destinationHash.startsWith(prefix))?.destinationHash;
   }
 
   const inboxEntries: TestAgentInboxEntry[] = [];
@@ -311,10 +327,11 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     observeSubscribed: false,
     observeRing,
     dropCensusSnapshot: () => dropCensus.snapshot(),
-    label
+    label,
   };
   /** Set once the control write path exists; live observe events use it. */
-  let notifyObserve: ((drop: import("@twistedpear/protocol").ObserveDropIntent) => void) | null =
+  let notifyObserve:
+    ((drop: import("@twistedpear/protocol").ObserveDropIntent) => void) | null =
     null;
   let stopped = false;
   let connection: DuplexConnection | null = null;
@@ -325,7 +342,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     aspectFilter: "lxmf.delivery",
     receivedAnnounce() {
       announcesSeen += 1;
-    }
+    },
   });
   reticulum.registerDropObserver((drop) => {
     dropCensus.record(drop);
@@ -341,22 +358,29 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     const hash = hexToBytes(toLxmfAddress);
     const recipient = Identity.recall(provider, hash);
     if (recipient === null) {
-      throw new Error(`No announced identity for ${toLxmfAddress}; peer not discovered yet`);
+      throw new Error(
+        `No announced identity for ${toLxmfAddress}; peer not discovered yet`,
+      );
     }
     return router.createOutboundDestination(recipient);
   };
 
-  const sendMessage = async (toLxmfAddress: string, title: string, content: string): Promise<void> => {
+  const sendMessage = async (
+    toLxmfAddress: string,
+    title: string,
+    content: string,
+  ): Promise<void> => {
     await router.packAndSend({
       destination: outboundFor(toLxmfAddress),
       source: delivery,
       title,
       content,
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
-      deferStamp: true
+      deferStamp: true,
     });
   };
-  const sendProbe = (toLxmfAddress: string, content: string) => sendMessage(toLxmfAddress, TEST_AGENT_PROBE_TITLE, content);
+  const sendProbe = (toLxmfAddress: string, content: string) =>
+    sendMessage(toLxmfAddress, TEST_AGENT_PROBE_TITLE, content);
 
   /**
    * A readiness body or a media frame does not fit one opportunistic LXMF
@@ -369,9 +393,12 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     title: string,
     prefix: string,
     nonce: string,
-    payloadHex: string
+    payloadHex: string,
   ): Promise<number> => {
-    if (!/^[0-9a-f]*$/i.test(payloadHex) || payloadHex.length > MAX_CHUNKED_PAYLOAD_HEX) {
+    if (
+      !/^[0-9a-f]*$/i.test(payloadHex) ||
+      payloadHex.length > MAX_CHUNKED_PAYLOAD_HEX
+    ) {
       throw new Error("chunked test payload is malformed");
     }
     if (nonce.length < 1 || nonce.length > 160 || nonce.includes(":")) {
@@ -394,7 +421,11 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     }
     for (let index = 0; index < count; index += 1) {
       const chunk = payloadHex.slice(index * perChunk, (index + 1) * perChunk);
-      await sendMessage(toLxmfAddress, title, `${prefix}${nonce}:${index}:${count}:${chunk}`);
+      await sendMessage(
+        toLxmfAddress,
+        title,
+        `${prefix}${nonce}:${index}:${count}:${chunk}`,
+      );
     }
     return count;
   };
@@ -406,12 +437,16 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     nonce: string,
     index: number,
     count: number,
-    chunk: string
+    chunk: string,
   ): string | null => {
-    if (count < 1 || count > MAX_CHUNKS || index < 0 || index >= count) return null;
+    if (count < 1 || count > MAX_CHUNKS || index < 0 || index >= count)
+      return null;
     const key = `${from} ${prefix} ${nonce}`;
     const pending = partials.get(key);
-    const parts = pending?.parts.length === count ? pending.parts : new Array<string | null>(count).fill(null);
+    const parts =
+      pending?.parts.length === count
+        ? pending.parts
+        : new Array<string | null>(count).fill(null);
     parts[index] = chunk;
     if (parts.some((part) => part === null)) {
       partials.set(key, { parts });
@@ -424,7 +459,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
 
   /** Splits `<nonce>:<index>:<count>:<hex>` without letting a nonce hide colons. */
   const parseChunkedBody = (
-    body: string
+    body: string,
   ): { nonce: string; index: number; count: number; chunk: string } | null => {
     const parts = body.split(":");
     if (parts.length !== 4) return null;
@@ -435,25 +470,63 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     return { nonce, index: Number(rawIndex), count: Number(rawCount), chunk };
   };
 
-  const localReadiness = options.mediaReadiness ?? ((): PeerMediaReadiness => ({
-    hostApi: "0.12.0",
-    accepts: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] }],
-    offers: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] }],
-    downlinkBucket: "audio",
-    constrained: ["foreground-only"],
-    consentPosture: "ask",
-    expiresAt: Date.now() + LINK_READINESS_TTL_MS
-  }));
+  const localReadiness =
+    options.mediaReadiness ??
+    ((): PeerMediaReadiness => ({
+      hostApi: "0.12.0",
+      accepts: [
+        { classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] },
+      ],
+      offers: [
+        { classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] },
+      ],
+      downlinkBucket: "audio",
+      constrained: ["foreground-only"],
+      consentPosture: "ask",
+      expiresAt: Date.now() + LINK_READINESS_TTL_MS,
+    }));
 
-  const sendLinkControl = async (toLxmfAddress: string, id: string, envelope: Uint8Array): Promise<void> => {
-    await sendChunkedHex(toLxmfAddress, TEST_AGENT_LINK_TITLE, LINK_PREFIX, id, bytesToHex(envelope));
+  const sendLinkControl = async (
+    toLxmfAddress: string,
+    id: string,
+    envelope: Uint8Array,
+  ): Promise<void> => {
+    await sendChunkedHex(
+      toLxmfAddress,
+      TEST_AGENT_LINK_TITLE,
+      LINK_PREFIX,
+      id,
+      bytesToHex(envelope),
+    );
   };
 
-  const sendRealtime = async (toLxmfAddress: string, prefix: string, nonce: string, payloadHex: string): Promise<void> => {
-    await sendChunkedHex(toLxmfAddress, TEST_AGENT_REALTIME_TITLE, prefix, nonce, payloadHex);
+  const sendRealtime = async (
+    toLxmfAddress: string,
+    prefix: string,
+    nonce: string,
+    payloadHex: string,
+  ): Promise<void> => {
+    await sendChunkedHex(
+      toLxmfAddress,
+      TEST_AGENT_REALTIME_TITLE,
+      prefix,
+      nonce,
+      payloadHex,
+    );
   };
-  const sendCall = async (toLxmfAddress: string, prefix: string, nonce: string, payloadHex: string): Promise<void> => {
-    await sendChunkedHex(toLxmfAddress, TEST_AGENT_CALL_TITLE, prefix, nonce, payloadHex);
+  const sendCall = async (
+    toLxmfAddress: string,
+    prefix: string,
+    nonce: string,
+    payloadHex: string,
+  ): Promise<void> => {
+    await sendChunkedHex(
+      toLxmfAddress,
+      TEST_AGENT_CALL_TITLE,
+      prefix,
+      nonce,
+      payloadHex,
+    );
   };
 
   deliverySession.onMessage((message) => {
@@ -470,41 +543,73 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       if (!content.startsWith(LINK_PREFIX)) return;
       const framed = parseChunkedBody(content.slice(LINK_PREFIX.length));
       if (framed === null) return;
-      const payloadHex = receiveChunkedHex(from, LINK_PREFIX, framed.nonce, framed.index, framed.count, framed.chunk);
-      if (payloadHex === null || payloadHex.length > 2 * (8 + 64 + 8192)) return;
+      const payloadHex = receiveChunkedHex(
+        from,
+        LINK_PREFIX,
+        framed.nonce,
+        framed.index,
+        framed.count,
+        framed.chunk,
+      );
+      if (payloadHex === null || payloadHex.length > 2 * (8 + 64 + 8192))
+        return;
       const envelope = decodeLinkControl(hexToBytes(payloadHex));
       if (envelope === null) return;
       if (envelope.type === 1) {
         const readiness = parseMediaReadiness(envelope.payload);
-        if (readiness === null || readiness.consentPosture === "closed" || readiness.expiresAt <= Date.now()) return;
+        if (
+          readiness === null ||
+          readiness.consentPosture === "closed" ||
+          readiness.expiresAt <= Date.now()
+        )
+          return;
         readinessEntries.push({
           fromDestinationHash: from,
           kind: envelope.id === READINESS_REQUEST_ID ? "request" : "response",
           readiness,
-          receivedAt: Date.now()
+          receivedAt: Date.now(),
         });
         if (envelope.id === READINESS_REQUEST_ID) {
           void sendLinkControl(
             from,
             READINESS_RESPONSE_ID,
-            encodeReadinessEnvelope(READINESS_RESPONSE_ID, localReadiness())
+            encodeReadinessEnvelope(READINESS_RESPONSE_ID, localReadiness()),
           ).catch((error: unknown) =>
-            log(`test-agent readiness reply failed: ${error instanceof Error ? error.message : String(error)}`)
+            log(
+              `test-agent readiness reply failed: ${error instanceof Error ? error.message : String(error)}`,
+            ),
           );
         }
         return;
       }
       if (envelope.type === 2) {
-        void sendLinkControl(from, envelope.id, encodeLinkControl({ type: 3, id: envelope.id, payload: envelope.payload })).catch(
-          (error: unknown) => log(`test-agent probe reply failed: ${error instanceof Error ? error.message : String(error)}`)
+        void sendLinkControl(
+          from,
+          envelope.id,
+          encodeLinkControl({
+            type: 3,
+            id: envelope.id,
+            payload: envelope.payload,
+          }),
+        ).catch((error: unknown) =>
+          log(
+            `test-agent probe reply failed: ${error instanceof Error ? error.message : String(error)}`,
+          ),
         );
         return;
       }
       const pending = probeEntries.get(envelope.id);
       // Only a reply that matches the bytes we sent closes the measurement.
       if (pending === undefined || pending.rttMs !== null) return;
-      if (envelope.payload.length + 8 + envelope.id.length !== pending.budgetBytes) return;
-      probeEntries.set(envelope.id, { ...pending, rttMs: Math.max(1, Date.now() - pending.sentAt) });
+      if (
+        envelope.payload.length + 8 + envelope.id.length !==
+        pending.budgetBytes
+      )
+        return;
+      probeEntries.set(envelope.id, {
+        ...pending,
+        rttMs: Math.max(1, Date.now() - pending.sentAt),
+      });
       return;
     }
     if (message.titleAsString() === TEST_AGENT_REALTIME_TITLE) {
@@ -513,10 +618,33 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       if (!content.startsWith(prefix)) return;
       const framed = parseChunkedBody(content.slice(prefix.length));
       if (framed === null) return;
-      const payloadHex = receiveChunkedHex(from, prefix, framed.nonce, framed.index, framed.count, framed.chunk);
+      const payloadHex = receiveChunkedHex(
+        from,
+        prefix,
+        framed.nonce,
+        framed.index,
+        framed.count,
+        framed.chunk,
+      );
       if (payloadHex === null) return;
-      realtimeEntries.push({ nonce: framed.nonce, kind: echo ? "echo" : "payload", fromDestinationHash: from, payloadHex, receivedAt: Date.now() });
-      if (!echo) void sendRealtime(from, REALTIME_ECHO_PREFIX, framed.nonce, payloadHex).catch((error: unknown) => log(`test-agent realtime echo failed: ${error instanceof Error ? error.message : String(error)}`));
+      realtimeEntries.push({
+        nonce: framed.nonce,
+        kind: echo ? "echo" : "payload",
+        fromDestinationHash: from,
+        payloadHex,
+        receivedAt: Date.now(),
+      });
+      if (!echo)
+        void sendRealtime(
+          from,
+          REALTIME_ECHO_PREFIX,
+          framed.nonce,
+          payloadHex,
+        ).catch((error: unknown) =>
+          log(
+            `test-agent realtime echo failed: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
       return;
     }
     if (message.titleAsString() === TEST_AGENT_CALL_TITLE) {
@@ -525,29 +653,59 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       if (!content.startsWith(prefix)) return;
       const framed = parseChunkedBody(content.slice(prefix.length));
       if (framed === null) return;
-      const payloadHex = receiveChunkedHex(from, prefix, framed.nonce, framed.index, framed.count, framed.chunk);
+      const payloadHex = receiveChunkedHex(
+        from,
+        prefix,
+        framed.nonce,
+        framed.index,
+        framed.count,
+        framed.chunk,
+      );
       if (payloadHex === null) return;
-      callEntries.push({ nonce: framed.nonce, kind: echo ? "echo" : "payload", fromDestinationHash: from, payloadHex, receivedAt: Date.now() });
+      callEntries.push({
+        nonce: framed.nonce,
+        kind: echo ? "echo" : "payload",
+        fromDestinationHash: from,
+        payloadHex,
+        receivedAt: Date.now(),
+      });
       if (!echo) {
-        void sendCall(from, CALL_ECHO_PREFIX, framed.nonce, payloadHex).catch((error: unknown) =>
-          log(`test-agent call echo failed: ${error instanceof Error ? error.message : String(error)}`)
+        void sendCall(from, CALL_ECHO_PREFIX, framed.nonce, payloadHex).catch(
+          (error: unknown) =>
+            log(
+              `test-agent call echo failed: ${error instanceof Error ? error.message : String(error)}`,
+            ),
         );
       }
       return;
     }
     const echoNonce = nonceFrom(content, ECHO_PREFIX);
     if (echoNonce !== null) {
-      recordInbox({ nonce: echoNonce, kind: "echo", fromDestinationHash: from, receivedAt: Date.now() });
+      recordInbox({
+        nonce: echoNonce,
+        kind: "echo",
+        fromDestinationHash: from,
+        receivedAt: Date.now(),
+      });
       return;
     }
     const probeNonce = nonceFrom(content, PROBE_PREFIX);
     if (probeNonce === null) {
       return;
     }
-    recordInbox({ nonce: probeNonce, kind: "probe", fromDestinationHash: from, receivedAt: Date.now() });
-    void sendProbe(from, `${ECHO_PREFIX}${probeNonce}`).catch((error: unknown) => {
-      log(`test-agent echo failed: ${error instanceof Error ? error.message : String(error)}`);
+    recordInbox({
+      nonce: probeNonce,
+      kind: "probe",
+      fromDestinationHash: from,
+      receivedAt: Date.now(),
     });
+    void sendProbe(from, `${ECHO_PREFIX}${probeNonce}`).catch(
+      (error: unknown) => {
+        log(
+          `test-agent echo failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      },
+    );
   });
 
   const buildStatus = (): TestAgentStatus => {
@@ -568,11 +726,13 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       probeCount: probeEntries.size,
       inviteCount: inviteEntries.length,
       callInboxCount: callEntries.length,
-      pathTableCount: reticulum.pathTableCount
+      pathTableCount: reticulum.pathTableCount,
     };
   };
 
-  const handle = async (request: ControlRequest): Promise<Record<string, unknown>> => {
+  const handle = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
     switch (request.cmd) {
       case "info":
         return { label, platform, identityHash, lxmfAddress };
@@ -594,22 +754,40 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         return announceBurst(() => delivery.announce(), count);
       }
       case "send": {
-        if (request.toLxmfAddress === undefined || request.nonce === undefined) {
+        if (
+          request.toLxmfAddress === undefined ||
+          request.nonce === undefined
+        ) {
           throw new Error("send requires toLxmfAddress and nonce");
         }
-        await sendProbe(request.toLxmfAddress, `${PROBE_PREFIX}${request.nonce}`);
+        await sendProbe(
+          request.toLxmfAddress,
+          `${PROBE_PREFIX}${request.nonce}`,
+        );
         return {};
       }
       case "send-realtime": {
-        if (request.toLxmfAddress === undefined || request.nonce === undefined || request.payloadHex === undefined) throw new Error("send-realtime requires toLxmfAddress, nonce, and payloadHex");
-        await sendRealtime(request.toLxmfAddress, REALTIME_PREFIX, request.nonce, request.payloadHex);
+        if (
+          request.toLxmfAddress === undefined ||
+          request.nonce === undefined ||
+          request.payloadHex === undefined
+        )
+          throw new Error(
+            "send-realtime requires toLxmfAddress, nonce, and payloadHex",
+          );
+        await sendRealtime(
+          request.toLxmfAddress,
+          REALTIME_PREFIX,
+          request.nonce,
+          request.payloadHex,
+        );
         return {};
       }
       case "link-state":
         return {
           readiness: [...readinessEntries],
           probes: [...probeEntries.values()],
-          dropCensus: dropCensus.snapshot()
+          dropCensus: dropCensus.snapshot(),
         };
       case "subscribe":
       case "unsubscribe":
@@ -623,15 +801,28 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       case "invite-state":
         return { invites: [...inviteEntries] };
       case "send-invite": {
-        if (request.toLxmfAddress === undefined) throw new Error("send-invite requires toLxmfAddress");
-        const appId = typeof request.appId === "string" ? request.appId : "line-check";
+        if (request.toLxmfAddress === undefined)
+          throw new Error("send-invite requires toLxmfAddress");
+        const appId =
+          typeof request.appId === "string" ? request.appId : "line-check";
         const requestedClasses = Array.isArray(request.requestedClasses)
-          ? (request.requestedClasses as ReadonlyArray<"camera" | "microphone" | "screen-capture">)
+          ? (request.requestedClasses as ReadonlyArray<
+              "camera" | "microphone" | "screen-capture"
+            >)
           : (["microphone"] as const);
         const id = `invite-${label}-${nextInvite++}`;
         const expiresAt = Date.now() + SESSION_INVITE_TTL_MS;
-        const envelope = encodeSessionInviteEnvelope({ id, appId, requestedClasses, expiresAt });
-        await sendMessage(request.toLxmfAddress, SESSION_INVITE_TITLE, sessionInviteContent(envelope));
+        const envelope = encodeSessionInviteEnvelope({
+          id,
+          appId,
+          requestedClasses,
+          expiresAt,
+        });
+        await sendMessage(
+          request.toLxmfAddress,
+          SESSION_INVITE_TITLE,
+          sessionInviteContent(envelope),
+        );
         inviteEntries.push({
           kind: "sent",
           id,
@@ -640,72 +831,122 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
           requestedClasses,
           expiresAt,
           at: Date.now(),
-          peerDestinationHash: request.toLxmfAddress
+          peerDestinationHash: request.toLxmfAddress,
         });
         return { inviteId: id, appId, expiresAt, bytes: envelope.length };
       }
       case "accept-invite": {
-        const inviteId = typeof request.inviteId === "string" ? request.inviteId : undefined;
-        if (inviteId === undefined) throw new Error("accept-invite requires inviteId");
-        const raised = inviteEntries.findLast((entry) => entry.kind === "raised" && entry.id === inviteId);
-        if (raised === undefined) throw new Error(`No raised invite ${inviteId}`);
-        if (inviteEntries.some((entry) => entry.kind === "accepted" && entry.id === inviteId)) {
+        const inviteId =
+          typeof request.inviteId === "string" ? request.inviteId : undefined;
+        if (inviteId === undefined)
+          throw new Error("accept-invite requires inviteId");
+        const raised = inviteEntries.findLast(
+          (entry) => entry.kind === "raised" && entry.id === inviteId,
+        );
+        if (raised === undefined)
+          throw new Error(`No raised invite ${inviteId}`);
+        if (
+          inviteEntries.some(
+            (entry) => entry.kind === "accepted" && entry.id === inviteId,
+          )
+        ) {
           return {
             accepted: true,
             inviteId,
-            peerDestinationHash: raised.peerDestinationHash ?? peerDestinationHashForInvite(inviteId) ?? null
+            peerDestinationHash:
+              raised.peerDestinationHash ??
+              peerDestinationHashForInvite(inviteId) ??
+              null,
           };
         }
         await options.acceptSessionInvite?.(inviteId);
-        const peerDestinationHash = raised.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
+        const peerDestinationHash =
+          raised.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
         inviteEntries.push({
           ...raised,
           kind: "accepted",
           at: Date.now(),
-          ...(peerDestinationHash === undefined ? {} : { peerDestinationHash })
+          ...(peerDestinationHash === undefined ? {} : { peerDestinationHash }),
         });
-        return { accepted: true, inviteId, peerDestinationHash: peerDestinationHash ?? null };
+        return {
+          accepted: true,
+          inviteId,
+          peerDestinationHash: peerDestinationHash ?? null,
+        };
       }
       case "send-call": {
-        const inviteId = typeof request.inviteId === "string" ? request.inviteId : undefined;
-        if (inviteId === undefined || request.nonce === undefined || request.payloadHex === undefined) {
+        const inviteId =
+          typeof request.inviteId === "string" ? request.inviteId : undefined;
+        if (
+          inviteId === undefined ||
+          request.nonce === undefined ||
+          request.payloadHex === undefined
+        ) {
           throw new Error("send-call requires inviteId, nonce, and payloadHex");
         }
-        const accepted = inviteEntries.findLast((entry) => entry.kind === "accepted" && entry.id === inviteId);
-        if (accepted === undefined) throw new Error(`Invite ${inviteId} has not been accepted`);
-        const peerDestinationHash = accepted.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
-        if (peerDestinationHash === undefined) throw new Error(`No peer destination for accepted invite ${inviteId}`);
-        await sendCall(peerDestinationHash, CALL_PREFIX, request.nonce, request.payloadHex);
+        const accepted = inviteEntries.findLast(
+          (entry) => entry.kind === "accepted" && entry.id === inviteId,
+        );
+        if (accepted === undefined)
+          throw new Error(`Invite ${inviteId} has not been accepted`);
+        const peerDestinationHash =
+          accepted.peerDestinationHash ??
+          peerDestinationHashForInvite(inviteId);
+        if (peerDestinationHash === undefined)
+          throw new Error(
+            `No peer destination for accepted invite ${inviteId}`,
+          );
+        await sendCall(
+          peerDestinationHash,
+          CALL_PREFIX,
+          request.nonce,
+          request.payloadHex,
+        );
         return {
           sent: true,
           inviteId,
           peerDestinationHash,
-          bytes: Math.floor(request.payloadHex.length / 2)
+          bytes: Math.floor(request.payloadHex.length / 2),
         };
       }
       case "request-readiness": {
-        if (request.toLxmfAddress === undefined) throw new Error("request-readiness requires toLxmfAddress");
+        if (request.toLxmfAddress === undefined)
+          throw new Error("request-readiness requires toLxmfAddress");
         await sendLinkControl(
           request.toLxmfAddress,
           READINESS_REQUEST_ID,
-          encodeReadinessEnvelope(READINESS_REQUEST_ID, localReadiness())
+          encodeReadinessEnvelope(READINESS_REQUEST_ID, localReadiness()),
         );
         return {};
       }
       case "link-probe": {
-        if (request.toLxmfAddress === undefined) throw new Error("link-probe requires toLxmfAddress");
-        const budgetBytes = typeof request.budgetBytes === "number" ? request.budgetBytes : LINK_PROBE_MAX_BUDGET_BYTES;
-        if (!Number.isInteger(budgetBytes) || budgetBytes < 256 || budgetBytes > LINK_PROBE_MAX_BUDGET_BYTES) {
-          throw new Error(`link-probe budget must be 256-${LINK_PROBE_MAX_BUDGET_BYTES} bytes`);
+        if (request.toLxmfAddress === undefined)
+          throw new Error("link-probe requires toLxmfAddress");
+        const budgetBytes =
+          typeof request.budgetBytes === "number"
+            ? request.budgetBytes
+            : LINK_PROBE_MAX_BUDGET_BYTES;
+        if (
+          !Number.isInteger(budgetBytes) ||
+          budgetBytes < 256 ||
+          budgetBytes > LINK_PROBE_MAX_BUDGET_BYTES
+        ) {
+          throw new Error(
+            `link-probe budget must be 256-${LINK_PROBE_MAX_BUDGET_BYTES} bytes`,
+          );
         }
         const id = `probe-${label}-${nextProbe++}`;
-        const envelope = encodeLinkControl({ type: 2, id, payload: new Uint8Array(Math.max(0, budgetBytes - 8 - id.length)) });
+        const envelope = encodeLinkControl({
+          type: 2,
+          id,
+          payload: new Uint8Array(Math.max(0, budgetBytes - 8 - id.length)),
+        });
         probeEntries.set(id, {
           id,
           toDestinationHash: request.toLxmfAddress,
           budgetBytes: envelope.length,
           sentAt: Date.now(),
-          rttMs: null
+          rttMs: null,
         });
         await sendLinkControl(request.toLxmfAddress, id, envelope);
         // `id` is the control frame's correlation key; never shadow it here.
@@ -758,7 +999,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
           await write({
             id: request.id,
             ok: false,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -768,11 +1009,16 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   const dialLoop = async (): Promise<void> => {
     while (!stopped) {
       try {
-        const socket = await reticulum.runtime.tcp.connect({ host: controlHost, port: controlPort });
+        const socket = await reticulum.runtime.tcp.connect({
+          host: controlHost,
+          port: controlPort,
+        });
         log(`test-agent connected to ${controlHost}:${controlPort}`);
         await serve(socket);
       } catch (error: unknown) {
-        log(`test-agent control channel: ${error instanceof Error ? error.message : String(error)}`);
+        log(
+          `test-agent control channel: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
       connection = null;
       if (stopped) {
@@ -791,7 +1037,9 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     try {
       await delivery.announce();
     } catch (error: unknown) {
-      log(`test-agent announce deferred: ${error instanceof Error ? error.message : String(error)}`);
+      log(
+        `test-agent announce deferred: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   };
 
@@ -799,7 +1047,9 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   void dialLoop();
 
   const announceTimer =
-    announceIntervalMs > 0 ? setInterval(() => void announceQuietly(), announceIntervalMs) : null;
+    announceIntervalMs > 0
+      ? setInterval(() => void announceQuietly(), announceIntervalMs)
+      : null;
   announceTimer?.unref?.();
 
   return {
@@ -810,7 +1060,8 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     peers: () => deliverySession.peers(),
     inbox: () => [...inboxEntries],
     status: buildStatus,
-    send: (toLxmfAddress, nonce) => sendProbe(toLxmfAddress, `${PROBE_PREFIX}${nonce}`),
+    send: (toLxmfAddress, nonce) =>
+      sendProbe(toLxmfAddress, `${PROBE_PREFIX}${nonce}`),
     announce: () => delivery.announce(),
     async stop() {
       stopped = true;
@@ -822,6 +1073,6 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       if (ownsDelivery) {
         await deliverySession.stop();
       }
-    }
+    },
   };
 }

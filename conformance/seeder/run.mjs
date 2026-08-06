@@ -16,21 +16,31 @@ import {
   NodeCryptoProvider,
   PipeInterface,
   Reticulum,
-  nodeRuntime
+  nodeRuntime,
 } from "../../packages/reticulum-ts/dist/index.js";
 import { unpackPackage } from "../../packages/app-registry/dist/index.js";
 import {
   DriveManager,
   attachPackageResourceServer,
-  createSwarm
+  createSwarm,
 } from "../../packages/bridge-hyper/dist/index.js";
-import { parseListResponse, sendPackageResourceRequest } from "../../packages/bridge-hyper/dist/resource-server.js";
+import {
+  parseListResponse,
+  sendPackageResourceRequest,
+} from "../../packages/bridge-hyper/dist/resource-server.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
-import { listSeederArchives, loadSeederState, readSeederArchive } from "../../packages/cli/dist/seed/register.js";
+import {
+  listSeederArchives,
+  loadSeederState,
+  readSeederArchive,
+} from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const fixtureAppSource = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../fixtures/packages/example-app",
+);
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
@@ -88,20 +98,31 @@ async function main() {
   try {
     writeFileSync(
       join(publisherDir, "tp.config.json"),
-      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
+      `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`,
     );
 
-    await runInit({ cwd: publisherDir, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
+    await runInit({
+      cwd: publisherDir,
+      identityPassphrase: IDENTITY_PASSPHRASE,
+      args: [],
+    });
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
 
-    const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
+    const publishCode = await runPublish({
+      cwd: publisherDir,
+      args: [fixtureApp],
+    });
     if (publishCode !== 0) {
       throw new Error("tp publish failed");
     }
 
     const provider = new NodeCryptoProvider();
-    const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
-    const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
+    const meta = JSON.parse(
+      readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"),
+    );
+    const archive = new Uint8Array(
+      readFileSync(join(publisherDir, ".tp/last.tpkg")),
+    );
     const unpacked = unpackPackage(provider, archive);
     const state = loadSeederState(seederStateDir);
 
@@ -109,7 +130,11 @@ async function main() {
       throw new Error("seeder registration did not persist drive metadata");
     }
 
-    const archiveFromDisk = readSeederArchive(seederStateDir, state, meta.version);
+    const archiveFromDisk = readSeederArchive(
+      seederStateDir,
+      state,
+      meta.version,
+    );
     const verifiedArchive = unpackPackage(provider, archiveFromDisk);
     if (verifiedArchive.packageHash !== unpacked.packageHash) {
       throw new Error("seeder archive hash mismatch");
@@ -117,12 +142,22 @@ async function main() {
 
     pubSwarm = createSwarm();
     seedSwarm = createSwarm();
-    publisherDrive = new DriveManager({ storagePath: join(publisherDir, ".tp/storage"), swarm: pubSwarm });
-    seedDrive = new DriveManager({ storagePath: join(seederStateDir, "drives"), swarm: seedSwarm });
+    publisherDrive = new DriveManager({
+      storagePath: join(publisherDir, ".tp/storage"),
+      swarm: pubSwarm,
+    });
+    seedDrive = new DriveManager({
+      storagePath: join(seederStateDir, "drives"),
+      swarm: seedSwarm,
+    });
     await publisherDrive.ready();
     await seedDrive.ready();
     await publisherDrive.openDrive(meta.driveKey);
-    await publisherDrive.publishVersion(meta.version, archive, unpacked.packageHash);
+    await publisherDrive.publishVersion(
+      meta.version,
+      archive,
+      unpacked.packageHash,
+    );
     await seedDrive.openDrive(meta.driveKey, { serve: true });
     await fetchWithRetry(seedDrive, meta.version);
 
@@ -132,7 +167,10 @@ async function main() {
     publisherDrive = null;
 
     const conSwarm = createSwarm();
-    const consumerDrive = new DriveManager({ storagePath: consumerDir, swarm: conSwarm });
+    const consumerDrive = new DriveManager({
+      storagePath: consumerDir,
+      swarm: conSwarm,
+    });
     await consumerDrive.ready();
     await consumerDrive.openDrive(meta.driveKey);
     const fetched = await fetchWithRetry(consumerDrive, meta.version);
@@ -152,11 +190,14 @@ async function main() {
     const restartedSeedSwarm = createSwarm();
     const restartedSeedDrive = new DriveManager({
       storagePath: join(seederStateDir, "drives"),
-      swarm: restartedSeedSwarm
+      swarm: restartedSeedSwarm,
     });
     await restartedSeedDrive.ready();
     await restartedSeedDrive.openDrive(meta.driveKey, { serve: true });
-    const restartedFetched = await fetchWithRetry(restartedSeedDrive, meta.version);
+    const restartedFetched = await fetchWithRetry(
+      restartedSeedDrive,
+      meta.version,
+    );
     const restartedVerified = unpackPackage(provider, restartedFetched);
     if (restartedVerified.packageHash !== unpacked.packageHash) {
       throw new Error("seeder restart hyperdrive fetch hash mismatch");
@@ -169,7 +210,7 @@ async function main() {
     const seederIdentity = decryptIdentityBackup(
       provider,
       new Uint8Array(readFileSync(join(publisherDir, ".tp/identity"))),
-      IDENTITY_PASSPHRASE
+      IDENTITY_PASSPHRASE,
     );
 
     const seederDestination = right.registerDestination({
@@ -178,20 +219,26 @@ async function main() {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: ["seeder", "resource"]
+      aspects: ["seeder", "resource"],
     });
 
     attachPackageResourceServer(seederDestination, {
       async listVersions() {
-        return listSeederArchives(loadSeederState(seederStateDir)).map((entry) => ({
-          version: entry.version,
-          packageHash: entry.packageHash,
-          size: entry.size
-        }));
+        return listSeederArchives(loadSeederState(seederStateDir)).map(
+          (entry) => ({
+            version: entry.version,
+            packageHash: entry.packageHash,
+            size: entry.size,
+          }),
+        );
       },
       async fetchArchive(version) {
-        return readSeederArchive(seederStateDir, loadSeederState(seederStateDir), version);
-      }
+        return readSeederArchive(
+          seederStateDir,
+          loadSeederState(seederStateDir),
+          version,
+        );
+      },
     });
 
     const consumerOut = left.registerDestination({
@@ -200,31 +247,39 @@ async function main() {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "tp",
-      aspects: ["seeder", "resource"]
+      aspects: ["seeder", "resource"],
     });
 
     let consumerLink = null;
     consumerOut.requestLink({
       linkEstablished(link) {
         consumerLink = link;
-      }
+      },
     });
 
     const activeLink = await waitFor(() => consumerLink);
     const publisherLink = await waitFor(
-      () => seederDestination.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
+      () =>
+        seederDestination.activeLinks.find(
+          (link) => link.status === LinkStatus.ACTIVE,
+        ) ?? null,
     );
     publisherLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
-    const listBytes = await sendPackageResourceRequest(activeLink, { type: "list" });
+    const listBytes = await sendPackageResourceRequest(activeLink, {
+      type: "list",
+    });
     const versions = parseListResponse(listBytes);
-    if (versions.length !== 1 || versions[0].packageHash !== unpacked.packageHash) {
+    if (
+      versions.length !== 1 ||
+      versions[0].packageHash !== unpacked.packageHash
+    ) {
       throw new Error("seeder resource list mismatch");
     }
 
     const fetchedArchive = await sendPackageResourceRequest(activeLink, {
       type: "fetch",
-      version: meta.version
+      version: meta.version,
     });
     const verifiedResource = unpackPackage(provider, fetchedArchive);
     if (verifiedResource.packageHash !== unpacked.packageHash) {
@@ -234,7 +289,9 @@ async function main() {
     await left.stop();
     await right.stop();
 
-    console.log("seeder: archive persist, hyperdrive mirror, restart resume, resource fetch passed");
+    console.log(
+      "seeder: archive persist, hyperdrive mirror, restart resume, resource fetch passed",
+    );
   } finally {
     if (publisherDrive !== null) {
       await publisherDrive.close();

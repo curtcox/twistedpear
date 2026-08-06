@@ -1,6 +1,5 @@
 # Mini-app Sandbox Security Review (Phase 7)
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-21
@@ -17,14 +16,14 @@ hardware debt ([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11).
 
 ## Scope
 
-| Surface | Code | Conformance |
-|---|---|---|
-| Broker dispatch + rate/size limits | `packages/miniapp-runtime/src/broker.ts` | `broker.test.ts`, `hostile-apps` |
-| Capability grants | `capabilities.ts`, `GrantStore` | `host.test.ts` grant matrix |
-| Host handlers | `host.ts` | `hostile-apps`, `test:examples` |
-| Widget tree validation | `ui/validate.ts` | `hostile-apps` UI abuse cases |
-| Sandbox backends | `sandbox/node-worker.ts`, `sandbox/worker.ts` | `hostile-apps` escape probes |
-| Reticulum wire parsers | `reticulum-ts`, `lxmf-ts` | `npm run test:fuzz` |
+| Surface                            | Code                                          | Conformance                      |
+| ---------------------------------- | --------------------------------------------- | -------------------------------- |
+| Broker dispatch + rate/size limits | `packages/miniapp-runtime/src/broker.ts`      | `broker.test.ts`, `hostile-apps` |
+| Capability grants                  | `capabilities.ts`, `GrantStore`               | `host.test.ts` grant matrix      |
+| Host handlers                      | `host.ts`                                     | `hostile-apps`, `test:examples`  |
+| Widget tree validation             | `ui/validate.ts`                              | `hostile-apps` UI abuse cases    |
+| Sandbox backends                   | `sandbox/node-worker.ts`, `sandbox/worker.ts` | `hostile-apps` escape probes     |
+| Reticulum wire parsers             | `reticulum-ts`, `lxmf-ts`                     | `npm run test:fuzz`              |
 
 Out of scope: host OS hardening, Electron renderer XSS, package signature cryptography
 (covered by `app-registry` tests), and physical side channels.

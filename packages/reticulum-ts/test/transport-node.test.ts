@@ -12,14 +12,17 @@ import {
   PipeInterface,
   Resource,
   Reticulum,
-  nodeRuntime
+  nodeRuntime,
 } from "../src/index.js";
 import type { PacketInterface } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 
-async function waitFor<T>(evaluate: () => T | null | undefined, timeoutMs = 8000): Promise<T> {
+async function waitFor<T>(
+  evaluate: () => T | null | undefined,
+  timeoutMs = 8000,
+): Promise<T> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const value = evaluate();
@@ -39,7 +42,11 @@ function connectTransportTopology(): {
   right: Reticulum;
 } {
   const left = Reticulum.create({ provider, runtime });
-  const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+  const transport = Reticulum.create({
+    provider,
+    runtime,
+    transportEnabled: true,
+  });
   const right = Reticulum.create({ provider, runtime });
   left.start();
   transport.start();
@@ -76,7 +83,7 @@ describe("TransportNode over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["hot-toggle"]
+      aspects: ["hot-toggle"],
     });
 
     await destination.announce();
@@ -94,7 +101,11 @@ describe("TransportNode over PipeInterface", () => {
 
   it("continues announce fan-out when one interface send fails", async () => {
     const left = Reticulum.create({ provider, runtime });
-    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const transport = Reticulum.create({
+      provider,
+      runtime,
+      transportEnabled: true,
+    });
     const right = Reticulum.create({ provider, runtime });
     left.start();
     transport.start();
@@ -112,12 +123,12 @@ describe("TransportNode over PipeInterface", () => {
       packets: {
         async *[Symbol.asyncIterator]() {
           return;
-        }
+        },
       },
       async send() {
         throw new Error("simulated interface failure");
       },
-      async close() {}
+      async close() {},
     };
 
     left.registerInterface(leftPipe);
@@ -132,7 +143,7 @@ describe("TransportNode over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["fanout"]
+      aspects: ["fanout"],
     });
 
     await leftIn.announce();
@@ -150,7 +161,7 @@ describe("TransportNode over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["remote"]
+      aspects: ["remote"],
     });
 
     await rightIn.announce();
@@ -166,26 +177,34 @@ describe("TransportNode over PipeInterface", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["remote"]
+      aspects: ["remote"],
     });
 
     rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("receive timeout")), 5000);
+      const timer = setTimeout(
+        () => reject(new Error("receive timeout")),
+        5000,
+      );
       rightIn.setPacketCallback((data) => {
         clearTimeout(timer);
         resolve(data);
       });
     });
 
-    const receipt = await leftOut.send(new TextEncoder().encode("through transport"), { createReceipt: true });
+    const receipt = await leftOut.send(
+      new TextEncoder().encode("through transport"),
+      { createReceipt: true },
+    );
     expect(receipt).not.toBeNull();
 
     const payload = await received;
     expect(new TextDecoder().decode(payload)).toBe("through transport");
 
-    await waitFor(() => (receipt!.status === PacketReceiptStatus.DELIVERED ? true : null));
+    await waitFor(() =>
+      receipt!.status === PacketReceiptStatus.DELIVERED ? true : null,
+    );
   });
 
   it("routes data in the opposite direction through the transport node", async () => {
@@ -197,7 +216,7 @@ describe("TransportNode over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["local"]
+      aspects: ["local"],
     });
 
     const rightIn = right.registerDestination({
@@ -206,7 +225,7 @@ describe("TransportNode over PipeInterface", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["remote"]
+      aspects: ["remote"],
     });
 
     await leftIn.announce();
@@ -221,7 +240,7 @@ describe("TransportNode over PipeInterface", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["local"]
+      aspects: ["local"],
     });
 
     leftIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
@@ -250,7 +269,7 @@ describe("TransportNode link and resource relay", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["resource"]
+      aspects: ["resource"],
     });
 
     await rightIn.announce();
@@ -262,25 +281,32 @@ describe("TransportNode link and resource relay", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["resource"]
+      aspects: ["resource"],
     });
 
     let leftLink: import("../src/index.js").Link | null = null;
     leftOut.requestLink({
       linkEstablished(link) {
         leftLink = link;
-      }
+      },
     });
 
     const establishedLeftLink = await waitFor(() => leftLink);
     const rightLink = await waitFor(
-      () => rightIn.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ?? null
+      () =>
+        rightIn.activeLinks.find((link) => link.status === LinkStatus.ACTIVE) ??
+        null,
     );
     rightLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
-    const payload = new TextEncoder().encode("resource via transport " + "z".repeat(1024));
+    const payload = new TextEncoder().encode(
+      "resource via transport " + "z".repeat(1024),
+    );
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("resource timeout")), 10000);
+      const timer = setTimeout(
+        () => reject(new Error("resource timeout")),
+        10000,
+      );
       rightLink.callbacks.resourceConcluded = (resource) => {
         clearTimeout(timer);
         resolve(resource.data ?? new Uint8Array(0));
@@ -289,13 +315,19 @@ describe("TransportNode link and resource relay", () => {
 
     Resource.send(establishedLeftLink, payload, { advertise: true });
     const data = await received;
-    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+    expect(new TextDecoder().decode(data)).toBe(
+      new TextDecoder().decode(payload),
+    );
   }, 15000);
 });
 
 describe("TransportNode path requests", () => {
   it("answers path requests from cached announces after a peer joins late", async () => {
-    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const transport = Reticulum.create({
+      provider,
+      runtime,
+      transportEnabled: true,
+    });
     const right = Reticulum.create({ provider, runtime });
     transport.start();
     right.start();
@@ -310,7 +342,7 @@ describe("TransportNode path requests", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["late"]
+      aspects: ["late"],
     });
 
     await rightIn.announce();
@@ -330,7 +362,11 @@ describe("TransportNode path requests", () => {
 
   it("forwards path requests for unknown destinations and fulfills them on announce", async () => {
     const left = Reticulum.create({ provider, runtime });
-    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const transport = Reticulum.create({
+      provider,
+      runtime,
+      transportEnabled: true,
+    });
     const right = Reticulum.create({ provider, runtime });
     left.start();
     transport.start();
@@ -349,7 +385,7 @@ describe("TransportNode path requests", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["discover"]
+      aspects: ["discover"],
     });
 
     expect(left.hasPath(rightIn.hash)).toBe(false);
@@ -368,8 +404,16 @@ describe("TransportNode path requests", () => {
 describe("TransportNode three-hop topology", () => {
   it("routes packets across two transport nodes", async () => {
     const left = Reticulum.create({ provider, runtime });
-    const transportA = Reticulum.create({ provider, runtime, transportEnabled: true });
-    const transportB = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const transportA = Reticulum.create({
+      provider,
+      runtime,
+      transportEnabled: true,
+    });
+    const transportB = Reticulum.create({
+      provider,
+      runtime,
+      transportEnabled: true,
+    });
     const right = Reticulum.create({ provider, runtime });
     left.start();
     transportA.start();
@@ -393,7 +437,7 @@ describe("TransportNode three-hop topology", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["far"]
+      aspects: ["far"],
     });
 
     await rightIn.announce();
@@ -409,13 +453,16 @@ describe("TransportNode three-hop topology", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["far"]
+      aspects: ["far"],
     });
 
     rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("three-hop timeout")), 5000);
+      const timer = setTimeout(
+        () => reject(new Error("three-hop timeout")),
+        5000,
+      );
       rightIn.setPacketCallback((data) => {
         clearTimeout(timer);
         resolve(data);
@@ -431,7 +478,11 @@ describe("TransportNode three-hop topology", () => {
 describe("TransportNode bandwidth counters", () => {
   it("tracks ingress and egress bytes on routed traffic", async () => {
     const left = Reticulum.create({ provider, runtime });
-    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const transport = Reticulum.create({
+      provider,
+      runtime,
+      transportEnabled: true,
+    });
     const right = Reticulum.create({ provider, runtime });
     left.start();
     transport.start();
@@ -450,7 +501,7 @@ describe("TransportNode bandwidth counters", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["stats"]
+      aspects: ["stats"],
     });
     rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -463,11 +514,14 @@ describe("TransportNode bandwidth counters", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["stats"]
+      aspects: ["stats"],
     });
 
     const received = new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("bandwidth stats timeout")), 5000);
+      const timer = setTimeout(
+        () => reject(new Error("bandwidth stats timeout")),
+        5000,
+      );
       rightIn.setPacketCallback(() => {
         clearTimeout(timer);
         resolve();
@@ -484,7 +538,11 @@ describe("TransportNode bandwidth counters", () => {
 
 describe("TransportNode announce rate limiting", () => {
   it("uses the same limiter contract that transport-node announce ingress relies on", () => {
-    const limiter = new AnnounceRateLimiter({ rateTarget: 0.2, rateGrace: 0, ratePenalty: 10 });
+    const limiter = new AnnounceRateLimiter({
+      rateTarget: 0.2,
+      rateGrace: 0,
+      ratePenalty: 10,
+    });
     const noisyKey = "deadbeef";
     const quietKey = "cafebabe";
 

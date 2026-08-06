@@ -4,7 +4,7 @@ import {
   MiniappLifecycle,
   createHybridDeviceDrivers,
   createSimulatedDeviceManager,
-  generateConfirmationToken
+  generateConfirmationToken,
 } from "../../miniapp-runtime/dist/worklet.js";
 import { createOpenRouterBackend } from "../../miniapp-runtime/dist/worklet.js";
 import { createSandboxBackend as createBareWorkletSandboxBackend } from "../../miniapp-runtime/dist/sandbox/worklet-factory.js";
@@ -38,13 +38,14 @@ import {
   createWatchdogHelpers,
   createWorkspaceFileCollector,
   launchWithCapabilityReview,
-  launchWithoutReview
+  launchWithoutReview,
 } from "./miniapp-host-shared.mjs";
 
 const BENCHMARK_ITERATIONS = 5;
 const BENCHMARK_WATCHDOG_MS = 250;
 
-const helloBenchmarkBundle = new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
+const helloBenchmarkBundle = new TextEncoder()
+  .encode(`import { ui } from "@twistedpear/miniapp-sdk";
 
 await ui.render({
   root: {
@@ -70,7 +71,9 @@ function benchmarkNowMs() {
 }
 
 function benchmarkAverage(values) {
-  return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1));
+  return Number(
+    (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1),
+  );
 }
 
 async function benchmarkSleep(ms) {
@@ -88,8 +91,12 @@ async function measureSpawnKill(backend, bundle, iterations) {
       entryPath: "bundle.js",
       bundle,
       brokerEndpoint: {
-        request: async (request) => ({ id: request.id, ok: true, result: "ok" })
-      }
+        request: async (request) => ({
+          id: request.id,
+          ok: true,
+          result: "ok",
+        }),
+      },
     });
 
     const spawnStarted = benchmarkNowMs();
@@ -103,7 +110,7 @@ async function measureSpawnKill(backend, bundle, iterations) {
 
   return {
     spawnMs: benchmarkAverage(spawnLatencies),
-    killMs: benchmarkAverage(killLatencies)
+    killMs: benchmarkAverage(killLatencies),
   };
 }
 
@@ -116,10 +123,10 @@ async function measureBusyLoopKill(backend) {
       entryPath: "bundle.js",
       bundle: busyLoopBenchmarkBundle,
       brokerEndpoint: {
-        request: async (request) => ({ id: request.id, ok: true })
-      }
+        request: async (request) => ({ id: request.id, ok: true }),
+      },
     },
-    { watchdogMs: BENCHMARK_WATCHDOG_MS }
+    { watchdogMs: BENCHMARK_WATCHDOG_MS },
   );
 
   const started = benchmarkNowMs();
@@ -138,7 +145,7 @@ async function measureBusyLoopKill(backend) {
   await lifecycle.stop("cleanup");
   return {
     busyLoopKilled: killed,
-    busyLoopKillMs: killed ? Math.round(benchmarkNowMs() - started) : null
+    busyLoopKillMs: killed ? Math.round(benchmarkNowMs() - started) : null,
   };
 }
 
@@ -156,7 +163,9 @@ export function createWorkletMiniappHost(options) {
   const devBadgeRef = { current: false };
   /** @type {{baseUrl: string, apiKey: string, model: string, allowedModels?: string[]} | null} */
   let aiConfig = options.aiConfig ?? null;
-  const casStore = new CasStore(kvStore, (data) => options.provider.sha512(data));
+  const casStore = new CasStore(kvStore, (data) =>
+    options.provider.sha512(data),
+  );
   const previewRef = { current: null };
   const beeBackend = new KvStorageBeeBackend(kvStore);
   const browserDeviceClasses = options.browserDeviceClasses ?? [
@@ -165,24 +174,26 @@ export function createWorkletMiniappHost(options) {
     "microphone",
     "battery",
     "tts",
-    "haptics"
+    "haptics",
   ];
   const defaultPlatform = options.defaultPlatform ?? "desktop";
-  const { sessionInvites, pushSessionInvites } = createSessionInviteHooks(options, now);
-  const pushGrants = createPushGrants(options.send, grantStore);
-  const { peerRouteMediaBridge, streamEgressFactory, linkSupply } = createMediaPipeline(
+  const { sessionInvites, pushSessionInvites } = createSessionInviteHooks(
     options,
     now,
-    async () => {
-      throw new Error("A platform media codec is not configured on this host.");
-    }
   );
+  const pushGrants = createPushGrants(options.send, grantStore);
+  const { peerRouteMediaBridge, streamEgressFactory, linkSupply } =
+    createMediaPipeline(options, now, async () => {
+      throw new Error("A platform media codec is not configured on this host.");
+    });
   const confirmationChannel =
     options.requestUserConfirmation === undefined
       ? undefined
       : { confirm: (request) => options.requestUserConfirmation(request) };
   const confirmationEffects =
-    options.requestUserConfirmation === undefined ? undefined : createConfirmationEffects();
+    options.requestUserConfirmation === undefined
+      ? undefined
+      : createConfirmationEffects();
 
   /** @type {import("../../miniapp-runtime/dist/worklet.js").MiniappHost} */
   let host;
@@ -219,116 +230,153 @@ export function createWorkletMiniappHost(options) {
       drivers:
         typeof options.requestDeviceBridge === "function"
           ? createHybridDeviceDrivers(browserDeviceClasses, {
-              availability: (classId) => options.requestDeviceBridge({ op: "availability", classId }),
+              availability: (classId) =>
+                options.requestDeviceBridge({ op: "availability", classId }),
               sense: (classId, senseOptions) =>
-                options.requestDeviceBridge({ op: "sense", classId, options: senseOptions ?? {} }),
+                options.requestDeviceBridge({
+                  op: "sense",
+                  classId,
+                  options: senseOptions ?? {},
+                }),
               actuate: (classId, command) =>
-                options.requestDeviceBridge({ op: "actuate", classId, command })
+                options.requestDeviceBridge({
+                  op: "actuate",
+                  classId,
+                  command,
+                }),
             })
-          : undefined
+          : undefined,
     });
 
-  const createSandboxBackend = options.createSandboxBackend ?? createBareWorkletSandboxBackend;
-  pushDeviceChromeState = createPushDeviceChromeState(options.send, deviceManager);
+  const createSandboxBackend =
+    options.createSandboxBackend ?? createBareWorkletSandboxBackend;
+  pushDeviceChromeState = createPushDeviceChromeState(
+    options.send,
+    deviceManager,
+  );
 
   host = new MiniappHost({
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,
     kvBackend: kvStore,
     confirmationChannel,
-    aiBackend:
-      options.aiBackend ??
-      {
-        chat: async (appId, request) => {
-          if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {
-            throw new Error("AI is not configured on this host (set it in Settings)");
-          }
-
-          return createOpenRouterBackend(aiConfig).chat(appId, request);
-        },
-        stream: async function* (appId, request) {
-          if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {
-            throw new Error("AI is not configured on this host (set it in Settings)");
-          }
-          yield* createOpenRouterBackend(aiConfig).stream(appId, request);
-        },
-        embed: async (appId, request) => {
-          if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey || !aiConfig.embeddingModel) {
-            throw new Error("Embeddings are not configured on this host (set an embedding model in Settings)");
-          }
-          return createOpenRouterBackend(aiConfig).embed(appId, request);
+    aiBackend: options.aiBackend ?? {
+      chat: async (appId, request) => {
+        if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {
+          throw new Error(
+            "AI is not configured on this host (set it in Settings)",
+          );
         }
+
+        return createOpenRouterBackend(aiConfig).chat(appId, request);
       },
+      stream: async function* (appId, request) {
+        if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {
+          throw new Error(
+            "AI is not configured on this host (set it in Settings)",
+          );
+        }
+        yield* createOpenRouterBackend(aiConfig).stream(appId, request);
+      },
+      embed: async (appId, request) => {
+        if (
+          aiConfig === null ||
+          !aiConfig.baseUrl ||
+          !aiConfig.apiKey ||
+          !aiConfig.embeddingModel
+        ) {
+          throw new Error(
+            "Embeddings are not configured on this host (set an embedding model in Settings)",
+          );
+        }
+        return createOpenRouterBackend(aiConfig).embed(appId, request);
+      },
+    },
     beeBackend: {
       descriptor: (appId) => beeBackend.descriptor(appId),
       get: (appId, key) => beeBackend.get(appId, key),
       put: (appId, key, value) => beeBackend.put(appId, key, value),
       del: (appId, key) => beeBackend.del(appId, key),
-      list: (appId, listOptions) => beeBackend.list(appId, listOptions)
+      list: (appId, listOptions) => beeBackend.list(appId, listOptions),
     },
     presenceBackend: createCommonPresenceBackend(options),
     announceService: options.announceService,
     hostInfoBackend: createCommonHostInfoBackend(options, defaultPlatform),
     resourceBackend: createCommonResourceBackend(kvStore),
     appsBackend: {
-      package: (...args) => createAppsBackendPackageAction({
-        requirePublisherIdentity,
-        collectWorkspaceFiles,
-        provider: options.provider,
-        casStore
-      })(...args),
+      package: (...args) =>
+        createAppsBackendPackageAction({
+          requirePublisherIdentity,
+          collectWorkspaceFiles,
+          provider: options.provider,
+          casStore,
+        })(...args),
       publish: createAppsBackendPublishAction(options, casStore),
       install: async (_appId, { t256 }) => {
         if (options.installFromT256 === undefined) {
-          throw new Error("Installing from 256t ids is not configured on this host");
+          throw new Error(
+            "Installing from 256t ids is not configured on this host",
+          );
         }
 
         return options.installFromT256(t256);
       },
-      preview: (...args) => createAppsBackendPreviewAction({
-        collectWorkspaceFiles,
-        stopPreviewHost,
-        createPreviewHost,
-        previewRef,
-        pushPreviewRuntime,
-        now
-      })(...args),
+      preview: (...args) =>
+        createAppsBackendPreviewAction({
+          collectWorkspaceFiles,
+          stopPreviewHost,
+          createPreviewHost,
+          previewRef,
+          pushPreviewRuntime,
+          now,
+        })(...args),
       stopPreview: async () => {
         await stopPreviewHost();
-      }
+      },
     },
     casBackend: createCommonCasBackend(casStore),
     peerSessionManager: options.peerSessionManager,
-    localMediaReadiness: options.localMediaReadiness ?? createDefaultLocalMediaReadiness(now),
+    localMediaReadiness:
+      options.localMediaReadiness ?? createDefaultLocalMediaReadiness(now),
     confirmCostlyLinkProbe: options.confirmCostlyLinkProbe,
     controlReservations: options.controlReservations,
     inboundMediaBackend: options.inboundMediaBackend ?? peerRouteMediaBridge,
     relayService: options.relayService,
     relayMutation: options.relayMutation,
-    ...(options.freenetBackend === undefined ? {} : { freenetBackend: options.freenetBackend }),
+    ...(options.freenetBackend === undefined
+      ? {}
+      : { freenetBackend: options.freenetBackend }),
     deviceManager,
     callbacks: {
       onWidgetTree: () => pushRuntime(),
-      onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),
+      onLog: (entry) =>
+        options.send({
+          type: "miniapp-log",
+          appId: entry.appId,
+          line: entry.line,
+        }),
       onLifecycle: () => {
         options.onMiniappStateChange(host.snapshot().state !== "stopped");
         pushRuntime();
-      }
-    }
+      },
+    },
   });
 
   requirePublisherIdentity = createPublisherIdentityLoader(
     options,
-    "No publisher identity is available; start the node first"
+    "No publisher identity is available; start the node first",
   );
   collectWorkspaceFiles = createWorkspaceFileCollector(host);
   pushPreviewRuntime = createPreviewRuntimePusher(options.send, previewRef);
-  pushRuntime = createMainRuntimePusher(options.send, host, devBadgeRef, { slot: "main" });
+  pushRuntime = createMainRuntimePusher(options.send, host, devBadgeRef, {
+    slot: "main",
+  });
   stopPreviewHost = createPreviewHostStopper(options.send, previewRef);
   createPreviewHost = createPreviewHostFactory({
-    createBackend: () => createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
+    createBackend: () =>
+      createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     send: options.send,
-    pushPreviewRuntime
+    pushPreviewRuntime,
   });
   const { startWatchdog, clearWatchdog } = createWatchdogHelpers(host);
 
@@ -374,7 +422,11 @@ export function createWorkletMiniappHost(options) {
     },
 
     async launch(installedStore, runtime, appId, launchOptions = {}) {
-      const { record, bundle } = await loadBundleForApp(installedStore, runtime, appId);
+      const { record, bundle } = await loadBundleForApp(
+        installedStore,
+        runtime,
+        appId,
+      );
       const launchDeps = {
         record,
         grantStore,
@@ -384,17 +436,22 @@ export function createWorkletMiniappHost(options) {
         bundle,
         startWatchdog,
         pushRuntime,
-        devBadgeRef
+        devBadgeRef,
       };
 
-      if (launchOptions.skipReview !== true && options.requestLaunchReview !== undefined) {
+      if (
+        launchOptions.skipReview !== true &&
+        options.requestLaunchReview !== undefined
+      ) {
         await launchWithCapabilityReview({
           ...launchDeps,
           requestReview: async (review) =>
             options.requestLaunchReview({
-              token: generateConfirmationToken((length) => options.provider.randomBytes(length)),
-              ...review
-            })
+              token: generateConfirmationToken((length) =>
+                options.provider.randomBytes(length),
+              ),
+              ...review,
+            }),
         });
         return;
       }
@@ -421,8 +478,14 @@ export function createWorkletMiniappHost(options) {
     ...(options.enableBenchmark === true
       ? {
           async benchmark() {
-            const backend = createSandboxBackend(options.sandboxBackend ?? "bare-worker");
-            const spawnKill = await measureSpawnKill(backend, helloBenchmarkBundle, BENCHMARK_ITERATIONS);
+            const backend = createSandboxBackend(
+              options.sandboxBackend ?? "bare-worker",
+            );
+            const spawnKill = await measureSpawnKill(
+              backend,
+              helloBenchmarkBundle,
+              BENCHMARK_ITERATIONS,
+            );
             const busyLoop = await measureBusyLoopKill(backend);
 
             if (!busyLoop.busyLoopKilled) {
@@ -437,9 +500,9 @@ export function createWorkletMiniappHost(options) {
               spawnMs: spawnKill.spawnMs,
               killMs: spawnKill.killMs,
               busyLoopKillMs: busyLoop.busyLoopKillMs,
-              busyLoopKilled: busyLoop.busyLoopKilled
+              busyLoopKilled: busyLoop.busyLoopKilled,
             };
-          }
+          },
         }
       : {}),
 
@@ -459,7 +522,7 @@ export function createWorkletMiniappHost(options) {
       getDeveloperMode: () => developerMode,
       devBadgeRef,
       host,
-      pushRuntime
-    })
+      pushRuntime,
+    }),
   };
 }

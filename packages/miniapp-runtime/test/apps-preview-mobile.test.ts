@@ -3,7 +3,7 @@ import {
   GrantStore,
   MemoryKvStoreBackend,
   MiniappHost,
-  NodeWorkerSandboxBackend
+  NodeWorkerSandboxBackend,
 } from "../src/index.js";
 
 describe("apps:preview on mobile host platforms", () => {
@@ -27,9 +27,9 @@ describe("apps:preview on mobile host platforms", () => {
               kvQuotaBytes: null,
               seedStorageUsedBytes: null,
               seedStorageQuotaBytes: null,
-              memoryBytes: null
-            }
-          })
+              memoryBytes: null,
+            },
+          }),
         },
         appsBackend: {
           package: async () => {
@@ -47,8 +47,8 @@ describe("apps:preview on mobile host platforms", () => {
           },
           stopPreview: async () => {
             previewActive = false;
-          }
-        }
+          },
+        },
       });
 
       const manifest = {
@@ -56,9 +56,14 @@ describe("apps:preview on mobile host platforms", () => {
         version: "1",
         entry: "bundle.js",
         publisherPublicKey: "publisher",
-        capabilities: ["apps:preview"]
+        capabilities: ["apps:preview"],
       };
-      await host.setGrants("devstudio", "publisher", ["apps:preview", "presence"], ["apps:preview", "presence"]);
+      await host.setGrants(
+        "devstudio",
+        "publisher",
+        ["apps:preview", "presence"],
+        ["apps:preview", "presence"],
+      );
 
       const preview = await host.dispatchRaw(
         {
@@ -71,13 +76,13 @@ describe("apps:preview on mobile host platforms", () => {
               name: "hello",
               version: "1.0.0",
               entry: "bundle.js",
-              capabilities: ["storage:kv"]
+              capabilities: ["storage:kv"],
             },
-            grants: ["storage:kv"]
-          }
+            grants: ["storage:kv"],
+          },
         },
         { ...manifest, capabilities: ["apps:preview", "presence"] },
-        ["apps:preview"]
+        ["apps:preview"],
       );
       expect(preview.ok).toBe(true);
       expect(previewActive).toBe(true);
@@ -85,7 +90,7 @@ describe("apps:preview on mobile host platforms", () => {
       const stopped = await host.dispatchRaw(
         { id: "stop", namespace: "apps", method: "stopPreview", payload: {} },
         { ...manifest, capabilities: ["apps:preview", "presence"] },
-        ["apps:preview"]
+        ["apps:preview"],
       );
       expect(stopped.ok).toBe(true);
       expect(previewActive).toBe(false);
@@ -93,7 +98,7 @@ describe("apps:preview on mobile host platforms", () => {
       const info = await host.dispatchRaw(
         { id: "info", namespace: "host", method: "info", payload: {} },
         { ...manifest, capabilities: ["apps:preview", "presence"] },
-        ["presence"]
+        ["presence"],
       );
       expect(info.ok).toBe(true);
       expect((info.result as { platform: string }).platform).toBe(platform);

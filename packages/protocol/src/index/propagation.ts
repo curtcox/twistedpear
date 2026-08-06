@@ -58,7 +58,7 @@ export {
   type TreatPropagationListAsEmptyAction,
   type TreatPropagationListAsEmptyEvent,
   type TreatPropagationListAsEmptyState,
-  type TreatPropagationListAsEmptyStepResult
+  type TreatPropagationListAsEmptyStepResult,
 } from "../propagation-transfer.js";
 export {
   PROPAGATION_DESTINATION_HASH_SIZE,
@@ -182,7 +182,7 @@ export {
   type SelectOldestPropagationKeyAction,
   type SelectOldestPropagationKeyEvent,
   type SelectOldestPropagationKeyState,
-  type SelectOldestPropagationKeyStepResult
+  type SelectOldestPropagationKeyStepResult,
 } from "../propagation-quota.js";
 export {
   initialAcceptPropagationGetRequestDataState,
@@ -218,5 +218,5 @@ export {
   type PropagationGetPlanState,
   type PropagationGetPlanStepResult,
   type PropagationGetState,
-  type PropagationGetStepResult
+  type PropagationGetStepResult,
 } from "../propagation-get.js";

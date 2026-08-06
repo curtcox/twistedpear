@@ -1,7 +1,11 @@
 import { prepareBundleSource } from "./prepare-bundle.js";
 import { createBrowserWorkerBootstrapSource } from "./browser-worker-bootstrap.js";
 import { reviveJsonWireValue } from "./json-wire.js";
-import type { SandboxBackend, SandboxInstance, SandboxSpawnOptions } from "./backend.js";
+import type {
+  SandboxBackend,
+  SandboxInstance,
+  SandboxSpawnOptions,
+} from "./backend.js";
 
 export class WebSandboxBackendUnavailableError extends Error {
   constructor() {
@@ -83,14 +87,19 @@ interface BrokerWireResponse {
 
 export class WebSandboxBackend implements SandboxBackend {
   readonly name = "web-iframe-worker";
-  lastSpawnDiagnostics: { readonly reason: string | null; readonly detail: string | null } | null = null;
+  lastSpawnDiagnostics: {
+    readonly reason: string | null;
+    readonly detail: string | null;
+  } | null = null;
 
   async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
     if (typeof document === "undefined") {
       throw new WebSandboxBackendUnavailableError();
     }
 
-    const source = prepareBundleSource(new TextDecoder().decode(options.bundle));
+    const source = prepareBundleSource(
+      new TextDecoder().decode(options.bundle),
+    );
     const iframe = document.createElement("iframe");
     iframe.setAttribute("sandbox", "allow-scripts");
     iframe.setAttribute("title", `miniapp-sandbox-${options.appId}`);
@@ -102,7 +111,10 @@ export class WebSandboxBackend implements SandboxBackend {
     hostPort.start();
 
     this.lastSpawnDiagnostics = null;
-    const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
+    const pending = new Map<
+      string,
+      { resolve: (value: unknown) => void; reject: (error: Error) => void }
+    >();
     let killed = false;
     let alive = true;
     let lastExitReason: string | null = null;
@@ -127,16 +139,25 @@ export class WebSandboxBackend implements SandboxBackend {
 
       if (message.type === "sandbox-exit") {
         alive = false;
-        lastExitReason = typeof message.reason === "string" ? message.reason : "sandbox-exit";
-        lastExitDetail = typeof message.detail === "string" ? message.detail : null;
-        this.lastSpawnDiagnostics = { reason: lastExitReason, detail: lastExitDetail };
+        lastExitReason =
+          typeof message.reason === "string" ? message.reason : "sandbox-exit";
+        lastExitDetail =
+          typeof message.detail === "string" ? message.detail : null;
+        this.lastSpawnDiagnostics = {
+          reason: lastExitReason,
+          detail: lastExitDetail,
+        };
         return;
       }
 
       if (message.type === "app-error") {
         lastExitReason = "app-error";
-        lastExitDetail = typeof message.message === "string" ? message.message : "app-error";
-        this.lastSpawnDiagnostics = { reason: lastExitReason, detail: lastExitDetail };
+        lastExitDetail =
+          typeof message.message === "string" ? message.message : "app-error";
+        this.lastSpawnDiagnostics = {
+          reason: lastExitReason,
+          detail: lastExitDetail,
+        };
         return;
       }
 
@@ -149,7 +170,7 @@ export class WebSandboxBackend implements SandboxBackend {
             type: "broker-response",
             id: message.id,
             ok: false,
-            error: { message: "Broker endpoint is not configured" }
+            error: { message: "Broker endpoint is not configured" },
           });
           return;
         }
@@ -158,15 +179,15 @@ export class WebSandboxBackend implements SandboxBackend {
           (response) =>
             hostPort.postMessage({
               type: "broker-response",
-              ...normalizeBrokerResponse(response as BrokerWireResponse)
+              ...normalizeBrokerResponse(response as BrokerWireResponse),
             }),
           (error: Error) =>
             hostPort.postMessage({
               type: "broker-response",
               id: message.id,
               ok: false,
-              error: { message: error.message }
-            })
+              error: { message: error.message },
+            }),
         );
         return;
       }
@@ -181,7 +202,9 @@ export class WebSandboxBackend implements SandboxBackend {
         if (message.ok) {
           waiter.resolve(message.result);
         } else {
-          waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
+          waiter.reject(
+            new Error(message.error?.message ?? "Broker request failed"),
+          );
         }
       }
     };
@@ -204,10 +227,10 @@ export class WebSandboxBackend implements SandboxBackend {
       {
         type: "sandbox-init",
         bundleSource: source,
-        workerBootstrap: createBrowserWorkerBootstrapSource()
+        workerBootstrap: createBrowserWorkerBootstrapSource(),
       },
       "*",
-      [channel.port2]
+      [channel.port2],
     );
 
     return {
@@ -242,7 +265,7 @@ export class WebSandboxBackend implements SandboxBackend {
             reject: () => {
               clearTimeout(timer);
               resolve(false);
-            }
+            },
           });
           hostPort.postMessage({ type: "ping", id });
         });
@@ -258,12 +281,14 @@ export class WebSandboxBackend implements SandboxBackend {
         hostPort.removeEventListener("message", handleHostPortMessage);
         hostPort.close();
         iframe.remove();
-      }
+      },
     };
   }
 }
 
-function normalizeBrokerResponse(response: BrokerWireResponse): BrokerWireResponse {
+function normalizeBrokerResponse(
+  response: BrokerWireResponse,
+): BrokerWireResponse {
   if (!response.ok || response.result === undefined) {
     return response;
   }

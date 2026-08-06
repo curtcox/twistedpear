@@ -14,9 +14,14 @@ import {
   DestinationProofStrategy,
   DestinationType,
   Identity,
-  hexToBytes
+  hexToBytes,
 } from "../../packages/reticulum-ts/dist/index.js";
-import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import {
+  interopReady,
+  sleep,
+  withComposeService,
+  LEAF_ECHO_PORT,
+} from "../scenarios/ts/harness.mjs";
 import { waitForReceipt } from "../scenarios/bare/helpers.mjs";
 
 if (!interopReady()) {
@@ -25,16 +30,21 @@ if (!interopReady()) {
 }
 
 const identityVectors = JSON.parse(
-  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8"),
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  const entry = identityVectors.identities.find(
+    (candidate) => candidate.name === name,
+  );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -64,7 +74,7 @@ const dataDir = mkdtempSync(join(tmpdir(), "tp-rnsd-"));
 try {
   await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
     const session = await createNodeHost({
-        identityPassphrase: "conformance identity passphrase",
+      identityPassphrase: "conformance identity passphrase",
       config: resolveHostConfig({
         dataDir,
         overrides: {
@@ -72,16 +82,21 @@ try {
             transport: false,
             seeder: false,
             propagation: false,
-            attachRnsd: { host: "127.0.0.1", port: LEAF_ECHO_PORT }
+            attachRnsd: { host: "127.0.0.1", port: LEAF_ECHO_PORT },
           },
           interfaces: {
-            tcp: { enabled: true, mode: "client", targetHost: "127.0.0.1", targetPort: LEAF_ECHO_PORT },
+            tcp: {
+              enabled: true,
+              mode: "client",
+              targetHost: "127.0.0.1",
+              targetPort: LEAF_ECHO_PORT,
+            },
             auto: { enabled: false, multicast: false, bonjour: false },
             i2p: { enabled: false },
-            rnode: { enabled: false }
-          }
-        }
-      })
+            rnode: { enabled: false },
+          },
+        },
+      }),
     });
 
     const status = session.getStatus();
@@ -103,7 +118,7 @@ try {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["echo"]
+      aspects: ["echo"],
     });
     aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -113,7 +128,7 @@ try {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["echo"]
+      aspects: ["echo"],
     });
 
     await aliceIn.announce();
@@ -130,7 +145,10 @@ try {
 
     const deadline = Date.now() + 10_000;
     while (Date.now() < deadline) {
-      if (received.has("rnsd-mode-ping") && received.has("hello from python leaf echo")) {
+      if (
+        received.has("rnsd-mode-ping") &&
+        received.has("hello from python leaf echo")
+      ) {
         break;
       }
 

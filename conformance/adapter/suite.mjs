@@ -15,7 +15,8 @@
 //   logging:   { emit(intent), records() }
 import { canonicalJson, fnv1a64 } from "../kernel/runner.mjs";
 
-const hex = (bytes) => [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+const hex = (bytes) =>
+  [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 export const families = {
   clock: {
@@ -26,7 +27,7 @@ export const families = {
         await Promise.resolve();
       }
       const monotone = readings.every(
-        (value, index) => index === 0 || value >= readings[index - 1]
+        (value, index) => index === 0 || value >= readings[index - 1],
       );
       const numeric = readings.every((value) => Number.isFinite(value));
       // Wall-clock values are pacing, not observation: keep only their shape.
@@ -35,7 +36,7 @@ export const families = {
     invariants(obs, fail) {
       if (!obs.monotone) fail("clock must be monotone non-decreasing");
       if (!obs.numeric) fail("clock must return finite numbers");
-    }
+    },
   },
 
   entropy: {
@@ -45,15 +46,18 @@ export const families = {
       const third = adapter.randomBytes(32);
       return {
         lengths: [first.length, second.length, third.length],
-        distinct: hex(first) !== hex(second)
+        distinct: hex(first) !== hex(second),
       };
     },
     invariants(obs, fail) {
       if (JSON.stringify(obs.lengths) !== "[16,16,32]") {
-        fail(`randomBytes returned wrong lengths: ${JSON.stringify(obs.lengths)}`);
+        fail(
+          `randomBytes returned wrong lengths: ${JSON.stringify(obs.lengths)}`,
+        );
       }
-      if (!obs.distinct) fail("consecutive entropy requests returned identical bytes");
-    }
+      if (!obs.distinct)
+        fail("consecutive entropy requests returned identical bytes");
+    },
   },
 
   timers: {
@@ -71,17 +75,25 @@ export const families = {
       if (JSON.stringify(obs.fired) !== '["t1","t3"]') {
         fail(`timers fired out of delay order: ${JSON.stringify(obs.fired)}`);
       }
-    }
+    },
   },
 
   transport: {
     async observe(adapter) {
       const received = [];
       adapter.onRecv((event) => {
-        received.push({ channel: event.channel, source: event.source, payload: hex(event.payload) });
+        received.push({
+          channel: event.channel,
+          source: event.source,
+          payload: hex(event.payload),
+        });
       });
       for (const byte of [1, 2, 3]) {
-        adapter.send("a", { channel: "x", destination: "b", payload: new Uint8Array([byte, 0xff]) });
+        adapter.send("a", {
+          channel: "x",
+          destination: "b",
+          payload: new Uint8Array([byte, 0xff]),
+        });
       }
       await adapter.settle(60);
       return { received };
@@ -90,22 +102,27 @@ export const families = {
       const expected = [
         { channel: "x", source: "a", payload: "01ff" },
         { channel: "x", source: "a", payload: "02ff" },
-        { channel: "x", source: "a", payload: "03ff" }
+        { channel: "x", source: "a", payload: "03ff" },
       ];
       if (JSON.stringify(obs.received) !== JSON.stringify(expected)) {
-        fail(`transport altered payloads, order, or envelope: ${JSON.stringify(obs.received)}`);
+        fail(
+          `transport altered payloads, order, or envelope: ${JSON.stringify(obs.received)}`,
+        );
       }
-    }
+    },
   },
 
   storage: {
     async observe(adapter) {
       const script = [
-        { kind: "store/write", write: { key: "k1", value: new Uint8Array([0xbe, 0xef]) } },
+        {
+          kind: "store/write",
+          write: { key: "k1", value: new Uint8Array([0xbe, 0xef]) },
+        },
         { kind: "store/read", read: { key: "k1" } },
         { kind: "store/read", read: { key: "missing" } },
         { kind: "store/delete", del: { key: "k1" } },
-        { kind: "store/read", read: { key: "k1" } }
+        { kind: "store/read", read: { key: "k1" } },
       ];
       const events = [];
       for (const intent of script) {
@@ -115,7 +132,7 @@ export const families = {
             key: event.key,
             ...(event.kind === "store/value"
               ? { value: event.value === undefined ? null : hex(event.value) }
-              : { op: event.op })
+              : { op: event.op }),
           });
         }
       }
@@ -127,12 +144,12 @@ export const families = {
         { kind: "store/value", key: "k1", value: "beef" },
         { kind: "store/value", key: "missing", value: null },
         { kind: "store/done", key: "k1", op: "delete" },
-        { kind: "store/value", key: "k1", value: null }
+        { kind: "store/value", key: "k1", value: null },
       ];
       if (JSON.stringify(obs.events) !== JSON.stringify(expected)) {
         fail(`storage event stream diverged: ${JSON.stringify(obs.events)}`);
       }
-    }
+    },
   },
 
   logging: {
@@ -141,23 +158,29 @@ export const families = {
         { kind: "log", level: "debug", message: "d" },
         { kind: "log", level: "info", message: "i" },
         { kind: "log", level: "warn", message: "w" },
-        { kind: "log", level: "error", message: "e" }
+        { kind: "log", level: "error", message: "e" },
       ];
       for (const intent of script) adapter.emit(intent);
-      return { records: adapter.records().map(({ level, message }) => ({ level, message })) };
+      return {
+        records: adapter
+          .records()
+          .map(({ level, message }) => ({ level, message })),
+      };
     },
     invariants(obs, fail) {
       const expected = [
         { level: "debug", message: "d" },
         { level: "info", message: "i" },
         { level: "warn", message: "w" },
-        { level: "error", message: "e" }
+        { level: "error", message: "e" },
       ];
       if (JSON.stringify(obs.records) !== JSON.stringify(expected)) {
-        fail(`log records dropped or reordered: ${JSON.stringify(obs.records)}`);
+        fail(
+          `log records dropped or reordered: ${JSON.stringify(obs.records)}`,
+        );
       }
-    }
-  }
+    },
+  },
 };
 
 export function observationHash(observations) {
@@ -170,7 +193,9 @@ export async function runFamily(familyName, adapter) {
   if (family === undefined) throw new Error(`unknown family: ${familyName}`);
   const failures = [];
   const observations = await family.observe(adapter);
-  family.invariants(observations, (message) => failures.push({ family: familyName, message }));
+  family.invariants(observations, (message) =>
+    failures.push({ family: familyName, message }),
+  );
   return { observations, failures };
 }
 
@@ -182,16 +207,19 @@ export async function runFamily(familyName, adapter) {
 export async function runAdapterPair(familyName, candidateFactory, simFactory) {
   const candidate = await runFamily(familyName, candidateFactory());
   const sim = await runFamily(familyName, simFactory());
-  const failures = [...candidate.failures, ...sim.failures.map((failure) => ({
-    ...failure,
-    message: `simulated reference: ${failure.message}`
-  }))];
+  const failures = [
+    ...candidate.failures,
+    ...sim.failures.map((failure) => ({
+      ...failure,
+      message: `simulated reference: ${failure.message}`,
+    })),
+  ];
   const candidateHash = observationHash(candidate.observations);
   const simHash = observationHash(sim.observations);
   if (candidateHash !== simHash) {
     failures.push({
       family: familyName,
-      message: `observational equivalence broken: candidate ${candidateHash} != sim ${simHash}\n  candidate: ${JSON.stringify(candidate.observations)}\n  sim:       ${JSON.stringify(sim.observations)}`
+      message: `observational equivalence broken: candidate ${candidateHash} != sim ${simHash}\n  candidate: ${JSON.stringify(candidate.observations)}\n  sim:       ${JSON.stringify(sim.observations)}`,
     });
   }
   return { candidateHash, simHash, failures };

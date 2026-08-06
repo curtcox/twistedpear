@@ -19,7 +19,7 @@ If you want twenty-five complete sample apps rather than a systematic tour of th
 [Cookbook](../cookbook/README.md) works the other way round: it starts with an app somebody
 would want and works backwards to the calls that build it.
 
-If you want to *use* TwistedPear rather than build for it, read the
+If you want to _use_ TwistedPear rather than build for it, read the
 [User Guide](../guide/README.md) instead. If you want to work on the platform itself, start
 at the [documentation index](../docs/README.md).
 
@@ -35,23 +35,23 @@ grants: storage:kv".
 
 ## Chapters
 
-| # | Chapter | What you get out of it |
-|---|---|---|
-| 1 | [What you are building](01-what-you-are-building.md) | The mini-app model: one import, one broker, a widget tree, and a signed package. |
-| 2 | [Hello world in DevStudio](02-hello-world-in-devstudio.md) | Write, preview, package, and publish without installing a toolchain. |
-| 3 | [Hello world with the CLI](03-hello-world-with-the-cli.md) | The same loop with your own editor, `tp`, and git. |
-| 4 | [Building the UI](04-building-the-ui.md) | Widget trees, the component allowlist, styling, and events. |
-| 5 | [Capabilities](05-capabilities.md) | Declaring what you need, surviving a partial grant, and the confirmation dialogs. |
-| 6 | [Storage and files](06-storage-and-files.md) | Key/value, Hyperbee, the workspace, and the quotas on all three. |
-| 7 | [Identity, messaging, and peers](07-identity-messaging-and-peers.md) | App-scoped identity, LXMF, announces, presence, and resource fetch. |
-| 8 | [AI and apps that build apps](08-ai-and-authoring-apps.md) | `ai.chat`, and the `apps:*` capabilities that let an app package and publish apps. |
-| 9 | [Packaging and publishing](09-packaging-and-publishing.md) | The manifest, the `.tpkg` archive, signing, and the 256t identifier. |
-| 10 | [Updates, trust, and versioning](10-updates-and-trust.md) | Key pinning, semver monotonicity, grant inheritance, and rollback. |
-| 11 | [Testing and debugging](11-testing-and-debugging.md) | The preview slot, dev side-load, conformance suites, and reading a denial. |
-| 12 | [Limits and budgets](12-limits-and-budgets.md) | Every hard number the host enforces, and what your bundle size costs on LoRa. |
-| 13 | [Shipping checklist](13-shipping-checklist.md) | What to verify before you hand anyone a 256t string. |
-| — | [Appendix: SDK reference](appendix-sdk-reference.md) | Every namespace and call in one table. |
-| — | [Appendix: feature status](appendix-feature-status.md) | Every incomplete feature named in this guide, with its blocker. |
+| #   | Chapter                                                              | What you get out of it                                                             |
+| --- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | [What you are building](01-what-you-are-building.md)                 | The mini-app model: one import, one broker, a widget tree, and a signed package.   |
+| 2   | [Hello world in DevStudio](02-hello-world-in-devstudio.md)           | Write, preview, package, and publish without installing a toolchain.               |
+| 3   | [Hello world with the CLI](03-hello-world-with-the-cli.md)           | The same loop with your own editor, `tp`, and git.                                 |
+| 4   | [Building the UI](04-building-the-ui.md)                             | Widget trees, the component allowlist, styling, and events.                        |
+| 5   | [Capabilities](05-capabilities.md)                                   | Declaring what you need, surviving a partial grant, and the confirmation dialogs.  |
+| 6   | [Storage and files](06-storage-and-files.md)                         | Key/value, Hyperbee, the workspace, and the quotas on all three.                   |
+| 7   | [Identity, messaging, and peers](07-identity-messaging-and-peers.md) | App-scoped identity, LXMF, announces, presence, and resource fetch.                |
+| 8   | [AI and apps that build apps](08-ai-and-authoring-apps.md)           | `ai.chat`, and the `apps:*` capabilities that let an app package and publish apps. |
+| 9   | [Packaging and publishing](09-packaging-and-publishing.md)           | The manifest, the `.tpkg` archive, signing, and the 256t identifier.               |
+| 10  | [Updates, trust, and versioning](10-updates-and-trust.md)            | Key pinning, semver monotonicity, grant inheritance, and rollback.                 |
+| 11  | [Testing and debugging](11-testing-and-debugging.md)                 | The preview slot, dev side-load, conformance suites, and reading a denial.         |
+| 12  | [Limits and budgets](12-limits-and-budgets.md)                       | Every hard number the host enforces, and what your bundle size costs on LoRa.      |
+| 13  | [Shipping checklist](13-shipping-checklist.md)                       | What to verify before you hand anyone a 256t string.                               |
+| —   | [Appendix: SDK reference](appendix-sdk-reference.md)                 | Every namespace and call in one table.                                             |
+| —   | [Appendix: feature status](appendix-feature-status.md)               | Every incomplete feature named in this guide, with its blocker.                    |
 
 Terms this guide uses without defining are defined in the user guide's
 [glossary](../guide/glossary.md).
@@ -85,15 +85,15 @@ this guide, they win.
 There are two ways to author a mini-app, and this guide covers both because they suit
 different people.
 
-| | DevStudio ([Chapter 2](02-hello-world-in-devstudio.md)) | CLI ([Chapter 3](03-hello-world-with-the-cli.md)) |
-|---|---|---|
-| Where you write | Inside TwistedPear, in a `code-editor` widget | Your own editor |
-| What you install | Nothing — DevStudio is itself a mini-app | Node 22, the repository, `tp` |
-| Version control | None | Whatever you already use |
-| Bundling | None — single file, SDK import only | None — single file, SDK import only |
-| Preview | Sandboxed dev-preview slot on the same host | Dev side-load to a host in developer mode |
-| Signing | Device publisher identity, via host confirmation | `tp sign` with your publisher identity file |
-| Works on a phone | Yes | No |
+|                  | DevStudio ([Chapter 2](02-hello-world-in-devstudio.md)) | CLI ([Chapter 3](03-hello-world-with-the-cli.md)) |
+| ---------------- | ------------------------------------------------------- | ------------------------------------------------- |
+| Where you write  | Inside TwistedPear, in a `code-editor` widget           | Your own editor                                   |
+| What you install | Nothing — DevStudio is itself a mini-app                | Node 22, the repository, `tp`                     |
+| Version control  | None                                                    | Whatever you already use                          |
+| Bundling         | None — single file, SDK import only                     | None — single file, SDK import only               |
+| Preview          | Sandboxed dev-preview slot on the same host             | Dev side-load to a host in developer mode         |
+| Signing          | Device publisher identity, via host confirmation        | `tp sign` with your publisher identity file       |
+| Works on a phone | Yes                                                     | No                                                |
 
 They produce **identical packages**. Nothing about a `.tpkg` records which path built it, and
 you can move a project between them by copying two files.

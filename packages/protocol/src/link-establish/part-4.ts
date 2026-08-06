@@ -47,20 +47,25 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions
+  stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { canLinkRequest, canUpdateLinkKeepalive } from "./part-3.js";
-import type { UpdateLinkKeepaliveAllowAction, UpdateLinkKeepaliveAllowEvent, UpdateLinkKeepaliveAllowState, UpdateLinkKeepaliveAllowStepResult } from "./part-3.js";
+import type {
+  UpdateLinkKeepaliveAllowAction,
+  UpdateLinkKeepaliveAllowEvent,
+  UpdateLinkKeepaliveAllowState,
+  UpdateLinkKeepaliveAllowStepResult,
+} from "./part-3.js";
 export function initialUpdateLinkKeepaliveAllowState(): UpdateLinkKeepaliveAllowState {
   return {};
 }
 
 export function stepUpdateLinkKeepaliveAllowWithActions(
   state: UpdateLinkKeepaliveAllowState,
-  event: UpdateLinkKeepaliveAllowEvent
+  event: UpdateLinkKeepaliveAllowEvent,
 ): UpdateLinkKeepaliveAllowStepResult {
   if (event.kind === "link/update-keepalive-allow-gate") {
     return {
@@ -68,9 +73,9 @@ export function stepUpdateLinkKeepaliveAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canUpdateLinkKeepalive(event.rttPresent) ? "allow" : "deny"
-        }
-      ]
+          kind: canUpdateLinkKeepalive(event.rttPresent) ? "allow" : "deny",
+        },
+      ],
     };
   }
 
@@ -78,13 +83,13 @@ export function stepUpdateLinkKeepaliveAllowWithActions(
 }
 
 export function shouldAllowUpdateLinkKeepalive(
-  actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>
+  actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyUpdateLinkKeepalive(
-  actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>
+  actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -92,7 +97,6 @@ export function shouldDenyUpdateLinkKeepalive(
 export function shouldCreateLinkChannel(channelPresent: boolean): boolean {
   return !channelPresent;
 }
-
 
 /**
  * shouldCreateLinkChannel gate is event-driven; no durable session fields.
@@ -110,8 +114,7 @@ export type CreateLinkChannelEvent =
     };
 
 export type CreateLinkChannelAction =
-  | { readonly kind: "create" }
-  | { readonly kind: "reuse" };
+  { readonly kind: "create" } | { readonly kind: "reuse" };
 
 export interface CreateLinkChannelStepResult {
   readonly state: CreateLinkChannelState;
@@ -125,7 +128,7 @@ export function initialCreateLinkChannelState(): CreateLinkChannelState {
 
 export function stepCreateLinkChannelWithActions(
   state: CreateLinkChannelState,
-  event: CreateLinkChannelEvent
+  event: CreateLinkChannelEvent,
 ): CreateLinkChannelStepResult {
   if (event.kind === "link/create-channel-gate") {
     return {
@@ -133,9 +136,11 @@ export function stepCreateLinkChannelWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldCreateLinkChannel(event.channelPresent) ? "create" : "reuse"
-        }
-      ]
+          kind: shouldCreateLinkChannel(event.channelPresent)
+            ? "create"
+            : "reuse",
+        },
+      ],
     };
   }
 
@@ -143,13 +148,13 @@ export function stepCreateLinkChannelWithActions(
 }
 
 export function shouldCreateLinkChannelNow(
-  actions: ReadonlyArray<CreateLinkChannelAction>
+  actions: ReadonlyArray<CreateLinkChannelAction>,
 ): boolean {
   return actions.some((action) => action.kind === "create");
 }
 
 export function shouldReuseLinkChannel(
-  actions: ReadonlyArray<CreateLinkChannelAction>
+  actions: ReadonlyArray<CreateLinkChannelAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reuse");
 }
@@ -205,7 +210,7 @@ export function initialLinkTokenAccessPlanState(): LinkTokenAccessPlanState {
 
 export function stepLinkTokenAccessPlanWithActions(
   state: LinkTokenAccessPlanState,
-  event: LinkTokenAccessPlanEvent
+  event: LinkTokenAccessPlanEvent,
 ): LinkTokenAccessPlanStepResult {
   if (event.kind === "token/access-plan-gate") {
     return {
@@ -215,10 +220,10 @@ export function stepLinkTokenAccessPlanWithActions(
         {
           kind: planLinkTokenAccess({
             derivedKeyPresent: event.derivedKeyPresent,
-            tokenPresent: event.tokenPresent
-          })
-        }
-      ]
+            tokenPresent: event.tokenPresent,
+          }),
+        },
+      ],
     };
   }
 
@@ -226,32 +231,32 @@ export function stepLinkTokenAccessPlanWithActions(
 }
 
 export function shouldRejectNoKeyLinkTokenAccessPlan(
-  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-no-key");
 }
 
 export function shouldCreateLinkTokenAccessPlan(
-  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "create");
 }
 
 export function shouldReuseLinkTokenAccessPlan(
-  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reuse");
 }
 
 /** Extract the token-access plan from actions; null when empty. */
 export function linkTokenAccessPlanFromActions(
-  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): LinkTokenAccessPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "reject-no-key" ||
       entry.kind === "create" ||
-      entry.kind === "reuse"
+      entry.kind === "reuse",
   );
   return action?.kind ?? null;
 }
@@ -287,46 +292,52 @@ export function initialLinkTokenAccessState(): LinkTokenAccessState {
   return {};
 }
 
-export const stepLinkTokenAccess: StepFn<LinkTokenAccessState> = (state, event) => {
+export const stepLinkTokenAccess: StepFn<LinkTokenAccessState> = (
+  state,
+  event,
+) => {
   const result = stepLinkTokenAccessInner(state, event as LinkTokenAccessEvent);
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkTokenAccessWithActions(
   state: LinkTokenAccessState,
-  event: LinkTokenAccessEvent
+  event: LinkTokenAccessEvent,
 ): LinkTokenAccessStepResult {
   return stepLinkTokenAccessInner(state, event);
 }
 
 export function shouldRejectLinkTokenNoKey(
-  actions: ReadonlyArray<LinkTokenAccessAction>
+  actions: ReadonlyArray<LinkTokenAccessAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject-no-key");
 }
 
 export function shouldCreateLinkToken(
-  actions: ReadonlyArray<LinkTokenAccessAction>
+  actions: ReadonlyArray<LinkTokenAccessAction>,
 ): boolean {
   return actions.some((action) => action.kind === "create");
 }
 
 export function shouldReuseLinkToken(
-  actions: ReadonlyArray<LinkTokenAccessAction>
+  actions: ReadonlyArray<LinkTokenAccessAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reuse");
 }
 
 function stepLinkTokenAccessInner(
   state: LinkTokenAccessState,
-  event: LinkTokenAccessEvent
+  event: LinkTokenAccessEvent,
 ): LinkTokenAccessStepResult {
   if (event.kind === "token/access-gate") {
-    const planActions = stepLinkTokenAccessPlanWithActions(initialLinkTokenAccessPlanState(), {
-      kind: "token/access-plan-gate",
-      derivedKeyPresent: event.derivedKeyPresent,
-      tokenPresent: event.tokenPresent
-    }).actions;
+    const planActions = stepLinkTokenAccessPlanWithActions(
+      initialLinkTokenAccessPlanState(),
+      {
+        kind: "token/access-plan-gate",
+        derivedKeyPresent: event.derivedKeyPresent,
+        tokenPresent: event.tokenPresent,
+      },
+    ).actions;
     if (shouldRejectNoKeyLinkTokenAccessPlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-no-key" }] };
     }
@@ -395,7 +406,7 @@ export function initialLinkAppRequestPlanState(): LinkAppRequestPlanState {
 
 export function stepLinkAppRequestPlanWithActions(
   state: LinkAppRequestPlanState,
-  event: LinkAppRequestPlanEvent
+  event: LinkAppRequestPlanEvent,
 ): LinkAppRequestPlanStepResult {
   if (event.kind === "link/app-request-plan-gate") {
     return {
@@ -407,10 +418,10 @@ export function stepLinkAppRequestPlanWithActions(
             status: event.status,
             rtt: event.rtt,
             packedLength: event.packedLength,
-            mdu: event.mdu
-          })
-        }
-      ]
+            mdu: event.mdu,
+          }),
+        },
+      ],
     };
   }
 
@@ -419,20 +430,22 @@ export function stepLinkAppRequestPlanWithActions(
 
 /** Extract the app-request plan from actions; null when empty. */
 export function linkAppRequestPlanFromActions(
-  actions: ReadonlyArray<LinkAppRequestPlanAction>
+  actions: ReadonlyArray<LinkAppRequestPlanAction>,
 ): LinkAppRequestPlan | null {
-  const action = actions.find((entry) => entry.kind === "send" || entry.kind === "reject");
+  const action = actions.find(
+    (entry) => entry.kind === "send" || entry.kind === "reject",
+  );
   return action?.kind ?? null;
 }
 
 export function shouldSendLinkAppRequestPlan(
-  actions: ReadonlyArray<LinkAppRequestPlanAction>
+  actions: ReadonlyArray<LinkAppRequestPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "send");
 }
 
 export function shouldRejectLinkAppRequestPlan(
-  actions: ReadonlyArray<LinkAppRequestPlanAction>
+  actions: ReadonlyArray<LinkAppRequestPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -466,23 +479,26 @@ export interface LinkAppRequestStepResult {
 
 export function stepLinkAppRequestWithActions(
   state: LinkAppRequestState,
-  event: LinkAppRequestEvent
+  event: LinkAppRequestEvent,
 ): LinkAppRequestStepResult {
   return stepLinkAppRequestInner(state, event);
 }
 
 export function stepLinkAppRequestInner(
   state: LinkAppRequestState,
-  event: LinkAppRequestEvent
+  event: LinkAppRequestEvent,
 ): LinkAppRequestStepResult {
   if (event.kind === "link/app-request-gate") {
-    const planActions = stepLinkAppRequestPlanWithActions(initialLinkAppRequestPlanState(), {
-      kind: "link/app-request-plan-gate",
-      status: event.status,
-      rtt: event.rtt,
-      packedLength: event.packedLength,
-      mdu: event.mdu
-    }).actions;
+    const planActions = stepLinkAppRequestPlanWithActions(
+      initialLinkAppRequestPlanState(),
+      {
+        kind: "link/app-request-plan-gate",
+        status: event.status,
+        rtt: event.rtt,
+        packedLength: event.packedLength,
+        mdu: event.mdu,
+      },
+    ).actions;
     const plan = linkAppRequestPlanFromActions(planActions);
     if (plan === null) {
       return { state, intents: [], actions: [] };

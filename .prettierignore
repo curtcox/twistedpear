@@ -26,3 +26,15 @@ conformance/web-storage/fixture.mjs
 conformance/fixtures/packages/tiny.*
 apps/handbook/generated/
 apps/handbook/seeds/
+# Emitted by apps/handbook/build-reference.mjs
+apps/handbook/content/part-5-reference/
+
+# Assembled from entry-part-*.mjs / web-entry-part-*.mjs by assemble-worklet-entries.mjs
+apps/harness-mobile/worklet/entry.mjs
+apps/harness-mobile/worklet/web-entry.mjs
+
+# Concat fragments (not standalone modules; split across statements)
+apps/harness-mobile/worklet/entry-part-*.mjs
+apps/harness-mobile/worklet/web-entry-part-*.mjs
+
+apps/host-desktop/src/renderer/vendor/

@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   findMultilineCodeTagSpans,
-  findPublishedVitePressMarkdownHazards
+  findPublishedVitePressMarkdownHazards,
 } from "../../scripts/doc-audit/vitepress.mjs";
 
 describe("VitePress markdown compatibility", () => {
   it("detects HTML-like placeholders inside multiline inline code", () => {
     expect(
-      findMultilineCodeTagSpans("Run `tp node --freenet\n<url>` to connect.")
+      findMultilineCodeTagSpans("Run `tp node --freenet\n<url>` to connect."),
     ).toEqual([
       {
         line: 1,
-        excerpt: "`tp node --freenet\n<url>`"
-      }
+        excerpt: "`tp node --freenet\n<url>`",
+      },
     ]);
   });
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { PureCryptoProvider, Reticulum, nodeRuntime } from "@twistedpear/reticulum-ts";
+import {
+  PureCryptoProvider,
+  Reticulum,
+  nodeRuntime,
+} from "@twistedpear/reticulum-ts";
 import { SimulatedBlePipe } from "../src/ble/sim.js";
 import { BleInterface } from "../src/ble/interface.js";
 import type { SerialPipe, SerialPipeEvents } from "../src/pipes.js";
@@ -12,19 +16,37 @@ import {
   KISS_RADIO_STATE_ON,
   decodeKissFrames,
   createKissDecodeState,
-  encodeKissFrame
+  encodeKissFrame,
 } from "../src/rnode/kiss.js";
 
 const provider = new PureCryptoProvider();
 
 describe("simulated radio interfaces", () => {
   it("exchanges packets over linked BLE pipes with loss", async () => {
-    const leftPipe = new SimulatedBlePipe({ mtu: 185, lossRate: 0.02, random: () => 0.99 });
-    const rightPipe = new SimulatedBlePipe({ mtu: 185, lossRate: 0.02, random: () => 0.99 });
+    const leftPipe = new SimulatedBlePipe({
+      mtu: 185,
+      lossRate: 0.02,
+      random: () => 0.99,
+    });
+    const rightPipe = new SimulatedBlePipe({
+      mtu: 185,
+      lossRate: 0.02,
+      random: () => 0.99,
+    });
     leftPipe.linkPeer(rightPipe);
 
-    const left = await BleInterface.open(provider, { name: "ble-left", provider, pipe: leftPipe, pipeMtu: 185 });
-    const right = await BleInterface.open(provider, { name: "ble-right", provider, pipe: rightPipe, pipeMtu: 185 });
+    const left = await BleInterface.open(provider, {
+      name: "ble-left",
+      provider,
+      pipe: leftPipe,
+      pipeMtu: 185,
+    });
+    const right = await BleInterface.open(provider, {
+      name: "ble-right",
+      provider,
+      pipe: rightPipe,
+      pipeMtu: 185,
+    });
 
     const reticulum = Reticulum.create({ provider, runtime: nodeRuntime() });
     reticulum.start();
@@ -40,7 +62,11 @@ describe("simulated radio interfaces", () => {
 
   it("drives RNodeInterface over a simulated serial pipe", async () => {
     const pipe = new SimulatedRNodePipe();
-    const iface = await RNodeInterface.open(provider, { name: "rnode-test", provider, pipe });
+    const iface = await RNodeInterface.open(provider, {
+      name: "rnode-test",
+      provider,
+      pipe,
+    });
     expect(iface.rnodeStatus.radioOnline).toBe(true);
     await iface.close();
     await pipe.close();
@@ -59,7 +85,11 @@ class SimulatedRNodePipe implements SerialPipe {
   }
 
   get stats() {
-    return { bytesIn: this.bytesIn, bytesOut: this.bytesOut, connected: this.openState };
+    return {
+      bytesIn: this.bytesIn,
+      bytesOut: this.bytesOut,
+      connected: this.openState,
+    };
   }
 
   setEvents(events: SerialPipeEvents): void {
@@ -83,9 +113,16 @@ class SimulatedRNodePipe implements SerialPipe {
 
     for (const frame of decoded.frames) {
       if (frame.command === KISS_CMD_DETECT) {
-        this.reply(encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])));
+        this.reply(
+          encodeKissFrame(KISS_CMD_DETECT, Uint8Array.from([KISS_DETECT_RESP])),
+        );
       } else if (frame.command === KISS_CMD_RADIO_STATE) {
-        this.reply(encodeKissFrame(KISS_CMD_RADIO_STATE, Uint8Array.from([KISS_RADIO_STATE_ON])));
+        this.reply(
+          encodeKissFrame(
+            KISS_CMD_RADIO_STATE,
+            Uint8Array.from([KISS_RADIO_STATE_ON]),
+          ),
+        );
       }
     }
   }

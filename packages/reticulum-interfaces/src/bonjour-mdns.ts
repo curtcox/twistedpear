@@ -1,6 +1,10 @@
 import createMdns from "multicast-dns";
 import { BONJOUR_RETICULUM_SERVICE } from "./auto-discovery.js";
-import type { BonjourBridge, BonjourBridgeEvents, BonjourServiceRecord } from "./bonjour.js";
+import type {
+  BonjourBridge,
+  BonjourBridgeEvents,
+  BonjourServiceRecord,
+} from "./bonjour.js";
 import type { MulticastNetworkInfo } from "./pipes.js";
 
 interface MdnsResponse {
@@ -17,9 +21,12 @@ export interface MdnsBonjourBridgeOptions {
 }
 
 /** Desktop/Node BonjourBridge backed by multicast-dns (mDNS). */
-export function createMdnsBonjourBridge(options: MdnsBonjourBridgeOptions = {}): BonjourBridge {
+export function createMdnsBonjourBridge(
+  options: MdnsBonjourBridgeOptions = {},
+): BonjourBridge {
   const serviceType = options.serviceType ?? BONJOUR_RETICULUM_SERVICE;
-  let interfaces: ReadonlyArray<MulticastNetworkInfo> = options.interfaces ?? [];
+  let interfaces: ReadonlyArray<MulticastNetworkInfo> =
+    options.interfaces ?? [];
   let events: BonjourBridgeEvents = {};
   let mdns: ReturnType<typeof createMdns> | null = null;
   const advertised = new Map<string, BonjourServiceRecord>();
@@ -46,8 +53,12 @@ export function createMdnsBonjourBridge(options: MdnsBonjourBridgeOptions = {}):
           }
 
           const instanceName = String(answer.data);
-          const service = response.answers.find((entry) => entry.name === instanceName && entry.type === "SRV");
-          const address = response.answers.find((entry) => entry.type === "A" || entry.type === "AAAA");
+          const service = response.answers.find(
+            (entry) => entry.name === instanceName && entry.type === "SRV",
+          );
+          const address = response.answers.find(
+            (entry) => entry.type === "A" || entry.type === "AAAA",
+          );
           if (service === undefined || address === undefined) {
             continue;
           }
@@ -58,7 +69,7 @@ export function createMdnsBonjourBridge(options: MdnsBonjourBridgeOptions = {}):
             id: instanceName,
             ifname: interfaces[0]?.name ?? "mdns",
             host,
-            port
+            port,
           };
 
           events.onServiceFound?.(record);
@@ -66,11 +77,13 @@ export function createMdnsBonjourBridge(options: MdnsBonjourBridgeOptions = {}):
       });
 
       mdns.on("error", (error: unknown) => {
-        events.onError?.(error instanceof Error ? error.message : String(error));
+        events.onError?.(
+          error instanceof Error ? error.message : String(error),
+        );
       });
 
       mdns.query({
-        questions: [{ name: serviceType, type: "PTR" }]
+        questions: [{ name: serviceType, type: "PTR" }],
       });
     },
 
@@ -96,12 +109,12 @@ export function createMdnsBonjourBridge(options: MdnsBonjourBridgeOptions = {}):
             name: instanceName,
             type: "SRV",
             ttl: 120,
-            data: { port: record.port, weight: 0, priority: 0, target }
+            data: { port: record.port, weight: 0, priority: 0, target },
           },
-          { name: target, type: "AAAA", ttl: 120, data: record.host }
-        ]
+          { name: target, type: "AAAA", ttl: 120, data: record.host },
+        ],
       });
-    }
+    },
   };
 
   return bridge;

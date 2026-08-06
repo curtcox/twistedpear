@@ -12,7 +12,13 @@ import { layoutWidgetTree } from "../packages/widget-renderer-headless/dist/inde
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..");
 const streamsDir = join(repo, "specs", "spec-widget", "streams");
-const outputPath = join(repo, "specs", "spec-present", "vectors", "layout.json");
+const outputPath = join(
+  repo,
+  "specs",
+  "spec-present",
+  "vectors",
+  "layout.json",
+);
 
 const MOBILE = { width: 320, height: 568 };
 const TABLET = { width: 768, height: 1024 };
@@ -22,13 +28,24 @@ const syntheticTrees = {
     root: {
       id: "root",
       type: "view",
-      style: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 8, width: 300 },
+      style: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 8,
+        width: 300,
+      },
       children: [
         { id: "left", type: "button", props: { label: "Back" } },
-        { id: "mid", type: "text", props: { value: "Title" }, style: { fontSize: 20 } },
-        { id: "right", type: "switch", props: { value: true } }
-      ]
-    }
+        {
+          id: "mid",
+          type: "text",
+          props: { value: "Title" },
+          style: { fontSize: 20 },
+        },
+        { id: "right", type: "switch", props: { value: true } },
+      ],
+    },
   },
   "nested-percent-and-margins": {
     root: {
@@ -44,12 +61,21 @@ const syntheticTrees = {
             { id: "bar", type: "progress", props: { value: 30, max: 100 } },
             { id: "rule", type: "divider" },
             { id: "gap", type: "spacer", props: { size: 12 } },
-            { id: "note", type: "text", props: { value: "half width" }, style: { fontSize: 12 } }
-          ]
+            {
+              id: "note",
+              type: "text",
+              props: { value: "half width" },
+              style: { fontSize: 12 },
+            },
+          ],
         },
-        { id: "wide", type: "text-input", props: { value: "", placeholder: "full width" } }
-      ]
-    }
+        {
+          id: "wide",
+          type: "text-input",
+          props: { value: "", placeholder: "full width" },
+        },
+      ],
+    },
   },
   "list-items": {
     root: {
@@ -57,9 +83,13 @@ const syntheticTrees = {
       type: "view",
       style: { padding: 10 },
       children: [
-        { id: "menu", type: "list", props: { items: ["alpha", "beta", "gamma"] } }
-      ]
-    }
+        {
+          id: "menu",
+          type: "list",
+          props: { items: ["alpha", "beta", "gamma"] },
+        },
+      ],
+    },
   },
   "display-none-subtree": {
     root: {
@@ -72,11 +102,13 @@ const syntheticTrees = {
           id: "hidden",
           type: "view",
           style: { display: "none" },
-          children: [{ id: "inner", type: "text", props: { value: "not laid out" } }]
+          children: [
+            { id: "inner", type: "text", props: { value: "not laid out" } },
+          ],
         },
-        { id: "after", type: "text", props: { value: "directly after" } }
-      ]
-    }
+        { id: "after", type: "text", props: { value: "directly after" } },
+      ],
+    },
   },
   "media-and-editor": {
     root: {
@@ -85,11 +117,19 @@ const syntheticTrees = {
       style: { padding: 16, gap: 12 },
       children: [
         { id: "pic", type: "image", props: { asset: "logo.png", alt: "logo" } },
-        { id: "qr", type: "qr-code", props: { value: "lxmf:demo", size: 96, caption: "scan me" } },
-        { id: "editor", type: "code-editor", props: { documentId: "doc-1", language: "javascript" } }
-      ]
-    }
-  }
+        {
+          id: "qr",
+          type: "qr-code",
+          props: { value: "lxmf:demo", size: 96, caption: "scan me" },
+        },
+        {
+          id: "editor",
+          type: "code-editor",
+          props: { documentId: "doc-1", language: "javascript" },
+        },
+      ],
+    },
+  },
 };
 
 const vectors = [];
@@ -101,7 +141,7 @@ function addVector(name, tree, viewport, note) {
     ...(note === undefined ? {} : { note }),
     tree,
     viewport,
-    boxes: layoutWidgetTree(tree, viewport)
+    boxes: layoutWidgetTree(tree, viewport),
   });
 }
 
@@ -111,11 +151,23 @@ for (const [name, tree] of Object.entries(syntheticTrees)) {
 }
 
 for (const app of ["chat", "board", "file-drop"]) {
-  const stream = JSON.parse(readFileSync(join(streamsDir, `${app}.json`), "utf8"));
+  const stream = JSON.parse(
+    readFileSync(join(streamsDir, `${app}.json`), "utf8"),
+  );
   const first = stream.frames[0].tree;
   const last = stream.frames[stream.frames.length - 1].tree;
-  addVector(`stream-${app}-first@mobile`, first, MOBILE, "first recorded frame of the golden stream");
-  addVector(`stream-${app}-last@mobile`, last, MOBILE, "last recorded frame of the golden stream");
+  addVector(
+    `stream-${app}-first@mobile`,
+    first,
+    MOBILE,
+    "first recorded frame of the golden stream",
+  );
+  addVector(
+    `stream-${app}-last@mobile`,
+    last,
+    MOBILE,
+    "last recorded frame of the golden stream",
+  );
 }
 
 const body = {
@@ -126,17 +178,17 @@ const body = {
     kind: "monospace",
     advanceWidth: "round(fontSize * 0.6) per character, every character",
     lineHeight: "round(fontSize * 1.25)",
-    defaultFontSize: 16
+    defaultFontSize: 16,
   },
   tolerance: {
     reference: { x: 0, y: 0, width: 0, height: 0 },
     realFonts: {
       note: "per-box tolerance for renderers measuring real fonts: text-derived extents may deviate by the given fraction of the reference extent; positions inherit accumulated deviation",
       widthFraction: 0.25,
-      heightFraction: 0.25
-    }
+      heightFraction: 0.25,
+    },
   },
-  vectors
+  vectors,
 };
 
 mkdirSync(dirname(outputPath), { recursive: true });

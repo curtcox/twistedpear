@@ -3,14 +3,14 @@ import {
   SimKernel,
   shrinkHistoryWithConfig,
   type SimKernelConfig,
-  type Violation
+  type Violation,
 } from "@twistedpear/effects/adapters/sim";
 import { cellId, type CoverageCell } from "./frame.js";
 import {
   ContainmentTracker,
   summarizeContainment,
   type ContainmentMetrics,
-  type ContainmentSummary
+  type ContainmentSummary,
 } from "./metrics.js";
 
 export interface SeedRange {
@@ -30,7 +30,10 @@ export interface CampaignScenario<S> {
   readonly description?: ScenarioDescription;
 }
 
-export type ScenarioFactory<S> = (cell: CoverageCell, seed: number) => CampaignScenario<S>;
+export type ScenarioFactory<S> = (
+  cell: CoverageCell,
+  seed: number,
+) => CampaignScenario<S>;
 
 export interface CampaignFinding {
   readonly cell: string;
@@ -84,14 +87,21 @@ export async function runCampaign<S>(options: {
   readonly scenario: ScenarioFactory<S>;
   readonly parallelism?: number;
 }): Promise<CampaignReport> {
-  if (!Number.isSafeInteger(options.seeds.from) || !Number.isSafeInteger(options.seeds.to) || options.seeds.to < options.seeds.from) {
+  if (
+    !Number.isSafeInteger(options.seeds.from) ||
+    !Number.isSafeInteger(options.seeds.to) ||
+    options.seeds.to < options.seeds.from
+  ) {
     throw new Error("invalid campaign seed range");
   }
   const jobs = options.cells.flatMap((cell) =>
-    Array.from({ length: options.seeds.to - options.seeds.from + 1 }, (_, index) => ({
-      cell,
-      seed: options.seeds.from + index
-    }))
+    Array.from(
+      { length: options.seeds.to - options.seeds.from + 1 },
+      (_, index) => ({
+        cell,
+        seed: options.seeds.from + index,
+      }),
+    ),
   );
   const parallelism = Math.max(1, Math.floor(options.parallelism ?? 1));
   const findings: CampaignFinding[] = [];
@@ -104,14 +114,20 @@ export async function runCampaign<S>(options: {
 
   for (let offset = 0; offset < jobs.length; offset += parallelism) {
     const batch = jobs.slice(offset, offset + parallelism);
-    const results = await Promise.all(batch.map(async ({ cell, seed }) => runOne(cell, seed, options.scenario)));
+    const results = await Promise.all(
+      batch.map(async ({ cell, seed }) => runOne(cell, seed, options.scenario)),
+    );
     for (const result of results) {
       containment.push(result.containment);
-      if (result.description !== undefined) coverage.set(result.description.cell, result.description);
+      if (result.description !== undefined)
+        coverage.set(result.description.cell, result.description);
       if (result.finding !== null) {
-        if (result.finding.kind === "canary") canaryFindings.push(result.finding);
+        if (result.finding.kind === "canary")
+          canaryFindings.push(result.finding);
         else findings.push(result.finding);
-        findingKeys.add(`${result.finding.violation.oracle}\u0000${result.finding.violation.message}`);
+        findingKeys.add(
+          `${result.finding.violation.oracle}\u0000${result.finding.violation.message}`,
+        );
       }
     }
     const completed = Math.min(offset + batch.length, jobs.length);
@@ -119,7 +135,7 @@ export async function runCampaign<S>(options: {
       saturation.push({
         scenarios: completed,
         distinctFindings: findingKeys.size,
-        newFindings: findingKeys.size - previousDistinct
+        newFindings: findingKeys.size - previousDistinct,
       });
       previousDistinct = findingKeys.size;
     }
@@ -130,11 +146,13 @@ export async function runCampaign<S>(options: {
     seeds: options.seeds,
     cells: options.cells.map(cellId),
     scenariosRun: jobs.length,
-    coverage: [...coverage.values()].sort((a, b) => a.cell.localeCompare(b.cell)),
+    coverage: [...coverage.values()].sort((a, b) =>
+      a.cell.localeCompare(b.cell),
+    ),
     findings,
     canaryFindings,
     saturation,
-    containment: summarizeContainment(containment)
+    containment: summarizeContainment(containment),
   };
 }
 
@@ -145,7 +163,7 @@ export function serializeCampaignReport(report: CampaignReport): string {
 async function runOne<S>(
   cell: CoverageCell,
   seed: number,
-  factory: ScenarioFactory<S>
+  factory: ScenarioFactory<S>,
 ): Promise<{
   readonly finding: CampaignFinding | null;
   readonly containment: ContainmentMetrics;
@@ -154,11 +172,14 @@ async function runOne<S>(
   const scenario = factory(cell, seed);
   await scenario.prepare?.();
   const kernel = new SimKernel({ ...scenario.config, seed });
-  const description = scenario.description === undefined
-    ? undefined
-    : { cell: cellId(cell), ...scenario.description };
-  const containment = (): ContainmentMetrics => scenario.measureContainment?.(kernel) ??
-    scenario.containment?.snapshot() ?? new ContainmentTracker().snapshot();
+  const description =
+    scenario.description === undefined
+      ? undefined
+      : { cell: cellId(cell), ...scenario.description };
+  const containment = (): ContainmentMetrics =>
+    scenario.measureContainment?.(kernel) ??
+    scenario.containment?.snapshot() ??
+    new ContainmentTracker().snapshot();
   try {
     if (scenario.run === undefined) {
       kernel.start();
@@ -169,23 +190,30 @@ async function runOne<S>(
     return {
       finding: null,
       containment: containment(),
-      ...(description === undefined ? {} : { description })
+      ...(description === undefined ? {} : { description }),
     };
   } catch (error) {
     if (!(error instanceof OracleViolation)) throw error;
-    const minimized = shrinkHistoryWithConfig(error.history, { ...scenario.config, seed });
+    const minimized = shrinkHistoryWithConfig(error.history, {
+      ...scenario.config,
+      seed,
+    });
     const minimizedPath = scenario.config.recorder?.record(minimized);
     const historyPath = minimizedPath ?? error.historyPath;
     return {
       finding: {
         cell: cellId(cell),
         seed,
-        kind: scenario.expectedCanaryOracles?.includes(error.violation.oracle) === true ? "canary" : "violation",
+        kind:
+          scenario.expectedCanaryOracles?.includes(error.violation.oracle) ===
+          true
+            ? "canary"
+            : "violation",
         violation: error.violation,
-        ...(historyPath === undefined ? {} : { historyPath })
+        ...(historyPath === undefined ? {} : { historyPath }),
       },
       containment: containment(),
-      ...(description === undefined ? {} : { description })
+      ...(description === undefined ? {} : { description }),
     };
   }
 }

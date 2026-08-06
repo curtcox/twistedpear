@@ -9,17 +9,23 @@ import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { unpackPackage, verifyPackage } from "../../packages/app-registry/dist/index.js";
+import {
+  unpackPackage,
+  verifyPackage,
+} from "../../packages/app-registry/dist/index.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 import {
   CorestoreBeeBackend,
   GrantStore,
   MiniappHost,
-  NodeWorkerSandboxBackend
+  NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
 
-const examplesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples");
+const examplesDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../apps/examples",
+);
 const BLE_INSTALL_BUDGET_BYTES = 180 * 1024;
 const EXAMPLE_NAMES = ["chat", "file-drop", "board"];
 
@@ -100,7 +106,7 @@ function launchManifest(app, publisherPublicKey) {
     version: app.version,
     entry: app.entry,
     capabilities: app.capabilities ?? [],
-    publisherPublicKey
+    publisherPublicKey,
   };
 }
 
@@ -110,21 +116,32 @@ async function packExample(name) {
   cpSync(join(examplesDir, name), appDir, { recursive: true });
 
   try {
-    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({
+      cwd,
+      identityPassphrase: "conformance identity passphrase",
+      args: [],
+    });
     if (initCode !== 0) {
       throw new Error(`tp init failed for ${name}`);
     }
 
-    const packCode = await runPack({ cwd, args: [name, "--out", `${name}.tpkg`] });
+    const packCode = await runPack({
+      cwd,
+      args: [name, "--out", `${name}.tpkg`],
+    });
     if (packCode !== 0) {
       throw new Error(`tp pack failed for ${name}`);
     }
 
     const provider = new NodeCryptoProvider();
     const archive = new Uint8Array(readFileSync(join(cwd, `${name}.tpkg`)));
-    const verified = verifyPackage(provider, archive, { hostApiVersion: "0.1.0" });
+    const verified = verifyPackage(provider, archive, {
+      hostApiVersion: "0.1.0",
+    });
     if (archive.length > BLE_INSTALL_BUDGET_BYTES) {
-      throw new Error(`${name}.tpkg exceeds BLE install budget (${archive.length} > ${BLE_INSTALL_BUDGET_BYTES})`);
+      throw new Error(
+        `${name}.tpkg exceeds BLE install budget (${archive.length} > ${BLE_INSTALL_BUDGET_BYTES})`,
+      );
     }
 
     const bundle = verified.files.get(verified.manifest.entry);
@@ -136,7 +153,7 @@ async function packExample(name) {
       app: verified.manifest,
       bundle,
       packageBytes: archive.length,
-      publisherPublicKey: verified.manifest.publisherPublicKey
+      publisherPublicKey: verified.manifest.publisherPublicKey,
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -155,13 +172,18 @@ async function createHost(store, options = {}) {
           throw new Error(`Resource not found: ${request.resourceId}`);
         }
 
-        if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
-          throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
+        if (
+          request.budgetBytes !== undefined &&
+          bytes.length > request.budgetBytes
+        ) {
+          throw new Error(
+            `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
+          );
         }
 
         return bytes;
-      }
-    }
+      },
+    },
   };
 
   let beeBackend = null;
@@ -173,7 +195,7 @@ async function createHost(store, options = {}) {
       get: async (appId, key) => beeBackend.get(appId, key),
       put: async (appId, key, value) => beeBackend.put(appId, key, value),
       del: async (appId, key) => beeBackend.del(appId, key),
-      list: async (appId, listOptions) => beeBackend.list(appId, listOptions)
+      list: async (appId, listOptions) => beeBackend.list(appId, listOptions),
     };
   }
 
@@ -187,7 +209,12 @@ async function exerciseChat(packed) {
 
   try {
     const manifest = launchManifest(packed.app, packed.publisherPublicKey);
-    await host.setGrants(manifest.name, manifest.publisherPublicKey, manifest.capabilities, manifest.capabilities);
+    await host.setGrants(
+      manifest.name,
+      manifest.publisherPublicKey,
+      manifest.capabilities,
+      manifest.capabilities,
+    );
     await host.launch(manifest, packed.bundle);
     await waitForTreeText(host, "Chat");
     await waitForTreeText(host, "Me:");
@@ -198,10 +225,14 @@ async function exerciseChat(packed) {
         namespace: "lxmf",
         method: "send",
         capability: "lxmf:send",
-        payload: { to: manifest.name, subject: "hello", body: "Hi from conformance" }
+        payload: {
+          to: manifest.name,
+          subject: "hello",
+          body: "Hi from conformance",
+        },
       },
       manifest,
-      manifest.capabilities
+      manifest.capabilities,
     );
     if (!sent.ok) {
       throw new Error(`lxmf send failed: ${sent.error?.message ?? "unknown"}`);
@@ -212,12 +243,16 @@ async function exerciseChat(packed) {
         id: "lxmf-receive",
         namespace: "lxmf",
         method: "receive",
-        capability: "lxmf:receive"
+        capability: "lxmf:receive",
       },
       manifest,
-      manifest.capabilities
+      manifest.capabilities,
     );
-    if (!inbox.ok || !Array.isArray(inbox.result) || inbox.result.length !== 1) {
+    if (
+      !inbox.ok ||
+      !Array.isArray(inbox.result) ||
+      inbox.result.length !== 1
+    ) {
       throw new Error("chat lxmf inbox did not receive the sent message");
     }
 
@@ -236,9 +271,17 @@ async function exerciseFileDrop(packed) {
   const { host } = await createHost(store);
 
   try {
-    await store.set("miniapp-resource:offer:demo", new TextEncoder().encode("phase4-demo-payload"));
+    await store.set(
+      "miniapp-resource:offer:demo",
+      new TextEncoder().encode("phase4-demo-payload"),
+    );
     const manifest = launchManifest(packed.app, packed.publisherPublicKey);
-    await host.setGrants(manifest.name, manifest.publisherPublicKey, manifest.capabilities, manifest.capabilities);
+    await host.setGrants(
+      manifest.name,
+      manifest.publisherPublicKey,
+      manifest.capabilities,
+      manifest.capabilities,
+    );
     await host.launch(manifest, packed.bundle);
     await waitForTreeText(host, "File Drop");
     await sleep(100);
@@ -249,13 +292,15 @@ async function exerciseFileDrop(packed) {
         namespace: "resource",
         method: "fetch",
         capability: "resource:fetch",
-        payload: { resourceId: "offer:demo", budgetBytes: 4096 }
+        payload: { resourceId: "offer:demo", budgetBytes: 4096 },
       },
       manifest,
-      manifest.capabilities
+      manifest.capabilities,
     );
     if (!fetched.ok) {
-      throw new Error(`resource.fetch failed: ${fetched.error?.message ?? "unknown"}`);
+      throw new Error(
+        `resource.fetch failed: ${fetched.error?.message ?? "unknown"}`,
+      );
     }
 
     await host.handleUiEvent("fetch", "resource.fetch");
@@ -267,7 +312,9 @@ async function exerciseFileDrop(packed) {
       }
 
       const texts = collectTextValues(tree.root);
-      const updated = texts.find((value) => value.includes("Fetched") || value.includes("Resource"));
+      const updated = texts.find(
+        (value) => value.includes("Fetched") || value.includes("Resource"),
+      );
       return updated !== undefined ? tree : null;
     });
 
@@ -289,7 +336,12 @@ async function exerciseBoard(packed) {
 
   try {
     const manifest = launchManifest(packed.app, packed.publisherPublicKey);
-    await host.setGrants(manifest.name, manifest.publisherPublicKey, manifest.capabilities, manifest.capabilities);
+    await host.setGrants(
+      manifest.name,
+      manifest.publisherPublicKey,
+      manifest.capabilities,
+      manifest.capabilities,
+    );
     await host.launch(manifest, packed.bundle);
     await waitForTreeText(host, "Board");
 
@@ -311,18 +363,22 @@ async function exerciseBoard(packed) {
 const EXERCISES = {
   chat: exerciseChat,
   "file-drop": exerciseFileDrop,
-  board: exerciseBoard
+  board: exerciseBoard,
 };
 
 async function main() {
   for (const name of EXAMPLE_NAMES) {
     const packed = await packExample(name);
-    console.log(`examples: ${name} packed ${packed.packageBytes} bytes and verified`);
+    console.log(
+      `examples: ${name} packed ${packed.packageBytes} bytes and verified`,
+    );
     await EXERCISES[name](packed);
     console.log(`examples: ${name} launch and exercise passed`);
   }
 
-  console.log("examples: chat, file-drop, and board passed pack → verify → grant → launch → exercise");
+  console.log(
+    "examples: chat, file-drop, and board passed pack → verify → grant → launch → exercise",
+  );
 }
 
 main().catch((error) => {

@@ -1,6 +1,5 @@
 # SPEC-MEDIA / BLE profile (TwistedPear-defined)
 
-
 <!-- tp-doc
 lifecycle: live
 audited: 2026-07-20
@@ -18,23 +17,23 @@ hardware evidence ([STATUS-HARDWARE.md](../../STATUS-HARDWARE.md)).
 
 ## 1. Upstream pin
 
-| Source | Version | Role |
-|---|---|---|
+| Source                                               | Version   | Role                                      |
+| ---------------------------------------------------- | --------- | ----------------------------------------- |
 | [docs/ble-interface.md](../../docs/ble-interface.md) | this tree | Framing definition (TwistedPear-authored) |
 
 ## 2. Subset
 
 Framing and link behavior are pinned over simulated pipes; physical transport is not.
 
-| Feature | TwistedPear use | Pinned by |
-|---|---|---|
-| Single-frame message round-trip | Small-payload carriage | `packages/reticulum-interfaces` `ble-framing.test.ts` ("round-trips a single-frame message") |
-| Fragmentation + reassembly | MTU-bounded payloads | `ble-framing.test.ts` ("reassembles fragmented messages") |
-| Sequence-gap recovery | Loss resilience | `ble-framing.test.ts` ("recovers after a sequence gap") |
-| Link establishment + packet echo | End-to-end over simulated BLE pipe | `ble-interop.test.ts` ("establishes a link and echoes packets") |
-| Resource transfer | Bulk carriage | `ble-interop.test.ts` ("transfers a resource over a link") |
-| LXMF exchange | Message carriage | `ble-interop.test.ts` ("exchanges LXMF messages between two peers") |
-| Mid-transfer disconnect/reconnect | Reconnection | `ble-interop.test.ts` ("recovers after a mid-transfer disconnect and reconnect") |
+| Feature                           | TwistedPear use                    | Pinned by                                                                                    |
+| --------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| Single-frame message round-trip   | Small-payload carriage             | `packages/reticulum-interfaces` `ble-framing.test.ts` ("round-trips a single-frame message") |
+| Fragmentation + reassembly        | MTU-bounded payloads               | `ble-framing.test.ts` ("reassembles fragmented messages")                                    |
+| Sequence-gap recovery             | Loss resilience                    | `ble-framing.test.ts` ("recovers after a sequence gap")                                      |
+| Link establishment + packet echo  | End-to-end over simulated BLE pipe | `ble-interop.test.ts` ("establishes a link and echoes packets")                              |
+| Resource transfer                 | Bulk carriage                      | `ble-interop.test.ts` ("transfers a resource over a link")                                   |
+| LXMF exchange                     | Message carriage                   | `ble-interop.test.ts` ("exchanges LXMF messages between two peers")                          |
+| Mid-transfer disconnect/reconnect | Reconnection                       | `ble-interop.test.ts` ("recovers after a mid-transfer disconnect and reconnect")             |
 
 ## 3. Extensions
 

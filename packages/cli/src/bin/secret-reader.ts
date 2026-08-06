@@ -1,5 +1,9 @@
 export async function readHiddenSecret(prompt: string): Promise<string> {
-  if (!process.stdin.isTTY || !process.stdout.isTTY || process.stdin.setRawMode === undefined) {
+  if (
+    !process.stdin.isTTY ||
+    !process.stdout.isTTY ||
+    process.stdin.setRawMode === undefined
+  ) {
     throw new Error(`${prompt} requires a TTY or TP_IDENTITY_PASSPHRASE`);
   }
 

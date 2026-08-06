@@ -6,7 +6,7 @@ import {
   rnsHkdfSha256RawFromActions,
   shouldRejectRnsHkdfSha256,
   shouldUseRnsHkdfSha256,
-  stepRnsHkdfSha256WithActions
+  stepRnsHkdfSha256WithActions,
 } from "../src/rns-hkdf.js";
 import {
   LINK_ENABLED_MODES,
@@ -35,7 +35,7 @@ import {
   shouldUseDeriveRnsLinkKey,
   shouldUseOrderIndependentSharedSecret,
   stepDeriveRnsLinkKeyWithActions,
-  stepOrderIndependentSharedSecretWithActions
+  stepOrderIndependentSharedSecretWithActions,
 } from "../src/link-key-derive.js";
 
 describe("protocol RNS HKDF / link key derive", () => {
@@ -44,7 +44,7 @@ describe("protocol RNS HKDF / link key derive", () => {
       length: 32,
       deriveFrom: new Uint8Array([1, 2, 3]),
       salt: null,
-      context: null
+      context: null,
     });
     expect(params.salt).toHaveLength(32);
     expect(params.info).toHaveLength(0);
@@ -60,7 +60,7 @@ describe("protocol RNS HKDF / link key derive", () => {
     expect(LINK_MODE_DEFAULT).toBe(LinkKeyMode.MODE_AES256_CBC);
     expect(LINK_ENABLED_MODES).toEqual([
       LinkKeyMode.MODE_AES128_CBC,
-      LinkKeyMode.MODE_AES256_CBC
+      LinkKeyMode.MODE_AES256_CBC,
     ]);
     expect(isLinkModeEnabled(LinkKeyMode.MODE_AES256_CBC)).toBe(true);
     expect(isLinkModeEnabled(LinkKeyMode.MODE_AES128_CBC)).toBe(true);
@@ -68,43 +68,55 @@ describe("protocol RNS HKDF / link key derive", () => {
     expect(
       isExpectedLinkMode({
         expected: LinkKeyMode.MODE_AES256_CBC,
-        received: LinkKeyMode.MODE_AES256_CBC
-      })
+        received: LinkKeyMode.MODE_AES256_CBC,
+      }),
     ).toBe(true);
     expect(
       isExpectedLinkMode({
         expected: LinkKeyMode.MODE_AES256_CBC,
-        received: LinkKeyMode.MODE_AES128_CBC
-      })
+        received: LinkKeyMode.MODE_AES128_CBC,
+      }),
     ).toBe(false);
 
-    const enabled = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
-      kind: "link/mode-enabled-gate",
-      mode: LinkKeyMode.MODE_AES256_CBC
-    });
+    const enabled = stepLinkModeEnabledWithActions(
+      initialLinkModeEnabledState(),
+      {
+        kind: "link/mode-enabled-gate",
+        mode: LinkKeyMode.MODE_AES256_CBC,
+      },
+    );
     expect(shouldTreatLinkModeEnabled(enabled.actions)).toBe(true);
-    const aes128 = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
-      kind: "link/mode-enabled-gate",
-      mode: LinkKeyMode.MODE_AES128_CBC
-    });
+    const aes128 = stepLinkModeEnabledWithActions(
+      initialLinkModeEnabledState(),
+      {
+        kind: "link/mode-enabled-gate",
+        mode: LinkKeyMode.MODE_AES128_CBC,
+      },
+    );
     expect(shouldTreatLinkModeEnabled(aes128.actions)).toBe(true);
     const gcm = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
       kind: "link/mode-enabled-gate",
-      mode: LinkKeyMode.MODE_AES256_GCM
+      mode: LinkKeyMode.MODE_AES256_GCM,
     });
     expect(shouldTreatLinkModeDisabled(gcm.actions)).toBe(true);
 
-    const match = stepExpectedLinkModeWithActions(initialExpectedLinkModeState(), {
-      kind: "link/expected-mode-gate",
-      expected: LinkKeyMode.MODE_AES256_CBC,
-      received: LinkKeyMode.MODE_AES256_CBC
-    });
+    const match = stepExpectedLinkModeWithActions(
+      initialExpectedLinkModeState(),
+      {
+        kind: "link/expected-mode-gate",
+        expected: LinkKeyMode.MODE_AES256_CBC,
+        received: LinkKeyMode.MODE_AES256_CBC,
+      },
+    );
     expect(shouldMatchExpectedLinkMode(match.actions)).toBe(true);
-    const mismatch = stepExpectedLinkModeWithActions(initialExpectedLinkModeState(), {
-      kind: "link/expected-mode-gate",
-      expected: LinkKeyMode.MODE_AES256_CBC,
-      received: LinkKeyMode.MODE_AES128_CBC
-    });
+    const mismatch = stepExpectedLinkModeWithActions(
+      initialExpectedLinkModeState(),
+      {
+        kind: "link/expected-mode-gate",
+        expected: LinkKeyMode.MODE_AES256_CBC,
+        received: LinkKeyMode.MODE_AES128_CBC,
+      },
+    );
     expect(shouldMismatchExpectedLinkMode(mismatch.actions)).toBe(true);
   });
 
@@ -121,12 +133,14 @@ describe("protocol RNS HKDF / link key derive", () => {
     const x = new Uint8Array([1, 2, 3, 4]);
     const y = new Uint8Array([9, 8, 7, 6]);
     expect([...orderIndependentSharedSecret(x, y)]).toEqual([
-      ...orderIndependentSharedSecret(y, x)
+      ...orderIndependentSharedSecret(y, x),
     ]);
   });
 
   it("rnsHkdfSha256 rejects empty material", () => {
-    expect(() => rnsHkdfSha256({ length: 16, deriveFrom: new Uint8Array() })).toThrow(/empty/);
+    expect(() =>
+      rnsHkdfSha256({ length: 16, deriveFrom: new Uint8Array() }),
+    ).toThrow(/empty/);
   });
 
   it("emits use-raw|reject actions for RNS HKDF", () => {
@@ -136,19 +150,19 @@ describe("protocol RNS HKDF / link key derive", () => {
       length: 32,
       deriveFrom,
       salt: null,
-      context: null
+      context: null,
     });
     expect(shouldUseRnsHkdfSha256(ok.actions)).toBe(true);
     expect(shouldRejectRnsHkdfSha256(ok.actions)).toBe(false);
     const raw = rnsHkdfSha256RawFromActions(ok.actions)!;
     expect([...raw]).toEqual([
-      ...rnsHkdfSha256({ length: 32, deriveFrom, salt: null, context: null })
+      ...rnsHkdfSha256({ length: 32, deriveFrom, salt: null, context: null }),
     ]);
 
     const rejected = stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), {
       kind: "rns-hkdf/derive-gate",
       length: 16,
-      deriveFrom: new Uint8Array()
+      deriveFrom: new Uint8Array(),
     });
     expect(shouldRejectRnsHkdfSha256(rejected.actions)).toBe(true);
     expect(rnsHkdfSha256RawFromActions(rejected.actions)).toBeNull();
@@ -161,18 +175,23 @@ describe("protocol RNS HKDF / link key derive", () => {
       kind: "link-key/derive-gate",
       sharedSecret: shared,
       linkId,
-      mode: LinkKeyMode.MODE_AES256_CBC
+      mode: LinkKeyMode.MODE_AES256_CBC,
     });
     expect(shouldUseDeriveRnsLinkKey(ok.actions)).toBe(true);
     expect(shouldRejectDeriveRnsLinkKey(ok.actions)).toBe(false);
     const raw = deriveRnsLinkKeyRawFromActions(ok.actions)!;
-    expect([...raw]).toEqual([...deriveRnsLinkKey(shared, linkId, LinkKeyMode.MODE_AES256_CBC)]);
+    expect([...raw]).toEqual([
+      ...deriveRnsLinkKey(shared, linkId, LinkKeyMode.MODE_AES256_CBC),
+    ]);
 
-    const rejected = stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), {
-      kind: "link-key/derive-gate",
-      sharedSecret: new Uint8Array(),
-      linkId
-    });
+    const rejected = stepDeriveRnsLinkKeyWithActions(
+      initialDeriveRnsLinkKeyState(),
+      {
+        kind: "link-key/derive-gate",
+        sharedSecret: new Uint8Array(),
+        linkId,
+      },
+    );
     expect(shouldRejectDeriveRnsLinkKey(rejected.actions)).toBe(true);
     expect(deriveRnsLinkKeyRawFromActions(rejected.actions)).toBeNull();
   });
@@ -185,8 +204,8 @@ describe("protocol RNS HKDF / link key derive", () => {
       {
         kind: "link-key/order-independent-shared-secret-gate",
         a,
-        b
-      }
+        b,
+      },
     );
     expect(shouldUseOrderIndependentSharedSecret(ok.actions)).toBe(true);
     expect(shouldRejectOrderIndependentSharedSecret(ok.actions)).toBe(false);
@@ -202,20 +221,30 @@ describe("protocol RNS HKDF / link key derive", () => {
       length: 32,
       deriveFrom: shared,
       salt: linkId,
-      context: null
+      context: null,
     };
     expect(
-      stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), hkdfEvent)
-    ).toEqual(stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), hkdfEvent));
+      stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), hkdfEvent),
+    ).toEqual(
+      stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), hkdfEvent),
+    );
 
     const deriveEvent = {
       kind: "link-key/derive-gate" as const,
       sharedSecret: shared,
       linkId,
-      mode: LinkKeyMode.MODE_AES256_CBC
+      mode: LinkKeyMode.MODE_AES256_CBC,
     };
     expect(
-      stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), deriveEvent)
-    ).toEqual(stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), deriveEvent));
+      stepDeriveRnsLinkKeyWithActions(
+        initialDeriveRnsLinkKeyState(),
+        deriveEvent,
+      ),
+    ).toEqual(
+      stepDeriveRnsLinkKeyWithActions(
+        initialDeriveRnsLinkKeyState(),
+        deriveEvent,
+      ),
+    );
   });
 });

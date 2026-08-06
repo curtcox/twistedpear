@@ -5,7 +5,10 @@ interface NativePeerAudio {
   requestPermission?(): Promise<boolean>;
   playPcm16(pcm: Uint8Array, sampleRate: number): Promise<boolean>;
   recordPcm16(durationMs: number, sampleRate: number): Promise<Uint8Array>;
-  recordVoicePcm16?(durationMs: number, sampleRate: number): Promise<Uint8Array>;
+  recordVoicePcm16?(
+    durationMs: number,
+    sampleRate: number,
+  ): Promise<Uint8Array>;
 }
 
 function loadNativePeerAudio(): NativePeerAudio | null {
@@ -30,10 +33,15 @@ export async function requestNativePeerAudioPermission(): Promise<boolean> {
   if (Native === null) {
     return false;
   }
-  return Native.requestPermission === undefined ? true : Native.requestPermission();
+  return Native.requestPermission === undefined
+    ? true
+    : Native.requestPermission();
 }
 
-export async function playNativePeerPcm(pcm: Uint8Array, sampleRate: number): Promise<void> {
+export async function playNativePeerPcm(
+  pcm: Uint8Array,
+  sampleRate: number,
+): Promise<void> {
   if (Native === null) {
     throw new Error("Native peer audio is unavailable");
   }
@@ -43,7 +51,7 @@ export async function playNativePeerPcm(pcm: Uint8Array, sampleRate: number): Pr
 export async function recordNativePeerPcm(
   durationMs: number,
   sampleRate: number,
-  voiceDuplex = false
+  voiceDuplex = false,
 ): Promise<Uint8Array> {
   if (Native === null) {
     throw new Error("Native peer audio is unavailable");
@@ -52,5 +60,7 @@ export async function recordNativePeerPcm(
     voiceDuplex && Native.recordVoicePcm16 !== undefined
       ? await Native.recordVoicePcm16(durationMs, sampleRate)
       : await Native.recordPcm16(durationMs, sampleRate);
-  return bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes as ArrayLike<number>);
+  return bytes instanceof Uint8Array
+    ? bytes
+    : Uint8Array.from(bytes as ArrayLike<number>);
 }

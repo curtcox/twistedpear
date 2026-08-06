@@ -15,7 +15,10 @@ export interface LinkAppRequestAwaitState {
 export type LinkAppRequestAwaitEvent =
   | Event
   | { readonly kind: "app-request-await/arm"; readonly timeoutSec: number }
-  | { readonly kind: "app-request-await/response"; readonly response: Uint8Array | null }
+  | {
+      readonly kind: "app-request-await/response";
+      readonly response: Uint8Array | null;
+    }
   | { readonly kind: "app-request-await/failed" }
   | { readonly kind: "app-request-await/send-rejected" };
 
@@ -33,7 +36,7 @@ export function initialLinkAppRequestAwaitState(): LinkAppRequestAwaitState {
   return {
     armed: false,
     concluded: false,
-    response: null
+    response: null,
   };
 }
 
@@ -42,21 +45,27 @@ export function shouldContinueLinkAppRequestAwait(concluded: boolean): boolean {
   return !concluded;
 }
 
-export const stepLinkAppRequestAwait: StepFn<LinkAppRequestAwaitState> = (state, event) => {
-  const result = stepLinkAppRequestAwaitInner(state, event as LinkAppRequestAwaitEvent);
+export const stepLinkAppRequestAwait: StepFn<LinkAppRequestAwaitState> = (
+  state,
+  event,
+) => {
+  const result = stepLinkAppRequestAwaitInner(
+    state,
+    event as LinkAppRequestAwaitEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkAppRequestAwaitWithActions(
   state: LinkAppRequestAwaitState,
-  event: LinkAppRequestAwaitEvent
+  event: LinkAppRequestAwaitEvent,
 ): LinkAppRequestAwaitStepResult {
   return stepLinkAppRequestAwaitInner(state, event);
 }
 
 function conclude(
   state: LinkAppRequestAwaitState,
-  response: Uint8Array | null
+  response: Uint8Array | null,
 ): LinkAppRequestAwaitStepResult {
   if (!state.armed || state.concluded) {
     return { state, intents: [], actions: [] };
@@ -65,26 +74,26 @@ function conclude(
     state: {
       armed: true,
       concluded: true,
-      response
+      response,
     },
     intents: [],
-    actions: [{ kind: "resolve", response }]
+    actions: [{ kind: "resolve", response }],
   };
 }
 
 function stepLinkAppRequestAwaitInner(
   state: LinkAppRequestAwaitState,
-  event: LinkAppRequestAwaitEvent
+  event: LinkAppRequestAwaitEvent,
 ): LinkAppRequestAwaitStepResult {
   if (event.kind === "app-request-await/arm") {
     return {
       state: {
         armed: true,
         concluded: false,
-        response: null
+        response: null,
       },
       intents: [],
-      actions: [{ kind: "send-request", timeoutSec: event.timeoutSec }]
+      actions: [{ kind: "send-request", timeoutSec: event.timeoutSec }],
     };
   }
 
@@ -92,7 +101,10 @@ function stepLinkAppRequestAwaitInner(
     return conclude(state, event.response);
   }
 
-  if (event.kind === "app-request-await/failed" || event.kind === "app-request-await/send-rejected") {
+  if (
+    event.kind === "app-request-await/failed" ||
+    event.kind === "app-request-await/send-rejected"
+  ) {
     return conclude(state, null);
   }
 

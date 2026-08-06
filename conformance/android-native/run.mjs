@@ -16,18 +16,20 @@ const androidDir = join(harnessMobile, "android");
 const NATIVE_TEST_TASKS = [
   ":twistedpear-ble-bridge:testDebugUnitTest",
   ":twistedpear-multicast:testDebugUnitTest",
-  ":twistedpear-usb-serial:testDebugUnitTest"
+  ":twistedpear-usb-serial:testDebugUnitTest",
 ];
 
 function run(command, args, cwd, env = {}) {
   const result = spawnSync(command, args, {
     cwd,
     env: { ...process.env, ...env },
-    stdio: "inherit"
+    stdio: "inherit",
   });
 
   if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} failed with status ${result.status ?? "unknown"}`);
+    throw new Error(
+      `${command} ${args.join(" ")} failed with status ${result.status ?? "unknown"}`,
+    );
   }
 }
 
@@ -37,7 +39,11 @@ function ensureAndroidProject() {
   }
 
   console.log("[android-native] generating android project via expo prebuild");
-  run("npx", ["expo", "prebuild", "--platform", "android", "--no-install"], harnessMobile);
+  run(
+    "npx",
+    ["expo", "prebuild", "--platform", "android", "--no-install"],
+    harnessMobile,
+  );
 }
 
 function main() {
@@ -46,7 +52,9 @@ function main() {
   const gradlew = process.platform === "win32" ? "gradlew.bat" : "./gradlew";
   console.log("[android-native] running JVM unit tests");
   run(gradlew, NATIVE_TEST_TASKS, androidDir);
-  console.log("[android-native] ble-bridge, multicast, and usb-serial JVM tests passed");
+  console.log(
+    "[android-native] ble-bridge, multicast, and usb-serial JVM tests passed",
+  );
 }
 
 main();

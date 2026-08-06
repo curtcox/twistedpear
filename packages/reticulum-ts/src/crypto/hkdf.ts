@@ -5,7 +5,7 @@ import {
   rnsHkdfSha256RawFromActions,
   shouldRejectRnsHkdfSha256,
   shouldUseRnsHkdfSha256,
-  stepRnsHkdfSha256WithActions
+  stepRnsHkdfSha256WithActions,
 } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Cryptography/HKDF.py parameter handling — delegates to protocol pure HKDF. */
@@ -14,13 +14,13 @@ export function rnsHkdf(
   length: number,
   deriveFrom: Uint8Array,
   salt: Uint8Array | null | undefined,
-  context: Uint8Array | null | undefined
+  context: Uint8Array | null | undefined,
 ): Uint8Array {
   const params = normalizeRnsHkdfParams({
     length,
     deriveFrom,
     ...(salt !== undefined ? { salt } : {}),
-    ...(context !== undefined ? { context } : {})
+    ...(context !== undefined ? { context } : {}),
   });
   // Prefer provider.hkdf when available so node/bare backends stay authoritative,
   // but params (and length checks) come from the pure protocol core.
@@ -29,7 +29,7 @@ export function rnsHkdf(
     keyMaterial: params.keyMaterial,
     salt: params.salt,
     info: params.info,
-    length: params.length
+    length: params.length,
   });
 }
 
@@ -38,14 +38,14 @@ export function rnsHkdfPure(
   length: number,
   deriveFrom: Uint8Array,
   salt: Uint8Array | null | undefined,
-  context: Uint8Array | null | undefined
+  context: Uint8Array | null | undefined,
 ): Uint8Array {
   const stepped = stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), {
     kind: "rns-hkdf/derive-gate",
     length,
     deriveFrom,
     ...(salt !== undefined ? { salt } : {}),
-    ...(context !== undefined ? { context } : {})
+    ...(context !== undefined ? { context } : {}),
   });
   const raw = rnsHkdfSha256RawFromActions(stepped.actions);
   if (
@@ -54,7 +54,9 @@ export function rnsHkdfPure(
     raw === null
   ) {
     throw new Error(
-      length < 1 ? "Invalid output key length" : "Cannot derive key from empty input material"
+      length < 1
+        ? "Invalid output key length"
+        : "Cannot derive key from empty input material",
     );
   }
   return raw;

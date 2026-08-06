@@ -11,10 +11,17 @@ import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
 
 function waitForPeer(timeoutMs = 15_000) {
   return new Promise((resolve, reject) => {
-    const socket = createConnection({ host: INTEROP_HOST, port: LEAF_ECHO_PORT });
+    const socket = createConnection({
+      host: INTEROP_HOST,
+      port: LEAF_ECHO_PORT,
+    });
     const timer = setTimeout(() => {
       socket.destroy();
-      reject(new Error(`leaf-echo peer not reachable at ${INTEROP_HOST}:${LEAF_ECHO_PORT}`));
+      reject(
+        new Error(
+          `leaf-echo peer not reachable at ${INTEROP_HOST}:${LEAF_ECHO_PORT}`,
+        ),
+      );
     }, timeoutMs);
 
     socket.once("connect", () => {
@@ -33,7 +40,7 @@ function waitForPeer(timeoutMs = 15_000) {
 export async function runIosLifecycleSlice(options = {}) {
   const {
     requirePeer = false,
-    cycles = Number.parseInt(process.env.IOS_LIFECYCLE_CYCLES ?? "10", 10)
+    cycles = Number.parseInt(process.env.IOS_LIFECYCLE_CYCLES ?? "10", 10),
   } = options;
 
   try {
@@ -43,7 +50,9 @@ export async function runIosLifecycleSlice(options = {}) {
       throw error;
     }
 
-    console.log(`[ios-sim/lifecycle] skipped: ${error instanceof Error ? error.message : String(error)}`);
+    console.log(
+      `[ios-sim/lifecycle] skipped: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return;
   }
 
@@ -58,15 +67,15 @@ export async function runIosLifecycleSlice(options = {}) {
         measuredAt: new Date().toISOString(),
         runtime: "bare-worklet-slice",
         peer: `${INTEROP_HOST}:${LEAF_ECHO_PORT}`,
-        ...summary
+        ...summary,
       },
       null,
-      2
-    )}\n`
+      2,
+    )}\n`,
   );
   console.log(
     `[ios-sim/lifecycle] ${cycles} quiesce/reconnect cycles passed against Python RNS peer ` +
-      `(p50 reconnect ${summary.reconnectP50Ms}ms, p95 ${summary.reconnectP95Ms}ms, max ${summary.reconnectMaxMs}ms)`
+      `(p50 reconnect ${summary.reconnectP50Ms}ms, p95 ${summary.reconnectP95Ms}ms, max ${summary.reconnectMaxMs}ms)`,
   );
 }
 

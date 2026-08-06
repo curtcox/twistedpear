@@ -6,13 +6,13 @@ import {
   Reticulum,
   hexToBytes,
   type CryptoProvider,
-  type Runtime
+  type Runtime,
 } from "@twistedpear/reticulum-ts";
 import { unpackPackage } from "@twistedpear/app-registry";
 import { appDestinationName } from "@twistedpear/app-registry";
 import {
   parseListResponse,
-  sendPackageResourceRequest
+  sendPackageResourceRequest,
 } from "../server/resource-server.js";
 
 export interface PackageResourceClientOptions {
@@ -32,10 +32,12 @@ export class PackageResourceClient {
 
   constructor(private readonly options: PackageResourceClientOptions) {
     this.ownsReticulum = options.reticulum === undefined;
-    this.reticulum = options.reticulum ?? Reticulum.create({
-      provider: options.provider,
-      runtime: options.runtime
-    });
+    this.reticulum =
+      options.reticulum ??
+      Reticulum.create({
+        provider: options.provider,
+        runtime: options.runtime,
+      });
   }
 
   async start(): Promise<void> {
@@ -58,7 +60,10 @@ export class PackageResourceClient {
 
   async fetchVersion(
     version: string,
-    options: { readonly maxAttempts?: number; readonly requestTimeoutMs?: number } = {}
+    options: {
+      readonly maxAttempts?: number;
+      readonly requestTimeoutMs?: number;
+    } = {},
   ) {
     const maxAttempts = options.maxAttempts ?? 3;
     let lastError: Error | null = null;
@@ -69,7 +74,9 @@ export class PackageResourceClient {
         const archive = await sendPackageResourceRequest(
           link,
           { type: "fetch", version },
-          options.requestTimeoutMs === undefined ? {} : { timeoutMs: options.requestTimeoutMs }
+          options.requestTimeoutMs === undefined
+            ? {}
+            : { timeoutMs: options.requestTimeoutMs },
         );
         return unpackPackage(this.options.provider, archive);
       } catch (error) {
@@ -81,8 +88,13 @@ export class PackageResourceClient {
   }
 
   private async openLink() {
-    const publisherKey = hexToBytes(this.options.servingPublicKeyHex ?? this.options.publisherPublicKeyHex);
-    const publisherIdentity = Identity.fromPublicKey(this.options.provider, publisherKey);
+    const publisherKey = hexToBytes(
+      this.options.servingPublicKeyHex ?? this.options.publisherPublicKeyHex,
+    );
+    const publisherIdentity = Identity.fromPublicKey(
+      this.options.provider,
+      publisherKey,
+    );
     if (publisherIdentity === null) {
       throw new Error("Invalid serving public key");
     }
@@ -90,7 +102,7 @@ export class PackageResourceClient {
     const destinationName = appDestinationName(
       this.options.provider,
       this.options.publisherPublicKeyHex,
-      this.options.appName
+      this.options.appName,
     );
     const parts = destinationName.split(".");
     const appName = parts[0] ?? "tp";
@@ -102,20 +114,22 @@ export class PackageResourceClient {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName,
-      aspects
+      aspects,
     });
 
     const link = out.requestLink({
       linkEstablished(link) {
         return link;
-      }
+      },
     });
 
     return waitForActiveLink(link);
   }
 }
 
-async function waitForActiveLink(link: import("@twistedpear/reticulum-ts").Link) {
+async function waitForActiveLink(
+  link: import("@twistedpear/reticulum-ts").Link,
+) {
   const started = Date.now();
   while (Date.now() - started < 30_000) {
     if (link.status === LinkStatus.ACTIVE) {

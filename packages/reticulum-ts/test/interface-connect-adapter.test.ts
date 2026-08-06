@@ -6,16 +6,24 @@ import type {
   DuplexConnection,
   Runtime,
   TcpConnectOptions,
-  Timer
+  Timer,
 } from "../src/runtime/runtime.js";
 import { INTERFACE_CONNECT_TIMEOUT_MS } from "@twistedpear/protocol";
 
 function createFakeClock(startMs = 0): Clock & {
-  readonly pending: Array<{ delayMs: number; callback: () => void; cancelled: boolean }>;
+  readonly pending: Array<{
+    delayMs: number;
+    callback: () => void;
+    cancelled: boolean;
+  }>;
   advance(ms: number): void;
 } {
   let now = startMs;
-  const pending: Array<{ delayMs: number; callback: () => void; cancelled: boolean }> = [];
+  const pending: Array<{
+    delayMs: number;
+    callback: () => void;
+    cancelled: boolean;
+  }> = [];
   return {
     pending,
     now: () => now,
@@ -25,7 +33,7 @@ function createFakeClock(startMs = 0): Clock & {
       return {
         cancel() {
           entry.cancelled = true;
-        }
+        },
       };
     },
     advance(ms: number) {
@@ -40,7 +48,7 @@ function createFakeClock(startMs = 0): Clock & {
           entry.callback();
         }
       }
-    }
+    },
   };
 }
 
@@ -57,7 +65,7 @@ function openDuplex(): DuplexConnection {
       await new Promise(() => {});
     })(),
     write: async () => {},
-    close: async () => {}
+    close: async () => {},
   };
 }
 
@@ -67,7 +75,7 @@ function immediateConnection(): Promise<DuplexConnection> {
 
 function createRuntime(
   clock: Clock,
-  connect: (options: TcpConnectOptions) => Promise<DuplexConnection>
+  connect: (options: TcpConnectOptions) => Promise<DuplexConnection>,
 ): Runtime {
   return {
     clock,
@@ -75,19 +83,19 @@ function createRuntime(
     store: {
       get: async () => undefined,
       set: async () => {},
-      delete: async () => {}
+      delete: async () => {},
     },
     tcp: {
       connect,
       listen: async () => {
         throw new Error("listen not used");
-      }
+      },
     },
     udp: {
       bind: async () => {
         throw new Error("udp not used");
-      }
-    }
+      },
+    },
   };
 }
 
@@ -107,7 +115,7 @@ describe("TCP interface connect adapter", () => {
       targetHost: "127.0.0.1",
       targetPort: 9,
       connectTimeoutMs: 50,
-      maxReconnectTries: 0
+      maxReconnectTries: 0,
     });
 
     expect(seenTimeoutMs).toBe(0);
@@ -128,7 +136,7 @@ describe("TCP interface connect adapter", () => {
       targetHost: "127.0.0.1",
       targetPort: 9,
       connectTimeoutMs: INTERFACE_CONNECT_TIMEOUT_MS,
-      maxReconnectTries: 0
+      maxReconnectTries: 0,
     });
 
     expect(clock.pending.every((entry) => entry.cancelled)).toBe(true);
@@ -147,12 +155,12 @@ describe("TCP interface connect adapter", () => {
       targetHost: "127.0.0.1",
       targetPort: 9,
       connectTimeoutMs: 1_000,
-      maxReconnectTries: 0
+      maxReconnectTries: 0,
     });
 
     expect(iface.online).toBe(false);
     const connectTimers = clock.pending.filter(
-      (entry) => !entry.cancelled && entry.delayMs === 1_000
+      (entry) => !entry.cancelled && entry.delayMs === 1_000,
     );
     expect(connectTimers).toHaveLength(0);
   });

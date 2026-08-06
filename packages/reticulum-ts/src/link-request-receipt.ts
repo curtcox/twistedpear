@@ -10,7 +10,7 @@ import {
   stepAttachLinkRequestPacketReceiptWithActions,
   stepLinkRequestReceipt,
   type LinkRequestReceiptState,
-  type LinkRequestReceiptStatusValue
+  type LinkRequestReceiptStatusValue,
 } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Link.py RequestReceipt status constants. */
@@ -42,7 +42,8 @@ export class LinkRequestReceipt {
   readonly callbacks: RequestReceiptCallbacks;
   readonly sentAt: number;
   private readonly now: NowSeconds;
-  private receiptState: LinkRequestReceiptState = initialLinkRequestReceiptState();
+  private receiptState: LinkRequestReceiptState =
+    initialLinkRequestReceiptState();
   packetReceipt: PacketReceipt | null;
 
   get status(): RequestReceiptStatusValue {
@@ -95,8 +96,8 @@ export class LinkRequestReceipt {
       initialAttachLinkRequestPacketReceiptState(),
       {
         kind: "link/attach-request-packet-receipt-gate",
-        packetReceiptPresent: this.packetReceipt !== null
-      }
+        packetReceiptPresent: this.packetReceipt !== null,
+      },
     );
     if (shouldAttachLinkRequestPacketReceiptNow(attach.actions)) {
       this.attachPacketReceipt(this.packetReceipt!);
@@ -116,7 +117,7 @@ export class LinkRequestReceipt {
   requestTimedOut(): void {
     const stepped = stepLinkRequestReceipt(this.receiptState, {
       kind: "request/timeout",
-      at: this.now()
+      at: this.now(),
     });
     this.receiptState = stepped.state;
     if (shouldInvokeLinkRequestReceiptAction(stepped.actions, "failed")) {
@@ -129,7 +130,7 @@ export class LinkRequestReceipt {
     const stepped = stepLinkRequestReceipt(this.receiptState, {
       kind: "request/response",
       at: this.now(),
-      response
+      response,
     });
     this.receiptState = stepped.state;
     this.link.unregisterPendingRequest(this);

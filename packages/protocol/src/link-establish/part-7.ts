@@ -47,17 +47,19 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowState,
   shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions
+  stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { isLinkClosed } from "./part-3.js";
 import { isLinkInboundDataPacket } from "./part-6.js";
-import type { LinkInboundDataPacketEvent, LinkInboundDataPacketState } from "./part-6.js";
+import type {
+  LinkInboundDataPacketEvent,
+  LinkInboundDataPacketState,
+} from "./part-6.js";
 export type LinkInboundDataPacketAction =
-  | { readonly kind: "data" }
-  | { readonly kind: "other" };
+  { readonly kind: "data" } | { readonly kind: "other" };
 
 export interface LinkInboundDataPacketStepResult {
   readonly state: LinkInboundDataPacketState;
@@ -71,7 +73,7 @@ export function initialLinkInboundDataPacketState(): LinkInboundDataPacketState 
 
 export function stepLinkInboundDataPacketWithActions(
   state: LinkInboundDataPacketState,
-  event: LinkInboundDataPacketEvent
+  event: LinkInboundDataPacketEvent,
 ): LinkInboundDataPacketStepResult {
   if (event.kind === "link/inbound-data-packet-gate") {
     return {
@@ -79,9 +81,9 @@ export function stepLinkInboundDataPacketWithActions(
       intents: [],
       actions: [
         {
-          kind: isLinkInboundDataPacket(event.packetType) ? "data" : "other"
-        }
-      ]
+          kind: isLinkInboundDataPacket(event.packetType) ? "data" : "other",
+        },
+      ],
     };
   }
 
@@ -89,13 +91,13 @@ export function stepLinkInboundDataPacketWithActions(
 }
 
 export function shouldDispatchLinkInboundData(
-  actions: ReadonlyArray<LinkInboundDataPacketAction>
+  actions: ReadonlyArray<LinkInboundDataPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "data");
 }
 
 export function shouldIgnoreLinkInboundNonData(
-  actions: ReadonlyArray<LinkInboundDataPacketAction>
+  actions: ReadonlyArray<LinkInboundDataPacketAction>,
 ): boolean {
   return actions.some((action) => action.kind === "other");
 }
@@ -103,7 +105,6 @@ export function shouldIgnoreLinkInboundNonData(
 export function canLinkSend(status: LinkStatusValue): boolean {
   return status === LinkStatus.ACTIVE;
 }
-
 
 /**
  * canLinkSend gate is event-driven; no durable session fields.
@@ -121,8 +122,7 @@ export type LinkSendAllowEvent =
     };
 
 export type LinkSendAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface LinkSendAllowStepResult {
   readonly state: LinkSendAllowState;
@@ -136,7 +136,7 @@ export function initialLinkSendAllowState(): LinkSendAllowState {
 
 export function stepLinkSendAllowWithActions(
   state: LinkSendAllowState,
-  event: LinkSendAllowEvent
+  event: LinkSendAllowEvent,
 ): LinkSendAllowStepResult {
   if (event.kind === "link/send-allow-gate") {
     return {
@@ -144,9 +144,9 @@ export function stepLinkSendAllowWithActions(
       intents: [],
       actions: [
         {
-          kind: canLinkSend(event.status) ? "allow" : "deny"
-        }
-      ]
+          kind: canLinkSend(event.status) ? "allow" : "deny",
+        },
+      ],
     };
   }
 
@@ -154,13 +154,13 @@ export function stepLinkSendAllowWithActions(
 }
 
 export function shouldAllowLinkSend(
-  actions: ReadonlyArray<LinkSendAllowAction>
+  actions: ReadonlyArray<LinkSendAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyLinkSend(
-  actions: ReadonlyArray<LinkSendAllowAction>
+  actions: ReadonlyArray<LinkSendAllowAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -171,7 +171,6 @@ export function shouldReuseActiveLink(input: {
 }): boolean {
   return input.linkPresent && canLinkSend(input.status);
 }
-
 
 /**
  * shouldReuseActiveLink gate is event-driven; no durable session fields.
@@ -190,8 +189,7 @@ export type ReuseActiveLinkEvent =
     };
 
 export type ReuseActiveLinkAction =
-  | { readonly kind: "reuse" }
-  | { readonly kind: "skip" };
+  { readonly kind: "reuse" } | { readonly kind: "skip" };
 
 export interface ReuseActiveLinkStepResult {
   readonly state: ReuseActiveLinkState;
@@ -205,7 +203,7 @@ export function initialReuseActiveLinkState(): ReuseActiveLinkState {
 
 export function stepReuseActiveLinkWithActions(
   state: ReuseActiveLinkState,
-  event: ReuseActiveLinkEvent
+  event: ReuseActiveLinkEvent,
 ): ReuseActiveLinkStepResult {
   if (event.kind === "link/reuse-active-gate") {
     return {
@@ -213,9 +211,14 @@ export function stepReuseActiveLinkWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldReuseActiveLink({ linkPresent: event.linkPresent, status: event.status }) ? "reuse" : "skip"
-        }
-      ]
+          kind: shouldReuseActiveLink({
+            linkPresent: event.linkPresent,
+            status: event.status,
+          })
+            ? "reuse"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -223,13 +226,13 @@ export function stepReuseActiveLinkWithActions(
 }
 
 export function shouldReuseActiveLinkNow(
-  actions: ReadonlyArray<ReuseActiveLinkAction>
+  actions: ReadonlyArray<ReuseActiveLinkAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reuse");
 }
 
 export function shouldSkipReuseActiveLink(
-  actions: ReadonlyArray<ReuseActiveLinkAction>
+  actions: ReadonlyArray<ReuseActiveLinkAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -240,7 +243,6 @@ export function shouldAcceptLinkPacketInterface(input: {
 }): boolean {
   return !input.hasAttachedInterface || input.sameInterface;
 }
-
 
 /**
  * shouldAcceptLinkPacketInterface gate is event-driven; no durable session fields.
@@ -259,8 +261,7 @@ export type AcceptLinkPacketInterfaceEvent =
     };
 
 export type AcceptLinkPacketInterfaceAction =
-  | { readonly kind: "accept" }
-  | { readonly kind: "skip" };
+  { readonly kind: "accept" } | { readonly kind: "skip" };
 
 export interface AcceptLinkPacketInterfaceStepResult {
   readonly state: AcceptLinkPacketInterfaceState;
@@ -274,7 +275,7 @@ export function initialAcceptLinkPacketInterfaceState(): AcceptLinkPacketInterfa
 
 export function stepAcceptLinkPacketInterfaceWithActions(
   state: AcceptLinkPacketInterfaceState,
-  event: AcceptLinkPacketInterfaceEvent
+  event: AcceptLinkPacketInterfaceEvent,
 ): AcceptLinkPacketInterfaceStepResult {
   if (event.kind === "link/accept-packet-interface-gate") {
     return {
@@ -282,9 +283,14 @@ export function stepAcceptLinkPacketInterfaceWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldAcceptLinkPacketInterface({ hasAttachedInterface: event.hasAttachedInterface, sameInterface: event.sameInterface }) ? "accept" : "skip"
-        }
-      ]
+          kind: shouldAcceptLinkPacketInterface({
+            hasAttachedInterface: event.hasAttachedInterface,
+            sameInterface: event.sameInterface,
+          })
+            ? "accept"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -292,21 +298,22 @@ export function stepAcceptLinkPacketInterfaceWithActions(
 }
 
 export function shouldAcceptLinkPacketInterfaceNow(
-  actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>
+  actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "accept");
 }
 
 export function shouldSkipLinkPacketInterface(
-  actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>
+  actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 /** Whether link sendContext should encrypt the payload (default yes unless encrypt:false). */
-export function shouldEncryptLinkPayload(encryptOption: boolean | undefined): boolean {
+export function shouldEncryptLinkPayload(
+  encryptOption: boolean | undefined,
+): boolean {
   return encryptOption !== false;
 }
-
 
 /**
  * shouldEncryptLinkPayload gate is event-driven; no durable session fields.
@@ -324,8 +331,7 @@ export type EncryptLinkPayloadEvent =
     };
 
 export type EncryptLinkPayloadAction =
-  | { readonly kind: "encrypt" }
-  | { readonly kind: "plaintext" };
+  { readonly kind: "encrypt" } | { readonly kind: "plaintext" };
 
 export interface EncryptLinkPayloadStepResult {
   readonly state: EncryptLinkPayloadState;
@@ -339,7 +345,7 @@ export function initialEncryptLinkPayloadState(): EncryptLinkPayloadState {
 
 export function stepEncryptLinkPayloadWithActions(
   state: EncryptLinkPayloadState,
-  event: EncryptLinkPayloadEvent
+  event: EncryptLinkPayloadEvent,
 ): EncryptLinkPayloadStepResult {
   if (event.kind === "link/encrypt-payload-gate") {
     return {
@@ -347,9 +353,11 @@ export function stepEncryptLinkPayloadWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldEncryptLinkPayload(event.encryptOption) ? "encrypt" : "plaintext"
-        }
-      ]
+          kind: shouldEncryptLinkPayload(event.encryptOption)
+            ? "encrypt"
+            : "plaintext",
+        },
+      ],
     };
   }
 
@@ -357,17 +365,16 @@ export function stepEncryptLinkPayloadWithActions(
 }
 
 export function shouldEncryptLinkPayloadNow(
-  actions: ReadonlyArray<EncryptLinkPayloadAction>
+  actions: ReadonlyArray<EncryptLinkPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "encrypt");
 }
 
 export function shouldSendLinkPayloadPlaintext(
-  actions: ReadonlyArray<EncryptLinkPayloadAction>
+  actions: ReadonlyArray<EncryptLinkPayloadAction>,
 ): boolean {
   return actions.some((action) => action.kind === "plaintext");
 }
-
 
 /**
  * isLinkClosed gate is event-driven; no durable session fields.
@@ -385,8 +392,7 @@ export type LinkClosedEvent =
     };
 
 export type LinkClosedAction =
-  | { readonly kind: "closed" }
-  | { readonly kind: "open" };
+  { readonly kind: "closed" } | { readonly kind: "open" };
 
 export interface LinkClosedStepResult {
   readonly state: LinkClosedState;
@@ -400,7 +406,7 @@ export function initialLinkClosedState(): LinkClosedState {
 
 export function stepLinkClosedWithActions(
   state: LinkClosedState,
-  event: LinkClosedEvent
+  event: LinkClosedEvent,
 ): LinkClosedStepResult {
   if (event.kind === "link/closed-gate") {
     return {
@@ -408,9 +414,9 @@ export function stepLinkClosedWithActions(
       intents: [],
       actions: [
         {
-          kind: isLinkClosed(event.status) ? "closed" : "open"
-        }
-      ]
+          kind: isLinkClosed(event.status) ? "closed" : "open",
+        },
+      ],
     };
   }
 
@@ -418,13 +424,13 @@ export function stepLinkClosedWithActions(
 }
 
 export function shouldTreatLinkClosed(
-  actions: ReadonlyArray<LinkClosedAction>
+  actions: ReadonlyArray<LinkClosedAction>,
 ): boolean {
   return actions.some((action) => action.kind === "closed");
 }
 
 export function shouldTreatLinkOpen(
-  actions: ReadonlyArray<LinkClosedAction>
+  actions: ReadonlyArray<LinkClosedAction>,
 ): boolean {
   return actions.some((action) => action.kind === "open");
 }
@@ -448,7 +454,7 @@ export type LinkRegisterListPlanAction = {
 
 /** Extract the link register-list plan from actions; null when empty. */
 export function linkRegisterListPlanFromActions(
-  actions: ReadonlyArray<LinkRegisterListPlanAction>
+  actions: ReadonlyArray<LinkRegisterListPlanAction>,
 ): LinkRegisterList | null {
   const action = actions[0];
   return action?.kind ?? null;

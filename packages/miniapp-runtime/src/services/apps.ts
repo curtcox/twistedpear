@@ -2,7 +2,7 @@ import { validateManifestCapabilities } from "../capabilities.js";
 import {
   requestHostConfirmation,
   type ConfirmationEffects,
-  type HostConfirmationChannel
+  type HostConfirmationChannel,
 } from "../confirm.js";
 import { validateWorkspacePath } from "./workspace.js";
 
@@ -12,14 +12,16 @@ function nodeConfirmationEffects(): ConfirmationEffects {
       const bytes = new Uint8Array(length);
       const c = globalThis.crypto;
       if (c === undefined || typeof c.getRandomValues !== "function") {
-        throw new Error("crypto.getRandomValues is required for confirmation tokens");
+        throw new Error(
+          "crypto.getRandomValues is required for confirmation tokens",
+        );
       }
       c.getRandomValues(bytes);
       return bytes;
     },
     delay(ms: number): Promise<void> {
       return new Promise((resolve) => setTimeout(resolve, ms));
-    }
+    },
   };
 }
 
@@ -57,12 +59,19 @@ export interface AppsInstallResult {
  * All user consent happens in AppsService BEFORE these methods run.
  */
 export interface AppsBackend {
-  package(appId: string, request: { projectPrefix: string; manifest: AppManifestDraft }): Promise<AppsPackageResult>;
+  package(
+    appId: string,
+    request: { projectPrefix: string; manifest: AppManifestDraft },
+  ): Promise<AppsPackageResult>;
   publish(appId: string, request: { t256: string }): Promise<AppsPublishResult>;
   install(appId: string, request: { t256: string }): Promise<AppsInstallResult>;
   preview(
     appId: string,
-    request: { projectPrefix: string; manifest: AppManifestDraft; grants: ReadonlyArray<string> }
+    request: {
+      projectPrefix: string;
+      manifest: AppManifestDraft;
+      grants: ReadonlyArray<string>;
+    },
   ): Promise<{ launched: boolean }>;
   stopPreview(appId: string): Promise<void>;
 }
@@ -70,7 +79,7 @@ export interface AppsBackend {
 export class AppsServiceError extends Error {
   constructor(
     readonly code: "APPS_UNCONFIGURED" | "APPS_BAD_REQUEST",
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "AppsServiceError";
@@ -83,7 +92,10 @@ const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
 function validateT256(value: unknown): string {
   if (typeof value !== "string" || !T256_PATTERN.test(value)) {
-    throw new AppsServiceError("APPS_BAD_REQUEST", "Expected a 94-character 256t id");
+    throw new AppsServiceError(
+      "APPS_BAD_REQUEST",
+      "Expected a 94-character 256t id",
+    );
   }
 
   return value;
@@ -92,15 +104,27 @@ function validateT256(value: unknown): string {
 function validateManifestDraft(value: unknown): AppManifestDraft {
   const draft = value as AppManifestDraft;
   if (typeof draft?.name !== "string" || !NAME_PATTERN.test(draft.name)) {
-    throw new AppsServiceError("APPS_BAD_REQUEST", "Manifest name must be lowercase alphanumeric/dashes");
+    throw new AppsServiceError(
+      "APPS_BAD_REQUEST",
+      "Manifest name must be lowercase alphanumeric/dashes",
+    );
   }
 
-  if (typeof draft.version !== "string" || !VERSION_PATTERN.test(draft.version)) {
-    throw new AppsServiceError("APPS_BAD_REQUEST", "Manifest version must be semver (x.y.z)");
+  if (
+    typeof draft.version !== "string" ||
+    !VERSION_PATTERN.test(draft.version)
+  ) {
+    throw new AppsServiceError(
+      "APPS_BAD_REQUEST",
+      "Manifest version must be semver (x.y.z)",
+    );
   }
 
   if (typeof draft.entry !== "string") {
-    throw new AppsServiceError("APPS_BAD_REQUEST", "Manifest entry is required");
+    throw new AppsServiceError(
+      "APPS_BAD_REQUEST",
+      "Manifest entry is required",
+    );
   }
 
   validateWorkspacePath(draft.entry);
@@ -110,19 +134,21 @@ function validateManifestDraft(value: unknown): AppManifestDraft {
     version: draft.version,
     entry: draft.entry,
     capabilities,
-    ...(typeof draft.minHostApi === "string" ? { minHostApi: draft.minHostApi } : {})
+    ...(typeof draft.minHostApi === "string"
+      ? { minHostApi: draft.minHostApi }
+      : {}),
   };
 }
 
 export class AppsService {
   constructor(
     private readonly backend: AppsBackend,
-    private readonly confirmationChannel: HostConfirmationChannel | undefined
+    private readonly confirmationChannel: HostConfirmationChannel | undefined,
   ) {}
 
   async package(
     context: { appId: string; publisherPublicKey: string },
-    request: { projectPrefix: string; manifest: unknown }
+    request: { projectPrefix: string; manifest: unknown },
   ): Promise<AppsPackageResult> {
     const manifest = validateManifestDraft(request.manifest);
     const projectPrefix = validateWorkspacePath(String(request.projectPrefix));
@@ -136,17 +162,17 @@ export class AppsService {
           name: manifest.name,
           version: manifest.version,
           entry: manifest.entry,
-          capabilities: manifest.capabilities.join(", ") || "(none)"
-        }
+          capabilities: manifest.capabilities.join(", ") || "(none)",
+        },
       },
-      confirmationEffects
+      confirmationEffects,
     );
     return this.backend.package(context.appId, { projectPrefix, manifest });
   }
 
   async publish(
     context: { appId: string; publisherPublicKey: string },
-    request: { t256: unknown }
+    request: { t256: unknown },
   ): Promise<AppsPublishResult> {
     const t256 = validateT256(request.t256);
     await requestHostConfirmation(
@@ -157,17 +183,17 @@ export class AppsService {
         publisherPublicKey: context.publisherPublicKey,
         summary: {
           t256,
-          note: "The app becomes visible to other users under this device's publisher identity."
-        }
+          note: "The app becomes visible to other users under this device's publisher identity.",
+        },
       },
-      confirmationEffects
+      confirmationEffects,
     );
     return this.backend.publish(context.appId, { t256 });
   }
 
   async install(
     context: { appId: string; publisherPublicKey: string },
-    request: { t256: unknown }
+    request: { t256: unknown },
   ): Promise<AppsInstallResult> {
     const t256 = validateT256(request.t256);
     await requestHostConfirmation(
@@ -178,25 +204,30 @@ export class AppsService {
         publisherPublicKey: context.publisherPublicKey,
         summary: {
           t256,
-          note: "The package is fetched, verified, and reviewed before anything runs."
-        }
+          note: "The package is fetched, verified, and reviewed before anything runs.",
+        },
       },
-      confirmationEffects
+      confirmationEffects,
     );
     return this.backend.install(context.appId, { t256 });
   }
 
   async preview(
     context: { appId: string; publisherPublicKey: string },
-    request: { projectPrefix: string; manifest: unknown; grants: unknown }
+    request: { projectPrefix: string; manifest: unknown; grants: unknown },
   ): Promise<{ launched: boolean }> {
     const manifest = validateManifestDraft(request.manifest);
     const projectPrefix = validateWorkspacePath(String(request.projectPrefix));
-    const grants = validateManifestCapabilities(Array.isArray(request.grants) ? (request.grants as string[]) : []);
+    const grants = validateManifestCapabilities(
+      Array.isArray(request.grants) ? (request.grants as string[]) : [],
+    );
     const declared = new Set(manifest.capabilities);
     for (const grant of grants) {
       if (!declared.has(grant)) {
-        throw new AppsServiceError("APPS_BAD_REQUEST", `Preview grant "${grant}" is not declared by the manifest`);
+        throw new AppsServiceError(
+          "APPS_BAD_REQUEST",
+          `Preview grant "${grant}" is not declared by the manifest`,
+        );
       }
     }
 
@@ -209,12 +240,16 @@ export class AppsService {
         summary: {
           name: manifest.name,
           version: manifest.version,
-          grants: grants.join(", ") || "(none)"
-        }
+          grants: grants.join(", ") || "(none)",
+        },
       },
-      confirmationEffects
+      confirmationEffects,
     );
-    return this.backend.preview(context.appId, { projectPrefix, manifest, grants });
+    return this.backend.preview(context.appId, {
+      projectPrefix,
+      manifest,
+      grants,
+    });
   }
 
   async stopPreview(context: { appId: string }): Promise<void> {

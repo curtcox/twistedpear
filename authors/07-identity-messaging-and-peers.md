@@ -17,8 +17,8 @@ The host derives, signs, routes, and delivers; you get an app-scoped view of the
 ```javascript
 import { identity } from "@twistedpear/miniapp-sdk";
 
-const me = await identity.destinationHash();     // your app's address
-const signature = await identity.sign(payload);  // brokered signing
+const me = await identity.destinationHash(); // your app's address
+const signature = await identity.sign(payload); // brokered signing
 ```
 
 `destinationHash()` returns an address derived from the **host identity plus your app id**.
@@ -68,7 +68,7 @@ So:
 - **Make every message independently meaningful.** Do not build a protocol requiring messages
   to arrive in order or in pairs.
 - **Poll `receive()` at a human rate.** Once a second is generous; you have a 60-call/sec
-  budget for *everything* ([Chapter 12](12-limits-and-budgets.md)).
+  budget for _everything_ ([Chapter 12](12-limits-and-budgets.md)).
 
 > **⚠️ Works, with limits — multipart propagation.** Host integrations can use
 > `sendMultipartPropagation` and `MultipartPropagationReceiver` for ordered, resumable
@@ -90,7 +90,7 @@ already buffered for that namespace.
 ```javascript
 import { announce } from "@twistedpear/miniapp-sdk";
 
-await announce.publish(appData, "my-app");    // make this instance findable
+await announce.publish(appData, "my-app"); // make this instance findable
 
 const events = await announce.subscribe("my-app");
 for (const event of events) {
@@ -104,7 +104,7 @@ later announces at you. To keep discovering peers who announce after you start, 
 on a timer — the same polling pattern `presence.snapshot()` needs, and for the same reason:
 there is no event to await.
 
-Announces are namespaced to your app, so you hear from other instances of *your* app, not
+Announces are namespaced to your app, so you hear from other instances of _your_ app, not
 from the whole network. `appData` is small — it is a beacon, not a payload; put a pointer in
 it and fetch the substance separately.
 
@@ -134,7 +134,7 @@ good ones — see the privacy discussion in
 ```javascript
 import { presence, host } from "@twistedpear/miniapp-sdk";
 
-const snapshot = await presence.snapshot();  // coarse peer/interface state
+const snapshot = await presence.snapshot(); // coarse peer/interface state
 const info = await host.info();
 ```
 
@@ -144,14 +144,14 @@ user's surroundings.
 
 `host.info()` (host API `0.3.0`, requires `presence`) is the one to reach for at startup:
 
-| Field | Use it for |
-|---|---|
-| Platform id | Adapting layout for phone vs desktop vs browser |
-| Host version, `HOST_API_VERSION` | Feature-detecting newer SDK surface |
-| Enabled roles | Knowing whether this host can seed or relay |
-| Available interface types | Warning before a large transfer on a radio-only link |
-| Quota snapshot | Sizing what you store |
-| `grantedCapabilities` | Branching cleanly instead of catching `CapabilityError` |
+| Field                            | Use it for                                              |
+| -------------------------------- | ------------------------------------------------------- |
+| Platform id                      | Adapting layout for phone vs desktop vs browser         |
+| Host version, `HOST_API_VERSION` | Feature-detecting newer SDK surface                     |
+| Enabled roles                    | Knowing whether this host can seed or relay             |
+| Available interface types        | Warning before a large transfer on a radio-only link    |
+| Quota snapshot                   | Sizing what you store                                   |
+| `grantedCapabilities`            | Branching cleanly instead of catching `CapabilityError` |
 
 ```javascript
 const info = await host.info();
@@ -183,12 +183,12 @@ Requires `resource:fetch`.
 ```javascript
 import { share } from "@twistedpear/miniapp-sdk";
 
-const t256 = await share.put(content);   // returns a 94-character identifier
-const content = await share.get(t256);   // fetch by identifier
+const t256 = await share.put(content); // returns a 94-character identifier
+const content = await share.get(t256); // fetch by identifier
 ```
 
 Bounded content-addressed storage and retrieval, keyed by 256t identifier. Use it when you
-want to hand someone a *thing* rather than a message — the identifier is a fingerprint of the
+want to hand someone a _thing_ rather than a message — the identifier is a fingerprint of the
 bytes, so it cannot be redirected.
 
 The same caveat as app installs applies: a `share.get` resolves only if the receiving host has
@@ -198,7 +198,7 @@ Requires `share:cas`.
 
 ## The privacy contract you are inheriting
 
-Your app's payloads are encrypted. Your user's *presence* is not. Bluetooth MAC addresses,
+Your app's payloads are encrypted. Your user's _presence_ is not. Bluetooth MAC addresses,
 Wi-Fi multicast traffic, and an always-on radio are locally observable regardless of what you
 send. TwistedPear is not an anonymity system and your app should not imply that it is.
 

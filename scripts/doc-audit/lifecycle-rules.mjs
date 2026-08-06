@@ -13,7 +13,11 @@ export function defaultTpDocForPath(relPath) {
 
 /** @param {string} relPath */
 function registerForPath(relPath) {
-  if (relPath === "STATUS-COMPLETE.md") return "complete";
+  if (
+    relPath === "STATUS-COMPLETE.md" ||
+    relPath === "STATUS-COMPLETE-PHASES.md"
+  )
+    return "complete";
   if (relPath === "STATUS-SOFTWARE.md") return "software";
   if (relPath === "STATUS-HARDWARE.md") return "hardware";
   if (relPath === "RELEASE-PLAN.md") return "release";
@@ -30,6 +34,7 @@ function lifecycleForPath(relPath) {
   if (
     relPath === "README.md" ||
     relPath === "STATUS-COMPLETE.md" ||
+    relPath === "STATUS-COMPLETE-PHASES.md" ||
     relPath === "STATUS-SOFTWARE.md" ||
     relPath === "STATUS-HARDWARE.md" ||
     relPath === "docs/README.md" ||
@@ -44,12 +49,17 @@ function lifecycleForPath(relPath) {
 
 /** @param {string} relPath @param {string} lifecycle */
 function auditedForPath(relPath, lifecycle) {
-  if (relPath === "STATUS-COMPLETE.md") return "2026-07-19";
+  if (
+    relPath === "STATUS-COMPLETE.md" ||
+    relPath === "STATUS-COMPLETE-PHASES.md"
+  )
+    return "2026-07-19";
   if (relPath === "STATUS-SOFTWARE.md" || relPath === "STATUS-HARDWARE.md") {
     return "2026-07-16";
   }
   if (relPath === "RELEASE-PLAN.md") return "2026-07-18";
-  if (relPath === "README.md" || relPath === "docs/README.md") return "2026-07-19";
+  if (relPath === "README.md" || relPath === "docs/README.md")
+    return "2026-07-19";
   if (relPath.startsWith("specs/")) return "2026-07-20";
   if (lifecycle === "historical") return "2026-07-20";
   if (relPath.startsWith("apps/handbook/content/")) return "2026-07-10";

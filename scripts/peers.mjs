@@ -23,7 +23,7 @@ import {
   peerEntry,
   readState,
   recordPeer,
-  writeObserveTape
+  writeObserveTape,
 } from "./peers/state.mjs";
 
 const log = (line) => console.log(line);
@@ -58,7 +58,9 @@ async function resolveAdapters(ids) {
   for (const id of ids) {
     const adapter = await adapterFor(id);
     if (adapter === null) {
-      throw new Error(`Unknown peer: ${id} (known: ${KNOWN_PEER_IDS.join(", ")})`);
+      throw new Error(
+        `Unknown peer: ${id} (known: ${KNOWN_PEER_IDS.join(", ")})`,
+      );
     }
     adapters.push(adapter);
   }
@@ -74,9 +76,13 @@ async function commandUp(ids, flags) {
   ensureStateDirs();
   const wanted = ids.length === 0 ? ["hub"] : ids;
   const withHub =
-    flags.has("--no-hub") || wanted.includes("hub") ? wanted : ["hub", ...wanted];
+    flags.has("--no-hub") || wanted.includes("hub")
+      ? wanted
+      : ["hub", ...wanted];
   // The hub must be listening before spokes dial it.
-  const ordered = [...withHub].sort((a, b) => (a === "hub" ? -1 : b === "hub" ? 1 : 0));
+  const ordered = [...withHub].sort((a, b) =>
+    a === "hub" ? -1 : b === "hub" ? 1 : 0,
+  );
 
   const adapters = await resolveAdapters(ordered);
   const failures = [];
@@ -104,7 +110,9 @@ async function commandUp(ids, flags) {
   if (failures.length > 0) {
     log(`\nStarted without: ${failures.join(", ")}`);
   }
-  log(`\nPeers up. Control port ${CONTROL_PORT}. Run: npm run test:local-multipeer -- --attach`);
+  log(
+    `\nPeers up. Control port ${CONTROL_PORT}. Run: npm run test:local-multipeer -- --attach`,
+  );
   return 0;
 }
 
@@ -116,7 +124,9 @@ async function commandDown(ids) {
     return 0;
   }
   // Stop spokes before the hub so they do not log reconnect churn on the way out.
-  const ordered = [...targets].sort((a, b) => (a === "hub" ? 1 : b === "hub" ? -1 : 0));
+  const ordered = [...targets].sort((a, b) =>
+    a === "hub" ? 1 : b === "hub" ? -1 : 0,
+  );
   const adapters = await resolveAdapters(ordered);
   for (const adapter of adapters) {
     const entry = peerEntry(adapter.id);
@@ -127,7 +137,9 @@ async function commandDown(ids) {
     try {
       await adapter.down(entry, { log });
     } catch (error) {
-      log(`${adapter.id}: stop failed — ${error instanceof Error ? error.message : String(error)}`);
+      log(
+        `${adapter.id}: stop failed — ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
     forgetPeer(adapter.id);
   }
@@ -156,7 +168,11 @@ async function liveAgents(waitMs = 3_000, options = {}) {
   const tapes = [];
   for (const label of control.labels()) {
     try {
-      snapshot.push({ label, status: await control.status(label), peers: await control.peers(label) });
+      snapshot.push({
+        label,
+        status: await control.status(label),
+        peers: await control.peers(label),
+      });
       if (options.capture === true) {
         const observe = await control.observeSnapshot(label);
         tapes.push(writeObserveTape(label, observe));
@@ -179,12 +195,16 @@ async function commandStatus(flags) {
       kind: entry.kind,
       running: adapter !== null && adapter.running(entry),
       startedAt: entry.startedAt,
-      ...(entry.statusPort === undefined ? {} : { statusPort: entry.statusPort })
+      ...(entry.statusPort === undefined
+        ? {}
+        : { statusPort: entry.statusPort }),
     });
   }
 
   const live =
-    rows.length === 0 ? null : await liveAgents(3_000, { capture: flags.has("--capture") });
+    rows.length === 0
+      ? null
+      : await liveAgents(3_000, { capture: flags.has("--capture") });
   const agents = live?.agents ?? (rows.length === 0 ? [] : null);
   const tapes = live?.tapes ?? [];
 
@@ -201,14 +221,17 @@ async function commandStatus(flags) {
   log("Peer      Kind     Process   Agent   Discovered");
   for (const row of rows) {
     const agent = agents?.find((entry) => entry.label === row.id) ?? null;
-    const agentState = agents === null ? "?" : agent === null ? "-" : "attached";
+    const agentState =
+      agents === null ? "?" : agent === null ? "-" : "attached";
     const discovered = agent === null ? "-" : String(agent.peers.length);
     log(
-      `${row.id.padEnd(9)} ${String(row.kind).padEnd(8)} ${(row.running ? "up" : "down").padEnd(9)} ${agentState.padEnd(7)} ${discovered}`
+      `${row.id.padEnd(9)} ${String(row.kind).padEnd(8)} ${(row.running ? "up" : "down").padEnd(9)} ${agentState.padEnd(7)} ${discovered}`,
     );
   }
   if (agents === null) {
-    log(`\nControl port ${CONTROL_PORT} is busy (a test run holds it); agent columns unavailable.`);
+    log(
+      `\nControl port ${CONTROL_PORT} is busy (a test run holds it); agent columns unavailable.`,
+    );
   }
   for (const path of tapes) {
     log(`Captured observe tape: ${path}`);

@@ -3,7 +3,7 @@ import {
   storageBeeDescriptor,
   type StorageBeeBackend,
   type StorageBeeEntry,
-  type StorageBeeListOptions
+  type StorageBeeListOptions,
 } from "./storage-bee.js";
 
 function beeKey(appId: string, key: string): string {
@@ -27,9 +27,13 @@ export class KvStorageBeeBackend implements StorageBeeBackend {
 
   async put(appId: string, key: string, value: Uint8Array): Promise<void> {
     const seqRaw = await this.kv.get(beeSeqKey(appId, key));
-    const seq = seqRaw === null ? 1 : Number(new TextDecoder().decode(seqRaw)) + 1;
+    const seq =
+      seqRaw === null ? 1 : Number(new TextDecoder().decode(seqRaw)) + 1;
     await this.kv.set(beeKey(appId, key), value);
-    await this.kv.set(beeSeqKey(appId, key), new TextEncoder().encode(String(seq)));
+    await this.kv.set(
+      beeSeqKey(appId, key),
+      new TextEncoder().encode(String(seq)),
+    );
   }
 
   async del(appId: string, key: string): Promise<void> {
@@ -37,7 +41,10 @@ export class KvStorageBeeBackend implements StorageBeeBackend {
     await this.kv.delete(beeSeqKey(appId, key));
   }
 
-  async list(appId: string, options?: StorageBeeListOptions): Promise<ReadonlyArray<StorageBeeEntry>> {
+  async list(
+    appId: string,
+    options?: StorageBeeListOptions,
+  ): Promise<ReadonlyArray<StorageBeeEntry>> {
     const prefix = `miniapp-bee:${appId}:`;
     const keys = await this.kv.list(prefix);
     const entries: StorageBeeEntry[] = [];
@@ -62,7 +69,8 @@ export class KvStorageBeeBackend implements StorageBeeBackend {
       }
 
       const seqRaw = await this.kv.get(beeSeqKey(appId, key));
-      const seq = seqRaw === null ? 0 : Number(new TextDecoder().decode(seqRaw));
+      const seq =
+        seqRaw === null ? 0 : Number(new TextDecoder().decode(seqRaw));
       entries.push({ key, value, seq });
     }
 

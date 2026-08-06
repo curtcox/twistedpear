@@ -1,6 +1,5 @@
 import {
   bytesToHex,
-  registerWebSocketServerInterface,
   type ByteRateLimiter,
   type CryptoProvider,
   type PacketInterface,
@@ -8,28 +7,19 @@ import {
   type Reticulum,
 } from "@twistedpear/reticulum-ts";
 import {
-  AutoInterface,
   BonjourDiscoveryProvider,
-  BleInterface,
-  I2PInterface,
-  RNodeInterface,
-  FreenetInterface,
-  FREENET_DEFAULT_BITRATE,
   inferInterfaceKind,
 } from "@twistedpear/reticulum-interfaces";
-import type { OpticalChannel, AcousticChannel } from "@twistedpear/reticulum-interfaces";
+import type {
+  OpticalChannel,
+  AcousticChannel,
+} from "@twistedpear/reticulum-interfaces";
 import { createMdnsBonjourBridge } from "@twistedpear/reticulum-interfaces/bonjour-mdns";
 import type { BlePipe } from "@twistedpear/reticulum-interfaces";
-import { FreenetContractPacketLogBackend } from "@twistedpear/bridge-freenet";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { createRequire } from "node:module";
 import type {
   AcousticInterfaceConfig,
   BluetoothInterfaceConfig,
-  FreenetInterfaceConfig,
   HostConfig,
-  HostRelayConfig,
   InterfaceDirection,
   InterfaceStatus,
   NtfyInterfaceConfig,
@@ -37,14 +27,18 @@ import type {
   RelayInterfaceKind,
   RelayMode,
   RelayPolicyMatrix,
-  TcpInterfaceConfig,
-  WebSocketInterfaceConfig,
 } from "./types.js";
 import { BridgeForwarder } from "./bridge-forwarder.js";
 import { validateHostConfig } from "./config.js";
 import { interfaceDirectionFlags } from "./types.js";
-import { buildInterfaceDiagnostics, buildInterfaceStatuses } from "./interface-manager-view.js";
-import { openAcousticInterface, openNtfyInterface, openOpticalInterface } from "./interface-manager-media.js";
+import {
+  buildInterfaceDiagnostics,
+  buildInterfaceStatuses,
+} from "./interface-manager-view.js";
+import {
+  openManagedInterface,
+  type InterfaceOpenContext,
+} from "./interface-manager-open.js";
 
 export type { InterfaceStatus } from "./types.js";
 
@@ -77,32 +71,6 @@ const RELAY_INTERFACE_KINDS: ReadonlyArray<RelayInterfaceKind> = [
   "ntfy",
   "freenet",
 ];
-
-let packetLogWasmCache: Uint8Array | null = null;
-
-function loadPacketLogWasm(): Uint8Array {
-  if (packetLogWasmCache !== null) return packetLogWasmCache;
-  const require = createRequire(import.meta.url);
-  const packageJson =
-    require.resolve("@twistedpear/bridge-freenet/package.json");
-  const wasmPath = join(
-    dirname(packageJson),
-    "contract/packet-log/packet-log-contract.wasm",
-  );
-  packetLogWasmCache = Uint8Array.from(readFileSync(wasmPath));
-  return packetLogWasmCache;
-}
-
-function hexToBytesLocal(hex: string): Uint8Array {
-  if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0) {
-    throw new Error("Freenet rendezvousHex must be even-length hex");
-  }
-  const out = new Uint8Array(hex.length / 2);
-  for (let index = 0; index < out.length; index += 1) {
-    out[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
-  }
-  return out;
-}
 
 export type {
   OpticalChannel,
@@ -436,7 +404,13 @@ export class InterfaceManager {
     const { incoming, outgoing } = interfaceDirectionFlags(direction);
     let iface: PacketInterface | null = null;
     try {
-      iface = await this.createInterface(kind, config, incoming, outgoing);
+      iface = await openManagedInterface(
+        this.interfaceOpenContext(),
+        kind,
+        config,
+        incoming,
+        outgoing,
+      );
     } catch (error) {
       this.failures.set(
         kind,
@@ -462,314 +436,31 @@ export class InterfaceManager {
     });
   }
 
-  private async createInterface(
-    kind: RelayInterfaceKind,
-    config: unknown,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    switch (kind) {
-      case "tcp":
-        return this.createTcpInterface(
-          config as TcpInterfaceConfig,
-          incoming,
-          outgoing,
-        );
-      case "websocket":
-        return this.createWebSocketInterface(
-          config as WebSocketInterfaceConfig,
-          incoming,
-          outgoing,
-        );
-      case "auto":
-        return this.createAutoInterface(
-          config as { multicast?: boolean; bonjour?: boolean },
-          incoming,
-          outgoing,
-        );
-      case "i2p":
-        return this.createI2pInterface(
-          config as { samHost?: string; samPort?: number },
-          incoming,
-          outgoing,
-        );
-      case "rnode":
-        return this.createRnodeInterface(
-          config as { portPath?: string; baudRate?: number },
-          incoming,
-          outgoing,
-        );
-      case "bluetooth":
-        return this.createBluetoothInterface(
-          config as BluetoothInterfaceConfig,
-          incoming,
-          outgoing,
-        );
-      case "optical":
-        return this.createOpticalInterface(
-          config as OpticalInterfaceConfig,
-          incoming,
-          outgoing,
-        );
-      case "acoustic":
-        return this.createAcousticInterface(
-          config as AcousticInterfaceConfig,
-          incoming,
-          outgoing,
-        );
-      case "ntfy":
-        return this.createNtfyInterface(
-          config as NtfyInterfaceConfig,
-          incoming,
-          outgoing,
-        );
-      case "freenet":
-        return this.createFreenetInterface(
-          config as FreenetInterfaceConfig,
-          incoming,
-          outgoing,
-        );
-      default:
-        return null;
-    }
-  }
-
-  private async createTcpInterface(
-    config: TcpInterfaceConfig,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    const roles = this.config!.roles;
-    if (roles.attachRnsd !== null) {
-      return this.reticulum.addTcpClientInterface({
-        name: "rnsd-attach",
-        targetHost: roles.attachRnsd.host,
-        targetPort: roles.attachRnsd.port,
-        incoming,
-        outgoing,
-      });
-    }
-    if (config.mode === "server") {
-      const server = await this.reticulum.addTcpServerInterface({
-        name: "host-tcp-server",
-        listenHost: "0.0.0.0",
-        listenPort: config.listenPort ?? 4242,
-        incoming,
-        outgoing,
-      });
-      this.servers.set("tcp", server);
-      // The server itself is not a PacketInterface; spawned clients are registered internally.
-      return null;
-    }
-    return this.reticulum.addTcpClientInterface({
-      name: "host-tcp-client",
-      targetHost: config.targetHost ?? "127.0.0.1",
-      targetPort: config.targetPort ?? 4242,
-      incoming,
-      outgoing,
-    });
-  }
-
-  private async createWebSocketInterface(
-    config: WebSocketInterfaceConfig,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    const bridgeHyper = await import("@twistedpear/bridge-hyper");
-    const bulkFetchHandler = bridgeHyper.createGatewayBulkFetchHttpHandler(
-      (driveKeyHex, version) =>
-        bridgeHyper.fetchDriveVersionViaHyperswarm({
-          driveKeyHex,
-          version,
-          ...(this.inboundBandwidthLimiter === undefined
-            ? {}
-            : { inboundBandwidthLimiter: this.inboundBandwidthLimiter }),
-          ...(this.outboundBandwidthLimiter === undefined
-            ? {}
-            : { outboundBandwidthLimiter: this.outboundBandwidthLimiter }),
-        }),
-      {
-        ...(this.outboundBandwidthLimiter === undefined
-          ? {}
-          : { outboundBandwidthLimiter: this.outboundBandwidthLimiter }),
+  private interfaceOpenContext(): InterfaceOpenContext {
+    const manager = this;
+    return {
+      reticulum: manager.reticulum,
+      provider: manager.provider,
+      runtime: manager.runtime,
+      effects: manager.effects,
+      inboundBandwidthLimiter: manager.inboundBandwidthLimiter,
+      outboundBandwidthLimiter: manager.outboundBandwidthLimiter,
+      attachRnsd: manager.config?.roles.attachRnsd ?? null,
+      servers: manager.servers,
+      bonjourBridge: manager.bonjourBridge,
+      get bonjour() {
+        return manager.bonjour;
       },
-    );
-    const wsServer = await registerWebSocketServerInterface(this.reticulum, {
-      name: "host-ws-gateway",
-      listenHost: config.listenHost ?? "127.0.0.1",
-      listenPort: config.listenPort ?? 9480,
-      ...(config.path === undefined ? {} : { path: config.path }),
-      ...(config.sharedToken === undefined
-        ? {}
-        : { sharedToken: config.sharedToken }),
-      ...(config.staticRoot === undefined
-        ? {}
-        : { staticRoot: config.staticRoot }),
-      incoming,
-      outgoing,
-      serveHttp: bulkFetchHandler,
-    });
-    if (config.dhtRelay !== false) {
-      const httpServer = wsServer.httpServer;
-      if (httpServer !== null) {
-        this.dhtRelaySession = bridgeHyper.attachDhtRelayServer(httpServer);
-      }
-    }
-    this.servers.set("websocket", wsServer);
-    // The WebSocket server itself is not a PacketInterface; spawned clients are registered internally.
-    return null;
-  }
-
-  private async createAutoInterface(
-    config: { multicast?: boolean; bonjour?: boolean },
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface> {
-    const iface = await AutoInterface.open(this.provider, this.runtime, {
-      name: "host-auto",
-      provider: this.provider,
-      runtime: this.runtime,
-      incoming,
-      outgoing,
-    });
-    if (config.bonjour !== false) {
-      this.bonjour = new BonjourDiscoveryProvider(this.bonjourBridge);
-      await this.bonjour.start();
-    }
-    return iface;
-  }
-
-  private async createI2pInterface(
-    config: { samHost?: string; samPort?: number; peerDestination?: string },
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface> {
-    if (
-      config.peerDestination === undefined ||
-      config.peerDestination.length === 0
-    ) {
-      throw new Error("I2P interface requires interfaces.i2p.peerDestination");
-    }
-    return I2PInterface.connect(this.provider, {
-      name: "host-i2p",
-      provider: this.provider,
-      runtime: this.runtime,
-      peerDestination: config.peerDestination,
-      ...(config.samHost === undefined ? {} : { samHost: config.samHost }),
-      ...(config.samPort === undefined ? {} : { samPort: config.samPort }),
-      incoming,
-      outgoing,
-    });
-  }
-
-  private async createRnodeInterface(
-    config: { portPath?: string; baudRate?: number },
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface> {
-    if (config.portPath === undefined || config.portPath.length === 0) {
-      throw new Error("RNode interface requires interfaces.rnode.portPath");
-    }
-    const { createSerialNodePipe } =
-      await import("@twistedpear/reticulum-interfaces/serial-node");
-    const pipe = createSerialNodePipe({
-      path: config.portPath,
-      ...(config.baudRate === undefined ? {} : { baudRate: config.baudRate }),
-    });
-    return RNodeInterface.open(this.provider, {
-      name: "host-rnode",
-      provider: this.provider,
-      pipe,
-      incoming,
-      outgoing,
-    });
-  }
-
-  private async createBluetoothInterface(
-    config: BluetoothInterfaceConfig,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    if (this.effects.bluetooth === undefined) return null;
-    const pipe = await this.effects.bluetooth.createPipe(config);
-    return BleInterface.open(this.provider, {
-      name: "host-bluetooth",
-      provider: this.provider,
-      pipe,
-      ...(config.pipeMtu === undefined ? {} : { pipeMtu: config.pipeMtu }),
-      incoming,
-      outgoing,
-    });
-  }
-
-  private async createOpticalInterface(
-    config: OpticalInterfaceConfig,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    if (this.effects.optical === undefined) return null;
-    const channel = await this.effects.optical.createChannel(config);
-    return openOpticalInterface(this.provider, channel, config, incoming, outgoing);
-  }
-
-  private async createAcousticInterface(
-    config: AcousticInterfaceConfig,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    if (this.effects.acoustic === undefined) return null;
-    const channel = await this.effects.acoustic.createChannel(config);
-    return openAcousticInterface(this.provider, channel, config, incoming, outgoing);
-  }
-
-  private async createNtfyInterface(
-    config: NtfyInterfaceConfig,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    return openNtfyInterface(this.provider, config, incoming, outgoing);
-  }
-
-  private async createFreenetInterface(
-    config: FreenetInterfaceConfig,
-    incoming: boolean,
-    outgoing: boolean,
-  ): Promise<PacketInterface | null> {
-    const url = config.url;
-    if (url === undefined || url.length === 0) {
-      throw new Error("Freenet interface requires interfaces.freenet.url");
-    }
-    const rendezvous =
-      config.rendezvousHex === undefined
-        ? this.provider.randomBytes(32)
-        : hexToBytesLocal(config.rendezvousHex);
-    if (rendezvous.length !== 32) {
-      throw new Error("Freenet rendezvous must be 32 bytes");
-    }
-    const wasm = loadPacketLogWasm();
-    const backend = new FreenetContractPacketLogBackend({
-      clientOptions: {
-        url,
-        ...(config.authToken === undefined
-          ? {}
-          : { authToken: config.authToken }),
+      set bonjour(value) {
+        manager.bonjour = value;
       },
-      wasm,
-      rendezvous,
-      localDirection: config.localDirection ?? 0,
-      ...(config.retentionPerDirection === undefined
-        ? {}
-        : { retentionPerDirection: config.retentionPerDirection }),
-      updateOptions: { fallbackCodeField: wasm },
-    });
-    return FreenetInterface.open(this.provider, {
-      name: "host-freenet",
-      provider: this.provider,
-      backend,
-      incoming,
-      outgoing,
-      bitrate: config.bitrateHint ?? FREENET_DEFAULT_BITRATE,
-    });
+      get dhtRelaySession() {
+        return manager.dhtRelaySession;
+      },
+      set dhtRelaySession(value) {
+        manager.dhtRelaySession = value;
+      },
+    };
   }
 
   private kindConfig(config: HostConfig, kind: RelayInterfaceKind): unknown {

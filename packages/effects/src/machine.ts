@@ -45,14 +45,20 @@ export class AmbiguousTransitionError extends Error {
 function validateMachine<S, E>(machine: Machine<S, E>): void {
   const states = new Set(machine.states);
   if (!states.has(machine.initial)) {
-    throw new Error(`machine initial state is not declared: ${machine.initial}`);
+    throw new Error(
+      `machine initial state is not declared: ${machine.initial}`,
+    );
   }
   for (const row of machine.table) {
     if (!states.has(row.from) || !states.has(row.to)) {
-      throw new Error(`machine row references undeclared state: ${row.from} -> ${row.to}`);
+      throw new Error(
+        `machine row references undeclared state: ${row.from} -> ${row.to}`,
+      );
     }
     if (!machine.events.includes(row.on)) {
-      throw new Error(`machine row references undeclared event class: ${row.on.name}`);
+      throw new Error(
+        `machine row references undeclared event class: ${row.on.name}`,
+      );
     }
   }
 }
@@ -63,26 +69,32 @@ export function interpret<S, E = Event>(machine: Machine<S, E>): StepFn<S, E> {
   return (state: S, event: E): StepResult<S> => {
     const control = machine.stateOf(state);
     const matches = machine.table.filter(
-      (row) => row.from === control && row.on.matches(event) && (row.guard?.(state, event) ?? true)
+      (row) =>
+        row.from === control &&
+        row.on.matches(event) &&
+        (row.guard?.(state, event) ?? true),
     );
     if (matches.length === 0) {
       return { state, intents: [] };
     }
     if (matches.length > 1) {
-      throw new AmbiguousTransitionError(control, matches.map((row) => row.on.name));
+      throw new AmbiguousTransitionError(
+        control,
+        matches.map((row) => row.on.name),
+      );
     }
     const row = matches[0]!;
     const reduced = row.reduce?.(state, event) ?? state;
     return {
       state: machine.withState(reduced, row.to),
-      intents: row.emit?.(reduced, event) ?? []
+      intents: row.emit?.(reduced, event) ?? [],
     };
   };
 }
 
 /** Enumerate the complete control-state × event-class Layer-3 coverage frame. */
 export function enumerateCells<S, E = Event>(
-  machine: Machine<S, E>
+  machine: Machine<S, E>,
 ): readonly MachineCell<S, E>[] {
   validateMachine(machine);
   const cells: MachineCell<S, E>[] = [];
@@ -91,7 +103,9 @@ export function enumerateCells<S, E = Event>(
       cells.push({
         state,
         eventClass: eventClass.name,
-        rows: machine.table.filter((row) => row.from === state && row.on === eventClass)
+        rows: machine.table.filter(
+          (row) => row.from === state && row.on === eventClass,
+        ),
       });
     }
   }

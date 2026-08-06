@@ -11,7 +11,7 @@ import {
   Resource,
   Reticulum,
   hexToBytes,
-  nodeRuntime
+  nodeRuntime,
 } from "@twistedpear/reticulum-ts";
 import { LXMessageMethod, LXMFRouter } from "@twistedpear/lxmf-ts";
 import { readFileSync } from "node:fs";
@@ -25,18 +25,29 @@ const provider = new PureCryptoProvider();
 const runtime = nodeRuntime();
 
 const identityVectors = JSON.parse(
-  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/vectors/identity.json"), "utf8")
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../conformance/vectors/identity.json",
+    ),
+    "utf8",
+  ),
 ) as {
   identities: ReadonlyArray<{ name: string; privateKeyHex: string }>;
 };
 
 function loadIdentity(name: string): Identity {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  const entry = identityVectors.identities.find(
+    (candidate) => candidate.name === name,
+  );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -48,7 +59,11 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForPath(reticulum: Reticulum, destinationHash: Uint8Array, timeoutMs = 15_000): Promise<void> {
+async function waitForPath(
+  reticulum: Reticulum,
+  destinationHash: Uint8Array,
+  timeoutMs = 15_000,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (reticulum.hasPath(destinationHash)) {
@@ -61,7 +76,10 @@ async function waitForPath(reticulum: Reticulum, destinationHash: Uint8Array, ti
   throw new Error("Timed out waiting for path to peer");
 }
 
-async function waitFor<T>(evaluate: () => T | null | undefined, timeoutMs = 10_000): Promise<T> {
+async function waitFor<T>(
+  evaluate: () => T | null | undefined,
+  timeoutMs = 10_000,
+): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const value = evaluate();
@@ -89,7 +107,10 @@ interface BlePeerPair {
   rightIface: BleInterface;
 }
 
-async function openBlePeerPair(mtu: number, lossRate = 0.02): Promise<BlePeerPair> {
+async function openBlePeerPair(
+  mtu: number,
+  lossRate = 0.02,
+): Promise<BlePeerPair> {
   const { leftPipe, rightPipe } = createLinkedBlePair(mtu, lossRate);
 
   const leftReticulum = Reticulum.create({ provider, runtime });
@@ -101,13 +122,13 @@ async function openBlePeerPair(mtu: number, lossRate = 0.02): Promise<BlePeerPai
     name: "ble-left",
     provider,
     pipe: leftPipe,
-    pipeMtu: mtu
+    pipeMtu: mtu,
   });
   const rightIface = await BleInterface.open(provider, {
     name: "ble-right",
     provider,
     pipe: rightPipe,
-    pipeMtu: mtu
+    pipeMtu: mtu,
   });
 
   leftReticulum.registerInterface(leftIface);
@@ -137,7 +158,7 @@ describe("BLE interop over simulated pipes", () => {
         direction: DestinationDirection.IN,
         type: DestinationType.SINGLE,
         appName: "example",
-        aspects: ["echo"]
+        aspects: ["echo"],
       });
       aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -147,7 +168,7 @@ describe("BLE interop over simulated pipes", () => {
         direction: DestinationDirection.OUT,
         type: DestinationType.SINGLE,
         appName: "example",
-        aspects: ["echo"]
+        aspects: ["echo"],
       });
 
       await aliceIn.announce();
@@ -174,7 +195,7 @@ describe("BLE interop over simulated pipes", () => {
 
       await closeBlePeerPair(pair);
     },
-    30_000
+    30_000,
   );
 
   it("establishes a link and echoes packets", async () => {
@@ -188,7 +209,7 @@ describe("BLE interop over simulated pipes", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["link"]
+      aspects: ["link"],
     });
     bobIn.setLinkEstablishedCallback((establishedLink) => {
       establishedLink.callbacks.packet = (data) => {
@@ -202,17 +223,23 @@ describe("BLE interop over simulated pipes", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["link"]
+      aspects: ["link"],
     });
 
     await bobIn.announce();
     await waitForPath(pair.leftReticulum, bobIn.hash, 30_000);
 
     const link = bobOut.requestLink();
-    await waitFor(() => (link.status === LinkStatus.ACTIVE ? link : null), 20_000);
+    await waitFor(
+      () => (link.status === LinkStatus.ACTIVE ? link : null),
+      20_000,
+    );
 
     const received = new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("link echo timeout")), 15_000);
+      const timer = setTimeout(
+        () => reject(new Error("link echo timeout")),
+        15_000,
+      );
       link.callbacks.packet = (data) => {
         clearTimeout(timer);
         resolve(new TextDecoder().decode(data));
@@ -234,7 +261,7 @@ describe("BLE interop over simulated pipes", () => {
       direction: DestinationDirection.IN,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["resource"]
+      aspects: ["resource"],
     });
 
     await rightIn.announce();
@@ -246,26 +273,34 @@ describe("BLE interop over simulated pipes", () => {
       direction: DestinationDirection.OUT,
       type: DestinationType.SINGLE,
       appName: "example",
-      aspects: ["resource"]
+      aspects: ["resource"],
     });
 
     let leftLink: import("@twistedpear/reticulum-ts").Link | null = null;
     leftOut.requestLink({
       linkEstablished(link) {
         leftLink = link;
-      }
+      },
     });
 
     const establishedLeftLink = await waitFor(() => leftLink, 20_000);
     const rightLink = await waitFor(
-      () => rightIn.activeLinks.find((candidate) => candidate.status === LinkStatus.ACTIVE) ?? null,
-      20_000
+      () =>
+        rightIn.activeLinks.find(
+          (candidate) => candidate.status === LinkStatus.ACTIVE,
+        ) ?? null,
+      20_000,
     );
     rightLink.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
 
-    const payload = new TextEncoder().encode("ble resource " + "x".repeat(1024));
+    const payload = new TextEncoder().encode(
+      "ble resource " + "x".repeat(1024),
+    );
     const received = new Promise<Uint8Array>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("resource timeout")), 20_000);
+      const timer = setTimeout(
+        () => reject(new Error("resource timeout")),
+        20_000,
+      );
       rightLink.callbacks.resourceConcluded = (resource) => {
         clearTimeout(timer);
         resolve(resource.data ?? new Uint8Array(0));
@@ -274,7 +309,9 @@ describe("BLE interop over simulated pipes", () => {
 
     Resource.send(establishedLeftLink, payload, { advertise: true });
     const data = await received;
-    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+    expect(new TextDecoder().decode(data)).toBe(
+      new TextDecoder().decode(payload),
+    );
 
     await closeBlePeerPair(pair);
   }, 30_000);
@@ -285,8 +322,14 @@ describe("BLE interop over simulated pipes", () => {
     const alice = loadIdentity("alice");
     const bob = loadIdentity("bob");
 
-    const leftRouter = new LXMFRouter({ reticulum: pair.leftReticulum, provider });
-    const rightRouter = new LXMFRouter({ reticulum: pair.rightReticulum, provider });
+    const leftRouter = new LXMFRouter({
+      reticulum: pair.leftReticulum,
+      provider,
+    });
+    const rightRouter = new LXMFRouter({
+      reticulum: pair.rightReticulum,
+      provider,
+    });
 
     const aliceDelivery = leftRouter.registerDeliveryIdentity(alice);
     const bobDelivery = rightRouter.registerDeliveryIdentity(bob);
@@ -311,7 +354,7 @@ describe("BLE interop over simulated pipes", () => {
       content: "Hello over simulated BLE",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: 1_700_000_200
+      timestamp: 1_700_000_200,
     });
 
     await expect(received).resolves.toBe("Hello over simulated BLE");
@@ -324,9 +367,13 @@ describe("BLE interop over simulated pipes", () => {
       mtu: 185,
       lossRate: 0,
       disconnectAfterBytes: 96,
-      random: () => 1
+      random: () => 1,
     });
-    const rightPipe = new SimulatedBlePipe({ mtu: 185, lossRate: 0, random: () => 1 });
+    const rightPipe = new SimulatedBlePipe({
+      mtu: 185,
+      lossRate: 0,
+      random: () => 1,
+    });
     leftPipe.linkPeer(rightPipe);
 
     const leftReticulum = Reticulum.create({ provider, runtime });
@@ -338,13 +385,13 @@ describe("BLE interop over simulated pipes", () => {
       name: "ble-left-reconnect",
       provider,
       pipe: leftPipe,
-      pipeMtu: 185
+      pipeMtu: 185,
     });
     const rightIface = await BleInterface.open(provider, {
       name: "ble-right-reconnect",
       provider,
       pipe: rightPipe,
-      pipeMtu: 185
+      pipeMtu: 185,
     });
 
     leftReticulum.registerInterface(leftIface);
@@ -377,7 +424,10 @@ describe("BLE framing properties", () => {
     for (const mtu of [185, 247, 512]) {
       const frames = fragmentForMtu(payload, mtu);
       expect(frames.length).toBeGreaterThan(0);
-      const totalPayload = frames.reduce((sum, frame) => sum + (frame.length - 4), 0);
+      const totalPayload = frames.reduce(
+        (sum, frame) => sum + (frame.length - 4),
+        0,
+      );
       expect(totalPayload).toBe(payload.length);
     }
   });

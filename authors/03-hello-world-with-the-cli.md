@@ -27,7 +27,7 @@ npm run build
 `tp` is then available from the workspace.
 
 > **⏳ Not yet available — a published `tp` package.** There is no `npm install -g
-> @twistedpear/cli` and no signed binary. Every install is built from source. This is part of
+@twistedpear/cli` and no signed binary. Every install is built from source. This is part of
 > the same release-qualification work that gates published host installers; see
 > [RELEASE-PLAN.md](../RELEASE-PLAN.md) and [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H17.
 
@@ -95,7 +95,7 @@ my-app/
 }
 ```
 
-Pick a real `name` before you publish anything: app identity is *publisher key + name*, and
+Pick a real `name` before you publish anything: app identity is _publisher key + name_, and
 that pair is what a host pins. Reverse-DNS style (`com.example.hello`) keeps you out of
 collisions with other publishers' apps in a user's catalog.
 
@@ -180,7 +180,7 @@ tp trust show <key>
 tp trust remove <key-or-256t>
 ```
 
-Trusting a publisher changes the *acceptance experience* for their apps — a one-confirmation
+Trusting a publisher changes the _acceptance experience_ for their apps — a one-confirmation
 install with a "Trusted" badge instead of the full warning flow. It does **not** skip the
 capability review, which is always shown, and it does not weaken first-seen key pinning. See
 [docs/256t-distribution.md](../docs/256t-distribution.md).
@@ -190,11 +190,11 @@ capability review, which is always shown, and it does not weaken first-seen key 
 The three reference apps in [apps/examples](../apps/examples/README.md) are small enough to read
 in full and each demonstrates one slice of the SDK:
 
-| App | Demonstrates | Size |
-|---|---|---|
-| `chat` | `identity`, `lxmf:send`, `lxmf:receive`, `storage:kv` | ~2.6 KiB |
-| `file-drop` | `resource:fetch` plus KV storage | ~1.8 KiB |
-| `board` | `announce:publish`/`subscribe` plus Hyperbee | ~2.1 KiB |
+| App         | Demonstrates                                          | Size     |
+| ----------- | ----------------------------------------------------- | -------- |
+| `chat`      | `identity`, `lxmf:send`, `lxmf:receive`, `storage:kv` | ~2.6 KiB |
+| `file-drop` | `resource:fetch` plus KV storage                      | ~1.8 KiB |
+| `board`     | `announce:publish`/`subscribe` plus Hyperbee          | ~2.1 KiB |
 
 ```sh
 npm run build

@@ -1,5 +1,9 @@
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
-import { Packet, RawPacketInterface, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import {
+  Packet,
+  RawPacketInterface,
+  type ReticulumInterfaceOptions,
+} from "@twistedpear/reticulum-ts";
 import type { SerialPipe } from "../pipes.js";
 import {
   KISS_CMD_DATA,
@@ -14,7 +18,7 @@ import {
   encodeDetectRequest,
   encodeKissFrame,
   encodeRadioStateAsk,
-  parseFirmwareVersion
+  parseFirmwareVersion,
 } from "./kiss.js";
 
 export const RNODE_INTERFACE_MTU = 508;
@@ -38,17 +42,32 @@ export class RNodeInterface extends RawPacketInterface {
   private eventsBound = false;
   private readActive = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private status: RNodeStatus = { firmwareVersion: null, platform: null, radioOnline: false };
+  private status: RNodeStatus = {
+    firmwareVersion: null,
+    platform: null,
+    radioOnline: false,
+  };
 
   constructor(
     private readonly provider: CryptoProvider,
-    private readonly options: RNodeInterfaceOptions
+    private readonly options: RNodeInterfaceOptions,
   ) {
-    super({ ...options, mtu: options.mtu ?? RNODE_INTERFACE_MTU, bitrate: options.bitrate ?? 5_000 }, options.incoming ?? true, options.outgoing ?? true);
+    super(
+      {
+        ...options,
+        mtu: options.mtu ?? RNODE_INTERFACE_MTU,
+        bitrate: options.bitrate ?? 5_000,
+      },
+      options.incoming ?? true,
+      options.outgoing ?? true,
+    );
     this.bindPipeEvents();
   }
 
-  static async open(provider: CryptoProvider, options: RNodeInterfaceOptions): Promise<RNodeInterface> {
+  static async open(
+    provider: CryptoProvider,
+    options: RNodeInterfaceOptions,
+  ): Promise<RNodeInterface> {
     const iface = new RNodeInterface(provider, options);
     await iface.start();
     return iface;
@@ -98,7 +117,7 @@ export class RNodeInterface extends RawPacketInterface {
       onDisconnect: () => {
         this.online = false;
         this.scheduleReconnect();
-      }
+      },
     });
   }
 
@@ -126,13 +145,19 @@ export class RNodeInterface extends RawPacketInterface {
         }
         break;
       case KISS_CMD_FW_VERSION:
-        this.status = { ...this.status, firmwareVersion: parseFirmwareVersion(payload) };
+        this.status = {
+          ...this.status,
+          firmwareVersion: parseFirmwareVersion(payload),
+        };
         break;
       case KISS_CMD_PLATFORM:
         this.status = { ...this.status, platform: payload[0] ?? null };
         break;
       case KISS_CMD_RADIO_STATE:
-        this.status = { ...this.status, radioOnline: (payload[0] ?? 0) === KISS_RADIO_STATE_ON };
+        this.status = {
+          ...this.status,
+          radioOnline: (payload[0] ?? 0) === KISS_RADIO_STATE_ON,
+        };
         this.online = this.status.radioOnline;
         break;
       default:

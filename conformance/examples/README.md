@@ -1,6 +1,5 @@
 # Example mini-apps (Phase 4 M7)
 
-
 <!-- tp-doc
 lifecycle: reference
 audited: 2026-07-20

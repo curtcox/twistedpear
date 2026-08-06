@@ -1,12 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { Identity, PureCryptoProvider } from "@twistedpear/reticulum-ts";
-import type { MulticastBridge, MulticastBridgeEvents, MulticastNetworkInfo } from "../src/pipes.js";
+import type {
+  MulticastBridge,
+  MulticastBridgeEvents,
+  MulticastNetworkInfo,
+} from "../src/pipes.js";
 import { AutoInterfaceBridge } from "../src/auto-bridge.js";
-import { AUTO_DEFAULT_DISCOVERY_PORT, AUTO_DEFAULT_GROUP_ID } from "../src/auto.js";
-import { concatBytes, deriveMulticastAddress, MULTICAST_TEMPORARY, SCOPE_LINK } from "../src/auto-common.js";
+import {
+  AUTO_DEFAULT_DISCOVERY_PORT,
+  AUTO_DEFAULT_GROUP_ID,
+} from "../src/auto.js";
+import {
+  concatBytes,
+  deriveMulticastAddress,
+  MULTICAST_TEMPORARY,
+  SCOPE_LINK,
+} from "../src/auto-common.js";
 
 class MockMulticastBridge implements MulticastBridge {
-  interfaces: MulticastNetworkInfo[] = [{ name: "mock0", linkLocalAddress: "fe80::1" }];
+  interfaces: MulticastNetworkInfo[] = [
+    { name: "mock0", linkLocalAddress: "fe80::1" },
+  ];
   private events: MulticastBridgeEvents = {};
   private joined = new Set<string>();
   private bound = new Set<string>();
@@ -19,7 +33,11 @@ class MockMulticastBridge implements MulticastBridge {
 
   async stop(): Promise<void> {}
 
-  async joinGroup(ifname: string, groupAddress: string, port: number): Promise<void> {
+  async joinGroup(
+    ifname: string,
+    groupAddress: string,
+    port: number,
+  ): Promise<void> {
     this.joined.add(`${ifname}:${groupAddress}:${port}`);
   }
 
@@ -27,21 +45,36 @@ class MockMulticastBridge implements MulticastBridge {
     this.bound.add(`${ifname}:${port}`);
   }
 
-  async send(ifname: string, groupAddress: string, port: number, data: Uint8Array): Promise<void> {
+  async send(
+    ifname: string,
+    groupAddress: string,
+    port: number,
+    data: Uint8Array,
+  ): Promise<void> {
     void ifname;
     void groupAddress;
     void port;
     void data;
   }
 
-  async sendUnicast(ifname: string, targetAddress: string, port: number, data: Uint8Array): Promise<void> {
+  async sendUnicast(
+    ifname: string,
+    targetAddress: string,
+    port: number,
+    data: Uint8Array,
+  ): Promise<void> {
     void ifname;
     void targetAddress;
     void port;
     void data;
   }
 
-  emitPacket(ifname: string, data: Uint8Array, sourceAddress: string, port: number): void {
+  emitPacket(
+    ifname: string,
+    data: Uint8Array,
+    sourceAddress: string,
+    port: number,
+  ): void {
     this.events.onPacket?.(ifname, data, sourceAddress, port);
   }
 }
@@ -49,8 +82,18 @@ class MockMulticastBridge implements MulticastBridge {
 describe("AutoInterfaceBridge", () => {
   it("derives stable multicast addresses from group id", () => {
     const provider = new PureCryptoProvider();
-    const first = deriveMulticastAddress(provider, new TextEncoder().encode("reticulum"), SCOPE_LINK, MULTICAST_TEMPORARY);
-    const second = deriveMulticastAddress(provider, new TextEncoder().encode("reticulum"), SCOPE_LINK, MULTICAST_TEMPORARY);
+    const first = deriveMulticastAddress(
+      provider,
+      new TextEncoder().encode("reticulum"),
+      SCOPE_LINK,
+      MULTICAST_TEMPORARY,
+    );
+    const second = deriveMulticastAddress(
+      provider,
+      new TextEncoder().encode("reticulum"),
+      SCOPE_LINK,
+      MULTICAST_TEMPORARY,
+    );
     expect(first).toBe(second);
     expect(first.startsWith("ff12:")).toBe(true);
   });
@@ -63,7 +106,7 @@ describe("AutoInterfaceBridge", () => {
       provider,
       runtime: {} as never,
       bridge,
-      peeringTimeoutMs: 200
+      peeringTimeoutMs: 200,
     });
 
     expect(bridge.joined.size).toBeGreaterThan(0);
@@ -79,16 +122,24 @@ describe("AutoInterfaceBridge", () => {
       provider,
       runtime: {} as never,
       bridge,
-      peeringTimeoutMs: 5_000
+      peeringTimeoutMs: 5_000,
     });
 
     const remoteAddress = "fe80::dead:beef";
     const token = Identity.fullHash(
       provider,
-      concatBytes(new TextEncoder().encode(AUTO_DEFAULT_GROUP_ID), new TextEncoder().encode(remoteAddress))
+      concatBytes(
+        new TextEncoder().encode(AUTO_DEFAULT_GROUP_ID),
+        new TextEncoder().encode(remoteAddress),
+      ),
     );
 
-    bridge.emitPacket("mock0", token, remoteAddress, AUTO_DEFAULT_DISCOVERY_PORT);
+    bridge.emitPacket(
+      "mock0",
+      token,
+      remoteAddress,
+      AUTO_DEFAULT_DISCOVERY_PORT,
+    );
     expect(auto.peerInterfaces.length).toBe(1);
     await auto.close();
   });
@@ -101,7 +152,7 @@ describe("AutoInterfaceBridge", () => {
       provider,
       runtime: {} as never,
       bridge,
-      peeringTimeoutMs: 5_000
+      peeringTimeoutMs: 5_000,
     });
 
     auto.notifyPeerDiscovered("fe80::cafe", "mock0");
@@ -123,10 +174,12 @@ describe("AutoInterfaceBridge", () => {
       peeringTimeoutMs: 200,
       onPeerDetach: () => {
         detached += 1;
-      }
+      },
     });
 
-    const addPeer = (auto as unknown as { addPeer: (address: string, ifname: string) => void }).addPeer.bind(auto);
+    const addPeer = (
+      auto as unknown as { addPeer: (address: string, ifname: string) => void }
+    ).addPeer.bind(auto);
     addPeer("fe80::dead:beef", "mock0");
     expect(auto.peerInterfaces.length).toBe(1);
 

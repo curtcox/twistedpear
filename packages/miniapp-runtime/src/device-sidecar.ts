@@ -4,10 +4,11 @@ import {
   encodeDeviceStreamFrame,
   type DeviceStreamFrame,
   type DeviceStreamSampleKind,
-  DeviceStreamFrameError
+  DeviceStreamFrameError,
 } from "@twistedpear/protocol";
 
-export type DeviceSidecarTransport = "transferable" | "shared-ring" | "chunked-wire";
+export type DeviceSidecarTransport =
+  "transferable" | "shared-ring" | "chunked-wire";
 
 export interface DeviceSidecarPush {
   readonly sessionHandle: string;
@@ -37,7 +38,7 @@ export class DeviceStreamSidecar {
     private readonly options: {
       readonly maxQueuedFrames?: number;
       readonly transport?: DeviceSidecarTransport;
-    } = {}
+    } = {},
   ) {}
 
   open(sessionHandle: string): number {
@@ -46,7 +47,7 @@ export class DeviceStreamSidecar {
       token,
       sequence: 0,
       frames: [],
-      droppedOldest: 0
+      droppedOldest: 0,
     });
     return token;
   }
@@ -58,7 +59,10 @@ export class DeviceStreamSidecar {
   push(push: DeviceSidecarPush): DeviceSidecarDelivery {
     const queue = this.queues.get(push.sessionHandle);
     if (queue === undefined || queue.token !== push.sessionToken) {
-      throw new DeviceStreamFrameError("MALFORMED", "Unknown or mismatched device sidecar session.");
+      throw new DeviceStreamFrameError(
+        "MALFORMED",
+        "Unknown or mismatched device sidecar session.",
+      );
     }
 
     const encoded = encodeDeviceStreamFrame({
@@ -68,7 +72,7 @@ export class DeviceStreamSidecar {
       sequence: push.sequence,
       captureAtUs: push.captureAtUs,
       clockId: push.clockId,
-      payload: push.payload
+      payload: push.payload,
     });
 
     // Refuse anything that would decode as a non-sample / control frame.
@@ -91,7 +95,7 @@ export class DeviceStreamSidecar {
     return {
       transport: this.options.transport ?? "transferable",
       frames,
-      droppedOldest
+      droppedOldest,
     };
   }
 
@@ -128,7 +132,7 @@ function assertSampleOnly(frame: DeviceStreamFrame): void {
   ) {
     throw new DeviceStreamFrameError(
       "CONTROL_FORBIDDEN",
-      "Device stream sidecar refuses control messages."
+      "Device stream sidecar refuses control messages.",
     );
   }
 }

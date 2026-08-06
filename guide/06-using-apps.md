@@ -32,12 +32,12 @@ a v1 design decision, not an oversight — see [LIMITATIONS.md §7](../LIMITATIO
 
 Three reference apps ship with the platform, plus the Handbook.
 
-| App | What it does |
-|---|---|
-| **Chat** | Direct messages between two addresses. The simplest useful app. |
-| **File drop** | Sends a file to a peer, using your host's bandwidth budget rules. |
-| **Board** | A shared noticeboard: everyone who subscribes sees the same posts. |
-| **Handbook** | Interactive documentation that probes your actual device. |
+| App           | What it does                                                       |
+| ------------- | ------------------------------------------------------------------ |
+| **Chat**      | Direct messages between two addresses. The simplest useful app.    |
+| **File drop** | Sends a file to a peer, using your host's bandwidth budget rules.  |
+| **Board**     | A shared noticeboard: everyone who subscribes sees the same posts. |
+| **Handbook**  | Interactive documentation that probes your actual device.          |
 
 ![The three example apps](/guide/images/06-example-apps.png)
 
@@ -47,7 +47,7 @@ transfer in progress with a progress bar and a rate readout; Board shows four po
 three different addresses.
 
 The Handbook is worth opening early. It is the only documentation that can tell you what
-*your* device can actually do, because it runs on it and asks the host directly.
+_your_ device can actually do, because it runs on it and asks the host directly.
 
 ![The Handbook running with a live probe](/guide/images/06-handbook-probe.png)
 

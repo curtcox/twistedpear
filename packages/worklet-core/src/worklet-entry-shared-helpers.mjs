@@ -15,12 +15,14 @@ export function catalogEntryView(entry) {
     packageHash: entry.packageHash,
     driveKey: entry.driveKey,
     resourceAvailable: entry.resourceAvailable,
-    receivedAt: entry.receivedAt
+    receivedAt: entry.receivedAt,
   };
 }
 
 export function peerServiceAspect(provider, service) {
-  return bytesToHex(provider.sha256(new TextEncoder().encode(service)).subarray(0, 16));
+  return bytesToHex(
+    provider.sha256(new TextEncoder().encode(service)).subarray(0, 16),
+  );
 }
 
 export function createRuntimeKeyValueStore(runtime, runtimeStoreKeys) {
@@ -39,7 +41,7 @@ export function createRuntimeKeyValueStore(runtime, runtimeStoreKeys) {
     },
     async list(prefix = "") {
       return [...runtimeStoreKeys].filter((key) => key.startsWith(prefix));
-    }
+    },
   };
 }
 
@@ -47,10 +49,18 @@ export function createRuntimeKeyValueStore(runtime, runtimeStoreKeys) {
 export function createPeerSessionManagerProxy(ensurePeerSessionManager) {
   return {
     async request(appId, runtimeId, request) {
-      return (await ensurePeerSessionManager()).request(appId, runtimeId, request);
+      return (await ensurePeerSessionManager()).request(
+        appId,
+        runtimeId,
+        request,
+      );
     },
     async listen(appId, runtimeId, request) {
-      return (await ensurePeerSessionManager()).listen(appId, runtimeId, request);
+      return (await ensurePeerSessionManager()).listen(
+        appId,
+        runtimeId,
+        request,
+      );
     },
     async diagnostics() {
       return (await ensurePeerSessionManager()).diagnostics();
@@ -64,17 +74,20 @@ export function createPeerSessionManagerProxy(ensurePeerSessionManager) {
     },
     info(appId, runtimeId, handle) {
       const manager = ensurePeerSessionManager.peek?.();
-      if (manager === null || manager === undefined) throw new Error("Unknown peer handle");
+      if (manager === null || manager === undefined)
+        throw new Error("Unknown peer handle");
       return manager.info(appId, runtimeId, handle);
     },
     async close(appId, runtimeId, handle) {
       const manager = ensurePeerSessionManager.peek?.();
-      if (manager !== null && manager !== undefined) await manager.close(appId, runtimeId, handle);
+      if (manager !== null && manager !== undefined)
+        await manager.close(appId, runtimeId, handle);
     },
     async closeRuntime(appId, runtimeId) {
       const manager = ensurePeerSessionManager.peek?.();
-      if (manager !== null && manager !== undefined) await manager.closeRuntime(appId, runtimeId);
-    }
+      if (manager !== null && manager !== undefined)
+        await manager.closeRuntime(appId, runtimeId);
+    },
   };
 }
 
@@ -82,10 +95,18 @@ export function createPeerSessionManagerProxy(ensurePeerSessionManager) {
 export function createPeerSessionManagerProxyFromState(deps) {
   return {
     async request(appId, runtimeId, request) {
-      return (await deps.ensurePeerSessionManager()).request(appId, runtimeId, request);
+      return (await deps.ensurePeerSessionManager()).request(
+        appId,
+        runtimeId,
+        request,
+      );
     },
     async listen(appId, runtimeId, request) {
-      return (await deps.ensurePeerSessionManager()).listen(appId, runtimeId, request);
+      return (await deps.ensurePeerSessionManager()).listen(
+        appId,
+        runtimeId,
+        request,
+      );
     },
     async diagnostics() {
       return (await deps.ensurePeerSessionManager()).diagnostics();
@@ -108,6 +129,6 @@ export function createPeerSessionManagerProxyFromState(deps) {
     async closeRuntime(appId, runtimeId) {
       const manager = deps.getManager();
       if (manager !== null) await manager.closeRuntime(appId, runtimeId);
-    }
+    },
   };
 }

@@ -10,8 +10,8 @@ register: none
 
 Ten consecutive `freenet-core` tags were inspected:
 
-| Tag | Tag date |
-|---|---|
+| Tag      | Tag date   |
+| -------- | ---------- |
 | v0.2.103 | 2026-07-21 |
 | v0.2.104 | 2026-07-21 |
 | v0.2.105 | 2026-07-22 |

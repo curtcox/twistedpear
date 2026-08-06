@@ -1,5 +1,11 @@
 import { randomBytes as nodeRandomBytes } from "node:crypto";
-import type { Clock, Entropy, KeyValueStore, Runtime, Timer } from "../runtime.js";
+import type {
+  Clock,
+  Entropy,
+  KeyValueStore,
+  Runtime,
+  Timer,
+} from "../runtime.js";
 import { nodeTcpFactory, nodeUdpFactory } from "./sockets.js";
 
 class NodeTimer implements Timer {
@@ -54,6 +60,6 @@ export function nodeRuntime(options: NodeRuntimeOptions = {}): Runtime {
     entropy: options.entropy ?? new NodeEntropy(),
     store: new MemoryKeyValueStore(),
     tcp: nodeTcpFactory,
-    udp: nodeUdpFactory
+    udp: nodeUdpFactory,
   };
 }

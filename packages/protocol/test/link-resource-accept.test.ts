@@ -51,15 +51,21 @@ import {
   stepLinkResourceAdvertisementPlanWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepLinkResourceConcludePlanWithActions,
-  stepLinkResourceConcludeWithActions
+  stepLinkResourceConcludeWithActions,
 } from "../src/link-resource-accept.js";
 import { LinkResourceStrategy } from "../src/link-watchdog.js";
 
 describe("protocol link resource accept", () => {
   it("plans accept strategy and app result", () => {
-    expect(planLinkResourceAccept(LinkResourceStrategy.ACCEPT_NONE)).toEqual({ kind: "ignore" });
-    expect(planLinkResourceAccept(LinkResourceStrategy.ACCEPT_APP)).toEqual({ kind: "ask-app" });
-    expect(planLinkResourceAccept(LinkResourceStrategy.ACCEPT_ALL)).toEqual({ kind: "accept" });
+    expect(planLinkResourceAccept(LinkResourceStrategy.ACCEPT_NONE)).toEqual({
+      kind: "ignore",
+    });
+    expect(planLinkResourceAccept(LinkResourceStrategy.ACCEPT_APP)).toEqual({
+      kind: "ask-app",
+    });
+    expect(planLinkResourceAccept(LinkResourceStrategy.ACCEPT_ALL)).toEqual({
+      kind: "accept",
+    });
     expect(planLinkResourceAcceptAppResult(true)).toBe("accept");
     expect(planLinkResourceAcceptAppResult(false)).toBe("reject");
     expect(linkReadyForNewResource(0)).toBe(true);
@@ -70,26 +76,26 @@ describe("protocol link resource accept", () => {
     expect(
       planLinkResourceAdvertisement({
         isRequest: true,
-        strategy: LinkResourceStrategy.ACCEPT_NONE
-      })
+        strategy: LinkResourceStrategy.ACCEPT_NONE,
+      }),
     ).toEqual({ kind: "accept" });
     expect(
       planLinkResourceAdvertisement({
         isRequest: false,
-        strategy: LinkResourceStrategy.ACCEPT_NONE
-      })
+        strategy: LinkResourceStrategy.ACCEPT_NONE,
+      }),
     ).toEqual({ kind: "ignore" });
     expect(
       planLinkResourceAdvertisement({
         isRequest: false,
-        strategy: LinkResourceStrategy.ACCEPT_APP
-      })
+        strategy: LinkResourceStrategy.ACCEPT_APP,
+      }),
     ).toEqual({ kind: "ask-app" });
     expect(
       planLinkResourceAdvertisement({
         isRequest: false,
-        strategy: LinkResourceStrategy.ACCEPT_ALL
-      })
+        strategy: LinkResourceStrategy.ACCEPT_ALL,
+      }),
     ).toEqual({ kind: "accept" });
 
     const acceptPlan = stepLinkResourceAdvertisementPlanWithActions(
@@ -97,12 +103,16 @@ describe("protocol link resource accept", () => {
       {
         kind: "resource-adv/advertisement-plan-gate",
         isRequest: true,
-        strategy: LinkResourceStrategy.ACCEPT_NONE
-      }
+        strategy: LinkResourceStrategy.ACCEPT_NONE,
+      },
     );
-    expect(shouldAcceptLinkResourceAdvertisementPlan(acceptPlan.actions)).toBe(true);
-    expect(linkResourceAdvertisementPlanFromActions(acceptPlan.actions)).toEqual({
-      kind: "accept"
+    expect(shouldAcceptLinkResourceAdvertisementPlan(acceptPlan.actions)).toBe(
+      true,
+    );
+    expect(
+      linkResourceAdvertisementPlanFromActions(acceptPlan.actions),
+    ).toEqual({
+      kind: "accept",
     });
 
     const ignorePlan = stepLinkResourceAdvertisementPlanWithActions(
@@ -110,12 +120,16 @@ describe("protocol link resource accept", () => {
       {
         kind: "resource-adv/advertisement-plan-gate",
         isRequest: false,
-        strategy: LinkResourceStrategy.ACCEPT_NONE
-      }
+        strategy: LinkResourceStrategy.ACCEPT_NONE,
+      },
     );
-    expect(shouldIgnoreLinkResourceAdvertisementPlan(ignorePlan.actions)).toBe(true);
-    expect(linkResourceAdvertisementPlanFromActions(ignorePlan.actions)).toEqual({
-      kind: "ignore"
+    expect(shouldIgnoreLinkResourceAdvertisementPlan(ignorePlan.actions)).toBe(
+      true,
+    );
+    expect(
+      linkResourceAdvertisementPlanFromActions(ignorePlan.actions),
+    ).toEqual({
+      kind: "ignore",
     });
 
     const askPlan = stepLinkResourceAdvertisementPlanWithActions(
@@ -123,50 +137,60 @@ describe("protocol link resource accept", () => {
       {
         kind: "resource-adv/advertisement-plan-gate",
         isRequest: false,
-        strategy: LinkResourceStrategy.ACCEPT_APP
-      }
+        strategy: LinkResourceStrategy.ACCEPT_APP,
+      },
     );
-    expect(shouldAskAppLinkResourceAdvertisementPlan(askPlan.actions)).toBe(true);
+    expect(shouldAskAppLinkResourceAdvertisementPlan(askPlan.actions)).toBe(
+      true,
+    );
 
     const acceptApp = stepLinkResourceAcceptAppResultPlanWithActions(
       initialLinkResourceAcceptAppResultPlanState(),
-      { kind: "resource-adv/app-result-plan-gate", accepted: true }
+      { kind: "resource-adv/app-result-plan-gate", accepted: true },
     );
-    expect(shouldAcceptLinkResourceAcceptAppResultPlan(acceptApp.actions)).toBe(true);
-    expect(linkResourceAcceptAppResultPlanFromActions(acceptApp.actions)).toBe("accept");
+    expect(shouldAcceptLinkResourceAcceptAppResultPlan(acceptApp.actions)).toBe(
+      true,
+    );
+    expect(linkResourceAcceptAppResultPlanFromActions(acceptApp.actions)).toBe(
+      "accept",
+    );
 
     const rejectApp = stepLinkResourceAcceptAppResultPlanWithActions(
       initialLinkResourceAcceptAppResultPlanState(),
-      { kind: "resource-adv/app-result-plan-gate", accepted: false }
+      { kind: "resource-adv/app-result-plan-gate", accepted: false },
     );
-    expect(shouldRejectLinkResourceAcceptAppResultPlan(rejectApp.actions)).toBe(true);
-    expect(linkResourceAcceptAppResultPlanFromActions(rejectApp.actions)).toBe("reject");
+    expect(shouldRejectLinkResourceAcceptAppResultPlan(rejectApp.actions)).toBe(
+      true,
+    );
+    expect(linkResourceAcceptAppResultPlanFromActions(rejectApp.actions)).toBe(
+      "reject",
+    );
   });
 
   it("emits resource-adv actions for ignore / ask-app / accept / reject", () => {
     const none = initialLinkResourceAdvertisementState({
-      strategy: LinkResourceStrategy.ACCEPT_NONE
+      strategy: LinkResourceStrategy.ACCEPT_NONE,
     });
     const ignored = stepLinkResourceAdvertisementWithActions(none, {
       kind: "resource-adv/received",
-      isRequest: false
+      isRequest: false,
     });
     expect(ignored.actions).toEqual([{ kind: "ignore" }]);
     expect(shouldIgnoreLinkResourceAdvertisement(ignored.actions)).toBe(true);
 
     const request = stepLinkResourceAdvertisementWithActions(none, {
       kind: "resource-adv/received",
-      isRequest: true
+      isRequest: true,
     });
     expect(request.actions).toEqual([{ kind: "accept" }]);
     expect(shouldAcceptLinkResourceAdvertisement(request.actions)).toBe(true);
 
     const app = initialLinkResourceAdvertisementState({
-      strategy: LinkResourceStrategy.ACCEPT_APP
+      strategy: LinkResourceStrategy.ACCEPT_APP,
     });
     const ask = stepLinkResourceAdvertisementWithActions(app, {
       kind: "resource-adv/received",
-      isRequest: false
+      isRequest: false,
     });
     expect(ask.actions).toEqual([{ kind: "ask-app" }]);
     expect(shouldAskAppLinkResourceAdvertisement(ask.actions)).toBe(true);
@@ -174,7 +198,7 @@ describe("protocol link resource accept", () => {
 
     const rejected = stepLinkResourceAdvertisementWithActions(ask.state, {
       kind: "resource-adv/app-result",
-      accepted: false
+      accepted: false,
     });
     expect(rejected.actions).toEqual([{ kind: "reject" }]);
     expect(shouldRejectLinkResourceAdvertisement(rejected.actions)).toBe(true);
@@ -182,23 +206,23 @@ describe("protocol link resource accept", () => {
 
     const accepted = stepLinkResourceAdvertisementWithActions(ask.state, {
       kind: "resource-adv/app-result",
-      accepted: true
+      accepted: true,
     });
     expect(accepted.actions).toEqual([{ kind: "accept" }]);
 
     const stray = stepLinkResourceAdvertisementWithActions(app, {
       kind: "resource-adv/app-result",
-      accepted: true
+      accepted: true,
     });
     expect(stray.actions).toEqual([]);
 
     const stripped = stepLinkResourceAdvertisement(none, {
       kind: "resource-adv/received",
-      isRequest: false
+      isRequest: false,
     });
     expect(stripped).toEqual({
       state: ignored.state,
-      intents: ignored.intents
+      intents: ignored.intents,
     });
   });
 
@@ -206,32 +230,32 @@ describe("protocol link resource accept", () => {
     const run = () => {
       const steps = [];
       const none = initialLinkResourceAdvertisementState({
-        strategy: LinkResourceStrategy.ACCEPT_NONE
+        strategy: LinkResourceStrategy.ACCEPT_NONE,
       });
       steps.push(
         stepLinkResourceAdvertisementWithActions(none, {
           kind: "resource-adv/received",
-          isRequest: false
-        })
+          isRequest: false,
+        }),
       );
       const app = initialLinkResourceAdvertisementState({
-        strategy: LinkResourceStrategy.ACCEPT_APP
+        strategy: LinkResourceStrategy.ACCEPT_APP,
       });
       const ask = stepLinkResourceAdvertisementWithActions(app, {
         kind: "resource-adv/received",
-        isRequest: false
+        isRequest: false,
       });
       steps.push(ask);
       steps.push(
         stepLinkResourceAdvertisementWithActions(ask.state, {
           kind: "resource-adv/app-result",
-          accepted: false
-        })
+          accepted: false,
+        }),
       );
       return steps.map((s) => ({
         waitingApp: s.state.waitingApp,
         actions: s.actions,
-        intents: s.intents
+        intents: s.intents,
       }));
     };
     expect(run()).toEqual(run());
@@ -241,20 +265,20 @@ describe("protocol link resource accept", () => {
     expect(
       shouldHandleOutgoingResourceRequest({
         hashMatches: true,
-        alreadySeen: false
-      })
+        alreadySeen: false,
+      }),
     ).toBe(true);
     expect(
       shouldHandleOutgoingResourceRequest({
         hashMatches: true,
-        alreadySeen: true
-      })
+        alreadySeen: true,
+      }),
     ).toBe(false);
     expect(
       shouldHandleOutgoingResourceRequest({
         hashMatches: false,
-        alreadySeen: false
-      })
+        alreadySeen: false,
+      }),
     ).toBe(false);
     expect(shouldHandleIncomingResourceByHash(true)).toBe(true);
     expect(shouldHandleIncomingResourceByHash(false)).toBe(false);
@@ -264,56 +288,70 @@ describe("protocol link resource accept", () => {
       {
         kind: "link/handle-outgoing-resource-request-gate",
         hashMatches: true,
-        alreadySeen: false
-      }
+        alreadySeen: false,
+      },
     );
-    expect(shouldHandleOutgoingResourceRequestNow(handleOutgoing.actions)).toBe(true);
+    expect(shouldHandleOutgoingResourceRequestNow(handleOutgoing.actions)).toBe(
+      true,
+    );
     const skipOutgoing = stepHandleOutgoingResourceRequestWithActions(
       initialHandleOutgoingResourceRequestState(),
       {
         kind: "link/handle-outgoing-resource-request-gate",
         hashMatches: true,
-        alreadySeen: true
-      }
+        alreadySeen: true,
+      },
     );
-    expect(shouldSkipHandleOutgoingResourceRequest(skipOutgoing.actions)).toBe(true);
+    expect(shouldSkipHandleOutgoingResourceRequest(skipOutgoing.actions)).toBe(
+      true,
+    );
 
     const handleIncoming = stepHandleIncomingResourceByHashWithActions(
       initialHandleIncomingResourceByHashState(),
       {
         kind: "link/handle-incoming-resource-by-hash-gate",
-        hashMatches: true
-      }
+        hashMatches: true,
+      },
     );
-    expect(shouldHandleIncomingResourceByHashNow(handleIncoming.actions)).toBe(true);
+    expect(shouldHandleIncomingResourceByHashNow(handleIncoming.actions)).toBe(
+      true,
+    );
     const skipIncoming = stepHandleIncomingResourceByHashWithActions(
       initialHandleIncomingResourceByHashState(),
       {
         kind: "link/handle-incoming-resource-by-hash-gate",
-        hashMatches: false
-      }
+        hashMatches: false,
+      },
     );
-    expect(shouldSkipHandleIncomingResourceByHash(skipIncoming.actions)).toBe(true);
+    expect(shouldSkipHandleIncomingResourceByHash(skipIncoming.actions)).toBe(
+      true,
+    );
   });
 
   it("plans unique resource register and conclude membership", () => {
     expect(shouldRegisterLinkResource(false)).toBe(true);
     expect(shouldRegisterLinkResource(true)).toBe(false);
-    const register = stepRegisterLinkResourceWithActions(initialRegisterLinkResourceState(), {
-      kind: "link/register-resource-gate",
-      alreadyPresent: false
-    });
+    const register = stepRegisterLinkResourceWithActions(
+      initialRegisterLinkResourceState(),
+      {
+        kind: "link/register-resource-gate",
+        alreadyPresent: false,
+      },
+    );
     expect(shouldRegisterLinkResourceNow(register.actions)).toBe(true);
-    const skip = stepRegisterLinkResourceWithActions(initialRegisterLinkResourceState(), {
-      kind: "link/register-resource-gate",
-      alreadyPresent: true
-    });
+    const skip = stepRegisterLinkResourceWithActions(
+      initialRegisterLinkResourceState(),
+      {
+        kind: "link/register-resource-gate",
+        alreadyPresent: true,
+      },
+    );
     expect(shouldSkipRegisterLinkResource(skip.actions)).toBe(true);
     expect(
-      planLinkResourceConclude({ outgoingIndex: 1, incomingIndex: -1 })
+      planLinkResourceConclude({ outgoingIndex: 1, incomingIndex: -1 }),
     ).toEqual({ removeOutgoingIndex: 1, removeIncomingIndex: null });
     expect(
-      planLinkResourceConclude({ outgoingIndex: -1, incomingIndex: 0 })
+      planLinkResourceConclude({ outgoingIndex: -1, incomingIndex: 0 }),
     ).toEqual({ removeOutgoingIndex: null, removeIncomingIndex: 0 });
     expect(shouldRemoveLinkResourceListIndex(true)).toBe(true);
     expect(shouldRemoveLinkResourceListIndex(false)).toBe(false);
@@ -325,57 +363,76 @@ describe("protocol link resource accept", () => {
       {
         kind: "link/resource-conclude-plan-gate",
         outgoingIndex: 1,
-        incomingIndex: -1
-      }
+        incomingIndex: -1,
+      },
     );
     expect(linkResourceConcludePlanFromActions(outgoingPlan.actions)).toEqual({
       removeOutgoingIndex: 1,
-      removeIncomingIndex: null
+      removeIncomingIndex: null,
     });
 
-    const outgoing = stepLinkResourceConcludeWithActions(initialLinkResourceConcludeState(), {
-      kind: "link/resource-conclude-gate",
-      outgoingIndex: 1,
-      incomingIndex: -1
-    });
-    expect(shouldRemoveOutgoingLinkResourceConclude(outgoing.actions)).toBe(true);
+    const outgoing = stepLinkResourceConcludeWithActions(
+      initialLinkResourceConcludeState(),
+      {
+        kind: "link/resource-conclude-gate",
+        outgoingIndex: 1,
+        incomingIndex: -1,
+      },
+    );
+    expect(shouldRemoveOutgoingLinkResourceConclude(outgoing.actions)).toBe(
+      true,
+    );
     expect(outgoingLinkResourceConcludeIndex(outgoing.actions)).toBe(1);
-    expect(shouldRemoveIncomingLinkResourceConclude(outgoing.actions)).toBe(false);
+    expect(shouldRemoveIncomingLinkResourceConclude(outgoing.actions)).toBe(
+      false,
+    );
 
     const incomingPlan = stepLinkResourceConcludePlanWithActions(
       initialLinkResourceConcludePlanState(),
       {
         kind: "link/resource-conclude-plan-gate",
         outgoingIndex: -1,
-        incomingIndex: 0
-      }
+        incomingIndex: 0,
+      },
     );
     expect(linkResourceConcludePlanFromActions(incomingPlan.actions)).toEqual({
       removeOutgoingIndex: null,
-      removeIncomingIndex: 0
+      removeIncomingIndex: 0,
     });
 
-    const incoming = stepLinkResourceConcludeWithActions(initialLinkResourceConcludeState(), {
-      kind: "link/resource-conclude-gate",
-      outgoingIndex: -1,
-      incomingIndex: 0
-    });
-    expect(shouldRemoveIncomingLinkResourceConclude(incoming.actions)).toBe(true);
+    const incoming = stepLinkResourceConcludeWithActions(
+      initialLinkResourceConcludeState(),
+      {
+        kind: "link/resource-conclude-gate",
+        outgoingIndex: -1,
+        incomingIndex: 0,
+      },
+    );
+    expect(shouldRemoveIncomingLinkResourceConclude(incoming.actions)).toBe(
+      true,
+    );
     expect(incomingLinkResourceConcludeIndex(incoming.actions)).toBe(0);
-    expect(shouldRemoveOutgoingLinkResourceConclude(incoming.actions)).toBe(false);
+    expect(shouldRemoveOutgoingLinkResourceConclude(incoming.actions)).toBe(
+      false,
+    );
   });
 
   it("concludes link ready for new resource via actions", () => {
-    const ready = stepLinkReadyForNewResourceWithActions(initialLinkReadyForNewResourceState(), {
-      kind: "link/ready-for-new-resource-gate",
-      outgoingCount: 0
-    });
+    const ready = stepLinkReadyForNewResourceWithActions(
+      initialLinkReadyForNewResourceState(),
+      {
+        kind: "link/ready-for-new-resource-gate",
+        outgoingCount: 0,
+      },
+    );
     expect(shouldLinkReadyForNewResource(ready.actions)).toBe(true);
-    const busy = stepLinkReadyForNewResourceWithActions(initialLinkReadyForNewResourceState(), {
-      kind: "link/ready-for-new-resource-gate",
-      outgoingCount: 1
-    });
+    const busy = stepLinkReadyForNewResourceWithActions(
+      initialLinkReadyForNewResourceState(),
+      {
+        kind: "link/ready-for-new-resource-gate",
+        outgoingCount: 1,
+      },
+    );
     expect(shouldLinkBusyForNewResource(busy.actions)).toBe(true);
   });
-
 });

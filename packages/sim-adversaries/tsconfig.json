@@ -17,5 +17,9 @@
     "verbatimModuleSyntax": true
   },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../effects" }, { "path": "../protocol" }, { "path": "../miniapp-runtime" }]
+  "references": [
+    { "path": "../effects" },
+    { "path": "../protocol" },
+    { "path": "../miniapp-runtime" }
+  ]
 }

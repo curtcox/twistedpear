@@ -20,8 +20,7 @@ export type PathResponseGraceEvent =
   | { readonly kind: "path-response-grace/arm"; readonly delayMs?: number };
 
 export type PathResponseGraceAction =
-  | { readonly kind: "transmit" }
-  | { readonly kind: "resolve" };
+  { readonly kind: "transmit" } | { readonly kind: "resolve" };
 
 export interface PathResponseGraceStepResult {
   readonly state: PathResponseGraceState;
@@ -33,52 +32,63 @@ export function initialPathResponseGraceState(): PathResponseGraceState {
   return {
     armed: false,
     concluded: false,
-    ready: false
+    ready: false,
   };
 }
 
 /** Whether grace concluded and the adapter should transmit the path response. */
-export function shouldTransmitPathResponse(state: PathResponseGraceState): boolean {
+export function shouldTransmitPathResponse(
+  state: PathResponseGraceState,
+): boolean {
   return state.concluded && state.ready;
 }
 
-export const stepPathResponseGrace: StepFn<PathResponseGraceState> = (state, event) => {
-  const result = stepPathResponseGraceInner(state, event as PathResponseGraceEvent);
+export const stepPathResponseGrace: StepFn<PathResponseGraceState> = (
+  state,
+  event,
+) => {
+  const result = stepPathResponseGraceInner(
+    state,
+    event as PathResponseGraceEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepPathResponseGraceWithActions(
   state: PathResponseGraceState,
-  event: PathResponseGraceEvent
+  event: PathResponseGraceEvent,
 ): PathResponseGraceStepResult {
   return stepPathResponseGraceInner(state, event);
 }
 
 function stepPathResponseGraceInner(
   state: PathResponseGraceState,
-  event: PathResponseGraceEvent
+  event: PathResponseGraceEvent,
 ): PathResponseGraceStepResult {
   if (event.kind === "path-response-grace/arm") {
     return {
       state: {
         armed: true,
         concluded: false,
-        ready: false
+        ready: false,
       },
       intents: [
         {
           kind: "timer/set",
           timer: {
             id: PATH_RESPONSE_GRACE_TIMER_ID,
-            delayMs: event.delayMs ?? PATH_REQUEST_GRACE_MS
-          }
-        }
+            delayMs: event.delayMs ?? PATH_REQUEST_GRACE_MS,
+          },
+        },
       ],
-      actions: []
+      actions: [],
     };
   }
 
-  if (event.kind === "timer/fired" && event.id === PATH_RESPONSE_GRACE_TIMER_ID) {
+  if (
+    event.kind === "timer/fired" &&
+    event.id === PATH_RESPONSE_GRACE_TIMER_ID
+  ) {
     if (!state.armed || state.concluded) {
       return { state, intents: [], actions: [] };
     }
@@ -86,10 +96,10 @@ function stepPathResponseGraceInner(
       state: {
         ...state,
         concluded: true,
-        ready: true
+        ready: true,
       },
       intents: [],
-      actions: [{ kind: "transmit" }, { kind: "resolve" }]
+      actions: [{ kind: "transmit" }, { kind: "resolve" }],
     };
   }
 

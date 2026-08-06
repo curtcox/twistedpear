@@ -1,7 +1,10 @@
 import type { CryptoProvider } from "../crypto/provider.js";
 import type { Runtime } from "../runtime/runtime.js";
 import { Packet } from "../packet.js";
-import { RawPacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
+import {
+  RawPacketInterface,
+  type ReticulumInterfaceOptions,
+} from "./interface.js";
 
 /** Mirrors RNS/Interfaces/UDPInterface.py defaults. */
 export const UDP_HW_MTU = 1_064;
@@ -22,15 +25,19 @@ export class UdpInterface extends RawPacketInterface {
   constructor(
     private readonly provider: CryptoProvider,
     private readonly runtime: Runtime,
-    private readonly options: UdpInterfaceOptions
+    private readonly options: UdpInterfaceOptions,
   ) {
-    super({ ...options, mtu: options.mtu ?? UDP_HW_MTU }, options.incoming ?? true, options.outgoing ?? true);
+    super(
+      { ...options, mtu: options.mtu ?? UDP_HW_MTU },
+      options.incoming ?? true,
+      options.outgoing ?? true,
+    );
   }
 
   static async open(
     provider: CryptoProvider,
     runtime: Runtime,
-    options: UdpInterfaceOptions
+    options: UdpInterfaceOptions,
   ): Promise<UdpInterface> {
     const iface = new UdpInterface(provider, runtime, options);
     await iface.start();
@@ -38,7 +45,10 @@ export class UdpInterface extends RawPacketInterface {
   }
 
   async start(): Promise<void> {
-    this.socket = await this.runtime.udp.bind(this.options.listenHost, this.options.listenPort);
+    this.socket = await this.runtime.udp.bind(
+      this.options.listenHost,
+      this.options.listenPort,
+    );
     this.online = true;
     this.readTask = this.readLoop();
   }
@@ -56,7 +66,11 @@ export class UdpInterface extends RawPacketInterface {
       throw new Error(`UDP interface ${this.name} is not bound`);
     }
 
-    await this.socket.send(bytes, this.options.forwardHost, this.options.forwardPort);
+    await this.socket.send(
+      bytes,
+      this.options.forwardHost,
+      this.options.forwardPort,
+    );
   }
 
   protected async closeInterface(): Promise<void> {

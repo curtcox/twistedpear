@@ -7,7 +7,7 @@ import {
   GrantStore,
   MemoryKvStoreBackend,
   MiniappHost,
-  createSimulatedDeviceManager
+  createSimulatedDeviceManager,
 } from "@twistedpear/miniapp-runtime";
 import { FreenetClientContractBackend } from "@twistedpear/bridge-freenet";
 
@@ -19,7 +19,12 @@ describe("node host MiniappHost wiring", () => {
         identityPassphrase: "conformance identity passphrase",
         config: defaultHostConfig({
           dataDir,
-          roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
+          roles: {
+            transport: false,
+            seeder: false,
+            propagation: false,
+            attachRnsd: null,
+          },
           relay: { mode: "off" },
           interfaces: {
             tcp: { enabled: false, mode: "client" },
@@ -29,17 +34,24 @@ describe("node host MiniappHost wiring", () => {
             // URL alone wires freenet:contract; enabled would open the HDLC iface.
             freenet: {
               enabled: false,
-              url: "ws://127.0.0.1:50509/v1/contract/command"
-            }
-          }
-        })
+              url: "ws://127.0.0.1:50509/v1/contract/command",
+            },
+          },
+        }),
       });
 
-      expect(session.freenetBackend).toBeInstanceOf(FreenetClientContractBackend);
+      expect(session.freenetBackend).toBeInstanceOf(
+        FreenetClientContractBackend,
+      );
 
       const store = new MemoryKvStoreBackend();
       const host = new MiniappHost({
-        backend: { name: "unused", async spawn() { throw new Error("not used"); } },
+        backend: {
+          name: "unused",
+          async spawn() {
+            throw new Error("not used");
+          },
+        },
         grantStore: new GrantStore(store),
         kvBackend: store,
         relayService: session.interfaceManager,
@@ -50,9 +62,9 @@ describe("node host MiniappHost wiring", () => {
           async put() {
             return { keyHex: "bb" };
           },
-          async update() {}
+          async update() {},
         },
-        deviceManager: createSimulatedDeviceManager({ now: () => 1_000 })
+        deviceManager: createSimulatedDeviceManager({ now: () => 1_000 }),
       });
 
       const relayManifest = {
@@ -60,24 +72,31 @@ describe("node host MiniappHost wiring", () => {
         version: "1",
         entry: "bundle.js",
         publisherPublicKey: "publisher",
-        capabilities: ["relay:configure", "relay:read"]
+        capabilities: ["relay:configure", "relay:read"],
       };
-      await host.setGrants("node-relay", "publisher", ["relay:read", "relay:configure"], [
-        "relay:read",
-        "relay:configure"
-      ]);
+      await host.setGrants(
+        "node-relay",
+        "publisher",
+        ["relay:read", "relay:configure"],
+        ["relay:read", "relay:configure"],
+      );
       const status = await host.dispatchRaw(
         { id: "status", namespace: "relay", method: "status", payload: {} },
         relayManifest,
-        ["relay:read"]
+        ["relay:read"],
       );
       expect(status.ok).toBe(true);
       expect(status.result).toMatchObject({ mode: "off" });
 
       const setMode = await host.dispatchRaw(
-        { id: "mode", namespace: "relay", method: "setMode", payload: { mode: "bridge" } },
+        {
+          id: "mode",
+          namespace: "relay",
+          method: "setMode",
+          payload: { mode: "bridge" },
+        },
         relayManifest,
-        ["relay:configure"]
+        ["relay:configure"],
       );
       expect(setMode.ok).toBe(true);
       expect(session.interfaceManager.status().mode).toBe("bridge");
@@ -89,33 +108,46 @@ describe("node host MiniappHost wiring", () => {
           version: "1",
           entry: "bundle.js",
           publisherPublicKey: "publisher",
-          capabilities: []
+          capabilities: [],
         },
-        []
+        [],
       );
       expect(inventory.ok).toBe(true);
-      const entries = inventory.result as Array<{ class: string; availability: string }>;
-      expect(entries.find((entry) => entry.class === "location")?.availability).toBe("available");
+      const entries = inventory.result as Array<{
+        class: string;
+        availability: string;
+      }>;
+      expect(
+        entries.find((entry) => entry.class === "location")?.availability,
+      ).toBe("available");
 
-      await host.setGrants("freenet-app", "publisher", ["freenet:contract"], ["freenet:contract"]);
+      await host.setGrants(
+        "freenet-app",
+        "publisher",
+        ["freenet:contract"],
+        ["freenet:contract"],
+      );
       const freenetGet = await host.dispatchRaw(
         {
           id: "fn",
           namespace: "freenet",
           method: "get",
-          payload: { keyHex: "ab".repeat(32) }
+          payload: { keyHex: "ab".repeat(32) },
         },
         {
           name: "freenet-app",
           version: "1",
           entry: "bundle.js",
           publisherPublicKey: "publisher",
-          capabilities: ["freenet:contract"]
+          capabilities: ["freenet:contract"],
         },
-        ["freenet:contract"]
+        ["freenet:contract"],
       );
       expect(freenetGet.ok).toBe(true);
-      expect(freenetGet.result).toEqual({ keyHex: "ab".repeat(32), stateHex: "aa" });
+      expect(freenetGet.result).toEqual({
+        keyHex: "ab".repeat(32),
+        stateHex: "aa",
+      });
 
       await session.stop();
     } finally {
@@ -130,16 +162,21 @@ describe("node host MiniappHost wiring", () => {
         identityPassphrase: "conformance identity passphrase",
         config: defaultHostConfig({
           dataDir,
-          roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
+          roles: {
+            transport: false,
+            seeder: false,
+            propagation: false,
+            attachRnsd: null,
+          },
           relay: { mode: "off" },
           interfaces: {
             tcp: { enabled: false, mode: "client" },
             auto: { enabled: false, multicast: false, bonjour: false },
             i2p: { enabled: false },
             rnode: { enabled: false },
-            freenet: { enabled: false }
-          }
-        })
+            freenet: { enabled: false },
+          },
+        }),
       });
       expect(session.freenetBackend).toBeNull();
       await session.stop();

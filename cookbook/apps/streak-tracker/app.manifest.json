@@ -2,9 +2,7 @@
   "name": "streak-tracker",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": [
-    "storage:kv"
-  ],
+  "capabilities": ["storage:kv"],
   "icon": null,
   "minHostApi": "0.1.0"
 }

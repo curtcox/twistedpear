@@ -30,8 +30,8 @@ function pushStatus() {
       onlineInterfaces: 0,
       catalogEntries: 0,
       installedPackages: 0,
-      storageUsedBytes: 0
-    }
+      storageUsedBytes: 0,
+    },
   });
 }
 

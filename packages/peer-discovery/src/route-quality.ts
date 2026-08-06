@@ -16,7 +16,7 @@ import {
   openLinkObservation,
   type DeclaredLinkMeasurement,
   type LinkObservationWindow,
-  type RouteQualityReport
+  type RouteQualityReport,
 } from "@twistedpear/protocol";
 import type { HostPeerRoute } from "./route-registry.js";
 
@@ -41,23 +41,32 @@ export interface MeteredHostPeerRouteOptions {
  */
 export function meterHostPeerRoute(
   route: HostPeerRoute,
-  options: MeteredHostPeerRouteOptions
+  options: MeteredHostPeerRouteOptions,
 ): HostPeerRoute {
   const declared: DeclaredLinkMeasurement = {
     kind: "declared",
     effectiveBps: options.declaredBps,
-    mtu: options.declaredMtu
+    mtu: options.declaredMtu,
   };
-  let window: LinkObservationWindow = openLinkObservation(declared, options.now());
+  let window: LinkObservationWindow = openLinkObservation(
+    declared,
+    options.now(),
+  );
 
   const observe = (bytes: number): void => {
     const reported = route.quality?.();
     window = observeLinkDelivery(window, {
       bytes,
       atMs: options.now(),
-      ...(reported === undefined ? {} : { rttMs: reported.rttMs, mtu: reported.mtu }),
-      ...(options.minSampleBytes === undefined ? {} : { minSampleBytes: options.minSampleBytes }),
-      ...(options.maxWindowMs === undefined ? {} : { maxWindowMs: options.maxWindowMs })
+      ...(reported === undefined
+        ? {}
+        : { rttMs: reported.rttMs, mtu: reported.mtu }),
+      ...(options.minSampleBytes === undefined
+        ? {}
+        : { minSampleBytes: options.minSampleBytes }),
+      ...(options.maxWindowMs === undefined
+        ? {}
+        : { maxWindowMs: options.maxWindowMs }),
     });
   };
 
@@ -84,9 +93,11 @@ export function meterHostPeerRoute(
         source: measured.source,
         samples: measured.samples,
         confidence: measured.confidence,
-        ...(reported?.queueDepthBytes === undefined ? {} : { queueDepthBytes: reported.queueDepthBytes })
+        ...(reported?.queueDepthBytes === undefined
+          ? {}
+          : { queueDepthBytes: reported.queueDepthBytes }),
       };
-    }
+    },
   };
 
   if (route.subscribe !== undefined) {

@@ -8,7 +8,7 @@ import {
   MiniappHost,
   NodeWorkerSandboxBackend,
   StorageBeeQuotaError,
-  type GrantKeyValueStore
+  type GrantKeyValueStore,
 } from "../src/index.js";
 
 class MemoryStore implements GrantKeyValueStore {
@@ -36,7 +36,7 @@ const manifestA = {
   version: "1.0.0",
   entry: "bundle.js",
   capabilities: ["storage:kv", "lxmf:send", "lxmf:receive", "storage:hyperbee"],
-  publisherPublicKey: "publisher-a"
+  publisherPublicKey: "publisher-a",
 };
 
 const manifestB = {
@@ -44,7 +44,7 @@ const manifestB = {
   version: "1.0.0",
   entry: "bundle.js",
   capabilities: ["storage:kv", "lxmf:send", "lxmf:receive", "storage:hyperbee"],
-  publisherPublicKey: "publisher-b"
+  publisherPublicKey: "publisher-b",
 };
 
 describe("broker services", () => {
@@ -53,23 +53,39 @@ describe("broker services", () => {
     const host = new MiniappHost({
       backend: new NodeWorkerSandboxBackend(),
       grantStore: new GrantStore(store),
-      kvBackend: store
+      kvBackend: store,
     });
 
-    await host.setGrants("app-a", "publisher-a", manifestA.capabilities, ["storage:kv"]);
-    await host.setGrants("app-b", "publisher-b", manifestB.capabilities, ["storage:kv"]);
+    await host.setGrants("app-a", "publisher-a", manifestA.capabilities, [
+      "storage:kv",
+    ]);
+    await host.setGrants("app-b", "publisher-b", manifestB.capabilities, [
+      "storage:kv",
+    ]);
 
     const setA = await host.dispatchRaw(
-      { id: "1", namespace: "storage.kv", method: "set", capability: "storage:kv", payload: { key: "secret", value: new Uint8Array([1]) } },
+      {
+        id: "1",
+        namespace: "storage.kv",
+        method: "set",
+        capability: "storage:kv",
+        payload: { key: "secret", value: new Uint8Array([1]) },
+      },
       manifestA,
-      ["storage:kv"]
+      ["storage:kv"],
     );
     expect(setA.ok).toBe(true);
 
     const readB = await host.dispatchRaw(
-      { id: "2", namespace: "storage.kv", method: "get", capability: "storage:kv", payload: { key: "secret" } },
+      {
+        id: "2",
+        namespace: "storage.kv",
+        method: "get",
+        capability: "storage:kv",
+        payload: { key: "secret" },
+      },
       manifestB,
-      ["storage:kv"]
+      ["storage:kv"],
     );
     expect(readB.ok).toBe(true);
     expect(readB.result).toBeNull();
@@ -80,11 +96,17 @@ describe("broker services", () => {
     const host = new MiniappHost({
       backend: new NodeWorkerSandboxBackend(),
       grantStore: new GrantStore(store),
-      kvBackend: store
+      kvBackend: store,
     });
 
-    await host.setGrants("app-a", "publisher-a", manifestA.capabilities, ["lxmf:send", "lxmf:receive"]);
-    await host.setGrants("app-b", "publisher-b", manifestB.capabilities, ["lxmf:send", "lxmf:receive"]);
+    await host.setGrants("app-a", "publisher-a", manifestA.capabilities, [
+      "lxmf:send",
+      "lxmf:receive",
+    ]);
+    await host.setGrants("app-b", "publisher-b", manifestB.capabilities, [
+      "lxmf:send",
+      "lxmf:receive",
+    ]);
 
     const sent = await host.dispatchRaw(
       {
@@ -92,27 +114,41 @@ describe("broker services", () => {
         namespace: "lxmf",
         method: "send",
         capability: "lxmf:send",
-        payload: { to: "app-b", subject: "hello", body: "from A" }
+        payload: { to: "app-b", subject: "hello", body: "from A" },
       },
       manifestA,
-      ["lxmf:send"]
+      ["lxmf:send"],
     );
     expect(sent.ok).toBe(true);
 
     const inboxB = await host.dispatchRaw(
-      { id: "2", namespace: "lxmf", method: "receive", capability: "lxmf:receive" },
+      {
+        id: "2",
+        namespace: "lxmf",
+        method: "receive",
+        capability: "lxmf:receive",
+      },
       manifestB,
-      ["lxmf:receive"]
+      ["lxmf:receive"],
     );
     expect(inboxB.ok).toBe(true);
     expect(inboxB.result).toEqual([
-      expect.objectContaining({ subject: "hello", body: "from A", from: "app-a" })
+      expect.objectContaining({
+        subject: "hello",
+        body: "from A",
+        from: "app-a",
+      }),
     ]);
 
     const inboxA = await host.dispatchRaw(
-      { id: "3", namespace: "lxmf", method: "receive", capability: "lxmf:receive" },
+      {
+        id: "3",
+        namespace: "lxmf",
+        method: "receive",
+        capability: "lxmf:receive",
+      },
       manifestA,
-      ["lxmf:receive"]
+      ["lxmf:receive"],
     );
     expect(inboxA.ok).toBe(true);
     expect(inboxA.result).toEqual([]);
@@ -138,15 +174,21 @@ describe("hyperbee storage", () => {
     await beeBackend.put("app-a", "post:1", new TextEncoder().encode("alpha"));
     await beeBackend.put("app-b", "post:1", new TextEncoder().encode("beta"));
 
-    expect(await beeBackend.get("app-a", "post:1")).toEqual(new TextEncoder().encode("alpha"));
-    expect(await beeBackend.get("app-b", "post:1")).toEqual(new TextEncoder().encode("beta"));
+    expect(await beeBackend.get("app-a", "post:1")).toEqual(
+      new TextEncoder().encode("alpha"),
+    );
+    expect(await beeBackend.get("app-b", "post:1")).toEqual(
+      new TextEncoder().encode("beta"),
+    );
   });
 
   it("enforces quota pressure", async () => {
     const tiny = new CorestoreBeeBackend(join(storagePath, "quota"), 12);
     await tiny.ready();
     await tiny.put("quota-app", "a", new TextEncoder().encode("1234567890"));
-    await expect(tiny.put("quota-app", "b", new TextEncoder().encode("1234567890"))).rejects.toBeInstanceOf(StorageBeeQuotaError);
+    await expect(
+      tiny.put("quota-app", "b", new TextEncoder().encode("1234567890")),
+    ).rejects.toBeInstanceOf(StorageBeeQuotaError);
     await tiny.close();
   });
 });

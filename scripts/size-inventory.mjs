@@ -73,11 +73,15 @@ function matcher(globs) {
  * @returns {string[]} repo-relative POSIX paths
  */
 function trackedFiles() {
-  const result = spawnSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
-    cwd: ROOT,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024
-  });
+  const result = spawnSync(
+    "git",
+    ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+    {
+      cwd: ROOT,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
   if (result.status !== 0) {
     console.error(result.stderr || "git ls-files failed");
     process.exit(1);
@@ -132,9 +136,14 @@ export function thresholdsFor(rule, defaults) {
     // Bytes catch files that stay inside the line budget while carrying an
     // outsized payload (long lines, embedded data) — derived from the line
     // thresholds unless a rule states them outright.
-    warnBytes: rule.warnBytes === undefined && budget != null ? rule.warnLines * budget : pick("warnBytes"),
+    warnBytes:
+      rule.warnBytes === undefined && budget != null
+        ? rule.warnLines * budget
+        : pick("warnBytes"),
     dangerBytes:
-      rule.dangerBytes === undefined && budget != null ? rule.dangerLines * budget : pick("dangerBytes")
+      rule.dangerBytes === undefined && budget != null
+        ? rule.dangerLines * budget
+        : pick("dangerBytes"),
   };
 }
 
@@ -154,8 +163,10 @@ function classify(m, t) {
     reasons.push(reason);
   };
 
-  if (m.lines > t.dangerLines) flag("danger", `lines ${m.lines} > ${t.dangerLines}`);
-  else if (m.lines > t.warnLines) flag("warn", `lines ${m.lines} > ${t.warnLines}`);
+  if (m.lines > t.dangerLines)
+    flag("danger", `lines ${m.lines} > ${t.dangerLines}`);
+  else if (m.lines > t.warnLines)
+    flag("warn", `lines ${m.lines} > ${t.warnLines}`);
 
   if (t.dangerBytes != null && m.bytes > t.dangerBytes) {
     flag("danger", `bytes ${m.bytes} > ${t.dangerBytes}`);
@@ -163,9 +174,18 @@ function classify(m, t) {
     flag("warn", `bytes ${m.bytes} > ${t.warnBytes}`);
   }
 
-  if (t.dangerMaxLineLength != null && m.maxLineLength > t.dangerMaxLineLength) {
-    flag("danger", `longest line ${m.maxLineLength} > ${t.dangerMaxLineLength}`);
-  } else if (t.warnMaxLineLength != null && m.maxLineLength > t.warnMaxLineLength) {
+  if (
+    t.dangerMaxLineLength != null &&
+    m.maxLineLength > t.dangerMaxLineLength
+  ) {
+    flag(
+      "danger",
+      `longest line ${m.maxLineLength} > ${t.dangerMaxLineLength}`,
+    );
+  } else if (
+    t.warnMaxLineLength != null &&
+    m.maxLineLength > t.warnMaxLineLength
+  ) {
     flag("warn", `longest line ${m.maxLineLength} > ${t.warnMaxLineLength}`);
   }
 
@@ -179,7 +199,7 @@ export function buildInventory() {
   const rules = config.rules.map((rule) => ({
     rule,
     matches: matcher(rule.include),
-    thresholds: thresholdsFor(rule, defaults)
+    thresholds: thresholdsFor(rule, defaults),
   }));
 
   /** @type {any[]} */
@@ -207,13 +227,20 @@ export function buildInventory() {
 
     const m = measure(abs);
     if (m.binary) {
-      exempt.push({ file: rel, rule: entry.rule.id, bytes: m.bytes, binary: true });
+      exempt.push({
+        file: rel,
+        rule: entry.rule.id,
+        bytes: m.bytes,
+        binary: true,
+      });
       continue;
     }
 
     const { status, reasons } = classify(m, entry.thresholds);
     const excessLines =
-      status === "danger" ? Math.max(0, m.lines - entry.thresholds.dangerLines) : 0;
+      status === "danger"
+        ? Math.max(0, m.lines - entry.thresholds.dangerLines)
+        : 0;
     files.push({
       file: rel,
       rule: entry.rule.id,
@@ -223,7 +250,7 @@ export function buildInventory() {
       status,
       reasons,
       excessLines,
-      dangerLines: entry.thresholds.dangerLines
+      dangerLines: entry.thresholds.dangerLines,
     });
   }
 
@@ -232,7 +259,10 @@ export function buildInventory() {
   const byRule = config.rules.map((rule) => {
     const matched = files.filter((f) => f.rule === rule.id);
     const lines = matched.map((f) => f.lines).sort((a, b) => a - b);
-    const pct = (q) => (lines.length ? lines[Math.min(lines.length - 1, Math.floor(q * lines.length))] : 0);
+    const pct = (q) =>
+      lines.length
+        ? lines[Math.min(lines.length - 1, Math.floor(q * lines.length))]
+        : 0;
     return {
       id: rule.id,
       title: rule.title,
@@ -246,7 +276,7 @@ export function buildInventory() {
       excessLines: matched.reduce((sum, f) => sum + f.excessLines, 0),
       medianLines: pct(0.5),
       p90Lines: pct(0.9),
-      maxLines: lines.length ? lines[lines.length - 1] : 0
+      maxLines: lines.length ? lines[lines.length - 1] : 0,
     };
   });
 
@@ -262,9 +292,11 @@ export function buildInventory() {
     .map(([area, excess]) => ({
       area,
       excessLines: excess,
-      share: excessLines > 0 ? excess / excessLines : 0
+      share: excessLines > 0 ? excess / excessLines : 0,
     }))
-    .sort((a, b) => b.excessLines - a.excessLines || a.area.localeCompare(b.area));
+    .sort(
+      (a, b) => b.excessLines - a.excessLines || a.area.localeCompare(b.area),
+    );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -276,14 +308,14 @@ export function buildInventory() {
       warn: files.filter((f) => f.status === "warn").length,
       danger: danger.length,
       totalLines: files.reduce((sum, f) => sum + f.lines, 0),
-      excessLines
+      excessLines,
     },
     byRule,
     byArea,
     danger,
     warn: files.filter((f) => f.status === "warn"),
     files,
-    exempt: exempt.sort((a, b) => a.file.localeCompare(b.file))
+    exempt: exempt.sort((a, b) => a.file.localeCompare(b.file)),
   };
 }
 
@@ -307,22 +339,27 @@ function main() {
 
   const t = inventory.totals;
   console.log(
-    `File sizes: ${t.classified} classified, ${t.ok} ok, ${t.warn} warn, ${t.danger} danger, ${t.excessLines.toLocaleString("en-US")} excess lines (${t.exempt} exempt)`
+    `File sizes: ${t.classified} classified, ${t.ok} ok, ${t.warn} warn, ${t.danger} danger, ${t.excessLines.toLocaleString("en-US")} excess lines (${t.exempt} exempt)`,
   );
   for (const r of inventory.byRule) {
     console.log(
-      `  ${r.id.padEnd(11)} n=${String(r.count).padStart(4)} median=${String(r.medianLines).padStart(5)} p90=${String(r.p90Lines).padStart(5)} max=${String(r.maxLines).padStart(6)} warn=${r.warn} danger=${r.danger} (warn>${r.thresholds.warnLines}, danger>${r.thresholds.dangerLines} lines)`
+      `  ${r.id.padEnd(11)} n=${String(r.count).padStart(4)} median=${String(r.medianLines).padStart(5)} p90=${String(r.p90Lines).padStart(5)} max=${String(r.maxLines).padStart(6)} warn=${r.warn} danger=${r.danger} (warn>${r.thresholds.warnLines}, danger>${r.thresholds.dangerLines} lines)`,
     );
   }
   if (inventory.danger.length > 0) {
     console.log("\nOver the danger threshold:");
     for (const f of inventory.danger) {
-      console.log(`  ${String(f.lines).padStart(6)}  [${f.rule}] ${f.file} — ${f.reasons.join("; ")}`);
+      console.log(
+        `  ${String(f.lines).padStart(6)}  [${f.rule}] ${f.file} — ${f.reasons.join("; ")}`,
+      );
     }
   }
   console.log(`\nWrote ${path.relative(ROOT, OUTPUT_PATH)}`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

@@ -1,25 +1,29 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readWorkletSource } from "./worklet-source.mjs";
+import { readModuleSource, readWorkletSource } from "./worklet-source.mjs";
 
 describe("desktop identity recovery surface", () => {
   it("keeps private operations in host chrome and exposes every recovery action", () => {
-    const html = readFileSync("apps/host-desktop/src/renderer/index.html", "utf8");
+    const html = readFileSync(
+      "apps/host-desktop/src/renderer/index.html",
+      "utf8",
+    );
     for (const id of [
       "identity-export",
       "identity-import",
       "identity-recovery-show",
       "identity-recovery-import",
-      "identity-change"
+      "identity-change",
     ]) {
       expect(html).toContain(`id="${id}"`);
     }
-    expect(html).toContain('type="password" id="identity-current"');
+    expect(html).toContain('type="password"');
+    expect(html).toContain('id="identity-current"');
     expect(html).toContain('autocomplete="off"');
   });
 
   it("inspects and confirms a candidate hash before either destructive replacement path", () => {
-    const renderer = readFileSync("apps/host-desktop/src/renderer/app.js", "utf8");
+    const renderer = readModuleSource("apps/host-desktop/src/renderer/app.js");
     const worklet = readWorkletSource("apps/host-desktop/worklet/entry.mjs");
     for (const operation of ["identity-import", "identity-recovery-import"]) {
       expect(renderer).toContain(`type: "${operation}-inspect"`);
@@ -28,17 +32,19 @@ describe("desktop identity recovery surface", () => {
     }
     expect(renderer).toContain("window.confirm");
     expect(renderer).toContain("confirmedCandidateHash: candidate");
-    expect(worklet).toContain("message.confirmedCandidateHash !== candidateIdentityHash");
+    expect(worklet).toContain(
+      "message.confirmedCandidateHash !== candidateIdentityHash",
+    );
     expect(worklet).toContain("Identity replacement was not confirmed");
   });
 
   it("passes explicit confirmation fields across host IPC", () => {
-    const renderer = readFileSync("apps/host-desktop/src/renderer/app.js", "utf8");
+    const renderer = readModuleSource("apps/host-desktop/src/renderer/app.js");
     const worklet = readWorkletSource("apps/host-desktop/worklet/entry.mjs");
     for (const field of [
       "backupPassphraseConfirmation",
       "vaultPassphraseConfirmation",
-      "nextPassphraseConfirmation"
+      "nextPassphraseConfirmation",
     ]) {
       expect(renderer).toContain(field);
       expect(worklet).toContain(field);

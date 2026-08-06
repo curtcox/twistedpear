@@ -20,7 +20,8 @@ export interface CommunityNetworkProfile {
 export const RETICULUM_COMMUNITY_NETWORK: CommunityNetworkProfile = {
   id: "reticulum-community",
   label: "Reticulum community network",
-  description: "Connect to a public community transport node and discover the wider Reticulum backbone.",
+  description:
+    "Connect to a public community transport node and discover the wider Reticulum backbone.",
   privacyNotice:
     "Public transport operators can observe your IP address and traffic timing. Traffic contents remain Reticulum-encrypted. Availability is not guaranteed.",
   endpoints: [
@@ -28,13 +29,13 @@ export const RETICULUM_COMMUNITY_NETWORK: CommunityNetworkProfile = {
       id: "reticulumnet-nl",
       label: "ReticulumNet (Netherlands)",
       host: "node.reticulumnet.nl",
-      port: 4242
+      port: 4242,
     },
     {
       id: "faultline-us",
       label: "Faultline community node (US)",
       host: "rns.faultline.dev",
-      port: 4242
-    }
-  ]
+      port: 4242,
+    },
+  ],
 };

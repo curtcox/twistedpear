@@ -14,7 +14,7 @@ import {
   Reticulum,
   hexToBytes,
   nodeRuntime,
-  registerWebSocketServerInterface
+  registerWebSocketServerInterface,
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   composeDown,
@@ -22,7 +22,7 @@ import {
   LEAF_ECHO_PORT,
   LXMF_ECHO_PORT,
   tryComposeUp,
-  waitForTcp
+  waitForTcp,
 } from "../scenarios/ts/harness.mjs";
 
 const interopRoot = dirname(fileURLToPath(import.meta.url));
@@ -52,7 +52,9 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 30_000) {
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`gateway did not learn browser path ${Buffer.from(destinationHash).toString("hex")}`);
+  throw new Error(
+    `gateway did not learn browser path ${Buffer.from(destinationHash).toString("hex")}`,
+  );
 }
 
 async function ensureInteropPeers() {
@@ -60,11 +62,15 @@ async function ensureInteropPeers() {
   const startedLxmf = tryComposeUp("lxmf-echo");
 
   if (!startedLeaf && !(await isTcpReady("127.0.0.1", LEAF_ECHO_PORT))) {
-    throw new Error(`No leaf-echo peer listening on 127.0.0.1:${LEAF_ECHO_PORT}`);
+    throw new Error(
+      `No leaf-echo peer listening on 127.0.0.1:${LEAF_ECHO_PORT}`,
+    );
   }
 
   if (!startedLxmf && !(await isTcpReady("127.0.0.1", LXMF_ECHO_PORT))) {
-    throw new Error(`No lxmf-echo peer listening on 127.0.0.1:${LXMF_ECHO_PORT}`);
+    throw new Error(
+      `No lxmf-echo peer listening on 127.0.0.1:${LXMF_ECHO_PORT}`,
+    );
   }
 
   await waitForTcp("127.0.0.1", LEAF_ECHO_PORT);
@@ -78,10 +84,14 @@ if (!interopReady()) {
 }
 
 function runBuild() {
-  const build = spawnSync("node", ["conformance/web-interop-browser/build.mjs"], {
-    cwd: join(interopRoot, "../.."),
-    stdio: "inherit"
-  });
+  const build = spawnSync(
+    "node",
+    ["conformance/web-interop-browser/build.mjs"],
+    {
+      cwd: join(interopRoot, "../.."),
+      stdio: "inherit",
+    },
+  );
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
   }
@@ -120,7 +130,7 @@ function startStaticServer(root) {
               }
             });
           });
-        }
+        },
       });
     });
   });
@@ -128,11 +138,15 @@ function startStaticServer(root) {
 
 function serveStatic(staticRoot, requestPath, headOnly, response) {
   const pathname = new URL(requestPath, "http://localhost").pathname;
-  const relativePath = pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
+  const relativePath =
+    pathname === "/" ? "page.html" : pathname.replace(/^\/+/, "");
   const resolvedRoot = normalize(staticRoot);
   const resolvedPath = normalize(join(resolvedRoot, relativePath));
 
-  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+  if (
+    !resolvedPath.startsWith(resolvedRoot + sep) &&
+    resolvedPath !== resolvedRoot
+  ) {
     response.writeHead(403);
     response.end();
     return;
@@ -144,7 +158,9 @@ function serveStatic(staticRoot, requestPath, headOnly, response) {
     return;
   }
 
-  response.writeHead(200, { "content-type": staticContentType(extname(resolvedPath)) });
+  response.writeHead(200, {
+    "content-type": staticContentType(extname(resolvedPath)),
+  });
   if (headOnly) {
     response.end();
     return;
@@ -167,24 +183,28 @@ function staticContentType(extension) {
 async function startGateway() {
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
-  const gateway = Reticulum.create({ provider, runtime, transportEnabled: true });
+  const gateway = Reticulum.create({
+    provider,
+    runtime,
+    transportEnabled: true,
+  });
   gateway.start();
 
   await gateway.addTcpClientInterface({
     name: "python-leaf-echo",
     targetHost: "127.0.0.1",
-    targetPort: LEAF_ECHO_PORT
+    targetPort: LEAF_ECHO_PORT,
   });
   await gateway.addTcpClientInterface({
     name: "python-lxmf-echo",
     targetHost: "127.0.0.1",
-    targetPort: LXMF_ECHO_PORT
+    targetPort: LXMF_ECHO_PORT,
   });
 
   const wsServer = await registerWebSocketServerInterface(gateway, {
     name: "ws-gateway",
     listenHost: "127.0.0.1",
-    listenPort: 0
+    listenPort: 0,
   });
 
   const wsPort = wsServer.address?.port;
@@ -198,7 +218,7 @@ async function startGateway() {
     async stop() {
       await wsServer.close();
       await gateway.stop();
-    }
+    },
   };
 }
 
@@ -206,9 +226,12 @@ async function runPlaywright(pageUrl, gatewayReticulum) {
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
-    await page.exposeFunction("__WAIT_FOR_GATEWAY_PATH__", async (destinationHex) => {
-      await waitForPath(gatewayReticulum, hexToBytes(destinationHex));
-    });
+    await page.exposeFunction(
+      "__WAIT_FOR_GATEWAY_PATH__",
+      async (destinationHex) => {
+        await waitForPath(gatewayReticulum, hexToBytes(destinationHex));
+      },
+    );
     page.on("console", (message) => {
       console.log(`browser:${message.type()}: ${message.text()}`);
     });
@@ -225,13 +248,15 @@ async function runPlaywright(pageUrl, gatewayReticulum) {
         },
         undefined,
         {
-          timeout: 120_000
-        }
+          timeout: 120_000,
+        },
       );
     } catch (error) {
-      const snapshot = await page.evaluate(() => globalThis.__WEB_INTEROP__ ?? null);
+      const snapshot = await page.evaluate(
+        () => globalThis.__WEB_INTEROP__ ?? null,
+      );
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`
+        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`,
       );
     }
 
@@ -239,7 +264,11 @@ async function runPlaywright(pageUrl, gatewayReticulum) {
     if (result?.status === "error") {
       throw new Error(`browser interop failed: ${JSON.stringify(result)}`);
     }
-    if (result?.webLeafHost !== "ok" || result?.packet !== "ok" || result?.lxmf !== "ok") {
+    if (
+      result?.webLeafHost !== "ok" ||
+      result?.packet !== "ok" ||
+      result?.lxmf !== "ok"
+    ) {
       throw new Error(`browser interop incomplete: ${JSON.stringify(result)}`);
     }
   } finally {

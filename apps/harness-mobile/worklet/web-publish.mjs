@@ -1,16 +1,20 @@
-import { buildAppAnnounceSummary, encodeAppAnnounceData, unpackPackage } from "../../../packages/app-registry/dist/index.js";
+import {
+  buildAppAnnounceSummary,
+  encodeAppAnnounceData,
+  unpackPackage,
+} from "../../../packages/app-registry/dist/index.js";
 import {
   casAnnounceAspects,
   decodeCasLocatorRequest,
   encodeCasLocator,
-  signCasLocator
+  signCasLocator,
 } from "../../../packages/cas-256t/dist/index.js";
 import { attachPackageResourceServer } from "@twistedpear/bridge-hyper/resource-server";
 import {
   DestinationDirection,
   DestinationProofStrategy,
   DestinationType,
-  bytesToHex
+  bytesToHex,
 } from "../../../packages/reticulum-ts/dist/web.js";
 
 /**
@@ -39,7 +43,11 @@ export function createWebPublishService(options = {}) {
       }
       const locator = locators.get(t256);
       const destination = casDestinations.get(t256);
-      if (locator === undefined || destination === undefined || session === null) {
+      if (
+        locator === undefined ||
+        destination === undefined ||
+        session === null
+      ) {
         return false;
       }
       await destination.announce({ appData: encodeCasLocator(locator) });
@@ -48,7 +56,9 @@ export function createWebPublishService(options = {}) {
     },
     async publish(session, { t256, archive }) {
       if (session === null) {
-        throw new Error("Gateway link is offline — enable WS gateway before publishing");
+        throw new Error(
+          "Gateway link is offline — enable WS gateway before publishing",
+        );
       }
 
       const provider = options.provider;
@@ -64,20 +74,24 @@ export function createWebPublishService(options = {}) {
       publishedByApp.set(key, {
         version: manifest.version,
         packageHash: unpacked.packageHash,
-        archive
+        archive,
       });
 
       let destination = appDestinations.get(key);
       if (destination === undefined) {
-        const publisherHash = bytesToHex(provider.sha256(identity.getPublicKey()).slice(0, 8));
-        const nameHash = bytesToHex(provider.sha256(new TextEncoder().encode(manifest.name)).slice(0, 8));
+        const publisherHash = bytesToHex(
+          provider.sha256(identity.getPublicKey()).slice(0, 8),
+        );
+        const nameHash = bytesToHex(
+          provider.sha256(new TextEncoder().encode(manifest.name)).slice(0, 8),
+        );
         destination = reticulum.registerDestination({
           provider,
           identity,
           direction: DestinationDirection.IN,
           type: DestinationType.SINGLE,
           appName: "tp",
-          aspects: ["app", publisherHash, nameHash]
+          aspects: ["app", publisherHash, nameHash],
         });
         destination.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
         attachPackageResourceServer(destination, {
@@ -91,8 +105,8 @@ export function createWebPublishService(options = {}) {
               {
                 version: published.version,
                 packageHash: published.packageHash,
-                size: published.archive.length
-              }
+                size: published.archive.length,
+              },
             ];
           },
           async fetchArchive(version) {
@@ -102,7 +116,7 @@ export function createWebPublishService(options = {}) {
             }
 
             return published.archive;
-          }
+          },
         });
         appDestinations.set(key, destination);
       }
@@ -111,7 +125,7 @@ export function createWebPublishService(options = {}) {
         manifest,
         packageSize: archive.length,
         packageHash: unpacked.packageHash,
-        resourceAvailable: true
+        resourceAvailable: true,
       });
       await destination.announce({ appData: encodeAppAnnounceData(summary) });
 
@@ -121,7 +135,7 @@ export function createWebPublishService(options = {}) {
         version: manifest.version,
         driveKey: "0".repeat(64),
         packageHash: unpacked.packageHash,
-        packageSize: archive.length
+        packageSize: archive.length,
       });
       const casDestination = reticulum.registerDestination({
         provider,
@@ -129,7 +143,7 @@ export function createWebPublishService(options = {}) {
         direction: DestinationDirection.IN,
         type: DestinationType.SINGLE,
         appName: "tp",
-        aspects: casAnnounceAspects(t256)
+        aspects: casAnnounceAspects(t256),
       });
       locators.set(t256, locator);
       casDestinations.set(t256, casDestination);
@@ -137,9 +151,9 @@ export function createWebPublishService(options = {}) {
 
       options.onCasLocator?.(locator);
       options.log?.(
-        `Published ${manifest.name} v${manifest.version}; 256t ${t256.slice(0, 16)}…`
+        `Published ${manifest.name} v${manifest.version}; 256t ${t256.slice(0, 16)}…`,
       );
       return { t256, driveKey: "0".repeat(64), version: manifest.version };
-    }
+    },
   };
 }

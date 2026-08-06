@@ -43,7 +43,7 @@ import {
   initialGateState,
   interpretGate,
   type GateState,
-  type GateStepResult
+  type GateStepResult,
 } from "@twistedpear/effects";
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -52,31 +52,29 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
-  PACKET_TYPE_PROOF
+  PACKET_TYPE_PROOF,
 } from "../packet-header.js";
 import { PacketContextCode } from "../packet-context.js";
 import { equalByteArrays } from "../path-table.js";
 import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
 import { recordReverseTableEntryGate } from "./part-2.js";
 export type RecordReverseTableEntryAction =
-  | { readonly kind: "record" }
-  | { readonly kind: "skip" };
+  { readonly kind: "record" } | { readonly kind: "skip" };
 
-export type RecordReverseTableEntryStepResult = GateStepResult<RecordReverseTableEntryAction>;
+export type RecordReverseTableEntryStepResult =
+  GateStepResult<RecordReverseTableEntryAction>;
 
 export const initialRecordReverseTableEntryState = initialGateState;
 
 export const stepRecordReverseTableEntryWithActions = interpretGate(
-  recordReverseTableEntryGate
+  recordReverseTableEntryGate,
 );
 
-export const shouldRecordReverseTableEntryNow = gateConcluded<
-  RecordReverseTableEntryAction
->("record");
+export const shouldRecordReverseTableEntryNow =
+  gateConcluded<RecordReverseTableEntryAction>("record");
 
-export const shouldSkipRecordReverseTableEntry = gateConcluded<
-  RecordReverseTableEntryAction
->("skip");
+export const shouldSkipRecordReverseTableEntry =
+  gateConcluded<RecordReverseTableEntryAction>("skip");
 
 /** Whether inbound DATA is a local path-request (PLAIN + path-request hash). */
 export function isLocalPathRequestPacket(input: {
@@ -104,7 +102,7 @@ const localPathRequestPacketGate = defineBooleanGate<
   event: "transport/local-path-request-packet-gate",
   whenTrue: "path-request",
   whenFalse: "other",
-  decide: (event) => isLocalPathRequestPacket(event)
+  decide: (event) => isLocalPathRequestPacket(event),
 });
 
 export type LocalPathRequestPacketState = GateState;
@@ -118,22 +116,22 @@ export type LocalPathRequestPacketEvent =
     };
 
 export type LocalPathRequestPacketAction =
-  | { readonly kind: "path-request" }
-  | { readonly kind: "other" };
+  { readonly kind: "path-request" } | { readonly kind: "other" };
 
-export type LocalPathRequestPacketStepResult = GateStepResult<LocalPathRequestPacketAction>;
+export type LocalPathRequestPacketStepResult =
+  GateStepResult<LocalPathRequestPacketAction>;
 
 export const initialLocalPathRequestPacketState = initialGateState;
 
-export const stepLocalPathRequestPacketWithActions = interpretGate(localPathRequestPacketGate);
+export const stepLocalPathRequestPacketWithActions = interpretGate(
+  localPathRequestPacketGate,
+);
 
-export const shouldTreatLocalPathRequestPacket = gateConcluded<
-  LocalPathRequestPacketAction
->("path-request");
+export const shouldTreatLocalPathRequestPacket =
+  gateConcluded<LocalPathRequestPacketAction>("path-request");
 
-export const shouldTreatLocalPathRequestPacketOther = gateConcluded<
-  LocalPathRequestPacketAction
->("other");
+export const shouldTreatLocalPathRequestPacketOther =
+  gateConcluded<LocalPathRequestPacketAction>("other");
 
 /**
  * Whether a link-table packet may be relayed (not ANNOUNCE / LINKREQUEST).
@@ -141,7 +139,8 @@ export const shouldTreatLocalPathRequestPacketOther = gateConcluded<
  */
 export function canRelayLinkPacket(packetType: number): boolean {
   return (
-    packetType !== PACKET_TYPE_ANNOUNCE && packetType !== PACKET_TYPE_LINKREQUEST
+    packetType !== PACKET_TYPE_ANNOUNCE &&
+    packetType !== PACKET_TYPE_LINKREQUEST
   );
 }
 
@@ -163,7 +162,7 @@ const relayLinkPacketAllowGate = defineBooleanGate<
   event: "transport/relay-link-packet-allow-gate",
   whenTrue: "allow",
   whenFalse: "deny",
-  decide: (event) => canRelayLinkPacket(event.packetType)
+  decide: (event) => canRelayLinkPacket(event.packetType),
 });
 
 export type RelayLinkPacketAllowState = GateState;
@@ -176,18 +175,22 @@ export type RelayLinkPacketAllowEvent =
     };
 
 export type RelayLinkPacketAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
-export type RelayLinkPacketAllowStepResult = GateStepResult<RelayLinkPacketAllowAction>;
+export type RelayLinkPacketAllowStepResult =
+  GateStepResult<RelayLinkPacketAllowAction>;
 
 export const initialRelayLinkPacketAllowState = initialGateState;
 
-export const stepRelayLinkPacketAllowWithActions = interpretGate(relayLinkPacketAllowGate);
+export const stepRelayLinkPacketAllowWithActions = interpretGate(
+  relayLinkPacketAllowGate,
+);
 
-export const shouldAllowRelayLinkPacket = gateConcluded<RelayLinkPacketAllowAction>("allow");
+export const shouldAllowRelayLinkPacket =
+  gateConcluded<RelayLinkPacketAllowAction>("allow");
 
-export const shouldDenyRelayLinkPacket = gateConcluded<RelayLinkPacketAllowAction>("deny");
+export const shouldDenyRelayLinkPacket =
+  gateConcluded<RelayLinkPacketAllowAction>("deny");
 
 /**
  * Whether a reverse-table proof may be relayed (PROOF + live reverse entry).
@@ -219,7 +222,7 @@ const relayReversePacketAllowGate = defineBooleanGate<
   event: "transport/relay-reverse-packet-allow-gate",
   whenTrue: "allow",
   whenFalse: "deny",
-  decide: (event) => canRelayReversePacket(event)
+  decide: (event) => canRelayReversePacket(event),
 });
 
 export type RelayReversePacketAllowState = GateState;
@@ -234,27 +237,27 @@ export type RelayReversePacketAllowEvent =
     };
 
 export type RelayReversePacketAllowAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
-export type RelayReversePacketAllowStepResult = GateStepResult<RelayReversePacketAllowAction>;
+export type RelayReversePacketAllowStepResult =
+  GateStepResult<RelayReversePacketAllowAction>;
 
 export const initialRelayReversePacketAllowState = initialGateState;
 
 export const stepRelayReversePacketAllowWithActions = interpretGate(
-  relayReversePacketAllowGate
+  relayReversePacketAllowGate,
 );
 
-export const shouldAllowRelayReversePacket = gateConcluded<
-  RelayReversePacketAllowAction
->("allow");
+export const shouldAllowRelayReversePacket =
+  gateConcluded<RelayReversePacketAllowAction>("allow");
 
-export const shouldDenyRelayReversePacket = gateConcluded<
-  RelayReversePacketAllowAction
->("deny");
+export const shouldDenyRelayReversePacket =
+  gateConcluded<RelayReversePacketAllowAction>("deny");
 
 /** Whether reverse relay should use this iface (must be the reverse entry's outbound). */
-export function shouldRelayReverseOnInterface(ifaceIsOutbound: boolean): boolean {
+export function shouldRelayReverseOnInterface(
+  ifaceIsOutbound: boolean,
+): boolean {
   return ifaceIsOutbound;
 }
 
@@ -276,7 +279,7 @@ const relayReverseOnInterfaceGate = defineBooleanGate<
   event: "transport/relay-reverse-on-interface-gate",
   whenTrue: "match",
   whenFalse: "mismatch",
-  decide: (event) => shouldRelayReverseOnInterface(event.ifaceIsOutbound)
+  decide: (event) => shouldRelayReverseOnInterface(event.ifaceIsOutbound),
 });
 
 export type RelayReverseOnInterfaceState = GateState;
@@ -289,33 +292,26 @@ export type RelayReverseOnInterfaceEvent =
     };
 
 export type RelayReverseOnInterfaceAction =
-  | { readonly kind: "match" }
-  | { readonly kind: "mismatch" };
+  { readonly kind: "match" } | { readonly kind: "mismatch" };
 
-export type RelayReverseOnInterfaceStepResult = GateStepResult<RelayReverseOnInterfaceAction>;
+export type RelayReverseOnInterfaceStepResult =
+  GateStepResult<RelayReverseOnInterfaceAction>;
 
 export const initialRelayReverseOnInterfaceState = initialGateState;
 
 export const stepRelayReverseOnInterfaceWithActions = interpretGate(
-  relayReverseOnInterfaceGate
+  relayReverseOnInterfaceGate,
 );
 
-export const shouldMatchRelayReverseOnInterface = gateConcluded<
-  RelayReverseOnInterfaceAction
->("match");
+export const shouldMatchRelayReverseOnInterface =
+  gateConcluded<RelayReverseOnInterfaceAction>("match");
 
-export const shouldMismatchRelayReverseOnInterface = gateConcluded<
-  RelayReverseOnInterfaceAction
->("mismatch");
+export const shouldMismatchRelayReverseOnInterface =
+  gateConcluded<RelayReverseOnInterfaceAction>("mismatch");
 
 /** Pure type → handler dispatch after transport accept / relay. */
 export type TransportIngressDispatch =
-  | "announce"
-  | "link-request"
-  | "link-data"
-  | "plain-data"
-  | "proof"
-  | "ignore";
+  "announce" | "link-request" | "link-data" | "plain-data" | "proof" | "ignore";
 
 export function planTransportIngressDispatch(input: {
   readonly packetType: number;
@@ -328,7 +324,9 @@ export function planTransportIngressDispatch(input: {
     return "link-request";
   }
   if (input.packetType === PACKET_TYPE_DATA) {
-    return input.destinationType === PACKET_DEST_TYPE_LINK ? "link-data" : "plain-data";
+    return input.destinationType === PACKET_DEST_TYPE_LINK
+      ? "link-data"
+      : "plain-data";
   }
   if (input.packetType === PACKET_TYPE_PROOF) {
     return "proof";
@@ -352,8 +350,15 @@ const transportIngressDispatchPlanGate = defineGate<
   TransportIngressDispatchPlanAction
 >({
   event: "transport/ingress-dispatch-plan-gate",
-  actions: ["announce", "link-request", "link-data", "plain-data", "proof", "ignore"],
-  decide: (event) => [{ kind: planTransportIngressDispatch(event) }]
+  actions: [
+    "announce",
+    "link-request",
+    "link-data",
+    "plain-data",
+    "proof",
+    "ignore",
+  ],
+  decide: (event) => [{ kind: planTransportIngressDispatch(event) }],
 });
 
 export type TransportIngressDispatchPlanState = GateState;
@@ -370,14 +375,13 @@ export type TransportIngressDispatchPlanAction = {
   readonly kind: TransportIngressDispatch;
 };
 
-export type TransportIngressDispatchPlanStepResult = GateStepResult<
-  TransportIngressDispatchPlanAction
->;
+export type TransportIngressDispatchPlanStepResult =
+  GateStepResult<TransportIngressDispatchPlanAction>;
 
 export const initialTransportIngressDispatchPlanState = initialGateState;
 
 export const stepTransportIngressDispatchPlanWithActions = interpretGate(
-  transportIngressDispatchPlanGate
+  transportIngressDispatchPlanGate,
 );
 
 /** Extract the transport ingress dispatch plan from actions; null when empty. */
@@ -386,29 +390,23 @@ export const transportIngressDispatchPlanFromActions = gateConclusion<
   TransportIngressDispatch
 >("announce", "link-request", "link-data", "plain-data", "proof", "ignore");
 
-export const shouldDispatchTransportAnnouncePlan = gateConcluded<
-  TransportIngressDispatchPlanAction
->("announce");
+export const shouldDispatchTransportAnnouncePlan =
+  gateConcluded<TransportIngressDispatchPlanAction>("announce");
 
-export const shouldDispatchTransportLinkRequestPlan = gateConcluded<
-  TransportIngressDispatchPlanAction
->("link-request");
+export const shouldDispatchTransportLinkRequestPlan =
+  gateConcluded<TransportIngressDispatchPlanAction>("link-request");
 
-export const shouldDispatchTransportLinkDataPlan = gateConcluded<
-  TransportIngressDispatchPlanAction
->("link-data");
+export const shouldDispatchTransportLinkDataPlan =
+  gateConcluded<TransportIngressDispatchPlanAction>("link-data");
 
-export const shouldDispatchTransportPlainDataPlan = gateConcluded<
-  TransportIngressDispatchPlanAction
->("plain-data");
+export const shouldDispatchTransportPlainDataPlan =
+  gateConcluded<TransportIngressDispatchPlanAction>("plain-data");
 
-export const shouldDispatchTransportProofPlan = gateConcluded<
-  TransportIngressDispatchPlanAction
->("proof");
+export const shouldDispatchTransportProofPlan =
+  gateConcluded<TransportIngressDispatchPlanAction>("proof");
 
-export const shouldIgnoreTransportIngressDispatchPlan = gateConcluded<
-  TransportIngressDispatchPlanAction
->("ignore");
+export const shouldIgnoreTransportIngressDispatchPlan =
+  gateConcluded<TransportIngressDispatchPlanAction>("ignore");
 
 /** Pure proof-context → handler kind. */
 export type ProofIngressKind = "lrproof" | "resource-prf" | "receipt";
@@ -448,16 +446,23 @@ export const transportIngressDispatchGate = defineGate<
   TransportIngressDispatchAction
 >({
   event: "transport/ingress-dispatch-gate",
-  actions: ["announce", "link-request", "link-data", "plain-data", "proof", "ignore"],
+  actions: [
+    "announce",
+    "link-request",
+    "link-data",
+    "plain-data",
+    "proof",
+    "ignore",
+  ],
   decide: (event) => {
     const plan = transportIngressDispatchPlanFromActions(
       decideGate(transportIngressDispatchPlanGate, {
         ...event,
-        kind: "transport/ingress-dispatch-plan-gate"
-      })
+        kind: "transport/ingress-dispatch-plan-gate",
+      }),
     );
     return plan === null ? [] : [{ kind: plan }];
-  }
+  },
 });
 
 export type TransportIngressDispatchEvent =
@@ -473,5 +478,5 @@ export type TransportIngressDispatchAction = {
 };
 
 export const stepTransportIngressDispatchWithActions = interpretGate(
-  transportIngressDispatchGate
+  transportIngressDispatchGate,
 );

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   freenetPropagationRoleLabel,
-  freenetPropagationRoleOnline
+  freenetPropagationRoleOnline,
 } from "../src/freenet-propagation-role.js";
 
 describe("freenetPropagationRoleOnline", () => {
@@ -11,24 +11,24 @@ describe("freenetPropagationRoleOnline", () => {
         freenetPropagation: true,
         freenetPropagationAttached: true,
         freenetPropagationRole: true,
-        propagationEnabled: true
-      })
+        propagationEnabled: true,
+      }),
     ).toBe(true);
     expect(
       freenetPropagationRoleOnline({
         freenetPropagation: true,
         freenetPropagationAttached: true,
         freenetPropagationRole: false,
-        propagationEnabled: false
-      })
+        propagationEnabled: false,
+      }),
     ).toBe(false);
     expect(
       freenetPropagationRoleOnline({
         freenetPropagation: false,
         freenetPropagationAttached: false,
         freenetPropagationRole: false,
-        propagationEnabled: false
-      })
+        propagationEnabled: false,
+      }),
     ).toBe(false);
   });
 });
@@ -42,16 +42,16 @@ describe("freenetPropagationRoleLabel", () => {
         freenetPropagationRole: true,
         propagationEnabled: true,
         propagationMessageCount: 3,
-        propagationStoreBytes: 120
-      })
+        propagationStoreBytes: 120,
+      }),
     ).toBe("Propagation role online · 3 msg · 120 B");
     expect(
       freenetPropagationRoleLabel({
         freenetPropagation: true,
         freenetPropagationAttached: false,
         freenetPropagationRole: false,
-        propagationEnabled: false
-      })
+        propagationEnabled: false,
+      }),
     ).toBe("Propagation grant enabled · role not running");
     expect(freenetPropagationRoleLabel({})).toBe("Propagation role off");
   });

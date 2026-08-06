@@ -14,9 +14,14 @@ import {
   WebSocketClientInterface,
   hexToBytes,
   nodeRuntime,
-  registerWebSocketServerInterface
+  registerWebSocketServerInterface,
 } from "../../packages/reticulum-ts/dist/index.js";
-import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import {
+  interopReady,
+  sleep,
+  withComposeService,
+  LEAF_ECHO_PORT,
+} from "../scenarios/ts/harness.mjs";
 import { waitForReceipt } from "../scenarios/bare/helpers.mjs";
 
 if (!interopReady()) {
@@ -25,16 +30,21 @@ if (!interopReady()) {
 }
 
 const identityVectors = JSON.parse(
-  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8"),
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  const entry = identityVectors.identities.find(
+    (candidate) => candidate.name === name,
+  );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -63,17 +73,21 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
 
-  const gateway = Reticulum.create({ provider, runtime, transportEnabled: true });
+  const gateway = Reticulum.create({
+    provider,
+    runtime,
+    transportEnabled: true,
+  });
   gateway.start();
   const tcpClient = await gateway.addTcpClientInterface({
     name: "python-leaf-echo",
     targetHost: "127.0.0.1",
-    targetPort: LEAF_ECHO_PORT
+    targetPort: LEAF_ECHO_PORT,
   });
   const wsServer = await registerWebSocketServerInterface(gateway, {
     name: "ws-gateway",
     listenHost: "127.0.0.1",
-    listenPort: 0
+    listenPort: 0,
   });
 
   const wsPort = wsServer.address?.port;
@@ -88,7 +102,7 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
     name: "web-leaf-ws",
     provider,
     runtime,
-    url: `ws://127.0.0.1:${wsPort}`
+    url: `ws://127.0.0.1:${wsPort}`,
   });
   leaf.registerInterface(wsClient);
 
@@ -101,7 +115,7 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"]
+    aspects: ["echo"],
   });
   aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -111,7 +125,7 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"]
+    aspects: ["echo"],
   });
 
   const received = new Map();
@@ -131,7 +145,10 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
 
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
-    if (received.has("web-interop-ping") && received.has("hello from python leaf echo")) {
+    if (
+      received.has("web-interop-ping") &&
+      received.has("hello from python leaf echo")
+    ) {
       break;
     }
 

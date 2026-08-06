@@ -3,33 +3,24 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
+import {
+  DestinationDirection,
+  DestinationType,
+} from "../../../packages/reticulum-ts/dist/destination.js";
 import { BandwidthLimiter } from "../../../packages/reticulum-ts/dist/transport/bandwidth.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
 import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
-import { DEFAULT_INTERFACE_BITRATES, inferInterfaceKind, selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
-import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/worklet.js";
-import { createDesktopPeerChrome } from "./peer-chrome.mjs";
-import { createPeerSessionOps } from "./peer-session.mjs";
-import { createMiniappHostOps } from "./miniapp-host-ops.mjs";
 import { createIdentityOps } from "./identity-ops.mjs";
 import { createNodeLifecycleOps } from "./node-lifecycle.mjs";
-import { createNodeMessageHandlers } from "./messages-node.mjs";
-import { createIdentityMessageHandlers } from "./messages-identity.mjs";
-import { createCatalogMessageHandlers } from "./messages-catalog.mjs";
-import { createMiniappMessageHandlers } from "./messages-miniapp.mjs";
-import { createTestAgentHandler } from "./test-agent-handler.mjs";
 import {
   createCryptoProvider,
   envValue,
   hostDataPath,
   refuseStorePosture,
-  shouldRefuseDeveloperMode
+  shouldRefuseDeveloperMode,
 } from "./host-environment.mjs";
 import { createModerationOps, normalizedSourceHash } from "./moderation.mjs";
-import { createTestSupportOps } from "./test-support.mjs";
-import { createHarnessPeerPair } from "../../../packages/worklet-core/src/harness-peer-pair.mjs";
 import {
   createAutoInterfaceOps,
   createAutomaticReticulumDiscovery,
@@ -46,13 +37,18 @@ import {
   createRuntimeKeyValueStore,
   createStatusTimer,
   createTrustStoreOps,
-  createWorkletPropagationPersistenceOps
+  createWorkletPropagationPersistenceOps,
 } from "../../../packages/worklet-core/src/index.mjs";
 import { IPC } from "./ipc-stdio.mjs";
+import { createPushStatus } from "./entry-status.mjs";
+import { attachHostIpc } from "./entry-host-ipc.mjs";
+import { createDesktopHostMessagePlane } from "./entry-message-plane.mjs";
 
-const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
+const NODE_FALLBACK =
+  globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
 if (!NODE_FALLBACK) {
-  const { installBareWebSocketGlobal } = await import("../../../conformance/freenet-spike/bare-websocket-shim.mjs");
+  const { installBareWebSocketGlobal } =
+    await import("../../../conformance/freenet-spike/bare-websocket-shim.mjs");
   installBareWebSocketGlobal();
 }
 
@@ -106,27 +102,38 @@ const state = {
   crossDeviceTestDriver: null,
   relayService: null,
   relayBridge: null,
-  relayPolicy: {}
+  relayPolicy: {},
 };
 
 const provider = await createCryptoProvider(IS_DESKTOP_HOST);
 const runtime = NODE_FALLBACK
-  ? (await import("../../../packages/reticulum-ts/dist/runtime/node/runtime.js")).nodeRuntime()
+  ? (
+      await import("../../../packages/reticulum-ts/dist/runtime/node/runtime.js")
+    ).nodeRuntime()
   : bareRuntime({ storePath: hostDataPath("host-desktop-store") });
-const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
-const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
+const inboundBandwidthLimiter = new BandwidthLimiter(
+  runtime.clock,
+  HOST_BANDWIDTH_BYTES_PER_SECOND,
+);
+const outboundBandwidthLimiter = new BandwidthLimiter(
+  runtime.clock,
+  HOST_BANDWIDTH_BYTES_PER_SECOND,
+);
 const IDENTITY_STORE_KEY = "host-identity";
 const MODERATION_STORE_KEY = "host-moderation-v1";
 
-const { persistModerationState, pushModerationState, loadModerationState } = createModerationOps({
-  state,
-  runtime,
-  send,
-  moderationStoreKey: MODERATION_STORE_KEY
-});
+function send(message) {
+  IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
+}
+
+function log(line) {
+  send({ type: "log", line });
+}
 
 const NodeWorkerSandboxBackend = NODE_FALLBACK
-  ? (await import("../../../packages/miniapp-runtime/dist/sandbox/node-worker.js")).NodeWorkerSandboxBackend
+  ? (
+      await import("../../../packages/miniapp-runtime/dist/sandbox/node-worker.js")
+    ).NodeWorkerSandboxBackend
   : null;
 
 /** @type {import("./protocol.ts").WorkletStatus} */
@@ -154,7 +161,12 @@ const status = {
   bandwidthBytesOut: 0,
   transportEnabled: false,
   relayMode: "off",
-  relayDirections: { tcp: "both", auto: "both", bluetooth: "both", rnode: "both" },
+  relayDirections: {
+    tcp: "both",
+    auto: "both",
+    bluetooth: "both",
+    rnode: "both",
+  },
   propagationEnabled: false,
   freenetEnabled: false,
   freenetUrl: null,
@@ -168,8 +180,18 @@ const status = {
   installedPackages: 0,
   storageUsedBytes: 0,
   developerMode: false,
-  miniappRunning: false
+  miniappRunning: false,
 };
+
+const pushStatus = createPushStatus({ state, status, send });
+
+const { persistModerationState, pushModerationState, loadModerationState } =
+  createModerationOps({
+    state,
+    runtime,
+    send,
+    moderationStoreKey: MODERATION_STORE_KEY,
+  });
 
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
 const PROPAGATION_STORE_KEY = "propagation-store";
@@ -177,22 +199,28 @@ const PROPAGATION_STORE_KEY = "propagation-store";
 const freenetBackendProxy = {
   async get(keyHex) {
     if (state.freenetBackendImpl === null) {
-      throw new Error("Freenet is not configured on this host (enable it in Settings)");
+      throw new Error(
+        "Freenet is not configured on this host (enable it in Settings)",
+      );
     }
     return state.freenetBackendImpl.get(keyHex);
   },
   async put(options) {
     if (state.freenetBackendImpl === null) {
-      throw new Error("Freenet is not configured on this host (enable it in Settings)");
+      throw new Error(
+        "Freenet is not configured on this host (enable it in Settings)",
+      );
     }
     return state.freenetBackendImpl.put(options);
   },
   async update(options) {
     if (state.freenetBackendImpl === null) {
-      throw new Error("Freenet is not configured on this host (enable it in Settings)");
+      throw new Error(
+        "Freenet is not configured on this host (enable it in Settings)",
+      );
     }
     return state.freenetBackendImpl.update(options);
-  }
+  },
 };
 /** @type {Map<string, string>} fingerprint → WebRTC sessionId */
 const webRtcSessionByFingerprint = new Map();
@@ -233,7 +261,7 @@ const {
   persistIdentity,
   createIdentity,
   resetIdentity,
-  resolveIdentity
+  resolveIdentity,
 } = createIdentityOps({
   state,
   provider,
@@ -242,14 +270,14 @@ const {
   send,
   log,
   pushStatus,
-  identityStoreKey: IDENTITY_STORE_KEY
+  identityStoreKey: IDENTITY_STORE_KEY,
 });
 
 const {
   ensureEntryCasStore,
   ingestCasLocator,
   respondToCasLocatorRequest,
-  waitForCasLocator
+  waitForCasLocator,
 } = createCasLocatorOps({
   provider,
   DestinationDirection,
@@ -262,59 +290,68 @@ const {
   ensureReticulum: (...args) => ensureReticulum(...args),
   resolveIdentity,
   log,
-  logReannounce: (t256) => log(`Re-announced CAS locator for ${t256.slice(0, 16)}…`)
+  logReannounce: (t256) =>
+    log(`Re-announced CAS locator for ${t256.slice(0, 16)}…`),
 });
 
-const { ensureTrustStore, pushTrustList } = createTrustStoreOps({ runtimeKeyValueStore, send });
-
-const { ensureCatalog, persistCatalogState, loadCatalogState, pushCatalog } = createCatalogOps({
-  provider,
-  packageQuotaBytes: PACKAGE_QUOTA_BYTES,
+const { ensureTrustStore, pushTrustList } = createTrustStoreOps({
   runtimeKeyValueStore,
-  status,
-  pushStatus,
-  send
+  send,
 });
 
-const { ensurePeerLinkDestination, automaticReticulumChannel } = createAutomaticReticulumDiscovery({
-  provider,
-  DestinationDirection,
-  DestinationType,
-  status,
-  getReticulum: () => state.reticulum,
-  ensureReticulum: (...args) => ensureReticulum(...args),
-  peerLinkDestinations,
-  automaticDiscoveryDestinations,
-  automaticDiscoveryHandlers,
-  automaticInboundBuckets,
-  automaticInboundWaiters,
-  automaticInboundRoutes,
-  automaticAnswerWaiters,
-  automaticOfferKeys
-});
-
-const { loadPropagationCache, createPersistence: createWorkletPropagationPersistence } =
-  createWorkletPropagationPersistenceOps({
-    runtime,
-    propagationStoreKey: PROPAGATION_STORE_KEY,
-    getPropagationStoreCache: () => state.propagationStoreCache,
-    setPropagationStoreCache: (cache) => {
-      state.propagationStoreCache = cache;
-    }
+const { ensureCatalog, persistCatalogState, loadCatalogState, pushCatalog } =
+  createCatalogOps({
+    provider,
+    packageQuotaBytes: PACKAGE_QUOTA_BYTES,
+    runtimeKeyValueStore,
+    status,
+    pushStatus,
+    send,
   });
 
-const { publishArchiveAsIdentity, publishArchiveFromWorklet } = createPublishArchiveOps({
-  provider,
-  DestinationDirection,
-  DestinationType,
-  nodeFallback: NODE_FALLBACK,
-  casLocators,
-  casResponseDestinations,
-  ensureReticulum: (...args) => ensureReticulum(...args),
-  resolveIdentity,
-  ensurePackageDriveManager: (...args) => ensurePackageDriveManager(...args),
-  log
+const { ensurePeerLinkDestination, automaticReticulumChannel } =
+  createAutomaticReticulumDiscovery({
+    provider,
+    DestinationDirection,
+    DestinationType,
+    status,
+    getReticulum: () => state.reticulum,
+    ensureReticulum: (...args) => ensureReticulum(...args),
+    peerLinkDestinations,
+    automaticDiscoveryDestinations,
+    automaticDiscoveryHandlers,
+    automaticInboundBuckets,
+    automaticInboundWaiters,
+    automaticInboundRoutes,
+    automaticAnswerWaiters,
+    automaticOfferKeys,
+  });
+
+const {
+  loadPropagationCache,
+  createPersistence: createWorkletPropagationPersistence,
+} = createWorkletPropagationPersistenceOps({
+  runtime,
+  propagationStoreKey: PROPAGATION_STORE_KEY,
+  getPropagationStoreCache: () => state.propagationStoreCache,
+  setPropagationStoreCache: (cache) => {
+    state.propagationStoreCache = cache;
+  },
 });
+
+const { publishArchiveAsIdentity, publishArchiveFromWorklet } =
+  createPublishArchiveOps({
+    provider,
+    DestinationDirection,
+    DestinationType,
+    nodeFallback: NODE_FALLBACK,
+    casLocators,
+    casResponseDestinations,
+    ensureReticulum: (...args) => ensureReticulum(...args),
+    resolveIdentity,
+    ensurePackageDriveManager: (...args) => ensurePackageDriveManager(...args),
+    log,
+  });
 
 const installFromT256 = createInstallFromT256({
   provider,
@@ -333,7 +370,7 @@ const installFromT256 = createInstallFromT256({
   ensureMiniappHost: (...args) => ensureMiniappHost(...args),
   requestHostReply: requestRendererReply,
   installLogMessage: (appId, version, source, trusted) =>
-    `Installed ${appId} v${version} from 256t via ${source} (trusted: ${trusted})`
+    `Installed ${appId} v${version} from 256t via ${source} (trusted: ${trusted})`,
 });
 
 const dropCensus = createDropCensus();
@@ -348,14 +385,14 @@ const registerAnnounceHandler = createRegisterAnnounceHandler({
   persistCatalogState,
   pushCatalog,
   log,
-  dropCensus
+  dropCensus,
 });
 
 const ensureDevChannel = createEnsureDevChannel({
   createDevChannelClient,
   ensureMiniappHost: (...args) => ensureMiniappHost(...args),
   send,
-  log
+  log,
 });
 
 const { startAutoInterface, stopAutoInterface } = createAutoInterfaceOps({
@@ -380,7 +417,7 @@ const { startAutoInterface, stopAutoInterface } = createAutoInterfaceOps({
   getMulticastEntitled: () => state.multicastEntitled,
   getBonjourDiscoveryEnabled: () => state.bonjourDiscoveryEnabled,
   createIpcMulticastBridge,
-  createIpcBonjourBridge
+  createIpcBonjourBridge,
 });
 
 const quiesceInterfaces = createQuiesceInterfaces({
@@ -390,7 +427,7 @@ const quiesceInterfaces = createQuiesceInterfaces({
   stopAutoInterface,
   stopBleInterface: (...args) => stopBleInterface(...args),
   stopRnodeInterface: (...args) => stopRnodeInterface(...args),
-  stopFreenetInterface: (...args) => stopFreenetInterface(...args)
+  stopFreenetInterface: (...args) => stopFreenetInterface(...args),
 });
 
 const {
@@ -409,7 +446,7 @@ const {
   ensureReticulum,
   ensureHostLxmfDelivery,
   applyInterfaceConfig,
-  reconnectTcpAfterNetworkChange
+  reconnectTcpAfterNetworkChange,
 } = createNodeLifecycleOps({
   state,
   provider,
@@ -430,107 +467,8 @@ const {
   ensureMiniappHost: (...args) => ensureMiniappHost(...args),
   ensureCatalog,
   loadPropagationCache,
-  createWorkletPropagationPersistence
+  createWorkletPropagationPersistence,
 });
-
-const peerChromeBase = createDesktopPeerChrome({
-  requestReply: requestRendererReply,
-  send,
-  createToken: () => generateConfirmationToken((length) => provider.randomBytes(length)),
-  ntfyServer: envValue("TWISTEDPEAR_NTFY_URL")
-});
-const harnessPeerPair = createHarnessPeerPair();
-const peerChrome = {
-  ...peerChromeBase,
-  get manual() {
-    return harnessPeerPair.enabled ? harnessPeerPair.channel : peerChromeBase.manual;
-  },
-  qr: peerChromeBase.qr,
-  audio: peerChromeBase.audio,
-  ntfy: peerChromeBase.ntfy,
-  async confirm(peer, pairingRequest) {
-    if (harnessPeerPair.enabled) return true;
-    return peerChromeBase.confirm(peer, pairingRequest);
-  }
-};
-
-const { ensurePeerSessionManager, peerSessionManagerProxy } = createPeerSessionOps({
-  state,
-  provider,
-  send,
-  log,
-  envValue,
-  peerChrome,
-  requestRendererReply,
-  outboundBandwidthLimiter,
-  webRtcSessionByFingerprint,
-  webRtcRouteListeners,
-  webRtcRoutePending,
-  peerLinks,
-  resolveIdentity,
-  ensureReticulum,
-  ensurePeerLinkDestination,
-  automaticReticulumChannel
-});
-
-const {
-  ensureMiniappHost,
-  loadRelayConfig,
-  persistRelayConfig,
-  seedBundledCatalogIfNeeded,
-  ensurePackageDriveManager
-} = createMiniappHostOps({
-  state,
-  provider,
-  runtime,
-  status,
-  send,
-  log,
-  pushStatus,
-  hostDataPath,
-  bundledCatalogModule,
-  NodeWorkerSandboxBackend,
-  freenetBackendProxy,
-  peerSessionManagerProxy,
-  requestRendererReply,
-  inboundBandwidthLimiter,
-  outboundBandwidthLimiter,
-  webRtcSessionByFingerprint,
-  applyInterfaceConfig,
-  runtimeKeyValueStore,
-  ensureReticulum,
-  resolveIdentity,
-  ensureCatalog,
-  persistCatalogState,
-  pushCatalog,
-  ensureTrustStore,
-  pushTrustList,
-  ensureEntryCasStore,
-  publishArchiveFromWorklet,
-  publishArchiveAsIdentity,
-  installFromT256
-});
-
-const { importTrustedPublisherForTest, ensureCrossDeviceTestDriver } = createTestSupportOps({
-  state,
-  provider,
-  runtime,
-  requestRendererReply,
-  ensureTrustStore,
-  ensureMiniappHost,
-  ensureCatalog,
-  ensureEntryCasStore,
-  installFromT256,
-  resolveIdentity
-});
-
-function send(message) {
-  IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
-}
-
-function log(line) {
-  send({ type: "log", line });
-}
 
 function refuseStoreAction(action) {
   if (refuseStorePosture()) {
@@ -541,44 +479,14 @@ function refuseStoreAction(action) {
   return false;
 }
 
-function pushStatus() {
-  if (state.reticulum !== null) {
-    const interfaces = state.reticulum.listInterfaces();
-    const preferred = selectPreferredInterface(interfaces);
-    status.preferredInterface = preferred?.name ?? null;
-    status.onlineInterfaces = interfaces.filter((iface) => iface.online).length;
-    status.pathTableCount = state.reticulum.pathTableCount;
-    status.activeLinkCount = state.reticulum.activeLinkCount;
-    status.bandwidthBytesIn = state.reticulum.bandwidthBytesIn;
-    status.bandwidthBytesOut = state.reticulum.bandwidthBytesOut;
-    status.transportEnabled = state.reticulum.isTransportEnabled;
-    const relayKinds = ["tcp", "websocket", "auto", "i2p", "rnode", "bluetooth", "optical", "acoustic", "ntfy", "freenet"];
-    status.relayInterfaces = relayKinds.map((kind) => {
-      const matching = interfaces.filter((iface) => inferInterfaceKind(iface.name) === kind || (kind === "bluetooth" && inferInterfaceKind(iface.name) === "ble"));
-      const enabled = kind === "tcp" ? status.tcpEnabled : kind === "auto" ? status.autoEnabled : kind === "bluetooth" ? status.bleEnabled : kind === "rnode" ? status.rnodeEnabled : kind === "freenet" ? status.freenetInterfaceEnabled : false;
-      return { kind, enabled, online: matching.some((iface) => iface.online), direction: status.relayDirections?.[kind] ?? "both", bitrate: matching.find((iface) => iface.bitrate !== null)?.bitrate ?? DEFAULT_INTERFACE_BITRATES[kind] ?? null, bytesIn: matching.reduce((sum, iface) => sum + (iface.bytesIn ?? 0), 0), bytesOut: matching.reduce((sum, iface) => sum + (iface.bytesOut ?? 0), 0), supported: ["tcp", "auto", "rnode", "bluetooth", "freenet"].includes(kind) };
-    });
-  } else {
-    status.preferredInterface = null;
-    status.onlineInterfaces = 0;
-    status.pathTableCount = 0;
-    status.activeLinkCount = 0;
-    status.bandwidthBytesIn = 0;
-    status.bandwidthBytesOut = 0;
-  }
-
-  if (state.propagationServer !== null) {
-    status.propagationStoreBytes = state.propagationServer.stats.usedBytes;
-    status.propagationMessageCount = state.propagationServer.stats.messageCount;
-  } else {
-    status.propagationStoreBytes = 0;
-    status.propagationMessageCount = 0;
-  }
-
-  send({ type: "status", status: { ...status } });
-}
-
-const nodeMessages = createNodeMessageHandlers({
+const {
+  loadRelayConfig,
+  persistRelayConfig,
+  seedBundledCatalogIfNeeded,
+  ensurePackageDriveManager,
+  identityMessages,
+  hostMessageHandlers,
+} = createDesktopHostMessagePlane({
   state,
   provider,
   runtime,
@@ -587,6 +495,12 @@ const nodeMessages = createNodeMessageHandlers({
   log,
   pushStatus,
   freenetBackendProxy,
+  hostReplyChannel,
+  webRtcRouteListeners,
+  webRtcRoutePending,
+  refuseStoreAction,
+  shouldRefuseDeveloperMode,
+  identityStoreKey: IDENTITY_STORE_KEY,
   applyInterfaceConfig,
   startTcpInterface,
   stopTcpInterface,
@@ -602,162 +516,54 @@ const nodeMessages = createNodeMessageHandlers({
   stopPropagation,
   ensureReticulum,
   ensureMiniappHost,
-  loadRelayConfig,
-  persistRelayConfig,
-  loadPacketLogWasm
-});
-
-const identityMessages = createIdentityMessageHandlers({
-  state,
-  provider,
-  runtime,
-  status,
-  send,
-  log,
-  pushStatus,
-  identityStoreKey: IDENTITY_STORE_KEY,
-  applyInterfaceConfig,
+  loadPacketLogWasm,
   createIdentity,
   persistIdentity,
   resetIdentity,
   updateIdentityStatus,
-  ensureMiniappHost,
   pushModerationState,
   persistModerationState,
-  normalizedSourceHash
-});
-
-const catalogMessages = createCatalogMessageHandlers({
-  state,
-  provider,
-  runtime,
-  status,
-  send,
-  log,
-  pushStatus,
-  refuseStoreAction,
+  normalizedSourceHash,
   ensureCatalog,
   persistCatalogState,
   pushCatalog,
   ensureTrustStore,
   pushTrustList,
   ensureEntryCasStore,
-  ensurePackageDriveManager,
   resolveIdentity,
   installFromT256,
-  importTrustedPublisherForTest
-});
-
-const miniappMessages = createMiniappMessageHandlers({
-  state,
-  provider,
-  runtime,
-  status,
-  send,
-  log,
-  pushStatus,
-  hostReplyChannel,
-  webRtcRouteListeners,
-  webRtcRoutePending,
-  refuseStoreAction,
-  shouldRefuseDeveloperMode,
-  ensureMiniappHost,
-  ensureCatalog,
   ensureDevChannel,
-  runtimeKeyValueStore
-});
-
-const handleConnectTestAgent = createTestAgentHandler({
-  state,
-  provider,
-  status,
-  log,
-  harnessPeerPair,
+  runtimeKeyValueStore,
+  envValue,
   requestRendererReply,
-  resolveIdentity,
-  ensureReticulum,
-  startTcpInterface,
+  outboundBandwidthLimiter,
+  webRtcSessionByFingerprint,
+  peerLinks,
+  ensurePeerLinkDestination,
+  automaticReticulumChannel,
+  hostDataPath,
+  bundledCatalogModule,
+  NodeWorkerSandboxBackend,
+  inboundBandwidthLimiter,
+  publishArchiveFromWorklet,
+  publishArchiveAsIdentity,
   ensureHostLxmfDelivery,
-  ensureMiniappHost,
-  ensurePeerSessionManager,
-  ensureCrossDeviceTestDriver
 });
-
-const hostMessageHandlers = {
-  ...nodeMessages.handlers,
-  ...identityMessages.handlers,
-  ...catalogMessages.handlers,
-  ...miniappMessages.handlers,
-  "connect-test-agent": handleConnectTestAgent
-};
-
-async function handleHostMessage(raw) {
-  const line = raw.toString().trim();
-  if (line.length === 0) {
-    return;
-  }
-
-  let message;
-  try {
-    message = JSON.parse(line);
-  } catch {
-    log(`Ignored host message: ${line}`);
-    return;
-  }
-
-  const handler = hostMessageHandlers[message.type];
-  if (handler !== undefined) {
-    await handler(message);
-    return;
-  }
-
-  if (message.type.startsWith("moderation-")) {
-    await identityMessages.handleModerationUpdate(message);
-  }
-}
 
 void loadPersistedIdentity().then(() =>
-  loadCatalogState().then(() => seedBundledCatalogIfNeeded()).then(pushCatalog)
+  loadCatalogState()
+    .then(() => seedBundledCatalogIfNeeded())
+    .then(pushCatalog),
 );
 void loadModerationState();
 pushStatus();
 log(`Desktop host worklet ready (crypto: ${provider.name})`);
 
-let hostMessageBuffer = "";
-let hostMessageQueue = Promise.resolve();
-const HOST_REPLY_TYPES = new Set([
-  "confirm-response",
-  "launch-confirm",
-  "install-confirm",
-  "peer-chrome-response",
-  "device-bridge-response",
-  "media-codec-response",
-  "media-opus-play-response"
-]);
-IPC.on("data", (data) => {
-  hostMessageBuffer += data.toString();
-  const lines = hostMessageBuffer.split("\n");
-  hostMessageBuffer = lines.pop() ?? "";
-  for (const line of lines) {
-    // Replies must not wait behind other host-message handlers: those handlers
-    // (and test-agent commands) often await requestRendererReply, which would
-    // deadlock if the matching peer-chrome-response sat on this queue.
-    try {
-      const parsed = JSON.parse(line);
-      if (parsed && HOST_REPLY_TYPES.has(parsed.type)) {
-        if (!hostReplyChannel.resolveReply(parsed)) {
-          log(`Orphan host reply ${parsed.type} token=${typeof parsed.token === "string" ? parsed.token.slice(0, 12) : "?"}`);
-        }
-        continue;
-      }
-    } catch {
-      // Fall through to the ordered handler for malformed lines.
-    }
-    hostMessageQueue = hostMessageQueue
-      .then(() => handleHostMessage(line))
-      .catch((error) => {
-        log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
-        pushStatus();
-      });
-  }
+attachHostIpc({
+  IPC,
+  hostReplyChannel,
+  hostMessageHandlers,
+  identityMessages,
+  pushStatus,
+  log,
 });

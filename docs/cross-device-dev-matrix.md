@@ -20,12 +20,12 @@ the peers come up), [DevStudio](devstudio.md) (what "develop" means here), and
 
 **In scope — the four scored variants:**
 
-| Variant | Implementation | Emulation |
-|---|---|---|
-| `desktop` | Electron host ([apps/host-desktop](../apps/host-desktop)) | native macOS process |
-| `ios` | Expo harness ([apps/harness-mobile](../apps/harness-mobile)) | iOS Simulator |
-| `android` | same harness | Android emulator (`Pixel_8_API_34`) |
-| `web` | Expo web host in Chromium | Playwright-driven browser tab |
+| Variant   | Implementation                                               | Emulation                           |
+| --------- | ------------------------------------------------------------ | ----------------------------------- |
+| `desktop` | Electron host ([apps/host-desktop](../apps/host-desktop))    | native macOS process                |
+| `ios`     | Expo harness ([apps/harness-mobile](../apps/harness-mobile)) | iOS Simulator                       |
+| `android` | same harness                                                 | Android emulator (`Pixel_8_API_34`) |
+| `web`     | Expo web host in Chromium                                    | Playwright-driven browser tab       |
 
 **Infrastructure, not scored:** the `hub` (`tp node` with the TCP server
 interface, WebSocket gateway, and transport enabled) and any extra `node2…node9`
@@ -40,12 +40,12 @@ links — all tracked in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 A scenario is a **chain** of one or more transfer hops. Roles are credited per
 scenario:
 
-| Role | Credited to | Proven by |
-|---|---|---|
-| **developer** | head of the chain | created the project in DevStudio, edited source, previewed, packaged, and signed under its own publisher identity — with the host confirmation modal for `package` observed in that host's own chrome |
-| **transfer source** | the sending side of each hop | served the archive bytes for that hop (Reticulum Resource over the CAS locator it announced), and the receiver's fetch is attributed to it |
-| **transfer target** | the receiving side of each hop | resolved the 94-char 256t string, fetched the archive, verified SHA-512 + SHA-256 + package signature, passed capability review, and installed |
-| **runner** | tail of the chain | launched the installed app and rendered its widget tree, asserted through the running host |
+| Role                | Credited to                    | Proven by                                                                                                                                                                                             |
+| ------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **developer**       | head of the chain              | created the project in DevStudio, edited source, previewed, packaged, and signed under its own publisher identity — with the host confirmation modal for `package` observed in that host's own chrome |
+| **transfer source** | the sending side of each hop   | served the archive bytes for that hop (Reticulum Resource over the CAS locator it announced), and the receiver's fetch is attributed to it                                                            |
+| **transfer target** | the receiving side of each hop | resolved the 94-char 256t string, fetched the archive, verified SHA-512 + SHA-256 + package signature, passed capability review, and installed                                                        |
+| **runner**          | tail of the chain              | launched the installed app and rendered its widget tree, asserted through the running host                                                                                                            |
 
 A single-hop scenario `A → B` credits developer+source to `A` and target+runner
 to `B`. Multi-hop scenarios exist to prove source and target are genuinely
@@ -55,12 +55,12 @@ separable from developer and runner (see [S5](#s5--hub-carried-fallback-role-ind
 
 Four single-hop scenarios in a rotation cover all sixteen (variant, role) cells:
 
-| Scenario | Chain | developer | source | target | runner |
-|---|---|---|---|---|---|
-| S1 | `desktop → ios` | desktop | desktop | ios | ios |
-| S2 | `ios → android` | ios | ios | android | android |
-| S3 | `android → web` | android | android | web | web |
-| S4 | `web → desktop` | web | web | desktop | desktop |
+| Scenario | Chain           | developer | source  | target  | runner  |
+| -------- | --------------- | --------- | ------- | ------- | ------- |
+| S1       | `desktop → ios` | desktop   | desktop | ios     | ios     |
+| S2       | `ios → android` | ios       | ios     | android | android |
+| S3       | `android → web` | android   | android | web     | web     |
+| S4       | `web → desktop` | web       | web     | desktop | desktop |
 
 Union over S1–S4: each of `desktop`, `ios`, `android`, `web` appears exactly once
 in each of the four roles. **This is the covering set and the CI gate.**
@@ -115,7 +115,7 @@ real Reticulum leaf on the same mesh rather than a special case:
 
 Every peer also dials out to the harness control port (34990) as it does today.
 The browser leaf cannot accept inbound connections or act as a transport node —
-but it *can* serve a package over the Resource path through the gateway
+but it _can_ serve a package over the Resource path through the gateway
 (`createWebPublishService` already calls `attachPackageResourceServer`), which is
 what makes `web` a legitimate transfer source rather than a permanent leaf-only
 target.
@@ -125,17 +125,17 @@ target.
 Mixed, deliberately. UI automation is reserved for the steps whose whole purpose
 is that a human saw them; everything else goes through the test control agent.
 
-| Step | Driven by | Why |
-|---|---|---|
-| create project, edit source, declare capabilities | control agent | deterministic; the editor path is already covered by `test:devstudio-loop` |
-| preview in the dev-preview slot | control agent, UI assertion on the preview surface | |
-| **`package` confirmation modal** | host UI (Maestro / Playwright / Electron driver) | consent is only real if it renders in host chrome outside the widget surface |
-| **`publish` confirmation modal** | host UI | same |
-| **publisher trust import** | host UI | 256t identity string paste/scan is a human-facing trust decision |
-| **`install` confirmation + capability review** | host UI | the reviewer must see the requested capabilities and be able to grant a subset |
-| resolve 256t, fetch, verify, install | control agent observes; host performs | |
-| launch and assert widget tree | control agent | |
-| capability denial after subset grant | control agent asserts, UI asserts the visible denial | |
+| Step                                              | Driven by                                            | Why                                                                            |
+| ------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------ |
+| create project, edit source, declare capabilities | control agent                                        | deterministic; the editor path is already covered by `test:devstudio-loop`     |
+| preview in the dev-preview slot                   | control agent, UI assertion on the preview surface   |                                                                                |
+| **`package` confirmation modal**                  | host UI (Maestro / Playwright / Electron driver)     | consent is only real if it renders in host chrome outside the widget surface   |
+| **`publish` confirmation modal**                  | host UI                                              | same                                                                           |
+| **publisher trust import**                        | host UI                                              | 256t identity string paste/scan is a human-facing trust decision               |
+| **`install` confirmation + capability review**    | host UI                                              | the reviewer must see the requested capabilities and be able to grant a subset |
+| resolve 256t, fetch, verify, install              | control agent observes; host performs                |                                                                                |
+| launch and assert widget tree                     | control agent                                        |                                                                                |
+| capability denial after subset grant              | control agent asserts, UI asserts the visible denial |                                                                                |
 
 The control agent never approves a confirmation. If a modal is not tapped by the
 UI driver, the hop times out — that is the property being tested.
@@ -176,17 +176,37 @@ the widget tree, the ledger row) under `.tmp/cross-device-dev/<timestamp>/`.
 ```json
 {
   "cells": {
-    "desktop": { "developer": ["S1"], "source": ["S1"], "target": ["S4"], "runner": ["S4"] },
-    "ios":     { "developer": ["S2"], "source": ["S2"], "target": ["S1"], "runner": ["S1"] },
-    "android": { "developer": ["S3"], "source": ["S3"], "target": ["S2"], "runner": ["S2"] },
-    "web":     { "developer": ["S4"], "source": ["S4"], "target": ["S3"], "runner": ["S3"] }
+    "desktop": {
+      "developer": ["S1"],
+      "source": ["S1"],
+      "target": ["S4"],
+      "runner": ["S4"]
+    },
+    "ios": {
+      "developer": ["S2"],
+      "source": ["S2"],
+      "target": ["S1"],
+      "runner": ["S1"]
+    },
+    "android": {
+      "developer": ["S3"],
+      "source": ["S3"],
+      "target": ["S2"],
+      "runner": ["S2"]
+    },
+    "web": {
+      "developer": ["S4"],
+      "source": ["S4"],
+      "target": ["S3"],
+      "runner": ["S3"]
+    }
   },
   "empty": []
 }
 ```
 
 A cell is only filled by a hop whose assertions all passed. The gate is
-`empty: []` — that single assertion *is* the automated form of the requirement.
+`empty: []` — that single assertion _is_ the automated form of the requirement.
 Skipped GUI peers leave cells empty and therefore fail the gate unless
 `CROSS_DEVICE_ALLOW_SKIP=1` is set, mirroring `LOCAL_MULTIPEER_REQUIRED`.
 
@@ -195,11 +215,11 @@ Skipped GUI peers leave cells empty and therefore fail the gate unless
 Three questions decide how much has to be built. Answer each with a throwaway
 probe before committing to the build; each has a defined fallback.
 
-| # | Question | Why it matters | Fallback if the answer is no |
-|---|---|---|---|
-| P1 | Can `ios`, `android`, and `web` complete `apps:package` + `apps:publish` end to end? [Platform capabilities status](platform-capabilities-status.md) marks all three **partial** on mobile and web. | S2, S3, S4 each need a non-desktop developer | Close the specific gap (it is host wiring, not protocol), or run the developer leg on that variant with packaging performed through its own worklet path and record the gap in [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
-| P2 | Can a host re-serve a package it installed but did not sign? | S5 (mirror chain) only | Drop S5 to a two-hop variant where the middle peer is the hub, and note that source/target independence is proven at the infrastructure level only |
-| P3 | Can the browser host mount the peer control agent and join the control channel? | the whole `web` column | Drive `web` entirely through Playwright with an in-page evaluation shim instead of the control agent |
+| #   | Question                                                                                                                                                                                            | Why it matters                               | Fallback if the answer is no                                                                                                                                                                                               |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | Can `ios`, `android`, and `web` complete `apps:package` + `apps:publish` end to end? [Platform capabilities status](platform-capabilities-status.md) marks all three **partial** on mobile and web. | S2, S3, S4 each need a non-desktop developer | Close the specific gap (it is host wiring, not protocol), or run the developer leg on that variant with packaging performed through its own worklet path and record the gap in [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
+| P2  | Can a host re-serve a package it installed but did not sign?                                                                                                                                        | S5 (mirror chain) only                       | Drop S5 to a two-hop variant where the middle peer is the hub, and note that source/target independence is proven at the infrastructure level only                                                                         |
+| P3  | Can the browser host mount the peer control agent and join the control channel?                                                                                                                     | the whole `web` column                       | Drive `web` entirely through Playwright with an in-page evaluation shim instead of the control agent                                                                                                                       |
 
 Spike outcomes: P1 landed as native/web publish and direct-install host wiring;
 P2 uses the S5 hub fallback described above; P3 uses the explicit opt-in
@@ -208,18 +228,18 @@ browser control socket on the default path.
 
 ## Build items
 
-| # | Item | Where | Notes |
-|---|---|---|---|
-| B1 | `web` peer adapter | `scripts/peers/adapters/web.mjs`, registered in [scripts/peers/registry.mjs](../scripts/peers/registry.mjs) and `GUI_PEER_IDS` | launches Chromium against the hub's `--serve-web` origin, waits for the WS link, mounts the peer control agent |
-| B2 | Hub gains `--ws-listen` + `--serve-web` | `scripts/peers/adapters/node.mjs` | flags already exist in the CLI; the adapter just has to pass them |
-| B3 | Web test-control shim | [apps/harness-mobile/worklet/web-entry.mjs](../apps/harness-mobile/worklet/web-entry.mjs), [apps/harness-mobile/App.web.tsx](../apps/harness-mobile/App.web.tsx) | opt-in only through `?cross-device-control=1`; Playwright evaluates the in-page request bridge, never a default-path control socket |
-| B4 | Distribution verbs on the peer control agent | [packages/host-core/src/test-agent.ts](../packages/host-core/src/test-agent.ts), [packages/worklet-core/src/cross-device-test-driver.mjs](../packages/worklet-core/src/cross-device-test-driver.mjs) | `project.create`, `project.write`, `preview`, `package`, `publish`, `trust.import`, `install`, `run`, `ui.event`, `state`, `cas.has`, `cas.read`, `negative.verify`. Requests only — confirmations stay in chrome |
-| B5 | Maestro flows | `.maestro/devstudio-author.yaml`, `.maestro/devstudio-install.yaml`, `.maestro/devstudio-run.yaml` | tap the `package` / `publish` / trust / install-review / run-review modals, assert publisher fingerprint and capability list, grant the subset |
-| B6 | Playwright driver | `conformance/cross-device-dev/drivers/browser.mjs` | same modal assertions in the web host chrome |
-| B7 | Electron driver | `conformance/cross-device-dev/drivers/browser.mjs` | attaches to the Electron CDP endpoint and asserts its host-chrome modal |
-| B8 | Scenario runner + ledger | `conformance/cross-device-dev/run.mjs` | `--attach`, `--scenarios=S1,S3`, `--matrix`, `--allow-skip`; writes `proof.json` + `coverage.json` |
-| B9 | Ledger gate test | `conformance/cross-device-dev/coverage.test.mjs` | fails on any empty cell |
-| B10 | Scripts + wiring | [package.json](../package.json), [docs/mac-validation.md](mac-validation.md), [docs/ci-policy.md](ci-policy.md) | `test:cross-device-dev`, `test:cross-device-dev:matrix` |
+| #   | Item                                         | Where                                                                                                                                                                                                | Notes                                                                                                                                                                                                             |
+| --- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | `web` peer adapter                           | `scripts/peers/adapters/web.mjs`, registered in [scripts/peers/registry.mjs](../scripts/peers/registry.mjs) and `GUI_PEER_IDS`                                                                       | launches Chromium against the hub's `--serve-web` origin, waits for the WS link, mounts the peer control agent                                                                                                    |
+| B2  | Hub gains `--ws-listen` + `--serve-web`      | `scripts/peers/adapters/node.mjs`                                                                                                                                                                    | flags already exist in the CLI; the adapter just has to pass them                                                                                                                                                 |
+| B3  | Web test-control shim                        | [apps/harness-mobile/worklet/web-entry.mjs](../apps/harness-mobile/worklet/web-entry.mjs), [apps/harness-mobile/App.web.tsx](../apps/harness-mobile/App.web.tsx)                                     | opt-in only through `?cross-device-control=1`; Playwright evaluates the in-page request bridge, never a default-path control socket                                                                               |
+| B4  | Distribution verbs on the peer control agent | [packages/host-core/src/test-agent.ts](../packages/host-core/src/test-agent.ts), [packages/worklet-core/src/cross-device-test-driver.mjs](../packages/worklet-core/src/cross-device-test-driver.mjs) | `project.create`, `project.write`, `preview`, `package`, `publish`, `trust.import`, `install`, `run`, `ui.event`, `state`, `cas.has`, `cas.read`, `negative.verify`. Requests only — confirmations stay in chrome |
+| B5  | Maestro flows                                | `.maestro/devstudio-author.yaml`, `.maestro/devstudio-install.yaml`, `.maestro/devstudio-run.yaml`                                                                                                   | tap the `package` / `publish` / trust / install-review / run-review modals, assert publisher fingerprint and capability list, grant the subset                                                                    |
+| B6  | Playwright driver                            | `conformance/cross-device-dev/drivers/browser.mjs`                                                                                                                                                   | same modal assertions in the web host chrome                                                                                                                                                                      |
+| B7  | Electron driver                              | `conformance/cross-device-dev/drivers/browser.mjs`                                                                                                                                                   | attaches to the Electron CDP endpoint and asserts its host-chrome modal                                                                                                                                           |
+| B8  | Scenario runner + ledger                     | `conformance/cross-device-dev/run.mjs`                                                                                                                                                               | `--attach`, `--scenarios=S1,S3`, `--matrix`, `--allow-skip`; writes `proof.json` + `coverage.json`                                                                                                                |
+| B9  | Ledger gate test                             | `conformance/cross-device-dev/coverage.test.mjs`                                                                                                                                                     | fails on any empty cell                                                                                                                                                                                           |
+| B10 | Scripts + wiring                             | [package.json](../package.json), [docs/mac-validation.md](mac-validation.md), [docs/ci-policy.md](ci-policy.md)                                                                                      | `test:cross-device-dev`, `test:cross-device-dev:matrix`                                                                                                                                                           |
 
 Roughly: B1–B3 are the `web` column, B4–B7 are the drive layer, B8–B10 are the
 harness. B4 is the largest single item.
@@ -244,11 +264,11 @@ npm run test:cross-device-dev -- --build           # rebuild/install native harn
 
 ## Expected wall time
 
-| Phase | Warm | Cold |
-|---|---|---|
-| peer bring-up (four GUI peers) | 3–5 min | 25–40 min (native iOS/Android builds) |
-| S1–S4 | 12–20 min | same |
-| `--matrix` | 35–60 min | same |
+| Phase                          | Warm      | Cold                                  |
+| ------------------------------ | --------- | ------------------------------------- |
+| peer bring-up (four GUI peers) | 3–5 min   | 25–40 min (native iOS/Android builds) |
+| S1–S4                          | 12–20 min | same                                  |
+| `--matrix`                     | 35–60 min | same                                  |
 
 Announce ingress is rate limited to roughly one per five seconds per
 destination, so per-hop timeouts stay generous and are overridable exactly as

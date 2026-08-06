@@ -5,22 +5,31 @@
 try {
   Bare.on("unhandledRejection", (reason) => {
     const detail =
-      reason instanceof Error ? `${reason.name}: ${reason.message}\n${reason.stack ?? ""}` : String(reason);
+      reason instanceof Error
+        ? `${reason.name}: ${reason.message}\n${reason.stack ?? ""}`
+        : String(reason);
     console.error("[bare] unhandledRejection", detail);
     try {
       BareKit.IPC.write(
-        Buffer.from(`${JSON.stringify({ type: "log", line: `unhandledRejection: ${detail}` })}\n`)
+        Buffer.from(
+          `${JSON.stringify({ type: "log", line: `unhandledRejection: ${detail}` })}\n`,
+        ),
       );
     } catch {
       // swallow
     }
   });
   Bare.on("uncaughtException", (err) => {
-    const detail = err instanceof Error ? `${err.name}: ${err.message}\n${err.stack ?? ""}` : String(err);
+    const detail =
+      err instanceof Error
+        ? `${err.name}: ${err.message}\n${err.stack ?? ""}`
+        : String(err);
     console.error("[bare] uncaughtException", detail);
     try {
       BareKit.IPC.write(
-        Buffer.from(`${JSON.stringify({ type: "log", line: `uncaughtException: ${detail}` })}\n`)
+        Buffer.from(
+          `${JSON.stringify({ type: "log", line: `uncaughtException: ${detail}` })}\n`,
+        ),
       );
     } catch {
       // swallow
@@ -38,7 +47,7 @@ const cryptoShim = {
 
     return array;
   },
-  subtle: {}
+  subtle: {},
 };
 
 if (globalThis.crypto === undefined) {
@@ -53,7 +62,9 @@ if (globalThis.TextEncoder === undefined) {
       for (let index = 0; index < str.length; index += 1) {
         const code = str.charCodeAt(index);
         if (code > 0xff) {
-          throw new RangeError("bare TextEncoder shim supports Latin-1 input only");
+          throw new RangeError(
+            "bare TextEncoder shim supports Latin-1 input only",
+          );
         }
         out[index] = code;
       }

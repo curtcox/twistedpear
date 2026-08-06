@@ -47,7 +47,7 @@ intentionally loosen a baseline.
 | Complexity      | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                 |
 | Repository lint | `npm run lint:all`         | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                         |
 | Typed lint      | `npm run lint:typed`       | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                  |
-| Formatting      | `npm run format:check`     | existing Prettier deviations in `format-ratchet.json`; the ratchet was tightened by 18 entries and every new deviation fails                             |
+| Formatting      | `npm run format:check`     | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                     |
 | Properties      | `npm run test:properties`  | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces  |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept

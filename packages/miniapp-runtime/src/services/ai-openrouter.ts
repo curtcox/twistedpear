@@ -6,7 +6,7 @@ import {
   type AiChatResponse,
   type AiChatUsage,
   type AiEmbedRequest,
-  type AiEmbedResponse
+  type AiEmbedResponse,
 } from "./ai.js";
 
 export interface OpenRouterBackendOptions {
@@ -22,22 +22,38 @@ export interface OpenRouterBackendOptions {
 
 interface OpenRouterChatCompletion {
   readonly model?: string;
-  readonly choices?: ReadonlyArray<{ readonly message?: { readonly content?: string } }>;
-  readonly usage?: { readonly prompt_tokens?: number; readonly completion_tokens?: number };
+  readonly choices?: ReadonlyArray<{
+    readonly message?: { readonly content?: string };
+  }>;
+  readonly usage?: {
+    readonly prompt_tokens?: number;
+    readonly completion_tokens?: number;
+  };
   readonly error?: { readonly message?: string };
 }
 
 interface OpenRouterChatChunk {
   readonly model?: string;
-  readonly choices?: ReadonlyArray<{ readonly delta?: { readonly content?: string } }>;
-  readonly usage?: { readonly prompt_tokens?: number; readonly completion_tokens?: number } | null;
+  readonly choices?: ReadonlyArray<{
+    readonly delta?: { readonly content?: string };
+  }>;
+  readonly usage?: {
+    readonly prompt_tokens?: number;
+    readonly completion_tokens?: number;
+  } | null;
   readonly error?: { readonly message?: string };
 }
 
 interface OpenRouterEmbeddingResponse {
   readonly model?: string;
-  readonly data?: ReadonlyArray<{ readonly index?: number; readonly embedding?: ReadonlyArray<number> }>;
-  readonly usage?: { readonly prompt_tokens?: number; readonly total_tokens?: number };
+  readonly data?: ReadonlyArray<{
+    readonly index?: number;
+    readonly embedding?: ReadonlyArray<number>;
+  }>;
+  readonly usage?: {
+    readonly prompt_tokens?: number;
+    readonly total_tokens?: number;
+  };
   readonly error?: { readonly message?: string };
 }
 
@@ -45,48 +61,70 @@ interface OpenRouterEmbeddingResponse {
  * OpenRouter-compatible chat-completions backend. The API key stays host-side:
  * mini-apps only ever see the sanitized request/response that crosses the broker.
  */
-export function createOpenRouterBackend(options: OpenRouterBackendOptions): AiChatBackend {
-  const fetchImpl = options.fetchImpl ?? (globalThis as { fetch?: typeof fetch }).fetch;
+export function createOpenRouterBackend(
+  options: OpenRouterBackendOptions,
+): AiChatBackend {
+  const fetchImpl =
+    options.fetchImpl ?? (globalThis as { fetch?: typeof fetch }).fetch;
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
 
   return {
-    async chat(_appId: string, request: AiChatRequest): Promise<AiChatResponse> {
+    async chat(
+      _appId: string,
+      request: AiChatRequest,
+    ): Promise<AiChatResponse> {
       if (fetchImpl === undefined) {
-        throw new AiServiceError("AI_UNCONFIGURED", "No fetch implementation is available for the AI backend.");
+        throw new AiServiceError(
+          "AI_UNCONFIGURED",
+          "No fetch implementation is available for the AI backend.",
+        );
       }
 
       const model = resolveModel(options, request.model);
-      const controller = typeof AbortController === "undefined" ? null : new AbortController();
+      const controller =
+        typeof AbortController === "undefined" ? null : new AbortController();
       const timer =
-        controller === null ? null : setTimeout(() => controller.abort(), options.timeoutMs ?? 120_000);
+        controller === null
+          ? null
+          : setTimeout(() => controller.abort(), options.timeoutMs ?? 120_000);
 
       try {
         const response = await fetchImpl(`${baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            authorization: `Bearer ${options.apiKey}`
+            authorization: `Bearer ${options.apiKey}`,
           },
           body: JSON.stringify({
             model,
             messages: request.messages,
-            ...(request.maxTokens !== undefined ? { max_tokens: request.maxTokens } : {}),
-            ...(request.temperature !== undefined ? { temperature: request.temperature } : {})
+            ...(request.maxTokens !== undefined
+              ? { max_tokens: request.maxTokens }
+              : {}),
+            ...(request.temperature !== undefined
+              ? { temperature: request.temperature }
+              : {}),
           }),
-          ...(controller === null ? {} : { signal: controller.signal })
+          ...(controller === null ? {} : { signal: controller.signal }),
         });
 
-        const body = (await response.json().catch(() => ({}))) as OpenRouterChatCompletion;
+        const body = (await response
+          .json()
+          .catch(() => ({}))) as OpenRouterChatCompletion;
         if (!response.ok) {
           throw new AiServiceError(
             "AI_BACKEND_ERROR",
-            body.error?.message ?? `AI endpoint returned HTTP ${response.status}`
+            body.error?.message ??
+              `AI endpoint returned HTTP ${response.status}`,
           );
         }
 
         const content = body.choices?.[0]?.message?.content;
         if (typeof content !== "string") {
-          throw new AiServiceError("AI_BACKEND_ERROR", "AI endpoint returned no completion content.");
+          throw new AiServiceError(
+            "AI_BACKEND_ERROR",
+            "AI endpoint returned no completion content.",
+          );
         }
 
         return {
@@ -97,8 +135,8 @@ export function createOpenRouterBackend(options: OpenRouterBackendOptions): AiCh
               ? null
               : {
                   promptTokens: body.usage.prompt_tokens ?? 0,
-                  completionTokens: body.usage.completion_tokens ?? 0
-                }
+                  completionTokens: body.usage.completion_tokens ?? 0,
+                },
         };
       } finally {
         if (timer !== null) {
@@ -107,14 +145,24 @@ export function createOpenRouterBackend(options: OpenRouterBackendOptions): AiCh
       }
     },
 
-    async *stream(_appId: string, request: AiChatRequest): AsyncIterable<AiChatBackendChunk> {
+    async *stream(
+      _appId: string,
+      request: AiChatRequest,
+    ): AsyncIterable<AiChatBackendChunk> {
       if (fetchImpl === undefined) {
-        throw new AiServiceError("AI_UNCONFIGURED", "No fetch implementation is available for the AI backend.");
+        throw new AiServiceError(
+          "AI_UNCONFIGURED",
+          "No fetch implementation is available for the AI backend.",
+        );
       }
 
       const model = resolveModel(options, request.model);
-      const controller = typeof AbortController === "undefined" ? null : new AbortController();
-      const timer = controller === null ? null : setTimeout(() => controller.abort(), options.timeoutMs ?? 120_000);
+      const controller =
+        typeof AbortController === "undefined" ? null : new AbortController();
+      const timer =
+        controller === null
+          ? null
+          : setTimeout(() => controller.abort(), options.timeoutMs ?? 120_000);
       let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
       try {
@@ -123,28 +171,38 @@ export function createOpenRouterBackend(options: OpenRouterBackendOptions): AiCh
           headers: {
             "content-type": "application/json",
             accept: "text/event-stream",
-            authorization: `Bearer ${options.apiKey}`
+            authorization: `Bearer ${options.apiKey}`,
           },
           body: JSON.stringify({
             model,
             messages: request.messages,
             stream: true,
             stream_options: { include_usage: true },
-            ...(request.maxTokens !== undefined ? { max_tokens: request.maxTokens } : {}),
-            ...(request.temperature !== undefined ? { temperature: request.temperature } : {})
+            ...(request.maxTokens !== undefined
+              ? { max_tokens: request.maxTokens }
+              : {}),
+            ...(request.temperature !== undefined
+              ? { temperature: request.temperature }
+              : {}),
           }),
-          ...(controller === null ? {} : { signal: controller.signal })
+          ...(controller === null ? {} : { signal: controller.signal }),
         });
 
         if (!response.ok) {
-          const body = (await response.json().catch(() => ({}))) as OpenRouterChatCompletion;
+          const body = (await response
+            .json()
+            .catch(() => ({}))) as OpenRouterChatCompletion;
           throw new AiServiceError(
             "AI_BACKEND_ERROR",
-            body.error?.message ?? `AI endpoint returned HTTP ${response.status}`
+            body.error?.message ??
+              `AI endpoint returned HTTP ${response.status}`,
           );
         }
         if (response.body === null) {
-          throw new AiServiceError("AI_BACKEND_ERROR", "AI endpoint returned no response stream.");
+          throw new AiServiceError(
+            "AI_BACKEND_ERROR",
+            "AI endpoint returned no response stream.",
+          );
         }
 
         reader = response.body.getReader();
@@ -175,38 +233,71 @@ export function createOpenRouterBackend(options: OpenRouterBackendOptions): AiCh
       }
     },
 
-    async embed(_appId: string, request: AiEmbedRequest): Promise<AiEmbedResponse> {
+    async embed(
+      _appId: string,
+      request: AiEmbedRequest,
+    ): Promise<AiEmbedResponse> {
       if (fetchImpl === undefined || !options.embeddingModel) {
-        throw new AiServiceError("AI_UNCONFIGURED", "No embedding model is configured on this host.");
+        throw new AiServiceError(
+          "AI_UNCONFIGURED",
+          "No embedding model is configured on this host.",
+        );
       }
       const model = resolveEmbeddingModel(options, request.model);
-      const controller = typeof AbortController === "undefined" ? null : new AbortController();
-      const timer = controller === null ? null : setTimeout(() => controller.abort(), options.timeoutMs ?? 120_000);
+      const controller =
+        typeof AbortController === "undefined" ? null : new AbortController();
+      const timer =
+        controller === null
+          ? null
+          : setTimeout(() => controller.abort(), options.timeoutMs ?? 120_000);
       try {
         const response = await fetchImpl(`${baseUrl}/embeddings`, {
           method: "POST",
-          headers: { "content-type": "application/json", authorization: `Bearer ${options.apiKey}` },
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${options.apiKey}`,
+          },
           body: JSON.stringify({ model, input: request.inputs }),
-          ...(controller === null ? {} : { signal: controller.signal })
+          ...(controller === null ? {} : { signal: controller.signal }),
         });
-        const body = (await response.json().catch(() => ({}))) as OpenRouterEmbeddingResponse;
+        const body = (await response
+          .json()
+          .catch(() => ({}))) as OpenRouterEmbeddingResponse;
         if (!response.ok) {
-          throw new AiServiceError("AI_BACKEND_ERROR", body.error?.message ?? `AI endpoint returned HTTP ${response.status}`);
+          throw new AiServiceError(
+            "AI_BACKEND_ERROR",
+            body.error?.message ??
+              `AI endpoint returned HTTP ${response.status}`,
+          );
         }
-        const ordered = [...(body.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+        const ordered = [...(body.data ?? [])].sort(
+          (a, b) => (a.index ?? 0) - (b.index ?? 0),
+        );
         const vectors = ordered.map((entry) => entry.embedding);
-        if (vectors.length !== request.inputs.length || vectors.some((vector) => !Array.isArray(vector))) {
-          throw new AiServiceError("AI_BACKEND_ERROR", "AI endpoint returned invalid embeddings.");
+        if (
+          vectors.length !== request.inputs.length ||
+          vectors.some((vector) => !Array.isArray(vector))
+        ) {
+          throw new AiServiceError(
+            "AI_BACKEND_ERROR",
+            "AI endpoint returned invalid embeddings.",
+          );
         }
         return {
           vectors: vectors as ReadonlyArray<ReadonlyArray<number>>,
           model: body.model ?? model,
-          usage: body.usage === undefined ? null : { promptTokens: body.usage.prompt_tokens ?? body.usage.total_tokens ?? 0 }
+          usage:
+            body.usage === undefined
+              ? null
+              : {
+                  promptTokens:
+                    body.usage.prompt_tokens ?? body.usage.total_tokens ?? 0,
+                },
         };
       } finally {
         if (timer !== null) clearTimeout(timer);
       }
-    }
+    },
   };
 }
 
@@ -221,53 +312,72 @@ function parseSseLine(line: string): AiChatBackendChunk | "done" | null {
   try {
     body = JSON.parse(data) as OpenRouterChatChunk;
   } catch {
-    throw new AiServiceError("AI_BACKEND_ERROR", "AI endpoint returned malformed stream data.");
+    throw new AiServiceError(
+      "AI_BACKEND_ERROR",
+      "AI endpoint returned malformed stream data.",
+    );
   }
   if (body.error?.message !== undefined) {
     throw new AiServiceError("AI_BACKEND_ERROR", body.error.message);
   }
   const delta = body.choices?.[0]?.delta?.content ?? "";
   const usage = translateUsage(body.usage);
-  if (delta.length === 0 && usage === undefined && body.model === undefined) return null;
+  if (delta.length === 0 && usage === undefined && body.model === undefined)
+    return null;
   return {
     delta,
     ...(body.model === undefined ? {} : { model: body.model }),
-    ...(usage === undefined ? {} : { usage })
+    ...(usage === undefined ? {} : { usage }),
   };
 }
 
 function translateUsage(
-  usage: OpenRouterChatChunk["usage"]
+  usage: OpenRouterChatChunk["usage"],
 ): AiChatUsage | null | undefined {
   if (usage === undefined) return undefined;
   if (usage === null) return null;
   return {
     promptTokens: usage.prompt_tokens ?? 0,
-    completionTokens: usage.completion_tokens ?? 0
+    completionTokens: usage.completion_tokens ?? 0,
   };
 }
 
-function resolveModel(options: OpenRouterBackendOptions, requested: string | undefined): string {
+function resolveModel(
+  options: OpenRouterBackendOptions,
+  requested: string | undefined,
+): string {
   if (requested === undefined || requested === options.model) {
     return options.model;
   }
 
   const allowed = options.allowedModels ?? [];
   if (!allowed.includes(requested)) {
-    throw new AiServiceError("AI_BAD_REQUEST", `Model "${requested}" is not on the host allowlist.`);
+    throw new AiServiceError(
+      "AI_BAD_REQUEST",
+      `Model "${requested}" is not on the host allowlist.`,
+    );
   }
 
   return requested;
 }
 
-function resolveEmbeddingModel(options: OpenRouterBackendOptions, requested: string | undefined): string {
+function resolveEmbeddingModel(
+  options: OpenRouterBackendOptions,
+  requested: string | undefined,
+): string {
   const configured = options.embeddingModel;
   if (configured === undefined) {
-    throw new AiServiceError("AI_UNCONFIGURED", "No embedding model is configured on this host.");
+    throw new AiServiceError(
+      "AI_UNCONFIGURED",
+      "No embedding model is configured on this host.",
+    );
   }
   if (requested === undefined || requested === configured) return configured;
   if (!(options.allowedEmbeddingModels ?? []).includes(requested)) {
-    throw new AiServiceError("AI_BAD_REQUEST", `Embedding model "${requested}" is not on the host allowlist.`);
+    throw new AiServiceError(
+      "AI_BAD_REQUEST",
+      `Embedding model "${requested}" is not on the host allowlist.`,
+    );
   }
   return requested;
 }

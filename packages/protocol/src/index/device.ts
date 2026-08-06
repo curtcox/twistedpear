@@ -10,7 +10,7 @@ export {
   type DeviceClassEntry,
   type DeviceConsentClass,
   type DeviceRole,
-  type DeviceTierDefinition
+  type DeviceTierDefinition,
 } from "../device-registry.gen.js";
 export {
   deviceSessionMachine,
@@ -19,14 +19,14 @@ export {
   stepDeviceSession,
   type DeviceSessionEvent,
   type DeviceSessionPhase,
-  type DeviceSessionState
+  type DeviceSessionState,
 } from "../device-session.js";
 export {
   quantizeAmbientLux,
   quantizeLocationCoarse,
   type AmbientLuxBucket,
   type CoarseLocationFix,
-  type PreciseLocationFix
+  type PreciseLocationFix,
 } from "../device-quantize.js";
 export {
   deriveCameraSample,
@@ -37,7 +37,7 @@ export {
   type MicrophoneDerivedInput,
   type MicrophoneDerivedSample,
   type MotionDerivedSample,
-  type RawMotionSample
+  type RawMotionSample,
 } from "../device-processors.js";
 export {
   ActuatorSafetyError,
@@ -54,7 +54,7 @@ export {
   validateActuatorCommand,
   type ActuatorCommandResult,
   type ActuatorSafetyCode,
-  type DeviceCommand
+  type DeviceCommand,
 } from "../device-actuator-safety.js";
 export {
   DEVICE_STREAM_KIND,
@@ -65,7 +65,7 @@ export {
   encodeDeviceStreamFrame,
   frameDeviceStreamPayload,
   type DeviceStreamFrame,
-  type DeviceStreamSampleKind
+  type DeviceStreamSampleKind,
 } from "../device-stream-framing.js";
 export {
   sanitizeCameraFrame,
@@ -76,7 +76,7 @@ export {
   type RawMotionInput,
   type RawMotionSampleOut,
   type RawPcmInput,
-  type RawPcmSample
+  type RawPcmSample,
 } from "../device-fingerprint.js";
 export {
   adaptStreamAdmission,
@@ -93,7 +93,7 @@ export {
   type AdaptationInput,
   type LinkSupply,
   type StreamDemand,
-  type StreamPlane
+  type StreamPlane,
 } from "../device-admission.js";
 export {
   initialRemoteGrantStore,
@@ -102,7 +102,7 @@ export {
   stepRemoteGrantStore,
   type RemoteDeviceGrant,
   type RemoteGrantEvent,
-  type RemoteGrantPhase
+  type RemoteGrantPhase,
 } from "../device-remote.js";
 export {
   initialShareOfferStore,
@@ -112,7 +112,7 @@ export {
   type ShareOffer,
   type ShareOfferEvent,
   type ShareOfferPhase,
-  type ShareTargetKind
+  type ShareTargetKind,
 } from "../device-share.js";
 export {
   PAYMENT_AID_BLOCKLIST,
@@ -121,5 +121,5 @@ export {
   isPaymentAidBlocked,
   normalizeAid,
   validateNfcApduCommand,
-  type NfcApduCommand
+  type NfcApduCommand,
 } from "../device-nfc-apdu.js";

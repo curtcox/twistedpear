@@ -17,7 +17,8 @@ export interface PropagationSetParameters {
 
 function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
   return (
-    left.length === right.length && left.every((value, index) => value === right[index])
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
   );
 }
 
@@ -58,7 +59,7 @@ function transientKey(id: Uint8Array): string {
 
 function preferEntry(
   left: PropagationSetEntry,
-  right: PropagationSetEntry
+  right: PropagationSetEntry,
 ): PropagationSetEntry {
   if (left.storedAt < right.storedAt) return left;
   if (right.storedAt < left.storedAt) return right;
@@ -66,13 +67,13 @@ function preferEntry(
 }
 
 export function encodePropagationSetParameters(
-  value: PropagationSetParameters
+  value: PropagationSetParameters,
 ): Uint8Array {
   return Uint8Array.from(assertDestinationHash(value.destinationHash));
 }
 
 export function decodePropagationSetParameters(
-  bytes: Uint8Array
+  bytes: Uint8Array,
 ): PropagationSetParameters {
   if (bytes.length !== DESTINATION_HASH_BYTES) {
     throw new Error("invalid propagation-set parameters");
@@ -81,14 +82,14 @@ export function decodePropagationSetParameters(
 }
 
 export function encodePropagationSetState(
-  entries: ReadonlyArray<PropagationSetEntry>
+  entries: ReadonlyArray<PropagationSetEntry>,
 ): Uint8Array {
   if (entries.length > 0xffff_ffff) {
     throw new Error("too many propagation-set entries");
   }
 
   const sorted = [...entries].sort((left, right) =>
-    compareBytes(left.transientId, right.transientId)
+    compareBytes(left.transientId, right.transientId),
   );
   let payloadBytes = 0;
   let previousKey: string | null = null;
@@ -117,7 +118,7 @@ export function encodePropagationSetState(
     view.setUint32(
       cursor + TRANSIENT_ID_BYTES + 8,
       entry.lxmfData.length,
-      false
+      false,
     );
     out.set(entry.lxmfData, cursor + ENTRY_FIXED_LENGTH);
     cursor += ENTRY_FIXED_LENGTH + entry.lxmfData.length;
@@ -126,7 +127,7 @@ export function encodePropagationSetState(
 }
 
 export function decodePropagationSetState(
-  bytes: Uint8Array
+  bytes: Uint8Array,
 ): PropagationSetEntry[] {
   if (
     bytes.length < HEADER_LENGTH ||
@@ -147,7 +148,7 @@ export function decodePropagationSetState(
       throw new Error("truncated propagation-set entry header");
     }
     const transientId = Uint8Array.from(
-      bytes.subarray(cursor, cursor + TRANSIENT_ID_BYTES)
+      bytes.subarray(cursor, cursor + TRANSIENT_ID_BYTES),
     );
     const key = transientKey(transientId);
     if (previousKey !== null && previousKey >= key) {
@@ -163,7 +164,7 @@ export function decodePropagationSetState(
     entries.push({
       transientId,
       storedAt,
-      lxmfData: Uint8Array.from(bytes.subarray(headerEnd, payloadEnd))
+      lxmfData: Uint8Array.from(bytes.subarray(headerEnd, payloadEnd)),
     });
     cursor = payloadEnd;
   }
@@ -176,23 +177,26 @@ export function decodePropagationSetState(
 
 export function mergePropagationSetStates(
   left: Uint8Array,
-  right: Uint8Array
+  right: Uint8Array,
 ): Uint8Array {
   const merged = new Map<string, PropagationSetEntry>();
   for (const entry of [
     ...decodePropagationSetState(left),
-    ...decodePropagationSetState(right)
+    ...decodePropagationSetState(right),
   ]) {
     const key = transientKey(entry.transientId);
     const existing = merged.get(key);
-    merged.set(key, existing === undefined ? entry : preferEntry(existing, entry));
+    merged.set(
+      key,
+      existing === undefined ? entry : preferEntry(existing, entry),
+    );
   }
   return encodePropagationSetState([...merged.values()]);
 }
 
 export function propagationSetEntryEquals(
   left: PropagationSetEntry,
-  right: PropagationSetEntry
+  right: PropagationSetEntry,
 ): boolean {
   return (
     equalBytes(left.transientId, right.transientId) &&

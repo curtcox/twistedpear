@@ -11,19 +11,19 @@ everybody feels: how long your app takes to reach someone over a radio.
 
 ## Broker limits
 
-| Limit | Default |
-|---|---|
-| Broker message size | 256 KiB |
-| Broker messages per second | 60 per app |
-| Widget tree nodes | 5,000 |
-| Widget tree depth | 32 |
-| Widget tree message size | 256 KiB |
-| KV quota per app | Host-configured |
-| Hyperbee quota per app | Shares the KV pool; history counts |
-| Workspace | 256 KiB/file, 4 MiB total, 512 files |
-| AI chat | 1 in-flight request/app across whole/streaming calls; ≤ 64 messages; `maxTokens` clamped to 8,192 |
-| Host confirmation timeout | 60 s, then denied |
-| Multipart LXMF propagation | 64 KiB default; 1,000,000 B hard maximum; 32 B content/frame; 16 B title |
+| Limit                      | Default                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| Broker message size        | 256 KiB                                                                                           |
+| Broker messages per second | 60 per app                                                                                        |
+| Widget tree nodes          | 5,000                                                                                             |
+| Widget tree depth          | 32                                                                                                |
+| Widget tree message size   | 256 KiB                                                                                           |
+| KV quota per app           | Host-configured                                                                                   |
+| Hyperbee quota per app     | Shares the KV pool; history counts                                                                |
+| Workspace                  | 256 KiB/file, 4 MiB total, 512 files                                                              |
+| AI chat                    | 1 in-flight request/app across whole/streaming calls; ≤ 64 messages; `maxTokens` clamped to 8,192 |
+| Host confirmation timeout  | 60 s, then denied                                                                                 |
+| Multipart LXMF propagation | 64 KiB default; 1,000,000 B hard maximum; 32 B content/frame; 16 B title                          |
 
 These are defaults. Hosts can configure them, and the desktop Runtime controls panel lets a
 user tighten message rate, KV quota, and memory limits **on a running app**. So treat the
@@ -59,20 +59,20 @@ in your app ships 5,000 rows.
 Measured install times at conservative bitrates, from
 [LIMITATIONS.md §6](../LIMITATIONS.md):
 
-| Package | Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode/LoRa (~1.2 kbps) |
-|---|---:|---|---|---|
-| `tiny` (budget hello-world) | ~900 B | &lt;1 s | &lt;1 s | ~6 s |
-| `chat` (reference example) | ~2.6 KiB | &lt;1 s | &lt;1 s | ~18 s |
-| `file-drop` (reference example) | ~1.8 KiB | &lt;1 s | &lt;1 s | ~12 s |
-| `board` (reference example) | ~2.1 KiB | &lt;1 s | &lt;1 s | ~15 s |
+| Package                         |     Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode/LoRa (~1.2 kbps) |
+| ------------------------------- | -------: | ------------- | -------------- | ---------------------- |
+| `tiny` (budget hello-world)     |   ~900 B | &lt;1 s       | &lt;1 s        | ~6 s                   |
+| `chat` (reference example)      | ~2.6 KiB | &lt;1 s       | &lt;1 s        | ~18 s                  |
+| `file-drop` (reference example) | ~1.8 KiB | &lt;1 s       | &lt;1 s        | ~12 s                  |
+| `board` (reference example)     | ~2.1 KiB | &lt;1 s       | &lt;1 s        | ~15 s                  |
 
 Under-one-minute ceilings at those rates:
 
-| Link | Ceiling |
-|---|---|
-| LAN | ~60 MiB |
-| Bluetooth | ~180 KiB |
-| RNode / LoRa | ~9 KiB |
+| Link         | Ceiling  |
+| ------------ | -------- |
+| LAN          | ~60 MiB  |
+| Bluetooth    | ~180 KiB |
+| RNode / LoRa | ~9 KiB   |
 
 **Nine kilobytes.** If you want your app installable by someone reachable only over LoRa, that
 is your budget for everything — code, icon, assets.
@@ -97,11 +97,11 @@ anyway**, **Cancel**. A progress bar sits at zero beneath the buttons.
 
 Desktop measurements, Node worker backend (`npm run test:miniapp-benchmark`):
 
-| Metric | Desktop CI |
-|---|---|
-| Spawn latency | sub-millisecond, typical |
-| Stop/kill latency | ~3 ms, typical |
-| Busy-loop kill | ~300 ms (watchdog) |
+| Metric            | Desktop CI               |
+| ----------------- | ------------------------ |
+| Spawn latency     | sub-millisecond, typical |
+| Stop/kill latency | ~3 ms, typical           |
+| Busy-loop kill    | ~300 ms (watchdog)       |
 
 Android emulator numbers using the Bare worker backend are recorded in
 `conformance/android-emulator/measured-worker.json`.
@@ -113,14 +113,14 @@ Android emulator numbers using the Bare worker backend are recorded in
 
 ## The limits that are not numbers
 
-| Constraint | Consequence for your design |
-|---|---|
+| Constraint                        | Consequence for your design                                |
+| --------------------------------- | ---------------------------------------------------------- |
 | One foreground mini-app at a time | No background sync, no companion app, no cooperating pair. |
-| No background execution | Nothing happens while your app is not on screen. |
-| No app-to-app communication | Deliberately deferred. Do not design a suite. |
-| No native modules | JavaScript only, no exceptions. |
-| Local-only storage | No sync, no backup, no cross-device state. |
-| Suspension is normal | Persist as you go; there is no `onSuspend`. |
+| No background execution           | Nothing happens while your app is not on screen.           |
+| No app-to-app communication       | Deliberately deferred. Do not design a suite.              |
+| No native modules                 | JavaScript only, no exceptions.                            |
+| Local-only storage                | No sync, no backup, no cross-device state.                 |
+| Suspension is normal              | Persist as you go; there is no `onSuspend`.                |
 
 ## A sizing heuristic
 

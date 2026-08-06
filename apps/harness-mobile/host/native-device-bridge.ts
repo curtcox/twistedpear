@@ -5,7 +5,11 @@
 
 import { Camera } from "expo-camera";
 import { Vibration } from "react-native";
-import { nativePeerAudioSupported, recordNativePeerPcm, requestNativePeerAudioPermission } from "@twistedpear/peer-audio";
+import {
+  nativePeerAudioSupported,
+  recordNativePeerPcm,
+  requestNativePeerAudioPermission,
+} from "@twistedpear/peer-audio";
 
 export type NativeDeviceAvailability =
   | "available"
@@ -15,11 +19,18 @@ export type NativeDeviceAvailability =
   | "policy-disabled"
   | "offline";
 
-export async function nativeDeviceAvailability(classId: string): Promise<NativeDeviceAvailability> {
+export async function nativeDeviceAvailability(
+  classId: string,
+): Promise<NativeDeviceAvailability> {
   if (classId === "location") {
-    const geo = (globalThis as { navigator?: { geolocation?: { getCurrentPosition: unknown } } }).navigator
-      ?.geolocation;
-    return typeof geo?.getCurrentPosition === "function" ? "permission-required" : "unsupported";
+    const geo = (
+      globalThis as {
+        navigator?: { geolocation?: { getCurrentPosition: unknown } };
+      }
+    ).navigator?.geolocation;
+    return typeof geo?.getCurrentPosition === "function"
+      ? "permission-required"
+      : "unsupported";
   }
   if (classId === "camera") {
     try {
@@ -35,14 +46,16 @@ export async function nativeDeviceAvailability(classId: string): Promise<NativeD
     return nativePeerAudioSupported() ? "permission-required" : "unsupported";
   }
   if (classId === "haptics") {
-    return typeof Vibration?.vibrate === "function" ? "available" : "unsupported";
+    return typeof Vibration?.vibrate === "function"
+      ? "available"
+      : "unsupported";
   }
   return "unsupported";
 }
 
 export async function nativeDeviceSense(
   classId: string,
-  options: Readonly<Record<string, unknown>> = {}
+  options: Readonly<Record<string, unknown>> = {},
 ): Promise<unknown> {
   if (classId === "location") {
     return senseNativeLocation(options.enableHighAccuracy === true);
@@ -51,9 +64,14 @@ export async function nativeDeviceSense(
     return senseNativeCamera();
   }
   if (classId === "microphone") {
-    if (!(await requestNativePeerAudioPermission())) throw new Error("Microphone permission was denied.");
+    if (!(await requestNativePeerAudioPermission()))
+      throw new Error("Microphone permission was denied.");
     const sampleRate = options.tier === "pcm" ? 48_000 : 8_000;
-    const pcm = await recordNativePeerPcm(120, sampleRate, options.voiceDuplex === true);
+    const pcm = await recordNativePeerPcm(
+      120,
+      sampleRate,
+      options.voiceDuplex === true,
+    );
     const samples = pcm16ToFloat(pcm);
     return options.tier === "pcm"
       ? { sampleRate, channels: 1, samples }
@@ -65,16 +83,19 @@ export async function nativeDeviceSense(
 function pcm16ToFloat(bytes: Uint8Array): number[] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const samples = new Array<number>(Math.floor(bytes.byteLength / 2));
-  for (let index = 0; index < samples.length; index += 1) samples[index] = view.getInt16(index * 2, true) / 32_768;
+  for (let index = 0; index < samples.length; index += 1)
+    samples[index] = view.getInt16(index * 2, true) / 32_768;
   return samples;
 }
 
 export async function nativeDeviceActuate(
   classId: string,
-  command: Readonly<Record<string, unknown>>
+  command: Readonly<Record<string, unknown>>,
 ): Promise<void> {
   if (classId === "haptics" && command.kind === "haptics") {
-    actuateNativeHaptics(Array.isArray(command.patternMs) ? (command.patternMs as number[]) : [40]);
+    actuateNativeHaptics(
+      Array.isArray(command.patternMs) ? (command.patternMs as number[]) : [40],
+    );
     return;
   }
   throw new Error(`No native actuate effect for device class "${classId}".`);
@@ -101,28 +122,36 @@ function senseNativeLocation(enableHighAccuracy: boolean): Promise<{
   speedMps?: number;
   headingDeg?: number;
 }> {
-  const geo = (globalThis as {
-    navigator?: {
-      geolocation?: {
-        getCurrentPosition(
-          success: (position: {
-            coords: {
-              latitude: number;
-              longitude: number;
-              accuracy: number;
-              altitude: number | null;
-              speed: number | null;
-              heading: number | null;
-            };
-          }) => void,
-          error?: (error: { code: number; message: string }) => void,
-          options?: { enableHighAccuracy?: boolean; timeout?: number; maximumAge?: number }
-        ): void;
+  const geo = (
+    globalThis as {
+      navigator?: {
+        geolocation?: {
+          getCurrentPosition(
+            success: (position: {
+              coords: {
+                latitude: number;
+                longitude: number;
+                accuracy: number;
+                altitude: number | null;
+                speed: number | null;
+                heading: number | null;
+              };
+            }) => void,
+            error?: (error: { code: number; message: string }) => void,
+            options?: {
+              enableHighAccuracy?: boolean;
+              timeout?: number;
+              maximumAge?: number;
+            },
+          ): void;
+        };
       };
-    };
-  }).navigator?.geolocation;
+    }
+  ).navigator?.geolocation;
   if (geo === undefined) {
-    return Promise.reject(new Error("Geolocation is unavailable on this host."));
+    return Promise.reject(
+      new Error("Geolocation is unavailable on this host."),
+    );
   }
   return new Promise((resolve, reject) => {
     geo.getCurrentPosition(
@@ -134,11 +163,14 @@ function senseNativeLocation(enableHighAccuracy: boolean): Promise<{
           accuracyM: coords.accuracy,
           ...(coords.altitude !== null ? { altitudeM: coords.altitude } : {}),
           ...(coords.speed !== null ? { speedMps: coords.speed } : {}),
-          ...(coords.heading !== null ? { headingDeg: coords.heading } : {})
+          ...(coords.heading !== null ? { headingDeg: coords.heading } : {}),
         });
       },
-      (error) => reject(new Error(error.message || `Geolocation failed (${error.code})`)),
-      { enableHighAccuracy, timeout: 15_000, maximumAge: 5_000 }
+      (error) =>
+        reject(
+          new Error(error.message || `Geolocation failed (${error.code})`),
+        ),
+      { enableHighAccuracy, timeout: 15_000, maximumAge: 5_000 },
     );
   });
 }
@@ -159,6 +191,6 @@ async function senseNativeCamera(): Promise<{
     barcodes: [],
     motionDetected: false,
     faceCount: 0,
-    objectCount: 0
+    objectCount: 0,
   };
 }

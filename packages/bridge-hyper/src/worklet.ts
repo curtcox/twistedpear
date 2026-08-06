@@ -7,9 +7,13 @@ export {
   RESOURCE_PROTOCOL_VERSION,
   attachPackageResourceServer,
   sendPackageResourceRequest,
-  parseListResponse
+  parseListResponse,
 } from "./server/resource-server.js";
-export type { PackageResourceRequest, PackageVersionInfo, PackageResourceServerOptions } from "./server/resource-server.js";
+export type {
+  PackageResourceRequest,
+  PackageVersionInfo,
+  PackageResourceServerOptions,
+} from "./server/resource-server.js";
 
 export { PackageResourceClient } from "./client/resource-client.js";
 export type { PackageResourceClientOptions } from "./client/resource-client.js";
@@ -20,7 +24,7 @@ export {
   BULK_BLOCK_RNODE_BYTES,
   assessFetchBudget,
   fetchPackage,
-  estimateTransferSeconds
+  estimateTransferSeconds,
 } from "./core/fetch.js";
 export type {
   DriveFetcher,
@@ -28,5 +32,5 @@ export type {
   FetchProgress,
   FetchPackageOptions,
   FetchPackageResult,
-  FetchBudgetAssessment
+  FetchBudgetAssessment,
 } from "./core/fetch.js";

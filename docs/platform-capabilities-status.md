@@ -11,24 +11,24 @@ Per-capability matrix across every TwistedPear peer implementation type. This is
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) and [STATUS-HARDWARE.md](../STATUS-HARDWARE.md);
 completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 
-| Authority | Role |
-|---|---|
-| Capability id list | `CAPABILITY_DEFINITIONS` in [`packages/miniapp-runtime/src/capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts) ∪ generated [`device-capabilities.gen.ts`](../packages/miniapp-runtime/src/device-capabilities.gen.ts) |
-| Peer implementation types | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts) |
-| Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()` |
+| Authority                    | Role                                                                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Capability id list           | `CAPABILITY_DEFINITIONS` in [`packages/miniapp-runtime/src/capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts) ∪ generated [`device-capabilities.gen.ts`](../packages/miniapp-runtime/src/device-capabilities.gen.ts) |
+| Peer implementation types    | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts)                                                                                                    |
+| Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()`                                                                                                                           |
 
 Current closed set: **23 core + 30 device = 53** capability ids. Current
 `HOST_API_VERSION` is **0.12.0**.
 
 ## Peer implementation types
 
-| Platform id | Product surface | Typical roles |
-|---|---|---|
-| `desktop` | Electron [`apps/host-desktop`](../apps/host-desktop) | transport + seeder defaults |
-| `android` | [`apps/harness-mobile`](../apps/harness-mobile) Bare worklet | leaf; developer harness |
-| `ios` | same harness on iOS / simulator | leaf; store-posture builds |
-| `web` | Expo web / static web host | leaf via WebSocket gateway; no inbound relay |
-| `node` | `tp node` / `tp seed` / Vitest / Handbook harness | headless engine |
+| Platform id | Product surface                                              | Typical roles                                |
+| ----------- | ------------------------------------------------------------ | -------------------------------------------- |
+| `desktop`   | Electron [`apps/host-desktop`](../apps/host-desktop)         | transport + seeder defaults                  |
+| `android`   | [`apps/harness-mobile`](../apps/harness-mobile) Bare worklet | leaf; developer harness                      |
+| `ios`       | same harness on iOS / simulator                              | leaf; store-posture builds                   |
+| `web`       | Expo web / static web host                                   | leaf via WebSocket gateway; no inbound relay |
+| `node`      | `tp node` / `tp seed` / Vitest / Handbook harness            | headless engine                              |
 
 “Mobile” in prose means `android` + `ios`. “Headless” means `node`.
 
@@ -38,32 +38,32 @@ Every cell is **implementation · testing · validation**.
 
 ### Implementation
 
-| Token | Meaning |
-|---|---|
-| `done` | Capability is declared, brokered, and wired into that host’s `MiniappHost` |
-| `partial` | Present with known host-specific gaps (store posture, leaf limits, missing chrome) |
-| `stub` | Taxonomy + broker/SDK exist, but the host does not inject the required service (`RELAY_UNCONFIGURED` / device-unconfigured) |
-| `planned` | Closed capability id; real host drivers / UI not yet injected |
-| `n/a` | Not applicable on that peer type by design or platform limits |
+| Token     | Meaning                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `done`    | Capability is declared, brokered, and wired into that host’s `MiniappHost`                                                  |
+| `partial` | Present with known host-specific gaps (store posture, leaf limits, missing chrome)                                          |
+| `stub`    | Taxonomy + broker/SDK exist, but the host does not inject the required service (`RELAY_UNCONFIGURED` / device-unconfigured) |
+| `planned` | Closed capability id; real host drivers / UI not yet injected                                                               |
+| `n/a`     | Not applicable on that peer type by design or platform limits                                                               |
 
 ### Testing
 
-| Token | Meaning |
-|---|---|
+| Token  | Meaning                                                                                                     |
+| ------ | ----------------------------------------------------------------------------------------------------------- |
 | `conf` | Exercised by a host/conformance suite for that peer type (or shared cookbook/handbook path that runs on it) |
-| `unit` | Covered by package unit tests / simulated drivers only |
-| `none` | No automated test evidence for that peer type yet |
-| `n/a` | Not applicable |
+| `unit` | Covered by package unit tests / simulated drivers only                                                      |
+| `none` | No automated test evidence for that peer type yet                                                           |
+| `n/a`  | Not applicable                                                                                              |
 
 ### Validation
 
-| Token | Meaning |
-|---|---|
-| `soft` | Reproducible software evidence (CI / local Node) |
-| `emu` | Simulator or emulator evidence |
-| `hw` | Physical-device or real-network evidence recorded |
+| Token     | Meaning                                                           |
+| --------- | ----------------------------------------------------------------- |
+| `soft`    | Reproducible software evidence (CI / local Node)                  |
+| `emu`     | Simulator or emulator evidence                                    |
+| `hw`      | Physical-device or real-network evidence recorded                 |
 | `pending` | Expected path exists in software; required trial not yet recorded |
-| `n/a` | Not applicable |
+| `n/a`     | Not applicable                                                    |
 
 Cross-cutting wiring gaps (affect many rows below):
 
@@ -85,31 +85,31 @@ Cross-cutting wiring gaps (affect many rows below):
 
 ## Core capabilities
 
-| Capability | desktop | android | ios | web | node |
-|---|---|---|---|---|---|
-| `identity` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `presence` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `announce:subscribe` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `announce:publish` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `lxmf:send` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `lxmf:receive` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `storage:kv` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `storage:hyperbee` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `resource:fetch` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `workspace` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `ai:chat` | done · unit · soft | done · unit · soft | done · unit · soft | done · unit · soft | done · unit · soft |
-| `ai:embed` | done · unit · soft | done · unit · soft | done · unit · soft | done · unit · soft | done · unit · soft |
-| `apps:package` | done · conf · soft | partial · conf · emu | partial · conf · emu | partial · conf · soft | done · conf · soft |
-| `apps:publish` | done · conf · soft | partial · conf · emu | partial · conf · emu | partial · conf · soft | done · conf · soft |
-| `apps:install` | done · conf · soft | partial · conf · emu | partial · conf · emu | partial · conf · soft | done · conf · soft |
-| `apps:preview` | done · conf · soft | partial · unit · soft | partial · unit · soft | done · conf · soft | done · conf · soft |
-| `share:cas` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
-| `peer:connect` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · unit · soft |
-| `link:observe` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft |
-| `link:probe` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft |
-| `relay:configure` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
-| `relay:read` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
-| `freenet:contract` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · unit · soft |
+| Capability           | desktop               | android               | ios                   | web                   | node                  |
+| -------------------- | --------------------- | --------------------- | --------------------- | --------------------- | --------------------- |
+| `identity`           | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `presence`           | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `announce:subscribe` | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `announce:publish`   | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `lxmf:send`          | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `lxmf:receive`       | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `storage:kv`         | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `storage:hyperbee`   | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `resource:fetch`     | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `workspace`          | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `ai:chat`            | done · unit · soft    | done · unit · soft    | done · unit · soft    | done · unit · soft    | done · unit · soft    |
+| `ai:embed`           | done · unit · soft    | done · unit · soft    | done · unit · soft    | done · unit · soft    | done · unit · soft    |
+| `apps:package`       | done · conf · soft    | partial · conf · emu  | partial · conf · emu  | partial · conf · soft | done · conf · soft    |
+| `apps:publish`       | done · conf · soft    | partial · conf · emu  | partial · conf · emu  | partial · conf · soft | done · conf · soft    |
+| `apps:install`       | done · conf · soft    | partial · conf · emu  | partial · conf · emu  | partial · conf · soft | done · conf · soft    |
+| `apps:preview`       | done · conf · soft    | partial · unit · soft | partial · unit · soft | done · conf · soft    | done · conf · soft    |
+| `share:cas`          | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
+| `peer:connect`       | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · unit · soft    |
+| `link:observe`       | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft    |
+| `link:probe`         | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft    |
+| `relay:configure`    | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | done · unit · soft    |
+| `relay:read`         | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | done · unit · soft    |
+| `freenet:contract`   | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · unit · soft |
 
 ### Core notes
 
@@ -160,38 +160,38 @@ Device ids are generated from [`specs/spec-device/registry/device-classes.json`]
 Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 `deviceManager` (broker path configured). Real OS drivers and Devices UI remain open.
 
-| Capability | desktop | android | ios | web | node |
-|---|---|---|---|---|---|
-| `device:location` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:location:precise` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:ambient-light` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:camera` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:camera:frames` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:microphone` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:microphone:pcm` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:motion` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:motion:samples` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:torch` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:speaker` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:speaker:pcm` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:tts` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:stt` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:haptics` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:battery` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:screen-capture` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| Capability                     | desktop               | android               | ios                   | web                   | node                  |
+| ------------------------------ | --------------------- | --------------------- | --------------------- | --------------------- | --------------------- |
+| `device:location`              | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:location:precise`      | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:ambient-light`         | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:camera`                | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:camera:frames`         | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:microphone`            | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:microphone:pcm`        | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:motion`                | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:motion:samples`        | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:torch`                 | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:speaker`               | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:speaker:pcm`           | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:tts`                   | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:stt`                   | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:haptics`               | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:battery`               | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:screen-capture`        | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 | `device:screen-capture:frames` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:nfc` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:nfc:apdu` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:biometric` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:proximity` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:barometer` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:thermometer` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:hygrometer` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:thermal` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
-| `device:stream` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:remote` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:share-policy:read` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft |
-| `device:stream:raw-inbound` | stub · unit · soft | stub · unit · soft | stub · unit · soft | stub · unit · soft | stub · unit · soft |
+| `device:nfc`                   | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:nfc:apdu`              | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:biometric`             | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:proximity`             | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:barometer`             | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:thermometer`           | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:hygrometer`            | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:thermal`               | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a       | partial · conf · soft |
+| `device:stream`                | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:remote`                | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:share-policy:read`     | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft    |
+| `device:stream:raw-inbound`    | stub · unit · soft    | stub · unit · soft    | stub · unit · soft    | stub · unit · soft    | stub · unit · soft    |
 
 ### Device notes
 
@@ -220,20 +220,20 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 
 ## Evidence commands
 
-| Peer type | Focused checks |
-|---|---|
-| Shared / node | `npm test -- packages/miniapp-runtime/test`; `npm run test:handbook`; `npm run test:cookbook`; `npm run test:hostile-apps` |
-| desktop | `npm run test:desktop`; peer chrome `conformance/ui-invariants/peer-chrome.test.mjs` |
-| web | `npm run test:web-miniapp`; `npm run test:web-handbook`; `npm run test:web-sandbox` |
-| android | `npm run test:android-emulator`; handbook mobile slices |
-| ios | `npm run test:ios-sim:required`; `npm run test:ios-sim` |
-| Device/runtime (sim) | `npm test -- packages/miniapp-runtime/test/device.test.ts` |
-| Device session formal | `npm run formal:device-session` |
-| Realtime stream formal | `npm run formal:stream` |
-| Relay taxonomy | `npm test -- packages/miniapp-runtime/test/relay.test.ts` |
-| Worklet flag-plane relay | `npm test -- packages/miniapp-runtime/test/worklet-flag-relay.test.ts` |
-| Node relay/device wiring | `npm test -- packages/cli/test/host-relay-device-wiring.test.ts` |
-| Peer connect | see [local-peer-discovery.md](local-peer-discovery.md) |
+| Peer type                | Focused checks                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Shared / node            | `npm test -- packages/miniapp-runtime/test`; `npm run test:handbook`; `npm run test:cookbook`; `npm run test:hostile-apps` |
+| desktop                  | `npm run test:desktop`; peer chrome `conformance/ui-invariants/peer-chrome.test.mjs`                                       |
+| web                      | `npm run test:web-miniapp`; `npm run test:web-handbook`; `npm run test:web-sandbox`                                        |
+| android                  | `npm run test:android-emulator`; handbook mobile slices                                                                    |
+| ios                      | `npm run test:ios-sim:required`; `npm run test:ios-sim`                                                                    |
+| Device/runtime (sim)     | `npm test -- packages/miniapp-runtime/test/device.test.ts`                                                                 |
+| Device session formal    | `npm run formal:device-session`                                                                                            |
+| Realtime stream formal   | `npm run formal:stream`                                                                                                    |
+| Relay taxonomy           | `npm test -- packages/miniapp-runtime/test/relay.test.ts`                                                                  |
+| Worklet flag-plane relay | `npm test -- packages/miniapp-runtime/test/worklet-flag-relay.test.ts`                                                     |
+| Node relay/device wiring | `npm test -- packages/cli/test/host-relay-device-wiring.test.ts`                                                           |
+| Peer connect             | see [local-peer-discovery.md](local-peer-discovery.md)                                                                     |
 
 ## Related documents
 

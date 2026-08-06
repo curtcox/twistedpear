@@ -13,13 +13,18 @@ describe("workspace SDK", () => {
           payload: {
             path: "app/bundle.js",
             baseLength: 5,
-            edits: [{ start: 1, end: 4, text: "i" }]
-          }
+            edits: [{ start: 1, end: 4, text: "i" }],
+          },
         });
-        return { id: request.id, ok: true, result: { path: "app/bundle.js", size: 3 } };
-      }
+        return {
+          id: request.id,
+          ok: true,
+          result: { path: "app/bundle.js", size: 3 },
+        };
+      },
     });
-    await expect(patch("app/bundle.js", 5, [{ start: 1, end: 4, text: "i" }]))
-      .resolves.toEqual({ path: "app/bundle.js", size: 3 });
+    await expect(
+      patch("app/bundle.js", 5, [{ start: 1, end: 4, text: "i" }]),
+    ).resolves.toEqual({ path: "app/bundle.js", size: 3 });
   });
 });

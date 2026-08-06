@@ -20,15 +20,26 @@ export interface CoarseLocationFix {
  * Quantize a precise fix to a host-side coarse cell so apps holding only
  * `device:location` never observe the precise coordinates.
  */
-export function quantizeLocationCoarse(fix: PreciseLocationFix): CoarseLocationFix {
-  const latitude = clamp(Math.round(fix.latitude / COARSE_CELL_DEG) * COARSE_CELL_DEG, -90, 90);
+export function quantizeLocationCoarse(
+  fix: PreciseLocationFix,
+): CoarseLocationFix {
+  const latitude = clamp(
+    Math.round(fix.latitude / COARSE_CELL_DEG) * COARSE_CELL_DEG,
+    -90,
+    90,
+  );
   const cosLat = Math.cos((latitude * Math.PI) / 180);
-  const lonCell = cosLat === 0 ? COARSE_CELL_DEG : COARSE_CELL_DEG / Math.max(Math.abs(cosLat), 0.01);
-  const longitude = wrapLongitude(Math.round(fix.longitude / lonCell) * lonCell);
+  const lonCell =
+    cosLat === 0
+      ? COARSE_CELL_DEG
+      : COARSE_CELL_DEG / Math.max(Math.abs(cosLat), 0.01);
+  const longitude = wrapLongitude(
+    Math.round(fix.longitude / lonCell) * lonCell,
+  );
   return {
     latitude,
     longitude,
-    accuracyM: 1000
+    accuracyM: 1000,
   };
 }
 

@@ -5,10 +5,12 @@ import {
   encodePacketLogParameters,
   encodePacketLogState,
   mergePacketLogStates,
-  type PacketLogEntry
+  type PacketLogEntry,
 } from "../src/index.js";
 
-function makeFakeClient(options?: { readonly notifyWith?: "payload" | "empty" }) {
+function makeFakeClient(options?: {
+  readonly notifyWith?: "payload" | "empty";
+}) {
   const states = new Map<string, Uint8Array>();
   const listeners = new Map<string, Set<(state: Uint8Array) => void>>();
   const getCalls: string[] = [];
@@ -16,7 +18,10 @@ function makeFakeClient(options?: { readonly notifyWith?: "payload" | "empty" })
 
   const client = {
     getCalls,
-    async put(source: { wasm: Uint8Array; parameters: Uint8Array }, state: Uint8Array) {
+    async put(
+      source: { wasm: Uint8Array; parameters: Uint8Array },
+      state: Uint8Array,
+    ) {
       const { key } = FreenetClient.deriveKey(source);
       const keyHex = Buffer.from(key).toString("hex");
       states.set(keyHex, Uint8Array.from(state));
@@ -27,7 +32,11 @@ function makeFakeClient(options?: { readonly notifyWith?: "payload" | "empty" })
       getCalls.push(keyHex);
       const state = states.get(keyHex);
       if (state === undefined) throw new Error("missing");
-      return { key, codeHash: new Uint8Array(32), state: Uint8Array.from(state) };
+      return {
+        key,
+        codeHash: new Uint8Array(32),
+        state: Uint8Array.from(state),
+      };
     },
     async update(key: Uint8Array, _codeHash: Uint8Array, state: Uint8Array) {
       const keyHex = Buffer.from(key).toString("hex");
@@ -36,7 +45,9 @@ function makeFakeClient(options?: { readonly notifyWith?: "payload" | "empty" })
       states.set(keyHex, merged);
       for (const listener of listeners.get(keyHex) ?? []) {
         listener(
-          notifyWith === "empty" ? encodePacketLogState([]) : Uint8Array.from(merged)
+          notifyWith === "empty"
+            ? encodePacketLogState([])
+            : Uint8Array.from(merged),
         );
       }
     },
@@ -56,7 +67,7 @@ function makeFakeClient(options?: { readonly notifyWith?: "payload" | "empty" })
     setState(key: Uint8Array, state: Uint8Array) {
       states.set(Buffer.from(key).toString("hex"), Uint8Array.from(state));
     },
-    close: vi.fn()
+    close: vi.fn(),
   };
 
   return client as typeof client & FreenetClient;
@@ -69,7 +80,7 @@ function entry(direction: 0 | 1, index: bigint, byte: number): PacketLogEntry {
 function contractKey(wasm: Uint8Array, rendezvous: Uint8Array): Uint8Array {
   const parameters = encodePacketLogParameters({
     retentionPerDirection: 8,
-    rendezvous
+    rendezvous,
   });
   return FreenetClient.deriveKey({ wasm, parameters }).key;
 }
@@ -88,14 +99,14 @@ describe("FreenetContractPacketLogBackend", () => {
       wasm,
       rendezvous,
       localDirection: 0,
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
     const right = new FreenetContractPacketLogBackend({
       client,
       wasm,
       rendezvous,
       localDirection: 1,
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
 
     const received: number[] = [];
@@ -121,14 +132,14 @@ describe("FreenetContractPacketLogBackend", () => {
       wasm,
       rendezvous,
       localDirection: 0,
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
     const right = new FreenetContractPacketLogBackend({
       client,
       wasm,
       rendezvous,
       localDirection: 1,
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
 
     const received: number[] = [];
@@ -155,7 +166,7 @@ describe("FreenetContractPacketLogBackend", () => {
       wasm,
       rendezvous,
       localDirection: 1,
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
     const received: number[] = [];
     right.setReceiver((frame) => received.push(frame[0]!));
@@ -169,7 +180,10 @@ describe("FreenetContractPacketLogBackend", () => {
     await settle();
     expect(received).toEqual([]);
 
-    client.setState(key, encodePacketLogState([entry(0, 0n, 1), entry(0, 2n, 3)]));
+    client.setState(
+      key,
+      encodePacketLogState([entry(0, 0n, 1), entry(0, 2n, 3)]),
+    );
     client.notify(key, encodePacketLogState([]));
     await settle();
     expect(received).toEqual([1]);
@@ -177,7 +191,7 @@ describe("FreenetContractPacketLogBackend", () => {
     const full = encodePacketLogState([
       entry(0, 0n, 1),
       entry(0, 1n, 2),
-      entry(0, 2n, 3)
+      entry(0, 2n, 3),
     ]);
     client.setState(key, full);
     client.notify(key, encodePacketLogState([]));
@@ -196,7 +210,7 @@ describe("FreenetContractPacketLogBackend", () => {
       wasm,
       rendezvous,
       localDirection: 1,
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
     const received: number[] = [];
     right.setReceiver((frame) => received.push(frame[0]!));
@@ -222,7 +236,7 @@ describe("FreenetContractPacketLogBackend", () => {
       wasm,
       rendezvous,
       localDirection: 1,
-      retentionPerDirection: 8
+      retentionPerDirection: 8,
     });
     const received: number[] = [];
     right.setReceiver((frame) => received.push(frame[0]!));
@@ -236,7 +250,7 @@ describe("FreenetContractPacketLogBackend", () => {
 
     client.setState(
       key,
-      encodePacketLogState([entry(0, 0n, 10), entry(0, 1n, 20)])
+      encodePacketLogState([entry(0, 0n, 10), entry(0, 1n, 20)]),
     );
     client.notify(key, encodePacketLogState([]));
     await settle();

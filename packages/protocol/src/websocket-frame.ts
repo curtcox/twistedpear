@@ -125,13 +125,13 @@ export function initialEncodeWsBinaryFrameState(): EncodeWsBinaryFrameState {
 
 export function stepEncodeWsBinaryFrameWithActions(
   state: EncodeWsBinaryFrameState,
-  event: EncodeWsBinaryFrameEvent
+  event: EncodeWsBinaryFrameEvent,
 ): EncodeWsBinaryFrameStepResult {
   if (event.kind === "ws-frame/encode-gate") {
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-raw", raw: encodeWsBinaryFrame(event.data) }]
+      actions: [{ kind: "use-raw", raw: encodeWsBinaryFrame(event.data) }],
     };
   }
 
@@ -139,14 +139,14 @@ export function stepEncodeWsBinaryFrameWithActions(
 }
 
 export function shouldUseEncodeWsBinaryFrame(
-  actions: ReadonlyArray<EncodeWsBinaryFrameAction>
+  actions: ReadonlyArray<EncodeWsBinaryFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract encoded WS binary frame from step actions; null when no `use-raw`. */
 export function encodeWsBinaryFrameRawFromActions(
-  actions: ReadonlyArray<EncodeWsBinaryFrameAction>
+  actions: ReadonlyArray<EncodeWsBinaryFrameAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -182,7 +182,7 @@ export function initialDecodeWsClientFrameState(): DecodeWsClientFrameState {
 
 export function stepDecodeWsClientFrameWithActions(
   state: DecodeWsClientFrameState,
-  event: DecodeWsClientFrameEvent
+  event: DecodeWsClientFrameEvent,
 ): DecodeWsClientFrameStepResult {
   if (event.kind === "ws-frame/decode-gate") {
     try {
@@ -193,7 +193,7 @@ export function stepDecodeWsClientFrameWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }]
+        actions: [{ kind: "use-fields", fields }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -204,20 +204,20 @@ export function stepDecodeWsClientFrameWithActions(
 }
 
 export function shouldUseDecodeWsClientFrame(
-  actions: ReadonlyArray<DecodeWsClientFrameAction>
+  actions: ReadonlyArray<DecodeWsClientFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectDecodeWsClientFrame(
-  actions: ReadonlyArray<DecodeWsClientFrameAction>
+  actions: ReadonlyArray<DecodeWsClientFrameAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract decoded WS client frame from step actions; null when no `use-fields`. */
 export function wsClientFrameFromActions(
-  actions: ReadonlyArray<DecodeWsClientFrameAction>
+  actions: ReadonlyArray<DecodeWsClientFrameAction>,
 ): WsBinaryFrame | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

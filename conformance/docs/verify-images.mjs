@@ -38,7 +38,11 @@ export function findBrokenDocImages(docsRoot = defaultDocsRoot) {
       const content = readFileSync(path, "utf8");
       for (const link of findMarkdownImageLinks(content, dirname(path))) {
         if (!existsSync(link.resolved)) {
-          broken.push({ doc: path, target: link.target, resolved: link.resolved });
+          broken.push({
+            doc: path,
+            target: link.target,
+            resolved: link.resolved,
+          });
         }
       }
     }
@@ -61,6 +65,9 @@ function main() {
   process.exitCode = 1;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

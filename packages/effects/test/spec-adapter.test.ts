@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — plain-JS conformance suite without type declarations.
-import { families, runAdapterPair } from "../../../conformance/adapter/suite.mjs";
+import {
+  families,
+  runAdapterPair,
+} from "../../../conformance/adapter/suite.mjs";
 // @ts-ignore — see above.
-import { realAdapters, simAdapters } from "../../../conformance/adapter/adapters.mjs";
+import {
+  realAdapters,
+  simAdapters,
+} from "../../../conformance/adapter/adapters.mjs";
 // @ts-ignore — see above.
 import { canaryAdapters } from "../../../conformance/adapter/canaries.mjs";
 
@@ -21,7 +27,7 @@ describe("SPEC-ADAPTER pair suites", () => {
       const result = (await runAdapterPair(
         family,
         (realAdapters as Record<string, Factory>)[family],
-        (simAdapters as Record<string, Factory>)[family]
+        (simAdapters as Record<string, Factory>)[family],
       )) as PairResult;
       expect(result.failures).toEqual([]);
       expect(result.candidateHash).toBe(result.simHash);
@@ -29,13 +35,13 @@ describe("SPEC-ADAPTER pair suites", () => {
   }
 
   for (const [name, canary] of Object.entries(
-    canaryAdapters as Record<string, { family: string; factory: Factory }>
+    canaryAdapters as Record<string, { family: string; factory: Factory }>,
   )) {
     it(`canary ${name} fails the ${canary.family} suite`, async () => {
       const result = (await runAdapterPair(
         canary.family,
         canary.factory,
-        (simAdapters as Record<string, Factory>)[canary.family]
+        (simAdapters as Record<string, Factory>)[canary.family],
       )) as PairResult;
       expect(result.failures).not.toEqual([]);
     });

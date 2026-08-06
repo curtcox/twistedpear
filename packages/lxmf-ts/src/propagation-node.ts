@@ -18,15 +18,20 @@ import {
   stepPropagationGetWithActions,
   stepUnpackPropagationEnvelopeWithActions,
   stepUnpackPropagationRequestWithActions,
-  type PropagationGetAction
+  type PropagationGetAction,
 } from "@twistedpear/protocol";
-import type { CryptoProvider, Link, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
+import type {
+  CryptoProvider,
+  Link,
+  RegisteredDestination,
+  Reticulum,
+} from "@twistedpear/reticulum-ts";
 import {
   Destination,
   DestinationAllowPolicy,
   DestinationDirection,
   DestinationType,
-  Identity
+  Identity,
 } from "@twistedpear/reticulum-ts";
 import { APP_NAME, MESSAGE_GET_PATH } from "./constants.js";
 import { msgpackPackArray, msgpackPackBin } from "./msgpack.js";
@@ -54,7 +59,7 @@ export class PropagationNodeStore {
     this.entries.set(Buffer.from(transientId).toString("hex"), {
       transientId,
       destinationHash,
-      lxmfData: Uint8Array.from(lxmfData)
+      lxmfData: Uint8Array.from(lxmfData),
     });
     return transientId;
   }
@@ -66,8 +71,9 @@ export class PropagationNodeStore {
   registerHandlers(destination: RegisteredDestination): void {
     destination.registerRequestHandler(
       MESSAGE_GET_PATH,
-      (_path, data, _requestId, _linkId, remoteIdentity) => this.handleGetRequest(data, remoteIdentity),
-      DestinationAllowPolicy.ALLOW_ALL
+      (_path, data, _requestId, _linkId, remoteIdentity) =>
+        this.handleGetRequest(data, remoteIdentity),
+      DestinationAllowPolicy.ALLOW_ALL,
     );
 
     destination.setLinkEstablishedCallback((link) => {
@@ -81,8 +87,8 @@ export class PropagationNodeStore {
         initialUnpackPropagationEnvelopeState(),
         {
           kind: "lxmf-codec/unpack-propagation-envelope-gate",
-          data
-        }
+          data,
+        },
       );
       if (
         shouldRejectUnpackPropagationEnvelope(unpackStepped.actions) ||
@@ -90,7 +96,9 @@ export class PropagationNodeStore {
       ) {
         return;
       }
-      const fields = propagationEnvelopeFieldsFromActions(unpackStepped.actions);
+      const fields = propagationEnvelopeFieldsFromActions(
+        unpackStepped.actions,
+      );
       if (fields === null) {
         return;
       }
@@ -100,13 +108,16 @@ export class PropagationNodeStore {
     };
   }
 
-  private handleGetRequest(data: Uint8Array | null, remoteIdentity: Identity | null): Uint8Array | null {
+  private handleGetRequest(
+    data: Uint8Array | null,
+    remoteIdentity: Identity | null,
+  ): Uint8Array | null {
     const acceptStepped = stepAcceptPropagationGetRequestDataWithActions(
       initialAcceptPropagationGetRequestDataState(),
       {
         kind: "propagation/accept-get-request-data-gate",
-        dataPresent: data !== null
-      }
+        dataPresent: data !== null,
+      },
     );
     if (!shouldAcceptPropagationGetRequestDataNow(acceptStepped.actions)) {
       return null;
@@ -116,8 +127,8 @@ export class PropagationNodeStore {
       initialUnpackPropagationRequestState(),
       {
         kind: "lxmf-codec/unpack-propagation-request-gate",
-        data: data!
-      }
+        data: data!,
+      },
     );
     if (
       shouldRejectUnpackPropagationRequest(unpackStepped.actions) ||
@@ -125,7 +136,9 @@ export class PropagationNodeStore {
     ) {
       return null;
     }
-    const requestFields = propagationRequestFieldsFromActions(unpackStepped.actions);
+    const requestFields = propagationRequestFieldsFromActions(
+      unpackStepped.actions,
+    );
     if (requestFields === null) {
       return null;
     }
@@ -138,24 +151,27 @@ export class PropagationNodeStore {
             direction: DestinationDirection.OUT,
             type: DestinationType.SINGLE,
             appName: APP_NAME,
-            aspects: ["delivery"]
+            aspects: ["delivery"],
           }).hash;
 
-    const stepped = stepPropagationGetWithActions(initialPropagationGetState(), {
-      kind: "get/received",
-      wants,
-      haves,
-      remoteDeliveryHash,
-      entries: [...this.entries.values()].map((entry) => ({
-        transientId: entry.transientId,
-        destinationHash: entry.destinationHash
-      }))
-    });
+    const stepped = stepPropagationGetWithActions(
+      initialPropagationGetState(),
+      {
+        kind: "get/received",
+        wants,
+        haves,
+        remoteDeliveryHash,
+        entries: [...this.entries.values()].map((entry) => ({
+          transientId: entry.transientId,
+          destinationHash: entry.destinationHash,
+        })),
+      },
+    );
     return this.applyPropagationGetActions(stepped.actions);
   }
 
   private applyPropagationGetActions(
-    actions: readonly PropagationGetAction[]
+    actions: readonly PropagationGetAction[],
   ): Uint8Array | null {
     if (shouldListPropagationGetIds(actions)) {
       const transientIds = propagationGetListIds(actions) ?? [];
@@ -175,7 +191,10 @@ export class PropagationNodeStore {
     }
 
     const messages = apply.fetchIds
-      .map((transientId) => this.entries.get(Buffer.from(transientId).toString("hex")) ?? null)
+      .map(
+        (transientId) =>
+          this.entries.get(Buffer.from(transientId).toString("hex")) ?? null,
+      )
       .filter((entry): entry is StoredPropagationMessage => entry !== null)
       .map((entry) => entry.lxmfData);
 
@@ -186,7 +205,7 @@ export class PropagationNodeStore {
 export function createPropagationDestination(
   provider: CryptoProvider,
   reticulum: Reticulum,
-  identity: Identity
+  identity: Identity,
 ): RegisteredDestination {
   return reticulum.registerDestination({
     provider,
@@ -194,16 +213,19 @@ export function createPropagationDestination(
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: APP_NAME,
-    aspects: ["propagation"]
+    aspects: ["propagation"],
   });
 }
 
-export function propagationDestinationForIdentity(provider: CryptoProvider, identity: Identity): Destination {
+export function propagationDestinationForIdentity(
+  provider: CryptoProvider,
+  identity: Identity,
+): Destination {
   return new Destination(provider, {
     identity,
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: APP_NAME,
-    aspects: ["propagation"]
+    aspects: ["propagation"],
   });
 }

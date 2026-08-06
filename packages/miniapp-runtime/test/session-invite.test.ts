@@ -5,7 +5,10 @@ describe("host session invites", () => {
   it("notifies in chrome and launches app code only after acceptance", async () => {
     const notify = vi.fn(async () => undefined);
     const launchForeground = vi.fn(async () => undefined);
-    const service = new SessionInviteService({ notify, launchForeground }, () => 100);
+    const service = new SessionInviteService(
+      { notify, launchForeground },
+      () => 100,
+    );
     await service.receive({
       id: "invite-1",
       appId: "line-check",
@@ -13,7 +16,7 @@ describe("host session invites", () => {
       verifiedPeerLabel: "Ana",
       requestedClasses: ["microphone"],
       expiresAt: 1_000,
-      verified: true
+      verified: true,
     });
     expect(notify).toHaveBeenCalledOnce();
     expect(launchForeground).not.toHaveBeenCalled();
@@ -23,7 +26,10 @@ describe("host session invites", () => {
 
   it("declines without launching", async () => {
     const launchForeground = vi.fn(async () => undefined);
-    const service = new SessionInviteService({ notify: async () => undefined, launchForeground }, () => 100);
+    const service = new SessionInviteService(
+      { notify: async () => undefined, launchForeground },
+      () => 100,
+    );
     await service.receive({
       id: "invite-2",
       appId: "line-check",
@@ -31,7 +37,7 @@ describe("host session invites", () => {
       verifiedPeerLabel: "Ben",
       requestedClasses: ["camera"],
       expiresAt: 1_000,
-      verified: true
+      verified: true,
     });
     service.decline("invite-2");
     expect(launchForeground).not.toHaveBeenCalled();
@@ -39,18 +45,35 @@ describe("host session invites", () => {
   });
 
   it("rejects unverified, expired, and replayed network invites", async () => {
-    const service = new SessionInviteService({ notify: async () => undefined, launchForeground: async () => undefined }, () => 100);
+    const service = new SessionInviteService(
+      {
+        notify: async () => undefined,
+        launchForeground: async () => undefined,
+      },
+      () => 100,
+    );
     const input = {
       id: "invite-3",
       appId: "line-check",
       peer: { id: "peer-c" },
       verifiedPeerLabel: "Cam",
       requestedClasses: ["microphone"] as const,
-      expiresAt: 1_000
+      expiresAt: 1_000,
     };
-    await expect(service.receive({ ...input, verified: false })).rejects.toThrow(/verified/);
+    await expect(
+      service.receive({ ...input, verified: false }),
+    ).rejects.toThrow(/verified/);
     await service.receive({ ...input, verified: true });
-    await expect(service.receive({ ...input, verified: true })).rejects.toThrow(/replay/);
-    await expect(service.receive({ ...input, id: "expired", expiresAt: 99, verified: true })).rejects.toThrow(/unavailable/);
+    await expect(service.receive({ ...input, verified: true })).rejects.toThrow(
+      /replay/,
+    );
+    await expect(
+      service.receive({
+        ...input,
+        id: "expired",
+        expiresAt: 99,
+        verified: true,
+      }),
+    ).rejects.toThrow(/unavailable/);
   });
 });

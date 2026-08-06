@@ -21,12 +21,14 @@ function buildWorklet(posture) {
     encoding: "utf8",
     env: {
       ...process.env,
-      TWISTEDPEAR_STORE_POSTURE: posture
-    }
+      TWISTEDPEAR_STORE_POSTURE: posture,
+    },
   });
 
   if (result.status !== 0) {
-    fail(`worklet build failed for ${posture} posture\n${result.stdout}\n${result.stderr}`);
+    fail(
+      `worklet build failed for ${posture} posture\n${result.stdout}\n${result.stderr}`,
+    );
   }
 }
 
@@ -75,11 +77,13 @@ function runPolicyProbe(posture) {
   const result = spawnSync("node", ["--input-type=module", "-e", script], {
     cwd: repoRoot,
     stdio: "pipe",
-    encoding: "utf8"
+    encoding: "utf8",
   });
 
   if (result.status !== 0) {
-    fail(`policy probe failed for ${posture} posture\n${result.stdout}\n${result.stderr}`);
+    fail(
+      `policy probe failed for ${posture} posture\n${result.stdout}\n${result.stderr}`,
+    );
   }
 }
 
@@ -91,7 +95,9 @@ export async function runStorePostureChecks() {
     buildWorklet("dev");
     runPolicyProbe("dev");
 
-    console.log("[ios-sim/store-posture] catalog install, dev side-load, dev channel, and developer mode refusal checks passed");
+    console.log(
+      "[ios-sim/store-posture] catalog install, dev side-load, dev channel, and developer mode refusal checks passed",
+    );
   } finally {
     buildWorklet("dev");
   }

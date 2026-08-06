@@ -8,7 +8,7 @@ import { REGISTER_FILES } from "./paths.mjs";
 const PLANNED_ROOT_SCRIPTS = new Set(["test:ui-invariants"]);
 
 const WORKSPACE_SCRIPTS = new Map([
-  ["dist", { workspace: "host-desktop", note: "apps/host-desktop" }]
+  ["dist", { workspace: "host-desktop", note: "apps/host-desktop" }],
 ]);
 
 /**
@@ -60,12 +60,16 @@ export function auditRegisterScripts(root = repoRoot(), options = {}) {
       for (const name of extractNpmRunScripts(line)) {
         if (scripts[name]) continue;
         if (WORKSPACE_SCRIPTS.has(name)) {
-          if (!line.includes("--workspace=") && !line.includes("workspace=host-desktop")) {
+          if (
+            !line.includes("--workspace=") &&
+            !line.includes("workspace=host-desktop")
+          ) {
             findings.push({
               file: rel,
               line: i + 1,
               script: name,
-              reason: "workspace-local script; cite npm run dist --workspace=host-desktop"
+              reason:
+                "workspace-local script; cite npm run dist --workspace=host-desktop",
             });
           }
           continue;
@@ -75,7 +79,7 @@ export function auditRegisterScripts(root = repoRoot(), options = {}) {
           file: rel,
           line: i + 1,
           script: name,
-          reason: "unknown root script"
+          reason: "unknown root script",
         });
       }
     }

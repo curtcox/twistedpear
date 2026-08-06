@@ -11,24 +11,27 @@ describe("links SDK", () => {
         return {
           id: call.id,
           ok: true,
-          result: call.method === "peers" ? [] : {
-            goodputBps: 1,
-            rttMs: 1,
-            jitterMs: 0,
-            lossRatio: 0,
-            mtu: 1,
-            source: "probed",
-            samples: 1,
-            confidence: "medium"
-          }
+          result:
+            call.method === "peers"
+              ? []
+              : {
+                  goodputBps: 1,
+                  rttMs: 1,
+                  jitterMs: 0,
+                  lossRatio: 0,
+                  mtu: 1,
+                  source: "probed",
+                  samples: 1,
+                  confidence: "medium",
+                },
         };
-      }
+      },
     });
     await peers();
     await probe({ id: "opaque" });
     expect(calls).toEqual([
       { method: "peers", capability: "link:observe" },
-      { method: "probe", capability: "link:probe" }
+      { method: "probe", capability: "link:probe" },
     ]);
   });
 });

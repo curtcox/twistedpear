@@ -15,19 +15,21 @@ export function createRegisterAnnounceHandler(deps) {
             destinationHash: bytesToHex(info.destinationHash),
             hops: info.packet.hops,
             receivedAt: Date.now(),
-            appDataHex: info.appData === null ? null : bytesToHex(info.appData)
-          }
+            appDataHex: info.appData === null ? null : bytesToHex(info.appData),
+          },
         });
 
         if (info.appData !== null) {
           deps.ingestCasLocator(info.appData);
           void deps.respondToCasLocatorRequest(info.appData).catch((error) => {
-            deps.log(`CAS locator response failed: ${error instanceof Error ? error.message : String(error)}`);
+            deps.log(
+              `CAS locator response failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
           });
           const { catalogStore: catalog } = deps.ensureCatalog();
           const ingested = catalog.ingest({
             destinationHash: bytesToHex(info.destinationHash),
-            appData: info.appData
+            appData: info.appData,
           });
           if (ingested !== null) {
             deps.log(`Catalog: ${ingested.name} v${ingested.version}`);
@@ -35,10 +37,13 @@ export function createRegisterAnnounceHandler(deps) {
             deps.pushCatalog();
           }
         }
-      }
+      },
     });
 
-    if (typeof reticulum.registerDropObserver === "function" && deps.dropCensus !== undefined) {
+    if (
+      typeof reticulum.registerDropObserver === "function" &&
+      deps.dropCensus !== undefined
+    ) {
       reticulum.registerDropObserver((drop) => {
         deps.dropCensus.record(drop);
         deps.status.dropCensus = deps.dropCensus.snapshot();

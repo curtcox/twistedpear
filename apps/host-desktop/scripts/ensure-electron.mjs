@@ -33,7 +33,7 @@ function isCompleteInstall() {
   if (process.platform === "darwin") {
     const frameworkPath = join(
       electronDir,
-      "dist/Electron.app/Contents/Frameworks/Electron Framework.framework/Electron Framework"
+      "dist/Electron.app/Contents/Frameworks/Electron Framework.framework/Electron Framework",
     );
     if (!existsSync(frameworkPath)) {
       return false;
@@ -49,15 +49,21 @@ function writeMetadata() {
 
   const versionFile = join(electronDir, "dist", "version");
   if (!existsSync(versionFile)) {
-    const version = JSON.parse(readFileSync(join(electronDir, "package.json"), "utf8")).version;
+    const version = JSON.parse(
+      readFileSync(join(electronDir, "package.json"), "utf8"),
+    ).version;
     writeFileSync(versionFile, version);
   }
 }
 
 if (!isCompleteInstall()) {
-  const download = spawnSync(process.execPath, [join(hostDesktopRoot, "scripts/download-electron.cjs")], {
-    stdio: "inherit"
-  });
+  const download = spawnSync(
+    process.execPath,
+    [join(hostDesktopRoot, "scripts/download-electron.cjs")],
+    {
+      stdio: "inherit",
+    },
+  );
   if (download.status !== 0) {
     process.exit(download.status ?? 1);
   }

@@ -57,7 +57,7 @@ import {
   stepPacketFromFieldsWithActions,
   stepPacketHashablePartWithActions,
   stepUnpackPacketFlagsWithActions,
-  unpackPacketFlags
+  unpackPacketFlags,
 } from "../src/packet-header.js";
 
 describe("protocol packet header", () => {
@@ -81,26 +81,29 @@ describe("protocol packet header", () => {
       contextFlag: PACKET_CONTEXT_FLAG_SET,
       transportType: TRANSPORT_TRANSPORT,
       destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_ANNOUNCE
+      packetType: PACKET_TYPE_ANNOUNCE,
     });
     expect(unpackPacketFlags(flags)).toEqual({
       headerType: PACKET_HEADER_2,
       contextFlag: PACKET_CONTEXT_FLAG_SET,
       transportType: TRANSPORT_TRANSPORT,
       destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_ANNOUNCE
+      packetType: PACKET_TYPE_ANNOUNCE,
     });
   });
 
   it("emits flag pack / unpack and hashable-part from WithActions steps", () => {
-    const packStepped = stepPackPacketFlagsWithActions(initialPackPacketFlagsState(), {
-      kind: "packet-header/pack-flags-gate",
-      headerType: PACKET_HEADER_2,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_TRANSPORT,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_ANNOUNCE
-    });
+    const packStepped = stepPackPacketFlagsWithActions(
+      initialPackPacketFlagsState(),
+      {
+        kind: "packet-header/pack-flags-gate",
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_ANNOUNCE,
+      },
+    );
     expect(shouldUsePackPacketFlags(packStepped.actions)).toBe(true);
     const packed = packPacketFlagsFromActions(packStepped.actions);
     expect(packed).toBe(
@@ -109,21 +112,24 @@ describe("protocol packet header", () => {
         contextFlag: PACKET_CONTEXT_FLAG_SET,
         transportType: TRANSPORT_TRANSPORT,
         destinationType: PACKET_DEST_TYPE_SINGLE,
-        packetType: PACKET_TYPE_ANNOUNCE
-      })
+        packetType: PACKET_TYPE_ANNOUNCE,
+      }),
     );
 
-    const unpackStepped = stepUnpackPacketFlagsWithActions(initialUnpackPacketFlagsState(), {
-      kind: "packet-header/unpack-flags-gate",
-      flags: packed!
-    });
+    const unpackStepped = stepUnpackPacketFlagsWithActions(
+      initialUnpackPacketFlagsState(),
+      {
+        kind: "packet-header/unpack-flags-gate",
+        flags: packed!,
+      },
+    );
     expect(shouldUseUnpackPacketFlags(unpackStepped.actions)).toBe(true);
     expect(packetFlagsFieldsFromActions(unpackStepped.actions)).toEqual({
       headerType: PACKET_HEADER_2,
       contextFlag: PACKET_CONTEXT_FLAG_SET,
       transportType: TRANSPORT_TRANSPORT,
       destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_ANNOUNCE
+      packetType: PACKET_TYPE_ANNOUNCE,
     });
 
     const raw = encodePacketRaw({
@@ -136,13 +142,16 @@ describe("protocol packet header", () => {
       destinationHash,
       context: 0,
       data,
-      transportId: null
+      transportId: null,
     });
-    const hashableStepped = stepPacketHashablePartWithActions(initialPacketHashablePartState(), {
-      kind: "packet-header/hashable-part-gate",
-      raw,
-      headerType: PACKET_HEADER_1
-    });
+    const hashableStepped = stepPacketHashablePartWithActions(
+      initialPacketHashablePartState(),
+      {
+        kind: "packet-header/hashable-part-gate",
+        raw,
+        headerType: PACKET_HEADER_1,
+      },
+    );
     expect(shouldUsePacketHashablePart(hashableStepped.actions)).toBe(true);
     const part = packetHashablePartRawFromActions(hashableStepped.actions);
     expect([...part!]).toEqual([...packetHashablePart(raw, PACKET_HEADER_1)]);
@@ -151,8 +160,8 @@ describe("protocol packet header", () => {
       stepPackPacketFlagsWithActions(initialPackPacketFlagsState(), {
         kind: "timer/fired",
         id: "x",
-        at: 0
-      }).actions
+        at: 0,
+      }).actions,
     ).toEqual([]);
   });
 
@@ -167,7 +176,7 @@ describe("protocol packet header", () => {
       destinationHash,
       context: 0,
       data,
-      transportId: null
+      transportId: null,
     });
     const decoded = decodePacketRaw(raw);
     expect(decoded).not.toBeNull();
@@ -188,7 +197,7 @@ describe("protocol packet header", () => {
       destinationHash,
       context: 0x0b,
       data,
-      transportId
+      transportId,
     });
     const decoded = decodePacketRaw(raw);
     expect([...decoded!.transportId!]).toEqual([...transportId]);
@@ -206,7 +215,7 @@ describe("protocol packet header", () => {
       destinationHash,
       context: 0,
       data,
-      transportId: null
+      transportId: null,
     });
     const part = packetHashablePart(raw, PACKET_HEADER_1);
     expect(part[0]).toBe(raw[0]! & 0x0f);
@@ -214,19 +223,22 @@ describe("protocol packet header", () => {
   });
 
   it("emits encode / decode framing from WithActions steps", () => {
-    const encodeStepped = stepEncodePacketRawWithActions(initialEncodePacketRawState(), {
-      kind: "packet-header/encode-gate",
-      headerType: PACKET_HEADER_1,
-      contextFlag: 0,
-      transportType: TRANSPORT_BROADCAST,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      hops: 3,
-      destinationHash,
-      context: 0,
-      data,
-      transportId: null
-    });
+    const encodeStepped = stepEncodePacketRawWithActions(
+      initialEncodePacketRawState(),
+      {
+        kind: "packet-header/encode-gate",
+        headerType: PACKET_HEADER_1,
+        contextFlag: 0,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        hops: 3,
+        destinationHash,
+        context: 0,
+        data,
+        transportId: null,
+      },
+    );
     expect(shouldUseEncodePacketRaw(encodeStepped.actions)).toBe(true);
     expect(shouldRejectEncodePacketRaw(encodeStepped.actions)).toBe(false);
     const packed = encodePacketRawFromActions(encodeStepped.actions);
@@ -242,31 +254,37 @@ describe("protocol packet header", () => {
         destinationHash,
         context: 0,
         data,
-        transportId: null
-      })
+        transportId: null,
+      }),
     ]);
 
-    const rejectEncode = stepEncodePacketRawWithActions(initialEncodePacketRawState(), {
-      kind: "packet-header/encode-gate",
-      headerType: PACKET_HEADER_1,
-      contextFlag: 0,
-      transportType: TRANSPORT_BROADCAST,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      hops: 0,
-      destinationHash: new Uint8Array(4),
-      context: 0,
-      data,
-      transportId: null
-    });
+    const rejectEncode = stepEncodePacketRawWithActions(
+      initialEncodePacketRawState(),
+      {
+        kind: "packet-header/encode-gate",
+        headerType: PACKET_HEADER_1,
+        contextFlag: 0,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        hops: 0,
+        destinationHash: new Uint8Array(4),
+        context: 0,
+        data,
+        transportId: null,
+      },
+    );
     expect(shouldRejectEncodePacketRaw(rejectEncode.actions)).toBe(true);
     expect(shouldUseEncodePacketRaw(rejectEncode.actions)).toBe(false);
     expect(encodePacketRawFromActions(rejectEncode.actions)).toBeNull();
 
-    const decodeStepped = stepDecodePacketRawWithActions(initialDecodePacketRawState(), {
-      kind: "packet-header/decode-gate",
-      raw: packed!
-    });
+    const decodeStepped = stepDecodePacketRawWithActions(
+      initialDecodePacketRawState(),
+      {
+        kind: "packet-header/decode-gate",
+        raw: packed!,
+      },
+    );
     expect(shouldUseDecodePacketRaw(decodeStepped.actions)).toBe(true);
     expect(shouldRejectDecodePacketRaw(decodeStepped.actions)).toBe(false);
     const fields = packetHeaderFieldsFromActions(decodeStepped.actions);
@@ -274,10 +292,13 @@ describe("protocol packet header", () => {
     expect(fields!.hops).toBe(3);
     expect([...fields!.data]).toEqual([...data]);
 
-    const rejectDecode = stepDecodePacketRawWithActions(initialDecodePacketRawState(), {
-      kind: "packet-header/decode-gate",
-      raw: new Uint8Array([0x00])
-    });
+    const rejectDecode = stepDecodePacketRawWithActions(
+      initialDecodePacketRawState(),
+      {
+        kind: "packet-header/decode-gate",
+        raw: new Uint8Array([0x00]),
+      },
+    );
     expect(shouldRejectDecodePacketRaw(rejectDecode.actions)).toBe(true);
     expect(shouldUseDecodePacketRaw(rejectDecode.actions)).toBe(false);
     expect(packetHeaderFieldsFromActions(rejectDecode.actions)).toBeNull();
@@ -293,8 +314,8 @@ describe("protocol packet header", () => {
         packetType: PACKET_TYPE_DATA,
         destinationHashLength: TRANSPORT_ID_BYTES,
         transportIdPresent: false,
-        transportIdLength: 0
-      })
+        transportIdLength: 0,
+      }),
     ).toBe("ok");
     expect(
       planPacketFromFields({
@@ -305,8 +326,8 @@ describe("protocol packet header", () => {
         packetType: PACKET_TYPE_DATA,
         destinationHashLength: TRANSPORT_ID_BYTES,
         transportIdPresent: false,
-        transportIdLength: 0
-      })
+        transportIdLength: 0,
+      }),
     ).toBe("bad-header-type");
     expect(
       planPacketFromFields({
@@ -317,8 +338,8 @@ describe("protocol packet header", () => {
         packetType: PACKET_TYPE_DATA,
         destinationHashLength: 4,
         transportIdPresent: false,
-        transportIdLength: 0
-      })
+        transportIdLength: 0,
+      }),
     ).toBe("bad-destination-hash");
     expect(
       planPacketFromFields({
@@ -329,8 +350,8 @@ describe("protocol packet header", () => {
         packetType: PACKET_TYPE_DATA,
         destinationHashLength: TRANSPORT_ID_BYTES,
         transportIdPresent: false,
-        transportIdLength: 0
-      })
+        transportIdLength: 0,
+      }),
     ).toBe("header2-missing-transport-id");
     expect(
       planPacketFromFields({
@@ -341,8 +362,8 @@ describe("protocol packet header", () => {
         packetType: PACKET_TYPE_DATA,
         destinationHashLength: TRANSPORT_ID_BYTES,
         transportIdPresent: true,
-        transportIdLength: 4
-      })
+        transportIdLength: 4,
+      }),
     ).toBe("bad-transport-id");
     expect(
       planPacketFromFields({
@@ -353,52 +374,67 @@ describe("protocol packet header", () => {
         packetType: PACKET_TYPE_DATA,
         destinationHashLength: TRANSPORT_ID_BYTES,
         transportIdPresent: true,
-        transportIdLength: TRANSPORT_ID_BYTES
-      })
+        transportIdLength: TRANSPORT_ID_BYTES,
+      }),
     ).toBe("ok");
   });
 
   it("emits fromFields-plan actions from PlanWithActions", () => {
-    const ok = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
-      kind: "packet/from-fields-plan-gate",
-      headerType: PACKET_HEADER_1,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_BROADCAST,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: TRANSPORT_ID_BYTES,
-      transportIdPresent: false,
-      transportIdLength: 0
-    });
+    const ok = stepPacketFromFieldsPlanWithActions(
+      initialPacketFromFieldsPlanState(),
+      {
+        kind: "packet/from-fields-plan-gate",
+        headerType: PACKET_HEADER_1,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0,
+      },
+    );
     expect(shouldProceedPacketFromFieldsPlan(ok.actions)).toBe(true);
     expect(packetFromFieldsPlanFromActions(ok.actions)).toBe("ok");
 
-    const badHeader = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
-      kind: "packet/from-fields-plan-gate",
-      headerType: 9,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_BROADCAST,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: TRANSPORT_ID_BYTES,
-      transportIdPresent: false,
-      transportIdLength: 0
-    });
-    expect(shouldRejectPacketFromFieldsPlanBadHeaderType(badHeader.actions)).toBe(true);
-    expect(packetFromFieldsPlanFromActions(badHeader.actions)).toBe("bad-header-type");
+    const badHeader = stepPacketFromFieldsPlanWithActions(
+      initialPacketFromFieldsPlanState(),
+      {
+        kind: "packet/from-fields-plan-gate",
+        headerType: 9,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0,
+      },
+    );
+    expect(
+      shouldRejectPacketFromFieldsPlanBadHeaderType(badHeader.actions),
+    ).toBe(true);
+    expect(packetFromFieldsPlanFromActions(badHeader.actions)).toBe(
+      "bad-header-type",
+    );
 
-    const badHash = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
-      kind: "packet/from-fields-plan-gate",
-      headerType: PACKET_HEADER_1,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_BROADCAST,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: 4,
-      transportIdPresent: false,
-      transportIdLength: 0
-    });
-    expect(shouldRejectPacketFromFieldsPlanBadDestinationHash(badHash.actions)).toBe(true);
+    const badHash = stepPacketFromFieldsPlanWithActions(
+      initialPacketFromFieldsPlanState(),
+      {
+        kind: "packet/from-fields-plan-gate",
+        headerType: PACKET_HEADER_1,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: 4,
+        transportIdPresent: false,
+        transportIdLength: 0,
+      },
+    );
+    expect(
+      shouldRejectPacketFromFieldsPlanBadDestinationHash(badHash.actions),
+    ).toBe(true);
 
     const missingTransport = stepPacketFromFieldsPlanWithActions(
       initialPacketFromFieldsPlanState(),
@@ -411,25 +447,32 @@ describe("protocol packet header", () => {
         packetType: PACKET_TYPE_DATA,
         destinationHashLength: TRANSPORT_ID_BYTES,
         transportIdPresent: false,
-        transportIdLength: 0
-      }
+        transportIdLength: 0,
+      },
     );
     expect(
-      shouldRejectPacketFromFieldsPlanHeader2MissingTransportId(missingTransport.actions)
+      shouldRejectPacketFromFieldsPlanHeader2MissingTransportId(
+        missingTransport.actions,
+      ),
     ).toBe(true);
 
-    const badTransportId = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
-      kind: "packet/from-fields-plan-gate",
-      headerType: PACKET_HEADER_2,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_TRANSPORT,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: TRANSPORT_ID_BYTES,
-      transportIdPresent: true,
-      transportIdLength: 4
-    });
-    expect(shouldRejectPacketFromFieldsPlanBadTransportId(badTransportId.actions)).toBe(true);
+    const badTransportId = stepPacketFromFieldsPlanWithActions(
+      initialPacketFromFieldsPlanState(),
+      {
+        kind: "packet/from-fields-plan-gate",
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: true,
+        transportIdLength: 4,
+      },
+    );
+    expect(
+      shouldRejectPacketFromFieldsPlanBadTransportId(badTransportId.actions),
+    ).toBe(true);
   });
 
   it("emits fromFields actions from stepPacketFromFieldsWithActions", () => {
@@ -442,64 +485,84 @@ describe("protocol packet header", () => {
       packetType: PACKET_TYPE_DATA,
       destinationHashLength: TRANSPORT_ID_BYTES,
       transportIdPresent: false,
-      transportIdLength: 0
+      transportIdLength: 0,
     });
     expect(ok.actions).toEqual([{ kind: "ok" }]);
     expect(shouldProceedPacketFromFields(ok.actions)).toBe(true);
 
-    const badHeader = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
-      kind: "packet/from-fields-gate",
-      headerType: 9,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_BROADCAST,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: TRANSPORT_ID_BYTES,
-      transportIdPresent: false,
-      transportIdLength: 0
-    });
-    expect(shouldRejectPacketFromFieldsBadHeaderType(badHeader.actions)).toBe(true);
-
-    const badHash = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
-      kind: "packet/from-fields-gate",
-      headerType: PACKET_HEADER_1,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_BROADCAST,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: 4,
-      transportIdPresent: false,
-      transportIdLength: 0
-    });
-    expect(shouldRejectPacketFromFieldsBadDestinationHash(badHash.actions)).toBe(true);
-
-    const missingTransport = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
-      kind: "packet/from-fields-gate",
-      headerType: PACKET_HEADER_2,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_TRANSPORT,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: TRANSPORT_ID_BYTES,
-      transportIdPresent: false,
-      transportIdLength: 0
-    });
-    expect(shouldRejectPacketFromFieldsHeader2MissingTransportId(missingTransport.actions)).toBe(
-      true
+    const badHeader = stepPacketFromFieldsWithActions(
+      initialPacketFromFieldsState(),
+      {
+        kind: "packet/from-fields-gate",
+        headerType: 9,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0,
+      },
+    );
+    expect(shouldRejectPacketFromFieldsBadHeaderType(badHeader.actions)).toBe(
+      true,
     );
 
-    const badTransportId = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
-      kind: "packet/from-fields-gate",
-      headerType: PACKET_HEADER_2,
-      contextFlag: PACKET_CONTEXT_FLAG_SET,
-      transportType: TRANSPORT_TRANSPORT,
-      destinationType: PACKET_DEST_TYPE_SINGLE,
-      packetType: PACKET_TYPE_DATA,
-      destinationHashLength: TRANSPORT_ID_BYTES,
-      transportIdPresent: true,
-      transportIdLength: 4
-    });
-    expect(shouldRejectPacketFromFieldsBadTransportId(badTransportId.actions)).toBe(true);
+    const badHash = stepPacketFromFieldsWithActions(
+      initialPacketFromFieldsState(),
+      {
+        kind: "packet/from-fields-gate",
+        headerType: PACKET_HEADER_1,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: 4,
+        transportIdPresent: false,
+        transportIdLength: 0,
+      },
+    );
+    expect(
+      shouldRejectPacketFromFieldsBadDestinationHash(badHash.actions),
+    ).toBe(true);
+
+    const missingTransport = stepPacketFromFieldsWithActions(
+      initialPacketFromFieldsState(),
+      {
+        kind: "packet/from-fields-gate",
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0,
+      },
+    );
+    expect(
+      shouldRejectPacketFromFieldsHeader2MissingTransportId(
+        missingTransport.actions,
+      ),
+    ).toBe(true);
+
+    const badTransportId = stepPacketFromFieldsWithActions(
+      initialPacketFromFieldsState(),
+      {
+        kind: "packet/from-fields-gate",
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: true,
+        transportIdLength: 4,
+      },
+    );
+    expect(
+      shouldRejectPacketFromFieldsBadTransportId(badTransportId.actions),
+    ).toBe(true);
   });
 
   it("is deterministic for identical fromFields gate events", () => {
@@ -512,10 +575,16 @@ describe("protocol packet header", () => {
       packetType: PACKET_TYPE_DATA,
       destinationHashLength: TRANSPORT_ID_BYTES,
       transportIdPresent: false,
-      transportIdLength: 0
+      transportIdLength: 0,
     };
-    const a = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), event);
-    const b = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), event);
+    const a = stepPacketFromFieldsWithActions(
+      initialPacketFromFieldsState(),
+      event,
+    );
+    const b = stepPacketFromFieldsWithActions(
+      initialPacketFromFieldsState(),
+      event,
+    );
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });

@@ -14,17 +14,16 @@ import {
   WasmContractV1,
   type GetResponse,
   type ResponseHandler,
-  type UpdateNotification
+  type UpdateNotification,
 } from "@freenetorg/freenet-stdlib";
 import {
   ContractCodeT,
   ContractInstanceIdT,
-  ContractKeyT
+  ContractKeyT,
 } from "@freenetorg/freenet-stdlib/common";
 import { RelatedContractsT } from "@freenetorg/freenet-stdlib/client-request";
 
-export const DEFAULT_FREENET_URL =
-  "ws://127.0.0.1:50509/v1/contract/command";
+export const DEFAULT_FREENET_URL = "ws://127.0.0.1:50509/v1/contract/command";
 export const DEFAULT_FREENET_REQUEST_TIMEOUT_MS = 30_000;
 
 export interface FreenetClientOptions {
@@ -76,7 +75,7 @@ export interface FreenetUpdateOptions {
 /** Resolve primary/secondary UPDATE `ContractKey.code` bytes for a node pin. */
 export function resolveUpdateCodeFields(
   codeHash: Uint8Array,
-  options: FreenetUpdateOptions = {}
+  options: FreenetUpdateOptions = {},
 ): { primary: Uint8Array; secondary?: Uint8Array } {
   if (options.codeField !== undefined) {
     return { primary: options.codeField };
@@ -139,7 +138,7 @@ export class FreenetClient {
   async put(
     source: FreenetContractSource,
     state: Uint8Array,
-    options: FreenetPutOptions = {}
+    options: FreenetPutOptions = {},
   ): Promise<Uint8Array> {
     const api = await this.#connection();
     const { key, codeHash } = contractParts(source);
@@ -147,27 +146,30 @@ export class FreenetClient {
     const contract = new WasmContractV1(
       new ContractCodeT(Array.from(source.wasm), Array.from(codeHash)),
       Array.from(source.parameters),
-      contractKey
+      contractKey,
     );
     const request = new PutRequest(
       new ContractContainer(ContractType.WasmContractV1, contract),
       Array.from(state),
       new RelatedContractsT([]),
       options.subscribe ?? false,
-      options.blockingSubscribe ?? false
+      options.blockingSubscribe ?? false,
     );
     const response = await this.#withinTimeout(api.put(request), "put");
     return response.key.bytes();
   }
 
-  async get(key: Uint8Array, subscribe = false): Promise<FreenetContractRecord> {
+  async get(
+    key: Uint8Array,
+    subscribe = false,
+  ): Promise<FreenetContractRecord> {
     const api = await this.#connection();
     const response = await this.#withinTimeout(
       // A fetch path may contact a node that has state routed to it but has
       // never executed this contract. Request the contract code as well as
       // state so that first retrieval and first subscription work there.
       api.get(new GetRequest(new ContractKey(key), true, subscribe)),
-      "get"
+      "get",
     );
     return this.#recordFromGet(response);
   }
@@ -176,12 +178,12 @@ export class FreenetClient {
     key: Uint8Array,
     codeHash: Uint8Array,
     state: Uint8Array,
-    options: FreenetUpdateOptions = {}
+    options: FreenetUpdateOptions = {},
   ): Promise<void> {
     const api = await this.#connection();
     const data = new UpdateData(
       UpdateDataType.StateUpdate,
-      new StateUpdate(Array.from(state))
+      new StateUpdate(Array.from(state)),
     );
     // Observed 0.2.112 paths disagree about whether this field is a 32-byte
     // hash or full WASM. Prefer WASM when supplied as fallbackCodeField: the
@@ -196,8 +198,8 @@ export class FreenetClient {
               get_contract_key: () =>
                 new ContractKeyT(
                   new ContractInstanceIdT(Array.from(key)),
-                  Array.from(field)
-                )
+                  Array.from(field),
+                ),
             } as ContractKey);
       return api.update(new UpdateRequest(contractKey, data));
     };
@@ -208,13 +210,16 @@ export class FreenetClient {
       if (secondary === undefined || !isUpdateCodeRetryable(message)) {
         throw error;
       }
-      await this.#withinTimeout(request(secondary), "update compatibility retry");
+      await this.#withinTimeout(
+        request(secondary),
+        "update compatibility retry",
+      );
     }
   }
 
   async subscribe(
     key: Uint8Array,
-    listener: (state: Uint8Array) => void
+    listener: (state: Uint8Array) => void,
   ): Promise<FreenetSubscription> {
     const encoded = new ContractKey(key).encode();
     let listeners = this.#subscriptions.get(encoded);
@@ -301,14 +306,10 @@ export class FreenetClient {
             settled = true;
             reject(new Error(`Freenet connection closed: ${reason}`));
           }
-        }
+        },
       };
 
-      api = new FreenetWsApi(
-        new URL(this.#url),
-        handler,
-        this.#authToken
-      );
+      api = new FreenetWsApi(new URL(this.#url), handler, this.#authToken);
     }).finally(() => {
       this.#connecting = null;
     });
@@ -320,7 +321,7 @@ export class FreenetClient {
     const api = await this.#connection();
     await this.#withinTimeout(
       api.get(new GetRequest(new ContractKey(key), true, true, true)),
-      "subscribe"
+      "subscribe",
     );
   }
 
@@ -328,7 +329,7 @@ export class FreenetClient {
     return {
       key: response.key.bytes(),
       codeHash: response.key.codePart() ?? new Uint8Array(),
-      state: Uint8Array.from(response.state)
+      state: Uint8Array.from(response.state),
     };
   }
 
@@ -351,9 +352,7 @@ export class FreenetClient {
         ? update.state
         : update.delta;
     if (bytes === undefined) return;
-    if (
-      notification.update.updateDataType === UpdateDataType.NONE
-    ) {
+    if (notification.update.updateDataType === UpdateDataType.NONE) {
       return;
     }
     const state = Uint8Array.from(bytes);
@@ -368,9 +367,9 @@ export class FreenetClient {
         new Promise<never>((_resolve, reject) => {
           timer = setTimeout(
             () => reject(new Error(`Freenet ${name} timed out`)),
-            this.#requestTimeoutMs
+            this.#requestTimeoutMs,
           );
-        })
+        }),
       ]);
     } catch (error) {
       throw errorFromUnknown(error);

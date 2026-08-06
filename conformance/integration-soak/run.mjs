@@ -21,10 +21,10 @@ const result = spawnSync(
     env: {
       ...process.env,
       SOAK_DURATION_MS,
-      INTEGRATION_SOAK_FLAP_MS: FLAP_MS
+      INTEGRATION_SOAK_FLAP_MS: FLAP_MS,
     },
-    timeout: timeoutMs
-  }
+    timeout: timeoutMs,
+  },
 );
 
 if (result.status !== 0) {

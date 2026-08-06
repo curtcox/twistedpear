@@ -48,7 +48,7 @@ Writing looks similarly small in app code:
 const { keyHex } = await freenet.put({
   wasmHex,
   parametersHex,
-  stateHex
+  stateHex,
 });
 
 await freenet.update({ keyHex, codeHashHex, stateHex: nextStateHex });
@@ -76,13 +76,13 @@ expose operation metadata to the node or network.
 
 Treat these as ordinary, recoverable states:
 
-| Failure | App behavior |
-|---|---|
-| Capability revoked | Keep local edits; disable network actions. |
-| Freenet not configured | Show setup instructions; do not retry in a loop. |
-| Contract not found | Preserve the entered key so the user can check it. |
+| Failure                   | App behavior                                              |
+| ------------------------- | --------------------------------------------------------- |
+| Capability revoked        | Keep local edits; disable network actions.                |
+| Freenet not configured    | Show setup instructions; do not retry in a loop.          |
+| Contract not found        | Preserve the entered key so the user can check it.        |
 | Host confirmation refused | Report “not published”; never imply the write is pending. |
-| Node disconnects | Let the user retry explicitly after checking Node status. |
+| Node disconnects          | Let the user retry explicitly after checking Node status. |
 
 ## Make it yours
 

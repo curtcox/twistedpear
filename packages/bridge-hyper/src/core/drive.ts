@@ -21,7 +21,14 @@ const PACKAGE_PATH_PREFIX = "/packages/";
 
 interface DriveManifest {
   readonly latestVersion: string;
-  readonly versions: Record<string, { readonly packageHash: string; readonly archivePath: string; readonly size?: number }>;
+  readonly versions: Record<
+    string,
+    {
+      readonly packageHash: string;
+      readonly archivePath: string;
+      readonly size?: number;
+    }
+  >;
 }
 
 async function readDriveManifest(drive: Hyperdrive): Promise<DriveManifest> {
@@ -51,13 +58,16 @@ export class DriveManager {
     return { drive: this.drive, keyHex: bytesToHex(this.drive.key) };
   }
 
-  async openDrive(keyHex: string, options: { readonly serve?: boolean } = {}): Promise<Hyperdrive> {
+  async openDrive(
+    keyHex: string,
+    options: { readonly serve?: boolean } = {},
+  ): Promise<Hyperdrive> {
     this.drive = new Hyperdrive(this.store, b4a.from(keyHex, "hex"));
     await this.drive.ready();
     this.options.swarm?.replicate(this.store);
     await this.options.swarm?.join(driveTopic(this.drive.key), {
       server: options.serve ?? false,
-      client: true
+      client: true,
     });
     return this.drive;
   }
@@ -66,7 +76,11 @@ export class DriveManager {
     return this.drive;
   }
 
-  async publishVersion(version: string, archiveBytes: Uint8Array, packageHash: string): Promise<PublishedVersion> {
+  async publishVersion(
+    version: string,
+    archiveBytes: Uint8Array,
+    packageHash: string,
+  ): Promise<PublishedVersion> {
     if (this.drive === null) {
       throw new Error("Drive not initialized");
     }
@@ -77,7 +91,7 @@ export class DriveManager {
     const manifest = await readDriveManifest(this.drive);
     const versions = {
       ...manifest.versions,
-      [version]: { packageHash, archivePath, size: archiveBytes.length }
+      [version]: { packageHash, archivePath, size: archiveBytes.length },
     };
 
     await this.drive.put(
@@ -86,22 +100,27 @@ export class DriveManager {
         JSON.stringify(
           {
             latestVersion: version,
-            versions
+            versions,
           },
           null,
-          2
-        )
-      )
+          2,
+        ),
+      ),
     );
 
     this.options.swarm?.replicate(this.store);
-    await this.options.swarm?.join(driveTopic(this.drive.key), { server: true, client: true });
+    await this.options.swarm?.join(driveTopic(this.drive.key), {
+      server: true,
+      client: true,
+    });
     await this.drive.update();
 
     return { version, packageHash, archivePath };
   }
 
-  async listVersions(): Promise<ReadonlyArray<{ version: string; packageHash: string; size: number }>> {
+  async listVersions(): Promise<
+    ReadonlyArray<{ version: string; packageHash: string; size: number }>
+  > {
     if (this.drive === null) {
       throw new Error("Drive not initialized");
     }
@@ -111,7 +130,7 @@ export class DriveManager {
       .map(([version, info]) => ({
         version,
         packageHash: info.packageHash,
-        size: info.size ?? 0
+        size: info.size ?? 0,
       }))
       .sort((left, right) => left.version.localeCompare(right.version));
   }
@@ -140,7 +159,9 @@ export class DriveManager {
       await remote.update();
       const manifestRaw = await remote.get(MANIFEST_PATH);
       if (manifestRaw !== null) {
-        const manifest = JSON.parse(new TextDecoder().decode(manifestRaw)) as DriveManifest;
+        const manifest = JSON.parse(
+          new TextDecoder().decode(manifestRaw),
+        ) as DriveManifest;
         await mirror.put(MANIFEST_PATH, manifestRaw);
 
         for (const info of Object.values(manifest.versions)) {

@@ -1,13 +1,13 @@
 import {
   verify256t,
   verifyCasLocator,
-  type CasLocator
+  type CasLocator,
 } from "@twistedpear/cas-256t";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import { FreenetClient } from "../core/client.js";
 import {
   encodeFreenetLocatorState,
-  locatorContractParameters
+  locatorContractParameters,
 } from "../core/locator-contract.js";
 
 export interface FreenetPublishOptions {
@@ -24,34 +24,36 @@ export interface FreenetPublishResult {
 }
 
 export async function publishPackageToFreenet(
-  options: FreenetPublishOptions
+  options: FreenetPublishOptions,
 ): Promise<FreenetPublishResult> {
   if (!verifyCasLocator(options.provider, options.locator)) {
     throw new Error("Refusing to publish an invalid Freenet locator signature");
   }
   if (options.locator.packageSize !== options.archiveBytes.length) {
-    throw new Error("Refusing to publish a Freenet package with a mismatched size");
+    throw new Error(
+      "Refusing to publish a Freenet package with a mismatched size",
+    );
   }
   if (
-    !verify256t(
-      options.locator.t256,
-      options.archiveBytes,
-      (bytes) => options.provider.sha512(bytes)
+    !verify256t(options.locator.t256, options.archiveBytes, (bytes) =>
+      options.provider.sha512(bytes),
     )
   ) {
-    throw new Error("Refusing to publish a Freenet package with a mismatched 256t id");
+    throw new Error(
+      "Refusing to publish a Freenet package with a mismatched 256t id",
+    );
   }
 
   const state = encodeFreenetLocatorState({
     locator: options.locator,
-    archiveBytes: options.archiveBytes
+    archiveBytes: options.archiveBytes,
   });
   const contractKey = await options.client.put(
     {
       wasm: options.locatorContractWasm,
-      parameters: locatorContractParameters(options.locator.t256)
+      parameters: locatorContractParameters(options.locator.t256),
     },
-    state
+    state,
   );
   return { contractKey, stateBytes: state.length };
 }

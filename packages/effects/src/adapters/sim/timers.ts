@@ -19,7 +19,7 @@ export class SimTimers {
     if (intent.kind === "timer/set") {
       this.pending.set(intent.timer.id, {
         id: intent.timer.id,
-        fireAt: this.clock.now() + intent.timer.delayMs
+        fireAt: this.clock.now() + intent.timer.delayMs,
       });
       return;
     }

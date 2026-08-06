@@ -9,11 +9,11 @@ register: none
 Three different things in the SDK look like "files" and are not interchangeable. Getting them
 straight takes one table and saves a lot of confusion.
 
-| | What it is | Scope | Costs airtime? |
-|---|---|---|---|
-| `share.put` / `share.get` | Content-addressed bytes, named by a 94-character 256t identifier | Anyone who can resolve the identifier | Yes, on `get` |
-| `resource.fetch` | A budgeted pull of a resource the host knows how to reach | Whatever the host can reach | Yes, and the host caps it |
-| `workspace.*` | A private, per-app filesystem on this device | This app, this device | No |
+|                           | What it is                                                       | Scope                                 | Costs airtime?            |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------------- | ------------------------- |
+| `share.put` / `share.get` | Content-addressed bytes, named by a 94-character 256t identifier | Anyone who can resolve the identifier | Yes, on `get`             |
+| `resource.fetch`          | A budgeted pull of a resource the host knows how to reach        | Whatever the host can reach           | Yes, and the host caps it |
+| `workspace.*`             | A private, per-app filesystem on this device                     | This app, this device                 | No                        |
 
 **The rule:** `share` is for bytes other people should be able to get. `workspace` is for
 bytes only you need. `resource.fetch` is how you pull something large without the host
@@ -49,11 +49,11 @@ publication, and Recipe box with a file list of nine recipes and one open in the
 Beneath them, the host's own transfer indicator showing a rate readout in bytes per second on
 a slow interface.
 
-| Recipe | Capabilities | Directory |
-|---|---|---|
-| [Photo drop](#photo-drop) | `share:cas`, `resource:fetch`, `storage:kv` | [apps/photo-drop](apps/photo-drop/README.md) |
-| [Zine reader](#zine-reader) | `share:cas`, `workspace` | [apps/zine-reader](apps/zine-reader/README.md) |
-| [Recipe box](#recipe-box) | `workspace` | [apps/recipe-box](apps/recipe-box/README.md) |
+| Recipe                      | Capabilities                                | Directory                                      |
+| --------------------------- | ------------------------------------------- | ---------------------------------------------- |
+| [Photo drop](#photo-drop)   | `share:cas`, `resource:fetch`, `storage:kv` | [apps/photo-drop](apps/photo-drop/README.md)   |
+| [Zine reader](#zine-reader) | `share:cas`, `workspace`                    | [apps/zine-reader](apps/zine-reader/README.md) |
+| [Recipe box](#recipe-box)   | `workspace`                                 | [apps/recipe-box](apps/recipe-box/README.md)   |
 
 ---
 
@@ -88,7 +88,7 @@ The budget is the point of `resource.fetch`:
 ```javascript
 bytes = await resource.fetch({
   resourceId: identifier.trim(),
-  budgetBytes: budgetKib * 1024
+  budgetBytes: budgetKib * 1024,
 });
 ```
 
@@ -170,7 +170,7 @@ async function open(t256) {
 }
 ```
 
-Content addressing makes this cache trivially correct. The identifier *is* a hash of the
+Content addressing makes this cache trivially correct. The identifier _is_ a hash of the
 bytes, so a cache hit cannot be stale — there is no invalidation problem, no ETag, no
 expiry. Different bytes are a different identifier by definition.
 
@@ -225,7 +225,10 @@ Every path is sanitised before it is used:
 
 ```javascript
 function pathFor(name) {
-  const safe = name.replace(/[^a-zA-Z0-9-_ ]/g, "").trim().replace(/\s+/g, "-");
+  const safe = name
+    .replace(/[^a-zA-Z0-9-_ ]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
   return safe.length === 0 ? null : `${DIR}/${safe}.md`;
 }
 ```
@@ -288,7 +291,7 @@ const sent = await sendMultipartPropagation({
   source: localDelivery,
   title: "zine/issue",
   content: new TextEncoder().encode(issue),
-  budgetBytes: 64 * 1024
+  budgetBytes: 64 * 1024,
 });
 
 await saveTransfer(sent.transferId, sent.sentChunks);

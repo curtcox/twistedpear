@@ -54,10 +54,19 @@ await ui.render({
     type: "view",
     style: { padding: 16, gap: 8 },
     children: [
-      { id: "title", type: "text", props: { value: "Hello" }, style: { fontSize: 20 } },
-      { id: "go", type: "button", props: { label: "Tap me", event: "hello.tap" } }
-    ]
-  }
+      {
+        id: "title",
+        type: "text",
+        props: { value: "Hello" },
+        style: { fontSize: 20 },
+      },
+      {
+        id: "go",
+        type: "button",
+        props: { label: "Tap me", event: "hello.tap" },
+      },
+    ],
+  },
 });
 ```
 
@@ -124,15 +133,15 @@ has announced it. [Chapter 9](09-packaging-and-publishing.md) covers publishing;
 
 Read this list before you design, not after.
 
-| You cannot | Because |
-|---|---|
-| Ship native code or link a native module | The sandbox runs JavaScript only. |
-| Run in the background, or run alongside another mini-app | v1 runs one foreground mini-app, by design. |
-| Talk to another mini-app | App-to-app messaging and shared storage are deliberately deferred. |
+| You cannot                                                | Because                                                                     |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Ship native code or link a native module                  | The sandbox runs JavaScript only.                                           |
+| Run in the background, or run alongside another mini-app  | v1 runs one foreground mini-app, by design.                                 |
+| Talk to another mini-app                                  | App-to-app messaging and shared storage are deliberately deferred.          |
 | Open a socket, read a file, or call an arbitrary HTTP API | Everything goes through the broker; there is no general network capability. |
-| Assume a fast link | A peer may be reachable only over LoRa at hundreds of bits per second. |
-| Assume you are online | Peers appear and disappear; LXMF delivery may be deferred for hours. |
-| Draw over a host confirmation dialog | Those render in host chrome, outside your widget container. |
+| Assume a fast link                                        | A peer may be reachable only over LoRa at hundreds of bits per second.      |
+| Assume you are online                                     | Peers appear and disappear; LXMF delivery may be deferred for hours.        |
+| Draw over a host confirmation dialog                      | Those render in host chrome, outside your widget container.                 |
 
 The last one is a feature you benefit from: users can trust the install and publish prompts
 precisely because no app can forge them.

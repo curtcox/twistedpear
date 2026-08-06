@@ -47,20 +47,19 @@ hub-and-spoke over TCP:
 The mobile harness already targets exactly this hub: `apps/harness-mobile/App.tsx`
 picks `10.0.2.2` on Android and `127.0.0.1` elsewhere, on port 4242.
 
-Each peer also opens an **outbound** control connection to the harness on port
-34990. Outbound is what makes one mechanism work everywhere — a Node process, a
+Each peer also opens an **outbound** control connection to the harness on port 34990. Outbound is what makes one mechanism work everywhere — a Node process, a
 Bare worklet, the iOS simulator, and the Android emulator can all dial out, and
 none of them needs a listening socket or an entitlement.
 
 ## Peers
 
-| Id | Implementation | Requirements |
-|---|---|---|
-| `hub` | `tp node` with the TCP server interface | Node, `npm run build` |
-| `node2`…`node9` | additional headless `tp node` peers | Node, `npm run build` |
-| `desktop` | Electron desktop host | Electron; peer-agent launches use the supported Node-worklet fallback when linked Bare addon frameworks are unavailable |
-| `ios` | iOS simulator harness | Xcode, Maestro |
-| `android` | Android emulator harness | a running emulator with the harness installed, adb, Maestro |
+| Id              | Implementation                          | Requirements                                                                                                            |
+| --------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `hub`           | `tp node` with the TCP server interface | Node, `npm run build`                                                                                                   |
+| `node2`…`node9` | additional headless `tp node` peers     | Node, `npm run build`                                                                                                   |
+| `desktop`       | Electron desktop host                   | Electron; peer-agent launches use the supported Node-worklet fallback when linked Bare addon frameworks are unavailable |
+| `ios`           | iOS simulator harness                   | Xcode, Maestro                                                                                                          |
+| `android`       | Android emulator harness                | a running emulator with the harness installed, adb, Maestro                                                             |
 
 `up` implies `hub` unless you pass `--no-hub`. GUI peers that cannot start are
 reported and skipped rather than failing the run.
@@ -94,7 +93,7 @@ peers are attached:
    (`announce-rate-limit:rate_limited`) drop on the hub (transport-node rate-limit
    gate; distinguishes rate-limited from absent).
 2. **Communication** — for every ordered pair, that A's probe message arrives at
-   B *and* that B's echo arrives back at A. Both legs are real LXMF messages over
+   B _and_ that B's echo arrives back at A. Both legs are real LXMF messages over
    real Reticulum links, routed through the hub.
 3. **Peer media readiness** — that B decodes A's `TPL1` readiness request and
    answers with a body that re-validates through the shared codec.
@@ -138,10 +137,10 @@ auto-echoes probe messages, and answers `info` / `peers` / `inbox` / `status` /
 It is never on a default code path. It activates only when a host is handed an
 explicit control endpoint:
 
-| Peer | Trigger |
-|---|---|
-| `tp node` | `--test-agent host:port[:label]` |
-| desktop | `TP_TEST_AGENT=host:port:label` read by the Electron main process |
+| Peer          | Trigger                                                                    |
+| ------------- | -------------------------------------------------------------------------- |
+| `tp node`     | `--test-agent host:port[:label]`                                           |
+| desktop       | `TP_TEST_AGENT=host:port:label` read by the Electron main process          |
 | iOS / Android | the **Connect peer agent** button, tapped by `.maestro/local-peer-up.yaml` |
 
 ## Adding another peer implementation

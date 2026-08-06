@@ -11,9 +11,10 @@ counterpart: docs/static-analysis.md
 registry, commands, baselines, CI matrices, and reports are described in
 [Static analysis](static-analysis.md). That live document wins if the two disagree.
 
-The enforceable infrastructure and property follow-up from the original nine phases has
-landed. The remaining work is limited to external workflow evidence, the repository
-setting that depends on that evidence, and formatting decomposition.
+The enforceable infrastructure, property coverage, and formatting decomposition have
+landed. `format-ratchet.json` is empty and the repository is Prettier-clean under the
+file-size ceiling. The remaining work is limited to external workflow evidence and the
+repository setting that depends on that evidence.
 
 ## Repository-setting activation
 
@@ -27,21 +28,7 @@ setting that depends on that evidence, and formatting decomposition.
 4. Confirm the first grouped Cargo Dependabot pull request. Grouped npm and Actions pull
    requests have already opened, and CodeQL has successfully accepted its
    JavaScript/TypeScript, Python, and Actions databases.
+5. After the formatting-only commit lands, add its SHA to `.git-blame-ignore-revs`.
 
 These operations require repository administration and intentionally have no script that
 attempts to mutate settings from an ordinary local validation run.
-
-## Formatting decomposition
-
-The formatting ratchet was tightened by 18 entries, and all new or changed source is
-Prettier-clean. A whole-repository default-Prettier trial pushed 37 previously decomposed
-files over the zero file-size ceiling, adding 8,055 excess lines. The trial was reverted:
-`size-ratchet.json` remains empty and `size-rules.json` was not weakened. Emptying
-`format-ratchet.json` now requires those files to be split before each mechanical batch;
-after the final batch, record its formatting-only commit in `.git-blame-ignore-revs`.
-
-The first language-runner survey is complete: Rust, shell, Python, Kotlin, Swift, and
-Actions each uploaded a successful result from its pinned tool. The first dashboard also
-updated its sticky comment, but exposed an aggregation defect: four gates that stopped in
-a shared build step were absent from the summary. This checkout fixes that omission; the
-next external run is the required proof.

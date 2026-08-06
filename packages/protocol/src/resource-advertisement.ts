@@ -16,7 +16,7 @@ import {
   msgpackPackStringMap,
   msgpackPackUInt,
   msgpackUnpackStringKeyedMap,
-  type MsgpackScalar
+  type MsgpackScalar,
 } from "./msgpack-core.js";
 
 export interface ResourceAdvertisementFields {
@@ -42,7 +42,9 @@ export interface ResourceAdvertisementFlags {
   readonly x: boolean;
 }
 
-export function encodeResourceAdvertisementFlags(flags: ResourceAdvertisementFlags): number {
+export function encodeResourceAdvertisementFlags(
+  flags: ResourceAdvertisementFlags,
+): number {
   return (
     0x00 |
     (flags.x ? 1 << 5 : 0) |
@@ -54,18 +56,22 @@ export function encodeResourceAdvertisementFlags(flags: ResourceAdvertisementFla
   );
 }
 
-export function decodeResourceAdvertisementFlags(f: number): ResourceAdvertisementFlags {
+export function decodeResourceAdvertisementFlags(
+  f: number,
+): ResourceAdvertisementFlags {
   return {
     e: (f & 0x01) === 0x01,
     c: ((f >> 1) & 0x01) === 0x01,
     s: ((f >> 2) & 0x01) === 0x01,
     u: ((f >> 3) & 0x01) === 0x01,
     p: ((f >> 4) & 0x01) === 0x01,
-    x: ((f >> 5) & 0x01) === 0x01
+    x: ((f >> 5) & 0x01) === 0x01,
   };
 }
 
-export function packResourceAdvertisement(fields: ResourceAdvertisementFields): Uint8Array {
+export function packResourceAdvertisement(
+  fields: ResourceAdvertisementFields,
+): Uint8Array {
   return msgpackPackStringMap([
     ["t", msgpackPackUInt(fields.t)],
     ["d", msgpackPackUInt(fields.d)],
@@ -77,7 +83,7 @@ export function packResourceAdvertisement(fields: ResourceAdvertisementFields): 
     ["l", msgpackPackUInt(fields.l)],
     ["q", fields.q === null ? msgpackPackNil() : msgpackPackBin(fields.q)],
     ["f", msgpackPackUInt(fields.f)],
-    ["m", msgpackPackBin(fields.m)]
+    ["m", msgpackPackBin(fields.m)],
   ]);
 }
 
@@ -102,7 +108,9 @@ function readOptionalBin(value: MsgpackScalar | undefined): Uint8Array | null {
   return readBin(value);
 }
 
-export function unpackResourceAdvertisement(data: Uint8Array): ResourceAdvertisementFields {
+export function unpackResourceAdvertisement(
+  data: Uint8Array,
+): ResourceAdvertisementFields {
   const map = msgpackUnpackStringKeyedMap(data);
   return {
     t: readInt(map.get("t")),
@@ -115,16 +123,20 @@ export function unpackResourceAdvertisement(data: Uint8Array): ResourceAdvertise
     f: readInt(map.get("f")),
     i: readInt(map.get("i")),
     l: readInt(map.get("l")),
-    q: readOptionalBin(map.get("q"))
+    q: readOptionalBin(map.get("q")),
   };
 }
 
-export function isResourceAdvertisementRequest(fields: ResourceAdvertisementFields): boolean {
+export function isResourceAdvertisementRequest(
+  fields: ResourceAdvertisementFields,
+): boolean {
   const flags = decodeResourceAdvertisementFlags(fields.f);
   return fields.q !== null && flags.u;
 }
 
-export function isResourceAdvertisementResponse(fields: ResourceAdvertisementFields): boolean {
+export function isResourceAdvertisementResponse(
+  fields: ResourceAdvertisementFields,
+): boolean {
   const flags = decodeResourceAdvertisementFlags(fields.f);
   return fields.q !== null && flags.p;
 }
@@ -160,7 +172,7 @@ export function initialEncodeResourceAdvertisementFlagsState(): EncodeResourceAd
 
 export function stepEncodeResourceAdvertisementFlagsWithActions(
   state: EncodeResourceAdvertisementFlagsState,
-  event: EncodeResourceAdvertisementFlagsEvent
+  event: EncodeResourceAdvertisementFlagsEvent,
 ): EncodeResourceAdvertisementFlagsStepResult {
   if (event.kind === "resource-advertisement/encode-flags-gate") {
     return {
@@ -169,9 +181,9 @@ export function stepEncodeResourceAdvertisementFlagsWithActions(
       actions: [
         {
           kind: "use-flags",
-          flags: encodeResourceAdvertisementFlags(event.flags)
-        }
-      ]
+          flags: encodeResourceAdvertisementFlags(event.flags),
+        },
+      ],
     };
   }
 
@@ -179,14 +191,14 @@ export function stepEncodeResourceAdvertisementFlagsWithActions(
 }
 
 export function shouldUseEncodeResourceAdvertisementFlags(
-  actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>
+  actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-flags");
 }
 
 /** Extract packed advertisement flags from step actions; null when no `use-flags`. */
 export function encodeResourceAdvertisementFlagsFromActions(
-  actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>
+  actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-flags");
   return action?.kind === "use-flags" ? action.flags : null;
@@ -223,7 +235,7 @@ export function initialDecodeResourceAdvertisementFlagsState(): DecodeResourceAd
 
 export function stepDecodeResourceAdvertisementFlagsWithActions(
   state: DecodeResourceAdvertisementFlagsState,
-  event: DecodeResourceAdvertisementFlagsEvent
+  event: DecodeResourceAdvertisementFlagsEvent,
 ): DecodeResourceAdvertisementFlagsStepResult {
   if (event.kind === "resource-advertisement/decode-flags-gate") {
     return {
@@ -232,9 +244,9 @@ export function stepDecodeResourceAdvertisementFlagsWithActions(
       actions: [
         {
           kind: "use-fields",
-          fields: decodeResourceAdvertisementFlags(event.flags)
-        }
-      ]
+          fields: decodeResourceAdvertisementFlags(event.flags),
+        },
+      ],
     };
   }
 
@@ -242,14 +254,14 @@ export function stepDecodeResourceAdvertisementFlagsWithActions(
 }
 
 export function shouldUseDecodeResourceAdvertisementFlags(
-  actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>
+  actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 /** Extract decoded advertisement flag fields from step actions; null when no `use-fields`. */
 export function resourceAdvertisementFlagFieldsFromActions(
-  actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>
+  actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>,
 ): ResourceAdvertisementFlags | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
@@ -287,7 +299,7 @@ export function initialClassifyResourceAdvertisementState(): ClassifyResourceAdv
 
 export function stepClassifyResourceAdvertisementWithActions(
   state: ClassifyResourceAdvertisementState,
-  event: ClassifyResourceAdvertisementEvent
+  event: ClassifyResourceAdvertisementEvent,
 ): ClassifyResourceAdvertisementStepResult {
   if (event.kind === "resource-advertisement/classify-gate") {
     if (isResourceAdvertisementRequest(event.fields)) {
@@ -303,19 +315,19 @@ export function stepClassifyResourceAdvertisementWithActions(
 }
 
 export function shouldClassifyResourceAdvertisementRequest(
-  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>
+  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>,
 ): boolean {
   return actions.some((action) => action.kind === "request");
 }
 
 export function shouldClassifyResourceAdvertisementResponse(
-  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>
+  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>,
 ): boolean {
   return actions.some((action) => action.kind === "response");
 }
 
 export function shouldRejectClassifyResourceAdvertisement(
-  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>
+  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
@@ -330,7 +342,7 @@ export function planResourceAdvertisementRoleFlags(input: {
 }): { readonly u: boolean; readonly p: boolean } {
   return {
     u: input.requestIdPresent && !input.isResponse,
-    p: input.requestIdPresent && input.isResponse
+    p: input.requestIdPresent && input.isResponse,
   };
 }
 
@@ -368,17 +380,17 @@ export function initialResourceAdvertisementRoleFlagsPlanState(): ResourceAdvert
 
 export function stepResourceAdvertisementRoleFlagsPlanWithActions(
   state: ResourceAdvertisementRoleFlagsPlanState,
-  event: ResourceAdvertisementRoleFlagsPlanEvent
+  event: ResourceAdvertisementRoleFlagsPlanEvent,
 ): ResourceAdvertisementRoleFlagsPlanStepResult {
   if (event.kind === "resource/advertisement-role-flags-plan-gate") {
     const flags = planResourceAdvertisementRoleFlags({
       requestIdPresent: event.requestIdPresent,
-      isResponse: event.isResponse
+      isResponse: event.isResponse,
     });
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-flags", u: flags.u, p: flags.p }]
+      actions: [{ kind: "use-flags", u: flags.u, p: flags.p }],
     };
   }
 
@@ -386,14 +398,14 @@ export function stepResourceAdvertisementRoleFlagsPlanWithActions(
 }
 
 export function shouldUseResourceAdvertisementRoleFlagsPlan(
-  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-flags");
 }
 
 /** Extract role flags from plan actions; null when no `use-flags` action. */
 export function resourceAdvertisementRoleFlagsPlanFromActions(
-  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>,
 ): { readonly u: boolean; readonly p: boolean } | null {
   const action = actions.find((entry) => entry.kind === "use-flags");
   return action?.kind === "use-flags" ? { u: action.u, p: action.p } : null;
@@ -434,7 +446,7 @@ export function initialResourceAdvertisementRoleFlagsState(): ResourceAdvertisem
 
 export function stepResourceAdvertisementRoleFlagsWithActions(
   state: ResourceAdvertisementRoleFlagsState,
-  event: ResourceAdvertisementRoleFlagsEvent
+  event: ResourceAdvertisementRoleFlagsEvent,
 ): ResourceAdvertisementRoleFlagsStepResult {
   if (event.kind === "resource/advertisement-role-flags-gate") {
     const planActions = stepResourceAdvertisementRoleFlagsPlanWithActions(
@@ -442,8 +454,8 @@ export function stepResourceAdvertisementRoleFlagsWithActions(
       {
         kind: "resource/advertisement-role-flags-plan-gate",
         requestIdPresent: event.requestIdPresent,
-        isResponse: event.isResponse
-      }
+        isResponse: event.isResponse,
+      },
     ).actions;
     const flags = resourceAdvertisementRoleFlagsPlanFromActions(planActions);
     if (flags === null) {
@@ -452,7 +464,7 @@ export function stepResourceAdvertisementRoleFlagsWithActions(
     return {
       state,
       intents: [],
-      actions: [{ kind: "use-flags", u: flags.u, p: flags.p }]
+      actions: [{ kind: "use-flags", u: flags.u, p: flags.p }],
     };
   }
 
@@ -460,14 +472,14 @@ export function stepResourceAdvertisementRoleFlagsWithActions(
 }
 
 export function shouldUseResourceAdvertisementRoleFlags(
-  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-flags");
 }
 
 /** Extract role flags from step actions; null when no `use-flags` action. */
 export function resourceAdvertisementRoleFlagsFromActions(
-  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>,
 ): { readonly u: boolean; readonly p: boolean } | null {
   const action = actions.find((entry) => entry.kind === "use-flags");
   return action?.kind === "use-flags" ? { u: action.u, p: action.p } : null;
@@ -504,7 +516,7 @@ export function initialPackResourceAdvertisementState(): PackResourceAdvertiseme
 
 export function stepPackResourceAdvertisementWithActions(
   state: PackResourceAdvertisementState,
-  event: PackResourceAdvertisementEvent
+  event: PackResourceAdvertisementEvent,
 ): PackResourceAdvertisementStepResult {
   if (event.kind === "resource-advertisement/pack-gate") {
     return {
@@ -513,9 +525,9 @@ export function stepPackResourceAdvertisementWithActions(
       actions: [
         {
           kind: "use-raw",
-          raw: packResourceAdvertisement(event.fields)
-        }
-      ]
+          raw: packResourceAdvertisement(event.fields),
+        },
+      ],
     };
   }
 
@@ -523,14 +535,14 @@ export function stepPackResourceAdvertisementWithActions(
 }
 
 export function shouldUsePackResourceAdvertisement(
-  actions: ReadonlyArray<PackResourceAdvertisementAction>
+  actions: ReadonlyArray<PackResourceAdvertisementAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-raw");
 }
 
 /** Extract advertisement pack bytes from step actions; null when no `use-raw`. */
 export function packResourceAdvertisementRawFromActions(
-  actions: ReadonlyArray<PackResourceAdvertisementAction>
+  actions: ReadonlyArray<PackResourceAdvertisementAction>,
 ): Uint8Array | null {
   const action = actions.find((entry) => entry.kind === "use-raw");
   return action?.kind === "use-raw" ? action.raw : null;
@@ -551,7 +563,10 @@ export type UnpackResourceAdvertisementEvent =
     };
 
 export type UnpackResourceAdvertisementAction =
-  | { readonly kind: "use-fields"; readonly fields: ResourceAdvertisementFields }
+  | {
+      readonly kind: "use-fields";
+      readonly fields: ResourceAdvertisementFields;
+    }
   | { readonly kind: "reject" };
 
 export interface UnpackResourceAdvertisementStepResult {
@@ -566,7 +581,7 @@ export function initialUnpackResourceAdvertisementState(): UnpackResourceAdverti
 
 export function stepUnpackResourceAdvertisementWithActions(
   state: UnpackResourceAdvertisementState,
-  event: UnpackResourceAdvertisementEvent
+  event: UnpackResourceAdvertisementEvent,
 ): UnpackResourceAdvertisementStepResult {
   if (event.kind === "resource-advertisement/unpack-gate") {
     try {
@@ -574,7 +589,7 @@ export function stepUnpackResourceAdvertisementWithActions(
       return {
         state,
         intents: [],
-        actions: [{ kind: "use-fields", fields }]
+        actions: [{ kind: "use-fields", fields }],
       };
     } catch {
       return { state, intents: [], actions: [{ kind: "reject" }] };
@@ -585,20 +600,20 @@ export function stepUnpackResourceAdvertisementWithActions(
 }
 
 export function shouldUseUnpackResourceAdvertisement(
-  actions: ReadonlyArray<UnpackResourceAdvertisementAction>
+  actions: ReadonlyArray<UnpackResourceAdvertisementAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-fields");
 }
 
 export function shouldRejectUnpackResourceAdvertisement(
-  actions: ReadonlyArray<UnpackResourceAdvertisementAction>
+  actions: ReadonlyArray<UnpackResourceAdvertisementAction>,
 ): boolean {
   return actions.some((action) => action.kind === "reject");
 }
 
 /** Extract unpacked advertisement fields from step actions; null when no `use-fields`. */
 export function resourceAdvertisementFieldsFromActions(
-  actions: ReadonlyArray<UnpackResourceAdvertisementAction>
+  actions: ReadonlyArray<UnpackResourceAdvertisementAction>,
 ): ResourceAdvertisementFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;

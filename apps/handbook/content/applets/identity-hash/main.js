@@ -10,7 +10,7 @@ export async function run(sdk, report) {
       report({
         status: "fail",
         details: `Expected a non-empty destination hash string, got: ${String(hash)}`,
-        timings: { ms: Date.now() - started }
+        timings: { ms: Date.now() - started },
       });
       return;
     }
@@ -18,7 +18,7 @@ export async function run(sdk, report) {
     report({
       status: "pass",
       details: `destinationHash = ${hash}`,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -29,7 +29,7 @@ export async function run(sdk, report) {
     report({
       status: notGranted ? "not-granted" : "fail",
       details: message,
-      timings: { ms: Date.now() - started }
+      timings: { ms: Date.now() - started },
     });
   }
 }

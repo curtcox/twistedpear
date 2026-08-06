@@ -21,11 +21,15 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   DestinationTypeCode,
   isDestinationDirectionCode,
-  isDestinationTypeCode
+  isDestinationTypeCode,
 } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
 import { shouldInvokeDestinationLinkEstablishedCallback } from "./part-1.js";
-import type { DestinationLinkEstablishedCallbackAction, DestinationLinkEstablishedCallbackEvent, DestinationLinkEstablishedCallbackState } from "./part-1.js";
+import type {
+  DestinationLinkEstablishedCallbackAction,
+  DestinationLinkEstablishedCallbackEvent,
+  DestinationLinkEstablishedCallbackState,
+} from "./part-1.js";
 export interface DestinationLinkEstablishedCallbackStepResult {
   readonly state: DestinationLinkEstablishedCallbackState;
   readonly intents: readonly Intent[];
@@ -38,7 +42,7 @@ export function initialDestinationLinkEstablishedCallbackState(): DestinationLin
 
 export function stepDestinationLinkEstablishedCallbackWithActions(
   state: DestinationLinkEstablishedCallbackState,
-  event: DestinationLinkEstablishedCallbackEvent
+  event: DestinationLinkEstablishedCallbackEvent,
 ): DestinationLinkEstablishedCallbackStepResult {
   if (event.kind === "destination/link-established-callback-gate") {
     return {
@@ -46,11 +50,13 @@ export function stepDestinationLinkEstablishedCallbackWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldInvokeDestinationLinkEstablishedCallback(event.callbackPresent)
+          kind: shouldInvokeDestinationLinkEstablishedCallback(
+            event.callbackPresent,
+          )
             ? "invoke"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -58,13 +64,13 @@ export function stepDestinationLinkEstablishedCallbackWithActions(
 }
 
 export function shouldInvokeDestinationLinkEstablishedCallbackNow(
-  actions: ReadonlyArray<DestinationLinkEstablishedCallbackAction>
+  actions: ReadonlyArray<DestinationLinkEstablishedCallbackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "invoke");
 }
 
 export function shouldSkipDestinationLinkEstablishedCallback(
-  actions: ReadonlyArray<DestinationLinkEstablishedCallbackAction>
+  actions: ReadonlyArray<DestinationLinkEstablishedCallbackAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -89,8 +95,7 @@ export type DestinationSendEvent =
     };
 
 export type DestinationSendAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface DestinationSendStepResult {
   readonly state: DestinationSendState;
@@ -104,7 +109,7 @@ export function initialDestinationSendState(): DestinationSendState {
 
 export function stepDestinationSendWithActions(
   state: DestinationSendState,
-  event: DestinationSendEvent
+  event: DestinationSendEvent,
 ): DestinationSendStepResult {
   if (event.kind === "destination/send-gate") {
     return {
@@ -112,9 +117,9 @@ export function stepDestinationSendWithActions(
       intents: [],
       actions: [
         {
-          kind: canDestinationSend(event.directionOut) ? "allow" : "deny"
-        }
-      ]
+          kind: canDestinationSend(event.directionOut) ? "allow" : "deny",
+        },
+      ],
     };
   }
 
@@ -122,13 +127,13 @@ export function stepDestinationSendWithActions(
 }
 
 export function shouldAllowDestinationSend(
-  actions: ReadonlyArray<DestinationSendAction>
+  actions: ReadonlyArray<DestinationSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyDestinationSend(
-  actions: ReadonlyArray<DestinationSendAction>
+  actions: ReadonlyArray<DestinationSendAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -157,8 +162,7 @@ export type RequestLinkDestinationEvent =
     };
 
 export type RequestLinkDestinationAction =
-  | { readonly kind: "allow" }
-  | { readonly kind: "deny" };
+  { readonly kind: "allow" } | { readonly kind: "deny" };
 
 export interface RequestLinkDestinationStepResult {
   readonly state: RequestLinkDestinationState;
@@ -172,7 +176,7 @@ export function initialRequestLinkDestinationState(): RequestLinkDestinationStat
 
 export function stepRequestLinkDestinationWithActions(
   state: RequestLinkDestinationState,
-  event: RequestLinkDestinationEvent
+  event: RequestLinkDestinationEvent,
 ): RequestLinkDestinationStepResult {
   if (event.kind === "destination/request-link-gate") {
     return {
@@ -182,12 +186,12 @@ export function stepRequestLinkDestinationWithActions(
         {
           kind: canRequestLinkDestination({
             typeSingle: event.typeSingle,
-            directionOut: event.directionOut
+            directionOut: event.directionOut,
           })
             ? "allow"
-            : "deny"
-        }
-      ]
+            : "deny",
+        },
+      ],
     };
   }
 
@@ -195,13 +199,13 @@ export function stepRequestLinkDestinationWithActions(
 }
 
 export function shouldAllowRequestLinkDestination(
-  actions: ReadonlyArray<RequestLinkDestinationAction>
+  actions: ReadonlyArray<RequestLinkDestinationAction>,
 ): boolean {
   return actions.some((action) => action.kind === "allow");
 }
 
 export function shouldDenyRequestLinkDestination(
-  actions: ReadonlyArray<RequestLinkDestinationAction>
+  actions: ReadonlyArray<RequestLinkDestinationAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deny");
 }
@@ -233,8 +237,7 @@ export type DestinationIdentityBindingValidEvent =
     };
 
 export type DestinationIdentityBindingValidAction =
-  | { readonly kind: "valid" }
-  | { readonly kind: "invalid" };
+  { readonly kind: "valid" } | { readonly kind: "invalid" };
 
 export interface DestinationIdentityBindingValidStepResult {
   readonly state: DestinationIdentityBindingValidState;
@@ -248,7 +251,7 @@ export function initialDestinationIdentityBindingValidState(): DestinationIdenti
 
 export function stepDestinationIdentityBindingValidWithActions(
   state: DestinationIdentityBindingValidState,
-  event: DestinationIdentityBindingValidEvent
+  event: DestinationIdentityBindingValidEvent,
 ): DestinationIdentityBindingValidStepResult {
   if (event.kind === "destination/identity-binding-valid-gate") {
     return {
@@ -258,12 +261,12 @@ export function stepDestinationIdentityBindingValidWithActions(
         {
           kind: isValidDestinationIdentityBinding({
             typePlain: event.typePlain,
-            identityPresent: event.identityPresent
+            identityPresent: event.identityPresent,
           })
             ? "valid"
-            : "invalid"
-        }
-      ]
+            : "invalid",
+        },
+      ],
     };
   }
 
@@ -271,22 +274,19 @@ export function stepDestinationIdentityBindingValidWithActions(
 }
 
 export function shouldAcceptDestinationIdentityBinding(
-  actions: ReadonlyArray<DestinationIdentityBindingValidAction>
+  actions: ReadonlyArray<DestinationIdentityBindingValidAction>,
 ): boolean {
   return actions.some((action) => action.kind === "valid");
 }
 
 export function shouldRejectDestinationIdentityBinding(
-  actions: ReadonlyArray<DestinationIdentityBindingValidAction>
+  actions: ReadonlyArray<DestinationIdentityBindingValidAction>,
 ): boolean {
   return actions.some((action) => action.kind === "invalid");
 }
 
 export type DestinationConstructionPlan =
-  | "ok"
-  | "bad-direction"
-  | "bad-type"
-  | "bad-identity-binding";
+  "ok" | "bad-direction" | "bad-type" | "bad-identity-binding";
 
 /**
  * Whether destination construction may proceed (direction / type / identity).
@@ -328,7 +328,9 @@ export type DestinationConstructionPlanEvent =
       readonly identityBindingValid: boolean;
     };
 
-export type DestinationConstructionPlanAction = { readonly kind: DestinationConstructionPlan };
+export type DestinationConstructionPlanAction = {
+  readonly kind: DestinationConstructionPlan;
+};
 
 export interface DestinationConstructionPlanStepResult {
   readonly state: DestinationConstructionPlanState;
@@ -342,7 +344,7 @@ export function initialDestinationConstructionPlanState(): DestinationConstructi
 
 export function stepDestinationConstructionPlanWithActions(
   state: DestinationConstructionPlanState,
-  event: DestinationConstructionPlanEvent
+  event: DestinationConstructionPlanEvent,
 ): DestinationConstructionPlanStepResult {
   if (event.kind === "destination/construction-plan-gate") {
     return {
@@ -353,10 +355,10 @@ export function stepDestinationConstructionPlanWithActions(
           kind: planDestinationConstruction({
             direction: event.direction,
             type: event.type,
-            identityBindingValid: event.identityBindingValid
-          })
-        }
-      ]
+            identityBindingValid: event.identityBindingValid,
+          }),
+        },
+      ],
     };
   }
 
@@ -365,38 +367,38 @@ export function stepDestinationConstructionPlanWithActions(
 
 /** Extract the construction plan from actions; null when empty. */
 export function destinationConstructionPlanFromActions(
-  actions: ReadonlyArray<DestinationConstructionPlanAction>
+  actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): DestinationConstructionPlan | null {
   const action = actions.find(
     (entry) =>
       entry.kind === "ok" ||
       entry.kind === "bad-direction" ||
       entry.kind === "bad-type" ||
-      entry.kind === "bad-identity-binding"
+      entry.kind === "bad-identity-binding",
   );
   return action?.kind ?? null;
 }
 
 export function shouldProceedDestinationConstructionPlan(
-  actions: ReadonlyArray<DestinationConstructionPlanAction>
+  actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "ok");
 }
 
 export function shouldRejectDestinationConstructionPlanBadDirection(
-  actions: ReadonlyArray<DestinationConstructionPlanAction>
+  actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-direction");
 }
 
 export function shouldRejectDestinationConstructionPlanBadType(
-  actions: ReadonlyArray<DestinationConstructionPlanAction>
+  actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-type");
 }
 
 export function shouldRejectDestinationConstructionPlanBadIdentityBinding(
-  actions: ReadonlyArray<DestinationConstructionPlanAction>
+  actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "bad-identity-binding");
 }
@@ -424,7 +426,9 @@ export type DestinationConstructionEvent =
  * Plan nested via {@link stepDestinationConstructionPlanWithActions}
  * (`ok`|`bad-direction`|`bad-type`|`bad-identity-binding`).
  */
-export type DestinationConstructionAction = { readonly kind: DestinationConstructionPlan };
+export type DestinationConstructionAction = {
+  readonly kind: DestinationConstructionPlan;
+};
 
 export interface DestinationConstructionStepResult {
   readonly state: DestinationConstructionState;
@@ -434,14 +438,14 @@ export interface DestinationConstructionStepResult {
 
 export function stepDestinationConstructionWithActions(
   state: DestinationConstructionState,
-  event: DestinationConstructionEvent
+  event: DestinationConstructionEvent,
 ): DestinationConstructionStepResult {
   return stepDestinationConstructionInner(state, event);
 }
 
 export function stepDestinationConstructionInner(
   state: DestinationConstructionState,
-  event: DestinationConstructionEvent
+  event: DestinationConstructionEvent,
 ): DestinationConstructionStepResult {
   if (event.kind === "destination/construction-gate") {
     const identityBindingValid = shouldAcceptDestinationIdentityBinding(
@@ -450,9 +454,9 @@ export function stepDestinationConstructionInner(
         {
           kind: "destination/identity-binding-valid-gate",
           typePlain: event.type === DestinationTypeCode.PLAIN,
-          identityPresent: event.identityPresent
-        }
-      ).actions
+          identityPresent: event.identityPresent,
+        },
+      ).actions,
     );
     const planActions = stepDestinationConstructionPlanWithActions(
       initialDestinationConstructionPlanState(),
@@ -460,8 +464,8 @@ export function stepDestinationConstructionInner(
         kind: "destination/construction-plan-gate",
         direction: event.direction,
         type: event.type,
-        identityBindingValid
-      }
+        identityBindingValid,
+      },
     ).actions;
     const plan = destinationConstructionPlanFromActions(planActions);
     if (plan === null) {

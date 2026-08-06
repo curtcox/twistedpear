@@ -7,7 +7,7 @@ import {
   type ManifestFileEntry,
   type UnsignedManifest,
   serializeCanonicalJson,
-  validateManifestStructure
+  validateManifestStructure,
 } from "./manifest.js";
 import { verifyManifestSignature } from "./signing.js";
 
@@ -24,7 +24,7 @@ export class PackageError extends Error {
       | "WRONG_KEY"
       | "DOWNGRADE"
       | "MIN_HOST_API",
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "PackageError";
@@ -92,17 +92,25 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   return out;
 }
 
-function hashFileEntries(provider: CryptoProvider, files: ReadonlyArray<PackageFile>): ManifestFileEntry[] {
+function hashFileEntries(
+  provider: CryptoProvider,
+  files: ReadonlyArray<PackageFile>,
+): ManifestFileEntry[] {
   return files
     .map((file) => ({
       path: file.path,
       sha256: bytesToHex(provider.sha256(file.content)),
-      size: file.content.length
+      size: file.content.length,
     }))
     .sort((left, right) => left.path.localeCompare(right.path));
 }
 
-export function buildUnsignedManifest(options: Omit<PackOptions, "signature" | "files"> & { readonly files: ReadonlyArray<PackageFile> }, provider: CryptoProvider): UnsignedManifest {
+export function buildUnsignedManifest(
+  options: Omit<PackOptions, "signature" | "files"> & {
+    readonly files: ReadonlyArray<PackageFile>;
+  },
+  provider: CryptoProvider,
+): UnsignedManifest {
   const fileEntries = hashFileEntries(provider, options.files);
 
   return {
@@ -115,23 +123,42 @@ export function buildUnsignedManifest(options: Omit<PackOptions, "signature" | "
     minHostApi: options.minHostApi ?? "0.0.0",
     files: fileEntries,
     driveKey: options.driveKey,
-    publisherPublicKey: options.publisherPublicKey
+    publisherPublicKey: options.publisherPublicKey,
   };
 }
 
-export function buildCanonicalArchive(manifest: AppManifest, files: ReadonlyMap<string, Uint8Array>): Uint8Array {
-  const manifestBytes = new TextEncoder().encode(serializeCanonicalJson(manifest));
-  const sortedPaths = [...files.keys()].sort((left, right) => left.localeCompare(right));
-  const parts: Uint8Array[] = [PACKAGE_MAGIC, writeU32Be(manifestBytes.length), manifestBytes];
+export function buildCanonicalArchive(
+  manifest: AppManifest,
+  files: ReadonlyMap<string, Uint8Array>,
+): Uint8Array {
+  const manifestBytes = new TextEncoder().encode(
+    serializeCanonicalJson(manifest),
+  );
+  const sortedPaths = [...files.keys()].sort((left, right) =>
+    left.localeCompare(right),
+  );
+  const parts: Uint8Array[] = [
+    PACKAGE_MAGIC,
+    writeU32Be(manifestBytes.length),
+    manifestBytes,
+  ];
 
   for (const path of sortedPaths) {
     const content = files.get(path);
     if (content === undefined) {
-      throw new PackageError("MANIFEST_INVALID", `Missing file content for ${path}`);
+      throw new PackageError(
+        "MANIFEST_INVALID",
+        `Missing file content for ${path}`,
+      );
     }
 
     const pathBytes = new TextEncoder().encode(path);
-    parts.push(writeU32Be(pathBytes.length), pathBytes, writeU32Be(content.length), content);
+    parts.push(
+      writeU32Be(pathBytes.length),
+      pathBytes,
+      writeU32Be(content.length),
+      content,
+    );
   }
 
   const signatureBytes = hexToBytes(manifest.signature);
@@ -139,7 +166,10 @@ export function buildCanonicalArchive(manifest: AppManifest, files: ReadonlyMap<
   return concatBytes(...parts);
 }
 
-export function packPackage(provider: CryptoProvider, options: PackOptions): UnpackResult {
+export function packPackage(
+  provider: CryptoProvider,
+  options: PackOptions,
+): UnpackResult {
   const fileMap = new Map<string, Uint8Array>();
 
   for (const file of options.files) {
@@ -148,7 +178,7 @@ export function packPackage(provider: CryptoProvider, options: PackOptions): Unp
 
   const manifest: AppManifest = {
     ...buildUnsignedManifest(options, provider),
-    signature: options.signature
+    signature: options.signature,
   };
 
   validateManifestStructure(manifest);
@@ -156,12 +186,18 @@ export function packPackage(provider: CryptoProvider, options: PackOptions): Unp
   for (const entry of manifest.files) {
     const content = fileMap.get(entry.path);
     if (content === undefined) {
-      throw new PackageError("MANIFEST_INVALID", `Manifest lists missing file: ${entry.path}`);
+      throw new PackageError(
+        "MANIFEST_INVALID",
+        `Manifest lists missing file: ${entry.path}`,
+      );
     }
 
     const hash = bytesToHex(provider.sha256(content));
     if (hash !== entry.sha256) {
-      throw new PackageError("FILE_HASH_MISMATCH", `Hash mismatch for ${entry.path}`);
+      throw new PackageError(
+        "FILE_HASH_MISMATCH",
+        `Hash mismatch for ${entry.path}`,
+      );
     }
   }
 
@@ -170,16 +206,21 @@ export function packPackage(provider: CryptoProvider, options: PackOptions): Unp
     manifest,
     files: fileMap,
     packageHash: bytesToHex(provider.sha256(archiveBytes)),
-    archiveBytes
+    archiveBytes,
   };
 }
 
-export function unpackPackage(provider: CryptoProvider, archiveBytes: Uint8Array): UnpackResult {
+export function unpackPackage(
+  provider: CryptoProvider,
+  archiveBytes: Uint8Array,
+): UnpackResult {
   if (archiveBytes.length < PACKAGE_MAGIC.length + 4) {
     throw new PackageError("TRUNCATED", "Archive too short");
   }
 
-  if (!equalBytes(archiveBytes.subarray(0, PACKAGE_MAGIC.length), PACKAGE_MAGIC)) {
+  if (
+    !equalBytes(archiveBytes.subarray(0, PACKAGE_MAGIC.length), PACKAGE_MAGIC)
+  ) {
     throw new PackageError("INVALID_MAGIC", "Invalid package magic bytes");
   }
 
@@ -191,7 +232,9 @@ export function unpackPackage(provider: CryptoProvider, archiveBytes: Uint8Array
     throw new PackageError("TRUNCATED", "Archive truncated at manifest");
   }
 
-  const manifestText = new TextDecoder().decode(archiveBytes.subarray(offset, offset + manifestLength));
+  const manifestText = new TextDecoder().decode(
+    archiveBytes.subarray(offset, offset + manifestLength),
+  );
   offset += manifestLength;
 
   let manifest: AppManifest;
@@ -200,29 +243,45 @@ export function unpackPackage(provider: CryptoProvider, archiveBytes: Uint8Array
     const { signature: _signature, ...unsigned } = manifest;
     validateManifestStructure(unsigned);
   } catch (error) {
-    throw new PackageError("MANIFEST_INVALID", error instanceof Error ? error.message : "Invalid manifest");
+    throw new PackageError(
+      "MANIFEST_INVALID",
+      error instanceof Error ? error.message : "Invalid manifest",
+    );
   }
 
   const files = new Map<string, Uint8Array>();
-  const sortedPaths = manifest.files.map((entry) => entry.path).sort((left, right) => left.localeCompare(right));
+  const sortedPaths = manifest.files
+    .map((entry) => entry.path)
+    .sort((left, right) => left.localeCompare(right));
 
   for (const path of sortedPaths) {
     if (offset + 4 > archiveBytes.length) {
-      throw new PackageError("TRUNCATED", `Archive truncated before file ${path}`);
+      throw new PackageError(
+        "TRUNCATED",
+        `Archive truncated before file ${path}`,
+      );
     }
 
     const pathLength = readU32Be(archiveBytes, offset);
     offset += 4;
 
     if (offset + pathLength + 4 > archiveBytes.length) {
-      throw new PackageError("TRUNCATED", `Archive truncated at file path ${path}`);
+      throw new PackageError(
+        "TRUNCATED",
+        `Archive truncated at file path ${path}`,
+      );
     }
 
-    const pathText = new TextDecoder().decode(archiveBytes.subarray(offset, offset + pathLength));
+    const pathText = new TextDecoder().decode(
+      archiveBytes.subarray(offset, offset + pathLength),
+    );
     offset += pathLength;
 
     if (pathText !== path) {
-      throw new PackageError("MANIFEST_INVALID", `Archive file order mismatch: expected ${path}, got ${pathText}`);
+      throw new PackageError(
+        "MANIFEST_INVALID",
+        `Archive file order mismatch: expected ${path}, got ${pathText}`,
+      );
     }
 
     const contentLength = readU32Be(archiveBytes, offset);
@@ -244,42 +303,60 @@ export function unpackPackage(provider: CryptoProvider, archiveBytes: Uint8Array
   offset += 4;
 
   if (offset + signatureLength !== archiveBytes.length) {
-    throw new PackageError("TRUNCATED", "Archive trailing bytes after signature block");
+    throw new PackageError(
+      "TRUNCATED",
+      "Archive trailing bytes after signature block",
+    );
   }
 
-  const signatureBytes = archiveBytes.subarray(offset, offset + signatureLength);
+  const signatureBytes = archiveBytes.subarray(
+    offset,
+    offset + signatureLength,
+  );
   if (bytesToHex(signatureBytes) !== manifest.signature) {
-    throw new PackageError("SIGNATURE_INVALID", "Archive signature block does not match manifest");
+    throw new PackageError(
+      "SIGNATURE_INVALID",
+      "Archive signature block does not match manifest",
+    );
   }
 
   for (const entry of manifest.files) {
     const content = files.get(entry.path);
     if (content === undefined) {
-      throw new PackageError("MANIFEST_INVALID", `Manifest file missing from archive: ${entry.path}`);
+      throw new PackageError(
+        "MANIFEST_INVALID",
+        `Manifest file missing from archive: ${entry.path}`,
+      );
     }
 
     const hash = bytesToHex(provider.sha256(content));
     if (hash !== entry.sha256) {
-      throw new PackageError("FILE_HASH_MISMATCH", `File hash mismatch for ${entry.path}`);
+      throw new PackageError(
+        "FILE_HASH_MISMATCH",
+        `File hash mismatch for ${entry.path}`,
+      );
     }
 
     if (entry.size !== content.length) {
       throw new PackageError(
         "MANIFEST_INVALID",
-        `File size mismatch for ${entry.path}: manifest ${entry.size}, archive ${content.length}`
+        `File size mismatch for ${entry.path}: manifest ${entry.size}, archive ${content.length}`,
       );
     }
   }
 
   if (!verifyManifestSignature(provider, manifest)) {
-    throw new PackageError("SIGNATURE_INVALID", "Manifest signature verification failed");
+    throw new PackageError(
+      "SIGNATURE_INVALID",
+      "Manifest signature verification failed",
+    );
   }
 
   return {
     manifest,
     files,
     packageHash: bytesToHex(provider.sha256(archiveBytes)),
-    archiveBytes
+    archiveBytes,
   };
 }
 
@@ -290,20 +367,26 @@ export function verifyPackage(
     readonly expectedPublisherKey?: Uint8Array;
     readonly minVersion?: string;
     readonly hostApiVersion?: string;
-  } = {}
+  } = {},
 ): UnpackResult {
   const result = unpackPackage(provider, archiveBytes);
 
   if (options.expectedPublisherKey !== undefined) {
     const publisherKey = hexToBytes(result.manifest.publisherPublicKey);
     if (!equalBytes(publisherKey, options.expectedPublisherKey)) {
-      throw new PackageError("WRONG_KEY", "Publisher public key does not match expected key");
+      throw new PackageError(
+        "WRONG_KEY",
+        "Publisher public key does not match expected key",
+      );
     }
   }
 
   if (options.minVersion !== undefined) {
     if (compareSemver(result.manifest.version, options.minVersion) < 0) {
-      throw new PackageError("DOWNGRADE", `Package version ${result.manifest.version} is older than minimum ${options.minVersion}`);
+      throw new PackageError(
+        "DOWNGRADE",
+        `Package version ${result.manifest.version} is older than minimum ${options.minVersion}`,
+      );
     }
   }
 
@@ -311,7 +394,7 @@ export function verifyPackage(
     if (compareSemver(options.hostApiVersion, result.manifest.minHostApi) < 0) {
       throw new PackageError(
         "MIN_HOST_API",
-        `Host API ${options.hostApiVersion} does not satisfy minHostApi ${result.manifest.minHostApi}`
+        `Host API ${options.hostApiVersion} does not satisfy minHostApi ${result.manifest.minHostApi}`,
       );
     }
   }
@@ -319,6 +402,9 @@ export function verifyPackage(
   return result;
 }
 
-export function packageHash(provider: CryptoProvider, archiveBytes: Uint8Array): string {
+export function packageHash(
+  provider: CryptoProvider,
+  archiveBytes: Uint8Array,
+): string {
   return bytesToHex(provider.sha256(archiveBytes));
 }

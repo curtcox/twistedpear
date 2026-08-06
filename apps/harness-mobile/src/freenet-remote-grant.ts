@@ -34,14 +34,14 @@ export interface FreenetRemoteGrantValidation {
 const UNSAFE_URL_REASONS = [
   "credentials in the URL (userinfo)",
   "non-ws(s) scheme",
-  "missing host"
+  "missing host",
 ] as const;
 
 export const FREENET_REMOTE_DISCLOSURE = [
   "This node will see every Freenet contract read, write, and subscription you enable.",
   "Accepted contract updates are published to the Freenet network and cannot be recalled.",
   "Timing, payload size, destination contract keys, and correlation across operations are visible to the node operator.",
-  "Start with a node you control. TwistedPear does not ship a third-party gateway."
+  "Start with a node you control. TwistedPear does not ship a third-party gateway.",
 ] as const;
 
 export function defaultFreenetRemoteGrant(): FreenetRemoteGrant {
@@ -57,8 +57,8 @@ export function defaultFreenetRemoteGrant(): FreenetRemoteGrant {
       contractReads: false,
       contractWrites: false,
       packetTunnel: false,
-      propagation: false
-    }
+      propagation: false,
+    },
   };
 }
 
@@ -68,7 +68,7 @@ export function generateFreenetRendezvousHex(
     const out = new Uint8Array(size);
     crypto.getRandomValues(out);
     return out;
-  }
+  },
 ): string {
   const bytes = randomBytes(32);
   let hex = "";
@@ -79,22 +79,29 @@ export function generateFreenetRendezvousHex(
 }
 
 export function validateFreenetRendezvousHex(
-  hex: string | undefined
+  hex: string | undefined,
 ): FreenetRemoteGrantValidation {
   if (hex === undefined || hex.trim().length === 0) {
-    return { ok: false, errors: ["Packet tunnel requires a 64-character hex rendezvous"] };
+    return {
+      ok: false,
+      errors: ["Packet tunnel requires a 64-character hex rendezvous"],
+    };
   }
   const trimmed = hex.trim();
   if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) {
     return {
       ok: false,
-      errors: ["Packet-tunnel rendezvous must be exactly 64 hex characters (32 bytes)"]
+      errors: [
+        "Packet-tunnel rendezvous must be exactly 64 hex characters (32 bytes)",
+      ],
     };
   }
   return { ok: true, errors: [] };
 }
 
-export function validateFreenetNodeUrl(urlText: string): FreenetRemoteGrantValidation {
+export function validateFreenetNodeUrl(
+  urlText: string,
+): FreenetRemoteGrantValidation {
   const errors: string[] = [];
   const trimmed = urlText.trim();
   if (trimmed.length === 0) {
@@ -117,7 +124,10 @@ export function validateFreenetNodeUrl(urlText: string): FreenetRemoteGrantValid
   if (parsed.hostname.length === 0) {
     errors.push(`Rejecting ${UNSAFE_URL_REASONS[2]}`);
   }
-  if (parsed.searchParams.has("authToken") || parsed.searchParams.has("token")) {
+  if (
+    parsed.searchParams.has("authToken") ||
+    parsed.searchParams.has("token")
+  ) {
     errors.push("Auth tokens must not appear in the URL");
   }
 
@@ -125,7 +135,7 @@ export function validateFreenetNodeUrl(urlText: string): FreenetRemoteGrantValid
 }
 
 export function validateFreenetRemoteGrant(
-  draft: FreenetRemoteGrantDraft
+  draft: FreenetRemoteGrantDraft,
 ): FreenetRemoteGrantValidation {
   const errors: string[] = [];
   const url = validateFreenetNodeUrl(draft.nodeUrl);
@@ -142,7 +152,9 @@ export function validateFreenetRemoteGrant(
     !caps.packetTunnel &&
     !caps.propagation
   ) {
-    errors.push("Enable at least one Freenet capability, or leave the grant off");
+    errors.push(
+      "Enable at least one Freenet capability, or leave the grant off",
+    );
   }
 
   if (caps.contractWrites && !caps.contractReads) {
@@ -151,7 +163,11 @@ export function validateFreenetRemoteGrant(
 
   if (caps.packetTunnel) {
     errors.push(...validateFreenetRendezvousHex(draft.rendezvousHex).errors);
-    if (draft.localDirection !== undefined && draft.localDirection !== 0 && draft.localDirection !== 1) {
+    if (
+      draft.localDirection !== undefined &&
+      draft.localDirection !== 0 &&
+      draft.localDirection !== 1
+    ) {
       errors.push("Packet-tunnel local direction must be 0 or 1");
     }
   }
@@ -162,7 +178,7 @@ export function validateFreenetRemoteGrant(
 /** First-use enablement: requires explicit acceptance of disclosure. */
 export function acceptFreenetRemoteGrant(
   draft: FreenetRemoteGrantDraft,
-  options: { readonly acceptedDisclosure: boolean; readonly now?: number }
+  options: { readonly acceptedDisclosure: boolean; readonly now?: number },
 ): FreenetRemoteGrant {
   if (!options.acceptedDisclosure) {
     throw new Error("Remote-node disclosure must be accepted before enabling");
@@ -180,22 +196,22 @@ export function acceptFreenetRemoteGrant(
       : { rendezvousHex: draft.rendezvousHex.trim().toLowerCase() }),
     localDirection: draft.localDirection === 1 ? 1 : 0,
     enabled: true,
-    acceptedAt: options.now ?? Date.now()
+    acceptedAt: options.now ?? Date.now(),
   };
 }
 
 export function revokeFreenetRemoteGrant(
-  current: FreenetRemoteGrant
+  current: FreenetRemoteGrant,
 ): FreenetRemoteGrant {
   return {
     ...defaultFreenetRemoteGrant(),
     nodeUrl: current.nodeUrl,
-    operatorLabel: current.operatorLabel
+    operatorLabel: current.operatorLabel,
   };
 }
 
 export function freenetGrantLogSafe(
-  grant: FreenetRemoteGrant
+  grant: FreenetRemoteGrant,
 ): Record<string, unknown> {
   return {
     enabled: grant.enabled,
@@ -205,15 +221,20 @@ export function freenetGrantLogSafe(
     rendezvousHex: grant.rendezvousHex ?? null,
     localDirection: grant.localDirection ?? 0,
     acceptedAt: grant.acceptedAt,
-    authTokenPresent: Boolean(grant.authToken && grant.authToken.length > 0)
+    authTokenPresent: Boolean(grant.authToken && grant.authToken.length > 0),
   };
 }
 
 export function assertNoTokenInText(
   text: string,
-  token: string | null | undefined
+  token: string | null | undefined,
 ): void {
-  if (token !== undefined && token !== null && token.length > 0 && text.includes(token)) {
+  if (
+    token !== undefined &&
+    token !== null &&
+    token.length > 0 &&
+    text.includes(token)
+  ) {
     throw new Error("Freenet auth token leaked into log or UI dump text");
   }
 }

@@ -73,7 +73,10 @@ function renderNode(node, onEvent, options = {}) {
       element.className = "widget-scroll";
       element.dataset.testid = node.id;
       element.style.overflow = "auto";
-      const offset = typeof node.props?.scrollOffset === "number" ? node.props.scrollOffset : 0;
+      const offset =
+        typeof node.props?.scrollOffset === "number"
+          ? node.props.scrollOffset
+          : 0;
       if (offset > 0) {
         element.scrollTop = offset;
       }
@@ -104,18 +107,26 @@ function renderNode(node, onEvent, options = {}) {
       element.className = "widget-progress";
       element.max = 1;
       const value = Number(node.props?.value ?? 0);
-      element.value = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
-      element.setAttribute("aria-label", `Progress ${Math.round(element.value * 100)}%`);
+      element.value = Number.isFinite(value)
+        ? Math.max(0, Math.min(1, value))
+        : 0;
+      element.setAttribute(
+        "aria-label",
+        `Progress ${Math.round(element.value * 100)}%`,
+      );
       applyStyle(element, style);
       return element;
     }
     case "list": {
       const element = document.createElement("div");
       applyStyle(element, style);
-      for (const item of Array.isArray(node.props?.items) ? node.props.items : []) {
+      for (const item of Array.isArray(node.props?.items)
+        ? node.props.items
+        : []) {
         const row = document.createElement("p");
         row.className = "widget-muted";
-        row.textContent = typeof item === "string" ? item : JSON.stringify(item);
+        row.textContent =
+          typeof item === "string" ? item : JSON.stringify(item);
         element.appendChild(row);
       }
       for (const child of node.children ?? []) {
@@ -126,7 +137,8 @@ function renderNode(node, onEvent, options = {}) {
     case "image": {
       const assetName = String(node.props?.asset ?? "");
       const svg = options.assets?.[assetName];
-      const alt = typeof node.props?.alt === "string" ? node.props.alt : assetName;
+      const alt =
+        typeof node.props?.alt === "string" ? node.props.alt : assetName;
       if (typeof svg === "string") {
         const element = document.createElement("img");
         element.className = "widget-image";
@@ -156,14 +168,17 @@ function renderNode(node, onEvent, options = {}) {
       if (typeof options.readDocument === "function" && documentId.length > 0) {
         void options.readDocument(documentId).then(
           (content) => {
-            if (typeof content === "string" && document.activeElement !== element) {
+            if (
+              typeof content === "string" &&
+              document.activeElement !== element
+            ) {
               element.value = content;
               baseline = content;
             }
           },
           () => {
             element.placeholder = `Unable to load ${documentId}`;
-          }
+          },
         );
       }
 
@@ -182,7 +197,11 @@ function renderNode(node, onEvent, options = {}) {
           const next = element.value;
           const edit = minimalTextEdit(baseline, next);
           if (edit !== null) {
-            onEvent?.(node.id, event, { documentId, baseLength: baseline.length, edits: [edit] });
+            onEvent?.(node.id, event, {
+              documentId,
+              baseLength: baseline.length,
+              edits: [edit],
+            });
             baseline = next;
           }
         }, 300);
@@ -200,10 +219,15 @@ function renderNode(node, onEvent, options = {}) {
           qr.addData(value);
           qr.make();
           const svgHost = document.createElement("div");
-          svgHost.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+          svgHost.innerHTML = qr.createSvgTag({
+            cellSize: 4,
+            margin: 8,
+            scalable: true,
+          });
           const svg = svgHost.firstElementChild;
           if (svg !== null) {
-            const size = typeof node.props?.size === "number" ? node.props.size : 192;
+            const size =
+              typeof node.props?.size === "number" ? node.props.size : 192;
             svg.setAttribute("width", String(size));
             svg.setAttribute("height", String(size));
             element.appendChild(svg);
@@ -248,7 +272,9 @@ function renderNode(node, onEvent, options = {}) {
  */
 function renderPreviewSurface(node, options = {}) {
   const session = String(node.props?.session ?? "");
-  const sessions = Array.isArray(options.deviceSessions) ? options.deviceSessions : [];
+  const sessions = Array.isArray(options.deviceSessions)
+    ? options.deviceSessions
+    : [];
   const live = sessions.find((entry) => entry.handle === session);
   const shell = document.createElement("div");
   shell.className = "widget-preview-surface";
@@ -306,10 +332,19 @@ function renderPreviewSurface(node, options = {}) {
 function minimalTextEdit(before, after) {
   if (before === after) return null;
   let start = 0;
-  while (start < before.length && start < after.length && before[start] === after[start]) start += 1;
+  while (
+    start < before.length &&
+    start < after.length &&
+    before[start] === after[start]
+  )
+    start += 1;
   let beforeEnd = before.length;
   let afterEnd = after.length;
-  while (beforeEnd > start && afterEnd > start && before[beforeEnd - 1] === after[afterEnd - 1]) {
+  while (
+    beforeEnd > start &&
+    afterEnd > start &&
+    before[beforeEnd - 1] === after[afterEnd - 1]
+  ) {
     beforeEnd -= 1;
     afterEnd -= 1;
   }
@@ -346,11 +381,13 @@ function applyStyle(element, style) {
   }
 
   if (style.width !== undefined) {
-    element.style.width = typeof style.width === "number" ? `${style.width}px` : style.width;
+    element.style.width =
+      typeof style.width === "number" ? `${style.width}px` : style.width;
   }
 
   if (style.height !== undefined) {
-    element.style.height = typeof style.height === "number" ? `${style.height}px` : style.height;
+    element.style.height =
+      typeof style.height === "number" ? `${style.height}px` : style.height;
   }
 
   if (style.backgroundColor !== undefined) {

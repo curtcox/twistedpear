@@ -16,13 +16,18 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LinkResourceStrategy,
-  type LinkResourceStrategyValue
+  type LinkResourceStrategyValue,
 } from "../link-watchdog.js";
 import { shouldHandleOutgoingResourceRequest } from "./part-1.js";
-import type { HandleOutgoingResourceRequestAction, HandleOutgoingResourceRequestEvent, HandleOutgoingResourceRequestState, HandleOutgoingResourceRequestStepResult } from "./part-1.js";
+import type {
+  HandleOutgoingResourceRequestAction,
+  HandleOutgoingResourceRequestEvent,
+  HandleOutgoingResourceRequestState,
+  HandleOutgoingResourceRequestStepResult,
+} from "./part-1.js";
 export function stepHandleOutgoingResourceRequestWithActions(
   state: HandleOutgoingResourceRequestState,
-  event: HandleOutgoingResourceRequestEvent
+  event: HandleOutgoingResourceRequestEvent,
 ): HandleOutgoingResourceRequestStepResult {
   if (event.kind === "link/handle-outgoing-resource-request-gate") {
     return {
@@ -32,12 +37,12 @@ export function stepHandleOutgoingResourceRequestWithActions(
         {
           kind: shouldHandleOutgoingResourceRequest({
             hashMatches: event.hashMatches,
-            alreadySeen: event.alreadySeen
+            alreadySeen: event.alreadySeen,
           })
             ? "handle"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -45,19 +50,21 @@ export function stepHandleOutgoingResourceRequestWithActions(
 }
 
 export function shouldHandleOutgoingResourceRequestNow(
-  actions: ReadonlyArray<HandleOutgoingResourceRequestAction>
+  actions: ReadonlyArray<HandleOutgoingResourceRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "handle");
 }
 
 export function shouldSkipHandleOutgoingResourceRequest(
-  actions: ReadonlyArray<HandleOutgoingResourceRequestAction>
+  actions: ReadonlyArray<HandleOutgoingResourceRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether an incoming resource matches a hashmap/cancel/part packet by hash. */
-export function shouldHandleIncomingResourceByHash(hashMatches: boolean): boolean {
+export function shouldHandleIncomingResourceByHash(
+  hashMatches: boolean,
+): boolean {
   return hashMatches;
 }
 
@@ -76,8 +83,7 @@ export type HandleIncomingResourceByHashEvent =
     };
 
 export type HandleIncomingResourceByHashAction =
-  | { readonly kind: "handle" }
-  | { readonly kind: "skip" };
+  { readonly kind: "handle" } | { readonly kind: "skip" };
 
 export interface HandleIncomingResourceByHashStepResult {
   readonly state: HandleIncomingResourceByHashState;
@@ -91,7 +97,7 @@ export function initialHandleIncomingResourceByHashState(): HandleIncomingResour
 
 export function stepHandleIncomingResourceByHashWithActions(
   state: HandleIncomingResourceByHashState,
-  event: HandleIncomingResourceByHashEvent
+  event: HandleIncomingResourceByHashEvent,
 ): HandleIncomingResourceByHashStepResult {
   if (event.kind === "link/handle-incoming-resource-by-hash-gate") {
     return {
@@ -99,9 +105,11 @@ export function stepHandleIncomingResourceByHashWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldHandleIncomingResourceByHash(event.hashMatches) ? "handle" : "skip"
-        }
-      ]
+          kind: shouldHandleIncomingResourceByHash(event.hashMatches)
+            ? "handle"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -109,13 +117,13 @@ export function stepHandleIncomingResourceByHashWithActions(
 }
 
 export function shouldHandleIncomingResourceByHashNow(
-  actions: ReadonlyArray<HandleIncomingResourceByHashAction>
+  actions: ReadonlyArray<HandleIncomingResourceByHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "handle");
 }
 
 export function shouldSkipHandleIncomingResourceByHash(
-  actions: ReadonlyArray<HandleIncomingResourceByHashAction>
+  actions: ReadonlyArray<HandleIncomingResourceByHashAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -124,7 +132,6 @@ export function shouldSkipHandleIncomingResourceByHash(
 export function shouldRegisterLinkResource(alreadyPresent: boolean): boolean {
   return !alreadyPresent;
 }
-
 
 /**
  * shouldRegisterLinkResource gate is event-driven; no durable session fields.
@@ -141,8 +148,7 @@ export type RegisterLinkResourceEvent =
     };
 
 export type RegisterLinkResourceAction =
-  | { readonly kind: "register" }
-  | { readonly kind: "skip" };
+  { readonly kind: "register" } | { readonly kind: "skip" };
 
 export interface RegisterLinkResourceStepResult {
   readonly state: RegisterLinkResourceState;
@@ -156,7 +162,7 @@ export function initialRegisterLinkResourceState(): RegisterLinkResourceState {
 
 export function stepRegisterLinkResourceWithActions(
   state: RegisterLinkResourceState,
-  event: RegisterLinkResourceEvent
+  event: RegisterLinkResourceEvent,
 ): RegisterLinkResourceStepResult {
   if (event.kind === "link/register-resource-gate") {
     return {
@@ -164,9 +170,11 @@ export function stepRegisterLinkResourceWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldRegisterLinkResource(event.alreadyPresent) ? "register" : "skip"
-        }
-      ]
+          kind: shouldRegisterLinkResource(event.alreadyPresent)
+            ? "register"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -174,13 +182,13 @@ export function stepRegisterLinkResourceWithActions(
 }
 
 export function shouldRegisterLinkResourceNow(
-  actions: ReadonlyArray<RegisterLinkResourceAction>
+  actions: ReadonlyArray<RegisterLinkResourceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipRegisterLinkResource(
-  actions: ReadonlyArray<RegisterLinkResourceAction>
+  actions: ReadonlyArray<RegisterLinkResourceAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -200,7 +208,7 @@ export function planLinkResourceConclude(input: {
 }): LinkResourceConcludePlan {
   return {
     removeOutgoingIndex: input.outgoingIndex >= 0 ? input.outgoingIndex : null,
-    removeIncomingIndex: input.incomingIndex >= 0 ? input.incomingIndex : null
+    removeIncomingIndex: input.incomingIndex >= 0 ? input.incomingIndex : null,
   };
 }
 
@@ -237,12 +245,12 @@ export function initialLinkResourceConcludePlanState(): LinkResourceConcludePlan
 
 export function stepLinkResourceConcludePlanWithActions(
   state: LinkResourceConcludePlanState,
-  event: LinkResourceConcludePlanEvent
+  event: LinkResourceConcludePlanEvent,
 ): LinkResourceConcludePlanStepResult {
   if (event.kind === "link/resource-conclude-plan-gate") {
     const plan = planLinkResourceConclude({
       outgoingIndex: event.outgoingIndex,
-      incomingIndex: event.incomingIndex
+      incomingIndex: event.incomingIndex,
     });
     return {
       state,
@@ -251,9 +259,9 @@ export function stepLinkResourceConcludePlanWithActions(
         {
           kind: "plan",
           removeOutgoingIndex: plan.removeOutgoingIndex,
-          removeIncomingIndex: plan.removeIncomingIndex
-        }
-      ]
+          removeIncomingIndex: plan.removeIncomingIndex,
+        },
+      ],
     };
   }
 
@@ -262,7 +270,7 @@ export function stepLinkResourceConcludePlanWithActions(
 
 /** Extract the resource-conclude plan from actions; null when empty. */
 export function linkResourceConcludePlanFromActions(
-  actions: ReadonlyArray<LinkResourceConcludePlanAction>
+  actions: ReadonlyArray<LinkResourceConcludePlanAction>,
 ): LinkResourceConcludePlan | null {
   const action = actions.find((entry) => entry.kind === "plan");
   if (action === undefined) {
@@ -270,12 +278,14 @@ export function linkResourceConcludePlanFromActions(
   }
   return {
     removeOutgoingIndex: action.removeOutgoingIndex,
-    removeIncomingIndex: action.removeIncomingIndex
+    removeIncomingIndex: action.removeIncomingIndex,
   };
 }
 
 /** Whether resource conclude may splice a list after {@link planLinkResourceConclude}. */
-export function shouldRemoveLinkResourceListIndex(indexPresent: boolean): boolean {
+export function shouldRemoveLinkResourceListIndex(
+  indexPresent: boolean,
+): boolean {
   return indexPresent;
 }
 
@@ -308,47 +318,53 @@ export function initialLinkResourceConcludeState(): LinkResourceConcludeState {
   return {};
 }
 
-export const stepLinkResourceConclude: StepFn<LinkResourceConcludeState> = (state, event) => {
-  const result = stepLinkResourceConcludeInner(state, event as LinkResourceConcludeEvent);
+export const stepLinkResourceConclude: StepFn<LinkResourceConcludeState> = (
+  state,
+  event,
+) => {
+  const result = stepLinkResourceConcludeInner(
+    state,
+    event as LinkResourceConcludeEvent,
+  );
   return { state: result.state, intents: result.intents };
 };
 
 export function stepLinkResourceConcludeWithActions(
   state: LinkResourceConcludeState,
-  event: LinkResourceConcludeEvent
+  event: LinkResourceConcludeEvent,
 ): LinkResourceConcludeStepResult {
   return stepLinkResourceConcludeInner(state, event);
 }
 
 export function outgoingLinkResourceConcludeIndex(
-  actions: ReadonlyArray<LinkResourceConcludeAction>
+  actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove-outgoing");
   return action?.kind === "remove-outgoing" ? action.index : null;
 }
 
 export function incomingLinkResourceConcludeIndex(
-  actions: ReadonlyArray<LinkResourceConcludeAction>
+  actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove-incoming");
   return action?.kind === "remove-incoming" ? action.index : null;
 }
 
 export function shouldRemoveOutgoingLinkResourceConclude(
-  actions: ReadonlyArray<LinkResourceConcludeAction>
+  actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove-outgoing");
 }
 
 export function shouldRemoveIncomingLinkResourceConclude(
-  actions: ReadonlyArray<LinkResourceConcludeAction>
+  actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove-incoming");
 }
 
 function stepLinkResourceConcludeInner(
   state: LinkResourceConcludeState,
-  event: LinkResourceConcludeEvent
+  event: LinkResourceConcludeEvent,
 ): LinkResourceConcludeStepResult {
   if (event.kind === "link/resource-conclude-gate") {
     const planActions = stepLinkResourceConcludePlanWithActions(
@@ -356,8 +372,8 @@ function stepLinkResourceConcludeInner(
       {
         kind: "link/resource-conclude-plan-gate",
         outgoingIndex: event.outgoingIndex,
-        incomingIndex: event.incomingIndex
-      }
+        incomingIndex: event.incomingIndex,
+      },
     ).actions;
     const plan = linkResourceConcludePlanFromActions(planActions);
     if (plan === null) {
@@ -365,10 +381,16 @@ function stepLinkResourceConcludeInner(
     }
     const actions: LinkResourceConcludeAction[] = [];
     if (plan.removeOutgoingIndex !== null) {
-      actions.push({ kind: "remove-outgoing", index: plan.removeOutgoingIndex });
+      actions.push({
+        kind: "remove-outgoing",
+        index: plan.removeOutgoingIndex,
+      });
     }
     if (plan.removeIncomingIndex !== null) {
-      actions.push({ kind: "remove-incoming", index: plan.removeIncomingIndex });
+      actions.push({
+        kind: "remove-incoming",
+        index: plan.removeIncomingIndex,
+      });
     }
     return { state, intents: [], actions };
   }

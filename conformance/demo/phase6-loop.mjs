@@ -15,22 +15,32 @@ import {
   DestinationProofStrategy,
   DestinationType,
   Identity,
-  hexToBytes
+  hexToBytes,
 } from "../../packages/reticulum-ts/dist/index.js";
-import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import {
+  interopReady,
+  sleep,
+  withComposeService,
+  LEAF_ECHO_PORT,
+} from "../scenarios/ts/harness.mjs";
 import { waitForReceipt } from "../scenarios/bare/helpers.mjs";
 
 const identityVectors = JSON.parse(
-  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8"),
 );
 
 function loadIdentity(provider, name) {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  const entry = identityVectors.identities.find(
+    (candidate) => candidate.name === name,
+  );
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
 
-  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  const identity = Identity.fromBytes(
+    provider,
+    hexToBytes(entry.privateKeyHex),
+  );
   if (identity === null) {
     throw new Error(`Could not load identity vector: ${name}`);
   }
@@ -66,7 +76,7 @@ async function runTransportSlice(session) {
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"]
+    aspects: ["echo"],
   });
   aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
@@ -76,7 +86,7 @@ async function runTransportSlice(session) {
     direction: DestinationDirection.OUT,
     type: DestinationType.SINGLE,
     appName: "example",
-    aspects: ["echo"]
+    aspects: ["echo"],
   });
 
   await aliceIn.announce();
@@ -87,12 +97,18 @@ async function runTransportSlice(session) {
     received.set(bytesToAscii(data), data);
   });
 
-  const receipt = await bobOut.send(new TextEncoder().encode("phase6-demo-ping"), { createReceipt: true });
+  const receipt = await bobOut.send(
+    new TextEncoder().encode("phase6-demo-ping"),
+    { createReceipt: true },
+  );
   await waitForReceipt(receipt);
 
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
-    if (received.has("phase6-demo-ping") && received.has("hello from python leaf echo")) {
+    if (
+      received.has("phase6-demo-ping") &&
+      received.has("hello from python leaf echo")
+    ) {
       return;
     }
 
@@ -111,11 +127,16 @@ async function assertStatusEndpoint(expected) {
   const json = await response.json();
   for (const [key, value] of Object.entries(expected)) {
     if (json[key] !== value) {
-      throw new Error(`status endpoint expected ${key}=${String(value)}, got ${String(json[key])}`);
+      throw new Error(
+        `status endpoint expected ${key}=${String(value)}, got ${String(json[key])}`,
+      );
     }
   }
 
-  if (typeof json.bandwidthBytesIn !== "number" || typeof json.bandwidthBytesOut !== "number") {
+  if (
+    typeof json.bandwidthBytesIn !== "number" ||
+    typeof json.bandwidthBytesOut !== "number"
+  ) {
     throw new Error("status endpoint missing bandwidth counters");
   }
 
@@ -124,7 +145,7 @@ async function assertStatusEndpoint(expected) {
 
 async function runFullRolesBoot(dataDir, options = {}) {
   const session = await createNodeHost({
-        identityPassphrase: "conformance identity passphrase",
+    identityPassphrase: "conformance identity passphrase",
     config: resolveHostConfig({
       dataDir,
       overrides: {
@@ -132,27 +153,27 @@ async function runFullRolesBoot(dataDir, options = {}) {
           transport: options.transport ?? true,
           seeder: options.seeder ?? true,
           propagation: options.propagation ?? true,
-          attachRnsd: null
+          attachRnsd: null,
         },
         interfaces: options.interfaces ?? {
           tcp: { enabled: false, mode: "client" },
           auto: { enabled: false, multicast: false, bonjour: false },
           i2p: { enabled: false },
-          rnode: { enabled: false }
+          rnode: { enabled: false },
         },
-        statusEndpoint: true
-      }
-    })
+        statusEndpoint: true,
+      },
+    }),
   });
 
   const status = session.getStatus();
   console.log(
-    `phase6 demo: host up identity=${status.identityHash} transport=${status.transportEnabled} seeder=${status.seederEnabled} propagation=${status.propagationEnabled}`
+    `phase6 demo: host up identity=${status.identityHash} transport=${status.transportEnabled} seeder=${status.seederEnabled} propagation=${status.propagationEnabled}`,
   );
 
   await assertStatusEndpoint({
     seederEnabled: options.seeder ?? true,
-    propagationEnabled: options.propagation ?? true
+    propagationEnabled: options.propagation ?? true,
   });
 
   return session;
@@ -177,21 +198,28 @@ if (interopReady()) {
         seeder: false,
         propagation: false,
         interfaces: {
-          tcp: { enabled: true, mode: "client", targetHost: "127.0.0.1", targetPort: LEAF_ECHO_PORT },
+          tcp: {
+            enabled: true,
+            mode: "client",
+            targetHost: "127.0.0.1",
+            targetPort: LEAF_ECHO_PORT,
+          },
           auto: { enabled: false, multicast: false, bonjour: false },
           i2p: { enabled: false },
-          rnode: { enabled: false }
-        }
+          rnode: { enabled: false },
+        },
       });
 
       await runTransportSlice(session);
       const status = session.getStatus();
       if (status.bandwidthBytesIn === 0 && status.bandwidthBytesOut === 0) {
-        throw new Error("phase6 demo: expected non-zero bandwidth counters after TCP slice");
+        throw new Error(
+          "phase6 demo: expected non-zero bandwidth counters after TCP slice",
+        );
       }
 
       console.log(
-        `phase6 demo: transport TCP slice passed (in=${status.bandwidthBytesIn} out=${status.bandwidthBytesOut})`
+        `phase6 demo: transport TCP slice passed (in=${status.bandwidthBytesIn} out=${status.bandwidthBytesOut})`,
       );
       await session.stop();
 
@@ -200,7 +228,7 @@ if (interopReady()) {
         const propagationSession = await runFullRolesBoot(propagationDir, {
           transport: false,
           seeder: false,
-          propagation: true
+          propagation: true,
         });
         const propagationStatus = propagationSession.getStatus();
         if (!propagationStatus.propagationEnabled) {
@@ -217,7 +245,9 @@ if (interopReady()) {
     rmSync(dataDir, { recursive: true, force: true });
   }
 } else {
-  console.log("phase6 demo: INTEROP docker unavailable — running headless boot only");
+  console.log(
+    "phase6 demo: INTEROP docker unavailable — running headless boot only",
+  );
   await runHeadlessBoot();
 }
 

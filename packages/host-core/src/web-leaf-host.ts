@@ -1,4 +1,9 @@
-import type { CryptoProvider, Identity, Reticulum, Runtime } from "@twistedpear/reticulum-ts";
+import type {
+  CryptoProvider,
+  Identity,
+  Reticulum,
+  Runtime,
+} from "@twistedpear/reticulum-ts";
 import {
   PureCryptoProvider,
   Reticulum as Rns,
@@ -6,12 +11,16 @@ import {
   bytesToHex,
   loadOrCreateWebIdentity,
   webRuntime,
-  type WebIdentityUnlockOptions
+  type WebIdentityUnlockOptions,
 } from "@twistedpear/reticulum-ts/web";
 import { LXMFRouter } from "@twistedpear/lxmf-ts";
 import { createResourceFetchPlane } from "./fetch-plane-resource.js";
 import type { FetchPlane } from "./fetch-plane.js";
-import { DEFAULT_WEB_LEAF_ROLES, assertWebLeafRoles, type WebLeafHostStatus } from "./leaf-roles.js";
+import {
+  DEFAULT_WEB_LEAF_ROLES,
+  assertWebLeafRoles,
+  type WebLeafHostStatus,
+} from "./leaf-roles.js";
 
 export interface WebLeafHostOptions {
   readonly gatewayUrl: string;
@@ -32,21 +41,27 @@ export interface WebLeafHostSession {
   readonly stop: () => Promise<void>;
 }
 
-export async function createWebLeafHost(options: WebLeafHostOptions): Promise<WebLeafHostSession> {
+export async function createWebLeafHost(
+  options: WebLeafHostOptions,
+): Promise<WebLeafHostSession> {
   assertWebLeafRoles(DEFAULT_WEB_LEAF_ROLES);
 
   const provider = options.provider ?? new PureCryptoProvider();
-  const runtime = options.runtime ?? webRuntime({
-    ...(options.identity.indexedDB === undefined ? {} : { indexedDB: options.identity.indexedDB }),
-    // Identity storage and runtime state use different IndexedDB schemas.
-    // Sharing a database name lets whichever opens first permanently omit the
-    // other schema's object store at version 1.
-    storeName: `${options.identity.storeName ?? "twistedpear-web-identity"}-runtime`
-  });
+  const runtime =
+    options.runtime ??
+    webRuntime({
+      ...(options.identity.indexedDB === undefined
+        ? {}
+        : { indexedDB: options.identity.indexedDB }),
+      // Identity storage and runtime state use different IndexedDB schemas.
+      // Sharing a database name lets whichever opens first permanently omit the
+      // other schema's object store at version 1.
+      storeName: `${options.identity.storeName ?? "twistedpear-web-identity"}-runtime`,
+    });
   const reticulum = Rns.create({
     provider,
     runtime,
-    bandwidthBytesPerSecond: options.bandwidthBytesPerSecond ?? 512 * 1024
+    bandwidthBytesPerSecond: options.bandwidthBytesPerSecond ?? 512 * 1024,
   });
   reticulum.start();
 
@@ -58,7 +73,9 @@ export async function createWebLeafHost(options: WebLeafHostOptions): Promise<We
     provider,
     runtime,
     url: options.gatewayUrl,
-    ...(options.sharedToken === undefined ? {} : { sharedToken: options.sharedToken })
+    ...(options.sharedToken === undefined
+      ? {}
+      : { sharedToken: options.sharedToken }),
   });
   reticulum.registerInterface(wsClient);
 
@@ -67,7 +84,7 @@ export async function createWebLeafHost(options: WebLeafHostOptions): Promise<We
     options.fetchPlane ??
     createResourceFetchPlane({
       reticulum,
-      provider
+      provider,
     });
 
   const buildStatus = (): WebLeafHostStatus => {
@@ -84,7 +101,7 @@ export async function createWebLeafHost(options: WebLeafHostOptions): Promise<We
       pathTableCount: reticulum.pathTableCount,
       activeLinkCount: reticulum.activeLinkCount,
       bandwidthBytesOut: reticulum.bandwidthBytesOut,
-      bandwidthBytesIn: reticulum.bandwidthBytesIn
+      bandwidthBytesIn: reticulum.bandwidthBytesIn,
     };
   };
 
@@ -97,6 +114,6 @@ export async function createWebLeafHost(options: WebLeafHostOptions): Promise<We
     async stop() {
       await wsClient.close();
       await reticulum.stop();
-    }
+    },
   };
 }

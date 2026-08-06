@@ -38,7 +38,7 @@ import {
   stepValidateDestinationNamePartWithActions,
   truncateHashBytesRawFromActions,
   NAME_HASH_BYTES,
-  TRUNCATED_HASH_BYTES
+  TRUNCATED_HASH_BYTES,
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -47,7 +47,8 @@ import { Identity } from "./identity.js";
 /** Mirrors RNS/Destination.py destination types and hash derivation. */
 export const DestinationType = DestinationTypeCode;
 
-export type DestinationTypeValue = (typeof DestinationType)[keyof typeof DestinationType];
+export type DestinationTypeValue =
+  (typeof DestinationType)[keyof typeof DestinationType];
 
 export const DestinationDirection = DestinationDirectionCode;
 
@@ -75,7 +76,7 @@ export class Destination {
 
   constructor(
     private readonly provider: CryptoProvider,
-    options: DestinationOptions
+    options: DestinationOptions,
   ) {
     assertValidDestinationNamePart(options.appName, "app name");
     for (const aspect of options.aspects ?? []) {
@@ -87,12 +88,15 @@ export class Destination {
     this.appName = options.appName;
     this.aspects = [...(options.aspects ?? [])];
 
-    const gate = stepDestinationConstructionWithActions(initialDestinationConstructionState(), {
-      kind: "destination/construction-gate",
-      direction: this.direction,
-      type: this.type,
-      identityPresent: options.identity != null
-    });
+    const gate = stepDestinationConstructionWithActions(
+      initialDestinationConstructionState(),
+      {
+        kind: "destination/construction-gate",
+        direction: this.direction,
+        type: this.type,
+        identityPresent: options.identity != null,
+      },
+    );
     if (shouldRejectDestinationConstructionBadDirection(gate.actions)) {
       throw new Error(`Unknown destination direction: ${this.direction}`);
     }
@@ -103,28 +107,49 @@ export class Destination {
       throw new Error(
         this.type === DestinationType.PLAIN
           ? "PLAIN destinations cannot hold an identity"
-          : "Non-PLAIN destinations require identity material"
+          : "Non-PLAIN destinations require identity material",
       );
     }
     if (!shouldProceedDestinationConstruction(gate.actions)) {
       throw new Error("Destination construction rejected");
     }
 
-    this.identity = options.identity instanceof Identity ? options.identity : null;
+    this.identity =
+      options.identity instanceof Identity ? options.identity : null;
     const identityHash = identityHashBytes(options.identity);
-    this.name = Destination.expandName(identityHash, this.appName, ...this.aspects);
-    this.nameHash = Destination.nameHash(this.provider, this.appName, ...this.aspects);
-    this.hash = Destination.hash(this.provider, identityHash, this.appName, ...this.aspects);
+    this.name = Destination.expandName(
+      identityHash,
+      this.appName,
+      ...this.aspects,
+    );
+    this.nameHash = Destination.nameHash(
+      this.provider,
+      this.appName,
+      ...this.aspects,
+    );
+    this.hash = Destination.hash(
+      this.provider,
+      identityHash,
+      this.appName,
+      ...this.aspects,
+    );
     this.hexhash = bytesToHex(this.hash);
   }
 
-  static expandName(identityHash: Uint8Array | null, appName: string, ...aspects: ReadonlyArray<string>): string {
-    const stepped = stepExpandDestinationNameWithActions(initialExpandDestinationNameState(), {
-      kind: "destination/expand-name-gate",
-      identityHash,
-      appName,
-      aspects
-    });
+  static expandName(
+    identityHash: Uint8Array | null,
+    appName: string,
+    ...aspects: ReadonlyArray<string>
+  ): string {
+    const stepped = stepExpandDestinationNameWithActions(
+      initialExpandDestinationNameState(),
+      {
+        kind: "destination/expand-name-gate",
+        identityHash,
+        appName,
+        aspects,
+      },
+    );
     const name = expandedDestinationNameFromActions(stepped.actions);
     if (
       shouldRejectExpandDestinationName(stepped.actions) ||
@@ -136,16 +161,22 @@ export class Destination {
     return name;
   }
 
-  static nameHash(provider: CryptoProvider, appName: string, ...aspects: ReadonlyArray<string>): Uint8Array {
+  static nameHash(
+    provider: CryptoProvider,
+    appName: string,
+    ...aspects: ReadonlyArray<string>
+  ): Uint8Array {
     const materialStepped = stepDestinationNameHashMaterialWithActions(
       initialDestinationNameHashMaterialState(),
       {
         kind: "destination/name-hash-material-gate",
         appName,
-        aspects
-      }
+        aspects,
+      },
     );
-    const material = destinationNameHashMaterialRawFromActions(materialStepped.actions);
+    const material = destinationNameHashMaterialRawFromActions(
+      materialStepped.actions,
+    );
     if (
       shouldRejectDestinationNameHashMaterial(materialStepped.actions) ||
       !shouldUseDestinationNameHashMaterial(materialStepped.actions) ||
@@ -153,11 +184,14 @@ export class Destination {
     ) {
       throw new Error("Destination name-hash material rejected");
     }
-    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
-      kind: "hash-truncate/truncate-gate",
-      digest: Identity.fullHash(provider, material),
-      length: NAME_HASH_BYTES
-    });
+    const stepped = stepTruncateHashBytesWithActions(
+      initialTruncateHashBytesState(),
+      {
+        kind: "hash-truncate/truncate-gate",
+        digest: Identity.fullHash(provider, material),
+        length: NAME_HASH_BYTES,
+      },
+    );
     const raw = truncateHashBytesRawFromActions(stepped.actions);
     if (
       shouldRejectTruncateHashBytes(stepped.actions) ||
@@ -182,18 +216,26 @@ export class Destination {
       {
         kind: "destination/hash-material-gate",
         nameHash,
-        identityHash
-      }
+        identityHash,
+      },
     );
-    const material = destinationHashMaterialRawFromActions(materialStepped.actions);
-    if (!shouldUseDestinationHashMaterial(materialStepped.actions) || material === null) {
+    const material = destinationHashMaterialRawFromActions(
+      materialStepped.actions,
+    );
+    if (
+      !shouldUseDestinationHashMaterial(materialStepped.actions) ||
+      material === null
+    ) {
       throw new Error("Destination hash material rejected");
     }
-    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
-      kind: "hash-truncate/truncate-gate",
-      digest: Identity.fullHash(provider, material),
-      length: TRUNCATED_HASH_BYTES
-    });
+    const stepped = stepTruncateHashBytesWithActions(
+      initialTruncateHashBytesState(),
+      {
+        kind: "hash-truncate/truncate-gate",
+        digest: Identity.fullHash(provider, material),
+        length: TRUNCATED_HASH_BYTES,
+      },
+    );
     const raw = truncateHashBytesRawFromActions(stepped.actions);
     if (
       shouldRejectTruncateHashBytes(stepped.actions) ||
@@ -212,8 +254,8 @@ function assertValidDestinationNamePart(value: string, label: string): void {
     {
       kind: "destination/name-part-gate",
       value,
-      label
-    }
+      label,
+    },
   );
   if (
     shouldRejectValidateDestinationNamePart(stepped.actions) ||
@@ -226,14 +268,25 @@ function assertValidDestinationNamePart(value: string, label: string): void {
   }
 }
 
-function identityHashBytes(identity: Identity | Uint8Array | null | undefined): Uint8Array | null {
+function identityHashBytes(
+  identity: Identity | Uint8Array | null | undefined,
+): Uint8Array | null {
   const identityKind =
-    identity == null ? "missing" : identity instanceof Identity ? "object" : "bytes";
-  const stepped = stepDestinationIdentityHashWithActions(initialDestinationIdentityHashState(), {
-    kind: "destination/identity-hash-gate",
-    identityKind,
-    ...(identityKind === "bytes" ? { bytesLength: (identity as Uint8Array).length } : {})
-  });
+    identity == null
+      ? "missing"
+      : identity instanceof Identity
+        ? "object"
+        : "bytes";
+  const stepped = stepDestinationIdentityHashWithActions(
+    initialDestinationIdentityHashState(),
+    {
+      kind: "destination/identity-hash-gate",
+      identityKind,
+      ...(identityKind === "bytes"
+        ? { bytesLength: (identity as Uint8Array).length }
+        : {}),
+    },
+  );
   if (shouldMissDestinationIdentityHash(stepped.actions)) {
     return null;
   }
@@ -241,7 +294,9 @@ function identityHashBytes(identity: Identity | Uint8Array | null | undefined): 
     return (identity as Identity).hash;
   }
   if (shouldRejectLengthDestinationIdentityHash(stepped.actions)) {
-    throw new Error(`Identity hash must be ${DESTINATION_IDENTITY_HASH_BYTES} bytes`);
+    throw new Error(
+      `Identity hash must be ${DESTINATION_IDENTITY_HASH_BYTES} bytes`,
+    );
   }
   if (shouldUseBytesDestinationIdentityHash(stepped.actions)) {
     return identity as Uint8Array;

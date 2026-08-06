@@ -14,7 +14,7 @@ export const LinkRequestReceiptStatus = {
   SENT: 0x01,
   DELIVERED: 0x02,
   RECEIVING: 0x03,
-  READY: 0x04
+  READY: 0x04,
 } as const;
 
 export type LinkRequestReceiptStatusValue =
@@ -29,11 +29,14 @@ export interface LinkRequestReceiptState {
 
 export type LinkRequestReceiptEvent =
   | { readonly kind: "request/timeout"; readonly at: number }
-  | { readonly kind: "request/response"; readonly at: number; readonly response: Uint8Array | null };
+  | {
+      readonly kind: "request/response";
+      readonly at: number;
+      readonly response: Uint8Array | null;
+    };
 
 export type LinkRequestReceiptAction =
-  | { readonly kind: "failed" }
-  | { readonly kind: "response" };
+  { readonly kind: "failed" } | { readonly kind: "response" };
 
 export interface LinkRequestReceiptStepResult {
   readonly state: LinkRequestReceiptState;
@@ -45,13 +48,13 @@ export function initialLinkRequestReceiptState(): LinkRequestReceiptState {
     status: LinkRequestReceiptStatus.SENT,
     response: null,
     progress: 0,
-    concludedAt: null
+    concludedAt: null,
   };
 }
 
 export function stepLinkRequestReceipt(
   state: LinkRequestReceiptState,
-  event: LinkRequestReceiptEvent
+  event: LinkRequestReceiptEvent,
 ): LinkRequestReceiptStepResult {
   if (event.kind === "request/timeout") {
     if (
@@ -62,9 +65,9 @@ export function stepLinkRequestReceipt(
         state: {
           ...state,
           status: LinkRequestReceiptStatus.FAILED,
-          concludedAt: event.at
+          concludedAt: event.at,
         },
-        actions: [{ kind: "failed" }]
+        actions: [{ kind: "failed" }],
       };
     }
     return { state, actions: [] };
@@ -75,9 +78,9 @@ export function stepLinkRequestReceipt(
       status: LinkRequestReceiptStatus.READY,
       response: event.response,
       progress: 1,
-      concludedAt: event.at
+      concludedAt: event.at,
     },
-    actions: [{ kind: "response" }]
+    actions: [{ kind: "response" }],
   };
 }
 
@@ -126,20 +129,18 @@ export function initialIndexOfPendingLinkAppRequestState(): IndexOfPendingLinkAp
 
 export function stepIndexOfPendingLinkAppRequestWithActions(
   state: IndexOfPendingLinkAppRequestState,
-  event: IndexOfPendingLinkAppRequestEvent
+  event: IndexOfPendingLinkAppRequestEvent,
 ): IndexOfPendingLinkAppRequestStepResult {
   if (event.kind === "link/pending-app-request-index-gate") {
     const index = indexOfPendingLinkAppRequest({
       requestIds: event.requestIds,
-      target: event.target
+      target: event.target,
     });
     return {
       state,
       intents: [],
       actions:
-        index === null
-          ? [{ kind: "miss" }]
-          : [{ kind: "use-index", index }]
+        index === null ? [{ kind: "miss" }] : [{ kind: "use-index", index }],
     };
   }
 
@@ -147,27 +148,29 @@ export function stepIndexOfPendingLinkAppRequestWithActions(
 }
 
 export function shouldUsePendingLinkAppRequestIndex(
-  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>
+  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "use-index");
 }
 
 export function shouldMissPendingLinkAppRequestIndex(
-  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>
+  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>,
 ): boolean {
   return actions.some((action) => action.kind === "miss");
 }
 
 /** Extract pending app-request index from step actions; null when no `use-index`. */
 export function pendingLinkAppRequestIndexFromActions(
-  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>
+  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "use-index");
   return action?.kind === "use-index" ? action.index : null;
 }
 
 /** Whether RESPONSE dispatch may deliver after {@link indexOfPendingLinkAppRequest}. */
-export function shouldDeliverPendingLinkAppResponse(indexPresent: boolean): boolean {
+export function shouldDeliverPendingLinkAppResponse(
+  indexPresent: boolean,
+): boolean {
   return indexPresent;
 }
 
@@ -186,8 +189,7 @@ export type DeliverPendingLinkAppResponseEvent =
     };
 
 export type DeliverPendingLinkAppResponseAction =
-  | { readonly kind: "deliver" }
-  | { readonly kind: "skip" };
+  { readonly kind: "deliver" } | { readonly kind: "skip" };
 
 export interface DeliverPendingLinkAppResponseStepResult {
   readonly state: DeliverPendingLinkAppResponseState;
@@ -201,7 +203,7 @@ export function initialDeliverPendingLinkAppResponseState(): DeliverPendingLinkA
 
 export function stepDeliverPendingLinkAppResponseWithActions(
   state: DeliverPendingLinkAppResponseState,
-  event: DeliverPendingLinkAppResponseEvent
+  event: DeliverPendingLinkAppResponseEvent,
 ): DeliverPendingLinkAppResponseStepResult {
   if (event.kind === "link/pending-app-response-deliver-gate") {
     return {
@@ -209,9 +211,11 @@ export function stepDeliverPendingLinkAppResponseWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldDeliverPendingLinkAppResponse(event.indexPresent) ? "deliver" : "skip"
-        }
-      ]
+          kind: shouldDeliverPendingLinkAppResponse(event.indexPresent)
+            ? "deliver"
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -219,19 +223,21 @@ export function stepDeliverPendingLinkAppResponseWithActions(
 }
 
 export function shouldDeliverPendingLinkAppResponseNow(
-  actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>
+  actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>,
 ): boolean {
   return actions.some((action) => action.kind === "deliver");
 }
 
 export function shouldSkipPendingLinkAppResponseDeliver(
-  actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>
+  actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a pending link-request receipt list should receive a new member. */
-export function shouldRegisterPendingLinkRequest(alreadyPresent: boolean): boolean {
+export function shouldRegisterPendingLinkRequest(
+  alreadyPresent: boolean,
+): boolean {
   return !alreadyPresent;
 }
 
@@ -250,8 +256,7 @@ export type PendingLinkRequestRegisterEvent =
     };
 
 export type PendingLinkRequestRegisterAction =
-  | { readonly kind: "register" }
-  | { readonly kind: "skip" };
+  { readonly kind: "register" } | { readonly kind: "skip" };
 
 export interface PendingLinkRequestRegisterStepResult {
   readonly state: PendingLinkRequestRegisterState;
@@ -265,7 +270,7 @@ export function initialPendingLinkRequestRegisterState(): PendingLinkRequestRegi
 
 export function stepPendingLinkRequestRegisterWithActions(
   state: PendingLinkRequestRegisterState,
-  event: PendingLinkRequestRegisterEvent
+  event: PendingLinkRequestRegisterEvent,
 ): PendingLinkRequestRegisterStepResult {
   if (event.kind === "link/pending-request-register-gate") {
     return {
@@ -275,9 +280,9 @@ export function stepPendingLinkRequestRegisterWithActions(
         {
           kind: shouldRegisterPendingLinkRequest(event.alreadyPresent)
             ? "register"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -285,19 +290,21 @@ export function stepPendingLinkRequestRegisterWithActions(
 }
 
 export function shouldRegisterPendingLinkRequestNow(
-  actions: ReadonlyArray<PendingLinkRequestRegisterAction>
+  actions: ReadonlyArray<PendingLinkRequestRegisterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "register");
 }
 
 export function shouldSkipPendingLinkRequestRegister(
-  actions: ReadonlyArray<PendingLinkRequestRegisterAction>
+  actions: ReadonlyArray<PendingLinkRequestRegisterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether construction should attach an outbound packet receipt to the request receipt. */
-export function shouldAttachLinkRequestPacketReceipt(packetReceiptPresent: boolean): boolean {
+export function shouldAttachLinkRequestPacketReceipt(
+  packetReceiptPresent: boolean,
+): boolean {
   return packetReceiptPresent;
 }
 
@@ -316,8 +323,7 @@ export type AttachLinkRequestPacketReceiptEvent =
     };
 
 export type AttachLinkRequestPacketReceiptAction =
-  | { readonly kind: "attach" }
-  | { readonly kind: "skip" };
+  { readonly kind: "attach" } | { readonly kind: "skip" };
 
 export interface AttachLinkRequestPacketReceiptStepResult {
   readonly state: AttachLinkRequestPacketReceiptState;
@@ -331,7 +337,7 @@ export function initialAttachLinkRequestPacketReceiptState(): AttachLinkRequestP
 
 export function stepAttachLinkRequestPacketReceiptWithActions(
   state: AttachLinkRequestPacketReceiptState,
-  event: AttachLinkRequestPacketReceiptEvent
+  event: AttachLinkRequestPacketReceiptEvent,
 ): AttachLinkRequestPacketReceiptStepResult {
   if (event.kind === "link/attach-request-packet-receipt-gate") {
     return {
@@ -341,9 +347,9 @@ export function stepAttachLinkRequestPacketReceiptWithActions(
         {
           kind: shouldAttachLinkRequestPacketReceipt(event.packetReceiptPresent)
             ? "attach"
-            : "skip"
-        }
-      ]
+            : "skip",
+        },
+      ],
     };
   }
 
@@ -351,13 +357,13 @@ export function stepAttachLinkRequestPacketReceiptWithActions(
 }
 
 export function shouldAttachLinkRequestPacketReceiptNow(
-  actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>
+  actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "attach");
 }
 
 export function shouldSkipLinkRequestPacketReceiptAttach(
-  actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>
+  actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>,
 ): boolean {
   return actions.some((action) => action.kind === "skip");
 }
@@ -371,7 +377,9 @@ export function planUnregisterPendingLinkRequest(index: number): number | null {
 }
 
 /** Whether unregister may splice after {@link planUnregisterPendingLinkRequest}. */
-export function shouldUnregisterPendingLinkRequest(indexPresent: boolean): boolean {
+export function shouldUnregisterPendingLinkRequest(
+  indexPresent: boolean,
+): boolean {
   return indexPresent;
 }
 
@@ -407,14 +415,14 @@ export function initialPendingLinkRequestUnregisterPlanState(): PendingLinkReque
 
 export function stepPendingLinkRequestUnregisterPlanWithActions(
   state: PendingLinkRequestUnregisterPlanState,
-  event: PendingLinkRequestUnregisterPlanEvent
+  event: PendingLinkRequestUnregisterPlanEvent,
 ): PendingLinkRequestUnregisterPlanStepResult {
   if (event.kind === "link/pending-request-unregister-plan-gate") {
     const index = planUnregisterPendingLinkRequest(event.index);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
+      actions: index === null ? [] : [{ kind: "remove", index }],
     };
   }
 
@@ -422,14 +430,14 @@ export function stepPendingLinkRequestUnregisterPlanWithActions(
 }
 
 export function pendingLinkRequestUnregisterPlanIndex(
-  actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>
+  actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemovePendingLinkRequestUnregisterPlan(
-  actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>
+  actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }
@@ -467,21 +475,21 @@ export function initialPendingLinkRequestUnregisterState(): PendingLinkRequestUn
 
 export function stepPendingLinkRequestUnregisterWithActions(
   state: PendingLinkRequestUnregisterState,
-  event: PendingLinkRequestUnregisterEvent
+  event: PendingLinkRequestUnregisterEvent,
 ): PendingLinkRequestUnregisterStepResult {
   if (event.kind === "link/pending-request-unregister-gate") {
     const planActions = stepPendingLinkRequestUnregisterPlanWithActions(
       initialPendingLinkRequestUnregisterPlanState(),
       {
         kind: "link/pending-request-unregister-plan-gate",
-        index: event.index
-      }
+        index: event.index,
+      },
     ).actions;
     const index = pendingLinkRequestUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],
-      actions: index === null ? [] : [{ kind: "remove", index }]
+      actions: index === null ? [] : [{ kind: "remove", index }],
     };
   }
 
@@ -489,14 +497,14 @@ export function stepPendingLinkRequestUnregisterWithActions(
 }
 
 export function pendingLinkRequestUnregisterIndex(
-  actions: ReadonlyArray<PendingLinkRequestUnregisterAction>
+  actions: ReadonlyArray<PendingLinkRequestUnregisterAction>,
 ): number | null {
   const action = actions.find((entry) => entry.kind === "remove");
   return action?.kind === "remove" ? action.index : null;
 }
 
 export function shouldRemovePendingLinkRequest(
-  actions: ReadonlyArray<PendingLinkRequestUnregisterAction>
+  actions: ReadonlyArray<PendingLinkRequestUnregisterAction>,
 ): boolean {
   return actions.some((action) => action.kind === "remove");
 }
@@ -504,7 +512,7 @@ export function shouldRemovePendingLinkRequest(
 /** Whether step actions include a failed/response fanout for the adapter callback. */
 export function shouldInvokeLinkRequestReceiptAction(
   actions: ReadonlyArray<LinkRequestReceiptAction>,
-  kind: LinkRequestReceiptAction["kind"]
+  kind: LinkRequestReceiptAction["kind"],
 ): boolean {
   return actions.some((action) => action.kind === kind);
 }

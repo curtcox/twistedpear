@@ -2,14 +2,7 @@
   "schema": "twistedpear.transition-v1",
   "machine": "device-session",
   "generatedBy": "scripts/vectors-generate-device.mjs",
-  "states": [
-    "requested",
-    "active",
-    "degraded",
-    "closed",
-    "expired",
-    "revoked"
-  ],
+  "states": ["requested", "active", "degraded", "closed", "expired", "revoked"],
   "eventClasses": [
     "open",
     "degrade",
