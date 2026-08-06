@@ -13,7 +13,10 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Let in-flight builds finish. The freshness job already refuses to publish a
+  # superseded commit, so cancelling here only threw away work that was about to
+  # deploy.
+  cancel-in-progress: false
 
 jobs:
   static-analysis-plan:
@@ -139,12 +142,26 @@ jobs:
     needs: [build, freshness]
     if: always() && needs.build.result == 'success' && needs.freshness.result == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 70
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
+      # The default 10-minute timeout turns a GitHub Pages deployment-lag
+      # incident into a skipped publish. Wait longer, tolerate more transient
+      # status-report errors, and try a second time before giving up.
       - id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+        with:
+          timeout: 1800000
+          error_count: 25
+      - id: retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 1800000
+          error_count: 25
 
   freshness:
     needs: build
