@@ -236,3 +236,24 @@ describe("encrypted ntfy rendezvous", () => {
     expect(published.at(-1)).toEqual(answerEnvelope);
   });
 });
+
+describe("ntfy rendezvous transport failures", () => {
+  it("maps browser CORS and offline fetch rejections to actionable adapter errors", async () => {
+    const client = new NtfyRendezvousClient({
+      baseUrl: "https://ntfy.example.test",
+      entropy: async (length) => bytes(length, 21),
+      now: () => now,
+      // A CORS-blocked or offline browser fetch rejects with a bare TypeError.
+      fetch: async () => {
+        throw new TypeError("Failed to fetch");
+      },
+    });
+    await expect(client.publish(secret, invitation())).rejects.toMatchObject({
+      code: "UNAVAILABLE",
+      message: expect.stringMatching(/cross-origin policy/),
+    });
+    await expect(client.poll(secret)).rejects.toMatchObject({
+      code: "UNAVAILABLE",
+    });
+  });
+});

@@ -450,6 +450,20 @@ jobs:
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
 
+  ntfy-service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Disposable self-hosted server on a loopback port; never the public service.
+      - run: NTFY_SERVICE_REQUIRED=1 npm run test:ntfy-service
+
   bare-device:
     runs-on: ubuntu-latest
     steps:

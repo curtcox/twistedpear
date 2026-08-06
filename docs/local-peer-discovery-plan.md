@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-05
+audited: 2026-08-06
 register: software
 counterpart: docs/local-peer-discovery.md
 -->
@@ -15,9 +15,10 @@ Required external trials are tracked individually in the
 plan if they disagree.
 
 The software implementation is complete for mechanisms available to current production
-runtimes. The plan remains open because physical-device, browser/network, service, and soak
-evidence cannot be inferred from simulators or unit tests, and because the proposed browser
-Local Peer-to-Peer API does not yet have a testable production implementation.
+runtimes, and the rendezvous-service gate is closed by an automated disposable self-hosted
+run. The plan remains open because physical-device, browser/network, and soak evidence
+cannot be inferred from simulators or unit tests, and because the proposed browser Local
+Peer-to-Peer API does not yet have a testable production implementation.
 
 ## Remaining evidence campaigns
 
@@ -32,14 +33,10 @@ Run and retain sanitized results for each gate in the evidence register:
    permission, paste, keyboard, screen-reader, spoken-code, and Morse alternatives.
 4. Run WebRTC pairing on current stable Chromium, Firefox, and WebKit across LAN,
    ICE-failure, and TURN-required networks. Retain classifications, never SDP or credentials.
-5. Test a disposable self-hosted ntfy server with and without authentication, covering
-   `TPN2` short codes, legacy `TPN1` decoding, ciphertext-only storage/logs, CORS failure,
-   reconnect, replay rejection, and deletion after the run. Routine CI must never use the
-   public service.
-6. Pair two reachable Reticulum hosts and verify automatic discovery, identity
+5. Pair two reachable Reticulum hosts and verify automatic discovery, identity
    confirmation, presence, LXMF, Resource, and transport-backed announce use through the
    same confirmed route.
-7. Run the long-duration battery, bandwidth, reconnect, hostile-input, accessibility, and
+6. Run the long-duration battery, bandwidth, reconnect, hostile-input, accessibility, and
    mixed-version campaign before changing any mechanism from implemented to verified.
 
 Each campaign updates `docs/local-peer-discovery-evidence.md`. Hardware-gated results also

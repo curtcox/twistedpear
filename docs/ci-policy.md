@@ -28,6 +28,11 @@ The `miniapp-conformance` job also runs `npm run test:cookbook`: all 25 cookbook
 are type/lint-checked against the SDK, validated, packed through the CLI, and launched far
 enough to render in the sandbox runtime.
 
+The `ntfy-service` job runs `NTFY_SERVICE_REQUIRED=1 npm run test:ntfy-service`: a pinned
+ntfy container on a loopback port carries a real two-host peer-discovery pairing, and the
+container and its volume are deleted at the end of the run. The public ntfy service is
+never used from CI.
+
 The `release-harness` registry gate runs `test:release-harness`, which locks the release driver's
 single-next-action rule, evidence recorder, and soak failure classifier/reproducer behavior.
 It also runs `test:doc-audit`, which checks register evidence paths, markdown links,

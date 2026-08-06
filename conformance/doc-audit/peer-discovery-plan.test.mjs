@@ -9,6 +9,10 @@ const repositoryRoot = resolve(
 );
 const planPath = join(repositoryRoot, "docs/local-peer-discovery-plan.md");
 const plan = readFileSync(planPath, "utf8");
+const evidence = readFileSync(
+  join(repositoryRoot, "docs/local-peer-discovery-evidence.md"),
+  "utf8",
+);
 
 describe("local peer discovery remaining plan", () => {
   it("routes implemented behavior to the live counterpart and external results to evidence", () => {
@@ -26,7 +30,6 @@ describe("local peer discovery remaining plan", () => {
     "audible FSK",
     "animated QR",
     "WebRTC",
-    "TPN2",
     "Reticulum",
     "mixed-version",
   ])("retains the %s external gate", (gate) => {
@@ -37,6 +40,12 @@ describe("local peer discovery remaining plan", () => {
     expect(plan).toContain("LP2PRequest");
     expect(plan).toContain("PeerDiscoveryAdapter");
     expect(plan).toContain("timeout, abort, cancellation, and replay budgets");
-    expect(plan).toMatch(/Routine CI must never use the\s+public service/);
+  });
+
+  it("keeps the closed ntfy gate and its public-service ban in the evidence register", () => {
+    expect(evidence).toContain("TPN2");
+    expect(evidence).toContain("npm run test:ntfy-service");
+    expect(evidence).toMatch(/Public ntfy is not used for CI/);
+    expect(plan).not.toContain("ntfy");
   });
 });

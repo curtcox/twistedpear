@@ -356,7 +356,7 @@ export class NtfyRendezvousClient {
       nonce,
       this.now(),
     );
-    const response = await this.fetchEffect(this.topicUrl(secret), {
+    const response = await this.request(this.topicUrl(secret), {
       method: "POST",
       headers: this.headers({
         "Content-Type": "text/plain; charset=utf-8",
@@ -382,7 +382,7 @@ export class NtfyRendezvousClient {
         : new URL(`${this.baseUrl.href}/`),
     );
     url.searchParams.set("poll", "1");
-    const response = await this.fetchEffect(url, {
+    const response = await this.request(url, {
       method: "GET",
       headers: this.headers({
         Accept: "application/x-ndjson",
@@ -438,6 +438,17 @@ export class NtfyRendezvousClient {
         messages.push(decoded);
     }
     return messages;
+  }
+  /** A browser CORS rejection, TLS failure, or offline host must stay an actionable adapter error. */
+  private async request(url: URL, init: RequestInit): Promise<Response> {
+    try {
+      return await this.fetchEffect(url, init);
+    } catch {
+      throw new PeerDiscoveryError(
+        "UNAVAILABLE",
+        "ntfy rendezvous server is unreachable; check the server URL, TLS certificate, and cross-origin policy",
+      );
+    }
   }
   private topicUrl(secret: NtfyRendezvousSecret): URL {
     return new URL(

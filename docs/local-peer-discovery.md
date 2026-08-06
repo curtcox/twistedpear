@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-05
+audited: 2026-08-06
 register: software
 counterpart: docs/local-peer-discovery-plan.md
 -->
@@ -26,7 +26,7 @@ and pass the shared adapter suite.
 | Manual full code                               | checksummed Base32 plus two-round `ManualPeerDiscoveryAdapter`                                                                                                                                                                                                                          | desktop, native mobile, and static web trusted-host bindings implemented                                                               |
 | Static/animated QR                             | bounded frames, CRC32, reorder/duplicate handling, mixed-session rejection, JS raster fallback                                                                                                                                                                                          | desktop, static-web, and native trusted camera/display bindings implemented                                                            |
 | WebRTC/Reticulum route                         | host-owned WebRTC wrapper plus signed Reticulum destination validation and Link establishment                                                                                                                                                                                           | static web WebRTC and desktop Reticulum implemented; TURN configuration remains host policy                                            |
-| ntfy                                           | XChaCha20-Poly1305 messages, 128-bit derived topics, checksummed `TPN2` Base32 lookup codes, legacy `TPN1` decoding, HTTPS/bearer client, replay/expiry/backoff, common adapter, fake service tests                                                                                     | desktop, static-web, and native-mobile trusted-host bindings implemented; disposable-server evidence pending                           |
+| ntfy                                           | XChaCha20-Poly1305 messages, 128-bit derived topics, checksummed `TPN2` Base32 lookup codes, legacy `TPN1` decoding, HTTPS/bearer client, unreachable/CORS rejections mapped to actionable `UNAVAILABLE`, replay/expiry/backoff, common adapter, fake service tests                     | desktop, static-web, and native-mobile trusted-host bindings implemented; verified against a disposable self-hosted server             |
 | Audio and accessibility codecs                 | bounded framing, CRC, one-loss XOR FEC, audible FSK at 44.1/48 kHz, stream burst extraction, common adapter, deterministic spoken spelling, and textual Morse round-trips                                                                                                               | desktop, static-web, and native trusted playback/microphone effects implemented; room/device and accessibility-matrix evidence pending |
 | Native Bluetooth                               | common native adapter, bounded CRC/FEC invitation frames multiplexed on the existing negotiated-MTU BLE GATT pipe, accurate web unsupported result                                                                                                                                      | native software path implemented; real-device/background evidence pending                                                              |
 | Browser LP2P                                   | intentionally unsupported until a production browser implementation exists                                                                                                                                                                                                              | pending                                                                                                                                |
@@ -52,6 +52,13 @@ Current automated evidence lives in:
 - `packages/peer-discovery/test/webrtc-route.test.ts`
 - `packages/miniapp-runtime/test/peers.test.ts`
 - `packages/miniapp-sdk/test/peers.test.ts`
+
+Two hosts also pair over a live rendezvous service: `conformance/ntfy-service/run.mjs`
+(`npm run test:ntfy-service`) starts a pinned ntfy container on a loopback port, completes
+a signed offer/answer/confirmation exchange through the shipping adapter, and checks
+ciphertext-only storage, cache, and logs, replay rejection, restart reconnect, deny-all
+authentication, bearer pairing, and deletion of the container and its volume. It never
+contacts the public service.
 
 The remaining delivery gates are the required service/browser/hardware trials recorded in
 [the evidence register](local-peer-discovery-evidence.md). Unsupported mechanisms remain

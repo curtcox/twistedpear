@@ -125,8 +125,9 @@ Cross-cutting wiring gaps (affect many rows below):
   `apps:preview` on android/ios is wired in the native worklet (dev-preview slot) and covered by
   unit tests (`apps-preview-mobile.test.ts`); handbook mobile-slice also exercises the preview
   applet path. Packaging/publishing on mobile remain partial.
-- **`peer:connect`**: trusted chrome + adapters are wired on desktop/native/web; remaining
-  physical/browser/service trials are in
+- **`peer:connect`**: trusted chrome + adapters are wired on desktop/native/web; the ntfy
+  rendezvous path is verified against a disposable self-hosted server
+  (`npm run test:ntfy-service`) and the remaining physical/browser trials are in
   [local-peer-discovery-evidence.md](local-peer-discovery-evidence.md). Browser LP2P is
   intentionally unsupported.
 - **`link:*`**: the SDK/broker, estimator, two-sided readiness types, probe budgets, and
