@@ -1,0 +1,54 @@
+name: Site checks
+
+# Reports the gate results recorded by the Pages build. This lives outside the
+# Pages workflow on purpose: a failing gate used to turn a run red even when the
+# site had published successfully, which made "did the site publish?" impossible
+# to answer from the Actions list. Pages now reports publishing; this reports
+# findings.
+on:
+  workflow_run:
+    workflows: [Pages]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  reported-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - id: fetch
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: site-results
+          path: site-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Note that the build produced no report
+        if: steps.fetch.outcome != 'success'
+        run: |
+          echo "Pages run ${{ github.event.workflow_run.id }} recorded no site-results artifact."
+          echo "The build did not get far enough to report gate results; nothing to evaluate."
+      - uses: actions/setup-node@v4
+        if: steps.fetch.outcome == 'success'
+        with:
+          node-version: "22"
+      - name: Fail if reported checks failed
+        if: steps.fetch.outcome == 'success'
+        run: |
+          node -e "
+          const fs = require('fs');
+          const summary = JSON.parse(fs.readFileSync('site-results/summary.json', 'utf8'));
+          const skipped = (summary.jobs || []).filter((job) => job.skipped && job.skipReason);
+          for (const job of skipped) {
+            console.log('Skipped: ' + job.id + ' — ' + job.skipReason);
+          }
+          if (summary.ok) {
+            console.log('All reported checks passed');
+            process.exit(0);
+          }
+          console.error('Reported checks failed:', (summary.failed || []).join(', '));
+          process.exit(1);
+          "

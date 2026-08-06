@@ -58,6 +58,9 @@ function previousJobs() {
 const PREVIOUS = previousJobs();
 const IMPORT_ENV = globalThis.process.env;
 const IMPORTED_GATES = new Set((IMPORT_ENV.SITE_REPORT_IMPORT_GATES ?? "").split(",").filter(Boolean));
+// Gates the caller has taken off this report's critical path. They are neither
+// run nor imported here; the report records why they are absent.
+const DEFERRED_GATES = new Set((IMPORT_ENV.SITE_REPORT_DEFER_GATES ?? "").split(",").filter(Boolean));
 const IMPORT_DIR = IMPORT_ENV.SITE_REPORT_IMPORT_DIR ? path.resolve(IMPORT_ENV.SITE_REPORT_IMPORT_DIR) : null;
 const artifactKey = (relative) => relative.replace(/^artifacts\//, "");
 
@@ -306,11 +309,13 @@ function main() {
         command: [process.execPath, "scripts/checks/run.mjs", `--tier=${gate.tier}`, `--only=${gate.id}`],
         copyOutputs: gate.artifacts,
         imported: IMPORTED_GATES.has(gate.id),
-        skipReason: !selected
-          ? `${gate.tier} gate is outside the ${requestedTier} report tier`
-          : missing.length > 0
-            ? `missing local requirements: ${missing.join(", ")}`
-            : null
+        skipReason: DEFERRED_GATES.has(gate.id)
+          ? "deferred off the publish path; runs on the nightly schedule"
+          : !selected
+            ? `${gate.tier} gate is outside the ${requestedTier} report tier`
+            : missing.length > 0
+              ? `missing local requirements: ${missing.join(", ")}`
+              : null
       })
     );
   }

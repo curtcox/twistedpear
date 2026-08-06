@@ -1,5 +1,10 @@
 name: Pages
 
+# This workflow's status answers one question: did the site publish? Reported
+# gate results are evaluated by the Site checks workflow (site-checks.yml),
+# which runs after this one, so a gate finding can never make a successful
+# publish look like a failed one.
+
 on:
   push:
     branches:
@@ -24,6 +29,7 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       imports: ${{ steps.plan.outputs.imports }}
+      deferred: ${{ steps.plan.outputs.deferred }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,7 +46,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.static-analysis-plan.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,9 +56,6 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - name: Build workspace packages required by the gate
-        if: matrix.id == 'mutation'
-        run: npm run build
       - name: Install SwiftLint
         if: matrix.id == 'swift'
         run: |
@@ -122,6 +125,7 @@ jobs:
         env:
           SITE_REPORT_IMPORT_DIR: imported-static-analysis
           SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}
+          SITE_REPORT_DEFER_GATES: ${{ needs.static-analysis-plan.outputs.deferred }}
       - name: Report pending screenshots for the guide, authoring guide, and cookbook
         run: npm run site:section-images:report
       - name: Build documentation site
@@ -192,28 +196,3 @@ jobs:
           node-version: "22"
       - name: Verify published analysis provenance
         run: node scripts/site/verify-publication.mjs "https://curtcox.github.io/twistedpear/results/raw/summary.json?sha=${GITHUB_SHA}" "${GITHUB_SHA}"
-
-  aggregate:
-    needs: [build, deploy, verify-deployment]
-    if: always() && needs.build.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: site-results
-          path: site-results
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Fail if reported checks failed
-        run: |
-          node -e "
-          const fs = require('fs');
-          const summary = JSON.parse(fs.readFileSync('site-results/summary.json', 'utf8'));
-          if (summary.ok) {
-            console.log('All reported checks passed');
-            process.exit(0);
-          }
-          console.error('Reported checks failed:', (summary.failed || []).join(', '));
-          process.exit(1);
-          "

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { gates } from "../../scripts/checks/registry.mjs";
+import { gates, deferredOnPages } from "../../scripts/checks/registry.mjs";
 import { summarizeStaticAnalysis } from "../../scripts/site/static-analysis-metrics.mjs";
 import {
   hasExpectedProvenance,
@@ -110,8 +110,14 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain(
       "SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}",
     );
+    expect(pagesWorkflow).toContain(
+      "SITE_REPORT_DEFER_GATES: ${{ needs.static-analysis-plan.outputs.deferred }}",
+    );
     expect(reports).toContain("logFile: `artifacts/logs/${job.id}.log`");
-    expect(pagesWorkflow).toContain("cancel-in-progress: true");
+    // In-flight Pages runs must finish rather than being cancelled: the
+    // freshness job already refuses to publish a superseded commit, and
+    // cancelling risked killing a run part-way through deploying.
+    expect(pagesWorkflow).toContain("cancel-in-progress: false");
     expect(pagesWorkflow).toContain("if: always() && !cancelled()");
     expect(pagesWorkflow).toContain("Refuse to deploy a superseded main build");
     expect(pagesWorkflow).toContain("verify-publication.mjs");
@@ -131,13 +137,23 @@ describe("static-analysis gate registry", () => {
           return [line.slice(0, split), line.slice(split + 1)];
         }),
     );
+    // Deferred gates are too slow to sit on the publish path: they are neither
+    // run by the Pages build nor imported into it, so they must be absent from
+    // both the evidence matrix and the import list.
     const imported = gates.filter(
-      (gate) => gate.tier === "nightly" || gate.os !== "ubuntu-latest",
+      (gate) =>
+        (gate.tier === "nightly" || gate.os !== "ubuntu-latest") &&
+        !deferredOnPages.has(gate.id),
     );
     expect(JSON.parse(outputs.matrix)).toEqual(
       imported.map(({ id, tier, os: runner }) => ({ id, tier, runner })),
     );
     expect(outputs.imports).toBe(imported.map((gate) => gate.id).join(","));
+    expect(outputs.deferred).toBe([...deferredOnPages].join(","));
+    for (const id of deferredOnPages) {
+      expect(outputs.matrix).not.toContain(`"${id}"`);
+      expect(outputs.imports.split(",")).not.toContain(id);
+    }
 
     const structured = [
       "file-sizes",

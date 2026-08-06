@@ -175,6 +175,13 @@ export const gates = [
   ),
 ];
 
+// Gates too slow to sit on the Pages publish path. The Pages workflow neither
+// runs nor imports these; it records them as deferred and publishes without
+// them, so a ~70 minute gate cannot hold the site hostage. They still run on
+// the nightly schedule, and mutation-policy keeps reporting the committed
+// ratchet floor in the meantime.
+export const deferredOnPages = new Set(["mutation"]);
+
 function gate(
   id,
   title,

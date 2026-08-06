@@ -168,11 +168,21 @@ Pushes to `main` (and `workflow_dispatch`) build and deploy
   from parallel evidence jobs
 - Unit tests, TypeScript, Sans-IO gates, formal/model conformance, symbolic lint, and TLC results
 
-Reports are published even when a reported check fails; the workflow’s aggregate job then
-fails so the run stays red. Enable **Settings → Pages → GitHub Actions** once per repository.
-Each report and imported gate result is bound to the workflow SHA. Superseded runs cannot
-deploy, and the workflow verifies the public `/results/raw/summary.json` SHA after GitHub
-Pages reports a successful deployment.
+Reports are published even when a reported check fails. A Pages run’s status reflects only
+whether the site published; the separate **Site checks** workflow (`site-checks.yml`) runs
+afterwards and fails if any reported gate failed. A red Pages run therefore always means a
+publishing failure, never a gate finding. Enable **Settings → Pages → GitHub Actions** once
+per repository. Each report and imported gate result is bound to the workflow SHA.
+Superseded runs cannot deploy, and the workflow verifies the public
+`/results/raw/summary.json` SHA after GitHub Pages reports a successful deployment.
+
+Gates listed in `deferredOnPages` (`scripts/checks/registry.mjs`, currently `mutation`) are
+kept off the publish path entirely: the Pages build neither runs nor imports them, and the
+published report records them as deferred with a reason. They run on the nightly schedule
+instead, and `mutation-policy` keeps reporting the committed ratchet floor in the meantime.
+This exists because the mutation survey takes roughly 70 minutes, which previously made the
+window between a push and a publish wide enough that routine pushes kept superseding builds
+before they could deploy.
 
 ## What CI does not cover (hardware or account)
 

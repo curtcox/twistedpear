@@ -12,10 +12,16 @@ const run = process.argv.includes("--run");
 const write = process.argv.includes("--write");
 const allowRegressions = process.argv.includes("--allow-regressions");
 if (run) {
+  // Stryker runs the vitest suite once per mutant, and vitest's GitHub Actions
+  // reporter appends a job summary on every run. Left alone that accumulates
+  // megabytes and GitHub discards the whole summary ("upload aborted, supports
+  // content up to a size of 1024k"), losing the gate table run.mjs writes. The
+  // parent process keeps its own GITHUB_STEP_SUMMARY; only Stryker loses it.
+  const { GITHUB_STEP_SUMMARY: _discarded, ...env } = process.env;
   const result = spawnSync(
     process.execPath,
     ["node_modules/@stryker-mutator/core/bin/stryker.js", "run"],
-    { cwd: ROOT, stdio: "inherit" },
+    { cwd: ROOT, stdio: "inherit", env },
   );
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
