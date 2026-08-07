@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+import { concatGroupConfigs } from "./eslint.concat-groups.mjs";
 
 // Files that execute in a browser page: the Electron renderer, the web worklet
 // entry, and the conformance web entries together with the Playwright drivers
@@ -52,6 +53,15 @@ const ignores = [
   "conformance/web-storage/fixture.mjs",
   "apps/handbook/generated/**",
   "apps/handbook/seeds/**",
+  // Renderer bundles: third-party (jsQR, qrcode) plus peer-audio.js, which
+  // scripts/build-renderer-vendor.mjs builds from peer-audio-fsk.ts. None is
+  // hand-edited, and the one source that is ours is linted where it lives.
+  "apps/host-desktop/src/renderer/vendor/**",
+  // Concat inputs for worklet/entry.mjs and worklet/web-entry.mjs. Two of them
+  // split mid-object-literal and so do not parse alone; the assembled files are
+  // committed and linted, and carry the coverage for all of them.
+  "apps/harness-mobile/worklet/entry-part-*.mjs",
+  "apps/harness-mobile/worklet/web-entry-part-*.mjs",
 ];
 
 export default [
@@ -79,6 +89,8 @@ export default [
     files: bareGlobs,
     languageOptions: { globals: { Bare: "readonly", BareKit: "readonly" } },
   },
+  // Files concatenated into one script: each may use what its siblings declare.
+  ...concatGroupConfigs(),
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
