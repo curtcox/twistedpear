@@ -182,7 +182,7 @@ export async function handleHostMessageTailImpl(context, message) {
     return;
   }
   if (message.type === "launch-miniapp") {
-    const { installedStore: installed } = ensureCatalog();
+    const { installedStore: installed } = context.ensureCatalog();
     try {
       await context
         .ensureMiniappHost()
@@ -307,13 +307,13 @@ export async function handleHostMessageTailImpl(context, message) {
       }
       context.testAgent = await connectTestAgent({
         reticulum: node,
-        provider,
+        provider: context.provider,
         identity,
         label: message.label,
         platform: message.platform ?? "mobile",
         host: message.host,
         port: message.port,
-        log,
+        log: context.log,
         handleCommand: (request) =>
           context.ensureCrossDeviceTestDriver()(request),
         delivery: await context.ensureHostLxmfDelivery(),
@@ -346,12 +346,12 @@ export async function handleHostMessageTailImpl(context, message) {
   }
   if (message.type === "join-community-network") {
     await joinCommunityNetwork({
-      status,
-      pushStatus,
-      log,
+      status: context.status,
+      pushStatus: context.pushStatus,
+      log: context.log,
       communityNetwork: RETICULUM_COMMUNITY_NETWORK,
-      stopTcpInterface,
-      startTcpInterface,
+      stopTcpInterface: context.stopTcpInterface,
+      startTcpInterface: context.startTcpInterface,
       setPendingTarget: (target) => {
         context.pendingTarget = target;
       },

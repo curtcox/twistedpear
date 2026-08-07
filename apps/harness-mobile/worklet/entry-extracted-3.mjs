@@ -132,7 +132,7 @@ export async function startBleInterfaceImpl(context) {
   context.bleBridge = createIpcBleBridge(identity.hash);
   context.bleIface = await BleInterface.open(context.provider, {
     name: "harness-ble",
-    provider,
+    provider: context.provider,
     pipe: context.bleBridge,
   });
   node.registerInterface(context.bleIface);
@@ -167,7 +167,7 @@ export async function startRnodeInterfaceImpl(context) {
   });
   context.rnodeIface = await RNodeInterface.open(context.provider, {
     name: "harness-rnode",
-    provider,
+    provider: context.provider,
     pipe: context.serialBridge,
   });
   node.registerInterface(context.rnodeIface);

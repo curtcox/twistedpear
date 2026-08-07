@@ -173,6 +173,9 @@ const extractedContext = {
   get IDENTITY_STORE_KEY() {
     return IDENTITY_STORE_KEY;
   },
+  get IPC() {
+    return IPC;
+  },
   get activeIdentity() {
     return activeIdentity;
   },
@@ -208,6 +211,9 @@ const extractedContext = {
   },
   set autoIface(value) {
     autoIface = value;
+  },
+  get automaticReticulumChannel() {
+    return automaticReticulumChannel;
   },
   get bareWebSocketReady() {
     return bareWebSocketReady;
@@ -287,6 +293,9 @@ const extractedContext = {
   set ensureBareWebSocket(value) {
     ensureBareWebSocket = value;
   },
+  get ensureCatalog() {
+    return ensureCatalog;
+  },
   get ensureCrossDeviceTestDriver() {
     return ensureCrossDeviceTestDriver;
   },
@@ -298,6 +307,9 @@ const extractedContext = {
   },
   set ensureDevChannel(value) {
     ensureDevChannel = value;
+  },
+  get ensureEntryCasStore() {
+    return ensureEntryCasStore;
   },
   get ensureHostLxmfDelivery() {
     return ensureHostLxmfDelivery;
@@ -317,6 +329,9 @@ const extractedContext = {
   set ensurePackageDriveManager(value) {
     ensurePackageDriveManager = value;
   },
+  get ensurePeerLinkDestination() {
+    return ensurePeerLinkDestination;
+  },
   get ensurePeerSessionManager() {
     return ensurePeerSessionManager;
   },
@@ -328,6 +343,9 @@ const extractedContext = {
   },
   set ensureReticulum(value) {
     ensureReticulum = value;
+  },
+  get ensureTrustStore() {
+    return ensureTrustStore;
   },
   get freenetBackendImpl() {
     return freenetBackendImpl;
@@ -385,6 +403,9 @@ const extractedContext = {
   },
   set importTrustedPublisher(value) {
     importTrustedPublisher = value;
+  },
+  get inboundBandwidthLimiter() {
+    return inboundBandwidthLimiter;
   },
   get installFromT256() {
     return installFromT256;
@@ -530,6 +551,9 @@ const extractedContext = {
   set pendingTarget(value) {
     pendingTarget = value;
   },
+  get persistCatalogState() {
+    return persistCatalogState;
+  },
   get persistIdentity() {
     return persistIdentity;
   },
@@ -563,11 +587,17 @@ const extractedContext = {
   set publishArchiveFromWorklet(value) {
     publishArchiveFromWorklet = value;
   },
+  get pushCatalog() {
+    return pushCatalog;
+  },
   get pushStatus() {
     return pushStatus;
   },
   set pushStatus(value) {
     pushStatus = value;
+  },
+  get pushTrustList() {
+    return pushTrustList;
   },
   get quiesceInterfaces() {
     return quiesceInterfaces;

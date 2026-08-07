@@ -220,7 +220,7 @@ export async function handleHostMessageImpl(context, raw) {
     return;
   }
   if (message.type === "trust-list") {
-    await pushTrustList();
+    await context.pushTrustList();
     return;
   }
   if (message.type === "trust-add") {
@@ -236,12 +236,12 @@ export async function handleHostMessageImpl(context, raw) {
         `Trust add failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-    await pushTrustList();
+    await context.pushTrustList();
     return;
   }
   if (message.type === "trust-remove") {
-    await ensureTrustStore().remove(message.publisherPublicKey);
-    await pushTrustList();
+    await context.ensureTrustStore().remove(message.publisherPublicKey);
+    await context.pushTrustList();
     return;
   }
   if (message.type === "trust-show") {
@@ -256,7 +256,7 @@ export async function handleHostMessageImpl(context, raw) {
     return;
   }
   if (message.type === "list-catalog" || message.type === "list-installed") {
-    pushCatalog();
+    context.pushCatalog();
     return;
   }
   if (message.type === "install-app") {
@@ -275,7 +275,7 @@ export async function handleHostMessageImpl(context, raw) {
       return;
     }
     const { catalogStore: catalog, installedStore: installed } =
-      ensureCatalog();
+      context.ensureCatalog();
     const entry = catalog.get(message.appId);
     if (entry === null) {
       context.log(`Install failed: unknown app ${message.appId}`);
@@ -331,7 +331,7 @@ export async function handleHostMessageImpl(context, raw) {
         },
         archive.length,
       );
-      await persistCatalogState();
+      await context.persistCatalogState();
       context.send({
         type: "install-progress",
         progress: {
@@ -343,7 +343,7 @@ export async function handleHostMessageImpl(context, raw) {
           verified: true,
         },
       });
-      pushCatalog();
+      context.pushCatalog();
       context.log(
         `Installed ${entry.name} v${verified.manifest.version} via ${path} (verified)`,
       );
@@ -369,8 +369,8 @@ export async function handleHostMessageImpl(context, raw) {
           : null);
       if (publisherPublicKeyHex !== null) {
         resourceClient = new PackageResourceClient({
-          provider,
-          runtime,
+          provider: context.provider,
+          runtime: context.runtime,
           publisherPublicKeyHex,
           appName: entry.name,
           identity,
@@ -426,21 +426,21 @@ export async function handleHostMessageImpl(context, raw) {
     return;
   }
   if (message.type === "delete-package") {
-    const { installedStore: installed } = ensureCatalog();
+    const { installedStore: installed } = context.ensureCatalog();
     installed.remove(message.appId, message.version, 0);
-    void persistCatalogState();
-    pushCatalog();
+    void context.persistCatalogState();
+    context.pushCatalog();
     return;
   }
   if (message.type === "rollback-package") {
-    const { installedStore: installed } = ensureCatalog();
+    const { installedStore: installed } = context.ensureCatalog();
     const rolledBack = installed.rollback(message.appId);
     if (rolledBack === null) {
       context.log(`Rollback failed: no previous version for ${message.appId}`);
       return;
     }
-    void persistCatalogState();
-    pushCatalog();
+    void context.persistCatalogState();
+    context.pushCatalog();
     context.log(`Rolled back ${message.appId} to v${rolledBack}`);
     return;
   }

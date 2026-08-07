@@ -1,3 +1,4 @@
+/* global Buffer, clearTimeout, setTimeout */
 /**
  * Bare worklet entry (bundled with bare-pack for react-native-bare-kit).
  * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
@@ -365,7 +366,7 @@ export async function startFreenetInterfaceImpl(context) {
     });
     context.freenetIface = await FreenetInterface.open(context.provider, {
       name: "host-freenet",
-      provider,
+      provider: context.provider,
       backend,
     });
     node.registerInterface(context.freenetIface);
@@ -586,16 +587,16 @@ export async function ensureReticulumImpl(context) {
     throw new Error("Failed to resolve harness identity");
   }
   context.reticulum = Reticulum.create({
-    provider,
-    runtime,
-    inboundBandwidthLimiter,
-    outboundBandwidthLimiter,
+    provider: context.provider,
+    runtime: context.runtime,
+    inboundBandwidthLimiter: context.inboundBandwidthLimiter,
+    outboundBandwidthLimiter: context.outboundBandwidthLimiter,
   });
   context.reticulum.start();
   context.status.running = true;
   context.registerAnnounceHandler();
   const inbound = context.reticulum.registerDestination({
-    provider,
+    provider: context.provider,
     identity,
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
@@ -631,18 +632,18 @@ export async function ensureHostLxmfDeliveryImpl(context) {
   }
   context.hostLxmfDelivery = await createHostLxmfDelivery({
     reticulum: node,
-    provider,
+    provider: context.provider,
     identity,
     announceIntervalMs: 0,
     receiveSessionInvite: (invite) =>
       context.ensureMiniappHost().receiveSessionInvite(invite),
     isInvitableApp: (appId) => {
-      const { installedStore: installed } = ensureCatalog();
+      const { installedStore: installed } = context.ensureCatalog();
       return (
         installed.activeVersion(appId) !== undefined || appId === "line-check"
       );
     },
-    log,
+    log: context.log,
   });
   context.log(
     `Host LXMF delivery ready (${context.hostLxmfDelivery.lxmfAddress.slice(0, 12)}…)`,

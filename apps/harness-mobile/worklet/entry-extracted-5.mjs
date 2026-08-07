@@ -141,7 +141,7 @@ export function ensureMiniappHostImpl(context) {
           context.status.rnodeEnabled = patch.rnodeEnabled;
       },
       async applyInterfaceConfig() {
-        await applyInterfaceConfig();
+        await context.applyInterfaceConfig();
         context.relayBridge?.refresh();
         await context.persistRelayConfig();
       },
@@ -201,14 +201,14 @@ export function ensureMiniappHostImpl(context) {
     });
     context.relayService = relayService;
     context.miniappHost = createWorkletMiniappHost({
-      provider,
+      provider: context.provider,
       kvStore: context.runtimeKeyValueStore(),
       beeStoragePath: "miniapp-bee-store",
       defaultPlatform: "android",
       browserDeviceClasses: ["location", "camera", "microphone", "haptics"],
       enableBenchmark: true,
       async launchInstalledApp(appId) {
-        const { installedStore: installed } = ensureCatalog();
+        const { installedStore: installed } = context.ensureCatalog();
         await context
           .ensureMiniappHost()
           .launch(installed, context.runtime, appId);
@@ -247,7 +247,7 @@ export function ensureMiniappHostImpl(context) {
         return new SimulatedMediaCodecDriver();
       },
       openCasPlane: {
-        put: (frame) => ensureEntryCasStore().put(frame),
+        put: (frame) => context.ensureEntryCasStore().put(frame),
       },
       openWebRtcMediaPlane: createDelegatedWebRtcMediaPlaneOpener(
         (context.attachWebRtcMediaTrack = async ({ appId, peer, demand }) => {
@@ -385,7 +385,7 @@ export function ensureMiniappHostImpl(context) {
       announceService: context.transportAnnounceService,
       getPublisherIdentity: () => context.resolveIdentity(),
       publishArchive: context.publishArchiveFromWorklet,
-      installFromT256,
+      installFromT256: context.installFromT256,
       async requestUserConfirmation(request) {
         const reply = await context.requestHostReply({
           type: "confirm-request",
@@ -462,7 +462,7 @@ export function ensureMiniappHostImpl(context) {
           dropCensus: context.status.dropCensus ?? { byReason: {}, byPeer: {} },
         };
       },
-      send,
+      send: context.send,
       onDeveloperModeChange(enabled) {
         context.status.developerMode = enabled;
         context.pushStatus();

@@ -1,3 +1,4 @@
+/* global Buffer, Headers, setTimeout */
 /**
  * Bare worklet entry (bundled with bare-pack for react-native-bare-kit).
  * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
@@ -180,7 +181,7 @@ export async function importTrustedPublisherImpl(
   });
   if (confirmation?.approved !== true)
     throw new Error("Publisher trust import denied");
-  await ensureTrustStore().add({
+  await context.ensureTrustStore().add({
     publisherPublicKey,
     label,
     addedAt: Date.now(),
@@ -192,12 +193,12 @@ export function ensureCrossDeviceTestDriverImpl(context) {
   if (context.crossDeviceTestDriver === null) {
     const base = createCrossDeviceTestDriver({
       miniappHost: () => context.ensureMiniappHost(),
-      installedStore: () => ensureCatalog().installedStore,
-      runtime,
-      installFromT256,
+      installedStore: () => context.ensureCatalog().installedStore,
+      runtime: context.runtime,
+      installFromT256: context.installFromT256,
       importTrust: (identity256t, label) =>
         context.importTrustedPublisher(identity256t, label),
-      casStore: () => ensureEntryCasStore(),
+      casStore: () => context.ensureEntryCasStore(),
       sha512: (bytes) => context.provider.sha512(bytes),
       async publisherIdentity256t() {
         const identity = await context.resolveIdentity();
@@ -385,8 +386,8 @@ export async function ensurePackageDriveManagerImpl(context) {
     const { createSwarm, DriveManager } =
       await import("../../../packages/bridge-hyper/dist/worklet-hyper.js");
     context.packageSwarm = createSwarm({
-      inboundBandwidthLimiter,
-      outboundBandwidthLimiter,
+      inboundBandwidthLimiter: context.inboundBandwidthLimiter,
+      outboundBandwidthLimiter: context.outboundBandwidthLimiter,
     });
     context.packageDriveManager = new DriveManager({
       storagePath: "hyper-storage",
@@ -398,7 +399,7 @@ export async function ensurePackageDriveManagerImpl(context) {
 }
 
 export function sendImpl(context, message) {
-  IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
+  context.IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
 }
 
 export function peerTokenImpl(context) {

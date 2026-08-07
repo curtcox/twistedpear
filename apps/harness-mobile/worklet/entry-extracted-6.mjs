@@ -1,3 +1,4 @@
+/* global TextDecoder, TextEncoder, clearTimeout, setTimeout */
 /**
  * Bare worklet entry (bundled with bare-pack for react-native-bare-kit).
  * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
@@ -136,7 +137,7 @@ export async function ensurePeerSessionManagerImpl(context) {
   );
   registry.register(
     new ReticulumPeerDiscoveryAdapter({
-      channel: automaticReticulumChannel(identity),
+      channel: context.automaticReticulumChannel(identity),
       createSessionId: context.peerToken,
     }),
   );
@@ -234,7 +235,7 @@ export async function ensurePeerSessionManagerImpl(context) {
           `WebRTC signal unavailable: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
-      const destination = await ensurePeerLinkDestination(
+      const destination = await context.ensurePeerLinkDestination(
         identity,
         request.service,
       );
@@ -335,7 +336,7 @@ export async function ensurePeerSessionManagerImpl(context) {
       if (candidate === undefined || remoteIdentity === null)
         throw new Error("Authenticated Reticulum candidate is missing");
       const outbound = node.registerDestination({
-        provider,
+        provider: context.provider,
         identity: remoteIdentity,
         direction: DestinationDirection.OUT,
         type: DestinationType.SINGLE,
