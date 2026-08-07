@@ -24,6 +24,11 @@ export default [
       "site/**",
       "archive/**",
       "**/*.gen.ts",
+      // Concat inputs for worklet/entry.mjs; two split mid-object-literal and
+      // do not parse alone. Ignored in eslint.analysis.config.js for the same
+      // reason — the assembled files are what get checked.
+      "apps/harness-mobile/worklet/entry-part-*.mjs",
+      "apps/harness-mobile/worklet/web-entry-part-*.mjs",
     ],
   },
   {
