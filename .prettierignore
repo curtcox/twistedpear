@@ -29,6 +29,12 @@ apps/handbook/seeds/
 # Emitted by apps/handbook/build-reference.mjs
 apps/handbook/content/part-5-reference/
 
+# Emitted by scripts/generate-widget-schema.mjs, which conformance/widget-parity
+# compares byte-for-byte against JSON.stringify(schema, null, 2). Prettier
+# collapses short arrays, so formatting this file makes the drift check
+# unsatisfiable — the generator owns the format here.
+specs/spec-widget/schema/widget.schema.json
+
 # Assembled from entry-part-*.mjs / web-entry-part-*.mjs by assemble-worklet-entries.mjs
 apps/harness-mobile/worklet/entry.mjs
 apps/harness-mobile/worklet/web-entry.mjs
