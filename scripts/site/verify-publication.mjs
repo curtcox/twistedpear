@@ -9,6 +9,15 @@ function headSha() {
   return (result.stdout || "unknown").trim();
 }
 
+/**
+ * Provenance only: does the published summary describe this commit?
+ *
+ * Deliberately silent about whether the gates it reports passed. That is the
+ * Site checks workflow's job (.github/workflows/site-checks.yml, which reads
+ * summary.ok from the same artifact). Asserting it here too made a gate finding
+ * fail the Pages run, so the Actions list could not answer "did the site
+ * publish?" — the very split site-checks.yml exists to create.
+ */
 export function validatePublicationSummary(summary, expectedSha) {
   const errors = [];
   if (summary.commit !== expectedSha) {
@@ -24,7 +33,6 @@ export function validatePublicationSummary(summary, expectedSha) {
       );
     }
   }
-  if (!summary.ok) errors.push(`reported checks failed: ${(summary.failed ?? []).join(", ") || "unknown"}`);
   return errors;
 }
 
@@ -62,7 +70,7 @@ async function main() {
     for (const error of errors) console.error(error);
     process.exit(1);
   }
-  console.log(`Published analysis matches ${expectedSha} and all reported checks pass.`);
+  console.log(`Published analysis matches ${expectedSha}.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

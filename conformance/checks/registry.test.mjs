@@ -222,12 +222,14 @@ describe("static-analysis gate registry", () => {
         sha,
       ),
     ).toEqual([`lint provenance commit=${"b".repeat(40)}, branchSha=${sha}`]);
+    // A gate finding is Site checks' business, not the Pages publish check's.
+    // Reporting it here reddened Pages for a site that published correctly.
     expect(
       validatePublicationSummary(
         { ...summary, ok: false, failed: ["coverage"] },
         sha,
       ),
-    ).toEqual(["reported checks failed: coverage"]);
+    ).toEqual([]);
   });
 
   it("publishes every mutation outcome category", () => {
