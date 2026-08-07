@@ -161,8 +161,14 @@ async function testApp(browser, pageUrl, app) {
 
 runBuild();
 const apps = appNames();
-if (apps.length !== 25)
-  throw new Error(`expected 25 cookbook apps, found ${apps.length}`);
+// A floor, not an inventory: the point is to catch discovery returning nothing
+// or almost nothing, and every app found below is then exercised individually.
+// Pinning the exact count meant adding the 26th sample turned CI red.
+const MINIMUM_COOKBOOK_APPS = 25;
+if (apps.length < MINIMUM_COOKBOOK_APPS)
+  throw new Error(
+    `expected at least ${MINIMUM_COOKBOOK_APPS} cookbook apps, found ${apps.length}`,
+  );
 
 const server = await startStaticServer(pageRoot);
 const browser = await chromium.launch({ headless: true });
