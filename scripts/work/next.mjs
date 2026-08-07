@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { repoRoot } from "../doc-audit/repo-root.mjs";
 import { isActionable, loadWork, ranked } from "./lib.mjs";
-import { detail, explain, listFlag, oneLine, parseFlags } from "./render.mjs";
+import {
+  detail,
+  explain,
+  idWidth,
+  listFlag,
+  oneLine,
+  parseFlags,
+} from "./render.mjs";
 
 /**
  * @param {string} root
@@ -39,7 +46,8 @@ function main() {
 
   if (all) {
     console.log(`${candidates.length} item(s) unblocked, best first:\n`);
-    for (const item of candidates) console.log(oneLine(item));
+    const width = idWidth(candidates);
+    for (const item of candidates) console.log(oneLine(item, width));
     return;
   }
 

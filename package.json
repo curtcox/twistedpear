@@ -3,10 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "workspaces": ["packages/*", "apps/*"],
   "engines": {
     "node": ">=22 <23",
     "npm": ">=10"
@@ -256,7 +253,9 @@
     "formal:all": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs --all",
     "formal:symbolic:lint": "node formal/check-symbolic-models.mjs",
     "formal:tamarin": "node formal/run-symbolic-provers.mjs tamarin",
-    "formal:proverif": "node formal/run-symbolic-provers.mjs proverif"
+    "formal:proverif": "node formal/run-symbolic-provers.mjs proverif",
+    "work:import": "node scripts/work/import.mjs",
+    "work:retype": "node scripts/work/retype.mjs"
   },
   "overrides": {
     "js-yaml": "^4.3.1"

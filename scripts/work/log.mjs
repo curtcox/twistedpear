@@ -69,10 +69,16 @@ export function selectEvents(flags, root = repoRoot()) {
  */
 function describe(event) {
   const when = event.at.slice(0, 16).replace("T", " ");
-  const head = `${when}  ${event.action.padEnd(8)} ${event.id.padEnd(15)} ${event.actor}`;
+  const head = `${when}  ${event.action.padEnd(8)} ${event.id} (${event.actor})`;
+  if (event.action === "retype") {
+    return `${head}\n${" ".repeat(18)}${event.from} -> ${event.to}: ${event.reason}`;
+  }
   if (event.action !== "close") return head;
   if (event.verified === false) {
     return `${head}\n${" ".repeat(18)}unverified — ${event.reason}`;
+  }
+  if (event.verifiedFrom === "log") {
+    return `${head}\n${" ".repeat(18)}verified from log ${event.log} (${event.digest?.slice(0, 19)}…)`;
   }
   const minutes = Math.round((event.durationMs ?? 0) / 60000);
   return `${head}\n${" ".repeat(18)}verified in ${minutes} min — ${event.verify}`;

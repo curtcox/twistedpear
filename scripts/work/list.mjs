@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { repoRoot } from "../doc-audit/repo-root.mjs";
 import { isActionable, loadWork, ranked } from "./lib.mjs";
-import { listFlag, oneLine, parseFlags } from "./render.mjs";
+import { idWidth, listFlag, oneLine, parseFlags } from "./render.mjs";
 
 /**
  * @param {Record<string, string | boolean>} flags
@@ -54,8 +54,9 @@ function main() {
     `${items.length} item(s) remaining — ${ready.length} ready, ${blocked.length} blocked, ${items.length - ready.length - blocked.length} not open\n`,
   );
 
+  const width = idWidth(items);
   for (const item of items) {
-    console.log(oneLine(item));
+    console.log(oneLine(item, width));
     for (const blocker of item.blockers) {
       console.log(`${" ".repeat(8)}  ↳ ${blocker.reason}`);
     }
