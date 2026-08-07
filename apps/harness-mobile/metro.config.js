@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const harnessRoot = __dirname;
@@ -51,6 +52,38 @@ const packageAliases = {
   ),
 };
 
+/**
+ * tsconfig.json sets moduleResolution "NodeNext", which requires relative
+ * imports to carry the ".js" extension even when the file on disk is .ts/.tsx.
+ * Metro takes that extension literally and reports the module as missing, so
+ * retry the TypeScript sources when nothing answers to the ".js" itself.
+ *
+ * No file here has a platform-specific sibling (foo.web.tsx), so a direct
+ * extension swap is enough; add a platform pass here if that ever changes.
+ */
+function resolveTypeScriptSource(context, moduleName) {
+  if (!moduleName.startsWith(".") || !moduleName.endsWith(".js")) {
+    return null;
+  }
+
+  const target = path.resolve(
+    path.dirname(context.originModulePath),
+    moduleName,
+  );
+  if (fs.existsSync(target)) {
+    return null;
+  }
+
+  const stem = target.slice(0, -".js".length);
+  for (const extension of [".ts", ".tsx"]) {
+    if (fs.existsSync(`${stem}${extension}`)) {
+      return { type: "sourceFile", filePath: `${stem}${extension}` };
+    }
+  }
+
+  return null;
+}
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === "web" && webStubs[moduleName] !== undefined) {
     return { type: "sourceFile", filePath: webStubs[moduleName] };
@@ -62,6 +95,11 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 
   if (packageAliases[moduleName] !== undefined) {
     return { type: "sourceFile", filePath: packageAliases[moduleName] };
+  }
+
+  const typeScriptSource = resolveTypeScriptSource(context, moduleName);
+  if (typeScriptSource !== null) {
+    return typeScriptSource;
   }
 
   return context.resolveRequest(context, moduleName, platform);
