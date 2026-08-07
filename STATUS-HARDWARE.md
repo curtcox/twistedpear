@@ -38,31 +38,31 @@ Last audited: 2026-07-06.
 
 ## Register overview
 
-| #   | Needs                                 | Phases     | Deferred criterion                                                                     |
-| --- | ------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
-| H1  | 1 Android phone                       | 2          | M0 device slice, M1 device benchmarks, M2 backgrounding (basic)                        |
-| H2  | 2 Android phones                      | 2, 3, 4    | M3 real WiFi AutoInterface; M5 S3 BLE throughput + BLE-only LXMF 1 h                   |
-| H3  | Aggressive-OEM Android                | 2          | M2 foreground service 8 h under battery manager                                        |
-| H4  | RNode pair                            | 2, 3, 5, 6 | M6 USB/BLE RNode; LoRa E2E                                                             |
-| H5  | iPhone (optional Phase 2)             | 2          | None required — simulator sufficed for M8                                              |
-| H6  | Android + desktop on LAN              | 3          | M7 install from desktop seeder over AutoInterface                                      |
-| H7  | 2 Android phones                      | 3          | M7 BLE-only budget package install                                                     |
-| H8  | RNode pair                            | 3          | M4 live budget rule (block bulk / allow tiny over LoRa)                                |
-| H9  | 2 Android phones                      | 4          | Chat example LXMF over BLE-only, sandboxed                                             |
-| H10 | Android + desktop on LAN              | 4          | File-drop phone↔desktop over AutoInterface                                             |
-| H11 | Mid/low-tier Android                  | 4          | M2 watchdog tuning on weak hardware                                                    |
-| H12 | Paid Apple Developer account          | 5          | Multicast entitlement filed; device signing                                            |
-| H13 | 1 iPhone                              | 5          | M0–M2 device slices, permission prompts, background measurements                       |
-| H14 | iPhone + Android                      | 5          | M4 BLE 1 h incl. iOS background; visibility matrix                                     |
-| H15 | iPhone + desktop + Android on WiFi    | 5          | M3 Bonjour/multicast on real LAN                                                       |
-| H16 | iPhone + RNode                        | 5          | M4 RNode BLE + LoRa E2E from iOS                                                       |
-| H17 | Windows 10/11                         | 6          | host-desktop install + full loop                                                       |
-| H18 | 2 desktops + phone (+ iPhone) on WiFi | 6          | Real LAN discovery, desktop seed install, transport routing                            |
-| H19 | RNode pair + desktop USB              | 6          | Desktop USB serial gateway, LoRa E2E                                                   |
-| H20 | Always-on Linux server                | 6          | 2-week unattended `tp node` run                                                        |
-| H21 | 1 Android phone + desktop             | D          | Handbook device-gated probes (BLE / AutoInterface) + cross-device report diff          |
-| H22 | RNode pair + phone                    | D          | Handbook RNode serial applet pass on hardware                                          |
-| H23 | 2 phones + real ntfy service          | Relay      | Optical/acoustic/ntfy loopback, mixed-media relay, permission and attribution evidence |
+| ID  | Status   | Needs                                 | Phases     | Deferred criterion                                                                     |
+| --- | -------- | ------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| H1  | open     | 1 Android phone                       | 2          | M0 device slice, M1 device benchmarks, M2 backgrounding (basic)                        |
+| H2  | open     | 2 Android phones                      | 2, 3, 4    | M3 real WiFi AutoInterface; M5 S3 BLE throughput + BLE-only LXMF 1 h                   |
+| H3  | open     | Aggressive-OEM Android                | 2          | M2 foreground service 8 h under battery manager                                        |
+| H4  | open     | RNode pair                            | 2, 3, 5, 6 | M6 USB/BLE RNode; LoRa E2E                                                             |
+| H5  | deferred | iPhone (optional Phase 2)             | 2          | None required — simulator sufficed for M8                                              |
+| H6  | open     | Android + desktop on LAN              | 3          | M7 install from desktop seeder over AutoInterface                                      |
+| H7  | open     | 2 Android phones                      | 3          | M7 BLE-only budget package install                                                     |
+| H8  | open     | RNode pair                            | 3          | M4 live budget rule (block bulk / allow tiny over LoRa)                                |
+| H9  | open     | 2 Android phones                      | 4          | Chat example LXMF over BLE-only, sandboxed                                             |
+| H10 | open     | Android + desktop on LAN              | 4          | File-drop phone↔desktop over AutoInterface                                             |
+| H11 | open     | Mid/low-tier Android                  | 4          | M2 watchdog tuning on weak hardware                                                    |
+| H12 | open     | Paid Apple Developer account          | 5          | Multicast entitlement filed; device signing                                            |
+| H13 | open     | 1 iPhone                              | 5          | M0–M2 device slices, permission prompts, background measurements                       |
+| H14 | open     | iPhone + Android                      | 5          | M4 BLE 1 h incl. iOS background; visibility matrix                                     |
+| H15 | open     | iPhone + desktop + Android on WiFi    | 5          | M3 Bonjour/multicast on real LAN                                                       |
+| H16 | open     | iPhone + RNode                        | 5          | M4 RNode BLE + LoRa E2E from iOS                                                       |
+| H17 | open     | Windows 10/11                         | 6          | host-desktop install + full loop                                                       |
+| H18 | open     | 2 desktops + phone (+ iPhone) on WiFi | 6          | Real LAN discovery, desktop seed install, transport routing                            |
+| H19 | open     | RNode pair + desktop USB              | 6          | Desktop USB serial gateway, LoRa E2E                                                   |
+| H20 | open     | Always-on Linux server                | 6          | 2-week unattended `tp node` run                                                        |
+| H21 | open     | 1 Android phone + desktop             | D          | Handbook device-gated probes (BLE / AutoInterface) + cross-device report diff          |
+| H22 | open     | RNode pair + phone                    | D          | Handbook RNode serial applet pass on hardware                                          |
+| H23 | open     | 2 phones + real ntfy service          | Relay      | Optical/acoustic/ntfy loopback, mixed-media relay, permission and attribution evidence |
 
 ---
 

@@ -1,0 +1,423 @@
+{
+  "version": 1,
+  "items": {
+    "DOC-OPTIONAL-BACKLOG": {
+      "type": "docs",
+      "requires": [],
+      "verify": "npm run work:check",
+      "added": "2026-08-07",
+      "notes": "The 'Optional and non-blocking backlog' table in STATUS-SOFTWARE.md has no ID or Status column, so it is invisible to the register parser and to work:next. Either give the rows IDs with status deferred, or state in the doc that they are deliberately untracked."
+    },
+    "G1": {
+      "type": "release-gate",
+      "requires": [
+        "RQ-LINK",
+        "RQ-TRANSPORT",
+        "RQ-INTEGRATION",
+        "RQ-DIST",
+        "RQ-MIXED",
+        "RQ-MINIAPP",
+        "RQ-IOS",
+        "RQ-DESKTOP",
+        "RQ-RETICULUM"
+      ],
+      "verify": "npm run validate:mac -- --stage 8 --plan-duration",
+      "added": "2026-07-19"
+    },
+    "G2": {
+      "type": "release-gate",
+      "requires": [
+        "H1",
+        "H2",
+        "H3",
+        "H6",
+        "H7",
+        "H9",
+        "H10",
+        "H11",
+        "H18",
+        "H20",
+        "H21"
+      ],
+      "verify": "runbook:STATUS-HARDWARE.md#phase-exit-checklists",
+      "added": "2026-07-19"
+    },
+    "G3": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "npm run test:sim-campaign",
+      "added": "2026-07-19"
+    },
+    "G4": {
+      "type": "release-gate",
+      "requires": ["H9", "H11"],
+      "verify": "npm run test:hostile-apps",
+      "added": "2026-07-19"
+    },
+    "G5": {
+      "type": "release-gate",
+      "requires": ["H12"],
+      "verify": "runbook:RELEASE-PLAN.md#s7--packaging-and-release-candidate",
+      "added": "2026-07-19"
+    },
+    "G6": {
+      "type": "release-gate",
+      "requires": ["G1", "G2", "G3", "G4", "G5"],
+      "verify": "npm run test:doc-audit",
+      "added": "2026-07-19"
+    },
+    "G7": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "npm run test:hostile-apps",
+      "added": "2026-07-19"
+    },
+    "H1": {
+      "type": "feature",
+      "requires": ["res:android-phone-1"],
+      "verify": "runbook:STATUS-HARDWARE.md#h1-single-android-phone",
+      "added": "2026-07-06"
+    },
+    "H10": {
+      "type": "feature",
+      "requires": ["res:android-phone-1", "res:lan"],
+      "verify": "runbook:STATUS-HARDWARE.md#h10-file-drop-phonedesktop-over-autointerface",
+      "added": "2026-07-06"
+    },
+    "H11": {
+      "type": "feature",
+      "requires": ["res:android-phone-1"],
+      "verify": "runbook:STATUS-HARDWARE.md#h11-watchdog-on-weak-hardware",
+      "added": "2026-07-06"
+    },
+    "H12": {
+      "type": "feature",
+      "requires": ["res:apple-developer-account"],
+      "verify": "runbook:STATUS-HARDWARE.md#h12-paid-apple-developer-account",
+      "added": "2026-07-06"
+    },
+    "H13": {
+      "type": "feature",
+      "requires": ["res:iphone"],
+      "verify": "runbook:STATUS-HARDWARE.md#h13-iphone-dev-build",
+      "added": "2026-07-06"
+    },
+    "H14": {
+      "type": "feature",
+      "requires": ["res:iphone", "res:android-phone-1"],
+      "verify": "runbook:STATUS-HARDWARE.md#h14-iphone-android-ble",
+      "added": "2026-07-06"
+    },
+    "H15": {
+      "type": "feature",
+      "requires": ["res:iphone", "res:android-phone-1", "res:lan"],
+      "verify": "runbook:STATUS-HARDWARE.md#h15-real-lan-discovery-iphone",
+      "added": "2026-07-06"
+    },
+    "H16": {
+      "type": "feature",
+      "requires": ["res:iphone", "res:rnode-pair", "H4"],
+      "verify": "runbook:STATUS-HARDWARE.md#h16-iphone-rnode",
+      "added": "2026-07-06"
+    },
+    "H17": {
+      "type": "feature",
+      "requires": ["res:windows-machine"],
+      "verify": "runbook:STATUS-HARDWARE.md#h17-windows-1011",
+      "added": "2026-07-06"
+    },
+    "H18": {
+      "type": "feature",
+      "requires": ["res:second-desktop", "res:android-phone-1", "res:lan"],
+      "verify": "runbook:STATUS-HARDWARE.md#h18-real-wifi-lan-2-desktops-phone",
+      "added": "2026-07-06"
+    },
+    "H19": {
+      "type": "feature",
+      "requires": ["res:rnode-pair", "H4"],
+      "verify": "runbook:STATUS-HARDWARE.md#h19-rnode-usb-gateway-desktop",
+      "added": "2026-07-06"
+    },
+    "H2": {
+      "type": "feature",
+      "requires": ["res:android-phone-1", "res:android-phone-2", "res:lan"],
+      "verify": "runbook:STATUS-HARDWARE.md#h2-two-android-phones-on-wifi",
+      "added": "2026-07-06"
+    },
+    "H20": {
+      "type": "feature",
+      "requires": ["res:linux-server"],
+      "verify": "runbook:STATUS-HARDWARE.md#h20-always-on-server-2-weeks",
+      "added": "2026-07-06"
+    },
+    "H21": {
+      "type": "feature",
+      "requires": ["res:android-phone-1", "res:lan"],
+      "verify": "runbook:STATUS-HARDWARE.md#h21-handbook-device-gated-probes-phone-desktop",
+      "added": "2026-07-06"
+    },
+    "H22": {
+      "type": "feature",
+      "requires": ["res:rnode-pair", "res:android-phone-1"],
+      "verify": "runbook:STATUS-HARDWARE.md#h22-handbook-rnode-probe-phone-rnode",
+      "added": "2026-07-06"
+    },
+    "H23": {
+      "type": "feature",
+      "requires": [
+        "res:android-phone-1",
+        "res:android-phone-2",
+        "res:ntfy-service"
+      ],
+      "verify": "runbook:STATUS-HARDWARE.md#h23-relay-physical-media-and-live-ntfy-evidence",
+      "added": "2026-07-06"
+    },
+    "H3": {
+      "type": "feature",
+      "requires": ["res:android-phone-2"],
+      "verify": "runbook:STATUS-HARDWARE.md#h3-aggressive-oem-battery-manager",
+      "added": "2026-07-06"
+    },
+    "H4": {
+      "type": "feature",
+      "requires": ["res:rnode-pair", "res:android-phone-1"],
+      "verify": "runbook:STATUS-HARDWARE.md#h4-rnode-pair-lora",
+      "added": "2026-07-06"
+    },
+    "H5": {
+      "type": "feature",
+      "requires": ["res:iphone"],
+      "verify": "runbook:STATUS-HARDWARE.md#h5-iphone-phase-2-only",
+      "added": "2026-07-06",
+      "notes": "Not required for Phase 2 exit: the simulator sufficed for M8. iPhone work begins at H13."
+    },
+    "H6": {
+      "type": "feature",
+      "requires": ["res:android-phone-1", "res:lan"],
+      "verify": "runbook:STATUS-HARDWARE.md#h6-desktop-seeder-install-over-lan-autointerface",
+      "added": "2026-07-06"
+    },
+    "H7": {
+      "type": "feature",
+      "requires": ["res:android-phone-1", "res:android-phone-2", "H2"],
+      "verify": "runbook:STATUS-HARDWARE.md#h7-ble-only-package-install",
+      "added": "2026-07-06"
+    },
+    "H8": {
+      "type": "feature",
+      "requires": ["res:rnode-pair", "H4"],
+      "verify": "runbook:STATUS-HARDWARE.md#h8-rnode-live-budget-rule",
+      "added": "2026-07-06"
+    },
+    "H9": {
+      "type": "feature",
+      "requires": ["res:android-phone-1", "res:android-phone-2", "H2"],
+      "verify": "runbook:STATUS-HARDWARE.md#h9-chat-example-over-ble-only",
+      "added": "2026-07-06"
+    },
+    "PD-AI": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm run test:devstudio-loop",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "apps/devstudio/bundle.js",
+        "conformance/devstudio-loop/run.mjs"
+      ]
+    },
+    "PD-BANDWIDTH": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/reticulum-ts/test/bandwidth-limiter.test.ts packages/bridge-hyper/test/gateway-bulk-fetch.test.ts",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/reticulum-ts/src/transport/bandwidth.ts",
+        "packages/bridge-hyper/src/core/swarm.ts"
+      ]
+    },
+    "PD-BOOTSTRAP": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/community-network.test.ts conformance/ui-invariants/community-network.test.mjs",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/host-core/src/community-network.ts",
+        "docs/community-network.md"
+      ]
+    },
+    "PD-LOCATOR": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/cas-256t/test/cas-256t.test.ts && npm run test:devstudio-loop",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/cas-256t/src/locator.ts",
+        "conformance/devstudio-loop/run.mjs"
+      ]
+    },
+    "PD-QR": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run conformance/ui-invariants/desktop-qr.test.mjs && npm run build --workspace=host-desktop",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": ["conformance/ui-invariants/desktop-qr.test.mjs"]
+    },
+    "PD-WORKSPACE": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/workspace-ai.test.ts && npm run test:devstudio-loop",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/miniapp-runtime/test/workspace-ai.test.ts",
+        "conformance/devstudio-loop/run.mjs"
+      ]
+    },
+    "RELAY": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm test -- packages/host-core/test/interface-manager.test.ts packages/host-core/test/bridge-forwarder.test.ts packages/host-core/test/ntfy-interface.test.ts packages/host-core/test/relay-vectors.test.ts packages/reticulum-interfaces/test/optical-interface.test.ts packages/reticulum-interfaces/test/acoustic-interface.test.ts packages/miniapp-runtime/test/relay.test.ts",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/host-core/test/",
+        "packages/reticulum-interfaces/test/",
+        "packages/miniapp-runtime/test/relay.test.ts"
+      ]
+    },
+    "RG2": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/identity-backup.test.ts packages/cli/test/identity.test.ts && npm run build --workspace=host-desktop",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/host-core/test/identity-backup.test.ts",
+        "packages/cli/test/identity.test.ts"
+      ]
+    },
+    "RG3": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/protocol/test/lxmf-moderation.test.ts packages/lxmf-ts/test/router.test.ts packages/host-core/test/moderation-store.test.ts",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/protocol/test/lxmf-moderation.test.ts",
+        "packages/lxmf-ts/test/router.test.ts",
+        "packages/host-core/test/moderation-store.test.ts"
+      ]
+    },
+    "RG4": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/lxmf-ts/test/multipart.test.ts packages/lxmf-ts/test/router.test.ts packages/host-core/test/multipart-checkpoint-store.test.ts",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/lxmf-ts/test/multipart.test.ts",
+        "packages/lxmf-ts/test/router.test.ts",
+        "packages/host-core/test/multipart-checkpoint-store.test.ts"
+      ]
+    },
+    "RG5": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-sdk/test/ai.test.ts packages/miniapp-runtime/test/workspace-ai.test.ts packages/miniapp-runtime/test/host.test.ts",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/miniapp-sdk/test/ai.test.ts",
+        "packages/miniapp-runtime/test/workspace-ai.test.ts",
+        "packages/miniapp-runtime/test/host.test.ts"
+      ]
+    },
+    "RG7": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-sdk/test/ai.test.ts packages/miniapp-runtime/test/workspace-ai.test.ts conformance/cookbook/cookbook.test.mjs",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": [
+        "packages/miniapp-sdk/test/ai.test.ts",
+        "packages/miniapp-runtime/test/workspace-ai.test.ts",
+        "cookbook/apps/ask-the-handbook/"
+      ]
+    },
+    "RQ-DESKTOP": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "SOAK_DURATION_MS=300000 DESKTOP_SOAK_CYCLES=864 npm run test:desktop-soak",
+      "added": "2026-07-31"
+    },
+    "RQ-DIST": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "SOAK_DURATION_MS=86400000 npm run test:dist-soak",
+      "added": "2026-07-31"
+    },
+    "RQ-INTEGRATION": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "SOAK_DURATION_MS=86400000 npm run test:integration-soak",
+      "added": "2026-07-31"
+    },
+    "RQ-IOS": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "SOAK_DURATION_MS=86400000 IOS_LIFECYCLE_CYCLES=100 npm run test:ios-soak:required",
+      "added": "2026-07-31"
+    },
+    "RQ-LINK": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "LINK_SOAK_DURATION_MS=3600000 npm run test:link-soak",
+      "added": "2026-07-31"
+    },
+    "RQ-MINIAPP": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "SOAK_DURATION_MS=86400000 npm run test:miniapp-soak",
+      "added": "2026-07-31"
+    },
+    "RQ-MIXED": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "SOAK_DURATION_MS=86400000 npm run test:mixed-network-soak",
+      "added": "2026-07-31"
+    },
+    "RQ-RETICULUM": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "npm run release:status",
+      "added": "2026-07-31"
+    },
+    "RQ-TRANSPORT": {
+      "type": "release-gate",
+      "requires": [],
+      "verify": "TRANSPORT_SOAK_DURATION_MS=259200000 npm run test:transport-node-soak",
+      "added": "2026-07-31"
+    },
+    "S0": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm run test:release-harness && npm run release:status",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": ["scripts/release/"]
+    },
+    "S1": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm run build && npm test",
+      "added": "2026-07-20",
+      "completed": "2026-07-20",
+      "evidence": ["STATUS-COMPLETE.md"]
+    }
+  }
+}

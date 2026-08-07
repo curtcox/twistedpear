@@ -42,6 +42,18 @@ The exact manual commands, monitoring criteria, and CI dispatch inputs live in
 [the Mac validation runbook](docs/mac-validation.md#stage-8--soaks-tiered) and
 [CI policy](docs/ci-policy.md#nightly-schedule-nightlyyml).
 
+## Backlog
+
+Tracked work that is not a release-qualification soak. Add rows with
+`npm run work:add` rather than by hand — the classification, prerequisites, and
+verification command for each ID live in [work/metadata.json](work/metadata.json),
+and `npm run work:next` picks the next item from this table. See
+[work tracking](docs/work-tracking.md).
+
+| ID                   | Status | Item                                                    | Evidence | Verify               |
+| -------------------- | ------ | ------------------------------------------------------- | -------- | -------------------- |
+| DOC-OPTIONAL-BACKLOG | open   | Give the optional/non-blocking backlog rows tracked IDs | —        | `npm run work:check` |
+
 ## Optional and non-blocking backlog
 
 These items are explicitly outside the release exit criteria.

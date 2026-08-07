@@ -15,6 +15,7 @@ capability broker on desktop, mobile, web, and headless hosts.
 - Human/project overview: `README.md`
 - Canonical documentation index: `docs/README.md`
 - Domain terms: `docs/glossary.md` (developer) and `guide/glossary.md` (user-facing)
+- What to work on next: `npm run work:next` (see `docs/work-tracking.md`)
 - Current work: `STATUS-SOFTWARE.md`
 - Hardware/account-gated work: `STATUS-HARDWARE.md`
 - Known limitations: `LIMITATIONS.md`
@@ -44,6 +45,24 @@ a row to `archive/README.md`.
 `npm run test:doc-audit` enforces this: missing/invalid `tp-doc`, a `historical` document
 outside `archive/`, a non-historical document inside it, a one-sided `counterpart:`, or a
 `planned` document with no link to a `live` one all fail.
+
+## Tracked work
+
+Register rows in `STATUS-*.md` and `RELEASE-PLAN.md` carry an ID and a status. What
+kind of work each ID is, what it waits on, and how it is verified live in
+`work/metadata.json` and `work/resources.json`.
+
+```sh
+npm run work:next     # best unblocked item, and the reason it won
+npm run work:list     # everything remaining, with blocking reasons
+npm run work:log      # what changed recently, and what was actually verified
+```
+
+Add work with `npm run work:add` and close it with `npm run work:done`. Both are
+required: `work:done` runs the item's recorded verification command and refuses to
+close on a non-zero exit, and `npm run work:check` (part of `test:doc-audit`) fails
+on any `done` row with no corresponding entry in the append-only journal. Full rules
+in `docs/work-tracking.md`.
 
 ## Safe default loop
 
@@ -104,6 +123,8 @@ focused tests.
   baseline. See `docs/file-sizes.md`.
 - Do not edit `archive/` except for broken links.
 - Do not change completed/software/hardware status registers merely to make a test pass.
+  Do not hand-edit a `Status` cell at all — use `npm run work:done`, which requires
+  evidence and runs the verification command. A hand-flipped row fails `work:check`.
 - Do not weaken capability, signature, sandbox, budget, or store-posture checks.
 
 ## Generated and committed outputs

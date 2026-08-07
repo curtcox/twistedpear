@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "resources": {
+    "android-phone-1": {
+      "available": false,
+      "note": "1 used Android phone (API 31+, USB host)"
+    },
+    "android-phone-2": {
+      "available": false,
+      "note": "2nd Android phone, different OEM if possible"
+    },
+    "apple-developer-account": {
+      "available": false,
+      "note": "paid Apple Developer account (multicast entitlement, device signing)"
+    },
+    "iphone": {
+      "available": false,
+      "note": "1 iPhone (borrowed is fine)"
+    },
+    "lan": {
+      "available": false,
+      "note": "real Wi-Fi LAN with two or more machines"
+    },
+    "linux-server": {
+      "available": false,
+      "note": "spare always-on Linux box"
+    },
+    "ntfy-service": {
+      "available": false,
+      "note": "disposable self-hosted ntfy topic reachable from two phones"
+    },
+    "rnode-pair": {
+      "available": false,
+      "note": "RNode pair (LoRa) with USB and BLE"
+    },
+    "second-desktop": {
+      "available": false,
+      "note": "2nd desktop or laptop for LAN tests"
+    },
+    "windows-machine": {
+      "available": false,
+      "note": "Windows 10/11 machine"
+    }
+  }
+}

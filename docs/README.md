@@ -72,6 +72,12 @@ The status documents are intentionally disjoint: completed evidence belongs in
 [`archive/`](../archive/README.md) preserves design rationale and acceptance criteria; it
 does not override those registers, and it does not describe current behaviour.
 
+Those registers are read and written by the `work:*` commands rather than by hand:
+`npm run work:next` picks the next unblocked item, `npm run work:add` and
+`npm run work:done` change rows, and `npm run work:log` / `npm run work:diff` review
+what changed. See [work tracking](work-tracking.md) for the classification,
+prerequisite, and verification rules those commands enforce.
+
 [Reader-guide remaining work](reader-guide-plan.md) is a work order derived from the
 feature-status appendices of the [User Guide](../guide/appendix-feature-status.md),
 [App Authoring Guide](../authors/appendix-feature-status.md), and
