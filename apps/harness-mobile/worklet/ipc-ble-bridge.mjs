@@ -1,3 +1,4 @@
+/* global Buffer */
 /**
  * BlePipe for the Bare worklet — GATT lives in the RN host native module;
  * this adapter forwards byte I/O over bare-kit IPC.

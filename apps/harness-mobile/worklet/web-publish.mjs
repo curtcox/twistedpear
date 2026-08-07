@@ -1,3 +1,4 @@
+/* global TextEncoder */
 import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData,

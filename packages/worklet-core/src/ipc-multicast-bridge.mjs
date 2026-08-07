@@ -1,3 +1,4 @@
+/* global Buffer */
 /**
  * MulticastBridge for the Bare worklet — UDP6 lives in the RN host native module;
  * this adapter forwards operations over bare-kit IPC.

@@ -1,3 +1,4 @@
+/* global TextEncoder */
 /**
  * Mini-app announce publish/subscribe over Reticulum destinations.
  *

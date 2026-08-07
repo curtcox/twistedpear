@@ -1,3 +1,4 @@
+/* global TextEncoder, performance, setTimeout */
 import {
   KvStorageBeeBackend,
   MiniappHost,

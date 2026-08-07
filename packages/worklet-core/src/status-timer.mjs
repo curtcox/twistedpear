@@ -1,3 +1,4 @@
+/* global clearInterval, setInterval */
 /**
  * Periodic status push timer. `onTick` is the per-host pushStatus body.
  */

@@ -1,3 +1,4 @@
+/* global TextDecoder, clearTimeout, setTimeout */
 /**
  * Local TCP dev side-load channel (Phase 4 M6).
  * Connects to `tp dev` and forwards dev-bundle payloads to the mini-app host.

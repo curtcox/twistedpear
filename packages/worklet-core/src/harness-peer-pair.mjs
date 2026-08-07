@@ -1,3 +1,4 @@
+/* global setTimeout */
 /**
  * Test-agent-only manual pairing bus: exchange invitation codes over the
  * control channel instead of trusted chrome UI, and auto-approve confirm.

@@ -1,3 +1,4 @@
+/* global console */
 /**
  * BareKit worklet prelude: register crash absorbers before any other module runs.
  * Kept as the bare-pack entry so listeners exist before entry.mjs imports evaluate.

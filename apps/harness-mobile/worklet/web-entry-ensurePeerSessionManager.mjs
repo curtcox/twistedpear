@@ -1,3 +1,4 @@
+/* global TextDecoder, TextEncoder */
 /**
  * Browser core Web Worker (Phase W1/W2). Leaf peer + mini-app runtime via main-thread sandbox relay.
  */

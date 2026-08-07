@@ -1,3 +1,4 @@
+/* global Buffer */
 /**
  * SerialPipe for the Bare worklet — USB serial lives in the host native layer
  * (Electron main or RN native module); this adapter forwards byte I/O over BareKit IPC.

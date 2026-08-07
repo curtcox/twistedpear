@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global Buffer */
 /**
  * Bonjour IPC bridge for the Bare worklet — mDNS lives in the RN host native module.
  */

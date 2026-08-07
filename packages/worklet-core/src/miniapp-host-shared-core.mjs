@@ -1,3 +1,4 @@
+/* global TextEncoder, clearInterval, setInterval, setTimeout */
 import {
   CAPABILITY_DEFINITIONS,
   GrantStore,

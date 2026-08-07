@@ -1,3 +1,4 @@
+/* global setTimeout */
 import {
   buildUnsignedManifest,
   packPackage,

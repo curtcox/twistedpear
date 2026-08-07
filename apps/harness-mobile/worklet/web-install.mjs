@@ -1,3 +1,4 @@
+/* global setTimeout */
 import {
   TrustStore,
   unpackPackage,

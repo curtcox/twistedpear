@@ -1,3 +1,4 @@
+/* global clearTimeout, setTimeout */
 /**
  * Tokenized request/reply channel over a host IPC `send` function.
  * Used for confirmations, device-bridge, peer chrome, and launch review.

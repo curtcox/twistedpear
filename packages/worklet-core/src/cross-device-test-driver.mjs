@@ -1,3 +1,4 @@
+/* global TextEncoder, setTimeout */
 /**
  * Host-side implementation of the cross-device development test commands.
  * It drives the real DevStudio mini-app through widget events; confirmations
