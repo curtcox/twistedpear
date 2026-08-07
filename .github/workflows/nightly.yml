@@ -108,9 +108,16 @@ jobs:
           path: conformance/sim-campaign/artifacts
           if-no-files-found: error
 
+  # The soak jobs below take their duration from a workflow_dispatch input whose
+  # plan-level targets run to 72 h, and their timeouts were written to match
+  # (1500 and 4500 minutes). GitHub stops a job on a hosted runner at 6 h no
+  # matter what timeout-minutes says, so those values only ever described an
+  # intent — 350 is the largest that can actually be honoured. On the nightly
+  # schedule these run the 300000 ms default and finish in under ten minutes; a
+  # soak that genuinely needs longer than 6 h needs a self-hosted runner.
   dist-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 1500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -158,7 +165,7 @@ jobs:
 
   miniapp-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 1500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -172,7 +179,7 @@ jobs:
 
   web-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 1500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -212,7 +219,7 @@ jobs:
 
   integration-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 1500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -227,7 +234,7 @@ jobs:
 
   mixed-network-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 1500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -298,7 +305,7 @@ jobs:
 
   desktop-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 4500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -346,7 +353,7 @@ jobs:
 
   link-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 1500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -361,7 +368,7 @@ jobs:
 
   transport-node-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 4500
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
