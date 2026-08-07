@@ -303,4 +303,10 @@ function startStaticServer(root) {
     });
   });
 }
-export { waitForTree, launchCookbookApp, readAppAssets, startStaticServer };
+export {
+  treeText,
+  waitForTree,
+  launchCookbookApp,
+  readAppAssets,
+  startStaticServer,
+};

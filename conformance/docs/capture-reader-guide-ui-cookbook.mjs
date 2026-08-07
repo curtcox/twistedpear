@@ -7,6 +7,7 @@ import {
   repoRoot,
   rendererHtml,
   startStaticServer,
+  treeText,
   waitForTree,
 } from "./capture-reader-guide-ui-lib.mjs";
 
