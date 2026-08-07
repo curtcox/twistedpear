@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "engines": {
     "node": ">=22 <23",
     "npm": ">=10"
@@ -255,7 +258,10 @@
     "formal:tamarin": "node formal/run-symbolic-provers.mjs tamarin",
     "formal:proverif": "node formal/run-symbolic-provers.mjs proverif",
     "work:import": "node scripts/work/import.mjs",
-    "work:retype": "node scripts/work/retype.mjs"
+    "work:retype": "node scripts/work/retype.mjs",
+    "release:soak-status": "node scripts/release/soak-status.mjs",
+    "release:resume-soaks": "node scripts/release/start-soaks.mjs --resume",
+    "release:record-soaks": "node scripts/release/record-soaks.mjs"
   },
   "overrides": {
     "js-yaml": "^4.3.1"

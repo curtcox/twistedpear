@@ -33,6 +33,7 @@ import {
   readSeederArchive,
 } from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
+import { soakProgress } from "../soak-progress.mjs";
 
 const fixtureAppSource = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -157,7 +158,9 @@ async function main() {
     let driveKey = null;
     const startedAt = Date.now();
 
+    const progress = soakProgress({ total: SOAK_DURATION_MS });
     while (Date.now() - startedAt < SOAK_DURATION_MS) {
+      progress.report(Date.now() - startedAt);
       const version = cycle === 0 ? "1.0.0" : `1.0.${cycle}`;
       if (cycle === 0) {
         const code = await runPublish({

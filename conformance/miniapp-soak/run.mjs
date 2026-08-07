@@ -17,6 +17,7 @@ import {
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
+import { soakProgress } from "../soak-progress.mjs";
 
 const examplesDir = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -187,7 +188,9 @@ async function main() {
   let interfaceFlaps = 0;
 
   try {
+    const progress = soakProgress({ total: SOAK_DURATION_MS });
     while (Date.now() - started < SOAK_DURATION_MS) {
+      progress.report(Date.now() - started);
       const flap = interfaceFlaps % 2 === 0;
       for (const example of packed) {
         await cycleApp(host, example, flap);

@@ -2,7 +2,7 @@
   "schema": "twistedpear.release-evidence-v1",
   "id": "soaks:plan-duration",
   "status": "started",
-  "at": "2026-07-20T21:56:57.899Z",
-  "log": ".tmp/mac-validation/release-2026-07-20T21-56-57-896Z/release-start.log",
+  "at": "2026-08-07T22:56:06.389Z",
+  "log": ".tmp/mac-validation/release-2026-08-07T22-56-06-386Z/release-start.log",
   "note": "Stage-8 serial plan-duration runner started"
 }

@@ -31,6 +31,7 @@ import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbo
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 import { runBareLifecycleSliceProcess } from "../scenarios/bare/runner-host.mjs";
 import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
+import { soakProgress } from "../soak-progress.mjs";
 
 const chatExample = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -192,9 +193,12 @@ async function miniappChurn(durationMs) {
       verified.manifest.capabilities,
     );
 
-    const deadline = Date.now() + durationMs;
+    const startedAt = Date.now();
+    const deadline = startedAt + durationMs;
     let cycles = 0;
+    const progress = soakProgress({ total: durationMs });
     while (Date.now() < deadline) {
+      progress.report(Date.now() - startedAt);
       await miniappHost.launch(installed, runtime, entry.appId);
       await miniappHost.suspend("ios-soak");
       await miniappHost.resume();

@@ -14,7 +14,14 @@ const timeoutMs = Number.parseInt(SOAK_DURATION_MS, 10) + 60_000;
 
 const result = spawnSync(
   "npm",
-  ["test", "--", "packages/reticulum-interfaces/test/integration-soak.test.ts"],
+  [
+    "test",
+    "--",
+    "packages/reticulum-interfaces/test/integration-soak.test.ts",
+    // Without this vitest buffers console output until the test ends, which for
+    // a 24 h plan-duration run means no progress heartbeat for a full day.
+    "--disable-console-intercept",
+  ],
   {
     cwd: repoRoot,
     stdio: "inherit",

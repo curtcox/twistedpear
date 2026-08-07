@@ -25,6 +25,7 @@ import {
   waitForReadyLine,
   TRANSPORT_HUB_PORT,
 } from "../scenarios/ts/harness.mjs";
+import { soakProgress } from "../soak-progress.mjs";
 
 if (!interopReady()) {
   console.log("transport-node-soak: skipped (set INTEROP=1 with docker)");
@@ -166,7 +167,9 @@ async function main() {
       const started = Date.now();
       let cycles = 0;
 
+      const progress = soakProgress({ total: DURATION_MS });
       while (Date.now() - started < DURATION_MS) {
+        progress.report(Date.now() - started);
         const label = `transport-soak-${cycles}`;
         const receipt = await bobOut.send(new TextEncoder().encode(label), {
           createReceipt: true,
