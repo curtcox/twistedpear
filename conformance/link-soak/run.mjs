@@ -122,19 +122,16 @@ async function main() {
         throw new Error(`link closed unexpectedly after ${pings} pings`);
       }
 
-      const echo =
-        new Promise() <
-        string >
-        ((resolve, reject) => {
-          const timer = setTimeout(
-            () => reject(new Error("link echo timeout")),
-            10_000,
-          );
-          link.callbacks.packet = (data) => {
-            clearTimeout(timer);
-            resolve(new TextDecoder().decode(data));
-          };
-        });
+      const echo = new Promise((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("link echo timeout")),
+          10_000,
+        );
+        link.callbacks.packet = (data) => {
+          clearTimeout(timer);
+          resolve(new TextDecoder().decode(data));
+        };
+      });
 
       const label = `soak-${pings}`;
       await link.send(new TextEncoder().encode(label));
