@@ -55,21 +55,39 @@ if (!result.stdout?.trim()) {
   process.stderr.write(result.stderr ?? "");
   process.exit(result.status ?? 1);
 }
+/**
+ * Rules whose findings may never enter a baseline.
+ *
+ * A complexity or file-size finding describes code that works and could be
+ * tidier, which is what a ratchet is for. no-undef describes an identifier that
+ * resolves to nothing: every one is a ReferenceError waiting for the line to
+ * run. Grandfathering them is how the lint gate reported pass while the web and
+ * mobile worklets could not send a single message (0a71a4e6, b44e9ada).
+ */
+const UNRATCHETABLE = new Set(kind === "lint" ? ["no-undef"] : []);
+
 const reports = JSON.parse(result.stdout);
 const findings = [];
 const structured = [];
+const blocking = [];
+const parseErrors = [];
 const occurrences = new Map();
 for (const report of reports) {
   const file = path.relative(ROOT, report.filePath).split(path.sep).join("/");
   for (const message of report.messages) {
+    // A parse error carries no ruleId, so the skip below would drop it and the
+    // file would be reported clean because nothing in it could be analysed.
+    if (message.fatal === true) {
+      parseErrors.push(`${file}:${message.line}: ${message.message}`);
+      continue;
+    }
     if (!message.ruleId || message.severity === 0) continue;
     const normalized = message.message.replace(/\d+(?:\.\d+)?/g, "#");
     const baseFingerprint = `${file}:${message.ruleId}:${normalized}`;
     const occurrence = (occurrences.get(baseFingerprint) ?? 0) + 1;
     occurrences.set(baseFingerprint, occurrence);
     const fingerprint = `${baseFingerprint}:occurrence-${occurrence}`;
-    findings.push(fingerprint);
-    structured.push({
+    const entry = {
       file,
       line: message.line,
       column: message.column,
@@ -77,7 +95,13 @@ for (const report of reports) {
       severity: message.severity,
       message: message.message,
       fingerprint,
-    });
+    };
+    structured.push(entry);
+    if (UNRATCHETABLE.has(message.ruleId)) {
+      blocking.push(`${file}:${message.line}: ${message.message}`);
+      continue;
+    }
+    findings.push(fingerprint);
   }
 }
 writeJson(path.join(ROOT, settings.output), {
@@ -97,6 +121,21 @@ const comparison = compareDiagnosticSet({
 });
 if (write) {
   console.log(`${kind}: wrote ${findings.length} baseline fingerprints.`);
-} else if (!printDiagnosticResult(kind, comparison)) {
+}
+
+// Reported after --write too: rewriting the baseline must not bury these.
+for (const [label, entries] of [
+  ["parse error", parseErrors],
+  ["unratchetable finding", blocking],
+]) {
+  if (entries.length === 0) continue;
+  console.error(`\n${kind}: ${entries.length} ${label}(s) — these cannot be`);
+  console.error(`baselined and must be fixed:`);
+  for (const entry of entries.slice(0, 50)) console.error(`  ${entry}`);
+  if (entries.length > 50)
+    console.error(`  … and ${entries.length - 50} more.`);
+}
+if (parseErrors.length > 0 || blocking.length > 0) process.exit(1);
+if (!write && !printDiagnosticResult(kind, comparison)) {
   process.exit(1);
 }
