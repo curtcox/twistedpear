@@ -120,3 +120,25 @@ jobs:
           name: cross-device-dev-proof
           path: .tmp/cross-device-dev
           if-no-files-found: error
+
+  cross-device-dev-matrix:
+    # The full device matrix, on the same Mac lab. Moved here from nightly.yml:
+    # on a schedule it waited out the 24h queue limit every night, because no
+    # self-hosted runner carries these labels yet.
+    runs-on: [self-hosted, macOS, twistedpear-emulator-lab]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run test:cross-device-dev:matrix -- --build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-device-dev-matrix-proof
+          path: .tmp/cross-device-dev
+          if-no-files-found: error

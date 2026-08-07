@@ -80,28 +80,15 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run build
       - run: node scripts/checks/run.mjs --tier=pr --only=properties
         env:
           PROPERTY_RUNS: "2000"
 
-  cross-device-dev-matrix:
-    runs-on: [self-hosted, macOS, twistedpear-emulator-lab]
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install chromium
-      - run: npm run test:cross-device-dev:matrix -- --build
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cross-device-dev-matrix-proof
-          path: .tmp/cross-device-dev
-          if-no-files-found: error
+  # cross-device-dev-matrix lives in emulator.yml, not here. It needs the
+  # self-hosted Mac lab, and no such runner is registered; on a schedule the job
+  # just waits out the 24h queue limit and fails, holding a slot the whole time.
+  # emulator.yml is workflow_dispatch, so it only waits when someone asks for it.
 
   simulation-campaign:
     runs-on: ubuntu-latest
@@ -290,21 +277,24 @@ jobs:
 
   ios-soak:
     runs-on: macos-15
-    timeout-minutes: 1500
+    # GitHub's macOS runners have no Docker, so the leaf-echo peer comes from
+    # the native Python RNS path that ios-sim already uses, not docker compose.
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - run: npm ci
-      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
-      - run: npm run test:ios-soak:required
+      - run: python3 -m pip install "rns==0.9.5"
+      - run: bash conformance/scenarios/with-leaf-echo-peer.sh npm run test:ios-soak:required
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
           IOS_LIFECYCLE_CYCLES: "100"
-      - if: always()
-        run: docker compose -f conformance/docker/docker-compose.yml down
 
   desktop-soak:
     runs-on: ubuntu-latest
