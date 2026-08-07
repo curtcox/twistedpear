@@ -474,7 +474,7 @@ export async function runHandbookMobileSlice(options) {
             new RegExp(`\\b${applet.id}:`).test(value),
           ) ?? "");
     const status = rowText.split(":").pop()?.trim().toLowerCase() ?? "missing";
-    assertAppletStatusMatchesExpectation(applet, status, platform);
+    assertAppletStatusMatchesExpectation(applet, status, platform, rowText);
   }
   console.log(
     `handbook-mobile/${effectiveLabel}: software-tier applets passed`,

@@ -23,11 +23,14 @@ export function expectedStatusForPlatform(applet, platform) {
  * @param {object} applet catalog applet entry
  * @param {string} actualStatus pass | fail | unavailable | not-granted | skipped
  * @param {string} platform android | ios | desktop | web | node
+ * @param {string} [reported] the rendered result line, quoted in the failure so
+ *   the applet's own `details` reaches the log instead of just its status
  */
 export function assertAppletStatusMatchesExpectation(
   applet,
   actualStatus,
   platform,
+  reported = "",
 ) {
   const expected = expectedStatusForPlatform(applet, platform);
   const acceptable = new Set([expected]);
@@ -40,8 +43,10 @@ export function assertAppletStatusMatchesExpectation(
   if (acceptable.has(actualStatus)) {
     return;
   }
+  const because =
+    reported.trim() === "" ? "" : `; reported: ${JSON.stringify(reported)}`;
   throw new Error(
-    `applet ${applet.id} on ${platform}: expected ${[...acceptable].join(" or ")}, got ${actualStatus}`,
+    `applet ${applet.id} on ${platform}: expected ${[...acceptable].join(" or ")}, got ${actualStatus}${because}`,
   );
 }
 

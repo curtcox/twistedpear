@@ -440,7 +440,12 @@ async function main() {
           `applet ${applet.id} did not report a result: ${resultLine}`,
         );
       }
-      assertAppletStatusMatchesExpectation(applet, actualStatus, "node");
+      assertAppletStatusMatchesExpectation(
+        applet,
+        actualStatus,
+        "node",
+        resultLine,
+      );
       console.log(`handbook: applet passed — ${applet.id} (${actualStatus})`);
 
       // Widget gallery overwrites the Handbook tree; return to TOC before next run.
