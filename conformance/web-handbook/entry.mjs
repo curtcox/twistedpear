@@ -90,6 +90,22 @@ function findNodeById(node, id) {
   return findNode(node, (candidate) => candidate.id === id);
 }
 
+/**
+ * The result card of one specific applet, or "" if it has not reported yet.
+ *
+ * Read by id rather than by scanning the tree for the first status-shaped text:
+ * a chapter renders a card per applet, so once one has run its card matches any
+ * such scan and the next applet in the same chapter is judged on it.
+ */
+function appletResultLine(root, appletId) {
+  const value = findNodeById(root, `result-${appletId}`)?.props?.value;
+  return typeof value === "string" &&
+    (/^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
+      value.startsWith("Error:"))
+    ? value
+    : "";
+}
+
 function treeContainsText(tree, needle) {
   return collectTextValues(tree.root).some((value) => value.includes(needle));
 }
@@ -489,14 +505,7 @@ async function main() {
     try {
       appletRuntime = await waitForRuntime(
         getRuntime,
-        (runtime) => {
-          const texts = collectTextValues(runtime.widgetTree.root);
-          return texts.some(
-            (value) =>
-              /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
-              value.startsWith("Error:"),
-          );
-        },
+        (runtime) => appletResultLine(runtime.widgetTree.root, appletId) !== "",
         90_000,
       );
     } catch (error) {
@@ -509,12 +518,10 @@ async function main() {
         `${error instanceof Error ? error.message : String(error)}; applet=${appletId}; texts=${JSON.stringify(texts)}`,
       );
     }
-    const resultLine =
-      collectTextValues(appletRuntime.widgetTree.root).find(
-        (value) =>
-          /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
-          value.startsWith("Error:"),
-      ) ?? "";
+    const resultLine = appletResultLine(
+      appletRuntime.widgetTree.root,
+      appletId,
+    );
     const appletMeta = HANDBOOK_FIXTURE.applets?.find(
       (entry) => entry.id === appletId,
     );
@@ -527,7 +534,12 @@ async function main() {
         `applet ${appletId} did not report a result: ${resultLine}`,
       );
     }
-    assertAppletStatusMatchesExpectation(appletMeta, actualStatus, "web");
+    assertAppletStatusMatchesExpectation(
+      appletMeta,
+      actualStatus,
+      "web",
+      resultLine,
+    );
     passedApplets.push(appletId);
     record(`applet:${appletId}`);
     globalThis.__WEB_HANDBOOK__ = {
