@@ -30,7 +30,12 @@
       "ignore": ["**/*.bundle.mjs", "**/*.bundle"]
     }
   },
-  "ignoreDependencies": ["mermaid", "vitepress-plugin-mermaid", "bare-runtime"],
+  "ignoreDependencies": [
+    "mermaid",
+    "vitepress-plugin-mermaid",
+    "bare-runtime",
+    "@expo/config-plugins"
+  ],
   "ignore": [
     "archive/**",
     "site/**",
