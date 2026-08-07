@@ -248,7 +248,7 @@ export function NativeHarnessViewPart2({
         label="Apply ntfy"
         onPress={() => {
           if (workletRef.current === null) {
-            startWorklet();
+            void startWorklet();
           } else {
             sendToWorklet({
               type: "start",

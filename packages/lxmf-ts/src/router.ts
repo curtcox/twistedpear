@@ -200,7 +200,9 @@ export class LXMFRouter {
         ).actions,
       )
     ) {
-      this.outboundPropagationLink!.teardown();
+      // Best-effort: the link is being discarded either way, and a teardown
+      // packet that fails to send must not reject into an unhandled rejection.
+      this.outboundPropagationLink!.teardown().catch(() => {});
       this.outboundPropagationLink = null;
     }
   }

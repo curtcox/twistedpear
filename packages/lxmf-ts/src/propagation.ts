@@ -115,7 +115,10 @@ export class PropagationClient {
         ).actions,
       )
     ) {
-      this.propagationLink!.teardown();
+      // Best-effort: the link is being discarded either way, and a teardown
+      // packet that fails to send must not reject into an unhandled rejection.
+      // `void` would satisfy the linter without attaching a handler.
+      this.propagationLink!.teardown().catch(() => {});
       this.propagationLink = null;
     }
   }
@@ -501,7 +504,9 @@ export class PropagationClient {
           ).actions,
         )
       ) {
-        this.propagationLink!.teardown();
+        // See setPropagationNode: discarding the link, so swallow a failed
+        // teardown rather than leaking an unhandled rejection.
+        this.propagationLink!.teardown().catch(() => {});
         this.propagationLink = null;
       }
       if (action.kind === "resolve-link-wait") {

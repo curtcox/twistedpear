@@ -217,60 +217,67 @@ function parseTestAgentEnv(
   };
 }
 
-app.whenReady().then(() => {
-  session.defaultSession.setPermissionCheckHandler(
-    (_webContents, permission, requestingOrigin, details) =>
-      permission === "media" &&
-      (details.mediaType === "video" || details.mediaType === "audio") &&
-      requestingOrigin.startsWith("file://"),
-  );
-  session.defaultSession.setPermissionRequestHandler(
-    (webContents, permission, callback, details) => {
-      const fromHostWindow =
-        webContents === mainWindow?.webContents &&
-        details.requestingUrl.startsWith("file://");
-      const trustedMediaOnly =
-        "mediaTypes" in details &&
-        (details.mediaTypes?.length ?? 0) > 0 &&
-        details.mediaTypes?.every(
-          (mediaType) => mediaType === "video" || mediaType === "audio",
-        ) === true;
-      callback(permission === "media" && fromHostWindow && trustedMediaOnly);
-    },
-  );
-  if (process.platform === "darwin" || process.platform === "win32") {
-    app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
-  }
-
-  createWindow();
-  ensureSupervisor();
-
-  const icon = nativeImage.createEmpty();
-  tray = new Tray(icon);
-  tray.setToolTip("TwistedPear Host");
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: "Show", click: () => mainWindow?.show() },
-      {
-        label: "Quit",
-        click: () => {
-          supervisor?.stop();
-          app.quit();
-        },
+app
+  .whenReady()
+  .then(() => {
+    session.defaultSession.setPermissionCheckHandler(
+      (_webContents, permission, requestingOrigin, details) =>
+        permission === "media" &&
+        (details.mediaType === "video" || details.mediaType === "audio") &&
+        requestingOrigin.startsWith("file://"),
+    );
+    session.defaultSession.setPermissionRequestHandler(
+      (webContents, permission, callback, details) => {
+        const fromHostWindow =
+          webContents === mainWindow?.webContents &&
+          details.requestingUrl.startsWith("file://");
+        const trustedMediaOnly =
+          "mediaTypes" in details &&
+          (details.mediaTypes?.length ?? 0) > 0 &&
+          details.mediaTypes?.every(
+            (mediaType) => mediaType === "video" || mediaType === "audio",
+          ) === true;
+        callback(permission === "media" && fromHostWindow && trustedMediaOnly);
       },
-    ]),
-  );
+    );
+    if (process.platform === "darwin" || process.platform === "win32") {
+      app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
+    }
 
-  powerMonitor.on("suspend", () => {
-    supervisor?.send({ type: "suspend-node" });
+    createWindow();
+    ensureSupervisor();
+
+    const icon = nativeImage.createEmpty();
+    tray = new Tray(icon);
+    tray.setToolTip("TwistedPear Host");
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: "Show", click: () => mainWindow?.show() },
+        {
+          label: "Quit",
+          click: () => {
+            supervisor?.stop();
+            app.quit();
+          },
+        },
+      ]),
+    );
+
+    powerMonitor.on("suspend", () => {
+      supervisor?.send({ type: "suspend-node" });
+    });
+
+    powerMonitor.on("resume", () => {
+      supervisor?.send({ type: "resume-node" });
+    });
+
+    networkPollTimer = setInterval(checkNetworkChange, 5_000);
+  })
+  .catch((error: unknown) => {
+    // Without this the host silently half-starts: anything thrown while wiring
+    // up sessions, windows, tray, or the supervisor was discarded.
+    console.error("Desktop host failed during app initialisation:", error);
   });
-
-  powerMonitor.on("resume", () => {
-    supervisor?.send({ type: "resume-node" });
-  });
-
-  networkPollTimer = setInterval(checkNetworkChange, 5_000);
-});
 
 app.on("window-all-closed", () => {
   if (process.platform === "darwin") {
