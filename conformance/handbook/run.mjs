@@ -28,6 +28,7 @@ import {
 } from "./expectations.mjs";
 import { makePeerSessionManager, makeRelayService } from "./host-fixtures.mjs";
 import { runHandbookPartPackagesSmoke } from "./part-packages.mjs";
+import { APPLET_CHAPTER } from "./applet-chapters.mjs";
 import {
   assertReaderUx,
   dismissGrantIntroIfNeeded,
@@ -57,32 +58,6 @@ const DEVICE_GATED_APPLET_IDS = new Set([
   "multicast-auto",
   "camera-qr-scan",
 ]);
-
-const APPLET_CHAPTER = {
-  "host-info": "difference-matrix",
-  "relay-status": "difference-matrix",
-  "identity-hash": "sdk-identity",
-  "presence-snapshot": "sdk-presence",
-  "storage-kv": "sdk-storage-kv",
-  "storage-hyperbee": "sdk-storage-hyperbee",
-  "lxmf-roundtrip": "sdk-lxmf",
-  "announce-loop": "sdk-announce",
-  "resource-fetch": "sdk-resource-fetch",
-  "workspace-rw": "sdk-workspace",
-  "share-cas": "sdk-share-cas",
-  "peer-handle-isolation": "sdk-capabilities",
-  "freenet-contract-read": "sdk-capabilities",
-  "apps-package-preview": "sdk-apps-package",
-  "apps-publish-install": "sdk-apps-publish",
-  "apps-update": "sdk-apps-update",
-  "ai-chat": "sdk-ai-chat",
-  "widget-gallery": "sdk-widget-gallery",
-  "device-inventory": "device-gated-probes",
-  "ble-peer": "device-gated-probes",
-  "rnode-serial": "device-gated-probes",
-  "multicast-auto": "device-gated-probes",
-  "camera-qr-scan": "device-gated-probes",
-};
 
 class MemoryStore {
   values = new Map();

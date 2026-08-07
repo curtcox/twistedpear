@@ -9,6 +9,7 @@ import {
   reviveJsonWireValue,
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { HANDBOOK_FIXTURE } from "./fixtures.mjs";
+import { APPLET_CHAPTER } from "../handbook/applet-chapters.mjs";
 import {
   assertAppletStatusMatchesExpectation,
   parseResultStatus,
@@ -20,28 +21,6 @@ const DEVICE_GATED_APPLET_IDS = new Set([
   "multicast-auto",
   "camera-qr-scan",
 ]);
-
-const APPLET_CHAPTER = {
-  "host-info": "difference-matrix",
-  "identity-hash": "sdk-identity",
-  "presence-snapshot": "sdk-presence",
-  "storage-kv": "sdk-storage-kv",
-  "storage-hyperbee": "sdk-storage-hyperbee",
-  "lxmf-roundtrip": "sdk-lxmf",
-  "announce-loop": "sdk-announce",
-  "resource-fetch": "sdk-resource-fetch",
-  "workspace-rw": "sdk-workspace",
-  "share-cas": "sdk-share-cas",
-  "apps-package-preview": "sdk-apps-package",
-  "apps-publish-install": "sdk-apps-publish",
-  "apps-update": "sdk-apps-update",
-  "ai-chat": "sdk-ai-chat",
-  "widget-gallery": "sdk-widget-gallery",
-  "ble-peer": "device-gated-probes",
-  "rnode-serial": "device-gated-probes",
-  "multicast-auto": "device-gated-probes",
-  "camera-qr-scan": "device-gated-probes",
-};
 
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
 
