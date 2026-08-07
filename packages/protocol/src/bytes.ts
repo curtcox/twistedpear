@@ -9,7 +9,22 @@ import type { Event, Intent } from "@twistedpear/effects";
 export function concatByteArrays(
   ...parts: ReadonlyArray<Uint8Array>
 ): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
+  return assembleByteArrays(parts);
+}
+
+/**
+ * The array form is the primitive, and the variadic `concatByteArrays` wraps
+ * it — not the other way round. A resource hashmap has one entry per part, so
+ * a 100 MB transfer assembles hundreds of thousands of arrays; spreading that
+ * into an argument list overflows the call stack.
+ */
+export function assembleByteArrays(
+  parts: ReadonlyArray<Uint8Array>,
+): Uint8Array {
+  let length = 0;
+  for (const part of parts) {
+    length += part.length;
+  }
   const output = new Uint8Array(length);
   let offset = 0;
   for (const part of parts) {
@@ -17,12 +32,6 @@ export function concatByteArrays(
     offset += part.length;
   }
   return output;
-}
-
-export function assembleByteArrays(
-  parts: ReadonlyArray<Uint8Array>,
-): Uint8Array {
-  return concatByteArrays(...parts);
 }
 
 /**
