@@ -48,13 +48,16 @@ export async function run(sdk, report) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String(error.code)
+        : "";
+    const text = `${code} ${message}`;
     const notGranted =
-      /CAPABILITY_DENIED|has not been granted|Capability|DEVICE_UNCONFIGURED/i.test(
-        message,
-      );
+      /CAPABILITY_DENIED|has not been granted|Capability/i.test(text);
     const unavailable =
-      /UNKNOWN_METHOD|not available|upgrade host|DEVICE_UNCONFIGURED/i.test(
-        message,
+      /UNKNOWN_METHOD|DEVICE_UNCONFIGURED|not configured|not available|upgrade host/i.test(
+        text,
       );
     report({
       status: notGranted ? "not-granted" : unavailable ? "unavailable" : "fail",
