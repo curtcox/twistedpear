@@ -107,8 +107,8 @@ export function ensureMiniappHostImpl(context) {
           dropCensus: context.status.dropCensus ?? { byReason: {}, byPeer: {} },
         };
       },
-      send,
-      requestHostReply,
+      send: context.send,
+      requestHostReply: context.requestHostReply,
       peerSessionManager: context.peerSessionManagerProxy,
       realtimeReservations: {
         reserveRealtime: (bytesPerSecond) =>

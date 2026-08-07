@@ -69,6 +69,17 @@ import {
   UnavailablePeerDiscoveryAdapter,
 } from "../../../packages/peer-discovery/dist/index.js";
 
+/**
+ * Side-load failures are caught so one bad bundle cannot take the worker down,
+ * but the message alone hides where the throw came from: a `ReferenceError` in
+ * the host wiring reads the same as a bad bundle, and only surfaces later as a
+ * render timeout. Keep the stack when there is one.
+ */
+function describeSideLoadError(error) {
+  if (!(error instanceof Error)) return String(error);
+  return error.stack ?? `${error.name}: ${error.message}`;
+}
+
 export async function handleHostMessageImpl(context, raw) {
   const line = raw.trim();
   if (line.length === 0) {
@@ -565,9 +576,7 @@ export async function handleHostMessageImpl(context, raw) {
         .devSideLoad(message.manifest, hexToBytes(message.bundleHex));
       context.log(`Dev side-loaded ${message.manifest.name ?? "mini-app"}`);
     } catch (error) {
-      context.log(
-        `Dev side-load failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      context.log(`Dev side-load failed: ${describeSideLoadError(error)}`);
     }
     return;
   }
@@ -587,7 +596,7 @@ export async function handleHostMessageImpl(context, raw) {
       context.log("Dev side-loaded hello-web");
     } catch (error) {
       context.log(
-        `Hello dev side-load failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Hello dev side-load failed: ${describeSideLoadError(error)}`,
       );
     }
     return;

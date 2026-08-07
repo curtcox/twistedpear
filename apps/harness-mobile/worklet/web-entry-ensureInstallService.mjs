@@ -95,10 +95,10 @@ export function ensureInstallServiceImpl(context) {
         await destination.announce({ appData: encodeCasLocatorRequest(t256) });
         context.log(`Requested CAS locator for ${t256.slice(0, 16)}…`);
       },
-      ensurePackageStorage,
+      ensurePackageStorage: context.ensurePackageStorage,
       miniappHost: () => context.ensureMiniappHost(),
-      send,
-      log,
+      send: context.send,
+      log: context.log,
       pushInstalled: () => {
         void context.pushInstalledList();
       },

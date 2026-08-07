@@ -94,7 +94,7 @@ export async function startHostSessionImpl(context) {
     receiveSessionInvite: (invite) =>
       context.ensureMiniappHost().receiveSessionInvite(invite),
     isInvitableApp: (appId) => appId === "line-check",
-    log,
+    log: context.log,
   });
   context.hostLxmfDelivery.onInvite((invite) => {
     context.harnessInviteEntries.push({
