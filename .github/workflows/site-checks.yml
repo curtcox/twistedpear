@@ -20,7 +20,7 @@ jobs:
     steps:
       - id: fetch
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: site-results
           path: site-results
@@ -31,7 +31,7 @@ jobs:
         run: |
           echo "Pages run ${{ github.event.workflow_run.id }} recorded no site-results artifact."
           echo "The build did not get far enough to report gate results; nothing to evaluate."
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.fetch.outcome == 'success'
         with:
           node-version: "22"
