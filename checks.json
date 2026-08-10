@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-10T21:50:28.207Z",
-  "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-  "digest": "dd48891ac1e1bcb89483225bf56888d6c67bfc406c897bd399b7238c8f64802b",
-  "treeDigest": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+  "generatedAt": "2026-08-10T22:28:09.823Z",
+  "commit": "e7d1ef05e4bce5fb63643776dd81b7a61569820a",
+  "digest": "4a456b827e297f5a229fe55926a186073572ecc55bc0c40b956e84a6f9e4d472",
+  "treeDigest": "a36a2441e1de8c7f8fef323238b6c01c893e43ae30202e577fbd0c80d6bcfaac",
   "gates": {
     "actionlint": {
       "title": "GitHub Actions lint",
@@ -11,7 +11,19 @@
       "ok": true,
       "at": "2026-08-10T15:49:04.854Z",
       "commit": "2b8bfd6ae651194e45555feb619d68b9d21b0f67",
-      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134"
+      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134",
+      "tier": "pr"
+    },
+    "advisories": {
+      "title": "Unresolved dependency advisories",
+      "command": "npm run audit:advisories",
+      "ok": false,
+      "at": "2026-08-10T22:28:09.687Z",
+      "commit": "e7d1ef05e4bce5fb63643776dd81b7a61569820a",
+      "detail": "Unresolved high advisory: metro-transform-worker [npm] / Unresolved high advisory: nanoid [npm] / Unresolved high advisory: react-native [npm]",
+      "since": "2026-08-10",
+      "measuredOn": "a36a2441e1de8c7f8fef323238b6c01c893e43ae30202e577fbd0c80d6bcfaac",
+      "tier": "release"
     },
     "audit-policy": {
       "title": "Advisory allowlist policy",
@@ -19,7 +31,8 @@
       "ok": true,
       "at": "2026-08-10T21:49:20.843Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "complexity": {
       "title": "Function complexity ratchet",
@@ -27,7 +40,8 @@
       "ok": true,
       "at": "2026-08-10T21:48:12.713Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "coverage": {
       "title": "Coverage ratchet",
@@ -37,7 +51,8 @@
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
       "detail": "...peer-error.ts |   95.83 |       90 |     100 |   95.23 | 87 / packages/lxmf-ts functions: 72.5 < floor 73.33",
       "since": "2026-08-10",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "doc-audit": {
       "title": "Documentation audit",
@@ -45,7 +60,8 @@
       "ok": true,
       "at": "2026-08-10T21:44:55.984Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "file-sizes": {
       "title": "File-size ratchet",
@@ -53,7 +69,8 @@
       "ok": true,
       "at": "2026-08-10T21:44:44.719Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "format": {
       "title": "Formatting ratchet",
@@ -61,7 +78,8 @@
       "ok": true,
       "at": "2026-08-10T21:49:19.333Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "kotlin": {
       "title": "Kotlin lint",
@@ -69,7 +87,8 @@
       "ok": true,
       "at": "2026-08-10T15:53:39.296Z",
       "commit": "2b8bfd6ae651194e45555feb619d68b9d21b0f67",
-      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134"
+      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134",
+      "tier": "pr"
     },
     "licenses": {
       "title": "Dependency license policy",
@@ -77,7 +96,8 @@
       "ok": true,
       "at": "2026-08-10T21:49:21.243Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "lint": {
       "title": "TypeScript and Sans-IO lint",
@@ -85,7 +105,8 @@
       "ok": true,
       "at": "2026-08-10T21:44:08.098Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "lint-all": {
       "title": "Repository lint coverage",
@@ -93,7 +114,8 @@
       "ok": true,
       "at": "2026-08-10T21:48:20.327Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "mutation-policy": {
       "title": "Mutation score policy",
@@ -101,7 +123,8 @@
       "ok": true,
       "at": "2026-08-10T21:49:21.072Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "properties": {
       "title": "Property-based protocol tests",
@@ -109,7 +132,8 @@
       "ok": true,
       "at": "2026-08-10T21:49:20.681Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "python": {
       "title": "Python ruff and mypy",
@@ -117,7 +141,8 @@
       "ok": true,
       "at": "2026-08-10T15:53:37.506Z",
       "commit": "2b8bfd6ae651194e45555feb619d68b9d21b0f67",
-      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134"
+      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134",
+      "tier": "pr"
     },
     "release-harness": {
       "title": "Release harness",
@@ -125,7 +150,8 @@
       "ok": true,
       "at": "2026-08-10T21:44:51.584Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "rust": {
       "title": "Rust clippy, fmt, and deny",
@@ -133,7 +159,8 @@
       "ok": true,
       "at": "2026-08-10T15:53:36.553Z",
       "commit": "2b8bfd6ae651194e45555feb619d68b9d21b0f67",
-      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134"
+      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134",
+      "tier": "pr"
     },
     "secrets": {
       "title": "Secret scanning",
@@ -141,7 +168,8 @@
       "ok": true,
       "at": "2026-08-10T15:53:34.154Z",
       "commit": "2b8bfd6ae651194e45555feb619d68b9d21b0f67",
-      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134"
+      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134",
+      "tier": "pr"
     },
     "shell": {
       "title": "ShellCheck",
@@ -149,7 +177,8 @@
       "ok": true,
       "at": "2026-08-10T15:53:36.895Z",
       "commit": "2b8bfd6ae651194e45555feb619d68b9d21b0f67",
-      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134"
+      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134",
+      "tier": "pr"
     },
     "sim-authored-replay": {
       "title": "Authored simulation replay",
@@ -157,7 +186,8 @@
       "ok": true,
       "at": "2026-08-10T21:44:56.582Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "structure": {
       "title": "Dependency structure",
@@ -165,7 +195,8 @@
       "ok": true,
       "at": "2026-08-10T21:47:58.350Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "swift": {
       "title": "Swift lint",
@@ -173,7 +204,8 @@
       "ok": true,
       "at": "2026-08-10T15:53:42.239Z",
       "commit": "2b8bfd6ae651194e45555feb619d68b9d21b0f67",
-      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134"
+      "measuredOn": "fca207bcbe5a7f0e0068615bfcd25d8cf95bdb81ef250d612d1aae21490f6134",
+      "tier": "pr"
     },
     "typed-lint": {
       "title": "Typed asynchronous lint",
@@ -181,7 +213,8 @@
       "ok": true,
       "at": "2026-08-10T21:49:07.840Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     },
     "unit-tests": {
       "title": "Unit tests",
@@ -189,7 +222,8 @@
       "ok": true,
       "at": "2026-08-10T21:44:44.360Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
-      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735"
+      "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
     }
   }
 }

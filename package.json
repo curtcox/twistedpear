@@ -21,7 +21,7 @@
     "check:ci-base": "node scripts/checks/run.mjs --tier=pr --requires=node",
     "check:all": "node scripts/checks/run.mjs",
     "checks:matrix": "node scripts/checks/run.mjs --matrix",
-    "checks:status": "node scripts/checks/run.mjs --tier=pr --requires=node; node scripts/checks/status.mjs --write",
+    "checks:status": "node scripts/checks/run.mjs --tier=pr; node scripts/checks/status.mjs --write",
     "checks:status:record": "node scripts/checks/status.mjs --write",
     "checks:red": "node scripts/checks/status.mjs",
     "checks:waive": "node scripts/checks/waive.mjs",
@@ -267,7 +267,12 @@
     "work:retype": "node scripts/work/retype.mjs",
     "release:soak-status": "node scripts/release/soak-status.mjs",
     "release:resume-soaks": "node scripts/release/start-soaks.mjs --resume",
-    "release:record-soaks": "node scripts/release/record-soaks.mjs"
+    "release:record-soaks": "node scripts/release/record-soaks.mjs",
+    "tools:doctor": "node scripts/tools/doctor.mjs",
+    "tools:install": "node scripts/tools/install.mjs",
+    "audit:advisories": "node scripts/security/advisories.mjs",
+    "audit:fix": "node scripts/security/fix.mjs",
+    "checks:release": "node scripts/checks/run.mjs --tier=release; node scripts/checks/status.mjs --write"
   },
   "overrides": {
     "js-yaml": "^4.3.1"

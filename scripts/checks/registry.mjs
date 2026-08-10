@@ -156,6 +156,19 @@ export const gates = [
     ["node"],
     ["audit.json"],
   ),
+  // Release tier: not run per PR, and required before a plan-duration soak.
+  // `audit-policy` on the PR tier only checks that the allowlist is well-formed
+  // and unexpired — it never runs `npm audit`, so it stays green while alerts
+  // are open. This one reconciles npm audit and Dependabot against the
+  // allowlist, and the soak guard refuses to start until it passes.
+  gate(
+    "advisories",
+    "Unresolved dependency advisories",
+    "audit:advisories",
+    "release",
+    ["node", "network"],
+    ["audit.json"],
+  ),
   gate(
     "sbom",
     "CycloneDX SBOM",

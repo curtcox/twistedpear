@@ -202,31 +202,38 @@ export function gateItemId(id) {
  */
 export function derivedGateItems(root = repoRoot(), now = new Date()) {
   const { blocking } = gateStatus(root, { now });
-  return blocking.map((gate) => ({
-    id: gateItemId(gate.id),
-    status: "open",
-    file: CHECKS_FILE,
-    line: 1,
-    title: `${gate.title} is red${
-      gate.detail ? ` — ${gate.detail.slice(0, 120)}` : ""
-    }`,
-    type: "broken-gate",
-    requires: [],
-    verify: gate.command,
-    added: gate.since ?? "",
-    notes:
-      [
-        gate.detail,
-        gate.waiver === "expired"
-          ? `waiver expired ${gate.waiverRecord?.expires}: ${gate.waiverRecord?.reason}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" — ") || undefined,
-    derived: true,
-    blockers: [],
-    unblocks: 0,
-  }));
+  // PR-tier gates only. Release-tier gates (the advisory reconciliation) have
+  // to be green before a soak starts, not before every other piece of work —
+  // a dependency advisory with no upstream fix would otherwise sit at the head
+  // of the queue indefinitely, which is the failure this rule exists to avoid.
+  // The soak guard is where they bite; see assertGatesGreen.
+  return blocking
+    .filter((gate) => gate.tier === "pr")
+    .map((gate) => ({
+      id: gateItemId(gate.id),
+      status: "open",
+      file: CHECKS_FILE,
+      line: 1,
+      title: `${gate.title} is red${
+        gate.detail ? ` — ${gate.detail.slice(0, 120)}` : ""
+      }`,
+      type: "broken-gate",
+      requires: [],
+      verify: gate.command,
+      added: gate.since ?? "",
+      notes:
+        [
+          gate.detail,
+          gate.waiver === "expired"
+            ? `waiver expired ${gate.waiverRecord?.expires}: ${gate.waiverRecord?.reason}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" — ") || undefined,
+      derived: true,
+      blockers: [],
+      unblocks: 0,
+    }));
 }
 
 /**

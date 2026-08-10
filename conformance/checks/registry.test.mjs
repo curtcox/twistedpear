@@ -36,7 +36,9 @@ describe("static-analysis gate registry", () => {
     expect(new Set(gates.map((gate) => gate.id)).size).toBe(gates.length);
     for (const gate of gates) {
       expect(gate.title).toBeTruthy();
-      expect(["pr", "nightly"]).toContain(gate.tier);
+      // `release` gates run neither per PR nor nightly: they are the soak
+      // preconditions, checked by the soak guard. See RELEASE-PLAN.md §3.
+      expect(["pr", "nightly", "release"]).toContain(gate.tier);
       expect(gate.requires.length).toBeGreaterThan(0);
       expect(gate.artifacts.length).toBeGreaterThan(0);
       expect(gate.artifacts).toContain(`artifacts/logs/${gate.id}.log`);
