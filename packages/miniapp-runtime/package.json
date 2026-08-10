@@ -27,7 +27,7 @@
     "@twistedpear/effects": "*",
     "@twistedpear/peer-discovery": "*",
     "@twistedpear/protocol": "*",
-    "corestore": "^7.9.2",
+    "corestore": "^7.12.0",
     "hyperbee": "^2.27.3"
   },
   "scripts": {

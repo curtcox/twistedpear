@@ -15,7 +15,7 @@
     "build:web-host": "node scripts/build-web-host.mjs"
   },
   "dependencies": {
-    "@config-plugins/react-native-webrtc": "^10.0.0",
+    "@config-plugins/react-native-webrtc": "^15.0.1",
     "@expo/metro-runtime": "~57.0.8",
     "@twistedpear/ble-bridge": "file:./modules/ble-bridge",
     "@twistedpear/bonjour": "file:./modules/bonjour",
@@ -31,24 +31,24 @@
     "@twistedpear/usb-serial": "file:./modules/usb-serial",
     "@twistedpear/widget-renderer-rn": "0.1.0",
     "b4a": "^1.6.7",
-    "expo": "~57.0.9",
+    "expo": "~57.0.10",
     "expo-bare-kit": "^0.1.0",
     "expo-build-properties": "~57.0.8",
     "expo-camera": "~57.0.3",
     "expo-dev-client": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "opusscript": "^0.1.1",
-    "qrcode-generator": "^1.5.2",
+    "qrcode-generator": "^2.0.4",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react-dom": "19.2.8",
     "react-native": "0.86.2",
-    "react-native-bare-kit": "^0.5.2",
+    "react-native-bare-kit": "^0.15.0",
     "react-native-web": "^0.21.2",
-    "react-native-webrtc": "^124.0.4"
+    "react-native-webrtc": "^124.0.8"
   },
   "devDependencies": {
     "@types/react": "~19.2.4",
-    "bare-pack": "^1.5.0",
-    "typescript": "~6.0.3"
+    "bare-pack": "^2.2.1",
+    "typescript": "~7.0.2"
   }
 }
