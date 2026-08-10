@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,6 +7,11 @@ import { calculate, render } from "../../scripts/release/status.mjs";
 import { record } from "../../scripts/release/record.mjs";
 import { classify, scan } from "../../scripts/release/watch-soaks.mjs";
 import { plan } from "../../scripts/release/start-soaks.mjs";
+import {
+  captureBaseline,
+  isReleaseBranch,
+  verifyBaseline,
+} from "../../scripts/release/soak-guard.mjs";
 import { verifySamples } from "../../scripts/release/h20.mjs";
 
 function fixture() {
@@ -157,6 +163,110 @@ describe("H20 verifier", () => {
         { durationMs: 3_600_000, intervalMs: 3_600_000 },
       ),
     ).toThrow(/restarted/);
+  });
+});
+
+describe("soak guard", () => {
+  function repo(branch = "release/v1.0.0") {
+    const root = mkdtempSync(join(tmpdir(), "tp-soak-guard-"));
+    const git = (...args) =>
+      execFileSync("git", args, { cwd: root, encoding: "utf8" });
+    git("init", "--quiet");
+    git("config", "user.email", "soak@example.invalid");
+    git("config", "user.name", "Soak Guard Test");
+    mkdirSync(join(root, "packages/reticulum-ts/src"), { recursive: true });
+    writeFileSync(
+      join(root, "packages/reticulum-ts/src/index.ts"),
+      "export {};\n",
+    );
+    writeFileSync(join(root, "package.json"), '{"name":"fixture"}\n');
+    git("add", "-A");
+    git("commit", "--quiet", "-m", "baseline");
+    git("switch", "--quiet", "-c", branch);
+    return { root, git };
+  }
+
+  test("accepts release branches and rejects everything else", () => {
+    expect(isReleaseBranch("release/v1.0.0")).toBe(true);
+    expect(isReleaseBranch("release/1.0-rc1")).toBe(true);
+    expect(isReleaseBranch("main")).toBe(false);
+    expect(isReleaseBranch("codex/release-plan-s1")).toBe(false);
+    expect(isReleaseBranch("release")).toBe(false);
+  });
+
+  test("refuses to start a plan-duration soak off a release branch", () => {
+    const { root } = repo("feature/faster-links");
+    expect(() => captureBaseline(root)).toThrow(/only from a release branch/);
+  });
+
+  test("refuses to soak an uncommitted application tree", () => {
+    const { root } = repo();
+    writeFileSync(
+      join(root, "packages/reticulum-ts/src/index.ts"),
+      "export const x = 1;\n",
+    );
+    expect(() => captureBaseline(root)).toThrow(/uncommitted application tree/);
+  });
+
+  test("holds while the application tree is untouched", () => {
+    const { root } = repo();
+    const baseline = captureBaseline(root);
+    writeFileSync(
+      join(root, "notes.md"),
+      "docs churn is not application code\n",
+    );
+    expect(verifyBaseline(baseline, root).ok).toBe(true);
+  });
+
+  test("fails when application code is committed after the soak starts", () => {
+    const { root, git } = repo();
+    const baseline = captureBaseline(root);
+    writeFileSync(
+      join(root, "packages/reticulum-ts/src/index.ts"),
+      "export const x = 1;\n",
+    );
+    git("add", "-A");
+    git("commit", "--quiet", "-m", "mid-soak change");
+    const result = verifyBaseline(baseline, root);
+    expect(result.ok).toBe(false);
+    expect(result.changed).toContain("packages/reticulum-ts/src/index.ts");
+    expect(result.reason).toMatch(/changed after the soak started/);
+  });
+
+  test("fails on an uncommitted edit and on a new source file alike", () => {
+    const { root } = repo();
+    const baseline = captureBaseline(root);
+    writeFileSync(
+      join(root, "packages/reticulum-ts/src/link.ts"),
+      "export const y = 2;\n",
+    );
+    const result = verifyBaseline(baseline, root);
+    expect(result.ok).toBe(false);
+    expect(result.changed).toContain("packages/reticulum-ts/src/link.ts");
+  });
+
+  test("fails when the run leaves the branch it started on", () => {
+    const { root, git } = repo();
+    const baseline = captureBaseline(root);
+    git("switch", "--quiet", "-c", "release/v1.0.1");
+    expect(verifyBaseline(baseline, root).reason).toMatch(/branch moved/);
+  });
+
+  test("surfaces drift to the driver as a failed soak result", () => {
+    const { root } = repo();
+    const baseline = captureBaseline(root);
+    const logs = join(root, "logs");
+    mkdirSync(logs);
+    writeFileSync(join(logs, "soak-baseline.json"), JSON.stringify(baseline));
+    writeFileSync(
+      join(root, "packages/reticulum-ts/src/index.ts"),
+      "export const x = 1;\n",
+    );
+    const results = scan(logs, join(logs, "soak-triage"), root);
+    expect(results[0]).toMatchObject({
+      status: "failed",
+      category: "code-drift",
+    });
   });
 });
 

@@ -8,8 +8,30 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { rootFrom, safeId, soakItems } from "./common.mjs";
+import { applicationFingerprint, currentBranch } from "./soak-guard.mjs";
 
 const defaultRoot = rootFrom(import.meta.url);
+
+/**
+ * Provenance for the tree the evidence describes. Without it a pass is a
+ * timestamp with nothing to attribute it to, and no later check can tell
+ * whether the code it qualified still exists. Absent outside a git checkout
+ * (test fixtures), where the fields are simply omitted.
+ * @param {string} root
+ * @returns {{ branch?: string; revision?: string; applicationDigest?: string }}
+ */
+function provenance(root) {
+  try {
+    const fingerprint = applicationFingerprint(root);
+    return {
+      branch: currentBranch(root),
+      revision: fingerprint.head,
+      applicationDigest: fingerprint.digest,
+    };
+  } catch {
+    return {};
+  }
+}
 
 function replaceAtomic(path, text) {
   mkdirSync(dirname(path), { recursive: true });
@@ -71,6 +93,7 @@ export function record({
     at,
     log: relative(root, absoluteLog),
     note,
+    ...provenance(root),
   };
   replaceAtomic(evidenceFile, `${JSON.stringify(recordValue, null, 2)}\n`);
   if (status !== "passed") return evidenceFile;

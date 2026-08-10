@@ -119,6 +119,12 @@ Cron `0 6 * * *` UTC plus `workflow_dispatch` for extended soaks.
 Soak jobs use elevated `timeout-minutes` to accommodate manual long runs. Scheduled nightly
 runs complete within the default tier.
 
+**Nightly soaks are regression signal, not release evidence.** They keep running on `main` at
+the default tier and are unaffected by the soak isolation rule. Only the plan-duration soaks
+that produce G1 evidence are branch-gated and drift-checked, and those are launched by
+`npm run release:start-soaks` on a `release/*` branch — not from this workflow. A
+`workflow_dispatch` plan-duration run here is a rehearsal: useful for timing, never G1 evidence.
+
 ### Dispatching a plan-duration soak
 
 ```bash

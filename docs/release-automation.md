@@ -17,11 +17,33 @@ preempts the normal stage sequence. The driver reads the latest Stage-8 watcher 
 the newest `ci:*` structured evidence record; either failure restores the standing invariant
 before the serial stage sequence continues.
 
+## Soak isolation
+
+Plan-duration soaks run only from a `release/*` branch with a clean application tree, and any
+change to `apps/`, `packages/`, `package.json`, `package-lock.json`, or `tsconfig.json` after a
+run starts fails that run. `scripts/release/soak-guard.mjs` enforces both; see the soak
+isolation rule in [RELEASE-PLAN.md](../RELEASE-PLAN.md).
+
+```sh
+npm run release:soak-guard                                   # capture/print the baseline for HEAD
+npm run release:soak-guard -- --baseline path/soak-baseline.json   # exits 1 on drift
+```
+
+The launcher writes `soak-baseline.json` into the Stage-8 log directory and re-checks it every
+thirty seconds (`SOAK_GUARD_INTERVAL_MS`). On drift it writes `soak-guard-drift.log`, records a
+failed `soaks:plan-duration`, and terminates Stage 8. The watcher reports the same drift as a
+`code-drift` result so `release:status` preempts even if the launcher was killed.
+
+Test, conformance, script, and doc changes are deliberately outside the guarded paths so triage
+tooling stays editable mid-run.
+
 ## Soak monitoring
 
-Start the plan-duration suite with `npm run release:start-soaks`. It creates a deterministic
-log directory, records `soaks:plan-duration`, starts the watcher, and then runs the canonical
-Mac validation Stage 8 in the foreground. Use `-- --dry-run` to inspect it without starting.
+Start the plan-duration suite with `npm run release:start-soaks`. It captures the guard baseline,
+creates a deterministic log directory, records `soaks:plan-duration`, starts the watcher, and then
+runs the canonical Mac validation Stage 8 in the foreground. Use `-- --dry-run` to inspect the
+command and the branch gate without starting. Running `npm run validate:mac -- --stage 8
+--plan-duration` directly bypasses the guard and does not produce G1 evidence.
 
 `npm run release:watch-soaks -- [log-directory]` scans Stage-8 mac-validation logs, classifies
 failures, and writes `soak-triage/status.json`. Each failed log gets a minimal reproducer Markdown
@@ -43,6 +65,10 @@ npm run release:record -- account:H12 --status started --note "Enrollment submit
 When the single Stage-8 runner is started, record `soaks:plan-duration` once; the driver treats
 that as the queued start of all eight serial commands. Individual `soak:*` pass records are still
 required for G1.
+
+Every record carries the `branch`, `revision`, and `applicationDigest` of the tree it describes,
+so a pass can be checked later against the code it actually qualified. The fields are omitted
+outside a git checkout.
 
 Records live in `release/evidence/`. Passing soak and H-row records append to
 `STATUS-COMPLETE.md` and strike their open canonical-register row. The recorder refuses a

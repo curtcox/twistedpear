@@ -81,6 +81,29 @@ attention, monitored by the driver. When a wait finishes or fails, it preempts t
 active stage: the driver surfaces it, the failure is fixed and the wait restarted,
 then the active stage resumes. No other work runs in parallel.
 
+**Soak isolation rule — a soak qualifies one tree.** A plan-duration soak is
+evidence for the exact application code it started against, so two constraints
+make that attribution true rather than assumed, both enforced by
+`scripts/release/soak-guard.mjs` and not by anyone remembering them:
+
+1. **Release branches only.** `release:start-soaks` refuses to launch unless HEAD
+   is on `release/*` with a clean application tree, and it records the branch,
+   revision, and application digest into the evidence. Plan-duration soaks
+   therefore never run on `main`, where the active stage lands its work.
+2. **Any application-code change fails the run.** While Stage 8 is in flight the
+   guard re-checks `apps/`, `packages/`, `package.json`, `package-lock.json`, and
+   `tsconfig.json` every thirty seconds. A commit, an uncommitted edit, a new
+   source file, or a branch switch fails the run immediately: the remaining
+   serial soaks would build different code, and the soaks already finished would
+   describe code that no longer exists. The failure preempts the active stage
+   like any other, and the run restarts from the new revision.
+
+Test, conformance, script, and documentation changes do not trip the guard — S3's
+triage tooling and the evidence recorder have to stay editable across an
+eleven-day run. What this rule costs is explicit: **application code cannot be
+changed on the release branch while its soaks run.** Land it on `main` and pick it
+up in the next soak revision, or accept the restart.
+
 ## 4. The pipeline
 
 Claude executes every stage; the user does only the steps marked **[user]**
@@ -118,9 +141,12 @@ session — not a recurring stage.
 All calendar-bound waits start here, once, then run unattended under the driver's
 monitoring:
 
-1. **[user]** Start the plan-duration soaks: `npm run validate:mac -- --stage 8
---plan-duration` (Mac powered and awake; the 72 h transport soak is the long
-   pole).
+1. **[user]** Cut the release branch the soaks will qualify —
+   `git switch -c release/v1.0.0` from a green `main` — then start the
+   plan-duration soaks from it with `npm run release:start-soaks` (Mac powered
+   and awake; the 72 h transport soak is the long pole). The launcher enforces
+   the soak isolation rule; `npm run validate:mac -- --stage 8 --plan-duration`
+   bypasses the guard and does not produce G1 evidence.
 2. **[user]** Order the hardware in STATUS-HARDWARE's acquisition order — two used
    Android phones first, plus the spare Linux box for H20.
 3. **[user]** Enroll in the Apple Developer Program (H12 — longest lead time;
@@ -130,6 +156,13 @@ monitoring:
 
 **Exit:** every wait started and visible in `release:status`. Soak or node-run
 failures from here on preempt the active stage per the serialization rule.
+
+Because the soaks hold `release/v1.0.0` frozen, S3–S6 land their application
+changes on `main`. The release branch advances only between soak runs: fast-forward
+it to the `main` revision you intend to ship, then restart the soaks against that
+revision. Every restart costs the full serial duration, so batch the pickups —
+this is the schedule cost the soak isolation rule makes visible instead of hiding
+in evidence that silently stopped applying.
 
 ### S3 — G7 automated tiers
 
@@ -311,6 +344,12 @@ and no device row in S5 is actionable until the S2 hardware wait lands.
 If a wait finishes while a later stage is active, its evidence is recorded by the
 driver and the pipeline continues; if it fails, it preempts, gets fixed and
 restarted, and the active stage resumes. Nothing else runs concurrently.
+
+The soak wait is the one that can also fail without anything going wrong with the
+software: per the soak isolation rule, an application-code change on the release
+branch fails the run. That is a restart, not a defect — triage it by confirming
+the change was intended, advancing the release branch, and starting the soaks
+again from the new revision.
 
 ## 6. Cadence and definition of done
 

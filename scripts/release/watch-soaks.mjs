@@ -8,8 +8,35 @@ import {
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { latestValidationDir, rootFrom } from "./common.mjs";
+import { verifyBaseline } from "./soak-guard.mjs";
 
 const root = rootFrom(import.meta.url);
+
+/**
+ * A soak run is only evidence for the tree it started against. When the
+ * launcher recorded a baseline, drift is a failure of the whole run, reported
+ * alongside the per-log results so the driver preempts on it like any other.
+ * @param {string} logDir
+ * @param {string} repoRoot
+ * @returns {{ log: string; command: string; status: string; category: string }[]}
+ */
+function guardResults(logDir, repoRoot) {
+  const baselineFile = join(logDir, "soak-baseline.json");
+  if (!existsSync(baselineFile)) return [];
+  const baseline = JSON.parse(readFileSync(baselineFile, "utf8"));
+  const result = verifyBaseline(baseline, repoRoot);
+  if (result.ok) return [];
+  return [
+    {
+      log: join(logDir, "soak-guard-drift.log"),
+      command: `npm run release:soak-guard -- --baseline ${baselineFile}`,
+      status: "failed",
+      category: "code-drift",
+      reason: result.reason,
+      changed: result.changed,
+    },
+  ];
+}
 
 export function classify(text) {
   const exit = /\[mac-validation\] exit: (.+)$/m.exec(text)?.[1];
@@ -26,7 +53,11 @@ export function classify(text) {
   return { status: "failed", category: "unknown" };
 }
 
-export function scan(logDir, outDir = join(logDir, "soak-triage")) {
+export function scan(
+  logDir,
+  outDir = join(logDir, "soak-triage"),
+  repoRoot = root,
+) {
   const files = readdirSync(logDir)
     .filter((name) => /^stage-8-.*\.log$/.test(name))
     .sort();
@@ -49,6 +80,7 @@ export function scan(logDir, outDir = join(logDir, "soak-triage")) {
     }
     return item;
   });
+  results.unshift(...guardResults(logDir, repoRoot));
   mkdirSync(outDir, { recursive: true });
   writeFileSync(
     join(outDir, "status.json"),
