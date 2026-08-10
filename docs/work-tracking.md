@@ -12,12 +12,13 @@ assume nothing else does.
 
 ## Where the data lives
 
-| File                                          | Holds                                                                               |
-| --------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `STATUS-*.md`, `RELEASE-PLAN.md`              | The human-readable registers: ID, status, title, evidence, verification.            |
-| [work/metadata.json](../work/metadata.json)   | Per-ID classification, prerequisites, verification command, dates.                  |
-| [work/resources.json](../work/resources.json) | External prerequisites — hardware, accounts, a real LAN — and whether we have them. |
-| [work/history.jsonl](../work/history.jsonl)   | Append-only journal of every add and close.                                         |
+| File                                                | Holds                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `STATUS-*.md`, `RELEASE-PLAN.md`                    | The human-readable registers: ID, status, title, evidence, verification.                    |
+| [work/metadata.json](../work/metadata.json)         | Per-ID classification, prerequisites, verification command, dates.                          |
+| [work/resources.json](../work/resources.json)       | External prerequisites — hardware, accounts, a real LAN — and whether we have them.         |
+| [work/history.jsonl](../work/history.jsonl)         | Append-only journal of every add, close, and audit.                                         |
+| [work/audit-report.json](../work/audit-report.json) | The last recorded periodic review — findings, and the ratchet snapshot it compares against. |
 
 The registers stay the source of truth for **what exists and what state it is
 in**. The sidecar answers **what kind of work it is and what it waits on** —
@@ -34,6 +35,7 @@ npm run work:retype -- ... # reclassify, with a recorded reason
 npm run work:done -- ...   # verify and close
 npm run work:check         # validate the whole registry
 npm run work:import        # turn baselined ratchet debt into quality items
+npm run work:audit         # periodic review of what the tracking has produced
 npm run work:log           # recent changes
 npm run work:diff          # changes since a git revision, derived from commits
 ```
@@ -179,6 +181,23 @@ The reason for keeping both: closing an item moves its row between files, which
 git records as a delete plus an unrelated add, so `git blame` and `git log -L`
 lose the item's own history. The journal follows the item; the diff follows the
 commits.
+
+## Auditing what the tracking produced
+
+Both views above answer "what changed". Neither asks whether the result is any
+good: whether a closed item's evidence still holds, whether an item that has been
+open for months is still wanted, whether the debt the ratchets hold is shrinking.
+
+```sh
+npm run work:audit            # propose fixes and improvements
+npm run work:audit -- --record # write the report and reset the clock
+```
+
+It writes no register row and creates no item — every finding is a proposal with
+the judgement attached. `work:next` and `work:done` print a nudge once the audit
+is 14 days or 5 closes old, which is what makes it periodic without a scheduler.
+Families, checks, thresholds, and the report format are in
+[work audit](work-audit.md).
 
 ## What `work:check` enforces
 

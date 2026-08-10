@@ -74,7 +74,6 @@
     "packages/host-core/src/identity.ts:@typescript-eslint/require-await:Async function 'loadOrCreateIdentity' has no 'await' expression.:occurrence-1",
     "packages/host-core/src/identity.ts:@typescript-eslint/require-await:Async function 'persistIdentity' has no 'await' expression.:occurrence-1",
     "packages/host-core/src/interface-manager.ts:@typescript-eslint/require-await:Async method 'diagnostics' has no 'await' expression.:occurrence-1",
-    "packages/host-core/src/linked-device.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `# !== #` is false.:occurrence-1",
     "packages/host-core/src/multipart-checkpoint-store.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `# !== #` is false.:occurrence-1",
     "packages/host-core/src/node-host.ts:@typescript-eslint/await-thenable:Unexpected `await` of a non-Promise (non-\"Thenable\") value.:occurrence-1",
     "packages/host-core/src/node-host.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined.:occurrence-1",

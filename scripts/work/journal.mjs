@@ -14,7 +14,14 @@ export const ACTIONS = new Set([
   "retype",
   "requires",
   "resource",
+  "audit",
 ]);
+
+/**
+ * Actions that are about the registry as a whole rather than one item; their
+ * `id` is a placeholder and must not be looked up in the registers.
+ */
+const ITEMLESS_ACTIONS = new Set(["epoch", "resource", "audit"]);
 
 /**
  * @typedef {object} JournalEvent
@@ -182,7 +189,7 @@ export function auditJournalAgainstRegisters(index, root = repoRoot()) {
 
   for (const event of events) {
     if (event.action === "epoch") continue;
-    if (!index.has(event.id) && event.action !== "resource") {
+    if (!index.has(event.id) && !ITEMLESS_ACTIONS.has(event.action)) {
       problems.push(
         `${HISTORY_FILE}:${event.line}: event for unknown item ${event.id}`,
       );

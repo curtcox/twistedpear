@@ -56,6 +56,7 @@ kind of work each ID is, what it waits on, and how it is verified live in
 npm run work:next     # best unblocked item, and the reason it won
 npm run work:list     # everything remaining, with blocking reasons
 npm run work:log      # what changed recently, and what was actually verified
+npm run work:audit    # periodic review: what looks stale, unproven, or worth fixing
 ```
 
 Add work with `npm run work:add` and close it with `npm run work:done`. Both are
@@ -63,6 +64,13 @@ required: `work:done` runs the item's recorded verification command and refuses 
 close on a non-zero exit, and `npm run work:check` (part of `test:doc-audit`) fails
 on any `done` row with no corresponding entry in the append-only journal. Full rules
 in `docs/work-tracking.md`.
+
+`work:next` and `work:done` print an "audit due" line every 14 days or 5 closes.
+When they do, run `npm run work:audit`: it re-reads the registry, the generated
+analysis outputs, the recorded closes, and the document lifecycle headers, and
+hands back findings with the judgement attached. Work through them, record each
+decision with the normal commands, then `npm run work:audit -- --record` to write
+the report and reset the clock. See `docs/work-audit.md`.
 
 ## Safe default loop
 

@@ -20,6 +20,13 @@ length > 64, zero-padded inline content otherwise). Owned by
 [packages/cas-256t](../packages/cas-256t/). User-facing prose may call it a
 _share identifier_.
 
+**Account identity** — the long-lived identity of a **user**, as distinct from
+any one of their machines. Trust root for package signatures and installation
+certificates; in linked mode it is never registered as a live Reticulum
+destination. Unlinked installations, which is every shipping host today, have no
+account identity separate from the installation identity — see
+[linked-devices.md](linked-devices.md).
+
 **Adapter** — code that executes one effect family's intents and produces that
 family's events, outside the pure boundary. The real and simulated adapter for a
 family must be observationally equivalent under the trace hash.
@@ -95,6 +102,10 @@ links, LXMF messages. Works over any interface, including radio.
 **Dev-preview slot** — the sandboxed slot in which `apps:preview` runs a built
 app, gated by a host-chrome confirmation.
 
+**Device** — a **peripheral**: camera, microphone, sensor, actuator. Never a
+user's machine, which is an _installation_. All `Device *` entries below, the
+Devices chrome, and `device:<class>:<tier>` capabilities use this sense only.
+
 **Device bridge** — host-native effects (geolocation, camera, vibration, …)
 exposed to the worklet's Device Manager over an RPC boundary
 (`requestDeviceBridge`), replacing simulated drivers per platform.
@@ -145,14 +156,21 @@ machine and persisted in the `GrantStore`. [SPEC-CAP](../specs/spec-cap/spec.md)
 **Handbook** — the interactive platform guide, shipped as a mini-app
 ([apps/handbook](../apps/handbook/)).
 
-**Host** — the TwistedPear program on a device; one per device, the user's peer
-on the network. Flavors: desktop (Electron), android/ios (Expo dev build), web
+**Host** — the TwistedPear program running on one installation; the peer other
+nodes address. Flavors: desktop (Electron), android/ios (Expo dev build), web
 (browser leaf), node (headless), and the simulator (a conforming host, not a
-mock).
+mock). A host is not a user: see _Account identity_ and _Installation_.
 
 **Hostile archive / hostile app** — an adversarial fixture that must be
 rejected with a pinned error code
 ([conformance/hostile-apps](../conformance/hostile-apps/)).
+
+**Installation** — one TwistedPear host on one of a user's machines; the thing a
+user calls "my phone". Deliberately not called a _device_, which in this
+codebase means a peripheral. Capability grants, publisher trust, and moderation
+state are installation-scoped; identifiers spell it `installation`
+(`installationId`, `LinkedInstallationCertificate`). Contrast _Account
+identity_; see [linked-devices.md](linked-devices.md).
 
 **Intent** — a machine→host output declaring an effect to be executed by an
 adapter; the only way protocol code touches the world.

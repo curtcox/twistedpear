@@ -11,7 +11,7 @@ npm run work:log [-- options]
   --since=<date|rev>   only events at or after a date (YYYY-MM-DD) or git revision
   --id=<ID>            only events for one item
   --type=<t,t>         only events for these classes
-  --action=<a,a>       add | close | reopen | retype | requires | resource
+  --action=<a,a>       add | close | reopen | retype | requires | resource | audit
   --unverified         only closes recorded without running their verification
   --limit=<n>          default 20; --limit=0 for everything
   --json               machine-readable
@@ -72,6 +72,9 @@ function describe(event) {
   const head = `${when}  ${event.action.padEnd(8)} ${event.id} (${event.actor})`;
   if (event.action === "retype") {
     return `${head}\n${" ".repeat(18)}${event.from} -> ${event.to}: ${event.reason}`;
+  }
+  if (event.action === "audit") {
+    return `${head}\n${" ".repeat(18)}${event.findings} finding(s), ${event.high} high — ${event.report}`;
   }
   if (event.action !== "close") return head;
   if (event.verified === false) {

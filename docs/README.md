@@ -76,7 +76,9 @@ Those registers are read and written by the `work:*` commands rather than by han
 `npm run work:next` picks the next unblocked item, `npm run work:add` and
 `npm run work:done` change rows, and `npm run work:log` / `npm run work:diff` review
 what changed. See [work tracking](work-tracking.md) for the classification,
-prerequisite, and verification rules those commands enforce.
+prerequisite, and verification rules those commands enforce, and
+[work audit](work-audit.md) for the periodic review that re-reads those registers
+and proposes fixes.
 
 [Reader-guide remaining work](reader-guide-plan.md) is a work order derived from the
 feature-status appendices of the [User Guide](../guide/appendix-feature-status.md),
