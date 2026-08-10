@@ -25,8 +25,18 @@ function started(records, id) {
   );
 }
 
+/**
+ * A suite counts as wired when CI runs it, whether the workflow names the
+ * command directly or reaches it through the checks registry that `gate-plan`
+ * expands into the static-analysis matrix. Grepping only the workflow YAML
+ * reported registry-driven gates as missing.
+ */
 function ciWires(root, commands) {
-  const files = [".github/workflows/ci.yml", ".github/workflows/nightly.yml"]
+  const files = [
+    ".github/workflows/ci.yml",
+    ".github/workflows/nightly.yml",
+    "scripts/checks/registry.mjs",
+  ]
     .map((path) => join(root, path))
     .filter(existsSync)
     .map((path) => readFileSync(path, "utf8"))

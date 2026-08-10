@@ -50,6 +50,22 @@ describe("release driver", () => {
     expect(render(state)).toContain("Active stage: S1");
   });
 
+  test("counts a suite CI reaches through the checks registry as wired", () => {
+    const root = fixture();
+    // The real ci.yml never names test:release-harness: gate-plan expands the
+    // checks registry into the static-analysis matrix instead.
+    writeFileSync(
+      join(root, ".github/workflows/ci.yml"),
+      "test:hostile-apps\ntest:sim-fixed-replay\n",
+    );
+    mkdirSync(join(root, "scripts/checks"), { recursive: true });
+    writeFileSync(
+      join(root, "scripts/checks/registry.mjs"),
+      'gate("release-harness", "Release harness", "test:release-harness", "pr");\n',
+    );
+    expect(calculate(root).stages[0]).toBe(true);
+  });
+
   test("a failed soak preempts the serial stage action", () => {
     const root = fixture();
     const run = join(root, ".tmp/mac-validation/run-1/soak-triage");
