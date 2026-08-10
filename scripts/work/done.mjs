@@ -15,6 +15,7 @@ import {
   writeDoc,
 } from "./table.mjs";
 import { appendEvent } from "./journal.mjs";
+import { auditNudge } from "./audit-clock.mjs";
 import { listFlag, parseFlags } from "./render.mjs";
 
 /**
@@ -256,6 +257,10 @@ function main() {
         : "nothing new became unblocked",
     );
     console.log("next: npm run work:next");
+    // Closes are the other clock the audit runs on: a burst of them is exactly
+    // when the closed-work review has something to say.
+    const nudge = auditNudge(repoRoot());
+    if (nudge) console.log(nudge);
   } catch (error) {
     console.error(`work:done failed — ${error.message}`);
     process.exit(1);

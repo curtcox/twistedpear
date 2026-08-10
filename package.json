@@ -193,6 +193,7 @@
     "work:add": "node scripts/work/add.mjs",
     "work:done": "node scripts/work/done.mjs",
     "work:check": "node scripts/work/check.mjs",
+    "work:audit": "node scripts/work/audit.mjs",
     "work:log": "node scripts/work/log.mjs",
     "work:diff": "node scripts/work/diff.mjs",
     "test:release-harness": "vitest run conformance/release-harness/release-harness.test.mjs",

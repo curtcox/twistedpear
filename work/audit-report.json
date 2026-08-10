@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-10T16:38:53.670Z",
+  "commit": "856957d2660f1e8828d3d9e0ece5b0a8f3cfb2a8",
+  "counts": {
+    "total": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "ratchets": {
+    "lint-ratchet.json": 6309,
+    "typed-lint-ratchet.json": 569,
+    "complexity-ratchet.json": 356,
+    "size-ratchet.json": 0,
+    "format-ratchet.json": 0,
+    "license-ratchet.json": 2
+  },
+  "findings": []
+}
