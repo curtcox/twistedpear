@@ -46,7 +46,8 @@ Consequences to preserve:
 - Because the gate is itself a grant, and grants are host-local, the gate is per-installation
   by construction rather than by policy.
 
-Proposed classes, each independently grantable per sibling installation:
+**The gate is implemented** — see the live document. The classes below are the shipped closed
+vocabulary, each independently grantable per sibling installation:
 
 | Class                | Governs                                                        |
 | -------------------- | -------------------------------------------------------------- |
@@ -69,6 +70,18 @@ machine and reserves `device` for peripherals. Already applied to
 `packages/host-core/src/linked-installation.ts`; wire values were deliberately left
 unchanged. See the live document for the full rule.
 
+**5. In the UI, "devices" means the user's machines; the peripheral panel gives up the word.**
+The existing Devices chrome lists cameras, microphones, and sensors. That is jargon: to a
+user, "my devices" means their phone and laptop, which is exactly what the linked-installation
+screen shows. So the linked-installation screen takes **Your devices**, and the peripheral
+panel is relabelled — "Hardware access" — rather than the new screen inventing an awkward
+name to avoid a collision.
+
+This is a user-visible label change to a shipped surface, but only a label: the
+`device:<class>:<tier>` capabilities, SPEC-DEVICE, the Device Manager, and every wire value
+keep their spelling. Tracked as `ID-DEVICES-RELABEL`, which must land before the first
+linked-installation screen so the two never ship sharing a word.
+
 ## Remaining work
 
 **Installation roster and pairing.** Persist verified certificates; announce under the
@@ -83,11 +96,14 @@ destinations. Records are content-addressed, signed by the emitting installation
 deduplicated by record hash, and bounded by the same propagation and multipart limits as
 ordinary host traffic. Nothing in the journal applies itself — see decision 2.
 
-**Sibling-decision gate.** The grant surface, the pending-proposal store, the chrome that
-shows "your laptop blocked this sender — apply here?", and revocation. Removal from the local
-roster stops journal fan-out, but v1 has no global revocation service, so offline
-installations learn of a removal only when they next sync. That limit must be stated in the
-UI rather than implied.
+**Sibling-decision chrome and wiring.** The gate itself is built — see the live document for
+what it decides and guarantees. What remains is the surface and the effects: chrome that
+renders held proposals ("your laptop blocked this sender — apply here?"), the grant and
+revoke controls behind it, a durable proposal store to replace the in-memory one, and the
+code that turns an `apply` verdict into an actual write to the moderation and trust stores.
+Removal from the local roster stops journal fan-out, but v1 has no global revocation service,
+so offline installations learn of a removal only when they next sync. That limit must be
+stated in the UI rather than implied.
 
 **Linked-mode switch.** Enabling is a one-way network-address migration for that
 installation: the account/publisher hash stays stable while host and app serving destinations
@@ -97,9 +113,10 @@ multi-host collision the design exists to prevent. Importing a backup or recover
 not silently enable linked mode; joining an account stays an explicit, separate choice so
 ordinary disaster recovery does not change network-identity behaviour.
 
-**Naming for the UI.** The Devices panel already means peripherals. A linked-installation
-management screen cannot also be called Devices. Settle the user-facing word before the
-first screen ships.
+**Relabel the peripheral panel.** Per decision 5, the Devices chrome becomes "Hardware
+access" so the linked-installation screen can be "Your devices". Label strings only; no wire
+value, capability, or spec term changes. Must land before the first linked-installation
+screen.
 
 ## Non-goals for v1
 
@@ -110,7 +127,7 @@ installation and every publisher signature.
 
 ## Closure
 
-Archive this plan when linked mode can be enabled on desktop and mobile, the sibling-decision
-gate denies by default with tests proving no class applies without a grant, capability grants
-are still proven not to travel once the journal exists, and the live document has absorbed
-each mechanism as it lands.
+Archive this plan when linked mode can be enabled on desktop and mobile, held proposals are
+renderable and applicable through host chrome, capability grants are still proven not to
+travel once the journal exists, the peripheral panel has been relabelled, and the live
+document has absorbed each mechanism as it lands.

@@ -1,6 +1,13 @@
 {
   "version": 1,
   "items": {
+    "BUG-LXMF-COVERAGE": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run coverage:check",
+      "added": "2026-08-10",
+      "notes": "Reproduced on a clean checkout of main at 856957d2 with an unmodified coverage-ratchet.json and packages/lxmf-ts byte-identical to origin/main: 'packages/lxmf-ts functions: 72.5 < floor 73.33'. The floor is committed higher than the code achieves, so check:ci-base reports 15/16 static-analysis gates on an untouched tree. Either add function coverage in packages/lxmf-ts to clear 73.33 or, if the floor was set from a run that measured a different file set, correct the baseline with a recorded reason. A standing red gate trains people to ignore the gate."
+    },
     "DOC-OPTIONAL-BACKLOG": {
       "type": "docs",
       "requires": [],
@@ -228,12 +235,19 @@
       ],
       "notes": "identity.sign is broker-reachable (host/layer-1-handlers-core.ts) but no shipping host supplies an identityBackend, so MiniappHost falls back to the stub in host/layer-1-base.ts: destinationHash is app:<appId>:<publisher-prefix> and sign() returns the literal text signed:<payload>. Only simulation-adapter.ts wires a real backend. Fix by deriving the app-scoped identity from the installation identity per decision 3 of docs/linked-devices-plan.md, so an app on two of a user's machines is two peers."
     },
+    "ID-DEVICES-RELABEL": {
+      "type": "docs",
+      "requires": [],
+      "verify": "npm run test:doc-audit",
+      "added": "2026-08-10",
+      "notes": "Decision 5 of docs/linked-devices-plan.md. The Devices panel lists cameras, microphones, and sensors; to a user 'my devices' means their phone and laptop, which is what the linked-installation screen will show. Relabel the peripheral chrome to 'Hardware access' and reserve 'Your devices' for installations. User-visible label strings only: device:<class>:<tier> capabilities, SPEC-DEVICE, the Device Manager, and all wire values keep their spelling. Must land before the first linked-installation screen so the two never ship sharing a word."
+    },
     "ID-JOURNAL": {
       "type": "feature",
-      "requires": ["ID-ROSTER"],
+      "requires": ["ID-ROSTER", "ID-SIBLING-GATE"],
       "verify": "npx vitest run packages/host-core/test/account-journal.test.ts",
       "added": "2026-08-10",
-      "notes": "Content-addressed records signed by the emitting installation certificate, deduplicated by record hash, bounded by the existing propagation and multipart limits. Records are proposals only; nothing applies itself. See docs/linked-devices-plan.md."
+      "notes": "Content-addressed records signed by the emitting installation certificate, deduplicated by record hash, bounded by the existing propagation and multipart limits. Records are proposals only; nothing applies itself. See docs/linked-devices-plan.md. Waits on ID-SIBLING-GATE so the record shape is dictated by the policy boundary rather than the transport."
     },
     "ID-LINKED-MODE": {
       "type": "feature",
@@ -249,12 +263,25 @@
       "added": "2026-08-10",
       "notes": "Persist verified TPDV certificates, announce under the account-derived aspect, and merge valid certificates into a local roster. Both pairing directions per docs/linked-devices-plan.md. linked-installation.ts supplies the format and is consumed by nothing today."
     },
+    "ID-SIBLING-CHROME": {
+      "type": "feature",
+      "requires": ["ID-SIBLING-GATE", "ID-ROSTER"],
+      "verify": "npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts",
+      "added": "2026-08-10",
+      "notes": "SiblingDecisionGate decides but applies nothing. Remaining: chrome rendering held proposals with grant and revoke controls, a durable SiblingProposalStore replacing createInMemorySiblingProposalStore, and the code turning an apply verdict into a write to FileModerationStore and TrustStore. Must state in the UI that removing an installation from the roster stops fan-out but does not revoke globally — offline installations learn of removal only when they next sync."
+    },
     "ID-SIBLING-GATE": {
       "type": "feature",
-      "requires": ["ID-JOURNAL"],
-      "verify": "npx vitest run packages/host-core/test/sibling-decision-gate.test.ts",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/sibling-decisions.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts",
       "added": "2026-08-10",
-      "notes": "Default deny. A journal record from another installation is a proposal: verified, stored, surfaced, applied only where the receiving installation holds a grant for that class (sibling:moderation, sibling:trust, sibling:apps, sibling:messages), revocable per sibling and per class. Capability grants themselves have no sibling class and must be proven not to travel. See decision 2 of docs/linked-devices-plan.md."
+      "completed": "2026-08-10",
+      "evidence": [
+        "packages/host-core/src/sibling-decisions.ts",
+        "packages/host-core/test/sibling-decisions.test.ts",
+        "docs/linked-devices.md"
+      ],
+      "notes": "Default deny. A journal record from another installation is a proposal: verified, stored, surfaced, applied only where the receiving installation holds a grant for that class (sibling:moderation, sibling:trust, sibling:apps, sibling:messages), revocable per sibling and per class. Capability grants themselves have no sibling class and must be proven not to travel. See decision 2 of docs/linked-devices-plan.md. PREREQUISITE CHANGE 2026-08-10: the gate no longer waits on the journal. It is the only piece that encodes the user-authority property the whole feature exists to provide, and it is buildable now against an in-memory journal because verifying a record needs only the certificate format, which ships. Building it first lets the policy boundary define the record shape; building it last lets the transport define it and refits the security property afterwards. ID-JOURNAL now waits on the gate so the transport lands into a proven boundary. SCOPE AT CLOSE: the gate — classes, default deny, per-sibling/per-class grants, hold-not-drop, backlog release, revocation, rejection of unknown class/non-sibling/self/duplicate, and the closed vocabulary that cannot carry a capability grant. The chrome and the code that applies an apply-verdict to the moderation and trust stores are tracked separately as ID-SIBLING-CHROME."
     },
     "PD-AI": {
       "type": "feature",

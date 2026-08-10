@@ -116,6 +116,37 @@ This replaced a stub that returned `app:<appId>:<publisher-prefix>` as a destina
 a `sign()` producing the literal text `signed:<payload>` — a forged signature reachable by any
 app holding `identity`. Closed as `ID-APPSCOPE`.
 
+## Sibling decisions are proposals, not effects
+
+A decision made on another of the user's installations does not take effect here just because
+it arrived. `SiblingDecisionGate`
+([packages/host-core/src/sibling-decisions.ts](../packages/host-core/src/sibling-decisions.ts))
+decides what an incoming record may do, and the answer is nothing unless this installation
+holds a grant for that class of decision from that sibling.
+
+- **Default deny.** A fresh installation holds every class and applies none.
+- **Per sibling and per class.** Granting `sibling:moderation` from the laptop applies
+  nothing from the tablet, and nothing in `sibling:trust` from the laptop.
+- **Held, not dropped.** An ungranted proposal is stored and surfaced, so the user can be
+  shown what is waiting and grant afterwards; `grantAndRelease` then returns exactly the
+  backlog that grant answers for.
+- **Revocable**, and revocation does not undo what was already applied — the gate governs
+  what may be applied, not what was.
+- **Rejects rather than holds** an unknown class, an installation that is not a sibling, its
+  own echo, and a record hash it has already seen.
+- **Applies nothing itself.** It returns a verdict plus the payload; the caller performs the
+  effect. That is what makes the policy testable independently of any store it governs.
+
+The vocabulary is closed: `sibling:moderation`, `sibling:trust`, `sibling:apps`,
+`sibling:messages`. **There is no class that could carry a capability grant**, which is the
+other half of the guarantee in the table above — a grant given to an app on one machine has
+no route to another. Both halves are pinned by tests.
+
+The roster predicate and the durable proposal store are injected, which is why the gate is
+finished before the roster (`ID-ROSTER`) and the journal (`ID-JOURNAL`) exist. The host chrome
+that renders held proposals, and the wiring that applies an `apply` verdict to the moderation
+and trust stores, are not built.
+
 ## Naming: installation vs device
 
 The word _device_ means two unrelated things in this codebase, and conflating them would

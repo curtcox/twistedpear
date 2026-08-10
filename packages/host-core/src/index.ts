@@ -154,6 +154,22 @@ export {
   type CommunityTcpEndpoint,
 } from "./community-network.js";
 export {
+  SIBLING_DECISION_CLASSES,
+  SiblingDecisionGate,
+  createInMemorySiblingProposalStore,
+  createKeyValueSiblingGrantStore,
+  isSiblingDecisionClass,
+  type SiblingDecisionClass,
+  type SiblingDecisionGateOptions,
+  type SiblingGrant,
+  type SiblingGrantStore,
+  type SiblingKeyValueStore,
+  type SiblingProposal,
+  type SiblingProposalStore,
+  type SiblingRejectReason,
+  type SiblingVerdict,
+} from "./sibling-decisions.js";
+export {
   APP_SCOPED_IDENTITY_SALT,
   createAppScopedIdentityBackend,
   deriveAppScopedIdentity,
