@@ -39,6 +39,8 @@ export const MAX_WAIVER_DAYS = 30;
  * @property {string} [measuredOn] tree digest this gate's result came from.
  *   Carried-forward results keep the digest they were actually measured on, so
  *   a gate that could not run here cannot pass as green for this tree.
+ * @property {string} [tier] which tier the gate belongs to. `pr` gates feed the
+ *   work queue; `release` gates only have to be green before a soak.
  */
 
 /**
@@ -173,7 +175,7 @@ function redSince(previous, now) {
  * from this run keep their previous record: a single-gate `--only` run must not
  * silently declare the other fifteen green.
  * @param {string} root
- * @param {{ digest?: string; treeDigest?: string; commit?: string; now?: Date; tier?: string }} [options]
+ * @param {{ digest?: string; treeDigest?: string; commit?: string; now?: Date; tiers?: string[] }} [options]
  * @returns {ChecksStatus}
  */
 export function collect(root, options = {}) {
@@ -182,17 +184,17 @@ export function collect(root, options = {}) {
     treeDigest = "",
     commit = "",
     now = new Date(),
-    tier = "pr",
+    tiers = ["pr", "release"],
   } = options;
   const previous = readChecks(root);
   const directory = join(root, "artifacts", "checks");
-  // Only the gates of the tier being recorded. `artifacts/` accumulates results
-  // from every run on the machine, including nightly-tier gates that
+  // Only the gates of the tiers being recorded. `artifacts/` accumulates
+  // results from every run on the machine, including nightly-tier gates that
   // `check:ci-base` never runs; folding those in would let a months-old
   // nightly artifact decide whether a soak may start.
-  const inTier = new Set(
-    gates.filter((gate) => gate.tier === tier).map((gate) => gate.id),
-  );
+  const scope = gates.filter((gate) => tiers.includes(gate.tier));
+  const tierOf = new Map(scope.map((gate) => [gate.id, gate.tier]));
+  const inTier = new Set(tierOf.keys());
   /** @type {Record<string, GateRecord>} */
   const merged = Object.fromEntries(
     Object.entries(previous.gates ?? {}).filter(([id]) => inTier.has(id)),
@@ -228,12 +230,13 @@ export function collect(root, options = {}) {
         : previous.gates?.[artifact.id]?.measuredOn
           ? { measuredOn: previous.gates[artifact.id].measuredOn }
           : {}),
+      tier: tierOf.get(artifact.id),
     };
   }
 
   // A gate that exists in the registry but has never produced a result is not
   // evidence of green. Record it as red so the rule fails closed.
-  for (const gate of gates.filter((entry) => entry.tier === tier)) {
+  for (const gate of scope) {
     if (merged[gate.id]) continue;
     merged[gate.id] = {
       title: gate.title,
@@ -243,6 +246,7 @@ export function collect(root, options = {}) {
       commit,
       detail: "gate has never produced a result artifact",
       since: redSince(previous.gates?.[gate.id], now),
+      tier: gate.tier,
     };
   }
 
@@ -313,6 +317,7 @@ export function waiverState(waivers, gate, now = new Date()) {
  * @property {string} command
  * @property {string} [detail]
  * @property {string} [since]
+ * @property {string} tier
  * @property {"none" | "active" | "expired"} waiver
  * @property {Waiver} [waiverRecord]
  */
@@ -383,6 +388,7 @@ export function gateStatus(root, options = {}) {
         command: record.command ?? "",
         detail: record.detail,
         since: record.since,
+        tier: record.tier ?? "pr",
         waiver: state,
         waiverRecord: waiver,
       };

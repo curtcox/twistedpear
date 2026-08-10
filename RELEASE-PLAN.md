@@ -123,6 +123,21 @@ while leaving the application untouched. The soak guard accepts the record only
 when both still match. A green result for other code proves nothing about this
 code, so a stale record is refused exactly like a red one.
 
+**Dependency advisories are a soak precondition, not a PR gate.** `audit-policy`
+on the PR tier only checks that `audit-allowlist.json` is well-formed and
+unexpired — it never runs `npm audit`, which is how it stays green while GitHub
+reports open Dependabot alerts. The `advisories` gate on the **release** tier is
+the one that reconciles `npm audit` and the Dependabot API against the
+allowlist, and the soak guard requires it.
+
+It sits on the release tier deliberately. A high-severity advisory in a
+transitive development dependency with no upstream fix is a real thing to record
+and a bad thing to park the entire work queue behind, so `work:next` derives
+items from PR-tier gates only while the soak guard blocks on every tier. The
+remediation path is `npm run audit:fix` for what upgrades cleanly, and a
+reasoned, expiring `audit-allowlist.json` entry for what does not — the same
+shape as a gate waiver, and the allowlist already had it.
+
 Each gate also records the tree it was measured on individually. A run on a
 machine lacking a toolchain — no Swift, no Rust — skips those gates and carries
 their previous result forward, which is what makes partial and matrix runs
@@ -195,11 +210,22 @@ monitoring:
    `git switch -c release/v1.0.0` from a green `main` — then start the
    plan-duration soaks from it with `npm run release:start-soaks` (Mac powered
    and awake; the 72 h transport soak is the long pole). "Green" is the
-   green-gate rule, and it is checked rather than eyeballed: run
-   `npm run checks:status` on the branch first, and the guard will refuse to
-   launch until every gate is green or waived. The launcher also enforces the
-   soak isolation rule; `npm run validate:mac -- --stage 8 --plan-duration`
-   bypasses both guards and does not produce G1 evidence.
+   green-gate rule, and it is checked rather than eyeballed. Three commands
+   establish it on the branch, in this order:
+
+   ```sh
+   npm run tools:doctor    # every gate can actually run here
+   npm run checks:status   # run the PR-tier gates and record the result
+   npm run checks:release  # reconcile dependency advisories
+   ```
+
+   `tools:doctor` comes first because a gate that cannot run is not a gate that
+   passed: a missing toolchain would otherwise show up much later as a
+   carried-forward result the guard refuses. `npm run tools:install` installs
+   what is missing where a recipe exists. The launcher also enforces the soak
+   isolation rule; `npm run validate:mac -- --stage 8 --plan-duration` bypasses
+   both guards and does not produce G1 evidence.
+
 2. **[user]** Order the hardware in STATUS-HARDWARE's acquisition order — two used
    Android phones first, plus the spare Linux box for H20.
 3. **[user]** Enroll in the Apple Developer Program (H12 — longest lead time;

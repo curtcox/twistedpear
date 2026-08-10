@@ -5,6 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { gates } from "./registry.mjs";
+import { requirementAvailable } from "../tools/requirements.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -33,20 +34,8 @@ function gitSha() {
 const checkoutCommit = gitSha();
 const branchSha = process.env.GITHUB_SHA ?? checkoutCommit;
 
-function hasCommand(command, commandArgs = ["--version"]) {
-  return spawnSync(command, commandArgs, { encoding: "utf8" }).status === 0;
-}
-
-function requirementAvailable(requirement) {
-  if (requirement === "node") return true;
-  if (requirement === "macos") return process.platform === "darwin";
-  if (requirement === "jvm") return hasCommand("java");
-  if (requirement === "rust") return hasCommand("cargo");
-  if (requirement === "python") return hasCommand("python3");
-  if (requirement === "actionlint")
-    return hasCommand("actionlint", ["-version"]);
-  return hasCommand(requirement);
-}
+// Probing lives in scripts/tools/requirements.mjs so the runner, the doctor,
+// and the installer cannot disagree about whether a tool is available.
 
 let selected = gates.filter((gate) => gate.tier === tier);
 if (only) selected = selected.filter((gate) => gate.id === only);

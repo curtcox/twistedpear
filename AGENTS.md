@@ -87,8 +87,15 @@ Requires Node 22 and npm 10+ (see `.node-version` and `engines`).
 
 ```sh
 npm ci
+npm run tools:doctor   # external tools the gates need; --json for scripting
 npm run check:fast
 ```
+
+`tools:doctor` reports which external tools are present, what each missing one
+blocks, and how to get it; `npm run tools:install` installs the ones with a
+recipe for this platform, prerequisites first. Gates whose tools are missing are
+skipped locally rather than failing, so without the doctor a missing toolchain
+is invisible until the soak guard refuses the carried-forward result.
 
 `check:fast` runs `typecheck` (`tsc -b`) plus the Vitest unit suite.
 
@@ -143,6 +150,10 @@ focused tests.
   Do not hand-edit a `Status` cell at all — use `npm run work:done`, which requires
   evidence and runs the verification command. A hand-flipped row fails `work:check`.
 - Do not weaken capability, signature, sandbox, budget, or store-posture checks.
+- Do not silence a dependency advisory. `npm run audit:advisories` reconciles
+  `npm audit` and Dependabot against `audit-allowlist.json`; fix what
+  `npm run audit:fix` can fix, and give anything left a reasoned entry with an
+  expiry. It gates the soaks, not every PR — see RELEASE-PLAN.md §3.
 
 ## Generated and committed outputs
 
