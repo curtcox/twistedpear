@@ -117,7 +117,7 @@ export function useNativeWorkletLifecycle(deps: NativeWorkletLifecycleDeps) {
     void multicastIpcRef.current?.stop();
     void bleIpcRef.current?.stop();
     void usbIpcRef.current?.stop();
-    workletRef.current?.terminate();
+    void workletRef.current?.terminate();
     workletRef.current = null;
     workletReadyRef.current = null;
     setStatus((current) => ({

@@ -50,9 +50,19 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID                   | Status | Item                                                    | Evidence | Verify               |
-| -------------------- | ------ | ------------------------------------------------------- | -------- | -------------------- |
-| DOC-OPTIONAL-BACKLOG | open   | Give the optional/non-blocking backlog rows tracked IDs | —        | `npm run work:check` |
+| ID                                                  | Status | Item                                                                                             | Evidence | Verify                                                                                                                       |
+| --------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| DOC-OPTIONAL-BACKLOG                                | open   | Give the optional/non-blocking backlog rows tracked IDs                                          | —        | `npm run work:check`                                                                                                         |
+| QL-LINT-TYPESCRIPT-ESLINT-NO-UNUSED-VARS            | open   | Clear 5193 @typescript-eslint/no-unused-vars entries from the lint ratchet (164 files)           | —        | `npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=@typescript-eslint/no-unused-vars`               |
+| QL-LINT-NO-UNUSED-VARS                              | open   | Clear 1039 no-unused-vars entries from the lint ratchet (58 files)                               | —        | `npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=no-unused-vars`                                  |
+| QL-LINT-NO-FUNC-ASSIGN                              | open   | Clear 67 no-func-assign entries from the lint ratchet (2 files)                                  | —        | `npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=no-func-assign`                                  |
+| QL-TYPED-TYPESCRIPT-ESLINT-NO-UNNECESSARY-CONDITION | open   | Clear 404 @typescript-eslint/no-unnecessary-condition entries from the typed ratchet (164 files) | —        | `npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/no-unnecessary-condition`  |
+| QL-TYPED-TYPESCRIPT-ESLINT-REQUIRE-AWAIT            | open   | Clear 159 @typescript-eslint/require-await entries from the typed ratchet (57 files)             | —        | `npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/require-await`             |
+| QL-COMPLEXITY-COMPLEXITY                            | open   | Clear 225 complexity entries from the complexity ratchet (147 files)                             | —        | `npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=complexity`                        |
+| QL-COMPLEXITY-MAX-LINES-PER-FUNCTION                | open   | Clear 117 max-lines-per-function entries from the complexity ratchet (105 files)                 | —        | `npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=max-lines-per-function`            |
+| QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT      | open   | Clear 6 @typescript-eslint/ban-ts-comment entries from the complexity ratchet (6 files)          | —        | `npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=@typescript-eslint/ban-ts-comment` |
+| WORK-EFFORT                                         | open   | Give work:next an effort signal so small fixes outrank sprawling ones                            | —        | `npx vitest run conformance/doc-audit/work-ranking.test.mjs`                                                                 |
+| WORK-UNATTENDED                                     | open   | Distinguish unattended work from hands-on work in work:next                                      | —        | `npx vitest run conformance/doc-audit/work-ranking.test.mjs`                                                                 |
 
 ## Optional and non-blocking backlog
 

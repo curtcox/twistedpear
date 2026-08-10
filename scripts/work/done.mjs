@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { repoRoot } from "../doc-audit/repo-root.mjs";
 import { loadMetadata, loadWork, saveMetadata } from "./lib.mjs";
@@ -34,7 +35,8 @@ const USAGE = `
 npm run work:done -- --id=<ID> --evidence=<path,path> [options]
 
   --verify="<command>"     override the recorded verification command
-  --allow-unverified       skip execution; requires --reason (use for runbook: items)
+  --from-log=<path>        accept an evidence log produced by an earlier run
+  --allow-unverified       skip verification; requires --reason
   --reason="<text>"        why verification was not executed
   --no-move                close in place instead of moving the row
 `;
@@ -46,6 +48,23 @@ npm run work:done -- --id=<ID> --evidence=<path,path> [options]
 function evidenceCell(token) {
   if (/^https?:/.test(token) || token.startsWith("[")) return token;
   return `\`${token}\``;
+}
+
+/**
+ * @param {string} rel
+ * @param {string} root
+ * @param {boolean} requireContent an ingested log *is* the evidence, so it must
+ *   have some; a command that succeeds silently may legitimately log nothing.
+ * @returns {string}
+ */
+function fingerprint(rel, root, requireContent) {
+  const path = join(root, rel);
+  if (!existsSync(path)) throw new Error(`evidence log ${rel} does not exist`);
+  const bytes = readFileSync(path);
+  if (requireContent && bytes.length === 0) {
+    throw new Error(`evidence log ${rel} is empty`);
+  }
+  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 }
 
 /**
@@ -110,7 +129,11 @@ export function closeWork(flags, root = repoRoot()) {
 
   const isRunbook = verify.startsWith("runbook:");
   const skip = flags["allow-unverified"] === true;
+  const fromLog = flags["from-log"] ? String(flags["from-log"]) : "";
   const reason = String(flags.reason ?? "");
+  if (skip && fromLog) {
+    throw new Error("--from-log and --allow-unverified are mutually exclusive");
+  }
   if ((isRunbook || skip) && !reason) {
     throw new Error(
       isRunbook
@@ -124,10 +147,20 @@ export function closeWork(flags, root = repoRoot()) {
     );
   }
 
-  const log = `release/evidence-logs/${new Date().toISOString().slice(0, 10)}-${id.toLowerCase()}.log`;
+  let log = `release/evidence-logs/${new Date().toISOString().slice(0, 10)}-${id.toLowerCase()}.log`;
   /** @type {{ exit: number; durationMs: number }} */
   let outcome = { exit: 0, durationMs: 0 };
-  if (!skip) {
+  /** @type {string} */
+  let digest = "";
+
+  if (fromLog) {
+    // Multi-hour soaks are started by release:start-soaks and watched
+    // elsewhere; re-running them inside work:done would mean holding a terminal
+    // for three days. Ingest the log they produced instead, fingerprinted so
+    // the record names a specific artifact rather than a claim.
+    digest = fingerprint(fromLog, root, true);
+    log = fromLog;
+  } else if (!skip) {
     console.log(`[work:done] verifying ${id}: ${verify}\n`);
     outcome = runVerification(verify, log, root);
     if (outcome.exit !== 0) {
@@ -135,6 +168,7 @@ export function closeWork(flags, root = repoRoot()) {
         `verification failed with exit ${outcome.exit} — ${id} stays ${item.status}. Log: ${log}`,
       );
     }
+    digest = fingerprint(log, root, false);
   }
 
   const target = flags["no-move"] === true ? null : CLOSE_POLICY[item.file];
@@ -185,10 +219,11 @@ export function closeWork(flags, root = repoRoot()) {
       type: item.type,
       verify,
       verified: !skip,
+      verifiedFrom: skip ? "none" : fromLog ? "log" : "run",
       exit: outcome.exit,
       durationMs: outcome.durationMs,
       evidence,
-      ...(skip ? { reason } : { log }),
+      ...(skip ? { reason } : { log, digest }),
     },
     root,
   );

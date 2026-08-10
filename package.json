@@ -257,7 +257,12 @@
     "formal:all": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs --all",
     "formal:symbolic:lint": "node formal/check-symbolic-models.mjs",
     "formal:tamarin": "node formal/run-symbolic-provers.mjs tamarin",
-    "formal:proverif": "node formal/run-symbolic-provers.mjs proverif"
+    "formal:proverif": "node formal/run-symbolic-provers.mjs proverif",
+    "work:import": "node scripts/work/import.mjs",
+    "work:retype": "node scripts/work/retype.mjs",
+    "release:soak-status": "node scripts/release/soak-status.mjs",
+    "release:resume-soaks": "node scripts/release/start-soaks.mjs --resume",
+    "release:record-soaks": "node scripts/release/record-soaks.mjs"
   },
   "overrides": {
     "js-yaml": "^4.3.1"

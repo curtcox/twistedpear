@@ -22,6 +22,7 @@ import {
   LINK_ECHO_PORT,
   waitForReadyLine,
 } from "../scenarios/ts/harness.mjs";
+import { soakProgress } from "../soak-progress.mjs";
 
 if (!interopReady()) {
   console.log("link-soak: skipped (set INTEROP=1 with docker)");
@@ -116,7 +117,9 @@ async function main() {
     let pings = 0;
     let spuriousTeardowns = 0;
 
+    const progress = soakProgress({ total: DURATION_MS });
     while (Date.now() - started < DURATION_MS) {
+      progress.report(Date.now() - started);
       if (link.status === LinkStatus.CLOSED) {
         spuriousTeardowns += 1;
         throw new Error(`link closed unexpectedly after ${pings} pings`);

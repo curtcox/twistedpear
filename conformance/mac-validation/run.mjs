@@ -12,6 +12,8 @@ import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { alreadyPassed } from "./resume.mjs";
+import { printHelp } from "./usage.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const androidHome =
@@ -32,6 +34,7 @@ export function parseArgs(argv) {
     aiDoctor: false,
     skipDoctor: false,
     continueOnFailure: false,
+    resume: false,
     planDuration: false,
     noCaffeinate: false,
     startAndroidEmulator: false,
@@ -50,6 +53,7 @@ export function parseArgs(argv) {
     else if (arg === "--ai") options.aiDoctor = true;
     else if (arg === "--skip-doctor") options.skipDoctor = true;
     else if (arg === "--continue-on-failure") options.continueOnFailure = true;
+    else if (arg === "--resume") options.resume = true;
     else if (arg === "--plan-duration") options.planDuration = true;
     else if (arg === "--no-caffeinate") options.noCaffeinate = true;
     else if (arg === "--start-android-emulator")
@@ -102,30 +106,6 @@ function readStageNumber(value, flag) {
   }
 
   return stage;
-}
-
-function printHelp() {
-  console.log(`Usage: npm run validate:mac -- [options]
-
-Runs the local validation plan from docs/mac-validation.md with per-command logs.
-
-Default: doctor + Stages 1-5 (build/unit, Docker interop, distribution/runtime,
-web host, desktop host).
-
-Options:
-  --full                    Run Stages 1-8, including iOS, Android, and default soaks.
-  --stage N[,M]             Run one or more stages.
-  --from N --through M      Run a contiguous stage range.
-  --plan-duration           Use the long Stage 8 soak durations from the plan.
-  --no-caffeinate           Do not keep macOS awake during --plan-duration Stage 8.
-  --ai                      Pass --ai to doctor for live API key checks.
-  --skip-doctor             Skip the Stage 0 gate.
-  --continue-on-failure     Run remaining commands after a failure.
-  --dry-run                 Print commands without executing.
-  --list                    Show stages and command counts.
-  --log-dir PATH            Override log directory.
-  --start-android-emulator  Start Pixel_8_API_34 before Stage 7.
-`);
 }
 
 function npmScript(script, opts = {}) {
@@ -716,6 +696,10 @@ async function main() {
           index,
           command.label,
         );
+        if (options.resume && alreadyPassed(logPath)) {
+          console.log(`[mac-validation] resume: skipping ${command.label}`);
+          continue;
+        }
         const status = await runCommand(command, {
           logPath,
           stageNumber,

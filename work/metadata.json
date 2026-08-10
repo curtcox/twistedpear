@@ -73,97 +73,97 @@
       "added": "2026-07-19"
     },
     "H1": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1"],
       "verify": "runbook:STATUS-HARDWARE.md#h1-single-android-phone",
       "added": "2026-07-06"
     },
     "H10": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1", "res:lan"],
       "verify": "runbook:STATUS-HARDWARE.md#h10-file-drop-phonedesktop-over-autointerface",
       "added": "2026-07-06"
     },
     "H11": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1"],
       "verify": "runbook:STATUS-HARDWARE.md#h11-watchdog-on-weak-hardware",
       "added": "2026-07-06"
     },
     "H12": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:apple-developer-account"],
       "verify": "runbook:STATUS-HARDWARE.md#h12-paid-apple-developer-account",
       "added": "2026-07-06"
     },
     "H13": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:iphone"],
       "verify": "runbook:STATUS-HARDWARE.md#h13-iphone-dev-build",
       "added": "2026-07-06"
     },
     "H14": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:iphone", "res:android-phone-1"],
       "verify": "runbook:STATUS-HARDWARE.md#h14-iphone-android-ble",
       "added": "2026-07-06"
     },
     "H15": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:iphone", "res:android-phone-1", "res:lan"],
       "verify": "runbook:STATUS-HARDWARE.md#h15-real-lan-discovery-iphone",
       "added": "2026-07-06"
     },
     "H16": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:iphone", "res:rnode-pair", "H4"],
       "verify": "runbook:STATUS-HARDWARE.md#h16-iphone-rnode",
       "added": "2026-07-06"
     },
     "H17": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:windows-machine"],
       "verify": "runbook:STATUS-HARDWARE.md#h17-windows-1011",
       "added": "2026-07-06"
     },
     "H18": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:second-desktop", "res:android-phone-1", "res:lan"],
       "verify": "runbook:STATUS-HARDWARE.md#h18-real-wifi-lan-2-desktops-phone",
       "added": "2026-07-06"
     },
     "H19": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:rnode-pair", "H4"],
       "verify": "runbook:STATUS-HARDWARE.md#h19-rnode-usb-gateway-desktop",
       "added": "2026-07-06"
     },
     "H2": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1", "res:android-phone-2", "res:lan"],
       "verify": "runbook:STATUS-HARDWARE.md#h2-two-android-phones-on-wifi",
       "added": "2026-07-06"
     },
     "H20": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:linux-server"],
       "verify": "runbook:STATUS-HARDWARE.md#h20-always-on-server-2-weeks",
       "added": "2026-07-06"
     },
     "H21": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1", "res:lan"],
       "verify": "runbook:STATUS-HARDWARE.md#h21-handbook-device-gated-probes-phone-desktop",
       "added": "2026-07-06"
     },
     "H22": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:rnode-pair", "res:android-phone-1"],
       "verify": "runbook:STATUS-HARDWARE.md#h22-handbook-rnode-probe-phone-rnode",
       "added": "2026-07-06"
     },
     "H23": {
-      "type": "feature",
+      "type": "quality",
       "requires": [
         "res:android-phone-1",
         "res:android-phone-2",
@@ -173,44 +173,44 @@
       "added": "2026-07-06"
     },
     "H3": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-2"],
       "verify": "runbook:STATUS-HARDWARE.md#h3-aggressive-oem-battery-manager",
       "added": "2026-07-06"
     },
     "H4": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:rnode-pair", "res:android-phone-1"],
       "verify": "runbook:STATUS-HARDWARE.md#h4-rnode-pair-lora",
       "added": "2026-07-06"
     },
     "H5": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:iphone"],
       "verify": "runbook:STATUS-HARDWARE.md#h5-iphone-phase-2-only",
       "added": "2026-07-06",
       "notes": "Not required for Phase 2 exit: the simulator sufficed for M8. iPhone work begins at H13."
     },
     "H6": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1", "res:lan"],
       "verify": "runbook:STATUS-HARDWARE.md#h6-desktop-seeder-install-over-lan-autointerface",
       "added": "2026-07-06"
     },
     "H7": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1", "res:android-phone-2", "H2"],
       "verify": "runbook:STATUS-HARDWARE.md#h7-ble-only-package-install",
       "added": "2026-07-06"
     },
     "H8": {
-      "type": "feature",
+      "type": "quality",
       "requires": ["res:rnode-pair", "H4"],
       "verify": "runbook:STATUS-HARDWARE.md#h8-rnode-live-budget-rule",
       "added": "2026-07-06"
     },
     "H9": {
-      "type": "feature",
+      "type": "release-gate",
       "requires": ["res:android-phone-1", "res:android-phone-2", "H2"],
       "verify": "runbook:STATUS-HARDWARE.md#h9-chat-example-over-ble-only",
       "added": "2026-07-06"
@@ -277,6 +277,75 @@
         "packages/miniapp-runtime/test/workspace-ai.test.ts",
         "conformance/devstudio-loop/run.mjs"
       ]
+    },
+    "QL-COMPLEXITY-COMPLEXITY": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=complexity",
+      "added": "2026-08-07",
+      "notes": "Imported from complexity-ratchet.json: 225 baselined complexity entries across 147 files."
+    },
+    "QL-COMPLEXITY-MAX-LINES-PER-FUNCTION": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=max-lines-per-function",
+      "added": "2026-08-07",
+      "notes": "Imported from complexity-ratchet.json: 117 baselined max-lines-per-function entries across 105 files."
+    },
+    "QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=@typescript-eslint/ban-ts-comment",
+      "added": "2026-08-07",
+      "notes": "Imported from complexity-ratchet.json: 6 baselined @typescript-eslint/ban-ts-comment entries across 6 files."
+    },
+    "QL-LINT-NO-FUNC-ASSIGN": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=no-func-assign",
+      "added": "2026-08-07",
+      "notes": "Imported from lint-ratchet.json: 67 baselined no-func-assign entries across 2 files."
+    },
+    "QL-LINT-NO-UNUSED-VARS": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=no-unused-vars",
+      "added": "2026-08-07",
+      "notes": "Imported from lint-ratchet.json: 1039 baselined no-unused-vars entries across 58 files."
+    },
+    "QL-LINT-TYPESCRIPT-ESLINT-NO-UNUSED-VARS": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=@typescript-eslint/no-unused-vars",
+      "added": "2026-08-07",
+      "notes": "Imported from lint-ratchet.json: 5193 baselined @typescript-eslint/no-unused-vars entries across 164 files."
+    },
+    "QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/no-floating-promises",
+      "added": "2026-08-07",
+      "completed": "2026-08-07",
+      "evidence": [
+        "packages/lxmf-ts/src/propagation.ts",
+        "packages/lxmf-ts/src/router.ts",
+        "apps/host-desktop/src/main/index.ts"
+      ],
+      "notes": "Imported from typed-lint-ratchet.json: 6 baselined @typescript-eslint/no-floating-promises entries across 5 files."
+    },
+    "QL-TYPED-TYPESCRIPT-ESLINT-NO-UNNECESSARY-CONDITION": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/no-unnecessary-condition",
+      "added": "2026-08-07",
+      "notes": "Imported from typed-lint-ratchet.json: 404 baselined @typescript-eslint/no-unnecessary-condition entries across 164 files."
+    },
+    "QL-TYPED-TYPESCRIPT-ESLINT-REQUIRE-AWAIT": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/require-await",
+      "added": "2026-08-07",
+      "notes": "Imported from typed-lint-ratchet.json: 159 baselined @typescript-eslint/require-await entries across 57 files."
     },
     "RELAY": {
       "type": "feature",
@@ -404,7 +473,7 @@
       "added": "2026-07-31"
     },
     "S0": {
-      "type": "feature",
+      "type": "quality",
       "requires": [],
       "verify": "npm run test:release-harness && npm run release:status",
       "added": "2026-07-20",
@@ -412,12 +481,26 @@
       "evidence": ["scripts/release/"]
     },
     "S1": {
-      "type": "feature",
+      "type": "quality",
       "requires": [],
       "verify": "npm run build && npm test",
       "added": "2026-07-20",
       "completed": "2026-07-20",
       "evidence": ["STATUS-COMPLETE.md"]
+    },
+    "WORK-EFFORT": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run conformance/doc-audit/work-ranking.test.mjs",
+      "added": "2026-08-07",
+      "notes": "Within a class, ranking falls through unblock-count and added-date to alphabetical ID, so it cannot tell a 5-file fix from a 164-file campaign. The imported ratchet items make this concrete: no-floating-promises (5 files) and no-unnecessary-condition (164 files) rank adjacently on identical signals. Options: an explicit effort field on the item, or deriving one from the file count work:import already computes. Whichever lands, add the ordering rule to the ranking tests and to the 'why this one' output."
+    },
+    "WORK-UNATTENDED": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run conformance/doc-audit/work-ranking.test.mjs",
+      "added": "2026-08-07",
+      "notes": "The nine RQ soaks are not nine decisions: they are one action (npm run validate:mac -- --stage 8 --plan-duration) followed by up to 72 hours of waiting. work:next allocates attention, but its top answer currently costs almost none, and it presents the batch as a queue to pick from. Marking such items unattended would let work:next say 'start these, then do this' and rank the hands-on item second. Relates to work:done --from-log, which already assumes soaks run outside the tool."
     }
   }
 }

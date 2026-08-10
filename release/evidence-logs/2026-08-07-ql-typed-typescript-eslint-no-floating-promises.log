@@ -1,0 +1,2 @@
+typed: PASS; 0 new, 0 stale.
+typed ratchet is clear of @typescript-eslint/no-floating-promises

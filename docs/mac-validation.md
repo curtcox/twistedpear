@@ -272,8 +272,39 @@ npm run test:ios-soak            # add :required when the sim lane must gate
 Each defaults to ~5 min (`SOAK_DURATION_MS=300000` equivalents). ~1 h total.
 
 **Plan-duration tier (opt-in).** These close the remaining
-[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) exits and occupy the Mac for long
-stretches — run overnight/weekend, one at a time, with sleep disabled:
+[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) exits. Run serially, they total
+**265 h — about eleven days** — with the Mac held awake throughout. Prefer the
+release wrapper over the bare runner: it detaches, watches, notifies on failure,
+and can be resumed.
+
+```sh
+npm run release:start-soaks     # detached, keeps going after a failure
+npm run release:soak-status     # progress, ETA, failures — run this daily
+npm run release:resume-soaks    # continue after an interruption
+npm run release:record-soaks    # close the RQ items whose soaks passed
+```
+
+`release:soak-status` reports each soak's state, percentage, and ETA, plus how
+much soak time the whole plan has left. Every soak emits a heartbeat line every
+five minutes (`SOAK_PROGRESS_INTERVAL_MS` to change it), so a running soak is
+distinguishable from a hung one.
+
+### Stopping and restarting
+
+The eight soaks are independent and run serially, and each command log ends with
+an explicit exit marker, so `release:resume-soaks` skips whatever already passed.
+
+- **Between soaks** — free. Stop whenever; resume loses nothing.
+- **Mid-soak** — costs that soak's elapsed time. The six duration-based soaks are
+  continuous wall-clock runs and the criterion is uninterrupted uptime, so a
+  partially elapsed soak restarts from zero. Splitting a 72 h transport soak into
+  three 24 h runs would prove something weaker, so it is not offered.
+
+Check `release:soak-status` before interrupting: stopping a soak at 95 % throws
+away most of a day, and the two 72 h runs are the expensive ones.
+
+The bare runner is still available if you want a single stage without the
+wrapper:
 
 ```sh
 npm run validate:mac -- --stage 8 --plan-duration

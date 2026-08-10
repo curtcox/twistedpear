@@ -30,8 +30,10 @@ npm run work:next          # the single best thing to do now, and why
 npm run work:unblocked     # everything actionable, best first
 npm run work:list          # everything remaining, with blocking reasons
 npm run work:add -- ...    # record new work
+npm run work:retype -- ... # reclassify, with a recorded reason
 npm run work:done -- ...   # verify and close
 npm run work:check         # validate the whole registry
+npm run work:import        # turn baselined ratchet debt into quality items
 npm run work:log           # recent changes
 npm run work:diff          # changes since a git revision, derived from commits
 ```
@@ -72,6 +74,18 @@ table of `STATUS-SOFTWARE.md` unless `--register` and `--section` say otherwise.
 be declared in `work/resources.json`; a typo is reported as an error rather than
 leaving the item silently parked forever.
 
+### Reclassifying work
+
+```sh
+npm run work:retype -- --id=QL-TYPED-… --type=bug \
+  --reason="unhandled rejections in protocol code, not a style issue"
+```
+
+Class decides ordering, so a retype silently changes what `work:next` proposes.
+`--reason` is required and is journaled with the change; `npm run work:log`
+prints it. Prefer this to editing `work/metadata.json` by hand, which leaves
+`work:diff` reporting a reclassification nobody explained.
+
 ### Closing work
 
 ```sh
@@ -95,6 +109,42 @@ Hardware items are verified by a physical runbook, not a command, so their
 `verify` reads `runbook:STATUS-HARDWARE.md#...`. Closing one requires
 `--allow-unverified --reason="<what you actually ran>"`, and the reason is
 recorded permanently — `npm run work:log --unverified` lists every such close.
+
+### Closing work that takes days
+
+A 72-hour soak cannot run inside `work:done` — it is started by
+`npm run release:start-soaks` and watched separately. Point `work:done` at the
+log it produced instead:
+
+```sh
+npm run work:done -- --id=RQ-TRANSPORT \
+  --evidence=release/evidence/soaks-plan-duration.json \
+  --from-log=release/evidence-logs/2026-09-01-rq-transport.log
+```
+
+The log must exist and be non-empty; its SHA-256 goes into the journal, so the
+record names a specific artifact rather than a claim. This still counts as
+verified — `verifiedFrom: "log"` rather than `"run"` — and is categorically
+different from `--allow-unverified`, which records that nothing was checked.
+
+### Importing quality debt
+
+The ESLint-family ratchets already hold thousands of baselined violations that
+can only shrink. `work:import` turns them into tracked `quality` items, one per
+rule:
+
+```sh
+npm run work:import -- --top=5          # propose
+npm run work:import -- --top=5 --write  # create
+```
+
+Grouping is by rule rather than by file on purpose: the lint ratchet holds 6,309
+entries across 227 files but only seven distinct rules, so per-rule items stay
+countable while per-file items would not. Each gets a verification that means
+something — the ratchet's own check command, plus
+`scripts/work/ratchet-clear.mjs`, which fails while any baselined entry for that
+rule remains. Fixing the code is not enough; the baseline has to be re-recorded
+too, which is exactly the condition worth gating on.
 
 ### Acquiring a resource
 
@@ -152,6 +202,21 @@ status registers merely to make a test pass; the journal reconciliation is what
 makes that rule enforceable rather than advisory. Editing `open` to `done` by
 hand fails CI, because there is no closing event — and re-writing the journal to
 add one fails the append-only check.
+
+### The epoch
+
+Work that was already complete when the journal started cannot have a closing
+event, so the journal's first `epoch` event names those items explicitly:
+
+```json
+{ "action": "epoch", "commit": "703e76ee…", "grandfathered": ["S0", "S1", "…"] }
+```
+
+The exemption is a list of IDs anchored to a commit, not a date. `work:check`
+verifies each grandfathered item already read `done` in the registers **at that
+commit**, that the commit is an ancestor of `HEAD`, that there is exactly one
+epoch, and that it precedes any close. A date-based exemption would have been
+widenable after the fact by backdating an item's `completed` field; this is not.
 
 ## Bootstrapping and repair
 

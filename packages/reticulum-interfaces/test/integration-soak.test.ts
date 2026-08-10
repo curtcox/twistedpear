@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { soakProgress } from "../../../conformance/soak-progress.mjs";
 import {
   PureCryptoProvider,
   Reticulum,
@@ -177,7 +178,11 @@ describe("integration soak (M9)", () => {
       const startedAt = Date.now();
       let flaps = 0;
 
+      // Emitted so a plan-duration run is observable: conformance/integration-soak
+      // delegates here with stdio inherited, so this reaches the stage-8 log.
+      const progress = soakProgress({ total: SOAK_DURATION_MS });
       while (Date.now() - startedAt < SOAK_DURATION_MS) {
+        progress.report(Date.now() - startedAt);
         if (bleEnabled) {
           await bleLeft?.close();
           await bleRight?.close();

@@ -28,17 +28,26 @@ export function listFlag(value) {
 }
 
 /**
+ * @param {import("./lib.mjs").WorkItem[]} items
+ * @returns {number}
+ */
+export function idWidth(items) {
+  return items.reduce((width, item) => Math.max(width, item.id.length), 2);
+}
+
+/**
  * @param {import("./lib.mjs").WorkItem} item
+ * @param {number} width
  * @returns {string}
  */
-export function oneLine(item) {
+export function oneLine(item, width = 15) {
   const state =
     item.status !== "open"
       ? item.status
       : item.blockers.length > 0
         ? "blocked"
         : "ready";
-  return `${state.padEnd(8)}${item.id.padEnd(15)} ${(item.type || "?").padEnd(13)} ${item.title}`;
+  return `${state.padEnd(8)}${item.id.padEnd(width)} ${(item.type || "?").padEnd(13)} ${item.title}`;
 }
 
 /**
