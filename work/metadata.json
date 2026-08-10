@@ -215,6 +215,47 @@
       "verify": "runbook:STATUS-HARDWARE.md#h9-chat-example-over-ble-only",
       "added": "2026-07-06"
     },
+    "ID-APPSCOPE": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts",
+      "added": "2026-08-10",
+      "completed": "2026-08-10",
+      "evidence": [
+        "packages/host-core/src/app-scoped-identity.ts",
+        "packages/host-core/test/app-scoped-identity.test.ts",
+        "packages/miniapp-runtime/test/grant-installation-scope.test.ts"
+      ],
+      "notes": "identity.sign is broker-reachable (host/layer-1-handlers-core.ts) but no shipping host supplies an identityBackend, so MiniappHost falls back to the stub in host/layer-1-base.ts: destinationHash is app:<appId>:<publisher-prefix> and sign() returns the literal text signed:<payload>. Only simulation-adapter.ts wires a real backend. Fix by deriving the app-scoped identity from the installation identity per decision 3 of docs/linked-devices-plan.md, so an app on two of a user's machines is two peers."
+    },
+    "ID-JOURNAL": {
+      "type": "feature",
+      "requires": ["ID-ROSTER"],
+      "verify": "npx vitest run packages/host-core/test/account-journal.test.ts",
+      "added": "2026-08-10",
+      "notes": "Content-addressed records signed by the emitting installation certificate, deduplicated by record hash, bounded by the existing propagation and multipart limits. Records are proposals only; nothing applies itself. See docs/linked-devices-plan.md."
+    },
+    "ID-LINKED-MODE": {
+      "type": "feature",
+      "requires": ["ID-ROSTER"],
+      "verify": "npx vitest run packages/host-core/test/linked-mode-switch.test.ts",
+      "added": "2026-08-10",
+      "notes": "Enabling migrates host and app serving destinations to the installation identity while the account/publisher hash stays stable. Disabling is not offered. Importing a backup or recovery words must not silently enable linked mode. Also settle the user-facing name: the Devices panel already means peripherals. See docs/linked-devices-plan.md."
+    },
+    "ID-ROSTER": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/linked-installation-roster.test.ts",
+      "added": "2026-08-10",
+      "notes": "Persist verified TPDV certificates, announce under the account-derived aspect, and merge valid certificates into a local roster. Both pairing directions per docs/linked-devices-plan.md. linked-installation.ts supplies the format and is consumed by nothing today."
+    },
+    "ID-SIBLING-GATE": {
+      "type": "feature",
+      "requires": ["ID-JOURNAL"],
+      "verify": "npx vitest run packages/host-core/test/sibling-decision-gate.test.ts",
+      "added": "2026-08-10",
+      "notes": "Default deny. A journal record from another installation is a proposal: verified, stored, surfaced, applied only where the receiving installation holds a grant for that class (sibling:moderation, sibling:trust, sibling:apps, sibling:messages), revocable per sibling and per class. Capability grants themselves have no sibling class and must be proven not to travel. See decision 2 of docs/linked-devices-plan.md."
+    },
     "PD-AI": {
       "type": "feature",
       "requires": [],

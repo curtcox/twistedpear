@@ -1,4 +1,5 @@
 import { unpackPackage } from "../../app-registry/dist/index.js";
+import { createAppScopedIdentityBackend } from "../../host-core/dist/app-scoped-identity.js";
 import { CasStore } from "../../cas-256t/dist/index.js";
 import { GrantStore } from "../../miniapp-runtime/dist/capabilities.js";
 import { generateConfirmationToken } from "../../miniapp-runtime/dist/confirm.js";
@@ -24,6 +25,7 @@ import {
   createDevSideLoadMethod,
   createDeviceChromeApiMethods,
   createGrantApiMethods,
+  createInstallationIdentityLoader,
   createMainRuntimePusher,
   createMediaPipeline,
   createPreviewHostFactory,
@@ -242,6 +244,12 @@ export function createWebWorkletMiniappHost(options) {
     backend: sandboxController.backend,
     grantStore,
     kvBackend: kvStore,
+    identityBackend:
+      options.identityBackend ??
+      createAppScopedIdentityBackend({
+        provider,
+        getInstallationIdentity: createInstallationIdentityLoader(options),
+      }),
     peerSessionManager: options.peerSessionManager,
     localMediaReadiness:
       options.localMediaReadiness ?? createDefaultLocalMediaReadiness(now),

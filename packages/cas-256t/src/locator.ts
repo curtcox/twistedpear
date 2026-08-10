@@ -26,7 +26,7 @@ export interface CasLocator {
   readonly packageHash: string;
   readonly packageSize: number;
   readonly publisherPublicKey: string;
-  /** Device identity serving the Resource destination; v1 implied publisherPublicKey. */
+  /** Installation identity serving the Resource destination; v1 implied publisherPublicKey. */
   readonly servingPublicKey: string;
   readonly signature: string;
 }

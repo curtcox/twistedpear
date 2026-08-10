@@ -10,6 +10,7 @@ import {
 import { createOpenRouterBackend } from "../../miniapp-runtime/dist/worklet.js";
 import { createSandboxBackend as createBareWorkletSandboxBackend } from "../../miniapp-runtime/dist/sandbox/worklet-factory.js";
 import { unpackPackage } from "../../app-registry/dist/index.js";
+import { createAppScopedIdentityBackend } from "../../host-core/dist/app-scoped-identity.js";
 import { CasStore } from "../../cas-256t/dist/index.js";
 import { GrantStore } from "../../miniapp-runtime/dist/capabilities.js";
 import {
@@ -25,6 +26,7 @@ import {
   createDevSideLoadMethod,
   createDeviceChromeApiMethods,
   createGrantApiMethods,
+  createInstallationIdentityLoader,
   createMainRuntimePusher,
   createMediaPipeline,
   createPreviewHostFactory,
@@ -261,6 +263,12 @@ export function createWorkletMiniappHost(options) {
     grantStore,
     kvBackend: kvStore,
     confirmationChannel,
+    identityBackend:
+      options.identityBackend ??
+      createAppScopedIdentityBackend({
+        provider: options.provider,
+        getInstallationIdentity: createInstallationIdentityLoader(options),
+      }),
     aiBackend: options.aiBackend ?? {
       chat: async (appId, request) => {
         if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {

@@ -61,12 +61,19 @@ export {
   type CommunityTcpEndpoint,
 } from "./community-network.js";
 export {
-  createLinkedDeviceId,
-  decodeLinkedDeviceCertificate,
-  deriveLinkedDeviceIdentity,
-  encodeLinkedDeviceCertificate,
-  linkedDeviceAnnounceAspects,
-  signLinkedDeviceCertificate,
-  verifyLinkedDeviceCertificate,
-  type LinkedDeviceCertificate,
-} from "./linked-device.js";
+  APP_SCOPED_IDENTITY_SALT,
+  createAppScopedIdentityBackend,
+  deriveAppScopedIdentity,
+  type AppScopedIdentityBackend,
+  type AppScopedIdentityOptions,
+} from "./app-scoped-identity.js";
+export {
+  createLinkedInstallationId,
+  decodeLinkedInstallationCertificate,
+  deriveLinkedInstallationIdentity,
+  encodeLinkedInstallationCertificate,
+  linkedInstallationAnnounceAspects,
+  signLinkedInstallationCertificate,
+  verifyLinkedInstallationCertificate,
+  type LinkedInstallationCertificate,
+} from "./linked-installation.js";

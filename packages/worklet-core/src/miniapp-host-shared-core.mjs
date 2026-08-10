@@ -142,6 +142,27 @@ export function createPublisherIdentityLoader(options, unavailableMessage) {
   };
 }
 
+/**
+ * Resolves the identity of *this installation* — the machine — as opposed to
+ * the account/publisher identity that signs packages.
+ *
+ * An unlinked host runs a single key in every role, so this falls back to
+ * `getPublisherIdentity`. The indirection exists so that when linked mode lands
+ * there is one place to point at the derived installation identity instead, and
+ * app-scoped identities stop being derivable from the account key. Returns null
+ * rather than throwing when the node has not started or the vault is locked.
+ */
+export function createInstallationIdentityLoader(options) {
+  return async function getInstallationIdentity() {
+    if (options.getInstallationIdentity !== undefined) {
+      return await options.getInstallationIdentity();
+    }
+
+    if (options.getPublisherIdentity === undefined) return null;
+    return await options.getPublisherIdentity();
+  };
+}
+
 export function createWorkspaceFileCollector(host) {
   return async function collectWorkspaceFiles(appId, projectPrefix) {
     const infos = await host.workspace.list(appId, `${projectPrefix}/`);

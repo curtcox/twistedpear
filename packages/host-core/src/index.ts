@@ -154,19 +154,27 @@ export {
   type CommunityTcpEndpoint,
 } from "./community-network.js";
 export {
-  LINKED_DEVICE_ID_BYTES,
-  LINKED_DEVICE_MAGIC,
-  LINKED_DEVICE_MAX_CERTIFICATE_BYTES,
-  LINKED_DEVICE_MAX_LABEL_BYTES,
-  createLinkedDeviceId,
-  decodeLinkedDeviceCertificate,
-  deriveLinkedDeviceIdentity,
-  encodeLinkedDeviceCertificate,
-  linkedDeviceAnnounceAspects,
-  signLinkedDeviceCertificate,
-  verifyLinkedDeviceCertificate,
-  type LinkedDeviceCertificate,
-} from "./linked-device.js";
+  APP_SCOPED_IDENTITY_SALT,
+  createAppScopedIdentityBackend,
+  deriveAppScopedIdentity,
+  type AppScopedIdentityBackend,
+  type AppScopedIdentityOptions,
+} from "./app-scoped-identity.js";
+export {
+  LINKED_INSTALLATION_ANNOUNCE_ASPECT,
+  LINKED_INSTALLATION_ID_BYTES,
+  LINKED_INSTALLATION_MAGIC,
+  LINKED_INSTALLATION_MAX_CERTIFICATE_BYTES,
+  LINKED_INSTALLATION_MAX_LABEL_BYTES,
+  createLinkedInstallationId,
+  decodeLinkedInstallationCertificate,
+  deriveLinkedInstallationIdentity,
+  encodeLinkedInstallationCertificate,
+  linkedInstallationAnnounceAspects,
+  signLinkedInstallationCertificate,
+  verifyLinkedInstallationCertificate,
+  type LinkedInstallationCertificate,
+} from "./linked-installation.js";
 export type {
   FetchPath,
   FetchPlane,
