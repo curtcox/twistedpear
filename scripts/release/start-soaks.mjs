@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { record } from "./record.mjs";
 import { latestValidationDir, rootFrom } from "./common.mjs";
 import {
+  applicationFingerprint,
+  assertGatesGreen,
   captureBaseline,
   currentBranch,
   isReleaseBranch,
@@ -105,6 +107,17 @@ async function main(argv = process.argv.slice(2)) {
     console.log(
       `[release] branch gate: ${branch} ${isReleaseBranch(branch) ? "accepted" : "REJECTED (plan-duration soaks require a release/* branch)"}`,
     );
+    try {
+      const { waived } = assertGatesGreen(
+        root,
+        applicationFingerprint(root).digest,
+      );
+      console.log(
+        `[release] green-gate rule: accepted${waived.length > 0 ? ` (waived: ${waived.join(", ")})` : ""}`,
+      );
+    } catch (error) {
+      console.log(`[release] green-gate rule: REJECTED — ${error.message}`);
+    }
     return;
   }
 
@@ -120,6 +133,12 @@ async function main(argv = process.argv.slice(2)) {
   console.log(
     `[release] soaking ${baseline.branch} @ ${baseline.head.slice(0, 12)} (application digest ${baseline.digest.slice(0, 12)})`,
   );
+  // A waived gate is still red. Say so at the top of an eleven-day run rather
+  // than letting it surface only in the release notes.
+  for (const gate of baseline.waivedGates ?? [])
+    console.log(
+      `[release] WARNING soaking with gate "${gate}" red under an active waiver`,
+    );
 
   mkdirSync(prepared.logDir, { recursive: true });
   // Resuming keeps the original baseline file: it is the anchor the already

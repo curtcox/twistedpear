@@ -24,10 +24,16 @@ npm run work:audit -- --record          # write work/audit-report.json and journ
 
 ## What it looks at
 
-Four families, run together and reported as one ordered list.
+Five families, run together and reported as one ordered list.
 
 | Family     | Check                     | Fires when                                                                                     |
 | ---------- | ------------------------- | ---------------------------------------------------------------------------------------------- |
+| `gates`    | `red`                     | A static-analysis gate is failing and unwaived.                                                |
+| `gates`    | `long-red`                | That gate has been red two days or more — high severity.                                       |
+| `gates`    | `waiver-expiring`         | A green-gate waiver lapses within seven days.                                                  |
+| `gates`    | `waiver-expired`          | A waiver has lapsed and its gate is still red — high severity.                                 |
+| `gates`    | `no-record`               | `checks.json` has never been written, so the green-gate rule has nothing to enforce.           |
+| `gates`    | `stale-record`            | The recorded gate results are 14+ days old.                                                    |
 | `registry` | `stale-open`              | An unblocked item has sat 90 days with no journal event of its own.                            |
 | `registry` | `parked`                  | An item has waited 60 days on a resource nobody has acquired.                                  |
 | `registry` | `weak-verify`             | A non-`docs` item is verified by `true`, `work:check`, or `test:doc-audit`.                    |

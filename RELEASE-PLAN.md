@@ -81,6 +81,56 @@ attention, monitored by the driver. When a wait finishes or fails, it preempts t
 active stage: the driver surfaces it, the failure is fixed and the wait restarted,
 then the active stage resumes. No other work runs in parallel.
 
+**Green-gate rule — a red gate outranks everything.** A gate that fails on the
+tree in front of you preempts every other item, including the release gates and
+including starting a soak. This is not a preference about tidiness: the whole
+plan is an argument from evidence, and evidence gathered on a tree that fails its
+own checks does not support the conclusion. A plan-duration soak makes the cost
+concrete — eleven days of wall-clock spent qualifying a revision already known to
+be broken, discovered only at the end, restarting from zero.
+
+Two distinctions keep the rule from swallowing the plan:
+
+- **Red is not debt.** The ESLint-family ratchets carry thousands of entries and
+  the gates that read them are _green_; that debt shrinks monotonically and is
+  ordinary `quality` work. "Red" means a check that fails — `check:ci-base`
+  reporting 15/16 on an untouched tree, not a ratchet with entries in it.
+- **Red is not waived.** Some gates go red for reasons that cannot be fixed on
+  your schedule: a fresh advisory with no upstream release, a dependency
+  relicense. `npm run checks:waive` records the gate, the reason, and an expiry
+  of at most 30 days. A waived gate is still red everywhere it is reported — it
+  simply stops preempting. When the waiver lapses it counts as no waiver at all
+  and the soak guard refuses again, so an exemption cannot quietly become
+  permanent. The alternative is worse: without a pressure valve, the first
+  unfixable-today gate is the day someone comments out the guard.
+
+Enforcement is machinery, not memory:
+
+| Where                 | What it does                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `npm run work:next`   | `broken-gate` is the first class in the ranking, ahead of `release-gate`                         |
+| `work/` derivation    | `GATE-*` items are computed from `checks.json`; they cannot be filed, retyped, or closed by hand |
+| `release:start-soaks` | the soak guard refuses a tree with an unwaived red gate, or a stale gate record                  |
+| `release:status`      | a red gate replaces the stage ladder's "next action"                                             |
+| `npm run work:audit`  | escalates a gate red more than two days, and waivers expiring or already expired                 |
+
+`checks.json` is the committed record of which gates are green, written by
+`npm run checks:status`. It carries two fingerprints of what it was measured on:
+the application digest (the same one the soak isolation rule uses) and a tree
+digest covering everything the gates actually read — `scripts/`, `docs/`, and the
+registers included, since an edit there can turn `format` or `unit-tests` red
+while leaving the application untouched. The soak guard accepts the record only
+when both still match. A green result for other code proves nothing about this
+code, so a stale record is refused exactly like a red one.
+
+Each gate also records the tree it was measured on individually. A run on a
+machine lacking a toolchain — no Swift, no Rust — skips those gates and carries
+their previous result forward, which is what makes partial and matrix runs
+workable; but the guard refuses a carried-forward result rather than counting it
+as green, because an unmeasured gate is not a passing one. Waiving it is the way
+through, and the reason it demands ("no Swift toolchain on the soak host; CI
+covers it") is exactly the fact a reader needs.
+
 **Soak isolation rule — a soak qualifies one tree.** A plan-duration soak is
 evidence for the exact application code it started against, so two constraints
 make that attribution true rather than assumed, both enforced by
@@ -144,9 +194,12 @@ monitoring:
 1. **[user]** Cut the release branch the soaks will qualify —
    `git switch -c release/v1.0.0` from a green `main` — then start the
    plan-duration soaks from it with `npm run release:start-soaks` (Mac powered
-   and awake; the 72 h transport soak is the long pole). The launcher enforces
-   the soak isolation rule; `npm run validate:mac -- --stage 8 --plan-duration`
-   bypasses the guard and does not produce G1 evidence.
+   and awake; the 72 h transport soak is the long pole). "Green" is the
+   green-gate rule, and it is checked rather than eyeballed: run
+   `npm run checks:status` on the branch first, and the guard will refuse to
+   launch until every gate is green or waived. The launcher also enforces the
+   soak isolation rule; `npm run validate:mac -- --stage 8 --plan-duration`
+   bypasses both guards and does not produce G1 evidence.
 2. **[user]** Order the hardware in STATUS-HARDWARE's acquisition order — two used
    Android phones first, plus the spare Linux box for H20.
 3. **[user]** Enroll in the Apple Developer Program (H12 — longest lead time;

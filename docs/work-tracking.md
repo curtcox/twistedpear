@@ -49,14 +49,48 @@ npm run work:next
 Candidates are items with status `open` and no unfinished prerequisites. Among
 those, the order is fixed and total:
 
-1. **Class** — `release-gate` > `bug` > `quality` > `docs` > `feature`. A feature
-   is never proposed while an unblocked bug or code-quality item exists.
+1. **Class** — `broken-gate` > `release-gate` > `bug` > `quality` > `docs` >
+   `feature`. A feature is never proposed while an unblocked bug or code-quality
+   item exists, and nothing at all is proposed while a gate is red.
 2. **Unblock count** — how many other unfinished items transitively depend on it.
 3. **Age** — oldest `added` date first.
 4. **ID** — lexicographic, so the answer never depends on file order.
 
 `work:next` prints which rule decided the pick and what came second. Filter with
 `--type=bug,quality`; `--json` for scripting.
+
+### Red gates are derived, not filed
+
+`broken-gate` items are the one class nobody writes down. They are computed on
+every read from `checks.json` — the committed record of which static-analysis
+gates passed, written by `npm run checks:status` — one `GATE-<ID>` item per gate
+that is failing.
+
+Derivation is the point. A hand-filed row can be typed as something milder, left
+open after the fix, or closed while the check is still failing; all three have
+happened, and each one ends with a red gate nobody is looking at. A derived item
+appears the moment the gate goes red and vanishes the moment it goes green, so
+the only way to clear it is to fix the check:
+
+- `work:done` and `work:retype` refuse a `GATE-*` id and say what to run instead.
+- `work:add` refuses the `GATE-` prefix and the `broken-gate` type, so a
+  hand-written entry cannot shadow the derived one.
+- There is no register row to flip and no journal event to record.
+
+The escape hatch is a waiver, not a reclassification:
+
+```sh
+npm run checks:waive -- --gate=audit-policy --days=14 \
+  --reason="upstream advisory has no fixed release yet"
+npm run checks:waive -- --list
+npm run checks:waive -- --revoke=audit-policy
+```
+
+A waived gate stops preempting the queue but stays visibly red in
+`release:status` and `work:audit`, and the waiver expires (30 days maximum). An
+expired waiver counts as none: the item returns to the top of the queue and the
+soak guard refuses again. See the green-gate rule in
+[RELEASE-PLAN.md](../RELEASE-PLAN.md) §3 for why the rule is shaped this way.
 
 ### Adding work
 
@@ -67,7 +101,8 @@ npm run work:add -- --id=BUG-LINK-RETRY --type=bug \
   --requires=RQ-LINK,res:rnode-pair
 ```
 
-`--type` is required and must be one of the five classes above — this is the
+`--type` is required and must be one of the hand-assignable classes above
+(everything except `broken-gate`, which is derived) — this is the
 field the prioritisation runs on. `--verify` is required because `work:done`
 refuses to close an item with no way to check it. Rows land in the **Backlog**
 table of `STATUS-SOFTWARE.md` unless `--register` and `--section` say otherwise.

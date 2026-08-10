@@ -59,6 +59,15 @@ npm run work:log      # what changed recently, and what was actually verified
 npm run work:audit    # periodic review: what looks stale, unproven, or worth fixing
 ```
 
+**A red gate comes first.** If any static-analysis gate is failing, `work:next`
+returns it ahead of everything else and no plan-duration soak may start. Those
+`GATE-*` items are derived from `checks.json` rather than filed by hand, so the
+only way to clear one is to make the check pass (`npm run checks:status` re-records
+it). A gate that genuinely cannot be fixed now takes a bounded, reasoned exemption
+via `npm run checks:waive` — see the green-gate rule in `RELEASE-PLAN.md` §3. Note
+the distinction the rule turns on: a _ratchet with entries in it_ is green and is
+ordinary `quality` work; only a _failing check_ is red.
+
 Add work with `npm run work:add` and close it with `npm run work:done`. Both are
 required: `work:done` runs the item's recorded verification command and refuses to
 close on a non-zero exit, and `npm run work:check` (part of `test:doc-audit`) fails

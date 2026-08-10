@@ -99,6 +99,14 @@ export function closeWork(flags, root = repoRoot()) {
   const { index } = loadWork(root);
   const item = index.get(id);
   if (!item) throw new Error(`${id} is not in any register`);
+  // Derived items have no register row to flip and no closing event to journal.
+  // They exist exactly as long as the gate is red, which is the only honest
+  // record of whether the work is done.
+  if (item.derived) {
+    throw new Error(
+      `${id} is derived from ${item.file} and clears itself when the gate goes green. Run \`${item.verify}\`, fix what it reports, then re-record with npm run checks:status.`,
+    );
+  }
   if (item.status === "done") throw new Error(`${id} is already done`);
 
   const evidence = listFlag(flags.evidence);

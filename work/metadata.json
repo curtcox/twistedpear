@@ -6,7 +6,7 @@
       "requires": [],
       "verify": "npm run coverage:check",
       "added": "2026-08-10",
-      "notes": "Reproduced on a clean checkout of main at 856957d2 with an unmodified coverage-ratchet.json and packages/lxmf-ts byte-identical to origin/main: 'packages/lxmf-ts functions: 72.5 < floor 73.33'. The floor is committed higher than the code achieves, so check:ci-base reports 15/16 static-analysis gates on an untouched tree. Either add function coverage in packages/lxmf-ts to clear 73.33 or, if the floor was set from a run that measured a different file set, correct the baseline with a recorded reason. A standing red gate trains people to ignore the gate."
+      "notes": "Reproduced on a clean checkout of main at 856957d2 with an unmodified coverage-ratchet.json and packages/lxmf-ts byte-identical to origin/main: 'packages/lxmf-ts functions: 72.5 < floor 73.33'. The floor is committed higher than the code achieves, so check:ci-base reports 15/16 static-analysis gates on an untouched tree. Either add function coverage in packages/lxmf-ts to clear 73.33 or, if the floor was set from a run that measured a different file set, correct the baseline with a recorded reason. A standing red gate trains people to ignore the gate. Distinct from the derived GATE-COVERAGE item, which only reports that the check is failing right now and disappears when it passes: this row carries the diagnosis and the open decision between the two fixes, and is closed with evidence for whichever one is taken."
     },
     "DOC-OPTIONAL-BACKLOG": {
       "type": "docs",

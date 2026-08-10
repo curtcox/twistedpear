@@ -7,6 +7,7 @@ import { appendEvent } from "./journal.mjs";
 import { listFlag, parseFlags } from "./render.mjs";
 import { SEVERITIES, compareFindings, headCommit } from "./audit-lib.mjs";
 import { auditDebt } from "./audit-clock.mjs";
+import { auditGates } from "./audit-gates.mjs";
 import { auditRegistry } from "./audit-registry.mjs";
 import { auditOutputs, ratchetTotals } from "./audit-outputs.mjs";
 import { auditClosedWork } from "./audit-closed.mjs";
@@ -17,7 +18,7 @@ export const REPORT_FILE = "work/audit-report.json";
 const USAGE = `
 npm run work:audit [-- options]
 
-  --family=registry,outputs,closed,docs   limit which families run
+  --family=gates,registry,outputs,closed,docs   limit which families run
   --severity=high|medium|low              minimum severity to report (default low)
   --json                                  print the report instead of the summary
   --write                                 write ${REPORT_FILE}
@@ -42,6 +43,7 @@ export function runAudit(options = {}, root = repoRoot(), now = Date.now()) {
   const wanted = (name) => !families || families.has(name);
 
   const findings = [
+    ...(wanted("gates") ? auditGates(root, now) : []),
     ...(wanted("registry") ? auditRegistry(root, now) : []),
     ...(wanted("outputs") ? auditOutputs(root, { previous }, now) : []),
     ...(wanted("closed") ? auditClosedWork(root, now) : []),

@@ -62,6 +62,19 @@ export function validateMetadataShape(root = repoRoot()) {
     if (entry.type !== undefined && !TYPES.includes(entry.type)) {
       problems.push(`${at}: type must be one of ${TYPES.join(", ")}`);
     }
+    // GATE-* is derived from checks.json. A hand-written entry under that name
+    // would shadow the derived item with one that can be closed by hand, which
+    // is the loophole the derivation exists to close.
+    if (id.startsWith("GATE-")) {
+      problems.push(
+        `${at}: GATE-* ids are derived from checks.json and cannot be filed by hand`,
+      );
+    }
+    if (entry.type === "broken-gate") {
+      problems.push(
+        `${at}: broken-gate is derived from checks.json, not a type work:add may assign`,
+      );
+    }
     if (entry.requires !== undefined) {
       if (!Array.isArray(entry.requires)) {
         problems.push(`${at}: requires must be an array`);

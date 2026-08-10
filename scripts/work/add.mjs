@@ -34,6 +34,19 @@ export function addWork(flags, root = repoRoot()) {
   const requires = listFlag(flags.requires);
 
   if (!id) throw new Error("--id is required");
+  // Both halves of the derived namespace are closed here as well as in
+  // validate.mjs, so the refusal arrives when the command is typed rather than
+  // at the next work:check with a half-written entry already on disk.
+  if (id.startsWith("GATE-")) {
+    throw new Error(
+      "GATE-* ids are derived from checks.json — a red gate is tracked by fixing it, not by filing a row",
+    );
+  }
+  if (type === "broken-gate") {
+    throw new Error(
+      "broken-gate is derived from checks.json and cannot be assigned by hand",
+    );
+  }
   if (!TYPES.includes(type)) {
     throw new Error(`--type must be one of ${TYPES.join(", ")}`);
   }

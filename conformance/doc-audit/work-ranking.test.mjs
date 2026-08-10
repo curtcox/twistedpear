@@ -29,14 +29,23 @@ function item(overrides) {
 }
 
 describe("work ranking policy", () => {
-  it("orders classes release-gate > bug > quality > docs > feature", () => {
+  it("orders classes broken-gate > release-gate > bug > quality > docs > feature", () => {
     expect(TYPES).toEqual([
+      "broken-gate",
       "release-gate",
       "bug",
       "quality",
       "docs",
       "feature",
     ]);
+  });
+
+  it("never proposes a release gate while a gate is red", () => {
+    const order = ranked([
+      item({ id: "RQ-DESKTOP", type: "release-gate", unblocks: 9 }),
+      item({ id: "GATE-COVERAGE", type: "broken-gate", unblocks: 0 }),
+    ]).map((entry) => entry.id);
+    expect(order).toEqual(["GATE-COVERAGE", "RQ-DESKTOP"]);
   });
 
   it("never proposes a feature ahead of a bug", () => {

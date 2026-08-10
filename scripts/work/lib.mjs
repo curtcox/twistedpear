@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { repoRoot } from "../doc-audit/repo-root.mjs";
 import { loadAllRegisterRows } from "../doc-audit/register.mjs";
+import { CHECKS_FILE, gateStatus } from "../checks/status.mjs";
 import {
   byColumn,
   cellsOf,
@@ -12,10 +13,24 @@ import {
 
 /**
  * Work classes in priority order. The order of this array *is* the policy:
- * release gates first, then bugs, then code-quality work, then docs, then new
- * features. `work:next` never returns a feature while an unblocked bug exists.
+ * a red gate first, then release gates, then bugs, then code-quality work, then
+ * docs, then new features. `work:next` never returns a feature while an
+ * unblocked bug exists.
+ *
+ * `broken-gate` outranks even the release gates because a tree that fails its
+ * own checks cannot produce evidence anyone should trust — soaking it spends
+ * days of wall-clock qualifying a revision already known to be broken. These
+ * items are derived from {@link CHECKS_FILE}, never hand-filed; see
+ * {@link derivedGateItems}.
  */
-export const TYPES = ["release-gate", "bug", "quality", "docs", "feature"];
+export const TYPES = [
+  "broken-gate",
+  "release-gate",
+  "bug",
+  "quality",
+  "docs",
+  "feature",
+];
 
 /** @type {Map<string, number>} */
 export const TYPE_RANK = new Map(TYPES.map((type, index) => [type, index]));
@@ -55,6 +70,8 @@ export const HISTORY_FILE = "work/history.jsonl";
  * @property {string} [completed]
  * @property {string[]} [evidence]
  * @property {string} [notes]
+ * @property {boolean} [derived] computed from machine output, not a register
+ *   row; cannot be closed or retyped by hand
  * @property {Blocker[]} blockers
  * @property {number} unblocks
  */
@@ -159,8 +176,64 @@ export function saveMetadata(metadata, root = repoRoot()) {
 }
 
 /**
+ * Turn a gate id into a register ID: `coverage` becomes `GATE-COVERAGE`.
+ * @param {string} id
+ * @returns {string}
+ */
+export function gateItemId(id) {
+  return `GATE-${id.toUpperCase().replace(/[^A-Z0-9]+/g, "-")}`;
+}
+
+/**
+ * Work items for the gates that are currently red, derived from
+ * {@link CHECKS_FILE} rather than filed by hand.
+ *
+ * Derivation is the point. A hand-filed row can be typed as something milder,
+ * left open after the fix, or closed while the gate is still red — all three
+ * have happened. A derived item appears the moment the gate goes red and
+ * disappears the moment it goes green, so the only way to clear it is to fix
+ * the check. `work:done` and `work:retype` refuse them for the same reason.
+ *
+ * Gates with an active waiver are excluded: the waiver is the recorded decision
+ * not to treat that failure as the top of the queue, and it expires on its own.
+ * @param {string} root
+ * @param {Date} [now]
+ * @returns {WorkItem[]}
+ */
+export function derivedGateItems(root = repoRoot(), now = new Date()) {
+  const { blocking } = gateStatus(root, { now });
+  return blocking.map((gate) => ({
+    id: gateItemId(gate.id),
+    status: "open",
+    file: CHECKS_FILE,
+    line: 1,
+    title: `${gate.title} is red${
+      gate.detail ? ` — ${gate.detail.slice(0, 120)}` : ""
+    }`,
+    type: "broken-gate",
+    requires: [],
+    verify: gate.command,
+    added: gate.since ?? "",
+    notes:
+      [
+        gate.detail,
+        gate.waiver === "expired"
+          ? `waiver expired ${gate.waiverRecord?.expires}: ${gate.waiverRecord?.reason}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" — ") || undefined,
+    derived: true,
+    blockers: [],
+    unblocks: 0,
+  }));
+}
+
+/**
  * Join register rows (ID, status, location) with sidecar metadata (type,
  * prerequisites, verify command) and compute blocking and unblock counts.
+ * Red gates are folded in from {@link derivedGateItems}; everything else comes
+ * from a register row.
  * @param {string} root
  * @returns {{ items: WorkItem[]; index: Map<string, WorkItem>; orphans: string[] }}
  */
@@ -188,6 +261,8 @@ export function loadWork(root = repoRoot()) {
       unblocks: 0,
     });
   }
+
+  items.push(...derivedGateItems(root));
 
   /** @type {Map<string, WorkItem>} */
   const index = new Map(items.map((item) => [item.id, item]));

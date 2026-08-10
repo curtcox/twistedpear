@@ -9,6 +9,7 @@ import {
   rootFrom,
   soakItems,
 } from "./common.mjs";
+import { gateStatus } from "../checks/status.mjs";
 
 const defaultRoot = rootFrom(import.meta.url);
 
@@ -138,8 +139,18 @@ export function calculate(root = defaultRoot) {
   const failedLog = soakState.results?.find(
     (result) => result.status === "failed",
   );
+  // The green-gate rule, applied to the driver's single next action. A red gate
+  // preempts the stage ladder outright: no stage's work is worth doing on a
+  // tree that fails its own checks, and S2 in particular must not start a
+  // multi-day soak against one. This sits above the recorded-CI check because
+  // it reads live gate state, which goes red before any CI record exists.
+  const gates = gateStatus(root);
   let next;
-  if (latestCi?.status === "failed")
+  if (gates.blocking.length > 0)
+    next = `Fix the red gate(s) before anything else: ${gates.blocking
+      .map((gate) => gate.id)
+      .join(", ")} (npm run checks:red)`;
+  else if (latestCi?.status === "failed")
     next = `Restore the standing CI invariant (${latestCi.id}) before continuing`;
   else if (failedWait)
     next = `Triage ${failedWait.id}, fix it, and restart the wait`;
@@ -173,6 +184,7 @@ export function calculate(root = defaultRoot) {
     next,
     registers: { openSoftware, openHardware },
     ci: latestCi,
+    checks: gates,
     soaks: soakState.results ?? [],
     records,
   };
@@ -188,6 +200,23 @@ export function render(state) {
   state.gates.forEach((green, index) =>
     lines.push(`G${index + 1}    ${green ? "GREEN" : "BLOCKED"}`),
   );
+  const checks = state.checks ?? { red: [], waived: [], expiring: [] };
+  if (checks.red.length > 0) {
+    lines.push("", "Static-analysis gates");
+    for (const gate of checks.red) {
+      const mark =
+        gate.waiver === "active"
+          ? `waived until ${gate.waiverRecord?.expires}`
+          : gate.waiver === "expired"
+            ? `RED — waiver expired ${gate.waiverRecord?.expires}`
+            : "RED";
+      lines.push(
+        `  ${gate.id.padEnd(20)} ${mark}${gate.since ? ` (since ${gate.since})` : ""}`,
+      );
+    }
+  }
+  for (const waiver of checks.expiring ?? [])
+    lines.push(`  waiver for ${waiver.gate} expires ${waiver.expires}`);
   lines.push(
     "",
     `Active stage: S${Math.max(
