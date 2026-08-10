@@ -116,8 +116,11 @@ Cron `0 6 * * *` UTC plus `workflow_dispatch` for extended soaks.
 | `link-soak`           | 5 min                             | 1 h (`LINK_SOAK_DURATION_MS=3600000`)                       |
 | `transport-node-soak` | 5 min                             | 72 h (`TRANSPORT_SOAK_DURATION_MS=259200000`)               |
 
-Soak jobs use elevated `timeout-minutes` to accommodate manual long runs. Scheduled nightly
-runs complete within the default tier.
+Scheduled nightly runs complete within the default tier. The plan-duration column is a target,
+not something this workflow can reach: **GitHub stops a hosted-runner job at 6 h regardless of
+`timeout-minutes`**, so 350 minutes is the largest value the soak jobs can actually honour (see
+the comment above `dist-soak` in [nightly.yml](../.github/workflows/nightly.yml)). A 24 h or 72 h
+soak needs a self-hosted runner or the dedicated Mac — it cannot complete here.
 
 **Nightly soaks are regression signal, not release evidence.** They keep running on `main` at
 the default tier and are unaffected by the soak isolation rule. Only the plan-duration soaks

@@ -10,6 +10,9 @@ on:
   push:
     branches:
       - main
+      # Release branches carry G1 evidence, so the keep-green invariant has to
+      # hold on the branch being shipped, not only on main.
+      - "release/**"
 
 jobs:
   gate-plan:

@@ -1,0 +1,19 @@
+[release] id: soaks:plan-duration
+[release] status: failed
+[release] at: 2026-08-10
+[release] reason: invalidated by the soak isolation rule
+
+The 2026-07-20 `soaks:plan-duration` record was written before the soak
+isolation rule existed. It carries no branch, no revision, and no application
+digest, so the run it describes cannot be attributed to any tree and cannot
+support G1. No `soak:*` pass record ever followed it, and every RQ row in
+STATUS-SOFTWARE remains open, so no plan-duration soak completed.
+
+This record supersedes it as failed so `release:status` stops treating the S2
+soak wait as started. Restart under the guard:
+
+  git switch -c release/v1.0.0
+  npm run release:start-soaks
+
+The relaunch records branch, revision, and application digest, and fails the
+run if application code changes while it is in flight.

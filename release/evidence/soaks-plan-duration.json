@@ -1,8 +1,11 @@
 {
   "schema": "twistedpear.release-evidence-v1",
   "id": "soaks:plan-duration",
-  "status": "started",
-  "at": "2026-07-20T21:56:57.899Z",
-  "log": ".tmp/mac-validation/release-2026-07-20T21-56-57-896Z/release-start.log",
-  "note": "Stage-8 serial plan-duration runner started"
+  "status": "failed",
+  "at": "2026-08-10T14:27:43.772Z",
+  "log": "release/evidence-logs/2026-08-10-soaks-plan-duration-invalidated.log",
+  "note": "Predates the soak isolation rule: no branch, revision, or application digest, and no soak:* pass followed. Restart with release:start-soaks on a release branch.",
+  "branch": "ci/release-branch-triggers",
+  "revision": "9b0cc12f8ee034bfa0bad050e054c325328655ba",
+  "applicationDigest": "660b100489543c28bd0025ffd23e1f7196bf14dc3710f091a3890ecb81b17f5c"
 }
