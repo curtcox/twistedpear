@@ -34,6 +34,11 @@ export function retypeWork(flags, root = repoRoot()) {
   const { index } = loadWork(root);
   const item = index.get(id);
   if (!item) throw new Error(`${id} is not in any register`);
+  if (item.derived) {
+    throw new Error(
+      `${id} is derived from ${item.file} — a red gate cannot be reclassified into a lower priority. Fix the gate, or record a bounded exemption with npm run checks:waive.`,
+    );
+  }
   if (item.type === type) throw new Error(`${id} is already ${type}`);
 
   const metadata = loadMetadata(root);

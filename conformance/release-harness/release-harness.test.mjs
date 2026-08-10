@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
@@ -8,8 +14,10 @@ import { record } from "../../scripts/release/record.mjs";
 import { classify, scan } from "../../scripts/release/watch-soaks.mjs";
 import { plan } from "../../scripts/release/start-soaks.mjs";
 import {
+  applicationFingerprint,
   captureBaseline,
   isReleaseBranch,
+  treeFingerprint,
   verifyBaseline,
 } from "../../scripts/release/soak-guard.mjs";
 import { verifySamples } from "../../scripts/release/h20.mjs";
@@ -64,6 +72,80 @@ describe("release driver", () => {
       'gate("release-harness", "Release harness", "test:release-harness", "pr");\n',
     );
     expect(calculate(root).stages[0]).toBe(true);
+  });
+
+  test("a red gate preempts every stage action, including starting soaks", () => {
+    const root = fixture();
+    // Drive the driver to S2, where its next action is to start the soaks.
+    const log = join(root, "baseline.log");
+    writeFileSync(log, "baseline\n");
+    record({ root, id: "baseline:S1", status: "passed", log });
+    record({ root, id: "ci:baseline", status: "passed", log });
+    expect(calculate(root).next).toContain("release:start-soaks");
+    writeFileSync(
+      join(root, "checks.json"),
+      JSON.stringify({
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        commit: "abc123",
+        digest: "digest-1",
+        gates: {
+          coverage: {
+            title: "Coverage ratchet",
+            command: "npm run coverage:check",
+            ok: false,
+            at: new Date().toISOString(),
+            commit: "abc123",
+            since: "2026-08-01",
+          },
+        },
+      }),
+    );
+    const state = calculate(root);
+    expect(state.next).toMatch(/Fix the red gate\(s\) before anything else/);
+    expect(state.next).toContain("coverage");
+    expect(render(state)).toContain("since 2026-08-01");
+  });
+
+  test("a waived gate does not displace the stage action", () => {
+    const root = fixture();
+    writeFileSync(
+      join(root, "checks.json"),
+      JSON.stringify({
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        commit: "abc123",
+        digest: "digest-1",
+        gates: {
+          "audit-policy": {
+            title: "Advisory allowlist policy",
+            command: "npm run audit:policy",
+            ok: false,
+            at: new Date().toISOString(),
+            commit: "abc123",
+            since: "2026-08-01",
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "checks-waivers.json"),
+      JSON.stringify({
+        version: 1,
+        waivers: [
+          {
+            gate: "audit-policy",
+            reason: "upstream advisory has no fixed release yet",
+            recorded: "2026-08-01",
+            expires: "2999-01-01",
+          },
+        ],
+      }),
+    );
+    const state = calculate(root);
+    expect(state.next).not.toMatch(/Fix the red gate/);
+    // Still visible: waived is not green.
+    expect(render(state)).toContain("waived until 2999-01-01");
   });
 
   test("a failed soak preempts the serial stage action", () => {
@@ -199,7 +281,49 @@ describe("soak guard", () => {
     git("add", "-A");
     git("commit", "--quiet", "-m", "baseline");
     git("switch", "--quiet", "-c", branch);
+    recordGates(root, { lint: true });
     return { root, git };
+  }
+
+  /**
+   * Write the committed gate record for the tree as it stands. checks.json is
+   * outside APPLICATION_PATHS, so recording gates never perturbs the digest it
+   * is being recorded against.
+   * @param {string} root
+   * @param {Record<string, boolean>} gates
+   * @param {{ digest?: string; waivers?: any[] }} [options]
+   */
+  function recordGates(root, gates, options = {}) {
+    const fingerprint = applicationFingerprint(root);
+    if (options.waivers)
+      writeFileSync(
+        join(root, "checks-waivers.json"),
+        JSON.stringify({ version: 1, waivers: options.waivers }),
+      );
+    writeFileSync(
+      join(root, "checks.json"),
+      JSON.stringify({
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        commit: fingerprint.head,
+        digest: options.digest ?? fingerprint.digest,
+        treeDigest: options.treeDigest ?? treeFingerprint(root),
+        gates: Object.fromEntries(
+          Object.entries(gates).map(([id, ok]) => [
+            id,
+            {
+              title: id,
+              command: `npm run ${id}`,
+              ok,
+              at: new Date().toISOString(),
+              commit: fingerprint.head,
+              ...(ok ? {} : { detail: `${id} failed`, since: "2026-08-01" }),
+              measuredOn: options.treeDigest ?? treeFingerprint(root),
+            },
+          ]),
+        ),
+      }),
+    );
   }
 
   test("accepts release branches and rejects everything else", () => {
@@ -222,6 +346,130 @@ describe("soak guard", () => {
       "export const x = 1;\n",
     );
     expect(() => captureBaseline(root)).toThrow(/uncommitted application tree/);
+  });
+
+  test("refuses to soak a tree with a red gate", () => {
+    const { root } = repo();
+    recordGates(root, { lint: true, coverage: false });
+    expect(() => captureBaseline(root)).toThrow(/1 red gate\(s\)/);
+    expect(() => captureBaseline(root)).toThrow(/coverage/);
+  });
+
+  test("refuses a gate record measured on different application code", () => {
+    const { root } = repo();
+    recordGates(root, { lint: true }, { digest: "measured-somewhere-else" });
+    expect(() => captureBaseline(root)).toThrow(/application digest/);
+  });
+
+  test("refuses when something outside the application paths has changed", () => {
+    // The gates read scripts/, docs/, and the registers; the application digest
+    // deliberately ignores them. Without the tree digest, editing a script could
+    // turn a gate red while the record still looked fresh.
+    const { root } = repo();
+    recordGates(root, { lint: true });
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    writeFileSync(join(root, "scripts/triage.mjs"), "export const x = 1;\n");
+    expect(() => captureBaseline(root)).toThrow(
+      /outside the application paths/,
+    );
+  });
+
+  test("refuses a gate whose green result came from another tree", () => {
+    // The local run skipped it (no toolchain), so its old result was carried
+    // forward. Carried forward is not measured.
+    const { root } = repo();
+    recordGates(root, { lint: true, swift: true });
+    const record = JSON.parse(readFileSync(join(root, "checks.json"), "utf8"));
+    record.gates.swift.measuredOn = "a-tree-from-three-commits-ago";
+    writeFileSync(join(root, "checks.json"), JSON.stringify(record));
+    expect(() => captureBaseline(root)).toThrow(/no result for this tree/);
+    expect(() => captureBaseline(root)).toThrow(/swift/);
+  });
+
+  test("accepts an unmeasurable gate once the reason is recorded", () => {
+    const { root } = repo();
+    recordGates(
+      root,
+      { lint: true, swift: true },
+      {
+        waivers: [
+          {
+            gate: "swift",
+            reason: "no Swift toolchain on the soak host; CI covers it",
+            recorded: "2026-08-01",
+            expires: "2999-01-01",
+          },
+        ],
+      },
+    );
+    const record = JSON.parse(readFileSync(join(root, "checks.json"), "utf8"));
+    record.gates.swift.measuredOn = "a-tree-from-three-commits-ago";
+    writeFileSync(join(root, "checks.json"), JSON.stringify(record));
+    expect(captureBaseline(root).head).toBeTruthy();
+  });
+
+  test("refuses a record written before the tree digest existed", () => {
+    const { root } = repo();
+    const fingerprint = applicationFingerprint(root);
+    writeFileSync(
+      join(root, "checks.json"),
+      JSON.stringify({
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        commit: fingerprint.head,
+        digest: fingerprint.digest,
+        gates: {
+          lint: { title: "lint", command: "x", ok: true, at: "", commit: "" },
+        },
+      }),
+    );
+    expect(() => captureBaseline(root)).toThrow(/predates the tree digest/);
+  });
+
+  test("refuses a tree whose gates have never been recorded", () => {
+    const { root } = repo();
+    rmSync(join(root, "checks.json"));
+    expect(() => captureBaseline(root)).toThrow(/no gate results/);
+  });
+
+  test("starts under an active waiver, and reports what was waived", () => {
+    const { root } = repo();
+    recordGates(
+      root,
+      { lint: true, "audit-policy": false },
+      {
+        waivers: [
+          {
+            gate: "audit-policy",
+            reason: "upstream advisory has no fixed release yet",
+            recorded: "2026-08-01",
+            expires: "2999-01-01",
+          },
+        ],
+      },
+    );
+    expect(captureBaseline(root).waivedGates).toEqual(["audit-policy"]);
+  });
+
+  test("refuses again once the waiver expires", () => {
+    const { root } = repo();
+    recordGates(
+      root,
+      { lint: true, "audit-policy": false },
+      {
+        waivers: [
+          {
+            gate: "audit-policy",
+            reason: "upstream advisory has no fixed release yet",
+            recorded: "2026-07-01",
+            expires: "2026-07-15",
+          },
+        ],
+      },
+    );
+    expect(() => captureBaseline(root, undefined, { now: new Date() })).toThrow(
+      /waiver expired 2026-07-15/,
+    );
   });
 
   test("holds while the application tree is untouched", () => {

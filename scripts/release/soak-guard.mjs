@@ -1,61 +1,27 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { rootFrom } from "./common.mjs";
+import { gateStatus } from "../checks/status.mjs";
+import {
+  APPLICATION_PATHS,
+  applicationFingerprint,
+  changedApplicationPaths,
+  currentBranch,
+  treeFingerprint,
+} from "./fingerprint.mjs";
 
 const defaultRoot = rootFrom(import.meta.url);
 
-/**
- * Paths a plan-duration soak qualifies. A change to any of them after the run
- * starts means the pass no longer describes the tree it would be recorded
- * against, so the guard fails the run instead of letting stale evidence reach
- * G1. Deliberately excluded: `conformance/`, `scripts/`, `docs/`, and the
- * status registers — triage tooling and evidence recording must stay editable
- * while an eleven-day run is in flight.
- */
-export const APPLICATION_PATHS = [
-  "apps",
-  "packages",
-  "package.json",
-  "package-lock.json",
-  "tsconfig.json",
-];
+export {
+  APPLICATION_PATHS,
+  applicationFingerprint,
+  changedApplicationPaths,
+  currentBranch,
+  treeFingerprint,
+};
 
 /** Plan-duration soaks run only from a release branch. */
 export const RELEASE_BRANCH = /^release\/[A-Za-z0-9][A-Za-z0-9._\-/]*$/;
-
-/**
- * @param {string} root
- * @param {string[]} args
- * @returns {string}
- */
-function git(root, args) {
-  return execFileSync("git", args, {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-}
-
-/**
- * @param {string} root
- * @param {string[]} paths
- * @returns {string[]}
- */
-function present(root, paths) {
-  return paths.filter((path) => existsSync(join(root, path)));
-}
-
-/**
- * @param {string} [root]
- * @returns {string}
- */
-export function currentBranch(root = defaultRoot) {
-  return git(root, ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
-}
 
 /**
  * @param {string} branch
@@ -66,55 +32,66 @@ export function isReleaseBranch(branch) {
 }
 
 /**
- * Content identity of the application tree: HEAD plus every uncommitted or
- * untracked change under {@link APPLICATION_PATHS}. Two runs share a digest
- * only if they would build byte-identical sources.
- * @param {string} [root]
- * @param {string[]} [paths]
- * @returns {{ head: string; digest: string; dirty: string[] }}
+ * The green-gate half of the guard: a plan-duration soak may not start against
+ * a tree that fails its own static-analysis gates.
+ *
+ * Eleven days of wall-clock spent qualifying a revision already known to be
+ * broken produces evidence nobody should accept, and the schedule cost of
+ * discovering that afterwards is a full restart. The check is on the recorded
+ * result rather than a fresh run, but it is only accepted when the record was
+ * measured on *this* application digest — a stale `checks.json` is refused the
+ * same as a red one, because a green result for other code proves nothing here.
+ * @param {string} root
+ * @param {string} digest
+ * @param {Date} [now]
+ * @returns {{ waived: string[] }}
  */
-export function applicationFingerprint(
-  root = defaultRoot,
-  paths = APPLICATION_PATHS,
-) {
-  const scope = present(root, paths);
-  const head = git(root, ["rev-parse", "HEAD"]).trim();
-  const patch = scope.length ? git(root, ["diff", "HEAD", "--", ...scope]) : "";
-  const untracked = scope.length
-    ? git(root, ["ls-files", "--others", "--exclude-standard", "--", ...scope])
-        .split("\n")
-        .filter(Boolean)
-    : [];
-  const untrackedDigests = untracked.map(
-    (file) =>
-      `${file} ${createHash("sha256")
-        .update(readFileSync(join(root, file)))
-        .digest("hex")}`,
-  );
-  const dirty = [
-    ...git(root, ["diff", "--name-only", "HEAD", "--", ...scope])
-      .split("\n")
-      .filter(Boolean),
-    ...untracked,
-  ].sort();
-  return {
-    head,
-    digest: createHash("sha256")
-      .update([head, patch, ...untrackedDigests].join("\n"))
-      .digest("hex"),
-    dirty,
-  };
+export function assertGatesGreen(root, digest, now = new Date()) {
+  const state = gateStatus(root, {
+    digest,
+    treeDigest: treeFingerprint(root),
+    now,
+  });
+  if (state.staleReason) throw new Error(state.staleReason);
+  if (state.stale.length > 0) {
+    throw new Error(
+      `${state.stale.length} gate(s) have no result for this tree:\n${state.stale
+        .map((gate) => `  ${gate.id} (last measured on another tree)`)
+        .join("\n")}\n` +
+        `Run npm run checks:status here, or — for a gate whose toolchain this machine does not have — ` +
+        `record why with npm run checks:waive -- --gate=<id> --reason="…". An unmeasured gate is not a green one.`,
+    );
+  }
+  if (state.blocking.length > 0) {
+    const lines = state.blocking.map((gate) => {
+      const expired =
+        gate.waiver === "expired"
+          ? ` (waiver expired ${gate.waiverRecord?.expires})`
+          : "";
+      return `  ${gate.id}${expired}${gate.detail ? ` — ${gate.detail}` : ""}`;
+    });
+    throw new Error(
+      `refusing to soak a tree with ${state.blocking.length} red gate(s):\n${lines.join("\n")}\n` +
+        `Fix them, or record a bounded exemption: npm run checks:waive -- --gate=<id> --reason="…"`,
+    );
+  }
+  return { waived: state.waived.map((gate) => gate.id) };
 }
 
 /**
  * Capture the baseline a soak run is qualifying. Refuses anything that would
- * make the resulting evidence unattributable: a non-release branch, or an
- * application tree with uncommitted work.
+ * make the resulting evidence unattributable: a non-release branch, an
+ * application tree with uncommitted work, or a tree with red gates.
  * @param {string} [root]
  * @param {string[]} [paths]
- * @returns {{ branch: string; head: string; digest: string; at: string; paths: string[] }}
+ * @param {{ now?: Date }} [options]
+ * @returns {{ branch: string; head: string; digest: string; at: string; paths: string[]; waivedGates: string[] }}
  */
-export function captureBaseline(root = defaultRoot, paths = APPLICATION_PATHS) {
+export function captureBaseline(
+  root = defaultRoot,
+  paths = APPLICATION_PATHS,
+  options = {},
+) {
   const branch = currentBranch(root);
   if (!isReleaseBranch(branch))
     throw new Error(
@@ -126,12 +103,14 @@ export function captureBaseline(root = defaultRoot, paths = APPLICATION_PATHS) {
     throw new Error(
       `refusing to soak an uncommitted application tree; commit or stash first:\n  ${fingerprint.dirty.join("\n  ")}`,
     );
+  const { waived } = assertGatesGreen(root, fingerprint.digest, options.now);
   return {
     branch,
     head: fingerprint.head,
     digest: fingerprint.digest,
     at: new Date().toISOString(),
     paths,
+    waivedGates: waived,
   };
 }
 
@@ -160,31 +139,6 @@ export function verifyBaseline(baseline, root = defaultRoot) {
     changed,
     reason,
   };
-}
-
-/**
- * Every application path that differs from the baseline commit, whether it was
- * committed, edited in the working tree, or newly added.
- * @param {{ head: string; paths?: string[] }} baseline
- * @param {string} [root]
- * @param {string[]} [paths]
- * @returns {string[]}
- */
-export function changedApplicationPaths(
-  baseline,
-  root = defaultRoot,
-  paths = baseline.paths ?? APPLICATION_PATHS,
-) {
-  const scope = present(root, paths);
-  if (scope.length === 0) return [];
-  const names = new Set();
-  for (const args of [
-    ["diff", "--name-only", baseline.head, "HEAD", "--", ...scope],
-    ["diff", "--name-only", "HEAD", "--", ...scope],
-    ["ls-files", "--others", "--exclude-standard", "--", ...scope],
-  ])
-    for (const line of git(root, args).split("\n")) if (line) names.add(line);
-  return [...names].sort();
 }
 
 function main(argv = process.argv.slice(2)) {
