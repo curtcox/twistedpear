@@ -287,6 +287,7 @@ await runMain(async () => {
                   ? infoError.message
                   : String(infoError)
               }`,
+              { cause: infoError },
             );
           }
         }

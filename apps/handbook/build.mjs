@@ -185,7 +185,7 @@ async function build() {
     }
   }
 
-  let capabilityDefinitions = [];
+  let capabilityDefinitions;
   let capabilityDescriptions = new Map();
   try {
     const runtimeCaps =

@@ -89,7 +89,7 @@ export function auditRegisterConsistency(root = repoRoot()) {
  * @returns {string[]}
  */
 export function findVitestRegisterTodos(root = repoRoot()) {
-  let raw = "";
+  let raw;
   try {
     raw = execSync(
       'rg -o "register:[A-Za-z0-9-]+" conformance packages --glob "*.test.mjs" --glob "*.test.ts" 2>/dev/null || true',

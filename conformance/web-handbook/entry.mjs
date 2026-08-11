@@ -516,6 +516,7 @@ async function main() {
           : [];
       throw new Error(
         `${error instanceof Error ? error.message : String(error)}; applet=${appletId}; texts=${JSON.stringify(texts)}`,
+        { cause: error },
       );
     }
     const resultLine = appletResultLine(

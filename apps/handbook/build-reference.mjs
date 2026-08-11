@@ -71,13 +71,13 @@ export async function generateReferenceChapters() {
   ensureDir(refDir);
   generateLimitationsChapter(refDir);
 
-  let capabilityDefinitions = [];
-  let widgetTypes = [];
+  let capabilityDefinitions;
+  let widgetTypes;
   let widgetPropKeys = new Map();
   let widgetStyleKeys = new Set();
   let codeEditorLanguages = new Set();
   let hostApiVersion = "0.3.0";
-  let hostApiChangelog = [];
+  let hostApiChangelog;
   let workspaceLimits = {
     maxFileBytes: 256 * 1024,
     maxTotalBytes: 4 * 1024 * 1024,

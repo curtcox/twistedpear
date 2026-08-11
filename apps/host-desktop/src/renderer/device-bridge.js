@@ -1,4 +1,3 @@
-/* global BarcodeDetector */
 /**
  * Desktop renderer bridge for DeviceManager host-bridged drivers.
  * Uses Chromium geolocation / getUserMedia / Battery / speechSynthesis / vibrate.

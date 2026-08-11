@@ -81,6 +81,7 @@ export function createWebInstallService(options) {
     } catch (error) {
       throw new Error(
         error instanceof Error ? error.message : "Invalid 256t id",
+        { cause: error },
       );
     }
 

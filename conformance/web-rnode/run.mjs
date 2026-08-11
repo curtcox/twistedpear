@@ -143,6 +143,7 @@ async function runPlaywright(pageUrl) {
       throw new Error(
         `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}` +
           (snapshotError === null ? "" : `; snapshotError=${snapshotError}`),
+        { cause: error },
       );
     }
 

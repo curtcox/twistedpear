@@ -115,13 +115,11 @@ async function main() {
 
     const started = Date.now();
     let pings = 0;
-    let spuriousTeardowns = 0;
 
     const progress = soakProgress({ total: DURATION_MS });
     while (Date.now() - started < DURATION_MS) {
       progress.report(Date.now() - started);
       if (link.status === LinkStatus.CLOSED) {
-        spuriousTeardowns += 1;
         throw new Error(`link closed unexpectedly after ${pings} pings`);
       }
 
@@ -145,10 +143,6 @@ async function main() {
 
       pings += 1;
       await sleep(PING_INTERVAL_MS);
-    }
-
-    if (spuriousTeardowns > 0) {
-      throw new Error(`spurious link teardowns: ${spuriousTeardowns}`);
     }
 
     console.log(

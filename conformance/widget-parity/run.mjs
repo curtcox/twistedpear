@@ -263,6 +263,7 @@ for (const file of streamFiles) {
       if (!containsId(frames[i].tree.root, error.patch.id)) {
         throw new Error(
           `${where} insert patch for id absent from next frame: ${error.patch.id}`,
+          { cause: error },
         );
       }
     }

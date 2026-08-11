@@ -48,6 +48,7 @@ function adbReverseHubPorts(log) {
     } catch (error) {
       throw new Error(
         `adb reverse tcp:${port} failed: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
       );
     }
   }

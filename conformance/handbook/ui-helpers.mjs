@@ -47,6 +47,7 @@ export async function waitForTreeText(host, needle, timeoutMs = 20_000) {
     const detail = snapshot.logs.map((entry) => entry.line).join(" | ");
     throw new Error(
       `${error instanceof Error ? error.message : String(error)} waiting for ${JSON.stringify(needle)}; state=${snapshot.state}; logs=${detail}`,
+      { cause: error },
     );
   }
 }

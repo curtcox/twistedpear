@@ -131,13 +131,6 @@ function rewriteMarkdownLinks(text, siteRel) {
         repoPath = joined;
       } else {
         // ../../STATUS-HARDWARE.md from specs/spec-media/ble.md → STATUS-HARDWARE.md
-        repoPath = path.posix.normalize(
-          path.posix.join(
-            path.posix.dirname(siteRel.replace(/^specs\//, "specs/")),
-            rawPath
-          )
-        );
-        // Better: compute from repo
         const repoFile = path.posix.join(
           path.posix.dirname(siteRel),
           rawPath
@@ -273,11 +266,10 @@ function rewriteMarkdownLinks(text, siteRel) {
 
 function stageMarkdownFile(srcAbs, destAbs, siteRel) {
   let dest = destAbs;
-  let rel = siteRel;
+  const rel = siteRel;
   // VitePress resolves directory indexes as index.md; README.md alone trips dead-link checks for /path/.
   if (path.posix.basename(rel) === "README.md") {
     dest = path.join(path.dirname(destAbs), "index.md");
-    rel = path.posix.join(path.posix.dirname(rel), "index.md");
   }
   let source = fs.readFileSync(srcAbs, "utf8");
   const samplePage = siteRel.match(/^cookbook\/apps\/([^/]+)\/README\.md$/);

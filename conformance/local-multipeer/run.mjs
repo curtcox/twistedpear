@@ -181,6 +181,7 @@ await runMain(async () => {
     } catch (error) {
       throw new Error(
         `could not bind the control port ${CONTROL_PORT} — another run or \`peers status\` holds it: ${error.message}`,
+        { cause: error },
       );
     }
 

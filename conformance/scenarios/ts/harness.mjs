@@ -186,7 +186,7 @@ export async function waitForReadyLine(service, timeoutMs = 30_000) {
     await sleep(500);
   }
 
-  let logs = "";
+  let logs;
   try {
     logs = composeLogs(service, 100);
   } catch (error) {

@@ -7,12 +7,18 @@
         "formal/**/*.mjs",
         "conformance/**/*.mjs",
         "conformance/**/*.test.mjs",
-        "vitest.config.ts"
+        "vitest.config.ts",
+        "eslint.config.js",
+        "eslint.*.config.js",
+        "eslint.concat-groups.mjs",
+        "stryker.config.mjs"
       ],
       "project": [
         "scripts/**/*.{js,mjs,ts}",
         "formal/**/*.{js,mjs,ts}",
-        "conformance/**/*.{js,mjs,ts}"
+        "conformance/**/*.{js,mjs,ts}",
+        "eslint*.{js,mjs}",
+        "stryker.config.mjs"
       ]
     },
     "packages/*": {
@@ -24,7 +30,14 @@
       "entry": [
         "src/**/*.{ts,tsx,js,mjs}",
         "test/**/*.test.{ts,tsx,js,mjs}",
-        "scripts/**/*.{js,mjs}"
+        "scripts/**/*.{js,mjs}",
+        "index.js",
+        "App.web.tsx",
+        "worklet/prelude.mjs",
+        "worklet/entry.mjs",
+        "worklet/web-entry.mjs",
+        "modules/*/app.plugin.js",
+        "stubs/*.web.js"
       ],
       "project": ["**/*.{ts,tsx,js,mjs}"],
       "ignore": ["**/*.bundle.mjs", "**/*.bundle"]
@@ -34,7 +47,23 @@
     "mermaid",
     "vitepress-plugin-mermaid",
     "bare-runtime",
+    "bare-os",
+    "bare-process",
     "@expo/config-plugins"
+  ],
+  "exclude": ["duplicates"],
+  "ignoreUnresolved": ["./gradlew", "./protocol.ts"],
+  "ignoreBinaries": [
+    "adb",
+    "caffeinate",
+    "gitleaks",
+    "gradlew",
+    "maestro",
+    "osascript",
+    "rg",
+    "rustc",
+    "tail",
+    "xdg-open"
   ],
   "ignore": [
     "archive/**",
@@ -43,9 +72,12 @@
     "**/*.gen.ts",
     "**/*.bundle.mjs",
     "**/*.bundle",
+    "**/*.bundle.js",
     "apps/harness-mobile/android/**",
     "apps/harness-mobile/ios/**",
     "apps/harness-mobile/public/**",
+    "apps/harness-mobile/worklet/entry-part-*.mjs",
+    "apps/harness-mobile/worklet/web-entry-part-*.mjs",
     "packages/reticulum-ts/docs/api/**",
     "conformance/docs/.tmp-handbook-capture/**",
     "conformance/**/fixtures.mjs",

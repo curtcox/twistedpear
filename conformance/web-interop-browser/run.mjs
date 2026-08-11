@@ -257,6 +257,7 @@ async function runPlaywright(pageUrl, gatewayReticulum) {
       );
       throw new Error(
         `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`,
+        { cause: error },
       );
     }
 

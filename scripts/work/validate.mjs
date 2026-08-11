@@ -157,7 +157,7 @@ export function validateResourcesShape(root = repoRoot()) {
  */
 export function validateCanonicalForm(root = repoRoot()) {
   const path = join(root, METADATA_FILE);
-  let actual = "";
+  let actual;
   try {
     actual = readFileSync(path, "utf8");
   } catch {

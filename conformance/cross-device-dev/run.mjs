@@ -184,7 +184,7 @@ await runMain(async () => {
     scenarios: [],
   };
   const negativeTargets = new Set();
-  let coverage = coverageFromProof(proof);
+  let coverage;
 
   try {
     control = await startControlServer();

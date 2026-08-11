@@ -26,7 +26,7 @@ function benchmark(name, fn) {
 
   const started = performance.now();
   let iterations = 0;
-  let elapsedMs = 0;
+  let elapsedMs;
   do {
     for (let index = 0; index < ITERATIONS; index += 1) {
       fn();
