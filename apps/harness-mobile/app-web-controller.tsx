@@ -15,6 +15,8 @@ import type {
   HostToWorkletMessage,
   InstallProgress,
   InstalledPackageView,
+  InstallReviewRequestView,
+  LaunchReviewRequestView,
   MiniappRuntimeView,
   SessionInviteView,
   TrustedPublisherView,
@@ -71,18 +73,12 @@ export function useWebHarnessController() {
       }
     | {
         readonly kind: "launch";
-        readonly review: Extract<
-          WorkletToHostMessage,
-          { type: "launch-review" }
-        >;
+        readonly review: LaunchReviewRequestView;
         readonly grants: ReadonlyArray<string>;
       }
     | {
         readonly kind: "install";
-        readonly review: Extract<
-          WorkletToHostMessage,
-          { type: "install-review" }
-        >;
+        readonly review: InstallReviewRequestView;
         readonly grants: ReadonlyArray<string>;
       }
     | null

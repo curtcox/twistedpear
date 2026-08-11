@@ -1,19 +1,25 @@
 /** Worklet IPC message types and codecs. */
 
 import type {
+  AnnounceEntry,
   CapabilityGrantView,
   CatalogEntryView,
+  ConfirmationKind,
   DeviceActiveIndicatorView,
   DeviceChromeSessionView,
   DeviceDescriptorView,
   DeviceDiagnosticView,
   DeviceStateView,
+  InstallProgress,
   InstalledPackageView,
   LaunchReviewCapabilityView,
+  MiniappBenchmarkResult,
   MiniappRuntimeView,
+  MulticastNetworkInfo,
   SessionInviteView,
   TrustedPublisherView,
   WebStorageQuotaView,
+  WorkletStatus,
 } from "./protocol-views.js";
 
 export type HostToWorkletMessage =

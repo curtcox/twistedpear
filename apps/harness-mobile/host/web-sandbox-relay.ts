@@ -52,7 +52,7 @@ export function createWebSandboxRelay(
           entryPath: message.entryPath,
           bundle: hexToBytes(message.bundleHex),
           brokerEndpoint: {
-            request: async (request) =>
+            request: async (request: unknown) =>
               new Promise((resolve, reject) => {
                 const requestId = `broker-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
                 pendingBrokers.set(requestId, { resolve, reject });

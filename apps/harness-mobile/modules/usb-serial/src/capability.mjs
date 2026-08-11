@@ -4,7 +4,7 @@
 
 /**
  * @param {string} platform
- * @returns {{ readonly supported: boolean; readonly reason: "unsupported-on-ios" | "native-module-unavailable" | null }}
+ * @returns {{ readonly supported: true; readonly reason: null } | { readonly supported: false; readonly reason: "unsupported-on-ios" | "native-module-unavailable" }}
  */
 export function resolveUsbSerialCapability(platform) {
   if (platform === "ios") {

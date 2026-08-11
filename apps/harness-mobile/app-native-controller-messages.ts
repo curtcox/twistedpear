@@ -29,6 +29,8 @@ import type {
   HostToWorkletMessage,
   InstallProgress,
   InstalledPackageView,
+  InstallReviewRequestView,
+  LaunchReviewRequestView,
   MiniappBenchmarkResult,
   MiniappRuntimeView,
   SessionInviteView,
@@ -122,18 +124,12 @@ export type NativeWorkletMessageHandlerDeps = {
     React.SetStateAction<
       | {
           readonly kind: "install";
-          readonly review: Extract<
-            WorkletToHostMessage,
-            { type: "install-review" }
-          >;
+          readonly review: InstallReviewRequestView;
           readonly grants: ReadonlyArray<string>;
         }
       | {
           readonly kind: "launch";
-          readonly review: Extract<
-            WorkletToHostMessage,
-            { type: "launch-review" }
-          >;
+          readonly review: LaunchReviewRequestView;
           readonly grants: ReadonlyArray<string>;
         }
       | null

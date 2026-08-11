@@ -367,6 +367,14 @@
       "added": "2026-08-07",
       "notes": "Imported from complexity-ratchet.json: 6 baselined @typescript-eslint/ban-ts-comment entries across 6 files."
     },
+    "QL-HARNESS-MOBILE-TYPECHECK": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run harness-mobile:typecheck",
+      "added": "2026-08-11",
+      "completed": "2026-08-11",
+      "evidence": ["docs/static-analysis.md"]
+    },
     "QL-LINT-NO-FUNC-ASSIGN": {
       "type": "quality",
       "requires": [],

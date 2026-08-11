@@ -8,7 +8,7 @@
     "web": "expo start --web",
     "android": "node scripts/link-bare-addons.mjs android && expo run:android",
     "ios": "node scripts/link-bare-addons.mjs ios && expo run:ios",
-    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "build:worklet": "node scripts/build-worklet.mjs",
     "link:bare-addons": "node scripts/link-bare-addons.mjs",
     "build:web-worker": "node scripts/build-web-worker.mjs",

@@ -34,8 +34,11 @@ function isStandaloneDisplay(): boolean {
     return false;
   }
 
+  // react-native-web defines `window` without `matchMedia`, so the guard is a
+  // runtime one even though `lib.dom` types the method as always present.
   return (
-    window.matchMedia?.("(display-mode: standalone)").matches === true ||
+    (typeof window.matchMedia === "function" &&
+      window.matchMedia("(display-mode: standalone)").matches) ||
     ("standalone" in navigator &&
       (navigator as { standalone?: boolean }).standalone === true)
   );

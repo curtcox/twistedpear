@@ -135,7 +135,7 @@ async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
       : Array.isArray(report)
         ? report
         : report != null && typeof report === "object"
-          ? Object.values(report as Record<string, unknown>)
+          ? Object.values(report as unknown as Record<string, unknown>)
           : [];
   for (const entry of values) {
     if (entry == null || typeof entry !== "object") continue;

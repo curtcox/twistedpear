@@ -55,7 +55,7 @@ jobs:
           java-version: "17"
       - run: npm ci
       - name: Build workspace packages required by the gate
-        if: matrix.id == 'unit-tests' || matrix.id == 'coverage' || matrix.id == 'structure' || matrix.id == 'properties'
+        if: matrix.id == 'unit-tests' || matrix.id == 'coverage' || matrix.id == 'structure' || matrix.id == 'properties' || matrix.id == 'harness-mobile-typecheck'
         run: npm run build
       - name: Install actionlint
         if: matrix.id == 'actionlint'

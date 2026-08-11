@@ -34,6 +34,18 @@ artifact. Aggregation is registry-complete: if checkout, setup, installation, or
 build fails before a gate can write its result, the dashboard includes that gate as a
 missing-result failure rather than silently omitting it.
 
+## TypeScript coverage
+
+The `lint` gate runs `npm run typecheck`, which is `tsc -b` over the root project
+references — every package plus `apps/host-desktop`. `apps/harness-mobile` is deliberately
+not one of those references: it emits nothing, it pins its own compiler, and making it a
+composite project would require declaration-emit-compatible public shapes plus a
+hand-listed set of the generated `.mjs` files it imports. It gets the separate
+`harness-mobile-typecheck` gate instead, which runs the app's own `tsc --noEmit`. Both
+paths are checked on every PR, and `tsc -b` stays incremental. The gate needs
+`npm run build` first, because the app resolves `@twistedpear/*` through built `dist`
+types.
+
 ## Ratcheted Node analysis
 
 All finding baselines compare against the PR base branch, not the merge commit. Normal

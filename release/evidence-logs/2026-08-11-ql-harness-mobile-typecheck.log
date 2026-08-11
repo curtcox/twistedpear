@@ -1,0 +1,8 @@
+
+> twistedpear@0.0.0 harness-mobile:typecheck
+> npm run typecheck --workspace=harness-mobile
+
+
+> harness-mobile@0.2.0 typecheck
+> tsc --noEmit
+

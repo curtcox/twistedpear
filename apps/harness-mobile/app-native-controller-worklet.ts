@@ -8,6 +8,7 @@ import {
   startNodeService,
   stopNodeService,
   addNodeLifecycleListener,
+  type NodeLifecycleState,
 } from "@twistedpear/node-service";
 import { HostMulticastIpc } from "./host/multicast-ipc";
 import { HostBonjourIpc } from "./host/bonjour-ipc";
@@ -56,13 +57,7 @@ export type NativeWorkletLifecycleDeps = NativeWorkletRefs & {
   readonly setStatus: React.Dispatch<React.SetStateAction<WorkletStatus>>;
   readonly setServiceRunning: React.Dispatch<React.SetStateAction<boolean>>;
   readonly setLifecycleState: React.Dispatch<
-    React.SetStateAction<
-      | "unsupported"
-      | "foreground"
-      | "background-grace"
-      | "background-wake"
-      | "suspended"
-    >
+    React.SetStateAction<NodeLifecycleState>
   >;
   readonly setUsbDevices: React.Dispatch<
     React.SetStateAction<ReadonlyArray<UsbSerialDeviceInfo>>

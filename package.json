@@ -15,6 +15,7 @@
     "build": "tsc -b",
     "build:freenet-contract": "node scripts/build-freenet-contract.mjs",
     "typecheck": "tsc -b --pretty false",
+    "harness-mobile:typecheck": "npm run typecheck --workspace=harness-mobile",
     "test": "vitest run",
     "test:watch": "vitest",
     "check:fast": "npm run typecheck && npm test",

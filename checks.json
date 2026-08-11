@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-10T22:28:09.823Z",
-  "commit": "e7d1ef05e4bce5fb63643776dd81b7a61569820a",
-  "digest": "4a456b827e297f5a229fe55926a186073572ecc55bc0c40b956e84a6f9e4d472",
-  "treeDigest": "a36a2441e1de8c7f8fef323238b6c01c893e43ae30202e577fbd0c80d6bcfaac",
+  "generatedAt": "2026-08-11T19:33:51.777Z",
+  "commit": "28e81786a8d4a07571b9b50c40334f03b12e9b25",
+  "digest": "8be9e3167f3ae45efdae3f0f4449513c146d630ee9c5ecf3f3a3dfa3338cf09f",
+  "treeDigest": "82015fdffad4da3207f235142f9ab2c49ae25bb3a969b904e57ac13a7377078a",
   "gates": {
     "actionlint": {
       "title": "GitHub Actions lint",
@@ -79,6 +79,15 @@
       "at": "2026-08-10T21:49:19.333Z",
       "commit": "66c4eaa084a037796028172b66582744cf8d02ee",
       "measuredOn": "896198b9c539ab24159566489eed68a9c8d16bb65d75cb8238dde1b86befc735",
+      "tier": "pr"
+    },
+    "harness-mobile-typecheck": {
+      "title": "Harness-mobile typecheck",
+      "command": "npm run harness-mobile:typecheck",
+      "ok": true,
+      "at": "2026-08-11T19:33:51.532Z",
+      "commit": "28e81786a8d4a07571b9b50c40334f03b12e9b25",
+      "measuredOn": "82015fdffad4da3207f235142f9ab2c49ae25bb3a969b904e57ac13a7377078a",
       "tier": "pr"
     },
     "kotlin": {

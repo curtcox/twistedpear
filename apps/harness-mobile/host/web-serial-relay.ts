@@ -41,11 +41,12 @@ export function createWebSerialRelay(
     }
 
     readLoopActive = true;
-    reader = port.readable.getReader();
+    const activeReader = port.readable.getReader();
+    reader = activeReader;
 
     try {
       while (readLoopActive) {
-        const { value, done } = await reader.read();
+        const { value, done } = await activeReader.read();
         if (done) {
           break;
         }
@@ -60,7 +61,7 @@ export function createWebSerialRelay(
         message: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      reader.releaseLock();
+      activeReader.releaseLock();
       reader = null;
     }
   }

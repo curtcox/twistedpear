@@ -1,5 +1,17 @@
 export const gates = [
   gate("lint", "TypeScript and Sans-IO lint", "lint", "pr", ["node"]),
+  // The Expo app is not a `tsc -b` project — it emits nothing, it is checked by
+  // its own pinned compiler, and composite mode would demand declaration-emit
+  // shapes and a hand-listed set of generated `.mjs` inputs. It gets its own
+  // gate instead, so `npm run typecheck` stays incremental and the app's
+  // TypeScript is still checked on every PR.
+  gate(
+    "harness-mobile-typecheck",
+    "Harness-mobile typecheck",
+    "harness-mobile:typecheck",
+    "pr",
+    ["node"],
+  ),
   gate("unit-tests", "Unit tests", "test", "pr", ["node"]),
   gate(
     "file-sizes",

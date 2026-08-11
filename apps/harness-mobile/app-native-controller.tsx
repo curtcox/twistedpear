@@ -290,7 +290,7 @@ export function useNativeHarnessController() {
     (options: {
       readonly appId: string;
       readonly displayLabel: string;
-      readonly classId: string;
+      readonly classId: "camera" | "microphone";
       readonly ttlMs: number;
     }) => {
       const id = `host-seed-${Date.now()}`;
