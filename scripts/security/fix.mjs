@@ -39,6 +39,43 @@ export function applyFixes(root, options = {}) {
 }
 
 /**
+ * An `npm audit fix` that exits non-zero installed nothing and left the
+ * lockfile alone, so the advisory set is unchanged by definition. Comparing
+ * before against after would then read as "nothing was fixable", which is a
+ * claim about the dependency tree; the truth is that the fix never ran.
+ *
+ * @param {string} output
+ * @param {{ dryRun?: boolean }} options
+ * @returns {string[]}
+ */
+export function summarizeFailure(output, options = {}) {
+  const lines = [];
+  lines.push("`npm audit fix` failed. Nothing was installed and the lockfile");
+  lines.push(
+    "was left untouched — this is not the same as nothing being fixable.",
+  );
+  const aborted = /postinstall|command failed|command sh -c/i.test(output);
+  if (aborted) {
+    lines.push("");
+    lines.push(
+      "The output above names the step that aborted. A lifecycle script that fails",
+    );
+    lines.push(
+      "mid-install has to be fixed before any advisory can be, since npm rolls the",
+    );
+    lines.push("whole install back.");
+  }
+  if (!options.dryRun) {
+    lines.push("");
+    lines.push(
+      "`npm run audit:fix -- --dry-run` shows what the upgrade would have been without",
+    );
+    lines.push("installing anything.");
+  }
+  return lines;
+}
+
+/**
  * @param {ReturnType<typeof resolve>} before
  * @param {ReturnType<typeof resolve>} after
  * @returns {string[]}
@@ -105,6 +142,14 @@ function main(argv = process.argv.slice(2)) {
 
   const result = applyFixes(root, { dryRun, force });
   console.log(result.output.trim());
+
+  if (!result.ok) {
+    console.log("");
+    for (const line of summarizeFailure(result.output, { dryRun }))
+      console.log(line);
+    process.exitCode = 1;
+    return;
+  }
   if (dryRun) return;
 
   const after = resolve(root);

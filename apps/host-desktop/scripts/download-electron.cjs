@@ -14,6 +14,9 @@ const { join } = require("node:path");
 
 const electronDir = join(__dirname, "../../../node_modules/electron");
 
+/** A reason the download cannot run here, as opposed to a crash while running it. */
+class UnavailableError extends Error {}
+
 function platformPath() {
   switch (process.platform) {
     case "darwin":
@@ -50,8 +53,34 @@ function removePartialInstall() {
   rmSync(join(electronDir, "path.txt"), { force: true });
 }
 
+/**
+ * Locate the downloader's own dependency without letting a MODULE_NOT_FOUND
+ * thrown from inside @electron/get masquerade as an absent @electron/get.
+ * Returns null when it is genuinely not installed.
+ */
+function resolveElectronGet() {
+  try {
+    return require.resolve("@electron/get");
+  } catch (error) {
+    if (error && error.code === "MODULE_NOT_FOUND") {
+      return null;
+    }
+    throw error;
+  }
+}
+
 async function downloadZip() {
-  const { downloadArtifact } = require("@electron/get");
+  const electronGetPath = resolveElectronGet();
+  if (electronGetPath === null) {
+    throw new UnavailableError(
+      "@electron/get is not resolvable, so the Electron binary cannot be downloaded here.\n" +
+        "npm runs this script from host-desktop's postinstall, and an install that rearranges\n" +
+        "node_modules — `npm audit fix`, a dependency bump — can reach the postinstall before\n" +
+        "the downloader's own dependency is in place. Nothing is wrong with the tree; the\n" +
+        "download just cannot run at this point in the install.",
+    );
+  }
+  const { downloadArtifact } = require(electronGetPath);
   const { version } = JSON.parse(
     readFileSync(join(electronDir, "package.json"), "utf8"),
   );
@@ -112,6 +141,10 @@ async function main() {
 }
 
 main().catch((error) => {
+  if (error instanceof UnavailableError) {
+    console.error(error.message);
+    process.exit(1);
+  }
   console.error(
     error instanceof Error ? (error.stack ?? error.message) : error,
   );

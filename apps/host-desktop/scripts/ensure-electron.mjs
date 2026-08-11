@@ -2,6 +2,13 @@
 /**
  * Ensure the Electron binary is usable before `electron .`.
  * npm sometimes leaves a partial dist/ (binary without frameworks, or no path.txt).
+ *
+ * `--best-effort` (how postinstall runs it) downgrades every failure to a
+ * warning. An install is not the moment to insist on a working Electron: the
+ * download needs the network, and npm can run the postinstall while it is still
+ * rearranging node_modules, so a hard exit there aborts the whole install and
+ * leaves the lockfile untouched. Without the flag — `npm run start`, where the
+ * binary is about to be executed — a missing Electron is still fatal.
  */
 
 import { spawnSync } from "node:child_process";
@@ -56,6 +63,23 @@ function writeMetadata() {
   }
 }
 
+const bestEffort = process.argv.includes("--best-effort");
+
+/**
+ * @param {string} reason
+ * @returns {never}
+ */
+function giveUp(reason) {
+  if (!bestEffort) {
+    console.error(reason);
+    process.exit(1);
+  }
+  console.warn(
+    `${reason}\nContinuing without it. Run \`npm run start --workspace=host-desktop\` to download Electron once the install has settled.`,
+  );
+  process.exit(0);
+}
+
 if (!isCompleteInstall()) {
   const download = spawnSync(
     process.execPath,
@@ -65,13 +89,14 @@ if (!isCompleteInstall()) {
     },
   );
   if (download.status !== 0) {
-    process.exit(download.status ?? 1);
+    giveUp(
+      `Downloading Electron failed (exit ${download.status ?? "unknown"}).`,
+    );
   }
 }
 
 if (!isCompleteInstall()) {
-  console.error("Electron binary is still missing after download");
-  process.exit(1);
+  giveUp("Electron binary is still missing after download");
 }
 
 writeMetadata();

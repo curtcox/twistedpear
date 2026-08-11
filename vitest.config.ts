@@ -34,6 +34,7 @@ export default defineConfig({
             "conformance/cross-device-dev/**/*.test.mjs",
             "conformance/ui-invariants/**/*.test.mjs",
             "conformance/checks/**/*.test.mjs",
+            "conformance/desktop/**/*.test.mjs",
           ],
           exclude: ["packages/protocol/test/**/*.test.ts"],
         },

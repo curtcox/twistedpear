@@ -65,6 +65,23 @@ require linked addon frameworks (as react-native-bare-kit ships on mobile). Conf
 `test:desktop` exercises the mini-app stack in-process via `node-worker` and
 remains green.
 
+### Getting the Electron binary
+
+`scripts/ensure-electron.mjs` downloads and repairs the Electron binary, and runs
+from two places with deliberately different strictness. From `npm run start` it
+is strict: the binary is about to be executed, so a failure is fatal. From
+`postinstall` it runs as `--best-effort` and downgrades every failure to a
+warning.
+
+The install is not the moment to insist on a working Electron. The download
+needs the network, and npm can reach a postinstall while it is still rearranging
+`node_modules` — during `npm audit fix`, for instance — so the downloader's own
+`@electron/get` is not always resolvable at that point. A hard exit there aborts
+the entire install and rolls back the lockfile, which is how a remediation
+command ends up applying nothing. A best-effort postinstall leaves the download
+to the next `npm run start --workspace=host-desktop`, which is strict and will
+say so.
+
 ## Config
 
 Platform data directory:

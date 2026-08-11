@@ -1,6 +1,20 @@
 {
   "version": 1,
   "items": {
+    "BUG-AUDIT-FIX-POSTINSTALL": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run conformance/desktop/ensure-electron.test.mjs conformance/doc-audit/soak-preconditions.test.mjs",
+      "added": "2026-08-11",
+      "completed": "2026-08-11",
+      "evidence": [
+        "conformance/desktop/ensure-electron.test.mjs",
+        "conformance/doc-audit/soak-preconditions.test.mjs",
+        "apps/host-desktop/scripts/ensure-electron.mjs",
+        "scripts/security/fix.mjs"
+      ],
+      "notes": "npm audit fix reorders the tree while installing, so apps/host-desktop's postinstall runs when its own @electron/get is not resolvable; the install aborts, the lockfile is untouched, and fix.mjs ignores applyFixes().ok and reports 'Nothing was fixable without a breaking upgrade.'"
+    },
     "BUG-LXMF-COVERAGE": {
       "type": "bug",
       "requires": [],

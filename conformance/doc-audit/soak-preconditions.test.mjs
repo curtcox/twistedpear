@@ -10,7 +10,11 @@ import {
 } from "../../scripts/tools/requirements.mjs";
 import { render } from "../../scripts/tools/doctor.mjs";
 import { parse, runCommands } from "../../scripts/tools/install.mjs";
-import { summarize } from "../../scripts/security/fix.mjs";
+import {
+  applyFixes,
+  summarize,
+  summarizeFailure,
+} from "../../scripts/security/fix.mjs";
 import { readAllowlist, resolve } from "../../scripts/security/advisories.mjs";
 import { gates } from "../../scripts/checks/registry.mjs";
 import { collect, gateStatus } from "../../scripts/checks/status.mjs";
@@ -210,5 +214,44 @@ describe("audit:fix reporting", () => {
     expect(summarize(state, state).join("\n")).toContain(
       "Nothing was fixable without a breaking upgrade",
     );
+  });
+
+  it("reports a non-zero npm exit rather than swallowing it", () => {
+    // main() reads this flag to decide whether comparing advisories before and
+    // after says anything at all. Malformed package.json so npm fails locally,
+    // without reaching the network.
+    const root = mkdtempSync(join(tmpdir(), "audit-fix-"));
+    writeFileSync(join(root, "package.json"), "{ not json");
+    expect(applyFixes(root).ok).toBe(false);
+  });
+
+  it("separates an aborted install from nothing being fixable", () => {
+    // An aborted `npm audit fix` leaves before and after identical, which the
+    // advisory comparison alone would report as a clean "nothing to do".
+    const output = summarizeFailure(
+      [
+        "npm error path /repo/apps/host-desktop",
+        "npm error command failed",
+        "npm error command sh -c node scripts/ensure-electron.mjs",
+      ].join("\n"),
+    ).join("\n");
+    expect(output).toContain("`npm audit fix` failed");
+    expect(output).toContain("lockfile");
+    expect(output).not.toContain("Nothing was fixable");
+  });
+
+  it("points at the lifecycle script when one aborted the install", () => {
+    const output = summarizeFailure("npm error command sh -c node x.mjs").join(
+      "\n",
+    );
+    expect(output).toContain("rolls the");
+  });
+
+  it("does not suggest a dry run to someone already doing one", () => {
+    const output = summarizeFailure("npm error code E404", {
+      dryRun: true,
+    }).join("\n");
+    expect(output).toContain("`npm audit fix` failed");
+    expect(output).not.toContain("--dry-run");
   });
 });
