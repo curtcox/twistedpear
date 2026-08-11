@@ -1,5 +1,21 @@
 /** Worklet IPC message types and codecs. */
 
+import type {
+  CapabilityGrantView,
+  CatalogEntryView,
+  DeviceActiveIndicatorView,
+  DeviceChromeSessionView,
+  DeviceDescriptorView,
+  DeviceDiagnosticView,
+  DeviceStateView,
+  InstalledPackageView,
+  LaunchReviewCapabilityView,
+  MiniappRuntimeView,
+  SessionInviteView,
+  TrustedPublisherView,
+  WebStorageQuotaView,
+} from "./protocol-views.js";
+
 export type HostToWorkletMessage =
   | {
       readonly type: "start";

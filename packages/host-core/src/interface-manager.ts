@@ -72,11 +72,6 @@ const RELAY_INTERFACE_KINDS: ReadonlyArray<RelayInterfaceKind> = [
   "freenet",
 ];
 
-export type {
-  OpticalChannel,
-  AcousticChannel,
-} from "@twistedpear/reticulum-interfaces";
-
 export interface InterfaceManagerOptions {
   readonly reticulum: Reticulum;
   readonly provider: CryptoProvider;

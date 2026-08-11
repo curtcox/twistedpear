@@ -180,7 +180,7 @@ export interface HostRelayConfig {
   readonly policy?: RelayPolicyMatrix;
 }
 
-export interface HostAiConfig {
+interface HostAiConfig {
   readonly baseUrl: string;
   readonly apiKey: string;
   readonly model: string;
@@ -194,7 +194,7 @@ export interface HostAiConfig {
  * When set, the host mounts the peer control agent and dials this address.
  * See `test-agent.ts` and `conformance/local-multipeer`.
  */
-export interface TestAgentConfig {
+interface TestAgentConfig {
   readonly host: string;
   readonly port: number;
   /** Peer id the harness knows this host by, e.g. `hub` or `node2`. */

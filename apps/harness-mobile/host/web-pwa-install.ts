@@ -2,9 +2,9 @@
  * Phase W4: capture Chromium's beforeinstallprompt and surface an in-app Install CTA.
  */
 
-export type PwaInstallOutcome = "accepted" | "dismissed";
+type PwaInstallOutcome = "accepted" | "dismissed";
 
-export interface BeforeInstallPromptLike extends Event {
+interface BeforeInstallPromptLike extends Event {
   prompt(): Promise<void>;
   readonly userChoice: Promise<{ readonly outcome: PwaInstallOutcome }>;
 }

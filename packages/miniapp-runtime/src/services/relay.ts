@@ -24,7 +24,7 @@ export interface InterfaceStatus {
   readonly bytesOut: number;
 }
 
-export type InterfaceDiagnosticState =
+type InterfaceDiagnosticState =
   | "available"
   | "permission-required"
   | "unsupported"

@@ -33,7 +33,7 @@ export interface ChannelPacket {
   readonly receipt: PacketReceipt | null;
 }
 
-export type MessageStateValue =
+type MessageStateValue =
   (typeof ChannelMessageState)[keyof typeof ChannelMessageState];
 
 export interface ChannelOutlet {

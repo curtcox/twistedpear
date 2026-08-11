@@ -8,13 +8,14 @@
         "conformance/**/*.mjs",
         "conformance/**/*.test.mjs",
         "vitest.config.ts",
+        "scripts/site/react-native-web-samples/entry.tsx",
         "eslint.config.js",
         "eslint.*.config.js",
         "eslint.concat-groups.mjs",
         "stryker.config.mjs"
       ],
       "project": [
-        "scripts/**/*.{js,mjs,ts}",
+        "scripts/**/*.{js,mjs,ts,tsx}",
         "formal/**/*.{js,mjs,ts}",
         "conformance/**/*.{js,mjs,ts}",
         "eslint*.{js,mjs}",
@@ -49,7 +50,11 @@
     "bare-runtime",
     "bare-os",
     "bare-process",
-    "@expo/config-plugins"
+    "@expo/config-plugins",
+    "react",
+    "react-dom",
+    "react-native",
+    "qrcode-generator"
   ],
   "exclude": ["duplicates"],
   "ignoreUnresolved": ["./gradlew", "./protocol.ts"],
@@ -80,6 +85,7 @@
     "apps/harness-mobile/worklet/web-entry-part-*.mjs",
     "packages/reticulum-ts/docs/api/**",
     "conformance/docs/.tmp-handbook-capture/**",
+    "conformance/fixtures/packages/**",
     "conformance/**/fixtures.mjs",
     "conformance/**/publisher-data.mjs",
     "conformance/**/web-core.worker.js",

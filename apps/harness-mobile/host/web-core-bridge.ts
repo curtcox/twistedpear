@@ -15,7 +15,7 @@ const WORKER_URL = "/web-core.worker.js";
 
 type IpcListener = (data: Uint8Array) => void;
 
-export class WebCoreWorklet {
+class WebCoreWorklet {
   private worker: Worker | null = null;
   private ipcBuffer = "";
   private readonly ipcListeners = new Set<IpcListener>();

@@ -1,7 +1,5 @@
 import { STORE_POSTURE, STORE_VARIANT } from "./store-posture.generated.mjs";
 
-export { STORE_POSTURE, STORE_VARIANT };
-
 export function refuseStorePosture(action, send) {
   if (!STORE_VARIANT) {
     return false;
