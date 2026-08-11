@@ -1,4 +1,4 @@
-import { sha256 } from "@noble/hashes/sha256.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 import { utf8Decode, utf8Encode } from "./utf8.js";
 
 export const PEER_INVITATION_VERSION = 1;

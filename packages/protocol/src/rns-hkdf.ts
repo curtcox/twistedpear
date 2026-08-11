@@ -6,7 +6,7 @@
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { hkdf as nobleHkdf } from "@noble/hashes/hkdf.js";
-import { sha256 } from "@noble/hashes/sha256.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 export interface RnsHkdfInput {
   readonly length: number;

@@ -306,7 +306,7 @@ export class ResourceLayer1 {
 
     const parts: ResourcePart[] = [];
     const mapHashes: Uint8Array[] = [];
-    let collisionGuard: Uint8Array[] = [];
+    let collisionGuard: Uint8Array[];
 
     let hashmapOk = false;
     while (!hashmapOk) {

@@ -78,7 +78,7 @@ export function planResourcePartRequest(input: {
     }
   }
 
-  let requestPrefix = new Uint8Array([hashmapExhausted]);
+  let requestPrefix: Uint8Array = new Uint8Array([hashmapExhausted]);
   let waitingForHashmap = false;
   if (hashmapExhausted === RESOURCE_HASHMAP_IS_EXHAUSTED) {
     const lastMapHash = input.hashmap[input.hashmapHeight - 1];

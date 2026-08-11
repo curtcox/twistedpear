@@ -181,7 +181,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
       },
     );
 
-    worker.on("error", (error) => {
+    worker.on("error", (error: Error) => {
       alive = false;
       for (const [, waiter] of pending) {
         waiter.reject(error);

@@ -256,7 +256,10 @@ export class WebRtcRouteController {
             "Peer message exceeds WebRTC route budget",
           );
         }
-        channel.send(payload);
+        // RTCDataChannel.send rejects SharedArrayBuffer-backed views, so its
+        // lib type is narrower than Uint8Array. Nothing in this repo allocates
+        // on a SharedArrayBuffer; narrowing here keeps the send zero-copy.
+        channel.send(payload as Uint8Array<ArrayBuffer>);
       },
       attachTrack(track, streams = []) {
         return pending.connection.addTrack(track, ...streams);

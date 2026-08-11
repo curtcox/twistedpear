@@ -164,48 +164,52 @@ export function useNativeWorkletLifecycle(deps: NativeWorkletLifecycleDeps) {
     const targetHost =
       Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST;
 
-    workletReadyRef.current = (async () => {
-      try {
-        await worklet.start("/app.bundle", bundle);
-      } catch (error) {
-        workletRef.current = null;
-        workletReadyRef.current = null;
+    // Worklet.start and everything after it are synchronous, so this body has
+    // nothing to await; the ref is still a Promise<boolean> for its callers.
+    workletReadyRef.current = Promise.resolve(
+      ((): boolean => {
+        try {
+          worklet.start("/app.bundle", bundle);
+        } catch (error) {
+          workletRef.current = null;
+          workletReadyRef.current = null;
+          appendLog(
+            `Worklet start failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          setStatus((current) => ({
+            ...current,
+            running: false,
+            linkOnline: false,
+          }));
+          return false;
+        }
+
+        if (workletRef.current !== worklet) {
+          return false;
+        }
+
+        sendToWorklet({
+          type: "start",
+          targetHost,
+          targetPort: DEFAULT_DOCKER_PORT,
+          multicastEntitled: Platform.OS !== "ios",
+          bonjourEnabled: true,
+          ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() }),
+        });
+        pushInterfaceConfig({
+          tcp: tcpEnabled,
+          auto: autoEnabled,
+          ble: bleEnabled,
+          rnode: rnodeEnabled,
+          rnodeDeviceId: selectedUsbDeviceId,
+        });
+        sendToWorklet({ type: "device-list" });
         appendLog(
-          `Worklet start failed: ${error instanceof Error ? error.message : String(error)}`,
+          `Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`,
         );
-        setStatus((current) => ({
-          ...current,
-          running: false,
-          linkOnline: false,
-        }));
-        return false;
-      }
-
-      if (workletRef.current !== worklet) {
-        return false;
-      }
-
-      sendToWorklet({
-        type: "start",
-        targetHost,
-        targetPort: DEFAULT_DOCKER_PORT,
-        multicastEntitled: Platform.OS !== "ios",
-        bonjourEnabled: true,
-        ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() }),
-      });
-      pushInterfaceConfig({
-        tcp: tcpEnabled,
-        auto: autoEnabled,
-        ble: bleEnabled,
-        rnode: rnodeEnabled,
-        rnodeDeviceId: selectedUsbDeviceId,
-      });
-      sendToWorklet({ type: "device-list" });
-      appendLog(
-        `Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`,
-      );
-      return true;
-    })();
+        return true;
+      })(),
+    );
 
     return workletReadyRef.current;
   }, [

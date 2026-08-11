@@ -1,11 +1,11 @@
-import { gcm } from "@noble/ciphers/aes";
-import { scrypt } from "@noble/hashes/scrypt";
+import { gcm } from "@noble/ciphers/aes.js";
+import { scrypt } from "@noble/hashes/scrypt.js";
 import {
   entropyToMnemonic,
   mnemonicToEntropy,
   validateMnemonic,
 } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import { wordlist } from "@scure/bip39/wordlists/english.js";
 import type { CryptoProvider, Identity } from "@twistedpear/reticulum-ts";
 import { Identity as RnsIdentity } from "@twistedpear/reticulum-ts";
 

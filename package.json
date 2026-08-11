@@ -275,9 +275,11 @@
     "checks:release": "node scripts/checks/run.mjs --tier=release; node scripts/checks/status.mjs --write"
   },
   "overrides": {
-    "js-yaml": "^4.3.1"
+    "js-yaml": "^4.3.1",
+    "nanoid": "^3.3.18"
   },
   "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
     "@eslint/js": "^10.0.1",
     "@expo/config-plugins": "~57.0.6",
     "@stryker-mutator/core": "^9.6.1",
@@ -285,6 +287,7 @@
     "@types/node": "^26.1.2",
     "@typescript-eslint/eslint-plugin": "^8.66.0",
     "@typescript-eslint/parser": "^8.66.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/coverage-v8": "^4.1.10",
     "b4a": "^1.6.7",
     "bare": "^1.31.0",
@@ -298,15 +301,16 @@
     "bare-ws": "3.0.0",
     "dependency-cruiser": "^18.1.1",
     "eslint": "^10.8.0",
-    "eslint-plugin-eslint-comments": "^3.2.0",
+    "espree": "^11.2.0",
     "fast-check": "^4.9.0",
+    "globals": "^17.9.0",
     "hyperswarm": "^4.13.0",
     "knip": "^6.32.0",
     "mermaid": "^11.16.1",
     "playwright": "^1.62.1",
     "prettier": "^3.9.6",
     "sodium-javascript": "^0.8.0",
-    "typescript": "^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.66.0",
     "vitepress": "^1.6.3",
     "vitepress-plugin-mermaid": "^2.0.17",

@@ -210,3 +210,18 @@ release task.
   `cd apps/harness-mobile && npx expo install --fix` rather than hand-editing
   the SDK versions; the CLI will align `expo`, `react`, `react-native`, and the
   Expo module versions.
+- **TypeScript is installed twice, on purpose.** `tsc` is TypeScript 7 (the
+  native port) via the `@typescript/native` alias, while the `typescript`
+  specifier resolves to `@typescript/typescript6`. `typescript-eslint` refuses
+  to load against TS 7.0 and needs the classic TS 6 compiler API, which is also
+  what `conformance/cookbook` uses for `createProgram`/`createSourceFile`. This
+  is the arrangement Microsoft documents for running the two side by side. Do
+  not "simplify" it back to a single `typescript` dependency: that reds the
+  `lint`, `typed-lint`, and `complexity` gates. It can be undone once
+  typescript-eslint supports TS >= 7.1 — see
+  https://github.com/typescript-eslint/typescript-eslint/issues/10940.
+- The committed `package-lock.json` carries `libc` fields that only npm 11+
+  writes. Regenerating the lock with npm 10 silently strips them from the
+  `@oxc-parser` platform binaries, which affects musl/glibc resolution on
+  Linux. Check `git diff package-lock.json` for dropped `libc` blocks after any
+  lockfile regeneration.

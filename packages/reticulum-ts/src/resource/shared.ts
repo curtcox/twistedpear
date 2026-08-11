@@ -124,10 +124,10 @@ export class ResourceAdvertisement {
   t = 0;
   d = 0;
   n = 0;
-  h = new Uint8Array(0);
-  r = new Uint8Array(0);
-  o = new Uint8Array(0);
-  m = new Uint8Array(0);
+  h: Uint8Array = new Uint8Array(0);
+  r: Uint8Array = new Uint8Array(0);
+  o: Uint8Array = new Uint8Array(0);
+  m: Uint8Array = new Uint8Array(0);
   f = 0;
   i = 1;
   l = 1;
