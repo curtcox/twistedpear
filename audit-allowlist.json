@@ -7,7 +7,77 @@
       "severity": "high",
       "direct": false,
       "expires": "2026-11-03",
-      "reason": "Vite 5.4.21 is transitive through VitePress 1.6.4, is used only by the local documentation toolchain, and npm reports no fix through that dependency path; upgrade or remove before expiry."
+      "reason": "Vite 5.4.21 is transitive through VitePress 1.6.4, which pins vite ^5.4.14, so the fixed 6.4.3+ line is unreachable through that path; only the docs-toolchain vite is in range (vitest's nested vite 8.2.0 is not). Covers GHSA-4w7w-66w2-5vf9 (optimized-deps .map path traversal), GHSA-v6wh-96g9-6wx3 (launch-editor UNC hash disclosure, Windows), and GHSA-fx2h-pf6j-xcff (server.fs.deny bypass on Windows alternate paths) — all reachable only against a running local docs dev server. Expiry deliberately not extended when the third advisory was added: upgrade or remove VitePress before it lapses."
+    },
+    {
+      "id": "image-size",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "GHSA-w3rx-r6r6-pgpr (ICNS parser infinite loop) and GHSA-5p2g-fcmc-qvqq (JXL/HEIF parser infinite loops). No fixed release exists: the advisories cover <=2.0.2 and 2.0.2 is the latest published version, so there is nothing to upgrade to. Reached only as react-native -> @react-native/community-cli-plugin -> metro -> image-size, i.e. Metro's build-time asset pipeline; it never executes on a user device. Exposure is a denial of service against a developer bundling a crafted image from their own source tree. Re-check for an upstream release before expiry."
+    },
+    {
+      "id": "metro",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on image-size. Clears when image-size does."
+    },
+    {
+      "id": "metro-config",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on metro, and through it image-size. Clears when image-size does."
+    },
+    {
+      "id": "metro-transform-worker",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on metro, and through it image-size. Clears when image-size does."
+    },
+    {
+      "id": "@expo/metro",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on the metro packages, and through them image-size. Clears when image-size does."
+    },
+    {
+      "id": "@expo/metro-config",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on @expo/metro, and through it image-size. Clears when image-size does."
+    },
+    {
+      "id": "@expo/cli",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on the Expo Metro packages, and through them image-size. Build-time CLI, not shipped to devices. Clears when image-size does."
+    },
+    {
+      "id": "expo",
+      "severity": "high",
+      "direct": true,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on @expo/cli and the Expo Metro packages, and through them image-size. A direct dependency of apps/harness-mobile, but the vulnerable code is build-time only. Clears when image-size does."
+    },
+    {
+      "id": "@react-native/community-cli-plugin",
+      "severity": "high",
+      "direct": false,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on metro, and through it image-size. Clears when image-size does."
+    },
+    {
+      "id": "react-native",
+      "severity": "high",
+      "direct": true,
+      "expires": "2026-11-09",
+      "reason": "No advisory of its own; flagged solely for depending on @react-native/community-cli-plugin, and through it image-size. The vulnerable path is the bundler, not the runtime shipped to devices. Clears when image-size does."
     }
   ]
 }
