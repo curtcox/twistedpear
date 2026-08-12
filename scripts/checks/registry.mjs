@@ -83,6 +83,18 @@ export const gates = [
     ["node"],
     ["api-surface.json", "api-surface-limits.json"],
   ),
+  // Measures the apparatus, not the code: gates, CI jobs, conformance runners
+  // and test counts that may not quietly shrink. Every other gate here gets
+  // *easier* when tests are deleted or a gate is dropped; this one is the
+  // reason that cannot happen unnoticed.
+  gate(
+    "census",
+    "Quality surface census",
+    "census:check",
+    "pr",
+    ["node"],
+    ["census.json", "census-ratchet.json"],
+  ),
   gate(
     "lint-all",
     "Repository lint coverage",

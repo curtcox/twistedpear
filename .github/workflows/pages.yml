@@ -60,17 +60,14 @@ jobs:
         run: |
           brew install swiftlint
           test "$(swiftlint version)" = "0.65.0"
+      - name: Install lizard
+        if: matrix.id == 'hotspots'
+        run: python3 -m pip install lizard==1.23.0
       - name: Run metric-producing gate
         run: node scripts/checks/run.mjs --tier=${{ matrix.tier }} --only=${{ matrix.id }}
       - name: Stage metric evidence with repository-relative paths
         if: always()
-        run: |
-          mkdir -p page-metric-evidence
-          if test -d artifacts; then cp -R artifacts page-metric-evidence/; fi
-          if test -d reports; then cp -R reports page-metric-evidence/; fi
-          if test -f audit.json; then cp audit.json page-metric-evidence/; fi
-          if test -f sbom.cdx.json; then cp sbom.cdx.json page-metric-evidence/; fi
-          if test -f mutation-ratchet.json; then cp mutation-ratchet.json page-metric-evidence/; fi
+        run: node scripts/checks/stage-evidence.mjs --gate=${{ matrix.id }} --into=page-metric-evidence
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -111,7 +108,7 @@ jobs:
           curl -sSLo shellcheck.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
           tar -xJf shellcheck.tar.xz
           sudo install shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
-          python3 -m pip install ruff==0.15.16 mypy==2.1.0
+          python3 -m pip install ruff==0.15.16 mypy==2.1.0 lizard==1.23.0
           rustup toolchain install 1.97.1 --profile minimal --component clippy --component rustfmt
           cargo install cargo-deny --version 0.20.2 --locked
           curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint

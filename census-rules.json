@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Policy for the census gate, which measures the quality apparatus rather than the code. Floors live in census-ratchet.json; this file holds only the deliberate exceptions to the rules that are not ratcheted.",
+  "nonGatingJobs": []
+}

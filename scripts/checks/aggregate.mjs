@@ -49,6 +49,32 @@ const summary = {
   gates: artifacts,
 };
 fs.writeFileSync(output, `${JSON.stringify(summary, null, 2)}\n`);
+/**
+ * The census reports *what shrank*, and a bare red X does not carry that. A
+ * gate whose failure is only a cross gets baselined away; one that names the
+ * 300 tests that vanished in the review thread gets asked about.
+ */
+function censusSection() {
+  let census;
+  try {
+    census = JSON.parse(
+      fs.readFileSync(path.join(root, "gate-census", "census.json"), "utf8"),
+    );
+  } catch {
+    return [];
+  }
+  const findings = census.delta?.findings ?? [];
+  if (findings.length === 0) return [];
+  return [
+    "",
+    "### Quality surface shrank",
+    "",
+    ...findings.map((finding) => `- ${finding}`),
+    "",
+    'Restore what went missing, or record it: `npm run census:baseline -- --reason="…"`.',
+  ];
+}
+
 const lines = [
   "<!-- twistedpear-static-analysis -->",
   "## Static analysis",
@@ -59,6 +85,7 @@ const lines = [
     (item) =>
       `| ${item.title} | ${item.ok ? "✅ pass" : item.error ? "❌ missing result" : "❌ fail"} |`,
   ),
+  ...censusSection(),
   "",
   `[Workflow run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`,
 ];

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1117,
+  "modules": 1118,
   "components": 24,
   "cycles": 6,
   "unresolvedDependencies": 0,
@@ -49,7 +49,7 @@
     },
     {
       "id": "scripts",
-      "modules": 130,
+      "modules": 131,
       "ca": 1,
       "ce": 9,
       "instability": 0.9,

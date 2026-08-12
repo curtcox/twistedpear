@@ -2,8 +2,8 @@
   "version": 1,
   "windowDays": 180,
   "shallowClone": false,
-  "filesMeasured": 1303,
-  "filesChanged": 1297,
+  "filesMeasured": 1304,
+  "filesChanged": 1303,
   "hotspots": [
     {
       "file": "apps/harness-mobile/worklet/entry.mjs",

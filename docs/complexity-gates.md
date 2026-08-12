@@ -103,6 +103,34 @@ core is written in would simply be wrong.
 It needs `fetch-depth: 0` on the workflow checkout. A shallow clone reports one commit
 per file and the ranking collapses into "whatever is most complex".
 
+## Publication to the site
+
+All four gates publish to the Pages site alongside the existing quality checks. Nothing
+about that is special-cased — `scripts/checks/pages-plan.mjs` derives the publish plan
+from the registry, so registering a gate is what publishes it. Each one gets a row in the
+[results index](https://curtcox.github.io/twistedpear/results/) with its headline
+numbers, a detail page carrying the full metric table, its log, and download links for
+every declared artifact including the raw report and the config it was measured against.
+
+The three PR-tier gates run on the Pages build runner. `hotspots` is nightly, so it runs
+in the parallel evidence job and is imported — which is also why the build runner and the
+evidence job both install `lizard==1.23.0`, the same pin CI uses.
+
+Metric extraction lives in `scripts/site/static-analysis-metrics.mjs`:
+
+| Gate                   | Published metrics                      |
+| ---------------------- | -------------------------------------- |
+| `complexity-multilang` | functions measured, pinned exemptions  |
+| `coupling`             | modules, components, cycles            |
+| `api-surface`          | public symbols, packages, entry points |
+| `hotspots`             | files measured, churn window in days   |
+
+Evidence for imported gates is staged by `scripts/checks/stage-evidence.mjs`, which
+copies exactly the artifacts the registry declares. That step used to be an inline list
+of root-level files in `pages.yml`, which meant any gate whose evidence lived outside
+`artifacts/` had to be remembered in a second place — and forgetting published the gate
+with its metrics blank rather than raising an error.
+
 ## Why the exemption lists exist, and how to drain them
 
 These gates use **hard thresholds**, not ratchets. New code that crosses a limit fails,

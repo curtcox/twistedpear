@@ -58,3 +58,5 @@ coupling-rules.json
 api-surface.json
 api-surface-limits.json
 hotspots.json
+census.json
+census-ratchet.json

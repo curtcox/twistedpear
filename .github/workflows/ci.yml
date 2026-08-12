@@ -55,7 +55,7 @@ jobs:
           java-version: "17"
       - run: npm ci
       - name: Build workspace packages required by the gate
-        if: matrix.id == 'unit-tests' || matrix.id == 'coverage' || matrix.id == 'structure' || matrix.id == 'properties' || matrix.id == 'harness-mobile-typecheck'
+        if: matrix.id == 'unit-tests' || matrix.id == 'coverage' || matrix.id == 'structure' || matrix.id == 'properties' || matrix.id == 'harness-mobile-typecheck' || matrix.id == 'census'
         run: npm run build
       - name: Install actionlint
         if: matrix.id == 'actionlint'
@@ -116,6 +116,7 @@ jobs:
             typed-lint.json
             licenses.json
             gitleaks.json
+            census.json
           if-no-files-found: warn
 
   pr-dashboard:
@@ -1000,6 +1001,7 @@ jobs:
       - bare-interop
       - auto-interop
       - i2p-interop
+      - ntfy-service
       - bare-device
       - bare-hyperswarm
       - dist-interop
