@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { Identity, NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import {
+  Identity,
+  NodeCryptoProvider,
+  bytesToHex,
+} from "@twistedpear/reticulum-ts";
+import {
+  IDENTITY_UNAVAILABLE_CODE,
+  IdentityUnavailableError,
   createAppScopedIdentityBackend,
   deriveAppScopedIdentity,
 } from "../src/app-scoped-identity.js";
@@ -139,14 +145,103 @@ describe("app-scoped identities", () => {
       );
     });
 
-    it("refuses to sign before the node has an identity", async () => {
+    it("refuses to sign when no identity arrives within the window", async () => {
       const unstarted = createAppScopedIdentityBackend({
         provider,
         getInstallationIdentity: async () => null,
+        readiness: { timeoutMs: 0 },
       });
       await expect(
         unstarted.sign("chat", publisher, new Uint8Array([1])),
-      ).rejects.toThrow(/installation identity/i);
+      ).rejects.toThrow(IdentityUnavailableError);
     });
+  });
+});
+
+function fakeClock() {
+  let nowMs = 0;
+  const slept: number[] = [];
+  return {
+    slept,
+    now: () => nowMs,
+    delay: async (ms: number) => {
+      slept.push(ms);
+      nowMs += ms;
+    },
+  };
+}
+
+/**
+ * A mini-app can be launched before the node has started or while the vault
+ * is locked. That window is a race, not a refusal, and an app that loses it
+ * used to be handed a broker error it could not act on.
+ */
+describe("app-scoped identity readiness", () => {
+  it("serves an app that asked before the node finished starting", async () => {
+    const installation = new Identity(provider);
+    const clock = fakeClock();
+    let calls = 0;
+    const backend = createAppScopedIdentityBackend({
+      provider,
+      getInstallationIdentity: async () => {
+        calls += 1;
+        return calls < 4 ? null : installation;
+      },
+      readiness: { timeoutMs: 15_000, now: clock.now, delay: clock.delay },
+    });
+
+    expect(await backend.deriveDestinationHash("chat", publisher)).toBe(
+      bytesToHex(
+        deriveAppScopedIdentity(provider, installation, "chat", publisher).hash,
+      ),
+    );
+    expect(calls).toBe(4);
+  });
+
+  it("backs off rather than hammering a loader that pushes locked state", async () => {
+    const clock = fakeClock();
+    const backend = createAppScopedIdentityBackend({
+      provider,
+      getInstallationIdentity: async () => null,
+      readiness: {
+        timeoutMs: 10_000,
+        initialRetryMs: 100,
+        maxRetryMs: 2_000,
+        now: clock.now,
+        delay: clock.delay,
+      },
+    });
+
+    await expect(
+      backend.deriveDestinationHash("chat", publisher),
+    ).rejects.toThrow(IdentityUnavailableError);
+    expect(clock.slept).toEqual([
+      100, 200, 400, 800, 1600, 2000, 2000, 2000, 900,
+    ]);
+    // The whole wait is bounded by the timeout, never overshooting it.
+    expect(clock.slept.reduce((total, ms) => total + ms, 0)).toBe(10_000);
+  });
+
+  it("reports a code an app can tell apart from a capability denial", async () => {
+    const backend = createAppScopedIdentityBackend({
+      provider,
+      getInstallationIdentity: async () => null,
+      readiness: { timeoutMs: 0 },
+    });
+    await expect(
+      backend.deriveDestinationHash("chat", publisher),
+    ).rejects.toMatchObject({ code: IDENTITY_UNAVAILABLE_CODE });
+  });
+
+  it("never substitutes a stub identity for a missing installation key", async () => {
+    const backend = createAppScopedIdentityBackend({
+      provider,
+      getInstallationIdentity: async () => null,
+      readiness: { timeoutMs: 0 },
+    });
+    // The pre-3c8b6c13 stub returned `signed:<payload>` instead of failing.
+    await expect(
+      backend.sign("chat", publisher, new TextEncoder().encode("hello")),
+    ).rejects.toThrow(IdentityUnavailableError);
   });
 });

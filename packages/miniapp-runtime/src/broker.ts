@@ -43,13 +43,30 @@ export interface BrokerOptions {
   readonly enforceCapabilities?: boolean;
 }
 
+/**
+ * Why a dispatch ended the way it did.
+ *
+ * `allowed` alone cannot say this: a call whose capability check passed and
+ * whose handler then threw is not a refusal, and reporting it as one sends
+ * whoever reads the audit looking at grants for a fault that lies in the
+ * backend. `allowed` keeps its old meaning — the capability check passed and
+ * the call counted as an access — so grant projections are unaffected.
+ */
+type BrokerAuditOutcome = "allowed" | "denied" | "failed";
+
 export interface BrokerAuditEntry {
   readonly appId: string;
   readonly namespace: string;
   readonly method: string;
   readonly capability: string | null;
   readonly allowed: boolean;
+  readonly outcome: BrokerAuditOutcome;
   readonly at: number;
+  /** Present on `denied` and `failed`. */
+  readonly error?: {
+    readonly code: string;
+    readonly message: string;
+  };
 }
 
 interface RateBucket {
@@ -120,6 +137,7 @@ export class MiniappBroker {
     request: BrokerRequest,
     context: BrokerContext,
   ): Promise<BrokerResponse> {
+    let capabilityAllowed = false;
     try {
       this.enforceMessageLimits(request, context);
       const registered = this.handlers.get(
@@ -152,39 +170,41 @@ export class MiniappBroker {
         });
       }
 
+      capabilityAllowed = true;
       this.options.audit?.({
         appId: context.appId,
         namespace: request.namespace,
         method: request.method,
         capability,
         allowed: true,
+        outcome: "allowed",
         at: this.now(),
       });
 
       const result = await registered.handler(request, context);
       return { id: request.id, ok: true, result };
     } catch (error) {
+      const detail = {
+        code:
+          error instanceof Error && "code" in error
+            ? String(error.code)
+            : "BROKER_ERROR",
+        message:
+          error instanceof Error ? error.message : "Broker dispatch failed",
+      };
+
       this.options.audit?.({
         appId: context.appId,
         namespace: request.namespace,
         method: request.method,
         capability: request.capability ?? null,
         allowed: false,
+        outcome: capabilityAllowed ? "failed" : "denied",
         at: this.now(),
+        error: detail,
       });
 
-      return {
-        id: request.id,
-        ok: false,
-        error: {
-          code:
-            error instanceof Error && "code" in error
-              ? String(error.code)
-              : "BROKER_ERROR",
-          message:
-            error instanceof Error ? error.message : "Broker dispatch failed",
-        },
-      };
+      return { id: request.id, ok: false, error: detail };
     }
   }
 

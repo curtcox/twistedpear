@@ -185,6 +185,11 @@ export async function runDesktopFullLoop() {
   const catalog = new CatalogStore(provider);
   const installed = new InstalledPackageStore(64 * 1024 * 1024);
 
+  // Every shipping host resolves an installation identity, and an app holding
+  // `identity` cannot address itself without one. Null until `tp init` writes
+  // one below, which is the same not-started window a real host has at boot.
+  let hostIdentity = null;
+
   const miniappHost = createWorkletMiniappHost({
     provider,
     kvStore,
@@ -199,6 +204,7 @@ export async function runDesktopFullLoop() {
       onlineInterfaces: 0,
       preferredInterface: null,
     }),
+    getPublisherIdentity: async () => hostIdentity,
   });
 
   try {
@@ -227,6 +233,8 @@ export async function runDesktopFullLoop() {
       new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
       identityPassphrase,
     );
+    // The node is now started, in the sense the mini-app host cares about.
+    hostIdentity = identity;
 
     const v1Archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const v1Unpacked = unpackPackage(provider, v1Archive);

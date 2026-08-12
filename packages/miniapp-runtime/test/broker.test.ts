@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { MiniappBroker, type BrokerContext } from "../src/index.js";
+import {
+  MiniappBroker,
+  type BrokerAuditEntry,
+  type BrokerContext,
+} from "../src/index.js";
 
 const context: BrokerContext = {
   appId: "app",
@@ -109,5 +113,64 @@ describe("mini-app broker", () => {
     );
     expect(denied.ok).toBe(false);
     expect(denied.error?.code).toBe("CAPABILITY_DENIED");
+  });
+
+  /**
+   * A refused capability and a backend that threw are different faults. Reading
+   * both as "denied" is what sent BUG-MINIAPP-IDENTITY-BACKEND looking at
+   * grants for a fault that lay in the identity backend.
+   */
+  describe("audit outcomes", () => {
+    it("records a refused capability as denied", async () => {
+      const entries: BrokerAuditEntry[] = [];
+      const broker = new MiniappBroker({
+        ...clock,
+        audit: (entry) => entries.push(entry),
+      });
+      broker.register("storage.kv", "get", "storage:kv", () => "secret");
+
+      await broker.dispatch(
+        { id: "1", namespace: "storage.kv", method: "get" },
+        {
+          ...context,
+          declaredCapabilities: ["storage:kv"],
+          grantedCapabilities: [],
+        },
+      );
+      expect(entries.map((entry) => entry.outcome)).toEqual(["denied"]);
+      expect(entries[0]?.allowed).toBe(false);
+      expect(entries[0]?.error?.code).toBe("CAPABILITY_DENIED");
+    });
+
+    it("records a granted call whose handler threw as failed, not denied", async () => {
+      const entries: BrokerAuditEntry[] = [];
+      const broker = new MiniappBroker({
+        ...clock,
+        audit: (entry) => entries.push(entry),
+      });
+      broker.register("identity", "destinationHash", "identity", () => {
+        throw Object.assign(new Error("start the node first"), {
+          code: "IDENTITY_UNAVAILABLE",
+        });
+      });
+
+      const failed = await broker.dispatch(
+        { id: "1", namespace: "identity", method: "destinationHash" },
+        {
+          ...context,
+          declaredCapabilities: ["identity"],
+          grantedCapabilities: ["identity"],
+        },
+      );
+      expect(failed.error?.code).toBe("IDENTITY_UNAVAILABLE");
+      expect(entries.map((entry) => entry.outcome)).toEqual([
+        "allowed",
+        "failed",
+      ]);
+      expect(entries[1]?.error?.message).toBe("start the node first");
+      // `allowed` keeps its meaning so grant-access projections are unchanged:
+      // exactly one entry counts as an access.
+      expect(entries.filter((entry) => entry.allowed)).toHaveLength(1);
+    });
   });
 });

@@ -62,10 +62,13 @@ export {
 } from "./community-network.js";
 export {
   APP_SCOPED_IDENTITY_SALT,
+  IDENTITY_UNAVAILABLE_CODE,
+  IdentityUnavailableError,
   createAppScopedIdentityBackend,
   deriveAppScopedIdentity,
   type AppScopedIdentityBackend,
   type AppScopedIdentityOptions,
+  type IdentityReadinessOptions,
 } from "./app-scoped-identity.js";
 export {
   createLinkedInstallationId,

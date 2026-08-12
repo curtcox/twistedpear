@@ -104,14 +104,93 @@ export interface AppScopedIdentityBackend {
   ): Promise<boolean>;
 }
 
+export const IDENTITY_UNAVAILABLE_CODE = "IDENTITY_UNAVAILABLE";
+
+/**
+ * No installation identity became available within the readiness window.
+ *
+ * `code` is what the broker reports to the mini-app, so an app can tell "this
+ * host has no identity to give me" apart from "you were not granted
+ * `identity`". Those are different situations and only one of them is the app's
+ * fault.
+ */
+export class IdentityUnavailableError extends Error {
+  readonly code = IDENTITY_UNAVAILABLE_CODE;
+
+  constructor(waitedMs: number) {
+    super(
+      `No installation identity became available within ${waitedMs}ms; start the node first`,
+    );
+    this.name = "IdentityUnavailableError";
+  }
+}
+
+/**
+ * How long to wait for an installation identity that is merely not ready yet.
+ *
+ * `getInstallationIdentity` returns null both while the node is still starting
+ * and when the vault is locked, and a mini-app launched during that window is
+ * an ordinary race rather than an error: the identity is coming. Polling backs
+ * off because the loader is not free — on the desktop host it pushes locked
+ * state to the renderer each time it finds nothing.
+ */
+export interface IdentityReadinessOptions {
+  /** Total wait before giving up. 0 fails on the first null, as before. */
+  readonly timeoutMs?: number;
+  readonly initialRetryMs?: number;
+  readonly maxRetryMs?: number;
+  /** Injected by tests so readiness can be exercised without real time. */
+  now?(): number;
+  delay?(ms: number): Promise<void>;
+}
+
+const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_INITIAL_RETRY_MS = 100;
+const DEFAULT_MAX_RETRY_MS = 2_000;
+
 export interface AppScopedIdentityOptions {
   readonly provider: CryptoProvider;
   /**
    * The identity of *this installation*, not the account or publisher identity.
    * On an unlinked host these are the same key playing different roles; once
    * linked mode exists they diverge, and this must stay the installation one.
+   *
+   * Returns null when the node has not started or the vault is locked. That is
+   * a not-yet, not a no: see `IdentityReadinessOptions`.
    */
   getInstallationIdentity(): Promise<Identity | null>;
+  readonly readiness?: IdentityReadinessOptions;
+}
+
+/**
+ * Resolves the installation identity, waiting out a bounded not-ready window.
+ *
+ * Never substitutes a derivable or stub identity for a missing one — an app
+ * either gets the identity derived from the real installation key or gets an
+ * error. That is the boundary this module exists to hold.
+ */
+async function awaitInstallationIdentity(
+  options: AppScopedIdentityOptions,
+): Promise<Identity> {
+  const readiness = options.readiness ?? {};
+  const timeoutMs = readiness.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxRetryMs = readiness.maxRetryMs ?? DEFAULT_MAX_RETRY_MS;
+  const now = readiness.now ?? (() => Date.now());
+  const delay =
+    readiness.delay ??
+    ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+
+  const startedAt = now();
+  let retryMs = readiness.initialRetryMs ?? DEFAULT_INITIAL_RETRY_MS;
+  for (;;) {
+    const installation = await options.getInstallationIdentity();
+    if (installation !== null) return installation;
+
+    const remainingMs = startedAt + timeoutMs - now();
+    if (remainingMs <= 0) throw new IdentityUnavailableError(timeoutMs);
+    await delay(Math.min(retryMs, remainingMs));
+    retryMs = Math.min(retryMs * 2, maxRetryMs);
+  }
 }
 
 /**
@@ -121,6 +200,10 @@ export interface AppScopedIdentityOptions {
  * app-scoped identity. Registering a live Destination under the app's announce
  * aspects is a separate concern owned by the announce path; this is the identity
  * that path must use.
+ *
+ * Every method waits out the readiness window before failing, so an app that
+ * asks for its identity before the node has finished starting is served rather
+ * than refused. On expiry they reject with `IdentityUnavailableError`.
  */
 export function createAppScopedIdentityBackend(
   options: AppScopedIdentityOptions,
@@ -129,11 +212,7 @@ export function createAppScopedIdentityBackend(
     appId: string,
     publisherPublicKey: string,
   ): Promise<Identity> {
-    const installation = await options.getInstallationIdentity();
-    if (installation === null)
-      throw new Error(
-        "No installation identity is available; start the node first",
-      );
+    const installation = await awaitInstallationIdentity(options);
     return deriveAppScopedIdentity(
       options.provider,
       installation,

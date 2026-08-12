@@ -31,6 +31,7 @@ export default defineConfig({
             "conformance/device-evidence/**/*.test.mjs",
             "conformance/cookbook/**/*.test.mjs",
             "conformance/local-multipeer/**/*.test.mjs",
+            "conformance/miniapp-identity/**/*.test.mjs",
             "conformance/cross-device-dev/**/*.test.mjs",
             "conformance/ui-invariants/**/*.test.mjs",
             "conformance/checks/**/*.test.mjs",

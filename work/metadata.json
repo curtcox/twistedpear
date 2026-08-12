@@ -38,6 +38,10 @@
       "requires": [],
       "verify": "node conformance/ios-sim/full-loop.mjs",
       "added": "2026-08-12",
+      "completed": "2026-08-12",
+      "evidence": [
+        "release/evidence-logs/2026-08-12-bug-miniapp-identity-backend.log"
+      ],
       "notes": "Reproduced locally: the chat example launches, logs 'broker denied identity.destinationHash', never emits a widgetTree, and the 20s waitFor fails. Same signature fails nightly desktop-soak and CI ios-sim. Cause: 3c8b6c13 made createWorkletMiniappHost always install createAppScopedIdentityBackend, whose identityFor() throws 'No installation identity is available; start the node first' when neither getInstallationIdentity nor getPublisherIdentity is supplied. Before that commit worklet-core passed no identityBackend, so the runtime's always-available stub in miniapp-runtime/src/host/layer-1-base.ts was used. Fix is a product decision: either these harnesses must supply an installation identity (keeps the boundary strict), or the host needs a defined behaviour when no node has started. Do not restore a derivable stub identity — that is the boundary 3c8b6c13 removed."
     },
     "BUG-REACT-DOM-MISMATCH": {

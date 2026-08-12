@@ -116,6 +116,22 @@ This replaced a stub that returned `app:<appId>:<publisher-prefix>` as a destina
 a `sign()` producing the literal text `signed:<payload>` — a forged signature reachable by any
 app holding `identity`. Closed as `ID-APPSCOPE`.
 
+### Asking before the node has started
+
+The loader returns null while the node is still starting or the vault is locked, and a
+mini-app launched during that window is a race rather than an error: the identity is coming.
+Each backend method waits out a bounded readiness window (15 s by default, polling with
+backoff because the loader is not free — the desktop host pushes locked state to the renderer
+each time it finds nothing) and then serves the derived identity. If nothing arrives, the call
+rejects with `IdentityUnavailableError`, and the mini-app sees the broker code
+`IDENTITY_UNAVAILABLE`. That code is distinct from a capability denial on purpose: an app that
+was never granted `identity` and an app whose host has no identity yet are different
+situations, and only one of them is the app's fault. A missing identity is never substituted
+with a derivable or stub one — the app gets the real derived identity or an error.
+
+Closed as `BUG-MINIAPP-IDENTITY-BACKEND`, where the unbounded form of this refusal stopped
+every worklet-hosted mini-app from rendering.
+
 ## Sibling decisions are proposals, not effects
 
 A decision made on another of the user's installations does not take effect here just because

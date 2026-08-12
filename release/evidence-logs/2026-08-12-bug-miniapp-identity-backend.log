@@ -1,0 +1,11 @@
+Publisher identity: 4e394728dee71b70254ea993a71f2cfb0ae88c27b9a4fa592055999fdd93502f1f8ad8de26db5d672564a20ecc96ddb6b42b955d8356d4085ce5406edd556d95
+Wrote chat.tpkg (452d2389be5f517e89ab4cb1161cc5326ffaad5281473cdb1b1e0695e7d5812a)
+Wrote .tp/last.tpkg (452d2389be5f517e89ab4cb1161cc5326ffaad5281473cdb1b1e0695e7d5812a)
+Published 0.1.0 to drive f42092bb113253b7773f90370c4a53439104846c0f28ce3306ec77d66e26ad59
+Announced tp.app.1bda5d2b60c32041.31e06f7d89feb99a
+256t: AAAAAApFW8CIzrTpCrX9qVX0kXdSgxLwLv3f75IMxKS3CgYiDRY5pGS3JMI_P7O01tSMK5ZxC5m9HI5ET505liTuaHIMAw
+Wrote .tp/last.tpkg (06a496000aebb655c3a0a8e8ff547431d65474492de38fa85fccf1c35690d120)
+Published 0.2.0 to drive f42092bb113253b7773f90370c4a53439104846c0f28ce3306ec77d66e26ad59
+Announced tp.app.1bda5d2b60c32041.31e06f7d89feb99a
+256t: AAAAAApFYSCRp63t0NYl2k-qlkP0XXd9A3YpeoZ7fbBxaCMYEtgBaVFW2wBGFlABlh7k-8u9QOi6jpiJd6ZuSsT3k-7fvg
+[ios-sim/full-loop] catalog ingest, install, grant, launch, update, and rollback passed for 1bda5d2b60c32041:chat

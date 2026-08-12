@@ -66,10 +66,17 @@ export abstract class MiniappHostLayer1Base {
       enforceCapabilities: options.enforceBrokerCapabilities ?? true,
       audit: (entry) => {
         options.brokerAudit?.(entry);
-        if (!entry.allowed)
+        // A refused capability and a backend that threw are different faults
+        // and must not read the same in the log.
+        if (entry.outcome === "denied")
           this.logActive(
             entry.appId,
             `broker denied ${entry.namespace}.${entry.method}`,
+          );
+        else if (entry.outcome === "failed")
+          this.logActive(
+            entry.appId,
+            `broker call ${entry.namespace}.${entry.method} failed: ${entry.error?.message ?? "unknown error"}`,
           );
       },
     });

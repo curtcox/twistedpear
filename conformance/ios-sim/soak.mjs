@@ -109,6 +109,11 @@ async function miniappChurn(durationMs) {
   const catalog = new CatalogStore(provider);
   const installed = new InstalledPackageStore(64 * 1024 * 1024);
 
+  // Every shipping host resolves an installation identity, and an app holding
+  // `identity` cannot address itself without one. Null until `tp init` writes
+  // one below, which is the same not-started window a real host has at boot.
+  let hostIdentity = null;
+
   const miniappHost = createWorkletMiniappHost({
     provider,
     kvStore,
@@ -123,6 +128,7 @@ async function miniappChurn(durationMs) {
       onlineInterfaces: 0,
       preferredInterface: null,
     }),
+    getPublisherIdentity: async () => hostIdentity,
   });
 
   try {
@@ -150,6 +156,8 @@ async function miniappChurn(durationMs) {
       new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
       IDENTITY_PASSPHRASE,
     );
+    // The node is now started, in the sense the mini-app host cares about.
+    hostIdentity = identity;
 
     const archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);
