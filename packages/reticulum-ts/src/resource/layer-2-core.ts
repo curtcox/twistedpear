@@ -196,6 +196,9 @@ export class ResourceLayer2Core extends ResourceLayer1 {
         parts: [],
         requestId: adv.q,
         isResponse: adv.p,
+        split: adv.l > 1,
+        segmentIndex: adv.i,
+        totalSegments: adv.l,
         callbacks: {
           ...(options.callback === undefined
             ? {}
@@ -695,7 +698,17 @@ export class ResourceLayer2Core extends ResourceLayer1 {
       this.data = decodedPayload!;
       this.applyStatus({ kind: "resource/complete" });
       this.progress = 1;
+      // Every segment is proven on its own; only the last one concludes the
+      // transfer, and it hands back all the segments joined in order.
       await this.prove();
+      if (this.split) {
+        this.link.appendResourceSegment(this.originalHash, decodedPayload!);
+        if (this.segmentIndex < this.totalSegments) {
+          this.link.resourceConcluded(this as unknown as Resource);
+          return;
+        }
+        this.data = this.link.takeResourceSegments(this.originalHash);
+      }
       this.link.resourceConcluded(this as unknown as Resource);
       this.callbacks.callback?.(this as unknown as Resource);
     } catch {

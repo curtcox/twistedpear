@@ -15,6 +15,15 @@
       ],
       "notes": "npm audit fix reorders the tree while installing, so apps/host-desktop's postinstall runs when its own @electron/get is not resolvable; the install aborts, the lockfile is untouched, and fix.mjs ignores applyFixes().ok and reports 'Nothing was fixable without a breaking upgrade.'"
     },
+    "BUG-ELECTRON-BUILDER-VERSION": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run desktop:pack",
+      "added": "2026-08-12",
+      "completed": "2026-08-12",
+      "evidence": ["apps/host-desktop/package.json", "package.json"],
+      "notes": "d6e4d364 made the Electron binary download best-effort at postinstall, so on CI electron is not present in node_modules and electron-builder cannot resolve the ^43.3.0 range: 'Electron version ^43.3.0 is a range, not a fixed version'. Pin the exact version, which is what electron-builder needs to fetch platform binaries itself."
+    },
     "BUG-LXMF-COVERAGE": {
       "type": "bug",
       "requires": [],
@@ -23,6 +32,39 @@
       "completed": "2026-08-12",
       "evidence": ["packages/lxmf-ts/test/msgpack.test.ts"],
       "notes": "Reproduced on a clean checkout of main at 856957d2 with an unmodified coverage-ratchet.json and packages/lxmf-ts byte-identical to origin/main: 'packages/lxmf-ts functions: 72.5 < floor 73.33'. The floor is committed higher than the code achieves, so check:ci-base reports 15/16 static-analysis gates on an untouched tree. Either add function coverage in packages/lxmf-ts to clear 73.33 or, if the floor was set from a run that measured a different file set, correct the baseline with a recorded reason. A standing red gate trains people to ignore the gate. Distinct from the derived GATE-COVERAGE item, which only reports that the check is failing right now and disappears when it passes: this row carries the diagnosis and the open decision between the two fixes, and is closed with evidence for whichever one is taken."
+    },
+    "BUG-MINIAPP-IDENTITY-BACKEND": {
+      "type": "bug",
+      "requires": [],
+      "verify": "node conformance/ios-sim/full-loop.mjs",
+      "added": "2026-08-12",
+      "notes": "Reproduced locally: the chat example launches, logs 'broker denied identity.destinationHash', never emits a widgetTree, and the 20s waitFor fails. Same signature fails nightly desktop-soak and CI ios-sim. Cause: 3c8b6c13 made createWorkletMiniappHost always install createAppScopedIdentityBackend, whose identityFor() throws 'No installation identity is available; start the node first' when neither getInstallationIdentity nor getPublisherIdentity is supplied. Before that commit worklet-core passed no identityBackend, so the runtime's always-available stub in miniapp-runtime/src/host/layer-1-base.ts was used. Fix is a product decision: either these harnesses must supply an installation identity (keeps the boundary strict), or the host needs a defined behaviour when no node has started. Do not restore a derivable stub identity — that is the boundary 3c8b6c13 removed."
+    },
+    "BUG-REACT-DOM-MISMATCH": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run test:web-widget-renderer",
+      "added": "2026-08-12",
+      "completed": "2026-08-12",
+      "evidence": ["apps/harness-mobile/package.json", "package-lock.json"],
+      "notes": "Dependabot fe9d40f5 bumped react-dom to 19.2.8 alone. Expo SDK 57 bundledNativeModules pins react and react-dom at 19.2.3 and react-native 0.86.2 peers react ^19.2.3, but .npmrc legacy-peer-deps=true hid the conflict at install time. Realign with npx expo install --fix per AGENTS.md."
+    },
+    "BUG-RESOURCE-SEGMENTATION": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/protocol/test/resource-segment.test.ts packages/reticulum-ts/test/resource.test.ts",
+      "added": "2026-08-12",
+      "completed": "2026-08-12",
+      "evidence": [
+        "packages/protocol/src/resource-segment.ts",
+        "packages/protocol/test/resource-segment.test.ts",
+        "packages/reticulum-ts/src/resource/layer-1.ts",
+        "packages/reticulum-ts/src/resource/layer-2.ts",
+        "packages/reticulum-ts/src/resource/layer-2-core.ts",
+        "packages/reticulum-ts/src/link/layer-1.ts",
+        "packages/reticulum-ts/test/resource.test.ts"
+      ],
+      "notes": "split/segmentIndex/totalSegments were hardcoded false/1/1 in resource/layer-1.ts, so any payload past RNS MAX_EFFICIENT_SIZE (16777215) stopped at one segment. Sender now cuts and chains segments sharing one originalHash; receiver accumulates by originalHash and concludes on the last. Verified against the pinned Python RNS 0.9.5 echo peer at 20MB (2 segments) and 104857600 bytes (7 segments), the nightly resource-interop-100mb configuration."
     },
     "BUG-WORKLET-BARE-PACK-HOST": {
       "type": "bug",

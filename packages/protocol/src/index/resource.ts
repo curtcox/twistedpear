@@ -574,6 +574,12 @@ export {
   type SplitResourceProofStepResult,
 } from "../resource-proof.js";
 export {
+  RESOURCE_MAX_EFFICIENT_SIZE,
+  resourceIsSplit,
+  resourceSegmentCount,
+  resourceSegmentRange,
+} from "../resource-segment.js";
+export {
   computeResourceTotalParts,
   initialComputeResourceTotalPartsState,
   initialResourceEncryptMaterialState,

@@ -173,6 +173,7 @@
     "build:worklet": "npm run build && npm run build:worklet --workspace=harness-mobile",
     "build:web-host": "npm run build && npm run build:web-host --workspace=harness-mobile",
     "run:web": "npm run build && npm run build:web-worker --workspace=harness-mobile && npm run web --workspace=harness-mobile",
+    "desktop:pack": "npm run pack --workspace=host-desktop",
     "run:desktop": "npm run start --workspace=host-desktop",
     "run:desktop:handbook": "npm run start --workspace=host-desktop -- --app=handbook",
     "launch": "./launch",

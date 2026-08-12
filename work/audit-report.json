@@ -1,20 +1,29 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-10T16:38:53.670Z",
-  "commit": "856957d2660f1e8828d3d9e0ece5b0a8f3cfb2a8",
+  "generatedAt": "2026-08-12T13:42:30.964Z",
+  "commit": "567bd677df056b300c2e702c8ed25a070d0a34f1",
   "counts": {
-    "total": 0,
+    "total": 1,
     "high": 0,
-    "medium": 0,
+    "medium": 1,
     "low": 0
   },
   "ratchets": {
     "lint-ratchet.json": 6309,
-    "typed-lint-ratchet.json": 569,
+    "typed-lint-ratchet.json": 568,
     "complexity-ratchet.json": 356,
     "size-ratchet.json": 0,
     "format-ratchet.json": 0,
     "license-ratchet.json": 2
   },
-  "findings": []
+  "findings": [
+    {
+      "family": "closed",
+      "check": "instant-verification",
+      "severity": "medium",
+      "where": "ID-APPSCOPE",
+      "summary": "ID-APPSCOPE (bug) closed 1 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
+      "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
+    }
+  ]
 }

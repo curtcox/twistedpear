@@ -1,11 +1,8 @@
 import {
   applyResourceHashmapSlotWritesFieldsFromActions,
   applyResourceStatusEvent,
-  assembleResourceHashmapBytesRawFromActions,
   initialAdvertiseResourceState,
-  initialAppendResourceMapHashCollisionGuardState,
   initialApplyResourceHashmapSlotWritesState,
-  initialAssembleResourceHashmapBytesState,
   initialComputeResourceTotalPartsState,
   initialResourceAdvertiseWaitState,
   initialResourceContinueTransferState,
@@ -13,14 +10,12 @@ import {
   initialResourceExpectedProofMaterialState,
   initialResourceHashmapSlotWritesState,
   initialResourceHashMaterialState,
-  initialResourcePartMapHashMaterialState,
   initialResourcePartRequestState,
   initialResourceRandomHashLengthValidState,
   initialResourceRequestNextAllowState,
   initialResourceStatusState,
   initialResourceWatchdogAllowState,
   RESOURCE_ADVERTISE_WAIT_TIMER_ID,
-  RESOURCE_MAPHASH_LEN,
   RESOURCE_MAX_ADV_RETRIES,
   RESOURCE_MAX_RETRIES,
   RESOURCE_RANDOM_HASH_SIZE,
@@ -32,33 +27,27 @@ import {
   resourceExpectedProofMaterialRawFromActions,
   resourceHashmapSlotWritesFromActions,
   resourceHashMaterialRawFromActions,
-  resourceMapHashCollisionGuardFromActions,
-  resourcePartMapHashMaterialRawFromActions,
   resourcePartRequestFromActions,
+  RESOURCE_MAX_EFFICIENT_SIZE,
+  resourceSegmentCount,
+  resourceSegmentRange,
   ResourceStatus,
   resourceTotalPartsFromActions,
   shouldAcceptResourceRandomHashLength,
   shouldAdvertiseResourceNow,
   shouldAllowResourceRequestNext,
   shouldAllowResourceWatchdog,
-  shouldAppendResourceMapHashCollisionGuard,
-  shouldCollideResourceMapHashCollisionGuard,
   shouldContinueResourceTransfer,
   shouldRejectResourceEncryptMaterial,
   shouldRejectResourceHashMaterial,
-  shouldRejectResourcePartMapHashMaterial,
   shouldUseApplyResourceHashmapSlotWrites,
-  shouldUseAssembleResourceHashmapBytes,
   shouldUseComputeResourceTotalParts,
   shouldUseResourceEncryptMaterial,
   shouldUseResourceExpectedProofMaterial,
   shouldUseResourceHashMaterial,
-  shouldUseResourcePartMapHashMaterial,
   shouldWriteResourceHashmapSlots,
   stepAdvertiseResourceWithActions,
-  stepAppendResourceMapHashCollisionGuardWithActions,
   stepApplyResourceHashmapSlotWritesWithActions,
-  stepAssembleResourceHashmapBytesWithActions,
   stepComputeResourceTotalPartsWithActions,
   stepResourceAdvertiseWaitWithActions,
   stepResourceContinueTransferWithActions,
@@ -66,7 +55,6 @@ import {
   stepResourceExpectedProofMaterialWithActions,
   stepResourceHashmapSlotWritesWithActions,
   stepResourceHashMaterialWithActions,
-  stepResourcePartMapHashMaterialWithActions,
   stepResourcePartRequestWithActions,
   stepResourceRandomHashLengthValidWithActions,
   stepResourceRequestNextAllowWithActions,
@@ -84,14 +72,7 @@ import { equalBytes } from "../crypto/bytes.js";
 import { Identity } from "../identity.js";
 import type { Link } from "../link.js";
 import type { LeafTransport } from "../transport/node.js";
-import {
-  Packet,
-  PacketContext,
-  PacketHeaderType,
-  PacketType,
-  TransportType,
-} from "../packet.js";
-import { DestinationType } from "../destination.js";
+import { PacketContext } from "../packet.js";
 import {
   RESOURCE_IFAC_MIN_SIZE,
   RESOURCE_PACKET_HEADER_MAX,
@@ -106,6 +87,7 @@ import type {
   ResourcePart,
 } from "./shared.js";
 import { Resource } from "../resource.js";
+import { buildResourceParts } from "./send-parts.js";
 export class ResourceLayer1 {
   readonly link: Link;
   readonly initiator: boolean;
@@ -114,10 +96,18 @@ export class ResourceLayer1 {
   readonly randomHash: Uint8Array;
   readonly encrypted: boolean;
   readonly compressed: boolean;
-  readonly split = false;
+  readonly split: boolean;
   readonly hasMetadata = false;
-  readonly segmentIndex = 1;
-  readonly totalSegments = 1;
+  readonly segmentIndex: number;
+  readonly totalSegments: number;
+  /**
+   * Sender-side payload spanning every segment. Held so segments after the
+   * first can be cut without the caller re-supplying the data; `null` on the
+   * receiving side and on unsplit resources.
+   */
+  protected readonly segmentSource: Uint8Array | null;
+  protected nextSegment: Resource | null = null;
+  protected readonly maxSegmentSize: number;
   readonly requestId: Uint8Array | null;
   readonly isResponse: boolean;
   readonly hashmapBytes: Uint8Array;
@@ -178,6 +168,11 @@ export class ResourceLayer1 {
       readonly isResponse?: boolean;
       readonly callbacks?: ResourceCallbacks;
       readonly timeout?: number;
+      readonly split?: boolean;
+      readonly segmentIndex?: number;
+      readonly totalSegments?: number;
+      readonly segmentSource?: Uint8Array | null;
+      readonly maxSegmentSize?: number;
     },
   ) {
     this.provider = provider;
@@ -197,15 +192,34 @@ export class ResourceLayer1 {
     this.requestId = options.requestId ?? null;
     this.isResponse = options.isResponse ?? false;
     this.callbacks = options.callbacks ?? {};
+    this.split = options.split ?? false;
+    this.segmentIndex = options.segmentIndex ?? 1;
+    this.totalSegments = options.totalSegments ?? 1;
+    this.segmentSource = options.segmentSource ?? null;
+    this.maxSegmentSize = options.maxSegmentSize ?? RESOURCE_MAX_EFFICIENT_SIZE;
     this.sdu = link.mtu - RESOURCE_PACKET_HEADER_MAX - RESOURCE_IFAC_MIN_SIZE;
     this.timeout = options.timeout ?? resourceTimeoutForLink(link);
   }
 
   static send(
     link: Link,
-    data: Uint8Array,
+    fullData: Uint8Array,
     options: ResourceOptions = {},
   ): Resource {
+    // A payload past MAX_EFFICIENT_SIZE travels as a chain of segments that
+    // share one originalHash; this call builds one of them and keeps the whole
+    // payload so the sender can cut the next after this segment is proven.
+    const maxSegmentSize =
+      options.maxSegmentSize ?? RESOURCE_MAX_EFFICIENT_SIZE;
+    const totalSegments = resourceSegmentCount(fullData.length, maxSegmentSize);
+    const split = totalSegments > 1;
+    const segmentIndex = options.segmentIndex ?? 1;
+    const { start, end } = resourceSegmentRange(
+      fullData.length,
+      segmentIndex,
+      maxSegmentSize,
+    );
+    const data = split ? fullData.subarray(start, end) : fullData;
     const provider = link.cryptoProvider;
     const randomHash =
       options.randomHash !== undefined
@@ -304,121 +318,32 @@ export class ResourceLayer1 {
     }
     const expectedProof = Identity.fullHash(provider, expectedProofMaterial);
 
-    const parts: ResourcePart[] = [];
-    const mapHashes: Uint8Array[] = [];
-    let collisionGuard: Uint8Array[];
-
-    let hashmapOk = false;
-    while (!hashmapOk) {
-      hashmapOk = true;
-      parts.length = 0;
-      mapHashes.length = 0;
-      collisionGuard = [];
-
-      for (let index = 0; index < totalParts; index += 1) {
-        const partData = encryptedPayload.subarray(
-          index * sdu,
-          (index + 1) * sdu,
-        );
-        const partMapStepped = stepResourcePartMapHashMaterialWithActions(
-          initialResourcePartMapHashMaterialState(),
-          {
-            kind: "resource-material/part-map-hash-gate",
-            partData,
-            randomHash,
-          },
-        );
-        const partMapMaterial = resourcePartMapHashMaterialRawFromActions(
-          partMapStepped.actions,
-        );
-        if (
-          shouldRejectResourcePartMapHashMaterial(partMapStepped.actions) ||
-          !shouldUseResourcePartMapHashMaterial(partMapStepped.actions) ||
-          partMapMaterial === null
-        ) {
-          throw new Error("Resource part map-hash material rejected");
-        }
-        const mapHash = Identity.fullHash(provider, partMapMaterial).subarray(
-          0,
-          RESOURCE_MAPHASH_LEN,
-        );
-
-        const collisionStepped =
-          stepAppendResourceMapHashCollisionGuardWithActions(
-            initialAppendResourceMapHashCollisionGuardState(),
-            {
-              kind: "resource-hashmap/collision-guard-gate",
-              guard: collisionGuard,
-              mapHash,
-              hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN,
-            },
-          );
-        if (
-          shouldCollideResourceMapHashCollisionGuard(collisionStepped.actions)
-        ) {
-          hashmapOk = false;
-          break;
-        }
-        const nextGuard = resourceMapHashCollisionGuardFromActions(
-          collisionStepped.actions,
-        );
-        if (
-          !shouldAppendResourceMapHashCollisionGuard(
-            collisionStepped.actions,
-          ) ||
-          nextGuard === null
-        ) {
-          hashmapOk = false;
-          break;
-        }
-        collisionGuard = [...nextGuard];
-
-        const packet = Packet.fromFields(provider, {
-          headerType: PacketHeaderType.HEADER_1,
-          transportType: TransportType.BROADCAST,
-          destinationType: DestinationType.LINK,
-          packetType: PacketType.DATA,
-          destinationHash: link.linkId,
-          context: PacketContext.RESOURCE,
-          data: partData,
-        });
-
-        parts.push({
-          data: partData,
-          mapHash: Uint8Array.from(mapHash),
-          raw: packet.raw,
-          sent: false,
-        });
-        mapHashes.push(Uint8Array.from(mapHash));
-      }
-    }
-
-    const assembleStepped = stepAssembleResourceHashmapBytesWithActions(
-      initialAssembleResourceHashmapBytesState(),
-      {
-        kind: "resource-hashmap/assemble-bytes-gate",
-        mapHashes,
-      },
-    );
-    const hashmapBytes = shouldUseAssembleResourceHashmapBytes(
-      assembleStepped.actions,
-    )
-      ? assembleResourceHashmapBytesRawFromActions(assembleStepped.actions)
-      : null;
-    if (hashmapBytes === null) {
-      throw new Error("Resource hashmap assemble rejected");
-    }
-
+    const { parts, hashmapBytes } = buildResourceParts({
+      provider,
+      linkId: link.linkId,
+      encryptedPayload,
+      randomHash,
+      totalParts,
+      sdu,
+      hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN,
+    });
     const resource = new Resource(provider, link, {
       initiator: true,
       hash,
-      originalHash: hash,
+      originalHash: options.originalHash ?? hash,
       randomHash,
       encrypted: true,
       compressed: false,
       size: encryptedPayload.length,
-      totalSize: data.length,
+      // The advertisement reports the size of the whole transfer, not of this
+      // segment, matching `RNS.Resource.total_size`.
+      totalSize: fullData.length,
       totalParts,
+      split,
+      segmentIndex,
+      totalSegments,
+      segmentSource: split ? fullData : null,
+      maxSegmentSize,
       hashmapBytes,
       expectedProof,
       parts,
@@ -540,6 +465,44 @@ export class ResourceLayer1 {
     this.link.registerOutgoingResource(this as unknown as Resource);
     await this.link.sendContext(PacketContext.RESOURCE_ADV, packed);
     this.startWatchdog();
+    this.prepareNextSegment();
+  }
+
+  /**
+   * Cut the next segment of a split transfer, ready to advertise as soon as
+   * this one is proven. Building it here rather than at proof time keeps the
+   * gap between segments off the transfer's critical path, as the reference
+   * implementation does.
+   */
+  protected prepareNextSegment(): void {
+    if (
+      this.segmentSource === null ||
+      this.segmentIndex >= this.totalSegments ||
+      this.nextSegment !== null
+    ) {
+      return;
+    }
+    this.nextSegment = Resource.send(this.link, this.segmentSource, {
+      advertise: false,
+      segmentIndex: this.segmentIndex + 1,
+      originalHash: this.originalHash,
+      maxSegmentSize: this.maxSegmentSize,
+      ...(this.callbacks.callback === undefined
+        ? {}
+        : { callback: this.callbacks.callback }),
+      ...(this.callbacks.progressCallback === undefined
+        ? {}
+        : { progressCallback: this.callbacks.progressCallback }),
+    });
+  }
+
+  /**
+   * Advertise the segment that follows this one, preparing it first if the
+   * proof arrived before preparation finished.
+   */
+  protected async advertiseNextSegment(): Promise<void> {
+    this.prepareNextSegment();
+    await this.nextSegment?.advertise();
   }
 
   hashmapUpdate(segment: number, hashmap: Uint8Array): void {

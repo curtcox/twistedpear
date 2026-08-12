@@ -43,6 +43,12 @@ export class ResourceLayer2 extends ResourceLayer2Core {
     this.applyStatus({ kind: "resource/complete" });
     this.progress = 1;
     this.link.resourceConcluded(this as unknown as Resource);
+    if (this.segmentIndex < this.totalSegments) {
+      // More segments to come: the transfer is not done, so the caller's
+      // callback stays silent until the last segment is proven.
+      void this.advertiseNextSegment();
+      return;
+    }
     this.callbacks.callback?.(this as unknown as Resource);
   }
 }

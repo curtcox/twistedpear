@@ -1,0 +1,18 @@
+
+> twistedpear@0.0.0 test:web-widget-renderer
+> npm run build && node conformance/web-widget-renderer/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/widget-renderer-rn@0.1.0 build
+> tsc -b
+
+web-widget-renderer bundle written to /Users/curt/me/twistedpear/conformance/web-widget-renderer/widget.bundle.js
+web-widget-renderer: passed

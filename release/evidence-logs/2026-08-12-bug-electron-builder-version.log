@@ -1,0 +1,52 @@
+
+> twistedpear@0.0.0 desktop:pack
+> npm run pack --workspace=host-desktop
+
+
+> host-desktop@0.1.0 pack
+> npm run build && electron-builder --dir
+
+
+> host-desktop@0.1.0 build
+> tsc -b && node scripts/build-renderer-vendor.mjs && node scripts/build-worklet.mjs
+
+desktop renderer QR fallback copied to src/renderer/vendor/jsqr.js
+
+> @twistedpear/miniapp-runtime@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/app-registry@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/reticulum-ts@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/cas-256t@0.1.0 build
+> tsc -b
+
+handbook build: 38 chapter(s), 23 applet(s), 104 seed file(s) → bundle.js; 5 part package(s) → generated/part-packages/
+bundled-catalog: handbook@0.2.0 (378576 B), peer-link@0.1.0 (3731 B), devstudio@0.1.0 (14001 B), chat@0.1.0 (2629 B)
+desktop worklet bundle written to /Users/curt/me/twistedpear/apps/host-desktop/worklet/worklet.bundle
+  • electron-builder  version=26.15.7 os=25.5.0
+  • loaded configuration  file=package.json ("build" field)
+  • description is missed in the package.json  appPackageFile=/Users/curt/me/twistedpear/apps/host-desktop/package.json
+  • author is missed in the package.json  appPackageFile=/Users/curt/me/twistedpear/apps/host-desktop/package.json
+  • packageManager not detected by file, falling back to environment detection  resolvedPackageManager=npm detected=/Users/curt/me/twistedpear/apps/host-desktop
+  • detected workspace root for project using lock file  pm=npm config=undefined resolved=/Users/curt/me/twistedpear projectDir=/Users/curt/me/twistedpear/apps/host-desktop
+  • executing @electron/rebuild  electronVersion=43.3.0 arch=arm64 buildFromSource=false workspaceRoot=/Users/curt/me/twistedpear projectDir=./ appDir=./
+  • installing native dependencies  arch=arm64
+  • preparing       moduleName=@serialport/bindings-cpp arch=arm64
+  • finished        moduleName=@serialport/bindings-cpp arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=43.3.0 appOutDir=release/mac-arm64
+  • downloaded      label=electron progress=100%
+  • downloaded electron zip extracted successfully  output=/Users/curt/me/twistedpear/apps/host-desktop/release/mac-arm64
+  • searching for node modules  pm=npm searchDir=/Users/curt/me/twistedpear/apps/host-desktop
+  • duplicate dependency references  dependencies=["@twistedpear/cas-256t@0.1.0","@twistedpear/reticulum-ts@0.0.0","@twistedpear/cas-256t@0.1.0","@twistedpear/reticulum-ts@0.0.0","hypercore-crypto@3.7.0","noise-curve-ed@2.1.0","noise-handshake@4.2.0","sodium-universal@5.0.1","sodium-universal@5.0.1","streamx@2.28.0","unslab@1.3.0","compact-encoding@3.3.0","bare-fs@4.8.0","bare-pipe@4.2.2","bare-signals@4.2.0","bare-stream@2.13.3","@hyperswarm/secret-stream@6.9.1","blind-relay@1.6.1","bogon@1.3.0","compact-encoding@3.3.0","dht-rpc@6.27.0","hypercore-crypto@3.7.0","hypercore-id-encoding@1.3.0","hyperdht-address@1.1.1","noise-curve-ed@2.1.0","noise-handshake@4.2.0","record-cache@1.2.0","sodium-universal@5.0.1","streamx@2.28.0","unslab@1.3.0","sodium-universal@4.0.1","compact-encoding@3.3.0","unslab@1.3.0","require-addon@1.2.0","streamx@2.28.0","@twistedpear/app-registry@0.1.0","@twistedpear/cas-256t@0.1.0","@twistedpear/reticulum-interfaces@0.2.0","@twistedpear/reticulum-ts@0.0.0","compact-encoding@3.3.0","sodium-universal@5.0.1","hypercore-id-encoding@1.3.0","@hyperswarm/secret-stream@6.9.1","compact-encoding@3.3.0","hypercore-crypto@3.7.0","hypercore-errors@1.5.0","hypercore-id-encoding@1.3.0","bare-path@3.0.1","compact-encoding@3.3.0","bare-fs@4.8.0","bare-path@3.0.1","bare-fs@4.8.0","fs-native-extensions@1.5.0","ready-resource@1.2.0","require-addon@1.2.0","ready-resource@1.2.0","hypercore-crypto@3.7.0","hyperschema@1.21.0","compact-encoding@3.3.0","ready-resource@1.2.0","require-addon@1.2.0","streamx@2.28.0","streamx@2.28.0","is-options@1.0.2","protomux@3.11.0","require-addon@1.2.0","require-addon@1.2.0","sodium-universal@5.0.1","streamx@2.28.0","unslab@1.3.0","z32@1.1.0","sodium-javascript@0.8.0","sodium-native@5.1.0","streamx@2.28.0","@hyperswarm/secret-stream@6.9.1","compact-encoding@3.3.0","compact-encoding@3.3.0","protomux@3.11.0","sodium-universal@5.0.1","streamx@2.28.0","compact-encoding-net@1.3.0","compact-encoding@3.3.0","compact-encoding-net@1.3.0","compact-encoding@3.3.0","sodium-universal@5.0.1","streamx@2.28.0","udx-native@1.20.7","hypercore-crypto@3.7.0","hypercore-id-encoding@1.3.0","compact-encoding@3.3.0","bare-fs@4.8.0","compact-encoding@3.3.0","sodium-universal@5.0.1","sodium-universal@5.0.1","sodium-universal@5.0.1","streamx@2.28.0","hypercore-errors@1.5.0","ready-resource@1.2.0","streamx@2.28.0","unslab@1.3.0","compact-encoding@3.3.0","hypercore-crypto@3.7.0","hypercore-errors@1.5.0","mutexify@1.4.0","streamx@2.28.0","hypercore-errors@1.5.0","hypercore@11.33.5","require-addon@1.2.0","streamx@2.28.0","streamx@2.28.0","ready-resource@1.2.0","streamx@2.28.0","codecs@3.1.0","hyperdht@6.32.0","streamx@2.28.0","unslab@1.3.0","is-options@1.0.2","@twistedpear/reticulum-ts@0.0.0","@twistedpear/protocol@0.0.0","@twistedpear/reticulum-ts@0.0.0","@twistedpear/protocol@0.0.0","@twistedpear/reticulum-interfaces@0.2.0","@noble/curves@2.2.0","@twistedpear/protocol@0.0.0","require-addon@1.2.0","streamx@2.28.0","streamx@2.28.0","streamx@2.28.0","bare-path@3.0.1","bare-stream@2.13.3","bare-stream@2.13.3","bare-stream@2.13.3","bare-url@2.4.5","bare-url@2.4.5","@twistedpear/reticulum-ts@0.0.0"]
+  • default Electron icon is used  reason=application icon is not set
+  • skipped macOS application code signing  reason=cannot find valid "Developer ID Application" identity or custom non-Apple code signing certificate, it could cause some undefined behaviour, e.g. macOS localized description not visible, see https://electron.build/code-signing allIdentities=     0 identities found
+                                                Valid identities only
+     0 valid identities found

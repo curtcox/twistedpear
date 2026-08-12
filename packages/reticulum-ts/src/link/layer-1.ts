@@ -78,7 +78,7 @@ import {
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Token } from "../crypto/token.js";
 import { Channel, LinkChannelOutlet } from "../channel.js";
-import { equalBytes } from "../crypto/bytes.js";
+import { bytesToHex, equalBytes } from "../crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "../destination.js";
 import { Identity } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
@@ -150,6 +150,15 @@ export class LinkLayer1 {
 
   protected readonly outgoingResourcesList: Resource[] = [];
   protected readonly incomingResourcesList: Resource[] = [];
+  /**
+   * Assembled segments of split resources, keyed by hex `originalHash`. Each
+   * segment arrives as its own resource, so the completed pieces accumulate
+   * here until the last one lands and the whole payload can be handed over.
+   */
+  protected readonly resourceSegmentsByOriginalHash = new Map<
+    string,
+    Uint8Array[]
+  >();
 
   protected readonly provider: CryptoProvider;
   protected readonly transport: LeafTransport;
@@ -247,6 +256,35 @@ export class LinkLayer1 {
 
   get outgoingResources(): readonly Resource[] {
     return this.outgoingResourcesList;
+  }
+
+  /** Record one assembled segment of a split resource. */
+  appendResourceSegment(originalHash: Uint8Array, segment: Uint8Array): void {
+    const key = bytesToHex(originalHash);
+    const segments = this.resourceSegmentsByOriginalHash.get(key);
+    if (segments === undefined) {
+      this.resourceSegmentsByOriginalHash.set(key, [segment]);
+      return;
+    }
+    segments.push(segment);
+  }
+
+  /**
+   * Concatenate and forget every segment recorded for `originalHash`. Called
+   * once the final segment of a split resource is assembled.
+   */
+  takeResourceSegments(originalHash: Uint8Array): Uint8Array {
+    const key = bytesToHex(originalHash);
+    const segments = this.resourceSegmentsByOriginalHash.get(key) ?? [];
+    this.resourceSegmentsByOriginalHash.delete(key);
+    const total = segments.reduce((sum, segment) => sum + segment.length, 0);
+    const joined = new Uint8Array(total);
+    let offset = 0;
+    for (const segment of segments) {
+      joined.set(segment, offset);
+      offset += segment.length;
+    }
+    return joined;
   }
 
   async request(
@@ -465,6 +503,7 @@ export class LinkLayer1 {
     }
     this.incomingResourcesList.length = 0;
     this.outgoingResourcesList.length = 0;
+    this.resourceSegmentsByOriginalHash.clear();
     this.transport.unregisterLink(this as unknown as Link);
     this.callbacks.linkClosed?.(this as unknown as Link);
   }

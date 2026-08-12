@@ -96,14 +96,25 @@ export interface ResourceOptions extends ResourceCallbacks {
   readonly timeout?: number;
   /** Optional injected resource random hash (first 4 bytes used). */
   readonly randomHash?: Uint8Array;
+  /**
+   * 1-based segment to cut from `data` when the payload exceeds
+   * `RESOURCE_MAX_EFFICIENT_SIZE`. Set by the sender when it continues a split
+   * transfer; callers send whole payloads and leave it unset.
+   */
+  readonly segmentIndex?: number;
+  /** Hash of segment 1, carried by every later segment of a split transfer. */
+  readonly originalHash?: Uint8Array;
+  /**
+   * Bytes per segment, defaulting to `RESOURCE_MAX_EFFICIENT_SIZE`. Only the
+   * sender consults it — the receiver reads the segment count and total size
+   * off the advertisement — so a smaller value still produces a transfer the
+   * reference implementation reassembles. Exists so tests can exercise the
+   * split path without moving tens of megabytes.
+   */
+  readonly maxSegmentSize?: number;
 }
 
-export interface ResourcePart {
-  readonly data: Uint8Array;
-  readonly mapHash: Uint8Array;
-  raw: Uint8Array;
-  sent: boolean;
-}
+export type { ResourcePart } from "./part.js";
 
 export const RESOURCE_PACKET_HEADER_MAX = 35;
 export const RESOURCE_IFAC_MIN_SIZE = 1;

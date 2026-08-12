@@ -163,6 +163,85 @@ describe("Resource transfer over PipeInterface", () => {
   });
 });
 
+describe("Split resource transfer over PipeInterface", () => {
+  // A payload past RESOURCE_MAX_EFFICIENT_SIZE travels as several resources
+  // sharing one originalHash. `maxSegmentSize` drives the same code path at a
+  // size a unit test can move; the receiver reads the segment count off the
+  // advertisement either way.
+  const maxSegmentSize = 4096;
+
+  function segmentedPayload(length: number): Uint8Array {
+    const payload = new Uint8Array(length);
+    for (let index = 0; index < length; index += 1) {
+      payload[index] = index & 0xff;
+    }
+    return payload;
+  }
+
+  it("reassembles every segment, in order, into the original payload", async () => {
+    const { leftLink, rightLink } = await connectPeers();
+    // Deliberately not a multiple of the segment size: the final segment is
+    // short, which is where an off-by-one in the range maths would show.
+    const payload = segmentedPayload(maxSegmentSize * 3 + 517);
+
+    const concluded: number[] = [];
+    const received = new Promise<Uint8Array>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error("split resource timeout")),
+        20000,
+      );
+      rightLink.callbacks.resourceConcluded = (resource) => {
+        concluded.push(resource.segmentIndex);
+        clearTimeout(timer);
+        resolve(resource.data ?? new Uint8Array(0));
+      };
+    });
+
+    const outgoing = Resource.send(leftLink, payload, {
+      advertise: true,
+      maxSegmentSize,
+    });
+    expect(outgoing.split).toBe(true);
+    expect(outgoing.totalSegments).toBe(4);
+    expect(outgoing.segmentIndex).toBe(1);
+    // The advertisement reports the whole transfer, not this segment.
+    expect(outgoing.totalSize).toBe(payload.length);
+
+    const data = await received;
+    expect(data.length).toBe(payload.length);
+    expect(Array.from(data)).toEqual(Array.from(payload));
+    // The caller hears about the transfer once, on the last segment.
+    expect(concluded).toEqual([4]);
+  }, 30000);
+
+  it("leaves a payload at the segment size unsplit", async () => {
+    const { leftLink, rightLink } = await connectPeers();
+    const payload = segmentedPayload(maxSegmentSize);
+
+    const received = new Promise<Uint8Array>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error("resource timeout")),
+        20000,
+      );
+      rightLink.callbacks.resourceConcluded = (resource) => {
+        clearTimeout(timer);
+        resolve(resource.data ?? new Uint8Array(0));
+      };
+    });
+
+    const outgoing = Resource.send(leftLink, payload, {
+      advertise: true,
+      maxSegmentSize,
+    });
+    expect(outgoing.split).toBe(false);
+    expect(outgoing.totalSegments).toBe(1);
+
+    const data = await received;
+    expect(data.length).toBe(payload.length);
+    expect(Array.from(data)).toEqual(Array.from(payload));
+  }, 30000);
+});
+
 describe("Buffer streaming over PipeInterface", () => {
   it("streams bytes through a link channel buffer", async () => {
     const { leftLink, rightLink } = await connectPeers();

@@ -68,6 +68,7 @@ and `npm run work:next` picks the next item from this table. See
 | ID-LINKED-MODE                                      | open   | One-way linked-mode switch with both hashes shown before confirmation                            | —        | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`                                                          |
 | ID-SIBLING-CHROME                                   | open   | Chrome and store wiring for held sibling decisions                                               | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`                                                    |
 | ID-DEVICES-RELABEL                                  | open   | Relabel the peripheral Devices chrome to Hardware access                                         | —        | `npm run test:doc-audit`                                                                                                     |
+| BUG-MINIAPP-IDENTITY-BACKEND                        | open   | Worklet mini-app hosts deny identity.* without a started node, so apps never render              | —        | `node conformance/ios-sim/full-loop.mjs`                                                                                     |
 
 ## Optional and non-blocking backlog
 
