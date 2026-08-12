@@ -151,15 +151,7 @@ function validateSpeaker(
   command: Extract<DeviceCommand, { kind: "speaker" }>,
 ): Extract<DeviceCommand, { kind: "speaker" }> {
   const assetId = command.assetId;
-  if (
-    assetId !== undefined &&
-    (typeof assetId !== "string" || assetId.length < 1 || assetId.length > 128)
-  ) {
-    throw new ActuatorSafetyError(
-      "COMMAND_INVALID",
-      "speaker.assetId must be 1-128 characters.",
-    );
-  }
+  validateSpeakerAssetId(assetId);
   const volume = command.volume ?? 1;
   if (!Number.isFinite(volume) || volume < 0 || volume > SPEAKER_MAX_VOLUME) {
     throw new ActuatorSafetyError(
@@ -167,20 +159,7 @@ function validateSpeaker(
       `speaker.volume must be in [0, ${SPEAKER_MAX_VOLUME}].`,
     );
   }
-  if (command.frequencyHz !== undefined) {
-    if (!Number.isFinite(command.frequencyHz) || command.frequencyHz <= 0) {
-      throw new ActuatorSafetyError(
-        "COMMAND_INVALID",
-        "speaker.frequencyHz must be positive.",
-      );
-    }
-    if (command.frequencyHz > SPEAKER_PLAY_MAX_HZ) {
-      throw new ActuatorSafetyError(
-        "SPEAKER_ULTRASONIC",
-        `Play-tier speaker rejects frequencies above ${SPEAKER_PLAY_MAX_HZ} Hz; use speaker:pcm.`,
-      );
-    }
-  }
+  validateSpeakerFrequency(command.frequencyHz);
   if (assetId === undefined && command.frequencyHz === undefined) {
     throw new ActuatorSafetyError(
       "COMMAND_INVALID",
@@ -195,6 +174,36 @@ function validateSpeaker(
       ? { frequencyHz: command.frequencyHz }
       : {}),
   };
+}
+
+function validateSpeakerAssetId(assetId: string | undefined): void {
+  if (assetId === undefined) return;
+  if (
+    typeof assetId !== "string" ||
+    assetId.length < 1 ||
+    assetId.length > 128
+  ) {
+    throw new ActuatorSafetyError(
+      "COMMAND_INVALID",
+      "speaker.assetId must be 1-128 characters.",
+    );
+  }
+}
+
+function validateSpeakerFrequency(frequencyHz: number | undefined): void {
+  if (frequencyHz === undefined) return;
+  if (!Number.isFinite(frequencyHz) || frequencyHz <= 0) {
+    throw new ActuatorSafetyError(
+      "COMMAND_INVALID",
+      "speaker.frequencyHz must be positive.",
+    );
+  }
+  if (frequencyHz > SPEAKER_PLAY_MAX_HZ) {
+    throw new ActuatorSafetyError(
+      "SPEAKER_ULTRASONIC",
+      `Play-tier speaker rejects frequencies above ${SPEAKER_PLAY_MAX_HZ} Hz; use speaker:pcm.`,
+    );
+  }
 }
 
 function validateTts(
@@ -244,28 +253,18 @@ function validateHaptics(
       "haptics.patternMs must have 1-32 entries.",
     );
   }
-  let totalOn = 0;
-  let total = 0;
-  const pattern: number[] = [];
-  for (let i = 0; i < command.patternMs.length; i += 1) {
-    const ms = command.patternMs[i];
-    if (!Number.isFinite(ms) || ms < 0 || ms > HAPTICS_MAX_PATTERN_MS) {
-      throw new ActuatorSafetyError(
-        "HAPTICS_PATTERN",
-        `haptics pattern entry must be in [0, ${HAPTICS_MAX_PATTERN_MS}] ms.`,
-      );
-    }
-    const floored = Math.floor(ms);
-    pattern.push(floored);
-    total += floored;
-    if (i % 2 === 0) totalOn += floored;
-  }
+  const pattern = command.patternMs.map(normalizeHapticsDuration);
+  const total = pattern.reduce((sum, duration) => sum + duration, 0);
   if (total === 0) {
     throw new ActuatorSafetyError(
       "HAPTICS_PATTERN",
       "haptics pattern must have non-zero duration.",
     );
   }
+  const totalOn = pattern.reduce(
+    (sum, duration, index) => sum + (index % 2 === 0 ? duration : 0),
+    0,
+  );
   if (totalOn / total > HAPTICS_MAX_DUTY_CYCLE) {
     throw new ActuatorSafetyError(
       "HAPTICS_DUTY_CYCLE",
@@ -282,36 +281,58 @@ function validateHaptics(
   return { kind: "haptics", patternMs: pattern, intensity };
 }
 
+function normalizeHapticsDuration(ms: number): number {
+  if (!Number.isFinite(ms) || ms < 0 || ms > HAPTICS_MAX_PATTERN_MS) {
+    throw new ActuatorSafetyError(
+      "HAPTICS_PATTERN",
+      `haptics pattern entry must be in [0, ${HAPTICS_MAX_PATTERN_MS}] ms.`,
+    );
+  }
+  return Math.floor(ms);
+}
+
 function validateNfc(
   command: Extract<DeviceCommand, { kind: "nfc" }>,
 ): Extract<DeviceCommand, { kind: "nfc" }> {
   if (command.action === "apdu") {
-    try {
-      const aid = assertAidAllowed(command.aid);
-      if (
-        typeof command.apdu !== "string" ||
-        command.apdu.length < 2 ||
-        command.apdu.length > 1024
-      ) {
-        throw new ActuatorSafetyError(
-          "NFC_PAYLOAD",
-          "nfc.apdu payload length is invalid.",
-        );
-      }
-      return { kind: "nfc", action: "apdu", aid, apdu: command.apdu };
-    } catch (error) {
-      if (error instanceof NfcPaymentAidError) {
-        throw new ActuatorSafetyError("NFC_PAYLOAD", error.message);
-      }
-      throw error;
+    return validateNfcApdu(command);
+  }
+  if (command.action === "write") {
+    return validateNfcWrite(command);
+  }
+  throw new ActuatorSafetyError(
+    "COMMAND_INVALID",
+    "nfc action must be write or apdu.",
+  );
+}
+
+function validateNfcApdu(
+  command: Extract<DeviceCommand, { kind: "nfc"; action: "apdu" }>,
+): Extract<DeviceCommand, { kind: "nfc" }> {
+  try {
+    const aid = assertAidAllowed(command.aid);
+    if (
+      typeof command.apdu !== "string" ||
+      command.apdu.length < 2 ||
+      command.apdu.length > 1024
+    ) {
+      throw new ActuatorSafetyError(
+        "NFC_PAYLOAD",
+        "nfc.apdu payload length is invalid.",
+      );
     }
+    return { kind: "nfc", action: "apdu", aid, apdu: command.apdu };
+  } catch (error) {
+    if (error instanceof NfcPaymentAidError) {
+      throw new ActuatorSafetyError("NFC_PAYLOAD", error.message);
+    }
+    throw error;
   }
-  if (command.action !== "write") {
-    throw new ActuatorSafetyError(
-      "COMMAND_INVALID",
-      "nfc action must be write or apdu.",
-    );
-  }
+}
+
+function validateNfcWrite(
+  command: Extract<DeviceCommand, { kind: "nfc"; action: "write" }>,
+): Extract<DeviceCommand, { kind: "nfc" }> {
   if (typeof command.ndef !== "string" || command.ndef.length < 1) {
     throw new ActuatorSafetyError(
       "NFC_PAYLOAD",
