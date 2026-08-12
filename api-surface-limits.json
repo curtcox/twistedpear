@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "description": "Hard caps on public API surface, one per entry point plus a per-package and repository total. Adding an exported symbol fails `npm run api:check` until the matching number is raised in the same pull request, which is the point: it puts every widening of the public surface in the diff, where it can be argued about. `export * from` is followed transitively, so a barrel cannot hide its size. Run `npm run api:baseline` to recalibrate after an intended change.",
+  "total": 7871,
+  "packages": {
+    "app-registry": {
+      "total": 57,
+      "entryPoints": {
+        ".": 57
+      }
+    },
+    "bridge-freenet": {
+      "total": 42,
+      "entryPoints": {
+        ".": 42
+      }
+    },
+    "bridge-hyper": {
+      "total": 94,
+      "entryPoints": {
+        ".": 46,
+        "./resource-server": 7,
+        "./web": 13,
+        "./worklet": 21,
+        "./worklet-hyper": 7
+      }
+    },
+    "cas-256t": {
+      "total": 33,
+      "entryPoints": {
+        ".": 33
+      }
+    },
+    "cli": {
+      "total": 4,
+      "entryPoints": {
+        ".": 4
+      }
+    },
+    "effects": {
+      "total": 155,
+      "entryPoints": {
+        ".": 62,
+        "./adapters/real": 4,
+        "./adapters/sim": 85,
+        "./tripwire": 4
+      }
+    },
+    "host-core": {
+      "total": 265,
+      "entryPoints": {
+        ".": 185,
+        "./web": 56,
+        "./protocol": 12,
+        "./identity-backup": 12
+      }
+    },
+    "lxmf-ts": {
+      "total": 64,
+      "entryPoints": {
+        ".": 64
+      }
+    },
+    "miniapp-runtime": {
+      "total": 400,
+      "entryPoints": {
+        ".": 294,
+        "./worklet": 91,
+        "./sandbox/web": 2,
+        "./ui": 13
+      }
+    },
+    "miniapp-sdk": {
+      "total": 20,
+      "entryPoints": {
+        ".": 20
+      }
+    },
+    "peer-discovery": {
+      "total": 87,
+      "entryPoints": {
+        ".": 87
+      }
+    },
+    "protocol": {
+      "total": 5892,
+      "entryPoints": {
+        ".": 5892
+      }
+    },
+    "reticulum-interfaces": {
+      "total": 136,
+      "entryPoints": {
+        ".": 120,
+        "./bonjour-mdns": 2,
+        "./multicast-node": 2,
+        "./serial-node": 3,
+        "./policy": 9
+      }
+    },
+    "reticulum-ts": {
+      "total": 497,
+      "entryPoints": {
+        ".": 216,
+        "./web": 84,
+        "./worklet": 197
+      }
+    },
+    "sim-adversaries": {
+      "total": 28,
+      "entryPoints": {
+        ".": 28
+      }
+    },
+    "sim-campaign": {
+      "total": 48,
+      "entryPoints": {
+        ".": 48
+      }
+    },
+    "widget-renderer-headless": {
+      "total": 9,
+      "entryPoints": {
+        ".": 9
+      }
+    },
+    "widget-renderer-rn": {
+      "total": 1,
+      "entryPoints": {
+        ".": 1
+      }
+    },
+    "worklet-core": {
+      "total": 39,
+      "entryPoints": {
+        ".": 32,
+        "./dev-channel": 1,
+        "./ipc-bonjour-bridge": 1,
+        "./ipc-multicast-bridge": 1,
+        "./ipc-serial-bridge": 1,
+        "./miniapp-host": 1,
+        "./web-miniapp-host": 2
+      }
+    }
+  }
+}

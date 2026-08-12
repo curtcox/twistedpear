@@ -1,0 +1,1109 @@
+{
+  "version": 1,
+  "languages": [
+    "javascript",
+    "python",
+    "kotlin",
+    "swift"
+  ],
+  "files": 521,
+  "functions": 6009,
+  "groups": 3841,
+  "exemptions": 96,
+  "violations": 0,
+  "stale": 0,
+  "findings": [
+    {
+      "key": "apps/handbook/src/runtime-render.js::chapterNeighbors",
+      "file": "apps/handbook/src/runtime-render.js",
+      "name": "chapterNeighbors",
+      "line": 122,
+      "tier": "source",
+      "ccn": 128,
+      "nloc": 594,
+      "pinned": {
+        "ccn": 128,
+        "nloc": 594
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage",
+      "file": "apps/host-desktop/src/renderer/app-worklet-messages.mjs",
+      "name": "handleWorkletMessage",
+      "line": 11,
+      "tier": "source",
+      "ccn": 89,
+      "nloc": 324,
+      "pinned": {
+        "ccn": 89,
+        "nloc": 324
+      }
+    },
+    {
+      "key": "conformance/webrtc-gui-call/run.mjs::(anonymous)",
+      "file": "conformance/webrtc-gui-call/run.mjs",
+      "name": "(anonymous)",
+      "line": 31,
+      "tier": "tooling",
+      "ccn": 62,
+      "nloc": 348,
+      "pinned": {
+        "ccn": 62,
+        "nloc": 348
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/test-agent-handler.mjs::handleCommand",
+      "file": "apps/host-desktop/worklet/test-agent-handler.mjs",
+      "name": "handleCommand",
+      "line": 99,
+      "tier": "source",
+      "ccn": 57,
+      "nloc": 288,
+      "pinned": {
+        "ccn": 57,
+        "nloc": 288
+      }
+    },
+    {
+      "key": "scripts/site/static-analysis-metrics.mjs::summarizeStaticAnalysis",
+      "file": "scripts/site/static-analysis-metrics.mjs",
+      "name": "summarizeStaticAnalysis",
+      "line": 39,
+      "tier": "tooling",
+      "ccn": 52,
+      "pinned": {
+        "ccn": 52
+      }
+    },
+    {
+      "key": "scripts/site/stage.mjs::rewriteMarkdownLinks",
+      "file": "scripts/site/stage.mjs",
+      "name": "rewriteMarkdownLinks",
+      "line": 85,
+      "tier": "tooling",
+      "ccn": 51,
+      "pinned": {
+        "ccn": 51
+      }
+    },
+    {
+      "key": "scripts/size-ratchet.mjs::main",
+      "file": "scripts/size-ratchet.mjs",
+      "name": "main",
+      "line": 120,
+      "tier": "tooling",
+      "ccn": 50,
+      "pinned": {
+        "ccn": 50
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/widgets.js::renderNode",
+      "file": "apps/host-desktop/src/renderer/widgets.js",
+      "name": "renderNode",
+      "line": 13,
+      "tier": "source",
+      "ccn": 47,
+      "nloc": 139,
+      "pinned": {
+        "ccn": 47,
+        "nloc": 139
+      }
+    },
+    {
+      "key": "conformance/tools/mini-json-schema.mjs::check",
+      "file": "conformance/tools/mini-json-schema.mjs",
+      "name": "check",
+      "line": 78,
+      "tier": "tooling",
+      "ccn": 44,
+      "pinned": {
+        "ccn": 44
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/cross-device-test-driver.mjs::handleCrossDeviceCommand",
+      "file": "packages/worklet-core/src/cross-device-test-driver.mjs",
+      "name": "handleCrossDeviceCommand",
+      "line": 71,
+      "tier": "source",
+      "ccn": 42,
+      "nloc": 148,
+      "pinned": {
+        "ccn": 42,
+        "nloc": 148
+      }
+    },
+    {
+      "key": "apps/handbook/build-content.mjs::loadApplets",
+      "file": "apps/handbook/build-content.mjs",
+      "name": "loadApplets",
+      "line": 260,
+      "tier": "tooling",
+      "ccn": 38,
+      "pinned": {
+        "ccn": 38
+      }
+    },
+    {
+      "key": "apps/handbook/build.mjs::build",
+      "file": "apps/handbook/build.mjs",
+      "name": "build",
+      "line": 40,
+      "tier": "tooling",
+      "ccn": 37,
+      "nloc": 218,
+      "pinned": {
+        "ccn": 37,
+        "nloc": 218
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/app-settings.mjs::bindSettingsPanel",
+      "file": "apps/host-desktop/src/renderer/app-settings.mjs",
+      "name": "bindSettingsPanel",
+      "line": 2,
+      "tier": "source",
+      "ccn": 37,
+      "nloc": 123,
+      "pinned": {
+        "ccn": 37,
+        "nloc": 123
+      }
+    },
+    {
+      "key": "scripts/release/status.mjs::calculate",
+      "file": "scripts/release/status.mjs",
+      "name": "calculate",
+      "line": 48,
+      "tier": "tooling",
+      "ccn": 36,
+      "pinned": {
+        "ccn": 36
+      }
+    },
+    {
+      "key": "conformance/cross-device-dev/run.mjs::(anonymous)",
+      "file": "conformance/cross-device-dev/run.mjs",
+      "name": "(anonymous)",
+      "line": 29,
+      "tier": "tooling",
+      "ccn": 35,
+      "nloc": 291,
+      "pinned": {
+        "ccn": 35,
+        "nloc": 291
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/peer-session.mjs::(anonymous)",
+      "file": "apps/host-desktop/worklet/peer-session.mjs",
+      "name": "(anonymous)",
+      "line": 51,
+      "tier": "source",
+      "ccn": 34,
+      "nloc": 300,
+      "pinned": {
+        "ccn": 34,
+        "nloc": 300
+      }
+    },
+    {
+      "key": "scripts/site/run-reports.mjs::runJob",
+      "file": "scripts/site/run-reports.mjs",
+      "name": "runJob",
+      "line": 80,
+      "tier": "tooling",
+      "ccn": 34,
+      "pinned": {
+        "ccn": 34
+      }
+    },
+    {
+      "key": "scripts/languages/check.mjs::tracked",
+      "file": "scripts/languages/check.mjs",
+      "name": "tracked",
+      "line": 19,
+      "tier": "tooling",
+      "ccn": 33,
+      "pinned": {
+        "ccn": 33
+      }
+    },
+    {
+      "key": "conformance/sdk-interop/run.mjs::main",
+      "file": "conformance/sdk-interop/run.mjs",
+      "name": "main",
+      "line": 54,
+      "tier": "tooling",
+      "ccn": 32,
+      "nloc": 350,
+      "pinned": {
+        "ccn": 32,
+        "nloc": 350
+      }
+    },
+    {
+      "key": "conformance/handbook/run.mjs::main",
+      "file": "conformance/handbook/run.mjs",
+      "name": "main",
+      "line": 288,
+      "tier": "tooling",
+      "ccn": 31,
+      "nloc": 268,
+      "pinned": {
+        "ccn": 31,
+        "nloc": 268
+      }
+    },
+    {
+      "key": "apps/handbook/src/runtime.js::handleEvent",
+      "file": "apps/handbook/src/runtime.js",
+      "name": "handleEvent",
+      "line": 251,
+      "tier": "source",
+      "ccn": 30,
+      "pinned": {
+        "ccn": 30
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline",
+      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "name": "createMediaPipeline",
+      "line": 164,
+      "tier": "source",
+      "ccn": 30,
+      "pinned": {
+        "ccn": 30
+      }
+    },
+    {
+      "key": "scripts/work/lib.mjs::(anonymous)",
+      "file": "scripts/work/lib.mjs",
+      "name": "(anonymous)",
+      "line": 36,
+      "tier": "tooling",
+      "ccn": 28,
+      "pinned": {
+        "ccn": 28
+      }
+    },
+    {
+      "key": "conformance/mac-validation/run.mjs::parseArgs",
+      "file": "conformance/mac-validation/run.mjs",
+      "name": "parseArgs",
+      "line": 29,
+      "tier": "tooling",
+      "ccn": 26,
+      "pinned": {
+        "ccn": 26
+      }
+    },
+    {
+      "key": "conformance/sdk-interop/vectors.mjs::runSdkVectors",
+      "file": "conformance/sdk-interop/vectors.mjs",
+      "name": "runSdkVectors",
+      "line": 26,
+      "tier": "tooling",
+      "ccn": 24,
+      "pinned": {
+        "ccn": 24
+      }
+    },
+    {
+      "key": "scripts/checks/waive.mjs::save",
+      "file": "scripts/checks/waive.mjs",
+      "name": "save",
+      "line": 46,
+      "tier": "tooling",
+      "ccn": 24,
+      "pinned": {
+        "ccn": 24
+      }
+    },
+    {
+      "key": "scripts/doc-audit/paths.mjs::looksLikePathToken",
+      "file": "scripts/doc-audit/paths.mjs",
+      "name": "looksLikePathToken",
+      "line": 28,
+      "tier": "tooling",
+      "ccn": 24,
+      "pinned": {
+        "ccn": 24
+      }
+    },
+    {
+      "key": "scripts/site/run-reports.mjs::main",
+      "file": "scripts/site/run-reports.mjs",
+      "name": "main",
+      "line": 279,
+      "tier": "tooling",
+      "ccn": 24,
+      "pinned": {
+        "ccn": 24
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/messages-catalog.mjs::handleInstallApp",
+      "file": "apps/host-desktop/worklet/messages-catalog.mjs",
+      "name": "handleInstallApp",
+      "line": 38,
+      "tier": "source",
+      "ccn": 23,
+      "pinned": {
+        "ccn": 23
+      }
+    },
+    {
+      "key": "conformance/hostile-apps/run.mjs::main",
+      "file": "conformance/hostile-apps/run.mjs",
+      "name": "main",
+      "line": 75,
+      "tier": "tooling",
+      "ccn": 23,
+      "nloc": 299,
+      "pinned": {
+        "ccn": 23,
+        "nloc": 299
+      }
+    },
+    {
+      "key": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs::handleHostMessageImpl",
+      "file": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs",
+      "name": "handleHostMessageImpl",
+      "line": 83,
+      "tier": "source",
+      "ccn": 22,
+      "pinned": {
+        "ccn": 22
+      }
+    },
+    {
+      "key": "conformance/cli/run.mjs::assertExit",
+      "file": "conformance/cli/run.mjs",
+      "name": "assertExit",
+      "line": 53,
+      "tier": "tooling",
+      "ccn": 22,
+      "pinned": {
+        "ccn": 22
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend",
+      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "name": "createCommonHostInfoBackend",
+      "line": 62,
+      "tier": "source",
+      "ccn": 22,
+      "pinned": {
+        "ccn": 22
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/worklet-entry-install.mjs::installFromT256",
+      "file": "packages/worklet-core/src/worklet-entry-install.mjs",
+      "name": "installFromT256",
+      "line": 14,
+      "tier": "source",
+      "ccn": 22,
+      "pinned": {
+        "ccn": 22
+      }
+    },
+    {
+      "key": "conformance/mixed-network-soak/run.mjs::main",
+      "file": "conformance/mixed-network-soak/run.mjs",
+      "name": "main",
+      "line": 144,
+      "tier": "tooling",
+      "ccn": 21,
+      "pinned": {
+        "ccn": 21
+      }
+    },
+    {
+      "key": "conformance/web-widget-renderer/entry.mjs::main",
+      "file": "conformance/web-widget-renderer/entry.mjs",
+      "name": "main",
+      "line": 81,
+      "tier": "tooling",
+      "ccn": 21,
+      "pinned": {
+        "ccn": 21
+      }
+    },
+    {
+      "key": "scripts/checks/status.mjs::collect",
+      "file": "scripts/checks/status.mjs",
+      "name": "collect",
+      "line": 181,
+      "tier": "tooling",
+      "ccn": 21,
+      "pinned": {
+        "ccn": 21
+      }
+    },
+    {
+      "key": "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs::handleWebRtcHarnessCommandImpl",
+      "file": "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs",
+      "name": "handleWebRtcHarnessCommandImpl",
+      "line": 78,
+      "tier": "source",
+      "ccn": 20,
+      "pinned": {
+        "ccn": 20
+      }
+    },
+    {
+      "key": "scripts/site/validate-links.mjs::existsTarget",
+      "file": "scripts/site/validate-links.mjs",
+      "name": "existsTarget",
+      "line": 24,
+      "tier": "tooling",
+      "ccn": 20,
+      "pinned": {
+        "ccn": 20
+      }
+    },
+    {
+      "key": "conformance/dist-soak/run.mjs::main",
+      "file": "conformance/dist-soak/run.mjs",
+      "name": "main",
+      "line": 112,
+      "tier": "tooling",
+      "ccn": 19,
+      "pinned": {
+        "ccn": 19
+      }
+    },
+    {
+      "key": "conformance/i2p-interop/run.mjs::withI2pInterface",
+      "file": "conformance/i2p-interop/run.mjs",
+      "name": "withI2pInterface",
+      "line": 91,
+      "tier": "tooling",
+      "ccn": 19,
+      "pinned": {
+        "ccn": 19
+      }
+    },
+    {
+      "key": "scripts/peers.mjs::commandStatus",
+      "file": "scripts/peers.mjs",
+      "name": "commandStatus",
+      "line": 188,
+      "tier": "tooling",
+      "ccn": 19,
+      "pinned": {
+        "ccn": 19
+      }
+    },
+    {
+      "key": "apps/harness-mobile/worklet/entry.mjs::availability",
+      "file": "apps/harness-mobile/worklet/entry.mjs",
+      "name": "availability",
+      "line": 1241,
+      "tier": "source",
+      "ccn": 18,
+      "nloc": 353,
+      "pinned": {
+        "ccn": 18,
+        "nloc": 353
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/messages-identity.mjs::handleModerationUpdate",
+      "file": "apps/host-desktop/worklet/messages-identity.mjs",
+      "name": "handleModerationUpdate",
+      "line": 298,
+      "tier": "source",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/peer-chrome.mjs::transmit",
+      "file": "apps/host-desktop/worklet/peer-chrome.mjs",
+      "name": "transmit",
+      "line": 104,
+      "tier": "source",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "conformance/desktop/dev-loop.mjs::runDesktopDevLoop",
+      "file": "conformance/desktop/dev-loop.mjs",
+      "name": "runDesktopDevLoop",
+      "line": 58,
+      "tier": "tooling",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "conformance/ios-sim/dev-loop.mjs::runIosDevLoop",
+      "file": "conformance/ios-sim/dev-loop.mjs",
+      "name": "runIosDevLoop",
+      "line": 58,
+      "tier": "tooling",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "conformance/web-devstudio/entry.mjs::worker.onmessage",
+      "file": "conformance/web-devstudio/entry.mjs",
+      "name": "worker.onmessage",
+      "line": 217,
+      "tier": "tooling",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "conformance/web-handbook/entry.mjs::worker.onmessage",
+      "file": "conformance/web-handbook/entry.mjs",
+      "name": "worker.onmessage",
+      "line": 322,
+      "tier": "tooling",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "launcher.py::parse_entries",
+      "file": "launcher.py",
+      "name": "parse_entries",
+      "line": 238,
+      "tier": "source",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/web-miniapp-host.mjs::createWebWorkletMiniappHost",
+      "file": "packages/worklet-core/src/web-miniapp-host.mjs",
+      "name": "createWebWorkletMiniappHost",
+      "line": 170,
+      "tier": "source",
+      "ccn": 18,
+      "nloc": 136,
+      "pinned": {
+        "ccn": 18,
+        "nloc": 136
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/worklet-entry-catalog.mjs::(anonymous)",
+      "file": "packages/worklet-core/src/worklet-entry-catalog.mjs",
+      "name": "(anonymous)",
+      "line": 52,
+      "tier": "source",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 18
+      }
+    },
+    {
+      "key": "apps/handbook/src/runtime.js::render",
+      "file": "apps/handbook/src/runtime.js",
+      "name": "render",
+      "line": 1,
+      "tier": "source",
+      "ccn": 17,
+      "nloc": 144,
+      "pinned": {
+        "ccn": 17,
+        "nloc": 144
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/miniapp-host-ops.mjs::loadRelayConfig",
+      "file": "apps/host-desktop/worklet/miniapp-host-ops.mjs",
+      "name": "loadRelayConfig",
+      "line": 89,
+      "tier": "source",
+      "ccn": 17,
+      "pinned": {
+        "ccn": 17
+      }
+    },
+    {
+      "key": "conformance/handbook/mobile-slice.mjs::runHandbookMobileSlice",
+      "file": "conformance/handbook/mobile-slice.mjs",
+      "name": "runHandbookMobileSlice",
+      "line": 365,
+      "tier": "tooling",
+      "ccn": 17,
+      "pinned": {
+        "ccn": 17
+      }
+    },
+    {
+      "key": "conformance/web-handbook/entry.mjs::main",
+      "file": "conformance/web-handbook/entry.mjs",
+      "name": "main",
+      "line": 308,
+      "tier": "tooling",
+      "ccn": 17,
+      "pinned": {
+        "ccn": 17
+      }
+    },
+    {
+      "key": "apps/harness-mobile/worklet/entry.mjs::loadRelayConfig",
+      "file": "apps/harness-mobile/worklet/entry.mjs",
+      "name": "loadRelayConfig",
+      "line": 1126,
+      "tier": "source",
+      "ccn": 16,
+      "pinned": {
+        "ccn": 16
+      }
+    },
+    {
+      "key": "conformance/handbook/part-packages.mjs::runHandbookPartPackagesSmoke",
+      "file": "conformance/handbook/part-packages.mjs",
+      "name": "runHandbookPartPackagesSmoke",
+      "line": 145,
+      "tier": "tooling",
+      "ccn": 16,
+      "pinned": {
+        "ccn": 16
+      }
+    },
+    {
+      "key": "conformance/kernel/mini-kernel.mjs::constructor",
+      "file": "conformance/kernel/mini-kernel.mjs",
+      "name": "constructor",
+      "line": 18,
+      "tier": "tooling",
+      "ccn": 16,
+      "pinned": {
+        "ccn": 16
+      }
+    },
+    {
+      "key": "conformance/seeder/run.mjs::main",
+      "file": "conformance/seeder/run.mjs",
+      "name": "main",
+      "line": 87,
+      "tier": "tooling",
+      "ccn": 16,
+      "pinned": {
+        "ccn": 16
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/miniapp-host.mjs::createWorkletMiniappHost",
+      "file": "packages/worklet-core/src/miniapp-host.mjs",
+      "name": "createWorkletMiniappHost",
+      "line": 161,
+      "tier": "source",
+      "ccn": 16,
+      "pinned": {
+        "ccn": 16
+      }
+    },
+    {
+      "key": "scripts/work/diff.mjs::snapshotAt",
+      "file": "scripts/work/diff.mjs",
+      "name": "snapshotAt",
+      "line": 46,
+      "tier": "tooling",
+      "ccn": 16,
+      "pinned": {
+        "ccn": 16
+      }
+    },
+    {
+      "key": "apps/handbook/content/applets/host-info/main.js::run",
+      "file": "apps/handbook/content/applets/host-info/main.js",
+      "name": "run",
+      "line": 4,
+      "tier": "source",
+      "ccn": 15,
+      "pinned": {
+        "ccn": 15
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/device-bridge.js::deviceAvailability",
+      "file": "apps/host-desktop/src/renderer/device-bridge.js",
+      "name": "deviceAvailability",
+      "line": 42,
+      "tier": "source",
+      "ccn": 15,
+      "pinned": {
+        "ccn": 15
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/entry-status.mjs::(anonymous)",
+      "file": "apps/host-desktop/worklet/entry-status.mjs",
+      "name": "(anonymous)",
+      "line": 15,
+      "tier": "source",
+      "ccn": 15,
+      "pinned": {
+        "ccn": 15
+      }
+    },
+    {
+      "key": "apps/handbook/content/applets/relay-status/main.js::run",
+      "file": "apps/handbook/content/applets/relay-status/main.js",
+      "name": "run",
+      "line": 5,
+      "tier": "source",
+      "ccn": 14,
+      "pinned": {
+        "ccn": 14
+      }
+    },
+    {
+      "key": "apps/handbook/src/runtime-applets.js::runAppletInline",
+      "file": "apps/handbook/src/runtime-applets.js",
+      "name": "runAppletInline",
+      "line": 43,
+      "tier": "source",
+      "ccn": 14,
+      "pinned": {
+        "ccn": 14
+      }
+    },
+    {
+      "key": "apps/harness-mobile/modules/peer-audio/android/src/main/java/expo/modules/twistedpear/peeraudio/PeerAudioModule.kt::(anonymous)",
+      "file": "apps/harness-mobile/modules/peer-audio/android/src/main/java/expo/modules/twistedpear/peeraudio/PeerAudioModule.kt",
+      "name": "(anonymous)",
+      "line": 33,
+      "tier": "source",
+      "ccn": 14,
+      "pinned": {
+        "ccn": 14
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/qr-scanner.js::decodeQrVideoFrame",
+      "file": "apps/host-desktop/src/renderer/qr-scanner.js",
+      "name": "decodeQrVideoFrame",
+      "line": 25,
+      "tier": "source",
+      "ccn": 14,
+      "pinned": {
+        "ccn": 14
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/messages-node.mjs::handleSetFreenetConfig",
+      "file": "apps/host-desktop/worklet/messages-node.mjs",
+      "name": "handleSetFreenetConfig",
+      "line": 110,
+      "tier": "source",
+      "ccn": 14,
+      "pinned": {
+        "ccn": 14
+      }
+    },
+    {
+      "key": "apps/handbook/content/applets/ai-chat/main.js::run",
+      "file": "apps/handbook/content/applets/ai-chat/main.js",
+      "name": "run",
+      "line": 4,
+      "tier": "source",
+      "ccn": 13,
+      "pinned": {
+        "ccn": 13
+      }
+    },
+    {
+      "key": "apps/handbook/content/applets/device-inventory/main.js::run",
+      "file": "apps/handbook/content/applets/device-inventory/main.js",
+      "name": "run",
+      "line": 6,
+      "tier": "source",
+      "ccn": 13,
+      "pinned": {
+        "ccn": 13
+      }
+    },
+    {
+      "key": "apps/handbook/src/runtime-applets.js::runAppletPreviewSlot",
+      "file": "apps/handbook/src/runtime-applets.js",
+      "name": "runAppletPreviewSlot",
+      "line": 128,
+      "tier": "source",
+      "ccn": 13,
+      "pinned": {
+        "ccn": 13
+      }
+    },
+    {
+      "key": "apps/harness-mobile/modules/usb-serial/android/src/main/java/network/twistedpear/harness/UsbSerialBridge.kt::findCdcAcmEndpoints",
+      "file": "apps/harness-mobile/modules/usb-serial/android/src/main/java/network/twistedpear/harness/UsbSerialBridge.kt",
+      "name": "findCdcAcmEndpoints",
+      "line": 308,
+      "tier": "source",
+      "ccn": 13,
+      "pinned": {
+        "ccn": 13
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/app-ui-bindings.mjs::bindHostChromeControls",
+      "file": "apps/host-desktop/src/renderer/app-ui-bindings.mjs",
+      "name": "bindHostChromeControls",
+      "line": 2,
+      "tier": "source",
+      "ccn": 13,
+      "pinned": {
+        "ccn": 13
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/peer-webrtc-bridge.js::attachMedia",
+      "file": "apps/host-desktop/src/renderer/peer-webrtc-bridge.js",
+      "name": "attachMedia",
+      "line": 172,
+      "tier": "source",
+      "ccn": 13,
+      "pinned": {
+        "ccn": 13
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/node-lifecycle.mjs::applyInterfaceConfig",
+      "file": "apps/host-desktop/worklet/node-lifecycle.mjs",
+      "name": "applyInterfaceConfig",
+      "line": 406,
+      "tier": "source",
+      "ccn": 13,
+      "pinned": {
+        "ccn": 13
+      }
+    },
+    {
+      "key": "apps/harness-mobile/worklet/web-entry.mjs::availability",
+      "file": "apps/harness-mobile/worklet/web-entry.mjs",
+      "name": "availability",
+      "line": 529,
+      "tier": "source",
+      "ccn": 12,
+      "pinned": {
+        "ccn": 12
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/media-codec-bridge.js::playInboundMediaFrame",
+      "file": "apps/host-desktop/src/renderer/media-codec-bridge.js",
+      "name": "playInboundMediaFrame",
+      "line": 47,
+      "tier": "source",
+      "ccn": 12,
+      "pinned": {
+        "ccn": 12
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/peer-webrtc-bridge.js::handlePeerWebRtcMessage",
+      "file": "apps/host-desktop/src/renderer/peer-webrtc-bridge.js",
+      "name": "handlePeerWebRtcMessage",
+      "line": 9,
+      "tier": "source",
+      "ccn": 12,
+      "pinned": {
+        "ccn": 12
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/messages-identity.mjs::handleIdentityExport",
+      "file": "apps/host-desktop/worklet/messages-identity.mjs",
+      "name": "handleIdentityExport",
+      "line": 83,
+      "tier": "source",
+      "ccn": 12,
+      "nloc": 131,
+      "pinned": {
+        "ccn": 12,
+        "nloc": 131
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/miniapp-host-ops.mjs::(anonymous)",
+      "file": "apps/host-desktop/worklet/miniapp-host-ops.mjs",
+      "name": "(anonymous)",
+      "line": 224,
+      "tier": "source",
+      "ccn": 12,
+      "pinned": {
+        "ccn": 12
+      }
+    },
+    {
+      "key": "apps/handbook/content/applets/apps-publish-install/main.js::run",
+      "file": "apps/handbook/content/applets/apps-publish-install/main.js",
+      "name": "run",
+      "line": 4,
+      "tier": "source",
+      "ccn": 11,
+      "pinned": {
+        "ccn": 11
+      }
+    },
+    {
+      "key": "apps/harness-mobile/modules/usb-serial/app.plugin.js::(anonymous)",
+      "file": "apps/harness-mobile/modules/usb-serial/app.plugin.js",
+      "name": "(anonymous)",
+      "line": 5,
+      "tier": "source",
+      "ccn": 11,
+      "pinned": {
+        "ccn": 11
+      }
+    },
+    {
+      "key": "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs::ensurePeerSessionManagerImpl",
+      "file": "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs",
+      "name": "ensurePeerSessionManagerImpl",
+      "line": 73,
+      "tier": "source",
+      "ccn": 11,
+      "nloc": 127,
+      "pinned": {
+        "ccn": 11,
+        "nloc": 127
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/app-settings.mjs::applyAiSettings",
+      "file": "apps/host-desktop/src/renderer/app-settings.mjs",
+      "name": "applyAiSettings",
+      "line": 92,
+      "tier": "source",
+      "ccn": 11,
+      "pinned": {
+        "ccn": 11
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/app-settings.mjs::applyFreenetSettings",
+      "file": "apps/host-desktop/src/renderer/app-settings.mjs",
+      "name": "applyFreenetSettings",
+      "line": 132,
+      "tier": "source",
+      "ccn": 11,
+      "pinned": {
+        "ccn": 11
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/worklet-entry-discovery.mjs::receivedAnnounce",
+      "file": "packages/worklet-core/src/worklet-entry-discovery.mjs",
+      "name": "receivedAnnounce",
+      "line": 56,
+      "tier": "source",
+      "ccn": 11,
+      "pinned": {
+        "ccn": 11
+      }
+    },
+    {
+      "key": "apps/handbook/build-reference.mjs::generateReferenceChapters",
+      "file": "apps/handbook/build-reference.mjs",
+      "name": "generateReferenceChapters",
+      "line": 69,
+      "tier": "tooling",
+      "nloc": 405,
+      "pinned": {
+        "nloc": 405
+      }
+    },
+    {
+      "key": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt::onCharacteristicWriteRequest",
+      "file": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt",
+      "name": "onCharacteristicWriteRequest",
+      "line": 220,
+      "tier": "source",
+      "params": 7,
+      "pinned": {
+        "params": 7
+      }
+    },
+    {
+      "key": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt::onDescriptorWriteRequest",
+      "file": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt",
+      "name": "onDescriptorWriteRequest",
+      "line": 245,
+      "tier": "source",
+      "params": 7,
+      "pinned": {
+        "params": 7
+      }
+    },
+    {
+      "key": "apps/host-desktop/worklet/entry-host-ipc.mjs::attachHostIpc",
+      "file": "apps/host-desktop/worklet/entry-host-ipc.mjs",
+      "name": "attachHostIpc",
+      "line": 2,
+      "tier": "source",
+      "params": 6,
+      "pinned": {
+        "params": 6
+      }
+    },
+    {
+      "key": "conformance/vectors/generate.py::base_packet_corpus.packet_entry",
+      "file": "conformance/vectors/generate.py",
+      "name": "base_packet_corpus.packet_entry",
+      "line": 118,
+      "tier": "tooling",
+      "params": 11,
+      "pinned": {
+        "params": 11
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createAppsBackendPreviewAction",
+      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "name": "createAppsBackendPreviewAction",
+      "line": 294,
+      "tier": "source",
+      "params": 6,
+      "pinned": {
+        "params": 6
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithCapabilityReview",
+      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "name": "launchWithCapabilityReview",
+      "line": 337,
+      "tier": "source",
+      "params": 10,
+      "pinned": {
+        "params": 10
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview",
+      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "name": "launchWithoutReview",
+      "line": 407,
+      "tier": "source",
+      "params": 7,
+      "pinned": {
+        "params": 7
+      }
+    }
+  ]
+}

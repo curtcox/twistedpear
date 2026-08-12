@@ -57,6 +57,13 @@ jobs:
       - name: Build workspace packages required by the gate
         if: matrix.id == 'mutation'
         run: npm run build
+      - name: Install lizard
+        if: matrix.id == 'hotspots'
+        # Pinned to match the PR-tier complexity-multilang gate, so the two
+        # never disagree about a function's CCN. The `fetch-depth: 0` above is
+        # what makes the churn half of this gate meaningful — a shallow clone
+        # reports one commit per file and the ranking collapses.
+        run: python -m pip install lizard==1.23.0
       - run: node scripts/checks/run.mjs --tier=nightly --only=${{ matrix.id }}
         env:
           PROPERTY_RUNS: "2000"

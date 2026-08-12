@@ -152,6 +152,28 @@ export const REQUIREMENTS = {
       linux: [["python3", "-m", "pip", "install", "--user", "mypy"]],
     },
   },
+  lizard: {
+    why: "function complexity in the languages ESLint does not parse",
+    probe: () => hasCommand("lizard", ["--version"]),
+    needs: ["python"],
+    // Pinned. Lizard's parsers are hand-written, and a release that counts one
+    // more branch in a `switch` shifts CCN across the whole repository — which
+    // would turn `complexity:multilang` red for reasons found nowhere in the
+    // diff that tripped it.
+    //
+    // Two recipes because there is no one command that works on both. Homebrew
+    // Python is PEP 668 "externally managed", so `pip3 install --user` there
+    // refuses outright; pipx is the supported route and is what CI's Ubuntu
+    // image does not need.
+    install: {
+      darwin: [
+        ["brew", "install", "pipx"],
+        ["pipx", "install", "lizard==1.23.0"],
+      ],
+      linux: [["pip3", "install", "--user", "lizard==1.23.0"]],
+    },
+    manual: "https://github.com/terryyin/lizard",
+  },
   shellcheck: {
     why: "linting the shell scripts",
     probe: () => hasCommand("shellcheck"),

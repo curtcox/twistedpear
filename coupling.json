@@ -1,0 +1,601 @@
+{
+  "version": 1,
+  "modules": 1117,
+  "components": 24,
+  "cycles": 6,
+  "unresolvedDependencies": 0,
+  "violations": 0,
+  "stale": 0,
+  "summary": [
+    {
+      "id": "conformance",
+      "modules": 242,
+      "ca": 3,
+      "ce": 21,
+      "instability": 0.88,
+      "dependsOn": [
+        "apps/harness-mobile",
+        "apps/host-desktop",
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/cli",
+        "packages/effects",
+        "packages/host-core",
+        "packages/lxmf-ts",
+        "packages/miniapp-runtime",
+        "packages/peer-discovery",
+        "packages/protocol",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts",
+        "packages/sim-adversaries",
+        "packages/sim-campaign",
+        "packages/widget-renderer-headless",
+        "packages/widget-renderer-rn",
+        "packages/worklet-core",
+        "scripts"
+      ]
+    },
+    {
+      "id": "packages/protocol",
+      "modules": 200,
+      "ca": 12,
+      "ce": 1,
+      "instability": 0.08,
+      "dependsOn": [
+        "packages/effects"
+      ]
+    },
+    {
+      "id": "scripts",
+      "modules": 130,
+      "ca": 1,
+      "ce": 9,
+      "instability": 0.9,
+      "dependsOn": [
+        "conformance",
+        "packages/cli",
+        "packages/effects",
+        "packages/miniapp-runtime",
+        "packages/peer-discovery",
+        "packages/protocol",
+        "packages/reticulum-ts",
+        "packages/widget-renderer-headless",
+        "packages/widget-renderer-rn"
+      ]
+    },
+    {
+      "id": "apps/harness-mobile",
+      "modules": 86,
+      "ca": 1,
+      "ce": 15,
+      "instability": 0.94,
+      "dependsOn": [
+        "conformance",
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/effects",
+        "packages/host-core",
+        "packages/lxmf-ts",
+        "packages/miniapp-runtime",
+        "packages/peer-discovery",
+        "packages/protocol",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts",
+        "packages/widget-renderer-rn",
+        "packages/worklet-core"
+      ]
+    },
+    {
+      "id": "packages/reticulum-ts",
+      "modules": 80,
+      "ca": 13,
+      "ce": 2,
+      "instability": 0.13,
+      "dependsOn": [
+        "packages/effects",
+        "packages/protocol"
+      ]
+    },
+    {
+      "id": "packages/miniapp-runtime",
+      "modules": 75,
+      "ca": 12,
+      "ce": 3,
+      "instability": 0.2,
+      "dependsOn": [
+        "packages/effects",
+        "packages/peer-discovery",
+        "packages/protocol"
+      ]
+    },
+    {
+      "id": "apps/host-desktop",
+      "modules": 38,
+      "ca": 1,
+      "ce": 13,
+      "instability": 0.93,
+      "dependsOn": [
+        "conformance",
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/host-core",
+        "packages/lxmf-ts",
+        "packages/miniapp-runtime",
+        "packages/peer-discovery",
+        "packages/protocol",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts",
+        "packages/worklet-core"
+      ]
+    },
+    {
+      "id": "packages/host-core",
+      "modules": 37,
+      "ca": 6,
+      "ce": 8,
+      "instability": 0.57,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/lxmf-ts",
+        "packages/protocol",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "apps/handbook",
+      "modules": 30,
+      "ca": 0,
+      "ce": 3,
+      "instability": 1,
+      "dependsOn": [
+        "packages/host-core",
+        "packages/miniapp-runtime",
+        "packages/miniapp-sdk"
+      ]
+    },
+    {
+      "id": "packages/worklet-core",
+      "modules": 30,
+      "ca": 3,
+      "ce": 9,
+      "instability": 0.75,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/effects",
+        "packages/host-core",
+        "packages/miniapp-runtime",
+        "packages/protocol",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/reticulum-interfaces",
+      "modules": 26,
+      "ca": 6,
+      "ce": 1,
+      "instability": 0.14,
+      "dependsOn": [
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/effects",
+      "modules": 23,
+      "ca": 10,
+      "ce": 0,
+      "instability": 0,
+      "dependsOn": []
+    },
+    {
+      "id": "packages/bridge-hyper",
+      "modules": 20,
+      "ca": 6,
+      "ce": 4,
+      "instability": 0.4,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/cas-256t",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/miniapp-sdk",
+      "modules": 19,
+      "ca": 1,
+      "ce": 1,
+      "instability": 0.5,
+      "dependsOn": [
+        "packages/miniapp-runtime"
+      ]
+    },
+    {
+      "id": "packages/peer-discovery",
+      "modules": 16,
+      "ca": 5,
+      "ce": 1,
+      "instability": 0.17,
+      "dependsOn": [
+        "packages/protocol"
+      ]
+    },
+    {
+      "id": "packages/cli",
+      "modules": 12,
+      "ca": 2,
+      "ce": 7,
+      "instability": 0.78,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/host-core",
+        "packages/miniapp-runtime",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/lxmf-ts",
+      "modules": 11,
+      "ca": 4,
+      "ce": 3,
+      "instability": 0.43,
+      "dependsOn": [
+        "packages/effects",
+        "packages/protocol",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/bridge-freenet",
+      "modules": 10,
+      "ca": 5,
+      "ce": 2,
+      "instability": 0.29,
+      "dependsOn": [
+        "packages/cas-256t",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/sim-campaign",
+      "modules": 10,
+      "ca": 1,
+      "ce": 4,
+      "instability": 0.8,
+      "dependsOn": [
+        "packages/effects",
+        "packages/miniapp-runtime",
+        "packages/protocol",
+        "packages/sim-adversaries"
+      ]
+    },
+    {
+      "id": "packages/sim-adversaries",
+      "modules": 8,
+      "ca": 2,
+      "ce": 3,
+      "instability": 0.6,
+      "dependsOn": [
+        "packages/effects",
+        "packages/miniapp-runtime",
+        "packages/protocol"
+      ]
+    },
+    {
+      "id": "packages/app-registry",
+      "modules": 7,
+      "ca": 7,
+      "ce": 2,
+      "instability": 0.22,
+      "dependsOn": [
+        "packages/cas-256t",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/cas-256t",
+      "modules": 4,
+      "ca": 9,
+      "ce": 1,
+      "instability": 0.1,
+      "dependsOn": [
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/widget-renderer-rn",
+      "modules": 2,
+      "ca": 3,
+      "ce": 1,
+      "instability": 0.25,
+      "dependsOn": [
+        "packages/miniapp-runtime"
+      ]
+    },
+    {
+      "id": "packages/widget-renderer-headless",
+      "modules": 1,
+      "ca": 2,
+      "ce": 1,
+      "instability": 0.33,
+      "dependsOn": [
+        "packages/miniapp-runtime"
+      ]
+    }
+  ],
+  "findings": {
+    "fanOut": [
+      {
+        "key": "packages/miniapp-runtime/src/index.ts",
+        "value": 49,
+        "limit": 40
+      },
+      {
+        "key": "packages/reticulum-ts/src/worklet.ts",
+        "value": 34,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/entry.mjs",
+        "value": 32,
+        "limit": 15
+      },
+      {
+        "key": "packages/miniapp-runtime/src/host/layer-2.ts",
+        "value": 31,
+        "limit": 15
+      },
+      {
+        "key": "packages/protocol/src/index/misc.ts",
+        "value": 26,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry.mjs",
+        "value": 25,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/app-native-view.tsx",
+        "value": 23,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/app-native-view-part-1.tsx",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/app-native-view-part-3.tsx",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "packages/miniapp-runtime/src/host/layer-1-base.ts",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "packages/miniapp-runtime/src/worklet.ts",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/link/layer-4.ts",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/link/layer-3.ts",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/link/layer-3-core.ts",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/link/layer-2.ts",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/link/layer-2-establish.ts",
+        "value": 19,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry-ensureCrossDeviceTestDriver.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry-ensureInstallService.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry-ensureMiniappHost.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/worklet/web-entry-startHostSession.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/host-desktop/worklet/entry.mjs",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/link/layer-1.ts",
+        "value": 18,
+        "limit": 15
+      },
+      {
+        "key": "apps/harness-mobile/app-native-shared.tsx",
+        "value": 17,
+        "limit": 15
+      },
+      {
+        "key": "packages/protocol/src/index/link.ts",
+        "value": 17,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/transport/node/layer-2.ts",
+        "value": 16,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/transport/node/layer-1-core.ts",
+        "value": 16,
+        "limit": 15
+      },
+      {
+        "key": "packages/reticulum-ts/src/web.ts",
+        "value": 16,
+        "limit": 15
+      }
+    ],
+    "fanIn": [
+      {
+        "key": "packages/reticulum-ts/src/crypto/bytes.ts",
+        "value": 47,
+        "limit": 40
+      }
+    ],
+    "cycles": [
+      {
+        "key": "packages/reticulum-ts/src/channel.ts",
+        "value": 30,
+        "members": [
+          "packages/reticulum-ts/src/channel.ts",
+          "packages/reticulum-ts/src/channel/part-1.ts",
+          "packages/reticulum-ts/src/channel/part-2.ts",
+          "packages/reticulum-ts/src/channel/part-3.ts",
+          "packages/reticulum-ts/src/link-request-receipt.ts",
+          "packages/reticulum-ts/src/link.ts",
+          "packages/reticulum-ts/src/link/layer-1.ts",
+          "packages/reticulum-ts/src/link/layer-2-establish.ts",
+          "packages/reticulum-ts/src/link/layer-2.ts",
+          "packages/reticulum-ts/src/link/layer-3-core.ts",
+          "packages/reticulum-ts/src/link/layer-3.ts",
+          "packages/reticulum-ts/src/link/layer-4.ts",
+          "packages/reticulum-ts/src/link/shared.ts",
+          "packages/reticulum-ts/src/registered-destination.ts",
+          "packages/reticulum-ts/src/resource.ts",
+          "packages/reticulum-ts/src/resource/layer-1.ts",
+          "packages/reticulum-ts/src/resource/layer-2-core.ts",
+          "packages/reticulum-ts/src/resource/layer-2.ts",
+          "packages/reticulum-ts/src/resource/shared.ts",
+          "packages/reticulum-ts/src/reticulum.ts",
+          "packages/reticulum-ts/src/transport/node.ts",
+          "packages/reticulum-ts/src/transport/node/layer-1-announce.ts",
+          "packages/reticulum-ts/src/transport/node/layer-1-core.ts",
+          "packages/reticulum-ts/src/transport/node/layer-1.ts",
+          "packages/reticulum-ts/src/transport/node/layer-2.ts",
+          "packages/reticulum-ts/src/transport/node/shared.ts",
+          "packages/reticulum-ts/src/transport/transport-node-base.ts",
+          "packages/reticulum-ts/src/transport/transport-node-path.ts",
+          "packages/reticulum-ts/src/transport/transport-types.ts",
+          "packages/reticulum-ts/src/transport/transport.ts"
+        ]
+      },
+      {
+        "key": "packages/peer-discovery/src/audio.ts",
+        "value": 15,
+        "members": [
+          "packages/peer-discovery/src/audio.ts",
+          "packages/peer-discovery/src/bluetooth.ts",
+          "packages/peer-discovery/src/budget.ts",
+          "packages/peer-discovery/src/coordinator.ts",
+          "packages/peer-discovery/src/crypto-backend.ts",
+          "packages/peer-discovery/src/index.ts",
+          "packages/peer-discovery/src/local-peer-to-peer.ts",
+          "packages/peer-discovery/src/manual.ts",
+          "packages/peer-discovery/src/ntfy.ts",
+          "packages/peer-discovery/src/qr.ts",
+          "packages/peer-discovery/src/reticulum.ts",
+          "packages/peer-discovery/src/route-quality.ts",
+          "packages/peer-discovery/src/route-registry.ts",
+          "packages/peer-discovery/src/unavailable.ts",
+          "packages/peer-discovery/src/webrtc-route.ts"
+        ]
+      },
+      {
+        "key": "packages/miniapp-runtime/src/device-manager.ts",
+        "value": 9,
+        "members": [
+          "packages/miniapp-runtime/src/device-manager.ts",
+          "packages/miniapp-runtime/src/device-manager/layer-1-base.ts",
+          "packages/miniapp-runtime/src/device-manager/layer-1.ts",
+          "packages/miniapp-runtime/src/device-manager/layer-2-base.ts",
+          "packages/miniapp-runtime/src/device-manager/layer-2-samples.ts",
+          "packages/miniapp-runtime/src/device-manager/layer-2.ts",
+          "packages/miniapp-runtime/src/device-manager/layer-3.ts",
+          "packages/miniapp-runtime/src/device-manager/shared.ts",
+          "packages/miniapp-runtime/src/drivers/host-bridge.ts"
+        ]
+      },
+      {
+        "key": "packages/effects/src/adapters/sim/kernel.ts",
+        "value": 2,
+        "members": [
+          "packages/effects/src/adapters/sim/kernel.ts",
+          "packages/effects/src/adapters/sim/recorder.ts"
+        ]
+      },
+      {
+        "key": "packages/host-core/src/interface-manager-open.ts",
+        "value": 2,
+        "members": [
+          "packages/host-core/src/interface-manager-open.ts",
+          "packages/host-core/src/interface-manager.ts"
+        ]
+      },
+      {
+        "key": "packages/protocol/src/grant-storage-migration.ts",
+        "value": 2,
+        "members": [
+          "packages/protocol/src/grant-storage-migration.ts",
+          "packages/protocol/src/grants.ts"
+        ]
+      }
+    ],
+    "sdp": []
+  }
+}

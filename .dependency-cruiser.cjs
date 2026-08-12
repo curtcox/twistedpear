@@ -5,8 +5,30 @@ module.exports = {
       name: "no-circular",
       severity: "error",
       comment: "Package and app imports must remain acyclic.",
-      from: { path: "^(packages|apps)/" },
+      from: { path: "^(packages|apps|scripts|conformance)/" },
       to: { circular: true },
+    },
+    {
+      name: "no-tooling-in-source",
+      severity: "error",
+      comment:
+        "Shipped code must never import build scripts or conformance harnesses.",
+      from: {
+        path: "^(packages|apps)/",
+        pathNot: "(^|/)test/|\\.test\\.(ts|tsx|js|mjs)$",
+      },
+      to: {
+        path: "^(scripts|conformance)/",
+        // Two Bare-runtime polyfills that the desktop and mobile worklet
+        // entry points load before anything else. They are genuine violations
+        // — shipped code reaching into the conformance tree — but they are
+        // also named in two build scripts, two generated import maps and a
+        // committed bundle manifest, so moving them is its own change. Listed
+        // here rather than baselined because the structure ratchet fails on
+        // baseline growth, and tracked in docs/complexity-gates.md.
+        pathNot:
+          "^conformance/bare-interop/bare-globals\\.mjs$|^conformance/freenet-spike/bare-websocket-shim\\.mjs$",
+      },
     },
     {
       name: "no-orphans",

@@ -8,6 +8,7 @@ import {
   readJson,
   writeJson,
 } from "../ratchet/lib.mjs";
+import { isGeneratedPath } from "./generated-paths.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -85,12 +86,12 @@ for (const issue of Object.values(knip.issues ?? {})) {
   }
 }
 for (const violation of cruise.summary?.violations ?? cruise.violations ?? []) {
+  // Shared with the complexity and coupling gates so all three agree on what
+  // is authored. Previously this list was its own regex and did not know about
+  // the `-part-N` / `-extracted-N` concat inputs, so one import in `entry.mjs`
+  // was reported ten more times through the fragments it is assembled from.
   if (
-    [violation.from, violation.to].some((file) =>
-      /(^|\/)(dist|archive|site)\/|\.bundle(?:\.mjs)?$|\.gen\.ts$/.test(
-        file ?? "",
-      ),
-    )
+    [violation.from, violation.to].some((file) => isGeneratedPath(file ?? ""))
   )
     continue;
   findings.push(

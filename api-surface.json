@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "total": 7871,
+  "cap": 7871,
+  "packages": 19,
+  "entryPoints": 44,
+  "unresolved": 0,
+  "violations": 0,
+  "findings": [
+    {
+      "name": "protocol",
+      "entryPoints": {
+        ".": 5892
+      },
+      "total": 5892
+    },
+    {
+      "name": "reticulum-ts",
+      "entryPoints": {
+        ".": 216,
+        "./web": 84,
+        "./worklet": 197
+      },
+      "total": 497
+    },
+    {
+      "name": "miniapp-runtime",
+      "entryPoints": {
+        ".": 294,
+        "./worklet": 91,
+        "./sandbox/web": 2,
+        "./ui": 13
+      },
+      "total": 400
+    },
+    {
+      "name": "host-core",
+      "entryPoints": {
+        ".": 185,
+        "./web": 56,
+        "./protocol": 12,
+        "./identity-backup": 12
+      },
+      "total": 265
+    },
+    {
+      "name": "effects",
+      "entryPoints": {
+        ".": 62,
+        "./adapters/real": 4,
+        "./adapters/sim": 85,
+        "./tripwire": 4
+      },
+      "total": 155
+    },
+    {
+      "name": "reticulum-interfaces",
+      "entryPoints": {
+        ".": 120,
+        "./bonjour-mdns": 2,
+        "./multicast-node": 2,
+        "./serial-node": 3,
+        "./policy": 9
+      },
+      "total": 136
+    },
+    {
+      "name": "bridge-hyper",
+      "entryPoints": {
+        ".": 46,
+        "./resource-server": 7,
+        "./web": 13,
+        "./worklet": 21,
+        "./worklet-hyper": 7
+      },
+      "total": 94
+    },
+    {
+      "name": "peer-discovery",
+      "entryPoints": {
+        ".": 87
+      },
+      "total": 87
+    },
+    {
+      "name": "lxmf-ts",
+      "entryPoints": {
+        ".": 64
+      },
+      "total": 64
+    },
+    {
+      "name": "app-registry",
+      "entryPoints": {
+        ".": 57
+      },
+      "total": 57
+    },
+    {
+      "name": "sim-campaign",
+      "entryPoints": {
+        ".": 48
+      },
+      "total": 48
+    },
+    {
+      "name": "bridge-freenet",
+      "entryPoints": {
+        ".": 42
+      },
+      "total": 42
+    },
+    {
+      "name": "worklet-core",
+      "entryPoints": {
+        ".": 32,
+        "./dev-channel": 1,
+        "./ipc-bonjour-bridge": 1,
+        "./ipc-multicast-bridge": 1,
+        "./ipc-serial-bridge": 1,
+        "./miniapp-host": 1,
+        "./web-miniapp-host": 2
+      },
+      "total": 39
+    },
+    {
+      "name": "cas-256t",
+      "entryPoints": {
+        ".": 33
+      },
+      "total": 33
+    },
+    {
+      "name": "sim-adversaries",
+      "entryPoints": {
+        ".": 28
+      },
+      "total": 28
+    },
+    {
+      "name": "miniapp-sdk",
+      "entryPoints": {
+        ".": 20
+      },
+      "total": 20
+    },
+    {
+      "name": "widget-renderer-headless",
+      "entryPoints": {
+        ".": 9
+      },
+      "total": 9
+    },
+    {
+      "name": "cli",
+      "entryPoints": {
+        ".": 4
+      },
+      "total": 4
+    },
+    {
+      "name": "widget-renderer-rn",
+      "entryPoints": {
+        ".": 1
+      },
+      "total": 1
+    }
+  ]
+}

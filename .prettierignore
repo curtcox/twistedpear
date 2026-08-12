@@ -44,3 +44,17 @@ apps/harness-mobile/worklet/entry-part-*.mjs
 apps/harness-mobile/worklet/web-entry-part-*.mjs
 
 apps/host-desktop/src/renderer/vendor/
+
+# Written by the analysis gates through writeJson (JSON.stringify with two
+# spaces), and rewritten in place by their `--write` baseline commands. Prettier
+# collapses short arrays and would fight every recalibration: the gate would
+# emit one form, format:check would demand another, and `npm run
+# complexity:multilang:baseline` would leave the tree red. Same reasoning as
+# specs/spec-widget/schema/widget.schema.json above — the generator owns these.
+complexity-multilang.json
+complexity-multilang-rules.json
+coupling.json
+coupling-rules.json
+api-surface.json
+api-surface-limits.json
+hotspots.json

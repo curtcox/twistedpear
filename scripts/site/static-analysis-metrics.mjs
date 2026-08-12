@@ -54,6 +54,18 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
   } else if (gate.id === "structure") {
     const report = findingReport("structure.json");
     if (report) values.push(metric("Knip files", report.knip?.files ?? 0), metric("Knip workspaces", report.knip?.workspaces ?? 0));
+  } else if (gate.id === "coupling") {
+    const report = json("coupling.json");
+    if (report) values.push(metric("Modules", report.modules), metric("Components", report.components), metric("Cycles", report.cycles));
+  } else if (gate.id === "api-surface") {
+    const report = json("api-surface.json");
+    if (report) values.push(metric("Public symbols", report.total), metric("Packages", report.packages), metric("Entry points", report.entryPoints));
+  } else if (gate.id === "complexity-multilang") {
+    const report = json("complexity-multilang.json");
+    if (report) values.push(metric("Functions", report.functions), metric("Exemptions", report.exemptions));
+  } else if (gate.id === "hotspots") {
+    const report = json("hotspots.json");
+    if (report) values.push(metric("Files measured", report.filesMeasured), metric("Window", report.windowDays, "days"));
   } else if (["complexity", "lint-all", "typed-lint"].includes(gate.id)) {
     findingReport({ complexity: "complexity.json", "lint-all": "lint.json", "typed-lint": "typed-lint.json" }[gate.id]);
   } else if (gate.id === "format") {

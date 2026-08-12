@@ -1,0 +1,356 @@
+{
+  "version": 1,
+  "description": "Function-level complexity limits for the languages ESLint does not cover. Thresholds mirror complexity-rules.json so a function does not become acceptable by being written in .mjs instead of .ts. `exemptions` maps `file::function` to the worst value observed when the gate landed: an entry may shrink or disappear, it may never grow, and an entry whose code is back under the limit fails the build until it is deleted. Run `npm run complexity:multilang:baseline` to recalibrate.",
+  "languages": [
+    "javascript",
+    "python",
+    "kotlin",
+    "swift"
+  ],
+  "roots": [
+    "packages",
+    "apps",
+    "conformance",
+    "scripts",
+    "formal",
+    "launcher.py"
+  ],
+  "tiers": [
+    {
+      "id": "tooling",
+      "match": [
+        "^(scripts|conformance|formal)/",
+        "\\.config\\.(js|mjs|cjs)$",
+        "(^|/)build[^/]*\\.mjs$"
+      ],
+      "ccn": 15,
+      "params": 8,
+      "nloc": 200
+    },
+    {
+      "id": "test",
+      "match": [
+        "(^|/)test/",
+        "\\.test\\.(js|mjs|cjs)$"
+      ],
+      "ccn": 15,
+      "params": 8,
+      "nloc": 200
+    },
+    {
+      "id": "source",
+      "match": [],
+      "ccn": 10,
+      "params": 5,
+      "nloc": 120
+    }
+  ],
+  "exemptions": {
+    "apps/handbook/build-content.mjs::loadApplets": {
+      "ccn": 38
+    },
+    "apps/handbook/build-reference.mjs::generateReferenceChapters": {
+      "nloc": 405
+    },
+    "apps/handbook/build.mjs::build": {
+      "ccn": 37,
+      "nloc": 218
+    },
+    "apps/handbook/content/applets/ai-chat/main.js::run": {
+      "ccn": 13
+    },
+    "apps/handbook/content/applets/apps-publish-install/main.js::run": {
+      "ccn": 11
+    },
+    "apps/handbook/content/applets/device-inventory/main.js::run": {
+      "ccn": 13
+    },
+    "apps/handbook/content/applets/host-info/main.js::run": {
+      "ccn": 15
+    },
+    "apps/handbook/content/applets/relay-status/main.js::run": {
+      "ccn": 14
+    },
+    "apps/handbook/src/runtime-applets.js::runAppletInline": {
+      "ccn": 14
+    },
+    "apps/handbook/src/runtime-applets.js::runAppletPreviewSlot": {
+      "ccn": 13
+    },
+    "apps/handbook/src/runtime-render.js::chapterNeighbors": {
+      "ccn": 128,
+      "nloc": 594
+    },
+    "apps/handbook/src/runtime.js::handleEvent": {
+      "ccn": 30
+    },
+    "apps/handbook/src/runtime.js::render": {
+      "ccn": 17,
+      "nloc": 144
+    },
+    "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt::onCharacteristicWriteRequest": {
+      "params": 7
+    },
+    "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt::onDescriptorWriteRequest": {
+      "params": 7
+    },
+    "apps/harness-mobile/modules/peer-audio/android/src/main/java/expo/modules/twistedpear/peeraudio/PeerAudioModule.kt::(anonymous)": {
+      "ccn": 14
+    },
+    "apps/harness-mobile/modules/usb-serial/android/src/main/java/network/twistedpear/harness/UsbSerialBridge.kt::findCdcAcmEndpoints": {
+      "ccn": 13
+    },
+    "apps/harness-mobile/modules/usb-serial/app.plugin.js::(anonymous)": {
+      "ccn": 11
+    },
+    "apps/harness-mobile/worklet/entry.mjs::availability": {
+      "ccn": 18,
+      "nloc": 353
+    },
+    "apps/harness-mobile/worklet/entry.mjs::loadRelayConfig": {
+      "ccn": 16
+    },
+    "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs::ensurePeerSessionManagerImpl": {
+      "ccn": 11,
+      "nloc": 127
+    },
+    "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs::handleHostMessageImpl": {
+      "ccn": 22
+    },
+    "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs::handleWebRtcHarnessCommandImpl": {
+      "ccn": 20
+    },
+    "apps/harness-mobile/worklet/web-entry.mjs::availability": {
+      "ccn": 12
+    },
+    "apps/host-desktop/src/renderer/app-settings.mjs::applyAiSettings": {
+      "ccn": 11
+    },
+    "apps/host-desktop/src/renderer/app-settings.mjs::applyFreenetSettings": {
+      "ccn": 11
+    },
+    "apps/host-desktop/src/renderer/app-settings.mjs::bindSettingsPanel": {
+      "ccn": 37,
+      "nloc": 123
+    },
+    "apps/host-desktop/src/renderer/app-ui-bindings.mjs::bindHostChromeControls": {
+      "ccn": 13
+    },
+    "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage": {
+      "ccn": 89,
+      "nloc": 324
+    },
+    "apps/host-desktop/src/renderer/device-bridge.js::deviceAvailability": {
+      "ccn": 15
+    },
+    "apps/host-desktop/src/renderer/media-codec-bridge.js::playInboundMediaFrame": {
+      "ccn": 12
+    },
+    "apps/host-desktop/src/renderer/peer-webrtc-bridge.js::attachMedia": {
+      "ccn": 13
+    },
+    "apps/host-desktop/src/renderer/peer-webrtc-bridge.js::handlePeerWebRtcMessage": {
+      "ccn": 12
+    },
+    "apps/host-desktop/src/renderer/qr-scanner.js::decodeQrVideoFrame": {
+      "ccn": 14
+    },
+    "apps/host-desktop/src/renderer/widgets.js::renderNode": {
+      "ccn": 47,
+      "nloc": 139
+    },
+    "apps/host-desktop/worklet/entry-host-ipc.mjs::attachHostIpc": {
+      "params": 6
+    },
+    "apps/host-desktop/worklet/entry-status.mjs::(anonymous)": {
+      "ccn": 15
+    },
+    "apps/host-desktop/worklet/messages-catalog.mjs::handleInstallApp": {
+      "ccn": 23
+    },
+    "apps/host-desktop/worklet/messages-identity.mjs::handleIdentityExport": {
+      "ccn": 12,
+      "nloc": 131
+    },
+    "apps/host-desktop/worklet/messages-identity.mjs::handleModerationUpdate": {
+      "ccn": 18
+    },
+    "apps/host-desktop/worklet/messages-node.mjs::handleSetFreenetConfig": {
+      "ccn": 14
+    },
+    "apps/host-desktop/worklet/miniapp-host-ops.mjs::(anonymous)": {
+      "ccn": 12
+    },
+    "apps/host-desktop/worklet/miniapp-host-ops.mjs::loadRelayConfig": {
+      "ccn": 17
+    },
+    "apps/host-desktop/worklet/node-lifecycle.mjs::applyInterfaceConfig": {
+      "ccn": 13
+    },
+    "apps/host-desktop/worklet/peer-chrome.mjs::transmit": {
+      "ccn": 18
+    },
+    "apps/host-desktop/worklet/peer-session.mjs::(anonymous)": {
+      "ccn": 34,
+      "nloc": 300
+    },
+    "apps/host-desktop/worklet/test-agent-handler.mjs::handleCommand": {
+      "ccn": 57,
+      "nloc": 288
+    },
+    "conformance/cli/run.mjs::assertExit": {
+      "ccn": 22
+    },
+    "conformance/cross-device-dev/run.mjs::(anonymous)": {
+      "ccn": 35,
+      "nloc": 291
+    },
+    "conformance/desktop/dev-loop.mjs::runDesktopDevLoop": {
+      "ccn": 18
+    },
+    "conformance/dist-soak/run.mjs::main": {
+      "ccn": 19
+    },
+    "conformance/handbook/mobile-slice.mjs::runHandbookMobileSlice": {
+      "ccn": 17
+    },
+    "conformance/handbook/part-packages.mjs::runHandbookPartPackagesSmoke": {
+      "ccn": 16
+    },
+    "conformance/handbook/run.mjs::main": {
+      "ccn": 31,
+      "nloc": 268
+    },
+    "conformance/hostile-apps/run.mjs::main": {
+      "ccn": 23,
+      "nloc": 299
+    },
+    "conformance/i2p-interop/run.mjs::withI2pInterface": {
+      "ccn": 19
+    },
+    "conformance/ios-sim/dev-loop.mjs::runIosDevLoop": {
+      "ccn": 18
+    },
+    "conformance/kernel/mini-kernel.mjs::constructor": {
+      "ccn": 16
+    },
+    "conformance/mac-validation/run.mjs::parseArgs": {
+      "ccn": 26
+    },
+    "conformance/mixed-network-soak/run.mjs::main": {
+      "ccn": 21
+    },
+    "conformance/sdk-interop/run.mjs::main": {
+      "ccn": 32,
+      "nloc": 350
+    },
+    "conformance/sdk-interop/vectors.mjs::runSdkVectors": {
+      "ccn": 24
+    },
+    "conformance/seeder/run.mjs::main": {
+      "ccn": 16
+    },
+    "conformance/tools/mini-json-schema.mjs::check": {
+      "ccn": 44
+    },
+    "conformance/vectors/generate.py::base_packet_corpus.packet_entry": {
+      "params": 11
+    },
+    "conformance/web-devstudio/entry.mjs::worker.onmessage": {
+      "ccn": 18
+    },
+    "conformance/web-handbook/entry.mjs::main": {
+      "ccn": 17
+    },
+    "conformance/web-handbook/entry.mjs::worker.onmessage": {
+      "ccn": 18
+    },
+    "conformance/web-widget-renderer/entry.mjs::main": {
+      "ccn": 21
+    },
+    "conformance/webrtc-gui-call/run.mjs::(anonymous)": {
+      "ccn": 62,
+      "nloc": 348
+    },
+    "launcher.py::parse_entries": {
+      "ccn": 18
+    },
+    "packages/worklet-core/src/cross-device-test-driver.mjs::handleCrossDeviceCommand": {
+      "ccn": 42,
+      "nloc": 148
+    },
+    "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createAppsBackendPreviewAction": {
+      "params": 6
+    },
+    "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend": {
+      "ccn": 22
+    },
+    "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline": {
+      "ccn": 30
+    },
+    "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithCapabilityReview": {
+      "params": 10
+    },
+    "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview": {
+      "params": 7
+    },
+    "packages/worklet-core/src/miniapp-host.mjs::createWorkletMiniappHost": {
+      "ccn": 16
+    },
+    "packages/worklet-core/src/web-miniapp-host.mjs::createWebWorkletMiniappHost": {
+      "ccn": 18,
+      "nloc": 136
+    },
+    "packages/worklet-core/src/worklet-entry-catalog.mjs::(anonymous)": {
+      "ccn": 18
+    },
+    "packages/worklet-core/src/worklet-entry-discovery.mjs::receivedAnnounce": {
+      "ccn": 11
+    },
+    "packages/worklet-core/src/worklet-entry-install.mjs::installFromT256": {
+      "ccn": 22
+    },
+    "scripts/checks/status.mjs::collect": {
+      "ccn": 21
+    },
+    "scripts/checks/waive.mjs::save": {
+      "ccn": 24
+    },
+    "scripts/doc-audit/paths.mjs::looksLikePathToken": {
+      "ccn": 24
+    },
+    "scripts/languages/check.mjs::tracked": {
+      "ccn": 33
+    },
+    "scripts/peers.mjs::commandStatus": {
+      "ccn": 19
+    },
+    "scripts/release/status.mjs::calculate": {
+      "ccn": 36
+    },
+    "scripts/site/run-reports.mjs::main": {
+      "ccn": 24
+    },
+    "scripts/site/run-reports.mjs::runJob": {
+      "ccn": 34
+    },
+    "scripts/site/stage.mjs::rewriteMarkdownLinks": {
+      "ccn": 51
+    },
+    "scripts/site/static-analysis-metrics.mjs::summarizeStaticAnalysis": {
+      "ccn": 52
+    },
+    "scripts/site/validate-links.mjs::existsTarget": {
+      "ccn": 20
+    },
+    "scripts/size-ratchet.mjs::main": {
+      "ccn": 50
+    },
+    "scripts/work/diff.mjs::snapshotAt": {
+      "ccn": 16
+    },
+    "scripts/work/lib.mjs::(anonymous)": {
+      "ccn": 28
+    }
+  }
+}

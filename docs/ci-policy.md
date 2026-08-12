@@ -44,6 +44,13 @@ crosses the danger threshold for its type fails the build unless it is grandfath
 `size-rules.json`; see [File-size classification](file-sizes.md). The Pages workflow runs
 the same gate as a reported job and publishes the classification to the deployed site.
 
+The `complexity-multilang`, `coupling` and `api-surface` registry gates cover the
+complexity dimensions the ratchets above do not: function complexity outside TypeScript,
+module and component coupling, and public API surface size. Unlike the ratchets they use
+hard thresholds, and their exemption lists drain — an entry whose code is clean again
+fails the build until the line is deleted. The nightly `hotspots` gate ranks churn ×
+complexity and is report-only. See [Complexity gates](complexity-gates.md).
+
 ### Path-filtered macOS jobs
 
 | Job             | Trigger               | Paths                                                                                                                                                                                                                                                                                                                                                  |

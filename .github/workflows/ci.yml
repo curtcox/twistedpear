@@ -76,6 +76,13 @@ jobs:
       - name: Install Python linters
         if: matrix.id == 'python'
         run: python -m pip install ruff==0.15.16 mypy==2.1.0
+      - name: Install lizard
+        if: matrix.id == 'complexity-multilang'
+        # Pinned like every other analyzer here. Lizard's parsers are
+        # hand-written, so a release that counts one more branch shifts CCN
+        # across the repository and turns the gate red for reasons that are
+        # nowhere in the diff that tripped it.
+        run: python -m pip install lizard==1.23.0
       - name: Install Rust analysis tools
         if: matrix.id == 'rust'
         run: |
