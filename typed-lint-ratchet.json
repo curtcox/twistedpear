@@ -274,7 +274,6 @@
     "packages/protocol/src/destination-name.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always true, since `\"use-raw\" === \"use-raw\"` is true.:occurrence-1",
     "packages/protocol/src/destination-name.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always true, since `\"use-raw\" === \"use-raw\"` is true.:occurrence-2",
     "packages/protocol/src/destination-proof.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always true, since `\"skip\" === \"skip\"` is true.:occurrence-1",
-    "packages/protocol/src/device-actuator-safety.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `\"write\" !== \"write\"` is false.:occurrence-1",
     "packages/protocol/src/device-fingerprint.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `# !== #` is false.:occurrence-1",
     "packages/protocol/src/device-remote.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always true, since `\"remote/ttl\" === \"remote/ttl\"` is true.:occurrence-1",
     "packages/protocol/src/device-stream-framing.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `# !== #` is false.:occurrence-1",

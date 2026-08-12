@@ -297,13 +297,7 @@ function validateNfc(
   if (command.action === "apdu") {
     return validateNfcApdu(command);
   }
-  if (command.action === "write") {
-    return validateNfcWrite(command);
-  }
-  throw new ActuatorSafetyError(
-    "COMMAND_INVALID",
-    "nfc action must be write or apdu.",
-  );
+  return validateNfcWrite(command);
 }
 
 function validateNfcApdu(
