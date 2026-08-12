@@ -56,6 +56,16 @@ export interface InFlightMessage {
   readonly payload: Uint8Array;
 }
 
+function authorizesAdversaryAction(
+  link: LinkConfig | undefined,
+  actor: NodeId,
+  action: TransportAdversaryAction,
+): boolean {
+  return (
+    link?.adversary === actor && link.powers?.includes(action.power) === true
+  );
+}
+
 /**
  * In-memory multi-node transport with pluggable latency/loss.
  * Sends are intents; receives become events when the kernel advances time.
@@ -174,7 +184,7 @@ export class SimTransport {
         candidate.source === action.source &&
         candidate.destination === action.destination,
     );
-    if (link?.adversary !== actor || !link.powers?.includes(action.power)) {
+    if (!authorizesAdversaryAction(link, actor, action)) {
       throw new UnauthorizedAdversaryPowerError(actor, action);
     }
     const matches = (message: InFlightMessage) =>

@@ -13,6 +13,27 @@ function bytesToHex(bytes: Uint8Array): string {
   return out;
 }
 
+function canonicalNumber(value: number): string {
+  if (!Number.isFinite(value)) {
+    throw new Error(`non-finite number is not canonicalizable: ${value}`);
+  }
+  return JSON.stringify(value);
+}
+
+function canonicalArray(values: readonly unknown[]): string {
+  return `[${values.map((item) => canonicalJson(item ?? null)).join(",")}]`;
+}
+
+function canonicalRecord(record: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const key of Object.keys(record).sort()) {
+    const item = record[key];
+    if (item === undefined) continue;
+    parts.push(`${JSON.stringify(key)}:${canonicalJson(item)}`);
+  }
+  return `{${parts.join(",")}}`;
+}
+
 /**
  * SPEC-TRACE canonical JSON: object keys sorted by UTF-16 code units,
  * `Uint8Array` as {"$bytes":"<lowercase hex>"}, no whitespace, numbers in
@@ -22,29 +43,14 @@ function bytesToHex(bytes: Uint8Array): string {
 export function canonicalJson(value: unknown): string {
   if (value === null) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new Error(`non-finite number is not canonicalizable: ${value}`);
-    }
-    return JSON.stringify(value);
-  }
+  if (typeof value === "number") return canonicalNumber(value);
   if (typeof value === "string") return JSON.stringify(value);
   if (value instanceof Uint8Array) {
     return `{"$bytes":"${bytesToHex(value)}"}`;
   }
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => canonicalJson(item ?? null)).join(",")}]`;
-  }
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const parts: string[] = [];
-    for (const key of Object.keys(record).sort()) {
-      const item = record[key];
-      if (item === undefined) continue;
-      parts.push(`${JSON.stringify(key)}:${canonicalJson(item)}`);
-    }
-    return `{${parts.join(",")}}`;
-  }
+  if (Array.isArray(value)) return canonicalArray(value);
+  if (typeof value === "object")
+    return canonicalRecord(value as Record<string, unknown>);
   throw new Error(`value of type ${typeof value} is not canonicalizable`);
 }
 
