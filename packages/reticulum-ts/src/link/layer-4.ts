@@ -148,7 +148,6 @@ import type {
   LinkRequestOptions,
   LinkSendContextResult,
 } from "./shared.js";
-import { Link } from "../link.js";
 import { LinkLayer3 } from "./layer-3.js";
 export class LinkLayer4 extends LinkLayer3 {
   async receive(packet: Packet, iface: PacketInterface): Promise<void> {

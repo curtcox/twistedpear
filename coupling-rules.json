@@ -81,9 +81,8 @@
     "packages/reticulum-ts/src/link/layer-2.ts": 19,
     "packages/reticulum-ts/src/link/layer-3-core.ts": 19,
     "packages/reticulum-ts/src/link/layer-3.ts": 19,
-    "packages/reticulum-ts/src/link/layer-4.ts": 19,
+    "packages/reticulum-ts/src/link/layer-4.ts": 18,
     "packages/reticulum-ts/src/transport/node/layer-1-core.ts": 16,
-    "packages/reticulum-ts/src/transport/node/layer-2.ts": 16,
     "packages/reticulum-ts/src/web.ts": 16,
     "packages/reticulum-ts/src/worklet.ts": 34
   },
@@ -94,7 +93,7 @@
     "packages/effects/src/adapters/sim/kernel.ts": 2,
     "packages/host-core/src/interface-manager-open.ts": 2,
     "packages/miniapp-runtime/src/device-manager.ts": 9,
-    "packages/reticulum-ts/src/channel.ts": 30
+    "packages/reticulum-ts/src/channel.ts": 29
   },
   "sdpExemptions": {}
 }

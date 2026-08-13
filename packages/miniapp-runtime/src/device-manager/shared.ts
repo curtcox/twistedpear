@@ -61,7 +61,6 @@ import {
   createHostBridgedDrivers,
   type DeviceHostBridge,
 } from "../drivers/host-bridge.js";
-import { DeviceManager } from "../device-manager.js";
 export type DeviceAvailability =
   | "available"
   | "permission-required"
@@ -713,17 +712,6 @@ export function createSimulatedDeviceDrivers(): DeviceDriver[] {
     createSimulatedScalarDriver("thermal", { bucket: "nominal" }),
     createSimulatedScalarDriver("battery", { bucket: "nominal" }),
   ];
-}
-
-export function createSimulatedDeviceManager(
-  options: Omit<DeviceManagerOptions, "drivers"> & {
-    readonly drivers?: ReadonlyArray<DeviceDriver>;
-  } = {},
-): DeviceManager {
-  return new DeviceManager({
-    ...options,
-    drivers: options.drivers ?? createSimulatedDeviceDrivers(),
-  });
 }
 
 /**

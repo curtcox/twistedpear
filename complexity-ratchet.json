@@ -256,7 +256,6 @@
     "packages/protocol/test/transport-ingress.part-3.test.ts:max-lines-per-function:Arrow function has too many lines (#). Maximum allowed is #.:occurrence-1",
     "packages/protocol/test/transport-ingress.test.ts:max-lines-per-function:Arrow function has too many lines (#). Maximum allowed is #.:occurrence-1",
     "packages/reticulum-interfaces/src/auto-common.ts:complexity:Function 'deriveMulticastAddress' has a complexity of #. Maximum allowed is #.:occurrence-1",
-    "packages/reticulum-interfaces/test/ble-interop.test.ts:max-lines-per-function:Arrow function has too many lines (#). Maximum allowed is #.:occurrence-1",
     "packages/reticulum-interfaces/test/rnode-transcripts.test.ts:complexity:Arrow function has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/reticulum-ts/src/announce.ts:complexity:Static method 'buildPacket' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/reticulum-ts/src/buffer.ts:complexity:Method 'read' has a complexity of #. Maximum allowed is #.:occurrence-1",

@@ -6,7 +6,14 @@ module.exports = {
       severity: "error",
       comment: "Package and app imports must remain acyclic.",
       from: { path: "^(packages|apps|scripts|conformance)/" },
-      to: { circular: true },
+      to: {
+        circular: true,
+        // Type-only imports are erased by TypeScript and cannot create a
+        // runtime initialization cycle. Keep rejecting every cycle made only
+        // of executable dependencies while allowing type contracts to point
+        // back toward their concrete implementations.
+        viaOnly: { dependencyTypesNot: ["type-only"] },
+      },
     },
     {
       name: "no-tooling-in-source",

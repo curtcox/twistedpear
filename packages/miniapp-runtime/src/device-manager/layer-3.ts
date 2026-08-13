@@ -75,7 +75,6 @@ import {
   createSimulatedBiometricDriver,
   createSimulatedCameraDriver,
   createSimulatedDeviceDrivers,
-  createSimulatedDeviceManager,
   createSimulatedHapticsDriver,
   createSimulatedLocationDriver,
   createSimulatedMicrophoneDriver,
@@ -114,7 +113,7 @@ import type {
   RemoteOpenRequest,
   SimulatedActuatorLog,
 } from "./shared.js";
-import { DeviceManager } from "../device-manager.js";
+import type { DeviceManager } from "../device-manager.js";
 import { DeviceManagerLayer2 } from "./layer-2.js";
 export class DeviceManagerLayer3 extends DeviceManagerLayer2 {
   /**

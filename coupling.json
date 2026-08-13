@@ -396,11 +396,6 @@
         "limit": 15
       },
       {
-        "key": "packages/reticulum-ts/src/link/layer-4.ts",
-        "value": 19,
-        "limit": 15
-      },
-      {
         "key": "packages/reticulum-ts/src/link/layer-3.ts",
         "value": 19,
         "limit": 15
@@ -461,6 +456,11 @@
         "limit": 15
       },
       {
+        "key": "packages/reticulum-ts/src/link/layer-4.ts",
+        "value": 18,
+        "limit": 15
+      },
+      {
         "key": "packages/reticulum-ts/src/link/layer-1.ts",
         "value": 18,
         "limit": 15
@@ -473,11 +473,6 @@
       {
         "key": "packages/protocol/src/index/link.ts",
         "value": 17,
-        "limit": 15
-      },
-      {
-        "key": "packages/reticulum-ts/src/transport/node/layer-2.ts",
-        "value": 16,
         "limit": 15
       },
       {

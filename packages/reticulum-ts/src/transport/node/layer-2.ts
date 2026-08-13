@@ -268,7 +268,6 @@ import type {
   PathEntry,
   ReceivedAnnounceInfo,
 } from "./shared.js";
-import { LeafTransport } from "../node.js";
 import { LeafTransportLayer1 } from "./layer-1.js";
 export class LeafTransportLayer2 extends LeafTransportLayer1 {
   registerInterface(iface: PacketInterface): void {

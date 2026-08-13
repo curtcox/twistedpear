@@ -10,7 +10,7 @@ import {
 } from "./protocol.js";
 
 import { equalBytes } from "../crypto/bytes.js";
-import { Resource } from "../resource.js";
+import type { Resource } from "../resource.js";
 import { ResourceLayer2Core } from "./layer-2-core.js";
 
 export class ResourceLayer2 extends ResourceLayer2Core {
