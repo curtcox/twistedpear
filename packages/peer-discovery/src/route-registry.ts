@@ -1,20 +1,13 @@
-import type { RouteQualityReport } from "@twistedpear/protocol";
-import type { EstablishedPeer, PeerDiscoveryKind } from "./index.js";
-import { PeerDiscoveryError } from "./index.js";
+import type {
+  EstablishedPeer,
+  HostPeerRoute,
+  PeerDiscoveryKind,
+} from "./types.js";
+import { PeerDiscoveryError } from "./errors.js";
+
+export type { HostPeerRoute } from "./types.js";
 
 const MAX_ROUTE_PAYLOAD_BYTES = 64 * 1024;
-
-/** Host-owned authenticated transport. This object must never cross the mini-app broker. */
-export interface HostPeerRoute {
-  send(payload: Uint8Array): void | Promise<void>;
-  subscribe?(listener: (payload: Uint8Array) => void): () => void;
-  /**
-   * Host-only live route telemetry; never exposed as an app-provided value. A
-   * route that omits `source` is reporting a declared interface rate, not a
-   * measurement — see `meterHostPeerRoute` for the observed form.
-   */
-  quality?(): RouteQualityReport;
-}
 
 export interface ConfirmedPeerRoute {
   readonly ownerId: string;

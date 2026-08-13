@@ -9,8 +9,8 @@ import type {
   DiscoverySession,
   OfferOptions,
   PeerDiscoveryAdapter,
-} from "./index.js";
-import { PeerDiscoveryError } from "./index.js";
+} from "./types.js";
+import { PeerDiscoveryError } from "./errors.js";
 import { withDiscoveryBudget } from "./budget.js";
 
 export interface ManualInboundCode {

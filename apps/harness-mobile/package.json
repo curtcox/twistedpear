@@ -37,6 +37,7 @@
     "expo-camera": "~57.0.3",
     "expo-dev-client": "~57.0.10",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.12",
     "opusscript": "^0.1.1",
     "qrcode-generator": "^2.0.4",
     "react": "19.2.3",

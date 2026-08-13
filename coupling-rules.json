@@ -94,8 +94,6 @@
     "packages/effects/src/adapters/sim/kernel.ts": 2,
     "packages/host-core/src/interface-manager-open.ts": 2,
     "packages/miniapp-runtime/src/device-manager.ts": 9,
-    "packages/peer-discovery/src/audio.ts": 15,
-    "packages/protocol/src/grant-storage-migration.ts": 2,
     "packages/reticulum-ts/src/channel.ts": 30
   },
   "sdpExemptions": {}

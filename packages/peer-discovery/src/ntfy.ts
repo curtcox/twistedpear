@@ -13,8 +13,9 @@ import type {
   DiscoverySession,
   OfferOptions,
   PeerDiscoveryAdapter,
-} from "./index.js";
-import { PeerDiscoveryError, PeerReplayCache } from "./index.js";
+} from "./types.js";
+import { PeerDiscoveryError } from "./errors.js";
+import { PeerReplayCache } from "./replay-cache.js";
 
 const SECRET_PREFIX = "TPN1-";
 const SHORT_SECRET_PREFIX = "TPN2-";

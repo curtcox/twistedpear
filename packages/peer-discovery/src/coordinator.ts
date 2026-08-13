@@ -9,8 +9,9 @@ import type {
   PeerConnectRequest,
   PeerDiscoveryAdapter,
   PeerPairingDriver,
-} from "./index.js";
-import { PeerDiscoveryError, PeerReplayCache } from "./index.js";
+} from "./types.js";
+import { PeerDiscoveryError } from "./errors.js";
+import { PeerReplayCache } from "./replay-cache.js";
 
 export interface UnconfirmedPeer {
   readonly fingerprint: string;

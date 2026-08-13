@@ -6,8 +6,8 @@ import type {
   OfferOptions,
   PeerDiscoveryAdapter,
   PeerDiscoveryKind,
-} from "./index.js";
-import { PeerDiscoveryError } from "./index.js";
+} from "./types.js";
+import { PeerDiscoveryError } from "./errors.js";
 
 /** Diagnostic placeholder for a known mechanism whose host effect is unavailable. */
 export class UnavailablePeerDiscoveryAdapter implements PeerDiscoveryAdapter {

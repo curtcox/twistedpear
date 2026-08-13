@@ -12,7 +12,7 @@ import type {
   EstablishedPeer,
   PeerConnectRequest,
   PeerDiscoveryAdapter,
-} from "./index.js";
+} from "./types.js";
 import type {
   AuthenticatedPairingContext,
   PairingAnswerContext,
@@ -20,7 +20,7 @@ import type {
   PeerPairingSecurityBackend,
   UnconfirmedPeer,
 } from "./coordinator.js";
-import { PeerDiscoveryError } from "./index.js";
+import { PeerDiscoveryError } from "./errors.js";
 
 const SAS_WORDS = [
   "amber",

@@ -1,6 +1,4 @@
-import type { GrantRecord } from "./grants.js";
-import { encodeGrantRecord } from "./grants.js";
-import { utf8Decode } from "./utf8.js";
+import { utf8Decode, utf8Encode } from "./utf8.js";
 
 /** Host adapter only: validate an old JSON record and return its canonical replacement. */
 export function migrateLegacyGrantRecord(bytes: Uint8Array): Uint8Array | null {
@@ -32,7 +30,14 @@ export function migrateLegacyGrantRecord(bytes: Uint8Array): Uint8Array | null {
       record.updatedAt < 0
     )
       return null;
-    return encodeGrantRecord(record as unknown as GrantRecord);
+    return utf8Encode(
+      JSON.stringify({
+        appId: record.appId,
+        publisherPublicKey: record.publisherPublicKey,
+        granted: record.granted,
+        updatedAt: record.updatedAt,
+      }),
+    );
   } catch {
     return null;
   }

@@ -5,8 +5,8 @@ import type {
   DiscoverySession,
   OfferOptions,
   PeerDiscoveryAdapter,
-} from "./index.js";
-import { PeerDiscoveryError } from "./index.js";
+} from "./types.js";
+import { PeerDiscoveryError } from "./errors.js";
 
 /** Feature-detected placeholder until LP2PRequest/LP2PReceiver ships in a production browser. */
 export class LocalPeerToPeerDiscoveryAdapter implements PeerDiscoveryAdapter {

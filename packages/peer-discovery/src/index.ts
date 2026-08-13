@@ -1,73 +1,26 @@
 import { ConfirmedPeerRouteRegistry } from "./route-registry.js";
-import { PeerDiscoveryError, type PeerDiscoveryErrorCode } from "./errors.js";
+import { PeerDiscoveryError } from "./errors.js";
+import type {
+  AcceptOptions,
+  AdapterPreference,
+  AppPeerSummary,
+  DiscoveryAvailability,
+  DiscoveryEvent,
+  DiscoverySession,
+  EstablishedPeer,
+  OfferOptions,
+  PeerConnectRequest,
+  PeerDiscoveryAdapter,
+  PeerDiscoveryKind,
+  PeerHandle,
+  PeerPairingDriver,
+  PeerSummary,
+} from "./types.js";
 
 export { PeerDiscoveryError } from "./errors.js";
 export type { PeerDiscoveryErrorCode } from "./errors.js";
-
-export type PeerDiscoveryKind =
-  | "reticulum"
-  | "qr"
-  | "manual"
-  | "audio"
-  | "bluetooth"
-  | "ntfy"
-  | "local-peer-to-peer";
-export type DiscoveryAvailabilityState =
-  | "available"
-  | "permission-required"
-  | "unsupported"
-  | "offline"
-  | "policy-disabled";
-export interface DiscoveryAvailability {
-  readonly state: DiscoveryAvailabilityState;
-  readonly reason?: string;
-}
-export interface OfferOptions {
-  readonly signal?: AbortSignal;
-  readonly timeoutMs: number;
-}
-export interface AcceptOptions extends OfferOptions {
-  readonly service: string;
-}
-export interface DiscoverySession {
-  readonly id: string;
-  readonly kind: PeerDiscoveryKind;
-}
-export type DiscoveryEvent =
-  | { readonly kind: "ready"; readonly session: DiscoverySession }
-  | {
-      readonly kind: "invitation";
-      readonly session: DiscoverySession;
-      readonly envelope: Uint8Array;
-    }
-  | {
-      readonly kind: "progress";
-      readonly session: DiscoverySession;
-      readonly completed: number;
-      readonly total?: number;
-    }
-  | {
-      readonly kind: "error";
-      readonly session?: DiscoverySession;
-      readonly code: PeerDiscoveryErrorCode;
-      readonly message: string;
-    };
-export interface PeerDiscoveryAdapter {
-  readonly kind: PeerDiscoveryKind;
-  availability(): Promise<DiscoveryAvailability>;
-  offer(
-    envelope: Uint8Array,
-    options: OfferOptions,
-  ): AsyncIterable<DiscoveryEvent>;
-  accept(options: AcceptOptions): AsyncIterable<DiscoveryEvent>;
-  answer(session: DiscoverySession, envelope: Uint8Array): Promise<void>;
-  cancel(sessionId: string): Promise<void>;
-}
-export interface AdapterPreference {
-  readonly privacy?: number;
-  readonly battery?: number;
-  readonly user?: number;
-}
+export type * from "./types.js";
+export { PeerReplayCache } from "./replay-cache.js";
 export class PeerDiscoveryRegistry {
   private readonly adapters = new Map<
     PeerDiscoveryKind,
@@ -135,46 +88,6 @@ export class PeerDiscoveryRegistry {
   }
 }
 
-export interface PeerConnectRequest {
-  readonly service: string;
-  readonly purpose: string;
-  readonly mechanisms: ReadonlyArray<PeerDiscoveryKind> | "any";
-  readonly timeoutMs: number;
-}
-export interface EstablishedPeer {
-  readonly authenticated: true;
-  readonly confirmed: true;
-  readonly fingerprint: string;
-  readonly displayLabel: string;
-  readonly rendezvous: PeerDiscoveryKind;
-  readonly dataPlane: "reticulum" | "webrtc" | "gateway" | "bluetooth";
-  readonly route?: import("./route-registry.js").HostPeerRoute;
-  readonly close?: () => Promise<void>;
-}
-export interface PeerPairingDriver {
-  request(
-    adapter: PeerDiscoveryAdapter,
-    request: PeerConnectRequest,
-  ): Promise<EstablishedPeer>;
-  listen(
-    adapter: PeerDiscoveryAdapter,
-    request: PeerConnectRequest,
-  ): Promise<EstablishedPeer>;
-}
-export interface PeerHandle {
-  readonly id: string;
-}
-export interface PeerSummary {
-  readonly fingerprint: string;
-  readonly displayLabel: string;
-  readonly state: "connected" | "closed";
-  readonly rendezvous: PeerDiscoveryKind;
-  readonly dataPlane: EstablishedPeer["dataPlane"];
-}
-export interface AppPeerSummary extends PeerSummary {
-  readonly handle: PeerHandle;
-  readonly connectedAt: number;
-}
 interface HandleEntry {
   readonly appId: string;
   readonly runtimeId: string;
@@ -305,23 +218,6 @@ export class PeerSessionManager {
     )
       throw new PeerDiscoveryError("POLICY_DENIED", "Unknown peer handle");
     return entry;
-  }
-}
-
-/** Bounded host-owned replay memory. Persist this interface when sessions must survive restart. */
-export class PeerReplayCache {
-  private readonly sessions = new Map<string, number>();
-  constructor(private readonly maxEntries = 4096) {}
-  acceptOnce(sessionId: string, expiresAt: number, now: number): boolean {
-    for (const [id, expiry] of this.sessions)
-      if (expiry <= now) this.sessions.delete(id);
-    if (this.sessions.has(sessionId)) return false;
-    if (this.sessions.size >= this.maxEntries) {
-      const oldest = this.sessions.keys().next().value as string | undefined;
-      if (oldest !== undefined) this.sessions.delete(oldest);
-    }
-    this.sessions.set(sessionId, expiresAt);
-    return true;
   }
 }
 

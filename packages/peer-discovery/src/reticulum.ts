@@ -7,8 +7,8 @@ import type {
   DiscoverySession,
   OfferOptions,
   PeerDiscoveryAdapter,
-} from "./index.js";
-import { PeerDiscoveryError } from "./index.js";
+} from "./types.js";
+import { PeerDiscoveryError } from "./errors.js";
 
 export interface ReticulumInboundInvitation {
   readonly session: DiscoverySession;
