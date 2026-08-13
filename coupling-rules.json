@@ -82,7 +82,6 @@
     "packages/reticulum-ts/src/link/layer-3-core.ts": 19,
     "packages/reticulum-ts/src/link/layer-3.ts": 19,
     "packages/reticulum-ts/src/link/layer-4.ts": 18,
-    "packages/reticulum-ts/src/transport/node/layer-1-core.ts": 16,
     "packages/reticulum-ts/src/web.ts": 16,
     "packages/reticulum-ts/src/worklet.ts": 34
   },

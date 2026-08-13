@@ -142,7 +142,7 @@ import type {
   RegisteredDestination,
   RequestHandler,
 } from "../registered-destination.js";
-import { RETICULUM_MTU } from "../reticulum.js";
+import { RETICULUM_MTU } from "../reticulum-constants.js";
 import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
@@ -164,7 +164,7 @@ import type {
   LinkRequestOptions,
   LinkSendContextResult,
 } from "./shared.js";
-import { Link } from "../link.js";
+import type { Link } from "../link.js";
 import { LinkLayer2Establish } from "./layer-2-establish.js";
 export class LinkLayer2 extends LinkLayer2Establish {
   static request(options: InitiatorLinkOptions): Link {
@@ -184,7 +184,7 @@ export class LinkLayer2 extends LinkLayer2Establish {
     }
 
     const provider = destination.cryptoProvider;
-    const link = new Link(
+    const link = new this(
       provider,
       options.transport,
       options.transport.clock,
@@ -196,7 +196,7 @@ export class LinkLayer2 extends LinkLayer2Establish {
           ? {}
           : { callbacks: options.callbacks }),
       },
-    );
+    ) as Link;
 
     const initiatorStepped = stepSplitInitiatorLinkEntropyWithActions(
       initialSplitInitiatorLinkEntropyState(),
@@ -256,7 +256,7 @@ export class LinkLayer2 extends LinkLayer2Establish {
         kind: "link-request/pack-gate",
         publicKey: link.publicKeyBytes,
         signaturePublicKey: signaturePublicKeyBytes,
-        signallingBytes: Link.signallingBytes(mtu, link.mode),
+        signallingBytes: this.signallingBytes(mtu, link.mode),
       },
     );
     const requestData = shouldUsePackLinkRequestData(packStepped.actions)
@@ -332,11 +332,11 @@ export class LinkLayer2 extends LinkLayer2Establish {
 
     try {
       const provider = owner.cryptoProvider;
-      const link = new Link(provider, transport, transport.clock, {
+      const link = new this(provider, transport, transport.clock, {
         initiator: false,
         owner,
         destination: null,
-      });
+      }) as Link;
 
       const responderStepped = stepSplitResponderLinkEntropyWithActions(
         initialSplitResponderLinkEntropyState(),
@@ -369,7 +369,7 @@ export class LinkLayer2 extends LinkLayer2Establish {
         {
           kind: "link/request-responder-mtu-gate",
           signallingPresent: request.signallingBytes.length > 0,
-          signallingMtu: Link.mtuFromLrPacket(packet),
+          signallingMtu: this.mtuFromLrPacket(packet),
           currentMtu: link.mtu,
           defaultMtu: RETICULUM_MTU,
         },
@@ -383,7 +383,7 @@ export class LinkLayer2 extends LinkLayer2Establish {
         }
       }
 
-      link.mode = Link.modeFromLrPacket(packet);
+      link.mode = this.modeFromLrPacket(packet);
       const modeGate = stepLinkValidateRequestWithActions(
         initialLinkValidateRequestState(),
         {

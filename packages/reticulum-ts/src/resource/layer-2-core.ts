@@ -120,7 +120,7 @@ import {
   decodeResourcePayload,
 } from "./shared.js";
 import type { ResourceCallbacks } from "./shared.js";
-import { Resource } from "../resource.js";
+import type { Resource } from "../resource.js";
 import { ResourceLayer1 } from "./layer-1.js";
 export class ResourceLayer2Core extends ResourceLayer1 {
   static accept(
@@ -156,7 +156,7 @@ export class ResourceLayer2Core extends ResourceLayer1 {
         return null;
       }
 
-      const resource = new Resource(provider, link, {
+      const resource = new this(provider, link, {
         initiator: false,
         hash: adv.h,
         originalHash: adv.o,
@@ -182,7 +182,7 @@ export class ResourceLayer2Core extends ResourceLayer1 {
             ? {}
             : { progressCallback: options.progressCallback }),
         },
-      });
+      }) as Resource;
 
       resource.applyStatus({ kind: "resource/transferring" });
       resource.receivedParts.length = adv.n;

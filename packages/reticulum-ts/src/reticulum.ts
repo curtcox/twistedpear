@@ -19,9 +19,7 @@ import {
 import { TransportNode } from "./transport/transport.js";
 import { PATH_REQUEST_TIMEOUT_SECONDS } from "./transport/path.js";
 import type { ByteRateLimiter } from "./transport/bandwidth.js";
-
-/** Mirrors RNS/Reticulum.py MTU default. */
-export const RETICULUM_MTU = 500;
+export { RETICULUM_MTU } from "./reticulum-constants.js";
 
 export interface ReticulumOptions {
   readonly provider: CryptoProvider;

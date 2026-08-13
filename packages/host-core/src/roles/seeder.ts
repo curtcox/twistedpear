@@ -1,9 +1,4 @@
-import {
-  existsSync,
-  unwatchFile,
-  watchFile,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type {
   ByteRateLimiter,

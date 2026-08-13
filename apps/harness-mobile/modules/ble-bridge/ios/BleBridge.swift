@@ -467,7 +467,9 @@ extension BleBridge: CBPeripheralDelegate {
       return
     }
 
-    guard let dataChar = service.characteristics?.first(where: { $0.uuid == BleBridgeSpec.dataCharacteristicUUID }) else {
+    guard let dataChar = service.characteristics?.first(where: {
+      $0.uuid == BleBridgeSpec.dataCharacteristicUUID
+    }) else {
       listener?.onError("BLE data characteristic missing on peer")
       centralManager?.cancelPeripheralConnection(peripheral)
       return
@@ -475,7 +477,9 @@ extension BleBridge: CBPeripheralDelegate {
 
     dataCharacteristic = dataChar
 
-    if let controlChar = service.characteristics?.first(where: { $0.uuid == BleBridgeSpec.controlCharacteristicUUID }) {
+    if let controlChar = service.characteristics?.first(where: {
+      $0.uuid == BleBridgeSpec.controlCharacteristicUUID
+    }) {
       peripheral.readValue(for: controlChar)
     }
 
@@ -508,7 +512,11 @@ extension BleBridge: CBPeripheralDelegate {
     }
   }
 
-  func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+  func peripheral(
+    _ peripheral: CBPeripheral,
+    didUpdateNotificationStateFor characteristic: CBCharacteristic,
+    error: Error?
+  ) {
     guard running, role == .central, connectedPeripheral?.identifier == peripheral.identifier else {
       return
     }

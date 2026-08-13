@@ -148,7 +148,7 @@ import type {
   RegisteredDestination,
   RequestHandler,
 } from "../registered-destination.js";
-import { RETICULUM_MTU } from "../reticulum.js";
+import { RETICULUM_MTU } from "../reticulum-constants.js";
 import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
@@ -170,7 +170,7 @@ import type {
   LinkRequestOptions,
   LinkSendContextResult,
 } from "./shared.js";
-import { Link } from "../link.js";
+import type { Link } from "../link.js";
 import { LinkLayer3Core } from "./layer-3-core.js";
 export class LinkLayer3 extends LinkLayer3Core {
   protected async handleIdentifyPacket(packet: Packet): Promise<void> {

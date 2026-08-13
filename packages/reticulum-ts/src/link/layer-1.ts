@@ -95,7 +95,7 @@ import type {
   RegisteredDestination,
   RequestHandler,
 } from "../registered-destination.js";
-import { RETICULUM_MTU } from "../reticulum.js";
+import { RETICULUM_MTU } from "../reticulum-constants.js";
 import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
@@ -117,7 +117,7 @@ import type {
   LinkRequestOptions,
   LinkSendContextResult,
 } from "./shared.js";
-import { Link } from "../link.js";
+import type { Link } from "../link.js";
 export class LinkLayer1 {
   readonly type = DestinationType.LINK;
   readonly callbacks: LinkCallbacks;
@@ -242,7 +242,7 @@ export class LinkLayer1 {
   }
 
   setLinkId(packet: Packet): void {
-    this.linkId = Link.linkIdFromLrPacket(this.provider, packet);
+    this.linkId = LinkLayer1.linkIdFromLrPacket(this.provider, packet);
     this.hash = this.linkId;
   }
 

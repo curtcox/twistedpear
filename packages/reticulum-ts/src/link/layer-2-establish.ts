@@ -142,7 +142,7 @@ import type {
   RegisteredDestination,
   RequestHandler,
 } from "../registered-destination.js";
-import { RETICULUM_MTU } from "../reticulum.js";
+import { RETICULUM_MTU } from "../reticulum-constants.js";
 import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
@@ -164,7 +164,7 @@ import type {
   LinkRequestOptions,
   LinkSendContextResult,
 } from "./shared.js";
-import { Link } from "../link.js";
+import type { Link } from "../link.js";
 import { LinkLayer1 } from "./layer-1.js";
 export class LinkLayer2Establish extends LinkLayer1 {
   async prove(): Promise<void> {
@@ -189,7 +189,7 @@ export class LinkLayer2Establish extends LinkLayer1 {
       throw new Error("Responder link is missing owner or key material");
     }
 
-    const signallingBytes = Link.signallingBytes(this.mtu, this.mode);
+    const signallingBytes = LinkLayer1.signallingBytes(this.mtu, this.mode);
     const ownerSplit = stepSplitIdentityPublicKeyWithActions(
       initialSplitIdentityPublicKeyState(),
       {

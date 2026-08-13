@@ -189,7 +189,6 @@ import type {
   PathEntry,
   ReceivedAnnounceInfo,
 } from "./shared.js";
-import { LeafTransport } from "../node.js";
 import {
   notifyDropObservers,
   dropFromIngressIgnore,

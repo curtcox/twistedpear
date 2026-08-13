@@ -86,7 +86,7 @@ import type {
   ResourceOptions,
   ResourcePart,
 } from "./shared.js";
-import { Resource } from "../resource.js";
+import type { Resource } from "../resource.js";
 import { buildResourceParts } from "./send-parts.js";
 export class ResourceLayer1 {
   readonly link: Link;
@@ -327,7 +327,7 @@ export class ResourceLayer1 {
       sdu,
       hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN,
     });
-    const resource = new Resource(provider, link, {
+    const resource = new this(provider, link, {
       initiator: true,
       hash,
       originalHash: options.originalHash ?? hash,
@@ -356,7 +356,7 @@ export class ResourceLayer1 {
           : { progressCallback: options.progressCallback }),
       },
       ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
-    });
+    }) as Resource;
 
     if (
       shouldAdvertiseResourceNow(
@@ -482,7 +482,8 @@ export class ResourceLayer1 {
     ) {
       return;
     }
-    this.nextSegment = Resource.send(this.link, this.segmentSource, {
+    const ResourceClass = this.constructor as typeof ResourceLayer1;
+    this.nextSegment = ResourceClass.send(this.link, this.segmentSource, {
       advertise: false,
       segmentIndex: this.segmentIndex + 1,
       originalHash: this.originalHash,

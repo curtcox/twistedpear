@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1144,
+  "modules": 1145,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -91,7 +91,7 @@
     },
     {
       "id": "packages/reticulum-ts",
-      "modules": 80,
+      "modules": 81,
       "ca": 13,
       "ce": 2,
       "instability": 0.13,
@@ -476,11 +476,6 @@
         "limit": 15
       },
       {
-        "key": "packages/reticulum-ts/src/transport/node/layer-1-core.ts",
-        "value": 16,
-        "limit": 15
-      },
-      {
         "key": "packages/reticulum-ts/src/web.ts",
         "value": 16,
         "limit": 15
@@ -496,12 +491,11 @@
     "cycles": [
       {
         "key": "packages/reticulum-ts/src/channel.ts",
-        "value": 29,
+        "value": 24,
         "members": [
           "packages/reticulum-ts/src/channel.ts",
           "packages/reticulum-ts/src/channel/part-1.ts",
           "packages/reticulum-ts/src/channel/part-2.ts",
-          "packages/reticulum-ts/src/channel/part-3.ts",
           "packages/reticulum-ts/src/link-request-receipt.ts",
           "packages/reticulum-ts/src/link.ts",
           "packages/reticulum-ts/src/link/layer-1.ts",
@@ -517,16 +511,12 @@
           "packages/reticulum-ts/src/resource/layer-2-core.ts",
           "packages/reticulum-ts/src/resource/layer-2.ts",
           "packages/reticulum-ts/src/resource/shared.ts",
-          "packages/reticulum-ts/src/reticulum.ts",
           "packages/reticulum-ts/src/transport/node.ts",
           "packages/reticulum-ts/src/transport/node/layer-1-announce.ts",
           "packages/reticulum-ts/src/transport/node/layer-1-core.ts",
           "packages/reticulum-ts/src/transport/node/layer-1.ts",
           "packages/reticulum-ts/src/transport/node/layer-2.ts",
-          "packages/reticulum-ts/src/transport/node/shared.ts",
-          "packages/reticulum-ts/src/transport/transport-node-base.ts",
-          "packages/reticulum-ts/src/transport/transport-node-path.ts",
-          "packages/reticulum-ts/src/transport/transport.ts"
+          "packages/reticulum-ts/src/transport/node/shared.ts"
         ]
       },
       {

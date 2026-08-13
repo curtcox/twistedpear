@@ -147,7 +147,7 @@ import type {
   RegisteredDestination,
   RequestHandler,
 } from "../registered-destination.js";
-import { RETICULUM_MTU } from "../reticulum.js";
+import { RETICULUM_MTU } from "../reticulum-constants.js";
 import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
@@ -169,7 +169,7 @@ import type {
   LinkRequestOptions,
   LinkSendContextResult,
 } from "./shared.js";
-import { Link } from "../link.js";
+import type { Link } from "../link.js";
 import { LinkLayer2 } from "./layer-2.js";
 export class LinkLayer3Core extends LinkLayer2 {
   async validateProof(packet: Packet, iface: PacketInterface): Promise<void> {
@@ -191,7 +191,7 @@ export class LinkLayer3Core extends LinkLayer2 {
     }
 
     try {
-      const mode = Link.modeFromLpPacket(packet);
+      const mode = LinkLayer2.modeFromLpPacket(packet);
       const modeMatch = stepExpectedLinkModeWithActions(
         initialExpectedLinkModeState(),
         {
@@ -217,9 +217,9 @@ export class LinkLayer3Core extends LinkLayer2 {
         shouldClassifyLinkProofPayloadBodyOnly(layoutStepped.actions) ||
         shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions);
       if (shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions)) {
-        confirmedMtu = Link.mtuFromLpPacket(packet);
+        confirmedMtu = LinkLayer2.mtuFromLpPacket(packet);
         signallingBytes = Uint8Array.from(
-          Link.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode),
+          LinkLayer2.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode),
         );
         proofData = proofData.subarray(0, LINK_PROOF_BODY_SIZE);
       }

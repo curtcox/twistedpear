@@ -119,13 +119,8 @@ import type {
   ChannelMessageHandler,
   ChannelOutlet,
   ChannelPacket,
-  MessageStateValue,
-} from "./part-1.js";
-import {
-  ChannelException,
-  ChannelExceptionType,
-  MessageState,
-} from "./part-1.js";
+} from "./part-1-types.js";
+import { ChannelException, ChannelExceptionType } from "./part-1-types.js";
 
 export class Envelope {
   readonly message: ChannelMessage | null;

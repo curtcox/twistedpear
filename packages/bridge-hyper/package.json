@@ -42,7 +42,6 @@
     "hyperdht": "^6.33.0",
     "hyperdrive": "^13.3.3",
     "hyperswarm": "^4.13.0",
-    "random-access-memory": "^6.2.0",
     "streamx": "^2.25.0",
     "ws": "^8.21.2"
   }
