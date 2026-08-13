@@ -161,6 +161,50 @@ async function defaultReadyCheck(
   }
 }
 
+function resolveLaunchOptions(options: FreenetSupervisorOptions): {
+  allocatePort: () => Promise<number>;
+  createToken: () => string;
+  spawner: FreenetSupervisorSpawner;
+  host: string;
+} {
+  return {
+    allocatePort: options.allocatePort ?? allocateEphemeralPort,
+    createToken: options.createToken ?? (() => randomBytes(32).toString("hex")),
+    spawner: options.spawner ?? defaultSpawner,
+    host: options.host ?? "127.0.0.1",
+  };
+}
+
+function resolveReadinessOptions(options: FreenetSupervisorOptions): {
+  timeoutMs: number;
+  sleep: (ms: number) => Promise<void>;
+  readyCheck: (port: number, token: string) => Promise<boolean>;
+  now: () => number;
+} {
+  return {
+    timeoutMs: options.readyTimeoutMs ?? 30_000,
+    sleep: options.sleep ?? defaultSleep,
+    readyCheck: options.readyCheck ?? defaultReadyCheck,
+    now: options.now ?? Date.now,
+  };
+}
+
+function resolveRestartPolicy(
+  options: FreenetSupervisorOptions,
+  attempt: number,
+): { maxAttempts: number; delayMs: number } {
+  const initial = options.initialBackoffMs ?? 500;
+  const maxBackoff = options.maxBackoffMs ?? 30_000;
+  return {
+    maxAttempts: options.maxRestartAttempts ?? 5,
+    delayMs: Math.min(maxBackoff, initial * 2 ** Math.max(0, attempt - 1)),
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
  * Supervises a user-supplied, optionally hash-verified Freenet executable.
  * Leaves all non-Freenet host paths usable when the process is unavailable.
@@ -282,11 +326,9 @@ export class FreenetSupervisor {
       isRestart ? "restarting after unexpected exit" : undefined,
     );
 
-    const allocatePort = this.#options.allocatePort ?? allocateEphemeralPort;
-    const createToken =
-      this.#options.createToken ?? (() => randomBytes(32).toString("hex"));
-    const spawner = this.#options.spawner ?? defaultSpawner;
-    const host = this.#options.host ?? "127.0.0.1";
+    const { allocatePort, createToken, spawner, host } = resolveLaunchOptions(
+      this.#options,
+    );
 
     this.#port = await allocatePort();
     this.#networkPort = await allocatePort();
@@ -371,11 +413,11 @@ export class FreenetSupervisor {
   }
 
   async #waitUntilReady(): Promise<boolean> {
-    const timeoutMs = this.#options.readyTimeoutMs ?? 30_000;
-    const sleep = this.#options.sleep ?? defaultSleep;
-    const readyCheck = this.#options.readyCheck ?? defaultReadyCheck;
-    const deadline = (this.#options.now ?? Date.now)() + timeoutMs;
-    while ((this.#options.now ?? Date.now)() < deadline) {
+    const { timeoutMs, sleep, readyCheck, now } = resolveReadinessOptions(
+      this.#options,
+    );
+    const deadline = now() + timeoutMs;
+    while (now() < deadline) {
       if (this.#stopping || this.#port === null || this.#authToken === null) {
         return false;
       }
@@ -400,7 +442,10 @@ export class FreenetSupervisor {
     }
 
     this.#lastError = `Freenet process exited (code=${code}, signal=${signal})`;
-    const maxAttempts = this.#options.maxRestartAttempts ?? 5;
+    const { maxAttempts, delayMs } = resolveRestartPolicy(
+      this.#options,
+      this.#restartAttempts + 1,
+    );
     if (this.#restartAttempts >= maxAttempts) {
       this.#setStatus("failed", this.#lastError);
       return;
@@ -408,19 +453,13 @@ export class FreenetSupervisor {
 
     this.#setStatus("degraded", this.#lastError);
     this.#restartAttempts += 1;
-    const initial = this.#options.initialBackoffMs ?? 500;
-    const maxBackoff = this.#options.maxBackoffMs ?? 30_000;
-    const delay = Math.min(
-      maxBackoff,
-      initial * 2 ** (this.#restartAttempts - 1),
-    );
     const sleep = this.#options.sleep ?? defaultSleep;
-    await sleep(delay);
+    await sleep(delayMs);
     if (this.#stopping || generation !== this.#startGeneration) return;
     try {
       await this.#launch(true);
     } catch (error) {
-      this.#lastError = error instanceof Error ? error.message : String(error);
+      this.#lastError = errorMessage(error);
       this.#setStatus("failed", this.#lastError);
     }
   }
