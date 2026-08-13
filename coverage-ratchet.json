@@ -89,14 +89,14 @@
       "functions": 100
     },
     "packages/widget-renderer-rn": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
+      "statements": 89.8,
+      "branches": 88.6,
+      "functions": 89.74
     },
     "packages/worklet-core": {
-      "statements": 21.81,
-      "branches": 17.45,
-      "functions": 26.47
+      "statements": 35.52,
+      "branches": 28.86,
+      "functions": 36.76
     }
   }
 }

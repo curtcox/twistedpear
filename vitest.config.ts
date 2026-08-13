@@ -14,6 +14,12 @@ export default defineConfig({
         },
       },
       {
+        // React Native components only render off-device through
+        // react-native-web, so `.tsx` unit tests resolve "react-native" to it
+        // and render with react-dom's server renderer.
+        resolve: {
+          alias: { "react-native": "react-native-web" },
+        },
         test: {
           name: "default",
           // KDF/identity tests slow down substantially under V8 coverage
@@ -22,6 +28,7 @@ export default defineConfig({
           testTimeout: 60000,
           include: [
             "packages/*/test/**/*.test.ts",
+            "packages/*/test/**/*.test.tsx",
             "apps/harness-mobile/test/**/*.test.ts",
             "conformance/mac-validation/**/*.test.mjs",
             "conformance/release-harness/**/*.test.mjs",
