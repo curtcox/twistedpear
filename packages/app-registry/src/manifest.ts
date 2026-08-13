@@ -43,58 +43,67 @@ export function isValidSemver(version: string): boolean {
   return SEMVER_RE.test(version);
 }
 
+type ParsedSemver = readonly [
+  major: number,
+  minor: number,
+  patch: number,
+  prerelease: string,
+  build: string,
+];
+
+function parseSemver(value: string): ParsedSemver {
+  const match = SEMVER_RE.exec(value);
+  if (match === null) {
+    throw new Error(`Invalid semver: ${value}`);
+  }
+
+  return [
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3]),
+    match[4] ?? "",
+    match[5] ?? "",
+  ];
+}
+
+function compareNumericParts(left: ParsedSemver, right: ParsedSemver): number {
+  const majorDifference = left[0] - right[0];
+  if (majorDifference !== 0) return majorDifference;
+
+  const minorDifference = left[1] - right[1];
+  if (minorDifference !== 0) return minorDifference;
+
+  const patchDifference = left[2] - right[2];
+  if (patchDifference !== 0) return patchDifference;
+
+  return 0;
+}
+
+function compareText(left: string, right: string): number {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
+function comparePrerelease(left: string, right: string): number {
+  if (left === "" && right !== "") return 1;
+  if (left !== "" && right === "") return -1;
+  return compareText(left, right);
+}
+
 export function compareSemver(left: string, right: string): number {
   if (!isValidSemver(left) || !isValidSemver(right)) {
     throw new Error(`Invalid semver: ${left} or ${right}`);
   }
 
-  const parse = (value: string): [number, number, number, string, string] => {
-    const match = SEMVER_RE.exec(value);
-    if (match === null) {
-      throw new Error(`Invalid semver: ${value}`);
-    }
+  const leftParts = parseSemver(left);
+  const rightParts = parseSemver(right);
+  const numericResult = compareNumericParts(leftParts, rightParts);
+  if (numericResult !== 0) return numericResult;
 
-    return [
-      Number(match[1]),
-      Number(match[2]),
-      Number(match[3]),
-      match[4] ?? "",
-      match[5] ?? "",
-    ];
-  };
+  const prereleaseResult = comparePrerelease(leftParts[3], rightParts[3]);
+  if (prereleaseResult !== 0) return prereleaseResult;
 
-  const [lMajor, lMinor, lPatch, lPre, lBuild] = parse(left);
-  const [rMajor, rMinor, rPatch, rPre, rBuild] = parse(right);
-
-  if (lMajor !== rMajor) {
-    return lMajor - rMajor;
-  }
-
-  if (lMinor !== rMinor) {
-    return lMinor - rMinor;
-  }
-
-  if (lPatch !== rPatch) {
-    return lPatch - rPatch;
-  }
-
-  if (lPre === "" && rPre !== "") {
-    return 1;
-  }
-
-  if (lPre !== "" && rPre === "") {
-    return -1;
-  }
-
-  if (lPre !== rPre) {
-    return lPre < rPre ? -1 : 1;
-  }
-
-  if (lBuild !== rBuild) {
-    return lBuild < rBuild ? -1 : 1;
-  }
-
-  return 0;
+  return compareText(leftParts[4], rightParts[4]);
 }
 
 /** Recursively sort object keys for deterministic JSON serialization. */
@@ -132,7 +141,7 @@ export function manifestSigningPayload(manifest: UnsignedManifest): Uint8Array {
   return new TextEncoder().encode(serializeCanonicalJson(payload));
 }
 
-export function validateManifestStructure(manifest: UnsignedManifest): void {
+function validateManifestMetadata(manifest: UnsignedManifest): void {
   if (manifest.formatVersion !== PACKAGE_FORMAT_VERSION) {
     throw new Error(`Unsupported format version: ${manifest.formatVersion}`);
   }
@@ -156,29 +165,35 @@ export function validateManifestStructure(manifest: UnsignedManifest): void {
   if (manifest.files.length === 0) {
     throw new Error("Manifest must list at least one file");
   }
+}
 
-  const paths = new Set<string>();
-
-  for (const file of manifest.files) {
-    if (paths.has(file.path)) {
-      throw new Error(`Duplicate manifest file path: ${file.path}`);
-    }
-
-    paths.add(file.path);
-
-    if (!/^[a-zA-Z0-9._/-]+$/.test(file.path) || file.path.includes("..")) {
-      throw new Error(`Invalid manifest file path: ${file.path}`);
-    }
-
-    if (file.sha256.length !== 64 || !/^[0-9a-f]+$/.test(file.sha256)) {
-      throw new Error(`Invalid SHA-256 for ${file.path}`);
-    }
-
-    if (file.size < 0 || !Number.isInteger(file.size)) {
-      throw new Error(`Invalid file size for ${file.path}`);
-    }
+function validateManifestFile(
+  file: ManifestFileEntry,
+  paths: Set<string>,
+): void {
+  if (paths.has(file.path)) {
+    throw new Error(`Duplicate manifest file path: ${file.path}`);
   }
 
+  paths.add(file.path);
+
+  if (!/^[a-zA-Z0-9._/-]+$/.test(file.path) || file.path.includes("..")) {
+    throw new Error(`Invalid manifest file path: ${file.path}`);
+  }
+
+  if (file.sha256.length !== 64 || !/^[0-9a-f]+$/.test(file.sha256)) {
+    throw new Error(`Invalid SHA-256 for ${file.path}`);
+  }
+
+  if (file.size < 0 || !Number.isInteger(file.size)) {
+    throw new Error(`Invalid file size for ${file.path}`);
+  }
+}
+
+function validateManifestReferences(
+  manifest: UnsignedManifest,
+  paths: ReadonlySet<string>,
+): void {
   if (!paths.has(manifest.entry)) {
     throw new Error("Manifest entry point must appear in files table");
   }
@@ -186,20 +201,25 @@ export function validateManifestStructure(manifest: UnsignedManifest): void {
   if (manifest.icon !== null && !paths.has(manifest.icon)) {
     throw new Error("Manifest icon must appear in files table");
   }
+}
 
-  if (
-    manifest.driveKey.length !== 64 ||
-    !/^[0-9a-f]+$/.test(manifest.driveKey)
-  ) {
-    throw new Error("Invalid driveKey hex");
+function validateHex(value: string, length: number, label: string): void {
+  if (value.length !== length || !/^[0-9a-f]+$/.test(value)) {
+    throw new Error(`Invalid ${label} hex`);
+  }
+}
+
+export function validateManifestStructure(manifest: UnsignedManifest): void {
+  validateManifestMetadata(manifest);
+
+  const paths = new Set<string>();
+  for (const file of manifest.files) {
+    validateManifestFile(file, paths);
   }
 
-  if (
-    manifest.publisherPublicKey.length !== 128 ||
-    !/^[0-9a-f]+$/.test(manifest.publisherPublicKey)
-  ) {
-    throw new Error("Invalid publisherPublicKey hex");
-  }
+  validateManifestReferences(manifest, paths);
+  validateHex(manifest.driveKey, 64, "driveKey");
+  validateHex(manifest.publisherPublicKey, 128, "publisherPublicKey");
 }
 
 export function parseManifestJson(text: string): AppManifest {

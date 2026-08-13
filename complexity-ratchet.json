@@ -50,8 +50,6 @@
     "apps/host-desktop/src/main/index.ts:complexity:Async arrow function has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/app-registry/src/announce.ts:complexity:Function 'decodeAppAnnounceData' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/app-registry/src/catalog.ts:complexity:Method 'ingest' has a complexity of #. Maximum allowed is #.:occurrence-1",
-    "packages/app-registry/src/manifest.ts:complexity:Function 'compareSemver' has a complexity of #. Maximum allowed is #.:occurrence-1",
-    "packages/app-registry/src/manifest.ts:complexity:Function 'validateManifestStructure' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/app-registry/src/package.ts:complexity:Function 'unpackPackage' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/app-registry/src/package.ts:max-lines-per-function:Function 'unpackPackage' has too many lines (#). Maximum allowed is #.:occurrence-1",
     "packages/app-registry/test/spec-pkg-vectors.test.ts:@typescript-eslint/ban-ts-comment:Definition for rule '@typescript-eslint/ban-ts-comment' was not found.:occurrence-1",
