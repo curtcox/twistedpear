@@ -55,27 +55,35 @@ export function attachPackageResourceServer(
 ): void {
   destination.setLinkEstablishedCallback((link) => {
     link.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
-    link.callbacks.packet = async (data) => {
-      try {
-        const request = decodeRequest(data);
-        if (request.type === "list") {
-          const versions = await options.listVersions();
-          Resource.send(link, encodeListResponse(versions));
-          return;
-        }
-
-        const archive = await options.fetchArchive(request.version);
-        Resource.send(link, archive, { advertise: true });
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "package resource error";
-        Resource.send(
-          link,
-          new TextEncoder().encode(JSON.stringify({ error: message })),
-        );
-      }
+    link.callbacks.packet = (data) => {
+      void handlePackageResourceRequest(link, options, data);
     };
   });
+}
+
+async function handlePackageResourceRequest(
+  link: Link,
+  options: PackageResourceServerOptions,
+  data: Uint8Array,
+): Promise<void> {
+  try {
+    const request = decodeRequest(data);
+    if (request.type === "list") {
+      const versions = await options.listVersions();
+      Resource.send(link, encodeListResponse(versions));
+      return;
+    }
+
+    const archive = await options.fetchArchive(request.version);
+    Resource.send(link, archive, { advertise: true });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "package resource error";
+    Resource.send(
+      link,
+      new TextEncoder().encode(JSON.stringify({ error: message })),
+    );
+  }
 }
 
 export interface PackageResourceRequestOptions {

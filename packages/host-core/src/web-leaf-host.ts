@@ -113,7 +113,7 @@ export async function createWebLeafHost(
     getStatus: buildStatus,
     async stop() {
       await wsClient.close();
-      await reticulum.stop();
+      reticulum.stop();
     },
   };
 }

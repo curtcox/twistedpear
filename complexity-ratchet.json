@@ -43,7 +43,6 @@
     "apps/harness-mobile/host/native-peer-webrtc.ts:max-lines-per-function:Function 'handleNativePeerWebRtcMessage' has too many lines (#). Maximum allowed is #.:occurrence-1",
     "apps/harness-mobile/host/web-sandbox-relay.ts:complexity:Async function 'handleWorkerMessage' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "apps/harness-mobile/host/web-serial-relay.ts:complexity:Async function 'readLoop' has a complexity of #. Maximum allowed is #.:occurrence-1",
-    "apps/harness-mobile/index.js:@typescript-eslint/no-require-imports:Definition for rule '@typescript-eslint/no-require-imports' was not found.:occurrence-1",
     "apps/harness-mobile/src/freenet-remote-grant.ts:complexity:Function 'validateFreenetRemoteGrant' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "apps/harness-mobile/src/freenet-remote-session.ts:complexity:Function 'reduceFreenetRemoteSession' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "apps/host-desktop/src/main/bridges.ts:complexity:Async method 'handleWorkletMessage' has a complexity of #. Maximum allowed is #.:occurrence-1",

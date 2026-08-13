@@ -12,7 +12,6 @@ ensureUtf16LeTextDecoder();
 // Native WebRTC globals for peer media tracks (openWebRtcMediaPlane). Web uses
 // browser RTCPeerConnection; metro stubs this package on web.
 if (Platform.OS !== "web") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require("react-native-webrtc").registerGlobals();
 }
 

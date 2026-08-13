@@ -495,14 +495,14 @@ export async function runCookbookCaptures(browser, captureSection) {
         });
         await page.goto(rendererServer.url, { waitUntil: "load" });
         await page.evaluate(
-          async ({ app, tree, assets }) => {
+          async ({ app, tree, assets, widgetsUrl }) => {
             document.body.classList.add("miniapp-running");
             document.querySelector("header h1").textContent =
               "TwistedPear Host";
             document.querySelector("#subtitle").textContent =
               "Desktop always-on peer · Cookbook fixture";
             document.querySelector("#miniapp-title").textContent = app;
-            const { renderWidgetTree } = await import("./widgets.js");
+            const { renderWidgetTree } = await import(widgetsUrl);
             renderWidgetTree(
               tree,
               document.querySelector("#widget-root"),
@@ -510,7 +510,12 @@ export async function runCookbookCaptures(browser, captureSection) {
               { assets },
             );
           },
-          { app: scene.app, tree, assets: readAppAssets(scene.app) },
+          {
+            app: scene.app,
+            tree,
+            assets: readAppAssets(scene.app),
+            widgetsUrl: `${rendererServer.url}widgets.js`,
+          },
         );
         const assertionPassed = await page.evaluate((assertion) => {
           if (assertion.selector !== undefined) {

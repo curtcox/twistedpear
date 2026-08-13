@@ -225,11 +225,7 @@ try {
             );
             notifyDeliveries += 1;
           } catch (error) {
-            try {
-              await updatePromise;
-            } catch (updateError) {
-              throw updateError;
-            }
+            await updatePromise;
             const message =
               error instanceof Error ? error.message : String(error);
             if (!allowReconcile || !/notify timed out/i.test(message)) {

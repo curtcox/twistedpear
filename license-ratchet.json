@@ -1,8 +1,5 @@
 {
   "version": 1,
   "description": "Dependency license expressions outside the approved SPDX list when the gate was established; entries may only disappear.",
-  "entries": [
-    "@freenetorg/freenet-stdlib@0.3.0:MIT+APACHE-2.0",
-    "khroma@2.1.0:UNKNOWN"
-  ]
+  "entries": []
 }

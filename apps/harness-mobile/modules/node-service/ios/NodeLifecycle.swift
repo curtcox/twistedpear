@@ -64,14 +64,22 @@ public final class TwistedPearNodeServiceModule: Module {
       forTaskWithIdentifier: Self.refreshTaskId,
       using: nil
     ) { [weak self] task in
-      self?.handleBackgroundRefresh(task: task as! BGAppRefreshTask)
+      guard let refreshTask = task as? BGAppRefreshTask, let self else {
+        task.setTaskCompleted(success: false)
+        return
+      }
+      self.handleBackgroundRefresh(task: refreshTask)
     }
 
     BGTaskScheduler.shared.register(
       forTaskWithIdentifier: Self.processingTaskId,
       using: nil
     ) { [weak self] task in
-      self?.handleBackgroundProcessing(task: task as! BGProcessingTask)
+      guard let processingTask = task as? BGProcessingTask, let self else {
+        task.setTaskCompleted(success: false)
+        return
+      }
+      self.handleBackgroundProcessing(task: processingTask)
     }
 
     tasksRegistered = true

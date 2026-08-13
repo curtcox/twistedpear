@@ -108,9 +108,14 @@ const allowed = {
   "peer-discovery": ["protocol"],
   "cas-256t": ["reticulum-ts"],
   "app-registry": ["reticulum-ts", "cas-256t"],
-  "miniapp-runtime": ["peer-discovery", "protocol"],
+  "miniapp-runtime": ["effects", "peer-discovery", "protocol"],
   "miniapp-sdk": ["miniapp-runtime"],
-  "bridge-hyper": ["app-registry", "reticulum-interfaces", "reticulum-ts"],
+  "bridge-hyper": [
+    "app-registry",
+    "cas-256t",
+    "reticulum-interfaces",
+    "reticulum-ts",
+  ],
   "bridge-freenet": ["cas-256t", "reticulum-ts"],
   cli: [
     "app-registry",

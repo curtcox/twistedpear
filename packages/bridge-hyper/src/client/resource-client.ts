@@ -40,12 +40,14 @@ export class PackageResourceClient {
       });
   }
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     if (this.ownsReticulum) this.reticulum.start();
+    return Promise.resolve();
   }
 
-  async stop(): Promise<void> {
-    if (this.ownsReticulum) await this.reticulum.stop();
+  stop(): Promise<void> {
+    if (this.ownsReticulum) this.reticulum.stop();
+    return Promise.resolve();
   }
 
   get node(): Reticulum {

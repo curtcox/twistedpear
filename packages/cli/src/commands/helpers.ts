@@ -429,7 +429,7 @@ export async function announcePublishedApp(options: {
   }
 
   const destinationName = `tp.app.${publisherHash}.${nameHash}`;
-  await reticulum.stop();
+  reticulum.stop();
   return { destinationName, appDataHex: bytesToHex(appData) };
 }
 
@@ -464,9 +464,9 @@ export async function confirmIdentityReplacement(
 export function cliTrustStore(cwd: string): TrustStore {
   const path = resolveFromCwd(cwd, ".tp/trust.json");
   return new TrustStore({
-    async get(key) {
+    get(key) {
       if (!existsSync(path)) {
-        return null;
+        return Promise.resolve(null);
       }
 
       const parsed = JSON.parse(readFileSync(path, "utf8")) as Record<
@@ -474,19 +474,22 @@ export function cliTrustStore(cwd: string): TrustStore {
         string
       >;
       const value = parsed[key];
-      return value === undefined ? null : new TextEncoder().encode(value);
+      return Promise.resolve(
+        value === undefined ? null : new TextEncoder().encode(value),
+      );
     },
-    async set(key, value) {
+    set(key, value) {
       ensureDir(resolveFromCwd(cwd, ".tp"));
       const parsed = existsSync(path)
         ? (JSON.parse(readFileSync(path, "utf8")) as Record<string, string>)
         : {};
       parsed[key] = new TextDecoder().decode(value);
       writeFileSync(path, `${JSON.stringify(parsed, null, 2)}\n`);
+      return Promise.resolve();
     },
-    async delete(key) {
+    delete(key) {
       if (!existsSync(path)) {
-        return;
+        return Promise.resolve();
       }
 
       const parsed = JSON.parse(readFileSync(path, "utf8")) as Record<
@@ -495,6 +498,7 @@ export function cliTrustStore(cwd: string): TrustStore {
       >;
       delete parsed[key];
       writeFileSync(path, `${JSON.stringify(parsed, null, 2)}\n`);
+      return Promise.resolve();
     },
   });
 }

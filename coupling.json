@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1123,
+  "modules": 1128,
   "components": 24,
   "cycles": 6,
   "unresolvedDependencies": 0,
@@ -49,7 +49,7 @@
     },
     {
       "id": "scripts",
-      "modules": 134,
+      "modules": 138,
       "ca": 1,
       "ce": 9,
       "instability": 0.9,
@@ -224,7 +224,7 @@
     },
     {
       "id": "packages/peer-discovery",
-      "modules": 16,
+      "modules": 17,
       "ca": 5,
       "ce": 1,
       "instability": 0.17,
@@ -501,7 +501,7 @@
     "cycles": [
       {
         "key": "packages/reticulum-ts/src/channel.ts",
-        "value": 30,
+        "value": 29,
         "members": [
           "packages/reticulum-ts/src/channel.ts",
           "packages/reticulum-ts/src/channel/part-1.ts",
@@ -531,17 +531,15 @@
           "packages/reticulum-ts/src/transport/node/shared.ts",
           "packages/reticulum-ts/src/transport/transport-node-base.ts",
           "packages/reticulum-ts/src/transport/transport-node-path.ts",
-          "packages/reticulum-ts/src/transport/transport-types.ts",
           "packages/reticulum-ts/src/transport/transport.ts"
         ]
       },
       {
         "key": "packages/peer-discovery/src/audio.ts",
-        "value": 15,
+        "value": 14,
         "members": [
           "packages/peer-discovery/src/audio.ts",
           "packages/peer-discovery/src/bluetooth.ts",
-          "packages/peer-discovery/src/budget.ts",
           "packages/peer-discovery/src/coordinator.ts",
           "packages/peer-discovery/src/crypto-backend.ts",
           "packages/peer-discovery/src/index.ts",

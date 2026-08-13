@@ -15,6 +15,7 @@ const ROOT = path.resolve(
 const lock = readJson(path.join(ROOT, "package-lock.json"));
 const policy = readJson(path.join(ROOT, "license-allowlist.json"));
 const allowed = new Set(policy.allowed ?? []);
+const overrides = policy.overrides ?? {};
 const findings = [];
 const inventory = [];
 
@@ -31,11 +32,11 @@ function licenseAllowed(expression) {
 
 for (const [location, pkg] of Object.entries(lock.packages ?? {})) {
   if (!location.includes("node_modules/") || !pkg.version) continue;
-  const license = pkg.license ?? "UNKNOWN";
   const name = location.slice(location.lastIndexOf("node_modules/") + 13);
+  const packageId = `${name}@${pkg.version}`;
+  const license = overrides[packageId]?.license ?? pkg.license ?? "UNKNOWN";
   inventory.push({ name, version: pkg.version, license });
-  if (!licenseAllowed(license))
-    findings.push(`${name}@${pkg.version}:${license}`);
+  if (!licenseAllowed(license)) findings.push(`${packageId}:${license}`);
 }
 inventory.sort(
   (a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version),

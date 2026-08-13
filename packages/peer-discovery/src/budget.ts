@@ -1,4 +1,4 @@
-import { PeerDiscoveryError } from "./index.js";
+import { PeerDiscoveryError } from "./errors.js";
 
 export async function* withDiscoveryBudget<T>(
   source: AsyncIterable<T>,

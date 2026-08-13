@@ -396,7 +396,7 @@ export async function createNodeHost(
         await sharedFreenetClient.close();
       }
 
-      await reticulum.stop();
+      reticulum.stop();
     },
   };
 }

@@ -17,5 +17,15 @@
     "Unlicense",
     "Unicode-3.0",
     "WTFPL"
-  ]
+  ],
+  "overrides": {
+    "@freenetorg/freenet-stdlib@0.3.0": {
+      "license": "MIT OR Apache-2.0",
+      "reason": "Package metadata uses the non-SPDX shorthand MIT+APACHE-2.0."
+    },
+    "khroma@2.1.0": {
+      "license": "MIT",
+      "reason": "The package tarball ships an MIT license file but omits the lockfile license field."
+    }
+  }
 }

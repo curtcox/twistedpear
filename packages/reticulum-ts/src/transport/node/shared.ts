@@ -58,8 +58,8 @@ import {
   TransportType,
   type PacketFields,
 } from "../../packet.js";
-import type { Clock, Entropy, Timer } from "../../runtime/runtime.js";
-import { BandwidthLimiter, type ByteRateLimiter } from "../bandwidth.js";
+import type { Timer } from "../../runtime/runtime.js";
+import { BandwidthLimiter } from "../bandwidth.js";
 import {
   buildPathRequestData,
   parsePathRequestData,
@@ -67,6 +67,7 @@ import {
   pathRequestTagKey,
 } from "../path.js";
 import type { LeafTransport } from "../node.js";
+export type { LeafTransportOptions } from "../transport-types.js";
 export { PATHFINDER_EXPIRY_SECONDS, PATHFINDER_MAX_HOPS };
 export const TRUNCATED_HASH_BYTES = TRUNCATED_HASH_LENGTH / 8;
 
@@ -111,19 +112,6 @@ export interface LocalDestination {
   shouldProve(packet: Packet): boolean;
   handleLinkRequest?(packet: Packet, iface: PacketInterface): void;
   answerPathRequest?(iface: PacketInterface): Promise<void>;
-}
-
-export interface LeafTransportOptions {
-  readonly provider: CryptoProvider;
-  readonly transportIdentity: Identity;
-  readonly clock: Clock;
-  readonly entropy: Entropy;
-  readonly useImplicitProof?: boolean;
-  readonly transportEnabled?: boolean;
-  /** Hard aggregate byte rate applied independently to ingress and egress. */
-  readonly bandwidthBytesPerSecond?: number;
-  readonly inboundBandwidthLimiter?: ByteRateLimiter;
-  readonly outboundBandwidthLimiter?: ByteRateLimiter;
 }
 
 export function hashKey(bytes: Uint8Array): string {
