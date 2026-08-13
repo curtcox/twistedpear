@@ -51,7 +51,7 @@ export function createWebSerialRelay(
           break;
         }
 
-        if (value !== undefined && value.length > 0) {
+        if (value.length > 0) {
           sendToWorker({ type: "serial-data", dataHex: bytesToHex(value) });
         }
       }

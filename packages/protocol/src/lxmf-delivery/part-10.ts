@@ -85,14 +85,7 @@ export function shouldRejectLxmfPropagatedPackPrepPlanMissingTimestamp(
 export function lxmfPropagatedPackPrepPlanFromActions(
   actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
 ): LxmfPropagatedPackPrepPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "skip" ||
-      entry.kind === "ok" ||
-      entry.kind === "missing-identity" ||
-      entry.kind === "missing-timestamp",
-  );
-  return action?.kind ?? null;
+  return actions[0]?.kind ?? null;
 }
 
 /**

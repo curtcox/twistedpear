@@ -163,13 +163,6 @@ export function validateFreenetRemoteGrant(
 
   if (caps.packetTunnel) {
     errors.push(...validateFreenetRendezvousHex(draft.rendezvousHex).errors);
-    if (
-      draft.localDirection !== undefined &&
-      draft.localDirection !== 0 &&
-      draft.localDirection !== 1
-    ) {
-      errors.push("Packet-tunnel local direction must be 0 or 1");
-    }
   }
 
   return { ok: errors.length === 0, errors };

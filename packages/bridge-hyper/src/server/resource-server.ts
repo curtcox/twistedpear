@@ -29,9 +29,10 @@ function encodeRequest(request: PackageResourceRequest): Uint8Array {
 }
 
 function decodeRequest(bytes: Uint8Array): PackageResourceRequest {
-  const value = JSON.parse(
-    new TextDecoder().decode(bytes),
-  ) as PackageResourceRequest & { v?: number };
+  const value = JSON.parse(new TextDecoder().decode(bytes)) as {
+    type?: unknown;
+    version?: unknown;
+  };
   if (value.type === "list") {
     return { type: "list" };
   }

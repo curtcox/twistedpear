@@ -38,7 +38,7 @@ export function peers(): Promise<ReadonlyArray<PeerLinkSummary>> {
 
 export async function* watch(): AsyncIterable<PeerLinkEvent> {
   let cursor: string | undefined;
-  while (true) {
+  for (;;) {
     const batch = await linkCall<LinkWatchBatch>(
       "watch",
       { cursor },

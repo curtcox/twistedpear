@@ -85,10 +85,7 @@ export function stepDestinationRequestAllowPlanWithActions(
 export function destinationRequestAllowPlanFromActions(
   actions: ReadonlyArray<DestinationRequestAllowPlanAction>,
 ): DestinationRequestAllowPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "allow" || entry.kind === "deny",
-  );
-  return action?.kind ?? null;
+  return actions[0]?.kind ?? null;
 }
 
 export function shouldAllowDestinationRequestPlan(

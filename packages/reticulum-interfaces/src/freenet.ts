@@ -43,7 +43,6 @@ export class FreenetInterface extends HdlcPacketInterface {
     super(
       {
         ...options,
-        name: options.name ?? "host-freenet",
         mtu: options.mtu ?? FREENET_INTERFACE_MTU,
         bitrate: options.bitrate ?? FREENET_DEFAULT_BITRATE,
       },

@@ -23,7 +23,7 @@ export async function* withDiscoveryBudget<T>(
     }
   });
   try {
-    while (true) {
+    for (;;) {
       const next = await Promise.race([iterator.next(), budget]);
       if (next.done === true) return;
       yield next.value;

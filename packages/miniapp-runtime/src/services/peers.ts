@@ -62,7 +62,7 @@ export class PeerBrokerService {
   }
   private validate(
     appId: string,
-    payload: PeerRequestPayload,
+    payload: PeerRequestPayload | undefined,
   ): PeerConnectRequest {
     if (
       typeof payload?.purpose !== "string" ||

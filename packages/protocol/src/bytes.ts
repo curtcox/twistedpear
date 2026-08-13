@@ -86,13 +86,12 @@ export function stepAssembleByteArraysWithActions(
 export function shouldUseAssembleByteArrays(
   actions: ReadonlyArray<AssembleByteArraysAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return actions.length > 0;
 }
 
 /** Extract assembled bytes from step actions; null when no `use-raw`. */
 export function assembleByteArraysRawFromActions(
   actions: ReadonlyArray<AssembleByteArraysAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return actions[0]?.raw ?? null;
 }

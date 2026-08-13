@@ -265,7 +265,7 @@ export type { ShareOffer };
 
 export async function* incoming(): AsyncIterable<StreamOffer> {
   let cursor: string | undefined;
-  while (true) {
+  for (;;) {
     const batch = await deviceCall<StreamOfferBatch>(
       "incoming",
       { cursor },

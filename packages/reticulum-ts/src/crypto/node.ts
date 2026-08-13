@@ -37,10 +37,6 @@ export class NodeCryptoProvider implements CryptoProvider {
   }
 
   hkdf(input: HkdfInput): Uint8Array {
-    if (input.hash !== "sha256") {
-      throw new Error(`Unsupported HKDF hash: ${input.hash}`);
-    }
-
     const output = hkdfSync(
       "sha256",
       input.keyMaterial,

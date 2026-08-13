@@ -10,46 +10,20 @@ public final class TwistedPearBleBridgeModule: Module {
     Events("onData", "onConnect", "onDisconnect", "onError", "onPeerDiscovered")
 
     OnDestroy {
-      self.bridge?.stop()
-      self.bridge?.listener = nil
-      self.bridge = nil
+      self.stopBridge()
     }
 
     AsyncFunction("start") { (identityHash: Data) -> Bool in
-      guard identityHash.count == BleBridgeSpec.identityBeaconSize else {
-        self.sendEvent("onError", ["message": "identity hash must be 16 bytes"])
-        return false
-      }
-
-      let active = self.bridge ?? BleBridge()
-      self.bridge = active
-
-      active.listener = BridgeListener(module: self)
-      active.setIdentityHash(identityHash)
-      active.start()
-      return true
+      self.startBridge(identityHash: identityHash)
     }
 
     AsyncFunction("stop") { () -> Bool in
-      self.bridge?.stop()
-      self.bridge?.listener = nil
-      self.bridge = nil
+      self.stopBridge()
       return true
     }
 
     AsyncFunction("write") { (data: Data) -> Bool in
-      guard let bridge = self.bridge else {
-        self.sendEvent("onError", ["message": "BLE pipe is not connected"])
-        return false
-      }
-
-      if !bridge.isConnected() {
-        self.sendEvent("onError", ["message": "BLE pipe is not connected"])
-        return false
-      }
-
-      bridge.write(data)
-      return true
+      self.writeBridge(data)
     }
 
     Function("isConnected") { () -> Bool in
@@ -61,15 +35,50 @@ public final class TwistedPearBleBridgeModule: Module {
     }
 
     Function("shouldActAsCentral") { (localHash: Data, peerHash: Data) -> Bool in
-      guard
-        localHash.count == BleBridgeSpec.identityBeaconSize,
-        peerHash.count == BleBridgeSpec.identityBeaconSize
-      else {
-        return false
-      }
-
-      return BleBridgeSpec.shouldActAsCentral(localHash: localHash, peerHash: peerHash)
+      Self.shouldActAsCentral(localHash: localHash, peerHash: peerHash)
     }
+  }
+
+  private func startBridge(identityHash: Data) -> Bool {
+    guard identityHash.count == BleBridgeSpec.identityBeaconSize else {
+      sendEvent("onError", ["message": "identity hash must be 16 bytes"])
+      return false
+    }
+
+    let active = bridge ?? BleBridge()
+    bridge = active
+
+    active.listener = BridgeListener(module: self)
+    active.setIdentityHash(identityHash)
+    active.start()
+    return true
+  }
+
+  private func stopBridge() {
+    bridge?.stop()
+    bridge?.listener = nil
+    bridge = nil
+  }
+
+  private func writeBridge(_ data: Data) -> Bool {
+    guard let bridge, bridge.isConnected() else {
+      sendEvent("onError", ["message": "BLE pipe is not connected"])
+      return false
+    }
+
+    bridge.write(data)
+    return true
+  }
+
+  private static func shouldActAsCentral(localHash: Data, peerHash: Data) -> Bool {
+    guard
+      localHash.count == BleBridgeSpec.identityBeaconSize,
+      peerHash.count == BleBridgeSpec.identityBeaconSize
+    else {
+      return false
+    }
+
+    return BleBridgeSpec.shouldActAsCentral(localHash: localHash, peerHash: peerHash)
   }
 
   private final class BridgeListener: BleBridge.Listener {

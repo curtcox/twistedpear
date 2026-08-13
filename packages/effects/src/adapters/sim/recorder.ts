@@ -89,7 +89,7 @@ export function parseHistory<S = unknown>(text: string): RecordedHistory<S> {
     if (isRecord(item) && Array.isArray(item.$map))
       return new Map(item.$map as Array<[unknown, unknown]>);
     return item;
-  }) as RecordedHistory<S>;
+  }) as { version?: unknown; trace?: unknown; config?: unknown };
   if (
     value.version !== 1 ||
     !Array.isArray(value.trace) ||
@@ -97,7 +97,7 @@ export function parseHistory<S = unknown>(text: string): RecordedHistory<S> {
   ) {
     throw new Error("invalid simulation history");
   }
-  return value;
+  return value as RecordedHistory<S>;
 }
 
 export function historyEvents(

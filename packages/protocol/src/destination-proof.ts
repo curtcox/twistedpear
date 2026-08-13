@@ -155,10 +155,7 @@ export function stepDestinationProofPlanWithActions(
 export function destinationProofPlanFromActions(
   actions: ReadonlyArray<DestinationProofPlanAction>,
 ): DestinationProofPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "prove" || entry.kind === "skip",
-  );
-  return action?.kind ?? null;
+  return actions[0]?.kind ?? null;
 }
 
 export function shouldProveDestinationPlan(

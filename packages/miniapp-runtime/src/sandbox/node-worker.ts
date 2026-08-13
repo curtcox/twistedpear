@@ -133,9 +133,8 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
         error?: { message: string };
       }) => {
         if (message.type === "broker-request" && message.id !== undefined) {
-          const endpoint = options.brokerEndpoint as {
-            request?: (request: unknown) => Promise<unknown>;
-          };
+          const endpoint = options.brokerEndpoint as
+            { request?: (request: unknown) => Promise<unknown> } | undefined;
           if (typeof endpoint?.request !== "function") {
             worker.postMessage({
               type: "broker-response",

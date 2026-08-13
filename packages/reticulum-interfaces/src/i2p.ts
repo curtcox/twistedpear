@@ -252,7 +252,7 @@ async function readSamLine(connection: DuplexConnection): Promise<{
 }> {
   const chunks: Uint8Array[] = [];
   const iterator = connection.readable[Symbol.asyncIterator]();
-  while (true) {
+  for (;;) {
     const next = await iterator.next();
     if (next.done) {
       return {
@@ -289,7 +289,7 @@ function withBufferedReadable(
         yield remainder;
       }
 
-      while (true) {
+      for (;;) {
         const next = await iterator.next();
         if (next.done) {
           return;

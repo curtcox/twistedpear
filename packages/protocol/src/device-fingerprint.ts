@@ -82,9 +82,6 @@ export function sanitizePcmSample(input: RawPcmInput): RawPcmSample {
   if (!allowedRates.has(input.sampleRate)) {
     throw new Error("unsupported pcm sample rate");
   }
-  if (input.channels !== 1 && input.channels !== 2) {
-    throw new Error("pcm channels must be 1 or 2");
-  }
   const samples = Array.from(input.samples, (value) => {
     if (!Number.isFinite(value)) return 0;
     return Math.max(-1, Math.min(1, value));

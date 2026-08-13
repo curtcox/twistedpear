@@ -418,7 +418,7 @@ export function decodeMessages(buffer: string): {
   const messages: WorkletToHostMessage[] = [];
   let remainder = buffer;
 
-  while (true) {
+  for (;;) {
     const newline = remainder.indexOf("\n");
     if (newline < 0) {
       break;

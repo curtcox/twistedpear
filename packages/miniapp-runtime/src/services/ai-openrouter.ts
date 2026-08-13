@@ -208,7 +208,7 @@ export function createOpenRouterBackend(
         reader = response.body.getReader();
         const decoder = new TextDecoder();
         let pending = "";
-        while (true) {
+        for (;;) {
           const read = await reader.read();
           pending += decoder.decode(read.value, { stream: read.done !== true });
           const lines = pending.split(/\r?\n/);

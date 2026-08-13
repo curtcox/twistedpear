@@ -40,7 +40,7 @@ export async function* chatStream(
   )) as { streamId: string };
   let completed = false;
   try {
-    while (true) {
+    for (;;) {
       const next = (await callHost(
         "ai",
         "chatStreamNext",

@@ -90,10 +90,7 @@ export function stepResourceProofAcceptPlanWithActions(
 export function resourceProofAcceptPlanFromActions(
   actions: ReadonlyArray<ResourceProofAcceptPlanAction>,
 ): ResourceProofAcceptPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "complete" || entry.kind === "ignore",
-  );
-  return action?.kind ?? null;
+  return actions[0]?.kind ?? null;
 }
 
 export function shouldCompleteResourceProofAcceptPlan(

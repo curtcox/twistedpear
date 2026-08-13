@@ -3,6 +3,7 @@ package expo.modules.twistedpear.blebridge
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import network.twistedpear.harness.BleBridge
+import network.twistedpear.harness.BleBridgeSpec
 
 class BleBridgeModule : Module() {
     private var bridge: BleBridge? = null
@@ -72,11 +73,11 @@ class BleBridgeModule : Module() {
             }
 
             Function("getMtu") {
-                bridge?.getMtu() ?: BleBridge.DEFAULT_MTU
+                bridge?.getMtu() ?: BleBridgeSpec.DEFAULT_MTU
             }
 
             Function("shouldActAsCentral") { localHash: ByteArray, peerHash: ByteArray ->
-                BleBridge.shouldActAsCentral(localHash, peerHash)
+                BleBridgeSpec.shouldActAsCentral(localHash, peerHash)
             }
         }
 }

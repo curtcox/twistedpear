@@ -98,11 +98,7 @@ export async function requestNodeBackgroundRefresh(): Promise<boolean> {
 export function addNodeLifecycleListener(
   listener: (event: NodeLifecycleChangeEvent) => void,
 ): EventSubscription | null {
-  if (
-    NativeNodeService === null ||
-    Platform.OS !== "ios" ||
-    NativeNodeService.addListener === undefined
-  ) {
+  if (NativeNodeService === null || Platform.OS !== "ios") {
     return null;
   }
 

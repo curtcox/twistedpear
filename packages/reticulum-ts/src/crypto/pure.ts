@@ -27,10 +27,6 @@ export class PureCryptoProvider implements CryptoProvider {
   }
 
   hkdf(input: HkdfInput): Uint8Array {
-    if (input.hash !== "sha256") {
-      throw new Error(`Unsupported HKDF hash: ${input.hash}`);
-    }
-
     return nobleHkdf(
       sha256,
       input.keyMaterial,

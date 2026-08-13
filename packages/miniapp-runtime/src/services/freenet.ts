@@ -36,8 +36,8 @@ function nodeConfirmationEffects(): ConfirmationEffects {
   return {
     randomBytes(length: number): Uint8Array {
       const bytes = new Uint8Array(length);
-      const c = globalThis.crypto;
-      if (c === undefined || typeof c.getRandomValues !== "function") {
+      const c = globalThis.crypto as Crypto | undefined;
+      if (typeof c?.getRandomValues !== "function") {
         throw new Error(
           "crypto.getRandomValues is required for confirmation tokens",
         );

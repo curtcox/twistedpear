@@ -367,7 +367,7 @@ class NodeWebSocketConnection implements WebSocketLike {
   private handleData(chunk: Buffer): void {
     this.buffer = Buffer.concat([this.buffer, chunk]);
 
-    while (true) {
+    for (;;) {
       const decodeStepped = stepDecodeWsClientFrameWithActions(
         initialDecodeWsClientFrameState(),
         {

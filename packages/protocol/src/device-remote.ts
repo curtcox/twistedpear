@@ -89,11 +89,7 @@ export function stepRemoteGrantStore(
     next.set(key, { ...current, phase: "revoked", revokedAt: event.at });
     return next;
   }
-  if (
-    event.kind === "remote/ttl" &&
-    current.phase === "active" &&
-    event.at >= current.expiresAt
-  ) {
+  if (current.phase === "active" && event.at >= current.expiresAt) {
     next.set(key, { ...current, phase: "expired" });
   }
   return next;

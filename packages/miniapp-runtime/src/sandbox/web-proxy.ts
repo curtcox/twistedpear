@@ -228,9 +228,8 @@ class ProxySandboxInstance implements SandboxInstance {
   }
 
   async handleBrokerRequest(request: unknown): Promise<unknown> {
-    const endpoint = this.brokerEndpoint as {
-      request?: (value: unknown) => Promise<unknown>;
-    };
+    const endpoint = this.brokerEndpoint as
+      { request?: (value: unknown) => Promise<unknown> } | undefined;
     if (typeof endpoint?.request !== "function") {
       return {
         id: (request as { id?: string }).id,

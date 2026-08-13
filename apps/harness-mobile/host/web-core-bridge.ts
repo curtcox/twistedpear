@@ -21,11 +21,7 @@ class WebCoreWorklet {
   private readonly ipcListeners = new Set<IpcListener>();
 
   readonly IPC = {
-    on: (event: "data", listener: IpcListener) => {
-      if (event !== "data") {
-        return;
-      }
-
+    on: (_event: "data", listener: IpcListener) => {
       this.ipcListeners.add(listener);
     },
     write: (data: Uint8Array) => {

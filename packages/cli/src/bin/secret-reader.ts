@@ -1,9 +1,5 @@
 export async function readHiddenSecret(prompt: string): Promise<string> {
-  if (
-    !process.stdin.isTTY ||
-    !process.stdout.isTTY ||
-    process.stdin.setRawMode === undefined
-  ) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(`${prompt} requires a TTY or TP_IDENTITY_PASSPHRASE`);
   }
 
@@ -14,7 +10,7 @@ export async function readHiddenSecret(prompt: string): Promise<string> {
     let value = "";
     const finish = (error?: Error) => {
       process.stdin.off("data", onData);
-      process.stdin.setRawMode?.(false);
+      process.stdin.setRawMode(false);
       process.stdin.pause();
       process.stdout.write("\n");
       if (error === undefined) resolve(value);

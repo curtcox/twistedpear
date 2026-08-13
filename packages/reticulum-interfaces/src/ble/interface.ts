@@ -9,7 +9,6 @@ import {
   fragmentForMtu,
   reassembleBleFrames,
   createBleReassemblyState,
-  BLE_DEFAULT_PIPE_MTU,
 } from "./spec-framing.js";
 
 export const BLE_INTERFACE_MTU = 500;
@@ -57,8 +56,7 @@ export class BleInterface extends RawPacketInterface {
   }
 
   protected async writeBytes(bytes: Uint8Array): Promise<void> {
-    const mtu =
-      this.options.pipeMtu ?? this.options.pipe.mtu ?? BLE_DEFAULT_PIPE_MTU;
+    const mtu = this.options.pipeMtu ?? this.options.pipe.mtu;
     for (const frame of fragmentForMtu(bytes, mtu)) {
       await this.options.pipe.write(frame);
     }

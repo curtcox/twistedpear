@@ -4,7 +4,6 @@
 lifecycle: live
 audited: 2026-08-13
 register: none
-counterpart: docs/static-analysis.md
 -->
 
 The **survey** is a set of open-source analysis tools that measure the code and

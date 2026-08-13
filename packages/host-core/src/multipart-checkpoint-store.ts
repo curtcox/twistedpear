@@ -16,12 +16,19 @@ export class FileMultipartCheckpointStore implements MultipartCheckpointStore {
   private state: CheckpointFile;
 
   constructor(private readonly path: string) {
-    this.state = existsSync(path)
-      ? (JSON.parse(readFileSync(path, "utf8")) as CheckpointFile)
+    const loaded: unknown = existsSync(path)
+      ? JSON.parse(readFileSync(path, "utf8"))
       : { version: 1, transfers: {} };
-    if (this.state.version !== 1 || typeof this.state.transfers !== "object") {
+    const candidate = loaded as Partial<CheckpointFile> | null;
+    if (
+      candidate === null ||
+      typeof candidate !== "object" ||
+      candidate.version !== 1 ||
+      typeof candidate.transfers !== "object"
+    ) {
       throw new Error("Invalid multipart checkpoint store");
     }
+    this.state = candidate as CheckpointFile;
   }
 
   load(transferId: string): MultipartCheckpoint | null {
