@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "description": "Policy for `npm run ratchets:rank`, which merges every ratchet baseline into one ranked backlog. Severity is editorial and lives here; difficulty and leverage are measured from the repository. Nothing in this file gates a build — it only orders the burndown.",
+  "weights": {
+    "severity": 0.45,
+    "leverage": 0.25,
+    "difficulty": 0.3
+  },
+  "severityByRatchet": {
+    "typed": 8,
+    "sansio": 7,
+    "license": 7,
+    "structure": 6,
+    "coverage": 6,
+    "complexity": 5,
+    "size": 5,
+    "lint": 4,
+    "python": 4,
+    "kotlin": 3,
+    "swift": 4,
+    "rust": 4,
+    "shell": 4,
+    "format": 3
+  },
+  "severityByRule": {
+    "@typescript-eslint/no-floating-promises": 10,
+    "@typescript-eslint/no-misused-promises": 10,
+    "@typescript-eslint/await-thenable": 9,
+    "no-func-assign": 9,
+    "no-useless-catch": 7,
+    "@typescript-eslint/no-unnecessary-condition": 6,
+    "@typescript-eslint/require-await": 5,
+    "@typescript-eslint/ban-ts-comment": 7,
+    "@typescript-eslint/no-unused-vars": 3,
+    "no-unused-vars": 3,
+    "no-useless-escape": 2,
+    "no-empty": 3,
+    "depcruise:no-circular": 8,
+    "depcruise:no-orphans": 4,
+    "knip:unresolved": 8,
+    "knip:unlisted": 7,
+    "knip:dependencies": 6,
+    "knip:devDependencies": 4,
+    "knip:binaries": 4,
+    "knip:exports": 3,
+    "knip:types": 3,
+    "layer:dependencies": 8,
+    "layer:devDependencies": 5,
+    "complexity": 6,
+    "max-lines-per-function": 5,
+    "max-params": 4,
+    "max-depth": 5,
+    "max-nested-callbacks": 4,
+    "swiftlint:force_cast": 8,
+    "mypy:import-not-found": 3,
+    "sansio:exception": 9,
+    "sansio:adapter-allowlist": 2,
+    "sansio:protocol-dependency": 2
+  },
+  "autofixable": [
+    "format:unformatted",
+    "no-useless-escape",
+    "ktlint:standard:*",
+    "ruff:format",
+    "swiftlint:trailing_whitespace",
+    "swiftlint:line_length"
+  ],
+  "advisoryRules": ["sansio:adapter-allowlist", "sansio:protocol-dependency"],
+  "coverageTargets": {
+    "statements": 80,
+    "branches": 70,
+    "functions": 80
+  },
+  "difficulty": {
+    "clusterSizeSaturation": 24,
+    "fileLinesSaturation": 800,
+    "coverageGapSaturation": 40,
+    "autofixFactor": 0.15,
+    "countWeight": 0.6,
+    "fileSizeWeight": 0.4
+  },
+  "leverage": {
+    "clusterShareWeight": 0.45,
+    "ruleShareWeight": 0.25,
+    "hotspotWeight": 0.2,
+    "clearsRuleWeight": 0.1
+  }
+}

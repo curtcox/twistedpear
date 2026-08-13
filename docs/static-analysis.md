@@ -65,6 +65,53 @@ intentionally loosen a baseline.
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
 
+## Burning the ratchets down
+
+Every ratchet is monotonic, so the baselines are a debt register: the only way any
+of them reaches zero is by clearing entries. `npm run ratchets:rank` reads all of
+them and prints one ordered backlog, so choosing what to clear next does not mean
+opening eleven files and guessing.
+
+```sh
+npm run ratchets:rank                      # top 20, best first
+npm run ratchets:rank -- --group-by=rule   # roll up to rule, or file, or ratchet
+npm run ratchets:rank -- --ratchet=typed --all
+npm run ratchets:rank -- --stale-only      # entries whose file no longer exists
+npm run ratchets:rank -- --exclude-advisory
+npm run ratchets:rank -- --json --top=1    # machine-readable
+```
+
+A row is one rule in one file — the unit somebody actually sits down and clears.
+Its score is `severity`, `leverage`, and `difficulty` combined with the weights in
+`ratchet-rules.json`:
+
+- **severity** is editorial and lives entirely in that file, per ratchet with
+  per-rule overrides. Retuning the burndown order is a config edit, not a code change.
+- **difficulty** is estimated from how many entries the cluster holds, how large the
+  file is, and whether the rule is mechanically fixable (`ktlint -F`, Prettier, Ruff
+  format). Auto-fixable work is scored as nearly free.
+- **leverage** is measured: how much of the total backlog the cluster removes, whether
+  clearing it empties a rule repository-wide, and how much churn the file has in
+  `hotspots.json` — debt in code under active edit is paid for repeatedly.
+
+Two things are outside the ranking. `census-ratchet.json` records floors that may not
+shrink, which is the inverse of debt. The mutation score is one number rather than a
+list, so it appears as a footer note.
+
+The Sans-IO ratchet is ranked, with a caveat carried on the row itself. Its
+`exceptions` list is ordinary debt. Its adapter and dependency allowlists are not: an
+adapter is _supposed_ to perform I/O, so those entries get narrowed — a tighter glob,
+or one fewer file behind it — rather than deleted. They are named in `advisoryRules`
+in `ratchet-rules.json`, which marks each row `advisory` and scores it low, and
+`--exclude-advisory` drops them. They are ranked by default because that ratchet may
+only shrink like every other one, so the list that says what to narrow next has to
+contain them.
+
+The report never writes: it prints the ranking and, for the top row, the command that
+re-measures the gate and the command that re-records the baseline. Clearing findings
+without re-recording leaves the entries in place, so both are needed for the count to
+actually fall.
+
 ## Security and supply chain
 
 Dependabot is configured weekly for npm, Actions, and all three Cargo contract roots.
