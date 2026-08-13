@@ -16,85 +16,92 @@ import androidx.core.app.NotificationCompat
  * START_STICKY allows the system to restart the service after process death.
  */
 class NodeForegroundService : Service() {
-  override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder? = null
 
-  override fun onCreate() {
-    super.onCreate()
-    createNotificationChannel()
-    startForeground(NOTIFICATION_ID, buildNotification())
-    isRunning = true
-  }
-
-  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    if (!isRunning) {
-      startForeground(NOTIFICATION_ID, buildNotification())
-      isRunning = true
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+        startForeground(NOTIFICATION_ID, buildNotification())
+        isRunning = true
     }
 
-    return START_STICKY
-  }
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
+        if (!isRunning) {
+            startForeground(NOTIFICATION_ID, buildNotification())
+            isRunning = true
+        }
 
-  override fun onDestroy() {
-    isRunning = false
-    super.onDestroy()
-  }
-
-  override fun onTaskRemoved(rootIntent: Intent?) {
-    // Keep routing while the user swipes the app away; OEM killers may still stop us.
-    val restartIntent = Intent(applicationContext, NodeForegroundService::class.java)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      applicationContext.startForegroundService(restartIntent)
-    } else {
-      applicationContext.startService(restartIntent)
+        return START_STICKY
     }
 
-    super.onTaskRemoved(rootIntent)
-  }
-
-  private fun createNotificationChannel() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-      return
+    override fun onDestroy() {
+        isRunning = false
+        super.onDestroy()
     }
 
-    val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    val channel = NotificationChannel(
-      CHANNEL_ID,
-      CHANNEL_NAME,
-      NotificationManager.IMPORTANCE_LOW
-    ).apply {
-      description = "Reticulum node routing while the harness is backgrounded"
-      setShowBadge(false)
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // Keep routing while the user swipes the app away; OEM killers may still stop us.
+        val restartIntent = Intent(applicationContext, NodeForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            applicationContext.startForegroundService(restartIntent)
+        } else {
+            applicationContext.startService(restartIntent)
+        }
+
+        super.onTaskRemoved(rootIntent)
     }
 
-    manager.createNotificationChannel(channel)
-  }
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return
+        }
 
-  private fun buildNotification(): Notification {
-    val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-    val pendingIntent = PendingIntent.getActivity(
-      this,
-      0,
-      launchIntent,
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channel =
+            NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "Reticulum node routing while the harness is backgrounded"
+                setShowBadge(false)
+            }
 
-    return NotificationCompat.Builder(this, CHANNEL_ID)
-      .setContentTitle("TwistedPear node active")
-      .setContentText("Reticulum routing in background")
-      .setSmallIcon(android.R.drawable.stat_sys_upload)
-      .setContentIntent(pendingIntent)
-      .setOngoing(true)
-      .setCategory(NotificationCompat.CATEGORY_SERVICE)
-      .build()
-  }
+        manager.createNotificationChannel(channel)
+    }
 
-  companion object {
-    const val CHANNEL_ID = "twistedpear_node"
-    const val CHANNEL_NAME = "TwistedPear Node"
-    const val NOTIFICATION_ID = 1001
+    private fun buildNotification(): Notification {
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
-    @Volatile
-    var isRunning: Boolean = false
-      private set
-  }
+        return NotificationCompat
+            .Builder(this, CHANNEL_ID)
+            .setContentTitle("TwistedPear node active")
+            .setContentText("Reticulum routing in background")
+            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .build()
+    }
+
+    companion object {
+        const val CHANNEL_ID = "twistedpear_node"
+        const val CHANNEL_NAME = "TwistedPear Node"
+        const val NOTIFICATION_ID = 1001
+
+        @Volatile
+        var isRunning: Boolean = false
+            private set
+    }
 }

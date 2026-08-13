@@ -7,7 +7,6 @@ to the sender using opportunistic delivery.
 
 from __future__ import annotations
 
-import sys
 import time
 from pathlib import Path
 
@@ -22,7 +21,7 @@ DELIVERY_ASPECT = "delivery"
 
 
 def main() -> int:
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
 
     identity = load_identity("bob")
     alice_identity = load_identity("alice")

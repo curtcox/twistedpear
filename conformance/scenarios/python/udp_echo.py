@@ -18,7 +18,7 @@ GREETING = b"hello from python udp echo"
 
 
 def main() -> int:
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
 
     identity = load_identity("bob")
     alice = load_identity("alice")

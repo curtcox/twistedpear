@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import sys
 import time
 from pathlib import Path
 
@@ -47,7 +46,7 @@ def run_echo_leaf(target_host: str, target_port: int) -> int:
     config_dir = Path("/tmp/transport-leaf-bob")
     write_client_config(config_dir, target_host, target_port)
 
-    reticulum = RNS.Reticulum(str(config_dir))
+    _reticulum = RNS.Reticulum(str(config_dir))
     identity = load_identity("bob")
     alice = load_identity("alice")
 
@@ -94,7 +93,7 @@ def run_alice_leaf(target_host: str, target_port: int) -> int:
     config_dir = Path("/tmp/transport-leaf-alice")
     write_client_config(config_dir, target_host, target_port)
 
-    reticulum = RNS.Reticulum(str(config_dir))
+    _reticulum = RNS.Reticulum(str(config_dir))
     bob = load_identity("bob")
 
     outbound = RNS.Destination(

@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import sys
 import time
 from pathlib import Path
 
@@ -19,7 +18,7 @@ GREETING = b"hello from python auto echo"
 
 
 def main() -> int:
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
 
     identity = load_identity("bob")
     alice = load_identity("alice")

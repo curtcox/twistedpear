@@ -44,7 +44,9 @@ def hkdf_sha256(ikm: bytes, salt: bytes, info: bytes, length: int) -> bytes:
     counter = 1
 
     while len(output) < length:
-        previous = hmac.new(prk, previous + info + bytes([counter]), hashlib.sha256).digest()
+        previous = hmac.new(
+            prk, previous + info + bytes([counter]), hashlib.sha256
+        ).digest()
         output += previous
         counter += 1
 
@@ -103,7 +105,9 @@ def base_packet_corpus() -> dict:
     def destination_entry(name: str, app_name: str, aspects: list[str]) -> dict:
         expanded_without_identity = ".".join([app_name] + aspects)
         expanded = expanded_without_identity + "." + identity_hash.hex()
-        name_hash = hashlib.sha256(expanded_without_identity.encode("utf-8")).digest()[:10]
+        name_hash = hashlib.sha256(expanded_without_identity.encode("utf-8")).digest()[
+            :10
+        ]
         destination_hash = hashlib.sha256(name_hash + identity_hash).digest()[:16]
         return {
             "name": name,
@@ -138,7 +142,13 @@ def base_packet_corpus() -> dict:
         if header_type == 1:
             if transport_id is None:
                 raise ValueError("HEADER_2 packet vectors require transport_id")
-            raw = bytes([flags, hops]) + transport_id + destination_hash + bytes([context]) + data
+            raw = (
+                bytes([flags, hops])
+                + transport_id
+                + destination_hash
+                + bytes([context])
+                + data
+            )
             hashable = bytes([raw[0] & 0x0F]) + raw[18:]
         else:
             raw = bytes([flags, hops]) + destination_hash + bytes([context]) + data
@@ -218,9 +228,23 @@ def rns_packet_corpus() -> dict:
     ratchet_public = RNS.Identity._ratchet_public_bytes(ratchet_private)
 
     def announce_entry(name: str, ratchet: bytes = b"") -> dict:
-        signed_data = destination_hash + alice.get_public_key() + name_hash + random_hash + ratchet + app_data
+        signed_data = (
+            destination_hash
+            + alice.get_public_key()
+            + name_hash
+            + random_hash
+            + ratchet
+            + app_data
+        )
         signature = alice.sign(signed_data)
-        data = alice.get_public_key() + name_hash + random_hash + ratchet + signature + app_data
+        data = (
+            alice.get_public_key()
+            + name_hash
+            + random_hash
+            + ratchet
+            + signature
+            + app_data
+        )
         flags = (
             (RNS.Packet.HEADER_1 << 6)
             | ((RNS.Packet.FLAG_SET if ratchet else RNS.Packet.FLAG_UNSET) << 5)
@@ -314,7 +338,9 @@ def rns_identity_corpus() -> dict:
 
     return {
         "upstream": {
-            "reticulumVersion": RNS.__version__ if hasattr(RNS, "__version__") else "0.9.4",
+            "reticulumVersion": RNS.__version__
+            if hasattr(RNS, "__version__")
+            else "0.9.4",
             "generatedBy": "conformance/vectors/generate.py (RNS)",
         },
         "identities": [
@@ -446,7 +472,9 @@ def lxmf_message_corpus(identity_corpus: dict) -> dict:
         bob, RNS.Destination.OUT, RNS.Destination.SINGLE, "lxmf", "delivery"
     )
 
-    def message_entry(name: str, title: str, content: str, fields: dict | None = None) -> dict:
+    def message_entry(
+        name: str, title: str, content: str, fields: dict | None = None
+    ) -> dict:
         fields = fields or {}
         message = LXMF.LXMessage(
             bob_delivery,

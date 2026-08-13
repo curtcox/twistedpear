@@ -34,7 +34,7 @@ def main() -> int:
     if hasattr(socketserver.UDPServer, "allow_reuse_port"):
         socketserver.UDPServer.allow_reuse_port = True
 
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
     lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-auto-interop-lxmf-"))
     atexit.register(shutil.rmtree, lxmf_storage, ignore_errors=True)
 
@@ -114,7 +114,10 @@ def main() -> int:
     router.register_delivery_callback(delivery_callback)
     delivery_destination.announce()
 
-    print(f"READY echo={echo_in.hash.hex()} link={link_in.hash.hex()} lxmf={delivery_destination.hash.hex()}", flush=True)
+    print(
+        f"READY echo={echo_in.hash.hex()} link={link_in.hash.hex()} lxmf={delivery_destination.hash.hex()}",
+        flush=True,
+    )
 
     outbound = RNS.Destination(
         alice,

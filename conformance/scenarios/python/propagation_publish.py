@@ -75,11 +75,13 @@ def main() -> int:
 """
     )
 
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
     publisher = load_identity("bob")
     recipient = load_identity(args.recipient)
 
-    lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-propagation-publish-lxmf-"))
+    lxmf_storage = Path(
+        tempfile.mkdtemp(prefix="twistedpear-propagation-publish-lxmf-")
+    )
     atexit.register(shutil.rmtree, lxmf_storage, ignore_errors=True)
     router = LXMF.LXMRouter(storagepath=str(lxmf_storage))
     delivery = router.register_delivery_identity(publisher)

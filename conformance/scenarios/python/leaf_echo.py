@@ -8,7 +8,6 @@ optionally sends a greeting to a configured peer destination hash.
 from __future__ import annotations
 
 import os
-import sys
 import time
 from pathlib import Path
 
@@ -29,7 +28,7 @@ GREETING = b"hello from python leaf echo"
 
 
 def main() -> int:
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
 
     identity = load_identity("bob")
     alice = load_identity("alice")

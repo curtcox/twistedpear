@@ -44,7 +44,9 @@ def wait_for_transfer(router: LXMF.LXMRouter, timeout_s: float = 30.0) -> None:
             return
         time.sleep(0.1)
 
-    raise TimeoutError(f"Propagation sync timed out in state {router.propagation_transfer_state}")
+    raise TimeoutError(
+        f"Propagation sync timed out in state {router.propagation_transfer_state}"
+    )
 
 
 def main() -> int:
@@ -74,7 +76,7 @@ def main() -> int:
 """
     )
 
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
     recipient = load_identity(args.recipient)
 
     lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-propagation-sync-lxmf-"))

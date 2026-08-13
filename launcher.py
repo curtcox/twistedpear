@@ -6,165 +6,27 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from functools import partial
 from typing import Optional
+
+from launcher_tkpython import (
+    ensure_tkinter_python,
+    is_brew_python,
+    preferred_brew_python_version,
+    python_has_tkinter,
+    same_python,
+)
 
 # macOS ships a deprecated system Tk that prints this on every launch.
 os.environ.setdefault("TK_SILENCE_DEPRECATION", "1")
 
+ensure_tkinter_python()
 
-def _python_has_tkinter(python: str) -> bool:
-    try:
-        result = subprocess.run(
-            [python, "-c", "import _tkinter"],
-            capture_output=True,
-            timeout=10,
-        )
-        return result.returncode == 0
-    except (OSError, subprocess.SubprocessError):
-        return False
-
-
-def _brew_python_executable(major: int, minor: int) -> Optional[str]:
-    if sys.platform != "darwin" or not shutil.which("brew"):
-        return None
-
-    try:
-        result = subprocess.run(
-            ["brew", "--prefix", f"python@{major}.{minor}"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10,
-        )
-    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        return None
-
-    python = os.path.join(result.stdout.strip(), "bin", "python3")
-    if os.path.isfile(python):
-        return python
-
-    return None
-
-
-def _same_python(left: str, right: str) -> bool:
-    try:
-        return os.path.realpath(left) == os.path.realpath(right)
-    except OSError:
-        return False
-
-
-def _is_brew_python(python: str) -> bool:
-    major, minor = sys.version_info[:2]
-    brew_python = _brew_python_executable(major, minor)
-    return bool(brew_python and _same_python(python, brew_python))
-
-
-def _preferred_brew_python_version() -> tuple[int, int]:
-    if sys.platform == "darwin" and shutil.which("brew"):
-        for major_minor in ("3.14", "3.13", "3.12", "3.11", "3.10"):
-            major_s, minor_s = major_minor.split(".", 1)
-            major, minor = int(major_s), int(minor_s)
-            if _brew_python_executable(major, minor):
-                return major, minor
-
-    return sys.version_info[:2]
-
-
-def _brew_python_tk_install_message(major: int, minor: int, python: str) -> str:
-    brew_python = f"python@{major}.{minor}"
-    brew_tk = f"python-tk@{major}.{minor}"
-    return (
-        "launcher.py: Homebrew Python is installed but Tcl/Tk support is missing.\n\n"
-        f"Python: {python} ({major}.{minor})\n\n"
-        "Homebrew's python@3.x does not include Tk until you install python-tk:\n\n"
-        f"  brew install {brew_python} {brew_tk}\n\n"
-        "Then run from the repo root:\n"
-        "  ./launch\n"
-        f"  # or: LAUNCHER_PYTHON=\"$(brew --prefix {brew_python})/bin/python3\" python3 launcher.py\n"
-    )
-
-
-def _exit_if_brew_python_missing_tk(python: str) -> None:
-    if not _is_brew_python(python) or _python_has_tkinter(python):
-        return
-
-    major, minor = sys.version_info[:2]
-    print(_brew_python_tk_install_message(major, minor, python), file=sys.stderr)
-    sys.exit(1)
-
-
-def _brew_python_with_tk() -> Optional[str]:
-    major, minor = sys.version_info[:2]
-    python = _brew_python_executable(major, minor)
-    if python and _python_has_tkinter(python):
-        return python
-    return None
-
-
-def _tkinter_python_candidates() -> list[str]:
-    seen: set[str] = set()
-    candidates: list[str] = []
-
-    def add(path: Optional[str]) -> None:
-        if not path:
-            return
-        resolved = os.path.realpath(path)
-        if resolved in seen or not os.path.isfile(resolved) or not os.access(resolved, os.X_OK):
-            return
-        seen.add(resolved)
-        candidates.append(path)
-
-    add(os.environ.get("LAUNCHER_PYTHON"))
-    add(_brew_python_with_tk())
-    if not _is_brew_python(sys.executable):
-        add("/usr/bin/python3")
-    for name in ("python3", "python"):
-        candidate = shutil.which(name)
-        if candidate and not (
-            _is_brew_python(candidate) and not _python_has_tkinter(candidate)
-        ):
-            add(candidate)
-
-    return candidates
-
-
-def _ensure_tkinter_python() -> None:
-    launcher_python = os.environ.get("LAUNCHER_PYTHON")
-    if launcher_python and _python_has_tkinter(launcher_python):
-        if not _same_python(launcher_python, sys.executable):
-            os.execv(launcher_python, [launcher_python, *sys.argv])
-        return
-
-    _exit_if_brew_python_missing_tk(sys.executable)
-
-    if _python_has_tkinter(sys.executable):
-        return
-
-    for python in _tkinter_python_candidates():
-        if _python_has_tkinter(python):
-            os.execv(python, [python, *sys.argv])
-
-    major, minor = sys.version_info[:2]
-    brew_python = f"python@{major}.{minor}"
-    brew_tk = f"python-tk@{major}.{minor}"
-
-    print(
-        f"launcher.py: Tkinter is not available in {sys.executable} "
-        f"(Python {major}.{minor}).\n\n"
-        "This launcher needs a Python build linked against Tcl/Tk.\n\n"
-        f"  brew install {brew_python} {brew_tk}\n\n"
-        "Then run:\n"
-        "  ./launch\n",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
-
-_ensure_tkinter_python()
-
-import threading
-import tkinter as tk
-from tkinter import messagebox, ttk
+# Imported after the guard above: on an interpreter without Tcl/Tk, importing
+# tkinter raises before ensure_tkinter_python can re-exec into one that has it.
+import threading  # noqa: E402
+import tkinter as tk  # noqa: E402
+from tkinter import messagebox, ttk  # noqa: E402
 
 
 USAGE = """\
@@ -284,13 +146,17 @@ def parse_entries(text: str) -> list[Entry]:
                 )
 
             if key in fields:
-                raise ParseError(f"Line {line_no}: duplicate key {key!r} in same entry.")
+                raise ParseError(
+                    f"Line {line_no}: duplicate key {key!r} in same entry."
+                )
 
             fields[key] = value
 
         if "command" not in fields or not fields["command"]:
             first_line = raw_entry[0][0] if raw_entry else "unknown"
-            raise ParseError(f"Entry starting at line {first_line}: command: is required.")
+            raise ParseError(
+                f"Entry starting at line {first_line}: command: is required."
+            )
 
         entries.append(
             Entry(
@@ -350,13 +216,17 @@ def _tk_supports_png(master: tk.Misc, path: str) -> bool:
 
 
 def _is_macos_system_python(python: str) -> bool:
-    return sys.platform == "darwin" and _same_python(python, "/usr/bin/python3")
+    return sys.platform == "darwin" and same_python(python, "/usr/bin/python3")
 
 
 def _available_image_backends(master: tk.Misc, sample_png: Optional[str]) -> list[str]:
     backends: list[str] = []
 
-    if sample_png and os.path.isfile(sample_png) and _tk_supports_png(master, sample_png):
+    if (
+        sample_png
+        and os.path.isfile(sample_png)
+        and _tk_supports_png(master, sample_png)
+    ):
         backends.append("tk-png")
     if _has_pillow():
         backends.append("pillow")
@@ -367,10 +237,10 @@ def _available_image_backends(master: tk.Misc, sample_png: Optional[str]) -> lis
 def _image_dependency_instructions() -> str:
     python = sys.executable
     runtime_major, runtime_minor = sys.version_info[:2]
-    if _is_brew_python(python):
+    if is_brew_python(python):
         major, minor = runtime_major, runtime_minor
     else:
-        major, minor = _preferred_brew_python_version()
+        major, minor = preferred_brew_python_version()
     brew_python = f"python@{major}.{minor}"
     brew_tk = f"python-tk@{major}.{minor}"
 
@@ -381,7 +251,7 @@ def _image_dependency_instructions() -> str:
         "",
     ]
 
-    if _is_brew_python(python) and not _python_has_tkinter(python):
+    if is_brew_python(python) and not python_has_tkinter(python):
         lines.extend(
             [
                 "Homebrew Python is installed but python-tk is missing:",
@@ -395,7 +265,7 @@ def _image_dependency_instructions() -> str:
                 "macOS /usr/bin/python3 uses an older Tk that cannot load PNG previews.",
                 "Install Homebrew Python with Tk support:",
                 f"  brew install {brew_python} {brew_tk}",
-                f"  LAUNCHER_PYTHON=\"$(brew --prefix {brew_python})/bin/python3\" ./launch",
+                f'  LAUNCHER_PYTHON="$(brew --prefix {brew_python})/bin/python3" ./launch',
                 "",
                 "Or install Pillow for the current interpreter:",
                 f"  {python} -m pip install --user pillow",
@@ -407,9 +277,9 @@ def _image_dependency_instructions() -> str:
             [
                 "Install Homebrew Python with Tk support:",
                 f"  brew install {brew_python} {brew_tk}",
-                f"  LAUNCHER_PYTHON=\"$(brew --prefix {brew_python})/bin/python3\" ./launch",
+                f'  LAUNCHER_PYTHON="$(brew --prefix {brew_python})/bin/python3" ./launch',
                 "",
-                f"Or install Pillow for the current interpreter:",
+                "Or install Pillow for the current interpreter:",
                 f"  {python} -m pip install --user pillow",
                 "",
             ]
@@ -453,7 +323,8 @@ class PreviewImageLoader:
         )
         if factor <= 1:
             return img
-        return img.subsample(factor, factor)
+        # Tk's `subsample x ?y?` defaults y to x, which is the square factor here.
+        return img.subsample(factor)
 
     def _convert_image_for_tk(self, path: str) -> Optional[str]:
         if not _has_sips():
@@ -514,9 +385,7 @@ def _ensure_image_support(entries: list[Entry], master: tk.Misc) -> PreviewImage
         return PreviewImageLoader(master)
 
     missing = [
-        path
-        for path in image_paths
-        if not os.path.isfile(_resolve_image_path(path))
+        path for path in image_paths if not os.path.isfile(_resolve_image_path(path))
     ]
     if missing:
         print(
@@ -597,14 +466,17 @@ class LauncherApp(tk.Tk):
 
         if entry.image:
             img = self.image_loader.load(entry.image)
+            # The loader keeps every PhotoImage alive in `photos`, so the label
+            # does not need its own reference to stop Tk collecting the image.
             image_label = tk.Label(card, image=img, borderwidth=0)
-            image_label.image = img
             image_label.grid(row=0, column=0, rowspan=3, padx=(0, 12), sticky=tk.NW)
 
         text_col = 1
         card.columnconfigure(text_col, weight=1)
 
-        name = ttk.Label(card, text=entry.name or f"Tool {index + 1}", font=("", 13, "bold"))
+        name = ttk.Label(
+            card, text=entry.name or f"Tool {index + 1}", font=("", 13, "bold")
+        )
         name.grid(row=0, column=text_col, sticky=tk.W)
 
         desc = ttk.Label(
@@ -626,7 +498,7 @@ class LauncherApp(tk.Tk):
         run_button = ttk.Button(
             card,
             text="Run",
-            command=lambda e=entry: self._run_entry(e),
+            command=partial(self._run_entry, entry),
         )
         run_button.grid(row=0, column=2, rowspan=3, padx=(12, 0), sticky=tk.NE)
 

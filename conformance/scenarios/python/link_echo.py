@@ -20,7 +20,7 @@ ASPECT = "link"
 
 
 def main() -> int:
-    reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    _reticulum = RNS.Reticulum(str(CONFIG_DIR))
 
     identity = load_identity("bob")
     inbound = RNS.Destination(
