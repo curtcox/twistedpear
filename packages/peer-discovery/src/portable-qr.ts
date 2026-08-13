@@ -19,27 +19,35 @@ type Decoder = (
 const jsQR = ((jsQrModule as unknown as { readonly default?: Decoder })
   .default ?? jsQrModule) as unknown as Decoder;
 
+function validQrDimensions(width: number, height: number): boolean {
+  return (
+    Number.isInteger(width) &&
+    Number.isInteger(height) &&
+    width >= 21 &&
+    height >= 21
+  );
+}
+
+function withinQrPixelBudget(width: number, height: number): boolean {
+  return (
+    width <= MAX_PORTABLE_QR_DIMENSION &&
+    height <= MAX_PORTABLE_QR_DIMENSION &&
+    width * height <= MAX_PORTABLE_QR_DIMENSION * MAX_PORTABLE_QR_DIMENSION
+  );
+}
+
 /** Static-bundle QR fallback for camera/video ImageData when BarcodeDetector is absent. */
 export function decodePeerQrRgba(
   rgba: Uint8ClampedArray,
   width: number,
   height: number,
 ): string | null {
-  if (
-    !Number.isInteger(width) ||
-    !Number.isInteger(height) ||
-    width < 21 ||
-    height < 21
-  )
+  if (!validQrDimensions(width, height))
     throw new PortableQrDecodeError(
       "MALFORMED",
       "QR image dimensions are invalid",
     );
-  if (
-    width > MAX_PORTABLE_QR_DIMENSION ||
-    height > MAX_PORTABLE_QR_DIMENSION ||
-    width * height > MAX_PORTABLE_QR_DIMENSION * MAX_PORTABLE_QR_DIMENSION
-  )
+  if (!withinQrPixelBudget(width, height))
     throw new PortableQrDecodeError(
       "OVERSIZED",
       "QR image exceeds pixel budget",

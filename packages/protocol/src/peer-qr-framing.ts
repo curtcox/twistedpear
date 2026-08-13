@@ -45,28 +45,35 @@ export function peerQrCrc32(bytes: Uint8Array): number {
   return (crc ^ 0xffff_ffff) >>> 0;
 }
 
+function validSessionId(sessionId: Uint8Array): boolean {
+  return sessionId.length >= 16 && sessionId.length <= 32;
+}
+
+function validFrameTotal(total: number): boolean {
+  return Number.isInteger(total) && total >= 1 && total <= MAX_PEER_QR_FRAMES;
+}
+
+function validFrameSequence(sequence: number, total: number): boolean {
+  return Number.isInteger(sequence) && sequence >= 0 && sequence < total;
+}
+
+function validFramePayload(payload: Uint8Array): boolean {
+  return (
+    payload.length >= 1 && payload.length <= MAX_PEER_QR_FRAME_PAYLOAD_BYTES
+  );
+}
+
 function validateFrame(frame: PeerQrFrame): void {
-  if (frame.sessionId.length < 16 || frame.sessionId.length > 32)
+  if (!validSessionId(frame.sessionId))
     throw new PeerQrFrameError(
       "MALFORMED",
       "QR session id must be 16..32 bytes",
     );
-  if (
-    !Number.isInteger(frame.total) ||
-    frame.total < 1 ||
-    frame.total > MAX_PEER_QR_FRAMES
-  )
+  if (!validFrameTotal(frame.total))
     throw new PeerQrFrameError("MALFORMED", "invalid QR frame total");
-  if (
-    !Number.isInteger(frame.sequence) ||
-    frame.sequence < 0 ||
-    frame.sequence >= frame.total
-  )
+  if (!validFrameSequence(frame.sequence, frame.total))
     throw new PeerQrFrameError("MALFORMED", "invalid QR frame sequence");
-  if (
-    frame.payload.length < 1 ||
-    frame.payload.length > MAX_PEER_QR_FRAME_PAYLOAD_BYTES
-  )
+  if (!validFramePayload(frame.payload))
     throw new PeerQrFrameError("MALFORMED", "invalid QR frame payload size");
 }
 
@@ -172,14 +179,16 @@ export function initialPeerQrAssemblyState(
 ): PeerQrAssemblyState {
   return { sessionId: null, total: null, expiresAt, chunks: [], received: 0 };
 }
-export function stepPeerQrAssembly(
-  state: PeerQrAssemblyState,
-  encodedFrame: Uint8Array,
-  now: number,
-): PeerQrAssemblyResult {
+
+function validateAssemblyExpiry(state: PeerQrAssemblyState, now: number): void {
   if (now >= state.expiresAt)
     throw new PeerQrFrameError("EXPIRED", "QR assembly expired");
-  const frame = decodePeerQrFrame(encodedFrame);
+}
+
+function validateAssemblyCompatibility(
+  state: PeerQrAssemblyState,
+  frame: PeerQrFrame,
+): void {
   if (state.sessionId !== null && !sameBytes(state.sessionId, frame.sessionId))
     throw new PeerQrFrameError(
       "MIXED_SESSION",
@@ -187,29 +196,33 @@ export function stepPeerQrAssembly(
     );
   if (state.total !== null && state.total !== frame.total)
     throw new PeerQrFrameError("MIXED_SESSION", "QR frame totals do not match");
-  const chunks =
-    state.chunks.length === 0
-      ? Array<Uint8Array | null>(frame.total).fill(null)
-      : [...state.chunks];
+}
+
+function assemblyChunks(
+  state: PeerQrAssemblyState,
+  total: number,
+): Array<Uint8Array | null> {
+  return state.chunks.length === 0
+    ? Array<Uint8Array | null>(total).fill(null)
+    : [...state.chunks];
+}
+
+function duplicateFrameResult(
+  state: PeerQrAssemblyState,
+  frame: PeerQrFrame,
+  chunks: ReadonlyArray<Uint8Array | null>,
+): PeerQrAssemblyResult | null {
   const existing = chunks[frame.sequence];
-  if (existing !== null && existing !== undefined) {
-    if (!sameBytes(existing, frame.payload))
-      throw new PeerQrFrameError(
-        "CONFLICTING_FRAME",
-        "duplicate QR frame has different payload",
-      );
-    return { state, payload: null };
-  }
-  chunks[frame.sequence] = frame.payload;
-  const received = state.received + 1;
-  const next: PeerQrAssemblyState = {
-    sessionId: frame.sessionId,
-    total: frame.total,
-    expiresAt: state.expiresAt,
-    chunks,
-    received,
-  };
-  if (received !== frame.total) return { state: next, payload: null };
+  if (existing === null || existing === undefined) return null;
+  if (!sameBytes(existing, frame.payload))
+    throw new PeerQrFrameError(
+      "CONFLICTING_FRAME",
+      "duplicate QR frame has different payload",
+    );
+  return { state, payload: null };
+}
+
+function assemblePayload(chunks: ReadonlyArray<Uint8Array | null>): Uint8Array {
   const size = chunks.reduce((sum, chunk) => sum + (chunk?.length ?? 0), 0);
   if (size > MAX_PEER_QR_ASSEMBLED_BYTES)
     throw new PeerQrFrameError(
@@ -224,5 +237,29 @@ export function stepPeerQrAssembly(
     payload.set(chunk, offset);
     offset += chunk.length;
   }
-  return { state: next, payload };
+  return payload;
+}
+
+export function stepPeerQrAssembly(
+  state: PeerQrAssemblyState,
+  encodedFrame: Uint8Array,
+  now: number,
+): PeerQrAssemblyResult {
+  validateAssemblyExpiry(state, now);
+  const frame = decodePeerQrFrame(encodedFrame);
+  validateAssemblyCompatibility(state, frame);
+  const chunks = assemblyChunks(state, frame.total);
+  const duplicate = duplicateFrameResult(state, frame, chunks);
+  if (duplicate !== null) return duplicate;
+  chunks[frame.sequence] = frame.payload;
+  const received = state.received + 1;
+  const next: PeerQrAssemblyState = {
+    sessionId: frame.sessionId,
+    total: frame.total,
+    expiresAt: state.expiresAt,
+    chunks,
+    received,
+  };
+  if (received !== frame.total) return { state: next, payload: null };
+  return { state: next, payload: assemblePayload(chunks) };
 }

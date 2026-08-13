@@ -79,20 +79,33 @@ function frameHeader(
   return header;
 }
 
+type UntrustedAudioFrame = Omit<PeerAudioFrame, "profile"> & {
+  readonly profile: number;
+};
+
+function validAudioFramePosition(frame: UntrustedAudioFrame): boolean {
+  return (
+    frame.profile === 1 &&
+    frame.sessionId.length === 16 &&
+    frame.total >= 1 &&
+    frame.total <= MAX_PEER_AUDIO_FRAMES &&
+    frame.sequence >= 0 &&
+    frame.sequence <= frame.total &&
+    frame.parity === (frame.sequence === frame.total)
+  );
+}
+
+function validAudioFrameSizes(frame: PeerAudioFrame): boolean {
+  return (
+    frame.payload.length >= 1 &&
+    frame.payload.length <= MAX_PEER_AUDIO_CHUNK_BYTES &&
+    frame.totalLength >= 1 &&
+    frame.totalLength <= MAX_PEER_AUDIO_PAYLOAD_BYTES
+  );
+}
+
 export function encodePeerAudioFrame(frame: PeerAudioFrame): Uint8Array {
-  if (
-    frame.profile !== 1 ||
-    frame.sessionId.length !== 16 ||
-    frame.total < 1 ||
-    frame.total > MAX_PEER_AUDIO_FRAMES ||
-    frame.sequence < 0 ||
-    frame.sequence > frame.total ||
-    frame.parity !== (frame.sequence === frame.total) ||
-    frame.payload.length < 1 ||
-    frame.payload.length > MAX_PEER_AUDIO_CHUNK_BYTES ||
-    frame.totalLength < 1 ||
-    frame.totalLength > MAX_PEER_AUDIO_PAYLOAD_BYTES
-  )
+  if (!validAudioFramePosition(frame) || !validAudioFrameSizes(frame))
     throw new PeerAudioFrameError(
       "MALFORMED",
       "Invalid peer audio frame fields",
@@ -153,18 +166,26 @@ export function decodePeerAudioFrame(bytes: Uint8Array): PeerAudioFrame {
   return frame;
 }
 
+function validAudioPayloadBudget(
+  sessionId: Uint8Array,
+  payload: Uint8Array,
+  chunkBytes: number,
+): boolean {
+  return (
+    sessionId.length === 16 &&
+    payload.length >= 1 &&
+    payload.length <= MAX_PEER_AUDIO_PAYLOAD_BYTES &&
+    chunkBytes >= 16 &&
+    chunkBytes <= MAX_PEER_AUDIO_CHUNK_BYTES
+  );
+}
+
 export function framePeerAudioPayload(
   sessionId: Uint8Array,
   payload: Uint8Array,
   chunkBytes = 128,
 ): ReadonlyArray<Uint8Array> {
-  if (
-    sessionId.length !== 16 ||
-    payload.length < 1 ||
-    payload.length > MAX_PEER_AUDIO_PAYLOAD_BYTES ||
-    chunkBytes < 16 ||
-    chunkBytes > MAX_PEER_AUDIO_CHUNK_BYTES
-  )
+  if (!validAudioPayloadBudget(sessionId, payload, chunkBytes))
     throw new PeerAudioFrameError(
       "OVERSIZED",
       "Invalid peer audio payload or chunk budget",
@@ -227,78 +248,87 @@ export function initialPeerAudioAssemblyState(
   };
 }
 
-export function stepPeerAudioAssembly(
+function compatibleAudioAssembly(
   state: PeerAudioAssemblyState,
-  encodedFrame: Uint8Array,
+  frame: PeerAudioFrame,
+): boolean {
+  return (
+    state.sessionId === null ||
+    (equal(state.sessionId, frame.sessionId) &&
+      state.profile === frame.profile &&
+      state.total === frame.total &&
+      state.totalLength === frame.totalLength &&
+      state.payloadCrc32 === frame.payloadCrc32)
+  );
+}
+
+function validateAudioAssemblyExpiry(
+  state: PeerAudioAssemblyState,
   now: number,
-): PeerAudioAssemblyResult {
+): void {
   if (now >= state.expiresAt)
     throw new PeerAudioFrameError("EXPIRED", "Peer audio assembly expired");
-  const frame = decodePeerAudioFrame(encodedFrame);
-  if (
-    state.sessionId !== null &&
-    (!equal(state.sessionId, frame.sessionId) ||
-      state.profile !== frame.profile ||
-      state.total !== frame.total ||
-      state.totalLength !== frame.totalLength ||
-      state.payloadCrc32 !== frame.payloadCrc32)
-  )
+}
+
+function validateAudioAssemblyCompatibility(
+  state: PeerAudioAssemblyState,
+  frame: PeerAudioFrame,
+): void {
+  if (!compatibleAudioAssembly(state, frame))
     throw new PeerAudioFrameError("MIXED_SESSION", "Mixed peer audio sessions");
+}
+
+interface IngestedAudioFrame {
+  readonly chunks: Map<number, Uint8Array>;
+  readonly parity: Uint8Array | null;
+}
+
+function ingestAudioFrame(
+  state: PeerAudioAssemblyState,
+  frame: PeerAudioFrame,
+): IngestedAudioFrame {
   const chunks = new Map(state.chunks);
-  let parity = state.parity;
   if (frame.parity) {
-    if (parity !== null && !equal(parity, frame.payload))
+    if (state.parity !== null && !equal(state.parity, frame.payload))
       throw new PeerAudioFrameError(
         "MALFORMED",
         "Conflicting peer audio parity frame",
       );
-    parity = frame.payload;
-  } else {
-    const existing = chunks.get(frame.sequence);
-    if (existing !== undefined && !equal(existing, frame.payload))
-      throw new PeerAudioFrameError(
-        "MALFORMED",
-        "Conflicting peer audio frame",
-      );
-    chunks.set(frame.sequence, frame.payload);
+    return { chunks, parity: frame.payload };
   }
-  const next: PeerAudioAssemblyState = {
-    expiresAt: state.expiresAt,
-    profile: frame.profile,
-    sessionId: frame.sessionId,
-    total: frame.total,
-    totalLength: frame.totalLength,
-    payloadCrc32: frame.payloadCrc32,
-    chunks,
-    parity,
-  };
-  let recovered = false;
-  if (chunks.size === frame.total - 1 && parity !== null) {
-    const missing = Array.from(
-      { length: frame.total },
-      (_, index) => index,
-    ).find((index) => !chunks.has(index));
-    if (missing !== undefined) {
-      const restored = parity.slice();
-      for (const chunk of chunks.values())
-        for (let index = 0; index < chunk.length; index += 1)
-          restored[index] = (restored[index] ?? 0) ^ (chunk[index] ?? 0);
-      const expectedLength =
-        missing === frame.total - 1
-          ? frame.totalLength - missing * parity.length
-          : parity.length;
-      chunks.set(missing, restored.slice(0, expectedLength));
-      recovered = true;
-    }
-  }
-  if (chunks.size !== frame.total)
-    return {
-      state: { ...next, chunks },
-      payload: null,
-      received: chunks.size,
-      total: frame.total,
-      recovered,
-    };
+  const existing = chunks.get(frame.sequence);
+  if (existing !== undefined && !equal(existing, frame.payload))
+    throw new PeerAudioFrameError("MALFORMED", "Conflicting peer audio frame");
+  chunks.set(frame.sequence, frame.payload);
+  return { chunks, parity: state.parity };
+}
+
+function recoverMissingAudioChunk(
+  frame: PeerAudioFrame,
+  chunks: Map<number, Uint8Array>,
+  parity: Uint8Array | null,
+): boolean {
+  if (chunks.size !== frame.total - 1 || parity === null) return false;
+  const missing = Array.from({ length: frame.total }, (_, index) => index).find(
+    (index) => !chunks.has(index),
+  );
+  if (missing === undefined) return false;
+  const restored = parity.slice();
+  for (const chunk of chunks.values())
+    for (let index = 0; index < chunk.length; index += 1)
+      restored[index] = (restored[index] ?? 0) ^ (chunk[index] ?? 0);
+  const expectedLength =
+    missing === frame.total - 1
+      ? frame.totalLength - missing * parity.length
+      : parity.length;
+  chunks.set(missing, restored.slice(0, expectedLength));
+  return true;
+}
+
+function assembleAudioPayload(
+  frame: PeerAudioFrame,
+  chunks: ReadonlyMap<number, Uint8Array>,
+): Uint8Array {
   const payload = new Uint8Array(frame.totalLength);
   let offset = 0;
   for (let index = 0; index < frame.total; index += 1) {
@@ -313,9 +343,40 @@ export function stepPeerAudioAssembly(
   }
   if (offset !== payload.length || crc32(payload) !== frame.payloadCrc32)
     throw new PeerAudioFrameError("CRC", "Peer audio payload CRC mismatch");
+  return payload;
+}
+
+export function stepPeerAudioAssembly(
+  state: PeerAudioAssemblyState,
+  encodedFrame: Uint8Array,
+  now: number,
+): PeerAudioAssemblyResult {
+  validateAudioAssemblyExpiry(state, now);
+  const frame = decodePeerAudioFrame(encodedFrame);
+  validateAudioAssemblyCompatibility(state, frame);
+  const { chunks, parity } = ingestAudioFrame(state, frame);
+  const next: PeerAudioAssemblyState = {
+    expiresAt: state.expiresAt,
+    profile: frame.profile,
+    sessionId: frame.sessionId,
+    total: frame.total,
+    totalLength: frame.totalLength,
+    payloadCrc32: frame.payloadCrc32,
+    chunks,
+    parity,
+  };
+  const recovered = recoverMissingAudioChunk(frame, chunks, parity);
+  if (chunks.size !== frame.total)
+    return {
+      state: { ...next, chunks },
+      payload: null,
+      received: chunks.size,
+      total: frame.total,
+      recovered,
+    };
   return {
     state: { ...next, chunks },
-    payload,
+    payload: assembleAudioPayload(frame, chunks),
     received: chunks.size,
     total: frame.total,
     recovered,

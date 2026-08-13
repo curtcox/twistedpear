@@ -412,7 +412,6 @@
     "packages/protocol/src/path-table/part-4.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always true, since `\"use-expiry\" === \"use-expiry\"` is true.:occurrence-2",
     "packages/protocol/src/path-table/part-5.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always true, since `\"use-fields\" === \"use-fields\"` is true.:occurrence-1",
     "packages/protocol/src/path-table/part-5.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always true, since `\"use-fields\" === \"use-fields\"` is true.:occurrence-2",
-    "packages/protocol/src/peer-audio-framing.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `# !== #` is false.:occurrence-1",
     "packages/protocol/src/peer-invitation.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `\"answer\" !== \"answer\"` is false.:occurrence-1",
     "packages/protocol/src/peer-invitation.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `# !== #` is false.:occurrence-1",
     "packages/protocol/src/peer-invitation.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, the types have no overlap.:occurrence-1",
