@@ -1,9 +1,6 @@
 import type {
-  AcceptOptions,
   DiscoveryAvailability,
   DiscoveryEvent,
-  DiscoverySession,
-  OfferOptions,
   PeerDiscoveryAdapter,
   PeerDiscoveryKind,
 } from "./types.js";
@@ -23,22 +20,16 @@ export class UnavailablePeerDiscoveryAdapter implements PeerDiscoveryAdapter {
   async availability(): Promise<DiscoveryAvailability> {
     return this.result;
   }
-  async *offer(
-    _envelope: Uint8Array,
-    _options: OfferOptions,
-  ): AsyncIterable<DiscoveryEvent> {
+  async *offer(): AsyncIterable<DiscoveryEvent> {
     throw this.error();
   }
-  async *accept(_options: AcceptOptions): AsyncIterable<DiscoveryEvent> {
+  async *accept(): AsyncIterable<DiscoveryEvent> {
     throw this.error();
   }
-  async answer(
-    _session: DiscoverySession,
-    _envelope: Uint8Array,
-  ): Promise<void> {
+  async answer(): Promise<void> {
     throw this.error();
   }
-  async cancel(_sessionId: string): Promise<void> {}
+  async cancel(): Promise<void> {}
   private error(): PeerDiscoveryError {
     return new PeerDiscoveryError(
       "UNAVAILABLE",

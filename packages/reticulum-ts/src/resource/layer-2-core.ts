@@ -23,14 +23,12 @@ import {
   initialResourceHashmapUpdateAcceptState,
   initialResourceHashMaterialState,
   initialResourcePartMapHashMaterialState,
-  initialResourceProofAcceptState,
   initialResourceReceivePartAllowState,
   initialResourceReceivePartState,
   initialResourceRequestFulfillState,
   initialSendResourceHashmapUpdateState,
   initialSplitResourceDecryptedPayloadState,
   initialSplitResourceHashmapUpdatePacketState,
-  initialSplitResourceProofState,
   initialUnpackResourceHashmapUpdateState,
   packResourceHashmapUpdatePacketRawFromActions,
   packResourceHashmapUpdateRawFromActions,
@@ -46,7 +44,6 @@ import {
   resourceHashMaterialRawFromActions,
   resourcePartMapHashMaterialRawFromActions,
   resourcePartRequestFieldsFromActions,
-  resourceProofFieldsFromActions,
   resourceReceivePartFromActions,
   resourceRequestFulfillFromActions,
   shouldAcceptIncomingResourceAdvertisementNow,
@@ -58,7 +55,6 @@ import {
   shouldApplyResourceReceivePartSlotNow,
   shouldCommitResourceAssemblePayloadNow,
   shouldCompleteResourceAssemble,
-  shouldCompleteResourceProofAccept,
   shouldContinueResourceTransfer,
   shouldFulfillResourcePartRequestNow,
   shouldPresentResourceHash,
@@ -67,7 +63,6 @@ import {
   shouldRejectResourcePartMapHashMaterial,
   shouldRejectSplitResourceDecryptedPayload,
   shouldRejectSplitResourceHashmapUpdatePacket,
-  shouldRejectSplitResourceProof,
   shouldRejectUnpackResourceHashmapUpdate,
   shouldSendResourceHashmapUpdateNow,
   shouldTreatResourceComplete,
@@ -83,7 +78,6 @@ import {
   shouldUseResourcePartMapHashMaterial,
   shouldUseSplitResourceDecryptedPayload,
   shouldUseSplitResourceHashmapUpdatePacket,
-  shouldUseSplitResourceProof,
   shouldUseUnpackResourceHashmapUpdate,
   stepAcceptIncomingResourceAdvertisementWithActions,
   stepAdvanceResourceAwaitingProofWithActions,
@@ -107,44 +101,25 @@ import {
   stepResourceHashmapUpdateAcceptWithActions,
   stepResourceHashMaterialWithActions,
   stepResourcePartMapHashMaterialWithActions,
-  stepResourceProofAcceptWithActions,
   stepResourceReceivePartAllowWithActions,
   stepResourceReceivePartWithActions,
   stepResourceRequestFulfillWithActions,
   stepSendResourceHashmapUpdateWithActions,
   stepSplitResourceDecryptedPayloadWithActions,
   stepSplitResourceHashmapUpdatePacketWithActions,
-  stepSplitResourceProofWithActions,
   stepUnpackResourceHashmapUpdateWithActions,
 } from "./protocol.js";
 
-import Bunzip from "seek-bzip";
-import type { CryptoProvider } from "../crypto/provider.js";
 import { equalBytes } from "../crypto/bytes.js";
 import { Identity } from "../identity.js";
 import type { Link } from "../link.js";
-import type { LeafTransport } from "../transport/node.js";
+import { Packet, PacketContext } from "../packet.js";
 import {
-  Packet,
-  PacketContext,
-  PacketHeaderType,
-  PacketType,
-  TransportType,
-} from "../packet.js";
-import { DestinationType } from "../destination.js";
-import {
-  RESOURCE_IFAC_MIN_SIZE,
-  RESOURCE_PACKET_HEADER_MAX,
   ResourceAdvertisement,
   bytesToHex,
   decodeResourcePayload,
-  resourceTimeoutForLink,
 } from "./shared.js";
-import type {
-  ResourceCallbacks,
-  ResourceOptions,
-  ResourcePart,
-} from "./shared.js";
+import type { ResourceCallbacks } from "./shared.js";
 import { Resource } from "../resource.js";
 import { ResourceLayer1 } from "./layer-1.js";
 export class ResourceLayer2Core extends ResourceLayer1 {

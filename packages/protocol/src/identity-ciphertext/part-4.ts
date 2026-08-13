@@ -16,7 +16,6 @@
  * `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt`
  * reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { canLoadIdentityKeyMaterial } from "./part-3.js";
 import type {
   LoadIdentityKeyMaterialAction,
