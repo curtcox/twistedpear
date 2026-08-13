@@ -1,0 +1,68 @@
+name: Survey
+
+# Measurement, not a gate.
+#
+# Every step here runs to completion and uploads what it produced. Nothing in
+# this workflow fails on a finding, and it is deliberately not part of
+# `ci-green` — the gates in `scripts/checks/registry.mjs` decide what blocks a
+# merge, and none of these tools does. The job fails only if the runner itself
+# breaks: checkout, Node, or `npm ci`.
+#
+# `npm run survey` already tolerates individual tool failure and records it in
+# `reports/manifest.json`, so a tool that crashes leaves evidence rather than a
+# red workflow.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  survey:
+    name: Code survey
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # code-maat measures which files change together, which needs the
+          # history. A shallow clone reports one commit per file and the
+          # temporal-coupling table comes back nearly empty — the report says
+          # so in `summary.shallow`, but the right fix is to not be shallow.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - run: npm ci
+
+      # api-extractor reads `dist/*.d.ts`. Without a build it reports every
+      # package as skipped, which is a valid result and a useless one.
+      - name: Build workspace packages
+        run: npm run build
+
+      - name: Run the survey
+        run: npm run survey
+
+      - name: Summarise
+        if: always()
+        run: node scripts/survey/summary.mjs >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: survey-reports
+          path: reports/
+          retention-days: 90
+          if-no-files-found: error

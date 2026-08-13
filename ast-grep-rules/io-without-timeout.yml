@@ -1,0 +1,48 @@
+# Network calls with no deadline.
+#
+# A fetch without an AbortSignal does not fail — it waits. On a mesh transport
+# where the peer may simply be gone, "waits" means the caller's state machine
+# stops advancing and nothing reports why. The type checker is perfectly happy.
+#
+# The rule looks for any mention of `signal` or `timeout` anywhere in the call,
+# which deliberately accepts `AbortSignal.timeout(n)`, a hoisted controller, and
+# a spread options object that happens to name one. False negatives are the
+# right direction here: a survey that cries wolf gets filtered out.
+id: fetch-without-abort-signal
+language: TypeScript
+severity: hint
+message: fetch() with no AbortSignal or timeout — this request can hang indefinitely.
+rule:
+  pattern: fetch($$$ARGS)
+  not:
+    has:
+      stopBy: end
+      any:
+        - pattern: signal
+        - pattern: timeout
+---
+id: fetch-without-abort-signal-tsx
+language: Tsx
+severity: hint
+message: fetch() with no AbortSignal or timeout — this request can hang indefinitely.
+rule:
+  pattern: fetch($$$ARGS)
+  not:
+    has:
+      stopBy: end
+      any:
+        - pattern: signal
+        - pattern: timeout
+---
+id: fetch-without-abort-signal-js
+language: JavaScript
+severity: hint
+message: fetch() with no AbortSignal or timeout — this request can hang indefinitely.
+rule:
+  pattern: fetch($$$ARGS)
+  not:
+    has:
+      stopBy: end
+      any:
+        - pattern: signal
+        - pattern: timeout

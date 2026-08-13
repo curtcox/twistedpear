@@ -1,0 +1,86 @@
+# Retry loops around a network call, with nothing marking the call safe to repeat.
+#
+# A retry is a promise that repeating the operation is harmless. For a read it
+# usually is. For anything that sends — an announce, a delivery, a link
+# establishment — a retry after a response was lost delivers twice, and the
+# receiver has no way to tell the copy from the original.
+#
+# The pattern is a bounded loop containing an awaited call, where nothing in the
+# loop names an idempotency mechanism. The name list is the point of the rule:
+# it passes when the code *says* how repetition is made safe, which is a thing
+# reviewers can check, and fires when it says nothing at all.
+id: retry-loop-without-idempotency
+language: TypeScript
+severity: hint
+message: >-
+  Retry loop around an awaited call with no idempotency key, nonce, or dedupe
+  marker in scope — a lost response will be retried as a second operation.
+rule:
+  any:
+    - pattern: for ($$$INIT; $$$COND; $$$STEP) { $$$BODY }
+    - pattern: while ($COND) { $$$BODY }
+  all:
+    - has:
+        stopBy: end
+        any:
+          - pattern: await fetch($$$A)
+          - pattern: await $OBJ.send($$$A)
+          - pattern: await $OBJ.request($$$A)
+          - pattern: await $OBJ.write($$$A)
+    - has:
+        stopBy: end
+        any:
+          - pattern: $X.attempt
+          - pattern: attempt
+          - pattern: attempts
+          - pattern: retry
+          - pattern: retries
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: idempotencyKey
+            - pattern: idempotency
+            - pattern: nonce
+            - pattern: dedupe
+            - pattern: deduplicate
+            - pattern: requestId
+            - pattern: messageId
+---
+id: retry-loop-without-idempotency-js
+language: JavaScript
+severity: hint
+message: >-
+  Retry loop around an awaited call with no idempotency key, nonce, or dedupe
+  marker in scope — a lost response will be retried as a second operation.
+rule:
+  any:
+    - pattern: for ($$$INIT; $$$COND; $$$STEP) { $$$BODY }
+    - pattern: while ($COND) { $$$BODY }
+  all:
+    - has:
+        stopBy: end
+        any:
+          - pattern: await fetch($$$A)
+          - pattern: await $OBJ.send($$$A)
+          - pattern: await $OBJ.request($$$A)
+          - pattern: await $OBJ.write($$$A)
+    - has:
+        stopBy: end
+        any:
+          - pattern: $X.attempt
+          - pattern: attempt
+          - pattern: attempts
+          - pattern: retry
+          - pattern: retries
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: idempotencyKey
+            - pattern: idempotency
+            - pattern: nonce
+            - pattern: dedupe
+            - pattern: deduplicate
+            - pattern: requestId
+            - pattern: messageId

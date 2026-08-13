@@ -44,7 +44,9 @@ site/.vitepress/cache/
 site-results/
 imported-static-analysis/
 /artifacts/
-/reports/mutation/
+/reports/
+# Written per package while the api-extractor survey runs, removed after.
+packages/*/.api-extractor.survey.json
 /audit.json
 /complexity.json
 /format.json

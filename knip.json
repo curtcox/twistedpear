@@ -45,16 +45,20 @@
     }
   },
   "ignoreDependencies": [
-    "mermaid",
-    "vitepress-plugin-mermaid",
-    "bare-runtime",
+    "@ast-grep/cli",
+    "@expo/config-plugins",
+    "@microsoft/api-extractor",
     "bare-os",
     "bare-process",
-    "@expo/config-plugins",
+    "bare-runtime",
+    "jscpd",
+    "mermaid",
+    "qrcode-generator",
     "react",
     "react-dom",
     "react-native",
-    "qrcode-generator"
+    "type-coverage",
+    "vitepress-plugin-mermaid"
   ],
   "exclude": ["duplicates"],
   "ignoreUnresolved": ["./gradlew", "./protocol.ts"],

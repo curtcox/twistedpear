@@ -1,0 +1,59 @@
+# Catch blocks that discard what they caught.
+#
+# Two shapes, both of which turn a failure into silence:
+#
+#   catch { }                 the error is gone
+#   catch (e) { console.… }   the error reached a log nobody reads, and the
+#                             caller was told everything went fine
+#
+# `no-empty` in the base ESLint config covers a bare empty block in the files it
+# lints, but its ignores exclude `apps/**`, `conformance/**` and `scripts/**` —
+# which is most of the I/O in this repository, and exactly where a swallowed
+# error costs the most. The log-only shape is not covered anywhere.
+id: empty-catch-block
+language: TypeScript
+severity: hint
+message: Empty catch block — the error is discarded with no record that it happened.
+rule:
+  any:
+    - pattern: try { $$$BODY } catch { }
+    - pattern: try { $$$BODY } catch ($E) { }
+---
+id: empty-catch-block-tsx
+language: Tsx
+severity: hint
+message: Empty catch block — the error is discarded with no record that it happened.
+rule:
+  any:
+    - pattern: try { $$$BODY } catch { }
+    - pattern: try { $$$BODY } catch ($E) { }
+---
+id: empty-catch-block-js
+language: JavaScript
+severity: hint
+message: Empty catch block — the error is discarded with no record that it happened.
+rule:
+  any:
+    - pattern: try { $$$BODY } catch { }
+    - pattern: try { $$$BODY } catch ($E) { }
+---
+id: catch-logs-only
+language: TypeScript
+severity: hint
+message: Catch block only logs — the caller is told the operation succeeded.
+rule:
+  pattern: try { $$$BODY } catch ($E) { console.$METHOD($$$ARGS) }
+---
+id: catch-logs-only-tsx
+language: Tsx
+severity: hint
+message: Catch block only logs — the caller is told the operation succeeded.
+rule:
+  pattern: try { $$$BODY } catch ($E) { console.$METHOD($$$ARGS) }
+---
+id: catch-logs-only-js
+language: JavaScript
+severity: hint
+message: Catch block only logs — the caller is told the operation succeeded.
+rule:
+  pattern: try { $$$BODY } catch ($E) { console.$METHOD($$$ARGS) }

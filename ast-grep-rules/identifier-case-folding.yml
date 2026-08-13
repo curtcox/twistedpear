@@ -1,0 +1,64 @@
+# Case-folding an identifier before comparing it.
+#
+# `toLowerCase()` is locale-sensitive in principle and surprising in practice:
+# under a Turkish locale "I".toLowerCase() is "ı", not "i", so a host name, a
+# scheme, a header, or an app id that round-trips through it stops matching
+# itself. `toLowerCase(undefined)` is not a fix; `toLowerCase("en-US")` or an
+# explicit ASCII fold is.
+#
+# The narrow shape — folding on one side of an equality test — is the one that
+# turns into a security-relevant bug, because it is how allowlists and identity
+# comparisons are written.
+id: case-folded-comparison
+language: TypeScript
+severity: hint
+message: >-
+  Case-folded comparison using the default locale. Under a Turkish locale the
+  dotless-i fold makes this compare unequal to itself; fold with an explicit
+  locale or an ASCII-only helper.
+rule:
+  any:
+    - pattern: $A.toLowerCase() === $B
+    - pattern: $A === $B.toLowerCase()
+    - pattern: $A.toUpperCase() === $B
+    - pattern: $A === $B.toUpperCase()
+    - pattern: $A.toLowerCase() !== $B
+    - pattern: $A !== $B.toLowerCase()
+    - pattern: $A.toUpperCase() !== $B
+    - pattern: $A !== $B.toUpperCase()
+---
+id: case-folded-comparison-tsx
+language: Tsx
+severity: hint
+message: >-
+  Case-folded comparison using the default locale. Under a Turkish locale the
+  dotless-i fold makes this compare unequal to itself; fold with an explicit
+  locale or an ASCII-only helper.
+rule:
+  any:
+    - pattern: $A.toLowerCase() === $B
+    - pattern: $A === $B.toLowerCase()
+    - pattern: $A.toUpperCase() === $B
+    - pattern: $A === $B.toUpperCase()
+    - pattern: $A.toLowerCase() !== $B
+    - pattern: $A !== $B.toLowerCase()
+    - pattern: $A.toUpperCase() !== $B
+    - pattern: $A !== $B.toUpperCase()
+---
+id: case-folded-comparison-js
+language: JavaScript
+severity: hint
+message: >-
+  Case-folded comparison using the default locale. Under a Turkish locale the
+  dotless-i fold makes this compare unequal to itself; fold with an explicit
+  locale or an ASCII-only helper.
+rule:
+  any:
+    - pattern: $A.toLowerCase() === $B
+    - pattern: $A === $B.toLowerCase()
+    - pattern: $A.toUpperCase() === $B
+    - pattern: $A === $B.toUpperCase()
+    - pattern: $A.toLowerCase() !== $B
+    - pattern: $A !== $B.toLowerCase()
+    - pattern: $A.toUpperCase() !== $B
+    - pattern: $A !== $B.toUpperCase()

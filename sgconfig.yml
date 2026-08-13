@@ -1,0 +1,14 @@
+# ast-grep configuration for the reliability survey.
+#
+# These rules are hand-written structural patterns for the failure modes that
+# type checking and lint rules do not have an opinion about: a network call
+# with no deadline, a catch block that discards the error, a retry loop with
+# nothing making the operation safe to repeat.
+#
+# Every rule is severity `hint`. `npm run survey` never fails, and ast-grep's
+# own exit code is ignored by the wrapper; the severity exists only so the
+# report can be grouped by how much a finding is worth looking at.
+#
+# See docs/audit-tooling.md for how to add a rule.
+ruleDirs:
+  - ast-grep-rules

@@ -1,0 +1,87 @@
+# Date handling whose result depends on where the machine is.
+#
+# Two shapes:
+#
+#   d.getHours(), d.getDate(), d.getMonth(), d.getFullYear(), d.getDay()
+#     Local-time accessors. The same instant yields a different answer on a
+#     phone in Auckland and a CI runner in UTC, which is how "expired" and
+#     "same day" become machine-dependent. The `getUTC*` forms are exact.
+#
+#   new Date("some string")
+#     Parsing of anything other than a full ISO 8601 string is
+#     implementation-defined. Two runtimes here — Node and Bare — need not agree.
+#
+# Scoped away from the protocol packages: `eslint.config.js` already forbids
+# `new Date()` and `Date.now()` outright in Sans-IO modules, and reporting the
+# same line from two tools makes both worth less. This covers the adapters,
+# apps, and harnesses, where clocks are allowed and the timezone question is
+# therefore live.
+id: local-timezone-date-accessor
+language: TypeScript
+severity: hint
+message: >-
+  Local-time Date accessor — the result depends on the host timezone. Use the
+  getUTC* equivalent unless a human-local answer is genuinely wanted.
+ignores:
+  - "packages/protocol/src/**"
+  - "packages/reticulum-ts/src/**"
+  - "packages/lxmf-ts/src/**"
+  - "packages/miniapp-runtime/src/**"
+  - "packages/reticulum-interfaces/src/**"
+rule:
+  any:
+    - pattern: $D.getHours()
+    - pattern: $D.getMinutes()
+    - pattern: $D.getDate()
+    - pattern: $D.getDay()
+    - pattern: $D.getMonth()
+    - pattern: $D.getFullYear()
+    - pattern: $D.getTimezoneOffset()
+---
+id: local-timezone-date-accessor-js
+language: JavaScript
+severity: hint
+message: >-
+  Local-time Date accessor — the result depends on the host timezone. Use the
+  getUTC* equivalent unless a human-local answer is genuinely wanted.
+rule:
+  any:
+    - pattern: $D.getHours()
+    - pattern: $D.getMinutes()
+    - pattern: $D.getDate()
+    - pattern: $D.getDay()
+    - pattern: $D.getMonth()
+    - pattern: $D.getFullYear()
+    - pattern: $D.getTimezoneOffset()
+---
+id: date-from-unvalidated-string
+language: TypeScript
+severity: hint
+message: >-
+  new Date(<string>) — parsing beyond full ISO 8601 is implementation-defined,
+  and this repository runs on both Node and Bare.
+ignores:
+  - "packages/protocol/src/**"
+  - "packages/reticulum-ts/src/**"
+  - "packages/lxmf-ts/src/**"
+  - "packages/miniapp-runtime/src/**"
+  - "packages/reticulum-interfaces/src/**"
+rule:
+  pattern: new Date($ARG)
+  has:
+    field: arguments
+    stopBy: end
+    kind: string
+---
+id: date-from-unvalidated-string-js
+language: JavaScript
+severity: hint
+message: >-
+  new Date(<string>) — parsing beyond full ISO 8601 is implementation-defined,
+  and this repository runs on both Node and Bare.
+rule:
+  pattern: new Date($ARG)
+  has:
+    field: arguments
+    stopBy: end
+    kind: string
