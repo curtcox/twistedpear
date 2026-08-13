@@ -123,6 +123,23 @@ describe("Freenet packet-log state", () => {
         { direction: 0, index: 0n, payload: new Uint8Array([2]) },
       ]),
     ).toThrow("not canonical");
+
+    expect(() =>
+      encodePacketLogState([
+        { direction: 0, index: 1n, payload: new Uint8Array([1]) },
+        { direction: 0, index: 1n, payload: new Uint8Array([2]) },
+      ]),
+    ).toThrow("not canonical");
+  });
+
+  it("rejects invalid encoded directions", () => {
+    const encoded = encodePacketLogState([
+      { direction: 0, index: 0n, payload: new Uint8Array([1]) },
+    ]);
+    encoded[9] = 2;
+    expect(() => decodePacketLogState(encoded, 8)).toThrow(
+      "invalid packet-log direction",
+    );
   });
 
   it("is idempotent under merge", () => {

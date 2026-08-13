@@ -14,6 +14,11 @@ export interface PacketLogParameters {
   readonly rendezvous?: Uint8Array;
 }
 
+interface PacketLogKey {
+  readonly direction: 0 | 1;
+  readonly index: bigint;
+}
+
 function equalPrefix(bytes: Uint8Array, prefix: Uint8Array): boolean {
   return prefix.every((value, index) => bytes[index] === value);
 }
@@ -46,6 +51,31 @@ function comparePayload(left: Uint8Array, right: Uint8Array): number {
     if (delta !== 0) return delta;
   }
   return left.length - right.length;
+}
+
+function assertDirection(direction: number): asserts direction is 0 | 1 {
+  if (direction !== 0 && direction !== 1) {
+    throw new Error("invalid packet-log direction");
+  }
+}
+
+function compareKey(left: PacketLogKey, right: PacketLogKey): number {
+  if (left.direction !== right.direction) {
+    return left.direction - right.direction;
+  }
+  if (left.index < right.index) return -1;
+  if (left.index > right.index) return 1;
+  return 0;
+}
+
+function assertCanonicalKey(
+  previous: PacketLogKey | null,
+  current: PacketLogKey,
+): PacketLogKey {
+  if (previous !== null && compareKey(previous, current) >= 0) {
+    throw new Error("packet-log entries not canonical");
+  }
+  return current;
 }
 
 export function encodePacketLogParameters(
@@ -90,23 +120,13 @@ export function encodePacketLogState(
   }
 
   let payloadBytes = 0;
-  let previousKey: { direction: number; index: bigint } | null = null;
+  let previousKey: PacketLogKey | null = null;
   for (const entry of entries) {
-    if (entry.direction !== 0 && entry.direction !== 1) {
-      throw new Error("invalid packet-log direction");
-    }
+    assertDirection(entry.direction);
     if (entry.payload.length > 0xffff) {
       throw new Error("packet-log payload too large");
     }
-    if (
-      previousKey !== null &&
-      (previousKey.direction > entry.direction ||
-        (previousKey.direction === entry.direction &&
-          previousKey.index >= entry.index))
-    ) {
-      throw new Error("packet-log entries not canonical");
-    }
-    previousKey = { direction: entry.direction, index: entry.index };
+    previousKey = assertCanonicalKey(previousKey, entry);
     payloadBytes += ENTRY_HEADER_LENGTH + entry.payload.length;
   }
 
@@ -142,7 +162,7 @@ export function decodePacketLogState(
   const count = view.getUint32(PACKET_LOG_STATE_MAGIC.length, false);
   let cursor = HEADER_LENGTH;
   const entries: PacketLogEntry[] = [];
-  let previousKey: { direction: number; index: bigint } | null = null;
+  let previousKey: PacketLogKey | null = null;
   const directionCounts = [0, 0];
 
   for (let index = 0; index < count; index += 1) {
@@ -151,30 +171,23 @@ export function decodePacketLogState(
       throw new Error("truncated packet-log entry header");
     }
     const direction = bytes[cursor]!;
-    if (direction !== 0 && direction !== 1) {
-      throw new Error("invalid packet-log direction");
-    }
+    assertDirection(direction);
     const entryIndex = view.getBigUint64(cursor + 1, false);
     const payloadLength = view.getUint16(cursor + 9, false);
     const payloadEnd = headerEnd + payloadLength;
     if (payloadEnd > bytes.length) {
       throw new Error("truncated packet-log payload");
     }
-    if (
-      previousKey !== null &&
-      (previousKey.direction > direction ||
-        (previousKey.direction === direction &&
-          previousKey.index >= entryIndex))
-    ) {
-      throw new Error("packet-log entries not canonical");
-    }
-    previousKey = { direction, index: entryIndex };
+    previousKey = assertCanonicalKey(previousKey, {
+      direction,
+      index: entryIndex,
+    });
     directionCounts[direction]! += 1;
     if (directionCounts[direction]! > retention) {
       throw new Error("packet-log retention exceeded");
     }
     entries.push({
-      direction: direction as 0 | 1,
+      direction,
       index: entryIndex,
       payload: Uint8Array.from(bytes.subarray(headerEnd, payloadEnd)),
     });

@@ -55,8 +55,6 @@
     "packages/app-registry/src/package.ts:complexity:Function 'unpackPackage' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/app-registry/src/package.ts:max-lines-per-function:Function 'unpackPackage' has too many lines (#). Maximum allowed is #.:occurrence-1",
     "packages/app-registry/test/spec-pkg-vectors.test.ts:@typescript-eslint/ban-ts-comment:Definition for rule '@typescript-eslint/ban-ts-comment' was not found.:occurrence-1",
-    "packages/bridge-freenet/src/core/packet-log.ts:complexity:Function 'decodePacketLogState' has a complexity of #. Maximum allowed is #.:occurrence-1",
-    "packages/bridge-freenet/src/core/packet-log.ts:complexity:Function 'encodePacketLogState' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/bridge-hyper/src/core/fetch.ts:complexity:Async function 'fetchByPath' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/bridge-hyper/src/core/fetch.ts:complexity:Async function 'fetchPackage' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/bridge-hyper/src/server/gateway-bulk-fetch-server.ts:complexity:Async arrow function has a complexity of #. Maximum allowed is #.:occurrence-1",

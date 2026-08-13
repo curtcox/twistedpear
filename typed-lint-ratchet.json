@@ -32,7 +32,6 @@
     "packages/app-registry/src/catalog.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, the types have no overlap.:occurrence-2",
     "packages/bridge-freenet/src/core/client.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary optional chain on a non-nullish value.:occurrence-1",
     "packages/bridge-freenet/src/core/client.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary optional chain on a non-nullish value.:occurrence-2",
-    "packages/bridge-freenet/src/core/packet-log.ts:@typescript-eslint/no-unnecessary-condition:Unnecessary conditional, comparison is always false, since `# !== #` is false.:occurrence-1",
     "packages/bridge-hyper/src/client/resource-client.ts:@typescript-eslint/await-thenable:Unexpected `await` of a non-Promise (non-\"Thenable\") value.:occurrence-1",
     "packages/bridge-hyper/src/client/resource-client.ts:@typescript-eslint/require-await:Async method 'start' has no 'await' expression.:occurrence-1",
     "packages/bridge-hyper/src/server/resource-server.ts:@typescript-eslint/no-misused-promises:Promise-returning function provided to variable where a void return was expected.:occurrence-1",
