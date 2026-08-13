@@ -83,9 +83,6 @@ const extractedContext = {
   get applyInterfaceConfig() {
     return applyInterfaceConfig;
   },
-  set applyInterfaceConfig(value) {
-    applyInterfaceConfig = value;
-  },
   get attachWebRtcMediaTrack() {
     return attachWebRtcMediaTrack;
   },
@@ -94,9 +91,6 @@ const extractedContext = {
   },
   get createIdentity() {
     return createIdentity;
-  },
-  set createIdentity(value) {
-    createIdentity = value;
   },
   get crossDeviceTestDriver() {
     return crossDeviceTestDriver;
@@ -110,62 +104,32 @@ const extractedContext = {
   get ensureCrossDeviceTestDriver() {
     return ensureCrossDeviceTestDriver;
   },
-  set ensureCrossDeviceTestDriver(value) {
-    ensureCrossDeviceTestDriver = value;
-  },
   get ensureInstallService() {
     return ensureInstallService;
-  },
-  set ensureInstallService(value) {
-    ensureInstallService = value;
   },
   get ensureMiniappHost() {
     return ensureMiniappHost;
   },
-  set ensureMiniappHost(value) {
-    ensureMiniappHost = value;
-  },
   get ensureMiniappKvStore() {
     return ensureMiniappKvStore;
-  },
-  set ensureMiniappKvStore(value) {
-    ensureMiniappKvStore = value;
   },
   get ensurePackageStorage() {
     return ensurePackageStorage;
   },
-  set ensurePackageStorage(value) {
-    ensurePackageStorage = value;
-  },
   get ensurePeerSessionManager() {
     return ensurePeerSessionManager;
-  },
-  set ensurePeerSessionManager(value) {
-    ensurePeerSessionManager = value;
   },
   get ensurePublishService() {
     return ensurePublishService;
   },
-  set ensurePublishService(value) {
-    ensurePublishService = value;
-  },
   get handleSandboxHostMessage() {
     return handleSandboxHostMessage;
-  },
-  set handleSandboxHostMessage(value) {
-    handleSandboxHostMessage = value;
   },
   get handleSerialHostMessage() {
     return handleSerialHostMessage;
   },
-  set handleSerialHostMessage(value) {
-    handleSerialHostMessage = value;
-  },
   get handleWebRtcHarnessCommand() {
     return handleWebRtcHarnessCommand;
-  },
-  set handleWebRtcHarnessCommand(value) {
-    handleWebRtcHarnessCommand = value;
   },
   get harnessInviteEntries() {
     return harnessInviteEntries;
@@ -194,14 +158,8 @@ const extractedContext = {
   get identityOptions() {
     return identityOptions;
   },
-  set identityOptions(value) {
-    identityOptions = value;
-  },
   get importIdentity() {
     return importIdentity;
-  },
-  set importIdentity(value) {
-    importIdentity = value;
   },
   get installService() {
     return installService;
@@ -212,17 +170,11 @@ const extractedContext = {
   get loadHyperFetch() {
     return loadHyperFetch;
   },
-  set loadHyperFetch(value) {
-    loadHyperFetch = value;
-  },
   get locatorRequestDestinations() {
     return locatorRequestDestinations;
   },
   get log() {
     return log;
-  },
-  set log(value) {
-    log = value;
   },
   get miniappHost() {
     return miniappHost;
@@ -263,9 +215,6 @@ const extractedContext = {
   get peerToken() {
     return peerToken;
   },
-  set peerToken(value) {
-    peerToken = value;
-  },
   get pendingRnodeBaudRate() {
     return pendingRnodeBaudRate;
   },
@@ -275,26 +224,14 @@ const extractedContext = {
   get pushInstalledList() {
     return pushInstalledList;
   },
-  set pushInstalledList(value) {
-    pushInstalledList = value;
-  },
   get pushStatus() {
     return pushStatus;
-  },
-  set pushStatus(value) {
-    pushStatus = value;
   },
   get refreshIdentityStatus() {
     return refreshIdentityStatus;
   },
-  set refreshIdentityStatus(value) {
-    refreshIdentityStatus = value;
-  },
   get refreshStorageStatus() {
     return refreshStorageStatus;
-  },
-  set refreshStorageStatus(value) {
-    refreshStorageStatus = value;
   },
   get requestHostReply() {
     return requestHostReply;
@@ -302,20 +239,11 @@ const extractedContext = {
   get resetIdentity() {
     return resetIdentity;
   },
-  set resetIdentity(value) {
-    resetIdentity = value;
-  },
   get send() {
     return send;
   },
-  set send(value) {
-    send = value;
-  },
   get startHostSession() {
     return startHostSession;
-  },
-  set startHostSession(value) {
-    startHostSession = value;
   },
   get startStatusTimer() {
     return startStatusTimer;
@@ -325,9 +253,6 @@ const extractedContext = {
   },
   get stopHostSession() {
     return stopHostSession;
-  },
-  set stopHostSession(value) {
-    stopHostSession = value;
   },
   get transportAnnounceService() {
     return transportAnnounceService;

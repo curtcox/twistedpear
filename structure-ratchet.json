@@ -19,7 +19,6 @@
     "depcruise:no-orphans:packages/reticulum-ts/src/seek-bzip.d.ts:packages/reticulum-ts/src/seek-bzip.d.ts",
     "depcruise:no-orphans:packages/reticulum-ts/src/types/bare-dgram.d.ts:packages/reticulum-ts/src/types/bare-dgram.d.ts",
     "knip:binaries:package.json:actionlint",
-    "knip:dependencies:packages/effects/package.json:opusscript",
     "knip:devDependencies:apps/host-desktop/package.json:bare",
     "knip:devDependencies:package.json:bare",
     "knip:devDependencies:package.json:bare-crypto",

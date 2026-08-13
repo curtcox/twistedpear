@@ -53,6 +53,7 @@
     "bare-runtime",
     "jscpd",
     "mermaid",
+    "opusscript",
     "qrcode-generator",
     "react",
     "react-dom",

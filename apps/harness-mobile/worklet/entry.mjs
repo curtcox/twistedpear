@@ -185,20 +185,11 @@ const extractedContext = {
   get anyRelayOrFreenetEnabled() {
     return anyRelayOrFreenetEnabled;
   },
-  set anyRelayOrFreenetEnabled(value) {
-    anyRelayOrFreenetEnabled = value;
-  },
   get applyInterfaceConfig() {
     return applyInterfaceConfig;
   },
-  set applyInterfaceConfig(value) {
-    applyInterfaceConfig = value;
-  },
   get attachFreenetBackends() {
     return attachFreenetBackends;
-  },
-  set attachFreenetBackends(value) {
-    attachFreenetBackends = value;
   },
   get attachWebRtcMediaTrack() {
     return attachWebRtcMediaTrack;
@@ -266,9 +257,6 @@ const extractedContext = {
   get createIdentity() {
     return createIdentity;
   },
-  set createIdentity(value) {
-    createIdentity = value;
-  },
   get createWorkletPropagationPersistence() {
     return createWorkletPropagationPersistence;
   },
@@ -284,23 +272,14 @@ const extractedContext = {
   get detachFreenetBackends() {
     return detachFreenetBackends;
   },
-  set detachFreenetBackends(value) {
-    detachFreenetBackends = value;
-  },
   get ensureBareWebSocket() {
     return ensureBareWebSocket;
-  },
-  set ensureBareWebSocket(value) {
-    ensureBareWebSocket = value;
   },
   get ensureCatalog() {
     return ensureCatalog;
   },
   get ensureCrossDeviceTestDriver() {
     return ensureCrossDeviceTestDriver;
-  },
-  set ensureCrossDeviceTestDriver(value) {
-    ensureCrossDeviceTestDriver = value;
   },
   get ensureDevChannel() {
     return ensureDevChannel;
@@ -314,20 +293,11 @@ const extractedContext = {
   get ensureHostLxmfDelivery() {
     return ensureHostLxmfDelivery;
   },
-  set ensureHostLxmfDelivery(value) {
-    ensureHostLxmfDelivery = value;
-  },
   get ensureMiniappHost() {
     return ensureMiniappHost;
   },
-  set ensureMiniappHost(value) {
-    ensureMiniappHost = value;
-  },
   get ensurePackageDriveManager() {
     return ensurePackageDriveManager;
-  },
-  set ensurePackageDriveManager(value) {
-    ensurePackageDriveManager = value;
   },
   get ensurePeerLinkDestination() {
     return ensurePeerLinkDestination;
@@ -335,14 +305,8 @@ const extractedContext = {
   get ensurePeerSessionManager() {
     return ensurePeerSessionManager;
   },
-  set ensurePeerSessionManager(value) {
-    ensurePeerSessionManager = value;
-  },
   get ensureReticulum() {
     return ensureReticulum;
-  },
-  set ensureReticulum(value) {
-    ensureReticulum = value;
   },
   get ensureTrustStore() {
     return ensureTrustStore;
@@ -383,9 +347,6 @@ const extractedContext = {
   get handleNativeMediaOpusCommand() {
     return handleNativeMediaOpusCommand;
   },
-  set handleNativeMediaOpusCommand(value) {
-    handleNativeMediaOpusCommand = value;
-  },
   get harnessPeerPair() {
     return harnessPeerPair;
   },
@@ -401,9 +362,6 @@ const extractedContext = {
   get importTrustedPublisher() {
     return importTrustedPublisher;
   },
-  set importTrustedPublisher(value) {
-    importTrustedPublisher = value;
-  },
   get inboundBandwidthLimiter() {
     return inboundBandwidthLimiter;
   },
@@ -416,14 +374,8 @@ const extractedContext = {
   get loadPacketLogWasm() {
     return loadPacketLogWasm;
   },
-  set loadPacketLogWasm(value) {
-    loadPacketLogWasm = value;
-  },
   get loadPersistedIdentity() {
     return loadPersistedIdentity;
-  },
-  set loadPersistedIdentity(value) {
-    loadPersistedIdentity = value;
   },
   get loadPropagationCache() {
     return loadPropagationCache;
@@ -434,14 +386,8 @@ const extractedContext = {
   get loadPropagationSetWasm() {
     return loadPropagationSetWasm;
   },
-  set loadPropagationSetWasm(value) {
-    loadPropagationSetWasm = value;
-  },
   get log() {
     return log;
-  },
-  set log(value) {
-    log = value;
   },
   get miniappHost() {
     return miniappHost;
@@ -469,9 +415,6 @@ const extractedContext = {
   },
   get ntfyHostFetch() {
     return ntfyHostFetch;
-  },
-  set ntfyHostFetch(value) {
-    ntfyHostFetch = value;
   },
   get ntfyUrl() {
     return ntfyUrl;
@@ -518,9 +461,6 @@ const extractedContext = {
   get peerToken() {
     return peerToken;
   },
-  set peerToken(value) {
-    peerToken = value;
-  },
   get pendingFreenetAuthToken() {
     return pendingFreenetAuthToken;
   },
@@ -557,9 +497,6 @@ const extractedContext = {
   get persistIdentity() {
     return persistIdentity;
   },
-  set persistIdentity(value) {
-    persistIdentity = value;
-  },
   get propagationDestination() {
     return propagationDestination;
   },
@@ -593,9 +530,6 @@ const extractedContext = {
   get pushStatus() {
     return pushStatus;
   },
-  set pushStatus(value) {
-    pushStatus = value;
-  },
   get pushTrustList() {
     return pushTrustList;
   },
@@ -608,14 +542,8 @@ const extractedContext = {
   get receiveBluetoothFrame() {
     return receiveBluetoothFrame;
   },
-  set receiveBluetoothFrame(value) {
-    receiveBluetoothFrame = value;
-  },
   get refuseStoreAction() {
     return refuseStoreAction;
-  },
-  set refuseStoreAction(value) {
-    refuseStoreAction = value;
   },
   get registerAnnounceHandler() {
     return registerAnnounceHandler;
@@ -629,20 +557,11 @@ const extractedContext = {
   get resetIdentity() {
     return resetIdentity;
   },
-  set resetIdentity(value) {
-    resetIdentity = value;
-  },
   get resolveIdentity() {
     return resolveIdentity;
   },
-  set resolveIdentity(value) {
-    resolveIdentity = value;
-  },
   get resumeInterfaces() {
     return resumeInterfaces;
-  },
-  set resumeInterfaces(value) {
-    resumeInterfaces = value;
   },
   get reticulum() {
     return reticulum;
@@ -686,17 +605,11 @@ const extractedContext = {
   get runtimeKeyValueStore() {
     return runtimeKeyValueStore;
   },
-  set runtimeKeyValueStore(value) {
-    runtimeKeyValueStore = value;
-  },
   get runtimeStoreKeys() {
     return runtimeStoreKeys;
   },
   get send() {
     return send;
-  },
-  set send(value) {
-    send = value;
   },
   get serialBridge() {
     return serialBridge;
@@ -713,35 +626,20 @@ const extractedContext = {
   get startBleInterface() {
     return startBleInterface;
   },
-  set startBleInterface(value) {
-    startBleInterface = value;
-  },
   get startFreenetInterface() {
     return startFreenetInterface;
-  },
-  set startFreenetInterface(value) {
-    startFreenetInterface = value;
   },
   get startFreenetPropagationRole() {
     return startFreenetPropagationRole;
   },
-  set startFreenetPropagationRole(value) {
-    startFreenetPropagationRole = value;
-  },
   get startRnodeInterface() {
     return startRnodeInterface;
-  },
-  set startRnodeInterface(value) {
-    startRnodeInterface = value;
   },
   get startStatusTimer() {
     return startStatusTimer;
   },
   get startTcpInterface() {
     return startTcpInterface;
-  },
-  set startTcpInterface(value) {
-    startTcpInterface = value;
   },
   get status() {
     return status;
@@ -755,47 +653,26 @@ const extractedContext = {
   get stopBleInterface() {
     return stopBleInterface;
   },
-  set stopBleInterface(value) {
-    stopBleInterface = value;
-  },
   get stopFreenetInterface() {
     return stopFreenetInterface;
-  },
-  set stopFreenetInterface(value) {
-    stopFreenetInterface = value;
   },
   get stopFreenetPropagationRole() {
     return stopFreenetPropagationRole;
   },
-  set stopFreenetPropagationRole(value) {
-    stopFreenetPropagationRole = value;
-  },
   get stopHostLxmfDelivery() {
     return stopHostLxmfDelivery;
-  },
-  set stopHostLxmfDelivery(value) {
-    stopHostLxmfDelivery = value;
   },
   get stopNode() {
     return stopNode;
   },
-  set stopNode(value) {
-    stopNode = value;
-  },
   get stopRnodeInterface() {
     return stopRnodeInterface;
-  },
-  set stopRnodeInterface(value) {
-    stopRnodeInterface = value;
   },
   get stopStatusTimer() {
     return stopStatusTimer;
   },
   get stopTcpInterface() {
     return stopTcpInterface;
-  },
-  set stopTcpInterface(value) {
-    stopTcpInterface = value;
   },
   get tcpIface() {
     return tcpIface;
@@ -814,9 +691,6 @@ const extractedContext = {
   },
   get updateIdentityStatus() {
     return updateIdentityStatus;
-  },
-  set updateIdentityStatus(value) {
-    updateIdentityStatus = value;
   },
   get webRtcRouteListeners() {
     return webRtcRouteListeners;

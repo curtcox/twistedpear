@@ -1,33 +1,18 @@
 /* Concat part 2 of entry.mjs; assembled by build scripts. */
-  set startBleInterface(value) {
-    startBleInterface = value;
-  },
   get startFreenetInterface() {
     return startFreenetInterface;
-  },
-  set startFreenetInterface(value) {
-    startFreenetInterface = value;
   },
   get startFreenetPropagationRole() {
     return startFreenetPropagationRole;
   },
-  set startFreenetPropagationRole(value) {
-    startFreenetPropagationRole = value;
-  },
   get startRnodeInterface() {
     return startRnodeInterface;
-  },
-  set startRnodeInterface(value) {
-    startRnodeInterface = value;
   },
   get startStatusTimer() {
     return startStatusTimer;
   },
   get startTcpInterface() {
     return startTcpInterface;
-  },
-  set startTcpInterface(value) {
-    startTcpInterface = value;
   },
   get status() {
     return status;
@@ -41,47 +26,26 @@
   get stopBleInterface() {
     return stopBleInterface;
   },
-  set stopBleInterface(value) {
-    stopBleInterface = value;
-  },
   get stopFreenetInterface() {
     return stopFreenetInterface;
-  },
-  set stopFreenetInterface(value) {
-    stopFreenetInterface = value;
   },
   get stopFreenetPropagationRole() {
     return stopFreenetPropagationRole;
   },
-  set stopFreenetPropagationRole(value) {
-    stopFreenetPropagationRole = value;
-  },
   get stopHostLxmfDelivery() {
     return stopHostLxmfDelivery;
-  },
-  set stopHostLxmfDelivery(value) {
-    stopHostLxmfDelivery = value;
   },
   get stopNode() {
     return stopNode;
   },
-  set stopNode(value) {
-    stopNode = value;
-  },
   get stopRnodeInterface() {
     return stopRnodeInterface;
-  },
-  set stopRnodeInterface(value) {
-    stopRnodeInterface = value;
   },
   get stopStatusTimer() {
     return stopStatusTimer;
   },
   get stopTcpInterface() {
     return stopTcpInterface;
-  },
-  set stopTcpInterface(value) {
-    stopTcpInterface = value;
   },
   get tcpIface() {
     return tcpIface;
@@ -100,9 +64,6 @@
   },
   get updateIdentityStatus() {
     return updateIdentityStatus;
-  },
-  set updateIdentityStatus(value) {
-    updateIdentityStatus = value;
   },
   get webRtcRouteListeners() {
     return webRtcRouteListeners;
