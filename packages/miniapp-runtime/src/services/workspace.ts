@@ -41,27 +41,32 @@ export class WorkspaceError extends Error {
 
 const PATH_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
+function hasInvalidPathShape(path: string): boolean {
+  return (
+    path.length === 0 ||
+    path.length > 256 ||
+    path.includes("\\") ||
+    path.startsWith("/") ||
+    path.endsWith("/")
+  );
+}
+
+function isInvalidPathSegment(segment: string): boolean {
+  return (
+    !PATH_SEGMENT.test(segment) || segment === "." || segment.includes("..")
+  );
+}
+
 export function validateWorkspacePath(path: string): string {
-  if (typeof path !== "string" || path.length === 0 || path.length > 256) {
+  if (typeof path !== "string" || hasInvalidPathShape(path)) {
     throw new WorkspaceError(
       "INVALID_PATH",
       `Invalid workspace path: ${String(path).slice(0, 64)}`,
     );
   }
 
-  if (path.includes("\\") || path.startsWith("/") || path.endsWith("/")) {
-    throw new WorkspaceError(
-      "INVALID_PATH",
-      `Invalid workspace path: ${path.slice(0, 64)}`,
-    );
-  }
-
   for (const segment of path.split("/")) {
-    if (
-      !PATH_SEGMENT.test(segment) ||
-      segment === "." ||
-      segment.includes("..")
-    ) {
+    if (isInvalidPathSegment(segment)) {
       throw new WorkspaceError(
         "INVALID_PATH",
         `Invalid workspace path segment: ${segment.slice(0, 64)}`,

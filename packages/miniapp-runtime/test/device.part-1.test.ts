@@ -27,6 +27,7 @@ import {
   decodeDeviceStreamFrame,
   encodeDeviceStreamFrame,
 } from "@twistedpear/protocol";
+import { codecMatchesTier } from "../src/device-manager/shared.js";
 
 describe("device capabilities", () => {
   it("includes generated device:* ids in the closed set", () => {
@@ -77,6 +78,15 @@ describe("device capabilities", () => {
         granted: ["device:telepathy"],
       }),
     ).toThrow(/Unknown capability/);
+  });
+
+  it("matches codecs only to compatible streaming tiers", () => {
+    expect(codecMatchesTier("microphone", "pcm", "opus")).toBe(true);
+    expect(codecMatchesTier("speaker", "pcm", "pcm")).toBe(true);
+    expect(codecMatchesTier("camera", "frames", "h264")).toBe(true);
+    expect(codecMatchesTier("screen-capture", "frames", "jpeg")).toBe(true);
+    expect(codecMatchesTier("camera", "frames", "opus")).toBe(false);
+    expect(codecMatchesTier("camera", "derived", "h264")).toBe(false);
   });
 });
 

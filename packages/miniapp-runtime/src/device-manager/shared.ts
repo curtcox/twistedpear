@@ -383,6 +383,13 @@ export interface LiveSession {
 export const MAX_PURPOSE_LENGTH = 160;
 export const SENSITIVE_DEFAULT_TTL_MS = 15 * 60_000;
 
+const STREAM_CODECS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  "microphone:pcm": ["opus", "pcm"],
+  "speaker:pcm": ["opus", "pcm"],
+  "camera:frames": ["vp8", "vp9", "h264", "jpeg"],
+  "screen-capture:frames": ["vp8", "vp9", "h264", "jpeg"],
+};
+
 export function applyAdvisoryCandidateCeilings(
   hostCandidates: ReadonlyArray<LinkSupply>,
   advisory: ReadonlyArray<LinkSupply> | undefined,
@@ -417,18 +424,7 @@ export function codecMatchesTier(
   tierId: string,
   codec: string,
 ): boolean {
-  if ((classId === "microphone" || classId === "speaker") && tierId === "pcm") {
-    return codec === "opus" || codec === "pcm";
-  }
-  if (
-    (classId === "camera" || classId === "screen-capture") &&
-    tierId === "frames"
-  ) {
-    return (
-      codec === "vp8" || codec === "vp9" || codec === "h264" || codec === "jpeg"
-    );
-  }
-  return false;
+  return STREAM_CODECS[`${classId}:${tierId}`]?.includes(codec) ?? false;
 }
 
 /** Elevated tier grants imply the default-tier capability for the same class. */

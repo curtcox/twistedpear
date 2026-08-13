@@ -10,6 +10,10 @@ export interface StampCostFields {
   readonly cost: number;
 }
 
+function isSupportedArrayHeader(tag: number): boolean {
+  return tag === 0xdc || (tag >= 0x90 && tag <= 0x9f);
+}
+
 export function stampCostFromAppData(
   appData: Uint8Array | null,
 ): number | null {
@@ -18,7 +22,7 @@ export function stampCostFromAppData(
   }
 
   const tag = appData[0];
-  if (tag === undefined || ((tag < 0x90 || tag > 0x9f) && tag !== 0xdc)) {
+  if (tag === undefined || !isSupportedArrayHeader(tag)) {
     return null;
   }
 

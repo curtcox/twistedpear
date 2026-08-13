@@ -19,6 +19,9 @@ describe("protocol stamp cost", () => {
     expect(stampCostFromAppData(null)).toBeNull();
     expect(stampCostFromAppData(new Uint8Array())).toBeNull();
     expect(stampCostFromAppData(msgpackPackUInt(3))).toBeNull();
+    expect(
+      stampCostFromAppData(Uint8Array.of(0xdd, 0, 0, 0, 2, 0, 7)),
+    ).toBeNull();
   });
 
   it("extracts via use-fields actions", () => {
