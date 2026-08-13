@@ -1,6 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { HostConfig, HostConfigOverrides } from "./types.js";
+import type {
+  HostConfig,
+  HostConfigOverrides,
+  HostInterfaceConfig,
+  HostInterfaceOverrides,
+} from "./types.js";
 import { defaultHostConfig } from "./types.js";
 
 export function ensureDir(path: string): void {
@@ -144,82 +149,81 @@ export function validateHostConfig(config: HostConfig): HostConfig {
   return config;
 }
 
+function mergeInterface<T extends object>(
+  defaults: T,
+  fromFile: Partial<T> | undefined,
+  overrides: Partial<T> | undefined,
+): T {
+  return { ...defaults, ...fromFile, ...overrides };
+}
+
+function mergeHostInterfaces(
+  defaults: HostInterfaceConfig,
+  fromFile: HostInterfaceOverrides = {},
+  overrides: HostInterfaceOverrides = {},
+): HostInterfaceConfig {
+  return {
+    tcp: mergeInterface(defaults.tcp, fromFile.tcp, overrides.tcp),
+    websocket: mergeInterface(
+      defaults.websocket,
+      fromFile.websocket,
+      overrides.websocket,
+    ),
+    auto: mergeInterface(defaults.auto, fromFile.auto, overrides.auto),
+    i2p: mergeInterface(defaults.i2p, fromFile.i2p, overrides.i2p),
+    rnode: mergeInterface(defaults.rnode, fromFile.rnode, overrides.rnode),
+    bluetooth: mergeInterface(
+      defaults.bluetooth,
+      fromFile.bluetooth,
+      overrides.bluetooth,
+    ),
+    optical: mergeInterface(
+      defaults.optical,
+      fromFile.optical,
+      overrides.optical,
+    ),
+    acoustic: mergeInterface(
+      defaults.acoustic,
+      fromFile.acoustic,
+      overrides.acoustic,
+    ),
+    ntfy: mergeInterface(defaults.ntfy, fromFile.ntfy, overrides.ntfy),
+    freenet: mergeInterface(
+      defaults.freenet,
+      fromFile.freenet,
+      overrides.freenet,
+    ),
+  };
+}
+
 export function resolveHostConfig(options: {
   readonly dataDir?: string;
   readonly configPath?: string;
   readonly overrides?: HostConfigOverrides;
 }): HostConfig {
-  const dataDir = options.dataDir ?? defaultHostConfig().dataDir;
+  const defaults = defaultHostConfig();
+  const dataDir = options.dataDir ?? defaults.dataDir;
   const configPath = options.configPath ?? join(dataDir, "config.json");
   const fromFile = loadHostConfigFile(configPath);
+  const overrides = options.overrides ?? {};
   const merged = defaultHostConfig({
     ...fromFile,
-    ...options.overrides,
+    ...overrides,
     dataDir,
     roles: {
-      ...defaultHostConfig().roles,
+      ...defaults.roles,
       ...fromFile.roles,
-      ...options.overrides?.roles,
+      ...overrides.roles,
     },
-    interfaces: {
-      ...defaultHostConfig().interfaces,
-      ...fromFile.interfaces,
-      ...options.overrides?.interfaces,
-      tcp: {
-        ...defaultHostConfig().interfaces.tcp,
-        ...fromFile.interfaces?.tcp,
-        ...options.overrides?.interfaces?.tcp,
-      },
-      websocket: {
-        ...defaultHostConfig().interfaces.websocket,
-        ...fromFile.interfaces?.websocket,
-        ...options.overrides?.interfaces?.websocket,
-      },
-      auto: {
-        ...defaultHostConfig().interfaces.auto,
-        ...fromFile.interfaces?.auto,
-        ...options.overrides?.interfaces?.auto,
-      },
-      i2p: {
-        ...defaultHostConfig().interfaces.i2p,
-        ...fromFile.interfaces?.i2p,
-        ...options.overrides?.interfaces?.i2p,
-      },
-      rnode: {
-        ...defaultHostConfig().interfaces.rnode,
-        ...fromFile.interfaces?.rnode,
-        ...options.overrides?.interfaces?.rnode,
-      },
-      bluetooth: {
-        ...defaultHostConfig().interfaces.bluetooth,
-        ...fromFile.interfaces?.bluetooth,
-        ...options.overrides?.interfaces?.bluetooth,
-      },
-      optical: {
-        ...defaultHostConfig().interfaces.optical,
-        ...fromFile.interfaces?.optical,
-        ...options.overrides?.interfaces?.optical,
-      },
-      acoustic: {
-        ...defaultHostConfig().interfaces.acoustic,
-        ...fromFile.interfaces?.acoustic,
-        ...options.overrides?.interfaces?.acoustic,
-      },
-      ntfy: {
-        ...defaultHostConfig().interfaces.ntfy,
-        ...fromFile.interfaces?.ntfy,
-        ...options.overrides?.interfaces?.ntfy,
-      },
-      freenet: {
-        ...defaultHostConfig().interfaces.freenet,
-        ...fromFile.interfaces?.freenet,
-        ...options.overrides?.interfaces?.freenet,
-      },
-    },
+    interfaces: mergeHostInterfaces(
+      defaults.interfaces,
+      fromFile.interfaces,
+      overrides.interfaces,
+    ),
     quotas: {
-      ...defaultHostConfig().quotas,
+      ...defaults.quotas,
       ...fromFile.quotas,
-      ...options.overrides?.quotas,
+      ...overrides.quotas,
     },
   });
 

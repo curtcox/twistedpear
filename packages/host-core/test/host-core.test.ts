@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -35,7 +35,7 @@ import {
   defaultHostConfig,
   defaultWebLeafConfig,
 } from "../src/types.js";
-import { validateHostConfig } from "../src/config.js";
+import { resolveHostConfig, validateHostConfig } from "../src/config.js";
 
 describe("host-core protocol", () => {
   it("round-trips newline-delimited JSON", () => {
@@ -95,6 +95,43 @@ describe("host-core config", () => {
         }),
       ),
     ).toThrow(/portPath/);
+  });
+
+  it("deeply merges config files and runtime overrides", () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "tp-host-config-test-"));
+    const configPath = join(dataDir, "config.json");
+    try {
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          roles: { seeder: false },
+          interfaces: { tcp: { targetPort: 7777 } },
+          quotas: { propagationMessageCount: 123 },
+        }),
+      );
+
+      const config = resolveHostConfig({
+        dataDir,
+        overrides: {
+          roles: { propagation: true },
+          interfaces: { tcp: { enabled: true } },
+        },
+      });
+
+      expect(config.roles).toMatchObject({
+        transport: true,
+        seeder: false,
+        propagation: true,
+      });
+      expect(config.interfaces.tcp).toMatchObject({
+        enabled: true,
+        mode: "client",
+        targetPort: 7777,
+      });
+      expect(config.quotas.propagationMessageCount).toBe(123);
+    } finally {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
   });
 });
 

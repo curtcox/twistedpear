@@ -75,7 +75,6 @@
     "packages/effects/test/spec-events.test.ts:@typescript-eslint/ban-ts-comment:Definition for rule '@typescript-eslint/ban-ts-comment' was not found.:occurrence-1",
     "packages/effects/test/spec-machine-gate.test.ts:@typescript-eslint/ban-ts-comment:Definition for rule '@typescript-eslint/ban-ts-comment' was not found.:occurrence-1",
     "packages/effects/test/spec-trace.test.ts:@typescript-eslint/ban-ts-comment:Definition for rule '@typescript-eslint/ban-ts-comment' was not found.:occurrence-1",
-    "packages/host-core/src/config.ts:complexity:Function 'resolveHostConfig' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/host-core/src/identity-backup.ts:complexity:Function 'decryptIdentityBackup' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/host-core/src/identity.ts:complexity:Async function 'loadOrCreateIdentity' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/host-core/src/interface-manager-open.ts:complexity:Async function 'openManagedInterface' has a complexity of #. Maximum allowed is #.:occurrence-1",
