@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-12T15:15:30.346Z",
-  "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-  "digest": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
-  "treeDigest": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+  "generatedAt": "2026-08-12T23:58:30.874Z",
+  "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+  "digest": "a6fd7ad6c2428760d5274840c5562f79776bd95dd09e137f899f7ef28b6fcd91",
+  "treeDigest": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
   "gates": {
     "actionlint": {
       "title": "GitHub Actions lint",
@@ -23,67 +23,108 @@
       "measuredOn": "56d506379f647664b7505f9dc91e31c17b5104e87f3d6c08711f097de48191a2",
       "tier": "release"
     },
+    "api-surface": {
+      "title": "Public API surface",
+      "command": "npm run api:check",
+      "ok": true,
+      "at": "2026-08-12T23:57:22.673Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
+      "tier": "pr"
+    },
     "audit-policy": {
       "title": "Advisory allowlist policy",
       "command": "npm run audit:policy",
       "ok": true,
-      "at": "2026-08-12T15:15:21.698Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:58:30.240Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
+      "tier": "pr"
+    },
+    "census": {
+      "title": "Quality surface census",
+      "command": "npm run census:check",
+      "ok": true,
+      "at": "2026-08-12T23:57:41.941Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "complexity": {
       "title": "Function complexity ratchet",
       "command": "npm run complexity:check",
       "ok": true,
-      "at": "2026-08-12T15:14:31.517Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:57:17.661Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
+      "tier": "pr"
+    },
+    "complexity-multilang": {
+      "title": "Multi-language function complexity",
+      "command": "npm run complexity:multilang",
+      "ok": false,
+      "at": "2026-08-12T23:58:30.874Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "detail": "gate has never produced a result artifact",
+      "since": "2026-08-12",
+      "tier": "pr"
+    },
+    "coupling": {
+      "title": "Module coupling and modularity",
+      "command": "npm run coupling:check",
+      "ok": true,
+      "at": "2026-08-12T23:57:22.053Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "coverage": {
       "title": "Coverage ratchet",
       "command": "npm run coverage:check",
-      "ok": true,
-      "at": "2026-08-12T15:14:09.718Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "ok": false,
+      "at": "2026-08-12T23:56:52.005Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "detail": "Error: Something removed the coverage directory \"/Users/curtcox/me/twistedpear/coverage/.tmp\" Vitest created earlier. Make sure you are not running multiple Vitests with the same \"coverage.reportsDirectory\" at the same time. / Caused by: Error: ENOENT: no such file or directory, open '/Users/curtcox",
+      "since": "2026-08-12",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "doc-audit": {
       "title": "Documentation audit",
       "command": "npm run test:doc-audit",
-      "ok": true,
-      "at": "2026-08-12T15:11:11.990Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "ok": false,
+      "at": "2026-08-12T23:51:48.576Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "detail": "npm error network If you are behind a proxy, please make sure that the 'proxy' config is set properly.  See: 'npm help config' / npm error Log files were not written due to an error writing to the directory: /Users/curtcox/.npm/_logs / npm error You can rerun the command with `--loglevel=verbose` to",
+      "since": "2026-08-12",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "file-sizes": {
       "title": "File-size ratchet",
       "command": "npm run sizes",
       "ok": true,
-      "at": "2026-08-12T15:11:00.998Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:49:20.412Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "format": {
       "title": "Formatting ratchet",
       "command": "npm run format:check",
       "ok": true,
-      "at": "2026-08-12T15:15:20.095Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:58:28.768Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "harness-mobile-typecheck": {
       "title": "Harness-mobile typecheck",
       "command": "npm run harness-mobile:typecheck",
       "ok": true,
-      "at": "2026-08-12T15:10:24.725Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:44:16.709Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "kotlin": {
@@ -99,45 +140,45 @@
       "title": "Dependency license policy",
       "command": "npm run licenses:check",
       "ok": true,
-      "at": "2026-08-12T15:15:24.538Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:58:30.585Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "lint": {
       "title": "TypeScript and Sans-IO lint",
       "command": "npm run lint",
       "ok": true,
-      "at": "2026-08-12T15:10:24.233Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:44:15.924Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "lint-all": {
       "title": "Repository lint coverage",
       "command": "npm run lint:all",
       "ok": true,
-      "at": "2026-08-12T15:14:40.329Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:57:50.982Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "mutation-policy": {
       "title": "Mutation score policy",
       "command": "npm run mutation:ratchet",
       "ok": true,
-      "at": "2026-08-12T15:15:21.933Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:58:30.398Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "properties": {
       "title": "Property-based protocol tests",
       "command": "npm run test:properties",
       "ok": true,
-      "at": "2026-08-12T15:15:21.527Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:58:30.072Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "python": {
@@ -153,9 +194,9 @@
       "title": "Release harness",
       "command": "npm run test:release-harness",
       "ok": true,
-      "at": "2026-08-12T15:11:07.256Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:49:25.406Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "rust": {
@@ -189,18 +230,18 @@
       "title": "Authored simulation replay",
       "command": "npm run test:sim-authored-replay",
       "ok": true,
-      "at": "2026-08-12T15:11:12.467Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:51:49.132Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "structure": {
       "title": "Dependency structure",
       "command": "npm run structure:check",
       "ok": true,
-      "at": "2026-08-12T15:14:16.111Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:57:00.289Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "swift": {
@@ -216,18 +257,20 @@
       "title": "Typed asynchronous lint",
       "command": "npm run lint:typed",
       "ok": true,
-      "at": "2026-08-12T15:15:08.043Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "at": "2026-08-12T23:58:18.294Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     },
     "unit-tests": {
       "title": "Unit tests",
       "command": "npm run test",
-      "ok": true,
-      "at": "2026-08-12T15:11:00.702Z",
-      "commit": "b884d14f619a0e25d90496a41caf8506e14ebd82",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "ok": false,
+      "at": "2026-08-12T23:49:19.878Z",
+      "commit": "ddbb08651342f4f18e3db3bca4f0efdc402b3530",
+      "detail": "The latest test that might've caused the error is \"reports an error for an undiscovered target\". It might mean one of the following: / - The error was thrown, while Vitest was running this test. / - If the error occurred after the test had been completed, this was the last documented test before it ",
+      "since": "2026-08-12",
+      "measuredOn": "25b7bd6d14d90c0000268ca33e7fe8bb1c52070b064815a19274b58851874c60",
       "tier": "pr"
     }
   }

@@ -28,6 +28,111 @@ export class WidgetValidationError extends Error {
   }
 }
 
+const PREVIEW_LAYOUT_PROPS: ReadonlySet<string> = new Set([
+  "session",
+  "aspectRatio",
+  "zoom",
+  "peer",
+]);
+
+function invalidWidget(message: string): never {
+  throw new WidgetValidationError("INVALID_WIDGET", message);
+}
+
+function validateNodeIdentity(node: WidgetNode, ids: Set<string>): void {
+  if (node.id.length === 0 || ids.has(node.id)) {
+    invalidWidget(`Invalid or duplicate widget id: ${node.id}`);
+  }
+  ids.add(node.id);
+}
+
+function validateWidgetType(node: WidgetNode): void {
+  if (!WIDGET_TYPES.has(node.type)) {
+    invalidWidget(`Unsupported widget type: ${node.type}`);
+  }
+}
+
+function validateAllowedProps(node: WidgetNode): void {
+  const allowedProps = WIDGET_PROP_KEYS.get(node.type);
+  for (const prop of Object.keys(node.props ?? {})) {
+    if (allowedProps === undefined || !allowedProps.has(prop)) {
+      invalidWidget(`Unsupported ${node.type} prop: ${prop}`);
+    }
+  }
+}
+
+function validateCodeEditor(node: WidgetNode): void {
+  if (node.type !== "code-editor") return;
+
+  const documentId = node.props?.documentId;
+  if (
+    typeof documentId !== "string" ||
+    documentId.length === 0 ||
+    documentId.length > MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH
+  ) {
+    invalidWidget("code-editor requires a documentId of 1-256 characters");
+  }
+
+  const language = node.props?.language;
+  if (
+    language !== undefined &&
+    (typeof language !== "string" || !CODE_EDITOR_LANGUAGES.has(language))
+  ) {
+    invalidWidget(`Unsupported code-editor language: ${String(language)}`);
+  }
+}
+
+function validateQrCode(node: WidgetNode): void {
+  if (node.type !== "qr-code") return;
+
+  const value = node.props?.value;
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > MAX_QR_CODE_VALUE_LENGTH
+  ) {
+    invalidWidget("qr-code requires a value of 1-512 characters");
+  }
+}
+
+function validatePreviewSurface(node: WidgetNode): void {
+  if (!PREVIEW_SURFACE_TYPES.has(node.type)) return;
+
+  const session = node.props?.session;
+  if (
+    typeof session !== "string" ||
+    session.length === 0 ||
+    session.length > MAX_DEVICE_SESSION_PROP_LENGTH
+  ) {
+    invalidWidget(`${node.type} requires a host-issued device session handle`);
+  }
+
+  // Preview surfaces must not accept sample/pixel props — only opaque handles.
+  for (const prop of Object.keys(node.props ?? {})) {
+    if (!PREVIEW_LAYOUT_PROPS.has(prop)) {
+      invalidWidget(`${node.type} cannot carry media payload prop: ${prop}`);
+    }
+  }
+}
+
+function validateStyles(node: WidgetNode): void {
+  for (const style of Object.keys(node.style ?? {})) {
+    if (!WIDGET_STYLE_KEYS.has(style)) {
+      invalidWidget(`Unsupported style property: ${style}`);
+    }
+  }
+}
+
+function validateNode(node: WidgetNode, ids: Set<string>): void {
+  validateNodeIdentity(node, ids);
+  validateWidgetType(node);
+  validateAllowedProps(node);
+  validateCodeEditor(node);
+  validateQrCode(node);
+  validatePreviewSurface(node);
+  validateStyles(node);
+}
+
 export function validateWidgetTree(
   tree: WidgetTree,
   options: WidgetValidationOptions = {},
@@ -62,106 +167,7 @@ export function validateWidgetTree(
       );
     }
 
-    if (node.id.length === 0 || ids.has(node.id)) {
-      throw new WidgetValidationError(
-        "INVALID_WIDGET",
-        `Invalid or duplicate widget id: ${node.id}`,
-      );
-    }
-    ids.add(node.id);
-
-    if (!WIDGET_TYPES.has(node.type)) {
-      throw new WidgetValidationError(
-        "INVALID_WIDGET",
-        `Unsupported widget type: ${node.type}`,
-      );
-    }
-
-    const allowedProps = WIDGET_PROP_KEYS.get(node.type);
-    for (const prop of Object.keys(node.props ?? {})) {
-      if (allowedProps === undefined || !allowedProps.has(prop)) {
-        throw new WidgetValidationError(
-          "INVALID_WIDGET",
-          `Unsupported ${node.type} prop: ${prop}`,
-        );
-      }
-    }
-
-    if (node.type === "code-editor") {
-      const documentId = node.props?.documentId;
-      if (
-        typeof documentId !== "string" ||
-        documentId.length === 0 ||
-        documentId.length > MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH
-      ) {
-        throw new WidgetValidationError(
-          "INVALID_WIDGET",
-          "code-editor requires a documentId of 1-256 characters",
-        );
-      }
-
-      const language = node.props?.language;
-      if (
-        language !== undefined &&
-        (typeof language !== "string" || !CODE_EDITOR_LANGUAGES.has(language))
-      ) {
-        throw new WidgetValidationError(
-          "INVALID_WIDGET",
-          `Unsupported code-editor language: ${String(language)}`,
-        );
-      }
-    }
-
-    if (node.type === "qr-code") {
-      const value = node.props?.value;
-      if (
-        typeof value !== "string" ||
-        value.length === 0 ||
-        value.length > MAX_QR_CODE_VALUE_LENGTH
-      ) {
-        throw new WidgetValidationError(
-          "INVALID_WIDGET",
-          "qr-code requires a value of 1-512 characters",
-        );
-      }
-    }
-
-    if (PREVIEW_SURFACE_TYPES.has(node.type)) {
-      const session = node.props?.session;
-      if (
-        typeof session !== "string" ||
-        session.length === 0 ||
-        session.length > MAX_DEVICE_SESSION_PROP_LENGTH
-      ) {
-        throw new WidgetValidationError(
-          "INVALID_WIDGET",
-          `${node.type} requires a host-issued device session handle`,
-        );
-      }
-      // Preview surfaces must not accept sample/pixel props — only opaque handles.
-      for (const prop of Object.keys(node.props ?? {})) {
-        if (
-          prop === "session" ||
-          prop === "aspectRatio" ||
-          prop === "zoom" ||
-          prop === "peer"
-        )
-          continue;
-        throw new WidgetValidationError(
-          "INVALID_WIDGET",
-          `${node.type} cannot carry media payload prop: ${prop}`,
-        );
-      }
-    }
-
-    for (const style of Object.keys(node.style ?? {})) {
-      if (!WIDGET_STYLE_KEYS.has(style)) {
-        throw new WidgetValidationError(
-          "INVALID_WIDGET",
-          `Unsupported style property: ${style}`,
-        );
-      }
-    }
+    validateNode(node, ids);
 
     for (const child of node.children ?? []) {
       visit(child, depth + 1);

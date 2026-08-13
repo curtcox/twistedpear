@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1118,
+  "modules": 1123,
   "components": 24,
   "cycles": 6,
   "unresolvedDependencies": 0,
@@ -49,7 +49,7 @@
     },
     {
       "id": "scripts",
-      "modules": 131,
+      "modules": 134,
       "ca": 1,
       "ce": 9,
       "instability": 0.9,
@@ -318,21 +318,21 @@
       ]
     },
     {
-      "id": "packages/widget-renderer-rn",
-      "modules": 2,
-      "ca": 3,
+      "id": "packages/widget-renderer-headless",
+      "modules": 3,
+      "ca": 2,
       "ce": 1,
-      "instability": 0.25,
+      "instability": 0.33,
       "dependsOn": [
         "packages/miniapp-runtime"
       ]
     },
     {
-      "id": "packages/widget-renderer-headless",
-      "modules": 1,
-      "ca": 2,
+      "id": "packages/widget-renderer-rn",
+      "modules": 2,
+      "ca": 3,
       "ce": 1,
-      "instability": 0.33,
+      "instability": 0.25,
       "dependsOn": [
         "packages/miniapp-runtime"
       ]

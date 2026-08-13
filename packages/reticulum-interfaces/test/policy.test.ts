@@ -30,12 +30,30 @@ function mockInterface(
 
 describe("interface prioritization policy", () => {
   it("infers kinds from interface names", () => {
-    expect(inferInterfaceKind("harness-auto")).toBe(InterfaceKind.AUTO);
-    expect(inferInterfaceKind("docker-peer")).toBe(InterfaceKind.UNKNOWN);
-    expect(inferInterfaceKind("harness-ble")).toBe(InterfaceKind.BLE);
-    expect(inferInterfaceKind("host-ws-gateway")).toBe(InterfaceKind.WEBSOCKET);
-    expect(inferInterfaceKind("rnode-usb")).toBe(InterfaceKind.RNODE);
-    expect(inferInterfaceKind("host-freenet")).toBe(InterfaceKind.FREENET);
+    const cases = [
+      ["harness-auto", InterfaceKind.AUTO],
+      ["host-websocket", InterfaceKind.WEBSOCKET],
+      ["host-ws-gateway", InterfaceKind.WEBSOCKET],
+      ["tcp-client", InterfaceKind.TCP],
+      ["udp-listener", InterfaceKind.UDP],
+      ["harness-ble", InterfaceKind.BLE],
+      ["classic-bluetooth", InterfaceKind.BLUETOOTH],
+      ["rnode-usb", InterfaceKind.RNODE],
+      ["kiss-serial", InterfaceKind.RNODE],
+      ["lora-radio", InterfaceKind.RNODE],
+      ["i2p-router", InterfaceKind.I2P],
+      ["sam-session", InterfaceKind.I2P],
+      ["host-freenet", InterfaceKind.FREENET],
+      ["tplg-contract", InterfaceKind.FREENET],
+      ["camera-link", InterfaceKind.OPTICAL],
+      ["audio-link", InterfaceKind.ACOUSTIC],
+      ["ntfy-relay", InterfaceKind.NTFY],
+      ["docker-peer", InterfaceKind.UNKNOWN],
+    ] as const;
+
+    for (const [name, kind] of cases) {
+      expect(inferInterfaceKind(name)).toBe(kind);
+    }
   });
 
   it("ranks AutoInterface above TCP above BLE", () => {

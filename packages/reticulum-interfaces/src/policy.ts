@@ -70,69 +70,41 @@ export interface RankedInterface {
   readonly effectiveBitrate: number;
 }
 
+interface InterfaceKindRule {
+  readonly kind: InterfaceKindValue;
+  readonly aliases: ReadonlyArray<string>;
+}
+
+/** Ordered to preserve precedence when a registered name contains several aliases. */
+const INTERFACE_KIND_RULES: ReadonlyArray<InterfaceKindRule> = [
+  { kind: InterfaceKind.AUTO, aliases: ["auto"] },
+  { kind: InterfaceKind.WEBSOCKET, aliases: ["websocket", "ws-gateway"] },
+  { kind: InterfaceKind.TCP, aliases: ["tcp"] },
+  { kind: InterfaceKind.UDP, aliases: ["udp"] },
+  // "bluetooth" contains "ble", so the more specific alias comes first.
+  { kind: InterfaceKind.BLUETOOTH, aliases: ["bluetooth"] },
+  { kind: InterfaceKind.BLE, aliases: ["ble"] },
+  { kind: InterfaceKind.RNODE, aliases: ["rnode", "kiss", "lora"] },
+  { kind: InterfaceKind.I2P, aliases: ["i2p", "sam"] },
+  { kind: InterfaceKind.FREENET, aliases: ["freenet", "tplg"] },
+  {
+    kind: InterfaceKind.OPTICAL,
+    aliases: ["optical", "qr", "camera", "screen"],
+  },
+  {
+    kind: InterfaceKind.ACOUSTIC,
+    aliases: ["acoustic", "audio", "speaker", "microphone", "mic"],
+  },
+  { kind: InterfaceKind.NTFY, aliases: ["ntfy"] },
+];
+
 /** Infer interface kind from its registered name (harness and reference naming conventions). */
 export function inferInterfaceKind(name: string): InterfaceKindValue {
   const normalized = name.toLowerCase();
-
-  if (normalized.includes("auto")) {
-    return InterfaceKind.AUTO;
-  }
-
-  if (normalized.includes("websocket") || normalized.includes("ws-gateway")) {
-    return InterfaceKind.WEBSOCKET;
-  }
-
-  if (normalized.includes("tcp")) {
-    return InterfaceKind.TCP;
-  }
-
-  if (normalized.includes("udp")) {
-    return InterfaceKind.UDP;
-  }
-
-  if (normalized.includes("ble") || normalized.includes("bluetooth")) {
-    return normalized.includes("bluetooth")
-      ? InterfaceKind.BLUETOOTH
-      : InterfaceKind.BLE;
-  }
-
-  if (
-    normalized.includes("rnode") ||
-    normalized.includes("kiss") ||
-    normalized.includes("lora")
-  ) {
-    return InterfaceKind.RNODE;
-  }
-
-  if (normalized.includes("i2p") || normalized.includes("sam")) {
-    return InterfaceKind.I2P;
-  }
-
-  if (normalized.includes("freenet") || normalized.includes("tplg")) {
-    return InterfaceKind.FREENET;
-  }
-
-  if (
-    normalized.includes("optical") ||
-    normalized.includes("qr") ||
-    normalized.includes("camera") ||
-    normalized.includes("screen")
-  ) {
-    return InterfaceKind.OPTICAL;
-  }
-
-  if (
-    normalized.includes("acoustic") ||
-    normalized.includes("audio") ||
-    normalized.includes("speaker") ||
-    normalized.includes("microphone") ||
-    normalized.includes("mic")
-  ) {
-    return InterfaceKind.ACOUSTIC;
-  }
-
-  if (normalized.includes("ntfy")) {
-    return InterfaceKind.NTFY;
+  for (const rule of INTERFACE_KIND_RULES) {
+    if (rule.aliases.some((alias) => normalized.includes(alias))) {
+      return rule.kind;
+    }
   }
 
   return InterfaceKind.UNKNOWN;
