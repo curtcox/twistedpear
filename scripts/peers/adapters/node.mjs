@@ -21,8 +21,6 @@ import {
 const TP_BIN = join(repoRoot, "packages/cli/dist/bin/tp.js");
 /** Local-only identity passphrase; these peers hold no real user data. */
 const PASSPHRASE = "local-multipeer conformance passphrase";
-const HUB_STATUS_PORT = 9473;
-
 function hostConfigFor(id, isHub) {
   return {
     // The hub has to relay between its spokes, or peers only ever discover the

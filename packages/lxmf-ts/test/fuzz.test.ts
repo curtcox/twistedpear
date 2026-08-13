@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 import { decodePropagationPeerError } from "../src/propagation-server.js";
 import { msgpackUnpack } from "../src/msgpack.js";
 

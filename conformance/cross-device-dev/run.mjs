@@ -470,13 +470,17 @@ await runMain(async () => {
               join(scenarioDir, `${id}-state.json`),
               `${JSON.stringify(state, null, 2)}\n`,
             );
-          } catch {}
+          } catch {
+            // State capture is best-effort after the scenario has already failed.
+          }
           try {
             writeFileSync(
               join(scenarioDir, `${id}.log`),
               readFileSync(logPath(id)),
             );
-          } catch {}
+          } catch {
+            // A peer may exit without creating a log; preserve the original failure.
+          }
         }
         if (!allowSkip) throw error;
       }

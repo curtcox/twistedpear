@@ -95,7 +95,9 @@ export function createLinkedBonjourBridge(linkLocalAddress) {
       events = next;
     },
 
-    async start(_serviceType = BONJOUR_RETICULUM_SERVICE) {},
+    async start(serviceType = BONJOUR_RETICULUM_SERVICE) {
+      void serviceType;
+    },
 
     async stop() {},
 

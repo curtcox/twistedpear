@@ -104,11 +104,11 @@ describe("QR discovery adapter", () => {
       state: "permission-required",
     });
     const consume = async () => {
-      for await (const _event of adapter.accept({
+      for await (const event of adapter.accept({
         service: "chat",
         timeoutMs: 1_000,
       })) {
-        /* no-op */
+        void event;
       }
     };
     await expect(consume()).rejects.toThrow(/different sessions/);

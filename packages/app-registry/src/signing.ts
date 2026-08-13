@@ -40,12 +40,14 @@ export function verifyManifestSignature(
 ): boolean {
   try {
     const { signature: _signature, ...unsigned } = manifest;
+    void _signature;
     validateManifestStructure(unsigned);
   } catch {
     return false;
   }
 
   const { signature: _signature, ...unsigned } = manifest;
+  void _signature;
   const payload = manifestSigningPayload(unsigned);
   const signatureBytes = manifestSignatureBytes(manifest);
   const publisherKey = manifestPublisherKeyBytes(unsigned);

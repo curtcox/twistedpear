@@ -27,7 +27,7 @@ function packet(data = new Uint8Array([1, 2, 3])): Packet {
 
 describe("PacketInterface direction gating", () => {
   it("rejects send on an outgoing=false interface", async () => {
-    const [rxOnly, _peer] = PipeInterface.pair(
+    const [rxOnly] = PipeInterface.pair(
       provider,
       { name: "rx-only", incoming: true, outgoing: false },
       { name: "peer" },

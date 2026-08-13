@@ -78,7 +78,10 @@ describe("AI SDK", () => {
       },
     });
 
-    for await (const _event of chatStream(request)) break;
+    for await (const event of chatStream(request)) {
+      void event;
+      break;
+    }
     expect(methods).toEqual([
       "chatStreamStart",
       "chatStreamNext",

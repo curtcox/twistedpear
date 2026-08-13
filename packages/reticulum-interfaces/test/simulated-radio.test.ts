@@ -9,7 +9,6 @@ import { BleInterface } from "../src/ble/interface.js";
 import type { SerialPipe, SerialPipeEvents } from "../src/pipes.js";
 import { RNodeInterface } from "../src/rnode/interface.js";
 import {
-  KISS_CMD_DATA,
   KISS_CMD_DETECT,
   KISS_CMD_RADIO_STATE,
   KISS_DETECT_RESP,

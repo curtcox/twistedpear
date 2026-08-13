@@ -294,7 +294,7 @@ export async function generateReferenceChapters() {
   const hostApiMd = [
     ...referenceHeader("Host API"),
     `Current \`HOST_API_VERSION\`: **\`${hostApiVersion}\`**.`,
-    "Manifests pin \`minHostApi\`; hosts reject packages that require a newer API.",
+    "Manifests pin `minHostApi`; hosts reject packages that require a newer API.",
     "",
     "## Changelog",
     "",
@@ -314,7 +314,7 @@ export async function generateReferenceChapters() {
 
   const packagesMd = [
     ...referenceHeader("Package format"),
-    "Mini-apps ship as deterministic **\`.tpkg\`** archives:",
+    "Mini-apps ship as deterministic **`.tpkg`** archives:",
     "",
     "- Signed manifest (name, version, entry, capabilities, publisher key, `minHostApi`)",
     "- Entry bundle (`bundle.js`) and assets",

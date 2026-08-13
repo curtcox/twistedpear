@@ -78,11 +78,11 @@ describe("manual discovery adapter", () => {
       now: () => 2_000,
     });
     const consume = async () => {
-      for await (const _event of adapter.accept({
+      for await (const event of adapter.accept({
         service: "chat",
         timeoutMs: 1_000,
       })) {
-        /* no-op */
+        void event;
       }
     };
     await expect(consume()).rejects.toThrow(/wrong role or service/);

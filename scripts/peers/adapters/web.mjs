@@ -91,7 +91,9 @@ export const webAdapter = {
     }
     try {
       process.kill(child.pid, "SIGTERM");
-    } catch {}
+    } catch {
+      // The browser may have exited between the readiness check and cleanup.
+    }
     throw new Error(
       `web browser did not reach the gateway within 90s (see ${logPath("web")})`,
     );
@@ -109,7 +111,9 @@ export const webAdapter = {
     if (processAlive(entry.pid)) {
       try {
         process.kill(entry.pid, "SIGKILL");
-      } catch {}
+      } catch {
+        // The browser may have exited after the final liveness check.
+      }
     }
     log("web: Chromium stopped");
   },

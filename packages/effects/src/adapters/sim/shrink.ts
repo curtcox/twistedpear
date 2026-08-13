@@ -134,6 +134,7 @@ export function shrinkHistoryWithConfig<S>(
   const events = historyEvents(history);
   const minimal = ddmin(events, (candidate) => {
     const { recorder: _recorder, ...rerunConfig } = config;
+    void _recorder;
     const kernel = new SimKernel(rerunConfig);
     try {
       for (const item of candidate) kernel.inject(item.node, item.event);

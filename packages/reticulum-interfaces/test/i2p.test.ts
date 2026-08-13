@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PureCryptoProvider, nodeRuntime } from "@twistedpear/reticulum-ts";
+import { nodeRuntime } from "@twistedpear/reticulum-ts";
 import { SamClient } from "../src/i2p.js";
 
 describe("SAM client parsing", () => {

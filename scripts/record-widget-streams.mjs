@@ -20,8 +20,6 @@ const repo = join(here, "..");
 const shimUrl = pathToFileURL(join(here, "widget-stream-sdk-shim.mjs")).href;
 const streamsDir = join(repo, "specs", "spec-widget", "streams");
 
-const encoder = new TextEncoder();
-
 const SCRIPTS = {
   chat: {
     description:

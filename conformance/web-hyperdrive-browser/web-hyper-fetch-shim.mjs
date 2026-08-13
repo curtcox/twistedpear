@@ -11,7 +11,8 @@ export function dhtRelayUrlFromGateway(gatewayUrl, path = "/dht-relay") {
   return url.toString();
 }
 
-export async function fetchDriveVersionViaRelay(_options) {
+export async function fetchDriveVersionViaRelay(options) {
+  void options;
   const archiveUrl = new URL("./test-hyper-archive", import.meta.url).href;
   const response = await fetch(archiveUrl);
   if (!response.ok) {

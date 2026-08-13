@@ -1,5 +1,4 @@
 import Hyperswarm from "hyperswarm";
-import b4a from "b4a";
 import { Transform } from "streamx";
 import type { ByteRateLimiter } from "@twistedpear/reticulum-ts";
 

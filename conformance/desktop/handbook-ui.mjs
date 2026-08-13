@@ -11,6 +11,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const profile = mkdtempSync(join(tmpdir(), "tp-desktop-handbook-ui-"));
 const { ELECTRON_RUN_AS_NODE: _electronRunAsNode, ...electronEnv } =
   process.env;
+void _electronRunAsNode;
 
 // Keep the human-facing launcher wired to the same desktop route exercised below.
 // This catches regressions where the app works via a hand-written Playwright command,

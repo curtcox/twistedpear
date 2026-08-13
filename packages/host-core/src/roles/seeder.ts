@@ -1,6 +1,5 @@
 import {
   existsSync,
-  readFileSync,
   unwatchFile,
   watchFile,
   writeFileSync,
