@@ -9,8 +9,7 @@ import {
   type CryptoProvider,
 } from "@twistedpear/reticulum-ts";
 import { PackageError, unpackPackage, verifyPackage } from "../src/index.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — grant-time capability check lives in the runtime package.
+// @ts-expect-error — the runtime package is built before this cross-package test.
 import {
   CapabilityError,
   assertCapabilityAllowed,

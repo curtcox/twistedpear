@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — plain-JS conformance runner without type declarations.
+// @ts-expect-error — plain-JS conformance runner without type declarations.
 import { runKernelConformance } from "../../../conformance/kernel/runner.mjs";
-// @ts-ignore — see above.
+// @ts-expect-error — plain-JS conformance runner without type declarations.
 import { MiniKernel } from "../../../conformance/kernel/mini-kernel.mjs";
-// @ts-ignore — see above.
+// @ts-expect-error — plain-JS conformance runner without type declarations.
 import {
   MISORDERINGS,
   TARGET_FIXTURE,

@@ -2,8 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — plain-JS conformance helper without type declarations.
+// @ts-expect-error — plain-JS conformance helper without type declarations.
 import { createValidator } from "../../../conformance/tools/mini-json-schema.mjs";
 import type { Event, Intent, StepFn } from "../src/types.js";
 import {

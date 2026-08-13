@@ -4,12 +4,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — plain-JS conformance gate without type declarations.
+// @ts-expect-error — plain-JS conformance gate without type declarations.
 import { runMachineGate } from "../../../conformance/machine/gate.mjs";
-// @ts-ignore — see above.
+// @ts-expect-error — plain-JS conformance gate without type declarations.
 import { machines as referenceMachines } from "../../../conformance/machine/reference-machines.mjs";
-// @ts-ignore — see above.
+// @ts-expect-error — plain-JS conformance gate without type declarations.
 import {
   machines as canaryMachines,
   EXPECTED_FAILURE,

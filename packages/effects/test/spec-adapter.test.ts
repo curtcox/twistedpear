@@ -1,16 +1,15 @@
 import { describe, expect, it } from "vitest";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — plain-JS conformance suite without type declarations.
+// @ts-expect-error — plain-JS conformance suite without type declarations.
 import {
   families,
   runAdapterPair,
 } from "../../../conformance/adapter/suite.mjs";
-// @ts-ignore — see above.
+// @ts-expect-error — plain-JS conformance suite without type declarations.
 import {
   realAdapters,
   simAdapters,
 } from "../../../conformance/adapter/adapters.mjs";
-// @ts-ignore — see above.
+// @ts-expect-error — plain-JS conformance suite without type declarations.
 import { canaryAdapters } from "../../../conformance/adapter/canaries.mjs";
 
 interface PairResult {
