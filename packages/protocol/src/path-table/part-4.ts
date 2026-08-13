@@ -209,8 +209,14 @@ export function shouldSkipAnswerPathRequest(
 export function shouldAddPathEntry(input: PathAddDecisionInput): boolean {
   const { hops, randomBlob, nowSeconds, existing } = input;
 
+  // The hop ceiling applies to every announce, not just the first one for a
+  // destination: an expired entry must not be replaced by an over-hop path.
+  if (hops > PATHFINDER_MAX_HOPS) {
+    return false;
+  }
+
   if (existing === null) {
-    return hops < PATHFINDER_MAX_HOPS + 1;
+    return true;
   }
 
   if (hops <= existing.hops) {

@@ -4,19 +4,19 @@
   "tolerance": 0.5,
   "packages": {
     "packages/app-registry": {
-      "statements": 73.49,
-      "branches": 54.32,
-      "functions": 76.14
+      "statements": 74.38,
+      "branches": 54.69,
+      "functions": 77.89
     },
     "packages/bridge-freenet": {
-      "statements": 70.21,
-      "branches": 55.27,
-      "functions": 63.16
+      "statements": 71.03,
+      "branches": 55.39,
+      "functions": 64.1
     },
     "packages/bridge-hyper": {
-      "statements": 18.64,
-      "branches": 28.33,
-      "functions": 11.71
+      "statements": 19.86,
+      "branches": 29.2,
+      "functions": 12.87
     },
     "packages/cas-256t": {
       "statements": 89.62,
@@ -24,29 +24,29 @@
       "functions": 91.89
     },
     "packages/cli": {
-      "statements": 31.34,
-      "branches": 31.26,
-      "functions": 36
+      "statements": 36.48,
+      "branches": 36.66,
+      "functions": 42.68
     },
     "packages/effects": {
       "statements": 82.85,
       "branches": 72.36,
-      "functions": 85.93
+      "functions": 86.28
     },
     "packages/host-core": {
-      "statements": 72.09,
-      "branches": 56.26,
-      "functions": 67.45
+      "statements": 75.31,
+      "branches": 59.5,
+      "functions": 74.33
     },
     "packages/lxmf-ts": {
-      "statements": 76.6,
+      "statements": 77.02,
       "branches": 66.61,
-      "functions": 73.33
+      "functions": 74.53
     },
     "packages/miniapp-runtime": {
-      "statements": 61.78,
-      "branches": 56.12,
-      "functions": 58.97
+      "statements": 62.77,
+      "branches": 57.15,
+      "functions": 61.67
     },
     "packages/miniapp-sdk": {
       "statements": 29.8,
@@ -54,24 +54,24 @@
       "functions": 19.51
     },
     "packages/peer-discovery": {
-      "statements": 71.68,
-      "branches": 58.09,
-      "functions": 70.95
+      "statements": 74.57,
+      "branches": 60.23,
+      "functions": 76.36
     },
     "packages/protocol": {
-      "statements": 89.1,
+      "statements": 89.29,
       "branches": 79,
       "functions": 97.54
     },
     "packages/reticulum-interfaces": {
-      "statements": 66.14,
-      "branches": 54.4,
-      "functions": 60.48
+      "statements": 67.72,
+      "branches": 55.07,
+      "functions": 62.05
     },
     "packages/reticulum-ts": {
-      "statements": 72.5,
-      "branches": 59.47,
-      "functions": 75.1
+      "statements": 72.7,
+      "branches": 59.79,
+      "functions": 75.49
     },
     "packages/sim-adversaries": {
       "statements": 74.9,
@@ -84,9 +84,9 @@
       "functions": 99.3
     },
     "packages/widget-renderer-headless": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
+      "statements": 99.01,
+      "branches": 97.18,
+      "functions": 100
     },
     "packages/widget-renderer-rn": {
       "statements": 0,
@@ -94,9 +94,9 @@
       "functions": 0
     },
     "packages/worklet-core": {
-      "statements": 1.41,
-      "branches": 1.66,
-      "functions": 1.5
+      "statements": 21.81,
+      "branches": 17.45,
+      "functions": 26.47
     }
   }
 }

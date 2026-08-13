@@ -227,6 +227,33 @@ describe("protocol path table", () => {
     ).toBe(false);
   });
 
+  it("never replaces an expired entry with an over-hop path", () => {
+    const stored = blobWithEmitted(10);
+    const replacement = blobWithEmitted(20);
+    const expiredEntry = {
+      hops: 1,
+      expires: 1_000,
+      randomBlobs: [stored],
+    };
+
+    expect(
+      shouldAddPathEntry({
+        hops: PATHFINDER_MAX_HOPS,
+        randomBlob: replacement,
+        nowSeconds: 1_000,
+        existing: expiredEntry,
+      }),
+    ).toBe(true);
+    expect(
+      shouldAddPathEntry({
+        hops: PATHFINDER_MAX_HOPS + 1,
+        randomBlob: replacement,
+        nowSeconds: 1_000,
+        existing: expiredEntry,
+      }),
+    ).toBe(false);
+  });
+
   it("stepPathTable is deterministic", () => {
     const run = () => {
       let state = initialPathTableState();
