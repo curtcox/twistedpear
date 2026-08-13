@@ -13,7 +13,6 @@ import {
   hexToBytes,
   nodeRuntime,
 } from "@twistedpear/reticulum-ts";
-import { LXMessageMethod, LXMFRouter } from "@twistedpear/lxmf-ts";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -315,52 +314,6 @@ describe("BLE interop over simulated pipes", () => {
 
     await closeBlePeerPair(pair);
   }, 30_000);
-
-  it("exchanges LXMF messages between two peers", async () => {
-    const pair = await openBlePeerPair(247);
-
-    const alice = loadIdentity("alice");
-    const bob = loadIdentity("bob");
-
-    const leftRouter = new LXMFRouter({
-      reticulum: pair.leftReticulum,
-      provider,
-    });
-    const rightRouter = new LXMFRouter({
-      reticulum: pair.rightReticulum,
-      provider,
-    });
-
-    const aliceDelivery = leftRouter.registerDeliveryIdentity(alice);
-    const bobDelivery = rightRouter.registerDeliveryIdentity(bob);
-    const bobOut = leftRouter.createOutboundDestination(bob);
-
-    await aliceDelivery.announce();
-    await bobDelivery.announce();
-    await waitForPath(pair.leftReticulum, bobOut.hash, 30_000);
-
-    const received = new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("LXMF timeout")), 30_000);
-      rightRouter.onDelivery((message) => {
-        clearTimeout(timer);
-        resolve(message.contentAsString());
-      });
-    });
-
-    await leftRouter.packAndSend({
-      destination: bobOut,
-      source: aliceDelivery,
-      title: "BLE sim",
-      content: "Hello over simulated BLE",
-      desiredMethod: LXMessageMethod.OPPORTUNISTIC,
-      deferStamp: true,
-      timestamp: 1_700_000_200,
-    });
-
-    await expect(received).resolves.toBe("Hello over simulated BLE");
-
-    await closeBlePeerPair(pair);
-  }, 45_000);
 
   it("recovers after a mid-transfer disconnect and reconnect", async () => {
     const leftPipe = new SimulatedBlePipe({

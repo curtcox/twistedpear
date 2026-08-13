@@ -38,7 +38,6 @@
     "serialport": "^13.0.0"
   },
   "devDependencies": {
-    "@twistedpear/lxmf-ts": "*",
     "multicast-dns": "^7.2.5"
   }
 }

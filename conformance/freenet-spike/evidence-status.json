@@ -85,7 +85,7 @@
         "run-local-f2.mjs",
         "run-distinct-nodes.mjs",
         "../../packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
-        "../../packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts"
+        "../reticulum-interfaces/freenet-announce-lxmf.test.ts"
       ],
       "conclusion": "FreenetInterface exchanges HDLC frames and announce+LXMF live (same-node and distinct-node isolated topologies); relay policy covers freenet as source and destination",
       "remaining": "optional public multi-host Freenet announce+LXMF confirmation"

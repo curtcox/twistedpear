@@ -268,7 +268,7 @@ stale contract binary fails the build.
   log backend, contract backend, propagation set, propagation store, update
   code fields.
 - `packages/effects/test/freenet-sim.test.ts` — the deterministic simulated adapter.
-- `packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts` — simulated
+- `conformance/reticulum-interfaces/freenet-announce-lxmf.test.ts` — simulated
   announce + LXMF over FreenetInterface-only peers.
 - `apps/harness-mobile/test/freenet-remote-*.test.ts` — remote-node grant and
   session helpers.

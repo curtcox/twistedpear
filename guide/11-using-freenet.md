@@ -164,7 +164,7 @@ The following checks do not need a Freenet node and make no network writes:
 ```sh
 npm test -- packages/bridge-freenet/test
 npm test -- packages/effects/test/freenet-sim.test.ts
-npm test -- packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts
+npm test -- conformance/reticulum-interfaces/freenet-announce-lxmf.test.ts
 npm run test:freenet-spike
 npm run test:freenet-ordered-log
 ```

@@ -7,23 +7,20 @@ import {
   nodeRuntime,
 } from "@twistedpear/reticulum-ts";
 import { LXMessageMethod, LXMFRouter } from "@twistedpear/lxmf-ts";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   FreenetInterface,
   type FreenetPacketLogBackend,
-} from "../src/freenet.js";
+} from "@twistedpear/reticulum-interfaces";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const provider = new PureCryptoProvider();
 const runtime = nodeRuntime();
 
 const identityVectors = JSON.parse(
   readFileSync(
-    join(
-      dirname(fileURLToPath(import.meta.url)),
-      "../../../conformance/vectors/identity.json",
-    ),
+    join(dirname(fileURLToPath(import.meta.url)), "../vectors/identity.json"),
     "utf8",
   ),
 ) as {

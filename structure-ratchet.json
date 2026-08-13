@@ -303,7 +303,6 @@
     "knip:types:packages/reticulum-ts/src/transport/transport.ts:DiscoveryPathRequest",
     "knip:types:packages/reticulum-ts/src/transport/transport.ts:LinkTableEntry",
     "knip:types:packages/reticulum-ts/src/transport/transport.ts:ReverseTableEntry",
-    "knip:types:packages/sim-campaign/src/scenarios.ts:CampaignNodeState",
-    "layer:reticulum-interfaces:devDependencies:lxmf-ts"
+    "knip:types:packages/sim-campaign/src/scenarios.ts:CampaignNodeState"
   ]
 }
