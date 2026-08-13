@@ -14,9 +14,9 @@
       "functions": 64.1
     },
     "packages/bridge-hyper": {
-      "statements": 19.86,
-      "branches": 29.2,
-      "functions": 12.87
+      "statements": 98.38,
+      "branches": 92.04,
+      "functions": 98.04
     },
     "packages/cas-256t": {
       "statements": 89.62,
@@ -49,9 +49,9 @@
       "functions": 61.67
     },
     "packages/miniapp-sdk": {
-      "statements": 29.8,
-      "branches": 28.57,
-      "functions": 19.51
+      "statements": 100,
+      "branches": 100,
+      "functions": 100
     },
     "packages/peer-discovery": {
       "statements": 74.57,
@@ -59,7 +59,7 @@
       "functions": 76.36
     },
     "packages/protocol": {
-      "statements": 89.29,
+      "statements": 89.36,
       "branches": 79,
       "functions": 97.54
     },

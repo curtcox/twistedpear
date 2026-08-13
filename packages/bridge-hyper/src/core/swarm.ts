@@ -37,23 +37,25 @@ export function createSwarm(options: SwarmOptions = {}): SwarmSession {
     replicate: (isInitiator: boolean) => { pipe<T>(destination: T): T };
   }>();
 
-  const throttler = (limiter: ByteRateLimiter | undefined) =>
-    limiter === undefined
-      ? null
-      : new Transform({
-          transform(
-            data: Uint8Array,
-            callback: (error: Error | null, data?: Uint8Array) => void,
-          ) {
-            void limiter.consume(data.byteLength).then(
-              () => callback(null, data),
-              (error: unknown) =>
-                callback(
-                  error instanceof Error ? error : new Error(String(error)),
-                ),
-            );
-          },
-        });
+  const throttler = (limiter: ByteRateLimiter | undefined) => {
+    if (limiter === undefined) return null;
+    const transform = new Transform({
+      transform(
+        data: Uint8Array,
+        callback: (error: Error | null, data?: Uint8Array) => void,
+      ) {
+        void limiter.consume(data.byteLength).then(
+          () => callback(null, data),
+          (error: unknown) =>
+            callback(error instanceof Error ? error : new Error(String(error))),
+        );
+      },
+    });
+    transform.on("error", () => {
+      // A rejected budget tears down this peer's pipeline, not the process.
+    });
+    return transform;
+  };
 
   swarm.on("connection", (socket, peerInfo) => {
     const connection = socket as {

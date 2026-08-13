@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { close, diagnostics, PeerError, request } from "../src/peers.js";
+import {
+  close,
+  diagnostics,
+  info,
+  listen,
+  PeerError,
+  request,
+} from "../src/peers.js";
 import { setMiniappHostTransport } from "../src/rpc.js";
 
 describe("peers SDK", () => {
@@ -38,5 +45,36 @@ describe("peers SDK", () => {
     await expect(close({ id: "opaque" })).rejects.toMatchObject<
       Partial<PeerError>
     >({ code: "CANCELLED" });
+  });
+
+  it("routes listen and info through the same peer capability", async () => {
+    const calls: Array<{ method: string; payload?: unknown }> = [];
+    setMiniappHostTransport({
+      async request(call) {
+        calls.push({ method: call.method, payload: call.payload });
+        return { id: call.id, ok: true, result: { id: "opaque" } };
+      },
+    });
+
+    await listen({ purpose: "Wait for a pairing" });
+    await info({ id: "opaque" });
+
+    expect(calls).toEqual([
+      { method: "listen", payload: { purpose: "Wait for a pairing" } },
+      { method: "info", payload: { handle: { id: "opaque" } } },
+    ]);
+  });
+
+  it("passes through failures that are not broker errors", async () => {
+    setMiniappHostTransport({
+      request() {
+        return Promise.reject(new Error("transport closed"));
+      },
+    });
+
+    const error = await diagnostics().catch((thrown: unknown) => thrown);
+
+    expect(error).not.toBeInstanceOf(PeerError);
+    expect(error).toMatchObject({ message: "transport closed" });
   });
 });
