@@ -103,10 +103,6 @@
     "apps/harness-mobile/modules/usb-serial/app.plugin.js::(anonymous)": {
       "ccn": 11
     },
-    "apps/harness-mobile/worklet/entry.mjs::availability": {
-      "ccn": 18,
-      "nloc": 353
-    },
     "apps/harness-mobile/worklet/entry.mjs::loadRelayConfig": {
       "ccn": 16
     },

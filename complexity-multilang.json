@@ -6,10 +6,10 @@
     "kotlin",
     "swift"
   ],
-  "files": 522,
-  "functions": 6011,
-  "groups": 3843,
-  "exemptions": 96,
+  "files": 526,
+  "functions": 6131,
+  "groups": 3917,
+  "exemptions": 95,
   "violations": 0,
   "stale": 0,
   "findings": [
@@ -499,19 +499,6 @@
       "ccn": 19,
       "pinned": {
         "ccn": 19
-      }
-    },
-    {
-      "key": "apps/harness-mobile/worklet/entry.mjs::availability",
-      "file": "apps/harness-mobile/worklet/entry.mjs",
-      "name": "availability",
-      "line": 1241,
-      "tier": "source",
-      "ccn": 18,
-      "nloc": 353,
-      "pinned": {
-        "ccn": 18,
-        "nloc": 353
       }
     },
     {

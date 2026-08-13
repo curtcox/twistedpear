@@ -5,6 +5,47 @@ function peerToken() {
   return peerTokenImpl(extractedContext);
 }
 const harnessPeerPair = createHarnessPeerPair();
+
+async function nativePeerAvailability(kind, unsupportedReason) {
+  const reply = await requestHostReply(
+    { type: `peer-${kind}-availability`, token: peerToken() },
+    5_000,
+  );
+  return (
+    reply?.availability ?? {
+      state: "unsupported",
+      reason: unsupportedReason,
+    }
+  );
+}
+
+async function qrAvailability() {
+  return nativePeerAvailability(
+    "qr",
+    "Native QR support could not be detected",
+  );
+}
+
+async function audioAvailability() {
+  return nativePeerAvailability(
+    "audio",
+    "Native PCM support could not be detected",
+  );
+}
+
+async function ntfyAvailability() {
+  if (ntfyUrl === null) {
+    return {
+      state: "offline",
+      reason: "No ntfy rendezvous server is configured",
+    };
+  }
+  return {
+    state: "available",
+    reason: `Encrypted rendezvous through ${ntfyUrl}`,
+  };
+}
+
 const peerChromeBase = {
   manual: {
     async *offer(session, code, options) {
@@ -49,18 +90,7 @@ const peerChromeBase = {
     },
   },
   qr: {
-    async availability() {
-      const reply = await requestHostReply(
-        { type: "peer-qr-availability", token: peerToken() },
-        5_000,
-      );
-      return (
-        reply?.availability ?? {
-          state: "unsupported",
-          reason: "Native QR support could not be detected",
-        }
-      );
-    },
+    availability: qrAvailability,
     async *present(session, codes, options) {
       const reply = await requestHostReply(
         {
@@ -103,18 +133,7 @@ const peerChromeBase = {
     },
   },
   audio: {
-    async availability() {
-      const reply = await requestHostReply(
-        { type: "peer-audio-availability", token: peerToken() },
-        5_000,
-      );
-      return (
-        reply?.availability ?? {
-          state: "unsupported",
-          reason: "Native PCM support could not be detected",
-        }
-      );
-    },
+    availability: audioAvailability,
     async *transmit(session, frames, options) {
       const reply = await requestHostReply(
         {
@@ -163,17 +182,7 @@ const peerChromeBase = {
     },
   },
   ntfy: {
-    async availability() {
-      return ntfyUrl === null
-        ? {
-            state: "offline",
-            reason: "No ntfy rendezvous server is configured",
-          }
-        : {
-            state: "available",
-            reason: `Encrypted rendezvous through ${ntfyUrl}`,
-          };
-    },
+    availability: ntfyAvailability,
     async presentCode(session, code, options) {
       const reply = await requestHostReply(
         {
@@ -243,24 +252,28 @@ function receiveBluetoothFrame(frameBytes) {
   return receiveBluetoothFrameImpl(extractedContext, frameBytes);
 }
 
+async function bluetoothDiscoveryAvailability() {
+  if (status.bleConnected) {
+    return {
+      state: "available",
+      reason: "Native BLE invitation GATT multiplex is connected",
+    };
+  }
+  if (status.bleEnabled) {
+    return {
+      state: "offline",
+      reason: "BLE is enabled but no peer GATT pipe is connected",
+    };
+  }
+  return {
+    state: "permission-required",
+    reason:
+      "Enable BLE in trusted host settings to grant scan/advertise permission",
+  };
+}
+
 const bluetoothDiscoveryChannel = {
-  async availability() {
-    return status.bleConnected
-      ? {
-          state: "available",
-          reason: "Native BLE invitation GATT multiplex is connected",
-        }
-      : status.bleEnabled
-        ? {
-            state: "offline",
-            reason: "BLE is enabled but no peer GATT pipe is connected",
-          }
-        : {
-            state: "permission-required",
-            reason:
-              "Enable BLE in trusted host settings to grant scan/advertise permission",
-          };
-  },
+  availability: bluetoothDiscoveryAvailability,
   async *advertise(session, envelope) {
     const invitation = decodePeerInvitation(envelope, Date.now());
     const key = bytesToHex(invitation.sessionId);

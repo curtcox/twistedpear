@@ -106,7 +106,6 @@
     "packages/lxmf-ts/src/message.ts:complexity:Constructor has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/lxmf-ts/src/message.ts:complexity:Method 'pack' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/lxmf-ts/src/message.ts:complexity:Method 'selectDeliveryParameters' has a complexity of #. Maximum allowed is #.:occurrence-1",
-    "packages/lxmf-ts/src/message.ts:complexity:Static method 'pack' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/lxmf-ts/src/message.ts:complexity:Static method 'unpackFromBytes' has a complexity of #. Maximum allowed is #.:occurrence-1",
     "packages/lxmf-ts/src/message.ts:max-lines-per-function:Method 'pack' has too many lines (#). Maximum allowed is #.:occurrence-1",
     "packages/lxmf-ts/src/message.ts:max-lines-per-function:Static method 'unpackFromBytes' has too many lines (#). Maximum allowed is #.:occurrence-1",

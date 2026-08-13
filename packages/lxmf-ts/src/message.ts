@@ -149,6 +149,26 @@ export interface LXMessageUnpackOptions {
   readonly originalMethod?: LXMessageMethodValue;
 }
 
+function selectMessageTimestamp(
+  options: Pick<LXMessagePackOptions, "timestamp" | "now">,
+): number {
+  const timestampGate = stepLxmfPackTimestampWithActions(
+    initialLxmfPackTimestampState(),
+    {
+      kind: "pack-timestamp/select",
+      hasTimestamp: options.timestamp !== undefined,
+      hasNow: options.now !== undefined,
+    },
+  );
+  if (shouldUseLxmfPackTimestamp(timestampGate.actions)) {
+    return options.timestamp!;
+  }
+  if (shouldUseLxmfPackNow(timestampGate.actions)) {
+    return options.now!();
+  }
+  throw new Error("LXMessage.pack requires timestamp or now()");
+}
+
 export class LXMessage {
   readonly destinationHash: Uint8Array;
   readonly sourceHash: Uint8Array;
@@ -225,21 +245,7 @@ export class LXMessage {
       desiredMethod: options.desiredMethod ?? LXMessageMethod.DIRECT,
     });
 
-    const timestampGate = stepLxmfPackTimestampWithActions(
-      initialLxmfPackTimestampState(),
-      {
-        kind: "pack-timestamp/select",
-        hasTimestamp: options.timestamp !== undefined,
-        hasNow: options.now !== undefined,
-      },
-    );
-    if (shouldUseLxmfPackTimestamp(timestampGate.actions)) {
-      message.timestamp = options.timestamp!;
-    } else if (shouldUseLxmfPackNow(timestampGate.actions)) {
-      message.timestamp = options.now!();
-    } else {
-      throw new Error("LXMessage.pack requires timestamp or now()");
-    }
+    message.timestamp = selectMessageTimestamp(options);
     message.pack(options.provider, {
       ...(options.stamp === undefined ? {} : { stamp: options.stamp }),
       ...(options.deferStamp === undefined

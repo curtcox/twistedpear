@@ -2,16 +2,16 @@
   "version": 1,
   "windowDays": 180,
   "shallowClone": false,
-  "filesMeasured": 1304,
-  "filesChanged": 1303,
+  "filesMeasured": 1310,
+  "filesChanged": 1310,
   "hotspots": [
     {
       "file": "apps/harness-mobile/worklet/entry.mjs",
       "churn": 65,
-      "complexity": 312,
-      "functions": 254,
-      "worst": 18,
-      "score": 20280
+      "complexity": 379,
+      "functions": 321,
+      "worst": 16,
+      "score": 24635
     },
     {
       "file": "apps/harness-mobile/worklet/web-entry.mjs",
@@ -24,10 +24,10 @@
     {
       "file": "packages/lxmf-ts/src/message.ts",
       "churn": 30,
-      "complexity": 109,
-      "functions": 14,
+      "complexity": 110,
+      "functions": 15,
       "worst": 22,
-      "score": 3270
+      "score": 3300
     },
     {
       "file": "apps/host-desktop/src/renderer/app.js",
@@ -318,14 +318,6 @@
       "score": 889
     },
     {
-      "file": "packages/widget-renderer-headless/src/index.ts",
-      "churn": 7,
-      "complexity": 126,
-      "functions": 31,
-      "worst": 48,
-      "score": 882
-    },
-    {
       "file": "apps/harness-mobile/host/native-peer-webrtc.ts",
       "churn": 8,
       "complexity": 110,
@@ -402,6 +394,14 @@
       "churn": 9,
       "complexity": 90,
       "functions": 56,
+      "worst": 7,
+      "score": 810
+    },
+    {
+      "file": "packages/protocol/src/token-framing.ts",
+      "churn": 9,
+      "complexity": 90,
+      "functions": 59,
       "worst": 7,
       "score": 810
     }
