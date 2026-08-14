@@ -68,11 +68,16 @@ if (language === "rust") {
         "-D",
         "warnings",
       ],
+      // Pin the same toolchain clippy uses. cargo-deny otherwise picks the
+      // default cargo (here 1.83), which cannot parse edition-2024 crates
+      // and turns a cache miss into ratchet findings.
       [
+        "rustup",
+        "run",
+        "1.97.1",
         "cargo-deny",
         "--manifest-path",
         manifest,
-        ...(process.env.CI ? [] : ["--offline"]),
         "check",
       ],
     );

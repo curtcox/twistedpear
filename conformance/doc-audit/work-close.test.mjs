@@ -41,6 +41,10 @@ describe("work:done refuses to close on insufficient evidence", () => {
     );
   });
 
+  it("commits unsigned even when the host gitconfig demands signing", () => {
+    expect(repo.git("log", "-1", "--format=%G?").stdout.trim()).toBe("N");
+  });
+
   it("refuses an item that is already done", () => {
     expect(close({ id: "SHUT", evidence: "work" })).toThrow(/already done/);
   });
