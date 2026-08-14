@@ -35,4 +35,12 @@ describe("protocol echo leaf", () => {
     expect(x.b.inbox.some((m) => m.startsWith("echo:"))).toBe(true);
     expect(y.a.inbox).toEqual(x.a.inbox);
   });
+
+  it("leaves state unchanged for unrelated events", () => {
+    const state = initialEchoState();
+    expect(stepEcho(state, { kind: "tick", at: 0 })).toEqual({
+      state,
+      intents: [],
+    });
+  });
 });

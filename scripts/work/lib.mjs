@@ -488,6 +488,15 @@ function assignUnblockCounts(items, index) {
 }
 
 /**
+ * @param {string | number} left
+ * @param {string | number} right
+ * @returns {number}
+ */
+function cmp(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+/**
  * Deterministic ordering: class, then unblock count, then effort (smaller
  * first), then age, then ID. Every step is total, so `work:next` never depends
  * on file order.
@@ -496,15 +505,16 @@ function assignUnblockCounts(items, index) {
  * @returns {number}
  */
 export function compareItems(a, b) {
-  const rankA = TYPE_RANK.get(a.type) ?? TYPES.length;
-  const rankB = TYPE_RANK.get(b.type) ?? TYPES.length;
-  if (rankA !== rankB) return rankA - rankB;
-  if (a.unblocks !== b.unblocks) return b.unblocks - a.unblocks;
-  const effortA = a.effort ?? 1;
-  const effortB = b.effort ?? 1;
-  if (effortA !== effortB) return effortA - effortB;
-  if (a.added !== b.added) return a.added < b.added ? -1 : 1;
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  return (
+    cmp(
+      TYPE_RANK.get(a.type) ?? TYPES.length,
+      TYPE_RANK.get(b.type) ?? TYPES.length,
+    ) ||
+    cmp(b.unblocks, a.unblocks) ||
+    cmp(a.effort ?? 1, b.effort ?? 1) ||
+    cmp(a.added, b.added) ||
+    cmp(a.id, b.id)
+  );
 }
 
 /**

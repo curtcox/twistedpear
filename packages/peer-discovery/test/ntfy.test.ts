@@ -39,6 +39,57 @@ function invitation(role: "offer" | "answer" = "offer"): Uint8Array {
   return encodePeerInvitation(value);
 }
 
+function ntfyAdapter(options: {
+  readonly role: "offer" | "answer";
+  readonly envelope: Uint8Array;
+  readonly sessionId: string;
+}) {
+  const published: Uint8Array[] = [];
+  let requested = "";
+  const adapter = new NtfyPeerDiscoveryAdapter({
+    client: {
+      async createSecret() {
+        return secret;
+      },
+      async publish(_secret: NtfyRendezvousSecret, envelope: Uint8Array) {
+        published.push(envelope);
+      },
+      async poll() {
+        return [
+          {
+            id: bytes(16, 1),
+            role: options.role,
+            expiresAt: now + 60_000,
+            envelope: options.envelope,
+          },
+        ];
+      },
+    },
+    createSessionId: () => options.sessionId,
+    now: () => now,
+    channel: {
+      async availability() {
+        return { state: "available" };
+      },
+      async presentCode(_session, code) {
+        requested = code;
+      },
+      async requestCode() {
+        return requested;
+      },
+      async cancel() {},
+    },
+  });
+  return {
+    adapter,
+    published,
+    requestedCode(value?: string) {
+      if (value !== undefined) requested = value;
+      return requested;
+    },
+  };
+}
+
 describe("encrypted ntfy rendezvous", () => {
   it("round-trips checksummed secrets and authenticated invitations", () => {
     expect(
@@ -154,46 +205,15 @@ describe("encrypted ntfy rendezvous", () => {
         }),
     ).toThrow(/HTTPS/);
   });
+});
 
-  it("adapts encrypted service polling to the common offer/accept contract", async () => {
+describe("encrypted ntfy rendezvous adapters", () => {
+  it("adapts encrypted polling to the offer contract", async () => {
     const offerEnvelope = invitation("offer");
-    const answerEnvelope = invitation("answer");
-    const published: Uint8Array[] = [];
-    let requestedCode = "";
-    const client = {
-      async createSecret() {
-        return secret;
-      },
-      async publish(_secret: NtfyRendezvousSecret, envelope: Uint8Array) {
-        published.push(envelope);
-      },
-      async poll() {
-        return [
-          {
-            id: bytes(16, 1),
-            role: "answer" as const,
-            expiresAt: now + 60_000,
-            envelope: answerEnvelope,
-          },
-        ];
-      },
-    };
-    const adapter = new NtfyPeerDiscoveryAdapter({
-      client,
-      createSessionId: () => "ntfy-session",
-      now: () => now,
-      channel: {
-        async availability() {
-          return { state: "available" };
-        },
-        async presentCode(_session, code) {
-          requestedCode = code;
-        },
-        async requestCode() {
-          return requestedCode;
-        },
-        async cancel() {},
-      },
+    const { adapter, published, requestedCode } = ntfyAdapter({
+      role: "answer",
+      envelope: invitation("answer"),
+      sessionId: "ntfy-session",
     });
     const events = [];
     for await (const event of adapter.offer(offerEnvelope, {
@@ -202,37 +222,20 @@ describe("encrypted ntfy rendezvous", () => {
       events.push(event);
     expect(events.map((event) => event.kind)).toEqual(["ready", "invitation"]);
     expect(published).toEqual([offerEnvelope]);
-    expect(requestedCode).toMatch(/^TPN1-/);
+    expect(requestedCode()).toMatch(/^TPN1-/);
+  });
 
-    const listening = new NtfyPeerDiscoveryAdapter({
-      client: {
-        ...client,
-        async poll() {
-          return [
-            {
-              id: bytes(16, 2),
-              role: "offer" as const,
-              expiresAt: now + 60_000,
-              envelope: offerEnvelope,
-            },
-          ];
-        },
-      },
-      createSessionId: () => "join-session",
-      now: () => now,
-      channel: {
-        async availability() {
-          return { state: "available" };
-        },
-        async presentCode() {},
-        async requestCode() {
-          return requestedCode;
-        },
-        async cancel() {},
-      },
+  it("adapts encrypted polling to the accept contract", async () => {
+    const offerEnvelope = invitation("offer");
+    const answerEnvelope = invitation("answer");
+    const { adapter, published, requestedCode } = ntfyAdapter({
+      role: "offer",
+      envelope: offerEnvelope,
+      sessionId: "join-session",
     });
+    requestedCode(encodeNtfyRendezvousSecret(secret));
     const inbound = [];
-    for await (const event of listening.accept({
+    for await (const event of adapter.accept({
       service: "peer-link",
       timeoutMs: 1_000,
     }))
@@ -241,10 +244,7 @@ describe("encrypted ntfy rendezvous", () => {
       kind: "invitation",
       envelope: offerEnvelope,
     });
-    await listening.answer(
-      { id: "join-session", kind: "ntfy" },
-      answerEnvelope,
-    );
+    await adapter.answer({ id: "join-session", kind: "ntfy" }, answerEnvelope);
     expect(published.at(-1)).toEqual(answerEnvelope);
   });
 });

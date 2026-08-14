@@ -5,6 +5,7 @@ import {
   isPaymentAidBlocked,
   validateActuatorCommand,
 } from "../src/index.js";
+import { validateNfcApduCommand } from "../src/device-nfc-apdu.js";
 
 describe("NFC payment AID blocklist", () => {
   it("blocks Visa / Mastercard / PPSE AIDs", () => {
@@ -27,5 +28,17 @@ describe("NFC payment AID blocklist", () => {
         apdu: "00A4040000",
       }).normalized,
     ).toMatchObject({ action: "apdu", aid: "F001020304" });
+  });
+
+  it("rejects odd-length AIDs and empty APDU payloads", () => {
+    expect(() => assertAidAllowed("F00102030")).toThrow(/Invalid AID encoding/);
+    expect(() =>
+      validateNfcApduCommand({
+        kind: "nfc",
+        action: "apdu",
+        aid: "F001020304",
+        apdu: "",
+      }),
+    ).toThrow(/Invalid APDU payload length/);
   });
 });

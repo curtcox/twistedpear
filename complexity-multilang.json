@@ -6,10 +6,10 @@
     "kotlin",
     "swift"
   ],
-  "files": 546,
-  "functions": 6241,
-  "groups": 3936,
-  "exemptions": 95,
+  "files": 547,
+  "functions": 6282,
+  "groups": 3949,
+  "exemptions": 94,
   "violations": 0,
   "stale": 0,
   "findings": [
@@ -277,17 +277,6 @@
       "ccn": 30,
       "pinned": {
         "ccn": 30
-      }
-    },
-    {
-      "key": "scripts/work/lib.mjs::(anonymous)",
-      "file": "scripts/work/lib.mjs",
-      "name": "(anonymous)",
-      "line": 37,
-      "tier": "tooling",
-      "ccn": 28,
-      "pinned": {
-        "ccn": 28
       }
     },
     {

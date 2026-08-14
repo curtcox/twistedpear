@@ -344,9 +344,6 @@
     },
     "scripts/work/diff.mjs::snapshotAt": {
       "ccn": 16
-    },
-    "scripts/work/lib.mjs::(anonymous)": {
-      "ccn": 28
     }
   }
 }
