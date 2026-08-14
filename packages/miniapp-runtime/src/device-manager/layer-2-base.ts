@@ -458,24 +458,13 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
         session.remotePeerId !== null &&
         isDeviceSessionLive(session.state.phase),
     );
-    if (remoteLive.length >= this.maxRemoteSessions) {
-      throw new DeviceError(
-        "DEVICE_DENIED",
-        "Host remote session concurrency cap reached.",
-      );
-    }
     const peerConcurrent = remoteLive.filter(
       (session) =>
         session.remotePeerId === request.peerId &&
         session.state.classId === entry.id &&
         session.state.tierId === tier.id,
     ).length;
-    if (peerConcurrent >= (grant?.maxConcurrent ?? 1)) {
-      throw new DeviceError(
-        "DEVICE_DENIED",
-        "Per-peer remote concurrency cap reached.",
-      );
-    }
+    this.assertRemoteConcurrency(remoteLive.length, peerConcurrent, grant);
 
     await this.maybeConfirmSession({
       appId: `remote:${request.peerId}`,
@@ -490,17 +479,7 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     });
 
     const appId = `remote:${request.peerId}`;
-    const rateHz = request.rateHz ?? Math.min(1, entry.defaults.maxRateHz);
-    if (
-      !Number.isFinite(rateHz) ||
-      rateHz <= 0 ||
-      rateHz > entry.defaults.maxRateHz
-    ) {
-      throw new DeviceError(
-        "DEVICE_RATE_EXCEEDED",
-        `Requested rate ${rateHz} Hz exceeds max ${entry.defaults.maxRateHz} Hz for ${entry.id}.`,
-      );
-    }
+    const rateHz = this.requireSessionRateHz(entry, request.rateHz);
 
     const availability = await this.availabilityFor(entry.id);
     if (availability !== "available") {
@@ -552,6 +531,25 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
       tier: tier.id,
       expiresAt: state.expiresAt,
     };
+  }
+
+  private assertRemoteConcurrency(
+    hostLive: number,
+    peerConcurrent: number,
+    grant: RemoteDeviceGrant | undefined,
+  ): void {
+    if (hostLive >= this.maxRemoteSessions) {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Host remote session concurrency cap reached.",
+      );
+    }
+    if (peerConcurrent >= (grant?.maxConcurrent ?? 1)) {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Per-peer remote concurrency cap reached.",
+      );
+    }
   }
 
   protected abstract materializeSample(

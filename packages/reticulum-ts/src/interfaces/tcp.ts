@@ -57,6 +57,16 @@ export interface TcpServerInterfaceOptions extends ReticulumInterfaceOptions {
 export type SpawnedInterfaceHandler = (iface: TcpClientInterface) => void;
 export type DetachedInterfaceHandler = (iface: TcpClientInterface) => void;
 
+interface OpenConnectContext {
+  state: ReturnType<typeof initialInterfaceConnectState>;
+  timer: Timer | null;
+  settled: boolean;
+  pendingConnection: DuplexConnection | null;
+  pendingError: unknown;
+  resolve: (connection: DuplexConnection) => void;
+  reject: (error: Error) => void;
+}
+
 export class TcpClientInterface extends HdlcPacketInterface {
   private connection: DuplexConnection | null = null;
   private lastConnectionError: Error | null = null;
@@ -189,133 +199,157 @@ export class TcpClientInterface extends HdlcPacketInterface {
 
   private openConnection(): Promise<DuplexConnection> {
     return new Promise((resolve, reject) => {
-      const armed = stepInterfaceConnectWithActions(
-        initialInterfaceConnectState(),
-        {
-          kind: "interface-connect/arm",
-          timeoutMs: this.connectTimeoutMs(),
-        },
-      );
-      let state = armed.state;
-      let timer: Timer | null = null;
-      let settled = false;
-      let pendingConnection: DuplexConnection | null = null;
-      let pendingError: unknown = null;
+      this.driveOpenConnection(resolve, reject);
+    });
+  }
 
-      const finish = (
-        result:
-          | { ok: true; connection: DuplexConnection }
-          | { ok: false; error: Error },
-      ): void => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        if (result.ok) {
-          resolve(result.connection);
-          return;
-        }
-        reject(result.error);
-      };
+  private driveOpenConnection(
+    resolve: (connection: DuplexConnection) => void,
+    reject: (error: Error) => void,
+  ): void {
+    const armed = stepInterfaceConnectWithActions(
+      initialInterfaceConnectState(),
+      {
+        kind: "interface-connect/arm",
+        timeoutMs: this.connectTimeoutMs(),
+      },
+    );
+    const ctx: OpenConnectContext = {
+      state: armed.state,
+      timer: null,
+      settled: false,
+      pendingConnection: null,
+      pendingError: null,
+      resolve,
+      reject,
+    };
+    this.applyOpenConnectIntents(ctx, armed.intents);
+    this.applyOpenConnectActions(ctx, armed.actions);
+  }
 
-      const applyIntents = (
-        intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"],
-      ): void => {
-        for (const intent of intents) {
-          if (
-            intent.kind === "timer/set" &&
-            intent.timer.id === INTERFACE_CONNECT_TIMER_ID
-          ) {
-            timer?.cancel();
-            timer = this.runtime.clock.setTimeout(() => {
-              timer = null;
-              const tick = stepInterfaceConnectWithActions(state, {
-                kind: "timer/fired",
-                id: INTERFACE_CONNECT_TIMER_ID,
-                at: this.runtime.clock.now(),
-              });
-              state = tick.state;
-              applyIntents(tick.intents);
-              applyActions(tick.actions);
-            }, intent.timer.delayMs);
-          }
-          if (
-            intent.kind === "timer/cancel" &&
-            intent.timer.id === INTERFACE_CONNECT_TIMER_ID
-          ) {
-            timer?.cancel();
-            timer = null;
-          }
-        }
-      };
+  private finishOpenConnection(
+    ctx: OpenConnectContext,
+    result:
+      | { ok: true; connection: DuplexConnection }
+      | { ok: false; error: Error },
+  ): void {
+    if (ctx.settled) {
+      return;
+    }
+    ctx.settled = true;
+    if (result.ok) {
+      ctx.resolve(result.connection);
+      return;
+    }
+    ctx.reject(result.error);
+  }
 
-      const applyActions = (
-        actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"],
-      ): void => {
-        for (const action of actions) {
-          if (action.kind === "connect") {
-            // Timeout is owned by stepInterfaceConnect; factory must not arm a second timer.
-            void this.runtime.tcp
-              .connect({
-                host: this.options.targetHost,
-                port: this.options.targetPort,
-                connectTimeoutMs: 0,
-              })
-              .then((connection) => {
-                pendingConnection = connection;
-                const result = stepInterfaceConnectWithActions(state, {
-                  kind: "interface-connect/connected",
-                });
-                state = result.state;
-                applyIntents(result.intents);
-                applyActions(result.actions);
-                if (pendingConnection === connection) {
-                  void connection.close();
-                  pendingConnection = null;
-                }
-              })
-              .catch((error: unknown) => {
-                pendingError = error;
-                const result = stepInterfaceConnectWithActions(state, {
-                  kind: "interface-connect/failed",
-                });
-                state = result.state;
-                applyIntents(result.intents);
-                applyActions(result.actions);
-              });
-          }
-          if (action.kind === "resolve") {
-            const connection = pendingConnection;
-            if (connection !== null) {
-              pendingConnection = null;
-              finish({ ok: true, connection });
-            }
-          }
-          if (action.kind === "reject") {
-            if (action.reason === "timeout") {
-              finish({
-                ok: false,
-                error: new Error(
-                  `TCP connect timed out after ${this.connectTimeoutMs()}ms`,
-                ),
-              });
-              return;
-            }
-            const error = pendingError;
-            pendingError = null;
-            finish({
-              ok: false,
-              error:
-                error instanceof Error
-                  ? error
-                  : new Error(String(error ?? "connect failed")),
-            });
-          }
-        }
-      };
+  private applyOpenConnectIntents(
+    ctx: OpenConnectContext,
+    intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"],
+  ): void {
+    for (const intent of intents) {
+      if (
+        intent.kind === "timer/set" &&
+        intent.timer.id === INTERFACE_CONNECT_TIMER_ID
+      ) {
+        ctx.timer?.cancel();
+        ctx.timer = this.runtime.clock.setTimeout(() => {
+          ctx.timer = null;
+          const tick = stepInterfaceConnectWithActions(ctx.state, {
+            kind: "timer/fired",
+            id: INTERFACE_CONNECT_TIMER_ID,
+            at: this.runtime.clock.now(),
+          });
+          ctx.state = tick.state;
+          this.applyOpenConnectIntents(ctx, tick.intents);
+          this.applyOpenConnectActions(ctx, tick.actions);
+        }, intent.timer.delayMs);
+      }
+      if (
+        intent.kind === "timer/cancel" &&
+        intent.timer.id === INTERFACE_CONNECT_TIMER_ID
+      ) {
+        ctx.timer?.cancel();
+        ctx.timer = null;
+      }
+    }
+  }
 
-      applyIntents(armed.intents);
-      applyActions(armed.actions);
+  private applyOpenConnectActions(
+    ctx: OpenConnectContext,
+    actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"],
+  ): void {
+    for (const action of actions) {
+      if (action.kind === "connect") {
+        this.startOpenConnectAttempt(ctx);
+      }
+      if (action.kind === "resolve") {
+        const connection = ctx.pendingConnection;
+        if (connection !== null) {
+          ctx.pendingConnection = null;
+          this.finishOpenConnection(ctx, { ok: true, connection });
+        }
+      }
+      if (action.kind === "reject") {
+        this.rejectOpenConnection(ctx, action.reason);
+      }
+    }
+  }
+
+  private startOpenConnectAttempt(ctx: OpenConnectContext): void {
+    // Timeout is owned by stepInterfaceConnect; factory must not arm a second timer.
+    void this.runtime.tcp
+      .connect({
+        host: this.options.targetHost,
+        port: this.options.targetPort,
+        connectTimeoutMs: 0,
+      })
+      .then((connection) => {
+        ctx.pendingConnection = connection;
+        const result = stepInterfaceConnectWithActions(ctx.state, {
+          kind: "interface-connect/connected",
+        });
+        ctx.state = result.state;
+        this.applyOpenConnectIntents(ctx, result.intents);
+        this.applyOpenConnectActions(ctx, result.actions);
+        if (ctx.pendingConnection === connection) {
+          void connection.close();
+          ctx.pendingConnection = null;
+        }
+      })
+      .catch((error: unknown) => {
+        ctx.pendingError = error;
+        const result = stepInterfaceConnectWithActions(ctx.state, {
+          kind: "interface-connect/failed",
+        });
+        ctx.state = result.state;
+        this.applyOpenConnectIntents(ctx, result.intents);
+        this.applyOpenConnectActions(ctx, result.actions);
+      });
+  }
+
+  private rejectOpenConnection(
+    ctx: OpenConnectContext,
+    reason: "timeout" | "failed",
+  ): void {
+    if (reason === "timeout") {
+      this.finishOpenConnection(ctx, {
+        ok: false,
+        error: new Error(
+          `TCP connect timed out after ${this.connectTimeoutMs()}ms`,
+        ),
+      });
+      return;
+    }
+    const error = ctx.pendingError;
+    ctx.pendingError = null;
+    this.finishOpenConnection(ctx, {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error
+          : new Error(String(error ?? "connect failed")),
     });
   }
 

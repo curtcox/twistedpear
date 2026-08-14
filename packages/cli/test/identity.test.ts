@@ -98,7 +98,9 @@ describe("tp identity", () => {
       rmSync(cwd, { recursive: true, force: true });
     }
   });
+});
 
+describe("tp identity recovery and import", () => {
   it("recovers from both word groups and changes the vault passphrase", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-cli-recovery-"));
     const provider = new NodeCryptoProvider();

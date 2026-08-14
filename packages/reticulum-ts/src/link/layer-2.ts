@@ -331,94 +331,115 @@ export class LinkLayer2 extends LinkLayer2Establish {
     }
 
     try {
-      const provider = owner.cryptoProvider;
-      const link = new this(provider, transport, transport.clock, {
-        initiator: false,
+      return this.acceptIncomingLinkRequest({
         owner,
-        destination: null,
-      }) as Link;
-
-      const responderStepped = stepSplitResponderLinkEntropyWithActions(
-        initialSplitResponderLinkEntropyState(),
-        {
-          kind: "link-keygen/split-responder-gate",
-          entropy:
-            options?.entropy ??
-            transport.entropy.randomBytes(LINK_RESPONDER_ENTROPY_SIZE),
-        },
-      );
-      const responderKeys = responderLinkEntropyFieldsFromActions(
-        responderStepped.actions,
-      );
-      if (
-        shouldRejectSplitResponderLinkEntropy(responderStepped.actions) ||
-        !shouldUseSplitResponderLinkEntropy(responderStepped.actions) ||
-        responderKeys === null
-      ) {
-        throw new Error(
-          `Responder link entropy must be at least ${LINK_RESPONDER_ENTROPY_SIZE} bytes`,
-        );
-      }
-      link.privateKey = responderKeys.privateKey;
-      link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
-      link.loadPeer(request.publicKey, request.signaturePublicKey);
-      link.setLinkId(packet);
-
-      const responderMtuStepped = stepLinkRequestResponderMtuWithActions(
-        initialLinkRequestResponderMtuState(),
-        {
-          kind: "link/request-responder-mtu-gate",
-          signallingPresent: request.signallingBytes.length > 0,
-          signallingMtu: this.mtuFromLrPacket(packet),
-          currentMtu: link.mtu,
-          defaultMtu: RETICULUM_MTU,
-        },
-      );
-      if (shouldUseLinkRequestResponderMtu(responderMtuStepped.actions)) {
-        const selected = linkRequestResponderMtuFromActions(
-          responderMtuStepped.actions,
-        );
-        if (selected !== null) {
-          link.mtu = selected;
-        }
-      }
-
-      link.mode = this.modeFromLrPacket(packet);
-      const modeGate = stepLinkValidateRequestWithActions(
-        initialLinkValidateRequestState(),
-        {
-          kind: "validate-request/gate",
-          requestPresent: true,
-          ownerIdentityPresent: true,
-          modeEnabled: shouldTreatLinkModeEnabled(
-            stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
-              kind: "link/mode-enabled-gate",
-              mode: link.mode,
-            }).actions,
-          ),
-        },
-      );
-      if (!shouldProceedLinkValidateRequest(modeGate.actions)) {
-        return null;
-      }
-
-      link.updateMdu();
-      link.attachedInterface = iface;
-      link.establishmentCost += packet.raw.length;
-      link.handshake();
-      link.requestTime = transport.clock.now() / 1000;
-      link.lastInbound = link.requestTime;
-      link.establishmentTimeout = linkEstablishmentTimeoutForHops(
-        packet.hops,
-        LINK_KEEPALIVE,
-      );
-      transport.registerLink(link);
-      link.startWatchdog();
-      void link.prove();
-      return link;
+        transport,
+        packet,
+        iface,
+        request,
+        ...(options === undefined ? {} : { options }),
+      });
     } catch {
       return null;
     }
+  }
+
+  private static acceptIncomingLinkRequest(input: {
+    readonly owner: RegisteredDestination;
+    readonly transport: LeafTransport;
+    readonly packet: Packet;
+    readonly iface: PacketInterface;
+    readonly request: NonNullable<
+      ReturnType<typeof linkRequestKeyFieldsFromActions>
+    >;
+    readonly options?: { readonly entropy?: Uint8Array };
+  }): Link | null {
+    const { owner, transport, packet, iface, request, options } = input;
+    const provider = owner.cryptoProvider;
+    const link = new this(provider, transport, transport.clock, {
+      initiator: false,
+      owner,
+      destination: null,
+    }) as Link;
+
+    const responderStepped = stepSplitResponderLinkEntropyWithActions(
+      initialSplitResponderLinkEntropyState(),
+      {
+        kind: "link-keygen/split-responder-gate",
+        entropy:
+          options?.entropy ??
+          transport.entropy.randomBytes(LINK_RESPONDER_ENTROPY_SIZE),
+      },
+    );
+    const responderKeys = responderLinkEntropyFieldsFromActions(
+      responderStepped.actions,
+    );
+    if (
+      shouldRejectSplitResponderLinkEntropy(responderStepped.actions) ||
+      !shouldUseSplitResponderLinkEntropy(responderStepped.actions) ||
+      responderKeys === null
+    ) {
+      throw new Error(
+        `Responder link entropy must be at least ${LINK_RESPONDER_ENTROPY_SIZE} bytes`,
+      );
+    }
+    link.privateKey = responderKeys.privateKey;
+    link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
+    link.loadPeer(request.publicKey, request.signaturePublicKey);
+    link.setLinkId(packet);
+
+    const responderMtuStepped = stepLinkRequestResponderMtuWithActions(
+      initialLinkRequestResponderMtuState(),
+      {
+        kind: "link/request-responder-mtu-gate",
+        signallingPresent: request.signallingBytes.length > 0,
+        signallingMtu: this.mtuFromLrPacket(packet),
+        currentMtu: link.mtu,
+        defaultMtu: RETICULUM_MTU,
+      },
+    );
+    if (shouldUseLinkRequestResponderMtu(responderMtuStepped.actions)) {
+      const selected = linkRequestResponderMtuFromActions(
+        responderMtuStepped.actions,
+      );
+      if (selected !== null) {
+        link.mtu = selected;
+      }
+    }
+
+    link.mode = this.modeFromLrPacket(packet);
+    const modeGate = stepLinkValidateRequestWithActions(
+      initialLinkValidateRequestState(),
+      {
+        kind: "validate-request/gate",
+        requestPresent: true,
+        ownerIdentityPresent: true,
+        modeEnabled: shouldTreatLinkModeEnabled(
+          stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+            kind: "link/mode-enabled-gate",
+            mode: link.mode,
+          }).actions,
+        ),
+      },
+    );
+    if (!shouldProceedLinkValidateRequest(modeGate.actions)) {
+      return null;
+    }
+
+    link.updateMdu();
+    link.attachedInterface = iface;
+    link.establishmentCost += packet.raw.length;
+    link.handshake();
+    link.requestTime = transport.clock.now() / 1000;
+    link.lastInbound = link.requestTime;
+    link.establishmentTimeout = linkEstablishmentTimeoutForHops(
+      packet.hops,
+      LINK_KEEPALIVE,
+    );
+    transport.registerLink(link);
+    link.startWatchdog();
+    void link.prove();
+    return link;
   }
 
   static modeFromLrPacket(packet: Packet): LinkModeValue {

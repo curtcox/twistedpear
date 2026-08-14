@@ -187,7 +187,9 @@ describe("fetchPackage path selection", () => {
     expect(freenetFetcher.fetchLocator).toHaveBeenCalledWith(locator);
     expect(resourceClient.fetchVersion).not.toHaveBeenCalled();
   });
+});
 
+describe("fetchPackage fallback paths", () => {
   it("falls through from hyperdrive to resource", async () => {
     const provider = new PureCryptoProvider();
     const identity = new Identity(provider);

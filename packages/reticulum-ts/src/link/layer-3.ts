@@ -173,7 +173,7 @@ import type {
 import type { Link } from "../link.js";
 import { LinkLayer3Core } from "./layer-3-core.js";
 export class LinkLayer3 extends LinkLayer3Core {
-  protected handleIdentifyPacket(packet: Packet): Promise<void> {
+  protected async handleIdentifyPacket(packet: Packet): Promise<void> {
     const acceptStepped = stepAcceptLinkIdentifyWithActions(
       initialAcceptLinkIdentifyState(),
       {
@@ -237,7 +237,7 @@ export class LinkLayer3 extends LinkLayer3Core {
       },
     );
     this.applyLinkIdentifyActions(stepped.actions, identity);
-    return Promise.resolve();
+    await Promise.resolve();
   }
 
   protected applyLinkIdentifyActions(

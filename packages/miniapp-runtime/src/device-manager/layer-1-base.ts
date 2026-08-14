@@ -143,25 +143,7 @@ export class DeviceManagerLayer1Base {
     }
 
     const tier = this.resolveTier(entry, request.tier);
-    if (
-      request.options?.voiceDuplex !== undefined &&
-      typeof request.options.voiceDuplex !== "boolean"
-    ) {
-      throw new DeviceError(
-        "DEVICE_BAD_REQUEST",
-        "voiceDuplex must be a boolean.",
-      );
-    }
-    if (
-      request.options?.voiceDuplex === true &&
-      entry.id !== "microphone" &&
-      entry.id !== "speaker"
-    ) {
-      throw new DeviceError(
-        "DEVICE_BAD_REQUEST",
-        "voiceDuplex is only valid for microphone or speaker sessions.",
-      );
-    }
+    this.assertVoiceDuplexOptions(entry.id, request.options?.voiceDuplex);
     const capability = deviceCapabilityId(entry.id, tier.id);
     try {
       assertDeviceCapabilityAllowed({ capability, declared, granted });
@@ -172,53 +154,8 @@ export class DeviceManagerLayer1Base {
       throw error;
     }
 
-    const availability = await this.availabilityFor(entry.id);
-    if (availability === "unsupported") {
-      throw new DeviceError(
-        "DEVICE_UNSUPPORTED",
-        `Device class "${entry.id}" is unsupported on this host.`,
-      );
-    }
-    if (availability === "policy-disabled") {
-      throw new DeviceError(
-        "DEVICE_DENIED",
-        `Device class "${entry.id}" is disabled by host policy.`,
-      );
-    }
-    if (availability === "permission-required") {
-      throw new DeviceError(
-        "DEVICE_DENIED",
-        `Device class "${entry.id}" requires host permission.`,
-      );
-    }
-    if (availability === "offline") {
-      throw new DeviceError(
-        "DEVICE_UNSUPPORTED",
-        `Device class "${entry.id}" is offline.`,
-      );
-    }
-    if (availability === "busy") {
-      const holder =
-        this.locks.get(entry.id) ??
-        this.options.externalHolders?.().get(entry.id) ??
-        "unknown";
-      throw new DeviceError(
-        "DEVICE_BUSY",
-        `Device class "${entry.id}" is busy (held by ${holder}).`,
-      );
-    }
-
-    const rateHz = request.rateHz ?? Math.min(1, entry.defaults.maxRateHz);
-    if (
-      !Number.isFinite(rateHz) ||
-      rateHz <= 0 ||
-      rateHz > entry.defaults.maxRateHz
-    ) {
-      throw new DeviceError(
-        "DEVICE_RATE_EXCEEDED",
-        `Requested rate ${rateHz} Hz exceeds max ${entry.defaults.maxRateHz} Hz for ${entry.id}.`,
-      );
-    }
+    await this.assertLocalDeviceAvailable(entry.id);
+    const rateHz = this.requireSessionRateHz(entry, request.rateHz);
 
     const consentClass = tier.consentClass;
     await this.maybeConfirmSession({
@@ -276,6 +213,84 @@ export class DeviceManagerLayer1Base {
       tier: tier.id,
       expiresAt: state.expiresAt,
     };
+  }
+
+  private assertVoiceDuplexOptions(
+    classId: string,
+    voiceDuplex: unknown,
+  ): void {
+    if (voiceDuplex !== undefined && typeof voiceDuplex !== "boolean") {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "voiceDuplex must be a boolean.",
+      );
+    }
+    if (
+      voiceDuplex === true &&
+      classId !== "microphone" &&
+      classId !== "speaker"
+    ) {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "voiceDuplex is only valid for microphone or speaker sessions.",
+      );
+    }
+  }
+
+  private async assertLocalDeviceAvailable(classId: string): Promise<void> {
+    const availability = await this.availabilityFor(classId);
+    if (availability === "unsupported") {
+      throw new DeviceError(
+        "DEVICE_UNSUPPORTED",
+        `Device class "${classId}" is unsupported on this host.`,
+      );
+    }
+    if (availability === "policy-disabled") {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        `Device class "${classId}" is disabled by host policy.`,
+      );
+    }
+    if (availability === "permission-required") {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        `Device class "${classId}" requires host permission.`,
+      );
+    }
+    if (availability === "offline") {
+      throw new DeviceError(
+        "DEVICE_UNSUPPORTED",
+        `Device class "${classId}" is offline.`,
+      );
+    }
+    if (availability === "busy") {
+      const holder =
+        this.locks.get(classId) ??
+        this.options.externalHolders?.().get(classId) ??
+        "unknown";
+      throw new DeviceError(
+        "DEVICE_BUSY",
+        `Device class "${classId}" is busy (held by ${holder}).`,
+      );
+    }
+  }
+
+  protected requireSessionRateHz(
+    entry: DeviceClassEntry,
+    requested: number | undefined,
+  ): number {
+    const rateHz = requested ?? Math.min(1, entry.defaults.maxRateHz);
+    if (
+      !Number.isFinite(rateHz) ||
+      rateHz <= 0 ||
+      rateHz > entry.defaults.maxRateHz
+    ) {
+      throw new DeviceError(
+        "DEVICE_RATE_EXCEEDED",
+        `Requested rate ${rateHz} Hz exceeds max ${entry.defaults.maxRateHz} Hz for ${entry.id}.`,
+      );
+    }
+    return rateHz;
   }
 
   async close(appId: string, handle: DeviceSessionHandle): Promise<void> {

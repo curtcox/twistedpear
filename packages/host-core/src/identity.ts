@@ -23,11 +23,12 @@ export interface IdentityVaultOptions {
   readonly migrateLegacy?: boolean;
 }
 
-export function loadOrCreateIdentity(
+export async function loadOrCreateIdentity(
   provider: CryptoProvider,
   identityPath: string,
   options?: IdentityVaultOptions,
 ): Promise<Identity> {
+  await Promise.resolve();
   if (existsSync(identityPath)) {
     const bytes = new Uint8Array(readFileSync(identityPath));
     const loaded = isEncryptedIdentityBackup(bytes)

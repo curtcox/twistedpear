@@ -55,65 +55,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
     let alive = true;
 
     worker.onmessage = (event: { data: unknown }) => {
-      const message = event.data as {
-        type: string;
-        id?: string;
-        ok?: boolean;
-        result?: unknown;
-        error?: { message: string };
-        namespace?: string;
-        method?: string;
-        payload?: unknown;
-        capability?: string;
-        sentAt?: number;
-      };
-
-      if (message.type === "broker-request" && message.id !== undefined) {
-        const endpoint = options.brokerEndpoint as {
-          request?: (request: unknown) => Promise<unknown>;
-        };
-        if (typeof endpoint?.request !== "function") {
-          worker.postMessage({
-            type: "broker-response",
-            id: message.id,
-            ok: false,
-            error: { message: "Broker endpoint is not configured" },
-          });
-          return;
-        }
-
-        void endpoint.request(message).then(
-          (response) =>
-            worker.postMessage({
-              type: "broker-response",
-              ...(response as object),
-            }),
-          (error: Error) =>
-            worker.postMessage({
-              type: "broker-response",
-              id: message.id,
-              ok: false,
-              error: { message: error.message },
-            }),
-        );
-        return;
-      }
-
-      if (message.type === "broker-response" && message.id !== undefined) {
-        const waiter = pending.get(message.id);
-        if (waiter === undefined) {
-          return;
-        }
-
-        pending.delete(message.id);
-        if (message.ok) {
-          waiter.resolve(message.result);
-        } else {
-          waiter.reject(
-            new Error(message.error?.message ?? "Broker request failed"),
-          );
-        }
-      }
+      handleBareWorkerHostMessage(worker, options, pending, event.data);
     };
 
     return Promise.resolve({
@@ -167,6 +109,78 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
       },
     });
   }
+}
+
+function handleBareWorkerHostMessage(
+  worker: BareWorkerLike,
+  options: SandboxSpawnOptions,
+  pending: Map<
+    string,
+    { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  >,
+  data: unknown,
+): void {
+  const message = data as {
+    type: string;
+    id?: string;
+    ok?: boolean;
+    result?: unknown;
+    error?: { message: string };
+  };
+
+  if (message.type === "broker-request" && message.id !== undefined) {
+    forwardBareBrokerRequest(worker, options, message.id, message);
+    return;
+  }
+
+  if (message.type !== "broker-response" || message.id === undefined) {
+    return;
+  }
+  const waiter = pending.get(message.id);
+  if (waiter === undefined) {
+    return;
+  }
+  pending.delete(message.id);
+  if (message.ok) {
+    waiter.resolve(message.result);
+  } else {
+    waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
+  }
+}
+
+function forwardBareBrokerRequest(
+  worker: BareWorkerLike,
+  options: SandboxSpawnOptions,
+  id: string,
+  message: { type: string; id?: string },
+): void {
+  const endpoint = options.brokerEndpoint as {
+    request?: (request: unknown) => Promise<unknown>;
+  };
+  if (typeof endpoint?.request !== "function") {
+    worker.postMessage({
+      type: "broker-response",
+      id,
+      ok: false,
+      error: { message: "Broker endpoint is not configured" },
+    });
+    return;
+  }
+
+  void endpoint.request(message).then(
+    (response) =>
+      worker.postMessage({
+        type: "broker-response",
+        ...(response as object),
+      }),
+    (error: Error) =>
+      worker.postMessage({
+        type: "broker-response",
+        id,
+        ok: false,
+        error: { message: error.message },
+      }),
+  );
 }
 
 function createBareBootstrapSource(): string {

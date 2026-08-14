@@ -122,63 +122,9 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
     worker.on("exit", () => {
       alive = false;
     });
-
-    worker.on(
-      "message",
-      (message: {
-        type: string;
-        id?: string;
-        ok?: boolean;
-        result?: unknown;
-        error?: { message: string };
-      }) => {
-        if (message.type === "broker-request" && message.id !== undefined) {
-          const endpoint = options.brokerEndpoint as
-            { request?: (request: unknown) => Promise<unknown> } | undefined;
-          if (typeof endpoint?.request !== "function") {
-            worker.postMessage({
-              type: "broker-response",
-              id: message.id,
-              ok: false,
-              error: { message: "Broker endpoint is not configured" },
-            });
-            return;
-          }
-
-          void endpoint.request(message).then(
-            (response) =>
-              worker.postMessage({
-                type: "broker-response",
-                ...normalizeBrokerResponse(response as BrokerWireResponse),
-              }),
-            (error: Error) =>
-              worker.postMessage({
-                type: "broker-response",
-                id: message.id,
-                ok: false,
-                error: { message: error.message },
-              }),
-          );
-          return;
-        }
-
-        if (message.type === "broker-response" && message.id !== undefined) {
-          const waiter = pending.get(message.id);
-          if (waiter === undefined) {
-            return;
-          }
-
-          pending.delete(message.id);
-          if (message.ok) {
-            waiter.resolve(message.result);
-          } else {
-            waiter.reject(
-              new Error(message.error?.message ?? "Broker request failed"),
-            );
-          }
-        }
-      },
-    );
+    worker.on("message", (message: BrokerWireMessage) => {
+      handleNodeWorkerMessage(worker, options, pending, message);
+    });
 
     worker.on("error", (error: Error) => {
       alive = false;
@@ -240,11 +186,91 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
   }
 }
 
+interface BrokerWireMessage {
+  readonly type: string;
+  readonly id?: string;
+  readonly ok?: boolean;
+  readonly result?: unknown;
+  readonly error?: { readonly message: string };
+}
+
 interface BrokerWireResponse {
   readonly id?: string;
   readonly ok?: boolean;
   readonly result?: unknown;
   readonly error?: { readonly message: string };
+}
+
+type PendingBroker = Map<
+  string,
+  { resolve: (value: unknown) => void; reject: (error: Error) => void }
+>;
+
+function handleNodeWorkerMessage(
+  worker: Worker,
+  options: SandboxSpawnOptions,
+  pending: PendingBroker,
+  message: BrokerWireMessage,
+): void {
+  if (message.type === "broker-request" && message.id !== undefined) {
+    forwardNodeBrokerRequest(worker, options, message.id, message);
+    return;
+  }
+  settlePendingBroker(pending, message);
+}
+
+function forwardNodeBrokerRequest(
+  worker: Worker,
+  options: SandboxSpawnOptions,
+  id: string,
+  message: BrokerWireMessage,
+): void {
+  const endpoint = options.brokerEndpoint as
+    | { request?: (request: unknown) => Promise<unknown> }
+    | undefined;
+  if (typeof endpoint?.request !== "function") {
+    worker.postMessage({
+      type: "broker-response",
+      id,
+      ok: false,
+      error: { message: "Broker endpoint is not configured" },
+    });
+    return;
+  }
+
+  void endpoint.request(message).then(
+    (response) =>
+      worker.postMessage({
+        type: "broker-response",
+        ...normalizeBrokerResponse(response as BrokerWireResponse),
+      }),
+    (error: Error) =>
+      worker.postMessage({
+        type: "broker-response",
+        id,
+        ok: false,
+        error: { message: error.message },
+      }),
+  );
+}
+
+function settlePendingBroker(
+  pending: PendingBroker,
+  message: BrokerWireMessage,
+): void {
+  if (message.type !== "broker-response" || message.id === undefined) {
+    return;
+  }
+  const waiter = pending.get(message.id);
+  if (waiter === undefined) {
+    return;
+  }
+  pending.delete(message.id);
+  if (message.ok) {
+    waiter.resolve(message.result);
+  } else {
+    waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
+  }
 }
 
 function normalizeBrokerResponse(

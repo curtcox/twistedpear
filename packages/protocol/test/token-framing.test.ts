@@ -102,7 +102,9 @@ describe("protocol token framing", () => {
     expect(splitTokenFrame(new Uint8Array(TOKEN_OVERHEAD))).toBeNull();
     expect(() => splitTokenKey(new Uint8Array(10))).toThrow(/32 or 64/);
   });
+});
 
+describe("protocol token framing steps", () => {
   it("gates IV length and frame presence", () => {
     expect(isValidTokenIvLength(TOKEN_IV_SIZE)).toBe(true);
     expect(isValidTokenIvLength(8)).toBe(false);

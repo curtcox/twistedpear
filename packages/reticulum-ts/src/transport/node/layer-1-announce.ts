@@ -51,7 +51,7 @@ import {
 import { LeafTransportLayer1Core } from "./layer-1-core.js";
 
 export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
-  protected handleAnnounce(
+  protected async handleAnnounce(
     packet: Packet,
     iface: PacketInterface,
   ): Promise<void> {
@@ -64,7 +64,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
     );
     if (validateDrop !== null) {
       this.emitDrop(validateDrop);
-      return Promise.resolve();
+      return;
     }
 
     const parsed = Announce.parse(packet);
@@ -81,7 +81,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       this.emitDrop(
         dropFromParsedSkip(acceptStepped.actions, destinationKey, iface.name),
       );
-      return Promise.resolve();
+      return;
     }
     const announce = parsed!;
 
@@ -112,7 +112,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
           iface.name,
         ),
       );
-      return Promise.resolve();
+      return;
     }
 
     const receivedFrom = packet.transportId ?? packet.destinationHash;
@@ -139,7 +139,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       this.emitDrop(
         dropFromPathSkip(addStepped.actions, destinationKey, iface.name),
       );
-      return Promise.resolve();
+      return;
     }
 
     const blobStepped = stepAppendPathRandomBlobWithActions(
@@ -154,7 +154,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       ? appendPathRandomBlobFieldsFromActions(blobStepped.actions)
       : null;
     if (randomBlobs === null) {
-      return Promise.resolve();
+      return;
     }
 
     const expiryStepped = stepComputePathExpiryWithActions(
@@ -168,7 +168,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       ? pathExpiryFromActions(expiryStepped.actions)
       : null;
     if (expires === null) {
-      return Promise.resolve();
+      return;
     }
 
     const entry: PathEntry = {
@@ -206,7 +206,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
         ).actions,
       )
     ) {
-      return Promise.resolve();
+      return;
     }
     const identity = announcedIdentity!;
 
@@ -278,6 +278,6 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
         packet,
       });
     }
-    return Promise.resolve();
+    await Promise.resolve();
   }
 }
