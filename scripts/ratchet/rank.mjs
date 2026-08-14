@@ -92,20 +92,42 @@ function main() {
   const root = repoRoot();
   const { clusters, perRatchet, missing } = rankedRatchetItems(root);
   const { visible, advisory } = applyFilters(clusters, flags);
+  printRankedItems(flags, visible, perRatchet, missing, advisory, root);
+}
+
+function printRankedItems(flags, visible, perRatchet, missing, advisory, root) {
   const limit =
     flags.all === true ? visible.length : Number(flags.top ?? 20) || 20;
   const groupBy =
     typeof flags["group-by"] === "string" ? flags["group-by"] : "cluster";
 
   if (flags.json === true) {
-    const payload =
-      groupBy === "cluster"
-        ? visible.slice(0, limit)
-        : rollUp(visible, /** @type {any} */ (groupBy)).slice(0, limit);
-    console.log(JSON.stringify(payload, null, 2));
+    printRankedJson(visible, groupBy, limit);
     return;
   }
+  printRankedText(flags, visible, perRatchet, missing, advisory, root, {
+    limit,
+    groupBy,
+  });
+}
 
+function printRankedJson(visible, groupBy, limit) {
+  const payload =
+    groupBy === "cluster"
+      ? visible.slice(0, limit)
+      : rollUp(visible, /** @type {any} */ (groupBy)).slice(0, limit);
+  console.log(JSON.stringify(payload, null, 2));
+}
+
+function printRankedText(
+  flags,
+  visible,
+  perRatchet,
+  missing,
+  advisory,
+  root,
+  { limit, groupBy },
+) {
   if (visible.length === 0) {
     console.log("No ratchet items match. Every selected ratchet is clear.");
   } else if (groupBy === "cluster") {

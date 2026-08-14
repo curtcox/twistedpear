@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 526,
-  "functions": 6131,
-  "groups": 3917,
+  "files": 546,
+  "functions": 6241,
+  "groups": 3936,
   "exemptions": 95,
   "violations": 0,
   "stale": 0,
@@ -33,7 +33,7 @@
       "line": 11,
       "tier": "source",
       "ccn": 89,
-      "nloc": 324,
+      "nloc": 321,
       "pinned": {
         "ccn": 89,
         "nloc": 324
@@ -184,19 +184,6 @@
       }
     },
     {
-      "key": "conformance/cross-device-dev/run.mjs::(anonymous)",
-      "file": "conformance/cross-device-dev/run.mjs",
-      "name": "(anonymous)",
-      "line": 29,
-      "tier": "tooling",
-      "ccn": 35,
-      "nloc": 291,
-      "pinned": {
-        "ccn": 35,
-        "nloc": 291
-      }
-    },
-    {
       "key": "apps/host-desktop/worklet/peer-session.mjs::(anonymous)",
       "file": "apps/host-desktop/worklet/peer-session.mjs",
       "name": "(anonymous)",
@@ -210,6 +197,19 @@
       }
     },
     {
+      "key": "conformance/cross-device-dev/run.mjs::(anonymous)",
+      "file": "conformance/cross-device-dev/run.mjs",
+      "name": "(anonymous)",
+      "line": 29,
+      "tier": "tooling",
+      "ccn": 34,
+      "nloc": 285,
+      "pinned": {
+        "ccn": 35,
+        "nloc": 291
+      }
+    },
+    {
       "key": "scripts/site/run-reports.mjs::runJob",
       "file": "scripts/site/run-reports.mjs",
       "name": "runJob",
@@ -218,17 +218,6 @@
       "ccn": 34,
       "pinned": {
         "ccn": 34
-      }
-    },
-    {
-      "key": "scripts/languages/check.mjs::tracked",
-      "file": "scripts/languages/check.mjs",
-      "name": "tracked",
-      "line": 19,
-      "tier": "tooling",
-      "ccn": 33,
-      "pinned": {
-        "ccn": 33
       }
     },
     {
@@ -245,10 +234,21 @@
       }
     },
     {
+      "key": "scripts/languages/check.mjs::tracked",
+      "file": "scripts/languages/check.mjs",
+      "name": "tracked",
+      "line": 19,
+      "tier": "tooling",
+      "ccn": 32,
+      "pinned": {
+        "ccn": 33
+      }
+    },
+    {
       "key": "conformance/handbook/run.mjs::main",
       "file": "conformance/handbook/run.mjs",
       "name": "main",
-      "line": 288,
+      "line": 281,
       "tier": "tooling",
       "ccn": 31,
       "nloc": 268,
@@ -283,7 +283,7 @@
       "key": "scripts/work/lib.mjs::(anonymous)",
       "file": "scripts/work/lib.mjs",
       "name": "(anonymous)",
-      "line": 36,
+      "line": 37,
       "tier": "tooling",
       "ccn": 28,
       "pinned": {
@@ -373,7 +373,7 @@
       "key": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs::handleHostMessageImpl",
       "file": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs",
       "name": "handleHostMessageImpl",
-      "line": 83,
+      "line": 26,
       "tier": "source",
       "ccn": 22,
       "pinned": {
@@ -384,7 +384,7 @@
       "key": "conformance/cli/run.mjs::assertExit",
       "file": "conformance/cli/run.mjs",
       "name": "assertExit",
-      "line": 53,
+      "line": 52,
       "tier": "tooling",
       "ccn": 22,
       "pinned": {
@@ -450,7 +450,7 @@
       "key": "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs::handleWebRtcHarnessCommandImpl",
       "file": "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs",
       "name": "handleWebRtcHarnessCommandImpl",
-      "line": 78,
+      "line": 26,
       "tier": "source",
       "ccn": 20,
       "pinned": {
@@ -560,7 +560,7 @@
       "key": "conformance/web-handbook/entry.mjs::worker.onmessage",
       "file": "conformance/web-handbook/entry.mjs",
       "name": "worker.onmessage",
-      "line": 322,
+      "line": 315,
       "tier": "tooling",
       "ccn": 18,
       "pinned": {
@@ -571,7 +571,7 @@
       "key": "launcher.py::parse_entries",
       "file": "launcher.py",
       "name": "parse_entries",
-      "line": 238,
+      "line": 100,
       "tier": "source",
       "ccn": 18,
       "pinned": {
@@ -630,7 +630,7 @@
       "key": "conformance/handbook/mobile-slice.mjs::runHandbookMobileSlice",
       "file": "conformance/handbook/mobile-slice.mjs",
       "name": "runHandbookMobileSlice",
-      "line": 365,
+      "line": 347,
       "tier": "tooling",
       "ccn": 17,
       "pinned": {
@@ -641,7 +641,7 @@
       "key": "conformance/web-handbook/entry.mjs::main",
       "file": "conformance/web-handbook/entry.mjs",
       "name": "main",
-      "line": 308,
+      "line": 301,
       "tier": "tooling",
       "ccn": 17,
       "pinned": {
@@ -652,7 +652,7 @@
       "key": "apps/harness-mobile/worklet/entry.mjs::loadRelayConfig",
       "file": "apps/harness-mobile/worklet/entry.mjs",
       "name": "loadRelayConfig",
-      "line": 1126,
+      "line": 924,
       "tier": "source",
       "ccn": 16,
       "pinned": {
@@ -773,7 +773,7 @@
       "key": "apps/harness-mobile/modules/peer-audio/android/src/main/java/expo/modules/twistedpear/peeraudio/PeerAudioModule.kt::(anonymous)",
       "file": "apps/harness-mobile/modules/peer-audio/android/src/main/java/expo/modules/twistedpear/peeraudio/PeerAudioModule.kt",
       "name": "(anonymous)",
-      "line": 33,
+      "line": 34,
       "tier": "source",
       "ccn": 14,
       "pinned": {
@@ -839,7 +839,7 @@
       "key": "apps/harness-mobile/modules/usb-serial/android/src/main/java/network/twistedpear/harness/UsbSerialBridge.kt::findCdcAcmEndpoints",
       "file": "apps/harness-mobile/modules/usb-serial/android/src/main/java/network/twistedpear/harness/UsbSerialBridge.kt",
       "name": "findCdcAcmEndpoints",
-      "line": 308,
+      "line": 328,
       "tier": "source",
       "ccn": 13,
       "pinned": {
@@ -883,7 +883,7 @@
       "key": "apps/harness-mobile/worklet/web-entry.mjs::availability",
       "file": "apps/harness-mobile/worklet/web-entry.mjs",
       "name": "availability",
-      "line": 529,
+      "line": 418,
       "tier": "source",
       "ccn": 12,
       "pinned": {
@@ -962,7 +962,7 @@
       "key": "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs::ensurePeerSessionManagerImpl",
       "file": "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs",
       "name": "ensurePeerSessionManagerImpl",
-      "line": 73,
+      "line": 26,
       "tier": "source",
       "ccn": 11,
       "nloc": 127,
@@ -1019,7 +1019,7 @@
       "key": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt::onCharacteristicWriteRequest",
       "file": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt",
       "name": "onCharacteristicWriteRequest",
-      "line": 220,
+      "line": 247,
       "tier": "source",
       "params": 7,
       "pinned": {
@@ -1030,7 +1030,7 @@
       "key": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt::onDescriptorWriteRequest",
       "file": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridge.kt",
       "name": "onDescriptorWriteRequest",
-      "line": 245,
+      "line": 272,
       "tier": "source",
       "params": 7,
       "pinned": {
@@ -1052,7 +1052,7 @@
       "key": "conformance/vectors/generate.py::base_packet_corpus.packet_entry",
       "file": "conformance/vectors/generate.py",
       "name": "base_packet_corpus.packet_entry",
-      "line": 118,
+      "line": 122,
       "tier": "tooling",
       "params": 11,
       "pinned": {

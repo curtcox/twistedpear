@@ -38,7 +38,7 @@ import type {
   TestAgentRealtimeEntry,
   TestAgentSession,
   TestAgentStatus,
-} from "./test-agent.js";
+} from "./test-agent-types.js";
 
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";

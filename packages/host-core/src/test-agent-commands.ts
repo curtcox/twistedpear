@@ -10,7 +10,7 @@ import {
 } from "./session-invite-carrier.js";
 import { handleObserveCommand } from "./observe-agent.js";
 import { announceBurst } from "./announce-burst.js";
-import type { TestAgentOptions } from "./test-agent.js";
+import type { TestAgentOptions } from "./test-agent-types.js";
 import {
   CALL_PREFIX,
   LINK_PROBE_MAX_BUDGET_BYTES,

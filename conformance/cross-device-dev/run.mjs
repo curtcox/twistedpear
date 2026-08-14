@@ -165,6 +165,29 @@ async function connectBrowserDriver(id) {
   throw lastError ?? new Error(`${id} CDP did not become ready`);
 }
 
+async function captureScenarioFailure(scenario, scenarioDir, ui, commandFor) {
+  for (const id of scenario.chain) {
+    await ui
+      .get(id)
+      ?.screenshot?.(join(scenarioDir, `${id}-failure.png`))
+      .catch(() => {});
+    try {
+      const state = await commandFor(id)("state");
+      writeFileSync(
+        join(scenarioDir, `${id}-state.json`),
+        `${JSON.stringify(state, null, 2)}\n`,
+      );
+    } catch {
+      // State capture is best-effort after the scenario has already failed.
+    }
+    try {
+      writeFileSync(join(scenarioDir, `${id}.log`), readFileSync(logPath(id)));
+    } catch {
+      // A peer may exit without creating a log; preserve the original failure.
+    }
+  }
+}
+
 await runMain(async () => {
   mkdirSync(artifactRoot, { recursive: true });
   const scenarios = requestedScenarios();
@@ -459,29 +482,7 @@ await runMain(async () => {
       } catch (error) {
         record.status = "failed";
         record.error = error instanceof Error ? error.message : String(error);
-        for (const id of scenario.chain) {
-          await ui
-            .get(id)
-            ?.screenshot?.(join(scenarioDir, `${id}-failure.png`))
-            .catch(() => {});
-          try {
-            const state = await commandFor(id)("state");
-            writeFileSync(
-              join(scenarioDir, `${id}-state.json`),
-              `${JSON.stringify(state, null, 2)}\n`,
-            );
-          } catch {
-            // State capture is best-effort after the scenario has already failed.
-          }
-          try {
-            writeFileSync(
-              join(scenarioDir, `${id}.log`),
-              readFileSync(logPath(id)),
-            );
-          } catch {
-            // A peer may exit without creating a log; preserve the original failure.
-          }
-        }
+        await captureScenarioFailure(scenario, scenarioDir, ui, commandFor);
         if (!allowSkip) throw error;
       }
     }

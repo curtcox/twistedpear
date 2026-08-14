@@ -33,34 +33,13 @@ const tool = {
   run() {
     const scan = run(binary(), ["scan", "--json=compact"]);
     const matches = parseJson(scan, "ast-grep");
-    const findings = [];
-    for (const match of matches) {
-      const file = match.file;
-      // ast-grep walks the working tree, which includes build output that the
-      // other tools exclude by config. Apply the same exclusions here so the
-      // survey does not disagree with itself about what counts as source.
-      if (isExcluded(file)) continue;
-      const line = match.range?.start?.line ?? null;
-      findings.push({
-        rule: (match.ruleId ?? "").replace(LANGUAGE_SUFFIX, ""),
-        ruleId: match.ruleId,
-        severity: match.severity ?? "hint",
-        file,
-        // ast-grep reports 0-indexed lines; every other tool here is 1-indexed.
-        line: line === null ? null : line + 1,
-        symbol: line === null ? null : symbolAt(file, line + 1),
-        message: match.message ?? null,
-      });
-    }
+    const findings = collectAstGrepFindings(matches);
     findings.sort(
       (a, b) => a.rule.localeCompare(b.rule) || a.file.localeCompare(b.file),
     );
     const byRule = {};
     for (const finding of findings)
       byRule[finding.rule] = (byRule[finding.rule] ?? 0) + 1;
-    // Rules that matched nothing are as much a result as rules that did — a
-    // silently absent rule and a rule with no violations look identical
-    // otherwise, and only one of them is good news.
     for (const rule of declaredRules()) byRule[rule] ??= 0;
     return {
       summary: {
@@ -74,6 +53,25 @@ const tool = {
     };
   },
 };
+
+function collectAstGrepFindings(matches) {
+  const findings = [];
+  for (const match of matches) {
+    const file = match.file;
+    if (isExcluded(file)) continue;
+    const line = match.range?.start?.line ?? null;
+    findings.push({
+      rule: (match.ruleId ?? "").replace(LANGUAGE_SUFFIX, ""),
+      ruleId: match.ruleId,
+      severity: match.severity ?? "hint",
+      file,
+      line: line === null ? null : line + 1,
+      symbol: line === null ? null : symbolAt(file, line + 1),
+      message: match.message ?? null,
+    });
+  }
+  return findings;
+}
 
 /** The ast-grep binary, which ships as a platform-specific optional package. */
 function binary() {

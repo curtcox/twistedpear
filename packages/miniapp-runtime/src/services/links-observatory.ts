@@ -23,7 +23,7 @@ import type {
   PeerLinkEvent,
   PeerLinkSummary,
   PeerRouteLinkObservatoryOptions,
-} from "./links.js";
+} from "./links-types.js";
 
 interface AppPeerRouteDirectory extends AppPeerDirectory {
   route(

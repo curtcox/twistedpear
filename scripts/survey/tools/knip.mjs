@@ -19,7 +19,6 @@ const tool = {
   output: "reports/knip.json",
   version: () => packageVersion("knip"),
   run() {
-    // knip exits non-zero when it finds anything, which here is expected.
     const result = run(process.execPath, [
       "node_modules/knip/bin/knip.js",
       "--reporter",
@@ -27,26 +26,7 @@ const tool = {
       "--no-exit-code",
     ]);
     const report = parseJson(result, "knip");
-    const findings = [];
-    // knip 6's JSON reporter emits one entry per file, with every issue kind
-    // present as an array — usually empty. The kinds are not enumerated here on
-    // purpose: a knip upgrade that adds one should show up in the report rather
-    // than be silently dropped by a hardcoded list.
-    for (const issue of report.issues ?? []) {
-      const file = issue.file ?? null;
-      for (const [kind, values] of Object.entries(issue)) {
-        if (kind === "file" || kind === "owners") continue;
-        const list = Array.isArray(values) ? values : [values];
-        for (const value of list) {
-          if (value == null) continue;
-          if (typeof value === "object" && Object.keys(value).length === 0)
-            continue;
-          const symbol =
-            typeof value === "string" ? value : (value.name ?? null);
-          findings.push({ kind, file, symbol });
-        }
-      }
-    }
+    const findings = collectKnipFindings(report);
     const byKind = {};
     for (const finding of findings)
       byKind[finding.kind] = (byKind[finding.kind] ?? 0) + 1;
@@ -56,5 +36,31 @@ const tool = {
     };
   },
 };
+
+function collectKnipFindings(report) {
+  const findings = [];
+  for (const issue of report.issues ?? []) {
+    collectKnipIssue(issue, findings);
+  }
+  return findings;
+}
+
+function collectKnipIssue(issue, findings) {
+  const file = issue.file ?? null;
+  for (const [kind, values] of Object.entries(issue)) {
+    if (kind === "file" || kind === "owners") continue;
+    appendKnipValues(findings, file, kind, values);
+  }
+}
+
+function appendKnipValues(findings, file, kind, values) {
+  const list = Array.isArray(values) ? values : [values];
+  for (const value of list) {
+    if (value == null) continue;
+    if (typeof value === "object" && Object.keys(value).length === 0) continue;
+    const symbol = typeof value === "string" ? value : (value.name ?? null);
+    findings.push({ kind, file, symbol });
+  }
+}
 
 export default tool;

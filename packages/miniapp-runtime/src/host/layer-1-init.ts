@@ -1,27 +1,27 @@
 import { MiniappBroker } from "../broker.js";
-import { AnnounceService, type AnnounceBackend } from "../services/announce.js";
-import {
-  AppIdentityService,
-  type IdentityBackend,
-} from "../services/identity.js";
-import { NamespacedLxmfService } from "../services/lxmf.js";
-import { PresenceService } from "../services/presence.js";
-import {
-  LinkQualityService,
-  PeerRouteLinkObservatory,
-  type LinkObservatoryBackend,
-} from "../services/links.js";
-import { HostInfoService, defaultHostInfo } from "../services/host-info.js";
-import { ResourceService } from "../services/resource.js";
 import { HOST_API_VERSION } from "../host-api.js";
-import { AiService } from "../services/ai.js";
-import { AppsService } from "../services/apps.js";
-import { WorkspaceService } from "../services/workspace.js";
-import { PeerBrokerService } from "../services/peers.js";
-import { RelayBrokerService } from "../services/relay.js";
-import { FreenetBrokerService } from "../services/freenet.js";
-import { DeviceBrokerService } from "../services/device.js";
 import { InboundMediaRouter } from "../media-stream.js";
+import {
+  AiService,
+  AnnounceService,
+  AppIdentityService,
+  AppsService,
+  DeviceBrokerService,
+  FreenetBrokerService,
+  HostInfoService,
+  LinkQualityService,
+  NamespacedLxmfService,
+  PeerBrokerService,
+  PeerRouteLinkObservatory,
+  PresenceService,
+  RelayBrokerService,
+  ResourceService,
+  WorkspaceService,
+  defaultHostInfo,
+  type AnnounceBackend,
+  type IdentityBackend,
+  type LinkObservatoryBackend,
+} from "../services/index.js";
 import type { MiniappHostOptions } from "./shared.js";
 
 export interface HostClock {

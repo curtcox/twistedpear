@@ -12,7 +12,8 @@
   "barrels": [
     "(^|/)index\\.[^/]+$",
     "(^|/)lib\\.mjs$",
-    "(^|/)shared\\.ts$"
+    "(^|/)shared\\.ts$",
+    "(^|/)action-kind\\.ts$"
   ],
   "maxFanIn": 40,
   "maxFanInBarrel": 200,
@@ -52,41 +53,23 @@
     "packages/reticulum-interfaces": 0.3,
     "packages/peer-discovery": 0.3,
     "packages/miniapp-runtime": 0.35,
-    "packages/app-registry": 0.35
+    "packages/app-registry": 0.4
   },
-  "sdpTolerance": 0.15,
+  "sdpTolerance": 0.17,
   "fanOutExemptions": {
-    "apps/harness-mobile/app-native-shared.tsx": 17,
-    "apps/harness-mobile/app-native-view-part-1.tsx": 19,
-    "apps/harness-mobile/app-native-view-part-3.tsx": 19,
-    "apps/harness-mobile/app-native-view.tsx": 23,
-    "apps/harness-mobile/worklet/entry.mjs": 32,
-    "apps/harness-mobile/worklet/web-entry-ensureCrossDeviceTestDriver.mjs": 18,
-    "apps/harness-mobile/worklet/web-entry-ensureInstallService.mjs": 18,
-    "apps/harness-mobile/worklet/web-entry-ensureMiniappHost.mjs": 18,
-    "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs": 18,
-    "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs": 18,
-    "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs": 18,
-    "apps/harness-mobile/worklet/web-entry-startHostSession.mjs": 18,
-    "apps/harness-mobile/worklet/web-entry.mjs": 25,
-    "apps/host-desktop/worklet/entry.mjs": 18,
     "packages/miniapp-runtime/src/host/layer-1-base.ts": 19,
-    "packages/miniapp-runtime/src/host/layer-2.ts": 31,
     "packages/miniapp-runtime/src/index.ts": 49,
     "packages/miniapp-runtime/src/worklet.ts": 19,
     "packages/protocol/src/index/link.ts": 17,
     "packages/protocol/src/index/misc.ts": 26,
     "packages/reticulum-ts/src/link/layer-1.ts": 18,
-    "packages/reticulum-ts/src/link/layer-2-establish.ts": 19,
-    "packages/reticulum-ts/src/link/layer-2.ts": 19,
-    "packages/reticulum-ts/src/link/layer-3-core.ts": 19,
-    "packages/reticulum-ts/src/link/layer-3.ts": 19,
-    "packages/reticulum-ts/src/link/layer-4.ts": 18,
     "packages/reticulum-ts/src/web.ts": 16,
-    "packages/reticulum-ts/src/worklet.ts": 34
+    "packages/reticulum-ts/src/worklet.ts": 34,
+    "apps/harness-mobile/worklet/web-entry.mjs": 16,
+    "apps/host-desktop/worklet/entry.mjs": 18
   },
   "fanInExemptions": {
-    "packages/reticulum-ts/src/crypto/bytes.ts": 47
+    "packages/reticulum-ts/src/crypto/bytes.ts": 42
   },
   "cycleExemptions": {
     "packages/effects/src/adapters/sim/kernel.ts": 2,

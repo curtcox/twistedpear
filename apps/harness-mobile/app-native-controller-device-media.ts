@@ -10,7 +10,7 @@ import {
   runNativeOpusDuplex,
 } from "./app-native-shared.js";
 import { peerAudioUnhex } from "./app-native-shared.js";
-import type { NativeWorkletMessageHandlerDeps } from "./app-native-controller-messages.js";
+import type { NativeWorkletMessageHandlerDeps } from "./app-native-controller-deps.js";
 import type { WorkletToHostMessage } from "./worklet/protocol";
 
 export function tryHandleNativeDeviceAndMedia(

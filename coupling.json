@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1147,
+  "modules": 1166,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -39,7 +39,7 @@
     },
     {
       "id": "packages/protocol",
-      "modules": 200,
+      "modules": 201,
       "ca": 12,
       "ce": 1,
       "instability": 0.08,
@@ -49,7 +49,7 @@
     },
     {
       "id": "scripts",
-      "modules": 152,
+      "modules": 153,
       "ca": 1,
       "ce": 9,
       "instability": 0.9,
@@ -67,14 +67,13 @@
     },
     {
       "id": "apps/harness-mobile",
-      "modules": 86,
+      "modules": 90,
       "ca": 1,
-      "ce": 15,
-      "instability": 0.94,
+      "ce": 14,
+      "instability": 0.93,
       "dependsOn": [
         "conformance",
         "packages/app-registry",
-        "packages/bridge-freenet",
         "packages/bridge-hyper",
         "packages/cas-256t",
         "packages/effects",
@@ -91,7 +90,7 @@
     },
     {
       "id": "packages/reticulum-ts",
-      "modules": 81,
+      "modules": 84,
       "ca": 13,
       "ce": 2,
       "instability": 0.13,
@@ -102,7 +101,7 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 75,
+      "modules": 80,
       "ca": 12,
       "ce": 3,
       "instability": 0.2,
@@ -110,6 +109,23 @@
         "packages/effects",
         "packages/peer-discovery",
         "packages/protocol"
+      ]
+    },
+    {
+      "id": "packages/host-core",
+      "modules": 41,
+      "ca": 6,
+      "ce": 8,
+      "instability": 0.57,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/lxmf-ts",
+        "packages/protocol",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts"
       ]
     },
     {
@@ -132,23 +148,6 @@
         "packages/reticulum-interfaces",
         "packages/reticulum-ts",
         "packages/worklet-core"
-      ]
-    },
-    {
-      "id": "packages/host-core",
-      "modules": 37,
-      "ca": 6,
-      "ce": 8,
-      "instability": 0.57,
-      "dependsOn": [
-        "packages/app-registry",
-        "packages/bridge-freenet",
-        "packages/bridge-hyper",
-        "packages/cas-256t",
-        "packages/lxmf-ts",
-        "packages/protocol",
-        "packages/reticulum-interfaces",
-        "packages/reticulum-ts"
       ]
     },
     {
@@ -234,7 +233,7 @@
     },
     {
       "id": "packages/lxmf-ts",
-      "modules": 13,
+      "modules": 14,
       "ca": 4,
       "ce": 3,
       "instability": 0.43,
@@ -263,9 +262,9 @@
     {
       "id": "packages/bridge-freenet",
       "modules": 10,
-      "ca": 5,
+      "ca": 4,
       "ce": 2,
-      "instability": 0.29,
+      "instability": 0.33,
       "dependsOn": [
         "packages/cas-256t",
         "packages/reticulum-ts"
@@ -351,38 +350,8 @@
         "limit": 15
       },
       {
-        "key": "apps/harness-mobile/worklet/entry.mjs",
-        "value": 32,
-        "limit": 15
-      },
-      {
-        "key": "packages/miniapp-runtime/src/host/layer-2.ts",
-        "value": 31,
-        "limit": 15
-      },
-      {
         "key": "packages/protocol/src/index/misc.ts",
         "value": 26,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry.mjs",
-        "value": 25,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/app-native-view.tsx",
-        "value": 23,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/app-native-view-part-1.tsx",
-        "value": 19,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/app-native-view-part-3.tsx",
-        "value": 19,
         "limit": 15
       },
       {
@@ -396,83 +365,23 @@
         "limit": 15
       },
       {
-        "key": "packages/reticulum-ts/src/link/layer-3.ts",
-        "value": 19,
-        "limit": 15
-      },
-      {
-        "key": "packages/reticulum-ts/src/link/layer-3-core.ts",
-        "value": 19,
-        "limit": 15
-      },
-      {
-        "key": "packages/reticulum-ts/src/link/layer-2.ts",
-        "value": 19,
-        "limit": 15
-      },
-      {
-        "key": "packages/reticulum-ts/src/link/layer-2-establish.ts",
-        "value": 19,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry-ensureCrossDeviceTestDriver.mjs",
-        "value": 18,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry-ensureInstallService.mjs",
-        "value": 18,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry-ensureMiniappHost.mjs",
-        "value": 18,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry-ensurePeerSessionManager.mjs",
-        "value": 18,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs",
-        "value": 18,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry-handleWebRtcHarnessCommand.mjs",
-        "value": 18,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/worklet/web-entry-startHostSession.mjs",
-        "value": 18,
-        "limit": 15
-      },
-      {
         "key": "apps/host-desktop/worklet/entry.mjs",
         "value": 18,
         "limit": 15
       },
       {
-        "key": "packages/reticulum-ts/src/link/layer-4.ts",
-        "value": 18,
+        "key": "packages/protocol/src/index/link.ts",
+        "value": 17,
         "limit": 15
       },
       {
         "key": "packages/reticulum-ts/src/link/layer-1.ts",
-        "value": 18,
-        "limit": 15
-      },
-      {
-        "key": "apps/harness-mobile/app-native-shared.tsx",
         "value": 17,
         "limit": 15
       },
       {
-        "key": "packages/protocol/src/index/link.ts",
-        "value": 17,
+        "key": "apps/harness-mobile/worklet/web-entry.mjs",
+        "value": 16,
         "limit": 15
       },
       {
@@ -484,20 +393,20 @@
     "fanIn": [
       {
         "key": "packages/reticulum-ts/src/crypto/bytes.ts",
-        "value": 47,
+        "value": 42,
         "limit": 40
       }
     ],
     "cycles": [
       {
         "key": "packages/reticulum-ts/src/channel.ts",
-        "value": 24,
+        "value": 25,
         "members": [
           "packages/reticulum-ts/src/channel.ts",
-          "packages/reticulum-ts/src/channel/part-1.ts",
           "packages/reticulum-ts/src/channel/part-2.ts",
           "packages/reticulum-ts/src/link-request-receipt.ts",
           "packages/reticulum-ts/src/link.ts",
+          "packages/reticulum-ts/src/link/layer-1-request.ts",
           "packages/reticulum-ts/src/link/layer-1.ts",
           "packages/reticulum-ts/src/link/layer-2-establish.ts",
           "packages/reticulum-ts/src/link/layer-2.ts",
@@ -508,15 +417,16 @@
           "packages/reticulum-ts/src/registered-destination.ts",
           "packages/reticulum-ts/src/resource.ts",
           "packages/reticulum-ts/src/resource/layer-1.ts",
+          "packages/reticulum-ts/src/resource/layer-2-assemble.ts",
           "packages/reticulum-ts/src/resource/layer-2-core.ts",
           "packages/reticulum-ts/src/resource/layer-2.ts",
           "packages/reticulum-ts/src/resource/shared.ts",
           "packages/reticulum-ts/src/transport/node.ts",
           "packages/reticulum-ts/src/transport/node/layer-1-announce.ts",
           "packages/reticulum-ts/src/transport/node/layer-1-core.ts",
+          "packages/reticulum-ts/src/transport/node/layer-1-proof.ts",
           "packages/reticulum-ts/src/transport/node/layer-1.ts",
-          "packages/reticulum-ts/src/transport/node/layer-2.ts",
-          "packages/reticulum-ts/src/transport/node/shared.ts"
+          "packages/reticulum-ts/src/transport/node/layer-2.ts"
         ]
       },
       {
