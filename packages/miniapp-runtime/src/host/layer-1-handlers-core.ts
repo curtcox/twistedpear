@@ -220,8 +220,7 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "announce:publish",
       async (request, context) => {
         const payload = request.payload as
-          | { appData?: Uint8Array; namespace?: string }
-          | undefined;
+          { appData?: Uint8Array; namespace?: string } | undefined;
         await this.announceService.publish(
           context.appId,
           payload?.appData,

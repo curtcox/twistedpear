@@ -69,8 +69,10 @@ export async function runIdentity(ctx: CommandContext): Promise<number> {
   const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
   const [operation, suboperation] = ctx.args;
 
-  if (operation === "export") return exportIdentity(ctx, provider, identityPath);
-  if (operation === "import") return importIdentity(ctx, provider, identityPath);
+  if (operation === "export")
+    return exportIdentity(ctx, provider, identityPath);
+  if (operation === "import")
+    return importIdentity(ctx, provider, identityPath);
   if (operation === "recovery" && suboperation === "show")
     return showRecovery(ctx, provider, identityPath);
   if (operation === "recovery" && suboperation === "import")

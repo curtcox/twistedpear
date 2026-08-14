@@ -103,7 +103,10 @@ export class TestAgentRuntime {
   protected readonly callEntries: TestAgentRealtimeEntry[] = [];
   protected readonly readinessEntries: TestAgentReadinessEntry[] = [];
   protected readonly probeEntries = new Map<string, TestAgentProbeEntry>();
-  private readonly partials = new Map<string, { parts: Array<string | null> }>();
+  private readonly partials = new Map<
+    string,
+    { parts: Array<string | null> }
+  >();
   protected readonly dropCensus: ReturnType<typeof createDropCensus> =
     createDropCensus();
   private readonly observeRing = createObserveRing(256);
@@ -165,7 +168,10 @@ export class TestAgentRuntime {
     void this.dialLoop();
     this.announceTimer =
       this.announceIntervalMs > 0
-        ? setInterval(() => void this.announceQuietly(), this.announceIntervalMs)
+        ? setInterval(
+            () => void this.announceQuietly(),
+            this.announceIntervalMs,
+          )
         : null;
     this.announceTimer?.unref();
   }
@@ -659,9 +665,7 @@ export class TestAgentRuntime {
       if ((this.stopped as boolean) === true) {
         return;
       }
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.reconnectWaitMs),
-      );
+      await new Promise((resolve) => setTimeout(resolve, this.reconnectWaitMs));
     }
   }
 

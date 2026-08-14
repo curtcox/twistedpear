@@ -364,7 +364,10 @@ function ntfyHttpError(
 }
 
 function assertNtfyResponseBudget(declared: number, textLength: number): void {
-  if (declared > MAX_NTFY_RESPONSE_BYTES || textLength > MAX_NTFY_RESPONSE_BYTES)
+  if (
+    declared > MAX_NTFY_RESPONSE_BYTES ||
+    textLength > MAX_NTFY_RESPONSE_BYTES
+  )
     throw new PeerDiscoveryError(
       "QUOTA_EXCEEDED",
       "ntfy response exceeds size budget",

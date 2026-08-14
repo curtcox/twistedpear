@@ -37,24 +37,42 @@ export function useNativeHarnessController() {
     () => startPeerQrRotation(ui.peerModal, ui.setPeerQrFrame),
     [ui.peerModal],
   );
-  const appendLog = useCallback((line: string) => {
-    core.setLogLines((current) => [...current.slice(-200), line]);
-  }, [core.setLogLines]);
-  const sendToWorklet = useCallback((message: HostToWorkletMessage) => {
-    refs.workletRef.current?.IPC.write(
-      new TextEncoder().encode(encodeMessage(message)),
-    );
-  }, [refs.workletRef]);
+  const appendLog = useCallback(
+    (line: string) => {
+      core.setLogLines((current) => [...current.slice(-200), line]);
+    },
+    [core.setLogLines],
+  );
+  const sendToWorklet = useCallback(
+    (message: HostToWorkletMessage) => {
+      refs.workletRef.current?.IPC.write(
+        new TextEncoder().encode(encodeMessage(message)),
+      );
+    },
+    [refs.workletRef],
+  );
   const handleWorkletMessage = useMemo(
     () =>
       createNativeWorkletMessageHandler(
         nativeMessageHandlerDeps(core, ui, refs, appendLog, sendToWorklet),
       ),
-    [appendLog, ui.cameraPermission?.granted, core.ntfyToken, core.ntfyUrl, sendToWorklet],
+    [
+      appendLog,
+      ui.cameraPermission?.granted,
+      core.ntfyToken,
+      core.ntfyUrl,
+      sendToWorklet,
+    ],
   );
   const { pushInterfaceConfig, stopWorklet, startWorklet } =
     useNativeWorkletLifecycle(
-      nativeWorkletLifecycleDeps(core, refs, appendLog, sendToWorklet, handleWorkletMessage),
+      nativeWorkletLifecycleDeps(
+        core,
+        refs,
+        appendLog,
+        sendToWorklet,
+        handleWorkletMessage,
+      ),
     );
   const seedShareOfferChrome = useCallback(
     (options: SeedShareOptions) =>
@@ -73,7 +91,12 @@ export function useNativeHarnessController() {
   );
   const activateFreenetGrant = useCallback(
     async (enabled: FreenetRemoteGrant) => {
-      await activateFreenet(enabled, applyFreenetGrantToWorklet, ui.setFreenetSession, appendLog);
+      await activateFreenet(
+        enabled,
+        applyFreenetGrantToWorklet,
+        ui.setFreenetSession,
+        appendLog,
+      );
     },
     [appendLog, applyFreenetGrantToWorklet, ui.setFreenetSession],
   );
@@ -334,7 +357,9 @@ function applyFreenetGrant(
 async function activateFreenet(
   enabled: FreenetRemoteGrant,
   applyFreenetGrantToWorklet: (grant: FreenetRemoteGrant | null) => void,
-  setFreenetSession: ReturnType<typeof useNativeHarnessUiState>["setFreenetSession"],
+  setFreenetSession: ReturnType<
+    typeof useNativeHarnessUiState
+  >["setFreenetSession"],
   appendLog: (line: string) => void,
 ): Promise<void> {
   applyFreenetGrantToWorklet(enabled);
@@ -344,7 +369,10 @@ async function activateFreenet(
   });
   setFreenetSession(next);
   const probe = await probeFreenetRemoteNode(enabled);
-  next = reduceFreenetRemoteSession(next, { type: "probe-result", result: probe });
+  next = reduceFreenetRemoteSession(next, {
+    type: "probe-result",
+    result: probe,
+  });
   setFreenetSession(next);
   appendLog(
     `Freenet remote session: ${JSON.stringify(freenetRemoteSessionLogSafe(next))}`,
@@ -362,7 +390,11 @@ function readNativeWorkspaceDocument(
       refs.pendingWorkspaceReadsRef.current.delete(token);
       reject(new Error("Workspace read timed out"));
     }, 10_000);
-    refs.pendingWorkspaceReadsRef.current.set(token, { resolve, reject, timer });
+    refs.pendingWorkspaceReadsRef.current.set(token, {
+      resolve,
+      reject,
+      timer,
+    });
     sendToWorklet({ type: "workspace-read", token, documentId });
   });
 }
@@ -425,7 +457,10 @@ function nativePeerQrUri(
   peerModal: ReturnType<typeof useNativeHarnessUiState>["peerModal"],
   peerQrFrame: number,
 ): string | null {
-  if (peerModal?.kind !== "exchange" || peerModal.request.type !== "peer-qr-present") {
+  if (
+    peerModal?.kind !== "exchange" ||
+    peerModal.request.type !== "peer-qr-present"
+  ) {
     return null;
   }
   const value: unknown =

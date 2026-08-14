@@ -14,7 +14,11 @@ import {
   type LinkStatusValue,
   type LinkTeardownReasonValue,
 } from "./link-watchdog.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "./action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "./action-kind.js";
 
 export type LinkTeardownPlan =
   | { readonly kind: "close-only" }

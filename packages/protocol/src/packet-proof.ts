@@ -10,7 +10,11 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_PROOF } from "./packet-header.js";
 import { equalByteArrays } from "./path-table.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "./action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "./action-kind.js";
 
 export const PACKET_FULL_HASH_SIZE = 32;
 export const PACKET_SIGNATURE_SIZE = 64;

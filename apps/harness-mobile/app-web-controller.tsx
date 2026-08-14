@@ -38,14 +38,24 @@ import type { WebPeerRtcState } from "./app-web-controller-webrtc.js";
 
 export function useWebHarnessController() {
   const st = useWebHarnessState();
-  const appendLog = useCallback((line: string) => {
-    st.setLogLines((current) => [...current.slice(-200), line]);
-  }, [st.setLogLines]);
-  const sendToWorker = useCallback((message: HostToWorkletMessage) => {
-    st.bridgeRef.current?.send(message);
-  }, [st.bridgeRef]);
+  const appendLog = useCallback(
+    (line: string) => {
+      st.setLogLines((current) => [...current.slice(-200), line]);
+    },
+    [st.setLogLines],
+  );
+  const sendToWorker = useCallback(
+    (message: HostToWorkletMessage) => {
+      st.bridgeRef.current?.send(message);
+    },
+    [st.bridgeRef],
+  );
 
-  const handleWorkerMessage = useWebWorkerMessageHandler(st, appendLog, sendToWorker);
+  const handleWorkerMessage = useWebWorkerMessageHandler(
+    st,
+    appendLog,
+    sendToWorker,
+  );
 
   const readWorkspaceDocument = useCallback(
     (documentId: string) =>
@@ -55,7 +65,11 @@ export function useWebHarnessController() {
           st.pendingWorkspaceReadsRef.current.delete(token);
           reject(new Error("Workspace read timed out"));
         }, 10_000);
-        st.pendingWorkspaceReadsRef.current.set(token, { resolve, reject, timer });
+        st.pendingWorkspaceReadsRef.current.set(token, {
+          resolve,
+          reject,
+          timer,
+        });
         sendToWorker({ type: "workspace-read", token, documentId });
       }),
     [sendToWorker],
@@ -85,9 +99,18 @@ export function useWebHarnessController() {
         ? {}
         : { sharedToken: st.sharedToken.trim() }),
       ...(st.ntfyUrl.trim().length === 0 ? {} : { ntfyUrl: st.ntfyUrl.trim() }),
-      ...(st.ntfyToken.trim().length === 0 ? {} : { ntfyToken: st.ntfyToken.trim() }),
+      ...(st.ntfyToken.trim().length === 0
+        ? {}
+        : { ntfyToken: st.ntfyToken.trim() }),
     });
-  }, [ensureBridge, st.gatewayUrl, st.ntfyToken, st.ntfyUrl, sendToWorker, st.sharedToken]);
+  }, [
+    ensureBridge,
+    st.gatewayUrl,
+    st.ntfyToken,
+    st.ntfyUrl,
+    sendToWorker,
+    st.sharedToken,
+  ]);
 
   useWebHarnessEffects({
     ensureBridge,
@@ -203,9 +226,7 @@ async function performWebPeerAudio(
     );
     if (request.type === "peer-audio-transmit") {
       await playPeerAudio(request.framesHex);
-      const framesHex = request.expectsResponse
-        ? await recordPeerAudio()
-        : [];
+      const framesHex = request.expectsResponse ? await recordPeerAudio() : [];
       sendToWorker({
         type: "peer-chrome-response",
         token: request.token,
@@ -364,23 +385,73 @@ function useWebHarnessState() {
     >(),
   );
   return {
-    status, setStatus, announces, setAnnounces, logLines, setLogLines,
-    gatewayUrl, setGatewayUrl, sharedToken, setSharedToken, ntfyUrl, setNtfyUrl,
-    ntfyToken, setNtfyToken, wsEnabled, setWsEnabled, rnodeEnabled, setRnodeEnabled,
-    webSerialAvailable, previewTree, setPreviewTree, lastWidgetEvent, setLastWidgetEvent,
-    storageQuota, setStorageQuota, installed, setInstalled, selectedInstalledAppId, setSelectedInstalledAppId,
-    grantCapabilities, setGrantCapabilities, miniappRuntime, setMiniappRuntime,
-    developerMode, setDeveloperMode, hostModal, setHostModal, peerModal, setPeerModal,
-    install256tInput, setInstall256tInput, installProgress, setInstallProgress,
-    trustedPublishers, setTrustedPublishers, trustIdentityInput, setTrustIdentityInput,
-    trustLabelInput, setTrustLabelInput, hostIdentity256t, setHostIdentity256t,
-    deviceState, setDeviceState, sessionInvites, setSessionInvites,
-    pwaInstallAvailability, setPwaInstallAvailability, pwaInstallRef, peerRtcRef,
-    previewOptions, bridgeRef, workspaceReadCounterRef, crossDeviceCounterRef,
-    pendingCrossDeviceRef, pendingWorkspaceReadsRef,
+    status,
+    setStatus,
+    announces,
+    setAnnounces,
+    logLines,
+    setLogLines,
+    gatewayUrl,
+    setGatewayUrl,
+    sharedToken,
+    setSharedToken,
+    ntfyUrl,
+    setNtfyUrl,
+    ntfyToken,
+    setNtfyToken,
+    wsEnabled,
+    setWsEnabled,
+    rnodeEnabled,
+    setRnodeEnabled,
+    webSerialAvailable,
+    previewTree,
+    setPreviewTree,
+    lastWidgetEvent,
+    setLastWidgetEvent,
+    storageQuota,
+    setStorageQuota,
+    installed,
+    setInstalled,
+    selectedInstalledAppId,
+    setSelectedInstalledAppId,
+    grantCapabilities,
+    setGrantCapabilities,
+    miniappRuntime,
+    setMiniappRuntime,
+    developerMode,
+    setDeveloperMode,
+    hostModal,
+    setHostModal,
+    peerModal,
+    setPeerModal,
+    install256tInput,
+    setInstall256tInput,
+    installProgress,
+    setInstallProgress,
+    trustedPublishers,
+    setTrustedPublishers,
+    trustIdentityInput,
+    setTrustIdentityInput,
+    trustLabelInput,
+    setTrustLabelInput,
+    hostIdentity256t,
+    setHostIdentity256t,
+    deviceState,
+    setDeviceState,
+    sessionInvites,
+    setSessionInvites,
+    pwaInstallAvailability,
+    setPwaInstallAvailability,
+    pwaInstallRef,
+    peerRtcRef,
+    previewOptions,
+    bridgeRef,
+    workspaceReadCounterRef,
+    crossDeviceCounterRef,
+    pendingCrossDeviceRef,
+    pendingWorkspaceReadsRef,
   };
 }
-
 
 function useWebHarnessEffects(args: {
   ensureBridge: () => ReturnType<typeof createWebCoreBridge>;
@@ -389,7 +460,9 @@ function useWebHarnessEffects(args: {
   developerMode: boolean;
   wsEnabled: boolean;
   rnodeEnabled: boolean;
-  bridgeRef: React.MutableRefObject<ReturnType<typeof createWebCoreBridge> | null>;
+  bridgeRef: React.MutableRefObject<ReturnType<
+    typeof createWebCoreBridge
+  > | null>;
   crossDeviceCounterRef: React.MutableRefObject<number>;
   pendingCrossDeviceRef: React.MutableRefObject<
     Map<

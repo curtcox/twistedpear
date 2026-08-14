@@ -311,10 +311,7 @@ export class SimKernel<S> {
     void observeDrop;
   }
 
-  private applyStoreIntent(
-    node: NodeRuntime<S>,
-    intent: StoreIntent,
-  ): void {
+  private applyStoreIntent(node: NodeRuntime<S>, intent: StoreIntent): void {
     for (const ev of node.store.applyIntent(intent)) {
       this.dispatch(node.id, ev);
     }

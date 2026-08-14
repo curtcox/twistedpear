@@ -419,7 +419,10 @@ export class PeerRouteLinkObservatory implements LinkObservatoryBackend {
 
   private reserveProbeEcho(
     byteLength: number,
-  ): { consume(bytes: number): Promise<void>; release(): void } | undefined | "unavailable" {
+  ):
+    | { consume(bytes: number): Promise<void>; release(): void }
+    | undefined
+    | "unavailable" {
     const reservation =
       this.options.controlReservations?.reserveControl(
         Math.max(1, Math.ceil(byteLength / 5)),

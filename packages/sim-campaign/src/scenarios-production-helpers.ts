@@ -127,8 +127,7 @@ function serviceAvailability(
   const lifecycle = state.productionObservation?.authority[cell.capability];
   if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active")
     return { state, intents: [] };
-  if (!state.productionObservation?.response.ok)
-    return { state, intents: [] };
+  if (!state.productionObservation?.response.ok) return { state, intents: [] };
   const grantId = `${cell.capability}-grant`;
   return {
     state: {
@@ -171,7 +170,8 @@ function serviceAuthorized(
   capability: string,
 ): boolean {
   const lifecycle = state.productionObservation?.authority[capability];
-  const phaseOk = lifecycle?.phase === "granted" || lifecycle?.phase === "active";
+  const phaseOk =
+    lifecycle?.phase === "granted" || lifecycle?.phase === "active";
   return phaseOk && state.productionObservation?.response.ok === true;
 }
 
@@ -182,8 +182,7 @@ function serviceAbuse(
   event: { readonly at: number; readonly payload: Uint8Array },
 ): { state: CampaignNodeState; intents: Intent[] } {
   if (state.severedAt !== null) return { state, intents: [] };
-  if (!serviceAuthorized(state, cell.capability))
-    return { state, intents: [] };
+  if (!serviceAuthorized(state, cell.capability)) return { state, intents: [] };
   if (!defectReached(cell, defectivePolicy, state, event.payload))
     return { state, intents: [] };
   const egress: EgressEvent = {

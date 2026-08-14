@@ -226,8 +226,7 @@ function forwardNodeBrokerRequest(
   message: BrokerWireMessage,
 ): void {
   const endpoint = options.brokerEndpoint as
-    | { request?: (request: unknown) => Promise<unknown> }
-    | undefined;
+    { request?: (request: unknown) => Promise<unknown> } | undefined;
   if (typeof endpoint?.request !== "function") {
     worker.postMessage({
       type: "broker-response",

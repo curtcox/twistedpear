@@ -10,7 +10,11 @@
  * `shouldCommitLinkRemoteIdentity` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "./action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "./action-kind.js";
 
 export const LINK_IDENTIFY_PUBLIC_KEY_SIZE = 64;
 export const LINK_IDENTIFY_SIGNATURE_SIZE = 64;

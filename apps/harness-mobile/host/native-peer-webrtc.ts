@@ -507,10 +507,7 @@ async function nativeRtcEventBuffer(
   if (data instanceof ArrayBuffer) {
     return data;
   }
-  return data.buffer.slice(
-    data.byteOffset,
-    data.byteOffset + data.byteLength,
-  );
+  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
 }
 
 function handleNativeRtcDataSend(
@@ -553,7 +550,9 @@ async function handleNativeRtcMediaAttach(
       trackCount: tracks.length,
       bytesSent,
       connectionState: state.pc.connectionState,
-      voiceProcessing: nativeRtcVoiceProcessing(message.classId === "microphone"),
+      voiceProcessing: nativeRtcVoiceProcessing(
+        message.classId === "microphone",
+      ),
     });
   } catch (error) {
     send({
@@ -582,7 +581,9 @@ async function waitForNativeRtcConnected(state: PeerRtcState): Promise<void> {
   }
 }
 
-async function waitForNativeOutboundBytes(pc: PeerRtcState["pc"]): Promise<number> {
+async function waitForNativeOutboundBytes(
+  pc: PeerRtcState["pc"],
+): Promise<number> {
   let bytesSent = 0;
   for (let attempt = 0; attempt < 60 && bytesSent === 0; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 250));

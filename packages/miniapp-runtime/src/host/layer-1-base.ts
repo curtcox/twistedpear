@@ -23,10 +23,7 @@ import type {
   MiniappHostOptions,
   MiniappHostSnapshot,
 } from "./shared.js";
-import {
-  createHostBroker,
-  createHostLayer1Services,
-} from "./layer-1-init.js";
+import { createHostBroker, createHostLayer1Services } from "./layer-1-init.js";
 
 export abstract class MiniappHostLayer1Base {
   protected abstract now(): number;

@@ -93,9 +93,7 @@ function idleConnectResult(
   return { state, intents: [], actions: [] };
 }
 
-function armInterfaceConnect(
-  timeoutMs: number,
-): InterfaceConnectStepResult {
+function armInterfaceConnect(timeoutMs: number): InterfaceConnectStepResult {
   return {
     state: {
       armed: true,

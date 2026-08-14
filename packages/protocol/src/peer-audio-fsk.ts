@@ -183,10 +183,7 @@ export function decodePeerAudioFsk(
 }
 
 /** Extracts bounded FSK bursts from microphone PCM containing silence between frames. */
-function activityWindows(
-  pcm: Float32Array,
-  windowSamples: number,
-): boolean[] {
+function activityWindows(pcm: Float32Array, windowSamples: number): boolean[] {
   const active: boolean[] = [];
   for (let start = 0; start < pcm.length; start += windowSamples) {
     let energySum = 0;
@@ -206,7 +203,10 @@ function burstBounds(
 ): { readonly start: number; readonly end: number } {
   let firstSignal = first * windowSamples;
   const firstWindowEnd = Math.min(pcm.length, (first + 1) * windowSamples);
-  while (firstSignal < firstWindowEnd && Math.abs(pcm[firstSignal] ?? 0) <= 0.02)
+  while (
+    firstSignal < firstWindowEnd &&
+    Math.abs(pcm[firstSignal] ?? 0) <= 0.02
+  )
     firstSignal += 1;
   const start = Math.max(0, firstSignal - 1);
   let lastSignal = Math.min(pcm.length, last * windowSamples) - 1;

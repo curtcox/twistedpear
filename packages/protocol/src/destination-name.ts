@@ -14,7 +14,11 @@
 import type { Event, Intent } from "@twistedpear/effects";
 import { NAME_HASH_BYTES, TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
 import { utf8Encode } from "./utf8.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "./action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "./action-kind.js";
 
 /** NAME_HASH_LENGTH (80 bits) / 8 */
 export const DESTINATION_NAME_HASH_BYTES = NAME_HASH_BYTES;

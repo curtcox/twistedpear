@@ -4,12 +4,8 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import {
-  bytesToHex,
-} from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
-import {
-  createWorkletMiniappHost,
-} from "../../../packages/worklet-core/src/index.mjs";
+import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { createWorkletMiniappHost } from "../../../packages/worklet-core/src/index.mjs";
 import {
   HOST_API_VERSION,
   createWorkletFlagRelayService,

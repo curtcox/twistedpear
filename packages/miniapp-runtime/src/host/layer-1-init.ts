@@ -69,9 +69,7 @@ export function createIdentityBackend(
       ),
     sign: (_appId, _publisherPublicKey, payload) =>
       Promise.resolve(
-        new TextEncoder().encode(
-          `signed:${new TextDecoder().decode(payload)}`,
-        ),
+        new TextEncoder().encode(`signed:${new TextDecoder().decode(payload)}`),
       ),
   };
 }

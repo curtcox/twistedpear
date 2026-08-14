@@ -190,9 +190,8 @@ export async function sendMultipartPropagation(options: {
   const budgetBytes = resolveMultipartSendBudget(options.budgetBytes);
   assertMultipartSendTitle(options.title);
   assertMultipartSendContent(options.content, budgetBytes);
-  const transferId = resolveMultipartTransferId(
-    options.transferId,
-    (length) => options.router.provider.randomBytes(length),
+  const transferId = resolveMultipartTransferId(options.transferId, (length) =>
+    options.router.provider.randomBytes(length),
   );
   const contentHash = Identity.fullHash(
     options.router.provider,
@@ -326,12 +325,7 @@ export class MultipartPropagationReceiver {
     const transferId = bytesToHex(frame.transferId);
     const contentHash = bytesToHex(frame.contentHash);
     const existing = this.store.load(transferId);
-    assertMultipartCheckpointCompatible(
-      existing,
-      message,
-      frame,
-      contentHash,
-    );
+    assertMultipartCheckpointCompatible(existing, message, frame, contentHash);
     const checkpoint: MultipartCheckpoint = existing ?? {
       transferId,
       sourceHash: bytesToHex(message.sourceHash),

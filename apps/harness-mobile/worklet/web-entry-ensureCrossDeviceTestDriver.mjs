@@ -6,16 +6,12 @@ import {
   bytesToHex,
   loadOrCreateWebIdentity,
 } from "../../../packages/reticulum-ts/dist/web.js";
-import {
-  createCrossDeviceTestDriver,
-} from "../../../packages/worklet-core/src/index.mjs";
+import { createCrossDeviceTestDriver } from "../../../packages/worklet-core/src/index.mjs";
 import {
   decodePublisherIdentity256t,
   encodePublisherIdentity256t,
 } from "../../../packages/app-registry/dist/index.js";
-import {
-  CasStore,
-} from "../../../packages/cas-256t/dist/index.js";
+import { CasStore } from "../../../packages/cas-256t/dist/index.js";
 
 export function ensureCrossDeviceTestDriverImpl(context) {
   if (context.crossDeviceTestDriver === null) {

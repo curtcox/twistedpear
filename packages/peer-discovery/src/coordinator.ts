@@ -175,10 +175,7 @@ export class InvitationPairingDriver implements PeerPairingDriver {
       authenticated,
       adapter,
     );
-    if (
-      !Boolean(established.authenticated) ||
-      !Boolean(established.confirmed)
-    )
+    if (!Boolean(established.authenticated) || !Boolean(established.confirmed))
       throw new PeerDiscoveryError(
         "POLICY_DENIED",
         "Security backend returned an unconfirmed route",
@@ -210,64 +207,56 @@ export class InvitationPairingDriver implements PeerPairingDriver {
     request: PeerConnectRequest,
     event: Extract<DiscoveryEvent, { kind: "invitation" }>,
   ): Promise<EstablishedPeer> {
-      const offer = assertEnvelope(
-        event.envelope,
-        request,
-        "offer",
-        this.now(),
+    const offer = assertEnvelope(event.envelope, request, "offer", this.now());
+    const key = sessionKey(offer);
+    if (!this.replay.acceptOnce(key, offer.expiresAt, this.now()))
+      throw new PeerDiscoveryError(
+        "REPLAY",
+        "Invitation session was already consumed",
       );
-      const key = sessionKey(offer);
-      if (!this.replay.acceptOnce(key, offer.expiresAt, this.now()))
-        throw new PeerDiscoveryError(
-          "REPLAY",
-          "Invitation session was already consumed",
-        );
-      const answer = await this.options.backend.authenticateOffer(
-        request,
-        event.envelope,
+    const answer = await this.options.backend.authenticateOffer(
+      request,
+      event.envelope,
+    );
+    const answerInvitation = assertEnvelope(
+      answer.envelope,
+      request,
+      "answer",
+      this.now(),
+    );
+    if (sessionKey(answerInvitation) !== key)
+      throw new PeerDiscoveryError(
+        "INVALID_INVITATION",
+        "Answer session does not match offer",
       );
-      const answerInvitation = assertEnvelope(
-        answer.envelope,
-        request,
-        "answer",
-        this.now(),
+    let state = stepPeerPairing(initialPeerPairingState(), {
+      kind: "accept",
+      sessionId: key,
+      service: request.service,
+      expiresAt: offer.expiresAt,
+      replayed: false,
+    });
+    if (!(await this.options.backend.confirm(answer.peer, request))) {
+      await adapter.cancel(event.session.id);
+      throw new PeerDiscoveryError(
+        "CANCELLED",
+        "Peer confirmation was declined",
       );
-      if (sessionKey(answerInvitation) !== key)
-        throw new PeerDiscoveryError(
-          "INVALID_INVITATION",
-          "Answer session does not match offer",
-        );
-      let state = stepPeerPairing(initialPeerPairingState(), {
-        kind: "accept",
-        sessionId: key,
-        service: request.service,
-        expiresAt: offer.expiresAt,
-        replayed: false,
-      });
-      if (!(await this.options.backend.confirm(answer.peer, request))) {
-        await adapter.cancel(event.session.id);
-        throw new PeerDiscoveryError(
-          "CANCELLED",
-          "Peer confirmation was declined",
-        );
-      }
-      await adapter.answer(event.session, answer.envelope);
-      state = stepPeerPairing(state, { kind: "confirm", sessionId: key });
-      if (state.phase !== "connected")
-        throw new PeerDiscoveryError(
-          "INVALID_INVITATION",
-          state.error ?? "Invalid confirmation transition",
-        );
-      const established = await this.options.backend.establish(answer, adapter);
-      if (
-        !Boolean(established.authenticated) ||
-        !Boolean(established.confirmed)
-      )
-        throw new PeerDiscoveryError(
-          "POLICY_DENIED",
-          "Security backend returned an unconfirmed route",
-        );
-      return established;
+    }
+    await adapter.answer(event.session, answer.envelope);
+    state = stepPeerPairing(state, { kind: "confirm", sessionId: key });
+    if (state.phase !== "connected")
+      throw new PeerDiscoveryError(
+        "INVALID_INVITATION",
+        state.error ?? "Invalid confirmation transition",
+      );
+    const established = await this.options.backend.establish(answer, adapter);
+    if (!Boolean(established.authenticated) || !Boolean(established.confirmed))
+      throw new PeerDiscoveryError(
+        "POLICY_DENIED",
+        "Security backend returned an unconfirmed route",
+      );
+    return established;
   }
   private now(): number {
     return this.options.now?.() ?? Date.now();

@@ -15,7 +15,11 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { bytesToHexLower, hexToBytesLower } from "./destination-name.js";
 import { utf8Decode, utf8Encode } from "./utf8.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "./action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "./action-kind.js";
 
 /** RATCHET_SIZE (256 bits) / 8 */
 export const IDENTITY_RATCHET_BYTES = 32;

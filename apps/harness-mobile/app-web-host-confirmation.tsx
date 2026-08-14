@@ -5,7 +5,12 @@ import type {
   LaunchReviewRequestView,
   InstallReviewRequestView,
 } from "./worklet/protocol";
-import { ActionButton, CONFIRM_KIND_TITLES, Row, styles } from "./app-web-shared-ui.js";
+import {
+  ActionButton,
+  CONFIRM_KIND_TITLES,
+  Row,
+  styles,
+} from "./app-web-shared-ui.js";
 
 export function HostConfirmationModal({
   modal,
@@ -62,13 +67,15 @@ export function HostConfirmationModal({
   );
 }
 
-
 function HostConfirmKindBody({
   modal,
   onClose,
   onConfirmResponse,
 }: {
-  modal: { readonly kind: "confirm"; readonly request: HostConfirmationRequestView };
+  modal: {
+    readonly kind: "confirm";
+    readonly request: HostConfirmationRequestView;
+  };
   onClose: () => void;
   onConfirmResponse: (approved: boolean) => void;
 }) {
@@ -143,19 +150,21 @@ function HostReviewKindBody({
         <Text style={styles.muted}>
           Capabilities requested: {modal.review.capabilities.length}
         </Text>
-        {modal.review.capabilities.map((capability: LaunchReviewCapabilityView) => (
-          <Row
-            key={capability.id}
-            testID={
-              modal.kind === "install"
-                ? `install-grant-${capability.id}`
-                : `launch-grant-${capability.id}`
-            }
-            label={capability.id}
-            value={modal.grants.includes(capability.id)}
-            onChange={(granted) => onGrantToggle(capability.id, granted)}
-          />
-        ))}
+        {modal.review.capabilities.map(
+          (capability: LaunchReviewCapabilityView) => (
+            <Row
+              key={capability.id}
+              testID={
+                modal.kind === "install"
+                  ? `install-grant-${capability.id}`
+                  : `launch-grant-${capability.id}`
+              }
+              label={capability.id}
+              value={modal.grants.includes(capability.id)}
+              onChange={(granted) => onGrantToggle(capability.id, granted)}
+            />
+          ),
+        )}
         <View style={styles.buttonRow}>
           {modal.kind === "install" ? (
             <>

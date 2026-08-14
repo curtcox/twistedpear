@@ -176,10 +176,7 @@ export class MiniappBroker {
     request: BrokerRequest,
     capability: MiniappCapability | null,
   ): void {
-    if (
-      request.capability !== undefined &&
-      request.capability !== capability
-    ) {
+    if (request.capability !== undefined && request.capability !== capability) {
       throw new BrokerError(
         "CAPABILITY_MISMATCH",
         `Broker capability mismatch for ${request.namespace}.${request.method}`,

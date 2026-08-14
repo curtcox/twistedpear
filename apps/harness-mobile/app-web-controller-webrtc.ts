@@ -65,108 +65,107 @@ async function handleWebRtcSignal(
 ): Promise<void> {
   const { appendLog, sendToWorker, peerRtcRef } = deps;
   try {
-        const PeerConnection = (
-          globalThis as { RTCPeerConnection?: new () => any }
-        ).RTCPeerConnection;
-        if (PeerConnection === undefined) {
-          sendToWorker({ type: "peer-chrome-response", token: message.token });
+    const PeerConnection = (globalThis as { RTCPeerConnection?: new () => any })
+      .RTCPeerConnection;
+    if (PeerConnection === undefined) {
+      sendToWorker({ type: "peer-chrome-response", token: message.token });
+      return;
+    }
+    const pc = new PeerConnection();
+    const state: WebPeerRtcState = {
+      pc,
+      channel: null as any,
+      role: message.role,
+      localTracks: [] as MediaStreamTrack[],
+      remoteTracks: [] as MediaStreamTrack[],
+      remoteTrackListeners: new Set<(track: MediaStreamTrack) => void>(),
+      async attachTrack(track: MediaStreamTrack) {
+        const kind = track.kind;
+        const transceiver = pc
+          .getTransceivers?.()
+          .find(
+            (entry: {
+              sender?: { track?: { kind?: string } | null };
+              receiver?: { track?: { kind?: string } | null };
+              mid: string | null;
+            }) => {
+              const senderKind = entry.sender?.track?.kind;
+              const receiverKind = entry.receiver?.track?.kind;
+              return (
+                senderKind === kind ||
+                receiverKind === kind ||
+                (senderKind === undefined &&
+                  receiverKind === undefined &&
+                  entry.mid !== null)
+              );
+            },
+          );
+        if (
+          transceiver?.sender &&
+          typeof transceiver.sender.replaceTrack === "function"
+        ) {
+          await transceiver.sender.replaceTrack(track);
           return;
         }
-        const pc = new PeerConnection();
-        const state: WebPeerRtcState = {
-          pc,
-          channel: null as any,
-          role: message.role,
-          localTracks: [] as MediaStreamTrack[],
-          remoteTracks: [] as MediaStreamTrack[],
-          remoteTrackListeners: new Set<(track: MediaStreamTrack) => void>(),
-          async attachTrack(track: MediaStreamTrack) {
-            const kind = track.kind;
-            const transceiver = pc
-              .getTransceivers?.()
-              .find(
-                (entry: {
-                  sender?: { track?: { kind?: string } | null };
-                  receiver?: { track?: { kind?: string } | null };
-                  mid: string | null;
-                }) => {
-                  const senderKind = entry.sender?.track?.kind;
-                  const receiverKind = entry.receiver?.track?.kind;
-                  return (
-                    senderKind === kind ||
-                    receiverKind === kind ||
-                    (senderKind === undefined &&
-                      receiverKind === undefined &&
-                      entry.mid !== null)
-                  );
-                },
-              );
-            if (
-              transceiver?.sender &&
-              typeof transceiver.sender.replaceTrack === "function"
-            ) {
-              await transceiver.sender.replaceTrack(track);
-              return;
-            }
-            pc.addTrack(track);
-          },
-        };
-        peerRtcRef.current.set(message.sessionId, state);
-        pc.addEventListener("track", (event: { track: MediaStreamTrack }) => {
-          state.remoteTracks.push(event.track);
-          for (const listener of state.remoteTrackListeners) {
-            listener(event.track);
-          }
-        });
-        if (message.role === "offer") {
-          pc.addTransceiver("audio", { direction: "sendrecv" });
-          pc.addTransceiver("video", { direction: "sendrecv" });
-          state.channel = pc.createDataChannel("twistedpear-peer", {
-            ordered: true,
-          });
-          state.channel.binaryType = "arraybuffer";
-          await pc.setLocalDescription(await pc.createOffer());
-        } else {
-          if (message.remoteSignal === undefined) {
-            throw new Error("WebRTC offer is missing");
-          }
-          pc.addEventListener("datachannel", (event: any) => {
-            state.channel = event.channel;
-            state.channel.binaryType = "arraybuffer";
-          });
-          await pc.setRemoteDescription(JSON.parse(message.remoteSignal));
-          await pc.setLocalDescription(await pc.createAnswer());
-        }
-        if (pc.iceGatheringState !== "complete") {
-          await new Promise<void>((resolve) => {
-            const timer = setTimeout(resolve, 2_000);
-            const changed = () => {
-              if (pc.iceGatheringState === "complete") {
-                clearTimeout(timer);
-                pc.removeEventListener("icegatheringstatechange", changed);
-                resolve();
-              }
-            };
-            pc.addEventListener("icegatheringstatechange", changed);
-          });
-        }
-        const local = pc.localDescription;
-        if (local === null) {
-          throw new Error("WebRTC did not produce a local signal");
-        }
-        sendToWorker({
-          type: "peer-chrome-response",
-          token: message.token,
-          signal: JSON.stringify({ type: local.type, sdp: local.sdp }),
-        });
-      } catch (error) {
-        peerRtcRef.current.get(message.sessionId)?.pc.close();
-        peerRtcRef.current.delete(message.sessionId);
-        appendLog(
-          `WebRTC signaling unavailable: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        sendToWorker({ type: "peer-chrome-response", token: message.token });
+        pc.addTrack(track);
+      },
+    };
+    peerRtcRef.current.set(message.sessionId, state);
+    pc.addEventListener("track", (event: { track: MediaStreamTrack }) => {
+      state.remoteTracks.push(event.track);
+      for (const listener of state.remoteTrackListeners) {
+        listener(event.track);
       }
+    });
+    if (message.role === "offer") {
+      pc.addTransceiver("audio", { direction: "sendrecv" });
+      pc.addTransceiver("video", { direction: "sendrecv" });
+      state.channel = pc.createDataChannel("twistedpear-peer", {
+        ordered: true,
+      });
+      state.channel.binaryType = "arraybuffer";
+      await pc.setLocalDescription(await pc.createOffer());
+    } else {
+      if (message.remoteSignal === undefined) {
+        throw new Error("WebRTC offer is missing");
+      }
+      pc.addEventListener("datachannel", (event: any) => {
+        state.channel = event.channel;
+        state.channel.binaryType = "arraybuffer";
+      });
+      await pc.setRemoteDescription(JSON.parse(message.remoteSignal));
+      await pc.setLocalDescription(await pc.createAnswer());
+    }
+    if (pc.iceGatheringState !== "complete") {
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 2_000);
+        const changed = () => {
+          if (pc.iceGatheringState === "complete") {
+            clearTimeout(timer);
+            pc.removeEventListener("icegatheringstatechange", changed);
+            resolve();
+          }
+        };
+        pc.addEventListener("icegatheringstatechange", changed);
+      });
+    }
+    const local = pc.localDescription;
+    if (local === null) {
+      throw new Error("WebRTC did not produce a local signal");
+    }
+    sendToWorker({
+      type: "peer-chrome-response",
+      token: message.token,
+      signal: JSON.stringify({ type: local.type, sdp: local.sdp }),
+    });
+  } catch (error) {
+    peerRtcRef.current.get(message.sessionId)?.pc.close();
+    peerRtcRef.current.delete(message.sessionId);
+    appendLog(
+      `WebRTC signaling unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    sendToWorker({ type: "peer-chrome-response", token: message.token });
+  }
 }
 
 async function handleWebRtcEstablish(
@@ -362,7 +361,9 @@ async function captureWebRtcLocalTracks(
   return tracks;
 }
 
-async function waitForWebRtcOutboundBytes(pc: { getStats?: () => Promise<unknown> }): Promise<number> {
+async function waitForWebRtcOutboundBytes(pc: {
+  getStats?: () => Promise<unknown>;
+}): Promise<number> {
   let bytesSent = 0;
   for (let attempt = 0; attempt < 40 && bytesSent === 0; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 250));

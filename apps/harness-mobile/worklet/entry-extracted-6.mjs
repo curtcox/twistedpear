@@ -5,17 +5,13 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import {
-  bytesToHex,
-} from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import {
   DestinationDirection,
   DestinationType,
 } from "../../../packages/reticulum-ts/dist/destination.js";
-import {
-  peerServiceAspect,
-} from "../../../packages/worklet-core/src/index.mjs";
+import { peerServiceAspect } from "../../../packages/worklet-core/src/index.mjs";
 import {
   AudioPeerDiscoveryAdapter,
   BluetoothPeerDiscoveryAdapter,

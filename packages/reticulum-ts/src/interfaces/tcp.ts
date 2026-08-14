@@ -230,8 +230,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
   private finishOpenConnection(
     ctx: OpenConnectContext,
     result:
-      | { ok: true; connection: DuplexConnection }
-      | { ok: false; error: Error },
+      { ok: true; connection: DuplexConnection } | { ok: false; error: Error },
   ): void {
     if (ctx.settled) {
       return;

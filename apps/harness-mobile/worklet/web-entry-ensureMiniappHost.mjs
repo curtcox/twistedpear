@@ -9,12 +9,8 @@ import {
 } from "../../../packages/reticulum-ts/dist/web.js";
 import { createWebWorkletMiniappHost } from "./web-miniapp-host.mjs";
 import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
-import {
-  unpackPackage,
-} from "../../../packages/app-registry/dist/index.js";
-import {
-  CasStore,
-} from "../../../packages/cas-256t/dist/index.js";
+import { unpackPackage } from "../../../packages/app-registry/dist/index.js";
+import { CasStore } from "../../../packages/cas-256t/dist/index.js";
 import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 
 export function ensureMiniappHostImpl(context) {

@@ -42,14 +42,14 @@ function expectInFlightAttack(
   adversary: readonly { action: { power: string } }[],
   kernel: SimKernel<unknown>,
   create:
-    | typeof createEscrowCampaignScenario
-    | typeof createRecoveryCampaignScenario,
+    typeof createEscrowCampaignScenario | typeof createRecoveryCampaignScenario,
 ): void {
   if (attack === "partition") expect(stats.partitioned).toBeGreaterThan(0);
   else if (attack === "drop") expect(stats.adversaryDropped).toBeGreaterThan(0);
   else if (attack === "duplicate")
     expect(stats.adversaryDuplicated).toBeGreaterThan(0);
-  else if (attack === "delay") expect(stats.adversaryDelayed).toBeGreaterThan(0);
+  else if (attack === "delay")
+    expect(stats.adversaryDelayed).toBeGreaterThan(0);
   else expect(stats.adversaryReordered).toBeGreaterThan(0);
   if (attack !== "partition")
     expect(adversary[0]?.action.power).toBe(

@@ -97,7 +97,9 @@ export function assembleChunkSeries(
   return { parts, complete: !parts.some((part) => part === null) };
 }
 
-export function assembledPayloadHex(parts: Array<string | null>): string | null {
+export function assembledPayloadHex(
+  parts: Array<string | null>,
+): string | null {
   const payloadHex = parts.join("");
   return payloadHex.length > MAX_CHUNKED_PAYLOAD_HEX ? null : payloadHex;
 }

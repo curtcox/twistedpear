@@ -398,7 +398,9 @@ export class LXMFRouter {
     return this.notifyPropagationDelivery(message);
   }
 
-  private notifyPropagationDelivery(message: LXMessage | null): LXMessage | null {
+  private notifyPropagationDelivery(
+    message: LXMessage | null,
+  ): LXMessage | null {
     if (this.deliveryNotifyOutcome(message) === "blocked") {
       return null;
     }

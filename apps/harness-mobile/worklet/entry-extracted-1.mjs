@@ -5,9 +5,7 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import {
-  bytesToHex,
-} from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { BareCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/bare.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
 import {
@@ -18,9 +16,7 @@ import {
   decodePublisherIdentity256t,
   encodePublisherIdentity256t,
 } from "../../../packages/app-registry/dist/index.js";
-import {
-  generateConfirmationToken,
-} from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import {
   decodePeerAudioFrame,
   decodePeerInvitation,

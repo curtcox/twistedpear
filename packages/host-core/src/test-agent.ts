@@ -14,7 +14,11 @@
  * `reticulum.runtime.tcp`, so the same code runs on every runtime.
  */
 
-import type { Identity, CryptoProvider, Reticulum } from "@twistedpear/reticulum-ts";
+import type {
+  Identity,
+  CryptoProvider,
+  Reticulum,
+} from "@twistedpear/reticulum-ts";
 import type { PeerMediaReadiness } from "@twistedpear/protocol";
 import type { DeliveredSessionInvite } from "./session-invite-carrier.js";
 import type { HostLxmfDeliverySession } from "./host-lxmf-delivery.js";

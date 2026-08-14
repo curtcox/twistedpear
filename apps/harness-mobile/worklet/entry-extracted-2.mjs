@@ -25,9 +25,7 @@ import {
 } from "../../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
-import {
-  sleep,
-} from "../../../packages/worklet-core/src/index.mjs";
+import { sleep } from "../../../packages/worklet-core/src/index.mjs";
 import {
   DEFAULT_INTERFACE_BITRATES,
   inferInterfaceKind,
@@ -38,9 +36,7 @@ import {
   createPropagationDestination,
   DEFAULT_PROPAGATION_QUOTAS,
 } from "../../../packages/lxmf-ts/dist/index.js";
-import {
-  refuseStorePosture,
-} from "./store-posture-policy.mjs";
+import { refuseStorePosture } from "./store-posture-policy.mjs";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
 
 export function logImpl(context, line) {

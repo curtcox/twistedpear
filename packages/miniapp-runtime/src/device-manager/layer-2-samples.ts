@@ -106,10 +106,7 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   ): DeviceSample {
     const tierId = sessionMeta.state.tierId;
     const fix = raw as PreciseLocationFix;
-    if (
-      typeof fix.latitude !== "number" ||
-      typeof fix.longitude !== "number"
-    ) {
+    if (typeof fix.latitude !== "number" || typeof fix.longitude !== "number") {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
         "Location driver returned an invalid fix.",

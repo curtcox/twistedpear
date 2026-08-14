@@ -44,12 +44,7 @@ function bytesToHex(bytes) {
   );
 }
 
-async function packApp({
-  provider,
-  identity,
-  appDir,
-  hostApiVersion,
-}) {
+async function packApp({ provider, identity, appDir, hostApiVersion }) {
   const manifestPath = join(appDir, "app.manifest.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const files = [

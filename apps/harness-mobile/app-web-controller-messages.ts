@@ -359,7 +359,9 @@ function tryHandleWebPeerMediaAndConfirm(
   deps: WebWorkerMessageHandlerDeps,
 ): boolean {
   const { appendLog, sendToWorker, peerRtcRef, setPeerModal } = deps;
-  if (handleWebRtcWorkerMessage(message, { appendLog, sendToWorker, peerRtcRef })) {
+  if (
+    handleWebRtcWorkerMessage(message, { appendLog, sendToWorker, peerRtcRef })
+  ) {
     return true;
   }
   if (message.type === "media-opus-play-request") {
@@ -421,8 +423,12 @@ function tryHandleWebHostReviews(
   message: WorkletToHostMessage,
   deps: WebWorkerMessageHandlerDeps,
 ): boolean {
-  const { appendLog, pendingWorkspaceReadsRef, setHostModal, setInstallProgress } =
-    deps;
+  const {
+    appendLog,
+    pendingWorkspaceReadsRef,
+    setHostModal,
+    setInstallProgress,
+  } = deps;
   if (message.type === "workspace-file") {
     settleWebWorkspaceRead(message, pendingWorkspaceReadsRef);
     return true;
@@ -575,9 +581,8 @@ async function handleWebDeviceBridge(
       browserDeviceAvailability,
       browserDeviceSense,
       browserDeviceActuate,
-    } = await import(
-      "../../packages/miniapp-runtime/dist/drivers/browser-effects.js"
-    );
+    } =
+      await import("../../packages/miniapp-runtime/dist/drivers/browser-effects.js");
     const result =
       message.op === "availability"
         ? await browserDeviceAvailability(message.classId)

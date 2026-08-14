@@ -4,16 +4,12 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import {
-  hexToBytes,
-} from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import {
   connectTestAgent,
   joinCommunityNetwork,
 } from "../../../packages/worklet-core/src/index.mjs";
-import {
-  shouldRefuseDeveloperMode,
-} from "./store-posture-policy.mjs";
+import { shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 
 export async function handleHostMessageTailImpl(context, message) {

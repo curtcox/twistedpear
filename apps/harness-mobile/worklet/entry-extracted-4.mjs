@@ -4,9 +4,7 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import {
-  hexToBytes,
-} from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import {
   encodePublisherIdentity256t,
   verifyPackage,

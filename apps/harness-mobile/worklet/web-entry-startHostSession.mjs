@@ -4,12 +4,8 @@
 
 import { createWebLeafHost } from "../../../packages/host-core/dist/web.js";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
-import {
-  bytesToHex,
-} from "../../../packages/reticulum-ts/dist/web.js";
-import {
-  createDropCensus,
-} from "../../../packages/worklet-core/src/index.mjs";
+import { bytesToHex } from "../../../packages/reticulum-ts/dist/web.js";
+import { createDropCensus } from "../../../packages/worklet-core/src/index.mjs";
 
 export async function startHostSessionImpl(context) {
   if (context.webConfig.gatewayUrl.length === 0) {

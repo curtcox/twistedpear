@@ -67,9 +67,7 @@ function mediaAvailability(
   return "permission-required";
 }
 
-function namedApiAvailability(
-  present: boolean,
-): BrowserDeviceAvailability {
+function namedApiAvailability(present: boolean): BrowserDeviceAvailability {
   return present ? "available" : "unsupported";
 }
 
@@ -93,8 +91,8 @@ export async function browserDeviceAvailability(
     }
     case "tts":
       return namedApiAvailability(
-        (globalThis as { speechSynthesis?: SpeechSynthesis }).speechSynthesis !==
-          undefined,
+        (globalThis as { speechSynthesis?: SpeechSynthesis })
+          .speechSynthesis !== undefined,
       );
     case "haptics":
       return namedApiAvailability(
