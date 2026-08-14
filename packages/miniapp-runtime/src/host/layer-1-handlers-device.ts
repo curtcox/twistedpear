@@ -24,92 +24,99 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       "relay",
       "setMode",
       "relay:configure",
-      async (request, context) =>
-        relay().setMode(
-          context.appId,
-          request.payload as { mode: "off" | "bridge" | "transport-node" },
+      (request, context) =>
+        Promise.resolve(
+          relay().setMode(
+            context.appId,
+            request.payload as { mode: "off" | "bridge" | "transport-node" },
+          ),
         ),
     );
     this.broker.register(
       "relay",
       "enable",
       "relay:configure",
-      async (request, context) =>
-        relay().enable(
-          context.appId,
-          request.payload as {
-            kind: import("../services/relay.js").RelayInterfaceKind;
-            options?: Record<string, unknown>;
-          },
+      (request, context) =>
+        Promise.resolve(
+          relay().enable(
+            context.appId,
+            request.payload as {
+              kind: import("../services/relay.js").RelayInterfaceKind;
+              options?: Record<string, unknown>;
+            },
+          ),
         ),
     );
     this.broker.register(
       "relay",
       "disable",
       "relay:configure",
-      async (request, context) =>
-        relay().disable(
-          context.appId,
-          request.payload as {
-            kind: import("../services/relay.js").RelayInterfaceKind;
-          },
+      (request, context) =>
+        Promise.resolve(
+          relay().disable(
+            context.appId,
+            request.payload as {
+              kind: import("../services/relay.js").RelayInterfaceKind;
+            },
+          ),
         ),
     );
     this.broker.register(
       "relay",
       "setDirection",
       "relay:configure",
-      async (request, context) =>
-        relay().setDirection(
-          context.appId,
-          request.payload as {
-            kind: import("../services/relay.js").RelayInterfaceKind;
-            direction: import("../services/relay.js").InterfaceDirection;
-          },
+      (request, context) =>
+        Promise.resolve(
+          relay().setDirection(
+            context.appId,
+            request.payload as {
+              kind: import("../services/relay.js").RelayInterfaceKind;
+              direction: import("../services/relay.js").InterfaceDirection;
+            },
+          ),
         ),
     );
     this.broker.register(
       "relay",
       "configure",
       "relay:configure",
-      async (request, context) =>
-        relay().configure(
-          context.appId,
-          request.payload as {
-            kind: import("../services/relay.js").RelayInterfaceKind;
-            patch: Record<string, unknown>;
-          },
+      (request, context) =>
+        Promise.resolve(
+          relay().configure(
+            context.appId,
+            request.payload as {
+              kind: import("../services/relay.js").RelayInterfaceKind;
+              patch: Record<string, unknown>;
+            },
+          ),
         ),
     );
     this.broker.register(
       "relay",
       "setPolicy",
       "relay:configure",
-      async (request, context) =>
-        relay().setPolicy(
-          context.appId,
-          request.payload as {
-            policy: import("../services/relay.js").RelayPolicyMatrix;
-          },
+      (request, context) =>
+        Promise.resolve(
+          relay().setPolicy(
+            context.appId,
+            request.payload as {
+              policy: import("../services/relay.js").RelayPolicyMatrix;
+            },
+          ),
         ),
     );
-    this.broker.register(
-      "relay",
-      "list",
-      "relay:read",
-      async (_request, context) => relay().list(context.appId),
+    this.broker.register("relay", "list", "relay:read", (_request, context) =>
+      Promise.resolve(relay().list(context.appId)),
     );
-    this.broker.register(
-      "relay",
-      "status",
-      "relay:read",
-      async (_request, context) => relay().status(context.appId),
+    this.broker.register("relay", "status", "relay:read", (_request, context) =>
+      Promise.resolve(relay().status(context.appId)),
     );
     this.broker.register(
       "relay",
       "diagnostics",
       "relay:read",
-      async (_request, context) => relay().diagnostics(context.appId),
+      (_request, context) =>
+        Promise.resolve(relay().diagnostics(context.appId)),
     );
 
     const freenet = () => {
@@ -121,38 +128,39 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       }
       return this.freenetService;
     };
-    this.broker.register(
-      "freenet",
-      "get",
-      "freenet:contract",
-      async (request) => freenet().get(request.payload as { keyHex: unknown }),
+    this.broker.register("freenet", "get", "freenet:contract", (request) =>
+      Promise.resolve(freenet().get(request.payload as { keyHex: unknown })),
     );
     this.broker.register(
       "freenet",
       "put",
       "freenet:contract",
-      async (request, context) =>
-        freenet().put(
-          context,
-          request.payload as {
-            wasmHex: unknown;
-            parametersHex: unknown;
-            stateHex: unknown;
-          },
+      (request, context) =>
+        Promise.resolve(
+          freenet().put(
+            context,
+            request.payload as {
+              wasmHex: unknown;
+              parametersHex: unknown;
+              stateHex: unknown;
+            },
+          ),
         ),
     );
     this.broker.register(
       "freenet",
       "update",
       "freenet:contract",
-      async (request, context) =>
-        freenet().update(
-          context,
-          request.payload as {
-            keyHex: unknown;
-            codeHashHex: unknown;
-            stateHex: unknown;
-          },
+      (request, context) =>
+        Promise.resolve(
+          freenet().update(
+            context,
+            request.payload as {
+              keyHex: unknown;
+              codeHashHex: unknown;
+              stateHex: unknown;
+            },
+          ),
         ),
     );
 
@@ -166,37 +174,37 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       return this.deviceService;
     };
     // inventory/diagnostics: no capability. open/close/read: capability checked inside DeviceManager.
-    this.broker.register(
-      "device",
-      "inventory",
-      null,
-      async (_request, context) => device().inventory(context.appId),
+    this.broker.register("device", "inventory", null, (_request, context) =>
+      Promise.resolve(device().inventory(context.appId)),
     );
-    this.broker.register(
-      "device",
-      "diagnostics",
-      null,
-      async (_request, context) => device().diagnostics(context.appId),
+    this.broker.register("device", "diagnostics", null, (_request, context) =>
+      Promise.resolve(device().diagnostics(context.appId)),
     );
-    this.broker.register("device", "open", null, async (request, context) =>
-      device().open(
-        context.appId,
-        context.publisherPublicKey,
-        context.declaredCapabilities,
-        context.grantedCapabilities,
-        request.payload as DeviceOpenRequest,
+    this.broker.register("device", "open", null, (request, context) =>
+      Promise.resolve(
+        device().open(
+          context.appId,
+          context.publisherPublicKey,
+          context.declaredCapabilities,
+          context.grantedCapabilities,
+          request.payload as DeviceOpenRequest,
+        ),
       ),
     );
-    this.broker.register("device", "close", null, async (request, context) =>
-      device().close(
-        context.appId,
-        request.payload as { handle: DeviceSessionHandle },
+    this.broker.register("device", "close", null, (request, context) =>
+      Promise.resolve(
+        device().close(
+          context.appId,
+          request.payload as { handle: DeviceSessionHandle },
+        ),
       ),
     );
-    this.broker.register("device", "read", null, async (request, context) =>
-      device().read(
-        context.appId,
-        request.payload as { handle: DeviceSessionHandle },
+    this.broker.register("device", "read", null, (request, context) =>
+      Promise.resolve(
+        device().read(
+          context.appId,
+          request.payload as { handle: DeviceSessionHandle },
+        ),
       ),
     );
     this.broker.register("device", "write", null, async (request, context) => {
@@ -210,58 +218,63 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       );
       return { written: true };
     });
-    this.broker.register("device", "stream", null, async (request, context) =>
-      device().stream(
-        context.appId,
-        context.declaredCapabilities,
-        context.grantedCapabilities,
-        request.payload as {
-          handle: DeviceSessionHandle;
-          peer: string;
-          constraints?: import("../device-manager.js").DeviceStreamConstraints;
-        },
+    this.broker.register("device", "stream", null, (request, context) =>
+      Promise.resolve(
+        device().stream(
+          context.appId,
+          context.declaredCapabilities,
+          context.grantedCapabilities,
+          request.payload as {
+            handle: DeviceSessionHandle;
+            peer: string;
+            constraints?: import("../device-manager.js").DeviceStreamConstraints;
+          },
+        ),
       ),
     );
-    this.broker.register(
-      "device",
-      "closeStream",
-      null,
-      async (request, context) =>
+    this.broker.register("device", "closeStream", null, (request, context) =>
+      Promise.resolve(
         device().closeStream(
           context.appId,
           request.payload as { handle: string },
         ),
+      ),
     );
     this.broker.register(
       "device",
       "streams",
       "device:stream",
-      async (_request, context) => device().streams(context.appId),
+      (_request, context) => Promise.resolve(device().streams(context.appId)),
     );
     this.broker.register(
       "device",
       "shareOffers",
       "device:share-policy:read",
-      async (_request, context) => device().shareOffers(context.appId),
+      (_request, context) =>
+        Promise.resolve(device().shareOffers(context.appId)),
     );
     this.broker.register(
       "device",
       "requestShareOffer",
       "device:stream",
-      async (request, context) =>
-        device().requestShareOffer(
-          context.appId,
-          request.payload as { purpose: string },
+      (request, context) =>
+        Promise.resolve(
+          device().requestShareOffer(
+            context.appId,
+            request.payload as { purpose: string },
+          ),
         ),
     );
     this.broker.register(
       "device",
       "revokeShareOffer",
       "device:stream",
-      async (request, context) =>
-        device().revokeShareOffer(
-          context.appId,
-          request.payload as { id: string },
+      (request, context) =>
+        Promise.resolve(
+          device().revokeShareOffer(
+            context.appId,
+            request.payload as { id: string },
+          ),
         ),
     );
     const inbound = () => {
@@ -276,22 +289,26 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       "device",
       "incoming",
       "device:stream",
-      async (request, context) =>
-        inbound().pollOffers(
-          context.appId,
-          (request.payload as { cursor?: string } | undefined)?.cursor,
+      (request, context) =>
+        Promise.resolve(
+          inbound().pollOffers(
+            context.appId,
+            (request.payload as { cursor?: string } | undefined)?.cursor,
+          ),
         ),
     );
     this.broker.register(
       "device",
       "accept",
       "device:stream",
-      async (request, context) => {
+      (request, context) => {
         const payload = request.payload as {
           offerId: string;
           sink: StreamSink;
         };
-        return inbound().accept(context.appId, payload.offerId, payload.sink);
+        return Promise.resolve(
+          inbound().accept(context.appId, payload.offerId, payload.sink),
+        );
       },
     );
     this.broker.register(
@@ -305,16 +322,16 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       },
     );
 
-    this.broker.register("presence", "snapshot", "presence", async () => {
+    this.broker.register("presence", "snapshot", "presence", () => {
       if (this.presenceService === null) {
-        return {
+        return Promise.resolve({
           peers: 0,
           onlineInterfaces: 0,
           preferredInterface: null,
-        };
+        });
       }
 
-      return this.presenceService.snapshot();
+      return Promise.resolve(this.presenceService.snapshot());
     });
 
     this.broker.register(

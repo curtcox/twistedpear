@@ -238,16 +238,17 @@ export class WebSandboxBackend implements SandboxBackend {
       isAlive(): boolean {
         return alive && !killed;
       },
-      async postMessage(message: unknown): Promise<void> {
+      postMessage(message: unknown): Promise<void> {
         if (killed) {
-          return;
+          return Promise.resolve();
         }
 
         hostPort.postMessage(message);
+        return Promise.resolve();
       },
-      async ping(timeoutMs: number): Promise<boolean> {
+      ping(timeoutMs: number): Promise<boolean> {
         if (killed) {
-          return false;
+          return Promise.resolve(false);
         }
 
         return new Promise((resolve) => {
@@ -270,9 +271,9 @@ export class WebSandboxBackend implements SandboxBackend {
           hostPort.postMessage({ type: "ping", id });
         });
       },
-      async kill(reason: string): Promise<void> {
+      kill(reason: string): Promise<void> {
         if (killed) {
-          return;
+          return Promise.resolve();
         }
 
         killed = true;
@@ -281,6 +282,7 @@ export class WebSandboxBackend implements SandboxBackend {
         hostPort.removeEventListener("message", handleHostPortMessage);
         hostPort.close();
         iframe.remove();
+        return Promise.resolve();
       },
     };
   }

@@ -486,7 +486,7 @@ export function createSimulatedLocationDriver(
   return {
     classId: "location",
     availability: () => "available",
-    sense: async () => fix,
+    sense: () => Promise.resolve(fix),
   };
 }
 
@@ -494,7 +494,7 @@ export function createSimulatedAmbientLightDriver(lux = 320): DeviceDriver {
   return {
     classId: "ambient-light",
     availability: () => "available",
-    sense: async () => lux,
+    sense: () => Promise.resolve(lux),
   };
 }
 
@@ -509,7 +509,7 @@ export function createSimulatedCameraDriver(
   return {
     classId: "camera",
     availability: () => "available",
-    sense: async () => input,
+    sense: () => Promise.resolve(input),
   };
 }
 
@@ -519,7 +519,7 @@ export function createSimulatedMicrophoneDriver(
   return {
     classId: "microphone",
     availability: () => "available",
-    sense: async () => input,
+    sense: () => Promise.resolve(input),
   };
 }
 
@@ -529,7 +529,7 @@ export function createSimulatedMotionDriver(
   return {
     classId: "motion",
     availability: () => "available",
-    sense: async () => sample,
+    sense: () => Promise.resolve(sample),
   };
 }
 
@@ -545,11 +545,13 @@ export function createActuatorDriver(
   return {
     classId,
     availability: () => "available",
-    actuate: async (command) => {
+    actuate: (command) => {
       log.commands.push(command);
+      return Promise.resolve();
     },
-    stop: async () => {
+    stop: () => {
       log.stopped += 1;
+      return Promise.resolve();
     },
   };
 }
@@ -597,7 +599,7 @@ export function createSimulatedRawCameraDriver(
   return {
     classId: "camera",
     availability: () => "available",
-    sense: async () => input,
+    sense: () => Promise.resolve(input),
   };
 }
 
@@ -612,7 +614,7 @@ export function createSimulatedRawMicrophoneDriver(
   return {
     classId: "microphone",
     availability: () => "available",
-    sense: async () => input,
+    sense: () => Promise.resolve(input),
   };
 }
 
@@ -627,7 +629,7 @@ export function createSimulatedRawMotionDriver(
   return {
     classId: "motion",
     availability: () => "available",
-    sense: async () => input,
+    sense: () => Promise.resolve(input),
   };
 }
 
@@ -642,7 +644,7 @@ export function createSimulatedScreenCaptureDriver(
   return {
     classId: "screen-capture",
     availability: () => "available",
-    sense: async () => input,
+    sense: () => Promise.resolve(input),
   };
 }
 
@@ -650,7 +652,7 @@ export function createSimulatedBiometricDriver(passed = true): DeviceDriver {
   return {
     classId: "biometric",
     availability: () => "available",
-    sense: async () => ({ passed }),
+    sense: () => Promise.resolve({ passed }),
   };
 }
 
@@ -664,7 +666,7 @@ export function createSimulatedSttDriver(
   return {
     classId: "stt",
     availability: () => "available",
-    sense: async () => transcript,
+    sense: () => Promise.resolve(transcript),
   };
 }
 
@@ -681,7 +683,7 @@ export function createSimulatedScalarDriver(
   return {
     classId,
     availability: () => "available",
-    sense: async () => reading,
+    sense: () => Promise.resolve(reading),
   };
 }
 

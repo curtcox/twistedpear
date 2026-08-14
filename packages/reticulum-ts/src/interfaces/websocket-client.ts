@@ -125,21 +125,25 @@ export class WebSocketClientInterface extends RawPacketInterface {
     return Packet.decode(this.provider, frame);
   }
 
-  protected async writeBytes(bytes: Uint8Array): Promise<void> {
+  protected writeBytes(bytes: Uint8Array): Promise<void> {
     if (this.socket === null || !this.online || this.socket.readyState !== 1) {
-      throw new Error(`WebSocket interface ${this.name} is not connected`);
+      return Promise.reject(
+        new Error(`WebSocket interface ${this.name} is not connected`),
+      );
     }
 
     this.socket.send(bytes);
+    return Promise.resolve();
   }
 
-  protected async closeInterface(): Promise<void> {
+  protected closeInterface(): Promise<void> {
     this.applyReconnect({ kind: "iface/detach" });
 
     if (this.socket !== null) {
       this.socket.close();
       this.socket = null;
     }
+    return Promise.resolve();
   }
 
   private async connectOnce(): Promise<boolean> {
@@ -153,7 +157,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
     }
   }
 
-  private async openSocket(): Promise<WebSocketLike> {
+  private openSocket(): Promise<WebSocketLike> {
     const socket = this.createSocket();
     socket.binaryType = "arraybuffer";
 

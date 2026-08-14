@@ -41,11 +41,11 @@ import {
   writeTemplate,
 } from "./helpers.js";
 
-export async function runCreate(ctx: CommandContext): Promise<number> {
+export function runCreate(ctx: CommandContext): Promise<number> {
   const templateName = ctx.args[0];
   if (templateName !== "hello" && templateName !== "chat-min") {
     printHelp("create");
-    return 1;
+    return Promise.resolve(1);
   }
 
   const appDir = resolveFromCwd(
@@ -54,7 +54,7 @@ export async function runCreate(ctx: CommandContext): Promise<number> {
   );
   writeTemplate(appDir, templateName);
   console.log(`Created ${templateName} mini-app at ${appDir}`);
-  return 0;
+  return Promise.resolve(0);
 }
 
 export async function runDev(ctx: CommandContext): Promise<number> {
@@ -103,11 +103,11 @@ export async function runDev(ctx: CommandContext): Promise<number> {
   return 0;
 }
 
-export async function runPack(ctx: CommandContext): Promise<number> {
+export function runPack(ctx: CommandContext): Promise<number> {
   const appDir = ctx.args[0];
   if (appDir === undefined) {
     printHelp("pack");
-    return 1;
+    return Promise.resolve(1);
   }
 
   const app = readAppManifest(resolveFromCwd(ctx.cwd, appDir));
@@ -154,14 +154,14 @@ export async function runPack(ctx: CommandContext): Promise<number> {
   const out = parseFlag(ctx.args, "--out") ?? `${app.name}-${app.version}.tpkg`;
   writeBytes(resolveFromCwd(ctx.cwd, out), packed.archiveBytes);
   console.log(`Wrote ${out} (${packed.packageHash})`);
-  return 0;
+  return Promise.resolve(0);
 }
 
-export async function runSign(ctx: CommandContext): Promise<number> {
+export function runSign(ctx: CommandContext): Promise<number> {
   const archivePath = ctx.args[0];
   if (archivePath === undefined) {
     printHelp("sign");
-    return 1;
+    return Promise.resolve(1);
   }
 
   const provider = new NodeCryptoProvider();
@@ -186,7 +186,7 @@ export async function runSign(ctx: CommandContext): Promise<number> {
   });
   writeBytes(resolveFromCwd(ctx.cwd, archivePath), packed.archiveBytes);
   console.log(`Re-signed ${archivePath}`);
-  return 0;
+  return Promise.resolve(0);
 }
 
 export async function runPublish(ctx: CommandContext): Promise<number> {
@@ -329,17 +329,17 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
   return 0;
 }
 
-export async function runUpdate(ctx: CommandContext): Promise<number> {
+export function runUpdate(ctx: CommandContext): Promise<number> {
   const version = parseFlag(ctx.args, "--version");
   if (version === null) {
     printHelp("update");
-    return 1;
+    return Promise.resolve(1);
   }
 
   const appDir = ctx.args[0];
   if (appDir === undefined) {
     printHelp("update");
-    return 1;
+    return Promise.resolve(1);
   }
 
   const manifestPath = resolveFromCwd(
@@ -351,14 +351,16 @@ export async function runUpdate(ctx: CommandContext): Promise<number> {
   };
   manifest.version = version;
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  return runPublish({
-    cwd: ctx.cwd,
-    args: [appDir],
-    ...(ctx.identityPassphrase === undefined
-      ? {}
-      : { identityPassphrase: ctx.identityPassphrase }),
-    ...(ctx.readSecret === undefined ? {} : { readSecret: ctx.readSecret }),
-  });
+  return Promise.resolve(
+    runPublish({
+      cwd: ctx.cwd,
+      args: [appDir],
+      ...(ctx.identityPassphrase === undefined
+        ? {}
+        : { identityPassphrase: ctx.identityPassphrase }),
+      ...(ctx.readSecret === undefined ? {} : { readSecret: ctx.readSecret }),
+    }),
+  );
 }
 
 export async function runSeed(ctx: CommandContext): Promise<number> {

@@ -116,22 +116,27 @@ export function createUnsupportedWebBluetoothChannel(): BluetoothDiscoveryChanne
     );
   };
   return {
-    async availability() {
-      return {
+    availability() {
+      return Promise.resolve({
         state: "unsupported",
         reason:
           "Web Bluetooth does not provide portable browser-to-browser peripheral advertising",
-      };
+      });
     },
     async *advertise() {
       unavailable();
+      await Promise.resolve();
     },
     async *scan() {
       unavailable();
+      await Promise.resolve();
     },
-    async answer() {
+    answer() {
       unavailable();
+      return Promise.resolve();
     },
-    async cancel() {},
+    cancel() {
+      return Promise.resolve();
+    },
   };
 }

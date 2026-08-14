@@ -173,7 +173,7 @@ import type {
 import type { Link } from "../link.js";
 import { LinkLayer3Core } from "./layer-3-core.js";
 export class LinkLayer3 extends LinkLayer3Core {
-  protected async handleIdentifyPacket(packet: Packet): Promise<void> {
+  protected handleIdentifyPacket(packet: Packet): Promise<void> {
     const acceptStepped = stepAcceptLinkIdentifyWithActions(
       initialAcceptLinkIdentifyState(),
       {
@@ -237,6 +237,7 @@ export class LinkLayer3 extends LinkLayer3Core {
       },
     );
     this.applyLinkIdentifyActions(stepped.actions, identity);
+    return Promise.resolve();
   }
 
   protected applyLinkIdentifyActions(
@@ -395,7 +396,7 @@ export class LinkLayer3 extends LinkLayer3Core {
     }
   }
 
-  protected async handleResponsePacket(packet: Packet): Promise<void> {
+  protected handleResponsePacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
     if (
       !shouldDispatchLinkPlaintextNow(
@@ -408,7 +409,7 @@ export class LinkLayer3 extends LinkLayer3Core {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
 
     const unpackStepped = stepUnpackLinkResponseWithActions(
@@ -422,11 +423,11 @@ export class LinkLayer3 extends LinkLayer3Core {
       shouldRejectUnpackLinkResponse(unpackStepped.actions) ||
       !shouldUseUnpackLinkResponse(unpackStepped.actions)
     ) {
-      return;
+      return Promise.resolve();
     }
     const fields = linkResponseFieldsFromActions(unpackStepped.actions);
     if (fields === null) {
-      return;
+      return Promise.resolve();
     }
     const pending = [...this.pendingRequests];
     /** Adapt pending app-request index via protocol actions (no ad-hoc
@@ -454,6 +455,7 @@ export class LinkLayer3 extends LinkLayer3Core {
       )!;
       pending[index]!.responseReceived(fields.response);
     }
+    return Promise.resolve();
   }
 
   protected async handleResourceAdvertisementPacket(
@@ -570,9 +572,7 @@ export class LinkLayer3 extends LinkLayer3Core {
     }
   }
 
-  protected async handleResourceHashmapUpdatePacket(
-    packet: Packet,
-  ): Promise<void> {
+  protected handleResourceHashmapUpdatePacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
     if (
       !shouldDispatchLinkPlaintextNow(
@@ -585,7 +585,7 @@ export class LinkLayer3 extends LinkLayer3Core {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
 
     const splitStepped = stepSplitResourceHashmapUpdatePacketWithActions(
@@ -613,7 +613,7 @@ export class LinkLayer3 extends LinkLayer3Core {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
     for (const resource of this.incomingResourcesList) {
       if (
@@ -628,8 +628,9 @@ export class LinkLayer3 extends LinkLayer3Core {
         )
       ) {
         resource.hashmapUpdatePacket(plaintext!);
-        return;
+        return Promise.resolve();
       }
     }
+    return Promise.resolve();
   }
 }

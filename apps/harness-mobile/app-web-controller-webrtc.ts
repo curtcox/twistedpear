@@ -327,7 +327,7 @@ export function handleWebRtcWorkerMessage(
   }
 
   if (message.type === "peer-webrtc-media-detach") {
-    void (async () => {
+    void (() => {
       const state = peerRtcRef.current.get(message.sessionId);
       const kind = message.classId === "microphone" ? "audio" : "video";
       for (const track of [...(state?.localTracks ?? [])]) {
@@ -345,6 +345,7 @@ export function handleWebRtcWorkerMessage(
         token: message.token,
         attached: false,
       });
+      return Promise.resolve();
     })();
     return true;
   }

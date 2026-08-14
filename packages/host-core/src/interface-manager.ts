@@ -297,17 +297,19 @@ export class InterfaceManager {
     };
   }
 
-  async diagnostics(): Promise<ReadonlyArray<InterfaceDiagnostic>> {
+  diagnostics(): Promise<ReadonlyArray<InterfaceDiagnostic>> {
     const availableEffects = new Set(
       EFFECT_KINDS.filter(
         (kind) => (this.effects as Record<string, unknown>)[kind] !== undefined,
       ),
     );
-    return buildInterfaceDiagnostics(
-      this.viewInputs(),
-      this.failures,
-      new Set(EFFECT_KINDS),
-      availableEffects,
+    return Promise.resolve(
+      buildInterfaceDiagnostics(
+        this.viewInputs(),
+        this.failures,
+        new Set(EFFECT_KINDS),
+        availableEffects,
+      ),
     );
   }
 

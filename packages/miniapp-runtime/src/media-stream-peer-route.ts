@@ -34,7 +34,7 @@ export interface PeerRouteMediaBridgeOptions {
 export class PeerRouteStreamEgressFactory implements StreamEgressFactory {
   constructor(private readonly routes: AppPeerMediaRouteDirectory) {}
 
-  async create(input: {
+  create(input: {
     readonly appId: string;
     readonly peer: string;
     readonly demand: StreamDemand;
@@ -42,7 +42,9 @@ export class PeerRouteStreamEgressFactory implements StreamEgressFactory {
   }): Promise<StreamEgress> {
     const route = this.routes.route(input.appId, { id: input.peer });
     if (route?.transport === undefined)
-      throw new Error("The authenticated peer route has no media transport.");
+      return Promise.reject(
+        new Error("The authenticated peer route has no media transport."),
+      );
     const plane =
       route.dataPlane === "webrtc"
         ? "webrtc"
@@ -50,30 +52,31 @@ export class PeerRouteStreamEgressFactory implements StreamEgressFactory {
           ? "pears-bulk"
           : "reticulum";
     if (plane !== input.admission.plane)
-      throw new Error(
-        `The admitted ${input.admission.plane} plane is not bound to this peer route.`,
+      return Promise.reject(
+        new Error(
+          `The admitted ${input.admission.plane} plane is not bound to this peer route.`,
+        ),
       );
-    return {
+    return Promise.resolve({
       plane,
       async send(frame) {
         await route.transport?.send(frame);
         return { queuedBytes: 0, droppedOldest: 0 };
       },
       quality: () => routeQuality(route.dataPlane, route.transport),
-      close: async () => {},
-    };
+      close: () => {
+        return Promise.resolve();
+      },
+    });
   }
 }
 
 export function createPeerRouteLinkSupply(routes: AppPeerMediaRouteDirectory) {
-  return async (
-    appId: string,
-    peer: string,
-  ): Promise<ReadonlyArray<LinkSupply>> => {
+  return (appId: string, peer: string): Promise<ReadonlyArray<LinkSupply>> => {
     const route = routes.route(appId, { id: peer });
-    if (route === undefined) return [];
+    if (route === undefined) return Promise.resolve([]);
     const quality = routeQuality(route.dataPlane, route.transport);
-    return [
+    return Promise.resolve([
       {
         plane:
           route.dataPlane === "webrtc"
@@ -85,7 +88,7 @@ export function createPeerRouteLinkSupply(routes: AppPeerMediaRouteDirectory) {
         measuredGoodputBps: quality.goodputBps,
         headroomBps: quality.goodputBps,
       },
-    ];
+    ]);
   };
 }
 
@@ -199,30 +202,30 @@ export class PeerRouteMediaBridge
     };
   }
 
-  async pollOffers(appId: string): Promise<StreamOfferBatch> {
+  pollOffers(appId: string): Promise<StreamOfferBatch> {
     this.ensureSubscriptions(appId);
     const now = this.now();
-    return {
+    return Promise.resolve({
       cursor: String(this.version),
       offers: [...this.offers.values()]
         .filter((entry) => entry.appId === appId && entry.offer.expiresAt > now)
         .map((entry) => entry.offer),
-    };
+    });
   }
 
-  async accept(
+  accept(
     appId: string,
     offer: StreamOffer,
     sink: StreamSink,
   ): Promise<InboundStream> {
     const entry = this.offers.get(offer.id);
     if (entry === undefined || entry.appId !== appId)
-      throw new Error("Unknown peer-route media offer.");
+      return Promise.reject(new Error("Unknown peer-route media offer."));
     const stream = { handle: `inbound-${offer.id}`, offerId: offer.id, sink };
     this.offers.delete(offer.id);
     this.streams.set(offer.id, { appId, stream, offer });
     this.version += 1;
-    return stream;
+    return Promise.resolve(stream);
   }
 
   async decline(appId: string, offer: StreamOffer): Promise<void> {
@@ -235,9 +238,10 @@ export class PeerRouteMediaBridge
     );
   }
 
-  async close(appId: string, stream: InboundStream): Promise<void> {
+  close(appId: string, stream: InboundStream): Promise<void> {
     const entry = this.streams.get(stream.offerId);
     if (entry?.appId === appId) this.streams.delete(stream.offerId);
+    return Promise.resolve();
   }
 
   private ensureSubscriptions(appId: string): void {

@@ -248,14 +248,16 @@ async function productionHistoricalOutcome(
 
 class HistoricalGrantBackend {
   private readonly values = new Map<string, Uint8Array>();
-  async get(key: string): Promise<Uint8Array | null> {
-    return this.values.get(key)?.slice() ?? null;
+  get(key: string): Promise<Uint8Array | null> {
+    return Promise.resolve(this.values.get(key)?.slice() ?? null);
   }
-  async set(key: string, value: Uint8Array): Promise<void> {
+  set(key: string, value: Uint8Array): Promise<void> {
     this.values.set(key, value.slice());
+    return Promise.resolve();
   }
-  async delete(key: string): Promise<void> {
+  delete(key: string): Promise<void> {
     this.values.delete(key);
+    return Promise.resolve();
   }
 }
 

@@ -259,36 +259,38 @@ export class SimFreenetClient {
     return this.#hub;
   }
 
-  async put(
+  put(
     source: SimFreenetContractSource,
     state: Uint8Array,
   ): Promise<Uint8Array> {
-    return this.#hub.put(source, state);
+    return Promise.resolve(this.#hub.put(source, state));
   }
 
-  async get(key: Uint8Array): Promise<SimFreenetContractRecord> {
-    return this.#hub.get(key);
+  get(key: Uint8Array): Promise<SimFreenetContractRecord> {
+    return Promise.resolve(this.#hub.get(key));
   }
 
-  async update(
+  update(
     key: Uint8Array,
     codeHash: Uint8Array,
     state: Uint8Array,
   ): Promise<void> {
     this.#hub.update(key, codeHash, state);
+    return Promise.resolve();
   }
 
-  async subscribe(
+  subscribe(
     key: Uint8Array,
     listener: (state: Uint8Array) => void,
   ): Promise<() => void> {
-    return this.#hub.subscribe(key, listener);
+    return Promise.resolve(this.#hub.subscribe(key, listener));
   }
 
-  async close(): Promise<void> {
+  close(): Promise<void> {
     if (this.#ownsHub) {
       this.#hub.close();
     }
+    return Promise.resolve();
   }
 
   static deriveKey(source: SimFreenetContractSource): {

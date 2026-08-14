@@ -15,27 +15,31 @@ export class LocalPeerToPeerDiscoveryAdapter implements PeerDiscoveryAdapter {
       typeof (globalThis as { LP2PReceiver?: unknown }).LP2PReceiver ===
         "function",
   ) {}
-  async availability(): Promise<DiscoveryAvailability> {
-    return this.supported()
-      ? {
-          state: "policy-disabled",
-          reason: "Local Peer-to-Peer support is experimental and disabled",
-        }
-      : {
-          state: "unsupported",
-          reason: "This browser does not implement LP2PRequest/LP2PReceiver",
-        };
+  availability(): Promise<DiscoveryAvailability> {
+    return Promise.resolve(
+      this.supported()
+        ? {
+            state: "policy-disabled",
+            reason: "Local Peer-to-Peer support is experimental and disabled",
+          }
+        : {
+            state: "unsupported",
+            reason: "This browser does not implement LP2PRequest/LP2PReceiver",
+          },
+    );
   }
   async *offer(): AsyncIterable<DiscoveryEvent> {
-    throw this.error();
+    await Promise.reject(this.error());
   }
   async *accept(): AsyncIterable<DiscoveryEvent> {
-    throw this.error();
+    await Promise.reject(this.error());
   }
-  async answer(): Promise<void> {
-    throw this.error();
+  answer(): Promise<void> {
+    return Promise.reject(this.error());
   }
-  async cancel(): Promise<void> {}
+  cancel(): Promise<void> {
+    return Promise.resolve();
+  }
   private error(): PeerDiscoveryError {
     return new PeerDiscoveryError(
       "UNAVAILABLE",

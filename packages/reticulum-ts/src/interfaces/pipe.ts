@@ -35,15 +35,19 @@ export class PipeInterface extends HdlcPacketInterface {
     return Packet.decode(this.provider, frame);
   }
 
-  protected async writeBytes(bytes: Uint8Array): Promise<void> {
+  protected writeBytes(bytes: Uint8Array): Promise<void> {
     if (this.peer === null) {
-      throw new Error(`Pipe interface ${this.name} is not connected`);
+      return Promise.reject(
+        new Error(`Pipe interface ${this.name} is not connected`),
+      );
     }
 
     this.peer.receiveBytes(bytes);
+    return Promise.resolve();
   }
 
-  protected async closeInterface(): Promise<void> {
+  protected closeInterface(): Promise<void> {
     this.peer = null;
+    return Promise.resolve();
   }
 }

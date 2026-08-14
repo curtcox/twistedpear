@@ -17,19 +17,21 @@ export class UnavailablePeerDiscoveryAdapter implements PeerDiscoveryAdapter {
         "Unavailable adapter requires a non-selectable availability state",
       );
   }
-  async availability(): Promise<DiscoveryAvailability> {
-    return this.result;
+  availability(): Promise<DiscoveryAvailability> {
+    return Promise.resolve(this.result);
   }
   async *offer(): AsyncIterable<DiscoveryEvent> {
-    throw this.error();
+    await Promise.reject(this.error());
   }
   async *accept(): AsyncIterable<DiscoveryEvent> {
-    throw this.error();
+    await Promise.reject(this.error());
   }
-  async answer(): Promise<void> {
-    throw this.error();
+  answer(): Promise<void> {
+    return Promise.reject(this.error());
   }
-  async cancel(): Promise<void> {}
+  cancel(): Promise<void> {
+    return Promise.resolve();
+  }
   private error(): PeerDiscoveryError {
     return new PeerDiscoveryError(
       "UNAVAILABLE",

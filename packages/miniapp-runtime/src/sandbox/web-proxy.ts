@@ -186,17 +186,18 @@ class ProxySandboxInstance implements SandboxInstance {
     return this.alive && !this.killed;
   }
 
-  async postMessage(message: unknown): Promise<void> {
+  postMessage(message: unknown): Promise<void> {
     if (this.killed) {
-      return;
+      return Promise.resolve();
     }
 
     this.outbound.postMessage(this.id, message);
+    return Promise.resolve();
   }
 
-  async ping(timeoutMs: number): Promise<boolean> {
+  ping(timeoutMs: number): Promise<boolean> {
     if (this.killed) {
-      return false;
+      return Promise.resolve(false);
     }
 
     const requestId = `ping-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -206,14 +207,15 @@ class ProxySandboxInstance implements SandboxInstance {
     });
   }
 
-  async kill(reason: string): Promise<void> {
+  kill(reason: string): Promise<void> {
     if (this.killed) {
-      return;
+      return Promise.resolve();
     }
 
     this.killed = true;
     this.alive = false;
     this.outbound.kill(this.id, reason);
+    return Promise.resolve();
   }
 
   handleMessage(message: unknown): void {
@@ -227,17 +229,17 @@ class ProxySandboxInstance implements SandboxInstance {
     }
   }
 
-  async handleBrokerRequest(request: unknown): Promise<unknown> {
+  handleBrokerRequest(request: unknown): Promise<unknown> {
     const endpoint = this.brokerEndpoint as
       { request?: (value: unknown) => Promise<unknown> } | undefined;
     if (typeof endpoint?.request !== "function") {
-      return {
+      return Promise.resolve({
         id: (request as { id?: string }).id,
         ok: false,
         error: { message: "Broker endpoint is not configured" },
-      };
+      });
     }
 
-    return endpoint.request(request);
+    return Promise.resolve(endpoint.request(request));
   }
 }

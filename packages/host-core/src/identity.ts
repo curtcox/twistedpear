@@ -23,7 +23,7 @@ export interface IdentityVaultOptions {
   readonly migrateLegacy?: boolean;
 }
 
-export async function loadOrCreateIdentity(
+export function loadOrCreateIdentity(
   provider: CryptoProvider,
   identityPath: string,
   options?: IdentityVaultOptions,
@@ -36,10 +36,12 @@ export async function loadOrCreateIdentity(
         : decryptIdentityBackup(provider, bytes, options.passphrase)
       : RnsIdentity.fromBytes(provider, bytes);
     if (loaded === null) {
-      throw new Error(
-        options === undefined && isEncryptedIdentityBackup(bytes)
-          ? "Identity vault passphrase is required"
-          : `Invalid identity at ${identityPath}`,
+      return Promise.reject(
+        new Error(
+          options === undefined && isEncryptedIdentityBackup(bytes)
+            ? "Identity vault passphrase is required"
+            : `Invalid identity at ${identityPath}`,
+        ),
       );
     }
     if (!isEncryptedIdentityBackup(bytes) && options?.migrateLegacy === true) {
@@ -50,12 +52,12 @@ export async function loadOrCreateIdentity(
         options.passphrase,
       );
     }
-    return loaded;
+    return Promise.resolve(loaded);
   }
 
   if (options === undefined)
-    throw new Error(
-      "Identity vault passphrase is required to create an identity",
+    return Promise.reject(
+      new Error("Identity vault passphrase is required to create an identity"),
     );
   const identity = new RnsIdentity(provider);
   persistEncryptedIdentity(
@@ -64,11 +66,11 @@ export async function loadOrCreateIdentity(
     identity,
     options.passphrase,
   );
-  return identity;
+  return Promise.resolve(identity);
 }
 
 /** @deprecated Use persistEncryptedIdentity for all newly persisted identities. */
-export async function persistIdentity(
+export function persistIdentity(
   identityPath: string,
   identity: Identity,
 ): Promise<void> {
@@ -76,6 +78,7 @@ export async function persistIdentity(
   const bytes = identity.getPrivateKey();
   atomicWritePrivateFile(identityPath, bytes);
   bytes.fill(0);
+  return Promise.resolve();
 }
 
 export function persistEncryptedIdentity(

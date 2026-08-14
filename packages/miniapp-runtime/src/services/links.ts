@@ -145,33 +145,37 @@ export class PeerRouteLinkObservatory implements LinkObservatoryBackend {
     this.now = options.now ?? (() => 0);
   }
 
-  async peers(appId: string): Promise<ReadonlyArray<PeerLinkSummary>> {
+  peers(appId: string): Promise<ReadonlyArray<PeerLinkSummary>> {
     this.ensureRouteSubscriptions(appId);
     const now = this.now();
-    return this.directory.list(appId).map((entry) => {
-      const readiness = this.readiness.get(`${appId}\u0000${entry.handle.id}`);
-      return {
-        peer: entry.handle,
-        displayLabel: entry.displayLabel,
-        plane: planeForDataPlane(entry.dataPlane),
-        reachability: "direct",
-        quality: qualityForRoute(
-          entry.dataPlane,
-          this.routeDirectory()?.route(appId, entry.handle)?.transport,
-        ),
-        readiness:
-          readiness !== undefined && readiness.expiresAt > now
-            ? readiness
-            : null,
-        observedAt: entry.connectedAt,
-        freshness:
-          now - entry.connectedAt <= 30_000
-            ? "live"
-            : now - entry.connectedAt <= 300_000
-              ? "recent"
-              : "stale",
-      };
-    });
+    return Promise.resolve(
+      this.directory.list(appId).map((entry) => {
+        const readiness = this.readiness.get(
+          `${appId}\u0000${entry.handle.id}`,
+        );
+        return {
+          peer: entry.handle,
+          displayLabel: entry.displayLabel,
+          plane: planeForDataPlane(entry.dataPlane),
+          reachability: "direct",
+          quality: qualityForRoute(
+            entry.dataPlane,
+            this.routeDirectory()?.route(appId, entry.handle)?.transport,
+          ),
+          readiness:
+            readiness !== undefined && readiness.expiresAt > now
+              ? readiness
+              : null,
+          observedAt: entry.connectedAt,
+          freshness:
+            now - entry.connectedAt <= 30_000
+              ? "live"
+              : now - entry.connectedAt <= 300_000
+                ? "recent"
+                : "stale",
+        };
+      }),
+    );
   }
 
   async watch(appId: string, cursor?: string): Promise<LinkWatchBatch> {
@@ -516,14 +520,16 @@ export class LinkQualityService {
     return this.backend.peers(appId);
   }
 
-  async watch(appId: string, cursor?: string): Promise<LinkWatchBatch> {
+  watch(appId: string, cursor?: string): Promise<LinkWatchBatch> {
     if (this.backend.watch === undefined) {
-      throw new LinkServiceError(
-        "LINK_UNCONFIGURED",
-        "Live link watching is not configured on this host.",
+      return Promise.reject(
+        new LinkServiceError(
+          "LINK_UNCONFIGURED",
+          "Live link watching is not configured on this host.",
+        ),
       );
     }
-    return this.backend.watch(appId, cursor);
+    return Promise.resolve(this.backend.watch(appId, cursor));
   }
 
   async probe(

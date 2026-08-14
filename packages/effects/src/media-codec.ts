@@ -57,18 +57,25 @@ export class WebCodecsMediaCodecDriver implements MediaCodecDriver {
     );
   }
 
-  async encode(
+  encode(
     configuration: MediaCodecConfiguration,
     sample: RawMediaSample,
   ): Promise<EncodedMediaSample> {
-    this.assertSupported(configuration);
+    const unsupported = this.rejectIfUnsupported(configuration);
+    if (unsupported !== undefined) return unsupported;
     if (configuration.codec === "pcm")
-      return { ...sample, bytes: sample.bytes.slice(), codec: "pcm" };
+      return Promise.resolve({
+        ...sample,
+        bytes: sample.bytes.slice(),
+        codec: "pcm",
+      });
     const globals = globalThis as Record<string, any>;
     const sampleRate = configuration.sampleRate ?? 16_000;
     const channels = configuration.channels ?? 1;
     if (sample.bytes.byteLength % (4 * channels) !== 0)
-      throw new Error("PCM input must contain interleaved float32 samples.");
+      return Promise.reject(
+        new Error("PCM input must contain interleaved float32 samples."),
+      );
     return new Promise((resolve, reject) => {
       let settled = false;
       const settle = (fn: () => void) => {
@@ -81,7 +88,11 @@ export class WebCodecsMediaCodecDriver implements MediaCodecDriver {
           const bytes = new Uint8Array(chunk.byteLength);
           chunk.copyTo(bytes);
           settle(() =>
-            resolve({ captureAtUs: sample.captureAtUs, bytes, codec: "opus" }),
+            resolve({
+              captureAtUs: sample.captureAtUs,
+              bytes,
+              codec: "opus",
+            }),
           );
         },
         error(error: unknown) {
@@ -126,15 +137,21 @@ export class WebCodecsMediaCodecDriver implements MediaCodecDriver {
     });
   }
 
-  async decode(
+  decode(
     configuration: MediaCodecConfiguration,
     sample: EncodedMediaSample,
   ): Promise<RawMediaSample> {
-    this.assertSupported(configuration);
+    const unsupported = this.rejectIfUnsupported(configuration);
+    if (unsupported !== undefined) return unsupported;
     if (configuration.codec === "pcm")
-      return { captureAtUs: sample.captureAtUs, bytes: sample.bytes.slice() };
+      return Promise.resolve({
+        captureAtUs: sample.captureAtUs,
+        bytes: sample.bytes.slice(),
+      });
     if (sample.codec !== "opus")
-      throw new Error("Encoded media codec does not match configuration.");
+      return Promise.reject(
+        new Error("Encoded media codec does not match configuration."),
+      );
     const globals = globalThis as Record<string, any>;
     const sampleRate = configuration.sampleRate ?? 16_000;
     const channels = configuration.channels ?? 1;
@@ -189,14 +206,18 @@ export class WebCodecsMediaCodecDriver implements MediaCodecDriver {
     });
   }
 
-  async close(): Promise<void> {
+  close(): Promise<void> {
     this.closed = true;
+    return Promise.resolve();
   }
-  private assertSupported(configuration: MediaCodecConfiguration): void {
+  private rejectIfUnsupported(
+    configuration: MediaCodecConfiguration,
+  ): Promise<never> | undefined {
     if (!this.supports(configuration))
-      throw new Error(
-        "WebCodecs audio configuration is unsupported or closed.",
+      return Promise.reject(
+        new Error("WebCodecs audio configuration is unsupported or closed."),
       );
+    return undefined;
   }
 }
 
@@ -215,36 +236,46 @@ export class SimulatedMediaCodecDriver implements MediaCodecDriver {
     );
   }
 
-  async encode(
+  encode(
     configuration: MediaCodecConfiguration,
     sample: RawMediaSample,
   ): Promise<EncodedMediaSample> {
-    this.assertSupported(configuration);
-    return {
+    const unsupported = this.rejectIfUnsupported(configuration);
+    if (unsupported !== undefined) return unsupported;
+    return Promise.resolve({
       ...sample,
       bytes: sample.bytes.slice(),
       codec: configuration.codec,
-    };
+    });
   }
 
-  async decode(
+  decode(
     configuration: MediaCodecConfiguration,
     sample: EncodedMediaSample,
   ): Promise<RawMediaSample> {
-    this.assertSupported(configuration);
+    const unsupported = this.rejectIfUnsupported(configuration);
+    if (unsupported !== undefined) return unsupported;
     if (sample.codec !== configuration.codec)
-      throw new Error("Encoded media codec does not match configuration.");
+      return Promise.reject(
+        new Error("Encoded media codec does not match configuration."),
+      );
     const { codec: _codec, ...raw } = sample;
-    return { ...raw, bytes: raw.bytes.slice() };
+    return Promise.resolve({ ...raw, bytes: raw.bytes.slice() });
   }
 
-  async close(): Promise<void> {
+  close(): Promise<void> {
     this.closed = true;
+    return Promise.resolve();
   }
 
-  private assertSupported(configuration: MediaCodecConfiguration): void {
+  private rejectIfUnsupported(
+    configuration: MediaCodecConfiguration,
+  ): Promise<never> | undefined {
     if (!this.supports(configuration))
-      throw new Error("Media codec configuration is unsupported or closed.");
+      return Promise.reject(
+        new Error("Media codec configuration is unsupported or closed."),
+      );
+    return undefined;
   }
 }
 
@@ -448,16 +479,21 @@ export class BundledOpusMediaCodecDriver implements MediaCodecDriver {
     );
   }
 
-  async encode(
+  encode(
     configuration: MediaCodecConfiguration,
     sample: RawMediaSample,
   ): Promise<EncodedMediaSample> {
-    this.assertSupported(configuration);
+    const unsupported = this.rejectIfUnsupported(configuration);
+    if (unsupported !== undefined) return unsupported;
     if (configuration.codec === "pcm")
-      return { ...sample, bytes: sample.bytes.slice(), codec: "pcm" };
+      return Promise.resolve({
+        ...sample,
+        bytes: sample.bytes.slice(),
+        codec: "pcm",
+      });
     const OpusScript = loadOpusScript();
     if (OpusScript === null)
-      throw new Error("bundled Opus codec is unavailable");
+      return Promise.reject(new Error("bundled Opus codec is unavailable"));
     const sampleRate = configuration.sampleRate ?? 16_000;
     const channels = configuration.channels ?? 1;
     const codec = this.ensureEncoder(
@@ -470,46 +506,55 @@ export class BundledOpusMediaCodecDriver implements MediaCodecDriver {
     const frameSize = pcm.byteLength / (2 * channels);
     // libopus accepts 2.5–60 ms frames; reject odd sizes early.
     if (![2.5, 5, 10, 20, 40, 60].includes((frameSize * 1_000) / sampleRate)) {
-      throw new Error(
-        `Unsupported Opus frame size ${frameSize} at ${sampleRate} Hz`,
+      return Promise.reject(
+        new Error(
+          `Unsupported Opus frame size ${frameSize} at ${sampleRate} Hz`,
+        ),
       );
     }
     const encoded = codec.encode(toCodecBuffer(pcm), frameSize);
-    return {
+    return Promise.resolve({
       captureAtUs: sample.captureAtUs,
       bytes: Uint8Array.from(encoded),
       codec: "opus",
-    };
+    });
   }
 
-  async decode(
+  decode(
     configuration: MediaCodecConfiguration,
     sample: EncodedMediaSample,
   ): Promise<RawMediaSample> {
-    this.assertSupported(configuration);
+    const unsupported = this.rejectIfUnsupported(configuration);
+    if (unsupported !== undefined) return unsupported;
     if (configuration.codec === "pcm")
-      return { captureAtUs: sample.captureAtUs, bytes: sample.bytes.slice() };
+      return Promise.resolve({
+        captureAtUs: sample.captureAtUs,
+        bytes: sample.bytes.slice(),
+      });
     if (sample.codec !== "opus")
-      throw new Error("Encoded media codec does not match configuration.");
+      return Promise.reject(
+        new Error("Encoded media codec does not match configuration."),
+      );
     const OpusScript = loadOpusScript();
     if (OpusScript === null)
-      throw new Error("bundled Opus codec is unavailable");
+      return Promise.reject(new Error("bundled Opus codec is unavailable"));
     const sampleRate = configuration.sampleRate ?? 16_000;
     const channels = configuration.channels ?? 1;
     const codec = this.ensureDecoder(OpusScript, sampleRate, channels);
     const decoded = codec.decode(toCodecBuffer(sample.bytes));
-    return {
+    return Promise.resolve({
       captureAtUs: sample.captureAtUs,
       bytes: int16PcmToFloat32(Uint8Array.from(decoded)),
-    };
+    });
   }
 
-  async close(): Promise<void> {
+  close(): Promise<void> {
     this.closed = true;
     this.encoder?.delete();
     this.decoder?.delete();
     this.encoder = null;
     this.decoder = null;
+    return Promise.resolve();
   }
 
   private ensureEncoder(
@@ -562,8 +607,13 @@ export class BundledOpusMediaCodecDriver implements MediaCodecDriver {
     return this.decoder;
   }
 
-  private assertSupported(configuration: MediaCodecConfiguration): void {
+  private rejectIfUnsupported(
+    configuration: MediaCodecConfiguration,
+  ): Promise<never> | undefined {
     if (!this.supports(configuration))
-      throw new Error("bundled Opus configuration is unsupported or closed.");
+      return Promise.reject(
+        new Error("bundled Opus configuration is unsupported or closed."),
+      );
+    return undefined;
   }
 }

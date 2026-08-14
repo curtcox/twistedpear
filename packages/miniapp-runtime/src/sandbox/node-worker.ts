@@ -90,7 +90,7 @@ new AsyncFunction("sdk", workerData.bundleSource)(sdk).catch((error) => {
 export class NodeWorkerSandboxBackend implements SandboxBackend {
   readonly name = "node-worker";
 
-  async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
+  spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
     const source = prepareBundleSource(
       new TextDecoder().decode(options.bundle),
     );
@@ -188,21 +188,22 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
       pending.clear();
     });
 
-    return {
+    return Promise.resolve({
       id: options.appId,
       isAlive(): boolean {
         return alive && !killed;
       },
-      async postMessage(message: unknown): Promise<void> {
+      postMessage(message: unknown): Promise<void> {
         if (killed) {
-          return;
+          return Promise.resolve();
         }
 
         worker.postMessage(message);
+        return Promise.resolve();
       },
-      async ping(timeoutMs: number): Promise<boolean> {
+      ping(timeoutMs: number): Promise<boolean> {
         if (killed) {
-          return false;
+          return Promise.resolve(false);
         }
 
         return new Promise((resolve) => {
@@ -235,7 +236,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
         worker.postMessage({ type: "kill", reason });
         await worker.terminate();
       },
-    };
+    });
   }
 }
 

@@ -23,7 +23,7 @@ export interface AnnounceBackend {
 export class AnnounceService implements AnnounceBackend {
   private readonly events = new Map<string, AnnounceEvent[]>();
 
-  async publish(
+  publish(
     appId: string,
     appData?: Uint8Array,
     namespace?: string,
@@ -36,14 +36,15 @@ export class AnnounceService implements AnnounceBackend {
       receivedAt: Date.now(),
     });
     this.events.set(key, bucket);
+    return Promise.resolve();
   }
 
-  async subscribe(
+  subscribe(
     appId: string,
     namespace?: string,
   ): Promise<ReadonlyArray<AnnounceEvent>> {
     const key = namespace ?? this.namespaceFor(appId);
-    return [...(this.events.get(key) ?? [])];
+    return Promise.resolve([...(this.events.get(key) ?? [])]);
   }
 
   private namespaceFor(appId: string): string {

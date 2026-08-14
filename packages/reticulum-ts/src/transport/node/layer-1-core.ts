@@ -298,7 +298,7 @@ export class LeafTransportLayer1Core {
     await iface.send(packet);
   }
 
-  protected async handleLinkRequest(
+  protected handleLinkRequest(
     packet: Packet,
     iface: PacketInterface,
   ): Promise<void> {
@@ -314,9 +314,10 @@ export class LeafTransportLayer1Core {
       );
       if (shouldDispatchLocalLinkRequestNow(stepped.actions)) {
         destination.handleLinkRequest!(packet, iface);
-        return;
+        return Promise.resolve();
       }
     }
+    return Promise.resolve();
   }
 
   protected async handleLinkData(

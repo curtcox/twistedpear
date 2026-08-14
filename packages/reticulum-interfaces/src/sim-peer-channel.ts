@@ -27,12 +27,14 @@ export abstract class SimulatedPeerChannel {
     peer.peer = this;
   }
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     this.active = true;
+    return Promise.resolve();
   }
 
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
     this.active = false;
+    return Promise.resolve();
   }
 
   setReceiver(onFrame: (frame: Uint8Array) => void): void {

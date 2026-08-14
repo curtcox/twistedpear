@@ -84,18 +84,20 @@ export function createNodeMulticastBridge(): MulticastBridge {
       events = next;
     },
 
-    async start() {
+    start() {
       interfaces = enumerateLinkLocalInterfaces();
       events.onNetworkChange?.(interfaces);
+      return Promise.resolve();
     },
 
-    async stop() {
+    stop() {
       for (const socket of sockets.values()) {
         socket.close();
       }
 
       sockets.clear();
       interfaces = [];
+      return Promise.resolve();
     },
 
     async joinGroup(ifname, _groupAddress, port) {

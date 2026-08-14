@@ -198,13 +198,14 @@ export async function createHostLxmfDelivery(
       extraHandlers.push(handler);
     },
     announce: () => delivery.announce(),
-    async stop() {
-      if (stopped) return;
+    stop() {
+      if (stopped) return Promise.resolve();
       stopped = true;
       if (announceTimer !== null) {
         clearInterval(announceTimer);
         announceTimer = null;
       }
+      return Promise.resolve();
     },
   };
 }

@@ -7,7 +7,7 @@ import { MiniappHostLayer1Base } from "./layer-1-base.js";
 
 export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Base {
   protected registerCoreHandlers(): void {
-    this.broker.register("ui", "render", null, async (request) => {
+    this.broker.register("ui", "render", null, (request) => {
       const tree = (request.payload as { tree: WidgetTree }).tree;
       validateWidgetTree(tree);
       let patches: ReadonlyArray<WidgetPatch> = [];
@@ -23,12 +23,14 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       }
 
       this.options.callbacks?.onWidgetTree?.(tree, patches);
-      return { accepted: true, patchCount: patches.length };
+      return Promise.resolve({ accepted: true, patchCount: patches.length });
     });
 
-    this.broker.register("ui", "subscribe", null, async () => ({
-      subscribed: true,
-    }));
+    this.broker.register("ui", "subscribe", null, () =>
+      Promise.resolve({
+        subscribed: true,
+      }),
+    );
 
     this.broker.register("ui", "event", null, async (request) => {
       if (this.active === null) {
@@ -53,39 +55,38 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "identity",
       "destinationHash",
       "identity",
-      async (_request, context) =>
-        this.identityService.destinationHash(
-          context.appId,
-          context.publisherPublicKey,
+      (_request, context) =>
+        Promise.resolve(
+          this.identityService.destinationHash(
+            context.appId,
+            context.publisherPublicKey,
+          ),
         ),
     );
 
-    this.broker.register(
-      "identity",
-      "sign",
-      "identity",
-      async (request, context) => {
-        const payload = (request.payload as { payload: Uint8Array }).payload;
-        return this.identityService.sign(
+    this.broker.register("identity", "sign", "identity", (request, context) => {
+      const payload = (request.payload as { payload: Uint8Array }).payload;
+      return Promise.resolve(
+        this.identityService.sign(
           context.appId,
           context.publisherPublicKey,
           payload,
-        );
-      },
-    );
+        ),
+      );
+    });
 
     this.broker.register(
       "storage.kv",
       "get",
       "storage:kv",
-      async (request, context) => {
+      (request, context) => {
         const key = (request.payload as { key: string }).key;
         const service = new NamespacedKvService(
           this.options.kvBackend,
           context.appId,
           this.kvQuotaFor(context.appId),
         );
-        return service.get(key);
+        return Promise.resolve(service.get(key));
       },
     );
 
@@ -130,16 +131,17 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         "storage.bee",
         "open",
         "storage:hyperbee",
-        async (_request, context) => beeBackend.descriptor(context.appId),
+        (_request, context) =>
+          Promise.resolve(beeBackend.descriptor(context.appId)),
       );
 
       this.broker.register(
         "storage.bee",
         "get",
         "storage:hyperbee",
-        async (request, context) => {
+        (request, context) => {
           const key = (request.payload as { key: string }).key;
-          return beeBackend.get(context.appId, key);
+          return Promise.resolve(beeBackend.get(context.appId, key));
         },
       );
 
@@ -172,39 +174,35 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         "storage.bee",
         "list",
         "storage:hyperbee",
-        async (request, context) => {
+        (request, context) => {
           const options =
             (request.payload as {
               gte?: string;
               lt?: string;
               limit?: number;
             }) ?? {};
-          return beeBackend.list(context.appId, options);
+          return Promise.resolve(beeBackend.list(context.appId, options));
         },
       );
     } else {
-      this.broker.register(
-        "storage.bee",
-        "open",
-        "storage:hyperbee",
-        async () => {
-          throw new Error("Hyperbee storage is not configured on this host");
-        },
-      );
+      this.broker.register("storage.bee", "open", "storage:hyperbee", () => {
+        return Promise.reject(
+          new Error("Hyperbee storage is not configured on this host"),
+        );
+      });
     }
 
-    this.broker.register(
-      "lxmf",
-      "send",
-      "lxmf:send",
-      async (request, context) =>
+    this.broker.register("lxmf", "send", "lxmf:send", (request, context) =>
+      Promise.resolve(
         this.lxmfService.send(context.appId, request.payload as never),
+      ),
     );
     this.broker.register(
       "lxmf",
       "receive",
       "lxmf:receive",
-      async (_request, context) => this.lxmfService.receive(context.appId),
+      (_request, context) =>
+        Promise.resolve(this.lxmfService.receive(context.appId)),
     );
     this.broker.register(
       "announce",
@@ -225,25 +223,28 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "announce",
       "subscribe",
       "announce:subscribe",
-      async (request, context) => {
+      (request, context) => {
         const namespace = (
           request.payload as { namespace?: string } | undefined
         )?.namespace;
-        return this.announceService.subscribe(context.appId, namespace);
+        return Promise.resolve(
+          this.announceService.subscribe(context.appId, namespace),
+        );
       },
     );
     this.broker.register(
       "resource",
       "fetch",
       "resource:fetch",
-      async (request, context) => {
+      (request, context) => {
         if (this.resourceService === null) {
-          throw new Error("Resource fetch is not configured on this host");
+          return Promise.reject(
+            new Error("Resource fetch is not configured on this host"),
+          );
         }
 
-        return this.resourceService.fetch(
-          context.appId,
-          request.payload as never,
+        return Promise.resolve(
+          this.resourceService.fetch(context.appId, request.payload as never),
         );
       },
     );
@@ -251,10 +252,10 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "workspace",
       "list",
       "workspace",
-      async (request, context) => {
+      (request, context) => {
         const prefix =
           (request.payload as { prefix?: string } | undefined)?.prefix ?? "";
-        return this.workspace.list(context.appId, prefix);
+        return Promise.resolve(this.workspace.list(context.appId, prefix));
       },
     );
 
@@ -275,16 +276,20 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "workspace",
       "write",
       "workspace",
-      async (request, context) => {
+      (request, context) => {
         const { path, content } = request.payload as {
           path: string;
           content: string;
         };
         if (typeof content !== "string") {
-          throw new Error("Workspace content must be a string");
+          return Promise.reject(
+            new Error("Workspace content must be a string"),
+          );
         }
 
-        return this.workspace.write(context.appId, path, content);
+        return Promise.resolve(
+          this.workspace.write(context.appId, path, content),
+        );
       },
     );
 
@@ -292,13 +297,15 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "workspace",
       "patch",
       "workspace",
-      async (request, context) => {
+      (request, context) => {
         const { path, baseLength, edits } = request.payload as {
           path: string;
           baseLength: number;
           edits: ReadonlyArray<{ start: number; end: number; text: string }>;
         };
-        return this.workspace.patch(context.appId, path, baseLength, edits);
+        return Promise.resolve(
+          this.workspace.patch(context.appId, path, baseLength, edits),
+        );
       },
     );
 

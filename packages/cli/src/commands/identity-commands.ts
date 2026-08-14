@@ -38,7 +38,7 @@ import {
   requiredPassphrase,
 } from "./helpers.js";
 
-export async function runInit(ctx: CommandContext): Promise<number> {
+export function runInit(ctx: CommandContext): Promise<number> {
   const config = loadConfig(ctx.cwd);
   const provider = new NodeCryptoProvider();
   const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
@@ -46,7 +46,7 @@ export async function runInit(ctx: CommandContext): Promise<number> {
   if (existsSync(identityPath) && !hasFlag(ctx.args, "--force")) {
     loadIdentity(provider, identityPath, ctx);
     console.log(`Identity already exists at ${identityPath}`);
-    return 0;
+    return Promise.resolve(0);
   }
 
   ensureDir(resolveFromCwd(ctx.cwd, ".tp"));
@@ -60,7 +60,7 @@ export async function runInit(ctx: CommandContext): Promise<number> {
   rememberSessionPassphrase(ctx.cwd, passphrase);
   saveConfig(ctx.cwd, config);
   console.log(`Publisher identity: ${bytesToHex(identity.getPublicKey())}`);
-  return 0;
+  return Promise.resolve(0);
 }
 
 export async function runIdentity(ctx: CommandContext): Promise<number> {

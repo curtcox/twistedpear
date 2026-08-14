@@ -11,17 +11,21 @@ type BareFsModule = {
 class MemoryKeyValueStore implements KeyValueStore {
   private readonly values = new Map<string, Uint8Array>();
 
-  async get(key: string): Promise<Uint8Array | undefined> {
+  get(key: string): Promise<Uint8Array | undefined> {
     const value = this.values.get(key);
-    return value === undefined ? undefined : Uint8Array.from(value);
+    return Promise.resolve(
+      value === undefined ? undefined : Uint8Array.from(value),
+    );
   }
 
-  async set(key: string, value: Uint8Array): Promise<void> {
+  set(key: string, value: Uint8Array): Promise<void> {
     this.values.set(key, Uint8Array.from(value));
+    return Promise.resolve();
   }
 
-  async delete(key: string): Promise<void> {
+  delete(key: string): Promise<void> {
     this.values.delete(key);
+    return Promise.resolve();
   }
 }
 

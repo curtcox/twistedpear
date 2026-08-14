@@ -16,8 +16,8 @@ export class CompartmentBackendUnavailableError extends Error {
 export class HardenedCompartmentSandboxBackend implements SandboxBackend {
   readonly name = "hardened-compartment";
 
-  async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
+  spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
     void options;
-    throw new CompartmentBackendUnavailableError();
+    return Promise.reject(new CompartmentBackendUnavailableError());
   }
 }

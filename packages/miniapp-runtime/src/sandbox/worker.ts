@@ -28,11 +28,11 @@ interface BareWorkerConstructor {
 export class BareWorkerSandboxBackend implements SandboxBackend {
   readonly name = "bare-worker";
 
-  async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
+  spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
     const WorkerCtor = (globalThis as { Worker?: BareWorkerConstructor })
       .Worker;
     if (WorkerCtor === undefined) {
-      throw new WorkerBackendUnavailableError();
+      return Promise.reject(new WorkerBackendUnavailableError());
     }
 
     const source = prepareBundleSource(
@@ -116,21 +116,22 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
       }
     };
 
-    return {
+    return Promise.resolve({
       id: options.appId,
       isAlive(): boolean {
         return alive && !killed;
       },
-      async postMessage(message: unknown): Promise<void> {
+      postMessage(message: unknown): Promise<void> {
         if (killed) {
-          return;
+          return Promise.resolve();
         }
 
         worker.postMessage(message);
+        return Promise.resolve();
       },
-      async ping(timeoutMs: number): Promise<boolean> {
+      ping(timeoutMs: number): Promise<boolean> {
         if (killed) {
-          return false;
+          return Promise.resolve(false);
         }
 
         return new Promise((resolve) => {
@@ -153,17 +154,18 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
           worker.postMessage({ type: "ping", id });
         });
       },
-      async kill(reason: string): Promise<void> {
+      kill(reason: string): Promise<void> {
         if (killed) {
-          return;
+          return Promise.resolve();
         }
 
         killed = true;
         alive = false;
         worker.postMessage({ type: "kill", reason });
         worker.terminate();
+        return Promise.resolve();
       },
-    };
+    });
   }
 }
 

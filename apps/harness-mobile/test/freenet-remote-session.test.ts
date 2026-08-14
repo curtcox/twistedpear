@@ -36,7 +36,7 @@ describe("freenet remote-node session", () => {
     expect(session.status).toBe("connecting");
 
     const result = await probeFreenetRemoteNode(grant, {
-      open: async () => ({ ok: true }),
+      open: () => Promise.resolve({ ok: true }),
     });
     session = reduceFreenetRemoteSession(session, {
       type: "probe-result",
@@ -51,11 +51,12 @@ describe("freenet remote-node session", () => {
     const grant = enabledGrant();
     session = reduceFreenetRemoteSession(session, { type: "enable", grant });
     const result = await probeFreenetRemoteNode(grant, {
-      open: async () => ({
-        ok: false,
-        reason: "auth-failed",
-        detail: "unauthorized",
-      }),
+      open: () =>
+        Promise.resolve({
+          ok: false,
+          reason: "auth-failed",
+          detail: "unauthorized",
+        }),
     });
     session = reduceFreenetRemoteSession(session, {
       type: "probe-result",
@@ -73,16 +74,16 @@ describe("freenet remote-node session", () => {
     const grant = enabledGrant();
     let seen: { url?: string; authToken?: string } = {};
     await probeFreenetRemoteNode(grant, {
-      open: async (url, options) => {
+      open: (url, options) => {
         seen = { url, authToken: options?.authToken };
-        return { ok: true };
+        return Promise.resolve({ ok: true });
       },
     });
     expect(seen.url).toBe(grant.nodeUrl);
     expect(seen.authToken).toBe("secret-token-value");
   });
 
-  it("degrades on unavailable probe during reconnect", async () => {
+  it("degrades on unavailable probe during reconnect", () => {
     let session = idleFreenetRemoteSession();
     const grant = enabledGrant();
     session = reduceFreenetRemoteSession(session, { type: "enable", grant });
@@ -100,6 +101,7 @@ describe("freenet remote-node session", () => {
       result: { ok: false, reason: "unavailable" },
     });
     expect(session.status).toBe("degraded");
+    return Promise.resolve();
   });
 
   it("requires explicit confirmation before a contract write", () => {
@@ -124,8 +126,8 @@ describe("freenet remote-node session", () => {
     const grant = enabledGrant();
     const bad = { ...grant, nodeUrl: "http://example.com" };
     const result = await probeFreenetRemoteNode(bad, {
-      open: async () => {
-        throw new Error("should not open");
+      open: () => {
+        return Promise.reject(new Error("should not open"));
       },
     });
     expect(result).toEqual({

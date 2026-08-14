@@ -83,13 +83,17 @@ export abstract class MiniappHostLayer1Base {
     const identityBackend: IdentityBackend =
       options.identityBackend ??
       ({
-        deriveDestinationHash: async (appId, publisherPublicKey) =>
-          options.deriveDestinationHash !== undefined
-            ? options.deriveDestinationHash(appId, publisherPublicKey)
-            : `app:${appId}:${publisherPublicKey.slice(0, 16)}`,
-        sign: async (_appId, _publisherPublicKey, payload) =>
-          new TextEncoder().encode(
-            `signed:${new TextDecoder().decode(payload)}`,
+        deriveDestinationHash: (appId, publisherPublicKey) =>
+          Promise.resolve(
+            options.deriveDestinationHash !== undefined
+              ? options.deriveDestinationHash(appId, publisherPublicKey)
+              : `app:${appId}:${publisherPublicKey.slice(0, 16)}`,
+          ),
+        sign: (_appId, _publisherPublicKey, payload) =>
+          Promise.resolve(
+            new TextEncoder().encode(
+              `signed:${new TextDecoder().decode(payload)}`,
+            ),
           ),
       } satisfies IdentityBackend);
 
@@ -130,11 +134,13 @@ export abstract class MiniappHostLayer1Base {
           });
     this.hostInfoService = new HostInfoService(
       options.hostInfoBackend ?? {
-        info: async () =>
-          defaultHostInfo({
-            hostApiVersion: HOST_API_VERSION,
-            hostVersion: HOST_API_VERSION,
-          }),
+        info: () =>
+          Promise.resolve(
+            defaultHostInfo({
+              hostApiVersion: HOST_API_VERSION,
+              hostVersion: HOST_API_VERSION,
+            }),
+          ),
       },
     );
     this.aiService =
@@ -194,25 +200,29 @@ export abstract class MiniappHostLayer1Base {
     };
   }
 
-  async getGrants(
+  getGrants(
     appId: string,
     publisherPublicKey: string,
   ): Promise<GrantRecord | null> {
-    return this.options.grantStore.get(appId, publisherPublicKey);
+    return Promise.resolve(
+      this.options.grantStore.get(appId, publisherPublicKey),
+    );
   }
 
-  async setGrants(
+  setGrants(
     appId: string,
     publisherPublicKey: string,
     declared: ReadonlyArray<string>,
     requestedGrants: ReadonlyArray<string>,
   ): Promise<GrantRecord> {
-    return this.options.grantStore.set(
-      appId,
-      publisherPublicKey,
-      declared,
-      requestedGrants,
-      this.now(),
+    return Promise.resolve(
+      this.options.grantStore.set(
+        appId,
+        publisherPublicKey,
+        declared,
+        requestedGrants,
+        this.now(),
+      ),
     );
   }
 

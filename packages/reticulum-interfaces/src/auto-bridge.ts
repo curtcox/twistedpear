@@ -84,9 +84,10 @@ class AutoInterfacePeer
     await this.sendPacket(bytes);
   }
 
-  protected async closeInterface(): Promise<void> {
+  protected closeInterface(): Promise<void> {
     this.detached = true;
     this.online = false;
+    return Promise.resolve();
   }
 
   receiveFromPeer(data: Uint8Array): void {
@@ -222,8 +223,9 @@ export class AutoInterfaceBridge extends RawPacketInterface {
     return null;
   }
 
-  protected async writeBytes(): Promise<void> {
+  protected writeBytes(): Promise<void> {
     // Parent AutoInterface does not carry traffic; peers do.
+    return Promise.resolve();
   }
 
   protected async closeInterface(): Promise<void> {

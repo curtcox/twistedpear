@@ -110,9 +110,12 @@ export function createWebRtcMediaTrackPlaneOpener(
           });
     let closed = false;
     return {
-      async send() {
-        if (closed) throw new Error("WebRTC media-track transport is closed.");
-        return { queuedBytes: 0, droppedOldest: 0 };
+      send() {
+        if (closed)
+          return Promise.reject(
+            new Error("WebRTC media-track transport is closed."),
+          );
+        return Promise.resolve({ queuedBytes: 0, droppedOldest: 0 });
       },
       quality: () =>
         route.quality?.() ?? {
@@ -125,7 +128,7 @@ export function createWebRtcMediaTrackPlaneOpener(
           samples: 0,
           confidence: "low",
         },
-      async close() {
+      close() {
         closed = true;
         unsubscribe?.();
         try {
@@ -133,6 +136,7 @@ export function createWebRtcMediaTrackPlaneOpener(
         } catch {
           /* ignore stop races */
         }
+        return Promise.resolve();
       },
     };
   };
@@ -161,9 +165,12 @@ export function createDelegatedWebRtcMediaPlaneOpener(
     const attached = await attach(input);
     let closed = false;
     return {
-      async send() {
-        if (closed) throw new Error("WebRTC media-track transport is closed.");
-        return { queuedBytes: 0, droppedOldest: 0 };
+      send() {
+        if (closed)
+          return Promise.reject(
+            new Error("WebRTC media-track transport is closed."),
+          );
+        return Promise.resolve({ queuedBytes: 0, droppedOldest: 0 });
       },
       quality: () =>
         attached.quality?.() ?? {
@@ -196,21 +203,23 @@ function isLiveWebRtcTrackDemand(demand: StreamDemand): boolean {
 export function createPearsBulkAppendPlaneOpener(
   options: PearsBulkAppendPlaneOpenerOptions,
 ): PlaneMediaTransportOpener {
-  return async (input) => {
+  return (input) => {
     if (input.admission.plane !== "pears-bulk") {
-      throw new Error(
-        "Pears-bulk plane opener was asked for a different admitted plane.",
+      return Promise.reject(
+        new Error(
+          "Pears-bulk plane opener was asked for a different admitted plane.",
+        ),
       );
     }
     if (!isPearsBulkAdmittedRung(input.demand, input.admission.rung)) {
-      throw new Error(
-        "Pears-bulk plane admits derived or snapshot media only.",
+      return Promise.reject(
+        new Error("Pears-bulk plane admits derived or snapshot media only."),
       );
     }
     let closed = false;
     let sequence = 0;
     let lastPath: string | null = null;
-    return {
+    return Promise.resolve({
       async send(frame) {
         if (closed) throw new Error("Pears-bulk media transport is closed.");
         if (frame.byteLength < 1 || frame.byteLength > 1024 * 1024) {
@@ -235,10 +244,11 @@ export function createPearsBulkAppendPlaneOpener(
         samples: lastPath === null ? 0 : sequence,
         confidence: "low",
       }),
-      async close() {
+      close() {
         closed = true;
+        return Promise.resolve();
       },
-    };
+    });
   };
 }
 

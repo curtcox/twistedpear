@@ -22,7 +22,8 @@ export class SimulatedOpticalChannel
     if (options.peer) this.linkPeer(options.peer);
   }
 
-  async display(frames: ReadonlyArray<Uint8Array>): Promise<void> {
+  display(frames: ReadonlyArray<Uint8Array>): Promise<void> {
     this.deliverToPeer(frames);
+    return Promise.resolve();
   }
 }

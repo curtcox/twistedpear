@@ -513,7 +513,7 @@ export class LinkLayer4 extends LinkLayer3 {
     return shouldMatchLinkHops(stepped.actions);
   }
 
-  protected async handleChannelPacket(packet: Packet): Promise<void> {
+  protected handleChannelPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
     if (
       !shouldDispatchLinkPlaintextNow(
@@ -526,13 +526,14 @@ export class LinkLayer4 extends LinkLayer3 {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
 
     this.getChannel().receive(plaintext!);
+    return Promise.resolve();
   }
 
-  protected async handleResourceCancelPacket(
+  protected handleResourceCancelPacket(
     packet: Packet,
     incoming: boolean,
   ): Promise<void> {
@@ -548,7 +549,7 @@ export class LinkLayer4 extends LinkLayer3 {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
 
     const splitStepped = stepSplitResourceHashmapUpdatePacketWithActions(
@@ -576,7 +577,7 @@ export class LinkLayer4 extends LinkLayer3 {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
     const resources = incoming
       ? this.incomingResourcesList
@@ -594,12 +595,13 @@ export class LinkLayer4 extends LinkLayer3 {
         )
       ) {
         resource.cancel();
-        return;
+        return Promise.resolve();
       }
     }
+    return Promise.resolve();
   }
 
-  async handleResourceProof(packet: Packet): Promise<void> {
+  handleResourceProof(packet: Packet): Promise<void> {
     if (
       !shouldAcceptResourceProofPayloadNow(
         stepAcceptResourceProofPayloadWithActions(
@@ -611,7 +613,7 @@ export class LinkLayer4 extends LinkLayer3 {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
     const stepped = stepSplitResourceProofWithActions(
       initialSplitResourceProofState(),
@@ -636,7 +638,7 @@ export class LinkLayer4 extends LinkLayer3 {
         ).actions,
       )
     ) {
-      return;
+      return Promise.resolve();
     }
     const proofFields = split!;
     for (const resource of this.outgoingResourcesList) {
@@ -652,15 +654,17 @@ export class LinkLayer4 extends LinkLayer3 {
         )
       ) {
         resource.validateProof(packet.data);
-        return;
+        return Promise.resolve();
       }
     }
+    return Promise.resolve();
   }
 
-  protected async handleResourcePartPacket(packet: Packet): Promise<void> {
+  protected handleResourcePartPacket(packet: Packet): Promise<void> {
     for (const resource of this.incomingResourcesList) {
       resource.receivePart(packet);
     }
+    return Promise.resolve();
   }
 
   protected async handleTeardownPacket(packet: Packet): Promise<void> {

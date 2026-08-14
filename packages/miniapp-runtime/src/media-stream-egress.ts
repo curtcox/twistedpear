@@ -243,23 +243,23 @@ export function createPeerRoutePlaneOpeners(
 export function createCasDerivedPlaneOpener(
   options: CasDerivedPlaneOpenerOptions,
 ): PlaneMediaTransportOpener {
-  return async (input) => {
+  return (input) => {
     if (input.admission.plane !== "cas") {
-      throw new Error(
-        "CAS plane opener was asked for a different admitted plane.",
+      return Promise.reject(
+        new Error("CAS plane opener was asked for a different admitted plane."),
       );
     }
     if (
       input.demand.tierId !== "derived" &&
       input.admission.rung !== "cas-snapshot"
     ) {
-      throw new Error(
-        "CAS plane admits derived-tier or cas-snapshot media only.",
+      return Promise.reject(
+        new Error("CAS plane admits derived-tier or cas-snapshot media only."),
       );
     }
     let closed = false;
     let lastKey: string | null = null;
-    return {
+    return Promise.resolve({
       async send(frame) {
         if (closed) throw new Error("CAS media transport is closed.");
         if (frame.byteLength < 1 || frame.byteLength > 256 * 1024) {
@@ -283,9 +283,10 @@ export function createCasDerivedPlaneOpener(
         samples: lastKey === null ? 0 : 1,
         confidence: "low",
       }),
-      async close() {
+      close() {
         closed = true;
+        return Promise.resolve();
       },
-    };
+    });
   };
 }

@@ -88,7 +88,7 @@ function pcm16ToFloat(bytes: Uint8Array): number[] {
   return samples;
 }
 
-export async function nativeDeviceActuate(
+export function nativeDeviceActuate(
   classId: string,
   command: Readonly<Record<string, unknown>>,
 ): Promise<void> {
@@ -96,9 +96,11 @@ export async function nativeDeviceActuate(
     actuateNativeHaptics(
       Array.isArray(command.patternMs) ? (command.patternMs as number[]) : [40],
     );
-    return;
+    return Promise.resolve();
   }
-  throw new Error(`No native actuate effect for device class "${classId}".`);
+  return Promise.reject(
+    new Error(`No native actuate effect for device class "${classId}".`),
+  );
 }
 
 function actuateNativeHaptics(patternMs: ReadonlyArray<number>): void {

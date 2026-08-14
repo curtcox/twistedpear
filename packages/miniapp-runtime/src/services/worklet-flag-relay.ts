@@ -227,7 +227,7 @@ export function createWorkletFlagRelayService(
         onlineCount: interfaces.filter((entry) => entry.online).length,
       };
     },
-    async diagnostics(): Promise<ReadonlyArray<InterfaceDiagnostic>> {
+    diagnostics(): Promise<ReadonlyArray<InterfaceDiagnostic>> {
       void policy;
       const flags = controller.getFlags();
       const managed = MANAGED_KINDS.map((kind) => {
@@ -253,14 +253,14 @@ export function createWorkletFlagRelayService(
         "ntfy",
         "freenet",
       ];
-      return [
+      return Promise.resolve([
         ...managed,
         ...unsupported.map((kind) => ({
           kind,
           state: "unsupported" as const,
           reason: "not managed by this worklet control plane",
         })),
-      ];
+      ]);
     },
   };
 }

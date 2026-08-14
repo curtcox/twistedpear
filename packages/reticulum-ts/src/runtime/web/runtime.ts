@@ -149,20 +149,24 @@ class IndexedDbKeyValueStore implements KeyValueStore {
 }
 
 class UnsupportedTcpFactory implements TcpFactory {
-  async connect(_options: TcpConnectOptions): Promise<DuplexConnection> {
-    throw new Error(
-      "TCP is unavailable in the web runtime; use WebSocketClientInterface",
+  connect(_options: TcpConnectOptions): Promise<DuplexConnection> {
+    return Promise.reject(
+      new Error(
+        "TCP is unavailable in the web runtime; use WebSocketClientInterface",
+      ),
     );
   }
 
-  async listen(_options: TcpListenOptions): Promise<TcpListener> {
-    throw new Error("TCP listen is unavailable in the web runtime");
+  listen(_options: TcpListenOptions): Promise<TcpListener> {
+    return Promise.reject(
+      new Error("TCP listen is unavailable in the web runtime"),
+    );
   }
 }
 
 class UnsupportedUdpFactory implements UdpFactory {
-  async bind(_host: string, _port: number): Promise<BoundDatagramSocket> {
-    throw new Error("UDP is unavailable in the web runtime");
+  bind(_host: string, _port: number): Promise<BoundDatagramSocket> {
+    return Promise.reject(new Error("UDP is unavailable in the web runtime"));
   }
 }
 

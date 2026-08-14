@@ -118,7 +118,7 @@ export class Reticulum {
     return () => this.interfaceObservers.delete(observer);
   }
 
-  async addPipeInterface(
+  addPipeInterface(
     options: Omit<PipeInterfaceOptions, "provider">,
   ): Promise<PipeInterface> {
     const iface = new PipeInterface(this.provider, {
@@ -126,7 +126,7 @@ export class Reticulum {
       provider: this.provider,
     });
     this.registerInterface(iface);
-    return iface;
+    return Promise.resolve(iface);
   }
 
   async addTcpClientInterface(
@@ -206,13 +206,15 @@ export class Reticulum {
     this.transport.requestPath(destinationHash, onInterface ?? null);
   }
 
-  async awaitPath(
+  awaitPath(
     destinationHash: Uint8Array,
     timeoutSeconds?: number,
   ): Promise<boolean> {
-    return this.transport.awaitPath(
-      destinationHash,
-      timeoutSeconds ?? PATH_REQUEST_TIMEOUT_SECONDS,
+    return Promise.resolve(
+      this.transport.awaitPath(
+        destinationHash,
+        timeoutSeconds ?? PATH_REQUEST_TIMEOUT_SECONDS,
+      ),
     );
   }
 

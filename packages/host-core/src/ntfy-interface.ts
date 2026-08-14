@@ -118,13 +118,14 @@ export class NtfyPacketInterface extends RawPacketInterface {
     this.pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
   }
 
-  async start(): Promise<void> {
-    if (this.isClosed) return;
+  start(): Promise<void> {
+    if (this.isClosed) return Promise.resolve();
     this.online = true;
     this.abortController = new AbortController();
     if (this.incoming) {
       this.pollTask = this.runPollLoop();
     }
+    return Promise.resolve();
   }
 
   protected decodePacket(frame: Uint8Array): Packet | null {

@@ -62,36 +62,37 @@ export class ProductionCapabilityAdapter {
       brokerAudit: (entry) => this.audit.push(entry),
       enforceBrokerCapabilities: !weakenBrokerCapabilityGate,
       identityBackend: {
-        deriveDestinationHash: async (appId, publisher) => {
+        deriveDestinationHash: (appId, publisher) => {
           const id = `${appId}:${publisher}:identity`;
           this.identities.add(id);
-          return id;
+          return Promise.resolve(id);
         },
-        sign: async (appId, publisher, payload) => {
+        sign: (appId, publisher, payload) => {
           this.identities.add(`${appId}:${publisher}:identity`);
           this.egress.push({
             at: this.nowValue,
             appId,
             operation: "identity.sign",
           });
-          return new Uint8Array([0x53, ...payload]);
+          return Promise.resolve(new Uint8Array([0x53, ...payload]));
         },
       },
       presenceBackend: {
-        snapshot: async () => ({
-          onlineInterfaces: 1,
-          preferredInterface: "sim",
-          peers: 1,
-        }),
+        snapshot: () =>
+          Promise.resolve({
+            onlineInterfaces: 1,
+            preferredInterface: "sim",
+            peers: 1,
+          }),
       },
       resourceBackend: {
-        fetch: async (appId) => {
+        fetch: (appId) => {
           this.egress.push({
             at: this.nowValue,
             appId,
             operation: "resource.fetch",
           });
-          return new Uint8Array([0x52]);
+          return Promise.resolve(new Uint8Array([0x52]));
         },
       },
       casBackend: {
@@ -105,7 +106,7 @@ export class ProductionCapabilityAdapter {
           });
           return { t256, size: content.length };
         },
-        get: async (_appId, t256) => this.bytes.get(`cas:${t256}`),
+        get: (_appId, t256) => Promise.resolve(this.bytes.get(`cas:${t256}`)),
       },
     });
   }
@@ -273,26 +274,30 @@ function operationFor(capability: MiniappCapability): {
 
 class MemoryBackend implements GrantKeyValueStore, MiniappKvStoreBackend {
   private readonly values = new Map<string, Uint8Array>();
-  async get(key: string): Promise<Uint8Array | null> {
-    return this.values.get(key)?.slice() ?? null;
+  get(key: string): Promise<Uint8Array | null> {
+    return Promise.resolve(this.values.get(key)?.slice() ?? null);
   }
-  async set(key: string, value: Uint8Array): Promise<void> {
+  set(key: string, value: Uint8Array): Promise<void> {
     this.values.set(key, value.slice());
+    return Promise.resolve();
   }
-  async delete(key: string): Promise<void> {
+  delete(key: string): Promise<void> {
     this.values.delete(key);
+    return Promise.resolve();
   }
-  async list(prefix: string): Promise<readonly string[]> {
-    return [...this.values.keys()]
-      .filter((key) => key.startsWith(prefix))
-      .sort();
+  list(prefix: string): Promise<readonly string[]> {
+    return Promise.resolve(
+      [...this.values.keys()].filter((key) => key.startsWith(prefix)).sort(),
+    );
   }
 }
 
 const unusedSandbox: SandboxBackend = {
   name: "simulation-unused",
-  async spawn() {
-    throw new Error("simulation adapter does not launch a sandbox");
+  spawn() {
+    return Promise.reject(
+      new Error("simulation adapter does not launch a sandbox"),
+    );
   },
 };
 

@@ -231,9 +231,10 @@ export class WebRtcRouteController {
       rendezvous: adapter.kind,
       dataPlane: "webrtc",
       route,
-      close: async () => {
+      close: () => {
         route.close();
         this.routes.delete(peer.fingerprint);
+        return Promise.resolve();
       },
     };
   }

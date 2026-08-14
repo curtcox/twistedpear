@@ -68,15 +68,19 @@ export async function startSeederRole(
   const resourceState = () => loadSeederState(options.stateDir);
 
   attachPackageResourceServer(destination, {
-    async listVersions() {
-      return listSeederArchives(resourceState()).map((entry) => ({
-        version: entry.version,
-        packageHash: entry.packageHash,
-        size: entry.size,
-      }));
+    listVersions() {
+      return Promise.resolve(
+        listSeederArchives(resourceState()).map((entry) => ({
+          version: entry.version,
+          packageHash: entry.packageHash,
+          size: entry.size,
+        })),
+      );
     },
-    async fetchArchive(version) {
-      return readSeederArchive(options.stateDir, resourceState(), version);
+    fetchArchive(version) {
+      return Promise.resolve(
+        readSeederArchive(options.stateDir, resourceState(), version),
+      );
     },
   });
 

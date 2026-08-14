@@ -34,17 +34,19 @@ export class PeerDiscoveryRegistry {
   get(kind: PeerDiscoveryKind): PeerDiscoveryAdapter | undefined {
     return this.adapters.get(kind);
   }
-  async diagnostics(): Promise<
+  diagnostics(): Promise<
     ReadonlyArray<{
       readonly kind: PeerDiscoveryKind;
       readonly availability: DiscoveryAvailability;
     }>
   > {
-    return Promise.all(
-      [...this.adapters.values()].map(async (adapter) => ({
-        kind: adapter.kind,
-        availability: await adapter.availability(),
-      })),
+    return Promise.resolve(
+      Promise.all(
+        [...this.adapters.values()].map(async (adapter) => ({
+          kind: adapter.kind,
+          availability: await adapter.availability(),
+        })),
+      ),
     );
   }
   async select(
@@ -362,19 +364,24 @@ export class MemoryPairingDriver implements PeerPairingDriver {
 }
 export class MemoryPeerDiscoveryAdapter implements PeerDiscoveryAdapter {
   readonly kind: PeerDiscoveryKind = "manual";
-  async availability(): Promise<DiscoveryAvailability> {
-    return { state: "available" };
+  availability(): Promise<DiscoveryAvailability> {
+    return Promise.resolve({ state: "available" });
   }
   async *offer(
     _envelope: Uint8Array,
     _options: OfferOptions,
-  ): AsyncIterable<DiscoveryEvent> {}
-  async *accept(_options: AcceptOptions): AsyncIterable<DiscoveryEvent> {}
-  async answer(
-    _session: DiscoverySession,
-    _envelope: Uint8Array,
-  ): Promise<void> {}
-  async cancel(_sessionId: string): Promise<void> {}
+  ): AsyncIterable<DiscoveryEvent> {
+    await Promise.resolve();
+  }
+  async *accept(_options: AcceptOptions): AsyncIterable<DiscoveryEvent> {
+    await Promise.resolve();
+  }
+  answer(_session: DiscoverySession, _envelope: Uint8Array): Promise<void> {
+    return Promise.resolve();
+  }
+  cancel(_sessionId: string): Promise<void> {
+    return Promise.resolve();
+  }
 }
 export { ManualPeerDiscoveryAdapter } from "./manual.js";
 export type {

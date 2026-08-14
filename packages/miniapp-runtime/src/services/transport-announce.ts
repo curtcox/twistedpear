@@ -34,15 +34,18 @@ export class TransportBackedAnnounceService implements AnnounceBackend {
 export class MemoryAnnounceTransport implements AnnounceTransport {
   private readonly buckets = new Map<string, AnnounceEvent[]>();
   constructor(private readonly maxEventsPerNamespace = 256) {}
-  async publish(namespace: string, event: AnnounceEvent): Promise<void> {
+  publish(namespace: string, event: AnnounceEvent): Promise<void> {
     const bucket = this.buckets.get(namespace) ?? [];
     bucket.push({ ...event, appData: event.appData.slice() });
     this.buckets.set(namespace, bucket.slice(-this.maxEventsPerNamespace));
+    return Promise.resolve();
   }
-  async snapshot(namespace: string): Promise<ReadonlyArray<AnnounceEvent>> {
-    return (this.buckets.get(namespace) ?? []).map((event) => ({
-      ...event,
-      appData: event.appData.slice(),
-    }));
+  snapshot(namespace: string): Promise<ReadonlyArray<AnnounceEvent>> {
+    return Promise.resolve(
+      (this.buckets.get(namespace) ?? []).map((event) => ({
+        ...event,
+        appData: event.appData.slice(),
+      })),
+    );
   }
 }

@@ -51,8 +51,8 @@ function decodeCode(code: string, now: number): Uint8Array {
 export class ManualPeerDiscoveryAdapter implements PeerDiscoveryAdapter {
   readonly kind = "manual" as const;
   constructor(private readonly options: ManualDiscoveryAdapterOptions) {}
-  async availability(): Promise<{ readonly state: "available" }> {
-    return { state: "available" };
+  availability(): Promise<{ readonly state: "available" }> {
+    return Promise.resolve({ state: "available" });
   }
   async *offer(
     envelope: Uint8Array,

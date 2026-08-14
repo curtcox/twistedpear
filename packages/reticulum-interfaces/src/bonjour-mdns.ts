@@ -40,9 +40,9 @@ export function createMdnsBonjourBridge(
       events = next;
     },
 
-    async start() {
+    start() {
       if (mdns !== null) {
-        return;
+        return Promise.resolve();
       }
 
       mdns = createMdns();
@@ -85,17 +85,19 @@ export function createMdnsBonjourBridge(
       mdns.query({
         questions: [{ name: serviceType, type: "PTR" }],
       });
+      return Promise.resolve();
     },
 
-    async stop() {
+    stop() {
       mdns?.destroy();
       mdns = null;
       advertised.clear();
+      return Promise.resolve();
     },
 
-    async advertise(record) {
+    advertise(record) {
       if (mdns === null) {
-        throw new Error("Bonjour bridge is not started");
+        return Promise.reject(new Error("Bonjour bridge is not started"));
       }
 
       advertised.set(record.id, record);
@@ -114,6 +116,7 @@ export function createMdnsBonjourBridge(
           { name: target, type: "AAAA", ttl: 120, data: record.host },
         ],
       });
+      return Promise.resolve();
     },
   };
 

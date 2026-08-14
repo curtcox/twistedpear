@@ -21,22 +21,24 @@ import { AnnounceService } from "./announce.js";
 export class MemoryKvStoreBackend implements MiniappKvStoreBackend {
   private readonly values = new Map<string, Uint8Array>();
 
-  async get(key: string): Promise<Uint8Array | null> {
-    return this.values.get(key)?.slice() ?? null;
+  get(key: string): Promise<Uint8Array | null> {
+    return Promise.resolve(this.values.get(key)?.slice() ?? null);
   }
 
-  async set(key: string, value: Uint8Array): Promise<void> {
+  set(key: string, value: Uint8Array): Promise<void> {
     this.values.set(key, value.slice());
+    return Promise.resolve();
   }
 
-  async delete(key: string): Promise<void> {
+  delete(key: string): Promise<void> {
     this.values.delete(key);
+    return Promise.resolve();
   }
 
-  async list(prefix: string): Promise<ReadonlyArray<string>> {
-    return [...this.values.keys()]
-      .filter((key) => key.startsWith(prefix))
-      .sort();
+  list(prefix: string): Promise<ReadonlyArray<string>> {
+    return Promise.resolve(
+      [...this.values.keys()].filter((key) => key.startsWith(prefix)).sort(),
+    );
   }
 }
 
@@ -60,11 +62,11 @@ export class MemoryBeeBackend implements StorageBeeBackend {
     return store;
   }
 
-  async get(appId: string, key: string): Promise<Uint8Array | null> {
-    return this.store(appId).get(key)?.value.slice() ?? null;
+  get(appId: string, key: string): Promise<Uint8Array | null> {
+    return Promise.resolve(this.store(appId).get(key)?.value.slice() ?? null);
   }
 
-  async put(appId: string, key: string, value: Uint8Array): Promise<void> {
+  put(appId: string, key: string, value: Uint8Array): Promise<void> {
     if (this.quotaBytes !== undefined) {
       const store = this.store(appId);
       let used = 0;
@@ -72,20 +74,24 @@ export class MemoryBeeBackend implements StorageBeeBackend {
         if (existingKey !== key) used += entry.value.length;
       }
       if (used + value.length > this.quotaBytes) {
-        throw new StorageBeeQuotaError(
-          `hyperbee quota exceeded for ${appId}: ${used + value.length} > ${this.quotaBytes}`,
+        return Promise.reject(
+          new StorageBeeQuotaError(
+            `hyperbee quota exceeded for ${appId}: ${used + value.length} > ${this.quotaBytes}`,
+          ),
         );
       }
     }
     this.seq += 1;
     this.store(appId).set(key, { value: value.slice(), seq: this.seq });
+    return Promise.resolve();
   }
 
-  async del(appId: string, key: string): Promise<void> {
+  del(appId: string, key: string): Promise<void> {
     this.store(appId).delete(key);
+    return Promise.resolve();
   }
 
-  async list(
+  list(
     appId: string,
     options: StorageBeeListOptions = {},
   ): Promise<ReadonlyArray<StorageBeeEntry>> {
@@ -97,9 +103,9 @@ export class MemoryBeeBackend implements StorageBeeBackend {
       )
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([key, { value, seq }]) => ({ key, value: value.slice(), seq }));
-    return options.limit === undefined
-      ? entries
-      : entries.slice(0, options.limit);
+    return Promise.resolve(
+      options.limit === undefined ? entries : entries.slice(0, options.limit),
+    );
   }
 
   descriptor(appId: string): StorageBeeDescriptor {
@@ -114,23 +120,24 @@ export class LoopbackResourceBackend implements ResourceFetchBackend {
     this.resources.set(resourceId, bytes.slice());
   }
 
-  async fetch(
-    _appId: string,
-    request: ResourceFetchRequest,
-  ): Promise<Uint8Array> {
+  fetch(_appId: string, request: ResourceFetchRequest): Promise<Uint8Array> {
     const bytes = this.resources.get(request.resourceId);
     if (bytes === undefined) {
-      throw new Error(`Resource not found: ${request.resourceId}`);
+      return Promise.reject(
+        new Error(`Resource not found: ${request.resourceId}`),
+      );
     }
     if (
       request.budgetBytes !== undefined &&
       bytes.length > request.budgetBytes
     ) {
-      throw new Error(
-        `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
+      return Promise.reject(
+        new Error(
+          `Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`,
+        ),
       );
     }
-    return bytes.slice();
+    return Promise.resolve(bytes.slice());
   }
 }
 
@@ -143,8 +150,8 @@ export class StaticPresenceBackend implements PresenceBackend {
     },
   ) {}
 
-  async snapshot(): Promise<PresenceSnapshot> {
-    return this.value;
+  snapshot(): Promise<PresenceSnapshot> {
+    return Promise.resolve(this.value);
   }
 }
 

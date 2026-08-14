@@ -53,18 +53,20 @@ export class SimulatedBlePipe implements BlePipe {
     this.events = events;
   }
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     this.isConnected = true;
     this.events.onConnect?.();
+    return Promise.resolve();
   }
 
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
     if (!this.isConnected) {
-      return;
+      return Promise.resolve();
     }
 
     this.isConnected = false;
     this.events.onDisconnect?.();
+    return Promise.resolve();
   }
 
   async write(data: Uint8Array): Promise<void> {

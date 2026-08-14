@@ -27,7 +27,8 @@ export class SimulatedAcousticChannel
     if (options.peer) this.linkPeer(options.peer);
   }
 
-  async transmit(frames: ReadonlyArray<Uint8Array>): Promise<void> {
+  transmit(frames: ReadonlyArray<Uint8Array>): Promise<void> {
     this.deliverToPeer(frames, this.latencyMs);
+    return Promise.resolve();
   }
 }

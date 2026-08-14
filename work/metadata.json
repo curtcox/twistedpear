@@ -517,6 +517,8 @@
       "requires": [],
       "verify": "npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/require-await",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": ["typed-lint-ratchet.json"],
       "notes": "Imported from typed-lint-ratchet.json: 159 baselined @typescript-eslint/require-await entries across 57 files."
     },
     "RELAY": {
