@@ -69,126 +69,154 @@ export async function runIdentity(ctx: CommandContext): Promise<number> {
   const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
   const [operation, suboperation] = ctx.args;
 
-  if (operation === "export") {
-    const identity = loadIdentity(provider, identityPath, ctx);
-    const backupPassphrase = await readRequiredSecret(ctx, "Backup passphrase");
-    const confirmation = await readRequiredSecret(
-      ctx,
-      "Confirm backup passphrase",
-    );
-    validateNewIdentityPassphrase(backupPassphrase, confirmation);
-    const outputPath = resolveFromCwd(
-      ctx.cwd,
-      parseFlag(ctx.args, "--out") ?? "identity.tpidentity",
-    );
-    if (existsSync(outputPath) && !hasFlag(ctx.args, "--force"))
-      throw new Error(`Refusing to overwrite ${outputPath}`);
-    const backup = encryptIdentityBackup(provider, identity, backupPassphrase);
-    try {
-      atomicWritePrivateFile(outputPath, backup);
-    } finally {
-      backup.fill(0);
-    }
-    console.log(
-      `Exported encrypted identity ${identityHashHex(identity).slice(0, 12)} to ${outputPath}`,
-    );
-    return 0;
-  }
-
-  if (operation === "import") {
-    const input = ctx.args[1];
-    if (input === undefined || input.startsWith("--"))
-      throw new Error("tp identity import requires a .tpidentity file");
-    const backupPassphrase = await readRequiredSecret(ctx, "Backup passphrase");
-    const candidate = decryptIdentityBackup(
-      provider,
-      readBytes(resolveFromCwd(ctx.cwd, input)),
-      backupPassphrase,
-    );
-    if (existsSync(identityPath)) {
-      if (!hasFlag(ctx.args, "--force")) {
-        throw new Error(
-          "An identity already exists; inspect the candidate and repeat with --force to replace it",
-        );
-      }
-      await confirmIdentityReplacement(
-        ctx,
-        loadIdentity(provider, identityPath, ctx, false),
-        candidate,
-      );
-    }
-    const vaultPassphrase = requiredPassphrase(ctx);
-    validateNewIdentityPassphrase(vaultPassphrase, vaultPassphrase);
-    persistEncryptedIdentity(
-      provider,
-      identityPath,
-      candidate,
-      vaultPassphrase,
-    );
-    console.log(
-      `Imported identity ${identityHashHex(candidate).slice(0, 12)}; restart the host`,
-    );
-    return 0;
-  }
-
-  if (operation === "recovery" && suboperation === "show") {
-    const identity = loadIdentity(provider, identityPath, ctx);
-    const words = identityToRecoveryWords(identity);
-    console.log(
-      "Anyone with these words is you. Store them offline. TwistedPear cannot reset or revoke them.",
-    );
-    console.log(`TwistedPear identity 1/2: ${words.first}`);
-    console.log(`TwistedPear identity 2/2: ${words.second}`);
-    return 0;
-  }
-
-  if (operation === "recovery" && suboperation === "import") {
-    const first = await readRequiredSecret(ctx, "TwistedPear identity 1/2");
-    const second = await readRequiredSecret(ctx, "TwistedPear identity 2/2");
-    const candidate = identityFromRecoveryWords(provider, { first, second });
-    if (existsSync(identityPath)) {
-      if (!hasFlag(ctx.args, "--force")) {
-        throw new Error(
-          "An identity already exists; repeat with --force to replace it",
-        );
-      }
-      await confirmIdentityReplacement(
-        ctx,
-        loadIdentity(provider, identityPath, ctx, false),
-        candidate,
-      );
-    }
-    const vaultPassphrase = requiredPassphrase(ctx);
-    validateNewIdentityPassphrase(vaultPassphrase, vaultPassphrase);
-    persistEncryptedIdentity(
-      provider,
-      identityPath,
-      candidate,
-      vaultPassphrase,
-    );
-    console.log(
-      `Recovered identity ${identityHashHex(candidate).slice(0, 12)}; restart the host`,
-    );
-    return 0;
-  }
-
-  if (operation === "change-passphrase") {
-    const identity = loadIdentity(provider, identityPath, ctx);
-    const next = await readRequiredSecret(ctx, "New identity passphrase");
-    const confirmation = await readRequiredSecret(
-      ctx,
-      "Confirm new identity passphrase",
-    );
-    validateNewIdentityPassphrase(next, confirmation);
-    persistEncryptedIdentity(provider, identityPath, identity, next);
-    console.log(
-      `Changed passphrase for identity ${identityHashHex(identity).slice(0, 12)}`,
-    );
-    return 0;
-  }
+  if (operation === "export") return exportIdentity(ctx, provider, identityPath);
+  if (operation === "import") return importIdentity(ctx, provider, identityPath);
+  if (operation === "recovery" && suboperation === "show")
+    return showRecovery(ctx, provider, identityPath);
+  if (operation === "recovery" && suboperation === "import")
+    return importRecovery(ctx, provider, identityPath);
+  if (operation === "change-passphrase")
+    return changePassphrase(ctx, provider, identityPath);
 
   printHelp("identity");
   return 1;
+}
+
+async function exportIdentity(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+): Promise<number> {
+  const identity = loadIdentity(provider, identityPath, ctx);
+  const backupPassphrase = await readRequiredSecret(ctx, "Backup passphrase");
+  const confirmation = await readRequiredSecret(
+    ctx,
+    "Confirm backup passphrase",
+  );
+  validateNewIdentityPassphrase(backupPassphrase, confirmation);
+  const outputPath = resolveFromCwd(
+    ctx.cwd,
+    parseFlag(ctx.args, "--out") ?? "identity.tpidentity",
+  );
+  if (existsSync(outputPath) && !hasFlag(ctx.args, "--force"))
+    throw new Error(`Refusing to overwrite ${outputPath}`);
+  const backup = encryptIdentityBackup(provider, identity, backupPassphrase);
+  try {
+    atomicWritePrivateFile(outputPath, backup);
+  } finally {
+    backup.fill(0);
+  }
+  console.log(
+    `Exported encrypted identity ${identityHashHex(identity).slice(0, 12)} to ${outputPath}`,
+  );
+  return 0;
+}
+
+async function importIdentity(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+): Promise<number> {
+  const input = ctx.args[1];
+  if (input === undefined || input.startsWith("--"))
+    throw new Error("tp identity import requires a .tpidentity file");
+  const backupPassphrase = await readRequiredSecret(ctx, "Backup passphrase");
+  const candidate = decryptIdentityBackup(
+    provider,
+    readBytes(resolveFromCwd(ctx.cwd, input)),
+    backupPassphrase,
+  );
+  await maybeReplaceIdentity(ctx, provider, identityPath, candidate);
+  persistImportedIdentity(ctx, provider, identityPath, candidate);
+  console.log(
+    `Imported identity ${identityHashHex(candidate).slice(0, 12)}; restart the host`,
+  );
+  return 0;
+}
+
+async function showRecovery(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+): Promise<number> {
+  const identity = loadIdentity(provider, identityPath, ctx);
+  const words = identityToRecoveryWords(identity);
+  console.log(
+    "Anyone with these words is you. Store them offline. TwistedPear cannot reset or revoke them.",
+  );
+  console.log(`TwistedPear identity 1/2: ${words.first}`);
+  console.log(`TwistedPear identity 2/2: ${words.second}`);
+  return 0;
+}
+
+async function importRecovery(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+): Promise<number> {
+  const first = await readRequiredSecret(ctx, "TwistedPear identity 1/2");
+  const second = await readRequiredSecret(ctx, "TwistedPear identity 2/2");
+  const candidate = identityFromRecoveryWords(provider, { first, second });
+  await maybeReplaceIdentity(
+    ctx,
+    provider,
+    identityPath,
+    candidate,
+    "An identity already exists; repeat with --force to replace it",
+  );
+  persistImportedIdentity(ctx, provider, identityPath, candidate);
+  console.log(
+    `Recovered identity ${identityHashHex(candidate).slice(0, 12)}; restart the host`,
+  );
+  return 0;
+}
+
+async function changePassphrase(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+): Promise<number> {
+  const identity = loadIdentity(provider, identityPath, ctx);
+  const next = await readRequiredSecret(ctx, "New identity passphrase");
+  const confirmation = await readRequiredSecret(
+    ctx,
+    "Confirm new identity passphrase",
+  );
+  validateNewIdentityPassphrase(next, confirmation);
+  persistEncryptedIdentity(provider, identityPath, identity, next);
+  console.log(
+    `Changed passphrase for identity ${identityHashHex(identity).slice(0, 12)}`,
+  );
+  return 0;
+}
+
+async function maybeReplaceIdentity(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+  candidate: Identity,
+  existingMessage = "An identity already exists; inspect the candidate and repeat with --force to replace it",
+): Promise<void> {
+  if (!existsSync(identityPath)) return;
+  if (!hasFlag(ctx.args, "--force")) {
+    throw new Error(existingMessage);
+  }
+  await confirmIdentityReplacement(
+    ctx,
+    loadIdentity(provider, identityPath, ctx, false),
+    candidate,
+  );
+}
+
+function persistImportedIdentity(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+  candidate: Identity,
+): void {
+  const vaultPassphrase = requiredPassphrase(ctx);
+  validateNewIdentityPassphrase(vaultPassphrase, vaultPassphrase);
+  persistEncryptedIdentity(provider, identityPath, candidate, vaultPassphrase);
 }
 
 export async function runTrust(ctx: CommandContext): Promise<number> {

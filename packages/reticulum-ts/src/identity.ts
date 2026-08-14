@@ -269,56 +269,11 @@ export class Identity extends IdentityBase {
     const frameOk = shouldAcceptIdentityCiphertextFrameNow(
       frameStepped.actions,
     );
-    let plaintext: Uint8Array | null = null;
-    let ratchetId: Uint8Array | null = null;
-
-    if (frameOk) {
-      const peerPublicBytes = split!.ephemeralPublicKey;
-      const ciphertext = split!.tokenCiphertext;
-
-      if (
-        shouldAttemptIdentityRatchetDecryptNow(
-          stepAttemptIdentityRatchetDecryptWithActions(
-            initialAttemptIdentityRatchetDecryptState(),
-            {
-              kind: "identity/attempt-ratchet-decrypt-gate",
-              ratchetsPresent: options.ratchets !== undefined,
-            },
-          ).actions,
-        )
-      ) {
-        for (const ratchet of options.ratchets!) {
-          try {
-            const ratchetPublicBytes = IdentityBase.ratchetPublicBytes(
-              this.provider,
-              ratchet,
-            );
-            ratchetId = IdentityBase.ratchetId(
-              this.provider,
-              ratchetPublicBytes,
-            );
-            const sharedKey = this.provider.x25519SharedSecret(
-              ratchet,
-              peerPublicBytes,
-            );
-            const derivedKey = rnsHkdf(
-              this.provider,
-              32,
-              sharedKey,
-              this.hash,
-              null,
-            );
-            plaintext = new Token(this.provider, derivedKey).decrypt(
-              ciphertext,
-            );
-            break;
-          } catch {
-            plaintext = null;
-            ratchetId = null;
-          }
-        }
-      }
-    }
+    let { plaintext, ratchetId } = this.tryRatchetDecrypt(
+      frameOk,
+      split,
+      options,
+    );
 
     const afterRatchets = stepIdentityDecryptWithActions(
       initialIdentityDecryptState(),
@@ -338,37 +293,13 @@ export class Identity extends IdentityBase {
       return { plaintext: null, ratchetId: null };
     }
     if (shouldAcceptIdentityDecrypt(afterRatchets.actions)) {
-      const plaintextStepped = stepAcceptIdentityDecryptPlaintextWithActions(
-        initialAcceptIdentityDecryptPlaintextState(),
-        {
-          kind: "identity-ciphertext/accept-plaintext-gate",
-          planAccept: plaintext !== null,
-        },
-      );
-      if (shouldAcceptIdentityDecryptPlaintextNow(plaintextStepped.actions)) {
-        return { plaintext, ratchetId };
-      }
-      return { plaintext: null, ratchetId: null };
+      return this.acceptDecryptPlaintext(plaintext, ratchetId);
     }
-    if (!shouldTryIdentityDecrypt(afterRatchets.actions)) {
+    if (!shouldTryIdentityDecrypt(afterRatchets.actions) || split === null) {
       return { plaintext: null, ratchetId: null };
     }
 
-    try {
-      const sharedKey = this.provider.x25519SharedSecret(
-        this.prvBytes!,
-        split!.ephemeralPublicKey,
-      );
-      const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
-      plaintext = new Token(this.provider, derivedKey).decrypt(
-        split!.tokenCiphertext,
-      );
-      ratchetId = null;
-    } catch {
-      plaintext = null;
-      ratchetId = null;
-    }
-
+    ({ plaintext, ratchetId } = this.tryIdentityFallbackDecrypt(split));
     const afterIdentity = stepIdentityDecryptWithActions(
       initialIdentityDecryptState(),
       {
@@ -383,6 +314,84 @@ export class Identity extends IdentityBase {
     if (!shouldAcceptIdentityDecrypt(afterIdentity.actions)) {
       return { plaintext: null, ratchetId: null };
     }
+    return this.acceptDecryptPlaintext(plaintext, ratchetId);
+  }
+
+  private tryRatchetDecrypt(
+    frameOk: boolean,
+    split: ReturnType<typeof identityCiphertextFieldsFromActions>,
+    options: DecryptOptions,
+  ): DecryptResult {
+    let plaintext: Uint8Array | null = null;
+    let ratchetId: Uint8Array | null = null;
+    if (!frameOk || split === null) return { plaintext, ratchetId };
+    if (
+      !shouldAttemptIdentityRatchetDecryptNow(
+        stepAttemptIdentityRatchetDecryptWithActions(
+          initialAttemptIdentityRatchetDecryptState(),
+          {
+            kind: "identity/attempt-ratchet-decrypt-gate",
+            ratchetsPresent: options.ratchets !== undefined,
+          },
+        ).actions,
+      )
+    ) {
+      return { plaintext, ratchetId };
+    }
+    for (const ratchet of options.ratchets!) {
+      try {
+        const ratchetPublicBytes = IdentityBase.ratchetPublicBytes(
+          this.provider,
+          ratchet,
+        );
+        ratchetId = IdentityBase.ratchetId(this.provider, ratchetPublicBytes);
+        const sharedKey = this.provider.x25519SharedSecret(
+          ratchet,
+          split.ephemeralPublicKey,
+        );
+        const derivedKey = rnsHkdf(
+          this.provider,
+          32,
+          sharedKey,
+          this.hash,
+          null,
+        );
+        plaintext = new Token(this.provider, derivedKey).decrypt(
+          split.tokenCiphertext,
+        );
+        break;
+      } catch {
+        plaintext = null;
+        ratchetId = null;
+      }
+    }
+    return { plaintext, ratchetId };
+  }
+
+  private tryIdentityFallbackDecrypt(
+    split: NonNullable<ReturnType<typeof identityCiphertextFieldsFromActions>>,
+  ): DecryptResult {
+    try {
+      const sharedKey = this.provider.x25519SharedSecret(
+        this.prvBytes!,
+        split.ephemeralPublicKey,
+      );
+      const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
+      return {
+        plaintext: new Token(this.provider, derivedKey).decrypt(
+          split.tokenCiphertext,
+        ),
+        ratchetId: null,
+      };
+    } catch {
+      return { plaintext: null, ratchetId: null };
+    }
+  }
+
+  private acceptDecryptPlaintext(
+    plaintext: Uint8Array | null,
+    ratchetId: Uint8Array | null,
+  ): DecryptResult {
     const plaintextStepped = stepAcceptIdentityDecryptPlaintextWithActions(
       initialAcceptIdentityDecryptPlaintextState(),
       {

@@ -15,6 +15,12 @@ import { MiniappHostLayer1HandlersCore } from "./layer-1-handlers-core.js";
 
 export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer1HandlersCore {
   protected registerServicesHandlers(): void {
+    this.registerAiHandlers();
+    this.registerAppsShareHandlers();
+    this.registerPeersLinksHandlers();
+  }
+
+  private registerAiHandlers(): void {
     this.broker.register("ai", "chat", "ai:chat", async (request, context) => {
       if (this.aiService === null) {
         throw new AiServiceError(
@@ -126,7 +132,9 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
         );
       },
     );
+  }
 
+  private registerAppsShareHandlers(): void {
     const appsService = () => {
       if (this.appsService === null) {
         throw new AppsServiceError(
@@ -230,7 +238,9 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
         };
       },
     );
+  }
 
+  private registerPeersLinksHandlers(): void {
     const peers = () => {
       if (this.peerService === null)
         throw new PeerServiceError(

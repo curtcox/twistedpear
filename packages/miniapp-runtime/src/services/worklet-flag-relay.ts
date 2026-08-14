@@ -17,6 +17,176 @@ const MANAGED_KINDS: ReadonlyArray<RelayInterfaceKind> = [
   "rnode",
 ];
 
+const UNSUPPORTED_KINDS: ReadonlyArray<RelayInterfaceKind> = [
+  "websocket",
+  "i2p",
+  "optical",
+  "acoustic",
+  "ntfy",
+  "freenet",
+];
+
+function kindToEnabled(
+  kind: RelayInterfaceKind,
+  flags: WorkletFlagRelaySnapshot,
+): boolean | null {
+  switch (kind) {
+    case "tcp":
+      return flags.tcpEnabled;
+    case "auto":
+      return flags.autoEnabled;
+    case "bluetooth":
+      return flags.bleEnabled;
+    case "rnode":
+      return flags.rnodeEnabled;
+    default:
+      return null;
+  }
+}
+
+function kindToOnline(
+  kind: RelayInterfaceKind,
+  flags: WorkletFlagRelaySnapshot,
+): boolean {
+  switch (kind) {
+    case "tcp":
+      return flags.tcpOnline === true;
+    case "auto":
+      return flags.autoOnline === true;
+    case "bluetooth":
+      return flags.bleOnline === true;
+    case "rnode":
+      return flags.rnodeOnline === true;
+    default:
+      return false;
+  }
+}
+
+function requireManaged(
+  controller: WorkletFlagRelayController,
+  kind: RelayInterfaceKind,
+): void {
+  if (kindToEnabled(kind, controller.getFlags()) === null) {
+    throw new RelayBrokerServiceError(
+      "RELAY_UNSUPPORTED",
+      `${kind} is not managed by this host`,
+    );
+  }
+}
+
+function listInterfaces(
+  controller: WorkletFlagRelayController,
+  directions: Map<RelayInterfaceKind, InterfaceDirection>,
+  mode: RelayMode,
+): ReadonlyArray<InterfaceStatus> {
+  const flags = controller.getFlags();
+  return MANAGED_KINDS.map((kind) => {
+    const enabled = kindToEnabled(kind, flags) === true;
+    return {
+      kind,
+      name: kind,
+      enabled,
+      online: enabled && kindToOnline(kind, flags),
+      direction: directions.get(kind) ?? "both",
+      relay: mode !== "off",
+      bitrate: null,
+      bytesIn: 0,
+      bytesOut: 0,
+    };
+  });
+}
+
+const ENABLE_FLAGS: Record<
+  "tcp" | "auto" | "bluetooth" | "rnode",
+  keyof WorkletFlagRelaySnapshot
+> = {
+  tcp: "tcpEnabled",
+  auto: "autoEnabled",
+  bluetooth: "bleEnabled",
+  rnode: "rnodeEnabled",
+};
+
+const DISABLE_FLAGS = ENABLE_FLAGS;
+
+function applyTcpEnableOptions(
+  controller: WorkletFlagRelayController,
+  options?: Record<string, unknown>,
+): void {
+  const host =
+    typeof options?.targetHost === "string" ? options.targetHost : undefined;
+  const port =
+    typeof options?.targetPort === "number" ? options.targetPort : 4242;
+  if (host !== undefined) controller.setTcpTarget?.(host, port);
+}
+
+function applyEnableOptions(
+  controller: WorkletFlagRelayController,
+  kind: RelayInterfaceKind,
+  options?: Record<string, unknown>,
+): void {
+  if (kind === "tcp") {
+    applyTcpEnableOptions(controller, options);
+    return;
+  }
+  if (kind === "rnode" && options !== undefined) {
+    controller.setRnodeOptions?.(options);
+  }
+}
+
+async function enableKind(
+  controller: WorkletFlagRelayController,
+  directions: Map<RelayInterfaceKind, InterfaceDirection>,
+  kind: RelayInterfaceKind,
+  options?: Record<string, unknown>,
+): Promise<void> {
+  requireManaged(controller, kind);
+  applyEnableOptions(controller, kind, options);
+  const flag = ENABLE_FLAGS[kind as keyof typeof ENABLE_FLAGS];
+  if (flag !== undefined) controller.setFlags({ [flag]: true });
+  await controller.applyInterfaceConfig();
+  const direction = directions.get(kind) ?? "both";
+  if (direction !== "both") await controller.setDirection?.(kind, direction);
+}
+
+async function disableKind(
+  controller: WorkletFlagRelayController,
+  kind: RelayInterfaceKind,
+): Promise<void> {
+  requireManaged(controller, kind);
+  const flag = DISABLE_FLAGS[kind as keyof typeof DISABLE_FLAGS];
+  if (flag !== undefined) controller.setFlags({ [flag]: false });
+  await controller.applyInterfaceConfig();
+}
+
+function collectDiagnostics(
+  controller: WorkletFlagRelayController,
+): ReadonlyArray<InterfaceDiagnostic> {
+  const flags = controller.getFlags();
+  const managed = MANAGED_KINDS.map((kind) => {
+    const enabled = kindToEnabled(kind, flags) === true;
+    const online = kindToOnline(kind, flags);
+    return {
+      kind,
+      state: (enabled
+        ? online
+          ? "available"
+          : "offline"
+        : "policy-disabled") as InterfaceDiagnostic["state"],
+      ...(enabled && !online
+        ? { reason: "interface enabled but not online" }
+        : {}),
+    };
+  });
+  return [
+    ...managed,
+    ...UNSUPPORTED_KINDS.map((kind) => ({
+      kind,
+      state: "unsupported" as const,
+      reason: "not managed by this worklet control plane",
+    })),
+  ];
+}
+
 export interface WorkletFlagRelaySnapshot {
   readonly tcpEnabled: boolean;
   readonly autoEnabled: boolean;
@@ -68,68 +238,8 @@ export function createWorkletFlagRelayService(
     ["rnode", "both"],
   ]);
 
-  const kindToEnabled = (
-    kind: RelayInterfaceKind,
-    flags: WorkletFlagRelaySnapshot,
-  ): boolean | null => {
-    switch (kind) {
-      case "tcp":
-        return flags.tcpEnabled;
-      case "auto":
-        return flags.autoEnabled;
-      case "bluetooth":
-        return flags.bleEnabled;
-      case "rnode":
-        return flags.rnodeEnabled;
-      default:
-        return null;
-    }
-  };
-
-  const kindToOnline = (
-    kind: RelayInterfaceKind,
-    flags: WorkletFlagRelaySnapshot,
-  ): boolean => {
-    switch (kind) {
-      case "tcp":
-        return flags.tcpOnline === true;
-      case "auto":
-        return flags.autoOnline === true;
-      case "bluetooth":
-        return flags.bleOnline === true;
-      case "rnode":
-        return flags.rnodeOnline === true;
-      default:
-        return false;
-    }
-  };
-
-  const requireManaged = (kind: RelayInterfaceKind): void => {
-    if (kindToEnabled(kind, controller.getFlags()) === null) {
-      throw new RelayBrokerServiceError(
-        "RELAY_UNSUPPORTED",
-        `${kind} is not managed by this host`,
-      );
-    }
-  };
-
-  const list = (): ReadonlyArray<InterfaceStatus> => {
-    const flags = controller.getFlags();
-    return MANAGED_KINDS.map((kind) => {
-      const enabled = kindToEnabled(kind, flags) === true;
-      return {
-        kind,
-        name: kind,
-        enabled,
-        online: enabled && kindToOnline(kind, flags),
-        direction: directions.get(kind) ?? "both",
-        relay: mode !== "off",
-        bitrate: null,
-        bytesIn: 0,
-        bytesOut: 0,
-      };
-    });
-  };
+  const list = (): ReadonlyArray<InterfaceStatus> =>
+    listInterfaces(controller, directions, mode);
 
   return {
     async setMode(next: RelayMode): Promise<void> {
@@ -143,50 +253,17 @@ export function createWorkletFlagRelayService(
       await controller.setMode(next);
       mode = next;
     },
-    async enable(
-      kind: RelayInterfaceKind,
-      options?: Record<string, unknown>,
-    ): Promise<void> {
-      requireManaged(kind);
-      if (kind === "tcp") {
-        const host =
-          typeof options?.targetHost === "string"
-            ? options.targetHost
-            : undefined;
-        const port =
-          typeof options?.targetPort === "number" ? options.targetPort : 4242;
-        if (host !== undefined) {
-          controller.setTcpTarget?.(host, port);
-        }
-        controller.setFlags({ tcpEnabled: true });
-      } else if (kind === "auto") {
-        controller.setFlags({ autoEnabled: true });
-      } else if (kind === "bluetooth") {
-        controller.setFlags({ bleEnabled: true });
-      } else if (kind === "rnode") {
-        if (options !== undefined) {
-          controller.setRnodeOptions?.(options);
-        }
-        controller.setFlags({ rnodeEnabled: true });
-      }
-      await controller.applyInterfaceConfig();
-      const direction = directions.get(kind) ?? "both";
-      if (direction !== "both")
-        await controller.setDirection?.(kind, direction);
+    enable(kind, options) {
+      return enableKind(controller, directions, kind, options);
     },
-    async disable(kind: RelayInterfaceKind): Promise<void> {
-      requireManaged(kind);
-      if (kind === "tcp") controller.setFlags({ tcpEnabled: false });
-      else if (kind === "auto") controller.setFlags({ autoEnabled: false });
-      else if (kind === "bluetooth") controller.setFlags({ bleEnabled: false });
-      else if (kind === "rnode") controller.setFlags({ rnodeEnabled: false });
-      await controller.applyInterfaceConfig();
+    disable(kind) {
+      return disableKind(controller, kind);
     },
     async setDirection(
       kind: RelayInterfaceKind,
       direction: InterfaceDirection,
     ): Promise<void> {
-      requireManaged(kind);
+      requireManaged(controller, kind);
       if (directions.get(kind) === direction) return;
       if (controller.setDirection === undefined) {
         throw new RelayBrokerServiceError(
@@ -202,11 +279,22 @@ export function createWorkletFlagRelayService(
       patch: Record<string, unknown>,
     ): Promise<void> {
       const wasEnabled = kindToEnabled(kind, controller.getFlags()) === true;
-      if (patch.enabled === false) await this.disable(kind);
+      if (patch.enabled === false) await disableKind(controller, kind);
       else if (patch.enabled === true || wasEnabled)
-        await this.enable(kind, patch);
-      if (patch.direction !== undefined)
-        await this.setDirection(kind, patch.direction as InterfaceDirection);
+        await enableKind(controller, directions, kind, patch);
+      if (patch.direction !== undefined) {
+        const direction = patch.direction as InterfaceDirection;
+        requireManaged(controller, kind);
+        if (directions.get(kind) === direction) return;
+        if (controller.setDirection === undefined) {
+          throw new RelayBrokerServiceError(
+            "RELAY_UNSUPPORTED",
+            `${kind} direction cannot be changed on this host`,
+          );
+        }
+        await controller.setDirection(kind, direction);
+        directions.set(kind, direction);
+      }
     },
     async setPolicy(next: RelayPolicyMatrix): Promise<void> {
       if (controller.setPolicy === undefined) {
@@ -229,38 +317,7 @@ export function createWorkletFlagRelayService(
     },
     diagnostics(): Promise<ReadonlyArray<InterfaceDiagnostic>> {
       void policy;
-      const flags = controller.getFlags();
-      const managed = MANAGED_KINDS.map((kind) => {
-        const enabled = kindToEnabled(kind, flags) === true;
-        const online = kindToOnline(kind, flags);
-        return {
-          kind,
-          state: (enabled
-            ? online
-              ? "available"
-              : "offline"
-            : "policy-disabled") as InterfaceDiagnostic["state"],
-          ...(enabled && !online
-            ? { reason: "interface enabled but not online" }
-            : {}),
-        };
-      });
-      const unsupported: RelayInterfaceKind[] = [
-        "websocket",
-        "i2p",
-        "optical",
-        "acoustic",
-        "ntfy",
-        "freenet",
-      ];
-      return Promise.resolve([
-        ...managed,
-        ...unsupported.map((kind) => ({
-          kind,
-          state: "unsupported" as const,
-          reason: "not managed by this worklet control plane",
-        })),
-      ]);
+      return Promise.resolve(collectDiagnostics(controller));
     },
   };
 }

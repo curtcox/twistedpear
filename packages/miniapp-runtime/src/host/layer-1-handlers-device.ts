@@ -12,6 +12,14 @@ import { MiniappHostLayer1HandlersServices } from "./layer-1-handlers-services.j
 
 export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1HandlersServices {
   protected registerDeviceHandlers(): void {
+    this.registerRelayHandlers();
+    this.registerFreenetHandlers();
+    this.registerDeviceIoHandlers();
+    this.registerDeviceShareHandlers();
+    this.registerPresenceHostHandlers();
+  }
+
+  private registerRelayHandlers(): void {
     const relay = () => {
       if (this.relayService === null)
         throw new RelayBrokerServiceError(
@@ -118,7 +126,9 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       (_request, context) =>
         Promise.resolve(relay().diagnostics(context.appId)),
     );
+  }
 
+  private registerFreenetHandlers(): void {
     const freenet = () => {
       if (this.freenetService === null) {
         throw new FreenetBrokerServiceError(
@@ -163,7 +173,9 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
           ),
         ),
     );
+  }
 
+  private registerDeviceIoHandlers(): void {
     const device = () => {
       if (this.deviceService === null) {
         throw new DeviceBrokerServiceError(
@@ -240,6 +252,18 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
         ),
       ),
     );
+  }
+
+  private registerDeviceShareHandlers(): void {
+    const device = () => {
+      if (this.deviceService === null) {
+        throw new DeviceBrokerServiceError(
+          "DEVICE_UNCONFIGURED",
+          "Device I/O is not configured on this host",
+        );
+      }
+      return this.deviceService;
+    };
     this.broker.register(
       "device",
       "streams",
@@ -321,7 +345,9 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
         return { declined: true };
       },
     );
+  }
 
+  private registerPresenceHostHandlers(): void {
     this.broker.register("presence", "snapshot", "presence", () => {
       if (this.presenceService === null) {
         return Promise.resolve({

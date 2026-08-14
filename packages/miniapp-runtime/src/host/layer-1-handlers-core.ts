@@ -7,6 +7,13 @@ import { MiniappHostLayer1Base } from "./layer-1-base.js";
 
 export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Base {
   protected registerCoreHandlers(): void {
+    this.registerUiIdentityHandlers();
+    this.registerKvBeeHandlers();
+    this.registerLxmfAnnounceHandlers();
+    this.registerWorkspaceHandlers();
+  }
+
+  private registerUiIdentityHandlers(): void {
     this.broker.register("ui", "render", null, (request) => {
       const tree = (request.payload as { tree: WidgetTree }).tree;
       validateWidgetTree(tree);
@@ -74,7 +81,9 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         ),
       );
     });
+  }
 
+  private registerKvBeeHandlers(): void {
     this.broker.register(
       "storage.kv",
       "get",
@@ -191,7 +200,9 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         );
       });
     }
+  }
 
+  private registerLxmfAnnounceHandlers(): void {
     this.broker.register("lxmf", "send", "lxmf:send", (request, context) =>
       Promise.resolve(
         this.lxmfService.send(context.appId, request.payload as never),
@@ -210,7 +221,8 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "announce:publish",
       async (request, context) => {
         const payload = request.payload as
-          { appData?: Uint8Array; namespace?: string } | undefined;
+          | { appData?: Uint8Array; namespace?: string }
+          | undefined;
         await this.announceService.publish(
           context.appId,
           payload?.appData,
@@ -248,6 +260,9 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         );
       },
     );
+  }
+
+  private registerWorkspaceHandlers(): void {
     this.broker.register(
       "workspace",
       "list",

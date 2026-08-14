@@ -249,44 +249,12 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
     packageSize: archive.length,
   });
 
-  let freenetContractKey: string | undefined;
-  if (hasFlag(ctx.args, "--freenet")) {
-    const { DEFAULT_FREENET_URL, FreenetClient, publishPackageToFreenet } =
-      await import("@twistedpear/bridge-freenet");
-    const defaultContractPath = fileURLToPath(
-      new URL(
-        "../../../bridge-freenet/contract/locator/locator-contract.wasm",
-        import.meta.url,
-      ),
-    );
-    const contractPath =
-      parseFlag(ctx.args, "--freenet-contract") ?? defaultContractPath;
-    if (!existsSync(contractPath)) {
-      throw new Error(
-        `Freenet locator contract not found at ${contractPath}; run npm run build:freenet-contract or pass --freenet-contract`,
-      );
-    }
-    const authToken = parseFlag(ctx.args, "--freenet-token");
-    const client = new FreenetClient({
-      url: parseFlag(ctx.args, "--freenet-node") ?? DEFAULT_FREENET_URL,
-      ...(authToken === null ? {} : { authToken }),
-    });
-    try {
-      const result = await publishPackageToFreenet({
-        provider,
-        client,
-        locatorContractWasm: readBytes(contractPath),
-        locator: casLocator,
-        archiveBytes: archive,
-      });
-      freenetContractKey = bytesToHex(result.contractKey);
-      console.log(
-        `Published ${result.stateBytes} bytes to Freenet contract ${freenetContractKey}`,
-      );
-    } finally {
-      await client.close();
-    }
-  }
+  const freenetContractKey = await maybePublishToFreenet(
+    ctx,
+    provider,
+    casLocator,
+    archive,
+  );
 
   const announce = await announcePublishedApp({
     identity,
@@ -327,6 +295,51 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
   await drives.close();
   await swarm.destroy();
   return 0;
+}
+
+async function maybePublishToFreenet(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  casLocator: ReturnType<typeof signCasLocator>,
+  archive: Uint8Array,
+): Promise<string | undefined> {
+  if (!hasFlag(ctx.args, "--freenet")) return undefined;
+  const { DEFAULT_FREENET_URL, FreenetClient, publishPackageToFreenet } =
+    await import("@twistedpear/bridge-freenet");
+  const defaultContractPath = fileURLToPath(
+    new URL(
+      "../../../bridge-freenet/contract/locator/locator-contract.wasm",
+      import.meta.url,
+    ),
+  );
+  const contractPath =
+    parseFlag(ctx.args, "--freenet-contract") ?? defaultContractPath;
+  if (!existsSync(contractPath)) {
+    throw new Error(
+      `Freenet locator contract not found at ${contractPath}; run npm run build:freenet-contract or pass --freenet-contract`,
+    );
+  }
+  const authToken = parseFlag(ctx.args, "--freenet-token");
+  const client = new FreenetClient({
+    url: parseFlag(ctx.args, "--freenet-node") ?? DEFAULT_FREENET_URL,
+    ...(authToken === null ? {} : { authToken }),
+  });
+  try {
+    const result = await publishPackageToFreenet({
+      provider,
+      client,
+      locatorContractWasm: readBytes(contractPath),
+      locator: casLocator,
+      archiveBytes: archive,
+    });
+    const freenetContractKey = bytesToHex(result.contractKey);
+    console.log(
+      `Published ${result.stateBytes} bytes to Freenet contract ${freenetContractKey}`,
+    );
+    return freenetContractKey;
+  } finally {
+    await client.close();
+  }
 }
 
 export function runUpdate(ctx: CommandContext): Promise<number> {
