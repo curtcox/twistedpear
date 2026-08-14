@@ -1,57 +1,38 @@
 import {
   PROPAGATION_LINK_TIMER_ID,
-  initialAcceptPropagationDeliveredMessageState,
-  initialAcceptPropagationPeerResponseState,
-  initialDecodeLxmfPeerErrorState,
-  initialHandlePropagationPeerErrorState,
   initialLinkAppRequestAwaitState,
   initialLxmfPropagationLinkReadyState,
   initialLxmfPropagationSyncPrepState,
-  initialPackPropagationRequestState,
   initialPropagationTransferState,
-  initialRequestPropagationHavesAckState,
-  initialTreatPropagationListAsEmptyState,
-  initialUnpackBinListState,
-  binListFieldsFromActions,
-  lxmfPeerErrorFromActions,
-  packPropagationRequestRawFromActions,
-  shouldAcceptPropagationPeerResponseNow,
-  shouldAcceptPropagationDeliveredMessageNow,
   shouldEstablishLxmfPropagationLink,
-  shouldHandlePropagationPeerErrorNow,
   shouldProceedLxmfPropagationSyncPrep,
   shouldRejectLxmfPropagationMissingIdentity,
   shouldRejectLxmfPropagationMissingNode,
   shouldRejectLxmfPropagationSyncMissingDeliveryIdentity,
   shouldRejectLxmfPropagationSyncMissingNode,
-  shouldRejectUnpackBinList,
-  shouldRequestPropagationHavesAckNow,
   shouldReuseActiveLinkNow,
   initialReuseActiveLinkState,
   initialTeardownLxmfPropagationLinkState,
   stepReuseActiveLinkWithActions,
   shouldTeardownLxmfPropagationLinkNow,
-  shouldTreatPropagationListAsEmptyNow,
-  shouldUseDecodeLxmfPeerError,
-  shouldUsePackPropagationRequest,
-  shouldUseUnpackBinList,
-  stepAcceptPropagationDeliveredMessageWithActions,
-  stepAcceptPropagationPeerResponseWithActions,
-  stepDecodeLxmfPeerErrorWithActions,
-  stepHandlePropagationPeerErrorWithActions,
   stepLinkAppRequestAwaitWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationSyncPrepWithActions,
   stepTeardownLxmfPropagationLinkWithActions,
-  stepPackPropagationRequestWithActions,
   stepPropagationTransferWithActions,
-  stepRequestPropagationHavesAckWithActions,
-  stepTreatPropagationListAsEmptyWithActions,
-  stepUnpackBinListWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
   type PropagationTransferStateValue,
 } from "@twistedpear/protocol";
+import {
+  acceptsDeliveredMessage,
+  acceptsPeerResponse,
+  packPropagationRequest,
+  peerErrorCode,
+  requestsHavesAck,
+  treatsListAsEmpty,
+  unpackBinListEntries,
+} from "./propagation-codec.js";
 import type { Intent } from "@twistedpear/effects";
 import type {
   CryptoProvider,
@@ -104,23 +85,7 @@ export class PropagationClient {
 
   setPropagationNode(destinationHash: Uint8Array): void {
     this.propagationNodeHash = Uint8Array.from(destinationHash);
-    if (
-      shouldTeardownLxmfPropagationLinkNow(
-        stepTeardownLxmfPropagationLinkWithActions(
-          initialTeardownLxmfPropagationLinkState(),
-          {
-            kind: "lxmf/teardown-propagation-link-gate",
-            linkPresent: this.propagationLink !== null,
-          },
-        ).actions,
-      )
-    ) {
-      // Best-effort: the link is being discarded either way, and a teardown
-      // packet that fails to send must not reject into an unhandled rejection.
-      // `void` would satisfy the linter without attaching a handler.
-      this.propagationLink!.teardown().catch(() => {});
-      this.propagationLink = null;
-    }
+    this.discardPropagationLink();
   }
 
   get propagationNode(): Uint8Array | null {
@@ -168,123 +133,69 @@ export class PropagationClient {
       if (action.kind === "identify") {
         link.identify(deliveryIdentity);
       } else if (action.kind === "request-list") {
-        const packListStepped = stepPackPropagationRequestWithActions(
-          initialPackPropagationRequestState(),
-          {
-            kind: "lxmf-codec/pack-propagation-request-gate",
-            wants: null,
-            haves: null,
-          },
-        );
-        const listRequest = shouldUsePackPropagationRequest(
-          packListStepped.actions,
-        )
-          ? packPropagationRequestRawFromActions(packListStepped.actions)
-          : null;
-        if (listRequest === null) {
-          this.applyTransfer({ kind: "xfer/list-malformed" });
-          return { state: this.state, messages: [] };
-        }
-        const listResponse = await awaitLinkRequest(
-          link,
-          MESSAGE_GET_PATH,
-          listRequest,
-          action.timeoutSec,
-        );
-
-        if (
-          !shouldAcceptPropagationPeerResponseNow(
-            stepAcceptPropagationPeerResponseWithActions(
-              initialAcceptPropagationPeerResponseState(),
-              {
-                kind: "propagation-transfer/accept-peer-response-gate",
-                responsePresent: listResponse !== null,
-              },
-            ).actions,
-          )
-        ) {
-          this.applyTransfer({ kind: "xfer/list-null" });
-          return { state: this.state, messages: [] };
-        }
-
-        const listErrorStepped = stepDecodeLxmfPeerErrorWithActions(
-          initialDecodeLxmfPeerErrorState(),
-          {
-            kind: "lxmf/peer-error-decode-gate",
-            response: listResponse!,
-          },
-        );
-        if (
-          shouldHandlePropagationPeerErrorNow(
-            stepHandlePropagationPeerErrorWithActions(
-              initialHandlePropagationPeerErrorState(),
-              {
-                kind: "propagation-transfer/handle-peer-error-gate",
-                errorPresent: shouldUseDecodeLxmfPeerError(
-                  listErrorStepped.actions,
-                ),
-              },
-            ).actions,
-          )
-        ) {
-          const listError = lxmfPeerErrorFromActions(listErrorStepped.actions);
-          this.applyTransfer({
-            kind: "xfer/list-peer-error",
-            code: listError!,
-          });
-          return { state: this.state, messages: [] };
-        }
-
-        const unpackListStepped = stepUnpackBinListWithActions(
-          initialUnpackBinListState(),
-          {
-            kind: "lxmf-codec/unpack-bin-list-gate",
-            data: listResponse!,
-            label: "transient id list",
-          },
-        );
-        if (
-          shouldRejectUnpackBinList(unpackListStepped.actions) ||
-          !shouldUseUnpackBinList(unpackListStepped.actions)
-        ) {
-          this.applyTransfer({ kind: "xfer/list-malformed" });
-          return { state: this.state, messages: [] };
-        }
-        const listFields = binListFieldsFromActions(unpackListStepped.actions);
-        if (listFields === null) {
-          this.applyTransfer({ kind: "xfer/list-malformed" });
-          return { state: this.state, messages: [] };
-        }
-        const transientIds = listFields.entries;
-
-        const wants =
-          maxMessages === null
-            ? [...transientIds]
-            : transientIds.slice(0, Math.max(0, maxMessages));
-
-        if (
-          shouldTreatPropagationListAsEmptyNow(
-            stepTreatPropagationListAsEmptyWithActions(
-              initialTreatPropagationListAsEmptyState(),
-              {
-                kind: "propagation-transfer/list-as-empty-gate",
-                wantCount: wants.length,
-              },
-            ).actions,
-          )
-        ) {
-          this.applyTransfer({ kind: "xfer/list-empty" });
-          return { state: this.state, messages: [] };
-        }
-
-        const afterList = this.applyTransfer({
-          kind: "xfer/list-ready",
-          wantCount: wants.length,
-        });
-        return this.continueDownload(link, wants, afterList.actions);
+        return this.downloadListed(link, action.timeoutSec, maxMessages);
       }
     }
 
+    return { state: this.state, messages: [] };
+  }
+
+  /** Requests the transient-id list, then downloads what it announces. */
+  private async downloadListed(
+    link: Link,
+    timeoutSec: number,
+    maxMessages: number | null,
+  ): Promise<PropagationSyncResult> {
+    const listRequest = packPropagationRequest({ wants: null, haves: null });
+    if (listRequest === null) {
+      return this.abortTransfer({ kind: "xfer/list-malformed" });
+    }
+    const listResponse = await awaitLinkRequest(
+      link,
+      MESSAGE_GET_PATH,
+      listRequest,
+      timeoutSec,
+    );
+    if (!acceptsPeerResponse(listResponse)) {
+      return this.abortTransfer({ kind: "xfer/list-null" });
+    }
+
+    const listError = peerErrorCode(listResponse!);
+    if (listError !== null) {
+      return this.abortTransfer({
+        kind: "xfer/list-peer-error",
+        code: listError,
+      });
+    }
+
+    const transientIds = unpackBinListEntries(
+      listResponse!,
+      "transient id list",
+    );
+    if (transientIds === null) {
+      return this.abortTransfer({ kind: "xfer/list-malformed" });
+    }
+
+    const wants =
+      maxMessages === null
+        ? [...transientIds]
+        : transientIds.slice(0, Math.max(0, maxMessages));
+    if (treatsListAsEmpty(wants.length)) {
+      return this.abortTransfer({ kind: "xfer/list-empty" });
+    }
+
+    const afterList = this.applyTransfer({
+      kind: "xfer/list-ready",
+      wantCount: wants.length,
+    });
+    return this.continueDownload(link, wants, afterList.actions);
+  }
+
+  /** Applies a terminal transfer event and reports the empty sync result. */
+  private abortTransfer(
+    event: Parameters<typeof stepPropagationTransferWithActions>[1],
+  ): PropagationSyncResult {
+    this.applyTransfer(event);
     return { state: this.state, messages: [] };
   }
 
@@ -302,23 +213,13 @@ export class PropagationClient {
         continue;
       }
 
-      const packDownloadStepped = stepPackPropagationRequestWithActions(
-        initialPackPropagationRequestState(),
-        {
-          kind: "lxmf-codec/pack-propagation-request-gate",
-          wants,
-          haves: null,
-          transferLimitKb: this.deliveryLimitKb,
-        },
-      );
-      const downloadRequest = shouldUsePackPropagationRequest(
-        packDownloadStepped.actions,
-      )
-        ? packPropagationRequestRawFromActions(packDownloadStepped.actions)
-        : null;
+      const downloadRequest = packPropagationRequest({
+        wants,
+        haves: null,
+        transferLimitKb: this.deliveryLimitKb,
+      });
       if (downloadRequest === null) {
-        this.applyTransfer({ kind: "xfer/download-malformed" });
-        return { state: this.state, messages: [] };
+        return this.abortTransfer({ kind: "xfer/download-malformed" });
       }
       const downloadResponse = await awaitLinkRequest(
         link,
@@ -326,114 +227,68 @@ export class PropagationClient {
         downloadRequest,
         action.timeoutSec,
       );
-
-      if (
-        !shouldAcceptPropagationPeerResponseNow(
-          stepAcceptPropagationPeerResponseWithActions(
-            initialAcceptPropagationPeerResponseState(),
-            {
-              kind: "propagation-transfer/accept-peer-response-gate",
-              responsePresent: downloadResponse !== null,
-            },
-          ).actions,
-        )
-      ) {
-        this.applyTransfer({ kind: "xfer/download-null" });
-        return { state: this.state, messages: [] };
+      if (!acceptsPeerResponse(downloadResponse)) {
+        return this.abortTransfer({ kind: "xfer/download-null" });
       }
 
-      const unpackDownloadStepped = stepUnpackBinListWithActions(
-        initialUnpackBinListState(),
-        {
-          kind: "lxmf-codec/unpack-bin-list-gate",
-          data: downloadResponse!,
-          label: "message list response",
-        },
+      const downloaded = unpackBinListEntries(
+        downloadResponse!,
+        "message list response",
       );
-      if (
-        shouldRejectUnpackBinList(unpackDownloadStepped.actions) ||
-        !shouldUseUnpackBinList(unpackDownloadStepped.actions)
-      ) {
-        this.applyTransfer({ kind: "xfer/download-malformed" });
-        return { state: this.state, messages: [] };
-      }
-      const downloadFields = binListFieldsFromActions(
-        unpackDownloadStepped.actions,
-      );
-      if (downloadFields === null) {
-        this.applyTransfer({ kind: "xfer/download-malformed" });
-        return { state: this.state, messages: [] };
-      }
-      const downloaded = downloadFields.entries;
-
-      const messages: LXMessage[] = [];
-      const haves: Uint8Array[] = [];
-      for (const lxmfData of downloaded) {
-        const message = this.router.handlePropagationData(lxmfData);
-        if (
-          shouldAcceptPropagationDeliveredMessageNow(
-            stepAcceptPropagationDeliveredMessageWithActions(
-              initialAcceptPropagationDeliveredMessageState(),
-              {
-                kind: "propagation-transfer/accept-delivered-message-gate",
-                messagePresent: message !== null,
-              },
-            ).actions,
-          )
-        ) {
-          messages.push(message!);
-        }
-        haves.push(Identity.fullHash(this.provider, lxmfData));
+      if (downloaded === null) {
+        return this.abortTransfer({ kind: "xfer/download-malformed" });
       }
 
+      const { messages, haves } = this.acceptDownloaded(downloaded);
       const afterDownload = this.applyTransfer({
         kind: "xfer/download-ready",
         downloadedCount: haves.length,
       });
-
-      for (const next of afterDownload.actions) {
-        if (
-          next.kind === "request-haves-ack" &&
-          shouldRequestPropagationHavesAckNow(
-            stepRequestPropagationHavesAckWithActions(
-              initialRequestPropagationHavesAckState(),
-              {
-                kind: "propagation-transfer/request-haves-ack-gate",
-                actionIsHavesAck: true,
-                haveCount: haves.length,
-              },
-            ).actions,
-          )
-        ) {
-          const packHavesStepped = stepPackPropagationRequestWithActions(
-            initialPackPropagationRequestState(),
-            {
-              kind: "lxmf-codec/pack-propagation-request-gate",
-              wants: null,
-              haves,
-            },
-          );
-          const havesRequest = shouldUsePackPropagationRequest(
-            packHavesStepped.actions,
-          )
-            ? packPropagationRequestRawFromActions(packHavesStepped.actions)
-            : null;
-          if (havesRequest !== null) {
-            await awaitLinkRequest(
-              link,
-              MESSAGE_GET_PATH,
-              havesRequest,
-              next.timeoutSec,
-            );
-          }
-          this.applyTransfer({ kind: "xfer/haves-acked" });
-        }
-      }
+      await this.acknowledgeHaves(link, haves, afterDownload.actions);
 
       return { state: this.state, messages };
     }
 
     return { state: this.state, messages: [] };
+  }
+
+  /** Feeds downloaded frames to the router, collecting messages and haves. */
+  private acceptDownloaded(downloaded: ReadonlyArray<Uint8Array>): {
+    messages: LXMessage[];
+    haves: Uint8Array[];
+  } {
+    const messages: LXMessage[] = [];
+    const haves: Uint8Array[] = [];
+    for (const lxmfData of downloaded) {
+      const message = this.router.handlePropagationData(lxmfData);
+      if (acceptsDeliveredMessage(message !== null)) {
+        messages.push(message!);
+      }
+      haves.push(Identity.fullHash(this.provider, lxmfData));
+    }
+    return { messages, haves };
+  }
+
+  private async acknowledgeHaves(
+    link: Link,
+    haves: ReadonlyArray<Uint8Array>,
+    actions: ReadonlyArray<PropagationTransferAction>,
+  ): Promise<void> {
+    for (const next of actions) {
+      if (next.kind !== "request-haves-ack") continue;
+      if (!requestsHavesAck(haves.length)) continue;
+
+      const havesRequest = packPropagationRequest({ wants: null, haves });
+      if (havesRequest !== null) {
+        await awaitLinkRequest(
+          link,
+          MESSAGE_GET_PATH,
+          havesRequest,
+          next.timeoutSec,
+        );
+      }
+      this.applyTransfer({ kind: "xfer/haves-acked" });
+    }
   }
 
   private applyTransfer(
@@ -479,53 +334,64 @@ export class PropagationClient {
     actions: ReadonlyArray<PropagationTransferAction>,
   ): void {
     for (const action of actions) {
-      if (action.kind === "establish-link") {
-        // Reuse path applies begin without arming a wait — ignore establish IO.
-        const outbound = this.pendingEstablishOutbound;
-        if (this.pendingLinkResolve === null || outbound === null) {
-          continue;
-        }
-        outbound.requestLink({
-          linkEstablished: (establishLink) => {
-            this.pendingEstablishedLink = establishLink;
-            this.applyTransfer({ kind: "xfer/link-arrived" });
-          },
-        });
-      }
-      if (
-        action.kind === "teardown-link" &&
-        shouldTeardownLxmfPropagationLinkNow(
-          stepTeardownLxmfPropagationLinkWithActions(
-            initialTeardownLxmfPropagationLinkState(),
-            {
-              kind: "lxmf/teardown-propagation-link-gate",
-              linkPresent: this.propagationLink !== null,
-            },
-          ).actions,
-        )
-      ) {
-        // See setPropagationNode: discarding the link, so swallow a failed
-        // teardown rather than leaking an unhandled rejection.
-        this.propagationLink!.teardown().catch(() => {});
-        this.propagationLink = null;
-      }
-      if (action.kind === "resolve-link-wait") {
-        const link = this.pendingEstablishedLink;
-        const resolve = this.pendingLinkResolve;
-        this.pendingEstablishedLink = null;
-        this.clearPendingLinkWait();
-        if (link !== null) {
-          this.propagationLink = link;
-          resolve?.(link);
-        }
-      }
-      if (action.kind === "reject-link-wait") {
-        const reject = this.pendingLinkReject;
-        this.pendingEstablishedLink = null;
-        this.clearPendingLinkWait();
-        reject?.(new Error("Propagation link timeout"));
-      }
+      if (action.kind === "establish-link") this.establishLink();
+      if (action.kind === "teardown-link") this.discardPropagationLink();
+      if (action.kind === "resolve-link-wait") this.resolveLinkWait();
+      if (action.kind === "reject-link-wait") this.rejectLinkWait();
     }
+  }
+
+  private establishLink(): void {
+    // Reuse path applies begin without arming a wait — ignore establish IO.
+    const outbound = this.pendingEstablishOutbound;
+    if (this.pendingLinkResolve === null || outbound === null) return;
+    outbound.requestLink({
+      linkEstablished: (establishLink) => {
+        this.pendingEstablishedLink = establishLink;
+        this.applyTransfer({ kind: "xfer/link-arrived" });
+      },
+    });
+  }
+
+  /**
+   * Drops the active link when the teardown gate allows it. The link is being
+   * discarded either way, so a teardown packet that fails to send is swallowed
+   * rather than leaking an unhandled rejection (`void` would satisfy the
+   * linter without attaching a handler).
+   */
+  private discardPropagationLink(): void {
+    if (
+      !shouldTeardownLxmfPropagationLinkNow(
+        stepTeardownLxmfPropagationLinkWithActions(
+          initialTeardownLxmfPropagationLinkState(),
+          {
+            kind: "lxmf/teardown-propagation-link-gate",
+            linkPresent: this.propagationLink !== null,
+          },
+        ).actions,
+      )
+    ) {
+      return;
+    }
+    this.propagationLink!.teardown().catch(() => {});
+    this.propagationLink = null;
+  }
+
+  private resolveLinkWait(): void {
+    const link = this.pendingEstablishedLink;
+    const resolve = this.pendingLinkResolve;
+    this.pendingEstablishedLink = null;
+    this.clearPendingLinkWait();
+    if (link === null) return;
+    this.propagationLink = link;
+    resolve?.(link);
+  }
+
+  private rejectLinkWait(): void {
+    const reject = this.pendingLinkReject;
+    this.pendingEstablishedLink = null;
+    this.clearPendingLinkWait();
+    reject?.(new Error("Propagation link timeout"));
   }
 
   private clearPendingLinkWait(): void {

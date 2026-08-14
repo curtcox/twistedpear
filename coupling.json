@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1145,
+  "modules": 1147,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -233,6 +233,18 @@
       ]
     },
     {
+      "id": "packages/lxmf-ts",
+      "modules": 13,
+      "ca": 4,
+      "ce": 3,
+      "instability": 0.43,
+      "dependsOn": [
+        "packages/effects",
+        "packages/protocol",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
       "id": "packages/cli",
       "modules": 12,
       "ca": 2,
@@ -245,18 +257,6 @@
         "packages/cas-256t",
         "packages/host-core",
         "packages/miniapp-runtime",
-        "packages/reticulum-ts"
-      ]
-    },
-    {
-      "id": "packages/lxmf-ts",
-      "modules": 11,
-      "ca": 4,
-      "ce": 3,
-      "instability": 0.43,
-      "dependsOn": [
-        "packages/effects",
-        "packages/protocol",
         "packages/reticulum-ts"
       ]
     },

@@ -228,6 +228,82 @@ function nonceFrom(content: string, prefix: string): string | null {
   return content.startsWith(prefix) ? content.slice(prefix.length) : null;
 }
 
+type LinkControlEnvelope = NonNullable<ReturnType<typeof decodeLinkControl>>;
+
+/** A chunked payload carrier that echoes what it receives back to the sender. */
+interface EchoableCarrier {
+  readonly prefix: string;
+  readonly echoPrefix: string;
+  readonly entries: TestAgentRealtimeEntry[];
+  readonly send: (
+    toLxmfAddress: string,
+    prefix: string,
+    nonce: string,
+    payloadHex: string,
+  ) => Promise<void>;
+  readonly echoFailureLabel: string;
+}
+
+/** Option defaults, resolved in one place so the mount reads as wiring. */
+function agentDefaults(options: TestAgentOptions): {
+  log: (line: string) => void;
+  reconnectWaitMs: number;
+  announceIntervalMs: number;
+  invitableApps: Set<string>;
+} {
+  return {
+    log: options.log ?? (() => {}),
+    reconnectWaitMs: options.reconnectWaitMs ?? 1_000,
+    announceIntervalMs: options.announceIntervalMs ?? 10_000,
+    invitableApps: new Set(options.invitableApps ?? ["line-check"]),
+  };
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** One frame of a `<nonce>:<index>:<count>:<hex>` chunked body. */
+interface ChunkFrame {
+  readonly nonce: string;
+  readonly index: number;
+  readonly count: number;
+  readonly chunk: string;
+}
+
+/** Splits a chunked body without letting a nonce hide colons. */
+function parseChunkedBody(body: string): ChunkFrame | null {
+  const parts = body.split(":");
+  if (parts.length !== 4) return null;
+  const [nonce, rawIndex, rawCount, chunk] = parts as [
+    string,
+    string,
+    string,
+    string,
+  ];
+  if (
+    !isChunkNonce(nonce) ||
+    !isChunkCounter(rawIndex) ||
+    !isChunkCounter(rawCount) ||
+    !isHexChunk(chunk)
+  ) {
+    return null;
+  }
+  return { nonce, index: Number(rawIndex), count: Number(rawCount), chunk };
+}
+
+function isChunkNonce(value: string): boolean {
+  return value.length >= 1 && value.length <= 160;
+}
+
+function isChunkCounter(value: string): boolean {
+  return /^\d{1,4}$/.test(value);
+}
+
+function isHexChunk(value: string): boolean {
+  return /^[0-9a-f]*$/i.test(value) && value.length % 2 === 0;
+}
+
 /**
  * Mounts the agent and starts dialing the control server in the background.
  * Resolves once the LXMF delivery destination exists, so callers can read
@@ -245,10 +321,8 @@ export async function mountTestAgent(
     controlHost,
     controlPort,
   } = options;
-  const log = options.log ?? (() => {});
-  const reconnectWaitMs = options.reconnectWaitMs ?? 1_000;
-  const announceIntervalMs = options.announceIntervalMs ?? 10_000;
-  const invitableApps = new Set(options.invitableApps ?? ["line-check"]);
+  const { log, reconnectWaitMs, announceIntervalMs, invitableApps } =
+    agentDefaults(options);
   const ownsDelivery = options.delivery === undefined;
 
   const inviteEntries: TestAgentInviteEntry[] = [];
@@ -434,11 +508,9 @@ export async function mountTestAgent(
   const receiveChunkedHex = (
     from: string,
     prefix: string,
-    nonce: string,
-    index: number,
-    count: number,
-    chunk: string,
+    frame: ChunkFrame,
   ): string | null => {
+    const { nonce, index, count, chunk } = frame;
     if (count < 1 || count > MAX_CHUNKS || index < 0 || index >= count)
       return null;
     const key = `${from} ${prefix} ${nonce}`;
@@ -455,19 +527,6 @@ export async function mountTestAgent(
     partials.delete(key);
     const payloadHex = parts.join("");
     return payloadHex.length > MAX_CHUNKED_PAYLOAD_HEX ? null : payloadHex;
-  };
-
-  /** Splits `<nonce>:<index>:<count>:<hex>` without letting a nonce hide colons. */
-  const parseChunkedBody = (
-    body: string,
-  ): { nonce: string; index: number; count: number; chunk: string } | null => {
-    const parts = body.split(":");
-    if (parts.length !== 4) return null;
-    const [nonce = "", rawIndex = "", rawCount = "", chunk = ""] = parts;
-    if (nonce.length < 1 || nonce.length > 160) return null;
-    if (!/^\d{1,4}$/.test(rawIndex) || !/^\d{1,4}$/.test(rawCount)) return null;
-    if (!/^[0-9a-f]*$/i.test(chunk) || chunk.length % 2 !== 0) return null;
-    return { nonce, index: Number(rawIndex), count: Number(rawCount), chunk };
   };
 
   const localReadiness =
@@ -529,156 +588,113 @@ export async function mountTestAgent(
     );
   };
 
-  deliverySession.onMessage((message) => {
-    let content: string;
-    try {
-      content = message.contentAsString();
-    } catch {
+  /**
+   * Answers the readiness and probe protocols. Undecodable bytes are dropped
+   * in silence: this path is never a generic echo service.
+   */
+  const receiveLinkControl = (from: string, content: string): void => {
+    if (!content.startsWith(LINK_PREFIX)) return;
+    const framed = parseChunkedBody(content.slice(LINK_PREFIX.length));
+    if (framed === null) return;
+    const payloadHex = receiveChunkedHex(from, LINK_PREFIX, framed);
+    if (payloadHex === null || payloadHex.length > 2 * (8 + 64 + 8192)) return;
+    const envelope = decodeLinkControl(hexToBytes(payloadHex));
+    if (envelope === null) return;
+    if (envelope.type === 1) {
+      receiveReadiness(from, envelope);
       return;
     }
-    const from = bytesToHex(message.sourceHash);
-    if (message.titleAsString() === TEST_AGENT_LINK_TITLE) {
-      // Undecodable bytes are dropped in silence: this path answers the
-      // readiness and probe protocols, it is never a generic echo service.
-      if (!content.startsWith(LINK_PREFIX)) return;
-      const framed = parseChunkedBody(content.slice(LINK_PREFIX.length));
-      if (framed === null) return;
-      const payloadHex = receiveChunkedHex(
-        from,
-        LINK_PREFIX,
-        framed.nonce,
-        framed.index,
-        framed.count,
-        framed.chunk,
+    if (envelope.type === 2) {
+      replyToLinkProbe(from, envelope);
+      return;
+    }
+    recordProbeReply(envelope);
+  };
+
+  const receiveReadiness = (from: string, envelope: LinkControlEnvelope) => {
+    const readiness = parseMediaReadiness(envelope.payload);
+    if (
+      readiness === null ||
+      readiness.consentPosture === "closed" ||
+      readiness.expiresAt <= Date.now()
+    ) {
+      return;
+    }
+    readinessEntries.push({
+      fromDestinationHash: from,
+      kind: envelope.id === READINESS_REQUEST_ID ? "request" : "response",
+      readiness,
+      receivedAt: Date.now(),
+    });
+    if (envelope.id !== READINESS_REQUEST_ID) return;
+    void sendLinkControl(
+      from,
+      READINESS_RESPONSE_ID,
+      encodeReadinessEnvelope(READINESS_RESPONSE_ID, localReadiness()),
+    ).catch((error: unknown) =>
+      log(`test-agent readiness reply failed: ${errorText(error)}`),
+    );
+  };
+
+  const replyToLinkProbe = (from: string, envelope: LinkControlEnvelope) => {
+    void sendLinkControl(
+      from,
+      envelope.id,
+      encodeLinkControl({
+        type: 3,
+        id: envelope.id,
+        payload: envelope.payload,
+      }),
+    ).catch((error: unknown) =>
+      log(`test-agent probe reply failed: ${errorText(error)}`),
+    );
+  };
+
+  /** Only a reply that matches the bytes we sent closes the measurement. */
+  const recordProbeReply = (envelope: LinkControlEnvelope): void => {
+    const pending = probeEntries.get(envelope.id);
+    if (pending === undefined || pending.rttMs !== null) return;
+    if (
+      envelope.payload.length + 8 + envelope.id.length !==
+      pending.budgetBytes
+    ) {
+      return;
+    }
+    probeEntries.set(envelope.id, {
+      ...pending,
+      rttMs: Math.max(1, Date.now() - pending.sentAt),
+    });
+  };
+
+  /** Records a realtime/call payload and echoes it back once. */
+  const receiveEchoable = (
+    from: string,
+    content: string,
+    carrier: EchoableCarrier,
+  ): void => {
+    const echo = content.startsWith(carrier.echoPrefix);
+    const prefix = echo ? carrier.echoPrefix : carrier.prefix;
+    if (!content.startsWith(prefix)) return;
+    const framed = parseChunkedBody(content.slice(prefix.length));
+    if (framed === null) return;
+    const payloadHex = receiveChunkedHex(from, prefix, framed);
+    if (payloadHex === null) return;
+    carrier.entries.push({
+      nonce: framed.nonce,
+      kind: echo ? "echo" : "payload",
+      fromDestinationHash: from,
+      payloadHex,
+      receivedAt: Date.now(),
+    });
+    if (echo) return;
+    void carrier
+      .send(from, carrier.echoPrefix, framed.nonce, payloadHex)
+      .catch((error: unknown) =>
+        log(`${carrier.echoFailureLabel}: ${errorText(error)}`),
       );
-      if (payloadHex === null || payloadHex.length > 2 * (8 + 64 + 8192))
-        return;
-      const envelope = decodeLinkControl(hexToBytes(payloadHex));
-      if (envelope === null) return;
-      if (envelope.type === 1) {
-        const readiness = parseMediaReadiness(envelope.payload);
-        if (
-          readiness === null ||
-          readiness.consentPosture === "closed" ||
-          readiness.expiresAt <= Date.now()
-        )
-          return;
-        readinessEntries.push({
-          fromDestinationHash: from,
-          kind: envelope.id === READINESS_REQUEST_ID ? "request" : "response",
-          readiness,
-          receivedAt: Date.now(),
-        });
-        if (envelope.id === READINESS_REQUEST_ID) {
-          void sendLinkControl(
-            from,
-            READINESS_RESPONSE_ID,
-            encodeReadinessEnvelope(READINESS_RESPONSE_ID, localReadiness()),
-          ).catch((error: unknown) =>
-            log(
-              `test-agent readiness reply failed: ${error instanceof Error ? error.message : String(error)}`,
-            ),
-          );
-        }
-        return;
-      }
-      if (envelope.type === 2) {
-        void sendLinkControl(
-          from,
-          envelope.id,
-          encodeLinkControl({
-            type: 3,
-            id: envelope.id,
-            payload: envelope.payload,
-          }),
-        ).catch((error: unknown) =>
-          log(
-            `test-agent probe reply failed: ${error instanceof Error ? error.message : String(error)}`,
-          ),
-        );
-        return;
-      }
-      const pending = probeEntries.get(envelope.id);
-      // Only a reply that matches the bytes we sent closes the measurement.
-      if (pending === undefined || pending.rttMs !== null) return;
-      if (
-        envelope.payload.length + 8 + envelope.id.length !==
-        pending.budgetBytes
-      )
-        return;
-      probeEntries.set(envelope.id, {
-        ...pending,
-        rttMs: Math.max(1, Date.now() - pending.sentAt),
-      });
-      return;
-    }
-    if (message.titleAsString() === TEST_AGENT_REALTIME_TITLE) {
-      const echo = content.startsWith(REALTIME_ECHO_PREFIX);
-      const prefix = echo ? REALTIME_ECHO_PREFIX : REALTIME_PREFIX;
-      if (!content.startsWith(prefix)) return;
-      const framed = parseChunkedBody(content.slice(prefix.length));
-      if (framed === null) return;
-      const payloadHex = receiveChunkedHex(
-        from,
-        prefix,
-        framed.nonce,
-        framed.index,
-        framed.count,
-        framed.chunk,
-      );
-      if (payloadHex === null) return;
-      realtimeEntries.push({
-        nonce: framed.nonce,
-        kind: echo ? "echo" : "payload",
-        fromDestinationHash: from,
-        payloadHex,
-        receivedAt: Date.now(),
-      });
-      if (!echo)
-        void sendRealtime(
-          from,
-          REALTIME_ECHO_PREFIX,
-          framed.nonce,
-          payloadHex,
-        ).catch((error: unknown) =>
-          log(
-            `test-agent realtime echo failed: ${error instanceof Error ? error.message : String(error)}`,
-          ),
-        );
-      return;
-    }
-    if (message.titleAsString() === TEST_AGENT_CALL_TITLE) {
-      const echo = content.startsWith(CALL_ECHO_PREFIX);
-      const prefix = echo ? CALL_ECHO_PREFIX : CALL_PREFIX;
-      if (!content.startsWith(prefix)) return;
-      const framed = parseChunkedBody(content.slice(prefix.length));
-      if (framed === null) return;
-      const payloadHex = receiveChunkedHex(
-        from,
-        prefix,
-        framed.nonce,
-        framed.index,
-        framed.count,
-        framed.chunk,
-      );
-      if (payloadHex === null) return;
-      callEntries.push({
-        nonce: framed.nonce,
-        kind: echo ? "echo" : "payload",
-        fromDestinationHash: from,
-        payloadHex,
-        receivedAt: Date.now(),
-      });
-      if (!echo) {
-        void sendCall(from, CALL_ECHO_PREFIX, framed.nonce, payloadHex).catch(
-          (error: unknown) =>
-            log(
-              `test-agent call echo failed: ${error instanceof Error ? error.message : String(error)}`,
-            ),
-        );
-      }
-      return;
-    }
+  };
+
+  const receiveProbe = (from: string, content: string): void => {
     const echoNonce = nonceFrom(content, ECHO_PREFIX);
     if (echoNonce !== null) {
       recordInbox({
@@ -690,9 +706,7 @@ export async function mountTestAgent(
       return;
     }
     const probeNonce = nonceFrom(content, PROBE_PREFIX);
-    if (probeNonce === null) {
-      return;
-    }
+    if (probeNonce === null) return;
     recordInbox({
       nonce: probeNonce,
       kind: "probe",
@@ -701,11 +715,45 @@ export async function mountTestAgent(
     });
     void sendProbe(from, `${ECHO_PREFIX}${probeNonce}`).catch(
       (error: unknown) => {
-        log(
-          `test-agent echo failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        log(`test-agent echo failed: ${errorText(error)}`);
       },
     );
+  };
+
+  deliverySession.onMessage((message) => {
+    let content: string;
+    try {
+      content = message.contentAsString();
+    } catch {
+      return;
+    }
+    const from = bytesToHex(message.sourceHash);
+    const title = message.titleAsString();
+    if (title === TEST_AGENT_LINK_TITLE) {
+      receiveLinkControl(from, content);
+      return;
+    }
+    if (title === TEST_AGENT_REALTIME_TITLE) {
+      receiveEchoable(from, content, {
+        prefix: REALTIME_PREFIX,
+        echoPrefix: REALTIME_ECHO_PREFIX,
+        entries: realtimeEntries,
+        send: sendRealtime,
+        echoFailureLabel: "test-agent realtime echo failed",
+      });
+      return;
+    }
+    if (title === TEST_AGENT_CALL_TITLE) {
+      receiveEchoable(from, content, {
+        prefix: CALL_PREFIX,
+        echoPrefix: CALL_ECHO_PREFIX,
+        entries: callEntries,
+        send: sendCall,
+        echoFailureLabel: "test-agent call echo failed",
+      });
+      return;
+    }
+    receiveProbe(from, content);
   });
 
   const buildStatus = (): TestAgentStatus => {
@@ -730,234 +778,261 @@ export async function mountTestAgent(
     };
   };
 
+  const observe = (request: ControlRequest): Record<string, unknown> => {
+    const result = handleObserveCommand(observeState, request);
+    if (result === null) {
+      throw new Error(`Unknown test-agent command: ${request.cmd}`);
+    }
+    return result;
+  };
+
+  const sendProbeCommand = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
+    if (request.toLxmfAddress === undefined || request.nonce === undefined) {
+      throw new Error("send requires toLxmfAddress and nonce");
+    }
+    await sendProbe(request.toLxmfAddress, `${PROBE_PREFIX}${request.nonce}`);
+    return {};
+  };
+
+  const sendRealtimeCommand = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
+    if (
+      request.toLxmfAddress === undefined ||
+      request.nonce === undefined ||
+      request.payloadHex === undefined
+    ) {
+      throw new Error(
+        "send-realtime requires toLxmfAddress, nonce, and payloadHex",
+      );
+    }
+    await sendRealtime(
+      request.toLxmfAddress,
+      REALTIME_PREFIX,
+      request.nonce,
+      request.payloadHex,
+    );
+    return {};
+  };
+
+  const sendInvite = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
+    if (request.toLxmfAddress === undefined)
+      throw new Error("send-invite requires toLxmfAddress");
+    const appId =
+      typeof request.appId === "string" ? request.appId : "line-check";
+    const requestedClasses = Array.isArray(request.requestedClasses)
+      ? (request.requestedClasses as ReadonlyArray<
+          "camera" | "microphone" | "screen-capture"
+        >)
+      : (["microphone"] as const);
+    const id = `invite-${label}-${nextInvite++}`;
+    const expiresAt = Date.now() + SESSION_INVITE_TTL_MS;
+    const envelope = encodeSessionInviteEnvelope({
+      id,
+      appId,
+      requestedClasses,
+      expiresAt,
+    });
+    await sendMessage(
+      request.toLxmfAddress,
+      SESSION_INVITE_TITLE,
+      sessionInviteContent(envelope),
+    );
+    inviteEntries.push({
+      kind: "sent",
+      id,
+      appId,
+      peerLabel: request.toLxmfAddress.slice(0, 12),
+      requestedClasses,
+      expiresAt,
+      at: Date.now(),
+      peerDestinationHash: request.toLxmfAddress,
+    });
+    return { inviteId: id, appId, expiresAt, bytes: envelope.length };
+  };
+
+  const acceptInvite = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
+    const inviteId =
+      typeof request.inviteId === "string" ? request.inviteId : undefined;
+    if (inviteId === undefined)
+      throw new Error("accept-invite requires inviteId");
+    const raised = inviteEntries.findLast(
+      (entry) => entry.kind === "raised" && entry.id === inviteId,
+    );
+    if (raised === undefined) throw new Error(`No raised invite ${inviteId}`);
+    const knownPeerHash = (): string | undefined =>
+      raised.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
+    if (
+      inviteEntries.some(
+        (entry) => entry.kind === "accepted" && entry.id === inviteId,
+      )
+    ) {
+      return {
+        accepted: true,
+        inviteId,
+        peerDestinationHash: knownPeerHash() ?? null,
+      };
+    }
+    await options.acceptSessionInvite?.(inviteId);
+    const peerDestinationHash = knownPeerHash();
+    inviteEntries.push({
+      ...raised,
+      kind: "accepted",
+      at: Date.now(),
+      ...(peerDestinationHash === undefined ? {} : { peerDestinationHash }),
+    });
+    return {
+      accepted: true,
+      inviteId,
+      peerDestinationHash: peerDestinationHash ?? null,
+    };
+  };
+
+  const sendCallCommand = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
+    const inviteId =
+      typeof request.inviteId === "string" ? request.inviteId : undefined;
+    if (
+      inviteId === undefined ||
+      request.nonce === undefined ||
+      request.payloadHex === undefined
+    ) {
+      throw new Error("send-call requires inviteId, nonce, and payloadHex");
+    }
+    const accepted = inviteEntries.findLast(
+      (entry) => entry.kind === "accepted" && entry.id === inviteId,
+    );
+    if (accepted === undefined)
+      throw new Error(`Invite ${inviteId} has not been accepted`);
+    const peerDestinationHash =
+      accepted.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
+    if (peerDestinationHash === undefined)
+      throw new Error(`No peer destination for accepted invite ${inviteId}`);
+    await sendCall(
+      peerDestinationHash,
+      CALL_PREFIX,
+      request.nonce,
+      request.payloadHex,
+    );
+    return {
+      sent: true,
+      inviteId,
+      peerDestinationHash,
+      bytes: Math.floor(request.payloadHex.length / 2),
+    };
+  };
+
+  const requestReadiness = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
+    if (request.toLxmfAddress === undefined)
+      throw new Error("request-readiness requires toLxmfAddress");
+    await sendLinkControl(
+      request.toLxmfAddress,
+      READINESS_REQUEST_ID,
+      encodeReadinessEnvelope(READINESS_REQUEST_ID, localReadiness()),
+    );
+    return {};
+  };
+
+  const linkProbe = async (
+    request: ControlRequest,
+  ): Promise<Record<string, unknown>> => {
+    if (request.toLxmfAddress === undefined)
+      throw new Error("link-probe requires toLxmfAddress");
+    const budgetBytes =
+      typeof request.budgetBytes === "number"
+        ? request.budgetBytes
+        : LINK_PROBE_MAX_BUDGET_BYTES;
+    if (
+      !Number.isInteger(budgetBytes) ||
+      budgetBytes < 256 ||
+      budgetBytes > LINK_PROBE_MAX_BUDGET_BYTES
+    ) {
+      throw new Error(
+        `link-probe budget must be 256-${LINK_PROBE_MAX_BUDGET_BYTES} bytes`,
+      );
+    }
+    const id = `probe-${label}-${nextProbe++}`;
+    const envelope = encodeLinkControl({
+      type: 2,
+      id,
+      payload: new Uint8Array(Math.max(0, budgetBytes - 8 - id.length)),
+    });
+    probeEntries.set(id, {
+      id,
+      toDestinationHash: request.toLxmfAddress,
+      budgetBytes: envelope.length,
+      sentAt: Date.now(),
+      rttMs: null,
+    });
+    await sendLinkControl(request.toLxmfAddress, id, envelope);
+    // `id` is the control frame's correlation key; never shadow it here.
+    return { probeId: id, budgetBytes: envelope.length };
+  };
+
+  /**
+   * The control vocabulary. A table rather than a switch so each command is a
+   * named unit and an unknown one falls through to the host's own handler.
+   */
+  const commands: Record<
+    string,
+    (
+      request: ControlRequest,
+    ) => Record<string, unknown> | Promise<Record<string, unknown>>
+  > = {
+    info: () => ({ label, platform, identityHash, lxmfAddress }),
+    peers: () => ({ peers: deliverySession.peers() }),
+    inbox: () => ({ inbox: [...inboxEntries] }),
+    "realtime-inbox": () => ({ inbox: [...realtimeEntries] }),
+    "call-inbox": () => ({ inbox: [...callEntries] }),
+    status: () => ({ status: buildStatus() }),
+    announce: async () => {
+      await delivery.announce();
+      return {};
+    },
+    "announce-burst": (request) =>
+      announceBurst(
+        () => delivery.announce(),
+        typeof request.count === "number" ? request.count : 16,
+      ),
+    send: sendProbeCommand,
+    "send-realtime": sendRealtimeCommand,
+    "link-state": () => ({
+      readiness: [...readinessEntries],
+      probes: [...probeEntries.values()],
+      dropCensus: dropCensus.snapshot(),
+    }),
+    subscribe: observe,
+    unsubscribe: observe,
+    "observe-snapshot": observe,
+    "invite-state": () => ({ invites: [...inviteEntries] }),
+    "send-invite": sendInvite,
+    "accept-invite": acceptInvite,
+    "send-call": sendCallCommand,
+    "request-readiness": requestReadiness,
+    "link-probe": linkProbe,
+  };
+
   const handle = async (
     request: ControlRequest,
   ): Promise<Record<string, unknown>> => {
-    switch (request.cmd) {
-      case "info":
-        return { label, platform, identityHash, lxmfAddress };
-      case "peers":
-        return { peers: deliverySession.peers() };
-      case "inbox":
-        return { inbox: [...inboxEntries] };
-      case "realtime-inbox":
-        return { inbox: [...realtimeEntries] };
-      case "call-inbox":
-        return { inbox: [...callEntries] };
-      case "status":
-        return { status: buildStatus() };
-      case "announce":
-        await delivery.announce();
-        return {};
-      case "announce-burst": {
-        const count = typeof request.count === "number" ? request.count : 16;
-        return announceBurst(() => delivery.announce(), count);
-      }
-      case "send": {
-        if (
-          request.toLxmfAddress === undefined ||
-          request.nonce === undefined
-        ) {
-          throw new Error("send requires toLxmfAddress and nonce");
-        }
-        await sendProbe(
-          request.toLxmfAddress,
-          `${PROBE_PREFIX}${request.nonce}`,
-        );
-        return {};
-      }
-      case "send-realtime": {
-        if (
-          request.toLxmfAddress === undefined ||
-          request.nonce === undefined ||
-          request.payloadHex === undefined
-        )
-          throw new Error(
-            "send-realtime requires toLxmfAddress, nonce, and payloadHex",
-          );
-        await sendRealtime(
-          request.toLxmfAddress,
-          REALTIME_PREFIX,
-          request.nonce,
-          request.payloadHex,
-        );
-        return {};
-      }
-      case "link-state":
-        return {
-          readiness: [...readinessEntries],
-          probes: [...probeEntries.values()],
-          dropCensus: dropCensus.snapshot(),
-        };
-      case "subscribe":
-      case "unsubscribe":
-      case "observe-snapshot": {
-        const result = handleObserveCommand(observeState, request);
-        if (result === null) {
-          throw new Error(`Unknown test-agent command: ${request.cmd}`);
-        }
-        return result;
-      }
-      case "invite-state":
-        return { invites: [...inviteEntries] };
-      case "send-invite": {
-        if (request.toLxmfAddress === undefined)
-          throw new Error("send-invite requires toLxmfAddress");
-        const appId =
-          typeof request.appId === "string" ? request.appId : "line-check";
-        const requestedClasses = Array.isArray(request.requestedClasses)
-          ? (request.requestedClasses as ReadonlyArray<
-              "camera" | "microphone" | "screen-capture"
-            >)
-          : (["microphone"] as const);
-        const id = `invite-${label}-${nextInvite++}`;
-        const expiresAt = Date.now() + SESSION_INVITE_TTL_MS;
-        const envelope = encodeSessionInviteEnvelope({
-          id,
-          appId,
-          requestedClasses,
-          expiresAt,
-        });
-        await sendMessage(
-          request.toLxmfAddress,
-          SESSION_INVITE_TITLE,
-          sessionInviteContent(envelope),
-        );
-        inviteEntries.push({
-          kind: "sent",
-          id,
-          appId,
-          peerLabel: request.toLxmfAddress.slice(0, 12),
-          requestedClasses,
-          expiresAt,
-          at: Date.now(),
-          peerDestinationHash: request.toLxmfAddress,
-        });
-        return { inviteId: id, appId, expiresAt, bytes: envelope.length };
-      }
-      case "accept-invite": {
-        const inviteId =
-          typeof request.inviteId === "string" ? request.inviteId : undefined;
-        if (inviteId === undefined)
-          throw new Error("accept-invite requires inviteId");
-        const raised = inviteEntries.findLast(
-          (entry) => entry.kind === "raised" && entry.id === inviteId,
-        );
-        if (raised === undefined)
-          throw new Error(`No raised invite ${inviteId}`);
-        if (
-          inviteEntries.some(
-            (entry) => entry.kind === "accepted" && entry.id === inviteId,
-          )
-        ) {
-          return {
-            accepted: true,
-            inviteId,
-            peerDestinationHash:
-              raised.peerDestinationHash ??
-              peerDestinationHashForInvite(inviteId) ??
-              null,
-          };
-        }
-        await options.acceptSessionInvite?.(inviteId);
-        const peerDestinationHash =
-          raised.peerDestinationHash ?? peerDestinationHashForInvite(inviteId);
-        inviteEntries.push({
-          ...raised,
-          kind: "accepted",
-          at: Date.now(),
-          ...(peerDestinationHash === undefined ? {} : { peerDestinationHash }),
-        });
-        return {
-          accepted: true,
-          inviteId,
-          peerDestinationHash: peerDestinationHash ?? null,
-        };
-      }
-      case "send-call": {
-        const inviteId =
-          typeof request.inviteId === "string" ? request.inviteId : undefined;
-        if (
-          inviteId === undefined ||
-          request.nonce === undefined ||
-          request.payloadHex === undefined
-        ) {
-          throw new Error("send-call requires inviteId, nonce, and payloadHex");
-        }
-        const accepted = inviteEntries.findLast(
-          (entry) => entry.kind === "accepted" && entry.id === inviteId,
-        );
-        if (accepted === undefined)
-          throw new Error(`Invite ${inviteId} has not been accepted`);
-        const peerDestinationHash =
-          accepted.peerDestinationHash ??
-          peerDestinationHashForInvite(inviteId);
-        if (peerDestinationHash === undefined)
-          throw new Error(
-            `No peer destination for accepted invite ${inviteId}`,
-          );
-        await sendCall(
-          peerDestinationHash,
-          CALL_PREFIX,
-          request.nonce,
-          request.payloadHex,
-        );
-        return {
-          sent: true,
-          inviteId,
-          peerDestinationHash,
-          bytes: Math.floor(request.payloadHex.length / 2),
-        };
-      }
-      case "request-readiness": {
-        if (request.toLxmfAddress === undefined)
-          throw new Error("request-readiness requires toLxmfAddress");
-        await sendLinkControl(
-          request.toLxmfAddress,
-          READINESS_REQUEST_ID,
-          encodeReadinessEnvelope(READINESS_REQUEST_ID, localReadiness()),
-        );
-        return {};
-      }
-      case "link-probe": {
-        if (request.toLxmfAddress === undefined)
-          throw new Error("link-probe requires toLxmfAddress");
-        const budgetBytes =
-          typeof request.budgetBytes === "number"
-            ? request.budgetBytes
-            : LINK_PROBE_MAX_BUDGET_BYTES;
-        if (
-          !Number.isInteger(budgetBytes) ||
-          budgetBytes < 256 ||
-          budgetBytes > LINK_PROBE_MAX_BUDGET_BYTES
-        ) {
-          throw new Error(
-            `link-probe budget must be 256-${LINK_PROBE_MAX_BUDGET_BYTES} bytes`,
-          );
-        }
-        const id = `probe-${label}-${nextProbe++}`;
-        const envelope = encodeLinkControl({
-          type: 2,
-          id,
-          payload: new Uint8Array(Math.max(0, budgetBytes - 8 - id.length)),
-        });
-        probeEntries.set(id, {
-          id,
-          toDestinationHash: request.toLxmfAddress,
-          budgetBytes: envelope.length,
-          sentAt: Date.now(),
-          rttMs: null,
-        });
-        await sendLinkControl(request.toLxmfAddress, id, envelope);
-        // `id` is the control frame's correlation key; never shadow it here.
-        return { probeId: id, budgetBytes: envelope.length };
-      }
-      default:
-        if (options.handleCommand !== undefined) {
-          return { ...(await options.handleCommand(request)) };
-        }
-        throw new Error(`Unknown test-agent command: ${request.cmd}`);
+    // hasOwn, not a bare lookup: `constructor` and friends are not commands.
+    const command = Object.hasOwn(commands, request.cmd)
+      ? commands[request.cmd]
+      : undefined;
+    if (command !== undefined) return command(request);
+    if (options.handleCommand !== undefined) {
+      return { ...(await options.handleCommand(request)) };
     }
+    throw new Error(`Unknown test-agent command: ${request.cmd}`);
   };
 
   const encoder = new TextEncoder();
