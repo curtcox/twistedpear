@@ -67,10 +67,6 @@ try {
     await page.evaluate(
       ({ kind, fakeIdentity, fakeHash }) => {
         const panels = [...document.querySelectorAll("main > .panel")];
-        const panel = (title) =>
-          panels.find(
-            (candidate) => candidate.querySelector("h2")?.textContent === title,
-          );
         const show = (...titles) => {
           for (const candidate of panels) {
             candidate.hidden = !titles.includes(

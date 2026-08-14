@@ -277,7 +277,6 @@ async function runLxmfEcho() {
 }
 
 async function runUdpLoopback() {
-  const leftIdentity = loadIdentity("alice");
   const rightIdentity = loadIdentity("bob");
 
   const left = Reticulum.create({ provider, runtime });

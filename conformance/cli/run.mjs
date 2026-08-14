@@ -5,7 +5,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,7 +24,6 @@ import {
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   printHelp,
-  runInit,
   runPack,
   runPublish,
   runSign,

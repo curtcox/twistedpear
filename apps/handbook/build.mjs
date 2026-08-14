@@ -271,10 +271,14 @@ async function build() {
       })),
     })),
     chapters,
-    applets: applets.map(({ source, ...rest }) => ({
-      ...rest,
-      sourcePath: `applets/${rest.id}/main.js`,
-    })),
+    applets: applets.map((applet) => {
+      const rest = { ...applet };
+      delete rest.source;
+      return {
+        ...rest,
+        sourcePath: `applets/${rest.id}/main.js`,
+      };
+    }),
     seeds: collectSeedManifest(seedsDir),
   };
 
@@ -326,10 +330,14 @@ function buildPartPackages({
 
     const partApplets = applets
       .filter((applet) => referencedApplets.has(applet.id))
-      .map(({ source, ...rest }) => ({
-        ...rest,
-        sourcePath: `applets/${rest.id}/main.js`,
-      }));
+      .map((applet) => {
+        const rest = { ...applet };
+        delete rest.source;
+        return {
+          ...rest,
+          sourcePath: `applets/${rest.id}/main.js`,
+        };
+      });
 
     const chapterIds = new Set(partChapters.map((chapter) => chapter.id));
     const partSeeds = seeds.filter((seed) => {

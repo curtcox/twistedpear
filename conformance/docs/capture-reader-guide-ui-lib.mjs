@@ -4,7 +4,6 @@
 import {
   createReadStream,
   existsSync,
-  mkdirSync,
   readdirSync,
   readFileSync,
   statSync,

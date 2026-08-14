@@ -24,24 +24,6 @@ function loadToc() {
   return JSON.parse(readFileSync(tocPath, "utf8"));
 }
 
-function listMarkdownFiles() {
-  const files = [];
-  function walk(dir) {
-    for (const entry of readdirSync(dir).sort()) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (entry.endsWith(".md")) {
-        files.push(full);
-      }
-    }
-  }
-  walk(contentDir);
-  return files;
-}
-
 function extractLinks(markdown) {
   const links = [];
   const re = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -50,15 +32,6 @@ function extractLinks(markdown) {
     links.push({ label: match[1], target: match[2] });
   }
   return links;
-}
-
-function partForChapter(chapterId, toc) {
-  for (const part of toc.parts) {
-    if (part.chapters.some((chapter) => chapter.id === chapterId)) {
-      return part.id;
-    }
-  }
-  return null;
 }
 
 function auditDeadLinks(toc) {

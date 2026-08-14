@@ -64,10 +64,6 @@ class MemoryStore {
   }
 }
 
-function sleep(ms) {
-  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
-}
-
 function waitForPeer(timeoutMs = 15_000) {
   return new Promise((resolve, reject) => {
     const socket = createConnection({

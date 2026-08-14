@@ -15,13 +15,6 @@ import {
   parseResultStatus,
 } from "../handbook/expectations.mjs";
 
-const DEVICE_GATED_APPLET_IDS = new Set([
-  "ble-peer",
-  "rnode-serial",
-  "multicast-auto",
-  "camera-qr-scan",
-]);
-
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
 
 function sleep(ms) {

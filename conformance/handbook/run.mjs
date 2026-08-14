@@ -52,13 +52,6 @@ const RESULT_STATUSES = new Set([
   "skipped",
 ]);
 
-const DEVICE_GATED_APPLET_IDS = new Set([
-  "ble-peer",
-  "rnode-serial",
-  "multicast-auto",
-  "camera-qr-scan",
-]);
-
 class MemoryStore {
   values = new Map();
 

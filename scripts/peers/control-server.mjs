@@ -172,7 +172,12 @@ export async function startControlServer(options = {}) {
     port: boundPort,
     labels: () => [...agents.keys()],
     agent: (label) => agents.get(label) ?? null,
-    agents: () => [...agents.values()].map(({ socket, ...rest }) => rest),
+    agents: () =>
+      [...agents.values()].map((agent) => {
+        const rest = { ...agent };
+        delete rest.socket;
+        return rest;
+      }),
     /** Resolves once `label` has checked in, or rejects on timeout. */
     waitForAgent(label, timeoutMs = 60_000) {
       if (closed) {

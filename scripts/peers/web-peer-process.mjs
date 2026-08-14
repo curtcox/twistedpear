@@ -172,7 +172,10 @@ async function handleControlRequest(frame) {
       });
       return;
     }
-    const { id: _id, cmd: requestCmd, ...rest } = frame;
+    const rest = { ...frame };
+    const requestCmd = rest.cmd;
+    delete rest.id;
+    delete rest.cmd;
     const result = await harnessCommand(requestCmd, rest, 120_000);
     writeControl({ id, ok: true, ...result });
   } catch (error) {

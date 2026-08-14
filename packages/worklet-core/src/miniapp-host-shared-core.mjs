@@ -6,7 +6,6 @@ import {
   isMiniappCapability,
   validateManifestCapabilities,
 } from "../../miniapp-runtime/dist/capabilities.js";
-import { HOST_API_VERSION } from "../../miniapp-runtime/dist/host-api.js";
 import { MiniappHost } from "../../miniapp-runtime/dist/host.js";
 import { SessionInviteService } from "../../miniapp-runtime/dist/session-invite.js";
 

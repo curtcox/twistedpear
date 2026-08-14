@@ -283,7 +283,6 @@ async function testDirectResourceFetch(
 
   await publisher.announce();
 
-  const consumerIdentity = new Identity(provider);
   const consumerOut = left.registerDestination({
     provider,
     identity: publisherIdentity,

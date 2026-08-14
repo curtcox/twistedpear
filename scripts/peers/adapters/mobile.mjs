@@ -28,7 +28,6 @@ import {
   adb,
   buildAndInstallHarness as buildAndInstallAndroidHarness,
   harnessInstalled,
-  launchHarness,
   maestroAvailable,
   requireDevice,
   waitForBootComplete,

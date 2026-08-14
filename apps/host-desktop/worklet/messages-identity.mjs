@@ -35,7 +35,7 @@ export function createIdentityMessageHandlers(deps) {
     deps.persistModerationState(...args);
   const normalizedSourceHash = (...args) => deps.normalizedSourceHash(...args);
 
-  const handleCreateIdentity = async (message) => {
+  const handleCreateIdentity = async () => {
     send({ type: "identity-locked", legacy: false, creating: true });
     return;
   };
@@ -212,12 +212,12 @@ export function createIdentityMessageHandlers(deps) {
     return;
   };
 
-  const handleModerationList = async (message) => {
+  const handleModerationList = async () => {
     pushModerationState();
     return;
   };
 
-  const handleDeviceList = async (message) => {
+  const handleDeviceList = async () => {
     try {
       await ensureMiniappHost().pushDeviceState();
     } catch (error) {
@@ -373,7 +373,7 @@ export function createIdentityMessageHandlers(deps) {
     return;
   };
 
-  const handleResetIdentity = async (message) => {
+  const handleResetIdentity = async () => {
     await resetIdentity();
     return;
   };

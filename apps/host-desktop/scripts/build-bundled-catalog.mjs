@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { encode256t } from "../../../packages/cas-256t/dist/index.js";
@@ -48,7 +48,6 @@ async function packApp({
   provider,
   identity,
   appDir,
-  appName,
   hostApiVersion,
 }) {
   const manifestPath = join(appDir, "app.manifest.json");
@@ -107,7 +106,6 @@ async function packFromSource({
       provider,
       identity,
       appDir,
-      appName: folderName,
       hostApiVersion,
     });
   } finally {

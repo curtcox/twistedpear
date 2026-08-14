@@ -104,7 +104,7 @@ export function createMiniappMessageHandlers(deps) {
     return;
   };
 
-  const handleStopPreviewMiniapp = async (message) => {
+  const handleStopPreviewMiniapp = async () => {
     await ensureMiniappHost().stopPreview();
     return;
   };
@@ -154,12 +154,12 @@ export function createMiniappMessageHandlers(deps) {
     return;
   };
 
-  const handleSuspendMiniapp = async (message) => {
+  const handleSuspendMiniapp = async () => {
     await ensureMiniappHost().suspend();
     return;
   };
 
-  const handleResumeMiniapp = async (message) => {
+  const handleResumeMiniapp = async () => {
     await ensureMiniappHost().resume();
     return;
   };
@@ -226,7 +226,7 @@ export function createMiniappMessageHandlers(deps) {
     return;
   };
 
-  const handleDisconnectDevChannel = async (message) => {
+  const handleDisconnectDevChannel = async () => {
     await ensureDevChannel().disconnect();
     return;
   };

@@ -9,10 +9,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  unpackPackage,
-  verifyPackage,
-} from "../../packages/app-registry/dist/index.js";
+import { verifyPackage } from "../../packages/app-registry/dist/index.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 import {

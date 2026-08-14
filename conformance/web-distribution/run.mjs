@@ -12,7 +12,6 @@ import { chromium } from "playwright";
 import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
-  unpackPackage,
   verifyPackage,
 } from "../../packages/app-registry/dist/index.js";
 import {

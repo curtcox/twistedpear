@@ -8,10 +8,7 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  NodeCryptoProvider,
-  bytesToHex,
-} from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import {
   CatalogStore,
   InstalledPackageStore,

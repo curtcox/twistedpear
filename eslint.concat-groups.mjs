@@ -119,5 +119,10 @@ export function concatGroupConfigs() {
     languageOptions: {
       globals: Object.fromEntries(assembledDeclarations(group)),
     },
+    // Members are linted in isolation; a binding used only by a sibling is
+    // unused here even though the assembled script uses it.
+    rules: {
+      "no-unused-vars": "off",
+    },
   }));
 }

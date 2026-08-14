@@ -30,7 +30,7 @@ export function createCatalogMessageHandlers(deps) {
   const resolveIdentity = (...args) => deps.resolveIdentity(...args);
   const installFromT256 = (...args) => deps.installFromT256(...args);
 
-  const handleListCatalog = async (message) => {
+  const handleListCatalog = async () => {
     pushCatalog();
     return;
   };
@@ -252,7 +252,7 @@ export function createCatalogMessageHandlers(deps) {
     return;
   };
 
-  const handleTrustList = async (message) => {
+  const handleTrustList = async () => {
     await pushTrustList();
     return;
   };
@@ -287,7 +287,7 @@ export function createCatalogMessageHandlers(deps) {
     return;
   };
 
-  const handleTrustShow = async (message) => {
+  const handleTrustShow = async () => {
     const identity = await resolveIdentity();
     if (identity === null) {
       send({ type: "trust-identity", identity256t: null });

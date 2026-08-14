@@ -54,24 +54,6 @@ export const DEVICE_GATED_APPLET_IDS = new Set([
   "camera-qr-scan",
 ]);
 
-const SOFTWARE_APPLET_CHAPTER = {
-  "host-info": "difference-matrix",
-  "identity-hash": "sdk-identity",
-  "presence-snapshot": "sdk-presence",
-  "storage-kv": "sdk-storage-kv",
-  "storage-hyperbee": "sdk-storage-hyperbee",
-  "lxmf-roundtrip": "sdk-lxmf",
-  "announce-loop": "sdk-announce",
-  "resource-fetch": "sdk-resource-fetch",
-  "workspace-rw": "sdk-workspace",
-  "share-cas": "sdk-share-cas",
-  "apps-package-preview": "sdk-apps-package",
-  "apps-publish-install": "sdk-apps-publish",
-  "apps-update": "sdk-apps-update",
-  "ai-chat": "sdk-ai-chat",
-  "widget-gallery": "sdk-widget-gallery",
-};
-
 class MemoryStore {
   values = new Map();
 

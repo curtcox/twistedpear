@@ -6,11 +6,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  buildAppAnnounceSummary,
-  encodeAppAnnounceData,
-  unpackPackage,
-} from "../../packages/app-registry/dist/index.js";
+import { unpackPackage } from "../../packages/app-registry/dist/index.js";
 import {
   DestinationDirection,
   DestinationType,
@@ -58,13 +54,6 @@ async function main() {
     new Uint8Array(readFileSync(join(meta.publisherDir, ".tp/identity"))),
     IDENTITY_PASSPHRASE,
   );
-
-  const summary = buildAppAnnounceSummary(provider, publisherIdentity, {
-    manifest: unpacked.manifest,
-    packageSize: archive.length,
-    packageHash: unpacked.packageHash,
-    resourceAvailable: true,
-  });
 
   const publisherHash = bytesToHex(
     provider.sha256(publisherIdentity.getPublicKey()).slice(0, 8),

@@ -14,7 +14,6 @@ import {
   InstalledPackageStore,
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
-  unpackPackage,
   verifyPackage,
 } from "../../packages/app-registry/dist/index.js";
 import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";

@@ -1,17 +1,3 @@
-import { renderWidgetTree } from "./widgets.js";
-import {
-  decodeQrVideoFrame,
-  normalizeScannedT256,
-  supportsQrDetection,
-} from "./qr-scanner.js";
-import { handleDeviceBridgeRequest } from "./device-bridge.js";
-import {
-  handleMediaCodecRequest,
-  handleMediaOpusPlayRequest,
-  playInboundMediaFrame,
-} from "./media-codec-bridge.js";
-import { handlePeerWebRtcMessage } from "./peer-webrtc-bridge.js";
-
 export function renderTrustListImpl(__scope, entries) {
   if (!__scope.trustList) {
     return;

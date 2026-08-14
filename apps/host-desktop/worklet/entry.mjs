@@ -480,8 +480,6 @@ function refuseStoreAction(action) {
 }
 
 const {
-  loadRelayConfig,
-  persistRelayConfig,
   seedBundledCatalogIfNeeded,
   ensurePackageDriveManager,
   identityMessages,

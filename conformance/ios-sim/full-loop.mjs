@@ -96,7 +96,6 @@ async function installVerifiedPackage(
   installed,
   entry,
   archive,
-  pathLabel,
 ) {
   const verified = verifyPackage(provider, archive, {
     hostApiVersion: HOST_API_VERSION,
@@ -266,7 +265,6 @@ export async function runIosFullLoop() {
       installed,
       v1Entry,
       v1Archive,
-      "local",
     );
 
     await launchAndRender(
@@ -311,7 +309,6 @@ export async function runIosFullLoop() {
       installed,
       v2Entry,
       v2Archive,
-      "local",
     );
     if (installed.activeVersion(v2Entry.appId) !== "0.2.0") {
       throw new Error("v2 not active after install");

@@ -42,7 +42,7 @@ export function createNodeMessageHandlers(deps) {
     return;
   };
 
-  const handleSuspendNode = async (message) => {
+  const handleSuspendNode = async () => {
     if (state.nodeSuspended) {
       return;
     }
@@ -52,7 +52,7 @@ export function createNodeMessageHandlers(deps) {
     return;
   };
 
-  const handleResumeNode = async (message) => {
+  const handleResumeNode = async () => {
     if (!state.nodeSuspended) {
       return;
     }
@@ -62,7 +62,7 @@ export function createNodeMessageHandlers(deps) {
     return;
   };
 
-  const handleNetworkChange = async (message) => {
+  const handleNetworkChange = async () => {
     if (status.autoEnabled) {
       await stopAutoInterface();
       await startAutoInterface();
@@ -72,7 +72,7 @@ export function createNodeMessageHandlers(deps) {
     return;
   };
 
-  const handleStop = async (message) => {
+  const handleStop = async () => {
     await stopNode();
     log("Worklet stopped");
     return;
@@ -151,7 +151,7 @@ export function createNodeMessageHandlers(deps) {
     return;
   };
 
-  const handleJoinCommunityNetwork = async (message) => {
+  const handleJoinCommunityNetwork = async () => {
     await joinCommunityNetwork({
       status,
       pushStatus,
