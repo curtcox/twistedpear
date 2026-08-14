@@ -126,6 +126,40 @@ export function useWebHarnessController() {
     pwaInstallRef: st.pwaInstallRef,
   });
 
+  return {
+    ...st,
+    appendLog,
+    sendToWorker,
+    readWorkspaceDocument,
+    handleWorkerMessage,
+    ensureBridge,
+    pushGatewayConfig,
+    ...useWebHarnessCommands({
+      appendLog,
+      sendToWorker,
+      ensureBridge,
+      setRnodeEnabled: st.setRnodeEnabled,
+      pwaInstallRef: st.pwaInstallRef,
+    }),
+  };
+}
+
+function useWebHarnessCommands(args: {
+  appendLog: (line: string) => void;
+  sendToWorker: (message: HostToWorkletMessage) => void;
+  ensureBridge: () => ReturnType<typeof createWebCoreBridge>;
+  setRnodeEnabled: (value: boolean) => void;
+  pwaInstallRef: React.MutableRefObject<ReturnType<
+    typeof createPwaInstallController
+  > | null>;
+}) {
+  const {
+    appendLog,
+    sendToWorker,
+    ensureBridge,
+    setRnodeEnabled,
+    pwaInstallRef,
+  } = args;
   const performPeerAudio = useCallback(
     (
       request: Extract<
@@ -140,7 +174,7 @@ export function useWebHarnessController() {
     try {
       const bridge = ensureBridge();
       await bridge.requestWebSerialPort();
-      st.setRnodeEnabled(true);
+      setRnodeEnabled(true);
       appendLog(
         "Web Serial port opened; enable RNode to bring the interface online.",
       );
@@ -149,10 +183,10 @@ export function useWebHarnessController() {
         `Web Serial connect failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-  }, [appendLog, ensureBridge]);
+  }, [appendLog, ensureBridge, setRnodeEnabled]);
 
   const promptPwaInstall = useCallback(async () => {
-    const outcome = await st.pwaInstallRef.current?.promptInstall();
+    const outcome = await pwaInstallRef.current?.promptInstall();
     if (outcome === null || outcome === undefined) {
       appendLog("Install prompt unavailable in this browser session.");
       return;
@@ -163,20 +197,9 @@ export function useWebHarnessController() {
         ? "PWA install accepted."
         : "PWA install dismissed.",
     );
-  }, [appendLog]);
+  }, [appendLog, pwaInstallRef]);
 
-  return {
-    ...st,
-    appendLog,
-    sendToWorker,
-    readWorkspaceDocument,
-    handleWorkerMessage,
-    ensureBridge,
-    pushGatewayConfig,
-    performPeerAudio,
-    connectWebSerialRnode,
-    promptPwaInstall,
-  };
+  return { performPeerAudio, connectWebSerialRnode, promptPwaInstall };
 }
 
 function useWebWorkerMessageHandler(
@@ -347,44 +370,9 @@ function useWebHarnessState() {
   >([]);
   const [pwaInstallAvailability, setPwaInstallAvailability] =
     useState<PwaInstallAvailability>("unavailable");
-  const pwaInstallRef = useRef<ReturnType<
-    typeof createPwaInstallController
-  > | null>(null);
-  const peerRtcRef = useRef(new Map<string, WebPeerRtcState>());
-
-  const previewOptions = useMemo(
-    () =>
-      [
-        { id: "hello", label: "Hello", tree: helloWidgetTree },
-        { id: "chat", label: "Chat panel", tree: chatWidgetTree },
-      ] as const,
-    [],
-  );
-
-  const bridgeRef = useRef<ReturnType<typeof createWebCoreBridge> | null>(null);
-  const workspaceReadCounterRef = useRef(0);
-  const crossDeviceCounterRef = useRef(0);
-  const pendingCrossDeviceRef = useRef(
-    new Map<
-      string,
-      {
-        readonly resolve: (result: Readonly<Record<string, unknown>>) => void;
-        readonly reject: (error: Error) => void;
-        readonly timer: ReturnType<typeof setTimeout>;
-      }
-    >(),
-  );
-  const pendingWorkspaceReadsRef = useRef(
-    new Map<
-      string,
-      {
-        readonly resolve: (content: string) => void;
-        readonly reject: (error: Error) => void;
-        readonly timer: ReturnType<typeof setTimeout>;
-      }
-    >(),
-  );
+  const runtime = useWebHarnessRuntime();
   return {
+    ...runtime,
     status,
     setStatus,
     announces,
@@ -442,6 +430,46 @@ function useWebHarnessState() {
     setSessionInvites,
     pwaInstallAvailability,
     setPwaInstallAvailability,
+  };
+}
+
+function useWebHarnessRuntime() {
+  const pwaInstallRef = useRef<ReturnType<
+    typeof createPwaInstallController
+  > | null>(null);
+  const peerRtcRef = useRef(new Map<string, WebPeerRtcState>());
+  const previewOptions = useMemo(
+    () =>
+      [
+        { id: "hello", label: "Hello", tree: helloWidgetTree },
+        { id: "chat", label: "Chat panel", tree: chatWidgetTree },
+      ] as const,
+    [],
+  );
+  const bridgeRef = useRef<ReturnType<typeof createWebCoreBridge> | null>(null);
+  const workspaceReadCounterRef = useRef(0);
+  const crossDeviceCounterRef = useRef(0);
+  const pendingCrossDeviceRef = useRef(
+    new Map<
+      string,
+      {
+        readonly resolve: (result: Readonly<Record<string, unknown>>) => void;
+        readonly reject: (error: Error) => void;
+        readonly timer: ReturnType<typeof setTimeout>;
+      }
+    >(),
+  );
+  const pendingWorkspaceReadsRef = useRef(
+    new Map<
+      string,
+      {
+        readonly resolve: (content: string) => void;
+        readonly reject: (error: Error) => void;
+        readonly timer: ReturnType<typeof setTimeout>;
+      }
+    >(),
+  );
+  return {
     pwaInstallRef,
     peerRtcRef,
     previewOptions,

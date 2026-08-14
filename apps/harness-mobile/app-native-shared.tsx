@@ -23,7 +23,7 @@ import {
   recordNativePeerPcm,
 } from "@twistedpear/peer-audio";
 import { type WorkletStatus, type ConfirmationKind } from "./worklet/protocol";
-export const peerAudioHex = (bytes: Uint8Array) =>
+const peerAudioHex = (bytes: Uint8Array) =>
   [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 export const peerAudioUnhex = (text: string) =>
   Uint8Array.from(text.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
@@ -155,7 +155,7 @@ export async function playNativeOpusOrPcm(
   await playInboundNativeMedia(dataHex, encoding);
 }
 
-export function floatToPcm16(pcm: Float32Array): Uint8Array {
+function floatToPcm16(pcm: Float32Array): Uint8Array {
   const bytes = new Uint8Array(pcm.length * 2);
   const view = new DataView(bytes.buffer);
   for (let index = 0; index < pcm.length; index += 1)
@@ -166,7 +166,7 @@ export function floatToPcm16(pcm: Float32Array): Uint8Array {
     );
   return bytes;
 }
-export function pcm16ToFloat(bytes: Uint8Array): Float32Array {
+function pcm16ToFloat(bytes: Uint8Array): Float32Array {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const pcm = new Float32Array(Math.floor(bytes.length / 2));
   for (let index = 0; index < pcm.length; index += 1)

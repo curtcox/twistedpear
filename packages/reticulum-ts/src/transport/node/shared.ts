@@ -119,11 +119,11 @@ export function cloneWithHops(
   return Packet.fromFields(provider, fields as PacketFields);
 }
 
-export function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
+function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
   return protocolAnnounceEmittedFromRandomBlob(randomBlob);
 }
 
-export function timebaseFromRandomBlobs(
+function timebaseFromRandomBlobs(
   randomBlobs: ReadonlyArray<Uint8Array>,
 ): number {
   return protocolTimebaseFromRandomBlobs(randomBlobs);
@@ -152,7 +152,7 @@ export function wrapTransportPacket(
   return raw;
 }
 
-export function stripTransportHeaders(raw: Uint8Array): Uint8Array {
+function stripTransportHeaders(raw: Uint8Array): Uint8Array {
   const stepped = stepStripTransportHeadersWithActions(
     initialStripTransportHeadersState(),
     {
@@ -273,7 +273,7 @@ export function buildPathResponseAnnounce(
   return Packet.fromFields(provider, fields as PacketFields);
 }
 
-export function packetHeaderFields(packet: Packet): PacketHeaderFields {
+function packetHeaderFields(packet: Packet): PacketHeaderFields {
   return {
     headerType: packet.headerType,
     contextFlag: packet.contextFlag,

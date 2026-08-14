@@ -3,22 +3,32 @@ import {
   encodePeerAudioFsk,
 } from "@twistedpear/protocol";
 
-export const audioHex = (bytes: Uint8Array) =>
+const audioHex = (bytes: Uint8Array) =>
   [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 
-export const audioUnhex = (text: string) =>
+const audioUnhex = (text: string) =>
   Uint8Array.from(text.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
 
 export async function outboundWebRtcMediaBytes(pc: {
-  getStats(): Promise<Map<string, { type: string; bytesSent?: number }>>;
+  getStats?: () => Promise<unknown>;
 }): Promise<number> {
   if (typeof pc.getStats !== "function") {
     return 0;
   }
   const report = await pc.getStats();
+  if (!(report instanceof Map)) {
+    return 0;
+  }
   let bytes = 0;
   for (const entry of report.values()) {
-    if (entry.type === "outbound-rtp" && typeof entry.bytesSent === "number") {
+    if (
+      entry !== null &&
+      typeof entry === "object" &&
+      "type" in entry &&
+      entry.type === "outbound-rtp" &&
+      "bytesSent" in entry &&
+      typeof entry.bytesSent === "number"
+    ) {
       bytes += entry.bytesSent;
     }
   }
@@ -244,7 +254,7 @@ export async function handleWebMediaCodecRequest(
   }
 }
 
-export async function webEncodeOpus(
+async function webEncodeOpus(
   configuration: {
     readonly codec: string;
     readonly sampleKind: string;
@@ -328,7 +338,7 @@ export async function webEncodeOpus(
   });
 }
 
-export async function webDecodeOpus(
+async function webDecodeOpus(
   configuration: {
     readonly codec: string;
     readonly sampleKind: string;

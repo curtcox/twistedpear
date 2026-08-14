@@ -510,7 +510,7 @@ function NativeInstalledPackagesCard({ scope }: { scope: NativeHarnessScope }) {
 }
 
 function NativeAnnounceBrowserCard({ scope }: { scope: NativeHarnessScope }) {
-  const { announces } = scope;
+  const { announces, logLines } = scope;
   return (
     <>
       <View style={styles.card}>

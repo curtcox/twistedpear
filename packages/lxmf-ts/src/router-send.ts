@@ -311,7 +311,7 @@ export async function sendPropagatedLxmf(
   }
 }
 
-export async function ensureOutboundPropagationLink(
+async function ensureOutboundPropagationLink(
   host: LxmfRouterSendHost,
 ): Promise<Link> {
   const reuseStepped = stepReuseActiveLinkWithActions(

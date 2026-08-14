@@ -475,6 +475,9 @@ function attachNativeRtcDataListener(
   sessionId: string,
   send: Send,
 ): void {
+  if (state.channel === null) {
+    return;
+  }
   state.channel.addEventListener(
     "message",
     (event: { data: ArrayBuffer | Blob | ArrayBufferView }) => {
@@ -507,7 +510,8 @@ async function nativeRtcEventBuffer(
   if (data instanceof ArrayBuffer) {
     return data;
   }
-  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  return new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice()
+    .buffer;
 }
 
 function handleNativeRtcDataSend(

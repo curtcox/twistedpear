@@ -56,14 +56,6 @@ export interface TestAgentInviteEntry {
   readonly peerDestinationHash?: string;
 }
 
-export interface TestAgentCallEntry {
-  readonly nonce: string;
-  readonly kind: "payload" | "echo";
-  readonly fromDestinationHash: string;
-  readonly payloadHex: string;
-  readonly receivedAt: number;
-}
-
 export interface TestAgentProbeEntry {
   readonly id: string;
   readonly toDestinationHash: string;

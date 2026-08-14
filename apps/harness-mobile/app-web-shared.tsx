@@ -1,22 +1,9 @@
 import { validateWidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import type { WorkletStatus } from "./worklet/protocol";
 
-export {
-  audioHex,
-  audioUnhex,
-  outboundWebRtcMediaBytes,
-  playPeerAudio,
-  recordPeerAudio,
-  webHexToBytes,
-  webBytesToHex,
-  playInboundAudioFrame,
-  handleWebMediaCodecRequest,
-  webEncodeOpus,
-  webDecodeOpus,
-} from "./app-web-shared-audio.js";
+export { playPeerAudio, recordPeerAudio } from "./app-web-shared-audio.js";
 
 export {
-  CONFIRM_KIND_TITLES,
   Row,
   ActionButton,
   PeerChromeModal,

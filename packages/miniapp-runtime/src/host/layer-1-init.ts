@@ -54,9 +54,7 @@ export function createHostBroker(
   });
 }
 
-export function createIdentityBackend(
-  options: MiniappHostOptions,
-): IdentityBackend {
+function createIdentityBackend(options: MiniappHostOptions): IdentityBackend {
   if (options.identityBackend !== undefined) {
     return options.identityBackend;
   }

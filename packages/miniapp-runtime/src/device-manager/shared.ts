@@ -407,7 +407,7 @@ export function assertDeviceCapabilityAllowed(options: {
   });
 }
 
-export function expandDeviceCapabilities(
+function expandDeviceCapabilities(
   capabilities: ReadonlyArray<string>,
 ): string[] {
   const expanded = new Set<string>(capabilities);
@@ -506,7 +506,7 @@ export interface SimulatedActuatorLog {
   stopped: number;
 }
 
-export function createActuatorDriver(
+function createActuatorDriver(
   classId: string,
   log: SimulatedActuatorLog,
 ): DeviceDriver {

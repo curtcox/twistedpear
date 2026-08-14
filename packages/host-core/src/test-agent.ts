@@ -25,7 +25,6 @@ export {
 } from "./test-agent-runtime.js";
 
 export type {
-  TestAgentCallEntry,
   TestAgentInboxEntry,
   TestAgentInfo,
   TestAgentInviteEntry,

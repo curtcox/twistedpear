@@ -427,7 +427,7 @@ function peerExchangeMuted(
     return "Trusted host chrome. This emits audible FSK tones and requests microphone access only after you continue. No PCM is exposed to the mini-app.";
   }
   if (flags.ntfy) {
-    return `Trusted host chrome. ${modal.request.server} can observe a random topic, timing, and IP metadata, but invitation contents are end-to-end encrypted.`;
+    return `Trusted host chrome. ${"server" in modal.request ? modal.request.server : "the ntfy server"} can observe a random topic, timing, and IP metadata, but invitation contents are end-to-end encrypted.`;
   }
   return "Trusted host chrome. This is a full serverless code, not a short lookup code.";
 }

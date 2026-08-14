@@ -311,6 +311,7 @@ function NativeFreenetGrantActions({ scope }: { scope: NativeHarnessScope }) {
   const {
     freenetGrant,
     setFreenetGrant,
+    freenetDisclosureAccepted,
     setFreenetDisclosureAccepted,
     setFreenetGrantError,
     freenetSession,
