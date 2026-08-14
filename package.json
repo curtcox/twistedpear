@@ -24,6 +24,7 @@
     "checks:matrix": "node scripts/checks/run.mjs --matrix",
     "checks:status": "node scripts/checks/run.mjs --tier=pr; node scripts/checks/status.mjs --write",
     "checks:status:record": "node scripts/checks/status.mjs --write",
+    "checks:status:import": "node scripts/checks/import.mjs",
     "checks:red": "node scripts/checks/status.mjs",
     "checks:waive": "node scripts/checks/waive.mjs",
     "test:interop": "INTEROP=1 vitest run --no-file-parallelism packages/reticulum-ts/test/interop.test.ts packages/lxmf-ts/test/interop.test.ts",

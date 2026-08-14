@@ -356,15 +356,46 @@ function stalenessOf(status, recorded, options) {
 }
 
 /**
+ * Gates whose recorded result was measured at some other commit, and so says
+ * nothing about the commit in front of you.
+ *
+ * This is the coarse sibling of the `stale` tree-digest check below, and it
+ * exists because the two answer different questions. The tree digest changes on
+ * every keystroke, which makes it the right rule for a soak guard and the wrong
+ * one for the work queue — a queue that shouted "unmeasured" at every edit would
+ * be ignored within a day. The commit is stable across an editing session and
+ * moves only when work actually lands, which is exactly when a recorded green
+ * stops being evidence: gates run in CI, CI goes red, and nothing writes that
+ * back here.
+ * @param {ChecksStatus} status
+ * @param {string} head commit the caller is asking about; "" disables the check
+ * @returns {{ id: string; title: string; command: string; commit?: string }[]}
+ */
+function unverifiedAt(status, head) {
+  if (!head) return [];
+  return Object.entries(status.gates ?? {})
+    .filter(([, record]) => record.commit !== head)
+    .map(([id, record]) => ({
+      id,
+      title: record.title ?? id,
+      command: record.command ?? "",
+      commit: record.commit,
+    }))
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+}
+
+/**
  * The green-gate view of the tree: which gates are red, which of those are
  * waived, and whether the record still describes the code in front of you.
  * @param {string} root
- * @param {{ digest?: string; treeDigest?: string; now?: Date }} [options]
+ * @param {{ digest?: string; treeDigest?: string; head?: string; now?: Date }} [options]
  * @returns {{
  *   fresh: boolean;
  *   staleReason: string;
  *   stale: { id: string; title: string; command: string; measuredOn?: string }[];
+ *   unverified: { id: string; title: string; command: string; commit?: string }[];
  *   measuredAt: string;
+ *   measuredCommit: string;
  *   red: RedGate[];
  *   blocking: RedGate[];
  *   waived: RedGate[];
@@ -372,7 +403,7 @@ function stalenessOf(status, recorded, options) {
  * }}
  */
 export function gateStatus(root, options = {}) {
-  const { digest, now = new Date() } = options;
+  const { digest, head = "", now = new Date() } = options;
   const status = readChecks(root);
   const waivers = readWaivers(root);
   const recorded = Object.entries(status.gates ?? {});
@@ -424,7 +455,9 @@ export function gateStatus(root, options = {}) {
     fresh,
     staleReason,
     stale,
+    unverified: unverifiedAt(status, head),
     measuredAt: status.generatedAt ?? "",
+    measuredCommit: status.commit ?? "",
     red,
     blocking: red.filter((gate) => gate.waiver !== "active"),
     waived: red.filter((gate) => gate.waiver === "active"),

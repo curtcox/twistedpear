@@ -95,6 +95,41 @@ expired waiver counts as none: the item returns to the top of the queue and the
 soak guard refuses again. See the green-gate rule in
 [RELEASE-PLAN.md](../RELEASE-PLAN.md) §3 for why the rule is shaped this way.
 
+### A record from another commit is not evidence
+
+Derivation only works if the record is about the tree in front of you. It was
+not: `checks.json` is written by `npm run checks:status` and by nothing else —
+no workflow writes it — so gates that ran only in CI could go red for a week
+while the queue kept reporting whatever the last local run had said. Six gates
+were failing on the published results page and `work:unblocked` reported a clean
+tree.
+
+Two things close that:
+
+- **Any gate whose result was measured at another commit derives
+  `GATE-UNVERIFIED`.** One item, not one per gate, ranked behind every gate
+  that is known red — a specific failure outranks "we do not know". It clears
+  by measuring this commit. The rule is the _commit_, not the tree digest the
+  soak guard uses: the digest changes on every keystroke, which is right for a
+  guard and useless for a queue you would learn to ignore.
+- **`npm run checks:status:import` reads back what CI already measured**, from
+  the published `results/raw/summary.json` or a local `--from=<path>`. It is
+  asymmetric on purpose: a CI **failure** imports as red, since a gate that
+  failed somewhere is a real failure until shown otherwise, while a CI **pass**
+  imports only its commit — a run on another commit cannot show this tree is
+  green, and `GATE-UNVERIFIED` keeps saying so until the gates run here.
+
+```sh
+npm run checks:status:import           # what did CI measure? (report only)
+npm run checks:status:import -- --write
+npm run checks:status                  # run the gates here and record them
+```
+
+CI does not commit `checks.json` back to the branch: that would put a write to
+`main` on the publish path and would still be wrong for anyone whose working
+tree differs from the commit CI measured. The import is a pull, run by whoever
+is picking up work.
+
 ### Adding work
 
 ```sh

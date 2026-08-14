@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { repoRoot } from "../doc-audit/repo-root.mjs";
 import { loadAllRegisterRows } from "../doc-audit/register.mjs";
@@ -188,6 +189,30 @@ export function gateItemId(id) {
 }
 
 /**
+ * The one derived id that is not a gate. No gate may be called `unverified`,
+ * so it cannot collide; `validateMetadataShape` already refuses the whole
+ * `GATE-` namespace to hand-filed rows.
+ */
+export const UNVERIFIED_ITEM_ID = gateItemId("unverified");
+
+/**
+ * HEAD, or "" when it cannot be resolved — a fixture directory that is not a
+ * git repo, or a tarball checkout. An unknown HEAD disables the unverified
+ * check rather than failing the whole queue: not knowing which commit you are
+ * on is not evidence that the record is wrong.
+ * @param {string} root
+ * @returns {string}
+ */
+export function headCommit(root = repoRoot()) {
+  const result = spawnSync("git", ["rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  return result.status === 0 ? (result.stdout ?? "").trim() : "";
+}
+
+/**
  * Work items for the gates that are currently red, derived from
  * {@link CHECKS_FILE} rather than filed by hand.
  *
@@ -199,18 +224,32 @@ export function gateItemId(id) {
  *
  * Gates with an active waiver are excluded: the waiver is the recorded decision
  * not to treat that failure as the top of the queue, and it expires on its own.
+ *
+ * A recorded green from another commit derives {@link unverifiedGateItem}
+ * instead of nothing at all. Silence there was the hole this rule had: gates
+ * that only ever run in CI could go red for a week and the queue would keep
+ * reporting a clean tree from whatever the last local run happened to say.
  * @param {string} root
  * @param {Date} [now]
+ * @param {string} [head]
  * @returns {WorkItem[]}
  */
-export function derivedGateItems(root = repoRoot(), now = new Date()) {
-  const { blocking } = gateStatus(root, { now });
+export function derivedGateItems(
+  root = repoRoot(),
+  now = new Date(),
+  head = headCommit(root),
+) {
+  const { blocking, unverified, measuredCommit, measuredAt } = gateStatus(
+    root,
+    { now, head },
+  );
+  const red = new Set(blocking.map((gate) => gate.id));
   // PR-tier gates only. Release-tier gates (the advisory reconciliation) have
   // to be green before a soak starts, not before every other piece of work —
   // a dependency advisory with no upstream fix would otherwise sit at the head
   // of the queue indefinitely, which is the failure this rule exists to avoid.
   // The soak guard is where they bite; see assertGatesGreen.
-  return blocking
+  const items = blocking
     .filter((gate) => gate.tier === "pr")
     .map((gate) => ({
       id: gateItemId(gate.id),
@@ -238,6 +277,60 @@ export function derivedGateItems(root = repoRoot(), now = new Date()) {
       unblocks: 0,
       effort: 1,
     }));
+
+  // Only gates that are not already red on their own account: a gate reported
+  // red from an older commit is still worth fixing, and saying so twice would
+  // just push the real item down the list.
+  const pending = unverified.filter((gate) => !red.has(gate.id));
+  if (pending.length > 0) {
+    items.push(
+      unverifiedGateItem(
+        pending,
+        measuredCommit,
+        head,
+        measuredAt.slice(0, 10),
+      ),
+    );
+  }
+  return items;
+}
+
+/**
+ * The single item that stands for "nobody has measured this commit".
+ *
+ * One item, not one per gate. Twenty-five identical rows saying the same thing
+ * would bury the queue every time a commit landed, and the fix for all of them
+ * is the same command — so the queue carries the one row that names it.
+ * It dates from when the record was written, not from when the gap was
+ * noticed, so a gate that is *known* red — an older, more specific item —
+ * still ranks ahead of "we do not know".
+ * @param {{ id: string; commit?: string }[]} pending
+ * @param {string} measuredCommit
+ * @param {string} head
+ * @param {string} measuredDay
+ * @returns {WorkItem}
+ */
+function unverifiedGateItem(pending, measuredCommit, head, measuredDay) {
+  const at = (measuredCommit || pending[0].commit || "").slice(0, 12);
+  const detail = `${pending.length} gate${pending.length === 1 ? "" : "s"} last measured ${
+    at ? `at ${at}` : "at an unrecorded commit"
+  }, not ${head.slice(0, 12)}`;
+  return {
+    id: UNVERIFIED_ITEM_ID,
+    status: "open",
+    file: CHECKS_FILE,
+    line: 1,
+    title: `Gate results do not describe this commit — ${detail}`,
+    type: "broken-gate",
+    requires: [],
+    verify: "npm run checks:status",
+    added: measuredDay,
+    notes: `${detail}. A green recorded elsewhere is not evidence for this tree; re-run the gates, or import what CI already measured with npm run checks:status:import.`,
+    derived: true,
+    blockers: [],
+    unblocks: 0,
+    effort: 1,
+  };
 }
 
 /**

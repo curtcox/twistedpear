@@ -9,10 +9,12 @@ import {
   waiverState,
 } from "../../scripts/checks/status.mjs";
 import {
+  UNVERIFIED_ITEM_ID,
   derivedGateItems,
   gateItemId,
   ranked,
 } from "../../scripts/work/lib.mjs";
+import { merge } from "../../scripts/checks/import.mjs";
 import { auditGates } from "../../scripts/work/audit-gates.mjs";
 import { validateMetadataShape } from "../../scripts/work/validate.mjs";
 
@@ -454,5 +456,133 @@ describe("the audit's green-gate family", () => {
     expect(
       auditGates(root, now).some((finding) => finding.check === "stale-record"),
     ).toBe(true);
+  });
+
+  it("does not wait two weeks to report a record from another commit", () => {
+    const findings = auditGates(fixture({ "lint-all": GREEN }), now, "def456");
+    const unverified = findings.find(
+      (finding) => finding.check === "unverified-record",
+    );
+    expect(unverified?.summary).toMatch(/not at HEAD/);
+    expect(unverified?.ask).toMatch(/checks:status:import/);
+  });
+});
+
+describe("a recorded green from another commit is not evidence", () => {
+  it("derives one item naming the commit the record actually describes", () => {
+    const items = derivedGateItems(
+      fixture({ "lint-all": GREEN }),
+      new Date(),
+      "def456789abc",
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].id).toBe(UNVERIFIED_ITEM_ID);
+    expect(items[0].type).toBe("broken-gate");
+    expect(items[0].verify).toBe("npm run checks:status");
+    expect(items[0].title).toContain("abc123");
+    expect(items[0].title).toContain("def456789abc");
+    // Derived, so `work:done` and `work:retype` refuse it like any GATE-* item:
+    // the only way to clear it is to measure this commit.
+    expect(items[0].derived).toBe(true);
+  });
+
+  it("stays quiet when the record was measured at this commit", () => {
+    expect(
+      derivedGateItems(fixture({ "lint-all": GREEN }), new Date(), "abc123"),
+    ).toEqual([]);
+  });
+
+  it("stays quiet when HEAD cannot be resolved", () => {
+    // A tarball checkout knows less than a git one; it does not therefore know
+    // the record is wrong.
+    expect(
+      derivedGateItems(fixture({ "lint-all": GREEN }), new Date(), ""),
+    ).toEqual([]);
+  });
+
+  it("does not restate a gate that is already red on its own account", () => {
+    const items = derivedGateItems(
+      fixture({ coverage: RED, "lint-all": GREEN }),
+      new Date(),
+      "def456",
+    );
+    expect(items.map((item) => item.id)).toEqual([
+      gateItemId("coverage"),
+      UNVERIFIED_ITEM_ID,
+    ]);
+    expect(items[1].title).toContain("1 gate");
+  });
+
+  it("ranks behind a gate that is known red, not ahead of it", () => {
+    const items = ranked(
+      derivedGateItems(
+        fixture(
+          { coverage: RED, "lint-all": GREEN },
+          { generatedAt: "2026-08-09T00:00:00.000Z" },
+        ),
+        new Date(),
+        "def456",
+      ),
+    );
+    expect(items[0].id).toBe(gateItemId("coverage"));
+    expect(items[1].id).toBe(UNVERIFIED_ITEM_ID);
+  });
+});
+
+describe("importing what CI already measured", () => {
+  const summary = {
+    branchSha: "ci-commit",
+    jobs: [
+      {
+        id: "coverage",
+        title: "Coverage ratchet",
+        ok: false,
+        finishedAt: "2026-08-14T15:51:32.389Z",
+        metrics: [
+          { label: "Result", value: "fail" },
+          { label: "statements", value: "76.84%" },
+        ],
+      },
+      { id: "lint-all", title: "Repository lint coverage", ok: true },
+      { id: "not-a-gate", title: "Something else", ok: false },
+    ],
+  };
+
+  it("imports a CI failure as red, with the detail the summary carried", () => {
+    const result = merge(summary, { gates: {} });
+    expect(result.red).toEqual(["coverage"]);
+    expect(result.gates.coverage.ok).toBe(false);
+    expect(result.gates.coverage.detail).toContain("statements: 76.84%");
+    expect(result.gates.coverage.commit).toBe("ci-commit");
+  });
+
+  it("keeps the day a gate first went red rather than restarting the clock", () => {
+    const result = merge(summary, {
+      gates: { coverage: { ...RED, since: "2026-08-01" } },
+    });
+    expect(result.gates.coverage.since).toBe("2026-08-01");
+  });
+
+  it("imports a CI pass without claiming it measured this tree", () => {
+    const result = merge(summary, { gates: {} });
+    expect(result.gates["lint-all"].ok).toBe(true);
+    // No measuredOn: the run's tree digest is not in the summary, so the
+    // unverified rule is what decides whether this pass still applies.
+    expect(result.gates["lint-all"].measuredOn).toBeUndefined();
+  });
+
+  it("ignores a job that is not a registered gate", () => {
+    const result = merge(summary, { gates: {} });
+    expect(result.gates["not-a-gate"]).toBeUndefined();
+    expect(result.ignored).toContain("not-a-gate");
+  });
+
+  it("refuses to import a skipped job as a pass", () => {
+    const result = merge(
+      { branchSha: "ci", jobs: [{ id: "coverage", ok: true, skipped: true }] },
+      { gates: {} },
+    );
+    expect(result.gates.coverage).toBeUndefined();
+    expect(result.imported).toEqual([]);
   });
 });

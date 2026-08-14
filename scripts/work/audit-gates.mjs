@@ -1,7 +1,7 @@
 import { repoRoot } from "../doc-audit/repo-root.mjs";
-import { gateStatus } from "../checks/status.mjs";
+import { CHECKS_FILE, gateStatus } from "../checks/status.mjs";
 import { daysSince } from "./audit-lib.mjs";
-import { gateItemId } from "./lib.mjs";
+import { gateItemId, headCommit } from "./lib.mjs";
 
 /**
  * A gate red for longer than this is no longer an incident, it is a decision —
@@ -26,8 +26,11 @@ export const WAIVER_NOTICE_DAYS = 7;
  * @param {number} now
  * @returns {import("./audit-lib.mjs").Finding[]}
  */
-export function auditGates(root = repoRoot(), now = Date.now()) {
-  const state = gateStatus(root, { now: new Date(now) });
+export function auditGates(root = repoRoot(), now = Date.now(), head) {
+  const state = gateStatus(root, {
+    now: new Date(now),
+    head: head ?? headCommit(root),
+  });
   /** @type {import("./audit-lib.mjs").Finding[]} */
   const findings = [];
 
@@ -83,6 +86,21 @@ export function auditGates(root = repoRoot(), now = Date.now()) {
       where: "checks.json",
       summary: "no gate results have ever been recorded",
       ask: "Run `npm run checks:status` — until it has run, the green-gate rule has nothing to enforce and the soak guard refuses every tree.",
+    });
+  } else if (state.unverified.length > 0) {
+    // Deliberately not gated on the 14-day clock below. A record can be hours
+    // old and still describe a commit that has since been superseded a dozen
+    // times — which is the ordinary case on a branch that lands work daily, and
+    // exactly when a CI failure has nowhere to land.
+    findings.push({
+      family: "gates",
+      check: "unverified-record",
+      severity: "medium",
+      where: CHECKS_FILE,
+      summary: `${state.unverified.length} gate result(s) were measured at ${(
+        state.measuredCommit || "an unrecorded commit"
+      ).slice(0, 12)}, not at HEAD`,
+      ask: "Re-run `npm run checks:status`, or import what CI already measured with `npm run checks:status:import`. A green recorded against another commit is not evidence about this one.",
     });
   } else if (age >= STALE_RECORD_DAYS) {
     findings.push({
