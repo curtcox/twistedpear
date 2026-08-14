@@ -270,4 +270,27 @@ describe("protocol lxmf codec (continued)", () => {
     expect(shouldRejectUnpackBinList(rejectedList.actions)).toBe(true);
     expect(binListFieldsFromActions(rejectedList.actions)).toBeNull();
   });
+
+  it("rejects malformed payload, request, and envelope bytes", () => {
+    expect(() => unpackLxmPayload(msgpackPackUInt(1))).toThrow(
+      /Invalid LXMF payload/,
+    );
+    expect(() =>
+      unpackLxmPayload(
+        msgpackPackArray([
+          msgpackPackUInt(1),
+          msgpackPackBin(new Uint8Array([1])),
+          msgpackPackBin(new Uint8Array([1])),
+          msgpackPackUInt(1),
+        ]),
+      ),
+    ).toThrow(/fields/);
+    expect(() => unpackPropagationRequest(msgpackPackUInt(1))).toThrow(
+      /propagation request/,
+    );
+    expect(() => unpackPropagationEnvelope(msgpackPackUInt(1))).toThrow(
+      /propagation envelope/,
+    );
+    expect(() => unpackBinList(msgpackPackUInt(1), "ids")).toThrow(/ids/);
+  });
 });

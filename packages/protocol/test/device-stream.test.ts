@@ -75,6 +75,44 @@ describe("device stream framing", () => {
       }),
     ).toThrow(/control/i);
   });
+
+  it("rejects malformed encode and decode inputs", () => {
+    expect(() =>
+      encodeDeviceStreamFrame({
+        version: 3 as 1,
+        sampleKind: 1,
+        sessionToken: 1,
+        sequence: 0,
+        payload: new Uint8Array([1]),
+      }),
+    ).toThrow(/version/i);
+    expect(() =>
+      encodeDeviceStreamFrame({
+        version: 1,
+        sampleKind: 1,
+        sessionToken: -1,
+        sequence: 0,
+        payload: new Uint8Array([1]),
+      }),
+    ).toThrow(/session token/i);
+    expect(() =>
+      encodeDeviceStreamFrame({
+        version: 2,
+        sampleKind: 1,
+        sessionToken: 1,
+        sequence: 0,
+        captureAtUs: 1,
+        clockId: -1,
+        payload: new Uint8Array([1]),
+      }),
+    ).toThrow(/clock id/i);
+    expect(() => decodeDeviceStreamFrame(new Uint8Array(8))).toThrow(
+      /too short/,
+    );
+    expect(() => decodeDeviceStreamFrame(new Uint8Array(24).fill(0))).toThrow(
+      /magic/i,
+    );
+  });
 });
 
 describe("fingerprint sanitization", () => {

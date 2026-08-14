@@ -8,7 +8,10 @@ import {
   msgpackPackFloat64,
   msgpackUnpackFloat,
   msgpackPackNil,
+  msgpackPackString,
+  msgpackPackStringMap,
   msgpackPackUInt,
+  msgpackUnpack,
   msgpackUnpackScalar,
   packMsgpackFloat64RawFromActions,
   shouldRejectUnpackMsgpackFloat,
@@ -94,5 +97,37 @@ describe("protocol msgpack core", () => {
       },
     );
     expect(shouldRejectUnpackMsgpackFloat(reject.actions)).toBe(true);
+  });
+
+  it("packs uint32, long bins, strings, and maps", () => {
+    expect(msgpackUnpackScalar(msgpackPackUInt(70_000))).toEqual({
+      type: "int",
+      int: 70_000,
+    });
+    const long = new Uint8Array(300);
+    long.fill(9);
+    const packed = msgpackPackBin(long);
+    expect(packed[0]).toBe(0xc5);
+    const unpacked = msgpackUnpackScalar(packed);
+    expect(unpacked.type).toBe("bin");
+    if (unpacked.type === "bin") expect(unpacked.bin.length).toBe(300);
+
+    expect([...msgpackPackString("hello")]).toEqual([
+      0xa5, 104, 101, 108, 108, 111,
+    ]);
+    const longer = "x".repeat(40);
+    expect(msgpackPackString(longer)[0]).toBe(0xd9);
+    expect(() => msgpackPackString("x".repeat(300))).toThrow(/255/);
+
+    const map = msgpackPackStringMap([["k", msgpackPackUInt(1)]]);
+    expect(map[0]).toBe(0x81);
+    expect(() =>
+      msgpackPackStringMap(
+        Array.from({ length: 16 }, (_, i) => [`k${i}`, msgpackPackNil()]),
+      ),
+    ).toThrow(/15 entries/);
+    const array = msgpackPackArray([msgpackPackUInt(1), msgpackPackNil()]);
+    expect(msgpackUnpack(array).type).toBe("array");
+    expect(() => msgpackUnpackScalar(array)).toThrow(/scalar/);
   });
 });

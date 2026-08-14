@@ -9,6 +9,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // react-native-web markup.
 const captured = new Map<string, Record<string, unknown>>();
 
+vi.mock("react", async (importOriginal) => {
+  const react = await importOriginal<typeof import("react")>();
+  return {
+    ...react,
+    useEffect: (effect: () => void | (() => void)) => {
+      effect();
+    },
+  };
+});
+
 vi.mock("react-native", () => {
   const host =
     (tag: string) =>
@@ -40,7 +50,11 @@ const { MiniappWidgetTree } = await import("../src/MiniappWidgetTree.js");
 
 type Event = readonly [string, string, unknown];
 
-function mount(root: WidgetNode, onEvent?: (...event: Event) => void) {
+function mount(
+  root: WidgetNode,
+  onEvent?: (...event: Event) => void,
+  readDocument?: (documentId: string) => Promise<string>,
+) {
   captured.clear();
   renderToStaticMarkup(
     <MiniappWidgetTree
@@ -52,6 +66,7 @@ function mount(root: WidgetNode, onEvent?: (...event: Event) => void) {
               onEvent(nodeId, event, value);
             },
           })}
+      {...(readDocument === undefined ? {} : { readDocument })}
     />,
   );
 }
@@ -137,6 +152,15 @@ describe("scroll events", () => {
     handler("sc", "onScroll")(scrolled as never);
     expect(events).toEqual([]);
   });
+
+  it("applies a positive scroll offset through the effect", () => {
+    mount({
+      id: "sc",
+      type: "scroll",
+      props: { scrollOffset: 40, event: "scrolled" },
+    });
+    expect(props("sc")).toBeDefined();
+  });
 });
 
 describe("code editor edits", () => {
@@ -172,6 +196,12 @@ describe("code editor edits", () => {
     mount({ id: "e", type: "code-editor", props: { documentId: "n" } }, record);
     handler("e", "onChangeText")("abc" as never);
     expect(events).toEqual([]);
+  });
+
+  it("loads document text through the host reader", async () => {
+    mount(editor, record, async () => "loaded");
+    await Promise.resolve();
+    expect(props("e")).toBeDefined();
   });
 });
 

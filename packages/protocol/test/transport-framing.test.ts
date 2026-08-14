@@ -187,4 +187,53 @@ describe("protocol transport framing", () => {
     expect(rewritten![1]).toBe(9);
     expect([...rewritten!.subarray(2)]).toEqual([0xaa, 0xbb]);
   });
+
+  it("rejects undersized wrap, strip, relay, and hop rewrite inputs", () => {
+    expect(() =>
+      wrapTransportPacketBytes({
+        packedFlags: 0,
+        hops: 1,
+        raw: new Uint8Array([1, 2, 3]),
+        nextHop: new Uint8Array(4),
+      }),
+    ).toThrow(/nextHop must be/);
+    expect(() =>
+      wrapTransportPacketBytes({
+        packedFlags: 0,
+        hops: 1,
+        raw: new Uint8Array([1]),
+        nextHop,
+      }),
+    ).toThrow(/too short/);
+    expect(() => stripTransportHeadersBytes(new Uint8Array(4))).toThrow(
+      /too short to strip/,
+    );
+    expect(() =>
+      relayTransportPacketBytes({
+        raw: new Uint8Array(4),
+        hops: 1,
+        remainingHops: 2,
+        nextHop: new Uint8Array(4),
+      }),
+    ).toThrow(/nextHop must be/);
+    expect(() =>
+      relayTransportPacketBytes({
+        raw: new Uint8Array(4),
+        hops: 1,
+        remainingHops: 2,
+        nextHop,
+      }),
+    ).toThrow(/too short to relay/);
+    expect(() =>
+      relayTransportPacketBytes({
+        raw: new Uint8Array(4),
+        hops: 1,
+        remainingHops: 0,
+        nextHop,
+      }),
+    ).toThrow(/too short to deliver/);
+    expect(() => rewritePacketHopsBytes(new Uint8Array([1]), 2)).toThrow(
+      /too short/,
+    );
+  });
 });

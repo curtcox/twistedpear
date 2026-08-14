@@ -1,12 +1,10 @@
 import {
-  protocolAnnounceEmittedFromRandomBlob,
   clonePacketWithHopsFieldsFromActions,
   DestinationProofStrategyCode,
   initialClonePacketWithHopsState,
   initialPathResponseAnnounceFieldsState,
   initialRelayTransportPacketState,
   initialRewritePacketHopsState,
-  initialStripTransportHeadersState,
   initialTransportAnnounceFieldsState,
   initialWrapTransportPacketState,
   PATHFINDER_EXPIRY_SECONDS,
@@ -18,18 +16,14 @@ import {
   shouldUsePathResponseAnnounceFields,
   shouldUseRelayTransportPacket,
   shouldUseRewritePacketHops,
-  shouldUseStripTransportHeaders,
   shouldUseTransportAnnounceFields,
   shouldUseWrapTransportPacket,
   stepClonePacketWithHopsWithActions,
   stepPathResponseAnnounceFieldsWithActions,
   stepRelayTransportPacketWithActions,
   stepRewritePacketHopsWithActions,
-  stepStripTransportHeadersWithActions,
   stepTransportAnnounceFieldsWithActions,
   stepWrapTransportPacketWithActions,
-  stripTransportHeadersRawFromActions,
-  protocolTimebaseFromRandomBlobs,
   transportAnnounceFieldsFromActions,
   type PacketHeaderFields,
   wrapTransportPacketRawFromActions,
@@ -119,16 +113,6 @@ export function cloneWithHops(
   return Packet.fromFields(provider, fields as PacketFields);
 }
 
-function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
-  return protocolAnnounceEmittedFromRandomBlob(randomBlob);
-}
-
-function timebaseFromRandomBlobs(
-  randomBlobs: ReadonlyArray<Uint8Array>,
-): number {
-  return protocolTimebaseFromRandomBlobs(randomBlobs);
-}
-
 export function wrapTransportPacket(
   packet: Packet,
   nextHop: Uint8Array,
@@ -150,23 +134,6 @@ export function wrapTransportPacket(
     throw new Error("wrapTransportPacket: missing use-raw action");
   }
   return raw;
-}
-
-function stripTransportHeaders(raw: Uint8Array): Uint8Array {
-  const stepped = stepStripTransportHeadersWithActions(
-    initialStripTransportHeadersState(),
-    {
-      kind: "transport/strip-headers-gate",
-      raw,
-    },
-  );
-  const stripped = shouldUseStripTransportHeaders(stepped.actions)
-    ? stripTransportHeadersRawFromActions(stepped.actions)
-    : null;
-  if (stripped === null) {
-    throw new Error("stripTransportHeaders: missing use-raw action");
-  }
-  return stripped;
 }
 
 export function relayTransportPacket(

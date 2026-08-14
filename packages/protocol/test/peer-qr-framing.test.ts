@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   decodePeerQrFrame,
+  encodePeerQrFrame,
   framePeerQrPayload,
   initialPeerQrAssemblyState,
+  PeerQrFrameError,
   stepPeerQrAssembly,
 } from "../src/index.js";
 
@@ -66,5 +68,41 @@ describe("peer QR framing", () => {
     expect(() => framePeerQrPayload(session, payload, 257)).toThrow(
       /chunk size/,
     );
+  });
+
+  it("rejects malformed encode and decode headers", () => {
+    expect(() =>
+      encodePeerQrFrame({
+        sessionId: new Uint8Array(8),
+        sequence: 0,
+        total: 1,
+        payload: new Uint8Array([1]),
+      }),
+    ).toThrow(PeerQrFrameError);
+    expect(() =>
+      encodePeerQrFrame({
+        sessionId: session,
+        sequence: 0,
+        total: 0,
+        payload: new Uint8Array([1]),
+      }),
+    ).toThrow(/total/);
+    expect(() =>
+      encodePeerQrFrame({
+        sessionId: session,
+        sequence: 2,
+        total: 1,
+        payload: new Uint8Array([1]),
+      }),
+    ).toThrow(/sequence/);
+    expect(() =>
+      encodePeerQrFrame({
+        sessionId: session,
+        sequence: 0,
+        total: 1,
+        payload: new Uint8Array(),
+      }),
+    ).toThrow(/payload size/);
+    expect(() => decodePeerQrFrame(new Uint8Array(10))).toThrow(/header/);
   });
 });

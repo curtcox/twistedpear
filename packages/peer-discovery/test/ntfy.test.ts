@@ -79,6 +79,18 @@ describe("encrypted ntfy rendezvous", () => {
     expect(() =>
       decodeNtfyRendezvousSecret(`${shortCode.slice(0, -1)}A`),
     ).toThrow(/checksum/);
+    expect(() =>
+      encodeNtfyRendezvousSecret({ topic: bytes(8, 1), key: bytes(32, 2) }),
+    ).toThrow(/16-byte topic/);
+    expect(() =>
+      encryptNtfyRendezvousMessage(
+        secret,
+        invitation(),
+        bytes(8, 90),
+        bytes(24, 110),
+        now,
+      ),
+    ).toThrow(/message id or nonce/);
   });
 
   it("uses bearer headers, keeps secrets out of URLs, and rejects replayed cached messages", async () => {

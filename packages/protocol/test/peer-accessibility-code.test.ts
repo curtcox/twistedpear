@@ -27,5 +27,6 @@ describe("peer accessibility code fallbacks", () => {
     expect(() => decodePeerAccessibilityMorse("... --- ... /")).toThrow(
       /unknown/,
     );
+    expect(() => decodePeerAccessibilityMorse("")).toThrow(/size budget/);
   });
 });

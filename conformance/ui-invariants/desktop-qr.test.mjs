@@ -42,9 +42,11 @@ describe("desktop QR scanner", () => {
     expect(html).toContain('id="install-256t-scan"');
     expect(html).toContain('id="trust-scan"');
     expect(main).toContain('permission === "media"');
-    expect(main).toContain('details.mediaType === "video"');
-    expect(main).toContain("details.mediaTypes?.every(");
-    expect(main).toContain('mediaType === "video" || mediaType === "audio"');
+    expect(main).toContain(
+      'details.mediaType === "video" || details.mediaType === "audio"',
+    );
+    expect(main).toContain("details.mediaTypes.every(");
+    expect(main).toContain('kind === "video" || kind === "audio"');
     expect(main).toContain('requestingOrigin.startsWith("file://")');
   });
 });

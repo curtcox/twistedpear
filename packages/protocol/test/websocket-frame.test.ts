@@ -26,6 +26,10 @@ describe("protocol ws binary frames", () => {
     expect(medium[0]).toBe(0x82);
     expect(medium[1]).toBe(126);
     expect((medium[2]! << 8) | medium[3]!).toBe(200);
+
+    const large = encodeWsBinaryFrame(new Uint8Array(70_000).fill(1));
+    expect(large[1]).toBe(127);
+    expect(large.length).toBe(70_010);
   });
 
   it("decodes masked client frames", () => {
@@ -49,6 +53,13 @@ describe("protocol ws binary frames", () => {
 
   it("returns null for incomplete frames", () => {
     expect(decodeWsClientFrame(new Uint8Array([0x82]))).toBeNull();
+    expect(decodeWsClientFrame(new Uint8Array([0x82, 126]))).toBeNull();
+    expect(
+      decodeWsClientFrame(new Uint8Array([0x82, 127, 0, 0, 0, 0, 0, 0, 0])),
+    ).toBeNull();
+    expect(
+      decodeWsClientFrame(new Uint8Array([0x82, 0x03, 1, 2, 3])),
+    ).toBeNull();
   });
 
   it("returns null when a declared frame length cannot be represented safely", () => {

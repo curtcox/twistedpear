@@ -69,6 +69,73 @@ describe("peer invitation", () => {
       ).role,
     ).toBe("answer");
   });
+
+  it("round-trips identity proofs and webrtc candidates", () => {
+    const value = invitation({
+      identityProof: new Uint8Array(16).fill(9),
+      candidates: [{ kind: "webrtc", value: new Uint8Array([7, 8, 9]) }],
+    });
+    expect(
+      decodePeerInvitation(encodePeerInvitation(value), 2_000).identityProof,
+    ).toEqual(value.identityProof);
+  });
+
+  it("encodes multi-byte CBOR integers for wall-clock lifetimes", () => {
+    const issuedAt = 1_700_000_000_000;
+    const value = invitation({ issuedAt, expiresAt: issuedAt + 60_000 });
+    expect(
+      decodePeerInvitation(encodePeerInvitation(value), issuedAt + 1_000)
+        .issuedAt,
+    ).toBe(issuedAt);
+  });
+
+  it("rejects malformed fields before they hit the wire", () => {
+    expect(() => encodePeerInvitation(invitation({ version: 2 as 1 }))).toThrow(
+      /version/,
+    );
+    expect(() =>
+      encodePeerInvitation(invitation({ role: "relay" as "offer" })),
+    ).toThrow(/role/);
+    expect(() =>
+      encodePeerInvitation(invitation({ sessionId: new Uint8Array(8) })),
+    ).toThrow(/session id/);
+    expect(() =>
+      encodePeerInvitation(invitation({ service: "bad\nname" })),
+    ).toThrow(/service/);
+    expect(() =>
+      encodePeerInvitation(
+        invitation({
+          candidates: [
+            { kind: "ble" as "reticulum", value: new Uint8Array([1]) },
+          ],
+        }),
+      ),
+    ).toThrow(/candidate kind/);
+    expect(() =>
+      encodePeerInvitation(
+        invitation({
+          capabilities: Array.from({ length: 17 }, (_, i) => `c${i}`),
+        }),
+      ),
+    ).toThrow(/capabilities/);
+    expect(() => encodePeerInvitation(invitation({ expiresAt: 500 }))).toThrow(
+      /lifetime/,
+    );
+    expect(() =>
+      decodePeerInvitation(encodePeerInvitation(invitation()), 1_000 - 31_000),
+    ).toThrow(/expired or not yet valid/);
+  });
+
+  it("rejects oversized and truncated encodings", () => {
+    expect(() => decodePeerInvitation(new Uint8Array(16_385))).toThrow(
+      /size budget/,
+    );
+    expect(() => decodePeerInvitation(new Uint8Array([0xa0, 0x00]))).toThrow(
+      /trailing|map|CBOR|MALFORMED/,
+    );
+    expect(() => decodePeerInvitationText("A")).toThrow(/too short|invalid/);
+    expect(() => decodePeerInvitationText("!!!!")).toThrow(/invalid Base32/);
+  });
 });
 
 describe("peer pairing machine", () => {

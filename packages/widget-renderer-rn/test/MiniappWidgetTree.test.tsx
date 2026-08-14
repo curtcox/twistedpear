@@ -69,6 +69,24 @@ describe("MiniappWidgetTree", () => {
     expect(html).toContain('data-testid="t"');
     expect(html).not.toContain("undefined");
   });
+
+  it("maps display and font-weight style branches", () => {
+    const hidden = render({
+      id: "t",
+      type: "text",
+      props: { value: "x" },
+      style: { display: "none", fontWeight: "bold", color: "#fff" },
+    });
+    expect(hidden).toContain("x");
+    expect(
+      render({
+        id: "t",
+        type: "text",
+        props: { value: "y" },
+        style: { fontWeight: "medium" },
+      }),
+    ).toContain("y");
+  });
 });
 
 describe("interactive widgets", () => {

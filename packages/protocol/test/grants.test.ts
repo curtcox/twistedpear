@@ -6,6 +6,7 @@ import {
 import { SimKernel } from "../../effects/src/adapters/sim/kernel.js";
 import type { Event } from "@twistedpear/effects";
 import {
+  InvalidGrantRecordError,
   decodeGrantRecord,
   encodeGrantRecord,
   encodeGrantRecordRawFromActions,
@@ -360,5 +361,29 @@ describe("protocol grant host (continued)", () => {
       return hashNodeStates(new Map([["host", kernel.getNodeState("host")]]));
     };
     expect(run()).toBe(run());
+  });
+});
+
+describe("grant record field validation", () => {
+  const valid: GrantRecord = {
+    appId: APP,
+    publisherPublicKey: PUBKEY,
+    granted: ["read"],
+    updatedAt: 1,
+  };
+
+  it("rejects duplicate capabilities, negative clocks, and incomplete JSON", () => {
+    expect(() =>
+      encodeGrantRecord({ ...valid, granted: ["read", "read"] }),
+    ).toThrow(InvalidGrantRecordError);
+    expect(() => encodeGrantRecord({ ...valid, updatedAt: -1 })).toThrow(
+      InvalidGrantRecordError,
+    );
+    expect(() => decodeGrantRecord(utf8Encode("{"))).toThrow(
+      InvalidGrantRecordError,
+    );
+    expect(() => decodeGrantRecord(utf8Encode('{"appId":"demo-app"}'))).toThrow(
+      InvalidGrantRecordError,
+    );
   });
 });
