@@ -248,7 +248,7 @@ export function NativeHarnessViewPart3({
   return (
     <>
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Devices &amp; Sensors</Text>
+        <Text style={styles.sectionTitle}>Hardware access</Text>
         <Row
           testID="device-remote-enabled"
           label="Allow remote device acquisition"

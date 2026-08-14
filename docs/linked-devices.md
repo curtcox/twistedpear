@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-10
+audited: 2026-08-14
 register: none
 counterpart: docs/linked-devices-plan.md
 -->
@@ -172,12 +172,12 @@ confuse a user-identity boundary with a hardware one.
   calls "my phone". Code spells this `installation` (`installationId`,
   `LinkedInstallationCertificate`, `deriveLinkedInstallationIdentity`).
 - **Device** — a peripheral: camera, microphone, sensor, actuator. This is the sense used by
-  the Device Manager, the Devices chrome, `device:<class>:<tier>` capabilities, and
-  [SPEC-DEVICE](../specs/spec-device/spec.md).
+  the Device Manager, `device:<class>:<tier>` capabilities, and
+  [SPEC-DEVICE](../specs/spec-device/spec.md). Host chrome for that inventory is labelled
+  **Hardware access**, so **Your devices** stays free for the linked-installation screen.
 
 Wire values keep the older spelling deliberately: the `TPDV\x01` magic, the HKDF salt
 `TwistedPear linked device identity v1`, and the `linked-device` announce aspect are
 unchanged, so the format stays byte-compatible with what is documented and pinned by tests.
 Only TypeScript identifiers moved. User-facing prose may keep saying "device" for an
-installation where that is the plainer word, but the UI naming collision with the existing
-Devices panel is unresolved and is a plan item.
+installation where that is the plainer word.

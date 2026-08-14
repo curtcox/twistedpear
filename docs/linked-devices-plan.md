@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-10
+audited: 2026-08-14
 register: software
 counterpart: docs/linked-devices.md
 -->
@@ -71,16 +71,10 @@ machine and reserves `device` for peripherals. Already applied to
 unchanged. See the live document for the full rule.
 
 **5. In the UI, "devices" means the user's machines; the peripheral panel gives up the word.**
-The existing Devices chrome lists cameras, microphones, and sensors. That is jargon: to a
-user, "my devices" means their phone and laptop, which is exactly what the linked-installation
-screen shows. So the linked-installation screen takes **Your devices**, and the peripheral
-panel is relabelled — "Hardware access" — rather than the new screen inventing an awkward
-name to avoid a collision.
-
-This is a user-visible label change to a shipped surface, but only a label: the
-`device:<class>:<tier>` capabilities, SPEC-DEVICE, the Device Manager, and every wire value
-keep their spelling. Tracked as `ID-DEVICES-RELABEL`, which must land before the first
-linked-installation screen so the two never ship sharing a word.
+**Implemented** — see the live document. Desktop, native, and web chrome label the peripheral
+inventory **Hardware access**. The linked-installation screen can take **Your devices**
+without sharing a word. `device:<class>:<tier>` capabilities, SPEC-DEVICE, the Device Manager,
+and every wire value keep their spelling.
 
 ## Remaining work
 
@@ -113,11 +107,6 @@ multi-host collision the design exists to prevent. Importing a backup or recover
 not silently enable linked mode; joining an account stays an explicit, separate choice so
 ordinary disaster recovery does not change network-identity behaviour.
 
-**Relabel the peripheral panel.** Per decision 5, the Devices chrome becomes "Hardware
-access" so the linked-installation screen can be "Your devices". Label strings only; no wire
-value, capability, or spec term changes. Must land before the first linked-installation
-screen.
-
 ## Non-goals for v1
 
 Key rotation, global installation revocation, a shared filesystem, and syncing mini-app KV,
@@ -129,5 +118,4 @@ installation and every publisher signature.
 
 Archive this plan when linked mode can be enabled on desktop and mobile, held proposals are
 renderable and applicable through host chrome, capability grants are still proven not to
-travel once the journal exists, the peripheral panel has been relabelled, and the live
-document has absorbed each mechanism as it lands.
+travel once the journal exists, and the live document has absorbed each mechanism as it lands.
