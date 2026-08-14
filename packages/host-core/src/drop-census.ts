@@ -17,7 +17,7 @@ export interface DropCensusCounts {
   readonly byPeer: Readonly<Record<string, Readonly<Record<string, number>>>>;
 }
 
-interface DropCensus {
+export interface DropCensus {
   readonly record: (drop: ObserveDropIntent) => void;
   readonly snapshot: () => DropCensusCounts;
 }

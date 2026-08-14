@@ -102,6 +102,7 @@ export class WorkspaceService {
     const files: WorkspaceFileInfo[] = [];
     for (const key of keys.slice().sort()) {
       const bytes = await this.backend.get(key);
+      if (bytes === null) continue;
       files.push({
         path: key.slice(keyPrefix.length),
         size: bytes.length,

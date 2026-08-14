@@ -34,7 +34,7 @@ import {
   stepParseAspectFilterWithActions,
   stepReceiveAnnouncePathResponseWithActions,
 } from "./protocol.js";
-import { Announce } from "../../announce.js";
+import { Announce, type ParsedAnnounce } from "../../announce.js";
 import { equalBytes } from "../../crypto/bytes.js";
 import { Destination, DestinationDirection } from "../../destination.js";
 import { Identity } from "../../identity.js";
@@ -166,7 +166,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
     randomBlob: Uint8Array;
     existing: PathEntry | undefined;
     now: number;
-    announce: Announce;
+    announce: ParsedAnnounce;
   }): boolean {
     const { packet, iface, receivedFrom, randomBlob, existing, now, announce } =
       input;
@@ -223,7 +223,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
 
   private async notifyAnnounceHandlers(
     packet: Packet,
-    announce: Announce,
+    announce: ParsedAnnounce,
   ): Promise<void> {
     const announcedIdentity = Identity.recall(
       this.options.provider,
@@ -289,7 +289,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       initialParseAspectFilterState(),
       {
         kind: "destination/aspect-filter-gate",
-        filter: handler.aspectFilter,
+        filter: handler.aspectFilter ?? "",
       },
     );
     const parsedFilter = shouldUseParseAspectFilter(filterStepped.actions)

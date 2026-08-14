@@ -104,7 +104,8 @@ export class TestAgentRuntime {
   protected readonly readinessEntries: TestAgentReadinessEntry[] = [];
   protected readonly probeEntries = new Map<string, TestAgentProbeEntry>();
   private readonly partials = new Map<string, { parts: Array<string | null> }>();
-  protected readonly dropCensus = createDropCensus();
+  protected readonly dropCensus: ReturnType<typeof createDropCensus> =
+    createDropCensus();
   private readonly observeRing = createObserveRing(256);
   protected readonly observeState;
   private readonly encoder = new TextEncoder();

@@ -146,7 +146,7 @@ function showRecovery(
   );
   console.log(`TwistedPear identity 1/2: ${words.first}`);
   console.log(`TwistedPear identity 2/2: ${words.second}`);
-  return 0;
+  return Promise.resolve(0);
 }
 
 async function importRecovery(
