@@ -313,7 +313,7 @@ motion, torch, and NFC, following the
 
 ## Configuration surface
 
-A "Devices & Sensors" screen in every host, backed by the same Device Manager:
+A "Hardware access" screen in every host, backed by the same Device Manager:
 
 - **Desktop** ([`apps/host-desktop`](../apps/host-desktop/)) — per-class rows with availability,
   which apps hold grants, live sessions with kill buttons, remote-peer grants, per-app history,
@@ -400,7 +400,7 @@ Phases 1–6 (foundation through remote acquisition and peer streaming) are buil
 binding for realtime media is in [realtime peer media](realtime-media.md). Remaining work:
 
 7. **Hardening and growth.** `nfc:apdu` with the payment blocklist, `biometric`, remaining
-   scalar sensors; per-host native drivers and Devices & Sensors chrome; hardware-gated
+   scalar sensors; per-host native drivers and Hardware access chrome; hardware-gated
    conformance; per-class reference pages mirroring [ble-interface.md](ble-interface.md); the
    [add a device class runbook](device-class-runbook.md) proving the registry path for a
    class not in the initial set.

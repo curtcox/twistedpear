@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-07
+audited: 2026-08-14
 register: none
 -->
 
@@ -53,8 +53,11 @@ those, the order is fixed and total:
    `feature`. A feature is never proposed while an unblocked bug or code-quality
    item exists, and nothing at all is proposed while a gate is red.
 2. **Unblock count** — how many other unfinished items transitively depend on it.
-3. **Age** — oldest `added` date first.
-4. **ID** — lexicographic, so the answer never depends on file order.
+3. **Effort** — remaining files for a ratchet-imported item (live from the
+   baseline), otherwise 1. Smaller first, so a 5-file fix outranks a 164-file
+   campaign of the same class.
+4. **Age** — oldest `added` date first.
+5. **ID** — lexicographic, so the answer never depends on file order.
 
 `work:next` prints which rule decided the pick and what came second. Filter with
 `--type=bug,quality`; `--json` for scripting.

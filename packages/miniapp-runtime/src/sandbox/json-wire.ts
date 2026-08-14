@@ -48,51 +48,61 @@ export function reviveJsonWireValue(value: unknown): unknown {
   }
 
   if (Array.isArray(value)) {
-    if (value.length > 0 && value.every((item) => typeof item === "number")) {
-      return new Uint8Array(value);
-    }
-    return value.map(reviveJsonWireValue);
+    return reviveJsonWireArray(value);
   }
 
   if (value !== null && typeof value === "object") {
-    const record = value as { type?: string; data?: ReadonlyArray<number> };
-    if (record.type === "Buffer" && Array.isArray(record.data)) {
-      return new Uint8Array(record.data);
-    }
-
-    // Legacy JSON.stringify(Uint8Array) shape: { "0": n, "1": n, ... }
-    const keys = Object.keys(value as object);
-    if (
-      keys.length > 0 &&
-      keys.every((key) => /^\d+$/.test(key)) &&
-      keys
-        .map(Number)
-        .sort((a, b) => a - b)
-        .every((index, order) => index === order)
-    ) {
-      const length = keys.length;
-      const bytes = new Uint8Array(length);
-      let valid = true;
-      for (let index = 0; index < length; index += 1) {
-        const entry = (value as Record<string, unknown>)[String(index)];
-        if (typeof entry !== "number") {
-          valid = false;
-          break;
-        }
-        bytes[index] = entry;
-      }
-      if (valid) {
-        return bytes;
-      }
-    }
-
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
-        key,
-        reviveJsonWireValue(entry),
-      ]),
-    );
+    return reviveJsonWireObject(value as Record<string, unknown>);
   }
 
   return value;
+}
+
+function reviveJsonWireArray(value: unknown[]): unknown {
+  if (value.length > 0 && value.every((item) => typeof item === "number")) {
+    return new Uint8Array(value);
+  }
+  return value.map(reviveJsonWireValue);
+}
+
+function reviveJsonWireObject(value: Record<string, unknown>): unknown {
+  const record = value as { type?: string; data?: ReadonlyArray<number> };
+  if (record.type === "Buffer" && Array.isArray(record.data)) {
+    return new Uint8Array(record.data);
+  }
+
+  const dense = reviveDenseNumericObject(value);
+  if (dense !== undefined) return dense;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      reviveJsonWireValue(entry),
+    ]),
+  );
+}
+
+/** Legacy JSON.stringify(Uint8Array) shape: { "0": n, "1": n, ... } */
+function reviveDenseNumericObject(
+  value: Record<string, unknown>,
+): Uint8Array | undefined {
+  const keys = Object.keys(value);
+  if (
+    keys.length === 0 ||
+    !keys.every((key) => /^\d+$/.test(key)) ||
+    !keys
+      .map(Number)
+      .sort((a, b) => a - b)
+      .every((index, order) => index === order)
+  ) {
+    return undefined;
+  }
+
+  const bytes = new Uint8Array(keys.length);
+  for (let index = 0; index < keys.length; index += 1) {
+    const entry = value[String(index)];
+    if (typeof entry !== "number") return undefined;
+    bytes[index] = entry;
+  }
+  return bytes;
 }

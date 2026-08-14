@@ -6,6 +6,7 @@ import {
   findCycles,
   ranked,
 } from "../../scripts/work/lib.mjs";
+import { effortOf } from "../../scripts/work/effort.mjs";
 
 /**
  * @param {Partial<import("../../scripts/work/lib.mjs").WorkItem>} overrides
@@ -24,6 +25,7 @@ function item(overrides) {
     added: "2026-01-01",
     blockers: [],
     unblocks: 0,
+    effort: 1,
     ...overrides,
   };
 }
@@ -72,6 +74,22 @@ describe("work ranking policy", () => {
     expect(order).toEqual(["WIDE", "NARROW"]);
   });
 
+  it("breaks remaining ties by effort so a small fix outranks a sprawling one", () => {
+    const order = ranked([
+      item({ id: "QL-SPRAWL", type: "quality", effort: 164 }),
+      item({ id: "QL-SMALL", type: "quality", effort: 5 }),
+    ]).map((entry) => entry.id);
+    expect(order).toEqual(["QL-SMALL", "QL-SPRAWL"]);
+  });
+
+  it("does not let effort outrank unblock count", () => {
+    const order = ranked([
+      item({ id: "NARROW", type: "quality", unblocks: 1, effort: 1 }),
+      item({ id: "WIDE", type: "quality", unblocks: 4, effort: 100 }),
+    ]).map((entry) => entry.id);
+    expect(order).toEqual(["WIDE", "NARROW"]);
+  });
+
   it("breaks remaining ties by age, then id, so the order is total", () => {
     const older = item({ id: "B", type: "bug", added: "2026-01-01" });
     const newer = item({ id: "A", type: "bug", added: "2026-06-01" });
@@ -94,6 +112,35 @@ describe("work ranking policy", () => {
       item({ id: "FEATURE", type: "feature" }),
     ]).map((entry) => entry.id);
     expect(order).toEqual(["FEATURE", "UNTYPED"]);
+  });
+});
+
+describe("effort", () => {
+  const counts = new Map([["lint:no-func-assign", 2]]);
+
+  it("uses remaining ratchet files for imported items and 1 otherwise", () => {
+    expect(
+      effortOf(
+        {
+          verify:
+            "npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=no-func-assign",
+        },
+        counts,
+      ),
+    ).toBe(2);
+    expect(effortOf({ verify: "true" }, counts)).toBe(1);
+  });
+
+  it("treats a cleared ratchet rule as effort 0 so it ranks first to close", () => {
+    expect(
+      effortOf(
+        {
+          verify:
+            "npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=@typescript-eslint/ban-ts-comment",
+        },
+        counts,
+      ),
+    ).toBe(0);
   });
 });
 

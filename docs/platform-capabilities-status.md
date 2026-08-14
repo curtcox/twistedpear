@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-05
+audited: 2026-08-14
 register: none
 -->
 
@@ -200,7 +200,7 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
   the device capability matrix.
 - Peer-discovery audio / camera effects similarly do not satisfy `device:microphone` /
   `device:camera`.
-- Devices & Sensors host chrome (inventory, policy disable, session kill, remote-acquisition
+- Hardware access host chrome (inventory, policy disable, session kill, remote-acquisition
   toggle, active-use banner, device confirm titles) is wired on desktop / android / ios / web.
 - Desktop and web bridge `location` / `camera` / `microphone` (plus browser `battery` /
   `tts` / `haptics` where APIs exist) to real Chromium/browser effects; native mobile

@@ -82,11 +82,12 @@ export function explain(item, runnerUp) {
     "why this one:",
     `  class     ${item.type} (${rank} of ${TYPES.length}: ${TYPES.join(" > ")})`,
     `  unblocks  ${item.unblocks} other item(s)`,
+    `  effort    ${item.effort ?? 1} file(s)`,
     `  added     ${item.added}`,
   ];
   if (runnerUp) {
     lines.push(
-      `  runner-up ${runnerUp.id} (${runnerUp.type}, unblocks ${runnerUp.unblocks}, added ${runnerUp.added})`,
+      `  runner-up ${runnerUp.id} (${runnerUp.type}, unblocks ${runnerUp.unblocks}, effort ${runnerUp.effort ?? 1}, added ${runnerUp.added})`,
     );
   }
   return lines;

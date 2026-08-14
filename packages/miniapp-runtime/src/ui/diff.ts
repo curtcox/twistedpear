@@ -17,26 +17,36 @@ export function diffWidgetTrees(
   return patches;
 }
 
+function jsonEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {});
+}
+
+function nodeSurfaceChanged(previous: WidgetNode, next: WidgetNode): boolean {
+  return (
+    previous.type !== next.type ||
+    !jsonEqual(previous.props, next.props) ||
+    !jsonEqual(previous.style, next.style)
+  );
+}
+
+function indexById(nodes: ReadonlyArray<WidgetNode>): Map<string, WidgetNode> {
+  return new Map(nodes.map((child) => [child.id, child]));
+}
+
 function diffNode(
   previous: WidgetNode,
   next: WidgetNode,
   patches: WidgetPatch[],
 ): void {
-  if (
-    previous.type !== next.type ||
-    JSON.stringify(previous.props ?? {}) !== JSON.stringify(next.props ?? {}) ||
-    JSON.stringify(previous.style ?? {}) !== JSON.stringify(next.style ?? {})
-  ) {
+  if (nodeSurfaceChanged(previous, next)) {
     patches.push({ op: "replace", id: next.id, node: next });
     return;
   }
 
   const previousChildren = previous.children ?? [];
   const nextChildren = next.children ?? [];
-  const previousById = new Map(
-    previousChildren.map((child) => [child.id, child]),
-  );
-  const nextById = new Map(nextChildren.map((child) => [child.id, child]));
+  const previousById = indexById(previousChildren);
+  const nextById = indexById(nextChildren);
 
   for (const child of nextChildren) {
     const oldChild = previousById.get(child.id);

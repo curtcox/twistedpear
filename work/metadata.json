@@ -89,6 +89,8 @@
       "requires": [],
       "verify": "npm run work:check",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": ["STATUS-SOFTWARE.md"],
       "notes": "The 'Optional and non-blocking backlog' table in STATUS-SOFTWARE.md has no ID or Status column, so it is invisible to the register parser and to work:next. Either give the rows IDs with status deferred, or state in the doc that they are deliberately untracked."
     },
     "G1": {
@@ -316,6 +318,13 @@
       "requires": [],
       "verify": "npm run test:doc-audit",
       "added": "2026-08-10",
+      "completed": "2026-08-14",
+      "evidence": [
+        "apps/host-desktop/src/renderer/index.html",
+        "apps/harness-mobile/app-native-view-part-3.tsx",
+        "apps/harness-mobile/app-web-view-part-1.tsx",
+        "docs/linked-devices.md"
+      ],
       "notes": "Decision 5 of docs/linked-devices-plan.md. The Devices panel lists cameras, microphones, and sensors; to a user 'my devices' means their phone and laptop, which is what the linked-installation screen will show. Relabel the peripheral chrome to 'Hardware access' and reserve 'Your devices' for installations. User-visible label strings only: device:<class>:<tier> capabilities, SPEC-DEVICE, the Device Manager, and all wire values keep their spelling. Must land before the first linked-installation screen so the two never ship sharing a word."
     },
     "ID-JOURNAL": {
@@ -441,6 +450,8 @@
       "requires": [],
       "verify": "npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=@typescript-eslint/ban-ts-comment",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": ["complexity-ratchet.json"],
       "notes": "Imported from complexity-ratchet.json: 6 baselined @typescript-eslint/ban-ts-comment entries across 6 files."
     },
     "QL-HARNESS-MOBILE-TYPECHECK": {
@@ -456,6 +467,8 @@
       "requires": [],
       "verify": "npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=no-func-assign",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": ["lint-ratchet.json"],
       "notes": "Imported from lint-ratchet.json: 67 baselined no-func-assign entries across 2 files."
     },
     "QL-LINT-NO-UNUSED-VARS": {
@@ -645,6 +658,13 @@
       "requires": [],
       "verify": "npx vitest run conformance/doc-audit/work-ranking.test.mjs",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": [
+        "scripts/work/effort.mjs",
+        "scripts/work/lib.mjs",
+        "conformance/doc-audit/work-ranking.test.mjs",
+        "docs/work-tracking.md"
+      ],
       "notes": "Within a class, ranking falls through unblock-count and added-date to alphabetical ID, so it cannot tell a 5-file fix from a 164-file campaign. The imported ratchet items make this concrete: no-floating-promises (5 files) and no-unnecessary-condition (164 files) rank adjacently on identical signals. Options: an explicit effort field on the item, or deriving one from the file count work:import already computes. Whichever lands, add the ordering rule to the ranking tests and to the 'why this one' output."
     },
     "WORK-UNATTENDED": {

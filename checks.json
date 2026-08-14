@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-13T12:34:53.345Z",
-  "commit": "cf0e93faca9d151b99a944ea54a418a5a886b374",
-  "digest": "a5caafcacc7211d46a7aa6c0576df750855d51e581ff778024e6b09c9e859368",
-  "treeDigest": "839e325142728e5beab0cfe74fcb17fea3d48b95b2e2e1a113d5e41f599d36e8",
+  "generatedAt": "2026-08-14T12:39:48.183Z",
+  "commit": "aee20326b32dc51fb27411ed074059343228966e",
+  "digest": "22ab0691a61c83f6b221331e424fd88cbaacfe5cf4cc23c1139f6534d48022fb",
+  "treeDigest": "22ab0691a61c83f6b221331e424fd88cbaacfe5cf4cc23c1139f6534d48022fb",
   "gates": {
     "actionlint": {
       "title": "GitHub Actions lint",
@@ -80,23 +80,19 @@
     "coverage": {
       "title": "Coverage ratchet",
       "command": "npm run coverage:check",
-      "ok": false,
-      "at": "2026-08-13T12:33:00.207Z",
-      "commit": "f20638b2746cd7d6f1e769e291bda16485be8164",
-      "detail": "The latest test that might've caused the error is \"reports an error for an undiscovered target\". It might mean one of the following: / - The error was thrown, while Vitest was running this test. / - If the error occurred after the test had been completed, this was the last documented test before it ",
-      "since": "2026-08-13",
-      "measuredOn": "57b20d0d8a1e0a1d9f05df5c8d5fc577f2e0032e843416d7e3104120f83a36e0",
+      "ok": true,
+      "at": "2026-08-14T12:39:48.120Z",
+      "commit": "aee20326b32dc51fb27411ed074059343228966e",
+      "measuredOn": "22ab0691a61c83f6b221331e424fd88cbaacfe5cf4cc23c1139f6534d48022fb",
       "tier": "pr"
     },
     "doc-audit": {
       "title": "Documentation audit",
       "command": "npm run test:doc-audit",
-      "ok": false,
-      "at": "2026-08-13T12:27:49.799Z",
-      "commit": "f20638b2746cd7d6f1e769e291bda16485be8164",
-      "detail": "npm error network 'proxy' config is set properly.  See: 'npm help config' / npm error Log files were not written due to an error writing to the directory: /Users/curt/.npm/_logs / npm error You can rerun the command with `--loglevel=verbose` to see the logs in your terminal",
-      "since": "2026-08-13",
-      "measuredOn": "57b20d0d8a1e0a1d9f05df5c8d5fc577f2e0032e843416d7e3104120f83a36e0",
+      "ok": true,
+      "at": "2026-08-14T12:35:30.207Z",
+      "commit": "aee20326b32dc51fb27411ed074059343228966e",
+      "measuredOn": "22ab0691a61c83f6b221331e424fd88cbaacfe5cf4cc23c1139f6534d48022fb",
       "tier": "pr"
     },
     "file-sizes": {
@@ -201,12 +197,10 @@
     "rust": {
       "title": "Rust clippy, fmt, and deny",
       "command": "npm run lint:rust",
-      "ok": false,
-      "at": "2026-08-13T12:34:48.529Z",
-      "commit": "f20638b2746cd7d6f1e769e291bda16485be8164",
-      "detail": "2026-08-13 12:34:47 [ERROR] failed to acquire advisory database lock: failed to obtain lock file '/Users/curt/.cargo/advisory-dbs/db.lock': attempted to take an exclusive lock on a read-only path / 2026-08-13 12:34:47 [ERROR] failed to acquire advisory database lock: failed to obtain lock file '/Use",
-      "since": "2026-08-13",
-      "measuredOn": "75e4c08a74aff047843885e1c9704a3556d9c0619370b9033d5cf0de52f7d60f",
+      "ok": true,
+      "at": "2026-08-14T12:35:31.844Z",
+      "commit": "aee20326b32dc51fb27411ed074059343228966e",
+      "measuredOn": "22ab0691a61c83f6b221331e424fd88cbaacfe5cf4cc23c1139f6534d48022fb",
       "tier": "pr"
     },
     "secrets": {
@@ -266,12 +260,10 @@
     "unit-tests": {
       "title": "Unit tests",
       "command": "npm run test",
-      "ok": false,
-      "at": "2026-08-13T12:25:22.073Z",
-      "commit": "f20638b2746cd7d6f1e769e291bda16485be8164",
-      "detail": "The latest test that might've caused the error is \"reports an error for an undiscovered target\". It might mean one of the following: / - The error was thrown, while Vitest was running this test. / - If the error occurred after the test had been completed, this was the last documented test before it ",
-      "since": "2026-08-13",
-      "measuredOn": "57b20d0d8a1e0a1d9f05df5c8d5fc577f2e0032e843416d7e3104120f83a36e0",
+      "ok": true,
+      "at": "2026-08-14T12:36:47.525Z",
+      "commit": "aee20326b32dc51fb27411ed074059343228966e",
+      "measuredOn": "22ab0691a61c83f6b221331e424fd88cbaacfe5cf4cc23c1139f6534d48022fb",
       "tier": "pr"
     }
   }
