@@ -45,6 +45,19 @@ export interface LinkSessionStepResult {
   readonly actions: readonly LinkSessionAction[];
 }
 
+function closeLinkSession(state: LinkSessionState): LinkSessionStepResult {
+  return {
+    state: {
+      ...state,
+      status: LinkStatus.CLOSED,
+      established: false,
+      watchdog: { ...state.watchdog, status: LinkStatus.CLOSED },
+    },
+    intents: [],
+    actions: [{ kind: "close", reason: LinkTeardownReason.INITIATOR_CLOSED }],
+  };
+}
+
 export function initialLinkSessionState(options: {
   readonly role: "initiator" | "responder";
   readonly peerId: string;
@@ -67,44 +80,40 @@ export const stepLinkSession: StepFn<LinkSessionState> = (state, event) => {
   return { state: result.state, intents: result.intents };
 };
 
+function requestLinkSession(
+  state: LinkSessionState,
+  event: Extract<LinkSessionEvent, { kind: "session/request-link" }>,
+): LinkSessionStepResult {
+  if (state.role !== "initiator") {
+    return { state, intents: [], actions: [] };
+  }
+  const watchdog = stepLinkWatchdogWithActions(
+    {
+      ...state.watchdog,
+      requestTime: event.at,
+      status: LinkStatus.PENDING,
+    },
+    { kind: "link/watchdog-start" },
+  );
+  return {
+    state: {
+      ...state,
+      status: LinkStatus.PENDING,
+      watchdog: watchdog.state,
+    },
+    intents: watchdog.intents,
+    actions: [{ kind: "send-link-request", peerId: state.peerId }],
+  };
+}
+
 export function stepLinkSessionWithActions(
   state: LinkSessionState,
   event: LinkSessionEvent,
 ): LinkSessionStepResult {
-  if (event.kind === "session/close") {
-    return {
-      state: {
-        ...state,
-        status: LinkStatus.CLOSED,
-        established: false,
-        watchdog: { ...state.watchdog, status: LinkStatus.CLOSED },
-      },
-      intents: [],
-      actions: [{ kind: "close", reason: LinkTeardownReason.INITIATOR_CLOSED }],
-    };
-  }
+  if (event.kind === "session/close") return closeLinkSession(state);
 
   if (event.kind === "session/request-link") {
-    if (state.role !== "initiator") {
-      return { state, intents: [], actions: [] };
-    }
-    const watchdog = stepLinkWatchdogWithActions(
-      {
-        ...state.watchdog,
-        requestTime: event.at,
-        status: LinkStatus.PENDING,
-      },
-      { kind: "link/watchdog-start" },
-    );
-    return {
-      state: {
-        ...state,
-        status: LinkStatus.PENDING,
-        watchdog: watchdog.state,
-      },
-      intents: watchdog.intents,
-      actions: [{ kind: "send-link-request", peerId: state.peerId }],
-    };
+    return requestLinkSession(state, event);
   }
 
   if (event.kind === "session/handshake") {

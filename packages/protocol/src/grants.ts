@@ -161,27 +161,7 @@ export const grantHostMachine: Machine<GrantHostState, GrantEvent> = {
 const interpretedGrantHost = interpret(grantHostMachine);
 export const stepGrantHost: StepFn<GrantHostState> = (state, rawEvent) => {
   const event = rawEvent as GrantEvent;
-  if (event.kind === "grant/set") {
-    const approved = new Map<string, GrantLifecycleState>();
-    for (const capability of event.requested) {
-      const current =
-        state.lifecycles?.[capability] ?? initialGrantLifecycleState(event.at);
-      const next = stepGrantLifecycle(current, {
-        kind: "grant/approve",
-        at: event.at,
-        ttlMs: event.ttlMs ?? Number.MAX_SAFE_INTEGER - event.at,
-      }).state;
-      if (state.lifecycles?.[capability] !== undefined && next === current)
-        return { state, intents: [] };
-      approved.set(capability, next);
-    }
-    const stepped = interpretedGrantHost(state, event);
-    if (stepped.state.lastError !== null) return stepped;
-    const lifecycles = { ...stepped.state.lifecycles };
-    for (const [capability, lifecycle] of approved)
-      lifecycles[capability] = lifecycle;
-    return { ...stepped, state: { ...stepped.state, lifecycles } };
-  }
+  if (event.kind === "grant/set") return applyGrantSet(state, event);
   if (
     event.kind === "grant/revoke" ||
     event.kind === "grant/deny" ||
@@ -192,6 +172,31 @@ export const stepGrantHost: StepFn<GrantHostState> = (state, rawEvent) => {
   }
   return interpretedGrantHost(state, event);
 };
+
+function applyGrantSet(
+  state: GrantHostState,
+  event: Extract<GrantEvent, { kind: "grant/set" }>,
+): ReturnType<StepFn<GrantHostState>> {
+  const approved = new Map<string, GrantLifecycleState>();
+  for (const capability of event.requested) {
+    const current =
+      state.lifecycles?.[capability] ?? initialGrantLifecycleState(event.at);
+    const next = stepGrantLifecycle(current, {
+      kind: "grant/approve",
+      at: event.at,
+      ttlMs: event.ttlMs ?? Number.MAX_SAFE_INTEGER - event.at,
+    }).state;
+    if (state.lifecycles?.[capability] !== undefined && next === current)
+      return { state, intents: [] };
+    approved.set(capability, next);
+  }
+  const stepped = interpretedGrantHost(state, event);
+  if (stepped.state.lastError !== null) return stepped;
+  const lifecycles = { ...stepped.state.lifecycles };
+  for (const [capability, lifecycle] of approved)
+    lifecycles[capability] = lifecycle;
+  return { ...stepped, state: { ...stepped.state, lifecycles } };
+}
 
 function stepLifecycleHostEvent(
   state: GrantHostState,
@@ -249,68 +254,60 @@ function lifecycleEvent(
   return { kind: "grant/ttl", at: event.at };
 }
 
+function decodeStoredGrantBytes(bytes: Uint8Array) {
+  let candidate = bytes;
+  let decodeStepped = stepDecodeGrantRecordWithActions(
+    initialDecodeGrantRecordState(),
+    { kind: "grant/decode-gate", bytes: candidate },
+  );
+  if (shouldRejectDecodeGrantRecord(decodeStepped.actions)) {
+    const migrated = migrateLegacyGrantRecord(bytes);
+    if (migrated !== null) {
+      candidate = migrated;
+      decodeStepped = stepDecodeGrantRecordWithActions(
+        initialDecodeGrantRecordState(),
+        { kind: "grant/decode-gate", bytes: candidate },
+      );
+    }
+  }
+  return { candidate, decodeStepped };
+}
+
 function loadGrantRecord(
   state: GrantHostState,
   event: GrantEvent,
 ): GrantHostState {
-  if (event.kind === "store/value") {
-    const key = grantStoreKey(state.appId, state.publisherPublicKey);
-    if (event.key !== key) {
-      return state;
-    }
-    if (event.value === undefined) {
-      return state;
-    }
-    let candidate = event.value;
-    let decodeStepped = stepDecodeGrantRecordWithActions(
-      initialDecodeGrantRecordState(),
-      {
-        kind: "grant/decode-gate",
-        bytes: candidate,
-      },
-    );
-    if (shouldRejectDecodeGrantRecord(decodeStepped.actions)) {
-      const migrated = migrateLegacyGrantRecord(event.value);
-      if (migrated !== null) {
-        candidate = migrated;
-        decodeStepped = stepDecodeGrantRecordWithActions(
-          initialDecodeGrantRecordState(),
-          {
-            kind: "grant/decode-gate",
-            bytes: candidate,
-          },
-        );
-      }
-    }
-    if (
-      shouldRejectDecodeGrantRecord(decodeStepped.actions) ||
-      !shouldUseDecodeGrantRecord(decodeStepped.actions)
-    ) {
-      return { ...state, lastError: "grant record decode failed" };
-    }
-    const record = grantRecordFromActions(decodeStepped.actions);
-    if (record === null) {
-      return { ...state, lastError: "grant record decode failed" };
-    }
-    if (
-      record.appId !== state.appId ||
-      record.publisherPublicKey !== state.publisherPublicKey
-    ) {
-      return { ...state, lastError: "grant record identity mismatch" };
-    }
-    const lifecycles = Object.fromEntries(
-      record.granted.map((capability) => [
-        capability,
-        {
-          ...initialGrantLifecycleState(record.updatedAt),
-          phase: "granted" as const,
-          expiresAt: Number.MAX_SAFE_INTEGER,
-        },
-      ]),
-    );
-    return { ...state, record, lastError: null, lifecycles };
+  if (event.kind !== "store/value") return state;
+  const key = grantStoreKey(state.appId, state.publisherPublicKey);
+  if (event.key !== key || event.value === undefined) return state;
+  const { decodeStepped } = decodeStoredGrantBytes(event.value);
+  if (
+    shouldRejectDecodeGrantRecord(decodeStepped.actions) ||
+    !shouldUseDecodeGrantRecord(decodeStepped.actions)
+  ) {
+    return { ...state, lastError: "grant record decode failed" };
   }
-  return state;
+  const record = grantRecordFromActions(decodeStepped.actions);
+  if (record === null) {
+    return { ...state, lastError: "grant record decode failed" };
+  }
+  if (
+    record.appId !== state.appId ||
+    record.publisherPublicKey !== state.publisherPublicKey
+  ) {
+    return { ...state, lastError: "grant record identity mismatch" };
+  }
+  const lifecycles = Object.fromEntries(
+    record.granted.map((capability) => [
+      capability,
+      {
+        ...initialGrantLifecycleState(record.updatedAt),
+        phase: "granted" as const,
+        expiresAt: Number.MAX_SAFE_INTEGER,
+      },
+    ]),
+  );
+  return { ...state, record, lastError: null, lifecycles };
 }
 
 function persistMigratedGrant(

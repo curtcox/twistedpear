@@ -36,6 +36,22 @@ export type PathAwaitAction =
   | { readonly kind: "probe" }
   | { readonly kind: "resolve"; readonly found: boolean };
 
+function concludePathAwait(
+  state: PathAwaitState,
+  found: boolean,
+): PathAwaitStepResult {
+  return {
+    state: {
+      ...state,
+      pathPresent: found,
+      concluded: true,
+      found,
+    },
+    intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
+    actions: [{ kind: "resolve", found }],
+  };
+}
+
 export interface PathAwaitStepResult {
   readonly state: PathAwaitState;
   readonly intents: readonly Intent[];
@@ -74,6 +90,30 @@ export function stepPathAwaitWithActions(
   return stepPathAwaitInner(state, event);
 }
 
+function onPathAwaitStatus(
+  state: PathAwaitState,
+  event: Extract<PathAwaitEvent, { kind: "path-await/path-status" }>,
+): PathAwaitStepResult {
+  if (!state.armed || state.concluded) {
+    return { state, intents: [], actions: [] };
+  }
+  if (event.present) return concludePathAwait(state, true);
+  if (event.at >= state.deadlineMs) return concludePathAwait(state, false);
+  return {
+    state: { ...state, pathPresent: false },
+    intents: [
+      {
+        kind: "timer/set",
+        timer: {
+          id: PATH_AWAIT_TIMER_ID,
+          delayMs: PATH_AWAIT_POLL_INTERVAL_MS,
+        },
+      },
+    ],
+    actions: [],
+  };
+}
+
 function stepPathAwaitInner(
   state: PathAwaitState,
   event: PathAwaitEvent,
@@ -93,46 +133,7 @@ function stepPathAwaitInner(
   }
 
   if (event.kind === "path-await/path-status") {
-    if (!state.armed || state.concluded) {
-      return { state, intents: [], actions: [] };
-    }
-    if (event.present) {
-      return {
-        state: {
-          ...state,
-          pathPresent: true,
-          concluded: true,
-          found: true,
-        },
-        intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
-        actions: [{ kind: "resolve", found: true }],
-      };
-    }
-    if (event.at >= state.deadlineMs) {
-      return {
-        state: {
-          ...state,
-          pathPresent: false,
-          concluded: true,
-          found: false,
-        },
-        intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
-        actions: [{ kind: "resolve", found: false }],
-      };
-    }
-    return {
-      state: { ...state, pathPresent: false },
-      intents: [
-        {
-          kind: "timer/set",
-          timer: {
-            id: PATH_AWAIT_TIMER_ID,
-            delayMs: PATH_AWAIT_POLL_INTERVAL_MS,
-          },
-        },
-      ],
-      actions: [],
-    };
+    return onPathAwaitStatus(state, event);
   }
 
   if (event.kind === "timer/fired" && event.id === PATH_AWAIT_TIMER_ID) {

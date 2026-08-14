@@ -369,19 +369,21 @@ export function productionPathFor(capability: string): string {
   return "miniapp-host/share.cas";
 }
 
+const PRODUCTION_HANDLERS: Readonly<Record<string, string>> = {
+  identity: "MiniappHost.identity.sign",
+  presence: "MiniappHost.presence.snapshot",
+  "announce:publish": "MiniappHost.announce.publish",
+  "announce:subscribe": "MiniappHost.announce.subscribe",
+  "lxmf:send": "MiniappHost.lxmf.send",
+  "lxmf:receive": "MiniappHost.lxmf.receive",
+  "storage:kv": "MiniappHost.storage.kv.set",
+  "resource:fetch": "MiniappHost.resource.fetch",
+  workspace: "MiniappHost.workspace.write",
+  "share:cas": "MiniappHost.share.cas.put",
+};
+
 export function productionHandlerFor(capability: string): string {
-  if (capability === "identity") return "MiniappHost.identity.sign";
-  if (capability === "presence") return "MiniappHost.presence.snapshot";
-  if (capability === "announce:publish") return "MiniappHost.announce.publish";
-  if (capability === "announce:subscribe")
-    return "MiniappHost.announce.subscribe";
-  if (capability === "lxmf:send") return "MiniappHost.lxmf.send";
-  if (capability === "lxmf:receive") return "MiniappHost.lxmf.receive";
-  if (capability === "storage:kv") return "MiniappHost.storage.kv.set";
-  if (capability === "resource:fetch") return "MiniappHost.resource.fetch";
-  if (capability === "workspace") return "MiniappHost.workspace.write";
-  if (capability === "share:cas") return "MiniappHost.share.cas.put";
-  return productionPathFor(capability);
+  return PRODUCTION_HANDLERS[capability] ?? productionPathFor(capability);
 }
 
 export function capabilityEffect(capability: string): string {

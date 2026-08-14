@@ -347,32 +347,40 @@ export class PeerRouteLinkObservatory implements LinkObservatoryBackend {
       : null;
   }
 
+  private subscribePeerRoute(
+    appId: string,
+    peer: { readonly handle: PeerHandle },
+    directory: AppPeerRouteDirectory,
+  ): void {
+    const key = `${appId}\u0000${peer.handle.id}`;
+    if (this.subscriptions.has(key)) return;
+    const route = directory.route(appId, peer.handle);
+    if (route?.transport?.subscribe === undefined) return;
+    this.subscriptions.set(
+      key,
+      route.transport.subscribe((payload) => {
+        void this.receiveRouteMessage(
+          appId,
+          peer.handle,
+          route.transport!,
+          payload,
+        );
+      }),
+    );
+    const local = this.options.localReadiness?.(appId, peer.handle) ?? null;
+    if (local !== null && local.consentPosture !== "closed")
+      void Promise.resolve(
+        route.transport.send(
+          encodeReadinessEnvelope(READINESS_REQUEST_ID, local),
+        ),
+      ).catch(() => {});
+  }
+
   private ensureRouteSubscriptions(appId: string): void {
     const directory = this.routeDirectory();
     if (directory === null) return;
     for (const peer of directory.list(appId)) {
-      const key = `${appId}\u0000${peer.handle.id}`;
-      if (this.subscriptions.has(key)) continue;
-      const route = directory.route(appId, peer.handle);
-      if (route?.transport?.subscribe === undefined) continue;
-      this.subscriptions.set(
-        key,
-        route.transport.subscribe((payload) => {
-          void this.receiveRouteMessage(
-            appId,
-            peer.handle,
-            route.transport!,
-            payload,
-          );
-        }),
-      );
-      const local = this.options.localReadiness?.(appId, peer.handle) ?? null;
-      if (local !== null && local.consentPosture !== "closed")
-        void Promise.resolve(
-          route.transport.send(
-            encodeReadinessEnvelope(READINESS_REQUEST_ID, local),
-          ),
-        ).catch(() => {});
+      this.subscribePeerRoute(appId, peer, directory);
     }
   }
 

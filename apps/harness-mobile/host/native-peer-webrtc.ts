@@ -74,6 +74,37 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+type NativeRtcGlobals = {
+  RTCPeerConnection?: new () => PeerRtcState["pc"];
+  navigator?: {
+    mediaDevices?: {
+      getUserMedia(
+        constraints: unknown,
+      ): Promise<{ getTracks(): MediaTrackLike[] }>;
+    };
+  };
+};
+
+function nativeRtcFromGlobal(global: NativeRtcGlobals): {
+  RTCPeerConnection: new () => PeerRtcState["pc"];
+  mediaDevices: {
+    getUserMedia(
+      constraints: unknown,
+    ): Promise<{ getTracks(): MediaTrackLike[] }>;
+  };
+} | null {
+  if (
+    typeof global.RTCPeerConnection !== "function" ||
+    typeof global.navigator?.mediaDevices?.getUserMedia !== "function"
+  ) {
+    return null;
+  }
+  return {
+    RTCPeerConnection: global.RTCPeerConnection,
+    mediaDevices: global.navigator.mediaDevices,
+  };
+}
+
 function resolveNativeRtc(): {
   RTCPeerConnection: new () => PeerRtcState["pc"];
   mediaDevices: {
@@ -82,25 +113,9 @@ function resolveNativeRtc(): {
     ): Promise<{ getTracks(): MediaTrackLike[] }>;
   };
 } | null {
-  const global = globalThis as unknown as {
-    RTCPeerConnection?: new () => PeerRtcState["pc"];
-    navigator?: {
-      mediaDevices?: {
-        getUserMedia(
-          constraints: unknown,
-        ): Promise<{ getTracks(): MediaTrackLike[] }>;
-      };
-    };
-  };
-  if (
-    typeof global.RTCPeerConnection === "function" &&
-    typeof global.navigator?.mediaDevices?.getUserMedia === "function"
-  ) {
-    return {
-      RTCPeerConnection: global.RTCPeerConnection,
-      mediaDevices: global.navigator.mediaDevices,
-    };
-  }
+  const global = globalThis as unknown as NativeRtcGlobals;
+  const existing = nativeRtcFromGlobal(global);
+  if (existing !== null) return existing;
   try {
     // Fallback if index.js did not register yet (e.g. hot reload).
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -111,16 +126,7 @@ function resolveNativeRtc(): {
   } catch {
     return null;
   }
-  if (
-    typeof global.RTCPeerConnection === "function" &&
-    typeof global.navigator?.mediaDevices?.getUserMedia === "function"
-  ) {
-    return {
-      RTCPeerConnection: global.RTCPeerConnection,
-      mediaDevices: global.navigator.mediaDevices,
-    };
-  }
-  return null;
+  return nativeRtcFromGlobal(global);
 }
 
 async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {

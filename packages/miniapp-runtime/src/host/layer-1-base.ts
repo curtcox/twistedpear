@@ -226,25 +226,48 @@ export abstract class MiniappHostLayer1Base {
     );
   }
 
+  private async closeSurfacesForRevokedCapability(
+    appId: string,
+    publisherPublicKey: string,
+    capability: string,
+  ): Promise<void> {
+    if (capability === "peer:connect") {
+      await this.closePeerRuntimeIfActive(appId, publisherPublicKey);
+    }
+    if (capability.startsWith("device:")) {
+      await this.closeDeviceSurfacesIfActive(appId);
+    }
+  }
+
+  private async closePeerRuntimeIfActive(
+    appId: string,
+    publisherPublicKey: string,
+  ): Promise<void> {
+    if (
+      this.active?.manifest.name !== appId ||
+      this.active.manifest.publisherPublicKey !== publisherPublicKey
+    ) {
+      return;
+    }
+    await this.peerService?.closeRuntime(appId, this.active.runtimeId);
+  }
+
+  private async closeDeviceSurfacesIfActive(appId: string): Promise<void> {
+    if (this.active?.manifest.name !== appId) return;
+    this.deviceService?.closeApp(appId);
+    await this.inboundMedia?.closeApp(appId);
+  }
+
   async revokeGrant(
     appId: string,
     publisherPublicKey: string,
     capability: string,
   ): Promise<GrantRecord | null> {
-    if (
-      capability === "peer:connect" &&
-      this.active?.manifest.name === appId &&
-      this.active.manifest.publisherPublicKey === publisherPublicKey
-    ) {
-      await this.peerService?.closeRuntime(appId, this.active.runtimeId);
-    }
-    if (
-      capability.startsWith("device:") &&
-      this.active?.manifest.name === appId
-    ) {
-      this.deviceService?.closeApp(appId);
-      await this.inboundMedia?.closeApp(appId);
-    }
+    await this.closeSurfacesForRevokedCapability(
+      appId,
+      publisherPublicKey,
+      capability,
+    );
     return this.options.grantStore.revoke(
       appId,
       publisherPublicKey,

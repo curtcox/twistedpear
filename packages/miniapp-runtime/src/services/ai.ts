@@ -364,6 +364,19 @@ export class AiService {
     }
   }
 
+  private assertEmbedInput(input: unknown): asserts input is string {
+    if (
+      typeof input !== "string" ||
+      input.length === 0 ||
+      input.length > this.limits.maxEmbeddingInputChars
+    ) {
+      throw new AiServiceError(
+        "AI_BAD_REQUEST",
+        `Embedding inputs must be 1-${this.limits.maxEmbeddingInputChars} characters.`,
+      );
+    }
+  }
+
   private sanitizeEmbed(request: AiEmbedRequest): AiEmbedRequest {
     if (
       !Array.isArray(request?.inputs) ||
@@ -375,18 +388,7 @@ export class AiService {
         `Embeddings require 1-${this.limits.maxEmbeddingInputs} inputs.`,
       );
     }
-    for (const input of request.inputs) {
-      if (
-        typeof input !== "string" ||
-        input.length === 0 ||
-        input.length > this.limits.maxEmbeddingInputChars
-      ) {
-        throw new AiServiceError(
-          "AI_BAD_REQUEST",
-          `Embedding inputs must be 1-${this.limits.maxEmbeddingInputChars} characters.`,
-        );
-      }
-    }
+    for (const input of request.inputs) this.assertEmbedInput(input);
     return {
       inputs: [...request.inputs],
       ...(typeof request.model === "string" && request.model.length > 0

@@ -257,14 +257,7 @@ export class ResourceLayer1 {
       hashmapBytes,
       expectedProof: materials.expectedProof,
       parts,
-      callbacks: {
-        ...(options.callback === undefined
-          ? {}
-          : { callback: options.callback }),
-        ...(options.progressCallback === undefined
-          ? {}
-          : { progressCallback: options.progressCallback }),
-      },
+      callbacks: this.sendCallbacks(options),
       ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
     }) as Resource;
 
@@ -280,6 +273,15 @@ export class ResourceLayer1 {
     }
 
     return resource;
+  }
+
+  private static sendCallbacks(options: ResourceOptions): ResourceCallbacks {
+    return {
+      ...(options.callback === undefined ? {} : { callback: options.callback }),
+      ...(options.progressCallback === undefined
+        ? {}
+        : { progressCallback: options.progressCallback }),
+    };
   }
 
   private static resourceRandomHash(

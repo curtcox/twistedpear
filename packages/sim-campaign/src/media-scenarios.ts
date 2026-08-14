@@ -74,6 +74,11 @@ export interface MediaLadderScenarioOptions {
  * Goodput in bits per second at a given sample index. Every profile starts
  * healthy so the call is admitted at the top rung, then degrades.
  */
+function flappingGoodputBps(index: number, healthy: number): number {
+  if (index < 6) return healthy;
+  return Math.floor(index / 2) % 2 === 0 ? healthy : 9_000;
+}
+
 export function mediaLinkGoodputBps(
   profile: MediaLinkProfile,
   index: number,
@@ -94,11 +99,7 @@ export function mediaLinkGoodputBps(
     case "flapping":
       // Bad and good windows long enough to downshift but too short to earn
       // the four-sample upshift.
-      return index < 6
-        ? healthy
-        : Math.floor(index / 2) % 2 === 0
-          ? healthy
-          : 9_000;
+      return flappingGoodputBps(index, healthy);
   }
 }
 

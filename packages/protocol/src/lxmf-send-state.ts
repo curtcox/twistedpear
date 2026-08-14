@@ -106,25 +106,32 @@ function stepLxmfSendInner(
   }
 
   if (event.kind === "lxmf/receipt-result") {
-    if (event.delivered) {
-      if (event.onDelivered === "sent") {
-        return {
-          state: { state: LxmfMessageState.SENT, progress: 1 },
-          intents: [],
-        };
-      }
-      return {
-        state: { state: LxmfMessageState.DELIVERED, progress: 1 },
-        intents: [],
-      };
-    }
+    return applyLxmfReceiptResult(state, event);
+  }
+
+  return { state, intents: [] };
+}
+
+function applyLxmfReceiptResult(
+  state: LxmfSendState,
+  event: Extract<LxmfSendEvent, { kind: "lxmf/receipt-result" }>,
+): { state: LxmfSendState; intents: Intent[] } {
+  if (!event.delivered) {
     return {
       state: { state: LxmfMessageState.FAILED, progress: state.progress },
       intents: [],
     };
   }
-
-  return { state, intents: [] };
+  return {
+    state: {
+      state:
+        event.onDelivered === "sent"
+          ? LxmfMessageState.SENT
+          : LxmfMessageState.DELIVERED,
+      progress: 1,
+    },
+    intents: [],
+  };
 }
 
 export type LxmfOutboundSendMode = "opportunistic" | "propagated";

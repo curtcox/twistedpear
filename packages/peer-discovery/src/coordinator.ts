@@ -5,6 +5,7 @@ import {
   type PeerInvitation,
 } from "@twistedpear/protocol";
 import type {
+  DiscoveryEvent,
   EstablishedPeer,
   PeerConnectRequest,
   PeerDiscoveryAdapter,
@@ -92,7 +93,7 @@ export class InvitationPairingDriver implements PeerPairingDriver {
       "offer",
       this.now(),
     );
-    let state = stepPeerPairing(initialPeerPairingState(), {
+    const offerState = stepPeerPairing(initialPeerPairingState(), {
       kind: "offer",
       sessionId: sessionKey(offerInvitation),
       service: request.service,
@@ -104,63 +105,84 @@ export class InvitationPairingDriver implements PeerPairingDriver {
       if (event.kind === "error")
         throw new PeerDiscoveryError(event.code, event.message);
       if (event.kind !== "invitation") continue;
-      const answer = assertEnvelope(
-        event.envelope,
-        request,
-        "answer",
-        this.now(),
-      );
-      if (sessionKey(answer) !== sessionKey(offerInvitation))
-        throw new PeerDiscoveryError(
-          "INVALID_INVITATION",
-          "Answer session does not match offer",
-        );
-      state = stepPeerPairing(state, {
-        kind: "answer",
-        sessionId: sessionKey(answer),
-      });
-      if (state.phase !== "confirming")
-        throw new PeerDiscoveryError(
-          "INVALID_INVITATION",
-          state.error ?? "Invalid answer transition",
-        );
-      const authenticated = await this.options.backend.authenticateAnswer(
-        request,
-        offer.privateState,
-        event.envelope,
-      );
-      if (!(await this.options.backend.confirm(authenticated.peer, request))) {
-        await adapter.cancel(event.session.id);
-        throw new PeerDiscoveryError(
-          "CANCELLED",
-          "Peer confirmation was declined",
-        );
-      }
-      state = stepPeerPairing(state, {
-        kind: "confirm",
-        sessionId: sessionKey(answer),
-      });
-      if (state.phase !== "connected")
-        throw new PeerDiscoveryError(
-          "INVALID_INVITATION",
-          state.error ?? "Invalid confirmation transition",
-        );
-      const established = await this.options.backend.establish(
-        authenticated,
+      return await this.completeRequestInvitation({
         adapter,
-      );
-      if (!established.authenticated || !established.confirmed)
-        throw new PeerDiscoveryError(
-          "POLICY_DENIED",
-          "Security backend returned an unconfirmed route",
-        );
-      return established;
+        request,
+        offer,
+        offerInvitation,
+        state: offerState,
+        event,
+      });
     }
     throw new PeerDiscoveryError(
       "NO_RETURN_CHANNEL",
       "Discovery mechanism ended without an answer",
     );
   }
+
+  private async completeRequestInvitation(input: {
+    adapter: PeerDiscoveryAdapter;
+    request: PeerConnectRequest;
+    offer: PairingOfferContext;
+    offerInvitation: PeerInvitation;
+    state: ReturnType<typeof initialPeerPairingState>;
+    event: Extract<DiscoveryEvent, { kind: "invitation" }>;
+  }): Promise<EstablishedPeer> {
+    const { adapter, request, offer, offerInvitation, event } = input;
+    let { state } = input;
+    const answer = assertEnvelope(
+      event.envelope,
+      request,
+      "answer",
+      this.now(),
+    );
+    if (sessionKey(answer) !== sessionKey(offerInvitation))
+      throw new PeerDiscoveryError(
+        "INVALID_INVITATION",
+        "Answer session does not match offer",
+      );
+    state = stepPeerPairing(state, {
+      kind: "answer",
+      sessionId: sessionKey(answer),
+    });
+    if (state.phase !== "confirming")
+      throw new PeerDiscoveryError(
+        "INVALID_INVITATION",
+        state.error ?? "Invalid answer transition",
+      );
+    const authenticated = await this.options.backend.authenticateAnswer(
+      request,
+      offer.privateState,
+      event.envelope,
+    );
+    if (!(await this.options.backend.confirm(authenticated.peer, request))) {
+      await adapter.cancel(event.session.id);
+      throw new PeerDiscoveryError(
+        "CANCELLED",
+        "Peer confirmation was declined",
+      );
+    }
+    state = stepPeerPairing(state, {
+      kind: "confirm",
+      sessionId: sessionKey(answer),
+    });
+    if (state.phase !== "connected")
+      throw new PeerDiscoveryError(
+        "INVALID_INVITATION",
+        state.error ?? "Invalid confirmation transition",
+      );
+    const established = await this.options.backend.establish(
+      authenticated,
+      adapter,
+    );
+    if (!established.authenticated || !established.confirmed)
+      throw new PeerDiscoveryError(
+        "POLICY_DENIED",
+        "Security backend returned an unconfirmed route",
+      );
+    return established;
+  }
+
   async listen(
     adapter: PeerDiscoveryAdapter,
     request: PeerConnectRequest,
@@ -172,6 +194,19 @@ export class InvitationPairingDriver implements PeerPairingDriver {
       if (event.kind === "error")
         throw new PeerDiscoveryError(event.code, event.message);
       if (event.kind !== "invitation") continue;
+      return await this.acceptInvitation(adapter, request, event);
+    }
+    throw new PeerDiscoveryError(
+      "TIMEOUT",
+      "Discovery mechanism ended without an offer",
+    );
+  }
+
+  private async acceptInvitation(
+    adapter: PeerDiscoveryAdapter,
+    request: PeerConnectRequest,
+    event: Extract<DiscoveryEvent, { kind: "invitation" }>,
+  ): Promise<EstablishedPeer> {
       const offer = assertEnvelope(
         event.envelope,
         request,
@@ -227,11 +262,6 @@ export class InvitationPairingDriver implements PeerPairingDriver {
           "Security backend returned an unconfirmed route",
         );
       return established;
-    }
-    throw new PeerDiscoveryError(
-      "TIMEOUT",
-      "Discovery mechanism ended without an offer",
-    );
   }
   private now(): number {
     return this.options.now?.() ?? Date.now();

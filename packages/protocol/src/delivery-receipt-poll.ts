@@ -69,6 +69,22 @@ export function isTerminalReceiptStatus(
   );
 }
 
+function concludeDeliveryReceiptPoll(
+  state: DeliveryReceiptPollState,
+  status: ReceiptPollStatusValue,
+): DeliveryReceiptPollStepResult {
+  return {
+    state: { ...state, receiptStatus: status, concluded: true },
+    intents: [
+      {
+        kind: "timer/cancel",
+        timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID },
+      },
+    ],
+    actions: [{ kind: "resolve", status }],
+  };
+}
+
 /** Whether the delivery-receipt poll should keep probing. */
 export function shouldContinueDeliveryReceiptPoll(concluded: boolean): boolean {
   return !concluded;
@@ -92,66 +108,53 @@ export function stepDeliveryReceiptPollWithActions(
   return stepDeliveryReceiptPollInner(state, event);
 }
 
+function armDeliveryReceiptPoll(
+  event: Extract<DeliveryReceiptPollEvent, { kind: "poll/arm" }>,
+): DeliveryReceiptPollStepResult {
+  return {
+    state: {
+      armed: true,
+      deadlineMs: event.at + event.timeoutMs,
+      receiptStatus: ReceiptPollStatus.SENT,
+      concluded: false,
+    },
+    intents: [],
+    actions: [{ kind: "probe" }],
+  };
+}
+
+function onDeliveryReceiptStatus(
+  state: DeliveryReceiptPollState,
+  event: Extract<DeliveryReceiptPollEvent, { kind: "poll/receipt-status" }>,
+): DeliveryReceiptPollStepResult {
+  if (!state.armed || state.concluded) {
+    return { state, intents: [], actions: [] };
+  }
+  if (isTerminalReceiptStatus(event.status) || event.at >= state.deadlineMs) {
+    return concludeDeliveryReceiptPoll(state, event.status);
+  }
+  return {
+    state: { ...state, receiptStatus: event.status },
+    intents: [
+      {
+        kind: "timer/set",
+        timer: {
+          id: DELIVERY_RECEIPT_POLL_TIMER_ID,
+          delayMs: DELIVERY_RECEIPT_POLL_INTERVAL_MS,
+        },
+      },
+    ],
+    actions: [],
+  };
+}
+
 function stepDeliveryReceiptPollInner(
   state: DeliveryReceiptPollState,
   event: DeliveryReceiptPollEvent,
 ): DeliveryReceiptPollStepResult {
-  if (event.kind === "poll/arm") {
-    return {
-      state: {
-        armed: true,
-        deadlineMs: event.at + event.timeoutMs,
-        receiptStatus: ReceiptPollStatus.SENT,
-        concluded: false,
-      },
-      intents: [],
-      actions: [{ kind: "probe" }],
-    };
-  }
-
-  if (event.kind === "poll/receipt-status") {
-    if (!state.armed || state.concluded) {
-      return { state, intents: [], actions: [] };
-    }
-    if (isTerminalReceiptStatus(event.status)) {
-      return {
-        state: { ...state, receiptStatus: event.status, concluded: true },
-        intents: [
-          {
-            kind: "timer/cancel",
-            timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID },
-          },
-        ],
-        actions: [{ kind: "resolve", status: event.status }],
-      };
-    }
-    if (event.at >= state.deadlineMs) {
-      return {
-        state: { ...state, receiptStatus: event.status, concluded: true },
-        intents: [
-          {
-            kind: "timer/cancel",
-            timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID },
-          },
-        ],
-        actions: [{ kind: "resolve", status: event.status }],
-      };
-    }
-    return {
-      state: { ...state, receiptStatus: event.status },
-      intents: [
-        {
-          kind: "timer/set",
-          timer: {
-            id: DELIVERY_RECEIPT_POLL_TIMER_ID,
-            delayMs: DELIVERY_RECEIPT_POLL_INTERVAL_MS,
-          },
-        },
-      ],
-      actions: [],
-    };
-  }
-
+  if (event.kind === "poll/arm") return armDeliveryReceiptPoll(event);
+  if (event.kind === "poll/receipt-status")
+    return onDeliveryReceiptStatus(state, event);
   if (
     event.kind === "timer/fired" &&
     event.id === DELIVERY_RECEIPT_POLL_TIMER_ID
@@ -165,6 +168,5 @@ function stepDeliveryReceiptPollInner(
       actions: [{ kind: "probe" }],
     };
   }
-
   return { state, intents: [], actions: [] };
 }

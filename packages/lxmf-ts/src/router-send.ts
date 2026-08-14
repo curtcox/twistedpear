@@ -202,10 +202,10 @@ export async function sendDirectLxmf(
   host.applySendState(message, { kind: "lxmf/mark-delivered" });
 }
 
-export async function sendPropagatedLxmf(
+function assertPropagatedLxmfReady(
   host: LxmfRouterSendHost,
   message: LXMessage,
-): Promise<void> {
+): Uint8Array {
   const packed = message.propagationPacked;
   const stepped = stepLxmfPropagatedSendWithActions(
     initialLxmfPropagatedSendState(),
@@ -231,6 +231,14 @@ export async function sendPropagatedLxmf(
   if (!shouldProceedLxmfPropagatedSend(stepped.actions)) {
     throw new Error("PROPAGATED LXMF send rejected");
   }
+  return packed;
+}
+
+export async function sendPropagatedLxmf(
+  host: LxmfRouterSendHost,
+  message: LXMessage,
+): Promise<void> {
+  const packed = assertPropagatedLxmfReady(host, message);
 
   const link = await ensureOutboundPropagationLink(host);
   host.applySendState(message, { kind: "lxmf/begin-sending" });

@@ -207,6 +207,23 @@ export type PathRequestIngressPlan =
  * Pass `allowDiscovery: true` on TransportNode (missing path may forward);
  * leaf transport keeps the default (`false`) and ignores when no answerable path.
  */
+function planTransportPathRequest(input: {
+  readonly transportEnabled: boolean;
+  readonly hasPath: boolean;
+  readonly shouldAnswerPath: boolean;
+  readonly discoveryPresent: boolean;
+  readonly discoveryExpired: boolean;
+  readonly allowDiscovery?: boolean;
+}): PathRequestIngressPlan {
+  if (!input.transportEnabled) return "ignore";
+  if (input.hasPath) return input.shouldAnswerPath ? "answer-path" : "ignore";
+  if (input.allowDiscovery !== true) return "ignore";
+  if (input.discoveryPresent && !input.discoveryExpired) {
+    return "ignore-in-flight-discovery";
+  }
+  return "start-discovery";
+}
+
 export function planPathRequestIngress(input: {
   readonly parsedOk: boolean;
   readonly hasTag: boolean;
@@ -228,19 +245,7 @@ export function planPathRequestIngress(input: {
   if (input.hasLocalAnswerer) {
     return "answer-local";
   }
-  if (!input.transportEnabled) {
-    return "ignore";
-  }
-  if (input.hasPath) {
-    return input.shouldAnswerPath ? "answer-path" : "ignore";
-  }
-  if (input.allowDiscovery !== true) {
-    return "ignore";
-  }
-  if (input.discoveryPresent && !input.discoveryExpired) {
-    return "ignore-in-flight-discovery";
-  }
-  return "start-discovery";
+  return planTransportPathRequest(input);
 }
 
 /**
