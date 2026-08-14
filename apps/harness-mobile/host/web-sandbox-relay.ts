@@ -40,46 +40,51 @@ export function createWebSandboxRelay(
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
 
+  async function spawnSandbox(
+    message: Extract<WorkletToHostMessage, { type: "sandbox-spawn" }>,
+  ): Promise<void> {
+    const backend = new WebSandboxBackend();
+    try {
+      const instance = await backend.spawn({
+        appId: message.appId,
+        version: message.version,
+        entryPath: message.entryPath,
+        bundle: hexToBytes(message.bundleHex),
+        brokerEndpoint: {
+          request: async (request: unknown) =>
+            new Promise((resolve, reject) => {
+              const requestId = `broker-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+              pendingBrokers.set(requestId, { resolve, reject });
+              sendToWorker({
+                type: "sandbox-broker-request",
+                requestId,
+                instanceId: message.instanceId,
+                request: encodeJsonWireValue(request),
+              });
+            }),
+        },
+      });
+
+      instances.set(message.instanceId, { backend, instance });
+      sendToWorker({
+        type: "sandbox-spawned",
+        requestId: message.requestId,
+        instanceId: message.instanceId,
+      });
+    } catch (error) {
+      sendToWorker({
+        type: "sandbox-spawn-failed",
+        requestId: message.requestId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async function handleWorkerMessage(
     message: WorkletToHostMessage,
   ): Promise<void> {
     if (message.type === "sandbox-spawn") {
-      const backend = new WebSandboxBackend();
-      try {
-        const instance = await backend.spawn({
-          appId: message.appId,
-          version: message.version,
-          entryPath: message.entryPath,
-          bundle: hexToBytes(message.bundleHex),
-          brokerEndpoint: {
-            request: async (request: unknown) =>
-              new Promise((resolve, reject) => {
-                const requestId = `broker-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-                pendingBrokers.set(requestId, { resolve, reject });
-                sendToWorker({
-                  type: "sandbox-broker-request",
-                  requestId,
-                  instanceId: message.instanceId,
-                  request: encodeJsonWireValue(request),
-                });
-              }),
-          },
-        });
-
-        instances.set(message.instanceId, { backend, instance });
-        sendToWorker({
-          type: "sandbox-spawned",
-          requestId: message.requestId,
-          instanceId: message.instanceId,
-        });
-      } catch (error) {
-        sendToWorker({
-          type: "sandbox-spawn-failed",
-          requestId: message.requestId,
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
-
+      await spawnSandbox(message);
       return;
     }
 

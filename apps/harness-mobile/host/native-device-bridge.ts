@@ -23,24 +23,10 @@ export async function nativeDeviceAvailability(
   classId: string,
 ): Promise<NativeDeviceAvailability> {
   if (classId === "location") {
-    const geo = (
-      globalThis as {
-        navigator?: { geolocation?: { getCurrentPosition: unknown } };
-      }
-    ).navigator?.geolocation;
-    return typeof geo?.getCurrentPosition === "function"
-      ? "permission-required"
-      : "unsupported";
+    return nativeLocationAvailability();
   }
   if (classId === "camera") {
-    try {
-      const current = await Camera.getCameraPermissionsAsync();
-      if (current.granted) return "available";
-      if (current.canAskAgain === false) return "offline";
-      return "permission-required";
-    } catch {
-      return "unsupported";
-    }
+    return nativeCameraAvailability();
   }
   if (classId === "microphone") {
     return nativePeerAudioSupported() ? "permission-required" : "unsupported";
@@ -78,6 +64,28 @@ export async function nativeDeviceSense(
       : { pcm: samples, tones: [] };
   }
   throw new Error(`No native sense effect for device class "${classId}".`);
+}
+
+function nativeLocationAvailability(): NativeDeviceAvailability {
+  const geo = (
+    globalThis as {
+      navigator?: { geolocation?: { getCurrentPosition: unknown } };
+    }
+  ).navigator?.geolocation;
+  return typeof geo?.getCurrentPosition === "function"
+    ? "permission-required"
+    : "unsupported";
+}
+
+async function nativeCameraAvailability(): Promise<NativeDeviceAvailability> {
+  try {
+    const current = await Camera.getCameraPermissionsAsync();
+    if (current.granted) return "available";
+    if (current.canAskAgain === false) return "offline";
+    return "permission-required";
+  } catch {
+    return "unsupported";
+  }
 }
 
 function pcm16ToFloat(bytes: Uint8Array): number[] {

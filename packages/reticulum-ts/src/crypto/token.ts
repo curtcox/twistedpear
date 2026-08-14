@@ -144,6 +144,15 @@ export class Token {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
 
+    const padded = this.padPlaintext(data);
+    const ciphertext =
+      this.mode === "aes256"
+        ? this.provider.aes256CbcEncrypt(padded, this.encryptionKey, iv)
+        : this.provider.aes128CbcEncrypt(padded, this.encryptionKey, iv);
+    return this.packCiphertext(iv, ciphertext);
+  }
+
+  private padPlaintext(data: Uint8Array): Uint8Array {
     const padStepped = stepPkcs7PadWithActions(initialPackPkcs7State(), {
       kind: "pkcs7/pad-gate",
       data,
@@ -155,11 +164,10 @@ export class Token {
     if (padded === null) {
       throw new Error("Could not pad token plaintext");
     }
+    return padded;
+  }
 
-    const ciphertext =
-      this.mode === "aes256"
-        ? this.provider.aes256CbcEncrypt(padded, this.encryptionKey, iv)
-        : this.provider.aes128CbcEncrypt(padded, this.encryptionKey, iv);
+  private packCiphertext(iv: Uint8Array, ciphertext: Uint8Array): Uint8Array {
     const signedStepped = stepTokenSignedMaterialWithActions(
       initialTokenSignedMaterialState(),
       {

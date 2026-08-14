@@ -128,6 +128,19 @@ export async function openManagedInterface(
         incoming,
         outgoing,
       );
+    default:
+      return openSpecialtyInterface(ctx, kind, config, incoming, outgoing);
+  }
+}
+
+function openSpecialtyInterface(
+  ctx: InterfaceOpenContext,
+  kind: RelayInterfaceKind,
+  config: unknown,
+  incoming: boolean,
+  outgoing: boolean,
+): Promise<PacketInterface | null> {
+  switch (kind) {
     case "bluetooth":
       return createBluetoothInterface(
         ctx,
@@ -164,7 +177,7 @@ export async function openManagedInterface(
         outgoing,
       );
     default:
-      return null;
+      return Promise.resolve(null);
   }
 }
 

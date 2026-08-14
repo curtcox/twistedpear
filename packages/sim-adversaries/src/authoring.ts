@@ -95,55 +95,61 @@ function parseProposal(value: unknown): AttackProposal {
     throw new Error("proposal has invalid shape");
   return {
     name: value.name,
-    actions: value.actions.map((action): TransportAdversaryAction => {
-      if (
-        !isRecord(action) ||
-        typeof action.power !== "string" ||
-        typeof action.source !== "string" ||
-        typeof action.destination !== "string"
-      )
-        throw new Error("proposal action has invalid shape");
-      if (action.power === "inject") {
-        if (typeof action.channel !== "string")
-          throw new Error("inject action needs a channel");
-        const payload = hexBytes(action.payloadHex);
-        return {
-          power: "inject",
-          source: action.source,
-          destination: action.destination,
-          channel: action.channel,
-          payload,
-          ...(typeof action.delayMs === "number" &&
-          Number.isFinite(action.delayMs)
-            ? { delayMs: action.delayMs }
-            : {}),
-        };
-      }
-      if (action.power === "delay") {
-        if (
-          typeof action.delayMs !== "number" ||
-          !Number.isFinite(action.delayMs)
-        )
-          throw new Error("delay action needs delayMs");
-        return {
-          power: "delay",
-          source: action.source,
-          destination: action.destination,
-          delayMs: action.delayMs,
-        };
-      }
-      if (
-        action.power === "drop" ||
-        action.power === "reorder" ||
-        action.power === "duplicate"
-      )
-        return {
-          power: action.power,
-          source: action.source,
-          destination: action.destination,
-        };
-      throw new Error(`unknown adversary power: ${action.power}`);
-    }),
+    actions: value.actions.map((action) => parseProposalAction(action)),
+  };
+}
+
+function parseProposalAction(action: unknown): TransportAdversaryAction {
+  if (
+    !isRecord(action) ||
+    typeof action.power !== "string" ||
+    typeof action.source !== "string" ||
+    typeof action.destination !== "string"
+  )
+    throw new Error("proposal action has invalid shape");
+  if (action.power === "inject") return parseInjectAction(action);
+  if (action.power === "delay") return parseDelayAction(action);
+  if (
+    action.power === "drop" ||
+    action.power === "reorder" ||
+    action.power === "duplicate"
+  )
+    return {
+      power: action.power,
+      source: action.source,
+      destination: action.destination,
+    };
+  throw new Error(`unknown adversary power: ${action.power}`);
+}
+
+function parseInjectAction(
+  action: Record<string, unknown>,
+): TransportAdversaryAction {
+  if (typeof action.channel !== "string")
+    throw new Error("inject action needs a channel");
+  const payload = hexBytes(action.payloadHex);
+  return {
+    power: "inject",
+    source: String(action.source),
+    destination: String(action.destination),
+    channel: action.channel,
+    payload,
+    ...(typeof action.delayMs === "number" && Number.isFinite(action.delayMs)
+      ? { delayMs: action.delayMs }
+      : {}),
+  };
+}
+
+function parseDelayAction(
+  action: Record<string, unknown>,
+): TransportAdversaryAction {
+  if (typeof action.delayMs !== "number" || !Number.isFinite(action.delayMs))
+    throw new Error("delay action needs delayMs");
+  return {
+    power: "delay",
+    source: String(action.source),
+    destination: String(action.destination),
+    delayMs: action.delayMs,
   };
 }
 

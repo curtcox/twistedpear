@@ -190,7 +190,10 @@ export class NtfyPacketInterface extends RawPacketInterface {
       throw new Error(`ntfy poll failed (${response.status})`);
     }
     this.online = true;
-    const text = await response.text();
+    this.ingestPollText(await response.text());
+  }
+
+  private ingestPollText(text: string): void {
     for (const line of text.split("\n")) {
       const trimmed = line.trim();
       if (!trimmed) continue;

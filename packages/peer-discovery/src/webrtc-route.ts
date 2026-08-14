@@ -165,26 +165,17 @@ export class WebRtcRouteController {
       connection.addTransceiver(kind, { direction: "sendrecv" });
     }
     if (context.role === "offer") {
-      pending.channel = connection.createDataChannel("twistedpear-peer", {
-        ordered: true,
-      });
-      await connection.setLocalDescription(await connection.createOffer());
-    } else {
-      const candidate = context.remoteInvitation?.candidates.find(
-        (entry) => entry.kind === "webrtc",
-      );
-      if (candidate === undefined) {
-        connection.close();
-        this.pending.delete(key(context.sessionId));
-        return [];
-      }
-      await connection.setRemoteDescription(decode(candidate.value));
-      connection.addEventListener("datachannel", (event) => {
-        pending.channel = event.channel;
-      });
-      await connection.setLocalDescription(await connection.createAnswer());
+      await this.applyOffer(pending, connection);
+    } else if (!(await this.applyAnswer(pending, connection, context))) {
+      return [];
     }
     await gather(connection, this.options.iceGatherTimeoutMs ?? 2_000);
+    return this.localCandidate(connection);
+  }
+
+  private localCandidate(
+    connection: RTCPeerConnection,
+  ): ReadonlyArray<PeerCandidate> {
     if (connection.localDescription === null) {
       throw new PeerDiscoveryError(
         "NO_RETURN_CHANNEL",
@@ -192,6 +183,40 @@ export class WebRtcRouteController {
       );
     }
     return [{ kind: "webrtc", value: encode(connection.localDescription) }];
+  }
+
+  private async applyOffer(
+    pending: Pending,
+    connection: RTCPeerConnection,
+  ): Promise<void> {
+    pending.channel = connection.createDataChannel("twistedpear-peer", {
+      ordered: true,
+    });
+    await connection.setLocalDescription(await connection.createOffer());
+  }
+
+  private async applyAnswer(
+    pending: Pending,
+    connection: RTCPeerConnection,
+    context: {
+      readonly sessionId: Uint8Array;
+      readonly remoteInvitation?: PeerInvitation;
+    },
+  ): Promise<boolean> {
+    const candidate = context.remoteInvitation?.candidates.find(
+      (entry) => entry.kind === "webrtc",
+    );
+    if (candidate === undefined) {
+      connection.close();
+      this.pending.delete(key(context.sessionId));
+      return false;
+    }
+    await connection.setRemoteDescription(decode(candidate.value));
+    connection.addEventListener("datachannel", (event) => {
+      pending.channel = event.channel;
+    });
+    await connection.setLocalDescription(await connection.createAnswer());
+    return true;
   }
 
   async establish(

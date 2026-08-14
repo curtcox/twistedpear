@@ -1,5 +1,6 @@
 import { MemoryHistoryRecorder } from "../../effects/src/adapters/sim/recorder.js";
 import { SimKernel } from "../../effects/src/adapters/sim/kernel.js";
+import type { TransportStats } from "../../effects/src/adapters/sim/transport.js";
 import type { TransportClassName } from "../../effects/src/adapters/sim/transport-classes.js";
 import {
   coverageFrame,
@@ -34,6 +35,39 @@ const [cell] = coverageFrame({
   positions: ["colluding-pair"],
   verbs: ["spoof"],
 });
+
+function expectInFlightAttack(
+  attack: Exclude<QuorumAttack, "below-threshold" | "replay" | "expiry">,
+  stats: TransportStats,
+  adversary: readonly { action: { power: string } }[],
+  kernel: SimKernel<unknown>,
+  create:
+    | typeof createEscrowCampaignScenario
+    | typeof createRecoveryCampaignScenario,
+): void {
+  if (attack === "partition") expect(stats.partitioned).toBeGreaterThan(0);
+  else if (attack === "drop") expect(stats.adversaryDropped).toBeGreaterThan(0);
+  else if (attack === "duplicate")
+    expect(stats.adversaryDuplicated).toBeGreaterThan(0);
+  else if (attack === "delay") expect(stats.adversaryDelayed).toBeGreaterThan(0);
+  else expect(stats.adversaryReordered).toBeGreaterThan(0);
+  if (attack !== "partition")
+    expect(adversary[0]?.action.power).toBe(
+      attack === "colluding-pair" ? "reorder" : attack,
+    );
+  if (attack === "colluding-pair") {
+    const target: any = kernel.getNodeState(
+      create === createEscrowCampaignScenario ? "escrow" : "recovery",
+    );
+    const guardians: readonly string[] =
+      target.role === "escrow"
+        ? target.escrow.authorizers
+        : target.recovery.shares;
+    expect(
+      guardians.every((guardian) => guardian.startsWith("colluder-")),
+    ).toBe(true);
+  }
+}
 
 describe("quorum and social campaigns", () => {
   it("runs unmodified escrow and recovery through every adversarial schedule and transport", async () => {
@@ -101,31 +135,7 @@ describe("quorum and social campaigns", () => {
             .getIntentLog()
             .filter((intent) => intent.kind === "transport/adversary");
           const stats = kernel.transport.getStats();
-          if (attack === "partition")
-            expect(stats.partitioned).toBeGreaterThan(0);
-          else if (attack === "drop")
-            expect(stats.adversaryDropped).toBeGreaterThan(0);
-          else if (attack === "duplicate")
-            expect(stats.adversaryDuplicated).toBeGreaterThan(0);
-          else if (attack === "delay")
-            expect(stats.adversaryDelayed).toBeGreaterThan(0);
-          else expect(stats.adversaryReordered).toBeGreaterThan(0);
-          if (attack !== "partition")
-            expect(adversary[0]?.action.power).toBe(
-              attack === "colluding-pair" ? "reorder" : attack,
-            );
-          if (attack === "colluding-pair") {
-            const target: any = kernel.getNodeState(
-              create === createEscrowCampaignScenario ? "escrow" : "recovery",
-            );
-            const guardians: readonly string[] =
-              target.role === "escrow"
-                ? target.escrow.authorizers
-                : target.recovery.shares;
-            expect(
-              guardians.every((guardian) => guardian.startsWith("colluder-")),
-            ).toBe(true);
-          }
+          expectInFlightAttack(attack, stats, adversary, kernel, create);
         }
         for (const attack of ["replay", "expiry"] as const) {
           const scenario = create({ transport, attack });

@@ -363,8 +363,14 @@ export class TcpClientInterface extends HdlcPacketInterface {
       event,
     );
     this.reconnectState = result.state;
+    this.applyReconnectIntents(result.intents);
+    this.applyReconnectActions(result.actions);
+  }
 
-    for (const intent of result.intents) {
+  private applyReconnectIntents(
+    intents: ReturnType<typeof stepInterfaceReconnectWithActions>["intents"],
+  ): void {
+    for (const intent of intents) {
       if (
         intent.kind === "timer/cancel" &&
         intent.timer.id === INTERFACE_RECONNECT_TIMER_ID
@@ -387,8 +393,12 @@ export class TcpClientInterface extends HdlcPacketInterface {
         }, intent.timer.delayMs);
       }
     }
+  }
 
-    for (const action of result.actions) {
+  private applyReconnectActions(
+    actions: ReturnType<typeof stepInterfaceReconnectWithActions>["actions"],
+  ): void {
+    for (const action of actions) {
       if (action.kind === "give-up") {
         void this.close();
       } else if (action.kind === "connect") {

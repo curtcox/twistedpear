@@ -287,22 +287,26 @@ export class SimKernel<S> {
       this.transport.applySend(intent, node.id, this.clock.now());
       return;
     }
-    if (
-      intent.kind === "store/read" ||
-      intent.kind === "store/write" ||
-      intent.kind === "store/delete"
-    ) {
-      const events = node.store.applyIntent(intent);
-      for (const ev of events) {
-        this.dispatch(node.id, ev);
-      }
-      return;
-    }
+    if (this.applyStoreIntent(node, intent)) return;
     if (intent.kind === "log") {
       return;
     }
     const observeDrop: Extract<Intent, { kind: "observe/drop" }> = intent;
     void observeDrop;
+  }
+
+  private applyStoreIntent(node: NodeRuntime<S>, intent: Intent): boolean {
+    if (
+      intent.kind !== "store/read" &&
+      intent.kind !== "store/write" &&
+      intent.kind !== "store/delete"
+    ) {
+      return false;
+    }
+    for (const ev of node.store.applyIntent(intent)) {
+      this.dispatch(node.id, ev);
+    }
+    return true;
   }
 
   private requireNode(id: NodeId): NodeRuntime<S> {

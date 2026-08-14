@@ -222,65 +222,73 @@ function persistImportedIdentity(
 export async function runTrust(ctx: CommandContext): Promise<number> {
   const [subcommand, ...rest] = ctx.args;
   const store = cliTrustStore(ctx.cwd);
-
-  if (subcommand === "list") {
-    const entries = await store.list();
-    if (entries.length === 0) {
-      console.log("No trusted publishers");
-      return 0;
-    }
-
-    for (const entry of entries) {
-      console.log(`${entry.label}\t${entry.publisherPublicKey}`);
-    }
-    return 0;
-  }
-
-  if (subcommand === "show") {
-    const provider = new NodeCryptoProvider();
-    const config = loadConfig(ctx.cwd);
-    const identity = loadIdentity(
-      provider,
-      resolveFromCwd(ctx.cwd, config.identityPath),
-      ctx,
-    );
-    console.log(encodePublisherIdentity256t(identity.getPublicKey()));
-    return 0;
-  }
-
-  if (subcommand === "add") {
-    const identityString = rest[0];
-    const label = parseFlag(rest, "--label");
-    if (identityString === undefined || label === null) {
-      printHelp("trust");
-      return 1;
-    }
-
-    const publisherPublicKey = decodePublisherIdentity256t(identityString);
-    await store.add({
-      publisherPublicKey,
-      label,
-      addedAt: Date.now(),
-      source: "paste",
-    });
-    console.log(`Trusted ${label} (${publisherPublicKey.slice(0, 16)}…)`);
-    return 0;
-  }
-
-  if (subcommand === "remove") {
-    const target = rest[0];
-    if (target === undefined) {
-      printHelp("trust");
-      return 1;
-    }
-
-    const publisherPublicKey =
-      target.length === 94 ? decodePublisherIdentity256t(target) : target;
-    await store.remove(publisherPublicKey);
-    console.log(`Removed ${publisherPublicKey.slice(0, 16)}…`);
-    return 0;
-  }
-
+  if (subcommand === "list") return runTrustList(store);
+  if (subcommand === "show") return runTrustShow(ctx);
+  if (subcommand === "add") return runTrustAdd(store, rest);
+  if (subcommand === "remove") return runTrustRemove(store, rest);
   printHelp("trust");
   return 1;
+}
+
+async function runTrustList(
+  store: ReturnType<typeof cliTrustStore>,
+): Promise<number> {
+  const entries = await store.list();
+  if (entries.length === 0) {
+    console.log("No trusted publishers");
+    return 0;
+  }
+  for (const entry of entries) {
+    console.log(`${entry.label}\t${entry.publisherPublicKey}`);
+  }
+  return 0;
+}
+
+function runTrustShow(ctx: CommandContext): number {
+  const provider = new NodeCryptoProvider();
+  const config = loadConfig(ctx.cwd);
+  const identity = loadIdentity(
+    provider,
+    resolveFromCwd(ctx.cwd, config.identityPath),
+    ctx,
+  );
+  console.log(encodePublisherIdentity256t(identity.getPublicKey()));
+  return 0;
+}
+
+async function runTrustAdd(
+  store: ReturnType<typeof cliTrustStore>,
+  rest: string[],
+): Promise<number> {
+  const identityString = rest[0];
+  const label = parseFlag(rest, "--label");
+  if (identityString === undefined || label === null) {
+    printHelp("trust");
+    return 1;
+  }
+  const publisherPublicKey = decodePublisherIdentity256t(identityString);
+  await store.add({
+    publisherPublicKey,
+    label,
+    addedAt: Date.now(),
+    source: "paste",
+  });
+  console.log(`Trusted ${label} (${publisherPublicKey.slice(0, 16)}…)`);
+  return 0;
+}
+
+async function runTrustRemove(
+  store: ReturnType<typeof cliTrustStore>,
+  rest: string[],
+): Promise<number> {
+  const target = rest[0];
+  if (target === undefined) {
+    printHelp("trust");
+    return 1;
+  }
+  const publisherPublicKey =
+    target.length === 94 ? decodePublisherIdentity256t(target) : target;
+  await store.remove(publisherPublicKey);
+  console.log(`Removed ${publisherPublicKey.slice(0, 16)}…`);
+  return 0;
 }

@@ -30,30 +30,7 @@ export async function loadOrCreateIdentity(
 ): Promise<Identity> {
   await Promise.resolve();
   if (existsSync(identityPath)) {
-    const bytes = new Uint8Array(readFileSync(identityPath));
-    const loaded = isEncryptedIdentityBackup(bytes)
-      ? options === undefined
-        ? null
-        : decryptIdentityBackup(provider, bytes, options.passphrase)
-      : RnsIdentity.fromBytes(provider, bytes);
-    if (loaded === null) {
-      return Promise.reject(
-        new Error(
-          options === undefined && isEncryptedIdentityBackup(bytes)
-            ? "Identity vault passphrase is required"
-            : `Invalid identity at ${identityPath}`,
-        ),
-      );
-    }
-    if (!isEncryptedIdentityBackup(bytes) && options?.migrateLegacy === true) {
-      persistEncryptedIdentity(
-        provider,
-        identityPath,
-        loaded,
-        options.passphrase,
-      );
-    }
-    return Promise.resolve(loaded);
+    return loadExistingIdentity(provider, identityPath, options);
   }
 
   if (options === undefined)
@@ -68,6 +45,37 @@ export async function loadOrCreateIdentity(
     options.passphrase,
   );
   return Promise.resolve(identity);
+}
+
+function loadExistingIdentity(
+  provider: CryptoProvider,
+  identityPath: string,
+  options: IdentityVaultOptions | undefined,
+): Promise<Identity> {
+  const bytes = new Uint8Array(readFileSync(identityPath));
+  const loaded = isEncryptedIdentityBackup(bytes)
+    ? options === undefined
+      ? null
+      : decryptIdentityBackup(provider, bytes, options.passphrase)
+    : RnsIdentity.fromBytes(provider, bytes);
+  if (loaded === null) {
+    return Promise.reject(
+      new Error(
+        options === undefined && isEncryptedIdentityBackup(bytes)
+          ? "Identity vault passphrase is required"
+          : `Invalid identity at ${identityPath}`,
+      ),
+    );
+  }
+  if (!isEncryptedIdentityBackup(bytes) && options?.migrateLegacy === true) {
+    persistEncryptedIdentity(
+      provider,
+      identityPath,
+      loaded,
+      options.passphrase,
+    );
+  }
+  return Promise.resolve(loaded);
 }
 
 /** @deprecated Use persistEncryptedIdentity for all newly persisted identities. */

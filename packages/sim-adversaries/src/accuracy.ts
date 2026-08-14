@@ -361,26 +361,8 @@ export function searchFuzzCanary(options: {
 
 const canaryTargetStep: StepFn<AccuracyState> = (state, event) => {
   if (event.kind !== "transport/recv") return { state, intents: [] };
-  let canonical = false;
-  try {
-    decodeGrantRecord(event.payload);
-    canonical = true;
-  } catch {
-    /* production rejection */
-  }
-  let lax = false;
-  try {
-    const parsed = JSON.parse(
-      new TextDecoder().decode(event.payload),
-    ) as Record<string, unknown>;
-    lax =
-      typeof parsed.appId === "string" &&
-      typeof parsed.publisherPublicKey === "string" &&
-      Array.isArray(parsed.granted) &&
-      typeof parsed.updatedAt === "number";
-  } catch {
-    /* lax parser also rejects */
-  }
+  const canonical = tryCanonicalGrant(event.payload);
+  const lax = tryLaxGrant(event.payload);
   const sawCanonical = state.seen.includes("canonical") || canonical;
   return {
     state: {
@@ -392,6 +374,32 @@ const canaryTargetStep: StepFn<AccuracyState> = (state, event) => {
     intents: [],
   };
 };
+
+function tryCanonicalGrant(payload: Uint8Array): boolean {
+  try {
+    decodeGrantRecord(payload);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function tryLaxGrant(payload: Uint8Array): boolean {
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(payload)) as Record<
+      string,
+      unknown
+    >;
+    return (
+      typeof parsed.appId === "string" &&
+      typeof parsed.publisherPublicKey === "string" &&
+      Array.isArray(parsed.granted) &&
+      typeof parsed.updatedAt === "number"
+    );
+  } catch {
+    return false;
+  }
+}
 
 function validGrantSender(payload: Uint8Array): StepFn<AccuracyState> {
   return (state, event) =>

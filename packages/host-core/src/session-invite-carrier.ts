@@ -103,26 +103,7 @@ export function createSessionInviteReceiver(
   };
 
   return (message) => {
-    let title: string;
-    let content: string;
-    try {
-      title = message.titleAsString();
-      if (title !== SESSION_INVITE_TITLE) return;
-      content = message.contentAsString();
-    } catch {
-      return;
-    }
-    // An unsigned or unverifiable message is not a peer, whatever it claims.
-    if (message.signatureValidated !== true) return;
-    if (!content.startsWith(SESSION_INVITE_PREFIX)) return;
-    const payloadHex = content.slice(SESSION_INVITE_PREFIX.length);
-    if (payloadHex.length > MAX_INVITE_HEX || payloadHex.length % 2 !== 0)
-      return;
-    if (!/^[0-9a-f]*$/i.test(payloadHex)) return;
-
-    const envelope = decodeLinkControl(hexToBytes(payloadHex));
-    if (envelope === null) return;
-    const request = parseSessionInvite(envelope);
+    const request = parseInviteFromMessage(message);
     if (request === null) return;
 
     const at = options.now();
@@ -157,6 +138,28 @@ export function createSessionInviteReceiver(
         ),
       );
   };
+}
+
+function parseInviteFromMessage(
+  message: SessionInviteCarrierMessage,
+): SessionInviteRequest | null {
+  let content: string;
+  try {
+    if (message.titleAsString() !== SESSION_INVITE_TITLE) return null;
+    content = message.contentAsString();
+  } catch {
+    return null;
+  }
+  // An unsigned or unverifiable message is not a peer, whatever it claims.
+  if (message.signatureValidated !== true) return null;
+  if (!content.startsWith(SESSION_INVITE_PREFIX)) return null;
+  const payloadHex = content.slice(SESSION_INVITE_PREFIX.length);
+  if (payloadHex.length > MAX_INVITE_HEX || payloadHex.length % 2 !== 0)
+    return null;
+  if (!/^[0-9a-f]*$/i.test(payloadHex)) return null;
+  const envelope = decodeLinkControl(hexToBytes(payloadHex));
+  if (envelope === null) return null;
+  return parseSessionInvite(envelope);
 }
 
 /** Builds the LXMF body a peer sends to ring an app on this host. */

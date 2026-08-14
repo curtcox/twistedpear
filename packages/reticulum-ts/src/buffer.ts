@@ -284,6 +284,26 @@ export class RawChannelReader {
     }
 
     const output = new Uint8Array(clampedSize);
+    this.copyChunks(output);
+    this.bufferLength -= output.length;
+    const returnStepped = stepStreamReadReturnWithActions(
+      initialStreamReadReturnState(),
+      {
+        kind: "stream/read-return-gate",
+        copied: output.length,
+        eof: this.eof,
+      },
+    );
+    if (
+      shouldYieldStreamRead(returnStepped.actions) &&
+      !shouldSkipStreamReadYield(returnStepped.actions)
+    ) {
+      return output;
+    }
+    return null;
+  }
+
+  private copyChunks(output: Uint8Array): void {
     let copied = 0;
     while (copied < output.length && this.chunks.length > 0) {
       const chunk = this.chunks[0]!;
@@ -320,23 +340,6 @@ export class RawChannelReader {
         this.chunks[0] = chunk.subarray(take);
       }
     }
-
-    this.bufferLength -= copied;
-    const returnStepped = stepStreamReadReturnWithActions(
-      initialStreamReadReturnState(),
-      {
-        kind: "stream/read-return-gate",
-        copied,
-        eof: this.eof,
-      },
-    );
-    if (
-      shouldYieldStreamRead(returnStepped.actions) &&
-      !shouldSkipStreamReadYield(returnStepped.actions)
-    ) {
-      return output;
-    }
-    return null;
   }
 
   close(): void {

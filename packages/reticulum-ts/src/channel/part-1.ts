@@ -263,12 +263,7 @@ export class Channel extends ChannelRegister {
         "Link is not ready",
       );
     }
-    if (!shouldProceedChannelSend(readyGate.actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_LINK_NOT_READY,
-        "Link is not ready",
-      );
-    }
+    this.assertChannelSendProceeds(readyGate.actions);
 
     const reservedSequence = this.nextSequence;
     const envelope = new Envelope(this.outlet, {
@@ -276,25 +271,7 @@ export class Channel extends ChannelRegister {
       sequence: reservedSequence,
     });
     envelope.pack();
-    const sizeGate = stepChannelSendWithActions(initialChannelSendState(), {
-      kind: "channel/send-gate",
-      ready: true,
-      packedLength: envelope.raw?.length ?? null,
-      mdu: this.outlet.mdu,
-    });
-    if (shouldRejectChannelSendTooBig(sizeGate.actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_TOO_BIG,
-        `Packed message too big for packet: ${envelope.raw!.length} > ${this.outlet.mdu}`,
-      );
-    }
-    if (!shouldProceedChannelSend(sizeGate.actions)) {
-      throw new ChannelException(
-        ChannelExceptionType.ME_LINK_NOT_READY,
-        "Link is not ready",
-      );
-    }
-
+    this.assertChannelSendSize(envelope);
     this.nextSequence = nextChannelSequence(reservedSequence);
     const packet = await this.outlet.send(envelope.raw!);
     /** Adapt outlet-transmit via protocol actions (no ad-hoc
@@ -349,6 +326,33 @@ export class Channel extends ChannelRegister {
     }
 
     return envelope;
+  }
+
+  private assertChannelSendSize(envelope: Envelope): void {
+    const sizeGate = stepChannelSendWithActions(initialChannelSendState(), {
+      kind: "channel/send-gate",
+      ready: true,
+      packedLength: envelope.raw?.length ?? null,
+      mdu: this.outlet.mdu,
+    });
+    if (shouldRejectChannelSendTooBig(sizeGate.actions)) {
+      throw new ChannelException(
+        ChannelExceptionType.ME_TOO_BIG,
+        `Packed message too big for packet: ${envelope.raw!.length} > ${this.outlet.mdu}`,
+      );
+    }
+    this.assertChannelSendProceeds(sizeGate.actions);
+  }
+
+  private assertChannelSendProceeds(
+    actions: ReturnType<typeof stepChannelSendWithActions>["actions"],
+  ): void {
+    if (!shouldProceedChannelSend(actions)) {
+      throw new ChannelException(
+        ChannelExceptionType.ME_LINK_NOT_READY,
+        "Link is not ready",
+      );
+    }
   }
 
   receive(raw: Uint8Array): void {
