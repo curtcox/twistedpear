@@ -131,24 +131,32 @@ export class CodecStreamEgressFactory implements StreamEgressFactory {
   }
 }
 
+function codecFromRung(named: string): MediaCodecConfiguration["codec"] | null {
+  if (named.includes("opus") || named.includes("narrowband")) return "opus";
+  if (named.includes("pcm")) return "pcm";
+  if (
+    named.includes("jpeg") ||
+    named.includes("thumbnail") ||
+    named === "cas-snapshot"
+  ) {
+    return "jpeg";
+  }
+  if (named === "vp8" || named === "vp9" || named === "h264") return named;
+  return null;
+}
+
+function audioSampleRate(named: string): number {
+  if (named.includes("48k")) return 48_000;
+  if (named.includes("8k")) return 8_000;
+  return 16_000;
+}
+
 function codecConfiguration(
   demand: StreamDemand,
   admission: AdmissionDecision,
 ): MediaCodecConfiguration | null {
   const named = admission.rung;
-  const codec =
-    demand.codec ??
-    (named.includes("opus") || named.includes("narrowband")
-      ? "opus"
-      : named.includes("pcm")
-        ? "pcm"
-        : named.includes("jpeg") ||
-            named.includes("thumbnail") ||
-            named === "cas-snapshot"
-          ? "jpeg"
-          : ["vp8", "vp9", "h264"].includes(named)
-            ? (named as "vp8" | "vp9" | "h264")
-            : null);
+  const codec = demand.codec ?? codecFromRung(named);
   if (codec === null) return null;
   const sampleKind =
     demand.classId === "microphone" || demand.classId === "speaker"
@@ -160,15 +168,11 @@ function codecConfiguration(
     bitrateBps: admission.admittedDemandBps,
     ...(sampleKind === "audio"
       ? {
-          sampleRate: named.includes("48k")
-            ? 48_000
-            : named.includes("8k")
-              ? 8_000
-              : 16_000,
+          sampleRate: audioSampleRate(named),
           channels: 1,
+          voiceDuplex: true,
         }
       : {}),
-    ...(sampleKind === "audio" ? { voiceDuplex: true } : {}),
   };
 }
 

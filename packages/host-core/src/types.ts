@@ -318,44 +318,68 @@ export function defaultHostDataDir(
   }
 }
 
+function mergeHostInterfaces(
+  base: HostInterfaceConfig,
+  overrides: HostInterfaceOverrides | undefined,
+): HostInterfaceConfig {
+  const patch = overrides ?? {};
+  return {
+    tcp: { ...base.tcp, ...patch.tcp },
+    websocket: { ...base.websocket, ...patch.websocket },
+    auto: { ...base.auto, ...patch.auto },
+    i2p: { ...base.i2p, ...patch.i2p },
+    rnode: { ...base.rnode, ...patch.rnode },
+    bluetooth: { ...base.bluetooth, ...patch.bluetooth },
+    optical: { ...base.optical, ...patch.optical },
+    acoustic: { ...base.acoustic, ...patch.acoustic },
+    ntfy: { ...base.ntfy, ...patch.ntfy },
+    freenet: { ...base.freenet, ...patch.freenet },
+  };
+}
+
 export function defaultHostConfig(
   overrides: HostConfigOverrides = {},
 ): HostConfig {
   const dataDir = overrides.dataDir ?? defaultHostDataDir();
-  const baseInterfaces = DEFAULT_INTERFACE_CONFIG;
   return {
     dataDir,
     identityPath: overrides.identityPath ?? join(dataDir, "identity"),
     bootstrap: overrides.bootstrap ?? [],
     roles: { ...DEFAULT_DESKTOP_ROLES, ...overrides.roles },
     relay: { ...DEFAULT_RELAY_CONFIG, ...overrides.relay },
-    interfaces: {
-      tcp: { ...baseInterfaces.tcp, ...overrides.interfaces?.tcp },
-      websocket: {
-        ...baseInterfaces.websocket,
-        ...overrides.interfaces?.websocket,
-      },
-      auto: { ...baseInterfaces.auto, ...overrides.interfaces?.auto },
-      i2p: { ...baseInterfaces.i2p, ...overrides.interfaces?.i2p },
-      rnode: { ...baseInterfaces.rnode, ...overrides.interfaces?.rnode },
-      bluetooth: {
-        ...baseInterfaces.bluetooth,
-        ...overrides.interfaces?.bluetooth,
-      },
-      optical: { ...baseInterfaces.optical, ...overrides.interfaces?.optical },
-      acoustic: {
-        ...baseInterfaces.acoustic,
-        ...overrides.interfaces?.acoustic,
-      },
-      ntfy: { ...baseInterfaces.ntfy, ...overrides.interfaces?.ntfy },
-      freenet: { ...baseInterfaces.freenet, ...overrides.interfaces?.freenet },
-    },
+    interfaces: mergeHostInterfaces(
+      DEFAULT_INTERFACE_CONFIG,
+      overrides.interfaces,
+    ),
     quotas: { ...DEFAULT_QUOTAS, ...overrides.quotas },
     statusEndpoint: overrides.statusEndpoint ?? false,
     statusEndpointPort:
       overrides.statusEndpointPort ?? DEFAULT_STATUS_ENDPOINT_PORT,
     testAgent: overrides.testAgent ?? null,
     ai: overrides.ai ?? null,
+  };
+}
+
+function disabledWebLeafInterfaces(
+  overrides: HostInterfaceOverrides | undefined,
+): HostInterfaceOverrides {
+  const patch = overrides ?? {};
+  return {
+    tcp: { enabled: false, mode: "client", ...patch.tcp },
+    websocket: { enabled: false, ...patch.websocket },
+    auto: {
+      enabled: false,
+      multicast: false,
+      bonjour: false,
+      ...patch.auto,
+    },
+    i2p: { enabled: false, ...patch.i2p },
+    rnode: { enabled: false, ...patch.rnode },
+    bluetooth: { enabled: false, ...patch.bluetooth },
+    optical: { enabled: false, ...patch.optical },
+    acoustic: { enabled: false, ...patch.acoustic },
+    ntfy: { enabled: false, ...patch.ntfy },
+    freenet: { enabled: false, ...patch.freenet },
   };
 }
 
@@ -366,23 +390,7 @@ export function defaultWebLeafConfig(
     ...overrides,
     roles: { ...DEFAULT_WEB_LEAF_ROLES, ...overrides.roles },
     relay: { mode: "off", ...overrides.relay },
-    interfaces: {
-      tcp: { enabled: false, mode: "client", ...overrides.interfaces?.tcp },
-      websocket: { enabled: false, ...overrides.interfaces?.websocket },
-      auto: {
-        enabled: false,
-        multicast: false,
-        bonjour: false,
-        ...overrides.interfaces?.auto,
-      },
-      i2p: { enabled: false, ...overrides.interfaces?.i2p },
-      rnode: { enabled: false, ...overrides.interfaces?.rnode },
-      bluetooth: { enabled: false, ...overrides.interfaces?.bluetooth },
-      optical: { enabled: false, ...overrides.interfaces?.optical },
-      acoustic: { enabled: false, ...overrides.interfaces?.acoustic },
-      ntfy: { enabled: false, ...overrides.interfaces?.ntfy },
-      freenet: { enabled: false, ...overrides.interfaces?.freenet },
-    },
+    interfaces: disabledWebLeafInterfaces(overrides.interfaces),
   });
 }
 

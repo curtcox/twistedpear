@@ -190,86 +190,84 @@ export class ProductionCapabilityAdapter {
   }
 }
 
-function operationFor(capability: MiniappCapability): {
+type SimulatedOperation = {
   namespace: string;
   method: string;
   payload?: unknown;
   handler: string;
-} {
-  switch (capability) {
-    case "identity":
-      return {
-        namespace: "identity",
-        method: "sign",
-        payload: { payload: new Uint8Array([1]) },
-        handler: "MiniappHost.identity.sign",
-      };
-    case "presence":
-      return {
-        namespace: "presence",
-        method: "snapshot",
-        handler: "MiniappHost.presence.snapshot",
-      };
-    case "announce:publish":
-      return {
-        namespace: "announce",
-        method: "publish",
-        payload: { appData: new Uint8Array([1]) },
-        handler: "MiniappHost.announce.publish",
-      };
-    case "announce:subscribe":
-      return {
-        namespace: "announce",
-        method: "subscribe",
-        payload: { namespace: "sim" },
-        handler: "MiniappHost.announce.subscribe",
-      };
-    case "lxmf:send":
-      return {
-        namespace: "lxmf",
-        method: "send",
-        payload: { to: "peer", subject: "sim", body: "sim" },
-        handler: "MiniappHost.lxmf.send",
-      };
-    case "lxmf:receive":
-      return {
-        namespace: "lxmf",
-        method: "receive",
-        handler: "MiniappHost.lxmf.receive",
-      };
-    case "storage:kv":
-      return {
-        namespace: "storage.kv",
-        method: "set",
-        payload: { key: "sim", value: new Uint8Array([1]) },
-        handler: "MiniappHost.storage.kv.set",
-      };
-    case "resource:fetch":
-      return {
-        namespace: "resource",
-        method: "fetch",
-        payload: { resourceId: "sim", budgetBytes: 1 },
-        handler: "MiniappHost.resource.fetch",
-      };
-    case "workspace":
-      return {
-        namespace: "workspace",
-        method: "write",
-        payload: { path: "sim.txt", content: "sim" },
-        handler: "MiniappHost.workspace.write",
-      };
-    case "share:cas":
-      return {
-        namespace: "share.cas",
-        method: "put",
-        payload: { content: "sim" },
-        handler: "MiniappHost.share.cas.put",
-      };
-    default:
-      throw new Error(
-        `capability has no deterministic shipping adapter: ${capability}`,
-      );
+};
+
+const SIMULATED_OPERATIONS: Partial<
+  Record<MiniappCapability, () => SimulatedOperation>
+> = {
+  identity: () => ({
+    namespace: "identity",
+    method: "sign",
+    payload: { payload: new Uint8Array([1]) },
+    handler: "MiniappHost.identity.sign",
+  }),
+  presence: () => ({
+    namespace: "presence",
+    method: "snapshot",
+    handler: "MiniappHost.presence.snapshot",
+  }),
+  "announce:publish": () => ({
+    namespace: "announce",
+    method: "publish",
+    payload: { appData: new Uint8Array([1]) },
+    handler: "MiniappHost.announce.publish",
+  }),
+  "announce:subscribe": () => ({
+    namespace: "announce",
+    method: "subscribe",
+    payload: { namespace: "sim" },
+    handler: "MiniappHost.announce.subscribe",
+  }),
+  "lxmf:send": () => ({
+    namespace: "lxmf",
+    method: "send",
+    payload: { to: "peer", subject: "sim", body: "sim" },
+    handler: "MiniappHost.lxmf.send",
+  }),
+  "lxmf:receive": () => ({
+    namespace: "lxmf",
+    method: "receive",
+    handler: "MiniappHost.lxmf.receive",
+  }),
+  "storage:kv": () => ({
+    namespace: "storage.kv",
+    method: "set",
+    payload: { key: "sim", value: new Uint8Array([1]) },
+    handler: "MiniappHost.storage.kv.set",
+  }),
+  "resource:fetch": () => ({
+    namespace: "resource",
+    method: "fetch",
+    payload: { resourceId: "sim", budgetBytes: 1 },
+    handler: "MiniappHost.resource.fetch",
+  }),
+  workspace: () => ({
+    namespace: "workspace",
+    method: "write",
+    payload: { path: "sim.txt", content: "sim" },
+    handler: "MiniappHost.workspace.write",
+  }),
+  "share:cas": () => ({
+    namespace: "share.cas",
+    method: "put",
+    payload: { content: "sim" },
+    handler: "MiniappHost.share.cas.put",
+  }),
+};
+
+function operationFor(capability: MiniappCapability): SimulatedOperation {
+  const factory = SIMULATED_OPERATIONS[capability];
+  if (factory === undefined) {
+    throw new Error(
+      `capability has no deterministic shipping adapter: ${capability}`,
+    );
   }
+  return factory();
 }
 
 class MemoryBackend implements GrantKeyValueStore, MiniappKvStoreBackend {

@@ -295,39 +295,47 @@ function decodeAuthority(
   if (typeof value !== "object" || value === null)
     throw new Error("invalid persisted grant authority");
   const authority = value as Partial<PersistedGrantAuthority>;
-  if (
-    authority.version !== 1 ||
-    authority.appId !== appId ||
-    authority.publisherPublicKey !== publisherPublicKey ||
-    typeof authority.lifecycles !== "object" ||
-    authority.lifecycles === null
-  ) {
+  if (!isPersistedAuthority(authority, appId, publisherPublicKey)) {
     throw new Error("invalid persisted grant authority");
   }
   for (const lifecycle of Object.values(authority.lifecycles)) {
-    if (
-      typeof lifecycle !== "object" ||
-      lifecycle === null ||
-      ![
-        "requested",
-        "granted",
-        "active",
-        "denied",
-        "expired",
-        "revoked",
-      ].includes(lifecycle.phase) ||
-      !Number.isSafeInteger(lifecycle.requestedAt) ||
-      (lifecycle.expiresAt !== null &&
-        !Number.isSafeInteger(lifecycle.expiresAt)) ||
-      (lifecycle.firstUsedAt !== null &&
-        !Number.isSafeInteger(lifecycle.firstUsedAt)) ||
-      (lifecycle.revokedAt !== null &&
-        !Number.isSafeInteger(lifecycle.revokedAt))
-    ) {
+    if (!isGrantLifecycle(lifecycle)) {
       throw new Error("invalid persisted grant authority");
     }
   }
   return authority.lifecycles;
+}
+
+function isPersistedAuthority(
+  authority: Partial<PersistedGrantAuthority>,
+  appId: string,
+  publisherPublicKey: string,
+): authority is PersistedGrantAuthority {
+  return (
+    authority.version === 1 &&
+    authority.appId === appId &&
+    authority.publisherPublicKey === publisherPublicKey &&
+    typeof authority.lifecycles === "object" &&
+    authority.lifecycles !== null
+  );
+}
+
+function isOptionalSafeInteger(value: number | null): boolean {
+  return value === null || Number.isSafeInteger(value);
+}
+
+function isGrantLifecycle(lifecycle: GrantLifecycleState): boolean {
+  return (
+    typeof lifecycle === "object" &&
+    lifecycle !== null &&
+    ["requested", "granted", "active", "denied", "expired", "revoked"].includes(
+      lifecycle.phase,
+    ) &&
+    Number.isSafeInteger(lifecycle.requestedAt) &&
+    isOptionalSafeInteger(lifecycle.expiresAt) &&
+    isOptionalSafeInteger(lifecycle.firstUsedAt) &&
+    isOptionalSafeInteger(lifecycle.revokedAt)
+  );
 }
 
 export class GrantStore {

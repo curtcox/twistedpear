@@ -65,31 +65,42 @@ export function stepMediaReadiness(
     case "readiness/request":
       return { phase: "requested", readiness: null };
     case "readiness/receive":
-      if (
-        event.readiness.consentPosture === "closed" ||
-        event.at >= event.readiness.expiresAt
-      ) {
-        return { phase: "unreachable", readiness: null };
-      }
-      return {
-        phase: "ready",
-        readiness: normalizeMediaReadiness(event.readiness),
-      };
+      return receiveMediaReadiness(event);
     case "readiness/refuse":
     case "readiness/unreachable":
       return { phase: "unreachable", readiness: null };
     case "readiness/ttl":
-      if (
-        state.phase === "ready" &&
-        state.readiness !== null &&
-        event.at >= state.readiness.expiresAt
-      ) {
-        // Do not reveal whether a peer refused, disappeared, or merely let its
-        // readiness lapse; all three are the same app-visible posture.
-        return { phase: "unreachable", readiness: null };
-      }
-      return state;
+      return ttlMediaReadiness(state, event.at);
   }
+}
+
+function receiveMediaReadiness(
+  event: Extract<MediaReadinessEvent, { kind: "readiness/receive" }>,
+): MediaReadinessState {
+  if (
+    event.readiness.consentPosture === "closed" ||
+    event.at >= event.readiness.expiresAt
+  ) {
+    return { phase: "unreachable", readiness: null };
+  }
+  return {
+    phase: "ready",
+    readiness: normalizeMediaReadiness(event.readiness),
+  };
+}
+
+function ttlMediaReadiness(
+  state: MediaReadinessState,
+  at: number,
+): MediaReadinessState {
+  if (
+    state.phase === "ready" &&
+    state.readiness !== null &&
+    at >= state.readiness.expiresAt
+  ) {
+    return { phase: "unreachable", readiness: null };
+  }
+  return state;
 }
 
 export function minimumBandwidthBucket(
@@ -110,33 +121,40 @@ export function decideMediaCapability(input: {
   readonly at: number;
   readonly sharePermitted: boolean;
 }): MediaCapability {
-  if (
+  if (mediaCapabilityUnreachable(input)) return "unreachable";
+  const peer = input.peer!;
+  const accepted = peer.accepts.find(
+    (entry) => entry.classId === input.classId,
+  );
+  if (accepted === undefined) return "unreachable";
+  const bucket = minimumBandwidthBucket(input.localSupply, peer.downlinkBucket);
+  if (input.classId === "microphone") return microphoneCapability(bucket);
+  if (bucket === "hd-video" || bucket === "sd-video") return bucket;
+  if (bucket === "audio" || bucket === "narrowband" || bucket === "derived") {
+    return "derived";
+  }
+  return "unreachable";
+}
+
+function mediaCapabilityUnreachable(input: {
+  readonly sharePermitted: boolean;
+  readonly peer: PeerMediaReadiness | null;
+  readonly at: number;
+}): boolean {
+  return (
     !input.sharePermitted ||
     input.peer === null ||
     input.at >= input.peer.expiresAt ||
     input.peer.consentPosture === "closed"
-  ) {
-    return "unreachable";
-  }
-  const accepted = input.peer.accepts.find(
-    (entry) => entry.classId === input.classId,
   );
-  if (accepted === undefined) return "unreachable";
-  const bucket = minimumBandwidthBucket(
-    input.localSupply,
-    input.peer.downlinkBucket,
-  );
-  if (input.classId === "microphone") {
-    if (bucket === "hd-video" || bucket === "sd-video" || bucket === "audio")
-      return "audio";
-    if (bucket === "narrowband") return "narrowband";
-    return bucket === "derived" ? "derived" : "unreachable";
+}
+
+function microphoneCapability(bucket: BandwidthBucket): MediaCapability {
+  if (bucket === "hd-video" || bucket === "sd-video" || bucket === "audio") {
+    return "audio";
   }
-  if (bucket === "hd-video") return "hd-video";
-  if (bucket === "sd-video") return "sd-video";
-  if (bucket === "audio" || bucket === "narrowband" || bucket === "derived")
-    return "derived";
-  return "unreachable";
+  if (bucket === "narrowband") return "narrowband";
+  return bucket === "derived" ? "derived" : "unreachable";
 }
 
 export function normalizeMediaReadiness(

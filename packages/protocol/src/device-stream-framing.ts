@@ -46,6 +46,12 @@ export class DeviceStreamFrameError extends Error {
   }
 }
 
+function requireNonNegativeInt(value: number, message: string): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new DeviceStreamFrameError("MALFORMED", message);
+  }
+}
+
 export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
   if (frame.version !== 1 && frame.version !== 2) {
     throw new DeviceStreamFrameError(
@@ -59,12 +65,8 @@ export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
       "Device stream sidecar refuses control messages.",
     );
   }
-  if (!Number.isSafeInteger(frame.sessionToken) || frame.sessionToken < 0) {
-    throw new DeviceStreamFrameError("MALFORMED", "Invalid session token.");
-  }
-  if (!Number.isSafeInteger(frame.sequence) || frame.sequence < 0) {
-    throw new DeviceStreamFrameError("MALFORMED", "Invalid sequence.");
-  }
+  requireNonNegativeInt(frame.sessionToken, "Invalid session token.");
+  requireNonNegativeInt(frame.sequence, "Invalid sequence.");
   if (frame.payload.length > MAX_DEVICE_STREAM_PAYLOAD_BYTES) {
     throw new DeviceStreamFrameError(
       "OVERSIZED",
@@ -82,25 +84,25 @@ export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
   view.setUint32(12, frame.sequence >>> 0, false);
   view.setUint32(16, frame.payload.length >>> 0, false);
   view.setUint32(20, crc32(frame.payload), false);
-  if (frame.version === 2) {
-    if (!Number.isSafeInteger(frame.captureAtUs) || frame.captureAtUs < 0) {
-      throw new DeviceStreamFrameError(
-        "MALFORMED",
-        "Invalid capture timestamp.",
-      );
-    }
-    if (
-      !Number.isSafeInteger(frame.clockId) ||
-      frame.clockId < 0 ||
-      frame.clockId > 0xffff_ffff
-    ) {
-      throw new DeviceStreamFrameError("MALFORMED", "Invalid clock id.");
-    }
-    view.setBigUint64(24, BigInt(frame.captureAtUs), false);
-    view.setUint32(32, frame.clockId, false);
-  }
+  if (frame.version === 2) encodeV2Timing(view, frame);
   body.set(frame.payload, headerBytes);
   return body;
+}
+
+function encodeV2Timing(
+  view: DataView,
+  frame: Extract<DeviceStreamFrame, { version: 2 }>,
+): void {
+  requireNonNegativeInt(frame.captureAtUs, "Invalid capture timestamp.");
+  if (
+    !Number.isSafeInteger(frame.clockId) ||
+    frame.clockId < 0 ||
+    frame.clockId > 0xffff_ffff
+  ) {
+    throw new DeviceStreamFrameError("MALFORMED", "Invalid clock id.");
+  }
+  view.setBigUint64(24, BigInt(frame.captureAtUs), false);
+  view.setUint32(32, frame.clockId, false);
 }
 
 export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
@@ -110,20 +112,8 @@ export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
       "Device stream frame too short.",
     );
   }
-  const isV1 = equal(bytes.subarray(0, 4), MAGIC_V1);
-  const isV2 = equal(bytes.subarray(0, 4), MAGIC_V2);
-  if (!isV1 && !isV2) {
-    throw new DeviceStreamFrameError("MALFORMED", "Bad device stream magic.");
-  }
-  const version = bytes[4];
+  const version = decodeStreamVersion(bytes);
   const sampleKind = bytes[5] as DeviceStreamSampleKind;
-  if ((isV1 && version !== 1) || (isV2 && version !== 2)) {
-    throw new DeviceStreamFrameError(
-      "MALFORMED",
-      "Unsupported device stream version.",
-    );
-  }
-  // Kind 0 and any non-sample kind are treated as control and refused.
   if (sampleKind < 1 || sampleKind > 5) {
     throw new DeviceStreamFrameError(
       "CONTROL_FORBIDDEN",
@@ -133,6 +123,48 @@ export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const sessionToken = view.getUint32(8, false);
   const sequence = view.getUint32(12, false);
+  const payload = decodeStreamPayload(bytes, view, version);
+  if (version === 1)
+    return { version: 1, sampleKind, sessionToken, sequence, payload };
+  const captureAtUs = Number(view.getBigUint64(24, false));
+  if (!Number.isSafeInteger(captureAtUs)) {
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Capture timestamp exceeds safe integer range.",
+    );
+  }
+  return {
+    version: 2,
+    sampleKind,
+    sessionToken,
+    sequence,
+    captureAtUs,
+    clockId: view.getUint32(32, false),
+    payload,
+  };
+}
+
+function decodeStreamVersion(bytes: Uint8Array): 1 | 2 {
+  const isV1 = equal(bytes.subarray(0, 4), MAGIC_V1);
+  const isV2 = equal(bytes.subarray(0, 4), MAGIC_V2);
+  if (!isV1 && !isV2) {
+    throw new DeviceStreamFrameError("MALFORMED", "Bad device stream magic.");
+  }
+  const version = bytes[4];
+  if ((isV1 && version !== 1) || (isV2 && version !== 2)) {
+    throw new DeviceStreamFrameError(
+      "MALFORMED",
+      "Unsupported device stream version.",
+    );
+  }
+  return version as 1 | 2;
+}
+
+function decodeStreamPayload(
+  bytes: Uint8Array,
+  view: DataView,
+  version: 1 | 2,
+): Uint8Array {
   const payloadLength = view.getUint32(16, false);
   const payloadCrc = view.getUint32(20, false);
   const headerBytes = version === 1 ? HEADER_BYTES_V1 : HEADER_BYTES_V2;
@@ -158,24 +190,7 @@ export function decodeDeviceStreamFrame(bytes: Uint8Array): DeviceStreamFrame {
       "Device stream payload CRC mismatch.",
     );
   }
-  if (version === 1)
-    return { version: 1, sampleKind, sessionToken, sequence, payload };
-  const captureAtUs = Number(view.getBigUint64(24, false));
-  if (!Number.isSafeInteger(captureAtUs)) {
-    throw new DeviceStreamFrameError(
-      "MALFORMED",
-      "Capture timestamp exceeds safe integer range.",
-    );
-  }
-  return {
-    version: 2,
-    sampleKind,
-    sessionToken,
-    sequence,
-    captureAtUs,
-    clockId: view.getUint32(32, false),
-    payload,
-  };
+  return payload;
 }
 
 /** Split a large payload into chunked sidecar frames (fixed header + payload). */

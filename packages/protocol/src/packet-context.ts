@@ -56,39 +56,25 @@ export type LinkDataContextKind =
   | "plaintext"
   | "ignore";
 
+const LINK_DATA_CONTEXT_KIND: Readonly<Record<number, LinkDataContextKind>> = {
+  [PacketContextCode.LRRTT]: "rtt",
+  [PacketContextCode.KEEPALIVE]: "keepalive",
+  [PacketContextCode.LINKCLOSE]: "close",
+  [PacketContextCode.LINKIDENTIFY]: "identify",
+  [PacketContextCode.REQUEST]: "request",
+  [PacketContextCode.RESPONSE]: "response",
+  [PacketContextCode.CHANNEL]: "channel",
+  [PacketContextCode.RESOURCE_ADV]: "resource-adv",
+  [PacketContextCode.RESOURCE_REQ]: "resource-req",
+  [PacketContextCode.RESOURCE_HMU]: "resource-hmu",
+  [PacketContextCode.RESOURCE_ICL]: "resource-icl",
+  [PacketContextCode.RESOURCE_RCL]: "resource-rcl",
+  [PacketContextCode.RESOURCE]: "resource",
+  [PacketContextCode.NONE]: "plaintext",
+};
+
 export function planLinkDataContext(context: number): LinkDataContextKind {
-  switch (context) {
-    case PacketContextCode.LRRTT:
-      return "rtt";
-    case PacketContextCode.KEEPALIVE:
-      return "keepalive";
-    case PacketContextCode.LINKCLOSE:
-      return "close";
-    case PacketContextCode.LINKIDENTIFY:
-      return "identify";
-    case PacketContextCode.REQUEST:
-      return "request";
-    case PacketContextCode.RESPONSE:
-      return "response";
-    case PacketContextCode.CHANNEL:
-      return "channel";
-    case PacketContextCode.RESOURCE_ADV:
-      return "resource-adv";
-    case PacketContextCode.RESOURCE_REQ:
-      return "resource-req";
-    case PacketContextCode.RESOURCE_HMU:
-      return "resource-hmu";
-    case PacketContextCode.RESOURCE_ICL:
-      return "resource-icl";
-    case PacketContextCode.RESOURCE_RCL:
-      return "resource-rcl";
-    case PacketContextCode.RESOURCE:
-      return "resource";
-    case PacketContextCode.NONE:
-      return "plaintext";
-    default:
-      return "ignore";
-  }
+  return LINK_DATA_CONTEXT_KIND[context] ?? "ignore";
 }
 
 /** Whether a packet context byte is the link keepalive context. */

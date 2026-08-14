@@ -133,6 +133,28 @@ export function encryptIdentityBackup(
   }
 }
 
+function assertIdentityBackupHeader(container: Uint8Array): void {
+  if (
+    container.length !== CONTAINER_BYTES ||
+    !equalBytes(container.subarray(0, 8), MAGIC)
+  ) {
+    throw new Error();
+  }
+  const view = new DataView(
+    container.buffer,
+    container.byteOffset,
+    container.byteLength,
+  );
+  if (
+    container[8] !== 0 ||
+    container[9] !== 15 ||
+    view.getUint16(10, false) !== 8 ||
+    view.getUint16(12, false) !== 3
+  ) {
+    throw new Error();
+  }
+}
+
 export function decryptIdentityBackup(
   provider: CryptoProvider,
   container: Uint8Array,
@@ -141,24 +163,7 @@ export function decryptIdentityBackup(
   let key: Uint8Array | undefined;
   let privateKey: Uint8Array | undefined;
   try {
-    if (
-      container.length !== CONTAINER_BYTES ||
-      !equalBytes(container.subarray(0, 8), MAGIC)
-    )
-      throw new Error();
-    const view = new DataView(
-      container.buffer,
-      container.byteOffset,
-      container.byteLength,
-    );
-    if (
-      container[8] !== 0 ||
-      container[9] !== 15 ||
-      view.getUint16(10, false) !== 8 ||
-      view.getUint16(12, false) !== 3
-    ) {
-      throw new Error();
-    }
+    assertIdentityBackupHeader(container);
     const header = container.subarray(0, HEADER_BYTES);
     const salt = container.subarray(SALT_OFFSET, NONCE_OFFSET);
     const nonce = container.subarray(NONCE_OFFSET, HASH_OFFSET);

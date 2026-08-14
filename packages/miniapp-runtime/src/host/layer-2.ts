@@ -108,6 +108,25 @@ import type {
   ResourceLimitsSnapshot,
 } from "./shared.js";
 import { MiniappHostLayer1 } from "./layer-1.js";
+
+function applyNullableLimit(
+  overrides: LimitOverrides,
+  key: "kvQuotaBytes" | "memoryBytes",
+  value: number | null | undefined,
+  minimum: number,
+  label: string,
+): void {
+  if (value === undefined) return;
+  if (value === null) {
+    delete overrides[key];
+    return;
+  }
+  if (!Number.isFinite(value) || value < minimum) {
+    throw new RangeError(`Invalid ${label}: ${value}`);
+  }
+  overrides[key] = Math.floor(value);
+}
+
 export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
   setResourceLimits(
     appId: string,
@@ -118,31 +137,20 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     }
 
     const overrides = this.limitOverrides.get(appId) ?? {};
-    if (update.kvQuotaBytes !== undefined) {
-      if (update.kvQuotaBytes === null) {
-        delete overrides.kvQuotaBytes;
-      } else if (
-        !Number.isFinite(update.kvQuotaBytes) ||
-        update.kvQuotaBytes < 0
-      ) {
-        throw new RangeError(`Invalid kv quota: ${update.kvQuotaBytes}`);
-      } else {
-        overrides.kvQuotaBytes = Math.floor(update.kvQuotaBytes);
-      }
-    }
-
-    if (update.memoryBytes !== undefined) {
-      if (update.memoryBytes === null) {
-        delete overrides.memoryBytes;
-      } else if (
-        !Number.isFinite(update.memoryBytes) ||
-        update.memoryBytes < 1
-      ) {
-        throw new RangeError(`Invalid memory limit: ${update.memoryBytes}`);
-      } else {
-        overrides.memoryBytes = Math.floor(update.memoryBytes);
-      }
-    }
+    applyNullableLimit(
+      overrides,
+      "kvQuotaBytes",
+      update.kvQuotaBytes,
+      0,
+      "kv quota",
+    );
+    applyNullableLimit(
+      overrides,
+      "memoryBytes",
+      update.memoryBytes,
+      1,
+      "memory limit",
+    );
 
     if (Object.keys(overrides).length === 0) {
       this.limitOverrides.delete(appId);

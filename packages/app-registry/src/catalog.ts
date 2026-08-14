@@ -39,6 +39,15 @@ export interface CatalogStoreOptions {
   readonly entryTtlMs?: number;
 }
 
+function decodeIngestSummary(appData: Uint8Array): AppAnnounceSummary | null {
+  try {
+    const summary = decodeAppAnnounceData(appData);
+    return summary.formatVersion === 1 ? summary : null;
+  } catch {
+    return null;
+  }
+}
+
 export class CatalogStore {
   private readonly entries = new Map<string, CatalogEntry>();
   private readonly pinnedKeys = new Map<string, string>();
@@ -75,69 +84,13 @@ export class CatalogStore {
 
   ingest(options: CatalogIngestOptions): CatalogEntry | null {
     const now = options.now ?? Date.now();
-    let summary: AppAnnounceSummary;
-
-    try {
-      summary = decodeAppAnnounceData(options.appData);
-    } catch {
-      return null;
-    }
-
-    if (summary.formatVersion !== 1) {
-      return null;
-    }
-
-    if (options.manifest !== undefined) {
-      const publisherIdentity = Identity.fromPublicKey(
-        this.provider,
-        hexToBytes(options.manifest.publisherPublicKey),
-      );
-      if (publisherIdentity === null) {
-        return null;
-      }
-
-      if (
-        !verifyAppAnnounceSummary(
-          this.provider,
-          summary,
-          options.manifest,
-          publisherIdentity,
-          options.packageHash ?? summary.packageHash,
-        )
-      ) {
-        return null;
-      }
-    }
-
-    if (
-      options.manifest !== undefined &&
-      !verifyManifestSignature(this.provider, options.manifest)
-    ) {
-      return null;
-    }
+    const summary = decodeIngestSummary(options.appData);
+    if (summary === null) return null;
+    if (!this.announceSignaturesHold(options, summary)) return null;
 
     const appId = `${summary.publisherKeyHash}:${summary.name}`;
-    const pinnedKey = this.pinnedKeys.get(appId);
-
-    if (pinnedKey !== undefined && pinnedKey !== summary.publisherKeyHash) {
-      return null;
-    }
-
     const existing = this.entries.get(appId);
-    if (existing !== undefined) {
-      if (
-        entryPublisherKeyHash(this.provider, existing.publisherPublicKey) !==
-        summary.publisherKeyHash
-      ) {
-        return null;
-      }
-
-      if (compareSemver(summary.version, existing.version) < 0) {
-        return null;
-      }
-    } else if (this.entries.size >= this.maxEntries) {
-      return null;
-    }
+    if (!this.canAcceptIngest(summary, appId, existing)) return null;
 
     const publisherCount =
       this.publisherCounts.get(summary.publisherKeyHash) ?? 0;
@@ -145,7 +98,69 @@ export class CatalogStore {
       return null;
     }
 
-    const entry: CatalogEntry = {
+    const entry = this.buildCatalogEntry(
+      options,
+      summary,
+      appId,
+      existing,
+      now,
+    );
+    if (existing === undefined) {
+      this.publisherCounts.set(summary.publisherKeyHash, publisherCount + 1);
+      this.pinnedKeys.set(appId, summary.publisherKeyHash);
+    }
+    this.entries.set(appId, entry);
+    return entry;
+  }
+
+  private announceSignaturesHold(
+    options: CatalogIngestOptions,
+    summary: AppAnnounceSummary,
+  ): boolean {
+    if (options.manifest === undefined) return true;
+    const publisherIdentity = Identity.fromPublicKey(
+      this.provider,
+      hexToBytes(options.manifest.publisherPublicKey),
+    );
+    if (publisherIdentity === null) return false;
+    return (
+      verifyAppAnnounceSummary(
+        this.provider,
+        summary,
+        options.manifest,
+        publisherIdentity,
+        options.packageHash ?? summary.packageHash,
+      ) && verifyManifestSignature(this.provider, options.manifest)
+    );
+  }
+
+  private canAcceptIngest(
+    summary: AppAnnounceSummary,
+    appId: string,
+    existing: CatalogEntry | undefined,
+  ): boolean {
+    const pinnedKey = this.pinnedKeys.get(appId);
+    if (pinnedKey !== undefined && pinnedKey !== summary.publisherKeyHash) {
+      return false;
+    }
+    if (existing === undefined) return this.entries.size < this.maxEntries;
+    if (
+      entryPublisherKeyHash(this.provider, existing.publisherPublicKey) !==
+      summary.publisherKeyHash
+    ) {
+      return false;
+    }
+    return compareSemver(summary.version, existing.version) >= 0;
+  }
+
+  private buildCatalogEntry(
+    options: CatalogIngestOptions,
+    summary: AppAnnounceSummary,
+    appId: string,
+    existing: CatalogEntry | undefined,
+    now: number,
+  ): CatalogEntry {
+    return {
       appId,
       publisherPublicKey:
         options.manifest?.publisherPublicKey ??
@@ -162,14 +177,6 @@ export class CatalogStore {
       expiresAt: now + this.entryTtlMs,
       manifest: options.manifest ?? existing?.manifest ?? null,
     };
-
-    if (existing === undefined) {
-      this.publisherCounts.set(summary.publisherKeyHash, publisherCount + 1);
-      this.pinnedKeys.set(appId, summary.publisherKeyHash);
-    }
-
-    this.entries.set(appId, entry);
-    return entry;
   }
 
   remove(appId: string): boolean {

@@ -161,6 +161,40 @@ export function encodeAppAnnounceData(summary: AppAnnounceSummary): Uint8Array {
   return bytes;
 }
 
+function decodeLegacyAppAnnounce(appData: Uint8Array): AppAnnounceSummary {
+  const parsed = JSON.parse(new TextDecoder().decode(appData)) as Record<
+    string,
+    unknown
+  >;
+  return {
+    formatVersion: Number(legacyField(parsed, "v", "formatVersion", 1)),
+    name: String(legacyField(parsed, "n", "name", "")),
+    version: String(legacyField(parsed, "ver", "version", "0.0.0")),
+    packageSize: Number(legacyField(parsed, "sz", "packageSize", 0)),
+    packageHash: String(legacyField(parsed, "ph", "packageHash", "")),
+    driveKey: String(legacyField(parsed, "dk", "driveKey", "")),
+    resourceAvailable: Boolean(
+      legacyField(parsed, "ra", "resourceAvailable", false),
+    ),
+    publisherKeyHash: String(
+      legacyField(parsed, "pkh", "publisherKeyHash", ""),
+    ),
+    signatureHash: String(legacyField(parsed, "sh", "signatureHash", "")),
+    announceSignature: String(
+      legacyField(parsed, "sig", "announceSignature", ""),
+    ),
+  };
+}
+
+function legacyField(
+  parsed: Record<string, unknown>,
+  short: string,
+  long: string,
+  fallback: unknown,
+): unknown {
+  return parsed[short] ?? parsed[long] ?? fallback;
+}
+
 export function decodeAppAnnounceData(appData: Uint8Array): AppAnnounceSummary {
   if (appData.length < APP_ANNOUNCE_MAGIC.length + 1) {
     throw new Error("Invalid app announce data");
@@ -172,25 +206,7 @@ export function decodeAppAnnounceData(appData: Uint8Array): AppAnnounceSummary {
       APP_ANNOUNCE_MAGIC,
     )
   ) {
-    // Legacy JSON fallback for tests and transitional peers.
-    const parsed = JSON.parse(new TextDecoder().decode(appData)) as Record<
-      string,
-      unknown
-    >;
-    return {
-      formatVersion: Number(parsed.v ?? parsed.formatVersion ?? 1),
-      name: String(parsed.n ?? parsed.name ?? ""),
-      version: String(parsed.ver ?? parsed.version ?? "0.0.0"),
-      packageSize: Number(parsed.sz ?? parsed.packageSize ?? 0),
-      packageHash: String(parsed.ph ?? parsed.packageHash ?? ""),
-      driveKey: String(parsed.dk ?? parsed.driveKey ?? ""),
-      resourceAvailable: Boolean(
-        parsed.ra ?? parsed.resourceAvailable ?? false,
-      ),
-      publisherKeyHash: String(parsed.pkh ?? parsed.publisherKeyHash ?? ""),
-      signatureHash: String(parsed.sh ?? parsed.signatureHash ?? ""),
-      announceSignature: String(parsed.sig ?? parsed.announceSignature ?? ""),
-    };
+    return decodeLegacyAppAnnounce(appData);
   }
 
   let offset = APP_ANNOUNCE_MAGIC.length;

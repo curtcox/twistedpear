@@ -68,14 +68,9 @@ export class PeerDiscoveryRegistry {
         availability.state === "available" ||
         availability.state === "permission-required"
       ) {
-        const p = preferences[adapter.kind];
         ranked.push({
           adapter,
-          score:
-            (availability.state === "available" ? 100 : 50) +
-            (p?.user ?? 0) +
-            (p?.privacy ?? 0) +
-            (p?.battery ?? 0),
+          score: adapterScore(availability, preferences[adapter.kind]),
         });
       }
     }
@@ -88,6 +83,19 @@ export class PeerDiscoveryRegistry {
       );
     return selected;
   }
+}
+
+function adapterScore(
+  availability: { readonly state: string },
+  preference: AdapterPreference | undefined,
+): number {
+  const p = preference ?? {};
+  return (
+    (availability.state === "available" ? 100 : 50) +
+    (p.user ?? 0) +
+    (p.privacy ?? 0) +
+    (p.battery ?? 0)
+  );
 }
 
 interface HandleEntry {

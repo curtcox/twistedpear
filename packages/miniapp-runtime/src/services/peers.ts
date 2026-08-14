@@ -64,15 +64,7 @@ export class PeerBrokerService {
     appId: string,
     payload: PeerRequestPayload | undefined,
   ): PeerConnectRequest {
-    if (
-      typeof payload?.purpose !== "string" ||
-      payload.purpose.length < 1 ||
-      payload.purpose.length > MAX_PEER_PURPOSE_LENGTH ||
-      [...payload.purpose].some((character) => {
-        const code = character.codePointAt(0) ?? 0;
-        return code < 32 || code === 127;
-      })
-    )
+    if (payload === undefined || !isBoundedPurpose(payload.purpose))
       throw new PeerServiceError(
         "PEERS_BAD_REQUEST",
         "A bounded, printable peer connection purpose is required",
@@ -84,22 +76,13 @@ export class PeerBrokerService {
         "Cross-app peer service names are not permitted",
       );
     const timeoutMs = payload.timeoutMs ?? DEFAULT_PEER_TIMEOUT_MS;
-    if (
-      !Number.isFinite(timeoutMs) ||
-      timeoutMs < 1_000 ||
-      timeoutMs > MAX_PEER_TIMEOUT_MS
-    )
+    if (!timeoutInRange(timeoutMs))
       throw new PeerServiceError(
         "PEERS_BAD_REQUEST",
         "Peer timeout is outside the allowed range",
       );
     const mechanisms = payload.mechanisms ?? "any";
-    if (
-      mechanisms !== "any" &&
-      (!Array.isArray(mechanisms) ||
-        mechanisms.length === 0 ||
-        mechanisms.length > 7)
-    )
+    if (!validMechanisms(mechanisms))
       throw new PeerServiceError(
         "PEERS_BAD_REQUEST",
         "Invalid peer discovery mechanisms",
@@ -111,4 +94,37 @@ export class PeerBrokerService {
       timeoutMs: Math.floor(timeoutMs),
     };
   }
+}
+
+function isBoundedPurpose(purpose: unknown): purpose is string {
+  return (
+    typeof purpose === "string" &&
+    purpose.length >= 1 &&
+    purpose.length <= MAX_PEER_PURPOSE_LENGTH &&
+    !hasControlCharacters(purpose)
+  );
+}
+
+function hasControlCharacters(purpose: string): boolean {
+  return [...purpose].some((character) => {
+    const code = character.codePointAt(0) ?? 0;
+    return code < 32 || code === 127;
+  });
+}
+
+function timeoutInRange(timeoutMs: number): boolean {
+  return (
+    Number.isFinite(timeoutMs) &&
+    timeoutMs >= 1_000 &&
+    timeoutMs <= MAX_PEER_TIMEOUT_MS
+  );
+}
+
+function validMechanisms(
+  mechanisms: PeerRequestPayload["mechanisms"],
+): boolean {
+  if (mechanisms === "any") return true;
+  return (
+    Array.isArray(mechanisms) && mechanisms.length > 0 && mechanisms.length <= 7
+  );
 }

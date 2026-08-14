@@ -173,6 +173,20 @@ function describeChildren(
   return node.children.map(describeWidgetNode);
 }
 
+const STYLE_PASSTHROUGH = [
+  "flexDirection",
+  "alignItems",
+  "justifyContent",
+  "gap",
+  "padding",
+  "margin",
+  "width",
+  "height",
+  "backgroundColor",
+  "color",
+  "fontSize",
+] as const satisfies ReadonlyArray<keyof WidgetStyle>;
+
 function describeStyle(
   style?: WidgetStyle,
 ): Readonly<Record<string, unknown>> | undefined {
@@ -184,47 +198,19 @@ function describeStyle(
   if (style.display !== undefined) {
     described.display = style.display === "none" ? "none" : "flex";
   }
-  if (style.flexDirection !== undefined) {
-    described.flexDirection = style.flexDirection;
-  }
-  if (style.alignItems !== undefined) {
-    described.alignItems = style.alignItems;
-  }
-  if (style.justifyContent !== undefined) {
-    described.justifyContent = style.justifyContent;
-  }
-  if (style.gap !== undefined) {
-    described.gap = style.gap;
-  }
-  if (style.padding !== undefined) {
-    described.padding = style.padding;
-  }
-  if (style.margin !== undefined) {
-    described.margin = style.margin;
-  }
-  if (style.width !== undefined) {
-    described.width = style.width;
-  }
-  if (style.height !== undefined) {
-    described.height = style.height;
-  }
-  if (style.backgroundColor !== undefined) {
-    described.backgroundColor = style.backgroundColor;
-  }
-  if (style.color !== undefined) {
-    described.color = style.color;
-  }
-  if (style.fontSize !== undefined) {
-    described.fontSize = style.fontSize;
+  for (const key of STYLE_PASSTHROUGH) {
+    const value = style[key];
+    if (value !== undefined) described[key] = value;
   }
   if (style.fontWeight !== undefined) {
-    described.fontWeight =
-      style.fontWeight === "bold"
-        ? "700"
-        : style.fontWeight === "medium"
-          ? "500"
-          : "400";
+    described.fontWeight = cssFontWeight(style.fontWeight);
   }
 
   return Object.keys(described).length === 0 ? undefined : described;
+}
+
+function cssFontWeight(weight: WidgetStyle["fontWeight"]): string {
+  if (weight === "bold") return "700";
+  if (weight === "medium") return "500";
+  return "400";
 }

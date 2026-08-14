@@ -75,22 +75,18 @@ export function msgpackUnpackLinkRequest(bytes: Uint8Array): LinkRequestFields {
     throw new Error("Invalid request payload fields");
   }
 
-  // RNS embeds `data` as either nil, a binary frame (TS clients), or a nested
-  // msgpack value (Python clients pass lists like [None, None] directly).
-  let data: Uint8Array | null;
-  if (dataValue.type === "nil") {
-    data = null;
-  } else if (dataValue.type === "bin") {
-    data = Uint8Array.from(dataValue.bin);
-  } else {
-    data = msgpackRepackValue(dataValue);
-  }
-
   return {
     requestedAt: requestedAtValue.float,
     pathHash: Uint8Array.from(pathHashValue.bin),
-    data,
+    data: unpackOptionalMsgpackBytes(dataValue),
   };
+}
+
+/** RNS embeds `data` as nil, a binary frame, or a nested msgpack value. */
+function unpackOptionalMsgpackBytes(value: MsgpackValue): Uint8Array | null {
+  if (value.type === "nil") return null;
+  if (value.type === "bin") return Uint8Array.from(value.bin);
+  return msgpackRepackValue(value);
 }
 
 /** Re-encode a decoded msgpack value so nested Python payloads become byte frames. */

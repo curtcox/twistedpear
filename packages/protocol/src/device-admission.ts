@@ -324,16 +324,32 @@ export function adaptStreamAdmission(
   input: AdaptationInput,
 ): AdmissionDecision {
   const supply = supplyBps(input.supply);
+  const rungIndex = nextAdaptedRungIndex(input, supply);
+  const rung = input.ladder[rungIndex] ?? input.previous.rung;
+  const kind: AdmissionDecisionKind = rungIndex === 0 ? "accept" : "degrade";
+  return {
+    kind,
+    plane: input.supply.plane,
+    rung,
+    rungIndex,
+    demandBps: input.previous.demandBps,
+    admittedDemandBps: adaptedDemandBps(input.previous, rungIndex),
+    supplyBps: supply,
+    reason:
+      rungIndex === input.previous.rungIndex ? "hold" : `adapt to ${rung}`,
+  };
+}
+
+function nextAdaptedRungIndex(input: AdaptationInput, supply: number): number {
   const deficitStreak = input.deficitStreak ?? 0;
   const surplusStreak = input.surplusStreak ?? 0;
-  let rungIndex = input.previous.rungIndex;
-
   if (
     supply < input.previous.admittedDemandBps &&
     deficitStreak >= DOWNSHIFT_AFTER
   ) {
-    rungIndex = Math.min(input.ladder.length - 1, rungIndex + 1);
-  } else if (
+    return Math.min(input.ladder.length - 1, input.previous.rungIndex + 1);
+  }
+  if (
     supply >=
       Math.min(
         input.previous.demandBps,
@@ -343,32 +359,22 @@ export function adaptStreamAdmission(
     input.supply.metered !== true &&
     input.supply.lowBattery !== true
   ) {
-    rungIndex = Math.max(0, rungIndex - 1);
+    return Math.max(0, input.previous.rungIndex - 1);
   }
+  return input.previous.rungIndex;
+}
 
-  const rung = input.ladder[rungIndex] ?? input.previous.rung;
-  const kind: AdmissionDecisionKind = rungIndex === 0 ? "accept" : "degrade";
-  const rungDelta = rungIndex - input.previous.rungIndex;
-  const admittedDemandBps =
-    rungDelta === 0
-      ? input.previous.admittedDemandBps
-      : rungDelta > 0
-        ? input.previous.admittedDemandBps / 2 ** rungDelta
-        : Math.min(
-            input.previous.demandBps,
-            input.previous.admittedDemandBps * 2 ** -rungDelta,
-          );
-  return {
-    kind,
-    plane: input.supply.plane,
-    rung,
-    rungIndex,
-    demandBps: input.previous.demandBps,
-    admittedDemandBps,
-    supplyBps: supply,
-    reason:
-      rungIndex === input.previous.rungIndex ? "hold" : `adapt to ${rung}`,
-  };
+function adaptedDemandBps(
+  previous: AdmissionDecision,
+  rungIndex: number,
+): number {
+  const rungDelta = rungIndex - previous.rungIndex;
+  if (rungDelta === 0) return previous.admittedDemandBps;
+  if (rungDelta > 0) return previous.admittedDemandBps / 2 ** rungDelta;
+  return Math.min(
+    previous.demandBps,
+    previous.admittedDemandBps * 2 ** -rungDelta,
+  );
 }
 
 /** Property helper: accepted/degraded streams must fit in headroom. */

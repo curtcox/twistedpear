@@ -88,7 +88,7 @@ export function decodeLinkControl(
     bytes.byteOffset,
     bytes.byteLength,
   ).getUint16(6, false);
-  if (type !== 1 && type !== 2 && type !== 3 && type !== 4) return null;
+  if (!isLinkControlType(type)) return null;
   if (idLength < 1 || idLength > LINK_CONTROL_MAX_ID_BYTES) return null;
   if (payloadLength > LINK_CONTROL_MAX_PAYLOAD_BYTES) return null;
   if (bytes.length !== LINK_CONTROL_HEADER_BYTES + idLength + payloadLength)
@@ -103,6 +103,10 @@ export function decodeLinkControl(
     ),
     payload: bytes.slice(LINK_CONTROL_HEADER_BYTES + idLength),
   };
+}
+
+function isLinkControlType(type: number | undefined): type is 1 | 2 | 3 | 4 {
+  return type === 1 || type === 2 || type === 3 || type === 4;
 }
 
 export function encodeReadinessEnvelope(
@@ -186,71 +190,99 @@ export function parseSessionInvite(
   if (envelope.type !== 4) return null;
   if (!SESSION_INVITE_ID_PATTERN.test(envelope.id)) return null;
   if (envelope.payload.length > SESSION_INVITE_MAX_BODY_BYTES) return null;
-  let value: unknown;
-  try {
-    value = JSON.parse(utf8Decode(envelope.payload));
-  } catch {
-    return null;
-  }
-  if (typeof value !== "object" || value === null) return null;
-  const candidate = value as {
-    appId?: unknown;
-    requestedClasses?: unknown;
-    expiresAt?: unknown;
-  };
-  if (
-    typeof candidate.appId !== "string" ||
-    !SESSION_INVITE_ID_PATTERN.test(candidate.appId)
-  )
-    return null;
-  if (
-    typeof candidate.expiresAt !== "number" ||
-    !Number.isFinite(candidate.expiresAt)
-  )
-    return null;
-  if (!Array.isArray(candidate.requestedClasses)) return null;
-  const requestedClasses = candidate.requestedClasses;
-  if (requestedClasses.length < 1 || requestedClasses.length > CLASS_IDS.length)
-    return null;
-  if (
-    !requestedClasses.every(
-      (entry) => typeof entry === "string" && CLASS_IDS.includes(entry),
-    )
-  )
-    return null;
-  if (new Set(requestedClasses).size !== requestedClasses.length) return null;
+  const candidate = parseInviteJson(envelope.payload);
+  if (candidate === null) return null;
+  const requestedClasses = parseRequestedClasses(candidate.requestedClasses);
+  if (requestedClasses === null || !isInviteIdentity(candidate)) return null;
   return {
     id: envelope.id,
     appId: candidate.appId,
-    requestedClasses: requestedClasses as ReadonlyArray<
-      "camera" | "microphone" | "screen-capture"
-    >,
+    requestedClasses,
     expiresAt: Math.floor(candidate.expiresAt),
   };
+}
+
+function parseInviteJson(payload: Uint8Array): {
+  appId: unknown;
+  requestedClasses: unknown;
+  expiresAt: unknown;
+} | null {
+  try {
+    const value: unknown = JSON.parse(utf8Decode(payload));
+    if (typeof value !== "object" || value === null) return null;
+    return value as {
+      appId: unknown;
+      requestedClasses: unknown;
+      expiresAt: unknown;
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isInviteIdentity(candidate: {
+  appId: unknown;
+  expiresAt: unknown;
+}): candidate is { appId: string; expiresAt: number } {
+  return (
+    typeof candidate.appId === "string" &&
+    SESSION_INVITE_ID_PATTERN.test(candidate.appId) &&
+    typeof candidate.expiresAt === "number" &&
+    Number.isFinite(candidate.expiresAt)
+  );
+}
+
+function parseRequestedClasses(
+  value: unknown,
+): ReadonlyArray<"camera" | "microphone" | "screen-capture"> | null {
+  if (!Array.isArray(value)) return null;
+  if (value.length < 1 || value.length > CLASS_IDS.length) return null;
+  if (
+    !value.every(
+      (entry) => typeof entry === "string" && CLASS_IDS.includes(entry),
+    )
+  ) {
+    return null;
+  }
+  if (new Set(value).size !== value.length) return null;
+  return value as ReadonlyArray<"camera" | "microphone" | "screen-capture">;
 }
 
 export function isMediaReadiness(value: unknown): value is PeerMediaReadiness {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<PeerMediaReadiness>;
+  return isMediaClassLists(candidate) && isMediaReadinessMeta(candidate);
+}
+
+function isMediaClassLists(candidate: Partial<PeerMediaReadiness>): boolean {
   return (
-    typeof candidate.hostApi === "string" &&
-    candidate.hostApi.length > 0 &&
-    candidate.hostApi.length <= 32 &&
     Array.isArray(candidate.accepts) &&
     candidate.accepts.every(isReadinessClass) &&
     Array.isArray(candidate.offers) &&
-    candidate.offers.every(isReadinessClass) &&
+    candidate.offers.every(isReadinessClass)
+  );
+}
+
+function isMediaReadinessMeta(candidate: Partial<PeerMediaReadiness>): boolean {
+  return (
+    isHostApi(candidate.hostApi) &&
     typeof candidate.downlinkBucket === "string" &&
     BUCKETS.includes(candidate.downlinkBucket) &&
     Array.isArray(candidate.constrained) &&
-    candidate.constrained.every(
-      (entry) => typeof entry === "string" && CONSTRAINTS.includes(entry),
-    ) &&
+    candidate.constrained.every(isConstraint) &&
     typeof candidate.consentPosture === "string" &&
     POSTURES.includes(candidate.consentPosture) &&
     typeof candidate.expiresAt === "number" &&
     Number.isFinite(candidate.expiresAt)
   );
+}
+
+function isHostApi(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= 32;
+}
+
+function isConstraint(entry: unknown): boolean {
+  return typeof entry === "string" && CONSTRAINTS.includes(entry);
 }
 
 function isReadinessClass(value: unknown): boolean {
