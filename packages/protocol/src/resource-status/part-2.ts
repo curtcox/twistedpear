@@ -12,10 +12,6 @@
  * {@link stepResourceAdvertisePhasePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  ResourceStatus,
-  type ResourceStatusValue,
-} from "../resource-watchdog.js";
 import { planResourceAdvertisePhase } from "./part-1.js";
 import type { ResourceAdvertisePhasePlan } from "./part-1.js";
 import { firstAction, hasActionOfKind } from "../action-kind.js";

@@ -44,14 +44,6 @@
  * {@link stepLinkUnregisterMembershipPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  initialDestinationRequestAllowState,
-  shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions,
-} from "../destination-allow.js";
-import { linkPayloadFitsMdu } from "../link-metrics.js";
-import { PacketTypeCode } from "../packet-header.js";
-import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { stepLinkAppRequestInner } from "./part-4.js";
 import {
   linkUnregisterMembershipPlanFromActions,
@@ -80,7 +72,11 @@ import type {
   LinkUnregisterMembershipPlanAction,
   LinkUnregisterMembershipPlanEvent,
 } from "./part-8.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "../action-kind.js";
 /**
  * Link unregister-membership plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkUnregisterMembership`

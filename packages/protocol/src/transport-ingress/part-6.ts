@@ -35,7 +35,6 @@ import {
   decideGate,
   defineBooleanGate,
   defineGate,
-  defineOptionGate,
   gateConcluded,
   gateConclusion,
   gatePayload,
@@ -45,18 +44,7 @@ import {
   type GateState,
   type GateStepResult,
 } from "@twistedpear/effects";
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  PACKET_DEST_TYPE_LINK,
-  PACKET_DEST_TYPE_SINGLE,
-  PACKET_TYPE_ANNOUNCE,
-  PACKET_TYPE_DATA,
-  PACKET_TYPE_LINKREQUEST,
-  PACKET_TYPE_PROOF,
-} from "../packet-header.js";
-import { PacketContextCode } from "../packet-context.js";
-import { equalByteArrays } from "../path-table.js";
-import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
+import type { Event, StepFn } from "@twistedpear/effects";
 import { planReverseRelayOutcome } from "./part-2.js";
 import { transportIngressDispatchGate } from "./part-3.js";
 import { planLinkDataIngressTarget } from "./part-5.js";

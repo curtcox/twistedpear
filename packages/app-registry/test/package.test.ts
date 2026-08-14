@@ -13,11 +13,9 @@ import {
 import {
   CatalogStore,
   InstalledPackageStore,
-  PackageError,
   buildAppAnnounceSummary,
   buildUnsignedManifest,
   compareSemver,
-  decodeAppAnnounceData,
   encodeAppAnnounceData,
   packPackage,
   serializeCanonicalJson,

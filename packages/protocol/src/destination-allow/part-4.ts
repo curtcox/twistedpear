@@ -17,13 +17,7 @@
  * `shouldRegisterDestinationLink` / `isValidDestinationRequestPath` /
  * `isValidDestinationIdentityBinding` reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  DestinationTypeCode,
-  isDestinationDirectionCode,
-  isDestinationTypeCode,
-} from "../packet-header.js";
-import { equalByteArrays } from "../path-table.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   initialDestinationRequestAllowPlanState,
   planDestinationRequestAllow,

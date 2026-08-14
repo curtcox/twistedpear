@@ -20,8 +20,6 @@
  * {@link stepChannelPacketTimeoutPlanWithActions}: ignore|give-up|retry).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { equalByteArrays } from "../path-table.js";
-import { linkPayloadFitsMdu } from "../link-metrics.js";
 import {
   channelPacketTimeoutFromActions,
   initialChannelPacketTimeoutSecondsState,
@@ -31,7 +29,6 @@ import {
 import {
   initialArmChannelPacketReceiptState,
   initialExtendPacketReceiptTimeoutState,
-  planChannelTxEnvelopeOp,
   shouldArmChannelPacketReceiptNow,
   shouldExtendPacketReceiptTimeoutNow,
   stepArmChannelPacketReceiptWithActions,
@@ -43,9 +40,7 @@ import {
   applyChannelTimeout,
   initialChannelTxEnvelopeOpState,
   shouldMissChannelTxEnvelopeOp,
-  stepChannelTxEnvelopeOpPlanWithActions,
   stepChannelTxEnvelopeOpWithActions,
-  stepResendChannelTimeoutPacketWithActions,
 } from "./part-3.js";
 import type { ChannelWindowState } from "./part-1.js";
 import { firstAction, hasActionOfKind } from "../action-kind.js";

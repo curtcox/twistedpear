@@ -1,10 +1,6 @@
 import { networkInterfaces } from "node:os";
 import { createSocket, type Socket as DgramSocket } from "node:dgram";
-import type {
-  CryptoProvider,
-  PacketInterface,
-  Runtime,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Runtime } from "@twistedpear/reticulum-ts";
 import {
   Identity,
   Packet,

@@ -43,14 +43,7 @@
  * {@link stepLinkActivateMembershipPlanWithActions} /
  * {@link stepLinkUnregisterMembershipPlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  initialDestinationRequestAllowState,
-  shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions,
-} from "../destination-allow.js";
-import { linkPayloadFitsMdu } from "../link-metrics.js";
-import { PacketTypeCode } from "../packet-header.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { isLinkClosed } from "./part-3.js";
 import { isLinkInboundDataPacket } from "./part-6.js";

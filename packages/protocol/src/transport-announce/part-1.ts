@@ -20,7 +20,7 @@
  * `shouldReceiveAnnouncePathResponse` / `shouldMatchAnnounceAspect` /
  * `shouldAcceptCachedPathResponsePacket` reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   PACKET_CONTEXT_PATH_RESPONSE,
   PACKET_CONTEXT_NONE,

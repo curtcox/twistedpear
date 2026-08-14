@@ -9,10 +9,7 @@ import {
   type StreamDemand,
 } from "@twistedpear/protocol";
 import { CapabilityError } from "../capabilities.js";
-import {
-  DeviceStreamSidecar,
-  type DeviceSidecarDelivery,
-} from "../device-sidecar.js";
+import { type DeviceSidecarDelivery } from "../device-sidecar.js";
 import type { StreamEgress } from "../media-stream.js";
 import {
   DeviceError,
@@ -154,7 +151,10 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
   }): Promise<{
     shareOffer: ShareOffer;
     demand: StreamDemand;
-    admission: Exclude<ReturnType<typeof decideStreamAdmission>, { kind: "reject" }>;
+    admission: Exclude<
+      ReturnType<typeof decideStreamAdmission>,
+      { kind: "reject" }
+    >;
   }> {
     const { appId, live, peer, constraints } = input;
     const entry = deviceClassById(live.state.classId);
@@ -269,7 +269,10 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
   private applyShareRungCeiling(
     live: LiveSession,
     shareOffer: ShareOffer,
-    admission: Exclude<ReturnType<typeof decideStreamAdmission>, { kind: "reject" }>,
+    admission: Exclude<
+      ReturnType<typeof decideStreamAdmission>,
+      { kind: "reject" }
+    >,
   ): Exclude<ReturnType<typeof decideStreamAdmission>, { kind: "reject" }> {
     const ladder = degradationLadderFor(live.state.classId);
     const maximumRungIndex = ladder.indexOf(shareOffer.maxRung);

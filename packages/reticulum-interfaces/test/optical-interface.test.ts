@@ -15,7 +15,6 @@ import {
   sliceForDisplay,
   createOpticalReassemblyState,
   reassembleOpticalChunk,
-  OPTICAL_CHUNK_PAYLOAD_BYTES,
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();

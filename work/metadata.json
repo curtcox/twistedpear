@@ -494,6 +494,8 @@
       "requires": [],
       "verify": "npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=@typescript-eslint/no-unused-vars",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": ["packages/reticulum-ts/src/runtime/bare/sockets.ts"],
       "notes": "Imported from lint-ratchet.json: 5193 baselined @typescript-eslint/no-unused-vars entries across 164 files."
     },
     "QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES": {

@@ -14,10 +14,6 @@
  * Resource-conclude plan nested via {@link stepLinkResourceConcludePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  LinkResourceStrategy,
-  type LinkResourceStrategyValue,
-} from "../link-watchdog.js";
 import { shouldHandleOutgoingResourceRequest } from "./part-1.js";
 import type {
   HandleOutgoingResourceRequestAction,
@@ -25,7 +21,11 @@ import type {
   HandleOutgoingResourceRequestState,
   HandleOutgoingResourceRequestStepResult,
 } from "./part-1.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "../action-kind.js";
 export function stepHandleOutgoingResourceRequestWithActions(
   state: HandleOutgoingResourceRequestState,
   event: HandleOutgoingResourceRequestEvent,

@@ -39,39 +39,12 @@ export function NativeHarnessViewPart4({
   );
 }
 
-function NativeFreenetRemoteCard({
-  scope,
-}: {
-  scope: NativeHarnessScope;
-}) {
+function NativeFreenetRemoteCard({ scope }: { scope: NativeHarnessScope }) {
   const {
-    status,
-    miniappRuntime,
-    miniappBenchmark,
-    setMiniappBenchmark,
-    miniappLogs,
-    developerMode,
-    setDeveloperMode,
-    devChannelDetail,
-    setDevChannelDetail,
-    devHost,
-    setDevHost,
-    devPort,
-    setDevPort,
     freenetGrant,
     setFreenetGrant,
     freenetDisclosureAccepted,
     setFreenetDisclosureAccepted,
-    freenetGrantError,
-    setFreenetGrantError,
-    freenetSession,
-    setFreenetSession,
-    deviceState,
-    readWorkspaceDocument,
-    appendLog,
-    sendToWorklet,
-    applyFreenetGrantToWorklet,
-    activateFreenetGrant,
   } = scope;
 
   return (
@@ -160,13 +133,14 @@ function NativeFreenetRemoteCard({
   );
 }
 
-function NativeFreenetCapabilityRows({
-  scope,
-}: {
-  scope: NativeHarnessScope;
-}) {
-  const { freenetGrant, setFreenetGrant, freenetGrantError, freenetSession, status } =
-    scope;
+function NativeFreenetCapabilityRows({ scope }: { scope: NativeHarnessScope }) {
+  const {
+    freenetGrant,
+    setFreenetGrant,
+    freenetGrantError,
+    freenetSession,
+    status,
+  } = scope;
   return (
     <View style={styles.card}>
       <NativeFreenetPacketTunnelFields scope={scope} />
@@ -271,11 +245,7 @@ function NativeFreenetPacketTunnelFields({
   );
 }
 
-function NativeFreenetWriteConfirm({
-  scope,
-}: {
-  scope: NativeHarnessScope;
-}) {
+function NativeFreenetWriteConfirm({ scope }: { scope: NativeHarnessScope }) {
   const {
     freenetGrant,
     setFreenetGrant,
@@ -337,11 +307,7 @@ function NativeFreenetWriteConfirm({
   );
 }
 
-function NativeFreenetGrantActions({
-  scope,
-}: {
-  scope: NativeHarnessScope;
-}) {
+function NativeFreenetGrantActions({ scope }: { scope: NativeHarnessScope }) {
   const {
     freenetGrant,
     setFreenetGrant,
@@ -355,99 +321,95 @@ function NativeFreenetGrantActions({
   } = scope;
   return (
     <View style={styles.card}>
-        <ActionButton
-          testID="freenet-grant-enable"
-          label="Enable Freenet remote node"
-          onPress={() => {
-            void (async () => {
-              try {
-                const enabled = acceptFreenetRemoteGrant(
+      <ActionButton
+        testID="freenet-grant-enable"
+        label="Enable Freenet remote node"
+        onPress={() => {
+          void (async () => {
+            try {
+              const enabled = acceptFreenetRemoteGrant(
+                {
+                  nodeUrl: freenetGrant.nodeUrl,
+                  operatorLabel: freenetGrant.operatorLabel,
+                  authToken: freenetGrant.authToken,
+                  rendezvousHex: freenetGrant.rendezvousHex,
+                  localDirection: freenetGrant.localDirection === 1 ? 1 : 0,
+                  capabilities: freenetGrant.capabilities,
+                },
+                { acceptedDisclosure: freenetDisclosureAccepted },
+              );
+              setFreenetGrant(enabled);
+              setFreenetGrantError(null);
+              appendLog(
+                `Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`,
+              );
+              if (enabled.capabilities.contractWrites) {
+                let next = reduceFreenetRemoteSession(
+                  idleFreenetRemoteSession(),
                   {
-                    nodeUrl: freenetGrant.nodeUrl,
-                    operatorLabel: freenetGrant.operatorLabel,
-                    authToken: freenetGrant.authToken,
-                    rendezvousHex: freenetGrant.rendezvousHex,
-                    localDirection: freenetGrant.localDirection === 1 ? 1 : 0,
-                    capabilities: freenetGrant.capabilities,
+                    type: "enable",
+                    grant: enabled,
                   },
-                  { acceptedDisclosure: freenetDisclosureAccepted },
                 );
-                setFreenetGrant(enabled);
-                setFreenetGrantError(null);
-                appendLog(
-                  `Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`,
-                );
-                if (enabled.capabilities.contractWrites) {
-                  let next = reduceFreenetRemoteSession(
-                    idleFreenetRemoteSession(),
-                    {
-                      type: "enable",
-                      grant: enabled,
-                    },
-                  );
-                  next = reduceFreenetRemoteSession(next, {
-                    type: "request-write-confirmation",
-                  });
-                  setFreenetSession(next);
-                  return;
-                }
-                await activateFreenetGrant(enabled);
-              } catch (error) {
-                setFreenetGrantError(
-                  error instanceof Error ? error.message : String(error),
-                );
-              }
-            })();
-          }}
-        />
-        <ActionButton
-          testID="freenet-grant-reconnect"
-          label="Reconnect Freenet remote node"
-          onPress={() => {
-            void (async () => {
-              if (freenetSession.grant === null) {
+                next = reduceFreenetRemoteSession(next, {
+                  type: "request-write-confirmation",
+                });
+                setFreenetSession(next);
                 return;
               }
-              let next = reduceFreenetRemoteSession(freenetSession, {
-                type: "reconnect",
-              });
-              setFreenetSession(next);
-              applyFreenetGrantToWorklet(freenetSession.grant);
-              const probe = await probeFreenetRemoteNode(freenetSession.grant);
-              next = reduceFreenetRemoteSession(next, {
-                type: "probe-result",
-                result: probe,
-              });
-              setFreenetSession(next);
-            })();
-          }}
-        />
-        <ActionButton
-          testID="freenet-grant-revoke"
-          label="Revoke Freenet remote node"
-          onPress={() => {
-            const revoked = revokeFreenetRemoteGrant(freenetGrant);
-            setFreenetGrant(revoked);
-            setFreenetDisclosureAccepted(false);
-            setFreenetGrantError(null);
-            applyFreenetGrantToWorklet(null);
-            setFreenetSession(
-              reduceFreenetRemoteSession(freenetSession, { type: "revoke" }),
-            );
-            appendLog(
-              `Freenet remote grant revoked: ${JSON.stringify(freenetGrantLogSafe(revoked))}`,
-            );
-          }}
-        />
-      </View>
+              await activateFreenetGrant(enabled);
+            } catch (error) {
+              setFreenetGrantError(
+                error instanceof Error ? error.message : String(error),
+              );
+            }
+          })();
+        }}
+      />
+      <ActionButton
+        testID="freenet-grant-reconnect"
+        label="Reconnect Freenet remote node"
+        onPress={() => {
+          void (async () => {
+            if (freenetSession.grant === null) {
+              return;
+            }
+            let next = reduceFreenetRemoteSession(freenetSession, {
+              type: "reconnect",
+            });
+            setFreenetSession(next);
+            applyFreenetGrantToWorklet(freenetSession.grant);
+            const probe = await probeFreenetRemoteNode(freenetSession.grant);
+            next = reduceFreenetRemoteSession(next, {
+              type: "probe-result",
+              result: probe,
+            });
+            setFreenetSession(next);
+          })();
+        }}
+      />
+      <ActionButton
+        testID="freenet-grant-revoke"
+        label="Revoke Freenet remote node"
+        onPress={() => {
+          const revoked = revokeFreenetRemoteGrant(freenetGrant);
+          setFreenetGrant(revoked);
+          setFreenetDisclosureAccepted(false);
+          setFreenetGrantError(null);
+          applyFreenetGrantToWorklet(null);
+          setFreenetSession(
+            reduceFreenetRemoteSession(freenetSession, { type: "revoke" }),
+          );
+          appendLog(
+            `Freenet remote grant revoked: ${JSON.stringify(freenetGrantLogSafe(revoked))}`,
+          );
+        }}
+      />
+    </View>
   );
 }
 
-function NativeHostInterfaceToggles({
-  scope,
-}: {
-  scope: NativeHarnessScope;
-}) {
+function NativeHostInterfaceToggles({ scope }: { scope: NativeHarnessScope }) {
   const {
     developerMode,
     setDeveloperMode,
@@ -462,96 +424,92 @@ function NativeHostInterfaceToggles({
   } = scope;
   return (
     <View style={styles.card}>
-        <Row
-          testID="auto-interface-switch"
-          label="AutoInterface"
-          value={scope.autoEnabled}
-          onChange={scope.setAutoEnabled}
-        />
-        <Row
-          testID="ble-interface-switch"
-          label="BLE interface"
-          value={scope.bleEnabled}
-          onChange={scope.setBleEnabled}
-        />
-        <Row
-          label={Platform.OS === "ios" ? "RNode (BLE)" : "RNode (USB)"}
-          value={Platform.OS === "ios" ? false : scope.rnodeEnabled}
-          onChange={(enabled) => {
-            if (Platform.OS === "ios") {
-              scope.setRnodeEnabled(false);
-              appendLog(
-                "RNode on iOS uses BLE and is device-gated for Phase 5 hardware validation.",
-              );
-              return;
-            }
-            scope.setRnodeEnabled(enabled);
-          }}
-        />
-        <Row
-          label="Developer mode"
-          value={developerMode}
-          onChange={(enabled) => {
-            setDeveloperMode(enabled);
-            sendToWorklet({ type: "set-developer-mode", enabled });
-            if (!enabled) {
-              sendToWorklet({ type: "disconnect-dev-channel" });
-              setDevChannelDetail(null);
-            }
-          }}
-        />
-        {developerMode ? (
-          <View style={styles.devChannel}>
-            <Text style={styles.muted}>
-              Dev side-load channel (localhost / adb reverse only)
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={devHost}
-              onChangeText={setDevHost}
-              autoCapitalize="none"
-              placeholder="Dev server host"
+      <Row
+        testID="auto-interface-switch"
+        label="AutoInterface"
+        value={scope.autoEnabled}
+        onChange={scope.setAutoEnabled}
+      />
+      <Row
+        testID="ble-interface-switch"
+        label="BLE interface"
+        value={scope.bleEnabled}
+        onChange={scope.setBleEnabled}
+      />
+      <Row
+        label={Platform.OS === "ios" ? "RNode (BLE)" : "RNode (USB)"}
+        value={Platform.OS === "ios" ? false : scope.rnodeEnabled}
+        onChange={(enabled) => {
+          if (Platform.OS === "ios") {
+            scope.setRnodeEnabled(false);
+            appendLog(
+              "RNode on iOS uses BLE and is device-gated for Phase 5 hardware validation.",
+            );
+            return;
+          }
+          scope.setRnodeEnabled(enabled);
+        }}
+      />
+      <Row
+        label="Developer mode"
+        value={developerMode}
+        onChange={(enabled) => {
+          setDeveloperMode(enabled);
+          sendToWorklet({ type: "set-developer-mode", enabled });
+          if (!enabled) {
+            sendToWorklet({ type: "disconnect-dev-channel" });
+            setDevChannelDetail(null);
+          }
+        }}
+      />
+      {developerMode ? (
+        <View style={styles.devChannel}>
+          <Text style={styles.muted}>
+            Dev side-load channel (localhost / adb reverse only)
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={devHost}
+            onChangeText={setDevHost}
+            autoCapitalize="none"
+            placeholder="Dev server host"
+          />
+          <TextInput
+            style={styles.input}
+            value={devPort}
+            onChangeText={setDevPort}
+            keyboardType="number-pad"
+            placeholder="Port"
+          />
+          <View style={styles.buttonRow}>
+            <ActionButton
+              label="Connect tp dev"
+              onPress={() =>
+                sendToWorklet({
+                  type: "connect-dev-channel",
+                  host: devHost,
+                  port: Number(devPort) || DEFAULT_DEV_PORT,
+                })
+              }
             />
-            <TextInput
-              style={styles.input}
-              value={devPort}
-              onChangeText={setDevPort}
-              keyboardType="number-pad"
-              placeholder="Port"
+            <ActionButton
+              label="Disconnect"
+              onPress={() => {
+                sendToWorklet({ type: "disconnect-dev-channel" });
+                setDevChannelDetail(null);
+              }}
             />
-            <View style={styles.buttonRow}>
-              <ActionButton
-                label="Connect tp dev"
-                onPress={() =>
-                  sendToWorklet({
-                    type: "connect-dev-channel",
-                    host: devHost,
-                    port: Number(devPort) || DEFAULT_DEV_PORT,
-                  })
-                }
-              />
-              <ActionButton
-                label="Disconnect"
-                onPress={() => {
-                  sendToWorklet({ type: "disconnect-dev-channel" });
-                  setDevChannelDetail(null);
-                }}
-              />
-            </View>
-            {devChannelDetail ? (
-              <Text style={styles.muted}>Dev channel: {devChannelDetail}</Text>
-            ) : null}
           </View>
-        ) : null}
-      </View>
+          {devChannelDetail ? (
+            <Text style={styles.muted}>Dev channel: {devChannelDetail}</Text>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
-function NativeMiniappSurfaceCard({
-  scope,
-}: {
-  scope: NativeHarnessScope;
-}) {
+function NativeMiniappSurfaceCard({ scope }: { scope: NativeHarnessScope }) {
   return (
     <View style={styles.card}>
       <Text style={styles.sectionTitle}>Mini-app surface</Text>
@@ -576,12 +534,8 @@ function NativeMiniappRuntimeLine({ scope }: { scope: NativeHarnessScope }) {
 }
 
 function NativeMiniappWidgetBlock({ scope }: { scope: NativeHarnessScope }) {
-  const {
-    miniappRuntime,
-    deviceState,
-    readWorkspaceDocument,
-    sendToWorklet,
-  } = scope;
+  const { miniappRuntime, deviceState, readWorkspaceDocument, sendToWorklet } =
+    scope;
   return (
     <>
       <MiniappWidgetTree
@@ -622,9 +576,7 @@ function NativeMiniappBenchmarkBlock({ scope }: { scope: NativeHarnessScope }) {
         </Text>
       ) : null}
       {miniappLogs.length > 0 ? (
-        <Text style={styles.muted}>
-          {miniappLogs[miniappLogs.length - 1]}
-        </Text>
+        <Text style={styles.muted}>{miniappLogs[miniappLogs.length - 1]}</Text>
       ) : null}
     </>
   );

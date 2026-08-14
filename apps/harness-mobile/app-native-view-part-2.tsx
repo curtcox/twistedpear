@@ -18,22 +18,7 @@ export function NativeHarnessViewPart2({
 }: {
   scope: NativeHarnessScope;
 }) {
-  const {
-    status,
-    tcpEnabled,
-    setTcpEnabled,
-    ntfyUrl,
-    setNtfyUrl,
-    ntfyToken,
-    setNtfyToken,
-    relayNotice,
-    setRelayNotice,
-    appendLog,
-    sendToWorklet,
-    seedShareOfferChrome,
-    startWorklet,
-    workletRef,
-  } = scope;
+  const { status, sendToWorklet, startWorklet } = scope;
 
   const [relayMode, setRelayMode] = useState<
     "off" | "bridge" | "transport-node"
@@ -106,7 +91,10 @@ function NativeRelayInterfacesBody({
 }: {
   scope: NativeHarnessScope;
   relayMode: "off" | "bridge" | "transport-node";
-  relayDirections: Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">;
+  relayDirections: Record<
+    "tcp" | "auto" | "bluetooth" | "rnode",
+    "tx" | "rx" | "both"
+  >;
   selectRelayMode: (mode: "off" | "bridge" | "transport-node") => void;
   cycleDirection: (kind: "tcp" | "auto" | "bluetooth" | "rnode") => void;
 }) {
@@ -116,9 +104,7 @@ function NativeRelayInterfacesBody({
     setTcpEnabled,
     relayNotice,
     setRelayNotice,
-    appendLog,
     sendToWorklet,
-    seedShareOfferChrome,
     startWorklet,
   } = scope;
   return (
@@ -203,8 +189,13 @@ function NativeRelayInterfacesBody({
 }
 
 function NativeRelayShareButtons({ scope }: { scope: NativeHarnessScope }) {
-  const { appendLog, sendToWorklet, seedShareOfferChrome, startWorklet, setTcpEnabled } =
-    scope;
+  const {
+    appendLog,
+    sendToWorklet,
+    seedShareOfferChrome,
+    startWorklet,
+    setTcpEnabled,
+  } = scope;
   return (
     <>
       <View style={styles.buttonRow}>

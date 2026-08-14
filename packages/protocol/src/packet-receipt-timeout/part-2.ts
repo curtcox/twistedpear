@@ -14,7 +14,7 @@
  * {@link stepPacketReceiptCallbackPlanWithActions} /
  * {@link stepPacketReceiptUnregisterPlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import { shouldKeepOutboundReceipt } from "./part-1.js";
 import type {
   KeepOutboundReceiptAction,

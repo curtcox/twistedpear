@@ -15,9 +15,7 @@
  * actions (no ad-hoc `shouldAttemptAnnounceSignatureValidate` /
  * `shouldCheckAnnounceDestinationHash` reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { PACKET_TYPE_ANNOUNCE } from "../packet-header.js";
-import { equalByteArrays } from "../path-table.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const ANNOUNCE_RANDOM_HASH_SIZE = 10;

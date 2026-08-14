@@ -1,10 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import {
-  DEFAULT_WEB_LEAF_ROLES,
-  assertWebLeafRoles,
-  type WebLeafHostStatus,
-} from "./leaf-roles.js";
+import { DEFAULT_WEB_LEAF_ROLES } from "./leaf-roles.js";
 import type { DropCensusCounts } from "./drop-census.js";
 
 export {

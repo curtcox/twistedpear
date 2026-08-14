@@ -18,11 +18,6 @@
  * `isValidDestinationIdentityBinding` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  DestinationTypeCode,
-  isDestinationDirectionCode,
-  isDestinationTypeCode,
-} from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
 import { DestinationAllowPolicyCode } from "./part-1.js";
 import { stepDestinationConstructionInner } from "./part-2.js";

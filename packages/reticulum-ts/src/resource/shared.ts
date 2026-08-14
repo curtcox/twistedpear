@@ -50,19 +50,7 @@ import {
 } from "./protocol.js";
 
 import Bunzip from "seek-bzip";
-import type { CryptoProvider } from "../crypto/provider.js";
-import { equalBytes } from "../crypto/bytes.js";
-import { Identity } from "../identity.js";
 import type { Link } from "../link.js";
-import type { LeafTransport } from "../transport/node.js";
-import {
-  Packet,
-  PacketContext,
-  PacketHeaderType,
-  PacketType,
-  TransportType,
-} from "../packet.js";
-import { DestinationType } from "../destination.js";
 import type { Resource } from "../resource.js";
 /** Mirrors RNS/Resource.py constants. */
 export {

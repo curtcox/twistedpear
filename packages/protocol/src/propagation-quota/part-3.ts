@@ -13,7 +13,6 @@
  * Restore plan nested via {@link stepPropagationRestorePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { equalByteArrays } from "../path-table.js";
 import type { DeletePropagationCatalogEntryAction } from "./part-2.js";
 import { firstAction, hasActionOfKind } from "../action-kind.js";
 export function shouldSkipDeletePropagationCatalogEntry(

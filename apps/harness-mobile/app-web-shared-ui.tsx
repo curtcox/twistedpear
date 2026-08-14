@@ -13,10 +13,6 @@ import qrcodeModule from "qrcode-generator";
 import { decodePeerQrRgba } from "@twistedpear/peer-discovery";
 import type {
   ConfirmationKind,
-  HostConfirmationRequestView,
-  LaunchReviewCapabilityView,
-  LaunchReviewRequestView,
-  InstallReviewRequestView,
   WorkletToHostMessage,
 } from "./worklet/protocol";
 
@@ -141,7 +137,13 @@ export function PeerChromeModal({
   }, [modal]);
 
   if (modal.kind === "confirm") {
-    return <PeerConfirmModalBody modal={modal} onCancel={onCancel} onContinue={onContinue} />;
+    return (
+      <PeerConfirmModalBody
+        modal={modal}
+        onCancel={onCancel}
+        onContinue={onContinue}
+      />
+    );
   }
   return (
     <PeerExchangeModalBody
@@ -460,15 +462,24 @@ function PeerExchangePresentFields({
         />
       ) : null}
       {modal.request.type === "peer-manual-present" ? (
-        <TextInput multiline editable={false} value={modal.request.code} style={styles.input} />
+        <TextInput
+          multiline
+          editable={false}
+          value={modal.request.code}
+          style={styles.input}
+        />
       ) : null}
       {modal.request.type === "peer-ntfy-present" ? (
-        <TextInput multiline editable={false} value={modal.request.code} style={styles.input} />
+        <TextInput
+          multiline
+          editable={false}
+          value={modal.request.code}
+          style={styles.input}
+        />
       ) : null}
     </>
   );
 }
-
 
 export const styles = StyleSheet.create({
   container: {

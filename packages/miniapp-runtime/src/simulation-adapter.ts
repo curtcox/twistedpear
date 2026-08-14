@@ -1,16 +1,11 @@
 import {
   GrantStore,
-  grantStoreKey,
   type GrantKeyValueStore,
   type GrantRecord,
   type MiniappCapability,
 } from "./capabilities.js";
 import { MiniappHost, type LaunchManifest } from "./host.js";
-import type {
-  BrokerAuditEntry,
-  BrokerRequest,
-  BrokerResponse,
-} from "./broker.js";
+import type { BrokerAuditEntry, BrokerResponse } from "./broker.js";
 import type { MiniappKvStoreBackend } from "./services/storage-kv.js";
 import type { SandboxBackend } from "./sandbox/backend.js";
 

@@ -1,79 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import qrcodeModule from "qrcode-generator";
-import { decodePeerQrRgba } from "@twistedpear/peer-discovery";
-import {
-  decodePeerAudioFskStream,
-  encodePeerAudioFsk,
-} from "@twistedpear/protocol";
-import { StatusBar } from "expo-status-bar";
-import {
-  validateWidgetTree,
-  type WidgetTree,
-} from "@twistedpear/miniapp-runtime/ui";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
-import { createWebCoreBridge } from "./host/web-core-bridge";
-import {
-  createPwaInstallController,
-  type PwaInstallAvailability,
-} from "./host/web-pwa-install";
-import { webSerialSupported } from "./host/web-serial-relay";
-import type {
-  AnnounceEntry,
-  CapabilityGrantView,
-  ConfirmationKind,
-  HostConfirmationRequestView,
-  HostToWorkletMessage,
-  Install256tResultView,
-  InstallProgress,
-  InstallReviewRequestView,
-  InstalledPackageView,
-  LaunchReviewCapabilityView,
-  LaunchReviewRequestView,
-  MiniappRuntimeView,
-  TrustedPublisherView,
-  WebStorageQuotaView,
-  WorkletStatus,
-  WorkletToHostMessage,
-  DeviceStateView,
-  SessionInviteView,
-} from "./worklet/protocol";
-import {
-  ActionButton,
-  CONFIRM_KIND_TITLES,
-  DEFAULT_PASSPHRASE,
-  HostConfirmationModal,
-  MAX_ANNOUNCES,
-  PeerChromeModal,
-  Row,
-  audioHex,
-  audioUnhex,
-  chatWidgetTree,
-  defaultGatewayUrl,
-  formatBytes,
-  handleWebMediaCodecRequest,
-  helloWidgetTree,
-  initialStatus,
-  outboundWebRtcMediaBytes,
-  playInboundAudioFrame,
-  playPeerAudio,
-  recordPeerAudio,
-  styles,
-  webBytesToHex,
-  webDecodeOpus,
-  webEncodeOpus,
-  webHexToBytes,
-} from "./app-web-shared.js";
+import { ActionButton, Row, formatBytes, styles } from "./app-web-shared.js";
 import type { useWebHarnessController } from "./app-web-controller.js";
 export type WebHarnessScope = ReturnType<typeof useWebHarnessController>;
 export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
@@ -99,7 +26,6 @@ function WebHarnessViewPart2Block0({ scope }: { scope: WebHarnessScope }) {
   } = scope;
   return (
     <>
-
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Install from 256t (W3)</Text>
         <Text style={styles.muted}>
@@ -195,15 +121,7 @@ function WebHarnessViewPart2Block0({ scope }: { scope: WebHarnessScope }) {
   );
 }
 function WebHarnessViewPart2Block1({ scope }: { scope: WebHarnessScope }) {
-  const {
-    grantCapabilities,
-    hostIdentity256t,
-    installed,
-    selectedInstalledAppId,
-    sendToWorker,
-    setSelectedInstalledAppId,
-    trustedPublishers,
-  } = scope;
+  const { hostIdentity256t, sendToWorker, trustedPublishers } = scope;
   return (
     <>
       <View style={styles.card}>
@@ -344,7 +262,6 @@ function WebHarnessViewPart2Block2({ scope }: { scope: WebHarnessScope }) {
   } = scope;
   return (
     <>
-
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Widget preview (W-S3)</Text>
         <Text style={styles.muted}>

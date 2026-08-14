@@ -11,13 +11,7 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  PACKET_HEADER_1,
-  PACKET_HEADER_2,
-  TRANSPORT_BROADCAST,
-  TRANSPORT_ID_BYTES,
-  TRANSPORT_TRANSPORT,
-} from "../transport-framing.js";
+import { PACKET_HEADER_2, TRANSPORT_ID_BYTES } from "../transport-framing.js";
 import {
   concatBytes,
   isContextFlag,

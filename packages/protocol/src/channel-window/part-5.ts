@@ -19,17 +19,7 @@
  * (`ignore`|`give-up`|`retry`; plan nested via
  * {@link stepChannelPacketTimeoutPlanWithActions}: ignore|give-up|retry).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { equalByteArrays } from "../path-table.js";
-import { linkPayloadFitsMdu } from "../link-metrics.js";
-import {
-  channelPacketTimeoutSeconds,
-  stepChannelPacketTimeoutSecondsWithActions,
-} from "./part-1.js";
-import {
-  canArmChannelPacketReceipt,
-  stepArmChannelPacketReceiptWithActions,
-} from "./part-2.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   channelTxReceiptTimeoutRefreshPlanExtensions,
   planChannelTxReceiptTimeoutRefresh,

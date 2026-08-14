@@ -1,24 +1,10 @@
 import { nativePeerAudioSupported } from "@twistedpear/peer-audio";
-import {
-  nativeDeviceActuate,
-  nativeDeviceAvailability,
-  nativeDeviceSense,
-} from "./host/native-device-bridge";
-import {
-  handleNativePeerWebRtcMessage,
-  type NativePeerRtcStore,
-} from "./host/native-peer-webrtc";
+import { type NativePeerRtcStore } from "./host/native-peer-webrtc";
 import type { HostMulticastIpc } from "./host/multicast-ipc";
 import type { HostBonjourIpc } from "./host/bonjour-ipc";
 import type { HostBleIpc } from "./host/ble-ipc";
 import type { HostUsbIpc } from "./host/usb-ipc";
-import {
-  MAX_ANNOUNCES,
-  playInboundNativeMedia,
-  playNativeOpusOrPcm,
-  runNativeOpusDuplex,
-} from "./app-native-shared.js";
-import { peerAudioUnhex } from "./app-native-shared.js";
+import { MAX_ANNOUNCES } from "./app-native-shared.js";
 import type {
   AnnounceEntry,
   CapabilityGrantView,
@@ -458,8 +444,10 @@ function nativeNtfyRequestAllowed(
   const basePath = configured.pathname.endsWith("/")
     ? configured.pathname
     : `${configured.pathname}/`;
-  return nativeNtfyUrlAllowed(configured, requested, localHttp, basePath) &&
-    nativeNtfyPayloadAllowed(message);
+  return (
+    nativeNtfyUrlAllowed(configured, requested, localHttp, basePath) &&
+    nativeNtfyPayloadAllowed(message)
+  );
 }
 
 function nativeNtfyUrlAllowed(
@@ -613,4 +601,3 @@ function tryHandleNativeTrustAndSessions(
   }
   return false;
 }
-

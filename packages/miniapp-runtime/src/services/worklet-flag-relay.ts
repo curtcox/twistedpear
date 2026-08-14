@@ -63,7 +63,7 @@ function kindToOnline(
 }
 
 function requireManaged(
-  controller: WorkletFlagRelayController,
+  _controller: WorkletFlagRelayController,
   kind: RelayInterfaceKind,
 ): void {
   if (!MANAGED_KINDS.includes(kind)) {

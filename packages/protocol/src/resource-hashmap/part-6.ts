@@ -17,20 +17,10 @@
  * {@link stepResourceRequestFulfillPlanWithActions} /
  * {@link stepResourceHashmapUpdateAcceptPlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { assembleByteArrays, concatByteArrays } from "../bytes.js";
-import {
-  msgpackPackArray,
-  msgpackPackBin,
-  msgpackPackUInt,
-  msgpackUnpack,
-  type MsgpackValue,
-} from "../msgpack-core.js";
-import { equalByteArrays } from "../path-table.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   appendResourceMapHashCollisionGuard,
   assembleResourceHashmapBytes,
-  containsResourceHash,
   indexOfResourceHash,
   readResourceRequestHash,
 } from "./part-1.js";

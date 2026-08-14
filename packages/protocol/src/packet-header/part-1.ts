@@ -10,7 +10,7 @@
  * (no ad-hoc `packPacketFlags` / `unpackPacketFlags` / `packetHashablePart`
  * reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   PACKET_HEADER_1,
   PACKET_HEADER_2,

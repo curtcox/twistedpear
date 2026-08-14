@@ -22,7 +22,6 @@ import type {
   HostConfig,
   InterfaceDirection,
   InterfaceStatus,
-  NtfyInterfaceConfig,
   OpticalInterfaceConfig,
   RelayInterfaceKind,
   RelayMode,

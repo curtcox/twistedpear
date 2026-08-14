@@ -11,10 +11,6 @@
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
-  LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
-} from "../lxmf-fields.js";
-import {
   planLxmfDirectSend,
   shouldPlanLxmfDirectSendOk,
   shouldRejectLxmfDirectSendPlanMissingDestination,

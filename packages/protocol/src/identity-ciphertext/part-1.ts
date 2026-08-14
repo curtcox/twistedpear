@@ -16,8 +16,12 @@
  * `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt`
  * reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import type { Event, Intent } from "@twistedpear/effects";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "../action-kind.js";
 
 export const IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE = 32;
 

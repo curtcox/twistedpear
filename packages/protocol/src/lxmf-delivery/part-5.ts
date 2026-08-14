@@ -10,10 +10,6 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
-} from "../lxmf-fields.js";
 import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 /** Whether propagation inbound targets this router's local delivery destination. */

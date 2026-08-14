@@ -20,9 +20,12 @@
  * {@link stepChannelPacketTimeoutPlanWithActions}: ignore|give-up|retry).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { equalByteArrays } from "../path-table.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "../action-kind.js";
 
 export const ChannelWindowLimits = {
   WINDOW: 2,

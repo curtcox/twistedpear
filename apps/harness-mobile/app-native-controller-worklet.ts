@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { AppState, PermissionsAndroid, Platform } from "react-native";
 import { Worklet } from "react-native-bare-kit";
 import bundle from "./worklet/worklet.bundle.mjs";
@@ -74,7 +74,8 @@ type InterfaceConfig = {
 
 export function useNativeWorkletLifecycle(deps: NativeWorkletLifecycleDeps) {
   const pushInterfaceConfig = useCallback(
-    (next: InterfaceConfig) => sendNativeInterfaceConfig(deps.sendToWorklet, next),
+    (next: InterfaceConfig) =>
+      sendNativeInterfaceConfig(deps.sendToWorklet, next),
     [deps.sendToWorklet],
   );
   const stopWorklet = useCallback(
@@ -99,7 +100,12 @@ export function useNativeWorkletLifecycle(deps: NativeWorkletLifecycleDeps) {
   );
   useEffect(
     () =>
-      syncNativeWorkletInterfaces(deps, startWorklet, stopWorklet, pushInterfaceConfig),
+      syncNativeWorkletInterfaces(
+        deps,
+        startWorklet,
+        stopWorklet,
+        pushInterfaceConfig,
+      ),
     [
       deps.tcpEnabled,
       deps.autoEnabled,
@@ -129,7 +135,10 @@ export function useNativeWorkletLifecycle(deps: NativeWorkletLifecycleDeps) {
     deps.selectedUsbDeviceId,
     pushInterfaceConfig,
   ]);
-  useEffect(() => watchUsbSerialDevices(deps.setUsbDevices), [deps.setUsbDevices]);
+  useEffect(
+    () => watchUsbSerialDevices(deps.setUsbDevices),
+    [deps.setUsbDevices],
+  );
   useEffect(
     () => syncNativeNodeService(deps),
     [
@@ -142,7 +151,10 @@ export function useNativeWorkletLifecycle(deps: NativeWorkletLifecycleDeps) {
       deps.setServiceRunning,
     ],
   );
-  useEffect(() => subscribeIosNodeLifecycle(deps), [deps.sendToWorklet, deps.setLifecycleState, deps.status.running]);
+  useEffect(
+    () => subscribeIosNodeLifecycle(deps),
+    [deps.sendToWorklet, deps.setLifecycleState, deps.status.running],
+  );
   useEffect(
     () => subscribeNativeAppState(deps),
     [deps.sendToWorklet, deps.status.miniappRunning, deps.status.running],
@@ -327,7 +339,10 @@ function syncNativeNodeService(deps: NativeWorkletLifecycleDeps): void {
   }
   const nodeActive =
     deps.status.running &&
-    (deps.tcpEnabled || deps.autoEnabled || deps.bleEnabled || deps.rnodeEnabled);
+    (deps.tcpEnabled ||
+      deps.autoEnabled ||
+      deps.bleEnabled ||
+      deps.rnodeEnabled);
   if (!nodeActive) {
     void stopNodeService().then(() => {
       deps.setServiceRunning(isNodeServiceRunning());
@@ -370,9 +385,7 @@ function subscribeIosNodeLifecycle(
   return () => subscription?.remove();
 }
 
-function subscribeNativeAppState(
-  deps: NativeWorkletLifecycleDeps,
-): () => void {
+function subscribeNativeAppState(deps: NativeWorkletLifecycleDeps): () => void {
   const subscription = AppState.addEventListener("change", (nextState) => {
     if (nextState === "background" || nextState === "inactive") {
       if (deps.status.miniappRunning) {

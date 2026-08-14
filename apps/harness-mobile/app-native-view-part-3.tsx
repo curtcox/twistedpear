@@ -1,131 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  AppState,
-  Image,
-  PermissionsAndroid,
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Switch,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { StatusBar } from "expo-status-bar";
-import qrcodeModule from "qrcode-generator";
-import {
-  decodePeerAudioFskStream,
-  encodePeerAudioFsk,
-  encodeDeviceStreamFrame,
-} from "@twistedpear/protocol";
-import {
-  BundledOpusMediaCodecDriver,
-  configureBundledOpusLoader,
-  ensureUtf16LeTextDecoder,
-} from "@twistedpear/effects";
-import OpusScript from "opusscript";
-import {
-  nativePeerAudioSupported,
-  playNativePeerPcm,
-  recordNativePeerPcm,
-  requestNativePeerAudioPermission,
-} from "@twistedpear/peer-audio";
-import { Worklet } from "react-native-bare-kit";
-import bundle from "./worklet/worklet.bundle.mjs";
-import {
-  getNodeLifecycleState,
-  isNodeServiceRunning,
-  startNodeService,
-  stopNodeService,
-  addNodeLifecycleListener,
-  type NodeLifecycleState,
-} from "@twistedpear/node-service";
-import { HostMulticastIpc } from "./host/multicast-ipc";
-import { HostBonjourIpc } from "./host/bonjour-ipc";
-import { HostBleIpc } from "./host/ble-ipc";
-import { HostUsbIpc } from "./host/usb-ipc";
-import {
-  nativeDeviceActuate,
-  nativeDeviceAvailability,
-  nativeDeviceSense,
-} from "./host/native-device-bridge";
-import {
-  createNativePeerRtcStore,
-  handleNativePeerWebRtcMessage,
-} from "./host/native-peer-webrtc";
 import {
   hasUsbSerialPermission,
   getUsbSerialCapability,
-  listUsbSerialDevices,
   requestUsbSerialPermission,
-  type UsbSerialDeviceInfo,
 } from "@twistedpear/usb-serial";
-import {
-  acceptFreenetRemoteGrant,
-  defaultFreenetRemoteGrant,
-  FREENET_REMOTE_DISCLOSURE,
-  freenetGrantLogSafe,
-  generateFreenetRendezvousHex,
-  revokeFreenetRemoteGrant,
-  type FreenetRemoteGrant,
-} from "./src/freenet-remote-grant";
-import {
-  freenetRemoteSessionStatusLabel,
-  idleFreenetRemoteSession,
-  probeFreenetRemoteNode,
-  reduceFreenetRemoteSession,
-  freenetRemoteSessionLogSafe,
-  type FreenetRemoteSession,
-} from "./src/freenet-remote-session";
-import { freenetPropagationRoleLabel } from "./src/freenet-propagation-role";
-import {
-  decodeMessages,
-  encodeMessage,
-  type AnnounceEntry,
-  type CapabilityGrantView,
-  type CatalogEntryView,
-  type HostToWorkletMessage,
-  type InstallProgress,
-  type InstalledPackageView,
-  type MiniappRuntimeView,
-  type MiniappBenchmarkResult,
-  type WorkletStatus,
-  type HostConfirmationRequestView,
-  type InstallReviewRequestView,
-  type LaunchReviewRequestView,
-  type TrustedPublisherView,
-  type WorkletToHostMessage,
-  type DeviceStateView,
-  type SessionInviteView,
-  type ConfirmationKind,
-} from "./worklet/protocol";
-import { MiniappWidgetTree } from "./host/miniapp-renderer";
-import type { WidgetTree } from "@twistedpear/miniapp-runtime";
-import {
-  ANDROID_EMULATOR_HOST,
-  ActionButton,
-  CONFIRM_KIND_TITLES,
-  DEFAULT_DEV_PORT,
-  DEFAULT_DOCKER_PORT,
-  LOCAL_HOST,
-  MAX_ANNOUNCES,
-  Row,
-  TEST_AGENT_PORT,
-  floatToPcm16,
-  initialStatus,
-  pcm16ToFloat,
-  peerAudioHex,
-  peerAudioUnhex,
-  playInboundNativeMedia,
-  playNativeOpusOrPcm,
-  playNativePeerFrames,
-  recordNativePeerFrames,
-  requestBlePermissions,
-  runNativeOpusDuplex,
-  styles,
-} from "./app-native-shared.js";
+import { ActionButton, Row, styles } from "./app-native-shared.js";
 import type { useNativeHarnessController } from "./app-native-controller.js";
 export type NativeHarnessScope = ReturnType<typeof useNativeHarnessController>;
 
@@ -146,16 +33,10 @@ export function NativeHarnessViewPart3({
 }
 
 function NativeHardwareAccessCard({ scope }: { scope: NativeHarnessScope }) {
-  const {
-    deviceState,
-    usbDevices,
-    selectedUsbDeviceId,
-    setSelectedUsbDeviceId,
-    sendToWorklet,
-  } = scope;
+  const { deviceState, sendToWorklet } = scope;
   return (
     <>
-<View style={styles.card}>
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Hardware access</Text>
         <Row
           testID="device-remote-enabled"
@@ -226,13 +107,8 @@ function NativeHardwareAccessCard({ scope }: { scope: NativeHarnessScope }) {
 }
 
 function NativeUsbSerialCard({ scope }: { scope: NativeHarnessScope }) {
-  const {
-    usbDevices,
-    selectedUsbDeviceId,
-    setSelectedUsbDeviceId,
-    sendToWorklet,
-    appendLog,
-  } = scope;
+  const { usbDevices, selectedUsbDeviceId, setSelectedUsbDeviceId, appendLog } =
+    scope;
   return (
     <>
       {getUsbSerialCapability().supported ? (
@@ -295,8 +171,6 @@ function NativeUsbSerialCard({ scope }: { scope: NativeHarnessScope }) {
           </Text>
         </View>
       ) : null}
-
-      
     </>
   );
 }
@@ -305,7 +179,7 @@ function NativeInstall256tCard({ scope }: { scope: NativeHarnessScope }) {
   const { install256tInput, setInstall256tInput, sendToWorklet } = scope;
   return (
     <>
-<View style={styles.card}>
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Install from 256t</Text>
         <TextInput
           testID="install-256t-input"
@@ -325,8 +199,6 @@ function NativeInstall256tCard({ scope }: { scope: NativeHarnessScope }) {
           }}
         />
       </View>
-
-      
     </>
   );
 }
@@ -343,7 +215,7 @@ function NativePublisherTrustCard({ scope }: { scope: NativeHarnessScope }) {
   } = scope;
   return (
     <>
-<View style={styles.card}>
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Publisher trust</Text>
         <TextInput
           testID="trust-identity-input"
@@ -392,8 +264,6 @@ function NativePublisherTrustCard({ scope }: { scope: NativeHarnessScope }) {
           </Text>
         ))}
       </View>
-
-      
     </>
   );
 }
@@ -409,7 +279,7 @@ function NativeAppCatalogCard({ scope }: { scope: NativeHarnessScope }) {
   } = scope;
   return (
     <>
-<View style={styles.card}>
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>App catalog</Text>
         <Text style={styles.muted}>
           {status.catalogEntries} discovered · {status.installedPackages}{" "}
@@ -526,117 +396,115 @@ function NativeInstalledPackagesCard({ scope }: { scope: NativeHarnessScope }) {
     selectedInstalledAppId,
     setSelectedInstalledAppId,
     grantCapabilities,
-    setGrantCapabilities,
     sendToWorklet,
   } = scope;
   return (
     <View style={styles.card}>
-        {installed.length > 0
-          ? installed.map((pkg) => (
-              <View key={pkg.appId} style={styles.catalogRow}>
+      {installed.length > 0
+        ? installed.map((pkg) => (
+            <View key={pkg.appId} style={styles.catalogRow}>
+              <Pressable
+                testID={`installed-${pkg.appId}`}
+                style={{ flex: 1 }}
+                onPress={() => {
+                  setSelectedInstalledAppId(pkg.appId);
+                  sendToWorklet({
+                    type: "get-grants",
+                    appId: pkg.appId,
+                    publisherPublicKey: pkg.publisherPublicKey ?? "",
+                    declaredCapabilities: pkg.capabilities ?? [],
+                  });
+                }}
+              >
+                <Text style={styles.catalogName}>
+                  {pkg.appId} {pkg.activeVersion === pkg.version ? "✓" : ""}
+                </Text>
+                <Text style={styles.muted}>
+                  active v{pkg.activeVersion} · {pkg.packageHash.slice(0, 12)}…
+                </Text>
+              </Pressable>
+              <Pressable
+                testID={`launch-${pkg.appId}`}
+                style={styles.smallButton}
+                onPress={() =>
+                  sendToWorklet({ type: "launch-miniapp", appId: pkg.appId })
+                }
+              >
+                <Text style={styles.buttonLabel}>Launch</Text>
+              </Pressable>
+              {pkg.rollbackAvailable ? (
                 <Pressable
-                  testID={`installed-${pkg.appId}`}
-                  style={{ flex: 1 }}
-                  onPress={() => {
-                    setSelectedInstalledAppId(pkg.appId);
-                    sendToWorklet({
-                      type: "get-grants",
-                      appId: pkg.appId,
-                      publisherPublicKey: pkg.publisherPublicKey ?? "",
-                      declaredCapabilities: pkg.capabilities ?? [],
-                    });
-                  }}
-                >
-                  <Text style={styles.catalogName}>
-                    {pkg.appId} {pkg.activeVersion === pkg.version ? "✓" : ""}
-                  </Text>
-                  <Text style={styles.muted}>
-                    active v{pkg.activeVersion} · {pkg.packageHash.slice(0, 12)}
-                    …
-                  </Text>
-                </Pressable>
-                <Pressable
-                  testID={`launch-${pkg.appId}`}
-                  style={styles.smallButton}
-                  onPress={() =>
-                    sendToWorklet({ type: "launch-miniapp", appId: pkg.appId })
-                  }
-                >
-                  <Text style={styles.buttonLabel}>Launch</Text>
-                </Pressable>
-                {pkg.rollbackAvailable ? (
-                  <Pressable
-                    testID={`rollback-${pkg.appId}`}
-                    style={styles.smallButton}
-                    onPress={() =>
-                      sendToWorklet({
-                        type: "rollback-package",
-                        appId: pkg.appId,
-                      })
-                    }
-                  >
-                    <Text style={styles.buttonLabel}>Rollback</Text>
-                  </Pressable>
-                ) : null}
-                <Pressable
+                  testID={`rollback-${pkg.appId}`}
                   style={styles.smallButton}
                   onPress={() =>
                     sendToWorklet({
-                      type: "delete-package",
+                      type: "rollback-package",
                       appId: pkg.appId,
-                      version: pkg.activeVersion,
                     })
                   }
                 >
-                  <Text style={styles.buttonLabel}>Delete</Text>
+                  <Text style={styles.buttonLabel}>Rollback</Text>
                 </Pressable>
-              </View>
-            ))
-          : null}
-        {selectedInstalledAppId !== null && grantCapabilities.length > 0 ? (
-          <View style={styles.detailCard}>
-            <Text style={styles.catalogName}>
-              Grants for {selectedInstalledAppId}
-            </Text>
-            {grantCapabilities
-              .filter((cap) => cap.declared)
-              .map((cap) => (
-                <View key={cap.id} style={styles.row}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowLabel}>{cap.id}</Text>
-                    <Text style={styles.muted}>{cap.description}</Text>
-                  </View>
-                  <Switch
-                    testID={`grant-${cap.id.replace(/:/g, "-")}`}
-                    value={cap.granted}
-                    onValueChange={(granted) => {
-                      const pkg = installed.find(
-                        (entry) => entry.appId === selectedInstalledAppId,
-                      );
-                      if (pkg === undefined) {
-                        return;
-                      }
-
-                      const next = grantCapabilities
-                        .filter(
-                          (entry) =>
-                            entry.declared &&
-                            (entry.id === cap.id ? granted : entry.granted),
-                        )
-                        .map((entry) => entry.id);
-                      sendToWorklet({
-                        type: "set-grants",
-                        appId: pkg.appId,
-                        publisherPublicKey: pkg.publisherPublicKey ?? "",
-                        declaredCapabilities: pkg.capabilities ?? [],
-                        grantedCapabilities: next,
-                      });
-                    }}
-                  />
+              ) : null}
+              <Pressable
+                style={styles.smallButton}
+                onPress={() =>
+                  sendToWorklet({
+                    type: "delete-package",
+                    appId: pkg.appId,
+                    version: pkg.activeVersion,
+                  })
+                }
+              >
+                <Text style={styles.buttonLabel}>Delete</Text>
+              </Pressable>
+            </View>
+          ))
+        : null}
+      {selectedInstalledAppId !== null && grantCapabilities.length > 0 ? (
+        <View style={styles.detailCard}>
+          <Text style={styles.catalogName}>
+            Grants for {selectedInstalledAppId}
+          </Text>
+          {grantCapabilities
+            .filter((cap) => cap.declared)
+            .map((cap) => (
+              <View key={cap.id} style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowLabel}>{cap.id}</Text>
+                  <Text style={styles.muted}>{cap.description}</Text>
                 </View>
-              ))}
-          </View>
-        ) : null}
+                <Switch
+                  testID={`grant-${cap.id.replace(/:/g, "-")}`}
+                  value={cap.granted}
+                  onValueChange={(granted) => {
+                    const pkg = installed.find(
+                      (entry) => entry.appId === selectedInstalledAppId,
+                    );
+                    if (pkg === undefined) {
+                      return;
+                    }
+
+                    const next = grantCapabilities
+                      .filter(
+                        (entry) =>
+                          entry.declared &&
+                          (entry.id === cap.id ? granted : entry.granted),
+                      )
+                      .map((entry) => entry.id);
+                    sendToWorklet({
+                      type: "set-grants",
+                      appId: pkg.appId,
+                      publisherPublicKey: pkg.publisherPublicKey ?? "",
+                      declaredCapabilities: pkg.capabilities ?? [],
+                      grantedCapabilities: next,
+                    });
+                  }}
+                />
+              </View>
+            ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -645,7 +513,7 @@ function NativeAnnounceBrowserCard({ scope }: { scope: NativeHarnessScope }) {
   const { announces } = scope;
   return (
     <>
-<View style={styles.card}>
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Announce browser</Text>
         {announces.length === 0 ? (
           <Text style={styles.muted}>No announces received yet.</Text>
@@ -669,7 +537,6 @@ function NativeAnnounceBrowserCard({ scope }: { scope: NativeHarnessScope }) {
           </Text>
         ))}
       </ScrollView>
-
     </>
   );
 }

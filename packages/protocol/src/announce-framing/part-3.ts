@@ -16,8 +16,6 @@
  * `shouldCheckAnnounceDestinationHash` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { PACKET_TYPE_ANNOUNCE } from "../packet-header.js";
-import { equalByteArrays } from "../path-table.js";
 import {
   ANNOUNCE_RANDOM_HASH_SIZE,
   ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,

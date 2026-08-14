@@ -1,20 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  AppState,
-  Image,
   PermissionsAndroid,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { StatusBar } from "expo-status-bar";
-import qrcodeModule from "qrcode-generator";
 import {
   decodePeerAudioFskStream,
   encodePeerAudioFsk,
@@ -27,82 +19,10 @@ import {
 } from "@twistedpear/effects";
 import OpusScript from "opusscript";
 import {
-  nativePeerAudioSupported,
   playNativePeerPcm,
   recordNativePeerPcm,
-  requestNativePeerAudioPermission,
 } from "@twistedpear/peer-audio";
-import { Worklet } from "react-native-bare-kit";
-import bundle from "./worklet/worklet.bundle.mjs";
-import {
-  getNodeLifecycleState,
-  isNodeServiceRunning,
-  startNodeService,
-  stopNodeService,
-  addNodeLifecycleListener,
-  type NodeLifecycleState,
-} from "@twistedpear/node-service";
-import { HostMulticastIpc } from "./host/multicast-ipc";
-import { HostBonjourIpc } from "./host/bonjour-ipc";
-import { HostBleIpc } from "./host/ble-ipc";
-import { HostUsbIpc } from "./host/usb-ipc";
-import {
-  nativeDeviceActuate,
-  nativeDeviceAvailability,
-  nativeDeviceSense,
-} from "./host/native-device-bridge";
-import {
-  createNativePeerRtcStore,
-  handleNativePeerWebRtcMessage,
-} from "./host/native-peer-webrtc";
-import {
-  hasUsbSerialPermission,
-  getUsbSerialCapability,
-  listUsbSerialDevices,
-  requestUsbSerialPermission,
-  type UsbSerialDeviceInfo,
-} from "@twistedpear/usb-serial";
-import {
-  acceptFreenetRemoteGrant,
-  defaultFreenetRemoteGrant,
-  FREENET_REMOTE_DISCLOSURE,
-  freenetGrantLogSafe,
-  generateFreenetRendezvousHex,
-  revokeFreenetRemoteGrant,
-  type FreenetRemoteGrant,
-} from "./src/freenet-remote-grant";
-import {
-  freenetRemoteSessionStatusLabel,
-  idleFreenetRemoteSession,
-  probeFreenetRemoteNode,
-  reduceFreenetRemoteSession,
-  freenetRemoteSessionLogSafe,
-  type FreenetRemoteSession,
-} from "./src/freenet-remote-session";
-import { freenetPropagationRoleLabel } from "./src/freenet-propagation-role";
-import {
-  decodeMessages,
-  encodeMessage,
-  type AnnounceEntry,
-  type CapabilityGrantView,
-  type CatalogEntryView,
-  type HostToWorkletMessage,
-  type InstallProgress,
-  type InstalledPackageView,
-  type MiniappRuntimeView,
-  type MiniappBenchmarkResult,
-  type WorkletStatus,
-  type HostConfirmationRequestView,
-  type InstallReviewRequestView,
-  type LaunchReviewRequestView,
-  type TrustedPublisherView,
-  type WorkletToHostMessage,
-  type DeviceStateView,
-  type SessionInviteView,
-  type ConfirmationKind,
-} from "./worklet/protocol";
-import { MiniappWidgetTree } from "./host/miniapp-renderer";
-import type { WidgetTree } from "@twistedpear/miniapp-runtime";
+import { type WorkletStatus, type ConfirmationKind } from "./worklet/protocol";
 export const peerAudioHex = (bytes: Uint8Array) =>
   [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 export const peerAudioUnhex = (text: string) =>

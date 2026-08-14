@@ -1,78 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import qrcodeModule from "qrcode-generator";
-import { decodePeerQrRgba } from "@twistedpear/peer-discovery";
-import {
-  decodePeerAudioFskStream,
-  encodePeerAudioFsk,
-} from "@twistedpear/protocol";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import {
-  validateWidgetTree,
-  type WidgetTree,
-} from "@twistedpear/miniapp-runtime/ui";
+import { type WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
-import { createWebCoreBridge } from "./host/web-core-bridge";
-import {
-  createPwaInstallController,
-  type PwaInstallAvailability,
-} from "./host/web-pwa-install";
-import { webSerialSupported } from "./host/web-serial-relay";
-import type {
-  AnnounceEntry,
-  CapabilityGrantView,
-  ConfirmationKind,
-  HostConfirmationRequestView,
-  HostToWorkletMessage,
-  Install256tResultView,
-  InstallProgress,
-  InstallReviewRequestView,
-  InstalledPackageView,
-  LaunchReviewCapabilityView,
-  LaunchReviewRequestView,
-  MiniappRuntimeView,
-  TrustedPublisherView,
-  WebStorageQuotaView,
-  WorkletStatus,
-  WorkletToHostMessage,
-  DeviceStateView,
-  SessionInviteView,
-} from "./worklet/protocol";
 import {
   ActionButton,
-  CONFIRM_KIND_TITLES,
   DEFAULT_PASSPHRASE,
   HostConfirmationModal,
-  MAX_ANNOUNCES,
   PeerChromeModal,
   Row,
-  audioHex,
-  audioUnhex,
-  chatWidgetTree,
-  defaultGatewayUrl,
   formatBytes,
-  handleWebMediaCodecRequest,
-  helloWidgetTree,
-  initialStatus,
-  outboundWebRtcMediaBytes,
-  playInboundAudioFrame,
-  playPeerAudio,
-  recordPeerAudio,
   styles,
-  webBytesToHex,
-  webDecodeOpus,
-  webEncodeOpus,
-  webHexToBytes,
 } from "./app-web-shared.js";
 import type { useWebHarnessController } from "./app-web-controller.js";
 export type WebHarnessScope = ReturnType<typeof useWebHarnessController>;
@@ -102,15 +39,9 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
   );
 }
 function WebHarnessViewPart1Block0({ scope }: { scope: WebHarnessScope }) {
-  const {
-    hostModal,
-    sendToWorker,
-    setHostModal,
-  } = scope;
+  const { hostModal, sendToWorker, setHostModal } = scope;
   return (
-
     <>
-
       <StatusBar style="auto" />
       {hostModal !== null ? (
         <HostConfirmationModal
@@ -170,14 +101,8 @@ function WebHarnessViewPart1Block0({ scope }: { scope: WebHarnessScope }) {
   );
 }
 function WebHarnessViewPart1Block1({ scope }: { scope: WebHarnessScope }) {
-  const {
-    peerModal,
-    performPeerAudio,
-    sendToWorker,
-    setPeerModal,
-  } = scope;
+  const { peerModal, performPeerAudio, sendToWorker, setPeerModal } = scope;
   return (
-
     <>
       {peerModal !== null ? (
         <PeerChromeModal
@@ -224,14 +149,8 @@ function WebHarnessViewPart1Block1({ scope }: { scope: WebHarnessScope }) {
   );
 }
 function WebHarnessViewPart1Block2({ scope }: { scope: WebHarnessScope }) {
-  const {
-    deviceState,
-    sendToWorker,
-    sessionInvites,
-    status,
-  } = scope;
+  const { deviceState, sendToWorker, sessionInvites, status } = scope;
   return (
-
     <>
       {sessionInvites.some((invite) => invite.phase === "pending") ? (
         <View testID="session-invite-banner" style={styles.deviceActiveBanner}>
@@ -333,7 +252,6 @@ function WebHarnessViewPart1Block2({ scope }: { scope: WebHarnessScope }) {
 function WebHarnessViewPart1Block3({ scope }: { scope: WebHarnessScope }) {
   const {
     gatewayUrl,
-    installed,
     promptPwaInstall,
     pwaInstallAvailability,
     sendToWorker,
@@ -473,9 +391,7 @@ function WebHarnessViewPart1Block4({ scope }: { scope: WebHarnessScope }) {
     wsEnabled,
   } = scope;
   return (
-
     <>
-
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Gateway</Text>
         <Text style={styles.muted}>
@@ -568,15 +484,9 @@ function WebHarnessViewPart1Block4({ scope }: { scope: WebHarnessScope }) {
   );
 }
 function WebHarnessViewPart1Block5({ scope }: { scope: WebHarnessScope }) {
-  const {
-    appendLog,
-    deviceState,
-    sendToWorker,
-  } = scope;
+  const { appendLog, deviceState, sendToWorker } = scope;
   return (
-
     <>
-
       <View style={styles.card}>
         <View style={styles.buttonRow}>
           <ActionButton

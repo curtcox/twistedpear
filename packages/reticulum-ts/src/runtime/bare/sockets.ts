@@ -29,7 +29,6 @@ function bareSocketConnection(
   socket: InstanceType<BareTcpModule["Socket"]>,
 ): DuplexConnection {
   const queue = new AsyncChunkQueue();
-  let closed = false;
 
   socket.on("data", (chunk: unknown) => {
     const bytes =
@@ -40,12 +39,10 @@ function bareSocketConnection(
   });
 
   socket.on("close", () => {
-    closed = true;
     queue.close();
   });
 
   socket.on("error", () => {
-    closed = true;
     queue.close();
   });
 

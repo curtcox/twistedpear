@@ -10,10 +10,6 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
-} from "../lxmf-fields.js";
 import type { LxmfDeliverableAcceptPlan } from "./part-2.js";
 import { firstAction, hasActionOfKind } from "../action-kind.js";
 /** Whether an unpacked LXMF deliverable should be accepted (sig + seen-hash). */

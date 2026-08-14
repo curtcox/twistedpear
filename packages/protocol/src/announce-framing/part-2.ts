@@ -15,7 +15,7 @@
  * actions (no ad-hoc `shouldAttemptAnnounceSignatureValidate` /
  * `shouldCheckAnnounceDestinationHash` reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
 import { concatBytes, shouldAcceptParsedAnnounce } from "./part-1.js";

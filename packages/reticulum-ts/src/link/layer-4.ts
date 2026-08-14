@@ -106,11 +106,8 @@ import {
   type LinkResourceStrategyValue,
 } from "./protocol.js";
 
-import type { CryptoProvider } from "../crypto/provider.js";
-import { Token } from "../crypto/token.js";
-import { Channel, LinkChannelOutlet } from "../channel.js";
 import { equalBytes } from "../crypto/bytes.js";
-import { DestinationDirection, DestinationType } from "../destination.js";
+import { DestinationType } from "../destination.js";
 import { Identity } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
 import { LinkRequestReceipt } from "../link-request-receipt.js";
@@ -121,33 +118,10 @@ import {
   PacketType,
   TransportType,
 } from "../packet.js";
-import type { PacketReceipt } from "../packet-receipt.js";
-import type {
-  RegisteredDestination,
-  RequestHandler,
-} from "../registered-destination.js";
-import { RETICULUM_MTU } from "../reticulum-constants.js";
-import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
-import { Resource, ResourceAdvertisement } from "../resource.js";
-import {
-  LINK_ECPUB_SIZE,
-  LINK_KEY_SIZE,
-  LINK_MTU_SIZE,
-  LINK_SIGNATURE_SIZE,
-  linkEstablishmentTimeoutForHops,
-  linkMduForMtu,
-  linkRequestTimeoutForRtt,
-  linkRttSecondsForRequest,
-  mergedLinkRtt,
-} from "./shared.js";
-import type {
-  InitiatorLinkOptions,
-  LinkCallbacks,
-  LinkRequestOptions,
-  LinkSendContextResult,
-} from "./shared.js";
+import { Resource } from "../resource.js";
+import type { LinkSendContextResult } from "./shared.js";
 import { LinkLayer3 } from "./layer-3.js";
 export class LinkLayer4 extends LinkLayer3 {
   async receive(packet: Packet, iface: PacketInterface): Promise<void> {
@@ -257,7 +231,9 @@ export class LinkLayer4 extends LinkLayer3 {
     ) {
       return;
     }
-    if (await this.dispatchLinkResourceContext(packet, contextStepped.actions)) {
+    if (
+      await this.dispatchLinkResourceContext(packet, contextStepped.actions)
+    ) {
       return;
     }
     if (shouldHandleLinkDataPlaintext(contextStepped.actions)) {

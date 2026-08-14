@@ -117,8 +117,6 @@ export class WebSandboxBackend implements SandboxBackend {
     >();
     let killed = false;
     let alive = true;
-    let lastExitReason: string | null = null;
-    let lastExitDetail: string | null = null;
 
     const spawnState: SpawnPortState = {
       hostPort,
@@ -134,10 +132,7 @@ export class WebSandboxBackend implements SandboxBackend {
       setAlive(next: boolean) {
         alive = next;
       },
-      setExit(reason: string, detail: string | null) {
-        lastExitReason = reason;
-        lastExitDetail = detail;
-      },
+      setExit(_reason: string, _detail: string | null) {},
     };
 
     const handleHostPortMessage = (event: MessageEvent) => {

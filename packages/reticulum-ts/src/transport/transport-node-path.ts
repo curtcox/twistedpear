@@ -358,7 +358,7 @@ export class TransportNodePath extends TransportNodeBase {
 
   protected async fulfillDiscoveryPathRequest(
     packet: Packet,
-    iface: PacketInterface,
+    _iface: PacketInterface,
   ): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
     const pending = this.discoveryPathRequests.get(destinationKey);

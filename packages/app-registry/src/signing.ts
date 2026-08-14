@@ -13,7 +13,7 @@ import {
 } from "./manifest.js";
 
 export function signManifest(
-  provider: CryptoProvider,
+  _provider: CryptoProvider,
   identity: Identity,
   manifest: UnsignedManifest,
 ): AppManifest {

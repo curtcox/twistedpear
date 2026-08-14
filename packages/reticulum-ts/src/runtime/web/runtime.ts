@@ -1,7 +1,6 @@
 import type {
   BoundDatagramSocket,
   Clock,
-  DatagramPacket,
   DuplexConnection,
   Entropy,
   KeyValueStore,

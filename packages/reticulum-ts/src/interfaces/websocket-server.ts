@@ -30,7 +30,6 @@ import type {
 } from "./interface.js";
 import {
   WebSocketClientInterface,
-  type WebSocketClientInterfaceOptions,
   type WebSocketLike,
   type WebSocketMessageEvent,
 } from "./websocket-client.js";

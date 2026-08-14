@@ -9,11 +9,7 @@
  * `shouldAwaitLxmfDeliveryReceipt` / `shouldInvokeLxmfDeliveryCallback`
  * reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
-} from "../lxmf-fields.js";
+import type { Intent, StepFn } from "@twistedpear/effects";
 import {
   planLxmfPropagatedPackPrep,
   shouldPlanLxmfPropagatedPackPrepOk,

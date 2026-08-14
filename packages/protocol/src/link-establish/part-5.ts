@@ -43,15 +43,8 @@
  * {@link stepLinkActivateMembershipPlanWithActions} /
  * {@link stepLinkUnregisterMembershipPlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  initialDestinationRequestAllowState,
-  shouldAllowDestinationRequest,
-  stepDestinationRequestAllowWithActions,
-} from "../destination-allow.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
-import { PacketTypeCode } from "../packet-header.js";
-import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 /** Whether a packed application response fits the link MDU. */

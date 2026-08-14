@@ -10,10 +10,6 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
-} from "../lxmf-fields.js";
 import { planLxMessagePack } from "./part-1.js";
 import type { LxMessagePackGate, LxMessagePackPlanEvent } from "./part-1.js";
 import { firstAction, hasActionOfKind } from "../action-kind.js";

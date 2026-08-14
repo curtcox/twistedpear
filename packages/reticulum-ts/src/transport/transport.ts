@@ -93,13 +93,6 @@ export type {
   TransportNodeOptions,
 } from "./transport-types.js";
 
-import type {
-  DiscoveryPathRequest,
-  LinkTableEntry,
-  ReverseTableEntry,
-  TransportNodeOptions,
-} from "./transport-types.js";
-
 /** Transport-node mode: rebroadcast, relay, and path forwarding. Mirrors RNS/Transport.py transport subset. */
 export class TransportNode extends TransportNodePath {
   protected override async inbound(

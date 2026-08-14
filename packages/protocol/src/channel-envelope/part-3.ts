@@ -9,8 +9,6 @@
  * (no ad-hoc `channelMessageStateFromPacketReceipt` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import type { PacketReceiptStatusValue } from "../packet-receipt-timeout.js";
-import { PacketReceiptStatus } from "../packet-receipt-timeout.js";
 import { CHANNEL_ENVELOPE_HEADER_SIZE, CHANNEL_SEQ_MODULUS } from "./part-1.js";
 import {
   channelEnvelopePackPlanFromActions,

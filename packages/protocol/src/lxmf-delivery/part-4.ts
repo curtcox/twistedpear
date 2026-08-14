@@ -10,10 +10,6 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  LxmfUnverifiedReason,
-  type LxmfUnverifiedReasonValue,
-} from "../lxmf-fields.js";
 import { canRegisterLxmfDeliveryIdentity } from "./part-3.js";
 import type {
   RegisterLxmfDeliveryIdentityAction,

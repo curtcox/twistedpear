@@ -16,7 +16,6 @@ import {
   FreenetInterface,
   FREENET_DEFAULT_BITRATE,
 } from "@twistedpear/reticulum-interfaces";
-import type { BlePipe } from "@twistedpear/reticulum-interfaces";
 import { FreenetContractPacketLogBackend } from "@twistedpear/bridge-freenet";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";

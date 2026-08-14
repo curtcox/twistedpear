@@ -47,30 +47,12 @@ import {
   type LinkTeardownReasonValue,
 } from "./protocol.js";
 
-import type { CryptoProvider } from "../crypto/provider.js";
-import { Token } from "../crypto/token.js";
-import { Channel, LinkChannelOutlet } from "../channel.js";
-import { equalBytes } from "../crypto/bytes.js";
-import { DestinationDirection, DestinationType } from "../destination.js";
 import { Identity } from "../identity.js";
-import type { PacketInterface } from "../interfaces/interface.js";
 import { LinkRequestReceipt } from "../link-request-receipt.js";
-import {
-  Packet,
-  PacketContext,
-  PacketHeaderType,
-  PacketType,
-  TransportType,
-} from "../packet.js";
+import { Packet } from "../packet.js";
 import type { PacketReceipt } from "../packet-receipt.js";
-import type {
-  RegisteredDestination,
-  RequestHandler,
-} from "../registered-destination.js";
-import { RETICULUM_MTU } from "../reticulum-constants.js";
-import type { Clock } from "../runtime/runtime.js";
+import type { RegisteredDestination } from "../registered-destination.js";
 import type { LeafTransport } from "../transport/node.js";
-import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
 import { Resource, ResourceAdvertisement } from "../resource.js";
 import type { Link } from "../link.js";
 /** Mirrors RNS/Link.py link mode constants (RNS 0.9.4). */

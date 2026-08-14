@@ -17,12 +17,8 @@
  * {@link stepResourceRequestFulfillPlanWithActions} /
  * {@link stepResourceHashmapUpdateAcceptPlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  firstAction,
-  firstActionOfKind,
-  hasActionOfKind,
-} from "../action-kind.js";
+import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 import { assembleByteArrays, concatByteArrays } from "../bytes.js";
 import {
   msgpackPackArray,

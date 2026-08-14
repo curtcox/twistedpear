@@ -19,9 +19,8 @@
  * (`ignore`|`give-up`|`retry`; plan nested via
  * {@link stepChannelPacketTimeoutPlanWithActions}: ignore|give-up|retry).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
-import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { isChannelOutletTransmitOk } from "./part-1.js";
 import type {
   ChannelOutletTransmitAction,
@@ -29,7 +28,11 @@ import type {
   ChannelOutletTransmitState,
   ChannelOutletTransmitStepResult,
 } from "./part-1.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "../action-kind.js";
 export function stepChannelOutletTransmitWithActions(
   state: ChannelOutletTransmitState,
   event: ChannelOutletTransmitEvent,

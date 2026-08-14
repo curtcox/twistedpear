@@ -38,17 +38,14 @@ import type {
   CryptoProvider,
   Link,
   RegisteredDestination,
-  Reticulum,
 } from "@twistedpear/reticulum-ts";
 import {
-  Destination,
   DestinationDirection,
   DestinationType,
   Identity,
 } from "@twistedpear/reticulum-ts";
 import { APP_NAME, MESSAGE_GET_PATH } from "./constants.js";
 import { LXMessage } from "./message.js";
-import { msgpackPackArray, msgpackPackBin } from "./msgpack.js";
 import type { LXMFRouter } from "./router.js";
 
 export interface PropagationClientOptions {

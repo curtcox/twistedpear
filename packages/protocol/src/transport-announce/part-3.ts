@@ -22,16 +22,7 @@
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
-import {
-  PACKET_CONTEXT_PATH_RESPONSE,
-  PACKET_CONTEXT_NONE,
-} from "../packet-context.js";
-import {
-  PACKET_HEADER_2,
-  PACKET_TYPE_ANNOUNCE,
-  type PacketHeaderFields,
-} from "../packet-header.js";
-import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
+import { PACKET_CONTEXT_PATH_RESPONSE } from "../packet-context.js";
 import { shouldMatchAnnounceAspect } from "./part-2.js";
 import type {
   MatchAnnounceAspectAction,

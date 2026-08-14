@@ -11,7 +11,7 @@
  * {@link stepResourceProofAcceptPlanWithActions} /
  * {@link stepResourceAdvertisePhasePlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   ResourceStatus,
   type ResourceStatusValue,

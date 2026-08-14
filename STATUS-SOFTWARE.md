@@ -50,14 +50,13 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID                                       | Status | Item                                                                                   | Evidence | Verify                                                                                                         |
-| ---------------------------------------- | ------ | -------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
-| QL-LINT-TYPESCRIPT-ESLINT-NO-UNUSED-VARS | open   | Clear 5193 @typescript-eslint/no-unused-vars entries from the lint ratchet (164 files) | —        | `npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=@typescript-eslint/no-unused-vars` |
-| WORK-UNATTENDED                          | open   | Distinguish unattended work from hands-on work in work:next                            | —        | `npx vitest run conformance/doc-audit/work-ranking.test.mjs`                                                   |
-| ID-ROSTER                                | open   | Installation roster, pairing, and linked-mode announce                                 | —        | `npx vitest run packages/host-core/test/linked-installation-roster.test.ts`                                    |
-| ID-JOURNAL                               | open   | Encrypted append-only account journal over certified installation destinations         | —        | `npx vitest run packages/host-core/test/account-journal.test.ts`                                               |
-| ID-LINKED-MODE                           | open   | One-way linked-mode switch with both hashes shown before confirmation                  | —        | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`                                            |
-| ID-SIBLING-CHROME                        | open   | Chrome and store wiring for held sibling decisions                                     | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`                                      |
+| ID                | Status | Item                                                                           | Evidence | Verify                                                                      |
+| ----------------- | ------ | ------------------------------------------------------------------------------ | -------- | --------------------------------------------------------------------------- |
+| WORK-UNATTENDED   | open   | Distinguish unattended work from hands-on work in work:next                    | —        | `npx vitest run conformance/doc-audit/work-ranking.test.mjs`                |
+| ID-ROSTER         | open   | Installation roster, pairing, and linked-mode announce                         | —        | `npx vitest run packages/host-core/test/linked-installation-roster.test.ts` |
+| ID-JOURNAL        | open   | Encrypted append-only account journal over certified installation destinations | —        | `npx vitest run packages/host-core/test/account-journal.test.ts`            |
+| ID-LINKED-MODE    | open   | One-way linked-mode switch with both hashes shown before confirmation          | —        | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`         |
+| ID-SIBLING-CHROME | open   | Chrome and store wiring for held sibling decisions                             | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`   |
 
 ## Optional and non-blocking backlog
 

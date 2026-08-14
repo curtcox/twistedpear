@@ -10,14 +10,7 @@
  * (no ad-hoc `packPacketFlags` / `unpackPacketFlags` / `packetHashablePart`
  * reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  PACKET_HEADER_1,
-  PACKET_HEADER_2,
-  TRANSPORT_BROADCAST,
-  TRANSPORT_ID_BYTES,
-  TRANSPORT_TRANSPORT,
-} from "../transport-framing.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import { decodePacketRaw } from "./part-2.js";
 import type { PacketHeaderFields } from "./part-1.js";
 import type { DecodePacketRawState } from "./part-2.js";

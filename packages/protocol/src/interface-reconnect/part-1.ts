@@ -9,7 +9,7 @@
  * the step). Reconnect plan nested via
  * {@link stepInterfaceReconnectPlanWithActions} (`reconnect`|`give-up`).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import { hasActionOfKind } from "../action-kind.js";
 
 export const INTERFACE_RECONNECT_WAIT_MS = 5_000;

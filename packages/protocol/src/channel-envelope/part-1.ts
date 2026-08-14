@@ -8,10 +8,14 @@
  * Message-state-from-receipt mapping conclusions leave via machine actions
  * (no ad-hoc `channelMessageStateFromPacketReceipt` reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "../packet-receipt-timeout.js";
 import { PacketReceiptStatus } from "../packet-receipt-timeout.js";
-import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "../action-kind.js";
 
 export const CHANNEL_ENVELOPE_HEADER_SIZE = 6;
 export const CHANNEL_SEQ_MAX = 0xffff;

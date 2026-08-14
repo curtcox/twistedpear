@@ -12,7 +12,7 @@
  * `shouldApplyPropagationStoreCommit` reads beside the step).
  * Restore plan nested via {@link stepPropagationRestorePlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 

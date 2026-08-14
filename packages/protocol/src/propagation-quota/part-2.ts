@@ -13,12 +13,10 @@
  * Restore plan nested via {@link stepPropagationRestorePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { equalByteArrays } from "../path-table.js";
 import {
   initialCommitPropagationStoreEntryState,
   planPropagationStore,
   propagationStorePlanEvictKeys,
-  selectOldestPropagationKey,
   shouldAcceptPropagationStorePlan,
   shouldCommitPropagationStoreEntryNow,
   shouldDuplicatePropagationStorePlan,

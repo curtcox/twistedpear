@@ -17,15 +17,7 @@
  * {@link stepResourceRequestFulfillPlanWithActions} /
  * {@link stepResourceHashmapUpdateAcceptPlanWithActions}.
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { assembleByteArrays, concatByteArrays } from "../bytes.js";
-import {
-  msgpackPackArray,
-  msgpackPackBin,
-  msgpackPackUInt,
-  msgpackUnpack,
-  type MsgpackValue,
-} from "../msgpack-core.js";
+import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import {
   RESOURCE_HASHMAP_IS_EXHAUSTED,

@@ -10,7 +10,6 @@ import {
   type StreamPlane,
 } from "@twistedpear/protocol";
 import type {
-  PlaneMediaTransport,
   PlaneMediaTransportOpener,
   RealtimeBandwidthReservationProvider,
   StreamEgress,

@@ -1,67 +1,41 @@
 import {
   deriveRnsLinkKeyRawFromActions,
   encodeLinkMtuBytesRawFromActions,
-  identityPublicKeyFieldsFromActions,
-  initialAcceptLinkOwnerPublicKeyState,
-  initialComputeKeepaliveState,
   initialContinueLinkValidateRequestState,
   initialDeriveRnsLinkKeyState,
   initialEncodeLinkMtuBytesState,
   initialLinkEstablishState,
   initialLinkInitiatorMtuState,
   initialLinkModeEnabledState,
-  initialLinkProofSignedMaterialState,
   initialLinkRequestResponderMtuState,
   initialLinkValidateRequestState,
   initialModeFromLinkProofDataState,
   initialModeFromLinkRequestDataState,
   initialMtuFromLinkProofDataState,
   initialMtuFromLinkRequestDataState,
-  initialPackLinkProofDataState,
   initialPackLinkRequestDataState,
-  initialPackMsgpackFloat64State,
   initialPerformLinkHandshakeAllowState,
-  initialProveLinkAllowState,
   initialRequestLinkDestinationState,
-  initialSplitIdentityPublicKeyState,
   initialSplitInitiatorLinkEntropyState,
   initialSplitLinkRequestDataState,
   initialSplitResponderLinkEntropyState,
-  initialUnpackMsgpackFloatState,
-  initialUpdateLinkKeepaliveAllowState,
   initiatorLinkEntropyFieldsFromActions,
   LINK_INITIATOR_ENTROPY_SIZE,
   LINK_KEEPALIVE,
   LINK_MODE_DEFAULT,
   LINK_RESPONDER_ENTROPY_SIZE,
-  LINK_STALE_FACTOR,
-  linkEstablishActivatedAction,
   linkInitiatorMtuFromActions,
-  linkKeepaliveFromActions,
-  linkProofSignedMaterialRawFromActions,
   linkRequestKeyFieldsFromActions,
   linkRequestResponderMtuFromActions,
-  LinkStatus,
   modeFromLinkProofDataFromActions,
   modeFromLinkRequestDataFromActions,
-  msgpackFloatFromActions,
   mtuFromLinkProofDataFromActions,
   mtuFromLinkRequestDataFromActions,
-  packLinkProofDataRawFromActions,
   packLinkRequestDataRawFromActions,
-  packMsgpackFloat64RawFromActions,
   responderLinkEntropyFieldsFromActions,
-  shouldAcceptLinkEstablishRtt,
-  shouldAcceptLinkOwnerPublicKeyNow,
-  shouldActivateLinkEstablish,
   shouldAllowPerformLinkHandshake,
-  shouldAllowProveLink,
   shouldAllowRequestLinkDestination,
-  shouldAllowUpdateLinkKeepalive,
   shouldContinueLinkValidateRequestNow,
-  shouldEnterLinkHandshake,
-  shouldFailLinkEstablish,
-  shouldIgnoreLinkEstablishRtt,
   shouldProceedLinkValidateRequest,
   shouldRejectDeriveRnsLinkKey,
   shouldRejectMtuFromLinkProofData,
@@ -69,67 +43,43 @@ import {
   shouldRejectSplitInitiatorLinkEntropy,
   shouldRejectSplitLinkRequestData,
   shouldRejectSplitResponderLinkEntropy,
-  shouldRejectUnpackMsgpackFloat,
-  shouldTeardownLinkEstablish,
   shouldTreatLinkModeEnabled,
   shouldUseDeriveRnsLinkKey,
   shouldUseEncodeLinkMtuBytes,
   shouldUseLinkInitiatorMtu,
-  shouldUseLinkKeepalive,
-  shouldUseLinkProofSignedMaterial,
   shouldUseLinkRequestResponderMtu,
   shouldUseModeFromLinkProofData,
   shouldUseModeFromLinkRequestData,
   shouldUseMtuFromLinkProofData,
   shouldUseMtuFromLinkRequestData,
-  shouldUsePackLinkProofData,
   shouldUsePackLinkRequestData,
-  shouldUsePackMsgpackFloat64,
-  shouldUseSplitIdentityPublicKey,
   shouldUseSplitInitiatorLinkEntropy,
   shouldUseSplitLinkRequestData,
   shouldUseSplitResponderLinkEntropy,
-  shouldUseUnpackMsgpackFloat,
-  stepAcceptLinkOwnerPublicKeyWithActions,
-  stepComputeKeepaliveWithActions,
   stepContinueLinkValidateRequestWithActions,
   stepDeriveRnsLinkKeyWithActions,
   stepEncodeLinkMtuBytesWithActions,
   stepLinkEstablishWithActions,
   stepLinkInitiatorMtuWithActions,
   stepLinkModeEnabledWithActions,
-  stepLinkProofSignedMaterialWithActions,
   stepLinkRequestResponderMtuWithActions,
   stepLinkValidateRequestWithActions,
-  stepLinkWatchdogWithActions,
   stepModeFromLinkProofDataWithActions,
   stepModeFromLinkRequestDataWithActions,
   stepMtuFromLinkProofDataWithActions,
   stepMtuFromLinkRequestDataWithActions,
-  stepPackLinkProofDataWithActions,
   stepPackLinkRequestDataWithActions,
-  stepPackMsgpackFloat64WithActions,
   stepPerformLinkHandshakeAllowWithActions,
-  stepProveLinkAllowWithActions,
   stepRequestLinkDestinationWithActions,
-  stepSplitIdentityPublicKeyWithActions,
   stepSplitInitiatorLinkEntropyWithActions,
   stepSplitLinkRequestDataWithActions,
   stepSplitResponderLinkEntropyWithActions,
-  stepUnpackMsgpackFloatWithActions,
-  stepUpdateLinkKeepaliveAllowWithActions,
-  type LinkEstablishAction,
   type LinkModeValue,
 } from "./protocol.js";
 
 import type { CryptoProvider } from "../crypto/provider.js";
-import { Token } from "../crypto/token.js";
-import { Channel, LinkChannelOutlet } from "../channel.js";
-import { equalBytes } from "../crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "../destination.js";
-import { Identity } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
-import { LinkRequestReceipt } from "../link-request-receipt.js";
 import {
   Packet,
   PacketContext,
@@ -137,33 +87,11 @@ import {
   PacketType,
   TransportType,
 } from "../packet.js";
-import type { PacketReceipt } from "../packet-receipt.js";
-import type {
-  RegisteredDestination,
-  RequestHandler,
-} from "../registered-destination.js";
+import type { RegisteredDestination } from "../registered-destination.js";
 import { RETICULUM_MTU } from "../reticulum-constants.js";
-import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
-import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
-import { Resource, ResourceAdvertisement } from "../resource.js";
-import {
-  LINK_ECPUB_SIZE,
-  LINK_KEY_SIZE,
-  LINK_MTU_SIZE,
-  LINK_SIGNATURE_SIZE,
-  linkEstablishmentTimeoutForHops,
-  linkMduForMtu,
-  linkRequestTimeoutForRtt,
-  linkRttSecondsForRequest,
-  mergedLinkRtt,
-} from "./shared.js";
-import type {
-  InitiatorLinkOptions,
-  LinkCallbacks,
-  LinkRequestOptions,
-  LinkSendContextResult,
-} from "./shared.js";
+import { linkEstablishmentTimeoutForHops } from "./shared.js";
+import type { InitiatorLinkOptions } from "./shared.js";
 import type { Link } from "../link.js";
 import { LinkLayer2Establish } from "./layer-2-establish.js";
 export class LinkLayer2 extends LinkLayer2Establish {

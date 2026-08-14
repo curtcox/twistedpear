@@ -49,11 +49,8 @@ import {
   shouldAllowDestinationRequest,
   stepDestinationRequestAllowWithActions,
 } from "../destination-allow.js";
-import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
-import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
 import {
-  canSendLinkAppResponse,
   initialInvokeLinkAppRequestHandlerState,
   initialSendLinkAppRequestResponseState,
   initialSendLinkAppResponseAllowState,
@@ -65,10 +62,8 @@ import {
   shouldIgnoreLinkAppRequestDispatch,
   shouldIgnoreLinkAppRequestResponsePlan,
   shouldInvokeLinkAppRequestDispatch,
-  shouldInvokeLinkAppRequestHandler,
   shouldInvokeLinkAppRequestHandlerNow,
   shouldRejectLinkAppRequestResponseTooBigPlan,
-  shouldSendLinkAppRequestResponse,
   shouldSendLinkAppRequestResponseNow,
   shouldSendLinkAppRequestResponsePlan,
   stepInvokeLinkAppRequestHandlerWithActions,

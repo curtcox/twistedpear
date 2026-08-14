@@ -1,4 +1,4 @@
-import { bytesToHex, hexToBytes } from "@twistedpear/reticulum-ts";
+import { hexToBytes } from "@twistedpear/reticulum-ts";
 
 export const PACKAGE_FORMAT_VERSION = 1;
 export const MANIFEST_SIGNING_FIELDS = [

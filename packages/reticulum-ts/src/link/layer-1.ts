@@ -58,9 +58,9 @@ import {
 
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Token } from "../crypto/token.js";
-import { Channel, LinkChannelOutlet } from "../channel.js";
-import { bytesToHex, equalBytes } from "../crypto/bytes.js";
-import { DestinationDirection, DestinationType } from "../destination.js";
+import { Channel } from "../channel.js";
+import { bytesToHex } from "../crypto/bytes.js";
+import { DestinationType } from "../destination.js";
 import { Identity } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
 import { LinkRequestReceipt } from "../link-request-receipt.js";
@@ -71,31 +71,13 @@ import {
   PacketType,
   TransportType,
 } from "../packet.js";
-import type { PacketReceipt } from "../packet-receipt.js";
-import type {
-  RegisteredDestination,
-  RequestHandler,
-} from "../registered-destination.js";
+import type { RegisteredDestination } from "../registered-destination.js";
 import { RETICULUM_MTU } from "../reticulum-constants.js";
 import type { Clock } from "../runtime/runtime.js";
 import type { LeafTransport } from "../transport/node.js";
-import { PATHFINDER_MAX_HOPS } from "../transport/node.js";
-import { Resource, ResourceAdvertisement } from "../resource.js";
-import {
-  LINK_ECPUB_SIZE,
-  LINK_KEY_SIZE,
-  LINK_MTU_SIZE,
-  LINK_SIGNATURE_SIZE,
-  linkEstablishmentTimeoutForHops,
-  linkMduForMtu,
-  linkRttSecondsForRequest,
-  mergedLinkRtt,
-} from "./shared.js";
-import type {
-  InitiatorLinkOptions,
-  LinkCallbacks,
-  LinkSendContextResult,
-} from "./shared.js";
+import { Resource } from "../resource.js";
+import { linkEstablishmentTimeoutForHops, linkMduForMtu } from "./shared.js";
+import type { LinkCallbacks, LinkSendContextResult } from "./shared.js";
 import type { Link } from "../link.js";
 export class LinkLayer1 {
   readonly type = DestinationType.LINK;

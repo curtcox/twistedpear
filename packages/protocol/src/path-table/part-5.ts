@@ -23,13 +23,6 @@
  * `shouldFulfillDiscoveryPending` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { TRUNCATED_HASH_BYTES } from "../hash-truncate.js";
-import {
-  PACKET_DEST_TYPE_GROUP,
-  PACKET_DEST_TYPE_PLAIN,
-  PACKET_HEADER_1,
-  PACKET_TYPE_ANNOUNCE,
-} from "../packet-header.js";
 import {
   computePathExpiry,
   equalByteArrays,

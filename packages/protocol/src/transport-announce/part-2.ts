@@ -20,17 +20,9 @@
  * `shouldReceiveAnnouncePathResponse` / `shouldMatchAnnounceAspect` /
  * `shouldAcceptCachedPathResponsePacket` reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import {
-  PACKET_CONTEXT_PATH_RESPONSE,
-  PACKET_CONTEXT_NONE,
-} from "../packet-context.js";
-import {
-  PACKET_HEADER_2,
-  PACKET_TYPE_ANNOUNCE,
-  type PacketHeaderFields,
-} from "../packet-header.js";
-import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
+import type { Event, Intent } from "@twistedpear/effects";
+import { PACKET_CONTEXT_PATH_RESPONSE } from "../packet-context.js";
+import { type PacketHeaderFields } from "../packet-header.js";
 import {
   pathResponseAnnounceFieldsPlanFromActions,
   planPathResponseAnnounceFields,

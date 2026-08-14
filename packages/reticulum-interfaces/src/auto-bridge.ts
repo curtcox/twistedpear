@@ -1,7 +1,4 @@
-import type {
-  CryptoProvider,
-  PacketInterface,
-} from "@twistedpear/reticulum-ts";
+import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
   Identity,
   Packet,

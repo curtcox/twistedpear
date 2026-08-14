@@ -1,36 +1,7 @@
 import {
-  DEVICE_CLASS_REGISTRY,
-  DEVICE_STREAM_KIND,
-  ActuatorSafetyError,
-  assertAidAllowed,
-  adaptStreamAdmission,
-  decideStreamAdmission,
-  degradationLadderFor,
-  defaultTierForClass,
-  deriveCameraSample,
-  deriveMicrophoneSample,
-  deriveMotionSample,
-  deviceCapabilityId,
   deviceClassById,
-  initialDeviceSessionState,
-  initialRemoteGrantStore,
-  initialShareOfferStore,
-  isDeviceSessionLive,
-  isRemoteGrantLive,
-  isShareOfferLive,
-  quantizeAmbientLux,
-  quantizeLocationCoarse,
-  remoteGrantKey,
-  sanitizeCameraFrame,
-  sanitizeMotionSamples,
-  sanitizePcmSample,
-  stepDeviceSession,
-  stepRemoteGrantStore,
-  stepShareOfferStore,
-  validateActuatorCommand,
   type AdmissionDecision,
   type CameraDerivedInput,
-  type DeviceClassEntry,
   type DeviceCommand,
   type DeviceConsentClass,
   type DeviceSessionState,
@@ -41,14 +12,11 @@ import {
   type RawMotionInput,
   type RawMotionSample,
   type RawPcmInput,
-  type RemoteDeviceGrant,
   type ShareOffer,
-  type StreamDemand,
   type StreamPlane,
 } from "@twistedpear/protocol";
-import { assertCapabilityAllowed, CapabilityError } from "../capabilities.js";
+import { assertCapabilityAllowed } from "../capabilities.js";
 import {
-  requestHostConfirmation,
   type ConfirmationEffects,
   type HostConfirmationChannel,
 } from "../confirm.js";
@@ -56,7 +24,7 @@ import {
   DeviceStreamSidecar,
   type DeviceSidecarDelivery,
 } from "../device-sidecar.js";
-import type { StreamEgress, StreamEgressFactory } from "../media-stream.js";
+import type { StreamEgressFactory } from "../media-stream.js";
 import {
   createHostBridgedDrivers,
   type DeviceHostBridge,

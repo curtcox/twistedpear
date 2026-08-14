@@ -27,9 +27,7 @@ import {
   KISS_RADIO_STATE_ON,
   createKissDecodeState,
   decodeKissFrames,
-  encodeDetectRequest,
   encodeKissFrame,
-  encodeRadioStateAsk,
 } from "../src/rnode/kiss.js";
 
 const provider = new PureCryptoProvider();

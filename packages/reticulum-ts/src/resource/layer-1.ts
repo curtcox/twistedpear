@@ -66,9 +66,7 @@ import {
   type ResourceWatchdogStepResult,
 } from "./protocol.js";
 
-import Bunzip from "seek-bzip";
 import type { CryptoProvider } from "../crypto/provider.js";
-import { equalBytes } from "../crypto/bytes.js";
 import { Identity } from "../identity.js";
 import type { Link } from "../link.js";
 import type { LeafTransport } from "../transport/node.js";
@@ -77,8 +75,6 @@ import {
   RESOURCE_IFAC_MIN_SIZE,
   RESOURCE_PACKET_HEADER_MAX,
   ResourceAdvertisement,
-  bytesToHex,
-  decodeResourcePayload,
   resourceTimeoutForLink,
 } from "./shared.js";
 import type {
@@ -296,10 +292,7 @@ export class ResourceLayer1 {
         : Identity.getRandomHash(
             link.cryptoProvider,
             link.linkTransport.entropy,
-          ).subarray(
-            0,
-            RESOURCE_RANDOM_HASH_SIZE,
-          );
+          ).subarray(0, RESOURCE_RANDOM_HASH_SIZE);
     if (
       !shouldAcceptResourceRandomHashLength(
         stepResourceRandomHashLengthValidWithActions(

@@ -14,10 +14,8 @@ import {
   type RemoteDeviceGrant,
   type ShareOffer,
 } from "@twistedpear/protocol";
-import { requestHostConfirmation } from "../confirm.js";
 import { DeviceError, SENSITIVE_DEFAULT_TTL_MS, bytesToHex } from "./shared.js";
 import type {
-  DevicePeerHandle,
   DeviceSample,
   DeviceSession,
   DeviceSessionHandle,
@@ -454,7 +452,12 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     }
     const tier = this.resolveTier(entry, request.tier);
     const at = this.now();
-    const grant = this.requireLiveRemoteGrant(request.peerId, entry.id, tier.id, at);
+    const grant = this.requireLiveRemoteGrant(
+      request.peerId,
+      entry.id,
+      tier.id,
+      at,
+    );
     this.assertRemotePeerCapacity(request.peerId, entry.id, tier.id, grant);
 
     await this.maybeConfirmSession({
@@ -485,7 +488,9 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
       classId,
       tierId,
     });
-    const grant = this.remoteGrants.get(remoteGrantKey(peerId, classId, tierId));
+    const grant = this.remoteGrants.get(
+      remoteGrantKey(peerId, classId, tierId),
+    );
     if (grant === undefined || !isRemoteGrantLive(grant, at)) {
       throw new DeviceError(
         "DEVICE_DENIED",
