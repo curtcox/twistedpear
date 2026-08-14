@@ -76,85 +76,41 @@ import {
 } from "./app-web-shared.js";
 import type { useWebHarnessController } from "./app-web-controller.js";
 export type WebHarnessScope = ReturnType<typeof useWebHarnessController>;
-export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
-  const {
-    status,
-    setStatus,
-    announces,
-    setAnnounces,
-    logLines,
-    setLogLines,
-    gatewayUrl,
-    setGatewayUrl,
-    sharedToken,
-    setSharedToken,
-    ntfyUrl,
-    setNtfyUrl,
-    ntfyToken,
-    setNtfyToken,
-    wsEnabled,
-    setWsEnabled,
-    rnodeEnabled,
-    setRnodeEnabled,
-    webSerialAvailable,
-    previewTree,
-    setPreviewTree,
-    lastWidgetEvent,
-    setLastWidgetEvent,
-    storageQuota,
-    setStorageQuota,
-    installed,
-    setInstalled,
-    selectedInstalledAppId,
-    setSelectedInstalledAppId,
-    grantCapabilities,
-    setGrantCapabilities,
-    miniappRuntime,
-    setMiniappRuntime,
-    developerMode,
-    setDeveloperMode,
-    hostModal,
-    setHostModal,
-    peerModal,
-    setPeerModal,
-    install256tInput,
-    setInstall256tInput,
-    installProgress,
-    setInstallProgress,
-    trustedPublishers,
-    setTrustedPublishers,
-    trustIdentityInput,
-    setTrustIdentityInput,
-    trustLabelInput,
-    setTrustLabelInput,
-    hostIdentity256t,
-    setHostIdentity256t,
-    deviceState,
-    setDeviceState,
-    sessionInvites,
-    setSessionInvites,
-    pwaInstallAvailability,
-    setPwaInstallAvailability,
-    pwaInstallRef,
-    peerRtcRef,
-    previewOptions,
-    bridgeRef,
-    workspaceReadCounterRef,
-    crossDeviceCounterRef,
-    pendingCrossDeviceRef,
-    pendingWorkspaceReadsRef,
-    appendLog,
-    sendToWorker,
-    readWorkspaceDocument,
-    handleWorkerMessage,
-    ensureBridge,
-    pushGatewayConfig,
-    performPeerAudio,
-    connectWebSerialRnode,
-    promptPwaInstall,
-  } = scope;
+
+function WebHarnessTitle() {
   return (
     <>
+      <Text style={styles.title}>TwistedPear Web Host</Text>
+      <Text style={styles.subtitle}>
+        Reticulum leaf peer in the browser (Phase W — leaf host)
+      </Text>
+    </>
+  );
+}
+
+export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
+  return (
+    <>
+      <WebHarnessViewPart1Block0 scope={scope} />
+      <WebHarnessViewPart1Block1 scope={scope} />
+      <WebHarnessViewPart1Block2 scope={scope} />
+      <WebHarnessViewPart1Block3 scope={scope} />
+      <WebHarnessViewPart1Block4 scope={scope} />
+      <WebHarnessViewPart1Block5 scope={scope} />
+      <WebHarnessViewPart1Block6 scope={scope} />
+    </>
+  );
+}
+function WebHarnessViewPart1Block0({ scope }: { scope: WebHarnessScope }) {
+  const {
+    hostModal,
+    sendToWorker,
+    setHostModal,
+  } = scope;
+  return (
+
+    <>
+
       <StatusBar style="auto" />
       {hostModal !== null ? (
         <HostConfirmationModal
@@ -210,6 +166,19 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
           }}
         />
       ) : null}
+    </>
+  );
+}
+function WebHarnessViewPart1Block1({ scope }: { scope: WebHarnessScope }) {
+  const {
+    peerModal,
+    performPeerAudio,
+    sendToWorker,
+    setPeerModal,
+  } = scope;
+  return (
+
+    <>
       {peerModal !== null ? (
         <PeerChromeModal
           modal={peerModal}
@@ -251,6 +220,19 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
           }}
         />
       ) : null}
+    </>
+  );
+}
+function WebHarnessViewPart1Block2({ scope }: { scope: WebHarnessScope }) {
+  const {
+    deviceState,
+    sendToWorker,
+    sessionInvites,
+    status,
+  } = scope;
+  return (
+
+    <>
       {sessionInvites.some((invite) => invite.phase === "pending") ? (
         <View testID="session-invite-banner" style={styles.deviceActiveBanner}>
           <Text style={styles.deviceActiveBannerTitle}>
@@ -345,11 +327,24 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
           ))}
         </View>
       ) : null}
-      <Text style={styles.title}>TwistedPear Web Host</Text>
-      <Text style={styles.subtitle}>
-        Reticulum leaf peer in the browser (Phase W — leaf host)
-      </Text>
-
+    </>
+  );
+}
+function WebHarnessViewPart1Block3({ scope }: { scope: WebHarnessScope }) {
+  const {
+    gatewayUrl,
+    installed,
+    promptPwaInstall,
+    pwaInstallAvailability,
+    sendToWorker,
+    status,
+    storageQuota,
+    webSerialAvailable,
+    wsEnabled,
+  } = scope;
+  return (
+    <>
+      <WebHarnessTitle />
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Install app (PWA)</Text>
         <Text style={styles.muted}>
@@ -455,6 +450,31 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
           </Text>
         ))}
       </View>
+    </>
+  );
+}
+function WebHarnessViewPart1Block4({ scope }: { scope: WebHarnessScope }) {
+  const {
+    connectWebSerialRnode,
+    gatewayUrl,
+    ntfyToken,
+    ntfyUrl,
+    pushGatewayConfig,
+    rnodeEnabled,
+    setGatewayUrl,
+    setNtfyToken,
+    setNtfyUrl,
+    setRnodeEnabled,
+    setSharedToken,
+    setWsEnabled,
+    sharedToken,
+    status,
+    webSerialAvailable,
+    wsEnabled,
+  } = scope;
+  return (
+
+    <>
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Gateway</Text>
@@ -544,6 +564,18 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
           </Text>
         ) : null}
       </View>
+    </>
+  );
+}
+function WebHarnessViewPart1Block5({ scope }: { scope: WebHarnessScope }) {
+  const {
+    appendLog,
+    deviceState,
+    sendToWorker,
+  } = scope;
+  return (
+
+    <>
 
       <View style={styles.card}>
         <View style={styles.buttonRow}>
@@ -653,6 +685,22 @@ export function WebHarnessViewPart1({ scope }: { scope: WebHarnessScope }) {
             </View>
           ))
         )}
+      </View>
+    </>
+  );
+}
+function WebHarnessViewPart1Block6({ scope }: { scope: WebHarnessScope }) {
+  const {
+    developerMode,
+    deviceState,
+    miniappRuntime,
+    readWorkspaceDocument,
+    sendToWorker,
+    setDeveloperMode,
+  } = scope;
+  return (
+    <>
+      <View style={styles.card}>
         <ActionButton
           label="Refresh devices"
           onPress={() => sendToWorker({ type: "device-list" })}

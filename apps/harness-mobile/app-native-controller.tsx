@@ -1,594 +1,100 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
-import { useCameraPermissions } from "expo-camera";
 import qrcodeModule from "qrcode-generator";
-import { Worklet } from "react-native-bare-kit";
 import { requestNativePeerAudioPermission } from "@twistedpear/peer-audio";
-import { type NodeLifecycleState } from "@twistedpear/node-service";
-import { HostMulticastIpc } from "./host/multicast-ipc";
-import { HostBonjourIpc } from "./host/bonjour-ipc";
-import { HostBleIpc } from "./host/ble-ipc";
-import { HostUsbIpc } from "./host/usb-ipc";
-import { createNativePeerRtcStore } from "./host/native-peer-webrtc";
-import { type UsbSerialDeviceInfo } from "@twistedpear/usb-serial";
 import {
-  defaultFreenetRemoteGrant,
-  type FreenetRemoteGrant,
-} from "./src/freenet-remote-grant";
-import {
-  idleFreenetRemoteSession,
   probeFreenetRemoteNode,
   reduceFreenetRemoteSession,
+  idleFreenetRemoteSession,
   freenetRemoteSessionLogSafe,
-  type FreenetRemoteSession,
 } from "./src/freenet-remote-session";
+import type { FreenetRemoteGrant } from "./src/freenet-remote-grant";
 import {
   encodeMessage,
-  type AnnounceEntry,
-  type CapabilityGrantView,
-  type CatalogEntryView,
-  type HostConfirmationRequestView,
   type HostToWorkletMessage,
-  type InstallProgress,
-  type InstallReviewRequestView,
-  type InstalledPackageView,
-  type LaunchReviewRequestView,
-  type MiniappBenchmarkResult,
-  type MiniappRuntimeView,
-  type TrustedPublisherView,
-  type WorkletStatus,
   type WorkletToHostMessage,
   type DeviceStateView,
-  type SessionInviteView,
 } from "./worklet/protocol";
 import {
-  ANDROID_EMULATOR_HOST,
-  DEFAULT_DEV_PORT,
-  initialStatus,
-  LOCAL_HOST,
   playNativePeerFrames,
   recordNativePeerFrames,
 } from "./app-native-shared.js";
 import { createNativeWorkletMessageHandler } from "./app-native-controller-messages.js";
+import type { NativeWorkletMessageHandlerDeps } from "./app-native-controller-messages.js";
 import { useNativeWorkletLifecycle } from "./app-native-controller-worklet.js";
+import type { NativeWorkletLifecycleDeps } from "./app-native-controller-worklet.js";
+import {
+  useNativeHarnessCoreState,
+  useNativeHarnessRefs,
+  useNativeHarnessUiState,
+} from "./app-native-controller-state.js";
 
 export function useNativeHarnessController() {
-  const [status, setStatus] = useState<WorkletStatus>(initialStatus);
-  const [announces, setAnnounces] = useState<ReadonlyArray<AnnounceEntry>>([]);
-  const [catalog, setCatalog] = useState<ReadonlyArray<CatalogEntryView>>([]);
-  const [installed, setInstalled] = useState<
-    ReadonlyArray<InstalledPackageView>
-  >([]);
-  const [installProgress, setInstallProgress] =
-    useState<InstallProgress | null>(null);
-  const [serviceRunning, setServiceRunning] = useState(false);
-  const [lifecycleState, setLifecycleState] =
-    useState<NodeLifecycleState>("unsupported");
-  const [logLines, setLogLines] = useState<ReadonlyArray<string>>([
-    "Host ready. Create an identity, then join a nearby or community network.",
-  ]);
-  const [tcpEnabled, setTcpEnabled] = useState(false);
-  const [autoEnabled, setAutoEnabled] = useState(false);
-  const [bleEnabled, setBleEnabled] = useState(false);
-  const [rnodeEnabled, setRnodeEnabled] = useState(false);
-  const [relayNotice, setRelayNotice] = useState<{
-    appId: string;
-    method: string;
-    kind?: string;
-  } | null>(null);
-  const [usbDevices, setUsbDevices] = useState<
-    ReadonlyArray<UsbSerialDeviceInfo>
-  >([]);
-  const [selectedUsbDeviceId, setSelectedUsbDeviceId] = useState<number | null>(
-    null,
+  const core = useNativeHarnessCoreState();
+  const ui = useNativeHarnessUiState();
+  const refs = useNativeHarnessRefs();
+  useEffect(
+    () => startPeerQrRotation(ui.peerModal, ui.setPeerQrFrame),
+    [ui.peerModal],
   );
-  const [selectedCatalogAppId, setSelectedCatalogAppId] = useState<
-    string | null
-  >(null);
-  const [selectedInstalledAppId, setSelectedInstalledAppId] = useState<
-    string | null
-  >(null);
-  const [grantCapabilities, setGrantCapabilities] = useState<
-    ReadonlyArray<CapabilityGrantView>
-  >([]);
-  const [miniappRuntime, setMiniappRuntime] =
-    useState<MiniappRuntimeView | null>(null);
-  const [miniappBenchmark, setMiniappBenchmark] =
-    useState<MiniappBenchmarkResult | null>(null);
-  const [miniappLogs, setMiniappLogs] = useState<ReadonlyArray<string>>([]);
-  const [developerMode, setDeveloperMode] = useState(false);
-  const [devChannelDetail, setDevChannelDetail] = useState<string | null>(null);
-  const [devHost, setDevHost] = useState(
-    Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST,
-  );
-  const [devPort, setDevPort] = useState(String(DEFAULT_DEV_PORT));
-  const [ntfyUrl, setNtfyUrl] = useState("");
-  const [ntfyToken, setNtfyToken] = useState("");
-  const [freenetGrant, setFreenetGrant] = useState<FreenetRemoteGrant>(() =>
-    defaultFreenetRemoteGrant(),
-  );
-  const [freenetDisclosureAccepted, setFreenetDisclosureAccepted] =
-    useState(false);
-  const [freenetGrantError, setFreenetGrantError] = useState<string | null>(
-    null,
-  );
-  const [freenetSession, setFreenetSession] = useState<FreenetRemoteSession>(
-    () => idleFreenetRemoteSession(),
-  );
-  const [peerModal, setPeerModal] = useState<
-    | {
-        readonly kind: "exchange";
-        readonly request: Extract<
-          WorkletToHostMessage,
-          {
-            type:
-              | "peer-manual-present"
-              | "peer-manual-enter"
-              | "peer-qr-present"
-              | "peer-qr-scan"
-              | "peer-ntfy-present"
-              | "peer-ntfy-enter"
-              | "peer-audio-transmit"
-              | "peer-audio-receive";
-          }
-        >;
-        readonly input: string;
-      }
-    | {
-        readonly kind: "confirm";
-        readonly request: Extract<
-          WorkletToHostMessage,
-          { type: "peer-confirm-request" }
-        >;
-      }
-    | null
-  >(null);
-  const [hostConfirm, setHostConfirm] =
-    useState<HostConfirmationRequestView | null>(null);
-  const [hostReview, setHostReview] = useState<
-    | {
-        readonly kind: "install";
-        readonly review: InstallReviewRequestView;
-        readonly grants: ReadonlyArray<string>;
-      }
-    | {
-        readonly kind: "launch";
-        readonly review: LaunchReviewRequestView;
-        readonly grants: ReadonlyArray<string>;
-      }
-    | null
-  >(null);
-  const [install256tInput, setInstall256tInput] = useState("");
-  const [trustIdentityInput, setTrustIdentityInput] = useState("");
-  const [trustLabelInput, setTrustLabelInput] = useState("");
-  const [trustedPublishers, setTrustedPublishers] = useState<
-    ReadonlyArray<TrustedPublisherView>
-  >([]);
-  const [hostIdentity256t, setHostIdentity256t] = useState<string | null>(null);
-  const [deviceState, setDeviceState] = useState<DeviceStateView | null>(null);
-  const [sessionInvites, setSessionInvites] = useState<
-    ReadonlyArray<SessionInviteView>
-  >([]);
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [peerCameraActive, setPeerCameraActive] = useState(false);
-  const [peerQrFrame, setPeerQrFrame] = useState(0);
-
-  const workletRef = useRef<Worklet | null>(null);
-  const ipcBufferRef = useRef("");
-  const multicastIpcRef = useRef<HostMulticastIpc | null>(null);
-  const bonjourIpcRef = useRef<HostBonjourIpc | null>(null);
-  const bleIpcRef = useRef<HostBleIpc | null>(null);
-  const usbIpcRef = useRef<HostUsbIpc | null>(null);
-  const workletReadyRef = useRef<Promise<boolean> | null>(null);
-  const interfacesWantedWorkletRef = useRef(false);
-  const workspaceReadCounterRef = useRef(0);
-  const peerRtcRef = useRef(createNativePeerRtcStore());
-  const pendingWorkspaceReadsRef = useRef(
-    new Map<
-      string,
-      {
-        readonly resolve: (content: string) => void;
-        readonly reject: (error: Error) => void;
-        readonly timer: ReturnType<typeof setTimeout>;
-      }
-    >(),
-  );
-
-  useEffect(() => {
-    if (
-      peerModal?.kind !== "exchange" ||
-      peerModal.request.type !== "peer-qr-present" ||
-      peerModal.request.codes.length < 2
-    ) {
-      return undefined;
-    }
-    const codes = peerModal.request.codes;
-    const timer = setInterval(
-      () => setPeerQrFrame((current) => (current + 1) % codes.length),
-      750,
-    );
-    return () => clearInterval(timer);
-  }, [peerModal]);
-
   const appendLog = useCallback((line: string) => {
-    setLogLines((current) => [...current.slice(-200), line]);
-  }, []);
-
+    core.setLogLines((current) => [...current.slice(-200), line]);
+  }, [core.setLogLines]);
   const sendToWorklet = useCallback((message: HostToWorkletMessage) => {
-    const worklet = workletRef.current;
-    if (worklet === null) {
-      return;
-    }
-    worklet.IPC.write(new TextEncoder().encode(encodeMessage(message)));
-  }, []);
-
+    refs.workletRef.current?.IPC.write(
+      new TextEncoder().encode(encodeMessage(message)),
+    );
+  }, [refs.workletRef]);
   const handleWorkletMessage = useMemo(
     () =>
-      createNativeWorkletMessageHandler({
-        appendLog,
-        sendToWorklet,
-        cameraPermissionGranted: cameraPermission?.granted,
-        ntfyUrl,
-        ntfyToken,
-        multicastIpcRef,
-        bonjourIpcRef,
-        bleIpcRef,
-        usbIpcRef,
-        peerRtcRef,
-        pendingWorkspaceReadsRef,
-        setStatus,
-        setAnnounces,
-        setCatalog,
-        setInstalled,
-        setInstallProgress,
-        setGrantCapabilities,
-        setMiniappRuntime,
-        setMiniappBenchmark,
-        setMiniappLogs,
-        setPeerModal,
-        setPeerQrFrame,
-        setPeerCameraActive,
-        setHostConfirm,
-        setHostReview,
-        setTrustedPublishers,
-        setHostIdentity256t,
-        setSessionInvites,
-        setRelayNotice,
-        setDeviceState,
-        setDevChannelDetail,
-      }),
-    [appendLog, cameraPermission?.granted, ntfyToken, ntfyUrl, sendToWorklet],
+      createNativeWorkletMessageHandler(
+        nativeMessageHandlerDeps(core, ui, refs, appendLog, sendToWorklet),
+      ),
+    [appendLog, ui.cameraPermission?.granted, core.ntfyToken, core.ntfyUrl, sendToWorklet],
   );
-
   const { pushInterfaceConfig, stopWorklet, startWorklet } =
-    useNativeWorkletLifecycle({
-      workletRef,
-      ipcBufferRef,
-      multicastIpcRef,
-      bonjourIpcRef,
-      bleIpcRef,
-      usbIpcRef,
-      workletReadyRef,
-      interfacesWantedWorkletRef,
-      appendLog,
-      sendToWorklet,
-      handleWorkletMessage,
-      tcpEnabled,
-      autoEnabled,
-      bleEnabled,
-      rnodeEnabled,
-      selectedUsbDeviceId,
-      ntfyUrl,
-      status,
-      setStatus,
-      setServiceRunning,
-      setLifecycleState,
-      setUsbDevices,
-    });
-
+    useNativeWorkletLifecycle(
+      nativeWorkletLifecycleDeps(core, refs, appendLog, sendToWorklet, handleWorkletMessage),
+    );
   const seedShareOfferChrome = useCallback(
-    (options: {
-      readonly appId: string;
-      readonly displayLabel: string;
-      readonly classId: "camera" | "microphone";
-      readonly ttlMs: number;
-    }) => {
-      const id = `host-seed-${Date.now()}`;
-      const expiresAt = Date.now() + options.ttlMs;
-      const offer = {
-        id,
-        appId: options.appId,
-        displayLabel: options.displayLabel,
-        classId: options.classId,
-        tierId: "pcm",
-        maxRung: "16k-opus",
-        expiresAt,
-      };
-      setDeviceState((current) => ({
-        inventory: current?.inventory ?? [],
-        diagnostics: current?.diagnostics ?? [],
-        sessions: current?.sessions ?? [],
-        indicators: current?.indicators ?? [],
-        disabledClasses: current?.disabledClasses ?? [],
-        remoteAcquisitionEnabled: current?.remoteAcquisitionEnabled === true,
-        shareOffers: [
-          ...(current?.shareOffers ?? []).filter((entry) => entry.id !== id),
-          offer,
-        ],
-      }));
-      sendToWorklet({
-        type: "device-test-seed-share",
-        appId: options.appId,
-        displayLabel: options.displayLabel,
-        classId: options.classId,
-        ttlMs: options.ttlMs,
-      });
-      if (options.ttlMs <= 10_000) {
-        setTimeout(
-          () => {
-            setDeviceState((current) => {
-              if (current === null) {
-                return current;
-              }
-              return {
-                ...current,
-                shareOffers: current.shareOffers.filter(
-                  (entry) => entry.id !== id && entry.expiresAt > Date.now(),
-                ),
-              };
-            });
-          },
-          Math.max(50, options.ttlMs + 50),
-        );
-      }
-    },
-    [sendToWorklet],
+    (options: SeedShareOptions) =>
+      seedShareOffer(options, ui.setDeviceState, sendToWorklet),
+    [sendToWorklet, ui.setDeviceState],
   );
-
   const revokeShareOfferChrome = useCallback(
-    (appId: string, id: string) => {
-      setDeviceState((current) => {
-        if (current === null) {
-          return current;
-        }
-        return {
-          ...current,
-          shareOffers: current.shareOffers.filter((entry) => entry.id !== id),
-        };
-      });
-      sendToWorklet({ type: "device-revoke-share", appId, id });
-    },
-    [sendToWorklet],
+    (appId: string, id: string) =>
+      revokeShareOffer(appId, id, ui.setDeviceState, sendToWorklet),
+    [sendToWorklet, ui.setDeviceState],
   );
-
   const applyFreenetGrantToWorklet = useCallback(
-    (grant: FreenetRemoteGrant | null) => {
-      if (grant === null || !grant.enabled) {
-        sendToWorklet({ type: "set-freenet-config", enabled: false });
-        return;
-      }
-      sendToWorklet({
-        type: "set-freenet-config",
-        enabled: true,
-        url: grant.nodeUrl,
-        ...(grant.authToken !== undefined && grant.authToken.length > 0
-          ? { authToken: grant.authToken }
-          : {}),
-        ...(grant.rendezvousHex !== undefined && grant.rendezvousHex.length > 0
-          ? { rendezvousHex: grant.rendezvousHex }
-          : {}),
-        localDirection: grant.localDirection === 1 ? 1 : 0,
-        capabilities: grant.capabilities,
-      });
-    },
+    (grant: FreenetRemoteGrant | null) =>
+      applyFreenetGrant(grant, sendToWorklet),
     [sendToWorklet],
   );
-
   const activateFreenetGrant = useCallback(
     async (enabled: FreenetRemoteGrant) => {
-      applyFreenetGrantToWorklet(enabled);
-      let next = reduceFreenetRemoteSession(idleFreenetRemoteSession(), {
-        type: "enable",
-        grant: enabled,
-      });
-      setFreenetSession(next);
-      const probe = await probeFreenetRemoteNode(enabled);
-      next = reduceFreenetRemoteSession(next, {
-        type: "probe-result",
-        result: probe,
-      });
-      setFreenetSession(next);
-      appendLog(
-        `Freenet remote session: ${JSON.stringify(freenetRemoteSessionLogSafe(next))}`,
-      );
+      await activateFreenet(enabled, applyFreenetGrantToWorklet, ui.setFreenetSession, appendLog);
     },
-    [appendLog, applyFreenetGrantToWorklet],
+    [appendLog, applyFreenetGrantToWorklet, ui.setFreenetSession],
   );
-
   const readWorkspaceDocument = useCallback(
     (documentId: string) =>
-      new Promise<string>((resolve, reject) => {
-        const token = `ws-${workspaceReadCounterRef.current++}`;
-        const timer = setTimeout(() => {
-          pendingWorkspaceReadsRef.current.delete(token);
-          reject(new Error("Workspace read timed out"));
-        }, 10_000);
-        pendingWorkspaceReadsRef.current.set(token, { resolve, reject, timer });
-        sendToWorklet({ type: "workspace-read", token, documentId });
-      }),
+      readNativeWorkspaceDocument(documentId, refs, sendToWorklet),
     [sendToWorklet],
   );
-
   const performPeerAudio = useCallback(
-    async (
+    (
       request: Extract<
         WorkletToHostMessage,
         { type: "peer-audio-transmit" | "peer-audio-receive" }
       >,
-    ) => {
-      try {
-        const granted =
-          Platform.OS === "android"
-            ? (await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-              )) === PermissionsAndroid.RESULTS.GRANTED
-            : await requestNativePeerAudioPermission();
-        if (!granted) {
-          throw new Error("Microphone permission was denied");
-        }
-        appendLog(
-          request.type === "peer-audio-transmit"
-            ? "Playing audible peer frames…"
-            : "Listening for audible peer frames…",
-        );
-        if (request.type === "peer-audio-transmit") {
-          await playNativePeerFrames(request.framesHex);
-          const framesHex = request.expectsResponse
-            ? await recordNativePeerFrames()
-            : [];
-          sendToWorklet({
-            type: "peer-chrome-response",
-            token: request.token,
-            accepted: true,
-            framesHex,
-          });
-        } else {
-          sendToWorklet({
-            type: "peer-chrome-response",
-            token: request.token,
-            accepted: true,
-            sessionId: request.sessionId,
-            framesHex: await recordNativePeerFrames(),
-          });
-        }
-        appendLog("Audible peer exchange completed.");
-      } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error);
-        appendLog(`Audible peer exchange failed: ${detail}`);
-        sendToWorklet({
-          type: "peer-chrome-response",
-          token: request.token,
-          accepted: false,
-          error: detail,
-        });
-      }
-    },
+    ) => performNativePeerAudio(request, appendLog, sendToWorklet),
     [appendLog, sendToWorklet],
   );
-
-  let peerQrUri: string | null = null;
-  if (
-    peerModal?.kind === "exchange" &&
-    peerModal.request.type === "peer-qr-present"
-  ) {
-    const value =
-      peerModal.request.codes[peerQrFrame % peerModal.request.codes.length];
-    if (value !== undefined) {
-      const image = qrcodeModule(0, "M");
-      image.addData(value);
-      image.make();
-      peerQrUri = image.createDataURL(4, 8);
-    }
-  }
-
   return {
-    status,
-    setStatus,
-    announces,
-    setAnnounces,
-    catalog,
-    setCatalog,
-    installed,
-    setInstalled,
-    installProgress,
-    setInstallProgress,
-    serviceRunning,
-    setServiceRunning,
-    lifecycleState,
-    setLifecycleState,
-    logLines,
-    setLogLines,
-    tcpEnabled,
-    setTcpEnabled,
-    autoEnabled,
-    setAutoEnabled,
-    bleEnabled,
-    setBleEnabled,
-    rnodeEnabled,
-    setRnodeEnabled,
-    relayNotice,
-    setRelayNotice,
-    usbDevices,
-    setUsbDevices,
-    selectedUsbDeviceId,
-    setSelectedUsbDeviceId,
-    selectedCatalogAppId,
-    setSelectedCatalogAppId,
-    selectedInstalledAppId,
-    setSelectedInstalledAppId,
-    grantCapabilities,
-    setGrantCapabilities,
-    miniappRuntime,
-    setMiniappRuntime,
-    miniappBenchmark,
-    setMiniappBenchmark,
-    miniappLogs,
-    setMiniappLogs,
-    developerMode,
-    setDeveloperMode,
-    devChannelDetail,
-    setDevChannelDetail,
-    devHost,
-    setDevHost,
-    devPort,
-    setDevPort,
-    ntfyUrl,
-    setNtfyUrl,
-    ntfyToken,
-    setNtfyToken,
-    freenetGrant,
-    setFreenetGrant,
-    freenetDisclosureAccepted,
-    setFreenetDisclosureAccepted,
-    freenetGrantError,
-    setFreenetGrantError,
-    freenetSession,
-    setFreenetSession,
-    peerModal,
-    setPeerModal,
-    hostConfirm,
-    setHostConfirm,
-    hostReview,
-    setHostReview,
-    install256tInput,
-    setInstall256tInput,
-    trustIdentityInput,
-    setTrustIdentityInput,
-    trustLabelInput,
-    setTrustLabelInput,
-    trustedPublishers,
-    setTrustedPublishers,
-    hostIdentity256t,
-    setHostIdentity256t,
-    deviceState,
-    setDeviceState,
-    sessionInvites,
-    setSessionInvites,
-    cameraPermission,
-    requestCameraPermission,
-    peerCameraActive,
-    setPeerCameraActive,
-    peerQrFrame,
-    setPeerQrFrame,
-    workletRef,
-    ipcBufferRef,
-    multicastIpcRef,
-    bonjourIpcRef,
-    bleIpcRef,
-    usbIpcRef,
-    workspaceReadCounterRef,
-    peerRtcRef,
-    pendingWorkspaceReadsRef,
+    ...core,
+    ...ui,
+    ...refs,
     appendLog,
     sendToWorklet,
     seedShareOfferChrome,
@@ -599,10 +105,333 @@ export function useNativeHarnessController() {
     handleWorkletMessage,
     performPeerAudio,
     pushInterfaceConfig,
-    workletReadyRef,
     stopWorklet,
     startWorklet,
-    interfacesWantedWorkletRef,
-    peerQrUri,
+    peerQrUri: nativePeerQrUri(ui.peerModal, ui.peerQrFrame),
   };
+}
+
+type SeedShareOptions = {
+  readonly appId: string;
+  readonly displayLabel: string;
+  readonly classId: "camera" | "microphone";
+  readonly ttlMs: number;
+};
+
+function nativeMessageHandlerDeps(
+  core: ReturnType<typeof useNativeHarnessCoreState>,
+  ui: ReturnType<typeof useNativeHarnessUiState>,
+  refs: ReturnType<typeof useNativeHarnessRefs>,
+  appendLog: (line: string) => void,
+  sendToWorklet: (message: HostToWorkletMessage) => void,
+): NativeWorkletMessageHandlerDeps {
+  return {
+    appendLog,
+    sendToWorklet,
+    cameraPermissionGranted: ui.cameraPermission?.granted,
+    ntfyUrl: core.ntfyUrl,
+    ntfyToken: core.ntfyToken,
+    multicastIpcRef: refs.multicastIpcRef,
+    bonjourIpcRef: refs.bonjourIpcRef,
+    bleIpcRef: refs.bleIpcRef,
+    usbIpcRef: refs.usbIpcRef,
+    peerRtcRef: refs.peerRtcRef,
+    pendingWorkspaceReadsRef: refs.pendingWorkspaceReadsRef,
+    setStatus: core.setStatus,
+    setAnnounces: core.setAnnounces,
+    setCatalog: core.setCatalog,
+    setInstalled: core.setInstalled,
+    setInstallProgress: core.setInstallProgress,
+    setGrantCapabilities: core.setGrantCapabilities,
+    setMiniappRuntime: core.setMiniappRuntime,
+    setMiniappBenchmark: core.setMiniappBenchmark,
+    setMiniappLogs: core.setMiniappLogs,
+    setPeerModal: ui.setPeerModal,
+    setPeerQrFrame: ui.setPeerQrFrame,
+    setPeerCameraActive: ui.setPeerCameraActive,
+    setHostConfirm: ui.setHostConfirm,
+    setHostReview: ui.setHostReview,
+    setTrustedPublishers: ui.setTrustedPublishers,
+    setHostIdentity256t: ui.setHostIdentity256t,
+    setSessionInvites: ui.setSessionInvites,
+    setRelayNotice: core.setRelayNotice,
+    setDeviceState: ui.setDeviceState,
+    setDevChannelDetail: core.setDevChannelDetail,
+  };
+}
+
+function nativeWorkletLifecycleDeps(
+  core: ReturnType<typeof useNativeHarnessCoreState>,
+  refs: ReturnType<typeof useNativeHarnessRefs>,
+  appendLog: (line: string) => void,
+  sendToWorklet: (message: HostToWorkletMessage) => void,
+  handleWorkletMessage: (message: WorkletToHostMessage) => void,
+): NativeWorkletLifecycleDeps {
+  return {
+    workletRef: refs.workletRef,
+    ipcBufferRef: refs.ipcBufferRef,
+    multicastIpcRef: refs.multicastIpcRef,
+    bonjourIpcRef: refs.bonjourIpcRef,
+    bleIpcRef: refs.bleIpcRef,
+    usbIpcRef: refs.usbIpcRef,
+    workletReadyRef: refs.workletReadyRef,
+    interfacesWantedWorkletRef: refs.interfacesWantedWorkletRef,
+    appendLog,
+    sendToWorklet,
+    handleWorkletMessage,
+    tcpEnabled: core.tcpEnabled,
+    autoEnabled: core.autoEnabled,
+    bleEnabled: core.bleEnabled,
+    rnodeEnabled: core.rnodeEnabled,
+    selectedUsbDeviceId: core.selectedUsbDeviceId,
+    ntfyUrl: core.ntfyUrl,
+    status: core.status,
+    setStatus: core.setStatus,
+    setServiceRunning: core.setServiceRunning,
+    setLifecycleState: core.setLifecycleState,
+    setUsbDevices: core.setUsbDevices,
+  };
+}
+
+function startPeerQrRotation(
+  peerModal: ReturnType<typeof useNativeHarnessUiState>["peerModal"],
+  setPeerQrFrame: ReturnType<typeof useNativeHarnessUiState>["setPeerQrFrame"],
+): (() => void) | undefined {
+  if (
+    peerModal?.kind !== "exchange" ||
+    peerModal.request.type !== "peer-qr-present" ||
+    peerModal.request.codes.length < 2
+  ) {
+    return undefined;
+  }
+  const codes = peerModal.request.codes;
+  const timer = setInterval(
+    () => setPeerQrFrame((current) => (current + 1) % codes.length),
+    750,
+  );
+  return () => clearInterval(timer);
+}
+
+function withoutShareOfferId(
+  offers: DeviceStateView["shareOffers"],
+  id: string,
+): DeviceStateView["shareOffers"] {
+  return offers.filter((entry) => entry.id !== id);
+}
+
+function emptyDeviceStateView(): DeviceStateView {
+  return {
+    inventory: [],
+    diagnostics: [],
+    sessions: [],
+    indicators: [],
+    disabledClasses: [],
+    remoteAcquisitionEnabled: false,
+    shareOffers: [],
+  };
+}
+
+function deviceStateWithShareOffer(
+  current: DeviceStateView | null,
+  offer: DeviceStateView["shareOffers"][number],
+  id: string,
+): DeviceStateView {
+  const base = current ?? emptyDeviceStateView();
+  return {
+    ...base,
+    shareOffers: [...withoutShareOfferId(base.shareOffers, id), offer],
+  };
+}
+
+function expireShareOfferFromState(
+  current: DeviceStateView | null,
+  id: string,
+): DeviceStateView | null {
+  if (current === null) {
+    return current;
+  }
+  return {
+    ...current,
+    shareOffers: current.shareOffers.filter(
+      (entry) => entry.id !== id && entry.expiresAt > Date.now(),
+    ),
+  };
+}
+
+function seedShareOffer(
+  options: SeedShareOptions,
+  setDeviceState: React.Dispatch<React.SetStateAction<DeviceStateView | null>>,
+  sendToWorklet: (message: HostToWorkletMessage) => void,
+): void {
+  const id = `host-seed-${Date.now()}`;
+  const expiresAt = Date.now() + options.ttlMs;
+  const offer = {
+    id,
+    appId: options.appId,
+    displayLabel: options.displayLabel,
+    classId: options.classId,
+    tierId: "pcm",
+    maxRung: "16k-opus",
+    expiresAt,
+  };
+  setDeviceState((current) => deviceStateWithShareOffer(current, offer, id));
+  sendToWorklet({
+    type: "device-test-seed-share",
+    appId: options.appId,
+    displayLabel: options.displayLabel,
+    classId: options.classId,
+    ttlMs: options.ttlMs,
+  });
+  if (options.ttlMs <= 10_000) {
+    setTimeout(
+      () => {
+        setDeviceState((current) => expireShareOfferFromState(current, id));
+      },
+      Math.max(50, options.ttlMs + 50),
+    );
+  }
+}
+
+function revokeShareOffer(
+  appId: string,
+  id: string,
+  setDeviceState: React.Dispatch<React.SetStateAction<DeviceStateView | null>>,
+  sendToWorklet: (message: HostToWorkletMessage) => void,
+): void {
+  setDeviceState((current) => {
+    if (current === null) return current;
+    return {
+      ...current,
+      shareOffers: current.shareOffers.filter((entry) => entry.id !== id),
+    };
+  });
+  sendToWorklet({ type: "device-revoke-share", appId, id });
+}
+
+function applyFreenetGrant(
+  grant: FreenetRemoteGrant | null,
+  sendToWorklet: (message: HostToWorkletMessage) => void,
+): void {
+  if (grant === null || !grant.enabled) {
+    sendToWorklet({ type: "set-freenet-config", enabled: false });
+    return;
+  }
+  sendToWorklet({
+    type: "set-freenet-config",
+    enabled: true,
+    url: grant.nodeUrl,
+    ...(grant.authToken !== undefined && grant.authToken.length > 0
+      ? { authToken: grant.authToken }
+      : {}),
+    ...(grant.rendezvousHex !== undefined && grant.rendezvousHex.length > 0
+      ? { rendezvousHex: grant.rendezvousHex }
+      : {}),
+    localDirection: grant.localDirection === 1 ? 1 : 0,
+    capabilities: grant.capabilities,
+  });
+}
+
+async function activateFreenet(
+  enabled: FreenetRemoteGrant,
+  applyFreenetGrantToWorklet: (grant: FreenetRemoteGrant | null) => void,
+  setFreenetSession: ReturnType<typeof useNativeHarnessUiState>["setFreenetSession"],
+  appendLog: (line: string) => void,
+): Promise<void> {
+  applyFreenetGrantToWorklet(enabled);
+  let next = reduceFreenetRemoteSession(idleFreenetRemoteSession(), {
+    type: "enable",
+    grant: enabled,
+  });
+  setFreenetSession(next);
+  const probe = await probeFreenetRemoteNode(enabled);
+  next = reduceFreenetRemoteSession(next, { type: "probe-result", result: probe });
+  setFreenetSession(next);
+  appendLog(
+    `Freenet remote session: ${JSON.stringify(freenetRemoteSessionLogSafe(next))}`,
+  );
+}
+
+function readNativeWorkspaceDocument(
+  documentId: string,
+  refs: ReturnType<typeof useNativeHarnessRefs>,
+  sendToWorklet: (message: HostToWorkletMessage) => void,
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const token = `ws-${refs.workspaceReadCounterRef.current++}`;
+    const timer = setTimeout(() => {
+      refs.pendingWorkspaceReadsRef.current.delete(token);
+      reject(new Error("Workspace read timed out"));
+    }, 10_000);
+    refs.pendingWorkspaceReadsRef.current.set(token, { resolve, reject, timer });
+    sendToWorklet({ type: "workspace-read", token, documentId });
+  });
+}
+
+async function performNativePeerAudio(
+  request: Extract<
+    WorkletToHostMessage,
+    { type: "peer-audio-transmit" | "peer-audio-receive" }
+  >,
+  appendLog: (line: string) => void,
+  sendToWorklet: (message: HostToWorkletMessage) => void,
+): Promise<void> {
+  try {
+    const granted =
+      Platform.OS === "android"
+        ? (await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          )) === PermissionsAndroid.RESULTS.GRANTED
+        : await requestNativePeerAudioPermission();
+    if (!granted) throw new Error("Microphone permission was denied");
+    appendLog(
+      request.type === "peer-audio-transmit"
+        ? "Playing audible peer frames…"
+        : "Listening for audible peer frames…",
+    );
+    if (request.type === "peer-audio-transmit") {
+      await playNativePeerFrames(request.framesHex);
+      const framesHex = request.expectsResponse
+        ? await recordNativePeerFrames()
+        : [];
+      sendToWorklet({
+        type: "peer-chrome-response",
+        token: request.token,
+        accepted: true,
+        framesHex,
+      });
+    } else {
+      sendToWorklet({
+        type: "peer-chrome-response",
+        token: request.token,
+        accepted: true,
+        sessionId: request.sessionId,
+        framesHex: await recordNativePeerFrames(),
+      });
+    }
+    appendLog("Audible peer exchange completed.");
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    appendLog(`Audible peer exchange failed: ${detail}`);
+    sendToWorklet({
+      type: "peer-chrome-response",
+      token: request.token,
+      accepted: false,
+      error: detail,
+    });
+  }
+}
+
+function nativePeerQrUri(
+  peerModal: ReturnType<typeof useNativeHarnessUiState>["peerModal"],
+  peerQrFrame: number,
+): string | null {
+  if (peerModal?.kind !== "exchange" || peerModal.request.type !== "peer-qr-present") {
+    return null;
+  }
+  const value = peerModal.request.codes[peerQrFrame % peerModal.request.codes.length];
+  if (value === undefined) return null;
+  const image = qrcodeModule(0, "M");
+  image.addData(value);
+  image.make();
+  return image.createDataURL(4, 8);
 }

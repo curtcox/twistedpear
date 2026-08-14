@@ -128,126 +128,34 @@ import {
 } from "./app-native-shared.js";
 import type { useNativeHarnessController } from "./app-native-controller.js";
 export type NativeHarnessScope = ReturnType<typeof useNativeHarnessController>;
+
 export function NativeHarnessViewPart3({
   scope,
 }: {
   scope: NativeHarnessScope;
 }) {
+  return (
+    <>
+      <NativeHardwareAccessCard scope={scope} />
+      <NativeInstall256tCard scope={scope} />
+      <NativePublisherTrustCard scope={scope} />
+      <NativeAppCatalogCard scope={scope} />
+      <NativeAnnounceBrowserCard scope={scope} />
+    </>
+  );
+}
+
+function NativeHardwareAccessCard({ scope }: { scope: NativeHarnessScope }) {
   const {
-    status,
-    setStatus,
-    announces,
-    setAnnounces,
-    catalog,
-    setCatalog,
-    installed,
-    setInstalled,
-    installProgress,
-    setInstallProgress,
-    serviceRunning,
-    setServiceRunning,
-    lifecycleState,
-    setLifecycleState,
-    logLines,
-    setLogLines,
-    tcpEnabled,
-    setTcpEnabled,
-    autoEnabled,
-    setAutoEnabled,
-    bleEnabled,
-    setBleEnabled,
-    rnodeEnabled,
-    setRnodeEnabled,
+    deviceState,
     usbDevices,
-    setUsbDevices,
     selectedUsbDeviceId,
     setSelectedUsbDeviceId,
-    selectedCatalogAppId,
-    setSelectedCatalogAppId,
-    selectedInstalledAppId,
-    setSelectedInstalledAppId,
-    grantCapabilities,
-    setGrantCapabilities,
-    miniappRuntime,
-    setMiniappRuntime,
-    miniappBenchmark,
-    setMiniappBenchmark,
-    miniappLogs,
-    setMiniappLogs,
-    developerMode,
-    setDeveloperMode,
-    devChannelDetail,
-    setDevChannelDetail,
-    devHost,
-    setDevHost,
-    devPort,
-    setDevPort,
-    ntfyUrl,
-    setNtfyUrl,
-    ntfyToken,
-    setNtfyToken,
-    freenetGrant,
-    setFreenetGrant,
-    freenetDisclosureAccepted,
-    setFreenetDisclosureAccepted,
-    freenetGrantError,
-    setFreenetGrantError,
-    freenetSession,
-    setFreenetSession,
-    peerModal,
-    setPeerModal,
-    hostConfirm,
-    setHostConfirm,
-    hostReview,
-    setHostReview,
-    install256tInput,
-    setInstall256tInput,
-    trustIdentityInput,
-    setTrustIdentityInput,
-    trustLabelInput,
-    setTrustLabelInput,
-    trustedPublishers,
-    setTrustedPublishers,
-    hostIdentity256t,
-    setHostIdentity256t,
-    deviceState,
-    setDeviceState,
-    sessionInvites,
-    setSessionInvites,
-    cameraPermission,
-    requestCameraPermission,
-    peerCameraActive,
-    setPeerCameraActive,
-    peerQrFrame,
-    setPeerQrFrame,
-    workletRef,
-    ipcBufferRef,
-    multicastIpcRef,
-    bonjourIpcRef,
-    bleIpcRef,
-    usbIpcRef,
-    workspaceReadCounterRef,
-    peerRtcRef,
-    pendingWorkspaceReadsRef,
-    appendLog,
     sendToWorklet,
-    seedShareOfferChrome,
-    revokeShareOfferChrome,
-    applyFreenetGrantToWorklet,
-    activateFreenetGrant,
-    readWorkspaceDocument,
-    handleWorkletMessage,
-    performPeerAudio,
-    pushInterfaceConfig,
-    workletReadyRef,
-    stopWorklet,
-    startWorklet,
-    interfacesWantedWorkletRef,
-    peerQrUri,
   } = scope;
   return (
     <>
-      <View style={styles.card}>
+<View style={styles.card}>
         <Text style={styles.sectionTitle}>Hardware access</Text>
         <Row
           testID="device-remote-enabled"
@@ -312,7 +220,21 @@ export function NativeHarnessViewPart3({
           onPress={() => sendToWorklet({ type: "device-list" })}
         />
       </View>
+      <NativeUsbSerialCard scope={scope} />
+    </>
+  );
+}
 
+function NativeUsbSerialCard({ scope }: { scope: NativeHarnessScope }) {
+  const {
+    usbDevices,
+    selectedUsbDeviceId,
+    setSelectedUsbDeviceId,
+    sendToWorklet,
+    appendLog,
+  } = scope;
+  return (
+    <>
       {getUsbSerialCapability().supported ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>USB serial devices</Text>
@@ -374,7 +296,16 @@ export function NativeHarnessViewPart3({
         </View>
       ) : null}
 
-      <View style={styles.card}>
+      
+    </>
+  );
+}
+
+function NativeInstall256tCard({ scope }: { scope: NativeHarnessScope }) {
+  const { install256tInput, setInstall256tInput, sendToWorklet } = scope;
+  return (
+    <>
+<View style={styles.card}>
         <Text style={styles.sectionTitle}>Install from 256t</Text>
         <TextInput
           testID="install-256t-input"
@@ -395,7 +326,24 @@ export function NativeHarnessViewPart3({
         />
       </View>
 
-      <View style={styles.card}>
+      
+    </>
+  );
+}
+
+function NativePublisherTrustCard({ scope }: { scope: NativeHarnessScope }) {
+  const {
+    trustIdentityInput,
+    setTrustIdentityInput,
+    trustLabelInput,
+    setTrustLabelInput,
+    trustedPublishers,
+    hostIdentity256t,
+    sendToWorklet,
+  } = scope;
+  return (
+    <>
+<View style={styles.card}>
         <Text style={styles.sectionTitle}>Publisher trust</Text>
         <TextInput
           testID="trust-identity-input"
@@ -445,7 +393,23 @@ export function NativeHarnessViewPart3({
         ))}
       </View>
 
-      <View style={styles.card}>
+      
+    </>
+  );
+}
+
+function NativeAppCatalogCard({ scope }: { scope: NativeHarnessScope }) {
+  const {
+    status,
+    catalog,
+    installProgress,
+    selectedCatalogAppId,
+    setSelectedCatalogAppId,
+    sendToWorklet,
+  } = scope;
+  return (
+    <>
+<View style={styles.card}>
         <Text style={styles.sectionTitle}>App catalog</Text>
         <Text style={styles.muted}>
           {status.catalogEntries} discovered · {status.installedPackages}{" "}
@@ -546,6 +510,27 @@ export function NativeHarnessViewPart3({
               : ""}
           </Text>
         ) : null}
+        <ActionButton
+          label="Refresh catalog"
+          onPress={() => sendToWorklet({ type: "list-catalog" })}
+        />
+      </View>
+      <NativeInstalledPackagesCard scope={scope} />
+    </>
+  );
+}
+
+function NativeInstalledPackagesCard({ scope }: { scope: NativeHarnessScope }) {
+  const {
+    installed,
+    selectedInstalledAppId,
+    setSelectedInstalledAppId,
+    grantCapabilities,
+    setGrantCapabilities,
+    sendToWorklet,
+  } = scope;
+  return (
+    <View style={styles.card}>
         {installed.length > 0
           ? installed.map((pkg) => (
               <View key={pkg.appId} style={styles.catalogRow}>
@@ -652,13 +637,15 @@ export function NativeHarnessViewPart3({
               ))}
           </View>
         ) : null}
-        <ActionButton
-          label="Refresh catalog"
-          onPress={() => sendToWorklet({ type: "list-catalog" })}
-        />
-      </View>
+    </View>
+  );
+}
 
-      <View style={styles.card}>
+function NativeAnnounceBrowserCard({ scope }: { scope: NativeHarnessScope }) {
+  const { announces } = scope;
+  return (
+    <>
+<View style={styles.card}>
         <Text style={styles.sectionTitle}>Announce browser</Text>
         {announces.length === 0 ? (
           <Text style={styles.muted}>No announces received yet.</Text>
@@ -682,6 +669,7 @@ export function NativeHarnessViewPart3({
           </Text>
         ))}
       </ScrollView>
+
     </>
   );
 }

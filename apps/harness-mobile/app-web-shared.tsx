@@ -20,9 +20,9 @@ export {
   Row,
   ActionButton,
   PeerChromeModal,
-  HostConfirmationModal,
   styles,
 } from "./app-web-shared-ui.js";
+export { HostConfirmationModal } from "./app-web-host-confirmation.js";
 
 export const DEFAULT_PASSPHRASE = "harness-web-dev";
 export const MAX_ANNOUNCES = 50;

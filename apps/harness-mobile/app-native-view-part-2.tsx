@@ -85,6 +85,44 @@ export function NativeHarnessViewPart2({
 
   return (
     <View style={styles.card}>
+      <NativeRelayInterfacesBody
+        scope={scope}
+        relayMode={relayMode}
+        relayDirections={relayDirections}
+        selectRelayMode={selectRelayMode}
+        cycleDirection={cycleDirection}
+      />
+      <NativeNtfyFields scope={scope} />
+    </View>
+  );
+}
+
+function NativeRelayInterfacesBody({
+  scope,
+  relayMode,
+  relayDirections,
+  selectRelayMode,
+  cycleDirection,
+}: {
+  scope: NativeHarnessScope;
+  relayMode: "off" | "bridge" | "transport-node";
+  relayDirections: Record<"tcp" | "auto" | "bluetooth" | "rnode", "tx" | "rx" | "both">;
+  selectRelayMode: (mode: "off" | "bridge" | "transport-node") => void;
+  cycleDirection: (kind: "tcp" | "auto" | "bluetooth" | "rnode") => void;
+}) {
+  const {
+    status,
+    tcpEnabled,
+    setTcpEnabled,
+    relayNotice,
+    setRelayNotice,
+    appendLog,
+    sendToWorklet,
+    seedShareOfferChrome,
+    startWorklet,
+  } = scope;
+  return (
+    <>
       <Text style={styles.sectionTitle}>Relay &amp; Interfaces</Text>
       {relayNotice === null ? null : (
         <View style={styles.card}>
@@ -159,6 +197,16 @@ export function NativeHarnessViewPart2({
           {entry.bytesIn} ↑{entry.bytesOut}
         </Text>
       ))}
+      <NativeRelayShareButtons scope={scope} />
+    </>
+  );
+}
+
+function NativeRelayShareButtons({ scope }: { scope: NativeHarnessScope }) {
+  const { appendLog, sendToWorklet, seedShareOfferChrome, startWorklet, setTcpEnabled } =
+    scope;
+  return (
+    <>
       <View style={styles.buttonRow}>
         <ActionButton
           testID="connect-test-agent"
@@ -222,6 +270,22 @@ export function NativeHarnessViewPart2({
         Public transport operators can observe your IP address and traffic
         timing. Message contents remain encrypted.
       </Text>
+    </>
+  );
+}
+
+function NativeNtfyFields({ scope }: { scope: NativeHarnessScope }) {
+  const {
+    ntfyUrl,
+    setNtfyUrl,
+    ntfyToken,
+    setNtfyToken,
+    sendToWorklet,
+    startWorklet,
+    workletRef,
+  } = scope;
+  return (
+    <>
       <Text style={styles.sectionTitle}>Optional ntfy rendezvous</Text>
       <Text style={styles.muted}>
         Invitation contents are end-to-end encrypted. The server still observes
@@ -262,6 +326,6 @@ export function NativeHarnessViewPart2({
           }
         }}
       />
-    </View>
+    </>
   );
 }

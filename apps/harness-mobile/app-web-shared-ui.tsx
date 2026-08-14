@@ -140,144 +140,33 @@ export function PeerChromeModal({
     return () => clearInterval(timer);
   }, [modal]);
 
-  const startCamera = async () => {
-    const browser = globalThis as unknown as {
-      navigator?: {
-        mediaDevices?: {
-          getUserMedia(
-            constraints: unknown,
-          ): Promise<{ getTracks(): ReadonlyArray<{ stop(): void }> }>;
-        };
-      };
-      document?: {
-        body: { appendChild(node: unknown): void };
-        createElement(name: string): any;
-      };
-      requestAnimationFrame(callback: () => void): void;
-    };
-    if (
-      browser.navigator?.mediaDevices?.getUserMedia === undefined ||
-      browser.document === undefined
-    ) {
-      setCameraStatus(
-        "Camera capture is unavailable; paste the full payload instead.",
-      );
-      return;
-    }
-    try {
-      const stream = await browser.navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
-      const video = browser.document.createElement("video");
-      video.autoplay = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.srcObject = stream;
-      video.setAttribute("aria-label", "Peer QR camera preview");
-      Object.assign(video.style, {
-        position: "fixed",
-        right: "24px",
-        bottom: "24px",
-        width: "240px",
-        zIndex: "1000",
-        borderRadius: "12px",
-      });
-      browser.document.body.appendChild(video);
-      await video.play();
-      const stop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        video.remove();
-        cameraStopRef.current = null;
-      };
-      cameraStopRef.current = stop;
-      setCameraStatus("Camera active. Hold the peer QR inside the preview.");
-      const canvas = browser.document.createElement("canvas");
-      const detect = () => {
-        if (cameraStopRef.current === null) {
-          return;
-        }
-        if (video.videoWidth > 0 && video.videoHeight > 0) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const context = canvas.getContext("2d", { willReadFrequently: true });
-          context?.drawImage(video, 0, 0);
-          const image = context?.getImageData(
-            0,
-            0,
-            canvas.width,
-            canvas.height,
-          );
-          const value =
-            image === undefined
-              ? null
-              : decodePeerQrRgba(image.data, canvas.width, canvas.height);
-          if (value !== null) {
-            onInput(value);
-            setCameraStatus("QR payload captured.");
-            stop();
-            return;
-          }
-        }
-        browser.requestAnimationFrame(detect);
-      };
-      detect();
-    } catch (error) {
-      setCameraStatus(
-        `Camera unavailable: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  };
-
   if (modal.kind === "confirm") {
-    return (
-      <View testID="peer-confirmation-modal" style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Confirm peer connection</Text>
-          <Text style={styles.muted}>
-            Trusted host chrome · Requested by: {modal.request.appId}
-          </Text>
-          <Text>Purpose: {modal.request.purpose}</Text>
-          <Text>Service: {modal.request.service}</Text>
-          <Text>
-            Peer label (untrusted claim): {modal.request.peer.displayLabel}
-          </Text>
-          <Text>Identity fingerprint: {modal.request.peer.fingerprint}</Text>
-          <Text>
-            Matching words: {modal.request.peer.matchingWords.join(" · ")}
-          </Text>
-          <Text>Data path: {modal.request.peer.dataPlane}</Text>
-          <View style={styles.buttonRow}>
-            <ActionButton label="Cancel" onPress={onCancel} />
-            <ActionButton label="Connect" onPress={onContinue} />
-          </View>
-        </View>
-      </View>
-    );
+    return <PeerConfirmModalBody modal={modal} onCancel={onCancel} onContinue={onContinue} />;
   }
+  return (
+    <PeerExchangeModalBody
+      modal={modal}
+      qrFrame={qrFrame}
+      cameraStatus={cameraStatus}
+      onInput={onInput}
+      onCancel={onCancel}
+      onContinue={onContinue}
+      onStartCamera={() => {
+        void startPeerQrCamera(cameraStopRef, setCameraStatus, onInput);
+      }}
+    />
+  );
+}
 
-  const present =
-    modal.request.type === "peer-manual-present" ||
-    modal.request.type === "peer-qr-present" ||
-    modal.request.type === "peer-ntfy-present";
-  const qr =
-    modal.request.type === "peer-qr-present" ||
-    modal.request.type === "peer-qr-scan";
-  const ntfy =
-    modal.request.type === "peer-ntfy-present" ||
-    modal.request.type === "peer-ntfy-enter";
-  const audio =
-    modal.request.type === "peer-audio-transmit" ||
-    modal.request.type === "peer-audio-receive";
-  const needsInput =
-    modal.request.type === "peer-manual-enter" ||
-    modal.request.type === "peer-qr-scan" ||
-    modal.request.type === "peer-ntfy-enter" ||
-    ("expectsResponse" in modal.request && modal.request.expectsResponse);
+function peerExchangeQrUri(
+  modal: PeerExchange,
+  qrFrame: number,
+): string | null {
   const qrValue =
     modal.request.type === "peer-qr-present"
       ? modal.request.codes[qrFrame]
       : undefined;
+  if (qrValue === undefined) return null;
   const qrFactory = qrcodeModule as unknown as (
     typeNumber: number,
     correction: string,
@@ -286,103 +175,188 @@ export function PeerChromeModal({
     make(): void;
     createDataURL(cellSize: number, margin: number): string;
   };
-  let qrUri: string | null = null;
-  if (qrValue !== undefined) {
-    const image = qrFactory(0, "M");
-    image.addData(qrValue);
-    image.make();
-    qrUri = image.createDataURL(4, 8);
-  }
+  const image = qrFactory(0, "M");
+  image.addData(qrValue);
+  image.make();
+  return image.createDataURL(4, 8);
+}
 
+type PeerModal = Parameters<typeof PeerChromeModal>[0]["modal"];
+type PeerExchange = Extract<PeerModal, { kind: "exchange" }>;
+type PeerConfirm = Extract<PeerModal, { kind: "confirm" }>;
+
+async function startPeerQrCamera(
+  cameraStopRef: React.MutableRefObject<(() => void) | null>,
+  setCameraStatus: (value: string) => void,
+  onInput: (value: string) => void,
+): Promise<void> {
+  const browser = globalThis as unknown as {
+    navigator?: {
+      mediaDevices?: {
+        getUserMedia(
+          constraints: unknown,
+        ): Promise<{ getTracks(): ReadonlyArray<{ stop(): void }> }>;
+      };
+    };
+    document?: {
+      body: { appendChild(node: unknown): void };
+      createElement(name: string): any;
+    };
+    requestAnimationFrame(callback: () => void): void;
+  };
+  if (
+    browser.navigator?.mediaDevices?.getUserMedia === undefined ||
+    browser.document === undefined
+  ) {
+    setCameraStatus(
+      "Camera capture is unavailable; paste the full payload instead.",
+    );
+    return;
+  }
+  try {
+    const stream = await browser.navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+    const video = browser.document.createElement("video");
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.srcObject = stream;
+    video.setAttribute("aria-label", "Peer QR camera preview");
+    Object.assign(video.style, {
+      position: "fixed",
+      right: "24px",
+      bottom: "24px",
+      width: "240px",
+      zIndex: "1000",
+      borderRadius: "12px",
+    });
+    browser.document.body.appendChild(video);
+    await video.play();
+    const stop = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      video.remove();
+      cameraStopRef.current = null;
+    };
+    cameraStopRef.current = stop;
+    setCameraStatus("Camera active. Hold the peer QR inside the preview.");
+    const canvas = browser.document.createElement("canvas");
+    const detect = () => {
+      if (cameraStopRef.current === null) {
+        return;
+      }
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        context?.drawImage(video, 0, 0);
+        const image = context?.getImageData(0, 0, canvas.width, canvas.height);
+        const value =
+          image === undefined
+            ? null
+            : decodePeerQrRgba(image.data, canvas.width, canvas.height);
+        if (value !== null) {
+          onInput(value);
+          setCameraStatus("QR payload captured.");
+          stop();
+          return;
+        }
+      }
+      browser.requestAnimationFrame(detect);
+    };
+    detect();
+  } catch (error) {
+    setCameraStatus(
+      `Camera unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+function PeerConfirmModalBody({
+  modal,
+  onCancel,
+  onContinue,
+}: {
+  modal: PeerConfirm;
+  onCancel: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <View testID="peer-confirmation-modal" style={styles.modalOverlay}>
+      <View style={styles.modalCard}>
+        <Text style={styles.modalTitle}>Confirm peer connection</Text>
+        <Text style={styles.muted}>
+          Trusted host chrome · Requested by: {modal.request.appId}
+        </Text>
+        <Text>Purpose: {modal.request.purpose}</Text>
+        <Text>Service: {modal.request.service}</Text>
+        <Text>
+          Peer label (untrusted claim): {modal.request.peer.displayLabel}
+        </Text>
+        <Text>Identity fingerprint: {modal.request.peer.fingerprint}</Text>
+        <Text>
+          Matching words: {modal.request.peer.matchingWords.join(" · ")}
+        </Text>
+        <Text>Data path: {modal.request.peer.dataPlane}</Text>
+        <View style={styles.buttonRow}>
+          <ActionButton label="Cancel" onPress={onCancel} />
+          <ActionButton label="Connect" onPress={onContinue} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function PeerExchangeModalBody({
+  modal,
+  qrFrame,
+  cameraStatus,
+  onInput,
+  onCancel,
+  onContinue,
+  onStartCamera,
+}: {
+  modal: PeerExchange;
+  qrFrame: number;
+  cameraStatus: string;
+  onInput: (value: string) => void;
+  onCancel: () => void;
+  onContinue: () => void;
+  onStartCamera: () => void;
+}) {
+  const flags = peerExchangeFlags(modal);
+  const qrUri = peerExchangeQrUri(modal, qrFrame);
   return (
     <View testID="peer-exchange-modal" style={styles.modalOverlay}>
       <View style={styles.modalCard}>
-        <Text style={styles.modalTitle}>
-          {audio
-            ? modal.request.type === "peer-audio-transmit"
-              ? "Play an audible peer invitation"
-              : "Listen for an audible peer invitation"
-            : ntfy
-              ? present
-                ? "Share a private ntfy lookup code"
-                : "Enter a private ntfy lookup code"
-              : qr
-                ? present
-                  ? "Show peer QR"
-                  : "Scan peer QR"
-                : present
-                  ? "Share peer invitation"
-                  : "Enter a peer invitation"}
-        </Text>
-        <Text style={styles.muted}>
-          {audio
-            ? "Trusted host chrome. This emits audible FSK tones and requests microphone access only after you continue. No PCM is exposed to the mini-app."
-            : ntfy
-              ? `Trusted host chrome. ${modal.request.server} can observe a random topic, timing, and IP metadata, but invitation contents are end-to-end encrypted.`
-              : "Trusted host chrome. This is a full serverless code, not a short lookup code."}
-        </Text>
-        {qrUri !== null ? (
-          <Image
-            accessibilityLabel="Peer invitation QR"
-            source={{ uri: qrUri }}
-            style={{ width: 260, height: 260 }}
-          />
-        ) : null}
-        {modal.request.type === "peer-manual-present" ? (
-          <TextInput
-            multiline
-            editable={false}
-            value={modal.request.code}
-            style={styles.input}
-          />
-        ) : null}
-        {modal.request.type === "peer-ntfy-present" ? (
-          <TextInput
-            multiline
-            editable={false}
-            value={modal.request.code}
-            style={styles.input}
-          />
-        ) : null}
-        {needsInput ? (
+        <Text style={styles.modalTitle}>{peerExchangeTitle(flags, modal)}</Text>
+        <Text style={styles.muted}>{peerExchangeMuted(flags, modal)}</Text>
+        <PeerExchangePresentFields modal={modal} qrUri={qrUri} />
+        {flags.needsInput ? (
           <TextInput
             testID="peer-code-input"
             multiline
             value={modal.input}
             onChangeText={onInput}
             placeholder={
-              ntfy
+              flags.ntfy
                 ? "Enter the TPN2 lookup code (TPN1 also works)"
                 : "Paste the peer's full code"
             }
             style={styles.input}
           />
         ) : null}
-        {qr && needsInput ? (
+        {flags.qr && flags.needsInput ? (
           <>
-            <ActionButton
-              label="Start camera"
-              onPress={() => {
-                void startCamera();
-              }}
-            />
+            <ActionButton label="Start camera" onPress={onStartCamera} />
             <Text style={styles.muted}>{cameraStatus}</Text>
           </>
         ) : null}
         <View style={styles.buttonRow}>
           <ActionButton label="Cancel" onPress={onCancel} />
           <ActionButton
-            label={
-              audio
-                ? modal.request.type === "peer-audio-transmit"
-                  ? modal.request.expectsResponse
-                    ? "Play and listen"
-                    : "Play answer"
-                  : "Start listening"
-                : needsInput
-                  ? "Continue"
-                  : "Done"
-            }
+            label={peerExchangeContinueLabel(flags, modal)}
             onPress={onContinue}
           />
         </View>
@@ -391,141 +365,110 @@ export function PeerChromeModal({
   );
 }
 
-export function HostConfirmationModal({
+function peerExchangeFlags(modal: PeerExchange): {
+  present: boolean;
+  qr: boolean;
+  ntfy: boolean;
+  audio: boolean;
+  needsInput: boolean;
+} {
+  const type = modal.request.type;
+  return {
+    present:
+      type === "peer-manual-present" ||
+      type === "peer-qr-present" ||
+      type === "peer-ntfy-present",
+    qr: type === "peer-qr-present" || type === "peer-qr-scan",
+    ntfy: type === "peer-ntfy-present" || type === "peer-ntfy-enter",
+    audio: type === "peer-audio-transmit" || type === "peer-audio-receive",
+    needsInput: peerExchangeNeedsInput(modal),
+  };
+}
+
+function peerExchangeNeedsInput(modal: PeerExchange): boolean {
+  const type = modal.request.type;
+  if (
+    type === "peer-manual-enter" ||
+    type === "peer-qr-scan" ||
+    type === "peer-ntfy-enter"
+  ) {
+    return true;
+  }
+  return "expectsResponse" in modal.request && modal.request.expectsResponse;
+}
+
+function peerExchangeTitle(
+  flags: ReturnType<typeof peerExchangeFlags>,
+  modal: PeerExchange,
+): string {
+  if (flags.audio) {
+    return modal.request.type === "peer-audio-transmit"
+      ? "Play an audible peer invitation"
+      : "Listen for an audible peer invitation";
+  }
+  if (flags.ntfy) {
+    return flags.present
+      ? "Share a private ntfy lookup code"
+      : "Enter a private ntfy lookup code";
+  }
+  if (flags.qr) {
+    return flags.present ? "Show peer QR" : "Scan peer QR";
+  }
+  return flags.present ? "Share peer invitation" : "Enter a peer invitation";
+}
+
+function peerExchangeMuted(
+  flags: ReturnType<typeof peerExchangeFlags>,
+  modal: PeerExchange,
+): string {
+  if (flags.audio) {
+    return "Trusted host chrome. This emits audible FSK tones and requests microphone access only after you continue. No PCM is exposed to the mini-app.";
+  }
+  if (flags.ntfy) {
+    return `Trusted host chrome. ${modal.request.server} can observe a random topic, timing, and IP metadata, but invitation contents are end-to-end encrypted.`;
+  }
+  return "Trusted host chrome. This is a full serverless code, not a short lookup code.";
+}
+
+function peerExchangeContinueLabel(
+  flags: ReturnType<typeof peerExchangeFlags>,
+  modal: PeerExchange,
+): string {
+  if (!flags.audio) {
+    return flags.needsInput ? "Continue" : "Done";
+  }
+  if (modal.request.type !== "peer-audio-transmit") {
+    return "Start listening";
+  }
+  return modal.request.expectsResponse ? "Play and listen" : "Play answer";
+}
+
+function PeerExchangePresentFields({
   modal,
-  onClose,
-  onConfirmResponse,
-  onLaunchConfirm,
-  onInstallConfirm,
-  onGrantToggle,
+  qrUri,
 }: {
-  readonly modal:
-    | {
-        readonly kind: "confirm";
-        readonly request: HostConfirmationRequestView;
-      }
-    | {
-        readonly kind: "launch";
-        readonly review: LaunchReviewRequestView;
-        readonly grants: ReadonlyArray<string>;
-      }
-    | {
-        readonly kind: "install";
-        readonly review: InstallReviewRequestView;
-        readonly grants: ReadonlyArray<string>;
-      };
-  readonly onClose: () => void;
-  readonly onConfirmResponse: (approved: boolean) => void;
-  readonly onLaunchConfirm: (
-    accept: boolean,
-    grants?: ReadonlyArray<string>,
-  ) => void;
-  readonly onInstallConfirm: (
-    accept: boolean,
-    grants?: ReadonlyArray<string>,
-  ) => void;
-  readonly onGrantToggle: (capabilityId: string, granted: boolean) => void;
+  modal: PeerExchange;
+  qrUri: string | null;
 }) {
-  const title =
-    modal.kind === "confirm"
-      ? (CONFIRM_KIND_TITLES[modal.request.kind] ??
-        `Confirm ${modal.request.kind}?`)
-      : modal.kind === "install"
-        ? modal.review.trusted
-          ? `Install ${modal.review.appId} v${modal.review.version} from trusted publisher "${modal.review.trustedLabel ?? "?"}"?`
-          : `Install ${modal.review.appId} v${modal.review.version} from UNTRUSTED publisher?`
-        : `Run ${modal.review.appId} v${modal.review.version}?`;
-
-  const fingerprint =
-    modal.kind === "confirm"
-      ? modal.request.publisherPublicKey
-      : modal.review.publisherPublicKey;
-
-  const capabilities =
-    modal.kind === "confirm" ? null : modal.review.capabilities;
-
   return (
-    <View testID="host-confirmation-modal" style={styles.modalOverlay}>
-      <View style={styles.modalCard}>
-        <Text style={styles.modalTitle}>{title}</Text>
-        <Text style={styles.muted}>Publisher key: {fingerprint}</Text>
-        {modal.kind === "confirm" ? (
-          <>
-            <Text style={styles.muted}>
-              Requested by: {modal.request.appId}
-            </Text>
-            {Object.entries(modal.request.summary).map(([label, value]) => (
-              <Text key={label} style={styles.muted}>
-                {label}: {value}
-              </Text>
-            ))}
-            <View style={styles.buttonRow}>
-              <ActionButton
-                testID="host-confirm-deny"
-                label="Deny"
-                onPress={() => onConfirmResponse(false)}
-              />
-              <ActionButton
-                testID="host-confirm-approve"
-                label="Approve"
-                onPress={() => onConfirmResponse(true)}
-              />
-            </View>
-          </>
-        ) : (
-          <>
-            <Text style={styles.muted}>
-              Capabilities requested: {capabilities?.length ?? 0}
-            </Text>
-            {capabilities?.map((capability: LaunchReviewCapabilityView) => (
-              <Row
-                key={capability.id}
-                testID={
-                  modal.kind === "install"
-                    ? `install-grant-${capability.id}`
-                    : `launch-grant-${capability.id}`
-                }
-                label={capability.id}
-                value={modal.grants.includes(capability.id)}
-                onChange={(granted) => onGrantToggle(capability.id, granted)}
-              />
-            ))}
-            <View style={styles.buttonRow}>
-              {modal.kind === "install" ? (
-                <>
-                  <ActionButton
-                    testID="host-install-cancel"
-                    label="Cancel"
-                    onPress={() => onInstallConfirm(false)}
-                  />
-                  <ActionButton
-                    testID="host-install-approve"
-                    label="Install"
-                    onPress={() => onInstallConfirm(true, modal.grants)}
-                  />
-                </>
-              ) : (
-                <>
-                  <ActionButton
-                    testID="host-launch-cancel"
-                    label="Cancel"
-                    onPress={() => onLaunchConfirm(false)}
-                  />
-                  <ActionButton
-                    testID="host-launch-run"
-                    label="Run"
-                    onPress={() => onLaunchConfirm(true, modal.grants)}
-                  />
-                </>
-              )}
-            </View>
-          </>
-        )}
-        <ActionButton label="Dismiss" onPress={onClose} />
-      </View>
-    </View>
+    <>
+      {qrUri !== null ? (
+        <Image
+          accessibilityLabel="Peer invitation QR"
+          source={{ uri: qrUri }}
+          style={{ width: 260, height: 260 }}
+        />
+      ) : null}
+      {modal.request.type === "peer-manual-present" ? (
+        <TextInput multiline editable={false} value={modal.request.code} style={styles.input} />
+      ) : null}
+      {modal.request.type === "peer-ntfy-present" ? (
+        <TextInput multiline editable={false} value={modal.request.code} style={styles.input} />
+      ) : null}
+    </>
   );
 }
+
 
 export const styles = StyleSheet.create({
   container: {

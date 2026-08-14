@@ -77,84 +77,29 @@ import {
 import type { useWebHarnessController } from "./app-web-controller.js";
 export type WebHarnessScope = ReturnType<typeof useWebHarnessController>;
 export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
+  return (
+    <>
+      <WebHarnessViewPart2Block0 scope={scope} />
+      <WebHarnessViewPart2Block1 scope={scope} />
+      <WebHarnessViewPart2Block2 scope={scope} />
+    </>
+  );
+}
+function WebHarnessViewPart2Block0({ scope }: { scope: WebHarnessScope }) {
   const {
-    status,
-    setStatus,
-    announces,
-    setAnnounces,
-    logLines,
-    setLogLines,
-    gatewayUrl,
-    setGatewayUrl,
-    sharedToken,
-    setSharedToken,
-    ntfyUrl,
-    setNtfyUrl,
-    ntfyToken,
-    setNtfyToken,
-    wsEnabled,
-    setWsEnabled,
-    rnodeEnabled,
-    setRnodeEnabled,
-    webSerialAvailable,
-    previewTree,
-    setPreviewTree,
-    lastWidgetEvent,
-    setLastWidgetEvent,
-    storageQuota,
-    setStorageQuota,
-    installed,
-    setInstalled,
-    selectedInstalledAppId,
-    setSelectedInstalledAppId,
-    grantCapabilities,
-    setGrantCapabilities,
-    miniappRuntime,
-    setMiniappRuntime,
-    developerMode,
-    setDeveloperMode,
-    hostModal,
-    setHostModal,
-    peerModal,
-    setPeerModal,
     install256tInput,
-    setInstall256tInput,
     installProgress,
-    setInstallProgress,
-    trustedPublishers,
-    setTrustedPublishers,
-    trustIdentityInput,
-    setTrustIdentityInput,
-    trustLabelInput,
-    setTrustLabelInput,
-    hostIdentity256t,
-    setHostIdentity256t,
-    deviceState,
-    setDeviceState,
-    sessionInvites,
-    setSessionInvites,
-    pwaInstallAvailability,
-    setPwaInstallAvailability,
-    pwaInstallRef,
-    peerRtcRef,
-    previewOptions,
-    bridgeRef,
-    workspaceReadCounterRef,
-    crossDeviceCounterRef,
-    pendingCrossDeviceRef,
-    pendingWorkspaceReadsRef,
-    appendLog,
     sendToWorker,
-    readWorkspaceDocument,
-    handleWorkerMessage,
-    ensureBridge,
-    pushGatewayConfig,
-    performPeerAudio,
-    connectWebSerialRnode,
-    promptPwaInstall,
+    setInstall256tInput,
+    setInstallProgress,
+    setTrustIdentityInput,
+    setTrustLabelInput,
+    trustIdentityInput,
+    trustLabelInput,
   } = scope;
   return (
     <>
+
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Install from 256t (W3)</Text>
         <Text style={styles.muted}>
@@ -245,6 +190,23 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
             onPress={() => sendToWorker({ type: "trust-list" })}
           />
         </View>
+      </View>
+    </>
+  );
+}
+function WebHarnessViewPart2Block1({ scope }: { scope: WebHarnessScope }) {
+  const {
+    grantCapabilities,
+    hostIdentity256t,
+    installed,
+    selectedInstalledAppId,
+    sendToWorker,
+    setSelectedInstalledAppId,
+    trustedPublishers,
+  } = scope;
+  return (
+    <>
+      <View style={styles.card}>
         {hostIdentity256t !== null ? (
           <Text testID="trust-identity-view" style={styles.mono}>
             Host identity: {hostIdentity256t}
@@ -271,7 +233,21 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
           ))
         )}
       </View>
+      <WebHarnessViewPart2Installed scope={scope} />
+    </>
+  );
+}
 
+function WebHarnessViewPart2Installed({ scope }: { scope: WebHarnessScope }) {
+  const {
+    grantCapabilities,
+    installed,
+    selectedInstalledAppId,
+    sendToWorker,
+    setSelectedInstalledAppId,
+  } = scope;
+  return (
+    <>
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Installed packages</Text>
         <View style={styles.buttonRow}>
@@ -353,6 +329,21 @@ export function WebHarnessViewPart2({ scope }: { scope: WebHarnessScope }) {
           </>
         ) : null}
       </View>
+    </>
+  );
+}
+function WebHarnessViewPart2Block2({ scope }: { scope: WebHarnessScope }) {
+  const {
+    announces,
+    lastWidgetEvent,
+    logLines,
+    previewOptions,
+    previewTree,
+    setLastWidgetEvent,
+    setPreviewTree,
+  } = scope;
+  return (
+    <>
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Widget preview (W-S3)</Text>

@@ -155,38 +155,12 @@ export class TransportNodePath extends TransportNodeBase {
     }
 
     if (shouldAnswerPathRequestLocal(stepped.actions)) {
-      if (
-        !shouldAnswerLocalPathRequestNow(
-          stepAnswerLocalPathRequestWithActions(
-            initialAnswerLocalPathRequestState(),
-            {
-              kind: "path-request/answer-local-handler-gate",
-              handlerPresent: localDestination?.answerPathRequest !== undefined,
-            },
-          ).actions,
-        )
-      ) {
-        return;
-      }
-      await localDestination!.answerPathRequest!(iface);
+      await this.answerLocalPathRequest(localDestination, iface);
       return;
     }
 
     if (shouldAnswerPathRequestPath(stepped.actions)) {
-      if (
-        !shouldAnswerPathWithEntryNow(
-          stepAnswerPathWithEntryWithActions(
-            initialAnswerPathWithEntryState(),
-            {
-              kind: "path-request/answer-path-entry-gate",
-              pathPresent: path !== undefined,
-            },
-          ).actions,
-        )
-      ) {
-        return;
-      }
-      await this.sendPathResponse(path!, iface);
+      await this.answerStoredPathRequest(path, iface);
       return;
     }
 
@@ -201,6 +175,61 @@ export class TransportNodePath extends TransportNodeBase {
       return;
     }
 
+    this.beginPathDiscovery({
+      parsed,
+      destinationKey,
+      discoveryExpired,
+      nowSeconds,
+      iface,
+    });
+  }
+
+  private async answerLocalPathRequest(
+    localDestination: (typeof this.destinations)[number] | undefined,
+    iface: PacketInterface,
+  ): Promise<void> {
+    if (
+      !shouldAnswerLocalPathRequestNow(
+        stepAnswerLocalPathRequestWithActions(
+          initialAnswerLocalPathRequestState(),
+          {
+            kind: "path-request/answer-local-handler-gate",
+            handlerPresent: localDestination?.answerPathRequest !== undefined,
+          },
+        ).actions,
+      )
+    ) {
+      return;
+    }
+    await localDestination!.answerPathRequest!(iface);
+  }
+
+  private async answerStoredPathRequest(
+    path: ReturnType<TransportNodePath["getPathEntry"]>,
+    iface: PacketInterface,
+  ): Promise<void> {
+    if (
+      !shouldAnswerPathWithEntryNow(
+        stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
+          kind: "path-request/answer-path-entry-gate",
+          pathPresent: path !== undefined,
+        }).actions,
+      )
+    ) {
+      return;
+    }
+    await this.sendPathResponse(path!, iface);
+  }
+
+  private beginPathDiscovery(input: {
+    parsed: ReturnType<typeof parsePathRequestData>;
+    destinationKey: string | null;
+    discoveryExpired: boolean;
+    nowSeconds: number;
+    iface: PacketInterface;
+  }): void {
+    const { parsed, destinationKey, discoveryExpired, nowSeconds, iface } =
+      input;
     if (
       !shouldBeginPathDiscoveryNow(
         stepBeginPathDiscoveryWithActions(initialBeginPathDiscoveryState(), {
@@ -238,14 +267,11 @@ export class TransportNodePath extends TransportNodeBase {
     for (const outbound of this.interfaces) {
       if (
         !shouldTransmitOnInterfaceNow(
-          stepTransmitOnInterfaceWithActions(
-            initialTransmitOnInterfaceState(),
-            {
-              kind: "transport/transmit-on-interface-gate",
-              outgoing: outbound.outgoing,
-              isExcludedInterface: outbound === iface,
-            },
-          ).actions,
+          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+            kind: "transport/transmit-on-interface-gate",
+            outgoing: outbound.outgoing,
+            isExcludedInterface: outbound === iface,
+          }).actions,
         )
       ) {
         continue;

@@ -120,93 +120,28 @@ export class WebSandboxBackend implements SandboxBackend {
     let lastExitReason: string | null = null;
     let lastExitDetail: string | null = null;
 
+    const spawnState: SpawnPortState = {
+      hostPort,
+      pending,
+      options,
+      backend: this,
+      get killed() {
+        return killed;
+      },
+      get alive() {
+        return alive;
+      },
+      setAlive(next: boolean) {
+        alive = next;
+      },
+      setExit(reason: string, detail: string | null) {
+        lastExitReason = reason;
+        lastExitDetail = detail;
+      },
+    };
+
     const handleHostPortMessage = (event: MessageEvent) => {
-      const message = event.data as {
-        type: string;
-        id?: string;
-        ok?: boolean;
-        result?: unknown;
-        error?: { message: string };
-        namespace?: string;
-        method?: string;
-        payload?: unknown;
-        capability?: string;
-        sentAt?: number;
-        reason?: string;
-        detail?: string;
-        message?: string;
-      };
-
-      if (message.type === "sandbox-exit") {
-        alive = false;
-        lastExitReason =
-          typeof message.reason === "string" ? message.reason : "sandbox-exit";
-        lastExitDetail =
-          typeof message.detail === "string" ? message.detail : null;
-        this.lastSpawnDiagnostics = {
-          reason: lastExitReason,
-          detail: lastExitDetail,
-        };
-        return;
-      }
-
-      if (message.type === "app-error") {
-        lastExitReason = "app-error";
-        lastExitDetail =
-          typeof message.message === "string" ? message.message : "app-error";
-        this.lastSpawnDiagnostics = {
-          reason: lastExitReason,
-          detail: lastExitDetail,
-        };
-        return;
-      }
-
-      if (message.type === "broker-request" && message.id !== undefined) {
-        const endpoint = options.brokerEndpoint as {
-          request?: (request: unknown) => Promise<unknown>;
-        };
-        if (typeof endpoint?.request !== "function") {
-          hostPort.postMessage({
-            type: "broker-response",
-            id: message.id,
-            ok: false,
-            error: { message: "Broker endpoint is not configured" },
-          });
-          return;
-        }
-
-        void endpoint.request(message).then(
-          (response) =>
-            hostPort.postMessage({
-              type: "broker-response",
-              ...normalizeBrokerResponse(response as BrokerWireResponse),
-            }),
-          (error: Error) =>
-            hostPort.postMessage({
-              type: "broker-response",
-              id: message.id,
-              ok: false,
-              error: { message: error.message },
-            }),
-        );
-        return;
-      }
-
-      if (message.type === "broker-response" && message.id !== undefined) {
-        const waiter = pending.get(message.id);
-        if (waiter === undefined) {
-          return;
-        }
-
-        pending.delete(message.id);
-        if (message.ok) {
-          waiter.resolve(message.result);
-        } else {
-          waiter.reject(
-            new Error(message.error?.message ?? "Broker request failed"),
-          );
-        }
-      }
+      handleSandboxHostPortMessage(spawnState, event);
     };
 
     hostPort.addEventListener("message", handleHostPortMessage);
@@ -233,59 +168,207 @@ export class WebSandboxBackend implements SandboxBackend {
       [channel.port2],
     );
 
-    return {
-      id: options.appId,
-      isAlive(): boolean {
-        return alive && !killed;
-      },
-      postMessage(message: unknown): Promise<void> {
-        if (killed) {
-          return Promise.resolve();
-        }
-
-        hostPort.postMessage(message);
-        return Promise.resolve();
-      },
-      ping(timeoutMs: number): Promise<boolean> {
-        if (killed) {
-          return Promise.resolve(false);
-        }
-
-        return new Promise((resolve) => {
-          const id = `ping-${Date.now()}`;
-          const timer = setTimeout(() => {
-            pending.delete(id);
-            resolve(false);
-          }, timeoutMs);
-
-          pending.set(id, {
-            resolve: () => {
-              clearTimeout(timer);
-              resolve(true);
-            },
-            reject: () => {
-              clearTimeout(timer);
-              resolve(false);
-            },
-          });
-          hostPort.postMessage({ type: "ping", id });
-        });
-      },
-      kill(reason: string): Promise<void> {
-        if (killed) {
-          return Promise.resolve();
-        }
-
+    return createSandboxInstance({
+      appId: options.appId,
+      hostPort,
+      iframe,
+      pending,
+      handleHostPortMessage,
+      isKilled: () => killed,
+      isAlive: () => alive && !killed,
+      markKilled: () => {
         killed = true;
         alive = false;
-        hostPort.postMessage({ type: "kill", reason });
-        hostPort.removeEventListener("message", handleHostPortMessage);
-        hostPort.close();
-        iframe.remove();
-        return Promise.resolve();
       },
-    };
+    });
   }
+}
+
+interface SpawnPortState {
+  readonly hostPort: MessagePort;
+  readonly pending: Map<
+    string,
+    { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  >;
+  readonly options: SandboxSpawnOptions;
+  readonly backend: WebSandboxBackend;
+  readonly killed: boolean;
+  readonly alive: boolean;
+  setAlive(next: boolean): void;
+  setExit(reason: string, detail: string | null): void;
+}
+
+function handleSandboxHostPortMessage(
+  state: SpawnPortState,
+  event: MessageEvent,
+): void {
+  const message = event.data as {
+    type: string;
+    id?: string;
+    ok?: boolean;
+    result?: unknown;
+    error?: { message: string };
+    reason?: string;
+    detail?: string;
+    message?: string;
+  };
+
+  if (message.type === "sandbox-exit") {
+    state.setAlive(false);
+    const reason =
+      typeof message.reason === "string" ? message.reason : "sandbox-exit";
+    const detail = typeof message.detail === "string" ? message.detail : null;
+    state.setExit(reason, detail);
+    state.backend.lastSpawnDiagnostics = { reason, detail };
+    return;
+  }
+
+  if (message.type === "app-error") {
+    const detail =
+      typeof message.message === "string" ? message.message : "app-error";
+    state.setExit("app-error", detail);
+    state.backend.lastSpawnDiagnostics = {
+      reason: "app-error",
+      detail,
+    };
+    return;
+  }
+
+  if (message.type === "broker-request" && message.id !== undefined) {
+    handleSandboxBrokerRequest(state, message);
+    return;
+  }
+
+  if (message.type === "broker-response" && message.id !== undefined) {
+    handleSandboxBrokerResponse(state, message);
+  }
+}
+
+function handleSandboxBrokerRequest(
+  state: SpawnPortState,
+  message: { id?: string },
+): void {
+  const endpoint = state.options.brokerEndpoint as {
+    request?: (request: unknown) => Promise<unknown>;
+  };
+  if (typeof endpoint?.request !== "function") {
+    state.hostPort.postMessage({
+      type: "broker-response",
+      id: message.id,
+      ok: false,
+      error: { message: "Broker endpoint is not configured" },
+    });
+    return;
+  }
+
+  void endpoint.request(message).then(
+    (response) =>
+      state.hostPort.postMessage({
+        type: "broker-response",
+        ...normalizeBrokerResponse(response as BrokerWireResponse),
+      }),
+    (error: Error) =>
+      state.hostPort.postMessage({
+        type: "broker-response",
+        id: message.id,
+        ok: false,
+        error: { message: error.message },
+      }),
+  );
+}
+
+function handleSandboxBrokerResponse(
+  state: SpawnPortState,
+  message: {
+    id?: string;
+    ok?: boolean;
+    result?: unknown;
+    error?: { message: string };
+  },
+): void {
+  if (message.id === undefined) {
+    return;
+  }
+  const waiter = state.pending.get(message.id);
+  if (waiter === undefined) {
+    return;
+  }
+  state.pending.delete(message.id);
+  if (message.ok) {
+    waiter.resolve(message.result);
+  } else {
+    waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
+  }
+}
+
+function createSandboxInstance(input: {
+  appId: string;
+  hostPort: MessagePort;
+  iframe: HTMLIFrameElement;
+  pending: Map<
+    string,
+    { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  >;
+  handleHostPortMessage: (event: MessageEvent) => void;
+  isKilled: () => boolean;
+  isAlive: () => boolean;
+  markKilled: () => void;
+}): SandboxInstance {
+  const {
+    appId,
+    hostPort,
+    iframe,
+    pending,
+    handleHostPortMessage,
+    isKilled,
+    isAlive,
+    markKilled,
+  } = input;
+  return {
+    id: appId,
+    isAlive,
+    postMessage(message: unknown): Promise<void> {
+      if (isKilled()) {
+        return Promise.resolve();
+      }
+      hostPort.postMessage(message);
+      return Promise.resolve();
+    },
+    ping(timeoutMs: number): Promise<boolean> {
+      if (isKilled()) {
+        return Promise.resolve(false);
+      }
+      return new Promise((resolve) => {
+        const id = `ping-${Date.now()}`;
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          resolve(false);
+        }, timeoutMs);
+        pending.set(id, {
+          resolve: () => {
+            clearTimeout(timer);
+            resolve(true);
+          },
+          reject: () => {
+            clearTimeout(timer);
+            resolve(false);
+          },
+        });
+        hostPort.postMessage({ type: "ping", id });
+      });
+    },
+    kill(reason: string): Promise<void> {
+      if (isKilled()) {
+        return Promise.resolve();
+      }
+      markKilled();
+      hostPort.postMessage({ type: "kill", reason });
+      hostPort.removeEventListener("message", handleHostPortMessage);
+      hostPort.close();
+      iframe.remove();
+      return Promise.resolve();
+    },
+  };
 }
 
 function normalizeBrokerResponse(

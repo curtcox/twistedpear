@@ -234,6 +234,13 @@ export class LinkLayer4 extends LinkLayer3 {
       return;
     }
 
+    await this.dispatchLinkDataContext(packet, probePayload);
+  }
+
+  private async dispatchLinkDataContext(
+    packet: Packet,
+    probePayload: boolean,
+  ): Promise<void> {
     const contextStepped = stepLinkDataContextWithActions(
       initialLinkDataContextState(),
       {
@@ -241,66 +248,16 @@ export class LinkLayer4 extends LinkLayer3 {
         context: packet.context,
       },
     );
-    if (shouldHandleLinkDataRtt(contextStepped.actions)) {
-      await this.handleRttPacket(packet);
+    if (
+      await this.dispatchLinkSessionContext(
+        packet,
+        probePayload,
+        contextStepped.actions,
+      )
+    ) {
       return;
     }
-    if (shouldHandleLinkDataKeepalive(contextStepped.actions)) {
-      const replyStepped = stepReplyKeepaliveProbeWithActions(
-        initialReplyKeepaliveProbeState(),
-        {
-          kind: "link-keepalive/reply-probe-gate",
-          initiator: this.initiator,
-          probePayload,
-        },
-      );
-      if (shouldReplyKeepaliveProbeNow(replyStepped.actions)) {
-        await this.sendKeepaliveReply();
-      }
-      return;
-    }
-    if (shouldHandleLinkDataClose(contextStepped.actions)) {
-      await this.handleTeardownPacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataIdentify(contextStepped.actions)) {
-      await this.handleIdentifyPacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataRequest(contextStepped.actions)) {
-      await this.handleRequestPacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataResponse(contextStepped.actions)) {
-      await this.handleResponsePacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataChannel(contextStepped.actions)) {
-      await this.handleChannelPacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataResourceAdv(contextStepped.actions)) {
-      await this.handleResourceAdvertisementPacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataResourceReq(contextStepped.actions)) {
-      await this.handleResourceRequestPacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataResourceHmu(contextStepped.actions)) {
-      await this.handleResourceHashmapUpdatePacket(packet);
-      return;
-    }
-    if (shouldHandleLinkDataResourceIcl(contextStepped.actions)) {
-      await this.handleResourceCancelPacket(packet, true);
-      return;
-    }
-    if (shouldHandleLinkDataResourceRcl(contextStepped.actions)) {
-      await this.handleResourceCancelPacket(packet, false);
-      return;
-    }
-    if (shouldHandleLinkDataResource(contextStepped.actions)) {
-      await this.handleResourcePartPacket(packet);
+    if (await this.dispatchLinkResourceContext(packet, contextStepped.actions)) {
       return;
     }
     if (shouldHandleLinkDataPlaintext(contextStepped.actions)) {
@@ -324,6 +281,83 @@ export class LinkLayer4 extends LinkLayer3 {
     if (shouldIgnoreLinkDataContext(contextStepped.actions)) {
       return;
     }
+  }
+
+  private async dispatchLinkSessionContext(
+    packet: Packet,
+    probePayload: boolean,
+    actions: ReturnType<typeof stepLinkDataContextWithActions>["actions"],
+  ): Promise<boolean> {
+    if (shouldHandleLinkDataRtt(actions)) {
+      await this.handleRttPacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataKeepalive(actions)) {
+      const replyStepped = stepReplyKeepaliveProbeWithActions(
+        initialReplyKeepaliveProbeState(),
+        {
+          kind: "link-keepalive/reply-probe-gate",
+          initiator: this.initiator,
+          probePayload,
+        },
+      );
+      if (shouldReplyKeepaliveProbeNow(replyStepped.actions)) {
+        await this.sendKeepaliveReply();
+      }
+      return true;
+    }
+    if (shouldHandleLinkDataClose(actions)) {
+      await this.handleTeardownPacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataIdentify(actions)) {
+      await this.handleIdentifyPacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataRequest(actions)) {
+      await this.handleRequestPacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataResponse(actions)) {
+      await this.handleResponsePacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataChannel(actions)) {
+      await this.handleChannelPacket(packet);
+      return true;
+    }
+    return false;
+  }
+
+  private async dispatchLinkResourceContext(
+    packet: Packet,
+    actions: ReturnType<typeof stepLinkDataContextWithActions>["actions"],
+  ): Promise<boolean> {
+    if (shouldHandleLinkDataResourceAdv(actions)) {
+      await this.handleResourceAdvertisementPacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataResourceReq(actions)) {
+      await this.handleResourceRequestPacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataResourceHmu(actions)) {
+      await this.handleResourceHashmapUpdatePacket(packet);
+      return true;
+    }
+    if (shouldHandleLinkDataResourceIcl(actions)) {
+      await this.handleResourceCancelPacket(packet, true);
+      return true;
+    }
+    if (shouldHandleLinkDataResourceRcl(actions)) {
+      await this.handleResourceCancelPacket(packet, false);
+      return true;
+    }
+    if (shouldHandleLinkDataResource(actions)) {
+      await this.handleResourcePartPacket(packet);
+      return true;
+    }
+    return false;
   }
 
   identify(identity: Identity): void {

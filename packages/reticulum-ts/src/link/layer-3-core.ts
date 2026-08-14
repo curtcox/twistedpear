@@ -191,115 +191,17 @@ export class LinkLayer3Core extends LinkLayer2 {
     }
 
     try {
-      const mode = LinkLayer2.modeFromLpPacket(packet);
-      const modeMatch = stepExpectedLinkModeWithActions(
-        initialExpectedLinkModeState(),
-        {
-          kind: "link/expected-mode-gate",
-          expected: this.mode,
-          received: mode,
-        },
-      );
-      const modeMatches = shouldMatchExpectedLinkMode(modeMatch.actions);
-
-      let proofData = packet.data;
-      let signallingBytes = new Uint8Array(0);
-      let confirmedMtu: number | null = null;
-
-      const layoutStepped = stepClassifyLinkProofPayloadWithActions(
-        initialClassifyLinkProofPayloadState(),
-        {
-          kind: "link-proof/classify-payload-gate",
-          dataLength: proofData.length,
-        },
-      );
-      const layoutValid =
-        shouldClassifyLinkProofPayloadBodyOnly(layoutStepped.actions) ||
-        shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions);
-      if (shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions)) {
-        confirmedMtu = LinkLayer2.mtuFromLpPacket(packet);
-        signallingBytes = Uint8Array.from(
-          LinkLayer2.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode),
-        );
-        proofData = proofData.subarray(0, LINK_PROOF_BODY_SIZE);
-      }
-
-      const bodyStepped = stepSplitLinkProofBodyWithActions(
-        initialSplitLinkProofBodyState(),
-        {
-          kind: "link-proof/split-body-gate",
-          data: proofData,
-        },
-      );
-      const body =
-        shouldRejectSplitLinkProofBody(bodyStepped.actions) ||
-        !shouldUseSplitLinkProofBody(bodyStepped.actions)
-          ? null
-          : linkProofBodyFieldsFromActions(bodyStepped.actions);
-      const peerSplit =
-        body !== null
-          ? stepSplitIdentityPublicKeyWithActions(
-              initialSplitIdentityPublicKeyState(),
-              {
-                kind: "identity-key/split-public-gate",
-                publicKeyBytes: destination.identity!.getPublicKey(),
-              },
-            )
-          : null;
-      const peerPublic =
-        peerSplit !== null && shouldUseSplitIdentityPublicKey(peerSplit.actions)
-          ? identityPublicKeyFieldsFromActions(peerSplit.actions)
-          : null;
-
-      let signatureValid = false;
-      const proofCrypto = stepAttemptLinkProofCryptoWithActions(
-        initialAttemptLinkProofCryptoState(),
-        {
-          kind: "link/attempt-proof-crypto-gate",
-          modeMatches,
-          layoutValid,
-          bodyPresent: body !== null,
-          peerPublicPresent: peerPublic !== null,
-        },
-      );
-      if (
-        shouldAttemptLinkProofCryptoNow(proofCrypto.actions) &&
-        body !== null &&
-        peerPublic !== null
-      ) {
-        this.loadPeer(body.peerPublicKey, peerPublic.signaturePublicKey);
-        this.handshake();
-
-        const signedStepped = stepLinkProofSignedMaterialWithActions(
-          initialLinkProofSignedMaterialState(),
-          {
-            kind: "link-proof/signed-material-gate",
-            linkId: this.linkId,
-            publicKey: this.peerPublicKeyBytes!,
-            ownerSigPublicKey: peerPublic.signaturePublicKey,
-            signallingBytes,
-          },
-        );
-        const signedData = shouldUseLinkProofSignedMaterial(
-          signedStepped.actions,
-        )
-          ? linkProofSignedMaterialRawFromActions(signedStepped.actions)
-          : null;
-        signatureValid =
-          signedData !== null &&
-          destination.identity!.validate(body.signature, signedData);
-      }
-
+      const evaluated = this.evaluateLinkProof(packet, destination);
       const proofGate = stepLinkProofValidateWithActions(
         initialLinkProofValidateState(),
         {
           kind: "proof/validate-gate",
           canValidate: true,
-          modeMatches,
-          layoutValid,
-          bodyPresent: body !== null,
-          peerPublicPresent: peerPublic !== null,
-          signatureValid,
+          modeMatches: evaluated.modeMatches,
+          layoutValid: evaluated.layoutValid,
+          bodyPresent: evaluated.bodyPresent,
+          peerPublicPresent: evaluated.peerPublicPresent,
+          signatureValid: evaluated.signatureValid,
         },
       );
       if (shouldRejectLinkProofValidate(proofGate.actions)) {
@@ -322,7 +224,7 @@ export class LinkLayer3Core extends LinkLayer2 {
         {
           prepareInitiatorActivate: () => {
             this.attachedInterface = iface;
-            this.mtu = confirmedMtu ?? RETICULUM_MTU;
+            this.mtu = evaluated.confirmedMtu ?? RETICULUM_MTU;
             this.updateMdu();
             this.establishmentCost += packet.raw.length;
           },
@@ -339,6 +241,148 @@ export class LinkLayer3Core extends LinkLayer2 {
         ).actions,
       );
     }
+  }
+
+  private evaluateLinkProof(
+    packet: Packet,
+    destination: NonNullable<LinkLayer3Core["destination"]>,
+  ): {
+    modeMatches: boolean;
+    layoutValid: boolean;
+    bodyPresent: boolean;
+    peerPublicPresent: boolean;
+    signatureValid: boolean;
+    confirmedMtu: number | null;
+  } {
+    const mode = LinkLayer2.modeFromLpPacket(packet);
+    const modeMatch = stepExpectedLinkModeWithActions(
+      initialExpectedLinkModeState(),
+      {
+        kind: "link/expected-mode-gate",
+        expected: this.mode,
+        received: mode,
+      },
+    );
+    const modeMatches = shouldMatchExpectedLinkMode(modeMatch.actions);
+
+    let proofData = packet.data;
+    let signallingBytes = new Uint8Array(0);
+    let confirmedMtu: number | null = null;
+
+    const layoutStepped = stepClassifyLinkProofPayloadWithActions(
+      initialClassifyLinkProofPayloadState(),
+      {
+        kind: "link-proof/classify-payload-gate",
+        dataLength: proofData.length,
+      },
+    );
+    const layoutValid =
+      shouldClassifyLinkProofPayloadBodyOnly(layoutStepped.actions) ||
+      shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions);
+    if (shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions)) {
+      confirmedMtu = LinkLayer2.mtuFromLpPacket(packet);
+      signallingBytes = Uint8Array.from(
+        LinkLayer2.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode),
+      );
+      proofData = proofData.subarray(0, LINK_PROOF_BODY_SIZE);
+    }
+
+    const bodyStepped = stepSplitLinkProofBodyWithActions(
+      initialSplitLinkProofBodyState(),
+      {
+        kind: "link-proof/split-body-gate",
+        data: proofData,
+      },
+    );
+    const body =
+      shouldRejectSplitLinkProofBody(bodyStepped.actions) ||
+      !shouldUseSplitLinkProofBody(bodyStepped.actions)
+        ? null
+        : linkProofBodyFieldsFromActions(bodyStepped.actions);
+    const peerSplit =
+      body !== null
+        ? stepSplitIdentityPublicKeyWithActions(
+            initialSplitIdentityPublicKeyState(),
+            {
+              kind: "identity-key/split-public-gate",
+              publicKeyBytes: destination.identity!.getPublicKey(),
+            },
+          )
+        : null;
+    const peerPublic =
+      peerSplit !== null && shouldUseSplitIdentityPublicKey(peerSplit.actions)
+        ? identityPublicKeyFieldsFromActions(peerSplit.actions)
+        : null;
+
+    return {
+      modeMatches,
+      layoutValid,
+      bodyPresent: body !== null,
+      peerPublicPresent: peerPublic !== null,
+      signatureValid: this.verifyLinkProofSignature({
+        destination,
+        modeMatches,
+        layoutValid,
+        body,
+        peerPublic,
+        signallingBytes,
+      }),
+      confirmedMtu,
+    };
+  }
+
+  private verifyLinkProofSignature(input: {
+    destination: NonNullable<LinkLayer3Core["destination"]>;
+    modeMatches: boolean;
+    layoutValid: boolean;
+    body: ReturnType<typeof linkProofBodyFieldsFromActions> | null;
+    peerPublic: ReturnType<typeof identityPublicKeyFieldsFromActions> | null;
+    signallingBytes: Uint8Array;
+  }): boolean {
+    const {
+      destination,
+      modeMatches,
+      layoutValid,
+      body,
+      peerPublic,
+      signallingBytes,
+    } = input;
+    const proofCrypto = stepAttemptLinkProofCryptoWithActions(
+      initialAttemptLinkProofCryptoState(),
+      {
+        kind: "link/attempt-proof-crypto-gate",
+        modeMatches,
+        layoutValid,
+        bodyPresent: body !== null,
+        peerPublicPresent: peerPublic !== null,
+      },
+    );
+    if (
+      !shouldAttemptLinkProofCryptoNow(proofCrypto.actions) ||
+      body === null ||
+      peerPublic === null
+    ) {
+      return false;
+    }
+    this.loadPeer(body.peerPublicKey, peerPublic.signaturePublicKey);
+    this.handshake();
+    const signedStepped = stepLinkProofSignedMaterialWithActions(
+      initialLinkProofSignedMaterialState(),
+      {
+        kind: "link-proof/signed-material-gate",
+        linkId: this.linkId,
+        publicKey: this.peerPublicKeyBytes!,
+        ownerSigPublicKey: peerPublic.signaturePublicKey,
+        signallingBytes,
+      },
+    );
+    const signedData = shouldUseLinkProofSignedMaterial(signedStepped.actions)
+      ? linkProofSignedMaterialRawFromActions(signedStepped.actions)
+      : null;
+    return (
+      signedData !== null &&
+      destination.identity!.validate(body.signature, signedData)
+    );
   }
 
   async handleRttPacket(packet: Packet): Promise<void> {

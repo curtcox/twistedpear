@@ -128,126 +128,29 @@ import {
 } from "./app-native-shared.js";
 import type { useNativeHarnessController } from "./app-native-controller.js";
 export type NativeHarnessScope = ReturnType<typeof useNativeHarnessController>;
+
 export function NativeHarnessViewPart1({
   scope,
 }: {
   scope: NativeHarnessScope;
 }) {
-  const {
-    status,
-    setStatus,
-    announces,
-    setAnnounces,
-    catalog,
-    setCatalog,
-    installed,
-    setInstalled,
-    installProgress,
-    setInstallProgress,
-    serviceRunning,
-    setServiceRunning,
-    lifecycleState,
-    setLifecycleState,
-    logLines,
-    setLogLines,
-    tcpEnabled,
-    setTcpEnabled,
-    autoEnabled,
-    setAutoEnabled,
-    bleEnabled,
-    setBleEnabled,
-    rnodeEnabled,
-    setRnodeEnabled,
-    usbDevices,
-    setUsbDevices,
-    selectedUsbDeviceId,
-    setSelectedUsbDeviceId,
-    selectedCatalogAppId,
-    setSelectedCatalogAppId,
-    selectedInstalledAppId,
-    setSelectedInstalledAppId,
-    grantCapabilities,
-    setGrantCapabilities,
-    miniappRuntime,
-    setMiniappRuntime,
-    miniappBenchmark,
-    setMiniappBenchmark,
-    miniappLogs,
-    setMiniappLogs,
-    developerMode,
-    setDeveloperMode,
-    devChannelDetail,
-    setDevChannelDetail,
-    devHost,
-    setDevHost,
-    devPort,
-    setDevPort,
-    ntfyUrl,
-    setNtfyUrl,
-    ntfyToken,
-    setNtfyToken,
-    freenetGrant,
-    setFreenetGrant,
-    freenetDisclosureAccepted,
-    setFreenetDisclosureAccepted,
-    freenetGrantError,
-    setFreenetGrantError,
-    freenetSession,
-    setFreenetSession,
-    peerModal,
-    setPeerModal,
-    hostConfirm,
-    setHostConfirm,
-    hostReview,
-    setHostReview,
-    install256tInput,
-    setInstall256tInput,
-    trustIdentityInput,
-    setTrustIdentityInput,
-    trustLabelInput,
-    setTrustLabelInput,
-    trustedPublishers,
-    setTrustedPublishers,
-    hostIdentity256t,
-    setHostIdentity256t,
-    deviceState,
-    setDeviceState,
-    sessionInvites,
-    setSessionInvites,
-    cameraPermission,
-    requestCameraPermission,
-    peerCameraActive,
-    setPeerCameraActive,
-    peerQrFrame,
-    setPeerQrFrame,
-    workletRef,
-    ipcBufferRef,
-    multicastIpcRef,
-    bonjourIpcRef,
-    bleIpcRef,
-    usbIpcRef,
-    workspaceReadCounterRef,
-    peerRtcRef,
-    pendingWorkspaceReadsRef,
-    appendLog,
-    sendToWorklet,
-    seedShareOfferChrome,
-    revokeShareOfferChrome,
-    applyFreenetGrantToWorklet,
-    activateFreenetGrant,
-    readWorkspaceDocument,
-    handleWorkletMessage,
-    performPeerAudio,
-    pushInterfaceConfig,
-    workletReadyRef,
-    stopWorklet,
-    startWorklet,
-    interfacesWantedWorkletRef,
-    peerQrUri,
-  } = scope;
   return (
     <>
       <StatusBar style="auto" />
+      <NativeHostReviewModal scope={scope} />
+      <NativeHostConfirmModal scope={scope} />
+      <NativePeerHostModal scope={scope} />
+      <NativeSessionInviteBanner scope={scope} />
+      <NativeDeviceActiveBanner scope={scope} />
+      <NativeWorkletStatusCard scope={scope} />
+    </>
+  );
+}
+
+function NativeHostReviewModal({ scope }: { scope: NativeHarnessScope }) {
+  const { hostReview, setHostReview, sendToWorklet } = scope;
+  return (
+    <>
       {hostReview !== null ? (
         <View testID="host-confirmation-modal" style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -328,6 +231,14 @@ export function NativeHarnessViewPart1({
           </View>
         </View>
       ) : null}
+    </>
+  );
+}
+
+function NativeHostConfirmModal({ scope }: { scope: NativeHarnessScope }) {
+  const { hostConfirm, setHostConfirm, sendToWorklet } = scope;
+  return (
+    <>
       {hostConfirm !== null ? (
         <View testID="host-confirmation-modal" style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -377,197 +288,319 @@ export function NativeHarnessViewPart1({
           </View>
         </View>
       ) : null}
-      {peerModal !== null ? (
-        <View testID="peer-host-modal" style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.sectionTitle}>
-              {peerModal.kind === "confirm"
-                ? "Confirm peer connection"
-                : peerModal.request.type === "peer-audio-transmit"
-                  ? "Play an audible peer invitation"
-                  : peerModal.request.type === "peer-audio-receive"
-                    ? "Listen for an audible peer invitation"
-                    : peerModal.request.type === "peer-ntfy-present"
-                      ? "Share private ntfy lookup code"
-                      : peerModal.request.type === "peer-ntfy-enter"
-                        ? "Enter private ntfy lookup code"
-                        : peerModal.request.type === "peer-qr-present"
-                          ? "Show peer QR"
-                          : peerModal.request.type === "peer-qr-scan"
-                            ? "Scan peer QR"
-                            : peerModal.request.type === "peer-manual-present"
-                              ? "Share peer invitation"
-                              : "Enter peer invitation"}
-            </Text>
-            <Text style={styles.muted}>
-              {peerModal.kind === "exchange" &&
-              (peerModal.request.type === "peer-audio-transmit" ||
-                peerModal.request.type === "peer-audio-receive")
-                ? "Trusted host chrome · audible FSK tones and microphone PCM stay inside the native host."
-                : peerModal.kind === "exchange" &&
-                    (peerModal.request.type === "peer-ntfy-present" ||
-                      peerModal.request.type === "peer-ntfy-enter")
-                  ? `Trusted host chrome · ${peerModal.request.server} observes a random topic, timing, and IP metadata; invitation contents are end-to-end encrypted.`
-                  : "Trusted host chrome · full serverless code"}
-            </Text>
-            {peerModal.kind === "confirm" ? (
-              <>
-                <Text style={styles.rowLabel}>
-                  Purpose: {peerModal.request.purpose}
-                </Text>
-                <Text style={styles.rowLabel}>
-                  Peer label (untrusted claim):{" "}
-                  {peerModal.request.peer.displayLabel}
-                </Text>
-                <Text style={styles.rowLabel}>
-                  Fingerprint: {peerModal.request.peer.fingerprint}
-                </Text>
-                <Text style={styles.rowLabel}>
-                  Matching words:{" "}
-                  {peerModal.request.peer.matchingWords.join(" · ")}
-                </Text>
-                <Text style={styles.rowLabel}>
-                  Data path: {peerModal.request.peer.dataPlane}
-                </Text>
-              </>
-            ) : (
-              <>
-                {peerModal.request.type === "peer-manual-present" ? (
-                  <TextInput
-                    multiline
-                    editable={false}
-                    value={peerModal.request.code}
-                    style={styles.input}
-                  />
-                ) : null}
-                {peerModal.request.type === "peer-ntfy-present" ? (
-                  <TextInput
-                    multiline
-                    editable={false}
-                    value={peerModal.request.code}
-                    style={styles.input}
-                  />
-                ) : null}
-                {peerQrUri !== null ? (
-                  <Image
-                    accessibilityLabel="Peer invitation QR"
-                    source={{ uri: peerQrUri }}
-                    style={{ width: 260, height: 260 }}
-                  />
-                ) : null}
-                {peerCameraActive ? (
-                  <CameraView
-                    style={{ width: 280, height: 280 }}
-                    facing="back"
-                    barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                    onBarcodeScanned={({ data }) => {
-                      setPeerCameraActive(false);
-                      setPeerModal((current) =>
-                        current?.kind === "exchange"
-                          ? { ...current, input: data }
-                          : current,
-                      );
-                    }}
-                  />
-                ) : null}
-                {peerModal.request.type === "peer-manual-enter" ||
-                peerModal.request.type === "peer-qr-scan" ||
-                peerModal.request.type === "peer-ntfy-enter" ||
-                (peerModal.request.type === "peer-manual-present" &&
-                  peerModal.request.expectsResponse) ||
-                (peerModal.request.type === "peer-qr-present" &&
-                  peerModal.request.expectsResponse) ? (
-                  <TextInput
-                    multiline
-                    value={peerModal.input}
-                    onChangeText={(input) =>
-                      setPeerModal({ ...peerModal, input })
-                    }
-                    placeholder={
-                      peerModal.request.type === "peer-ntfy-enter"
-                        ? "Enter the TPN2 lookup code (TPN1 also works)"
-                        : peerModal.request.type === "peer-qr-scan"
-                          ? "Scan or paste the peer QR payload"
-                          : "Paste the peer's full code"
-                    }
-                    placeholderTextColor="#718096"
-                    style={styles.input}
-                  />
-                ) : null}
-                {(peerModal.request.type === "peer-qr-scan" ||
-                  (peerModal.request.type === "peer-qr-present" &&
-                    peerModal.request.expectsResponse)) &&
-                !peerCameraActive ? (
-                  <ActionButton
-                    label="Start camera"
-                    onPress={() => {
-                      void requestCameraPermission().then((permission) => {
-                        if (permission.granted) setPeerCameraActive(true);
-                        else
-                          appendLog(
-                            "Camera permission denied; paste the QR payload instead.",
-                          );
-                      });
-                    }}
-                  />
-                ) : null}
-              </>
-            )}
-            <View style={styles.buttonRow}>
-              <ActionButton
-                label="Cancel"
-                onPress={() => {
-                  sendToWorklet({
-                    type: "peer-chrome-response",
-                    token: peerModal.request.token,
-                    accepted: false,
-                    approved: false,
-                  });
-                  setPeerCameraActive(false);
-                  setPeerModal(null);
-                }}
-              />
-              <ActionButton
-                label={
-                  peerModal.kind === "confirm"
-                    ? "Connect"
-                    : peerModal.request.type === "peer-audio-transmit"
-                      ? peerModal.request.expectsResponse
-                        ? "Play and listen"
-                        : "Play answer"
-                      : peerModal.request.type === "peer-audio-receive"
-                        ? "Start listening"
-                        : "Continue"
-                }
-                onPress={() => {
-                  if (peerModal.kind === "confirm")
-                    sendToWorklet({
-                      type: "peer-chrome-response",
-                      token: peerModal.request.token,
-                      approved: true,
-                    });
-                  else if (
-                    peerModal.request.type === "peer-audio-transmit" ||
-                    peerModal.request.type === "peer-audio-receive"
-                  )
-                    void performPeerAudio(peerModal.request);
-                  else
-                    sendToWorklet({
-                      type: "peer-chrome-response",
-                      token: peerModal.request.token,
-                      accepted: true,
-                      ...(peerModal.input.trim()
-                        ? { code: peerModal.input.trim() }
-                        : {}),
-                    });
-                  setPeerCameraActive(false);
-                  setPeerModal(null);
-                }}
-              />
-            </View>
-          </View>
-        </View>
+    </>
+  );
+}
+
+function NativePeerHostModal({ scope }: { scope: NativeHarnessScope }) {
+  const { peerModal } = scope;
+  if (peerModal === null) return null;
+  return (
+    <View testID="peer-host-modal" style={styles.modalOverlay}>
+      <View style={styles.modalCard}>
+        <NativePeerModalCopy peerModal={peerModal} />
+        <NativePeerModalFields scope={scope} peerModal={peerModal} />
+        <NativePeerModalActions scope={scope} peerModal={peerModal} />
+      </View>
+    </View>
+  );
+}
+
+function NativePeerModalCopy({
+  peerModal,
+}: {
+  peerModal: NonNullable<NativeHarnessScope["peerModal"]>;
+}) {
+  return (
+    <>
+      <Text style={styles.sectionTitle}>
+        {nativePeerModalTitle(peerModal)}
+      </Text>
+      <Text style={styles.muted}>{nativePeerModalSubtitle(peerModal)}</Text>
+    </>
+  );
+}
+
+function nativePeerModalTitle(
+  peerModal: NonNullable<NativeHarnessScope["peerModal"]>,
+): string {
+  if (peerModal.kind === "confirm") {
+    return "Confirm peer connection";
+  }
+  return nativePeerExchangeTitle(peerModal.request.type);
+}
+
+function nativePeerExchangeTitle(type: string): string {
+  if (type === "peer-audio-transmit") {
+    return "Play an audible peer invitation";
+  }
+  if (type === "peer-audio-receive") {
+    return "Listen for an audible peer invitation";
+  }
+  if (type === "peer-ntfy-present") {
+    return "Share private ntfy lookup code";
+  }
+  if (type === "peer-ntfy-enter") {
+    return "Enter private ntfy lookup code";
+  }
+  if (type === "peer-qr-present") {
+    return "Show peer QR";
+  }
+  if (type === "peer-qr-scan") {
+    return "Scan peer QR";
+  }
+  if (type === "peer-manual-present") {
+    return "Share peer invitation";
+  }
+  return "Enter peer invitation";
+}
+
+function nativePeerModalSubtitle(
+  peerModal: NonNullable<NativeHarnessScope["peerModal"]>,
+): string {
+  if (peerModal.kind !== "exchange") {
+    return "Trusted host chrome · full serverless code";
+  }
+  const type = peerModal.request.type;
+  if (type === "peer-audio-transmit" || type === "peer-audio-receive") {
+    return "Trusted host chrome · audible FSK tones and microphone PCM stay inside the native host.";
+  }
+  if (type === "peer-ntfy-present" || type === "peer-ntfy-enter") {
+    return `Trusted host chrome · ${peerModal.request.server} observes a random topic, timing, and IP metadata; invitation contents are end-to-end encrypted.`;
+  }
+  return "Trusted host chrome · full serverless code";
+}
+
+function NativePeerModalFields({
+  scope,
+  peerModal,
+}: {
+  scope: NativeHarnessScope;
+  peerModal: NonNullable<NativeHarnessScope["peerModal"]>;
+}) {
+  if (peerModal.kind === "confirm") {
+    return <NativePeerConfirmFields peerModal={peerModal} />;
+  }
+  return <NativePeerExchangeFields scope={scope} peerModal={peerModal} />;
+}
+
+function NativePeerConfirmFields({
+  peerModal,
+}: {
+  peerModal: Extract<
+    NonNullable<NativeHarnessScope["peerModal"]>,
+    { kind: "confirm" }
+  >;
+}) {
+  return (
+    <>
+      <Text style={styles.rowLabel}>Purpose: {peerModal.request.purpose}</Text>
+      <Text style={styles.rowLabel}>
+        Peer label (untrusted claim): {peerModal.request.peer.displayLabel}
+      </Text>
+      <Text style={styles.rowLabel}>
+        Fingerprint: {peerModal.request.peer.fingerprint}
+      </Text>
+      <Text style={styles.rowLabel}>
+        Matching words: {peerModal.request.peer.matchingWords.join(" · ")}
+      </Text>
+      <Text style={styles.rowLabel}>
+        Data path: {peerModal.request.peer.dataPlane}
+      </Text>
+    </>
+  );
+}
+
+function NativePeerExchangeFields({
+  scope,
+  peerModal,
+}: {
+  scope: NativeHarnessScope;
+  peerModal: Extract<
+    NonNullable<NativeHarnessScope["peerModal"]>,
+    { kind: "exchange" }
+  >;
+}) {
+  const { peerQrUri, peerCameraActive, setPeerModal } = scope;
+  return (
+    <>
+      {peerModal.request.type === "peer-manual-present" ? (
+        <TextInput multiline editable={false} value={peerModal.request.code} style={styles.input} />
       ) : null}
+      {peerModal.request.type === "peer-ntfy-present" ? (
+        <TextInput multiline editable={false} value={peerModal.request.code} style={styles.input} />
+      ) : null}
+      {peerQrUri !== null ? (
+        <Image
+          accessibilityLabel="Peer invitation QR"
+          source={{ uri: peerQrUri }}
+          style={{ width: 260, height: 260 }}
+        />
+      ) : null}
+      {peerCameraActive ? (
+        <NativePeerCameraPreview scope={scope} />
+      ) : null}
+      {nativePeerNeedsCodeInput(peerModal) ? (
+        <TextInput
+          multiline
+          value={peerModal.input}
+          onChangeText={(input) => setPeerModal({ ...peerModal, input })}
+          placeholder={nativePeerInputPlaceholder(peerModal.request.type)}
+          placeholderTextColor="#718096"
+          style={styles.input}
+        />
+      ) : null}
+      <NativePeerStartCameraButton scope={scope} peerModal={peerModal} />
+    </>
+  );
+}
+
+function nativePeerNeedsCodeInput(
+  peerModal: Extract<
+    NonNullable<NativeHarnessScope["peerModal"]>,
+    { kind: "exchange" }
+  >,
+): boolean {
+  const type = peerModal.request.type;
+  if (type === "peer-manual-enter" || type === "peer-qr-scan" || type === "peer-ntfy-enter") {
+    return true;
+  }
+  if (type === "peer-manual-present" || type === "peer-qr-present") {
+    return peerModal.request.expectsResponse;
+  }
+  return false;
+}
+
+function nativePeerInputPlaceholder(type: string): string {
+  if (type === "peer-ntfy-enter") {
+    return "Enter the TPN2 lookup code (TPN1 also works)";
+  }
+  if (type === "peer-qr-scan") {
+    return "Scan or paste the peer QR payload";
+  }
+  return "Paste the peer's full code";
+}
+
+function NativePeerCameraPreview({ scope }: { scope: NativeHarnessScope }) {
+  const { setPeerCameraActive, setPeerModal } = scope;
+  return (
+    <CameraView
+      style={{ width: 280, height: 280 }}
+      facing="back"
+      barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+      onBarcodeScanned={({ data }) => {
+        setPeerCameraActive(false);
+        setPeerModal((current) =>
+          current?.kind === "exchange" ? { ...current, input: data } : current,
+        );
+      }}
+    />
+  );
+}
+
+function NativePeerStartCameraButton({
+  scope,
+  peerModal,
+}: {
+  scope: NativeHarnessScope;
+  peerModal: Extract<
+    NonNullable<NativeHarnessScope["peerModal"]>,
+    { kind: "exchange" }
+  >;
+}) {
+  const { peerCameraActive, setPeerCameraActive, requestCameraPermission, appendLog } =
+    scope;
+  const type = peerModal.request.type;
+  const show =
+    (type === "peer-qr-scan" ||
+      (type === "peer-qr-present" && peerModal.request.expectsResponse)) &&
+    !peerCameraActive;
+  if (!show) {
+    return null;
+  }
+  return (
+    <ActionButton
+      label="Start camera"
+      onPress={() => {
+        void requestCameraPermission().then((permission) => {
+          if (permission.granted) setPeerCameraActive(true);
+          else
+            appendLog(
+              "Camera permission denied; paste the QR payload instead.",
+            );
+        });
+      }}
+    />
+  );
+}
+
+function NativePeerModalActions({
+  scope,
+  peerModal,
+}: {
+  scope: NativeHarnessScope;
+  peerModal: NonNullable<NativeHarnessScope["peerModal"]>;
+}) {
+  const { sendToWorklet, setPeerCameraActive, setPeerModal, performPeerAudio } =
+    scope;
+  return (
+    <View style={styles.buttonRow}>
+      <ActionButton
+        label="Cancel"
+        onPress={() => {
+          sendToWorklet({
+            type: "peer-chrome-response",
+            token: peerModal.request.token,
+            accepted: false,
+            approved: false,
+          });
+          setPeerCameraActive(false);
+          setPeerModal(null);
+        }}
+      />
+      <ActionButton
+        label={
+          peerModal.kind === "confirm"
+            ? "Connect"
+            : peerModal.request.type === "peer-audio-transmit"
+              ? peerModal.request.expectsResponse
+                ? "Play and listen"
+                : "Play answer"
+              : peerModal.request.type === "peer-audio-receive"
+                ? "Start listening"
+                : "Continue"
+        }
+        onPress={() => {
+          if (peerModal.kind === "confirm")
+            sendToWorklet({
+              type: "peer-chrome-response",
+              token: peerModal.request.token,
+              approved: true,
+            });
+          else if (
+            peerModal.request.type === "peer-audio-transmit" ||
+            peerModal.request.type === "peer-audio-receive"
+          )
+            void performPeerAudio(peerModal.request);
+          else
+            sendToWorklet({
+              type: "peer-chrome-response",
+              token: peerModal.request.token,
+              accepted: true,
+              ...(peerModal.input.trim() ? { code: peerModal.input.trim() } : {}),
+            });
+          setPeerCameraActive(false);
+          setPeerModal(null);
+        }}
+      />
+    </View>
+  );
+}
+
+function NativeSessionInviteBanner({ scope }: { scope: NativeHarnessScope }) {
+  const { sessionInvites, sendToWorklet } = scope;
+  return (
+    <>
       {sessionInvites.some((invite) => invite.phase === "pending") ? (
         <View testID="session-invite-banner" style={styles.deviceActiveBanner}>
           <Text style={styles.deviceActiveBannerTitle}>
@@ -609,6 +642,14 @@ export function NativeHarnessViewPart1({
             ))}
         </View>
       ) : null}
+    </>
+  );
+}
+
+function NativeDeviceActiveBanner({ scope }: { scope: NativeHarnessScope }) {
+  const { deviceState, status, sendToWorklet, revokeShareOfferChrome } = scope;
+  return (
+    <>
       {deviceState !== null &&
       (deviceState.indicators.length > 0 ||
         deviceState.shareOffers.length > 0) ? (
@@ -656,11 +697,18 @@ export function NativeHarnessViewPart1({
           ))}
         </View>
       ) : null}
+    </>
+  );
+}
+
+function NativeWorkletStatusCard({ scope }: { scope: NativeHarnessScope }) {
+  const { status, serviceRunning, lifecycleState } = scope;
+  return (
+    <>
       <Text style={styles.title}>TwistedPear Harness</Text>
       <Text style={styles.subtitle}>
         Reticulum node + mini-app runtime (Phase 5 iOS host)
       </Text>
-
       <View style={styles.card}>
         <Text>Worklet: {status.running ? "running" : "stopped"}</Text>
         <Text>Link: {status.linkOnline ? "online" : "offline"}</Text>
@@ -669,36 +717,59 @@ export function NativeHarnessViewPart1({
         <Text>Auto peers: {status.autoPeers}</Text>
         <Text>Preferred interface: {status.preferredInterface ?? "—"}</Text>
         <Text>Online interfaces: {status.onlineInterfaces}</Text>
-        <Text>
-          BLE:{" "}
-          {status.bleConnected
-            ? "connected"
-            : status.bleEnabled
-              ? "waiting"
-              : "off"}
-        </Text>
-        <Text>
-          RNode:{" "}
-          {status.rnodeConnected
-            ? `connected (${status.rnodeDeviceName ?? "usb"})`
-            : status.rnodeEnabled
-              ? "waiting"
-              : "off"}
-        </Text>
+        <Text>BLE: {nativeBleStatusLabel(status)}</Text>
+        <Text>RNode: {nativeRnodeStatusLabel(status)}</Text>
         <Text>Identity: {status.identityHash ?? "none"}</Text>
         <Text>Persisted: {status.identityPersisted ? "yes" : "no"}</Text>
-        {Platform.OS === "android" ? (
-          <Text>
-            Foreground service: {serviceRunning ? "running" : "stopped"}
-          </Text>
-        ) : null}
-        {Platform.OS === "ios" ? (
-          <Text>
-            iOS lifecycle: {lifecycleState}
-            {lifecycleState === "suspended" ? " (node suspended by iOS)" : ""}
-          </Text>
-        ) : null}
+        <NativePlatformLifecycleLines
+          serviceRunning={serviceRunning}
+          lifecycleState={lifecycleState}
+        />
       </View>
+    </>
+  );
+}
+
+function nativeBleStatusLabel(status: NativeHarnessScope["status"]): string {
+  if (status.bleConnected) {
+    return "connected";
+  }
+  if (status.bleEnabled) {
+    return "waiting";
+  }
+  return "off";
+}
+
+function nativeRnodeStatusLabel(status: NativeHarnessScope["status"]): string {
+  if (status.rnodeConnected) {
+    return `connected (${status.rnodeDeviceName ?? "usb"})`;
+  }
+  if (status.rnodeEnabled) {
+    return "waiting";
+  }
+  return "off";
+}
+
+function NativePlatformLifecycleLines({
+  serviceRunning,
+  lifecycleState,
+}: {
+  serviceRunning: boolean;
+  lifecycleState: string;
+}) {
+  return (
+    <>
+      {Platform.OS === "android" ? (
+        <Text>
+          Foreground service: {serviceRunning ? "running" : "stopped"}
+        </Text>
+      ) : null}
+      {Platform.OS === "ios" ? (
+        <Text>
+          iOS lifecycle: {lifecycleState}
+          {lifecycleState === "suspended" ? " (node suspended by iOS)" : ""}
+        </Text>
+      ) : null}
     </>
   );
 }

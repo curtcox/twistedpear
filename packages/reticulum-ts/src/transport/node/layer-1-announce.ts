@@ -142,6 +142,34 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       return;
     }
 
+    if (
+      !this.commitAnnouncePath({
+        packet,
+        iface,
+        receivedFrom,
+        randomBlob,
+        existing,
+        now,
+        announce,
+      })
+    ) {
+      return;
+    }
+
+    await this.notifyAnnounceHandlers(packet, announce);
+  }
+
+  private commitAnnouncePath(input: {
+    packet: Packet;
+    iface: PacketInterface;
+    receivedFrom: Uint8Array;
+    randomBlob: Uint8Array;
+    existing: PathEntry | undefined;
+    now: number;
+    announce: Announce;
+  }): boolean {
+    const { packet, iface, receivedFrom, randomBlob, existing, now, announce } =
+      input;
     const blobStepped = stepAppendPathRandomBlobWithActions(
       initialAppendPathRandomBlobState(),
       {
@@ -154,7 +182,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       ? appendPathRandomBlobFieldsFromActions(blobStepped.actions)
       : null;
     if (randomBlobs === null) {
-      return;
+      return false;
     }
 
     const expiryStepped = stepComputePathExpiryWithActions(
@@ -168,7 +196,7 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       ? pathExpiryFromActions(expiryStepped.actions)
       : null;
     if (expires === null) {
-      return;
+      return false;
     }
 
     const entry: PathEntry = {
@@ -190,7 +218,13 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       announce.appData,
       now,
     );
+    return true;
+  }
 
+  private async notifyAnnounceHandlers(
+    packet: Packet,
+    announce: Announce,
+  ): Promise<void> {
     const announcedIdentity = Identity.recall(
       this.options.provider,
       packet.destinationHash,
@@ -228,46 +262,11 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
         continue;
       }
 
-      if (handler.aspectFilter != null) {
-        const filterStepped = stepParseAspectFilterWithActions(
-          initialParseAspectFilterState(),
-          {
-            kind: "destination/aspect-filter-gate",
-            filter: handler.aspectFilter,
-          },
-        );
-        const parsedFilter = shouldUseParseAspectFilter(filterStepped.actions)
-          ? aspectFilterFromActions(filterStepped.actions)
-          : null;
-        const filterParsed =
-          !shouldRejectParseAspectFilter(filterStepped.actions) &&
-          parsedFilter !== null;
-        const expected =
-          parsedFilter === null
-            ? null
-            : Destination.hash(
-                this.options.provider,
-                identity,
-                parsedFilter.appName,
-                ...parsedFilter.aspects,
-              );
-        if (
-          !shouldMatchAnnounceAspectNow(
-            stepMatchAnnounceAspectWithActions(
-              initialMatchAnnounceAspectState(),
-              {
-                kind: "announce/match-aspect-gate",
-                hasFilter: true,
-                filterParsed,
-                hashMatches:
-                  expected !== null &&
-                  equalBytes(packet.destinationHash, expected),
-              },
-            ).actions,
-          )
-        ) {
-          continue;
-        }
+      if (
+        handler.aspectFilter != null &&
+        !this.announceHandlerMatchesAspect(handler, packet, identity)
+      ) {
+        continue;
       }
 
       handler.receivedAnnounce({
@@ -279,5 +278,43 @@ export class LeafTransportLayer1Announce extends LeafTransportLayer1Core {
       });
     }
     await Promise.resolve();
+  }
+
+  private announceHandlerMatchesAspect(
+    handler: (typeof this.announceHandlers)[number],
+    packet: Packet,
+    identity: Identity,
+  ): boolean {
+    const filterStepped = stepParseAspectFilterWithActions(
+      initialParseAspectFilterState(),
+      {
+        kind: "destination/aspect-filter-gate",
+        filter: handler.aspectFilter,
+      },
+    );
+    const parsedFilter = shouldUseParseAspectFilter(filterStepped.actions)
+      ? aspectFilterFromActions(filterStepped.actions)
+      : null;
+    const filterParsed =
+      !shouldRejectParseAspectFilter(filterStepped.actions) &&
+      parsedFilter !== null;
+    const expected =
+      parsedFilter === null
+        ? null
+        : Destination.hash(
+            this.options.provider,
+            identity,
+            parsedFilter.appName,
+            ...parsedFilter.aspects,
+          );
+    return shouldMatchAnnounceAspectNow(
+      stepMatchAnnounceAspectWithActions(initialMatchAnnounceAspectState(), {
+        kind: "announce/match-aspect-gate",
+        hasFilter: true,
+        filterParsed,
+        hashMatches:
+          expected !== null && equalBytes(packet.destinationHash, expected),
+      }).actions,
+    );
   }
 }

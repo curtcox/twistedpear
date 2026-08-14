@@ -5,6 +5,7 @@ import {
   degradationLadderFor,
   deviceClassById,
   isShareOfferLive,
+  type ShareOffer,
 } from "@twistedpear/protocol";
 import { CapabilityError } from "../capabilities.js";
 import {
@@ -64,111 +65,13 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
         "Remote-acquired devices cannot be re-served to a third peer.",
       );
     }
-    const entry = deviceClassById(live.state.classId);
-    if (entry === undefined || !entry.streamable) {
-      throw new DeviceError(
-        "DEVICE_UNSUPPORTED",
-        `Device class "${live.state.classId}" is not streamable.`,
-      );
-    }
-    const shareOffer = [...this.shareOffers.values()].find(
-      (offer) =>
-        offer.appId === appId &&
-        ((offer.targetKind === "peer" && offer.targetId === peer) ||
-          (offer.targetKind === "group" &&
-            this.options.shareOfferTargetsPeer?.(offer, peer) === true)) &&
-        offer.classId === live.state.classId &&
-        offer.tierId === live.state.tierId &&
-        isShareOfferLive(offer, this.now()),
-    );
-    if (shareOffer === undefined) {
-      throw new DeviceError(
-        "DEVICE_DENIED",
-        "Host share policy does not permit this stream.",
-      );
-    }
-
-    if (this.options.linkSupply === undefined) {
-      throw new DeviceError(
-        "DEVICE_UNCONFIGURED",
-        "No host-owned link measurement is configured for streaming.",
-      );
-    }
-    const hostCandidates = await this.options.linkSupply(appId, peer);
-    const preferred =
-      constraints.preferredPlane === undefined
-        ? hostCandidates
-        : hostCandidates.filter(
-            (candidate) => candidate.plane === constraints.preferredPlane,
-          );
-    const candidates = applyAdvisoryCandidateCeilings(
-      preferred,
-      constraints.candidates,
-    );
-
-    const bandwidthProfile = entry.bandwidth[live.state.tierId];
-    if (
-      constraints.encoding !== undefined &&
-      bandwidthProfile?.encodings?.[constraints.encoding] === undefined
-    ) {
-      throw new DeviceError(
-        "DEVICE_BAD_REQUEST",
-        "Requested media encoding profile is unsupported.",
-      );
-    }
-    if (
-      constraints.codec !== undefined &&
-      !codecMatchesTier(
-        live.state.classId,
-        live.state.tierId,
-        constraints.codec,
-      )
-    ) {
-      throw new DeviceError(
-        "DEVICE_BAD_REQUEST",
-        "Requested media codec is unsupported for this device tier.",
-      );
-    }
-
-    const demand = {
-      classId: live.state.classId,
-      tierId: live.state.tierId,
-      rateHz: live.rateHz,
-      ...(constraints.encoding === undefined
-        ? {}
-        : { encoding: constraints.encoding }),
-      ...(constraints.codec === undefined ? {} : { codec: constraints.codec }),
-    };
-    let admission = decideStreamAdmission(demand, candidates);
-
-    if (admission.kind === "reject") {
-      throw new DeviceError("DEVICE_BANDWIDTH_INSUFFICIENT", admission.reason);
-    }
-    const ladder = degradationLadderFor(live.state.classId);
-    const maximumRungIndex = ladder.indexOf(shareOffer.maxRung);
-    if (maximumRungIndex < 0) {
-      throw new DeviceError(
-        "DEVICE_DENIED",
-        "Host share policy contains an invalid quality ceiling.",
-      );
-    }
-    if (admission.rungIndex < maximumRungIndex) {
-      const rungDelta = maximumRungIndex - admission.rungIndex;
-      admission = {
-        ...admission,
-        kind: "degrade",
-        rung: ladder[maximumRungIndex] ?? shareOffer.maxRung,
-        rungIndex: maximumRungIndex,
-        admittedDemandBps: admission.admittedDemandBps / 2 ** rungDelta,
-        reason: `limited by host share policy to ${shareOffer.maxRung}`,
-      };
-    }
-    if (this.options.streamEgressFactory === undefined) {
-      throw new DeviceError(
-        "DEVICE_UNCONFIGURED",
-        "No host media egress is configured for this plane.",
-      );
-    }
+    const admitted = await this.admitDeviceStream({
+      appId,
+      live,
+      peer,
+      constraints,
+    });
+    const { shareOffer, demand, admission } = admitted;
 
     const handle = `stream-${this.nextStreamHandle++}-${bytesToHex(this.randomBytes(3))}`;
     const stream: DeviceStreamSession = {
@@ -179,7 +82,7 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
     };
     let egress: StreamEgress;
     try {
-      egress = await this.options.streamEgressFactory.create({
+      egress = await this.options.streamEgressFactory!.create({
         appId,
         peer,
         demand,
@@ -213,6 +116,158 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
     return stream;
   }
 
+  private async admitDeviceStream(input: {
+    appId: string;
+    live: LiveSession;
+    peer: DevicePeerHandle;
+    constraints: DeviceStreamConstraints;
+  }): Promise<{
+    shareOffer: ShareOffer;
+    demand: {
+      classId: LiveSession["state"]["classId"];
+      tierId: LiveSession["state"]["tierId"];
+      rateHz: LiveSession["rateHz"];
+      encoding?: string;
+      codec?: string;
+    };
+    admission: Exclude<ReturnType<typeof decideStreamAdmission>, { kind: "reject" }>;
+  }> {
+    const { appId, live, peer, constraints } = input;
+    const entry = deviceClassById(live.state.classId);
+    if (entry === undefined || !entry.streamable) {
+      throw new DeviceError(
+        "DEVICE_UNSUPPORTED",
+        `Device class "${live.state.classId}" is not streamable.`,
+      );
+    }
+    const shareOffer = this.requireShareOffer(appId, live, peer);
+    const candidates = await this.streamCandidates(appId, peer, constraints);
+    this.assertStreamConstraints(entry, live, constraints);
+
+    const demand = {
+      classId: live.state.classId,
+      tierId: live.state.tierId,
+      rateHz: live.rateHz,
+      ...(constraints.encoding === undefined
+        ? {}
+        : { encoding: constraints.encoding }),
+      ...(constraints.codec === undefined ? {} : { codec: constraints.codec }),
+    };
+    let admission = decideStreamAdmission(demand, candidates);
+    if (admission.kind === "reject") {
+      throw new DeviceError("DEVICE_BANDWIDTH_INSUFFICIENT", admission.reason);
+    }
+    admission = this.applyShareRungCeiling(live, shareOffer, admission);
+    if (this.options.streamEgressFactory === undefined) {
+      throw new DeviceError(
+        "DEVICE_UNCONFIGURED",
+        "No host media egress is configured for this plane.",
+      );
+    }
+    return { shareOffer, demand, admission };
+  }
+
+  private requireShareOffer(
+    appId: string,
+    live: LiveSession,
+    peer: DevicePeerHandle,
+  ): ShareOffer {
+    const shareOffer = [...this.shareOffers.values()].find(
+      (offer) =>
+        offer.appId === appId &&
+        ((offer.targetKind === "peer" && offer.targetId === peer) ||
+          (offer.targetKind === "group" &&
+            this.options.shareOfferTargetsPeer?.(offer, peer) === true)) &&
+        offer.classId === live.state.classId &&
+        offer.tierId === live.state.tierId &&
+        isShareOfferLive(offer, this.now()),
+    );
+    if (shareOffer === undefined) {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Host share policy does not permit this stream.",
+      );
+    }
+    return shareOffer;
+  }
+
+  private async streamCandidates(
+    appId: string,
+    peer: DevicePeerHandle,
+    constraints: DeviceStreamConstraints,
+  ) {
+    if (this.options.linkSupply === undefined) {
+      throw new DeviceError(
+        "DEVICE_UNCONFIGURED",
+        "No host-owned link measurement is configured for streaming.",
+      );
+    }
+    const hostCandidates = await this.options.linkSupply(appId, peer);
+    const preferred =
+      constraints.preferredPlane === undefined
+        ? hostCandidates
+        : hostCandidates.filter(
+            (candidate) => candidate.plane === constraints.preferredPlane,
+          );
+    return applyAdvisoryCandidateCeilings(preferred, constraints.candidates);
+  }
+
+  private assertStreamConstraints(
+    entry: NonNullable<ReturnType<typeof deviceClassById>>,
+    live: LiveSession,
+    constraints: DeviceStreamConstraints,
+  ): void {
+    const bandwidthProfile = entry.bandwidth[live.state.tierId];
+    if (
+      constraints.encoding !== undefined &&
+      bandwidthProfile?.encodings?.[constraints.encoding] === undefined
+    ) {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Requested media encoding profile is unsupported.",
+      );
+    }
+    if (
+      constraints.codec !== undefined &&
+      !codecMatchesTier(
+        live.state.classId,
+        live.state.tierId,
+        constraints.codec,
+      )
+    ) {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Requested media codec is unsupported for this device tier.",
+      );
+    }
+  }
+
+  private applyShareRungCeiling(
+    live: LiveSession,
+    shareOffer: ShareOffer,
+    admission: Exclude<ReturnType<typeof decideStreamAdmission>, { kind: "reject" }>,
+  ): Exclude<ReturnType<typeof decideStreamAdmission>, { kind: "reject" }> {
+    const ladder = degradationLadderFor(live.state.classId);
+    const maximumRungIndex = ladder.indexOf(shareOffer.maxRung);
+    if (maximumRungIndex < 0) {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Host share policy contains an invalid quality ceiling.",
+      );
+    }
+    if (admission.rungIndex >= maximumRungIndex) {
+      return admission;
+    }
+    const rungDelta = maximumRungIndex - admission.rungIndex;
+    return {
+      ...admission,
+      kind: "degrade",
+      rung: ladder[maximumRungIndex] ?? shareOffer.maxRung,
+      rungIndex: maximumRungIndex,
+      admittedDemandBps: admission.admittedDemandBps / 2 ** rungDelta,
+      reason: `limited by host share policy to ${shareOffer.maxRung}`,
+    };
+  }
   async closeStream(
     appId: string,
     streamHandle: DeviceStreamHandle,
