@@ -118,6 +118,129 @@ export function authorityStep(capability: string): StepFn<CampaignNodeState> {
   };
 }
 
+function serviceAvailability(
+  cell: CoverageCell,
+  state: Extract<CampaignNodeState, { role: "service" }>,
+  at: number,
+): { state: CampaignNodeState; intents: Intent[] } {
+  if (state.severedAt !== null) return { state, intents: [] };
+  const lifecycle = state.productionObservation?.authority[cell.capability];
+  if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active")
+    return { state, intents: [] };
+  if (!state.productionObservation?.response.ok)
+    return { state, intents: [] };
+  const grantId = `${cell.capability}-grant`;
+  return {
+    state: {
+      ...state,
+      egress: [
+        ...state.egress,
+        { at, appId: "campaign-app", grantId, peerId: "probe" },
+      ],
+      operationSemantics: [
+        ...state.operationSemantics,
+        `${cell.capability}:legitimate-use`,
+      ],
+    },
+    intents: [],
+  };
+}
+
+function defectReached(
+  cell: CoverageCell,
+  defectivePolicy: boolean,
+  state: Extract<CampaignNodeState, { role: "service" }>,
+  payload: Uint8Array,
+): boolean {
+  if (!defectivePolicy) return false;
+  if (state.productionObservation?.negativeControlRejected !== false)
+    return false;
+  if (payload[0] !== (stableHash(cellId(cell)) & 0xff)) return false;
+  const attackSuppressesUse =
+    cell.abuse.verb === "deny" || cell.position === "compromised-host";
+  const requiresActive =
+    !attackSuppressesUse && (stableHash(cellId(cell)) & 1) === 0;
+  const scheduledUseObserved = state.operationSemantics.includes(
+    `${cell.capability}:legitimate-use`,
+  );
+  return requiresActive ? scheduledUseObserved : !scheduledUseObserved;
+}
+
+function serviceAuthorized(
+  state: Extract<CampaignNodeState, { role: "service" }>,
+  capability: string,
+): boolean {
+  const lifecycle = state.productionObservation?.authority[capability];
+  const phaseOk = lifecycle?.phase === "granted" || lifecycle?.phase === "active";
+  return phaseOk && state.productionObservation?.response.ok === true;
+}
+
+function serviceAbuse(
+  cell: CoverageCell,
+  defectivePolicy: boolean,
+  state: Extract<CampaignNodeState, { role: "service" }>,
+  event: { readonly at: number; readonly payload: Uint8Array },
+): { state: CampaignNodeState; intents: Intent[] } {
+  if (state.severedAt !== null) return { state, intents: [] };
+  if (!serviceAuthorized(state, cell.capability))
+    return { state, intents: [] };
+  if (!defectReached(cell, defectivePolicy, state, event.payload))
+    return { state, intents: [] };
+  const egress: EgressEvent = {
+    at: event.at,
+    appId: "campaign-app",
+    grantId: `${cell.capability}-grant`,
+    peerId: cell.position,
+  };
+  return {
+    state: {
+      ...state,
+      egress: [...state.egress, egress],
+      damageEvents: [...state.damageEvents, event.at],
+      operationSemantics: [
+        ...state.operationSemantics,
+        `${cell.capability}:${cell.position}:${cell.abuse.verb}`,
+        ...(defectivePolicy ? [`defect:${cellId(cell)}`] : []),
+      ],
+    },
+    intents: [],
+  };
+}
+
+function serviceControl(
+  cellChannel: string,
+  observations: () => {
+    readonly grantedObservation: ProductionCapabilityObservation | null;
+    readonly revokedObservation: ProductionCapabilityObservation | null;
+  },
+  state: Extract<CampaignNodeState, { role: "service" }>,
+  event: { readonly at: number },
+): { state: CampaignNodeState; intents: Intent[] } | null {
+  if (cellChannel === "control/grant") {
+    const production = observations().grantedObservation;
+    if (production === null || !production.response.ok)
+      return { state, intents: [] };
+    return {
+      state: { ...state, productionObservation: production },
+      intents: [],
+    };
+  }
+  if (cellChannel === "control/revoke") {
+    return {
+      state: {
+        ...state,
+        revokedAt: event.at,
+        productionObservation:
+          observations().revokedObservation ?? state.productionObservation,
+      },
+      intents: [],
+    };
+  }
+  if (cellChannel === "control/kill")
+    return { state: { ...state, severedAt: event.at }, intents: [] };
+  return null;
+}
+
 export function serviceStep(
   cell: CoverageCell,
   defectivePolicy: boolean,
@@ -130,94 +253,12 @@ export function serviceStep(
     if (state.role !== "service") return { state, intents: [] };
     if (event.kind === "start") return { state, intents: [] };
     if (event.kind !== "transport/recv") return { state, intents: [] };
-    if (event.channel === "control/grant") {
-      const production = observations().grantedObservation;
-      if (production === null || !production.response.ok)
-        return { state, intents: [] };
-      return {
-        state: { ...state, productionObservation: production },
-        intents: [],
-      };
-    }
-    if (event.channel === "control/revoke") {
-      return {
-        state: {
-          ...state,
-          revokedAt: event.at,
-          productionObservation:
-            observations().revokedObservation ?? state.productionObservation,
-        },
-        intents: [],
-      };
-    }
-    if (event.channel === "control/kill")
-      return { state: { ...state, severedAt: event.at }, intents: [] };
-    if (event.channel === "protocol/availability" && state.severedAt === null) {
-      const lifecycle = state.productionObservation?.authority[cell.capability];
-      if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active")
-        return { state, intents: [] };
-      if (!state.productionObservation?.response.ok)
-        return { state, intents: [] };
-      const grantId = `${cell.capability}-grant`;
-      return {
-        state: {
-          ...state,
-          egress: [
-            ...state.egress,
-            { at: event.at, appId: "campaign-app", grantId, peerId: "probe" },
-          ],
-          operationSemantics: [
-            ...state.operationSemantics,
-            `${cell.capability}:legitimate-use`,
-          ],
-        },
-        intents: [],
-      };
-    }
-    if (!event.channel.startsWith("abuse/") || state.severedAt !== null)
-      return { state, intents: [] };
-    const lifecycle = state.productionObservation?.authority[cell.capability];
-    const authorized =
-      lifecycle?.phase === "granted" || lifecycle?.phase === "active";
-    // Each defect variant removes one phase-specific guard. Whether it is reached depends on
-    // the race between the real availability use and the adversarial payload over this transport.
-    const attackSuppressesUse =
-      cell.abuse.verb === "deny" || cell.position === "compromised-host";
-    const requiresActive =
-      !attackSuppressesUse && (stableHash(cellId(cell)) & 1) === 0;
-    const scheduledUseObserved = state.operationSemantics.includes(
-      `${cell.capability}:legitimate-use`,
-    );
-    const defectReached =
-      defectivePolicy &&
-      state.productionObservation?.negativeControlRejected === false &&
-      event.payload[0] === (stableHash(cellId(cell)) & 0xff) &&
-      (requiresActive ? scheduledUseObserved : !scheduledUseObserved);
-    if (
-      !authorized ||
-      !state.productionObservation?.response.ok ||
-      !defectReached
-    )
-      return { state, intents: [] };
-    const egress: EgressEvent = {
-      at: event.at,
-      appId: "campaign-app",
-      grantId: `${cell.capability}-grant`,
-      peerId: cell.position,
-    };
-    return {
-      state: {
-        ...state,
-        egress: [...state.egress, egress],
-        damageEvents: [...state.damageEvents, event.at],
-        operationSemantics: [
-          ...state.operationSemantics,
-          `${cell.capability}:${cell.position}:${cell.abuse.verb}`,
-          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : []),
-        ],
-      },
-      intents: [],
-    };
+    const control = serviceControl(event.channel, observations, state, event);
+    if (control !== null) return control;
+    if (event.channel === "protocol/availability")
+      return serviceAvailability(cell, state, event.at);
+    if (!event.channel.startsWith("abuse/")) return { state, intents: [] };
+    return serviceAbuse(cell, defectivePolicy, state, event);
   };
 }
 

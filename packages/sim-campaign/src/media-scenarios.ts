@@ -79,6 +79,12 @@ function flappingGoodputBps(index: number, healthy: number): number {
   return Math.floor(index / 2) % 2 === 0 ? healthy : 9_000;
 }
 
+function collapseRecoverGoodputBps(index: number, healthy: number): number {
+  if (index < 8) return healthy;
+  if (index < 24) return 9_000;
+  return healthy;
+}
+
 export function mediaLinkGoodputBps(
   profile: MediaLinkProfile,
   index: number,
@@ -86,19 +92,12 @@ export function mediaLinkGoodputBps(
   const healthy = 800_000;
   switch (profile) {
     case "collapse-recover":
-      // Healthy → collapse to a narrowband trickle → recover.
-      if (index < 8) return healthy;
-      if (index < 24) return 9_000;
-      return healthy;
+      return collapseRecoverGoodputBps(index, healthy);
     case "asymmetric":
-      // A permanently thin return path: the ladder must settle, not hunt.
       return index < 6 ? healthy : 20_000;
     case "bufferbloat":
-      // Nominal goodput holds while the queue grows; the deficit is in latency.
       return index < 6 ? healthy : 300_000;
     case "flapping":
-      // Bad and good windows long enough to downshift but too short to earn
-      // the four-sample upshift.
       return flappingGoodputBps(index, healthy);
   }
 }
@@ -221,6 +220,49 @@ function linkStep(profile: MediaLinkProfile): StepFn<MediaLadderState> {
   };
 }
 
+function adaptCallerAdmission(
+  state: Extract<MediaLadderState, { role: "caller" }>,
+  supply: LinkSupply,
+  brokenLadderStep: boolean,
+): {
+  readonly next: AdmissionDecision;
+  readonly deficitStreak: number;
+  readonly surplusStreak: number;
+} {
+  const previous = state.decision;
+  if (previous === null) {
+    return {
+      next: decideStreamAdmission(state.demand, [supply]),
+      deficitStreak: state.deficitStreak,
+      surplusStreak: state.surplusStreak,
+    };
+  }
+  const shortfall =
+    Math.max(0, supply.effectiveBps) < previous.admittedDemandBps;
+  let deficitStreak = shortfall ? state.deficitStreak + 1 : 0;
+  let surplusStreak = shortfall ? 0 : state.surplusStreak + 1;
+  let next = adaptStreamAdmission({
+    previous,
+    supply,
+    ladder: state.ladder,
+    deficitStreak,
+    surplusStreak,
+  });
+  if (brokenLadderStep && shortfall) {
+    const jumped = Math.min(state.ladder.length - 1, previous.rungIndex + 2);
+    next = {
+      ...next,
+      rungIndex: jumped,
+      rung: state.ladder[jumped] ?? next.rung,
+    };
+  }
+  if (next.rungIndex !== previous.rungIndex) {
+    deficitStreak = 0;
+    surplusStreak = 0;
+  }
+  return { next, deficitStreak, surplusStreak };
+}
+
 function callerStep(
   plane: LinkSupply["plane"],
   brokenLadderStep: boolean,
@@ -247,49 +289,18 @@ function callerStep(
       queueDepthBytes,
     };
 
-    const previous = state.decision;
-    let next: AdmissionDecision;
-    let deficitStreak = state.deficitStreak;
-    let surplusStreak = state.surplusStreak;
-    if (previous === null) {
-      next = decideStreamAdmission(state.demand, [supply]);
-    } else {
-      const shortfall =
-        Math.max(0, supply.effectiveBps) < previous.admittedDemandBps;
-      deficitStreak = shortfall ? deficitStreak + 1 : 0;
-      surplusStreak = shortfall ? 0 : surplusStreak + 1;
-      next = adaptStreamAdmission({
-        previous,
-        supply,
-        ladder: state.ladder,
-        deficitStreak,
-        surplusStreak,
-      });
-      if (brokenLadderStep && shortfall) {
-        const jumped = Math.min(
-          state.ladder.length - 1,
-          previous.rungIndex + 2,
-        );
-        next = {
-          ...next,
-          rungIndex: jumped,
-          rung: state.ladder[jumped] ?? next.rung,
-        };
-      }
-      if (next.rungIndex !== previous.rungIndex) {
-        deficitStreak = 0;
-        surplusStreak = 0;
-      }
-    }
-
-    const overHeadroomStreak = admittedWithinHeadroom(next, supply.headroomBps)
+    const adapted = adaptCallerAdmission(state, supply, brokenLadderStep);
+    const overHeadroomStreak = admittedWithinHeadroom(
+      adapted.next,
+      supply.headroomBps,
+    )
       ? 0
       : state.overHeadroomStreak + 1;
     const violations = [
       ...state.violations,
       ...ladderViolations(
-        previous,
-        next,
+        state.decision,
+        adapted.next,
         state.history,
         supply,
         overHeadroomStreak,
@@ -298,18 +309,18 @@ function callerStep(
     return {
       state: {
         ...state,
-        decision: next,
-        deficitStreak,
-        surplusStreak,
+        decision: adapted.next,
+        deficitStreak: adapted.deficitStreak,
+        surplusStreak: adapted.surplusStreak,
         history: [
           ...state.history,
           {
             at: event.at,
             goodputBps,
             queueDepthBytes,
-            rungIndex: next.rungIndex,
-            rung: next.rung,
-            kind: next.kind,
+            rungIndex: adapted.next.rungIndex,
+            rung: adapted.next.rung,
+            kind: adapted.next.kind,
           },
         ],
         overHeadroomStreak,

@@ -58,6 +58,50 @@ export function idleFreenetRemoteSession(): FreenetRemoteSession {
   };
 }
 
+function applyProbeResult(
+  current: FreenetRemoteSession,
+  result: FreenetRemoteProbeResult,
+): FreenetRemoteSession {
+  if (current.grant === null) return current;
+  if (result.ok) {
+    return {
+      ...current,
+      status: "online",
+      lastError: null,
+      reconnectAttempts: 0,
+    };
+  }
+  const status: FreenetRemoteSessionStatus =
+    result.reason === "auth-failed"
+      ? "auth-failed"
+      : current.status === "reconnecting"
+        ? "degraded"
+        : "unavailable";
+  return {
+    ...current,
+    status,
+    lastError: result.detail ?? result.reason,
+  };
+}
+
+function applyDisconnect(current: FreenetRemoteSession): FreenetRemoteSession {
+  if (current.grant === null || current.status === "idle") return current;
+  return {
+    ...current,
+    status: "unavailable",
+    lastError: current.lastError ?? "node disconnected",
+  };
+}
+
+function applyWriteConfirmationRequest(
+  current: FreenetRemoteSession,
+): FreenetRemoteSession {
+  if (current.grant === null || !current.grant.capabilities.contractWrites) {
+    return current;
+  }
+  return { ...current, pendingWriteConfirmation: true };
+}
+
 export function reduceFreenetRemoteSession(
   current: FreenetRemoteSession,
   event: FreenetRemoteSessionEvent,
@@ -71,35 +115,10 @@ export function reduceFreenetRemoteSession(
         pendingWriteConfirmation: false,
         reconnectAttempts: 0,
       };
-    case "probe-result": {
-      if (current.grant === null) return current;
-      if (event.result.ok) {
-        return {
-          ...current,
-          status: "online",
-          lastError: null,
-          reconnectAttempts: 0,
-        };
-      }
-      const status =
-        event.result.reason === "auth-failed"
-          ? "auth-failed"
-          : current.status === "reconnecting"
-            ? "degraded"
-            : "unavailable";
-      return {
-        ...current,
-        status,
-        lastError: event.result.detail ?? event.result.reason,
-      };
-    }
+    case "probe-result":
+      return applyProbeResult(current, event.result);
     case "disconnect":
-      if (current.grant === null || current.status === "idle") return current;
-      return {
-        ...current,
-        status: "unavailable",
-        lastError: current.lastError ?? "node disconnected",
-      };
+      return applyDisconnect(current);
     case "reconnect":
       if (current.grant === null) return current;
       return {
@@ -109,15 +128,8 @@ export function reduceFreenetRemoteSession(
         reconnectAttempts: current.reconnectAttempts + 1,
       };
     case "request-write-confirmation":
-      if (
-        current.grant === null ||
-        !current.grant.capabilities.contractWrites
-      ) {
-        return current;
-      }
-      return { ...current, pendingWriteConfirmation: true };
+      return applyWriteConfirmationRequest(current);
     case "confirm-write":
-      return { ...current, pendingWriteConfirmation: false };
     case "cancel-write":
       return { ...current, pendingWriteConfirmation: false };
     case "revoke":

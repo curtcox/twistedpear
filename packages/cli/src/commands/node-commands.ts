@@ -18,6 +18,42 @@ import {
  * `--freenet-binary` supervises a user-supplied, optionally hash-verified
  * executable (ephemeral port + generated token; not redistributed by TP).
  */
+function wantFreenetNode(args: ReadonlyArray<string>, wantSupervise: boolean): boolean {
+  return (
+    hasFlag(args, "--freenet") ||
+    hasFlag(args, "--freenet-interface") ||
+    parseFlag(args, "--freenet-node") !== null ||
+    wantSupervise
+  );
+}
+
+function requireHex64(value: string, flag: string, extra = ""): void {
+  if (!/^[0-9a-fA-F]{64}$/.test(value)) {
+    throw new Error(`${flag} must be 64 hex characters${extra}`);
+  }
+}
+
+function resolveRendezvousHex(
+  args: ReadonlyArray<string>,
+  interfaceEnabled: boolean,
+  logLines: string[],
+): string | undefined {
+  let rendezvousHex = parseFlag(args, "--freenet-rendezvous") ?? undefined;
+  if (interfaceEnabled && rendezvousHex === undefined) {
+    const bytes = new Uint8Array(32);
+    globalThis.crypto.getRandomValues(bytes);
+    rendezvousHex = bytesToHex(bytes);
+    logLines.push(
+      `Freenet HDLC rendezvous (share with peer): ${rendezvousHex}`,
+    );
+    return rendezvousHex;
+  }
+  if (rendezvousHex !== undefined) {
+    requireHex64(rendezvousHex, "--freenet-rendezvous", " (32 bytes)");
+  }
+  return rendezvousHex;
+}
+
 export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
   readonly config: {
     readonly enabled: boolean;
@@ -37,23 +73,15 @@ export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
     parseFlag(args, "--freenet-binary-sha256") ?? undefined;
   const wantSupervise =
     binaryPath !== null || hasFlag(args, "--freenet-supervise");
-  const wantFreenet =
-    hasFlag(args, "--freenet") ||
-    hasFlag(args, "--freenet-interface") ||
-    parseFlag(args, "--freenet-node") !== null ||
-    wantSupervise;
-  if (!wantFreenet) {
+  if (!wantFreenetNode(args, wantSupervise)) {
     return { config: null, supervise: null, logLines: [] };
   }
 
   if (wantSupervise && binaryPath === null) {
     throw new Error("--freenet-supervise requires --freenet-binary <path>");
   }
-  if (
-    expectedSha256 !== undefined &&
-    !/^[0-9a-fA-F]{64}$/.test(expectedSha256)
-  ) {
-    throw new Error("--freenet-binary-sha256 must be 64 hex characters");
+  if (expectedSha256 !== undefined) {
+    requireHex64(expectedSha256, "--freenet-binary-sha256");
   }
 
   const url =
@@ -62,81 +90,112 @@ export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
     "ws://127.0.0.1:50509/v1/contract/command";
   const authToken = parseFlag(args, "--freenet-token") ?? undefined;
   const interfaceEnabled = hasFlag(args, "--freenet-interface");
-  let rendezvousHex = parseFlag(args, "--freenet-rendezvous") ?? undefined;
-  const directionFlag = parseFlag(args, "--freenet-direction");
-  const localDirection =
-    directionFlag === null ? undefined : Number(directionFlag);
   const logLines: string[] = [];
+  const rendezvousHex = resolveRendezvousHex(
+    args,
+    interfaceEnabled,
+    logLines,
+  );
+  const localDirection = parseLocalDirection(args);
 
-  if (
-    localDirection !== undefined &&
-    localDirection !== 0 &&
-    localDirection !== 1
-  ) {
+  pushFreenetLog(
+    logLines,
+    wantSupervise,
+    binaryPath,
+    interfaceEnabled,
+    url,
+  );
+
+  return {
+    config: freenetNodeConfig({
+      wantSupervise,
+      interfaceEnabled,
+      url,
+      authToken,
+      rendezvousHex,
+      localDirection,
+    }),
+    supervise: freenetSupervise(binaryPath, expectedSha256),
+    logLines,
+  };
+}
+
+function freenetSupervise(
+  binaryPath: string | null,
+  expectedSha256: string | undefined,
+): {
+  readonly binaryPath: string;
+  readonly expectedSha256?: string;
+} | null {
+  if (binaryPath === null) return null;
+  return {
+    binaryPath,
+    ...(expectedSha256 === undefined ? {} : { expectedSha256 }),
+  };
+}
+
+function parseLocalDirection(args: ReadonlyArray<string>): 0 | 1 | undefined {
+  const directionFlag = parseFlag(args, "--freenet-direction");
+  if (directionFlag === null) return undefined;
+  const localDirection = Number(directionFlag);
+  if (localDirection !== 0 && localDirection !== 1) {
     throw new Error("--freenet-direction must be 0 or 1");
   }
+  return localDirection;
+}
 
-  if (interfaceEnabled) {
-    if (rendezvousHex === undefined) {
-      const bytes = new Uint8Array(32);
-      globalThis.crypto.getRandomValues(bytes);
-      rendezvousHex = bytesToHex(bytes);
-      logLines.push(
-        `Freenet HDLC rendezvous (share with peer): ${rendezvousHex}`,
-      );
-    } else if (!/^[0-9a-fA-F]{64}$/.test(rendezvousHex)) {
-      throw new Error(
-        "--freenet-rendezvous must be 64 hex characters (32 bytes)",
-      );
-    }
-  } else if (
-    rendezvousHex !== undefined &&
-    !/^[0-9a-fA-F]{64}$/.test(rendezvousHex)
-  ) {
-    throw new Error(
-      "--freenet-rendezvous must be 64 hex characters (32 bytes)",
-    );
-  }
-
+function pushFreenetLog(
+  logLines: string[],
+  wantSupervise: boolean,
+  binaryPath: string | null,
+  interfaceEnabled: boolean,
+  url: string,
+): void {
   if (wantSupervise) {
     logLines.push(
       `Freenet supervision enabled for user-supplied binary ${binaryPath} (hash-verified when --freenet-binary-sha256 is set)`,
     );
-  } else {
-    logLines.push(
-      interfaceEnabled
-        ? `Freenet HDLC interface enabled against ${url} (external node; not bundled)`
-        : `Freenet URL configured for contracts/propagation mirror: ${url} (external node; not bundled)`,
-    );
+    return;
   }
+  logLines.push(
+    interfaceEnabled
+      ? `Freenet HDLC interface enabled against ${url} (external node; not bundled)`
+      : `Freenet URL configured for contracts/propagation mirror: ${url} (external node; not bundled)`,
+  );
+}
 
+function freenetNodeConfig(input: {
+  readonly wantSupervise: boolean;
+  readonly interfaceEnabled: boolean;
+  readonly url: string;
+  readonly authToken: string | undefined;
+  readonly rendezvousHex: string | undefined;
+  readonly localDirection: number | undefined;
+}): {
+  readonly enabled: boolean;
+  readonly url: string;
+  readonly authToken?: string;
+  readonly rendezvousHex?: string;
+  readonly localDirection?: 0 | 1;
+} {
+  const extras = {
+    ...(input.rendezvousHex === undefined ? {} : { rendezvousHex: input.rendezvousHex }),
+    ...(input.localDirection === undefined
+      ? {}
+      : { localDirection: input.localDirection as 0 | 1 }),
+  };
+  if (input.wantSupervise) {
+    return {
+      enabled: input.interfaceEnabled,
+      url: "ws://127.0.0.1:0/v1/contract/command",
+      ...extras,
+    };
+  }
   return {
-    config: wantSupervise
-      ? {
-          enabled: interfaceEnabled,
-          url: "ws://127.0.0.1:0/v1/contract/command",
-          ...(rendezvousHex === undefined ? {} : { rendezvousHex }),
-          ...(localDirection === undefined
-            ? {}
-            : { localDirection: localDirection as 0 | 1 }),
-        }
-      : {
-          enabled: interfaceEnabled,
-          url,
-          ...(authToken === undefined ? {} : { authToken }),
-          ...(rendezvousHex === undefined ? {} : { rendezvousHex }),
-          ...(localDirection === undefined
-            ? {}
-            : { localDirection: localDirection as 0 | 1 }),
-        },
-    supervise:
-      binaryPath === null
-        ? null
-        : {
-            binaryPath,
-            ...(expectedSha256 === undefined ? {} : { expectedSha256 }),
-          },
-    logLines,
+    enabled: input.interfaceEnabled,
+    url: input.url,
+    ...(input.authToken === undefined ? {} : { authToken: input.authToken }),
+    ...extras,
   };
 }
 

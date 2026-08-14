@@ -52,29 +52,28 @@ export function initialLinkQuality(
   };
 }
 
-export function updateLinkQuality(
-  previous: LinkQuality | null,
-  measurement: LinkMeasurement,
-): LinkQuality {
-  if (measurement.kind === "declared") {
-    return previous ?? initialLinkQuality(measurement);
-  }
-
-  const durationMs = Math.max(1, finiteNonNegative(measurement.durationMs));
-  const sampleGoodput =
-    (finiteNonNegative(measurement.deliveredBytes) * 8_000) / durationMs;
+function sampleLossRatio(measurement: DeliveredLinkMeasurement): number {
   const deliveredPackets = finiteNonNegative(measurement.deliveredPackets ?? 0);
   const lostPackets = finiteNonNegative(measurement.lostPackets ?? 0);
   const packetTotal = deliveredPackets + lostPackets;
-  const sampleLoss = packetTotal === 0 ? 0 : lostPackets / packetTotal;
+  return packetTotal === 0 ? 0 : lostPackets / packetTotal;
+}
+
+function priorMeasured(previous: LinkQuality | null): LinkQuality | undefined {
+  if (previous === null || previous.source === "declared") return undefined;
+  return previous;
+}
+
+function blendDeliveredQuality(
+  previous: LinkQuality | null,
+  measurement: DeliveredLinkMeasurement,
+): LinkQuality {
+  const durationMs = Math.max(1, finiteNonNegative(measurement.durationMs));
+  const sampleGoodput =
+    (finiteNonNegative(measurement.deliveredBytes) * 8_000) / durationMs;
   const samples = (previous?.samples ?? 0) + 1;
   const alpha = measurement.kind === "probed" ? 0.5 : 0.25;
-  // A declared seed is an interface nameplate, not a prior measurement. The
-  // first real sample replaces it outright; blending would carry the guess
-  // into every number that follows.
-  const prior =
-    previous === null || previous.source === "declared" ? undefined : previous;
-
+  const prior = priorMeasured(previous);
   return {
     goodputBps: ewma(prior?.goodputBps, sampleGoodput, alpha),
     rttMs: ewma(prior?.rttMs, finiteNonNegative(measurement.rttMs), alpha),
@@ -83,12 +82,26 @@ export function updateLinkQuality(
       finiteNonNegative(measurement.jitterMs ?? 0),
       alpha,
     ),
-    lossRatio: clamp(ewma(prior?.lossRatio, sampleLoss, alpha), 0, 1),
+    lossRatio: clamp(
+      ewma(prior?.lossRatio, sampleLossRatio(measurement), alpha),
+      0,
+      1,
+    ),
     mtu: positiveInteger(measurement.mtu),
     source: measurement.kind,
     samples,
     confidence: confidenceFor(measurement.kind, samples),
   };
+}
+
+export function updateLinkQuality(
+  previous: LinkQuality | null,
+  measurement: LinkMeasurement,
+): LinkQuality {
+  if (measurement.kind === "declared") {
+    return previous ?? initialLinkQuality(measurement);
+  }
+  return blendDeliveredQuality(previous, measurement);
 }
 
 /**
@@ -184,17 +197,19 @@ export function openLinkObservation(
   };
 }
 
-export function observeLinkDelivery(
+function observationWindowFields(
   window: LinkObservationWindow,
   observation: LinkDeliveryObservation,
-): LinkObservationWindow {
+): {
+  readonly atMs: number;
+  readonly started: number;
+  readonly windowBytes: number;
+  readonly windowPackets: number;
+  readonly lostPackets: number;
+  readonly rttMs: number;
+  readonly mtu: number;
+} {
   const atMs = finiteNonNegative(observation.atMs);
-  const minSampleBytes = positiveInteger(
-    observation.minSampleBytes ?? LINK_OBSERVATION_MIN_SAMPLE_BYTES,
-  );
-  const maxWindowMs = positiveInteger(
-    observation.maxWindowMs ?? LINK_OBSERVATION_MAX_WINDOW_MS,
-  );
   const rttMs =
     observation.rttMs === undefined
       ? window.rttMs
@@ -203,44 +218,61 @@ export function observeLinkDelivery(
     observation.mtu === undefined
       ? window.mtu
       : positiveInteger(observation.mtu);
+  return {
+    atMs,
+    // A clock that jumped backwards restarts the window rather than producing a
+    // negative span and an absurd goodput.
+    started: atMs < window.windowStartMs ? atMs : window.windowStartMs,
+    windowBytes: window.windowBytes + finiteNonNegative(observation.bytes),
+    windowPackets: window.windowPackets + 1,
+    lostPackets:
+      window.lostPackets + finiteNonNegative(observation.lostPackets ?? 0),
+    rttMs,
+    mtu,
+  };
+}
 
-  // A clock that jumped backwards restarts the window rather than producing a
-  // negative span and an absurd goodput.
-  const started = atMs < window.windowStartMs ? atMs : window.windowStartMs;
-  const windowBytes = window.windowBytes + finiteNonNegative(observation.bytes);
-  const windowPackets = window.windowPackets + 1;
-  const lostPackets =
-    window.lostPackets + finiteNonNegative(observation.lostPackets ?? 0);
+export function observeLinkDelivery(
+  window: LinkObservationWindow,
+  observation: LinkDeliveryObservation,
+): LinkObservationWindow {
+  const minSampleBytes = positiveInteger(
+    observation.minSampleBytes ?? LINK_OBSERVATION_MIN_SAMPLE_BYTES,
+  );
+  const maxWindowMs = positiveInteger(
+    observation.maxWindowMs ?? LINK_OBSERVATION_MAX_WINDOW_MS,
+  );
+  const fields = observationWindowFields(window, observation);
 
-  if (windowBytes < minSampleBytes) {
-    const stale = atMs - started >= maxWindowMs;
+  if (fields.windowBytes < minSampleBytes) {
+    const stale = fields.atMs - fields.started >= maxWindowMs;
     return {
       quality: window.quality,
-      windowStartMs: stale ? atMs : started,
-      windowBytes: stale ? 0 : windowBytes,
-      windowPackets: stale ? 0 : windowPackets,
-      lostPackets: stale ? 0 : lostPackets,
-      rttMs,
-      mtu,
+      windowStartMs: stale ? fields.atMs : fields.started,
+      windowBytes: stale ? 0 : fields.windowBytes,
+      windowPackets: stale ? 0 : fields.windowPackets,
+      lostPackets: stale ? 0 : fields.lostPackets,
+      rttMs: fields.rttMs,
+      mtu: fields.mtu,
     };
   }
 
   return {
     quality: updateLinkQuality(window.quality, {
       kind: "observed",
-      deliveredBytes: windowBytes,
-      durationMs: Math.max(1, atMs - started),
-      rttMs,
-      deliveredPackets: windowPackets,
-      lostPackets,
-      mtu,
+      deliveredBytes: fields.windowBytes,
+      durationMs: Math.max(1, fields.atMs - fields.started),
+      rttMs: fields.rttMs,
+      deliveredPackets: fields.windowPackets,
+      lostPackets: fields.lostPackets,
+      mtu: fields.mtu,
     }),
-    windowStartMs: atMs,
+    windowStartMs: fields.atMs,
     windowBytes: 0,
     windowPackets: 0,
     lostPackets: 0,
-    rttMs,
-    mtu,
+    rttMs: fields.rttMs,
+    mtu: fields.mtu,
   };
 }
 

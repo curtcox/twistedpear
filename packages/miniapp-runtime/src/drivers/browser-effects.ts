@@ -45,47 +45,65 @@ function browserNavigator(): BrowserNavigator | undefined {
   return (globalThis as { navigator?: BrowserNavigator }).navigator;
 }
 
+async function locationAvailability(
+  nav: ReturnType<typeof browserNavigator>,
+): Promise<BrowserDeviceAvailability> {
+  if (nav?.geolocation === undefined) return "unsupported";
+  try {
+    const status = await nav.permissions?.query({ name: "geolocation" });
+    if (status?.state === "denied") return "offline";
+    if (status?.state === "prompt") return "permission-required";
+  } catch {
+    // Permissions API may reject unknown names; geolocation can still work.
+  }
+  return "available";
+}
+
+function mediaAvailability(
+  nav: ReturnType<typeof browserNavigator>,
+): BrowserDeviceAvailability {
+  if (typeof nav?.mediaDevices?.getUserMedia !== "function")
+    return "unsupported";
+  return "permission-required";
+}
+
+function namedApiAvailability(
+  present: boolean,
+): BrowserDeviceAvailability {
+  return present ? "available" : "unsupported";
+}
+
 export async function browserDeviceAvailability(
   classId: string,
 ): Promise<BrowserDeviceAvailability> {
   const nav = browserNavigator();
-  if (classId === "location") {
-    if (nav?.geolocation === undefined) return "unsupported";
-    try {
-      const status = await nav.permissions?.query({ name: "geolocation" });
-      if (status?.state === "denied") return "offline";
-      if (status?.state === "prompt") return "permission-required";
-    } catch {
-      // Permissions API may reject unknown names; geolocation can still work.
+  switch (classId) {
+    case "location":
+      return locationAvailability(nav);
+    case "camera":
+    case "microphone":
+      return mediaAvailability(nav);
+    case "battery": {
+      const getBattery = (
+        nav as {
+          getBattery?: () => Promise<{ level: number; charging: boolean }>;
+        }
+      )?.getBattery;
+      return namedApiAvailability(typeof getBattery === "function");
     }
-    return "available";
-  }
-  if (classId === "camera" || classId === "microphone") {
-    if (typeof nav?.mediaDevices?.getUserMedia !== "function")
+    case "tts":
+      return namedApiAvailability(
+        (globalThis as { speechSynthesis?: SpeechSynthesis }).speechSynthesis !==
+          undefined,
+      );
+    case "haptics":
+      return namedApiAvailability(
+        typeof (nav as { vibrate?: (pattern: number | number[]) => boolean })
+          ?.vibrate === "function",
+      );
+    default:
       return "unsupported";
-    return "permission-required";
   }
-  if (classId === "battery") {
-    const getBattery = (
-      nav as {
-        getBattery?: () => Promise<{ level: number; charging: boolean }>;
-      }
-    )?.getBattery;
-    if (typeof getBattery !== "function") return "unsupported";
-    return "available";
-  }
-  if (classId === "tts") {
-    const speech = (globalThis as { speechSynthesis?: SpeechSynthesis })
-      .speechSynthesis;
-    return speech === undefined ? "unsupported" : "available";
-  }
-  if (classId === "haptics") {
-    return typeof (nav as { vibrate?: (pattern: number | number[]) => boolean })
-      ?.vibrate === "function"
-      ? "available"
-      : "unsupported";
-  }
-  return "unsupported";
 }
 
 export async function browserDeviceSense(

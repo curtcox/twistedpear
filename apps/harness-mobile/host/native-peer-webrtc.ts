@@ -129,46 +129,60 @@ function resolveNativeRtc(): {
   return nativeRtcFromGlobal(global);
 }
 
-async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
-  if (typeof pc.getStats !== "function") return 0;
-  const report = await pc.getStats();
-  let bytes = 0;
-  const values: Iterable<unknown> =
+function rtcStatsValues(report: unknown): Iterable<unknown> {
+  if (
     report != null &&
     typeof (report as { values?: () => Iterable<unknown> }).values ===
       "function"
-      ? (report as { values: () => Iterable<unknown> }).values()
-      : Array.isArray(report)
-        ? report
-        : report != null && typeof report === "object"
-          ? Object.values(report as unknown as Record<string, unknown>)
-          : [];
-  for (const entry of values) {
-    if (entry == null || typeof entry !== "object") continue;
-    const row = entry as {
-      type?: string;
-      bytesSent?: number;
-      mediaType?: string;
-      kind?: string;
-      isRemote?: boolean;
-    };
-    if (typeof row.bytesSent !== "number" || row.bytesSent <= 0) continue;
-    if (row.isRemote === true) continue;
-    const type = String(row.type ?? "").toLowerCase();
-    const media = String(row.mediaType ?? row.kind ?? "").toLowerCase();
-    // Chromium uses outbound-rtp; some react-native-webrtc Android builds still
-    // surface legacy ssrc / track rows with bytesSent for local media.
-    if (
-      type === "outbound-rtp" ||
-      type === "outboundrtp" ||
-      type === "ssrc" ||
-      type === "track" ||
-      type === "media-source" ||
-      media === "audio" ||
-      media === "video"
-    ) {
-      bytes += row.bytesSent;
-    }
+  ) {
+    return (report as { values: () => Iterable<unknown> }).values();
+  }
+  if (Array.isArray(report)) return report;
+  if (report != null && typeof report === "object") {
+    return Object.values(report as unknown as Record<string, unknown>);
+  }
+  return [];
+}
+
+const OUTBOUND_STAT_TYPES = new Set([
+  "outbound-rtp",
+  "outboundrtp",
+  "ssrc",
+  "track",
+  "media-source",
+]);
+
+function outboundRowBytesSent(entry: unknown): number | null {
+  if (entry == null || typeof entry !== "object") return null;
+  const row = entry as {
+    type?: string;
+    bytesSent?: number;
+    mediaType?: string;
+    kind?: string;
+    isRemote?: boolean;
+  };
+  if (typeof row.bytesSent !== "number" || row.bytesSent <= 0) return null;
+  if (row.isRemote === true) return null;
+  return row.bytesSent;
+}
+
+function localOutboundMediaBytes(entry: unknown): number {
+  const bytesSent = outboundRowBytesSent(entry);
+  if (bytesSent === null) return 0;
+  const row = entry as { type?: string; mediaType?: string; kind?: string };
+  const type = String(row.type ?? "").toLowerCase();
+  const media = String(row.mediaType ?? row.kind ?? "").toLowerCase();
+  if (OUTBOUND_STAT_TYPES.has(type) || media === "audio" || media === "video") {
+    return bytesSent;
+  }
+  return 0;
+}
+
+async function outboundMediaBytes(pc: PeerRtcState["pc"]): Promise<number> {
+  if (typeof pc.getStats !== "function") return 0;
+  let bytes = 0;
+  for (const entry of rtcStatsValues(await pc.getStats())) {
+    bytes += localOutboundMediaBytes(entry);
   }
   return bytes;
 }

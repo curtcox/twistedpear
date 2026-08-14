@@ -356,6 +356,37 @@ function QrCodeWidget({
     </View>
   );
 }
+function cameraPreviewDetail(
+  live: { readonly classId: string } | undefined,
+): string | null {
+  if (live?.classId !== "camera") return null;
+  return "Host camera preview (pixels stay in chrome)";
+}
+
+function mapPreviewDetail(
+  node: WidgetNode,
+  live: { readonly classId: string } | undefined,
+): string | null {
+  if (live?.classId !== "location") return null;
+  return `Host map preview · zoom ${String(node.props?.zoom ?? 12)}`;
+}
+
+function previewDetail(
+  node: WidgetNode,
+  live: { readonly classId: string } | undefined,
+) {
+  switch (node.type) {
+    case "camera-preview":
+      return cameraPreviewDetail(live);
+    case "map-preview":
+      return mapPreviewDetail(node, live);
+    case "remote-video":
+      return `Remote video shell · peer=${String(node.props?.peer ?? "—")}`;
+    default:
+      return null;
+  }
+}
+
 function PreviewSurface({
   node,
   style,
@@ -369,28 +400,14 @@ function PreviewSurface({
   const label = live
     ? `${node.type} · ${live.classId}:${live.tierId} · ${live.appId}`
     : `${node.type} · waiting for session`;
+  const detail = previewDetail(node, live);
+  const showMeter = node.type === "audio-meter" || node.type === "waveform";
 
   return (
     <View testID={node.id} style={[styles.previewSurface, style]}>
       <Text style={styles.muted}>{label}</Text>
-      {node.type === "camera-preview" && live?.classId === "camera" ? (
-        <Text style={styles.muted}>
-          Host camera preview (pixels stay in chrome)
-        </Text>
-      ) : null}
-      {node.type === "map-preview" && live?.classId === "location" ? (
-        <Text style={styles.muted}>
-          Host map preview · zoom {String(node.props?.zoom ?? 12)}
-        </Text>
-      ) : null}
-      {node.type === "audio-meter" || node.type === "waveform" ? (
-        <View style={styles.previewMeter} />
-      ) : null}
-      {node.type === "remote-video" ? (
-        <Text style={styles.muted}>
-          Remote video shell · peer={String(node.props?.peer ?? "—")}
-        </Text>
-      ) : null}
+      {detail !== null ? <Text style={styles.muted}>{detail}</Text> : null}
+      {showMeter ? <View style={styles.previewMeter} /> : null}
     </View>
   );
 }

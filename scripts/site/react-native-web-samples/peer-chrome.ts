@@ -177,35 +177,49 @@ export class PagesPeerChrome {
     const modal = this.modal;
     const pending = this.pending;
     try {
-      if (modal.exchange === "audio-transmit") {
-        await playPeerAudio(modal.frames ?? []);
-        const frames = modal.expectsResponse ? await recordPeerAudio() : [];
-        clearTimeout(pending.timer);
-        this.clearModal();
-        pending.resolve({ accepted: true, frames });
+      if (modal.exchange === "audio-transmit" || modal.exchange === "audio-receive") {
+        await this.finishAudioExchange(modal, pending);
         return;
       }
-      if (modal.exchange === "audio-receive") {
-        const frames = await recordPeerAudio();
-        clearTimeout(pending.timer);
-        this.clearModal();
-        pending.resolve({ accepted: true, frames });
-        return;
-      }
-      const code = modal.expectsResponse || modal.exchange === "manual-enter" || modal.exchange === "qr-scan"
-        ? modal.input.trim()
-        : modal.code;
-      if ((modal.expectsResponse || modal.exchange === "manual-enter" || modal.exchange === "qr-scan") && (code === undefined || code.length === 0)) {
-        return;
-      }
-      clearTimeout(pending.timer);
-      this.clearModal();
-      pending.resolve({ accepted: true, ...(code === undefined ? {} : { code }) });
+      await this.finishCodeExchange(modal, pending);
     } catch (error) {
       clearTimeout(pending.timer);
       this.clearModal();
       pending.reject(error instanceof Error ? error : new Error(String(error)));
     }
+  }
+
+  private async finishAudioExchange(
+    modal: Extract<PeerChromeModal, { kind: "exchange" }>,
+    pending: Extract<Pending, { type: "exchange" }>,
+  ): Promise<void> {
+    if (modal.exchange === "audio-transmit") {
+      await playPeerAudio(modal.frames ?? []);
+      const frames = modal.expectsResponse ? await recordPeerAudio() : [];
+      clearTimeout(pending.timer);
+      this.clearModal();
+      pending.resolve({ accepted: true, frames });
+      return;
+    }
+    const frames = await recordPeerAudio();
+    clearTimeout(pending.timer);
+    this.clearModal();
+    pending.resolve({ accepted: true, frames });
+  }
+
+  private async finishCodeExchange(
+    modal: Extract<PeerChromeModal, { kind: "exchange" }>,
+    pending: Extract<Pending, { type: "exchange" }>,
+  ): Promise<void> {
+    const needsInput =
+      modal.expectsResponse ||
+      modal.exchange === "manual-enter" ||
+      modal.exchange === "qr-scan";
+    const code = needsInput ? modal.input.trim() : modal.code;
+    if (needsInput && (code === undefined || code.length === 0)) return;
+    clearTimeout(pending.timer);
+    this.clearModal();
+    pending.resolve({ accepted: true, ...(code === undefined ? {} : { code }) });
   }
 
   confirmDecision(approved: boolean): void {

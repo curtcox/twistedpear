@@ -109,7 +109,15 @@ export class SimTransport {
     const destination = intent.send.destination as NodeId;
     const key = `${source}\u0000${destination}`;
     const model = this.modelFor(source, destination);
+    if (this.dropSend(key, model, now)) return;
+    this.enqueueSend({ intent, source, destination, key, model, now });
+  }
 
+  private dropSend(
+    key: string,
+    model: TransportClass | undefined,
+    now: InstantMs,
+  ): boolean {
     if (model !== undefined) {
       if (
         model.partitions?.some(
@@ -118,20 +126,31 @@ export class SimTransport {
       ) {
         this.partitioned += 1;
         this.dropped += 1;
-        return;
+        return true;
       }
       if (this.shouldDropForLoss(key, model)) {
         this.dropped += 1;
-        return;
+        return true;
       }
-    } else {
-      const loss = this.config.delivery?.lossRate ?? 0;
-      if (loss > 0 && this.rng() < loss) {
-        this.dropped += 1;
-        return;
-      }
+      return false;
     }
+    const loss = this.config.delivery?.lossRate ?? 0;
+    if (loss > 0 && this.rng() < loss) {
+      this.dropped += 1;
+      return true;
+    }
+    return false;
+  }
 
+  private enqueueSend(input: {
+    readonly intent: Extract<Intent, { kind: "transport/send" }>;
+    readonly source: NodeId;
+    readonly destination: NodeId;
+    readonly key: string;
+    readonly model: TransportClass | undefined;
+    readonly now: InstantMs;
+  }): void {
+    const { intent, source, destination, key, model, now } = input;
     const latency =
       model === undefined
         ? (this.config.delivery?.latencyMs ?? 0)
@@ -141,27 +160,8 @@ export class SimTransport {
         ? 0
         : (intent.send.payload.byteLength * 8 * 1_000) /
           Math.max(1, model.bandwidthBps);
-    let sendAt = Math.max(now, this.occupiedUntil.get(key) ?? now);
-    if (
-      model?.dutyCycle !== undefined &&
-      model.dutyCycle > 0 &&
-      model.dutyCycle < 1
-    ) {
-      const dutyReadyAt = this.occupiedUntil.get(`${key}\u0000duty`) ?? now;
-      if (dutyReadyAt > sendAt) {
-        if (model.dutyCyclePolicy === "drop") {
-          this.dutyCycleDropped += 1;
-          this.dropped += 1;
-          return;
-        }
-        this.dutyCycleDelayed += 1;
-        sendAt = dutyReadyAt;
-      }
-      this.occupiedUntil.set(
-        `${key}\u0000duty`,
-        sendAt + airtime / model.dutyCycle,
-      );
-    }
+    const sendAt = this.dutyReadyAt(key, model, now, airtime);
+    if (sendAt === null) return;
     this.airtimeMs += airtime;
     this.occupiedUntil.set(key, sendAt + airtime);
     this.queue.push({
@@ -172,6 +172,37 @@ export class SimTransport {
       payload: intent.send.payload.slice(),
     });
     this.seq += 1;
+  }
+
+  private dutyReadyAt(
+    key: string,
+    model: TransportClass | undefined,
+    now: InstantMs,
+    airtime: number,
+  ): InstantMs | null {
+    let sendAt = Math.max(now, this.occupiedUntil.get(key) ?? now);
+    if (
+      model?.dutyCycle === undefined ||
+      model.dutyCycle <= 0 ||
+      model.dutyCycle >= 1
+    ) {
+      return sendAt;
+    }
+    const dutyReadyAt = this.occupiedUntil.get(`${key}\u0000duty`) ?? now;
+    if (dutyReadyAt > sendAt) {
+      if (model.dutyCyclePolicy === "drop") {
+        this.dutyCycleDropped += 1;
+        this.dropped += 1;
+        return null;
+      }
+      this.dutyCycleDelayed += 1;
+      sendAt = dutyReadyAt;
+    }
+    this.occupiedUntil.set(
+      `${key}\u0000duty`,
+      sendAt + airtime / model.dutyCycle,
+    );
+    return sendAt;
   }
 
   applyAdversary(

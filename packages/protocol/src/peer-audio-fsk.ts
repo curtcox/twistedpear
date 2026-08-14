@@ -28,25 +28,33 @@ function crc32(bytes: Uint8Array): number {
   }
   return (crc ^ 0xffff_ffff) >>> 0;
 }
+function profileInRange(config: {
+  readonly sampleRate: number;
+  readonly baud: number;
+  readonly markHz: number;
+  readonly spaceHz: number;
+  readonly amplitude: number;
+}): boolean {
+  if (config.sampleRate < 8_000 || config.sampleRate > 192_000) return false;
+  if (config.baud < 100 || config.baud > 4_800) return false;
+  if (config.markHz <= config.baud / 2 || config.spaceHz <= config.baud / 2)
+    return false;
+  if (Math.max(config.markHz, config.spaceHz) >= config.sampleRate / 2)
+    return false;
+  return config.amplitude > 0 && config.amplitude <= 1;
+}
+
 function settings(options: PeerAudioFskOptions) {
-  const sampleRate = options.sampleRate ?? 48_000;
-  const baud = options.baud ?? 1_200;
-  const markHz = options.markHz ?? 2_400;
-  const spaceHz = options.spaceHz ?? 1_200;
-  const amplitude = options.amplitude ?? 0.7;
-  if (
-    sampleRate < 8_000 ||
-    sampleRate > 192_000 ||
-    baud < 100 ||
-    baud > 4_800 ||
-    markHz <= baud / 2 ||
-    spaceHz <= baud / 2 ||
-    Math.max(markHz, spaceHz) >= sampleRate / 2 ||
-    amplitude <= 0 ||
-    amplitude > 1
-  )
+  const config = {
+    sampleRate: options.sampleRate ?? 48_000,
+    baud: options.baud ?? 1_200,
+    markHz: options.markHz ?? 2_400,
+    spaceHz: options.spaceHz ?? 1_200,
+    amplitude: options.amplitude ?? 0.7,
+  };
+  if (!profileInRange(config))
     throw new PeerAudioFskError("MALFORMED", "Invalid audible FSK profile");
-  return { sampleRate, baud, markHz, spaceHz, amplitude };
+  return config;
 }
 function packet(payload: Uint8Array): Uint8Array {
   if (payload.length < 1 || payload.length > MAX_PEER_AUDIO_MODEM_BYTES)
@@ -111,11 +119,10 @@ function energy(
   return sin * sin + cos * cos;
 }
 
-export function decodePeerAudioFsk(
+function decodeFskBits(
   pcm: Float32Array,
-  options: PeerAudioFskOptions = {},
+  config: ReturnType<typeof settings>,
 ): Uint8Array {
-  const config = settings(options);
   const symbols = Math.floor((pcm.length * config.baud) / config.sampleRate);
   if (symbols < (HEADER_BYTES + 4) * 8)
     throw new PeerAudioFskError("SIGNAL", "Audible FSK signal is too short");
@@ -134,6 +141,10 @@ export function decodePeerAudioFsk(
       decoded[Math.floor(symbol / 8)] =
         (decoded[Math.floor(symbol / 8)] ?? 0) | (1 << (7 - (symbol % 8)));
   }
+  return decoded;
+}
+
+function payloadFromFskFrame(decoded: Uint8Array): Uint8Array {
   if (!decoded.subarray(0, PREAMBLE_BYTES).every((byte) => byte === PREAMBLE))
     throw new PeerAudioFskError(
       "SIGNAL",
@@ -164,13 +175,18 @@ export function decodePeerAudioFsk(
   return payload;
 }
 
-/** Extracts bounded FSK bursts from microphone PCM containing silence between frames. */
-export function decodePeerAudioFskStream(
+export function decodePeerAudioFsk(
   pcm: Float32Array,
   options: PeerAudioFskOptions = {},
-): ReadonlyArray<Uint8Array> {
-  const config = settings(options);
-  const windowSamples = Math.max(8, Math.round(config.sampleRate * 0.01));
+): Uint8Array {
+  return payloadFromFskFrame(decodeFskBits(pcm, settings(options)));
+}
+
+/** Extracts bounded FSK bursts from microphone PCM containing silence between frames. */
+function activityWindows(
+  pcm: Float32Array,
+  windowSamples: number,
+): boolean[] {
   const active: boolean[] = [];
   for (let start = 0; start < pcm.length; start += windowSamples) {
     let energySum = 0;
@@ -179,6 +195,57 @@ export function decodePeerAudioFskStream(
       energySum += (pcm[index] ?? 0) ** 2;
     active.push(Math.sqrt(energySum / Math.max(1, end - start)) > 0.02);
   }
+  return active;
+}
+
+function burstBounds(
+  pcm: Float32Array,
+  windowSamples: number,
+  first: number,
+  last: number,
+): { readonly start: number; readonly end: number } {
+  let firstSignal = first * windowSamples;
+  const firstWindowEnd = Math.min(pcm.length, (first + 1) * windowSamples);
+  while (firstSignal < firstWindowEnd && Math.abs(pcm[firstSignal] ?? 0) <= 0.02)
+    firstSignal += 1;
+  const start = Math.max(0, firstSignal - 1);
+  let lastSignal = Math.min(pcm.length, last * windowSamples) - 1;
+  const lastWindowStart = Math.max(start, (last - 1) * windowSamples);
+  while (lastSignal > lastWindowStart && Math.abs(pcm[lastSignal] ?? 0) <= 0.02)
+    lastSignal -= 1;
+  return { start, end: Math.min(pcm.length, lastSignal + 2) };
+}
+
+function decodeBurst(
+  pcm: Float32Array,
+  options: PeerAudioFskOptions,
+  symbolSamples: number,
+  bounds: { readonly start: number; readonly end: number },
+): Uint8Array | null {
+  for (
+    let adjustment = 0;
+    adjustment <= Math.ceil(symbolSamples / 2);
+    adjustment += 1
+  ) {
+    try {
+      return decodePeerAudioFsk(
+        pcm.slice(bounds.start + adjustment, bounds.end),
+        options,
+      );
+    } catch {
+      /* Try the next bounded alignment. */
+    }
+  }
+  return null;
+}
+
+export function decodePeerAudioFskStream(
+  pcm: Float32Array,
+  options: PeerAudioFskOptions = {},
+): ReadonlyArray<Uint8Array> {
+  const config = settings(options);
+  const windowSamples = Math.max(8, Math.round(config.sampleRate * 0.01));
+  const active = activityWindows(pcm, windowSamples);
   const decoded: Uint8Array[] = [];
   let window = 0;
   while (window < active.length) {
@@ -186,39 +253,12 @@ export function decodePeerAudioFskStream(
     if (window >= active.length) break;
     const first = window;
     while (window < active.length && active[window]) window += 1;
-    const last = window;
-    let firstSignal = first * windowSamples;
-    const firstWindowEnd = Math.min(pcm.length, (first + 1) * windowSamples);
-    while (
-      firstSignal < firstWindowEnd &&
-      Math.abs(pcm[firstSignal] ?? 0) <= 0.02
-    )
-      firstSignal += 1;
-    const start = Math.max(0, firstSignal - 1);
-    let lastSignal = Math.min(pcm.length, last * windowSamples) - 1;
-    const lastWindowStart = Math.max(start, (last - 1) * windowSamples);
-    while (
-      lastSignal > lastWindowStart &&
-      Math.abs(pcm[lastSignal] ?? 0) <= 0.02
-    )
-      lastSignal -= 1;
-    const end = Math.min(pcm.length, lastSignal + 2);
-    let payload: Uint8Array | null = null;
-    const symbolSamples = config.sampleRate / config.baud;
-    for (
-      let adjustment = 0;
-      adjustment <= Math.ceil(symbolSamples / 2) && payload === null;
-      adjustment += 1
-    ) {
-      try {
-        payload = decodePeerAudioFsk(
-          pcm.slice(start + adjustment, end),
-          options,
-        );
-      } catch {
-        /* Try the next bounded alignment. */
-      }
-    }
+    const payload = decodeBurst(
+      pcm,
+      options,
+      config.sampleRate / config.baud,
+      burstBounds(pcm, windowSamples, first, window),
+    );
     if (payload !== null) decoded.push(payload);
   }
   return decoded;

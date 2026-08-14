@@ -380,23 +380,42 @@ function encodeMediaEnvelope(envelope: MediaEnvelope): Uint8Array {
   return output;
 }
 
-function decodeMediaEnvelope(bytes: Uint8Array): MediaEnvelope | null {
-  if (
-    bytes.length < 8 ||
-    !MEDIA_MAGIC.every((value, index) => bytes[index] === value)
-  )
-    return null;
-  const type = bytes[4];
+function isMediaEnvelopeType(type: number): type is 1 | 2 | 3 {
+  return type === 1 || type === 2 || type === 3;
+}
+
+function mediaEnvelopeIdLength(bytes: Uint8Array): number | null {
   const idLength = bytes[5] ?? 0;
+  if (idLength < 1 || idLength > 128) return null;
+  return idLength;
+}
+
+function parseMediaEnvelopeHeader(bytes: Uint8Array): {
+  readonly type: 1 | 2 | 3;
+  readonly idLength: number;
+  readonly payloadLength: number;
+} | null {
+  if (bytes.length < 8) return null;
+  if (!MEDIA_MAGIC.every((value, index) => bytes[index] === value)) return null;
+  const type = bytes[4] ?? 0;
+  if (!isMediaEnvelopeType(type)) return null;
+  const idLength = mediaEnvelopeIdLength(bytes);
+  if (idLength === null) return null;
   const payloadLength = ((bytes[6] ?? 0) << 8) | (bytes[7] ?? 0);
-  if (
-    (type !== 1 && type !== 2 && type !== 3) ||
-    idLength < 1 ||
-    idLength > 128 ||
-    bytes.length !== 8 + idLength + payloadLength
-  )
-    return null;
-  const id = new TextDecoder().decode(bytes.subarray(8, 8 + idLength));
+  if (bytes.length !== 8 + idLength + payloadLength) return null;
+  return { type, idLength, payloadLength };
+}
+
+function decodeMediaEnvelope(bytes: Uint8Array): MediaEnvelope | null {
+  const header = parseMediaEnvelopeHeader(bytes);
+  if (header === null) return null;
+  const id = new TextDecoder().decode(
+    bytes.subarray(8, 8 + header.idLength),
+  );
   if (!/^media-[A-Za-z0-9_-]+$/.test(id)) return null;
-  return { type, id, payload: bytes.slice(8 + idLength) };
+  return {
+    type: header.type,
+    id,
+    payload: bytes.slice(8 + header.idLength),
+  };
 }

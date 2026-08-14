@@ -261,11 +261,10 @@ export function encryptNtfyRendezvousMessage(
   return packet;
 }
 
-export function decryptNtfyRendezvousMessage(
-  secret: NtfyRendezvousSecret,
+function assertNtfyPacketHeader(
   packet: Uint8Array,
-  now = Date.now(),
-): NtfyRendezvousMessage {
+  now: number,
+): { readonly roleByte: number; readonly expiresAt: number } {
   if (
     packet.length < HEADER_BYTES + 16 ||
     packet.length > MAX_NTFY_PACKET_BYTES ||
@@ -292,6 +291,15 @@ export function decryptNtfyRendezvousMessage(
       "INVALID_INVITATION",
       "Expired ntfy rendezvous message",
     );
+  return { roleByte, expiresAt };
+}
+
+export function decryptNtfyRendezvousMessage(
+  secret: NtfyRendezvousSecret,
+  packet: Uint8Array,
+  now = Date.now(),
+): NtfyRendezvousMessage {
+  const { roleByte, expiresAt } = assertNtfyPacketHeader(packet, now);
   const nonce = packet.subarray(29, HEADER_BYTES);
   let envelope: Uint8Array;
   try {
@@ -314,6 +322,53 @@ export function decryptNtfyRendezvousMessage(
       "ntfy rendezvous metadata does not match its invitation",
     );
   return { id: packet.slice(5, 21), role, expiresAt, envelope };
+}
+
+function ntfyPollMessageBody(line: string): string | undefined {
+  if (!line.trim()) return undefined;
+  let event: unknown;
+  try {
+    event = JSON.parse(line);
+  } catch {
+    return undefined;
+  }
+  const message =
+    typeof event === "object" && event !== null && "message" in event
+      ? (event as { message?: unknown }).message
+      : undefined;
+  return typeof message === "string" ? message : undefined;
+}
+
+function decodeNtfyPollLine(
+  secret: NtfyRendezvousSecret,
+  line: string,
+  now: number,
+): NtfyRendezvousMessage | undefined {
+  const message = ntfyPollMessageBody(line);
+  if (message === undefined) return undefined;
+  try {
+    return decryptNtfyRendezvousMessage(secret, unbase64url(message), now);
+  } catch {
+    return undefined;
+  }
+}
+
+function ntfyHttpError(
+  status: number,
+  action: "publish" | "poll",
+): PeerDiscoveryError {
+  return new PeerDiscoveryError(
+    status === 401 || status === 403 ? "POLICY_DENIED" : "UNAVAILABLE",
+    `ntfy ${action} failed (${status})`,
+  );
+}
+
+function assertNtfyResponseBudget(declared: number, textLength: number): void {
+  if (declared > MAX_NTFY_RESPONSE_BYTES || textLength > MAX_NTFY_RESPONSE_BYTES)
+    throw new PeerDiscoveryError(
+      "QUOTA_EXCEEDED",
+      "ntfy response exceeds size budget",
+    );
 }
 
 export class NtfyRendezvousClient {
@@ -365,23 +420,12 @@ export class NtfyRendezvousClient {
       }),
       body: base64url(packet),
     });
-    if (!response.ok)
-      throw new PeerDiscoveryError(
-        response.status === 401 || response.status === 403
-          ? "POLICY_DENIED"
-          : "UNAVAILABLE",
-        `ntfy publish failed (${response.status})`,
-      );
+    if (!response.ok) throw ntfyHttpError(response.status, "publish");
   }
   async poll(
     secret: NtfyRendezvousSecret,
   ): Promise<ReadonlyArray<NtfyRendezvousMessage>> {
-    const url = new URL(
-      `${hex(secret.topic)}/json`,
-      this.baseUrl.href.endsWith("/")
-        ? this.baseUrl
-        : new URL(`${this.baseUrl.href}/`),
-    );
+    const url = new URL("json", `${this.topicUrl(secret).href}/`);
     url.searchParams.set("poll", "1");
     const response = await this.request(url, {
       method: "GET",
@@ -390,51 +434,19 @@ export class NtfyRendezvousClient {
         "Cache-Control": "no-store",
       }),
     });
-    if (!response.ok)
-      throw new PeerDiscoveryError(
-        response.status === 401 || response.status === 403
-          ? "POLICY_DENIED"
-          : "UNAVAILABLE",
-        `ntfy poll failed (${response.status})`,
-      );
-    const declared = Number(response.headers.get("content-length") ?? "0");
-    if (declared > MAX_NTFY_RESPONSE_BYTES)
-      throw new PeerDiscoveryError(
-        "QUOTA_EXCEEDED",
-        "ntfy response exceeds size budget",
-      );
+    if (!response.ok) throw ntfyHttpError(response.status, "poll");
     const text = await response.text();
-    if (text.length > MAX_NTFY_RESPONSE_BYTES)
-      throw new PeerDiscoveryError(
-        "QUOTA_EXCEEDED",
-        "ntfy response exceeds size budget",
-      );
+    assertNtfyResponseBudget(
+      Number(response.headers.get("content-length") ?? "0"),
+      text.length,
+    );
     const messages: NtfyRendezvousMessage[] = [];
+    const now = this.now();
     for (const line of text.split("\n")) {
-      if (!line.trim()) continue;
-      let event: unknown;
-      try {
-        event = JSON.parse(line);
-      } catch {
-        continue;
-      }
-      const message =
-        typeof event === "object" && event !== null && "message" in event
-          ? (event as { message?: unknown }).message
-          : undefined;
-      if (typeof message !== "string") continue;
-      let decoded: NtfyRendezvousMessage;
-      try {
-        decoded = decryptNtfyRendezvousMessage(
-          secret,
-          unbase64url(message),
-          this.now(),
-        );
-      } catch {
-        continue;
-      }
+      const decoded = decodeNtfyPollLine(secret, line, now);
       if (
-        this.replay.acceptOnce(hex(decoded.id), decoded.expiresAt, this.now())
+        decoded !== undefined &&
+        this.replay.acceptOnce(hex(decoded.id), decoded.expiresAt, now)
       )
         messages.push(decoded);
     }

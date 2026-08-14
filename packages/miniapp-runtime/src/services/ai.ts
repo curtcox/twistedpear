@@ -398,41 +398,15 @@ export class AiService {
   }
 
   private sanitize(request: AiChatRequest): AiChatRequest {
-    if (!Array.isArray(request?.messages) || request.messages.length === 0) {
-      throw new AiServiceError(
-        "AI_BAD_REQUEST",
-        "AI chat requires at least one message.",
-      );
-    }
-
-    if (request.messages.length > this.limits.maxMessages) {
-      throw new AiServiceError(
-        "AI_BAD_REQUEST",
-        `AI chat exceeds ${this.limits.maxMessages} messages.`,
-      );
-    }
-
-    for (const message of request.messages) {
-      if (!ROLES.has(message?.role) || typeof message?.content !== "string") {
-        throw new AiServiceError(
-          "AI_BAD_REQUEST",
-          "AI chat messages need a valid role and string content.",
-        );
-      }
-    }
-
-    const maxTokens =
+    assertChatMessages(request?.messages, this.limits.maxMessages);
+    const maxTokens = clampOptional(
       request.maxTokens === undefined
         ? undefined
-        : Math.max(
-            1,
-            Math.min(Math.floor(request.maxTokens), this.limits.maxTokensCap),
-          );
-    const temperature =
-      request.temperature === undefined
-        ? undefined
-        : Math.max(0, Math.min(request.temperature, 2));
-
+        : Math.floor(request.maxTokens),
+      1,
+      this.limits.maxTokensCap,
+    );
+    const temperature = clampOptional(request.temperature, 0, 2);
     return {
       messages: request.messages.map((message) => ({
         role: message.role,
@@ -444,6 +418,41 @@ export class AiService {
       ...(maxTokens !== undefined ? { maxTokens } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
     };
+  }
+}
+
+function clampOptional(
+  value: number | undefined,
+  min: number,
+  max: number,
+): number | undefined {
+  if (value === undefined) return undefined;
+  return Math.max(min, Math.min(value, max));
+}
+
+function assertChatMessages(
+  messages: AiChatRequest["messages"] | undefined,
+  maxMessages: number,
+): void {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    throw new AiServiceError(
+      "AI_BAD_REQUEST",
+      "AI chat requires at least one message.",
+    );
+  }
+  if (messages.length > maxMessages) {
+    throw new AiServiceError(
+      "AI_BAD_REQUEST",
+      `AI chat exceeds ${maxMessages} messages.`,
+    );
+  }
+  for (const message of messages) {
+    if (!ROLES.has(message?.role) || typeof message?.content !== "string") {
+      throw new AiServiceError(
+        "AI_BAD_REQUEST",
+        "AI chat messages need a valid role and string content.",
+      );
+    }
   }
 }
 

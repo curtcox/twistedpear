@@ -79,6 +79,53 @@ function assertText(
   }
 }
 
+function validateInvitationCandidates(
+  candidates: PeerInvitation["candidates"],
+): void {
+  if (!Array.isArray(candidates) || candidates.length > MAX_PEER_CANDIDATES)
+    throw new PeerInvitationError("MALFORMED", "too many candidates");
+  for (const candidate of candidates) {
+    if (!(["reticulum", "webrtc", "gateway"] as const).includes(candidate.kind))
+      throw new PeerInvitationError("MALFORMED", "invalid candidate kind");
+    assertBytes(candidate.value, "candidate", 1, 16_384);
+  }
+}
+
+function validateInvitationLifetime(
+  invitation: PeerInvitation,
+  now?: number,
+): void {
+  if (
+    !Number.isSafeInteger(invitation.issuedAt) ||
+    !Number.isSafeInteger(invitation.expiresAt) ||
+    invitation.expiresAt <= invitation.issuedAt ||
+    invitation.expiresAt - invitation.issuedAt > MAX_PEER_INVITATION_LIFETIME_MS
+  ) {
+    throw new PeerInvitationError("MALFORMED", "invalid invitation lifetime");
+  }
+  if (
+    now !== undefined &&
+    (now < invitation.issuedAt - 30_000 || now >= invitation.expiresAt)
+  ) {
+    throw new PeerInvitationError(
+      "EXPIRED",
+      "invitation is expired or not yet valid",
+    );
+  }
+}
+
+function validateInvitationCapabilities(
+  capabilities: PeerInvitation["capabilities"],
+): void {
+  if (
+    !Array.isArray(capabilities) ||
+    capabilities.length > MAX_PEER_CAPABILITIES
+  )
+    throw new PeerInvitationError("MALFORMED", "too many capabilities");
+  for (const capability of capabilities)
+    assertText(capability, "capability", 1, 64);
+}
+
 export function validatePeerInvitation(
   invitation: PeerInvitation,
   now?: number,
@@ -95,40 +142,10 @@ export function validatePeerInvitation(
   assertBytes(invitation.peerEphemeralKey, "ephemeral key", 32, 65);
   if (invitation.identityProof !== undefined)
     assertBytes(invitation.identityProof, "identity proof", 16, 512);
-  if (
-    !Array.isArray(invitation.candidates) ||
-    invitation.candidates.length > MAX_PEER_CANDIDATES
-  )
-    throw new PeerInvitationError("MALFORMED", "too many candidates");
-  for (const candidate of invitation.candidates) {
-    if (!(["reticulum", "webrtc", "gateway"] as const).includes(candidate.kind))
-      throw new PeerInvitationError("MALFORMED", "invalid candidate kind");
-    assertBytes(candidate.value, "candidate", 1, 16_384);
-  }
+  validateInvitationCandidates(invitation.candidates);
   assertText(invitation.display, "display", 0, MAX_PEER_DISPLAY_LENGTH);
-  if (
-    !Number.isSafeInteger(invitation.issuedAt) ||
-    !Number.isSafeInteger(invitation.expiresAt) ||
-    invitation.expiresAt <= invitation.issuedAt ||
-    invitation.expiresAt - invitation.issuedAt > MAX_PEER_INVITATION_LIFETIME_MS
-  ) {
-    throw new PeerInvitationError("MALFORMED", "invalid invitation lifetime");
-  }
-  if (
-    now !== undefined &&
-    (now < invitation.issuedAt - 30_000 || now >= invitation.expiresAt)
-  )
-    throw new PeerInvitationError(
-      "EXPIRED",
-      "invitation is expired or not yet valid",
-    );
-  if (
-    !Array.isArray(invitation.capabilities) ||
-    invitation.capabilities.length > MAX_PEER_CAPABILITIES
-  )
-    throw new PeerInvitationError("MALFORMED", "too many capabilities");
-  for (const capability of invitation.capabilities)
-    assertText(capability, "capability", 1, 64);
+  validateInvitationLifetime(invitation, now);
+  validateInvitationCapabilities(invitation.capabilities);
   assertBytes(invitation.signature, "signature", 32, 512);
 }
 
@@ -266,6 +283,17 @@ class Reader {
     }
     throw new PeerInvitationError("MALFORMED", "indefinite CBOR forbidden");
   }
+  readMap(len: number, depth: number): CborMap {
+    const out: Record<string, CborValue> = {};
+    for (let i = 0; i < len; i++) {
+      const key = this.read(depth + 1);
+      if (typeof key !== "string" || key in out)
+        throw new PeerInvitationError("MALFORMED", "invalid CBOR map");
+      out[key] = this.read(depth + 1);
+    }
+    return out;
+  }
+
   read(depth = 0): CborValue {
     if (depth > 8)
       throw new PeerInvitationError("MALFORMED", "CBOR nesting limit");
@@ -277,16 +305,7 @@ class Reader {
     if (major === 3) return utf8Decode(this.take(len));
     if (major === 4)
       return Array.from({ length: len }, () => this.read(depth + 1));
-    if (major === 5) {
-      const out: Record<string, CborValue> = {};
-      for (let i = 0; i < len; i++) {
-        const key = this.read(depth + 1);
-        if (typeof key !== "string" || key in out)
-          throw new PeerInvitationError("MALFORMED", "invalid CBOR map");
-        out[key] = this.read(depth + 1);
-      }
-      return out;
-    }
+    if (major === 5) return this.readMap(len, depth);
     throw new PeerInvitationError("MALFORMED", "unsupported CBOR type");
   }
 }
