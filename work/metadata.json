@@ -476,6 +476,13 @@
       "requires": [],
       "verify": "npm run lint:all && node scripts/work/ratchet-clear.mjs --kind=lint --rule=no-unused-vars",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": [
+        "lint-ratchet.json",
+        "eslint.concat-groups.mjs",
+        "apps/harness-mobile/worklet/entry-extracted-1.mjs",
+        "apps/harness-mobile/worklet/entry-part-1.mjs"
+      ],
       "notes": "Imported from lint-ratchet.json: 1039 baselined no-unused-vars entries across 58 files."
     },
     "QL-LINT-TYPESCRIPT-ESLINT-NO-UNUSED-VARS": {

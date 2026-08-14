@@ -18,8 +18,6 @@ import {
   bytesToHex,
   hexToBytes,
 } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
-import { BareCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/bare.js";
-import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import {
   DestinationDirection,
@@ -27,97 +25,23 @@ import {
 } from "../../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
-import { BandwidthLimiter } from "../../../packages/reticulum-ts/dist/transport/bandwidth.js";
-import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
-import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
-import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
-import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
-import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
-import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
-import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
 import {
-  connectTestAgent,
-  createAutoInterfaceOps,
-  createAutomaticReticulumDiscovery,
-  createCasLocatorOps,
-  createCatalogOps,
-  createCrossDeviceTestDriver,
-  createDevChannelClient,
-  createEnsureDevChannel,
-  createHarnessPeerPair,
-  createHostReplyChannel,
-  createInstallFromT256,
-  createMiniappAnnounceService,
-  createPeerSessionManagerProxyFromState,
-  createPublishArchiveOps,
-  createQuiesceInterfaces,
-  createRegisterAnnounceHandler,
-  createRuntimeKeyValueStore,
-  createStatusTimer,
-  createTrustStoreOps,
-  createWorkletMiniappHost,
-  createWorkletPropagationPersistenceOps,
-  joinCommunityNetwork,
-  peerServiceAspect,
   sleep,
 } from "../../../packages/worklet-core/src/index.mjs";
-import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import {
   DEFAULT_INTERFACE_BITRATES,
   inferInterfaceKind,
   selectPreferredInterface,
 } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import {
-  decodePublisherIdentity256t,
-  encodePublisherIdentity256t,
-  verifyPackage,
-} from "../../../packages/app-registry/dist/index.js";
-import {
-  PackageResourceClient,
-  assessFetchBudget,
-  fetchPackage,
-} from "../../../packages/bridge-hyper/dist/worklet.js";
-import {
-  HOST_API_VERSION,
-  createWorkletFlagRelayService,
-  generateConfirmationToken,
-  validateManifestCapabilities,
-} from "../../../packages/miniapp-runtime/dist/worklet.js";
-import {
   PropagationServer,
   createPropagationDestination,
   DEFAULT_PROPAGATION_QUOTAS,
 } from "../../../packages/lxmf-ts/dist/index.js";
 import {
-  decodePeerAudioFrame,
-  decodePeerInvitation,
-  framePeerAudioPayload,
-  initialPeerAudioAssemblyState,
-  stepPeerAudioAssembly,
-} from "../../../packages/protocol/dist/index.js";
-import { SimulatedMediaCodecDriver } from "../../../packages/effects/dist/media-codec.js";
-import { createDelegatedWebRtcMediaPlaneOpener } from "../../../packages/miniapp-runtime/dist/media-stream.js";
-import {
   refuseStorePosture,
-  shouldRefuseDeveloperMode,
 } from "./store-posture-policy.mjs";
-import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 import { createHostLxmfDelivery } from "../../../packages/host-core/dist/host-lxmf-delivery.js";
-import {
-  AudioPeerDiscoveryAdapter,
-  BluetoothPeerDiscoveryAdapter,
-  CryptoPeerPairingBackend,
-  InvitationPairingDriver,
-  ManualPeerDiscoveryAdapter,
-  meterHostPeerRoute,
-  NtfyPeerDiscoveryAdapter,
-  NtfyRendezvousClient,
-  PeerDiscoveryRegistry,
-  PeerSessionManager,
-  QrPeerDiscoveryAdapter,
-  ReticulumPeerDiscoveryAdapter,
-  UnavailablePeerDiscoveryAdapter,
-} from "../../../packages/peer-discovery/dist/index.js";
 
 export function logImpl(context, line) {
   context.send({ type: "log", line });

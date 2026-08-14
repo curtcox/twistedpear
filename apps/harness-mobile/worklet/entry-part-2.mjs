@@ -292,7 +292,6 @@ const casOps = createCasLocatorOps({
 const {
   ensureEntryCasStore,
   ingestCasLocator,
-  announceCasLocatorRequest,
   respondToCasLocatorRequest,
   waitForCasLocator,
 } = casOps;

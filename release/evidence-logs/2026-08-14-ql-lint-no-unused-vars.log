@@ -1,0 +1,6 @@
+
+> twistedpear@0.0.0 lint:all
+> node scripts/analysis/eslint-ratchet.mjs --kind=lint
+
+lint: PASS; 0 new, 0 stale.
+lint ratchet is clear of no-unused-vars
