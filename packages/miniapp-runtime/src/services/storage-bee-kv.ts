@@ -14,6 +14,19 @@ function beeSeqKey(appId: string, key: string): string {
   return `miniapp-bee-seq:${appId}:${key}`;
 }
 
+function decodeSeq(seqRaw: Uint8Array | null): number {
+  return seqRaw === null ? 0 : Number(new TextDecoder().decode(seqRaw));
+}
+
+function keyInListRange(
+  key: string,
+  options: StorageBeeListOptions | undefined,
+): boolean {
+  if (options?.gte !== undefined && key < options.gte) return false;
+  if (options?.lt !== undefined && key >= options.lt) return false;
+  return true;
+}
+
 export class KvStorageBeeBackend implements StorageBeeBackend {
   constructor(private readonly kv: MiniappKvStoreBackend) {}
 
@@ -27,8 +40,7 @@ export class KvStorageBeeBackend implements StorageBeeBackend {
 
   async put(appId: string, key: string, value: Uint8Array): Promise<void> {
     const seqRaw = await this.kv.get(beeSeqKey(appId, key));
-    const seq =
-      seqRaw === null ? 1 : Number(new TextDecoder().decode(seqRaw)) + 1;
+    const seq = decodeSeq(seqRaw) + 1;
     await this.kv.set(beeKey(appId, key), value);
     await this.kv.set(
       beeSeqKey(appId, key),
@@ -55,11 +67,7 @@ export class KvStorageBeeBackend implements StorageBeeBackend {
       }
 
       const key = storageKey.slice(prefix.length);
-      if (options?.gte !== undefined && key < options.gte) {
-        continue;
-      }
-
-      if (options?.lt !== undefined && key >= options.lt) {
+      if (!keyInListRange(key, options)) {
         continue;
       }
 
@@ -69,9 +77,7 @@ export class KvStorageBeeBackend implements StorageBeeBackend {
       }
 
       const seqRaw = await this.kv.get(beeSeqKey(appId, key));
-      const seq =
-        seqRaw === null ? 0 : Number(new TextDecoder().decode(seqRaw));
-      entries.push({ key, value, seq });
+      entries.push({ key, value, seq: decodeSeq(seqRaw) });
     }
 
     entries.sort((left, right) => left.key.localeCompare(right.key));

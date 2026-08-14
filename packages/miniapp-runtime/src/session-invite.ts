@@ -31,37 +31,7 @@ export class SessionInviteService {
       readonly verified: boolean;
     },
   ): Promise<void> {
-    if (!input.verified)
-      throw new Error("Session invite peer must be verified");
-    if (
-      input.id.length < 1 ||
-      input.id.length > 256 ||
-      input.appId.length < 1 ||
-      input.appId.length > 256
-    ) {
-      throw new Error("Session invite identity is invalid");
-    }
-    if (this.invites.has(input.id))
-      throw new Error("Session invite replay was rejected");
-    if (
-      input.verifiedPeerLabel.length < 1 ||
-      input.verifiedPeerLabel.length > 160
-    ) {
-      throw new Error("Session invite peer label is invalid");
-    }
-    if (input.expiresAt <= this.now())
-      throw new Error("Session invite is unavailable");
-    if (
-      input.requestedClasses.length < 1 ||
-      input.requestedClasses.length > 3
-    ) {
-      throw new Error("Session invite media request is invalid");
-    }
-    if (
-      new Set(input.requestedClasses).size !== input.requestedClasses.length
-    ) {
-      throw new Error("Session invite media request is invalid");
-    }
+    assertValidSessionInvite(this.invites, this.now(), input);
     const invite: SessionInvite = {
       ...input,
       receivedAt: this.now(),
@@ -102,5 +72,48 @@ export class SessionInviteService {
       throw new Error("Session invite is unavailable");
     }
     return invite;
+  }
+}
+
+type SessionInviteInput = Omit<SessionInvite, "receivedAt" | "phase"> & {
+  readonly verified: boolean;
+};
+
+function assertValidSessionInvite(
+  invites: Map<string, SessionInvite>,
+  now: number,
+  input: SessionInviteInput,
+): void {
+  if (!input.verified) throw new Error("Session invite peer must be verified");
+  assertInviteIdentity(input);
+  if (invites.has(input.id))
+    throw new Error("Session invite replay was rejected");
+  if (input.expiresAt <= now) throw new Error("Session invite is unavailable");
+  assertInviteMedia(input);
+}
+
+function assertInviteIdentity(input: SessionInviteInput): void {
+  if (
+    input.id.length < 1 ||
+    input.id.length > 256 ||
+    input.appId.length < 1 ||
+    input.appId.length > 256
+  ) {
+    throw new Error("Session invite identity is invalid");
+  }
+  if (
+    input.verifiedPeerLabel.length < 1 ||
+    input.verifiedPeerLabel.length > 160
+  ) {
+    throw new Error("Session invite peer label is invalid");
+  }
+}
+
+function assertInviteMedia(input: SessionInviteInput): void {
+  if (input.requestedClasses.length < 1 || input.requestedClasses.length > 3) {
+    throw new Error("Session invite media request is invalid");
+  }
+  if (new Set(input.requestedClasses).size !== input.requestedClasses.length) {
+    throw new Error("Session invite media request is invalid");
   }
 }
