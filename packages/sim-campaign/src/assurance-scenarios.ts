@@ -332,79 +332,6 @@ export function createSocialCampaignScenario(
     severedAt: null,
   };
   const service: SocialCampaignState = { ...initial, role: "service" };
-  const serviceNodes =
-    kind === "harassment"
-      ? [
-          {
-            id: "social-service",
-            machine: "social/harassment-discovery-gateway",
-            initial: service,
-            step: socialService(
-              kind,
-              transport,
-              ["social-peer-a", "social-peer-b"],
-              options.defectivePolicy === true,
-            ),
-          },
-          {
-            id: "social-peer-a",
-            machine: "social/harassment-discovery-peer",
-            initial: service,
-            step: socialService(
-              kind,
-              transport,
-              ["social-peer-b"],
-              options.defectivePolicy === true,
-            ),
-          },
-          {
-            id: "social-peer-b",
-            machine: "social/harassment-discovery-peer",
-            initial: service,
-            step: socialService(
-              kind,
-              transport,
-              [],
-              options.defectivePolicy === true,
-            ),
-          },
-        ]
-      : [
-          {
-            id: "social-service",
-            machine: `social/${kind}-service`,
-            initial: service,
-            step: socialService(
-              kind,
-              transport,
-              [],
-              options.defectivePolicy === true,
-            ),
-          },
-        ];
-  const graphLinks =
-    kind === "harassment"
-      ? [
-          {
-            source: "social-service",
-            destination: "social-peer-a",
-            class: transport,
-            params: clean(transport),
-          },
-          {
-            source: "social-service",
-            destination: "social-peer-b",
-            class: transport,
-            params: clean(transport),
-          },
-          {
-            source: "social-peer-a",
-            destination: "social-peer-b",
-            class: transport,
-            params: clean(transport),
-          },
-        ]
-      : [];
   return {
     config: {
       seed: 1,
@@ -415,55 +342,15 @@ export function createSocialCampaignScenario(
           initial,
           step: socialSender(kind, options.containment !== false),
         },
-        ...serviceNodes,
+        ...socialServiceNodes(
+          kind,
+          transport,
+          service,
+          options.defectivePolicy === true,
+        ),
       ],
-      links: [
-        {
-          source: "social-adversary",
-          destination: "social-service",
-          class: transport,
-          params: clean(transport),
-        },
-        ...graphLinks,
-      ],
-      oracles: [
-        {
-          name: "social-assurance",
-          check: (world: {
-            nodes: ReadonlyMap<string, SocialCampaignState>;
-          }) => {
-            const state = world.nodes.get("social-service");
-            if (
-              kind === "spam" &&
-              state !== undefined &&
-              state.delivered > 0 &&
-              state.outcome <= 0
-            )
-              return {
-                oracle: "spam-executed-economics",
-                message: "executed spam traffic has no accounted cost",
-              };
-            if (
-              kind === "harassment" &&
-              [...world.nodes.values()].some(
-                (node) => node.containmentBreaches > 0,
-              )
-            )
-              return {
-                oracle: "harassment-containment",
-                message: "harassment propagated after block or sever",
-              };
-            return kind === "reputation" &&
-              (state?.votes.length ?? 0) >= 4 &&
-              state?.ranking[0] === "target"
-              ? {
-                  oracle: "reputation-resilience",
-                  message: "colluders displaced the trusted candidate",
-                }
-              : null;
-          },
-        },
-      ],
+      links: socialCampaignLinks(kind, transport),
+      oracles: [socialAssuranceOracle(kind)],
       ...(options.recorder === undefined ? {} : { recorder: options.recorder }),
     },
     description: {
@@ -474,6 +361,115 @@ export function createSocialCampaignScenario(
     },
     measureContainment: (kernel) =>
       measureSocialContainment(kernel, kind, transport),
+  };
+}
+
+function socialServiceNodes(
+  kind: SocialKind,
+  transport: TransportClassName,
+  service: SocialCampaignState,
+  defectivePolicy: boolean,
+) {
+  if (kind !== "harassment") {
+    return [
+      {
+        id: "social-service",
+        machine: `social/${kind}-service`,
+        initial: service,
+        step: socialService(kind, transport, [], defectivePolicy),
+      },
+    ];
+  }
+  return [
+    {
+      id: "social-service",
+      machine: "social/harassment-discovery-gateway",
+      initial: service,
+      step: socialService(
+        kind,
+        transport,
+        ["social-peer-a", "social-peer-b"],
+        defectivePolicy,
+      ),
+    },
+    {
+      id: "social-peer-a",
+      machine: "social/harassment-discovery-peer",
+      initial: service,
+      step: socialService(kind, transport, ["social-peer-b"], defectivePolicy),
+    },
+    {
+      id: "social-peer-b",
+      machine: "social/harassment-discovery-peer",
+      initial: service,
+      step: socialService(kind, transport, [], defectivePolicy),
+    },
+  ];
+}
+
+function socialCampaignLinks(kind: SocialKind, transport: TransportClassName) {
+  const adversaryLink = {
+    source: "social-adversary",
+    destination: "social-service",
+    class: transport,
+    params: clean(transport),
+  };
+  if (kind !== "harassment") return [adversaryLink];
+  return [
+    adversaryLink,
+    {
+      source: "social-service",
+      destination: "social-peer-a",
+      class: transport,
+      params: clean(transport),
+    },
+    {
+      source: "social-service",
+      destination: "social-peer-b",
+      class: transport,
+      params: clean(transport),
+    },
+    {
+      source: "social-peer-a",
+      destination: "social-peer-b",
+      class: transport,
+      params: clean(transport),
+    },
+  ];
+}
+
+function socialAssuranceOracle(kind: SocialKind) {
+  return {
+    name: "social-assurance",
+    check: (world: { nodes: ReadonlyMap<string, SocialCampaignState> }) => {
+      const state = world.nodes.get("social-service");
+      if (
+        kind === "spam" &&
+        state !== undefined &&
+        state.delivered > 0 &&
+        state.outcome <= 0
+      )
+        return {
+          oracle: "spam-executed-economics",
+          message: "executed spam traffic has no accounted cost",
+        };
+      if (
+        kind === "harassment" &&
+        [...world.nodes.values()].some((node) => node.containmentBreaches > 0)
+      )
+        return {
+          oracle: "harassment-containment",
+          message: "harassment propagated after block or sever",
+        };
+      return kind === "reputation" &&
+        (state?.votes.length ?? 0) >= 4 &&
+        state?.ranking[0] === "target"
+        ? {
+            oracle: "reputation-resilience",
+            message: "colluders displaced the trusted candidate",
+          }
+        : null;
+    },
   };
 }
 

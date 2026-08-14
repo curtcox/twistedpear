@@ -214,6 +214,34 @@ export function unpackPackage(
   provider: CryptoProvider,
   archiveBytes: Uint8Array,
 ): UnpackResult {
+  const { manifest, offset: afterManifest } = readArchiveManifest(archiveBytes);
+  const { files, offset: afterFiles } = readArchiveFiles(
+    archiveBytes,
+    afterManifest,
+    manifest,
+  );
+  verifyArchiveSignatureBlock(archiveBytes, afterFiles, manifest);
+  verifyUnpackedFileEntries(provider, manifest, files);
+
+  if (!verifyManifestSignature(provider, manifest)) {
+    throw new PackageError(
+      "SIGNATURE_INVALID",
+      "Manifest signature verification failed",
+    );
+  }
+
+  return {
+    manifest,
+    files,
+    packageHash: bytesToHex(provider.sha256(archiveBytes)),
+    archiveBytes,
+  };
+}
+
+function readArchiveManifest(archiveBytes: Uint8Array): {
+  readonly manifest: AppManifest;
+  readonly offset: number;
+} {
   if (archiveBytes.length < PACKAGE_MAGIC.length + 4) {
     throw new PackageError("TRUNCATED", "Archive too short");
   }
@@ -237,22 +265,29 @@ export function unpackPackage(
   );
   offset += manifestLength;
 
-  let manifest: AppManifest;
   try {
-    manifest = JSON.parse(manifestText) as AppManifest;
+    const manifest = JSON.parse(manifestText) as AppManifest;
     const { signature: _signature, ...unsigned } = manifest;
     validateManifestStructure(unsigned);
+    return { manifest, offset };
   } catch (error) {
     throw new PackageError(
       "MANIFEST_INVALID",
       error instanceof Error ? error.message : "Invalid manifest",
     );
   }
+}
 
+function readArchiveFiles(
+  archiveBytes: Uint8Array,
+  start: number,
+  manifest: AppManifest,
+): { readonly files: Map<string, Uint8Array>; readonly offset: number } {
   const files = new Map<string, Uint8Array>();
   const sortedPaths = manifest.files
     .map((entry) => entry.path)
     .sort((left, right) => left.localeCompare(right));
+  let offset = start;
 
   for (const path of sortedPaths) {
     if (offset + 4 > archiveBytes.length) {
@@ -295,14 +330,22 @@ export function unpackPackage(
     offset += contentLength;
   }
 
+  return { files, offset };
+}
+
+function verifyArchiveSignatureBlock(
+  archiveBytes: Uint8Array,
+  offset: number,
+  manifest: AppManifest,
+): void {
   if (offset + 4 > archiveBytes.length) {
     throw new PackageError("TRUNCATED", "Archive truncated at signature block");
   }
 
   const signatureLength = readU32Be(archiveBytes, offset);
-  offset += 4;
+  const signatureStart = offset + 4;
 
-  if (offset + signatureLength !== archiveBytes.length) {
+  if (signatureStart + signatureLength !== archiveBytes.length) {
     throw new PackageError(
       "TRUNCATED",
       "Archive trailing bytes after signature block",
@@ -310,8 +353,8 @@ export function unpackPackage(
   }
 
   const signatureBytes = archiveBytes.subarray(
-    offset,
-    offset + signatureLength,
+    signatureStart,
+    signatureStart + signatureLength,
   );
   if (bytesToHex(signatureBytes) !== manifest.signature) {
     throw new PackageError(
@@ -319,7 +362,13 @@ export function unpackPackage(
       "Archive signature block does not match manifest",
     );
   }
+}
 
+function verifyUnpackedFileEntries(
+  provider: CryptoProvider,
+  manifest: AppManifest,
+  files: ReadonlyMap<string, Uint8Array>,
+): void {
   for (const entry of manifest.files) {
     const content = files.get(entry.path);
     if (content === undefined) {
@@ -344,20 +393,6 @@ export function unpackPackage(
       );
     }
   }
-
-  if (!verifyManifestSignature(provider, manifest)) {
-    throw new PackageError(
-      "SIGNATURE_INVALID",
-      "Manifest signature verification failed",
-    );
-  }
-
-  return {
-    manifest,
-    files,
-    packageHash: bytesToHex(provider.sha256(archiveBytes)),
-    archiveBytes,
-  };
 }
 
 export function verifyPackage(

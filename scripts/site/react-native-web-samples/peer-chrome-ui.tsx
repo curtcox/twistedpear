@@ -24,7 +24,7 @@ function PeerChromeModalView({
   onInput,
   onCancel,
   onContinue,
-  onConfirm
+  onConfirm,
 }: {
   readonly modal: PeerChromeModal;
   readonly onInput: (value: string) => void;
@@ -37,146 +37,134 @@ function PeerChromeModalView({
   const cameraStopRef = useRef<(() => void) | null>(null);
   useEffect(() => () => cameraStopRef.current?.(), []);
   useEffect(() => {
-    if (modal.kind !== "exchange" || modal.exchange !== "qr-present" || (modal.codes?.length ?? 0) < 2) return undefined;
+    if (
+      modal.kind !== "exchange" ||
+      modal.exchange !== "qr-present" ||
+      (modal.codes?.length ?? 0) < 2
+    )
+      return undefined;
     const codes = modal.codes ?? [];
-    const timer = setInterval(() => setQrFrame((current) => (current + 1) % codes.length), 750);
+    const timer = setInterval(
+      () => setQrFrame((current) => (current + 1) % codes.length),
+      750,
+    );
     return () => clearInterval(timer);
   }, [modal]);
 
   if (modal.kind === "confirm") {
     return (
-      <View testID="peer-confirmation-modal" style={styles.overlay}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Confirm peer connection</Text>
-          <Text style={styles.muted}>Trusted host chrome · Requested by: {modal.appId}</Text>
-          <Text style={styles.body}>Purpose: {modal.purpose}</Text>
-          <Text style={styles.body}>Service: {modal.service}</Text>
-          <Text style={styles.body}>Peer label (untrusted claim): {modal.peer.displayLabel}</Text>
-          <Text style={styles.body}>Identity fingerprint: {modal.peer.fingerprint}</Text>
-          <Text style={styles.body}>Matching words: {modal.peer.matchingWords.join(" · ")}</Text>
-          <Text style={styles.body}>Data path: {modal.peer.dataPlane}</Text>
-          <View style={styles.row}>
-            <Action label="Cancel" onPress={onCancel} />
-            <Action label="Connect" onPress={() => onConfirm(true)} />
-          </View>
-        </View>
-      </View>
+      <PeerConfirmCard
+        modal={modal}
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />
     );
   }
 
-  const present =
-    modal.exchange === "manual-present" || modal.exchange === "qr-present" || modal.exchange === "audio-transmit";
-  const qr = modal.exchange === "qr-present" || modal.exchange === "qr-scan";
-  const audio = modal.exchange === "audio-transmit" || modal.exchange === "audio-receive";
-  const needsInput =
-    modal.exchange === "manual-enter" ||
-    modal.exchange === "qr-scan" ||
-    modal.expectsResponse;
-  const qrValue = modal.exchange === "qr-present" ? modal.codes?.[qrFrame] : undefined;
-  let qrUri: string | null = null;
-  if (qrValue !== undefined) {
-    const factory = qrcodeModule as unknown as (
-      typeNumber: number,
-      correction: string
-    ) => { addData(value: string): void; make(): void; createDataURL(cellSize: number, margin: number): string };
-    const image = factory(0, "M");
-    image.addData(qrValue);
-    image.make();
-    qrUri = image.createDataURL(4, 8);
-  }
+  return (
+    <PeerExchangeCard
+      modal={modal}
+      qrFrame={qrFrame}
+      cameraStatus={cameraStatus}
+      onInput={onInput}
+      onCancel={onCancel}
+      onContinue={onContinue}
+      onStartCamera={() =>
+        void startPeerQrCamera({
+          onInput,
+          setCameraStatus,
+          cameraStopRef,
+        })
+      }
+    />
+  );
+}
 
-  const startCamera = async () => {
-    const browser = globalThis as {
-      navigator?: { mediaDevices?: { getUserMedia(constraints: MediaStreamConstraints): Promise<MediaStream> } };
-      document?: Document;
-      requestAnimationFrame(callback: () => void): number;
-    };
-    if (browser.navigator?.mediaDevices?.getUserMedia === undefined || browser.document === undefined) {
-      setCameraStatus("Camera capture is unavailable; paste the full payload instead.");
-      return;
-    }
-    try {
-      const stream = await browser.navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false
-      });
-      const video = browser.document.createElement("video");
-      video.autoplay = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.srcObject = stream;
-      video.setAttribute("aria-label", "Peer QR camera preview");
-      Object.assign(video.style, {
-        position: "fixed",
-        right: "24px",
-        bottom: "24px",
-        width: "240px",
-        zIndex: "1000",
-        borderRadius: "12px"
-      });
-      browser.document.body.appendChild(video);
-      await video.play();
-      const stop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        video.remove();
-        cameraStopRef.current = null;
-      };
-      cameraStopRef.current = stop;
-      setCameraStatus("Camera active. Hold the peer QR inside the preview.");
-      const canvas = browser.document.createElement("canvas");
-      const detect = () => {
-        if (cameraStopRef.current === null) return;
-        if (video.videoWidth > 0 && video.videoHeight > 0) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const context = canvas.getContext("2d", { willReadFrequently: true });
-          context?.drawImage(video, 0, 0);
-          const image = context?.getImageData(0, 0, canvas.width, canvas.height);
-          const value =
-            image === undefined ? null : decodePeerQrRgba(image.data, canvas.width, canvas.height);
-          if (value !== null) {
-            onInput(value);
-            setCameraStatus("QR payload captured.");
-            stop();
-            return;
-          }
-        }
-        browser.requestAnimationFrame(detect);
-      };
-      detect();
-    } catch (error) {
-      setCameraStatus(`Camera unavailable: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
+function PeerConfirmCard({
+  modal,
+  onCancel,
+  onConfirm,
+}: {
+  readonly modal: Extract<PeerChromeModal, { kind: "confirm" }>;
+  readonly onCancel: () => void;
+  readonly onConfirm: (approved: boolean) => void;
+}) {
+  return (
+    <View testID="peer-confirmation-modal" style={styles.overlay}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Confirm peer connection</Text>
+        <Text style={styles.muted}>
+          Trusted host chrome · Requested by: {modal.appId}
+        </Text>
+        <Text style={styles.body}>Purpose: {modal.purpose}</Text>
+        <Text style={styles.body}>Service: {modal.service}</Text>
+        <Text style={styles.body}>
+          Peer label (untrusted claim): {modal.peer.displayLabel}
+        </Text>
+        <Text style={styles.body}>
+          Identity fingerprint: {modal.peer.fingerprint}
+        </Text>
+        <Text style={styles.body}>
+          Matching words: {modal.peer.matchingWords.join(" · ")}
+        </Text>
+        <Text style={styles.body}>Data path: {modal.peer.dataPlane}</Text>
+        <View style={styles.row}>
+          <Action label="Cancel" onPress={onCancel} />
+          <Action label="Connect" onPress={() => onConfirm(true)} />
+        </View>
+      </View>
+    </View>
+  );
+}
 
-  const title = audio
-    ? modal.exchange === "audio-transmit"
-      ? "Play an audible peer invitation"
-      : "Listen for an audible peer invitation"
-    : qr
-      ? present
-        ? "Show peer QR"
-        : "Scan peer QR"
-      : present
-        ? "Share peer invitation"
-        : "Enter a peer invitation";
-
+function PeerExchangeCard({
+  modal,
+  qrFrame,
+  cameraStatus,
+  onInput,
+  onCancel,
+  onContinue,
+  onStartCamera,
+}: {
+  readonly modal: Extract<PeerChromeModal, { kind: "exchange" }>;
+  readonly qrFrame: number;
+  readonly cameraStatus: string;
+  readonly onInput: (value: string) => void;
+  readonly onCancel: () => void;
+  readonly onContinue: () => void;
+  readonly onStartCamera: () => void;
+}) {
+  const flags = peerExchangeFlags(modal);
+  const qrUri = peerQrDataUrl(
+    modal.exchange === "qr-present" ? modal.codes?.[qrFrame] : undefined,
+  );
   return (
     <View testID="peer-exchange-modal" style={styles.overlay}>
       <View style={styles.card}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title}>
+          {peerExchangeTitle(flags, modal.exchange)}
+        </Text>
         <Text style={styles.muted}>
-          {audio
+          {flags.audio
             ? "Trusted host chrome. This emits audible FSK tones and requests microphone access only after you continue. No PCM is exposed to the mini-app."
             : "Trusted host chrome. This is a full serverless code, not a short lookup code."}
         </Text>
         {qrUri !== null ? (
-          <Image accessibilityLabel="Peer invitation QR" source={{ uri: qrUri }} style={styles.qr} />
+          <Image
+            accessibilityLabel="Peer invitation QR"
+            source={{ uri: qrUri }}
+            style={styles.qr}
+          />
         ) : null}
         {modal.exchange === "manual-present" && modal.code !== undefined ? (
-          <TextInput multiline editable={false} value={modal.code} style={styles.input} />
+          <TextInput
+            multiline
+            editable={false}
+            value={modal.code}
+            style={styles.input}
+          />
         ) : null}
-        {needsInput ? (
+        {flags.needsInput ? (
           <TextInput
             testID="peer-code-input"
             multiline
@@ -186,32 +174,168 @@ function PeerChromeModalView({
             style={styles.input}
           />
         ) : null}
-        {qr && needsInput ? (
+        {flags.qr && flags.needsInput ? (
           <>
-            <Action label="Start camera" onPress={() => void startCamera()} />
+            <Action label="Start camera" onPress={onStartCamera} />
             <Text style={styles.muted}>{cameraStatus}</Text>
           </>
         ) : null}
         <View style={styles.row}>
           <Action label="Cancel" onPress={onCancel} />
           <Action
-            label={
-              audio
-                ? modal.exchange === "audio-transmit"
-                  ? modal.expectsResponse
-                    ? "Play and listen"
-                    : "Play answer"
-                  : "Start listening"
-                : needsInput
-                  ? "Continue"
-                  : "Done"
-            }
+            label={peerContinueLabel(flags, modal)}
             onPress={onContinue}
           />
         </View>
       </View>
     </View>
   );
+}
+
+function peerExchangeFlags(
+  modal: Extract<PeerChromeModal, { kind: "exchange" }>,
+): {
+  readonly present: boolean;
+  readonly qr: boolean;
+  readonly audio: boolean;
+  readonly needsInput: boolean;
+} {
+  return {
+    present:
+      modal.exchange === "manual-present" ||
+      modal.exchange === "qr-present" ||
+      modal.exchange === "audio-transmit",
+    qr: modal.exchange === "qr-present" || modal.exchange === "qr-scan",
+    audio:
+      modal.exchange === "audio-transmit" || modal.exchange === "audio-receive",
+    needsInput:
+      modal.exchange === "manual-enter" ||
+      modal.exchange === "qr-scan" ||
+      modal.expectsResponse,
+  };
+}
+
+function peerQrDataUrl(qrValue: string | undefined): string | null {
+  if (qrValue === undefined) return null;
+  const factory = qrcodeModule as unknown as (
+    typeNumber: number,
+    correction: string,
+  ) => {
+    addData(value: string): void;
+    make(): void;
+    createDataURL(cellSize: number, margin: number): string;
+  };
+  const image = factory(0, "M");
+  image.addData(qrValue);
+  image.make();
+  return image.createDataURL(4, 8);
+}
+
+function peerExchangeTitle(
+  flags: {
+    readonly audio: boolean;
+    readonly qr: boolean;
+    readonly present: boolean;
+  },
+  exchange: Extract<PeerChromeModal, { kind: "exchange" }>["exchange"],
+): string {
+  if (flags.audio) {
+    return exchange === "audio-transmit"
+      ? "Play an audible peer invitation"
+      : "Listen for an audible peer invitation";
+  }
+  if (flags.qr) return flags.present ? "Show peer QR" : "Scan peer QR";
+  return flags.present ? "Share peer invitation" : "Enter a peer invitation";
+}
+
+function peerContinueLabel(
+  flags: { readonly audio: boolean; readonly needsInput: boolean },
+  modal: Extract<PeerChromeModal, { kind: "exchange" }>,
+): string {
+  if (!flags.audio) return flags.needsInput ? "Continue" : "Done";
+  if (modal.exchange !== "audio-transmit") return "Start listening";
+  return modal.expectsResponse ? "Play and listen" : "Play answer";
+}
+
+async function startPeerQrCamera(input: {
+  readonly onInput: (value: string) => void;
+  readonly setCameraStatus: (status: string) => void;
+  readonly cameraStopRef: { current: (() => void) | null };
+}): Promise<void> {
+  const browser = globalThis as {
+    navigator?: {
+      mediaDevices?: {
+        getUserMedia(constraints: MediaStreamConstraints): Promise<MediaStream>;
+      };
+    };
+    document?: Document;
+    requestAnimationFrame(callback: () => void): number;
+  };
+  if (
+    browser.navigator?.mediaDevices?.getUserMedia === undefined ||
+    browser.document === undefined
+  ) {
+    input.setCameraStatus(
+      "Camera capture is unavailable; paste the full payload instead.",
+    );
+    return;
+  }
+  try {
+    const stream = await browser.navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+    const video = browser.document.createElement("video");
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.srcObject = stream;
+    video.setAttribute("aria-label", "Peer QR camera preview");
+    Object.assign(video.style, {
+      position: "fixed",
+      right: "24px",
+      bottom: "24px",
+      width: "240px",
+      zIndex: "1000",
+      borderRadius: "12px",
+    });
+    browser.document.body.appendChild(video);
+    await video.play();
+    const stop = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      video.remove();
+      input.cameraStopRef.current = null;
+    };
+    input.cameraStopRef.current = stop;
+    input.setCameraStatus("Camera active. Hold the peer QR inside the preview.");
+    const canvas = browser.document.createElement("canvas");
+    const detect = () => {
+      if (input.cameraStopRef.current === null) return;
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        context?.drawImage(video, 0, 0);
+        const image = context?.getImageData(0, 0, canvas.width, canvas.height);
+        const value =
+          image === undefined
+            ? null
+            : decodePeerQrRgba(image.data, canvas.width, canvas.height);
+        if (value !== null) {
+          input.onInput(value);
+          input.setCameraStatus("QR payload captured.");
+          stop();
+          return;
+        }
+      }
+      browser.requestAnimationFrame(detect);
+    };
+    detect();
+  } catch (error) {
+    input.setCameraStatus(
+      `Camera unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 function Action({ label, onPress }: { readonly label: string; readonly onPress: () => void }) {

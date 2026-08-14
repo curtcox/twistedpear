@@ -139,16 +139,14 @@ export function decideStreamAdmission(
   const selected = selectPlane(candidates);
   if (selected === undefined) {
     return (
-      casSnapshotAdmission(demand, ladder) ?? {
-        kind: "reject",
+      casSnapshotAdmission(demand, ladder) ??
+      rejectAtLadderEnd({
         plane: "cas",
-        rung: ladder[ladder.length - 1] ?? "on-demand",
-        rungIndex: Math.max(0, ladder.length - 1),
+        ladder,
         demandBps: demandBps(demand),
-        admittedDemandBps: 0,
         supplyBps: 0,
         reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no candidate plane",
-      }
+      })
     );
   }
 
@@ -159,112 +157,165 @@ export function decideStreamAdmission(
       ? 0
       : Math.max(0, ladder.indexOf(demand.encoding));
   if (requiredBps <= 0) {
-    return {
-      kind: "reject",
+    return rejectAtLadderEnd({
       plane: selected.plane,
-      rung: ladder[ladder.length - 1] ?? "on-demand",
-      rungIndex: Math.max(0, ladder.length - 1),
+      ladder,
       demandBps: requiredBps,
-      admittedDemandBps: 0,
       supplyBps: supply,
       reason: "DEVICE_BANDWIDTH_INSUFFICIENT: unknown or empty demand profile",
-    };
+    });
   }
   if (supply <= 0) {
     return (
-      casSnapshotAdmission(demand, ladder) ?? {
-        kind: "reject",
+      casSnapshotAdmission(demand, ladder) ??
+      rejectAtLadderEnd({
         plane: selected.plane,
-        rung: ladder[ladder.length - 1] ?? "on-demand",
-        rungIndex: Math.max(0, ladder.length - 1),
+        ladder,
         demandBps: requiredBps,
-        admittedDemandBps: 0,
         supplyBps: supply,
         reason: "DEVICE_BANDWIDTH_INSUFFICIENT: zero supply",
-      }
+      })
     );
   }
 
-  let rungIndex = highestSustainableRung(
+  return decideLiveStreamAdmission({
+    demand,
+    selected,
     ladder,
     requiredBps,
     supply,
     requestedRungIndex,
+  });
+}
+
+function decideLiveStreamAdmission(input: {
+  readonly demand: StreamDemand;
+  readonly selected: LinkSupply;
+  readonly ladder: ReadonlyArray<string>;
+  readonly requiredBps: number;
+  readonly supply: number;
+  readonly requestedRungIndex: number;
+}): AdmissionDecision {
+  let rungIndex = highestSustainableRung(
+    input.ladder,
+    input.requiredBps,
+    input.supply,
+    input.requestedRungIndex,
   );
-  if (selected.metered === true || selected.lowBattery === true) {
-    rungIndex = Math.min(ladder.length - 1, rungIndex + 1);
+  if (input.selected.metered === true || input.selected.lowBattery === true) {
+    rungIndex = Math.min(input.ladder.length - 1, rungIndex + 1);
   }
 
-  const rung = ladder[rungIndex] ?? ladder[ladder.length - 1] ?? "on-demand";
+  const rung =
+    input.ladder[rungIndex] ??
+    input.ladder[input.ladder.length - 1] ??
+    "on-demand";
   const admittedDemand = demandAtRung(
-    requiredBps,
-    profileMinimumBps(demand),
-    rungIndex - requestedRungIndex,
-    ladder.length - requestedRungIndex,
+    input.requiredBps,
+    profileMinimumBps(input.demand),
+    rungIndex - input.requestedRungIndex,
+    input.ladder.length - input.requestedRungIndex,
   );
-  if (admittedDemand > supply) {
-    // Live planes cannot carry even the bottom live rung; fall through to CAS
-    // when the ladder declares a snapshot terminal.
+  if (admittedDemand > input.supply) {
     return (
-      casSnapshotAdmission(demand, ladder) ?? {
+      casSnapshotAdmission(input.demand, input.ladder) ?? {
         kind: "reject",
-        plane: selected.plane,
+        plane: input.selected.plane,
         rung,
         rungIndex,
-        demandBps: requiredBps,
+        demandBps: input.requiredBps,
         admittedDemandBps: admittedDemand,
-        supplyBps: supply,
+        supplyBps: input.supply,
         reason: "DEVICE_BANDWIDTH_INSUFFICIENT: no sustainable rung",
       }
     );
   }
-  if (rungIndex === requestedRungIndex && requiredBps <= supply) {
-    return {
-      kind: "accept",
-      plane: selected.plane,
-      rung,
-      rungIndex,
-      demandBps: requiredBps,
-      admittedDemandBps: admittedDemand,
-      supplyBps: supply,
-      reason: "accepted at requested quality",
-    };
-  }
-  // Prefer honest degradation (including bottom-of-ladder derived events) over defer
-  // whenever the registry declares a ladder for the class.
-  if (ladder.length > 0 && rungIndex > requestedRungIndex) {
-    return {
-      kind: "degrade",
-      plane: selected.plane,
-      rung,
-      rungIndex,
-      demandBps: requiredBps,
-      admittedDemandBps: admittedDemand,
-      supplyBps: supply,
-      reason: `degraded to ${rung}`,
-    };
-  }
-  if ((selected.queueDepthBytes ?? 0) < DEFAULT_HOST_LIMIT_BPS) {
-    return {
-      kind: "defer",
-      plane: selected.plane,
-      rung,
-      rungIndex,
-      demandBps: requiredBps,
-      admittedDemandBps: admittedDemand,
-      supplyBps: supply,
-      reason: "defer until better path or headroom",
-    };
-  }
-  return {
-    kind: "reject",
-    plane: selected.plane,
+  const kind = liveAdmissionKind(input, rungIndex);
+  return liveAdmission(kind, input, {
     rung,
     rungIndex,
-    demandBps: requiredBps,
     admittedDemandBps: admittedDemand,
-    supplyBps: supply,
-    reason: "DEVICE_BANDWIDTH_INSUFFICIENT",
+    reason: liveAdmissionReason(kind, rung),
+  });
+}
+
+function liveAdmissionKind(
+  input: {
+    readonly selected: LinkSupply;
+    readonly ladder: ReadonlyArray<string>;
+    readonly requiredBps: number;
+    readonly supply: number;
+    readonly requestedRungIndex: number;
+  },
+  rungIndex: number,
+): AdmissionDecisionKind {
+  if (
+    rungIndex === input.requestedRungIndex &&
+    input.requiredBps <= input.supply
+  ) {
+    return "accept";
+  }
+  if (input.ladder.length > 0 && rungIndex > input.requestedRungIndex) {
+    return "degrade";
+  }
+  if ((input.selected.queueDepthBytes ?? 0) < DEFAULT_HOST_LIMIT_BPS) {
+    return "defer";
+  }
+  return "reject";
+}
+
+function liveAdmissionReason(
+  kind: AdmissionDecisionKind,
+  rung: string,
+): string {
+  if (kind === "accept") return "accepted at requested quality";
+  if (kind === "degrade") return `degraded to ${rung}`;
+  if (kind === "defer") return "defer until better path or headroom";
+  return "DEVICE_BANDWIDTH_INSUFFICIENT";
+}
+
+function liveAdmission(
+  kind: AdmissionDecisionKind,
+  input: {
+    readonly selected: LinkSupply;
+    readonly requiredBps: number;
+    readonly supply: number;
+  },
+  chosen: {
+    readonly rung: string;
+    readonly rungIndex: number;
+    readonly admittedDemandBps: number;
+    readonly reason: string;
+  },
+): AdmissionDecision {
+  return {
+    kind,
+    plane: input.selected.plane,
+    rung: chosen.rung,
+    rungIndex: chosen.rungIndex,
+    demandBps: input.requiredBps,
+    admittedDemandBps: chosen.admittedDemandBps,
+    supplyBps: input.supply,
+    reason: chosen.reason,
+  };
+}
+
+function rejectAtLadderEnd(input: {
+  readonly plane: StreamPlane;
+  readonly ladder: ReadonlyArray<string>;
+  readonly demandBps: number;
+  readonly supplyBps: number;
+  readonly reason: string;
+}): AdmissionDecision {
+  return {
+    kind: "reject",
+    plane: input.plane,
+    rung: input.ladder[input.ladder.length - 1] ?? "on-demand",
+    rungIndex: Math.max(0, input.ladder.length - 1),
+    demandBps: input.demandBps,
+    admittedDemandBps: 0,
+    supplyBps: input.supplyBps,
+    reason: input.reason,
   };
 }
 

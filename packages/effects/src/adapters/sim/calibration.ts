@@ -283,6 +283,75 @@ function probability(numerator: number, denominator: number): number {
   return denominator === 0 ? 0 : numerator / denominator;
 }
 
+function fitSerialization(
+  transport: CalibratedTransportName,
+  delivered: ReadonlyArray<
+    CalibrationObservation & { readonly receivedAtMs: number }
+  >,
+): { readonly bandwidthBps: number; readonly residuals: readonly number[] } {
+  const points = delivered.map((item) => ({
+    x: item.payloadBytes * 8,
+    y: item.receivedAtMs - item.sentAtMs,
+  }));
+  const durationBySize = new Map<number, number[]>();
+  for (const point of points) {
+    const durations = durationBySize.get(point.x) ?? [];
+    durations.push(point.y);
+    durationBySize.set(point.x, durations);
+  }
+  const medians = [...durationBySize.entries()]
+    .map(([x, durations]) => ({ x, y: median(durations) }))
+    .sort((a, b) => a.x - b.x);
+  const slopes: number[] = [];
+  for (let left = 0; left < medians.length; left += 1) {
+    for (let right = left + 1; right < medians.length; right += 1) {
+      const a = medians[left]!;
+      const b = medians[right]!;
+      slopes.push((b.y - a.y) / (b.x - a.x));
+    }
+  }
+  const slopeMsPerBit = median(slopes);
+  if (slopeMsPerBit <= 0)
+    throw new Error(
+      `${transport} trace cannot identify a positive serialization rate`,
+    );
+  return {
+    bandwidthBps: 1_000 / slopeMsPerBit,
+    residuals: points
+      .map((point) => Math.max(0, point.y - point.x * slopeMsPerBit))
+      .sort((a, b) => a - b),
+  };
+}
+
+function burstTransitions(observations: readonly CalibrationObservation[]): {
+  readonly deliveredPrevious: number;
+  readonly lostPrevious: number;
+  readonly deliveredToLost: number;
+  readonly lostToDelivered: number;
+} {
+  let deliveredPrevious = 0;
+  let lostPrevious = 0;
+  let deliveredToLost = 0;
+  let lostToDelivered = 0;
+  for (let index = 1; index < observations.length; index += 1) {
+    const previousDelivered = observations[index - 1]!.receivedAtMs !== null;
+    const currentDelivered = observations[index]!.receivedAtMs !== null;
+    if (previousDelivered) {
+      deliveredPrevious += 1;
+      if (!currentDelivered) deliveredToLost += 1;
+    } else {
+      lostPrevious += 1;
+      if (currentDelivered) lostToDelivered += 1;
+    }
+  }
+  return {
+    deliveredPrevious,
+    lostPrevious,
+    deliveredToLost,
+    lostToDelivered,
+  };
+}
+
 export function calibrateTransportTrace(
   trace: CalibrationTrace,
   policy: CalibrationPolicy,
@@ -312,66 +381,21 @@ export function calibrateTransportTrace(
       `${trace.transport} trace requires at least two delivered observations`,
     );
 
-  const points = delivered.map((item) => ({
-    x: item.payloadBytes * 8,
-    y: item.receivedAtMs - item.sentAtMs,
-  }));
-  const durationBySize = new Map<number, number[]>();
-  for (const point of points) {
-    const durations = durationBySize.get(point.x) ?? [];
-    durations.push(point.y);
-    durationBySize.set(point.x, durations);
-  }
-  const medians = [...durationBySize.entries()]
-    .map(([x, durations]) => ({ x, y: median(durations) }))
-    .sort((a, b) => a.x - b.x);
-  const slopes: number[] = [];
-  for (let left = 0; left < medians.length; left += 1) {
-    for (let right = left + 1; right < medians.length; right += 1) {
-      const a = medians[left]!;
-      const b = medians[right]!;
-      slopes.push((b.y - a.y) / (b.x - a.x));
-    }
-  }
-  const slopeMsPerBit = median(slopes);
-  if (slopeMsPerBit <= 0)
-    throw new Error(
-      `${trace.transport} trace cannot identify a positive serialization rate`,
-    );
-  const bandwidthBps = 1_000 / slopeMsPerBit;
-  const residuals = points
-    .map((point) => Math.max(0, point.y - point.x * slopeMsPerBit))
-    .sort((a, b) => a - b);
-
-  let deliveredPrevious = 0;
-  let lostPrevious = 0;
-  let deliveredToLost = 0;
-  let lostToDelivered = 0;
-  for (let index = 1; index < trace.observations.length; index += 1) {
-    const previousDelivered =
-      trace.observations[index - 1]!.receivedAtMs !== null;
-    const currentDelivered = trace.observations[index]!.receivedAtMs !== null;
-    if (previousDelivered) {
-      deliveredPrevious += 1;
-      if (!currentDelivered) deliveredToLost += 1;
-    } else {
-      lostPrevious += 1;
-      if (currentDelivered) lostToDelivered += 1;
-    }
-  }
+  const fit = fitSerialization(trace.transport, delivered);
+  const burst = burstTransitions(trace.observations);
   const lossRate =
     (trace.observations.length - delivered.length) / trace.observations.length;
   const parameters: CalibratedParameters = {
-    bandwidthBps,
+    bandwidthBps: fit.bandwidthBps,
     latency: {
       kind: "uniform",
-      minMs: quantile(residuals, 0.05),
-      maxMs: quantile(residuals, 0.95),
+      minMs: quantile(fit.residuals, 0.05),
+      maxMs: quantile(fit.residuals, 0.95),
     },
     lossRate,
     burstLoss: {
-      goodToBad: probability(deliveredToLost, deliveredPrevious),
-      badToGood: probability(lostToDelivered, lostPrevious),
+      goodToBad: probability(burst.deliveredToLost, burst.deliveredPrevious),
+      badToGood: probability(burst.lostToDelivered, burst.lostPrevious),
       goodLossRate: 0,
       badLossRate: 1,
     },

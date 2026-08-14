@@ -116,7 +116,6 @@ function stepPropagationTransferInner(
       actions: [{ kind: "teardown-link" }],
     };
   }
-
   if (event.kind === "xfer/begin") {
     return {
       state: {
@@ -138,7 +137,19 @@ function stepPropagationTransferInner(
       ],
     };
   }
+  const linkStep = stepPropagationLinkEvents(state, event);
+  if (linkStep !== null) return linkStep;
+  const listStep = stepPropagationListEvents(state, event);
+  if (listStep !== null) return listStep;
+  const downloadStep = stepPropagationDownloadEvents(state, event);
+  if (downloadStep !== null) return downloadStep;
+  return { state, intents: [], actions: [] };
+}
 
+function stepPropagationLinkEvents(
+  state: PropagationTransferMachineState,
+  event: PropagationTransferEvent,
+): PropagationTransferStepResult | null {
   if (event.kind === "timer/fired" && event.id === PROPAGATION_LINK_TIMER_ID) {
     if (state.phase !== PropagationTransferState.LINK_ESTABLISHING) {
       return { state, intents: [], actions: [] };
@@ -152,7 +163,6 @@ function stepPropagationTransferInner(
       ],
     };
   }
-
   if (event.kind === "xfer/link-timeout") {
     return {
       state: { ...state, phase: PropagationTransferState.LINK_FAILED },
@@ -162,7 +172,6 @@ function stepPropagationTransferInner(
       actions: [{ kind: "teardown-link" }],
     };
   }
-
   if (event.kind === "xfer/link-arrived") {
     if (state.phase !== PropagationTransferState.LINK_ESTABLISHING) {
       return { state, intents: [], actions: [] };
@@ -175,7 +184,6 @@ function stepPropagationTransferInner(
       actions: [{ kind: "resolve-link-wait" }],
     };
   }
-
   if (event.kind === "xfer/link-ready") {
     return {
       state: { ...state, phase: PropagationTransferState.LINK_ESTABLISHED },
@@ -188,7 +196,13 @@ function stepPropagationTransferInner(
       ],
     };
   }
+  return null;
+}
 
+function stepPropagationListEvents(
+  state: PropagationTransferMachineState,
+  event: PropagationTransferEvent,
+): PropagationTransferStepResult | null {
   if (event.kind === "xfer/list-null" || event.kind === "xfer/list-malformed") {
     return {
       state: { ...state, phase: PropagationTransferState.TRANSFER_FAILED },
@@ -196,7 +210,6 @@ function stepPropagationTransferInner(
       actions: [],
     };
   }
-
   if (event.kind === "xfer/list-peer-error") {
     const phase =
       event.code === PropagationPeerError.NO_IDENTITY
@@ -204,7 +217,6 @@ function stepPropagationTransferInner(
         : PropagationTransferState.NO_ACCESS;
     return { state: { ...state, phase }, intents: [], actions: [] };
   }
-
   if (event.kind === "xfer/list-empty") {
     return {
       state: {
@@ -216,7 +228,6 @@ function stepPropagationTransferInner(
       actions: [],
     };
   }
-
   if (event.kind === "xfer/list-ready") {
     return {
       state: {
@@ -233,7 +244,13 @@ function stepPropagationTransferInner(
       ],
     };
   }
+  return null;
+}
 
+function stepPropagationDownloadEvents(
+  state: PropagationTransferMachineState,
+  event: PropagationTransferEvent,
+): PropagationTransferStepResult | null {
   if (
     event.kind === "xfer/download-null" ||
     event.kind === "xfer/download-malformed"
@@ -244,7 +261,6 @@ function stepPropagationTransferInner(
       actions: [],
     };
   }
-
   if (event.kind === "xfer/download-ready") {
     const next: PropagationTransferMachineState = {
       ...state,
@@ -269,7 +285,6 @@ function stepPropagationTransferInner(
       ],
     };
   }
-
   if (event.kind === "xfer/haves-acked") {
     return {
       state: { ...state, phase: PropagationTransferState.COMPLETE },
@@ -277,8 +292,7 @@ function stepPropagationTransferInner(
       actions: [],
     };
   }
-
-  return { state, intents: [], actions: [] };
+  return null;
 }
 
 /** Whether a peer list/download response bytes are present for transfer progression. */

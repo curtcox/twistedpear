@@ -351,6 +351,24 @@ function stepLinkWatchdogInner(
   state: LinkWatchdogState,
   event: LinkWatchdogEvent,
 ): LinkWatchdogStepResult {
+  const recorded = stepLinkWatchdogRecordedEvent(state, event);
+  if (recorded !== null) return recorded;
+
+  if (event.kind === "link/watchdog-start" || event.kind === "start") {
+    return scheduleWatchdog(state, 25, []);
+  }
+
+  if (event.kind !== "timer/fired" || event.id !== "link-watchdog") {
+    return { state, intents: [], actions: [] };
+  }
+
+  return stepLinkWatchdogTick(state, event.at / 1000);
+}
+
+function stepLinkWatchdogRecordedEvent(
+  state: LinkWatchdogState,
+  event: LinkWatchdogEvent,
+): LinkWatchdogStepResult | null {
   if (event.kind === "link/inbound") {
     return {
       state: {
@@ -363,7 +381,6 @@ function stepLinkWatchdogInner(
       actions: [],
     };
   }
-
   if (event.kind === "link/keepalive-sent") {
     return {
       state: { ...state, lastKeepalive: event.at },
@@ -371,7 +388,6 @@ function stepLinkWatchdogInner(
       actions: [],
     };
   }
-
   if (event.kind === "link/rtt-measured") {
     const keepalive = computeKeepalive(event.rtt);
     return {
@@ -385,7 +401,6 @@ function stepLinkWatchdogInner(
       actions: [],
     };
   }
-
   if (event.kind === "link/status") {
     return {
       state: {
@@ -397,17 +412,13 @@ function stepLinkWatchdogInner(
       actions: [],
     };
   }
+  return null;
+}
 
-  if (event.kind === "link/watchdog-start" || event.kind === "start") {
-    return scheduleWatchdog(state, 25, []);
-  }
-
-  if (event.kind !== "timer/fired" || event.id !== "link-watchdog") {
-    return { state, intents: [], actions: [] };
-  }
-
-  const now = event.at / 1000;
-
+function stepLinkWatchdogTick(
+  state: LinkWatchdogState,
+  now: number,
+): LinkWatchdogStepResult {
   if (state.status === LinkStatus.CLOSED) {
     return { state, intents: [], actions: [] };
   }
@@ -436,59 +447,64 @@ function stepLinkWatchdogInner(
   }
 
   if (state.status === LinkStatus.ACTIVE || state.status === LinkStatus.STALE) {
-    const activatedAt = state.activatedAt ?? 0;
-    const lastInbound = Math.max(state.lastInbound, activatedAt);
-
-    if (state.status === LinkStatus.STALE) {
-      return {
-        state: {
-          ...state,
-          status: LinkStatus.CLOSED,
-          teardownReason: LinkTeardownReason.TIMEOUT,
-        },
-        intents: [],
-        actions: [
-          { kind: "send-teardown" },
-          { kind: "close", reason: LinkTeardownReason.TIMEOUT },
-        ],
-      };
-    }
-
-    const actions: LinkWatchdogAction[] = [];
-
-    if (now >= lastInbound + state.keepalive) {
-      if (state.initiator && now >= state.lastKeepalive + state.keepalive) {
-        actions.push({ kind: "send-keepalive" });
-      }
-
-      if (now >= lastInbound + state.staleTime) {
-        const delayMs = Math.max(
-          (state.rtt ?? 0.025) * LINK_KEEPALIVE_TIMEOUT_FACTOR * 1000 +
-            LINK_STALE_GRACE * 1000,
-          25,
-        );
-        return scheduleWatchdog(
-          { ...state, status: LinkStatus.STALE },
-          delayMs,
-          [{ kind: "mark-stale" }, ...actions],
-        );
-      }
-
-      return scheduleWatchdog(
-        state,
-        Math.min(state.keepalive * 1000, LINK_WATCHDOG_MAX_SLEEP_MS),
-        actions,
-      );
-    }
-
-    const delayMs = Math.min(
-      Math.max((lastInbound + state.keepalive - now) * 1000, 25),
-      LINK_WATCHDOG_MAX_SLEEP_MS,
-    );
-    return scheduleWatchdog(state, delayMs, actions);
+    return stepActiveLinkWatchdog(state, now);
   }
 
   return { state, intents: [], actions: [] };
+}
+
+function stepActiveLinkWatchdog(
+  state: LinkWatchdogState,
+  now: number,
+): LinkWatchdogStepResult {
+  const lastInbound = Math.max(state.lastInbound, state.activatedAt ?? 0);
+
+  if (state.status === LinkStatus.STALE) {
+    return {
+      state: {
+        ...state,
+        status: LinkStatus.CLOSED,
+        teardownReason: LinkTeardownReason.TIMEOUT,
+      },
+      intents: [],
+      actions: [
+        { kind: "send-teardown" },
+        { kind: "close", reason: LinkTeardownReason.TIMEOUT },
+      ],
+    };
+  }
+
+  const actions: LinkWatchdogAction[] = [];
+
+  if (now >= lastInbound + state.keepalive) {
+    if (state.initiator && now >= state.lastKeepalive + state.keepalive) {
+      actions.push({ kind: "send-keepalive" });
+    }
+
+    if (now >= lastInbound + state.staleTime) {
+      const delayMs = Math.max(
+        (state.rtt ?? 0.025) * LINK_KEEPALIVE_TIMEOUT_FACTOR * 1000 +
+          LINK_STALE_GRACE * 1000,
+        25,
+      );
+      return scheduleWatchdog({ ...state, status: LinkStatus.STALE }, delayMs, [
+        { kind: "mark-stale" },
+        ...actions,
+      ]);
+    }
+
+    return scheduleWatchdog(
+      state,
+      Math.min(state.keepalive * 1000, LINK_WATCHDOG_MAX_SLEEP_MS),
+      actions,
+    );
+  }
+
+  const delayMs = Math.min(
+    Math.max((lastInbound + state.keepalive - now) * 1000, 25),
+    LINK_WATCHDOG_MAX_SLEEP_MS,
+  );
+  return scheduleWatchdog(state, delayMs, actions);
 }
 
 function scheduleWatchdog(

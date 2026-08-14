@@ -178,6 +178,16 @@ function CodeEditorWidget({
   );
 }
 
+function fireWidgetEvent(
+  onEvent:
+    ((nodeId: string, event: string, value?: unknown) => void) | undefined,
+  node: WidgetNode,
+  value?: unknown,
+): void {
+  const event = node.props?.event;
+  if (typeof event === "string") onEvent?.(node.id, event, value);
+}
+
 function WidgetNodeView({
   node,
   onEvent,
@@ -211,12 +221,7 @@ function WidgetNodeView({
       <Pressable
         testID={n.id}
         style={[styles.button, style]}
-        onPress={() => {
-          const event = n.props?.event;
-          if (typeof event === "string") {
-            onEvent?.(n.id, event);
-          }
-        }}
+        onPress={() => fireWidgetEvent(onEvent, n)}
       >
         <Text style={styles.buttonLabel}>
           {String(n.props?.label ?? "Button")}
@@ -229,24 +234,14 @@ function WidgetNodeView({
         style={[styles.input, style]}
         defaultValue={String(n.props?.value ?? "")}
         placeholder={String(n.props?.placeholder ?? "")}
-        onChangeText={(value) => {
-          const event = n.props?.event;
-          if (typeof event === "string") {
-            onEvent?.(n.id, event, value);
-          }
-        }}
+        onChangeText={(value) => fireWidgetEvent(onEvent, n, value)}
       />
     ),
     switch: (n) => (
       <Switch
         testID={n.id}
         value={Boolean(n.props?.value)}
-        onValueChange={(value) => {
-          const event = n.props?.event;
-          if (typeof event === "string") {
-            onEvent?.(n.id, event, value);
-          }
-        }}
+        onValueChange={(value) => fireWidgetEvent(onEvent, n, value)}
       />
     ),
     scroll: (n) => <ScrollWidget node={n} style={style} {...childProps} />,
@@ -257,67 +252,109 @@ function WidgetNodeView({
         Progress {String(n.props?.value ?? 0)}%
       </Text>
     ),
-    list: (n) => (
-      <View testID={n.id} style={style}>
-        {n.children?.map((child) => (
-          <WidgetNodeView key={child.id} node={child} {...childProps} />
-        ))}
-        {(Array.isArray(n.props?.items) ? n.props.items : []).map(
-          (item, index) => (
-            <Text key={`${n.id}-${index}`} style={styles.muted}>
-              {typeof item === "string" ? item : JSON.stringify(item)}
-            </Text>
-          ),
-        )}
-      </View>
+    list: (n) => <ListWidget node={n} style={style} {...childProps} />,
+    image: (n) => (
+      <ImageWidget
+        node={n}
+        style={style}
+        svg={assets[String(n.props?.asset ?? "")]}
+      />
     ),
-    image: (n) => {
-      const assetName = String(n.props?.asset ?? "");
-      const svg = assets[assetName];
-      const alt = typeof n.props?.alt === "string" ? n.props.alt : assetName;
-      if (svg !== undefined) {
-        const width = typeof n.style?.width === "number" ? n.style.width : 40;
-        const height =
-          typeof n.style?.height === "number" ? n.style.height : 40;
-        return (
-          <Image
-            testID={n.id}
-            accessibilityLabel={alt}
-            resizeMode="contain"
-            // Pre-encode into a bare `data:image/svg+xml,` URI. react-native-web only
-            // re-encodes URIs carrying its `;utf8,` marker, and that path truncates
-            // multi-line SVGs (its regex stops at the first newline), so we avoid it.
-            source={{ uri: `data:image/svg+xml,${encodeURIComponent(svg)}` }}
-            style={[{ width, height }, style]}
-          />
-        );
-      }
-      // No asset supplied for this name: keep the readable placeholder the golden tests expect.
-      return (
-        <Text testID={n.id} style={[styles.text, style]}>
-          image:{assetName}
-        </Text>
-      );
-    },
     "code-editor": (n) => (
       <CodeEditorWidget node={n} style={style} {...childProps} />
     ),
-    "qr-code": (n) => (
-      <View testID={n.id} style={style}>
-        <Text selectable style={styles.muted}>
-          {String(n.props?.value ?? "")}
-        </Text>
-        {typeof n.props?.caption === "string" ? (
-          <Text style={styles.muted}>{n.props.caption}</Text>
-        ) : null}
-      </View>
-    ),
+    "qr-code": (n) => <QrCodeWidget node={n} style={style} />,
     "camera-preview": (n) => <PreviewSurface node={n} style={style} />,
     "audio-meter": (n) => <PreviewSurface node={n} style={style} />,
     waveform: (n) => <PreviewSurface node={n} style={style} />,
     "map-preview": (n) => <PreviewSurface node={n} style={style} />,
     "remote-video": (n) => <PreviewSurface node={n} style={style} />,
   }) as ReactElement;
+}
+
+function ListWidget({
+  node,
+  style,
+  onEvent,
+  readDocument,
+}: {
+  readonly node: WidgetNode;
+  readonly style: ReturnType<typeof widgetStyle>;
+  readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
+  readonly readDocument?: (documentId: string) => Promise<string>;
+}) {
+  const childProps = {
+    ...(onEvent === undefined ? {} : { onEvent }),
+    ...(readDocument === undefined ? {} : { readDocument }),
+  };
+  return (
+    <View testID={node.id} style={style}>
+      {node.children?.map((child) => (
+        <WidgetNodeView key={child.id} node={child} {...childProps} />
+      ))}
+      {(Array.isArray(node.props?.items) ? node.props.items : []).map(
+        (item, index) => (
+          <Text key={`${node.id}-${index}`} style={styles.muted}>
+            {typeof item === "string" ? item : JSON.stringify(item)}
+          </Text>
+        ),
+      )}
+    </View>
+  );
+}
+
+function ImageWidget({
+  node,
+  style,
+  svg,
+}: {
+  readonly node: WidgetNode;
+  readonly style: ReturnType<typeof widgetStyle>;
+  readonly svg: string | undefined;
+}) {
+  const assetName = String(node.props?.asset ?? "");
+  const alt = typeof node.props?.alt === "string" ? node.props.alt : assetName;
+  if (svg !== undefined) {
+    const width = typeof node.style?.width === "number" ? node.style.width : 40;
+    const height =
+      typeof node.style?.height === "number" ? node.style.height : 40;
+    return (
+      <Image
+        testID={node.id}
+        accessibilityLabel={alt}
+        resizeMode="contain"
+        // Pre-encode into a bare `data:image/svg+xml,` URI. react-native-web only
+        // re-encodes URIs carrying its `;utf8,` marker, and that path truncates
+        // multi-line SVGs (its regex stops at the first newline), so we avoid it.
+        source={{ uri: `data:image/svg+xml,${encodeURIComponent(svg)}` }}
+        style={[{ width, height }, style]}
+      />
+    );
+  }
+  return (
+    <Text testID={node.id} style={[styles.text, style]}>
+      image:{assetName}
+    </Text>
+  );
+}
+
+function QrCodeWidget({
+  node,
+  style,
+}: {
+  readonly node: WidgetNode;
+  readonly style: ReturnType<typeof widgetStyle>;
+}) {
+  return (
+    <View testID={node.id} style={style}>
+      <Text selectable style={styles.muted}>
+        {String(node.props?.value ?? "")}
+      </Text>
+      {typeof node.props?.caption === "string" ? (
+        <Text style={styles.muted}>{node.props.caption}</Text>
+      ) : null}
+    </View>
+  );
 }
 function PreviewSurface({
   node,
