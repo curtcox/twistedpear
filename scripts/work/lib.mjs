@@ -10,6 +10,7 @@ import {
   isRegisterTable,
   parseTables,
 } from "./table.mjs";
+import { effortOf, ratchetFileCounts } from "./effort.mjs";
 
 /**
  * Work classes in priority order. The order of this array *is* the policy:
@@ -74,6 +75,8 @@ export const HISTORY_FILE = "work/history.jsonl";
  *   row; cannot be closed or retyped by hand
  * @property {Blocker[]} blockers
  * @property {number} unblocks
+ * @property {number} [effort] remaining files for a ratchet-imported item,
+ *   otherwise 1. Smaller ranks first within a class.
  */
 
 /**
@@ -233,6 +236,7 @@ export function derivedGateItems(root = repoRoot(), now = new Date()) {
       derived: true,
       blockers: [],
       unblocks: 0,
+      effort: 1,
     }));
 }
 
@@ -249,23 +253,26 @@ export function loadWork(root = repoRoot()) {
   const metadata = loadMetadata(root);
   const resources = loadResources(root).resources ?? {};
   const titles = loadTitles(root, rows);
+  const ratchetFiles = ratchetFileCounts(root);
 
   /** @type {WorkItem[]} */
   const items = [];
   for (const row of rows) {
     const meta = metadata.items[row.id];
+    const verify = meta?.verify ?? "";
     items.push({
       ...row,
       title: titles.get(row.id) ?? row.id,
       type: meta?.type ?? "",
       requires: meta?.requires ?? [],
-      verify: meta?.verify ?? "",
+      verify,
       added: meta?.added ?? "",
       completed: meta?.completed,
       evidence: meta?.evidence,
       notes: meta?.notes,
       blockers: [],
       unblocks: 0,
+      effort: effortOf({ verify }, ratchetFiles),
     });
   }
 
@@ -388,8 +395,9 @@ function assignUnblockCounts(items, index) {
 }
 
 /**
- * Deterministic ordering: class, then unblock count, then age, then ID.
- * Every step is total, so `work:next` never depends on file order.
+ * Deterministic ordering: class, then unblock count, then effort (smaller
+ * first), then age, then ID. Every step is total, so `work:next` never depends
+ * on file order.
  * @param {WorkItem} a
  * @param {WorkItem} b
  * @returns {number}
@@ -399,6 +407,9 @@ export function compareItems(a, b) {
   const rankB = TYPE_RANK.get(b.type) ?? TYPES.length;
   if (rankA !== rankB) return rankA - rankB;
   if (a.unblocks !== b.unblocks) return b.unblocks - a.unblocks;
+  const effortA = a.effort ?? 1;
+  const effortB = b.effort ?? 1;
+  if (effortA !== effortB) return effortA - effortB;
   if (a.added !== b.added) return a.added < b.added ? -1 : 1;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
