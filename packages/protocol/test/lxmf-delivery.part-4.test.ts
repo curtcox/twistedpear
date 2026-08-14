@@ -372,7 +372,9 @@ describe("protocol lxmf delivery", () => {
       }),
     ).toBe("ok");
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits propagation sync-prep-plan actions only from propagation-sync-prep/plan-gate", () => {
     const ok = stepLxmfPropagationSyncPrepPlanWithActions(
       initialLxmfPropagationSyncPrepPlanState(),

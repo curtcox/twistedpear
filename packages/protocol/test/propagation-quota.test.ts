@@ -221,7 +221,9 @@ describe("protocol propagation quota", () => {
       false,
     );
   });
+});
 
+describe("protocol propagation quota (continued)", () => {
   it("emits message-too-large / fit and oldest-key use/miss only from machine actions", () => {
     const tooLarge = stepPropagationMessageTooLargeWithActions(
       initialPropagationMessageTooLargeState(),
@@ -267,7 +269,9 @@ describe("protocol propagation quota", () => {
     expect(shouldUseOldestPropagationKey(miss.actions)).toBe(false);
     expect(oldestPropagationKeyFromActions(miss.actions)).toBeNull();
   });
+});
 
+describe("protocol propagation quota (continued)", () => {
   it("plans propagation restore gates", () => {
     expect(
       planPropagationRestore({
@@ -379,7 +383,11 @@ describe("protocol propagation quota", () => {
     expect(shouldCommitPropagationStoreEntryNow(commitSkip.actions)).toBe(
       false,
     );
+  });
+});
 
+describe("protocol propagation quota (continued)", () => {
+  it("applies propagation store commits and related gates", () => {
     const storeApply = stepApplyPropagationStoreCommitWithActions(
       initialApplyPropagationStoreCommitState(),
       {
@@ -478,7 +486,9 @@ describe("protocol propagation quota", () => {
       true,
     );
   });
+});
 
+describe("protocol propagation quota (continued)", () => {
   it("emits restore reject / duplicate / reject-hash / accept actions from restore-gate", () => {
     const tooLargePlan = stepPropagationRestorePlanWithActions(
       initialPropagationRestorePlanState(),
@@ -639,7 +649,9 @@ describe("protocol propagation quota", () => {
       }).actions,
     ).toEqual([]);
   });
+});
 
+describe("protocol propagation quota (continued)", () => {
   it("is deterministic for store receive events", () => {
     const state = initialPropagationStoreState();
     const event = {

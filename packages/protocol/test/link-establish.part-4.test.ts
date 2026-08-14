@@ -408,7 +408,9 @@ describe("protocol link establish", () => {
     );
     expect(state.status).toBe(LinkStatus.CLOSED);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("plans register list, RTT, plaintext, resend, and app-request transmit", () => {
     expect(planLinkRegisterList(true)).toBe("pending");
     expect(planLinkRegisterList(false)).toBe("active");
@@ -496,7 +498,9 @@ describe("protocol link establish", () => {
     expect(planLinkAppRequestTransmitOutcome(true)).toBe("keep-pending");
     expect(planLinkAppRequestTransmitOutcome(false)).toBe("unregister");
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("emits register / membership / app-request actions from gate steps", () => {
     const pendingPlan = stepLinkRegisterListPlanWithActions(
       initialLinkRegisterListPlanState(),

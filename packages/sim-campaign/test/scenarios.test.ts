@@ -155,7 +155,9 @@ describe("production abuse scenario registry", () => {
       expect(shippingReport.canaryFindings, capability).toEqual([]);
     }
   });
+});
 
+describe("production abuse scenario registry (continued)", () => {
   it("records, reruns, and shrinks deliberate production projection breaks", async () => {
     const [identity] = coverageFrame({
       capabilities: ["identity"],

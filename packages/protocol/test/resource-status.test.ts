@@ -239,7 +239,9 @@ describe("protocol resource status", () => {
       }),
     ).toBe("ignore");
   });
+});
 
+describe("protocol resource status (continued)", () => {
   it("emits resource assemble/proof-accept actions from WithActions steps", () => {
     const completePlan = stepResourceAssembleOutcomePlanWithActions(
       initialResourceAssembleOutcomePlanState(),
@@ -376,7 +378,9 @@ describe("protocol resource status", () => {
     );
     expect(shouldIgnoreResourceProofAccept(ignore.actions)).toBe(true);
   });
+});
 
+describe("protocol resource status (continued)", () => {
   it("emits transfer/status gate actions from WithActions steps", () => {
     const continueOk = stepResourceContinueTransferWithActions(
       initialResourceContinueTransferState(),

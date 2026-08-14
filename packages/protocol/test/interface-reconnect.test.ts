@@ -201,7 +201,9 @@ describe("protocol interface reconnect", () => {
     expect(shouldEnqueueDecodedPacketNow(skip.actions)).toBe(false);
     expect(shouldSkipDecodedPacketEnqueue(skip.actions)).toBe(true);
   });
+});
 
+describe("protocol interface reconnect (continued)", () => {
   it("delivers queued packets to waiting iterators", () => {
     expect(shouldDeliverQueuedPacket(true)).toBe(true);
     expect(shouldDeliverQueuedPacket(false)).toBe(false);

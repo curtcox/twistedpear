@@ -184,7 +184,9 @@ describe("protocol link identify", () => {
     expect(shouldCommitLinkRemoteIdentityNow(commitSkip.actions)).toBe(false);
     expect(shouldSkipCommitLinkRemoteIdentity(commitSkip.actions)).toBe(true);
   });
+});
 
+describe("protocol link identify (continued)", () => {
   it("emits reject / commit actions from identify/received", () => {
     const initiator = stepLinkIdentifyWithActions(
       initialLinkIdentifyState({ initiator: true }),
@@ -347,7 +349,9 @@ describe("protocol link identify", () => {
     expect(shouldUseSplitLinkIdentifyPayload(bad.actions)).toBe(false);
     expect(linkIdentifyPayloadFieldsFromActions(bad.actions)).toBeNull();
   });
+});
 
+describe("protocol link identify (continued)", () => {
   it("is deterministic for identify pack / split gates", () => {
     const publicKey = new Uint8Array(64).fill(1);
     const signature = new Uint8Array(64).fill(2);

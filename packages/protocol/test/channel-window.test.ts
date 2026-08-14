@@ -274,7 +274,9 @@ describe("protocol channel window", () => {
     expect(shouldAllowChannelSend(empty.actions)).toBe(false);
     expect(shouldDenyChannelSend(empty.actions)).toBe(false);
   });
+});
 
+describe("protocol channel window (continued)", () => {
   it("plans channel send ready / too-big / proceed", () => {
     expect(
       planChannelSend({
@@ -438,7 +440,9 @@ describe("protocol channel window", () => {
     expect(shouldAcceptChannelOutletTransmit(empty.actions)).toBe(false);
     expect(shouldRejectChannelOutletTransmit(empty.actions)).toBe(false);
   });
+});
 
+describe("protocol channel window (continued)", () => {
   it("counts TX outstanding from packet presence and delivery", () => {
     expect(
       countChannelTxOutstanding([

@@ -294,7 +294,9 @@ describe("transport ingress", () => {
     expect(shouldRemoveTransportMember(skip.actions)).toBe(false);
     expect(transportMemberUnregisterIndex(skip.actions)).toBeNull();
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits transport ingress dispatch actions from the gate step", () => {
     const announcePlan = stepTransportIngressDispatchPlanWithActions(
       initialTransportIngressDispatchPlanState(),
@@ -452,7 +454,9 @@ describe("transport ingress", () => {
       ).actions,
     ).toEqual(announcePlan.actions);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits link-data ingress target actions from the gate step", () => {
     const activePlan = stepLinkDataIngressTargetPlanWithActions(
       initialLinkDataIngressTargetPlanState(),
@@ -542,7 +546,9 @@ describe("transport ingress", () => {
       ).actions,
     ).toEqual(activePlan.actions);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits reverse-relay outcome actions from the gate step", () => {
     const deleteExpiredPlan = stepReverseRelayOutcomePlanWithActions(
       initialReverseRelayOutcomePlanState(),
@@ -702,7 +708,9 @@ describe("transport ingress", () => {
       ).actions,
     ).toEqual(nowPlan.actions);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits local plain-data delivery actions from the gate step", () => {
     const dispatchPlan = stepLocalPlainDataDeliveryPlanWithActions(
       initialLocalPlainDataDeliveryPlanState(),
@@ -811,7 +819,9 @@ describe("transport ingress", () => {
       ).actions,
     ).toEqual(dispatchPlan.actions);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits proof ingress actions from the gate step", () => {
     const lrproofPlan = stepProofIngressPlanWithActions(
       initialProofIngressPlanState(),
@@ -881,7 +891,9 @@ describe("transport ingress", () => {
       }).actions,
     ).toEqual(lrproofPlan.actions);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits transport relay / table-record / link-relay edge actions from WithActions steps", () => {
     const allowRelay = stepRelayTransportPacketAllowWithActions(
       initialRelayTransportPacketAllowState(),

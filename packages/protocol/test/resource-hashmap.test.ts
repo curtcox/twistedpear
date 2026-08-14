@@ -301,7 +301,9 @@ describe("protocol resource hashmap", () => {
       ...last,
     ]);
   });
+});
 
+describe("protocol resource hashmap (continued)", () => {
   it("plans slot writes and assembles hashmap bytes", () => {
     const assembleStepped = stepAssembleResourceHashmapBytesWithActions(
       initialAssembleResourceHashmapBytesState(),
@@ -460,7 +462,9 @@ describe("protocol resource hashmap", () => {
     expect(plan.shouldRequestNext).toBe(true);
     expect(plan.shouldAssemble).toBe(false);
   });
+});
 
+describe("protocol resource hashmap (continued)", () => {
   it("plans sender fulfill: send unsent matches and mark awaiting-proof", () => {
     const mapA = new Uint8Array([1, 2, 3, 4]);
     const mapB = new Uint8Array([5, 6, 7, 8]);
@@ -512,7 +516,9 @@ describe("protocol resource hashmap", () => {
     expect(plan.nextReceiverMinConsecutiveHeight).toBe(0);
     expect(plan.status).toBe("transferring");
   });
+});
 
+describe("protocol resource hashmap (continued)", () => {
   it("plans hashmap-update accept gates", () => {
     expect(
       planResourceHashmapUpdateAccept({
@@ -692,7 +698,9 @@ describe("protocol resource hashmap", () => {
     expect(shouldApplyResourceReceivePartSlotNow(skipSlot.actions)).toBe(false);
     expect(shouldSkipApplyResourceReceivePartSlot(skipSlot.actions)).toBe(true);
   });
+});
 
+describe("protocol resource hashmap (continued)", () => {
   it("emits fulfill / receive / part-request / hashmap-update-accept actions", () => {
     const mapA = new Uint8Array([1, 2, 3, 4]);
     const mapB = new Uint8Array([5, 6, 7, 8]);
@@ -899,7 +907,9 @@ describe("protocol resource hashmap", () => {
       ).actions,
     ).toEqual([]);
   });
+});
 
+describe("protocol resource hashmap (continued)", () => {
   it("is deterministic for resource hashmap gate events", () => {
     const mapA = new Uint8Array([1, 2, 3, 4]);
     const event = {
@@ -1048,7 +1058,9 @@ describe("protocol resource hashmap", () => {
       resourceHashmapUpdatePacketFieldsFromActions(splitRejected.actions),
     ).toBeNull();
   });
+});
 
+describe("protocol resource hashmap (continued)", () => {
   it("emits part-request parse fields or reject from WithActions steps", () => {
     const resourceHash = new Uint8Array(32).fill(1);
     const mapHash = new Uint8Array([0xaa, 0xbb, 0xcc, 0xdd]);

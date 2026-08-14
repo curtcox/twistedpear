@@ -116,11 +116,11 @@ describe("workspace service", () => {
   });
 });
 
-describe("ai service", () => {
-  const request: AiChatRequest = {
-    messages: [{ role: "user", content: "hi" }],
-  };
+const request: AiChatRequest = {
+  messages: [{ role: "user", content: "hi" }],
+};
 
+describe("ai service", () => {
   it("clamps token and temperature budgets", async () => {
     let seen: AiChatRequest | null = null;
     const service = new AiService({
@@ -262,7 +262,9 @@ describe("ai service", () => {
     await iterator.return?.();
     expect(cancelled).toBe(true);
   });
+});
 
+describe("ai service (continued)", () => {
   it("embeds bounded inputs and ranks cosine matches", async () => {
     const service = new AiService({
       chat: async () => ({

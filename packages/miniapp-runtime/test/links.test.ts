@@ -127,7 +127,9 @@ describe("link capabilities and service", () => {
       observatory.probePolicy("other-app", { id: "opaque-1" }),
     ).resolves.toBe("denied");
   });
+});
 
+describe("link capabilities and service (continued)", () => {
   it("exchanges coarse readiness and a bounded probe over paired host routes", async () => {
     const aListeners = new Set<(payload: Uint8Array) => void>();
     const bListeners = new Set<(payload: Uint8Array) => void>();

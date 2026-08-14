@@ -140,76 +140,70 @@ async function waitForAsync(
   }
 }
 
-describe("peer test agent", () => {
-  const cleanups: Array<() => Promise<void> | void> = [];
-
-  afterEach(async () => {
-    for (const cleanup of cleanups.reverse()) {
-      await cleanup();
-    }
-    cleanups.length = 0;
-  });
-
-  /**
-   * Announce ingress is rate limited to one per five seconds per destination
-   * (`DEFAULT_ANNOUNCE_RATE_TARGET`), so a second announce fired immediately
-   * after mount is dropped. Agents that mount after a peer's first announce
-   * therefore converge on the periodic re-announce, which is exactly what the
-   * real environment relies on when peers start at different times.
-   */
-  const ANNOUNCE_INTERVAL_MS = 6_000;
-  const CONVERGE_TIMEOUT_MS = 20_000;
-
-  async function twoAgents(
-    control: ControlServer,
-  ): Promise<[TestAgentSession, TestAgentSession]> {
-    const left = Reticulum.create({ provider, runtime });
-    const right = Reticulum.create({ provider, runtime });
-    left.start();
-    right.start();
-    const [leftPipe, rightPipe] = PipeInterface.pair(
-      provider,
-      { name: "left" },
-      { name: "right" },
-    );
-    left.registerInterface(leftPipe);
-    right.registerInterface(rightPipe);
-
-    const leftAgent = await mountTestAgent({
-      reticulum: left,
-      provider,
-      identity: new Identity(provider),
-      label: "left",
-      platform: "test",
-      controlHost: "127.0.0.1",
-      controlPort: control.port,
-      announceIntervalMs: ANNOUNCE_INTERVAL_MS,
-      handleCommand: async (request) => ({
-        echoedCommand: request.cmd,
-        value: request.value,
-      }),
-    });
-    const rightAgent = await mountTestAgent({
-      reticulum: right,
-      provider,
-      identity: new Identity(provider),
-      label: "right",
-      platform: "test",
-      controlHost: "127.0.0.1",
-      controlPort: control.port,
-      announceIntervalMs: ANNOUNCE_INTERVAL_MS,
-    });
-
-    cleanups.push(async () => {
-      await leftAgent.stop();
-      await rightAgent.stop();
-      left.stop();
-      right.stop();
-    });
-
-    return [leftAgent, rightAgent];
+const cleanups: Array<() => Promise<void> | void> = [];
+afterEach(async () => {
+  for (const cleanup of cleanups.reverse()) {
+    await cleanup();
   }
+  cleanups.length = 0;
+});
+/**
+ * Announce ingress is rate limited to one per five seconds per destination
+ * (`DEFAULT_ANNOUNCE_RATE_TARGET`), so a second announce fired immediately
+ * after mount is dropped. Agents that mount after a peer's first announce
+ * therefore converge on the periodic re-announce, which is exactly what the
+ * real environment relies on when peers start at different times.
+ */
+const ANNOUNCE_INTERVAL_MS = 6_000;
+const CONVERGE_TIMEOUT_MS = 20_000;
+async function twoAgents(
+  control: ControlServer,
+): Promise<[TestAgentSession, TestAgentSession]> {
+  const left = Reticulum.create({ provider, runtime });
+  const right = Reticulum.create({ provider, runtime });
+  left.start();
+  right.start();
+  const [leftPipe, rightPipe] = PipeInterface.pair(
+    provider,
+    { name: "left" },
+    { name: "right" },
+  );
+  left.registerInterface(leftPipe);
+  right.registerInterface(rightPipe);
+  const leftAgent = await mountTestAgent({
+    reticulum: left,
+    provider,
+    identity: new Identity(provider),
+    label: "left",
+    platform: "test",
+    controlHost: "127.0.0.1",
+    controlPort: control.port,
+    announceIntervalMs: ANNOUNCE_INTERVAL_MS,
+    handleCommand: async (request) => ({
+      echoedCommand: request.cmd,
+      value: request.value,
+    }),
+  });
+  const rightAgent = await mountTestAgent({
+    reticulum: right,
+    provider,
+    identity: new Identity(provider),
+    label: "right",
+    platform: "test",
+    controlHost: "127.0.0.1",
+    controlPort: control.port,
+    announceIntervalMs: ANNOUNCE_INTERVAL_MS,
+  });
+  cleanups.push(async () => {
+    await leftAgent.stop();
+    await rightAgent.stop();
+    left.stop();
+    right.stop();
+  });
+  return [leftAgent, rightAgent];
+}
 
+describe("peer test agent", () => {
   it(
     "discovers the peer announce and round-trips a probe",
     async () => {
@@ -306,7 +300,9 @@ describe("peer test agent", () => {
     },
     CONVERGE_TIMEOUT_MS + 10_000,
   );
+});
 
+describe("peer test agent (continued)", () => {
   it(
     "exchanges media readiness and answers an active probe",
     async () => {
@@ -383,7 +379,9 @@ describe("peer test agent", () => {
     },
     CONVERGE_TIMEOUT_MS * 3,
   );
+});
 
+describe("peer test agent (continued)", () => {
   it(
     "delivers a verified session invite from the network into host chrome",
     async () => {

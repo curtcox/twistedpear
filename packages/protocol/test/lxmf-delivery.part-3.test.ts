@@ -422,7 +422,9 @@ describe("protocol lxmf delivery", () => {
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("plans propagation local ingress", () => {
     expect(
       planLxmfPropagationLocalIngress({
@@ -549,7 +551,9 @@ describe("protocol lxmf delivery", () => {
       ),
     ).toBe(true);
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits propagation local-ingress-plan actions only from propagation-local-ingress/plan-gate", () => {
     const deliver = stepLxmfPropagationLocalIngressPlanWithActions(
       initialLxmfPropagationLocalIngressPlanState(),
@@ -713,7 +717,9 @@ describe("protocol lxmf delivery", () => {
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("plans propagation link readiness", () => {
     expect(
       planLxmfPropagationLinkReady({
@@ -821,7 +827,9 @@ describe("protocol lxmf delivery", () => {
       ).actions,
     ).toEqual([]);
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits propagation link-ready gate actions from stepLxmfPropagationLinkReadyWithActions", () => {
     const reuse = stepLxmfPropagationLinkReadyWithActions(
       initialLxmfPropagationLinkReadyState(),
@@ -947,7 +955,9 @@ describe("protocol lxmf delivery", () => {
       ),
     ).toBe(true);
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits pack-timestamp-plan actions only from pack-timestamp/plan-gate", () => {
     const useTimestamp = stepLxmfPackTimestampPlanWithActions(
       initialLxmfPackTimestampPlanState(),

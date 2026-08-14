@@ -146,7 +146,9 @@ describe("protocol link proof materials", () => {
     expect(mtuBytes).not.toBeNull();
     expect([...mtuBytes!]).toEqual([...encodeLinkMtuBytes(0x123456)]);
   });
+});
 
+describe("protocol link proof materials (continued)", () => {
   it("emits mode / MTU decode and proof-payload classify from WithActions steps", () => {
     const signalling = encodeLinkSignallingBytes(500, 0x01);
     const publicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(2);
@@ -278,7 +280,9 @@ describe("protocol link proof materials", () => {
     );
     expect(shouldRejectClassifyLinkProofPayload(rejected.actions)).toBe(true);
   });
+});
 
+describe("protocol link proof materials (continued)", () => {
   it("packs and splits link-request payloads", () => {
     const publicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(1);
     const signaturePublicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(

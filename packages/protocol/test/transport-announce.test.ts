@@ -77,11 +77,11 @@ import {
   TRANSPORT_TRANSPORT,
 } from "../src/transport-framing.js";
 
-describe("protocol transport announce planning", () => {
-  const destinationHash = new Uint8Array(16).fill(1);
-  const data = new Uint8Array([9, 8]);
-  const transportId = new Uint8Array(16).fill(2);
+const destinationHash = new Uint8Array(16).fill(1);
+const data = new Uint8Array([9, 8]);
+const transportId = new Uint8Array(16).fill(2);
 
+describe("protocol transport announce planning", () => {
   it("clones packet fields with new hops", () => {
     const source: PacketHeaderFields = {
       headerType: PACKET_HEADER_1,
@@ -249,7 +249,9 @@ describe("protocol transport announce planning", () => {
     expect(pathResponse?.headerType).toBe(PACKET_HEADER_2);
     expect(pathResponse?.hops).toBe(2);
   });
+});
 
+describe("protocol transport announce planning (continued)", () => {
   it("gates PATH_RESPONSE delivery on handler opt-in", () => {
     expect(
       shouldReceiveAnnouncePathResponse({
@@ -413,7 +415,9 @@ describe("protocol transport announce planning", () => {
       ),
     ).toBe(true);
   });
+});
 
+describe("protocol transport announce planning (continued)", () => {
   it("receives PATH_RESPONSE announces only when handlers opt in", () => {
     expect(
       shouldReceiveAnnouncePathResponse({

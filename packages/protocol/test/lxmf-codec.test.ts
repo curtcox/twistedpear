@@ -143,7 +143,9 @@ describe("protocol lxmf codec", () => {
       ...packPropagationEnvelope(10, [new Uint8Array([4, 5])]),
     ]);
   });
+});
 
+describe("protocol lxmf codec (continued)", () => {
   it("emits unpack fields or reject from WithActions steps", () => {
     const packedPayload = packLxmPayload(
       1.5,

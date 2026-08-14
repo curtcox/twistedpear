@@ -245,7 +245,9 @@ describe("protocol stream data framing", () => {
     expect(shouldUseStreamReadSize(empty.actions)).toBe(false);
     expect(streamReadSizeFromActions(empty.actions)).toBeNull();
   });
+});
 
+describe("protocol stream data framing (continued)", () => {
   it("defers read when buffer is empty before EOF", () => {
     expect(shouldDeferStreamRead(0, false)).toBe(true);
     expect(shouldDeferStreamRead(0, true)).toBe(false);
@@ -398,7 +400,9 @@ describe("protocol stream data framing", () => {
     expect(shouldStreamIdAssigned(unassigned.actions)).toBe(false);
     expect(shouldStreamIdUnassigned(unassigned.actions)).toBe(true);
   });
+});
 
+describe("protocol stream data framing (continued)", () => {
   it("handles stream-data messages for matching stream ids", () => {
     expect(
       shouldHandleStreamDataMessage({

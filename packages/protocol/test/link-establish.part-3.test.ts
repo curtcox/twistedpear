@@ -415,7 +415,9 @@ describe("protocol link establish", () => {
     expect(isLinkClosed(LinkStatus.ACTIVE)).toBe(false);
     expect(isLinkClosed(LinkStatus.PENDING)).toBe(false);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("plans link proof validation outcomes", () => {
     expect(
       planLinkProofValidateOutcome({
@@ -543,7 +545,9 @@ describe("protocol link establish", () => {
       }),
     ).toBe(false);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("plans app request dispatch and response gates without ad-hoc plan === reads", () => {
     expect(
       planLinkAppRequestDispatch({
@@ -655,7 +659,11 @@ describe("protocol link establish", () => {
     expect(shouldForbidLinkAppRequestDispatch(forbidDispatch.actions)).toBe(
       true,
     );
+  });
+});
 
+describe("protocol link establish (continued)", () => {
+  it("plans app request response send and ignore gates", () => {
     const sendResponsePlan = stepLinkAppRequestResponsePlanWithActions(
       initialLinkAppRequestResponsePlanState(),
       {
@@ -774,7 +782,9 @@ describe("protocol link establish", () => {
     expect(shouldSendLinkAppRequestResponseNow(sendSkip.actions)).toBe(false);
     expect(shouldSkipSendLinkAppRequestResponse(sendSkip.actions)).toBe(true);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("emits app-request inbound actions for ignore / invoke / response", () => {
     const initial = initialLinkAppRequestInboundState({ mdu: 100 });
     const ignored = stepLinkAppRequestInboundWithActions(initial, {
@@ -933,7 +943,9 @@ describe("protocol link establish", () => {
     expect(state.activatedAt).toBe(10.5);
     expect(mergeLinkRtt(0.4, 0.7)).toBe(0.7);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("emits RTT seconds and merge only from use-rtt actions", () => {
     const seconds = stepComputeLinkRttSecondsWithActions(
       initialComputeLinkRttSecondsState(),

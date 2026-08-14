@@ -208,7 +208,9 @@ describe("protocol destination name", () => {
     );
     expect(shouldRejectLengthDestinationIdentityHash(bad.actions)).toBe(true);
   });
+});
 
+describe("protocol destination name (continued)", () => {
   it("expands / materials / aspect-filter via WithActions", () => {
     const expanded = stepExpandDestinationNameWithActions(
       initialExpandDestinationNameState(),

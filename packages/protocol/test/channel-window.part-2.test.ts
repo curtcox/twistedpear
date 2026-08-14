@@ -279,7 +279,9 @@ describe("protocol channel window actions", () => {
     expect(shouldMissChannelTxEnvelopeOp(missOp.actions)).toBe(true);
     expect(channelTxEnvelopeOpPlanFromActions([])).toBeNull();
   });
+});
 
+describe("protocol channel window actions (continued)", () => {
   it("finds TX envelope index by packet id", () => {
     const a = new Uint8Array([1, 2]);
     const b = new Uint8Array([3, 4]);
@@ -337,7 +339,9 @@ describe("protocol channel window actions", () => {
     expect(shouldMissChannelTxEnvelopeIndex(empty.actions)).toBe(false);
     expect(channelTxEnvelopeIndexFromActions(empty.actions)).toBeNull();
   });
+});
 
+describe("protocol channel window actions (continued)", () => {
   it("plans packet timeout ignore / retry / give-up without ad-hoc plan.kind reads", () => {
     expect(CHANNEL_MAX_TRIES).toBe(5);
     expect(planChannelPacketTimeout({ delivered: true, tries: 1 })).toEqual({
@@ -462,7 +466,9 @@ describe("protocol channel window actions", () => {
     }).state;
     expect(state.window).toBe(3);
   });
+});
 
+describe("protocol channel window actions (continued)", () => {
   it("TX timeout step emits give-up / retry actions and shrinks window on retry", () => {
     let state = initialChannelWindowState(0.5);
     state = { ...state, window: 4, windowMax: 7 };
@@ -596,7 +602,9 @@ describe("protocol channel window actions", () => {
       intents: withActions.intents,
     });
   });
+});
 
+describe("protocol channel window actions (continued)", () => {
   it("plans receipt timeout refresh extensions without ad-hoc arm / timeout / extend checks", () => {
     const entries = [
       {

@@ -200,7 +200,9 @@ describe("protocol grant host", () => {
     if (write?.kind === "store/write")
       expect(decodeGrantRecord(write.write.value).updatedAt).toBe(42);
   });
+});
 
+describe("protocol grant host (continued)", () => {
   it("does not migrate ambiguous legacy duplicate keys", () => {
     for (const duplicate of [
       '{"appId":"wrong","appId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":[],"updatedAt":42}',

@@ -253,7 +253,9 @@ describe("PlaneStreamEgressFactory", () => {
     expect(send).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
   });
+});
 
+describe("PlaneStreamEgressFactory (continued)", () => {
   it("reserves realtime capacity at admission and releases it exactly once", async () => {
     const consume = vi.fn(async () => {});
     const release = vi.fn();
@@ -409,18 +411,18 @@ describe("PlaneStreamEgressFactory", () => {
   });
 });
 
-describe("host plane openers", () => {
-  const admission = {
-    kind: "accept" as const,
-    plane: "webrtc" as const,
-    rung: "720p30",
-    rungIndex: 0,
-    demandBps: 2_000_000,
-    admittedDemandBps: 2_000_000,
-    supplyBps: 3_000_000,
-    reason: "test",
-  };
+const admission = {
+  kind: "accept" as const,
+  plane: "webrtc" as const,
+  rung: "720p30",
+  rungIndex: 0,
+  demandBps: 2_000_000,
+  admittedDemandBps: 2_000_000,
+  supplyBps: 3_000_000,
+  reason: "test",
+};
 
+describe("host plane openers", () => {
   it("binds webrtc, pears-bulk, and reticulum through an authenticated peer-route factory", async () => {
     const send = vi.fn(async () => ({ queuedBytes: 0, droppedOldest: 0 }));
     const peerFactory = {
@@ -587,7 +589,9 @@ describe("host plane openers", () => {
       sequence: 0,
     });
   });
+});
 
+describe("host plane openers (continued)", () => {
   it("falls back from a peer-route pears-bulk miss to Hyperdrive append", async () => {
     const append = vi.fn(async () => ({ path: "/media/0.tpd2" }));
     const openers = createHostPlaneOpeners({

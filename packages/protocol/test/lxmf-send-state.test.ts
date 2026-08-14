@@ -142,7 +142,9 @@ describe("protocol LXMF send-state", () => {
     expect(shouldApplyLxmfReceiptSendState(true)).toBe(true);
     expect(shouldApplyLxmfReceiptSendState(false)).toBe(false);
   });
+});
 
+describe("protocol LXMF send-state (continued)", () => {
   it("emits receipt-send plan-gate actions from stepLxmfReceiptSendPlanWithActions", () => {
     const apply = stepLxmfReceiptSendPlanWithActions(
       initialLxmfReceiptSendPlanState(),

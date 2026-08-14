@@ -60,11 +60,11 @@ import {
   unpackPacketFlags,
 } from "../src/packet-header.js";
 
-describe("protocol packet header", () => {
-  const destinationHash = new Uint8Array(TRANSPORT_ID_BYTES).fill(1);
-  const transportId = new Uint8Array(TRANSPORT_ID_BYTES).fill(2);
-  const data = new Uint8Array([0xaa, 0xbb]);
+const destinationHash = new Uint8Array(TRANSPORT_ID_BYTES).fill(1);
+const transportId = new Uint8Array(TRANSPORT_ID_BYTES).fill(2);
+const data = new Uint8Array([0xaa, 0xbb]);
 
+describe("protocol packet header", () => {
   it("exposes named packet header enum objects", () => {
     expect(PacketTypeCode.DATA).toBe(PACKET_TYPE_DATA);
     expect(PacketHeaderTypeCode.HEADER_2).toBe(PACKET_HEADER_2);
@@ -221,7 +221,9 @@ describe("protocol packet header", () => {
     expect(part[0]).toBe(raw[0]! & 0x0f);
     expect([...part.subarray(1)]).toEqual([...raw.subarray(2)]);
   });
+});
 
+describe("protocol packet header (continued)", () => {
   it("emits encode / decode framing from WithActions steps", () => {
     const encodeStepped = stepEncodePacketRawWithActions(
       initialEncodePacketRawState(),
@@ -378,7 +380,9 @@ describe("protocol packet header", () => {
       }),
     ).toBe("ok");
   });
+});
 
+describe("protocol packet header (continued)", () => {
   it("emits fromFields-plan actions from PlanWithActions", () => {
     const ok = stepPacketFromFieldsPlanWithActions(
       initialPacketFromFieldsPlanState(),
@@ -474,7 +478,9 @@ describe("protocol packet header", () => {
       shouldRejectPacketFromFieldsPlanBadTransportId(badTransportId.actions),
     ).toBe(true);
   });
+});
 
+describe("protocol packet header (continued)", () => {
   it("emits fromFields actions from stepPacketFromFieldsWithActions", () => {
     const ok = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
       kind: "packet/from-fields-gate",

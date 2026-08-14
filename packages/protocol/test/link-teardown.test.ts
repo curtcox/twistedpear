@@ -197,7 +197,9 @@ describe("link teardown planning", () => {
     expect(shouldAcceptLinkTeardownNow(skip.actions)).toBe(false);
     expect(shouldSkipLinkTeardownAccept(skip.actions)).toBe(true);
   });
+});
 
+describe("link teardown planning (continued)", () => {
   it("emits teardown actions for local close-only / send / remote accept", () => {
     const pending = initialLinkTeardownState({
       status: LinkStatus.PENDING,

@@ -257,7 +257,9 @@ await ui.render({ root: { id: "root", type: "text", props: { value: result.match
     expect(host.snapshot().widgetTree?.root.props?.value).toBe("b");
     await host.stop();
   });
+});
 
+describe("mini-app host (continued)", () => {
   it("fails broker calls after grant revocation on the next dispatch", async () => {
     const store = new MemoryStore();
     const grants = new GrantStore(store);
@@ -388,7 +390,9 @@ await paint();
     );
     await host.stop();
   });
+});
 
+describe("mini-app host (continued)", () => {
   it("computes widget patches between renders", async () => {
     const patches: unknown[] = [];
     const store = new MemoryStore();

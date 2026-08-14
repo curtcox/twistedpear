@@ -337,7 +337,9 @@ describe("transport ingress", () => {
       ),
     ).toBe(true);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("concludes interface transmit / local match / register gates via actions", () => {
     expect(
       shouldTransmitOnInterfaceNow(

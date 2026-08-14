@@ -232,7 +232,9 @@ describe("protocol identity ciphertext", () => {
     expect(shouldUseSplitIdentityCiphertext(rejected.actions)).toBe(false);
     expect(identityCiphertextFieldsFromActions(rejected.actions)).toBeNull();
   });
+});
 
+describe("protocol identity ciphertext (continued)", () => {
   it("plans decrypt outcomes after frame / ratchet / identity fallback", () => {
     expect(
       planIdentityDecryptOutcome({
@@ -369,7 +371,9 @@ describe("protocol identity ciphertext", () => {
       "reject",
     );
   });
+});
 
+describe("protocol identity ciphertext (continued)", () => {
   it("emits identity decrypt actions from stepIdentityDecryptWithActions", () => {
     const rejectFrame = stepIdentityDecryptWithActions(
       initialIdentityDecryptState(),
@@ -487,7 +491,9 @@ describe("protocol identity ciphertext", () => {
     expect(canIdentityHash(true)).toBe(true);
     expect(canIdentityHash(false)).toBe(false);
   });
+});
 
+describe("protocol identity ciphertext (continued)", () => {
   it("emits identity recall-plan actions from PlanWithActions", () => {
     const miss = stepIdentityRecallPlanWithActions(
       initialIdentityRecallPlanState(),
@@ -642,7 +648,9 @@ describe("protocol identity ciphertext", () => {
     expect(canLoadIdentityKeyMaterial(true)).toBe(true);
     expect(canLoadIdentityKeyMaterial(false)).toBe(false);
   });
+});
 
+describe("protocol identity ciphertext (continued)", () => {
   it("emits hash / key-use / load / ratchet-decrypt actions from WithActions steps", () => {
     const hashAllow = stepIdentityHashAllowWithActions(
       initialIdentityHashAllowState(),

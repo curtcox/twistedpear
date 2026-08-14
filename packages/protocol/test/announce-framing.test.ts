@@ -88,15 +88,15 @@ import {
   PACKET_TYPE_DATA,
 } from "../src/packet-header.js";
 
-describe("protocol announce framing", () => {
-  const publicKey = new Uint8Array(ANNOUNCE_PUBLIC_KEY_SIZE).fill(1);
-  const nameHash = new Uint8Array(ANNOUNCE_NAME_HASH_SIZE).fill(2);
-  const randomHash = new Uint8Array(ANNOUNCE_RANDOM_HASH_SIZE).fill(3);
-  const ratchet = new Uint8Array(ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE).fill(4);
-  const signature = new Uint8Array(ANNOUNCE_SIGNATURE_SIZE).fill(5);
-  const appData = new Uint8Array([9, 8, 7]);
-  const destinationHash = new Uint8Array(16).fill(6);
+const publicKey = new Uint8Array(ANNOUNCE_PUBLIC_KEY_SIZE).fill(1);
+const nameHash = new Uint8Array(ANNOUNCE_NAME_HASH_SIZE).fill(2);
+const randomHash = new Uint8Array(ANNOUNCE_RANDOM_HASH_SIZE).fill(3);
+const ratchet = new Uint8Array(ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE).fill(4);
+const signature = new Uint8Array(ANNOUNCE_SIGNATURE_SIZE).fill(5);
+const appData = new Uint8Array([9, 8, 7]);
+const destinationHash = new Uint8Array(16).fill(6);
 
+describe("protocol announce framing", () => {
   it("round-trips announce payloads with ratchet and app data", () => {
     const packed = packAnnouncePayload({
       publicKey,
@@ -214,7 +214,9 @@ describe("protocol announce framing", () => {
       true,
     );
   });
+});
 
+describe("protocol announce framing (continued)", () => {
   it("plans announce build gates", () => {
     expect(
       planAnnounceBuild({
@@ -280,7 +282,9 @@ describe("protocol announce framing", () => {
       }),
     ).toBe("ok");
   });
+});
 
+describe("protocol announce framing (continued)", () => {
   it("emits announce build plan-gate actions from stepAnnounceBuildPlanWithActions", () => {
     const ok = stepAnnounceBuildPlanWithActions(
       initialAnnounceBuildPlanState(),
@@ -397,7 +401,9 @@ describe("protocol announce framing", () => {
     const b = stepAnnounceBuildPlanWithActions(state, event);
     expect(a).toEqual(b);
   });
+});
 
+describe("protocol announce framing (continued)", () => {
   it("emits announce build actions from stepAnnounceBuildWithActions", () => {
     const proceed = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
       kind: "announce/build-gate",
@@ -539,7 +545,9 @@ describe("protocol announce framing", () => {
     expect(shouldTreatAnnouncePacketType(empty.actions)).toBe(false);
     expect(shouldTreatAnnouncePacketTypeOther(empty.actions)).toBe(false);
   });
+});
 
+describe("protocol announce framing (continued)", () => {
   it("recognizes announce packet types and plans validate outcomes", () => {
     expect(isAnnouncePacketType(PACKET_TYPE_ANNOUNCE)).toBe(true);
     expect(isAnnouncePacketType(PACKET_TYPE_DATA)).toBe(false);
@@ -735,7 +743,11 @@ describe("protocol announce framing", () => {
       destinationHashMatches: true,
     });
     expect(a).toEqual(b);
+  });
+});
 
+describe("protocol announce framing (continued)", () => {
+  it("gates announce signature validation and destination-hash checks", () => {
     expect(
       shouldAttemptAnnounceSignatureValidate({
         parsedOk: true,
@@ -875,7 +887,9 @@ describe("protocol announce framing", () => {
     expect(shouldAcceptParsedAnnounceNow(skipParsed.actions)).toBe(false);
     expect(shouldSkipParsedAnnounceAccept(skipParsed.actions)).toBe(true);
   });
+});
 
+describe("protocol announce framing (continued)", () => {
   it("emits pack framing bytes from WithActions step", () => {
     const stepped = stepPackAnnouncePayloadWithActions(
       initialPackAnnouncePayloadState(),

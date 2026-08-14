@@ -375,7 +375,9 @@ describe("protocol link establish", () => {
     expect(canAcceptLinkOwnerPublicKey(true)).toBe(true);
     expect(canAcceptLinkOwnerPublicKey(false)).toBe(false);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("gates application requests on ACTIVE with RTT", () => {
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: 0.1 })).toBe(true);
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: null })).toBe(
@@ -537,7 +539,9 @@ describe("protocol link establish", () => {
     });
     expect(shouldSkipReuseActiveLink(skip.actions)).toBe(true);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("concludes link closed / packet-interface / encrypt / request / last-data via actions", () => {
     const closed = stepLinkClosedWithActions(initialLinkClosedState(), {
       kind: "link/closed-gate",
@@ -662,7 +666,9 @@ describe("protocol link establish", () => {
     );
     expect(shouldReuseLinkChannel(reuseCh.actions)).toBe(true);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("concludes handshake / prove / validate / identify / rtt / plaintext / resend via actions", () => {
     const handshake = stepPerformLinkHandshakeAllowWithActions(
       initialPerformLinkHandshakeAllowState(),
@@ -852,7 +858,9 @@ describe("protocol link establish", () => {
     );
     expect(shouldDenyResendLinkPacket(resendDeny.actions)).toBe(true);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("reuses present ACTIVE links", () => {
     expect(
       shouldReuseActiveLink({ linkPresent: true, status: LinkStatus.ACTIVE }),
@@ -864,7 +872,9 @@ describe("protocol link establish", () => {
       shouldReuseActiveLink({ linkPresent: true, status: LinkStatus.PENDING }),
     ).toBe(false);
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("plans link validate-request gates without ad-hoc plan === reads", () => {
     expect(
       planLinkValidateRequest({
@@ -1038,7 +1048,9 @@ describe("protocol link establish", () => {
       true,
     );
   });
+});
 
+describe("protocol link establish (continued)", () => {
   it("plans initiator MTU from discovery and next-hop", () => {
     expect(
       planLinkInitiatorMtu({

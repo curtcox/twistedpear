@@ -276,7 +276,9 @@ describe("protocol channel envelope", () => {
       }),
     ).toBe("ok");
   });
+});
 
+describe("protocol channel envelope (continued)", () => {
   it("plans channel envelope unpack gates", () => {
     expect(
       planChannelEnvelopeUnpack({
@@ -425,7 +427,9 @@ describe("protocol channel envelope", () => {
     expect(ok.actions).toEqual([{ kind: "ok" }]);
     expect(shouldProceedChannelEnvelopePack(ok.actions)).toBe(true);
   });
+});
 
+describe("protocol channel envelope (continued)", () => {
   it("emits channel MSGTYPE/envelope pack-unpack-plan actions from PlanWithActions", () => {
     const missingMsgtype = stepChannelMessageTypeRegistrationPlanWithActions(
       initialChannelMessageTypeRegistrationPlanState(),
@@ -551,7 +555,9 @@ describe("protocol channel envelope", () => {
     expect(shouldProceedChannelEnvelopePackPlan(packOk.actions)).toBe(true);
     expect(channelEnvelopePackPlanFromActions(packOk.actions)).toBe("ok");
   });
+});
 
+describe("protocol channel envelope (continued)", () => {
   it("plans channel message-handler membership", () => {
     expect(shouldRegisterChannelMessageHandler(false)).toBe(true);
     expect(shouldRegisterChannelMessageHandler(true)).toBe(false);

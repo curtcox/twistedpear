@@ -191,7 +191,9 @@ describe("protocol link watchdog", () => {
       { kind: "close", reason: LinkTeardownReason.TIMEOUT },
     ]);
   });
+});
 
+describe("protocol link watchdog (continued)", () => {
   it("requests keepalive when inbound is overdue on initiator", () => {
     let state = initialLinkWatchdogState({
       initiator: true,

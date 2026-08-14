@@ -217,7 +217,9 @@ describe("protocol identity ratchet record", () => {
       }),
     ).toBe("restore");
   });
+});
 
+describe("protocol identity ratchet record (continued)", () => {
   it("emits ratchet lookup-plan actions from PlanWithActions", () => {
     const cached = stepIdentityRatchetLookupPlanWithActions(
       initialIdentityRatchetLookupPlanState(),
@@ -382,7 +384,9 @@ describe("protocol identity ratchet record", () => {
       true,
     );
   });
+});
 
+describe("protocol identity ratchet record (continued)", () => {
   it("is deterministic for identical ratchet lookup events", () => {
     const event = {
       kind: "identity/ratchet-lookup-gate" as const,

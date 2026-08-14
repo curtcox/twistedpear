@@ -42,10 +42,10 @@ import {
 } from "../src/packet-proof.js";
 import { PACKET_TYPE_DATA, PACKET_TYPE_PROOF } from "../src/packet-header.js";
 
-describe("protocol packet proof framing", () => {
-  const packetHash = new Uint8Array(PACKET_FULL_HASH_SIZE).fill(1);
-  const signature = new Uint8Array(PACKET_SIGNATURE_SIZE).fill(2);
+const packetHash = new Uint8Array(PACKET_FULL_HASH_SIZE).fill(1);
+const signature = new Uint8Array(PACKET_SIGNATURE_SIZE).fill(2);
 
+describe("protocol packet proof framing", () => {
   it("packs and splits explicit proofs", () => {
     const packed = packPacketProof(packetHash, signature, true);
     expect(packed.length).toBe(PACKET_EXPLICIT_PROOF_SIZE);
@@ -196,7 +196,9 @@ describe("protocol packet proof framing", () => {
     );
     expect(shouldMatchPacketProofHash(implicitMatch.actions)).toBe(true);
   });
+});
 
+describe("protocol packet proof framing (continued)", () => {
   it("plans packet-receipt proof accept outcomes", () => {
     expect(
       planPacketReceiptProofAccept({

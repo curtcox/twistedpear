@@ -257,7 +257,9 @@ describe("Dolev-Yao adversaries", () => {
       ).rejects.toThrow(/historical accuracy miss/);
     }
   });
+});
 
+describe("Dolev-Yao adversaries (continued)", () => {
   it("searches for and shrinks a seeded canary instead of selecting it by predicate", () => {
     const found = searchFuzzCanary({ from: 1, to: 100 });
     expect(found.seed).toBeGreaterThanOrEqual(1);

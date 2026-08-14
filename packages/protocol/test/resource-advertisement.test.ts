@@ -57,21 +57,21 @@ describe("protocol msgpack string map", () => {
   });
 });
 
-describe("protocol resource advertisement", () => {
-  const fields = {
-    t: 1,
-    d: 2,
-    n: 3,
-    h: new Uint8Array(32).fill(1),
-    r: new Uint8Array(32).fill(2),
-    o: new Uint8Array(32).fill(3),
-    m: new Uint8Array([9, 8, 7]),
-    f: 0,
-    i: 0,
-    l: 1,
-    q: null as Uint8Array | null,
-  };
+const fields = {
+  t: 1,
+  d: 2,
+  n: 3,
+  h: new Uint8Array(32).fill(1),
+  r: new Uint8Array(32).fill(2),
+  o: new Uint8Array(32).fill(3),
+  m: new Uint8Array([9, 8, 7]),
+  f: 0,
+  i: 0,
+  l: 1,
+  q: null as Uint8Array | null,
+};
 
+describe("protocol resource advertisement", () => {
   it("round-trips packed fields", () => {
     const packed = packResourceAdvertisement(fields);
     const unpacked = unpackResourceAdvertisement(packed);
@@ -225,7 +225,9 @@ describe("protocol resource advertisement", () => {
       true,
     );
   });
+});
 
+describe("protocol resource advertisement (continued)", () => {
   it("plans request/response role flags", () => {
     expect(
       planResourceAdvertisementRoleFlags({

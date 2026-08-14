@@ -409,7 +409,9 @@ describe("protocol lxmf delivery", () => {
       }).actions,
     ).toEqual([]);
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits deliver / reject actions from delivery/select", () => {
     const delivered = stepLxmfDeliveryWithActions(initialLxmfDeliveryState(), {
       kind: "delivery/select",
@@ -560,7 +562,9 @@ describe("protocol lxmf delivery", () => {
       }).actions,
     ).toEqual([]);
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits LXMessage pack gate actions from stepLxMessagePackWithActions", () => {
     const ok = stepLxMessagePackWithActions(initialLxMessagePackState(), {
       kind: "lxmessage-pack/gate",
@@ -692,7 +696,9 @@ describe("protocol lxmf delivery", () => {
       ).actions,
     ).toEqual([]);
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits deliverable accept-gate actions from stepLxmfDeliverableAcceptWithActions", () => {
     const accept = stepLxmfDeliverableAcceptWithActions(
       initialLxmfDeliverableAcceptState(),
@@ -858,7 +864,9 @@ describe("protocol lxmf delivery", () => {
     );
     expect(shouldSkipInvokeLxmfDeliveryCallback(invokeSkip.actions)).toBe(true);
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("emits PROPAGATED send-plan actions only from propagated-send/plan-gate", () => {
     const ok = stepLxmfPropagatedSendPlanWithActions(
       initialLxmfPropagatedSendPlanState(),
@@ -1005,7 +1013,9 @@ describe("protocol lxmf delivery", () => {
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
+});
 
+describe("protocol lxmf delivery (continued)", () => {
   it("plans LXMF send method dispatch", () => {
     expect(
       planLxmfSendMethod({

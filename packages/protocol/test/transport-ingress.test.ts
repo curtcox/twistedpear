@@ -373,7 +373,9 @@ describe("transport ingress", () => {
       }),
     ).toBe(true);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits accept / reject actions from transport/packet-filter-gate", () => {
     const local = new Uint8Array([1, 2, 3]);
     const foreign = new Uint8Array([9, 9, 9]);
@@ -523,7 +525,9 @@ describe("transport ingress", () => {
     expect(shouldTransmitLinkRelay(true)).toBe(true);
     expect(shouldTransmitLinkRelay(false)).toBe(false);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits link relay target actions from WithActions step", () => {
     const outboundPlan = stepLinkRelayTargetPlanWithActions(
       initialLinkRelayTargetPlanState(),
@@ -657,7 +661,9 @@ describe("transport ingress", () => {
       }),
     ).toBe(true);
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("gates transport relay and reverse/link table records", () => {
     expect(
       canRelayTransportPacket({
@@ -821,7 +827,9 @@ describe("transport ingress", () => {
     );
     expect(planProofIngressKind(PacketContextCode.NONE)).toBe("receipt");
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("gates interface transmit by outgoing / exclude / attached", () => {
     expect(shouldTransmitOnInterface({ outgoing: true })).toBe(true);
     expect(shouldTransmitOnInterface({ outgoing: false })).toBe(false);
@@ -963,7 +971,9 @@ describe("transport ingress", () => {
       planLinkDataIngressTarget({ activeIndex: null, pendingIndex: null }),
     ).toBe("none");
   });
+});
 
+describe("transport ingress (continued)", () => {
   it("emits matching link-id index only from use-index/miss actions", () => {
     const a = new Uint8Array([1, 2, 3]);
     const b = new Uint8Array([4, 5, 6]);

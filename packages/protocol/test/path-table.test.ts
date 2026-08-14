@@ -306,7 +306,9 @@ describe("protocol path table", () => {
       ),
     ).toBe(true);
   });
+});
 
+describe("protocol path table (continued)", () => {
   it("expires discovery path-request entries past absolute deadline", () => {
     const timeoutAt = 100 + PATH_REQUEST_TIMEOUT_SECONDS;
     expect(
@@ -423,7 +425,9 @@ describe("protocol path table", () => {
     expect(shouldUsePathExpiry(empty.actions)).toBe(false);
     expect(pathExpiryFromActions(empty.actions)).toBeNull();
   });
+});
 
+describe("protocol path table (continued)", () => {
   it("plans wrap, direct, and flood outbound kinds", () => {
     expect(
       planPathOutbound({
@@ -489,7 +493,9 @@ describe("protocol path table", () => {
       }),
     ).toBe("flood");
   });
+});
 
+describe("protocol path table (continued)", () => {
   it("plans path-request ingress for leaf and discovery nodes", () => {
     expect(
       planPathRequestIngress({
@@ -626,7 +632,9 @@ describe("protocol path table", () => {
       }),
     ).toBe("start-discovery");
   });
+});
 
+describe("protocol path table (continued)", () => {
   it("gates local answer handler and discovery begin", () => {
     expect(canAnswerLocalPathRequest(true)).toBe(true);
     expect(canAnswerLocalPathRequest(false)).toBe(false);
@@ -789,7 +797,9 @@ describe("protocol path table", () => {
       ),
     ).toBe(true);
   });
+});
 
+describe("protocol path table (continued)", () => {
   it("concludes path add-entry via actions", () => {
     expect(
       shouldAddPathEntryNow(

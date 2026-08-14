@@ -53,12 +53,12 @@ import {
   LxmfDeliveryMethod,
 } from "../src/lxmf-delivery.js";
 
-describe("protocol lxmf wire", () => {
-  const destination = new Uint8Array(LXMF_DESTINATION_LENGTH).fill(1);
-  const source = new Uint8Array(LXMF_DESTINATION_LENGTH).fill(2);
-  const signature = new Uint8Array(LXMF_SIGNATURE_LENGTH).fill(3);
-  const payload = new Uint8Array([9, 8, 7]);
+const destination = new Uint8Array(LXMF_DESTINATION_LENGTH).fill(1);
+const source = new Uint8Array(LXMF_DESTINATION_LENGTH).fill(2);
+const signature = new Uint8Array(LXMF_SIGNATURE_LENGTH).fill(3);
+const payload = new Uint8Array([9, 8, 7]);
 
+describe("protocol lxmf wire", () => {
   it("packs and splits outer wire bytes", () => {
     const packed = packLxmfWire({
       destinationHash: destination,
@@ -208,7 +208,9 @@ describe("protocol lxmf wire", () => {
     expect(shouldUsePackLxmfWire(rejected.actions)).toBe(false);
     expect(packLxmfWireRawFromActions(rejected.actions)).toBeNull();
   });
+});
 
+describe("protocol lxmf wire (continued)", () => {
   it("emits split fields or reject from WithActions steps", () => {
     const packed = packLxmfWire({
       destinationHash: destination,

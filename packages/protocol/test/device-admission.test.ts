@@ -166,7 +166,9 @@ describe("device stream admission", () => {
     ]);
     expect(selected?.plane).toBe("reticulum");
   });
+});
 
+describe("device stream admission (continued)", () => {
   it("downshifts on sustained deficit and upshifts only after hysteresis", () => {
     const ladder = degradationLadderFor("camera");
     const previous: AdmissionDecision = {

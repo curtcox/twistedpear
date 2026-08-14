@@ -282,7 +282,9 @@ describe("destination allow policy", () => {
     expect(shouldAllowDestinationLinkRequest(deny.actions)).toBe(false);
     expect(shouldDenyDestinationLinkRequest(deny.actions)).toBe(true);
   });
+});
 
+describe("destination allow policy (continued)", () => {
   it("allows announces only for IN SINGLE destinations", () => {
     expect(
       canAnnounceDestination({ typeSingle: true, directionIn: true }),
@@ -447,7 +449,9 @@ describe("destination allow policy", () => {
     expect(shouldAllowDestinationSend(deny.actions)).toBe(false);
     expect(shouldDenyDestinationSend(deny.actions)).toBe(true);
   });
+});
 
+describe("destination allow policy (continued)", () => {
   it("allows link requests only to OUT SINGLE destinations", () => {
     expect(
       canRequestLinkDestination({ typeSingle: true, directionOut: true }),
@@ -594,7 +598,9 @@ describe("destination allow policy", () => {
       planDestinationEncrypt({ typePlain: false, identityPresent: true }),
     ).toBe("encrypt-with-identity");
   });
+});
 
+describe("destination allow policy (continued)", () => {
   it("emits destination construction/decrypt/encrypt-plan actions from PlanWithActions", () => {
     const ok = stepDestinationConstructionPlanWithActions(
       initialDestinationConstructionPlanState(),
@@ -735,7 +741,9 @@ describe("destination allow policy", () => {
       "encrypt-with-identity",
     );
   });
+});
 
+describe("destination allow policy (continued)", () => {
   it("emits destination construction actions from stepDestinationConstructionWithActions", () => {
     const ok = stepDestinationConstructionWithActions(
       initialDestinationConstructionState(),

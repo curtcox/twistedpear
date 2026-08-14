@@ -179,7 +179,9 @@ describe("DeviceManager Phase 5 streaming", () => {
     expect(manager.listShareOffers("app")).toEqual([]);
     expect(manager.activeStreams()).toEqual([]);
   });
+});
 
+describe("DeviceManager Phase 5 streaming (continued)", () => {
   it("requires device:stream and admits with degradation on thin links", async () => {
     const sent: Uint8Array[] = [];
     const manager = new DeviceManager({
@@ -342,7 +344,9 @@ describe("DeviceManager Phase 5 streaming", () => {
     expect(closed).toContain("16k-opus");
     await manager.closeStream("app", stream.handle);
   });
+});
 
+describe("DeviceManager Phase 5 streaming (continued)", () => {
   it("falls back to a CAS snapshot when no live bandwidth remains", async () => {
     const manager = new DeviceManager({
       drivers: [createSimulatedCameraDriver()],

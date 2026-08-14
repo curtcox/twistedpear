@@ -199,7 +199,9 @@ describe("protocol packet receipt timeout", () => {
     expect(fired.intents).toEqual([]);
     expect(fired.actions).toEqual([{ kind: "timeout" }]);
   });
+});
 
+describe("protocol packet receipt timeout (continued)", () => {
   it("plans outbound receipt and receipt-proof ingress outcomes", () => {
     expect(
       planOutboundReceiptOutcome({ createReceipt: false, sent: true }),
@@ -390,7 +392,9 @@ describe("protocol packet receipt timeout", () => {
     expect(shouldInvokePacketReceiptTimeoutCallback([])).toBe(false);
     expect(shouldArmPacketReceiptTimeoutTimer(0)).toBe(false);
   });
+});
 
+describe("protocol packet receipt timeout (continued)", () => {
   it("emits clear / set actions from receipt/callback-gate", () => {
     const clearPlan = stepPacketReceiptCallbackPlanWithActions(
       initialPacketReceiptCallbackPlanState(),
@@ -453,7 +457,9 @@ describe("protocol packet receipt timeout", () => {
       ).actions,
     ).toEqual(clearPlan.actions);
   });
+});
 
+describe("protocol packet receipt timeout (continued)", () => {
   it("emits outbound receipt and proof-ingress actions from gate steps", () => {
     const nonePlan = stepOutboundReceiptPlanWithActions(
       initialOutboundReceiptPlanState(),
@@ -607,7 +613,9 @@ describe("protocol packet receipt timeout", () => {
       ).actions,
     ).toEqual(removePlan.actions);
   });
+});
 
+describe("protocol packet receipt timeout (continued)", () => {
   it("StepFn wrapper omits actions while WithActions preserves them", () => {
     const armed = stepPacketReceiptTimeoutWithActions(
       initialPacketReceiptTimeoutState(),

@@ -328,7 +328,9 @@ describe("protocol path table actions", () => {
       ).actions,
     ).toEqual(startDiscoveryPlan.actions);
   });
+});
 
+describe("protocol path table actions (continued)", () => {
   it("emits discovery fulfill actions from the gate step", () => {
     const ignorePlan = stepDiscoveryPathRequestFulfillPlanWithActions(
       initialDiscoveryPathRequestFulfillPlanState(),
@@ -428,7 +430,9 @@ describe("protocol path table actions", () => {
       ).actions,
     ).toEqual(fulfillPlan.actions);
   });
+});
 
+describe("protocol path table actions (continued)", () => {
   it("emits path outbound actions from the gate step", () => {
     const wrapPlan = stepPathOutboundPlanWithActions(
       initialPathOutboundPlanState(),

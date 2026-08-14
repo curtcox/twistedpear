@@ -198,7 +198,9 @@ describe("multi-node sim scenarios", () => {
       b.table.get("dest")?.blockedUntil,
     );
   });
+});
 
+describe("multi-node sim scenarios (continued)", () => {
   it("path table updates replay identically across nodes", () => {
     const blob = blobWithEmitted(42);
     const config = {
@@ -311,7 +313,9 @@ describe("multi-node sim scenarios", () => {
     );
     expect((live.getNodeState("b") as LinkSessionState).established).toBe(true);
   });
+});
 
+describe("multi-node sim scenarios (continued)", () => {
   it("entropy-driven link handshake yields identical session keys", () => {
     const linkId = new Uint8Array([1, 2, 3, 4]);
     const config = {

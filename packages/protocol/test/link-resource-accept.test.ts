@@ -225,7 +225,9 @@ describe("protocol link resource accept", () => {
       intents: ignored.intents,
     });
   });
+});
 
+describe("protocol link resource accept (continued)", () => {
   it("resource-adv actions double-run identically", () => {
     const run = () => {
       const steps = [];
@@ -356,7 +358,9 @@ describe("protocol link resource accept", () => {
     expect(shouldRemoveLinkResourceListIndex(true)).toBe(true);
     expect(shouldRemoveLinkResourceListIndex(false)).toBe(false);
   });
+});
 
+describe("protocol link resource accept (continued)", () => {
   it("emits link resource conclude actions from WithActions step", () => {
     const outgoingPlan = stepLinkResourceConcludePlanWithActions(
       initialLinkResourceConcludePlanState(),

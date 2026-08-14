@@ -183,7 +183,9 @@ describe("protocol propagation transfer", () => {
     });
     expect(result.state.phase).toBe(PropagationTransferState.COMPLETE);
   });
+});
 
+describe("protocol propagation transfer (continued)", () => {
   it("gates peer response, empty list, and haves-ack", () => {
     expect(shouldAcceptPropagationPeerResponse(true)).toBe(true);
     expect(shouldAcceptPropagationPeerResponse(false)).toBe(false);
@@ -341,7 +343,9 @@ describe("protocol propagation transfer", () => {
       { kind: "reject-link-wait", reason: "timeout" },
     ]);
   });
+});
 
+describe("protocol propagation transfer (continued)", () => {
   it("double-runs identically", () => {
     const run = () => {
       let state = initialPropagationTransferState();
