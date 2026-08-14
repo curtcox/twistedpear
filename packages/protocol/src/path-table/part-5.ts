@@ -45,6 +45,7 @@ import type {
   PathEntryLookupPlanEvent,
   PathTableEntryView,
 } from "./part-4.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Path-entry lookup plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPathEntryLookup` /
@@ -88,19 +89,19 @@ export function stepPathEntryLookupPlanWithActions(
 export function shouldMissPathEntryLookupPlan(
   actions: ReadonlyArray<PathEntryLookupPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 export function shouldExpirePathEntryLookupPlan(
   actions: ReadonlyArray<PathEntryLookupPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "expired");
+  return hasActionOfKind(actions, "expired");
 }
 
 export function shouldHitPathEntryLookupPlan(
   actions: ReadonlyArray<PathEntryLookupPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "hit");
+  return hasActionOfKind(actions, "hit");
 }
 
 /**
@@ -146,19 +147,19 @@ export function pathEntryLookupFromActions(
 export function shouldMissPathEntryLookup(
   actions: ReadonlyArray<PathEntryLookupAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 export function shouldExpirePathEntryLookup(
   actions: ReadonlyArray<PathEntryLookupAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "expired");
+  return hasActionOfKind(actions, "expired");
 }
 
 export function shouldHitPathEntryLookup(
   actions: ReadonlyArray<PathEntryLookupAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "hit");
+  return hasActionOfKind(actions, "hit");
 }
 
 function stepPathEntryLookupInner(
@@ -255,15 +256,14 @@ export function stepAppendPathRandomBlobWithActions(
 export function shouldUseAppendPathRandomBlob(
   actions: ReadonlyArray<AppendPathRandomBlobAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract appended random-blob list from step actions; null when no `use-fields`. */
 export function appendPathRandomBlobFieldsFromActions(
   actions: ReadonlyArray<AppendPathRandomBlobAction>,
 ): readonly Uint8Array[] | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.randomBlobs : null;
+  return firstActionOfKind(actions, "use-fields")?.randomBlobs ?? null;
 }
 
 /** Lightweight path-table step for sim: tracks hops per destination key. */

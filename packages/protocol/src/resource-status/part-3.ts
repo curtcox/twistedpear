@@ -18,6 +18,7 @@ import {
 } from "../resource-watchdog.js";
 import { canValidateResourceProof } from "./part-1.js";
 import type { ResourceStatusEvent, ResourceStatusState } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Sender proof validation → complete vs ignore.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
@@ -96,13 +97,13 @@ export function resourceProofAcceptPlanFromActions(
 export function shouldCompleteResourceProofAcceptPlan(
   actions: ReadonlyArray<ResourceProofAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "complete");
+  return hasActionOfKind(actions, "complete");
 }
 
 export function shouldIgnoreResourceProofAcceptPlan(
   actions: ReadonlyArray<ResourceProofAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 /**
@@ -161,13 +162,13 @@ export function stepResourceProofAcceptWithActions(
 export function shouldCompleteResourceProofAccept(
   actions: ReadonlyArray<ResourceProofAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "complete");
+  return hasActionOfKind(actions, "complete");
 }
 
 export function shouldIgnoreResourceProofAccept(
   actions: ReadonlyArray<ResourceProofAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 function stepResourceProofAcceptInner(

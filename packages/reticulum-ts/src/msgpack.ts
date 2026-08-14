@@ -37,10 +37,145 @@ export interface MsgpackValue {
   readonly map?: MsgpackMapValue;
 }
 
+type MsgpackUnpacker = (
+  bytes: Uint8Array,
+  offset: number,
+) => [MsgpackValue, number];
+
 export function msgpackUnpack(bytes: Uint8Array): MsgpackValue {
   const [value] = msgpackUnpackAt(bytes, 0);
   return value;
 }
+
+function viewAt(bytes: Uint8Array, offset: number): DataView {
+  return new DataView(
+    bytes.buffer,
+    bytes.byteOffset + offset,
+    bytes.byteLength - offset,
+  );
+}
+
+function unpackNil(_bytes: Uint8Array, offset: number): [MsgpackValue, number] {
+  return [{ type: "nil" }, offset + 1];
+}
+
+function unpackFloat64(
+  bytes: Uint8Array,
+  offset: number,
+): [MsgpackValue, number] {
+  return [
+    { type: "float", float: viewAt(bytes, offset).getFloat64(1, false) },
+    offset + 9,
+  ];
+}
+
+function unpackBin8(bytes: Uint8Array, offset: number): [MsgpackValue, number] {
+  const length = bytes[offset + 1]!;
+  const bin = bytes.subarray(offset + 2, offset + 2 + length);
+  return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 2 + length];
+}
+
+function unpackBin16(
+  bytes: Uint8Array,
+  offset: number,
+): [MsgpackValue, number] {
+  const length = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
+  const bin = bytes.subarray(offset + 3, offset + 3 + length);
+  return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 3 + length];
+}
+
+function unpackStr8(bytes: Uint8Array, offset: number): [MsgpackValue, number] {
+  const length = bytes[offset + 1]!;
+  const stringBytes = bytes.subarray(offset + 2, offset + 2 + length);
+  return [
+    { type: "string", string: utf8DecodeViaActions(stringBytes) },
+    offset + 2 + length,
+  ];
+}
+
+function unpackUInt8(
+  bytes: Uint8Array,
+  offset: number,
+): [MsgpackValue, number] {
+  return [{ type: "int", int: bytes[offset + 1]! }, offset + 2];
+}
+
+function unpackUInt16(
+  bytes: Uint8Array,
+  offset: number,
+): [MsgpackValue, number] {
+  const value = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
+  return [{ type: "int", int: value }, offset + 3];
+}
+
+function unpackUInt32(
+  bytes: Uint8Array,
+  offset: number,
+): [MsgpackValue, number] {
+  return [
+    { type: "int", int: viewAt(bytes, offset).getUint32(1, false) },
+    offset + 5,
+  ];
+}
+
+function unpackFixArray(
+  bytes: Uint8Array,
+  offset: number,
+  tag: number,
+): [MsgpackValue, number] {
+  const count = tag & 0x0f;
+  const array: MsgpackValue[] = [];
+  let nextOffset = offset + 1;
+  for (let index = 0; index < count; index += 1) {
+    const [item, itemOffset] = msgpackUnpackAt(bytes, nextOffset);
+    array.push(item);
+    nextOffset = itemOffset;
+  }
+  return [{ type: "array", array }, nextOffset];
+}
+
+function unpackFixMap(
+  bytes: Uint8Array,
+  offset: number,
+  tag: number,
+): [MsgpackValue, number] {
+  const count = tag & 0x0f;
+  const map: Record<string, MsgpackValue> = {};
+  let nextOffset = offset + 1;
+  for (let index = 0; index < count; index += 1) {
+    const [keyValue, keyOffset] = msgpackUnpackAt(bytes, nextOffset);
+    const [entryValue, entryOffset] = msgpackUnpackAt(bytes, keyOffset);
+    if (keyValue.type === "string" && keyValue.string !== undefined) {
+      map[keyValue.string] = entryValue;
+    }
+    nextOffset = entryOffset;
+  }
+  return [{ type: "map", map }, nextOffset];
+}
+
+function unpackFixStr(
+  bytes: Uint8Array,
+  offset: number,
+  tag: number,
+): [MsgpackValue, number] {
+  const length = tag & 0x1f;
+  const stringBytes = bytes.subarray(offset + 1, offset + 1 + length);
+  return [
+    { type: "string", string: utf8DecodeViaActions(stringBytes) },
+    offset + 1 + length,
+  ];
+}
+
+const MSGPACK_EXACT: Partial<Record<number, MsgpackUnpacker>> = {
+  0xc0: unpackNil,
+  0xcb: unpackFloat64,
+  0xc4: unpackBin8,
+  0xc5: unpackBin16,
+  0xd9: unpackStr8,
+  0xcc: unpackUInt8,
+  0xcd: unpackUInt16,
+  0xce: unpackUInt32,
+};
 
 function msgpackUnpackAt(
   bytes: Uint8Array,
@@ -51,96 +186,19 @@ function msgpackUnpackAt(
     throw new Error("Unexpected end of msgpack input");
   }
 
-  if (tag === 0xc0) {
-    return [{ type: "nil" }, offset + 1];
+  const exact = MSGPACK_EXACT[tag];
+  if (exact !== undefined) {
+    return exact(bytes, offset);
   }
-
-  if (tag === 0xcb) {
-    const view = new DataView(
-      bytes.buffer,
-      bytes.byteOffset + offset,
-      bytes.byteLength - offset,
-    );
-    return [{ type: "float", float: view.getFloat64(1, false) }, offset + 9];
-  }
-
-  if (tag === 0xc4) {
-    const length = bytes[offset + 1]!;
-    const bin = bytes.subarray(offset + 2, offset + 2 + length);
-    return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 2 + length];
-  }
-
-  if (tag === 0xc5) {
-    const length = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
-    const bin = bytes.subarray(offset + 3, offset + 3 + length);
-    return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 3 + length];
-  }
-
   if ((tag & 0xf0) === 0x90) {
-    const count = tag & 0x0f;
-    const array: MsgpackValue[] = [];
-    let nextOffset = offset + 1;
-    for (let index = 0; index < count; index += 1) {
-      const [item, itemOffset] = msgpackUnpackAt(bytes, nextOffset);
-      array.push(item);
-      nextOffset = itemOffset;
-    }
-
-    return [{ type: "array", array }, nextOffset];
+    return unpackFixArray(bytes, offset, tag);
   }
-
   if ((tag & 0xf0) === 0x80) {
-    const count = tag & 0x0f;
-    const map: Record<string, MsgpackValue> = {};
-    let nextOffset = offset + 1;
-    for (let index = 0; index < count; index += 1) {
-      const [keyValue, keyOffset] = msgpackUnpackAt(bytes, nextOffset);
-      const [entryValue, entryOffset] = msgpackUnpackAt(bytes, keyOffset);
-      if (keyValue.type === "string" && keyValue.string !== undefined) {
-        map[keyValue.string] = entryValue;
-      }
-      nextOffset = entryOffset;
-    }
-
-    return [{ type: "map", map }, nextOffset];
+    return unpackFixMap(bytes, offset, tag);
   }
-
   if ((tag & 0xe0) === 0xa0) {
-    const length = tag & 0x1f;
-    const stringBytes = bytes.subarray(offset + 1, offset + 1 + length);
-    return [
-      { type: "string", string: utf8DecodeViaActions(stringBytes) },
-      offset + 1 + length,
-    ];
+    return unpackFixStr(bytes, offset, tag);
   }
-
-  if (tag === 0xd9) {
-    const length = bytes[offset + 1]!;
-    const stringBytes = bytes.subarray(offset + 2, offset + 2 + length);
-    return [
-      { type: "string", string: utf8DecodeViaActions(stringBytes) },
-      offset + 2 + length,
-    ];
-  }
-
-  if (tag === 0xcc) {
-    return [{ type: "int", int: bytes[offset + 1]! }, offset + 2];
-  }
-
-  if (tag === 0xcd) {
-    const value = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
-    return [{ type: "int", int: value }, offset + 3];
-  }
-
-  if (tag === 0xce) {
-    const view = new DataView(
-      bytes.buffer,
-      bytes.byteOffset + offset,
-      bytes.byteLength - offset,
-    );
-    return [{ type: "int", int: view.getUint32(1, false) }, offset + 5];
-  }
-
   if (tag <= 0x7f) {
     return [{ type: "int", int: tag }, offset + 1];
   }

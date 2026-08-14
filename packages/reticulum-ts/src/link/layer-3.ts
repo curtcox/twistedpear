@@ -174,6 +174,27 @@ import type { Link } from "../link.js";
 import { LinkLayer3Core } from "./layer-3-core.js";
 export class LinkLayer3 extends LinkLayer3Core {
   protected async handleIdentifyPacket(packet: Packet): Promise<void> {
+    const parsed = this.parseIdentifyPacket(packet);
+    const stepped = stepLinkIdentifyWithActions(
+      initialLinkIdentifyState({ initiator: this.initiator }),
+      {
+        kind: "identify/received",
+        plaintextPresent: parsed.plaintext !== null,
+        partsPresent: parsed.parts !== null,
+        identityPresent: parsed.identity !== null,
+        signatureValid: parsed.signatureValid,
+      },
+    );
+    this.applyLinkIdentifyActions(stepped.actions, parsed.identity);
+    await Promise.resolve();
+  }
+
+  private parseIdentifyPacket(packet: Packet): {
+    plaintext: Uint8Array | null;
+    parts: ReturnType<typeof linkIdentifyPayloadFieldsFromActions>;
+    identity: Identity | null;
+    signatureValid: boolean;
+  } {
     const acceptStepped = stepAcceptLinkIdentifyWithActions(
       initialAcceptLinkIdentifyState(),
       {
@@ -184,60 +205,18 @@ export class LinkLayer3 extends LinkLayer3Core {
     const plaintext = shouldAcceptLinkIdentifyNow(acceptStepped.actions)
       ? this.decrypt(packet.data)
       : null;
-    const splitStepped =
-      plaintext !== null
-        ? stepSplitLinkIdentifyPayloadWithActions(
-            initialSplitLinkIdentifyPayloadState(),
-            {
-              kind: "link-identify/split-gate",
-              plaintext,
-            },
-          )
-        : null;
-    const parts =
-      splitStepped === null ||
-      shouldRejectSplitLinkIdentifyPayload(splitStepped.actions) ||
-      !shouldUseSplitLinkIdentifyPayload(splitStepped.actions)
-        ? null
-        : linkIdentifyPayloadFieldsFromActions(splitStepped.actions);
+    const parts = splitIdentifyPayload(plaintext);
     const identity =
       parts !== null
         ? Identity.fromPublicKey(this.provider, parts.publicKey)
         : null;
-    const signedStepped =
-      parts !== null
-        ? stepLinkIdentifySignedMaterialWithActions(
-            initialLinkIdentifySignedMaterialState(),
-            {
-              kind: "link-identify/signed-material-gate",
-              linkId: this.linkId,
-              publicKey: parts.publicKey,
-            },
-          )
-        : null;
-    const signedData =
-      signedStepped !== null &&
-      shouldUseLinkIdentifySignedMaterial(signedStepped.actions)
-        ? linkIdentifySignedMaterialRawFromActions(signedStepped.actions)
-        : null;
+    const signedData = identifySignedMaterial(this.linkId, parts);
     const signatureValid =
       identity !== null &&
       parts !== null &&
       signedData !== null &&
       identity.validate(parts.signature, signedData);
-
-    const stepped = stepLinkIdentifyWithActions(
-      initialLinkIdentifyState({ initiator: this.initiator }),
-      {
-        kind: "identify/received",
-        plaintextPresent: plaintext !== null,
-        partsPresent: parts !== null,
-        identityPresent: identity !== null,
-        signatureValid,
-      },
-    );
-    this.applyLinkIdentifyActions(stepped.actions, identity);
-    await Promise.resolve();
+    return { plaintext, parts, identity, signatureValid };
   }
 
   protected applyLinkIdentifyActions(
@@ -267,37 +246,20 @@ export class LinkLayer3 extends LinkLayer3Core {
   protected async handleRequestPacket(packet: Packet): Promise<void> {
     const requestId = packet.truncatedHash();
     const plaintext = this.decrypt(packet.data);
-
-    const unpackStepped =
-      plaintext !== null
-        ? stepUnpackLinkRequestWithActions(initialUnpackLinkRequestState(), {
-            kind: "link-request-codec/unpack-gate",
-            data: plaintext,
-          })
-        : null;
-    const unpacked =
-      unpackStepped !== null &&
-      !shouldRejectUnpackLinkRequest(unpackStepped.actions) &&
-      shouldUseUnpackLinkRequest(unpackStepped.actions)
-        ? linkRequestFieldsFromActions(unpackStepped.actions)
-        : null;
-
-    const handlerDestination = this.owner ?? this.destination;
-    const pathHash = unpacked?.pathHash ?? null;
-    const handler =
-      handlerDestination !== null && pathHash !== null
-        ? handlerDestination.getRequestHandler(pathHash)
-        : undefined;
-
+    const unpacked = unpackLinkAppRequest(plaintext);
+    const resolved = resolveAppRequestHandler(
+      this.owner ?? this.destination,
+      unpacked,
+    );
     const stepped = stepLinkAppRequestInboundWithActions(
       initialLinkAppRequestInboundState({ mdu: this.mdu }),
       {
         kind: "app-request/received",
         plaintextPresent: plaintext !== null,
-        handlerDestinationPresent: handlerDestination !== null,
-        handlerPresent: handler !== undefined,
-        allow: handler?.allow ?? 0,
-        allowedList: handler?.allowedList ?? [],
+        handlerDestinationPresent: resolved.handlerDestination !== null,
+        handlerPresent: resolved.handler !== undefined,
+        allow: resolved.allow,
+        allowedList: resolved.allowedList,
         remoteIdentityHash: this.remoteIdentity?.hash ?? null,
         unpackedPresent: unpacked !== null,
       },
@@ -307,7 +269,7 @@ export class LinkLayer3 extends LinkLayer3Core {
       stepped.actions,
       {
         unpacked,
-        handler,
+        handler: resolved.handler,
         requestId,
         packedResponse: null,
       },
@@ -342,36 +304,7 @@ export class LinkLayer3 extends LinkLayer3Core {
     );
     /* Invoke handler only from `invoke` (no ad-hoc unpacked/handler presence). */
     if (shouldInvokeLinkAppRequestHandlerNow(invokeStepped.actions)) {
-      const response = await ctx.handler!.responseGenerator(
-        ctx.handler!.path,
-        ctx.unpacked!.data,
-        ctx.requestId,
-        this.linkId,
-        this.remoteIdentity,
-        ctx.unpacked!.requestedAt,
-      );
-
-      const packStepped =
-        response !== null
-          ? stepPackLinkResponseWithActions(initialPackLinkResponseState(), {
-              kind: "link-response-codec/pack-gate",
-              requestId: ctx.requestId,
-              response,
-            })
-          : null;
-      const packedResponse =
-        packStepped !== null && shouldUsePackLinkResponse(packStepped.actions)
-          ? packLinkResponseRawFromActions(packStepped.actions)
-          : null;
-      const next = stepLinkAppRequestInboundWithActions(state, {
-        kind: "app-request/handler-result",
-        responsePresent: packedResponse !== null,
-        packedLength: packedResponse?.length ?? 0,
-      });
-      await this.applyLinkAppRequestInboundActions(next.state, next.actions, {
-        ...ctx,
-        packedResponse,
-      });
+      await this.invokeLinkAppRequestHandler(state, ctx);
       return;
     }
 
@@ -394,6 +327,47 @@ export class LinkLayer3 extends LinkLayer3Core {
     if (shouldSendLinkAppRequestResponseNow(sendStepped.actions)) {
       await this.sendContext(PacketContext.RESPONSE, ctx.packedResponse!);
     }
+  }
+
+  private async invokeLinkAppRequestHandler(
+    state: LinkAppRequestInboundState,
+    ctx: {
+      readonly unpacked: LinkRequestFields | null;
+      readonly handler: RequestHandler | undefined;
+      readonly requestId: Uint8Array;
+      readonly packedResponse: Uint8Array | null;
+    },
+  ): Promise<void> {
+    const response = await ctx.handler!.responseGenerator(
+      ctx.handler!.path,
+      ctx.unpacked!.data,
+      ctx.requestId,
+      this.linkId,
+      this.remoteIdentity,
+      ctx.unpacked!.requestedAt,
+    );
+
+    const packStepped =
+      response !== null
+        ? stepPackLinkResponseWithActions(initialPackLinkResponseState(), {
+            kind: "link-response-codec/pack-gate",
+            requestId: ctx.requestId,
+            response,
+          })
+        : null;
+    const packedResponse =
+      packStepped !== null && shouldUsePackLinkResponse(packStepped.actions)
+        ? packLinkResponseRawFromActions(packStepped.actions)
+        : null;
+    const next = stepLinkAppRequestInboundWithActions(state, {
+      kind: "app-request/handler-result",
+      responsePresent: packedResponse !== null,
+      packedLength: packedResponse?.length ?? 0,
+    });
+    await this.applyLinkAppRequestInboundActions(next.state, next.actions, {
+      ...ctx,
+      packedResponse,
+    });
   }
 
   protected handleResponsePacket(packet: Packet): Promise<void> {
@@ -633,4 +607,96 @@ export class LinkLayer3 extends LinkLayer3Core {
     }
     return Promise.resolve();
   }
+}
+
+function splitIdentifyPayload(
+  plaintext: Uint8Array | null,
+): ReturnType<typeof linkIdentifyPayloadFieldsFromActions> {
+  if (plaintext === null) {
+    return null;
+  }
+  const splitStepped = stepSplitLinkIdentifyPayloadWithActions(
+    initialSplitLinkIdentifyPayloadState(),
+    {
+      kind: "link-identify/split-gate",
+      plaintext,
+    },
+  );
+  if (
+    shouldRejectSplitLinkIdentifyPayload(splitStepped.actions) ||
+    !shouldUseSplitLinkIdentifyPayload(splitStepped.actions)
+  ) {
+    return null;
+  }
+  return linkIdentifyPayloadFieldsFromActions(splitStepped.actions);
+}
+
+function identifySignedMaterial(
+  linkId: Uint8Array,
+  parts: ReturnType<typeof linkIdentifyPayloadFieldsFromActions>,
+): Uint8Array | null {
+  if (parts === null) {
+    return null;
+  }
+  const signedStepped = stepLinkIdentifySignedMaterialWithActions(
+    initialLinkIdentifySignedMaterialState(),
+    {
+      kind: "link-identify/signed-material-gate",
+      linkId,
+      publicKey: parts.publicKey,
+    },
+  );
+  if (!shouldUseLinkIdentifySignedMaterial(signedStepped.actions)) {
+    return null;
+  }
+  return linkIdentifySignedMaterialRawFromActions(signedStepped.actions);
+}
+
+function unpackLinkAppRequest(
+  plaintext: Uint8Array | null,
+): ReturnType<typeof linkRequestFieldsFromActions> {
+  if (plaintext === null) {
+    return null;
+  }
+  const unpackStepped = stepUnpackLinkRequestWithActions(
+    initialUnpackLinkRequestState(),
+    {
+      kind: "link-request-codec/unpack-gate",
+      data: plaintext,
+    },
+  );
+  if (
+    shouldRejectUnpackLinkRequest(unpackStepped.actions) ||
+    !shouldUseUnpackLinkRequest(unpackStepped.actions)
+  ) {
+    return null;
+  }
+  return linkRequestFieldsFromActions(unpackStepped.actions);
+}
+
+function resolveAppRequestHandler(
+  handlerDestination: LinkLayer3["owner"],
+  unpacked: ReturnType<typeof linkRequestFieldsFromActions>,
+): {
+  handlerDestination: LinkLayer3["owner"];
+  handler: RequestHandler | undefined;
+  allow: number;
+  allowedList: RequestHandler["allowedList"];
+} {
+  const pathHash = unpacked?.pathHash ?? null;
+  if (handlerDestination === null || pathHash === null) {
+    return {
+      handlerDestination,
+      handler: undefined,
+      allow: 0,
+      allowedList: [],
+    };
+  }
+  const handler = handlerDestination.getRequestHandler(pathHash);
+  return {
+    handlerDestination,
+    handler,
+    allow: handler?.allow ?? 0,
+    allowedList: handler?.allowedList ?? [],
+  };
 }

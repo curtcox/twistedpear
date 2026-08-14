@@ -9,6 +9,7 @@ import {
   CHANNEL_SEQ_MODULUS,
   nextChannelSequence,
 } from "./channel-envelope.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 /** Whether an inbound sequence is inside the acceptable RX window. */
 export function shouldAcceptChannelSequence(input: {
@@ -86,13 +87,13 @@ export function stepAcceptChannelSequenceWithActions(
 export function shouldAcceptChannelSequenceNow(
   actions: ReadonlyArray<AcceptChannelSequenceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptChannelSequence(
   actions: ReadonlyArray<AcceptChannelSequenceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -179,13 +180,13 @@ export function stepEmplaceChannelEnvelopeWithActions(
 export function shouldEmplaceChannelEnvelopeNow(
   actions: ReadonlyArray<EmplaceChannelEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "emplace");
+  return hasActionOfKind(actions, "emplace");
 }
 
 export function shouldSkipEmplaceChannelEnvelope(
   actions: ReadonlyArray<EmplaceChannelEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether RX drain may splice/unpack a contiguous ring sequence by lookup index. */
@@ -244,13 +245,13 @@ export function stepDrainChannelRingIndexWithActions(
 export function shouldDrainChannelRingIndexNow(
   actions: ReadonlyArray<DrainChannelRingIndexAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "drain");
+  return hasActionOfKind(actions, "drain");
 }
 
 export function shouldSkipDrainChannelRingIndex(
   actions: ReadonlyArray<DrainChannelRingIndexAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Index of `target` in a ring of sequences, or null if absent. */
@@ -318,21 +319,20 @@ export function stepIndexOfChannelRingSequenceWithActions(
 export function shouldUseChannelRingSequenceIndex(
   actions: ReadonlyArray<IndexOfChannelRingSequenceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-index");
+  return hasActionOfKind(actions, "use-index");
 }
 
 export function shouldMissChannelRingSequenceIndex(
   actions: ReadonlyArray<IndexOfChannelRingSequenceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 /** Extract ring-sequence index from step actions; null when no `use-index`. */
 export function channelRingSequenceIndexFromActions(
   actions: ReadonlyArray<IndexOfChannelRingSequenceAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-index");
-  return action?.kind === "use-index" ? action.index : null;
+  return firstActionOfKind(actions, "use-index")?.index ?? null;
 }
 
 export function insertChannelSequence(

@@ -22,6 +22,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const ChannelWindowLimits = {
   WINDOW: 2,
@@ -139,15 +140,14 @@ export function stepChannelPacketTimeoutSecondsWithActions(
 export function shouldUseChannelPacketTimeout(
   actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-timeout");
+  return hasActionOfKind(actions, "use-timeout");
 }
 
 /** Extract packet timeout from step actions; null when no `use-timeout`. */
 export function channelPacketTimeoutFromActions(
   actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-timeout");
-  return action?.kind === "use-timeout" ? action.timeout : null;
+  return firstActionOfKind(actions, "use-timeout")?.timeout ?? null;
 }
 
 export function channelAllowsSend(input: {
@@ -215,13 +215,13 @@ export function stepChannelAllowsSendWithActions(
 export function shouldAllowChannelSend(
   actions: ReadonlyArray<ChannelAllowsSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyChannelSend(
   actions: ReadonlyArray<ChannelAllowsSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /**
@@ -316,19 +316,19 @@ export function channelSendPlanFromActions(
 export function shouldProceedChannelSendPlan(
   actions: ReadonlyArray<ChannelSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectChannelSendPlanLinkNotReady(
   actions: ReadonlyArray<ChannelSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "link-not-ready");
+  return hasActionOfKind(actions, "link-not-ready");
 }
 
 export function shouldRejectChannelSendPlanTooBig(
   actions: ReadonlyArray<ChannelSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "too-big");
+  return hasActionOfKind(actions, "too-big");
 }
 
 /**
@@ -380,19 +380,19 @@ export function stepChannelSendWithActions(
 export function shouldProceedChannelSend(
   actions: ReadonlyArray<ChannelSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectChannelSendLinkNotReady(
   actions: ReadonlyArray<ChannelSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "link-not-ready");
+  return hasActionOfKind(actions, "link-not-ready");
 }
 
 export function shouldRejectChannelSendTooBig(
   actions: ReadonlyArray<ChannelSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "too-big");
+  return hasActionOfKind(actions, "too-big");
 }
 
 function stepChannelSendInner(

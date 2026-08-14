@@ -168,7 +168,57 @@ import type { Link } from "../link.js";
 import { LinkLayer2Establish } from "./layer-2-establish.js";
 export class LinkLayer2 extends LinkLayer2Establish {
   static request(options: InitiatorLinkOptions): Link {
-    const destination = options.destination;
+    this.throwIfRequestLinkDestinationRejected(options.destination);
+
+    const provider = options.destination.cryptoProvider;
+    const link = new this(
+      provider,
+      options.transport,
+      options.transport.clock,
+      {
+        initiator: true,
+        owner: null,
+        destination: options.destination,
+        ...(options.callbacks === undefined
+          ? {}
+          : { callbacks: options.callbacks }),
+      },
+    ) as Link;
+
+    const signaturePublicKeyBytes = this.applyInitiatorLinkKeys(
+      link,
+      provider,
+      options,
+    );
+    this.applyInitiatorLinkMtu(link, options);
+    const requestData = this.packInitiatorLinkRequestData(
+      link,
+      signaturePublicKeyBytes,
+    );
+    const packet = Packet.fromFields(provider, {
+      headerType: PacketHeaderType.HEADER_1,
+      transportType: TransportType.BROADCAST,
+      destinationType: DestinationType.SINGLE,
+      packetType: PacketType.LINKREQUEST,
+      destinationHash: options.destination.hash,
+      context: PacketContext.NONE,
+      data: requestData,
+    });
+
+    link.setLinkId(packet);
+    link.establishmentCost += packet.raw.length;
+    options.transport.registerLink(link);
+    link.startWatchdog();
+    void options.transport.sendPacket(packet).then(() => {
+      link.hadOutbound(false);
+    });
+
+    return link;
+  }
+
+  private static throwIfRequestLinkDestinationRejected(
+    destination: InitiatorLinkOptions["destination"],
+  ): void {
     const requestLink = stepRequestLinkDestinationWithActions(
       initialRequestLinkDestinationState(),
       {
@@ -182,22 +232,13 @@ export class LinkLayer2 extends LinkLayer2Establish {
         "Links can only be established to OUT SINGLE destinations",
       );
     }
+  }
 
-    const provider = destination.cryptoProvider;
-    const link = new this(
-      provider,
-      options.transport,
-      options.transport.clock,
-      {
-        initiator: true,
-        owner: null,
-        destination,
-        ...(options.callbacks === undefined
-          ? {}
-          : { callbacks: options.callbacks }),
-      },
-    ) as Link;
-
+  private static applyInitiatorLinkKeys(
+    link: Link,
+    provider: CryptoProvider,
+    options: InitiatorLinkOptions,
+  ): Uint8Array {
     const initiatorStepped = stepSplitInitiatorLinkEntropyWithActions(
       initialSplitInitiatorLinkEntropyState(),
       {
@@ -224,13 +265,19 @@ export class LinkLayer2 extends LinkLayer2Establish {
     const signaturePublicKeyBytes = provider.ed25519PublicFromPrivate(
       initiatorKeys.signaturePrivateKey,
     );
-    link.expectedHops = options.transport.hopsTo(destination.hash);
+    link.expectedHops = options.transport.hopsTo(options.destination.hash);
     link.requestTime = options.transport.clock.now() / 1000;
     link.establishmentTimeout = linkEstablishmentTimeoutForHops(
       link.expectedHops ?? 1,
       LINK_KEEPALIVE,
     );
+    return signaturePublicKeyBytes;
+  }
 
+  private static applyInitiatorLinkMtu(
+    link: Link,
+    options: InitiatorLinkOptions,
+  ): void {
     const discoveryEnabled = options.linkMtuDiscovery !== false;
     const mtuStepped = stepLinkInitiatorMtuWithActions(
       initialLinkInitiatorMtuState(),
@@ -238,7 +285,7 @@ export class LinkLayer2 extends LinkLayer2Establish {
         kind: "link/initiator-mtu-gate",
         discoveryEnabled,
         nextHopMtu: discoveryEnabled
-          ? options.transport.nextHopInterfaceMtu(destination.hash)
+          ? options.transport.nextHopInterfaceMtu(options.destination.hash)
           : null,
         defaultMtu: RETICULUM_MTU,
       },
@@ -250,13 +297,19 @@ export class LinkLayer2 extends LinkLayer2Establish {
     link.mtu = mtu;
     link.mode = LINK_MODE_DEFAULT;
     link.updateMdu();
+  }
+
+  private static packInitiatorLinkRequestData(
+    link: Link,
+    signaturePublicKey: Uint8Array,
+  ): Uint8Array {
     const packStepped = stepPackLinkRequestDataWithActions(
       initialPackLinkRequestDataState(),
       {
         kind: "link-request/pack-gate",
-        publicKey: link.publicKeyBytes,
-        signaturePublicKey: signaturePublicKeyBytes,
-        signallingBytes: this.signallingBytes(mtu, link.mode),
+        publicKey: link.publicKeyBytes!,
+        signaturePublicKey,
+        signallingBytes: this.signallingBytes(link.mtu, link.mode),
       },
     );
     const requestData = shouldUsePackLinkRequestData(packStepped.actions)
@@ -265,25 +318,7 @@ export class LinkLayer2 extends LinkLayer2Establish {
     if (requestData === null) {
       throw new Error("Link.request: missing use-raw action");
     }
-    const packet = Packet.fromFields(provider, {
-      headerType: PacketHeaderType.HEADER_1,
-      transportType: TransportType.BROADCAST,
-      destinationType: DestinationType.SINGLE,
-      packetType: PacketType.LINKREQUEST,
-      destinationHash: destination.hash,
-      context: PacketContext.NONE,
-      data: requestData,
-    });
-
-    link.setLinkId(packet);
-    link.establishmentCost += packet.raw.length;
-    options.transport.registerLink(link);
-    link.startWatchdog();
-    void options.transport.sendPacket(packet).then(() => {
-      link.hadOutbound(false);
-    });
-
-    return link;
+    return requestData;
   }
 
   static validateRequest(

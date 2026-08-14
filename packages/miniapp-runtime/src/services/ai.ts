@@ -285,7 +285,7 @@ export class AiService {
       return: async () => {
         try {
           return source.return === undefined
-            ? { done: true, value: undefined }
+            ? { done: true as const, value: undefined }
             : await source.return(undefined);
         } finally {
           finish();
@@ -344,7 +344,7 @@ export class AiService {
 
   private assertSearchQuery(request: AiVectorSearchRequest): void {
     if (
-      typeof request?.query !== "string" ||
+      typeof request.query !== "string" ||
       request.query.length === 0 ||
       !Array.isArray(request.documents)
     ) {
@@ -420,7 +420,7 @@ export class AiService {
 
   private sanitizeEmbed(request: AiEmbedRequest): AiEmbedRequest {
     if (
-      !Array.isArray(request?.inputs) ||
+      !Array.isArray(request.inputs) ||
       request.inputs.length === 0 ||
       request.inputs.length > this.limits.maxEmbeddingInputs
     ) {
@@ -439,7 +439,7 @@ export class AiService {
   }
 
   private sanitize(request: AiChatRequest): AiChatRequest {
-    assertChatMessages(request?.messages, this.limits.maxMessages);
+    assertChatMessages(request.messages, this.limits.maxMessages);
     const maxTokens = clampOptional(
       request.maxTokens === undefined
         ? undefined
@@ -471,7 +471,7 @@ function isSearchDocument(
     document.id.length > 0 &&
     document.id.length <= 256 &&
     !ids.has(document.id) &&
-    typeof document?.text === "string"
+    typeof document.text === "string"
   );
 }
 
@@ -501,7 +501,7 @@ function assertChatMessages(
     );
   }
   for (const message of messages) {
-    if (!ROLES.has(message?.role) || typeof message?.content !== "string") {
+    if (!ROLES.has(message.role) || typeof message.content !== "string") {
       throw new AiServiceError(
         "AI_BAD_REQUEST",
         "AI chat messages need a valid role and string content.",

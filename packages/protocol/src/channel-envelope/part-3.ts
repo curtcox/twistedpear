@@ -22,6 +22,7 @@ import type {
   ChannelEnvelopePackPlanAction,
   ChannelEnvelopePackPlanEvent,
 } from "./part-2.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Channel-envelope-pack-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelEnvelopePack`
@@ -58,13 +59,13 @@ export function stepChannelEnvelopePackPlanWithActions(
 export function shouldProceedChannelEnvelopePackPlan(
   actions: ReadonlyArray<ChannelEnvelopePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectChannelEnvelopePackPlanMissingMessage(
   actions: ReadonlyArray<ChannelEnvelopePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-message");
+  return hasActionOfKind(actions, "missing-message");
 }
 
 /**
@@ -115,13 +116,13 @@ export function stepChannelEnvelopePackWithActions(
 export function shouldProceedChannelEnvelopePack(
   actions: ReadonlyArray<ChannelEnvelopePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectChannelEnvelopePackMissingMessage(
   actions: ReadonlyArray<ChannelEnvelopePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-message");
+  return hasActionOfKind(actions, "missing-message");
 }
 
 function stepChannelEnvelopePackInner(
@@ -204,13 +205,13 @@ export function stepRegisterChannelMessageHandlerWithActions(
 export function shouldRegisterChannelMessageHandlerNow(
   actions: ReadonlyArray<RegisterChannelMessageHandlerAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "register");
+  return hasActionOfKind(actions, "register");
 }
 
 export function shouldSkipRegisterChannelMessageHandler(
   actions: ReadonlyArray<RegisterChannelMessageHandlerAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -279,14 +280,13 @@ export function stepChannelMessageHandlerUnregisterPlanWithActions(
 export function channelMessageHandlerUnregisterPlanIndex(
   actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
+  return firstActionOfKind(actions, "remove")?.index ?? null;
 }
 
 export function shouldRemoveChannelMessageHandlerUnregisterPlan(
   actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove");
+  return hasActionOfKind(actions, "remove");
 }
 
 /**
@@ -346,14 +346,13 @@ export function stepChannelMessageHandlerUnregisterWithActions(
 export function channelMessageHandlerUnregisterIndex(
   actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
+  return firstActionOfKind(actions, "remove")?.index ?? null;
 }
 
 export function shouldRemoveChannelMessageHandler(
   actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove");
+  return hasActionOfKind(actions, "remove");
 }
 
 /** Whether channel message-handler fan-out should stop after a handler returns handled. */
@@ -412,13 +411,13 @@ export function stepStopChannelHandlerFanoutWithActions(
 export function shouldStopChannelHandlerFanoutNow(
   actions: ReadonlyArray<StopChannelHandlerFanoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "stop");
+  return hasActionOfKind(actions, "stop");
 }
 
 export function shouldContinueChannelHandlerFanout(
   actions: ReadonlyArray<StopChannelHandlerFanoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "continue");
+  return hasActionOfKind(actions, "continue");
 }
 
 export function channelPayloadMdu(outletMdu: number): number {

@@ -72,9 +72,7 @@ function HostConfirmKindBody({
   onClose: () => void;
   onConfirmResponse: (approved: boolean) => void;
 }) {
-  const title =
-    CONFIRM_KIND_TITLES[modal.request.kind] ??
-    `Confirm ${modal.request.kind}?`;
+  const title = CONFIRM_KIND_TITLES[modal.request.kind];
   return (
     <View testID="host-confirmation-modal" style={styles.modalOverlay}>
       <View style={styles.modalCard}>

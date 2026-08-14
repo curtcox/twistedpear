@@ -1,18 +1,11 @@
 import { MiniappBroker } from "../broker.js";
-import { AnnounceService, type AnnounceBackend } from "../services/announce.js";
-import {
-  AppIdentityService,
-  type IdentityBackend,
-} from "../services/identity.js";
+import type { AnnounceBackend } from "../services/announce.js";
+import { AppIdentityService } from "../services/identity.js";
 import { NamespacedLxmfService } from "../services/lxmf.js";
 import { PresenceService } from "../services/presence.js";
-import {
-  LinkQualityService,
-  PeerRouteLinkObservatory,
-} from "../services/links.js";
-import { HostInfoService, defaultHostInfo } from "../services/host-info.js";
+import { LinkQualityService } from "../services/links.js";
+import { HostInfoService } from "../services/host-info.js";
 import { ResourceService } from "../services/resource.js";
-import { HOST_API_VERSION } from "../host-api.js";
 import { AiService } from "../services/ai.js";
 import { AppsService } from "../services/apps.js";
 import { WorkspaceService } from "../services/workspace.js";
@@ -30,6 +23,10 @@ import type {
   MiniappHostOptions,
   MiniappHostSnapshot,
 } from "./shared.js";
+import {
+  createHostBroker,
+  createHostLayer1Services,
+} from "./layer-1-init.js";
 
 export abstract class MiniappHostLayer1Base {
   protected abstract now(): number;
@@ -61,121 +58,26 @@ export abstract class MiniappHostLayer1Base {
   protected nextRuntimeId = 0;
 
   constructor(protected readonly options: MiniappHostOptions) {
-    this.broker = new MiniappBroker({
+    this.broker = createHostBroker(options, {
       now: () => this.now(),
-      enforceCapabilities: options.enforceBrokerCapabilities ?? true,
-      audit: (entry) => {
-        options.brokerAudit?.(entry);
-        // A refused capability and a backend that threw are different faults
-        // and must not read the same in the log.
-        if (entry.outcome === "denied")
-          this.logActive(
-            entry.appId,
-            `broker denied ${entry.namespace}.${entry.method}`,
-          );
-        else if (entry.outcome === "failed")
-          this.logActive(
-            entry.appId,
-            `broker call ${entry.namespace}.${entry.method} failed: ${entry.error?.message ?? "unknown error"}`,
-          );
-      },
+      logActive: (appId, line) => this.logActive(appId, line),
     });
-    const identityBackend: IdentityBackend =
-      options.identityBackend ??
-      ({
-        deriveDestinationHash: (appId, publisherPublicKey) =>
-          Promise.resolve(
-            options.deriveDestinationHash !== undefined
-              ? options.deriveDestinationHash(appId, publisherPublicKey)
-              : `app:${appId}:${publisherPublicKey.slice(0, 16)}`,
-          ),
-        sign: (_appId, _publisherPublicKey, payload) =>
-          Promise.resolve(
-            new TextEncoder().encode(
-              `signed:${new TextDecoder().decode(payload)}`,
-            ),
-          ),
-      } satisfies IdentityBackend);
-
-    this.identityService = new AppIdentityService(identityBackend);
-    this.lxmfService = new NamespacedLxmfService(
-      options.lxmfBackend ?? options.kvBackend,
-    );
-    this.announceService = options.announceService ?? new AnnounceService();
-    this.resourceService =
-      options.resourceBackend === undefined
-        ? null
-        : new ResourceService(options.resourceBackend);
-    this.presenceService =
-      options.presenceBackend === undefined
-        ? null
-        : new PresenceService(options.presenceBackend);
-    const linkBackend =
-      options.linkObservatoryBackend ??
-      (options.peerSessionManager === undefined
-        ? undefined
-        : new PeerRouteLinkObservatory(options.peerSessionManager, {
-            now: () => this.now(),
-            ...(options.localMediaReadiness === undefined
-              ? {}
-              : { localReadiness: options.localMediaReadiness }),
-            ...(options.controlReservations === undefined
-              ? {}
-              : { controlReservations: options.controlReservations }),
-          }));
-    this.linkService =
-      linkBackend === undefined
-        ? null
-        : new LinkQualityService(linkBackend, {
-            now: () => this.now(),
-            ...(options.confirmCostlyLinkProbe === undefined
-              ? {}
-              : { confirmCostlyProbe: options.confirmCostlyLinkProbe }),
-          });
-    this.hostInfoService = new HostInfoService(
-      options.hostInfoBackend ?? {
-        info: () =>
-          Promise.resolve(
-            defaultHostInfo({
-              hostApiVersion: HOST_API_VERSION,
-              hostVersion: HOST_API_VERSION,
-            }),
-          ),
-      },
-    );
-    this.aiService =
-      options.aiBackend === undefined ? null : new AiService(options.aiBackend);
-    this.appsService =
-      options.appsBackend === undefined
-        ? null
-        : new AppsService(options.appsBackend, options.confirmationChannel);
-    this.peerService =
-      options.peerSessionManager === undefined
-        ? null
-        : new PeerBrokerService(options.peerSessionManager);
-    this.relayService =
-      options.relayService === undefined
-        ? null
-        : new RelayBrokerService(options.relayService, options.relayMutation);
-    this.freenetService =
-      options.freenetBackend === undefined
-        ? null
-        : new FreenetBrokerService(
-            options.freenetBackend,
-            options.confirmationChannel,
-          );
-    this.deviceService =
-      options.deviceManager === undefined
-        ? null
-        : new DeviceBrokerService(options.deviceManager);
-    this.inboundMedia =
-      options.inboundMediaBackend === undefined
-        ? null
-        : new InboundMediaRouter(options.inboundMediaBackend, () => this.now());
-    this.workspace = new WorkspaceService(
-      options.kvBackend,
-      options.workspaceLimits,
-    );
+    const services = createHostLayer1Services(options, () => this.now());
+    this.identityService = services.identityService;
+    this.lxmfService = services.lxmfService;
+    this.announceService = services.announceService;
+    this.resourceService = services.resourceService;
+    this.presenceService = services.presenceService;
+    this.linkService = services.linkService;
+    this.hostInfoService = services.hostInfoService;
+    this.aiService = services.aiService;
+    this.appsService = services.appsService;
+    this.peerService = services.peerService;
+    this.relayService = services.relayService;
+    this.freenetService = services.freenetService;
+    this.deviceService = services.deviceService;
+    this.inboundMedia = services.inboundMedia;
+    this.workspace = services.workspace;
     this.registerHandlers();
   }
 

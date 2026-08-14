@@ -21,6 +21,7 @@
  * `shouldAcceptCachedPathResponsePacket` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 import {
   PACKET_CONTEXT_PATH_RESPONSE,
   PACKET_CONTEXT_NONE,
@@ -66,13 +67,13 @@ export function stepMatchAnnounceAspectWithActions(
 export function shouldMatchAnnounceAspectNow(
   actions: ReadonlyArray<MatchAnnounceAspectAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "match");
+  return hasActionOfKind(actions, "match");
 }
 
 export function shouldMismatchAnnounceAspect(
   actions: ReadonlyArray<MatchAnnounceAspectAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mismatch");
+  return hasActionOfKind(actions, "mismatch");
 }
 
 export interface AnnounceIngressGates {
@@ -153,21 +154,21 @@ export function stepAnnounceIngressGatesPlanWithActions(
 export function shouldUseAnnounceIngressGatesPlan(
   actions: ReadonlyArray<AnnounceIngressGatesPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-gates");
+  return hasActionOfKind(actions, "use-gates");
 }
 
 /** Extract announce ingress gates from plan actions; null when no `use-gates`. */
 export function announceIngressGatesPlanFromActions(
   actions: ReadonlyArray<AnnounceIngressGatesPlanAction>,
 ): AnnounceIngressGates | null {
-  const action = actions.find((entry) => entry.kind === "use-gates");
-  return action?.kind === "use-gates"
-    ? {
+  const action = firstActionOfKind(actions, "use-gates");
+  return action === undefined
+    ? null
+    : {
         applyRateLimit: action.applyRateLimit,
         recordRate: action.recordRate,
         rebroadcast: action.rebroadcast,
-      }
-    : null;
+      };
 }
 
 /**
@@ -220,19 +221,19 @@ export function stepAnnounceIngressGatesWithActions(
 export function shouldApplyAnnounceRateLimit(
   actions: ReadonlyArray<AnnounceIngressGatesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply-rate-limit");
+  return hasActionOfKind(actions, "apply-rate-limit");
 }
 
 export function shouldRecordAnnounceRate(
   actions: ReadonlyArray<AnnounceIngressGatesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "record-rate");
+  return hasActionOfKind(actions, "record-rate");
 }
 
 export function shouldRebroadcastAnnounce(
   actions: ReadonlyArray<AnnounceIngressGatesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "rebroadcast");
+  return hasActionOfKind(actions, "rebroadcast");
 }
 
 function stepAnnounceIngressGatesInner(

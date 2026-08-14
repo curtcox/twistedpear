@@ -3,6 +3,7 @@
  * Mirrors reticulum-ts Resource.watchdogTick scheduling without IO.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const RESOURCE_SENDER_GRACE_TIME = 10;
 export const RESOURCE_PROCESSING_GRACE = 1;
@@ -153,15 +154,14 @@ export function stepComputeResourceTimeoutWithActions(
 export function shouldUseResourceTimeout(
   actions: ReadonlyArray<ComputeResourceTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-timeout");
+  return hasActionOfKind(actions, "use-timeout");
 }
 
 /** Extract resource timeout from step actions; null when no `use-timeout`. */
 export function resourceTimeoutFromActions(
   actions: ReadonlyArray<ComputeResourceTimeoutAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-timeout");
-  return action?.kind === "use-timeout" ? action.timeout : null;
+  return firstActionOfKind(actions, "use-timeout")?.timeout ?? null;
 }
 
 export const stepResourceWatchdog: StepFn<ResourceWatchdogState> = (
@@ -182,75 +182,94 @@ export function stepResourceWatchdogWithActions(
   return stepResourceWatchdogInner(state, event);
 }
 
+function idleWatchdogResult(
+  state: ResourceWatchdogState,
+): ResourceWatchdogStepResult {
+  return { state, intents: [], actions: [] };
+}
+
+function stepResourceWatchdogSync(
+  state: ResourceWatchdogState,
+  event: Extract<ResourceWatchdogEvent, { kind: "resource/sync" }>,
+): ResourceWatchdogStepResult {
+  return {
+    state: {
+      ...state,
+      status: event.status,
+      advSent: event.advSent ?? state.advSent,
+      timeout: event.timeout ?? state.timeout,
+      retriesLeft: event.retriesLeft ?? state.retriesLeft,
+      outstandingParts: event.outstandingParts ?? state.outstandingParts,
+      receivedCount: event.receivedCount ?? state.receivedCount,
+      totalParts: event.totalParts ?? state.totalParts,
+    },
+    intents: [],
+    actions: [],
+  };
+}
+
+function stepResourceWatchdogAdvertised(
+  state: ResourceWatchdogState,
+  now: number,
+): ResourceWatchdogStepResult {
+  if (now >= state.advSent + state.timeout + RESOURCE_PROCESSING_GRACE) {
+    if (state.retriesLeft <= 0) {
+      return {
+        state: { ...state, status: ResourceStatus.FAILED },
+        intents: [],
+        actions: [{ kind: "cancel" }],
+      };
+    }
+    return scheduleWatchdog({ ...state, retriesLeft: state.retriesLeft - 1 }, [
+      { kind: "advertise" },
+    ]);
+  }
+  return scheduleWatchdog(state, []);
+}
+
+function stepResourceWatchdogTransferring(
+  state: ResourceWatchdogState,
+): ResourceWatchdogStepResult {
+  const actions: ResourceWatchdogAction[] = [];
+  if (state.outstandingParts === 0 && state.receivedCount < state.totalParts) {
+    actions.push({ kind: "request-next" });
+  }
+  return scheduleWatchdog(state, actions);
+}
+
+function stepResourceWatchdogTick(
+  state: ResourceWatchdogState,
+  now: number,
+): ResourceWatchdogStepResult {
+  if (
+    state.status === ResourceStatus.COMPLETE ||
+    state.status === ResourceStatus.FAILED
+  ) {
+    return idleWatchdogResult(state);
+  }
+  if (state.status === ResourceStatus.ADVERTISED) {
+    return stepResourceWatchdogAdvertised(state, now);
+  }
+  if (state.status === ResourceStatus.TRANSFERRING && !state.initiator) {
+    return stepResourceWatchdogTransferring(state);
+  }
+  return idleWatchdogResult(state);
+}
+
 function stepResourceWatchdogInner(
   state: ResourceWatchdogState,
   event: ResourceWatchdogEvent,
 ): ResourceWatchdogStepResult {
   if (event.kind === "resource/sync") {
-    return {
-      state: {
-        ...state,
-        status: event.status,
-        advSent: event.advSent ?? state.advSent,
-        timeout: event.timeout ?? state.timeout,
-        retriesLeft: event.retriesLeft ?? state.retriesLeft,
-        outstandingParts: event.outstandingParts ?? state.outstandingParts,
-        receivedCount: event.receivedCount ?? state.receivedCount,
-        totalParts: event.totalParts ?? state.totalParts,
-      },
-      intents: [],
-      actions: [],
-    };
+    return stepResourceWatchdogSync(state, event);
   }
-
   if (event.kind === "resource/watchdog-start" || event.kind === "start") {
     return scheduleWatchdog(state, []);
   }
-
   if (event.kind !== "timer/fired" || event.id !== "resource-watchdog") {
-    return { state, intents: [], actions: [] };
+    return idleWatchdogResult(state);
   }
-
-  if (
-    state.status === ResourceStatus.COMPLETE ||
-    state.status === ResourceStatus.FAILED
-  ) {
-    return { state, intents: [], actions: [] };
-  }
-
-  const now = event.at / 1000;
-
-  if (state.status === ResourceStatus.ADVERTISED) {
-    if (now >= state.advSent + state.timeout + RESOURCE_PROCESSING_GRACE) {
-      if (state.retriesLeft <= 0) {
-        return {
-          state: { ...state, status: ResourceStatus.FAILED },
-          intents: [],
-          actions: [{ kind: "cancel" }],
-        };
-      }
-
-      return scheduleWatchdog(
-        { ...state, retriesLeft: state.retriesLeft - 1 },
-        [{ kind: "advertise" }],
-      );
-    }
-
-    return scheduleWatchdog(state, []);
-  }
-
-  if (state.status === ResourceStatus.TRANSFERRING && !state.initiator) {
-    const actions: ResourceWatchdogAction[] = [];
-    if (
-      state.outstandingParts === 0 &&
-      state.receivedCount < state.totalParts
-    ) {
-      actions.push({ kind: "request-next" });
-    }
-    return scheduleWatchdog(state, actions);
-  }
-
-  return { state, intents: [], actions: [] };
+  return stepResourceWatchdogTick(state, event.at / 1000);
 }
 
 function scheduleWatchdog(

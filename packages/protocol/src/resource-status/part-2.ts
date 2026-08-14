@@ -18,6 +18,7 @@ import {
 } from "../resource-watchdog.js";
 import { planResourceAdvertisePhase } from "./part-1.js";
 import type { ResourceAdvertisePhasePlan } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Resource-advertise-phase plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planResourceAdvertisePhase` /
@@ -75,13 +76,13 @@ export function resourceAdvertisePhasePlanFromActions(
 export function shouldQueueResourceAdvertisePhasePlan(
   actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "queue");
+  return hasActionOfKind(actions, "queue");
 }
 
 export function shouldAdvertiseResourceAdvertisePhasePlan(
   actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "advertise");
+  return hasActionOfKind(actions, "advertise");
 }
 
 /** Whether Resource.prove may build and send a proof (assembled data present). */
@@ -138,13 +139,13 @@ export function stepProveResourceAllowWithActions(
 export function shouldAllowProveResource(
   actions: ReadonlyArray<ProveResourceAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyProveResource(
   actions: ReadonlyArray<ProveResourceAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /**
@@ -208,13 +209,13 @@ export function stepAdvertiseResourceWithActions(
 export function shouldAdvertiseResourceNow(
   actions: ReadonlyArray<AdvertiseResourceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "advertise");
+  return hasActionOfKind(actions, "advertise");
 }
 
 export function shouldSkipAdvertiseResource(
   actions: ReadonlyArray<AdvertiseResourceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -302,13 +303,13 @@ export function resourceAssembleOutcomePlanFromActions(
 export function shouldCompleteResourceAssembleOutcomePlan(
   actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "complete");
+  return hasActionOfKind(actions, "complete");
 }
 
 export function shouldCorruptResourceAssembleOutcomePlan(
   actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "corrupt");
+  return hasActionOfKind(actions, "corrupt");
 }
 
 /**
@@ -366,13 +367,13 @@ export function stepResourceAssembleWithActions(
 export function shouldCompleteResourceAssemble(
   actions: ReadonlyArray<ResourceAssembleAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "complete");
+  return hasActionOfKind(actions, "complete");
 }
 
 export function shouldCorruptResourceAssemble(
   actions: ReadonlyArray<ResourceAssembleAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "corrupt");
+  return hasActionOfKind(actions, "corrupt");
 }
 
 function stepResourceAssembleInner(
@@ -465,11 +466,11 @@ export function stepCommitResourceAssemblePayloadWithActions(
 export function shouldCommitResourceAssemblePayloadNow(
   actions: ReadonlyArray<CommitResourceAssemblePayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "commit");
+  return hasActionOfKind(actions, "commit");
 }
 
 export function shouldSkipCommitResourceAssemblePayload(
   actions: ReadonlyArray<CommitResourceAssemblePayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }

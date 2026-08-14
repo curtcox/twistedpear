@@ -18,6 +18,7 @@
  * {@link stepResourceHashmapUpdateAcceptPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 import { assembleByteArrays, concatByteArrays } from "../bytes.js";
 import {
   msgpackPackArray,
@@ -298,7 +299,7 @@ export function stepResourceHashmapSlotWritesPlanWithActions(
 export function shouldWriteResourceHashmapSlotsPlan(
   actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "write");
+  return hasActionOfKind(actions, "write");
 }
 
 /** Extract slot writes from plan actions for {@link applyResourceHashmapSlotWrites}. */
@@ -379,7 +380,7 @@ export function stepResourceHashmapSlotWritesWithActions(
 export function shouldWriteResourceHashmapSlots(
   actions: ReadonlyArray<ResourceHashmapSlotWritesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "write");
+  return hasActionOfKind(actions, "write");
 }
 
 /** Extract slot writes from step actions for {@link applyResourceHashmapSlotWrites}. */
@@ -478,7 +479,7 @@ export function stepApplyResourceHashmapSlotWritesWithActions(
 export function shouldUseApplyResourceHashmapSlotWrites(
   actions: ReadonlyArray<ApplyResourceHashmapSlotWritesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract applied hashmap fields from step actions; null when no `use-fields`. */
@@ -488,10 +489,10 @@ export function applyResourceHashmapSlotWritesFieldsFromActions(
   readonly hashmap: Array<Uint8Array | null>;
   readonly hashmapHeight: number;
 } | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields"
-    ? { hashmap: action.hashmap, hashmapHeight: action.hashmapHeight }
-    : null;
+  const action = firstActionOfKind(actions, "use-fields");
+  return action === undefined
+    ? null
+    : { hashmap: action.hashmap, hashmapHeight: action.hashmapHeight };
 }
 
 export function assembleResourceHashmapBytes(

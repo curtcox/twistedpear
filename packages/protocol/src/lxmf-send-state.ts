@@ -3,6 +3,7 @@
  * Adapters perform network IO; this owns state/progress updates only.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { hasActionOfKind } from "./action-kind.js";
 
 /** Mirrors LXMF/LXMessage.py message states. */
 export const LxmfMessageState = {
@@ -237,14 +238,14 @@ export function stepLxmfReceiptSendPlanWithActions(
 export function shouldApplyLxmfReceiptSendPlan(
   actions: ReadonlyArray<LxmfReceiptSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 /** Whether plan actions skip send-state update. */
 export function shouldSkipLxmfReceiptSendPlan(
   actions: ReadonlyArray<LxmfReceiptSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Send-state event from a plan apply action, if present. */
@@ -312,13 +313,13 @@ export function stepLxmfReceiptSendWithActions(
 export function shouldApplyLxmfReceiptSend(
   actions: ReadonlyArray<LxmfReceiptSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldSkipLxmfReceiptSend(
   actions: ReadonlyArray<LxmfReceiptSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Send-state event from an apply action, if present. */

@@ -18,6 +18,7 @@ import {
   LinkResourceStrategy,
   type LinkResourceStrategyValue,
 } from "../link-watchdog.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export type LinkResourceAcceptPlan =
   | { readonly kind: "ignore" }
@@ -141,19 +142,19 @@ export function stepLinkResourceAdvertisementPlanWithActions(
 export function shouldIgnoreLinkResourceAdvertisementPlan(
   actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldAskAppLinkResourceAdvertisementPlan(
   actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ask-app");
+  return hasActionOfKind(actions, "ask-app");
 }
 
 export function shouldAcceptLinkResourceAdvertisementPlan(
   actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 /** Extract the advertisement plan from actions; null when empty. */
@@ -222,13 +223,13 @@ export function stepLinkResourceAcceptAppResultPlanWithActions(
 export function shouldAcceptLinkResourceAcceptAppResultPlan(
   actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectLinkResourceAcceptAppResultPlan(
   actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract the app-result plan from actions; null when empty. */
@@ -262,28 +263,28 @@ export function stepLinkResourceAdvertisementWithActions(
 export function shouldIgnoreLinkResourceAdvertisement(
   actions: ReadonlyArray<LinkResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 /** Whether step actions include ask-app. */
 export function shouldAskAppLinkResourceAdvertisement(
   actions: ReadonlyArray<LinkResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ask-app");
+  return hasActionOfKind(actions, "ask-app");
 }
 
 /** Whether step actions include accept. */
 export function shouldAcceptLinkResourceAdvertisement(
   actions: ReadonlyArray<LinkResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 /** Whether step actions include reject. */
 export function shouldRejectLinkResourceAdvertisement(
   actions: ReadonlyArray<LinkResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 function stepLinkResourceAdvertisementInner(
@@ -413,13 +414,13 @@ export function stepLinkReadyForNewResourceWithActions(
 export function shouldLinkReadyForNewResource(
   actions: ReadonlyArray<LinkReadyForNewResourceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ready");
+  return hasActionOfKind(actions, "ready");
 }
 
 export function shouldLinkBusyForNewResource(
   actions: ReadonlyArray<LinkReadyForNewResourceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "busy");
+  return hasActionOfKind(actions, "busy");
 }
 /** Whether an outgoing resource should handle this RESOURCE_REQ packet. */
 export function shouldHandleOutgoingResourceRequest(input: {

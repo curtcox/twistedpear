@@ -64,6 +64,7 @@ import type {
   LinkProofValidateOutcomePlanAction,
   LinkProofValidateOutcomePlanEvent,
 } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Proof-validate outcome plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkProofValidateOutcome` /
@@ -157,13 +158,13 @@ export function stepLinkProofValidateWithActions(
 export function shouldAcceptLinkProofValidate(
   actions: ReadonlyArray<LinkProofValidateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectLinkProofValidate(
   actions: ReadonlyArray<LinkProofValidateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 function stepLinkProofValidateInner(
@@ -269,13 +270,13 @@ export function stepAttemptLinkProofCryptoWithActions(
 export function shouldAttemptLinkProofCryptoNow(
   actions: ReadonlyArray<AttemptLinkProofCryptoAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "attempt");
+  return hasActionOfKind(actions, "attempt");
 }
 
 export function shouldSkipLinkProofCrypto(
   actions: ReadonlyArray<AttemptLinkProofCryptoAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export function canAcceptLinkRtt(input: {
@@ -340,13 +341,13 @@ export function stepAcceptLinkRttWithActions(
 export function shouldAcceptLinkRttNow(
   actions: ReadonlyArray<AcceptLinkRttAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipLinkRttAccept(
   actions: ReadonlyArray<AcceptLinkRttAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export function canIdentifyOnLink(input: {
@@ -411,13 +412,13 @@ export function stepIdentifyOnLinkAllowWithActions(
 export function shouldAllowIdentifyOnLink(
   actions: ReadonlyArray<IdentifyOnLinkAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyIdentifyOnLink(
   actions: ReadonlyArray<IdentifyOnLinkAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether the link may issue an application request (ACTIVE with measured RTT). */
@@ -481,13 +482,13 @@ export function stepLinkRequestAllowWithActions(
 export function shouldAllowLinkRequest(
   actions: ReadonlyArray<LinkRequestAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyLinkRequest(
   actions: ReadonlyArray<LinkRequestAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 /** Whether keepalive timing may be updated from a measured RTT. */
 export function canUpdateLinkKeepalive(rttPresent: boolean): boolean {

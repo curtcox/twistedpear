@@ -41,6 +41,7 @@ import type {
   PathResponseAnnounceFieldsPlanAction,
   PathResponseAnnounceFieldsPlanEvent,
 } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Path-response announce field plan leaf is event-driven; no durable session
  * fields. Conclusions leave via machine actions (no ad-hoc
@@ -86,7 +87,7 @@ export function stepPathResponseAnnounceFieldsPlanWithActions(
 export function shouldUsePathResponseAnnounceFieldsPlan(
   actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /**
@@ -144,15 +145,14 @@ export function stepPathResponseAnnounceFieldsWithActions(
 export function shouldUsePathResponseAnnounceFields(
   actions: ReadonlyArray<PathResponseAnnounceFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract path-response announce fields from step actions; null when no `use-fields`. */
 export function pathResponseAnnounceFieldsFromActions(
   actions: ReadonlyArray<PathResponseAnnounceFieldsAction>,
 ): PacketHeaderFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /** Whether a cached path-response announce packet decoded successfully. */
@@ -213,13 +213,13 @@ export function stepAcceptCachedPathResponsePacketWithActions(
 export function shouldAcceptCachedPathResponsePacketNow(
   actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptCachedPathResponsePacket(
   actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -293,13 +293,13 @@ export function stepReceiveAnnouncePathResponseWithActions(
 export function shouldReceiveAnnouncePathResponseNow(
   actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "receive");
+  return hasActionOfKind(actions, "receive");
 }
 
 export function shouldSkipAnnouncePathResponse(
   actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Drop announces that target a local IN destination (already ours). */
@@ -360,13 +360,13 @@ export function stepIgnoreLocalAnnounceWithActions(
 export function shouldIgnoreLocalAnnounceNow(
   actions: ReadonlyArray<IgnoreLocalAnnounceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldProceedLocalAnnounce(
   actions: ReadonlyArray<IgnoreLocalAnnounceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 /** Whether announce-handler fanout may run after Identity.recall. */
@@ -425,13 +425,13 @@ export function stepDispatchAnnounceHandlersWithActions(
 export function shouldDispatchAnnounceHandlersNow(
   actions: ReadonlyArray<DispatchAnnounceHandlersAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "dispatch");
+  return hasActionOfKind(actions, "dispatch");
 }
 
 export function shouldSkipDispatchAnnounceHandlers(
   actions: ReadonlyArray<DispatchAnnounceHandlersAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**

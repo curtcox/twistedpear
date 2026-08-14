@@ -6,6 +6,7 @@
  * `relayTransportPacketBytes` / `rewritePacketHopsBytes` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const PACKET_HEADER_1 = 0x00;
 export const PACKET_HEADER_2 = 0x01;
@@ -173,15 +174,14 @@ export function stepWrapTransportPacketWithActions(
 export function shouldUseWrapTransportPacket(
   actions: ReadonlyArray<WrapTransportPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract wrap framing bytes from step actions; null when no `use-raw` action. */
 export function wrapTransportPacketRawFromActions(
   actions: ReadonlyArray<WrapTransportPacketAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -233,15 +233,14 @@ export function stepStripTransportHeadersWithActions(
 export function shouldUseStripTransportHeaders(
   actions: ReadonlyArray<StripTransportHeadersAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract strip framing bytes from step actions; null when no `use-raw` action. */
 export function stripTransportHeadersRawFromActions(
   actions: ReadonlyArray<StripTransportHeadersAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -304,15 +303,14 @@ export function stepRelayTransportPacketWithActions(
 export function shouldUseRelayTransportPacket(
   actions: ReadonlyArray<RelayTransportPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract relay framing bytes from step actions; null when no `use-raw` action. */
 export function relayTransportPacketRawFromActions(
   actions: ReadonlyArray<RelayTransportPacketAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -365,13 +363,12 @@ export function stepRewritePacketHopsWithActions(
 export function shouldUseRewritePacketHops(
   actions: ReadonlyArray<RewritePacketHopsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract hop-rewrite framing bytes from step actions; null when no `use-raw` action. */
 export function rewritePacketHopsRawFromActions(
   actions: ReadonlyArray<RewritePacketHopsAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

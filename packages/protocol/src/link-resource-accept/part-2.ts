@@ -25,6 +25,7 @@ import type {
   HandleOutgoingResourceRequestState,
   HandleOutgoingResourceRequestStepResult,
 } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function stepHandleOutgoingResourceRequestWithActions(
   state: HandleOutgoingResourceRequestState,
   event: HandleOutgoingResourceRequestEvent,
@@ -52,13 +53,13 @@ export function stepHandleOutgoingResourceRequestWithActions(
 export function shouldHandleOutgoingResourceRequestNow(
   actions: ReadonlyArray<HandleOutgoingResourceRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "handle");
+  return hasActionOfKind(actions, "handle");
 }
 
 export function shouldSkipHandleOutgoingResourceRequest(
   actions: ReadonlyArray<HandleOutgoingResourceRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether an incoming resource matches a hashmap/cancel/part packet by hash. */
@@ -119,13 +120,13 @@ export function stepHandleIncomingResourceByHashWithActions(
 export function shouldHandleIncomingResourceByHashNow(
   actions: ReadonlyArray<HandleIncomingResourceByHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "handle");
+  return hasActionOfKind(actions, "handle");
 }
 
 export function shouldSkipHandleIncomingResourceByHash(
   actions: ReadonlyArray<HandleIncomingResourceByHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a link resource list should receive a new member (not already present). */
@@ -184,13 +185,13 @@ export function stepRegisterLinkResourceWithActions(
 export function shouldRegisterLinkResourceNow(
   actions: ReadonlyArray<RegisterLinkResourceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "register");
+  return hasActionOfKind(actions, "register");
 }
 
 export function shouldSkipRegisterLinkResource(
   actions: ReadonlyArray<RegisterLinkResourceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type LinkResourceConcludePlan = {
@@ -339,27 +340,25 @@ export function stepLinkResourceConcludeWithActions(
 export function outgoingLinkResourceConcludeIndex(
   actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove-outgoing");
-  return action?.kind === "remove-outgoing" ? action.index : null;
+  return firstActionOfKind(actions, "remove-outgoing")?.index ?? null;
 }
 
 export function incomingLinkResourceConcludeIndex(
   actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove-incoming");
-  return action?.kind === "remove-incoming" ? action.index : null;
+  return firstActionOfKind(actions, "remove-incoming")?.index ?? null;
 }
 
 export function shouldRemoveOutgoingLinkResourceConclude(
   actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove-outgoing");
+  return hasActionOfKind(actions, "remove-outgoing");
 }
 
 export function shouldRemoveIncomingLinkResourceConclude(
   actions: ReadonlyArray<LinkResourceConcludeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove-incoming");
+  return hasActionOfKind(actions, "remove-incoming");
 }
 
 function stepLinkResourceConcludeInner(

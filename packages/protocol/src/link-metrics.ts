@@ -10,6 +10,7 @@
  * `computeLinkMdu` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LINK_MDU_HEADER_MAX = 18;
 export const LINK_MDU_IFAC_MIN = 0;
@@ -82,15 +83,14 @@ export function stepComputeLinkMduWithActions(
 export function shouldUseLinkMdu(
   actions: ReadonlyArray<ComputeLinkMduAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mdu");
+  return hasActionOfKind(actions, "use-mdu");
 }
 
 /** Extract MDU from step actions; null when no `use-mdu`. */
 export function linkMduFromActions(
   actions: ReadonlyArray<ComputeLinkMduAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mdu");
-  return action?.kind === "use-mdu" ? action.mdu : null;
+  return firstActionOfKind(actions, "use-mdu")?.mdu ?? null;
 }
 
 /** Whether a packed payload fits within the link (or outlet) MDU. */
@@ -169,14 +169,13 @@ export function stepLinkInitiatorMtuPlanWithActions(
 export function linkInitiatorMtuPlanFromActions(
   actions: ReadonlyArray<LinkInitiatorMtuPlanAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mtu");
-  return action?.kind === "use-mtu" ? action.mtu : null;
+  return firstActionOfKind(actions, "use-mtu")?.mtu ?? null;
 }
 
 export function shouldUseLinkInitiatorMtuPlan(
   actions: ReadonlyArray<LinkInitiatorMtuPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mtu");
+  return hasActionOfKind(actions, "use-mtu");
 }
 
 /**
@@ -257,14 +256,13 @@ export function stepLinkRequestResponderMtuPlanWithActions(
 export function linkRequestResponderMtuPlanFromActions(
   actions: ReadonlyArray<LinkRequestResponderMtuPlanAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mtu");
-  return action?.kind === "use-mtu" ? action.mtu : null;
+  return firstActionOfKind(actions, "use-mtu")?.mtu ?? null;
 }
 
 export function shouldUseLinkRequestResponderMtuPlan(
   actions: ReadonlyArray<LinkRequestResponderMtuPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mtu");
+  return hasActionOfKind(actions, "use-mtu");
 }
 
 export function linkHopsMatch(input: {
@@ -338,13 +336,13 @@ export function stepLinkHopsMatchWithActions(
 export function shouldMatchLinkHops(
   actions: ReadonlyArray<LinkHopsMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "match");
+  return hasActionOfKind(actions, "match");
 }
 
 export function shouldMismatchLinkHops(
   actions: ReadonlyArray<LinkHopsMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mismatch");
+  return hasActionOfKind(actions, "mismatch");
 }
 
 /**
@@ -416,14 +414,13 @@ export function stepLinkInitiatorMtuWithActions(
 export function linkInitiatorMtuFromActions(
   actions: ReadonlyArray<LinkInitiatorMtuAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mtu");
-  return action?.kind === "use-mtu" ? action.mtu : null;
+  return firstActionOfKind(actions, "use-mtu")?.mtu ?? null;
 }
 
 export function shouldUseLinkInitiatorMtu(
   actions: ReadonlyArray<LinkInitiatorMtuAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mtu");
+  return hasActionOfKind(actions, "use-mtu");
 }
 
 /**
@@ -497,12 +494,11 @@ export function stepLinkRequestResponderMtuWithActions(
 export function linkRequestResponderMtuFromActions(
   actions: ReadonlyArray<LinkRequestResponderMtuAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mtu");
-  return action?.kind === "use-mtu" ? action.mtu : null;
+  return firstActionOfKind(actions, "use-mtu")?.mtu ?? null;
 }
 
 export function shouldUseLinkRequestResponderMtu(
   actions: ReadonlyArray<LinkRequestResponderMtuAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mtu");
+  return hasActionOfKind(actions, "use-mtu");
 }

@@ -104,7 +104,7 @@ export class WorkspaceService {
       const bytes = await this.backend.get(key);
       files.push({
         path: key.slice(keyPrefix.length),
-        size: bytes?.length ?? 0,
+        size: bytes.length,
       });
     }
 
@@ -173,18 +173,7 @@ export class WorkspaceService {
     baseLength: number,
     edits: ReadonlyArray<WorkspaceTextEdit>,
   ): Promise<WorkspaceFileInfo> {
-    if (
-      !Number.isSafeInteger(baseLength) ||
-      baseLength < 0 ||
-      !Array.isArray(edits) ||
-      edits.length === 0 ||
-      edits.length > 1024
-    ) {
-      throw new WorkspaceError(
-        "INVALID_PATCH",
-        "Workspace patch needs 1-1024 edits and a valid base length",
-      );
-    }
+    assertPatchRequest(baseLength, edits);
     const current = await this.read(appId, path);
     if (current.length !== baseLength) {
       throw new WorkspaceError(
@@ -192,29 +181,8 @@ export class WorkspaceService {
         `Workspace file changed before patch: ${path}`,
       );
     }
-    let previousEnd = 0;
-    for (const edit of edits) {
-      if (
-        !Number.isSafeInteger(edit?.start) ||
-        !Number.isSafeInteger(edit?.end) ||
-        edit.start < previousEnd ||
-        edit.end < edit.start ||
-        edit.end > current.length ||
-        typeof edit.text !== "string"
-      ) {
-        throw new WorkspaceError(
-          "INVALID_PATCH",
-          `Invalid or overlapping workspace edit: ${path}`,
-        );
-      }
-      previousEnd = edit.end;
-    }
-    let content = current;
-    for (let index = edits.length - 1; index >= 0; index -= 1) {
-      const edit = edits[index]!;
-      content = `${content.slice(0, edit.start)}${edit.text}${content.slice(edit.end)}`;
-    }
-    return this.write(appId, path, content);
+    assertOrderedEdits(edits, current, path);
+    return this.write(appId, path, applyWorkspaceEdits(current, edits));
   }
 
   async delete(appId: string, path: string): Promise<void> {
@@ -228,4 +196,66 @@ export class WorkspaceService {
   private keyPrefix(appId: string): string {
     return `miniapp-workspace:${appId}:`;
   }
+}
+
+function assertPatchRequest(
+  baseLength: number,
+  edits: ReadonlyArray<WorkspaceTextEdit>,
+): void {
+  if (
+    !Number.isSafeInteger(baseLength) ||
+    baseLength < 0 ||
+    !Array.isArray(edits) ||
+    edits.length === 0 ||
+    edits.length > 1024
+  ) {
+    throw new WorkspaceError(
+      "INVALID_PATCH",
+      "Workspace patch needs 1-1024 edits and a valid base length",
+    );
+  }
+}
+
+function isInvalidEdit(
+  edit: WorkspaceTextEdit,
+  previousEnd: number,
+  currentLength: number,
+): boolean {
+  return (
+    !Number.isSafeInteger(edit.start) ||
+    !Number.isSafeInteger(edit.end) ||
+    edit.start < previousEnd ||
+    edit.end < edit.start ||
+    edit.end > currentLength ||
+    typeof edit.text !== "string"
+  );
+}
+
+function assertOrderedEdits(
+  edits: ReadonlyArray<WorkspaceTextEdit>,
+  current: string,
+  path: string,
+): void {
+  let previousEnd = 0;
+  for (const edit of edits) {
+    if (isInvalidEdit(edit, previousEnd, current.length)) {
+      throw new WorkspaceError(
+        "INVALID_PATCH",
+        `Invalid or overlapping workspace edit: ${path}`,
+      );
+    }
+    previousEnd = edit.end;
+  }
+}
+
+function applyWorkspaceEdits(
+  current: string,
+  edits: ReadonlyArray<WorkspaceTextEdit>,
+): string {
+  let content = current;
+  for (let index = edits.length - 1; index >= 0; index -= 1) {
+    const edit = edits[index]!;
+    content = `${content.slice(0, edit.start)}${edit.text}${content.slice(edit.end)}`;
+  }
+  return content;
 }

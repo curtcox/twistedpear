@@ -87,33 +87,41 @@ export function stepInterfaceConnectWithActions(
   return stepInterfaceConnectInner(state, event);
 }
 
-function stepInterfaceConnectInner(
+function idleConnectResult(
   state: InterfaceConnectState,
-  event: InterfaceConnectEvent,
 ): InterfaceConnectStepResult {
-  if (event.kind === "interface-connect/arm") {
-    return {
-      state: {
-        armed: true,
-        concluded: false,
-        connected: false,
-        timedOut: false,
-        failed: false,
-      },
-      intents: [
-        {
-          kind: "timer/set",
-          timer: { id: INTERFACE_CONNECT_TIMER_ID, delayMs: event.timeoutMs },
-        },
-      ],
-      actions: [{ kind: "connect", timeoutMs: event.timeoutMs }],
-    };
-  }
+  return { state, intents: [], actions: [] };
+}
 
-  if (event.kind === "interface-connect/connected") {
-    if (!state.armed || state.concluded) {
-      return { state, intents: [], actions: [] };
-    }
+function armInterfaceConnect(
+  timeoutMs: number,
+): InterfaceConnectStepResult {
+  return {
+    state: {
+      armed: true,
+      concluded: false,
+      connected: false,
+      timedOut: false,
+      failed: false,
+    },
+    intents: [
+      {
+        kind: "timer/set",
+        timer: { id: INTERFACE_CONNECT_TIMER_ID, delayMs: timeoutMs },
+      },
+    ],
+    actions: [{ kind: "connect", timeoutMs }],
+  };
+}
+
+function concludeInterfaceConnect(
+  state: InterfaceConnectState,
+  outcome: "connected" | "failed" | "timeout",
+): InterfaceConnectStepResult {
+  if (!state.armed || state.concluded) {
+    return idleConnectResult(state);
+  }
+  if (outcome === "connected") {
     return {
       state: {
         ...state,
@@ -128,11 +136,7 @@ function stepInterfaceConnectInner(
       actions: [{ kind: "resolve" }],
     };
   }
-
-  if (event.kind === "interface-connect/failed") {
-    if (!state.armed || state.concluded) {
-      return { state, intents: [], actions: [] };
-    }
+  if (outcome === "failed") {
     return {
       state: {
         ...state,
@@ -147,23 +151,34 @@ function stepInterfaceConnectInner(
       actions: [{ kind: "reject", reason: "failed" }],
     };
   }
+  return {
+    state: {
+      ...state,
+      concluded: true,
+      connected: false,
+      timedOut: true,
+      failed: false,
+    },
+    intents: [],
+    actions: [{ kind: "reject", reason: "timeout" }],
+  };
+}
 
-  if (event.kind === "timer/fired" && event.id === INTERFACE_CONNECT_TIMER_ID) {
-    if (!state.armed || state.concluded) {
-      return { state, intents: [], actions: [] };
-    }
-    return {
-      state: {
-        ...state,
-        concluded: true,
-        connected: false,
-        timedOut: true,
-        failed: false,
-      },
-      intents: [],
-      actions: [{ kind: "reject", reason: "timeout" }],
-    };
+function stepInterfaceConnectInner(
+  state: InterfaceConnectState,
+  event: InterfaceConnectEvent,
+): InterfaceConnectStepResult {
+  if (event.kind === "interface-connect/arm") {
+    return armInterfaceConnect(event.timeoutMs);
   }
-
-  return { state, intents: [], actions: [] };
+  if (event.kind === "interface-connect/connected") {
+    return concludeInterfaceConnect(state, "connected");
+  }
+  if (event.kind === "interface-connect/failed") {
+    return concludeInterfaceConnect(state, "failed");
+  }
+  if (event.kind === "timer/fired" && event.id === INTERFACE_CONNECT_TIMER_ID) {
+    return concludeInterfaceConnect(state, "timeout");
+  }
+  return idleConnectResult(state);
 }

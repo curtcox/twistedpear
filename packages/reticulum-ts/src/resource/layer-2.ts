@@ -11,9 +11,9 @@ import {
 
 import { equalBytes } from "../crypto/bytes.js";
 import type { Resource } from "../resource.js";
-import { ResourceLayer2Core } from "./layer-2-core.js";
+import { ResourceLayer2Assemble } from "./layer-2-assemble.js";
 
-export class ResourceLayer2 extends ResourceLayer2Core {
+export class ResourceLayer2 extends ResourceLayer2Assemble {
   validateProof(proofData: Uint8Array): void {
     const splitStepped = stepSplitResourceProofWithActions(
       initialSplitResourceProofState(),

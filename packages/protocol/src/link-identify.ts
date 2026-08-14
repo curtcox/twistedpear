@@ -10,6 +10,7 @@
  * `shouldCommitLinkRemoteIdentity` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LINK_IDENTIFY_PUBLIC_KEY_SIZE = 64;
 export const LINK_IDENTIFY_SIGNATURE_SIZE = 64;
@@ -69,13 +70,13 @@ export function stepAcceptLinkIdentifyWithActions(
 export function shouldAcceptLinkIdentifyNow(
   actions: ReadonlyArray<AcceptLinkIdentifyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipLinkIdentifyAccept(
   actions: ReadonlyArray<AcceptLinkIdentifyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type LinkIdentifyOutcome = "accept" | "reject";
@@ -163,13 +164,13 @@ export function stepLinkIdentifyOutcomePlanWithActions(
 export function shouldAcceptLinkIdentifyOutcomePlan(
   actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectLinkIdentifyOutcomePlan(
   actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract the identify-outcome plan from actions; null when empty. */
@@ -248,13 +249,13 @@ export function stepCommitLinkRemoteIdentityWithActions(
 export function shouldCommitLinkRemoteIdentityNow(
   actions: ReadonlyArray<CommitLinkRemoteIdentityAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "commit");
+  return hasActionOfKind(actions, "commit");
 }
 
 export function shouldSkipCommitLinkRemoteIdentity(
   actions: ReadonlyArray<CommitLinkRemoteIdentityAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export interface LinkIdentifyState {
@@ -307,14 +308,14 @@ export function stepLinkIdentifyWithActions(
 export function shouldRejectLinkIdentify(
   actions: ReadonlyArray<LinkIdentifyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Whether step actions include commit (set remoteIdentity + callback). */
 export function shouldCommitLinkIdentify(
   actions: ReadonlyArray<LinkIdentifyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "commit");
+  return hasActionOfKind(actions, "commit");
 }
 
 function stepLinkIdentifyInner(
@@ -434,15 +435,14 @@ export function stepLinkIdentifySignedMaterialWithActions(
 export function shouldUseLinkIdentifySignedMaterial(
   actions: ReadonlyArray<LinkIdentifySignedMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract link-identify signed material from step actions; null when no `use-raw`. */
 export function linkIdentifySignedMaterialRawFromActions(
   actions: ReadonlyArray<LinkIdentifySignedMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /** Pack identify plaintext for outbound LINKIDENTIFY (publicKey || signature). */
@@ -518,21 +518,20 @@ export function stepPackLinkIdentifyPayloadWithActions(
 export function shouldUsePackLinkIdentifyPayload(
   actions: ReadonlyArray<PackLinkIdentifyPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackLinkIdentifyPayload(
   actions: ReadonlyArray<PackLinkIdentifyPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed identify payload from step actions; null when no `use-raw`. */
 export function packLinkIdentifyPayloadRawFromActions(
   actions: ReadonlyArray<PackLinkIdentifyPayloadAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -585,19 +584,18 @@ export function stepSplitLinkIdentifyPayloadWithActions(
 export function shouldUseSplitLinkIdentifyPayload(
   actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitLinkIdentifyPayload(
   actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split identify payload fields from step actions; null when no `use-fields`. */
 export function linkIdentifyPayloadFieldsFromActions(
   actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>,
 ): LinkIdentifyPayloadFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

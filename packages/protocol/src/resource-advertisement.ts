@@ -18,6 +18,7 @@ import {
   msgpackUnpackStringKeyedMap,
   type MsgpackScalar,
 } from "./msgpack-core.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export interface ResourceAdvertisementFields {
   readonly t: number;
@@ -193,15 +194,14 @@ export function stepEncodeResourceAdvertisementFlagsWithActions(
 export function shouldUseEncodeResourceAdvertisementFlags(
   actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-flags");
+  return hasActionOfKind(actions, "use-flags");
 }
 
 /** Extract packed advertisement flags from step actions; null when no `use-flags`. */
 export function encodeResourceAdvertisementFlagsFromActions(
   actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-flags");
-  return action?.kind === "use-flags" ? action.flags : null;
+  return firstActionOfKind(actions, "use-flags")?.flags ?? null;
 }
 
 /**
@@ -256,15 +256,14 @@ export function stepDecodeResourceAdvertisementFlagsWithActions(
 export function shouldUseDecodeResourceAdvertisementFlags(
   actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract decoded advertisement flag fields from step actions; null when no `use-fields`. */
 export function resourceAdvertisementFlagFieldsFromActions(
   actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>,
 ): ResourceAdvertisementFlags | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -317,19 +316,19 @@ export function stepClassifyResourceAdvertisementWithActions(
 export function shouldClassifyResourceAdvertisementRequest(
   actions: ReadonlyArray<ClassifyResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "request");
+  return hasActionOfKind(actions, "request");
 }
 
 export function shouldClassifyResourceAdvertisementResponse(
   actions: ReadonlyArray<ClassifyResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "response");
+  return hasActionOfKind(actions, "response");
 }
 
 export function shouldRejectClassifyResourceAdvertisement(
   actions: ReadonlyArray<ClassifyResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /**
@@ -400,15 +399,15 @@ export function stepResourceAdvertisementRoleFlagsPlanWithActions(
 export function shouldUseResourceAdvertisementRoleFlagsPlan(
   actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-flags");
+  return hasActionOfKind(actions, "use-flags");
 }
 
 /** Extract role flags from plan actions; null when no `use-flags` action. */
 export function resourceAdvertisementRoleFlagsPlanFromActions(
   actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>,
 ): { readonly u: boolean; readonly p: boolean } | null {
-  const action = actions.find((entry) => entry.kind === "use-flags");
-  return action?.kind === "use-flags" ? { u: action.u, p: action.p } : null;
+  const action = firstActionOfKind(actions, "use-flags");
+  return action === undefined ? null : { u: action.u, p: action.p };
 }
 
 /**
@@ -474,15 +473,15 @@ export function stepResourceAdvertisementRoleFlagsWithActions(
 export function shouldUseResourceAdvertisementRoleFlags(
   actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-flags");
+  return hasActionOfKind(actions, "use-flags");
 }
 
 /** Extract role flags from step actions; null when no `use-flags` action. */
 export function resourceAdvertisementRoleFlagsFromActions(
   actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>,
 ): { readonly u: boolean; readonly p: boolean } | null {
-  const action = actions.find((entry) => entry.kind === "use-flags");
-  return action?.kind === "use-flags" ? { u: action.u, p: action.p } : null;
+  const action = firstActionOfKind(actions, "use-flags");
+  return action === undefined ? null : { u: action.u, p: action.p };
 }
 
 /**
@@ -537,15 +536,14 @@ export function stepPackResourceAdvertisementWithActions(
 export function shouldUsePackResourceAdvertisement(
   actions: ReadonlyArray<PackResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract advertisement pack bytes from step actions; null when no `use-raw`. */
 export function packResourceAdvertisementRawFromActions(
   actions: ReadonlyArray<PackResourceAdvertisementAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -602,19 +600,18 @@ export function stepUnpackResourceAdvertisementWithActions(
 export function shouldUseUnpackResourceAdvertisement(
   actions: ReadonlyArray<UnpackResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectUnpackResourceAdvertisement(
   actions: ReadonlyArray<UnpackResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract unpacked advertisement fields from step actions; null when no `use-fields`. */
 export function resourceAdvertisementFieldsFromActions(
   actions: ReadonlyArray<UnpackResourceAdvertisementAction>,
 ): ResourceAdvertisementFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

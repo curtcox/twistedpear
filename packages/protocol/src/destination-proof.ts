@@ -7,6 +7,7 @@
  * (`prove`|`skip`).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { hasActionOfKind } from "./action-kind.js";
 
 export const DestinationProofStrategyCode = {
   PROVE_NONE: 0x21,
@@ -90,13 +91,13 @@ export function stepEmitDestinationProofWithActions(
 export function shouldEmitDestinationProofNow(
   actions: ReadonlyArray<EmitDestinationProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "emit");
+  return hasActionOfKind(actions, "emit");
 }
 
 export function shouldSkipEmitDestinationProof(
   actions: ReadonlyArray<EmitDestinationProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -161,13 +162,13 @@ export function destinationProofPlanFromActions(
 export function shouldProveDestinationPlan(
   actions: ReadonlyArray<DestinationProofPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "prove");
+  return hasActionOfKind(actions, "prove");
 }
 
 export function shouldSkipDestinationProofPlan(
   actions: ReadonlyArray<DestinationProofPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -231,11 +232,11 @@ export function stepDestinationProofWithActions(
 export function shouldProveDestination(
   actions: ReadonlyArray<DestinationProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "prove");
+  return hasActionOfKind(actions, "prove");
 }
 
 export function shouldSkipDestinationProof(
   actions: ReadonlyArray<DestinationProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }

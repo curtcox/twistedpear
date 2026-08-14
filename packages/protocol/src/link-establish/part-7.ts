@@ -58,6 +58,7 @@ import type {
   LinkInboundDataPacketEvent,
   LinkInboundDataPacketState,
 } from "./part-6.js";
+import { hasActionOfKind } from "../action-kind.js";
 export type LinkInboundDataPacketAction =
   { readonly kind: "data" } | { readonly kind: "other" };
 
@@ -93,13 +94,13 @@ export function stepLinkInboundDataPacketWithActions(
 export function shouldDispatchLinkInboundData(
   actions: ReadonlyArray<LinkInboundDataPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "data");
+  return hasActionOfKind(actions, "data");
 }
 
 export function shouldIgnoreLinkInboundNonData(
   actions: ReadonlyArray<LinkInboundDataPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "other");
+  return hasActionOfKind(actions, "other");
 }
 /** Whether the link may send application/context data (ACTIVE). */
 export function canLinkSend(status: LinkStatusValue): boolean {
@@ -156,13 +157,13 @@ export function stepLinkSendAllowWithActions(
 export function shouldAllowLinkSend(
   actions: ReadonlyArray<LinkSendAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyLinkSend(
   actions: ReadonlyArray<LinkSendAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 /** Whether an existing link may be reused for outbound send (present + ACTIVE). */
 export function shouldReuseActiveLink(input: {
@@ -228,13 +229,13 @@ export function stepReuseActiveLinkWithActions(
 export function shouldReuseActiveLinkNow(
   actions: ReadonlyArray<ReuseActiveLinkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reuse");
+  return hasActionOfKind(actions, "reuse");
 }
 
 export function shouldSkipReuseActiveLink(
   actions: ReadonlyArray<ReuseActiveLinkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 /** Whether inbound link traffic should be accepted from this interface attachment. */
 export function shouldAcceptLinkPacketInterface(input: {
@@ -300,13 +301,13 @@ export function stepAcceptLinkPacketInterfaceWithActions(
 export function shouldAcceptLinkPacketInterfaceNow(
   actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipLinkPacketInterface(
   actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 /** Whether link sendContext should encrypt the payload (default yes unless encrypt:false). */
 export function shouldEncryptLinkPayload(
@@ -367,13 +368,13 @@ export function stepEncryptLinkPayloadWithActions(
 export function shouldEncryptLinkPayloadNow(
   actions: ReadonlyArray<EncryptLinkPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "encrypt");
+  return hasActionOfKind(actions, "encrypt");
 }
 
 export function shouldSendLinkPayloadPlaintext(
   actions: ReadonlyArray<EncryptLinkPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "plaintext");
+  return hasActionOfKind(actions, "plaintext");
 }
 
 /**
@@ -426,13 +427,13 @@ export function stepLinkClosedWithActions(
 export function shouldTreatLinkClosed(
   actions: ReadonlyArray<LinkClosedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "closed");
+  return hasActionOfKind(actions, "closed");
 }
 
 export function shouldTreatLinkOpen(
   actions: ReadonlyArray<LinkClosedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "open");
+  return hasActionOfKind(actions, "open");
 }
 export type LinkRegisterList = "pending" | "active";
 

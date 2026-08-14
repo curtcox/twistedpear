@@ -30,6 +30,7 @@ import type {
   DestinationLinkEstablishedCallbackEvent,
   DestinationLinkEstablishedCallbackState,
 } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 export interface DestinationLinkEstablishedCallbackStepResult {
   readonly state: DestinationLinkEstablishedCallbackState;
   readonly intents: readonly Intent[];
@@ -66,13 +67,13 @@ export function stepDestinationLinkEstablishedCallbackWithActions(
 export function shouldInvokeDestinationLinkEstablishedCallbackNow(
   actions: ReadonlyArray<DestinationLinkEstablishedCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invoke");
+  return hasActionOfKind(actions, "invoke");
 }
 
 export function shouldSkipDestinationLinkEstablishedCallback(
   actions: ReadonlyArray<DestinationLinkEstablishedCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether this destination may send outbound packets (OUT only). */
@@ -129,13 +130,13 @@ export function stepDestinationSendWithActions(
 export function shouldAllowDestinationSend(
   actions: ReadonlyArray<DestinationSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyDestinationSend(
   actions: ReadonlyArray<DestinationSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether a link may be requested to this destination (OUT SINGLE only). */
@@ -201,13 +202,13 @@ export function stepRequestLinkDestinationWithActions(
 export function shouldAllowRequestLinkDestination(
   actions: ReadonlyArray<RequestLinkDestinationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyRequestLinkDestination(
   actions: ReadonlyArray<RequestLinkDestinationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether destination type and identity binding are valid. */
@@ -276,13 +277,13 @@ export function stepDestinationIdentityBindingValidWithActions(
 export function shouldAcceptDestinationIdentityBinding(
   actions: ReadonlyArray<DestinationIdentityBindingValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "valid");
+  return hasActionOfKind(actions, "valid");
 }
 
 export function shouldRejectDestinationIdentityBinding(
   actions: ReadonlyArray<DestinationIdentityBindingValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invalid");
+  return hasActionOfKind(actions, "invalid");
 }
 
 export type DestinationConstructionPlan =
@@ -382,25 +383,25 @@ export function destinationConstructionPlanFromActions(
 export function shouldProceedDestinationConstructionPlan(
   actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectDestinationConstructionPlanBadDirection(
   actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-direction");
+  return hasActionOfKind(actions, "bad-direction");
 }
 
 export function shouldRejectDestinationConstructionPlanBadType(
   actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-type");
+  return hasActionOfKind(actions, "bad-type");
 }
 
 export function shouldRejectDestinationConstructionPlanBadIdentityBinding(
   actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-identity-binding");
+  return hasActionOfKind(actions, "bad-identity-binding");
 }
 
 /**

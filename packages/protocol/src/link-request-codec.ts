@@ -15,6 +15,7 @@ import {
   msgpackUnpackAt,
   type MsgpackValue,
 } from "./msgpack-core.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export interface LinkRequestFields {
   readonly requestedAt: number;
@@ -215,15 +216,14 @@ export function stepPackLinkRequestWithActions(
 export function shouldUsePackLinkRequest(
   actions: ReadonlyArray<PackLinkRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract link-request pack bytes from step actions; null when no `use-raw`. */
 export function packLinkRequestRawFromActions(
   actions: ReadonlyArray<PackLinkRequestAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -279,15 +279,14 @@ export function stepPackLinkResponseWithActions(
 export function shouldUsePackLinkResponse(
   actions: ReadonlyArray<PackLinkResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract link-response pack bytes from step actions; null when no `use-raw`. */
 export function packLinkResponseRawFromActions(
   actions: ReadonlyArray<PackLinkResponseAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -341,21 +340,20 @@ export function stepUnpackLinkRequestWithActions(
 export function shouldUseUnpackLinkRequest(
   actions: ReadonlyArray<UnpackLinkRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectUnpackLinkRequest(
   actions: ReadonlyArray<UnpackLinkRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract unpacked link-request fields from step actions; null when no `use-fields`. */
 export function linkRequestFieldsFromActions(
   actions: ReadonlyArray<UnpackLinkRequestAction>,
 ): LinkRequestFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -409,19 +407,18 @@ export function stepUnpackLinkResponseWithActions(
 export function shouldUseUnpackLinkResponse(
   actions: ReadonlyArray<UnpackLinkResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectUnpackLinkResponse(
   actions: ReadonlyArray<UnpackLinkResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract unpacked link-response fields from step actions; null when no `use-fields`. */
 export function linkResponseFieldsFromActions(
   actions: ReadonlyArray<UnpackLinkResponseAction>,
 ): LinkResponseFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

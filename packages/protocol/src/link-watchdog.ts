@@ -6,6 +6,7 @@
  * `computeLinkRequestTimeout` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LINK_KEEPALIVE = 360;
 export const LINK_KEEPALIVE_MIN = 5;
@@ -181,15 +182,14 @@ export function stepComputeKeepaliveWithActions(
 export function shouldUseLinkKeepalive(
   actions: ReadonlyArray<ComputeKeepaliveAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-keepalive");
+  return hasActionOfKind(actions, "use-keepalive");
 }
 
 /** Extract keepalive from step actions; null when no `use-keepalive`. */
 export function linkKeepaliveFromActions(
   actions: ReadonlyArray<ComputeKeepaliveAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-keepalive");
-  return action?.kind === "use-keepalive" ? action.keepalive : null;
+  return firstActionOfKind(actions, "use-keepalive")?.keepalive ?? null;
 }
 
 /** Seconds allowed to establish a link across `hops` (minimum 1 hop). */
@@ -253,15 +253,14 @@ export function stepComputeLinkEstablishmentTimeoutWithActions(
 export function shouldUseLinkEstablishmentTimeout(
   actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-timeout");
+  return hasActionOfKind(actions, "use-timeout");
 }
 
 /** Extract establishment timeout from step actions; null when no `use-timeout`. */
 export function linkEstablishmentTimeoutFromActions(
   actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-timeout");
-  return action?.kind === "use-timeout" ? action.timeout : null;
+  return firstActionOfKind(actions, "use-timeout")?.timeout ?? null;
 }
 
 /**
@@ -324,15 +323,14 @@ export function stepComputeLinkRequestTimeoutWithActions(
 export function shouldUseLinkRequestTimeout(
   actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-timeout");
+  return hasActionOfKind(actions, "use-timeout");
 }
 
 /** Extract request timeout from step actions; null when no `use-timeout`. */
 export function linkRequestTimeoutFromActions(
   actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-timeout");
-  return action?.kind === "use-timeout" ? action.timeout : null;
+  return firstActionOfKind(actions, "use-timeout")?.timeout ?? null;
 }
 
 export const stepLinkWatchdog: StepFn<LinkWatchdogState> = (state, event) => {

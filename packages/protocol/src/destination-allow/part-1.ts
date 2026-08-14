@@ -24,6 +24,7 @@ import {
   isDestinationTypeCode,
 } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export const DestinationAllowPolicyCode = {
   ALLOW_NONE: 0x00,
@@ -88,13 +89,13 @@ export function stepDestinationRequestPathValidWithActions(
 export function shouldAcceptDestinationRequestPath(
   actions: ReadonlyArray<DestinationRequestPathValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "valid");
+  return hasActionOfKind(actions, "valid");
 }
 
 export function shouldRejectDestinationRequestPath(
   actions: ReadonlyArray<DestinationRequestPathValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invalid");
+  return hasActionOfKind(actions, "invalid");
 }
 
 /** Whether this destination should validate and accept inbound link requests. */
@@ -160,13 +161,13 @@ export function stepAcceptDestinationLinkRequestWithActions(
 export function shouldAllowDestinationLinkRequest(
   actions: ReadonlyArray<AcceptDestinationLinkRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyDestinationLinkRequest(
   actions: ReadonlyArray<AcceptDestinationLinkRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether this destination may emit announces (IN SINGLE only). */
@@ -232,13 +233,13 @@ export function stepAnnounceDestinationWithActions(
 export function shouldAllowDestinationAnnounce(
   actions: ReadonlyArray<AnnounceDestinationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyDestinationAnnounce(
   actions: ReadonlyArray<AnnounceDestinationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether announce/send/requestLink may run (destination attached to transport). */
@@ -299,13 +300,13 @@ export function stepOperateAttachedDestinationWithActions(
 export function shouldAllowOperateAttachedDestination(
   actions: ReadonlyArray<OperateAttachedDestinationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyOperateAttachedDestination(
   actions: ReadonlyArray<OperateAttachedDestinationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether announce may proceed after type/direction allow (identity required). */
@@ -364,13 +365,13 @@ export function stepAnnounceWithIdentityWithActions(
 export function shouldAllowAnnounceWithIdentity(
   actions: ReadonlyArray<AnnounceWithIdentityAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyAnnounceWithIdentity(
   actions: ReadonlyArray<AnnounceWithIdentityAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether PROVE_APP should invoke the destination proof-requested callback. */
@@ -431,13 +432,13 @@ export function stepDestinationProofCallbackWithActions(
 export function shouldInvokeDestinationProofCallbackNow(
   actions: ReadonlyArray<DestinationProofCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invoke");
+  return hasActionOfKind(actions, "invoke");
 }
 
 export function shouldSkipDestinationProofCallback(
   actions: ReadonlyArray<DestinationProofCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a validated link should wrap the destination link-established callback. */

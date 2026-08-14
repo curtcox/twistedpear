@@ -43,6 +43,7 @@ import type {
   ResourceHashmapUpdateAcceptPlanAction,
   ResourceHashmapUpdateAcceptPlanEvent,
 } from "./part-4.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Resource hashmap-update accept plan leaf is event-driven; no durable session
  * fields. Conclusions leave via machine actions (no ad-hoc plan reads beside
@@ -79,13 +80,13 @@ export function stepResourceHashmapUpdateAcceptPlanWithActions(
 export function shouldApplyResourceHashmapUpdateAcceptPlan(
   actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldIgnoreResourceHashmapUpdateAcceptPlan(
   actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 /**
@@ -126,13 +127,13 @@ export function stepResourceHashmapUpdateAcceptWithActions(
 export function shouldApplyResourceHashmapUpdateAccept(
   actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldIgnoreResourceHashmapUpdateAccept(
   actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 function stepResourceHashmapUpdateAcceptInner(
@@ -222,15 +223,14 @@ export function stepPackResourceHashmapUpdateWithActions(
 export function shouldUsePackResourceHashmapUpdate(
   actions: ReadonlyArray<PackResourceHashmapUpdateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract hashmap-update pack bytes from step actions; null when no `use-raw`. */
 export function packResourceHashmapUpdateRawFromActions(
   actions: ReadonlyArray<PackResourceHashmapUpdateAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -286,21 +286,20 @@ export function stepUnpackResourceHashmapUpdateWithActions(
 export function shouldUseUnpackResourceHashmapUpdate(
   actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectUnpackResourceHashmapUpdate(
   actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract unpacked hashmap-update fields from step actions; null when no `use-fields`. */
 export function resourceHashmapUpdateFieldsFromActions(
   actions: ReadonlyArray<UnpackResourceHashmapUpdateAction>,
 ): ResourceHashmapUpdateFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -359,15 +358,14 @@ export function stepPackResourceHashmapUpdatePacketWithActions(
 export function shouldUsePackResourceHashmapUpdatePacket(
   actions: ReadonlyArray<PackResourceHashmapUpdatePacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract hashmap-update packet bytes from step actions; null when no `use-raw`. */
 export function packResourceHashmapUpdatePacketRawFromActions(
   actions: ReadonlyArray<PackResourceHashmapUpdatePacketAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -423,21 +421,20 @@ export function stepSplitResourceHashmapUpdatePacketWithActions(
 export function shouldUseSplitResourceHashmapUpdatePacket(
   actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitResourceHashmapUpdatePacket(
   actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split hashmap-update packet fields from step actions; null when no `use-fields`. */
 export function resourceHashmapUpdatePacketFieldsFromActions(
   actions: ReadonlyArray<SplitResourceHashmapUpdatePacketAction>,
 ): ResourceHashmapUpdatePacketFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**

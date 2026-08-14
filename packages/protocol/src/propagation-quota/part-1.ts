@@ -14,6 +14,7 @@
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const PROPAGATION_DESTINATION_HASH_SIZE = 16;
 
@@ -106,13 +107,13 @@ export function stepPropagationMessageTooLargeWithActions(
 export function shouldTreatPropagationMessageTooLarge(
   actions: ReadonlyArray<PropagationMessageTooLargeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "too-large");
+  return hasActionOfKind(actions, "too-large");
 }
 
 export function shouldTreatPropagationMessageFit(
   actions: ReadonlyArray<PropagationMessageTooLargeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fit");
+  return hasActionOfKind(actions, "fit");
 }
 
 export function selectOldestPropagationKey(
@@ -174,21 +175,20 @@ export function stepSelectOldestPropagationKeyWithActions(
 export function shouldUseOldestPropagationKey(
   actions: ReadonlyArray<SelectOldestPropagationKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-key");
+  return hasActionOfKind(actions, "use-key");
 }
 
 export function shouldMissOldestPropagationKey(
   actions: ReadonlyArray<SelectOldestPropagationKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 /** Extract oldest propagation key from step actions; null when no `use-key`. */
 export function oldestPropagationKeyFromActions(
   actions: ReadonlyArray<SelectOldestPropagationKeyAction>,
 ): string | null {
-  const action = actions.find((entry) => entry.kind === "use-key");
-  return action?.kind === "use-key" ? action.key : null;
+  return firstActionOfKind(actions, "use-key")?.key ?? null;
 }
 
 /** When remoteDeliveryHash is null, all entries are visible. */
@@ -261,25 +261,25 @@ export type PropagationStorePlanAction = PropagationStorePlan;
 export function shouldRejectTooLargePropagationStorePlan(
   actions: ReadonlyArray<PropagationStorePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-too-large");
+  return hasActionOfKind(actions, "reject-too-large");
 }
 
 export function shouldRejectCapacityPropagationStorePlan(
   actions: ReadonlyArray<PropagationStorePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-capacity");
+  return hasActionOfKind(actions, "reject-capacity");
 }
 
 export function shouldDuplicatePropagationStorePlan(
   actions: ReadonlyArray<PropagationStorePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "duplicate");
+  return hasActionOfKind(actions, "duplicate");
 }
 
 export function shouldAcceptPropagationStorePlan(
   actions: ReadonlyArray<PropagationStorePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 /** Whether plan actions include either reject-too-large or reject-capacity. */
@@ -362,7 +362,7 @@ export function stepCommitPropagationStoreEntryWithActions(
 export function shouldCommitPropagationStoreEntryNow(
   actions: ReadonlyArray<CommitPropagationStoreEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "commit");
+  return hasActionOfKind(actions, "commit");
 }
 
 /**

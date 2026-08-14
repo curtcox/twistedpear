@@ -27,6 +27,7 @@ import type {
   IdentityRecallAppDataPlanAction,
   IdentityRecallAppDataPlanEvent,
 } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Identity-recall-app-data-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planIdentityRecallAppData`
@@ -70,13 +71,13 @@ export function stepIdentityRecallAppDataPlanWithActions(
 export function shouldHitIdentityRecallAppDataPlan(
   actions: ReadonlyArray<IdentityRecallAppDataPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "hit");
+  return hasActionOfKind(actions, "hit");
 }
 
 export function shouldMissIdentityRecallAppDataPlan(
   actions: ReadonlyArray<IdentityRecallAppDataPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 /**
@@ -127,13 +128,13 @@ export function stepIdentityRecallAppDataWithActions(
 export function shouldHitIdentityRecallAppData(
   actions: ReadonlyArray<IdentityRecallAppDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "hit");
+  return hasActionOfKind(actions, "hit");
 }
 
 export function shouldMissIdentityRecallAppData(
   actions: ReadonlyArray<IdentityRecallAppDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 function stepIdentityRecallAppDataInner(
@@ -217,13 +218,13 @@ export function stepAttemptIdentityRatchetDecryptWithActions(
 export function shouldAttemptIdentityRatchetDecryptNow(
   actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "attempt");
+  return hasActionOfKind(actions, "attempt");
 }
 
 export function shouldSkipIdentityRatchetDecrypt(
   actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether Identity.hash may be read (key material loaded). */
@@ -280,13 +281,13 @@ export function stepIdentityHashAllowWithActions(
 export function shouldAllowIdentityHash(
   actions: ReadonlyArray<IdentityHashAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyIdentityHash(
   actions: ReadonlyArray<IdentityHashAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether private-key ops (sign / decrypt / getPrivateKey) may proceed. */
@@ -352,13 +353,13 @@ export function stepIdentityUsePrivateKeyWithActions(
 export function shouldAllowIdentityUsePrivateKey(
   actions: ReadonlyArray<IdentityUsePrivateKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyIdentityUsePrivateKey(
   actions: ReadonlyArray<IdentityUsePrivateKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether public-key ops (validate / encrypt / getPublicKey) may proceed. */
@@ -424,13 +425,13 @@ export function stepIdentityUsePublicKeyWithActions(
 export function shouldAllowIdentityUsePublicKey(
   actions: ReadonlyArray<IdentityUsePublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyIdentityUsePublicKey(
   actions: ReadonlyArray<IdentityUsePublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether loadPrivateKey / loadPublicKey may accept a successful key split. */

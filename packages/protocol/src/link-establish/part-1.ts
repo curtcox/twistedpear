@@ -52,6 +52,7 @@ import {
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export interface LinkEstablishState {
   readonly status: LinkStatusValue;
@@ -183,13 +184,13 @@ export function stepPerformLinkHandshakeAllowWithActions(
 export function shouldAllowPerformLinkHandshake(
   actions: ReadonlyArray<PerformLinkHandshakeAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyPerformLinkHandshake(
   actions: ReadonlyArray<PerformLinkHandshakeAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether a responder may issue a link request proof. */
@@ -260,13 +261,13 @@ export function stepProveLinkAllowWithActions(
 export function shouldAllowProveLink(
   actions: ReadonlyArray<ProveLinkAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyProveLink(
   actions: ReadonlyArray<ProveLinkAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether owner public-key bytes split into Ed25519/X25519 halves for prove. */
@@ -325,13 +326,13 @@ export function stepAcceptLinkOwnerPublicKeyWithActions(
 export function shouldAcceptLinkOwnerPublicKeyNow(
   actions: ReadonlyArray<AcceptLinkOwnerPublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectLinkOwnerPublicKey(
   actions: ReadonlyArray<AcceptLinkOwnerPublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Whether an inbound link request destination has identity material. */
@@ -390,13 +391,13 @@ export function stepAcceptLinkRequestOwnerWithActions(
 export function shouldAcceptLinkRequestOwnerNow(
   actions: ReadonlyArray<AcceptLinkRequestOwnerAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectLinkRequestOwner(
   actions: ReadonlyArray<AcceptLinkRequestOwnerAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 export type LinkValidateRequestPlan =
@@ -443,25 +444,25 @@ export type LinkValidateRequestPlanAction =
 export function shouldOkLinkValidateRequestPlan(
   actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldBadRequestLinkValidateRequestPlan(
   actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-request");
+  return hasActionOfKind(actions, "bad-request");
 }
 
 export function shouldOwnerMissingIdentityLinkValidateRequestPlan(
   actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "owner-missing-identity");
+  return hasActionOfKind(actions, "owner-missing-identity");
 }
 
 export function shouldModeDisabledLinkValidateRequestPlan(
   actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mode-disabled");
+  return hasActionOfKind(actions, "mode-disabled");
 }
 
 export type LinkValidateRequestEvent =

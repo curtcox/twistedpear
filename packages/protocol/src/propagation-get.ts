@@ -8,6 +8,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
 import { propagationEntryVisibleToRecipient } from "./propagation-quota.js";
+import { hasActionOfKind } from "./action-kind.js";
 
 export interface PropagationGetCatalogEntry {
   readonly transientId: Uint8Array;
@@ -138,14 +139,14 @@ export function stepPropagationGetPlanWithActions(
 export function shouldListPropagationGetPlanIds(
   actions: ReadonlyArray<PropagationGetPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "list-ids");
+  return hasActionOfKind(actions, "list-ids");
 }
 
 /** Whether plan actions include apply (delete + fetch). */
 export function shouldApplyPropagationGetPlan(
   actions: ReadonlyArray<PropagationGetPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 /** Transient IDs from a list-ids plan action, if present. */
@@ -243,13 +244,13 @@ export function stepAcceptPropagationGetRequestDataWithActions(
 export function shouldAcceptPropagationGetRequestDataNow(
   actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptPropagationGetRequestData(
   actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -312,14 +313,14 @@ export function stepPropagationGetWithActions(
 export function shouldListPropagationGetIds(
   actions: ReadonlyArray<PropagationGetAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "list-ids");
+  return hasActionOfKind(actions, "list-ids");
 }
 
 /** Whether step actions include apply (delete + fetch). */
 export function shouldApplyPropagationGet(
   actions: ReadonlyArray<PropagationGetAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 /** Transient IDs from a list-ids action, if present. */

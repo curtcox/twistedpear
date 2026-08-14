@@ -25,6 +25,7 @@ import type {
   AcceptParsedAnnounceState,
   AcceptParsedAnnounceStepResult,
 } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function stepAcceptParsedAnnounceWithActions(
   state: AcceptParsedAnnounceState,
   event: AcceptParsedAnnounceEvent,
@@ -49,13 +50,13 @@ export function stepAcceptParsedAnnounceWithActions(
 export function shouldAcceptParsedAnnounceNow(
   actions: ReadonlyArray<AcceptParsedAnnounceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipParsedAnnounceAccept(
   actions: ReadonlyArray<AcceptParsedAnnounceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Material hashed then truncated for destination-hash check after announce validate. */
@@ -122,15 +123,14 @@ export function stepAnnounceDestinationHashMaterialWithActions(
 export function shouldUseAnnounceDestinationHashMaterial(
   actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract announce destination-hash material from step actions; null when no `use-raw`. */
 export function announceDestinationHashMaterialRawFromActions(
   actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 export function announceDestinationHashMatches(
@@ -195,13 +195,13 @@ export function stepAnnounceDestinationHashMatchWithActions(
 export function shouldMatchAnnounceDestinationHash(
   actions: ReadonlyArray<AnnounceDestinationHashMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "match");
+  return hasActionOfKind(actions, "match");
 }
 
 export function shouldMismatchAnnounceDestinationHash(
   actions: ReadonlyArray<AnnounceDestinationHashMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mismatch");
+  return hasActionOfKind(actions, "mismatch");
 }
 
 /** Whether a packet is an ANNOUNCE type eligible for announce parse. */
@@ -256,13 +256,13 @@ export function stepAnnouncePacketTypeWithActions(
 export function shouldTreatAnnouncePacketType(
   actions: ReadonlyArray<AnnouncePacketTypeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "announce");
+  return hasActionOfKind(actions, "announce");
 }
 
 export function shouldTreatAnnouncePacketTypeOther(
   actions: ReadonlyArray<AnnouncePacketTypeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "other");
+  return hasActionOfKind(actions, "other");
 }
 
 export type AnnounceValidatePlan =
@@ -341,13 +341,13 @@ export function stepAttemptAnnounceSignatureValidateWithActions(
 export function shouldAttemptAnnounceSignatureValidateNow(
   actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "attempt");
+  return hasActionOfKind(actions, "attempt");
 }
 
 export function shouldSkipAnnounceSignatureValidate(
   actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -430,13 +430,13 @@ export function stepCheckAnnounceDestinationHashWithActions(
 export function shouldCheckAnnounceDestinationHashNow(
   actions: ReadonlyArray<CheckAnnounceDestinationHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "check");
+  return hasActionOfKind(actions, "check");
 }
 
 export function shouldSkipAnnounceDestinationHashCheck(
   actions: ReadonlyArray<CheckAnnounceDestinationHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**

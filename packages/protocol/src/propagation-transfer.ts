@@ -4,6 +4,7 @@
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { LINK_AWAIT_DEFAULT_TIMEOUT_MS } from "./link-await.js";
+import { hasActionOfKind } from "./action-kind.js";
 
 /** Mirrors LXMF/LXMRouter.py propagation transfer states. */
 export const PropagationTransferState = {
@@ -353,13 +354,13 @@ export function stepAcceptPropagationPeerResponseWithActions(
 export function shouldAcceptPropagationPeerResponseNow(
   actions: ReadonlyArray<AcceptPropagationPeerResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptPropagationPeerResponse(
   actions: ReadonlyArray<AcceptPropagationPeerResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a decoded peer-error code should drive xfer/list-peer-error. */
@@ -420,13 +421,13 @@ export function stepHandlePropagationPeerErrorWithActions(
 export function shouldHandlePropagationPeerErrorNow(
   actions: ReadonlyArray<HandlePropagationPeerErrorAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "handle");
+  return hasActionOfKind(actions, "handle");
 }
 
 export function shouldSkipHandlePropagationPeerError(
   actions: ReadonlyArray<HandlePropagationPeerErrorAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a locally delivered propagation message should be collected. */
@@ -487,13 +488,13 @@ export function stepAcceptPropagationDeliveredMessageWithActions(
 export function shouldAcceptPropagationDeliveredMessageNow(
   actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptPropagationDeliveredMessage(
   actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a filtered want-list should complete as empty (xfer/list-empty). */
@@ -552,13 +553,13 @@ export function stepTreatPropagationListAsEmptyWithActions(
 export function shouldTreatPropagationListAsEmptyNow(
   actions: ReadonlyArray<TreatPropagationListAsEmptyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "empty");
+  return hasActionOfKind(actions, "empty");
 }
 
 export function shouldTreatPropagationListAsNonempty(
   actions: ReadonlyArray<TreatPropagationListAsEmptyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "nonempty");
+  return hasActionOfKind(actions, "nonempty");
 }
 
 /** Whether haves-ack request should run after download-ready. */
@@ -624,11 +625,11 @@ export function stepRequestPropagationHavesAckWithActions(
 export function shouldRequestPropagationHavesAckNow(
   actions: ReadonlyArray<RequestPropagationHavesAckAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "request");
+  return hasActionOfKind(actions, "request");
 }
 
 export function shouldSkipRequestPropagationHavesAck(
   actions: ReadonlyArray<RequestPropagationHavesAckAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }

@@ -8,6 +8,7 @@
 import type { Event, Intent } from "@twistedpear/effects";
 import { bytesToHexLower } from "./destination-name.js";
 import { TRANSPORT_ID_BYTES } from "./transport-framing.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const PATH_REQUEST_HASH_BYTES = TRANSPORT_ID_BYTES;
 export const TRANSPORT_PATH_REQUEST_APP = "rnstransport";
@@ -144,15 +145,14 @@ export function stepBuildPathRequestDataWithActions(
 export function shouldUseBuildPathRequestData(
   actions: ReadonlyArray<BuildPathRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract path-request build bytes from step actions; null when no `use-raw`. */
 export function buildPathRequestDataRawFromActions(
   actions: ReadonlyArray<BuildPathRequestDataAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -205,21 +205,20 @@ export function stepParsePathRequestDataWithActions(
 export function shouldUseParsePathRequestData(
   actions: ReadonlyArray<ParsePathRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectParsePathRequestData(
   actions: ReadonlyArray<ParsePathRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract parsed path-request fields from step actions; null when no `use-fields`. */
 export function pathRequestFieldsFromActions(
   actions: ReadonlyArray<ParsePathRequestDataAction>,
 ): PathRequestFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -275,13 +274,12 @@ export function stepPathRequestTagKeyWithActions(
 export function shouldUsePathRequestTagKey(
   actions: ReadonlyArray<PathRequestTagKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-key");
+  return hasActionOfKind(actions, "use-key");
 }
 
 /** Extract path-request tag key from step actions; null when no `use-key`. */
 export function pathRequestTagKeyFromActions(
   actions: ReadonlyArray<PathRequestTagKeyAction>,
 ): string | null {
-  const action = actions.find((entry) => entry.kind === "use-key");
-  return action?.kind === "use-key" ? action.key : null;
+  return firstActionOfKind(actions, "use-key")?.key ?? null;
 }

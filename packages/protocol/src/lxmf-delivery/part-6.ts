@@ -22,6 +22,7 @@ import type {
   LxmfPropagationLinkReadyPlanAction,
   LxmfPropagationLinkReadyPlanEvent,
 } from "./part-5.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Propagation link-ready-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagationLinkReady` /
@@ -67,28 +68,28 @@ export function stepLxmfPropagationLinkReadyPlanWithActions(
 export function shouldPlanLxmfPropagationLinkReadyReuse(
   actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reuse");
+  return hasActionOfKind(actions, "reuse");
 }
 
 /** Whether plan actions establish a new propagation link. */
 export function shouldPlanLxmfPropagationLinkReadyEstablish(
   actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "establish");
+  return hasActionOfKind(actions, "establish");
 }
 
 /** Whether plan actions reject a missing propagation node. */
 export function shouldRejectLxmfPropagationLinkReadyPlanMissingNode(
   actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-node");
+  return hasActionOfKind(actions, "missing-node");
 }
 
 /** Whether plan actions reject a missing node identity. */
 export function shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(
   actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-identity");
+  return hasActionOfKind(actions, "missing-identity");
 }
 
 /** Extract the link-ready plan from actions; null when empty. */
@@ -154,25 +155,25 @@ export function stepLxmfPropagationLinkReadyWithActions(
 export function shouldReuseLxmfPropagationLink(
   actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reuse");
+  return hasActionOfKind(actions, "reuse");
 }
 
 export function shouldEstablishLxmfPropagationLink(
   actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "establish");
+  return hasActionOfKind(actions, "establish");
 }
 
 export function shouldRejectLxmfPropagationMissingNode(
   actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-node");
+  return hasActionOfKind(actions, "reject-missing-node");
 }
 
 export function shouldRejectLxmfPropagationMissingIdentity(
   actions: ReadonlyArray<LxmfPropagationLinkReadyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-identity");
+  return hasActionOfKind(actions, "reject-missing-identity");
 }
 
 function stepLxmfPropagationLinkReadyInner(
@@ -292,28 +293,28 @@ export function stepLxmfPropagatedSendPlanWithActions(
 export function shouldPlanLxmfPropagatedSendOk(
   actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 /** Whether plan actions reject a missing propagation node. */
 export function shouldRejectLxmfPropagatedSendPlanMissingNode(
   actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-node");
+  return hasActionOfKind(actions, "missing-node");
 }
 
 /** Whether plan actions reject a missing packed envelope. */
 export function shouldRejectLxmfPropagatedSendPlanMissingPacked(
   actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-packed");
+  return hasActionOfKind(actions, "missing-packed");
 }
 
 /** Whether plan actions reject unimplemented RESOURCE representation. */
 export function shouldRejectLxmfPropagatedSendPlanResourceUnimplemented(
   actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resource-unimplemented");
+  return hasActionOfKind(actions, "resource-unimplemented");
 }
 
 /** Extract the PROPAGATED send plan from actions; null when empty. */
@@ -389,19 +390,19 @@ export function stepLxmfPropagatedSendWithActions(
 export function shouldProceedLxmfPropagatedSend(
   actions: ReadonlyArray<LxmfPropagatedSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLxmfPropagatedMissingNode(
   actions: ReadonlyArray<LxmfPropagatedSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-node");
+  return hasActionOfKind(actions, "reject-missing-node");
 }
 
 export function shouldRejectLxmfPropagatedMissingPacked(
   actions: ReadonlyArray<LxmfPropagatedSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-packed");
+  return hasActionOfKind(actions, "reject-missing-packed");
 }
 
 export function shouldRejectLxmfPropagatedResourceUnimplemented(

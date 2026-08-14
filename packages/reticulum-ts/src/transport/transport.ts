@@ -123,32 +123,61 @@ export class TransportNode extends TransportNodePath {
         deferred: this.shouldDeferPacketHash(workingPacket),
       },
     );
-    if (shouldRememberPacketHashNowActions(rememberStepped.actions)) {
-      this.packetHashes.add(hashKey(workingPacket.hash()));
+    this.rememberPacketHashIf(
+      shouldRememberPacketHashNowActions(rememberStepped.actions),
+      workingPacket,
+    );
+
+    if (
+      await this.tryRelayInbound(workingPacket, iface, rememberStepped.actions)
+    ) {
+      return;
     }
 
+    await this.dispatchTransportIngress(workingPacket, iface);
+  }
+
+  private rememberPacketHashIf(shouldRemember: boolean, packet: Packet): void {
+    if (shouldRemember) {
+      this.packetHashes.add(hashKey(packet.hash()));
+    }
+  }
+
+  private async tryRelayInbound(
+    workingPacket: Packet,
+    iface: PacketInterface,
+    rememberActions: ReturnType<
+      typeof stepPacketHashRememberWithActions
+    >["actions"],
+  ): Promise<boolean> {
     if (await this.relayTransportPacket(workingPacket, iface)) {
-      if (shouldRememberPacketHashAfterRelayActions(rememberStepped.actions)) {
-        this.packetHashes.add(hashKey(workingPacket.hash()));
-      }
-      return;
+      this.rememberPacketHashIf(
+        shouldRememberPacketHashAfterRelayActions(rememberActions),
+        workingPacket,
+      );
+      return true;
     }
-
     if (await this.relayLinkPacket(workingPacket, iface)) {
-      if (shouldRememberPacketHashAfterRelayActions(rememberStepped.actions)) {
-        this.packetHashes.add(hashKey(workingPacket.hash()));
-      }
-      return;
+      this.rememberPacketHashIf(
+        shouldRememberPacketHashAfterRelayActions(rememberActions),
+        workingPacket,
+      );
+      return true;
     }
-
     if (await this.relayReversePacket(workingPacket, iface)) {
-      return;
+      return true;
     }
+    this.rememberPacketHashIf(
+      shouldRememberPacketHashAfterRelayActions(rememberActions),
+      workingPacket,
+    );
+    return false;
+  }
 
-    if (shouldRememberPacketHashAfterRelayActions(rememberStepped.actions)) {
-      this.packetHashes.add(hashKey(workingPacket.hash()));
-    }
-
+  private async dispatchTransportIngress(
+    workingPacket: Packet,
+    iface: PacketInterface,
+  ): Promise<void> {
     const dispatchStepped = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
@@ -157,29 +186,29 @@ export class TransportNode extends TransportNodePath {
         destinationType: workingPacket.destinationType,
       },
     );
-    if (shouldDispatchTransportAnnounce(dispatchStepped.actions)) {
+    const actions = dispatchStepped.actions;
+    if (shouldDispatchTransportAnnounce(actions)) {
       await this.handleAnnounce(workingPacket, iface);
       return;
     }
-    if (shouldDispatchTransportLinkRequest(dispatchStepped.actions)) {
+    if (shouldDispatchTransportLinkRequest(actions)) {
       await this.handleLinkRequest(workingPacket, iface);
       return;
     }
-    if (shouldDispatchTransportLinkData(dispatchStepped.actions)) {
+    if (shouldDispatchTransportLinkData(actions)) {
       await this.handleLinkData(workingPacket, iface);
       return;
     }
-    if (shouldDispatchTransportPlainData(dispatchStepped.actions)) {
+    if (shouldDispatchTransportPlainData(actions)) {
       await this.handleData(workingPacket, iface);
       return;
     }
-    if (shouldDispatchTransportProof(dispatchStepped.actions)) {
+    if (shouldDispatchTransportProof(actions)) {
       await this.handleProof(workingPacket, iface);
       return;
     }
-    if (shouldIgnoreTransportIngressDispatch(dispatchStepped.actions)) {
-      this.emitDrop(dropFromIngressIgnore(dispatchStepped.actions, iface.name));
-      return;
+    if (shouldIgnoreTransportIngressDispatch(actions)) {
+      this.emitDrop(dropFromIngressIgnore(actions, iface.name));
     }
   }
 

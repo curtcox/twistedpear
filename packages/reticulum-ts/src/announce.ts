@@ -212,59 +212,11 @@ export class Announce {
     destination: Destination,
     options: AnnounceBuildOptions = {},
   ): Packet {
-    const early = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
-      kind: "announce/build-gate",
-      typeSingle: destination.type === DestinationType.SINGLE,
-      directionIn: destination.direction === DestinationDirection.IN,
-      identityPresent: destination.identity !== null,
-      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
-      ratchetPublicKeyLength: null,
-    });
-    if (shouldRejectAnnounceBuildNotAnnounceableType(early.actions)) {
-      throw new Error("Only SINGLE destinations can be announced");
-    }
-    if (shouldRejectAnnounceBuildNotAnnounceableDirection(early.actions)) {
-      throw new Error("Only IN destinations can be announced");
-    }
-    if (
-      shouldRejectAnnounceBuildMissingIdentity(early.actions) ||
-      destination.identity === null
-    ) {
-      throw new Error("Announce destination must hold an identity");
-    }
+    throwAnnounceBuildEarly(destination);
+    const randomHash = resolveAnnounceRandomHash(provider, options);
+    throwAnnounceBuildGate(randomHash, options);
 
-    const randomHash =
-      options.randomHash ??
-      (options.entropy !== undefined
-        ? options.entropy.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE)
-        : provider.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE));
-
-    const gate = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
-      kind: "announce/build-gate",
-      typeSingle: true,
-      directionIn: true,
-      identityPresent: true,
-      randomHashLength: randomHash.length,
-      ratchetPublicKeyLength:
-        options.ratchetPublicKey === undefined
-          ? null
-          : options.ratchetPublicKey.length,
-    });
-    if (shouldRejectAnnounceBuildBadRandomHash(gate.actions)) {
-      throw new Error(
-        `Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`,
-      );
-    }
-    if (shouldRejectAnnounceBuildBadRatchet(gate.actions)) {
-      throw new Error(
-        `Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`,
-      );
-    }
-    if (!shouldProceedAnnounceBuild(gate.actions)) {
-      throw new Error("Announce build rejected");
-    }
-
-    const publicKey = destination.identity.getPublicKey();
+    const publicKey = destination.identity!.getPublicKey();
     const ratchetPublicKey = options.ratchetPublicKey ?? null;
     const appData = options.appData ?? null;
     const signedStepped = stepAnnounceSignedMaterialWithActions(
@@ -285,7 +237,7 @@ export class Announce {
     if (signedData === null) {
       throw new Error("Announce signed material: missing use-raw action");
     }
-    const signature = destination.identity.sign(signedData);
+    const signature = destination.identity!.sign(signedData);
     const packStepped = stepPackAnnouncePayloadWithActions(
       initialPackAnnouncePayloadState(),
       {
@@ -307,18 +259,12 @@ export class Announce {
 
     return Packet.fromFields(provider, {
       headerType: 0,
-      contextFlag:
-        options.ratchetPublicKey === undefined
-          ? PacketContextFlag.UNSET
-          : PacketContextFlag.SET,
+      contextFlag: announceContextFlag(options),
       transportType: TransportType.BROADCAST,
       destinationType: DestinationType.SINGLE,
       packetType: PacketType.ANNOUNCE,
       destinationHash: destination.hash,
-      context:
-        options.pathResponse === true
-          ? PacketContext.PATH_RESPONSE
-          : PacketContext.NONE,
+      context: announcePacketContext(options),
       data,
     });
   }
@@ -419,4 +365,88 @@ export class Announce {
     const plan = Announce.validatePlan(provider, packet, onlyValidateSignature);
     return plan === "accept" || plan === "accept-signature-only";
   }
+}
+
+function throwAnnounceBuildEarly(destination: Destination): void {
+  const early = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+    kind: "announce/build-gate",
+    typeSingle: destination.type === DestinationType.SINGLE,
+    directionIn: destination.direction === DestinationDirection.IN,
+    identityPresent: destination.identity !== null,
+    randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+    ratchetPublicKeyLength: null,
+  });
+  if (shouldRejectAnnounceBuildNotAnnounceableType(early.actions)) {
+    throw new Error("Only SINGLE destinations can be announced");
+  }
+  if (shouldRejectAnnounceBuildNotAnnounceableDirection(early.actions)) {
+    throw new Error("Only IN destinations can be announced");
+  }
+  if (
+    shouldRejectAnnounceBuildMissingIdentity(early.actions) ||
+    destination.identity === null
+  ) {
+    throw new Error("Announce destination must hold an identity");
+  }
+}
+
+function resolveAnnounceRandomHash(
+  provider: CryptoProvider,
+  options: AnnounceBuildOptions,
+): Uint8Array {
+  if (options.randomHash !== undefined) {
+    return options.randomHash;
+  }
+  if (options.entropy !== undefined) {
+    return options.entropy.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE);
+  }
+  return provider.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE);
+}
+
+function throwAnnounceBuildGate(
+  randomHash: Uint8Array,
+  options: AnnounceBuildOptions,
+): void {
+  const gate = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+    kind: "announce/build-gate",
+    typeSingle: true,
+    directionIn: true,
+    identityPresent: true,
+    randomHashLength: randomHash.length,
+    ratchetPublicKeyLength:
+      options.ratchetPublicKey === undefined
+        ? null
+        : options.ratchetPublicKey.length,
+  });
+  if (shouldRejectAnnounceBuildBadRandomHash(gate.actions)) {
+    throw new Error(
+      `Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`,
+    );
+  }
+  if (shouldRejectAnnounceBuildBadRatchet(gate.actions)) {
+    throw new Error(
+      `Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`,
+    );
+  }
+  if (!shouldProceedAnnounceBuild(gate.actions)) {
+    throw new Error("Announce build rejected");
+  }
+}
+
+function announceContextFlag(
+  options: AnnounceBuildOptions,
+): (typeof PacketContextFlag)[keyof typeof PacketContextFlag] {
+  if (options.ratchetPublicKey === undefined) {
+    return PacketContextFlag.UNSET;
+  }
+  return PacketContextFlag.SET;
+}
+
+function announcePacketContext(
+  options: AnnounceBuildOptions,
+): (typeof PacketContext)[keyof typeof PacketContext] {
+  if (options.pathResponse === true) {
+    return PacketContext.PATH_RESPONSE;
+  }
+  return PacketContext.NONE;
 }

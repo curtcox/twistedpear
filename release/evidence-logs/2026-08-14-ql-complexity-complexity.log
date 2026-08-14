@@ -1,0 +1,6 @@
+
+> twistedpear@0.0.0 complexity:check
+> node scripts/analysis/eslint-ratchet.mjs --kind=complexity
+
+complexity: PASS; 0 new, 0 stale.
+complexity ratchet is clear of complexity

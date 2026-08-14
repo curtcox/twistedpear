@@ -69,6 +69,7 @@ import type {
   LinkValidateRequestPlanAction,
   LinkValidateRequestPlanEvent,
 } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Validate-request plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkValidateRequest` /
@@ -163,13 +164,13 @@ export function stepLinkValidateRequestWithActions(
 export function shouldProceedLinkValidateRequest(
   actions: ReadonlyArray<LinkValidateRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLinkValidateBadRequest(
   actions: ReadonlyArray<LinkValidateRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-bad-request");
+  return hasActionOfKind(actions, "reject-bad-request");
 }
 
 export function shouldRejectLinkValidateOwnerMissingIdentity(
@@ -183,7 +184,7 @@ export function shouldRejectLinkValidateOwnerMissingIdentity(
 export function shouldRejectLinkValidateModeDisabled(
   actions: ReadonlyArray<LinkValidateRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-mode-disabled");
+  return hasActionOfKind(actions, "reject-mode-disabled");
 }
 
 /**
@@ -252,13 +253,13 @@ export function stepContinueLinkValidateRequestWithActions(
 export function shouldContinueLinkValidateRequestNow(
   actions: ReadonlyArray<ContinueLinkValidateRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "continue");
+  return hasActionOfKind(actions, "continue");
 }
 
 export function shouldSkipContinueLinkValidateRequest(
   actions: ReadonlyArray<ContinueLinkValidateRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 function stepLinkValidateRequestInner(
@@ -380,13 +381,13 @@ export function stepValidateLinkProofAllowWithActions(
 export function shouldAllowValidateLinkProof(
   actions: ReadonlyArray<ValidateLinkProofAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyValidateLinkProof(
   actions: ReadonlyArray<ValidateLinkProofAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 export type LinkProofValidateOutcome = "accept" | "reject";
@@ -434,13 +435,13 @@ export type LinkProofValidateOutcomePlanAction =
 export function shouldAcceptLinkProofValidateOutcomePlan(
   actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectLinkProofValidateOutcomePlan(
   actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 export type LinkProofValidateEvent =

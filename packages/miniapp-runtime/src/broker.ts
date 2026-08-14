@@ -140,72 +140,103 @@ export class MiniappBroker {
     let capabilityAllowed = false;
     try {
       this.enforceMessageLimits(request, context);
-      const registered = this.handlers.get(
-        `${request.namespace}.${request.method}`,
-      );
-      if (registered === undefined) {
-        throw new BrokerError(
-          "UNKNOWN_METHOD",
-          `Unknown broker method ${request.namespace}.${request.method}`,
-        );
-      }
-
-      const capability = registered.capability;
-      if (
-        request.capability !== undefined &&
-        request.capability !== capability &&
-        !(request.capability === null && capability === null)
-      ) {
-        throw new BrokerError(
-          "CAPABILITY_MISMATCH",
-          `Broker capability mismatch for ${request.namespace}.${request.method}`,
-        );
-      }
-
-      if (capability !== null && this.options.enforceCapabilities !== false) {
-        assertCapabilityAllowed({
-          capability,
-          declared: context.declaredCapabilities,
-          granted: context.grantedCapabilities,
-        });
-      }
-
+      const registered = this.requireHandler(request);
+      this.assertRequestCapability(request, registered.capability);
+      this.enforceRegisteredCapability(registered.capability, context);
       capabilityAllowed = true;
-      this.options.audit?.({
-        appId: context.appId,
-        namespace: request.namespace,
-        method: request.method,
-        capability,
+      this.auditDispatch(request, context, {
+        capability: registered.capability,
         allowed: true,
         outcome: "allowed",
-        at: this.now(),
       });
-
       const result = await registered.handler(request, context);
       return { id: request.id, ok: true, result };
     } catch (error) {
-      const detail = {
-        code:
-          error instanceof Error && "code" in error
-            ? String(error.code)
-            : "BROKER_ERROR",
-        message:
-          error instanceof Error ? error.message : "Broker dispatch failed",
-      };
-
-      this.options.audit?.({
-        appId: context.appId,
-        namespace: request.namespace,
-        method: request.method,
-        capability: request.capability ?? null,
-        allowed: false,
-        outcome: capabilityAllowed ? "failed" : "denied",
-        at: this.now(),
-        error: detail,
-      });
-
-      return { id: request.id, ok: false, error: detail };
+      return this.failDispatch(request, context, capabilityAllowed, error);
     }
+  }
+
+  private requireHandler(request: BrokerRequest): {
+    capability: MiniappCapability | null;
+    handler: BrokerHandler;
+  } {
+    const registered = this.handlers.get(
+      `${request.namespace}.${request.method}`,
+    );
+    if (registered === undefined) {
+      throw new BrokerError(
+        "UNKNOWN_METHOD",
+        `Unknown broker method ${request.namespace}.${request.method}`,
+      );
+    }
+    return registered;
+  }
+
+  private assertRequestCapability(
+    request: BrokerRequest,
+    capability: MiniappCapability | null,
+  ): void {
+    if (
+      request.capability !== undefined &&
+      request.capability !== capability &&
+      !(request.capability === null && capability === null)
+    ) {
+      throw new BrokerError(
+        "CAPABILITY_MISMATCH",
+        `Broker capability mismatch for ${request.namespace}.${request.method}`,
+      );
+    }
+  }
+
+  private enforceRegisteredCapability(
+    capability: MiniappCapability | null,
+    context: BrokerContext,
+  ): void {
+    if (capability !== null && this.options.enforceCapabilities !== false) {
+      assertCapabilityAllowed({
+        capability,
+        declared: context.declaredCapabilities,
+        granted: context.grantedCapabilities,
+      });
+    }
+  }
+
+  private auditDispatch(
+    request: BrokerRequest,
+    context: BrokerContext,
+    entry: {
+      capability: MiniappCapability | string | null;
+      allowed: boolean;
+      outcome: BrokerAuditOutcome;
+      error?: BrokerAuditEntry["error"];
+    },
+  ): void {
+    this.options.audit?.({
+      appId: context.appId,
+      namespace: request.namespace,
+      method: request.method,
+      capability: entry.capability,
+      allowed: entry.allowed,
+      outcome: entry.outcome,
+      at: this.now(),
+      ...(entry.error === undefined ? {} : { error: entry.error }),
+    });
+  }
+
+  private failDispatch(
+    request: BrokerRequest,
+    context: BrokerContext,
+    capabilityAllowed: boolean,
+    error: unknown,
+  ): BrokerResponse {
+    const detail = brokerErrorDetail(error);
+    this.auditDispatch(request, context, {
+      capability: request.capability ?? null,
+      allowed: false,
+      outcome: capabilityAllowed ? "failed" : "denied",
+      error: detail,
+    });
+    return { id: request.id, ok: false, error: detail };
   }
 
   private enforceMessageLimits(
@@ -243,4 +274,17 @@ export class MiniappBroker {
   private now(): number {
     return this.options.now();
   }
+}
+
+function brokerErrorDetail(error: unknown): {
+  readonly code: string;
+  readonly message: string;
+} {
+  return {
+    code:
+      error instanceof Error && "code" in error
+        ? String(error.code)
+        : "BROKER_ERROR",
+    message: error instanceof Error ? error.message : "Broker dispatch failed",
+  };
 }

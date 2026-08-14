@@ -73,58 +73,16 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
   ): Promise<void> {
     const session = this.requireLiveSession(appId, handle);
     this.enforceTtl(session);
-    const live = this.sessions.get(handle);
-    if (live === undefined || !isDeviceSessionLive(live.state.phase)) {
-      throw new DeviceError(
-        "DEVICE_SESSION_EXPIRED",
-        "Device session is no longer active.",
-      );
-    }
-
+    const live = this.requireActiveLive(handle);
     this.assertCommandMatchesSession(live.state.classId, command);
-
-    let normalized: DeviceCommand;
-    try {
-      normalized = validateActuatorCommand(command).normalized;
-    } catch (error) {
-      if (error instanceof ActuatorSafetyError) {
-        throw new DeviceError("DEVICE_BAD_REQUEST", error.message);
-      }
-      throw error;
-    }
-
-    if (normalized.kind === "nfc" && normalized.action === "write") {
-      await this.confirmNfcWrite({
-        appId,
-        publisherPublicKey,
-        purpose: live.purpose,
-        ndef: normalized.ndef,
-      });
-    }
-    if (normalized.kind === "nfc" && normalized.action === "apdu") {
-      if (live.state.tierId !== "apdu") {
-        throw new DeviceError(
-          "DEVICE_TIER_REQUIRED",
-          "APDU exchange requires an nfc:apdu session.",
-        );
-      }
-      await this.confirmNfcWrite({
-        appId,
-        publisherPublicKey,
-        purpose: live.purpose,
-        ndef: `APDU aid=${normalized.aid}`,
-      });
-    }
-
-    const minIntervalMs = 1000 / live.rateHz;
-    const at = this.now();
-    if (live.lastReadAt !== null && at - live.lastReadAt < minIntervalMs - 1) {
-      throw new DeviceError(
-        "DEVICE_RATE_EXCEEDED",
-        `Device write rate exceeded (${live.rateHz} Hz).`,
-      );
-    }
-
+    const normalized = this.normalizeActuatorCommand(command);
+    await this.confirmNfcCommandIfNeeded(
+      appId,
+      publisherPublicKey,
+      live,
+      normalized,
+    );
+    const at = this.enforceActuateRate(live);
     const driver = this.drivers.get(live.state.classId);
     if (driver?.actuate === undefined) {
       throw new DeviceError(
@@ -134,6 +92,66 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     }
     await driver.actuate(normalized);
     live.lastReadAt = at;
+  }
+
+  private requireActiveLive(handle: DeviceSessionHandle): LiveSession {
+    const live = this.sessions.get(handle);
+    if (live === undefined || !isDeviceSessionLive(live.state.phase)) {
+      throw new DeviceError(
+        "DEVICE_SESSION_EXPIRED",
+        "Device session is no longer active.",
+      );
+    }
+    return live;
+  }
+
+  private normalizeActuatorCommand(command: DeviceCommand): DeviceCommand {
+    try {
+      return validateActuatorCommand(command).normalized;
+    } catch (error) {
+      if (error instanceof ActuatorSafetyError) {
+        throw new DeviceError("DEVICE_BAD_REQUEST", error.message);
+      }
+      throw error;
+    }
+  }
+
+  private async confirmNfcCommandIfNeeded(
+    appId: string,
+    publisherPublicKey: string,
+    live: LiveSession,
+    normalized: DeviceCommand,
+  ): Promise<void> {
+    if (normalized.kind !== "nfc") {
+      return;
+    }
+    if (normalized.action === "write") {
+      await this.confirmNfcWrite({
+        appId,
+        publisherPublicKey,
+        purpose: live.purpose,
+        ndef: normalized.ndef,
+      });
+      return;
+    }
+    await this.confirmNfcWrite({
+      appId,
+      publisherPublicKey,
+      purpose: live.purpose,
+      ndef: `APDU aid=${normalized.aid}`,
+    });
+  }
+
+  private enforceActuateRate(live: LiveSession): number {
+    const minIntervalMs = 1000 / live.rateHz;
+    const at = this.now();
+    if (live.lastReadAt !== null && at - live.lastReadAt < minIntervalMs - 1) {
+      throw new DeviceError(
+        "DEVICE_RATE_EXCEEDED",
+        `Device write rate exceeded (${live.rateHz} Hz).`,
+      );
+    }
+    return at;
   }
 
   activeStreams(): ReadonlyArray<DeviceStreamSession> {
@@ -436,35 +454,8 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     }
     const tier = this.resolveTier(entry, request.tier);
     const at = this.now();
-    this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
-      kind: "remote/ttl",
-      at,
-      peerId: request.peerId,
-      classId: entry.id,
-      tierId: tier.id,
-    });
-    const grant = this.remoteGrants.get(
-      remoteGrantKey(request.peerId, entry.id, tier.id),
-    );
-    if (!isRemoteGrantLive(grant, at)) {
-      throw new DeviceError(
-        "DEVICE_DENIED",
-        "No live remote grant for this peer/class/tier.",
-      );
-    }
-
-    const remoteLive = [...this.sessions.values()].filter(
-      (session) =>
-        session.remotePeerId !== null &&
-        isDeviceSessionLive(session.state.phase),
-    );
-    const peerConcurrent = remoteLive.filter(
-      (session) =>
-        session.remotePeerId === request.peerId &&
-        session.state.classId === entry.id &&
-        session.state.tierId === tier.id,
-    ).length;
-    this.assertRemoteConcurrency(remoteLive.length, peerConcurrent, grant);
+    const grant = this.requireLiveRemoteGrant(request.peerId, entry.id, tier.id, at);
+    this.assertRemotePeerCapacity(request.peerId, entry.id, tier.id, grant);
 
     await this.maybeConfirmSession({
       appId: `remote:${request.peerId}`,
@@ -478,9 +469,61 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
       peerId: request.peerId,
     });
 
+    return this.openGrantedRemoteSession(request, entry, tier, grant, at);
+  }
+
+  private requireLiveRemoteGrant(
+    peerId: string,
+    classId: string,
+    tierId: string,
+    at: number,
+  ): RemoteDeviceGrant {
+    this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
+      kind: "remote/ttl",
+      at,
+      peerId,
+      classId,
+      tierId,
+    });
+    const grant = this.remoteGrants.get(remoteGrantKey(peerId, classId, tierId));
+    if (grant === undefined || !isRemoteGrantLive(grant, at)) {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "No live remote grant for this peer/class/tier.",
+      );
+    }
+    return grant;
+  }
+
+  private assertRemotePeerCapacity(
+    peerId: string,
+    classId: string,
+    tierId: string,
+    grant: RemoteDeviceGrant,
+  ): void {
+    const remoteLive = [...this.sessions.values()].filter(
+      (session) =>
+        session.remotePeerId !== null &&
+        isDeviceSessionLive(session.state.phase),
+    );
+    const peerConcurrent = remoteLive.filter(
+      (session) =>
+        session.remotePeerId === peerId &&
+        session.state.classId === classId &&
+        session.state.tierId === tierId,
+    ).length;
+    this.assertRemoteConcurrency(remoteLive.length, peerConcurrent, grant);
+  }
+
+  private async openGrantedRemoteSession(
+    request: RemoteOpenRequest,
+    entry: NonNullable<ReturnType<typeof deviceClassById>>,
+    tier: ReturnType<DeviceManagerLayer2Base["resolveTier"]>,
+    grant: RemoteDeviceGrant,
+    at: number,
+  ): Promise<DeviceSession> {
     const appId = `remote:${request.peerId}`;
     const rateHz = this.requireSessionRateHz(entry, request.rateHz);
-
     const availability = await this.availabilityFor(entry.id);
     if (availability !== "available") {
       throw new DeviceError(
@@ -490,8 +533,8 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     }
 
     const ttlMs = Math.min(
-      request.maxDurationMs ?? grant!.maxSessionMs,
-      grant!.maxSessionMs,
+      request.maxDurationMs ?? grant.maxSessionMs,
+      grant.maxSessionMs,
       entry.defaults.maxSessionMs,
       SENSITIVE_DEFAULT_TTL_MS,
     );
@@ -506,13 +549,9 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     });
     state = stepDeviceSession(state, { kind: "device/open", at, ttlMs }).state;
     const handle = `dev-${this.nextHandle++}-${bytesToHex(this.randomBytes(4))}`;
-    const needsSidecar = [
-      "camera",
-      "microphone",
-      "motion",
-      "screen-capture",
-    ].includes(entry.id);
-    const sidecarToken = needsSidecar ? this.sidecar.open(handle) : null;
+    const sidecarToken = remoteSidecarNeeded(entry.id)
+      ? this.sidecar.open(handle)
+      : null;
     this.sessions.set(handle, {
       handle,
       state,
@@ -569,4 +608,8 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     readonly purpose: string;
     readonly ndef: string;
   }): Promise<void>;
+}
+
+function remoteSidecarNeeded(classId: string): boolean {
+  return ["camera", "microphone", "motion", "screen-capture"].includes(classId);
 }

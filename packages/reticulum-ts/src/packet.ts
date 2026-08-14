@@ -153,35 +153,7 @@ export class Packet {
         transportIdLength: fields.transportId?.length ?? 0,
       },
     );
-    if (shouldRejectPacketFromFieldsBadHeaderType(gate.actions)) {
-      throw new Error(`Unknown packet header type: ${fields.headerType}`);
-    }
-    if (shouldRejectPacketFromFieldsBadContextFlag(gate.actions)) {
-      throw new Error(`Unknown packet context flag: ${fields.contextFlag}`);
-    }
-    if (shouldRejectPacketFromFieldsBadTransportType(gate.actions)) {
-      throw new Error(`Unknown packet transport type: ${fields.transportType}`);
-    }
-    if (shouldRejectPacketFromFieldsBadDestinationType(gate.actions)) {
-      throw new Error(
-        `Unknown packet destination type: ${fields.destinationType}`,
-      );
-    }
-    if (shouldRejectPacketFromFieldsBadPacketType(gate.actions)) {
-      throw new Error(`Unknown packet type: ${fields.packetType}`);
-    }
-    if (shouldRejectPacketFromFieldsBadDestinationHash(gate.actions)) {
-      throw new Error(`destination hash must be ${TRUNCATED_HASH_BYTES} bytes`);
-    }
-    if (shouldRejectPacketFromFieldsHeader2MissingTransportId(gate.actions)) {
-      throw new Error("HEADER_2 packets require a transport ID");
-    }
-    if (shouldRejectPacketFromFieldsBadTransportId(gate.actions)) {
-      throw new Error(`transport ID must be ${TRUNCATED_HASH_BYTES} bytes`);
-    }
-    if (!shouldProceedPacketFromFields(gate.actions)) {
-      throw new Error("Packet fromFields rejected");
-    }
+    throwIfPacketFromFieldsRejected(gate.actions, fields);
 
     return new Packet(provider, {
       headerType: fields.headerType,
@@ -383,5 +355,61 @@ export class Packet {
       throw new Error("Packet encode missing use-raw action");
     }
     return raw;
+  }
+}
+
+const PACKET_FROM_FIELDS_REJECTS: ReadonlyArray<{
+  readonly test: (
+    actions: ReturnType<typeof stepPacketFromFieldsWithActions>["actions"],
+  ) => boolean;
+  readonly message: (fields: PacketFields) => string;
+}> = [
+  {
+    test: shouldRejectPacketFromFieldsBadHeaderType,
+    message: (fields) => `Unknown packet header type: ${fields.headerType}`,
+  },
+  {
+    test: shouldRejectPacketFromFieldsBadContextFlag,
+    message: (fields) => `Unknown packet context flag: ${fields.contextFlag}`,
+  },
+  {
+    test: shouldRejectPacketFromFieldsBadTransportType,
+    message: (fields) =>
+      `Unknown packet transport type: ${fields.transportType}`,
+  },
+  {
+    test: shouldRejectPacketFromFieldsBadDestinationType,
+    message: (fields) =>
+      `Unknown packet destination type: ${fields.destinationType}`,
+  },
+  {
+    test: shouldRejectPacketFromFieldsBadPacketType,
+    message: (fields) => `Unknown packet type: ${fields.packetType}`,
+  },
+  {
+    test: shouldRejectPacketFromFieldsBadDestinationHash,
+    message: () => `destination hash must be ${TRUNCATED_HASH_BYTES} bytes`,
+  },
+  {
+    test: shouldRejectPacketFromFieldsHeader2MissingTransportId,
+    message: () => "HEADER_2 packets require a transport ID",
+  },
+  {
+    test: shouldRejectPacketFromFieldsBadTransportId,
+    message: () => `transport ID must be ${TRUNCATED_HASH_BYTES} bytes`,
+  },
+];
+
+function throwIfPacketFromFieldsRejected(
+  actions: ReturnType<typeof stepPacketFromFieldsWithActions>["actions"],
+  fields: PacketFields,
+): void {
+  for (const reject of PACKET_FROM_FIELDS_REJECTS) {
+    if (reject.test(actions)) {
+      throw new Error(reject.message(fields));
+    }
+  }
+  if (!shouldProceedPacketFromFields(actions)) {
+    throw new Error("Packet fromFields rejected");
   }
 }

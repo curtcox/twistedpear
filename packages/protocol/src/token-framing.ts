@@ -7,6 +7,7 @@
  * the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const TOKEN_IV_SIZE = 16;
 export const TOKEN_HMAC_SIZE = 32;
@@ -136,21 +137,20 @@ export function stepTokenSignedMaterialWithActions(
 export function shouldUseTokenSignedMaterial(
   actions: ReadonlyArray<TokenSignedMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectTokenSignedMaterial(
   actions: ReadonlyArray<TokenSignedMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract token signed material from step actions; null when no `use-raw`. */
 export function tokenSignedMaterialRawFromActions(
   actions: ReadonlyArray<TokenSignedMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 export function splitTokenFrame(token: Uint8Array): TokenFrameParts | null {
@@ -238,13 +238,13 @@ export function stepTokenHmacMatchWithActions(
 export function shouldMatchTokenHmac(
   actions: ReadonlyArray<TokenHmacMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "match");
+  return hasActionOfKind(actions, "match");
 }
 
 export function shouldMismatchTokenHmac(
   actions: ReadonlyArray<TokenHmacMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mismatch");
+  return hasActionOfKind(actions, "mismatch");
 }
 
 /** Whether a Token IV matches the fixed RNS size. */
@@ -299,13 +299,13 @@ export function stepTokenIvLengthValidWithActions(
 export function shouldAcceptTokenIvLength(
   actions: ReadonlyArray<TokenIvLengthValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "valid");
+  return hasActionOfKind(actions, "valid");
 }
 
 export function shouldRejectTokenIvLength(
   actions: ReadonlyArray<TokenIvLengthValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invalid");
+  return hasActionOfKind(actions, "invalid");
 }
 
 /** Whether a Token frame split succeeded (HMAC/AES stay at the edge). */
@@ -362,13 +362,13 @@ export function stepAcceptTokenFrameWithActions(
 export function shouldAcceptTokenFrameNow(
   actions: ReadonlyArray<AcceptTokenFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptTokenFrame(
   actions: ReadonlyArray<AcceptTokenFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -421,21 +421,20 @@ export function stepSplitTokenKeyWithActions(
 export function shouldUseSplitTokenKey(
   actions: ReadonlyArray<SplitTokenKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitTokenKey(
   actions: ReadonlyArray<SplitTokenKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split token-key fields from step actions; null when no `use-fields`. */
 export function tokenKeyFieldsFromActions(
   actions: ReadonlyArray<SplitTokenKeyAction>,
 ): TokenKeyParts | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -499,21 +498,20 @@ export function stepPackTokenFrameWithActions(
 export function shouldUsePackTokenFrame(
   actions: ReadonlyArray<PackTokenFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackTokenFrame(
   actions: ReadonlyArray<PackTokenFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract token-frame pack bytes from step actions; null when no `use-raw`. */
 export function packTokenFrameRawFromActions(
   actions: ReadonlyArray<PackTokenFrameAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -566,19 +564,18 @@ export function stepSplitTokenFrameWithActions(
 export function shouldUseSplitTokenFrame(
   actions: ReadonlyArray<SplitTokenFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitTokenFrame(
   actions: ReadonlyArray<SplitTokenFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split token-frame fields from step actions; null when no `use-fields`. */
 export function tokenFrameFieldsFromActions(
   actions: ReadonlyArray<SplitTokenFrameAction>,
 ): TokenFrameParts | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

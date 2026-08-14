@@ -10,6 +10,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_PROOF } from "./packet-header.js";
 import { equalByteArrays } from "./path-table.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const PACKET_FULL_HASH_SIZE = 32;
 export const PACKET_SIGNATURE_SIZE = 64;
@@ -79,13 +80,13 @@ export function stepPacketTypeProofWithActions(
 export function shouldTreatPacketTypeProof(
   actions: ReadonlyArray<PacketTypeProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proof");
+  return hasActionOfKind(actions, "proof");
 }
 
 export function shouldTreatPacketTypeOther(
   actions: ReadonlyArray<PacketTypeProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "other");
+  return hasActionOfKind(actions, "other");
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
@@ -185,15 +186,14 @@ export function stepPackPacketProofWithActions(
 export function shouldUsePackPacketProof(
   actions: ReadonlyArray<PackPacketProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract packet-proof pack bytes from step actions; null when no `use-raw`. */
 export function packPacketProofRawFromActions(
   actions: ReadonlyArray<PackPacketProofAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -246,21 +246,20 @@ export function stepSplitPacketProofWithActions(
 export function shouldUseSplitPacketProof(
   actions: ReadonlyArray<SplitPacketProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitPacketProof(
   actions: ReadonlyArray<SplitPacketProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split packet-proof fields from step actions; null when no `use-fields`. */
 export function packetProofFieldsFromActions(
   actions: ReadonlyArray<SplitPacketProofAction>,
 ): PacketProofFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /** Whether an explicit proof's embedded hash matches the packet hash. */
@@ -326,13 +325,13 @@ export function stepPacketProofHashMatchWithActions(
 export function shouldMatchPacketProofHash(
   actions: ReadonlyArray<PacketProofHashMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "match");
+  return hasActionOfKind(actions, "match");
 }
 
 export function shouldMismatchPacketProofHash(
   actions: ReadonlyArray<PacketProofHashMatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mismatch");
+  return hasActionOfKind(actions, "mismatch");
 }
 
 export type PacketReceiptProofAcceptPlan = "reject" | "accept";
@@ -418,13 +417,13 @@ export function stepAcceptPacketReceiptProofWithActions(
 export function shouldAcceptPacketReceiptProofNow(
   actions: ReadonlyArray<AcceptPacketReceiptProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptPacketReceiptProof(
   actions: ReadonlyArray<AcceptPacketReceiptProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -493,13 +492,13 @@ export function packetReceiptProofAcceptPlanFromActions(
 export function shouldAcceptPacketReceiptProofAcceptPlan(
   actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectPacketReceiptProofAcceptPlan(
   actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /**
@@ -564,13 +563,13 @@ export function packetReceiptProofAcceptFromActions(
 export function shouldAcceptPacketReceiptProofActions(
   actions: ReadonlyArray<PacketReceiptProofAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectPacketReceiptProofActions(
   actions: ReadonlyArray<PacketReceiptProofAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 function stepPacketReceiptProofAcceptInner(

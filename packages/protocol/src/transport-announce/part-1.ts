@@ -31,6 +31,7 @@ import {
   type PacketHeaderFields,
 } from "../packet-header.js";
 import { TRANSPORT_TRANSPORT } from "../transport-framing.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export { PACKET_CONTEXT_NONE, PACKET_CONTEXT_PATH_RESPONSE };
 
@@ -114,15 +115,14 @@ export function stepClonePacketWithHopsPlanWithActions(
 export function shouldUseClonePacketWithHopsPlan(
   actions: ReadonlyArray<ClonePacketWithHopsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract hop-clone fields from plan actions; null when no `use-fields` action. */
 export function clonePacketWithHopsPlanFieldsFromActions(
   actions: ReadonlyArray<ClonePacketWithHopsPlanAction>,
 ): PacketHeaderFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -191,15 +191,14 @@ export function stepClonePacketWithHopsWithActions(
 export function shouldUseClonePacketWithHops(
   actions: ReadonlyArray<ClonePacketWithHopsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract hop-clone fields from step actions; null when no `use-fields` action. */
 export function clonePacketWithHopsFieldsFromActions(
   actions: ReadonlyArray<ClonePacketWithHopsAction>,
 ): PacketHeaderFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /** HEADER_2 transport-wrapped announce rebroadcast fields. */
@@ -281,15 +280,14 @@ export function stepTransportAnnounceFieldsPlanWithActions(
 export function shouldUseTransportAnnounceFieldsPlan(
   actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract transport announce fields from plan actions; null when no `use-fields`. */
 export function transportAnnounceFieldsPlanFromActions(
   actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>,
 ): PacketHeaderFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -360,15 +358,14 @@ export function stepTransportAnnounceFieldsWithActions(
 export function shouldUseTransportAnnounceFields(
   actions: ReadonlyArray<TransportAnnounceFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract transport announce fields from step actions; null when no `use-fields`. */
 export function transportAnnounceFieldsFromActions(
   actions: ReadonlyArray<TransportAnnounceFieldsAction>,
 ): PacketHeaderFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /** HEADER_2 transport path-response announce fields. */
@@ -401,8 +398,7 @@ export type PathResponseAnnounceFieldsPlanAction = {
 export function pathResponseAnnounceFieldsPlanFromActions(
   actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>,
 ): PacketHeaderFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 export type PathResponseAnnounceFieldsEvent =

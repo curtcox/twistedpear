@@ -5,6 +5,7 @@
  * `packWebIdentityRecord` / `splitWebIdentityRecord` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const WEB_IDENTITY_SALT_BYTES = 16;
 export const WEB_IDENTITY_IV_BYTES = 12;
@@ -119,21 +120,20 @@ export function stepPackWebIdentityRecordWithActions(
 export function shouldUsePackWebIdentityRecord(
   actions: ReadonlyArray<PackWebIdentityRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackWebIdentityRecord(
   actions: ReadonlyArray<PackWebIdentityRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed web-identity record from step actions; null when no `use-raw`. */
 export function packWebIdentityRecordRawFromActions(
   actions: ReadonlyArray<PackWebIdentityRecordAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -188,19 +188,18 @@ export function stepSplitWebIdentityRecordWithActions(
 export function shouldUseSplitWebIdentityRecord(
   actions: ReadonlyArray<SplitWebIdentityRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitWebIdentityRecord(
   actions: ReadonlyArray<SplitWebIdentityRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split web-identity fields from step actions; null when no `use-fields`. */
 export function webIdentityRecordFieldsFromActions(
   actions: ReadonlyArray<SplitWebIdentityRecordAction>,
 ): WebIdentityPackedFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

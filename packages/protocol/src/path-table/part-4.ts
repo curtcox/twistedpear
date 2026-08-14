@@ -39,10 +39,11 @@ import type {
   PathOutboundPlanAction,
   PathOutboundState,
 } from "./part-3.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function shouldFloodPathOutboundPlan(
   actions: ReadonlyArray<PathOutboundPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "flood");
+  return hasActionOfKind(actions, "flood");
 }
 
 export function initialPathOutboundState(): PathOutboundState {
@@ -64,19 +65,19 @@ export function pathOutboundFromActions(
 export function shouldWrapPathOutbound(
   actions: ReadonlyArray<PathOutboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "wrap");
+  return hasActionOfKind(actions, "wrap");
 }
 
 export function shouldDirectPathOutbound(
   actions: ReadonlyArray<PathOutboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "direct");
+  return hasActionOfKind(actions, "direct");
 }
 
 export function shouldFloodPathOutbound(
   actions: ReadonlyArray<PathOutboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "flood");
+  return hasActionOfKind(actions, "flood");
 }
 
 export interface PathTableEntryView {
@@ -193,13 +194,13 @@ export function stepAnswerPathRequestWithActions(
 export function shouldAnswerPathRequestNow(
   actions: ReadonlyArray<AnswerPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "answer");
+  return hasActionOfKind(actions, "answer");
 }
 
 export function shouldSkipAnswerPathRequest(
   actions: ReadonlyArray<AnswerPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -296,13 +297,13 @@ export function stepAddPathEntryWithActions(
 export function shouldAddPathEntryNow(
   actions: ReadonlyArray<AddPathEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "add");
+  return hasActionOfKind(actions, "add");
 }
 
 export function shouldSkipAddPathEntry(
   actions: ReadonlyArray<AddPathEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export function computePathExpiry(nowSeconds: number): number {
@@ -361,15 +362,14 @@ export function stepComputePathExpiryWithActions(
 export function shouldUsePathExpiry(
   actions: ReadonlyArray<ComputePathExpiryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-expiry");
+  return hasActionOfKind(actions, "use-expiry");
 }
 
 /** Extract path expiry instant from step actions; null when no `use-expiry`. */
 export function pathExpiryFromActions(
   actions: ReadonlyArray<ComputePathExpiryAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-expiry");
-  return action?.kind === "use-expiry" ? action.expires : null;
+  return firstActionOfKind(actions, "use-expiry")?.expires ?? null;
 }
 
 /** True when a path-table entry is past its expiry instant. */
@@ -435,13 +435,13 @@ export function stepPathEntryExpiredWithActions(
 export function shouldTreatPathEntryExpired(
   actions: ReadonlyArray<PathEntryExpiredAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "expired");
+  return hasActionOfKind(actions, "expired");
 }
 
 export function shouldTreatPathEntryLive(
   actions: ReadonlyArray<PathEntryExpiredAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "live");
+  return hasActionOfKind(actions, "live");
 }
 
 export type PathEntryLookupPlan = "miss" | "expired" | "hit";

@@ -7,6 +7,7 @@
  * `splitIdentityPublicKey` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const IDENTITY_HALF_KEY_SIZE = 32;
 export const IDENTITY_KEY_SIZE = IDENTITY_HALF_KEY_SIZE * 2;
@@ -99,21 +100,20 @@ export function stepSplitIdentityEntropyWithActions(
 export function shouldUseSplitIdentityEntropy(
   actions: ReadonlyArray<SplitIdentityEntropyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitIdentityEntropy(
   actions: ReadonlyArray<SplitIdentityEntropyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract identity key material from step actions; null when no `use-fields`. */
 export function identityEntropyFieldsFromActions(
   actions: ReadonlyArray<SplitIdentityEntropyAction>,
 ): IdentityKeyMaterial | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 export function packIdentityPrivateKey(
@@ -233,21 +233,20 @@ export function stepPackIdentityPrivateKeyWithActions(
 export function shouldUsePackIdentityPrivateKey(
   actions: ReadonlyArray<PackIdentityPrivateKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackIdentityPrivateKey(
   actions: ReadonlyArray<PackIdentityPrivateKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed identity private key from step actions; null when no `use-raw`. */
 export function packIdentityPrivateKeyRawFromActions(
   actions: ReadonlyArray<PackIdentityPrivateKeyAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -300,21 +299,20 @@ export function stepSplitIdentityPrivateKeyWithActions(
 export function shouldUseSplitIdentityPrivateKey(
   actions: ReadonlyArray<SplitIdentityPrivateKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitIdentityPrivateKey(
   actions: ReadonlyArray<SplitIdentityPrivateKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split identity private-key fields from step actions; null when no `use-fields`. */
 export function identityPrivateKeyFieldsFromActions(
   actions: ReadonlyArray<SplitIdentityPrivateKeyAction>,
 ): IdentityKeyMaterial | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -376,21 +374,20 @@ export function stepPackIdentityPublicKeyWithActions(
 export function shouldUsePackIdentityPublicKey(
   actions: ReadonlyArray<PackIdentityPublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackIdentityPublicKey(
   actions: ReadonlyArray<PackIdentityPublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed identity public key from step actions; null when no `use-raw`. */
 export function packIdentityPublicKeyRawFromActions(
   actions: ReadonlyArray<PackIdentityPublicKeyAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -443,19 +440,18 @@ export function stepSplitIdentityPublicKeyWithActions(
 export function shouldUseSplitIdentityPublicKey(
   actions: ReadonlyArray<SplitIdentityPublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitIdentityPublicKey(
   actions: ReadonlyArray<SplitIdentityPublicKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split identity public-key fields from step actions; null when no `use-fields`. */
 export function identityPublicKeyFieldsFromActions(
   actions: ReadonlyArray<SplitIdentityPublicKeyAction>,
 ): IdentityPublicKeyMaterial | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

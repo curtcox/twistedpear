@@ -436,6 +436,8 @@
       "requires": [],
       "verify": "npm run complexity:check && node scripts/work/ratchet-clear.mjs --kind=complexity --rule=complexity",
       "added": "2026-08-07",
+      "completed": "2026-08-14",
+      "evidence": ["complexity-ratchet.json"],
       "notes": "Imported from complexity-ratchet.json: 225 baselined complexity entries across 147 files."
     },
     "QL-COMPLEXITY-MAX-LINES-PER-FUNCTION": {

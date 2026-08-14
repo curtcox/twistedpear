@@ -26,6 +26,7 @@ import type {
   LxmfDirectSendPlanAction,
   LxmfDirectSendPlanEvent,
 } from "./part-7.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * DIRECT send-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfDirectSend` /
@@ -126,19 +127,19 @@ export function stepLxmfDirectSendWithActions(
 export function shouldProceedLxmfDirectSend(
   actions: ReadonlyArray<LxmfDirectSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLxmfDirectMissingDestination(
   actions: ReadonlyArray<LxmfDirectSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-destination");
+  return hasActionOfKind(actions, "reject-missing-destination");
 }
 
 export function shouldRejectLxmfDirectMissingPacked(
   actions: ReadonlyArray<LxmfDirectSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-packed");
+  return hasActionOfKind(actions, "reject-missing-packed");
 }
 
 function stepLxmfDirectSendInner(
@@ -243,14 +244,14 @@ export function stepLxmfOpportunisticSendPlanWithActions(
 export function shouldPlanLxmfOpportunisticSendOk(
   actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 /** Whether plan actions reject a missing destination. */
 export function shouldRejectLxmfOpportunisticSendPlanMissingDestination(
   actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-destination");
+  return hasActionOfKind(actions, "missing-destination");
 }
 
 /** Extract the OPPORTUNISTIC send plan from actions; null when empty. */
@@ -318,13 +319,13 @@ export function stepLxmfOpportunisticSendWithActions(
 export function shouldProceedLxmfOpportunisticSend(
   actions: ReadonlyArray<LxmfOpportunisticSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLxmfOpportunisticMissingDestination(
   actions: ReadonlyArray<LxmfOpportunisticSendAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-destination");
+  return hasActionOfKind(actions, "reject-missing-destination");
 }
 
 function stepLxmfOpportunisticSendInner(
@@ -403,28 +404,28 @@ export type LxMessageInstancePackPlanAction =
 export function shouldPlanLxMessageInstancePackOk(
   actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 /** Whether instance-pack-plan actions reject an already-packed message. */
 export function shouldRejectLxMessageInstancePackPlanAlreadyPacked(
   actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "already-packed");
+  return hasActionOfKind(actions, "already-packed");
 }
 
 /** Whether instance-pack-plan actions reject missing endpoints. */
 export function shouldRejectLxMessageInstancePackPlanMissingEndpoints(
   actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-endpoints");
+  return hasActionOfKind(actions, "missing-endpoints");
 }
 
 /** Whether instance-pack-plan actions reject a missing timestamp. */
 export function shouldRejectLxMessageInstancePackPlanMissingTimestamp(
   actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-timestamp");
+  return hasActionOfKind(actions, "missing-timestamp");
 }
 
 export type LxMessageInstancePackEvent =

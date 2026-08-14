@@ -18,6 +18,7 @@ import {
   TRANSPORT_ID_BYTES,
   TRANSPORT_TRANSPORT,
 } from "../transport-framing.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export {
   PACKET_HEADER_1,
@@ -346,43 +347,43 @@ export function packetFromFieldsPlanFromActions(
 export function shouldProceedPacketFromFieldsPlan(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadHeaderType(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-header-type");
+  return hasActionOfKind(actions, "bad-header-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadContextFlag(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-context-flag");
+  return hasActionOfKind(actions, "bad-context-flag");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadTransportType(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-transport-type");
+  return hasActionOfKind(actions, "bad-transport-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadDestinationType(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-destination-type");
+  return hasActionOfKind(actions, "bad-destination-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadPacketType(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-packet-type");
+  return hasActionOfKind(actions, "bad-packet-type");
 }
 
 export function shouldRejectPacketFromFieldsPlanBadDestinationHash(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-destination-hash");
+  return hasActionOfKind(actions, "bad-destination-hash");
 }
 
 export function shouldRejectPacketFromFieldsPlanHeader2MissingTransportId(
@@ -396,7 +397,7 @@ export function shouldRejectPacketFromFieldsPlanHeader2MissingTransportId(
 export function shouldRejectPacketFromFieldsPlanBadTransportId(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-transport-id");
+  return hasActionOfKind(actions, "bad-transport-id");
 }
 
 /**

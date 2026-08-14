@@ -5,6 +5,7 @@
  * `allowClientRequest` / `lastAllowed` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { hasActionOfKind } from "./action-kind.js";
 
 export const CLIENT_RATE_WINDOW_MS = 60_000;
 
@@ -121,13 +122,13 @@ export function stepAllowClientRequestWithActions(
 export function shouldAllowClientRequest(
   actions: ReadonlyArray<AllowClientRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyClientRequest(
   actions: ReadonlyArray<AllowClientRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Convenience for adapters that keep a mutable Map of buckets. */

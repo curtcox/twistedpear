@@ -5,6 +5,7 @@
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { msgpackUnpack } from "./msgpack-core.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export interface StampCostFields {
   readonly cost: number;
@@ -88,19 +89,18 @@ export function stepStampCostFromAppDataWithActions(
 export function shouldUseStampCostFromAppData(
   actions: ReadonlyArray<StampCostFromAppDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectStampCostFromAppData(
   actions: ReadonlyArray<StampCostFromAppDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract stamp cost from step actions; null when no `use-fields`. */
 export function stampCostFromActions(
   actions: ReadonlyArray<StampCostFromAppDataAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields.cost : null;
+  return firstActionOfKind(actions, "use-fields")?.fields.cost ?? null;
 }

@@ -89,6 +89,7 @@ import type {
   LinkAppRequestResponsePlanEvent,
   SendLinkAppRequestResponseAction,
 } from "./part-5.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * App-request dispatch plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequestDispatch` /
@@ -134,19 +135,19 @@ export function stepLinkAppRequestDispatchPlanWithActions(
 export function shouldIgnoreLinkAppRequestDispatchPlan(
   actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldForbidLinkAppRequestDispatchPlan(
   actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "forbidden");
+  return hasActionOfKind(actions, "forbidden");
 }
 
 export function shouldInvokeLinkAppRequestDispatchPlan(
   actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invoke-handler");
+  return hasActionOfKind(actions, "invoke-handler");
 }
 
 /**
@@ -210,13 +211,13 @@ export function linkAppRequestDispatchFromActions(
 export function shouldSkipInvokeLinkAppRequestHandler(
   actions: ReadonlyArray<InvokeLinkAppRequestHandlerAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export function shouldSkipSendLinkAppRequestResponse(
   actions: ReadonlyArray<SendLinkAppRequestResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -328,42 +329,42 @@ export function stepLinkAppRequestInboundWithActions(
 export function shouldIgnoreLinkAppRequestInbound(
   actions: ReadonlyArray<LinkAppRequestInboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 /** Whether step actions include forbidden. */
 export function shouldForbidLinkAppRequestInbound(
   actions: ReadonlyArray<LinkAppRequestInboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "forbidden");
+  return hasActionOfKind(actions, "forbidden");
 }
 
 /** Whether step actions include invoke-handler. */
 export function shouldInvokeLinkAppRequestInbound(
   actions: ReadonlyArray<LinkAppRequestInboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invoke-handler");
+  return hasActionOfKind(actions, "invoke-handler");
 }
 
 /** Whether step actions include send-response. */
 export function shouldSendLinkAppRequestInboundResponse(
   actions: ReadonlyArray<LinkAppRequestInboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send-response");
+  return hasActionOfKind(actions, "send-response");
 }
 
 /** Whether step actions include ignore-response. */
 export function shouldIgnoreLinkAppRequestInboundResponse(
   actions: ReadonlyArray<LinkAppRequestInboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore-response");
+  return hasActionOfKind(actions, "ignore-response");
 }
 
 /** Whether step actions include response-too-big. */
 export function shouldRejectLinkAppRequestInboundTooBig(
   actions: ReadonlyArray<LinkAppRequestInboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "response-too-big");
+  return hasActionOfKind(actions, "response-too-big");
 }
 
 function stepLinkAppRequestInboundInner(
@@ -532,13 +533,13 @@ export function stepUpdateLinkLastDataWithActions(
 export function shouldUpdateLinkLastDataNow(
   actions: ReadonlyArray<UpdateLinkLastDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "update");
+  return hasActionOfKind(actions, "update");
 }
 
 export function shouldSkipLinkLastDataUpdate(
   actions: ReadonlyArray<UpdateLinkLastDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 /** Whether inbound link receive should dispatch DATA context handlers. */
 export function isLinkInboundDataPacket(packetType: number): boolean {

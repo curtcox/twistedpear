@@ -140,10 +140,10 @@ export async function sendOpportunisticLxmf(
   }
 }
 
-export async function sendDirectLxmf(
-  host: LxmfRouterSendHost,
-  message: LXMessage,
-): Promise<void> {
+function assertDirectLxmfReady(message: LXMessage): {
+  readonly destination: NonNullable<LXMessage["destination"]>;
+  readonly packed: Uint8Array;
+} {
   const destination = message.destination;
   const stepped = stepLxmfDirectSendWithActions(initialLxmfDirectSendState(), {
     kind: "direct-send/gate",
@@ -167,38 +167,54 @@ export async function sendDirectLxmf(
   if (!shouldProceedLxmfDirectSend(stepped.actions)) {
     throw new Error("Direct LXMF send rejected");
   }
+  return { destination, packed: message.packed };
+}
 
-  const recipientIdentity = destination.identity;
+async function ensureDirectDeliveryLink(
+  host: LxmfRouterSendHost,
+  destination: NonNullable<LXMessage["destination"]>,
+): Promise<Link> {
   const destinationKey = bytesToHex(destination.hash);
-  let link = host.directLinks.get(destinationKey) ?? null;
+  const existing = host.directLinks.get(destinationKey) ?? null;
   const reuseDirect = stepReuseActiveLinkWithActions(
     initialReuseActiveLinkState(),
     {
       kind: "link/reuse-active-gate",
-      linkPresent: link !== null,
-      status: link?.status ?? 0,
+      linkPresent: existing !== null,
+      status: existing?.status ?? 0,
     },
   );
-  if (!shouldReuseActiveLinkNow(reuseDirect.actions)) {
-    const outbound = host.reticulum.registerDestination({
-      provider: host.provider,
-      identity: recipientIdentity,
-      direction: DestinationDirection.OUT,
-      type: DestinationType.SINGLE,
-      appName: APP_NAME,
-      aspects: ["delivery"],
-    });
-
-    link = await awaitOutboundLink(host.reticulum, outbound, {
-      timeoutError: "Direct LXMF link timeout",
-    });
-
-    host.directLinks.set(destinationKey, link);
-    host.handleDeliveryLink(link);
+  if (shouldReuseActiveLinkNow(reuseDirect.actions)) {
+    return existing!;
   }
 
+  const outbound = host.reticulum.registerDestination({
+    provider: host.provider,
+    identity: destination.identity!,
+    direction: DestinationDirection.OUT,
+    type: DestinationType.SINGLE,
+    appName: APP_NAME,
+    aspects: ["delivery"],
+  });
+
+  const link = await awaitOutboundLink(host.reticulum, outbound, {
+    timeoutError: "Direct LXMF link timeout",
+  });
+
+  host.directLinks.set(destinationKey, link);
+  host.handleDeliveryLink(link);
+  return link;
+}
+
+export async function sendDirectLxmf(
+  host: LxmfRouterSendHost,
+  message: LXMessage,
+): Promise<void> {
+  const { packed } = assertDirectLxmfReady(message);
+  const link = await ensureDirectDeliveryLink(host, message.destination!);
+
   host.applySendState(message, { kind: "lxmf/begin-sending" });
-  await link!.send(message.packed);
+  await link.send(packed);
   host.applySendState(message, { kind: "lxmf/mark-delivered" });
 }
 

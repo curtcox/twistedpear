@@ -6,6 +6,7 @@ import {
   deviceClassById,
   isShareOfferLive,
   type ShareOffer,
+  type StreamDemand,
 } from "@twistedpear/protocol";
 import { CapabilityError } from "../capabilities.js";
 import {
@@ -29,6 +30,14 @@ import type {
 } from "./shared.js";
 import { DeviceManagerLayer1Base } from "./layer-1-base.js";
 
+type StreamAdaptationContext = {
+  appId: string;
+  peer: string;
+  demand: StreamDemand;
+  deficitStreak: number;
+  surplusStreak: number;
+};
+
 export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
   async stream(
     appId: string,
@@ -38,26 +47,8 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
     peer: DevicePeerHandle,
     constraints: DeviceStreamConstraints = {},
   ): Promise<DeviceStreamSession> {
-    try {
-      assertDeviceCapabilityAllowed({
-        capability: "device:stream",
-        declared,
-        granted,
-      });
-    } catch (error) {
-      if (error instanceof CapabilityError) {
-        throw new DeviceError("DEVICE_DENIED", error.message);
-      }
-      throw error;
-    }
-
-    if (typeof peer !== "string" || peer.length < 1 || peer.length > 128) {
-      throw new DeviceError(
-        "DEVICE_BAD_REQUEST",
-        "A peer handle is required to stream.",
-      );
-    }
-
+    this.assertStreamCapability(declared, granted);
+    this.assertStreamPeer(peer);
     const live = this.requireLiveSession(appId, sessionHandle);
     if (live.remotePeerId !== null && live.remotePeerId !== peer) {
       throw new DeviceError(
@@ -72,7 +63,6 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
       constraints,
     });
     const { shareOffer, demand, admission } = admitted;
-
     const handle = `stream-${this.nextStreamHandle++}-${bytesToHex(this.randomBytes(3))}`;
     const stream: DeviceStreamSession = {
       handle,
@@ -80,6 +70,56 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
       peer,
       admission,
     };
+    const egress = await this.openStreamEgress(appId, peer, demand, admission);
+    this.streams.set(handle, stream);
+    this.egresses.set(handle, egress);
+    this.streamShareOfferIds.set(handle, shareOffer.id);
+    this.streamAdaptation.set(handle, {
+      appId,
+      peer,
+      demand,
+      deficitStreak: 0,
+      surplusStreak: 0,
+    });
+    return stream;
+  }
+
+  private assertStreamCapability(
+    declared: ReadonlyArray<string>,
+    granted: ReadonlyArray<string>,
+  ): void {
+    try {
+      assertDeviceCapabilityAllowed({
+        capability: "device:stream",
+        declared,
+        granted,
+      });
+    } catch (error) {
+      if (error instanceof CapabilityError) {
+        throw new DeviceError("DEVICE_DENIED", error.message);
+      }
+      throw error;
+    }
+  }
+
+  private assertStreamPeer(peer: DevicePeerHandle): void {
+    if (typeof peer !== "string" || peer.length < 1 || peer.length > 128) {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "A peer handle is required to stream.",
+      );
+    }
+  }
+
+  private async openStreamEgress(
+    appId: string,
+    peer: DevicePeerHandle,
+    demand: StreamDemand,
+    admission: Exclude<
+      ReturnType<typeof decideStreamAdmission>,
+      { kind: "reject" }
+    >,
+  ): Promise<StreamEgress> {
     let egress: StreamEgress;
     try {
       egress = await this.options.streamEgressFactory!.create({
@@ -103,17 +143,7 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
         "Host media egress returned the wrong plane.",
       );
     }
-    this.streams.set(handle, stream);
-    this.egresses.set(handle, egress);
-    this.streamShareOfferIds.set(handle, shareOffer.id);
-    this.streamAdaptation.set(handle, {
-      appId,
-      peer,
-      demand,
-      deficitStreak: 0,
-      surplusStreak: 0,
-    });
-    return stream;
+    return egress;
   }
 
   private async admitDeviceStream(input: {
@@ -123,13 +153,7 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
     constraints: DeviceStreamConstraints;
   }): Promise<{
     shareOffer: ShareOffer;
-    demand: {
-      classId: LiveSession["state"]["classId"];
-      tierId: LiveSession["state"]["tierId"];
-      rateHz: LiveSession["rateHz"];
-      encoding?: string;
-      codec?: string;
-    };
+    demand: StreamDemand;
     admission: Exclude<ReturnType<typeof decideStreamAdmission>, { kind: "reject" }>;
   }> {
     const { appId, live, peer, constraints } = input;
@@ -334,76 +358,7 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
       return;
     }
     try {
-      let droppedOldest = 0;
-      let queuedBytes = 0;
-      for (const frame of frames) {
-        const result = await egress.send(frame);
-        droppedOldest += result.droppedOldest;
-        queuedBytes = Math.max(queuedBytes, result.queuedBytes);
-      }
-      const stream = this.streams.get(streamHandle);
-      const context = this.streamAdaptation.get(streamHandle);
-      if (stream !== undefined && context !== undefined) {
-        const quality = egress.quality();
-        const effectiveBps =
-          droppedOldest > 0 || queuedBytes > 0
-            ? Math.min(
-                quality.goodputBps,
-                stream.admission.admittedDemandBps / 2,
-              )
-            : quality.goodputBps;
-        const deficit = effectiveBps < stream.admission.admittedDemandBps;
-        const surplus =
-          effectiveBps >=
-          Math.min(
-            stream.admission.demandBps,
-            stream.admission.admittedDemandBps * 2,
-          );
-        const deficitStreak =
-          droppedOldest > 0 ? 2 : deficit ? context.deficitStreak + 1 : 0;
-        const surplusStreak = surplus ? context.surplusStreak + 1 : 0;
-        const admission = adaptStreamAdmission({
-          previous: stream.admission,
-          supply: {
-            plane: egress.plane,
-            effectiveBps,
-            headroomBps: effectiveBps,
-            measuredGoodputBps: effectiveBps,
-            queueDepthBytes: queuedBytes,
-          },
-          ladder: degradationLadderFor(
-            this.sessions.get(stream.session)?.state.classId ?? "",
-          ),
-          deficitStreak,
-          surplusStreak,
-        });
-        this.streamAdaptation.set(streamHandle, {
-          ...context,
-          deficitStreak,
-          surplusStreak,
-        });
-        if (admission.rungIndex !== stream.admission.rungIndex) {
-          await egress.close();
-          const replacement = await this.options.streamEgressFactory!.create({
-            appId: context.appId,
-            peer: context.peer,
-            demand: context.demand,
-            admission,
-          });
-          if (replacement.plane !== admission.plane) {
-            await replacement.close();
-            throw new Error("Adapted media egress returned the wrong plane.");
-          }
-          this.egresses.set(streamHandle, replacement);
-          this.streams.set(streamHandle, { ...stream, admission });
-          this.streamAdaptation.set(streamHandle, {
-            ...context,
-            deficitStreak: 0,
-            surplusStreak: 0,
-          });
-          this.notifyChrome();
-        }
-      }
+      await this.adaptEgressAfterSend(streamHandle, egress, frames);
     } catch {
       this.streams.delete(streamHandle);
       this.streamShareOfferIds.delete(streamHandle);
@@ -412,6 +367,100 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
       await egress.close();
       this.notifyChrome();
     }
+  }
+
+  private async adaptEgressAfterSend(
+    streamHandle: DeviceStreamHandle,
+    egress: StreamEgress,
+    frames: ReadonlyArray<Uint8Array>,
+  ): Promise<void> {
+    let droppedOldest = 0;
+    let queuedBytes = 0;
+    for (const frame of frames) {
+      const result = await egress.send(frame);
+      droppedOldest += result.droppedOldest;
+      queuedBytes = Math.max(queuedBytes, result.queuedBytes);
+    }
+    const stream = this.streams.get(streamHandle);
+    const context = this.streamAdaptation.get(streamHandle);
+    if (stream === undefined || context === undefined) {
+      return;
+    }
+    const quality = egress.quality();
+    const effectiveBps = effectiveStreamBps(
+      quality.goodputBps,
+      stream.admission.admittedDemandBps,
+      droppedOldest,
+      queuedBytes,
+    );
+    const deficitStreak = nextDeficitStreak(
+      droppedOldest,
+      effectiveBps < stream.admission.admittedDemandBps,
+      context.deficitStreak,
+    );
+    const surplusStreak = nextSurplusStreak(
+      effectiveBps,
+      stream.admission.demandBps,
+      stream.admission.admittedDemandBps,
+      context.surplusStreak,
+    );
+    const admission = adaptStreamAdmission({
+      previous: stream.admission,
+      supply: {
+        plane: egress.plane,
+        effectiveBps,
+        headroomBps: effectiveBps,
+        measuredGoodputBps: effectiveBps,
+        queueDepthBytes: queuedBytes,
+      },
+      ladder: degradationLadderFor(
+        this.sessions.get(stream.session)?.state.classId ?? "",
+      ),
+      deficitStreak,
+      surplusStreak,
+    });
+    this.streamAdaptation.set(streamHandle, {
+      ...context,
+      deficitStreak,
+      surplusStreak,
+    });
+    if (admission.rungIndex !== stream.admission.rungIndex) {
+      await this.replaceAdaptedEgress(
+        streamHandle,
+        egress,
+        stream,
+        context,
+        admission,
+      );
+    }
+  }
+
+  private async replaceAdaptedEgress(
+    streamHandle: DeviceStreamHandle,
+    egress: StreamEgress,
+    stream: DeviceStreamSession,
+    context: StreamAdaptationContext,
+    admission: ReturnType<typeof adaptStreamAdmission>,
+  ): Promise<void> {
+    await egress.close();
+    const replacement = await this.options.streamEgressFactory!.create({
+      appId: context.appId,
+      peer: context.peer,
+      demand: context.demand,
+      admission,
+    });
+    if (replacement.plane !== admission.plane) {
+      await replacement.close();
+      throw new Error("Adapted media egress returned the wrong plane.");
+    }
+    this.egresses.set(streamHandle, replacement);
+    this.streams.set(streamHandle, { ...stream, admission });
+    this.streamAdaptation.set(streamHandle, {
+      ...context,
+      deficitStreak: 0,
+      surplusStreak: 0,
+    });
+    this.notifyChrome();
   }
 
   protected closeStreamsForShareOffer(offerId: string | undefined): void {
@@ -426,4 +475,35 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
       void egress?.close();
     }
   }
+}
+
+function effectiveStreamBps(
+  goodputBps: number,
+  admittedDemandBps: number,
+  droppedOldest: number,
+  queuedBytes: number,
+): number {
+  if (droppedOldest > 0 || queuedBytes > 0) {
+    return Math.min(goodputBps, admittedDemandBps / 2);
+  }
+  return goodputBps;
+}
+
+function nextDeficitStreak(
+  droppedOldest: number,
+  deficit: boolean,
+  previous: number,
+): number {
+  if (droppedOldest > 0) return 2;
+  return deficit ? previous + 1 : 0;
+}
+
+function nextSurplusStreak(
+  effectiveBps: number,
+  demandBps: number,
+  admittedDemandBps: number,
+  previous: number,
+): number {
+  const surplus = effectiveBps >= Math.min(demandBps, admittedDemandBps * 2);
+  return surplus ? previous + 1 : 0;
 }

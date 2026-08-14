@@ -103,6 +103,75 @@ function decodeFrame(bytes: Uint8Array): MultipartFrame | null {
   };
 }
 
+function resolveMultipartSendBudget(budgetBytes?: number): number {
+  const requested = budgetBytes ?? DEFAULT_MULTIPART_BUDGET_BYTES;
+  if (!Number.isSafeInteger(requested) || requested <= 0) {
+    throw new Error("Multipart propagation budget must be a positive integer");
+  }
+  return Math.min(requested, MAX_MULTIPART_BYTES);
+}
+
+function assertMultipartSendTitle(title?: string): void {
+  if (new TextEncoder().encode(title ?? "").length > MULTIPART_TITLE_BYTES) {
+    throw new Error(
+      `Multipart propagation title exceeds ${MULTIPART_TITLE_BYTES} bytes`,
+    );
+  }
+}
+
+function assertMultipartSendContent(
+  content: Uint8Array,
+  budgetBytes: number,
+): void {
+  if (content.length === 0 || content.length > budgetBytes) {
+    throw new Error(
+      `Multipart propagation content exceeds budget (1..${budgetBytes} bytes)`,
+    );
+  }
+}
+
+function resolveMultipartTransferId(
+  transferId: Uint8Array | undefined,
+  randomBytes: (length: number) => Uint8Array,
+): Uint8Array {
+  const resolved = transferId?.slice() ?? randomBytes(16);
+  if (resolved.length !== 16) {
+    throw new Error("Multipart transfer id must be 16 bytes");
+  }
+  return resolved;
+}
+
+async function sendMultipartChunk(options: {
+  readonly router: LXMFRouter;
+  readonly destination: Destination;
+  readonly source: RegisteredDestination;
+  readonly title?: string;
+  readonly now?: () => number;
+  readonly transferId: Uint8Array;
+  readonly index: number;
+  readonly chunkCount: number;
+  readonly totalBytes: number;
+  readonly contentHash: Uint8Array;
+  readonly chunk: Uint8Array;
+}): Promise<void> {
+  await options.router.packAndSend({
+    destination: options.destination,
+    source: options.source,
+    title: options.title ?? "",
+    content: encodeFrame({
+      transferId: options.transferId,
+      index: options.index,
+      count: options.chunkCount,
+      totalBytes: options.totalBytes,
+      contentHash: options.contentHash,
+      chunk: options.chunk,
+    }),
+    desiredMethod: LXMessageMethod.PROPAGATED,
+    deferStamp: true,
+    ...(options.now === undefined ? {} : { now: options.now }),
+  });
+}
+
 export async function sendMultipartPropagation(options: {
   readonly router: LXMFRouter;
   readonly destination: Destination;
@@ -118,34 +187,13 @@ export async function sendMultipartPropagation(options: {
   chunkCount: number;
   sentChunks: ReadonlyArray<number>;
 }> {
-  if (
-    !Number.isSafeInteger(
-      options.budgetBytes ?? DEFAULT_MULTIPART_BUDGET_BYTES,
-    ) ||
-    (options.budgetBytes ?? DEFAULT_MULTIPART_BUDGET_BYTES) <= 0
-  ) {
-    throw new Error("Multipart propagation budget must be a positive integer");
-  }
-  const budgetBytes = Math.min(
-    options.budgetBytes ?? DEFAULT_MULTIPART_BUDGET_BYTES,
-    MAX_MULTIPART_BYTES,
+  const budgetBytes = resolveMultipartSendBudget(options.budgetBytes);
+  assertMultipartSendTitle(options.title);
+  assertMultipartSendContent(options.content, budgetBytes);
+  const transferId = resolveMultipartTransferId(
+    options.transferId,
+    (length) => options.router.provider.randomBytes(length),
   );
-  if (
-    new TextEncoder().encode(options.title ?? "").length > MULTIPART_TITLE_BYTES
-  ) {
-    throw new Error(
-      `Multipart propagation title exceeds ${MULTIPART_TITLE_BYTES} bytes`,
-    );
-  }
-  if (options.content.length === 0 || options.content.length > budgetBytes) {
-    throw new Error(
-      `Multipart propagation content exceeds budget (1..${budgetBytes} bytes)`,
-    );
-  }
-  const transferId =
-    options.transferId?.slice() ?? options.router.provider.randomBytes(16);
-  if (transferId.length !== 16)
-    throw new Error("Multipart transfer id must be 16 bytes");
   const contentHash = Identity.fullHash(
     options.router.provider,
     options.content,
@@ -154,29 +202,105 @@ export async function sendMultipartPropagation(options: {
   const sentChunks: number[] = [];
   for (let index = 0; index < chunkCount; index += 1) {
     if (options.completedChunks?.has(index) === true) continue;
-    const chunk = options.content.subarray(
-      index * MULTIPART_CHUNK_BYTES,
-      (index + 1) * MULTIPART_CHUNK_BYTES,
-    );
-    await options.router.packAndSend({
+    await sendMultipartChunk({
+      router: options.router,
       destination: options.destination,
       source: options.source,
-      title: options.title ?? "",
-      content: encodeFrame({
-        transferId,
-        index,
-        count: chunkCount,
-        totalBytes: options.content.length,
-        contentHash,
-        chunk,
-      }),
-      desiredMethod: LXMessageMethod.PROPAGATED,
-      deferStamp: true,
-      ...(options.now === undefined ? {} : { now: options.now }),
+      ...(options.title !== undefined ? { title: options.title } : {}),
+      ...(options.now !== undefined ? { now: options.now } : {}),
+      transferId,
+      index,
+      chunkCount,
+      totalBytes: options.content.length,
+      contentHash,
+      chunk: options.content.subarray(
+        index * MULTIPART_CHUNK_BYTES,
+        (index + 1) * MULTIPART_CHUNK_BYTES,
+      ),
     });
     sentChunks.push(index);
   }
   return { transferId: bytesToHex(transferId), chunkCount, sentChunks };
+}
+
+function unrecognizedMultipartResult(): MultipartReceiveResult {
+  return {
+    recognized: false,
+    transferId: null,
+    receivedChunks: 0,
+    chunkCount: 0,
+    complete: false,
+    content: null,
+  };
+}
+
+function expectedMultipartChunkBytes(frame: MultipartFrame): number {
+  if (frame.index === frame.count - 1) {
+    return frame.totalBytes - frame.index * MULTIPART_CHUNK_BYTES;
+  }
+  return MULTIPART_CHUNK_BYTES;
+}
+
+function assertMultipartIngestGeometry(
+  frame: MultipartFrame,
+  budgetBytes: number,
+): void {
+  const expectedCount = Math.ceil(frame.totalBytes / MULTIPART_CHUNK_BYTES);
+  if (
+    frame.totalBytes === 0 ||
+    frame.totalBytes > Math.min(budgetBytes, MAX_MULTIPART_BYTES)
+  ) {
+    throw new Error("Multipart propagation content exceeds receive budget");
+  }
+  if (
+    frame.count !== expectedCount ||
+    frame.chunk.length !== expectedMultipartChunkBytes(frame)
+  ) {
+    throw new Error("Multipart propagation frame has invalid chunk geometry");
+  }
+}
+
+function assertMultipartCheckpointCompatible(
+  existing: MultipartCheckpoint | null,
+  message: LXMessage,
+  frame: MultipartFrame,
+  contentHash: string,
+): void {
+  if (existing === null) return;
+  if (
+    existing.sourceHash !== bytesToHex(message.sourceHash) ||
+    existing.destinationHash !== bytesToHex(message.destinationHash) ||
+    existing.totalBytes !== frame.totalBytes ||
+    existing.chunkCount !== frame.count ||
+    existing.contentHash !== contentHash
+  ) {
+    throw new Error("Multipart transfer metadata changed during resume");
+  }
+}
+
+function assembleVerifiedMultipartContent(
+  provider: LXMFRouter["provider"],
+  frame: MultipartFrame,
+  chunks: Readonly<Record<number, string>>,
+): Uint8Array {
+  const content = new Uint8Array(frame.totalBytes);
+  let offset = 0;
+  for (let index = 0; index < frame.count; index += 1) {
+    const encoded = chunks[index];
+    if (encoded === undefined) {
+      throw new Error("Multipart transfer is missing a chunk");
+    }
+    const chunk = hexToBytes(encoded);
+    content.set(chunk, offset);
+    offset += chunk.length;
+  }
+  if (
+    offset !== frame.totalBytes ||
+    !equalBytes(Identity.fullHash(provider, content), frame.contentHash)
+  ) {
+    throw new Error("Multipart transfer failed integrity verification");
+  }
+  return content;
 }
 
 export class MultipartPropagationReceiver {
@@ -194,48 +318,20 @@ export class MultipartPropagationReceiver {
 
   ingest(message: LXMessage): MultipartReceiveResult {
     const frame = decodeFrame(message.content);
-    if (frame === null)
-      return {
-        recognized: false,
-        transferId: null,
-        receivedChunks: 0,
-        chunkCount: 0,
-        complete: false,
-        content: null,
-      };
+    if (frame === null) return unrecognizedMultipartResult();
     if (message.signatureValidated !== true) {
       throw new Error("Multipart propagation frame is not authenticated");
     }
-    const expectedCount = Math.ceil(frame.totalBytes / MULTIPART_CHUNK_BYTES);
-    const expectedChunkBytes =
-      frame.index === frame.count - 1
-        ? frame.totalBytes - frame.index * MULTIPART_CHUNK_BYTES
-        : MULTIPART_CHUNK_BYTES;
-    if (
-      frame.totalBytes === 0 ||
-      frame.totalBytes > Math.min(this.budgetBytes, MAX_MULTIPART_BYTES)
-    ) {
-      throw new Error("Multipart propagation content exceeds receive budget");
-    }
-    if (
-      frame.count !== expectedCount ||
-      frame.chunk.length !== expectedChunkBytes
-    ) {
-      throw new Error("Multipart propagation frame has invalid chunk geometry");
-    }
+    assertMultipartIngestGeometry(frame, this.budgetBytes);
     const transferId = bytesToHex(frame.transferId);
     const contentHash = bytesToHex(frame.contentHash);
     const existing = this.store.load(transferId);
-    if (
-      existing !== null &&
-      (existing.sourceHash !== bytesToHex(message.sourceHash) ||
-        existing.destinationHash !== bytesToHex(message.destinationHash) ||
-        existing.totalBytes !== frame.totalBytes ||
-        existing.chunkCount !== frame.count ||
-        existing.contentHash !== contentHash)
-    ) {
-      throw new Error("Multipart transfer metadata changed during resume");
-    }
+    assertMultipartCheckpointCompatible(
+      existing,
+      message,
+      frame,
+      contentHash,
+    );
     const checkpoint: MultipartCheckpoint = existing ?? {
       transferId,
       sourceHash: bytesToHex(message.sourceHash),
@@ -262,22 +358,11 @@ export class MultipartPropagationReceiver {
         content: null,
       };
     }
-    const content = new Uint8Array(frame.totalBytes);
-    let offset = 0;
-    for (let index = 0; index < frame.count; index += 1) {
-      const encoded = chunks[index];
-      if (encoded === undefined)
-        throw new Error("Multipart transfer is missing a chunk");
-      const chunk = hexToBytes(encoded);
-      content.set(chunk, offset);
-      offset += chunk.length;
-    }
-    if (
-      offset !== frame.totalBytes ||
-      !equalBytes(Identity.fullHash(this.provider, content), frame.contentHash)
-    ) {
-      throw new Error("Multipart transfer failed integrity verification");
-    }
+    const content = assembleVerifiedMultipartContent(
+      this.provider,
+      frame,
+      chunks,
+    );
     this.store.delete(transferId);
     return {
       recognized: true,

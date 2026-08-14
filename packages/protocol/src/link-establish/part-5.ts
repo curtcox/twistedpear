@@ -52,6 +52,7 @@ import {
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 /** Whether a packed application response fits the link MDU. */
 export function canSendLinkAppResponse(input: {
@@ -116,13 +117,13 @@ export function stepSendLinkAppResponseAllowWithActions(
 export function shouldAllowSendLinkAppResponse(
   actions: ReadonlyArray<SendLinkAppResponseAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenySendLinkAppResponse(
   actions: ReadonlyArray<SendLinkAppResponseAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 export type LinkAppRequestDispatchPlan =
@@ -199,19 +200,19 @@ export type LinkAppRequestDispatchAction =
 export function shouldIgnoreLinkAppRequestDispatch(
   actions: ReadonlyArray<LinkAppRequestDispatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldForbidLinkAppRequestDispatch(
   actions: ReadonlyArray<LinkAppRequestDispatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "forbidden");
+  return hasActionOfKind(actions, "forbidden");
 }
 
 export function shouldInvokeLinkAppRequestDispatch(
   actions: ReadonlyArray<LinkAppRequestDispatchAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invoke-handler");
+  return hasActionOfKind(actions, "invoke-handler");
 }
 
 export type LinkAppRequestResponsePlan =
@@ -286,7 +287,7 @@ export function stepInvokeLinkAppRequestHandlerWithActions(
 export function shouldInvokeLinkAppRequestHandlerNow(
   actions: ReadonlyArray<InvokeLinkAppRequestHandlerAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invoke");
+  return hasActionOfKind(actions, "invoke");
 }
 
 /**
@@ -355,7 +356,7 @@ export function stepSendLinkAppRequestResponseWithActions(
 export function shouldSendLinkAppRequestResponseNow(
   actions: ReadonlyArray<SendLinkAppRequestResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send");
+  return hasActionOfKind(actions, "send");
 }
 
 /**
@@ -393,19 +394,19 @@ export type LinkAppRequestResponsePlanAction =
 export function shouldIgnoreLinkAppRequestResponsePlan(
   actions: ReadonlyArray<LinkAppRequestResponsePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldRejectLinkAppRequestResponseTooBigPlan(
   actions: ReadonlyArray<LinkAppRequestResponsePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "response-too-big");
+  return hasActionOfKind(actions, "response-too-big");
 }
 
 export function shouldSendLinkAppRequestResponsePlan(
   actions: ReadonlyArray<LinkAppRequestResponsePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send-response");
+  return hasActionOfKind(actions, "send-response");
 }
 
 export type LinkAppRequestInboundEvent =

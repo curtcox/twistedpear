@@ -4,6 +4,7 @@
  * `utf8Decode` / `utf8OrBytes` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export function utf8Encode(value: string): Uint8Array {
   const out: number[] = [];
@@ -131,15 +132,14 @@ export function stepUtf8EncodeWithActions(
 export function shouldUseUtf8Encode(
   actions: ReadonlyArray<Utf8EncodeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract UTF-8 encoded bytes from step actions; null when no `use-raw`. */
 export function utf8EncodeRawFromActions(
   actions: ReadonlyArray<Utf8EncodeAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 export interface Utf8DecodeFields {
@@ -195,15 +195,14 @@ export function stepUtf8DecodeWithActions(
 export function shouldUseUtf8Decode(
   actions: ReadonlyArray<Utf8DecodeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract decoded UTF-8 text from step actions; null when no `use-fields`. */
 export function utf8DecodeTextFromActions(
   actions: ReadonlyArray<Utf8DecodeAction>,
 ): string | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields.text : null;
+  return firstActionOfKind(actions, "use-fields")?.fields.text ?? null;
 }
 
 /**
@@ -253,13 +252,12 @@ export function stepUtf8OrBytesWithActions(
 export function shouldUseUtf8OrBytes(
   actions: ReadonlyArray<Utf8OrBytesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract UTF-8-or-bytes result from step actions; null when no `use-raw`. */
 export function utf8OrBytesRawFromActions(
   actions: ReadonlyArray<Utf8OrBytesAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

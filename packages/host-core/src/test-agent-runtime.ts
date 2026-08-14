@@ -114,7 +114,7 @@ export class TestAgentRuntime {
   protected nextInvite = 0;
   private announcesSeen = 0;
   private notifyObserve: ((drop: ObserveDropIntent) => void) | null = null;
-  private stopped = false;
+  private stopped = false as boolean;
   private connection: DuplexConnection | null = null;
   private announceTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -166,7 +166,7 @@ export class TestAgentRuntime {
       this.announceIntervalMs > 0
         ? setInterval(() => void this.announceQuietly(), this.announceIntervalMs)
         : null;
-    this.announceTimer?.unref?.();
+    this.announceTimer?.unref();
   }
 
   private async initDelivery(): Promise<void> {
@@ -655,7 +655,7 @@ export class TestAgentRuntime {
         );
       }
       this.connection = null;
-      if (this.stopped) {
+      if ((this.stopped as boolean) === true) {
         return;
       }
       await new Promise((resolve) =>

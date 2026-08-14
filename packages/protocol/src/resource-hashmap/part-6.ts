@@ -36,24 +36,24 @@ import {
 } from "./part-1.js";
 import type { ResourcePartRequest } from "./part-1.js";
 import type { ParseResourcePartRequestAction } from "./part-5.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function shouldUseParseResourcePartRequest(
   actions: ReadonlyArray<ParseResourcePartRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectParseResourcePartRequest(
   actions: ReadonlyArray<ParseResourcePartRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract parsed part-request fields from step actions; null when no `use-fields`. */
 export function resourcePartRequestFieldsFromActions(
   actions: ReadonlyArray<ParseResourcePartRequestAction>,
 ): ResourcePartRequest | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -112,21 +112,20 @@ export function stepAppendResourceMapHashCollisionGuardWithActions(
 export function shouldAppendResourceMapHashCollisionGuard(
   actions: ReadonlyArray<AppendResourceMapHashCollisionGuardAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "append");
+  return hasActionOfKind(actions, "append");
 }
 
 export function shouldCollideResourceMapHashCollisionGuard(
   actions: ReadonlyArray<AppendResourceMapHashCollisionGuardAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "collide");
+  return hasActionOfKind(actions, "collide");
 }
 
 /** Extract appended collision-guard list from step actions; null when no `append`. */
 export function resourceMapHashCollisionGuardFromActions(
   actions: ReadonlyArray<AppendResourceMapHashCollisionGuardAction>,
 ): readonly Uint8Array[] | null {
-  const action = actions.find((entry) => entry.kind === "append");
-  return action?.kind === "append" ? action.guard : null;
+  return firstActionOfKind(actions, "append")?.guard ?? null;
 }
 
 /**
@@ -181,15 +180,14 @@ export function stepAssembleResourceHashmapBytesWithActions(
 export function shouldUseAssembleResourceHashmapBytes(
   actions: ReadonlyArray<AssembleResourceHashmapBytesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract assembled hashmap bytes from step actions; null when no `use-raw`. */
 export function assembleResourceHashmapBytesRawFromActions(
   actions: ReadonlyArray<AssembleResourceHashmapBytesAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -246,21 +244,20 @@ export function stepContainsResourceHashWithActions(
 export function shouldPresentResourceHash(
   actions: ReadonlyArray<ContainsResourceHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "present");
+  return hasActionOfKind(actions, "present");
 }
 
 export function shouldAbsentResourceHash(
   actions: ReadonlyArray<ContainsResourceHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "absent");
+  return hasActionOfKind(actions, "absent");
 }
 
 /** Extract membership index from step actions; null when no `present`. */
 export function resourceHashIndexFromActions(
   actions: ReadonlyArray<ContainsResourceHashAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "present");
-  return action?.kind === "present" ? action.index : null;
+  return firstActionOfKind(actions, "present")?.index ?? null;
 }
 
 /**
@@ -315,13 +312,12 @@ export function stepReadResourceRequestHashWithActions(
 export function shouldUseReadResourceRequestHash(
   actions: ReadonlyArray<ReadResourceRequestHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract request-hash bytes from step actions; null when no `use-raw`. */
 export function readResourceRequestHashRawFromActions(
   actions: ReadonlyArray<ReadResourceRequestHashAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

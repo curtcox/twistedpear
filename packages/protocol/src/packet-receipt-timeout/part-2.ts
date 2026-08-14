@@ -22,6 +22,7 @@ import type {
   KeepOutboundReceiptState,
   KeepOutboundReceiptStepResult,
 } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function stepKeepOutboundReceiptWithActions(
   state: KeepOutboundReceiptState,
   event: KeepOutboundReceiptEvent,
@@ -49,13 +50,13 @@ export function stepKeepOutboundReceiptWithActions(
 export function shouldKeepOutboundReceiptNow(
   actions: ReadonlyArray<KeepOutboundReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "keep");
+  return hasActionOfKind(actions, "keep");
 }
 
 export function shouldSkipKeepOutboundReceipt(
   actions: ReadonlyArray<KeepOutboundReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type PacketReceiptProofIngressPlan = "remove-receipt" | "continue";
@@ -144,13 +145,13 @@ export function packetReceiptProofIngressPlanFromActions(
 export function shouldRemovePacketReceiptProofIngressPlan(
   actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove-receipt");
+  return hasActionOfKind(actions, "remove-receipt");
 }
 
 export function shouldContinuePacketReceiptProofIngressPlan(
   actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "continue");
+  return hasActionOfKind(actions, "continue");
 }
 
 /**
@@ -215,14 +216,13 @@ export function stepPacketReceiptUnregisterPlanWithActions(
 export function packetReceiptUnregisterPlanIndex(
   actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
+  return firstActionOfKind(actions, "remove")?.index ?? null;
 }
 
 export function shouldRemovePacketReceiptUnregisterPlan(
   actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove");
+  return hasActionOfKind(actions, "remove");
 }
 
 /**
@@ -281,14 +281,13 @@ export function stepPacketReceiptUnregisterWithActions(
 export function packetReceiptUnregisterIndex(
   actions: ReadonlyArray<PacketReceiptUnregisterAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
+  return firstActionOfKind(actions, "remove")?.index ?? null;
 }
 
 export function shouldRemovePacketReceipt(
   actions: ReadonlyArray<PacketReceiptUnregisterAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove");
+  return hasActionOfKind(actions, "remove");
 }
 
 /** Whether an outbound send should create and register a packet receipt. */
@@ -347,13 +346,13 @@ export function stepRegisterPacketReceiptWithActions(
 export function shouldRegisterPacketReceiptNow(
   actions: ReadonlyArray<RegisterPacketReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "register");
+  return hasActionOfKind(actions, "register");
 }
 
 export function shouldSkipRegisterPacketReceipt(
   actions: ReadonlyArray<RegisterPacketReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type PacketReceiptCallbackPlan = "clear" | "set";

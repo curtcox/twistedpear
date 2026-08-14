@@ -32,6 +32,7 @@ import {
   shouldApplyResourceReceivePartSlot,
 } from "./part-2.js";
 import type { ResourcePartRequestPlan } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Resource receive-part slot-write gate is event-driven; no durable session
  * fields. Conclusions leave via machine actions (no ad-hoc
@@ -87,13 +88,13 @@ export function stepApplyResourceReceivePartSlotWithActions(
 export function shouldApplyResourceReceivePartSlotNow(
   actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldSkipApplyResourceReceivePartSlot(
   actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether fulfill should emit a hashmap-update frame. */
@@ -154,13 +155,13 @@ export function stepSendResourceHashmapUpdateWithActions(
 export function shouldSendResourceHashmapUpdateNow(
   actions: ReadonlyArray<SendResourceHashmapUpdateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send");
+  return hasActionOfKind(actions, "send");
 }
 
 export function shouldSkipSendResourceHashmapUpdate(
   actions: ReadonlyArray<SendResourceHashmapUpdateAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether fulfill should advance status to awaiting-proof. */
@@ -221,13 +222,13 @@ export function stepAdvanceResourceAwaitingProofWithActions(
 export function shouldAdvanceResourceAwaitingProofNow(
   actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "advance");
+  return hasActionOfKind(actions, "advance");
 }
 
 export function shouldSkipAdvanceResourceAwaitingProof(
   actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -299,7 +300,7 @@ export function stepResourcePartRequestPlanWithActions(
 export function shouldEmitResourcePartRequestPlan(
   actions: ReadonlyArray<ResourcePartRequestPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "request");
+  return hasActionOfKind(actions, "request");
 }
 
 export function resourcePartRequestPlanFromActions(
@@ -374,7 +375,7 @@ export function stepResourcePartRequestWithActions(
 export function shouldEmitResourcePartRequest(
   actions: ReadonlyArray<ResourcePartRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "request");
+  return hasActionOfKind(actions, "request");
 }
 
 export function resourcePartRequestFromActions(

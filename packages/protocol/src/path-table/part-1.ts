@@ -30,6 +30,7 @@ import {
   PACKET_HEADER_1,
   PACKET_TYPE_ANNOUNCE,
 } from "../packet-header.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export { TRUNCATED_HASH_BYTES };
 
@@ -108,13 +109,13 @@ export function stepEmitPathRequestWithActions(
 export function shouldEmitPathRequestNow(
   actions: ReadonlyArray<EmitPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "emit");
+  return hasActionOfKind(actions, "emit");
 }
 
 export function shouldSkipEmitPathRequest(
   actions: ReadonlyArray<EmitPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** True when a discovery path-request entry is past its absolute deadline. */
@@ -180,13 +181,13 @@ export function stepDiscoveryPathRequestExpiredWithActions(
 export function shouldTreatDiscoveryPathRequestExpired(
   actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "expired");
+  return hasActionOfKind(actions, "expired");
 }
 
 export function shouldTreatDiscoveryPathRequestLive(
   actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "live");
+  return hasActionOfKind(actions, "live");
 }
 
 /**
@@ -400,43 +401,43 @@ export function pathRequestIngressFromActions(
 export function shouldIgnorePathRequestUnparsed(
   actions: ReadonlyArray<PathRequestIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore-unparsed");
+  return hasActionOfKind(actions, "ignore-unparsed");
 }
 
 export function shouldIgnorePathRequestSeenTag(
   actions: ReadonlyArray<PathRequestIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore-seen-tag");
+  return hasActionOfKind(actions, "ignore-seen-tag");
 }
 
 export function shouldAnswerPathRequestLocal(
   actions: ReadonlyArray<PathRequestIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "answer-local");
+  return hasActionOfKind(actions, "answer-local");
 }
 
 export function shouldAnswerPathRequestPath(
   actions: ReadonlyArray<PathRequestIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "answer-path");
+  return hasActionOfKind(actions, "answer-path");
 }
 
 export function shouldIgnorePathRequestIngress(
   actions: ReadonlyArray<PathRequestIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldIgnorePathRequestInFlightDiscovery(
   actions: ReadonlyArray<PathRequestIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore-in-flight-discovery");
+  return hasActionOfKind(actions, "ignore-in-flight-discovery");
 }
 
 export function shouldStartPathRequestDiscovery(
   actions: ReadonlyArray<PathRequestIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "start-discovery");
+  return hasActionOfKind(actions, "start-discovery");
 }
 
 function stepPathRequestIngressInner(

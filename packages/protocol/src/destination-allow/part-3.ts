@@ -31,6 +31,7 @@ import type {
   DestinationConstructionEvent,
   DestinationConstructionState,
 } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 export function initialDestinationConstructionState(): DestinationConstructionState {
   return {};
 }
@@ -48,25 +49,25 @@ export const stepDestinationConstruction: StepFn<
 export function shouldProceedDestinationConstruction(
   actions: ReadonlyArray<DestinationConstructionAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectDestinationConstructionBadDirection(
   actions: ReadonlyArray<DestinationConstructionAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-direction");
+  return hasActionOfKind(actions, "bad-direction");
 }
 
 export function shouldRejectDestinationConstructionBadType(
   actions: ReadonlyArray<DestinationConstructionAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-type");
+  return hasActionOfKind(actions, "bad-type");
 }
 
 export function shouldRejectDestinationConstructionBadIdentityBinding(
   actions: ReadonlyArray<DestinationConstructionAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-identity-binding");
+  return hasActionOfKind(actions, "bad-identity-binding");
 }
 
 export type DestinationDecryptPlan =
@@ -154,19 +155,19 @@ export function destinationDecryptPlanFromActions(
 export function shouldReturnDestinationDecryptPlanCiphertext(
   actions: ReadonlyArray<DestinationDecryptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "return-ciphertext");
+  return hasActionOfKind(actions, "return-ciphertext");
 }
 
 export function shouldRejectDestinationDecryptPlan(
   actions: ReadonlyArray<DestinationDecryptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 export function shouldDecryptDestinationPlanWithIdentity(
   actions: ReadonlyArray<DestinationDecryptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "decrypt-with-identity");
+  return hasActionOfKind(actions, "decrypt-with-identity");
 }
 
 /**
@@ -225,19 +226,19 @@ export function stepDestinationDecryptWithActions(
 export function shouldReturnDestinationDecryptCiphertext(
   actions: ReadonlyArray<DestinationDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "return-ciphertext");
+  return hasActionOfKind(actions, "return-ciphertext");
 }
 
 export function shouldRejectDestinationDecrypt(
   actions: ReadonlyArray<DestinationDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 export function shouldDecryptDestinationWithIdentity(
   actions: ReadonlyArray<DestinationDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "decrypt-with-identity");
+  return hasActionOfKind(actions, "decrypt-with-identity");
 }
 
 function stepDestinationDecryptInner(
@@ -348,19 +349,19 @@ export function destinationEncryptPlanFromActions(
 export function shouldUseDestinationEncryptPlanPlaintext(
   actions: ReadonlyArray<DestinationEncryptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-plaintext");
+  return hasActionOfKind(actions, "use-plaintext");
 }
 
 export function shouldRejectDestinationEncryptPlan(
   actions: ReadonlyArray<DestinationEncryptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 export function shouldEncryptDestinationPlanWithIdentity(
   actions: ReadonlyArray<DestinationEncryptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "encrypt-with-identity");
+  return hasActionOfKind(actions, "encrypt-with-identity");
 }
 
 /**
@@ -419,19 +420,19 @@ export function stepDestinationEncryptWithActions(
 export function shouldUseDestinationEncryptPlaintext(
   actions: ReadonlyArray<DestinationEncryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-plaintext");
+  return hasActionOfKind(actions, "use-plaintext");
 }
 
 export function shouldRejectDestinationEncrypt(
   actions: ReadonlyArray<DestinationEncryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 export function shouldEncryptDestinationWithIdentity(
   actions: ReadonlyArray<DestinationEncryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "encrypt-with-identity");
+  return hasActionOfKind(actions, "encrypt-with-identity");
 }
 
 function stepDestinationEncryptInner(

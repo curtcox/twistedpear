@@ -15,10 +15,11 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import type { DeletePropagationCatalogEntryAction } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 export function shouldSkipDeletePropagationCatalogEntry(
   actions: ReadonlyArray<DeletePropagationCatalogEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -87,13 +88,13 @@ export function stepApplyPropagationRestoreWithActions(
 export function shouldApplyPropagationRestoreNow(
   actions: ReadonlyArray<ApplyPropagationRestoreAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldSkipApplyPropagationRestore(
   actions: ReadonlyArray<ApplyPropagationRestoreAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type PropagationRestorePlan =
@@ -171,7 +172,7 @@ export function stepPropagationRestorePlanWithActions(
 export function shouldAcceptPropagationRestorePlan(
   actions: ReadonlyArray<PropagationRestorePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function propagationRestorePlanFromActions(
@@ -243,7 +244,7 @@ export function stepPropagationRestoreWithActions(
 export function shouldAcceptPropagationRestore(
   actions: ReadonlyArray<PropagationRestoreAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 function stepPropagationRestoreInner(

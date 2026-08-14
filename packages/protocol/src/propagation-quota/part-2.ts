@@ -33,6 +33,7 @@ import type {
   PropagationStorePlanEvent,
   PropagationStoreState,
 } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Store-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPropagationStore` /
@@ -146,13 +147,13 @@ export function stepEvictPropagationCatalogEntryWithActions(
 export function shouldEvictPropagationCatalogEntryNow(
   actions: ReadonlyArray<EvictPropagationCatalogEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "evict");
+  return hasActionOfKind(actions, "evict");
 }
 
 export function shouldSkipEvictPropagationCatalogEntry(
   actions: ReadonlyArray<EvictPropagationCatalogEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -221,19 +222,19 @@ export function stepEvictOldestPropagationEntryWithActions(
 export function shouldEvictOldestPropagationEntryNow(
   actions: ReadonlyArray<EvictOldestPropagationEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "evict");
+  return hasActionOfKind(actions, "evict");
 }
 
 export function shouldSkipEvictOldestPropagationEntry(
   actions: ReadonlyArray<EvictOldestPropagationEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export function shouldSkipCommitPropagationStoreEntry(
   actions: ReadonlyArray<CommitPropagationStoreEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -301,13 +302,13 @@ export function stepApplyPropagationStoreCommitWithActions(
 export function shouldApplyPropagationStoreCommitNow(
   actions: ReadonlyArray<ApplyPropagationStoreCommitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldSkipApplyPropagationStoreCommit(
   actions: ReadonlyArray<ApplyPropagationStoreCommitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -353,21 +354,21 @@ export function stepPropagationStoreWithActions(
 export function shouldRejectPropagationStore(
   actions: ReadonlyArray<PropagationStoreAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Whether step actions include duplicate (already stored). */
 export function shouldDuplicatePropagationStore(
   actions: ReadonlyArray<PropagationStoreAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "duplicate");
+  return hasActionOfKind(actions, "duplicate");
 }
 
 /** Whether step actions include accept (evict then commit). */
 export function shouldAcceptPropagationStore(
   actions: ReadonlyArray<PropagationStoreAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 /** Eviction keys from an accept action, if present. */
@@ -486,5 +487,5 @@ export function stepDeletePropagationCatalogEntryWithActions(
 export function shouldDeletePropagationCatalogEntryNow(
   actions: ReadonlyArray<DeletePropagationCatalogEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "delete");
+  return hasActionOfKind(actions, "delete");
 }

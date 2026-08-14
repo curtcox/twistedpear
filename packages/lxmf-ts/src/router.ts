@@ -1,32 +1,24 @@
 import {
   applyLxmfSendEvent,
-  initialAcceptLxmfPropagationLocalDeliveryState,
   initialInvokeLxmfDeliveryCallbackState,
   initialLxmfDeliverableAcceptState,
   initialLxmfInboundDeliveryState,
   initialLxmfPropagationLocalIngressState,
   initialLxmfSendMethodState,
   initialLxmfSendState,
-  initialPackLxmfDestinationPrefixedState,
   initialRegisterLxmfDeliveryIdentityState,
   initialRememberLxmfMessageState,
-  initialSplitLxmfDestinationPrefixedState,
   initialStampCostFromAppDataState,
   initialTeardownLxmfPropagationLinkState,
   initialUnpackLxmfPropagationLocalIngressState,
-  lxmfDestinationPrefixedFieldsFromActions,
   lxmfInboundDeliveryRawFromActions,
   lxmfSendUnsupportedMethod,
-  packLxmfDestinationPrefixedRawFromActions,
   stampCostFromActions,
   shouldAcceptLxmfDeliverable,
-  shouldAcceptLxmfPropagationLocalDeliveryNow,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldInvokeLxmfDeliveryCallbackNow,
   shouldRejectLxmfSendUnpacked,
   shouldRejectLxmfSendUnsupported,
-  shouldRejectPackLxmfDestinationPrefixed,
-  shouldRejectSplitLxmfDestinationPrefixed,
   shouldRegisterLxmfDeliveryIdentityNow,
   shouldRememberLxmfMessageNow,
   shouldSendLxmfDirect,
@@ -35,18 +27,13 @@ import {
   shouldTeardownLxmfPropagationLinkNow,
   shouldUnpackLxmfPropagationLocalIngressNow,
   shouldUseLxmfInboundDelivery,
-  shouldUsePackLxmfDestinationPrefixed,
-  shouldUseSplitLxmfDestinationPrefixed,
-  stepAcceptLxmfPropagationLocalDeliveryWithActions,
   stepInvokeLxmfDeliveryCallbackWithActions,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfInboundDeliveryWithActions,
   stepLxmfSendMethodWithActions,
   stepLxmfPropagationLocalIngressWithActions,
-  stepPackLxmfDestinationPrefixedWithActions,
   stepRegisterLxmfDeliveryIdentityWithActions,
   stepRememberLxmfMessageWithActions,
-  stepSplitLxmfDestinationPrefixedWithActions,
   stepStampCostFromAppDataWithActions,
   stepTeardownLxmfPropagationLinkWithActions,
   stepUnpackLxmfPropagationLocalIngressWithActions,
@@ -67,7 +54,6 @@ import {
   DestinationType,
   DestinationProofStrategy,
   bytesToHex,
-  equalBytes,
   Identity,
 } from "@twistedpear/reticulum-ts";
 import {
@@ -81,7 +67,12 @@ import {
   type LXMessagePackOptions,
 } from "./message.js";
 import {
-  ensureOutboundPropagationLink,
+  decryptPropagationLocalRemainder,
+  packPropagationLocalDeliveryData,
+  propagationLocalHashMatches,
+  splitLxmfDestinationPrefixed,
+} from "./router-propagation-ingress.js";
+import {
   sendDirectLxmf,
   sendOpportunisticLxmf,
   sendPropagatedLxmf,
@@ -352,56 +343,22 @@ export class LXMFRouter {
     method: LXMessageMethodValue = LXMessageMethod.DIRECT,
   ): boolean {
     const message = this.unpackDeliverable(lxmfData, method);
-    const invoke = stepInvokeLxmfDeliveryCallbackWithActions(
-      initialInvokeLxmfDeliveryCallbackState(),
-      {
-        kind: "lxmf/invoke-delivery-callback-gate",
-        messagePresent: message !== null,
-      },
-    );
-    if (!shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
-      return false;
-    }
-
-    const context = this.moderate(message!);
-    if (context === null) return false;
-    this.deliveryCallback?.(message!, context);
-    return true;
+    return this.deliveryNotifyOutcome(message) === "notified";
   }
 
   /** Mirrors LXMF/LXMRouter.lxmf_propagation local-delivery branch. */
   handlePropagationData(lxmfData: Uint8Array): LXMessage | null {
-    const splitStepped = stepSplitLxmfDestinationPrefixedWithActions(
-      initialSplitLxmfDestinationPrefixedState(),
-      {
-        kind: "lxmf-destination-prefixed/split-gate",
-        bytes: lxmfData,
-      },
-    );
-    const prefixed =
-      shouldRejectSplitLxmfDestinationPrefixed(splitStepped.actions) ||
-      !shouldUseSplitLxmfDestinationPrefixed(splitStepped.actions)
-        ? null
-        : lxmfDestinationPrefixedFieldsFromActions(splitStepped.actions);
+    const prefixed = splitLxmfDestinationPrefixed(lxmfData);
     const deliveryDestination = this.deliveryDestination;
-    const destinationHashMatches =
-      deliveryDestination !== null &&
-      prefixed !== null &&
-      equalBytes(deliveryDestination.hash, prefixed.destinationHash);
-    const localDelivery = stepAcceptLxmfPropagationLocalDeliveryWithActions(
-      initialAcceptLxmfPropagationLocalDeliveryState(),
-      {
-        kind: "propagation-local-delivery/accept-gate",
-        deliveryDestinationPresent: deliveryDestination !== null,
-        destinationHashMatches,
-      },
+    const destinationHashMatches = propagationLocalHashMatches(
+      deliveryDestination,
+      prefixed,
     );
-    const decrypted =
-      prefixed !== null &&
-      shouldAcceptLxmfPropagationLocalDeliveryNow(localDelivery.actions) &&
-      deliveryDestination !== null
-        ? deliveryDestination.decrypt(prefixed.remainder)
-        : null;
+    const decrypted = decryptPropagationLocalRemainder(
+      deliveryDestination,
+      prefixed,
+      destinationHashMatches,
+    );
 
     const ingress = stepLxmfPropagationLocalIngressWithActions(
       initialLxmfPropagationLocalIngressState(),
@@ -427,22 +384,9 @@ export class LXMFRouter {
       return null;
     }
 
-    const packStepped = stepPackLxmfDestinationPrefixedWithActions(
-      initialPackLxmfDestinationPrefixedState(),
-      {
-        kind: "lxmf-destination-prefixed/pack-gate",
-        destinationHash: prefixed!.destinationHash,
-        remainder: decrypted!,
-      },
-    );
-    if (
-      shouldRejectPackLxmfDestinationPrefixed(packStepped.actions) ||
-      !shouldUsePackLxmfDestinationPrefixed(packStepped.actions)
-    ) {
-      return null;
-    }
-    const deliveryData = packLxmfDestinationPrefixedRawFromActions(
-      packStepped.actions,
+    const deliveryData = packPropagationLocalDeliveryData(
+      prefixed!.destinationHash,
+      decrypted!,
     );
     if (deliveryData === null) {
       return null;
@@ -451,6 +395,19 @@ export class LXMFRouter {
       deliveryData,
       LXMessageMethod.PROPAGATED,
     );
+    return this.notifyPropagationDelivery(message);
+  }
+
+  private notifyPropagationDelivery(message: LXMessage | null): LXMessage | null {
+    if (this.deliveryNotifyOutcome(message) === "blocked") {
+      return null;
+    }
+    return message;
+  }
+
+  private deliveryNotifyOutcome(
+    message: LXMessage | null,
+  ): "skip" | "blocked" | "notified" {
     const invoke = stepInvokeLxmfDeliveryCallbackWithActions(
       initialInvokeLxmfDeliveryCallbackState(),
       {
@@ -458,13 +415,14 @@ export class LXMFRouter {
         messagePresent: message !== null,
       },
     );
-    if (shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
-      const context = this.moderate(message!);
-      if (context === null) return null;
-      this.deliveryCallback?.(message!, context);
+    if (!shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
+      return "skip";
     }
 
-    return message;
+    const context = this.moderate(message!);
+    if (context === null) return "blocked";
+    this.deliveryCallback?.(message!, context);
+    return "notified";
   }
 
   trackDirectLink(destinationHash: Uint8Array, link: Link): void {

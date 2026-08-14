@@ -8,6 +8,7 @@
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LinkRequestReceiptStatus = {
   FAILED: 0x00,
@@ -150,21 +151,20 @@ export function stepIndexOfPendingLinkAppRequestWithActions(
 export function shouldUsePendingLinkAppRequestIndex(
   actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-index");
+  return hasActionOfKind(actions, "use-index");
 }
 
 export function shouldMissPendingLinkAppRequestIndex(
   actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 /** Extract pending app-request index from step actions; null when no `use-index`. */
 export function pendingLinkAppRequestIndexFromActions(
   actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-index");
-  return action?.kind === "use-index" ? action.index : null;
+  return firstActionOfKind(actions, "use-index")?.index ?? null;
 }
 
 /** Whether RESPONSE dispatch may deliver after {@link indexOfPendingLinkAppRequest}. */
@@ -225,13 +225,13 @@ export function stepDeliverPendingLinkAppResponseWithActions(
 export function shouldDeliverPendingLinkAppResponseNow(
   actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deliver");
+  return hasActionOfKind(actions, "deliver");
 }
 
 export function shouldSkipPendingLinkAppResponseDeliver(
   actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a pending link-request receipt list should receive a new member. */
@@ -292,13 +292,13 @@ export function stepPendingLinkRequestRegisterWithActions(
 export function shouldRegisterPendingLinkRequestNow(
   actions: ReadonlyArray<PendingLinkRequestRegisterAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "register");
+  return hasActionOfKind(actions, "register");
 }
 
 export function shouldSkipPendingLinkRequestRegister(
   actions: ReadonlyArray<PendingLinkRequestRegisterAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether construction should attach an outbound packet receipt to the request receipt. */
@@ -359,13 +359,13 @@ export function stepAttachLinkRequestPacketReceiptWithActions(
 export function shouldAttachLinkRequestPacketReceiptNow(
   actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "attach");
+  return hasActionOfKind(actions, "attach");
 }
 
 export function shouldSkipLinkRequestPacketReceiptAttach(
   actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -432,14 +432,13 @@ export function stepPendingLinkRequestUnregisterPlanWithActions(
 export function pendingLinkRequestUnregisterPlanIndex(
   actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
+  return firstActionOfKind(actions, "remove")?.index ?? null;
 }
 
 export function shouldRemovePendingLinkRequestUnregisterPlan(
   actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove");
+  return hasActionOfKind(actions, "remove");
 }
 
 /**
@@ -499,14 +498,13 @@ export function stepPendingLinkRequestUnregisterWithActions(
 export function pendingLinkRequestUnregisterIndex(
   actions: ReadonlyArray<PendingLinkRequestUnregisterAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove");
-  return action?.kind === "remove" ? action.index : null;
+  return firstActionOfKind(actions, "remove")?.index ?? null;
 }
 
 export function shouldRemovePendingLinkRequest(
   actions: ReadonlyArray<PendingLinkRequestUnregisterAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove");
+  return hasActionOfKind(actions, "remove");
 }
 
 /** Whether step actions include a failed/response fanout for the adapter callback. */

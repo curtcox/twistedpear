@@ -221,8 +221,8 @@ export class ResourceLayer1 {
     );
     const data = split ? fullData.subarray(start, end) : fullData;
     const provider = link.cryptoProvider;
-    const randomHash = Resource.resourceRandomHash(link, options);
-    const materials = Resource.encryptAndHashResource({
+    const randomHash = this.resourceRandomHash(link, options);
+    const materials = this.encryptAndHashResource({
       link,
       provider,
       data,
@@ -351,14 +351,14 @@ export class ResourceLayer1 {
     }
     const encryptedPayload = link.encrypt(payload);
     const sdu = link.mtu - RESOURCE_PACKET_HEADER_MAX - RESOURCE_IFAC_MIN_SIZE;
-    const totalParts = Resource.resourceTotalParts(encryptedPayload.length, sdu);
-    const hash = Resource.resourceHash(provider, data, randomHash);
+    const totalParts = this.resourceTotalParts(encryptedPayload.length, sdu);
+    const hash = this.resourceHash(provider, data, randomHash);
     return {
       encryptedPayload,
       totalParts,
       sdu,
       hash,
-      expectedProof: Resource.resourceExpectedProof(provider, data, hash),
+      expectedProof: this.resourceExpectedProof(provider, data, hash),
     };
   }
 

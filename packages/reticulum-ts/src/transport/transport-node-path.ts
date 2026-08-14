@@ -49,6 +49,7 @@ import { DestinationDirection } from "../destination.js";
 import type { PacketInterface } from "../interfaces/interface.js";
 import type { Packet } from "../packet.js";
 import { buildPathResponseAnnounce, hashKey } from "./node.js";
+import type { LocalDestination } from "./node.js";
 import {
   PATH_REQUEST_TIMEOUT_SECONDS,
   parsePathRequestData,
@@ -69,75 +70,141 @@ export class TransportNodePath extends TransportNodeBase {
     const parsed = parsePathRequestData(packet.data);
     const path =
       parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
-    const localDestination =
-      parsed === null
-        ? undefined
-        : this.destinations.find((entry) =>
-            shouldMatchLocalInboundDestinationNow(
-              stepMatchLocalInboundDestinationWithActions(
-                initialMatchLocalInboundDestinationState(),
-                {
-                  kind: "transport/match-local-inbound-destination-gate",
-                  hashMatches: equalBytes(entry.hash, parsed.destinationHash),
-                  directionIn: entry.direction === DestinationDirection.IN,
-                },
-              ).actions,
-            ),
-          );
-    const tagKey =
-      parsed !== null && parsed.tag !== null
-        ? pathRequestTagKey(parsed.destinationHash, parsed.tag)
-        : null;
+    const localDestination = this.findPathRequestLocalDestination(parsed);
+    const tagKey = pathRequestTagKeyFromParsed(parsed);
     const destinationKey =
       parsed !== null ? hashKey(parsed.destinationHash) : null;
+    const nowSeconds = this.clock.now() / 1000;
+    const discoveryExpired = this.isDiscoveryExpired(
+      destinationKey,
+      nowSeconds,
+    );
+    const stepped = this.stepPathRequestIngress({
+      parsed,
+      path,
+      localDestination,
+      tagKey,
+      destinationKey,
+      discoveryExpired,
+    });
+    const handled = await this.applyPathRequestIngress(stepped.actions, {
+      parsed,
+      path,
+      localDestination,
+      tagKey,
+      destinationKey,
+      discoveryExpired,
+      nowSeconds,
+      iface,
+    });
+    if (handled) {
+      return;
+    }
+  }
+
+  private stepPathRequestIngress(input: {
+    parsed: ReturnType<typeof parsePathRequestData>;
+    path: ReturnType<TransportNodePath["getPathEntry"]>;
+    localDestination: LocalDestination | undefined;
+    tagKey: string | null;
+    destinationKey: string | null;
+    discoveryExpired: boolean;
+  }) {
+    return stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: input.parsed !== null,
+      hasTag: input.parsed?.tag !== null && input.parsed?.tag !== undefined,
+      tagAlreadySeen:
+        input.tagKey !== null && this.discoveryPrTags.has(input.tagKey),
+      hasLocalAnswerer: input.localDestination?.answerPathRequest !== undefined,
+      transportEnabled: this.transportEnabled,
+      hasPath: input.path !== undefined,
+      shouldAnswerPath: this.shouldAnswerStoredPath(input.path, input.parsed),
+      discoveryPresent:
+        input.destinationKey !== null &&
+        this.discoveryPathRequests.get(input.destinationKey) !== undefined,
+      discoveryExpired: input.discoveryExpired,
+      allowDiscovery: true,
+    });
+  }
+
+  private findPathRequestLocalDestination(
+    parsed: ReturnType<typeof parsePathRequestData>,
+  ): LocalDestination | undefined {
+    if (parsed === null) {
+      return undefined;
+    }
+    return this.destinations.find((entry) =>
+      shouldMatchLocalInboundDestinationNow(
+        stepMatchLocalInboundDestinationWithActions(
+          initialMatchLocalInboundDestinationState(),
+          {
+            kind: "transport/match-local-inbound-destination-gate",
+            hashMatches: equalBytes(entry.hash, parsed.destinationHash),
+            directionIn: entry.direction === DestinationDirection.IN,
+          },
+        ).actions,
+      ),
+    );
+  }
+
+  private isDiscoveryExpired(
+    destinationKey: string | null,
+    nowSeconds: number,
+  ): boolean {
     const existingDiscovery =
       destinationKey !== null
         ? this.discoveryPathRequests.get(destinationKey)
         : undefined;
-    const nowSeconds = this.clock.now() / 1000;
-    const discoveryExpired =
-      existingDiscovery !== undefined &&
-      shouldTreatDiscoveryPathRequestExpired(
-        stepDiscoveryPathRequestExpiredWithActions(
-          initialDiscoveryPathRequestExpiredState(),
-          {
-            kind: "path-request/discovery-expired-gate",
-            timeoutAt: existingDiscovery.timeout,
-            nowSeconds,
-          },
-        ).actions,
-      );
-
-    const stepped = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: parsed !== null,
-        hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
-        tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
-        hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
-        transportEnabled: this.transportEnabled,
-        hasPath: path !== undefined,
-        shouldAnswerPath:
-          path !== undefined &&
-          shouldAnswerPathRequestNow(
-            stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
-              kind: "path-request/answer-path-gate",
-              nextHop: path.nextHop,
-              requestorTransportId: parsed?.requestorTransportId ?? null,
-            }).actions,
-          ),
-        discoveryPresent: existingDiscovery !== undefined,
-        discoveryExpired,
-        allowDiscovery: true,
-      },
+    if (existingDiscovery === undefined) {
+      return false;
+    }
+    return shouldTreatDiscoveryPathRequestExpired(
+      stepDiscoveryPathRequestExpiredWithActions(
+        initialDiscoveryPathRequestExpiredState(),
+        {
+          kind: "path-request/discovery-expired-gate",
+          timeoutAt: existingDiscovery.timeout,
+          nowSeconds,
+        },
+      ).actions,
     );
+  }
 
+  private shouldAnswerStoredPath(
+    path: ReturnType<TransportNodePath["getPathEntry"]>,
+    parsed: ReturnType<typeof parsePathRequestData>,
+  ): boolean {
+    if (path === undefined) {
+      return false;
+    }
+    return shouldAnswerPathRequestNow(
+      stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+        kind: "path-request/answer-path-gate",
+        nextHop: path.nextHop,
+        requestorTransportId: parsed?.requestorTransportId ?? null,
+      }).actions,
+    );
+  }
+
+  private async applyPathRequestIngress(
+    actions: ReturnType<typeof stepPathRequestIngressWithActions>["actions"],
+    input: {
+      parsed: ReturnType<typeof parsePathRequestData>;
+      path: ReturnType<TransportNodePath["getPathEntry"]>;
+      localDestination: LocalDestination | undefined;
+      tagKey: string | null;
+      destinationKey: string | null;
+      discoveryExpired: boolean;
+      nowSeconds: number;
+      iface: PacketInterface;
+    },
+  ): Promise<boolean> {
     if (
-      shouldIgnorePathRequestUnparsed(stepped.actions) ||
-      shouldIgnorePathRequestSeenTag(stepped.actions)
+      shouldIgnorePathRequestUnparsed(actions) ||
+      shouldIgnorePathRequestSeenTag(actions)
     ) {
-      return;
+      return true;
     }
 
     if (
@@ -146,46 +213,47 @@ export class TransportNodePath extends TransportNodeBase {
           initialRememberPathRequestTagState(),
           {
             kind: "path-request/remember-tag-gate",
-            tagKeyPresent: tagKey !== null,
+            tagKeyPresent: input.tagKey !== null,
           },
         ).actions,
       )
     ) {
-      this.discoveryPrTags.add(tagKey!);
+      this.discoveryPrTags.add(input.tagKey!);
     }
 
-    if (shouldAnswerPathRequestLocal(stepped.actions)) {
-      await this.answerLocalPathRequest(localDestination, iface);
-      return;
+    if (shouldAnswerPathRequestLocal(actions)) {
+      await this.answerLocalPathRequest(input.localDestination, input.iface);
+      return true;
     }
 
-    if (shouldAnswerPathRequestPath(stepped.actions)) {
-      await this.answerStoredPathRequest(path, iface);
-      return;
+    if (shouldAnswerPathRequestPath(actions)) {
+      await this.answerStoredPathRequest(input.path, input.iface);
+      return true;
     }
 
     if (
-      shouldIgnorePathRequestIngress(stepped.actions) ||
-      shouldIgnorePathRequestInFlightDiscovery(stepped.actions)
+      shouldIgnorePathRequestIngress(actions) ||
+      shouldIgnorePathRequestInFlightDiscovery(actions)
     ) {
-      return;
+      return true;
     }
 
-    if (!shouldStartPathRequestDiscovery(stepped.actions)) {
-      return;
+    if (!shouldStartPathRequestDiscovery(actions)) {
+      return true;
     }
 
     this.beginPathDiscovery({
-      parsed,
-      destinationKey,
-      discoveryExpired,
-      nowSeconds,
-      iface,
+      parsed: input.parsed,
+      destinationKey: input.destinationKey,
+      discoveryExpired: input.discoveryExpired,
+      nowSeconds: input.nowSeconds,
+      iface: input.iface,
     });
+    return true;
   }
 
   private async answerLocalPathRequest(
-    localDestination: (typeof this.destinations)[number] | undefined,
+    localDestination: LocalDestination | undefined,
     iface: PacketInterface,
   ): Promise<void> {
     if (
@@ -267,11 +335,14 @@ export class TransportNodePath extends TransportNodeBase {
     for (const outbound of this.interfaces) {
       if (
         !shouldTransmitOnInterfaceNow(
-          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
-            kind: "transport/transmit-on-interface-gate",
-            outgoing: outbound.outgoing,
-            isExcludedInterface: outbound === iface,
-          }).actions,
+          stepTransmitOnInterfaceWithActions(
+            initialTransmitOnInterfaceState(),
+            {
+              kind: "transport/transmit-on-interface-gate",
+              outgoing: outbound.outgoing,
+              isExcludedInterface: outbound === iface,
+            },
+          ).actions,
         )
       ) {
         continue;
@@ -340,4 +411,13 @@ export class TransportNodePath extends TransportNodeBase {
     );
     await this.transmit(pending!.requestingInterface, response.raw);
   }
+}
+
+function pathRequestTagKeyFromParsed(
+  parsed: ReturnType<typeof parsePathRequestData>,
+): string | null {
+  if (parsed === null || parsed.tag === null) {
+    return null;
+  }
+  return pathRequestTagKey(parsed.destinationHash, parsed.tag);
 }

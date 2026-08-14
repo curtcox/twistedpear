@@ -21,6 +21,7 @@ import {
 import { decodePacketRaw } from "./part-2.js";
 import type { PacketHeaderFields } from "./part-1.js";
 import type { DecodePacketRawState } from "./part-2.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export type DecodePacketRawEvent =
   | Event
   | {
@@ -64,19 +65,18 @@ export function stepDecodePacketRawWithActions(
 export function shouldUseDecodePacketRaw(
   actions: ReadonlyArray<DecodePacketRawAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectDecodePacketRaw(
   actions: ReadonlyArray<DecodePacketRawAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract decoded packet header fields from step actions; null when no `use-fields`. */
 export function packetHeaderFieldsFromActions(
   actions: ReadonlyArray<DecodePacketRawAction>,
 ): PacketHeaderFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

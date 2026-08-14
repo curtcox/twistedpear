@@ -33,6 +33,7 @@ import {
   concatBytes,
 } from "./part-1.js";
 import type { ResourcePartRequest, ResourcePartRequestPlan } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Plan the next RESOURCE_REQ body from receiver window / hashmap state.
  * Send stays at the adapter edge.
@@ -114,7 +115,36 @@ export interface ResourceReceivePartPlan {
  * Plan accepting a received part into the windowed hashmap.
  * Hashing of part data stays at the adapter edge.
  */
-export function planResourceReceivePart(input: {
+interface ResourceReceiveMatch {
+  readonly consecutiveCompletedHeight: number;
+  readonly receivedCount: number;
+  readonly outstandingParts: number;
+  readonly matched: boolean;
+  readonly slot: number | null;
+}
+
+function advanceConsecutiveCompletedHeight(input: {
+  readonly consecutiveCompletedHeight: number;
+  readonly receivedParts: ReadonlyArray<Uint8Array | null>;
+  readonly placedIndex: number;
+}): number {
+  let consecutiveCompletedHeight = input.consecutiveCompletedHeight;
+  let cursor = consecutiveCompletedHeight + 1;
+  while (cursor < input.receivedParts.length) {
+    const filled =
+      cursor === input.placedIndex ||
+      (input.receivedParts[cursor] !== null &&
+        input.receivedParts[cursor] !== undefined);
+    if (!filled) {
+      break;
+    }
+    consecutiveCompletedHeight = cursor;
+    cursor += 1;
+  }
+  return consecutiveCompletedHeight;
+}
+
+function matchResourceReceivePart(input: {
   readonly partHash: Uint8Array;
   readonly hashmap: ReadonlyArray<Uint8Array | null>;
   readonly receivedParts: ReadonlyArray<Uint8Array | null>;
@@ -122,9 +152,7 @@ export function planResourceReceivePart(input: {
   readonly window: number;
   readonly receivedCount: number;
   readonly outstandingParts: number;
-  readonly totalParts: number;
-  readonly assemblyStarted: boolean;
-}): ResourceReceivePartPlan {
+}): ResourceReceiveMatch {
   let consecutiveCompletedHeight = input.consecutiveCompletedHeight;
   let receivedCount = input.receivedCount;
   let outstandingParts = input.outstandingParts;
@@ -148,36 +176,48 @@ export function planResourceReceivePart(input: {
       if (index === consecutiveCompletedHeight + 1) {
         consecutiveCompletedHeight = index;
       }
-
-      let cursor = consecutiveCompletedHeight + 1;
-      while (cursor < input.receivedParts.length) {
-        // After placing the current part, treat this slot as filled for contiguous scan.
-        const filled =
-          cursor === index ||
-          (input.receivedParts[cursor] !== null &&
-            input.receivedParts[cursor] !== undefined);
-        if (!filled) {
-          break;
-        }
-        consecutiveCompletedHeight = cursor;
-        cursor += 1;
-      }
+      consecutiveCompletedHeight = advanceConsecutiveCompletedHeight({
+        consecutiveCompletedHeight,
+        receivedParts: input.receivedParts,
+        placedIndex: index,
+      });
       break;
     }
   }
 
-  const progress =
-    input.totalParts === 0 ? 0 : receivedCount / input.totalParts;
-  const shouldAssemble =
-    receivedCount === input.totalParts && !input.assemblyStarted;
-  const shouldRequestNext = !shouldAssemble && outstandingParts === 0;
-
   return {
-    matched,
-    slot,
     consecutiveCompletedHeight,
     receivedCount,
     outstandingParts,
+    matched,
+    slot,
+  };
+}
+
+export function planResourceReceivePart(input: {
+  readonly partHash: Uint8Array;
+  readonly hashmap: ReadonlyArray<Uint8Array | null>;
+  readonly receivedParts: ReadonlyArray<Uint8Array | null>;
+  readonly consecutiveCompletedHeight: number;
+  readonly window: number;
+  readonly receivedCount: number;
+  readonly outstandingParts: number;
+  readonly totalParts: number;
+  readonly assemblyStarted: boolean;
+}): ResourceReceivePartPlan {
+  const match = matchResourceReceivePart(input);
+  const progress =
+    input.totalParts === 0 ? 0 : match.receivedCount / input.totalParts;
+  const shouldAssemble =
+    match.receivedCount === input.totalParts && !input.assemblyStarted;
+  const shouldRequestNext = !shouldAssemble && match.outstandingParts === 0;
+
+  return {
+    matched: match.matched,
+    slot: match.slot,
+    consecutiveCompletedHeight: match.consecutiveCompletedHeight,
+    receivedCount: match.receivedCount,
+    outstandingParts: match.outstandingParts,
     progress,
     shouldAssemble,
     shouldRequestNext,
@@ -207,16 +247,18 @@ export interface ResourceRequestFulfillPlan {
  * Plan sender-side fulfillment of a RESOURCE_REQ (matched parts + optional HMU).
  * Send / resend / HMU emit stay at the adapter edge.
  */
-export function planResourceRequestFulfill(input: {
+function collectRequestFulfillPartActions(input: {
   readonly request: ResourcePartRequest;
   readonly partMapHashes: ReadonlyArray<Uint8Array>;
   readonly partSent: ReadonlyArray<boolean>;
   readonly receiverMinConsecutiveHeight: number;
   readonly hashmapMaxLen: number;
   readonly windowMax: number;
-  readonly totalParts: number;
   readonly sentParts: number;
-}): ResourceRequestFulfillPlan {
+}): {
+  readonly partActions: ResourceRequestFulfillPartAction[];
+  readonly nextSentParts: number;
+} {
   const partActions: ResourceRequestFulfillPartAction[] = [];
   let nextSentParts = input.sentParts;
   const searchStart = input.receiverMinConsecutiveHeight;
@@ -245,53 +287,86 @@ export function planResourceRequestFulfill(input: {
     }
   }
 
+  return { partActions, nextSentParts };
+}
+
+function planRequestFulfillHashmapUpdate(input: {
+  readonly request: ResourcePartRequest;
+  readonly partMapHashes: ReadonlyArray<Uint8Array>;
+  readonly receiverMinConsecutiveHeight: number;
+  readonly hashmapMaxLen: number;
+  readonly windowMax: number;
+}): {
+  readonly hashmapUpdate: ResourceRequestFulfillHashmapUpdate | null;
+  readonly nextReceiverMinConsecutiveHeight: number;
+} {
   let nextReceiverMinConsecutiveHeight = input.receiverMinConsecutiveHeight;
-  let hashmapUpdate: ResourceRequestFulfillHashmapUpdate | null = null;
-
-  if (input.request.wantsMoreHashmap && input.request.lastMapHash !== null) {
-    const lastMapHash = input.request.lastMapHash;
-    let partIndex = input.receiverMinConsecutiveHeight;
-    const walkEnd = Math.min(
-      partIndex + input.hashmapMaxLen * 2,
-      input.partMapHashes.length,
-    );
-    for (let index = partIndex; index < walkEnd; index += 1) {
-      partIndex += 1;
-      const mapHash = input.partMapHashes[index];
-      if (mapHash !== undefined && equalByteArrays(mapHash, lastMapHash)) {
-        break;
-      }
-    }
-
-    nextReceiverMinConsecutiveHeight = Math.max(
-      partIndex - 1 - input.windowMax,
-      0,
-    );
-    const segment = Math.floor(partIndex / input.hashmapMaxLen);
-    const hashmapStart = segment * input.hashmapMaxLen;
-    const hashmapEnd = Math.min(
-      (segment + 1) * input.hashmapMaxLen,
-      input.partMapHashes.length,
-    );
-    const mapHashes: Uint8Array[] = [];
-    for (let index = hashmapStart; index < hashmapEnd; index += 1) {
-      const mapHash = input.partMapHashes[index];
-      if (mapHash !== undefined) {
-        mapHashes.push(mapHash);
-      }
-    }
-    hashmapUpdate = {
-      segment,
-      mapHashes,
+  if (!input.request.wantsMoreHashmap || input.request.lastMapHash === null) {
+    return {
+      hashmapUpdate: null,
       nextReceiverMinConsecutiveHeight,
     };
   }
 
+  const lastMapHash = input.request.lastMapHash;
+  let partIndex = input.receiverMinConsecutiveHeight;
+  const walkEnd = Math.min(
+    partIndex + input.hashmapMaxLen * 2,
+    input.partMapHashes.length,
+  );
+  for (let index = partIndex; index < walkEnd; index += 1) {
+    partIndex += 1;
+    const mapHash = input.partMapHashes[index];
+    if (mapHash !== undefined && equalByteArrays(mapHash, lastMapHash)) {
+      break;
+    }
+  }
+
+  nextReceiverMinConsecutiveHeight = Math.max(
+    partIndex - 1 - input.windowMax,
+    0,
+  );
+  const segment = Math.floor(partIndex / input.hashmapMaxLen);
+  const hashmapStart = segment * input.hashmapMaxLen;
+  const hashmapEnd = Math.min(
+    (segment + 1) * input.hashmapMaxLen,
+    input.partMapHashes.length,
+  );
+  const mapHashes: Uint8Array[] = [];
+  for (let index = hashmapStart; index < hashmapEnd; index += 1) {
+    const mapHash = input.partMapHashes[index];
+    if (mapHash !== undefined) {
+      mapHashes.push(mapHash);
+    }
+  }
+  return {
+    hashmapUpdate: {
+      segment,
+      mapHashes,
+      nextReceiverMinConsecutiveHeight,
+    },
+    nextReceiverMinConsecutiveHeight,
+  };
+}
+
+export function planResourceRequestFulfill(input: {
+  readonly request: ResourcePartRequest;
+  readonly partMapHashes: ReadonlyArray<Uint8Array>;
+  readonly partSent: ReadonlyArray<boolean>;
+  readonly receiverMinConsecutiveHeight: number;
+  readonly hashmapMaxLen: number;
+  readonly windowMax: number;
+  readonly totalParts: number;
+  readonly sentParts: number;
+}): ResourceRequestFulfillPlan {
+  const { partActions, nextSentParts } =
+    collectRequestFulfillPartActions(input);
+  const hashmap = planRequestFulfillHashmapUpdate(input);
   return {
     partActions,
-    hashmapUpdate,
+    hashmapUpdate: hashmap.hashmapUpdate,
     nextSentParts,
-    nextReceiverMinConsecutiveHeight,
+    nextReceiverMinConsecutiveHeight: hashmap.nextReceiverMinConsecutiveHeight,
     status:
       nextSentParts === input.totalParts ? "awaiting-proof" : "transferring",
   };
@@ -374,13 +449,13 @@ export function stepAcceptResourceHashmapUpdateFrameWithActions(
 export function shouldAcceptResourceHashmapUpdateFrameNow(
   actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptResourceHashmapUpdateFrame(
   actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a parsed RESOURCE_REQ may be fulfilled. */
@@ -441,13 +516,13 @@ export function stepFulfillResourcePartRequestWithActions(
 export function shouldFulfillResourcePartRequestNow(
   actions: ReadonlyArray<FulfillResourcePartRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fulfill");
+  return hasActionOfKind(actions, "fulfill");
 }
 
 export function shouldSkipFulfillResourcePartRequest(
   actions: ReadonlyArray<FulfillResourcePartRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a planned fulfill part action has a matching local part slot. */
@@ -506,13 +581,13 @@ export function stepApplyResourceFulfillPartWithActions(
 export function shouldApplyResourceFulfillPartNow(
   actions: ReadonlyArray<ApplyResourceFulfillPartAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldSkipApplyResourceFulfillPart(
   actions: ReadonlyArray<ApplyResourceFulfillPartAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a receive-part plan should write the matched slot. */

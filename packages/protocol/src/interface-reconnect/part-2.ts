@@ -3,6 +3,7 @@ import {
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
 } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export type InterfaceReconnectPlan =
   | {
@@ -88,13 +89,13 @@ export function stepInterfaceReconnectPlanWithActions(
 export function shouldReconnectInterfacePlan(
   actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reconnect");
+  return hasActionOfKind(actions, "reconnect");
 }
 
 export function shouldGiveUpInterfaceReconnectPlan(
   actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "give-up");
+  return hasActionOfKind(actions, "give-up");
 }
 
 /** Extract give-up plan action, if any. */
@@ -204,6 +205,46 @@ function setTimerIntent(delayMs: number): Intent {
   };
 }
 
+function idleReconnectResult(
+  state: InterfaceReconnectState,
+): InterfaceReconnectStepResult {
+  return { state, intents: [], actions: [] };
+}
+
+function stepInterfaceReconnectTimerFired(
+  state: InterfaceReconnectState,
+): InterfaceReconnectStepResult {
+  if (!state.waiting) {
+    return idleReconnectResult(state);
+  }
+  const planActions = stepInterfaceReconnectPlanWithActions(
+    initialInterfaceReconnectPlanState(),
+    {
+      kind: "iface/reconnect-plan-gate",
+      attempts: state.attempts,
+      maxTries: state.maxTries,
+      waitMs: state.waitMs,
+    },
+  ).actions;
+  const giveUp = interfaceReconnectGiveUpFromActions(planActions);
+  if (giveUp !== null) {
+    return {
+      state: { ...state, attempts: giveUp.attempt, waiting: false },
+      intents: [],
+      actions: [{ kind: "give-up", attempt: giveUp.attempt }],
+    };
+  }
+  const reconnect = interfaceReconnectRetryFromActions(planActions);
+  if (reconnect === null) {
+    return idleReconnectResult(state);
+  }
+  return {
+    state: { ...state, attempts: reconnect.attempt, waiting: false },
+    intents: [],
+    actions: [{ kind: "connect", attempt: reconnect.attempt }],
+  };
+}
+
 function stepInterfaceReconnectInner(
   state: InterfaceReconnectState,
   event: InterfaceReconnectEvent,
@@ -225,7 +266,7 @@ function stepInterfaceReconnectInner(
   }
 
   if (state.detached || state.suppressReconnect) {
-    return { state, intents: [], actions: [] };
+    return idleReconnectResult(state);
   }
 
   if (
@@ -243,36 +284,8 @@ function stepInterfaceReconnectInner(
     event.kind === "timer/fired" &&
     event.id === INTERFACE_RECONNECT_TIMER_ID
   ) {
-    if (!state.waiting) {
-      return { state, intents: [], actions: [] };
-    }
-    const planActions = stepInterfaceReconnectPlanWithActions(
-      initialInterfaceReconnectPlanState(),
-      {
-        kind: "iface/reconnect-plan-gate",
-        attempts: state.attempts,
-        maxTries: state.maxTries,
-        waitMs: state.waitMs,
-      },
-    ).actions;
-    const giveUp = interfaceReconnectGiveUpFromActions(planActions);
-    if (giveUp !== null) {
-      return {
-        state: { ...state, attempts: giveUp.attempt, waiting: false },
-        intents: [],
-        actions: [{ kind: "give-up", attempt: giveUp.attempt }],
-      };
-    }
-    const reconnect = interfaceReconnectRetryFromActions(planActions);
-    if (reconnect === null) {
-      return { state, intents: [], actions: [] };
-    }
-    return {
-      state: { ...state, attempts: reconnect.attempt, waiting: false },
-      intents: [],
-      actions: [{ kind: "connect", attempt: reconnect.attempt }],
-    };
+    return stepInterfaceReconnectTimerFired(state);
   }
 
-  return { state, intents: [], actions: [] };
+  return idleReconnectResult(state);
 }

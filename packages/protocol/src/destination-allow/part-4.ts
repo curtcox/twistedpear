@@ -29,6 +29,7 @@ import {
   planDestinationRequestAllow,
 } from "./part-3.js";
 import type { DestinationRequestAllowPlanState } from "./part-3.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Destination request-allow plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planDestinationRequestAllow`
@@ -91,13 +92,13 @@ export function destinationRequestAllowPlanFromActions(
 export function shouldAllowDestinationRequestPlan(
   actions: ReadonlyArray<DestinationRequestAllowPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyDestinationRequestPlan(
   actions: ReadonlyArray<DestinationRequestAllowPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /**
@@ -158,13 +159,13 @@ export function stepDestinationRequestAllowWithActions(
 export function shouldAllowDestinationRequest(
   actions: ReadonlyArray<DestinationRequestAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyDestinationRequest(
   actions: ReadonlyArray<DestinationRequestAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether a validated link should be registered on the destination link list. */
@@ -225,11 +226,11 @@ export function stepRegisterDestinationLinkWithActions(
 export function shouldRegisterDestinationLinkNow(
   actions: ReadonlyArray<RegisterDestinationLinkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "register");
+  return hasActionOfKind(actions, "register");
 }
 
 export function shouldSkipDestinationLinkRegister(
   actions: ReadonlyArray<RegisterDestinationLinkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }

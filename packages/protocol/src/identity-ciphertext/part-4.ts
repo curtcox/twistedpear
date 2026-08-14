@@ -23,6 +23,7 @@ import type {
   LoadIdentityKeyMaterialState,
   LoadIdentityKeyMaterialStepResult,
 } from "./part-3.js";
+import { hasActionOfKind } from "../action-kind.js";
 export function stepLoadIdentityKeyMaterialWithActions(
   state: LoadIdentityKeyMaterialState,
   event: LoadIdentityKeyMaterialEvent,
@@ -45,11 +46,11 @@ export function stepLoadIdentityKeyMaterialWithActions(
 export function shouldAllowLoadIdentityKeyMaterial(
   actions: ReadonlyArray<LoadIdentityKeyMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyLoadIdentityKeyMaterial(
   actions: ReadonlyArray<LoadIdentityKeyMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }

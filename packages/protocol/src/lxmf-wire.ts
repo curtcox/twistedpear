@@ -14,6 +14,7 @@ import {
   LxmfDeliveryMethod,
   type LxmfDeliveryMethodValue,
 } from "./lxmf-delivery.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LXMF_WIRE_HEADER_SIZE =
   2 * LXMF_DESTINATION_LENGTH + LXMF_SIGNATURE_LENGTH;
@@ -161,15 +162,14 @@ export function stepLxmfHashableMaterialWithActions(
 export function shouldUseLxmfHashableMaterial(
   actions: ReadonlyArray<LxmfHashableMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract LXMF hashable material from step actions; null when no `use-raw`. */
 export function lxmfHashableMaterialRawFromActions(
   actions: ReadonlyArray<LxmfHashableMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -225,15 +225,14 @@ export function stepLxmfSignedMaterialWithActions(
 export function shouldUseLxmfSignedMaterial(
   actions: ReadonlyArray<LxmfSignedMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract LXMF signed material from step actions; null when no `use-raw`. */
 export function lxmfSignedMaterialRawFromActions(
   actions: ReadonlyArray<LxmfSignedMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -291,21 +290,20 @@ export function stepLxmfOpportunisticPayloadWithActions(
 export function shouldUseLxmfOpportunisticPayload(
   actions: ReadonlyArray<LxmfOpportunisticPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectLxmfOpportunisticPayload(
   actions: ReadonlyArray<LxmfOpportunisticPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract opportunistic payload from step actions; null when no `use-raw`. */
 export function lxmfOpportunisticPayloadRawFromActions(
   actions: ReadonlyArray<LxmfOpportunisticPayloadAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /** Rebuild full LXMF bytes when an opportunistic packet carries only the trailing segment. */
@@ -413,21 +411,20 @@ export function stepPackLxmfWireWithActions(
 export function shouldUsePackLxmfWire(
   actions: ReadonlyArray<PackLxmfWireAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackLxmfWire(
   actions: ReadonlyArray<PackLxmfWireAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed LXMF wire bytes from step actions; null when no `use-raw`. */
 export function packLxmfWireRawFromActions(
   actions: ReadonlyArray<PackLxmfWireAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -480,21 +477,20 @@ export function stepSplitLxmfWireWithActions(
 export function shouldUseSplitLxmfWire(
   actions: ReadonlyArray<SplitLxmfWireAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitLxmfWire(
   actions: ReadonlyArray<SplitLxmfWireAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split LXMF wire fields from step actions; null when no `use-fields`. */
 export function lxmfWireFieldsFromActions(
   actions: ReadonlyArray<SplitLxmfWireAction>,
 ): LxmfWireFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -556,21 +552,20 @@ export function stepPackLxmfDestinationPrefixedWithActions(
 export function shouldUsePackLxmfDestinationPrefixed(
   actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackLxmfDestinationPrefixed(
   actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed destination-prefixed bytes from step actions; null when no `use-raw`. */
 export function packLxmfDestinationPrefixedRawFromActions(
   actions: ReadonlyArray<PackLxmfDestinationPrefixedAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -623,21 +618,20 @@ export function stepSplitLxmfDestinationPrefixedWithActions(
 export function shouldUseSplitLxmfDestinationPrefixed(
   actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitLxmfDestinationPrefixed(
   actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split destination-prefixed fields from step actions; null when no `use-fields`. */
 export function lxmfDestinationPrefixedFieldsFromActions(
   actions: ReadonlyArray<SplitLxmfDestinationPrefixedAction>,
 ): LxmfDestinationPrefixed | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -698,13 +692,12 @@ export function stepLxmfInboundDeliveryWithActions(
 export function shouldUseLxmfInboundDelivery(
   actions: ReadonlyArray<LxmfInboundDeliveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract inbound-delivery rebuild bytes from step actions; null when no `use-raw`. */
 export function lxmfInboundDeliveryRawFromActions(
   actions: ReadonlyArray<LxmfInboundDeliveryAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

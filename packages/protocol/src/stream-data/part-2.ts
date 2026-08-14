@@ -21,6 +21,7 @@
 import type { Event, Intent } from "@twistedpear/effects";
 import { shouldDeferStreamRead } from "./part-1.js";
 import type { StreamReadDeferState } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export type StreamReadDeferEvent =
   | Event
   | {
@@ -66,13 +67,13 @@ export function stepStreamReadDeferWithActions(
 export function shouldStreamReadDefer(
   actions: ReadonlyArray<StreamReadDeferAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "defer");
+  return hasActionOfKind(actions, "defer");
 }
 
 export function shouldStreamReadProceed(
   actions: ReadonlyArray<StreamReadDeferAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 /** Whether a read produced a returnable buffer (bytes copied or EOF empty result). */
@@ -135,13 +136,13 @@ export function stepStreamReadReturnWithActions(
 export function shouldYieldStreamRead(
   actions: ReadonlyArray<StreamReadReturnAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "yield");
+  return hasActionOfKind(actions, "yield");
 }
 
 export function shouldSkipStreamReadYield(
   actions: ReadonlyArray<StreamReadReturnAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Bytes to take from the current chunk into the remaining read window. */
@@ -205,15 +206,14 @@ export function stepClampStreamChunkTakeWithActions(
 export function shouldUseStreamChunkTake(
   actions: ReadonlyArray<ClampStreamChunkTakeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-take");
+  return hasActionOfKind(actions, "use-take");
 }
 
 /** Extract clamped chunk take from step actions; null when no `use-take`. */
 export function streamChunkTakeFromActions(
   actions: ReadonlyArray<ClampStreamChunkTakeAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-take");
-  return action?.kind === "use-take" ? action.take : null;
+  return firstActionOfKind(actions, "use-take")?.take ?? null;
 }
 
 /** Whether the taken bytes consume the entire front chunk (shift vs residual slice). */
@@ -276,13 +276,13 @@ export function stepStreamChunkConsumeWithActions(
 export function shouldStreamChunkConsume(
   actions: ReadonlyArray<StreamChunkConsumeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "consume");
+  return hasActionOfKind(actions, "consume");
 }
 
 export function shouldStreamChunkResidual(
   actions: ReadonlyArray<StreamChunkConsumeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "residual");
+  return hasActionOfKind(actions, "residual");
 }
 
 /** Whether an inbound stream-data message should mark the reader EOF. */
@@ -335,13 +335,13 @@ export function stepStreamEofMarkWithActions(
 export function shouldStreamEofMark(
   actions: ReadonlyArray<StreamEofMarkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mark");
+  return hasActionOfKind(actions, "mark");
 }
 
 export function shouldSkipStreamEofMark(
   actions: ReadonlyArray<StreamEofMarkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a stream id has been assigned for packing. */
@@ -400,13 +400,13 @@ export function stepStreamIdAssignedWithActions(
 export function shouldStreamIdAssigned(
   actions: ReadonlyArray<StreamIdAssignedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "assigned");
+  return hasActionOfKind(actions, "assigned");
 }
 
 export function shouldStreamIdUnassigned(
   actions: ReadonlyArray<StreamIdAssignedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "unassigned");
+  return hasActionOfKind(actions, "unassigned");
 }
 
 /** Whether an inbound stream-data message belongs to this reader. */

@@ -4,6 +4,7 @@
  * `pkcs7Pad` / `pkcs7Unpad` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const PKCS7_BLOCK_SIZE = 16;
 
@@ -90,15 +91,14 @@ export function stepPkcs7PadWithActions(
 export function shouldUsePkcs7Pad(
   actions: ReadonlyArray<PackPkcs7Action>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract padded bytes from step actions; null when no `use-raw`. */
 export function pkcs7PadRawFromActions(
   actions: ReadonlyArray<PackPkcs7Action>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -157,19 +157,18 @@ export function stepPkcs7UnpadWithActions(
 export function shouldUsePkcs7Unpad(
   actions: ReadonlyArray<UnpackPkcs7Action>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPkcs7Unpad(
   actions: ReadonlyArray<UnpackPkcs7Action>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract unpadded bytes from step actions; null when no `use-raw`. */
 export function pkcs7UnpadRawFromActions(
   actions: ReadonlyArray<UnpackPkcs7Action>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

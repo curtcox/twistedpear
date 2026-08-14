@@ -78,6 +78,7 @@ import type {
   LinkRttOutcomePlanEvent,
   TeardownLinkFromRttState,
 } from "./part-9.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * LRRTT outcome plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkRttOutcome` /
@@ -175,13 +176,13 @@ export function stepTeardownLinkFromRttWithActions(
 export function shouldTeardownLinkFromRttNow(
   actions: ReadonlyArray<TeardownLinkFromRttAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "teardown");
+  return hasActionOfKind(actions, "teardown");
 }
 
 export function shouldSkipTeardownLinkFromRtt(
   actions: ReadonlyArray<TeardownLinkFromRttAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether link plaintext DATA callback may fire after decrypt. */
@@ -242,13 +243,13 @@ export function stepDispatchLinkPlaintextWithActions(
 export function shouldDispatchLinkPlaintextNow(
   actions: ReadonlyArray<DispatchLinkPlaintextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "dispatch");
+  return hasActionOfKind(actions, "dispatch");
 }
 
 export function shouldSkipLinkPlaintextDispatch(
   actions: ReadonlyArray<DispatchLinkPlaintextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether resendPacket may transmit (decoded + attached interface). */
@@ -314,25 +315,25 @@ export function stepResendLinkPacketAllowWithActions(
 export function shouldAllowResendLinkPacket(
   actions: ReadonlyArray<ResendLinkPacketAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyResendLinkPacket(
   actions: ReadonlyArray<ResendLinkPacketAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 export function shouldKeepPendingLinkAppRequestTransmitOutcomePlan(
   actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "keep-pending");
+  return hasActionOfKind(actions, "keep-pending");
 }
 
 export function shouldUnregisterLinkAppRequestTransmitOutcomePlan(
   actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "unregister");
+  return hasActionOfKind(actions, "unregister");
 }
 
 export function computeLinkRttSeconds(
@@ -405,15 +406,14 @@ export function stepComputeLinkRttSecondsWithActions(
 export function shouldUseLinkRttSeconds(
   actions: ReadonlyArray<ComputeLinkRttSecondsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-rtt");
+  return hasActionOfKind(actions, "use-rtt");
 }
 
 /** Extract RTT seconds from step actions; null when no `use-rtt`. */
 export function linkRttSecondsFromActions(
   actions: ReadonlyArray<ComputeLinkRttSecondsAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-rtt");
-  return action?.kind === "use-rtt" ? action.rtt : null;
+  return firstActionOfKind(actions, "use-rtt")?.rtt ?? null;
 }
 
 /**

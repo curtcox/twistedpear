@@ -6,6 +6,7 @@
  * reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 /** TRUNCATED_HASH_LENGTH in bits (RNS Identity). */
 export const TRUNCATED_HASH_BITS = 128;
@@ -99,19 +100,18 @@ export function stepTruncateHashBytesWithActions(
 export function shouldUseTruncateHashBytes(
   actions: ReadonlyArray<TruncateHashBytesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectTruncateHashBytes(
   actions: ReadonlyArray<TruncateHashBytesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract truncated bytes from step actions; null when no `use-raw`. */
 export function truncateHashBytesRawFromActions(
   actions: ReadonlyArray<TruncateHashBytesAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

@@ -2,20 +2,15 @@ import {
   encodeLinkSignallingBytesRawFromActions,
   initialEncodeLinkSignallingBytesState,
   initialEncryptLinkPayloadState,
-  initialLinkAppRequestState,
-  initialLinkAppRequestTransmitState,
   initialLinkClosedState,
   initialLinkKeepaliveContextState,
   initialLinkModeEnabledState,
-  initialLinkRequestAllowState,
   initialLinkRequestHashablePartState,
   initialLinkSendAllowState,
   initialLinkTeardownState,
   initialLinkTokenAccessState,
   initialPackLinkKeepaliveProbeState,
-  initialPackLinkRequestState,
   initialPendingLinkRequestUnregisterState,
-  initialUtf8EncodeState,
   LINK_KEEPALIVE,
   LINK_MODE_DEFAULT,
   LINK_STALE_FACTOR,
@@ -25,46 +20,33 @@ import {
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
   packLinkKeepaliveProbeRawFromActions,
-  packLinkRequestRawFromActions,
   pendingLinkRequestUnregisterIndex,
   shouldAcceptRemoteLinkTeardown,
-  shouldAllowLinkRequest,
   shouldAllowLinkSend,
   shouldCloseOnlyLinkTeardown,
   shouldCreateLinkToken,
   shouldEncryptLinkPayloadNow,
-  shouldKeepPendingLinkAppRequestTransmit,
-  shouldRejectLinkAppRequest,
   shouldRejectLinkTokenNoKey,
   shouldRemovePendingLinkRequest,
-  shouldSendLinkAppRequest,
   shouldSendLinkTeardownThenClose,
   shouldTreatLinkClosed,
   shouldTreatLinkKeepaliveContext,
   shouldTreatLinkModeEnabled,
-  shouldUnregisterLinkAppRequestTransmit,
   shouldUseEncodeLinkSignallingBytes,
   shouldUseLinkRequestHashablePart,
   shouldUsePackLinkKeepaliveProbe,
-  shouldUsePackLinkRequest,
-  shouldUseUtf8Encode,
   stepEncodeLinkSignallingBytesWithActions,
   stepEncryptLinkPayloadWithActions,
-  stepLinkAppRequestTransmitWithActions,
-  stepLinkAppRequestWithActions,
   stepLinkClosedWithActions,
   stepLinkKeepaliveContextWithActions,
   stepLinkModeEnabledWithActions,
-  stepLinkRequestAllowWithActions,
   stepLinkRequestHashablePartWithActions,
   stepLinkSendAllowWithActions,
   stepLinkTeardownWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkWatchdogWithActions,
   stepPackLinkKeepaliveProbeWithActions,
-  stepPackLinkRequestWithActions,
   stepPendingLinkRequestUnregisterWithActions,
-  stepUtf8EncodeWithActions,
   type LinkModeValue,
   type LinkResourceStrategyValue,
   type LinkStatusValue,
@@ -72,7 +54,6 @@ import {
   type LinkTeardownReasonValue,
   type LinkWatchdogState,
   type LinkWatchdogStepResult,
-  utf8EncodeRawFromActions,
 } from "./protocol.js";
 
 import type { CryptoProvider } from "../crypto/provider.js";
@@ -107,14 +88,12 @@ import {
   LINK_SIGNATURE_SIZE,
   linkEstablishmentTimeoutForHops,
   linkMduForMtu,
-  linkRequestTimeoutForRtt,
   linkRttSecondsForRequest,
   mergedLinkRtt,
 } from "./shared.js";
 import type {
   InitiatorLinkOptions,
   LinkCallbacks,
-  LinkRequestOptions,
   LinkSendContextResult,
 } from "./shared.js";
 import type { Link } from "../link.js";
@@ -285,115 +264,6 @@ export class LinkLayer1 {
       offset += segment.length;
     }
     return joined;
-  }
-
-  async request(
-    path: string,
-    data: Uint8Array | null = null,
-    options: LinkRequestOptions = {},
-  ): Promise<LinkRequestReceipt | false> {
-    const requestAllow = stepLinkRequestAllowWithActions(
-      initialLinkRequestAllowState(),
-      {
-        kind: "link/request-allow-gate",
-        status: this.status,
-        rtt: this.rtt,
-      },
-    );
-    if (!shouldAllowLinkRequest(requestAllow.actions)) {
-      return false;
-    }
-
-    const pathEncode = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
-      kind: "utf8/encode-gate",
-      value: path,
-    });
-    const pathBytes = utf8EncodeRawFromActions(pathEncode.actions);
-    if (!shouldUseUtf8Encode(pathEncode.actions) || pathBytes === null) {
-      throw new Error("Link.request: missing utf8 use-raw action");
-    }
-    const pathHash = Identity.truncatedHash(this.provider, pathBytes);
-    const packStepped = stepPackLinkRequestWithActions(
-      initialPackLinkRequestState(),
-      {
-        kind: "link-request-codec/pack-gate",
-        requestedAt: this.clock.now() / 1000,
-        pathHash,
-        data,
-      },
-    );
-    const packedRequest = shouldUsePackLinkRequest(packStepped.actions)
-      ? packLinkRequestRawFromActions(packStepped.actions)
-      : null;
-    if (packedRequest === null) {
-      return false;
-    }
-    const timeout = options.timeout ?? linkRequestTimeoutForRtt(this.rtt!);
-
-    const appRequestStepped = stepLinkAppRequestWithActions(
-      initialLinkAppRequestState(),
-      {
-        kind: "link/app-request-gate",
-        status: this.status,
-        rtt: this.rtt,
-        packedLength: packedRequest.length,
-        mdu: this.mdu,
-      },
-    );
-    if (shouldRejectLinkAppRequest(appRequestStepped.actions)) {
-      return false;
-    }
-    if (!shouldSendLinkAppRequest(appRequestStepped.actions)) {
-      return false;
-    }
-
-    const packet = Packet.fromFields(this.provider, {
-      headerType: PacketHeaderType.HEADER_1,
-      transportType: TransportType.BROADCAST,
-      destinationType: DestinationType.LINK,
-      packetType: PacketType.DATA,
-      destinationHash: this.linkId,
-      context: PacketContext.REQUEST,
-      data: this.encrypt(packedRequest),
-    });
-
-    const pending = new LinkRequestReceipt({
-      link: this as unknown as Link,
-      requestId: packet.truncatedHash(),
-      timeout,
-      now: () => this.clock.now() / 1000,
-      requestSize: packedRequest.length,
-      callbacks: {
-        ...(options.response === undefined
-          ? {}
-          : { response: options.response }),
-        ...(options.failed === undefined ? {} : { failed: options.failed }),
-      },
-    });
-
-    const sentReceipt = await this.transport.sendPacket(packet, {
-      attachedInterface: this.attachedInterface,
-      createReceipt: true,
-    });
-    this.hadOutbound(false);
-
-    const transmitStepped = stepLinkAppRequestTransmitWithActions(
-      initialLinkAppRequestTransmitState(),
-      {
-        kind: "link/app-request-transmit-gate",
-        receiptPresent: sentReceipt !== null,
-      },
-    );
-    if (shouldUnregisterLinkAppRequestTransmit(transmitStepped.actions)) {
-      this.unregisterPendingRequest(pending);
-      return false;
-    }
-    if (!shouldKeepPendingLinkAppRequestTransmit(transmitStepped.actions)) {
-      return false;
-    }
-
-    pending.attachPacketReceipt(sentReceipt!);
-    return pending;
   }
 
   unregisterPendingRequest(receipt: LinkRequestReceipt): void {

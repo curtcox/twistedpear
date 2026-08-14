@@ -14,6 +14,7 @@ import {
   LxmfUnverifiedReason,
   type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 /** Whether propagation inbound targets this router's local delivery destination. */
 export function canAcceptLxmfPropagationLocalDelivery(input: {
@@ -78,13 +79,13 @@ export function stepAcceptLxmfPropagationLocalDeliveryWithActions(
 export function shouldAcceptLxmfPropagationLocalDeliveryNow(
   actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptLxmfPropagationLocalDelivery(
   actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type LxmfPropagationLocalIngressPlan =
@@ -179,28 +180,28 @@ export function stepLxmfPropagationLocalIngressPlanWithActions(
 export function shouldPlanLxmfPropagationLocalIngressDeliver(
   actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deliver");
+  return hasActionOfKind(actions, "deliver");
 }
 
 /** Whether plan actions reject a missing prefix. */
 export function shouldRejectLxmfPropagationLocalIngressPlanPrefix(
   actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-prefix");
+  return hasActionOfKind(actions, "reject-prefix");
 }
 
 /** Whether plan actions reject a destination mismatch. */
 export function shouldRejectLxmfPropagationLocalIngressPlanDestination(
   actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-destination");
+  return hasActionOfKind(actions, "reject-destination");
 }
 
 /** Whether plan actions reject a failed decrypt. */
 export function shouldRejectLxmfPropagationLocalIngressPlanDecrypt(
   actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-decrypt");
+  return hasActionOfKind(actions, "reject-decrypt");
 }
 
 /** Extract the local-ingress plan from actions; null when empty. */
@@ -276,25 +277,25 @@ export function stepLxmfPropagationLocalIngressWithActions(
 export function shouldDeliverLxmfPropagationLocalIngress(
   actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deliver");
+  return hasActionOfKind(actions, "deliver");
 }
 
 export function shouldRejectLxmfPropagationLocalPrefix(
   actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-prefix");
+  return hasActionOfKind(actions, "reject-prefix");
 }
 
 export function shouldRejectLxmfPropagationLocalDestination(
   actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-destination");
+  return hasActionOfKind(actions, "reject-destination");
 }
 
 export function shouldRejectLxmfPropagationLocalDecrypt(
   actions: ReadonlyArray<LxmfPropagationLocalIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-decrypt");
+  return hasActionOfKind(actions, "reject-decrypt");
 }
 
 /**
@@ -366,13 +367,13 @@ export function stepUnpackLxmfPropagationLocalIngressWithActions(
 export function shouldUnpackLxmfPropagationLocalIngressNow(
   actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "unpack");
+  return hasActionOfKind(actions, "unpack");
 }
 
 export function shouldSkipUnpackLxmfPropagationLocalIngress(
   actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 function stepLxmfPropagationLocalIngressInner(

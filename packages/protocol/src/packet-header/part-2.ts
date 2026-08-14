@@ -35,6 +35,7 @@ import type {
   PacketFromFieldsState,
   PacketHeaderFields,
 } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function initialPacketFromFieldsState(): PacketFromFieldsState {
   return {};
 }
@@ -53,43 +54,43 @@ export const stepPacketFromFields: StepFn<PacketFromFieldsState> = (
 export function shouldProceedPacketFromFields(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectPacketFromFieldsBadHeaderType(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-header-type");
+  return hasActionOfKind(actions, "bad-header-type");
 }
 
 export function shouldRejectPacketFromFieldsBadContextFlag(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-context-flag");
+  return hasActionOfKind(actions, "bad-context-flag");
 }
 
 export function shouldRejectPacketFromFieldsBadTransportType(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-transport-type");
+  return hasActionOfKind(actions, "bad-transport-type");
 }
 
 export function shouldRejectPacketFromFieldsBadDestinationType(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-destination-type");
+  return hasActionOfKind(actions, "bad-destination-type");
 }
 
 export function shouldRejectPacketFromFieldsBadPacketType(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-packet-type");
+  return hasActionOfKind(actions, "bad-packet-type");
 }
 
 export function shouldRejectPacketFromFieldsBadDestinationHash(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-destination-hash");
+  return hasActionOfKind(actions, "bad-destination-hash");
 }
 
 export function shouldRejectPacketFromFieldsHeader2MissingTransportId(
@@ -103,7 +104,7 @@ export function shouldRejectPacketFromFieldsHeader2MissingTransportId(
 export function shouldRejectPacketFromFieldsBadTransportId(
   actions: ReadonlyArray<PacketFromFieldsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-transport-id");
+  return hasActionOfKind(actions, "bad-transport-id");
 }
 
 export function encodePacketRaw(fields: {
@@ -274,15 +275,14 @@ export function stepPackPacketFlagsWithActions(
 export function shouldUsePackPacketFlags(
   actions: ReadonlyArray<PackPacketFlagsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-flags");
+  return hasActionOfKind(actions, "use-flags");
 }
 
 /** Extract packed flags byte from step actions; null when no `use-flags`. */
 export function packPacketFlagsFromActions(
   actions: ReadonlyArray<PackPacketFlagsAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-flags");
-  return action?.kind === "use-flags" ? action.flags : null;
+  return firstActionOfKind(actions, "use-flags")?.flags ?? null;
 }
 
 /**
@@ -332,15 +332,14 @@ export function stepUnpackPacketFlagsWithActions(
 export function shouldUseUnpackPacketFlags(
   actions: ReadonlyArray<UnpackPacketFlagsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract unpacked flag fields from step actions; null when no `use-fields`. */
 export function packetFlagsFieldsFromActions(
   actions: ReadonlyArray<UnpackPacketFlagsAction>,
 ): PacketFlagsFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -396,15 +395,14 @@ export function stepPacketHashablePartWithActions(
 export function shouldUsePacketHashablePart(
   actions: ReadonlyArray<PacketHashablePartAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract hashable-part bytes from step actions; null when no `use-raw`. */
 export function packetHashablePartRawFromActions(
   actions: ReadonlyArray<PacketHashablePartAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 export type EncodePacketRawFields = {
@@ -485,21 +483,20 @@ export function stepEncodePacketRawWithActions(
 export function shouldUseEncodePacketRaw(
   actions: ReadonlyArray<EncodePacketRawAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectEncodePacketRaw(
   actions: ReadonlyArray<EncodePacketRawAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed packet bytes from step actions; null when no `use-raw`. */
 export function encodePacketRawFromActions(
   actions: ReadonlyArray<EncodePacketRawAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**

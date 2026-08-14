@@ -6,6 +6,7 @@
  * {@link stepLinkDataContextPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { hasActionOfKind } from "./action-kind.js";
 
 export const PacketContextCode = {
   NONE: 0x00,
@@ -131,13 +132,13 @@ export function stepLinkKeepaliveContextWithActions(
 export function shouldTreatLinkKeepaliveContext(
   actions: ReadonlyArray<LinkKeepaliveContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "keepalive");
+  return hasActionOfKind(actions, "keepalive");
 }
 
 export function shouldTreatLinkKeepaliveOther(
   actions: ReadonlyArray<LinkKeepaliveContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "other");
+  return hasActionOfKind(actions, "other");
 }
 
 /**
@@ -251,91 +252,91 @@ export function linkDataContextFromActions(
 export function shouldHandleLinkDataRtt(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "rtt");
+  return hasActionOfKind(actions, "rtt");
 }
 
 export function shouldHandleLinkDataKeepalive(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "keepalive");
+  return hasActionOfKind(actions, "keepalive");
 }
 
 export function shouldHandleLinkDataClose(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "close");
+  return hasActionOfKind(actions, "close");
 }
 
 export function shouldHandleLinkDataIdentify(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "identify");
+  return hasActionOfKind(actions, "identify");
 }
 
 export function shouldHandleLinkDataRequest(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "request");
+  return hasActionOfKind(actions, "request");
 }
 
 export function shouldHandleLinkDataResponse(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "response");
+  return hasActionOfKind(actions, "response");
 }
 
 export function shouldHandleLinkDataChannel(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "channel");
+  return hasActionOfKind(actions, "channel");
 }
 
 export function shouldHandleLinkDataResourceAdv(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resource-adv");
+  return hasActionOfKind(actions, "resource-adv");
 }
 
 export function shouldHandleLinkDataResourceReq(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resource-req");
+  return hasActionOfKind(actions, "resource-req");
 }
 
 export function shouldHandleLinkDataResourceHmu(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resource-hmu");
+  return hasActionOfKind(actions, "resource-hmu");
 }
 
 export function shouldHandleLinkDataResourceIcl(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resource-icl");
+  return hasActionOfKind(actions, "resource-icl");
 }
 
 export function shouldHandleLinkDataResourceRcl(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resource-rcl");
+  return hasActionOfKind(actions, "resource-rcl");
 }
 
 export function shouldHandleLinkDataResource(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resource");
+  return hasActionOfKind(actions, "resource");
 }
 
 export function shouldHandleLinkDataPlaintext(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "plaintext");
+  return hasActionOfKind(actions, "plaintext");
 }
 
 export function shouldIgnoreLinkDataContext(
   actions: ReadonlyArray<LinkDataContextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 function stepLinkDataContextInner(

@@ -38,6 +38,7 @@ import type {
   PacketReceiptProofIngressPlan,
   PacketReceiptProofIngressState,
 } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Packet-receipt callback plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPacketReceiptCallback` /
@@ -74,13 +75,13 @@ export function stepPacketReceiptCallbackPlanWithActions(
 export function shouldClearPacketReceiptCallbackPlan(
   actions: ReadonlyArray<PacketReceiptCallbackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "clear");
+  return hasActionOfKind(actions, "clear");
 }
 
 export function shouldSetPacketReceiptCallbackPlan(
   actions: ReadonlyArray<PacketReceiptCallbackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "set");
+  return hasActionOfKind(actions, "set");
 }
 
 /**
@@ -126,13 +127,13 @@ export function stepPacketReceiptCallbackWithActions(
 export function shouldClearPacketReceiptCallback(
   actions: ReadonlyArray<PacketReceiptCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "clear");
+  return hasActionOfKind(actions, "clear");
 }
 
 export function shouldSetPacketReceiptCallback(
   actions: ReadonlyArray<PacketReceiptCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "set");
+  return hasActionOfKind(actions, "set");
 }
 
 /** Whether step actions include a timeout/delivery/failed fanout for the adapter callback. */
@@ -172,19 +173,19 @@ export function outboundReceiptOutcomeFromActions(
 export function shouldOutboundReceiptNone(
   actions: ReadonlyArray<OutboundReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "none");
+  return hasActionOfKind(actions, "none");
 }
 
 export function shouldOutboundKeepReceipt(
   actions: ReadonlyArray<OutboundReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "keep-receipt");
+  return hasActionOfKind(actions, "keep-receipt");
 }
 
 export function shouldOutboundFailAndDropReceipt(
   actions: ReadonlyArray<OutboundReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fail-and-drop-receipt");
+  return hasActionOfKind(actions, "fail-and-drop-receipt");
 }
 
 export function initialPacketReceiptProofIngressState(): PacketReceiptProofIngressState {
@@ -211,11 +212,11 @@ export function packetReceiptProofIngressFromActions(
 export function shouldRemovePacketReceiptProofIngress(
   actions: ReadonlyArray<PacketReceiptProofIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove-receipt");
+  return hasActionOfKind(actions, "remove-receipt");
 }
 
 export function shouldContinuePacketReceiptProofIngress(
   actions: ReadonlyArray<PacketReceiptProofIngressAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "continue");
+  return hasActionOfKind(actions, "continue");
 }

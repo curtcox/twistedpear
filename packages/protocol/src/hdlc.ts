@@ -4,6 +4,7 @@
  * `encodeHdlcFrame` / `decodeHdlcFrames` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const HDLC_FLAG = 0x7e;
 export const HDLC_ESCAPE = 0x7d;
@@ -146,15 +147,14 @@ export function stepEncodeHdlcFrameWithActions(
 export function shouldUseEncodeHdlcFrame(
   actions: ReadonlyArray<EncodeHdlcFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract encoded HDLC frame from step actions; null when no `use-raw`. */
 export function encodeHdlcFrameRawFromActions(
   actions: ReadonlyArray<EncodeHdlcFrameAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -211,13 +211,12 @@ export function stepDecodeHdlcFramesWithActions(
 export function shouldUseDecodeHdlcFrames(
   actions: ReadonlyArray<DecodeHdlcFramesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 /** Extract decoded HDLC result from step actions; null when no `use-fields`. */
 export function hdlcDecodeResultFromActions(
   actions: ReadonlyArray<DecodeHdlcFramesAction>,
 ): HdlcDecodeResult | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

@@ -59,6 +59,7 @@ import type {
   UpdateLinkKeepaliveAllowState,
   UpdateLinkKeepaliveAllowStepResult,
 } from "./part-3.js";
+import { hasActionOfKind } from "../action-kind.js";
 export function initialUpdateLinkKeepaliveAllowState(): UpdateLinkKeepaliveAllowState {
   return {};
 }
@@ -85,13 +86,13 @@ export function stepUpdateLinkKeepaliveAllowWithActions(
 export function shouldAllowUpdateLinkKeepalive(
   actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyUpdateLinkKeepalive(
   actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 /** Whether getChannel should construct a lazy Channel outlet. */
 export function shouldCreateLinkChannel(channelPresent: boolean): boolean {
@@ -150,13 +151,13 @@ export function stepCreateLinkChannelWithActions(
 export function shouldCreateLinkChannelNow(
   actions: ReadonlyArray<CreateLinkChannelAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "create");
+  return hasActionOfKind(actions, "create");
 }
 
 export function shouldReuseLinkChannel(
   actions: ReadonlyArray<CreateLinkChannelAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reuse");
+  return hasActionOfKind(actions, "reuse");
 }
 export type LinkTokenAccessPlan = "reject-no-key" | "create" | "reuse";
 
@@ -233,19 +234,19 @@ export function stepLinkTokenAccessPlanWithActions(
 export function shouldRejectNoKeyLinkTokenAccessPlan(
   actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-no-key");
+  return hasActionOfKind(actions, "reject-no-key");
 }
 
 export function shouldCreateLinkTokenAccessPlan(
   actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "create");
+  return hasActionOfKind(actions, "create");
 }
 
 export function shouldReuseLinkTokenAccessPlan(
   actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reuse");
+  return hasActionOfKind(actions, "reuse");
 }
 
 /** Extract the token-access plan from actions; null when empty. */
@@ -310,19 +311,19 @@ export function stepLinkTokenAccessWithActions(
 export function shouldRejectLinkTokenNoKey(
   actions: ReadonlyArray<LinkTokenAccessAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-no-key");
+  return hasActionOfKind(actions, "reject-no-key");
 }
 
 export function shouldCreateLinkToken(
   actions: ReadonlyArray<LinkTokenAccessAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "create");
+  return hasActionOfKind(actions, "create");
 }
 
 export function shouldReuseLinkToken(
   actions: ReadonlyArray<LinkTokenAccessAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reuse");
+  return hasActionOfKind(actions, "reuse");
 }
 
 function stepLinkTokenAccessInner(
@@ -441,13 +442,13 @@ export function linkAppRequestPlanFromActions(
 export function shouldSendLinkAppRequestPlan(
   actions: ReadonlyArray<LinkAppRequestPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send");
+  return hasActionOfKind(actions, "send");
 }
 
 export function shouldRejectLinkAppRequestPlan(
   actions: ReadonlyArray<LinkAppRequestPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /**

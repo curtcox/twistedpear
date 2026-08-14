@@ -63,6 +63,7 @@ import type {
   MergeLinkRttEvent,
   MergeLinkRttState,
 } from "./part-10.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export interface MergeLinkRttStepResult {
   readonly state: MergeLinkRttState;
   readonly intents: readonly Intent[];
@@ -96,15 +97,14 @@ export function stepMergeLinkRttWithActions(
 export function shouldUseMergeLinkRtt(
   actions: ReadonlyArray<MergeLinkRttAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-rtt");
+  return hasActionOfKind(actions, "use-rtt");
 }
 
 /** Extract merged RTT from step actions; null when no `use-rtt`. */
 export function mergeLinkRttFromActions(
   actions: ReadonlyArray<MergeLinkRttAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-rtt");
-  return action?.kind === "use-rtt" ? action.rtt : null;
+  return firstActionOfKind(actions, "use-rtt")?.rtt ?? null;
 }
 
 export function applyLinkEstablishEvent(
@@ -123,42 +123,42 @@ export const stepLinkEstablish: StepFn<LinkEstablishState> = (state, event) => {
 export function shouldEnterLinkHandshake(
   actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "enter-handshake");
+  return hasActionOfKind(actions, "enter-handshake");
 }
 
 /** Whether step actions include activated. */
 export function shouldActivateLinkEstablish(
   actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "activated");
+  return hasActionOfKind(actions, "activated");
 }
 
 /** Whether step actions include failed. */
 export function shouldFailLinkEstablish(
   actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "failed");
+  return hasActionOfKind(actions, "failed");
 }
 
 /** Whether step actions include ignore (LRRTT gate). */
 export function shouldIgnoreLinkEstablishRtt(
   actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 /** Whether step actions include accept-rtt (proceed to unpack / activate). */
 export function shouldAcceptLinkEstablishRtt(
   actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept-rtt");
+  return hasActionOfKind(actions, "accept-rtt");
 }
 
 /** Whether step actions include teardown (full link close after LRRTT failure). */
 export function shouldTeardownLinkEstablish(
   actions: ReadonlyArray<LinkEstablishAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "teardown");
+  return hasActionOfKind(actions, "teardown");
 }
 
 /** Extract the activated action from an establish step, if any. */

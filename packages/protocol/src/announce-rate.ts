@@ -5,6 +5,7 @@
  * `isAnnounceBlocked` / `recordAnnounce` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { hasActionOfKind } from "./action-kind.js";
 
 export const MAX_ANNOUNCE_RATE_TIMESTAMPS = 16;
 export const DEFAULT_ANNOUNCE_RATE_TARGET = 0.2;
@@ -115,13 +116,13 @@ export function stepAnnounceBlockedWithActions(
 export function shouldTreatAnnounceBlocked(
   actions: ReadonlyArray<AnnounceBlockedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "blocked");
+  return hasActionOfKind(actions, "blocked");
 }
 
 export function shouldTreatAnnounceLive(
   actions: ReadonlyArray<AnnounceBlockedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "live");
+  return hasActionOfKind(actions, "live");
 }
 
 export function recordAnnounce(
@@ -224,13 +225,13 @@ export function stepRecordAnnounceWithActions(
 export function shouldTreatRecordAnnounceBlocked(
   actions: ReadonlyArray<RecordAnnounceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "blocked");
+  return hasActionOfKind(actions, "blocked");
 }
 
 export function shouldTreatRecordAnnounceClear(
   actions: ReadonlyArray<RecordAnnounceAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "clear");
+  return hasActionOfKind(actions, "clear");
 }
 
 export const stepAnnounceRate: StepFn<AnnounceRateState> = (state, event) =>

@@ -35,6 +35,7 @@ import type {
   AnswerLocalPathRequestEvent,
   AnswerLocalPathRequestState,
 } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 export type AnswerLocalPathRequestAction =
   { readonly kind: "answer" } | { readonly kind: "skip" };
 
@@ -72,13 +73,13 @@ export function stepAnswerLocalPathRequestWithActions(
 export function shouldAnswerLocalPathRequestNow(
   actions: ReadonlyArray<AnswerLocalPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "answer");
+  return hasActionOfKind(actions, "answer");
 }
 
 export function shouldSkipAnswerLocalPathRequest(
   actions: ReadonlyArray<AnswerLocalPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -150,13 +151,13 @@ export function stepBeginPathDiscoveryWithActions(
 export function shouldBeginPathDiscoveryNow(
   actions: ReadonlyArray<BeginPathDiscoveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "begin");
+  return hasActionOfKind(actions, "begin");
 }
 
 export function shouldSkipBeginPathDiscovery(
   actions: ReadonlyArray<BeginPathDiscoveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether an expired discovery path-request entry should be cleared before reinsert. */
@@ -217,13 +218,13 @@ export function stepClearExpiredDiscoveryPathRequestWithActions(
 export function shouldClearExpiredDiscoveryPathRequestNow(
   actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "clear");
+  return hasActionOfKind(actions, "clear");
 }
 
 export function shouldSkipClearExpiredDiscoveryPathRequest(
   actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a path-request tag key should be remembered in the seen-tag set. */
@@ -282,13 +283,13 @@ export function stepRememberPathRequestTagWithActions(
 export function shouldRememberPathRequestTagNow(
   actions: ReadonlyArray<RememberPathRequestTagAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remember");
+  return hasActionOfKind(actions, "remember");
 }
 
 export function shouldSkipRememberPathRequestTag(
   actions: ReadonlyArray<RememberPathRequestTagAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether wrap/direct outbound may use a resolved path-table entry. */
@@ -345,13 +346,13 @@ export function stepUsePathForOutboundWithActions(
 export function shouldUsePathForOutboundNow(
   actions: ReadonlyArray<UsePathForOutboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use");
+  return hasActionOfKind(actions, "use");
 }
 
 export function shouldSkipUsePathForOutbound(
   actions: ReadonlyArray<UsePathForOutboundAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether answer-path may send a response for a resolved path-table entry. */
@@ -410,13 +411,13 @@ export function stepAnswerPathWithEntryWithActions(
 export function shouldAnswerPathWithEntryNow(
   actions: ReadonlyArray<AnswerPathWithEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "answer");
+  return hasActionOfKind(actions, "answer");
 }
 
 export function shouldSkipAnswerPathWithEntry(
   actions: ReadonlyArray<AnswerPathWithEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether path-table touch may refresh a resolved entry's timestamp. */
@@ -473,5 +474,5 @@ export function stepTouchPathEntryWithActions(
 export function shouldTouchPathEntryNow(
   actions: ReadonlyArray<TouchPathEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "touch");
+  return hasActionOfKind(actions, "touch");
 }

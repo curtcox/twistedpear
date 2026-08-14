@@ -12,6 +12,7 @@
  * `classifyLinkProofPayload` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const LINK_PROOF_SIGNATURE_SIZE = 64;
 export const LINK_PROOF_PUBLIC_KEY_SIZE = 32;
@@ -281,15 +282,14 @@ export function stepPackLinkProofDataWithActions(
 export function shouldUsePackLinkProofData(
   actions: ReadonlyArray<PackLinkProofDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract link-proof pack bytes from step actions; null when no `use-raw`. */
 export function packLinkProofDataRawFromActions(
   actions: ReadonlyArray<PackLinkProofDataAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -342,21 +342,20 @@ export function stepSplitLinkProofBodyWithActions(
 export function shouldUseSplitLinkProofBody(
   actions: ReadonlyArray<SplitLinkProofBodyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitLinkProofBody(
   actions: ReadonlyArray<SplitLinkProofBodyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split link-proof body fields from step actions; null when no `use-fields`. */
 export function linkProofBodyFieldsFromActions(
   actions: ReadonlyArray<SplitLinkProofBodyAction>,
 ): LinkProofBodyFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -417,15 +416,14 @@ export function stepPackLinkRequestDataWithActions(
 export function shouldUsePackLinkRequestData(
   actions: ReadonlyArray<PackLinkRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract link-request pack bytes from step actions; null when no `use-raw`. */
 export function packLinkRequestDataRawFromActions(
   actions: ReadonlyArray<PackLinkRequestDataAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -478,19 +476,18 @@ export function stepSplitLinkRequestDataWithActions(
 export function shouldUseSplitLinkRequestData(
   actions: ReadonlyArray<SplitLinkRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitLinkRequestData(
   actions: ReadonlyArray<SplitLinkRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split link-request fields from step actions; null when no `use-fields`. */
 export function linkRequestKeyFieldsFromActions(
   actions: ReadonlyArray<SplitLinkRequestDataAction>,
 ): LinkRequestKeyFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

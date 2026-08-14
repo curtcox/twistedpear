@@ -45,6 +45,7 @@ import type {
   ResourceReceivePartPlanAction,
   ResourceReceivePartPlanEvent,
 } from "./part-3.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Resource receive-part plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
@@ -103,7 +104,7 @@ export function stepResourceReceivePartPlanWithActions(
 export function shouldApplyResourceReceivePartPlan(
   actions: ReadonlyArray<ResourceReceivePartPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "receive");
+  return hasActionOfKind(actions, "receive");
 }
 
 export function resourceReceivePartPlanFromActions(
@@ -164,7 +165,7 @@ export function stepResourceReceivePartWithActions(
 export function shouldApplyResourceReceivePart(
   actions: ReadonlyArray<ResourceReceivePartAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "receive");
+  return hasActionOfKind(actions, "receive");
 }
 
 export function resourceReceivePartFromActions(
@@ -311,7 +312,7 @@ export function stepResourceRequestFulfillPlanWithActions(
 export function shouldFulfillResourceRequestPlan(
   actions: ReadonlyArray<ResourceRequestFulfillPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fulfill");
+  return hasActionOfKind(actions, "fulfill");
 }
 
 export function resourceRequestFulfillPlanFromActions(
@@ -393,7 +394,7 @@ export function stepResourceRequestFulfillWithActions(
 export function shouldFulfillResourceRequest(
   actions: ReadonlyArray<ResourceRequestFulfillAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fulfill");
+  return hasActionOfKind(actions, "fulfill");
 }
 
 export function resourceRequestFulfillFromActions(

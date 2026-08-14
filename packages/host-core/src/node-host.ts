@@ -148,12 +148,8 @@ function autoPeerCount(autoIface: InterfaceStatus | undefined): number {
 
 function onlineInterfaceCount(
   managerStatus: ReturnType<InterfaceManager["status"]>,
-  interfaces: ReturnType<Reticulum["listInterfaces"]>,
 ): number {
-  if (managerStatus.onlineCount !== undefined) {
-    return managerStatus.onlineCount;
-  }
-  return interfaces.filter((iface) => iface.online).length;
+  return managerStatus.onlineCount;
 }
 
 function buildNodeHostStatus(input: {
@@ -193,7 +189,7 @@ function buildNodeHostStatus(input: {
     announcesSeen: input.announcesSeen,
     dropCensus: input.dropCensus.snapshot(),
     autoPeers: autoPeerCount(autoIface),
-    onlineInterfaces: onlineInterfaceCount(managerStatus, interfaces),
+    onlineInterfaces: onlineInterfaceCount(managerStatus),
     preferredInterface: preferredName,
     interfaces: managerStatus.interfaces,
     seedStorageUsedBytes: seedBytes,

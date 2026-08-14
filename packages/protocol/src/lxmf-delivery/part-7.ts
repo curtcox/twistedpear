@@ -22,6 +22,7 @@ import type {
   AwaitLxmfDeliveryReceiptState,
   AwaitLxmfDeliveryReceiptStepResult,
 } from "./part-6.js";
+import { hasActionOfKind } from "../action-kind.js";
 export function stepAwaitLxmfDeliveryReceiptWithActions(
   state: AwaitLxmfDeliveryReceiptState,
   event: AwaitLxmfDeliveryReceiptEvent,
@@ -46,13 +47,13 @@ export function stepAwaitLxmfDeliveryReceiptWithActions(
 export function shouldAwaitLxmfDeliveryReceiptNow(
   actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "await");
+  return hasActionOfKind(actions, "await");
 }
 
 export function shouldSkipAwaitLxmfDeliveryReceipt(
   actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether an unpacked deliverable should invoke the delivery callback. */
@@ -113,13 +114,13 @@ export function stepInvokeLxmfDeliveryCallbackWithActions(
 export function shouldInvokeLxmfDeliveryCallbackNow(
   actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invoke");
+  return hasActionOfKind(actions, "invoke");
 }
 
 export function shouldSkipInvokeLxmfDeliveryCallback(
   actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** LXMFRouter.send method dispatch after packed-envelope check. */
@@ -208,35 +209,35 @@ export function stepLxmfSendMethodPlanWithActions(
 export function shouldRejectLxmfSendMethodPlanUnpacked(
   actions: ReadonlyArray<LxmfSendMethodPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unpacked");
+  return hasActionOfKind(actions, "reject-unpacked");
 }
 
 /** Whether plan actions select opportunistic send. */
 export function shouldPlanLxmfSendMethodOpportunistic(
   actions: ReadonlyArray<LxmfSendMethodPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "opportunistic");
+  return hasActionOfKind(actions, "opportunistic");
 }
 
 /** Whether plan actions select direct send. */
 export function shouldPlanLxmfSendMethodDirect(
   actions: ReadonlyArray<LxmfSendMethodPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "direct");
+  return hasActionOfKind(actions, "direct");
 }
 
 /** Whether plan actions select propagated send. */
 export function shouldPlanLxmfSendMethodPropagated(
   actions: ReadonlyArray<LxmfSendMethodPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "propagated");
+  return hasActionOfKind(actions, "propagated");
 }
 
 /** Whether plan actions reject an unsupported delivery method. */
 export function shouldRejectLxmfSendMethodPlanUnsupported(
   actions: ReadonlyArray<LxmfSendMethodPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unsupported");
+  return hasActionOfKind(actions, "reject-unsupported");
 }
 
 /** Extract the send-method plan from actions; null when empty. */
@@ -311,35 +312,35 @@ export function stepLxmfSendMethodWithActions(
 export function shouldRejectLxmfSendUnpacked(
   actions: ReadonlyArray<LxmfSendMethodAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unpacked");
+  return hasActionOfKind(actions, "reject-unpacked");
 }
 
 /** Whether step actions dispatch opportunistic send. */
 export function shouldSendLxmfOpportunistic(
   actions: ReadonlyArray<LxmfSendMethodAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send-opportunistic");
+  return hasActionOfKind(actions, "send-opportunistic");
 }
 
 /** Whether step actions dispatch direct send. */
 export function shouldSendLxmfDirect(
   actions: ReadonlyArray<LxmfSendMethodAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send-direct");
+  return hasActionOfKind(actions, "send-direct");
 }
 
 /** Whether step actions dispatch propagated send. */
 export function shouldSendLxmfPropagated(
   actions: ReadonlyArray<LxmfSendMethodAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send-propagated");
+  return hasActionOfKind(actions, "send-propagated");
 }
 
 /** Whether step actions reject an unsupported delivery method. */
 export function shouldRejectLxmfSendUnsupported(
   actions: ReadonlyArray<LxmfSendMethodAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unsupported");
+  return hasActionOfKind(actions, "reject-unsupported");
 }
 
 /** Unsupported method code from a reject-unsupported action, if present. */
@@ -428,21 +429,21 @@ export type LxmfDirectSendPlanAction =
 export function shouldPlanLxmfDirectSendOk(
   actions: ReadonlyArray<LxmfDirectSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 /** Whether plan actions reject a missing destination / identity. */
 export function shouldRejectLxmfDirectSendPlanMissingDestination(
   actions: ReadonlyArray<LxmfDirectSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-destination");
+  return hasActionOfKind(actions, "missing-destination");
 }
 
 /** Whether plan actions reject a missing packed envelope. */
 export function shouldRejectLxmfDirectSendPlanMissingPacked(
   actions: ReadonlyArray<LxmfDirectSendPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-packed");
+  return hasActionOfKind(actions, "missing-packed");
 }
 
 export type LxmfDirectSendEvent =

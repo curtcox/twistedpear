@@ -25,6 +25,7 @@ import {
   type GrantLifecycleState,
 } from "./grant-machine.js";
 import { utf8Decode, utf8Encode } from "./utf8.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export class InvalidGrantRecordError extends Error {
   constructor(message: string) {
@@ -622,21 +623,20 @@ export function stepEncodeGrantRecordWithActions(
 export function shouldUseEncodeGrantRecord(
   actions: ReadonlyArray<EncodeGrantRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectEncodeGrantRecord(
   actions: ReadonlyArray<EncodeGrantRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract encoded grant record from step actions; null when no `use-raw`. */
 export function encodeGrantRecordRawFromActions(
   actions: ReadonlyArray<EncodeGrantRecordAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -691,21 +691,20 @@ export function stepDecodeGrantRecordWithActions(
 export function shouldUseDecodeGrantRecord(
   actions: ReadonlyArray<DecodeGrantRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectDecodeGrantRecord(
   actions: ReadonlyArray<DecodeGrantRecordAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract decoded grant record from step actions; null when no `use-fields`. */
 export function grantRecordFromActions(
   actions: ReadonlyArray<DecodeGrantRecordAction>,
 ): GrantRecord | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 function dedupe(values: readonly string[]): readonly string[] {

@@ -14,6 +14,7 @@ import {
   LxmfUnverifiedReason,
   type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export const LxmfDeliveryMethod = {
   OPPORTUNISTIC: 0x01,
@@ -207,7 +208,7 @@ export function stepLxmfDeliveryPlanWithActions(
 export function shouldDeliverLxmfDeliveryPlan(
   actions: ReadonlyArray<LxmfDeliveryPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deliver");
+  return hasActionOfKind(actions, "deliver");
 }
 
 /** Whether plan actions reject opportunistic content as too large. */
@@ -223,7 +224,7 @@ export function shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(
 export function shouldRejectLxmfDeliveryPlanUnsupportedMethod(
   actions: ReadonlyArray<LxmfDeliveryPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unsupported-method");
+  return hasActionOfKind(actions, "reject-unsupported-method");
 }
 
 /** Deliver method/representation from a deliver plan action, if present. */
@@ -341,7 +342,7 @@ export function stepLxmfDeliveryWithActions(
 export function shouldDeliverLxmf(
   actions: ReadonlyArray<LxmfDeliveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deliver");
+  return hasActionOfKind(actions, "deliver");
 }
 
 /** Whether step actions reject opportunistic content as too large. */
@@ -357,7 +358,7 @@ export function shouldRejectLxmfOpportunisticTooLarge(
 export function shouldRejectLxmfUnsupportedMethod(
   actions: ReadonlyArray<LxmfDeliveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unsupported-method");
+  return hasActionOfKind(actions, "reject-unsupported-method");
 }
 
 /** Deliver method/representation from a deliver action, if present. */
@@ -387,69 +388,88 @@ export function lxmfDeliveryOpportunisticRejectSizes(
   return null;
 }
 
-function stepLxmfDeliveryInner(
+function idleLxmfDeliveryResult(
   state: LxmfDeliveryState,
-  event: LxmfDeliveryEvent,
 ): LxmfDeliveryStepResult {
-  if (event.kind === "delivery/select") {
-    const planActions = stepLxmfDeliveryPlanWithActions(
-      initialLxmfDeliveryPlanState(),
+  return { state, intents: [], actions: [] };
+}
+
+function rejectOpportunisticTooLarge(
+  state: LxmfDeliveryState,
+  planActions: ReadonlyArray<LxmfDeliveryPlanAction>,
+): LxmfDeliveryStepResult {
+  const sizes = lxmfDeliveryPlanOpportunisticRejectSizes(planActions);
+  return {
+    state,
+    intents: [],
+    actions: [
       {
-        kind: "delivery/plan-gate",
-        desiredMethod: event.desiredMethod,
-        contentSize: event.contentSize,
-        encryptedPacketMaxContent: event.encryptedPacketMaxContent,
-        linkPacketMaxContent: event.linkPacketMaxContent,
-        ...(event.propagationPackedLength !== undefined
-          ? { propagationPackedLength: event.propagationPackedLength }
-          : {}),
+        kind: "reject-opportunistic-too-large",
+        contentSize: sizes?.contentSize ?? 0,
+        maxContent: sizes?.maxContent ?? 0,
       },
-    ).actions;
-    if (shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(planActions)) {
-      const sizes = lxmfDeliveryPlanOpportunisticRejectSizes(planActions);
-      return {
-        state,
-        intents: [],
-        actions: [
-          {
-            kind: "reject-opportunistic-too-large",
-            contentSize: sizes?.contentSize ?? 0,
-            maxContent: sizes?.maxContent ?? 0,
-          },
-        ],
-      };
-    }
-    if (shouldRejectLxmfDeliveryPlanUnsupportedMethod(planActions)) {
-      return {
-        state,
-        intents: [],
-        actions: [
-          {
-            kind: "reject-unsupported-method",
-            method: lxmfDeliveryPlanUnsupportedMethod(planActions) ?? 0,
-          },
-        ],
-      };
-    }
-    if (!shouldDeliverLxmfDeliveryPlan(planActions)) {
-      return { state, intents: [], actions: [] };
-    }
-    const params = lxmfDeliveryPlanDeliverParams(planActions);
+    ],
+  };
+}
+
+function stepLxmfDeliverySelect(
+  state: LxmfDeliveryState,
+  event: Extract<LxmfDeliveryEvent, { kind: "delivery/select" }>,
+): LxmfDeliveryStepResult {
+  const planActions = stepLxmfDeliveryPlanWithActions(
+    initialLxmfDeliveryPlanState(),
+    {
+      kind: "delivery/plan-gate",
+      desiredMethod: event.desiredMethod,
+      contentSize: event.contentSize,
+      encryptedPacketMaxContent: event.encryptedPacketMaxContent,
+      linkPacketMaxContent: event.linkPacketMaxContent,
+      ...(event.propagationPackedLength !== undefined
+        ? { propagationPackedLength: event.propagationPackedLength }
+        : {}),
+    },
+  ).actions;
+  if (shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(planActions)) {
+    return rejectOpportunisticTooLarge(state, planActions);
+  }
+  if (shouldRejectLxmfDeliveryPlanUnsupportedMethod(planActions)) {
     return {
       state,
       intents: [],
       actions: [
         {
-          kind: "deliver",
-          method: params?.method ?? LxmfDeliveryMethod.OPPORTUNISTIC,
-          representation:
-            params?.representation ?? LxmfDeliveryRepresentation.UNKNOWN,
+          kind: "reject-unsupported-method",
+          method: lxmfDeliveryPlanUnsupportedMethod(planActions) ?? 0,
         },
       ],
     };
   }
+  if (!shouldDeliverLxmfDeliveryPlan(planActions)) {
+    return idleLxmfDeliveryResult(state);
+  }
+  const params = lxmfDeliveryPlanDeliverParams(planActions);
+  return {
+    state,
+    intents: [],
+    actions: [
+      {
+        kind: "deliver",
+        method: params?.method ?? LxmfDeliveryMethod.OPPORTUNISTIC,
+        representation:
+          params?.representation ?? LxmfDeliveryRepresentation.UNKNOWN,
+      },
+    ],
+  };
+}
 
-  return { state, intents: [], actions: [] };
+function stepLxmfDeliveryInner(
+  state: LxmfDeliveryState,
+  event: LxmfDeliveryEvent,
+): LxmfDeliveryStepResult {
+  if (event.kind === "delivery/select") {
+    return stepLxmfDeliverySelect(state, event);
+  }
+  return idleLxmfDeliveryResult(state);
 }
 
 export type LxMessagePackGate = "ok" | "bad-destination" | "bad-source";

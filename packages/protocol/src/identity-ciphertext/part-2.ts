@@ -27,6 +27,7 @@ import type {
   IdentityDecryptOutcomePlanEvent,
   IdentityDecryptPlan,
 } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Identity-decrypt-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planIdentityDecryptOutcome`
@@ -73,31 +74,31 @@ export function stepIdentityDecryptOutcomePlanWithActions(
 export function shouldRejectIdentityDecryptOutcomePlanFrame(
   actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-frame");
+  return hasActionOfKind(actions, "reject-frame");
 }
 
 export function shouldAcceptIdentityDecryptOutcomePlan(
   actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectIdentityDecryptOutcomePlanEnforced(
   actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-enforced");
+  return hasActionOfKind(actions, "reject-enforced");
 }
 
 export function shouldTryIdentityDecryptOutcomePlan(
   actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "try-identity");
+  return hasActionOfKind(actions, "try-identity");
 }
 
 export function shouldRejectIdentityDecryptOutcomePlan(
   actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /**
@@ -143,31 +144,31 @@ export function stepIdentityDecryptWithActions(
 export function shouldRejectIdentityDecryptFrame(
   actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-frame");
+  return hasActionOfKind(actions, "reject-frame");
 }
 
 export function shouldRejectIdentityDecryptEnforced(
   actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-enforced");
+  return hasActionOfKind(actions, "reject-enforced");
 }
 
 export function shouldAcceptIdentityDecrypt(
   actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldTryIdentityDecrypt(
   actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "try-identity");
+  return hasActionOfKind(actions, "try-identity");
 }
 
 export function shouldRejectIdentityDecrypt(
   actions: ReadonlyArray<IdentityDecryptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 function stepIdentityDecryptInner(
@@ -281,19 +282,19 @@ export function identityRecallPlanFromActions(
 export function shouldMissIdentityRecallPlan(
   actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 export function shouldRejectIdentityRecallPlanKey(
   actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-key");
+  return hasActionOfKind(actions, "reject-key");
 }
 
 export function shouldHitIdentityRecallPlan(
   actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "hit");
+  return hasActionOfKind(actions, "hit");
 }
 
 /**
@@ -347,19 +348,19 @@ export function stepIdentityRecallWithActions(
 export function shouldHitIdentityRecall(
   actions: ReadonlyArray<IdentityRecallAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "hit");
+  return hasActionOfKind(actions, "hit");
 }
 
 export function shouldMissIdentityRecall(
   actions: ReadonlyArray<IdentityRecallAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 export function shouldRejectIdentityRecallKey(
   actions: ReadonlyArray<IdentityRecallAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-key");
+  return hasActionOfKind(actions, "reject-key");
 }
 
 function stepIdentityRecallInner(

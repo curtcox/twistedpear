@@ -7,6 +7,7 @@
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const RESOURCE_PROOF_HASH_SIZE = 32;
 export const RESOURCE_PROOF_SIZE = RESOURCE_PROOF_HASH_SIZE * 2;
@@ -112,13 +113,13 @@ export function stepAcceptResourceProofPayloadWithActions(
 export function shouldAcceptResourceProofPayloadNow(
   actions: ReadonlyArray<AcceptResourceProofPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptResourceProofPayload(
   actions: ReadonlyArray<AcceptResourceProofPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a RESOURCE_PRF split produced hash halves. */
@@ -177,13 +178,13 @@ export function stepAcceptResourceProofSplitWithActions(
 export function shouldAcceptResourceProofSplitNow(
   actions: ReadonlyArray<AcceptResourceProofSplitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptResourceProofSplit(
   actions: ReadonlyArray<AcceptResourceProofSplitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a resource random-hash prefix has the RNS size. */
@@ -242,13 +243,13 @@ export function stepResourceRandomHashLengthValidWithActions(
 export function shouldAcceptResourceRandomHashLength(
   actions: ReadonlyArray<ResourceRandomHashLengthValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "valid");
+  return hasActionOfKind(actions, "valid");
 }
 
 export function shouldRejectResourceRandomHashLength(
   actions: ReadonlyArray<ResourceRandomHashLengthValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invalid");
+  return hasActionOfKind(actions, "invalid");
 }
 
 /** After link decrypt, drop the leading random-hash prefix. */
@@ -315,15 +316,14 @@ export function stepPackResourceProofWithActions(
 export function shouldUsePackResourceProof(
   actions: ReadonlyArray<PackResourceProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract resource-proof pack bytes from step actions; null when no `use-raw`. */
 export function packResourceProofRawFromActions(
   actions: ReadonlyArray<PackResourceProofAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -376,21 +376,20 @@ export function stepSplitResourceProofWithActions(
 export function shouldUseSplitResourceProof(
   actions: ReadonlyArray<SplitResourceProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitResourceProof(
   actions: ReadonlyArray<SplitResourceProofAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split resource-proof fields from step actions; null when no `use-fields`. */
 export function resourceProofFieldsFromActions(
   actions: ReadonlyArray<SplitResourceProofAction>,
 ): ResourceProofFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -447,19 +446,18 @@ export function stepSplitResourceDecryptedPayloadWithActions(
 export function shouldUseSplitResourceDecryptedPayload(
   actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectSplitResourceDecryptedPayload(
   actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract decrypted payload bytes from step actions; null when no `use-raw`. */
 export function resourceDecryptedPayloadFromActions(
   actions: ReadonlyArray<SplitResourceDecryptedPayloadAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

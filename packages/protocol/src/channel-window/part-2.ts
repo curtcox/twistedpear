@@ -29,6 +29,7 @@ import type {
   ChannelOutletTransmitState,
   ChannelOutletTransmitStepResult,
 } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function stepChannelOutletTransmitWithActions(
   state: ChannelOutletTransmitState,
   event: ChannelOutletTransmitEvent,
@@ -57,13 +58,13 @@ export function stepChannelOutletTransmitWithActions(
 export function shouldAcceptChannelOutletTransmit(
   actions: ReadonlyArray<ChannelOutletTransmitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectChannelOutletTransmit(
   actions: ReadonlyArray<ChannelOutletTransmitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /**
@@ -140,15 +141,14 @@ export function stepCountChannelTxOutstandingWithActions(
 export function shouldUseChannelTxOutstandingCount(
   actions: ReadonlyArray<CountChannelTxOutstandingAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-count");
+  return hasActionOfKind(actions, "use-count");
 }
 
 /** Extract outstanding count from step actions; null when no `use-count`. */
 export function channelTxOutstandingCountFromActions(
   actions: ReadonlyArray<CountChannelTxOutstandingAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-count");
-  return action?.kind === "use-count" ? action.count : null;
+  return firstActionOfKind(actions, "use-count")?.count ?? null;
 }
 
 /** Whether channel TX timeout refresh / receipt callback arming may use a packet receipt. */
@@ -207,13 +207,13 @@ export function stepArmChannelPacketReceiptWithActions(
 export function shouldArmChannelPacketReceiptNow(
   actions: ReadonlyArray<ArmChannelPacketReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "arm");
+  return hasActionOfKind(actions, "arm");
 }
 
 export function shouldSkipArmChannelPacketReceipt(
   actions: ReadonlyArray<ArmChannelPacketReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -284,13 +284,13 @@ export function stepExtendPacketReceiptTimeoutWithActions(
 export function shouldExtendPacketReceiptTimeoutNow(
   actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "extend");
+  return hasActionOfKind(actions, "extend");
 }
 
 export function shouldSkipExtendPacketReceiptTimeout(
   actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -365,21 +365,20 @@ export function stepIndexOfChannelTxEnvelopeWithActions(
 export function shouldUseChannelTxEnvelopeIndex(
   actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-index");
+  return hasActionOfKind(actions, "use-index");
 }
 
 export function shouldMissChannelTxEnvelopeIndex(
   actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 /** Extract TX-envelope index from step actions; null when no `use-index`. */
 export function channelTxEnvelopeIndexFromActions(
   actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-index");
-  return action?.kind === "use-index" ? action.index : null;
+  return firstActionOfKind(actions, "use-index")?.index ?? null;
 }
 
 export type ChannelTxEnvelopeOpPlan = "miss" | "process";

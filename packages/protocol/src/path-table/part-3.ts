@@ -31,10 +31,11 @@ import {
   PACKET_TYPE_ANNOUNCE,
 } from "../packet-header.js";
 import type { TouchPathEntryAction } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 export function shouldSkipTouchPathEntry(
   actions: ReadonlyArray<TouchPathEntryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a pending discovery path-request should be fulfilled by an announce. */
@@ -122,19 +123,19 @@ export function discoveryPathRequestFulfillPlanFromActions(
 export function shouldIgnoreDiscoveryPathFulfillPlan(
   actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldDropExpiredDiscoveryPathRequestPlan(
   actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "drop-expired");
+  return hasActionOfKind(actions, "drop-expired");
 }
 
 export function shouldFulfillDiscoveryPathRequestPlan(
   actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fulfill");
+  return hasActionOfKind(actions, "fulfill");
 }
 
 /**
@@ -194,19 +195,19 @@ export function discoveryPathRequestFulfillFromActions(
 export function shouldIgnoreDiscoveryPathFulfillActions(
   actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldDropExpiredDiscoveryPathRequest(
   actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "drop-expired");
+  return hasActionOfKind(actions, "drop-expired");
 }
 
 export function shouldFulfillDiscoveryPathRequest(
   actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fulfill");
+  return hasActionOfKind(actions, "fulfill");
 }
 
 function stepDiscoveryPathRequestFulfillInner(
@@ -298,13 +299,13 @@ export function stepFulfillDiscoveryPendingWithActions(
 export function shouldFulfillDiscoveryPendingNow(
   actions: ReadonlyArray<FulfillDiscoveryPendingAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fulfill");
+  return hasActionOfKind(actions, "fulfill");
 }
 
 export function shouldSkipFulfillDiscoveryPending(
   actions: ReadonlyArray<FulfillDiscoveryPendingAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether discovery fulfill should early-out with no pending map mutation. */
@@ -415,13 +416,13 @@ export function pathOutboundPlanFromActions(
 export function shouldWrapPathOutboundPlan(
   actions: ReadonlyArray<PathOutboundPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "wrap");
+  return hasActionOfKind(actions, "wrap");
 }
 
 export function shouldDirectPathOutboundPlan(
   actions: ReadonlyArray<PathOutboundPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "direct");
+  return hasActionOfKind(actions, "direct");
 }
 
 /**

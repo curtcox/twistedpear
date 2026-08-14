@@ -21,6 +21,7 @@ import type {
   RegisterLxmfDeliveryIdentityState,
   RegisterLxmfDeliveryIdentityStepResult,
 } from "./part-3.js";
+import { hasActionOfKind } from "../action-kind.js";
 export function stepRegisterLxmfDeliveryIdentityWithActions(
   state: RegisterLxmfDeliveryIdentityState,
   event: RegisterLxmfDeliveryIdentityEvent,
@@ -47,13 +48,13 @@ export function stepRegisterLxmfDeliveryIdentityWithActions(
 export function shouldRegisterLxmfDeliveryIdentityNow(
   actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "register");
+  return hasActionOfKind(actions, "register");
 }
 
 export function shouldSkipRegisterLxmfDeliveryIdentity(
   actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -117,13 +118,13 @@ export function stepTeardownLxmfPropagationLinkWithActions(
 export function shouldTeardownLxmfPropagationLinkNow(
   actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "teardown");
+  return hasActionOfKind(actions, "teardown");
 }
 
 export function shouldSkipTeardownLxmfPropagationLink(
   actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether opportunistic payload extraction may proceed (message packed). */
@@ -184,13 +185,13 @@ export function stepExtractLxmfOpportunisticPayloadWithActions(
 export function shouldExtractLxmfOpportunisticPayloadNow(
   actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "extract");
+  return hasActionOfKind(actions, "extract");
 }
 
 export function shouldSkipExtractLxmfOpportunisticPayload(
   actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether delivery-parameter selection may run (message packed). */
@@ -251,13 +252,13 @@ export function stepSelectLxmfDeliveryParametersWithActions(
 export function shouldSelectLxmfDeliveryParametersNow(
   actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "select");
+  return hasActionOfKind(actions, "select");
 }
 
 export function shouldSkipSelectLxmfDeliveryParameters(
   actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type LxmfPropagationSyncPrepPlan =
@@ -334,21 +335,21 @@ export function stepLxmfPropagationSyncPrepPlanWithActions(
 export function shouldPlanLxmfPropagationSyncPrepOk(
   actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 /** Whether plan actions reject a missing propagation node. */
 export function shouldRejectLxmfPropagationSyncPrepPlanMissingNode(
   actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-node");
+  return hasActionOfKind(actions, "missing-node");
 }
 
 /** Whether plan actions reject a missing delivery identity. */
 export function shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(
   actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-delivery-identity");
+  return hasActionOfKind(actions, "missing-delivery-identity");
 }
 
 /** Extract the sync-prep plan from actions; null when empty. */
@@ -420,13 +421,13 @@ export function stepLxmfPropagationSyncPrepWithActions(
 export function shouldProceedLxmfPropagationSyncPrep(
   actions: ReadonlyArray<LxmfPropagationSyncPrepAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLxmfPropagationSyncMissingNode(
   actions: ReadonlyArray<LxmfPropagationSyncPrepAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-node");
+  return hasActionOfKind(actions, "reject-missing-node");
 }
 
 export function shouldRejectLxmfPropagationSyncMissingDeliveryIdentity(

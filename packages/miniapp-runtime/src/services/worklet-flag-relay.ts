@@ -29,7 +29,7 @@ const UNSUPPORTED_KINDS: ReadonlyArray<RelayInterfaceKind> = [
 function kindToEnabled(
   kind: RelayInterfaceKind,
   flags: WorkletFlagRelaySnapshot,
-): boolean | null {
+): boolean {
   switch (kind) {
     case "tcp":
       return flags.tcpEnabled;
@@ -40,7 +40,7 @@ function kindToEnabled(
     case "rnode":
       return flags.rnodeEnabled;
     default:
-      return null;
+      return false;
   }
 }
 
@@ -66,7 +66,7 @@ function requireManaged(
   controller: WorkletFlagRelayController,
   kind: RelayInterfaceKind,
 ): void {
-  if (kindToEnabled(kind, controller.getFlags()) === null) {
+  if (!MANAGED_KINDS.includes(kind)) {
     throw new RelayBrokerServiceError(
       "RELAY_UNSUPPORTED",
       `${kind} is not managed by this host`,
@@ -142,7 +142,7 @@ async function enableKind(
   requireManaged(controller, kind);
   applyEnableOptions(controller, kind, options);
   const flag = ENABLE_FLAGS[kind as keyof typeof ENABLE_FLAGS];
-  if (flag !== undefined) controller.setFlags({ [flag]: true });
+  controller.setFlags({ [flag]: true });
   await controller.applyInterfaceConfig();
   const direction = directions.get(kind) ?? "both";
   if (direction !== "both") await controller.setDirection?.(kind, direction);
@@ -154,7 +154,7 @@ async function disableKind(
 ): Promise<void> {
   requireManaged(controller, kind);
   const flag = DISABLE_FLAGS[kind as keyof typeof DISABLE_FLAGS];
-  if (flag !== undefined) controller.setFlags({ [flag]: false });
+  controller.setFlags({ [flag]: false });
   await controller.applyInterfaceConfig();
 }
 

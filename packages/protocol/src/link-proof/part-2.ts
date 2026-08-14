@@ -21,6 +21,7 @@ import {
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
 } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Link signalling-byte encode framing is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `encodeLinkSignallingBytes`
@@ -74,15 +75,14 @@ export function stepEncodeLinkSignallingBytesWithActions(
 export function shouldUseEncodeLinkSignallingBytes(
   actions: ReadonlyArray<EncodeLinkSignallingBytesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract encoded signalling bytes from step actions; null when no `use-raw`. */
 export function encodeLinkSignallingBytesRawFromActions(
   actions: ReadonlyArray<EncodeLinkSignallingBytesAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -132,15 +132,14 @@ export function stepEncodeLinkMtuBytesWithActions(
 export function shouldUseEncodeLinkMtuBytes(
   actions: ReadonlyArray<EncodeLinkMtuBytesAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract encoded MTU bytes from step actions; null when no `use-raw`. */
 export function encodeLinkMtuBytesRawFromActions(
   actions: ReadonlyArray<EncodeLinkMtuBytesAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -196,15 +195,14 @@ export function stepModeFromLinkRequestDataWithActions(
 export function shouldUseModeFromLinkRequestData(
   actions: ReadonlyArray<ModeFromLinkRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mode");
+  return hasActionOfKind(actions, "use-mode");
 }
 
 /** Extract decoded link-request mode from step actions; null when no `use-mode`. */
 export function modeFromLinkRequestDataFromActions(
   actions: ReadonlyArray<ModeFromLinkRequestDataAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mode");
-  return action?.kind === "use-mode" ? action.mode : null;
+  return firstActionOfKind(actions, "use-mode")?.mode ?? null;
 }
 
 /**
@@ -260,15 +258,14 @@ export function stepModeFromLinkProofDataWithActions(
 export function shouldUseModeFromLinkProofData(
   actions: ReadonlyArray<ModeFromLinkProofDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mode");
+  return hasActionOfKind(actions, "use-mode");
 }
 
 /** Extract decoded link-proof mode from step actions; null when no `use-mode`. */
 export function modeFromLinkProofDataFromActions(
   actions: ReadonlyArray<ModeFromLinkProofDataAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mode");
-  return action?.kind === "use-mode" ? action.mode : null;
+  return firstActionOfKind(actions, "use-mode")?.mode ?? null;
 }
 
 /**
@@ -317,21 +314,20 @@ export function stepMtuFromLinkRequestDataWithActions(
 export function shouldUseMtuFromLinkRequestData(
   actions: ReadonlyArray<MtuFromLinkRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mtu");
+  return hasActionOfKind(actions, "use-mtu");
 }
 
 export function shouldRejectMtuFromLinkRequestData(
   actions: ReadonlyArray<MtuFromLinkRequestDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract decoded link-request MTU from step actions; null when no `use-mtu`. */
 export function mtuFromLinkRequestDataFromActions(
   actions: ReadonlyArray<MtuFromLinkRequestDataAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mtu");
-  return action?.kind === "use-mtu" ? action.mtu : null;
+  return firstActionOfKind(actions, "use-mtu")?.mtu ?? null;
 }
 
 /**
@@ -380,21 +376,20 @@ export function stepMtuFromLinkProofDataWithActions(
 export function shouldUseMtuFromLinkProofData(
   actions: ReadonlyArray<MtuFromLinkProofDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-mtu");
+  return hasActionOfKind(actions, "use-mtu");
 }
 
 export function shouldRejectMtuFromLinkProofData(
   actions: ReadonlyArray<MtuFromLinkProofDataAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract decoded link-proof MTU from step actions; null when no `use-mtu`. */
 export function mtuFromLinkProofDataFromActions(
   actions: ReadonlyArray<MtuFromLinkProofDataAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-mtu");
-  return action?.kind === "use-mtu" ? action.mtu : null;
+  return firstActionOfKind(actions, "use-mtu")?.mtu ?? null;
 }
 
 /**
@@ -447,17 +442,17 @@ export function stepClassifyLinkProofPayloadWithActions(
 export function shouldClassifyLinkProofPayloadBodyOnly(
   actions: ReadonlyArray<ClassifyLinkProofPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "body-only");
+  return hasActionOfKind(actions, "body-only");
 }
 
 export function shouldClassifyLinkProofPayloadBodyWithMtu(
   actions: ReadonlyArray<ClassifyLinkProofPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "body-with-mtu");
+  return hasActionOfKind(actions, "body-with-mtu");
 }
 
 export function shouldRejectClassifyLinkProofPayload(
   actions: ReadonlyArray<ClassifyLinkProofPayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }

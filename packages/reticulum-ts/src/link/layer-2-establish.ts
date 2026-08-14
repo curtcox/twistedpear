@@ -165,9 +165,38 @@ import type {
   LinkSendContextResult,
 } from "./shared.js";
 import type { Link } from "../link.js";
+import { LinkLayer1Request } from "./layer-1-request.js";
 import { LinkLayer1 } from "./layer-1.js";
-export class LinkLayer2Establish extends LinkLayer1 {
+export class LinkLayer2Establish extends LinkLayer1Request {
   async prove(): Promise<void> {
+    const ownerIdentity = this.requireProveOwnerIdentity();
+    const publicKeyBytes = this.publicKeyBytes!;
+    const signallingBytes = LinkLayer1.signallingBytes(this.mtu, this.mode);
+    const ownerSigPublicKey = this.requireOwnerSigPublicKey(ownerIdentity);
+    const proofData = this.packLinkProofData(
+      ownerIdentity,
+      publicKeyBytes,
+      ownerSigPublicKey,
+      signallingBytes,
+    );
+    const proofPacket = Packet.fromFields(this.provider, {
+      headerType: PacketHeaderType.HEADER_1,
+      transportType: TransportType.BROADCAST,
+      destinationType: DestinationType.LINK,
+      packetType: PacketType.PROOF,
+      destinationHash: this.linkId,
+      context: PacketContext.LRPROOF,
+      data: proofData,
+    });
+
+    this.establishmentCost += proofPacket.raw.length;
+    await this.transport.sendPacket(proofPacket, {
+      attachedInterface: this.attachedInterface,
+    });
+    this.hadOutbound(false);
+  }
+
+  private requireProveOwnerIdentity(): Identity {
     const owner = this.owner;
     const publicKeyBytes = this.publicKeyBytes;
     const ownerIdentity = owner?.identity ?? null;
@@ -188,8 +217,10 @@ export class LinkLayer2Establish extends LinkLayer1 {
     ) {
       throw new Error("Responder link is missing owner or key material");
     }
+    return ownerIdentity;
+  }
 
-    const signallingBytes = LinkLayer1.signallingBytes(this.mtu, this.mode);
+  private requireOwnerSigPublicKey(ownerIdentity: Identity): Uint8Array {
     const ownerSplit = stepSplitIdentityPublicKeyWithActions(
       initialSplitIdentityPublicKeyState(),
       {
@@ -210,7 +241,15 @@ export class LinkLayer2Establish extends LinkLayer1 {
     if (!shouldAcceptLinkOwnerPublicKeyNow(ownerKeyAllow.actions)) {
       throw new Error("Responder link owner public key is invalid");
     }
-    const ownerSigPublicKey = ownerPublic!.signaturePublicKey;
+    return ownerPublic!.signaturePublicKey;
+  }
+
+  private packLinkProofData(
+    ownerIdentity: Identity,
+    publicKeyBytes: Uint8Array,
+    ownerSigPublicKey: Uint8Array,
+    signallingBytes: Uint8Array,
+  ): Uint8Array {
     const signedStepped = stepLinkProofSignedMaterialWithActions(
       initialLinkProofSignedMaterialState(),
       {
@@ -243,21 +282,7 @@ export class LinkLayer2Establish extends LinkLayer1 {
     if (proofData === null) {
       throw new Error("Link.prove: missing use-raw action");
     }
-    const proofPacket = Packet.fromFields(this.provider, {
-      headerType: PacketHeaderType.HEADER_1,
-      transportType: TransportType.BROADCAST,
-      destinationType: DestinationType.LINK,
-      packetType: PacketType.PROOF,
-      destinationHash: this.linkId,
-      context: PacketContext.LRPROOF,
-      data: proofData,
-    });
-
-    this.establishmentCost += proofPacket.raw.length;
-    await this.transport.sendPacket(proofPacket, {
-      attachedInterface: this.attachedInterface,
-    });
-    this.hadOutbound(false);
+    return proofData;
   }
 
   protected async applyLinkEstablishActions(
@@ -270,76 +295,70 @@ export class LinkLayer2Establish extends LinkLayer1 {
     if (shouldIgnoreLinkEstablishRtt(actions)) {
       return;
     }
-
     if (shouldTeardownLinkEstablish(actions)) {
       await this.teardown();
       return;
     }
-
     if (shouldAcceptLinkEstablishRtt(actions)) {
-      try {
-        const measuredRtt = linkRttSecondsForRequest(
-          this.clock.now() / 1000,
-          this.requestTime,
-        );
-        const unpackRtt = stepUnpackMsgpackFloatWithActions(
-          initialUnpackMsgpackFloatState(),
-          {
-            kind: "msgpack-float/unpack-gate",
-            bytes: context?.rttPlaintext!,
-          },
-        );
-        if (
-          shouldRejectUnpackMsgpackFloat(unpackRtt.actions) ||
-          !shouldUseUnpackMsgpackFloat(unpackRtt.actions)
-        ) {
-          throw new Error("Link.handleRtt: missing use-fields action");
-        }
-        const remoteRtt = msgpackFloatFromActions(unpackRtt.actions);
-        if (remoteRtt === null) {
-          throw new Error("Link.handleRtt: missing use-fields action");
-        }
-        const nowSeconds = this.clock.now() / 1000;
-        await this.applyLinkEstablishActions(
-          stepLinkEstablishWithActions(
-            initialLinkEstablishState({
-              initiator: this.initiator,
-              status: this.status,
-            }),
-            {
-              kind: "establish/activated",
-              atSeconds: nowSeconds,
-              rtt: mergedLinkRtt(measuredRtt, remoteRtt),
-            },
-          ).actions,
-        );
-      } catch {
-        await this.applyLinkEstablishActions(
-          stepLinkEstablishWithActions(
-            initialLinkEstablishState({
-              initiator: this.initiator,
-              status: this.status,
-            }),
-            { kind: "establish/rtt-failed" },
-          ).actions,
-        );
-      }
+      await this.applyLinkEstablishRtt(context);
       return;
     }
-
     if (shouldEnterLinkHandshake(actions)) {
       this.status = LinkStatus.HANDSHAKE;
     }
-
     if (shouldFailLinkEstablish(actions)) {
       this.status = LinkStatus.CLOSED;
       return;
     }
-
-    if (!shouldActivateLinkEstablish(actions)) {
-      return;
+    if (shouldActivateLinkEstablish(actions)) {
+      await this.applyLinkEstablishActivate(actions, context);
     }
+  }
 
+  private async applyLinkEstablishRtt(context?: {
+    readonly prepareInitiatorActivate?: () => void;
+    readonly rttPlaintext?: Uint8Array | null;
+  }): Promise<void> {
+    try {
+      const measuredRtt = linkRttSecondsForRequest(
+        this.clock.now() / 1000,
+        this.requestTime,
+      );
+      const remoteRtt = unpackEstablishRtt(context?.rttPlaintext!);
+      const nowSeconds = this.clock.now() / 1000;
+      await this.applyLinkEstablishActions(
+        stepLinkEstablishWithActions(
+          initialLinkEstablishState({
+            initiator: this.initiator,
+            status: this.status,
+          }),
+          {
+            kind: "establish/activated",
+            atSeconds: nowSeconds,
+            rtt: mergedLinkRtt(measuredRtt, remoteRtt),
+          },
+        ).actions,
+      );
+    } catch {
+      await this.applyLinkEstablishActions(
+        stepLinkEstablishWithActions(
+          initialLinkEstablishState({
+            initiator: this.initiator,
+            status: this.status,
+          }),
+          { kind: "establish/rtt-failed" },
+        ).actions,
+      );
+    }
+  }
+
+  private async applyLinkEstablishActivate(
+    actions: readonly LinkEstablishAction[],
+    context?: {
+      readonly prepareInitiatorActivate?: () => void;
+      readonly rttPlaintext?: Uint8Array | null;
+    },
+  ): Promise<void> {
     const activated = linkEstablishActivatedAction(actions);
     if (activated === null) {
       return;
@@ -356,35 +375,39 @@ export class LinkLayer2Establish extends LinkLayer1 {
       this.transport.activateLink(this as unknown as Link);
     }
     if (activated.sendRtt) {
-      const packRtt = stepPackMsgpackFloat64WithActions(
-        initialPackMsgpackFloat64State(),
-        {
-          kind: "msgpack-float/pack-gate",
-          value: this.rtt!,
-        },
-      );
-      if (!shouldUsePackMsgpackFloat64(packRtt.actions)) {
-        throw new Error("Link.sendRtt: missing use-raw action");
-      }
-      const rttRaw = packMsgpackFloat64RawFromActions(packRtt.actions);
-      if (rttRaw === null) {
-        throw new Error("Link.sendRtt: missing use-raw action");
-      }
-      const rttPacket = Packet.fromFields(this.provider, {
-        headerType: PacketHeaderType.HEADER_1,
-        transportType: TransportType.BROADCAST,
-        destinationType: DestinationType.LINK,
-        packetType: PacketType.DATA,
-        destinationHash: this.linkId,
-        context: PacketContext.LRRTT,
-        data: this.encrypt(rttRaw),
-      });
-      await this.transport.sendPacket(rttPacket, {
-        attachedInterface: this.attachedInterface,
-      });
-      this.hadOutbound(false);
+      await this.sendEstablishRttPacket();
     }
     this.callbacks.linkEstablished?.(this as unknown as Link);
+  }
+
+  private async sendEstablishRttPacket(): Promise<void> {
+    const packRtt = stepPackMsgpackFloat64WithActions(
+      initialPackMsgpackFloat64State(),
+      {
+        kind: "msgpack-float/pack-gate",
+        value: this.rtt!,
+      },
+    );
+    if (!shouldUsePackMsgpackFloat64(packRtt.actions)) {
+      throw new Error("Link.sendRtt: missing use-raw action");
+    }
+    const rttRaw = packMsgpackFloat64RawFromActions(packRtt.actions);
+    if (rttRaw === null) {
+      throw new Error("Link.sendRtt: missing use-raw action");
+    }
+    const rttPacket = Packet.fromFields(this.provider, {
+      headerType: PacketHeaderType.HEADER_1,
+      transportType: TransportType.BROADCAST,
+      destinationType: DestinationType.LINK,
+      packetType: PacketType.DATA,
+      destinationHash: this.linkId,
+      context: PacketContext.LRRTT,
+      data: this.encrypt(rttRaw),
+    });
+    await this.transport.sendPacket(rttPacket, {
+      attachedInterface: this.attachedInterface,
+    });
+    this.hadOutbound(false);
   }
 
   protected updateKeepalive(): void {
@@ -423,4 +446,25 @@ export class LinkLayer2Establish extends LinkLayer1 {
       }),
     );
   }
+}
+
+function unpackEstablishRtt(bytes: Uint8Array): number {
+  const unpackRtt = stepUnpackMsgpackFloatWithActions(
+    initialUnpackMsgpackFloatState(),
+    {
+      kind: "msgpack-float/unpack-gate",
+      bytes,
+    },
+  );
+  if (
+    shouldRejectUnpackMsgpackFloat(unpackRtt.actions) ||
+    !shouldUseUnpackMsgpackFloat(unpackRtt.actions)
+  ) {
+    throw new Error("Link.handleRtt: missing use-fields action");
+  }
+  const remoteRtt = msgpackFloatFromActions(unpackRtt.actions);
+  if (remoteRtt === null) {
+    throw new Error("Link.handleRtt: missing use-fields action");
+  }
+  return remoteRtt;
 }

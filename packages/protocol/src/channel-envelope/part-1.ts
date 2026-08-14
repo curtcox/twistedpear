@@ -11,6 +11,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "../packet-receipt-timeout.js";
 import { PacketReceiptStatus } from "../packet-receipt-timeout.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const CHANNEL_ENVELOPE_HEADER_SIZE = 6;
 export const CHANNEL_SEQ_MAX = 0xffff;
@@ -111,15 +112,14 @@ export function stepChannelMessageStateFromPacketReceiptWithActions(
 export function shouldUseChannelMessageStateFromPacketReceipt(
   actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-state");
+  return hasActionOfKind(actions, "use-state");
 }
 
 /** Extract channel message state from step actions; null when no `use-state`. */
 export function channelMessageStateFromActions(
   actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>,
 ): ChannelMessageStateValue | null {
-  const action = actions.find((entry) => entry.kind === "use-state");
-  return action?.kind === "use-state" ? action.messageState : null;
+  return firstActionOfKind(actions, "use-state")?.messageState ?? null;
 }
 
 /** Whether send/resend should immediately fire packetDelivered for an already-delivered outlet state. */
@@ -180,13 +180,13 @@ export function stepEmitChannelImmediateDeliveryWithActions(
 export function shouldEmitChannelImmediateDeliveryNow(
   actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "emit");
+  return hasActionOfKind(actions, "emit");
 }
 
 export function shouldSkipEmitChannelImmediateDelivery(
   actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export interface PackedChannelEnvelope {
@@ -301,21 +301,20 @@ export function stepPackChannelEnvelopeWithActions(
 export function shouldUsePackChannelEnvelope(
   actions: ReadonlyArray<PackChannelEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackChannelEnvelope(
   actions: ReadonlyArray<PackChannelEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed channel envelope from step actions; null when no `use-raw`. */
 export function packChannelEnvelopeRawFromActions(
   actions: ReadonlyArray<PackChannelEnvelopeAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -364,21 +363,20 @@ export function stepUnpackChannelEnvelopeWithActions(
 export function shouldUseUnpackChannelEnvelope(
   actions: ReadonlyArray<UnpackChannelEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectUnpackChannelEnvelope(
   actions: ReadonlyArray<UnpackChannelEnvelopeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract unpacked channel envelope from step actions; null when no `use-fields`. */
 export function channelEnvelopeFieldsFromActions(
   actions: ReadonlyArray<UnpackChannelEnvelopeAction>,
 ): UnpackedChannelEnvelope | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 export function isChannelSystemMsgType(msgType: number): boolean {

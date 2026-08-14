@@ -15,6 +15,7 @@ import {
   shouldUseRnsHkdfSha256,
   stepRnsHkdfSha256WithActions,
 } from "./rns-hkdf.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 /** Mirrors RNS/Link.py link mode constants used for key length. */
 export const LinkKeyMode = {
@@ -90,13 +91,13 @@ export function stepLinkModeEnabledWithActions(
 export function shouldTreatLinkModeEnabled(
   actions: ReadonlyArray<LinkModeEnabledAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "enabled");
+  return hasActionOfKind(actions, "enabled");
 }
 
 export function shouldTreatLinkModeDisabled(
   actions: ReadonlyArray<LinkModeEnabledAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "disabled");
+  return hasActionOfKind(actions, "disabled");
 }
 
 /** Whether a received link-proof mode matches the expected session mode. */
@@ -162,13 +163,13 @@ export function stepExpectedLinkModeWithActions(
 export function shouldMatchExpectedLinkMode(
   actions: ReadonlyArray<ExpectedLinkModeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "match");
+  return hasActionOfKind(actions, "match");
 }
 
 export function shouldMismatchExpectedLinkMode(
   actions: ReadonlyArray<ExpectedLinkModeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "mismatch");
+  return hasActionOfKind(actions, "mismatch");
 }
 
 export function linkDerivedKeyLength(mode: LinkKeyModeValue | number): number {
@@ -289,21 +290,20 @@ export function stepDeriveRnsLinkKeyWithActions(
 export function shouldUseDeriveRnsLinkKey(
   actions: ReadonlyArray<DeriveRnsLinkKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectDeriveRnsLinkKey(
   actions: ReadonlyArray<DeriveRnsLinkKeyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract derived link key from step actions; null when no `use-raw`. */
 export function deriveRnsLinkKeyRawFromActions(
   actions: ReadonlyArray<DeriveRnsLinkKeyAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -363,19 +363,18 @@ export function stepOrderIndependentSharedSecretWithActions(
 export function shouldUseOrderIndependentSharedSecret(
   actions: ReadonlyArray<OrderIndependentSharedSecretAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectOrderIndependentSharedSecret(
   actions: ReadonlyArray<OrderIndependentSharedSecretAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract shared secret from step actions; null when no `use-raw`. */
 export function orderIndependentSharedSecretRawFromActions(
   actions: ReadonlyArray<OrderIndependentSharedSecretAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

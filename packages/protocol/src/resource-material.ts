@@ -8,6 +8,7 @@
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { RESOURCE_RANDOM_HASH_SIZE } from "./resource-proof.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const length = parts.reduce((total, part) => total + part.length, 0);
@@ -128,21 +129,20 @@ export function stepResourceEncryptMaterialWithActions(
 export function shouldUseResourceEncryptMaterial(
   actions: ReadonlyArray<ResourceEncryptMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectResourceEncryptMaterial(
   actions: ReadonlyArray<ResourceEncryptMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract encrypt material bytes from step actions; null when no `use-raw`. */
 export function resourceEncryptMaterialRawFromActions(
   actions: ReadonlyArray<ResourceEncryptMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -201,21 +201,20 @@ export function stepResourceHashMaterialWithActions(
 export function shouldUseResourceHashMaterial(
   actions: ReadonlyArray<ResourceHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectResourceHashMaterial(
   actions: ReadonlyArray<ResourceHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract hash material bytes from step actions; null when no `use-raw`. */
 export function resourceHashMaterialRawFromActions(
   actions: ReadonlyArray<ResourceHashMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -271,15 +270,14 @@ export function stepResourceExpectedProofMaterialWithActions(
 export function shouldUseResourceExpectedProofMaterial(
   actions: ReadonlyArray<ResourceExpectedProofMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract expected-proof material bytes from step actions; null when no `use-raw`. */
 export function resourceExpectedProofMaterialRawFromActions(
   actions: ReadonlyArray<ResourceExpectedProofMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -339,21 +337,20 @@ export function stepResourcePartMapHashMaterialWithActions(
 export function shouldUseResourcePartMapHashMaterial(
   actions: ReadonlyArray<ResourcePartMapHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectResourcePartMapHashMaterial(
   actions: ReadonlyArray<ResourcePartMapHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract part map-hash material bytes from step actions; null when no `use-raw`. */
 export function resourcePartMapHashMaterialRawFromActions(
   actions: ReadonlyArray<ResourcePartMapHashMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -409,13 +406,12 @@ export function stepComputeResourceTotalPartsWithActions(
 export function shouldUseComputeResourceTotalParts(
   actions: ReadonlyArray<ComputeResourceTotalPartsAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-parts");
+  return hasActionOfKind(actions, "use-parts");
 }
 
 /** Extract total parts from step actions; null when no `use-parts`. */
 export function resourceTotalPartsFromActions(
   actions: ReadonlyArray<ComputeResourceTotalPartsAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-parts");
-  return action?.kind === "use-parts" ? action.parts : null;
+  return firstActionOfKind(actions, "use-parts")?.parts ?? null;
 }

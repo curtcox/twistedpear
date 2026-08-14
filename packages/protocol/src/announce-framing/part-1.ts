@@ -18,6 +18,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "../packet-header.js";
 import { equalByteArrays } from "../path-table.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const ANNOUNCE_RANDOM_HASH_SIZE = 10;
 export const ANNOUNCE_SIGNATURE_SIZE = 64;
@@ -127,15 +128,14 @@ export function stepAnnounceSignedMaterialWithActions(
 export function shouldUseAnnounceSignedMaterial(
   actions: ReadonlyArray<AnnounceSignedMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract announce signed material from step actions; null when no `use-raw`. */
 export function announceSignedMaterialRawFromActions(
   actions: ReadonlyArray<AnnounceSignedMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 export function packAnnouncePayload(input: {
@@ -290,15 +290,14 @@ export function stepPackAnnouncePayloadWithActions(
 export function shouldUsePackAnnouncePayload(
   actions: ReadonlyArray<PackAnnouncePayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract announce pack bytes from step actions; null when no `use-raw`. */
 export function packAnnouncePayloadRawFromActions(
   actions: ReadonlyArray<PackAnnouncePayloadAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -352,21 +351,20 @@ export function stepParseAnnouncePayloadWithActions(
 export function shouldUseParseAnnouncePayload(
   actions: ReadonlyArray<ParseAnnouncePayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectParseAnnouncePayload(
   actions: ReadonlyArray<ParseAnnouncePayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract parsed announce payload fields from step actions; null when no `use-fields`. */
 export function announcePayloadFieldsFromActions(
   actions: ReadonlyArray<ParseAnnouncePayloadAction>,
 ): AnnouncePayloadFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /** Whether announce payload fields parsed successfully and may be retained. */
@@ -425,13 +423,13 @@ export function stepAcceptAnnouncePayloadWithActions(
 export function shouldAcceptAnnouncePayloadNow(
   actions: ReadonlyArray<AcceptAnnouncePayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAnnouncePayloadAccept(
   actions: ReadonlyArray<AcceptAnnouncePayloadAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a validated announce parse result may enter handleAnnounce. */

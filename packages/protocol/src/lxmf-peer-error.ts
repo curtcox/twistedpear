@@ -5,6 +5,7 @@
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { msgpackUnpack } from "./msgpack-core.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LXMF_PEER_ERROR_NO_IDENTITY = 0xf0;
 export const LXMF_PEER_ERROR_NO_ACCESS = 0xf1;
@@ -90,19 +91,18 @@ export function stepDecodeLxmfPeerErrorWithActions(
 export function shouldUseDecodeLxmfPeerError(
   actions: ReadonlyArray<DecodeLxmfPeerErrorAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectDecodeLxmfPeerError(
   actions: ReadonlyArray<DecodeLxmfPeerErrorAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract peer-error code from step actions; null when no `use-fields`. */
 export function lxmfPeerErrorFromActions(
   actions: ReadonlyArray<DecodeLxmfPeerErrorAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields.code : null;
+  return firstActionOfKind(actions, "use-fields")?.fields.code ?? null;
 }

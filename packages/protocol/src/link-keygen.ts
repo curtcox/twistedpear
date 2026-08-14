@@ -6,6 +6,7 @@
  * step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LINK_X25519_KEY_SIZE = 32;
 export const LINK_INITIATOR_ENTROPY_SIZE = LINK_X25519_KEY_SIZE * 2;
@@ -104,21 +105,20 @@ export function stepSplitInitiatorLinkEntropyWithActions(
 export function shouldUseSplitInitiatorLinkEntropy(
   actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitInitiatorLinkEntropy(
   actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract initiator key material from step actions; null when no `use-fields`. */
 export function initiatorLinkEntropyFieldsFromActions(
   actions: ReadonlyArray<SplitInitiatorLinkEntropyAction>,
 ): LinkInitiatorKeyMaterial | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /**
@@ -176,19 +176,18 @@ export function stepSplitResponderLinkEntropyWithActions(
 export function shouldUseSplitResponderLinkEntropy(
   actions: ReadonlyArray<SplitResponderLinkEntropyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitResponderLinkEntropy(
   actions: ReadonlyArray<SplitResponderLinkEntropyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract responder key material from step actions; null when no `use-fields`. */
 export function responderLinkEntropyFieldsFromActions(
   actions: ReadonlyArray<SplitResponderLinkEntropyAction>,
 ): LinkResponderKeyMaterial | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

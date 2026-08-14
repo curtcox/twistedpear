@@ -7,6 +7,7 @@
 import type { Event, Intent } from "@twistedpear/effects";
 import { hkdf as nobleHkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export interface RnsHkdfInput {
   readonly length: number;
@@ -121,19 +122,18 @@ export function stepRnsHkdfSha256WithActions(
 export function shouldUseRnsHkdfSha256(
   actions: ReadonlyArray<RnsHkdfSha256Action>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectRnsHkdfSha256(
   actions: ReadonlyArray<RnsHkdfSha256Action>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract derived key bytes from step actions; null when no `use-raw`. */
 export function rnsHkdfSha256RawFromActions(
   actions: ReadonlyArray<RnsHkdfSha256Action>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

@@ -16,6 +16,7 @@ import {
   ResourceStatus,
   type ResourceStatusValue,
 } from "../resource-watchdog.js";
+import { hasActionOfKind } from "../action-kind.js";
 
 export interface ResourceStatusState {
   readonly status: ResourceStatusValue;
@@ -95,13 +96,13 @@ export function stepResourceCompleteWithActions(
 export function shouldTreatResourceComplete(
   actions: ReadonlyArray<ResourceCompleteAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "complete");
+  return hasActionOfKind(actions, "complete");
 }
 
 export function shouldTreatResourceIncomplete(
   actions: ReadonlyArray<ResourceCompleteAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "incomplete");
+  return hasActionOfKind(actions, "incomplete");
 }
 
 export function isResourceTerminal(status: ResourceStatusValue): boolean {
@@ -164,13 +165,13 @@ export function stepResourceContinueTransferWithActions(
 export function shouldContinueResourceTransfer(
   actions: ReadonlyArray<ResourceContinueTransferAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "continue");
+  return hasActionOfKind(actions, "continue");
 }
 
 export function shouldStopResourceTransfer(
   actions: ReadonlyArray<ResourceContinueTransferAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "stop");
+  return hasActionOfKind(actions, "stop");
 }
 
 export function canReceiveResourcePart(status: ResourceStatusValue): boolean {
@@ -226,13 +227,13 @@ export function stepResourceReceivePartAllowWithActions(
 export function shouldAllowResourceReceivePart(
   actions: ReadonlyArray<ResourceReceivePartAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyResourceReceivePart(
   actions: ReadonlyArray<ResourceReceivePartAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 export function canValidateResourceProof(status: ResourceStatusValue): boolean {
@@ -292,13 +293,13 @@ export function stepResourceWatchdogAllowWithActions(
 export function shouldAllowResourceWatchdog(
   actions: ReadonlyArray<ResourceWatchdogAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyResourceWatchdog(
   actions: ReadonlyArray<ResourceWatchdogAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Gate for requestNext early-out (failed status or waiting for hashmap). */
@@ -364,13 +365,13 @@ export function stepResourceRequestNextAllowWithActions(
 export function shouldAllowResourceRequestNext(
   actions: ReadonlyArray<ResourceRequestNextAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyResourceRequestNext(
   actions: ReadonlyArray<ResourceRequestNextAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether an incoming ADV should create a new resource (not already incoming). */
@@ -431,13 +432,13 @@ export function stepAcceptIncomingResourceAdvertisementWithActions(
 export function shouldAcceptIncomingResourceAdvertisementNow(
   actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipIncomingResourceAdvertisement(
   actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Map link readiness to the next advertise-phase status event. */

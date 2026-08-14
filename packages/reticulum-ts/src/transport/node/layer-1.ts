@@ -139,9 +139,9 @@ import {
   dropFromPathSkip,
   dropFromValidatePlan,
 } from "../drop-notify.js";
-import { LeafTransportLayer1Announce } from "./layer-1-announce.js";
+import { LeafTransportLayer1Proof } from "./layer-1-proof.js";
 
-export class LeafTransportLayer1 extends LeafTransportLayer1Announce {
+export class LeafTransportLayer1 extends LeafTransportLayer1Proof {
   protected async inbound(
     packet: Packet,
     iface: PacketInterface,
@@ -265,100 +265,6 @@ export class LeafTransportLayer1 extends LeafTransportLayer1Announce {
     }
   }
 
-  protected async handleProof(
-    packet: Packet,
-    iface: PacketInterface,
-  ): Promise<void> {
-    const proofStepped = stepProofIngressWithActions(
-      initialProofIngressState(),
-      {
-        kind: "transport/proof-ingress-gate",
-        context: packet.context,
-      },
-    );
-    if (shouldHandleProofLrproof(proofStepped.actions)) {
-      for (const link of this.pendingLinks) {
-        if (
-          shouldAcceptLinkLrProofCandidateNow(
-            stepAcceptLinkLrProofCandidateWithActions(
-              initialAcceptLinkLrProofCandidateState(),
-              {
-                kind: "transport/accept-link-lr-proof-candidate-gate",
-                linkIdMatches: equalBytes(link.linkId, packet.destinationHash),
-                hopsMatch: link.hopsMatch(packet),
-              },
-            ).actions,
-          )
-        ) {
-          await link.validateProof(packet, iface);
-          return;
-        }
-      }
-      return;
-    }
-
-    if (shouldHandleProofResourcePrf(proofStepped.actions)) {
-      const activeIndex = this.indexOfMatchingLink(
-        this.activeLinks,
-        packet.destinationHash,
-      );
-      if (
-        shouldDispatchResourceProofToLinkNow(
-          stepDispatchResourceProofToLinkWithActions(
-            initialDispatchResourceProofToLinkState(),
-            {
-              kind: "transport/dispatch-resource-proof-to-link-gate",
-              activeIndexPresent: activeIndex !== null,
-            },
-          ).actions,
-        )
-      ) {
-        await this.activeLinks[activeIndex!]!.handleResourceProof(packet);
-      }
-      return;
-    }
-
-    if (!shouldHandleProofReceipt(proofStepped.actions)) {
-      return;
-    }
-
-    for (const receipt of [...this.receipts]) {
-      const identity = equalBytes(packet.destinationHash, receipt.truncatedHash)
-        ? Identity.recall(this.options.provider, receipt.targetDestinationHash)
-        : null;
-      const proofAccepted =
-        identity !== null && receipt.validateProofPacket(packet, identity);
-      const proofIngressStepped = stepPacketReceiptProofIngressWithActions(
-        initialPacketReceiptProofIngressState(),
-        {
-          kind: "receipt/proof-ingress-gate",
-          truncatedHashMatches: equalBytes(
-            packet.destinationHash,
-            receipt.truncatedHash,
-          ),
-          identityPresent: identity !== null,
-          proofAccepted,
-        },
-      );
-      if (shouldRemovePacketReceiptProofIngress(proofIngressStepped.actions)) {
-        const receiptStepped = stepPacketReceiptUnregisterWithActions(
-          initialPacketReceiptUnregisterState(),
-          {
-            kind: "receipt/unregister-gate",
-            index: this.receipts.indexOf(receipt),
-          },
-        );
-        const index = packetReceiptUnregisterIndex(receiptStepped.actions);
-        if (
-          shouldRemovePacketReceipt(receiptStepped.actions) &&
-          index !== null
-        ) {
-          this.receipts.splice(index, 1);
-        }
-      }
-    }
-  }
-
   protected async sendProof(
     destination: LocalDestination,
     packet: Packet,
@@ -469,53 +375,85 @@ export class LeafTransportLayer1 extends LeafTransportLayer1Announce {
     const parsed = parsePathRequestData(packet.data);
     const path =
       parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
-    const localDestination =
-      parsed === null
-        ? undefined
-        : this.destinations.find((entry) =>
-            shouldMatchLocalInboundDestinationNow(
-              stepMatchLocalInboundDestinationWithActions(
-                initialMatchLocalInboundDestinationState(),
-                {
-                  kind: "transport/match-local-inbound-destination-gate",
-                  hashMatches: equalBytes(entry.hash, parsed.destinationHash),
-                  directionIn: entry.direction === DestinationDirection.IN,
-                },
-              ).actions,
-            ),
-          );
+    const localDestination = this.findLocalPathRequestDestination(parsed);
     const tagKey =
       parsed !== null && parsed.tag !== null
         ? pathRequestTagKey(parsed.destinationHash, parsed.tag)
         : null;
-    const stepped = stepPathRequestIngressWithActions(
-      initialPathRequestIngressState(),
-      {
-        kind: "path-request/ingress-gate",
-        parsedOk: parsed !== null,
-        hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
-        tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
-        hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
-        transportEnabled: this.transportEnabled,
-        hasPath: path !== undefined,
-        shouldAnswerPath:
-          path !== undefined &&
-          shouldAnswerPathRequestNow(
-            stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
-              kind: "path-request/answer-path-gate",
-              nextHop: path.nextHop,
-              requestorTransportId: parsed?.requestorTransportId ?? null,
-            }).actions,
-          ),
-        discoveryPresent: false,
-        discoveryExpired: false,
-        allowDiscovery: false,
-      },
+    const stepped = this.stepLocalPathRequestIngress(
+      parsed,
+      path,
+      localDestination,
+      tagKey,
     );
+    await this.applyLocalPathRequestIngress(
+      stepped.actions,
+      localDestination,
+      path,
+      tagKey,
+      iface,
+    );
+  }
 
+  private findLocalPathRequestDestination(
+    parsed: ReturnType<typeof parsePathRequestData>,
+  ): LocalDestination | undefined {
+    if (parsed === null) {
+      return undefined;
+    }
+    return this.destinations.find((entry) =>
+      shouldMatchLocalInboundDestinationNow(
+        stepMatchLocalInboundDestinationWithActions(
+          initialMatchLocalInboundDestinationState(),
+          {
+            kind: "transport/match-local-inbound-destination-gate",
+            hashMatches: equalBytes(entry.hash, parsed.destinationHash),
+            directionIn: entry.direction === DestinationDirection.IN,
+          },
+        ).actions,
+      ),
+    );
+  }
+
+  private stepLocalPathRequestIngress(
+    parsed: ReturnType<typeof parsePathRequestData>,
+    path: ReturnType<LeafTransportLayer1["getPathEntry"]>,
+    localDestination: LocalDestination | undefined,
+    tagKey: string | null,
+  ) {
+    return stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: parsed !== null,
+      hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
+      tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
+      hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
+      transportEnabled: this.transportEnabled,
+      hasPath: path !== undefined,
+      shouldAnswerPath:
+        path !== undefined &&
+        shouldAnswerPathRequestNow(
+          stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+            kind: "path-request/answer-path-gate",
+            nextHop: path.nextHop,
+            requestorTransportId: parsed?.requestorTransportId ?? null,
+          }).actions,
+        ),
+      discoveryPresent: false,
+      discoveryExpired: false,
+      allowDiscovery: false,
+    });
+  }
+
+  private async applyLocalPathRequestIngress(
+    actions: ReturnType<typeof stepPathRequestIngressWithActions>["actions"],
+    localDestination: LocalDestination | undefined,
+    path: ReturnType<LeafTransportLayer1["getPathEntry"]>,
+    tagKey: string | null,
+    iface: PacketInterface,
+  ): Promise<void> {
     if (
-      shouldIgnorePathRequestUnparsed(stepped.actions) ||
-      shouldIgnorePathRequestSeenTag(stepped.actions)
+      shouldIgnorePathRequestUnparsed(actions) ||
+      shouldIgnorePathRequestSeenTag(actions)
     ) {
       return;
     }
@@ -534,7 +472,7 @@ export class LeafTransportLayer1 extends LeafTransportLayer1Announce {
       this.discoveryPrTags.add(tagKey!);
     }
 
-    if (shouldAnswerPathRequestLocal(stepped.actions)) {
+    if (shouldAnswerPathRequestLocal(actions)) {
       if (
         !shouldAnswerLocalPathRequestNow(
           stepAnswerLocalPathRequestWithActions(
@@ -553,7 +491,7 @@ export class LeafTransportLayer1 extends LeafTransportLayer1Announce {
     }
 
     if (
-      shouldAnswerPathRequestPath(stepped.actions) &&
+      shouldAnswerPathRequestPath(actions) &&
       shouldAnswerPathWithEntryNow(
         stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
           kind: "path-request/answer-path-entry-gate",

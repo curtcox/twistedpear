@@ -21,6 +21,7 @@ import type {
   ChannelMessageTypeRegistrationPlanAction,
   ChannelMessageTypeRegistrationPlanEvent,
 } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Channel-message-type-registration-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelMessageTypeRegistration`
@@ -64,19 +65,19 @@ export function stepChannelMessageTypeRegistrationPlanWithActions(
 export function shouldProceedChannelMessageTypeRegistrationPlan(
   actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectChannelMessageTypeRegistrationPlanMissingMsgtype(
   actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-msgtype");
+  return hasActionOfKind(actions, "missing-msgtype");
 }
 
 export function shouldRejectChannelMessageTypeRegistrationPlanSystemReserved(
   actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "system-reserved");
+  return hasActionOfKind(actions, "system-reserved");
 }
 
 /**
@@ -126,19 +127,19 @@ export function stepChannelMessageTypeRegistrationWithActions(
 export function shouldProceedChannelMessageTypeRegistration(
   actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectChannelMessageTypeMissingMsgtype(
   actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-msgtype");
+  return hasActionOfKind(actions, "missing-msgtype");
 }
 
 export function shouldRejectChannelMessageTypeSystemReserved(
   actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "system-reserved");
+  return hasActionOfKind(actions, "system-reserved");
 }
 
 function stepChannelMessageTypeRegistrationInner(
@@ -256,25 +257,25 @@ export function channelEnvelopeUnpackPlanFromActions(
 export function shouldProceedChannelEnvelopeUnpackPlan(
   actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectChannelEnvelopeUnpackPlanMissingRaw(
   actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-raw");
+  return hasActionOfKind(actions, "missing-raw");
 }
 
 export function shouldRejectChannelEnvelopeUnpackPlanTruncate(
   actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "truncated");
+  return hasActionOfKind(actions, "truncated");
 }
 
 export function shouldRejectChannelEnvelopeUnpackPlanNotRegistered(
   actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "not-registered");
+  return hasActionOfKind(actions, "not-registered");
 }
 
 /**
@@ -334,25 +335,25 @@ export function stepChannelEnvelopeUnpackWithActions(
 export function shouldProceedChannelEnvelopeUnpack(
   actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectChannelEnvelopeUnpackMissingRaw(
   actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-raw");
+  return hasActionOfKind(actions, "missing-raw");
 }
 
 export function shouldRejectChannelEnvelopeUnpackTruncate(
   actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "truncated");
+  return hasActionOfKind(actions, "truncated");
 }
 
 export function shouldRejectChannelEnvelopeUnpackNotRegistered(
   actions: ReadonlyArray<ChannelEnvelopeUnpackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "not-registered");
+  return hasActionOfKind(actions, "not-registered");
 }
 
 function stepChannelEnvelopeUnpackInner(

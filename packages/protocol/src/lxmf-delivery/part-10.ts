@@ -25,6 +25,7 @@ import type {
   LxmfPropagatedPackPrepPlanAction,
   LxmfPropagatedPackPrepPlanEvent,
 } from "./part-9.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * PROPAGATED pack-prep-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagatedPackPrep` /
@@ -71,14 +72,14 @@ export function stepLxmfPropagatedPackPrepPlanWithActions(
 export function shouldRejectLxmfPropagatedPackPrepPlanMissingIdentity(
   actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-identity");
+  return hasActionOfKind(actions, "missing-identity");
 }
 
 /** Whether pack-prep-plan actions reject a missing timestamp. */
 export function shouldRejectLxmfPropagatedPackPrepPlanMissingTimestamp(
   actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-timestamp");
+  return hasActionOfKind(actions, "missing-timestamp");
 }
 
 /** Extract the PROPAGATED pack-prep plan from actions; null when empty. */
@@ -138,25 +139,25 @@ export function stepLxmfPropagatedPackPrepWithActions(
 export function shouldSkipLxmfPropagatedPackPrep(
   actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export function shouldProceedLxmfPropagatedPackPrep(
   actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLxmfPropagatedPackMissingIdentity(
   actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-identity");
+  return hasActionOfKind(actions, "reject-missing-identity");
 }
 
 export function shouldRejectLxmfPropagatedPackMissingTimestamp(
   actions: ReadonlyArray<LxmfPropagatedPackPrepAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-timestamp");
+  return hasActionOfKind(actions, "reject-missing-timestamp");
 }
 
 function stepLxmfPropagatedPackPrepInner(

@@ -80,6 +80,7 @@ import type {
   LinkUnregisterMembershipPlanAction,
   LinkUnregisterMembershipPlanEvent,
 } from "./part-8.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Link unregister-membership plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkUnregisterMembership`
@@ -154,13 +155,13 @@ export function linkRegisterListFromActions(
 export function shouldRegisterLinkPending(
   actions: ReadonlyArray<LinkRegisterListAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "pending");
+  return hasActionOfKind(actions, "pending");
 }
 
 export function shouldRegisterLinkActive(
   actions: ReadonlyArray<LinkRegisterListAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "active");
+  return hasActionOfKind(actions, "active");
 }
 
 export function initialLinkActivateMembershipState(): LinkActivateMembershipState {
@@ -181,20 +182,19 @@ export const stepLinkActivateMembership: StepFn<LinkActivateMembershipState> = (
 export function shouldRemovePendingLinkMembershipActions(
   actions: ReadonlyArray<LinkActivateMembershipAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove-pending");
+  return hasActionOfKind(actions, "remove-pending");
 }
 
 export function pendingLinkMembershipRemoveIndex(
   actions: ReadonlyArray<LinkActivateMembershipAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove-pending");
-  return action?.kind === "remove-pending" ? action.index : null;
+  return firstActionOfKind(actions, "remove-pending")?.index ?? null;
 }
 
 export function shouldAppendActiveLinkMembershipActions(
   actions: ReadonlyArray<LinkActivateMembershipAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "append-active");
+  return hasActionOfKind(actions, "append-active");
 }
 
 /**
@@ -234,27 +234,25 @@ export function stepLinkUnregisterMembershipWithActions(
 export function pendingLinkUnregisterRemoveIndex(
   actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove-pending");
-  return action?.kind === "remove-pending" ? action.index : null;
+  return firstActionOfKind(actions, "remove-pending")?.index ?? null;
 }
 
 export function activeLinkUnregisterRemoveIndex(
   actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): number | null {
-  const action = actions.find((entry) => entry.kind === "remove-active");
-  return action?.kind === "remove-active" ? action.index : null;
+  return firstActionOfKind(actions, "remove-active")?.index ?? null;
 }
 
 export function shouldRemovePendingLinkUnregisterActions(
   actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove-pending");
+  return hasActionOfKind(actions, "remove-pending");
 }
 
 export function shouldRemoveActiveLinkUnregisterActions(
   actions: ReadonlyArray<LinkUnregisterMembershipAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remove-active");
+  return hasActionOfKind(actions, "remove-active");
 }
 
 function stepLinkUnregisterMembershipInner(
@@ -309,13 +307,13 @@ export function linkAppRequestFromActions(
 export function shouldSendLinkAppRequest(
   actions: ReadonlyArray<LinkAppRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send");
+  return hasActionOfKind(actions, "send");
 }
 
 export function shouldRejectLinkAppRequest(
   actions: ReadonlyArray<LinkAppRequestAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /**
@@ -375,13 +373,13 @@ export function linkAppRequestTransmitFromActions(
 export function shouldKeepPendingLinkAppRequestTransmit(
   actions: ReadonlyArray<LinkAppRequestTransmitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "keep-pending");
+  return hasActionOfKind(actions, "keep-pending");
 }
 
 export function shouldUnregisterLinkAppRequestTransmit(
   actions: ReadonlyArray<LinkAppRequestTransmitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "unregister");
+  return hasActionOfKind(actions, "unregister");
 }
 
 function stepLinkAppRequestTransmitInner(
@@ -441,19 +439,19 @@ export type LinkRttOutcomePlanAction =
 export function shouldIgnoreLinkRttOutcomePlan(
   actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldActivateLinkRttOutcomePlan(
   actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "activate");
+  return hasActionOfKind(actions, "activate");
 }
 
 export function shouldTeardownLinkRttOutcomePlan(
   actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "teardown");
+  return hasActionOfKind(actions, "teardown");
 }
 
 /**

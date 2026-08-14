@@ -14,6 +14,7 @@
 import type { Event, Intent } from "@twistedpear/effects";
 import { NAME_HASH_BYTES, TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
 import { utf8Encode } from "./utf8.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 /** NAME_HASH_LENGTH (80 bits) / 8 */
 export const DESTINATION_NAME_HASH_BYTES = NAME_HASH_BYTES;
@@ -231,25 +232,25 @@ export function destinationIdentityHashPlanFromActions(
 export function shouldMissDestinationIdentityHashPlan(
   actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing");
+  return hasActionOfKind(actions, "missing");
 }
 
 export function shouldUseObjectDestinationIdentityHashPlan(
   actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-object");
+  return hasActionOfKind(actions, "use-object");
 }
 
 export function shouldUseBytesDestinationIdentityHashPlan(
   actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-bytes");
+  return hasActionOfKind(actions, "use-bytes");
 }
 
 export function shouldRejectLengthDestinationIdentityHashPlan(
   actions: ReadonlyArray<DestinationIdentityHashPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-length");
+  return hasActionOfKind(actions, "reject-length");
 }
 
 /**
@@ -323,25 +324,25 @@ export function destinationIdentityHashFromActions(
 export function shouldUseObjectDestinationIdentityHash(
   actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-object");
+  return hasActionOfKind(actions, "use-object");
 }
 
 export function shouldUseBytesDestinationIdentityHash(
   actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-bytes");
+  return hasActionOfKind(actions, "use-bytes");
 }
 
 export function shouldRejectLengthDestinationIdentityHash(
   actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-length");
+  return hasActionOfKind(actions, "reject-length");
 }
 
 export function shouldMissDestinationIdentityHash(
   actions: ReadonlyArray<DestinationIdentityHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing");
+  return hasActionOfKind(actions, "missing");
 }
 
 /**
@@ -392,13 +393,13 @@ export function stepValidateDestinationNamePartWithActions(
 export function shouldProceedValidateDestinationNamePart(
   actions: ReadonlyArray<ValidateDestinationNamePartAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectValidateDestinationNamePart(
   actions: ReadonlyArray<ValidateDestinationNamePartAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 export interface ExpandDestinationNameFields {
@@ -471,21 +472,20 @@ export function stepExpandDestinationNameWithActions(
 export function shouldUseExpandDestinationName(
   actions: ReadonlyArray<ExpandDestinationNameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectExpandDestinationName(
   actions: ReadonlyArray<ExpandDestinationNameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract expanded destination name from step actions; null when no `use-fields`. */
 export function expandedDestinationNameFromActions(
   actions: ReadonlyArray<ExpandDestinationNameAction>,
 ): string | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields.name : null;
+  return firstActionOfKind(actions, "use-fields")?.fields.name ?? null;
 }
 
 /**
@@ -548,21 +548,20 @@ export function stepDestinationNameHashMaterialWithActions(
 export function shouldUseDestinationNameHashMaterial(
   actions: ReadonlyArray<DestinationNameHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectDestinationNameHashMaterial(
   actions: ReadonlyArray<DestinationNameHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract name-hash material bytes from step actions; null when no `use-raw`. */
 export function destinationNameHashMaterialRawFromActions(
   actions: ReadonlyArray<DestinationNameHashMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -618,15 +617,14 @@ export function stepDestinationHashMaterialWithActions(
 export function shouldUseDestinationHashMaterial(
   actions: ReadonlyArray<DestinationHashMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract destination hash material bytes from step actions; null when no `use-raw`. */
 export function destinationHashMaterialRawFromActions(
   actions: ReadonlyArray<DestinationHashMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -675,19 +673,18 @@ export function stepParseAspectFilterWithActions(
 export function shouldUseParseAspectFilter(
   actions: ReadonlyArray<ParseAspectFilterAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectParseAspectFilter(
   actions: ReadonlyArray<ParseAspectFilterAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract parsed aspect filter from step actions; null when no `use-fields`. */
 export function aspectFilterFromActions(
   actions: ReadonlyArray<ParseAspectFilterAction>,
 ): ParsedAspectFilter | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }

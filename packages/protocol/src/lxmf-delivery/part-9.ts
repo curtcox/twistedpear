@@ -28,6 +28,7 @@ import type {
   LxMessageInstancePackPlanAction,
   LxMessageInstancePackPlanEvent,
 } from "./part-8.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Instance-pack-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxMessageInstancePack` /
@@ -135,25 +136,25 @@ export function stepLxMessageInstancePackWithActions(
 export function shouldProceedLxMessageInstancePack(
   actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLxMessageInstanceAlreadyPacked(
   actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-already-packed");
+  return hasActionOfKind(actions, "reject-already-packed");
 }
 
 export function shouldRejectLxMessageInstanceMissingEndpoints(
   actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-endpoints");
+  return hasActionOfKind(actions, "reject-missing-endpoints");
 }
 
 export function shouldRejectLxMessageInstanceMissingTimestamp(
   actions: ReadonlyArray<LxMessageInstancePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-timestamp");
+  return hasActionOfKind(actions, "reject-missing-timestamp");
 }
 
 function stepLxMessageInstancePackInner(
@@ -376,7 +377,7 @@ export function stepLxmfSignatureWithActions(
 export function shouldApplyLxmfSignature(
   actions: ReadonlyArray<LxmfSignatureAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 /** Outcome fields from an apply action, if present. */
@@ -475,14 +476,14 @@ export type LxmfPropagatedPackPrepPlanAction =
 export function shouldPlanLxmfPropagatedPackPrepSkip(
   actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether pack-prep-plan actions allow PROPAGATED prep to proceed. */
 export function shouldPlanLxmfPropagatedPackPrepOk(
   actions: ReadonlyArray<LxmfPropagatedPackPrepPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export type LxmfPropagatedPackPrepEvent =

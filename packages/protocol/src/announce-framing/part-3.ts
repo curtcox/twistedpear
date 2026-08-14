@@ -24,6 +24,7 @@ import {
 } from "./part-1.js";
 import { planAnnounceValidateOutcome } from "./part-2.js";
 import type { AnnounceValidatePlan } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Announce-validate-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planAnnounceValidateOutcome`
@@ -297,37 +298,37 @@ export function stepAnnounceBuildPlanWithActions(
 export function shouldOkAnnounceBuildPlan(
   actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 export function shouldRejectAnnounceBuildPlanNotAnnounceableType(
   actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "not-announceable-type");
+  return hasActionOfKind(actions, "not-announceable-type");
 }
 
 export function shouldRejectAnnounceBuildPlanNotAnnounceableDirection(
   actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "not-announceable-direction");
+  return hasActionOfKind(actions, "not-announceable-direction");
 }
 
 export function shouldRejectAnnounceBuildPlanMissingIdentity(
   actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "missing-identity");
+  return hasActionOfKind(actions, "missing-identity");
 }
 
 export function shouldRejectAnnounceBuildPlanBadRandomHash(
   actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-random-hash");
+  return hasActionOfKind(actions, "bad-random-hash");
 }
 
 export function shouldRejectAnnounceBuildPlanBadRatchet(
   actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-ratchet");
+  return hasActionOfKind(actions, "bad-ratchet");
 }
 
 /** Extract the build plan from actions; null when empty. */
@@ -405,7 +406,7 @@ export function stepAnnounceBuildWithActions(
 export function shouldProceedAnnounceBuild(
   actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectAnnounceBuildNotAnnounceableType(
@@ -427,19 +428,19 @@ export function shouldRejectAnnounceBuildNotAnnounceableDirection(
 export function shouldRejectAnnounceBuildMissingIdentity(
   actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-missing-identity");
+  return hasActionOfKind(actions, "reject-missing-identity");
 }
 
 export function shouldRejectAnnounceBuildBadRandomHash(
   actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-bad-random-hash");
+  return hasActionOfKind(actions, "reject-bad-random-hash");
 }
 
 export function shouldRejectAnnounceBuildBadRatchet(
   actions: ReadonlyArray<AnnounceBuildAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-bad-ratchet");
+  return hasActionOfKind(actions, "reject-bad-ratchet");
 }
 
 function stepAnnounceBuildInner(

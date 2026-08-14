@@ -13,6 +13,7 @@
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { linkProofSignedMaterial, linkRequestHashablePart } from "./part-1.js";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Link-proof signed-material assembly is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `linkProofSignedMaterial`
@@ -73,15 +74,14 @@ export function stepLinkProofSignedMaterialWithActions(
 export function shouldUseLinkProofSignedMaterial(
   actions: ReadonlyArray<LinkProofSignedMaterialAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract link-proof signed material from step actions; null when no `use-raw`. */
 export function linkProofSignedMaterialRawFromActions(
   actions: ReadonlyArray<LinkProofSignedMaterialAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -140,13 +140,12 @@ export function stepLinkRequestHashablePartWithActions(
 export function shouldUseLinkRequestHashablePart(
   actions: ReadonlyArray<LinkRequestHashablePartAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract truncated link-request hashable bytes from step actions; null when no `use-raw`. */
 export function linkRequestHashablePartRawFromActions(
   actions: ReadonlyArray<LinkRequestHashablePartAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }

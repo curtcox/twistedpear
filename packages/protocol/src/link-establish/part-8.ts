@@ -62,6 +62,7 @@ import type {
   LinkRegisterListPlanAction,
   LinkRegisterListPlanEvent,
 } from "./part-7.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Link register-list plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkRegisterList` /
@@ -98,13 +99,13 @@ export function stepLinkRegisterListPlanWithActions(
 export function shouldRegisterLinkPendingPlan(
   actions: ReadonlyArray<LinkRegisterListPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "pending");
+  return hasActionOfKind(actions, "pending");
 }
 
 export function shouldRegisterLinkActivePlan(
   actions: ReadonlyArray<LinkRegisterListPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "active");
+  return hasActionOfKind(actions, "active");
 }
 
 /** Whether a transport link list should receive a new member (not already present). */
@@ -163,13 +164,13 @@ export function stepRegisterLinkMemberWithActions(
 export function shouldRegisterLinkMemberNow(
   actions: ReadonlyArray<RegisterLinkMemberAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "register");
+  return hasActionOfKind(actions, "register");
 }
 
 export function shouldSkipRegisterLinkMember(
   actions: ReadonlyArray<RegisterLinkMemberAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type LinkActivateMembershipPlan = {

@@ -14,6 +14,7 @@ import {
   type LinkStatusValue,
   type LinkTeardownReasonValue,
 } from "./link-watchdog.js";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export type LinkTeardownPlan =
   | { readonly kind: "close-only" }
@@ -120,14 +121,14 @@ export function stepLinkTeardownPlanWithActions(
 export function shouldCloseOnlyLinkTeardownPlan(
   actions: ReadonlyArray<LinkTeardownPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "close-only");
+  return hasActionOfKind(actions, "close-only");
 }
 
 /** Whether step actions include send-teardown-then-close. */
 export function shouldSendLinkTeardownThenClosePlan(
   actions: ReadonlyArray<LinkTeardownPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send-teardown-then-close");
+  return hasActionOfKind(actions, "send-teardown-then-close");
 }
 
 /** Extract teardown plan from step actions; null when empty. */
@@ -215,15 +216,14 @@ export function stepLinkTeardownReasonPlanWithActions(
 export function shouldUseLinkTeardownReasonPlan(
   actions: ReadonlyArray<LinkTeardownReasonPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-reason");
+  return hasActionOfKind(actions, "use-reason");
 }
 
 /** Extract teardown reason from plan-step actions; null when no `use-reason`. */
 export function linkTeardownReasonPlanFromActions(
   actions: ReadonlyArray<LinkTeardownReasonPlanAction>,
 ): LinkTeardownReasonValue | null {
-  const action = actions.find((entry) => entry.kind === "use-reason");
-  return action?.kind === "use-reason" ? action.reason : null;
+  return firstActionOfKind(actions, "use-reason")?.reason ?? null;
 }
 
 /**
@@ -287,15 +287,14 @@ export function stepLinkTeardownReasonWithActions(
 export function shouldUseLinkTeardownReason(
   actions: ReadonlyArray<LinkTeardownReasonAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-reason");
+  return hasActionOfKind(actions, "use-reason");
 }
 
 /** Extract teardown reason from step actions; null when no `use-reason`. */
 export function linkTeardownReasonFromActions(
   actions: ReadonlyArray<LinkTeardownReasonAction>,
 ): LinkTeardownReasonValue | null {
-  const action = actions.find((entry) => entry.kind === "use-reason");
-  return action?.kind === "use-reason" ? action.reason : null;
+  return firstActionOfKind(actions, "use-reason")?.reason ?? null;
 }
 
 /** Whether a decrypted LINKCLOSE payload is acceptable for this link. */
@@ -361,13 +360,13 @@ export function stepAcceptLinkTeardownWithActions(
 export function shouldAcceptLinkTeardownNow(
   actions: ReadonlyArray<AcceptLinkTeardownAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipLinkTeardownAccept(
   actions: ReadonlyArray<AcceptLinkTeardownAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export const stepLinkTeardown: StepFn<LinkTeardownState> = (state, event) => {
@@ -386,21 +385,21 @@ export function stepLinkTeardownWithActions(
 export function shouldCloseOnlyLinkTeardown(
   actions: ReadonlyArray<LinkTeardownAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "close-only");
+  return hasActionOfKind(actions, "close-only");
 }
 
 /** Whether step actions include send-teardown-then-close. */
 export function shouldSendLinkTeardownThenClose(
   actions: ReadonlyArray<LinkTeardownAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "send-teardown-then-close");
+  return hasActionOfKind(actions, "send-teardown-then-close");
 }
 
 /** Whether step actions include accept-remote-close. */
 export function shouldAcceptRemoteLinkTeardown(
   actions: ReadonlyArray<LinkTeardownAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept-remote-close");
+  return hasActionOfKind(actions, "accept-remote-close");
 }
 
 /** Extract the send-teardown-then-close action, if any. */

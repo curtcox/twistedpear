@@ -16,6 +16,7 @@ import {
 } from "../lxmf-fields.js";
 import { planLxMessagePack } from "./part-1.js";
 import type { LxMessagePackGate, LxMessagePackPlanEvent } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Static LXMessage.pack-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxMessagePack` /
@@ -66,21 +67,21 @@ export function stepLxMessagePackPlanWithActions(
 export function shouldPlanLxMessagePackOk(
   actions: ReadonlyArray<LxMessagePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ok");
+  return hasActionOfKind(actions, "ok");
 }
 
 /** Whether pack-plan actions reject a bad destination direction. */
 export function shouldRejectLxMessagePackPlanBadDestination(
   actions: ReadonlyArray<LxMessagePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-destination");
+  return hasActionOfKind(actions, "bad-destination");
 }
 
 /** Whether pack-plan actions reject a bad source direction / identity. */
 export function shouldRejectLxMessagePackPlanBadSource(
   actions: ReadonlyArray<LxMessagePackPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "bad-source");
+  return hasActionOfKind(actions, "bad-source");
 }
 
 /** Extract the LXMessage.pack plan from actions; null when empty. */
@@ -149,19 +150,19 @@ export function stepLxMessagePackWithActions(
 export function shouldProceedLxMessagePack(
   actions: ReadonlyArray<LxMessagePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 
 export function shouldRejectLxMessagePackBadDestination(
   actions: ReadonlyArray<LxMessagePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-bad-destination");
+  return hasActionOfKind(actions, "reject-bad-destination");
 }
 
 export function shouldRejectLxMessagePackBadSource(
   actions: ReadonlyArray<LxMessagePackAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-bad-source");
+  return hasActionOfKind(actions, "reject-bad-source");
 }
 
 function stepLxMessagePackInner(
@@ -270,21 +271,21 @@ export function stepLxmfPackTimestampPlanWithActions(
 export function shouldPlanLxmfPackTimestampUseTimestamp(
   actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-timestamp");
+  return hasActionOfKind(actions, "use-timestamp");
 }
 
 /** Whether plan actions select injected now. */
 export function shouldPlanLxmfPackTimestampUseNow(
   actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-now");
+  return hasActionOfKind(actions, "use-now");
 }
 
 /** Whether plan actions reject timestamp selection. */
 export function shouldRejectLxmfPackTimestampPlan(
   actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract the pack-timestamp plan from actions; null when empty. */
@@ -357,19 +358,19 @@ export function stepLxmfPackTimestampWithActions(
 export function shouldUseLxmfPackTimestamp(
   actions: ReadonlyArray<LxmfPackTimestampAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-timestamp");
+  return hasActionOfKind(actions, "use-timestamp");
 }
 
 export function shouldUseLxmfPackNow(
   actions: ReadonlyArray<LxmfPackTimestampAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-now");
+  return hasActionOfKind(actions, "use-now");
 }
 
 export function shouldRejectLxmfPackTimestampSelect(
   actions: ReadonlyArray<LxmfPackTimestampAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 function stepLxmfPackTimestampInner(
@@ -456,13 +457,13 @@ export function stepIncludeLxmfStampWithActions(
 export function shouldIncludeLxmfStampNow(
   actions: ReadonlyArray<IncludeLxmfStampAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "include");
+  return hasActionOfKind(actions, "include");
 }
 
 export function shouldSkipIncludeLxmfStamp(
   actions: ReadonlyArray<IncludeLxmfStampAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type LxmfDeliverableAcceptPlan =

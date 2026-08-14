@@ -134,7 +134,7 @@ async function importIdentity(
   return 0;
 }
 
-async function showRecovery(
+function showRecovery(
   ctx: CommandContext,
   provider: NodeCryptoProvider,
   identityPath: string,

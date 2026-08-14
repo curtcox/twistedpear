@@ -10,6 +10,7 @@
  * {@link stepInterfaceReconnectPlanWithActions} (`reconnect`|`give-up`).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { hasActionOfKind } from "../action-kind.js";
 
 export const INTERFACE_RECONNECT_WAIT_MS = 5_000;
 export const INTERFACE_RECONNECT_TIMER_ID = "interface-reconnect";
@@ -66,13 +67,13 @@ export function stepInterfaceNameValidWithActions(
 export function shouldAcceptInterfaceName(
   actions: ReadonlyArray<InterfaceNameValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "valid");
+  return hasActionOfKind(actions, "valid");
 }
 
 export function shouldRejectInterfaceName(
   actions: ReadonlyArray<InterfaceNameValidAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "invalid");
+  return hasActionOfKind(actions, "invalid");
 }
 
 /** Whether a packet's raw length fits the interface MTU. */
@@ -135,13 +136,13 @@ export function stepInterfaceMtuFitWithActions(
 export function shouldInterfaceMtuFit(
   actions: ReadonlyArray<InterfaceMtuFitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "fit");
+  return hasActionOfKind(actions, "fit");
 }
 
 export function shouldInterfaceMtuOverflow(
   actions: ReadonlyArray<InterfaceMtuFitAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "overflow");
+  return hasActionOfKind(actions, "overflow");
 }
 
 /** Whether the interface is closed (no further send / receive / close work). */
@@ -194,13 +195,13 @@ export function stepInterfaceClosedWithActions(
 export function shouldInterfaceClosedNow(
   actions: ReadonlyArray<InterfaceClosedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "closed");
+  return hasActionOfKind(actions, "closed");
 }
 
 export function shouldInterfaceOpenNow(
   actions: ReadonlyArray<InterfaceClosedAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "open");
+  return hasActionOfKind(actions, "open");
 }
 
 /** Whether the interface may send (open and configured for outbound traffic). */
@@ -266,13 +267,13 @@ export function stepInterfaceSendAllowWithActions(
 export function shouldAllowInterfaceSend(
   actions: ReadonlyArray<InterfaceSendAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "allow");
+  return hasActionOfKind(actions, "allow");
 }
 
 export function shouldDenyInterfaceSend(
   actions: ReadonlyArray<InterfaceSendAllowAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deny");
+  return hasActionOfKind(actions, "deny");
 }
 
 /** Whether a raw (non-HDLC) inbound byte chunk should be enqueued as a frame. */
@@ -331,13 +332,13 @@ export function stepEnqueueRawInterfaceFrameWithActions(
 export function shouldEnqueueRawInterfaceFrameNow(
   actions: ReadonlyArray<EnqueueRawInterfaceFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "enqueue");
+  return hasActionOfKind(actions, "enqueue");
 }
 
 export function shouldSkipRawInterfaceFrameEnqueue(
   actions: ReadonlyArray<EnqueueRawInterfaceFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a successfully decoded packet should be pushed onto the inbound queue. */
@@ -396,13 +397,13 @@ export function stepEnqueueDecodedPacketWithActions(
 export function shouldEnqueueDecodedPacketNow(
   actions: ReadonlyArray<EnqueueDecodedPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "enqueue");
+  return hasActionOfKind(actions, "enqueue");
 }
 
 export function shouldSkipDecodedPacketEnqueue(
   actions: ReadonlyArray<EnqueueDecodedPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a pushed packet should be delivered immediately to a waiting iterator. */
@@ -461,13 +462,13 @@ export function stepDeliverQueuedPacketWithActions(
 export function shouldDeliverQueuedPacketNow(
   actions: ReadonlyArray<DeliverQueuedPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "deliver");
+  return hasActionOfKind(actions, "deliver");
 }
 
 export function shouldBufferQueuedPacket(
   actions: ReadonlyArray<DeliverQueuedPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "buffer");
+  return hasActionOfKind(actions, "buffer");
 }
 
 /** Whether a buffered queue value should be yielded from the iterator. */
@@ -526,11 +527,11 @@ export function stepYieldBufferedPacketWithActions(
 export function shouldYieldBufferedPacketNow(
   actions: ReadonlyArray<YieldBufferedPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "yield");
+  return hasActionOfKind(actions, "yield");
 }
 
 export function shouldSkipBufferedPacketYield(
   actions: ReadonlyArray<YieldBufferedPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }

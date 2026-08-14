@@ -15,6 +15,7 @@ import {
   type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
 import type { LxmfDeliverableAcceptPlan } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 /** Whether an unpacked LXMF deliverable should be accepted (sig + seen-hash). */
 export function planLxmfDeliverableAccept(input: {
   readonly signatureValidated: boolean;
@@ -89,21 +90,21 @@ export function stepLxmfDeliverableAcceptPlanWithActions(
 export function shouldPlanLxmfDeliverableAccept(
   actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 /** Whether plan actions reject an unsigned deliverable. */
 export function shouldRejectLxmfDeliverableAcceptPlanUnsigned(
   actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unsigned");
+  return hasActionOfKind(actions, "reject-unsigned");
 }
 
 /** Whether plan actions reject an already-seen deliverable. */
 export function shouldRejectLxmfDeliverableAcceptPlanSeen(
   actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-seen");
+  return hasActionOfKind(actions, "reject-seen");
 }
 
 /** Extract the deliverable-accept plan from actions; null when empty. */
@@ -177,19 +178,19 @@ export function stepLxmfDeliverableAcceptWithActions(
 export function shouldAcceptLxmfDeliverable(
   actions: ReadonlyArray<LxmfDeliverableAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldRejectLxmfDeliverableUnsigned(
   actions: ReadonlyArray<LxmfDeliverableAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-unsigned");
+  return hasActionOfKind(actions, "reject-unsigned");
 }
 
 export function shouldRejectLxmfDeliverableSeen(
   actions: ReadonlyArray<LxmfDeliverableAcceptAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject-seen");
+  return hasActionOfKind(actions, "reject-seen");
 }
 
 function stepLxmfDeliverableAcceptInner(
@@ -275,13 +276,13 @@ export function stepRememberLxmfMessageWithActions(
 export function shouldRememberLxmfMessageNow(
   actions: ReadonlyArray<RememberLxmfMessageAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "remember");
+  return hasActionOfKind(actions, "remember");
 }
 
 export function shouldSkipRememberLxmfMessage(
   actions: ReadonlyArray<RememberLxmfMessageAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -343,13 +344,13 @@ export function stepCommitRememberedLxmfHashWithActions(
 export function shouldCommitRememberedLxmfHashNow(
   actions: ReadonlyArray<CommitRememberedLxmfHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "commit");
+  return hasActionOfKind(actions, "commit");
 }
 
 export function shouldSkipCommitRememberedLxmfHash(
   actions: ReadonlyArray<CommitRememberedLxmfHashAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether LXMF wire bytes may unpack after split WithActions `use-fields`. */
@@ -408,13 +409,13 @@ export function stepAcceptLxmfWireFrameWithActions(
 export function shouldAcceptLxmfWireFrameNow(
   actions: ReadonlyArray<AcceptLxmfWireFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipAcceptLxmfWireFrame(
   actions: ReadonlyArray<AcceptLxmfWireFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a router may register its (only) delivery identity. */

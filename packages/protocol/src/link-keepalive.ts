@@ -9,6 +9,7 @@
  * Timing stays in link-watchdog; send/receive stays at the adapter edge.
  */
 import type { Event, Intent } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export const LINK_KEEPALIVE_PROBE_BYTE = 0xff;
 export const LINK_KEEPALIVE_REPLY_BYTE = 0xfe;
@@ -96,13 +97,13 @@ export function stepIgnoreInitiatorKeepaliveProbeWithActions(
 export function shouldIgnoreInitiatorKeepaliveProbeNow(
   actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldProceedInitiatorKeepaliveProbe(
   actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "proceed");
+  return hasActionOfKind(actions, "proceed");
 }
 /** Whether a responder should reply to an inbound keepalive probe. */
 export function shouldReplyKeepaliveProbe(input: {
@@ -168,13 +169,13 @@ export function stepReplyKeepaliveProbeWithActions(
 export function shouldReplyKeepaliveProbeNow(
   actions: ReadonlyArray<ReplyKeepaliveProbeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reply");
+  return hasActionOfKind(actions, "reply");
 }
 
 export function shouldSkipKeepaliveProbeReply(
   actions: ReadonlyArray<ReplyKeepaliveProbeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 /**
  * Keepalive probe pack framing is event-driven; no durable session fields.
@@ -219,15 +220,14 @@ export function stepPackLinkKeepaliveProbeWithActions(
 export function shouldUsePackLinkKeepaliveProbe(
   actions: ReadonlyArray<PackLinkKeepaliveProbeAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract packed keepalive probe from step actions; null when no `use-raw`. */
 export function packLinkKeepaliveProbeRawFromActions(
   actions: ReadonlyArray<PackLinkKeepaliveProbeAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -273,15 +273,14 @@ export function stepPackLinkKeepaliveReplyWithActions(
 export function shouldUsePackLinkKeepaliveReply(
   actions: ReadonlyArray<PackLinkKeepaliveReplyAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 /** Extract packed keepalive reply from step actions; null when no `use-raw`. */
 export function packLinkKeepaliveReplyRawFromActions(
   actions: ReadonlyArray<PackLinkKeepaliveReplyAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -334,17 +333,17 @@ export function stepClassifyLinkKeepaliveWithActions(
 export function shouldClassifyLinkKeepaliveProbe(
   actions: ReadonlyArray<ClassifyLinkKeepaliveAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "probe");
+  return hasActionOfKind(actions, "probe");
 }
 
 export function shouldClassifyLinkKeepaliveReply(
   actions: ReadonlyArray<ClassifyLinkKeepaliveAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reply");
+  return hasActionOfKind(actions, "reply");
 }
 
 export function shouldRejectClassifyLinkKeepalive(
   actions: ReadonlyArray<ClassifyLinkKeepaliveAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }

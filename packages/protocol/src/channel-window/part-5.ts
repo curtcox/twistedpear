@@ -40,6 +40,7 @@ import type {
   ChannelTxReceiptTimeoutRefreshPlanAction,
   ChannelTxReceiptTimeoutRefreshPlanEvent,
 } from "./part-4.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Channel TX receipt-timeout refresh plan leaf is event-driven; no durable
  * session fields. Conclusions leave via machine actions (no ad-hoc
@@ -82,7 +83,7 @@ export function stepChannelTxReceiptTimeoutRefreshPlanWithActions(
 export function shouldExtendChannelTxReceiptTimeoutRefreshPlan(
   actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "extend");
+  return hasActionOfKind(actions, "extend");
 }
 
 /** Whether the adapter should apply a planned receipt timeout extension. */
@@ -145,13 +146,13 @@ export function stepApplyChannelTxReceiptTimeoutExtensionWithActions(
 export function shouldApplyChannelTxReceiptTimeoutExtensionNow(
   actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldSkipApplyChannelTxReceiptTimeoutExtension(
   actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /**
@@ -208,7 +209,7 @@ export function stepChannelTxReceiptTimeoutRefreshWithActions(
 export function shouldExtendChannelTxReceiptTimeout(
   actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "extend");
+  return hasActionOfKind(actions, "extend");
 }
 
 /** Extract extend actions for the adapter to apply `setTimeout`. */

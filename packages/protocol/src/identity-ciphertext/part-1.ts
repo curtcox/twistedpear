@@ -17,6 +17,7 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE = 32;
 
@@ -124,21 +125,20 @@ export function stepPackIdentityCiphertextWithActions(
 export function shouldUsePackIdentityCiphertext(
   actions: ReadonlyArray<PackIdentityCiphertextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-raw");
+  return hasActionOfKind(actions, "use-raw");
 }
 
 export function shouldRejectPackIdentityCiphertext(
   actions: ReadonlyArray<PackIdentityCiphertextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract packed identity ciphertext from step actions; null when no `use-raw`. */
 export function packIdentityCiphertextRawFromActions(
   actions: ReadonlyArray<PackIdentityCiphertextAction>,
 ): Uint8Array | null {
-  const action = actions.find((entry) => entry.kind === "use-raw");
-  return action?.kind === "use-raw" ? action.raw : null;
+  return firstActionOfKind(actions, "use-raw")?.raw ?? null;
 }
 
 /**
@@ -191,21 +191,20 @@ export function stepSplitIdentityCiphertextWithActions(
 export function shouldUseSplitIdentityCiphertext(
   actions: ReadonlyArray<SplitIdentityCiphertextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "use-fields");
+  return hasActionOfKind(actions, "use-fields");
 }
 
 export function shouldRejectSplitIdentityCiphertext(
   actions: ReadonlyArray<SplitIdentityCiphertextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "reject");
+  return hasActionOfKind(actions, "reject");
 }
 
 /** Extract split identity-ciphertext fields from step actions; null when no `use-fields`. */
 export function identityCiphertextFieldsFromActions(
   actions: ReadonlyArray<SplitIdentityCiphertextAction>,
 ): IdentityCiphertextFields | null {
-  const action = actions.find((entry) => entry.kind === "use-fields");
-  return action?.kind === "use-fields" ? action.fields : null;
+  return firstActionOfKind(actions, "use-fields")?.fields ?? null;
 }
 
 /** Whether identity ciphertext split succeeded and may drive decrypt. */
@@ -264,13 +263,13 @@ export function stepAcceptIdentityCiphertextFrameWithActions(
 export function shouldAcceptIdentityCiphertextFrameNow(
   actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipIdentityCiphertextFrameAccept(
   actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether identity decrypt may return accepted plaintext after plan outcome. */
@@ -331,13 +330,13 @@ export function stepAcceptIdentityDecryptPlaintextWithActions(
 export function shouldAcceptIdentityDecryptPlaintextNow(
   actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "accept");
+  return hasActionOfKind(actions, "accept");
 }
 
 export function shouldSkipIdentityDecryptPlaintextAccept(
   actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 export type IdentityDecryptPlan =

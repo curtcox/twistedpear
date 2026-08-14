@@ -34,6 +34,7 @@ import type {
   ChannelTxEnvelopeOpPlanAction,
   ChannelTxEnvelopeOpPlanEvent,
 } from "./part-2.js";
+import { hasActionOfKind } from "../action-kind.js";
 /**
  * Channel TX-envelope-op plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelTxEnvelopeOp`
@@ -78,13 +79,13 @@ export function stepChannelTxEnvelopeOpPlanWithActions(
 export function shouldMissChannelTxEnvelopeOpPlan(
   actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 export function shouldProcessChannelTxEnvelopeOpPlan(
   actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "process");
+  return hasActionOfKind(actions, "process");
 }
 
 /**
@@ -133,13 +134,13 @@ export function stepChannelTxEnvelopeOpWithActions(
 export function shouldMissChannelTxEnvelopeOp(
   actions: ReadonlyArray<ChannelTxEnvelopeOpAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "miss");
+  return hasActionOfKind(actions, "miss");
 }
 
 export function shouldProcessChannelTxEnvelopeOp(
   actions: ReadonlyArray<ChannelTxEnvelopeOpAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "process");
+  return hasActionOfKind(actions, "process");
 }
 
 /** Whether channel outlet arming should apply a non-null receipt timeout. */
@@ -200,13 +201,13 @@ export function stepApplyChannelPacketReceiptTimeoutWithActions(
 export function shouldApplyChannelPacketReceiptTimeoutNow(
   actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "apply");
+  return hasActionOfKind(actions, "apply");
 }
 
 export function shouldSkipApplyChannelPacketReceiptTimeout(
   actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a successful resend should replace the envelope's tracked packet. */
@@ -267,13 +268,13 @@ export function stepReplaceChannelResentPacketWithActions(
 export function shouldReplaceChannelResentPacketNow(
   actions: ReadonlyArray<ReplaceChannelResentPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "replace");
+  return hasActionOfKind(actions, "replace");
 }
 
 export function shouldSkipReplaceChannelResentPacket(
   actions: ReadonlyArray<ReplaceChannelResentPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether a timed-out channel envelope still has a packet to resend. */
@@ -334,13 +335,13 @@ export function stepResendChannelTimeoutPacketWithActions(
 export function shouldResendChannelTimeoutPacketNow(
   actions: ReadonlyArray<ResendChannelTimeoutPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "resend");
+  return hasActionOfKind(actions, "resend");
 }
 
 export function shouldSkipResendChannelTimeoutPacket(
   actions: ReadonlyArray<ResendChannelTimeoutPacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Whether shutdown may clear outlet callbacks for a TX-ring envelope packet. */
@@ -401,13 +402,13 @@ export function stepClearChannelEnvelopePacketWithActions(
 export function shouldClearChannelEnvelopePacketNow(
   actions: ReadonlyArray<ClearChannelEnvelopePacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "clear");
+  return hasActionOfKind(actions, "clear");
 }
 
 export function shouldSkipClearChannelEnvelopePacket(
   actions: ReadonlyArray<ClearChannelEnvelopePacketAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "skip");
+  return hasActionOfKind(actions, "skip");
 }
 
 /** Shrink window after a packet timeout / retry. */

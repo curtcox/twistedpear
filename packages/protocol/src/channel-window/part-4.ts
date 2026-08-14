@@ -48,6 +48,7 @@ import {
   stepResendChannelTimeoutPacketWithActions,
 } from "./part-3.js";
 import type { ChannelWindowState } from "./part-1.js";
+import { hasActionOfKind } from "../action-kind.js";
 /** Should the channel give up retrying this envelope? */
 export function channelRetryExhausted(
   tries: number,
@@ -136,19 +137,19 @@ export function stepChannelPacketTimeoutPlanWithActions(
 export function shouldIgnoreChannelPacketTimeoutPlan(
   actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldGiveUpChannelPacketTimeoutPlan(
   actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "give-up");
+  return hasActionOfKind(actions, "give-up");
 }
 
 export function shouldRetryChannelPacketTimeoutPlan(
   actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "retry");
+  return hasActionOfKind(actions, "retry");
 }
 
 /** Extract the retry plan action, if any. */
@@ -236,19 +237,19 @@ export function stepChannelPacketTimeoutWithActions(
 export function shouldIgnoreChannelPacketTimeout(
   actions: ReadonlyArray<ChannelPacketTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "ignore");
+  return hasActionOfKind(actions, "ignore");
 }
 
 export function shouldGiveUpChannelPacketTimeout(
   actions: ReadonlyArray<ChannelPacketTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "give-up");
+  return hasActionOfKind(actions, "give-up");
 }
 
 export function shouldRetryChannelPacketTimeout(
   actions: ReadonlyArray<ChannelPacketTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "retry");
+  return hasActionOfKind(actions, "retry");
 }
 
 export type ChannelWindowEvent =
@@ -391,14 +392,14 @@ function stepChannelTxTimeoutInner(
 export function shouldGiveUpChannelTxTimeout(
   actions: ReadonlyArray<ChannelTxTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "give-up");
+  return hasActionOfKind(actions, "give-up");
 }
 
 /** Whether step actions include a retry for channel TX timeout. */
 export function shouldRetryChannelTxTimeout(
   actions: ReadonlyArray<ChannelTxTimeoutAction>,
 ): boolean {
-  return actions.some((action) => action.kind === "retry");
+  return hasActionOfKind(actions, "retry");
 }
 
 /** Extract the retry action from a TX-timeout step, if any. */
