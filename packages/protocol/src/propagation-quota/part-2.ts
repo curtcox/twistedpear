@@ -33,7 +33,7 @@ import type {
   PropagationStorePlanEvent,
   PropagationStoreState,
 } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Store-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPropagationStore` /
@@ -79,13 +79,7 @@ export function stepPropagationStorePlanWithActions(
 export function propagationStorePlanFromActions(
   actions: ReadonlyArray<PropagationStorePlanAction>,
 ): PropagationStorePlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "reject-too-large" ||
-      entry.kind === "duplicate" ||
-      entry.kind === "reject-capacity" ||
-      entry.kind === "accept",
-  );
+  const action = firstAction(actions);
   return action ?? null;
 }
 

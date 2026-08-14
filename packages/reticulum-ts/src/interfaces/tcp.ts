@@ -401,7 +401,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
     for (const action of actions) {
       if (action.kind === "give-up") {
         void this.close();
-      } else if (action.kind === "connect") {
+      } else {
         void this.attemptReconnect();
       }
     }

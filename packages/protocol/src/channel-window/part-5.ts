@@ -216,13 +216,8 @@ export function shouldExtendChannelTxReceiptTimeout(
 export function channelTxReceiptTimeoutExtensions(
   actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshAction>,
 ): ReadonlyArray<{ readonly index: number; readonly timeoutSeconds: number }> {
-  return actions
-    .filter(
-      (action): action is ChannelTxReceiptTimeoutRefreshAction =>
-        action.kind === "extend",
-    )
-    .map((action) => ({
-      index: action.index,
-      timeoutSeconds: action.timeoutSeconds,
-    }));
+  return actions.map((action) => ({
+    index: action.index,
+    timeoutSeconds: action.timeoutSeconds,
+  }));
 }

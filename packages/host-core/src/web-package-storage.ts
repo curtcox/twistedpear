@@ -411,8 +411,12 @@ class WebPackageStorage implements WebPackageStorageSession {
   }
 
   async getQuotaInfo(): Promise<WebStorageQuotaInfo> {
-    const estimate = (await this.storage?.estimate?.()) ?? {};
-    const persisted = (await this.storage?.persisted?.()) ?? false;
+    const storage = this.storage;
+    const estimate = storage === undefined ? {} : await storage.estimate();
+    const persisted =
+      storage === undefined || storage.persisted === undefined
+        ? false
+        : await storage.persisted();
     return {
       usageBytes: estimate.usage ?? null,
       quotaBytes: estimate.quota ?? null,

@@ -184,12 +184,11 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         "list",
         "storage:hyperbee",
         (request, context) => {
-          const options =
-            (request.payload as {
-              gte?: string;
-              lt?: string;
-              limit?: number;
-            }) ?? {};
+          const options = (request.payload ?? {}) as {
+            gte?: string;
+            lt?: string;
+            limit?: number;
+          };
           return Promise.resolve(beeBackend.list(context.appId, options));
         },
       );

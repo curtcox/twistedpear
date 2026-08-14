@@ -243,8 +243,9 @@ function NativeHostConfirmModal({ scope }: { scope: NativeHarnessScope }) {
         <View testID="host-confirmation-modal" style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.sectionTitle}>
-              {CONFIRM_KIND_TITLES[hostConfirm.kind] ??
-                `Confirm ${hostConfirm.kind}?`}
+              {(CONFIRM_KIND_TITLES as Record<string, string>)[
+                hostConfirm.kind
+              ] ?? `Confirm ${hostConfirm.kind}?`}
             </Text>
             <Text style={styles.muted}>
               Trusted host chrome · capability confirmation

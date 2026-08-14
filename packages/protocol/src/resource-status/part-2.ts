@@ -18,7 +18,7 @@ import {
 } from "../resource-watchdog.js";
 import { planResourceAdvertisePhase } from "./part-1.js";
 import type { ResourceAdvertisePhasePlan } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Resource-advertise-phase plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planResourceAdvertisePhase` /
@@ -67,9 +67,7 @@ export function stepResourceAdvertisePhasePlanWithActions(
 export function resourceAdvertisePhasePlanFromActions(
   actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>,
 ): ResourceAdvertisePhasePlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "queue" || entry.kind === "advertise",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -294,9 +292,7 @@ export function stepResourceAssembleOutcomePlanWithActions(
 export function resourceAssembleOutcomePlanFromActions(
   actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>,
 ): ResourceAssembleOutcome | null {
-  const action = actions.find(
-    (entry) => entry.kind === "complete" || entry.kind === "corrupt",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

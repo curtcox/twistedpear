@@ -32,7 +32,7 @@ import {
   shouldApplyResourceReceivePartSlot,
 } from "./part-2.js";
 import type { ResourcePartRequestPlan } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Resource receive-part slot-write gate is event-driven; no durable session
  * fields. Conclusions leave via machine actions (no ad-hoc
@@ -306,16 +306,13 @@ export function shouldEmitResourcePartRequestPlan(
 export function resourcePartRequestPlanFromActions(
   actions: ReadonlyArray<ResourcePartRequestPlanAction>,
 ): ResourcePartRequestPlan | null {
-  for (const action of actions) {
-    if (action.kind === "request") {
-      return {
-        outstandingParts: action.outstandingParts,
-        waitingForHashmap: action.waitingForHashmap,
-        requestData: action.requestData,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    outstandingParts: action.outstandingParts,
+    waitingForHashmap: action.waitingForHashmap,
+    requestData: action.requestData,
+  };
 }
 
 /**
@@ -381,16 +378,13 @@ export function shouldEmitResourcePartRequest(
 export function resourcePartRequestFromActions(
   actions: ReadonlyArray<ResourcePartRequestAction>,
 ): ResourcePartRequestPlan | null {
-  for (const action of actions) {
-    if (action.kind === "request") {
-      return {
-        outstandingParts: action.outstandingParts,
-        waitingForHashmap: action.waitingForHashmap,
-        requestData: action.requestData,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    outstandingParts: action.outstandingParts,
+    waitingForHashmap: action.waitingForHashmap,
+    requestData: action.requestData,
+  };
 }
 
 function stepResourcePartRequestInner(

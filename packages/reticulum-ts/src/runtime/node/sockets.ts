@@ -195,7 +195,8 @@ class NodeBoundDatagramSocket implements BoundDatagramSocket {
 
     await new Promise<void>((resolve, reject) => {
       this.socket.send(data, port, host, (error) => {
-        if (error === undefined || error === null) {
+        const err: unknown = error;
+        if (err == null) {
           resolve();
         } else {
           reject(error);

@@ -18,7 +18,7 @@ import {
   TRANSPORT_ID_BYTES,
   TRANSPORT_TRANSPORT,
 } from "../transport-framing.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 export {
   PACKET_HEADER_1,
@@ -329,18 +329,7 @@ export function stepPacketFromFieldsPlanWithActions(
 export function packetFromFieldsPlanFromActions(
   actions: ReadonlyArray<PacketFromFieldsPlanAction>,
 ): PacketFromFieldsPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "bad-header-type" ||
-      entry.kind === "bad-context-flag" ||
-      entry.kind === "bad-transport-type" ||
-      entry.kind === "bad-destination-type" ||
-      entry.kind === "bad-packet-type" ||
-      entry.kind === "bad-destination-hash" ||
-      entry.kind === "header2-missing-transport-id" ||
-      entry.kind === "bad-transport-id",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

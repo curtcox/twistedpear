@@ -78,7 +78,7 @@ import type {
   LinkRttOutcomePlanEvent,
   TeardownLinkFromRttState,
 } from "./part-9.js";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * LRRTT outcome plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkRttOutcome` /
@@ -123,12 +123,7 @@ export function stepLinkRttOutcomePlanWithActions(
 export function linkRttOutcomePlanFromActions(
   actions: ReadonlyArray<LinkRttOutcomePlanAction>,
 ): LinkRttOutcome | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "activate" ||
-      entry.kind === "teardown",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

@@ -31,7 +31,7 @@ import {
   PACKET_TYPE_ANNOUNCE,
 } from "../packet-header.js";
 import type { TouchPathEntryAction } from "./part-2.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 export function shouldSkipTouchPathEntry(
   actions: ReadonlyArray<TouchPathEntryAction>,
 ): boolean {
@@ -111,12 +111,7 @@ export function stepDiscoveryPathRequestFulfillPlanWithActions(
 export function discoveryPathRequestFulfillPlanFromActions(
   actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>,
 ): DiscoveryPathRequestFulfillPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "drop-expired" ||
-      entry.kind === "fulfill",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -404,12 +399,7 @@ export function stepPathOutboundPlanWithActions(
 export function pathOutboundPlanFromActions(
   actions: ReadonlyArray<PathOutboundPlanAction>,
 ): PathOutboundKind | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "wrap" ||
-      entry.kind === "direct" ||
-      entry.kind === "flood",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

@@ -64,7 +64,7 @@ import type {
   LinkProofValidateOutcomePlanAction,
   LinkProofValidateOutcomePlanEvent,
 } from "./part-2.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Proof-validate outcome plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkProofValidateOutcome` /
@@ -113,9 +113,7 @@ export function stepLinkProofValidateOutcomePlanWithActions(
 export function linkProofValidateOutcomePlanFromActions(
   actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>,
 ): LinkProofValidateOutcome | null {
-  const action = actions.find(
-    (entry) => entry.kind === "accept" || entry.kind === "reject",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

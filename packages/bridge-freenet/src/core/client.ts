@@ -247,8 +247,8 @@ export class FreenetClient {
       throw error;
     }
     return () => {
-      listeners?.delete(listener);
-      if (listeners?.size === 0) this.#subscriptions.delete(encoded);
+      listeners.delete(listener);
+      if (listeners.size === 0) this.#subscriptions.delete(encoded);
     };
   }
 

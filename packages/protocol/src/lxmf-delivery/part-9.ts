@@ -28,7 +28,7 @@ import type {
   LxMessageInstancePackPlanAction,
   LxMessageInstancePackPlanEvent,
 } from "./part-8.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Instance-pack-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxMessageInstancePack` /
@@ -76,13 +76,7 @@ export function stepLxMessageInstancePackPlanWithActions(
 export function lxMessageInstancePackPlanFromActions(
   actions: ReadonlyArray<LxMessageInstancePackPlanAction>,
 ): LxMessageInstancePackGate | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "already-packed" ||
-      entry.kind === "missing-endpoints" ||
-      entry.kind === "missing-timestamp",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -316,15 +310,12 @@ export function stepLxmfSignatureOutcomePlanWithActions(
 export function lxmfSignatureOutcomePlanFromActions(
   actions: ReadonlyArray<LxmfSignatureOutcomePlanAction>,
 ): LxmfSignatureOutcome | null {
-  for (const action of actions) {
-    if (action.kind === "outcome") {
-      return {
-        signatureValidated: action.signatureValidated,
-        unverifiedReason: action.unverifiedReason,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    signatureValidated: action.signatureValidated,
+    unverifiedReason: action.unverifiedReason,
+  };
 }
 
 /**
@@ -384,15 +375,12 @@ export function shouldApplyLxmfSignature(
 export function lxmfSignatureOutcomeFromActions(
   actions: ReadonlyArray<LxmfSignatureAction>,
 ): LxmfSignatureOutcome | null {
-  for (const action of actions) {
-    if (action.kind === "apply") {
-      return {
-        signatureValidated: action.signatureValidated,
-        unverifiedReason: action.unverifiedReason,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    signatureValidated: action.signatureValidated,
+    unverifiedReason: action.unverifiedReason,
+  };
 }
 
 function stepLxmfSignatureInner(

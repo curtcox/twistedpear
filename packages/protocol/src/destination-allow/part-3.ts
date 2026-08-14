@@ -31,7 +31,7 @@ import type {
   DestinationConstructionEvent,
   DestinationConstructionState,
 } from "./part-2.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 export function initialDestinationConstructionState(): DestinationConstructionState {
   return {};
 }
@@ -143,12 +143,7 @@ export function stepDestinationDecryptPlanWithActions(
 export function destinationDecryptPlanFromActions(
   actions: ReadonlyArray<DestinationDecryptPlanAction>,
 ): DestinationDecryptPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "return-ciphertext" ||
-      entry.kind === "reject" ||
-      entry.kind === "decrypt-with-identity",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -337,12 +332,7 @@ export function stepDestinationEncryptPlanWithActions(
 export function destinationEncryptPlanFromActions(
   actions: ReadonlyArray<DestinationEncryptPlanAction>,
 ): DestinationEncryptPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "use-plaintext" ||
-      entry.kind === "reject" ||
-      entry.kind === "encrypt-with-identity",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

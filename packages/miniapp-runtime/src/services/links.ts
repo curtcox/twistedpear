@@ -186,7 +186,7 @@ export class LinkQualityService {
 
 function assertProbePeer(peer: PeerHandle): void {
   if (
-    typeof peer?.id !== "string" ||
+    typeof peer.id !== "string" ||
     peer.id.length < 1 ||
     peer.id.length > 256
   ) {

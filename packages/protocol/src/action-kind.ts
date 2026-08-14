@@ -1,4 +1,12 @@
 /**
+ * First action in a step-action list. Use when the caller already treats the
+ * list as a single union and does not need to re-test `kind`.
+ */
+export function firstAction<T>(actions: ReadonlyArray<T>): T | undefined {
+  return actions[0];
+}
+
+/**
  * Narrow a step-action list to the first action of a given kind.
  * Callers read fields from the narrowed action instead of re-testing `kind`.
  */

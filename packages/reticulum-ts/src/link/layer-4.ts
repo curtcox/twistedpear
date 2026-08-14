@@ -369,10 +369,7 @@ export class LinkLayer4 extends LinkLayer3 {
         initiator: this.initiator,
       },
     );
-    if (
-      !shouldAllowIdentifyOnLink(identifyAllow.actions) ||
-      identity === null
-    ) {
+    if (!shouldAllowIdentifyOnLink(identifyAllow.actions)) {
       return;
     }
 

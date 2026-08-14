@@ -22,7 +22,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import { linkPayloadFitsMdu } from "../link-metrics.js";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const ChannelWindowLimits = {
   WINDOW: 2,
@@ -304,12 +304,7 @@ export function stepChannelSendPlanWithActions(
 export function channelSendPlanFromActions(
   actions: ReadonlyArray<ChannelSendPlanAction>,
 ): ChannelSendPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "proceed" ||
-      entry.kind === "link-not-ready" ||
-      entry.kind === "too-big",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

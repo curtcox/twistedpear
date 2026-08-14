@@ -88,7 +88,7 @@ export async function browserDeviceAvailability(
         nav as {
           getBattery?: () => Promise<{ level: number; charging: boolean }>;
         }
-      )?.getBattery;
+      ).getBattery;
       return namedApiAvailability(typeof getBattery === "function");
     }
     case "tts":
@@ -99,7 +99,7 @@ export async function browserDeviceAvailability(
     case "haptics":
       return namedApiAvailability(
         typeof (nav as { vibrate?: (pattern: number | number[]) => boolean })
-          ?.vibrate === "function",
+          .vibrate === "function",
       );
     default:
       return "unsupported";
@@ -151,7 +151,7 @@ async function senseBrowserBattery(): Promise<{
   const nav = browserNavigator() as {
     getBattery?: () => Promise<{ level: number; charging: boolean }>;
   };
-  if (typeof nav?.getBattery !== "function") {
+  if (typeof nav.getBattery !== "function") {
     throw new Error("Battery Status API is unavailable in this browser.");
   }
   const battery = await nav.getBattery();
@@ -189,7 +189,7 @@ function actuateBrowserTts(text: string, rate: number): Promise<void> {
 function actuateBrowserHaptics(patternMs: ReadonlyArray<number>): void {
   const vibrate = (
     browserNavigator() as { vibrate?: (pattern: number | number[]) => boolean }
-  )?.vibrate;
+  ).vibrate;
   if (typeof vibrate !== "function") {
     throw new Error("Vibration is unavailable in this browser.");
   }

@@ -89,7 +89,7 @@ import type {
   LinkAppRequestResponsePlanEvent,
   SendLinkAppRequestResponseAction,
 } from "./part-5.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * App-request dispatch plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequestDispatch` /
@@ -199,12 +199,7 @@ export function stepLinkAppRequestDispatchWithActions(
 export function linkAppRequestDispatchFromActions(
   actions: ReadonlyArray<LinkAppRequestDispatchAction>,
 ): LinkAppRequestDispatchPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "forbidden" ||
-      entry.kind === "invoke-handler",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -264,12 +259,7 @@ export function stepLinkAppRequestResponsePlanWithActions(
 export function linkAppRequestResponsePlanFromActions(
   actions: ReadonlyArray<LinkAppRequestResponsePlanAction>,
 ): LinkAppRequestResponsePlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "response-too-big" ||
-      entry.kind === "send-response",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

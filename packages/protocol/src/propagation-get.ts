@@ -8,7 +8,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
 import { propagationEntryVisibleToRecipient } from "./propagation-quota.js";
-import { hasActionOfKind } from "./action-kind.js";
+import { firstAction, hasActionOfKind } from "./action-kind.js";
 
 export interface PropagationGetCatalogEntry {
   readonly transientId: Uint8Array;
@@ -180,9 +180,7 @@ export function propagationGetPlanApplyIds(
 export function propagationGetPlanFromActions(
   actions: ReadonlyArray<PropagationGetPlanAction>,
 ): PropagationGetPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "list-ids" || entry.kind === "apply",
-  );
+  const action = firstAction(actions);
   return action ?? null;
 }
 

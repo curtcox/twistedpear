@@ -22,7 +22,7 @@ import type {
   AwaitLxmfDeliveryReceiptState,
   AwaitLxmfDeliveryReceiptStepResult,
 } from "./part-6.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 export function stepAwaitLxmfDeliveryReceiptWithActions(
   state: AwaitLxmfDeliveryReceiptState,
   event: AwaitLxmfDeliveryReceiptEvent,
@@ -244,14 +244,7 @@ export function shouldRejectLxmfSendMethodPlanUnsupported(
 export function lxmfSendMethodPlanFromActions(
   actions: ReadonlyArray<LxmfSendMethodPlanAction>,
 ): LxmfSendMethodPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "opportunistic" ||
-      entry.kind === "direct" ||
-      entry.kind === "propagated" ||
-      entry.kind === "reject-unpacked" ||
-      entry.kind === "reject-unsupported",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

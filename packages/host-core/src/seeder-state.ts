@@ -58,18 +58,24 @@ export function loadSeederState(stateDir: string): SeederState {
     drives: raw.drives.map((drive) => ({
       driveKey: drive.driveKey,
       versions: Object.fromEntries(
-        Object.entries(drive.versions).map(([version, info]) => [
-          version,
-          {
-            packageHash: info.packageHash,
-            size: info.size,
-            archiveFile:
-              info.archiveFile ??
-              info.archivePath ??
-              seederArchiveFile(drive.driveKey, version),
-            ...(info.storedAt === undefined ? {} : { storedAt: info.storedAt }),
-          },
-        ]),
+        Object.entries(drive.versions).map(([version, info]) => {
+          const archiveFile: unknown = info.archiveFile;
+          const archivePath: unknown = info.archivePath;
+          return [
+            version,
+            {
+              packageHash: info.packageHash,
+              size: info.size,
+              archiveFile:
+                (typeof archiveFile === "string" ? archiveFile : undefined) ??
+                (typeof archivePath === "string" ? archivePath : undefined) ??
+                seederArchiveFile(drive.driveKey, version),
+              ...(info.storedAt === undefined
+                ? {}
+                : { storedAt: info.storedAt }),
+            },
+          ];
+        }),
       ),
     })),
     pinnedVersions: raw.pinnedVersions ?? [],

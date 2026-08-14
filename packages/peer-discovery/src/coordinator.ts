@@ -175,7 +175,10 @@ export class InvitationPairingDriver implements PeerPairingDriver {
       authenticated,
       adapter,
     );
-    if (!established.authenticated || !established.confirmed)
+    if (
+      !Boolean(established.authenticated) ||
+      !Boolean(established.confirmed)
+    )
       throw new PeerDiscoveryError(
         "POLICY_DENIED",
         "Security backend returned an unconfirmed route",
@@ -256,7 +259,10 @@ export class InvitationPairingDriver implements PeerPairingDriver {
           state.error ?? "Invalid confirmation transition",
         );
       const established = await this.options.backend.establish(answer, adapter);
-      if (!established.authenticated || !established.confirmed)
+      if (
+        !Boolean(established.authenticated) ||
+        !Boolean(established.confirmed)
+      )
         throw new PeerDiscoveryError(
           "POLICY_DENIED",
           "Security backend returned an unconfirmed route",

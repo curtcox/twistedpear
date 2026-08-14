@@ -181,7 +181,9 @@ export async function createHostLxmfDelivery(
       () => void announceQuietly(),
       announceIntervalMs,
     );
-    announceTimer.unref?.();
+    if (typeof announceTimer.unref === "function") {
+      announceTimer.unref();
+    }
   }
 
   return {

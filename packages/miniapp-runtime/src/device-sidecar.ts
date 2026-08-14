@@ -123,12 +123,13 @@ interface SidecarQueue {
 }
 
 function assertSampleOnly(frame: DeviceStreamFrame): void {
+  const sampleKind = Number(frame.sampleKind);
   if (
-    frame.sampleKind !== DEVICE_STREAM_KIND.cameraFrame &&
-    frame.sampleKind !== DEVICE_STREAM_KIND.pcm &&
-    frame.sampleKind !== DEVICE_STREAM_KIND.motionSamples &&
-    frame.sampleKind !== DEVICE_STREAM_KIND.screenFrame &&
-    frame.sampleKind !== DEVICE_STREAM_KIND.derivedEvent
+    sampleKind !== DEVICE_STREAM_KIND.cameraFrame &&
+    sampleKind !== DEVICE_STREAM_KIND.pcm &&
+    sampleKind !== DEVICE_STREAM_KIND.motionSamples &&
+    sampleKind !== DEVICE_STREAM_KIND.screenFrame &&
+    sampleKind !== DEVICE_STREAM_KIND.derivedEvent
   ) {
     throw new DeviceStreamFrameError(
       "CONTROL_FORBIDDEN",

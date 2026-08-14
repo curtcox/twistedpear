@@ -178,7 +178,10 @@ export class PeerSessionManager {
       );
     const adapter = await this.registry.select(request.mechanisms);
     const peer = await this.driver[mode](adapter, request);
-    if (peer.authenticated !== true || peer.confirmed !== true)
+    if (
+      Boolean(peer.authenticated) !== true ||
+      Boolean(peer.confirmed) !== true
+    )
       throw new PeerDiscoveryError(
         "POLICY_DENIED",
         "Pairing driver returned an unconfirmed peer",

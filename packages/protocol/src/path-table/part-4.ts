@@ -39,7 +39,7 @@ import type {
   PathOutboundPlanAction,
   PathOutboundState,
 } from "./part-3.js";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function shouldFloodPathOutboundPlan(
   actions: ReadonlyArray<PathOutboundPlanAction>,
 ): boolean {
@@ -477,10 +477,7 @@ export type PathEntryLookupPlanAction = { readonly kind: PathEntryLookupPlan };
 export function pathEntryLookupPlanFromActions(
   actions: ReadonlyArray<PathEntryLookupPlanAction>,
 ): PathEntryLookupPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "miss" || entry.kind === "expired" || entry.kind === "hit",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

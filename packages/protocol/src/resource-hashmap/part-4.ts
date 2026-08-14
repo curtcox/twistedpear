@@ -45,7 +45,7 @@ import type {
   ResourceReceivePartPlanAction,
   ResourceReceivePartPlanEvent,
 } from "./part-3.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Resource receive-part plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
@@ -110,21 +110,18 @@ export function shouldApplyResourceReceivePartPlan(
 export function resourceReceivePartPlanFromActions(
   actions: ReadonlyArray<ResourceReceivePartPlanAction>,
 ): ResourceReceivePartPlan | null {
-  for (const action of actions) {
-    if (action.kind === "receive") {
-      return {
-        matched: action.matched,
-        slot: action.slot,
-        consecutiveCompletedHeight: action.consecutiveCompletedHeight,
-        receivedCount: action.receivedCount,
-        outstandingParts: action.outstandingParts,
-        progress: action.progress,
-        shouldAssemble: action.shouldAssemble,
-        shouldRequestNext: action.shouldRequestNext,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    matched: action.matched,
+    slot: action.slot,
+    consecutiveCompletedHeight: action.consecutiveCompletedHeight,
+    receivedCount: action.receivedCount,
+    outstandingParts: action.outstandingParts,
+    progress: action.progress,
+    shouldAssemble: action.shouldAssemble,
+    shouldRequestNext: action.shouldRequestNext,
+  };
 }
 
 /**
@@ -171,21 +168,18 @@ export function shouldApplyResourceReceivePart(
 export function resourceReceivePartFromActions(
   actions: ReadonlyArray<ResourceReceivePartAction>,
 ): ResourceReceivePartPlan | null {
-  for (const action of actions) {
-    if (action.kind === "receive") {
-      return {
-        matched: action.matched,
-        slot: action.slot,
-        consecutiveCompletedHeight: action.consecutiveCompletedHeight,
-        receivedCount: action.receivedCount,
-        outstandingParts: action.outstandingParts,
-        progress: action.progress,
-        shouldAssemble: action.shouldAssemble,
-        shouldRequestNext: action.shouldRequestNext,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    matched: action.matched,
+    slot: action.slot,
+    consecutiveCompletedHeight: action.consecutiveCompletedHeight,
+    receivedCount: action.receivedCount,
+    outstandingParts: action.outstandingParts,
+    progress: action.progress,
+    shouldAssemble: action.shouldAssemble,
+    shouldRequestNext: action.shouldRequestNext,
+  };
 }
 
 function stepResourceReceivePartInner(
@@ -318,19 +312,15 @@ export function shouldFulfillResourceRequestPlan(
 export function resourceRequestFulfillPlanFromActions(
   actions: ReadonlyArray<ResourceRequestFulfillPlanAction>,
 ): ResourceRequestFulfillPlan | null {
-  for (const action of actions) {
-    if (action.kind === "fulfill") {
-      return {
-        partActions: action.partActions,
-        hashmapUpdate: action.hashmapUpdate,
-        nextSentParts: action.nextSentParts,
-        nextReceiverMinConsecutiveHeight:
-          action.nextReceiverMinConsecutiveHeight,
-        status: action.status,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    partActions: action.partActions,
+    hashmapUpdate: action.hashmapUpdate,
+    nextSentParts: action.nextSentParts,
+    nextReceiverMinConsecutiveHeight: action.nextReceiverMinConsecutiveHeight,
+    status: action.status,
+  };
 }
 
 /**
@@ -400,19 +390,15 @@ export function shouldFulfillResourceRequest(
 export function resourceRequestFulfillFromActions(
   actions: ReadonlyArray<ResourceRequestFulfillAction>,
 ): ResourceRequestFulfillPlan | null {
-  for (const action of actions) {
-    if (action.kind === "fulfill") {
-      return {
-        partActions: action.partActions,
-        hashmapUpdate: action.hashmapUpdate,
-        nextSentParts: action.nextSentParts,
-        nextReceiverMinConsecutiveHeight:
-          action.nextReceiverMinConsecutiveHeight,
-        status: action.status,
-      };
-    }
-  }
-  return null;
+  const action = firstAction(actions);
+  if (!action) return null;
+  return {
+    partActions: action.partActions,
+    hashmapUpdate: action.hashmapUpdate,
+    nextSentParts: action.nextSentParts,
+    nextReceiverMinConsecutiveHeight: action.nextReceiverMinConsecutiveHeight,
+    status: action.status,
+  };
 }
 
 function stepResourceRequestFulfillInner(
@@ -474,9 +460,7 @@ export type ResourceHashmapUpdateAcceptPlanAction = {
 export function resourceHashmapUpdateAcceptPlanFromActions(
   actions: ReadonlyArray<ResourceHashmapUpdateAcceptPlanAction>,
 ): ResourceHashmapUpdateAcceptPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "apply" || entry.kind === "ignore",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

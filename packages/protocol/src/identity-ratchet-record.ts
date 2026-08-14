@@ -15,7 +15,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { bytesToHexLower, hexToBytesLower } from "./destination-name.js";
 import { utf8Decode, utf8Encode } from "./utf8.js";
-import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 /** RATCHET_SIZE (256 bits) / 8 */
 export const IDENTITY_RATCHET_BYTES = 32;
@@ -379,14 +379,7 @@ export function stepIdentityRatchetLookupPlanWithActions(
 export function identityRatchetLookupPlanFromActions(
   actions: ReadonlyArray<IdentityRatchetLookupPlanAction>,
 ): IdentityRatchetLookupPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "use-cache" ||
-      entry.kind === "miss-no-store" ||
-      entry.kind === "miss-store" ||
-      entry.kind === "reject-unusable" ||
-      entry.kind === "restore",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

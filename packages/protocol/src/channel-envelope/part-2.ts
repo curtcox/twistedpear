@@ -21,7 +21,7 @@ import type {
   ChannelMessageTypeRegistrationPlanAction,
   ChannelMessageTypeRegistrationPlanEvent,
 } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Channel-message-type-registration-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelMessageTypeRegistration`
@@ -244,13 +244,7 @@ export function stepChannelEnvelopeUnpackPlanWithActions(
 export function channelEnvelopeUnpackPlanFromActions(
   actions: ReadonlyArray<ChannelEnvelopeUnpackPlanAction>,
 ): ChannelEnvelopeUnpackPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "missing-raw" ||
-      entry.kind === "truncated" ||
-      entry.kind === "not-registered",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -404,9 +398,7 @@ export type ChannelEnvelopePackPlanAction = {
 export function channelEnvelopePackPlanFromActions(
   actions: ReadonlyArray<ChannelEnvelopePackPlanAction>,
 ): ChannelEnvelopePackPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "ok" || entry.kind === "missing-message",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

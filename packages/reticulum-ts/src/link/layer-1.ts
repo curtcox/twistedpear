@@ -523,7 +523,7 @@ export class LinkLayer1 {
         });
       } else if (action.kind === "mark-stale") {
         this.status = LinkStatus.STALE;
-      } else if (action.kind === "close") {
+      } else {
         this.teardownReason = action.reason as LinkTeardownReasonValue;
         this.close();
         return;

@@ -26,7 +26,7 @@ import type {
   LxmfDirectSendPlanAction,
   LxmfDirectSendPlanEvent,
 } from "./part-7.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * DIRECT send-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfDirectSend` /
@@ -72,12 +72,7 @@ export function stepLxmfDirectSendPlanWithActions(
 export function lxmfDirectSendPlanFromActions(
   actions: ReadonlyArray<LxmfDirectSendPlanAction>,
 ): LxmfDirectSendPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "missing-destination" ||
-      entry.kind === "missing-packed",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -258,9 +253,7 @@ export function shouldRejectLxmfOpportunisticSendPlanMissingDestination(
 export function lxmfOpportunisticSendPlanFromActions(
   actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>,
 ): LxmfOpportunisticSendPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "ok" || entry.kind === "missing-destination",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

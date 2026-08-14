@@ -14,7 +14,7 @@ import {
   LxmfUnverifiedReason,
   type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 export const LxmfDeliveryMethod = {
   OPPORTUNISTIC: 0x01,
@@ -270,12 +270,7 @@ export function lxmfDeliveryPlanUnsupportedMethod(
 export function lxmfDeliveryPlanFromActions(
   actions: ReadonlyArray<LxmfDeliveryPlanAction>,
 ): LxmfDeliveryPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "deliver" ||
-      entry.kind === "reject-opportunistic-too-large" ||
-      entry.kind === "reject-unsupported-method",
-  );
+  const action = firstAction(actions);
   return action ?? null;
 }
 

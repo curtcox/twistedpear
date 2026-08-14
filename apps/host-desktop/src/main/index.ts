@@ -42,6 +42,7 @@ let supervisor: WorkletSupervisor | null = null;
 let bridges: HostDesktopBridges | null = null;
 let latestStatus: WorkletStatus | null = null;
 let quitToTray = true;
+const shouldQuitToTray = (): boolean => quitToTray;
 let isQuitting = false;
 let networkSnapshot = JSON.stringify(networkInterfaces());
 let networkPollTimer: ReturnType<typeof setInterval> | null = null;
@@ -107,7 +108,7 @@ function createWindow(): void {
   });
 
   mainWindow.on("close", (event) => {
-    if (isQuitting || !quitToTray) {
+    if (isQuitting || !shouldQuitToTray()) {
       return;
     }
 
@@ -231,10 +232,11 @@ function configureMediaPermissions(): void {
         details.requestingUrl.startsWith("file://");
       const trustedMediaOnly =
         "mediaTypes" in details &&
-        (details.mediaTypes?.length ?? 0) > 0 &&
-        details.mediaTypes?.every(
-          (mediaType) => mediaType === "video" || mediaType === "audio",
-        ) === true;
+        details.mediaTypes.length > 0 &&
+        details.mediaTypes.every((mediaType) => {
+          const kind = String(mediaType);
+          return kind === "video" || kind === "audio";
+        }) === true;
       callback(permission === "media" && fromHostWindow && trustedMediaOnly);
     },
   );
@@ -291,7 +293,7 @@ app.on("window-all-closed", () => {
     return;
   }
 
-  if (!quitToTray) {
+  if (!shouldQuitToTray()) {
     app.quit();
   }
 });

@@ -14,7 +14,7 @@ import {
   LxmfUnverifiedReason,
   type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 /** Whether propagation inbound targets this router's local delivery destination. */
 export function canAcceptLxmfPropagationLocalDelivery(input: {
@@ -208,13 +208,7 @@ export function shouldRejectLxmfPropagationLocalIngressPlanDecrypt(
 export function lxmfPropagationLocalIngressPlanFromActions(
   actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>,
 ): LxmfPropagationLocalIngressPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "deliver" ||
-      entry.kind === "reject-prefix" ||
-      entry.kind === "reject-destination" ||
-      entry.kind === "reject-decrypt",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

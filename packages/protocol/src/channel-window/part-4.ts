@@ -48,7 +48,7 @@ import {
   stepResendChannelTimeoutPacketWithActions,
 } from "./part-3.js";
 import type { ChannelWindowState } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /** Should the channel give up retrying this envelope? */
 export function channelRetryExhausted(
   tries: number,
@@ -168,12 +168,7 @@ export function channelPacketTimeoutRetryFromActions(
 export function channelPacketTimeoutPlanFromActions(
   actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>,
 ): ChannelPacketTimeoutPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "give-up" ||
-      entry.kind === "retry",
-  );
+  const action = firstAction(actions);
   return action ?? null;
 }
 
@@ -502,15 +497,10 @@ export type ChannelTxReceiptTimeoutRefreshPlanAction = {
 export function channelTxReceiptTimeoutRefreshPlanExtensions(
   actions: ReadonlyArray<ChannelTxReceiptTimeoutRefreshPlanAction>,
 ): ReadonlyArray<ChannelTxReceiptTimeoutRefreshExtension> {
-  return actions
-    .filter(
-      (action): action is ChannelTxReceiptTimeoutRefreshPlanAction =>
-        action.kind === "extend",
-    )
-    .map((action) => ({
-      index: action.index,
-      timeoutSeconds: action.timeoutSeconds,
-    }));
+  return actions.map((action) => ({
+    index: action.index,
+    timeoutSeconds: action.timeoutSeconds,
+  }));
 }
 
 export type ChannelTxReceiptTimeoutRefreshEvent =

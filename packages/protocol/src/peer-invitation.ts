@@ -130,14 +130,15 @@ export function validatePeerInvitation(
   invitation: PeerInvitation,
   now?: number,
 ): void {
-  if (invitation.version !== PEER_INVITATION_VERSION)
+  if (Number(invitation.version) !== PEER_INVITATION_VERSION)
     throw new PeerInvitationError(
       "MALFORMED",
       "unsupported invitation version",
     );
   assertBytes(invitation.sessionId, "session id", 16, 32);
   assertText(invitation.service, "service", 1, MAX_PEER_SERVICE_LENGTH);
-  if (invitation.role !== "offer" && invitation.role !== "answer")
+  const role = String(invitation.role);
+  if (role !== "offer" && role !== "answer")
     throw new PeerInvitationError("MALFORMED", "invalid role");
   assertBytes(invitation.peerEphemeralKey, "ephemeral key", 32, 65);
   if (invitation.identityProof !== undefined)
@@ -310,11 +311,12 @@ class Reader {
   }
 }
 function map(value: CborValue): CborMap {
+  const raw: unknown = value;
   if (
-    typeof value !== "object" ||
-    value === null ||
-    value instanceof Uint8Array ||
-    Array.isArray(value)
+    typeof raw !== "object" ||
+    raw === null ||
+    raw instanceof Uint8Array ||
+    Array.isArray(raw)
   )
     throw new PeerInvitationError("MALFORMED", "expected map");
   return value as CborMap;

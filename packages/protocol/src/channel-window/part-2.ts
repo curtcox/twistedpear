@@ -29,7 +29,7 @@ import type {
   ChannelOutletTransmitState,
   ChannelOutletTransmitStepResult,
 } from "./part-1.js";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function stepChannelOutletTransmitWithActions(
   state: ChannelOutletTransmitState,
   event: ChannelOutletTransmitEvent,
@@ -415,9 +415,7 @@ export type ChannelTxEnvelopeOpPlanAction = {
 export function channelTxEnvelopeOpPlanFromActions(
   actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>,
 ): ChannelTxEnvelopeOpPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "miss" || entry.kind === "process",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

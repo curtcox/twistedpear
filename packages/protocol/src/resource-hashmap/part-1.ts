@@ -18,7 +18,11 @@
  * {@link stepResourceHashmapUpdateAcceptPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import {
+  firstAction,
+  firstActionOfKind,
+  hasActionOfKind,
+} from "../action-kind.js";
 import { assembleByteArrays, concatByteArrays } from "../bytes.js";
 import {
   msgpackPackArray,
@@ -306,12 +310,10 @@ export function shouldWriteResourceHashmapSlotsPlan(
 export function resourceHashmapSlotWritesPlanFromActions(
   actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>,
 ): readonly ResourceHashmapSlotWrite[] {
-  return actions
-    .filter(
-      (action): action is ResourceHashmapSlotWritesPlanAction =>
-        action.kind === "write",
-    )
-    .map((action) => ({ slot: action.slot, mapHash: action.mapHash }));
+  return actions.map((action) => ({
+    slot: action.slot,
+    mapHash: action.mapHash,
+  }));
 }
 
 /**
@@ -387,12 +389,10 @@ export function shouldWriteResourceHashmapSlots(
 export function resourceHashmapSlotWritesFromActions(
   actions: ReadonlyArray<ResourceHashmapSlotWritesAction>,
 ): readonly ResourceHashmapSlotWrite[] {
-  return actions
-    .filter(
-      (action): action is ResourceHashmapSlotWritesAction =>
-        action.kind === "write",
-    )
-    .map((action) => ({ slot: action.slot, mapHash: action.mapHash }));
+  return actions.map((action) => ({
+    slot: action.slot,
+    mapHash: action.mapHash,
+  }));
 }
 
 /**

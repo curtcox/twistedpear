@@ -311,12 +311,13 @@ function isPersistedAuthority(
   appId: string,
   publisherPublicKey: string,
 ): authority is PersistedGrantAuthority {
+  const lifecycles: unknown = authority.lifecycles;
   return (
     authority.version === 1 &&
     authority.appId === appId &&
     authority.publisherPublicKey === publisherPublicKey &&
-    typeof authority.lifecycles === "object" &&
-    authority.lifecycles !== null
+    typeof lifecycles === "object" &&
+    lifecycles !== null
   );
 }
 
@@ -325,16 +326,19 @@ function isOptionalSafeInteger(value: number | null): boolean {
 }
 
 function isGrantLifecycle(lifecycle: GrantLifecycleState): boolean {
+  const raw: unknown = lifecycle;
+  if (typeof raw !== "object" || raw === null) {
+    return false;
+  }
+  const record = raw as GrantLifecycleState;
   return (
-    typeof lifecycle === "object" &&
-    lifecycle !== null &&
     ["requested", "granted", "active", "denied", "expired", "revoked"].includes(
-      lifecycle.phase,
+      record.phase,
     ) &&
-    Number.isSafeInteger(lifecycle.requestedAt) &&
-    isOptionalSafeInteger(lifecycle.expiresAt) &&
-    isOptionalSafeInteger(lifecycle.firstUsedAt) &&
-    isOptionalSafeInteger(lifecycle.revokedAt)
+    Number.isSafeInteger(record.requestedAt) &&
+    isOptionalSafeInteger(record.expiresAt) &&
+    isOptionalSafeInteger(record.firstUsedAt) &&
+    isOptionalSafeInteger(record.revokedAt)
   );
 }
 

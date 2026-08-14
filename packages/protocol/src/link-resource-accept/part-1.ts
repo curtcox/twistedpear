@@ -18,7 +18,7 @@ import {
   LinkResourceStrategy,
   type LinkResourceStrategyValue,
 } from "../link-watchdog.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 export type LinkResourceAcceptPlan =
   | { readonly kind: "ignore" }
@@ -161,12 +161,7 @@ export function shouldAcceptLinkResourceAdvertisementPlan(
 export function linkResourceAdvertisementPlanFromActions(
   actions: ReadonlyArray<LinkResourceAdvertisementPlanAction>,
 ): LinkResourceAcceptPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "ask-app" ||
-      entry.kind === "accept",
-  );
+  const action = firstAction(actions);
   return action ?? null;
 }
 
@@ -236,9 +231,7 @@ export function shouldRejectLinkResourceAcceptAppResultPlan(
 export function linkResourceAcceptAppResultPlanFromActions(
   actions: ReadonlyArray<LinkResourceAcceptAppResultPlanAction>,
 ): "accept" | "reject" | null {
-  const action = actions.find(
-    (entry) => entry.kind === "accept" || entry.kind === "reject",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

@@ -428,8 +428,9 @@ function nativePeerQrUri(
   if (peerModal?.kind !== "exchange" || peerModal.request.type !== "peer-qr-present") {
     return null;
   }
-  const value = peerModal.request.codes[peerQrFrame % peerModal.request.codes.length];
-  if (value === undefined) return null;
+  const value: unknown =
+    peerModal.request.codes[peerQrFrame % peerModal.request.codes.length];
+  if (typeof value !== "string") return null;
   const image = qrcodeModule(0, "M");
   image.addData(value);
   image.make();

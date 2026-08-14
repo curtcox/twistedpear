@@ -157,7 +157,7 @@ function forwardBareBrokerRequest(
   const endpoint = options.brokerEndpoint as {
     request?: (request: unknown) => Promise<unknown>;
   };
-  if (typeof endpoint?.request !== "function") {
+  if (typeof endpoint.request !== "function") {
     worker.postMessage({
       type: "broker-response",
       id,

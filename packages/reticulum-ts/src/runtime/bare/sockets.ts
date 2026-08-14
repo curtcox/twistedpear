@@ -150,10 +150,16 @@ class BareTcpFactory implements TcpFactory {
       });
     });
 
-    const address = server.address();
-    if (address === null) {
+    const bound: unknown = server.address();
+    if (
+      bound === null ||
+      typeof bound !== "object" ||
+      !("address" in bound) ||
+      !("port" in bound)
+    ) {
       throw new Error("Failed to determine TCP listen address");
     }
+    const address = bound as { address: string; port: number };
 
     return {
       address: { host: address.address, port: address.port },

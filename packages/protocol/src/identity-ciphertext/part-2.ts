@@ -27,7 +27,7 @@ import type {
   IdentityDecryptOutcomePlanEvent,
   IdentityDecryptPlan,
 } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Identity-decrypt-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planIdentityDecryptOutcome`
@@ -270,12 +270,7 @@ export function stepIdentityRecallPlanWithActions(
 export function identityRecallPlanFromActions(
   actions: ReadonlyArray<IdentityRecallPlanAction>,
 ): IdentityRecallPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "miss" ||
-      entry.kind === "reject-key" ||
-      entry.kind === "hit",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -415,9 +410,7 @@ export type IdentityRecallAppDataPlanAction = {
 export function identityRecallAppDataPlanFromActions(
   actions: ReadonlyArray<IdentityRecallAppDataPlanAction>,
 ): IdentityRecallAppDataPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "hit" || entry.kind === "miss",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

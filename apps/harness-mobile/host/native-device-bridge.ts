@@ -32,7 +32,7 @@ export async function nativeDeviceAvailability(
     return nativePeerAudioSupported() ? "permission-required" : "unsupported";
   }
   if (classId === "haptics") {
-    return typeof Vibration?.vibrate === "function"
+    return typeof Vibration.vibrate === "function"
       ? "available"
       : "unsupported";
   }
@@ -112,7 +112,7 @@ export function nativeDeviceActuate(
 }
 
 function actuateNativeHaptics(patternMs: ReadonlyArray<number>): void {
-  if (typeof Vibration?.vibrate !== "function") {
+  if (typeof Vibration.vibrate !== "function") {
     throw new Error("Vibration is unavailable on this host.");
   }
   const pattern = patternMs.length > 0 ? [...patternMs] : [40];

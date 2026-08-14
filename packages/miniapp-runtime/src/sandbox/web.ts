@@ -251,7 +251,7 @@ function handleSandboxBrokerRequest(
   const endpoint = state.options.brokerEndpoint as {
     request?: (request: unknown) => Promise<unknown>;
   };
-  if (typeof endpoint?.request !== "function") {
+  if (typeof endpoint.request !== "function") {
     state.hostPort.postMessage({
       type: "broker-response",
       id: message.id,

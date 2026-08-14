@@ -33,6 +33,7 @@ export function createWebSerialRelay(
   let port: SerialPort | null = null;
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   let readLoopActive = false;
+  const isReadLoopActive = (): boolean => readLoopActive;
   let writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
 
   async function readLoop(): Promise<void> {
@@ -45,7 +46,7 @@ export function createWebSerialRelay(
     reader = activeReader;
 
     try {
-      while (readLoopActive) {
+      while (isReadLoopActive()) {
         const { value, done } = await activeReader.read();
         if (done) {
           break;

@@ -30,7 +30,7 @@ import type {
   DestinationLinkEstablishedCallbackEvent,
   DestinationLinkEstablishedCallbackState,
 } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 export interface DestinationLinkEstablishedCallbackStepResult {
   readonly state: DestinationLinkEstablishedCallbackState;
   readonly intents: readonly Intent[];
@@ -370,13 +370,7 @@ export function stepDestinationConstructionPlanWithActions(
 export function destinationConstructionPlanFromActions(
   actions: ReadonlyArray<DestinationConstructionPlanAction>,
 ): DestinationConstructionPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "bad-direction" ||
-      entry.kind === "bad-type" ||
-      entry.kind === "bad-identity-binding",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

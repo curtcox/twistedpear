@@ -10,7 +10,7 @@ function nodeConfirmationEffects(): ConfirmationEffects {
   return {
     randomBytes(length: number): Uint8Array {
       const bytes = new Uint8Array(length);
-      const c = globalThis.crypto;
+      const c = (globalThis as { crypto?: Crypto }).crypto;
       if (c === undefined || typeof c.getRandomValues !== "function") {
         throw new Error(
           "crypto.getRandomValues is required for confirmation tokens",
@@ -103,7 +103,7 @@ function validateT256(value: unknown): string {
 
 function validateManifestDraft(value: unknown): AppManifestDraft {
   const draft = value as AppManifestDraft;
-  if (typeof draft?.name !== "string" || !NAME_PATTERN.test(draft.name)) {
+  if (typeof draft.name !== "string" || !NAME_PATTERN.test(draft.name)) {
     throw new AppsServiceError(
       "APPS_BAD_REQUEST",
       "Manifest name must be lowercase alphanumeric/dashes",
@@ -128,7 +128,10 @@ function validateManifestDraft(value: unknown): AppManifestDraft {
   }
 
   validateWorkspacePath(draft.entry);
-  const capabilities = validateManifestCapabilities(draft.capabilities ?? []);
+  const capabilitiesRaw: unknown = draft.capabilities;
+  const capabilities = validateManifestCapabilities(
+    Array.isArray(capabilitiesRaw) ? capabilitiesRaw : [],
+  );
   return {
     name: draft.name,
     version: draft.version,

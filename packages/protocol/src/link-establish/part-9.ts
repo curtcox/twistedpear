@@ -80,7 +80,7 @@ import type {
   LinkUnregisterMembershipPlanAction,
   LinkUnregisterMembershipPlanEvent,
 } from "./part-8.js";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 /**
  * Link unregister-membership plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkUnregisterMembership`
@@ -535,8 +535,6 @@ export function stepLinkAppRequestTransmitOutcomePlanWithActions(
 export function linkAppRequestTransmitOutcomePlanFromActions(
   actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>,
 ): LinkAppRequestTransmitOutcome | null {
-  const action = actions.find(
-    (entry) => entry.kind === "keep-pending" || entry.kind === "unregister",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }

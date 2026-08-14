@@ -21,7 +21,7 @@ import type {
   RegisterLxmfDeliveryIdentityState,
   RegisterLxmfDeliveryIdentityStepResult,
 } from "./part-3.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 export function stepRegisterLxmfDeliveryIdentityWithActions(
   state: RegisterLxmfDeliveryIdentityState,
   event: RegisterLxmfDeliveryIdentityEvent,
@@ -356,12 +356,7 @@ export function shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(
 export function lxmfPropagationSyncPrepPlanFromActions(
   actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>,
 ): LxmfPropagationSyncPrepPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "missing-node" ||
-      entry.kind === "missing-delivery-identity",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

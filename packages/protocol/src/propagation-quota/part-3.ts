@@ -15,7 +15,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "../path-table.js";
 import type { DeletePropagationCatalogEntryAction } from "./part-2.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 export function shouldSkipDeletePropagationCatalogEntry(
   actions: ReadonlyArray<DeletePropagationCatalogEntryAction>,
 ): boolean {
@@ -178,13 +178,7 @@ export function shouldAcceptPropagationRestorePlan(
 export function propagationRestorePlanFromActions(
   actions: ReadonlyArray<PropagationRestorePlanAction>,
 ): PropagationRestorePlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "accept" ||
-      entry.kind === "duplicate" ||
-      entry.kind === "reject-too-large" ||
-      entry.kind === "reject-hash",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

@@ -14,7 +14,7 @@ import {
   type LinkStatusValue,
   type LinkTeardownReasonValue,
 } from "./link-watchdog.js";
-import { firstActionOfKind, hasActionOfKind } from "./action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "./action-kind.js";
 
 export type LinkTeardownPlan =
   | { readonly kind: "close-only" }
@@ -135,10 +135,7 @@ export function shouldSendLinkTeardownThenClosePlan(
 export function linkTeardownPlanFromActions(
   actions: ReadonlyArray<LinkTeardownPlanAction>,
 ): LinkTeardownPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "close-only" || entry.kind === "send-teardown-then-close",
-  );
+  const action = firstAction(actions);
   return action ?? null;
 }
 

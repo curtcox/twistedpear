@@ -53,7 +53,8 @@ function requireNonNegativeInt(value: number, message: string): void {
 }
 
 export function encodeDeviceStreamFrame(frame: DeviceStreamFrame): Uint8Array {
-  if (frame.version !== 1 && frame.version !== 2) {
+  const version = Number(frame.version);
+  if (version !== 1 && version !== 2) {
     throw new DeviceStreamFrameError(
       "MALFORMED",
       "Unsupported device stream version.",

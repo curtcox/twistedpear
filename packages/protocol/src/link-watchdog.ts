@@ -444,11 +444,7 @@ function stepLinkWatchdogTick(
     return scheduleWatchdog(state, delayMs, []);
   }
 
-  if (state.status === LinkStatus.ACTIVE || state.status === LinkStatus.STALE) {
-    return stepActiveLinkWatchdog(state, now);
-  }
-
-  return { state, intents: [], actions: [] };
+  return stepActiveLinkWatchdog(state, now);
 }
 
 function stepActiveLinkWatchdog(

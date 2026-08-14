@@ -399,7 +399,7 @@ export class PropagationServer {
             },
           );
           this.persistDebounceState = fired.state;
-          if (fired.actions.some((action) => action.kind === "flush")) {
+          if (fired.actions.length > 0) {
             this.flushCatalog();
           }
         });

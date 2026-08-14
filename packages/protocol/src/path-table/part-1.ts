@@ -30,7 +30,7 @@ import {
   PACKET_HEADER_1,
   PACKET_TYPE_ANNOUNCE,
 } from "../packet-header.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 export { TRUNCATED_HASH_BYTES };
 
@@ -323,16 +323,7 @@ export function stepPathRequestIngressPlanWithActions(
 export function pathRequestIngressPlanFromActions(
   actions: ReadonlyArray<PathRequestIngressPlanAction>,
 ): PathRequestIngressPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore-unparsed" ||
-      entry.kind === "ignore-seen-tag" ||
-      entry.kind === "answer-local" ||
-      entry.kind === "answer-path" ||
-      entry.kind === "ignore" ||
-      entry.kind === "ignore-in-flight-discovery" ||
-      entry.kind === "start-discovery",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

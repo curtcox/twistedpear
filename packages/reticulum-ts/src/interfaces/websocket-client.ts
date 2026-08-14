@@ -380,7 +380,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
     for (const action of actions) {
       if (action.kind === "give-up") {
         void this.close();
-      } else if (action.kind === "connect") {
+      } else {
         void this.attemptReconnect();
       }
     }
@@ -402,11 +402,13 @@ function defaultWebSocketFactory(
   url: string,
   protocols?: string | readonly string[],
 ): WebSocketLike {
-  if (globalThis.WebSocket === undefined) {
+  const WebSocketCtor = (globalThis as { WebSocket?: typeof WebSocket })
+    .WebSocket;
+  if (WebSocketCtor === undefined) {
     throw new Error("No global WebSocket implementation is available");
   }
 
-  return new globalThis.WebSocket(
+  return new WebSocketCtor(
     url,
     protocols as string | string[] | undefined,
   ) as WebSocketLike;

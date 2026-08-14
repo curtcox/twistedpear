@@ -754,7 +754,7 @@ export class ResourceLayer1 {
       }
       if (action.kind === "advertise") {
         await this.advertise();
-      } else if (action.kind === "request-next") {
+      } else {
         await this.requestNext();
       }
     }

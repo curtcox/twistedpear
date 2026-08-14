@@ -52,7 +52,7 @@ import {
 import { linkPayloadFitsMdu } from "../link-metrics.js";
 import { PacketTypeCode } from "../packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "../link-watchdog.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 /** Whether a packed application response fits the link MDU. */
 export function canSendLinkAppResponse(input: {
@@ -173,12 +173,7 @@ export type LinkAppRequestDispatchPlanAction =
 export function linkAppRequestDispatchPlanFromActions(
   actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>,
 ): LinkAppRequestDispatchPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" ||
-      entry.kind === "forbidden" ||
-      entry.kind === "invoke-handler",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

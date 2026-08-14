@@ -69,7 +69,7 @@ import type {
   LinkValidateRequestPlanAction,
   LinkValidateRequestPlanEvent,
 } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Validate-request plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkValidateRequest` /
@@ -115,13 +115,7 @@ export function stepLinkValidateRequestPlanWithActions(
 export function linkValidateRequestPlanFromActions(
   actions: ReadonlyArray<LinkValidateRequestPlanAction>,
 ): LinkValidateRequestPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "bad-request" ||
-      entry.kind === "owner-missing-identity" ||
-      entry.kind === "mode-disabled",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

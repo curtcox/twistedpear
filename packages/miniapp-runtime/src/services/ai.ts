@@ -284,7 +284,8 @@ export class AiService {
       },
       return: async () => {
         try {
-          return source.return === undefined
+          const closer: unknown = source.return;
+          return typeof closer !== "function"
             ? { done: true as const, value: undefined }
             : await source.return(undefined);
         } finally {

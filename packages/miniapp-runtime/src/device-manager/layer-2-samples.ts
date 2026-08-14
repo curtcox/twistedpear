@@ -107,8 +107,8 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
     const tierId = sessionMeta.state.tierId;
     const fix = raw as PreciseLocationFix;
     if (
-      typeof fix?.latitude !== "number" ||
-      typeof fix?.longitude !== "number"
+      typeof fix.latitude !== "number" ||
+      typeof fix.longitude !== "number"
     ) {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
@@ -140,7 +140,7 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   }
 
   private materializeAmbientLight(at: number, raw: unknown): DeviceSample {
-    const lux = typeof raw === "number" ? raw : (raw as { lux?: number })?.lux;
+    const lux = typeof raw === "number" ? raw : (raw as { lux?: number }).lux;
     if (typeof lux !== "number") {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
@@ -263,10 +263,10 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
 
   private assertValidMotionSample(sample: RawMotionSample): void {
     if (
-      !Array.isArray(sample?.accel) ||
-      sample.accel.length !== 3 ||
-      !Array.isArray(sample?.gyro) ||
-      sample.gyro.length !== 3
+      !Array.isArray(sample.accel) ||
+      Number(sample.accel.length) !== 3 ||
+      !Array.isArray(sample.gyro) ||
+      Number(sample.gyro.length) !== 3
     ) {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
@@ -328,17 +328,17 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   }
 
   private materializeBiometric(at: number, raw: unknown): DeviceSample {
-    const passed = Boolean((raw as { passed?: boolean })?.passed);
+    const passed = Boolean((raw as { passed?: boolean }).passed);
     return { kind: "biometric", tier: "assertion", at, passed };
   }
 
   private materializeProximity(at: number, raw: unknown): DeviceSample {
-    const near = Boolean((raw as { near?: boolean })?.near);
+    const near = Boolean((raw as { near?: boolean }).near);
     return { kind: "proximity", tier: "near-far", at, near };
   }
 
   private materializeBarometer(at: number, raw: unknown): DeviceSample {
-    const hPa = Number((raw as { hPa?: number })?.hPa);
+    const hPa = Number((raw as { hPa?: number }).hPa);
     if (!Number.isFinite(hPa)) {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
@@ -354,7 +354,7 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   }
 
   private materializeThermometer(at: number, raw: unknown): DeviceSample {
-    const celsius = Number((raw as { celsius?: number })?.celsius);
+    const celsius = Number((raw as { celsius?: number }).celsius);
     if (!Number.isFinite(celsius)) {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
@@ -371,7 +371,7 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
 
   private materializeHygrometer(at: number, raw: unknown): DeviceSample {
     const relativeHumidity = Number(
-      (raw as { relativeHumidity?: number })?.relativeHumidity,
+      (raw as { relativeHumidity?: number }).relativeHumidity,
     );
     if (!Number.isFinite(relativeHumidity)) {
       throw new DeviceError(
@@ -395,7 +395,7 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
     at: number,
     raw: unknown,
   ): DeviceSample {
-    const bucket = String((raw as { bucket?: string })?.bucket ?? "nominal");
+    const bucket = String((raw as { bucket?: string }).bucket ?? "nominal");
     return {
       kind,
       tier: "coarse",
@@ -406,9 +406,9 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   }
 
   private materializeTranscript(at: number, raw: unknown): DeviceSample {
-    const text = String((raw as { text?: string })?.text ?? "");
-    const isFinal = (raw as { isFinal?: boolean })?.isFinal !== false;
-    const confidence = (raw as { confidence?: number })?.confidence;
+    const text = String((raw as { text?: string }).text ?? "");
+    const isFinal = (raw as { isFinal?: boolean }).isFinal !== false;
+    const confidence = (raw as { confidence?: number }).confidence;
     return {
       kind: "stt",
       tier: "transcript",

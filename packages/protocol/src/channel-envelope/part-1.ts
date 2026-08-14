@@ -11,7 +11,7 @@
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "../packet-receipt-timeout.js";
 import { PacketReceiptStatus } from "../packet-receipt-timeout.js";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const CHANNEL_ENVELOPE_HEADER_SIZE = 6;
 export const CHANNEL_SEQ_MAX = 0xffff;
@@ -416,12 +416,7 @@ export type ChannelMessageTypeRegistrationPlanAction = {
 export function channelMessageTypeRegistrationPlanFromActions(
   actions: ReadonlyArray<ChannelMessageTypeRegistrationPlanAction>,
 ): ChannelMessageTypeRegistrationPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "missing-msgtype" ||
-      entry.kind === "system-reserved",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

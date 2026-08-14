@@ -3,7 +3,7 @@ import {
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
 } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 
 export type InterfaceReconnectPlan =
   | {
@@ -126,9 +126,7 @@ export function interfaceReconnectRetryFromActions(
 export function interfaceReconnectPlanFromActions(
   actions: ReadonlyArray<InterfaceReconnectPlanAction>,
 ): InterfaceReconnectPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "reconnect" || entry.kind === "give-up",
-  );
+  const action = firstAction(actions);
   return action ?? null;
 }
 

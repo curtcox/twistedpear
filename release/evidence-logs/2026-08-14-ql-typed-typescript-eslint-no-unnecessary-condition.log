@@ -1,0 +1,6 @@
+
+> twistedpear@0.0.0 lint:typed
+> node scripts/analysis/eslint-ratchet.mjs --kind=typed
+
+typed: PASS; 0 new, 0 stale.
+typed ratchet is clear of @typescript-eslint/no-unnecessary-condition

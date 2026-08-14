@@ -16,7 +16,7 @@ import {
 } from "../lxmf-fields.js";
 import { planLxMessagePack } from "./part-1.js";
 import type { LxMessagePackGate, LxMessagePackPlanEvent } from "./part-1.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Static LXMessage.pack-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxMessagePack` /
@@ -88,12 +88,7 @@ export function shouldRejectLxMessagePackPlanBadSource(
 export function lxMessagePackPlanFromActions(
   actions: ReadonlyArray<LxMessagePackPlanAction>,
 ): LxMessagePackGate | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "bad-destination" ||
-      entry.kind === "bad-source",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -292,12 +287,7 @@ export function shouldRejectLxmfPackTimestampPlan(
 export function lxmfPackTimestampPlanFromActions(
   actions: ReadonlyArray<LxmfPackTimestampPlanAction>,
 ): LxmfPackTimestampPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "use-timestamp" ||
-      entry.kind === "use-now" ||
-      entry.kind === "reject",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

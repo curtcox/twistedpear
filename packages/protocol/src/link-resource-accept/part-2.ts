@@ -25,7 +25,7 @@ import type {
   HandleOutgoingResourceRequestState,
   HandleOutgoingResourceRequestStepResult,
 } from "./part-1.js";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 export function stepHandleOutgoingResourceRequestWithActions(
   state: HandleOutgoingResourceRequestState,
   event: HandleOutgoingResourceRequestEvent,
@@ -273,7 +273,7 @@ export function stepLinkResourceConcludePlanWithActions(
 export function linkResourceConcludePlanFromActions(
   actions: ReadonlyArray<LinkResourceConcludePlanAction>,
 ): LinkResourceConcludePlan | null {
-  const action = actions.find((entry) => entry.kind === "plan");
+  const action = firstAction(actions);
   if (action === undefined) {
     return null;
   }

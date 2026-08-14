@@ -24,7 +24,7 @@ import {
 } from "./part-1.js";
 import { planAnnounceValidateOutcome } from "./part-2.js";
 import type { AnnounceValidatePlan } from "./part-2.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Announce-validate-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planAnnounceValidateOutcome`
@@ -97,15 +97,7 @@ export function shouldAcceptAnnounceValidateOutcomePlan(
 export function announceValidateOutcomePlanFromActions(
   actions: ReadonlyArray<AnnounceValidateOutcomePlanAction>,
 ): AnnounceValidatePlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "accept" ||
-      entry.kind === "accept-signature-only" ||
-      entry.kind === "reject-parse" ||
-      entry.kind === "reject-public-key" ||
-      entry.kind === "reject-signature" ||
-      entry.kind === "reject-destination-hash",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -335,15 +327,7 @@ export function shouldRejectAnnounceBuildPlanBadRatchet(
 export function announceBuildPlanFromActions(
   actions: ReadonlyArray<AnnounceBuildPlanAction>,
 ): AnnounceBuildPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "not-announceable-type" ||
-      entry.kind === "not-announceable-direction" ||
-      entry.kind === "missing-identity" ||
-      entry.kind === "bad-random-hash" ||
-      entry.kind === "bad-ratchet",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

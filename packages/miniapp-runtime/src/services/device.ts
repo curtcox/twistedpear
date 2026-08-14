@@ -50,7 +50,7 @@ export class DeviceBrokerService {
     appId: string,
     payload: { handle: DeviceSessionHandle },
   ): Promise<{ closed: true }> {
-    if (typeof payload?.handle !== "string" || payload.handle.length === 0) {
+    if (typeof payload.handle !== "string" || payload.handle.length === 0) {
       throw new DeviceBrokerServiceError(
         "DEVICE_BAD_REQUEST",
         "Device session handle is required.",
@@ -64,7 +64,7 @@ export class DeviceBrokerService {
     appId: string,
     payload: { handle: DeviceSessionHandle },
   ): Promise<DeviceSample> {
-    if (typeof payload?.handle !== "string" || payload.handle.length === 0) {
+    if (typeof payload.handle !== "string" || payload.handle.length === 0) {
       throw new DeviceBrokerServiceError(
         "DEVICE_BAD_REQUEST",
         "Device session handle is required.",
@@ -81,13 +81,14 @@ export class DeviceBrokerService {
       command: import("@twistedpear/protocol").DeviceCommand;
     },
   ): Promise<void> {
-    if (typeof payload?.handle !== "string" || payload.handle.length === 0) {
+    if (typeof payload.handle !== "string" || payload.handle.length === 0) {
       throw new DeviceBrokerServiceError(
         "DEVICE_BAD_REQUEST",
         "Device session handle is required.",
       );
     }
-    if (typeof payload.command !== "object" || payload.command === null) {
+    const command: unknown = payload.command;
+    if (typeof command !== "object" || command === null) {
       throw new DeviceBrokerServiceError(
         "DEVICE_BAD_REQUEST",
         "Device command is required.",
@@ -111,7 +112,7 @@ export class DeviceBrokerService {
       constraints?: import("../device-manager.js").DeviceStreamConstraints;
     },
   ): Promise<import("../device-manager.js").DeviceStreamSession> {
-    if (typeof payload?.handle !== "string" || payload.handle.length === 0) {
+    if (typeof payload.handle !== "string" || payload.handle.length === 0) {
       throw new DeviceBrokerServiceError(
         "DEVICE_BAD_REQUEST",
         "Device session handle is required.",
@@ -131,7 +132,7 @@ export class DeviceBrokerService {
     appId: string,
     payload: { handle: string },
   ): Promise<{ closed: true }> {
-    if (typeof payload?.handle !== "string" || payload.handle.length === 0) {
+    if (typeof payload.handle !== "string" || payload.handle.length === 0) {
       throw new DeviceBrokerServiceError(
         "DEVICE_BAD_REQUEST",
         "Stream handle is required.",

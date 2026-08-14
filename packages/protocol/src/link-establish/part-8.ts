@@ -62,7 +62,7 @@ import type {
   LinkRegisterListPlanAction,
   LinkRegisterListPlanEvent,
 } from "./part-7.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Link register-list plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkRegisterList` /
@@ -252,7 +252,7 @@ export function stepLinkActivateMembershipPlanWithActions(
 export function linkActivateMembershipPlanFromActions(
   actions: ReadonlyArray<LinkActivateMembershipPlanAction>,
 ): LinkActivateMembershipPlan | null {
-  const action = actions.find((entry) => entry.kind === "plan");
+  const action = firstAction(actions);
   if (action === undefined) {
     return null;
   }
@@ -313,7 +313,7 @@ export type LinkUnregisterMembershipPlanAction = {
 export function linkUnregisterMembershipPlanFromActions(
   actions: ReadonlyArray<LinkUnregisterMembershipPlanAction>,
 ): LinkUnregisterMembershipPlan | null {
-  const action = actions.find((entry) => entry.kind === "plan");
+  const action = firstAction(actions);
   if (action === undefined) {
     return null;
   }

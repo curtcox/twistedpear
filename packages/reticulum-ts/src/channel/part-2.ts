@@ -160,10 +160,6 @@ export class LinkChannelOutlet implements ChannelOutlet {
     const result = await this.link.sendContext(PacketContext.CHANNEL, raw, {
       createReceipt: true,
     });
-    if (result === null) {
-      return null;
-    }
-
     return new LinkChannelPacket(result.raw, result.receipt);
   }
 

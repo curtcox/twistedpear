@@ -22,7 +22,7 @@ import type {
   LxmfPropagationLinkReadyPlanAction,
   LxmfPropagationLinkReadyPlanEvent,
 } from "./part-5.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /**
  * Propagation link-ready-plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagationLinkReady` /
@@ -96,13 +96,7 @@ export function shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(
 export function lxmfPropagationLinkReadyPlanFromActions(
   actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>,
 ): LxmfPropagationLinkReadyPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "reuse" ||
-      entry.kind === "establish" ||
-      entry.kind === "missing-node" ||
-      entry.kind === "missing-identity",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -321,13 +315,7 @@ export function shouldRejectLxmfPropagatedSendPlanResourceUnimplemented(
 export function lxmfPropagatedSendPlanFromActions(
   actions: ReadonlyArray<LxmfPropagatedSendPlanAction>,
 ): LxmfPropagatedSendPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ok" ||
-      entry.kind === "missing-node" ||
-      entry.kind === "missing-packed" ||
-      entry.kind === "resource-unimplemented",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

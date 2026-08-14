@@ -17,7 +17,7 @@
  * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { firstActionOfKind, hasActionOfKind } from "../action-kind.js";
+import { firstAction, firstActionOfKind, hasActionOfKind } from "../action-kind.js";
 
 export const IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE = 32;
 
@@ -390,14 +390,7 @@ export type IdentityDecryptOutcomePlanAction = {
 export function identityDecryptOutcomePlanFromActions(
   actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>,
 ): IdentityDecryptPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "reject-frame" ||
-      entry.kind === "accept" ||
-      entry.kind === "reject-enforced" ||
-      entry.kind === "try-identity" ||
-      entry.kind === "reject",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

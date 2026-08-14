@@ -59,7 +59,7 @@ import type {
   UpdateLinkKeepaliveAllowState,
   UpdateLinkKeepaliveAllowStepResult,
 } from "./part-3.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 export function initialUpdateLinkKeepaliveAllowState(): UpdateLinkKeepaliveAllowState {
   return {};
 }
@@ -253,12 +253,7 @@ export function shouldReuseLinkTokenAccessPlan(
 export function linkTokenAccessPlanFromActions(
   actions: ReadonlyArray<LinkTokenAccessPlanAction>,
 ): LinkTokenAccessPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "reject-no-key" ||
-      entry.kind === "create" ||
-      entry.kind === "reuse",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 
@@ -433,9 +428,7 @@ export function stepLinkAppRequestPlanWithActions(
 export function linkAppRequestPlanFromActions(
   actions: ReadonlyArray<LinkAppRequestPlanAction>,
 ): LinkAppRequestPlan | null {
-  const action = actions.find(
-    (entry) => entry.kind === "send" || entry.kind === "reject",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

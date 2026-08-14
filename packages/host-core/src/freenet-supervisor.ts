@@ -40,6 +40,10 @@ export interface FreenetSupervisorSpawnResult {
   ): void;
 }
 
+function isChildExited(child: FreenetSupervisorSpawnResult): boolean {
+  return child.exitCode !== null || child.signalCode !== null;
+}
+
 export type FreenetSupervisorSpawner = (
   command: string,
   args: ReadonlyArray<string>,
@@ -287,14 +291,10 @@ export class FreenetSupervisor {
     this.#startGeneration += 1;
     const child = this.#child;
     this.#child = null;
-    if (
-      child !== null &&
-      child.exitCode === null &&
-      child.signalCode === null
-    ) {
+    if (child !== null && !isChildExited(child)) {
       child.kill("SIGTERM");
       await this.#waitForExit(child, 5_000);
-      if (child.exitCode === null && child.signalCode === null) {
+      if (!isChildExited(child)) {
         child.kill("SIGKILL");
         await this.#waitForExit(child, 1_000);
       }
@@ -383,14 +383,20 @@ export class FreenetSupervisor {
     });
     this.#child = child;
 
-    child.stdout.setEncoding?.("utf8");
-    child.stderr.setEncoding?.("utf8");
-    child.stderr.on?.("data", (chunk: string | Buffer) => {
-      const text = redactFreenetAuthToken(String(chunk), this.#authToken);
-      if (text.toLowerCase().includes("error")) {
-        this.#lastError = text.trim().slice(-500);
-      }
-    });
+    if (typeof child.stdout.setEncoding === "function") {
+      child.stdout.setEncoding("utf8");
+    }
+    if (typeof child.stderr.setEncoding === "function") {
+      child.stderr.setEncoding("utf8");
+    }
+    if (typeof child.stderr.on === "function") {
+      child.stderr.on("data", (chunk: string | Buffer) => {
+        const text = redactFreenetAuthToken(String(chunk), this.#authToken);
+        if (text.toLowerCase().includes("error")) {
+          this.#lastError = text.trim().slice(-500);
+        }
+      });
+    }
 
     child.once("exit", (code, signal) => {
       void this.#onExit(generation, code, signal);
@@ -455,7 +461,8 @@ export class FreenetSupervisor {
     this.#restartAttempts += 1;
     const sleep = this.#options.sleep ?? defaultSleep;
     await sleep(delayMs);
-    if (this.#stopping || generation !== this.#startGeneration) return;
+    const isStopping = (): boolean => this.#stopping;
+    if (isStopping() || generation !== this.#startGeneration) return;
     try {
       await this.#launch(true);
     } catch (error) {

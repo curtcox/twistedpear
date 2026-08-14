@@ -211,7 +211,7 @@ export class CryptoPeerPairingBackend implements PeerPairingSecurityBackend {
     envelope: Uint8Array,
   ): Promise<AuthenticatedPairingContext> {
     const local = offerPrivateState as LocalCryptoState;
-    if (!(local?.privateKey instanceof Uint8Array))
+    if (!(local.privateKey instanceof Uint8Array))
       throw new PeerDiscoveryError(
         "INVALID_INVITATION",
         "Missing local ephemeral state",

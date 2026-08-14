@@ -103,7 +103,7 @@ export class NtfyPacketInterface extends RawPacketInterface {
   constructor(provider: CryptoProvider, options: NtfyPacketInterfaceOptions) {
     super({
       ...options,
-      name: options.name ?? "host-ntfy",
+      name: options.name,
       mtu:
         options.mtu ??
         MAX_NTFY_MESSAGE_BYTES -
@@ -165,10 +165,12 @@ export class NtfyPacketInterface extends RawPacketInterface {
   }
 
   private async runPollLoop(): Promise<void> {
-    while (!this.isClosed && this.abortController !== null) {
+    const isActive = (): boolean =>
+      !this.isClosed && this.abortController !== null;
+    while (isActive()) {
       try {
         await this.pollOnce();
-      } catch (error) {
+      } catch {
         if (this.isClosed) return;
         this.online = false;
       }

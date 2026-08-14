@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-14T12:42:27.991Z",
-  "commit": "5d695af2469f54fd14c377992751c84412971720",
+  "generatedAt": "2026-08-14T20:51:51.249Z",
+  "commit": "794fccfac9f1a920c6b1eaf150d0d85dc6783a89",
   "counts": {
-    "total": 2,
+    "total": 9,
     "high": 0,
-    "medium": 2,
-    "low": 0
+    "medium": 4,
+    "low": 5
   },
   "ratchets": {
-    "lint-ratchet.json": 6168,
-    "typed-lint-ratchet.json": 518,
-    "complexity-ratchet.json": 284,
+    "lint-ratchet.json": 5138,
+    "typed-lint-ratchet.json": 0,
+    "complexity-ratchet.json": 6,
     "size-ratchet.json": 0,
     "format-ratchet.json": 0,
     "license-ratchet.json": 0
@@ -19,10 +19,26 @@
   "findings": [
     {
       "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "apps/host-desktop/src/main/index.ts",
+      "summary": "QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES closed 2026-08-07, but its evidence apps/host-desktop/src/main/index.ts changed on 2026-08-14",
+      "ask": "Would `npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/no-floating-promises` still pass? Re-run it if apps/host-desktop/src/main/index.ts carries the behaviour QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/lxmf-ts/src/router.ts",
+      "summary": "QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES closed 2026-08-07, but its evidence packages/lxmf-ts/src/router.ts changed on 2026-08-14",
+      "ask": "Would `npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/no-floating-promises` still pass? Re-run it if packages/lxmf-ts/src/router.ts carries the behaviour QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES claimed."
+    },
+    {
+      "family": "closed",
       "check": "instant-verification",
       "severity": "medium",
       "where": "BUG-REACT-DOM-MISMATCH",
-      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 1 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
+      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 2 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
       "ask": "Did `npm run test:web-widget-renderer` actually exercise BUG-REACT-DOM-MISMATCH, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -30,8 +46,48 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "ID-APPSCOPE",
-      "summary": "ID-APPSCOPE (bug) closed 3 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
+      "summary": "ID-APPSCOPE (bug) closed 4 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
       "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "closed",
+      "check": "missing-evidence-log",
+      "severity": "low",
+      "where": "release/evidence-logs/2026-08-14-doc-optional-backlog.log",
+      "summary": "DOC-OPTIONAL-BACKLOG cites an evidence log that is no longer in the tree",
+      "ask": "Restore release/evidence-logs/2026-08-14-doc-optional-backlog.log or accept that DOC-OPTIONAL-BACKLOG now rests on its evidence paths alone."
+    },
+    {
+      "family": "closed",
+      "check": "missing-evidence-log",
+      "severity": "low",
+      "where": "release/evidence-logs/2026-08-14-id-devices-relabel.log",
+      "summary": "ID-DEVICES-RELABEL cites an evidence log that is no longer in the tree",
+      "ask": "Restore release/evidence-logs/2026-08-14-id-devices-relabel.log or accept that ID-DEVICES-RELABEL now rests on its evidence paths alone."
+    },
+    {
+      "family": "closed",
+      "check": "missing-evidence-log",
+      "severity": "low",
+      "where": "release/evidence-logs/2026-08-14-ql-complexity-typescript-eslint-ban-ts-comment.log",
+      "summary": "QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT cites an evidence log that is no longer in the tree",
+      "ask": "Restore release/evidence-logs/2026-08-14-ql-complexity-typescript-eslint-ban-ts-comment.log or accept that QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT now rests on its evidence paths alone."
+    },
+    {
+      "family": "closed",
+      "check": "missing-evidence-log",
+      "severity": "low",
+      "where": "release/evidence-logs/2026-08-14-ql-lint-no-func-assign.log",
+      "summary": "QL-LINT-NO-FUNC-ASSIGN cites an evidence log that is no longer in the tree",
+      "ask": "Restore release/evidence-logs/2026-08-14-ql-lint-no-func-assign.log or accept that QL-LINT-NO-FUNC-ASSIGN now rests on its evidence paths alone."
+    },
+    {
+      "family": "closed",
+      "check": "missing-evidence-log",
+      "severity": "low",
+      "where": "release/evidence-logs/2026-08-14-work-effort.log",
+      "summary": "WORK-EFFORT cites an evidence log that is no longer in the tree",
+      "ask": "Restore release/evidence-logs/2026-08-14-work-effort.log or accept that WORK-EFFORT now rests on its evidence paths alone."
     }
   ]
 }

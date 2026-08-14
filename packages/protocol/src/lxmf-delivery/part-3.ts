@@ -15,7 +15,7 @@ import {
   type LxmfUnverifiedReasonValue,
 } from "../lxmf-fields.js";
 import type { LxmfDeliverableAcceptPlan } from "./part-2.js";
-import { hasActionOfKind } from "../action-kind.js";
+import { firstAction, hasActionOfKind } from "../action-kind.js";
 /** Whether an unpacked LXMF deliverable should be accepted (sig + seen-hash). */
 export function planLxmfDeliverableAccept(input: {
   readonly signatureValidated: boolean;
@@ -111,12 +111,7 @@ export function shouldRejectLxmfDeliverableAcceptPlanSeen(
 export function lxmfDeliverableAcceptPlanFromActions(
   actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>,
 ): LxmfDeliverableAcceptPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "accept" ||
-      entry.kind === "reject-unsigned" ||
-      entry.kind === "reject-seen",
-  );
+  const action = firstAction(actions);
   return action?.kind ?? null;
 }
 

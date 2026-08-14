@@ -462,7 +462,8 @@ export class AutoInterface extends RawPacketInterface {
         scopeIpv6Address(this.multicastAddress, iface.name),
         (error) => {
           socket.close();
-          if (error === undefined || error === null) {
+          const err: unknown = error;
+          if (err == null) {
             resolve();
           } else {
             reject(error);
@@ -498,7 +499,8 @@ export class AutoInterface extends RawPacketInterface {
         scopeIpv6Address(peerAddress, ifname),
         (error) => {
           socket.close();
-          if (error === undefined || error === null) {
+          const err: unknown = error;
+          if (err == null) {
             resolve();
           } else {
             reject(error);

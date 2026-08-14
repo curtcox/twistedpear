@@ -158,8 +158,8 @@ export class SimFreenetContractHub {
     }
     listeners.add(listener);
     return () => {
-      listeners?.delete(listener);
-      if (listeners?.size === 0) {
+      listeners.delete(listener);
+      if (listeners.size === 0) {
         this.#listeners.delete(keyHex);
       }
     };

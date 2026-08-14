@@ -224,7 +224,7 @@ export class CatalogStore {
 
   async load(store: KeyValueStore): Promise<void> {
     const raw = await store.get("catalog");
-    if (raw === null) {
+    if (raw === undefined) {
       return;
     }
 
@@ -425,7 +425,7 @@ export class InstalledPackageStore {
 
   async load(store: KeyValueStore): Promise<void> {
     const raw = await store.get("installed-packages");
-    if (raw === null || raw === undefined) {
+    if (raw === undefined) {
       return;
     }
 
