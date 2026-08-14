@@ -118,17 +118,14 @@ export async function runCampaign<S>(options: {
       batch.map(async ({ cell, seed }) => runOne(cell, seed, options.scenario)),
     );
     for (const result of results) {
-      containment.push(result.containment);
-      if (result.description !== undefined)
-        coverage.set(result.description.cell, result.description);
-      if (result.finding !== null) {
-        if (result.finding.kind === "canary")
-          canaryFindings.push(result.finding);
-        else findings.push(result.finding);
-        findingKeys.add(
-          `${result.finding.violation.oracle}\u0000${result.finding.violation.message}`,
-        );
-      }
+      applyRunResult({
+        result,
+        containment,
+        coverage,
+        findings,
+        canaryFindings,
+        findingKeys,
+      });
     }
     const completed = Math.min(offset + batch.length, jobs.length);
     if (completed % 1_000 === 0 || completed === jobs.length) {
@@ -154,6 +151,29 @@ export async function runCampaign<S>(options: {
     saturation,
     containment: summarizeContainment(containment),
   };
+}
+
+function applyRunResult<S>(options: {
+  readonly result: Awaited<ReturnType<typeof runOne<S>>>;
+  readonly containment: ContainmentMetrics[];
+  readonly coverage: Map<string, ScenarioCoverage>;
+  readonly findings: CampaignFinding[];
+  readonly canaryFindings: CampaignFinding[];
+  readonly findingKeys: Set<string>;
+}): void {
+  options.containment.push(options.result.containment);
+  if (options.result.description !== undefined)
+    options.coverage.set(
+      options.result.description.cell,
+      options.result.description,
+    );
+  if (options.result.finding === null) return;
+  if (options.result.finding.kind === "canary")
+    options.canaryFindings.push(options.result.finding);
+  else options.findings.push(options.result.finding);
+  options.findingKeys.add(
+    `${options.result.finding.violation.oracle}\u0000${options.result.finding.violation.message}`,
+  );
 }
 
 export function serializeCampaignReport(report: CampaignReport): string {
@@ -194,26 +214,34 @@ async function runOne<S>(
     };
   } catch (error) {
     if (!(error instanceof OracleViolation)) throw error;
-    const minimized = shrinkHistoryWithConfig(error.history, {
-      ...scenario.config,
-      seed,
-    });
-    const minimizedPath = scenario.config.recorder?.record(minimized);
-    const historyPath = minimizedPath ?? error.historyPath;
     return {
-      finding: {
-        cell: cellId(cell),
-        seed,
-        kind:
-          scenario.expectedCanaryOracles?.includes(error.violation.oracle) ===
-          true
-            ? "canary"
-            : "violation",
-        violation: error.violation,
-        ...(historyPath === undefined ? {} : { historyPath }),
-      },
+      finding: findingFromViolation(cell, seed, scenario, error),
       containment: containment(),
       ...(description === undefined ? {} : { description }),
     };
   }
+}
+
+function findingFromViolation<S>(
+  cell: CoverageCell,
+  seed: number,
+  scenario: CampaignScenario<S>,
+  error: OracleViolation,
+): CampaignFinding {
+  const minimized = shrinkHistoryWithConfig(error.history, {
+    ...scenario.config,
+    seed,
+  });
+  const minimizedPath = scenario.config.recorder?.record(minimized);
+  const historyPath = minimizedPath ?? error.historyPath;
+  return {
+    cell: cellId(cell),
+    seed,
+    kind:
+      scenario.expectedCanaryOracles?.includes(error.violation.oracle) === true
+        ? "canary"
+        : "violation",
+    violation: error.violation,
+    ...(historyPath === undefined ? {} : { historyPath }),
+  };
 }

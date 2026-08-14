@@ -41,6 +41,44 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
+function expectDecodedSession(
+  name: string,
+  frame: { command?: number; payload?: Uint8Array } | undefined,
+): void {
+  const check = SESSION_CHECKS[name];
+  check?.(frame);
+}
+
+const SESSION_CHECKS: Record<
+  string,
+  (frame: { command?: number; payload?: Uint8Array } | undefined) => void
+> = {
+  "detect-handshake": (frame) => {
+    expect(frame?.command).toBe(KISS_CMD_DETECT);
+    expect(frame?.payload?.[0]).toBe(KISS_DETECT_RESP);
+  },
+  "radio-state-query": (frame) => {
+    expect(frame?.command).toBe(KISS_CMD_RADIO_STATE);
+    expect(frame?.payload?.[0]).toBe(KISS_RADIO_STATE_ON);
+  },
+  "firmware-version": (frame) => {
+    expect(frame?.command).toBe(KISS_CMD_FW_VERSION);
+    expect(new TextDecoder().decode(frame?.payload ?? new Uint8Array())).toBe(
+      "1.4.0",
+    );
+  },
+  "platform-query": (frame) => {
+    expect(frame?.command).toBe(KISS_CMD_PLATFORM);
+    expect(frame?.payload?.[0]).toBe(0x01);
+  },
+  "data-frame-roundtrip": (frame) => {
+    expect(frame?.command).toBe(0x00);
+    expect(new TextDecoder().decode(frame?.payload ?? new Uint8Array())).toBe(
+      "reticulum",
+    );
+  },
+};
+
 describe("RNode KISS golden transcripts", () => {
   it("matches reference detect request encoding", () => {
     const session = transcripts.sessions.find(
@@ -69,39 +107,7 @@ describe("RNode KISS golden transcripts", () => {
         createKissDecodeState(),
       );
       expect(decoded.frames.length).toBeGreaterThan(0);
-
-      if (session.name === "detect-handshake") {
-        expect(decoded.frames[0]?.command).toBe(KISS_CMD_DETECT);
-        expect(decoded.frames[0]?.payload[0]).toBe(KISS_DETECT_RESP);
-      }
-
-      if (session.name === "radio-state-query") {
-        expect(decoded.frames[0]?.command).toBe(KISS_CMD_RADIO_STATE);
-        expect(decoded.frames[0]?.payload[0]).toBe(KISS_RADIO_STATE_ON);
-      }
-
-      if (session.name === "firmware-version") {
-        expect(decoded.frames[0]?.command).toBe(KISS_CMD_FW_VERSION);
-        expect(
-          new TextDecoder().decode(
-            decoded.frames[0]?.payload ?? new Uint8Array(),
-          ),
-        ).toBe("1.4.0");
-      }
-
-      if (session.name === "platform-query") {
-        expect(decoded.frames[0]?.command).toBe(KISS_CMD_PLATFORM);
-        expect(decoded.frames[0]?.payload[0]).toBe(0x01);
-      }
-
-      if (session.name === "data-frame-roundtrip") {
-        expect(decoded.frames[0]?.command).toBe(0x00);
-        expect(
-          new TextDecoder().decode(
-            decoded.frames[0]?.payload ?? new Uint8Array(),
-          ),
-        ).toBe("reticulum");
-      }
+      expectDecodedSession(session.name, decoded.frames[0]);
     });
   }
 

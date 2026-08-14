@@ -56,82 +56,98 @@ export class HostDesktopBridges {
   }
 
   async handleWorkletMessage(message: WorkletToHostMessage): Promise<void> {
-    if (message.type === "multicast-start") {
-      await this.multicast.start();
+    if (message.type.startsWith("multicast-")) {
+      await this.handleMulticastMessage(message);
       return;
     }
-
-    if (message.type === "multicast-stop") {
-      await this.multicast.stop();
+    if (message.type.startsWith("bonjour-")) {
+      await this.handleBonjourMessage(message);
       return;
     }
-
-    if (message.type === "multicast-join") {
-      await this.multicast.joinGroup(
-        message.ifname,
-        message.groupAddress,
-        message.port,
-      );
-      return;
+    if (message.type.startsWith("serial-")) {
+      await this.handleSerialMessage(message);
     }
+  }
 
-    if (message.type === "multicast-bind") {
-      await this.multicast.bindPort(message.ifname, message.port);
-      return;
+  private async handleMulticastMessage(
+    message: WorkletToHostMessage,
+  ): Promise<void> {
+    switch (message.type) {
+      case "multicast-start":
+        await this.multicast.start();
+        return;
+      case "multicast-stop":
+        await this.multicast.stop();
+        return;
+      case "multicast-join":
+        await this.multicast.joinGroup(
+          message.ifname,
+          message.groupAddress,
+          message.port,
+        );
+        return;
+      case "multicast-bind":
+        await this.multicast.bindPort(message.ifname, message.port);
+        return;
+      case "multicast-send":
+        await this.multicast.send(
+          message.ifname,
+          message.groupAddress,
+          message.port,
+          hexToBytes(message.dataHex),
+        );
+        return;
+      case "multicast-unicast":
+        await this.multicast.sendUnicast(
+          message.ifname,
+          message.targetAddress,
+          message.port,
+          hexToBytes(message.dataHex),
+        );
+        return;
+      default:
+        return;
     }
+  }
 
-    if (message.type === "multicast-send") {
-      await this.multicast.send(
-        message.ifname,
-        message.groupAddress,
-        message.port,
-        hexToBytes(message.dataHex),
-      );
-      return;
+  private async handleBonjourMessage(
+    message: WorkletToHostMessage,
+  ): Promise<void> {
+    switch (message.type) {
+      case "bonjour-start":
+        await this.bonjour.start(BONJOUR_RETICULUM_SERVICE);
+        return;
+      case "bonjour-stop":
+        await this.bonjour.stop();
+        return;
+      case "bonjour-advertise":
+        await this.bonjour.advertise({
+          id: `${message.ifname}:${message.address}:${message.port}`,
+          ifname: message.ifname,
+          host: message.address,
+          port: message.port,
+        });
+        return;
+      default:
+        return;
     }
+  }
 
-    if (message.type === "multicast-unicast") {
-      await this.multicast.sendUnicast(
-        message.ifname,
-        message.targetAddress,
-        message.port,
-        hexToBytes(message.dataHex),
-      );
-      return;
-    }
-
-    if (message.type === "bonjour-start") {
-      await this.bonjour.start(BONJOUR_RETICULUM_SERVICE);
-      return;
-    }
-
-    if (message.type === "bonjour-stop") {
-      await this.bonjour.stop();
-      return;
-    }
-
-    if (message.type === "bonjour-advertise") {
-      await this.bonjour.advertise({
-        id: `${message.ifname}:${message.address}:${message.port}`,
-        ifname: message.ifname,
-        host: message.address,
-        port: message.port,
-      });
-      return;
-    }
-
-    if (message.type === "serial-start") {
-      await this.startSerial(message.portPath ?? "", message.baudRate);
-      return;
-    }
-
-    if (message.type === "serial-stop") {
-      await this.stopSerial();
-      return;
-    }
-
-    if (message.type === "serial-write") {
-      await this.serialPipe?.write(hexToBytes(message.dataHex));
+  private async handleSerialMessage(
+    message: WorkletToHostMessage,
+  ): Promise<void> {
+    switch (message.type) {
+      case "serial-start":
+        await this.startSerial(message.portPath ?? "", message.baudRate);
+        return;
+      case "serial-stop":
+        await this.stopSerial();
+        return;
+      case "serial-write":
+        await this.serialPipe?.write(hexToBytes(message.dataHex));
+        return;
+      default:
+        return;
     }
   }
 

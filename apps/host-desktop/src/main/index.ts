@@ -217,51 +217,58 @@ function parseTestAgentEnv(
   };
 }
 
+function configureMediaPermissions(): void {
+  session.defaultSession.setPermissionCheckHandler(
+    (_webContents, permission, requestingOrigin, details) =>
+      permission === "media" &&
+      (details.mediaType === "video" || details.mediaType === "audio") &&
+      requestingOrigin.startsWith("file://"),
+  );
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback, details) => {
+      const fromHostWindow =
+        webContents === mainWindow?.webContents &&
+        details.requestingUrl.startsWith("file://");
+      const trustedMediaOnly =
+        "mediaTypes" in details &&
+        (details.mediaTypes?.length ?? 0) > 0 &&
+        details.mediaTypes?.every(
+          (mediaType) => mediaType === "video" || mediaType === "audio",
+        ) === true;
+      callback(permission === "media" && fromHostWindow && trustedMediaOnly);
+    },
+  );
+}
+
+function installTray(): void {
+  const icon = nativeImage.createEmpty();
+  tray = new Tray(icon);
+  tray.setToolTip("TwistedPear Host");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Show", click: () => mainWindow?.show() },
+      {
+        label: "Quit",
+        click: () => {
+          supervisor?.stop();
+          app.quit();
+        },
+      },
+    ]),
+  );
+}
+
 app
   .whenReady()
   .then(() => {
-    session.defaultSession.setPermissionCheckHandler(
-      (_webContents, permission, requestingOrigin, details) =>
-        permission === "media" &&
-        (details.mediaType === "video" || details.mediaType === "audio") &&
-        requestingOrigin.startsWith("file://"),
-    );
-    session.defaultSession.setPermissionRequestHandler(
-      (webContents, permission, callback, details) => {
-        const fromHostWindow =
-          webContents === mainWindow?.webContents &&
-          details.requestingUrl.startsWith("file://");
-        const trustedMediaOnly =
-          "mediaTypes" in details &&
-          (details.mediaTypes?.length ?? 0) > 0 &&
-          details.mediaTypes?.every(
-            (mediaType) => mediaType === "video" || mediaType === "audio",
-          ) === true;
-        callback(permission === "media" && fromHostWindow && trustedMediaOnly);
-      },
-    );
+    configureMediaPermissions();
     if (process.platform === "darwin" || process.platform === "win32") {
       app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
     }
 
     createWindow();
     ensureSupervisor();
-
-    const icon = nativeImage.createEmpty();
-    tray = new Tray(icon);
-    tray.setToolTip("TwistedPear Host");
-    tray.setContextMenu(
-      Menu.buildFromTemplate([
-        { label: "Show", click: () => mainWindow?.show() },
-        {
-          label: "Quit",
-          click: () => {
-            supervisor?.stop();
-            app.quit();
-          },
-        },
-      ]),
-    );
+    installTray();
 
     powerMonitor.on("suspend", () => {
       supervisor?.send({ type: "suspend-node" });
@@ -320,59 +327,76 @@ ipcMain.handle("host:ntfy-status", () => {
         server: `${config.baseUrl.origin}${config.baseUrl.pathname}`,
       };
 });
-ipcMain.handle(
-  "host:ntfy-request",
-  async (
-    _event,
-    request: {
-      readonly url: string;
-      readonly method: string;
-      readonly headers?: Record<string, string>;
-      readonly body?: string;
-    },
-  ) => {
-    const config = ntfyConfiguration();
-    if (config === null) throw new Error("ntfy is not configured");
-    const requested = new URL(request.url);
-    const basePath = config.baseUrl.pathname.endsWith("/")
-      ? config.baseUrl.pathname
-      : `${config.baseUrl.pathname}/`;
-    if (
-      requested.origin !== config.baseUrl.origin ||
-      !requested.pathname.startsWith(basePath) ||
-      requested.username !== "" ||
-      requested.password !== "" ||
-      requested.hash !== "" ||
-      !["GET", "POST"].includes(request.method) ||
-      new TextEncoder().encode(request.body ?? "").length > 40_000
-    ) {
-      throw new Error("ntfy request is outside the configured host policy");
-    }
-    const headers = new Headers(request.headers);
-    headers.delete("authorization");
-    if (config.token !== null)
-      headers.set("Authorization", `Bearer ${config.token}`);
-    const response = await fetch(requested, {
-      method: request.method,
-      headers,
-      ...(request.body === undefined ? {} : { body: request.body }),
-      redirect: "error",
-    });
-    const declaredLength = Number(
-      response.headers.get("content-length") ?? "0",
-    );
-    if (Number.isFinite(declaredLength) && declaredLength > 256_000)
-      throw new Error("ntfy response exceeds host budget");
-    const body = await response.text();
-    if (new TextEncoder().encode(body).length > 256_000)
-      throw new Error("ntfy response exceeds host budget");
-    return {
-      status: response.status,
-      body,
-      contentLength: response.headers.get("content-length"),
-    };
-  },
+ipcMain.handle("host:ntfy-request", (_event, request) =>
+  handleNtfyRequest(request),
 );
+
+async function handleNtfyRequest(request: {
+  readonly url: string;
+  readonly method: string;
+  readonly headers?: Record<string, string>;
+  readonly body?: string;
+}): Promise<{
+  status: number;
+  body: string;
+  contentLength: string | null;
+}> {
+  const config = ntfyConfiguration();
+  if (config === null) throw new Error("ntfy is not configured");
+  const requested = new URL(request.url);
+  assertNtfyRequestAllowed(config.baseUrl, requested, request);
+  const headers = new Headers(request.headers);
+  headers.delete("authorization");
+  if (config.token !== null)
+    headers.set("Authorization", `Bearer ${config.token}`);
+  const response = await fetch(requested, {
+    method: request.method,
+    headers,
+    ...(request.body === undefined ? {} : { body: request.body }),
+    redirect: "error",
+  });
+  return readNtfyResponse(response);
+}
+
+function assertNtfyRequestAllowed(
+  baseUrl: URL,
+  requested: URL,
+  request: { readonly method: string; readonly body?: string },
+): void {
+  const basePath = baseUrl.pathname.endsWith("/")
+    ? baseUrl.pathname
+    : `${baseUrl.pathname}/`;
+  if (
+    requested.origin !== baseUrl.origin ||
+    !requested.pathname.startsWith(basePath) ||
+    requested.username !== "" ||
+    requested.password !== "" ||
+    requested.hash !== "" ||
+    !["GET", "POST"].includes(request.method) ||
+    new TextEncoder().encode(request.body ?? "").length > 40_000
+  ) {
+    throw new Error("ntfy request is outside the configured host policy");
+  }
+}
+
+async function readNtfyResponse(response: Response): Promise<{
+  status: number;
+  body: string;
+  contentLength: string | null;
+}> {
+  const declaredLength = Number(response.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > 256_000)
+    throw new Error("ntfy response exceeds host budget");
+  const body = await response.text();
+  if (new TextEncoder().encode(body).length > 256_000)
+    throw new Error("ntfy response exceeds host budget");
+  return {
+    status: response.status,
+    body,
+    contentLength: response.headers.get("content-length"),
+  };
+}
+
 ipcMain.handle(
   "host:save-identity-backup",
   async (_event, backupHex: string) => {

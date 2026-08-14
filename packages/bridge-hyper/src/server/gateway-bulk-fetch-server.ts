@@ -43,57 +43,79 @@ export function createGatewayBulkFetchHttpHandler(
 
   return async (request, response) => {
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
-    if (requestUrl.pathname !== path) {
-      return;
-    }
+    if (!acceptBulkFetchRequest(request, response, requestUrl, path)) return;
 
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      response.writeHead(405);
-      response.end();
-      return;
-    }
-
-    const driveKeyHex = requestUrl.searchParams.get("driveKey")?.trim() ?? "";
-    const version = requestUrl.searchParams.get("version")?.trim() ?? "";
-    if (driveKeyHex.length === 0 || version.length === 0) {
+    const query = bulkFetchQuery(requestUrl);
+    if (query === null) {
       response.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
       response.end("driveKey and version query parameters are required");
       return;
     }
 
     try {
-      const archive = await fetcher(driveKeyHex, version);
-      response.writeHead(200, {
-        "content-type": "application/octet-stream",
-        "content-length": String(archive.length),
-        "access-control-allow-origin": "*",
-      });
-      if (request.method === "HEAD") {
-        response.end();
-        return;
-      }
-
-      const limiter = options.outboundBandwidthLimiter;
-      if (limiter === undefined) {
-        response.end(archive);
-        return;
-      }
-      const chunkBytes = 16 * 1024;
-      for (let offset = 0; offset < archive.length; offset += chunkBytes) {
-        const chunk = archive.subarray(
-          offset,
-          Math.min(offset + chunkBytes, archive.length),
-        );
-        await limiter.consume(chunk.length);
-        response.write(chunk);
-      }
-      response.end();
+      const archive = await fetcher(query.driveKeyHex, query.version);
+      await writeArchiveResponse(request, response, archive, options);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       response.writeHead(502, { "content-type": "text/plain; charset=utf-8" });
       response.end(message);
     }
   };
+}
+
+function acceptBulkFetchRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  requestUrl: URL,
+  path: string,
+): boolean {
+  if (requestUrl.pathname !== path) return false;
+  if (request.method === "GET" || request.method === "HEAD") return true;
+  response.writeHead(405);
+  response.end();
+  return false;
+}
+
+function bulkFetchQuery(
+  requestUrl: URL,
+): { driveKeyHex: string; version: string } | null {
+  const driveKeyHex = requestUrl.searchParams.get("driveKey")?.trim() ?? "";
+  const version = requestUrl.searchParams.get("version")?.trim() ?? "";
+  if (driveKeyHex.length === 0 || version.length === 0) return null;
+  return { driveKeyHex, version };
+}
+
+async function writeArchiveResponse(
+  request: IncomingMessage,
+  response: ServerResponse,
+  archive: Uint8Array,
+  options: GatewayBulkFetchServerOptions,
+): Promise<void> {
+  response.writeHead(200, {
+    "content-type": "application/octet-stream",
+    "content-length": String(archive.length),
+    "access-control-allow-origin": "*",
+  });
+  if (request.method === "HEAD") {
+    response.end();
+    return;
+  }
+
+  const limiter = options.outboundBandwidthLimiter;
+  if (limiter === undefined) {
+    response.end(archive);
+    return;
+  }
+  const chunkBytes = 16 * 1024;
+  for (let offset = 0; offset < archive.length; offset += chunkBytes) {
+    const chunk = archive.subarray(
+      offset,
+      Math.min(offset + chunkBytes, archive.length),
+    );
+    await limiter.consume(chunk.length);
+    response.write(chunk);
+  }
+  response.end();
 }
 
 export function attachGatewayBulkFetchServer(

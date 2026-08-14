@@ -18,7 +18,10 @@ import {
  * `--freenet-binary` supervises a user-supplied, optionally hash-verified
  * executable (ephemeral port + generated token; not redistributed by TP).
  */
-function wantFreenetNode(args: ReadonlyArray<string>, wantSupervise: boolean): boolean {
+function wantFreenetNode(
+  args: ReadonlyArray<string>,
+  wantSupervise: boolean,
+): boolean {
   return (
     hasFlag(args, "--freenet") ||
     hasFlag(args, "--freenet-interface") ||
@@ -91,20 +94,10 @@ export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
   const authToken = parseFlag(args, "--freenet-token") ?? undefined;
   const interfaceEnabled = hasFlag(args, "--freenet-interface");
   const logLines: string[] = [];
-  const rendezvousHex = resolveRendezvousHex(
-    args,
-    interfaceEnabled,
-    logLines,
-  );
+  const rendezvousHex = resolveRendezvousHex(args, interfaceEnabled, logLines);
   const localDirection = parseLocalDirection(args);
 
-  pushFreenetLog(
-    logLines,
-    wantSupervise,
-    binaryPath,
-    interfaceEnabled,
-    url,
-  );
+  pushFreenetLog(logLines, wantSupervise, binaryPath, interfaceEnabled, url);
 
   return {
     config: freenetNodeConfig({
@@ -179,7 +172,9 @@ function freenetNodeConfig(input: {
   readonly localDirection?: 0 | 1;
 } {
   const extras = {
-    ...(input.rendezvousHex === undefined ? {} : { rendezvousHex: input.rendezvousHex }),
+    ...(input.rendezvousHex === undefined
+      ? {}
+      : { rendezvousHex: input.rendezvousHex }),
     ...(input.localDirection === undefined
       ? {}
       : { localDirection: input.localDirection as 0 | 1 }),
@@ -322,7 +317,7 @@ export function resolveRelayNodeFlags(args: ReadonlyArray<string>): {
   };
 }
 
-// eslint-disable-next-line max-lines-per-function -- startup composes independently tested flag resolvers and host lifecycles.
+// startup composes independently tested flag resolvers and host lifecycles.
 export async function runNode(ctx: CommandContext): Promise<number> {
   const { resolveHostConfig, FreenetSupervisor } =
     await import("@twistedpear/host-core");
@@ -340,43 +335,15 @@ export async function runNode(ctx: CommandContext): Promise<number> {
     }
   }
 
-  let supervisor: InstanceType<typeof FreenetSupervisor> | null = null;
-  let freenetConfig = freenet.config;
-  if (freenet.supervise !== null) {
-    const resolvedDataDir =
-      dataDir === null
-        ? resolveHostConfig({}).dataDir
-        : resolveFromCwd(ctx.cwd, dataDir);
-    supervisor = new FreenetSupervisor({
-      binaryPath: freenet.supervise.binaryPath,
-      ...(freenet.supervise.expectedSha256 === undefined
-        ? {}
-        : { expectedSha256: freenet.supervise.expectedSha256 }),
-      dataDir: resolvedDataDir,
-      onStatus: (status, detail) => {
-        const suffix = detail === undefined ? "" : `: ${detail}`;
-        console.log(`Freenet supervisor ${status}${suffix}`);
-      },
-    });
-    const snapshot = await supervisor.start();
-    if (snapshot.wsUrl === null) {
-      throw new Error("Freenet supervisor started without a WebSocket URL");
-    }
-    freenetConfig = {
-      enabled: freenet.config?.enabled ?? false,
-      url: snapshot.wsUrl,
-      ...(snapshot.authToken === null ? {} : { authToken: snapshot.authToken }),
-      ...(freenet.config?.rendezvousHex === undefined
-        ? {}
-        : { rendezvousHex: freenet.config.rendezvousHex }),
-      ...(freenet.config?.localDirection === undefined
-        ? {}
-        : { localDirection: freenet.config.localDirection }),
-    };
-    console.log(
-      `Freenet supervised node online at ${snapshot.wsUrl} (user-supplied binary; not redistributed)`,
-    );
-  }
+  const started = await startSupervisedFreenet(
+    FreenetSupervisor,
+    resolveHostConfig,
+    ctx.cwd,
+    dataDir,
+    freenet,
+  );
+  let supervisor = started.supervisor;
+  const freenetConfig = started.config;
 
   const statusEndpointPort = parseStatusEndpointPort(ctx.args);
   const testAgent = parseTestAgentArg(
@@ -391,37 +358,11 @@ export async function runNode(ctx: CommandContext): Promise<number> {
         transport: !hasFlag(ctx.args, "--no-transport") && attachRnsd === null,
         seeder: !hasFlag(ctx.args, "--no-seeder"),
         propagation: hasFlag(ctx.args, "--propagation"),
-        attachRnsd:
-          attachRnsd === null
-            ? null
-            : (() => {
-                const [host, portText] = attachRnsd.split(":");
-                if (host === undefined || portText === undefined) {
-                  throw new Error(`Invalid --attach-rnsd value: ${attachRnsd}`);
-                }
-
-                return { host, port: Number.parseInt(portText, 10) };
-              })(),
+        attachRnsd: parseAttachRnsd(attachRnsd),
       },
       interfaces: {
         ...relayFlags.interfaces,
-        ...(wsListen === null && serveWeb === null && wsToken === null
-          ? {}
-          : {
-              websocket: {
-                enabled: true,
-                ...(wsListen === null ? {} : parseWsListenArg(wsListen)),
-                ...(wsToken === null ? {} : { sharedToken: wsToken }),
-                ...(serveWeb === null
-                  ? {}
-                  : {
-                      staticRoot:
-                        serveWeb === ""
-                          ? resolveFromCwd(ctx.cwd, "dist/web-host")
-                          : resolveFromCwd(ctx.cwd, serveWeb),
-                    }),
-              },
-            }),
+        ...websocketInterfaceConfig(ctx.cwd, wsListen, serveWeb, wsToken),
         ...(freenetConfig === null ? {} : { freenet: freenetConfig }),
       },
       statusEndpoint: hasFlag(ctx.args, "--status-endpoint"),
@@ -452,4 +393,102 @@ export async function runNode(ctx: CommandContext): Promise<number> {
   } finally {
     await stopSupervisor();
   }
+}
+
+function parseAttachRnsd(
+  attachRnsd: string | null,
+): { host: string; port: number } | null {
+  if (attachRnsd === null) return null;
+  const [host, portText] = attachRnsd.split(":");
+  if (host === undefined || portText === undefined) {
+    throw new Error(`Invalid --attach-rnsd value: ${attachRnsd}`);
+  }
+  return { host, port: Number.parseInt(portText, 10) };
+}
+
+function websocketInterfaceConfig(
+  cwd: string,
+  wsListen: string | null,
+  serveWeb: string | null,
+  wsToken: string | null,
+): Record<string, unknown> {
+  if (wsListen === null && serveWeb === null && wsToken === null) return {};
+  return {
+    websocket: {
+      enabled: true,
+      ...(wsListen === null ? {} : parseWsListenArg(wsListen)),
+      ...(wsToken === null ? {} : { sharedToken: wsToken }),
+      ...(serveWeb === null
+        ? {}
+        : {
+            staticRoot:
+              serveWeb === ""
+                ? resolveFromCwd(cwd, "dist/web-host")
+                : resolveFromCwd(cwd, serveWeb),
+          }),
+    },
+  };
+}
+
+async function startSupervisedFreenet(
+  FreenetSupervisor: typeof import("@twistedpear/host-core").FreenetSupervisor,
+  resolveHostConfig: typeof import("@twistedpear/host-core").resolveHostConfig,
+  cwd: string,
+  dataDir: string | null,
+  freenet: ReturnType<typeof resolveFreenetNodeFlags>,
+): Promise<{
+  supervisor: InstanceType<
+    typeof import("@twistedpear/host-core").FreenetSupervisor
+  > | null;
+  config: typeof freenet.config;
+}> {
+  if (freenet.supervise === null) {
+    return { supervisor: null, config: freenet.config };
+  }
+  const resolvedDataDir =
+    dataDir === null
+      ? resolveHostConfig({}).dataDir
+      : resolveFromCwd(cwd, dataDir);
+  const supervisor = new FreenetSupervisor({
+    binaryPath: freenet.supervise.binaryPath,
+    ...(freenet.supervise.expectedSha256 === undefined
+      ? {}
+      : { expectedSha256: freenet.supervise.expectedSha256 }),
+    dataDir: resolvedDataDir,
+    onStatus: (status, detail) => {
+      const suffix = detail === undefined ? "" : `: ${detail}`;
+      console.log(`Freenet supervisor ${status}${suffix}`);
+    },
+  });
+  const snapshot = await supervisor.start();
+  if (snapshot.wsUrl === null) {
+    throw new Error("Freenet supervisor started without a WebSocket URL");
+  }
+  console.log(
+    `Freenet supervised node online at ${snapshot.wsUrl} (user-supplied binary; not redistributed)`,
+  );
+  return {
+    supervisor,
+    config: supervisedFreenetConfig(freenet, {
+      wsUrl: snapshot.wsUrl,
+      authToken: snapshot.authToken,
+    }),
+  };
+}
+
+function supervisedFreenetConfig(
+  freenet: ReturnType<typeof resolveFreenetNodeFlags>,
+  snapshot: { readonly wsUrl: string; readonly authToken: string | null },
+): NonNullable<ReturnType<typeof resolveFreenetNodeFlags>["config"]> {
+  return {
+    enabled: freenet.config?.enabled ?? false,
+    url: snapshot.wsUrl,
+    ...(snapshot.authToken === null ? {} : { authToken: snapshot.authToken }),
+    ...(freenet.config?.rendezvousHex === undefined
+      ? {}
+      : { rendezvousHex: freenet.config.rendezvousHex }),
+    ...(freenet.config?.localDirection === undefined
+      ? {}
+      : { localDirection: freenet.config.localDirection }),
+  };
 }

@@ -178,72 +178,85 @@ async function productionHistoricalOutcome(
   deliveries: readonly HistoricalDelivery[],
   drift: boolean,
 ): Promise<string | null> {
-  if (target === "broker") {
-    const broker = new MiniappBroker({
-      now: () => 0,
-      maxMessageBytes: drift ? Number.MAX_SAFE_INTEGER : 256,
-      maxMessagesPerSecond: drift ? Number.MAX_SAFE_INTEGER : 16,
-    });
-    broker.register("historical", "accept", null, () => ({ accepted: true }));
-    for (const [index, delivery] of deliveries.entries()) {
-      const response = await broker.dispatch(
-        {
-          id: String(index),
-          namespace: "historical",
-          method: "accept",
-          payload: [...delivery.payload],
-        },
-        {
-          appId: "historical",
-          publisherPublicKey: "historical",
-          declaredCapabilities: [],
-          grantedCapabilities: [],
-        },
-      );
-      if (response.error?.code === "MESSAGE_TOO_LARGE")
-        return "oversized-message-rejected";
-      if (response.error?.code === "RATE_LIMITED") return "broker-rate-limited";
-    }
-    return null;
-  }
-  if (target === "handshake") {
-    if (drift || deliveries.length < 2) return null;
-    const linkId = new Uint8Array([1]);
-    let state = stepLinkHandshakeWithActions(
-      initialLinkHandshakeState({ role: "responder", peerId: "initiator" }),
-      {
-        kind: "handshake/begin",
-        at: 0,
-        entropy: new Uint8Array(32).fill(1),
-        linkId,
-      },
-    ).state;
-    const material = new Uint8Array(32).fill(deliveries[0]?.payload[0] ?? 1);
-    state = stepLinkHandshakeWithActions(state, {
-      kind: "handshake/peer-material",
-      material,
-      linkId,
-    }).state;
-    const replayed = stepLinkHandshakeWithActions(state, {
-      kind: "handshake/peer-material",
-      material,
-      linkId,
-    }).state;
-    return state.phase === LinkHandshakePhase.ESTABLISHED && replayed === state
-      ? "replay-rejected"
-      : null;
-  }
-  if (target === "grant") {
-    const store = new GrantStore(new HistoricalGrantBackend());
-    await store.set("historical", "publisher", ["identity"], ["identity"], 0);
-    await store.use("historical", "publisher", "identity", 1);
-    if (!drift) await store.revoke("historical", "publisher", "identity", 2);
-    const replay = await store.use("historical", "publisher", "identity", 3);
-    return replay?.granted.includes("identity") === true
-      ? null
-      : "bearer-replay-rejected";
-  }
+  if (target === "broker") return brokerHistoricalOutcome(deliveries, drift);
+  if (target === "handshake")
+    return handshakeHistoricalOutcome(deliveries, drift);
+  if (target === "grant") return grantHistoricalOutcome(drift);
   throw new Error(`historical target has no shipping adapter: ${target}`);
+}
+
+async function brokerHistoricalOutcome(
+  deliveries: readonly HistoricalDelivery[],
+  drift: boolean,
+): Promise<string | null> {
+  const broker = new MiniappBroker({
+    now: () => 0,
+    maxMessageBytes: drift ? Number.MAX_SAFE_INTEGER : 256,
+    maxMessagesPerSecond: drift ? Number.MAX_SAFE_INTEGER : 16,
+  });
+  broker.register("historical", "accept", null, () => ({ accepted: true }));
+  for (const [index, delivery] of deliveries.entries()) {
+    const response = await broker.dispatch(
+      {
+        id: String(index),
+        namespace: "historical",
+        method: "accept",
+        payload: [...delivery.payload],
+      },
+      {
+        appId: "historical",
+        publisherPublicKey: "historical",
+        declaredCapabilities: [],
+        grantedCapabilities: [],
+      },
+    );
+    if (response.error?.code === "MESSAGE_TOO_LARGE")
+      return "oversized-message-rejected";
+    if (response.error?.code === "RATE_LIMITED") return "broker-rate-limited";
+  }
+  return null;
+}
+
+function handshakeHistoricalOutcome(
+  deliveries: readonly HistoricalDelivery[],
+  drift: boolean,
+): string | null {
+  if (drift || deliveries.length < 2) return null;
+  const linkId = new Uint8Array([1]);
+  let state = stepLinkHandshakeWithActions(
+    initialLinkHandshakeState({ role: "responder", peerId: "initiator" }),
+    {
+      kind: "handshake/begin",
+      at: 0,
+      entropy: new Uint8Array(32).fill(1),
+      linkId,
+    },
+  ).state;
+  const material = new Uint8Array(32).fill(deliveries[0]?.payload[0] ?? 1);
+  state = stepLinkHandshakeWithActions(state, {
+    kind: "handshake/peer-material",
+    material,
+    linkId,
+  }).state;
+  const replayed = stepLinkHandshakeWithActions(state, {
+    kind: "handshake/peer-material",
+    material,
+    linkId,
+  }).state;
+  return state.phase === LinkHandshakePhase.ESTABLISHED && replayed === state
+    ? "replay-rejected"
+    : null;
+}
+
+async function grantHistoricalOutcome(drift: boolean): Promise<string | null> {
+  const store = new GrantStore(new HistoricalGrantBackend());
+  await store.set("historical", "publisher", ["identity"], ["identity"], 0);
+  await store.use("historical", "publisher", "identity", 1);
+  if (!drift) await store.revoke("historical", "publisher", "identity", 2);
+  const replay = await store.use("historical", "publisher", "identity", 3);
+  return replay?.granted.includes("identity") === true
+    ? null
+    : "bearer-replay-rejected";
 }
 
 class HistoricalGrantBackend {

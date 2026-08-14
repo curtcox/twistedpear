@@ -268,94 +268,139 @@ export class PeerRouteMediaBridge
     const envelope = decodeMediaEnvelope(payload);
     if (envelope === null) return;
     if (envelope.type === 1) {
-      try {
-        const value = JSON.parse(
-          new TextDecoder().decode(envelope.payload),
-        ) as Record<string, unknown>;
-        if (
-          !["camera", "microphone", "screen-capture"].includes(
-            String(value.classId),
-          ) ||
-          typeof value.tierId !== "string" ||
-          typeof value.encoding !== "string" ||
-          typeof value.expiresAt !== "number" ||
-          value.expiresAt <= this.now()
-        )
-          return;
-        const plane = value.plane;
-        if (
-          !["webrtc", "pears-bulk", "reticulum", "lxmf", "cas"].includes(
-            String(plane),
-          )
-        )
-          return;
-        this.offers.set(envelope.id, {
-          appId,
-          route,
-          offer: {
-            id: envelope.id,
-            peer: peer.handle,
-            displayLabel: peer.displayLabel,
-            classId: value.classId as StreamOffer["classId"],
-            tierId: value.tierId,
-            encoding: value.encoding,
-            plane: plane as StreamPlane,
-            expiresAt: value.expiresAt,
-          },
-        });
-        this.version += 1;
-      } catch {
-        return;
-      }
+      this.receiveOffer(appId, peer, route, envelope);
       return;
     }
     if (envelope.type === 3) {
-      this.offers.delete(envelope.id);
-      this.streams.delete(envelope.id);
-      for (const key of this.chunks.keys())
-        if (key.startsWith(`${appId}\u0000${envelope.id}\u0000`))
-          this.chunks.delete(key);
-      this.version += 1;
+      this.receiveRevoke(appId, envelope.id);
       return;
     }
-    if (envelope.payload.length < 8) return;
-    const view = new DataView(
-      envelope.payload.buffer,
-      envelope.payload.byteOffset,
-      envelope.payload.byteLength,
-    );
-    const frameId = view.getUint32(0, false);
-    const index = view.getUint16(4, false);
-    const count = view.getUint16(6, false);
-    if (count < 1 || count > 32 || index >= count) return;
-    const chunkKey = `${appId}\u0000${envelope.id}\u0000${frameId}`;
-    const chunks =
-      this.chunks.get(chunkKey) ?? Array<Uint8Array | null>(count).fill(null);
-    if (chunks.length !== count) {
-      this.chunks.delete(chunkKey);
-      return;
-    }
-    chunks[index] = envelope.payload.slice(8);
-    this.chunks.set(chunkKey, chunks);
-    if (chunks.some((chunk) => chunk === null)) return;
-    this.chunks.delete(chunkKey);
-    const length = chunks.reduce((sum, chunk) => sum + chunk!.length, 0);
-    if (length > 1_048_612) return;
-    const frame = new Uint8Array(length);
-    let offset = 0;
-    for (const chunk of chunks) {
-      frame.set(chunk!, offset);
-      offset += chunk!.length;
-    }
+    await this.receiveFrame(appId, envelope);
+  }
+
+  private receiveOffer(
+    appId: string,
+    peer: { readonly handle: PeerHandle; readonly displayLabel: string },
+    route: NonNullable<ReturnType<PeerRouteMediaDirectory["route"]>>,
+    envelope: MediaEnvelope,
+  ): void {
     try {
-      decodeDeviceStreamFrame(frame);
+      const value = JSON.parse(
+        new TextDecoder().decode(envelope.payload),
+      ) as Record<string, unknown>;
+      const offer = parseStreamOffer(value, this.now());
+      if (offer === null) return;
+      this.offers.set(envelope.id, {
+        appId,
+        route,
+        offer: {
+          id: envelope.id,
+          peer: peer.handle,
+          displayLabel: peer.displayLabel,
+          ...offer,
+        },
+      });
+      this.version += 1;
+    } catch {
+      return;
+    }
+  }
+
+  private receiveRevoke(appId: string, id: string): void {
+    this.offers.delete(id);
+    this.streams.delete(id);
+    for (const key of this.chunks.keys())
+      if (key.startsWith(`${appId}\u0000${id}\u0000`)) this.chunks.delete(key);
+    this.version += 1;
+  }
+
+  private async receiveFrame(
+    appId: string,
+    envelope: MediaEnvelope,
+  ): Promise<void> {
+    const assembled = assembleMediaFrame(this.chunks, appId, envelope);
+    if (assembled === null) return;
+    try {
+      decodeDeviceStreamFrame(assembled);
     } catch {
       return;
     }
     const active = this.streams.get(envelope.id);
     if (active?.appId === appId)
-      await this.options.onFrame?.(appId, active.stream, frame, active.offer);
+      await this.options.onFrame?.(
+        appId,
+        active.stream,
+        assembled,
+        active.offer,
+      );
   }
+}
+
+function parseStreamOffer(
+  value: Record<string, unknown>,
+  now: number,
+): Omit<StreamOffer, "id" | "peer" | "displayLabel"> | null {
+  if (
+    !["camera", "microphone", "screen-capture"].includes(
+      String(value.classId),
+    ) ||
+    typeof value.tierId !== "string" ||
+    typeof value.encoding !== "string" ||
+    typeof value.expiresAt !== "number" ||
+    value.expiresAt <= now
+  )
+    return null;
+  const plane = value.plane;
+  if (
+    !["webrtc", "pears-bulk", "reticulum", "lxmf", "cas"].includes(
+      String(plane),
+    )
+  )
+    return null;
+  return {
+    classId: value.classId as StreamOffer["classId"],
+    tierId: value.tierId,
+    encoding: value.encoding,
+    plane: plane as StreamPlane,
+    expiresAt: value.expiresAt,
+  };
+}
+
+function assembleMediaFrame(
+  store: Map<string, Array<Uint8Array | null>>,
+  appId: string,
+  envelope: MediaEnvelope,
+): Uint8Array | null {
+  if (envelope.payload.length < 8) return null;
+  const view = new DataView(
+    envelope.payload.buffer,
+    envelope.payload.byteOffset,
+    envelope.payload.byteLength,
+  );
+  const frameId = view.getUint32(0, false);
+  const index = view.getUint16(4, false);
+  const count = view.getUint16(6, false);
+  if (count < 1 || count > 32 || index >= count) return null;
+  const chunkKey = `${appId}\u0000${envelope.id}\u0000${frameId}`;
+  const chunks =
+    store.get(chunkKey) ?? Array<Uint8Array | null>(count).fill(null);
+  if (chunks.length !== count) {
+    store.delete(chunkKey);
+    return null;
+  }
+  chunks[index] = envelope.payload.slice(8);
+  store.set(chunkKey, chunks);
+  if (chunks.some((chunk) => chunk === null)) return null;
+  store.delete(chunkKey);
+  const length = chunks.reduce((sum, chunk) => sum + chunk!.length, 0);
+  if (length > 1_048_612) return null;
+  const frame = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    frame.set(chunk!, offset);
+    offset += chunk!.length;
+  }
+  return frame;
 }
 
 function defaultMediaRandom(length: number, seed: number): Uint8Array {
@@ -409,9 +454,7 @@ function parseMediaEnvelopeHeader(bytes: Uint8Array): {
 function decodeMediaEnvelope(bytes: Uint8Array): MediaEnvelope | null {
   const header = parseMediaEnvelopeHeader(bytes);
   if (header === null) return null;
-  const id = new TextDecoder().decode(
-    bytes.subarray(8, 8 + header.idLength),
-  );
+  const id = new TextDecoder().decode(bytes.subarray(8, 8 + header.idLength));
   if (!/^media-[A-Za-z0-9_-]+$/.test(id)) return null;
   return {
     type: header.type,

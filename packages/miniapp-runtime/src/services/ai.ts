@@ -91,6 +91,44 @@ export const DEFAULT_AI_SERVICE_LIMITS: AiServiceLimits = {
 const STREAM_DELTA_MIN_CHARS = 32;
 const STREAM_DELTA_MAX_DELAY_MS = 100;
 
+interface StreamAccumulator {
+  content: string;
+  pending: string;
+  lastEmitAt: number;
+  model: string;
+  usage: AiChatUsage | null;
+}
+
+function applyStreamChunk(
+  chunk: AiChatBackendChunk,
+  acc: StreamAccumulator,
+): { acc: StreamAccumulator; delta: string | null } {
+  if (typeof chunk.delta !== "string") {
+    throw new AiServiceError(
+      "AI_BACKEND_ERROR",
+      "AI stream returned an invalid delta.",
+    );
+  }
+  const next: StreamAccumulator = {
+    ...acc,
+    model: chunk.model !== undefined ? chunk.model : acc.model,
+    usage: chunk.usage !== undefined ? chunk.usage : acc.usage,
+  };
+  if (chunk.delta.length === 0) return { acc: next, delta: null };
+  next.content += chunk.delta;
+  next.pending += chunk.delta;
+  if (
+    next.pending.length >= STREAM_DELTA_MIN_CHARS ||
+    Date.now() - next.lastEmitAt >= STREAM_DELTA_MAX_DELAY_MS
+  ) {
+    const delta = next.pending;
+    next.pending = "";
+    next.lastEmitAt = Date.now();
+    return { acc: next, delta };
+  }
+  return { acc: next, delta: null };
+}
+
 export class AiServiceError extends Error {
   constructor(
     readonly code:
@@ -180,41 +218,7 @@ export class AiService {
     appId: string,
     request: AiVectorSearchRequest,
   ): Promise<AiVectorSearchResponse> {
-    if (
-      typeof request?.query !== "string" ||
-      request.query.length === 0 ||
-      !Array.isArray(request.documents)
-    ) {
-      throw new AiServiceError(
-        "AI_BAD_REQUEST",
-        "Vector search needs a query and documents.",
-      );
-    }
-    if (
-      request.documents.length === 0 ||
-      request.documents.length >= this.limits.maxEmbeddingInputs
-    ) {
-      throw new AiServiceError(
-        "AI_BAD_REQUEST",
-        `Vector search supports 1-${this.limits.maxEmbeddingInputs - 1} documents.`,
-      );
-    }
-    const ids = new Set<string>();
-    for (const document of request.documents) {
-      if (
-        typeof document?.id !== "string" ||
-        document.id.length === 0 ||
-        document.id.length > 256 ||
-        ids.has(document.id) ||
-        typeof document?.text !== "string"
-      ) {
-        throw new AiServiceError(
-          "AI_BAD_REQUEST",
-          "Vector-search documents need unique 1-256 character ids and string text.",
-        );
-      }
-      ids.add(document.id);
-    }
+    this.assertSearchRequest(request);
     const response = await this.embed(appId, {
       inputs: [
         request.query,
@@ -295,45 +299,82 @@ export class AiService {
     request: AiChatRequest,
   ): AsyncGenerator<AiChatStreamEvent> {
     if (this.backend.stream === undefined) {
-      const response = await this.backend.chat(appId, request);
-      if (response.message.content.length > 0) {
-        yield { type: "delta", delta: response.message.content };
-      }
-      yield { type: "done", response };
+      yield* this.streamFromChat(appId, request);
       return;
     }
 
-    let content = "";
-    let pending = "";
-    let lastEmitAt = Date.now();
-    let model = request.model ?? "unknown";
-    let usage: AiChatUsage | null = null;
+    let acc: StreamAccumulator = {
+      content: "",
+      pending: "",
+      lastEmitAt: Date.now(),
+      model: request.model ?? "unknown",
+      usage: null,
+    };
     for await (const chunk of this.backend.stream(appId, request)) {
-      if (typeof chunk.delta !== "string") {
-        throw new AiServiceError(
-          "AI_BACKEND_ERROR",
-          "AI stream returned an invalid delta.",
-        );
-      }
-      if (chunk.model !== undefined) model = chunk.model;
-      if (chunk.usage !== undefined) usage = chunk.usage;
-      if (chunk.delta.length === 0) continue;
-      content += chunk.delta;
-      pending += chunk.delta;
-      if (
-        pending.length >= STREAM_DELTA_MIN_CHARS ||
-        Date.now() - lastEmitAt >= STREAM_DELTA_MAX_DELAY_MS
-      ) {
-        yield { type: "delta", delta: pending };
-        pending = "";
-        lastEmitAt = Date.now();
-      }
+      const next = applyStreamChunk(chunk, acc);
+      acc = next.acc;
+      if (next.delta !== null) yield { type: "delta", delta: next.delta };
     }
-    if (pending.length > 0) yield { type: "delta", delta: pending };
+    if (acc.pending.length > 0) yield { type: "delta", delta: acc.pending };
     yield {
       type: "done",
-      response: { message: { role: "assistant", content }, model, usage },
+      response: {
+        message: { role: "assistant", content: acc.content },
+        model: acc.model,
+        usage: acc.usage,
+      },
     };
+  }
+
+  private async *streamFromChat(
+    appId: string,
+    request: AiChatRequest,
+  ): AsyncGenerator<AiChatStreamEvent> {
+    const response = await this.backend.chat(appId, request);
+    if (response.message.content.length > 0) {
+      yield { type: "delta", delta: response.message.content };
+    }
+    yield { type: "done", response };
+  }
+
+  private assertSearchRequest(request: AiVectorSearchRequest): void {
+    this.assertSearchQuery(request);
+    this.assertSearchDocuments(request);
+  }
+
+  private assertSearchQuery(request: AiVectorSearchRequest): void {
+    if (
+      typeof request?.query !== "string" ||
+      request.query.length === 0 ||
+      !Array.isArray(request.documents)
+    ) {
+      throw new AiServiceError(
+        "AI_BAD_REQUEST",
+        "Vector search needs a query and documents.",
+      );
+    }
+    if (
+      request.documents.length === 0 ||
+      request.documents.length >= this.limits.maxEmbeddingInputs
+    ) {
+      throw new AiServiceError(
+        "AI_BAD_REQUEST",
+        `Vector search supports 1-${this.limits.maxEmbeddingInputs - 1} documents.`,
+      );
+    }
+  }
+
+  private assertSearchDocuments(request: AiVectorSearchRequest): void {
+    const ids = new Set<string>();
+    for (const document of request.documents) {
+      if (!isSearchDocument(document, ids)) {
+        throw new AiServiceError(
+          "AI_BAD_REQUEST",
+          "Vector-search documents need unique 1-256 character ids and string text.",
+        );
+      }
+      ids.add(document.id);
+    }
   }
 
   private backendError(error: unknown): AiServiceError {
@@ -419,6 +460,19 @@ export class AiService {
       ...(temperature !== undefined ? { temperature } : {}),
     };
   }
+}
+
+function isSearchDocument(
+  document: AiVectorSearchRequest["documents"][number] | undefined,
+  ids: ReadonlySet<string>,
+): document is AiVectorSearchRequest["documents"][number] {
+  return (
+    typeof document?.id === "string" &&
+    document.id.length > 0 &&
+    document.id.length <= 256 &&
+    !ids.has(document.id) &&
+    typeof document?.text === "string"
+  );
 }
 
 function clampOptional(

@@ -121,22 +121,8 @@ function quorumScenario(
     oracles: [
       {
         name: `${machine}-safety`,
-        check: (world: { nodes: ReadonlyMap<string, QuorumState> }) => {
-          const state = world.nodes.get(target);
-          const violation =
-            state?.role === "escrow"
-              ? escrowSafetyViolation(state.escrow)
-              : state?.role === "recovery"
-                ? recoveryQuorumSafetyViolation(state.recovery)
-                : null;
-          return violation === null
-            ? null
-            : {
-                oracle: `${machine}-safety`,
-                message: violation,
-                nodes: [target],
-              };
-        },
+        check: (world: { nodes: ReadonlyMap<string, QuorumState> }) =>
+          quorumSafetyFinding(machine, target, world.nodes.get(target)),
       },
     ],
     ...(options.recorder === undefined ? {} : { recorder: options.recorder }),
@@ -152,6 +138,26 @@ function quorumScenario(
   };
 }
 
+function quorumSafetyFinding(
+  machine: "escrow" | "recovery",
+  target: string,
+  state: QuorumState | undefined,
+): { oracle: string; message: string; nodes: string[] } | null {
+  const violation =
+    state?.role === "escrow"
+      ? escrowSafetyViolation(state.escrow)
+      : state?.role === "recovery"
+        ? recoveryQuorumSafetyViolation(state.recovery)
+        : null;
+  return violation === null
+    ? null
+    : {
+        oracle: `${machine}-safety`,
+        message: violation,
+        nodes: [target],
+      };
+}
+
 function quorumActorStep(
   machine: "escrow" | "recovery",
   attack: QuorumAttack,
@@ -159,46 +165,56 @@ function quorumActorStep(
   return (state, event) => {
     if (state.role !== "actor" || event.kind !== "start")
       return { state, intents: [] };
-    const channels =
-      machine === "escrow"
-        ? [
-            "escrow/deposit",
-            "escrow/request",
-            `escrow/authorize/${
-              attack === "below-threshold" || attack === "expiry"
-                ? "a"
-                : attack === "colluding-pair"
-                  ? "colluder-a,colluder-b"
-                  : "a,b"
-            }`,
-            ...(attack === "replay" ? ["escrow/authorize/a,b"] : []),
-            ...(attack === "expiry" ? ["escrow/ttl"] : []),
-          ]
-        : attack === "expiry"
-          ? [
-              "recovery/start",
-              "recovery/share/a",
-              "recovery/ttl",
-              "recovery/authorize",
-            ]
-          : [
-              "recovery/start",
-              `recovery/share/${attack === "colluding-pair" ? "colluder-a" : "a"}`,
-              `recovery/share/${
-                attack === "duplicate" || attack === "below-threshold"
-                  ? "a"
-                  : attack === "colluding-pair"
-                    ? "colluder-b"
-                    : "b"
-              }`,
-              ...(attack === "replay" ? ["recovery/share/a"] : []),
-              "recovery/authorize",
-            ];
+    const channels = quorumActorChannels(machine, attack);
     return {
       state: { ...state, sent: channels.length },
       intents: channels.map(send),
     };
   };
+}
+
+function quorumActorChannels(
+  machine: "escrow" | "recovery",
+  attack: QuorumAttack,
+): readonly string[] {
+  if (machine === "escrow") return escrowActorChannels(attack);
+  if (attack === "expiry") {
+    return [
+      "recovery/start",
+      "recovery/share/a",
+      "recovery/ttl",
+      "recovery/authorize",
+    ];
+  }
+  return [
+    "recovery/start",
+    `recovery/share/${attack === "colluding-pair" ? "colluder-a" : "a"}`,
+    `recovery/share/${recoverySecondShare(attack)}`,
+    ...(attack === "replay" ? ["recovery/share/a"] : []),
+    "recovery/authorize",
+  ];
+}
+
+function escrowActorChannels(attack: QuorumAttack): readonly string[] {
+  const authorizers =
+    attack === "below-threshold" || attack === "expiry"
+      ? "a"
+      : attack === "colluding-pair"
+        ? "colluder-a,colluder-b"
+        : "a,b";
+  return [
+    "escrow/deposit",
+    "escrow/request",
+    `escrow/authorize/${authorizers}`,
+    ...(attack === "replay" ? ["escrow/authorize/a,b"] : []),
+    ...(attack === "expiry" ? ["escrow/ttl"] : []),
+  ];
+}
+
+function recoverySecondShare(attack: QuorumAttack): string {
+  if (attack === "duplicate" || attack === "below-threshold") return "a";
+  if (attack === "colluding-pair") return "colluder-b";
+  return "b";
 }
 
 function escrowTargetStep(broken: boolean): StepFn<QuorumState> {
@@ -441,36 +457,53 @@ function socialCampaignLinks(kind: SocialKind, transport: TransportClassName) {
 function socialAssuranceOracle(kind: SocialKind) {
   return {
     name: "social-assurance",
-    check: (world: { nodes: ReadonlyMap<string, SocialCampaignState> }) => {
-      const state = world.nodes.get("social-service");
-      if (
-        kind === "spam" &&
-        state !== undefined &&
-        state.delivered > 0 &&
-        state.outcome <= 0
-      )
-        return {
-          oracle: "spam-executed-economics",
-          message: "executed spam traffic has no accounted cost",
-        };
-      if (
-        kind === "harassment" &&
-        [...world.nodes.values()].some((node) => node.containmentBreaches > 0)
-      )
-        return {
-          oracle: "harassment-containment",
-          message: "harassment propagated after block or sever",
-        };
-      return kind === "reputation" &&
-        (state?.votes.length ?? 0) >= 4 &&
-        state?.ranking[0] === "target"
-        ? {
-            oracle: "reputation-resilience",
-            message: "colluders displaced the trusted candidate",
-          }
-        : null;
-    },
+    check: (world: { nodes: ReadonlyMap<string, SocialCampaignState> }) =>
+      socialAssuranceFinding(kind, world),
   };
+}
+
+function socialAssuranceFinding(
+  kind: SocialKind,
+  world: { nodes: ReadonlyMap<string, SocialCampaignState> },
+): { oracle: string; message: string } | null {
+  if (kind === "spam") return spamAssuranceFinding(world);
+  if (kind === "harassment") return harassmentAssuranceFinding(world);
+  return reputationAssuranceFinding(world);
+}
+
+function spamAssuranceFinding(world: {
+  nodes: ReadonlyMap<string, SocialCampaignState>;
+}): { oracle: string; message: string } | null {
+  const state = world.nodes.get("social-service");
+  if (state === undefined || state.delivered <= 0 || state.outcome > 0)
+    return null;
+  return {
+    oracle: "spam-executed-economics",
+    message: "executed spam traffic has no accounted cost",
+  };
+}
+
+function harassmentAssuranceFinding(world: {
+  nodes: ReadonlyMap<string, SocialCampaignState>;
+}): { oracle: string; message: string } | null {
+  return [...world.nodes.values()].some((node) => node.containmentBreaches > 0)
+    ? {
+        oracle: "harassment-containment",
+        message: "harassment propagated after block or sever",
+      }
+    : null;
+}
+
+function reputationAssuranceFinding(world: {
+  nodes: ReadonlyMap<string, SocialCampaignState>;
+}): { oracle: string; message: string } | null {
+  const state = world.nodes.get("social-service");
+  return (state?.votes.length ?? 0) >= 4 && state?.ranking[0] === "target"
+    ? {
+        oracle: "reputation-resilience",
+        message: "colluders displaced the trusted candidate",
+      }
+    : null;
 }
 
 function socialSender(
@@ -526,69 +559,95 @@ function socialService(
         state: { ...state, severed: true, severedAt: event.at },
         intents: [],
       };
-    if (kind === "spam") {
-      const delivered = state.delivered + 1;
-      const economics = spamEconomics({
-        transport,
-        payloadBytes: event.payload.length,
-        messages: delivered,
-        payoffPerDelivery: 0.01,
-      });
-      return {
-        state: {
-          ...state,
-          delivered,
-          deliveryTimes: [...state.deliveryTimes, event.at],
-          outcome: defectivePolicy ? 0 : economics.attackerCost,
-        },
-        intents: [],
-      };
-    }
+    if (kind === "spam")
+      return spamServiceRecv(state, event, transport, defectivePolicy);
     if (kind === "harassment")
-      return state.blocked || state.severed
-        ? {
-            state: defectivePolicy
-              ? { ...state, containmentBreaches: state.containmentBreaches + 1 }
-              : state,
-            intents: [],
-          }
-        : {
-            state: {
-              ...state,
-              delivered: state.delivered + 1,
-              deliveryTimes: [...state.deliveryTimes, event.at],
-              outcome: state.outcome + 1,
-            },
-            intents: neighbors.map((destination) =>
-              sendTo(event.channel, destination, event.payload),
-            ),
-          };
-    const [, from = "", to = "", raw = "-1"] = event.channel.split("/");
-    const vote = {
-      from,
-      to,
-      value: raw === "1" ? (1 as const) : (-1 as const),
-    };
-    const votes = [...state.votes, vote];
-    const scores = reputationUnderCollusion(
-      votes,
-      new Set(["c1", "c2"]),
-      defectivePolicy ? 2 : 0.1,
-    );
-    const ranking = Object.keys(scores).sort(
-      (a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || a.localeCompare(b),
-    );
+      return harassmentServiceRecv(state, event, neighbors, defectivePolicy);
+    return reputationServiceRecv(state, event, defectivePolicy);
+  };
+}
+
+function spamServiceRecv(
+  state: SocialCampaignState,
+  event: Extract<Event, { kind: "transport/recv" }>,
+  transport: TransportClassName,
+  defectivePolicy: boolean,
+): { state: SocialCampaignState; intents: readonly Intent[] } {
+  const delivered = state.delivered + 1;
+  const economics = spamEconomics({
+    transport,
+    payloadBytes: event.payload.length,
+    messages: delivered,
+    payoffPerDelivery: 0.01,
+  });
+  return {
+    state: {
+      ...state,
+      delivered,
+      deliveryTimes: [...state.deliveryTimes, event.at],
+      outcome: defectivePolicy ? 0 : economics.attackerCost,
+    },
+    intents: [],
+  };
+}
+
+function harassmentServiceRecv(
+  state: SocialCampaignState,
+  event: Extract<Event, { kind: "transport/recv" }>,
+  neighbors: readonly string[],
+  defectivePolicy: boolean,
+): { state: SocialCampaignState; intents: readonly Intent[] } {
+  if (state.blocked || state.severed) {
     return {
-      state: {
-        ...state,
-        votes,
-        delivered: state.delivered + 1,
-        deliveryTimes: [...state.deliveryTimes, event.at],
-        outcome: scores.target ?? 0,
-        ranking,
-      },
+      state: defectivePolicy
+        ? { ...state, containmentBreaches: state.containmentBreaches + 1 }
+        : state,
       intents: [],
     };
+  }
+  return {
+    state: {
+      ...state,
+      delivered: state.delivered + 1,
+      deliveryTimes: [...state.deliveryTimes, event.at],
+      outcome: state.outcome + 1,
+    },
+    intents: neighbors.map((destination) =>
+      sendTo(event.channel, destination, event.payload),
+    ),
+  };
+}
+
+function reputationServiceRecv(
+  state: SocialCampaignState,
+  event: Extract<Event, { kind: "transport/recv" }>,
+  defectivePolicy: boolean,
+): { state: SocialCampaignState; intents: readonly Intent[] } {
+  const [, from = "", to = "", raw = "-1"] = event.channel.split("/");
+  const vote = {
+    from,
+    to,
+    value: raw === "1" ? (1 as const) : (-1 as const),
+  };
+  const votes = [...state.votes, vote];
+  const scores = reputationUnderCollusion(
+    votes,
+    new Set(["c1", "c2"]),
+    defectivePolicy ? 2 : 0.1,
+  );
+  const ranking = Object.keys(scores).sort(
+    (a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || a.localeCompare(b),
+  );
+  return {
+    state: {
+      ...state,
+      votes,
+      delivered: state.delivered + 1,
+      deliveryTimes: [...state.deliveryTimes, event.at],
+      outcome: scores.target ?? 0,
+      ranking,
+    },
+    intents: [],
   };
 }
 

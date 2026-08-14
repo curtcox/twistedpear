@@ -158,9 +158,7 @@ export async function fetchPackage(
   provider: CryptoProvider,
   options: FetchPackageOptions,
 ): Promise<FetchPackageResult> {
-  const freenetNodeAvailable =
-    options.freenetFetcher !== undefined &&
-    options.freenetLocator !== undefined;
+  const freenetNodeAvailable = isFreenetAvailable(options);
   const budget = assessFetchBudget(
     options.entry,
     options.interfaces,
@@ -170,13 +168,25 @@ export async function fetchPackage(
     throw new Error(budget.blockedReason ?? "fetch blocked by budget rules");
   }
 
-  const paths = orderedPaths(
-    options.interfaces,
-    freenetNodeAvailable,
-    options.forcePath,
+  return tryFetchPaths(
+    provider,
+    options,
+    orderedPaths(options.interfaces, freenetNodeAvailable, options.forcePath),
   );
-  let lastError: Error | null = null;
+}
 
+function isFreenetAvailable(options: FetchPackageOptions): boolean {
+  return (
+    options.freenetFetcher !== undefined && options.freenetLocator !== undefined
+  );
+}
+
+async function tryFetchPaths(
+  provider: CryptoProvider,
+  options: FetchPackageOptions,
+  paths: readonly FetchPath[],
+): Promise<FetchPackageResult> {
+  let lastError: Error | null = null;
   for (const path of paths) {
     options.onProgress?.({
       path,
@@ -184,33 +194,11 @@ export async function fetchPackage(
       totalBytes: options.entry.packageSize,
       phase: "starting",
     });
-
     if (options.signal?.aborted) {
       throw new Error("fetch aborted");
     }
-
     try {
-      const archiveBytes = await fetchByPath(path, options);
-      options.onProgress?.({
-        path,
-        bytesReceived: archiveBytes.length,
-        totalBytes: archiveBytes.length,
-        phase: "verifying",
-      });
-
-      const verified = unpackPackage(provider, archiveBytes);
-      if (verified.packageHash !== options.entry.packageHash) {
-        throw new Error("Package hash mismatch after fetch");
-      }
-
-      options.onProgress?.({
-        path,
-        bytesReceived: archiveBytes.length,
-        totalBytes: archiveBytes.length,
-        phase: "complete",
-      });
-
-      return { path, archiveBytes, verified };
+      return await fetchAndVerifyPath(path, provider, options);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       options.onProgress?.({
@@ -221,8 +209,35 @@ export async function fetchPackage(
       });
     }
   }
-
   throw lastError ?? new Error("all fetch paths failed");
+}
+
+async function fetchAndVerifyPath(
+  path: FetchPath,
+  provider: CryptoProvider,
+  options: FetchPackageOptions,
+): Promise<FetchPackageResult> {
+  const archiveBytes = await fetchByPath(path, options);
+  options.onProgress?.({
+    path,
+    bytesReceived: archiveBytes.length,
+    totalBytes: archiveBytes.length,
+    phase: "verifying",
+  });
+
+  const verified = unpackPackage(provider, archiveBytes);
+  if (verified.packageHash !== options.entry.packageHash) {
+    throw new Error("Package hash mismatch after fetch");
+  }
+
+  options.onProgress?.({
+    path,
+    bytesReceived: archiveBytes.length,
+    totalBytes: archiveBytes.length,
+    phase: "complete",
+  });
+
+  return { path, archiveBytes, verified };
 }
 
 async function fetchByPath(
@@ -230,59 +245,73 @@ async function fetchByPath(
   options: FetchPackageOptions,
 ): Promise<Uint8Array> {
   switch (path) {
-    case "hyperdrive": {
-      if (options.driveFetcher !== undefined) {
-        return options.driveFetcher.fetchDriveVersion(
-          options.entry.driveKey,
-          options.version,
-        );
-      }
-
-      if (options.driveManager === undefined) {
-        throw new Error("hyperdrive path unavailable");
-      }
-
-      if (options.driveManager.activeDrive === null) {
-        await options.driveManager.openDrive(options.entry.driveKey);
-      }
-
-      return options.driveManager.fetchVersion(options.version);
-    }
-
-    case "lan-mirror": {
-      if (
-        options.driveManager === undefined ||
-        options.lanMirrorKeyHex === undefined
-      ) {
-        throw new Error("lan mirror path unavailable");
-      }
-
-      await options.driveManager.mirrorFrom(options.lanMirrorKeyHex);
-      return options.driveManager.fetchVersion(options.version);
-    }
-
-    case "freenet": {
-      if (
-        options.freenetFetcher === undefined ||
-        options.freenetLocator === undefined
-      ) {
-        throw new Error("freenet path unavailable");
-      }
-      return options.freenetFetcher.fetchLocator(options.freenetLocator);
-    }
-
-    case "resource": {
-      if (options.resourceClient === undefined) {
-        throw new Error("resource path unavailable");
-      }
-
-      const result = await options.resourceClient.fetchVersion(options.version);
-      return result.archiveBytes;
-    }
-
+    case "hyperdrive":
+      return fetchHyperdrive(options);
+    case "lan-mirror":
+      return fetchLanMirror(options);
+    case "freenet":
+      return fetchFreenet(options);
+    case "resource":
+      return fetchResource(options);
     default:
       throw new Error(`unknown fetch path: ${path satisfies never}`);
   }
+}
+
+async function fetchHyperdrive(
+  options: FetchPackageOptions,
+): Promise<Uint8Array> {
+  if (options.driveFetcher !== undefined) {
+    return options.driveFetcher.fetchDriveVersion(
+      options.entry.driveKey,
+      options.version,
+    );
+  }
+
+  if (options.driveManager === undefined) {
+    throw new Error("hyperdrive path unavailable");
+  }
+
+  if (options.driveManager.activeDrive === null) {
+    await options.driveManager.openDrive(options.entry.driveKey);
+  }
+
+  return options.driveManager.fetchVersion(options.version);
+}
+
+async function fetchLanMirror(
+  options: FetchPackageOptions,
+): Promise<Uint8Array> {
+  if (
+    options.driveManager === undefined ||
+    options.lanMirrorKeyHex === undefined
+  ) {
+    throw new Error("lan mirror path unavailable");
+  }
+
+  await options.driveManager.mirrorFrom(options.lanMirrorKeyHex);
+  return options.driveManager.fetchVersion(options.version);
+}
+
+function fetchFreenet(options: FetchPackageOptions): Promise<Uint8Array> {
+  if (
+    options.freenetFetcher === undefined ||
+    options.freenetLocator === undefined
+  ) {
+    throw new Error("freenet path unavailable");
+  }
+  return options.freenetFetcher.fetchLocator(options.freenetLocator);
+}
+
+async function fetchResource(
+  options: FetchPackageOptions,
+): Promise<Uint8Array> {
+  if (options.resourceClient === undefined) {
+    throw new Error("resource path unavailable");
+  }
+
+  const result = await options.resourceClient.fetchVersion(options.version);
+  return result.archiveBytes;
 }
 
 export function estimateTransferSeconds(
