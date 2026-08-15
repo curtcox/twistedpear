@@ -88,6 +88,31 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
   } else if (["rust", "shell", "python", "kotlin", "swift"].includes(gate.id)) {
     const report = json(`languages/${gate.id}.json`);
     if (report) values.push(metric("Analyzer runs", count(report.runs)), metric("Findings", count(report.findings)));
+  } else if (gate.id === "formal") {
+    // Publish the size of the proof, not just its colour. A model that quietly
+    // stops exploring states still "passes"; a falling distinct-state count on
+    // the published page is the only way that shows up.
+    const report = json("formal/formal.json");
+    const stage = (id) => report?.stages?.find((entry) => entry.id === id);
+    if (report) {
+      values.push(
+        metric("Machines conformed", stage("machine-conformance")?.machines ?? 0),
+        metric("Legal edges", stage("machine-conformance")?.edges ?? 0),
+        metric("Symbolic models", stage("symbolic-inventory")?.models ?? 0),
+        metric("TLA+ models checked", stage("tlc")?.skipped ? 0 : (stage("tlc")?.models ?? 0)),
+        metric("Distinct states explored", stage("tlc")?.distinctStates ?? 0),
+      );
+    }
+  } else if (gate.id === "sim-fixed-replay") {
+    // Declared outside `artifacts/`, so the published key keeps its full path.
+    const report = json("conformance/sim-campaign/artifacts/fixed-replay.json");
+    if (report) {
+      values.push(
+        metric("Scenarios replayed", report.scenariosRun ?? 0),
+        metric("Cells", count(report.cells)),
+        metric("Findings", count(report.findings)),
+      );
+    }
   } else if (gate.id === "secrets") {
     const report = json("gitleaks.json");
     if (report) values.push(metric("Leaks", count(report)));

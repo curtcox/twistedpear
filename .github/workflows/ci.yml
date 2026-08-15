@@ -49,7 +49,7 @@ jobs:
         with:
           python-version: "3.12"
       - uses: actions/setup-java@v5
-        if: matrix.id == 'kotlin'
+        if: matrix.id == 'kotlin' || matrix.id == 'formal'
         with:
           distribution: temurin
           java-version: "17"
@@ -118,6 +118,8 @@ jobs:
             licenses.json
             gitleaks.json
             census.json
+            artifacts/formal/formal.json
+            conformance/sim-campaign/artifacts/fixed-replay.json
           if-no-files-found: warn
 
   pr-dashboard:
@@ -342,29 +344,9 @@ jobs:
       - name: Compare Linux and macOS replay bytes
         run: cmp replay/ubuntu/fixed-replay.json replay/macos/fixed-replay.json
 
-  formal:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-      - run: npm ci
-      - name: Check executable/model conformance
-        run: npm run formal:all && npm run formal:symbolic:lint
-      - name: Verify TLA+ tools
-        run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
-      - name: Check TLA+ safety and liveness
-        working-directory: formal
-        run: |
-          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-cap/model/grant.cfg ../specs/spec-cap/model/grant.tla
-          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/escrow.cfg ../specs/spec-authority/model/escrow.tla
-          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/recovery-quorum.cfg ../specs/spec-authority/model/recovery_quorum.tla
+  # The formal checks moved to the `formal` registry gate, which runs the same
+  # jar-checksum verification, conformance check, symbolic inventory and three
+  # TLC models — and publishes the result to /results/, which this job never did.
 
   core-smoke:
     runs-on: ubuntu-latest
@@ -765,19 +747,9 @@ jobs:
       - run: npm run test:web-hyperdrive-browser
       - run: npm run test:web-rnode
 
-  fuzz:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm run test:fuzz
-        env:
-          FUZZ_ITERATIONS: "512"
+  # The fuzz suite moved to the `fuzz` registry gate. The 512-iteration count
+  # that used to live in this job's `env:` now lives in the `test:fuzz` script,
+  # so a local run and a CI run fuzz equally hard.
 
   serialport-load:
     runs-on: ubuntu-latest
@@ -994,7 +966,6 @@ jobs:
       - local-multipeer
       - simulation-replay
       - simulation-replay-compare
-      - formal
       - core-smoke
       - bare-smoke
       - bare-runtime
@@ -1023,7 +994,6 @@ jobs:
       - python-interop
       - web-interop
       - web
-      - fuzz
       - serialport-load
       - electron-pack-macos
       - docs

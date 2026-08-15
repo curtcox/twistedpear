@@ -83,7 +83,7 @@ export const REQUIREMENTS = {
     manual: "https://github.com/gitleaks/gitleaks",
   },
   jvm: {
-    why: "running ktlint",
+    why: "running ktlint and the TLA+ model checker",
     probe: () => hasCommand("java", ["-version"]),
     install: {
       darwin: [["brew", "install", "openjdk"]],

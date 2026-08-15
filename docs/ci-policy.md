@@ -38,6 +38,25 @@ single-next-action rule, evidence recorder, and soak failure classifier/reproduc
 It also runs `test:doc-audit`, which checks register evidence paths, markdown links,
 lifecycle headers, and cross-register ID consistency.
 
+The `formal`, `fuzz` and `sim-fixed-replay` registry gates were standalone CI jobs
+until 2026-08-15. They ran locally and they ran in CI, but a hand-written job cannot
+publish to `/results/` — only the registry drives that — so their results were
+inspectable in a workflow log and nowhere else. The checks themselves did not change:
+
+- `formal` (`npm run test:formal`) verifies the pinned `tla2tools.jar` checksum, runs
+  executable/model conformance and the symbolic model inventory, and model-checks the
+  three TLA+ models. It publishes machines conformed, legal edges, symbolic models, and
+  distinct states explored — so a model that quietly stops exploring states shows up as
+  a falling number rather than as a still-green check.
+- `fuzz` (`npm run test:fuzz`) runs the malformed-input suites. The 512-iteration count
+  that used to live in the CI job's `env:` now lives in the npm script, so a local run
+  and a CI run fuzz equally hard.
+- `sim-fixed-replay` (`npm run test:sim-fixed-replay`) runs the fixed production-backed
+  replay and publishes the campaign report as a raw artifact. The cross-OS determinism
+  comparison stays a separate pair of CI jobs (`simulation-replay` and
+  `simulation-replay-compare`): it needs the same replay on two runners, which one gate
+  on one runner cannot express.
+
 The `file-sizes` registry gate runs `npm run sizes`: a source file that
 crosses the danger threshold for its type fails the build unless it is grandfathered in
 `size-ratchet.json`, and grandfathered files may only shrink. Thresholds live in

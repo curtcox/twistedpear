@@ -138,6 +138,34 @@ export const gates = [
   gate("properties", "Property-based protocol tests", "test:properties", "pr", [
     "node",
   ]),
+  // The three below ran on every PR as hand-written CI jobs long before they
+  // were gates. That gave them two of the three surfaces a check needs: they
+  // ran locally and they ran in CI, but their result never reached `/results/`,
+  // so there was no way to ask the published site whether the fuzzers had ever
+  // found anything or whether the proofs still held. Registering them is what
+  // publishes them; the checks themselves are unchanged.
+  gate("fuzz", "Malformed-input fuzz tests", "test:fuzz", "pr", ["node"]),
+  gate(
+    "formal",
+    "Formal machine conformance and model checking",
+    "test:formal",
+    "pr",
+    // TLC needs a JVM. `formal/README.md` deliberately keeps the executable
+    // conformance check runnable without one, and `npm run formal:all` still
+    // is — this gate is the all-three-stages version, so it declares the JVM
+    // and skips locally when there is none, like every other tool gate.
+    ["node", "jvm"],
+    ["artifacts/formal/formal.json"],
+    "formal",
+  ),
+  gate(
+    "sim-fixed-replay",
+    "Fixed simulation replay",
+    "test:sim-fixed-replay",
+    "pr",
+    ["node"],
+    ["conformance/sim-campaign/artifacts/fixed-replay.json"],
+  ),
   gate(
     "audit-policy",
     "Advisory allowlist policy",
