@@ -230,6 +230,28 @@ const RENDERERS = {
     ];
   },
 
+  "rust-fuzz": ({ json }) => {
+    // Publish what the session reached, not just that it survived. Edge counts
+    // are the number worth watching: a run whose coverage falls has stopped
+    // entering something it used to enter, and a fuzzer that no longer reaches
+    // the parser is green for the same reason an empty test suite is.
+    const report = json("rust-fuzz/rust-fuzz.json");
+    if (!report) return [];
+    const targets = report.targets ?? [];
+    return [
+      metric("Targets fuzzed", targets.length),
+      metric("Executions per target", number(report.runs)),
+      metric(
+        "Edges covered",
+        targets.reduce((total, target) => total + number(target.edges), 0),
+      ),
+      metric(
+        "Crashing targets",
+        targets.filter((target) => target.ok === false).length,
+      ),
+    ];
+  },
+
   "differential-fuzz": ({ json }) => {
     // Publish how much was compared and how far the two implementations drifted
     // apart, not just the colour. A differential fuzzer whose case count

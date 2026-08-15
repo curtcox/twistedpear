@@ -1,0 +1,59 @@
+# libFuzzer targets for the three Freenet contracts.
+#
+# One crate for all three rather than a `fuzz/` directory inside each contract,
+# for two reasons. `scripts/languages/check.mjs` runs clippy, rustfmt and
+# cargo-deny over every `Cargo.toml` under `packages/bridge-freenet/contract/`
+# under the pinned *stable* toolchain, and a `libfuzzer-sys` crate does not
+# build there — so a fuzz manifest in that tree would turn the `rust` gate red.
+# And three near-identical manifests and lockfiles is three copies of the same
+# thing for the duplication gate to find.
+#
+# `cargo fuzz --fuzz-dir conformance/fuzz/rust` is how the runner reaches it.
+
+[package]
+name = "twistedpear-contract-fuzz"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Not part of any parent workspace: the three contracts each carry their own
+# lockfile, and this crate carries its own too.
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# The same revision the three contracts pin. The contracts import the prelude
+# privately, so the fuzz targets need their own path to `State`, `Parameters`
+# and `ContractInterface`; a different revision here would mean fuzzing against
+# types the contracts were not compiled with.
+freenet-stdlib = { version = "=0.8.5", git = "https://github.com/freenet/freenet-stdlib.git", rev = "f4636e502876b0e11f2f6d59032348cfd6518bbc", features = [
+  "contract",
+] }
+twistedpear-freenet-locator-contract = { path = "../../../packages/bridge-freenet/contract/locator" }
+twistedpear-freenet-packet-log-contract = { path = "../../../packages/bridge-freenet/contract/packet-log" }
+twistedpear-freenet-propagation-set-contract = { path = "../../../packages/bridge-freenet/contract/propagation-set" }
+
+[[bin]]
+name = "locator"
+path = "fuzz_targets/locator.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "packet-log"
+path = "fuzz_targets/packet_log.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "propagation-set"
+path = "fuzz_targets/propagation_set.rs"
+test = false
+doc = false
+bench = false

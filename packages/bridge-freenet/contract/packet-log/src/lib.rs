@@ -56,13 +56,28 @@ pub fn encode_entries(entries: &[LogEntry]) -> Result<Vec<u8>, &'static str> {
     Ok(out)
 }
 
+/// The most entries a state of this size could contain, since every entry costs
+/// at least its own header.
+fn max_entries(state_length: usize) -> usize {
+    state_length.saturating_sub(HEADER_LENGTH) / ENTRY_HEADER_LENGTH
+}
+
 pub fn decode_entries(bytes: &[u8], retention: usize) -> Result<Vec<LogEntry>, &'static str> {
     if retention == 0 || bytes.len() < HEADER_LENGTH || !bytes.starts_with(STATE_MAGIC) {
         return Err("invalid state header");
     }
     let count = u32::from_be_bytes([bytes[5], bytes[6], bytes[7], bytes[8]]) as usize;
     let mut cursor = HEADER_LENGTH;
-    let mut entries = Vec::with_capacity(count);
+    // Reserve for what the buffer could actually hold, not for what its header
+    // claims. `count` is four attacker-controlled bytes, and reserving on it
+    // directly meant a nine-byte state — the magic plus 0xFFFFFFFF — asked for
+    // four billion entries at 40 bytes each. On a host that over-commits it
+    // passes unnoticed; inside the wasm32 linear memory these contracts
+    // actually run in, growing memory by that much is not something a node can
+    // decline politely. `cargo fuzz` found it from the `count-overrun` seed on
+    // its first session. The loop below still errors on the first entry that
+    // runs off the end, so nothing about which inputs are accepted changes.
+    let mut entries = Vec::with_capacity(count.min(max_entries(bytes.len())));
     let mut previous = None;
     let mut direction_counts = [0usize; 2];
     for _ in 0..count {

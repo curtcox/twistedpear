@@ -46,13 +46,24 @@ pub fn encode_entries(entries: &[PropagationEntry]) -> Result<Vec<u8>, &'static 
     Ok(out)
 }
 
+/// The most entries a state of this size could contain, since every entry costs
+/// at least its transient id, timestamp and length prefix.
+fn max_entries(state_length: usize) -> usize {
+    state_length.saturating_sub(HEADER_LENGTH) / ENTRY_FIXED_LENGTH
+}
+
 pub fn decode_entries(bytes: &[u8]) -> Result<Vec<PropagationEntry>, &'static str> {
     if bytes.len() < HEADER_LENGTH || !bytes.starts_with(STATE_MAGIC) {
         return Err("invalid state header");
     }
     let count = u32::from_be_bytes([bytes[5], bytes[6], bytes[7], bytes[8]]) as usize;
     let mut cursor = HEADER_LENGTH;
-    let mut entries = Vec::with_capacity(count);
+    // Reserve for what the buffer could actually hold, not for what its header
+    // claims — see the same fix in the packet-log contract. Nine bytes of state
+    // asked for four billion 64-byte entries here; `cargo fuzz` reported it as
+    // an out-of-memory on the `count-overrun` seed. Which inputs are accepted is
+    // unchanged: the loop still errors on the first entry past the end.
+    let mut entries = Vec::with_capacity(count.min(max_entries(bytes.len())));
     let mut previous: Option<[u8; TRANSIENT_ID_BYTES]> = None;
     for _ in 0..count {
         let header_end = cursor

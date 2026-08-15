@@ -1,0 +1,11 @@
+# cargo-fuzz needs a nightly compiler: libFuzzer instrumentation rides on
+# `-Z sanitizer`, which stable does not accept.
+#
+# Pinned to a date rather than tracking `nightly`, for the reason `lizard` and
+# `ruff` are pinned: an unpinned toolchain turns a gate red for reasons found
+# nowhere in the diff that tripped it, and a nightly compiler moves every day.
+# This is a copy of the pin in `tool-versions.json`, and
+# `conformance/checks/tool-versions.test.mjs` fails when the two disagree.
+[toolchain]
+channel = "nightly-2026-06-01"
+profile = "minimal"

@@ -89,6 +89,18 @@ jobs:
         # what makes the churn half of this gate meaningful — a shallow clone
         # reports one commit per file and the ranking collapses.
         run: python -m pip install lizard==1.23.0
+      - name: Install the fuzzing toolchain
+        if: matrix.id == 'rust-fuzz'
+        # Two toolchains on purpose. `cargo fuzz` builds with `-Z sanitizer`,
+        # which stable refuses, and the stable pin below is what the contracts
+        # themselves are compiled and linted against — fuzzing a different
+        # compiler's output would be fuzzing different code. Both dates are
+        # copies of `tool-versions.json`, and
+        # `conformance/checks/tool-versions.test.mjs` fails when they drift.
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup toolchain install nightly-2026-06-01 --profile minimal
+          cargo install cargo-fuzz --version 0.13.1 --locked
       - run: node scripts/checks/run.mjs --tier=nightly --only=${{ matrix.id }}
         env:
           PROPERTY_RUNS: "2000"
@@ -103,6 +115,7 @@ jobs:
             reports/mutation/mutation.json
             artifacts/languages/kotlin-tests.json
             artifacts/benchmark/benchmark.json
+            artifacts/rust-fuzz/rust-fuzz.json
           if-no-files-found: warn
 
   property-campaign:

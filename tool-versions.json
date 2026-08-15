@@ -30,6 +30,15 @@
       "version": "1.97.1",
       "probe": ["rustup", "run", "{version}", "cargo", "--version"]
     },
+    "rust-nightly": {
+      "version": "nightly-2026-06-01",
+      "probe": ["rustup", "run", "{version}", "cargo", "--version"],
+      "namedByProbe": true
+    },
+    "cargo-fuzz": {
+      "version": "0.13.1",
+      "probe": ["cargo-fuzz", "--version"]
+    },
     "cargo-deny": {
       "version": "0.20.2",
       "probe": ["cargo-deny", "--version"]

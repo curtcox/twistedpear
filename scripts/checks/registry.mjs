@@ -350,6 +350,21 @@ export const gates = [
     ["artifacts/languages/kotlin-tests.json"],
     "native-tests",
   ),
+  // Nightly rather than PR, for the same reason `kotlin-tests` is: installing a
+  // second Rust toolchain and building three sanitizer-instrumented binaries is
+  // minutes, and a fuzzing session that finds anything needs more than a PR's
+  // patience. What protects a pull request is the corpus-replay test inside each
+  // contract — every input a session ever committed, replayed on the stable
+  // compiler `rust-tests` already runs.
+  gate(
+    "rust-fuzz",
+    "Freenet contract fuzzing",
+    "fuzz:rust",
+    "nightly",
+    ["rust", "rust-nightly", "cargo-fuzz"],
+    ["artifacts/rust-fuzz/rust-fuzz.json"],
+    "rust-fuzz",
+  ),
   gate(
     "audit",
     "Dependency advisory scan",

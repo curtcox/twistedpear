@@ -76,6 +76,13 @@ export function installedVersion(token) {
   );
   const result = spawnSync(command, args, { encoding: "utf8" });
   if (result.status !== 0) return null;
+  // Some pins name the version *in* the probe rather than in its output: a
+  // rustup channel is one, and a dated nightly is the case that forces this.
+  // `rustup run nightly-2026-06-01 cargo --version` prints `cargo 1.98.0-nightly`,
+  // so parsing the output would report a permanent mismatch against a pin that
+  // is in fact exactly satisfied. Rustup resolving the channel name at all is
+  // the proof, so a zero exit is the answer.
+  if (pin.namedByProbe) return pin.version;
   const match = `${result.stdout ?? ""}${result.stderr ?? ""}`.match(
     /\d+\.\d+(?:\.\d+)?/,
   );
@@ -188,6 +195,73 @@ export const REQUIREMENTS = {
       ],
     },
     manual: "https://rustup.rs",
+  },
+  // A second Rust toolchain, and a deliberate one. `cargo fuzz` builds with
+  // `-Z sanitizer=address`, which stable refuses, so the fuzzing gate needs
+  // nightly — and an unpinned `nightly` moves every day, which is how a gate
+  // turns red for reasons found nowhere in the diff that tripped it. It is
+  // pinned to a date for exactly the reason `lizard` and `ruff` are pinned to
+  // versions, and lives in the same file so bumping it is still a one-file edit.
+  "rust-nightly": {
+    why: "cargo fuzz needs a nightly compiler for libFuzzer instrumentation",
+    probe: () =>
+      hasCommand("rustup", [
+        "run",
+        PINS["rust-nightly"].version,
+        "cargo",
+        "--version",
+      ]),
+    needs: ["rust"],
+    install: {
+      darwin: [
+        [
+          "rustup",
+          "toolchain",
+          "install",
+          PINS["rust-nightly"].version,
+          "--profile",
+          "minimal",
+        ],
+      ],
+      linux: [
+        [
+          "rustup",
+          "toolchain",
+          "install",
+          PINS["rust-nightly"].version,
+          "--profile",
+          "minimal",
+        ],
+      ],
+    },
+    manual: "https://rustup.rs",
+  },
+  "cargo-fuzz": {
+    why: "fuzzing the three Freenet contracts",
+    probe: () => hasCommand("cargo-fuzz", ["--version"]),
+    needs: ["rust-nightly"],
+    install: {
+      darwin: [
+        [
+          "cargo",
+          "install",
+          "cargo-fuzz",
+          "--version",
+          PINS["cargo-fuzz"].version,
+          "--locked",
+        ],
+      ],
+      linux: [
+        [
+          "cargo",
+          "install",
+          "cargo-fuzz",
+          "--version",
+          PINS["cargo-fuzz"].version,
+          "--locked",
+        ],
+      ],
+    },
   },
   "cargo-deny": {
     why: "the Rust dependency and licence policy",

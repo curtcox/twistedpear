@@ -66,7 +66,17 @@ if (language === "rust") {
   // covers. The freenet spike crate holds four tests of its own; scoping tests
   // to "shipped" would leave them in the same never-run state this gate exists
   // to end.
-  for (const manifest of tracked("*Cargo.toml")) {
+  //
+  // The one exception is the libFuzzer crate. It builds only under the pinned
+  // *nightly* — `-Z sanitizer` is not a stable flag — so running it here would
+  // fail for a toolchain reason rather than a behavioural one, and it holds no
+  // `#[test]` of its own in any case. Its targets are covered on this tier by
+  // the corpus-replay test in each contract, which replays the same committed
+  // inputs on this compiler, and on the nightly tier by the `rust-fuzz` gate.
+  const FUZZ_CRATE = "conformance/fuzz/rust/Cargo.toml";
+  for (const manifest of tracked("*Cargo.toml").filter(
+    (candidate) => candidate !== FUZZ_CRATE,
+  )) {
     const { status, output } = run("rustup", [
       "run",
       RUST_TOOLCHAIN,

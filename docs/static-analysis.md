@@ -205,6 +205,20 @@ fail. The gates publish suite and test counts, so a suite that stops being
 discovered shows up as a falling number rather than as a green tick over nothing —
 and a run that finds no suites at all fails rather than passing vacuously.
 
+The three Freenet contracts are also fuzzed. `rust-fuzz` (`npm run fuzz:rust`, nightly)
+drives libFuzzer targets in `conformance/fuzz/rust/` at the locator, packet-log and
+propagation-set contracts, asserting more than absence of panics: that decode and encode
+are inverse, that a state coming out of `update_state` passes the contract's own
+validator, and that merges converge regardless of arrival order. Its first session found a
+nine-byte state whose count field claimed four billion entries, which two of the three
+decoders reserved capacity for — invisible on a host that over-commits, fatal in the
+wasm32 linear memory these contracts actually run in. Seeds are generated
+(`npm run fuzz:rust:seeds`) rather than left to chance: every decoder opens with a
+five-byte magic, and libFuzzer drawing that from random bytes is a 2^-40 event, so an
+unseeded session never enters the parser at all. Crashes are copied into the committed
+corpus, and a corpus-replay test in each contract replays the whole directory on the
+stable toolchain, which is what carries the protection back onto the PR tier.
+
 Rust tests run under the same pinned toolchain as the analyzer gate, because two
 gates on different compilers are describing different code. `kotlin-tests` is
 nightly rather than per-PR: the Expo prebuild plus a cold Gradle run costs minutes.
@@ -248,10 +262,19 @@ shipped contract. Python runs Ruff check/format and focused mypy. Kotlin uses kt
 Swift uses SwiftLint on macOS; shell uses ShellCheck; workflows use actionlint.
 
 The reproducible tool versions are actionlint 1.7.12, Gitleaks 8.30.1, ShellCheck 0.11.0,
-Ruff 0.15.16, mypy 2.1.0, lizard 1.23.0, Rust 1.97.1, cargo-deny 0.20.2, ktlint 1.8.0, and
+Ruff 0.15.16, mypy 2.1.0, lizard 1.23.0, Rust 1.97.1, Rust nightly-2026-06-01,
+cargo-fuzz 0.13.1, cargo-deny 0.20.2, ktlint 1.8.0, and
 SwiftLint 0.65.0. They are declared once, in `tool-versions.json`; this list, the three
-workflows, and `scripts/languages/*.mjs` are copies, and
-`conformance/checks/tool-versions.test.mjs` fails when one drifts from the declaration.
+workflows, `conformance/fuzz/rust/rust-toolchain.toml`, and `scripts/languages/*.mjs` are
+copies, and `conformance/checks/tool-versions.test.mjs` fails when one drifts from the
+declaration.
+
+The nightly compiler is the one entry that is a date rather than a version, and it is
+pinned for the reason lizard and Ruff are: `cargo fuzz` builds with `-Z sanitizer`, which
+stable refuses, and an unpinned `nightly` moves every day — which is how a gate goes red
+for reasons found nowhere in the diff that tripped it. It is a second toolchain, not a
+replacement: the contracts are compiled, linted and unit-tested under stable 1.97.1, and
+fuzzing a different compiler's output would be fuzzing different code.
 
 `npm run tools:doctor` probes each installed tool for its version and reports a `VERSION`
 mismatch, not only a `MISSING` one — a tool that is present at the wrong version answers a

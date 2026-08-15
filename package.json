@@ -143,6 +143,8 @@
     "test:web-rnode": "npm run build && node conformance/web-rnode/run.mjs",
     "test:fuzz": "npm run build && FUZZ_ITERATIONS=${FUZZ_ITERATIONS:-512} vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "test:differential-fuzz": "npm run build && node conformance/fuzz/run-differential.mjs",
+    "fuzz:rust": "node conformance/fuzz/rust/run.mjs",
+    "fuzz:rust:seeds": "node conformance/fuzz/rust/seeds.mjs",
     "test:sim-campaign": "npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/run.mjs",
     "test:adapter-pairs": "npm run build --workspace=@twistedpear/effects && node conformance/adapter/run.mjs",
     "test:machine-gate": "npm run build --workspace=@twistedpear/protocol && node conformance/machine/run.mjs",

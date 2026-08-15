@@ -23,6 +23,7 @@ const nightlyWorkflow = read(".github/workflows/nightly.yml");
 const staticAnalysisDoc = read("docs/static-analysis.md");
 const languageCheck = read("scripts/languages/check.mjs");
 const languageTest = read("scripts/languages/test.mjs");
+const fuzzToolchain = read("conformance/fuzz/rust/rust-toolchain.toml");
 
 /**
  * Where each pin is written out, and the exact text that has to carry the
@@ -45,8 +46,14 @@ const copies = [
   ["lizard", nightlyWorkflow, (v) => `lizard==${v}`],
   ["rust", ciWorkflow, (v) => `rustup toolchain install ${v} `],
   ["rust", pagesWorkflow, (v) => `rustup toolchain install ${v} `],
+  ["rust", nightlyWorkflow, (v) => `rustup toolchain install ${v} `],
   ["cargo-deny", ciWorkflow, (v) => `cargo-deny --version ${v} `],
   ["cargo-deny", pagesWorkflow, (v) => `cargo-deny --version ${v} `],
+  // The nightly compiler the fuzzing gate needs, written in three places: the
+  // toolchain file a human lands in, the workflow that installs it, and the pin.
+  ["rust-nightly", nightlyWorkflow, (v) => `rustup toolchain install ${v} `],
+  ["rust-nightly", fuzzToolchain, (v) => `channel = "${v}"`],
+  ["cargo-fuzz", nightlyWorkflow, (v) => `cargo-fuzz --version ${v} `],
   ["ktlint", ciWorkflow, (v) => `ktlint/releases/download/${v}/`],
   ["ktlint", pagesWorkflow, (v) => `ktlint/releases/download/${v}/`],
   ["swiftlint", ciWorkflow, (v) => `test "$(swiftlint version)" = "${v}"`],
@@ -55,9 +62,30 @@ const copies = [
 
 describe("pinned tool versions", () => {
   it("names a version and a probe for every pinned tool", () => {
+    // Two shapes, not one: most tools pin a semantic version, and a Rust
+    // nightly pins a date. Allowing the date form is what lets the fuzzing
+    // toolchain live in this file at all rather than being the one unpinned
+    // thing in the repository.
     for (const [token, pin] of Object.entries(PINS)) {
-      expect(pin.version, `${token} version`).toMatch(/^\d+\.\d+(\.\d+)?$/);
+      expect(pin.version, `${token} version`).toMatch(
+        /^(\d+\.\d+(\.\d+)?|nightly-\d{4}-\d{2}-\d{2})$/,
+      );
       expect(pin.probe.length, `${token} probe`).toBeGreaterThan(1);
+    }
+  });
+
+  // A pin whose probe names the version cannot be read back out of the probe's
+  // output — `rustup run nightly-2026-06-01 cargo --version` prints
+  // `cargo 1.98.0-nightly`. Those pins say so, and `installedVersion` trusts the
+  // exit code instead; a pin that forgot to say so would report a permanent
+  // mismatch in `tools:doctor` for a toolchain that is exactly right.
+  it("marks the pins whose probe names the version rather than printing it", () => {
+    for (const [token, pin] of Object.entries(PINS)) {
+      const namesItself = pin.probe.includes("{version}");
+      const parsable = /^\d+\.\d+(\.\d+)?$/.test(pin.version);
+      if (namesItself && !parsable) {
+        expect(pin.namedByProbe, `${token} namedByProbe`).toBe(true);
+      }
     }
   });
 
