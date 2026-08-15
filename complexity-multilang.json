@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 557,
-  "functions": 6393,
-  "groups": 3995,
+  "files": 562,
+  "functions": 6454,
+  "groups": 4020,
   "exemptions": 93,
   "violations": 0,
   "stale": 0,
@@ -36,7 +36,7 @@
       "nloc": 321,
       "pinned": {
         "ccn": 89,
-        "nloc": 324
+        "nloc": 321
       }
     },
     {
@@ -194,8 +194,8 @@
       "ccn": 34,
       "nloc": 285,
       "pinned": {
-        "ccn": 35,
-        "nloc": 291
+        "ccn": 34,
+        "nloc": 285
       }
     },
     {
@@ -219,7 +219,7 @@
       "tier": "tooling",
       "ccn": 32,
       "pinned": {
-        "ccn": 33
+        "ccn": 32
       }
     },
     {
@@ -432,7 +432,7 @@
       "tier": "tooling",
       "ccn": 20,
       "pinned": {
-        "ccn": 34
+        "ccn": 20
       }
     },
     {

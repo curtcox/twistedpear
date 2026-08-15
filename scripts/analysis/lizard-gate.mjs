@@ -181,10 +181,15 @@ for (const [label, entries] of [
   if (entries.length > 50)
     console.error(`  … and ${entries.length - 50} more.`);
 }
-if (tightenable.length > 0)
+if (tightenable.length > 0) {
   console.log(
     `Multi-language complexity: ${tightenable.length} exemption(s) can be tightened; run \`npm run complexity:multilang:baseline\`.`,
   );
+  // Say which. The count alone was not actionable: it reported that some
+  // allowance somewhere was looser than the code needs, and left finding it to
+  // whoever cared enough to edit this file.
+  for (const entry of tightenable) console.log(`  ${entry}`);
+}
 
 if (violations.length > 0 || stale.length > 0) process.exit(1);
 console.log(

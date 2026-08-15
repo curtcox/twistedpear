@@ -134,7 +134,7 @@
     },
     "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage": {
       "ccn": 89,
-      "nloc": 324
+      "nloc": 321
     },
     "apps/host-desktop/src/renderer/device-bridge.js::deviceAvailability": {
       "ccn": 15
@@ -198,8 +198,8 @@
       "ccn": 22
     },
     "conformance/cross-device-dev/run.mjs::(anonymous)": {
-      "ccn": 35,
-      "nloc": 291
+      "ccn": 34,
+      "nloc": 285
     },
     "conformance/desktop/dev-loop.mjs::runDesktopDevLoop": {
       "ccn": 18
@@ -316,7 +316,7 @@
       "ccn": 24
     },
     "scripts/languages/check.mjs::tracked": {
-      "ccn": 33
+      "ccn": 32
     },
     "scripts/peers.mjs::commandStatus": {
       "ccn": 19
@@ -328,7 +328,7 @@
       "ccn": 24
     },
     "scripts/site/run-reports.mjs::runJob": {
-      "ccn": 34
+      "ccn": 20
     },
     "scripts/site/stage.mjs::rewriteMarkdownLinks": {
       "ccn": 51
