@@ -46,6 +46,13 @@ paths are checked on every PR, and `tsc -b` stays incremental. The gate needs
 `npm run build` first, because the app resolves `@twistedpear/*` through built `dist`
 types.
 
+The same is true of `type-coverage` and `fuzz`, and for the same reason: every
+workspace package points `exports` at `dist`, so on an unbuilt tree a cross-package
+import resolves to `any` (type coverage) or fails to resolve at all (fuzz). Both run
+`npm run build` from inside their own npm script rather than sitting in
+`prebuildPrGates`, which CI honours and a local run does not — a gate that only passes
+because someone happened to build first is measuring the developer, not the code.
+
 ## Ratcheted Node analysis
 
 All finding baselines compare against the PR base branch, not the merge commit. Normal
