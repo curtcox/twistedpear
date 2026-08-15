@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 from dataclasses import dataclass
 from functools import partial
 from typing import cast
@@ -24,9 +25,8 @@ ensure_tkinter_python()
 
 # Imported after the guard above: on an interpreter without Tcl/Tk, importing
 # tkinter raises before ensure_tkinter_python can re-exec into one that has it.
-import threading
-import tkinter as tk
-from tkinter import messagebox, ttk
+import tkinter as tk  # noqa: E402
+from tkinter import messagebox, ttk  # noqa: E402
 
 USAGE = """\
 Usage:
