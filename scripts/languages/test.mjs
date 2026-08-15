@@ -54,7 +54,11 @@ function run(command, args, cwd = ROOT, env = {}) {
   };
 }
 
-/** @type {{id: string, command: string, ok: boolean, tests: number|null}[]} */
+/**
+ * `attempts` is Kotlin-only: the Android runner retries transient Gradle
+ * dependency resolution, and the count is what keeps a retried pass visible.
+ * @type {{id: string, command: string, ok: boolean, tests: number|null, attempts?: number|null}[]}
+ */
 const suites = [];
 
 if (language === "rust") {
@@ -102,12 +106,22 @@ if (language === "rust") {
 } else if (language === "kotlin") {
   // Delegates to the existing Android runner, which prebuilds the Expo project
   // when it is absent and then runs the three JVM unit-test tasks.
-  const { status } = run("node", ["conformance/android-native/run.mjs"]);
+  const { status, output } = run("node", [
+    "conformance/android-native/run.mjs",
+  ]);
+  // The runner retries transient Gradle dependency-resolution failures — see
+  // the comment on TRANSIENT_GRADLE_PATTERNS there. Record how many attempts it
+  // took, so a pass that needed a retry is distinguishable from a clean one on
+  // /results/ rather than being quietly identical to it.
+  const attempts = Number(
+    /\[android-native\] attempts=(\d+)/.exec(output)?.[1],
+  );
   suites.push({
     id: "apps/harness-mobile/android",
     command: "node conformance/android-native/run.mjs",
     ok: status === 0,
     tests: null,
+    attempts: Number.isNaN(attempts) ? null : attempts,
   });
 } else {
   console.error(

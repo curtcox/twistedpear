@@ -187,6 +187,35 @@ const RENDERERS = {
       : [];
   },
 
+  // The three native-test gates (rust-tests, swift-tests, kotlin-tests) share
+  // this. They had no renderer at all, so they published a bare colour: a suite
+  // silently dropping to zero tests looked exactly like a suite passing. The
+  // retry count is here because kotlin-tests retries transient Gradle
+  // dependency resolution, and a pass that needed a retry must not be
+  // indistinguishable from a clean one — that is how a flake stays invisible.
+  "native-tests": ({ json, gate }) => {
+    const report = json(`languages/${gate.id}.json`);
+    if (!report) return [];
+    const retried = (report.detail ?? []).filter(
+      (suite) => typeof suite.attempts === "number" && suite.attempts > 1,
+    );
+    const values = [
+      metric("Suites", number(report.suites)),
+      metric("Tests", number(report.tests)),
+      metric("Suites failing", number(report.failed)),
+    ];
+    if (retried.length > 0) {
+      values.push(
+        metric("Suites needing a retry", retried.length),
+        metric(
+          "Attempts used",
+          Math.max(...retried.map((suite) => suite.attempts)),
+        ),
+      );
+    }
+    return values;
+  },
+
   "web-examples": ({ json }) => {
     // Publish how many example apps actually rendered, not just the colour.
     // "3 of 3 rendered" and "0 of 3 rendered" are the difference between a
@@ -329,6 +358,6 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
   return [
     metric("Result", job.ok ? "pass" : "fail"),
     metric("Duration", job.durationMs, "ms"),
-    ...(RENDERERS[gate.id]?.({ json }) ?? []),
+    ...(RENDERERS[gate.summary]?.({ json, gate }) ?? RENDERERS[gate.id]?.({ json, gate }) ?? []),
   ];
 }

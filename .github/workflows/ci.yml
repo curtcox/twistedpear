@@ -55,6 +55,24 @@ jobs:
           java-version: "17"
       - uses: android-actions/setup-android@v4
         if: matrix.id == 'kotlin-tests'
+      - name: Cache Gradle dependencies
+        if: matrix.id == 'kotlin-tests'
+        # The Android build resolves org.gradle.toolchains.foojay-resolver-
+        # convention from the plugin portal on every cold run, because it is
+        # declared by a third-party included build under node_modules that we
+        # neither own nor can pin. A portal hiccup is what made this gate a coin
+        # flip. Restoring Gradle's caches means the usual run does not reach the
+        # network for it at all; `restore-keys` deliberately accepts a cache
+        # from a different lockfile, since any warm cache already holds the
+        # plugin marker this is protecting.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
       - run: npm ci
       - name: Build workspace packages required by the gate
         # Keep in sync with prebuildPrGates in scripts/checks/registry.mjs.
