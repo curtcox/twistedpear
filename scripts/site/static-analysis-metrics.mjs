@@ -50,7 +50,15 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
     for (const name of ["statements", "branches", "functions", "lines"]) {
       if (report?.total?.[name]?.pct != null) values.push(metric(name, report.total[name].pct, "%"));
     }
-    values.push(metric("Packages ratcheted", Object.keys(json("coverage-ratchet.json")?.packages ?? {}).length));
+    // Split the count so the published page shows that apps are measured at
+    // all. A single "workspaces ratcheted" total would hide an app silently
+    // dropping out of the include globs.
+    const ratcheted = Object.keys(json("coverage-ratchet.json")?.packages ?? {});
+    values.push(
+      metric("Workspaces ratcheted", ratcheted.length),
+      metric("Packages ratcheted", ratcheted.filter((id) => id.startsWith("packages/")).length),
+      metric("Apps ratcheted", ratcheted.filter((id) => id.startsWith("apps/")).length),
+    );
   } else if (gate.id === "structure") {
     const report = findingReport("structure.json");
     if (report) values.push(metric("Knip files", report.knip?.files ?? 0), metric("Knip workspaces", report.knip?.workspaces ?? 0));

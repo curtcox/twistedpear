@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Absolute unit-coverage floors beneath the monotonic per-package ratchet.",
+  "description": "Absolute unit-coverage floors beneath the monotonic per-workspace ratchet. Workspaces are packages/* and apps/*; anything without an entry here uses defaults and is held only by its ratchet.",
   "tolerance": 0.5,
   "defaults": { "statements": 0, "branches": 0, "functions": 0 },
   "packages": {

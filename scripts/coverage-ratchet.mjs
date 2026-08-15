@@ -15,10 +15,14 @@ function absoluteFloor(pkg, metric) {
   return RULES.packages?.[pkg]?.[metric] ?? RULES.defaults[metric] ?? 0;
 }
 
+// A coverage bucket is one workspace: `packages/<name>` or `apps/<name>`. Apps
+// are bucketed the same way as packages so an app that ships code cannot avoid
+// a floor merely by living in a different directory.
 function packageName(filename) {
   const relative = path.relative(ROOT, filename).split(path.sep);
-  return relative[0] === "packages" && relative[1]
-    ? `packages/${relative[1]}`
+  const [root, name] = relative;
+  return (root === "packages" || root === "apps") && name
+    ? `${root}/${name}`
     : null;
 }
 
@@ -89,7 +93,7 @@ if (write) {
   writeJson(BASELINE, {
     version: 1,
     description:
-      "Per-package unit coverage floors. Values may only rise; comparison tolerance is 0.5 percentage points.",
+      "Per-workspace unit coverage floors, for packages/* and apps/*. Values may only rise; comparison tolerance is 0.5 percentage points.",
     tolerance,
     packages,
   });

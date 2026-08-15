@@ -52,18 +52,28 @@ All finding baselines compare against the PR base branch, not the merge commit. 
 baseline writes only tighten; `--allow-regressions` is required to establish or
 intentionally loosen a baseline.
 
-| Gate            | Command                    | Current artifact / baseline                                                                                                                              |
-| --------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coverage        | `npm run coverage:check`   | per-package statements, branches, and functions in `coverage-ratchet.json`; absolute pure-package floors in `coverage-rules.json`; 0.5 point tolerance   |
-| Structure       | `npm run structure:check`  | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json` |
-| Complexity      | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                 |
-| Repository lint | `npm run lint:all`         | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                         |
-| Typed lint      | `npm run lint:typed`       | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                  |
-| Formatting      | `npm run format:check`     | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                     |
-| Properties      | `npm run test:properties`  | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces  |
+| Gate            | Command                    | Current artifact / baseline                                                                                                                                                            |
+| --------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coverage        | `npm run coverage:check`   | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors in `coverage-rules.json`; 0.5 point tolerance |
+| Structure       | `npm run structure:check`  | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                               |
+| Complexity      | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                               |
+| Repository lint | `npm run lint:all`         | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                       |
+| Typed lint      | `npm run lint:typed`       | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                |
+| Formatting      | `npm run format:check`     | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                   |
+| Properties      | `npm run test:properties`  | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
+
+The coverage bucket is one workspace, and `apps/*` is bucketed exactly like
+`packages/*`. The include globs live in `scripts/coverage-run.mjs`: every
+`packages/*/src` and `apps/*/src` tree, plus the harness-mobile app roots, which sit
+beside the app's config rather than under `src/`. Generated bundles, `dist`, and
+`node_modules` are excluded — they are build output, and counting them would swamp
+the measurement with code no unit test is meant to reach. An app with no unit tests
+enters the ratchet at a 0 floor: visible, published, and monotonic from there,
+rather than absent. Coverage is still measured from the unit suite alone; nothing
+the conformance runners exercise is counted, because they are separate processes.
 
 ## Burning the ratchets down
 

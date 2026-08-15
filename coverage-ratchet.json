@@ -1,22 +1,37 @@
 {
   "version": 1,
-  "description": "Per-package unit coverage floors. Values may only rise; comparison tolerance is 0.5 percentage points.",
+  "description": "Per-workspace unit coverage floors, for packages/* and apps/*. Values may only rise; comparison tolerance is 0.5 percentage points.",
   "tolerance": 0.5,
   "packages": {
+    "apps/handbook": {
+      "statements": 0,
+      "branches": 0,
+      "functions": 0
+    },
+    "apps/harness-mobile": {
+      "statements": 3.28,
+      "branches": 5.45,
+      "functions": 2.71
+    },
+    "apps/host-desktop": {
+      "statements": 0.2,
+      "branches": 0.45,
+      "functions": 0.3
+    },
     "packages/app-registry": {
-      "statements": 74.38,
-      "branches": 54.69,
-      "functions": 77.89
+      "statements": 74.77,
+      "branches": 60.21,
+      "functions": 78.1
     },
     "packages/bridge-freenet": {
       "statements": 71.03,
       "branches": 55.39,
-      "functions": 64.1
+      "functions": 64.96
     },
     "packages/bridge-hyper": {
-      "statements": 98.38,
-      "branches": 92.04,
-      "functions": 98.04
+      "statements": 98.43,
+      "branches": 92.17,
+      "functions": 98.21
     },
     "packages/cas-256t": {
       "statements": 89.62,
@@ -24,29 +39,29 @@
       "functions": 91.89
     },
     "packages/cli": {
-      "statements": 36.48,
-      "branches": 36.66,
-      "functions": 42.68
+      "statements": 38.18,
+      "branches": 37.11,
+      "functions": 46.15
     },
     "packages/effects": {
       "statements": 82.85,
       "branches": 72.36,
-      "functions": 86.28
+      "functions": 86.62
     },
     "packages/host-core": {
-      "statements": 75.31,
-      "branches": 59.5,
-      "functions": 74.33
+      "statements": 76.39,
+      "branches": 60.49,
+      "functions": 75.68
     },
     "packages/lxmf-ts": {
-      "statements": 77.02,
-      "branches": 66.61,
-      "functions": 74.53
+      "statements": 78.86,
+      "branches": 67.75,
+      "functions": 79.52
     },
     "packages/miniapp-runtime": {
-      "statements": 62.77,
-      "branches": 57.15,
-      "functions": 61.67
+      "statements": 64.31,
+      "branches": 58.56,
+      "functions": 65.13
     },
     "packages/miniapp-sdk": {
       "statements": 100,
@@ -55,33 +70,33 @@
     },
     "packages/peer-discovery": {
       "statements": 74.57,
-      "branches": 60.23,
-      "functions": 76.36
+      "branches": 61.12,
+      "functions": 76.62
     },
     "packages/protocol": {
       "statements": 89.36,
-      "branches": 79,
+      "branches": 79.75,
       "functions": 97.54
     },
     "packages/reticulum-interfaces": {
       "statements": 67.72,
-      "branches": 55.07,
-      "functions": 62.05
+      "branches": 55.27,
+      "functions": 62.5
     },
     "packages/reticulum-ts": {
-      "statements": 72.7,
-      "branches": 59.79,
-      "functions": 75.49
+      "statements": 73.71,
+      "branches": 60.62,
+      "functions": 76.6
     },
     "packages/sim-adversaries": {
       "statements": 74.9,
       "branches": 73.96,
-      "functions": 76.56
+      "functions": 77.78
     },
     "packages/sim-campaign": {
-      "statements": 93.27,
+      "statements": 93.82,
       "branches": 89.16,
-      "functions": 99.3
+      "functions": 99.41
     },
     "packages/widget-renderer-headless": {
       "statements": 99.01,
@@ -89,9 +104,9 @@
       "functions": 100
     },
     "packages/widget-renderer-rn": {
-      "statements": 89.8,
-      "branches": 88.6,
-      "functions": 89.74
+      "statements": 98.2,
+      "branches": 93.97,
+      "functions": 97.83
     },
     "packages/worklet-core": {
       "statements": 35.52,
