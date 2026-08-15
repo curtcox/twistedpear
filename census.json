@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-15T21:10:30.743Z",
+  "generatedAt": "2026-08-15T23:28:53.782Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -475,7 +475,9 @@
     "floor:coverage:packages/worklet-core:branches": 28.86,
     "floor:coverage:packages/worklet-core:functions": 36.76,
     "floor:coverage:packages/worklet-core:statements": 35.52,
-    "floor:mutation:score": 69.16,
+    "floor:mutation:packages/effects": 52.08,
+    "floor:mutation:packages/protocol": 71.7,
+    "floor:mutation:score": 70.06,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 7,
     "gates:pr": 39,
@@ -483,7 +485,7 @@
     "scripts:quality": 153,
     "skips:suppressed-tests": 1,
     "test-files:apps/harness-mobile": 3,
-    "test-files:conformance/checks": 8,
+    "test-files:conformance/checks": 9,
     "test-files:conformance/cookbook": 1,
     "test-files:conformance/cross-device-dev": 2,
     "test-files:conformance/desktop": 1,
@@ -516,9 +518,9 @@
     "test-files:packages/widget-renderer-headless": 3,
     "test-files:packages/widget-renderer-rn": 2,
     "test-files:packages/worklet-core": 9,
-    "test-files:total": 345,
+    "test-files:total": 346,
     "tests:apps/harness-mobile": 16,
-    "tests:conformance/checks": 87,
+    "tests:conformance/checks": 102,
     "tests:conformance/cookbook": 58,
     "tests:conformance/cross-device-dev": 5,
     "tests:conformance/desktop": 4,
@@ -551,7 +553,7 @@
     "tests:packages/widget-renderer-headless": 70,
     "tests:packages/widget-renderer-rn": 44,
     "tests:packages/worklet-core": 112,
-    "tests:total": 2713,
+    "tests:total": 2728,
     "waivers:live": 0
   },
   "delta": {

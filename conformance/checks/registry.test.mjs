@@ -296,7 +296,10 @@ describe("static-analysis gate registry", () => {
       );
       fs.writeFileSync(
         path.join(fixture, "mutation-ratchet.json"),
-        JSON.stringify({ score: 50 }),
+        JSON.stringify({
+          combined: 50,
+          packages: { "packages/effects": 40, "packages/protocol": 60 },
+        }),
       );
 
       const metrics = summarizeStaticAnalysis({ id: "mutation" }, fixture, {
@@ -307,7 +310,13 @@ describe("static-analysis gate registry", () => {
         Object.fromEntries(metrics.map(({ label, value }) => [label, value])),
       ).toMatchObject({
         "Mutation score": 66.67,
-        Floor: 50,
+        "Combined floor": 50,
+        // Each package's floor is published, weakest first. The combined figure
+        // is dominated by whichever package has the most mutants, so on its own
+        // it says almost nothing about the smaller ones.
+        "Packages with a floor": 2,
+        "Floor: packages/effects": 40,
+        "Floor: packages/protocol": 60,
         Killed: 1,
         "Timed out": 1,
         "Runtime/compile errors": 2,

@@ -401,10 +401,21 @@ for (const id of ["mutation", "mutation-policy"]) {
     const score =
       killed + survived > 0
         ? Math.round((killed / (killed + survived)) * 10000) / 100
-        : baseline?.score;
+        : baseline?.combined;
+    // Publish the weakest package as well as the combined figure. The combined
+    // one is dominated by whichever package has the most mutants, so on its own
+    // it says almost nothing about the smaller ones — the reason the floor was
+    // split per package in the first place.
+    const floors = Object.entries(baseline?.packages ?? {}).sort(
+      ([, left], [, right]) => left - right,
+    );
     const values = [
       metric("Mutation score", score ?? "unavailable", "%"),
-      metric("Floor", baseline?.score ?? "unavailable", "%"),
+      metric("Combined floor", baseline?.combined ?? "unavailable", "%"),
+      metric("Packages with a floor", floors.length),
+      ...floors.map(([name, floor]) =>
+        metric(`Floor: ${name}`, floor, "%"),
+      ),
     ];
     if (report) {
       values.push(

@@ -1,5 +1,9 @@
 {
   "version": 1,
-  "description": "Mutation score floor for packages/protocol and packages/effects; it may only rise.",
-  "score": 69.16
+  "description": "Mutation score floors: one per mutated package, plus the combined figure across all of them. All may only rise. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries 25040 of the 27321 mutants, so packages/effects could fall 22 points and move the combined score by under two. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes.",
+  "combined": 70.06,
+  "packages": {
+    "packages/effects": 52.08,
+    "packages/protocol": 71.7
+  }
 }

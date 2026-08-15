@@ -34,8 +34,9 @@ const LANGUAGES = ["kotlin", "python", "rust", "shell", "swift"];
  * Every ratchet baseline, with the command that re-measures it and the command
  * that re-records it once the debt is gone. `census-ratchet.json` is deliberately
  * absent: its floors record apparatus that may not shrink, which is the inverse
- * of debt. `mutation-ratchet.json` is a single score rather than a list of
- * findings, so it is reported as a footer note instead of ranked.
+ * of debt. `mutation-ratchet.json` holds percentage floors rather than a list of
+ * findings, so it is reported as a footer note naming the weakest package rather
+ * than ranked row by row.
  */
 export const SOURCES = [
   eslint("lint", "lint-ratchet.json", "lint:all", "lint:all:baseline"),
@@ -402,11 +403,23 @@ export function collect(root, rules) {
 }
 
 /**
- * The mutation ratchet is one number, so it cannot be burned down item by item.
+ * The mutation floors: one combined figure and one per mutated package.
+ *
+ * It used to be a single number, which this ranker reported as "not rankable"
+ * — correctly, since there was nothing to sit down and clear. Split per package
+ * there is: the packages are ordered worst first, so the backlog can say which
+ * one to write tests for rather than only that a number exists.
+ *
  * @param {string} root
- * @returns {{score: number} | null}
+ * @returns {{combined: number, packages: {name: string, floor: number}[]} | null}
  */
 export function mutationFloor(root) {
   const baseline = readJson(path.join(root, "mutation-ratchet.json"), null);
-  return baseline === null ? null : { score: Number(baseline.score ?? 0) };
+  if (baseline === null) return null;
+  return {
+    combined: Number(baseline.combined ?? baseline.score ?? 0),
+    packages: Object.entries(baseline.packages ?? {})
+      .map(([name, floor]) => ({ name, floor: Number(floor) }))
+      .sort((left, right) => left.floor - right.floor),
+  };
 }

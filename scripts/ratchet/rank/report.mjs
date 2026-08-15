@@ -215,8 +215,14 @@ export function summary({ clusters, perRatchet, missing, mutation, advisory }) {
     );
   }
   if (mutation) {
+    // This said "not rankable: … is a single number" until the floor was split
+    // per package. It now names the weakest package, which is a thing someone
+    // can go and work on — the whole point of this ranking.
+    const weakest = mutation.packages[0];
     lines.push(
-      `  not rankable: mutation score floor ${mutation.score}% is a single number, raised by npm run mutation:baseline.`,
+      weakest === undefined
+        ? `  mutation: combined floor ${mutation.combined}%, no per-package floors recorded; run npm run mutation:baseline.`
+        : `  mutation: combined floor ${mutation.combined}%; weakest package ${weakest.name} at ${weakest.floor}% of ${mutation.packages.length}, raised by writing tests then npm run mutation:baseline.`,
     );
   }
   // Per-project percentages rather than a list of findings, so there is nothing

@@ -213,14 +213,10 @@ function loadRatchet() {
  * which is exactly what "no accessibility check anywhere" already looked like.
  */
 function compare(surfaces, recorded) {
-  const findings = [];
+  const findings = Object.keys(recorded)
+    .filter((surface) => !(surface in surfaces))
+    .map((surface) => `${surface}: was scanned before and is not scanned now`);
   const stale = [];
-
-  for (const surface of Object.keys(recorded)) {
-    if (!(surface in surfaces)) {
-      findings.push(`${surface}: was scanned before and is not scanned now`);
-    }
-  }
 
   for (const [surface, rules] of Object.entries(surfaces)) {
     const allowed = recorded[surface];
@@ -228,23 +224,47 @@ function compare(surfaces, recorded) {
       findings.push(`${surface}: scanned but never recorded`);
       continue;
     }
-    for (const [rule, result] of Object.entries(rules)) {
-      const limit = allowed[rule];
-      if (limit === undefined) {
-        findings.push(
-          `${surface}: new ${result.impact} violation ${rule} on ${result.nodes} node(s) — ${result.help}`,
-        );
-      } else if (result.nodes > limit) {
-        findings.push(
-          `${surface}: ${rule} grew from ${limit} to ${result.nodes} node(s)`,
-        );
-      } else if (result.nodes < limit) {
-        stale.push(`${surface}: ${rule} fell from ${limit} to ${result.nodes}`);
-      }
+    const compared = compareSurface(surface, rules, allowed);
+    findings.push(...compared.findings);
+    stale.push(...compared.stale);
+  }
+
+  return { findings, stale };
+}
+
+/**
+ * One surface's rules against its floors.
+ *
+ * Split out of `compare` because the two nested loops crossed the cognitive
+ * complexity floor, and the gate was right: "which surface vanished", "which
+ * rule grew" and "which rule was fixed" are three questions, and reading them
+ * as one function means holding all three at once.
+ *
+ * @param {string} surface
+ * @param {Record<string, {impact: string, nodes: number, help: string}>} rules
+ * @param {Record<string, number>} allowed
+ */
+function compareSurface(surface, rules, allowed) {
+  const findings = [];
+  const stale = [];
+
+  for (const [rule, result] of Object.entries(rules)) {
+    const limit = allowed[rule];
+    if (limit === undefined) {
+      findings.push(
+        `${surface}: new ${result.impact} violation ${rule} on ${result.nodes} node(s) — ${result.help}`,
+      );
+    } else if (result.nodes > limit) {
+      findings.push(
+        `${surface}: ${rule} grew from ${limit} to ${result.nodes} node(s)`,
+      );
+    } else if (result.nodes < limit) {
+      stale.push(`${surface}: ${rule} fell from ${limit} to ${result.nodes}`);
     }
-    for (const rule of Object.keys(allowed)) {
-      if (!(rule in rules)) stale.push(`${surface}: ${rule} is fixed`);
-    }
+  }
+
+  for (const rule of Object.keys(allowed)) {
+    if (!(rule in rules)) stale.push(`${surface}: ${rule} is fixed`);
   }
 
   return { findings, stale };
