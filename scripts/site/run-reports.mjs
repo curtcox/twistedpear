@@ -79,90 +79,88 @@ function copyOutput(relative) {
 }
 
 /**
- * @param {{ id: string, title: string, command: string[], cwd?: string, env?: Record<string,string>, copyOutputs?: string[] }} job
+ * @param {{ id: string, title: string, command: string[] }} job
+ * @param {Record<string, unknown>} extra
  */
-function runJob(job) {
-  const importedCheck = IMPORT_DIR ? path.join(IMPORT_DIR, "artifacts", "checks", `${job.id}.json`) : null;
-  if (job.imported && importedCheck && fs.existsSync(importedCheck)) {
-    const result = JSON.parse(fs.readFileSync(importedCheck, "utf8"));
-    if (!hasExpectedProvenance(result, CHECKOUT_COMMIT, BRANCH_SHA)) {
-      return {
-        id: job.id,
-        title: job.title,
-        commit: CHECKOUT_COMMIT,
-        branchSha: BRANCH_SHA,
-        command: result.command ?? job.command.join(" "),
-        startedAt: result.startedAt ?? nowIso(),
-        finishedAt: nowIso(),
-        exitCode: 1,
-        ok: false,
-        logFile: null,
-        durationMs: 0,
-        imported: true,
-        importError: `imported evidence SHA mismatch: commit=${result.commit ?? "missing"}, branchSha=${result.branchSha ?? "missing"}, expected=${BRANCH_SHA}`
-      };
-    }
-    for (const rel of job.copyOutputs ?? []) copyOutput(rel);
-    return {
-      ...result,
-      command: result.command ?? job.command.join(" "),
-      logFile: `artifacts/logs/${job.id}.log`,
-      durationMs: Date.parse(result.finishedAt) - Date.parse(result.startedAt),
-      imported: true
-    };
-  }
-  if (job.imported) {
-    return {
-      id: job.id,
-      title: job.title,
-      commit: CHECKOUT_COMMIT,
-      branchSha: BRANCH_SHA,
-      command: job.command.join(" "),
-      startedAt: nowIso(),
-      finishedAt: nowIso(),
+function jobRecord(job, extra) {
+  return {
+    id: job.id,
+    title: job.title,
+    commit: CHECKOUT_COMMIT,
+    branchSha: BRANCH_SHA,
+    command: job.command.join(" "),
+    startedAt: nowIso(),
+    finishedAt: nowIso(),
+    exitCode: 0,
+    ok: true,
+    logFile: `logs/${job.id}.log`,
+    durationMs: 0,
+    ...extra
+  };
+}
+
+/**
+ * @param {{ id: string, title: string, command: string[], copyOutputs?: string[], imported?: boolean }} job
+ */
+function importedJob(job) {
+  if (!job.imported) return null;
+  const importedCheck = IMPORT_DIR
+    ? path.join(IMPORT_DIR, "artifacts", "checks", `${job.id}.json`)
+    : null;
+  if (!importedCheck || !fs.existsSync(importedCheck)) {
+    return jobRecord(job, {
       exitCode: 1,
       ok: false,
       logFile: null,
-      durationMs: 0,
       imported: true,
       importError: `missing imported check artifact for ${job.id}`
-    };
+    });
   }
+  const result = JSON.parse(fs.readFileSync(importedCheck, "utf8"));
+  if (!hasExpectedProvenance(result, CHECKOUT_COMMIT, BRANCH_SHA)) {
+    return jobRecord(job, {
+      command: result.command ?? job.command.join(" "),
+      startedAt: result.startedAt ?? nowIso(),
+      exitCode: 1,
+      ok: false,
+      logFile: null,
+      imported: true,
+      importError: `imported evidence SHA mismatch: commit=${result.commit ?? "missing"}, branchSha=${result.branchSha ?? "missing"}, expected=${BRANCH_SHA}`
+    });
+  }
+  for (const rel of job.copyOutputs ?? []) copyOutput(rel);
+  return {
+    ...result,
+    command: result.command ?? job.command.join(" "),
+    logFile: `artifacts/logs/${job.id}.log`,
+    durationMs: Date.parse(result.finishedAt) - Date.parse(result.startedAt),
+    imported: true
+  };
+}
+
+/**
+ * @param {{ id: string, title: string, command: string[], skipReason?: string | null }} job
+ */
+function skippedJob(job) {
   if (job.skipReason) {
-    return {
-      id: job.id,
-      title: job.title,
-      commit: CHECKOUT_COMMIT,
-      branchSha: BRANCH_SHA,
-      command: job.command.join(" "),
-      startedAt: nowIso(),
-      finishedAt: nowIso(),
-      exitCode: 0,
-      ok: true,
-      logFile: `logs/${job.id}.log`,
-      durationMs: 0,
-      skipped: true,
-      skipReason: job.skipReason
-    };
+    return jobRecord(job, { skipped: true, skipReason: job.skipReason });
   }
   if (JOB_FILTER && !JOB_FILTER.has(job.id)) {
     const prior = PREVIOUS.get(job.id);
     if (prior) return { ...prior, skipped: true };
-    return {
-      id: job.id,
-      title: job.title,
-      commit: CHECKOUT_COMMIT,
-      branchSha: BRANCH_SHA,
-      command: job.command.join(" "),
-      startedAt: nowIso(),
-      finishedAt: nowIso(),
-      exitCode: 0,
-      ok: true,
-      logFile: `logs/${job.id}.log`,
-      durationMs: 0,
-      skipped: true
-    };
+    return jobRecord(job, { skipped: true });
   }
+  return null;
+}
+
+/**
+ * @param {{ id: string, title: string, command: string[], cwd?: string, env?: Record<string,string>, copyOutputs?: string[] }} job
+ */
+function runJob(job) {
+  const imported = importedJob(job);
+  if (imported) return imported;
+  const skipped = skippedJob(job);
+  if (skipped) return skipped;
 
   const startedAt = nowIso();
   const logPath = path.join(RESULTS_DIR, "logs", `${job.id}.log`);

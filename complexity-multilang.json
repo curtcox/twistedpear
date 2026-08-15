@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 547,
-  "functions": 6282,
-  "groups": 3949,
+  "files": 549,
+  "functions": 6292,
+  "groups": 3956,
   "exemptions": 94,
   "violations": 0,
   "stale": 0,
@@ -210,17 +210,6 @@
       }
     },
     {
-      "key": "scripts/site/run-reports.mjs::runJob",
-      "file": "scripts/site/run-reports.mjs",
-      "name": "runJob",
-      "line": 80,
-      "tier": "tooling",
-      "ccn": 34,
-      "pinned": {
-        "ccn": 34
-      }
-    },
-    {
       "key": "conformance/sdk-interop/run.mjs::main",
       "file": "conformance/sdk-interop/run.mjs",
       "name": "main",
@@ -327,7 +316,7 @@
       "key": "scripts/site/run-reports.mjs::main",
       "file": "scripts/site/run-reports.mjs",
       "name": "main",
-      "line": 279,
+      "line": 282,
       "tier": "tooling",
       "ccn": 24,
       "pinned": {
@@ -589,6 +578,17 @@
       "ccn": 18,
       "pinned": {
         "ccn": 18
+      }
+    },
+    {
+      "key": "scripts/site/run-reports.mjs::runJob",
+      "file": "scripts/site/run-reports.mjs",
+      "name": "runJob",
+      "line": 158,
+      "tier": "tooling",
+      "ccn": 18,
+      "pinned": {
+        "ccn": 34
       }
     },
     {
