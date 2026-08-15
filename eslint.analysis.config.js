@@ -42,6 +42,12 @@ const ignores = [
   "conformance/web-hyperdrive/web-hyper-fetch.js",
   // Generated native build artifacts and bundles
   "apps/harness-mobile/android/**",
+  // Gradle's own output for the native modules — HTML test reports carrying
+  // bundled browser JS. `apps/harness-mobile/.gitignore` already excludes it,
+  // but ESLint walks the filesystem rather than the index, so running the
+  // `kotlin-tests` gate locally used to turn `lint-all` red on Gradle's
+  // reporting scripts. CI never saw it: there, the gate runs in its own job.
+  "apps/harness-mobile/modules/*/android/build/**",
   "apps/harness-mobile/ios/**",
   "apps/harness-mobile/public/**",
   "packages/reticulum-ts/docs/api/**",
