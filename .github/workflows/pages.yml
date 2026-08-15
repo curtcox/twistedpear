@@ -63,6 +63,13 @@ jobs:
       - name: Install lizard
         if: matrix.id == 'hotspots'
         run: python3 -m pip install lizard==1.23.0
+      - uses: actions/setup-java@v5
+        if: matrix.id == 'kotlin-tests'
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v4
+        if: matrix.id == 'kotlin-tests'
       - name: Run metric-producing gate
         run: node scripts/checks/run.mjs --tier=${{ matrix.tier }} --only=${{ matrix.id }}
       - name: Stage metric evidence with repository-relative paths

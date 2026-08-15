@@ -49,10 +49,12 @@ jobs:
         with:
           python-version: "3.12"
       - uses: actions/setup-java@v5
-        if: matrix.id == 'kotlin' || matrix.id == 'formal'
+        if: matrix.id == 'kotlin' || matrix.id == 'kotlin-tests' || matrix.id == 'formal'
         with:
           distribution: temurin
           java-version: "17"
+      - uses: android-actions/setup-android@v4
+        if: matrix.id == 'kotlin-tests'
       - run: npm ci
       - name: Build workspace packages required by the gate
         # Keep in sync with prebuildPrGates in scripts/checks/registry.mjs.
@@ -89,6 +91,12 @@ jobs:
         run: |
           rustup toolchain install 1.97.1 --profile minimal --component clippy --component rustfmt
           cargo install cargo-deny --version 0.20.2 --locked
+      - name: Install Rust toolchain
+        # Same pin as the analyzer gate above, without the lint components:
+        # tests must run under the compiler the lint gate checks against, or
+        # the two gates are describing different code.
+        if: matrix.id == 'rust-tests'
+        run: rustup toolchain install 1.97.1 --profile minimal
       - name: Install ktlint
         if: matrix.id == 'kotlin'
         run: |
@@ -119,6 +127,9 @@ jobs:
             gitleaks.json
             census.json
             artifacts/formal/formal.json
+            artifacts/languages/rust-tests.json
+            artifacts/languages/swift-tests.json
+            artifacts/languages/kotlin-tests.json
             conformance/sim-campaign/artifacts/fixed-replay.json
           if-no-files-found: warn
 

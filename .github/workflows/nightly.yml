@@ -53,6 +53,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - uses: actions/setup-java@v5
+        if: matrix.id == 'kotlin-tests'
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v4
+        if: matrix.id == 'kotlin-tests'
       - run: npm ci
       - name: Build workspace packages required by the gate
         if: matrix.id == 'mutation'
@@ -76,6 +83,7 @@ jobs:
             audit.json
             sbom.cdx.json
             reports/mutation/mutation.json
+            artifacts/languages/kotlin-tests.json
           if-no-files-found: warn
 
   property-campaign:

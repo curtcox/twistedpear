@@ -189,6 +189,23 @@ export const REQUIREMENTS = {
     install: { darwin: [["brew", "install", "swiftlint"]] },
     manual: "https://github.com/realm/SwiftLint (macOS only)",
   },
+  swift: {
+    why: "running the Swift bridge unit tests",
+    probe: () => hasCommand("swift", ["--version"]),
+    needs: ["macos"],
+    manual: "Xcode or the Swift toolchain (macOS only)",
+  },
+  "android-sdk": {
+    why: "running the Android bridge JVM unit tests",
+    // The Gradle Android plugin resolves the SDK from these, or from
+    // `local.properties` inside the generated project. Probing the environment
+    // is the only check that works before the Expo prebuild has run.
+    probe: () =>
+      Boolean(process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT),
+    needs: ["jvm"],
+    manual:
+      "Android Studio or the command-line SDK tools, with ANDROID_HOME set",
+  },
 };
 
 /**

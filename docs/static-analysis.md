@@ -137,6 +137,35 @@ VitePress documentation toolchain, with no fix available through that dependency
 It has a narrow, expiring exception in `audit-allowlist.json`; all other high/critical
 findings remain unallowlisted.
 
+## Native unit tests
+
+The language gates below run analyzers: style and soundness, not behaviour. Until
+2026-08-15 that was the only thing running against the native sources, which meant
+the Rust and Swift test suites in the repository had never been executed by
+anything — 13 Rust `#[test]` functions across four crates and 5 Swift tests in the
+BLE bridge, committed and inert. A test nobody runs is not evidence, and it fails
+silently and forever.
+
+`scripts/languages/test.mjs` runs them, and three gates publish the result:
+
+| Gate           | Command               | Tier    | Scope                                                                      |
+| -------------- | --------------------- | ------- | -------------------------------------------------------------------------- |
+| `rust-tests`   | `npm run test:rust`   | PR      | `cargo test` under the pinned 1.97.1 toolchain, every tracked crate        |
+| `swift-tests`  | `npm run test:swift`  | PR      | `swift test` for each Swift package with a `Tests` directory, macOS runner |
+| `kotlin-tests` | `npm run test:kotlin` | Nightly | the three Android bridge JVM unit-test tasks                               |
+
+Nothing here is ratcheted. Every other analysis gate carries a baseline of findings
+that may only shrink; a test suite does not get a list of tests that are allowed to
+fail. The gates publish suite and test counts, so a suite that stops being
+discovered shows up as a falling number rather than as a green tick over nothing —
+and a run that finds no suites at all fails rather than passing vacuously.
+
+Rust tests run under the same pinned toolchain as the analyzer gate, because two
+gates on different compilers are describing different code. `kotlin-tests` is
+nightly rather than per-PR: the Expo prebuild plus a cold Gradle run costs minutes.
+It ran only from the `workflow_dispatch` emulator lab before, which no change
+triggers.
+
 ## Other source languages and nightly mutation testing
 
 Independent Rust, shell, Python, Kotlin, and Swift entries run the pinned external tools

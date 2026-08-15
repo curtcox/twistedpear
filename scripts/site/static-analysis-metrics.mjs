@@ -88,6 +88,18 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
   } else if (["rust", "shell", "python", "kotlin", "swift"].includes(gate.id)) {
     const report = json(`languages/${gate.id}.json`);
     if (report) values.push(metric("Analyzer runs", count(report.runs)), metric("Findings", count(report.findings)));
+  } else if (["rust-tests", "swift-tests", "kotlin-tests"].includes(gate.id)) {
+    // Publish the test count, not just the colour. These suites spent their
+    // whole existence uncounted; a suite that quietly stops being discovered
+    // has to show up as a falling number, not as a green tick over zero tests.
+    const report = json(`languages/${gate.id.replace("-tests", "")}-tests.json`);
+    if (report) {
+      values.push(
+        metric("Suites", report.suites ?? 0),
+        metric("Tests", report.tests ?? 0),
+        metric("Failing suites", report.failed ?? 0),
+      );
+    }
   } else if (gate.id === "formal") {
     // Publish the size of the proof, not just its colour. A model that quietly
     // stops exploring states still "passes"; a falling distinct-state count on

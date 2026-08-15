@@ -240,6 +240,42 @@ export const gates = [
     "generic",
     "macos-15",
   ),
+  // Native unit tests. Until 2026-08-15 the Rust and Swift suites below were
+  // committed but never executed by anything — the language gates run analyzers
+  // only, which is style and soundness, not behaviour. The Android suite did
+  // run, but only from a workflow_dispatch lab workflow that no change
+  // triggers. Nothing here is ratcheted: a failing test is a failing test.
+  gate(
+    "rust-tests",
+    "Rust contract unit tests",
+    "test:rust",
+    "pr",
+    ["rust"],
+    ["artifacts/languages/rust-tests.json"],
+    "native-tests",
+  ),
+  gate(
+    "swift-tests",
+    "Swift bridge unit tests",
+    "test:swift",
+    "pr",
+    ["macos", "swift"],
+    ["artifacts/languages/swift-tests.json"],
+    "native-tests",
+    "macos-15",
+  ),
+  // Nightly rather than PR: the Expo prebuild plus a cold Gradle run is minutes,
+  // not seconds, and unlike Rust and Swift these tests were at least reachable
+  // before. Moving them onto a schedule that actually fires is the win here.
+  gate(
+    "kotlin-tests",
+    "Android bridge unit tests",
+    "test:kotlin",
+    "nightly",
+    ["jvm", "android-sdk"],
+    ["artifacts/languages/kotlin-tests.json"],
+    "native-tests",
+  ),
   gate(
     "audit",
     "Dependency advisory scan",
