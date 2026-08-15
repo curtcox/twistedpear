@@ -121,6 +121,7 @@ jobs:
           curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint
           chmod +x ktlint
           sudo install ktlint /usr/local/bin/ktlint
+          npx playwright install --with-deps chromium
       - name: Verify TLA+ tools
         run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
       # Resolved here rather than read from static-analysis-plan's outputs. This

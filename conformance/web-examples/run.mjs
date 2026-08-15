@@ -4,7 +4,13 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +18,27 @@ import { chromium } from "playwright";
 
 const examplesRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(examplesRoot, "../..");
+
+/** The examples this gate asserts still install, launch, and render. */
+const EXPECTED_EXAMPLES = ["chat", "file-drop", "board"];
+
+/**
+ * Publish the result as an artifact, not just as an exit code.
+ *
+ * `/results/` renders this: without it the gate is a bare green dot, which is
+ * how a browser surface that had been failing for 40+ runs could have gone on
+ * looking indistinguishable from one that works. Written on the failure path
+ * too, so a red run publishes which examples got through and why the rest did
+ * not.
+ */
+function writeReport(report) {
+  const directory = join(repoRoot, "artifacts/web-examples");
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(
+    join(directory, "web-examples.json"),
+    `${JSON.stringify(report, null, 2)}\n`,
+  );
+}
 
 function runBuild() {
   const build = spawnSync("node", ["conformance/web-examples/build.mjs"], {
@@ -106,6 +133,9 @@ function staticContentType(extension) {
   }
 }
 
+/** Last in-page state observed, so the failure path can report partial progress. */
+let lastSnapshot = null;
+
 async function runPlaywright(pageUrl) {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -139,6 +169,7 @@ async function runPlaywright(pageUrl) {
       );
     } catch (error) {
       const snapshot = await page.evaluate(() => globalThis.__WEB_EXAMPLES__);
+      lastSnapshot = snapshot;
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(
         `${message} — last in-page state: ${JSON.stringify(snapshot)}`,
@@ -146,15 +177,18 @@ async function runPlaywright(pageUrl) {
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_EXAMPLES__);
+    lastSnapshot = result;
     if (result?.status !== "done") {
       throw new Error(
         `web examples spike incomplete: ${JSON.stringify(result)}`,
       );
     }
 
-    if (!Array.isArray(result.passed) || result.passed.length !== 3) {
+    const passed = Array.isArray(result.passed) ? result.passed : [];
+    const missing = EXPECTED_EXAMPLES.filter((name) => !passed.includes(name));
+    if (missing.length > 0) {
       throw new Error(
-        `expected chat, file-drop, and board to pass: ${JSON.stringify(result.passed)}`,
+        `expected ${EXPECTED_EXAMPLES.join(", ")} to pass; missing ${missing.join(", ")} (passed: ${JSON.stringify(passed)})`,
       );
     }
 
@@ -171,9 +205,23 @@ try {
   staticServer = await startStaticServer(examplesRoot);
   const pageUrl = `http://127.0.0.1:${staticServer.port}/`;
   const result = await runPlaywright(pageUrl);
+  writeReport({
+    ok: true,
+    expected: EXPECTED_EXAMPLES,
+    passed: result.passed,
+    failed: [],
+  });
   console.log(`web-examples: ${JSON.stringify({ passed: result.passed })}`);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
+  const passed = Array.isArray(lastSnapshot?.passed) ? lastSnapshot.passed : [];
+  writeReport({
+    ok: false,
+    expected: EXPECTED_EXAMPLES,
+    passed,
+    failed: EXPECTED_EXAMPLES.filter((name) => !passed.includes(name)),
+    message,
+  });
   console.error(`web-examples: failed — ${message}`);
   process.exit(1);
 } finally {

@@ -295,6 +295,30 @@ export const REQUIREMENTS = {
     needs: ["macos"],
     manual: "Xcode or the Swift toolchain (macOS only)",
   },
+  // Playwright itself is an ordinary devDependency, so `npm ci` is enough to
+  // import it — but the browser binary it drives is downloaded separately into
+  // a cache outside the repository, and every Playwright gate fails at launch
+  // without it. Probing the dependency would therefore always say yes; the
+  // executable path is the only honest question.
+  chromium: {
+    why: "driving the browser conformance harnesses under Playwright",
+    probe: () => {
+      const probed = spawnSync(
+        "node",
+        [
+          "-e",
+          "import('playwright').then((pw)=>{process.exit(require('node:fs').existsSync(pw.chromium.executablePath())?0:1)},()=>process.exit(1))",
+        ],
+        { encoding: "utf8", timeout: 30_000 },
+      );
+      return probed.status === 0;
+    },
+    install: {
+      darwin: [["npx", "playwright", "install", "chromium"]],
+      linux: [["npx", "playwright", "install", "--with-deps", "chromium"]],
+    },
+    manual: "npx playwright install chromium",
+  },
   "android-sdk": {
     why: "running the Android bridge JVM unit tests",
     // The Gradle Android plugin resolves the SDK from these, or from

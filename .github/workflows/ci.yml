@@ -108,6 +108,9 @@ jobs:
         run: |
           brew install swiftlint
           test "$(swiftlint version)" = "0.65.0"
+      - name: Install Chromium
+        if: matrix.id == 'web-examples'
+        run: npx playwright install --with-deps chromium
       - name: Run ${{ matrix.title }}
         run: node scripts/checks/run.mjs --tier=pr --only=${{ matrix.id }}
       - uses: actions/upload-artifact@v7
@@ -130,6 +133,7 @@ jobs:
             artifacts/languages/rust-tests.json
             artifacts/languages/swift-tests.json
             artifacts/languages/kotlin-tests.json
+            artifacts/web-examples/web-examples.json
             reports/jscpd.json
             reports/cognitive-complexity.json
             reports/type-coverage.json
@@ -745,7 +749,9 @@ jobs:
       - run: npm run test:web-widget-renderer
       - run: npm run test:web-storage
       - run: npm run test:web-miniapp
-      - run: npm run test:web-examples
+      # test:web-examples moved to the `web-examples` registry gate, which is
+      # where its result now reaches /results/. Running it here too would only
+      # duplicate an 11s job and give it a second place to be red unnoticed.
       - run: npm run test:web-cookbook
       - run: npm run test:web-distribution
       - run: npm run test:web-devstudio

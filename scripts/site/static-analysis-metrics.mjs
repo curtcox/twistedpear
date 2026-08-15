@@ -187,6 +187,20 @@ const RENDERERS = {
       : [];
   },
 
+  "web-examples": ({ json }) => {
+    // Publish how many example apps actually rendered, not just the colour.
+    // "3 of 3 rendered" and "0 of 3 rendered" are the difference between a
+    // working browser surface and the one that sat red for 40+ runs, and a
+    // green dot could not tell them apart.
+    const report = json("web-examples/web-examples.json");
+    if (!report) return [];
+    return [
+      metric("Examples exercised", count(report.expected)),
+      metric("Examples rendered", count(report.passed)),
+      metric("Examples failing", count(report.failed)),
+    ];
+  },
+
   formal: ({ json }) => {
     // Publish the size of the proof, not just its colour. A model that quietly
     // stops exploring states still "passes"; a falling distinct-state count on

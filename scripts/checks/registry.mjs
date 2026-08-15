@@ -179,6 +179,26 @@ export const gates = [
   // found anything or whether the proofs still held. Registering them is what
   // publishes them; the checks themselves are unchanged.
   gate("fuzz", "Malformed-input fuzz tests", "test:fuzz", "pr", ["node"]),
+  // Registered for the same reason, after proving the cost of not registering
+  // it: `test:web-examples` ran only as a step in the hand-written `web` job
+  // and stayed red for 40+ consecutive runs without ever appearing on
+  // `/results/`. A job that can fail indefinitely and still leave the published
+  // site reporting "Overall: pass" is precisely the greenwashing the registry
+  // exists to prevent, so the browser surface now has a gate.
+  //
+  // Only this harness is registered, not all fourteen in the `web` job: each
+  // gate becomes its own CI job with its own npm ci and browser download, and
+  // paying that fourteen times over needs its own decision. This one earns it
+  // by having demonstrated the failure mode.
+  gate(
+    "web-examples",
+    "Browser example apps",
+    "test:web-examples",
+    "pr",
+    ["node", "chromium"],
+    ["artifacts/web-examples/web-examples.json"],
+    "web-examples",
+  ),
   gate(
     "formal",
     "Formal machine conformance and model checking",
