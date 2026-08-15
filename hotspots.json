@@ -2,32 +2,24 @@
   "version": 1,
   "windowDays": 180,
   "shallowClone": false,
-  "filesMeasured": 1310,
-  "filesChanged": 1310,
+  "filesMeasured": 1394,
+  "filesChanged": 1394,
   "hotspots": [
     {
       "file": "apps/harness-mobile/worklet/entry.mjs",
-      "churn": 65,
-      "complexity": 379,
-      "functions": 321,
+      "churn": 68,
+      "complexity": 337,
+      "functions": 279,
       "worst": 16,
-      "score": 24635
+      "score": 22916
     },
     {
       "file": "apps/harness-mobile/worklet/web-entry.mjs",
-      "churn": 33,
-      "complexity": 142,
-      "functions": 110,
+      "churn": 35,
+      "complexity": 117,
+      "functions": 85,
       "worst": 12,
-      "score": 4686
-    },
-    {
-      "file": "packages/lxmf-ts/src/message.ts",
-      "churn": 30,
-      "complexity": 110,
-      "functions": 15,
-      "worst": 22,
-      "score": 3300
+      "score": 4095
     },
     {
       "file": "apps/host-desktop/src/renderer/app.js",
@@ -39,27 +31,59 @@
     },
     {
       "file": "conformance/handbook/run.mjs",
-      "churn": 21,
+      "churn": 22,
       "complexity": 109,
       "functions": 41,
       "worst": 31,
-      "score": 2289
+      "score": 2398
+    },
+    {
+      "file": "packages/lxmf-ts/src/message.ts",
+      "churn": 32,
+      "complexity": 72,
+      "functions": 20,
+      "worst": 13,
+      "score": 2304
+    },
+    {
+      "file": "packages/widget-renderer-rn/src/MiniappWidgetTree.tsx",
+      "churn": 15,
+      "complexity": 139,
+      "functions": 48,
+      "worst": 11,
+      "score": 2085
     },
     {
       "file": "apps/host-desktop/worklet/entry.mjs",
-      "churn": 49,
+      "churn": 50,
       "complexity": 41,
       "functions": 40,
       "worst": 2,
-      "score": 2009
+      "score": 2050
     },
     {
       "file": "packages/host-core/src/node-host.ts",
-      "churn": 22,
-      "complexity": 84,
-      "functions": 29,
-      "worst": 19,
-      "score": 1848
+      "churn": 25,
+      "complexity": 76,
+      "functions": 35,
+      "worst": 8,
+      "score": 1900
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/transport.ts",
+      "churn": 39,
+      "complexity": 47,
+      "functions": 11,
+      "worst": 7,
+      "score": 1833
+    },
+    {
+      "file": "packages/reticulum-interfaces/src/auto.ts",
+      "churn": 19,
+      "complexity": 96,
+      "functions": 38,
+      "worst": 17,
+      "score": 1824
     },
     {
       "file": "conformance/cookbook/cookbook.test.mjs",
@@ -70,28 +94,44 @@
       "score": 1807
     },
     {
-      "file": "packages/reticulum-ts/src/transport/transport.ts",
-      "churn": 37,
-      "complexity": 46,
-      "functions": 8,
-      "worst": 16,
-      "score": 1702
-    },
-    {
       "file": "conformance/web-handbook/entry.mjs",
-      "churn": 12,
+      "churn": 13,
       "complexity": 132,
       "functions": 44,
       "worst": 18,
-      "score": 1584
+      "score": 1716
     },
     {
-      "file": "packages/reticulum-interfaces/src/auto.ts",
-      "churn": 16,
-      "complexity": 98,
-      "functions": 38,
-      "worst": 17,
-      "score": 1568
+      "file": "apps/harness-mobile/host/native-peer-webrtc.ts",
+      "churn": 13,
+      "complexity": 127,
+      "functions": 45,
+      "worst": 11,
+      "score": 1651
+    },
+    {
+      "file": "apps/host-desktop/src/main/index.ts",
+      "churn": 21,
+      "complexity": 78,
+      "functions": 30,
+      "worst": 10,
+      "score": 1638
+    },
+    {
+      "file": "apps/handbook/build.mjs",
+      "churn": 20,
+      "complexity": 80,
+      "functions": 25,
+      "worst": 37,
+      "score": 1600
+    },
+    {
+      "file": "scripts/peers/control-server.mjs",
+      "churn": 13,
+      "complexity": 121,
+      "functions": 55,
+      "worst": 10,
+      "score": 1573
     },
     {
       "file": "conformance/webrtc-gui-call/run.mjs",
@@ -102,52 +142,36 @@
       "score": 1554
     },
     {
-      "file": "packages/host-core/src/test-agent.ts",
-      "churn": 12,
-      "complexity": 127,
-      "functions": 32,
-      "worst": 39,
-      "score": 1524
+      "file": "packages/lxmf-ts/src/router.ts",
+      "churn": 46,
+      "complexity": 31,
+      "functions": 23,
+      "worst": 3,
+      "score": 1426
     },
     {
-      "file": "apps/handbook/build.mjs",
-      "churn": 19,
-      "complexity": 80,
-      "functions": 25,
-      "worst": 37,
-      "score": 1520
-    },
-    {
-      "file": "apps/host-desktop/src/main/index.ts",
-      "churn": 19,
-      "complexity": 77,
-      "functions": 27,
-      "worst": 10,
-      "score": 1463
-    },
-    {
-      "file": "scripts/peers/control-server.mjs",
-      "churn": 12,
-      "complexity": 121,
-      "functions": 55,
-      "worst": 10,
-      "score": 1452
-    },
-    {
-      "file": "packages/protocol/src/identity-ratchet-record.ts",
-      "churn": 13,
-      "complexity": 106,
-      "functions": 69,
-      "worst": 9,
-      "score": 1378
-    },
-    {
-      "file": "packages/widget-renderer-rn/src/MiniappWidgetTree.tsx",
-      "churn": 13,
-      "complexity": 106,
-      "functions": 39,
+      "file": "packages/protocol/src/destination-name.ts",
+      "churn": 14,
+      "complexity": 101,
+      "functions": 48,
       "worst": 8,
-      "score": 1378
+      "score": 1414
+    },
+    {
+      "file": "packages/reticulum-ts/src/buffer.ts",
+      "churn": 24,
+      "complexity": 58,
+      "functions": 17,
+      "worst": 9,
+      "score": 1392
+    },
+    {
+      "file": "packages/protocol/src/grants.ts",
+      "churn": 10,
+      "complexity": 137,
+      "functions": 42,
+      "worst": 10,
+      "score": 1370
     },
     {
       "file": "conformance/devstudio-loop/run.mjs",
@@ -158,28 +182,60 @@
       "score": 1368
     },
     {
-      "file": "packages/lxmf-ts/src/router.ts",
-      "churn": 44,
-      "complexity": 31,
-      "functions": 23,
-      "worst": 3,
-      "score": 1364
+      "file": "packages/protocol/src/identity-ratchet-record.ts",
+      "churn": 16,
+      "complexity": 83,
+      "functions": 46,
+      "worst": 9,
+      "score": 1328
     },
     {
-      "file": "packages/reticulum-ts/src/buffer.ts",
-      "churn": 23,
-      "complexity": 57,
-      "functions": 16,
-      "worst": 14,
-      "score": 1311
+      "file": "scripts/site/run-reports.mjs",
+      "churn": 12,
+      "complexity": 107,
+      "functions": 27,
+      "worst": 24,
+      "score": 1284
     },
     {
-      "file": "packages/protocol/src/destination-name.ts",
-      "churn": 11,
-      "complexity": 118,
-      "functions": 70,
+      "file": "packages/reticulum-ts/src/identity.ts",
+      "churn": 32,
+      "complexity": 39,
+      "functions": 12,
       "worst": 8,
-      "score": 1298
+      "score": 1248
+    },
+    {
+      "file": "packages/miniapp-runtime/src/capabilities.ts",
+      "churn": 20,
+      "complexity": 61,
+      "functions": 21,
+      "worst": 8,
+      "score": 1220
+    },
+    {
+      "file": "packages/reticulum-ts/src/announce.ts",
+      "churn": 23,
+      "complexity": 52,
+      "functions": 11,
+      "worst": 9,
+      "score": 1196
+    },
+    {
+      "file": "packages/protocol/src/packet-proof.ts",
+      "churn": 16,
+      "complexity": 74,
+      "functions": 41,
+      "worst": 4,
+      "score": 1184
+    },
+    {
+      "file": "packages/protocol/src/peer-invitation.ts",
+      "churn": 9,
+      "complexity": 131,
+      "functions": 39,
+      "worst": 13,
+      "score": 1179
     },
     {
       "file": "packages/worklet-core/src/miniapp-host.mjs",
@@ -198,100 +254,100 @@
       "score": 1155
     },
     {
-      "file": "packages/protocol/src/packet-proof.ts",
-      "churn": 13,
-      "complexity": 87,
-      "functions": 57,
-      "worst": 4,
-      "score": 1131
+      "file": "packages/effects/src/media-codec.ts",
+      "churn": 9,
+      "complexity": 128,
+      "functions": 46,
+      "worst": 10,
+      "score": 1152
     },
     {
-      "file": "packages/lxmf-ts/src/propagation.ts",
-      "churn": 33,
-      "complexity": 34,
-      "functions": 15,
-      "worst": 15,
-      "score": 1122
-    },
-    {
-      "file": "packages/protocol/src/link-request-receipt.ts",
-      "churn": 16,
-      "complexity": 70,
-      "functions": 48,
-      "worst": 4,
-      "score": 1120
+      "file": "packages/peer-discovery/src/ntfy.ts",
+      "churn": 10,
+      "complexity": 114,
+      "functions": 40,
+      "worst": 8,
+      "score": 1140
     },
     {
       "file": "packages/reticulum-ts/src/interfaces/tcp.ts",
-      "churn": 13,
-      "complexity": 85,
-      "functions": 30,
-      "worst": 11,
-      "score": 1105
-    },
-    {
-      "file": "packages/protocol/src/grants.ts",
-      "churn": 8,
-      "complexity": 137,
-      "functions": 46,
-      "worst": 15,
-      "score": 1096
-    },
-    {
-      "file": "packages/miniapp-runtime/src/capabilities.ts",
-      "churn": 18,
-      "complexity": 60,
-      "functions": 18,
-      "worst": 21,
-      "score": 1080
-    },
-    {
-      "file": "packages/reticulum-ts/src/announce.ts",
-      "churn": 22,
-      "complexity": 48,
-      "functions": 6,
-      "worst": 22,
-      "score": 1056
+      "churn": 17,
+      "complexity": 67,
+      "functions": 29,
+      "worst": 9,
+      "score": 1139
     },
     {
       "file": "conformance/handbook/mobile-slice.mjs",
-      "churn": 13,
+      "churn": 14,
       "complexity": 81,
       "functions": 33,
       "worst": 17,
-      "score": 1053
+      "score": 1134
     },
     {
-      "file": "packages/reticulum-ts/src/identity.ts",
-      "churn": 30,
-      "complexity": 35,
-      "functions": 9,
-      "worst": 13,
-      "score": 1050
-    },
-    {
-      "file": "scripts/site/run-reports.mjs",
-      "churn": 10,
-      "complexity": 102,
-      "functions": 24,
-      "worst": 34,
-      "score": 1020
+      "file": "packages/protocol/src/link-request-receipt.ts",
+      "churn": 17,
+      "complexity": 63,
+      "functions": 35,
+      "worst": 4,
+      "score": 1071
     },
     {
       "file": "packages/protocol/src/link-identify.ts",
-      "churn": 12,
-      "complexity": 83,
-      "functions": 56,
+      "churn": 15,
+      "complexity": 71,
+      "functions": 39,
       "worst": 6,
-      "score": 996
+      "score": 1065
     },
     {
-      "file": "packages/effects/src/media-codec.ts",
-      "churn": 8,
-      "complexity": 123,
-      "functions": 46,
-      "worst": 9,
-      "score": 984
+      "file": "packages/reticulum-ts/src/interfaces/websocket-server.ts",
+      "churn": 12,
+      "complexity": 87,
+      "functions": 44,
+      "worst": 13,
+      "score": 1044
+    },
+    {
+      "file": "scripts/site/static-analysis-metrics.mjs",
+      "churn": 9,
+      "complexity": 113,
+      "functions": 35,
+      "worst": 13,
+      "score": 1017
+    },
+    {
+      "file": "packages/reticulum-ts/src/interfaces/websocket-client.ts",
+      "churn": 12,
+      "complexity": 84,
+      "functions": 33,
+      "worst": 12,
+      "score": 1008
+    },
+    {
+      "file": "packages/protocol/test/lxmf-delivery.test.ts",
+      "churn": 37,
+      "complexity": 27,
+      "functions": 27,
+      "worst": 1,
+      "score": 999
+    },
+    {
+      "file": "packages/miniapp-runtime/src/services/ai.ts",
+      "churn": 11,
+      "complexity": 90,
+      "functions": 27,
+      "worst": 12,
+      "score": 990
+    },
+    {
+      "file": "packages/reticulum-ts/src/packet.ts",
+      "churn": 17,
+      "complexity": 56,
+      "functions": 20,
+      "worst": 13,
+      "score": 952
     },
     {
       "file": "packages/worklet-core/src/web-miniapp-host.mjs",
@@ -302,6 +358,22 @@
       "score": 952
     },
     {
+      "file": "packages/lxmf-ts/src/propagation.ts",
+      "churn": 35,
+      "complexity": 27,
+      "functions": 15,
+      "worst": 5,
+      "score": 945
+    },
+    {
+      "file": "packages/miniapp-runtime/test/media-stream.test.ts",
+      "churn": 9,
+      "complexity": 104,
+      "functions": 97,
+      "worst": 4,
+      "score": 936
+    },
+    {
       "file": "conformance/propagation-interop/run.mjs",
       "churn": 18,
       "complexity": 51,
@@ -310,100 +382,28 @@
       "score": 918
     },
     {
-      "file": "packages/protocol/src/peer-invitation.ts",
-      "churn": 7,
-      "complexity": 127,
-      "functions": 35,
-      "worst": 19,
-      "score": 889
-    },
-    {
-      "file": "apps/harness-mobile/host/native-peer-webrtc.ts",
-      "churn": 8,
-      "complexity": 110,
-      "functions": 31,
-      "worst": 26,
-      "score": 880
-    },
-    {
-      "file": "packages/reticulum-ts/src/interfaces/websocket-server.ts",
-      "churn": 10,
-      "complexity": 87,
-      "functions": 44,
-      "worst": 13,
-      "score": 870
-    },
-    {
-      "file": "apps/handbook/src/runtime-render.js",
-      "churn": 6,
-      "complexity": 143,
-      "functions": 8,
-      "worst": 128,
-      "score": 858
-    },
-    {
-      "file": "conformance/mac-validation/run.mjs",
-      "churn": 11,
-      "complexity": 78,
-      "functions": 19,
-      "worst": 26,
-      "score": 858
-    },
-    {
       "file": "packages/miniapp-runtime/src/sandbox/node-worker.ts",
-      "churn": 19,
-      "complexity": 45,
-      "functions": 20,
-      "worst": 10,
-      "score": 855
-    },
-    {
-      "file": "packages/reticulum-ts/src/packet.ts",
-      "churn": 16,
-      "complexity": 53,
-      "functions": 11,
-      "worst": 22,
-      "score": 848
-    },
-    {
-      "file": "scripts/site/stage.mjs",
-      "churn": 8,
-      "complexity": 106,
+      "churn": 24,
+      "complexity": 38,
       "functions": 22,
-      "worst": 51,
-      "score": 848
+      "worst": 9,
+      "score": 912
     },
     {
-      "file": "packages/miniapp-runtime/test/media-stream.test.ts",
+      "file": "apps/harness-mobile/app-native-view-part-1.tsx",
       "churn": 8,
-      "complexity": 102,
-      "functions": 95,
-      "worst": 4,
-      "score": 816
+      "complexity": 108,
+      "functions": 44,
+      "worst": 8,
+      "score": 864
     },
     {
-      "file": "conformance/scenarios/ts/harness.mjs",
-      "churn": 15,
-      "complexity": 54,
-      "functions": 25,
-      "worst": 13,
-      "score": 810
-    },
-    {
-      "file": "packages/protocol/src/resource-advertisement.ts",
-      "churn": 9,
-      "complexity": 90,
-      "functions": 56,
-      "worst": 7,
-      "score": 810
-    },
-    {
-      "file": "packages/protocol/src/token-framing.ts",
-      "churn": 9,
-      "complexity": 90,
-      "functions": 59,
-      "worst": 7,
-      "score": 810
+      "file": "packages/protocol/test/transport-ingress.test.ts",
+      "churn": 36,
+      "complexity": 24,
+      "functions": 24,
+      "worst": 1,
+      "score": 864
     }
   ]
 }
