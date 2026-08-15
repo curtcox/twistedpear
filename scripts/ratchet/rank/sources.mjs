@@ -93,6 +93,20 @@ export const SOURCES = [
     check: "npm run coverage:check",
     baseline: "npm run coverage:baseline",
   },
+  {
+    id: "jscpd",
+    file: "jscpd-ratchet.json",
+    kind: "clone",
+    check: "npm run jscpd:check",
+    baseline: "npm run jscpd:baseline",
+  },
+  {
+    id: "cognitive",
+    file: "cognitive-complexity-ratchet.json",
+    kind: "cognitive",
+    check: "npm run cognitive-complexity:check",
+    baseline: "npm run cognitive-complexity:baseline",
+  },
   ...LANGUAGES.map((language) => ({
     id: language,
     file: `language-ratchets/${language}.json`,
@@ -262,6 +276,33 @@ function parseEntries(ratchet, baseline, kind) {
       file: String(entry),
       detail: "not mechanically formatted",
     }));
+  }
+  if (kind === "clone") {
+    // "pathA <-> pathB". Anchored on the first path so the cluster groups by
+    // file like every other row; the partner is the detail, because that is
+    // what you need to open next.
+    return entries.map((entry) => {
+      const [first, second] = String(entry).split(" <-> ");
+      return {
+        ratchet,
+        rule: "jscpd:duplicate",
+        file: first ?? "(unknown)",
+        detail: `duplicated in ${second ?? "(unknown)"}`,
+      };
+    });
+  }
+  if (kind === "cognitive") {
+    // "path:symbol:over-N". Matched from the end so a symbol containing a
+    // colon cannot shift the split.
+    return entries.map((entry) => {
+      const match = /^(.*):([^:]*):over-(\d+)$/.exec(String(entry));
+      return {
+        ratchet,
+        rule: `cognitive:over-${match?.[3] ?? "?"}`,
+        file: match?.[1] ?? "(unknown)",
+        detail: `${match?.[2] ?? "?"} scores over ${match?.[3] ?? "?"}`,
+      };
+    });
   }
   return entries.map((entry) => ({ ratchet, ...parse(String(entry)) }));
 }

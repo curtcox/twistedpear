@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Policy for `npm run ratchets:rank`, which merges every ratchet baseline into one ranked backlog. Severity is editorial and lives here; difficulty and leverage are measured from the repository. Nothing in this file gates a build — it only orders the burndown.",
+  "description": "Policy for `npm run ratchets:rank`, which merges every ratchet baseline into one ranked backlog. Severity is editorial and lives here; difficulty and leverage are measured from the repository. Nothing in this file gates a build \u2014 it only orders the burndown.",
   "weights": {
     "severity": 0.45,
     "leverage": 0.25,
@@ -13,6 +13,7 @@
     "structure": 6,
     "coverage": 6,
     "complexity": 5,
+    "cognitive": 6,
     "size": 5,
     "lint": 4,
     "python": 4,
@@ -20,7 +21,8 @@
     "swift": 4,
     "rust": 4,
     "shell": 4,
-    "format": 3
+    "format": 3,
+    "jscpd": 4
   },
   "severityByRule": {
     "@typescript-eslint/no-floating-promises": 10,

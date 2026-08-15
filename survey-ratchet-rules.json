@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "description": "Policy for the three survey measurements that are gated. The measurements themselves stay in scripts/survey/, which never fails; these rules decide what counts as a regression. Baselines live in jscpd-ratchet.json, cognitive-complexity-ratchet.json and type-coverage-ratchet.json.",
+  "jscpd": {
+    "description": "Copy-paste clone pairs present when the gate was established, keyed by the file pair rather than by line numbers so editing inside a clone does not churn the baseline. Entries may only disappear."
+  },
+  "cognitive-complexity": {
+    "description": "Functions exceeding each cognitive-complexity band when the gate was established. A function emits one entry per band it crosses, so improving a score removes entries and worsening one adds them. Entries may only disappear.",
+    "bands": [15, 25, 50, 100],
+    "rationale": "15 is the first band because that is where sonarjs's own default sits and where a function stops fitting in one screen of attention. The higher bands exist so a function that is already over 15 cannot quietly triple: crossing 25, 50 or 100 is a new finding even though the function was already on the list."
+  },
+  "type-coverage": {
+    "tolerance": 0.05,
+    "absoluteFloor": 90,
+    "rationale": "Tolerance is much tighter than the coverage ratchet's 0.5 points because this measurement is over hundreds of thousands of expressions and barely moves; a 0.5 point allowance would hide thousands of new `any`s. The absolute floor is well beneath every current project and exists to catch a project that collapses rather than to rank the ones above it."
+  }
+}

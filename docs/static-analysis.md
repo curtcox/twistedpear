@@ -52,18 +52,44 @@ All finding baselines compare against the PR base branch, not the merge commit. 
 baseline writes only tighten; `--allow-regressions` is required to establish or
 intentionally loosen a baseline.
 
-| Gate            | Command                    | Current artifact / baseline                                                                                                                                                            |
-| --------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coverage        | `npm run coverage:check`   | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors in `coverage-rules.json`; 0.5 point tolerance |
-| Structure       | `npm run structure:check`  | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                               |
-| Complexity      | `npm run complexity:check` | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                               |
-| Repository lint | `npm run lint:all`         | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                       |
-| Typed lint      | `npm run lint:typed`       | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                |
-| Formatting      | `npm run format:check`     | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                   |
-| Properties      | `npm run test:properties`  | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                |
+| Gate                 | Command                              | Current artifact / baseline                                                                                                                                                            |
+| -------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coverage             | `npm run coverage:check`             | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors in `coverage-rules.json`; 0.5 point tolerance |
+| Structure            | `npm run structure:check`            | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                               |
+| Complexity           | `npm run complexity:check`           | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                               |
+| Repository lint      | `npm run lint:all`                   | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                       |
+| Typed lint           | `npm run lint:typed`                 | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                |
+| Formatting           | `npm run format:check`               | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                   |
+| Properties           | `npm run test:properties`            | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                |
+| Duplication          | `npm run jscpd:check`                | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                    |
+| Cognitive complexity | `npm run cognitive-complexity:check` | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                   |
+| Type coverage        | `npm run type-coverage:check`        | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
+
+The last three arrived on 2026-08-15 from the survey, which measures them but by
+design never fails on findings — the trending system that was to consume
+`reports/manifest.json` does not exist. Until then these were the only analysis
+dimensions with no direction at all: cyclomatic complexity was gated while
+cognitive complexity was not, and nothing anywhere stopped duplication or `any`
+density from growing. `any` is the worst of the three to leave ungated, because
+one added at a boundary spreads through everything downstream without producing a
+single new type error. The survey still runs unchanged and stays advisory for the
+tools that answer questions rather than set policy; policy for the gated three
+lives in `survey-ratchet-rules.json`.
+
+Two of them needed a finding shape stable enough to ratchet. A clone is keyed by
+its file **pair**, not its line numbers, so editing inside a clone does not churn
+the baseline. A function's cognitive complexity emits one entry per band it
+crosses (15, 25, 50, 100) rather than one entry per score: scores move constantly,
+and a single worst-band entry would fail the gate when a function _improved_ from
+60 to 30 by emitting `over-25` as a new finding. Emitting every band crossed makes
+improvement subtractive and regression additive, which is what a ratchet needs.
+Type coverage is a percentage per project and uses floors that may only rise, like
+the coverage ratchet, with a much tighter 0.05 point tolerance — the measurement
+spans hundreds of thousands of expressions, so a 0.5 point allowance would hide
+thousands of new `any`s.
 
 The coverage bucket is one workspace, and `apps/*` is bucketed exactly like
 `packages/*`. The include globs live in `scripts/coverage-run.mjs`: every
@@ -104,9 +130,10 @@ Its score is `severity`, `leverage`, and `difficulty` combined with the weights 
   clearing it empties a rule repository-wide, and how much churn the file has in
   `hotspots.json` — debt in code under active edit is paid for repeatedly.
 
-Two things are outside the ranking. `census-ratchet.json` records floors that may not
+Three things are outside the ranking. `census-ratchet.json` records floors that may not
 shrink, which is the inverse of debt. The mutation score is one number rather than a
-list, so it appears as a footer note.
+list, and `type-coverage-ratchet.json` holds per-project percentages rather than
+findings; neither can be burned down one row at a time, so both appear as footer notes.
 
 The Sans-IO ratchet is ranked, with a caveat carried on the row itself. Its
 `exceptions` list is ordinary debt. Its adapter and dependency allowlists are not: an

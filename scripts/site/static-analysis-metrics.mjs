@@ -88,6 +88,37 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
   } else if (["rust", "shell", "python", "kotlin", "swift"].includes(gate.id)) {
     const report = json(`languages/${gate.id}.json`);
     if (report) values.push(metric("Analyzer runs", count(report.runs)), metric("Findings", count(report.findings)));
+  } else if (gate.id === "jscpd") {
+    const report = json("reports/jscpd.json")?.summary;
+    if (report) {
+      values.push(
+        metric("Clone pairs", report.clonePairs ?? 0),
+        metric("Cloned lines", report.clonedLines ?? 0),
+        metric("Duplication", Number((report.percentage ?? 0).toFixed(2)), "%"),
+        metric("Baseline entries", count(json("jscpd-ratchet.json")?.entries)),
+      );
+    }
+  } else if (gate.id === "cognitive-complexity") {
+    const report = json("reports/cognitive-complexity.json")?.summary;
+    if (report) {
+      values.push(
+        metric("Functions scored", report.functionsScored ?? 0),
+        metric("Max score", report.max ?? 0),
+        metric("Median score", report.median ?? 0),
+        metric("Over 15", report.overFifteen ?? 0),
+        metric("Baseline entries", count(json("cognitive-complexity-ratchet.json")?.entries)),
+      );
+    }
+  } else if (gate.id === "type-coverage") {
+    const report = json("reports/type-coverage.json")?.summary;
+    if (report) {
+      values.push(
+        metric("Typed expressions", report.repositoryPercent ?? 0, "%"),
+        metric("Any expressions", (report.totalExpressions ?? 0) - (report.typedExpressions ?? 0)),
+        metric("Projects measured", report.projectsMeasured ?? 0),
+        metric("Projects failed", report.projectsFailed ?? 0),
+      );
+    }
   } else if (["rust-tests", "swift-tests", "kotlin-tests"].includes(gate.id)) {
     // Publish the test count, not just the colour. These suites spent their
     // whole existence uncounted; a suite that quietly stops being discovered

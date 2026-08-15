@@ -219,6 +219,12 @@ export function summary({ clusters, perRatchet, missing, mutation, advisory }) {
       `  not rankable: mutation score floor ${mutation.score}% is a single number, raised by npm run mutation:baseline.`,
     );
   }
+  // Per-project percentages rather than a list of findings, so there is nothing
+  // to sit down and clear one row at a time. Named here so the ranking is not
+  // mistaken for the complete set of ratchets.
+  lines.push(
+    `  not rankable: type-coverage floors are per-project percentages, raised by npm run type-coverage:baseline.`,
+  );
   for (const file of missing) lines.push(`  missing baseline file: ${file}`);
   return lines;
 }

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "description": "Per-project non-any type coverage floors. Values may only rise; an `any` added at a boundary spreads downstream without a single new type error, which is why this needs a floor rather than a review.",
+  "tolerance": 0.05,
+  "projects": {
+    "packages/cli/tsconfig.json": 98.44,
+    "apps/harness-mobile/tsconfig.json": 98.48,
+    "packages/sim-adversaries/tsconfig.json": 99.15,
+    "apps/host-desktop/tsconfig.json": 99.17,
+    "packages/host-core/tsconfig.json": 99.18,
+    "packages/sim-campaign/tsconfig.json": 99.21,
+    "packages/widget-renderer-headless/tsconfig.json": 99.24,
+    "packages/miniapp-sdk/tsconfig.json": 99.25,
+    "packages/effects/tsconfig.json": 99.28,
+    "packages/bridge-hyper/tsconfig.json": 99.43,
+    "packages/cas-256t/tsconfig.json": 99.45,
+    "packages/app-registry/tsconfig.json": 99.45,
+    "packages/bridge-freenet/tsconfig.json": 99.46,
+    "packages/lxmf-ts/tsconfig.json": 99.5,
+    "packages/reticulum-interfaces/tsconfig.json": 99.5,
+    "packages/widget-renderer-rn/tsconfig.json": 99.71,
+    "packages/miniapp-runtime/tsconfig.json": 99.81,
+    "packages/protocol/tsconfig.json": 99.96,
+    "packages/peer-discovery/tsconfig.json": 99.96,
+    "packages/reticulum-ts/tsconfig.json": 99.97
+  }
+}

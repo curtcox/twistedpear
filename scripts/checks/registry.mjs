@@ -135,6 +135,40 @@ export const gates = [
     ["node"],
     ["format.json", "format-ratchet.json"],
   ),
+  // Three measurements the survey has taken all along without ever acting on
+  // them. Cyclomatic complexity was gated while cognitive complexity was not,
+  // and nothing anywhere stopped duplication or `any` density from growing —
+  // `any` in particular gets worse silently, since one added at a boundary
+  // spreads downstream without a single new type error. The survey still runs
+  // and stays advisory for the tools that answer questions rather than set
+  // policy; these three now carry floors like every other dimension.
+  gate(
+    "jscpd",
+    "Copy-paste clone ratchet",
+    "jscpd:check",
+    "pr",
+    ["node"],
+    ["reports/jscpd.json", "jscpd-ratchet.json"],
+    "survey-ratchet",
+  ),
+  gate(
+    "cognitive-complexity",
+    "Cognitive complexity ratchet",
+    "cognitive-complexity:check",
+    "pr",
+    ["node"],
+    ["reports/cognitive-complexity.json", "cognitive-complexity-ratchet.json"],
+    "survey-ratchet",
+  ),
+  gate(
+    "type-coverage",
+    "Non-any type coverage ratchet",
+    "type-coverage:check",
+    "pr",
+    ["node"],
+    ["reports/type-coverage.json", "type-coverage-ratchet.json"],
+    "survey-ratchet",
+  ),
   gate("properties", "Property-based protocol tests", "test:properties", "pr", [
     "node",
   ]),

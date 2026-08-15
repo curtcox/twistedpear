@@ -130,6 +130,12 @@ jobs:
             artifacts/languages/rust-tests.json
             artifacts/languages/swift-tests.json
             artifacts/languages/kotlin-tests.json
+            reports/jscpd.json
+            reports/cognitive-complexity.json
+            reports/type-coverage.json
+            jscpd-ratchet.json
+            cognitive-complexity-ratchet.json
+            type-coverage-ratchet.json
             conformance/sim-campaign/artifacts/fixed-replay.json
           if-no-files-found: warn
 
