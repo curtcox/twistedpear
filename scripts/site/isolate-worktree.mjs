@@ -3,10 +3,8 @@
  *
  * CI runs each gate on a fresh checkout. The Pages report runs every gate in
  * one job, so earlier gates (tests, coverage, structure) leave `dist/` and
- * other gitignored output that later graph gates then measure. That is how
- * `coupling` passed on the published results page while the same commit failed
- * the isolated CI job: generated edges made stale fan-in/fan-out exemptions
- * look still necessary.
+ * other gitignored output that later gates then measure. Isolation restores
+ * the same empty generated-output tree CI has.
  *
  * Only the Pages report should call this (`SITE_REPORT_ISOLATE=1`). A local
  * `site:reports` must not wipe the working tree.

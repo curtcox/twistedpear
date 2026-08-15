@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { readJson, writeJson } from "../ratchet/lib.mjs";
 import { authoredPaths } from "./generated-paths.mjs";
+import { cruiseResolved, normalizeTarget } from "./coupling-resolve.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -56,43 +56,6 @@ function componentOf(source) {
     : segments[0];
 }
 
-const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".mjs", ".js", ".jsx"];
-const firstExisting = (...stems) => {
-  for (const stem of stems)
-    for (const extension of SOURCE_EXTENSIONS)
-      if (fs.existsSync(path.join(ROOT, `${stem}${extension}`)))
-        return `${stem}${extension}`;
-  return null;
-};
-
-/**
- * The authored module a dependency actually names.
- *
- * TypeScript project references resolve `@twistedpear/reticulum-ts` to that
- * package's *declaration output*, so every single cross-package import arrives
- * pointing at `packages/<name>/dist/**.d.ts`. Dropping `dist/` as generated —
- * which it is, and whose complexity nobody can edit — therefore deletes every
- * inter-package edge in the repository and leaves a graph in which no package
- * depends on any other. Mapping the emitted path back to the source it was
- * emitted from is what makes the component metrics mean anything.
- *
- * @param {string} target
- * @returns {string | null}
- */
-function normalizeTarget(target) {
-  const scoped = target.match(/^@twistedpear\/([^/]+)/);
-  if (scoped) return firstExisting(`packages/${scoped[1]}/src/index`);
-  const emitted = target.match(/^((?:packages|apps)\/[^/]+)\/dist\/(.+)$/);
-  if (!emitted) return target;
-  const [, component, rest] = emitted;
-  const stem = rest.replace(/\.(d\.ts|ts|tsx|js|jsx|mjs|cjs)$/, "");
-  return firstExisting(
-    `${component}/src/${stem}`,
-    `${component}/src/${stem}/index`,
-    `${component}/src/index`,
-  );
-}
-
 const cruised = cruise();
 const inScope = cruised.modules
   .map((module) => module.source)
@@ -110,9 +73,10 @@ let unresolved = 0;
 for (const module of cruised.modules) {
   if (!nodes.has(module.source)) continue;
   for (const dependency of module.dependencies) {
-    const raw = dependency.resolved;
-    if (!IN_SCOPE.test(raw) && !raw.startsWith("@twistedpear/")) continue;
-    const target = normalizeTarget(raw);
+    const raw = cruiseResolved(module.source, dependency);
+    if (!raw || (!IN_SCOPE.test(raw) && !raw.startsWith("@twistedpear/")))
+      continue;
+    const target = normalizeTarget(ROOT, raw);
     if (target === null) {
       unresolved += 1;
       continue;

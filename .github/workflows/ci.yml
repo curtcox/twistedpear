@@ -55,6 +55,7 @@ jobs:
           java-version: "17"
       - run: npm ci
       - name: Build workspace packages required by the gate
+        # Keep in sync with prebuildPrGates in scripts/checks/registry.mjs.
         if: matrix.id == 'unit-tests' || matrix.id == 'coverage' || matrix.id == 'structure' || matrix.id == 'properties' || matrix.id == 'harness-mobile-typecheck' || matrix.id == 'census'
         run: npm run build
       - name: Install actionlint

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-12
+audited: 2026-08-14
 register: none
 -->
 
@@ -63,7 +63,7 @@ enforces:
 Test files are excluded from the graph. They consume the structure rather than forming
 it, and including them makes every package appear to depend on the conformance helpers.
 
-Two measurement decisions are worth knowing about, because both change the numbers a
+Three measurement decisions are worth knowing about, because they change the numbers a
 lot:
 
 - **`dist/` targets are mapped back to `src/`.** TypeScript project references resolve
@@ -71,6 +71,12 @@ lot:
   cross-package import arrives pointing at `packages/<name>/dist/**.d.ts`. Excluding
   `dist/` as generated — which it is — therefore deletes every inter-package edge and
   leaves a graph in which no package depends on any other.
+- **Unresolved `dist/` specifiers are joined onto the importer before that mapping.**
+  Worklets import compiled output as `../packages/foo/dist/bar.js`. When `dist/` exists,
+  cruiser reports a repo-relative path and the mapping above counts it. On a clean CI
+  checkout the file is missing, cruiser leaves `resolved` as the relative specifier, and
+  the edge vanished — which is how fan-in/fan-out exemptions looked stale on CI and still
+  necessary locally. Joining first makes the graph identical either way.
 - **`Ca` and `Ce` are counted in components, not modules.** Martin counts classes, but
   that is not measurable here: an outside dependency lands on the target's barrel while
   an inside dependency spreads over hundreds of files. Counting modules reports

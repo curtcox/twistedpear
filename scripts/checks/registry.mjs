@@ -1,3 +1,19 @@
+/**
+ * PR gates whose command needs compiled workspace packages.
+ *
+ * CI runs `npm run build` only for these. Every other PR gate must produce the
+ * same result on a clean checkout as on a tree that has already been built —
+ * a gate whose answer depends on `dist/` existing is not a gate.
+ */
+export const prebuildPrGates = [
+  "unit-tests",
+  "coverage",
+  "structure",
+  "properties",
+  "harness-mobile-typecheck",
+  "census",
+];
+
 export const gates = [
   gate("lint", "TypeScript and Sans-IO lint", "lint", "pr", ["node"]),
   // The Expo app is not a `tsc -b` project — it emits nothing, it is checked by

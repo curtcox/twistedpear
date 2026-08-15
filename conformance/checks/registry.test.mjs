@@ -3,7 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { gates, deferredOnPages } from "../../scripts/checks/registry.mjs";
+import {
+  gates,
+  deferredOnPages,
+  prebuildPrGates,
+} from "../../scripts/checks/registry.mjs";
 import { summarizeStaticAnalysis } from "../../scripts/site/static-analysis-metrics.mjs";
 import {
   hasExpectedProvenance,
@@ -48,6 +52,23 @@ describe("static-analysis gate registry", () => {
         `${gate.id} script`,
       ).toBeTruthy();
     }
+  });
+
+  it("builds only the gates that need compiled packages", () => {
+    for (const id of prebuildPrGates) {
+      expect(
+        gates.some((gate) => gate.id === id),
+        `${id} is a registered gate`,
+      ).toBe(true);
+    }
+    const condition = prebuildPrGates
+      .map((id) => `matrix.id == '${id}'`)
+      .join(" || ");
+    expect(workflow).toContain(`if: ${condition}`);
+    // Graph gates map `dist/` back to `src/` so a clean checkout matches a
+    // built tree. Pre-building them would hide a regression in that mapping.
+    expect(prebuildPrGates).not.toContain("coupling");
+    expect(prebuildPrGates).not.toContain("api-surface");
   });
 
   it("drives CI and the report dashboard from the registry", () => {
