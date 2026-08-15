@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ROOT, RESULTS_DIR } from "./paths.mjs";
-import { gates } from "../checks/registry.mjs";
+import { gates, prebuildPrGates } from "../checks/registry.mjs";
 import { summarizeStaticAnalysis } from "./static-analysis-metrics.mjs";
 import { hasExpectedProvenance } from "./verify-publication.mjs";
 import { isolateWorktree } from "./isolate-worktree.mjs";
@@ -166,7 +166,26 @@ function runJob(job) {
   const logPath = path.join(RESULTS_DIR, "logs", `${job.id}.log`);
   ensureDir(path.dirname(logPath));
 
-  if (ISOLATE) isolateWorktree(ROOT);
+  if (ISOLATE) {
+    isolateWorktree(ROOT);
+    // Isolation wipes `dist/`, which is the point — but the gates CI pre-builds
+    // then have no compiled packages either, and every one of them published a
+    // red result on `/results/` for that reason alone. `prebuildPrGates` was a
+    // fact about one workflow's YAML; honouring it here makes it a fact about
+    // the gate, on every surface that runs it.
+    if (prebuildPrGates.includes(job.id)) {
+      const build = spawnSync("npm", ["run", "build"], {
+        cwd: ROOT,
+        encoding: "utf8",
+        maxBuffer: 64 * 1024 * 1024,
+      });
+      if (build.status !== 0) {
+        console.warn(
+          `prebuild for ${job.id} failed: ${(build.stderr || build.stdout || "").trim().split("\n").slice(-3).join(" ")}`,
+        );
+      }
+    }
+  }
 
   const result = spawnSync(job.command[0], job.command.slice(1), {
     cwd: job.cwd ?? ROOT,

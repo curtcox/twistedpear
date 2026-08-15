@@ -71,13 +71,23 @@ describe("static-analysis gate registry", () => {
     expect(prebuildPrGates).not.toContain("api-surface");
   });
 
+  // The Pages report isolates the tree between gates, which wipes `dist/`. When
+  // only the CI workflow knew about `prebuildPrGates`, every gate on that list
+  // published a red result to `/results/` no matter what the code did.
+  it("pre-builds the same gates on the publish path", () => {
+    expect(reports).toContain("prebuildPrGates");
+    expect(reports).toContain("prebuildPrGates.includes(job.id)");
+  });
+
   it("drives CI and the report dashboard from the registry", () => {
     expect(workflow).toContain("checks:matrix");
     expect(workflow).toContain(
       "scripts/checks/run.mjs --tier=pr --only=${{ matrix.id }}",
     );
     expect(workflow).toContain("ci-green:");
-    expect(reports).toContain('import { gates } from "../checks/registry.mjs"');
+    expect(reports).toMatch(
+      /import \{[^}]*\bgates\b[^}]*\} from "\.\.\/checks\/registry\.mjs"/,
+    );
     expect(reports).toContain("for (const gate of gates)");
   });
 

@@ -74,7 +74,9 @@ complexity dimensions the ratchets above do not: function complexity outside Typ
 module and component coupling, and public API surface size. Unlike the ratchets they use
 hard thresholds, and their exemption lists drain — an entry whose code is clean again
 fails the build until the line is deleted. CI builds workspace packages only for the
-gates in `prebuildPrGates` (`scripts/checks/registry.mjs`); `coupling` and `api-surface`
+gates in `prebuildPrGates` (`scripts/checks/registry.mjs`), and so does the Pages report,
+which isolates the tree between gates and would otherwise run every one of them against a
+wiped `dist/`; `coupling` and `api-surface`
 are not on that list, so they map `dist/` targets back to `src/` and must match a clean
 checkout. The nightly `hotspots` gate ranks churn × complexity and is report-only. See
 [Complexity gates](complexity-gates.md).
