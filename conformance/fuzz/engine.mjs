@@ -149,6 +149,19 @@ export function mutate(input, random) {
 }
 
 /**
+ * The inverse of {@link bytesToHex}, so a committed counterexample can be read
+ * back from the corpus without every caller writing the loop again.
+ *
+ * @param {string} hex
+ * @returns {Uint8Array}
+ */
+export function hexToBytes(hex) {
+  return Uint8Array.from(hex.match(/../gu) ?? [], (pair) =>
+    Number.parseInt(pair, 16),
+  );
+}
+
+/**
  * @param {Uint8Array} bytes
  * @returns {string}
  */

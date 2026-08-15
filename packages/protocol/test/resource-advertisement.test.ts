@@ -340,3 +340,44 @@ describe("protocol resource advertisement (continued)", () => {
     expect(resourceAdvertisementFieldsFromActions(rejected.actions)).toBeNull();
   });
 });
+
+/**
+ * `q` is optional in value, not in presence.
+ *
+ * RNS reads it as `dictionary["q"]`, so an advertisement that omits the key
+ * raises `KeyError` there. Treating absent and nil alike meant an advertisement
+ * whose `q` key had been corrupted into anything else — differential fuzzing
+ * produced `"$"` — was accepted here and refused by every reference peer.
+ */
+describe("unpackResourceAdvertisement key presence", () => {
+  const fields = {
+    t: 1024,
+    d: 512,
+    n: 4,
+    h: Uint8Array.from([1, 2]),
+    r: Uint8Array.from([3]),
+    o: Uint8Array.from([4]),
+    m: Uint8Array.from([5]),
+    f: 0x02,
+    i: 1,
+    l: 1,
+    q: null,
+  };
+
+  it("accepts an explicit nil q as no request id", () => {
+    expect(
+      unpackResourceAdvertisement(packResourceAdvertisement(fields)).q,
+    ).toBeNull();
+  });
+
+  it("refuses an advertisement whose q key is missing", () => {
+    // Rename the key rather than dropping it, so the map still has eleven
+    // entries and only its name is wrong — exactly what the fuzzer produced.
+    const packed = packResourceAdvertisement(fields);
+    const renamed = Uint8Array.from(packed);
+    const keyIndex = renamed.indexOf(0x71, 1); // the "q" of the `a171` key
+    expect(keyIndex).toBeGreaterThan(0);
+    renamed[keyIndex] = 0x24; // "$"
+    expect(() => unpackResourceAdvertisement(renamed)).toThrow(/q/);
+  });
+});

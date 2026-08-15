@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "description": "Divergences from the pinned Python reference (rns==0.9.5, lxmf==0.7.0) that conformance/fuzz/run-differential.mjs is allowed to observe. Any kind not listed here fails the `differential-fuzz` gate and its input is written to conformance/vectors/fuzz-regressions.json. A kind is `<target>:<direction>:<reason>`; `ts-accepts` means we parsed a frame the reference refused, which is the direction that carries security weight and should be treated as a bug unless there is a reason here that says otherwise.",
+  "allowances": [
+    {
+      "kind": "msgpack:python-accepts:unsupported-tag",
+      "reason": "`msgpackUnpack` is a deliberate subset of msgpack, not a general decoder: it implements nil, positive fixint, uint8/16/32, float64, bin8/16, fixarray and fixmap, which is everything LXMF and RNS resource advertisements actually put on the wire. It has no str, bool, negative int, int8/16/64, float32, array16/32, map16/32, bin32 or ext. Every tag outside that set is refused, and `umsgpack` decodes it. This is the safe direction — we reject what the reference accepts, so the failure mode is dropping a frame no peer sends rather than parsing one we do not understand. Narrowing the subset is a decoder change, not a fuzz finding; widening it would need each new type to have a call site.",
+      "example": "d903616263"
+    },
+    {
+      "kind": "resource-advert:python-accepts:invalid-advertisement",
+      "reason": "We type-check advertisement fields and RNS does not. `ResourceAdvertisement.unpack` there assigns whatever msgpack produced straight onto the object, so `{\"f\": -1}` becomes a flags byte of -1 and `{\"q\": {}}` becomes a request id that is a dict; both then flow into the resource state machine. We require `t`/`d`/`n`/`f`/`i`/`l` to be msgpack ints, `h`/`r`/`o`/`m` to be bins, and `q` to be a bin or nil, and reject otherwise. Same safe direction as above: a frame RNS would mis-handle is one we decline to build a resource from.",
+      "example": "8ba174cd0400a164cd0200a16e04a168c410000102030405060708090a0b0c0d0e0fa172c4080001020304050607a16fc410000102030405060708090a0b0c0d0e0fa16dc40400010203a166ffa16901a16c01a171c0"
+    }
+  ]
+}

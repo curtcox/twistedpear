@@ -131,3 +131,47 @@ describe("protocol msgpack core", () => {
     expect(() => msgpackUnpackScalar(array)).toThrow(/scalar/);
   });
 });
+
+/**
+ * Truncation must be an error, not a shorter value.
+ *
+ * Every length-prefixed read here used `subarray`, which clamps instead of
+ * throwing, so a frame promising more bytes than it carried decoded to a short
+ * value that looked complete to everything downstream. The pinned reference
+ * raises `InsufficientDataException` for each of these; differential fuzzing
+ * against it is what found them, and these cases pin the fix without needing
+ * the container.
+ */
+describe("msgpackUnpack on truncated frames", () => {
+  const cases: ReadonlyArray<readonly [string, readonly number[]]> = [
+    ["bin8 body", [0xc4, 0x04, 0xde, 0xad]],
+    ["bin16 body", [0xc5, 0x00, 0x8f, 0xde, 0xad, 0xbe, 0xef]],
+    ["bin16 length", [0xc5, 0x00]],
+    ["float64", [0xcb, 0x40, 0x09]],
+    ["uint32", [0xce, 0x00, 0x01]],
+    ["uint16", [0xcd, 0x01]],
+    ["uint8", [0xcc]],
+    ["fixarray element", [0x92, 0x01]],
+    ["fixmap value", [0x81, 0x01]],
+  ];
+
+  for (const [name, bytes] of cases) {
+    it(`refuses a frame truncated in its ${name}`, () => {
+      expect(() => msgpackUnpack(Uint8Array.from(bytes))).toThrow();
+    });
+  }
+
+  it("still accepts a frame whose promised bytes are all present", () => {
+    const value = msgpackUnpack(
+      Uint8Array.from([0xc5, 0x00, 0x04, 0xde, 0xad, 0xbe, 0xef]),
+    );
+    expect(value.type).toBe("bin");
+    if (value.type === "bin") expect(value.bin.length).toBe(4);
+  });
+
+  it("still ignores trailing bytes, as the reference decoder does", () => {
+    // `umsgpack.unpackb(b"\x80\xff")` returns `{}`; extra data is not an error
+    // on either side, and making it one here would be a divergence of its own.
+    expect(msgpackUnpack(Uint8Array.from([0x80, 0xff])).type).toBe("map");
+  });
+});

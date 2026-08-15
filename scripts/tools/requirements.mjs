@@ -319,6 +319,24 @@ export const REQUIREMENTS = {
     },
     manual: "npx playwright install chromium",
   },
+  // `docker --version` answers even when the daemon is not running, and a gate
+  // that shells into a container needs the daemon, not the client. `docker
+  // info` is the question that distinguishes them — the same probe
+  // `conformance/scenarios/ts/harness.mjs` has always used to decide whether
+  // the interop suite can run.
+  docker: {
+    why: "running the pinned Python reference for the differential fuzzer",
+    probe: () =>
+      spawnSync("docker", ["info"], {
+        encoding: "utf8",
+        timeout: 30_000,
+      }).status === 0,
+    install: {
+      darwin: [["brew", "install", "--cask", "docker"]],
+      linux: [["sudo", "apt-get", "install", "-y", "docker.io"]],
+    },
+    manual: "https://docs.docker.com/get-docker/ (the daemon must be running)",
+  },
   "android-sdk": {
     why: "running the Android bridge JVM unit tests",
     // The Gradle Android plugin resolves the SDK from these, or from

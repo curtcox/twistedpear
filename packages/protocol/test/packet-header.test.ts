@@ -595,3 +595,52 @@ describe("protocol packet header (continued)", () => {
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 });
+
+/**
+ * Bit 7 of the flags byte is reserved, and reserved means ignored.
+ *
+ * `unpackPacketFlags` read the header type from two bits, so a packet with bit 7
+ * set decoded to header type 2 or 3, failed `isHeaderType`, and was dropped.
+ * RNS 0.9.5 masks that bit off — `(self.flags & 0b01000000) >> 6` — and never
+ * sets it, so every reference peer on the network accepts such a packet and
+ * only we refused it. Differential fuzzing against the pinned reference found
+ * it; these cases pin the agreement.
+ */
+describe("reserved flag bit 7", () => {
+  // Long enough for HEADER_2, which carries a transport id as well as a
+  // destination hash, so one body serves both header types.
+  const body = (first: number) =>
+    Uint8Array.from([
+      first,
+      0x02,
+      ...Array.from({ length: TRANSPORT_ID_BYTES * 2 }, (_, index) => index),
+      0x09,
+      0x68,
+      0x69,
+    ]);
+
+  it("does not change the decoded header type", () => {
+    const withoutBit = decodePacketRaw(body(0x04));
+    const withBit = decodePacketRaw(body(0x84));
+    expect(withoutBit).not.toBeNull();
+    expect(withBit).not.toBeNull();
+    expect(withBit!.headerType).toBe(PACKET_HEADER_1);
+    expect(withBit!.headerType).toBe(withoutBit!.headerType);
+  });
+
+  it("leaves every other field of the packet identical", () => {
+    const withoutBit = decodePacketRaw(body(0x51))!;
+    const withBit = decodePacketRaw(body(0xd1))!;
+    expect(withBit.headerType).toBe(PACKET_HEADER_2);
+    expect(withBit.contextFlag).toBe(withoutBit.contextFlag);
+    expect(withBit.transportType).toBe(withoutBit.transportType);
+    expect(withBit.destinationType).toBe(withoutBit.destinationType);
+    expect(withBit.packetType).toBe(withoutBit.packetType);
+  });
+
+  it("does not reach the packet hash, which masks to the low nibble anyway", () => {
+    expect([...packetHashablePart(body(0x84), PACKET_HEADER_1)]).toEqual([
+      ...packetHashablePart(body(0x04), PACKET_HEADER_1),
+    ]);
+  });
+});

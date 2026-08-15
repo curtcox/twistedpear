@@ -321,12 +321,15 @@ function unpackStringAt(bytes: Uint8Array, offset: number): [string, number] {
 
   if ((tag & 0xe0) === 0xa0) {
     const length = tag & 0x1f;
+    requireBytes(bytes, offset + 1 + length, "fixstr body");
     const stringBytes = bytes.subarray(offset + 1, offset + 1 + length);
     return [utf8Decode(stringBytes), offset + 1 + length];
   }
 
   if (tag === 0xd9) {
+    requireBytes(bytes, offset + 2, "str8 length");
     const length = bytes[offset + 1]!;
+    requireBytes(bytes, offset + 2 + length, "str8 body");
     const stringBytes = bytes.subarray(offset + 2, offset + 2 + length);
     return [utf8Decode(stringBytes), offset + 2 + length];
   }
@@ -366,10 +369,31 @@ export function msgpackUnpackStringKeyedMap(
   return map;
 }
 
+/**
+ * Fail on a frame that promises more bytes than it carries.
+ *
+ * `subarray` clamps rather than throwing, so every length-prefixed read below
+ * used to accept a truncated frame and hand back a short value as though it
+ * were complete: `c5 00 8f de ad be ef` — a bin16 claiming 143 bytes and
+ * carrying four — decoded to a four-byte bin without complaint, while the
+ * reference decoder raises `InsufficientDataException`. Differential fuzzing
+ * against `rns==0.9.5` found it; accepting a truncated frame as whole is the
+ * direction that carries security weight, because everything downstream then
+ * reasons about a payload the sender never sent.
+ */
+function requireBytes(bytes: Uint8Array, end: number, what: string): void {
+  if (end > bytes.length) {
+    throw new Error(
+      `Unexpected end of msgpack input: ${what} needs ${end} bytes, have ${bytes.length}`,
+    );
+  }
+}
+
 function unpackMsgpackFloat64At(
   bytes: Uint8Array,
   offset: number,
 ): [MsgpackValue, number] {
+  requireBytes(bytes, offset + 9, "float64");
   const view = new DataView(
     bytes.buffer,
     bytes.byteOffset + offset,
@@ -382,7 +406,9 @@ function unpackMsgpackBin8At(
   bytes: Uint8Array,
   offset: number,
 ): [MsgpackValue, number] {
+  requireBytes(bytes, offset + 2, "bin8 length");
   const length = bytes[offset + 1]!;
+  requireBytes(bytes, offset + 2 + length, "bin8 body");
   const bin = bytes.subarray(offset + 2, offset + 2 + length);
   return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 2 + length];
 }
@@ -391,7 +417,9 @@ function unpackMsgpackBin16At(
   bytes: Uint8Array,
   offset: number,
 ): [MsgpackValue, number] {
+  requireBytes(bytes, offset + 3, "bin16 length");
   const length = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
+  requireBytes(bytes, offset + 3 + length, "bin16 body");
   const bin = bytes.subarray(offset + 3, offset + 3 + length);
   return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 3 + length];
 }
@@ -435,6 +463,7 @@ function unpackMsgpackUint32At(
   bytes: Uint8Array,
   offset: number,
 ): [MsgpackValue, number] {
+  requireBytes(bytes, offset + 5, "uint32");
   const view = new DataView(
     bytes.buffer,
     bytes.byteOffset + offset,
@@ -482,9 +511,11 @@ function unpackMsgpackPackedIntAt(
   tag: number,
 ): [MsgpackValue, number] | null {
   if (tag === 0xcc) {
+    requireBytes(bytes, offset + 2, "uint8");
     return [{ type: "int", int: bytes[offset + 1]! }, offset + 2];
   }
   if (tag === 0xcd) {
+    requireBytes(bytes, offset + 3, "uint16");
     const value = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
     return [{ type: "int", int: value }, offset + 3];
   }

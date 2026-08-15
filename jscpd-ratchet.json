@@ -218,7 +218,6 @@
     "conformance/web-devstudio/run.mjs <-> scripts/static-server.mjs",
     "conformance/web-distribution/build.mjs <-> conformance/web-handbook/build.mjs",
     "conformance/web-distribution/build.mjs <-> conformance/web-hyperdrive-browser/build.mjs",
-    "conformance/web-distribution/entry.mjs <-> conformance/web-examples/entry.mjs",
     "conformance/web-distribution/entry.mjs <-> conformance/web-hyperdrive-browser/entry.mjs",
     "conformance/web-distribution/run.mjs <-> conformance/web-hyperdrive-browser/build.mjs",
     "conformance/web-distribution/run.mjs <-> conformance/web-hyperdrive-browser/run.mjs",

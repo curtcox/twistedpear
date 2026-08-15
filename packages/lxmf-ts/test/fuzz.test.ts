@@ -4,6 +4,7 @@ import { msgpackUnpack } from "../src/msgpack.js";
 import {
   bytesToHex,
   createRandom,
+  hexToBytes,
   mutate,
 } from "../../../conformance/fuzz/engine.mjs";
 import {
@@ -53,7 +54,7 @@ function hashTarget(target: string): number {
 function fuzzTarget(target: string, check: (input: Uint8Array) => void): void {
   for (const example of corpusFor(target)) {
     expect(
-      () => check(hexToBytesLocal(example.inputHex)),
+      () => check(hexToBytes(example.inputHex)),
       `committed counterexample ${target}:${example.inputHex} regressed`,
     ).not.toThrow();
   }
@@ -79,14 +80,6 @@ function fuzzTarget(target: string, check: (input: Uint8Array) => void): void {
       );
     }
   }
-}
-
-function hexToBytesLocal(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
-  }
-  return bytes;
 }
 
 describe("structure-aware LXMF msgpack fuzz", () => {

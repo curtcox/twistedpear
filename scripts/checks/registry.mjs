@@ -179,6 +179,26 @@ export const gates = [
   // found anything or whether the proofs still held. Registering them is what
   // publishes them; the checks themselves are unchanged.
   gate("fuzz", "Malformed-input fuzz tests", "test:fuzz", "pr", ["node"]),
+  // The fuzzers above assert only that our decoders do not throw, which a
+  // decoder returning null for every byte string on earth satisfies. This one
+  // has an oracle: the pinned Python reference the whole project exists to be
+  // compatible with. It is registered rather than left behind `INTEROP=1`
+  // because a check that runs only in CI is precisely how `web-examples` stayed
+  // red for 40+ runs — and unlike the interop suite it needs no live peers or
+  // network namespaces, just one container reading stdin, which is the same
+  // class of dependency as `chromium`.
+  gate(
+    "differential-fuzz",
+    "Differential fuzz against the pinned reference",
+    "test:differential-fuzz",
+    "pr",
+    ["node", "docker"],
+    [
+      "artifacts/differential-fuzz/differential-fuzz.json",
+      "conformance/vectors/differential-allowances.json",
+    ],
+    "differential-fuzz",
+  ),
   // Registered for the same reason, after proving the cost of not registering
   // it: `test:web-examples` ran only as a step in the hand-written `web` job
   // and stayed red for 40+ consecutive runs without ever appearing on

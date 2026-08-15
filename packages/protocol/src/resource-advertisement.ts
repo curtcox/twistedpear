@@ -102,8 +102,21 @@ function readBin(value: MsgpackScalar | undefined): Uint8Array {
   return Uint8Array.from(value.bin);
 }
 
+/**
+ * `q` is optional in *value* — nil means "no request id" — but not in
+ * *presence*. RNS reads it as `dictionary["q"]`, so an advertisement that omits
+ * the key raises `KeyError` there.
+ *
+ * Treating absent and nil alike meant a frame whose `q` key had been corrupted
+ * into anything else at all — differential fuzzing produced `a124`, the key
+ * `"$"` — was accepted here and rejected by every reference peer. A truncated
+ * or mangled advertisement is not a request-less one.
+ */
 function readOptionalBin(value: MsgpackScalar | undefined): Uint8Array | null {
-  if (value === undefined || value.type === "nil") {
+  if (value === undefined) {
+    throw new Error("Expected msgpack key q");
+  }
+  if (value.type === "nil") {
     return null;
   }
   return readBin(value);

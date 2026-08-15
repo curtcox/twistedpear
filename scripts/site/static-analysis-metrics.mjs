@@ -230,6 +230,22 @@ const RENDERERS = {
     ];
   },
 
+  "differential-fuzz": ({ json }) => {
+    // Publish how much was compared and how far the two implementations drifted
+    // apart, not just the colour. A differential fuzzer whose case count
+    // silently fell to zero is green, and so is one that compared a thousand
+    // cases and found two recorded disagreements; only the numbers separate
+    // them. `Unrecorded divergence kinds` is the one that must stay at zero.
+    const report = json("differential-fuzz/differential-fuzz.json");
+    if (!report) return [];
+    return [
+      metric("Cases compared", number(report.cases)),
+      metric("Divergent cases", number(report.divergentCases)),
+      metric("Divergence kinds", count(report.kinds)),
+      metric("Unrecorded divergence kinds", count(report.unrecordedKinds)),
+    ];
+  },
+
   formal: ({ json }) => {
     // Publish the size of the proof, not just its colour. A model that quietly
     // stops exploring states still "passes"; a falling distinct-state count on

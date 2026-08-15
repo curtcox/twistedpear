@@ -57,6 +57,22 @@ inspectable in a workflow log and nowhere else. The checks themselves did not ch
   `simulation-replay-compare`): it needs the same replay on two runners, which one gate
   on one runner cannot express.
 
+The `differential-fuzz` registry gate (`npm run test:differential-fuzz`) is the fuzzers'
+oracle. `fuzz` above can only assert that our decoders do not throw, which a decoder that
+returns `null` for every byte string on earth satisfies perfectly; this one feeds the same
+structured-random bytes to our decoders and to the pinned `rns==0.9.5` / `lxmf==0.7.0`
+reference in `conformance/docker`, and compares the answers. It is the first registry gate
+to require Docker — hence the new `docker` requirement token, probed with `docker info`
+because the client answers `--version` with no daemon behind it. Unlike the `INTEROP=1`
+suite it needs no live peers, ports or network namespaces, just one container reading
+stdin, so it is registered rather than opt-in: a check that runs only in CI is exactly how
+`web-examples` stayed red for 40+ runs without `/results/` noticing. Divergences that have
+been examined are recorded with their reasons in
+`conformance/vectors/differential-allowances.json`; any kind not recorded there fails the
+gate and its input is written to the committed fuzz corpus. The comparison logic itself
+lives in `conformance/fuzz/differential.mjs` and is unit-tested without Docker by
+`conformance/checks/differential-fuzz.test.mjs`, the same split as `android-retry`.
+
 The nightly `benchmark` registry gate replaces the `bare-benchmark` CI job. It runs
 the same two crypto suites against the same references, publishes the per-benchmark
 numbers, and ratchets the reference rather than the measurement — see

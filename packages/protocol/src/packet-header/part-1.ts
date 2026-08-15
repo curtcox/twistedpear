@@ -147,7 +147,15 @@ export function unpackPacketFlags(flags: number): {
   readonly packetType: number;
 } {
   return {
-    headerType: (flags & 0b11000000) >> 6,
+    // One bit, not two. Bit 7 is reserved and unused: RNS 0.9.5 never sets it
+    // (`get_packed_flags` shifts a header type of 0 or 1 left by six) and masks
+    // it off when parsing (`(self.flags & 0b01000000) >> 6`). Reading two bits
+    // here made a packet with bit 7 set decode to header type 2 or 3, which
+    // `isHeaderType` then rejected — so every such packet was silently dropped
+    // by us and accepted by every reference peer on the network. Differential
+    // fuzzing against the pinned reference is what surfaced it; see
+    // `conformance/vectors/differential-allowances.json`.
+    headerType: (flags & 0b01000000) >> 6,
     contextFlag: (flags & 0b00100000) >> 5,
     transportType: (flags & 0b00010000) >> 4,
     destinationType: (flags & 0b00001100) >> 2,

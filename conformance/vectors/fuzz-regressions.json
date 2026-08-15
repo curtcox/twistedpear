@@ -1,0 +1,250 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "firstSeen": "2026-08-15T20:11:36.939Z",
+      "target": "differential/msgpack",
+      "inputHex": "c404de",
+      "operators": ["truncate@3"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.949Z",
+      "target": "differential/msgpack",
+      "inputHex": "c44999ab56a7b2bc78b96a2c5346445032f739130fe19fd786f2b5ccba5292093d728e082f991d1d34e1a8fb92abb970",
+      "operators": ["truncate@1", "extend+47"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.942Z",
+      "target": "differential/msgpack",
+      "inputHex": "c472263c5a",
+      "operators": ["replace@1", "randomize", "randomize"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.931Z",
+      "target": "differential/msgpack",
+      "inputHex": "c4b3de40feef",
+      "operators": ["replace@3", "replace@1", "flip@4:6"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.937Z",
+      "target": "differential/msgpack",
+      "inputHex": "c4e5deadbeefdeadbeef",
+      "operators": ["replace@1", "duplicate@2+4"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.925Z",
+      "target": "differential/msgpack",
+      "inputHex": "c5",
+      "operators": ["flip@3:0", "interesting@1", "truncate@1"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.934Z",
+      "target": "differential/msgpack",
+      "inputHex": "c50004dead",
+      "operators": ["truncate@5"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.945Z",
+      "target": "differential/msgpack",
+      "inputHex": "c50005de92beef",
+      "operators": ["flip@2:0", "replace@4"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.941Z",
+      "target": "differential/msgpack",
+      "inputHex": "c50036de61beef",
+      "operators": ["replace@4", "replace@2"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.934Z",
+      "target": "differential/msgpack",
+      "inputHex": "c50044deadbeef",
+      "operators": ["flip@2:6"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.925Z",
+      "target": "differential/msgpack",
+      "inputHex": "c5008fdead7eef",
+      "operators": ["replace@2", "interesting@5"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.937Z",
+      "target": "differential/msgpack",
+      "inputHex": "c500fceaadbeef00fceaadbeef",
+      "operators": ["replace@2", "replace@3", "duplicate@1+6"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.926Z",
+      "target": "differential/msgpack",
+      "inputHex": "c50804de",
+      "operators": ["truncate@4", "flip@1:3"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.940Z",
+      "target": "differential/msgpack",
+      "inputHex": "c5103ddeadbeef",
+      "operators": ["flip@1:4", "replace@2"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.935Z",
+      "target": "differential/msgpack",
+      "inputHex": "c57e04de7fbeef",
+      "operators": ["interesting@1", "replace@4"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.935Z",
+      "target": "differential/msgpack",
+      "inputHex": "c5cb04deadbeef",
+      "operators": ["replace@1"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.941Z",
+      "target": "differential/msgpack",
+      "inputHex": "c5fe04deadbeefef",
+      "operators": ["interesting@1", "interesting@1", "duplicate@6+1"],
+      "error": "msgpack:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.923Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "8415ed07135ada4e16b8ea0dbddc1c0fa2b44f936a15889a0f5c63c771bbde9f641ea4b7842c226c91db66a4841fb03fea69fa2e008e2711331f8210e5d619fae2838dcfedab5a8ee4cfb9bbee0a1c27bf3cfafec99feec12fa5901435f5798e3f0de180a1895f2758826c1715731c8ea60ed0db146ad3684b2f6b85f0240deb2be19308a4885a2611dde38370c81ce5ea7ca53c2d60ea880ae4074145c06bb71c1c7266fbc0c706e82b1958c8107f36af31efa3801f634eeefc72b5b2c6992fb18853ccb8a6d0a9",
+      "operators": ["duplicate@167+16", "randomize", "flip@60:4"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "8a75d4272d458f4fb2217551eb1ad9349fba66932b01dd5b9c472acc2f2c285de334bf7953eaffa1242c38acf5ba598226fcd530239f44f13406",
+      "operators": ["randomize", "extend+39", "flip@54:3"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "8f3a19bf33a8a8c06e5fd546aa287c24c8bd181b17619423d084ebb794c6432cd1cf2d7d3d256ec28057ab",
+      "operators": ["randomize"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.891Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "980300112233445566778899aabbccddeeff086b1879b803be27667b9f1e6b7d0c430b616e6e6f756e6365",
+      "operators": ["replace@0"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.923Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "9c8bffdc954a2abb6a8bbbf86afce166af37a4f77db7324cb579f05f910ab107a28f5b8e8ad0a3e907d71c",
+      "operators": ["randomize", "flip@14:7"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "a90300112233445566774599aabbccddeeff086b1879b803be27667b9f1e6b7d0c430b616e6e20756e6365",
+      "operators": ["replace@0", "interesting@38", "replace@10"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "b38b91e8efa3c61bb008909f45b586a465bca2a3c61bb008909f4571964c97c85a717e25a8fef46718b24b72f9560d8d7e9388f6b25d38982a9e0c6fb478203ea8a237a19e3f66f4eb8b",
+      "operators": ["randomize", "duplicate@5+8", "extend+47"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "b5bc0d373481a0919adefec719db20ce225d8872d51eee67d295e3886d2231",
+      "operators": ["randomize"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.900Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "c275c94463cf683cd387e1f0dfa546d974f36d738cdc5c4a08759636b10513417b0a74711939d85788874f47b8ba4754589384d7c9abdb021dba9f7950ad797636919bc04702f49e5e668b8abf811911d2e71713ac84a9371de9aeca6dcdd4a2ff91bf55805feb7be99452a074594bda31172065c7475b78876159b347cf81103b799f8cea1a0202a1b7a50b4939d2fdbc0354e21bd4615ec7f689185cf8356ee704b147f9834880f24ed0883fb814416faeea1a203c4edd",
+      "operators": ["randomize", "flip@112:1"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "d5aa092a44521abcce703291fefdd80a952192ba1fe68ffd05ca502f56f5650368f5ae444d430ac1ca",
+      "operators": ["randomize", "duplicate@5+30", "truncate@41"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "db06491867ff2d5b8940a75de77cf1a24decf23f82c8fde8cff2d63c43bf31532293db41577f2e63451fb4286b660013a1d8f35183",
+      "operators": ["randomize", "interesting@5", "extend+10"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.921Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "e4b58400b013e55b5aa0949ba7fc0ae2287863a207969ba0004be8d85c7e25e9da1580",
+      "operators": ["truncate@35", "flip@34:6", "randomize"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.922Z",
+      "target": "differential/packet-unpack",
+      "inputHex": "e6f8927e6b28152c8d94e0a552871edccfd84b6df6ebba927dbc7a7b0126063eda699f7c32c42fce4d7b7716a4baf9f2fb7fdfe7a9a3276db87a657607cf7221d9dcccb5d319a7bedc1b628922b9c4ee804cf0425403ee139cc7b09041710665effe8e8020a592e5ea811ede276a077900efa40b2f37923be55f0844c9bf120ac278c299c9ac16e03f5669fbf59a0d6c1623bd75079c130c3abbf46d66dd7276e44c6b59f42342902fc4e178fcaeee4acde810ccbfa85039",
+      "operators": ["randomize"],
+      "error": "packet-unpack:python-accepts:rejected: ts rejected: null"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.923Z",
+      "target": "differential/resource-advert",
+      "inputHex": "8ba174cd0400a164cd0200a16e04a168c410000102030405060708090a0b0c0d0e0fa172c4080001020304050607a16fc410000102030405060708090a0b0c0d0e0fa16dc40400010203a16602a16901a16c01a171c4fe000102032265cf36f0d416770f17e9661c99ccc5fe2d9dc74badda22d3503b1d9245a8f159879aac1f1cd7a35f116070ca9470a09d4de486f8400f6d",
+      "operators": ["interesting@86", "extend+56", "replace@131"],
+      "error": "resource-advert:ts-accepts:insufficient-data: python rejected: InsufficientDataException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.923Z",
+      "target": "differential/resource-advert",
+      "inputHex": "8ba174cd0400a164cd0200a16e04a168c410000102030405060708090a0b0c0d0e0fa172c4080001020304050607a16fc410000102030405060708090a0b0c0d0e0fa16dc40400010203a16602a16901a16c01a1c4c4040001020363ff8ee8eec301b24696340688a39090",
+      "operators": ["replace@84", "extend+16"],
+      "error": "resource-advert:ts-accepts:invalid-string: python rejected: InvalidStringException"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.924Z",
+      "target": "differential/resource-advert",
+      "inputHex": "8ba174cd0400a164cd0200a16e04a168c410000102030405060708090a0b0c0d0e0fa172c4080001020304050607a16fc410000102030405060708090a0b0c0d0e0fa16dc40400010203a1661fa16901a16c01a158c0",
+      "operators": ["replace@84"],
+      "error": "resource-advert:ts-accepts:key: python rejected: KeyError"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.923Z",
+      "target": "differential/resource-advert",
+      "inputHex": "8ba174cd0400a164cd0200a16e04a168c410000102030405060708090a0b0c0d0e0fa172c4080001020304050607a16fc4100001020304053c0708090a0b0c0d0e0fa16dc404000a0203a1661fa16901a16c01a101c0",
+      "operators": ["interesting@84", "interesting@71", "replace@56"],
+      "error": "resource-advert:ts-accepts:key: python rejected: KeyError"
+    },
+    {
+      "firstSeen": "2026-08-15T20:11:36.923Z",
+      "target": "differential/resource-advert",
+      "inputHex": "8ba174cd0400a164cd0200a16e04a168c410002002030405060708090a0b0c0d0e0fa172c4080001020304050607a16fc410000102030405060708090a0b0c0d0e0fa16dc40400010203a1661fa16901a16c01a124c0c0",
+      "operators": ["duplicate@85+1", "replace@84", "interesting@19"],
+      "error": "resource-advert:ts-accepts:key: python rejected: KeyError"
+    }
+  ]
+}
