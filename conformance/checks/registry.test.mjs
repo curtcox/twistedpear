@@ -104,6 +104,9 @@ describe("static-analysis gate registry", () => {
     expect(reports).toContain("job.metrics =");
     expect(renderer).toContain("## Metrics");
     expect(renderer).toContain("./raw/${artifact}");
+    expect(renderer).toContain(
+      "Number(a.job.ok) - Number(b.job.ok) || a.index - b.index",
+    );
     expect(pagesWorkflow).toContain("npm run site:reports -- --tier=all");
     expect(pagesWorkflow).toContain("node scripts/checks/pages-plan.mjs");
     expect(pagesWorkflow).toContain(
@@ -112,6 +115,8 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain(
       "SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}",
     );
+    expect(pagesWorkflow).toContain('SITE_REPORT_ISOLATE: "1"');
+    expect(reports).toContain("isolateWorktree");
     // Resolved inside the build job, not read from another job's outputs: the
     // build runs under always(), so an upstream failure must not empty the
     // defer list and put the mutation survey back on the publish path.

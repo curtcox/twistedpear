@@ -155,10 +155,14 @@ log, and all declared structured artifacts. Artifact paths are preserved below
 `/results/raw/artifacts/`, so a gate result cannot overwrite a report with the same
 basename.
 
-The Linux Pages build installs and runs the complete PR toolchain. The registry-derived
+The Linux Pages build installs and runs the complete PR toolchain. Each locally
+run gate starts from a restored worktree (`SITE_REPORT_ISOLATE=1`) so generated
+output from an earlier gate cannot change what a later graph gate measures — the
+same isolation CI gets by running one gate per job. The registry-derived
 Pages plan sends every non-Linux or nightly gate to a parallel evidence job; today that
 means SwiftLint on macOS plus advisory, SBOM, and mutation analysis. Those results are
-imported into the same registry-driven report. A failed or missing imported result is
+imported into the same registry-driven report. The checks table on `/results/` lists
+failed gates first. A failed or missing imported result is
 rendered as a failed page rather than omitted. Imported logs and artifacts use the same
 report paths as Linux results. Deployment still occurs so failure details
 remain inspectable, and the final aggregate job then fails the workflow.

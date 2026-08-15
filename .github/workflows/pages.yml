@@ -129,6 +129,10 @@ jobs:
           SITE_REPORT_IMPORT_DIR: imported-static-analysis
           SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}
           SITE_REPORT_DEFER_GATES: ${{ steps.defer.outputs.deferred }}
+          # CI measures each gate on a fresh checkout. Restore that isolation
+          # here so generated output from an earlier gate cannot greenwash a
+          # later one (see scripts/site/isolate-worktree.mjs).
+          SITE_REPORT_ISOLATE: "1"
       - name: Report pending screenshots for the guide, authoring guide, and cookbook
         run: npm run site:section-images:report
       - name: Build documentation site

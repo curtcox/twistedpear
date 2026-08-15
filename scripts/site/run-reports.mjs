@@ -10,6 +10,9 @@ import { ROOT, RESULTS_DIR } from "./paths.mjs";
 import { gates } from "../checks/registry.mjs";
 import { summarizeStaticAnalysis } from "./static-analysis-metrics.mjs";
 import { hasExpectedProvenance } from "./verify-publication.mjs";
+import { isolateWorktree } from "./isolate-worktree.mjs";
+
+const ISOLATE = process.env.SITE_REPORT_ISOLATE === "1";
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -164,6 +167,8 @@ function runJob(job) {
   const startedAt = nowIso();
   const logPath = path.join(RESULTS_DIR, "logs", `${job.id}.log`);
   ensureDir(path.dirname(logPath));
+
+  if (ISOLATE) isolateWorktree(ROOT);
 
   const result = spawnSync(job.command[0], job.command.slice(1), {
     cwd: job.cwd ?? ROOT,

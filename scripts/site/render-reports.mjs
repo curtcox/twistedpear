@@ -62,8 +62,10 @@ function renderIndex(summary) {
   const branchLabel = summary.branch ?? summary.ref ?? "unknown";
 
   const rows = (summary.jobs ?? [])
+    .map((job, index) => ({ job, index }))
+    .sort((a, b) => Number(a.job.ok) - Number(b.job.ok) || a.index - b.index)
     .map(
-      (j) =>
+      ({ job: j }) =>
         `| ${statusBadge(j.ok)} | [${escapeMd(j.title)}](./${j.id}) | ${(j.metrics ?? []).slice(2).map((item) => `${escapeMd(item.label)}: ${renderMetric(item)}`).join(" · ") || "—"} | \`${escapeMd(j.command)}\` | ${formatDuration(j.durationMs)} |`
     )
     .join("\n");
