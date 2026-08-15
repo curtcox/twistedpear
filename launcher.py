@@ -7,7 +7,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from functools import partial
-from typing import Optional
+from typing import cast
 
 from launcher_tkpython import (
     ensure_tkinter_python,
@@ -24,10 +24,9 @@ ensure_tkinter_python()
 
 # Imported after the guard above: on an interpreter without Tcl/Tk, importing
 # tkinter raises before ensure_tkinter_python can re-exec into one that has it.
-import threading  # noqa: E402
-import tkinter as tk  # noqa: E402
-from tkinter import messagebox, ttk  # noqa: E402
-
+import threading
+import tkinter as tk
+from tkinter import messagebox, ttk
 
 USAGE = """\
 Usage:
@@ -63,9 +62,9 @@ Example:
 @dataclass
 class Entry:
     command: str
-    name: Optional[str] = None
-    image: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    image: str | None = None
+    description: str | None = None
 
 
 class ParseError(Exception):
@@ -194,7 +193,7 @@ def _collect_image_paths(entries: list[Entry]) -> list[str]:
 
 def _has_pillow() -> bool:
     try:
-        import PIL.Image  # noqa: F401
+        import PIL.Image
         import PIL.ImageTk  # noqa: F401
     except ImportError:
         return False
@@ -219,7 +218,7 @@ def _is_macos_system_python(python: str) -> bool:
     return sys.platform == "darwin" and same_python(python, "/usr/bin/python3")
 
 
-def _available_image_backends(master: tk.Misc, sample_png: Optional[str]) -> list[str]:
+def _available_image_backends(master: tk.Misc, sample_png: str | None) -> list[str]:
     backends: list[str] = []
 
     if (
@@ -326,7 +325,7 @@ class PreviewImageLoader:
         # Tk's `subsample x ?y?` defaults y to x, which is the square factor here.
         return img.subsample(factor)
 
-    def _convert_image_for_tk(self, path: str) -> Optional[str]:
+    def _convert_image_for_tk(self, path: str) -> str | None:
         if not _has_sips():
             return None
 
@@ -357,7 +356,10 @@ class PreviewImageLoader:
 
             pil_image = Image.open(path)
             self._pil_images.append(pil_image)
-            return ImageTk.PhotoImage(pil_image, master=self.master)
+            return cast(
+                tk.PhotoImage,
+                ImageTk.PhotoImage(pil_image, master=self.master),
+            )
 
         converted = self._convert_image_for_tk(path)
         if converted:
@@ -509,7 +511,7 @@ class LauncherApp(tk.Tk):
     def _run_entry(self, entry: Entry) -> None:
         try:
             process = subprocess.Popen(entry.command, shell=True)
-        except Exception as exc:
+        except OSError as exc:
             messagebox.showerror(
                 "Launch failed",
                 f"Could not start {entry.name}.\n\n"

@@ -7,7 +7,6 @@ import time
 from pathlib import Path
 
 import RNS
-
 from load_identity import load_identity
 from send_packet import send_packet
 

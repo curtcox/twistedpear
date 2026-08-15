@@ -10,7 +10,6 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import Optional
 
 
 def python_has_tkinter(python: str) -> bool:
@@ -19,13 +18,14 @@ def python_has_tkinter(python: str) -> bool:
             [python, "-c", "import _tkinter"],
             capture_output=True,
             timeout=10,
+            check=False,
         )
         return result.returncode == 0
     except (OSError, subprocess.SubprocessError):
         return False
 
 
-def brew_python_executable(major: int, minor: int) -> Optional[str]:
+def brew_python_executable(major: int, minor: int) -> str | None:
     if sys.platform != "darwin" or not shutil.which("brew"):
         return None
 
@@ -94,7 +94,7 @@ def _exit_if_brew_python_missing_tk(python: str) -> None:
     sys.exit(1)
 
 
-def _brew_python_with_tk() -> Optional[str]:
+def _brew_python_with_tk() -> str | None:
     major, minor = sys.version_info[:2]
     python = brew_python_executable(major, minor)
     if python and python_has_tkinter(python):
@@ -106,7 +106,7 @@ def _tkinter_python_candidates() -> list[str]:
     seen: set[str] = set()
     candidates: list[str] = []
 
-    def add(path: Optional[str]) -> None:
+    def add(path: str | None) -> None:
         if not path:
             return
         resolved = os.path.realpath(path)

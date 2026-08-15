@@ -12,9 +12,8 @@ import hashlib
 import hmac
 import json
 import os
-from pathlib import Path
 import tempfile
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 
@@ -294,7 +293,7 @@ def rns_identity_corpus() -> dict:
     alice_recipient = RNS.Identity(create_keys=False)
     alice_recipient.load_public_key(alice.get_public_key())
 
-    token_key = bytes(range(0, 32))
+    token_key = bytes(range(32))
     token = Token(token_key)
     fixed_iv = bytes([0xAA] * 16)
     original_urandom = os.urandom

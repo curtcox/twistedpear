@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 
 import RNS
-
 from load_identity import load_identity
 
 ROOT = Path(__file__).resolve().parents[1]

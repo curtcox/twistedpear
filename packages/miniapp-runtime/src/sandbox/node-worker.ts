@@ -1,5 +1,6 @@
 import { Worker } from "node:worker_threads";
 import { prepareBundleSource } from "./prepare-bundle.js";
+import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -212,64 +213,14 @@ function handleNodeWorkerMessage(
   pending: PendingBroker,
   message: BrokerWireMessage,
 ): void {
-  if (message.type === "broker-request" && message.id !== undefined) {
-    forwardNodeBrokerRequest(worker, options, message.id, message);
-    return;
-  }
-  settlePendingBroker(pending, message);
-}
-
-function forwardNodeBrokerRequest(
-  worker: Worker,
-  options: SandboxSpawnOptions,
-  id: string,
-  message: BrokerWireMessage,
-): void {
-  const endpoint = options.brokerEndpoint as
-    { request?: (request: unknown) => Promise<unknown> } | undefined;
-  if (typeof endpoint?.request !== "function") {
-    worker.postMessage({
-      type: "broker-response",
-      id,
-      ok: false,
-      error: { message: "Broker endpoint is not configured" },
-    });
-    return;
-  }
-
-  void endpoint.request(message).then(
-    (response) =>
-      worker.postMessage({
-        type: "broker-response",
-        ...normalizeBrokerResponse(response as BrokerWireResponse),
-      }),
-    (error: Error) =>
-      worker.postMessage({
-        type: "broker-response",
-        id,
-        ok: false,
-        error: { message: error.message },
-      }),
-  );
-}
-
-function settlePendingBroker(
-  pending: PendingBroker,
-  message: BrokerWireMessage,
-): void {
-  if (message.type !== "broker-response" || message.id === undefined) {
-    return;
-  }
-  const waiter = pending.get(message.id);
-  if (waiter === undefined) {
-    return;
-  }
-  pending.delete(message.id);
-  if (message.ok) {
-    waiter.resolve(message.result);
-  } else {
-    waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
-  }
+  dispatchWorkerBrokerMessage(message, {
+    worker,
+    pending,
+    endpoint: options.brokerEndpoint as
+      { request?: (request: unknown) => Promise<unknown> } | undefined,
+    normalizeResponse: (response) =>
+      normalizeBrokerResponse(response as BrokerWireResponse),
+  });
 }
 
 function normalizeBrokerResponse(

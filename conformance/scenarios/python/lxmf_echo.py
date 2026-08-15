@@ -12,7 +12,6 @@ from pathlib import Path
 
 import LXMF
 import RNS
-
 from load_identity import load_identity
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config" / "lxmf-echo"

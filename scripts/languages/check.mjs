@@ -94,6 +94,7 @@ for (const [command, ...args] of commands) {
     cwd: ROOT,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
+    env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" },
   });
   const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
   process.stdout.write(result.stdout ?? "");

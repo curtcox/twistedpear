@@ -1,4 +1,5 @@
 import { prepareBundleSource } from "./prepare-bundle.js";
+import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -120,66 +121,21 @@ function handleBareWorkerHostMessage(
   >,
   data: unknown,
 ): void {
-  const message = data as {
-    type: string;
-    id?: string;
-    ok?: boolean;
-    result?: unknown;
-    error?: { message: string };
-  };
-
-  if (message.type === "broker-request" && message.id !== undefined) {
-    forwardBareBrokerRequest(worker, options, message.id, message);
-    return;
-  }
-
-  if (message.type !== "broker-response" || message.id === undefined) {
-    return;
-  }
-  const waiter = pending.get(message.id);
-  if (waiter === undefined) {
-    return;
-  }
-  pending.delete(message.id);
-  if (message.ok) {
-    waiter.resolve(message.result);
-  } else {
-    waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
-  }
-}
-
-function forwardBareBrokerRequest(
-  worker: BareWorkerLike,
-  options: SandboxSpawnOptions,
-  id: string,
-  message: { type: string; id?: string },
-): void {
-  const endpoint = options.brokerEndpoint as {
-    request?: (request: unknown) => Promise<unknown>;
-  };
-  if (typeof endpoint.request !== "function") {
-    worker.postMessage({
-      type: "broker-response",
-      id,
-      ok: false,
-      error: { message: "Broker endpoint is not configured" },
-    });
-    return;
-  }
-
-  void endpoint.request(message).then(
-    (response) =>
-      worker.postMessage({
-        type: "broker-response",
-        ...(response as object),
-      }),
-    (error: Error) =>
-      worker.postMessage({
-        type: "broker-response",
-        id,
-        ok: false,
-        error: { message: error.message },
-      }),
+  dispatchWorkerBrokerMessage(
+    data as {
+      type: string;
+      id?: string;
+      ok?: boolean;
+      result?: unknown;
+      error?: { message: string };
+    },
+    {
+      worker,
+      pending,
+      endpoint: options.brokerEndpoint as {
+        request?: (request: unknown) => Promise<unknown>;
+      },
+    },
   );
 }
 

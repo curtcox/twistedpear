@@ -1,6 +1,7 @@
 import { prepareBundleSource } from "./prepare-bundle.js";
 import { createBrowserWorkerBootstrapSource } from "./browser-worker-bootstrap.js";
 import { reviveJsonWireValue } from "./json-wire.js";
+import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -229,71 +230,15 @@ function handleSandboxHostPortMessage(
     return;
   }
 
-  if (message.type === "broker-request" && message.id !== undefined) {
-    handleSandboxBrokerRequest(state, message);
-    return;
-  }
-
-  if (message.type === "broker-response" && message.id !== undefined) {
-    handleSandboxBrokerResponse(state, message);
-  }
-}
-
-function handleSandboxBrokerRequest(
-  state: SpawnPortState,
-  message: { id?: string },
-): void {
-  const endpoint = state.options.brokerEndpoint as {
-    request?: (request: unknown) => Promise<unknown>;
-  };
-  if (typeof endpoint.request !== "function") {
-    state.hostPort.postMessage({
-      type: "broker-response",
-      id: message.id,
-      ok: false,
-      error: { message: "Broker endpoint is not configured" },
-    });
-    return;
-  }
-
-  void endpoint.request(message).then(
-    (response) =>
-      state.hostPort.postMessage({
-        type: "broker-response",
-        ...normalizeBrokerResponse(response as BrokerWireResponse),
-      }),
-    (error: Error) =>
-      state.hostPort.postMessage({
-        type: "broker-response",
-        id: message.id,
-        ok: false,
-        error: { message: error.message },
-      }),
-  );
-}
-
-function handleSandboxBrokerResponse(
-  state: SpawnPortState,
-  message: {
-    id?: string;
-    ok?: boolean;
-    result?: unknown;
-    error?: { message: string };
-  },
-): void {
-  if (message.id === undefined) {
-    return;
-  }
-  const waiter = state.pending.get(message.id);
-  if (waiter === undefined) {
-    return;
-  }
-  state.pending.delete(message.id);
-  if (message.ok) {
-    waiter.resolve(message.result);
-  } else {
-    waiter.reject(new Error(message.error?.message ?? "Broker request failed"));
-  }
+  dispatchWorkerBrokerMessage(message, {
+    worker: state.hostPort,
+    pending: state.pending,
+    endpoint: state.options.brokerEndpoint as {
+      request?: (request: unknown) => Promise<unknown>;
+    },
+    normalizeResponse: (response) =>
+      normalizeBrokerResponse(response as BrokerWireResponse),
+  });
 }
 
 function createSandboxInstance(input: {
