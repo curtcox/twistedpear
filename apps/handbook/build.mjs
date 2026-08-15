@@ -33,8 +33,47 @@ import {
 } from "./build-content.mjs";
 import { generateReferenceChapters } from "./build-reference.mjs";
 
+/**
+ * The runtime fragments are authored as ES modules and shipped as one bundle
+ * the sandbox loads as a script, so `export` has to come off on the way out.
+ *
+ * The exports exist for the unit suite. `apps/handbook` sat at a coverage floor
+ * of 0 on all three metrics — in the ratchet, measured, and constraining
+ * nothing — because nothing in `src/` was reachable from a test: four files
+ * concatenated into a bundle, not one exported name between them. Exporting the
+ * pure half made them reachable and made the bundle unloadable, since the
+ * sandbox evaluates it as a script where a top-level `export` is a syntax
+ * error. Stripping the keyword here is what lets both be true.
+ *
+ * Only the keyword goes: `export function f` becomes `function f`, which leaves
+ * the declaration and every reference to it untouched. Re-exports and default
+ * exports would need more than this and are not used; `assertNoUnstrippedExports`
+ * below fails the build rather than shipping a bundle that cannot load.
+ */
 function readRuntimeSource() {
-  return runtimePaths.map((path) => readFileSync(path, "utf8")).join("\n");
+  const stripped = runtimePaths
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n")
+    .replace(/^export (?=(?:async )?function |const |class |let )/gm, "");
+  assertNoUnstrippedExports(stripped);
+  return stripped;
+}
+
+/**
+ * A form of `export` this strip does not handle would produce a bundle that
+ * fails to parse in the sandbox, which shows up as the reader never rendering —
+ * a timeout in `conformance/handbook`, minutes later, with nothing pointing
+ * here. Failing the build says it at the point it happened.
+ */
+function assertNoUnstrippedExports(source) {
+  const offending = source
+    .split("\n")
+    .filter((line) => /^\s*export\b/.test(line));
+  if (offending.length > 0) {
+    fail(
+      `runtime source has export statements this build cannot strip, and the sandbox loads the bundle as a script:\n  ${offending.join("\n  ")}`,
+    );
+  }
 }
 
 async function build() {

@@ -1,4 +1,4 @@
-function stripAppletExports(source) {
+export function stripAppletExports(source) {
   return source
     .replace(/export\s+async\s+function\s+run\s*/, "async function run ")
     .replace(/export\s+\{[^}]+\}\s*;?/g, "");

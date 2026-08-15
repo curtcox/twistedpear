@@ -4,9 +4,9 @@
   "tolerance": 0.5,
   "packages": {
     "apps/handbook": {
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
+      "statements": 16.32,
+      "branches": 18.04,
+      "functions": 27.27
     },
     "apps/harness-mobile": {
       "statements": 3.28,
@@ -24,9 +24,9 @@
       "functions": 78.1
     },
     "packages/bridge-freenet": {
-      "statements": 71.03,
-      "branches": 55.39,
-      "functions": 64.96
+      "statements": 73.45,
+      "branches": 57.62,
+      "functions": 66.67
     },
     "packages/bridge-hyper": {
       "statements": 98.43,
@@ -75,7 +75,7 @@
     },
     "packages/protocol": {
       "statements": 89.36,
-      "branches": 79.75,
+      "branches": 79.79,
       "functions": 97.54
     },
     "packages/reticulum-interfaces": {

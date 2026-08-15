@@ -75,7 +75,7 @@ let previewRunning = false;
 /** @type {string | null} */
 let previewAppletId = null;
 
-function appletSupportsMode(applet, mode) {
+export function appletSupportsMode(applet, mode) {
   const modes = applet.executionModes ?? ["inline"];
   return modes.includes(mode);
 }
@@ -119,7 +119,7 @@ function chapterNavigationOrder() {
   return order;
 }
 
-function chapterNeighbors(id) {
+export function chapterNeighbors(id) {
   const order = chapterNavigationOrder();
   const index = order.indexOf(id);
   if (index < 0) {
@@ -131,7 +131,7 @@ function chapterNeighbors(id) {
   };
 }
 
-function chapterMatchesSearch(chapterMeta, query) {
+export function chapterMatchesSearch(chapterMeta, query) {
   if (query.length === 0) {
     return true;
   }
@@ -172,11 +172,11 @@ async function ensureSeeds() {
   }
 }
 
-function widgetButton(id, label, event) {
+export function widgetButton(id, label, event) {
   return { id, type: "button", props: { label, event } };
 }
 
-function textNode(id, value, style) {
+export function textNode(id, value, style) {
   const node = { id, type: "text", props: { value } };
   if (style !== undefined) {
     node.style = style;
@@ -184,7 +184,7 @@ function textNode(id, value, style) {
   return node;
 }
 
-function headingStyle(level) {
+export function headingStyle(level) {
   if (level === 1) {
     return { fontSize: 24, fontWeight: "bold" };
   }
@@ -194,7 +194,7 @@ function headingStyle(level) {
   return { fontSize: 16, fontWeight: "bold" };
 }
 
-function resultCard(appletId, result) {
+export function resultCard(appletId, result) {
   if (result === undefined) {
     return textNode(`result-${appletId}-empty`, "Not run yet.");
   }
@@ -216,7 +216,7 @@ function resultCard(appletId, result) {
   return textNode(`result-${appletId}`, body);
 }
 
-function explainStatus(status) {
+export function explainStatus(status) {
   if (status === "not-granted") {
     return "This capability was withheld for this app. Grant it at install to run the probe.";
   }
@@ -512,7 +512,7 @@ function buildReportDocument(hostInfo) {
   };
 }
 
-function diffDropCensus(localReport, remoteReport) {
+export function diffDropCensus(localReport, remoteReport) {
   const local = localReport.dropCensus?.byReason ?? {};
   const remote = remoteReport.dropCensus?.byReason ?? {};
   const keys = [
@@ -536,7 +536,7 @@ function diffDropCensus(localReport, remoteReport) {
   });
 }
 
-function diffReports(localReport, remoteReport) {
+export function diffReports(localReport, remoteReport) {
   const remoteById = new Map(
     (remoteReport.results ?? []).map((row) => [row.appletId, row]),
   );

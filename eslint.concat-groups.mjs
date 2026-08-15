@@ -85,7 +85,17 @@ function assembledDeclarations(group) {
   const record = (names, access) => {
     for (const name of names) declared.set(name, access);
   };
-  for (const node of program.body) {
+  for (const statement of program.body) {
+    // A member may export a declaration for the unit suite's benefit, and
+    // `apps/handbook/build.mjs` strips the keyword on the way into the bundle —
+    // so as far as the assembled script is concerned, `export function f` is
+    // `function f`. Unwrapping here is what keeps the two views agreeing;
+    // without it every exported name disappeared from the shared scope and its
+    // siblings' references were reported as no-undef.
+    const node =
+      statement.type === "ExportNamedDeclaration" && statement.declaration
+        ? statement.declaration
+        : statement;
     const names = new Set();
     switch (node.type) {
       case "VariableDeclaration":

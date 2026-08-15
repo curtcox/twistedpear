@@ -125,6 +125,22 @@ is a design decision; the floor is what stops it spreading. The desktop host is
 recorded clean, which is the more useful half — a floor of zero is what catches the
 next unlabelled button.
 
+`apps/handbook` was the extreme case, and its zero was structural rather than
+neglect. The reader runtime is four files under `src/` that `apps/handbook/build.mjs`
+concatenates into one mini-app bundle, and not one name in them was exported — so
+the unit suite could not reach a single line of it however much anyone wanted to.
+The floor was in the ratchet, measured, and constraining nothing. The pure half is
+now exported and tested (chapter navigation, the search predicate, applet result
+cards, the two-host report diff, and the applet-source rewriter), which puts the
+floors at 16.32/18.04/27.27. Three pieces make that work together: the build
+strips the `export` keyword on the way into the bundle, because the sandbox loads
+it as a script where a top-level export is a syntax error and the reader simply
+never renders; it fails the build on an export form it cannot strip, so that
+failure is reported where it happens rather than as a conformance timeout minutes
+later; and `eslint.concat-groups.mjs` unwraps an exported declaration when it
+collects the assembled script's shared scope, or every exported name vanishes
+from its siblings' view and comes back as `no-undef`.
+
 The coverage bucket is one workspace, and `apps/*` is bucketed exactly like
 `packages/*`. The include globs live in `scripts/coverage-run.mjs`: every
 `packages/*/src` and `apps/*/src` tree, plus the harness-mobile app roots, which sit
