@@ -13,14 +13,42 @@ jobs:
   analyze:
     strategy:
       fail-fast: false
+      # Kotlin and Swift were the two shipped native surfaces CodeQL did not
+      # look at: 13 .kt files carrying the BLE, multicast and USB-serial
+      # bridges, and the Swift BLE bridge. Both parse input from other devices,
+      # which is exactly what this scan is for.
+      #
+      # Each entry carries its own runner and build mode because the two
+      # languages disagree about both. `runner` and `build-mode` are per-entry
+      # rather than global so adding a language stays a one-line change.
       matrix:
-        language: [javascript-typescript, python, actions]
-    runs-on: ubuntu-latest
+        include:
+          - language: javascript-typescript
+            runner: ubuntu-latest
+          - language: python
+            runner: ubuntu-latest
+          - language: actions
+            runner: ubuntu-latest
+          # `build-mode: none` analyses the Kotlin sources directly. The
+          # alternative is autobuild, which would mean an Expo prebuild and a
+          # cold Gradle run — minutes of work, and a dependency on the same
+          # plugin-portal download that made the kotlin-tests gate flaky. A
+          # security scan must not inherit that.
+          - language: java-kotlin
+            runner: ubuntu-latest
+            build-mode: none
+          # Swift has no build-mode: none, and its extractor does not run on
+          # Linux, so this one needs a macOS runner and a real build.
+          - language: swift
+            runner: macos-15
+            build-mode: autobuild
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
       - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
       - uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}

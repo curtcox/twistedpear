@@ -159,7 +159,18 @@ actually fall.
 ## Security and supply chain
 
 Dependabot is configured weekly for npm, Actions, and all three Cargo contract roots.
-CodeQL analyzes JavaScript/TypeScript, Python, and Actions on relevant PRs and weekly.
+CodeQL analyzes JavaScript/TypeScript, Python, Actions, Kotlin, and Swift on relevant PRs
+and weekly. Kotlin runs with `build-mode: none` so the scan does not inherit the Expo
+prebuild and the plugin-portal download that make the Android build slow and occasionally
+flaky; Swift needs a macOS runner and a real build, because it has no such mode.
+
+CodeQL is a deliberate exception to the three-surface rule that every other check follows
+(runs locally, runs in CI, publishes to `/results/`). Its findings go to the repository's
+Security tab, which the registry cannot read without an API importer, so CodeQL is
+accepted at one surface out of three. That is a known gap, not an oversight: a CodeQL
+finding will not appear on the published results page, and the Security tab has to be read
+directly. Closing it means budgeting for an importer that pulls code-scanning alerts
+through the GitHub API and republishes them as a gate artifact.
 Gitleaks, advisory-policy, dependency-license, CycloneDX SBOM, and nightly npm audit
 commands are registry gates. Advisory exceptions require an ID, reason, and expiry;
 license expressions outside `license-allowlist.json` are ratcheted. GitHub secret scanning
