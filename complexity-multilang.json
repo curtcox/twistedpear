@@ -6,10 +6,10 @@
     "kotlin",
     "swift"
   ],
-  "files": 551,
-  "functions": 6300,
-  "groups": 3958,
-  "exemptions": 94,
+  "files": 556,
+  "functions": 6356,
+  "groups": 3986,
+  "exemptions": 93,
   "violations": 0,
   "stale": 0,
   "findings": [
@@ -63,17 +63,6 @@
       "pinned": {
         "ccn": 57,
         "nloc": 288
-      }
-    },
-    {
-      "key": "scripts/site/static-analysis-metrics.mjs::summarizeStaticAnalysis",
-      "file": "scripts/site/static-analysis-metrics.mjs",
-      "name": "summarizeStaticAnalysis",
-      "line": 39,
-      "tier": "tooling",
-      "ccn": 52,
-      "pinned": {
-        "ccn": 52
       }
     },
     {

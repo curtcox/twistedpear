@@ -333,9 +333,6 @@
     "scripts/site/stage.mjs::rewriteMarkdownLinks": {
       "ccn": 51
     },
-    "scripts/site/static-analysis-metrics.mjs::summarizeStaticAnalysis": {
-      "ccn": 52
-    },
     "scripts/site/validate-links.mjs::existsTarget": {
       "ccn": 20
     },
