@@ -12,6 +12,16 @@ import {
   hexToBytes,
   type CryptoProvider,
 } from "../src/index.js";
+import {
+  bytesToHex,
+  createRandom,
+  mutate,
+} from "../../../conformance/fuzz/engine.mjs";
+import {
+  corpusFor,
+  corpusPath,
+  recordCounterexample,
+} from "../../../conformance/fuzz/corpus.mjs";
 
 const providers: ReadonlyArray<CryptoProvider> = [
   new NodeCryptoProvider(),
@@ -32,53 +42,84 @@ const packetVectors = JSON.parse(
   readonly announces: ReadonlyArray<{ readonly rawHex: string }>;
 };
 
-function mutate(bytes: Uint8Array, seed: number): Uint8Array {
-  const mutated = Uint8Array.from(bytes);
-  const index = seed % mutated.length;
-  mutated[index] = mutated[index]! ^ (1 << (seed % 8));
-  return mutated;
+/**
+ * The seed for this run. Fixed by default so a red CI run is reproducible from
+ * the number in its own output; override with FUZZ_SEED to explore further.
+ */
+const FUZZ_SEED = Number.parseInt(process.env.FUZZ_SEED ?? "20260815", 10);
+
+/**
+ * Run one fuzz target over its committed counterexamples first, then over
+ * freshly mutated cases.
+ *
+ * `check` must not throw for any input: these decoders are required to fail
+ * closed by returning null, never by raising. When one does throw, the input is
+ * written to the committed corpus before the assertion fails, so the next run
+ * replays it whether or not anyone saves the log.
+ */
+function fuzzTarget(
+  target: string,
+  seeds: readonly Uint8Array[],
+  check: (input: Uint8Array) => void,
+): void {
+  for (const example of corpusFor(target)) {
+    const input = hexToBytes(example.inputHex);
+    expect(
+      () => check(input),
+      `committed counterexample ${target}:${example.inputHex} regressed`,
+    ).not.toThrow();
+  }
+
+  const random = createRandom(FUZZ_SEED + hashTarget(target));
+  for (let iteration = 0; iteration < FUZZ_ITERATIONS; iteration += 1) {
+    const seed = seeds[iteration % seeds.length]!;
+    const { bytes, operators } = mutate(seed, random);
+    try {
+      check(bytes);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      recordCounterexample({
+        target,
+        inputHex: bytesToHex(bytes),
+        operators,
+        error: message,
+      });
+      throw new Error(
+        `${target} threw on a mutated input (seed ${FUZZ_SEED}, operators ${operators.join(
+          " → ",
+        )}): ${message}. Recorded to ${corpusPath()} — commit it.`,
+      );
+    }
+  }
 }
 
-function truncate(bytes: Uint8Array, seed: number): Uint8Array {
-  const length = Math.max(1, seed % bytes.length);
-  return bytes.subarray(0, length);
-}
-
-function concatGarbage(bytes: Uint8Array, seed: number): Uint8Array {
-  const suffix = new Uint8Array(8 + (seed % 32));
-  suffix.fill(0xff);
-  const merged = new Uint8Array(bytes.length + suffix.length);
-  merged.set(bytes, 0);
-  merged.set(suffix, bytes.length);
-  return merged;
+/** Distinct stream per target, so one target's draws do not shift another's. */
+function hashTarget(target: string): number {
+  let hash = 0;
+  for (const character of target) {
+    hash = (Math.imul(hash, 31) + character.charCodeAt(0)) | 0;
+  }
+  return hash;
 }
 
 describe.each(providers.map((provider) => [provider.name, provider] as const))(
   "structure-aware fuzz (%s provider)",
   (_name, provider) => {
     it(`survives ${FUZZ_ITERATIONS} packet/announce mutations without throwing`, () => {
-      const seeds = packetVectors.packets.flatMap((vector) => {
-        const raw = hexToBytes(vector.rawHex);
-        return [
-          mutate(raw, 1),
-          mutate(raw, 7),
-          truncate(raw, 3),
-          concatGarbage(raw, 11),
-        ];
-      });
+      const seeds = [
+        ...packetVectors.packets.map((vector) => hexToBytes(vector.rawHex)),
+        ...packetVectors.announces.map((vector) => hexToBytes(vector.rawHex)),
+      ];
 
-      for (let iteration = 0; iteration < FUZZ_ITERATIONS; iteration += 1) {
-        const sample = seeds[iteration % seeds.length]!;
-        const mutated = mutate(sample, iteration + 13);
-        expect(() => Packet.decode(provider, mutated)).not.toThrow();
-        const decoded = Packet.decode(provider, mutated);
+      fuzzTarget(`packet-announce/${provider.name}`, seeds, (input) => {
+        const decoded = Packet.decode(provider, input);
         if (decoded !== null) {
-          expect(() => Announce.parse(decoded)).not.toThrow();
+          Announce.parse(decoded);
           if (decoded.headerType === PacketHeaderType.HEADER_2) {
-            expect(() => Announce.validate(provider, decoded)).not.toThrow();
+            Announce.validate(provider, decoded);
           }
         }
-      }
+      });
     });
 
     it("returns null for invalid identity byte lengths", () => {
@@ -90,35 +131,44 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
     });
 
     it(`survives ${FUZZ_ITERATIONS} resource advertisement wire mutations without throwing`, () => {
-      for (let iteration = 0; iteration < FUZZ_ITERATIONS; iteration += 1) {
-        const frame = new Uint8Array(16 + (iteration % 256));
-        frame.fill(iteration & 0xff);
+      // Seeded from varied fills rather than one uniform byte per iteration,
+      // then mutated: a frame of all-0x2a exercises far less of the parser than
+      // one whose length prefix and body disagree.
+      const seeds = [0x00, 0x11, 0x7f, 0x80, 0xff].flatMap((fill) =>
+        [16, 33, 64, 129].map((length) => {
+          const frame = new Uint8Array(length);
+          frame.fill(fill);
+          return frame;
+        }),
+      );
 
+      fuzzTarget(`resource-advert/${provider.name}`, seeds, (input) => {
         try {
-          ResourceAdvertisement.unpack(frame);
+          ResourceAdvertisement.unpack(input);
         } catch {
-          // Malformed resource advertisements must fail closed.
+          // Malformed resource advertisements must fail closed. `unpack` is
+          // allowed to throw; `isRequest` is not.
         }
-
-        expect(() => ResourceAdvertisement.isRequest(frame)).not.toThrow();
-      }
+        ResourceAdvertisement.isRequest(input);
+      });
     });
 
     it(`survives ${FUZZ_ITERATIONS} link-context packet mutations without throwing`, () => {
+      // Every link context, crossed with the mutation engine, rather than one
+      // context per iteration on an otherwise untouched packet.
       const linkContexts = [0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff];
-      const seeds = packetVectors.packets.map((vector) =>
-        hexToBytes(vector.rawHex),
-      );
+      const seeds = packetVectors.packets.flatMap((vector) => {
+        const raw = hexToBytes(vector.rawHex);
+        return linkContexts.map((context) => {
+          const seeded = Uint8Array.from(raw);
+          if (seeded.length > 4) seeded[3] = context;
+          return seeded;
+        });
+      });
 
-      for (let iteration = 0; iteration < FUZZ_ITERATIONS; iteration += 1) {
-        const base = seeds[iteration % seeds.length]!;
-        const mutated = Uint8Array.from(base);
-        if (mutated.length > 4) {
-          mutated[3] = linkContexts[iteration % linkContexts.length]!;
-        }
-
-        expect(() => Packet.decode(provider, mutated)).not.toThrow();
-      }
+      fuzzTarget(`link-context/${provider.name}`, seeds, (input) => {
+        Packet.decode(provider, input);
+      });
     });
   },
 );
