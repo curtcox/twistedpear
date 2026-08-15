@@ -12,60 +12,47 @@ present at the wrong version exits non-zero too: it answers a different question
 than CI asks.
 `;
 
+/** @param {import("./requirements.mjs").ToolReport} report */
+const isDrifted = (report) => report.present && report.matches === false;
+
 /**
+ * The detail lines under a tool that is not simply fine.
+ * @param {import("./requirements.mjs").ToolReport} report
+ * @param {string} indent
+ * @returns {string[]}
+ */
+function detailLines(report, indent) {
+  const [install] = report.install;
+  if (isDrifted(report)) {
+    return [
+      `${indent}pinned ${report.pinned}, installed ${report.installed ?? "unknown"}`,
+      `${indent}affects: ${report.gates.join(", ")}`,
+      ...(install ? [`${indent}install: ${install.join(" ")}`] : []),
+    ];
+  }
+  if (report.present) return [];
+  const recipe = install
+    ? `install: ${install.join(" ")}`
+    : `no recipe for ${process.platform}${report.manual ? ` — ${report.manual}` : ""}`;
+  return [`${indent}blocks: ${report.gates.join(", ")}`, `${indent}${recipe}`];
+}
+
+/**
+ * The closing tally.
  * @param {import("./requirements.mjs").ToolReport[]} reports
  * @returns {string[]}
  */
-export function render(reports) {
-  const width = reports.reduce(
-    (max, report) => Math.max(max, report.token.length),
-    4,
-  );
-  const lines = [];
-  for (const report of reports) {
-    const drifted = report.present && report.matches === false;
-    const state = !report.present ? "MISSING" : drifted ? "VERSION" : "ok     ";
-    lines.push(`${state} ${report.token.padEnd(width)}  ${report.why}`);
-    if (drifted) {
-      lines.push(
-        `        ${" ".repeat(width)}  pinned ${report.pinned}, installed ${
-          report.installed ?? "unknown"
-        }`,
-      );
-      lines.push(
-        `        ${" ".repeat(width)}  affects: ${report.gates.join(", ")}`,
-      );
-      const [first] = report.install;
-      if (first) {
-        lines.push(`        ${" ".repeat(width)}  install: ${first.join(" ")}`);
-      }
-    }
-    if (!report.present) {
-      lines.push(
-        `        ${" ".repeat(width)}  blocks: ${report.gates.join(", ")}`,
-      );
-      const [first] = report.install;
-      lines.push(
-        `        ${" ".repeat(width)}  ${
-          first
-            ? `install: ${first.join(" ")}`
-            : `no recipe for ${process.platform}${report.manual ? ` — ${report.manual}` : ""}`
-        }`,
-      );
-    }
-  }
+function summaryLines(reports) {
   const missing = reports.filter((report) => !report.present);
-  const drifted = reports.filter(
-    (report) => report.present && report.matches === false,
-  );
-  lines.push("");
-  lines.push(
+  const drifted = reports.filter(isDrifted);
+  const lines = [
+    "",
     missing.length === 0
       ? `All ${reports.length} required tools are present.`
       : `${missing.length} of ${reports.length} required tools missing: ${missing
           .map((report) => report.token)
           .join(", ")}`,
-  );
+  ];
   if (drifted.length > 0) {
     // Named separately from "missing" because the remedy is different and the
     // symptom is worse: a drifted tool runs and reports findings that CI will
@@ -90,6 +77,29 @@ export function render(reports) {
     );
   }
   return lines;
+}
+
+/**
+ * @param {import("./requirements.mjs").ToolReport[]} reports
+ * @returns {string[]}
+ */
+export function render(reports) {
+  const width = reports.reduce(
+    (max, report) => Math.max(max, report.token.length),
+    4,
+  );
+  const indent = `        ${" ".repeat(width)}  `;
+  const lines = [];
+  for (const report of reports) {
+    const state = !report.present
+      ? "MISSING"
+      : isDrifted(report)
+        ? "VERSION"
+        : "ok     ";
+    lines.push(`${state} ${report.token.padEnd(width)}  ${report.why}`);
+    lines.push(...detailLines(report, indent));
+  }
+  return [...lines, ...summaryLines(reports)];
 }
 
 function main(argv = process.argv.slice(2)) {

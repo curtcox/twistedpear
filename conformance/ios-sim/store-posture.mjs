@@ -37,9 +37,14 @@ function runPolicyProbe(posture) {
   const script = `
     import {
       refuseStorePosture,
-      shouldRefuseDeveloperMode,
-      STORE_VARIANT
+      shouldRefuseDeveloperMode
     } from "./apps/harness-mobile/worklet/store-posture-policy.mjs";
+    // The flag comes from the file the worklet build writes, not from the policy
+    // that reads it. Importing it from the policy module — which never
+    // re-exported it — made this probe die on a module instantiation error
+    // before it checked anything, and asking the generated file directly is the
+    // more honest question: it is the build's output, not a consumer's view.
+    import { STORE_VARIANT } from "./apps/harness-mobile/worklet/store-posture.generated.mjs";
 
     const outbound = [];
     const send = (message) => outbound.push(message);
