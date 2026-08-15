@@ -8,6 +8,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 
@@ -36,11 +37,16 @@ class BleBridgeTest {
         assertTrue(BleBridgeSpec.CONTROL_CHARACTERISTIC_UUID.toString().startsWith("6e6f0003-"))
     }
 
+    // Stubbed with `any()` rather than with the expected ParcelUuid: matching an
+    // argument calls `equals` on it, and `android.os.ParcelUuid` has no
+    // implementation on a plain JVM, so Mockito throws "not mocked" before the
+    // assertion is ever reached. Which UUID the beacon uses is covered by
+    // `serviceUuids_matchBleInterfaceSpec` above, which needs no framework at all.
     @Test
     fun parseIdentityFromScanResult_readsServiceDataBeacon() {
         val hash = ByteArray(BleBridgeSpec.IDENTITY_BEACON_SIZE) { index -> (index + 1).toByte() }
         val scanRecord = mock(ScanRecord::class.java)
-        `when`(scanRecord.getServiceData(ParcelUuid(BleBridgeSpec.SERVICE_UUID))).thenReturn(hash)
+        `when`(scanRecord.getServiceData(any(ParcelUuid::class.java))).thenReturn(hash)
 
         val scanResult = mock(ScanResult::class.java)
         `when`(scanResult.scanRecord).thenReturn(scanRecord)
@@ -51,7 +57,7 @@ class BleBridgeTest {
     @Test
     fun parseIdentityFromScanResult_rejectsWrongSizedServiceData() {
         val scanRecord = mock(ScanRecord::class.java)
-        `when`(scanRecord.getServiceData(ParcelUuid(BleBridgeSpec.SERVICE_UUID)))
+        `when`(scanRecord.getServiceData(any(ParcelUuid::class.java)))
             .thenReturn(byteArrayOf(1, 2, 3))
 
         val scanResult = mock(ScanResult::class.java)

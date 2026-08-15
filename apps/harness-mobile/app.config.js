@@ -41,17 +41,48 @@ function withPrivacyManifest(config) {
   ]);
 }
 
-/** Pin the Kotlin Gradle plugin to android.kotlinVersion (Compose needs 1.9.25). */
+/**
+ * The Kotlin version this app pins, from the one place it is declared.
+ *
+ * `expo-build-properties` writes it to `android.kotlinVersion` in the generated
+ * `gradle.properties`; reading the same entry here means the Gradle plugin and
+ * the Compose compiler cannot disagree.
+ */
+function kotlinVersion() {
+  const entry = (base.expo.plugins ?? []).find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === "expo-build-properties",
+  );
+  const version = entry?.[1]?.android?.kotlinVersion;
+  if (!version) {
+    throw new Error(
+      "app.json must pin expo-build-properties android.kotlinVersion",
+    );
+  }
+  return version;
+}
+
+/**
+ * Pin the Kotlin Gradle plugin to the version `expo-build-properties` declares.
+ *
+ * This used to substitute the literal `$kotlinVersion`, which resolved because
+ * the Expo template happened to define it in the root project's `buildscript`
+ * `ext` block. The SDK 57 template does not, so the generated file referenced an
+ * undefined Groovy property and every Gradle invocation died during
+ * configuration with "Could not get unknown property 'kotlinVersion'" — which
+ * took the `kotlin-tests` gate, and with it the whole Pages deploy, red.
+ *
+ * Interpolating the version here removes the dependency on what the upstream
+ * template declares: the classpath line is complete on its own.
+ */
 function withPinnedKotlinGradlePlugin(config) {
   return withProjectBuildGradle(config, (config) => {
     const contents = config.modResults.contents;
-    const pinned =
-      'classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")';
+    const pinned = `classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion()}")`;
     if (contents.includes(pinned)) {
       return config;
     }
     config.modResults.contents = contents.replace(
-      /classpath\(['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin['"]\)/,
+      /classpath\(['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin(?::\$kotlinVersion)?['"]\)/,
       pinned,
     );
     return config;

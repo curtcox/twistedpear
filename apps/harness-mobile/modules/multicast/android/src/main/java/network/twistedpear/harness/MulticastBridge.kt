@@ -371,7 +371,60 @@ class MulticastBridge(
     }
 
     companion object {
-        fun descopeLinkLocal(address: String): String =
-            address.split("%")[0].replace(Regex("fe80:[0-9a-f]*::", RegexOption.IGNORE_CASE), "fe80::")
+        /**
+         * A link-local address without its scope, in the compressed form peers use.
+         *
+         * Both callers pass `Inet6Address.getHostAddress()`, which never compresses:
+         * it hands back `fe80:0:0:0:0:0:0:1%wlan0`, not `fe80::1`. Collapsing only
+         * an already-compressed `fe80:0::` — which is all this used to do — left
+         * every real address expanded, so the same peer compared unequal to itself
+         * depending on which side of the bridge named it.
+         */
+        fun descopeLinkLocal(address: String): String {
+            val bare =
+                address
+                    .substringBefore("%")
+                    .replace(Regex("fe80:[0-9a-f]*::", RegexOption.IGNORE_CASE), "fe80::")
+            if (bare.contains("::")) {
+                return bare
+            }
+            return compressLongestZeroRun(bare)
+        }
+
+        /** RFC 5952 §4.2: the longest run of zero groups becomes `::`, ties going left. */
+        private fun compressLongestZeroRun(address: String): String {
+            val groups = address.split(":")
+            if (groups.size < 3) {
+                return address
+            }
+
+            var bestStart = -1
+            var bestLength = 0
+            var index = 0
+            while (index < groups.size) {
+                if (groups[index] != "0") {
+                    index += 1
+                    continue
+                }
+
+                var end = index
+                while (end < groups.size && groups[end] == "0") {
+                    end += 1
+                }
+                if (end - index > bestLength) {
+                    bestLength = end - index
+                    bestStart = index
+                }
+                index = end
+            }
+
+            if (bestLength < 2) {
+                return address
+            }
+
+            val head = groups.subList(0, bestStart).joinToString(":")
+            val tail = groups.subList(bestStart + bestLength, groups.size).joinToString(":")
+            return "$head::$tail"
+        }
     }
 }

@@ -154,7 +154,7 @@
     "sim:author": "npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/run.mjs",
     "test:sim-authored-replay": "npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/replay.mjs",
     "calibrate:sim-transport": "npm run build --workspace=@twistedpear/effects && node conformance/sim-calibration/run.mjs",
-    "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",
+    "docs:reticulum-ts": "npm run build && npm run docs --workspace=@twistedpear/reticulum-ts",
     "site:stage": "node scripts/site/stage.mjs",
     "site:reports": "node scripts/site/run-reports.mjs",
     "site:render-reports": "node scripts/site/render-reports.mjs",

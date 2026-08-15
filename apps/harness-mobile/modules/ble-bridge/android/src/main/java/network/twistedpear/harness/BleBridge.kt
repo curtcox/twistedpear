@@ -32,6 +32,7 @@ import network.twistedpear.harness.BleBridgeSpec.MTU_FALLBACK_DELAY_MS
 import network.twistedpear.harness.BleBridgeSpec.SERVICE_UUID
 import network.twistedpear.harness.BleBridgeSpec.TARGET_MTU
 import network.twistedpear.harness.BleBridgeSpec.parseIdentityFromScanResult
+import network.twistedpear.harness.BleBridgeSpec.shouldActAsCentral
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
