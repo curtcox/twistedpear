@@ -560,7 +560,7 @@
       "key": "launcher.py::parse_entries",
       "file": "launcher.py",
       "name": "parse_entries",
-      "line": 100,
+      "line": 99,
       "tier": "source",
       "ccn": 18,
       "pinned": {
@@ -1041,7 +1041,7 @@
       "key": "conformance/vectors/generate.py::base_packet_corpus.packet_entry",
       "file": "conformance/vectors/generate.py",
       "name": "base_packet_corpus.packet_entry",
-      "line": 122,
+      "line": 121,
       "tier": "tooling",
       "params": 11,
       "pinned": {
