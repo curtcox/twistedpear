@@ -264,7 +264,7 @@ export function collect(root) {
     vitestProjects: tests.projects,
   };
 
-  const counts = {
+  const unsortedCounts = {
     ...tests.counts,
     ...baselineInventory(root),
     "skips:suppressed-tests": suppressions.skipped,
@@ -276,6 +276,18 @@ export function collect(root) {
     "conformance:runners": runners.length,
     "scripts:quality": scripts.length,
   };
+
+  // Sorted, because `tests:` and `test-files:` keys are inserted in whatever
+  // order `vitest list` happened to walk the suite. That order is not stable
+  // between runs, so regenerating the census produced a large diff that was
+  // almost entirely reordering — aabe188d exists only to absorb one such churn.
+  // A diff nobody can read is a diff nobody checks, which defeats the point of
+  // committing the census at all.
+  const counts = Object.fromEntries(
+    Object.entries(unsortedCounts).sort(([left], [right]) =>
+      left.localeCompare(right),
+    ),
+  );
   for (const key of Object.keys(counts))
     if (direction(key) === null)
       throw new Error(
