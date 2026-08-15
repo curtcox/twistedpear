@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1174,
+  "modules": 1177,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 242,
+      "modules": 245,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,

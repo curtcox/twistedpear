@@ -173,6 +173,7 @@ async function runPlaywright(pageUrl) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(
         `${message} — last in-page state: ${JSON.stringify(snapshot)}`,
+        { cause: error },
       );
     }
 
