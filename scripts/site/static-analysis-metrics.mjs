@@ -88,6 +88,20 @@ export function summarizeStaticAnalysis(gate, artifactsRoot, job) {
   } else if (["rust", "shell", "python", "kotlin", "swift"].includes(gate.id)) {
     const report = json(`languages/${gate.id}.json`);
     if (report) values.push(metric("Analyzer runs", count(report.runs)), metric("Findings", count(report.findings)));
+  } else if (gate.id === "benchmark") {
+    // The counts are the point: a pass/fail against a 50% cliff says nothing
+    // until the day it fires, so the warn band is what makes drift visible
+    // while it is still small.
+    const report = json("benchmark/benchmark.json");
+    if (report) {
+      values.push(
+        metric("Benchmarks ok", report.counts?.ok ?? 0),
+        metric("Warn band", report.counts?.warn ?? 0),
+        metric("Failing", report.counts?.fail ?? 0),
+        metric("Missing", report.counts?.missing ?? 0),
+        metric("Baseline lowered", count(report.baselineLowered)),
+      );
+    }
   } else if (gate.id === "jscpd") {
     const report = json("reports/jscpd.json")?.summary;
     if (report) {

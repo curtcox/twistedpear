@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "Policy for the crypto benchmark gate. References live beside the benchmarks in conformance/bare-runtime/baseline-*.json; this file holds only the thresholds and the rule about changing a reference.",
+  "failBelowRatio": 0.5,
+  "warnBelowRatio": 0.8,
+  "rationale": "The failure threshold stays at 0.5 because throughput is machine-dependent: the references were recorded on the ci-reference host, and a healthy developer laptop lands ~0.8x on x25519 while being entirely fine. Tightening the failure threshold without per-host references would produce a gate that fails for the machine it ran on rather than for the change under test. The warn band exists so that drift between 0.8x and the cliff is visible on the published page while it is still small, instead of surfacing only on the day a 50% regression lands.",
+  "changingAReference": "Raising a reference is ordinary: measure on the reference host and edit the baseline file. Lowering one fails the gate against the base branch, because a reference that can be lowered silently is not a reference — `record-benchmark.mjs` with no --compare overwrites it with whatever the current machine measured, which is exactly the hole this guard closes. A genuine lowering (slower algorithm accepted for another reason) needs the reason in the commit message."
+}

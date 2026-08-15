@@ -34,6 +34,7 @@
     "test:bare-benchmark-bare": "npm run build && node conformance/bare-runtime/benchmark-bare.mjs",
     "test:bare-benchmark-bare-compare": "npm run build && node conformance/bare-runtime/record-benchmark-bare.mjs --compare",
     "test:bare-benchmark-compare": "npm run build && node conformance/bare-runtime/record-benchmark.mjs --compare",
+    "benchmark:check": "npm run build && node scripts/analysis/benchmark-gate.mjs",
     "test:bare-interop": "npm run test:bare-interop-bundle",
     "test:bare-interop-bundle": "npm run build && node conformance/bare-interop/build.mjs && node_modules/bare/bin/bare conformance/bare-interop/bare-interop.bundle",
     "test:auto-interop": "npm run build && node conformance/auto-interop/run.mjs",

@@ -339,6 +339,25 @@ export const gates = [
     ["node", "lizard"],
     ["hotspots.json"],
   ),
+  // Nightly, because throughput measured on a shared PR runner alongside other
+  // jobs is noise. What this gate ratchets is the *reference* — nothing stopped
+  // `record-benchmark.mjs` from overwriting a baseline with whatever a slow
+  // machine measured, leaving a permanently green, permanently meaningless
+  // check. The measurement itself keeps a wide failure threshold and a warn
+  // band, for the reason in `benchmark-rules.json`.
+  gate(
+    "benchmark",
+    "Crypto benchmark drift",
+    "benchmark:check",
+    "nightly",
+    ["node"],
+    [
+      "artifacts/benchmark/benchmark.json",
+      "conformance/bare-runtime/baseline-node.json",
+      "conformance/bare-runtime/baseline-bare.json",
+    ],
+    "benchmark",
+  ),
   gate(
     "sbom",
     "CycloneDX SBOM",

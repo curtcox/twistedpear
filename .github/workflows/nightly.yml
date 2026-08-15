@@ -84,6 +84,7 @@ jobs:
             sbom.cdx.json
             reports/mutation/mutation.json
             artifacts/languages/kotlin-tests.json
+            artifacts/benchmark/benchmark.json
           if-no-files-found: warn
 
   property-campaign:

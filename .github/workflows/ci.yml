@@ -678,18 +678,10 @@ jobs:
       - run: npm ci
       - run: npm run demo:phase3
 
-  bare-benchmark:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm run test:bare-benchmark-compare
-      - run: npm run test:bare-benchmark-bare-compare
+  # The crypto benchmarks moved to the nightly `benchmark` registry gate, which
+  # runs the same two suites against the same references and publishes the
+  # per-benchmark numbers. Throughput measured on a shared PR runner alongside
+  # forty other jobs is noise; nightly is where the numbers mean something.
 
   python-interop:
     runs-on: ubuntu-latest
@@ -1007,7 +999,6 @@ jobs:
       - demo-phase4
       - dist-soak
       - demo-phase3
-      - bare-benchmark
       - python-interop
       - web-interop
       - web

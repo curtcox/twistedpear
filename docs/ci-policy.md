@@ -57,6 +57,12 @@ inspectable in a workflow log and nowhere else. The checks themselves did not ch
   `simulation-replay-compare`): it needs the same replay on two runners, which one gate
   on one runner cannot express.
 
+The nightly `benchmark` registry gate replaces the `bare-benchmark` CI job. It runs
+the same two crypto suites against the same references, publishes the per-benchmark
+numbers, and ratchets the reference rather than the measurement — see
+[Static analysis](static-analysis.md). The interop `link-benchmark` stays inside
+`python-interop`, which provisions the pinned Docker peers it needs.
+
 The `file-sizes` registry gate runs `npm run sizes`: a source file that
 crosses the danger threshold for its type fails the build unless it is grandfathered in
 `size-ratchet.json`, and grandfathered files may only shrink. Thresholds live in

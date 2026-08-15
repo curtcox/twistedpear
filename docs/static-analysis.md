@@ -193,6 +193,35 @@ nightly rather than per-PR: the Expo prebuild plus a cold Gradle run costs minut
 It ran only from the `workflow_dispatch` emulator lab before, which no change
 triggers.
 
+## Benchmark drift
+
+The `benchmark` gate (`npm run benchmark:check`, nightly) replaces the standalone
+`bare-benchmark` CI job. It runs the same two crypto suites — the pure-JavaScript
+provider and the sodium-native one — against the same references in
+`conformance/bare-runtime/baseline-*.json`.
+
+Two things were wrong with the job it replaces, and only one of them was the
+threshold. The numbers went nowhere: a pass/fail against a 50% cliff says nothing
+until the day it fires, by which point the regression could have arrived in any of
+a hundred commits. And nothing protected the reference — `record-benchmark.mjs`
+with no `--compare` overwrites the baseline with whatever the current machine
+measured, so a slow laptop could silently lower it and leave a permanently green,
+permanently meaningless check.
+
+So the gate ratchets the **reference**, not the measurement: a baseline value that
+falls against the base branch fails the gate. The measurement itself keeps the wide
+0.5x failure threshold and gains a 0.8x warn band that reports without failing.
+Throughput is machine-dependent — the references were recorded on `ci-reference`,
+and a healthy developer laptop lands around 0.8x on x25519 — so a floor that rose
+to the fastest number ever seen would fail on the next slower runner and teach
+everyone to ignore it. Thresholds and the rule for changing a reference live in
+`benchmark-rules.json`.
+
+It is nightly because throughput measured on a shared PR runner alongside forty
+other jobs is noise. The interop `link-benchmark` stays inside the `python-interop`
+CI job: it needs the pinned Docker peers that job provisions, and moving it would
+mean duplicating that provisioning rather than registering a gate.
+
 ## Other source languages and nightly mutation testing
 
 Independent Rust, shell, Python, Kotlin, and Swift entries run the pinned external tools
