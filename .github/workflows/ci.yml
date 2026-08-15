@@ -127,7 +127,7 @@ jobs:
           brew install swiftlint
           test "$(swiftlint version)" = "0.65.0"
       - name: Install Chromium
-        if: matrix.id == 'web-examples'
+        if: matrix.id == 'web-examples' || matrix.id == 'accessibility'
         run: npx playwright install --with-deps chromium
       - name: Run ${{ matrix.title }}
         run: node scripts/checks/run.mjs --tier=pr --only=${{ matrix.id }}
@@ -152,6 +152,8 @@ jobs:
             artifacts/languages/swift-tests.json
             artifacts/languages/kotlin-tests.json
             artifacts/web-examples/web-examples.json
+            artifacts/accessibility/accessibility.json
+            artifacts/differential-fuzz/differential-fuzz.json
             reports/jscpd.json
             reports/cognitive-complexity.json
             reports/type-coverage.json

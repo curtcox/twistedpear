@@ -219,6 +219,24 @@ export const gates = [
     ["artifacts/web-examples/web-examples.json"],
     "web-examples",
   ),
+  // The first accessibility check in the repository. It scans the Handbook
+  // reader — rendered from its real widget tree through react-native-web, the
+  // same way the documentation screenshots are captured — and the desktop
+  // host's shipped renderer shell. Deliberately *not* the fourteen
+  // `conformance/web-*` harnesses: their pages are a `<script>` tag in an empty
+  // body, so axe there would report on nothing.
+  gate(
+    "accessibility",
+    "Accessibility ratchet",
+    "a11y:check",
+    "pr",
+    ["node", "chromium"],
+    [
+      "artifacts/accessibility/accessibility.json",
+      "accessibility-ratchet.json",
+    ],
+    "accessibility",
+  ),
   gate(
     "formal",
     "Formal machine conformance and model checking",

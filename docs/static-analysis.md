@@ -71,6 +71,7 @@ intentionally loosen a baseline.
 | Duplication          | `npm run jscpd:check`                | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                    |
 | Cognitive complexity | `npm run cognitive-complexity:check` | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                   |
 | Type coverage        | `npm run type-coverage:check`        | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                |
+| Accessibility        | `npm run a11y:check`                 | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
@@ -97,6 +98,32 @@ Type coverage is a percentage per project and uses floors that may only rise, li
 the coverage ratchet, with a much tighter 0.05 point tolerance — the measurement
 spans hundreds of thousands of expressions, so a 0.5 point allowance would hide
 thousands of new `any`s.
+
+Accessibility arrived on 2026-08-15, and there was nothing before it — no axe, no
+contrast check, no landmark check, on any surface, while several UIs shipped. The
+hard part was choosing what to scan. The fourteen `conformance/web-*` harnesses
+drive Chromium and look like the natural hosts, but every one of them serves a page
+whose entire body is a `<script>` tag; axe there reports on an empty document,
+which is a green tick over nothing. `npm run a11y:check` scans the Handbook reader
+instead — rendered from its real widget tree through react-native-web, exactly as
+the documentation screenshots are captured — in its search and chapter scenes, plus
+the desktop host's shipped renderer shell. The reader scan is scoped to `#root`,
+because the page around it is the capture harness's own wrapper and three of the
+four findings a whole-document scan reported were about HTML TwistedPear does not
+ship.
+
+What is ratcheted is the node count per rule per surface, not a violation count: a
+rule that matches sixteen nodes and one that matches one are both "1 violation",
+and the difference between them is the entire question. That is only safe because
+the measurement is stable — three repeated scans of each unchanged surface returned
+identical rule sets and identical counts — and the gate scans every surface twice on
+every run and fails if the two answers disagree, so the day it stops being stable it
+says so rather than flapping. The recorded floors are one open finding: `color-contrast`
+on 7 nodes of the reader's search screen and 16 of a chapter, muted greys under the
+4.5:1 threshold. It is recorded rather than fixed because changing shipped UI colours
+is a design decision; the floor is what stops it spreading. The desktop host is
+recorded clean, which is the more useful half — a floor of zero is what catches the
+next unlabelled button.
 
 The coverage bucket is one workspace, and `apps/*` is bucketed exactly like
 `packages/*`. The include globs live in `scripts/coverage-run.mjs`: every

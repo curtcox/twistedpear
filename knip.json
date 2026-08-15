@@ -74,6 +74,7 @@
     "osascript",
     "rg",
     "rustc",
+    "rustup",
     "tail",
     "xdg-open"
   ],

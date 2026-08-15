@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "description": "Accessibility floors: axe-core violations per surface, counted by rule id and by the number of nodes each rule matched. Written by `npm run a11y:baseline`; a write that adds a rule or grows a node count needs --allow-regressions. See `rationale` for why this shape and not a violation count.",
+  "rationale": {
+    "whyNodeCountsAndNotAViolationCount": "A bare violation count hides the direction that matters. `color-contrast` on the chapter screen matches sixteen nodes; fixing fifteen of them leaves the count at 1 and looks like no progress, and breaking fifteen more also leaves it at 1 and looks like no regression. Counting nodes per rule makes both visible. It is only safe to ratchet because the measurement is stable: three repeated scans of each unchanged surface returned identical rule sets and identical node counts, and `conformance/accessibility/run.mjs` scans every surface twice on every run and fails if the two answers differ, so the day it stops being stable the gate says so instead of flapping.",
+    "whyTheseSurfaces": "The fourteen `conformance/web-*` harnesses drive logic in a browser; their pages are a `<script>` tag in an empty body, so axe would report on nothing. These three render what a person looks at: two scenes of the Handbook reader, through react-native-web from its real widget tree, and the desktop host's shipped renderer shell.",
+    "whyTheReaderIsScopedToRoot": "The reader is rendered inside the documentation-capture harness's page shell. Scanning the whole document reported `landmark-one-main`, `region` and `page-has-heading-one` — three findings about a wrapper TwistedPear does not ship. The desktop host is scanned whole, because there the document is the product.",
+    "openFinding": "`color-contrast` is a real, unfixed finding in the reader: `brand`, `toc-heading`, `chapter-part` and their siblings are muted greys that miss the 4.5:1 threshold. It is recorded rather than fixed because changing shipped UI colours is a design decision, not a gate change. The floor is what stops it spreading."
+  },
+  "surfaces": {
+    "desktop-host": {},
+    "handbook-chapter": {
+      "color-contrast": 16
+    },
+    "handbook-search": {
+      "color-contrast": 7
+    }
+  }
+}

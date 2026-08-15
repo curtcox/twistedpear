@@ -230,6 +230,35 @@ const RENDERERS = {
     ];
   },
 
+  accessibility: ({ json }) => {
+    // Publish the node counts, not the rule count. Sixteen contrast failures and
+    // one are the same "1 violation" on the page, and the difference between
+    // them is the whole point of the ratchet.
+    const report = json("accessibility/accessibility.json");
+    if (!report) return [];
+    const surfaces = Object.values(report.surfaces ?? {});
+    const nodes = surfaces.flatMap((rules) =>
+      Object.values(rules).map((rule) => number(rule.nodes)),
+    );
+    const serious = surfaces.flatMap((rules) =>
+      Object.values(rules).filter((rule) =>
+        ["serious", "critical"].includes(rule.impact),
+      ),
+    );
+    return [
+      metric("Surfaces scanned", surfaces.length),
+      metric(
+        "Failing nodes",
+        nodes.reduce((total, value) => total + value, 0),
+      ),
+      metric(
+        "Serious or critical rules",
+        serious.length,
+      ),
+      metric("New findings", count(report.findings)),
+    ];
+  },
+
   "rust-fuzz": ({ json }) => {
     // Publish what the session reached, not just that it survived. Edge counts
     // are the number worth watching: a run whose coverage falls has stopped

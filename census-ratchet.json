@@ -3,6 +3,7 @@
   "description": "Floors for the quality apparatus itself: gates, CI jobs, conformance runners, and test counts that may not shrink. Written by `npm run census:baseline`; a write that lowers anything requires --reason and is recorded in `history`.",
   "required": {
     "gates": [
+      "accessibility tier=pr run=a11y:check",
       "actionlint tier=pr run=actionlint",
       "advisories tier=release run=audit:advisories",
       "api-surface tier=pr run=api:check",
@@ -158,6 +159,7 @@
       ".github/workflows/survey.yml"
     ],
     "conformanceRunners": [
+      "conformance/accessibility",
       "conformance/adapter",
       "conformance/android-emulator",
       "conformance/android-native",
@@ -234,6 +236,7 @@
       "conformance/widget-parity"
     ],
     "scripts": [
+      "a11y:check",
       "api:check",
       "benchmark:check",
       "census:check",
@@ -405,7 +408,7 @@
     "budget:size:excess-lines": 0,
     "ci:gating-jobs": 46,
     "ci:jobs": 47,
-    "conformance:runners": 74,
+    "conformance:runners": 75,
     "floor:coverage:apps/handbook:branches": 0,
     "floor:coverage:apps/handbook:functions": 0,
     "floor:coverage:apps/handbook:statements": 0,
@@ -475,9 +478,9 @@
     "floor:mutation:score": 69.16,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 7,
-    "gates:pr": 38,
+    "gates:pr": 39,
     "gates:release": 1,
-    "scripts:quality": 152,
+    "scripts:quality": 153,
     "skips:suppressed-tests": 1,
     "test-files:apps/harness-mobile": 3,
     "test-files:conformance/checks": 8,
