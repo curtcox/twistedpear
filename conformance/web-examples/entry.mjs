@@ -14,6 +14,21 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Every miniapp-runtime frame received, for timeout diagnostics. */
+const RUNTIME_FRAMES = [];
+/** Count of every host->page message by type, for timeout diagnostics. */
+const MESSAGE_TYPES = new Map();
+/** Lines the mini-app itself logged, for timeout diagnostics. */
+const MINIAPP_LOGS = [];
+
+function recordMessage(type) {
+  MESSAGE_TYPES.set(type, (MESSAGE_TYPES.get(type) ?? 0) + 1);
+}
+
+function messageTypeCounts() {
+  return Object.fromEntries(MESSAGE_TYPES);
+}
+
 function encodeMessage(message) {
   return `${JSON.stringify(message)}\n`;
 }
@@ -169,7 +184,19 @@ function bytesToHex(bytes) {
   );
 }
 
-async function waitForRuntime(getRuntime, predicate, timeoutMs = 15_000) {
+/**
+ * Wait for a mini-app runtime frame satisfying `predicate`.
+ *
+ * `label` names the condition in the failure message: without it every step in
+ * every example failed with the same sentence and the harness could not say
+ * which one gave up, nor whether any runtime frame had arrived at all.
+ */
+async function waitForRuntime(
+  getRuntime,
+  label,
+  predicate,
+  timeoutMs = 15_000,
+) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const runtime = getRuntime();
@@ -184,7 +211,24 @@ async function waitForRuntime(getRuntime, predicate, timeoutMs = 15_000) {
     await sleep(100);
   }
 
-  throw new Error("timed out waiting for mini-app runtime");
+  const runtime = getRuntime();
+  const seen =
+    runtime === null || runtime === undefined
+      ? "no miniapp-runtime frame ever arrived"
+      : runtime.widgetTree === null || runtime.widgetTree === undefined
+        ? `${RUNTIME_FRAMES.length} runtime frame(s) arrived, none with a widgetTree`
+        : `${RUNTIME_FRAMES.length} runtime frame(s) arrived; latest tree text: ${JSON.stringify(
+            collectTextValues(runtime.widgetTree.root).slice(0, 20),
+          )}`;
+
+  const states = RUNTIME_FRAMES.map((frame) => frame?.state ?? null);
+  throw new Error(
+    `timed out after ${timeoutMs}ms waiting for ${label} — ${seen}; runtime states: ${JSON.stringify(
+      states,
+    )}; host messages seen: ${JSON.stringify(
+      messageTypeCounts(),
+    )}; mini-app logs: ${JSON.stringify(MINIAPP_LOGS.slice(-10))}`,
+  );
 }
 
 async function exerciseExample(send, getRuntime, name, fixture, steps) {
@@ -232,6 +276,7 @@ async function main() {
     buffer = decoded.remainder;
 
     for (const message of decoded.messages) {
+      recordMessage(String(message.type));
       if (
         message.type === "sandbox-spawn" ||
         message.type === "sandbox-post" ||
@@ -268,8 +313,14 @@ async function main() {
         continue;
       }
 
+      if (message.type === "miniapp-log") {
+        MINIAPP_LOGS.push(`${message.appId}: ${message.line}`);
+        continue;
+      }
+
       if (message.type === "miniapp-runtime") {
         latestRuntime = message.runtime;
+        RUNTIME_FRAMES.push(message.runtime);
       }
     }
   };
@@ -283,7 +334,14 @@ async function main() {
     targetHost: "127.0.0.1",
     targetPort: 9480,
     gatewayUrl: "ws://127.0.0.1:9480",
+    identityPassphrase: "web-examples-test",
   });
+  // The chat example calls identity.destinationHash() at module top level, so
+  // without an installation identity it never reaches its first ui.render() and
+  // the widget tree stays null until the broker's 15s readiness wait expires.
+  // Every sibling web-* harness sends this; only this one did not.
+  send({ type: "create-identity" });
+  await sleep(1_500);
 
   const getRuntime = () => latestRuntime;
   const passed = [];
@@ -294,10 +352,10 @@ async function main() {
     "chat",
     EXAMPLE_FIXTURES.chat,
     async () => {
-      await waitForRuntime(getRuntime, (runtime) =>
+      await waitForRuntime(getRuntime, 'chat: text "Chat"', (runtime) =>
         treeContainsText(runtime.widgetTree, "Chat"),
       );
-      await waitForRuntime(getRuntime, (runtime) =>
+      await waitForRuntime(getRuntime, 'chat: text "Me:"', (runtime) =>
         treeContainsText(runtime.widgetTree, "Me:"),
       );
       send({
@@ -308,7 +366,7 @@ async function main() {
       });
       await sleep(250);
       send({ type: "miniapp-ui-event", nodeId: "send", event: "chat.send" });
-      await waitForRuntime(getRuntime, (runtime) =>
+      await waitForRuntime(getRuntime, 'chat: text "Sent hello"', (runtime) =>
         treeContainsText(runtime.widgetTree, "Sent hello"),
       );
     },
@@ -328,20 +386,26 @@ async function main() {
       });
       await sleep(100);
 
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "File Drop"),
+      await waitForRuntime(
+        getRuntime,
+        'file-drop: text "File Drop"',
+        (runtime) => treeContainsText(runtime.widgetTree, "File Drop"),
       );
       send({
         type: "miniapp-ui-event",
         nodeId: "fetch",
         event: "resource.fetch",
       });
-      await waitForRuntime(getRuntime, (runtime) => {
-        const texts = collectTextValues(runtime.widgetTree.root);
-        return texts.some(
-          (value) => value.includes("Fetched") || value.includes("Resource"),
-        );
-      });
+      await waitForRuntime(
+        getRuntime,
+        'file-drop: text "Fetched" or "Resource"',
+        (runtime) => {
+          const texts = collectTextValues(runtime.widgetTree.root);
+          return texts.some(
+            (value) => value.includes("Fetched") || value.includes("Resource"),
+          );
+        },
+      );
     },
   );
   passed.push("file-drop");
@@ -352,7 +416,7 @@ async function main() {
     "board",
     EXAMPLE_FIXTURES.board,
     async () => {
-      await waitForRuntime(getRuntime, (runtime) =>
+      await waitForRuntime(getRuntime, 'board: text "Board"', (runtime) =>
         treeContainsText(runtime.widgetTree, "Board"),
       );
       send({
@@ -360,16 +424,20 @@ async function main() {
         nodeId: "publish",
         event: "board.publish",
       });
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "Published 1 post"),
+      await waitForRuntime(
+        getRuntime,
+        'board: text "Published 1 post"',
+        (runtime) => treeContainsText(runtime.widgetTree, "Published 1 post"),
       );
       send({
         type: "miniapp-ui-event",
         nodeId: "refresh",
         event: "board.refresh",
       });
-      await waitForRuntime(getRuntime, (runtime) =>
-        treeContainsText(runtime.widgetTree, "1 local post"),
+      await waitForRuntime(
+        getRuntime,
+        'board: text "1 local post"',
+        (runtime) => treeContainsText(runtime.widgetTree, "1 local post"),
       );
     },
   );

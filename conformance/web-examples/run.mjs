@@ -116,15 +116,34 @@ async function runPlaywright(pageUrl) {
     page.on("pageerror", (error) => {
       console.error(`browser:pageerror: ${error.message}`);
     });
+    page.on("worker", (worker) => {
+      console.log(`browser:worker started: ${worker.url()}`);
+      worker.on("close", () => {
+        console.log(`browser:worker closed: ${worker.url()}`);
+      });
+    });
 
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
-    await page.waitForFunction(
-      () => globalThis.__WEB_EXAMPLES__?.status === "done",
-      undefined,
-      {
-        timeout: 60_000,
-      },
-    );
+    try {
+      // "error" is a terminal status too: main() has a .catch that sets it.
+      // Waiting only for "done" turned every in-page failure into an opaque
+      // 60s Playwright timeout that discarded the diagnosis entry.mjs produced.
+      await page.waitForFunction(
+        () =>
+          globalThis.__WEB_EXAMPLES__?.status === "done" ||
+          globalThis.__WEB_EXAMPLES__?.status === "error",
+        undefined,
+        {
+          timeout: 60_000,
+        },
+      );
+    } catch (error) {
+      const snapshot = await page.evaluate(() => globalThis.__WEB_EXAMPLES__);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `${message} — last in-page state: ${JSON.stringify(snapshot)}`,
+      );
+    }
 
     const result = await page.evaluate(() => globalThis.__WEB_EXAMPLES__);
     if (result?.status !== "done") {
