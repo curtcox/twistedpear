@@ -8,6 +8,7 @@ import {
   printDiagnosticResult,
   writeJson,
 } from "../ratchet/lib.mjs";
+import { PINS } from "../tools/requirements.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -47,7 +48,7 @@ if (language === "rust") {
       [
         "rustup",
         "run",
-        "1.97.1",
+        PINS.rust.version,
         "cargo",
         "fmt",
         "--manifest-path",
@@ -58,7 +59,7 @@ if (language === "rust") {
       [
         "rustup",
         "run",
-        "1.97.1",
+        PINS.rust.version,
         "cargo",
         "clippy",
         "--manifest-path",
@@ -74,7 +75,7 @@ if (language === "rust") {
       [
         "rustup",
         "run",
-        "1.97.1",
+        PINS.rust.version,
         "cargo-deny",
         "--manifest-path",
         manifest,

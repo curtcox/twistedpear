@@ -237,11 +237,18 @@ shipped contract. Python runs Ruff check/format and focused mypy. Kotlin uses kt
 Swift uses SwiftLint on macOS; shell uses ShellCheck; workflows use actionlint.
 
 The reproducible tool versions are actionlint 1.7.12, Gitleaks 8.30.1, ShellCheck 0.11.0,
-Ruff 0.15.16, mypy 2.1.0, Rust 1.97.1, cargo-deny 0.20.2, ktlint 1.8.0, and SwiftLint
-0.65.0. On macOS, install the native binaries with Homebrew and the Python pair with
-`python3 -m pip install ruff==0.15.16 mypy==2.1.0`; the CI workflow contains the pinned
-Linux download commands. `npm run check:all` prints a skip instead of failing when an
-optional local tool is absent.
+Ruff 0.15.16, mypy 2.1.0, lizard 1.23.0, Rust 1.97.1, cargo-deny 0.20.2, ktlint 1.8.0, and
+SwiftLint 0.65.0. They are declared once, in `tool-versions.json`; this list, the three
+workflows, and `scripts/languages/*.mjs` are copies, and
+`conformance/checks/tool-versions.test.mjs` fails when one drifts from the declaration.
+
+`npm run tools:doctor` probes each installed tool for its version and reports a `VERSION`
+mismatch, not only a `MISSING` one — a tool that is present at the wrong version answers a
+different question than CI asks, and the answer looks like a source regression. Homebrew
+has no version selector, so the macOS recipes for the Python tools go through pipx:
+`pipx install ruff==0.15.16 && pipx install mypy==2.1.0`. The CI workflow contains the
+pinned Linux download commands. `npm run check:all` prints a skip instead of failing when
+an optional local tool is absent.
 
 Nightly Stryker analysis is limited to `packages/protocol` and `packages/effects`, ignores
 static mutants that would exceed the CI time budget, and writes

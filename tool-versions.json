@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Pinned versions of every external tool a gate shells out to. The pins existed in five places at once — docs/static-analysis.md, three workflows, and scripts/languages/*.mjs — which is four ways for them to disagree. This file is the source; conformance/checks/tool-versions.test.mjs fails when a copy drifts from it, and scripts/tools/requirements.mjs probes the installed tool against it so `npm run tools:doctor` reports a mismatch instead of only an absence.",
+  "tools": {
+    "actionlint": {
+      "version": "1.7.12",
+      "probe": ["actionlint", "-version"]
+    },
+    "gitleaks": {
+      "version": "8.30.1",
+      "probe": ["gitleaks", "version"]
+    },
+    "shellcheck": {
+      "version": "0.11.0",
+      "probe": ["shellcheck", "--version"]
+    },
+    "ruff": {
+      "version": "0.15.16",
+      "probe": ["ruff", "--version"]
+    },
+    "mypy": {
+      "version": "2.1.0",
+      "probe": ["mypy", "--version"]
+    },
+    "lizard": {
+      "version": "1.23.0",
+      "probe": ["lizard", "--version"]
+    },
+    "rust": {
+      "version": "1.97.1",
+      "probe": ["rustup", "run", "{version}", "cargo", "--version"]
+    },
+    "cargo-deny": {
+      "version": "0.20.2",
+      "probe": ["cargo-deny", "--version"]
+    },
+    "ktlint": {
+      "version": "1.8.0",
+      "probe": ["ktlint", "--version"]
+    },
+    "swiftlint": {
+      "version": "0.65.0",
+      "probe": ["swiftlint", "version"]
+    }
+  }
+}

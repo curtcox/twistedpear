@@ -19,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { PINS } from "../tools/requirements.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -28,7 +29,7 @@ const language = process.argv[2];
 
 // The toolchain the analyzer gate pins. Tests must run under the same compiler
 // the lint gate checks against, or the two gates are describing different code.
-const RUST_TOOLCHAIN = "1.97.1";
+const RUST_TOOLCHAIN = PINS.rust.version;
 
 const tracked = (pattern) => {
   const result = spawnSync("git", ["ls-files", pattern], {

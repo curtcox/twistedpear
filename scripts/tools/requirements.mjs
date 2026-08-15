@@ -1,5 +1,23 @@
+import fs from "node:fs";
+import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { gates } from "../checks/registry.mjs";
+
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+
+/**
+ * The pinned version of every external tool, read from the one file that holds
+ * them. See `tool-versions.json` for why it is a file rather than a constant
+ * here.
+ * @type {Record<string, { version: string, probe: string[] }>}
+ */
+export const PINS = JSON.parse(
+  fs.readFileSync(path.join(ROOT, "tool-versions.json"), "utf8"),
+).tools;
 
 /**
  * Every external thing a gate needs, in one place.
@@ -30,6 +48,60 @@ import { gates } from "../checks/registry.mjs";
  */
 export function hasCommand(command, args = ["--version"]) {
   return spawnSync(command, args, { encoding: "utf8" }).status === 0;
+}
+
+/**
+ * The version of an installed tool, or null when it is absent or says nothing
+ * recognisable.
+ *
+ * Every one of these tools prints its version differently — bare (`1.7.12`),
+ * prefixed (`ruff 0.15.16`), on a second line (`version: 0.11.0`), or with a
+ * build suffix (`mypy 2.1.0 (compiled: yes)`). Rather than ten parsers, take
+ * the first dotted-numeric run in the output, which each of those forms puts
+ * where the version belongs.
+ *
+ * `{version}` in a probe expands to the pin. Rust is the one tool whose probe
+ * has to name the version it is asking about — `rustup run 1.97.1 cargo` is how
+ * the gates invoke it — and writing the number twice in one file would defeat
+ * the point of the file.
+ *
+ * @param {string} token
+ * @returns {string | null}
+ */
+export function installedVersion(token) {
+  const pin = PINS[token];
+  if (!pin) return null;
+  const [command, ...args] = pin.probe.map((part) =>
+    part.replace("{version}", pin.version),
+  );
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  if (result.status !== 0) return null;
+  const match = `${result.stdout ?? ""}${result.stderr ?? ""}`.match(
+    /\d+\.\d+(?:\.\d+)?/,
+  );
+  return match ? match[0] : null;
+}
+
+/**
+ * Whether the installed tool is the pinned one.
+ *
+ * A tool that is present but the wrong version is the failure mode the pins
+ * exist to prevent, and the one nothing here used to detect: local Ruff 0.16.3
+ * reported two findings that CI's pinned 0.15.16 does not, which reads as a
+ * source regression rather than as toolchain drift.
+ *
+ * @param {string} token
+ * @returns {{ pinned: string, installed: string | null, matches: boolean } | null}
+ */
+export function versionReport(token) {
+  const pin = PINS[token];
+  if (!pin) return null;
+  const installed = installedVersion(token);
+  return {
+    pinned: pin.version,
+    installed,
+    matches: installed === pin.version,
+  };
 }
 
 /** @type {Record<string, Requirement>} */
@@ -134,13 +206,29 @@ export const REQUIREMENTS = {
       linux: [["sudo", "apt-get", "install", "-y", "python3"]],
     },
   },
+  // Pinned for the same reason lizard is, and with the same recipe shape. Ruff
+  // 0.16 reports RUF100 on `# noqa: E402` directives that 0.15 needs, so an
+  // unpinned `brew install ruff` turns `lint:python` red on a file CI is happy
+  // with. Homebrew has no version selector, so pipx installs the pin instead.
   ruff: {
     why: "linting the Python launcher",
     probe: () => hasCommand("ruff"),
     needs: ["python"],
     install: {
-      darwin: [["brew", "install", "ruff"]],
-      linux: [["python3", "-m", "pip", "install", "--user", "ruff"]],
+      darwin: [
+        ["brew", "install", "pipx"],
+        ["pipx", "install", `ruff==${PINS.ruff.version}`],
+      ],
+      linux: [
+        [
+          "python3",
+          "-m",
+          "pip",
+          "install",
+          "--user",
+          `ruff==${PINS.ruff.version}`,
+        ],
+      ],
     },
   },
   mypy: {
@@ -148,8 +236,20 @@ export const REQUIREMENTS = {
     probe: () => hasCommand("mypy"),
     needs: ["python"],
     install: {
-      darwin: [["brew", "install", "mypy"]],
-      linux: [["python3", "-m", "pip", "install", "--user", "mypy"]],
+      darwin: [
+        ["brew", "install", "pipx"],
+        ["pipx", "install", `mypy==${PINS.mypy.version}`],
+      ],
+      linux: [
+        [
+          "python3",
+          "-m",
+          "pip",
+          "install",
+          "--user",
+          `mypy==${PINS.mypy.version}`,
+        ],
+      ],
     },
   },
   lizard: {
@@ -168,9 +268,9 @@ export const REQUIREMENTS = {
     install: {
       darwin: [
         ["brew", "install", "pipx"],
-        ["pipx", "install", "lizard==1.23.0"],
+        ["pipx", "install", `lizard==${PINS.lizard.version}`],
       ],
-      linux: [["pip3", "install", "--user", "lizard==1.23.0"]],
+      linux: [["pip3", "install", "--user", `lizard==${PINS.lizard.version}`]],
     },
     manual: "https://github.com/terryyin/lizard",
   },
@@ -250,6 +350,9 @@ export function gatesByRequirement(tier) {
  * @property {string[]} gates
  * @property {string[][]} install commands for this platform, empty when none
  * @property {string} [manual]
+ * @property {string} [pinned] the version `tool-versions.json` requires
+ * @property {string | null} [installed] the version actually here
+ * @property {boolean} [matches] whether the two agree
  */
 
 /**
@@ -261,13 +364,18 @@ export function survey(options = {}) {
   const index = gatesByRequirement(tier);
   return [...index.keys()].sort().map((token) => {
     const requirement = REQUIREMENTS[token];
+    const present = requirementAvailable(token);
+    // Only ask a tool its version when it is here and pinned; a missing tool is
+    // already reported, and asking twice would double the doctor's spawns.
+    const version = present ? versionReport(token) : null;
     return {
       token,
-      present: requirementAvailable(token),
+      present,
       why: requirement?.why ?? "required by a gate",
       gates: index.get(token) ?? [],
       install: requirement?.install?.[platform] ?? [],
       manual: requirement?.manual,
+      ...(version ?? {}),
     };
   });
 }
