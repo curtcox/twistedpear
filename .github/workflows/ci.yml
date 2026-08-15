@@ -306,6 +306,7 @@ jobs:
             .tmp/f2-interface-proof-local-isolated.json
             .tmp/f3-propagation-proof-local-isolated.json
             .tmp/freenet-supervisor-proof-ci-linux-musl.json
+            .tmp/freenet-distinct-nodes-smoke.json
           if-no-files-found: error
 
   sansio:
