@@ -6,10 +6,10 @@
     "kotlin",
     "swift"
   ],
-  "files": 573,
-  "functions": 6680,
-  "groups": 4109,
-  "exemptions": 93,
+  "files": 574,
+  "functions": 6690,
+  "groups": 4119,
+  "exemptions": 92,
   "violations": 0,
   "stale": 0,
   "findings": [
@@ -266,17 +266,6 @@
       "ccn": 26,
       "pinned": {
         "ccn": 26
-      }
-    },
-    {
-      "key": "conformance/sdk-interop/vectors.mjs::runSdkVectors",
-      "file": "conformance/sdk-interop/vectors.mjs",
-      "name": "runSdkVectors",
-      "line": 26,
-      "tier": "tooling",
-      "ccn": 24,
-      "pinned": {
-        "ccn": 24
       }
     },
     {

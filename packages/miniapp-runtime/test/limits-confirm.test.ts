@@ -120,13 +120,13 @@ describe("host resource limits", () => {
 
   it("applies a kv quota shrink to the next storage call", async () => {
     const { host, store } = makeHost();
-    await new GrantStore(store).set(
-      "hello",
-      "publisher",
-      manifest.capabilities,
-      ["storage:kv"],
-      1_000,
-    );
+    await new GrantStore(store).set({
+      appId: "hello",
+      publisherPublicKey: "publisher",
+      declared: manifest.capabilities,
+      requestedGrants: ["storage:kv"],
+      now: 1_000,
+    });
 
     const write = (id: string, size: number) =>
       host.dispatchRaw(
@@ -153,13 +153,13 @@ describe("host resource limits", () => {
 
   it("marks memory limits as pending restart while the app runs", async () => {
     const { host, store } = makeHost();
-    await new GrantStore(store).set(
-      "hello",
-      "publisher",
-      manifest.capabilities,
-      ["storage:kv"],
-      1_000,
-    );
+    await new GrantStore(store).set({
+      appId: "hello",
+      publisherPublicKey: "publisher",
+      declared: manifest.capabilities,
+      requestedGrants: ["storage:kv"],
+      now: 1_000,
+    });
     const bundle = new TextEncoder().encode("export {};\n");
 
     await host.launch(manifest, bundle);

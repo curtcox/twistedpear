@@ -25,8 +25,8 @@ ensure_tkinter_python()
 
 # Imported after the guard above: on an interpreter without Tcl/Tk, importing
 # tkinter raises before ensure_tkinter_python can re-exec into one that has it.
-import tkinter as tk  # noqa: E402
-from tkinter import messagebox, ttk  # noqa: E402
+import tkinter as tk
+from tkinter import messagebox, ttk
 
 USAGE = """\
 Usage:

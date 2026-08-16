@@ -43,25 +43,23 @@ async function configureVectorHost(host, vectorApp, vector) {
  * @param {string} where
  * @returns {string | null}
  */
-function mismatchDescription(response, expect, where) {
-  if (response.ok !== expect.ok) {
-    return `${where}: expected ok=${expect.ok}, got ok=${response.ok} (${JSON.stringify(response.error ?? response.result)})`;
+function errorMismatchDescription(response, expect, where) {
+  const code = response.error?.code ?? "BROKER_ERROR";
+  if (code !== expect.code) {
+    return `${where}: expected code ${expect.code}, got ${code}: ${response.error?.message}`;
   }
-  if (!expect.ok) {
-    const code = response.error?.code ?? "BROKER_ERROR";
-    if (code !== expect.code) {
-      return `${where}: expected code ${expect.code}, got ${code}: ${response.error?.message}`;
-    }
-    if (
-      expect.messageIncludes !== undefined &&
-      !response.error.message
-        .toLowerCase()
-        .includes(expect.messageIncludes.toLowerCase())
-    ) {
-      return `${where}: message "${response.error.message}" lacks "${expect.messageIncludes}"`;
-    }
-    return null;
+  if (
+    expect.messageIncludes !== undefined &&
+    !response.error.message
+      .toLowerCase()
+      .includes(expect.messageIncludes.toLowerCase())
+  ) {
+    return `${where}: message "${response.error.message}" lacks "${expect.messageIncludes}"`;
   }
+  return null;
+}
+
+function successMismatchDescription(response, expect, where) {
   if (expect.result !== undefined) {
     const got = normalizeValue(response.result) ?? null;
     if (JSON.stringify(got) !== JSON.stringify(expect.result)) {
@@ -75,6 +73,14 @@ function mismatchDescription(response, expect, where) {
     }
   }
   return null;
+}
+
+function mismatchDescription(response, expect, where) {
+  if (response.ok !== expect.ok) {
+    return `${where}: expected ok=${expect.ok}, got ok=${response.ok} (${JSON.stringify(response.error ?? response.result)})`;
+  }
+  if (!expect.ok) return errorMismatchDescription(response, expect, where);
+  return successMismatchDescription(response, expect, where);
 }
 
 /**

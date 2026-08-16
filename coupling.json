@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1182,
+  "modules": 1181,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -200,7 +200,7 @@
     },
     {
       "id": "packages/bridge-hyper",
-      "modules": 20,
+      "modules": 19,
       "ca": 6,
       "ce": 4,
       "instability": 0.4,

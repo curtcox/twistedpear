@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T00:09:05.274Z",
+  "generatedAt": "2026-08-16T00:42:33.700Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -396,14 +396,14 @@
     ]
   },
   "counts": {
-    "baseline-entries:complexity-ratchet.json:entries": 6,
+    "baseline-entries:complexity-ratchet.json:entries": 0,
     "baseline-entries:format-ratchet.json:entries": 0,
     "baseline-entries:lint-ratchet.json:entries": 0,
     "baseline-entries:sansio-ratchet.json:adapterAllowlist": 32,
     "baseline-entries:sansio-ratchet.json:exceptions": 0,
     "baseline-entries:sansio-ratchet.json:protocolDependencyAllowlist": 2,
     "baseline-entries:size-ratchet.json:entries": 0,
-    "baseline-entries:structure-ratchet.json:entries": 209,
+    "baseline-entries:structure-ratchet.json:entries": 177,
     "baseline-entries:typed-lint-ratchet.json:entries": 0,
     "budget:size:excess-lines": 0,
     "ci:gating-jobs": 46,

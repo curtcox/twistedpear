@@ -240,9 +240,6 @@
       "ccn": 32,
       "nloc": 350
     },
-    "conformance/sdk-interop/vectors.mjs::runSdkVectors": {
-      "ccn": 24
-    },
     "conformance/seeder/run.mjs::main": {
       "ccn": 16
     },
