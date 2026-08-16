@@ -93,6 +93,13 @@
       "evidence": ["STATUS-SOFTWARE.md"],
       "notes": "The 'Optional and non-blocking backlog' table in STATUS-SOFTWARE.md has no ID or Status column, so it is invisible to the register parser and to work:next. Either give the rows IDs with status deferred, or state in the doc that they are deliberately untracked."
     },
+    "DOC-SUPPLY-CHAIN": {
+      "type": "docs",
+      "requires": [],
+      "verify": "npm run sizes",
+      "added": "2026-08-16",
+      "notes": "docs/static-analysis.md sits at exactly 593 lines against a 593-line danger threshold in size-rules.json, so any new prose in it trips the sizes gate. The repo's rule is to decompose rather than compress: split out a docs/supply-chain.md holding the secrets, advisories, licenses, provenance, actions-pinned, install-scripts and SBOM sections."
+    },
     "G1": {
       "type": "release-gate",
       "requires": [
@@ -156,6 +163,13 @@
       "requires": [],
       "verify": "npm run test:hostile-apps",
       "added": "2026-07-19"
+    },
+    "GEN-WORKLET-FRESH": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run build --workspace=host-desktop",
+      "added": "2026-08-16",
+      "notes": "The tracked bundle embeds the root package.json, so any npm script change leaves it stale, and nothing checks it — CI rebuilds it before use, which is why a stale commit is invisible until someone reads the diff. A freshness check would make the staleness a gate finding rather than a thing each author has to remember."
     },
     "H1": {
       "type": "release-gate",
@@ -367,6 +381,13 @@
         "docs/linked-devices.md"
       ],
       "notes": "Default deny. A journal record from another installation is a proposal: verified, stored, surfaced, applied only where the receiving installation holds a grant for that class (sibling:moderation, sibling:trust, sibling:apps, sibling:messages), revocable per sibling and per class. Capability grants themselves have no sibling class and must be proven not to travel. See decision 2 of docs/linked-devices-plan.md. PREREQUISITE CHANGE 2026-08-10: the gate no longer waits on the journal. It is the only piece that encodes the user-authority property the whole feature exists to provide, and it is buildable now against an in-memory journal because verifying a record needs only the certificate format, which ships. Building it first lets the policy boundary define the record shape; building it last lets the transport define it and refits the security property afterwards. ID-JOURNAL now waits on the gate so the transport lands into a proven boundary. SCOPE AT CLOSE: the gate — classes, default deny, per-sibling/per-class grants, hold-not-drop, backlog release, revocation, rejection of unknown class/non-sibling/self/duplicate, and the closed vocabulary that cannot carry a capability grant. The chrome and the code that applies an apply-verdict to the moderation and trust stores are tracked separately as ID-SIBLING-CHROME."
+    },
+    "LINT-RUFF-CONFIG": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run lint:python",
+      "added": "2026-08-16",
+      "notes": "scripts/languages/check.mjs runs ruff from the repo root without --config, and ruff only discovers ruff.toml/.ruff.toml/pyproject.toml beside the file or in an ancestor — never .config/ruff.toml. Nothing else in the tree references that file either, so its select = [E, F, I, UP, B] and line-length = 100 have never applied: the gate has been running ruff's defaults (E4/E7/E9/F, line-length 88). Passing --config .config/ruff.toml turns on I/UP/B across every tracked .py file, so it needs its own baselining decision rather than a one-line change."
     },
     "PD-AI": {
       "type": "feature",
