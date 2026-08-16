@@ -1,14 +1,10 @@
 {
+  "extends": ["expo/tsconfig.base", "../../tsconfig.base.json"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["ES2023", "DOM"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
     "noEmit": true,
-    "skipLibCheck": true,
-    "strict": true,
     "target": "ES2023"
   },
-  "include": ["./**/*.ts", "./**/*.tsx", "./types/**/*.d.ts"],
-  "extends": "expo/tsconfig.base"
+  "include": ["./**/*.ts", "./**/*.tsx", "./types/**/*.d.ts"]
 }

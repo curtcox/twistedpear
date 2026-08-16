@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T02:38:32.720Z",
+  "generatedAt": "2026-08-16T03:13:09.438Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -46,6 +46,7 @@
       "structure tier=pr run=structure:check",
       "swift tier=pr run=lint:swift",
       "swift-tests tier=pr run=test:swift",
+      "tsconfig-parity tier=pr run=tsconfig:check",
       "type-coverage tier=pr run=type-coverage:check",
       "typed-lint tier=pr run=lint:typed",
       "unit-tests tier=pr run=test",
@@ -387,6 +388,7 @@
       "test:webrtc-gui-call:ios-offer",
       "test:webrtc-gui-call:web",
       "test:widget-parity",
+      "tsconfig:check",
       "type-coverage:check",
       "work:check"
     ],
@@ -480,9 +482,9 @@
     "floor:mutation:score": 70.06,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 7,
-    "gates:pr": 39,
+    "gates:pr": 40,
     "gates:release": 1,
-    "scripts:quality": 153,
+    "scripts:quality": 154,
     "skips:suppressed-tests": 1,
     "test-files:apps/handbook": 2,
     "test-files:apps/harness-mobile": 3,

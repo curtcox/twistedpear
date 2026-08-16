@@ -46,6 +46,7 @@
       "structure tier=pr run=structure:check",
       "swift tier=pr run=lint:swift",
       "swift-tests tier=pr run=test:swift",
+      "tsconfig-parity tier=pr run=tsconfig:check",
       "type-coverage tier=pr run=type-coverage:check",
       "typed-lint tier=pr run=lint:typed",
       "unit-tests tier=pr run=test",
@@ -387,6 +388,7 @@
       "test:webrtc-gui-call:ios-offer",
       "test:webrtc-gui-call:web",
       "test:widget-parity",
+      "tsconfig:check",
       "type-coverage:check",
       "work:check"
     ],

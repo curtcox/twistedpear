@@ -28,6 +28,19 @@ export const gates = [
     "pr",
     ["node"],
   ),
+  // Strictness parity between workspaces. `typecheck` above proves each project
+  // passes under its own flags; this one proves the flags are the same ones. It
+  // was added after finding that `sim-adversaries` had lost two strictness
+  // options and `harness-mobile` five — all of them green, because an absent
+  // flag never fails.
+  gate(
+    "tsconfig-parity",
+    "TypeScript strictness parity",
+    "tsconfig:check",
+    "pr",
+    ["node"],
+    ["tsconfig.base.json", "tsconfig.package.json"],
+  ),
   gate("unit-tests", "Unit tests", "test", "pr", ["node"]),
   gate(
     "file-sizes",

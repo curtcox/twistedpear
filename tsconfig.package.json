@@ -1,0 +1,10 @@
+{
+  "//": "Emit shape for the library packages under `packages/*` and `apps/host-desktop`: every one of them is a composite project in the root `tsc -b` graph and emits declarations so the next package up can consume them. `outDir` and `rootDir` are not here on purpose — relative paths in a base config resolve against the base config's directory, so they would all point at the repository root.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "verbatimModuleSyntax": true
+  }
+}

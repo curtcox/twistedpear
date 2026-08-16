@@ -5,6 +5,7 @@ import {
   freenetGrantLogSafe,
   generateFreenetRendezvousHex,
   revokeFreenetRemoteGrant,
+  withOptionalGrantField,
 } from "./src/freenet-remote-grant";
 import {
   freenetRemoteSessionStatusLabel,
@@ -95,10 +96,9 @@ function NativeFreenetRemoteCard({ scope }: { scope: NativeHarnessScope }) {
           style={styles.input}
           value={freenetGrant.authToken ?? ""}
           onChangeText={(authToken) =>
-            setFreenetGrant((current) => ({
-              ...current,
-              authToken: authToken.length === 0 ? undefined : authToken,
-            }))
+            setFreenetGrant((current) =>
+              withOptionalGrantField(current, "authToken", authToken),
+            )
           }
           autoCapitalize="none"
           secureTextEntry
@@ -205,11 +205,9 @@ function NativeFreenetPacketTunnelFields({
             style={styles.input}
             value={freenetGrant.rendezvousHex ?? ""}
             onChangeText={(rendezvousHex) =>
-              setFreenetGrant((current) => ({
-                ...current,
-                rendezvousHex:
-                  rendezvousHex.length === 0 ? undefined : rendezvousHex,
-              }))
+              setFreenetGrant((current) =>
+                withOptionalGrantField(current, "rendezvousHex", rendezvousHex),
+              )
             }
             autoCapitalize="none"
             autoCorrect={false}
@@ -332,8 +330,12 @@ function NativeFreenetGrantActions({ scope }: { scope: NativeHarnessScope }) {
                 {
                   nodeUrl: freenetGrant.nodeUrl,
                   operatorLabel: freenetGrant.operatorLabel,
-                  authToken: freenetGrant.authToken,
-                  rendezvousHex: freenetGrant.rendezvousHex,
+                  ...(freenetGrant.authToken === undefined
+                    ? {}
+                    : { authToken: freenetGrant.authToken }),
+                  ...(freenetGrant.rendezvousHex === undefined
+                    ? {}
+                    : { rendezvousHex: freenetGrant.rendezvousHex }),
                   localDirection: freenetGrant.localDirection === 1 ? 1 : 0,
                   capabilities: freenetGrant.capabilities,
                 },

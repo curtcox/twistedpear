@@ -1,24 +1,12 @@
 {
+  "extends": "../../tsconfig.package.json",
   "compilerOptions": {
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
-    "exactOptionalPropertyTypes": true,
     "jsx": "react-jsx",
     "lib": ["ES2023"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noUncheckedIndexedAccess": true,
     "outDir": "dist",
     "rootDir": "src",
-    "skipLibCheck": true,
-    "strict": true,
     "target": "ES2023",
-    "types": ["node"],
-    "verbatimModuleSyntax": true
+    "types": ["node"]
   },
   "include": ["src/**/*.tsx", "src/**/*.ts"]
 }

@@ -44,13 +44,32 @@ export const FREENET_REMOTE_DISCLOSURE = [
   "Start with a node you control. TwistedPear does not ship a third-party gateway.",
 ] as const;
 
+/**
+ * Set an optional grant field from free text, dropping the key entirely when the
+ * text is empty.
+ *
+ * Under `exactOptionalPropertyTypes` a key present with the value `undefined` is
+ * not the same type as an absent key, so the obvious `{ ...grant, authToken:
+ * text || undefined }` does not typecheck against an optional property. Callers
+ * are text inputs that clear to `""`, and an empty auth token or rendezvous is
+ * meaningfully "not set" rather than "set to nothing".
+ */
+export function withOptionalGrantField<
+  Grant extends FreenetRemoteGrantDraft,
+  Key extends "authToken" | "rendezvousHex",
+>(grant: Grant, key: Key, text: string): Grant {
+  const { [key]: _cleared, ...rest } = grant;
+  return (text.length === 0 ? rest : { ...rest, [key]: text }) as Grant;
+}
+
 export function defaultFreenetRemoteGrant(): FreenetRemoteGrant {
   return {
     enabled: false,
     nodeUrl: "",
     operatorLabel: "",
-    authToken: undefined,
-    rendezvousHex: undefined,
+    // `authToken` and `rendezvousHex` are omitted rather than set to
+    // `undefined`: both are optional, and under `exactOptionalPropertyTypes` a
+    // present-but-undefined key is a different type from an absent one.
     localDirection: 0,
     acceptedAt: null,
     capabilities: {

@@ -75,7 +75,10 @@ describe("freenet remote-node session", () => {
     let seen: { url?: string; authToken?: string } = {};
     await probeFreenetRemoteNode(grant, {
       open: (url, options) => {
-        seen = { url, authToken: options?.authToken };
+        seen =
+          options?.authToken === undefined
+            ? { url }
+            : { url, authToken: options.authToken };
         return Promise.resolve({ ok: true });
       },
     });

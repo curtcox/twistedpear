@@ -1,0 +1,14 @@
+{
+  "//": "Strictness parity for every workspace, libraries and apps alike. This file holds only flags that change what the compiler rejects, plus the module-resolution mode they are checked under — never emit shape, which legitimately differs (`apps/harness-mobile` emits nothing). Library packages extend `tsconfig.package.json`, which layers composite emit and `verbatimModuleSyntax` on top of this; that last one is deliberately not here, because Expo resolves the mobile app as CommonJS and the flag is about import elision, not rigour. `lib`, `target`, `types`, and `jsx` stay per-package because they describe the runtime. The `tsconfig-parity` gate (npm run tsconfig:check) fails any workspace that drops the extends or redeclares a flag set here.",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "strict": true
+  }
+}

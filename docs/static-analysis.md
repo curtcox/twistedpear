@@ -46,6 +46,29 @@ paths are checked on every PR, and `tsc -b` stays incremental. The gate needs
 `npm run build` first, because the app resolves `@twistedpear/*` through built `dist`
 types.
 
+Both of those gates prove each project passes under _its own_ compiler options. The
+`tsconfig-parity` gate (`npm run tsconfig:check`) proves the options are the same ones.
+Strictness lives in two shared files: `tsconfig.base.json`, which every workspace
+extends, and `tsconfig.package.json`, which adds composite emit and
+`verbatimModuleSyntax` for the library packages. Only `lib`, `target`, `types`, `jsx`,
+and the emit paths stay local — `outDir` and `rootDir` have to, because relative paths in
+a base config resolve against the base config's own directory.
+
+The gate fails a project that stops extending the shared files **and** one that
+re-declares an inherited option locally, since a local re-declaration is how a project
+opts out while still appearing to participate. That failure mode was not hypothetical:
+until 2026-08-15 each project carried its own hand-copied block of thirteen options, and
+`packages/sim-adversaries` had lost `noImplicitOverride` and `noFallthroughCasesInSwitch`
+while `apps/harness-mobile` was missing five including `noUncheckedIndexedAccess` and
+`exactOptionalPropertyTypes`. All of them typechecked green, because an absent flag
+cannot fail. Adopting the base surfaced five real `exactOptionalPropertyTypes` defects in
+the mobile app's Freenet grant handling, where optional fields were being written as an
+explicit `undefined`.
+
+`verbatimModuleSyntax` is deliberately in the package layer rather than the base: Expo
+resolves `apps/harness-mobile` as CommonJS, and the flag governs import elision rather
+than what the compiler rejects.
+
 The same is true of `type-coverage` and `fuzz`, and for the same reason: every
 workspace package points `exports` at `dist`, so on an unbuilt tree a cross-package
 import resolves to `any` (type coverage) or fails to resolve at all (fuzz). Both run
