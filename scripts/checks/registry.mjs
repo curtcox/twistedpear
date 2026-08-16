@@ -317,6 +317,22 @@ export const gates = [
     ["node"],
     ["licenses.json", "license-allowlist.json"],
   ),
+  // `advisories` asks whether a dependency is known-vulnerable and `licenses`
+  // whether its terms are acceptable. Neither asks whether it runs code on the
+  // way in. `npm ci` executed install scripts from the whole transitive tree,
+  // with full privileges, before any gate here had run — the one supply-chain
+  // door still open next to SHA-pinned Actions and verified registry
+  // signatures. `.npmrc` now sets ignore-scripts=true; this gate is what keeps
+  // that true and makes a newly-appearing install script something a person has
+  // to read.
+  gate(
+    "install-scripts",
+    "Dependency install-script policy",
+    "install-scripts:check",
+    "pr",
+    ["node"],
+    ["install-scripts-allowlist.json"],
+  ),
   gate(
     "rust",
     "Rust clippy, fmt, and deny",

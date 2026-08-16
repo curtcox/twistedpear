@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T12:53:38.765Z",
+  "generatedAt": "2026-08-16T12:58:36.811Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -26,6 +26,7 @@
       "fuzz tier=pr run=test:fuzz",
       "harness-mobile-typecheck tier=pr run=harness-mobile:typecheck",
       "hotspots tier=nightly run=hotspots",
+      "install-scripts tier=pr run=install-scripts:check",
       "jscpd tier=pr run=jscpd:check",
       "kotlin tier=pr run=lint:kotlin",
       "kotlin-tests tier=nightly run=test:kotlin",
@@ -253,6 +254,7 @@
       "coverage:check",
       "flake:check",
       "format:check",
+      "install-scripts:check",
       "jscpd:check",
       "licenses:check",
       "lint:all",
@@ -494,9 +496,9 @@
     "floor:mutation:score": 62.6,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 11,
-    "gates:pr": 41,
+    "gates:pr": 42,
     "gates:release": 1,
-    "scripts:quality": 157,
+    "scripts:quality": 158,
     "skips:suppressed-tests": 1,
     "test-files:apps/handbook": 2,
     "test-files:apps/harness-mobile": 3,

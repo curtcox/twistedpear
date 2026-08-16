@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "description": "Dependency install scripts that have been reviewed. `.npmrc` sets ignore-scripts=true, so none of these run; this records that someone read each one and confirmed the repository works without it. Written by `npm run install-scripts:baseline`; every entry needs a reason.",
+  "packages": {
+    "@ast-grep/cli": {
+      "hooks": {
+        "postinstall": "node postinstall.js"
+      },
+      "reason": "Copies the platform binary out of @ast-grep/cli-<platform> into its own bin directory. Skipped, the CLI resolves the same binary at run time and prints a warning about the per-invocation overhead; `ast-grep --version` works. Used by the ast-grep gate and survey tool."
+    },
+    "@serialport/bindings-cpp": {
+      "hooks": {
+        "install": "node-gyp-build"
+      },
+      "reason": "Builds the native binding from source when no prebuild matches. Skipped, node-gyp-build resolves the shipped prebuild at require time; autoDetect().list is callable on a clean ignore-scripts install. A platform with no prebuild would need this, and would fail loudly at require rather than silently."
+    },
+    "esbuild": {
+      "hooks": {
+        "postinstall": "node install.js"
+      },
+      "reason": "Verifies and stages the binary from the @esbuild/<platform> optional dependency. Skipped, both the CLI and the JS API used by vite and vitest work from that package directly."
+    }
+  }
+}

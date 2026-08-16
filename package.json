@@ -257,6 +257,8 @@
     "audit:baseline": "node scripts/security/audit.mjs --write",
     "secrets:check": "node scripts/security/gitleaks.mjs",
     "licenses:check": "node scripts/security/licenses.mjs",
+    "install-scripts:check": "node scripts/security/install-scripts.mjs",
+    "install-scripts:baseline": "node scripts/security/install-scripts.mjs --write",
     "licenses:baseline": "node scripts/security/licenses.mjs --write",
     "sbom": "node scripts/security/sbom.mjs",
     "lint:rust": "node scripts/languages/check.mjs rust",

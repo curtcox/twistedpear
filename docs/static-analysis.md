@@ -297,6 +297,32 @@ and no consumer action follows from it. Provenance attestation counts are record
 publisher's choice rather than a property of this repository. At the time of writing all
 1521 resolved packages verify and 371 carry an attestation.
 
+### Install scripts
+
+`install-scripts` (`npm run install-scripts:check`) closes the last door the three gates
+above leave open. `advisories` asks whether a dependency is known-vulnerable, `licenses`
+whether its terms are acceptable, and `provenance` whether the tarball is the one the
+registry signed — none of them ask whether it runs code on the way in. `npm ci` executes
+`preinstall`, `install`, and `postinstall` from the whole transitive tree, with full
+privileges, before any gate here has run.
+
+`.npmrc` sets `ignore-scripts=true`, so none of them run. The gate is the half that keeps
+that true: it walks `node_modules`, enumerates every package declaring an install hook, and
+fails on any that is not recorded in `install-scripts-allowlist.json` with the script's
+exact text and a reason. It also fails if `ignore-scripts` disappears from `.npmrc` —
+without that check the same allowlist would still pass while describing code that had
+already run, which is the failure mode worth catching, because nothing else about the
+repository would look different.
+
+The allowlist grants nothing; nothing in it is executed. It records that someone read each
+script and confirmed the repository works without it. Three packages qualify today —
+`@ast-grep/cli`, `esbuild`, and `@serialport/bindings-cpp` — and all three were verified
+against a clean `ignore-scripts=true` install: ast-grep falls back to resolving its binary
+at run time, esbuild's CLI and JS API both work from the platform package, and
+`@serialport/bindings-cpp` finds its prebuild through node-gyp-build at require time. No
+`npm rebuild` step is needed, which is why no workflow has one. A script whose text changes
+fails the gate as if it were new, because the recorded reason describes the old text.
+
 The first advisory survey found one transitive high-severity `vite` result in the local
 VitePress documentation toolchain, with no fix available through that dependency path.
 It has a narrow, expiring exception in `audit-allowlist.json`; all other high/critical
