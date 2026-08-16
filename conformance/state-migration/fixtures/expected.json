@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "description": "What each committed store fixture means, as read by the build that recorded it. The fixtures are the input and this is the answer; a change to either is a change to what users' existing data decodes to.",
+  "formats": {
+    "grant-record": {
+      "appId": "chat",
+      "publisherPublicKey": "abababababababababababababababababababababababababababababababab",
+      "granted": ["net.fetch", "store.read"],
+      "updatedAt": 1750000000000
+    },
+    "grant-record-legacy": {
+      "appId": "chat",
+      "publisherPublicKey": "abababababababababababababababababababababababababababababababab",
+      "granted": ["net.fetch", "store.read"],
+      "updatedAt": 1750000000000
+    },
+    "identity-encrypted": {
+      "hash": "5837a5fa2de5c6a0cb521f47a1b7fc94"
+    },
+    "identity-legacy": {
+      "hash": "5837a5fa2de5c6a0cb521f47a1b7fc94"
+    },
+    "moderation-store": {
+      "blocked": [
+        {
+          "sourceHash": "0123456789abcdef0123456789abcdef",
+          "label": "spammer",
+          "createdAt": 1750000000000
+        }
+      ],
+      "muted": [],
+      "reports": [
+        {
+          "id": "report-1",
+          "sourceHash": "0123456789abcdef0123456789abcdef",
+          "reason": "spam",
+          "note": "repeated unsolicited messages",
+          "messageHash": null,
+          "createdAt": 1750000000001
+        }
+      ]
+    },
+    "multipart-checkpoints": {
+      "transfer-1": {
+        "transferId": "transfer-1",
+        "received": 3,
+        "total": 9
+      }
+    }
+  }
+}

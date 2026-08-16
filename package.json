@@ -61,6 +61,7 @@
     "test:bare-hyperdrive": "npm run build && node conformance/bare-hyperdrive/run.mjs",
     "test:seeder": "npm run build && node conformance/seeder/run.mjs",
     "test:updates": "npm run build && node conformance/updates/run.mjs",
+    "test:state-migration": "npm run build && node conformance/state-migration/run.mjs",
     "test:budgets": "npm run build && node conformance/budgets/run.mjs",
     "test:harness-install": "npm run build && node conformance/harness-install/run.mjs",
     "test:lan-mirror": "npm run build && node conformance/lan-mirror/run.mjs",

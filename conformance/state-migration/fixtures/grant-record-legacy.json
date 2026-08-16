@@ -1,0 +1,6 @@
+{
+  "updatedAt": 1750000000000,
+  "granted": ["net.fetch", "store.read"],
+  "publisherPublicKey": "abababababababababababababababababababababababababababababababab",
+  "appId": "chat"
+}

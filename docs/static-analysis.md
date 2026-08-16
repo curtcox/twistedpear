@@ -298,56 +298,67 @@ and no consumer action follows from it. Provenance attestation counts are record
 publisher's choice rather than a property of this repository. At the time of writing all
 1521 resolved packages verify and 371 carry an attestation.
 
+### On-disk store compatibility
+
+`state-migration` (`npm run test:state-migration`) reads stores this project wrote earlier
+using the build of today. The wire formats are covered from four directions — golden
+vectors, properties, fuzzing, and differential fuzzing against a pinned reference. The
+formats **at rest** had none of it, and the gap was not theoretical: `migrateLegacyGrantRecord`
+and the unencrypted-identity path in `host-core` are both migration code, and every test of
+them encoded with today's encoder and decoded with today's decoder — which passes just as
+happily after a breaking change to both halves. TwistedPear is local-first, so a store that
+silently fails to load is not a bug report; it is a person whose identity is gone.
+
+`conformance/state-migration/fixtures/` holds committed bytes and `expected.json` what they
+decode to, across six formats: the canonical grant record and the pre-canonical JSON one, the
+`TPIDBK01` identity vault and the raw private key older hosts wrote, the moderation store, and
+the multipart checkpoint store. Both identity fixtures are the same identity, so the pair also
+proves the two paths agree.
+
+The gate never regenerates a fixture. `record.mjs` writes one only when absent and refuses to
+overwrite: a fixture re-cut from today's encoder is today's format, and a migration test whose
+inputs are rewritten whenever they stop matching tests nothing. The two legacy fixtures have no
+encoder left at all, which is why they are worth committing. Verified failing both ways —
+dropping the legacy grant migration, and bumping a store's version envelope without one.
+
 ### Prose spelling
 
-`spelling` (`npm run spelling:check`) runs cspell over the published prose: the README,
-the root status and release documents, and the `docs/`, `guide/`, `authors/`, `cookbook/`,
-and `specs/` trees — 177 files. `doc-audit` already checks a great deal about the same
-files, but all of it is structure: lifecycle metadata, `counterpart:` pairing, archive
-placement, every link and image resolving. None of it reads a sentence, and a typo in the
-user guide fails no build.
+`spelling` (`npm run spelling:check`) runs cspell over 177 files of published prose: the README,
+the root status and release documents, and the `docs/`, `guide/`, `authors/`, `cookbook/`, and
+`specs/` trees. `doc-audit` checks a great deal about the same files, but all of it is structure
+— lifecycle metadata, `counterpart:` pairing, archive placement, links and images resolving.
+None of it reads a sentence, and a typo in the user guide fails no build.
 
-`project-words.txt` is the dictionary: 146 terms no general dictionary knows — protocol
-names, package names, contributors, coinages like `holepunching` and `unforgeable`.
-`npm run spelling:baseline` adds unknown words in bulk, so the guard against blessing a
-real misspelling forever is that additions arrive as a reviewable diff, one word per line.
-British spellings are not in it; the config sets `"language": "en,en-GB"` so `behaviour`
-and `licence` are simply correct.
-
-Vendored trees are excluded, which is not incidental: the first run reported `vitualenv`
-from `apps/harness-mobile/ios/Pods/SocketRocket/README.md` — a real typo in someone else's
-README that this project can neither fix nor sensibly baseline. Words no longer used
-anywhere are reported as a warning rather than a failure; unlike an allowlist, a stale
-dictionary entry permits nothing that was not already intended. That staleness is computed
-by re-running cspell against an empty dictionary rather than by tokenising the prose here,
-because cspell splits `well-formedness` into two words and folds case its own way, and any
-reimplementation drifts from it.
+`project-words.txt` holds 146 terms no general dictionary knows. `npm run spelling:baseline`
+adds unknown words in bulk, so the guard against blessing a real misspelling is that additions
+land as a reviewable diff, one word per line. British spellings are not in it: the config sets
+`"language": "en,en-GB"` so `behaviour` and `licence` are simply correct. Vendored trees are
+excluded, and not incidentally — the first run reported `vitualenv` from
+`apps/harness-mobile/ios/Pods/SocketRocket/README.md`, a real typo in someone else's README
+that this project can neither fix nor sensibly baseline. Unused dictionary words warn rather
+than fail — unlike an allowlist, a stale entry permits nothing that was not already intended.
 
 ### Install scripts
 
-`install-scripts` (`npm run install-scripts:check`) closes the last door the three gates
-above leave open. `advisories` asks whether a dependency is known-vulnerable, `licenses`
-whether its terms are acceptable, and `provenance` whether the tarball is the one the
-registry signed — none of them ask whether it runs code on the way in. `npm ci` executes
-`preinstall`, `install`, and `postinstall` from the whole transitive tree, with full
-privileges, before any gate here has run.
+`install-scripts` (`npm run install-scripts:check`) closes the last door the gates above leave
+open. `advisories` asks whether a dependency is known-vulnerable, `licenses` whether its terms
+are acceptable, `provenance` whether the tarball is the one the registry signed — none ask
+whether it runs code on the way in. `npm ci` executed `preinstall`, `install`, and `postinstall`
+from the whole transitive tree, with full privileges, before any gate here ran.
 
-`.npmrc` sets `ignore-scripts=true`, so none of them run. The gate is the half that keeps
-that true: it walks `node_modules`, enumerates every package declaring an install hook, and
-fails on any that is not recorded in `install-scripts-allowlist.json` with the script's
-exact text and a reason. It also fails if `ignore-scripts` disappears from `.npmrc` —
-without that check the same allowlist would still pass while describing code that had
-already run, which is the failure mode worth catching, because nothing else about the
-repository would look different.
+`.npmrc` now sets `ignore-scripts=true`. The gate keeps that true: it walks `node_modules`,
+enumerates every package declaring an install hook, and fails on any not recorded in
+`install-scripts-allowlist.json` with the script's exact text and a reason. It also fails if
+`ignore-scripts` leaves `.npmrc` — without that check the same allowlist would still pass while
+describing code that had already run, and nothing else about the repository would look
+different. A script whose text changes fails as if it were new.
 
 The allowlist grants nothing; nothing in it is executed. It records that someone read each
-script and confirmed the repository works without it. Three packages qualify today —
-`@ast-grep/cli`, `esbuild`, and `@serialport/bindings-cpp` — and all three were verified
-against a clean `ignore-scripts=true` install: ast-grep falls back to resolving its binary
-at run time, esbuild's CLI and JS API both work from the platform package, and
-`@serialport/bindings-cpp` finds its prebuild through node-gyp-build at require time. No
-`npm rebuild` step is needed, which is why no workflow has one. A script whose text changes
-fails the gate as if it were new, because the recorded reason describes the old text.
+script and confirmed the repository works without it. Three packages qualify, and all three
+were verified against a clean `ignore-scripts=true` install rather than assumed: ast-grep
+resolves its binary at run time, esbuild's CLI and JS API work from the platform package, and
+`@serialport/bindings-cpp` finds its prebuild at require time. Nothing needs `npm rebuild`,
+which is why no workflow has one.
 
 The first advisory survey found one transitive high-severity `vite` result in the local
 VitePress documentation toolchain, with no fix available through that dependency path.
@@ -371,23 +382,22 @@ silently and forever.
 | `swift-tests`  | `npm run test:swift`  | PR      | `swift test` for each Swift package with a `Tests` directory, macOS runner |
 | `kotlin-tests` | `npm run test:kotlin` | Nightly | the three Android bridge JVM unit-test tasks                               |
 
-`rust-coverage` (`npm run coverage:rust`, PR) is the measurement those gates cannot
-make. `cargo test` says whether the tests pass, not how much they touch — and it reports
-`ok` for a suite that has been annotated out. Adding `#[ignore]` to the locator contract's
-single test takes it from 77.3% to 52.6% of lines while `rust-tests` stays green. The
-coverage ratchet covers `packages/*` and `apps/*`, which is TypeScript and only
-TypeScript, so the three Freenet contracts — the code peers have to agree on, and the
-target of the fuzzing gate — were the least measured in the repository.
+`rust-coverage` (`npm run coverage:rust`, PR) is the measurement those gates cannot make.
+`cargo test` says whether the tests pass, not how much they touch — and it reports `ok` for a
+suite that has been annotated out: adding `#[ignore]` to the locator contract's single test
+takes it from 77.3% to 52.6% of lines while `rust-tests` stays green. The coverage ratchet
+covers `packages/*` and `apps/*`, which is TypeScript and only TypeScript, so the three
+Freenet contracts — the code peers agree on, and the target of the fuzzing gate — were the
+least measured in the repository.
 
 `cargo llvm-cov` reports lines, functions, and regions per crate into
-`language-ratchets/rust-coverage.json`, with floors that may only rise and the same 0.5
-point tolerance the TypeScript ratchet uses. Branch coverage is deliberately absent:
-llvm-cov needs an unstable flag for it and reports a flat 0 on the pinned stable
-toolchain, and a floor of 0 that can never move looks like a floor without being one.
-Regions are the stable stand-in — a region is a straight-line span, so a half-taken
-branch shows up as an unexecuted region. The four crates baseline at 70.8%, 77.3%, 69.2%
-and 75.1% of lines. A crate that keeps a floor but stops being measured fails, because
-renaming or dropping one would otherwise retire its floor in silence.
+`language-ratchets/rust-coverage.json`, floors rising only, same 0.5 point tolerance as the
+TypeScript ratchet; the four crates baseline at 70.8%, 77.3%, 69.2% and 75.1% of lines. Branch
+coverage is deliberately absent: llvm-cov needs an unstable flag for it and reports a flat 0 on
+the pinned stable toolchain, and a floor of 0 that can never move looks like a floor without
+being one. Regions are the stable stand-in — a half-taken branch leaves an unexecuted region. A
+crate that keeps a floor but stops being measured fails, because renaming or dropping one would
+otherwise retire its floor in silence.
 
 Nothing else here is ratcheted. Every other analysis gate carries a baseline of findings
 that may only shrink; a test suite does not get a list of tests that are allowed to

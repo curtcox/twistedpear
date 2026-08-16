@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "transfers": {
+    "transfer-1": {
+      "transferId": "transfer-1",
+      "received": 3,
+      "total": 9
+    }
+  }
+}

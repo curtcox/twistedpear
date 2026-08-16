@@ -74,6 +74,22 @@ export const gates = [
     "pr",
     ["node"],
   ),
+  // The wire formats are covered from four directions — golden vectors,
+  // properties, fuzzing, differential fuzzing against a pinned reference. The
+  // formats *at rest* had none of it. Every existing test of the two migration
+  // paths encodes with today's encoder and decodes with today's decoder, which
+  // passes just as happily after a breaking change to both halves. This one
+  // starts from committed bytes an older build left behind. On a local-first
+  // platform a store that silently fails to load is not a bug report; it is a
+  // person whose identity is gone.
+  gate(
+    "state-migration",
+    "On-disk store compatibility",
+    "test:state-migration",
+    "pr",
+    ["node"],
+    ["conformance/state-migration/fixtures/expected.json"],
+  ),
   gate("actionlint", "GitHub Actions lint", "actionlint", "pr", ["actionlint"]),
   // `actionlint` above validates workflow syntax and expressions; it says
   // nothing about supply-chain posture. Until 2026-08-15 all 226 `uses:`
