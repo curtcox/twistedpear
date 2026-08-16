@@ -61,8 +61,9 @@ keep working right up until they don't.
 module load, call `finish()` on the way out, and let its verdict decide the exit
 code. It is wired into `dist-soak`, `miniapp-soak`, `mixed-network-soak`, and
 `transport-node-soak` — the four that do their work in-process. `web-soak` and
-`integration-soak` drive child processes, where sampling the parent would measure
-the harness rather than the system.
+`integration-soak` use `soak-child-resources.mjs` instead: it follows the system
+under test's complete descendant process tree and sums RSS and open file descriptors.
+Sampling the parent there would measure the harness rather than the system.
 
 Three things about the measurement are worth knowing before changing it:
 
@@ -73,10 +74,11 @@ Three things about the measurement are worth knowing before changing it:
   reported `miniapp-soak` leaking 4.7 MB/min while its RSS fell 130 MB/min, one
   process described as leaking and shrinking at once, because each slope was
   fitted across a different part of one GC cycle.
-- **Handles are counted too.** A socket or timer retained per reconnect can sit
-  almost entirely outside the JS heap, so it is the leak memory does not show. Its
-  limit is the tightest of the three because handle counts do not fluctuate the
-  way bytes do.
+- **Handles are counted too.** In-process monitors count active Node handles and
+  requests; child-process monitors count OS file descriptors over the process tree.
+  A socket or timer retained per reconnect can sit almost entirely outside the JS
+  heap, so this is the leak memory does not show. Its limit is the tightest of the
+  three because handle counts do not fluctuate the way bytes do.
 - **A short run is `inconclusive`, never `pass`.** A verdict needs 120 post-warmup
   samples _and_ five minutes of wall clock, so the 15-second CI tier records
   numbers without judging them. Calling that a pass would be the same failure as a

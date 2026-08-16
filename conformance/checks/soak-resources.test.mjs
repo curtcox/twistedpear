@@ -15,6 +15,11 @@ import {
   judge,
   slope,
 } from "../../conformance/soak-resources.mjs";
+import {
+  countLsofDescriptors,
+  descendantPids,
+  parseProcessTable,
+} from "../../conformance/soak-child-resources.mjs";
 
 const LIMITS = {
   warmupMs: 60_000,
@@ -157,5 +162,43 @@ describe("judge", () => {
       }
     }
     expect(judge(samples, LIMITS).status).toBe("pass");
+  });
+});
+
+describe("child process trees", () => {
+  const rows = parseProcessTable(`
+      10     1  100
+      11    10  200
+      12    11  300
+      20     1  400
+  `);
+
+  it("parses portable ps pid, parent, and RSS columns", () => {
+    expect(rows).toEqual([
+      { pid: 10, parentPid: 1, rssKiB: 100 },
+      { pid: 11, parentPid: 10, rssKiB: 200 },
+      { pid: 12, parentPid: 11, rssKiB: 300 },
+      { pid: 20, parentPid: 1, rssKiB: 400 },
+    ]);
+  });
+
+  it("includes nested descendants but not unrelated processes", () => {
+    expect(descendantPids(rows, 10)).toEqual([10, 11, 12]);
+    expect(descendantPids(rows, 10, false)).toEqual([11, 12]);
+  });
+
+  it("counts numeric file descriptors without lsof metadata entries", () => {
+    expect(countLsofDescriptors("p10\nfcwd\nftxt\nf0\nf1\np11\nf12\n")).toBe(3);
+  });
+
+  it("judges process-tree samples without inventing JS heap telemetry", () => {
+    const samples = trace().map(({ atMs, rss, handles }) => ({
+      atMs,
+      rss,
+      handles,
+    }));
+    const verdict = judge(samples, LIMITS);
+    expect(verdict.status).toBe("pass");
+    expect(verdict.growth.heapUsedBytesPerMinute).toBeNull();
   });
 });

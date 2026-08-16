@@ -10,6 +10,7 @@ import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { childProcessResources } from "../soak-child-resources.mjs";
 
 const soakRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(soakRoot, "../..");
@@ -139,10 +140,17 @@ async function runPlaywright(pageUrl) {
 }
 
 let staticServer = null;
+let resources = null;
+let resourceFailed = false;
 
 try {
   runBuild();
   staticServer = await startStaticServer(soakRoot);
+  resources = childProcessResources({
+    id: "web-soak",
+    rootPid: process.pid,
+    includeRoot: false,
+  });
   const pageUrl = `http://127.0.0.1:${staticServer.port}/?duration=${SOAK_DURATION_MS}`;
   const result = await runPlaywright(pageUrl);
   console.log(
@@ -156,6 +164,8 @@ try {
   if (staticServer !== null) {
     await staticServer.close().catch(() => {});
   }
+  if (resources !== null) resourceFailed = resources.finish().status === "fail";
 }
 
+if (resourceFailed) process.exit(1);
 console.log("web-soak: passed");

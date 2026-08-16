@@ -5,14 +5,15 @@
  * plan exit 24 h on a dedicated server).
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { repoRoot } from "../scenarios/bare/helpers.mjs";
+import { childProcessResources } from "../soak-child-resources.mjs";
 
 const SOAK_DURATION_MS = process.env.SOAK_DURATION_MS ?? "12000";
 const FLAP_MS = process.env.INTEGRATION_SOAK_FLAP_MS ?? "2000";
 const timeoutMs = Number.parseInt(SOAK_DURATION_MS, 10) + 60_000;
 
-const result = spawnSync(
+const child = spawn(
   "npm",
   [
     "test",
@@ -30,12 +31,20 @@ const result = spawnSync(
       SOAK_DURATION_MS,
       INTEGRATION_SOAK_FLAP_MS: FLAP_MS,
     },
-    timeout: timeoutMs,
   },
 );
+const resources = childProcessResources({
+  id: "integration-soak",
+  rootPid: child.pid,
+});
+const timeout = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
+const status = await new Promise((resolve) => {
+  child.once("error", () => resolve(1));
+  child.once("exit", (code) => resolve(code ?? 1));
+});
+clearTimeout(timeout);
+const verdict = resources.finish();
 
-if (result.status !== 0) {
-  process.exit(result.status ?? 1);
-}
+if (status !== 0 || verdict.status === "fail") process.exit(status || 1);
 
 console.log(`integration-soak: passed (${SOAK_DURATION_MS}ms window)`);

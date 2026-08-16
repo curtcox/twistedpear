@@ -40,7 +40,7 @@ const DEFAULTS = {
   maxHandleGrowthPerMinute: 2,
 };
 
-function rules() {
+export function soakResourceRules() {
   try {
     const loaded = JSON.parse(
       fs.readFileSync(path.join(ROOT, "soak-rules.json"), "utf8"),
@@ -135,7 +135,7 @@ export function bucketFloor(samples, buckets, value) {
  * a pass would be the same lie as the benchmark baseline of zeros. Only the
  * nightly, plan-duration runs produce a verdict.
  *
- * @param {{atMs: number, rss: number, heapUsed: number, handles: number}[]} samples
+ * @param {{atMs: number, rss: number, heapUsed?: number, handles: number}[]} samples
  * @param {typeof DEFAULTS} limits
  */
 export function judge(samples, limits) {
@@ -161,11 +161,15 @@ export function judge(samples, limits) {
     };
   }
 
-  const heap = bucketFloor(warm, limits.buckets, (sample) => sample.heapUsed);
+  const hasHeap = warm.every((sample) => Number.isFinite(sample.heapUsed));
+  const heap = hasHeap
+    ? bucketFloor(warm, limits.buckets, (sample) => sample.heapUsed)
+    : null;
   const rss = bucketFloor(warm, limits.buckets, (sample) => sample.rss);
   const handles = bucketFloor(warm, limits.buckets, (sample) => sample.handles);
   const growth = {
-    heapUsedBytesPerMinute: Math.round(slope(heap.minutes, heap.values)),
+    heapUsedBytesPerMinute:
+      heap === null ? null : Math.round(slope(heap.minutes, heap.values)),
     rssBytesPerMinute: Math.round(slope(rss.minutes, rss.values)),
     handlesPerMinute:
       Math.round(slope(handles.minutes, handles.values) * 100) / 100,
@@ -177,11 +181,12 @@ export function judge(samples, limits) {
       findings.push(`${label} grew ${measured}/min, limit ${limit}/min`);
     }
   };
-  check(
-    growth.heapUsedBytesPerMinute,
-    limits.maxHeapGrowthBytesPerMinute,
-    "heapUsed bytes",
-  );
+  if (growth.heapUsedBytesPerMinute !== null)
+    check(
+      growth.heapUsedBytesPerMinute,
+      limits.maxHeapGrowthBytesPerMinute,
+      "heapUsed bytes",
+    );
   check(
     growth.rssBytesPerMinute,
     limits.maxRssGrowthBytesPerMinute,
@@ -208,7 +213,7 @@ export function judge(samples, limits) {
  * @param {{id: string, write?: (line: string) => void, now?: () => number}} options
  */
 export function soakResources(options) {
-  const limits = rules();
+  const limits = soakResourceRules();
   const now = options.now ?? Date.now;
   const write = options.write ?? ((line) => console.log(line));
   const samples = [];
