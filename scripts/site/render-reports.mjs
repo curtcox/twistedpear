@@ -20,7 +20,7 @@ function renderMetric(metric) {
 }
 
 function escapeMd(s) {
-  return String(s ?? "").replace(/\|/g, "\\|");
+  return String(s ?? "").replaceAll("\\", "\\\\").replaceAll("|", "\\|");
 }
 
 function formatDuration(ms) {

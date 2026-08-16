@@ -16,6 +16,9 @@ on:
       - ".github/workflows/formal-symbolic.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   symbolic:
     runs-on: ubuntu-latest

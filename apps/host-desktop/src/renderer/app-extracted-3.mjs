@@ -51,6 +51,7 @@ export function showPeerCodeExchangeImpl(__scope, message) {
                 : message.type === "peer-ntfy-present"
                   ? "Share a private ntfy lookup code"
                   : "Share peer invitation";
+  __scope.modalEl.setAttribute("aria-label", heading.textContent);
   const disclosure = document.createElement("p");
   disclosure.className = "muted";
   const isNtfy =
@@ -202,6 +203,7 @@ export async function showQrScannerImpl(__scope, target, purpose) {
   __scope.modalEl.replaceChildren();
   const title = document.createElement("h3");
   title.textContent = `Scan ${purpose} QR`;
+  __scope.modalEl.setAttribute("aria-label", title.textContent);
   const video = document.createElement("video");
   video.className = "qr-scanner-video";
   video.autoplay = true;
@@ -274,6 +276,7 @@ export function showHostModalImpl(
   __scope.modalEl.replaceChildren();
   const heading = document.createElement("h3");
   heading.textContent = title;
+  __scope.modalEl.setAttribute("aria-label", title);
   __scope.modalEl.appendChild(heading);
   if (fingerprint) {
     const fp = document.createElement("p");

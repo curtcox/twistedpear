@@ -14,6 +14,9 @@ export const VISUAL_BASELINES = [
   "guide/images/02-desktop-main-window.png",
   "guide/images/06-grants.png",
   "guide/images/05-capability-review.png",
+  "guide/images/06-host-confirmation.png",
+  "guide/images/06-runtime-controls.png",
+  "guide/images/08-untrusted-publisher.png",
 ];
 
 export function changedImages(before, after) {

@@ -53,6 +53,10 @@ import {
   captureHandbookWidgetTree,
   writeCapturePage,
 } from "../docs/handbook-capture-lib.mjs";
+import {
+  desktopHostMock,
+  startStaticServer,
+} from "../docs/capture-reader-guide-ui-lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
@@ -171,34 +175,104 @@ async function scanReaderScenes(browser) {
 
 /** The desktop host's shipped renderer shell, with its status grid populated. */
 async function scanDesktopHost(browser) {
-  const rendererHtml = join(
-    repoRoot,
-    "apps/host-desktop/src/renderer/index.html",
-  );
-  const filled = await withPage(
-    browser,
-    { width: 960, height: 720 },
-    async (page) => {
-      await page.goto(`file://${rendererHtml}`, { waitUntil: "load" });
-      // The same fixture `capture-desktop-host-ui.mjs` uses. An empty shell
-      // passes trivially; the lists are where labelling and structure live.
-      await page.evaluate(() => {
-        const grid = document.getElementById("status-grid");
-        if (grid) {
-          grid.innerHTML =
-            "<dt>Running</dt><dd>yes</dd><dt>Identity</dt><dd>17a5be8a…c4cc27b3</dd><dt>Transport</dt><dd>enabled</dd>";
-        }
-        const catalog = document.getElementById("catalog-list");
-        if (catalog) {
-          catalog.innerHTML =
-            "<li><strong>handbook</strong> v0.1.0 — TwistedPear</li><li><strong>chat</strong> v0.1.0 — TwistedPear</li>";
-        }
-      });
-      await page.evaluate(axeSource);
-      return scanTwice(page, null, "desktop-host");
-    },
-  );
-  return { "desktop-host": filled };
+  const rendererRoot = join(repoRoot, "apps/host-desktop/src/renderer");
+  const server = await startStaticServer(rendererRoot);
+  try {
+    return await withPage(
+      browser,
+      { width: 960, height: 720 },
+      async (page) => {
+        await page.addInitScript(desktopHostMock, {
+          emitName: "__TP_A11Y_EMIT__",
+          messagesName: "__TP_A11Y_MESSAGES__",
+        });
+        await page.goto(server.url, { waitUntil: "load" });
+        await page.waitForFunction(
+          () => globalThis.__TP_RENDERER_LISTENING__ === true,
+        );
+        // The same fixture `capture-desktop-host-ui.mjs` uses. An empty shell
+        // passes trivially; the lists are where labelling and structure live.
+        await page.evaluate(() => {
+          const grid = document.getElementById("status-grid");
+          if (grid) {
+            grid.innerHTML =
+              "<dt>Running</dt><dd>yes</dd><dt>Identity</dt><dd>17a5be8a…c4cc27b3</dd><dt>Transport</dt><dd>enabled</dd>";
+          }
+        });
+        await page.evaluate(axeSource);
+        const surfaces = {
+          "desktop-host": await scanTwice(page, null, "desktop-host"),
+        };
+        await page.evaluate(() =>
+          globalThis.__TP_A11Y_EMIT__({
+            type: "install-review",
+            token: "a11y-install",
+            appId: "field-log",
+            version: "1.2.3",
+            trusted: false,
+            publisherPublicKey: "publisher-0123456789abcdef",
+            capabilities: [
+              {
+                id: "storage:kv",
+                description: "Save observations",
+                granted: true,
+              },
+              {
+                id: "location",
+                description: "Read current location",
+                granted: false,
+              },
+            ],
+          }),
+        );
+        surfaces["desktop-capability-review"] = await scanTwice(
+          page,
+          "#host-modal",
+          "desktop-capability-review",
+        );
+        await page.locator("#host-modal button").first().click();
+        await page.evaluate(() => {
+          globalThis.__TP_A11Y_EMIT__({
+            type: "installed",
+            packages: [
+              {
+                appId: "field-log",
+                version: "1.2.3",
+                publisherPublicKey: "publisher-0123456789abcdef",
+                capabilities: ["storage:kv", "location"],
+              },
+            ],
+          });
+          globalThis.__TP_A11Y_EMIT__({
+            type: "grants",
+            appId: "field-log",
+            capabilities: [
+              {
+                id: "storage:kv",
+                description: "Save observations",
+                declared: true,
+                granted: true,
+              },
+              {
+                id: "location",
+                description: "Read current location",
+                declared: true,
+                granted: true,
+              },
+            ],
+          });
+        });
+        surfaces["desktop-grants"] = await scanTwice(
+          page,
+          "#grants-panel",
+          "desktop-grants",
+        );
+        return surfaces;
+      },
+    );
+  } finally {
+    await server.close();
+  }
 }
 
 function loadRatchet() {

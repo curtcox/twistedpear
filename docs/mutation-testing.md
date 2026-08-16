@@ -11,12 +11,13 @@ change. This document covers the nightly `mutation` gate and the cheap `mutation
 PR gate that guards its floors; the rest of the analysis gates are in
 [static analysis](static-analysis.md).
 
-Nightly Stryker analysis covers nine packages. It measures all authored sources in
-`protocol`, `effects`, `reticulum-ts`, `lxmf-ts`, `cas-256t`, and `host-core`, plus the
+Nightly Stryker analysis covers eleven packages. It measures all authored sources in
+`protocol`, `effects`, `reticulum-ts`, `lxmf-ts`, `cas-256t`, `host-core`,
+`app-registry`, and `bridge-freenet`, plus the
 authority, authentication, replay, policy, sandbox, and framing seams in
 `miniapp-runtime`, `peer-discovery`, and `reticulum-interfaces`. It ignores static mutants
 that would exceed the CI time budget. Each package runs as an isolated shard with only its
-package and related conformance tests loaded; the gate merges the nine reports into
+package and related conformance tests loaded; the gate merges the eleven reports into
 `reports/mutation/mutation.json`. This avoids loading the entire native-backed test suite
 inside every Stryker worker and makes a failed package attributable. `mutation-ratchet.json`
 holds one floor per mutated package plus the combined figure, and the cheap
@@ -40,6 +41,8 @@ wire-compatible stacks, where a silently wrong byte is the entire failure mode, 
 | `packages/lxmf-ts`              | 49.40%         | high                  |
 | `packages/host-core`            | 48.52%         | high                  |
 | `packages/reticulum-ts`         | 46.39%         | high                  |
+| `packages/bridge-freenet`       | 51.76%         | ratcheted             |
+| `packages/app-registry`         | 47.89%         | ratcheted             |
 
 Better than half of all mutations survive in the three lowest, against coverage numbers
 that look healthy — which is the entire argument for measuring this at all. The survey
@@ -65,10 +68,11 @@ silently.
 
 ### Why the combined floor fell
 
-Widening the scope moved the combined figure from 70.06% to 62.62% without a single
-package regressing. The combined figure is a mutant-weighted average, so it is a statement
-about one set of packages and is not comparable across two: 13 573 new mutants scoring
-around 47% against protocol's 25 040 at 71.7% moves the average by arithmetic alone.
+Widening the original scope moved the combined figure from 70.06% to 62.62% without a
+single package regressing. Adding `app-registry` and `bridge-freenet` later expanded it
+again by 1,802 scored mutants and established a 62.05% combined floor. The combined
+figure is a mutant-weighted average, so it is a statement about one set of packages and
+is not comparable across two.
 
 `comparePolicy` therefore skips the combined comparison **only when the package set
 differs**, and never for anything else. Failing on it would mean the ratchet punishes

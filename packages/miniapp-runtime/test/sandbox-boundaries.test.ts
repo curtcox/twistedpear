@@ -128,6 +128,11 @@ describe("sandbox bundle preparation", () => {
         'import { render, send as transmit } from "@twistedpear/miniapp-sdk";\nrender();',
       ),
     ).toBe("const { render, send as transmit } = sdk;\nrender();");
+    expect(
+      prepareBundleSource(
+        "\"use strict\";\nimport { render } from '@twistedpear/miniapp-sdk';\nrender();",
+      ),
+    ).toBe('"use strict";\nconst { render } = sdk;\nrender();');
   });
 
   it("leaves unrelated sources unchanged", () => {

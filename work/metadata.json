@@ -391,6 +391,8 @@
       "requires": [],
       "verify": "npm run lint:python",
       "added": "2026-08-16",
+      "completed": "2026-08-16",
+      "evidence": ["scripts/languages/check.mjs", ".config/ruff.toml"],
       "notes": "scripts/languages/check.mjs runs ruff from the repo root without --config, and ruff only discovers ruff.toml/.ruff.toml/pyproject.toml beside the file or in an ancestor — never .config/ruff.toml. Nothing else in the tree references that file either, so its select = [E, F, I, UP, B] and line-length = 100 have never applied: the gate has been running ruff's defaults (E4/E7/E9/F, line-length 88). Passing --config .config/ruff.toml turns on I/UP/B across every tracked .py file, so it needs its own baselining decision rather than a one-line change."
     },
     "PD-AI": {

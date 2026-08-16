@@ -24,7 +24,15 @@ import { MUTATED_PACKAGES, MUTATION_TARGETS } from "../../stryker.config.mjs";
 
 describe("mutation scope", () => {
   it("keeps every mutated package explicit and selectively covers new seams", () => {
-    expect(MUTATED_PACKAGES).toHaveLength(9);
+    expect(MUTATED_PACKAGES).toHaveLength(11);
+    expect(MUTATION_TARGETS["app-registry"]).toEqual([
+      "packages/app-registry/src/**/*.ts",
+    ]);
+    expect(MUTATION_TARGETS["bridge-freenet"]).toEqual([
+      "packages/bridge-freenet/src/core/**/*.ts",
+      "packages/bridge-freenet/src/client/**/*.ts",
+      "packages/bridge-freenet/src/server/**/*.ts",
+    ]);
     expect(MUTATION_TARGETS["miniapp-runtime"]).toContain(
       "packages/miniapp-runtime/src/security-policies.ts",
     );

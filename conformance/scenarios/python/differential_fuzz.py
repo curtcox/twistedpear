@@ -53,9 +53,7 @@ def canonical(value: Any) -> str:
     if isinstance(value, (list, tuple)):
         return "[" + ",".join(canonical(item) for item in value) + "]"
     if isinstance(value, dict):
-        entries = sorted(
-            f"{canonical(key)}={canonical(item)}" for key, item in value.items()
-        )
+        entries = sorted(f"{canonical(key)}={canonical(item)}" for key, item in value.items())
         return "m{" + ",".join(entries) + "}"
     return "?:" + type(value).__name__
 
@@ -160,8 +158,7 @@ def verdict_for(target: str, data: bytes) -> dict[str, Any]:
 def main() -> int:
     request = json.load(sys.stdin)
     verdicts = [
-        verdict_for(case["target"], bytes.fromhex(case["inputHex"]))
-        for case in request["cases"]
+        verdict_for(case["target"], bytes.fromhex(case["inputHex"])) for case in request["cases"]
     ]
     json.dump(
         {

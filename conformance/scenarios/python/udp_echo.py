@@ -63,4 +63,4 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        raise SystemExit(0)
+        raise SystemExit(0) from None

@@ -11,11 +11,17 @@ The normal `test:web-examples` gate is the fast Chromium check. The
 behavioral harness under pinned Firefox and WebKit. This exposes browser-specific
 worker, storage, and package-loading failures without duplicating the scenarios.
 
-`npm run visual:check` regenerates only the desktop main, capability-review, and grants
-reader-guide scenes with pinned Chromium on the macOS CI runner. It compares PNG bytes
-exactly and restores the committed files after the comparison, whether the check passes
-or fails. Intentional UI changes use `npm run visual:baseline`; reviewers inspect the
-updated images together with the UI change.
+`npm run visual:check` regenerates six critical reader-guide scenes with pinned Chromium
+on the macOS CI runner: desktop main, capability review, grants, host confirmation,
+runtime controls, and an untrusted publisher. It compares PNG bytes exactly and restores
+the committed files after the comparison, whether the check passes or fails. Intentional
+UI changes use `npm run visual:baseline`; reviewers inspect the updated images together
+with the UI change.
+
+`npm run test:ui-invariants` complements those pixels with behavior. It loads the real
+desktop renderer against a controlled preload bridge and proves that publisher identity
+and capability rationale are visible, denial stays host-owned, trust details are one
+interaction away, and a grant can actually be revoked.
 
 Both gates publish structured artifacts through the normal checks registry and Pages
 metrics workflow. Firefox, WebKit, and Chromium are separate tool requirements so the

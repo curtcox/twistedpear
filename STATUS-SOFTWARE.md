@@ -57,7 +57,6 @@ and `npm run work:next` picks the next item from this table. See
 | ID-JOURNAL        | open   | Encrypted append-only account journal over certified installation destinations | —        | `npx vitest run packages/host-core/test/account-journal.test.ts`            |
 | ID-LINKED-MODE    | open   | One-way linked-mode switch with both hashes shown before confirmation          | —        | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`         |
 | ID-SIBLING-CHROME | open   | Chrome and store wiring for held sibling decisions                             | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`   |
-| LINT-RUFF-CONFIG  | open   | Make the lint:python gate actually read .config/ruff.toml                      | —        | `npm run lint:python`                                                       |
 
 ## Optional and non-blocking backlog
 

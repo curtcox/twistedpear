@@ -65,6 +65,7 @@ const DESCRIPTION =
  * @returns {Map<string, string>}
  */
 function runOnce(index) {
+  const seed = RULES.seed + index;
   const output = path.join(
     fs.mkdtempSync(path.join(os.tmpdir(), "tp-flake-")),
     "results.json",
@@ -76,7 +77,9 @@ function runOnce(index) {
       "run",
       "--reporter=json",
       `--outputFile=${output}`,
-      ...(RULES.shuffle ? ["--sequence.shuffle"] : []),
+      ...(RULES.shuffle
+        ? ["--sequence.shuffle", `--sequence.seed=${seed}`]
+        : []),
     ],
     {
       cwd: ROOT,
@@ -105,7 +108,7 @@ function runOnce(index) {
       statuses.set(`${relative} > ${assertion.fullName}`, assertion.status);
     }
   }
-  return statuses;
+  return { seed, statuses };
 }
 
 const observations = [];
@@ -122,13 +125,17 @@ for (let index = 0; index < runs; index += 1) {
  * statuses and compared like any other — a test that is skipped in one run and
  * runs in another is conditionally skipped, which is its own kind of untrustworthy.
  */
-const everyTest = new Set(observations.flatMap((run) => [...run.keys()]));
+const everyTest = new Set(
+  observations.flatMap((run) => [...run.statuses.keys()]),
+);
 const findings = [];
 for (const test of [...everyTest].sort()) {
-  const seen = observations.map((run) => run.get(test) ?? "absent");
+  const seen = observations.map((run) => run.statuses.get(test) ?? "absent");
   const distinct = [...new Set(seen)];
   if (distinct.length > 1) {
-    findings.push(`${test} [${seen.join(",")}]`);
+    findings.push(
+      `${test} [${observations.map((run, index) => `seed=${run.seed}:${seen[index]}`).join(",")}]`,
+    );
   }
 }
 
@@ -147,6 +154,7 @@ writeJson(path.join(ROOT, "artifacts", "flake", "flake.json"), {
   generatedAt: new Date().toISOString(),
   runs,
   shuffle: RULES.shuffle,
+  seeds: observations.map((run) => run.seed),
   testsObserved: everyTest.size,
   flaky: findings,
 });

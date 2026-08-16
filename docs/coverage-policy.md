@@ -9,6 +9,15 @@ register: none
 This document describes the per-file policy layered beneath the aggregate coverage
 ratchet in [Static analysis](static-analysis.md).
 
+## Absolute workspace floors
+
+The monotonic ratchet prevents a workspace from getting worse relative to its recorded
+measurement, while `coverage-rules.json` sets an independent minimum for the protocol,
+effects, host orchestration, mini-app runtime, Reticulum/LXMF stacks, and every app.
+These floors are deliberately conservative current-score floors: they make accidental
+baseline loss or a broad coverage collapse fail even when there is no usable comparison
+branch. The ratchet can still tighten above them.
+
 ## New-file floor
 
 The coverage ratchet is a per-workspace aggregate, and an aggregate cannot see a new

@@ -1,8 +1,10 @@
 {
   "version": 1,
-  "description": "Mutation score floors: one per mutated package, plus the combined figure across all of them. All may only rise. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries roughly 25,000 of the roughly 42,500 mutants, so a smaller package can fall sharply while barely moving the combined score. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes.",
-  "combined": 62.6,
+  "description": "Mutation score floors: one per mutated package, plus the combined figure across all of them. All may only rise. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries roughly 25,000 of more than 44,000 mutants, so a smaller package can fall sharply while barely moving the combined score. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes.",
+  "combined": 62.05,
   "packages": {
+    "packages/app-registry": 47.89,
+    "packages/bridge-freenet": 51.76,
     "packages/cas-256t": 69.51,
     "packages/effects": 52.08,
     "packages/host-core": 48.52,

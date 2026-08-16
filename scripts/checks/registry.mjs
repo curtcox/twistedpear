@@ -324,6 +324,14 @@ export const gates = [
     "web-examples",
   ),
   gate(
+    "ui-invariants",
+    "Trust UI behavioral invariants",
+    "test:ui-invariants",
+    "pr",
+    ["node", "chromium"],
+    ["artifacts/ui-invariants/ui-invariants.json"],
+  ),
+  gate(
     "visual-regression",
     "Critical desktop visual regression",
     "visual:check",
@@ -336,7 +344,7 @@ export const gates = [
   // The first accessibility check in the repository. It scans the Handbook
   // reader — rendered from its real widget tree through react-native-web, the
   // same way the documentation screenshots are captured — and the desktop
-  // host's shipped renderer shell. Deliberately *not* the fourteen
+  // host's shipped renderer, capability review, and grants state. Deliberately *not* the fourteen
   // `conformance/web-*` harnesses: their pages are a `<script>` tag in an empty
   // body, so axe there would report on nothing.
   gate(
@@ -667,6 +675,14 @@ export const gates = [
     "nightly",
     ["node", "network"],
     ["artifacts/security/provenance.json"],
+  ),
+  gate(
+    "codeql-alerts",
+    "Open CodeQL alert ratchet",
+    "codeql:check",
+    "nightly",
+    ["node", "network"],
+    ["artifacts/security/codeql-alerts.json", "codeql-ratchet.json"],
   ),
   gate(
     "mutation",

@@ -114,7 +114,9 @@ def main() -> int:
     delivery_destination.announce()
 
     print(
-        f"READY echo={echo_in.hash.hex()} link={link_in.hash.hex()} lxmf={delivery_destination.hash.hex()}",
+        "READY "
+        f"echo={echo_in.hash.hex()} link={link_in.hash.hex()} "
+        f"lxmf={delivery_destination.hash.hex()}",
         flush=True,
     )
 
@@ -139,4 +141,4 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        raise SystemExit(0)
+        raise SystemExit(0) from None

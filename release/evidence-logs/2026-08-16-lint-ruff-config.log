@@ -1,0 +1,8 @@
+
+> twistedpear@0.0.0 lint:python
+> node scripts/languages/check.mjs python
+
+All checks passed!
+18 files already formatted
+Success: no issues found in 2 source files
+python analysis: PASS; 0 new, 0 stale.

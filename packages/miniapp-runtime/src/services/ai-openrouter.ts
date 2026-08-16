@@ -69,7 +69,8 @@ export function createOpenRouterBackend(
 ): AiChatBackend {
   const configuredFetch =
     options.fetchImpl ?? (globalThis as { fetch?: typeof fetch }).fetch;
-  const baseUrl = options.baseUrl.replace(/\/+$/, "");
+  let baseUrl = options.baseUrl;
+  while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
 
   return {
     async chat(

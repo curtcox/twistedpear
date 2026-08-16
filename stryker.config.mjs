@@ -20,6 +20,12 @@ export const MUTATION_TARGETS = {
   "lxmf-ts": ["packages/lxmf-ts/src/**/*.ts"],
   "cas-256t": ["packages/cas-256t/src/**/*.ts"],
   "host-core": ["packages/host-core/src/**/*.ts"],
+  "app-registry": ["packages/app-registry/src/**/*.ts"],
+  "bridge-freenet": [
+    "packages/bridge-freenet/src/core/**/*.ts",
+    "packages/bridge-freenet/src/client/**/*.ts",
+    "packages/bridge-freenet/src/server/**/*.ts",
+  ],
   // These packages are substantially larger or contain hardware adapters.
   // Mutate their authority, authentication, replay, policy, and wire-framing
   // seams first: they are deterministic, security-sensitive, and have focused

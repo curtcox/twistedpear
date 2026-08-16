@@ -147,17 +147,13 @@ def parse_entries(text: str) -> list[Entry]:
                 )
 
             if key in fields:
-                raise ParseError(
-                    f"Line {line_no}: duplicate key {key!r} in same entry."
-                )
+                raise ParseError(f"Line {line_no}: duplicate key {key!r} in same entry.")
 
             fields[key] = value
 
         if "command" not in fields or not fields["command"]:
             first_line = raw_entry[0][0] if raw_entry else "unknown"
-            raise ParseError(
-                f"Entry starting at line {first_line}: command: is required."
-            )
+            raise ParseError(f"Entry starting at line {first_line}: command: is required.")
 
         entries.append(
             Entry(
@@ -223,11 +219,7 @@ def _is_macos_system_python(python: str) -> bool:
 def _available_image_backends(master: tk.Misc, sample_png: str | None) -> list[str]:
     backends: list[str] = []
 
-    if (
-        sample_png
-        and os.path.isfile(sample_png)
-        and _tk_supports_png(master, sample_png)
-    ):
+    if sample_png and os.path.isfile(sample_png) and _tk_supports_png(master, sample_png):
         backends.append("tk-png")
     if _has_pillow():
         backends.append("pillow")
@@ -388,9 +380,7 @@ def _ensure_image_support(entries: list[Entry], master: tk.Misc) -> PreviewImage
     if not image_paths:
         return PreviewImageLoader(master)
 
-    missing = [
-        path for path in image_paths if not os.path.isfile(_resolve_image_path(path))
-    ]
+    missing = [path for path in image_paths if not os.path.isfile(_resolve_image_path(path))]
     if missing:
         print(
             "launcher.py: Preview image file(s) not found "
@@ -478,9 +468,7 @@ class LauncherApp(tk.Tk):
         text_col = 1
         card.columnconfigure(text_col, weight=1)
 
-        name = ttk.Label(
-            card, text=entry.name or f"Tool {index + 1}", font=("", 13, "bold")
-        )
+        name = ttk.Label(card, text=entry.name or f"Tool {index + 1}", font=("", 13, "bold"))
         name.grid(row=0, column=text_col, sticky=tk.W)
 
         desc = ttk.Label(

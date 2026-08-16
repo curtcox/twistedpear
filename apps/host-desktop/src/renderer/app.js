@@ -43,6 +43,7 @@ const grantsPanel = document.querySelector("#grants-panel");
 const logEl = document.querySelector("#log");
 const widgetRoot = document.querySelector("#widget-root");
 const miniappTitle = document.querySelector("#miniapp-title");
+const miniappTrust = document.querySelector("#miniapp-trust");
 const closeMiniapp = document.querySelector("#close-miniapp");
 const previewRoot = document.querySelector("#preview-root");
 const stopPreview = document.querySelector("#stop-preview");
@@ -499,6 +500,7 @@ const shellScope = {
   limitKv,
   limitMemory,
   forceQuit,
+  miniappTrust,
   closeMiniapp,
   stopPreview,
   install256tInput,
@@ -507,6 +509,16 @@ const shellScope = {
   catalogEntries,
   installedPackages,
 };
+
+// Object spread snapshots accessors as plain values. Restore the live state
+// descriptors so inbound worklet messages update the renderer state that the
+// extracted render helpers read, rather than a disconnected copy.
+for (const [name, descriptor] of Object.entries(
+  Object.getOwnPropertyDescriptors(extractedContext),
+)) {
+  if (descriptor.get || descriptor.set)
+    Object.defineProperty(shellScope, name, descriptor);
+}
 
 if (!host) {
   appendLog("Preload bridge unavailable");

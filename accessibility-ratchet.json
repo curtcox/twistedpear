@@ -8,6 +8,8 @@
     "openFinding": "`color-contrast` is a real, unfixed finding in the reader: `brand`, `toc-heading`, `chapter-part` and their siblings are muted greys that miss the 4.5:1 threshold. It is recorded rather than fixed because changing shipped UI colours is a design decision, not a gate change. The floor is what stops it spreading."
   },
   "surfaces": {
+    "desktop-capability-review": {},
+    "desktop-grants": {},
     "desktop-host": {},
     "handbook-chapter": {
       "color-contrast": 16

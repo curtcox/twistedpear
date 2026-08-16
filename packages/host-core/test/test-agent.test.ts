@@ -55,12 +55,14 @@ async function startControlServer(): Promise<ControlServer> {
           const label = String(frame.label);
           sockets.set(label, socket);
           hellos.set(label, frame);
-          helloWaiters.get(label)?.(frame);
+          const waiter = helloWaiters.get(label);
+          if (waiter !== undefined) waiter(frame);
           helloWaiters.delete(label);
           continue;
         }
         if (typeof frame.id === "number") {
-          pending.get(frame.id)?.(frame);
+          const waiter = pending.get(frame.id);
+          if (waiter !== undefined) waiter(frame);
           pending.delete(frame.id);
         }
       }

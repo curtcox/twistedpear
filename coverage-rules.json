@@ -5,7 +5,22 @@
   "defaults": { "statements": 0, "branches": 0, "functions": 0 },
   "packages": {
     "packages/protocol": { "statements": 89, "branches": 79, "functions": 90 },
-    "packages/effects": { "statements": 80, "branches": 70, "functions": 80 }
+    "packages/effects": { "statements": 80, "branches": 70, "functions": 80 },
+    "packages/host-core": { "statements": 75, "branches": 60, "functions": 75 },
+    "packages/miniapp-runtime": {
+      "statements": 64,
+      "branches": 58,
+      "functions": 65
+    },
+    "packages/reticulum-ts": {
+      "statements": 73,
+      "branches": 60,
+      "functions": 76
+    },
+    "packages/lxmf-ts": { "statements": 78, "branches": 67, "functions": 79 },
+    "apps/host-desktop": { "statements": 3, "branches": 2, "functions": 4 },
+    "apps/harness-mobile": { "statements": 3, "branches": 5, "functions": 2 },
+    "apps/handbook": { "statements": 16, "branches": 18, "functions": 27 }
   },
   "newFile": {
     "description": "Floors for files added since the base ref. The per-workspace ratchet above is an aggregate, so a new file lands behind whatever its workspace already averages: 400 untested lines added to a package sitting at 74% move that number by a point or two and the gate stays green. This applies to the file itself, on the day it arrives, which is the only day its tests are cheap to write. Existing files are unaffected — 80 of them sit at 0% and are held by their workspace ratchet, not by this.",

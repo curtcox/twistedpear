@@ -31,8 +31,25 @@ if (language === "shell") commands.push(["shellcheck", ...tracked(["sh"])]);
 if (language === "python") {
   const files = tracked(["py"]);
   commands.push(
-    ["ruff", "check", "--color", "never", ...files],
-    ["ruff", "format", "--check", "--color", "never", ...files],
+    [
+      "ruff",
+      "check",
+      "--config",
+      ".config/ruff.toml",
+      "--color",
+      "never",
+      ...files,
+    ],
+    [
+      "ruff",
+      "format",
+      "--config",
+      ".config/ruff.toml",
+      "--check",
+      "--color",
+      "never",
+      ...files,
+    ],
     ["mypy", "conformance/vectors/generate.py", "launcher.py"],
   );
 }

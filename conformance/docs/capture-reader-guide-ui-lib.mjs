@@ -11,6 +11,32 @@ import {
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
+/** Install the renderer's preload contract with an in-memory message bus. */
+export function desktopHostMock({ emitName, messagesName }) {
+  const messages = [];
+  const listeners = [];
+  globalThis[messagesName] = messages;
+  globalThis[emitName] = (message) => {
+    for (const listener of listeners) listener(message);
+  };
+  globalThis.twistedPearHost = {
+    getStatus: async () => ({ running: true }),
+    send: async (message) => messages.push(message),
+    getNtfyStatus: async () => ({ configured: false }),
+    ntfyRequest: async () => ({ status: 501, headers: {}, body: "" }),
+    saveIdentityBackup: async () => undefined,
+    openIdentityBackup: async () => null,
+    setIdentityContentProtection: async () => undefined,
+    saveModerationReport: async () => undefined,
+    onWorkletMessage: (listener) => {
+      listeners.push(listener);
+      return () => undefined;
+    },
+    onWorkletExit: () => () => undefined,
+    frozenApi: [],
+  };
+}
 import {
   GrantStore,
   KvStorageBeeBackend,
@@ -275,6 +301,7 @@ function startStaticServer(root) {
       ".html": "text/html",
       ".css": "text/css",
       ".js": "text/javascript",
+      ".mjs": "text/javascript",
       ".json": "application/json",
       ".png": "image/png",
       ".svg": "image/svg+xml",

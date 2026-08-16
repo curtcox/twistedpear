@@ -78,9 +78,7 @@ def main() -> int:
     publisher = load_identity("bob")
     recipient = load_identity(args.recipient)
 
-    lxmf_storage = Path(
-        tempfile.mkdtemp(prefix="twistedpear-propagation-publish-lxmf-")
-    )
+    lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-propagation-publish-lxmf-"))
     atexit.register(shutil.rmtree, lxmf_storage, ignore_errors=True)
     router = LXMF.LXMRouter(storagepath=str(lxmf_storage))
     delivery = router.register_delivery_identity(publisher)
@@ -125,4 +123,4 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        raise SystemExit(0)
+        raise SystemExit(0) from None

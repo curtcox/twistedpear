@@ -137,7 +137,7 @@ describe("gateway bulk fetch handler", () => {
     expect(recorded.body).toEqual(archive);
   });
 
-  it("reports fetcher failures as 502 with the error message", async () => {
+  it("reports fetcher failures without exposing internal error details", async () => {
     const { response, recorded } = recordingResponse();
 
     await createGatewayBulkFetchHttpHandler(async () => {
@@ -148,10 +148,10 @@ describe("gateway bulk fetch handler", () => {
     );
 
     expect(recorded.status).toBe(502);
-    expect(new TextDecoder().decode(recorded.body)).toBe("drive unreachable");
+    expect(new TextDecoder().decode(recorded.body)).toBe("bulk fetch failed");
   });
 
-  it("stringifies non-Error fetcher rejections", async () => {
+  it("sanitizes non-Error fetcher rejections", async () => {
     const { response, recorded } = recordingResponse();
 
     await createGatewayBulkFetchHttpHandler(async () => {
@@ -162,7 +162,7 @@ describe("gateway bulk fetch handler", () => {
     );
 
     expect(recorded.status).toBe(502);
-    expect(new TextDecoder().decode(recorded.body)).toBe("drive exploded");
+    expect(new TextDecoder().decode(recorded.body)).toBe("bulk fetch failed");
   });
 
   it("serves a custom path when configured", async () => {

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Open GitHub CodeQL alerts imported into the unified gate registry; entries may only disappear.",
+  "entries": []
+}

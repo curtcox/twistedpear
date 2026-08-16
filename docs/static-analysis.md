@@ -82,24 +82,25 @@ All finding baselines compare against the PR base branch, not the merge commit. 
 baseline writes only tighten; `--allow-regressions` is required to establish or
 intentionally loosen a baseline.
 
-| Gate                   | Command                                   | Current artifact / baseline                                                                                                                                                                                 |
-| ---------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coverage               | `npm run coverage:check`                  | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors and a new-file floor in `coverage-rules.json`; 0.5 point tolerance |
-| Structure              | `npm run structure:check`                 | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                                                    |
-| Complexity             | `npm run complexity:check`                | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                                                    |
-| Repository lint        | `npm run lint:all`                        | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                                            |
-| Typed lint             | `npm run lint:typed`                      | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                                     |
-| Formatting             | `npm run format:check`                    | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                                        |
-| Properties             | `npm run test:properties`                 | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                                     |
-| Duplication            | `npm run jscpd:check`                     | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                                         |
-| Cognitive complexity   | `npm run cognitive-complexity:check`      | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                                        |
-| Type coverage          | `npm run type-coverage:check`             | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                                     |
-| Structural reliability | `npm run ast-grep:check`                  | missing request deadlines, dropped errors, non-idempotent retries, and locale-dependent comparisons in `ast-grep-ratchet.json`, keyed by rule, file and enclosing symbol                                    |
-| Accessibility          | `npm run a11y:check`                      | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                                     |
-| Cross-browser examples | `npm run test:web-examples:cross-browser` | chat, file-drop, and board lifecycle conformance in pinned Firefox and WebKit, with one structured report per browser                                                                                       |
-| Visual regression      | `npm run visual:check`                    | exact-pixel Chromium captures of the desktop main, capability-review, and grants states on the pinned macOS runner                                                                                          |
-| API signatures         | `npm run api-signatures:check`            | SHA-256 digests of API Extractor's complete signature reports in `api-signatures-policy.json`; report Markdown is published as a CI artifact                                                                |
-| Generated freshness    | `npm run generated:check`                 | schema-derived TypeScript, device capabilities, mobile store posture, and both committed shipping worklet bundles                                                                                           |
+| Gate                   | Command                                   | Current artifact / baseline                                                                                                                                                                                                                         |
+| ---------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coverage               | `npm run coverage:check`                  | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute floors for critical packages and all apps, plus changed-line and new-file floors in `coverage-rules.json`; 0.5 point tolerance |
+| Structure              | `npm run structure:check`                 | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                                                                                            |
+| Complexity             | `npm run complexity:check`                | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                                                                                            |
+| Repository lint        | `npm run lint:all`                        | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                                                                                    |
+| Typed lint             | `npm run lint:typed`                      | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                                                                             |
+| Formatting             | `npm run format:check`                    | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                                                                                |
+| Properties             | `npm run test:properties`                 | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                                                                             |
+| Duplication            | `npm run jscpd:check`                     | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                                                                                 |
+| Cognitive complexity   | `npm run cognitive-complexity:check`      | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                                                                                |
+| Type coverage          | `npm run type-coverage:check`             | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                                                                             |
+| Structural reliability | `npm run ast-grep:check`                  | missing request deadlines, dropped errors, non-idempotent retries, and locale-dependent comparisons in `ast-grep-ratchet.json`, keyed by rule, file and enclosing symbol                                                                            |
+| Accessibility          | `npm run a11y:check`                      | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                                                                             |
+| Trust UI behavior      | `npm run test:ui-invariants`              | real desktop-renderer checks for publisher identity, capability rationale, host-owned denial, trust details, and grant revocation                                                                                                                   |
+| Cross-browser examples | `npm run test:web-examples:cross-browser` | chat, file-drop, and board lifecycle conformance in pinned Firefox and WebKit, with one structured report per browser                                                                                                                               |
+| Visual regression      | `npm run visual:check`                    | exact-pixel Chromium captures of six critical desktop trust, grant, confirmation, and runtime states on the pinned macOS runner                                                                                                                     |
+| API signatures         | `npm run api-signatures:check`            | SHA-256 digests of API Extractor's complete signature reports in `api-signatures-policy.json`; report Markdown is published as a CI artifact                                                                                                        |
+| Generated freshness    | `npm run generated:check`                 | schema-derived TypeScript, device capabilities, mobile store posture, and both committed shipping worklet bundles                                                                                                                                   |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
@@ -247,13 +248,12 @@ and weekly. Kotlin runs with `build-mode: none` so the scan does not inherit the
 prebuild and the plugin-portal download that make the Android build slow and occasionally
 flaky; Swift needs a macOS runner and a real build, because it has no such mode.
 
-CodeQL is a deliberate exception to the three-surface rule that every other check follows
-(runs locally, runs in CI, publishes to `/results/`). Its findings go to the repository's
-Security tab, which the registry cannot read without an API importer, so CodeQL is
-accepted at one surface out of three. That is a known gap, not an oversight: a CodeQL
-finding will not appear on the published results page, and the Security tab has to be read
-directly. Closing it means budgeting for an importer that pulls code-scanning alerts
-through the GitHub API and republishes them as a gate artifact.
+The nightly `codeql-alerts` gate imports open code-scanning alerts through GitHub's API,
+compares their alert number, rule, location, and severity with `codeql-ratchet.json`, and publishes
+`artifacts/security/codeql-alerts.json` through the normal reporting path. Its committed
+baseline is intentionally empty: a known alert remains red until its source is fixed and
+GitHub's next CodeQL scan closes it. Generated web-runtime bundles are excluded at CodeQL
+configuration level, while their authored sources remain analyzed.
 Gitleaks, advisory-policy, dependency-license, CycloneDX SBOM, and nightly npm audit
 commands are registry gates. Advisory exceptions require an ID, reason, and expiry;
 license expressions outside `license-allowlist.json` are ratcheted. GitHub secret scanning
@@ -516,17 +516,17 @@ any other status. Findings go in `flake-ratchet.json` through the same
 one is expected to stay empty, because an entry is a test that cannot be trusted to
 mean anything. The first run over 2819 tests found none.
 
-`flake-rules.json` also carries a `shuffle` switch, off by default. Shuffling finds
-order-dependent tests, which are real bugs and exactly what this gate should catch,
-but enabling it at the same time as introducing the gate would mix two signals in
-the first result. It is a one-line change now that the unshuffled baseline is known
-to be empty.
+`flake-rules.json` enables deterministic shuffling. Each process receives an adjacent
+seed beginning at 424242, and the seed is stored with every observation so an
+order-dependent failure can be replayed exactly. This catches shared globals, ports,
+fake timers, and filesystem state that a fixed order can conceal.
 
 ## Other source languages
 
 Independent Rust, shell, Python, Kotlin, and Swift entries run the pinned external tools
 documented in CI. Rust runs format, Clippy with warnings denied, and cargo-deny for each
-shipped contract. Python runs Ruff check/format and focused mypy. Kotlin uses ktlint;
+shipped contract. Python runs Ruff check/format using the committed
+`.config/ruff.toml` plus focused mypy. Kotlin uses ktlint;
 Swift uses SwiftLint on macOS; shell uses ShellCheck; workflows use actionlint.
 
 The reproducible tool versions are actionlint 1.7.12, Gitleaks 8.30.1, ShellCheck 0.11.0,

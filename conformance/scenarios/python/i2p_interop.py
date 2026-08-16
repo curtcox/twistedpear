@@ -52,9 +52,7 @@ def wait_for_i2p_interface() -> tuple[object, str]:
     )
 
 
-def write_ready_state(
-    destination: str, echo_hash: str, link_hash: str, lxmf_hash: str
-) -> None:
+def write_ready_state(destination: str, echo_hash: str, link_hash: str, lxmf_hash: str) -> None:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     (STATE_DIR / "i2p-b32.txt").write_text(destination, encoding="utf-8")
     print(
@@ -158,4 +156,4 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        raise SystemExit(0)
+        raise SystemExit(0) from None

@@ -55,10 +55,9 @@ export function createGatewayBulkFetchHttpHandler(
     try {
       const archive = await fetcher(query.driveKeyHex, query.version);
       await writeArchiveResponse(request, response, archive, options);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+    } catch {
       response.writeHead(502, { "content-type": "text/plain; charset=utf-8" });
-      response.end(message);
+      response.end("bulk fetch failed");
     }
   };
 }

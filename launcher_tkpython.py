@@ -81,7 +81,8 @@ def _brew_python_tk_install_message(major: int, minor: int, python: str) -> str:
         f"  brew install {brew_python} {brew_tk}\n\n"
         "Then run from the repo root:\n"
         "  ./launch\n"
-        f'  # or: LAUNCHER_PYTHON="$(brew --prefix {brew_python})/bin/python3" python3 launcher.py\n'
+        "  # or: LAUNCHER_PYTHON="
+        f'"$(brew --prefix {brew_python})/bin/python3" python3 launcher.py\n'
     )
 
 
@@ -110,11 +111,7 @@ def _tkinter_python_candidates() -> list[str]:
         if not path:
             return
         resolved = os.path.realpath(path)
-        if (
-            resolved in seen
-            or not os.path.isfile(resolved)
-            or not os.access(resolved, os.X_OK)
-        ):
+        if resolved in seen or not os.path.isfile(resolved) or not os.access(resolved, os.X_OK):
             return
         seen.add(resolved)
         candidates.append(path)
@@ -125,9 +122,7 @@ def _tkinter_python_candidates() -> list[str]:
         add("/usr/bin/python3")
     for name in ("python3", "python"):
         candidate = shutil.which(name)
-        if candidate and not (
-            is_brew_python(candidate) and not python_has_tkinter(candidate)
-        ):
+        if candidate and not (is_brew_python(candidate) and not python_has_tkinter(candidate)):
             add(candidate)
 
     return candidates

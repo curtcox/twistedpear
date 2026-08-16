@@ -265,10 +265,17 @@ export function renderGrantsImpl(__scope, appId, capabilities) {
   }
   __scope.grantsPanel.replaceChildren();
   const heading = document.createElement("p");
+  const pkg = __scope.installedPackages.find((entry) => entry.appId === appId);
   heading.textContent = appId
     ? `Capabilities for ${appId}`
     : "Select an installed app";
   __scope.grantsPanel.appendChild(heading);
+  if (pkg?.publisherPublicKey) {
+    const publisher = document.createElement("p");
+    publisher.className = "fingerprint";
+    publisher.textContent = `Publisher key: ${pkg.publisherPublicKey}`;
+    __scope.grantsPanel.appendChild(publisher);
+  }
   for (const capability of capabilities) {
     const label = document.createElement("label");
     label.className = "grant-row";
@@ -283,9 +290,6 @@ export function renderGrantsImpl(__scope, appId, capabilities) {
         .filter((checkbox) => checkbox.checked)
         .map((checkbox) => checkbox.dataset.capabilityId)
         .filter((id) => typeof id === "string");
-      const pkg = __scope.installedPackages.find(
-        (entry) => entry.appId === appId,
-      );
       if (pkg?.publisherPublicKey && pkg.capabilities) {
         __scope.host?.send({
           type: "set-grants",

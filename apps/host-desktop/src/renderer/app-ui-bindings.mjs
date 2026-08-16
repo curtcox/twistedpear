@@ -26,6 +26,7 @@ export function bindHostChromeControls(scope) {
     limitKv,
     limitMemory,
     forceQuit,
+    miniappTrust,
     closeMiniapp,
     stopPreview,
     install256tInput,
@@ -34,6 +35,22 @@ export function bindHostChromeControls(scope) {
     requestedAppId,
     resetRequestedAppLaunch,
   } = scope;
+
+  miniappTrust?.addEventListener("click", () => {
+    const appId = scope.runningAppId;
+    if (!appId) return;
+    document.body.classList.remove("miniapp-running");
+    const pkg = scope.installedPackages.find((entry) => entry.appId === appId);
+    if (pkg?.publisherPublicKey && pkg.capabilities) {
+      host.send({
+        type: "get-grants",
+        appId,
+        publisherPublicKey: pkg.publisherPublicKey,
+        declaredCapabilities: pkg.capabilities,
+      });
+    }
+    scope.grantsPanel?.closest(".panel")?.scrollIntoView({ block: "start" });
+  });
 
   host.send({ type: "trust-list" });
   globalThis.__TP_RENDERER_LISTENING__ = true;

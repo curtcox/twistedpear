@@ -3,6 +3,9 @@ name: Mobile Emulator Lab
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 # Android: headless proxies + KVM Maestro E1–E5. iOS: macOS Handbook Maestro UI smoke.
 
 jobs:
