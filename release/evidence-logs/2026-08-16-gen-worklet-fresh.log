@@ -1,0 +1,24 @@
+
+> host-desktop@0.1.0 build
+> node scripts/ensure-electron.mjs --best-effort && tsc -b && node scripts/build-renderer-vendor.mjs && node scripts/build-worklet.mjs
+
+desktop renderer QR fallback copied to src/renderer/vendor/jsqr.js
+
+> @twistedpear/miniapp-runtime@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/app-registry@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/reticulum-ts@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/cas-256t@0.1.0 build
+> tsc -b
+
+handbook build: 38 chapter(s), 23 applet(s), 104 seed file(s) → bundle.js; 5 part package(s) → generated/part-packages/
+bundled-catalog: handbook@0.2.0 (378576 B), peer-link@0.1.0 (3731 B), devstudio@0.1.0 (14001 B), chat@0.1.0 (2629 B)
+desktop worklet bundle written to /Users/curt/me/twistedpear/apps/host-desktop/worklet/worklet.bundle

@@ -171,6 +171,8 @@
       "requires": [],
       "verify": "npm run build --workspace=host-desktop && git diff --exit-code apps/host-desktop/worklet/worklet.bundle",
       "added": "2026-08-16",
+      "completed": "2026-08-16",
+      "evidence": ["scripts/analysis/generated-freshness.mjs"],
       "notes": "The tracked bundle embeds the root package.json, so any npm script change leaves it stale, and nothing checks it — CI rebuilds it before use, which is why a stale commit is invisible until someone reads the diff. A freshness check would make the staleness a gate finding rather than a thing each author has to remember."
     },
     "H1": {
