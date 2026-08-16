@@ -210,6 +210,7 @@ export {
 export type {
   RegisteredDestinationOptions,
   RequestHandler,
+  RequestHandlerContext,
   DestinationAllowPolicyValue,
 } from "./registered-destination.js";
 export {

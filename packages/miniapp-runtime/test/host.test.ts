@@ -183,7 +183,13 @@ describe("mini-app host", () => {
       name: "stream-app",
       capabilities: ["ai:chat"],
     };
-    await grants.set("stream-app", "publisher", ["ai:chat"], ["ai:chat"], 1);
+    await grants.set({
+      appId: "stream-app",
+      publisherPublicKey: "publisher",
+      declared: ["ai:chat"],
+      requestedGrants: ["ai:chat"],
+      now: 1,
+    });
     const bundle = new TextEncoder()
       .encode(`import { ai, ui } from "@twistedpear/miniapp-sdk";
 let text = "";
@@ -225,7 +231,13 @@ await ui.render({ root: { id: "root", type: "text", props: { value: text } } });
       name: "search-app",
       capabilities: ["ai:embed"],
     };
-    await grants.set("search-app", "publisher", ["ai:embed"], ["ai:embed"], 1);
+    await grants.set({
+      appId: "search-app",
+      publisherPublicKey: "publisher",
+      declared: ["ai:embed"],
+      requestedGrants: ["ai:embed"],
+      now: 1,
+    });
     const bundle = new TextEncoder()
       .encode(`import { ai, ui } from "@twistedpear/miniapp-sdk";
 const result = await ai.search({ query: "pear", documents: [{ id: "a", text: "apple" }, { id: "b", text: "pear" }], limit: 1 });
@@ -269,7 +281,13 @@ describe("mini-app host (continued)", () => {
       kvBackend: store,
     });
 
-    await grants.set("app", "publisher", ["storage:kv"], ["storage:kv"], 1_000);
+    await grants.set({
+      appId: "app",
+      publisherPublicKey: "publisher",
+      declared: ["storage:kv"],
+      requestedGrants: ["storage:kv"],
+      now: 1_000,
+    });
     const allowed = await host.dispatchRaw(
       {
         id: "1",

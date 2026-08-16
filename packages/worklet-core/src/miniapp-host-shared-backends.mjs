@@ -311,13 +311,13 @@ export function createAppsBackendPreviewAction({
     await stopPreviewHost();
     const previewHost = createPreviewHost();
     const publisherKey = `dev-preview:${appId}`;
-    await previewHost.grantStore.set(
-      manifest.name,
-      publisherKey,
-      manifest.capabilities,
-      grants,
-      now(),
-    );
+    await previewHost.grantStore.set({
+      appId: manifest.name,
+      publisherPublicKey: publisherKey,
+      declared: manifest.capabilities,
+      requestedGrants: grants,
+      now: now(),
+    });
     await previewHost.host.launch(
       {
         name: manifest.name,
@@ -367,13 +367,13 @@ export async function launchWithCapabilityReview({
   }
 
   if (Array.isArray(reply.grants)) {
-    await grantStore.set(
-      record.appId,
-      record.manifest.publisherPublicKey,
-      record.manifest.capabilities,
-      reply.grants,
-      now(),
-    );
+    await grantStore.set({
+      appId: record.appId,
+      publisherPublicKey: record.manifest.publisherPublicKey,
+      declared: record.manifest.capabilities,
+      requestedGrants: reply.grants,
+      now: now(),
+    });
     pushGrants(
       record.appId,
       record.manifest.publisherPublicKey,

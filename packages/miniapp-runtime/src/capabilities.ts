@@ -215,6 +215,15 @@ export interface GrantRecord {
   readonly updatedAt: number;
 }
 
+export interface GrantSetOptions {
+  readonly appId: string;
+  readonly publisherPublicKey: string;
+  readonly declared: ReadonlyArray<string>;
+  readonly requestedGrants: ReadonlyArray<string>;
+  readonly now: number;
+  readonly ttlMs?: number;
+}
+
 export interface GrantKeyValueStore {
   get(key: string): Promise<Uint8Array | null>;
   set(key: string, value: Uint8Array): Promise<void>;
@@ -418,14 +427,15 @@ export class GrantStore {
     return (await this.loadState(appId, publisherPublicKey)).lifecycles ?? {};
   }
 
-  async set(
-    appId: string,
-    publisherPublicKey: string,
-    declared: ReadonlyArray<string>,
-    requestedGrants: ReadonlyArray<string>,
-    now: number,
-    ttlMs = Number.MAX_SAFE_INTEGER - now,
-  ): Promise<GrantRecord> {
+  async set(options: GrantSetOptions): Promise<GrantRecord> {
+    const {
+      appId,
+      publisherPublicKey,
+      declared,
+      requestedGrants,
+      now,
+      ttlMs = Number.MAX_SAFE_INTEGER - now,
+    } = options;
     const declaredCapabilities = validateManifestCapabilities(declared);
     const requested = validateManifestCapabilities(requestedGrants);
     const before = await this.loadState(appId, publisherPublicKey);

@@ -200,7 +200,7 @@ export class PropagationServer {
   registerHandlers(destination: RegisteredDestination): void {
     destination.registerRequestHandler(
       MESSAGE_GET_PATH,
-      (_path, data, _requestId, _linkId, remoteIdentity) => {
+      ({ data, remoteIdentity }) => {
         const clientKey =
           remoteIdentity === null
             ? "anonymous"

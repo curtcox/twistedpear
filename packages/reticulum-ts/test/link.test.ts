@@ -122,7 +122,7 @@ describe("Link request/response", () => {
 
     rightIn.registerRequestHandler(
       "/echo",
-      (_path, data) => (data === null ? null : msgpackPackBin(data)),
+      ({ data }) => (data === null ? null : msgpackPackBin(data)),
       DestinationAllowPolicy.ALLOW_ALL,
     );
 

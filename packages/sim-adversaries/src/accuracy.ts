@@ -250,7 +250,13 @@ function handshakeHistoricalOutcome(
 
 async function grantHistoricalOutcome(drift: boolean): Promise<string | null> {
   const store = new GrantStore(new HistoricalGrantBackend());
-  await store.set("historical", "publisher", ["identity"], ["identity"], 0);
+  await store.set({
+    appId: "historical",
+    publisherPublicKey: "publisher",
+    declared: ["identity"],
+    requestedGrants: ["identity"],
+    now: 0,
+  });
   await store.use("historical", "publisher", "identity", 1);
   if (!drift) await store.revoke("historical", "publisher", "identity", 2);
   const replay = await store.use("historical", "publisher", "identity", 3);

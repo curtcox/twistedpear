@@ -85,6 +85,15 @@ export interface DeviceStreamConstraints {
   readonly codec?: "vp8" | "vp9" | "h264" | "opus" | "pcm" | "jpeg";
 }
 
+export interface DeviceStreamOptions {
+  readonly appId: string;
+  readonly declared: ReadonlyArray<string>;
+  readonly granted: ReadonlyArray<string>;
+  readonly sessionHandle: DeviceSessionHandle;
+  readonly peer: DevicePeerHandle;
+  readonly constraints?: DeviceStreamConstraints | undefined;
+}
+
 export interface DeviceStreamSession {
   readonly handle: DeviceStreamHandle;
   readonly session: DeviceSessionHandle;

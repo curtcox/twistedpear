@@ -90,13 +90,13 @@ describe("two-host realtime media loopback", () => {
       maxRung: "16k-opus",
       ttlMs: 30_000,
     });
-    await sender.stream(
-      "sender-app",
-      ["device:microphone:pcm", "device:stream"],
-      ["device:microphone:pcm", "device:stream"],
-      session.handle,
-      "peer-receiver",
-    );
+    await sender.stream({
+      appId: "sender-app",
+      declared: ["device:microphone:pcm", "device:stream"],
+      granted: ["device:microphone:pcm", "device:stream"],
+      sessionHandle: session.handle,
+      peer: "peer-receiver",
+    });
     await sender.read("sender-app", session.handle);
     await vi.waitFor(() => expect(frames.length).toBeGreaterThan(0));
     const frame = decodeDeviceStreamFrame(frames[0]!);

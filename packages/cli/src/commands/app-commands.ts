@@ -266,14 +266,14 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
   });
 
   if (isSeederStateDir(config.seederAddress)) {
-    const evicted = registerDriveWithSeederQuota(
-      resolveFromCwd(ctx.cwd, config.seederAddress),
-      keyHex,
-      published.version,
-      published.packageHash,
-      archive,
-      DEFAULT_QUOTAS.seedStorageBytes,
-    );
+    const evicted = registerDriveWithSeederQuota({
+      stateDir: resolveFromCwd(ctx.cwd, config.seederAddress),
+      driveKey: keyHex,
+      version: published.version,
+      packageHash: published.packageHash,
+      archiveBytes: archive,
+      quotaBytes: DEFAULT_QUOTAS.seedStorageBytes,
+    });
     console.log(
       `Registered drive with seeder at ${config.seederAddress}${evicted > 0 ? ` (evicted ${evicted} archive(s) over quota)` : ""}`,
     );

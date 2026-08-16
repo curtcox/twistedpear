@@ -78,16 +78,20 @@ export { DestinationProofStrategy };
 export const DestinationAllowPolicy = DestinationAllowPolicyCode;
 export type DestinationAllowPolicyValue = DestinationAllowPolicyCodeValue;
 
+export interface RequestHandlerContext {
+  readonly path: string;
+  readonly data: Uint8Array | null;
+  readonly requestId: Uint8Array;
+  readonly linkId: Uint8Array;
+  readonly remoteIdentity: Identity | null;
+  readonly requestedAt: number;
+}
+
 export interface RequestHandler {
   readonly path: string;
   readonly pathHash: Uint8Array;
   readonly responseGenerator: (
-    path: string,
-    data: Uint8Array | null,
-    requestId: Uint8Array,
-    linkId: Uint8Array,
-    remoteIdentity: Identity | null,
-    requestedAt: number,
+    context: RequestHandlerContext,
   ) => Uint8Array | null | Promise<Uint8Array | null>;
   readonly allow: DestinationAllowPolicyValue;
   readonly allowedList: ReadonlyArray<Uint8Array>;

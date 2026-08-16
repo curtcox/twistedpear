@@ -98,13 +98,13 @@ describe("DeviceManager Phase 5 streaming", () => {
       maxRung: "720p30",
       ttlMs: 60_000,
     });
-    const stream = await manager.stream(
-      "app",
-      ["device:camera:frames", "device:stream"],
-      ["device:camera:frames", "device:stream"],
-      session.handle,
-      "peer-1",
-      {
+    const stream = await manager.stream({
+      appId: "app",
+      declared: ["device:camera:frames", "device:stream"],
+      granted: ["device:camera:frames", "device:stream"],
+      sessionHandle: session.handle,
+      peer: "peer-1",
+      constraints: {
         candidates: [
           {
             plane: "reticulum",
@@ -113,7 +113,7 @@ describe("DeviceManager Phase 5 streaming", () => {
           },
         ],
       },
-    );
+    });
     expect(stream.admission).toMatchObject({
       kind: "degrade",
       plane: "cas",
@@ -154,13 +154,13 @@ describe("DeviceManager Phase 5 streaming", () => {
       maxRung: "480p15",
       ttlMs: 60_000,
     });
-    const stream = await manager.stream(
-      "app",
-      ["device:camera:frames", "device:stream"],
-      ["device:camera:frames", "device:stream"],
-      session.handle,
-      "peer-1",
-    );
+    const stream = await manager.stream({
+      appId: "app",
+      declared: ["device:camera:frames", "device:stream"],
+      granted: ["device:camera:frames", "device:stream"],
+      sessionHandle: session.handle,
+      peer: "peer-1",
+    });
     expect(stream.admission.rung).toBe("480p15");
     expect(stream.admission.kind).toBe("degrade");
     expect(() =>
@@ -204,18 +204,18 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
     );
 
     await expect(
-      manager.stream(
-        "app",
-        ["device:camera"],
-        ["device:camera"],
-        session.handle,
-        "peer-1",
-        {
+      manager.stream({
+        appId: "app",
+        declared: ["device:camera"],
+        granted: ["device:camera"],
+        sessionHandle: session.handle,
+        peer: "peer-1",
+        constraints: {
           candidates: [
             { plane: "reticulum", effectiveBps: 400, headroomBps: 524_288 },
           ],
         },
-      ),
+      }),
     ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
 
     manager.grantShareOffer({
@@ -229,18 +229,18 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
       ttlMs: 60_000,
     });
 
-    const stream = await manager.stream(
-      "app",
-      ["device:camera", "device:stream"],
-      ["device:camera", "device:stream"],
-      session.handle,
-      "peer-1",
-      {
+    const stream = await manager.stream({
+      appId: "app",
+      declared: ["device:camera", "device:stream"],
+      granted: ["device:camera", "device:stream"],
+      sessionHandle: session.handle,
+      peer: "peer-1",
+      constraints: {
         candidates: [
           { plane: "reticulum", effectiveBps: 400, headroomBps: 524_288 },
         ],
       },
-    );
+    });
     expect(stream.admission.kind).toMatch(/accept|degrade|defer/);
     expect(stream.peer).toBe("peer-1");
     expect(manager.activeIndicators()[0]?.destination).toBe("peer-1");
@@ -317,13 +317,13 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
       maxRung: "48k-pcm",
       ttlMs: 60_000,
     });
-    const stream = await manager.stream(
-      "app",
-      ["device:microphone:pcm", "device:stream"],
-      ["device:microphone:pcm", "device:stream"],
-      session.handle,
-      "peer-1",
-    );
+    const stream = await manager.stream({
+      appId: "app",
+      declared: ["device:microphone:pcm", "device:stream"],
+      granted: ["device:microphone:pcm", "device:stream"],
+      sessionHandle: session.handle,
+      peer: "peer-1",
+    });
     expect(opened).toEqual(["48k-pcm"]);
     goodputBps = 10_000;
     now += 1_000;
@@ -376,14 +376,16 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
       maxRung: "derived-events",
       ttlMs: 60_000,
     });
-    const stream = await manager.stream(
-      "app",
-      ["device:camera", "device:stream"],
-      ["device:camera", "device:stream"],
-      session.handle,
-      "peer-2",
-      { candidates: [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }] },
-    );
+    const stream = await manager.stream({
+      appId: "app",
+      declared: ["device:camera", "device:stream"],
+      granted: ["device:camera", "device:stream"],
+      sessionHandle: session.handle,
+      peer: "peer-2",
+      constraints: {
+        candidates: [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }],
+      },
+    });
     expect(stream.admission).toMatchObject({
       kind: "degrade",
       plane: "cas",
@@ -485,18 +487,18 @@ describe("DeviceManager Phase 6 remote acquisition", () => {
       purpose: "watch",
     });
     await expect(
-      serving.stream(
-        `remote:peer-a`,
-        ["device:stream"],
-        ["device:stream"],
-        session.handle,
-        "peer-c",
-        {
+      serving.stream({
+        appId: `remote:peer-a`,
+        declared: ["device:stream"],
+        granted: ["device:stream"],
+        sessionHandle: session.handle,
+        peer: "peer-c",
+        constraints: {
           candidates: [
             { plane: "webrtc", effectiveBps: 1_000_000, headroomBps: 524_288 },
           ],
         },
-      ),
+      }),
     ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
   });
 

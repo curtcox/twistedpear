@@ -65,13 +65,13 @@ describe("mini-app capabilities", () => {
   it("persists grants and applies revocation to later reads", async () => {
     const store = new MemoryStore();
     const grants = new GrantStore(store);
-    await grants.set(
-      "app",
-      "publisher",
-      ["identity", "lxmf:send"],
-      ["identity", "lxmf:send"],
-      10,
-    );
+    await grants.set({
+      appId: "app",
+      publisherPublicKey: "publisher",
+      declared: ["identity", "lxmf:send"],
+      requestedGrants: ["identity", "lxmf:send"],
+      now: 10,
+    });
 
     expect(await grants.get("app", "publisher")).toMatchObject({
       appId: "app",
@@ -88,14 +88,14 @@ describe("mini-app capabilities", () => {
 
   it("persists approve and first use across GrantStore restarts", async () => {
     const store = new MemoryStore();
-    await new GrantStore(store).set(
-      "app",
-      "publisher",
-      ["identity"],
-      ["identity"],
-      10,
-      100,
-    );
+    await new GrantStore(store).set({
+      appId: "app",
+      publisherPublicKey: "publisher",
+      declared: ["identity"],
+      requestedGrants: ["identity"],
+      now: 10,
+      ttlMs: 100,
+    });
 
     expect(
       (await new GrantStore(store).use("app", "publisher", "identity", 11))
@@ -111,13 +111,27 @@ describe("mini-app capabilities", () => {
     for (const firstUse of [false, true]) {
       const store = new MemoryStore();
       let grants = new GrantStore(store);
-      await grants.set("app", "publisher", ["identity"], ["identity"], 10, 100);
+      await grants.set({
+        appId: "app",
+        publisherPublicKey: "publisher",
+        declared: ["identity"],
+        requestedGrants: ["identity"],
+        now: 10,
+        ttlMs: 100,
+      });
       if (firstUse) await grants.use("app", "publisher", "identity", 11);
       await grants.revoke("app", "publisher", "identity", 12);
 
       grants = new GrantStore(store);
       await expect(
-        grants.set("app", "publisher", ["identity"], ["identity"], 13, 100),
+        grants.set({
+          appId: "app",
+          publisherPublicKey: "publisher",
+          declared: ["identity"],
+          requestedGrants: ["identity"],
+          now: 13,
+          ttlMs: 100,
+        }),
       ).rejects.toMatchObject({ code: "CAPABILITY_DENIED" });
       expect((await grants.get("app", "publisher"))?.granted).toEqual([]);
     }
@@ -127,24 +141,24 @@ describe("mini-app capabilities", () => {
     const deniedStore = new MemoryStore();
     await new GrantStore(deniedStore).deny("app", "publisher", "identity", 10);
     await expect(
-      new GrantStore(deniedStore).set(
-        "app",
-        "publisher",
-        ["identity"],
-        ["identity"],
-        11,
-      ),
+      new GrantStore(deniedStore).set({
+        appId: "app",
+        publisherPublicKey: "publisher",
+        declared: ["identity"],
+        requestedGrants: ["identity"],
+        now: 11,
+      }),
     ).rejects.toMatchObject({ code: "CAPABILITY_DENIED" });
 
     const expiredStore = new MemoryStore();
-    await new GrantStore(expiredStore).set(
-      "app",
-      "publisher",
-      ["identity"],
-      ["identity"],
-      10,
-      2,
-    );
+    await new GrantStore(expiredStore).set({
+      appId: "app",
+      publisherPublicKey: "publisher",
+      declared: ["identity"],
+      requestedGrants: ["identity"],
+      now: 10,
+      ttlMs: 2,
+    });
     expect(
       (
         await new GrantStore(expiredStore).use(
@@ -156,13 +170,13 @@ describe("mini-app capabilities", () => {
       )?.granted,
     ).toEqual([]);
     await expect(
-      new GrantStore(expiredStore).set(
-        "app",
-        "publisher",
-        ["identity"],
-        ["identity"],
-        13,
-      ),
+      new GrantStore(expiredStore).set({
+        appId: "app",
+        publisherPublicKey: "publisher",
+        declared: ["identity"],
+        requestedGrants: ["identity"],
+        now: 13,
+      }),
     ).rejects.toMatchObject({ code: "CAPABILITY_DENIED" });
   });
 });

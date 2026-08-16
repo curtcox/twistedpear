@@ -22,6 +22,7 @@ import type {
   DevicePeerHandle,
   DeviceStreamConstraints,
   DeviceStreamHandle,
+  DeviceStreamOptions,
   DeviceStreamSession,
   LiveSession,
 } from "./shared.js";
@@ -36,14 +37,15 @@ type StreamAdaptationContext = {
 };
 
 export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
-  async stream(
-    appId: string,
-    declared: ReadonlyArray<string>,
-    granted: ReadonlyArray<string>,
-    sessionHandle: import("./shared.js").DeviceSessionHandle,
-    peer: DevicePeerHandle,
-    constraints: DeviceStreamConstraints = {},
-  ): Promise<DeviceStreamSession> {
+  async stream(options: DeviceStreamOptions): Promise<DeviceStreamSession> {
+    const {
+      appId,
+      declared,
+      granted,
+      sessionHandle,
+      peer,
+      constraints = {},
+    } = options;
     this.assertStreamCapability(declared, granted);
     this.assertStreamPeer(peer);
     const live = this.requireLiveSession(appId, sessionHandle);

@@ -71,8 +71,7 @@ export class PropagationNodeStore {
   registerHandlers(destination: RegisteredDestination): void {
     destination.registerRequestHandler(
       MESSAGE_GET_PATH,
-      (_path, data, _requestId, _linkId, remoteIdentity) =>
-        this.handleGetRequest(data, remoteIdentity),
+      ({ data, remoteIdentity }) => this.handleGetRequest(data, remoteIdentity),
       DestinationAllowPolicy.ALLOW_ALL,
     );
 

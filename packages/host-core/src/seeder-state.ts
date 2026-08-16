@@ -26,6 +26,15 @@ export interface SeederArchiveVersion {
   readonly size: number;
 }
 
+export interface RegisterDriveWithSeederQuotaOptions {
+  readonly stateDir: string;
+  readonly driveKey: string;
+  readonly version: string;
+  readonly packageHash: string;
+  readonly archiveBytes: Uint8Array;
+  readonly quotaBytes: number;
+}
+
 export function isSeederStateDir(address: string | null): address is string {
   if (address === null || address.length === 0) {
     return false;
@@ -235,21 +244,16 @@ export function registerDriveWithSeeder(
 }
 
 export function registerDriveWithSeederQuota(
-  stateDir: string,
-  driveKey: string,
-  version: string,
-  packageHash: string,
-  archiveBytes: Uint8Array,
-  quotaBytes: number,
+  options: RegisterDriveWithSeederQuotaOptions,
 ): number {
   registerDriveWithSeeder(
-    stateDir,
-    driveKey,
-    version,
-    packageHash,
-    archiveBytes,
+    options.stateDir,
+    options.driveKey,
+    options.version,
+    options.packageHash,
+    options.archiveBytes,
   );
-  return evictSeederToQuota(stateDir, quotaBytes);
+  return evictSeederToQuota(options.stateDir, options.quotaBytes);
 }
 
 export function listSeederArchives(

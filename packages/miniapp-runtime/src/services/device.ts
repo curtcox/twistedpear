@@ -118,14 +118,14 @@ export class DeviceBrokerService {
         "Device session handle is required.",
       );
     }
-    return this.manager.stream(
+    return this.manager.stream({
       appId,
       declared,
       granted,
-      payload.handle,
-      payload.peer,
-      payload.constraints ?? {},
-    );
+      sessionHandle: payload.handle,
+      peer: payload.peer,
+      constraints: payload.constraints,
+    });
   }
 
   async closeStream(

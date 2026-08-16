@@ -271,13 +271,13 @@ export function createGrantApiMethods({ grantStore, now, pushGrants }) {
       declaredCapabilities,
       grantedCapabilities,
     ) {
-      await grantStore.set(
+      await grantStore.set({
         appId,
         publisherPublicKey,
-        declaredCapabilities,
-        grantedCapabilities,
-        now(),
-      );
+        declared: declaredCapabilities,
+        requestedGrants: grantedCapabilities,
+        now: now(),
+      });
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
     },
 

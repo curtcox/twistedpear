@@ -257,14 +257,14 @@ export class LinkLayer3 extends LinkLayer3Core {
       readonly packedResponse: Uint8Array | null;
     },
   ): Promise<void> {
-    const response = await ctx.handler!.responseGenerator(
-      ctx.handler!.path,
-      ctx.unpacked!.data,
-      ctx.requestId,
-      this.linkId,
-      this.remoteIdentity,
-      ctx.unpacked!.requestedAt,
-    );
+    const response = await ctx.handler!.responseGenerator({
+      path: ctx.handler!.path,
+      data: ctx.unpacked!.data,
+      requestId: ctx.requestId,
+      linkId: this.linkId,
+      remoteIdentity: this.remoteIdentity,
+      requestedAt: ctx.unpacked!.requestedAt,
+    });
 
     const packStepped =
       response !== null

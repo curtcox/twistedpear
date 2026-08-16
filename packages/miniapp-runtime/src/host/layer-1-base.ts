@@ -115,13 +115,13 @@ export abstract class MiniappHostLayer1Base {
     requestedGrants: ReadonlyArray<string>,
   ): Promise<GrantRecord> {
     return Promise.resolve(
-      this.options.grantStore.set(
+      this.options.grantStore.set({
         appId,
         publisherPublicKey,
         declared,
         requestedGrants,
-        this.now(),
-      ),
+        now: this.now(),
+      }),
     );
   }
 

@@ -1,10 +1,5 @@
 {
   "version": 1,
   "description": "complexity findings present when the ratchet was established; entries may only disappear.",
-  "entries": [
-    "packages/host-core/src/seeder-state.ts:max-params:Function 'registerDriveWithSeederQuota' has too many parameters (#). Maximum allowed is #.:occurrence-1",
-    "packages/miniapp-runtime/src/capabilities.ts:max-params:Async method 'set' has too many parameters (#). Maximum allowed is #.:occurrence-1",
-    "packages/miniapp-runtime/src/device-manager/layer-1.ts:max-params:Async method 'stream' has too many parameters (#). Maximum allowed is #.:occurrence-1",
-    "packages/reticulum-ts/src/registered-destination.ts:max-params:Function has too many parameters (#). Maximum allowed is #.:occurrence-1"
-  ]
+  "entries": []
 }
