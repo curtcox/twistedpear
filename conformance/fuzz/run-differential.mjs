@@ -18,7 +18,7 @@
  * publishes an artifact like every other gate.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -218,6 +218,36 @@ function typescriptVerdict(target, bytes) {
 
 /** Build the pinned reference image, and say plainly when Docker is the problem. */
 function buildImage() {
+  const dockerfile = readFileSync(
+    join(repoRoot, "conformance/docker/Dockerfile"),
+    "utf8",
+  );
+  const rns = dockerfile.match(/^ARG RNS_VERSION=(.+)$/m)?.[1];
+  const lxmf = dockerfile.match(/^ARG LXMF_VERSION=(.+)$/m)?.[1];
+  if (!rns || !lxmf) {
+    throw new Error("Could not read pinned reference versions from Dockerfile");
+  }
+  // Docker resolves the base-image manifest even when every layer is cached.
+  // That makes an otherwise hermetic gate depend on Docker Hub availability.
+  // Reuse a local image only after asking the image itself for both pinned
+  // package versions; the current driver is mounted read-only at run time.
+  const cached = spawnSync(
+    "docker",
+    [
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      IMAGE,
+      "python",
+      "-c",
+      "import RNS,LXMF; print(RNS.__version__, LXMF.__version__)",
+    ],
+    { cwd: repoRoot, encoding: "utf8" },
+  );
+  if (cached.status === 0 && cached.stdout.trim() === `${rns} ${lxmf}`) {
+    return;
+  }
   const built = spawnSync(
     "docker",
     [
