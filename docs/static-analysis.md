@@ -97,6 +97,7 @@ intentionally loosen a baseline.
 | Structural reliability | `npm run ast-grep:check`             | missing request deadlines, dropped errors, non-idempotent retries, and locale-dependent comparisons in `ast-grep-ratchet.json`, keyed by rule, file and enclosing symbol                                    |
 | Accessibility          | `npm run a11y:check`                 | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                                     |
 | API signatures         | `npm run api-signatures:check`       | SHA-256 digests of API Extractor's complete signature reports in `api-signatures-policy.json`; report Markdown is published as a CI artifact                                                                |
+| Generated freshness    | `npm run generated:check`            | schema-derived TypeScript, device capabilities, mobile store posture, and both committed shipping worklet bundles                                                                                           |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.

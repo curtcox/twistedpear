@@ -167,6 +167,14 @@ export const gates = [
     ["node"],
     ["reports/api", "api-signatures-policy.json"],
   ),
+  gate(
+    "generated-freshness",
+    "Committed generated artifact freshness",
+    "generated:check",
+    "pr",
+    ["node"],
+    ["artifacts/generated-freshness.json"],
+  ),
   // Measures the apparatus, not the code: gates, CI jobs, conformance runners
   // and test counts that may not quietly shrink. Every other gate here gets
   // *easier* when tests are deleted or a gate is dropped; this one is the
