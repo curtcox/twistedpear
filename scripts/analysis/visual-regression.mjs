@@ -30,7 +30,7 @@ function main() {
     ]),
   );
   let generated = null;
-  let commandFailed = false;
+  let commandFailed;
   try {
     const result = spawnSync(
       process.execPath,
