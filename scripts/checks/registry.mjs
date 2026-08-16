@@ -418,6 +418,24 @@ export const gates = [
     ["artifacts/languages/rust-tests.json"],
     "native-tests",
   ),
+  // `rust-tests` above proves the tests pass. It cannot say how much they
+  // touch, and `cargo test` reports "ok" for a suite that has been annotated
+  // out: adding `#[ignore]` to the locator contract's only test drops it from
+  // 77.3% to 52.6% lines while that gate stays green. The coverage ratchet
+  // covers `packages/*` and `apps/*` — TypeScript only — so the three Freenet
+  // contracts, the code peers have to agree on, were the least measured in the
+  // repository.
+  gate(
+    "rust-coverage",
+    "Rust coverage ratchet",
+    "coverage:rust",
+    "pr",
+    ["rust", "cargo-llvm-cov"],
+    [
+      "artifacts/languages/rust-coverage.json",
+      "language-ratchets/rust-coverage.json",
+    ],
+  ),
   gate(
     "swift-tests",
     "Swift bridge unit tests",

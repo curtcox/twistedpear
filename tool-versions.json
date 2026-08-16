@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Pinned versions of every external tool a gate shells out to. The pins existed in five places at once — docs/static-analysis.md, three workflows, and scripts/languages/*.mjs — which is four ways for them to disagree. This file is the source; conformance/checks/tool-versions.test.mjs fails when a copy drifts from it, and scripts/tools/requirements.mjs probes the installed tool against it so `npm run tools:doctor` reports a mismatch instead of only an absence.",
+  "description": "Pinned versions of every external tool a gate shells out to. The pins existed in five places at once \u2014 docs/static-analysis.md, three workflows, and scripts/languages/*.mjs \u2014 which is four ways for them to disagree. This file is the source; conformance/checks/tool-versions.test.mjs fails when a copy drifts from it, and scripts/tools/requirements.mjs probes the installed tool against it so `npm run tools:doctor` reports a mismatch instead of only an absence.",
   "tools": {
     "actionlint": {
       "version": "1.7.12",
@@ -38,6 +38,10 @@
     "cargo-fuzz": {
       "version": "0.13.1",
       "probe": ["cargo-fuzz", "--version"]
+    },
+    "cargo-llvm-cov": {
+      "version": "0.6.21",
+      "probe": ["cargo-llvm-cov", "llvm-cov", "--version"]
     },
     "cargo-deny": {
       "version": "0.20.2",

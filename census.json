@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T13:09:15.514Z",
+  "generatedAt": "2026-08-16T13:16:52.091Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -43,6 +43,7 @@
       "python tier=pr run=lint:python",
       "release-harness tier=pr run=test:release-harness",
       "rust tier=pr run=lint:rust",
+      "rust-coverage tier=pr run=coverage:rust",
       "rust-fuzz tier=nightly run=fuzz:rust",
       "rust-tests tier=pr run=test:rust",
       "sbom tier=nightly run=sbom",
@@ -500,7 +501,7 @@
     "floor:mutation:score": 62.6,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 11,
-    "gates:pr": 44,
+    "gates:pr": 45,
     "gates:release": 1,
     "scripts:quality": 160,
     "skips:suppressed-tests": 1,

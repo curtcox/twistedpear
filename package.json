@@ -271,6 +271,8 @@
     "lint:kotlin": "node scripts/languages/check.mjs kotlin",
     "lint:swift": "node scripts/languages/check.mjs swift",
     "test:rust": "node scripts/languages/test.mjs rust",
+    "coverage:rust": "node scripts/languages/coverage.mjs rust",
+    "coverage:rust:baseline": "node scripts/languages/coverage.mjs rust --write",
     "test:swift": "node scripts/languages/test.mjs swift",
     "test:kotlin": "node scripts/languages/test.mjs kotlin",
     "mutation": "npm run build && node node_modules/@stryker-mutator/core/bin/stryker.js run",

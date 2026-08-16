@@ -371,7 +371,25 @@ silently and forever.
 | `swift-tests`  | `npm run test:swift`  | PR      | `swift test` for each Swift package with a `Tests` directory, macOS runner |
 | `kotlin-tests` | `npm run test:kotlin` | Nightly | the three Android bridge JVM unit-test tasks                               |
 
-Nothing here is ratcheted. Every other analysis gate carries a baseline of findings
+`rust-coverage` (`npm run coverage:rust`, PR) is the measurement those gates cannot
+make. `cargo test` says whether the tests pass, not how much they touch — and it reports
+`ok` for a suite that has been annotated out. Adding `#[ignore]` to the locator contract's
+single test takes it from 77.3% to 52.6% of lines while `rust-tests` stays green. The
+coverage ratchet covers `packages/*` and `apps/*`, which is TypeScript and only
+TypeScript, so the three Freenet contracts — the code peers have to agree on, and the
+target of the fuzzing gate — were the least measured in the repository.
+
+`cargo llvm-cov` reports lines, functions, and regions per crate into
+`language-ratchets/rust-coverage.json`, with floors that may only rise and the same 0.5
+point tolerance the TypeScript ratchet uses. Branch coverage is deliberately absent:
+llvm-cov needs an unstable flag for it and reports a flat 0 on the pinned stable
+toolchain, and a floor of 0 that can never move looks like a floor without being one.
+Regions are the stable stand-in — a region is a straight-line span, so a half-taken
+branch shows up as an unexecuted region. The four crates baseline at 70.8%, 77.3%, 69.2%
+and 75.1% of lines. A crate that keeps a floor but stops being measured fails, because
+renaming or dropping one would otherwise retire its floor in silence.
+
+Nothing else here is ratcheted. Every other analysis gate carries a baseline of findings
 that may only shrink; a test suite does not get a list of tests that are allowed to
 fail. The gates publish suite and test counts, so a suite that stops being
 discovered shows up as a falling number rather than as a green tick over nothing —
@@ -504,7 +522,7 @@ Swift uses SwiftLint on macOS; shell uses ShellCheck; workflows use actionlint.
 
 The reproducible tool versions are actionlint 1.7.12, Gitleaks 8.30.1, ShellCheck 0.11.0,
 Ruff 0.15.16, mypy 2.1.0, lizard 1.23.0, Rust 1.97.1, Rust nightly-2026-06-01,
-cargo-fuzz 0.13.1, cargo-deny 0.20.2, ktlint 1.8.0, and
+cargo-fuzz 0.13.1, cargo-llvm-cov 0.6.21, cargo-deny 0.20.2, ktlint 1.8.0, and
 SwiftLint 0.65.0. They are declared once, in `tool-versions.json`; this list, the three
 workflows, `conformance/fuzz/rust/rust-toolchain.toml`, and `scripts/languages/*.mjs` are
 copies, and `conformance/checks/tool-versions.test.mjs` fails when one drifts from the

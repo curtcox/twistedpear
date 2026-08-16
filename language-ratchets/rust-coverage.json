@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "description": "Per-crate Rust coverage floors from cargo llvm-cov. Values may only rise. Branch coverage is absent on purpose: llvm-cov needs an unstable flag for it and reports 0 on the pinned stable toolchain, and a floor that can never move looks like a floor without being one. Regions are the stable stand-in.",
+  "tolerance": 0.5,
+  "crates": {
+    "conformance/freenet-spike/ordered-log-contract": {
+      "lines": 70.8,
+      "functions": 70.8,
+      "regions": 73.1
+    },
+    "packages/bridge-freenet/contract/locator": {
+      "lines": 77.3,
+      "functions": 77.8,
+      "regions": 78.7
+    },
+    "packages/bridge-freenet/contract/packet-log": {
+      "lines": 69.2,
+      "functions": 69.2,
+      "regions": 72.8
+    },
+    "packages/bridge-freenet/contract/propagation-set": {
+      "lines": 75.1,
+      "functions": 81.8,
+      "regions": 78.8
+    }
+  }
+}

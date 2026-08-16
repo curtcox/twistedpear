@@ -263,6 +263,53 @@ export const REQUIREMENTS = {
       ],
     },
   },
+  // Needs `llvm-tools-preview` on the pinned stable toolchain, not just the
+  // binary: cargo-llvm-cov shells out to `llvm-profdata` and `llvm-cov` from the
+  // toolchain's own component, and without it fails at run time rather than at
+  // install.
+  "cargo-llvm-cov": {
+    why: "coverage floors for the Rust contracts",
+    probe: () => hasCommand("cargo-llvm-cov", ["llvm-cov", "--version"]),
+    needs: ["rust"],
+    install: {
+      darwin: [
+        [
+          "rustup",
+          "component",
+          "add",
+          "llvm-tools-preview",
+          "--toolchain",
+          PINS.rust.version,
+        ],
+        [
+          "cargo",
+          "install",
+          "cargo-llvm-cov",
+          "--version",
+          PINS["cargo-llvm-cov"].version,
+          "--locked",
+        ],
+      ],
+      linux: [
+        [
+          "rustup",
+          "component",
+          "add",
+          "llvm-tools-preview",
+          "--toolchain",
+          PINS.rust.version,
+        ],
+        [
+          "cargo",
+          "install",
+          "cargo-llvm-cov",
+          "--version",
+          PINS["cargo-llvm-cov"].version,
+          "--locked",
+        ],
+      ],
+    },
+  },
   "cargo-deny": {
     why: "the Rust dependency and licence policy",
     probe: () => hasCommand("cargo-deny"),
