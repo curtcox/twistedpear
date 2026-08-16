@@ -375,7 +375,7 @@ function writeBaseline(scores, baseline, baselineFile) {
 }
 
 /** What the run measured, or the floors it could not measure against. */
-function report(scores, baseline) {
+function reportScores(scores, baseline) {
   if (scores === null) {
     console.log(
       `Mutation ratchet: no survey report; floors are combined ${baseline.combined}%, ${Object.entries(
@@ -407,7 +407,7 @@ function checkFloors(scores, baseline) {
   const previous = ref ? jsonAtRef(ROOT, ref, "mutation-ratchet.json") : null;
   failures.push(...comparePolicy(baseline, previous));
 
-  report(scores, baseline);
+  reportScores(scores, baseline);
 
   if (failures.length > 0) {
     console.error("");
