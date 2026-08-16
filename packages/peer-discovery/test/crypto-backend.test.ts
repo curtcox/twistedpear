@@ -7,7 +7,7 @@ import {
 import {
   CryptoPeerPairingBackend,
   type CryptoPeerPairingOptions,
-} from "../src/index.js";
+} from "../src/crypto-backend.js";
 
 function options(
   seed: number,

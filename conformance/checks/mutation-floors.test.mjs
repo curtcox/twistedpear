@@ -20,6 +20,22 @@ import {
   scoresFrom,
   unflooredPackages,
 } from "../../scripts/analysis/mutation.mjs";
+import { MUTATED_PACKAGES, MUTATION_TARGETS } from "../../stryker.config.mjs";
+
+describe("mutation scope", () => {
+  it("keeps every mutated package explicit and selectively covers new seams", () => {
+    expect(MUTATED_PACKAGES).toHaveLength(9);
+    expect(MUTATION_TARGETS["miniapp-runtime"]).toContain(
+      "packages/miniapp-runtime/src/security-policies.ts",
+    );
+    expect(MUTATION_TARGETS["peer-discovery"]).toContain(
+      "packages/peer-discovery/src/{budget,coordinator,crypto-backend,replay-cache}.ts",
+    );
+    expect(MUTATION_TARGETS["reticulum-interfaces"]).toContain(
+      "packages/reticulum-interfaces/src/policy.ts",
+    );
+  });
+});
 
 const mutants = (killed, survived) => [
   ...Array.from({ length: killed }, () => ({ status: "Killed" })),

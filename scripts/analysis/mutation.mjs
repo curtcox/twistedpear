@@ -23,6 +23,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { baseRef, jsonAtRef, readJson, writeJson } from "../ratchet/lib.mjs";
+import { mergeReports } from "./mutation-merge.mjs";
+import { MUTATED_PACKAGES } from "../../stryker.config.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -33,7 +35,7 @@ const write = process.argv.includes("--write");
 const allowRegressions = process.argv.includes("--allow-regressions");
 
 const DESCRIPTION =
-  "Mutation score floors: one per mutated package, plus the combined figure across all of them. Per-package floors may only rise, compared with a 0.5 point tolerance because Timeout counts as killed and how many mutants time out depends on machine load. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries 25074 of the 41374 mutants, so packages/reticulum-ts could collapse and move the combined score by a few points. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes; it is the one figure a change of scope may lower, since it is a mutant-weighted average and is not comparable across two different package sets.";
+  "Mutation score floors: one per mutated package, plus the combined figure across all of them. Per-package floors may only rise, compared with a 0.5 point tolerance because Timeout counts as killed and how many mutants time out depends on machine load. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries roughly 25,000 of the roughly 42,500 mutants, so a smaller package could collapse and move the combined score by only a few points. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes; it is the one figure a change of scope may lower, since it is a mutant-weighted average and is not comparable across two different package sets.";
 
 function runSurvey() {
   // Stryker runs the vitest suite once per mutant, and vitest's GitHub Actions
@@ -43,12 +45,25 @@ function runSurvey() {
   // parent process keeps its own GITHUB_STEP_SUMMARY; only Stryker loses it.
   const env = { ...process.env };
   delete env.GITHUB_STEP_SUMMARY;
-  const result = spawnSync(
-    process.execPath,
-    ["node_modules/@stryker-mutator/core/bin/stryker.js", "run"],
-    { cwd: ROOT, stdio: "inherit", env },
+  const reports = [];
+  for (const name of MUTATED_PACKAGES) {
+    console.log(`\nMutation shard: ${name}`);
+    const result = spawnSync(
+      process.execPath,
+      ["node_modules/@stryker-mutator/core/bin/stryker.js", "run"],
+      {
+        cwd: ROOT,
+        stdio: "inherit",
+        env: { ...env, MUTATION_PACKAGES: name },
+      },
+    );
+    if (result.status !== 0) process.exit(result.status ?? 1);
+    reports.push(readJson(path.join(ROOT, "reports/mutation/mutation.json")));
+  }
+  writeJson(
+    path.join(ROOT, "reports/mutation/mutation.json"),
+    mergeReports(reports),
   );
-  if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
 const KILLED = ["Killed", "Timeout", "RuntimeError", "CompileError"];

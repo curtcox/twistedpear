@@ -11,12 +11,16 @@ change. This document covers the nightly `mutation` gate and the cheap `mutation
 PR gate that guards its floors; the rest of the analysis gates are in
 [static analysis](static-analysis.md).
 
-Nightly Stryker analysis covers `packages/protocol`, `packages/effects`,
-`packages/reticulum-ts`, `packages/lxmf-ts`, `packages/cas-256t`, and
-`packages/host-core`. It ignores static mutants that would exceed the CI time budget and
-writes `reports/mutation/mutation.json`. `mutation-ratchet.json` holds one floor per
-mutated package plus the combined figure, and the cheap `mutation-policy` PR gate prevents
-any of them from decreasing.
+Nightly Stryker analysis covers nine packages. It measures all authored sources in
+`protocol`, `effects`, `reticulum-ts`, `lxmf-ts`, `cas-256t`, and `host-core`, plus the
+authority, authentication, replay, policy, sandbox, and framing seams in
+`miniapp-runtime`, `peer-discovery`, and `reticulum-interfaces`. It ignores static mutants
+that would exceed the CI time budget. Each package runs as an isolated shard with only its
+package and related conformance tests loaded; the gate merges the nine reports into
+`reports/mutation/mutation.json`. This avoids loading the entire native-backed test suite
+inside every Stryker worker and makes a failed package attributable. `mutation-ratchet.json`
+holds one floor per mutated package plus the combined figure, and the cheap
+`mutation-policy` PR gate prevents any of them from decreasing.
 
 Until 2026-08-15 the list was `protocol` and `effects` alone. Everywhere else, coverage
 percentage was the only signal of test quality — and coverage measures execution, not
@@ -25,14 +29,17 @@ packages added are where that gap mattered most. `reticulum-ts` and `lxmf-ts` ar
 wire-compatible stacks, where a silently wrong byte is the entire failure mode, and
 `host-core` orchestrates the host. Measuring them was not reassuring:
 
-| Package                 | Mutation score | Coverage (statements) |
-| ----------------------- | -------------- | --------------------- |
-| `packages/protocol`     | 71.70%         | 89%+                  |
-| `packages/cas-256t`     | 69.51%         | 89.62%                |
-| `packages/effects`      | 52.08%         | 80%+                  |
-| `packages/lxmf-ts`      | 49.40%         | high                  |
-| `packages/host-core`    | 48.52%         | high                  |
-| `packages/reticulum-ts` | 46.39%         | high                  |
+| Package                         | Mutation score | Coverage (statements) |
+| ------------------------------- | -------------- | --------------------- |
+| `packages/protocol`             | 71.70%         | 89%+                  |
+| `packages/cas-256t`             | 69.51%         | 89.62%                |
+| `packages/miniapp-runtime`      | 65.52%         | high                  |
+| `packages/reticulum-interfaces` | 64.84%         | high                  |
+| `packages/peer-discovery`       | 57.52%         | high                  |
+| `packages/effects`              | 52.08%         | 80%+                  |
+| `packages/lxmf-ts`              | 49.40%         | high                  |
+| `packages/host-core`            | 48.52%         | high                  |
+| `packages/reticulum-ts`         | 46.39%         | high                  |
 
 Better than half of all mutations survive in the three lowest, against coverage numbers
 that look healthy — which is the entire argument for measuring this at all. The survey
@@ -42,11 +49,17 @@ names the specific holes rather than just the totals: `reticulum-ts/src/msgpack.
 floors are recorded where they are so they can only rise; they are a debt register, not an
 endorsement.
 
+The three selectively covered packages also gained direct tests for sandbox dispatch,
+byte-wire revival, bundle preparation, one-use security policies, discovery deadlines,
+and bounded replay memory. The first mini-app survey scored 37.93% because all three
+sandbox seams were untested; those tests raised the recorded package floor to 65.52%.
+
 `MUTATION_PACKAGES=reticulum-ts,lxmf-ts` scopes a run to a subset, which is how a single
 package's floor is iterated on without paying for the whole survey —
-`packages/protocol` alone carries 25 040 of the 41 340 mutants.
+`packages/protocol` alone carries about 25 000 mutants.
 `scripts/analysis/mutation-merge.mjs` unions scoped reports back into one survey report,
-so a baseline can be composed from separate runs. It refuses inputs that mutate the same
+so a baseline can be composed from separate runs; the nightly gate now does this
+automatically. It refuses inputs that mutate the same
 file twice, since overlapping scopes are a mistake rather than something to resolve
 silently.
 

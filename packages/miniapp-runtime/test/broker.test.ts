@@ -3,7 +3,7 @@ import {
   MiniappBroker,
   type BrokerAuditEntry,
   type BrokerContext,
-} from "../src/index.js";
+} from "../src/broker.js";
 
 const context: BrokerContext = {
   appId: "app",

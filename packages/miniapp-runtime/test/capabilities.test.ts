@@ -5,7 +5,7 @@ import {
   assertCapabilityAllowed,
   validateManifestCapabilities,
   type GrantKeyValueStore,
-} from "../src/index.js";
+} from "../src/capabilities.js";
 
 class MemoryStore implements GrantKeyValueStore {
   readonly values = new Map<string, Uint8Array>();

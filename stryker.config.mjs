@@ -10,17 +10,38 @@
  * `packages/protocol` carries roughly 25 000 of the mutants on its own, so
  * scoping matters: `MUTATION_PACKAGES` narrows a run to a comma-separated
  * subset (`MUTATION_PACKAGES=cas-256t,lxmf-ts`) for iterating on one package's
- * floor without paying for the survey. An unscoped run mutates all of them,
- * which is what the nightly gate does.
+ * floor without paying for the survey. An unscoped direct Stryker run mutates
+ * all of them; the nightly gate shards that same list and merges the reports.
  */
-export const MUTATED_PACKAGES = [
-  "protocol",
-  "effects",
-  "reticulum-ts",
-  "lxmf-ts",
-  "cas-256t",
-  "host-core",
-];
+export const MUTATION_TARGETS = {
+  protocol: ["packages/protocol/src/**/*.ts"],
+  effects: ["packages/effects/src/**/*.ts"],
+  "reticulum-ts": ["packages/reticulum-ts/src/**/*.ts"],
+  "lxmf-ts": ["packages/lxmf-ts/src/**/*.ts"],
+  "cas-256t": ["packages/cas-256t/src/**/*.ts"],
+  "host-core": ["packages/host-core/src/**/*.ts"],
+  // These packages are substantially larger or contain hardware adapters.
+  // Mutate their authority, authentication, replay, policy, and wire-framing
+  // seams first: they are deterministic, security-sensitive, and have focused
+  // unit suites. Expanding the whole packages would add roughly 14 000 mutants
+  // and made Stryker's instrumented dry run abort before tests could start.
+  "miniapp-runtime": [
+    "packages/miniapp-runtime/src/broker.ts",
+    "packages/miniapp-runtime/src/capabilities.ts",
+    "packages/miniapp-runtime/src/security-policies.ts",
+    "packages/miniapp-runtime/src/sandbox/{broker-dispatch,json-wire,prepare-bundle}.ts",
+  ],
+  "reticulum-interfaces": [
+    "packages/reticulum-interfaces/src/policy.ts",
+    "packages/reticulum-interfaces/src/auto-discovery.ts",
+    "packages/reticulum-interfaces/src/{ble/spec-framing,optical/framing}.ts",
+  ],
+  "peer-discovery": [
+    "packages/peer-discovery/src/{budget,coordinator,crypto-backend,replay-cache}.ts",
+  ],
+};
+
+export const MUTATED_PACKAGES = Object.keys(MUTATION_TARGETS);
 
 const requested = process.env.MUTATION_PACKAGES?.trim();
 const selected = requested
@@ -41,7 +62,7 @@ for (const name of selected) {
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   mutate: [
-    ...selected.map((name) => `packages/${name}/src/**/*.ts`),
+    ...selected.flatMap((name) => MUTATION_TARGETS[name]),
     // Generated sources have no author to fix a surviving mutant, and a barrel
     // is re-exports: mutating it measures the module system, not the tests.
     "!packages/**/*.gen.ts",
@@ -65,11 +86,17 @@ export default {
     "**/ios/Pods/**",
   ],
   testRunner: "vitest",
-  vitest: { configFile: "vitest.config.ts" },
+  // Ask Vitest for tests related to the instrumented sources. Running every
+  // project for each package loaded the entire 850-file suite into a worker
+  // and can abort during Stryker's dry run before a mutant is exercised.
+  vitest: {
+    configFile: "vitest.mutation.config.ts",
+    related: true,
+  },
   reporters: ["clear-text", "progress", "json"],
   jsonReporter: { fileName: "reports/mutation/mutation.json" },
   coverageAnalysis: "perTest",
-  // Static mutants reload the full 850-test mutation workspace and accounted
+  // Static mutants repeatedly reload the mutation workspace and accounted
   // for 83% of the measured survey runtime, exceeding the three-hour CI limit.
   ignoreStatic: true,
   // Keep disposable sandboxes under the repository's standard ignored output

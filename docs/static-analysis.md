@@ -538,7 +538,7 @@ pinned Linux download commands. `npm run check:all` prints a skip instead of fai
 an optional local tool is absent.
 
 Mutation testing has its own document: [mutation testing](mutation-testing.md). It is
-nightly, it covers six packages, and the reasoning about floors, tolerance, and scope
+nightly, it covers nine packages, and the reasoning about floors, tolerance, and scope
 changes is long enough that keeping it here pushed this file past its size threshold.
 
 ## Published metrics
